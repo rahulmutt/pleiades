@@ -5464,6 +5464,40 @@ mod tests {
     }
 
     #[test]
+    fn packaged_artifact_production_profile_summary_validation_rejects_artifact_version_drift() {
+        let mut summary = packaged_artifact_production_profile_summary_details();
+        summary.artifact_version += 1;
+
+        let error = summary
+            .validate()
+            .expect_err("artifact version drift should be rejected");
+        assert_eq!(
+            error,
+            PackagedArtifactProductionProfileSummaryValidationError::FieldOutOfSync {
+                field: "artifact_version",
+            }
+        );
+        assert!(error.to_string().contains("artifact_version"));
+    }
+
+    #[test]
+    fn packaged_artifact_production_profile_summary_validation_rejects_artifact_profile_drift() {
+        let mut summary = packaged_artifact_production_profile_summary_details();
+        summary.artifact_profile.speed_policy = pleiades_compression::SpeedPolicy::Stored;
+
+        let error = summary
+            .validate()
+            .expect_err("artifact profile drift should be rejected");
+        assert_eq!(
+            error,
+            PackagedArtifactProductionProfileSummaryValidationError::FieldOutOfSync {
+                field: "artifact_profile",
+            }
+        );
+        assert!(error.to_string().contains("artifact_profile"));
+    }
+
+    #[test]
     fn packaged_artifact_production_profile_summary_validation_rejects_target_threshold_drift() {
         let mut summary = packaged_artifact_production_profile_summary_details();
         summary.target_thresholds = PackagedArtifactTargetThresholdSummary {
