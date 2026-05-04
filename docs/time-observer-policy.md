@@ -40,7 +40,7 @@ Batch callers should use `validate_requests_against_metadata()` on slices before
 
 Routing backends are treated specially by that helper: the aggregate router metadata still checks body coverage, but it defers the time-scale, frame, zodiac, apparentness, observer, and batch checks to the selected provider because the combined routing metadata is intentionally conservative. That keeps route-based backend swaps from being blocked by a coarse aggregate capability summary.
 
-Validation and release summaries also surface a compact `Primary request surfaces:` line that mirrors this split so the entry-point contract stays visible in report output, not just in the prose table. That line is backed by the reusable `pleiades-validate::RequestSurfaceSummary` helper so downstream tooling can reuse the same typed inventory instead of reconstructing the five surfaces from prose.
+Validation and release summaries also surface a compact `Primary request surfaces:` line that mirrors this split so the entry-point contract stays visible in report output, not just in the prose table. That line is backed by the reusable `pleiades-validate::RequestSurfaceSummary` helper so downstream tooling can reuse the same typed inventory instead of reconstructing the five surfaces from prose. The same request posture is also available as standalone summary commands: `request-surface-summary`, `request-policy-summary`, `time-scale-policy-summary`, `delta-t-policy-summary`, `observer-policy-summary`, `apparentness-policy-summary`, and `frame-policy-summary` (with the matching short aliases where provided).
 
 ## Current request-scale contract
 
