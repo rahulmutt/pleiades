@@ -277,7 +277,9 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("lunar-apparent-comparison-summary") => validate_render_cli(args),
         Some("lunar-source-window-summary") => validate_render_cli(args),
         Some("lunar-theory-request-policy-summary") => validate_render_cli(args),
+        Some("lunar-theory-request-policy") => validate_render_cli(args),
         Some("lunar-theory-frame-treatment-summary") => validate_render_cli(args),
+        Some("lunar-theory-frame-treatment") => validate_render_cli(args),
         Some("lunar-theory-limitations-summary") | Some("lunar-theory-limitations") => {
             validate_render_cli(args)
         }
@@ -1322,6 +1324,14 @@ mod tests {
         assert!(rendered.contains("independent-holdout-batch-parity-summary"));
         assert!(rendered.contains("independent-holdout-equatorial-parity-summary"));
         assert!(rendered.contains("lunar-theory-summary"));
+        assert!(rendered.contains("lunar-theory-request-policy-summary"));
+        assert!(rendered.contains(
+            "lunar-theory-request-policy  Alias for lunar-theory-request-policy-summary"
+        ));
+        assert!(rendered.contains("lunar-theory-frame-treatment-summary"));
+        assert!(rendered.contains(
+            "lunar-theory-frame-treatment  Alias for lunar-theory-frame-treatment-summary"
+        ));
         assert!(rendered.contains("lunar-theory-limitations-summary"));
         assert!(rendered.contains("lunar-theory-capability-summary"));
         assert!(rendered.contains("lunar-theory-source-summary"));
@@ -2549,12 +2559,32 @@ mod tests {
             lunar_theory_request_policy_summary,
             pleiades_elp::lunar_theory_request_policy_summary()
         );
+        assert_eq!(
+            render_cli(&["lunar-theory-request-policy"])
+                .expect("lunar theory request policy alias should render"),
+            lunar_theory_request_policy_summary
+        );
+        assert_eq!(
+            render_cli(&["lunar-theory-request-policy", "extra"])
+                .expect_err("lunar theory request policy alias should reject extra arguments"),
+            "lunar-theory-request-policy does not accept extra arguments"
+        );
         let lunar_theory_frame_treatment_summary =
             render_cli(&["lunar-theory-frame-treatment-summary"])
                 .expect("lunar theory frame treatment summary should render");
         assert_eq!(
             lunar_theory_frame_treatment_summary,
             pleiades_elp::lunar_theory_frame_treatment_summary_for_report()
+        );
+        assert_eq!(
+            render_cli(&["lunar-theory-frame-treatment"])
+                .expect("lunar theory frame treatment alias should render"),
+            lunar_theory_frame_treatment_summary
+        );
+        assert_eq!(
+            render_cli(&["lunar-theory-frame-treatment", "extra"])
+                .expect_err("lunar theory frame treatment alias should reject extra arguments"),
+            "lunar-theory-frame-treatment does not accept extra arguments"
         );
         let lunar_theory_limitations_summary = render_cli(&["lunar-theory-limitations-summary"])
             .expect("lunar theory limitations summary should render");
