@@ -181,8 +181,8 @@ impl<B: EphemerisBackend> ChartEngine<B> {
     ///
     /// This is the façade-level counterpart to
     /// [`ChartRequest::validate_against_metadata`], which lets callers preflight
-    /// chart shape, house-observer policy, zodiac routing, frame support, and
-    /// body coverage directly from the engine when they want to separate
+    /// chart shape, house-observer policy, zodiac routing, frame support, body
+    /// coverage directly from the engine when they want to separate
     /// validation from chart assembly. The backend metadata is validated first so
     /// the request preflight fails closed if the backend inventory itself drifts
     /// out of consistency.
