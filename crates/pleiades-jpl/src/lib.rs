@@ -10268,6 +10268,7 @@ pub struct ReferenceSnapshotBoundaryEpochCoverage {
     pub bodies: Vec<pleiades_backend::CelestialBody>,
 }
 
+const REFERENCE_DENSE_BOUNDARY_EPOCH_JD: f64 = 2_451_916.5;
 const REFERENCE_SPARSE_BOUNDARY_EPOCH_JD: f64 = 2_451_915.5;
 
 impl ReferenceSnapshotBoundaryEpochCoverage {
@@ -10686,6 +10687,206 @@ pub fn reference_snapshot_sparse_boundary_summary_for_report() -> String {
             Err(error) => format!("Reference snapshot sparse boundary day: unavailable ({error})"),
         },
         None => "Reference snapshot sparse boundary day: unavailable".to_string(),
+    }
+}
+
+/// Compact release-facing summary for the dense 2451916.5 boundary day in the reference snapshot.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ReferenceSnapshotDenseBoundarySummary {
+    /// Number of exact samples in the dense boundary day.
+    pub sample_count: usize,
+    /// Bodies covered by the dense boundary day in first-seen order.
+    pub sample_bodies: Vec<pleiades_backend::CelestialBody>,
+    /// Exact epoch shared by the dense boundary day.
+    pub epoch: Instant,
+}
+
+/// Validation errors for a dense boundary summary that drifted from the current slice.
+#[derive(Clone, Debug, PartialEq)]
+pub enum ReferenceSnapshotDenseBoundarySummaryValidationError {
+    /// The summary did not expose any samples.
+    Empty,
+    /// The summary sample count drifted from the current evidence slice.
+    SampleCountMismatch {
+        sample_count: usize,
+        derived_sample_count: usize,
+    },
+    /// The summary body list drifted from the current evidence slice.
+    BodyOrderMismatch {
+        index: usize,
+        expected: pleiades_backend::CelestialBody,
+        found: pleiades_backend::CelestialBody,
+    },
+    /// The summary epoch drifted from the current evidence slice.
+    EpochMismatch { expected: Instant, found: Instant },
+}
+
+impl fmt::Display for ReferenceSnapshotDenseBoundarySummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Empty => f.write_str("reference snapshot dense boundary day is unavailable"),
+            Self::SampleCountMismatch {
+                sample_count,
+                derived_sample_count,
+            } => write!(
+                f,
+                "reference snapshot dense boundary day sample count {sample_count} does not match derived sample count {derived_sample_count}"
+            ),
+            Self::BodyOrderMismatch {
+                index,
+                expected,
+                found,
+            } => write!(
+                f,
+                "reference snapshot dense boundary day body order mismatch at index {index}: expected {expected}, found {found}"
+            ),
+            Self::EpochMismatch { expected, found } => write!(
+                f,
+                "reference snapshot dense boundary day epoch mismatch: expected {}, found {}",
+                format_instant(*expected),
+                format_instant(*found)
+            ),
+        }
+    }
+}
+
+impl std::error::Error for ReferenceSnapshotDenseBoundarySummaryValidationError {}
+
+impl ReferenceSnapshotDenseBoundarySummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "Reference snapshot dense boundary day: {} exact samples at {} ({}); dense boundary day",
+            self.sample_count,
+            format_instant(self.epoch),
+            format_bodies(&self.sample_bodies),
+        )
+    }
+
+    /// Returns `Ok(())` when the dense boundary summary still matches the current evidence slice.
+    pub fn validate(&self) -> Result<(), ReferenceSnapshotDenseBoundarySummaryValidationError> {
+        let evidence = reference_snapshot_dense_boundary_entries()
+            .ok_or(ReferenceSnapshotDenseBoundarySummaryValidationError::Empty)?;
+
+        if self.sample_count != evidence.len() {
+            return Err(
+                ReferenceSnapshotDenseBoundarySummaryValidationError::SampleCountMismatch {
+                    sample_count: self.sample_count,
+                    derived_sample_count: evidence.len(),
+                },
+            );
+        }
+
+        let mut expected_bodies = Vec::new();
+        for entry in evidence {
+            if !expected_bodies.contains(&entry.body) {
+                expected_bodies.push(entry.body.clone());
+            }
+        }
+        if self.sample_bodies.as_slice() != expected_bodies.as_slice() {
+            for (index, (expected, found)) in expected_bodies
+                .iter()
+                .zip(self.sample_bodies.iter())
+                .enumerate()
+            {
+                if expected != found {
+                    return Err(
+                        ReferenceSnapshotDenseBoundarySummaryValidationError::BodyOrderMismatch {
+                            index,
+                            expected: expected.clone(),
+                            found: found.clone(),
+                        },
+                    );
+                }
+            }
+            return Err(
+                ReferenceSnapshotDenseBoundarySummaryValidationError::SampleCountMismatch {
+                    sample_count: self.sample_count,
+                    derived_sample_count: evidence.len(),
+                },
+            );
+        }
+
+        if self.epoch != evidence[0].epoch {
+            return Err(
+                ReferenceSnapshotDenseBoundarySummaryValidationError::EpochMismatch {
+                    expected: evidence[0].epoch,
+                    found: self.epoch,
+                },
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns the compact summary line after validating the current evidence slice.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, ReferenceSnapshotDenseBoundarySummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for ReferenceSnapshotDenseBoundarySummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+fn reference_snapshot_dense_boundary_entries() -> Option<&'static [SnapshotEntry]> {
+    static ENTRIES: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
+    let entries = ENTRIES
+        .get_or_init(|| {
+            snapshot_entries()
+                .into_iter()
+                .flatten()
+                .filter(|entry| entry.epoch.julian_day.days() == REFERENCE_DENSE_BOUNDARY_EPOCH_JD)
+                .cloned()
+                .collect()
+        })
+        .as_slice();
+
+    if entries.is_empty() {
+        None
+    } else {
+        Some(entries)
+    }
+}
+
+fn reference_snapshot_dense_boundary_summary_details(
+) -> Option<ReferenceSnapshotDenseBoundarySummary> {
+    let evidence = reference_snapshot_dense_boundary_entries()?;
+    let mut sample_bodies = Vec::new();
+    for entry in evidence {
+        if !sample_bodies.contains(&entry.body) {
+            sample_bodies.push(entry.body.clone());
+        }
+    }
+
+    Some(ReferenceSnapshotDenseBoundarySummary {
+        sample_count: evidence.len(),
+        sample_bodies,
+        epoch: evidence[0].epoch,
+    })
+}
+
+/// Returns the compact typed summary for the dense boundary day in the reference snapshot.
+pub fn reference_snapshot_dense_boundary_summary() -> Option<ReferenceSnapshotDenseBoundarySummary>
+{
+    reference_snapshot_dense_boundary_summary_details()
+}
+
+/// Returns the release-facing dense boundary day summary string.
+pub fn reference_snapshot_dense_boundary_summary_for_report() -> String {
+    match reference_snapshot_dense_boundary_summary() {
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
+            Err(error) => {
+                format!("Reference snapshot dense boundary day: unavailable ({error})")
+            }
+        },
+        None => "Reference snapshot dense boundary day: unavailable".to_string(),
     }
 }
 
@@ -16003,6 +16204,60 @@ mod tests {
             reference_snapshot_sparse_boundary_summary_for_report(),
             reference_snapshot_sparse_boundary_summary()
                 .expect("reference snapshot sparse boundary summary should exist")
+                .summary_line()
+        );
+    }
+
+    #[test]
+    fn reference_snapshot_dense_boundary_summary_reports_the_dense_boundary_day() {
+        let summary = reference_snapshot_dense_boundary_summary()
+            .expect("reference snapshot dense boundary summary should exist");
+        assert_eq!(summary.sample_count, 15);
+        assert_eq!(summary.sample_bodies.len(), 15);
+        assert_eq!(summary.epoch.julian_day.days(), 2_451_916.5);
+        assert_eq!(
+            summary.sample_bodies[0],
+            pleiades_backend::CelestialBody::Sun
+        );
+        assert_eq!(
+            summary.sample_bodies[14],
+            pleiades_backend::CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros"))
+        );
+        assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(
+            summary.summary_line(),
+            "Reference snapshot dense boundary day: 15 exact samples at JD 2451916.5 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros); dense boundary day"
+        );
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(
+            reference_snapshot_dense_boundary_summary_for_report(),
+            summary.summary_line()
+        );
+    }
+
+    #[test]
+    fn reference_snapshot_dense_boundary_summary_validation_rejects_drift() {
+        let mut summary = reference_snapshot_dense_boundary_summary()
+            .expect("reference snapshot dense boundary summary should exist");
+        summary.sample_bodies.swap(0, 1);
+
+        let error = summary
+            .validate()
+            .expect_err("drifted dense boundary summary should fail validation");
+
+        assert!(matches!(
+            error,
+            ReferenceSnapshotDenseBoundarySummaryValidationError::BodyOrderMismatch {
+                index: 0,
+                ..
+            }
+        ));
+        assert!(summary.validated_summary_line().is_err());
+        assert_eq!(
+            reference_snapshot_dense_boundary_summary_for_report(),
+            reference_snapshot_dense_boundary_summary()
+                .expect("reference snapshot dense boundary summary should exist")
                 .summary_line()
         );
     }

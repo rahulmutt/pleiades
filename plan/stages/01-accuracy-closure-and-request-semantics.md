@@ -4,7 +4,7 @@
 
 Close the remaining production ephemeris gaps so downstream artifact generation and release claims rely on trustworthy, documented source outputs.
 
-The workspace already has the required crate structure, backend trait, chart façade, VSOP87B generated tables for the Sun through Neptune, a compact lunar baseline, a JPL Horizons fixture backend, validation reports, and explicit fail-closed request policy. This phase is only about what remains: accuracy outliers, broader evidence, and advanced request semantics that are either implemented or deliberately deferred with structured errors.
+The workspace already has the required crate structure, backend trait, chart façade, VSOP87B generated tables for the Sun through Neptune, a compact lunar baseline, a JPL Horizons fixture backend, validation reports, and explicit fail-closed request policy. This phase is only about what remains: accuracy outliers, broader evidence, and advanced request semantics that are either implemented or deliberately deferred with structured errors. The reference snapshot now also exposes a dense 2451916.5 boundary-day summary/CLI path alongside the sparse 2451915.5 slice.
 
 ## Spec drivers
 
