@@ -254,16 +254,38 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("generated-binary-audit-summary") => {
             validate_render_cli(&["generated-binary-audit-summary"])
         }
-        Some("time-scale-policy-summary") => validate_render_cli(&["time-scale-policy-summary"]),
-        Some("time-scale-policy") => validate_render_cli(&["time-scale-policy-summary"]),
-        Some("delta-t-policy-summary") => validate_render_cli(&["delta-t-policy-summary"]),
-        Some("delta-t-policy") => validate_render_cli(&["delta-t-policy-summary"]),
-        Some("observer-policy-summary") => validate_render_cli(&["observer-policy-summary"]),
-        Some("observer-policy") => validate_render_cli(&["observer-policy-summary"]),
+        Some("time-scale-policy-summary") => {
+            ensure_no_extra_args(&args[1..], "time-scale-policy-summary")?;
+            validate_render_cli(&["time-scale-policy-summary"])
+        }
+        Some("time-scale-policy") => {
+            ensure_no_extra_args(&args[1..], "time-scale-policy")?;
+            validate_render_cli(&["time-scale-policy-summary"])
+        }
+        Some("delta-t-policy-summary") => {
+            ensure_no_extra_args(&args[1..], "delta-t-policy-summary")?;
+            validate_render_cli(&["delta-t-policy-summary"])
+        }
+        Some("delta-t-policy") => {
+            ensure_no_extra_args(&args[1..], "delta-t-policy")?;
+            validate_render_cli(&["delta-t-policy-summary"])
+        }
+        Some("observer-policy-summary") => {
+            ensure_no_extra_args(&args[1..], "observer-policy-summary")?;
+            validate_render_cli(&["observer-policy-summary"])
+        }
+        Some("observer-policy") => {
+            ensure_no_extra_args(&args[1..], "observer-policy")?;
+            validate_render_cli(&["observer-policy-summary"])
+        }
         Some("apparentness-policy-summary") => {
+            ensure_no_extra_args(&args[1..], "apparentness-policy-summary")?;
             validate_render_cli(&["apparentness-policy-summary"])
         }
-        Some("apparentness-policy") => validate_render_cli(&["apparentness-policy-summary"]),
+        Some("apparentness-policy") => {
+            ensure_no_extra_args(&args[1..], "apparentness-policy")?;
+            validate_render_cli(&["apparentness-policy-summary"])
+        }
         Some("interpolation-posture-summary") => {
             validate_render_cli(&["interpolation-posture-summary"])
         }
@@ -384,8 +406,14 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("ayanamsa-reference-offsets") => {
             validate_render_cli(&["ayanamsa-reference-offsets-summary"])
         }
-        Some("frame-policy-summary") => validate_render_cli(&["frame-policy-summary"]),
-        Some("frame-policy") => validate_render_cli(&["frame-policy-summary"]),
+        Some("frame-policy-summary") => {
+            ensure_no_extra_args(&args[1..], "frame-policy-summary")?;
+            validate_render_cli(&["frame-policy-summary"])
+        }
+        Some("frame-policy") => {
+            ensure_no_extra_args(&args[1..], "frame-policy")?;
+            validate_render_cli(&["frame-policy-summary"])
+        }
         Some("mean-obliquity-frame-round-trip-summary") => {
             validate_render_cli(&["mean-obliquity-frame-round-trip-summary"])
         }
@@ -3323,6 +3351,54 @@ mod tests {
             render_cli(&["frame-policy"]).expect("frame policy alias should render"),
             rendered
         );
+
+        for (args, expected) in [
+            (
+                ["time-scale-policy-summary", "extra"],
+                "time-scale-policy-summary does not accept extra arguments",
+            ),
+            (
+                ["time-scale-policy", "extra"],
+                "time-scale-policy does not accept extra arguments",
+            ),
+            (
+                ["delta-t-policy-summary", "extra"],
+                "delta-t-policy-summary does not accept extra arguments",
+            ),
+            (
+                ["delta-t-policy", "extra"],
+                "delta-t-policy does not accept extra arguments",
+            ),
+            (
+                ["observer-policy-summary", "extra"],
+                "observer-policy-summary does not accept extra arguments",
+            ),
+            (
+                ["observer-policy", "extra"],
+                "observer-policy does not accept extra arguments",
+            ),
+            (
+                ["apparentness-policy-summary", "extra"],
+                "apparentness-policy-summary does not accept extra arguments",
+            ),
+            (
+                ["apparentness-policy", "extra"],
+                "apparentness-policy does not accept extra arguments",
+            ),
+            (
+                ["frame-policy-summary", "extra"],
+                "frame-policy-summary does not accept extra arguments",
+            ),
+            (
+                ["frame-policy", "extra"],
+                "frame-policy does not accept extra arguments",
+            ),
+        ] {
+            assert_eq!(
+                render_cli(&args).expect_err("policy summary should reject extra arguments"),
+                expected
+            );
+        }
     }
 
     #[test]

@@ -18632,6 +18632,55 @@ mod tests {
             render_cli(&["frame-policy"]).expect("frame policy alias should render"),
             render_frame_policy_summary_text()
         );
+
+        for (args, expected) in [
+            (
+                ["time-scale-policy-summary", "extra"],
+                "time-scale-policy-summary does not accept extra arguments",
+            ),
+            (
+                ["time-scale-policy", "extra"],
+                "time-scale-policy does not accept extra arguments",
+            ),
+            (
+                ["delta-t-policy-summary", "extra"],
+                "delta-t-policy-summary does not accept extra arguments",
+            ),
+            (
+                ["delta-t-policy", "extra"],
+                "delta-t-policy does not accept extra arguments",
+            ),
+            (
+                ["observer-policy-summary", "extra"],
+                "observer-policy-summary does not accept extra arguments",
+            ),
+            (
+                ["observer-policy", "extra"],
+                "observer-policy does not accept extra arguments",
+            ),
+            (
+                ["apparentness-policy-summary", "extra"],
+                "apparentness-policy-summary does not accept extra arguments",
+            ),
+            (
+                ["apparentness-policy", "extra"],
+                "apparentness-policy does not accept extra arguments",
+            ),
+            (
+                ["frame-policy-summary", "extra"],
+                "frame-policy-summary does not accept extra arguments",
+            ),
+            (
+                ["frame-policy", "extra"],
+                "frame-policy does not accept extra arguments",
+            ),
+        ] {
+            assert_eq!(
+                render_cli(&args).expect_err("policy summary should reject extra arguments"),
+                expected
+            );
+        }
+
         assert!(rendered.contains(&request_surface_summary_for_report()));
         let mean_obliquity_frame_round_trip = mean_obliquity_frame_round_trip_summary()
             .expect("mean-obliquity frame round-trip summary should exist");
