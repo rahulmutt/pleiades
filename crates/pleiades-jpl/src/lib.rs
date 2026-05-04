@@ -10533,6 +10533,8 @@ pub struct ReferenceSnapshotSparseBoundarySummary {
     pub sample_count: usize,
     /// Bodies covered by the sparse boundary day in first-seen order.
     pub sample_bodies: Vec<pleiades_backend::CelestialBody>,
+    /// Bodies missing from the sparse boundary day in release order.
+    pub missing_bodies: Vec<pleiades_backend::CelestialBody>,
     /// Exact epoch shared by the sparse boundary day.
     pub epoch: Instant,
 }
@@ -10552,6 +10554,17 @@ pub enum ReferenceSnapshotSparseBoundarySummaryValidationError {
         index: usize,
         expected: pleiades_backend::CelestialBody,
         found: pleiades_backend::CelestialBody,
+    },
+    /// The summary missing-body list drifted from the current evidence slice.
+    MissingBodiesMismatch {
+        index: usize,
+        expected: pleiades_backend::CelestialBody,
+        found: pleiades_backend::CelestialBody,
+    },
+    /// The summary missing-body count drifted from the current evidence slice.
+    MissingBodiesCountMismatch {
+        missing_body_count: usize,
+        derived_missing_body_count: usize,
     },
     /// The summary epoch drifted from the current evidence slice.
     EpochMismatch { expected: Instant, found: Instant },
@@ -10576,6 +10589,21 @@ impl fmt::Display for ReferenceSnapshotSparseBoundarySummaryValidationError {
                 f,
                 "reference snapshot sparse boundary day body order mismatch at index {index}: expected {expected}, found {found}"
             ),
+            Self::MissingBodiesMismatch {
+                index,
+                expected,
+                found,
+            } => write!(
+                f,
+                "reference snapshot sparse boundary day missing-body order mismatch at index {index}: expected {expected}, found {found}"
+            ),
+            Self::MissingBodiesCountMismatch {
+                missing_body_count,
+                derived_missing_body_count,
+            } => write!(
+                f,
+                "reference snapshot sparse boundary day missing-body count {missing_body_count} does not match derived missing-body count {derived_missing_body_count}"
+            ),
             Self::EpochMismatch { expected, found } => write!(
                 f,
                 "reference snapshot sparse boundary day epoch mismatch: expected {}, found {}",
@@ -10591,14 +10619,12 @@ impl std::error::Error for ReferenceSnapshotSparseBoundarySummaryValidationError
 impl ReferenceSnapshotSparseBoundarySummary {
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
-        let missing_bodies = reference_snapshot_sparse_boundary_missing_bodies(&self.sample_bodies);
-
         format!(
             "Reference snapshot sparse boundary day: {} exact samples at {} ({}); sparse boundary day; missing bodies: {}",
             self.sample_count,
             format_instant(self.epoch),
             format_bodies(&self.sample_bodies),
-            format_bodies(&missing_bodies),
+            format_bodies(&self.missing_bodies),
         )
     }
 
@@ -10646,6 +10672,41 @@ impl ReferenceSnapshotSparseBoundarySummary {
             );
         }
 
+        let expected_missing_bodies =
+            reference_snapshot_sparse_boundary_missing_bodies(&self.sample_bodies);
+        if self.missing_bodies.as_slice() != expected_missing_bodies.as_slice() {
+            for (index, (expected, found)) in expected_missing_bodies
+                .iter()
+                .zip(self.missing_bodies.iter())
+                .enumerate()
+            {
+                if expected != found {
+                    return Err(
+                        ReferenceSnapshotSparseBoundarySummaryValidationError::MissingBodiesMismatch {
+                            index,
+                            expected: expected.clone(),
+                            found: found.clone(),
+                        },
+                    );
+                }
+            }
+            return Err(
+                ReferenceSnapshotSparseBoundarySummaryValidationError::SampleCountMismatch {
+                    sample_count: self.sample_count,
+                    derived_sample_count: evidence.len(),
+                },
+            );
+        }
+
+        if self.missing_bodies.len() != expected_missing_bodies.len() {
+            return Err(
+                ReferenceSnapshotSparseBoundarySummaryValidationError::MissingBodiesCountMismatch {
+                    missing_body_count: self.missing_bodies.len(),
+                    derived_missing_body_count: expected_missing_bodies.len(),
+                },
+            );
+        }
+
         if self.epoch != evidence[0].epoch {
             return Err(
                 ReferenceSnapshotSparseBoundarySummaryValidationError::EpochMismatch {
@@ -10683,9 +10744,12 @@ fn reference_snapshot_sparse_boundary_summary_details(
         }
     }
 
+    let missing_bodies = reference_snapshot_sparse_boundary_missing_bodies(&sample_bodies);
+
     Some(ReferenceSnapshotSparseBoundarySummary {
         sample_count: evidence.len(),
         sample_bodies,
+        missing_bodies,
         epoch: evidence[0].epoch,
     })
 }
@@ -16186,6 +16250,19 @@ mod tests {
             summary.sample_bodies[6],
             pleiades_backend::CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros"))
         );
+        assert_eq!(
+            summary.missing_bodies,
+            vec![
+                pleiades_backend::CelestialBody::Mercury,
+                pleiades_backend::CelestialBody::Venus,
+                pleiades_backend::CelestialBody::Mars,
+                pleiades_backend::CelestialBody::Jupiter,
+                pleiades_backend::CelestialBody::Saturn,
+                pleiades_backend::CelestialBody::Uranus,
+                pleiades_backend::CelestialBody::Neptune,
+                pleiades_backend::CelestialBody::Pluto,
+            ]
+        );
         assert_eq!(summary.validate(), Ok(()));
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
@@ -16223,6 +16300,26 @@ mod tests {
                 .expect("reference snapshot sparse boundary summary should exist")
                 .summary_line()
         );
+    }
+
+    #[test]
+    fn reference_snapshot_sparse_boundary_summary_validation_rejects_missing_body_drift() {
+        let mut summary = reference_snapshot_sparse_boundary_summary()
+            .expect("reference snapshot sparse boundary summary should exist");
+        summary.missing_bodies.swap(0, 1);
+
+        let error = summary
+            .validate()
+            .expect_err("drifted sparse boundary summary should fail validation");
+
+        assert!(matches!(
+            error,
+            ReferenceSnapshotSparseBoundarySummaryValidationError::MissingBodiesMismatch {
+                index: 0,
+                ..
+            }
+        ));
+        assert!(summary.validated_summary_line().is_err());
     }
 
     #[test]
