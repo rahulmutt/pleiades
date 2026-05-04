@@ -34,6 +34,14 @@ fn banner() -> &'static str {
     "pleiades-cli chart utility"
 }
 
+fn ensure_no_extra_args(args: &[&str], command: &str) -> Result<(), String> {
+    if args.is_empty() {
+        Ok(())
+    } else {
+        Err(format!("{command} does not accept extra arguments"))
+    }
+}
+
 fn shared_request_policy_help_block() -> String {
     let request_policy = pleiades_core::request_policy_summary_for_report();
     let time_scale_policy = pleiades_core::time_scale_policy_summary_for_report();
@@ -137,6 +145,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
             validate_render_cli(&["production-generation-source-summary"])
         }
         Some("comparison-snapshot-source-summary") => {
+            ensure_no_extra_args(&args[1..], "comparison-snapshot-source-summary")?;
             Ok(comparison_snapshot_source_summary_for_report())
         }
         Some("comparison-snapshot-source-window-summary") => {
@@ -155,6 +164,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
             validate_render_cli(&["comparison-snapshot-batch-parity-summary"])
         }
         Some("reference-snapshot-source-summary") => {
+            ensure_no_extra_args(&args[1..], "reference-snapshot-source-summary")?;
             Ok(reference_snapshot_source_summary_for_report())
         }
         Some("reference-snapshot-source-window-summary") => {
@@ -2122,6 +2132,11 @@ mod tests {
             comparison_snapshot_source_summary,
             pleiades_jpl::comparison_snapshot_source_summary_for_report()
         );
+        assert_eq!(
+            render_cli(&["comparison-snapshot-source-summary", "extra"])
+                .expect_err("comparison snapshot source summary should reject extra arguments"),
+            "comparison-snapshot-source-summary does not accept extra arguments"
+        );
         let production_generation_boundary_source_summary =
             render_cli(&["production-generation-boundary-source-summary"])
                 .expect("production generation boundary source summary should render");
@@ -2236,6 +2251,11 @@ mod tests {
         assert_eq!(
             reference_snapshot_source_summary,
             pleiades_jpl::reference_snapshot_source_summary_for_report()
+        );
+        assert_eq!(
+            render_cli(&["reference-snapshot-source-summary", "extra"])
+                .expect_err("reference snapshot source summary should reject extra arguments"),
+            "reference-snapshot-source-summary does not accept extra arguments"
         );
         let reference_snapshot_summary = render_cli(&["reference-snapshot-summary"])
             .expect("reference snapshot summary should render");
