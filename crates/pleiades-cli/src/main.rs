@@ -1982,8 +1982,28 @@ mod tests {
                 "catalog-inventory does not accept extra arguments",
             ),
             (
+                ["backend-matrix", "extra"],
+                "backend-matrix does not accept extra arguments",
+            ),
+            (
+                ["compatibility-profile", "extra"],
+                "compatibility-profile does not accept extra arguments",
+            ),
+            (
                 ["api-posture-summary", "extra"],
                 "api-stability-summary does not accept extra arguments",
+            ),
+            (
+                ["api-stability", "extra"],
+                "api-stability does not accept extra arguments",
+            ),
+            (
+                ["release-checklist", "extra"],
+                "release-checklist does not accept extra arguments",
+            ),
+            (
+                ["release-summary", "extra"],
+                "release-summary does not accept extra arguments",
             ),
             (
                 ["release-notes", "extra"],
