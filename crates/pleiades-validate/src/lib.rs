@@ -12134,6 +12134,8 @@ fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_sparse_boundary_summary_for_report());
     text.push('\n');
+    text.push_str(&reference_snapshot_dense_boundary_summary_for_report());
+    text.push('\n');
     text.push_str(&reference_snapshot_lunar_boundary_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_early_major_body_boundary_summary_for_report());
@@ -19106,6 +19108,7 @@ mod tests {
         assert!(rendered.contains("JPL batch error taxonomy: supported body Ceres; unsupported body Mean Node -> UnsupportedBody; out-of-range Ceres -> OutOfRangeInstant"));
         assert!(rendered.contains(&reference_snapshot_boundary_epoch_coverage_summary_for_report()));
         assert!(rendered.contains(&reference_snapshot_sparse_boundary_summary_for_report()));
+        assert!(rendered.contains(&reference_snapshot_dense_boundary_summary_for_report()));
         assert!(rendered
             .contains("VSOP87 source audit: 8 source-backed bodies (Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune) across 8 source files (VSOP87B.ear, VSOP87B.mer, VSOP87B.ven, VSOP87B.mar, VSOP87B.jup, VSOP87B.sat, VSOP87B.ura, VSOP87B.nep); 8 vendored full-file inputs, 35080 total terms, max source size 949753 bytes / 7141 lines, 8 deterministic fingerprints"));
         assert!(rendered
