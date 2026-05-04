@@ -3497,6 +3497,16 @@ mod tests {
         assert!(bundle_dir.join("bundle-manifest.txt").exists());
         assert!(bundle_dir.join("catalog-inventory-summary.txt").exists());
         assert!(bundle_dir
+            .join("compatibility-caveats-summary.txt")
+            .exists());
+        assert!(bundle_dir.join("request-policy-summary.txt").exists());
+        assert!(bundle_dir
+            .join("release-profile-identifiers-summary.txt")
+            .exists());
+        assert!(bundle_dir
+            .join("native-dependency-audit-summary.txt")
+            .exists());
+        assert!(bundle_dir
             .join("packaged-artifact-generation-manifest.txt")
             .exists());
     }

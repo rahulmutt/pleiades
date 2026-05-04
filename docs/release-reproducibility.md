@@ -95,6 +95,9 @@ The bundle currently writes these text artifacts:
 - `backend-matrix-summary.txt`
 - `api-stability.txt`
 - `api-stability-summary.txt`
+- `catalog-inventory-summary.txt`
+- `compatibility-caveats-summary.txt`
+- `release-profile-identifiers-summary.txt`
 - `validation-report-summary.txt`
 - `request-policy-summary.txt`
 - `workspace-audit-summary.txt`
@@ -105,6 +108,8 @@ The bundle currently writes these text artifacts:
 - `validation-report.txt`
 - `bundle-manifest.txt` (includes the recorded source revision, workspace status, Rust compiler version, profile/API identifiers, and validation-round count)
 - `bundle-manifest.checksum.txt` (records the checksum used to verify the staged manifest itself; the verifier expects the canonical single-line `0x...` format with no stray whitespace)
+
+The staged bundle now also carries the catalog inventory, compatibility-caveats, release-profile-identifiers summary, request-policy summary, workspace audit summary, native-dependency audit summary, and artifact summary files alongside the core compatibility-profile, release-notes, release-summary, checklist, backend-matrix, API-stability, comparison, validation, benchmark, and manifest artifacts.
 
 The generated `release-checklist.txt` now also embeds the canonical `bundle-release` and `verify-release-bundle` commands plus a pointer back to this guide, while `release-checklist-summary.txt` provides a compact audit view for quick release review, so the bundle stays self-describing for maintainers.
 
