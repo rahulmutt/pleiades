@@ -139,6 +139,14 @@ impl HouseValidationReport {
                 ),
             ),
             (
+                "Northern high-latitude mountain stress chart",
+                ObserverLocation::new(
+                    Latitude::from_degrees(78.0),
+                    Longitude::from_degrees(18.9553),
+                    Some(2_000.0),
+                ),
+            ),
+            (
                 "Southern polar stress chart",
                 ObserverLocation::new(
                     Latitude::from_degrees(-69.6492),
@@ -474,7 +482,7 @@ mod tests {
     fn summary_line_reports_scenario_and_latitude_sensitive_counts() {
         let report = house_validation_report();
 
-        assert_eq!(report.scenarios.len(), 6);
+        assert_eq!(report.scenarios.len(), 7);
         assert_eq!(
             report.sample_count(),
             report.scenarios.len() * baseline_house_systems().len()
@@ -502,14 +510,25 @@ mod tests {
                 "Equatorial reference chart",
                 "Polar stress chart",
                 "Northern high-latitude stress chart",
+                "Northern high-latitude mountain stress chart",
                 "Southern polar stress chart",
                 "Southern hemisphere reference chart",
             ]
         );
 
         assert_eq!(
+            report
+                .scenarios
+                .iter()
+                .find(|scenario| scenario.label == "Northern high-latitude mountain stress chart")
+                .expect("mountain scenario should exist")
+                .observer
+                .elevation_m,
+            Some(2_000.0)
+        );
+        assert_eq!(
             report.summary_line(),
-            "House validation corpus: 6 scenarios (Mid-latitude reference chart, Equatorial reference chart, Polar stress chart, Northern high-latitude stress chart, Southern polar stress chart, Southern hemisphere reference chart), 72 samples, 72 successes, 0 failures; formula families: Equal, Whole Sign, Quadrant, Equatorial projection; latitude-sensitive systems: Koch, Placidus, Topocentric; constraints: Koch [Quadrant system with documented high-latitude pathologies.], Placidus [Quadrant system; can fail or become unstable at extreme latitudes.], Topocentric [Topocentric (Polich-Page) house system with geodetic-to-geocentric latitude correction.]; implementation posture: 12 baseline systems validated"
+            "House validation corpus: 7 scenarios (Mid-latitude reference chart, Equatorial reference chart, Polar stress chart, Northern high-latitude stress chart, Northern high-latitude mountain stress chart, Southern polar stress chart, Southern hemisphere reference chart), 84 samples, 84 successes, 0 failures; formula families: Equal, Whole Sign, Quadrant, Equatorial projection; latitude-sensitive systems: Koch, Placidus, Topocentric; constraints: Koch [Quadrant system with documented high-latitude pathologies.], Placidus [Quadrant system; can fail or become unstable at extreme latitudes.], Topocentric [Topocentric (Polich-Page) house system with geodetic-to-geocentric latitude correction.]; implementation posture: 12 baseline systems validated"
         );
         assert_eq!(
             house_validation_summary_line_for_report(&report),

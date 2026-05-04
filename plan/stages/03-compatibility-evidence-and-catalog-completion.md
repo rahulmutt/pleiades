@@ -35,7 +35,7 @@ Known remaining gaps:
 ### 1. Audit house-system implementations
 
 - For every advertised built-in house system, document formula family, assumptions, aliases, and latitude/numerical constraints.
-- Add golden tests for representative latitudes, hemispheres, and polar/high-latitude failure cases.
+- Add golden tests for representative latitudes, hemispheres, and polar/high-latitude failure cases. The house-validation corpus now also includes an elevated northern high-latitude mountain stress chart (2,000 m observer elevation) so the topocentric house correction is visible in the report corpus.
 - Confirm cusp normalization, angle ordering, ASC/MC/IC/DSC behavior, and house placement semantics.
 - Mark descriptor-only, approximate, or constrained systems honestly in compatibility profiles.
 
