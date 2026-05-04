@@ -20386,6 +20386,8 @@ version = "0.9.0"
         assert!(manifest.contains("catalog-inventory-summary.txt"));
         assert!(manifest.contains("validation-report-summary.txt"));
         assert!(manifest.contains("request-policy-summary.txt"));
+        assert!(manifest.contains("compatibility-caveats-summary.txt"));
+        assert!(manifest.contains("native-dependency-audit-summary.txt"));
         assert!(manifest.contains("artifact-summary.txt"));
         assert!(manifest.contains("packaged-artifact-generation-manifest.txt"));
         assert!(manifest.contains("benchmark-report.txt"));
@@ -20417,6 +20419,7 @@ version = "0.9.0"
         assert!(manifest.contains("validation report summary checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("request policy summary checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("compatibility caveats summary checksum (fnv1a-64): 0x"));
+        assert!(manifest.contains("native-dependency audit summary checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("workspace audit summary checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("artifact summary checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("benchmark report checksum (fnv1a-64): 0x"));
