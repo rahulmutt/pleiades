@@ -187,7 +187,9 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("source-documentation-health-summary") => validate_render_cli(args),
         Some("source-documentation-health") => validate_render_cli(args),
         Some("source-audit-summary") => validate_render_cli(args),
+        Some("source-audit") => validate_render_cli(args),
         Some("generated-binary-audit-summary") => validate_render_cli(args),
+        Some("generated-binary-audit") => validate_render_cli(args),
         Some("time-scale-policy-summary") => {
             ensure_no_extra_args(&args[1..], "time-scale-policy-summary")?;
             validate_render_cli(args)
@@ -1217,6 +1219,15 @@ mod tests {
         assert!(rendered.contains(
             "source-documentation-health  Alias for source-documentation-health-summary"
         ));
+        assert!(rendered
+            .contains("source-audit-summary      Print the compact VSOP87 source audit summary"));
+        assert!(rendered.contains("source-audit              Alias for source-audit-summary"));
+        assert!(rendered.contains(
+            "generated-binary-audit-summary  Print the compact VSOP87 generated binary audit summary"
+        ));
+        assert!(
+            rendered.contains("generated-binary-audit    Alias for generated-binary-audit-summary")
+        );
         assert!(rendered.contains("time-scale-policy-summary"));
         assert!(rendered.contains("mean-obliquity-frame-round-trip-summary"));
         assert!(rendered.contains("production-generation-body-class-coverage-summary"));
@@ -2885,6 +2896,14 @@ mod tests {
             super::validate_render_cli(&["source-audit-summary"])
                 .expect("validation source audit summary should render")
         );
+        let source_audit_alias =
+            render_cli(&["source-audit"]).expect("source audit alias should render");
+        assert_eq!(source_audit_alias, source_audit_summary);
+        assert_eq!(
+            render_cli(&["source-audit", "extra"])
+                .expect_err("source audit alias should reject extra arguments"),
+            "source-audit does not accept extra arguments"
+        );
         let generated_binary_audit_summary = render_cli(&["generated-binary-audit-summary"])
             .expect("generated binary audit summary should render");
         assert!(generated_binary_audit_summary.contains("VSOP87 generated binary audit:"));
@@ -2892,6 +2911,14 @@ mod tests {
             generated_binary_audit_summary,
             super::validate_render_cli(&["generated-binary-audit-summary"])
                 .expect("validation generated binary audit summary should render")
+        );
+        let generated_binary_audit_alias = render_cli(&["generated-binary-audit"])
+            .expect("generated binary audit alias should render");
+        assert_eq!(generated_binary_audit_alias, generated_binary_audit_summary);
+        assert_eq!(
+            render_cli(&["generated-binary-audit", "extra"])
+                .expect_err("generated binary audit alias should reject extra arguments"),
+            "generated-binary-audit does not accept extra arguments"
         );
         assert!(release_summary.lines().any(|line| {
             line == "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); pleiades-cli chart (explicit --tt|--tdb|--utc|--ut1 flags plus caller-supplied TT/TDB offset aliases: --tt-offset-seconds, --tt-from-utc-offset-seconds, --tt-from-ut1-offset-seconds, --tdb-offset-seconds, --tdb-from-utc-offset-seconds, --tdb-from-ut1-offset-seconds, --tdb-from-tt-offset-seconds, and --tt-from-tdb-offset-seconds; observer-bearing chart requests stay geocentric and use the observer only for houses)"
