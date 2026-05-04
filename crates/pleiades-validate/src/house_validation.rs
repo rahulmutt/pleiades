@@ -51,7 +51,7 @@ pub enum HouseValidationReportValidationError {
     EmptyScenarioList,
     /// A scenario label was blank or whitespace only.
     BlankScenarioLabel { scenario_index: usize },
-    /// A scenario label was duplicated.
+    /// A scenario label was duplicated after normalization.
     DuplicateScenarioLabel { label: &'static str },
     /// A scenario does not contain any samples.
     EmptyScenarioSamples {
@@ -330,7 +330,9 @@ impl HouseValidationReport {
                     scenario_index: index + 1,
                 });
             }
-            if !scenario_labels.insert(scenario.label) {
+
+            let normalized_label = label.to_ascii_lowercase();
+            if !scenario_labels.insert(normalized_label) {
                 return Err(
                     HouseValidationReportValidationError::DuplicateScenarioLabel {
                         label: scenario.label,
@@ -535,6 +537,27 @@ mod tests {
             report.summary_line()
         );
         assert_eq!(report.validate(), Ok(()));
+    }
+
+    #[test]
+    fn validate_rejects_case_insensitive_duplicate_scenario_labels() {
+        let mut report = HouseValidationReport::new();
+        report.scenarios[1].label = "mid-latitude reference chart";
+
+        let error = report
+            .validate()
+            .expect_err("case-insensitive duplicate scenario labels should fail validation");
+
+        assert!(matches!(
+            error,
+            HouseValidationReportValidationError::DuplicateScenarioLabel {
+                label: "mid-latitude reference chart"
+            }
+        ));
+        assert_eq!(
+            house_validation_summary_line_for_report(&report),
+            "House validation corpus unavailable: house validation scenario label 'mid-latitude reference chart' is duplicated"
+        );
     }
 
     #[test]
