@@ -23516,6 +23516,11 @@ version = "0.9.0"
             comparison
         );
         assert_eq!(
+            render_cli(&["comparison-snapshot-summary", "extra"])
+                .expect_err("comparison snapshot summary should reject extra arguments"),
+            "comparison-snapshot-summary does not accept extra arguments"
+        );
+        assert_eq!(
             render_cli(&["comparison-snapshot", "extra"])
                 .expect_err("comparison snapshot alias should reject extra arguments"),
             "comparison-snapshot does not accept extra arguments"
@@ -23535,6 +23540,11 @@ version = "0.9.0"
         assert_eq!(
             render_cli(&["reference-snapshot"]).expect("reference snapshot alias should render"),
             reference
+        );
+        assert_eq!(
+            render_cli(&["reference-snapshot-summary", "extra"])
+                .expect_err("reference snapshot summary should reject extra arguments"),
+            "reference-snapshot-summary does not accept extra arguments"
         );
         assert_eq!(
             render_cli(&["reference-snapshot", "extra"])

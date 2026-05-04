@@ -161,7 +161,10 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
                 pleiades_jpl::comparison_snapshot_summary_for_report()
             ))
         }
-        Some("comparison-snapshot-summary") => validate_render_cli(args),
+        Some("comparison-snapshot-summary") => {
+            ensure_no_extra_args(&args[1..], "comparison-snapshot-summary")?;
+            validate_render_cli(args)
+        }
         Some("comparison-snapshot-batch-parity-summary") => validate_render_cli(args),
         Some("reference-snapshot-source-summary") => {
             ensure_no_extra_args(&args[1..], "reference-snapshot-source-summary")?;
@@ -189,7 +192,10 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
                 pleiades_jpl::reference_snapshot_summary_for_report()
             ))
         }
-        Some("reference-snapshot-summary") => validate_render_cli(args),
+        Some("reference-snapshot-summary") => {
+            ensure_no_extra_args(&args[1..], "reference-snapshot-summary")?;
+            validate_render_cli(args)
+        }
         Some("reference-snapshot-batch-parity-summary") => validate_render_cli(args),
         Some("reference-snapshot-equatorial-parity-summary") => validate_render_cli(args),
         Some("reference-high-curvature-summary") | Some("high-curvature-summary") => {
@@ -2386,6 +2392,11 @@ mod tests {
             comparison_snapshot_summary
         );
         assert_eq!(
+            render_cli(&["comparison-snapshot-summary", "extra"])
+                .expect_err("comparison snapshot summary should reject extra arguments"),
+            "comparison-snapshot-summary does not accept extra arguments"
+        );
+        assert_eq!(
             render_cli(&["comparison-snapshot", "extra"])
                 .expect_err("comparison snapshot alias should reject extra arguments"),
             "comparison-snapshot does not accept extra arguments"
@@ -2431,6 +2442,11 @@ mod tests {
         assert_eq!(
             render_cli(&["reference-snapshot"]).expect("reference snapshot alias should render"),
             reference_snapshot_summary
+        );
+        assert_eq!(
+            render_cli(&["reference-snapshot-summary", "extra"])
+                .expect_err("reference snapshot summary should reject extra arguments"),
+            "reference-snapshot-summary does not accept extra arguments"
         );
         assert_eq!(
             render_cli(&["reference-snapshot", "extra"])
