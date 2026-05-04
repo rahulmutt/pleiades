@@ -176,7 +176,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("reference-snapshot-major-body-boundary-summary")
         | Some("major-body-boundary-summary") => validate_render_cli(args),
-        Some("reference-snapshot-major-body-bridge-summary") => validate_render_cli(args),
+        Some("reference-snapshot-major-body-bridge-summary")
+        | Some("major-body-bridge-summary") => validate_render_cli(args),
         Some("reference-snapshot-mars-jupiter-boundary-summary")
         | Some("mars-jupiter-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-mars-outer-boundary-summary")
@@ -2467,6 +2468,17 @@ mod tests {
         assert_eq!(
             reference_major_body_bridge_summary,
             pleiades_jpl::reference_snapshot_major_body_bridge_summary_for_report()
+        );
+        let reference_major_body_bridge_alias = render_cli(&["major-body-bridge-summary"])
+            .expect("major body bridge alias should render");
+        assert_eq!(
+            reference_major_body_bridge_alias,
+            reference_major_body_bridge_summary
+        );
+        assert_eq!(
+            render_cli(&["major-body-bridge-summary", "extra"])
+                .expect_err("major body bridge alias should reject extra arguments"),
+            "major-body-bridge-summary does not accept extra arguments"
         );
         assert_eq!(
             render_cli(&["reference-snapshot-major-body-bridge-summary", "extra"])
