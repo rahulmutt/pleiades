@@ -61,7 +61,7 @@ Rough command overview:
 - `release-notes`, `release-notes-summary`, `release-checklist`, `release-checklist-summary` / `checklist-summary`, `release-summary`: release metadata and summary views
 - `request-policy-summary` / `request-policy` / `request-semantics-summary` / `request-semantics`: compact request-policy summary
 - `time-scale-policy-summary`, `delta-t-policy-summary`, `observer-policy-summary`, `apparentness-policy-summary`, `frame-policy-summary`: dedicated request-semantics policy summaries
-- `request-surface-summary` / `request-surface`: compact request-surface inventory, including the explicit chart TT/TDB offset aliases
+- `request-surface-summary` / `request-surface`: compact request-surface inventory, including the explicit chart TT/TDB offset aliases and request-policy / request-semantics aliases
 - `house-validation-summary`, `house-formula-families-summary`, `house-code-aliases-summary`, `ayanamsa-catalog-validation-summary`, `ayanamsa-metadata-coverage-summary`, `ayanamsa-reference-offsets-summary`, `lunar-theory-catalog-summary`, `lunar-theory-catalog-validation-summary`, `packaged-lookup-epoch-policy-summary`, `verify-compatibility-profile`, `verify-release-bundle`: maintainer-facing catalog-alignment and release checks
 - `comparison-corpus-summary` / `comparison-corpus-release-guard-summary` / `comparison-envelope-summary` / `reference-holdout-overlap-summary` / `independent-holdout-summary`: compact release-grade comparison, hold-out, and validation-overlap summaries
 - `reference-snapshot-1749-major-body-boundary-summary` / `1749-major-body-boundary-summary`, `reference-snapshot-early-major-body-boundary-summary` / `early-major-body-boundary-summary`, `reference-snapshot-1800-major-body-boundary-summary` / `1800-major-body-boundary-summary`, `reference-snapshot-2500-major-body-boundary-summary` / `2500-major-body-boundary-summary`, `reference-snapshot-selected-asteroid-terminal-boundary-summary` / `selected-asteroid-terminal-boundary-summary`: compact reference boundary archaeology summaries
@@ -77,7 +77,7 @@ Rough command overview:
 - `source-documentation-summary` / `source-documentation-health-summary` / `source-documentation-health`: compact VSOP87 source-documentation provenance and health summaries
 - `production-generation-summary` / `production-generation`: compact production-generation coverage summary
 - `production-generation-boundary-summary`: compact production-generation boundary overlay summary
-- `request-surface-summary`: compact request-surface inventory, including the explicit chart TT/TDB offset aliases
+- `request-surface-summary`: compact request-surface inventory, including the explicit chart TT/TDB offset aliases and request-policy / request-semantics aliases
 - `chart`: render a basic chart report from a Julian day and optional observer settings
 
 Example usage:
