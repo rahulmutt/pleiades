@@ -135,6 +135,13 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("comparison-snapshot-source-window-summary") => validate_render_cli(args),
         Some("comparison-snapshot-body-class-coverage-summary") => validate_render_cli(args),
         Some("comparison-snapshot-manifest-summary") => validate_render_cli(args),
+        Some("comparison-snapshot") => {
+            ensure_no_extra_args(&args[1..], "comparison-snapshot")?;
+            Ok(format!(
+                "Comparison snapshot summary\n{}\n",
+                pleiades_jpl::comparison_snapshot_summary_for_report()
+            ))
+        }
         Some("comparison-snapshot-summary") => validate_render_cli(args),
         Some("comparison-snapshot-batch-parity-summary") => validate_render_cli(args),
         Some("reference-snapshot-source-summary") => {
@@ -154,6 +161,13 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         | Some("2500-major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-body-class-coverage-summary") => validate_render_cli(args),
         Some("reference-snapshot-manifest-summary") => validate_render_cli(args),
+        Some("reference-snapshot") => {
+            ensure_no_extra_args(&args[1..], "reference-snapshot")?;
+            Ok(format!(
+                "Reference snapshot summary\n{}\n",
+                pleiades_jpl::reference_snapshot_summary_for_report()
+            ))
+        }
         Some("reference-snapshot-summary") => validate_render_cli(args),
         Some("reference-snapshot-batch-parity-summary") => validate_render_cli(args),
         Some("reference-snapshot-equatorial-parity-summary") => validate_render_cli(args),
@@ -2203,6 +2217,15 @@ mod tests {
                 pleiades_jpl::comparison_snapshot_summary_for_report()
             )
         );
+        assert_eq!(
+            render_cli(&["comparison-snapshot"]).expect("comparison snapshot alias should render"),
+            comparison_snapshot_summary
+        );
+        assert_eq!(
+            render_cli(&["comparison-snapshot", "extra"])
+                .expect_err("comparison snapshot alias should reject extra arguments"),
+            "comparison-snapshot does not accept extra arguments"
+        );
         let comparison_snapshot_batch_parity_summary =
             render_cli(&["comparison-snapshot-batch-parity-summary"])
                 .expect("comparison snapshot batch parity summary should render");
@@ -2240,6 +2263,15 @@ mod tests {
                 "Reference snapshot summary\n{}\n",
                 pleiades_jpl::reference_snapshot_summary_for_report()
             )
+        );
+        assert_eq!(
+            render_cli(&["reference-snapshot"]).expect("reference snapshot alias should render"),
+            reference_snapshot_summary
+        );
+        assert_eq!(
+            render_cli(&["reference-snapshot", "extra"])
+                .expect_err("reference snapshot alias should reject extra arguments"),
+            "reference-snapshot does not accept extra arguments"
         );
         let reference_snapshot_batch_parity_summary =
             render_cli(&["reference-snapshot-batch-parity-summary"])
@@ -3601,12 +3633,14 @@ mod tests {
         assert!(help.contains(
             "comparison-snapshot-summary  Print the compact comparison snapshot summary"
         ));
+        assert!(help.contains("comparison-snapshot         Alias for comparison-snapshot-summary"));
         assert!(help.contains(
             "comparison-snapshot-source-summary  Print the compact comparison snapshot source summary"
         ));
         assert!(help.contains(
             "reference-snapshot-manifest-summary  Print the compact reference snapshot manifest summary"
         ));
+        assert!(help.contains("reference-snapshot         Alias for reference-snapshot-summary"));
         assert!(help.contains(
             "reference-snapshot-source-summary  Print the compact reference snapshot source summary"
         ));
