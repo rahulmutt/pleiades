@@ -1864,6 +1864,12 @@ mod tests {
             request_policy_error,
             "request-policy does not accept extra arguments"
         );
+        let request_policy_summary_error = render_cli(&["request-policy-summary", "extra"])
+            .expect_err("request policy summary should reject extra arguments");
+        assert_eq!(
+            request_policy_summary_error,
+            "request-policy-summary does not accept extra arguments"
+        );
         assert_eq!(
             request_policy_summary,
             render_cli(&["request-semantics-summary"])

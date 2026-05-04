@@ -21880,6 +21880,13 @@ version = "0.9.0"
             render_cli(&["request-semantics"]).expect("request semantics alias should render");
         assert_eq!(request_semantics_alias, request_policy);
 
+        let request_policy_summary_error = render_cli(&["request-policy-summary", "extra"])
+            .expect_err("request policy summary should reject extra arguments");
+        assert_eq!(
+            request_policy_summary_error,
+            "request-policy-summary does not accept extra arguments"
+        );
+
         let request_policy_error = render_cli(&["request-policy", "extra"])
             .expect_err("request policy alias should reject extra arguments");
         assert_eq!(
