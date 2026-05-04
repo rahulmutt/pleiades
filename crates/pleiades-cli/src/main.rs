@@ -348,6 +348,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("house-formula-families-summary") => {
             validate_render_cli(&["house-formula-families-summary"])
         }
+        Some("house-formula-families") => validate_render_cli(&["house-formula-families"]),
         Some("house-code-aliases-summary") => validate_render_cli(&["house-code-aliases-summary"]),
         Some("house-code-alias-summary") => validate_render_cli(&["house-code-aliases-summary"]),
         Some("ayanamsa-catalog-validation-summary") => {
@@ -2559,6 +2560,11 @@ mod tests {
             house_formula_families_summary,
             validate_render_cli(&["house-formula-families-summary"])
                 .expect("validate facade should render house formula families summary")
+        );
+        assert_eq!(
+            render_cli(&["house-formula-families"])
+                .expect("house formula families alias should render"),
+            house_formula_families_summary
         );
         let house_code_aliases_summary = render_cli(&["house-code-aliases-summary"])
             .expect("house code aliases summary should render");
