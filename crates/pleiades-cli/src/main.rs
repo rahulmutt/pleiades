@@ -3447,6 +3447,7 @@ mod tests {
         assert!(rendered.contains("compatibility-profile.txt"));
         assert!(rendered.contains("bundle-manifest.checksum.txt"));
         assert!(bundle_dir.join("bundle-manifest.txt").exists());
+        assert!(bundle_dir.join("catalog-inventory-summary.txt").exists());
         assert!(bundle_dir
             .join("packaged-artifact-generation-manifest.txt")
             .exists());
@@ -3464,6 +3465,7 @@ mod tests {
 
         assert!(verified.contains("Release bundle"));
         assert!(verified.contains("compatibility-profile.txt"));
+        assert!(verified.contains("catalog-inventory-summary.txt"));
         assert!(verified.contains("bundle-manifest.checksum.txt"));
     }
 
