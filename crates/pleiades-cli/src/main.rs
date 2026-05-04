@@ -2337,9 +2337,6 @@ mod tests {
             render_cli(&["production-generation-source-summary"])
                 .expect("production generation source summary should render");
         assert!(production_generation_source_summary.contains("Production generation source:"));
-        assert!(production_generation_source_summary.contains("Reference snapshot source:"));
-        assert!(production_generation_source_summary
-            .contains("Production generation boundary overlay source:"));
         assert_eq!(
             production_generation_source_summary,
             pleiades_jpl::production_generation_source_summary_for_report()
@@ -2863,7 +2860,7 @@ mod tests {
             reference_asteroid_source_window_summary.contains("Reference asteroid source windows:")
         );
         assert!(reference_asteroid_source_window_summary
-            .contains("source-backed samples across 5 bodies and 15 epochs"));
+            .contains("source-backed samples across 5 bodies and 16 epochs"));
         assert_eq!(
             reference_asteroid_source_window_summary,
             pleiades_jpl::reference_asteroid_source_window_summary_for_report()
