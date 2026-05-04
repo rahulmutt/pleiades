@@ -3872,6 +3872,8 @@ mod tests {
             .join("compatibility-caveats-summary.txt")
             .exists());
         assert!(bundle_dir.join("request-policy-summary.txt").exists());
+        assert!(bundle_dir.join("time-scale-policy-summary.txt").exists());
+        assert!(bundle_dir.join("delta-t-policy-summary.txt").exists());
         assert!(bundle_dir.join("request-surface-summary.txt").exists());
         assert!(bundle_dir
             .join("release-profile-identifiers-summary.txt")
@@ -3904,6 +3906,8 @@ mod tests {
         assert!(verified.contains("compatibility-profile.txt"));
         assert!(verified.contains("catalog-inventory-summary.txt"));
         assert!(verified.contains("custom-definition-ayanamsa-labels-summary.txt"));
+        assert!(verified.contains("time-scale-policy-summary.txt"));
+        assert!(verified.contains("delta-t-policy-summary.txt"));
         assert!(verified.contains("release-house-system-canonical-names-summary.txt"));
         assert!(verified.contains("release-ayanamsa-canonical-names-summary.txt"));
         assert!(verified.contains("bundle-manifest.checksum.txt"));

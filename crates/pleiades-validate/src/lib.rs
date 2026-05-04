@@ -3775,6 +3775,18 @@ impl fmt::Display for ReleaseBundle {
         )?;
         writeln!(
             f,
+            "  time-scale policy summary: {}",
+            self.output_dir
+                .join("time-scale-policy-summary.txt")
+                .display()
+        )?;
+        writeln!(
+            f,
+            "  delta-t policy summary: {}",
+            self.output_dir.join("delta-t-policy-summary.txt").display()
+        )?;
+        writeln!(
+            f,
             "  lunar-theory limitations summary: {}",
             self.output_dir
                 .join("lunar-theory-limitations-summary.txt")
@@ -8028,6 +8040,8 @@ pub fn render_release_bundle(
         render_custom_definition_ayanamsa_labels_summary();
     let validation_report_summary_text = render_validation_report_summary_text(&validation_report);
     let request_policy_summary_text = render_request_policy_summary_text();
+    let time_scale_policy_summary_text = render_time_scale_policy_summary_text();
+    let delta_t_policy_summary_text = render_delta_t_policy_summary_text();
     let lunar_theory_limitations_summary_text = lunar_theory_limitations_summary_for_report();
     let request_surface_summary_text = render_request_surface_summary_text();
     let compatibility_caveats_summary_text = render_compatibility_caveats_summary();
@@ -8067,6 +8081,8 @@ pub fn render_release_bundle(
         output_dir.join("custom-definition-ayanamsa-labels-summary.txt");
     let validation_report_summary_path = output_dir.join("validation-report-summary.txt");
     let request_policy_summary_path = output_dir.join("request-policy-summary.txt");
+    let time_scale_policy_summary_path = output_dir.join("time-scale-policy-summary.txt");
+    let delta_t_policy_summary_path = output_dir.join("delta-t-policy-summary.txt");
     let lunar_theory_limitations_summary_path =
         output_dir.join("lunar-theory-limitations-summary.txt");
     let request_surface_summary_path = output_dir.join("request-surface-summary.txt");
@@ -8114,6 +8130,8 @@ pub fn render_release_bundle(
         checksum64(&custom_definition_ayanamsa_labels_summary_text);
     let validation_report_summary_checksum = checksum64(&validation_report_summary_text);
     let request_policy_summary_checksum = checksum64(&request_policy_summary_text);
+    let time_scale_policy_summary_checksum = checksum64(&time_scale_policy_summary_text);
+    let delta_t_policy_summary_checksum = checksum64(&delta_t_policy_summary_text);
     let lunar_theory_limitations_summary_checksum =
         checksum64(&lunar_theory_limitations_summary_text);
     let request_surface_summary_checksum = checksum64(&request_surface_summary_text);
@@ -8127,7 +8145,7 @@ pub fn render_release_bundle(
     let benchmark_report_checksum = checksum64(&benchmark_report_text);
     let validation_report_checksum = checksum64(&validation_report_text);
     let manifest_text = format!(
-        "Release bundle manifest\nprofile: compatibility-profile.txt\nprofile checksum (fnv1a-64): 0x{compatibility_profile_checksum:016x}\nprofile summary: compatibility-profile-summary.txt\nprofile summary checksum (fnv1a-64): 0x{compatibility_profile_summary_checksum:016x}\nrelease notes: release-notes.txt\nrelease notes checksum (fnv1a-64): 0x{release_notes_checksum:016x}\nrelease notes summary: release-notes-summary.txt\nrelease notes summary checksum (fnv1a-64): 0x{release_notes_summary_checksum:016x}\nrelease summary: release-summary.txt\nrelease summary checksum (fnv1a-64): 0x{release_summary_checksum:016x}\nrelease-profile identifiers: release-profile-identifiers.txt\nrelease-profile identifiers checksum (fnv1a-64): 0x{release_profile_identifiers_checksum:016x}\nrelease-profile identifiers summary: release-profile-identifiers-summary.txt\nrelease-profile identifiers summary checksum (fnv1a-64): 0x{release_profile_identifiers_summary_checksum:016x}\nrelease-house-system-canonical-names summary: release-house-system-canonical-names-summary.txt\nrelease-house-system-canonical-names summary checksum (fnv1a-64): 0x{release_house_system_canonical_names_summary_checksum:016x}\nrelease-ayanamsa-canonical-names summary: release-ayanamsa-canonical-names-summary.txt\nrelease-ayanamsa-canonical-names summary checksum (fnv1a-64): 0x{release_ayanamsa_canonical_names_summary_checksum:016x}\nrelease checklist: release-checklist.txt\nrelease checklist checksum (fnv1a-64): 0x{release_checklist_checksum:016x}\nrelease checklist summary: release-checklist-summary.txt\nrelease checklist summary checksum (fnv1a-64): 0x{release_checklist_summary_checksum:016x}\nbackend matrix: backend-matrix.txt\nbackend matrix checksum (fnv1a-64): 0x{backend_matrix_checksum:016x}\nbackend matrix summary: backend-matrix-summary.txt\nbackend matrix summary checksum (fnv1a-64): 0x{backend_matrix_summary_checksum:016x}\napi stability posture: api-stability.txt\napi stability checksum (fnv1a-64): 0x{api_stability_checksum:016x}\napi stability summary: api-stability-summary.txt\napi stability summary checksum (fnv1a-64): 0x{api_stability_summary_checksum:016x}\ncomparison-corpus summary: comparison-corpus-summary.txt\ncomparison-corpus summary checksum (fnv1a-64): 0x{comparison_corpus_summary_checksum:016x}\ncomparison-envelope summary: comparison-envelope-summary.txt\ncomparison-envelope summary checksum (fnv1a-64): 0x{comparison_envelope_summary_checksum:016x}\ncomparison-corpus release-guard summary: comparison-corpus-release-guard-summary.txt\ncomparison-corpus release-guard summary checksum (fnv1a-64): 0x{comparison_corpus_release_guard_summary_checksum:016x}\ncatalog inventory summary: catalog-inventory-summary.txt\ncatalog inventory summary checksum (fnv1a-64): 0x{catalog_inventory_summary_checksum:016x}\ncustom-definition ayanamsa labels summary: custom-definition-ayanamsa-labels-summary.txt\ncustom-definition ayanamsa labels summary checksum (fnv1a-64): 0x{custom_definition_ayanamsa_labels_summary_checksum:016x}\nvalidation report summary: validation-report-summary.txt\nvalidation report summary checksum (fnv1a-64): 0x{validation_report_summary_checksum:016x}\nrequest policy summary: request-policy-summary.txt\nrequest policy summary checksum (fnv1a-64): 0x{request_policy_summary_checksum:016x}\nlunar theory limitations summary: lunar-theory-limitations-summary.txt\nlunar theory limitations summary checksum (fnv1a-64): 0x{lunar_theory_limitations_summary_checksum:016x}\nrequest surface summary: request-surface-summary.txt\nrequest surface summary checksum (fnv1a-64): 0x{request_surface_summary_checksum:016x}\ncompatibility caveats summary: compatibility-caveats-summary.txt\ncompatibility caveats summary checksum (fnv1a-64): 0x{compatibility_caveats_summary_checksum:016x}\nworkspace audit summary: workspace-audit-summary.txt\nworkspace audit summary checksum (fnv1a-64): 0x{workspace_audit_summary_checksum:016x}\nnative-dependency audit summary: native-dependency-audit-summary.txt\nnative-dependency audit summary checksum (fnv1a-64): 0x{native_dependency_audit_summary_checksum:016x}\nartifact summary: artifact-summary.txt\nartifact summary checksum (fnv1a-64): 0x{artifact_summary_checksum:016x}\npackaged-artifact generation manifest: packaged-artifact-generation-manifest.txt\npackaged-artifact generation manifest checksum (fnv1a-64): 0x{packaged_artifact_generation_manifest_checksum:016x}\nbenchmark-corpus summary: benchmark-corpus-summary.txt\nbenchmark-corpus summary checksum (fnv1a-64): 0x{benchmark_corpus_summary_checksum:016x}\nbenchmark report: benchmark-report.txt\nbenchmark report checksum (fnv1a-64): 0x{benchmark_report_checksum:016x}\nvalidation report: validation-report.txt\nvalidation report checksum (fnv1a-64): 0x{validation_report_checksum:016x}\nsource revision: {}\nworkspace status: {}\nrustc version: {}\nprofile id: {}\napi stability posture id: {}\nvalidation rounds: {}\n",
+        "Release bundle manifest\nprofile: compatibility-profile.txt\nprofile checksum (fnv1a-64): 0x{compatibility_profile_checksum:016x}\nprofile summary: compatibility-profile-summary.txt\nprofile summary checksum (fnv1a-64): 0x{compatibility_profile_summary_checksum:016x}\nrelease notes: release-notes.txt\nrelease notes checksum (fnv1a-64): 0x{release_notes_checksum:016x}\nrelease notes summary: release-notes-summary.txt\nrelease notes summary checksum (fnv1a-64): 0x{release_notes_summary_checksum:016x}\nrelease summary: release-summary.txt\nrelease summary checksum (fnv1a-64): 0x{release_summary_checksum:016x}\nrelease-profile identifiers: release-profile-identifiers.txt\nrelease-profile identifiers checksum (fnv1a-64): 0x{release_profile_identifiers_checksum:016x}\nrelease-profile identifiers summary: release-profile-identifiers-summary.txt\nrelease-profile identifiers summary checksum (fnv1a-64): 0x{release_profile_identifiers_summary_checksum:016x}\nrelease-house-system-canonical-names summary: release-house-system-canonical-names-summary.txt\nrelease-house-system-canonical-names summary checksum (fnv1a-64): 0x{release_house_system_canonical_names_summary_checksum:016x}\nrelease-ayanamsa-canonical-names summary: release-ayanamsa-canonical-names-summary.txt\nrelease-ayanamsa-canonical-names summary checksum (fnv1a-64): 0x{release_ayanamsa_canonical_names_summary_checksum:016x}\nrelease checklist: release-checklist.txt\nrelease checklist checksum (fnv1a-64): 0x{release_checklist_checksum:016x}\nrelease checklist summary: release-checklist-summary.txt\nrelease checklist summary checksum (fnv1a-64): 0x{release_checklist_summary_checksum:016x}\nbackend matrix: backend-matrix.txt\nbackend matrix checksum (fnv1a-64): 0x{backend_matrix_checksum:016x}\nbackend matrix summary: backend-matrix-summary.txt\nbackend matrix summary checksum (fnv1a-64): 0x{backend_matrix_summary_checksum:016x}\napi stability posture: api-stability.txt\napi stability checksum (fnv1a-64): 0x{api_stability_checksum:016x}\napi stability summary: api-stability-summary.txt\napi stability summary checksum (fnv1a-64): 0x{api_stability_summary_checksum:016x}\ncomparison-corpus summary: comparison-corpus-summary.txt\ncomparison-corpus summary checksum (fnv1a-64): 0x{comparison_corpus_summary_checksum:016x}\ncomparison-envelope summary: comparison-envelope-summary.txt\ncomparison-envelope summary checksum (fnv1a-64): 0x{comparison_envelope_summary_checksum:016x}\ncomparison-corpus release-guard summary: comparison-corpus-release-guard-summary.txt\ncomparison-corpus release-guard summary checksum (fnv1a-64): 0x{comparison_corpus_release_guard_summary_checksum:016x}\ncatalog inventory summary: catalog-inventory-summary.txt\ncatalog inventory summary checksum (fnv1a-64): 0x{catalog_inventory_summary_checksum:016x}\ncustom-definition ayanamsa labels summary: custom-definition-ayanamsa-labels-summary.txt\ncustom-definition ayanamsa labels summary checksum (fnv1a-64): 0x{custom_definition_ayanamsa_labels_summary_checksum:016x}\nvalidation report summary: validation-report-summary.txt\nvalidation report summary checksum (fnv1a-64): 0x{validation_report_summary_checksum:016x}\nrequest policy summary: request-policy-summary.txt\nrequest policy summary checksum (fnv1a-64): 0x{request_policy_summary_checksum:016x}\ntime-scale policy summary: time-scale-policy-summary.txt\ntime-scale policy summary checksum (fnv1a-64): 0x{time_scale_policy_summary_checksum:016x}\ndelta-t policy summary: delta-t-policy-summary.txt\ndelta-t policy summary checksum (fnv1a-64): 0x{delta_t_policy_summary_checksum:016x}\nlunar theory limitations summary: lunar-theory-limitations-summary.txt\nlunar theory limitations summary checksum (fnv1a-64): 0x{lunar_theory_limitations_summary_checksum:016x}\nrequest surface summary: request-surface-summary.txt\nrequest surface summary checksum (fnv1a-64): 0x{request_surface_summary_checksum:016x}\ncompatibility caveats summary: compatibility-caveats-summary.txt\ncompatibility caveats summary checksum (fnv1a-64): 0x{compatibility_caveats_summary_checksum:016x}\nworkspace audit summary: workspace-audit-summary.txt\nworkspace audit summary checksum (fnv1a-64): 0x{workspace_audit_summary_checksum:016x}\nnative-dependency audit summary: native-dependency-audit-summary.txt\nnative-dependency audit summary checksum (fnv1a-64): 0x{native_dependency_audit_summary_checksum:016x}\nartifact summary: artifact-summary.txt\nartifact summary checksum (fnv1a-64): 0x{artifact_summary_checksum:016x}\npackaged-artifact generation manifest: packaged-artifact-generation-manifest.txt\npackaged-artifact generation manifest checksum (fnv1a-64): 0x{packaged_artifact_generation_manifest_checksum:016x}\nbenchmark-corpus summary: benchmark-corpus-summary.txt\nbenchmark-corpus summary checksum (fnv1a-64): 0x{benchmark_corpus_summary_checksum:016x}\nbenchmark report: benchmark-report.txt\nbenchmark report checksum (fnv1a-64): 0x{benchmark_report_checksum:016x}\nvalidation report: validation-report.txt\nvalidation report checksum (fnv1a-64): 0x{validation_report_checksum:016x}\nsource revision: {}\nworkspace status: {}\nrustc version: {}\nprofile id: {}\napi stability posture id: {}\nvalidation rounds: {}\n",
         provenance.source_revision,
         provenance.workspace_status,
         provenance.rustc_version,
@@ -8202,6 +8220,14 @@ pub fn render_release_bundle(
     fs::write(
         &request_policy_summary_path,
         request_policy_summary_text.as_bytes(),
+    )?;
+    fs::write(
+        &time_scale_policy_summary_path,
+        time_scale_policy_summary_text.as_bytes(),
+    )?;
+    fs::write(
+        &delta_t_policy_summary_path,
+        delta_t_policy_summary_text.as_bytes(),
     )?;
     fs::write(
         &lunar_theory_limitations_summary_path,
@@ -8288,6 +8314,10 @@ struct ParsedReleaseBundleManifest {
     validation_report_summary_checksum: u64,
     request_policy_summary_path: String,
     request_policy_summary_checksum: u64,
+    time_scale_policy_summary_path: String,
+    time_scale_policy_summary_checksum: u64,
+    delta_t_policy_summary_path: String,
+    delta_t_policy_summary_checksum: u64,
     lunar_theory_limitations_summary_path: String,
     lunar_theory_limitations_summary_checksum: u64,
     request_surface_summary_path: String,
@@ -8459,6 +8489,19 @@ impl ParsedReleaseBundleManifest {
                 text,
                 "request policy summary checksum (fnv1a-64):",
             )?,
+            time_scale_policy_summary_path: parse_manifest_string(
+                text,
+                "time-scale policy summary:",
+            )?,
+            time_scale_policy_summary_checksum: parse_manifest_checksum(
+                text,
+                "time-scale policy summary checksum (fnv1a-64):",
+            )?,
+            delta_t_policy_summary_path: parse_manifest_string(text, "delta-t policy summary:")?,
+            delta_t_policy_summary_checksum: parse_manifest_checksum(
+                text,
+                "delta-t policy summary checksum (fnv1a-64):",
+            )?,
             lunar_theory_limitations_summary_path: parse_manifest_string(
                 text,
                 "lunar theory limitations summary:",
@@ -8563,6 +8606,8 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
         "custom-definition-ayanamsa-labels-summary.txt",
         "validation-report-summary.txt",
         "request-policy-summary.txt",
+        "time-scale-policy-summary.txt",
+        "delta-t-policy-summary.txt",
         "lunar-theory-limitations-summary.txt",
         "request-surface-summary.txt",
         "compatibility-caveats-summary.txt",
@@ -8606,7 +8651,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
 fn ensure_release_bundle_manifest_is_canonical(
     manifest_text: &str,
 ) -> Result<(), ReleaseBundleError> {
-    const EXPECTED_MANIFEST_LINES: [&str; 71] = [
+    const EXPECTED_MANIFEST_LINES: [&str; 75] = [
         "Release bundle manifest",
         "profile:",
         "profile checksum (fnv1a-64):",
@@ -8652,6 +8697,10 @@ fn ensure_release_bundle_manifest_is_canonical(
         "validation report summary checksum (fnv1a-64):",
         "request policy summary:",
         "request policy summary checksum (fnv1a-64):",
+        "time-scale policy summary:",
+        "time-scale policy summary checksum (fnv1a-64):",
+        "delta-t policy summary:",
+        "delta-t policy summary checksum (fnv1a-64):",
         "lunar theory limitations summary:",
         "lunar theory limitations summary checksum (fnv1a-64):",
         "request surface summary:",
@@ -8756,6 +8805,8 @@ fn verify_release_bundle(
         output_dir.join("custom-definition-ayanamsa-labels-summary.txt");
     let validation_report_summary_path = output_dir.join("validation-report-summary.txt");
     let request_policy_summary_path = output_dir.join("request-policy-summary.txt");
+    let time_scale_policy_summary_path = output_dir.join("time-scale-policy-summary.txt");
+    let delta_t_policy_summary_path = output_dir.join("delta-t-policy-summary.txt");
     let lunar_theory_limitations_summary_path =
         output_dir.join("lunar-theory-limitations-summary.txt");
     let request_surface_summary_path = output_dir.join("request-surface-summary.txt");
@@ -8866,6 +8917,10 @@ fn verify_release_bundle(
         read_required_bundle_text(&validation_report_summary_path, "validation report summary")?;
     let request_policy_summary_text =
         read_required_bundle_text(&request_policy_summary_path, "request policy summary")?;
+    let time_scale_policy_summary_text =
+        read_required_bundle_text(&time_scale_policy_summary_path, "time-scale policy summary")?;
+    let delta_t_policy_summary_text =
+        read_required_bundle_text(&delta_t_policy_summary_path, "delta-t policy summary")?;
     let lunar_theory_limitations_summary_text = read_required_bundle_text(
         &lunar_theory_limitations_summary_path,
         "lunar theory limitations summary",
@@ -9047,6 +9102,18 @@ fn verify_release_bundle(
             manifest.request_policy_summary_path
         )));
     }
+    if manifest.time_scale_policy_summary_path != "time-scale-policy-summary.txt" {
+        return Err(ReleaseBundleError::Verification(format!(
+            "unexpected time-scale policy summary file entry: {}",
+            manifest.time_scale_policy_summary_path
+        )));
+    }
+    if manifest.delta_t_policy_summary_path != "delta-t-policy-summary.txt" {
+        return Err(ReleaseBundleError::Verification(format!(
+            "unexpected delta-t policy summary file entry: {}",
+            manifest.delta_t_policy_summary_path
+        )));
+    }
     if manifest.lunar_theory_limitations_summary_path != "lunar-theory-limitations-summary.txt" {
         return Err(ReleaseBundleError::Verification(format!(
             "unexpected lunar theory limitations summary file entry: {}",
@@ -9134,6 +9201,8 @@ fn verify_release_bundle(
         checksum64(&custom_definition_ayanamsa_labels_summary_text);
     let validation_report_summary_checksum = checksum64(&validation_report_summary_text);
     let request_policy_summary_checksum = checksum64(&request_policy_summary_text);
+    let time_scale_policy_summary_checksum = checksum64(&time_scale_policy_summary_text);
+    let delta_t_policy_summary_checksum = checksum64(&delta_t_policy_summary_text);
     let lunar_theory_limitations_summary_checksum =
         checksum64(&lunar_theory_limitations_summary_text);
     let request_surface_summary_checksum = checksum64(&request_surface_summary_text);
@@ -9342,6 +9411,18 @@ fn verify_release_bundle(
         return Err(ReleaseBundleError::Verification(format!(
             "request policy summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
             manifest.request_policy_summary_checksum, request_policy_summary_checksum
+        )));
+    }
+    if manifest.time_scale_policy_summary_checksum != time_scale_policy_summary_checksum {
+        return Err(ReleaseBundleError::Verification(format!(
+            "time-scale policy summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
+            manifest.time_scale_policy_summary_checksum, time_scale_policy_summary_checksum
+        )));
+    }
+    if manifest.delta_t_policy_summary_checksum != delta_t_policy_summary_checksum {
+        return Err(ReleaseBundleError::Verification(format!(
+            "delta-t policy summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
+            manifest.delta_t_policy_summary_checksum, delta_t_policy_summary_checksum
         )));
     }
     if manifest.lunar_theory_limitations_summary_checksum
@@ -20637,6 +20718,8 @@ version = "0.9.0"
         assert!(rendered.contains("validation-report-summary.txt"));
         assert!(rendered.contains("workspace-audit-summary.txt"));
         assert!(rendered.contains("benchmark-corpus-summary.txt"));
+        assert!(rendered.contains("time-scale-policy-summary.txt"));
+        assert!(rendered.contains("delta-t-policy-summary.txt"));
         assert!(rendered.contains("lunar-theory-limitations-summary.txt"));
         assert!(bundle_dir
             .join("compatibility-caveats-summary.txt")
@@ -20646,6 +20729,8 @@ version = "0.9.0"
             .join("custom-definition-ayanamsa-labels-summary.txt")
             .exists());
         assert!(bundle_dir.join("request-policy-summary.txt").exists());
+        assert!(bundle_dir.join("time-scale-policy-summary.txt").exists());
+        assert!(bundle_dir.join("delta-t-policy-summary.txt").exists());
         assert!(bundle_dir
             .join("lunar-theory-limitations-summary.txt")
             .exists());
@@ -21399,6 +21484,8 @@ version = "0.9.0"
         assert!(manifest.contains("custom-definition-ayanamsa-labels-summary.txt"));
         assert!(manifest.contains("validation-report-summary.txt"));
         assert!(manifest.contains("request-policy-summary.txt"));
+        assert!(manifest.contains("time-scale-policy-summary.txt"));
+        assert!(manifest.contains("delta-t-policy-summary.txt"));
         assert!(manifest
             .contains("lunar theory limitations summary: lunar-theory-limitations-summary.txt"));
         assert!(manifest.contains("lunar theory limitations summary checksum (fnv1a-64): 0x"));
@@ -21466,6 +21553,8 @@ version = "0.9.0"
         assert!(verified.contains("catalog-inventory-summary.txt"));
         assert!(verified.contains("custom-definition-ayanamsa-labels-summary.txt"));
         assert!(verified.contains("request-policy-summary.txt"));
+        assert!(verified.contains("time-scale-policy-summary.txt"));
+        assert!(verified.contains("delta-t-policy-summary.txt"));
         assert!(verified.contains("lunar-theory-limitations-summary.txt"));
         assert!(verified.contains("request-surface-summary.txt"));
         assert!(verified.contains("compatibility-caveats-summary.txt"));
