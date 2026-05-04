@@ -3747,6 +3747,25 @@ impl fmt::Display for ReleaseBundle {
         )?;
         writeln!(
             f,
+            "  request policy summary: {}",
+            self.output_dir.join("request-policy-summary.txt").display()
+        )?;
+        writeln!(
+            f,
+            "  request surface summary: {}",
+            self.output_dir
+                .join("request-surface-summary.txt")
+                .display()
+        )?;
+        writeln!(
+            f,
+            "  compatibility caveats summary: {}",
+            self.output_dir
+                .join("compatibility-caveats-summary.txt")
+                .display()
+        )?;
+        writeln!(
+            f,
             "  validation report summary: {}",
             self.validation_report_summary_path.display()
         )?;
@@ -3754,6 +3773,13 @@ impl fmt::Display for ReleaseBundle {
             f,
             "  workspace audit summary: {}",
             self.workspace_audit_summary_path.display()
+        )?;
+        writeln!(
+            f,
+            "  native-dependency audit summary: {}",
+            self.output_dir
+                .join("native-dependency-audit-summary.txt")
+                .display()
         )?;
         writeln!(
             f,
@@ -20370,7 +20396,15 @@ version = "0.9.0"
         assert!(bundle_dir
             .join("compatibility-caveats-summary.txt")
             .exists());
+        assert!(bundle_dir.join("catalog-inventory-summary.txt").exists());
+        assert!(bundle_dir
+            .join("custom-definition-ayanamsa-labels-summary.txt")
+            .exists());
+        assert!(bundle_dir.join("request-policy-summary.txt").exists());
         assert!(bundle_dir.join("request-surface-summary.txt").exists());
+        assert!(bundle_dir
+            .join("native-dependency-audit-summary.txt")
+            .exists());
         assert!(rendered.contains("artifact-summary.txt"));
         assert!(bundle_dir
             .join("packaged-artifact-generation-manifest.txt")
@@ -21158,6 +21192,10 @@ version = "0.9.0"
         assert!(verified.contains("comparison-corpus-release-guard-summary.txt"));
         assert!(verified.contains("catalog-inventory-summary.txt"));
         assert!(verified.contains("custom-definition-ayanamsa-labels-summary.txt"));
+        assert!(verified.contains("request-policy-summary.txt"));
+        assert!(verified.contains("request-surface-summary.txt"));
+        assert!(verified.contains("compatibility-caveats-summary.txt"));
+        assert!(verified.contains("native-dependency-audit-summary.txt"));
         assert!(verified.contains("validation-report-summary.txt"));
         assert!(verified.contains("artifact-summary.txt"));
         assert!(verified.contains("benchmark-corpus-summary.txt"));
