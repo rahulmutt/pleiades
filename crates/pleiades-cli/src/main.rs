@@ -3036,6 +3036,10 @@ mod tests {
         assert!(ayanamsa_reference_offsets_summary
             .contains("Valens Moon: epoch=JD 1775845.5; offset=-2.9422°"));
         assert!(ayanamsa_reference_offsets_summary
+            .contains("Suryasiddhanta (Mean Sun): epoch=JD 1909045.584433; offset=0°"));
+        assert!(ayanamsa_reference_offsets_summary
+            .contains("Aryabhata (Mean Sun): epoch=JD 1909650.815331; offset=0°"));
+        assert!(ayanamsa_reference_offsets_summary
             .contains("Babylonian (Kugler 2): epoch=JD 1797039.20682; offset=0°"));
         assert!(ayanamsa_reference_offsets_summary
             .contains("Babylonian (Kugler 3): epoch=JD 1774637.420172; offset=0°"));
