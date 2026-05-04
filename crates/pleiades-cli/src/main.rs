@@ -298,6 +298,13 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("lunar-theory-source-summary") => {
             validate_render_cli(&["lunar-theory-source-summary"])
         }
+        Some("lunar-theory-catalog-summary") | Some("lunar-theory-catalog") => {
+            validate_render_cli(&["lunar-theory-catalog-summary"])
+        }
+        Some("lunar-theory-catalog-validation-summary")
+        | Some("lunar-theory-catalog-validation") => {
+            validate_render_cli(&["lunar-theory-catalog-validation-summary"])
+        }
         Some("selected-asteroid-boundary-summary") => {
             validate_render_cli(&["selected-asteroid-boundary-summary"])
         }
@@ -1368,6 +1375,14 @@ mod tests {
         assert!(rendered.contains("lunar-theory-summary"));
         assert!(rendered.contains("lunar-theory-capability-summary"));
         assert!(rendered.contains("lunar-theory-source-summary"));
+        assert!(rendered.contains("lunar-theory-catalog-summary"));
+        assert!(rendered.contains("lunar-theory-catalog-validation-summary"));
+        assert!(
+            rendered.contains("lunar-theory-catalog      Alias for lunar-theory-catalog-summary")
+        );
+        assert!(rendered.contains(
+            "lunar-theory-catalog-validation  Alias for lunar-theory-catalog-validation-summary"
+        ));
         assert!(rendered.contains("observer-policy-summary"));
         assert!(rendered.contains("apparentness-policy-summary"));
         assert!(rendered.contains("compare-backends-audit"));
@@ -2413,6 +2428,19 @@ mod tests {
         assert_eq!(
             lunar_theory_source_summary,
             pleiades_elp::lunar_theory_source_summary_for_report()
+        );
+        let lunar_theory_catalog_summary = render_cli(&["lunar-theory-catalog-summary"])
+            .expect("lunar theory catalog summary should render");
+        assert_eq!(
+            lunar_theory_catalog_summary,
+            pleiades_elp::lunar_theory_catalog_summary_for_report()
+        );
+        let lunar_theory_catalog_validation_summary =
+            render_cli(&["lunar-theory-catalog-validation-summary"])
+                .expect("lunar theory catalog validation summary should render");
+        assert_eq!(
+            lunar_theory_catalog_validation_summary,
+            pleiades_elp::lunar_theory_catalog_validation_summary_for_report()
         );
         let selected_asteroid_boundary_summary =
             render_cli(&["selected-asteroid-boundary-summary"])

@@ -85,6 +85,7 @@ The current regression posture is intentionally small and deterministic:
 - explicit unsupported-body and unsupported-mode errors
 - a structured validation window exposed as `LunarTheorySpecification.validation_window` alongside the prose range note
 - a compact capability summary helper exposed as `lunar_theory_capability_summary()` for report generators that want structured counts and policy flags without parsing prose
+- the current one-entry catalog and its validation state are also exposed through `lunar_theory_catalog_summary()` / `lunar_theory_catalog_summary_for_report()` and `lunar_theory_catalog_validation_summary()` / `lunar_theory_catalog_validation_summary_for_report()`, so release-facing tooling can inspect the lunar baseline catalog directly
 - the selected source family is carried directly on `LunarTheorySpecification.source_family` so the current baseline can be audited without parsing the one-line summary
 
 ## Forward path
