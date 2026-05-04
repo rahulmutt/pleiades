@@ -18073,6 +18073,8 @@ mod tests {
         assert!(rendered.contains("B1950: epoch=JD 2433281.5; offset=0°"));
         assert!(rendered.contains("Babylonian (Kugler 2): epoch=JD 1797039.20682; offset=0°"));
         assert!(rendered.contains("Babylonian (Kugler 3): epoch=JD 1774637.420172; offset=0°"));
+        assert!(rendered
+            .contains("Babylonian (Huber): epoch=JD 1721171.5; offset=-0.12055555555555555°"));
         assert!(rendered.contains("Babylonian (Eta Piscium): epoch=JD 1807871.964797; offset=0°"));
         assert!(rendered.contains("Babylonian (Aldebaran): epoch=JD 1801643.133503; offset=0°"));
         assert!(rendered.contains("Lahiri (VP285): epoch=JD 1825235.164583; offset=0°"));

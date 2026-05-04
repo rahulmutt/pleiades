@@ -3023,6 +3023,8 @@ mod tests {
         assert!(ayanamsa_reference_offsets_summary
             .contains("Babylonian (Kugler 3): epoch=JD 1774637.420172; offset=0°"));
         assert!(ayanamsa_reference_offsets_summary
+            .contains("Babylonian (Huber): epoch=JD 1721171.5; offset=-0.12055555555555555°"));
+        assert!(ayanamsa_reference_offsets_summary
             .contains("Babylonian (Eta Piscium): epoch=JD 1807871.964797; offset=0°"));
         assert!(ayanamsa_reference_offsets_summary
             .contains("Babylonian (Aldebaran): epoch=JD 1801643.133503; offset=0°"));
