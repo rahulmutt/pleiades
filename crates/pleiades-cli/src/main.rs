@@ -1489,6 +1489,7 @@ mod tests {
 
         let compatibility = render_cli(&["compatibility-profile-summary"])
             .expect("compatibility summary should render");
+        assert_eq!(render_cli(&["profile-summary"]).unwrap(), compatibility);
         assert!(compatibility.contains("Compatibility profile summary"));
         assert!(compatibility.contains(&format!(
             "Profile: {}",
@@ -3478,6 +3479,7 @@ mod tests {
             "catalog-inventory-summary  Print the compact compatibility catalog inventory summary"
         ));
         assert!(help.contains("catalog-inventory        Alias for catalog-inventory-summary"));
+        assert!(help.contains("profile-summary           Alias for compatibility-profile-summary"));
         assert!(help.contains(
             "release-profile-identifiers  Alias for release-profile-identifiers-summary"
         ));
