@@ -4870,6 +4870,103 @@ mod tests {
     }
 
     #[test]
+    fn chart_request_signed_tt_helpers_preserve_body_and_house_observers() {
+        let mut ut1_custom = pleiades_types::CustomHouseSystem::new("My UT1 Signed Custom Houses");
+        ut1_custom.aliases.push("My UT1 Signed Alias".to_string());
+        ut1_custom.notes = Some("uses a signed UT1 calibration".to_string());
+
+        let ut1_observer = ObserverLocation::new(
+            Latitude::from_degrees(-14.6),
+            Longitude::from_degrees(34.9),
+            Some(1100.0),
+        );
+        let ut1_body_observer = ObserverLocation::new(
+            Latitude::from_degrees(19.8),
+            Longitude::from_degrees(155.5),
+            None,
+        );
+
+        let ut1_request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Ut1,
+        ))
+        .with_observer(ut1_observer)
+        .with_body_observer(ut1_body_observer.clone())
+        .with_house_system(HouseSystem::Custom(ut1_custom))
+        .with_bodies(vec![CelestialBody::Sun, CelestialBody::Moon])
+        .with_apparentness(Apparentness::Apparent);
+
+        let ut1_converted = ut1_request
+            .clone()
+            .with_tt_from_ut1_signed(64.184)
+            .expect("UT1 chart request should accept signed TT conversion helpers");
+
+        assert_eq!(ut1_converted.instant.scale, TimeScale::Tt);
+        assert_eq!(ut1_converted.observer, ut1_request.observer);
+        assert_eq!(ut1_converted.body_observer, ut1_request.body_observer);
+        assert_eq!(ut1_converted.house_system, ut1_request.house_system);
+        assert_eq!(ut1_converted.bodies, ut1_request.bodies);
+        assert_eq!(ut1_converted.apparentness, ut1_request.apparentness);
+
+        let ut1_summary = ut1_converted.summary_line();
+        assert!(ut1_summary.contains("(TT);"));
+        assert!(ut1_summary.contains("observer=house-only;"));
+        assert!(
+            ut1_summary.contains("body observer=latitude=19.8°, longitude=155.5°, elevation=n/a")
+        );
+        assert!(ut1_summary.contains(
+            "house system=My UT1 Signed Custom Houses [aliases: My UT1 Signed Alias] (uses a signed UT1 calibration)"
+        ));
+
+        let mut utc_custom = pleiades_types::CustomHouseSystem::new("My UTC Signed Custom Houses");
+        utc_custom.aliases.push("My UTC Signed Alias".to_string());
+        utc_custom.notes = Some("uses a signed UTC calibration".to_string());
+
+        let utc_observer = ObserverLocation::new(
+            Latitude::from_degrees(23.1),
+            Longitude::from_degrees(-82.3),
+            Some(15.0),
+        );
+        let utc_body_observer = ObserverLocation::new(
+            Latitude::from_degrees(-31.9),
+            Longitude::from_degrees(115.9),
+            None,
+        );
+
+        let utc_request = ChartRequest::new(Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            TimeScale::Utc,
+        ))
+        .with_observer(utc_observer)
+        .with_body_observer(utc_body_observer.clone())
+        .with_house_system(HouseSystem::Custom(utc_custom))
+        .with_bodies(vec![CelestialBody::Mercury, CelestialBody::Venus])
+        .with_apparentness(Apparentness::Apparent);
+
+        let utc_converted = utc_request
+            .clone()
+            .with_tt_from_utc_signed(64.184)
+            .expect("UTC chart request should accept signed TT conversion helpers");
+
+        assert_eq!(utc_converted.instant.scale, TimeScale::Tt);
+        assert_eq!(utc_converted.observer, utc_request.observer);
+        assert_eq!(utc_converted.body_observer, utc_request.body_observer);
+        assert_eq!(utc_converted.house_system, utc_request.house_system);
+        assert_eq!(utc_converted.bodies, utc_request.bodies);
+        assert_eq!(utc_converted.apparentness, utc_request.apparentness);
+
+        let utc_summary = utc_converted.summary_line();
+        assert!(utc_summary.contains("(TT);"));
+        assert!(utc_summary.contains("observer=house-only;"));
+        assert!(
+            utc_summary.contains("body observer=latitude=-31.9°, longitude=115.9°, elevation=n/a")
+        );
+        assert!(utc_summary.contains(
+            "house system=My UTC Signed Custom Houses [aliases: My UTC Signed Alias] (uses a signed UTC calibration)"
+        ));
+    }
+
+    #[test]
     fn chart_request_can_convert_utc_to_tt() {
         let request = ChartRequest::new(Instant::new(
             pleiades_types::JulianDay::from_days(2_451_545.0),
