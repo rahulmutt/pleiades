@@ -1636,6 +1636,7 @@ mod tests {
         assert!(backend_matrix.contains("Accuracy classes: Exact: 1"));
         assert!(backend_matrix.contains("Reference snapshot dense boundary day:"));
         assert!(backend_matrix.contains("Reference major-body bridge evidence:"));
+        assert!(backend_matrix.contains("Selected asteroid bridge evidence:"));
         assert!(backend_matrix.contains("Release notes summary: release-notes-summary"));
         assert!(backend_matrix
             .contains("Compatibility profile verification: verify-compatibility-profile"));
