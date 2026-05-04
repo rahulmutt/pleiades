@@ -2175,7 +2175,6 @@ pub fn validate_request_against_metadata(
     metadata: &BackendMetadata,
 ) -> Result<(), EphemerisError> {
     req.validate_custom_definitions()?;
-    validate_request_observer_location(req)?;
 
     if !metadata.family.is_routing() {
         validate_request_policy(
@@ -2191,7 +2190,10 @@ pub fn validate_request_against_metadata(
             validate_zodiac_policy(req, metadata.id.as_str(), &[ZodiacMode::Tropical])?;
         }
 
+        validate_request_observer_location(req)?;
         validate_observer_policy(req, metadata.id.as_str(), metadata.capabilities.topocentric)?;
+    } else {
+        validate_request_observer_location(req)?;
     }
 
     if !metadata.body_coverage.contains(&req.body) {
@@ -3936,6 +3938,48 @@ mod tests {
             false,
         )
         .expect_err("apparent requests should be rejected when only mean output is supported");
+        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedApparentness);
+        assert_eq!(
+            error.message,
+            "toy backend currently returns mean geometric coordinates only; apparent corrections are not implemented"
+        );
+
+        let invalid_observer_apparent_request = EphemerisRequest {
+            observer: Some(ObserverLocation::new(
+                Latitude::from_degrees(95.0),
+                Longitude::from_degrees(-0.1),
+                Some(45.0),
+            )),
+            frame: CoordinateFrame::Ecliptic,
+            apparent: Apparentness::Apparent,
+            ..frame_request.clone()
+        };
+        let unsupported_apparent_metadata = BackendMetadata {
+            id: BackendId::new("toy backend"),
+            version: "0.1.0".to_string(),
+            family: BackendFamily::Algorithmic,
+            provenance: BackendProvenance::new("toy backend"),
+            nominal_range: TimeRange::new(None, None),
+            supported_time_scales: vec![TimeScale::Tt],
+            body_coverage: vec![CelestialBody::Sun],
+            supported_frames: vec![CoordinateFrame::Ecliptic],
+            capabilities: BackendCapabilities {
+                geocentric: true,
+                topocentric: false,
+                apparent: false,
+                mean: true,
+                batch: true,
+                native_sidereal: false,
+            },
+            accuracy: AccuracyClass::Approximate,
+            deterministic: true,
+            offline: true,
+        };
+        let error = validate_request_against_metadata(
+            &invalid_observer_apparent_request,
+            &unsupported_apparent_metadata,
+        )
+        .expect_err("unsupported apparentness should be reported before observer validation");
         assert_eq!(error.kind, EphemerisErrorKind::UnsupportedApparentness);
         assert_eq!(
             error.message,
