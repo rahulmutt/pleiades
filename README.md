@@ -137,8 +137,8 @@ Rough command overview:
 - `compatibility-profile-summary`: compact compatibility profile summary
 - `verify-compatibility-profile`: verify the release compatibility profile against the canonical catalogs
 - `api-stability`, `api-stability-summary`, `release-notes`, `release-notes-summary`, `release-checklist`, `release-checklist-summary`, `release-summary`, `comparison-corpus-summary` / `comparison-corpus-release-guard-summary` / `comparison-envelope-summary` / `reference-holdout-overlap-summary` / `independent-holdout-summary`, `production-generation-summary` / `production-generation`, `production-generation-boundary-summary`, `frame-policy-summary`, `observer-policy-summary`, `apparentness-policy-summary`, `time-scale-policy-summary`, `delta-t-policy-summary`, `request-surface-summary` / `request-surface`, `compatibility-caveats-summary`, `native-sidereal-policy-summary`, `interpolation-posture-summary`, `packaged-lookup-epoch-policy-summary`, `lunar-reference-error-envelope-summary`, `lunar-equatorial-reference-error-envelope-summary`, `request-policy-summary` / `request-policy` / `request-semantics-summary` / `request-semantics`, `workspace-audit-summary` / `native-dependency-audit-summary`: release-facing report helpers
-- `bundle-release --out DIR`: write a staged release bundle to a directory
-- `verify-release-bundle --out DIR`: verify a previously staged release bundle
+- `bundle-release --out DIR` (or `--output DIR`): write a staged release bundle to a directory
+- `verify-release-bundle --out DIR` (or `--output DIR`): verify a previously staged release bundle
 - `regenerate-packaged-artifact FILE` or `regenerate-packaged-artifact --out FILE`: rebuild the checked-in packaged artifact fixture from the reference snapshot
 
 Example usage:

@@ -768,10 +768,10 @@ fn parse_release_bundle_output_dir<'a>(args: &'a [&'a str]) -> Result<&'a str, S
 
     while let Some(arg) = iter.next() {
         match arg {
-            "--out" => {
+            "--out" | "--output" => {
                 let value = iter
                     .next()
-                    .ok_or_else(|| "missing value for --out".to_string())?;
+                    .ok_or_else(|| format!("missing value for {arg}"))?;
                 if output_dir.is_some() {
                     return Err("duplicate value for --out <dir> argument".to_string());
                 }
@@ -3953,6 +3953,16 @@ mod tests {
         .expect_err("bundle-release should reject duplicate output arguments");
         assert!(bundle_error.contains("duplicate value for --out <dir> argument"));
 
+        let bundle_output_error = render_cli(&[
+            "bundle-release",
+            "--out",
+            &bundle_dir_string,
+            "--output",
+            &bundle_dir_string,
+        ])
+        .expect_err("bundle-release should reject mixed output aliases");
+        assert!(bundle_output_error.contains("duplicate value for --out <dir> argument"));
+
         let verify_error = render_cli(&[
             "verify-release-bundle",
             "--out",
@@ -3962,6 +3972,32 @@ mod tests {
         ])
         .expect_err("verify-release-bundle should reject duplicate output arguments");
         assert!(verify_error.contains("duplicate value for --out <dir> argument"));
+
+        let verify_output_error = render_cli(&[
+            "verify-release-bundle",
+            "--out",
+            &bundle_dir_string,
+            "--output",
+            &bundle_dir_string,
+        ])
+        .expect_err("verify-release-bundle should reject mixed output aliases");
+        assert!(verify_output_error.contains("duplicate value for --out <dir> argument"));
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
+    #[test]
+    fn bundle_release_commands_accept_output_alias() {
+        let bundle_dir = unique_temp_dir("pleiades-cli-release-bundle-output-alias");
+        let bundle_dir_string = bundle_dir.display().to_string();
+
+        render_cli(&["bundle-release", "--output", &bundle_dir_string])
+            .expect("bundle-release should accept --output alias");
+        let verified = render_cli(&["verify-release-bundle", "--output", &bundle_dir_string])
+            .expect("verify-release-bundle should accept --output alias");
+
+        assert!(verified.contains("Release bundle"));
+        assert!(verified.contains("bundle-manifest.checksum.txt"));
 
         let _ = std::fs::remove_dir_all(&bundle_dir);
     }
