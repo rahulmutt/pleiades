@@ -3878,6 +3878,7 @@ mod tests {
         assert!(rendered.contains("Release bundle"));
         assert!(rendered.contains("compatibility-profile.txt"));
         assert!(rendered.contains("bundle-manifest.checksum.txt"));
+        assert!(rendered.contains("native-sidereal-policy-summary.txt"));
         assert!(bundle_dir.join("bundle-manifest.txt").exists());
         assert!(bundle_dir.join("catalog-inventory-summary.txt").exists());
         assert!(bundle_dir
@@ -3889,6 +3890,9 @@ mod tests {
         assert!(bundle_dir.join("request-policy-summary.txt").exists());
         assert!(bundle_dir.join("time-scale-policy-summary.txt").exists());
         assert!(bundle_dir.join("delta-t-policy-summary.txt").exists());
+        assert!(bundle_dir
+            .join("native-sidereal-policy-summary.txt")
+            .exists());
         assert!(bundle_dir.join("request-surface-summary.txt").exists());
         assert!(bundle_dir
             .join("release-profile-identifiers-summary.txt")
@@ -3923,6 +3927,7 @@ mod tests {
         assert!(verified.contains("custom-definition-ayanamsa-labels-summary.txt"));
         assert!(verified.contains("time-scale-policy-summary.txt"));
         assert!(verified.contains("delta-t-policy-summary.txt"));
+        assert!(verified.contains("native-sidereal-policy-summary.txt"));
         assert!(verified.contains("release-house-system-canonical-names-summary.txt"));
         assert!(verified.contains("release-ayanamsa-canonical-names-summary.txt"));
         assert!(verified.contains("bundle-manifest.checksum.txt"));
