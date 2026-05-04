@@ -15608,6 +15608,13 @@ mod tests {
 
     #[test]
     fn request_surface_summary_alias_rejects_extra_arguments_with_alias_specific_diagnostics() {
+        let summary_error = render_cli(&["request-surface-summary", "extra"])
+            .expect_err("request surface summary should reject extra arguments");
+        assert_eq!(
+            summary_error,
+            "request-surface-summary does not accept extra arguments"
+        );
+
         let error = render_cli(&["request-surface", "extra"])
             .expect_err("request surface alias should reject extra arguments");
         assert_eq!(error, "request-surface does not accept extra arguments");
@@ -23396,6 +23403,13 @@ version = "0.9.0"
         assert_eq!(
             request_policy_error,
             "request-policy does not accept extra arguments"
+        );
+
+        let request_semantics_summary_error = render_cli(&["request-semantics-summary", "extra"])
+            .expect_err("request semantics summary should reject extra arguments");
+        assert_eq!(
+            request_semantics_summary_error,
+            "request-semantics-summary does not accept extra arguments"
         );
 
         let request_semantics_error = render_cli(&["request-semantics", "extra"])
