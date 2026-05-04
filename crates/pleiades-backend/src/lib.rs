@@ -3950,9 +3950,7 @@ mod tests {
                 Longitude::from_degrees(-0.1),
                 Some(45.0),
             )),
-            frame: CoordinateFrame::Ecliptic,
-            apparent: Apparentness::Apparent,
-            ..frame_request.clone()
+            ..apparent_request.clone()
         };
         let unsupported_apparent_metadata = BackendMetadata {
             id: BackendId::new("toy backend"),
@@ -3984,6 +3982,24 @@ mod tests {
         assert_eq!(
             error.message,
             "toy backend currently returns mean geometric coordinates only; apparent corrections are not implemented"
+        );
+
+        let batch_seed_request = EphemerisRequest {
+            apparent: Apparentness::Mean,
+            ..apparent_request.clone()
+        };
+        let batch_error = validate_requests_against_metadata(
+            &[batch_seed_request, invalid_observer_apparent_request.clone()],
+            &unsupported_apparent_metadata,
+        )
+        .expect_err("batch validation should report unsupported apparentness before invalid observer validation");
+        assert_eq!(
+            batch_error.kind,
+            EphemerisErrorKind::UnsupportedApparentness
+        );
+        assert_eq!(
+            batch_error.message,
+            "batch request 2: toy backend currently returns mean geometric coordinates only; apparent corrections are not implemented"
         );
 
         let mean_request = EphemerisRequest {
