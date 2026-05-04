@@ -3454,6 +3454,27 @@ mod tests {
         assert!(audit.contains("Workspace audit"));
         assert!(audit.contains("no mandatory native build hooks detected"));
 
+        assert_eq!(
+            render_cli(&["workspace-audit", "extra"]).unwrap_err(),
+            "workspace-audit does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["audit", "extra"]).unwrap_err(),
+            "audit does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["native-dependency-audit", "extra"]).unwrap_err(),
+            "native-dependency-audit does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["workspace-audit-summary", "extra"]).unwrap_err(),
+            "workspace-audit-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["native-dependency-audit-summary", "extra"]).unwrap_err(),
+            "native-dependency-audit-summary does not accept extra arguments"
+        );
+
         let report = render_cli(&["report", "--rounds", "10"])
             .expect("report should render through the primary CLI");
         assert!(report.contains("Validation report"));

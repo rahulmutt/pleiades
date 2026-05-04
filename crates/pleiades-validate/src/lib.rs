@@ -4312,7 +4312,7 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "packaged-lookup-epoch-policy-summary")?;
             Ok(packaged_lookup_epoch_policy_summary_for_report())
         }
-        Some("workspace-audit") | Some("audit") | Some("native-dependency-audit") => {
+        Some("workspace-audit") => {
             ensure_no_extra_args(&args[1..], "workspace-audit")?;
             let report = workspace_audit_report().map_err(|error| error.to_string())?;
             if report.is_clean() {
@@ -4321,8 +4321,30 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
                 Err(format!("workspace audit failed:\n{report}"))
             }
         }
-        Some("workspace-audit-summary") | Some("native-dependency-audit-summary") => {
+        Some("audit") => {
+            ensure_no_extra_args(&args[1..], "audit")?;
+            let report = workspace_audit_report().map_err(|error| error.to_string())?;
+            if report.is_clean() {
+                Ok(report.to_string())
+            } else {
+                Err(format!("workspace audit failed:\n{report}"))
+            }
+        }
+        Some("native-dependency-audit") => {
+            ensure_no_extra_args(&args[1..], "native-dependency-audit")?;
+            let report = workspace_audit_report().map_err(|error| error.to_string())?;
+            if report.is_clean() {
+                Ok(report.to_string())
+            } else {
+                Err(format!("workspace audit failed:\n{report}"))
+            }
+        }
+        Some("workspace-audit-summary") => {
             ensure_no_extra_args(&args[1..], "workspace-audit-summary")?;
+            render_workspace_audit_summary().map_err(|error| error.to_string())
+        }
+        Some("native-dependency-audit-summary") => {
+            ensure_no_extra_args(&args[1..], "native-dependency-audit-summary")?;
             render_workspace_audit_summary().map_err(|error| error.to_string())
         }
         Some("api-stability-summary") | Some("api-posture-summary") => {
@@ -19557,6 +19579,27 @@ mod tests {
         assert!(rendered.contains("Checked manifests:"));
         assert!(rendered.contains("Checked lockfile:"));
         assert!(rendered.contains("Result: no mandatory native build hooks detected"));
+
+        assert_eq!(
+            render_cli(&["workspace-audit", "extra"]).unwrap_err(),
+            "workspace-audit does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["audit", "extra"]).unwrap_err(),
+            "audit does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["native-dependency-audit", "extra"]).unwrap_err(),
+            "native-dependency-audit does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["workspace-audit-summary", "extra"]).unwrap_err(),
+            "workspace-audit-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["native-dependency-audit-summary", "extra"]).unwrap_err(),
+            "native-dependency-audit-summary does not accept extra arguments"
+        );
     }
 
     #[test]
