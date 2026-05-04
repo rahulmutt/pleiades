@@ -6875,6 +6875,8 @@ fn render_release_notes_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_1800_major_body_boundary_summary_for_report());
     text.push('\n');
+    text.push_str(&reference_snapshot_2500_major_body_boundary_summary_for_report());
+    text.push('\n');
     text.push_str(&reference_snapshot_high_curvature_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_source_summary_for_report());
@@ -6987,6 +6989,8 @@ fn render_release_notes_summary_text() -> String {
     text.push_str(&reference_snapshot_early_major_body_boundary_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_1800_major_body_boundary_summary_for_report());
+    text.push('\n');
+    text.push_str(&reference_snapshot_2500_major_body_boundary_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_high_curvature_summary_for_report());
     text.push('\n');
@@ -7468,6 +7472,8 @@ fn render_release_summary_text() -> String {
     text.push_str(&reference_snapshot_early_major_body_boundary_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_1800_major_body_boundary_summary_for_report());
+    text.push('\n');
+    text.push_str(&reference_snapshot_2500_major_body_boundary_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_high_curvature_summary_for_report());
     text.push('\n');
@@ -12709,6 +12715,8 @@ fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_1800_major_body_boundary_summary_for_report());
     text.push('\n');
+    text.push_str(&reference_snapshot_2500_major_body_boundary_summary_for_report());
+    text.push('\n');
     text.push_str(&reference_snapshot_high_curvature_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_high_curvature_window_summary_for_report());
@@ -17929,6 +17937,9 @@ mod tests {
         ));
         assert!(rendered.contains(&reference_snapshot_lunar_boundary_summary_for_report()));
         assert!(rendered.contains(&reference_snapshot_high_curvature_summary_for_report()));
+        assert!(
+            rendered.contains(&reference_snapshot_2500_major_body_boundary_summary_for_report())
+        );
         assert!(rendered.contains(&reference_snapshot_source_summary_for_report()));
         assert!(rendered.contains(&reference_snapshot_manifest_summary_for_report()));
         assert_report_contains_exact_line(
@@ -19306,6 +19317,9 @@ mod tests {
             release_profiles.compatibility_profile_id, release_profiles.api_stability_profile_id
         )));
         assert!(rendered.contains("Reference snapshot coverage: 245 rows across 15 bodies and 19 epochs (75 asteroid rows; JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies:"));
+        assert!(
+            rendered.contains(&reference_snapshot_2500_major_body_boundary_summary_for_report())
+        );
         assert_report_contains_exact_line(
             &rendered,
             "  Comparison snapshot coverage: 140 rows across 10 bodies and 16 epochs (JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto",
@@ -20070,6 +20084,9 @@ mod tests {
         assert!(rendered.contains("Reference snapshot coverage: 245 rows across 15 bodies and 19 epochs (75 asteroid rows; JD 2360233.5 (TDB)..JD 2634167.0 (TDB)); bodies:"));
         assert!(rendered.contains(&reference_snapshot_lunar_boundary_summary_for_report()));
         assert!(rendered.contains(&reference_snapshot_high_curvature_summary_for_report()));
+        assert!(
+            rendered.contains(&reference_snapshot_2500_major_body_boundary_summary_for_report())
+        );
         assert!(rendered.contains(&reference_snapshot_high_curvature_window_summary_for_report()));
         assert!(rendered
             .contains(&reference_snapshot_high_curvature_epoch_coverage_summary_for_report()));
