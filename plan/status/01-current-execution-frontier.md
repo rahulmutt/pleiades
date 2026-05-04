@@ -11,6 +11,7 @@ The repository is past bootstrap and release-rehearsal scaffolding. The next pro
 Current summaries show:
 
 - all mandatory crates and release/reporting commands exist;
+- the checked-in reference snapshot coverage wording now matches the current rows and no longer advertises a 2406 Mars hold-out that is not present in the corpus;
 - VSOP87B source-backed generated binary paths cover the Sun through Neptune;
 - Pluto remains an approximate mean-elements fallback in the backend catalog, while release-grade comparison and tolerance reports now exclude Pluto from evidence; the comparison-corpus summary/report surfaces now also render an explicit release-grade guard line for that policy;
 - the compact lunar baseline has documented reference evidence for supported lunar channels but is not a full ELP coefficient implementation;
