@@ -2711,6 +2711,14 @@ mod tests {
         );
         assert_eq!(galactic.offset_degrees, Some(Angle::from_degrees(0.0)));
 
+        let galactic_true =
+            descriptor(&Ayanamsa::GalacticEquatorTrue).expect("Galactic Equator (True) descriptor");
+        assert_eq!(
+            galactic_true.epoch,
+            Some(JulianDay::from_days(1_665_728.603_158))
+        );
+        assert_eq!(galactic_true.offset_degrees, Some(Angle::from_degrees(0.0)));
+
         let galactic_mula =
             descriptor(&Ayanamsa::GalacticEquatorMula).expect("Galactic Equator (Mula) descriptor");
         assert_eq!(
