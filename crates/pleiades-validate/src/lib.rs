@@ -3755,6 +3755,13 @@ impl fmt::Display for ReleaseBundle {
         )?;
         writeln!(
             f,
+            "  comparison-snapshot summary: {}",
+            self.output_dir
+                .join("comparison-snapshot-summary.txt")
+                .display()
+        )?;
+        writeln!(
+            f,
             "  comparison-envelope summary: {}",
             self.comparison_envelope_summary_path.display()
         )?;
@@ -3762,6 +3769,13 @@ impl fmt::Display for ReleaseBundle {
             f,
             "  comparison-corpus release-guard summary: {}",
             self.comparison_corpus_release_guard_summary_path.display()
+        )?;
+        writeln!(
+            f,
+            "  reference snapshot summary: {}",
+            self.output_dir
+                .join("reference-snapshot-summary.txt")
+                .display()
         )?;
         writeln!(
             f,
@@ -8207,6 +8221,7 @@ pub fn render_release_bundle(
     let api_stability_path = output_dir.join("api-stability.txt");
     let api_stability_summary_path = output_dir.join("api-stability-summary.txt");
     let comparison_corpus_summary_path = output_dir.join("comparison-corpus-summary.txt");
+    let comparison_snapshot_summary_path = output_dir.join("comparison-snapshot-summary.txt");
     let comparison_envelope_summary_path = output_dir.join("comparison-envelope-summary.txt");
     let comparison_corpus_release_guard_summary_path =
         output_dir.join("comparison-corpus-release-guard-summary.txt");
@@ -8214,6 +8229,7 @@ pub fn render_release_bundle(
         output_dir.join("comparison-corpus-guard-summary.txt");
     let reference_holdout_overlap_summary_path =
         output_dir.join("reference-holdout-overlap-summary.txt");
+    let reference_snapshot_summary_path = output_dir.join("reference-snapshot-summary.txt");
     let catalog_inventory_summary_path = output_dir.join("catalog-inventory-summary.txt");
     let custom_definition_ayanamsa_labels_summary_path =
         output_dir.join("custom-definition-ayanamsa-labels-summary.txt");
@@ -8266,12 +8282,16 @@ pub fn render_release_bundle(
     let api_stability_checksum = checksum64(&api_stability_text);
     let api_stability_summary_checksum = checksum64(&api_stability_summary_text);
     let comparison_corpus_summary_checksum = checksum64(&comparison_corpus_summary_text);
+    let comparison_snapshot_summary_text = comparison_snapshot_summary_for_report();
+    let comparison_snapshot_summary_checksum = checksum64(&comparison_snapshot_summary_text);
     let comparison_envelope_summary_checksum = checksum64(&comparison_envelope_summary_text);
     let comparison_corpus_release_guard_summary_checksum =
         checksum64(&comparison_corpus_release_guard_summary_text);
     let reference_holdout_overlap_summary_text = reference_holdout_overlap_summary_for_report();
     let reference_holdout_overlap_summary_checksum =
         checksum64(&reference_holdout_overlap_summary_text);
+    let reference_snapshot_summary_text = reference_snapshot_summary_for_report();
+    let reference_snapshot_summary_checksum = checksum64(&reference_snapshot_summary_text);
     let catalog_inventory_summary_checksum = checksum64(&catalog_inventory_summary_text);
     let custom_definition_ayanamsa_labels_summary_checksum =
         checksum64(&custom_definition_ayanamsa_labels_summary_text);
@@ -8298,7 +8318,7 @@ pub fn render_release_bundle(
     let benchmark_report_checksum = checksum64(&benchmark_report_text);
     let validation_report_checksum = checksum64(&validation_report_text);
     let manifest_text = format!(
-        "Release bundle manifest\nprofile: compatibility-profile.txt\nprofile checksum (fnv1a-64): 0x{compatibility_profile_checksum:016x}\nprofile summary: compatibility-profile-summary.txt\nprofile summary checksum (fnv1a-64): 0x{compatibility_profile_summary_checksum:016x}\nrelease notes: release-notes.txt\nrelease notes checksum (fnv1a-64): 0x{release_notes_checksum:016x}\nrelease notes summary: release-notes-summary.txt\nrelease notes summary checksum (fnv1a-64): 0x{release_notes_summary_checksum:016x}\nrelease summary: release-summary.txt\nrelease summary checksum (fnv1a-64): 0x{release_summary_checksum:016x}\nrelease-profile identifiers: release-profile-identifiers.txt\nrelease-profile identifiers checksum (fnv1a-64): 0x{release_profile_identifiers_checksum:016x}\nrelease-profile identifiers summary: release-profile-identifiers-summary.txt\nrelease-profile identifiers summary checksum (fnv1a-64): 0x{release_profile_identifiers_summary_checksum:016x}\nrelease-house-system-canonical-names summary: release-house-system-canonical-names-summary.txt\nrelease-house-system-canonical-names summary checksum (fnv1a-64): 0x{release_house_system_canonical_names_summary_checksum:016x}\nrelease-ayanamsa-canonical-names summary: release-ayanamsa-canonical-names-summary.txt\nrelease-ayanamsa-canonical-names summary checksum (fnv1a-64): 0x{release_ayanamsa_canonical_names_summary_checksum:016x}\nrelease checklist: release-checklist.txt\nrelease checklist checksum (fnv1a-64): 0x{release_checklist_checksum:016x}\nrelease checklist summary: release-checklist-summary.txt\nrelease checklist summary checksum (fnv1a-64): 0x{release_checklist_summary_checksum:016x}\nbackend matrix: backend-matrix.txt\nbackend matrix checksum (fnv1a-64): 0x{backend_matrix_checksum:016x}\nbackend matrix summary: backend-matrix-summary.txt\nbackend matrix summary checksum (fnv1a-64): 0x{backend_matrix_summary_checksum:016x}\napi stability posture: api-stability.txt\napi stability checksum (fnv1a-64): 0x{api_stability_checksum:016x}\napi stability summary: api-stability-summary.txt\napi stability summary checksum (fnv1a-64): 0x{api_stability_summary_checksum:016x}\ncomparison-corpus summary: comparison-corpus-summary.txt\ncomparison-corpus summary checksum (fnv1a-64): 0x{comparison_corpus_summary_checksum:016x}\ncomparison-envelope summary: comparison-envelope-summary.txt\ncomparison-envelope summary checksum (fnv1a-64): 0x{comparison_envelope_summary_checksum:016x}\ncomparison-corpus release-guard summary: comparison-corpus-release-guard-summary.txt\ncomparison-corpus release-guard summary checksum (fnv1a-64): 0x{comparison_corpus_release_guard_summary_checksum:016x}\nreference-holdout overlap summary: reference-holdout-overlap-summary.txt\nreference-holdout overlap summary checksum (fnv1a-64): 0x{reference_holdout_overlap_summary_checksum:016x}\ncatalog inventory summary: catalog-inventory-summary.txt\ncatalog inventory summary checksum (fnv1a-64): 0x{catalog_inventory_summary_checksum:016x}\ncustom-definition ayanamsa labels summary: custom-definition-ayanamsa-labels-summary.txt\ncustom-definition ayanamsa labels summary checksum (fnv1a-64): 0x{custom_definition_ayanamsa_labels_summary_checksum:016x}\nvalidation report summary: validation-report-summary.txt\nvalidation report summary checksum (fnv1a-64): 0x{validation_report_summary_checksum:016x}\nrequest policy summary: request-policy-summary.txt\nrequest policy summary checksum (fnv1a-64): 0x{request_policy_summary_checksum:016x}\ntime-scale policy summary: time-scale-policy-summary.txt\ntime-scale policy summary checksum (fnv1a-64): 0x{time_scale_policy_summary_checksum:016x}\nutc-convenience policy summary: utc-convenience-policy-summary.txt\nutc-convenience policy summary checksum (fnv1a-64): 0x{utc_convenience_policy_summary_checksum:016x}\ndelta-t policy summary: delta-t-policy-summary.txt\ndelta-t policy summary checksum (fnv1a-64): 0x{delta_t_policy_summary_checksum:016x}\nnative sidereal policy summary: native-sidereal-policy-summary.txt\nnative sidereal policy summary checksum (fnv1a-64): 0x{native_sidereal_policy_summary_checksum:016x}\nlunar theory limitations summary: lunar-theory-limitations-summary.txt\nlunar theory limitations summary checksum (fnv1a-64): 0x{lunar_theory_limitations_summary_checksum:016x}\nrequest surface summary: request-surface-summary.txt\nrequest surface summary checksum (fnv1a-64): 0x{request_surface_summary_checksum:016x}\ncompatibility caveats summary: compatibility-caveats-summary.txt\ncompatibility caveats summary checksum (fnv1a-64): 0x{compatibility_caveats_summary_checksum:016x}\nworkspace audit summary: workspace-audit-summary.txt\nworkspace audit summary checksum (fnv1a-64): 0x{workspace_audit_summary_checksum:016x}\nnative-dependency audit summary: native-dependency-audit-summary.txt\nnative-dependency audit summary checksum (fnv1a-64): 0x{native_dependency_audit_summary_checksum:016x}\nartifact summary: artifact-summary.txt\nartifact summary checksum (fnv1a-64): 0x{artifact_summary_checksum:016x}\npackaged-artifact production-profile summary: packaged-artifact-production-profile-summary.txt\npackaged-artifact production-profile summary checksum (fnv1a-64): 0x{packaged_artifact_production_profile_summary_checksum:016x}\npackaged-artifact target-threshold summary: packaged-artifact-target-threshold-summary.txt\npackaged-artifact target-threshold summary checksum (fnv1a-64): 0x{packaged_artifact_target_threshold_summary_checksum:016x}\npackaged-artifact generation manifest: packaged-artifact-generation-manifest.txt\npackaged-artifact generation manifest checksum (fnv1a-64): 0x{packaged_artifact_generation_manifest_checksum:016x}\nbenchmark-corpus summary: benchmark-corpus-summary.txt\nbenchmark-corpus summary checksum (fnv1a-64): 0x{benchmark_corpus_summary_checksum:016x}\nbenchmark report: benchmark-report.txt\nbenchmark report checksum (fnv1a-64): 0x{benchmark_report_checksum:016x}\nvalidation report: validation-report.txt\nvalidation report checksum (fnv1a-64): 0x{validation_report_checksum:016x}\nsource revision: {}\nworkspace status: {}\nrustc version: {}\nprofile id: {}\napi stability posture id: {}\nvalidation rounds: {}\n",
+        "Release bundle manifest\nprofile: compatibility-profile.txt\nprofile checksum (fnv1a-64): 0x{compatibility_profile_checksum:016x}\nprofile summary: compatibility-profile-summary.txt\nprofile summary checksum (fnv1a-64): 0x{compatibility_profile_summary_checksum:016x}\nrelease notes: release-notes.txt\nrelease notes checksum (fnv1a-64): 0x{release_notes_checksum:016x}\nrelease notes summary: release-notes-summary.txt\nrelease notes summary checksum (fnv1a-64): 0x{release_notes_summary_checksum:016x}\nrelease summary: release-summary.txt\nrelease summary checksum (fnv1a-64): 0x{release_summary_checksum:016x}\nrelease-profile identifiers: release-profile-identifiers.txt\nrelease-profile identifiers checksum (fnv1a-64): 0x{release_profile_identifiers_checksum:016x}\nrelease-profile identifiers summary: release-profile-identifiers-summary.txt\nrelease-profile identifiers summary checksum (fnv1a-64): 0x{release_profile_identifiers_summary_checksum:016x}\nrelease-house-system-canonical-names summary: release-house-system-canonical-names-summary.txt\nrelease-house-system-canonical-names summary checksum (fnv1a-64): 0x{release_house_system_canonical_names_summary_checksum:016x}\nrelease-ayanamsa-canonical-names summary: release-ayanamsa-canonical-names-summary.txt\nrelease-ayanamsa-canonical-names summary checksum (fnv1a-64): 0x{release_ayanamsa_canonical_names_summary_checksum:016x}\nrelease checklist: release-checklist.txt\nrelease checklist checksum (fnv1a-64): 0x{release_checklist_checksum:016x}\nrelease checklist summary: release-checklist-summary.txt\nrelease checklist summary checksum (fnv1a-64): 0x{release_checklist_summary_checksum:016x}\nbackend matrix: backend-matrix.txt\nbackend matrix checksum (fnv1a-64): 0x{backend_matrix_checksum:016x}\nbackend matrix summary: backend-matrix-summary.txt\nbackend matrix summary checksum (fnv1a-64): 0x{backend_matrix_summary_checksum:016x}\napi stability posture: api-stability.txt\napi stability checksum (fnv1a-64): 0x{api_stability_checksum:016x}\napi stability summary: api-stability-summary.txt\napi stability summary checksum (fnv1a-64): 0x{api_stability_summary_checksum:016x}\ncomparison-corpus summary: comparison-corpus-summary.txt\ncomparison-corpus summary checksum (fnv1a-64): 0x{comparison_corpus_summary_checksum:016x}\ncomparison-snapshot summary: comparison-snapshot-summary.txt\ncomparison-snapshot summary checksum (fnv1a-64): 0x{comparison_snapshot_summary_checksum:016x}\ncomparison-envelope summary: comparison-envelope-summary.txt\ncomparison-envelope summary checksum (fnv1a-64): 0x{comparison_envelope_summary_checksum:016x}\ncomparison-corpus release-guard summary: comparison-corpus-release-guard-summary.txt\ncomparison-corpus release-guard summary checksum (fnv1a-64): 0x{comparison_corpus_release_guard_summary_checksum:016x}\nreference-holdout overlap summary: reference-holdout-overlap-summary.txt\nreference-holdout overlap summary checksum (fnv1a-64): 0x{reference_holdout_overlap_summary_checksum:016x}\nreference snapshot summary: reference-snapshot-summary.txt\nreference snapshot summary checksum (fnv1a-64): 0x{reference_snapshot_summary_checksum:016x}\ncatalog inventory summary: catalog-inventory-summary.txt\ncatalog inventory summary checksum (fnv1a-64): 0x{catalog_inventory_summary_checksum:016x}\ncustom-definition ayanamsa labels summary: custom-definition-ayanamsa-labels-summary.txt\ncustom-definition ayanamsa labels summary checksum (fnv1a-64): 0x{custom_definition_ayanamsa_labels_summary_checksum:016x}\nvalidation report summary: validation-report-summary.txt\nvalidation report summary checksum (fnv1a-64): 0x{validation_report_summary_checksum:016x}\nrequest policy summary: request-policy-summary.txt\nrequest policy summary checksum (fnv1a-64): 0x{request_policy_summary_checksum:016x}\ntime-scale policy summary: time-scale-policy-summary.txt\ntime-scale policy summary checksum (fnv1a-64): 0x{time_scale_policy_summary_checksum:016x}\nutc-convenience policy summary: utc-convenience-policy-summary.txt\nutc-convenience policy summary checksum (fnv1a-64): 0x{utc_convenience_policy_summary_checksum:016x}\ndelta-t policy summary: delta-t-policy-summary.txt\ndelta-t policy summary checksum (fnv1a-64): 0x{delta_t_policy_summary_checksum:016x}\nnative sidereal policy summary: native-sidereal-policy-summary.txt\nnative sidereal policy summary checksum (fnv1a-64): 0x{native_sidereal_policy_summary_checksum:016x}\nlunar theory limitations summary: lunar-theory-limitations-summary.txt\nlunar theory limitations summary checksum (fnv1a-64): 0x{lunar_theory_limitations_summary_checksum:016x}\nrequest surface summary: request-surface-summary.txt\nrequest surface summary checksum (fnv1a-64): 0x{request_surface_summary_checksum:016x}\ncompatibility caveats summary: compatibility-caveats-summary.txt\ncompatibility caveats summary checksum (fnv1a-64): 0x{compatibility_caveats_summary_checksum:016x}\nworkspace audit summary: workspace-audit-summary.txt\nworkspace audit summary checksum (fnv1a-64): 0x{workspace_audit_summary_checksum:016x}\nnative-dependency audit summary: native-dependency-audit-summary.txt\nnative-dependency audit summary checksum (fnv1a-64): 0x{native_dependency_audit_summary_checksum:016x}\nartifact summary: artifact-summary.txt\nartifact summary checksum (fnv1a-64): 0x{artifact_summary_checksum:016x}\npackaged-artifact production-profile summary: packaged-artifact-production-profile-summary.txt\npackaged-artifact production-profile summary checksum (fnv1a-64): 0x{packaged_artifact_production_profile_summary_checksum:016x}\npackaged-artifact target-threshold summary: packaged-artifact-target-threshold-summary.txt\npackaged-artifact target-threshold summary checksum (fnv1a-64): 0x{packaged_artifact_target_threshold_summary_checksum:016x}\npackaged-artifact generation manifest: packaged-artifact-generation-manifest.txt\npackaged-artifact generation manifest checksum (fnv1a-64): 0x{packaged_artifact_generation_manifest_checksum:016x}\nbenchmark-corpus summary: benchmark-corpus-summary.txt\nbenchmark-corpus summary checksum (fnv1a-64): 0x{benchmark_corpus_summary_checksum:016x}\nbenchmark report: benchmark-report.txt\nbenchmark report checksum (fnv1a-64): 0x{benchmark_report_checksum:016x}\nvalidation report: validation-report.txt\nvalidation report checksum (fnv1a-64): 0x{validation_report_checksum:016x}\nsource revision: {}\nworkspace status: {}\nrustc version: {}\nprofile id: {}\napi stability posture id: {}\nvalidation rounds: {}\n",
         provenance.source_revision,
         provenance.workspace_status,
         provenance.rustc_version,
@@ -8351,6 +8371,10 @@ pub fn render_release_bundle(
         comparison_corpus_summary_text.as_bytes(),
     )?;
     fs::write(
+        &comparison_snapshot_summary_path,
+        comparison_snapshot_summary_text.as_bytes(),
+    )?;
+    fs::write(
         &comparison_envelope_summary_path,
         comparison_envelope_summary_text.as_bytes(),
     )?;
@@ -8365,6 +8389,10 @@ pub fn render_release_bundle(
     fs::write(
         &reference_holdout_overlap_summary_path,
         reference_holdout_overlap_summary_text.as_bytes(),
+    )?;
+    fs::write(
+        &reference_snapshot_summary_path,
+        reference_snapshot_summary_text.as_bytes(),
     )?;
     fs::write(
         &catalog_inventory_summary_path,
@@ -8479,12 +8507,16 @@ struct ParsedReleaseBundleManifest {
     api_stability_summary_checksum: u64,
     comparison_corpus_summary_path: String,
     comparison_corpus_summary_checksum: u64,
+    comparison_snapshot_summary_path: String,
+    comparison_snapshot_summary_checksum: u64,
     comparison_envelope_summary_path: String,
     comparison_envelope_summary_checksum: u64,
     comparison_corpus_release_guard_summary_path: String,
     comparison_corpus_release_guard_summary_checksum: u64,
     reference_holdout_overlap_summary_path: String,
     reference_holdout_overlap_summary_checksum: u64,
+    reference_snapshot_summary_path: String,
+    reference_snapshot_summary_checksum: u64,
     catalog_inventory_summary_path: String,
     catalog_inventory_summary_checksum: u64,
     custom_definition_ayanamsa_labels_summary_path: String,
@@ -8629,6 +8661,14 @@ impl ParsedReleaseBundleManifest {
                 text,
                 "comparison-corpus summary checksum (fnv1a-64):",
             )?,
+            comparison_snapshot_summary_path: parse_manifest_string(
+                text,
+                "comparison-snapshot summary:",
+            )?,
+            comparison_snapshot_summary_checksum: parse_manifest_checksum(
+                text,
+                "comparison-snapshot summary checksum (fnv1a-64):",
+            )?,
             comparison_envelope_summary_path: parse_manifest_string(
                 text,
                 "comparison-envelope summary:",
@@ -8652,6 +8692,14 @@ impl ParsedReleaseBundleManifest {
             reference_holdout_overlap_summary_checksum: parse_manifest_checksum(
                 text,
                 "reference-holdout overlap summary checksum (fnv1a-64):",
+            )?,
+            reference_snapshot_summary_path: parse_manifest_string(
+                text,
+                "reference snapshot summary:",
+            )?,
+            reference_snapshot_summary_checksum: parse_manifest_checksum(
+                text,
+                "reference snapshot summary checksum (fnv1a-64):",
             )?,
             catalog_inventory_summary_path: parse_manifest_string(
                 text,
@@ -8816,11 +8864,13 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
         "api-stability.txt",
         "api-stability-summary.txt",
         "comparison-corpus-summary.txt",
+        "comparison-snapshot-summary.txt",
         "comparison-envelope-summary.txt",
         "benchmark-corpus-summary.txt",
         "comparison-corpus-release-guard-summary.txt",
         "comparison-corpus-guard-summary.txt",
         "reference-holdout-overlap-summary.txt",
+        "reference-snapshot-summary.txt",
         "catalog-inventory-summary.txt",
         "custom-definition-ayanamsa-labels-summary.txt",
         "validation-report-summary.txt",
@@ -8874,7 +8924,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
 fn ensure_release_bundle_manifest_is_canonical(
     manifest_text: &str,
 ) -> Result<(), ReleaseBundleError> {
-    const EXPECTED_MANIFEST_LINES: [&str; 85] = [
+    const EXPECTED_MANIFEST_LINES: [&str; 89] = [
         "Release bundle manifest",
         "profile:",
         "profile checksum (fnv1a-64):",
@@ -8908,12 +8958,16 @@ fn ensure_release_bundle_manifest_is_canonical(
         "api stability summary checksum (fnv1a-64):",
         "comparison-corpus summary:",
         "comparison-corpus summary checksum (fnv1a-64):",
+        "comparison-snapshot summary:",
+        "comparison-snapshot summary checksum (fnv1a-64):",
         "comparison-envelope summary:",
         "comparison-envelope summary checksum (fnv1a-64):",
         "comparison-corpus release-guard summary:",
         "comparison-corpus release-guard summary checksum (fnv1a-64):",
         "reference-holdout overlap summary:",
         "reference-holdout overlap summary checksum (fnv1a-64):",
+        "reference snapshot summary:",
+        "reference snapshot summary checksum (fnv1a-64):",
         "catalog inventory summary:",
         "catalog inventory summary checksum (fnv1a-64):",
         "custom-definition ayanamsa labels summary:",
@@ -9030,6 +9084,7 @@ fn verify_release_bundle(
     let api_stability_path = output_dir.join("api-stability.txt");
     let api_stability_summary_path = output_dir.join("api-stability-summary.txt");
     let comparison_corpus_summary_path = output_dir.join("comparison-corpus-summary.txt");
+    let comparison_snapshot_summary_path = output_dir.join("comparison-snapshot-summary.txt");
     let comparison_envelope_summary_path = output_dir.join("comparison-envelope-summary.txt");
     let comparison_corpus_release_guard_summary_path =
         output_dir.join("comparison-corpus-release-guard-summary.txt");
@@ -9037,6 +9092,7 @@ fn verify_release_bundle(
         output_dir.join("comparison-corpus-guard-summary.txt");
     let reference_holdout_overlap_summary_path =
         output_dir.join("reference-holdout-overlap-summary.txt");
+    let reference_snapshot_summary_path = output_dir.join("reference-snapshot-summary.txt");
     let catalog_inventory_summary_path = output_dir.join("catalog-inventory-summary.txt");
     let custom_definition_ayanamsa_labels_summary_path =
         output_dir.join("custom-definition-ayanamsa-labels-summary.txt");
@@ -9158,6 +9214,10 @@ fn verify_release_bundle(
         read_required_bundle_text(&api_stability_summary_path, "API stability summary")?;
     let comparison_corpus_summary_text =
         read_required_bundle_text(&comparison_corpus_summary_path, "comparison corpus summary")?;
+    let comparison_snapshot_summary_text = read_required_bundle_text(
+        &comparison_snapshot_summary_path,
+        "comparison snapshot summary",
+    )?;
     let comparison_envelope_summary_text = read_required_bundle_text(
         &comparison_envelope_summary_path,
         "comparison envelope summary",
@@ -9169,6 +9229,10 @@ fn verify_release_bundle(
     let reference_holdout_overlap_summary_text = read_required_bundle_text(
         &reference_holdout_overlap_summary_path,
         "reference-holdout overlap summary",
+    )?;
+    let reference_snapshot_summary_text = read_required_bundle_text(
+        &reference_snapshot_summary_path,
+        "reference snapshot summary",
     )?;
     let catalog_inventory_summary_text =
         read_required_bundle_text(&catalog_inventory_summary_path, "catalog inventory summary")?;
@@ -9490,11 +9554,13 @@ fn verify_release_bundle(
     let api_stability_checksum = checksum64(&api_stability_text);
     let api_stability_summary_checksum = checksum64(&api_stability_summary_text);
     let comparison_corpus_summary_checksum = checksum64(&comparison_corpus_summary_text);
+    let comparison_snapshot_summary_checksum = checksum64(&comparison_snapshot_summary_text);
     let comparison_envelope_summary_checksum = checksum64(&comparison_envelope_summary_text);
     let comparison_corpus_release_guard_summary_checksum =
         checksum64(&comparison_corpus_release_guard_summary_text);
     let reference_holdout_overlap_summary_checksum =
         checksum64(&reference_holdout_overlap_summary_text);
+    let reference_snapshot_summary_checksum = checksum64(&reference_snapshot_summary_text);
     let catalog_inventory_summary_checksum = checksum64(&catalog_inventory_summary_text);
     let custom_definition_ayanamsa_labels_summary_checksum =
         checksum64(&custom_definition_ayanamsa_labels_summary_text);
@@ -9644,6 +9710,12 @@ fn verify_release_bundle(
             manifest.comparison_corpus_summary_checksum, comparison_corpus_summary_checksum
         )));
     }
+    if manifest.comparison_snapshot_summary_checksum != comparison_snapshot_summary_checksum {
+        return Err(ReleaseBundleError::Verification(format!(
+            "comparison snapshot summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
+            manifest.comparison_snapshot_summary_checksum, comparison_snapshot_summary_checksum
+        )));
+    }
 
     ensure_release_profile_line_alignment("release notes", &release_notes_text, profile_id)?;
     ensure_release_profile_summary_alignment(
@@ -9676,6 +9748,12 @@ fn verify_release_bundle(
             manifest.comparison_corpus_summary_path
         )));
     }
+    if manifest.comparison_snapshot_summary_path != "comparison-snapshot-summary.txt" {
+        return Err(ReleaseBundleError::Verification(format!(
+            "unexpected comparison snapshot summary file entry: {}",
+            manifest.comparison_snapshot_summary_path
+        )));
+    }
     if manifest.comparison_envelope_summary_checksum != comparison_envelope_summary_checksum {
         return Err(ReleaseBundleError::Verification(format!(
             "comparison envelope summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
@@ -9698,6 +9776,18 @@ fn verify_release_bundle(
             "reference-holdout overlap summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
             manifest.reference_holdout_overlap_summary_checksum,
             reference_holdout_overlap_summary_checksum
+        )));
+    }
+    if manifest.reference_snapshot_summary_path != "reference-snapshot-summary.txt" {
+        return Err(ReleaseBundleError::Verification(format!(
+            "unexpected reference snapshot summary file entry: {}",
+            manifest.reference_snapshot_summary_path
+        )));
+    }
+    if manifest.reference_snapshot_summary_checksum != reference_snapshot_summary_checksum {
+        return Err(ReleaseBundleError::Verification(format!(
+            "reference snapshot summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
+            manifest.reference_snapshot_summary_checksum, reference_snapshot_summary_checksum
         )));
     }
     if manifest.catalog_inventory_summary_checksum != catalog_inventory_summary_checksum {
@@ -15536,7 +15626,7 @@ fn help_text() -> String {
   production-generation           Alias for production-generation-summary
   production-generation-boundary-source-summary  Print the compact production-generation boundary source summary
   production-generation-boundary-window-summary  Print the compact production-generation boundary windows summary
-  production-generation-boundary-window  Alias for production-generation-boundary-window-summary\n  production-generation-source-summary  Print the compact production-generation source summary\n  comparison-snapshot-source-window-summary  Print the compact comparison snapshot source windows summary\n  comparison-snapshot-source-window  Alias for comparison-snapshot-source-window-summary\n  comparison-snapshot-source-summary  Print the compact comparison snapshot source summary\n  comparison-snapshot-body-class-coverage-summary  Print the compact comparison snapshot body-class coverage summary\n  comparison-body-class-coverage-summary  Alias for comparison-snapshot-body-class-coverage-summary\n  comparison-snapshot-manifest-summary  Print the compact comparison snapshot manifest summary\n  comparison-snapshot-summary  Print the compact comparison snapshot summary\n  comparison-snapshot         Alias for comparison-snapshot-summary\n  comparison-snapshot-batch-parity-summary  Print the compact comparison snapshot batch parity summary\n  reference-snapshot-source-window-summary  Print the compact reference snapshot source windows summary\n  reference-snapshot-source-window  Alias for reference-snapshot-source-window-summary\n  reference-snapshot-source-summary  Print the compact reference snapshot source summary\n  reference-snapshot-lunar-boundary-summary  Print the compact reference lunar boundary evidence summary\n  lunar-boundary-summary   Alias for reference-snapshot-lunar-boundary-summary\n  reference-snapshot-1749-major-body-boundary-summary  Print the compact reference 1749 major-body boundary evidence summary\n  1749-major-body-boundary-summary  Alias for reference-snapshot-1749-major-body-boundary-summary\n  reference-snapshot-early-major-body-boundary-summary  Print the compact reference early major-body boundary evidence summary\n  early-major-body-boundary-summary  Alias for reference-snapshot-early-major-body-boundary-summary\n  reference-snapshot-1800-major-body-boundary-summary  Print the compact reference 1800 major-body boundary evidence summary\n  1800-major-body-boundary-summary  Alias for reference-snapshot-1800-major-body-boundary-summary\n  reference-snapshot-2500-major-body-boundary-summary  Print the compact reference 2500 major-body boundary evidence summary\n  2500-major-body-boundary-summary  Alias for reference-snapshot-2500-major-body-boundary-summary\n  reference-snapshot-2453000-major-body-boundary-summary  Print the compact reference 2453000 major-body boundary evidence summary\n  2453000-major-body-boundary-summary  Alias for reference-snapshot-2453000-major-body-boundary-summary\n  reference-snapshot-major-body-boundary-summary  Print the compact reference major-body boundary evidence summary\n  major-body-boundary-summary  Alias for reference-snapshot-major-body-boundary-summary\n  reference-snapshot-major-body-bridge-summary  Print the compact reference major-body bridge evidence summary\n  major-body-bridge-summary  Alias for reference-snapshot-major-body-bridge-summary\n  reference-snapshot-bridge-day-summary  Print the compact reference snapshot bridge day summary\n  bridge-day-summary     Alias for reference-snapshot-bridge-day-summary\n  reference-snapshot-mars-jupiter-boundary-summary  Print the compact reference Mars/Jupiter boundary evidence summary\n  mars-jupiter-boundary-summary  Alias for reference-snapshot-mars-jupiter-boundary-summary\n  reference-snapshot-mars-outer-boundary-summary  Print the compact reference Mars outer-boundary evidence summary\n  mars-outer-boundary-summary  Alias for reference-snapshot-mars-outer-boundary-summary\n  reference-snapshot-major-body-boundary-window-summary  Print the compact reference major-body boundary windows summary\n  major-body-boundary-window-summary  Alias for reference-snapshot-major-body-boundary-window-summary\n  reference-snapshot-body-class-coverage-summary  Print the compact reference snapshot body-class coverage summary\n  reference-body-class-coverage-summary  Alias for reference-snapshot-body-class-coverage-summary\n  reference-snapshot-manifest-summary  Print the compact reference snapshot manifest summary\n  reference-snapshot-summary  Print the compact reference snapshot summary\n  reference-snapshot-exact-j2000-evidence-summary  Print the compact reference snapshot exact J2000 evidence summary\n  reference-snapshot         Alias for reference-snapshot-summary\n  reference-snapshot-batch-parity-summary  Print the compact reference snapshot batch parity summary\n  reference-snapshot-equatorial-parity-summary  Print the compact reference snapshot equatorial parity summary\n  reference-high-curvature-summary  Print the compact reference major-body high-curvature evidence summary\n  high-curvature-summary  Alias for reference-high-curvature-summary\n  reference-high-curvature-window-summary  Print the compact reference major-body high-curvature windows summary\n  high-curvature-window-summary  Alias for reference-high-curvature-window-summary\n  reference-high-curvature-epoch-coverage-summary  Print the compact reference major-body high-curvature epoch coverage summary\n  high-curvature-epoch-coverage-summary  Alias for reference-high-curvature-epoch-coverage-summary\n  reference-snapshot-boundary-epoch-coverage-summary  Print the compact reference snapshot boundary epoch coverage summary\n  boundary-epoch-coverage-summary  Alias for reference-snapshot-boundary-epoch-coverage-summary\n  reference-snapshot-sparse-boundary-summary  Print the compact reference boundary day summary\n  sparse-boundary-summary  Alias for reference-snapshot-sparse-boundary-summary\n  boundary-day-summary     Alias for reference-snapshot-sparse-boundary-summary\n  reference-snapshot-pre-bridge-boundary-summary  Print the compact reference pre-bridge boundary day summary\n  pre-bridge-boundary-summary  Alias for reference-snapshot-pre-bridge-boundary-summary\n  reference-snapshot-dense-boundary-summary  Print the compact reference dense boundary day summary\n  dense-boundary-summary  Alias for reference-snapshot-dense-boundary-summary\n  source-documentation-summary  Print the compact VSOP87 source-documentation summary\n  source-documentation         Alias for source-documentation-summary\n  source-documentation-health-summary  Print the compact VSOP87 source-documentation health summary\n  source-documentation-health  Alias for source-documentation-health-summary\n  source-audit-summary      Print the compact VSOP87 source audit summary\n  source-audit              Alias for source-audit-summary\n  generated-binary-audit-summary  Print the compact VSOP87 generated binary audit summary\n  generated-binary-audit    Alias for generated-binary-audit-summary\n  time-scale-policy-summary  Print the compact time-scale policy summary\n  time-scale-policy       Alias for time-scale-policy-summary\n  utc-convenience-policy-summary  Print the compact UTC convenience policy summary\n  utc-convenience-policy  Alias for utc-convenience-policy-summary\n  delta-t-policy-summary   Print the compact Delta T policy summary\n  delta-t-policy         Alias for delta-t-policy-summary\n  observer-policy-summary  Print the compact observer policy summary\n  observer-policy        Alias for observer-policy-summary\n  apparentness-policy-summary  Print the compact apparentness policy summary\n  apparentness-policy     Alias for apparentness-policy-summary\n  native-sidereal-policy-summary  Print the compact native sidereal policy summary\n  native-sidereal-policy   Alias for native-sidereal-policy-summary\n  interpolation-posture-summary  Print the compact JPL interpolation posture summary\n  interpolation-posture         Alias for interpolation-posture-summary\n  interpolation-quality-summary  Print the compact JPL interpolation quality summary\n  interpolation-quality-kind-coverage-summary  Print the compact JPL interpolation quality kind coverage summary\n  lunar-reference-error-envelope-summary  Print the compact lunar reference error envelope summary\n  lunar-equatorial-reference-error-envelope-summary  Print the compact lunar equatorial reference error envelope summary\n  lunar-apparent-comparison-summary  Print the compact lunar apparent comparison summary\n  lunar-source-window-summary  Print the compact lunar source windows summary\n  lunar-theory-request-policy-summary  Print the compact ELP lunar request policy summary\n  lunar-theory-request-policy  Alias for lunar-theory-request-policy-summary\n  lunar-theory-frame-treatment-summary  Print the compact ELP lunar frame treatment summary\n  lunar-theory-frame-treatment  Alias for lunar-theory-frame-treatment-summary\n  lunar-theory-limitations-summary  Print the compact ELP lunar limitations summary\n  lunar-theory-limitations   Alias for lunar-theory-limitations-summary\n  lunar-theory-summary      Print the compact ELP lunar theory specification\n  lunar-theory-capability-summary  Print the compact ELP lunar capability summary\n  lunar-theory-source-summary  Print the compact ELP lunar source summary\n  lunar-theory-catalog-summary  Print the compact ELP lunar theory catalog summary\n  lunar-theory-catalog-validation-summary  Print the compact ELP lunar theory catalog validation summary\n  lunar-theory-catalog      Alias for lunar-theory-catalog-summary\n  lunar-theory-catalog-validation  Alias for lunar-theory-catalog-validation-summary\n  selected-asteroid-boundary-summary  Print the compact selected-asteroid boundary evidence summary\n  reference-snapshot-selected-asteroid-bridge-summary  Print the compact selected-asteroid bridge evidence summary\n  selected-asteroid-bridge-summary  Alias for reference-snapshot-selected-asteroid-bridge-summary\n  reference-snapshot-selected-asteroid-dense-boundary-summary  Print the compact selected-asteroid dense boundary evidence summary\n  selected-asteroid-dense-boundary-summary  Alias for reference-snapshot-selected-asteroid-dense-boundary-summary\n  reference-snapshot-selected-asteroid-terminal-boundary-summary  Print the compact selected-asteroid terminal boundary evidence summary\n  selected-asteroid-terminal-boundary-summary  Alias for reference-snapshot-selected-asteroid-terminal-boundary-summary\n  selected-asteroid-source-evidence-summary  Print the compact selected-asteroid source evidence summary\n  selected-asteroid-source-summary  Alias for selected-asteroid-source-evidence-summary\n  selected-asteroid-source-window-summary  Print the compact selected-asteroid source windows summary\n  selected-asteroid-source-window  Alias for selected-asteroid-source-window-summary\n  selected-asteroid-batch-parity-summary  Print the compact selected-asteroid batch-parity summary\n  reference-asteroid-evidence-summary  Print the compact reference asteroid evidence summary\n  reference-asteroid-equatorial-evidence-summary  Print the compact reference asteroid equatorial evidence summary\n  reference-asteroid-source-window-summary  Print the compact reference asteroid source windows summary\n  reference-asteroid-source-summary  Alias for reference-asteroid-source-window-summary\n  reference-holdout-overlap-summary  Print the compact reference/hold-out overlap summary\n  independent-holdout-source-window-summary  Print the compact independent hold-out source windows summary\n  independent-holdout-summary  Print the compact independent hold-out summary\n  independent-holdout-source-summary  Print the compact independent hold-out source summary\n  independent-holdout-body-class-coverage-summary  Print the compact independent hold-out body-class coverage summary\n  holdout-body-class-coverage-summary  Alias for independent-holdout-body-class-coverage-summary\n  independent-holdout-batch-parity-summary  Print the compact independent hold-out batch parity summary\n  independent-holdout-equatorial-parity-summary  Print the compact independent hold-out equatorial parity summary\n  house-validation-summary   Print the compact house-validation corpus summary\n  house-validation            Alias for house-validation-summary\n  release-house-validation-summary  Print the compact release house-validation corpus summary\n  release-house-validation  Alias for release-house-validation-summary\n  house-formula-families-summary  Print the compact house formula families summary\n  house-formula-families    Alias for house-formula-families-summary\n  house-code-aliases-summary  Print the compact house-code alias summary\n  house-code-alias-summary  Alias for house-code-aliases-summary\n  ayanamsa-catalog-validation-summary  Print the compact ayanamsa catalog validation summary\n  ayanamsa-catalog-validation  Alias for ayanamsa-catalog-validation-summary\n  ayanamsa-metadata-coverage-summary  Print the compact ayanamsa sidereal metadata coverage summary\n  ayanamsa-metadata-coverage  Alias for ayanamsa-metadata-coverage-summary\n  ayanamsa-reference-offsets-summary  Print the compact ayanamsa reference offsets summary\n  ayanamsa-reference-offsets  Alias for ayanamsa-reference-offsets-summary\n  frame-policy-summary      Print the compact frame-policy summary\n  frame-policy             Alias for frame-policy-summary\n  mean-obliquity-frame-round-trip-summary  Print the compact mean-obliquity frame round-trip summary\n  mean-obliquity-frame-round-trip  Alias for mean-obliquity-frame-round-trip-summary\n  release-profile-identifiers-summary  Print the compact release-profile identifiers summary\n  release-profile-identifiers  Alias for release-profile-identifiers-summary\n  request-surface-summary  Print the compact request-surface inventory summary\n  request-surface         Alias for request-surface-summary\n  request-policy-summary    Print the compact request-policy summary\n  request-policy           Alias for request-policy-summary\n  request-semantics-summary  Print the compact request-policy summary\n  request-semantics        Alias for request-policy-summary\n  comparison-tolerance-policy-summary  Print the compact comparison tolerance policy summary\n  comparison-tolerance-summary  Alias for comparison-tolerance-policy-summary\n  pluto-fallback-summary   Print the compact Pluto fallback summary\n  pluto-fallback           Alias for pluto-fallback-summary\n  bundle-release --out DIR  Write the release compatibility profile, profile summary, release notes, release notes summary, release summary, release-profile identifiers, release-profile identifiers summary, release-house-system-canonical-names summary, release-ayanamsa-canonical-names summary, release checklist, release checklist summary, backend matrix, backend matrix summary, API posture, API stability summary, request policy summary, time-scale policy summary, UTC convenience policy summary, delta-t policy summary, native sidereal policy summary, request surface summary, compatibility-caveats summary, reference-holdout overlap summary, catalog inventory summary, artifact summary, packaged-artifact production-profile summary, packaged-artifact target-threshold summary, packaged-artifact generation manifest, benchmark-corpus summary, benchmark report, validation report, manifest, and manifest checksum sidecar\n  bundle-release --output DIR  Alias for bundle-release --out DIR\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  verify-release-bundle --output DIR  Alias for verify-release-bundle --out DIR\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
+  production-generation-boundary-window  Alias for production-generation-boundary-window-summary\n  production-generation-source-summary  Print the compact production-generation source summary\n  comparison-snapshot-source-window-summary  Print the compact comparison snapshot source windows summary\n  comparison-snapshot-source-window  Alias for comparison-snapshot-source-window-summary\n  comparison-snapshot-source-summary  Print the compact comparison snapshot source summary\n  comparison-snapshot-body-class-coverage-summary  Print the compact comparison snapshot body-class coverage summary\n  comparison-body-class-coverage-summary  Alias for comparison-snapshot-body-class-coverage-summary\n  comparison-snapshot-manifest-summary  Print the compact comparison snapshot manifest summary\n  comparison-snapshot-summary  Print the compact comparison snapshot summary\n  comparison-snapshot         Alias for comparison-snapshot-summary\n  comparison-snapshot-batch-parity-summary  Print the compact comparison snapshot batch parity summary\n  reference-snapshot-source-window-summary  Print the compact reference snapshot source windows summary\n  reference-snapshot-source-window  Alias for reference-snapshot-source-window-summary\n  reference-snapshot-source-summary  Print the compact reference snapshot source summary\n  reference-snapshot-lunar-boundary-summary  Print the compact reference lunar boundary evidence summary\n  lunar-boundary-summary   Alias for reference-snapshot-lunar-boundary-summary\n  reference-snapshot-1749-major-body-boundary-summary  Print the compact reference 1749 major-body boundary evidence summary\n  1749-major-body-boundary-summary  Alias for reference-snapshot-1749-major-body-boundary-summary\n  reference-snapshot-early-major-body-boundary-summary  Print the compact reference early major-body boundary evidence summary\n  early-major-body-boundary-summary  Alias for reference-snapshot-early-major-body-boundary-summary\n  reference-snapshot-1800-major-body-boundary-summary  Print the compact reference 1800 major-body boundary evidence summary\n  1800-major-body-boundary-summary  Alias for reference-snapshot-1800-major-body-boundary-summary\n  reference-snapshot-2500-major-body-boundary-summary  Print the compact reference 2500 major-body boundary evidence summary\n  2500-major-body-boundary-summary  Alias for reference-snapshot-2500-major-body-boundary-summary\n  reference-snapshot-2453000-major-body-boundary-summary  Print the compact reference 2453000 major-body boundary evidence summary\n  2453000-major-body-boundary-summary  Alias for reference-snapshot-2453000-major-body-boundary-summary\n  reference-snapshot-major-body-boundary-summary  Print the compact reference major-body boundary evidence summary\n  major-body-boundary-summary  Alias for reference-snapshot-major-body-boundary-summary\n  reference-snapshot-major-body-bridge-summary  Print the compact reference major-body bridge evidence summary\n  major-body-bridge-summary  Alias for reference-snapshot-major-body-bridge-summary\n  reference-snapshot-bridge-day-summary  Print the compact reference snapshot bridge day summary\n  bridge-day-summary     Alias for reference-snapshot-bridge-day-summary\n  reference-snapshot-mars-jupiter-boundary-summary  Print the compact reference Mars/Jupiter boundary evidence summary\n  mars-jupiter-boundary-summary  Alias for reference-snapshot-mars-jupiter-boundary-summary\n  reference-snapshot-mars-outer-boundary-summary  Print the compact reference Mars outer-boundary evidence summary\n  mars-outer-boundary-summary  Alias for reference-snapshot-mars-outer-boundary-summary\n  reference-snapshot-major-body-boundary-window-summary  Print the compact reference major-body boundary windows summary\n  major-body-boundary-window-summary  Alias for reference-snapshot-major-body-boundary-window-summary\n  reference-snapshot-body-class-coverage-summary  Print the compact reference snapshot body-class coverage summary\n  reference-body-class-coverage-summary  Alias for reference-snapshot-body-class-coverage-summary\n  reference-snapshot-manifest-summary  Print the compact reference snapshot manifest summary\n  reference-snapshot-summary  Print the compact reference snapshot summary\n  reference-snapshot-exact-j2000-evidence-summary  Print the compact reference snapshot exact J2000 evidence summary\n  reference-snapshot         Alias for reference-snapshot-summary\n  reference-snapshot-batch-parity-summary  Print the compact reference snapshot batch parity summary\n  reference-snapshot-equatorial-parity-summary  Print the compact reference snapshot equatorial parity summary\n  reference-high-curvature-summary  Print the compact reference major-body high-curvature evidence summary\n  high-curvature-summary  Alias for reference-high-curvature-summary\n  reference-high-curvature-window-summary  Print the compact reference major-body high-curvature windows summary\n  high-curvature-window-summary  Alias for reference-high-curvature-window-summary\n  reference-high-curvature-epoch-coverage-summary  Print the compact reference major-body high-curvature epoch coverage summary\n  high-curvature-epoch-coverage-summary  Alias for reference-high-curvature-epoch-coverage-summary\n  reference-snapshot-boundary-epoch-coverage-summary  Print the compact reference snapshot boundary epoch coverage summary\n  boundary-epoch-coverage-summary  Alias for reference-snapshot-boundary-epoch-coverage-summary\n  reference-snapshot-sparse-boundary-summary  Print the compact reference boundary day summary\n  sparse-boundary-summary  Alias for reference-snapshot-sparse-boundary-summary\n  boundary-day-summary     Alias for reference-snapshot-sparse-boundary-summary\n  reference-snapshot-pre-bridge-boundary-summary  Print the compact reference pre-bridge boundary day summary\n  pre-bridge-boundary-summary  Alias for reference-snapshot-pre-bridge-boundary-summary\n  reference-snapshot-dense-boundary-summary  Print the compact reference dense boundary day summary\n  dense-boundary-summary  Alias for reference-snapshot-dense-boundary-summary\n  source-documentation-summary  Print the compact VSOP87 source-documentation summary\n  source-documentation         Alias for source-documentation-summary\n  source-documentation-health-summary  Print the compact VSOP87 source-documentation health summary\n  source-documentation-health  Alias for source-documentation-health-summary\n  source-audit-summary      Print the compact VSOP87 source audit summary\n  source-audit              Alias for source-audit-summary\n  generated-binary-audit-summary  Print the compact VSOP87 generated binary audit summary\n  generated-binary-audit    Alias for generated-binary-audit-summary\n  time-scale-policy-summary  Print the compact time-scale policy summary\n  time-scale-policy       Alias for time-scale-policy-summary\n  utc-convenience-policy-summary  Print the compact UTC convenience policy summary\n  utc-convenience-policy  Alias for utc-convenience-policy-summary\n  delta-t-policy-summary   Print the compact Delta T policy summary\n  delta-t-policy         Alias for delta-t-policy-summary\n  observer-policy-summary  Print the compact observer policy summary\n  observer-policy        Alias for observer-policy-summary\n  apparentness-policy-summary  Print the compact apparentness policy summary\n  apparentness-policy     Alias for apparentness-policy-summary\n  native-sidereal-policy-summary  Print the compact native sidereal policy summary\n  native-sidereal-policy   Alias for native-sidereal-policy-summary\n  interpolation-posture-summary  Print the compact JPL interpolation posture summary\n  interpolation-posture         Alias for interpolation-posture-summary\n  interpolation-quality-summary  Print the compact JPL interpolation quality summary\n  interpolation-quality-kind-coverage-summary  Print the compact JPL interpolation quality kind coverage summary\n  lunar-reference-error-envelope-summary  Print the compact lunar reference error envelope summary\n  lunar-equatorial-reference-error-envelope-summary  Print the compact lunar equatorial reference error envelope summary\n  lunar-apparent-comparison-summary  Print the compact lunar apparent comparison summary\n  lunar-source-window-summary  Print the compact lunar source windows summary\n  lunar-theory-request-policy-summary  Print the compact ELP lunar request policy summary\n  lunar-theory-request-policy  Alias for lunar-theory-request-policy-summary\n  lunar-theory-frame-treatment-summary  Print the compact ELP lunar frame treatment summary\n  lunar-theory-frame-treatment  Alias for lunar-theory-frame-treatment-summary\n  lunar-theory-limitations-summary  Print the compact ELP lunar limitations summary\n  lunar-theory-limitations   Alias for lunar-theory-limitations-summary\n  lunar-theory-summary      Print the compact ELP lunar theory specification\n  lunar-theory-capability-summary  Print the compact ELP lunar capability summary\n  lunar-theory-source-summary  Print the compact ELP lunar source summary\n  lunar-theory-catalog-summary  Print the compact ELP lunar theory catalog summary\n  lunar-theory-catalog-validation-summary  Print the compact ELP lunar theory catalog validation summary\n  lunar-theory-catalog      Alias for lunar-theory-catalog-summary\n  lunar-theory-catalog-validation  Alias for lunar-theory-catalog-validation-summary\n  selected-asteroid-boundary-summary  Print the compact selected-asteroid boundary evidence summary\n  reference-snapshot-selected-asteroid-bridge-summary  Print the compact selected-asteroid bridge evidence summary\n  selected-asteroid-bridge-summary  Alias for reference-snapshot-selected-asteroid-bridge-summary\n  reference-snapshot-selected-asteroid-dense-boundary-summary  Print the compact selected-asteroid dense boundary evidence summary\n  selected-asteroid-dense-boundary-summary  Alias for reference-snapshot-selected-asteroid-dense-boundary-summary\n  reference-snapshot-selected-asteroid-terminal-boundary-summary  Print the compact selected-asteroid terminal boundary evidence summary\n  selected-asteroid-terminal-boundary-summary  Alias for reference-snapshot-selected-asteroid-terminal-boundary-summary\n  selected-asteroid-source-evidence-summary  Print the compact selected-asteroid source evidence summary\n  selected-asteroid-source-summary  Alias for selected-asteroid-source-evidence-summary\n  selected-asteroid-source-window-summary  Print the compact selected-asteroid source windows summary\n  selected-asteroid-source-window  Alias for selected-asteroid-source-window-summary\n  selected-asteroid-batch-parity-summary  Print the compact selected-asteroid batch-parity summary\n  reference-asteroid-evidence-summary  Print the compact reference asteroid evidence summary\n  reference-asteroid-equatorial-evidence-summary  Print the compact reference asteroid equatorial evidence summary\n  reference-asteroid-source-window-summary  Print the compact reference asteroid source windows summary\n  reference-asteroid-source-summary  Alias for reference-asteroid-source-window-summary\n  reference-holdout-overlap-summary  Print the compact reference/hold-out overlap summary\n  independent-holdout-source-window-summary  Print the compact independent hold-out source windows summary\n  independent-holdout-summary  Print the compact independent hold-out summary\n  independent-holdout-source-summary  Print the compact independent hold-out source summary\n  independent-holdout-body-class-coverage-summary  Print the compact independent hold-out body-class coverage summary\n  holdout-body-class-coverage-summary  Alias for independent-holdout-body-class-coverage-summary\n  independent-holdout-batch-parity-summary  Print the compact independent hold-out batch parity summary\n  independent-holdout-equatorial-parity-summary  Print the compact independent hold-out equatorial parity summary\n  house-validation-summary   Print the compact house-validation corpus summary\n  house-validation            Alias for house-validation-summary\n  release-house-validation-summary  Print the compact release house-validation corpus summary\n  release-house-validation  Alias for release-house-validation-summary\n  house-formula-families-summary  Print the compact house formula families summary\n  house-formula-families    Alias for house-formula-families-summary\n  house-code-aliases-summary  Print the compact house-code alias summary\n  house-code-alias-summary  Alias for house-code-aliases-summary\n  ayanamsa-catalog-validation-summary  Print the compact ayanamsa catalog validation summary\n  ayanamsa-catalog-validation  Alias for ayanamsa-catalog-validation-summary\n  ayanamsa-metadata-coverage-summary  Print the compact ayanamsa sidereal metadata coverage summary\n  ayanamsa-metadata-coverage  Alias for ayanamsa-metadata-coverage-summary\n  ayanamsa-reference-offsets-summary  Print the compact ayanamsa reference offsets summary\n  ayanamsa-reference-offsets  Alias for ayanamsa-reference-offsets-summary\n  frame-policy-summary      Print the compact frame-policy summary\n  frame-policy             Alias for frame-policy-summary\n  mean-obliquity-frame-round-trip-summary  Print the compact mean-obliquity frame round-trip summary\n  mean-obliquity-frame-round-trip  Alias for mean-obliquity-frame-round-trip-summary\n  release-profile-identifiers-summary  Print the compact release-profile identifiers summary\n  release-profile-identifiers  Alias for release-profile-identifiers-summary\n  request-surface-summary  Print the compact request-surface inventory summary\n  request-surface         Alias for request-surface-summary\n  request-policy-summary    Print the compact request-policy summary\n  request-policy           Alias for request-policy-summary\n  request-semantics-summary  Print the compact request-policy summary\n  request-semantics        Alias for request-policy-summary\n  comparison-tolerance-policy-summary  Print the compact comparison tolerance policy summary\n  comparison-tolerance-summary  Alias for comparison-tolerance-policy-summary\n  pluto-fallback-summary   Print the compact Pluto fallback summary\n  pluto-fallback           Alias for pluto-fallback-summary\n  bundle-release --out DIR  Write the release compatibility profile, profile summary, release notes, release notes summary, release summary, release-profile identifiers, release-profile identifiers summary, release-house-system-canonical-names summary, release-ayanamsa-canonical-names summary, release checklist, release checklist summary, backend matrix, backend matrix summary, API posture, API stability summary, request policy summary, time-scale policy summary, UTC convenience policy summary, delta-t policy summary, native sidereal policy summary, request surface summary, compatibility-caveats summary, reference-holdout overlap summary, reference snapshot summary, catalog inventory summary, artifact summary, packaged-artifact production-profile summary, packaged-artifact target-threshold summary, packaged-artifact generation manifest, benchmark-corpus summary, benchmark report, validation report, manifest, and manifest checksum sidecar\n  bundle-release --output DIR  Alias for bundle-release --out DIR\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  verify-release-bundle --output DIR  Alias for verify-release-bundle --out DIR\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
         banner = banner(),
         corpus_size = corpus_size,
     )
@@ -21223,6 +21313,8 @@ version = "0.9.0"
         assert!(rendered.contains("API stability posture:"));
         assert!(rendered.contains("api-stability.txt"));
         assert!(rendered.contains("comparison-corpus-summary.txt"));
+        assert!(rendered.contains("comparison-snapshot-summary.txt"));
+        assert!(rendered.contains("reference-snapshot-summary.txt"));
         assert!(rendered.contains("validation-report-summary.txt"));
         assert!(rendered.contains("workspace-audit-summary.txt"));
         assert!(rendered.contains("benchmark-corpus-summary.txt"));
@@ -21237,9 +21329,11 @@ version = "0.9.0"
         assert!(bundle_dir
             .join("comparison-corpus-guard-summary.txt")
             .exists());
+        assert!(bundle_dir.join("comparison-snapshot-summary.txt").exists());
         assert!(bundle_dir
             .join("custom-definition-ayanamsa-labels-summary.txt")
             .exists());
+        assert!(bundle_dir.join("reference-snapshot-summary.txt").exists());
         assert!(bundle_dir.join("request-policy-summary.txt").exists());
         assert!(bundle_dir.join("time-scale-policy-summary.txt").exists());
         assert!(bundle_dir
@@ -21318,9 +21412,15 @@ version = "0.9.0"
         let comparison_corpus_summary =
             std::fs::read_to_string(bundle_dir.join("comparison-corpus-summary.txt"))
                 .expect("comparison corpus summary should be written");
+        let comparison_snapshot_summary =
+            std::fs::read_to_string(bundle_dir.join("comparison-snapshot-summary.txt"))
+                .expect("comparison snapshot summary should be written");
         let benchmark_corpus_summary =
             std::fs::read_to_string(bundle_dir.join("benchmark-corpus-summary.txt"))
                 .expect("benchmark corpus summary should be written");
+        let reference_snapshot_summary =
+            std::fs::read_to_string(bundle_dir.join("reference-snapshot-summary.txt"))
+                .expect("reference snapshot summary should be written");
         let lunar_theory_limitations_summary =
             std::fs::read_to_string(bundle_dir.join("lunar-theory-limitations-summary.txt"))
                 .expect("lunar theory limitations summary should be written");
@@ -21345,6 +21445,14 @@ version = "0.9.0"
         assert_eq!(
             lunar_theory_limitations_summary,
             lunar_theory_limitations_summary_for_report()
+        );
+        assert_eq!(
+            comparison_snapshot_summary,
+            comparison_snapshot_summary_for_report()
+        );
+        assert_eq!(
+            reference_snapshot_summary,
+            reference_snapshot_summary_for_report()
         );
         let manifest = std::fs::read_to_string(bundle_dir.join("bundle-manifest.txt"))
             .expect("manifest should be written");
@@ -22003,11 +22111,14 @@ version = "0.9.0"
         assert!(manifest.contains("api-stability.txt"));
         assert!(manifest.contains("api-stability-summary.txt"));
         assert!(manifest.contains("comparison-corpus-summary.txt"));
+        assert!(manifest.contains("comparison-snapshot-summary.txt"));
         assert!(manifest.contains("comparison-envelope-summary.txt"));
         assert!(manifest.contains("catalog-inventory-summary.txt"));
         assert!(manifest.contains("custom-definition-ayanamsa-labels-summary.txt"));
         assert!(manifest.contains("validation-report-summary.txt"));
         assert!(manifest.contains("request-policy-summary.txt"));
+        assert!(manifest.contains("reference-snapshot-summary.txt"));
+        assert!(manifest.contains("reference snapshot summary checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("time-scale-policy-summary.txt"));
         assert!(manifest.contains("delta-t-policy-summary.txt"));
         assert!(manifest.contains("native-sidereal-policy-summary.txt"));
@@ -22076,6 +22187,7 @@ version = "0.9.0"
         assert!(verified.contains("release-house-system-canonical-names-summary.txt"));
         assert!(verified.contains("release-ayanamsa-canonical-names-summary.txt"));
         assert!(verified.contains("comparison-corpus-summary.txt"));
+        assert!(verified.contains("comparison-snapshot-summary.txt"));
         assert!(verified.contains("comparison-envelope-summary.txt"));
         assert!(verified.contains("comparison-corpus-release-guard-summary.txt"));
         assert!(verified.contains("catalog-inventory-summary.txt"));
@@ -22084,6 +22196,7 @@ version = "0.9.0"
         assert!(verified.contains("time-scale-policy-summary.txt"));
         assert!(verified.contains("delta-t-policy-summary.txt"));
         assert!(verified.contains("native-sidereal-policy-summary.txt"));
+        assert!(verified.contains("reference-snapshot-summary.txt"));
         assert!(verified.contains("lunar-theory-limitations-summary.txt"));
         assert!(verified.contains("request-surface-summary.txt"));
         assert!(verified.contains("compatibility-caveats-summary.txt"));

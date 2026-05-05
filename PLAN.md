@@ -151,4 +151,4 @@ When the plan changes:
 - update `plan/appendices/` when traceability or workable-state references change,
 - remove or rewrite completed tasks instead of accumulating progress-note history.
 
-Status: Updated 2026-05-04 after reference-corpus expansion review against `SPEC.md`, `spec/*.md`, validation summaries, the current implementation state, and the refreshed maintainer-facing CLI/release documentation for benchmark, comparison-audit, native-dependency-audit, and compatibility-caveats smoke paths.
+Status: Updated 2026-05-05 after release-bundle snapshot-summary staging and verification coverage, plus the reference-corpus expansion review against `SPEC.md`, `spec/*.md`, validation summaries, the current implementation state, and the refreshed maintainer-facing CLI/release documentation for benchmark, comparison-audit, native-dependency-audit, and compatibility-caveats smoke paths.
