@@ -80,6 +80,10 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "comparison-corpus-guard-summary")?;
             validate_render_cli(args)
         }
+        Some("comparison-corpus-guard") => {
+            ensure_no_extra_args(&args[1..], "comparison-corpus-guard")?;
+            validate_render_cli(args)
+        }
         Some("benchmark-corpus-summary") => validate_render_cli(args),
         Some("compatibility-profile") | Some("profile") => validate_render_cli(args),
         Some("compatibility-profile-summary") | Some("profile-summary") => {
@@ -1727,6 +1731,11 @@ mod tests {
             comparison_guard
         );
         assert_eq!(
+            render_cli(&["comparison-corpus-guard"])
+                .expect("comparison corpus guard short alias should render"),
+            comparison_guard
+        );
+        assert_eq!(
             render_cli(&["comparison-corpus-release-guard-summary", "extra"]).expect_err(
                 "comparison corpus release guard summary should reject extra arguments"
             ),
@@ -1736,6 +1745,11 @@ mod tests {
             render_cli(&["comparison-corpus-guard-summary", "extra"])
                 .expect_err("comparison corpus guard alias should reject extra arguments"),
             "comparison-corpus-guard-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["comparison-corpus-guard", "extra"])
+                .expect_err("comparison corpus guard short alias should reject extra arguments"),
+            "comparison-corpus-guard does not accept extra arguments"
         );
         assert_eq!(
             render_cli(&["comparison-corpus", "extra"])
