@@ -8,6 +8,7 @@ This file lists focused implementation slices that map to the current phase ladd
 
 - Early boundary coverage for Sun, Moon, Mercury, and Venus at 1500-01-01 is now checked in.
 - The 1500-01-01 selected-body boundary evidence now has a dedicated CLI/report surface for review and regression tests.
+- The 1600-01-11 selected-body boundary slice for Sun, Moon, Mercury, Venus, Mars, Jupiter, Uranus, and Neptune is now checked in and surfaced through the same report path.
 - A 1900-01-01 selected-body boundary slice for Sun, Moon, Mercury, and Venus is now checked in.
 - A 2500-01-01 selected-body boundary slice for Mars, Mercury, Moon, Sun, and Venus is now checked in.
 - A 1750-01-01 interior boundary slice for Sun through Neptune is now checked in.
