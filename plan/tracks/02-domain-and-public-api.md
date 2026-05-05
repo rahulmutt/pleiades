@@ -15,7 +15,7 @@ Protect the typed, backend-agnostic public API while remaining phases add accura
 
 ## Remaining domain concerns
 
-- Finalize first-release posture for built-in Delta T, UTC/UT1 conversion, apparent-place corrections, topocentric body positions, native sidereal backend output, and frame precision.
+- Finalize first-release posture for built-in Delta T, UTC/UT1 conversion, apparent-place corrections, topocentric body positions, and native sidereal backend output; keep frame precision explicit via the shared mean-obliquity frame round-trip envelope.
 - Validate every release-advertised house and ayanamsa formula/alias against references or mark it constrained, approximate, descriptor-only, or unsupported.
 - Keep custom body, house, and ayanamsa identifiers distinguishable from built-ins in profiles, summaries, and serialization.
 - Ensure release profiles truthfully separate baseline guarantees, release additions, known gaps, constraints, and unsupported modes.

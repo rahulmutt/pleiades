@@ -2122,7 +2122,7 @@ pub const CURRENT_APPARENTNESS_POLICY_SUMMARY_TEXT: &str =
 
 /// Canonical current policy summary text for the shared frame posture.
 pub const CURRENT_FRAME_POLICY_SUMMARY_TEXT: &str =
-    "ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported; native sidereal backend output remains unsupported unless a backend explicitly advertises it";
+    "ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported; supported equatorial precision is bounded by the shared mean-obliquity frame round-trip envelope; native sidereal backend output remains unsupported unless a backend explicitly advertises it";
 
 /// Canonical current policy summary text for the shared native sidereal posture.
 pub const CURRENT_NATIVE_SIDEREAL_POLICY_SUMMARY_TEXT: &str =
@@ -4459,7 +4459,7 @@ mod tests {
         );
         assert_eq!(
             request_policy.frame,
-            "ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported; native sidereal backend output remains unsupported unless a backend explicitly advertises it"
+            "ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported; supported equatorial precision is bounded by the shared mean-obliquity frame round-trip envelope; native sidereal backend output remains unsupported unless a backend explicitly advertises it"
         );
         assert_eq!(
             time_scale_policy_summary_for_report().summary_line(),

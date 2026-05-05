@@ -73,7 +73,7 @@ Phase 1 is complete when:
 - every release-grade body claim has source provenance, measured tolerances, and validation status;
 - Pluto and other approximate paths are either validated within thresholds or explicitly downgraded/excluded from release-grade claims;
 - the reference/generation input corpus is sufficient for Phase 2 artifact fitting;
-- Delta T, UTC/UT1, apparentness, topocentric, native sidereal, and frame behavior is either implemented or explicitly deferred with metadata and structured errors;
+- Delta T, UTC/UT1, apparentness, topocentric, and native sidereal behavior is either implemented or explicitly deferred with metadata and structured errors; frame precision remains explicit via the shared mean-obliquity frame round-trip envelope;
 - standard format, lint, and test checks pass.
 
 ## Deferred to later phases
