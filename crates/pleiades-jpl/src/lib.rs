@@ -2814,6 +2814,10 @@ pub fn production_generation_snapshot_summary_for_report() -> String {
 }
 
 /// Returns the combined source provenance for the production-generation corpus.
+///
+/// The production-generation inputs remain the checked-in CSV fixtures that are
+/// parsed in pure Rust via `include_str!`, so the regeneration path stays fully
+/// deterministic and hashable from repository contents alone.
 pub fn production_generation_source_summary_for_report() -> String {
     let reference_summary = reference_snapshot_source_summary();
     let boundary_summary = production_generation_boundary_source_summary();
@@ -2826,7 +2830,7 @@ pub fn production_generation_source_summary_for_report() -> String {
     }
 
     format!(
-        "Production generation source: {}; {}",
+        "Production generation source: {}; {}; input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv; file format=comma-separated values; frame=geocentric ecliptic J2000; time scale=TDB; parser=pure-Rust and deterministic; checksum expectation=byte-identical fixture contents",
         reference_summary.summary_line(),
         format_production_generation_boundary_source_summary(&boundary_summary)
     )
@@ -18265,7 +18269,7 @@ mod tests {
         assert_eq!(
             production_generation_source_summary_for_report(),
             format!(
-                "Production generation source: {}; {}",
+                "Production generation source: {}; {}; input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv; file format=comma-separated values; frame=geocentric ecliptic J2000; time scale=TDB; parser=pure-Rust and deterministic; checksum expectation=byte-identical fixture contents",
                 reference_snapshot_source_summary_for_report(),
                 production_generation_boundary_source_summary_for_report()
             )
@@ -20835,6 +20839,20 @@ mod tests {
         );
         assert_eq!(reference.bodies.intersection(&holdout.bodies).count(), 10);
         assert_eq!(reference.epochs.intersection(&holdout.epochs).count(), 8);
+    }
+
+    #[test]
+    fn production_generation_source_summary_documents_the_checked_in_csv_path() {
+        let report = production_generation_source_summary_for_report();
+
+        assert!(report.contains(
+            "input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv"
+        ));
+        assert!(report.contains("file format=comma-separated values"));
+        assert!(report.contains("frame=geocentric ecliptic J2000"));
+        assert!(report.contains("time scale=TDB"));
+        assert!(report.contains("parser=pure-Rust and deterministic"));
+        assert!(report.contains("checksum expectation=byte-identical fixture contents"));
     }
 
     #[test]

@@ -27,7 +27,7 @@ Phase 2 production artifacts require trusted generation inputs and target thresh
 
 ## Immediate blockers
 
-1. **Reference corpus breadth** — Expand or replace fixture evidence with production-suitable public source/reference data for validation and artifact fitting.
+1. **Reference corpus breadth** — The production-generation input path is now explicitly documented as the checked-in CSV fixture pair; expand or replace fixture evidence with production-suitable public source/reference data for validation and artifact fitting.
 2. **Pluto release posture** — Either source-back Pluto within release thresholds or keep it visibly approximate and excluded from release-grade major-body claims.
 3. **Lunar release posture** — Decide whether the first release ships the compact lunar baseline with measured limitations or implements fuller ELP-style coefficient support.
 4. **Advanced request semantics** — Decide whether built-in Delta T/UTC conversion, apparent corrections, topocentric body positions, and native sidereal backend output are implemented now or explicitly deferred.
@@ -36,7 +36,6 @@ Phase 2 production artifacts require trusted generation inputs and target thresh
 
 Implement a small, reviewable reference-coverage slice:
 
-- choose a concrete public source input path for production validation/generation;
 - add a minimal but representative set of new source rows or parser support across the 1500-2500 target range;
 - include at least one boundary or high-curvature window relevant to artifact fitting;
 - update the relevant backend metadata/report summaries and tests without broadening release claims prematurely.

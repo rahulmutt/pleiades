@@ -4,13 +4,7 @@ This file lists focused implementation slices that map to the current phase ladd
 
 ## Phase 1 candidates — Reference accuracy and request semantics
 
-### 1. Production reference input decision
-
-- Decide whether production validation inputs live in an expanded `pleiades-jpl` reader/corpus or in a separate generation-input path consumed by validation and artifact tooling.
-- Document source provenance, redistribution posture, file format, frame, time scale, and checksum expectations.
-- Add a small parser/fixture test proving the chosen input path is pure Rust and deterministic.
-
-### 2. Representative 1500-2500 reference expansion
+### 1. Representative 1500-2500 reference expansion
 
 - Add source/reference coverage at target-range boundaries and representative interior epochs.
 - Include high-curvature windows needed by future artifact fitting.
