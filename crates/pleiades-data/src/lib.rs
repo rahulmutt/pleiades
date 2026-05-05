@@ -5682,6 +5682,26 @@ mod tests {
     }
 
     #[test]
+    fn packaged_artifact_production_profile_summary_validation_rejects_stored_channel_drift() {
+        let mut summary = packaged_artifact_production_profile_summary_details();
+        summary
+            .artifact_profile
+            .stored_channels
+            .retain(|channel| *channel != ChannelKind::DistanceAu);
+
+        let error = summary
+            .validate()
+            .expect_err("stored channel drift should be rejected");
+        assert_eq!(
+            error,
+            PackagedArtifactProductionProfileSummaryValidationError::FieldOutOfSync {
+                field: "artifact_profile",
+            }
+        );
+        assert!(error.to_string().contains("artifact_profile"));
+    }
+
+    #[test]
     fn packaged_artifact_production_profile_summary_validation_rejects_body_coverage_drift() {
         let mut summary = packaged_artifact_production_profile_summary_details();
         summary.body_coverage.body_count += 1;
