@@ -2934,7 +2934,7 @@ mod tests {
         );
         let house_validation_summary = render_cli(&["house-validation-summary"])
             .expect("house validation summary should render");
-        assert!(house_validation_summary.contains("House validation corpus: 8 scenarios"));
+        assert!(house_validation_summary.contains("House validation corpus: 9 scenarios"));
         assert!(house_validation_summary
             .contains("formula families: Equal, Whole Sign, Quadrant, Equatorial projection"));
         assert!(house_validation_summary

@@ -115,6 +115,14 @@ impl HouseValidationReport {
                 ),
             ),
             (
+                "Western hemisphere reference chart",
+                ObserverLocation::new(
+                    Latitude::from_degrees(34.0522),
+                    Longitude::from_degrees(-118.2437),
+                    None,
+                ),
+            ),
+            (
                 "Equatorial reference chart",
                 ObserverLocation::new(
                     Latitude::from_degrees(0.0),
@@ -519,7 +527,7 @@ mod tests {
     fn summary_line_reports_scenario_and_latitude_sensitive_counts() {
         let report = house_validation_report();
 
-        assert_eq!(report.scenarios.len(), 8);
+        assert_eq!(report.scenarios.len(), 9);
         assert_eq!(
             report.sample_count(),
             report.scenarios.len() * baseline_house_systems().len()
@@ -540,11 +548,12 @@ mod tests {
                 "Topocentric [Topocentric (Polich-Page) house system with geodetic-to-geocentric latitude correction.]",
             ]
         );
-        assert_eq!(report.hemisphere_coverage(), (4, 3, 1));
+        assert_eq!(report.hemisphere_coverage(), (5, 3, 1));
         assert_eq!(
             report.scenario_labels(),
             vec![
                 "Mid-latitude reference chart",
+                "Western hemisphere reference chart",
                 "Equatorial reference chart",
                 "Polar stress chart",
                 "Northern high-latitude stress chart",
@@ -567,7 +576,7 @@ mod tests {
         );
         assert_eq!(
             report.summary_line(),
-            "House validation corpus: 8 scenarios (Mid-latitude reference chart, Equatorial reference chart, Polar stress chart, Northern high-latitude stress chart, Northern high-latitude mountain stress chart, Southern high-latitude mountain stress chart, Southern polar stress chart, Southern hemisphere reference chart), 96 samples, 96 successes, 0 failures; hemisphere coverage: north=4, south=3, equatorial=1; formula families: Equal, Whole Sign, Quadrant, Equatorial projection; latitude-sensitive systems: Koch, Placidus, Topocentric; constraints: Koch [Quadrant system with documented high-latitude pathologies.], Placidus [Quadrant system; can fail or become unstable at extreme latitudes.], Topocentric [Topocentric (Polich-Page) house system with geodetic-to-geocentric latitude correction.]; implementation posture: 12 baseline systems validated"
+            "House validation corpus: 9 scenarios (Mid-latitude reference chart, Western hemisphere reference chart, Equatorial reference chart, Polar stress chart, Northern high-latitude stress chart, Northern high-latitude mountain stress chart, Southern high-latitude mountain stress chart, Southern polar stress chart, Southern hemisphere reference chart), 108 samples, 108 successes, 0 failures; hemisphere coverage: north=5, south=3, equatorial=1; formula families: Equal, Whole Sign, Quadrant, Equatorial projection; latitude-sensitive systems: Koch, Placidus, Topocentric; constraints: Koch [Quadrant system with documented high-latitude pathologies.], Placidus [Quadrant system; can fail or become unstable at extreme latitudes.], Topocentric [Topocentric (Polich-Page) house system with geodetic-to-geocentric latitude correction.]; implementation posture: 12 baseline systems validated"
         );
         assert_eq!(
             house_validation_summary_line_for_report(&report),
