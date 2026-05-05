@@ -1336,6 +1336,10 @@ mod tests {
         assert!(
             rendered.contains("comparison-envelope       Alias for comparison-envelope-summary")
         );
+        assert!(rendered.contains("comparison-tolerance-summary"));
+        assert!(rendered.contains(
+            "comparison-tolerance-summary  Alias for comparison-tolerance-policy-summary"
+        ));
         assert!(rendered.contains("benchmark-corpus-summary"));
         assert!(rendered.contains("comparison-snapshot-summary"));
         assert!(rendered.contains("comparison-snapshot-batch-parity-summary"));
