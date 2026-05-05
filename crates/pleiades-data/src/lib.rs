@@ -60,8 +60,8 @@ use pleiades_jpl::{
 };
 
 const PACKAGE_NAME: &str = "pleiades-data";
-const ARTIFACT_LABEL: &str = "stage-5 packaged-data prototype";
-const ARTIFACT_PROFILE_ID: &str = "pleiades-packaged-artifact-profile/stage-5-prototype";
+const ARTIFACT_LABEL: &str = "stage-5 packaged-data draft";
+const ARTIFACT_PROFILE_ID: &str = "pleiades-packaged-artifact-profile/stage-5-draft";
 const ARTIFACT_SOURCE: &str = "Quantized linear segments with residual-corrected Moon spans fitted to JPL Horizons reference epochs (1800, 2000, 2500 CE) for the comparison-body planetary set plus asteroid:433-Eros, with J2000 point segments for the outer planets, Pluto, and the asteroid coverage.";
 const PACKAGED_BASE_BODIES: [CelestialBody; 10] = [
     CelestialBody::Sun,
@@ -1134,7 +1134,7 @@ pub fn packaged_artifact_regeneration_summary_for_report() -> String {
     }
 }
 
-const PACKAGED_ARTIFACT_TARGET_THRESHOLD_STATUS: &str = "prototype fit envelope recorded";
+const PACKAGED_ARTIFACT_TARGET_THRESHOLD_STATUS: &str = "draft fit envelope recorded";
 const PACKAGED_ARTIFACT_TARGET_THRESHOLD_SCOPES: &[&str] = &[
     "luminaries",
     "major planets",
@@ -1343,7 +1343,7 @@ impl PackagedArtifactProductionProfileSummary {
     /// Returns the production-profile skeleton as a compact human-readable line.
     pub fn summary_line(&self) -> String {
         format!(
-            "Packaged artifact production profile skeleton: profile id={}; label={}; version={}; time range={}; body coverage={}; artifact profile={}; generation policy={}; request policy={}; frame treatment={}; storage/reconstruction={}; {}",
+            "Packaged artifact production profile draft: profile id={}; label={}; version={}; time range={}; body coverage={}; artifact profile={}; generation policy={}; request policy={}; frame treatment={}; storage/reconstruction={}; {}",
             self.profile_id,
             self.label,
             self.artifact_version,
@@ -1465,18 +1465,18 @@ pub fn packaged_artifact_production_profile_summary_details(
     summary
 }
 
-/// Returns the current packaged-artifact production-profile skeleton after validating the structured posture.
+/// Returns the current packaged-artifact production-profile draft after validating the structured posture.
 pub fn packaged_artifact_production_profile_summary_for_report() -> String {
     let summary = packaged_artifact_production_profile_summary_details();
     match summary.validated_summary_line() {
         Ok(line) => line,
         Err(error) => {
-            format!("Packaged artifact production profile skeleton: unavailable ({error})")
+            format!("Packaged artifact production profile draft: unavailable ({error})")
         }
     }
 }
 
-/// Returns the current packaged-artifact production-profile skeleton summary.
+/// Returns the current packaged-artifact production-profile draft summary.
 pub fn packaged_artifact_production_profile_summary() -> &'static str {
     static SUMMARY: OnceLock<String> = OnceLock::new();
     SUMMARY
@@ -1485,7 +1485,7 @@ pub fn packaged_artifact_production_profile_summary() -> &'static str {
             match summary.validated_summary_line() {
                 Ok(rendered) => rendered,
                 Err(error) => {
-                    format!("Packaged artifact production profile skeleton: unavailable ({error})")
+                    format!("Packaged artifact production profile draft: unavailable ({error})")
                 }
             }
         })
@@ -4914,12 +4914,9 @@ mod tests {
         summary
             .validate()
             .expect("packaged regeneration summary should validate");
-        assert!(provenance.contains(
-            "Packaged artifact regeneration source: label=stage-5 packaged-data prototype"
-        ));
-        assert!(
-            provenance.contains("profile id=pleiades-packaged-artifact-profile/stage-5-prototype")
-        );
+        assert!(provenance
+            .contains("Packaged artifact regeneration source: label=stage-5 packaged-data draft"));
+        assert!(provenance.contains("profile id=pleiades-packaged-artifact-profile/stage-5-draft"));
         assert!(provenance.contains("checksum=0x"));
         assert!(provenance.contains("generation policy: adjacent same-body linear segments"));
         assert!(provenance.contains("residual bodies: Moon; applies to 1 bundled body"));
@@ -5265,10 +5262,10 @@ mod tests {
             .expect("production-profile skeleton should validate");
         assert!(summary
             .summary_line()
-            .contains("Packaged artifact production profile skeleton:"));
+            .contains("Packaged artifact production profile draft:"));
         assert!(summary
             .summary_line()
-            .contains("target thresholds: prototype fit envelope recorded; scopes=luminaries, major planets, lunar points, selected asteroids, custom bodies; fit envelope:"));
+            .contains("target thresholds: draft fit envelope recorded; scopes=luminaries, major planets, lunar points, selected asteroids, custom bodies; fit envelope:"));
         assert!(summary
             .summary_line()
             .contains("scope envelopes=scope=luminaries; bodies=2 (Sun, Moon); fit envelope:"));
@@ -5277,7 +5274,7 @@ mod tests {
                 .contains("scope=luminaries; bodies=2 (Sun, Moon); fit envelope:")
         );
         assert!(packaged_artifact_production_profile_summary_for_report()
-            .contains("Packaged artifact production profile skeleton:"));
+            .contains("Packaged artifact production profile draft:"));
         assert_eq!(
             packaged_artifact_production_profile_summary(),
             summary.summary_line()
@@ -5752,13 +5749,13 @@ mod tests {
             summary.scope_envelopes,
             packaged_artifact_target_threshold_scope_envelopes_summary_details()
         );
-        assert_eq!(summary.summary_line(), format!("profile id={}; target thresholds: prototype fit envelope recorded; scopes=luminaries, major planets, lunar points, selected asteroids, custom bodies; {}; scope envelopes={}", ARTIFACT_PROFILE_ID, summary.fit_envelope.summary_line(), join_display(&summary.scope_envelopes)));
+        assert_eq!(summary.summary_line(), format!("profile id={}; target thresholds: draft fit envelope recorded; scopes=luminaries, major planets, lunar points, selected asteroids, custom bodies; {}; scope envelopes={}", ARTIFACT_PROFILE_ID, summary.fit_envelope.summary_line(), join_display(&summary.scope_envelopes)));
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert!(summary.validate().is_ok());
         assert!(
             packaged_artifact_target_threshold_summary_for_report().contains(&format!(
-                "profile id={}; target thresholds: prototype fit envelope recorded",
+                "profile id={}; target thresholds: draft fit envelope recorded",
                 ARTIFACT_PROFILE_ID
             ))
         );

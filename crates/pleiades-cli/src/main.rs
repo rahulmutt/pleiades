@@ -3895,9 +3895,9 @@ mod tests {
             render_cli(&["packaged-artifact-production-profile-summary"])
                 .expect("packaged artifact production profile summary should render");
         assert!(packaged_artifact_production_profile
-            .contains("Packaged artifact production profile skeleton:"));
+            .contains("Packaged artifact production profile draft:"));
         assert!(packaged_artifact_production_profile
-            .contains("profile id=pleiades-packaged-artifact-profile/stage-5-prototype"));
+            .contains("profile id=pleiades-packaged-artifact-profile/stage-5-draft"));
         assert_eq!(
             packaged_artifact_production_profile,
             pleiades_data::packaged_artifact_production_profile_summary_for_report()
@@ -4101,7 +4101,7 @@ mod tests {
         ])
         .expect("packaged artifact regeneration should render");
         assert!(regenerated.contains("Packaged artifact regenerated"));
-        assert!(regenerated.contains("stage-5 packaged-data prototype"));
+        assert!(regenerated.contains("stage-5 packaged-data draft"));
         assert!(regenerated.contains("checksum=0x"));
         assert!(regenerated.contains("generation policy: adjacent same-body linear segments"));
         assert!(regenerated.contains("11 bundled bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros)"));
@@ -4125,7 +4125,7 @@ mod tests {
         ])
         .expect("packaged artifact regeneration should accept --output");
         assert!(regenerated_output.contains("Packaged artifact regenerated"));
-        assert!(regenerated_output.contains("stage-5 packaged-data prototype"));
+        assert!(regenerated_output.contains("stage-5 packaged-data draft"));
         assert!(output_alias_fixture_path.exists());
         let output_written = std::fs::read(&output_alias_fixture_path)
             .expect("packaged artifact regeneration should write the output alias path");
@@ -4741,7 +4741,7 @@ mod tests {
             "packaged-artifact-storage           Alias for packaged-artifact-storage-summary"
         ));
         assert!(help.contains(
-            "packaged-artifact-production-profile-summary  Print the packaged-artifact production profile skeleton summary"
+            "packaged-artifact-production-profile-summary  Print the packaged-artifact production profile draft summary"
         ));
         assert!(help.contains(
             "packaged-artifact-production-profile  Alias for packaged-artifact-production-profile-summary"

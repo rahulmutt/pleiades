@@ -35,7 +35,6 @@ This file lists focused implementation slices that map to the current phase ladd
 
 ### 1. Production artifact profile manifest
 
-- Replace prototype profile wording with a versioned production profile draft.
 - Specify body set, date range, channels, derived outputs, unsupported outputs, speed policy, and thresholds.
 - Add validation that fails on profile/threshold drift.
 
