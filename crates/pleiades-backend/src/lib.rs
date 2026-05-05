@@ -5297,6 +5297,61 @@ mod tests {
     }
 
     #[test]
+    fn validate_requests_against_metadata_rejects_unsupported_time_scales_before_apparentness_and_observer_checks_in_batches(
+    ) {
+        let metadata = BackendMetadata {
+            id: BackendId::new("toy backend"),
+            version: "0.1.0".to_string(),
+            family: BackendFamily::Algorithmic,
+            provenance: BackendProvenance::new("toy backend"),
+            nominal_range: TimeRange::new(None, None),
+            supported_time_scales: vec![TimeScale::Tt],
+            body_coverage: vec![CelestialBody::Sun],
+            supported_frames: vec![CoordinateFrame::Ecliptic],
+            capabilities: BackendCapabilities {
+                apparent: false,
+                ..BackendCapabilities::default()
+            },
+            accuracy: AccuracyClass::Approximate,
+            deterministic: true,
+            offline: true,
+        };
+        let geocentric_request = EphemerisRequest::new(
+            CelestialBody::Sun,
+            Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt),
+        );
+        let unsupported_time_scale_apparent_observer_request = EphemerisRequest {
+            instant: Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Utc),
+            apparent: Apparentness::Apparent,
+            observer: Some(ObserverLocation::new(
+                Latitude::from_degrees(95.0),
+                Longitude::from_degrees(-0.1),
+                Some(45.0),
+            )),
+            ..geocentric_request.clone()
+        };
+
+        let error = validate_requests_against_metadata(
+            &[geocentric_request, unsupported_time_scale_apparent_observer_request],
+            &metadata,
+        )
+        .expect_err(
+            "time-scale failures should be reported before apparentness and observer failures in batches",
+        );
+        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedTimeScale);
+        assert_eq!(
+            error.message,
+            "batch request 2: toy backend expects one of [TT] for request instants"
+        );
+        assert!(!error
+            .message
+            .contains("apparent corrections are not implemented"));
+        assert!(!error
+            .message
+            .contains("request received invalid observer location"));
+    }
+
+    #[test]
     fn validate_requests_against_metadata_rejects_topocentric_requests_with_batch_index_prefix() {
         let metadata = BackendMetadata {
             id: BackendId::new("toy backend"),

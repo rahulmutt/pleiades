@@ -19,7 +19,7 @@ The workspace already has the required crate structure, backend trait, chart fa√
 Implemented and not re-planned here:
 
 - backend trait, metadata, request validation, composite routing, batch APIs, and structured errors;
-- mean geometric geocentric TT/TDB request handling with explicit rejection of unsupported mean/apparent, topocentric, and native-sidereal modes;
+- mean geometric geocentric TT/TDB request handling with explicit rejection of unsupported mean/apparent, topocentric, and native-sidereal modes; batch validation now also keeps unsupported time-scale errors ahead of apparentness and malformed-observer checks when those unsupported modes co-occur;
 - source-backed VSOP87B generated binary tables for Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, and Neptune;
 - direct CLI inspection paths for the request-policy, request-surface inventory, Delta T, frame, observer, and apparentness summaries so the current request posture stays visible without opening the full report stack; the request-surface inventory now also spells out the explicit TT/TDB alias set instead of only naming the generic offset family, and the request-surface alias now reports its own extra-argument diagnostics instead of inheriting the summary label; the lunar-theory limitations summary now also makes the compact Meeus-style baseline limits explicit alongside the existing request, capability, and frame-treatment summaries;
 - compact lunar baseline with validation for Moon, mean/true node, and mean apogee/perigee;
