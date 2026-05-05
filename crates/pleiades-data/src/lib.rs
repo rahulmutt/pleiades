@@ -4947,6 +4947,34 @@ mod tests {
     }
 
     #[test]
+    fn packaged_artifact_regeneration_summary_validation_rejects_source_drift() {
+        let mut summary = packaged_artifact_regeneration_summary_details();
+        summary.source = "drifted source";
+
+        let error = summary
+            .validate()
+            .expect_err("source drift should be rejected");
+
+        assert!(error
+            .to_string()
+            .contains("packaged artifact regeneration summary source does not match the checked-in artifact source"));
+    }
+
+    #[test]
+    fn packaged_artifact_regeneration_summary_validation_rejects_checksum_drift() {
+        let mut summary = packaged_artifact_regeneration_summary_details();
+        summary.checksum ^= 1;
+
+        let error = summary
+            .validate()
+            .expect_err("checksum drift should be rejected");
+
+        assert!(error
+            .to_string()
+            .contains("packaged artifact regeneration summary checksum"));
+    }
+
+    #[test]
     fn packaged_artifact_regeneration_summary_validation_rejects_fit_envelope_drift() {
         let mut summary = packaged_artifact_regeneration_summary_details();
         summary.fit_envelope.sample_count += 1;
