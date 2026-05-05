@@ -411,6 +411,9 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("packaged-artifact-access-summary") | Some("packaged-artifact-access") => {
             validate_render_cli(args)
         }
+        Some("packaged-artifact-path-policy-summary") | Some("packaged-artifact-path-policy") => {
+            validate_render_cli(args)
+        }
         Some("packaged-artifact-storage-summary") => validate_render_cli(args),
         Some("packaged-artifact-production-profile-summary")
         | Some("packaged-artifact-production-profile") => validate_render_cli(args),
@@ -3657,6 +3660,26 @@ mod tests {
             packaged_artifact_access
         );
         assert_eq!(
+            render_cli(&["packaged-artifact-path-policy-summary"])
+                .expect("packaged artifact path policy summary should render"),
+            packaged_artifact_access
+        );
+        assert_eq!(
+            render_cli(&["packaged-artifact-path-policy"])
+                .expect("packaged artifact path policy alias should render"),
+            packaged_artifact_access
+        );
+        assert_eq!(
+            render_cli(&["packaged-artifact-path-policy-summary", "extra"])
+                .expect_err("packaged artifact path policy summary should reject extra arguments"),
+            "packaged-artifact-path-policy-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["packaged-artifact-path-policy", "extra"])
+                .expect_err("packaged artifact path policy alias should reject extra arguments"),
+            "packaged-artifact-path-policy does not accept extra arguments"
+        );
+        assert_eq!(
             render_cli(&["packaged-artifact-access-summary", "extra"])
                 .expect_err("packaged artifact access summary should reject extra arguments"),
             "packaged-artifact-access-summary does not accept extra arguments"
@@ -4457,6 +4480,12 @@ mod tests {
         assert!(
             help.contains("packaged-artifact-access  Alias for packaged-artifact-access-summary")
         );
+        assert!(help.contains(
+            "packaged-artifact-path-policy-summary  Alias for packaged-artifact-access-summary"
+        ));
+        assert!(help.contains(
+            "packaged-artifact-path-policy  Alias for packaged-artifact-path-policy-summary"
+        ));
         assert!(help.contains(
             "packaged-artifact-storage-summary  Print the packaged-artifact storage/reconstruction summary"
         ));
