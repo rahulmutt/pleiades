@@ -207,6 +207,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("reference-snapshot-major-body-bridge-summary")
         | Some("major-body-bridge-summary") => validate_render_cli(args),
         Some("reference-snapshot-bridge-day-summary") => validate_render_cli(args),
+        Some("bridge-day-summary") => validate_render_cli(args),
         Some("reference-snapshot-mars-jupiter-boundary-summary")
         | Some("mars-jupiter-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-mars-outer-boundary-summary")
@@ -2773,6 +2774,14 @@ mod tests {
             render_cli(&["reference-snapshot-bridge-day-summary", "extra"])
                 .expect_err("reference snapshot bridge day summary should reject extra arguments"),
             "reference-snapshot-bridge-day-summary does not accept extra arguments"
+        );
+        let bridge_day_alias =
+            render_cli(&["bridge-day-summary"]).expect("bridge day alias should render");
+        assert_eq!(bridge_day_alias, reference_bridge_day_summary);
+        assert_eq!(
+            render_cli(&["bridge-day-summary", "extra"])
+                .expect_err("bridge day alias should reject extra arguments"),
+            "bridge-day-summary does not accept extra arguments"
         );
         let selected_asteroid_dense_boundary_summary =
             render_cli(&["reference-snapshot-selected-asteroid-dense-boundary-summary"])
