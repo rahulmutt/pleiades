@@ -4112,6 +4112,9 @@ mod tests {
             .exists());
         assert!(bundle_dir.join("request-policy-summary.txt").exists());
         assert!(bundle_dir.join("time-scale-policy-summary.txt").exists());
+        assert!(bundle_dir
+            .join("utc-convenience-policy-summary.txt")
+            .exists());
         assert!(bundle_dir.join("delta-t-policy-summary.txt").exists());
         assert!(bundle_dir
             .join("native-sidereal-policy-summary.txt")

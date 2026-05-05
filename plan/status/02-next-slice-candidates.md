@@ -38,7 +38,7 @@ The lunar source-window summary slice is now complete in both the validation ren
 
 **Work items:**
 
-- Decide first-release posture for built-in Delta T and UTC/UT1 convenience conversion. The current backend/report surface now exposes the deferred no-built-in-Delta-T posture as a separate typed summary, and the request-policy/request-semantics summary block now breaks UTC convenience out from Delta T as its own release-facing line; the UTC-convenience posture now also has a dedicated `utc-convenience-policy-summary` / `utc-convenience-policy` inspection path in both CLIs, but the decision itself is still to keep or implement a real model.
+- Decide first-release posture for built-in Delta T and UTC/UT1 convenience conversion. The current backend/report surface now exposes the deferred no-built-in-Delta-T posture as a separate typed summary, and the request-policy/request-semantics summary block now breaks UTC convenience out from Delta T as its own release-facing line; the UTC-convenience posture now also has a dedicated `utc-convenience-policy-summary` / `utc-convenience-policy` inspection path in both CLIs, the release bundle now also archives the UTC-convenience policy summary for bundle archaeology, but the decision itself is still to keep or implement a real model.
 - Decide first-release posture for apparent-place corrections.
 - Decide first-release posture for topocentric body positions.
 - Update metadata, errors, docs, CLI flags, and tests so unsupported modes continue to fail closed. The explicit UTC/UT1/TDB alias spelling is already wired through the CLI and documented in the policy notes and README; the remaining task is broader reference-corpus expansion.
