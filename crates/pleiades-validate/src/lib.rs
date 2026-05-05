@@ -11639,6 +11639,15 @@ fn format_delta_t_policy_summary_for_report(
     }
 }
 
+fn format_utc_convenience_policy_summary_for_report(
+    summary: &pleiades_backend::UtcConveniencePolicySummary,
+) -> String {
+    match summary.validated_summary_line() {
+        Ok(line) => line.to_string(),
+        Err(error) => format!("UTC convenience policy unavailable ({error})"),
+    }
+}
+
 fn format_observer_policy_summary_for_report(
     summary: &pleiades_backend::ObserverPolicySummary,
 ) -> String {
@@ -11692,6 +11701,13 @@ fn format_request_semantics_summary_for_report(
         text,
         "Time-scale policy: {}",
         format_time_scale_policy_summary_for_report(time_scale_policy)
+    );
+
+    let utc_convenience_policy = pleiades_backend::utc_convenience_policy_summary_for_report();
+    let _ = writeln!(
+        text,
+        "UTC convenience policy: {}",
+        format_utc_convenience_policy_summary_for_report(&utc_convenience_policy)
     );
 
     let delta_t_policy = delta_t_policy_summary_for_report();

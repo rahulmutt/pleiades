@@ -1501,6 +1501,90 @@ impl fmt::Display for DeltaTPolicySummary {
     }
 }
 
+/// Compact summary of the current shared UTC-convenience policy.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct UtcConveniencePolicySummary {
+    summary: &'static str,
+}
+
+/// Validation error for the shared UTC-convenience policy summary.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum UtcConveniencePolicySummaryValidationError {
+    /// The summary text is blank or whitespace-only.
+    BlankSummary,
+    /// The summary text has surrounding whitespace.
+    WhitespacePaddedSummary,
+    /// The summary text contains an embedded line break.
+    EmbeddedLineBreak,
+    /// The summary text no longer matches the current canonical posture.
+    CurrentPolicyOutOfSync,
+}
+
+impl fmt::Display for UtcConveniencePolicySummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::BlankSummary => f.write_str("UTC convenience policy summary is blank"),
+            Self::WhitespacePaddedSummary => {
+                f.write_str("UTC convenience policy summary has surrounding whitespace")
+            }
+            Self::EmbeddedLineBreak => {
+                f.write_str("UTC convenience policy summary contains a line break")
+            }
+            Self::CurrentPolicyOutOfSync => f.write_str(
+                "UTC convenience policy summary is out of sync with the current posture",
+            ),
+        }
+    }
+}
+
+impl std::error::Error for UtcConveniencePolicySummaryValidationError {}
+
+impl UtcConveniencePolicySummary {
+    /// Creates a new UTC-convenience policy summary from a backend-owned note.
+    pub const fn new(summary: &'static str) -> Self {
+        Self { summary }
+    }
+
+    /// Returns the compact one-line rendering of the UTC-convenience policy posture.
+    pub const fn summary_line(self) -> &'static str {
+        self.summary
+    }
+
+    /// Returns the current shared UTC-convenience policy posture.
+    pub const fn current() -> Self {
+        current_utc_convenience_policy_summary()
+    }
+
+    /// Returns `Ok(())` when the summary still contains the current canonical line.
+    pub fn validate(&self) -> Result<(), UtcConveniencePolicySummaryValidationError> {
+        if self.summary.trim().is_empty() {
+            Err(UtcConveniencePolicySummaryValidationError::BlankSummary)
+        } else if self.summary.trim() != self.summary {
+            Err(UtcConveniencePolicySummaryValidationError::WhitespacePaddedSummary)
+        } else if self.summary.contains('\n') || self.summary.contains('\r') {
+            Err(UtcConveniencePolicySummaryValidationError::EmbeddedLineBreak)
+        } else if self.summary != current_utc_convenience_policy_summary().summary_line() {
+            Err(UtcConveniencePolicySummaryValidationError::CurrentPolicyOutOfSync)
+        } else {
+            Ok(())
+        }
+    }
+
+    /// Returns the compact summary line after validating the cached prose.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<&'static str, UtcConveniencePolicySummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for UtcConveniencePolicySummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.summary_line())
+    }
+}
+
 /// Compact summary of the current shared observer policy.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct ObserverPolicySummary {
@@ -2028,6 +2112,18 @@ pub const fn current_delta_t_policy_summary() -> DeltaTPolicySummary {
     DeltaTPolicySummary::new(
         "built-in Delta T modeling remains out of scope; UTC/UT1 inputs require caller-supplied conversion helpers",
     )
+}
+
+/// Returns the current shared UTC-convenience policy used by validation and reports.
+pub const fn current_utc_convenience_policy_summary() -> UtcConveniencePolicySummary {
+    UtcConveniencePolicySummary::new(
+        "built-in UTC convenience conversion remains out of scope; callers must supply TT/TDB offsets explicitly",
+    )
+}
+
+/// Returns the UTC-convenience policy posture used by validation and release reporting.
+pub const fn utc_convenience_policy_summary_for_report() -> UtcConveniencePolicySummary {
+    current_utc_convenience_policy_summary()
 }
 
 /// Returns the current shared observer policy used by validation and reports.
@@ -3000,6 +3096,51 @@ mod tests {
         assert_eq!(
             error.to_string(),
             "Delta T policy summary is out of sync with the current posture"
+        );
+        assert!(summary.validated_summary_line().is_err());
+    }
+
+    #[test]
+    fn utc_convenience_policy_summary_has_a_compact_display() {
+        let summary = UtcConveniencePolicySummary::current();
+
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(
+            summary.summary_line(),
+            "built-in UTC convenience conversion remains out of scope; callers must supply TT/TDB offsets explicitly"
+        );
+        assert!(summary.summary_line().contains("UTC convenience"));
+        assert!(summary.validate().is_ok());
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(
+            utc_convenience_policy_summary_for_report().summary_line(),
+            summary.summary_line()
+        );
+    }
+
+    #[test]
+    fn utc_convenience_policy_summary_validate_rejects_blank_fields() {
+        let summary = UtcConveniencePolicySummary::new(" ");
+
+        let error = summary
+            .validate()
+            .expect_err("blank UTC convenience prose should fail validation");
+        assert_eq!(error.to_string(), "UTC convenience policy summary is blank");
+        assert!(summary.validated_summary_line().is_err());
+    }
+
+    #[test]
+    fn utc_convenience_policy_summary_validate_rejects_policy_drift() {
+        let summary = UtcConveniencePolicySummary::new(
+            "built-in UTC convenience conversion is documented elsewhere",
+        );
+
+        let error = summary
+            .validate()
+            .expect_err("drifted UTC convenience policy prose should fail validation");
+        assert_eq!(
+            error.to_string(),
+            "UTC convenience policy summary is out of sync with the current posture"
         );
         assert!(summary.validated_summary_line().is_err());
     }
