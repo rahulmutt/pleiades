@@ -4023,8 +4023,18 @@ mod tests {
             .join("native-dependency-audit-summary.txt")
             .exists());
         assert!(bundle_dir
+            .join("packaged-artifact-production-profile-summary.txt")
+            .exists());
+        assert!(bundle_dir
+            .join("packaged-artifact-target-threshold-summary.txt")
+            .exists());
+        assert!(bundle_dir
             .join("packaged-artifact-generation-manifest.txt")
             .exists());
+        let manifest = std::fs::read_to_string(bundle_dir.join("bundle-manifest.txt"))
+            .expect("bundle manifest should be written");
+        assert!(manifest.contains("packaged-artifact-production-profile-summary.txt"));
+        assert!(manifest.contains("packaged-artifact-target-threshold-summary.txt"));
     }
 
     #[test]
