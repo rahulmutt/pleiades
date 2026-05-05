@@ -3157,7 +3157,7 @@ mod tests {
             reference_asteroid_source_window_summary.contains("Reference asteroid source windows:")
         );
         assert!(reference_asteroid_source_window_summary
-            .contains("source-backed samples across 6 bodies and 16 epochs"));
+            .contains("source-backed samples across 6 bodies and 17 epochs"));
         assert_eq!(
             reference_asteroid_source_window_summary,
             pleiades_jpl::reference_asteroid_source_window_summary_for_report()

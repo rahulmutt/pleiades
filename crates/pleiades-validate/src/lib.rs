@@ -127,6 +127,7 @@ use pleiades_jpl::{
     reference_snapshot_1500_selected_body_boundary_summary_for_report,
     reference_snapshot_1749_major_body_boundary_summary_for_report,
     reference_snapshot_1800_major_body_boundary_summary_for_report,
+    reference_snapshot_1900_selected_body_boundary_summary_for_report,
     reference_snapshot_2453000_major_body_boundary_summary_for_report,
     reference_snapshot_2500_major_body_boundary_summary_for_report,
     reference_snapshot_batch_parity_summary_for_report,
@@ -4773,6 +4774,14 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             )?;
             Ok(reference_snapshot_1500_selected_body_boundary_summary_for_report())
         }
+        Some("reference-snapshot-1900-selected-body-boundary-summary")
+        | Some("1900-selected-body-boundary-summary") => {
+            ensure_no_extra_args(
+                &args[1..],
+                "reference-snapshot-1900-selected-body-boundary-summary",
+            )?;
+            Ok(reference_snapshot_1900_selected_body_boundary_summary_for_report())
+        }
         Some("reference-snapshot-1749-major-body-boundary-summary")
         | Some("1749-major-body-boundary-summary") => {
             ensure_no_extra_args(
@@ -7273,6 +7282,8 @@ fn render_release_notes_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_1500_selected_body_boundary_summary_for_report());
     text.push('\n');
+    text.push_str(&reference_snapshot_1900_selected_body_boundary_summary_for_report());
+    text.push('\n');
     text.push_str(&reference_snapshot_early_major_body_boundary_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_1800_major_body_boundary_summary_for_report());
@@ -7389,6 +7400,8 @@ fn render_release_notes_summary_text() -> String {
     text.push_str(&reference_snapshot_lunar_boundary_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_1500_selected_body_boundary_summary_for_report());
+    text.push('\n');
+    text.push_str(&reference_snapshot_1900_selected_body_boundary_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_early_major_body_boundary_summary_for_report());
     text.push('\n');
@@ -7874,6 +7887,8 @@ fn render_release_summary_text() -> String {
     text.push_str(&reference_snapshot_lunar_boundary_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_1500_selected_body_boundary_summary_for_report());
+    text.push('\n');
+    text.push_str(&reference_snapshot_1900_selected_body_boundary_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_early_major_body_boundary_summary_for_report());
     text.push('\n');
@@ -13863,6 +13878,8 @@ fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_1500_selected_body_boundary_summary_for_report());
     text.push('\n');
+    text.push_str(&reference_snapshot_1900_selected_body_boundary_summary_for_report());
+    text.push('\n');
     text.push_str(&reference_snapshot_early_major_body_boundary_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_1800_major_body_boundary_summary_for_report());
@@ -15714,7 +15731,7 @@ fn implemented_backend_catalog() -> Vec<BackendMatrixEntry> {
             label: "JPL snapshot reference backend",
             metadata: default_reference_backend().metadata(),
             implementation_status: BackendImplementationStatus::FixtureReference,
-            status_note: "checked-in public-input derivative fixture with exact lookup and cubic interpolation on four-sample windows when available, with quadratic and linear fallbacks for sparser bodies; reference corpus now spans 327 rows across 16 bodies and 27 epochs with expanded bridge and boundary coverage, while the broader production reader remains planned",
+            status_note: "checked-in public-input derivative fixture with exact lookup and cubic interpolation on four-sample windows when available, with quadratic and linear fallbacks for sparser bodies; reference corpus now spans 343 rows across 16 bodies and 28 epochs with expanded bridge and boundary coverage, while the broader production reader remains planned",
             expected_error_kinds: JPL_EXPECTED_ERROR_KINDS,
             required_data_files: JPL_REQUIRED_DATA_FILES,
         },
@@ -15946,7 +15963,7 @@ fn help_text() -> String {
   production-generation           Alias for production-generation-summary
   production-generation-boundary-source-summary  Print the compact production-generation boundary source summary
   production-generation-boundary-window-summary  Print the compact production-generation boundary windows summary
-  production-generation-boundary-window  Alias for production-generation-boundary-window-summary\n  production-generation-source      Alias for production-generation-source-summary\n  production-generation-source-summary  Print the compact production-generation source summary\n  comparison-snapshot-source-window-summary  Print the compact comparison snapshot source windows summary\n  comparison-snapshot-source-window  Alias for comparison-snapshot-source-window-summary\n  comparison-snapshot-source-summary  Print the compact comparison snapshot source summary\n  comparison-snapshot-body-class-coverage-summary  Print the compact comparison snapshot body-class coverage summary\n  comparison-body-class-coverage-summary  Alias for comparison-snapshot-body-class-coverage-summary\n  comparison-snapshot-manifest-summary  Print the compact comparison snapshot manifest summary\n  comparison-snapshot-manifest  Alias for comparison-snapshot-manifest-summary\n  comparison-snapshot-summary  Print the compact comparison snapshot summary\n  comparison-snapshot         Alias for comparison-snapshot-summary\n  comparison-snapshot-batch-parity-summary  Print the compact comparison snapshot batch parity summary\n  reference-snapshot-source-window-summary  Print the compact reference snapshot source windows summary\n  reference-snapshot-source-window  Alias for reference-snapshot-source-window-summary\n  reference-snapshot-source-summary  Print the compact reference snapshot source summary\n  reference-snapshot-lunar-boundary-summary  Print the compact reference lunar boundary evidence summary\n  lunar-boundary-summary   Alias for reference-snapshot-lunar-boundary-summary\n  reference-snapshot-1500-selected-body-boundary-summary  Print the compact reference 1500 selected-body boundary evidence summary\n  1500-selected-body-boundary-summary  Alias for reference-snapshot-1500-selected-body-boundary-summary\n  reference-snapshot-1749-major-body-boundary-summary  Print the compact reference 1749 major-body boundary evidence summary\n  1749-major-body-boundary-summary  Alias for reference-snapshot-1749-major-body-boundary-summary\n  reference-snapshot-early-major-body-boundary-summary  Print the compact reference early major-body boundary evidence summary\n  early-major-body-boundary-summary  Alias for reference-snapshot-early-major-body-boundary-summary\n  reference-snapshot-1800-major-body-boundary-summary  Print the compact reference 1800 major-body boundary evidence summary\n  1800-major-body-boundary-summary  Alias for reference-snapshot-1800-major-body-boundary-summary\n  reference-snapshot-2500-major-body-boundary-summary  Print the compact reference 2500 major-body boundary evidence summary\n  2500-major-body-boundary-summary  Alias for reference-snapshot-2500-major-body-boundary-summary\n  reference-snapshot-2453000-major-body-boundary-summary  Print the compact reference 2453000 major-body boundary evidence summary\n  2453000-major-body-boundary-summary  Alias for reference-snapshot-2453000-major-body-boundary-summary\n  reference-snapshot-2451917-major-body-boundary-summary  Print the compact reference 2451917 major-body boundary evidence summary\n  2451917-major-body-boundary-summary  Alias for reference-snapshot-2451917-major-body-boundary-summary\n  reference-snapshot-major-body-boundary-summary  Print the compact reference major-body boundary evidence summary\n  major-body-boundary-summary  Alias for reference-snapshot-major-body-boundary-summary\n  reference-snapshot-major-body-bridge-summary  Print the compact reference major-body bridge evidence summary\n  major-body-bridge-summary  Alias for reference-snapshot-major-body-bridge-summary\n  reference-snapshot-bridge-day-summary  Print the compact reference snapshot bridge day summary\n  bridge-day-summary     Alias for reference-snapshot-bridge-day-summary\n  reference-snapshot-mars-jupiter-boundary-summary  Print the compact reference Mars/Jupiter boundary evidence summary\n  mars-jupiter-boundary-summary  Alias for reference-snapshot-mars-jupiter-boundary-summary\n  reference-snapshot-mars-outer-boundary-summary  Print the compact reference Mars outer-boundary evidence summary\n  mars-outer-boundary-summary  Alias for reference-snapshot-mars-outer-boundary-summary\n  reference-snapshot-major-body-boundary-window-summary  Print the compact reference major-body boundary windows summary\n  major-body-boundary-window-summary  Alias for reference-snapshot-major-body-boundary-window-summary\n  reference-snapshot-body-class-coverage-summary  Print the compact reference snapshot body-class coverage summary\n  reference-body-class-coverage-summary  Alias for reference-snapshot-body-class-coverage-summary\n  reference-snapshot-manifest-summary  Print the compact reference snapshot manifest summary\n  reference-snapshot-manifest  Alias for reference-snapshot-manifest-summary\n  reference-snapshot-summary  Print the compact reference snapshot summary\n  reference-snapshot-exact-j2000-evidence-summary  Print the compact reference snapshot exact J2000 evidence summary\n  exact-j2000-evidence    Alias for reference-snapshot-exact-j2000-evidence-summary\n  reference-snapshot         Alias for reference-snapshot-summary\n  reference-snapshot-batch-parity-summary  Print the compact reference snapshot batch parity summary\n  reference-snapshot-equatorial-parity-summary  Print the compact reference snapshot equatorial parity summary\n  reference-high-curvature-summary  Print the compact reference major-body high-curvature evidence summary\n  high-curvature-summary  Alias for reference-high-curvature-summary\n  reference-high-curvature-window-summary  Print the compact reference major-body high-curvature windows summary\n  high-curvature-window-summary  Alias for reference-high-curvature-window-summary\n  reference-high-curvature-epoch-coverage-summary  Print the compact reference major-body high-curvature epoch coverage summary\n  high-curvature-epoch-coverage-summary  Alias for reference-high-curvature-epoch-coverage-summary\n  reference-snapshot-boundary-epoch-coverage-summary  Print the compact reference snapshot boundary epoch coverage summary\n  boundary-epoch-coverage-summary  Alias for reference-snapshot-boundary-epoch-coverage-summary\n  reference-snapshot-sparse-boundary-summary  Print the compact reference boundary day summary\n  sparse-boundary-summary  Alias for reference-snapshot-sparse-boundary-summary\n  boundary-day-summary     Alias for reference-snapshot-sparse-boundary-summary\n  reference-snapshot-pre-bridge-boundary-summary  Print the compact reference pre-bridge boundary day summary\n  pre-bridge-boundary-summary  Alias for reference-snapshot-pre-bridge-boundary-summary\n  reference-snapshot-dense-boundary-summary  Print the compact reference dense boundary day summary\n  dense-boundary-summary  Alias for reference-snapshot-dense-boundary-summary\n  source-documentation-summary  Print the compact VSOP87 source-documentation summary\n  source-documentation         Alias for source-documentation-summary\n  source-documentation-health-summary  Print the compact VSOP87 source-documentation health summary\n  source-documentation-health  Alias for source-documentation-health-summary\n  source-audit-summary      Print the compact VSOP87 source audit summary\n  source-audit              Alias for source-audit-summary\n  generated-binary-audit-summary  Print the compact VSOP87 generated binary audit summary\n  generated-binary-audit    Alias for generated-binary-audit-summary\n  time-scale-policy-summary  Print the compact time-scale policy summary\n  time-scale-policy       Alias for time-scale-policy-summary\n  utc-convenience-policy-summary  Print the compact UTC convenience policy summary\n  utc-convenience-policy  Alias for utc-convenience-policy-summary\n  delta-t-policy-summary   Print the compact Delta T policy summary\n  delta-t-policy         Alias for delta-t-policy-summary\n  observer-policy-summary  Print the compact observer policy summary\n  observer-policy        Alias for observer-policy-summary\n  apparentness-policy-summary  Print the compact apparentness policy summary\n  apparentness-policy     Alias for apparentness-policy-summary\n  native-sidereal-policy-summary  Print the compact native sidereal policy summary\n  native-sidereal-policy   Alias for native-sidereal-policy-summary\n  interpolation-posture-summary  Print the compact JPL interpolation posture summary\n  interpolation-posture         Alias for interpolation-posture-summary\n  interpolation-quality-summary  Print the compact JPL interpolation quality summary\n  interpolation-quality-kind-coverage-summary  Print the compact JPL interpolation quality kind coverage summary\n  lunar-reference-error-envelope-summary  Print the compact lunar reference error envelope summary\n  lunar-equatorial-reference-error-envelope-summary  Print the compact lunar equatorial reference error envelope summary\n  lunar-apparent-comparison-summary  Print the compact lunar apparent comparison summary\n  lunar-source-window-summary  Print the compact lunar source windows summary\n  lunar-theory-request-policy-summary  Print the compact ELP lunar request policy summary\n  lunar-theory-request-policy  Alias for lunar-theory-request-policy-summary\n  lunar-theory-frame-treatment-summary  Print the compact ELP lunar frame treatment summary\n  lunar-theory-frame-treatment  Alias for lunar-theory-frame-treatment-summary\n  lunar-theory-limitations-summary  Print the compact ELP lunar limitations summary\n  lunar-theory-limitations   Alias for lunar-theory-limitations-summary\n  lunar-theory-summary      Print the compact ELP lunar theory specification\n  lunar-theory-capability-summary  Print the compact ELP lunar capability summary\n  lunar-theory-source-summary  Print the compact ELP lunar source summary\n  lunar-theory-catalog-summary  Print the compact ELP lunar theory catalog summary\n  lunar-theory-catalog-validation-summary  Print the compact ELP lunar theory catalog validation summary\n  lunar-theory-catalog      Alias for lunar-theory-catalog-summary\n  lunar-theory-catalog-validation  Alias for lunar-theory-catalog-validation-summary\n  selected-asteroid-boundary-summary  Print the compact selected-asteroid boundary evidence summary\n  reference-snapshot-selected-asteroid-bridge-summary  Print the compact selected-asteroid bridge evidence summary\n  selected-asteroid-bridge-summary  Alias for reference-snapshot-selected-asteroid-bridge-summary\n  reference-snapshot-selected-asteroid-dense-boundary-summary  Print the compact selected-asteroid dense boundary evidence summary\n  selected-asteroid-dense-boundary-summary  Alias for reference-snapshot-selected-asteroid-dense-boundary-summary\n  reference-snapshot-selected-asteroid-terminal-boundary-summary  Print the compact selected-asteroid terminal boundary evidence summary\n  selected-asteroid-terminal-boundary-summary  Alias for reference-snapshot-selected-asteroid-terminal-boundary-summary\n  selected-asteroid-source-evidence-summary  Print the compact selected-asteroid source evidence summary\n  selected-asteroid-source-summary  Alias for selected-asteroid-source-evidence-summary\n  selected-asteroid-source-window-summary  Print the compact selected-asteroid source windows summary\n  selected-asteroid-source-window  Alias for selected-asteroid-source-window-summary\n  selected-asteroid-batch-parity-summary  Print the compact selected-asteroid batch-parity summary\n  reference-asteroid-evidence-summary  Print the compact reference asteroid evidence summary\n  reference-asteroid-equatorial-evidence-summary  Print the compact reference asteroid equatorial evidence summary\n  reference-asteroid-source-window-summary  Print the compact reference asteroid source windows summary\n  reference-asteroid-source-summary  Alias for reference-asteroid-source-window-summary\n  reference-holdout-overlap-summary  Print the compact reference/hold-out overlap summary\n  holdout-overlap-summary   Alias for reference-holdout-overlap-summary\n  independent-holdout-source-window-summary  Print the compact independent hold-out source windows summary\n  independent-holdout-summary  Print the compact independent hold-out summary\n  independent-holdout-source-summary  Print the compact independent hold-out source summary\n  independent-holdout-body-class-coverage-summary  Print the compact independent hold-out body-class coverage summary\n  holdout-body-class-coverage-summary  Alias for independent-holdout-body-class-coverage-summary\n  independent-holdout-batch-parity-summary  Print the compact independent hold-out batch parity summary\n  independent-holdout-equatorial-parity-summary  Print the compact independent hold-out equatorial parity summary\n  house-validation-summary   Print the compact house-validation corpus summary\n  house-validation            Alias for house-validation-summary\n  release-house-validation-summary  Print the compact release house-validation corpus summary\n  release-house-validation  Alias for release-house-validation-summary\n  house-formula-families-summary  Print the compact house formula families summary\n  house-formula-families    Alias for house-formula-families-summary\n  house-latitude-sensitive-summary  Print the compact latitude-sensitive house systems summary\n  house-latitude-sensitive  Alias for house-latitude-sensitive-summary\n  house-code-aliases-summary  Print the compact house-code alias summary\n  house-code-alias-summary  Alias for house-code-aliases-summary\n  ayanamsa-catalog-validation-summary  Print the compact ayanamsa catalog validation summary\n  ayanamsa-catalog-validation  Alias for ayanamsa-catalog-validation-summary\n  ayanamsa-metadata-coverage-summary  Print the compact ayanamsa sidereal metadata coverage summary\n  ayanamsa-metadata-coverage  Alias for ayanamsa-metadata-coverage-summary\n  ayanamsa-reference-offsets-summary  Print the compact ayanamsa reference offsets summary\n  ayanamsa-reference-offsets  Alias for ayanamsa-reference-offsets-summary\n  frame-policy-summary      Print the compact frame-policy summary\n  frame-policy             Alias for frame-policy-summary\n  mean-obliquity-frame-round-trip-summary  Print the compact mean-obliquity frame round-trip summary\n  mean-obliquity-frame-round-trip  Alias for mean-obliquity-frame-round-trip-summary\n  release-profile-identifiers-summary  Print the compact release-profile identifiers summary\n  release-profile-identifiers  Alias for release-profile-identifiers-summary\n  request-surface-summary  Print the compact request-surface inventory summary\n  request-surface         Alias for request-surface-summary\n  request-policy-summary    Print the compact request-policy summary\n  request-policy           Alias for request-policy-summary\n  request-semantics-summary  Print the compact request-policy summary\n  request-semantics        Alias for request-policy-summary\n  comparison-tolerance-policy-summary  Print the compact comparison tolerance policy summary\n  comparison-tolerance-summary  Alias for comparison-tolerance-policy-summary\n  pluto-fallback-summary   Print the compact Pluto fallback summary\n  pluto-fallback           Alias for pluto-fallback-summary\n  bundle-release --out DIR  Write the release compatibility profile, profile summary, release notes, release notes summary, release summary, release-profile identifiers, release-profile identifiers summary, release-house-system-canonical-names summary, release-ayanamsa-canonical-names summary, release checklist, release checklist summary, backend matrix, backend matrix summary, API posture, API stability summary, comparison-corpus summary, comparison-corpus release-guard summary, comparison-corpus guard summary, request policy summary, time-scale policy summary, UTC convenience policy summary, delta-t policy summary, native sidereal policy summary, request surface summary, compatibility-caveats summary, workspace audit summary, native-dependency audit summary, reference-holdout overlap summary, reference snapshot bridge day summary, reference snapshot summary, catalog inventory summary, artifact summary, packaged-artifact access summary, packaged-artifact storage summary, packaged-artifact production-profile summary, packaged-artifact target-threshold summary, packaged-artifact generation manifest, benchmark-corpus summary, benchmark report, validation report, manifest, and manifest checksum sidecar\n  bundle-release --output DIR  Alias for bundle-release --out DIR\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  verify-release-bundle --output DIR  Alias for verify-release-bundle --out DIR\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
+  production-generation-boundary-window  Alias for production-generation-boundary-window-summary\n  production-generation-source      Alias for production-generation-source-summary\n  production-generation-source-summary  Print the compact production-generation source summary\n  comparison-snapshot-source-window-summary  Print the compact comparison snapshot source windows summary\n  comparison-snapshot-source-window  Alias for comparison-snapshot-source-window-summary\n  comparison-snapshot-source-summary  Print the compact comparison snapshot source summary\n  comparison-snapshot-body-class-coverage-summary  Print the compact comparison snapshot body-class coverage summary\n  comparison-body-class-coverage-summary  Alias for comparison-snapshot-body-class-coverage-summary\n  comparison-snapshot-manifest-summary  Print the compact comparison snapshot manifest summary\n  comparison-snapshot-manifest  Alias for comparison-snapshot-manifest-summary\n  comparison-snapshot-summary  Print the compact comparison snapshot summary\n  comparison-snapshot         Alias for comparison-snapshot-summary\n  comparison-snapshot-batch-parity-summary  Print the compact comparison snapshot batch parity summary\n  reference-snapshot-source-window-summary  Print the compact reference snapshot source windows summary\n  reference-snapshot-source-window  Alias for reference-snapshot-source-window-summary\n  reference-snapshot-source-summary  Print the compact reference snapshot source summary\n  reference-snapshot-lunar-boundary-summary  Print the compact reference lunar boundary evidence summary\n  lunar-boundary-summary   Alias for reference-snapshot-lunar-boundary-summary\n  reference-snapshot-1500-selected-body-boundary-summary  Print the compact reference 1500 selected-body boundary evidence summary\n  1500-selected-body-boundary-summary  Alias for reference-snapshot-1500-selected-body-boundary-summary\n  reference-snapshot-1900-selected-body-boundary-summary  Print the compact reference 1900 selected-body boundary evidence summary\n  1900-selected-body-boundary-summary  Alias for reference-snapshot-1900-selected-body-boundary-summary\n  reference-snapshot-1749-major-body-boundary-summary  Print the compact reference 1749 major-body boundary evidence summary\n  1749-major-body-boundary-summary  Alias for reference-snapshot-1749-major-body-boundary-summary\n  reference-snapshot-early-major-body-boundary-summary  Print the compact reference early major-body boundary evidence summary\n  early-major-body-boundary-summary  Alias for reference-snapshot-early-major-body-boundary-summary\n  reference-snapshot-1800-major-body-boundary-summary  Print the compact reference 1800 major-body boundary evidence summary\n  1800-major-body-boundary-summary  Alias for reference-snapshot-1800-major-body-boundary-summary\n  reference-snapshot-2500-major-body-boundary-summary  Print the compact reference 2500 major-body boundary evidence summary\n  2500-major-body-boundary-summary  Alias for reference-snapshot-2500-major-body-boundary-summary\n  reference-snapshot-2453000-major-body-boundary-summary  Print the compact reference 2453000 major-body boundary evidence summary\n  2453000-major-body-boundary-summary  Alias for reference-snapshot-2453000-major-body-boundary-summary\n  reference-snapshot-2451917-major-body-boundary-summary  Print the compact reference 2451917 major-body boundary evidence summary\n  2451917-major-body-boundary-summary  Alias for reference-snapshot-2451917-major-body-boundary-summary\n  reference-snapshot-major-body-boundary-summary  Print the compact reference major-body boundary evidence summary\n  major-body-boundary-summary  Alias for reference-snapshot-major-body-boundary-summary\n  reference-snapshot-major-body-bridge-summary  Print the compact reference major-body bridge evidence summary\n  major-body-bridge-summary  Alias for reference-snapshot-major-body-bridge-summary\n  reference-snapshot-bridge-day-summary  Print the compact reference snapshot bridge day summary\n  bridge-day-summary     Alias for reference-snapshot-bridge-day-summary\n  reference-snapshot-mars-jupiter-boundary-summary  Print the compact reference Mars/Jupiter boundary evidence summary\n  mars-jupiter-boundary-summary  Alias for reference-snapshot-mars-jupiter-boundary-summary\n  reference-snapshot-mars-outer-boundary-summary  Print the compact reference Mars outer-boundary evidence summary\n  mars-outer-boundary-summary  Alias for reference-snapshot-mars-outer-boundary-summary\n  reference-snapshot-major-body-boundary-window-summary  Print the compact reference major-body boundary windows summary\n  major-body-boundary-window-summary  Alias for reference-snapshot-major-body-boundary-window-summary\n  reference-snapshot-body-class-coverage-summary  Print the compact reference snapshot body-class coverage summary\n  reference-body-class-coverage-summary  Alias for reference-snapshot-body-class-coverage-summary\n  reference-snapshot-manifest-summary  Print the compact reference snapshot manifest summary\n  reference-snapshot-manifest  Alias for reference-snapshot-manifest-summary\n  reference-snapshot-summary  Print the compact reference snapshot summary\n  reference-snapshot-exact-j2000-evidence-summary  Print the compact reference snapshot exact J2000 evidence summary\n  exact-j2000-evidence    Alias for reference-snapshot-exact-j2000-evidence-summary\n  reference-snapshot         Alias for reference-snapshot-summary\n  reference-snapshot-batch-parity-summary  Print the compact reference snapshot batch parity summary\n  reference-snapshot-equatorial-parity-summary  Print the compact reference snapshot equatorial parity summary\n  reference-high-curvature-summary  Print the compact reference major-body high-curvature evidence summary\n  high-curvature-summary  Alias for reference-high-curvature-summary\n  reference-high-curvature-window-summary  Print the compact reference major-body high-curvature windows summary\n  high-curvature-window-summary  Alias for reference-high-curvature-window-summary\n  reference-high-curvature-epoch-coverage-summary  Print the compact reference major-body high-curvature epoch coverage summary\n  high-curvature-epoch-coverage-summary  Alias for reference-high-curvature-epoch-coverage-summary\n  reference-snapshot-boundary-epoch-coverage-summary  Print the compact reference snapshot boundary epoch coverage summary\n  boundary-epoch-coverage-summary  Alias for reference-snapshot-boundary-epoch-coverage-summary\n  reference-snapshot-sparse-boundary-summary  Print the compact reference boundary day summary\n  sparse-boundary-summary  Alias for reference-snapshot-sparse-boundary-summary\n  boundary-day-summary     Alias for reference-snapshot-sparse-boundary-summary\n  reference-snapshot-pre-bridge-boundary-summary  Print the compact reference pre-bridge boundary day summary\n  pre-bridge-boundary-summary  Alias for reference-snapshot-pre-bridge-boundary-summary\n  reference-snapshot-dense-boundary-summary  Print the compact reference dense boundary day summary\n  dense-boundary-summary  Alias for reference-snapshot-dense-boundary-summary\n  source-documentation-summary  Print the compact VSOP87 source-documentation summary\n  source-documentation         Alias for source-documentation-summary\n  source-documentation-health-summary  Print the compact VSOP87 source-documentation health summary\n  source-documentation-health  Alias for source-documentation-health-summary\n  source-audit-summary      Print the compact VSOP87 source audit summary\n  source-audit              Alias for source-audit-summary\n  generated-binary-audit-summary  Print the compact VSOP87 generated binary audit summary\n  generated-binary-audit    Alias for generated-binary-audit-summary\n  time-scale-policy-summary  Print the compact time-scale policy summary\n  time-scale-policy       Alias for time-scale-policy-summary\n  utc-convenience-policy-summary  Print the compact UTC convenience policy summary\n  utc-convenience-policy  Alias for utc-convenience-policy-summary\n  delta-t-policy-summary   Print the compact Delta T policy summary\n  delta-t-policy         Alias for delta-t-policy-summary\n  observer-policy-summary  Print the compact observer policy summary\n  observer-policy        Alias for observer-policy-summary\n  apparentness-policy-summary  Print the compact apparentness policy summary\n  apparentness-policy     Alias for apparentness-policy-summary\n  native-sidereal-policy-summary  Print the compact native sidereal policy summary\n  native-sidereal-policy   Alias for native-sidereal-policy-summary\n  interpolation-posture-summary  Print the compact JPL interpolation posture summary\n  interpolation-posture         Alias for interpolation-posture-summary\n  interpolation-quality-summary  Print the compact JPL interpolation quality summary\n  interpolation-quality-kind-coverage-summary  Print the compact JPL interpolation quality kind coverage summary\n  lunar-reference-error-envelope-summary  Print the compact lunar reference error envelope summary\n  lunar-equatorial-reference-error-envelope-summary  Print the compact lunar equatorial reference error envelope summary\n  lunar-apparent-comparison-summary  Print the compact lunar apparent comparison summary\n  lunar-source-window-summary  Print the compact lunar source windows summary\n  lunar-theory-request-policy-summary  Print the compact ELP lunar request policy summary\n  lunar-theory-request-policy  Alias for lunar-theory-request-policy-summary\n  lunar-theory-frame-treatment-summary  Print the compact ELP lunar frame treatment summary\n  lunar-theory-frame-treatment  Alias for lunar-theory-frame-treatment-summary\n  lunar-theory-limitations-summary  Print the compact ELP lunar limitations summary\n  lunar-theory-limitations   Alias for lunar-theory-limitations-summary\n  lunar-theory-summary      Print the compact ELP lunar theory specification\n  lunar-theory-capability-summary  Print the compact ELP lunar capability summary\n  lunar-theory-source-summary  Print the compact ELP lunar source summary\n  lunar-theory-catalog-summary  Print the compact ELP lunar theory catalog summary\n  lunar-theory-catalog-validation-summary  Print the compact ELP lunar theory catalog validation summary\n  lunar-theory-catalog      Alias for lunar-theory-catalog-summary\n  lunar-theory-catalog-validation  Alias for lunar-theory-catalog-validation-summary\n  selected-asteroid-boundary-summary  Print the compact selected-asteroid boundary evidence summary\n  reference-snapshot-selected-asteroid-bridge-summary  Print the compact selected-asteroid bridge evidence summary\n  selected-asteroid-bridge-summary  Alias for reference-snapshot-selected-asteroid-bridge-summary\n  reference-snapshot-selected-asteroid-dense-boundary-summary  Print the compact selected-asteroid dense boundary evidence summary\n  selected-asteroid-dense-boundary-summary  Alias for reference-snapshot-selected-asteroid-dense-boundary-summary\n  reference-snapshot-selected-asteroid-terminal-boundary-summary  Print the compact selected-asteroid terminal boundary evidence summary\n  selected-asteroid-terminal-boundary-summary  Alias for reference-snapshot-selected-asteroid-terminal-boundary-summary\n  selected-asteroid-source-evidence-summary  Print the compact selected-asteroid source evidence summary\n  selected-asteroid-source-summary  Alias for selected-asteroid-source-evidence-summary\n  selected-asteroid-source-window-summary  Print the compact selected-asteroid source windows summary\n  selected-asteroid-source-window  Alias for selected-asteroid-source-window-summary\n  selected-asteroid-batch-parity-summary  Print the compact selected-asteroid batch-parity summary\n  reference-asteroid-evidence-summary  Print the compact reference asteroid evidence summary\n  reference-asteroid-equatorial-evidence-summary  Print the compact reference asteroid equatorial evidence summary\n  reference-asteroid-source-window-summary  Print the compact reference asteroid source windows summary\n  reference-asteroid-source-summary  Alias for reference-asteroid-source-window-summary\n  reference-holdout-overlap-summary  Print the compact reference/hold-out overlap summary\n  holdout-overlap-summary   Alias for reference-holdout-overlap-summary\n  independent-holdout-source-window-summary  Print the compact independent hold-out source windows summary\n  independent-holdout-summary  Print the compact independent hold-out summary\n  independent-holdout-source-summary  Print the compact independent hold-out source summary\n  independent-holdout-body-class-coverage-summary  Print the compact independent hold-out body-class coverage summary\n  holdout-body-class-coverage-summary  Alias for independent-holdout-body-class-coverage-summary\n  independent-holdout-batch-parity-summary  Print the compact independent hold-out batch parity summary\n  independent-holdout-equatorial-parity-summary  Print the compact independent hold-out equatorial parity summary\n  house-validation-summary   Print the compact house-validation corpus summary\n  house-validation            Alias for house-validation-summary\n  release-house-validation-summary  Print the compact release house-validation corpus summary\n  release-house-validation  Alias for release-house-validation-summary\n  house-formula-families-summary  Print the compact house formula families summary\n  house-formula-families    Alias for house-formula-families-summary\n  house-latitude-sensitive-summary  Print the compact latitude-sensitive house systems summary\n  house-latitude-sensitive  Alias for house-latitude-sensitive-summary\n  house-code-aliases-summary  Print the compact house-code alias summary\n  house-code-alias-summary  Alias for house-code-aliases-summary\n  ayanamsa-catalog-validation-summary  Print the compact ayanamsa catalog validation summary\n  ayanamsa-catalog-validation  Alias for ayanamsa-catalog-validation-summary\n  ayanamsa-metadata-coverage-summary  Print the compact ayanamsa sidereal metadata coverage summary\n  ayanamsa-metadata-coverage  Alias for ayanamsa-metadata-coverage-summary\n  ayanamsa-reference-offsets-summary  Print the compact ayanamsa reference offsets summary\n  ayanamsa-reference-offsets  Alias for ayanamsa-reference-offsets-summary\n  frame-policy-summary      Print the compact frame-policy summary\n  frame-policy             Alias for frame-policy-summary\n  mean-obliquity-frame-round-trip-summary  Print the compact mean-obliquity frame round-trip summary\n  mean-obliquity-frame-round-trip  Alias for mean-obliquity-frame-round-trip-summary\n  release-profile-identifiers-summary  Print the compact release-profile identifiers summary\n  release-profile-identifiers  Alias for release-profile-identifiers-summary\n  request-surface-summary  Print the compact request-surface inventory summary\n  request-surface         Alias for request-surface-summary\n  request-policy-summary    Print the compact request-policy summary\n  request-policy           Alias for request-policy-summary\n  request-semantics-summary  Print the compact request-policy summary\n  request-semantics        Alias for request-policy-summary\n  comparison-tolerance-policy-summary  Print the compact comparison tolerance policy summary\n  comparison-tolerance-summary  Alias for comparison-tolerance-policy-summary\n  pluto-fallback-summary   Print the compact Pluto fallback summary\n  pluto-fallback           Alias for pluto-fallback-summary\n  bundle-release --out DIR  Write the release compatibility profile, profile summary, release notes, release notes summary, release summary, release-profile identifiers, release-profile identifiers summary, release-house-system-canonical-names summary, release-ayanamsa-canonical-names summary, release checklist, release checklist summary, backend matrix, backend matrix summary, API posture, API stability summary, comparison-corpus summary, comparison-corpus release-guard summary, comparison-corpus guard summary, request policy summary, time-scale policy summary, UTC convenience policy summary, delta-t policy summary, native sidereal policy summary, request surface summary, compatibility-caveats summary, workspace audit summary, native-dependency audit summary, reference-holdout overlap summary, reference snapshot bridge day summary, reference snapshot summary, catalog inventory summary, artifact summary, packaged-artifact access summary, packaged-artifact storage summary, packaged-artifact production-profile summary, packaged-artifact target-threshold summary, packaged-artifact generation manifest, benchmark-corpus summary, benchmark report, validation report, manifest, and manifest checksum sidecar\n  bundle-release --output DIR  Alias for bundle-release --out DIR\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  verify-release-bundle --output DIR  Alias for verify-release-bundle --out DIR\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
         banner = banner(),
         corpus_size = corpus_size,
     )
@@ -16364,9 +16381,9 @@ mod tests {
     fn default_corpus_covers_the_comparison_snapshot() {
         let corpus = default_corpus();
         let summary = corpus.summary();
-        assert_eq!(corpus.requests.len(), 210);
-        assert_eq!(summary.epoch_count, 24);
-        assert_eq!(summary.epochs.len(), 24);
+        assert_eq!(corpus.requests.len(), 220);
+        assert_eq!(summary.epoch_count, 25);
+        assert_eq!(summary.epochs.len(), 25);
         assert!(summary
             .epochs
             .iter()
@@ -16439,7 +16456,7 @@ mod tests {
         }));
         assert!(report.lines().any(|line| line == "  Apparentness: Mean"));
         assert!(report.lines().any(|line| {
-            line == "  epoch labels: JD 2268932.5 (TT), JD 2305457.5 (TT), JD 2360233.5 (TT), JD 2360234.5 (TT), JD 2378499.0 (TT), JD 2400000.0 (TT), JD 2415020.5 (TT), JD 2451545.0 (TT), JD 2451910.5 (TT), JD 2451911.5 (TT), JD 2451912.5 (TT), JD 2451914.0 (TT), JD 2451914.5 (TT), JD 2451915.0 (TT), JD 2451915.5 (TT), JD 2451916.0 (TT), JD 2451916.5 (TT), JD 2451917.0 (TT), JD 2451918.5 (TT), JD 2451920.5 (TT), JD 2453000.5 (TT), JD 2500000.0 (TT), JD 2600000.0 (TT), JD 2634167.0 (TT)"
+            line == "  epoch labels: JD 2268932.5 (TT), JD 2305457.5 (TT), JD 2360233.5 (TT), JD 2360234.5 (TT), JD 2378499.0 (TT), JD 2400000.0 (TT), JD 2415020.5 (TT), JD 2451545.0 (TT), JD 2451910.5 (TT), JD 2451911.5 (TT), JD 2451912.5 (TT), JD 2451914.0 (TT), JD 2451914.5 (TT), JD 2451915.0 (TT), JD 2451915.5 (TT), JD 2451916.0 (TT), JD 2451916.5 (TT), JD 2451917.0 (TT), JD 2451918.5 (TT), JD 2451919.5 (TT), JD 2451920.5 (TT), JD 2453000.5 (TT), JD 2500000.0 (TT), JD 2600000.0 (TT), JD 2634167.0 (TT)"
         }));
         assert!(report
             .lines()
@@ -17598,7 +17615,7 @@ mod tests {
         assert!(report.contains("Comparison corpus"));
         assert!(report.contains("JPL Horizons release-grade comparison window"));
         assert!(report
-            .contains("Comparison snapshot coverage: 210 rows across 10 bodies and 24 epochs"));
+            .contains("Comparison snapshot coverage: 220 rows across 10 bodies and 25 epochs"));
         assert!(report.contains("Apparentness: Mean"));
         assert!(report.contains("Benchmark corpus"));
         assert!(report.contains("Representative 1500-2500 window"));
@@ -17703,7 +17720,7 @@ mod tests {
         assert!(report.contains("Luminaries"));
         assert!(report.contains("Major planets"));
         assert!(report.contains("interpolation quality checks:"));
-        assert!(report.contains("JPL interpolation quality: 200 samples across 10 bodies"));
+        assert!(report.contains("JPL interpolation quality: 210 samples across 10 bodies"));
         assert!(report.contains("JPL interpolation quality kind coverage:"));
         assert!(report.contains("JPL interpolation posture: source="));
         assert!(report.contains("Reference/hold-out overlap:"));
@@ -17827,7 +17844,7 @@ mod tests {
         assert!(body_class_tolerance_posture.contains("mean Δdist="));
         assert!(body_class_tolerance_posture.contains("rms Δdist="));
         assert!(report.contains("JPL interpolation quality"));
-        assert!(report.contains("JPL interpolation quality: 200 samples across 10 bodies"));
+        assert!(report.contains("JPL interpolation quality: 210 samples across 10 bodies"));
         assert!(report.contains("Reference/hold-out overlap:"));
         assert!(report.contains("JPL independent hold-out:"));
         assert!(report.contains("JPL independent hold-out equatorial parity:"));
@@ -17942,7 +17959,7 @@ mod tests {
         assert!(rendered.contains(&reference_snapshot_source_window_summary_for_report()));
         assert!(rendered.contains(&reference_snapshot_body_class_coverage_summary_for_report()));
         assert!(rendered
-            .contains("Comparison snapshot coverage: 210 rows across 10 bodies and 24 epochs"));
+            .contains("Comparison snapshot coverage: 220 rows across 10 bodies and 25 epochs"));
         assert!(rendered.contains("Body comparison summaries"));
         assert!(rendered.contains("Release bundle verification: verify-release-bundle"));
         assert!(rendered.contains("Packaged-artifact profile"));
@@ -19303,12 +19320,12 @@ mod tests {
         assert!(rendered.contains("WvA"));
         assert!(rendered.contains("Selected asteroid evidence: 6 exact J2000 samples"));
         assert!(rendered.contains("Selected asteroid batch parity: 6 requests across 6 bodies at JD 2451545.0 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis); frame mix: 3 ecliptic, 3 equatorial; batch/single parity preserved"));
-        assert!(rendered.contains("Reference snapshot coverage: 327 rows across 16 bodies and 27 epochs (87 asteroid rows; JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); bodies:"));
-        assert!(rendered.contains("Reference snapshot body-class coverage: major bodies: 240 rows across 10 bodies and 27 epochs; major windows: "));
+        assert!(rendered.contains("Reference snapshot coverage: 343 rows across 16 bodies and 28 epochs (93 asteroid rows; JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); bodies:"));
+        assert!(rendered.contains("Reference snapshot body-class coverage: major bodies: 250 rows across 10 bodies and 28 epochs; major windows: "));
         assert!(rendered.contains(&reference_snapshot_pre_bridge_boundary_summary_for_report()));
         assert!(rendered.contains(&reference_snapshot_dense_boundary_summary_for_report()));
         assert!(rendered.contains(
-            "selected asteroids: 87 rows across 6 bodies and 16 epochs; asteroid windows: "
+            "selected asteroids: 93 rows across 6 bodies and 17 epochs; asteroid windows: "
         ));
         assert!(rendered.contains(&reference_snapshot_lunar_boundary_summary_for_report()));
         assert!(rendered.contains(&reference_snapshot_high_curvature_summary_for_report()));
@@ -19318,7 +19335,7 @@ mod tests {
         assert!(rendered.contains(&reference_snapshot_source_summary_for_report()));
         assert!(rendered.contains(&reference_snapshot_manifest_summary_for_report()));
         assert!(rendered
-            .contains("Comparison snapshot coverage: 210 rows across 10 bodies and 24 epochs"));
+            .contains("Comparison snapshot coverage: 220 rows across 10 bodies and 25 epochs"));
         assert!(rendered.contains("asteroid:433-Eros"));
         assert!(rendered.contains("Validation reference points:"));
         assert!(rendered.contains("Compatibility caveats:"));
@@ -20806,8 +20823,8 @@ mod tests {
             release_profiles.compatibility_profile_id, release_profiles.api_stability_profile_id
         )));
         assert!(rendered.contains("Release-specific coverage:"));
-        assert!(rendered.contains("Selected asteroid source evidence: 87 source-backed samples across 6 bodies and 16 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies: Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis"));
-        assert!(rendered.contains("Selected asteroid source windows: 87 source-backed samples across 6 bodies and 16 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); windows: Ceres: 16 samples across 16 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Pallas: 16 samples across 16 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Juno: 16 samples across 16 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Vesta: 16 samples across 16 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); asteroid:433-Eros: 16 samples across 16 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); asteroid:99942-Apophis: 7 samples across 7 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB)"));
+        assert!(rendered.contains("Selected asteroid source evidence: 93 source-backed samples across 6 bodies and 17 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies: Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis"));
+        assert!(rendered.contains("Selected asteroid source windows: 93 source-backed samples across 6 bodies and 17 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); windows: Ceres: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Pallas: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Juno: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Vesta: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); asteroid:433-Eros: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); asteroid:99942-Apophis: 8 samples across 8 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB)"));
         assert!(rendered.contains(&selected_asteroid_boundary_summary_for_report()));
         assert!(rendered.contains("Custom-definition labels:"));
         assert!(rendered.contains("House formula families: 7 (Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign)"));
@@ -20836,10 +20853,10 @@ mod tests {
             .lines()
             .any(|line| line == profile.target_ayanamsa_scope.join("; ")));
         assert!(rendered.contains("API stability summary line: API stability posture: pleiades-api-stability/0.1.0; stable surfaces: 6; experimental surfaces: 3; deprecation policy items: 4; intentional limits: 3"));
-        assert!(rendered.contains("Reference snapshot source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=selected bodies sampled at 1500-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 1600-01-11 for Sun, Moon, Mercury, Venus, Mars, Jupiter, Uranus, Neptune; major bodies sampled at 1749-12-31 for Sun through Neptune; selected bodies sampled at 1750-01-01 for Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; inner planets sampled across 1800-2500; major bodies sampled at 1800-01-03 for Sun through Pluto; selected bodies sampled at 1900-01-01 for Sun, Moon, Mercury, Venus; major bodies sampled at 2400000, 2451545, 2451910.5, 2451911.5, 2451912.5, 2451913.5, 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451916.0, 2451916.5, 2451917.0, 2451917.5, 2451918.5, 2451920.5, 2453000.5, and 2500000; major bodies sampled at 2451915.5 for Sun through Pluto; Mars sampled at 2600000 and 2634167 for outer boundary coverage; major bodies sampled at 2451913.5 through 2451917.5 for additional boundary coverage; selected asteroids sampled at J2000, 2378498.5, 2451910.5 through 2451918.5, with 2451914.0, 2451914.5, 2451915.0, 2451915.5, and 2451918.5 boundary coverage, 1800-01-03, 2003-12-27, 2132-08-31, 2500-01-01, and 2634167.; geocentric ecliptic J2000; TDB reference epoch JD 2451545.0 (TDB)"));
-        assert!(rendered.contains("Reference snapshot body-class coverage: major bodies: 240 rows across 10 bodies and 27 epochs; major windows: "));
+        assert!(rendered.contains(&reference_snapshot_source_summary_for_report()));
+        assert!(rendered.contains("Reference snapshot body-class coverage: major bodies: 250 rows across 10 bodies and 28 epochs; major windows: "));
         assert!(rendered.contains(
-            "selected asteroids: 87 rows across 6 bodies and 16 epochs; asteroid windows: "
+            "selected asteroids: 93 rows across 6 bodies and 17 epochs; asteroid windows: "
         ));
         assert!(rendered.contains("Comparison snapshot source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.; coverage=Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000.; columns=body, x_km, y_km, z_km"));
         assert!(rendered
@@ -20872,12 +20889,12 @@ mod tests {
             "Release profile identifiers: v1 compatibility={}, api-stability={}",
             release_profiles.compatibility_profile_id, release_profiles.api_stability_profile_id
         )));
-        assert!(rendered.contains("Reference snapshot coverage: 327 rows across 16 bodies and 27 epochs (87 asteroid rows; JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); bodies:"));
+        assert!(rendered.contains("Reference snapshot coverage: 343 rows across 16 bodies and 28 epochs (93 asteroid rows; JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); bodies:"));
         assert!(
             rendered.contains(&reference_snapshot_2500_major_body_boundary_summary_for_report())
         );
         assert!(rendered
-            .contains("Comparison snapshot coverage: 210 rows across 10 bodies and 24 epochs"));
+            .contains("Comparison snapshot coverage: 220 rows across 10 bodies and 25 epochs"));
         assert!(rendered
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
         assert!(rendered.contains("Artifact boundary envelope:"));
@@ -21238,7 +21255,7 @@ mod tests {
         assert!(rendered.contains("median latitude delta:"));
         assert!(rendered.contains("95th percentile latitude delta:"));
         assert!(rendered
-            .contains("Comparison snapshot coverage: 210 rows across 10 bodies and 24 epochs"));
+            .contains("Comparison snapshot coverage: 220 rows across 10 bodies and 25 epochs"));
         assert!(rendered.contains("Body-class error envelopes:"));
         assert!(rendered.contains("max Δlon="));
         assert!(rendered.contains("median Δlon="));
@@ -21393,8 +21410,8 @@ mod tests {
         assert!(rendered.contains(
             "selected asteroid coverage: 6 bodies (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis)"
         ));
-        assert!(rendered.contains("Selected asteroid source evidence: 87 source-backed samples across 6 bodies and 16 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies: Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis"));
-        assert!(rendered.contains("Selected asteroid source windows: 87 source-backed samples across 6 bodies and 16 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); windows: Ceres: 16 samples across 16 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Pallas: 16 samples across 16 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Juno: 16 samples across 16 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Vesta: 16 samples across 16 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); asteroid:433-Eros: 16 samples across 16 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); asteroid:99942-Apophis: 7 samples across 7 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB)"));
+        assert!(rendered.contains("Selected asteroid source evidence: 93 source-backed samples across 6 bodies and 17 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies: Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis"));
+        assert!(rendered.contains("Selected asteroid source windows: 93 source-backed samples across 6 bodies and 17 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); windows: Ceres: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Pallas: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Juno: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Vesta: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); asteroid:433-Eros: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); asteroid:99942-Apophis: 8 samples across 8 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB)"));
         assert!(rendered.contains(&selected_asteroid_boundary_summary_for_report()));
         assert!(rendered.contains(&selected_asteroid_bridge_summary_for_report()));
         assert!(rendered.contains("exact J2000 evidence: 6 bodies at JD 2451545.0"));
@@ -21518,7 +21535,7 @@ mod tests {
             .expect("JPL backend matrix entry should exist");
         assert!(jpl_entry
             .status_note
-            .contains("reference corpus now spans 327 rows across 16 bodies and 27 epochs"));
+            .contains("reference corpus now spans 343 rows across 16 bodies and 28 epochs"));
         assert!(rendered.contains("Families:"));
         assert!(rendered.contains("Algorithmic: 2"));
         assert!(rendered.contains("ReferenceData: 1"));
@@ -21669,7 +21686,7 @@ mod tests {
         assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(rendered.contains("API stability summary: api-stability-summary"));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
-        assert!(rendered.contains("Reference snapshot coverage: 327 rows across 16 bodies and 27 epochs (87 asteroid rows; JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); bodies:"));
+        assert!(rendered.contains("Reference snapshot coverage: 343 rows across 16 bodies and 28 epochs (93 asteroid rows; JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); bodies:"));
         assert!(rendered.contains(&reference_snapshot_lunar_boundary_summary_for_report()));
         assert!(
             rendered.contains(&reference_snapshot_1500_selected_body_boundary_summary_for_report())
@@ -22311,10 +22328,10 @@ version = "0.9.0"
         }));
         assert!(release_summary.contains("JPL frame treatment: checked-in ecliptic snapshot; equatorial coordinates are derived with a mean-obliquity transform"));
         assert!(release_summary.contains(
-            "JPL reference snapshot equatorial parity: 327 rows across 16 bodies and 27 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
+            "JPL reference snapshot equatorial parity: 343 rows across 16 bodies and 28 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
         ));
         assert!(release_summary.contains(
-            "JPL reference snapshot batch parity: 327 rows across 16 bodies and 27 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
+            "JPL reference snapshot batch parity: 343 rows across 16 bodies and 28 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
         ));
         assert!(release_summary.contains("JPL production-generation coverage:"));
         assert!(release_summary.contains("JPL production-generation source windows:"));
@@ -22337,7 +22354,7 @@ version = "0.9.0"
         assert!(release_summary.contains("Selected asteroid batch parity:"));
         assert!(release_summary.contains("Selected asteroid source windows:"));
         assert!(release_summary.contains("Reference snapshot coverage:"));
-        assert!(release_summary.contains("Reference snapshot body-class coverage: major bodies: 240 rows across 10 bodies and 27 epochs; major windows: "));
+        assert!(release_summary.contains("Reference snapshot body-class coverage: major bodies: 250 rows across 10 bodies and 28 epochs; major windows: "));
         assert!(release_summary.contains(&reference_snapshot_high_curvature_summary_for_report()));
         assert!(release_summary
             .contains(&reference_snapshot_major_body_boundary_window_summary_for_report()));
@@ -22352,7 +22369,7 @@ version = "0.9.0"
             release_summary.contains(&comparison_snapshot_body_class_coverage_summary_for_report())
         );
         assert!(release_summary.contains(
-            "selected asteroids: 87 rows across 6 bodies and 16 epochs; asteroid windows: "
+            "selected asteroids: 93 rows across 6 bodies and 17 epochs; asteroid windows: "
         ));
         assert!(release_summary.contains(&reference_snapshot_lunar_boundary_summary_for_report()));
         assert!(release_summary
@@ -22428,7 +22445,7 @@ version = "0.9.0"
         assert!(artifact_summary.contains("Artifact summary"));
         assert!(packaged_artifact_generation_manifest
             .contains("Packaged artifact generation manifest:"));
-        assert!(artifact_summary.contains("residual-bearing segments: 12"));
+        assert!(artifact_summary.contains("residual-bearing segments: 13"));
         assert!(artifact_summary.contains("residual-bearing bodies: Moon"));
         assert!(artifact_summary.contains("Body classes: luminaries=2; major planets=8; lunar points=0; built-in asteroids=0; custom bodies=1; other bodies=0"));
         assert!(artifact_summary.contains(
@@ -22551,7 +22568,7 @@ version = "0.9.0"
         assert!(backend_matrix_summary.contains("Algorithmic: 2"));
         assert!(backend_matrix_summary.contains("Composite: 1"));
         assert!(backend_matrix_summary.contains(
-            "JPL reference snapshot equatorial parity: 327 rows across 16 bodies and 27 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
+            "JPL reference snapshot equatorial parity: 343 rows across 16 bodies and 28 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
         ));
         assert!(backend_matrix_summary
             .contains(&reference_snapshot_major_body_bridge_summary_for_report()));
@@ -24316,7 +24333,7 @@ version = "0.9.0"
             .expect("production generation source window summary should render");
 
         assert!(rendered.contains("Production generation source windows:"));
-        assert!(rendered.contains("335 source-backed samples"));
+        assert!(rendered.contains("351 source-backed samples"));
         assert_eq!(
             rendered,
             production_generation_snapshot_window_summary_for_report()
@@ -24329,7 +24346,7 @@ version = "0.9.0"
             .expect("production generation summary should render");
 
         assert!(rendered.contains("Production generation coverage:"));
-        assert!(rendered.contains("335 rows across 16 bodies and 29 epochs"));
+        assert!(rendered.contains("351 rows across 16 bodies and 30 epochs"));
         assert_eq!(
             rendered,
             production_generation_snapshot_summary_for_report()
@@ -24535,7 +24552,7 @@ version = "0.9.0"
             .expect("comparison snapshot source window summary should render");
 
         assert!(rendered.contains("Comparison snapshot source windows:"));
-        assert!(rendered.contains("210 source-backed samples"));
+        assert!(rendered.contains("220 source-backed samples"));
         assert_eq!(
             rendered,
             comparison_snapshot_source_window_summary_for_report()
@@ -25376,6 +25393,28 @@ version = "0.9.0"
         assert_eq!(
             alias,
             reference_snapshot_1500_selected_body_boundary_summary_for_report()
+        );
+    }
+
+    #[test]
+    fn reference_snapshot_1900_selected_body_boundary_summary_command_renders_the_selected_body_boundary_block(
+    ) {
+        let rendered = render_cli(&["reference-snapshot-1900-selected-body-boundary-summary"])
+            .expect("reference snapshot 1900 selected-body boundary summary should render");
+
+        assert!(rendered.contains("Reference 1900 selected-body boundary evidence:"));
+        assert!(rendered.contains("JD 2415020.5 (TDB)"));
+        assert!(rendered.contains("Sun, Moon, Mercury, Venus"));
+        assert_eq!(
+            rendered,
+            reference_snapshot_1900_selected_body_boundary_summary_for_report()
+        );
+
+        let alias = render_cli(&["1900-selected-body-boundary-summary"])
+            .expect("1900 selected-body boundary summary alias should render");
+        assert_eq!(
+            alias,
+            reference_snapshot_1900_selected_body_boundary_summary_for_report()
         );
     }
 
