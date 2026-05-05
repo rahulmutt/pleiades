@@ -260,6 +260,14 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "time-scale-policy")?;
             validate_render_cli(args)
         }
+        Some("utc-convenience-policy-summary") => {
+            ensure_no_extra_args(&args[1..], "utc-convenience-policy-summary")?;
+            validate_render_cli(args)
+        }
+        Some("utc-convenience-policy") => {
+            ensure_no_extra_args(&args[1..], "utc-convenience-policy")?;
+            validate_render_cli(args)
+        }
         Some("delta-t-policy-summary") => {
             ensure_no_extra_args(&args[1..], "delta-t-policy-summary")?;
             validate_render_cli(args)
@@ -2565,6 +2573,15 @@ mod tests {
             render_cli(&["time-scale-policy"]).expect("time-scale policy alias should render"),
             time_scale_policy_summary
         );
+        let utc_convenience_policy_summary = render_cli(&["utc-convenience-policy-summary"])
+            .expect("UTC convenience policy summary should render");
+        assert!(utc_convenience_policy_summary.contains("UTC convenience policy summary"));
+        assert!(utc_convenience_policy_summary.contains("UTC convenience policy: built-in UTC convenience conversion remains out of scope; callers must supply TT/TDB offsets explicitly"));
+        assert_eq!(
+            render_cli(&["utc-convenience-policy"])
+                .expect("UTC convenience policy alias should render"),
+            utc_convenience_policy_summary
+        );
         let delta_t_policy_summary =
             render_cli(&["delta-t-policy-summary"]).expect("delta T policy summary should render");
         assert!(delta_t_policy_summary.contains("Delta T policy summary"));
@@ -3957,6 +3974,14 @@ mod tests {
             (
                 ["time-scale-policy", "extra"],
                 "time-scale-policy does not accept extra arguments",
+            ),
+            (
+                ["utc-convenience-policy-summary", "extra"],
+                "utc-convenience-policy-summary does not accept extra arguments",
+            ),
+            (
+                ["utc-convenience-policy", "extra"],
+                "utc-convenience-policy does not accept extra arguments",
             ),
             (
                 ["delta-t-policy-summary", "extra"],
