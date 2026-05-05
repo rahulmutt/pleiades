@@ -408,6 +408,9 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("artifact-boundary-envelope-summary") => validate_render_cli(args),
         Some("artifact-profile-coverage-summary") => validate_render_cli(args),
         Some("packaged-artifact-output-support-summary") => validate_render_cli(args),
+        Some("packaged-artifact-access-summary") | Some("packaged-artifact-access") => {
+            validate_render_cli(args)
+        }
         Some("packaged-artifact-storage-summary") => validate_render_cli(args),
         Some("packaged-artifact-production-profile-summary")
         | Some("packaged-artifact-production-profile") => validate_render_cli(args),
@@ -3638,6 +3641,32 @@ mod tests {
             )
         );
 
+        let packaged_artifact_access = render_cli(&["packaged-artifact-access-summary"])
+            .expect("packaged artifact access summary should render");
+        assert!(packaged_artifact_access.contains("Packaged-artifact access: "));
+        assert_eq!(
+            packaged_artifact_access,
+            format!(
+                "Packaged-artifact access: {}",
+                pleiades_data::packaged_artifact_access_summary_for_report()
+            )
+        );
+        assert_eq!(
+            render_cli(&["packaged-artifact-access"])
+                .expect("packaged artifact access alias should render"),
+            packaged_artifact_access
+        );
+        assert_eq!(
+            render_cli(&["packaged-artifact-access-summary", "extra"])
+                .expect_err("packaged artifact access summary should reject extra arguments"),
+            "packaged-artifact-access-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["packaged-artifact-access", "extra"])
+                .expect_err("packaged artifact access alias should reject extra arguments"),
+            "packaged-artifact-access does not accept extra arguments"
+        );
+
         let packaged_artifact_storage = render_cli(&["packaged-artifact-storage-summary"])
             .expect("packaged artifact storage summary should render");
         assert!(packaged_artifact_storage.contains("Packaged-artifact storage/reconstruction: "));
@@ -4154,6 +4183,9 @@ mod tests {
             .join("native-dependency-audit-summary.txt")
             .exists());
         assert!(bundle_dir
+            .join("packaged-artifact-access-summary.txt")
+            .exists());
+        assert!(bundle_dir
             .join("packaged-artifact-production-profile-summary.txt")
             .exists());
         assert!(bundle_dir
@@ -4164,6 +4196,8 @@ mod tests {
             .exists());
         let manifest = std::fs::read_to_string(bundle_dir.join("bundle-manifest.txt"))
             .expect("bundle manifest should be written");
+        assert!(manifest.contains("packaged-artifact-access-summary.txt"));
+        assert!(manifest.contains("packaged-artifact access summary checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("packaged-artifact-production-profile-summary.txt"));
         assert!(manifest.contains("packaged-artifact-target-threshold-summary.txt"));
     }
@@ -4417,6 +4451,12 @@ mod tests {
         assert!(help.contains(
             "packaged-artifact-output-support-summary  Print the packaged-artifact output support summary"
         ));
+        assert!(help.contains(
+            "packaged-artifact-access-summary  Print the packaged-artifact access summary"
+        ));
+        assert!(
+            help.contains("packaged-artifact-access  Alias for packaged-artifact-access-summary")
+        );
         assert!(help.contains(
             "packaged-artifact-storage-summary  Print the packaged-artifact storage/reconstruction summary"
         ));
