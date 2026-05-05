@@ -4365,6 +4365,21 @@ mod tests {
         assert_eq!(error.kind, EphemerisErrorKind::UnsupportedZodiacMode);
         assert!(error.message.contains("tropical coordinates only"));
 
+        let sidereal_invalid_observer_request = EphemerisRequest {
+            observer: Some(ObserverLocation::new(
+                Latitude::from_degrees(95.0),
+                Longitude::from_degrees(-0.1),
+                Some(45.0),
+            )),
+            ..sidereal_request.clone()
+        };
+        let error =
+            validate_request_against_metadata(&sidereal_invalid_observer_request, &metadata)
+                .expect_err("sidereal routing should win before malformed observer validation");
+        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedZodiacMode);
+        assert!(error.message.contains("tropical coordinates only"));
+        assert!(!error.message.contains("invalid observer location"));
+
         let sidereal_metadata = BackendMetadata {
             capabilities: BackendCapabilities {
                 native_sidereal: true,
@@ -5494,6 +5509,54 @@ mod tests {
         assert!(!error
             .message
             .contains("topocentric positions are not implemented"));
+    }
+
+    #[test]
+    fn validate_requests_against_metadata_rejects_sidereal_requests_before_invalid_observer_checks_in_batches(
+    ) {
+        let metadata = BackendMetadata {
+            id: BackendId::new("toy backend"),
+            version: "0.1.0".to_string(),
+            family: BackendFamily::Algorithmic,
+            provenance: BackendProvenance::new("toy backend"),
+            nominal_range: TimeRange::new(None, None),
+            supported_time_scales: vec![TimeScale::Tt],
+            body_coverage: vec![CelestialBody::Sun],
+            supported_frames: vec![CoordinateFrame::Ecliptic],
+            capabilities: BackendCapabilities::default(),
+            accuracy: AccuracyClass::Approximate,
+            deterministic: true,
+            offline: true,
+        };
+        let geocentric_request = EphemerisRequest::new(
+            CelestialBody::Sun,
+            Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt),
+        );
+        let sidereal_invalid_observer_request = EphemerisRequest {
+            zodiac_mode: ZodiacMode::Sidereal {
+                ayanamsa: pleiades_types::Ayanamsa::FaganBradley,
+            },
+            observer: Some(ObserverLocation::new(
+                Latitude::from_degrees(95.0),
+                Longitude::from_degrees(-0.1),
+                Some(45.0),
+            )),
+            ..geocentric_request.clone()
+        };
+
+        let error = validate_requests_against_metadata(
+            &[geocentric_request, sidereal_invalid_observer_request],
+            &metadata,
+        )
+        .expect_err(
+            "the batch helper should preserve sidereal failures before invalid observer checks",
+        );
+        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedZodiacMode);
+        assert_eq!(
+            error.message,
+            "batch request 2: toy backend currently exposes tropical coordinates only"
+        );
+        assert!(!error.message.contains("invalid observer location"));
     }
 
     #[test]
