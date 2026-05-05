@@ -2,9 +2,9 @@
 
 ## Purpose
 
-Replace the current prototype packaged-data fixture with a reproducible 1500-2500 CE compressed ephemeris artifact that satisfies `spec/data-compression.md` and can be shipped as `pleiades-data`.
+Replace the prototype packaged-data fixture with a reproducible 1500-2500 CE compressed ephemeris artifact that satisfies `spec/data-compression.md` and can be shipped through `pleiades-data` with truthful production claims.
 
-This phase depends on Phase 1 accuracy closure because artifact fit error must be measured against trusted source outputs.
+This phase depends on Phase 1 because artifact fit error must be measured against trusted public source outputs and published tolerances.
 
 ## Spec drivers
 
@@ -17,53 +17,45 @@ This phase depends on Phase 1 accuracy closure because artifact fit error must b
 
 Implemented and not re-planned here:
 
-- `pleiades-compression` codec primitives, headers, checksums, body/segment validation, residual support, profile summaries, and decode helpers;
-- `pleiades-data` prototype artifact backend, checked-in deterministic fixture, regeneration helper, request policy summaries, frame reconstruction, batch parity, checksum verification, benchmark/report integration, explicit regeneration profile identifiers for the prototype posture, compact body-class coverage summaries for the bundled prototype, explicit body-class target-envelope reporting for the current prototype posture, residual-body coverage validation that now fails closed if regeneration provenance claims a residual body outside the bundled body list, generator-parameter / manifest drift coverage that now also checks profile-id and label mismatches, codec-level byte-order rejection that now fails closed on unsupported endian-policy values, validated scope-envelope report lines that keep the per-body-class breakdown fail-closed, a packaged-artifact output-support posture line in the artifact summary and validation report, a direct packaged-artifact access posture summary for explicit-path loading, a dedicated packaged-artifact path-policy alias surface for that same loading posture, and a new scope-summary drift regression that fails closed when an individual target-threshold scope envelope drifts; the codec drift matrix now also has an explicit endian-policy regression test to pin the byte-order check directly, and the production-profile summary now also pins stored-channel drift through the artifact-profile field.
-- CLI/validation commands for artifact summaries, validation, regeneration, and release-report inclusion.
-
-Known remaining gaps:
-
-- The checked-in artifact is a small prototype, not a full production 1500-2500 data product.
-- Current prototype fit error is not acceptable for release-grade packaged-data claims.
-- Generation is tied to the checked-in reference snapshot rather than a complete documented public-input corpus.
-- Body-specific segment strategy and residual density still need release-grade tuning, but the packaged-data crate now records the current measured fit envelope plus body-class scope envelopes in the target-threshold scaffold and validates the generator manifest against it.
-- Optional external artifact loading is feature-gated and not yet a complete distribution story, even though the access posture is now directly inspectable in CLI and release-bundle surfaces.
+- `pleiades-compression` artifact headers, body/segment structures, polynomial channels, residual support, profile metadata, byte-order policy, checksums, validation helpers, and decode helpers;
+- `pleiades-data` deterministic prototype artifact backend, bundled fixture, regeneration helper, request-policy summaries, frame reconstruction, boundary behavior, checksums, profile/manifest summaries, and optional explicit artifact path loading behind a feature;
+- CLI/validation commands for artifact inspection, validation, target-threshold summaries, regeneration, benchmarks, and release-report inclusion.
 
 ## Remaining implementation goals
 
 ### 1. Define production artifact profiles
 
-- Define versioned artifact profile identifiers for release artifacts.
-- List bundled bodies, time range, stored channels, derived outputs, unsupported outputs, speed policy, frame treatment, and lookup epoch policy. The packaged-data crate now exposes a dedicated production-profile skeleton summary that aggregates the current prototype posture, and the target-threshold scaffold now carries the release-profile identifier through the manifest surface; the remaining work is to turn that skeleton into a finalized release manifest.
-- Define body-class-specific target error envelopes for luminaries, planets, Pluto, lunar points, selected asteroids, and custom/named bodies if shipped. The current prototype now exposes an explicit scope-envelope breakdown for the bundled body classes; the remaining work is to turn that posture into finalized release thresholds.
-- Encode profile metadata in artifact headers and release summaries.
+- Create versioned production artifact profile identifiers.
+- Specify bundled bodies, time range, stored channels, derived outputs, unsupported outputs, speed policy, frame treatment, lookup epoch policy, source provenance, and compatibility with release profiles.
+- Finalize body-class target error envelopes for luminaries, major planets, Pluto if claimed, lunar points, selected asteroids, and any custom/named bodies.
+- Encode profile metadata in artifact headers, manifests, validation summaries, and release reports.
 
 ### 2. Build deterministic generation from public inputs
 
 - Use Phase 1 validated source outputs as generation inputs.
-- Document all generation parameters: input source revisions, sampling cadence, segment boundaries, polynomial/residual strategy, quantization scales, and checksums.
-- Provide a maintainer command that regenerates the production artifact from documented inputs without native tooling.
-- Keep raw source inputs, normalized intermediate data, and distributable compressed artifacts separated.
+- Document input source revisions, sampling cadence, segment boundaries, polynomial/residual strategy, quantization scales, and checksums.
+- Provide a maintainer command that regenerates production artifacts without native tooling.
+- Keep raw source inputs, normalized intermediate data, generated manifests, and distributable compressed artifacts separated.
 
 ### 3. Improve fit and lookup accuracy
 
-- Tune segment lengths, polynomial order, and residual corrections per body class.
+- Tune segment lengths, polynomial order, quantization, and residual corrections by body class.
 - Add high-curvature lunar windows, boundary-date checks, and interval-interior validation.
-- Support efficient random access by body and time over the full advertised range.
-- Keep unsupported outputs fail-closed unless the artifact profile advertises deterministic reconstruction.
+- Support efficient random access by body and time across the full advertised range.
+- Keep unsupported outputs fail-closed unless the profile advertises deterministic reconstruction.
 
 ### 4. Validate and benchmark artifacts
 
-- Validate checksum, header, profile, body index, segment directory, residual consistency, boundary lookups, interior samples, and unsupported-body behavior.
-- Compare decoded results to generation sources and publish measured fit errors by body and body class.
-- Benchmark decode, lookup, batch lookup, memory footprint, and full-chart packaged-data use.
-- Make artifact validation fail on profile/claim drift. The current test suite now covers production-profile label drift, generation-manifest label drift, and the remaining packaged-artifact generator-parameter drift checks for artifact version, artifact profile, request policy, and target thresholds; extend the drift matrix as the artifact profile hardens.
+- Validate checksum, header, profile, body index, segment directory, residual consistency, boundary lookups, interior samples, unsupported bodies, and unsupported outputs.
+- Compare decoded results to generation sources and publish measured fit errors by body, body class, coordinate channel, and time slice.
+- Benchmark decode, lookup, batch lookup, memory footprint, artifact size, and full-chart packaged-data use.
+- Make validation fail on profile, threshold, checksum, or claim drift.
 
 ### 5. Finalize distribution behavior
 
-- Decide default bundled artifact size and optional external artifact loading policy.
-- Document artifact path configuration, version compatibility, checksum verification, and expected failure modes.
-- Include artifact metadata in release bundles, manifests, and release notes.
+- Decide default bundled artifact size and external artifact loading policy.
+- Document artifact path configuration, version compatibility, checksum verification, and failure modes.
+- Include artifact metadata, checksums, manifests, and benchmark evidence in release bundles.
 
 ## Done criteria
 
@@ -71,11 +63,11 @@ Phase 2 is complete when:
 
 - a deterministic production artifact covers the advertised 1500-2500 CE range and release body set;
 - the artifact can be regenerated from documented public inputs and parameters;
-- validation reports show measured fit errors within the published thresholds;
+- validation reports show measured fit errors inside published thresholds;
 - runtime lookup supports efficient random access with checksum/profile validation and structured failures;
 - release summaries and bundle manifests include artifact provenance, profile, checksums, size, and benchmark data.
 
-## Work intentionally deferred
+## Deferred to later phases
 
-- Adding catalog entries whose formulas are not yet audited belongs to Phase 3.
-- Final publication/signing policy and archival release process belong to Phase 4.
+- Adding unaudited catalog entries belongs to Phase 3.
+- Final archive/signing/publication process belongs to Phase 4.

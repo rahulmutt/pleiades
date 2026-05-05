@@ -6,15 +6,15 @@ Guide remaining backend, compression, and packaged-data work so Pleiades provide
 
 ## Standards
 
-- Each backend family stays in its own crate.
-- Backend metadata must state source material, time range, body coverage, frames, topocentric/apparent/mean support, determinism, offline status, and accuracy class.
-- Unsupported bodies, frames, time scales, missing data, out-of-range dates, apparent requests, and observer-bearing geocentric-only requests must produce structured errors.
-- Composite routing must remain transparent through metadata, capability summaries, and result backend identifiers.
-- Packaged artifacts must state stored, derived, and unsupported outputs and enforce those claims at decode/lookup time.
+- Keep each backend family in its own first-party crate.
+- Keep backend metadata current for source material, time range, body coverage, frames, time scales, topocentric/apparent/mean support, determinism, offline status, and accuracy class.
+- Return structured errors for unsupported bodies, frames, time scales, missing data, out-of-range dates, apparent requests, and observer-bearing geocentric-only requests.
+- Keep composite routing transparent through metadata, capability summaries, and result backend identifiers.
+- Make packaged artifacts state stored, derived, and unsupported outputs and enforce those claims at decode/lookup time.
 
 ## Remaining backend goals
 
-- Close the Pluto source/accuracy gap or downgrade its release claim explicitly.
+- Resolve Pluto's release posture: source-backed within thresholds or explicitly approximate/excluded from release-grade claims.
 - Expand JPL/reference data from fixture evidence into a production-suitable validation and artifact-generation corpus.
 - Decide whether the lunar backend remains a compact validated baseline or grows into a fuller ELP-style coefficient implementation for the first release.
 - Build deterministic compressed artifacts for 1500-2500 CE with measured error inside published thresholds.

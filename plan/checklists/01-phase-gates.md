@@ -12,13 +12,13 @@
 - [ ] New tools are declared in `mise.toml` unless they must live in `devenv.nix` with justification.
 - [ ] Plan/status docs no longer list tasks completed by the change.
 
-## Phase 1: Accuracy closure and request semantics
+## Phase 1: Reference accuracy and request semantics
 
 - [ ] Release-claimed bodies have source-backed or explicitly documented accuracy evidence.
 - [ ] Pluto and other approximate/fallback paths are either validated within release thresholds or downgraded in release-profile claims.
-- [ ] JPL/reference corpus coverage is sufficient for validation and artifact generation inputs.
-- [ ] Delta T, UTC/UT1 conversion, apparentness, topocentric, sidereal, and frame behavior is implemented or rejected explicitly through metadata and structured errors.
-- [ ] Validation reports include measured errors, body-class thresholds, and outlier/fail-closed status.
+- [ ] Reference/source coverage is sufficient for validation and artifact generation inputs.
+- [ ] Delta T, UTC/UT1 conversion, apparentness, topocentric, native sidereal, and frame behavior is implemented or rejected explicitly through metadata and structured errors.
+- [ ] Validation reports distinguish release-tolerance evidence from provenance-only or interpolation-transparency evidence.
 
 ## Phase 2: Production compressed artifacts
 
@@ -28,12 +28,12 @@
 - [ ] Artifact validation reports include measured errors inside published thresholds and benchmark data.
 - [ ] Runtime packaged-data metadata no longer labels production claims as prototype.
 
-## Phase 3: Compatibility evidence and catalog completion
+## Phase 3: Compatibility evidence and catalog truthfulness
 
 - [ ] Every release-profile catalog entry has descriptor metadata, aliases, implementation status, constraints, and tests.
 - [ ] House systems document formulas, assumptions, latitude/numerical failure modes, and reference/golden scenarios.
-- [ ] Ayanamsas document reference epochs, offsets/formulas, aliases, provenance, and custom-definition posture.
-- [ ] Profile verification fails on unsupported, descriptor-only, or constrained entries advertised as fully implemented.
+- [ ] Ayanamsas document reference epochs, offsets/formulas, aliases, provenance, sidereal metadata, and custom-definition posture.
+- [ ] Profile verification fails on unsupported, descriptor-only, approximate, or constrained entries advertised as fully implemented.
 
 ## Phase 4: Release hardening and publication
 
@@ -41,4 +41,4 @@
 - [ ] Release bundle verification passes from a clean checkout.
 - [ ] Native-dependency/pure-Rust audit passes.
 - [ ] Public documentation and rustdoc examples cover main workflows and known limitations.
-- [ ] Archived artifacts include source revision, profile identifiers, tool versions, checksums, and validation parameters.
+- [ ] Archived artifacts include source revision, profile identifiers, tool versions, checksums, validation parameters, and artifact-generation parameters.

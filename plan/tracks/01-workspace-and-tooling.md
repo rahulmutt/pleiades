@@ -11,20 +11,20 @@ Maintain a reproducible pure-Rust development environment while remaining phases
 - Do not add curl-based bootstrap scripts or undocumented global tool assumptions.
 - Preserve the mandatory `pleiades-*` crate prefix for first-party crates.
 - Keep the workspace buildable on the declared stable Rust toolchain unless the spec is updated.
-- Keep generated data paths deterministic and reviewable.
+- Keep generated data paths deterministic, checksumed, and reviewable.
 
 ## Checks to preserve
 
 - `cargo fmt --all --check`
 - `cargo clippy --workspace --all-targets --all-features -- -D warnings`
 - `cargo test --workspace`
-- doc tests for public examples
+- doc tests for public examples when affected
 - workspace-native pure-Rust/native-dependency audits
 - release-bundle verification when release-facing files change
 
 ## Phase-specific notes
 
-- Phase 1 source readers and coefficient data must remain pure Rust and deterministic.
+- Phase 1 source readers and reference corpora must remain pure Rust and deterministic.
 - Phase 2 artifact generation must be reproducible from documented public inputs and commands.
-- Phase 3 catalog tests should not depend on concrete backend crates.
-- Phase 4 release bundles should capture source revision, workspace status, tool versions, checksums, and validation parameters.
+- Phase 3 catalog tests must not depend on concrete backend crates.
+- Phase 4 release bundles should capture source revision, workspace status, tool versions, checksums, validation parameters, and artifact-generation parameters.

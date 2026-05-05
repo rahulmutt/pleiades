@@ -1,16 +1,16 @@
-# Phase 1 — Accuracy Closure and Request Semantics
+# Phase 1 — Reference Accuracy and Request Semantics
 
 ## Purpose
 
-Close the remaining production ephemeris gaps so downstream artifact generation and release claims rely on trustworthy, documented source outputs.
+Close the remaining production ephemeris and request-policy gaps so downstream artifact generation and release claims rely on trustworthy, documented source outputs.
 
-The workspace already has the required crate structure, backend trait, chart façade, VSOP87B generated tables for the Sun through Neptune, a compact lunar baseline, a JPL Horizons fixture backend, validation reports, and explicit fail-closed request policy. This phase is only about what remains: accuracy outliers, broader evidence, and advanced request semantics that are either implemented or deliberately deferred with structured errors. The reference snapshot now also exposes a 2451914.0 bridge-day summary/CLI path, plus pre-bridge 2451914.5 and dense 2451916.5 boundary-day summary/CLI paths alongside the now-populated 2451915.5 boundary day, and the selected-asteroid coverage wording now also names the 2634167 tail explicitly so the broader source window stays visible in the manifest and provenance surfaces.
+This phase starts from an already-working workspace: backend traits, chart façade, VSOP87B generated tables for Sun-through-Neptune, compact lunar baseline, JPL snapshot fixtures, request-policy reporting, and structured unsupported-mode errors are in place. The remaining work is production evidence and final policy decisions.
 
 ## Spec drivers
 
 - `requirements.md` FR-1, FR-2, FR-3, FR-7, FR-8, NFR-2, NFR-3
 - `backend-trait.md` request/result/metadata/error semantics
-- `backends.md` JPL, VSOP87, ELP, backend capability matrix expectations
+- `backends.md` backend capability matrix expectations
 - `api-and-ergonomics.md` time, observer, frame, apparentness, batch, and error behavior
 - `validation-and-testing.md` reference comparison, golden tests, regression tests, benchmarks
 
@@ -18,74 +18,66 @@ The workspace already has the required crate structure, backend trait, chart fa�
 
 Implemented and not re-planned here:
 
-- backend trait, metadata, request validation, composite routing, batch APIs, and structured errors;
-- mean geometric geocentric TT/TDB request handling with explicit rejection of unsupported mean/apparent, topocentric, and native-sidereal modes; batch validation now also keeps unsupported time-scale errors ahead of apparentness and malformed-observer checks when those unsupported modes co-occur;
-- source-backed VSOP87B generated binary tables for Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, and Neptune;
-- direct CLI inspection paths for the request-policy, request-surface inventory, Delta T, frame, observer, and apparentness summaries so the current request posture stays visible without opening the full report stack; the request-surface inventory now also spells out the explicit TT/TDB alias set instead of only naming the generic offset family, and the request-surface alias now reports its own extra-argument diagnostics instead of inheriting the summary label; the lunar-theory limitations summary now also makes the compact Meeus-style baseline limits explicit alongside the existing request, capability, and frame-treatment summaries;
-- compact lunar baseline with validation for Moon, mean/true node, and mean apogee/perigee;
-- JPL Horizons fixture/snapshot backend with selected asteroid rows, exact fixture epochs, interpolation transparency, equatorial reconstruction, and batch parity evidence; the interpolation-quality corpus now includes 2451910.5 and 2451916.5 boundary samples with quadratic coverage; the reference snapshot source-window validation now also rejects sample-body order drift, keeping the canonical body-order coupling explicit too; the low-level `pleiades-types` round-trip regression now also exercises both the northern and southern polar hemispheres so the coordinate-conversion edge cases stay covered below the report layer;
-- comparison and regression tolerance audits now use body-class-specific release thresholds for the active planetary corpus instead of the earlier flat release posture;
-- validation/report commands that expose tolerance posture, source documentation, request policy, frame policy, and benchmark summaries; the shared frame-policy summary now also fails closed when it drifts from the current canonical posture, and the observer/apparentness policy surfaces are now typed and validated in the shared request-semantics formatter so those report lines fail closed too;
-- packaged-data boundary tests now also reject requests outside the bundled time range with `OutOfRangeInstant`, giving the release-facing compressed artifact a concrete out-of-range regression check alongside the existing boundary-epoch coverage.
-
-Known remaining gaps:
-
-- Pluto remains an approximate mean-elements fallback, and release-facing reports now label it as an explicit approximate fallback rather than a release-grade major-body claim.
-- The JPL backend is fixture/snapshot-oriented, not a broad production reader/corpus for artifact generation.
-- The lunar backend is a compact Meeus-style baseline, not a full ELP coefficient implementation.
-- Built-in Delta T modeling, UTC convenience conversion, apparent-place corrections, and topocentric body positions are not implemented; unsupported behavior is explicit today.
-- Production-grade error envelopes are incomplete for full 1500-2500 claims and for selected asteroid expansion beyond checked-in fixture rows.
+- backend trait, metadata, request validation, composite/routing helpers, batch APIs, and structured errors;
+- mean geometric, tropical, geocentric TT/TDB request support in first-party backends;
+- explicit rejection/reporting for unsupported time scales, apparent-place requests, observer-bearing topocentric body-position requests, and native sidereal backend requests;
+- chart-level observer handling for houses without silently implying topocentric body positions;
+- VSOP87B generated binary tables for Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, and Neptune;
+- compact lunar baseline for Moon, mean/true node, and mean apogee/perigee;
+- JPL Horizons snapshot and hold-out fixtures with selected asteroid rows, provenance summaries, equatorial reconstruction, interpolation transparency, and batch parity evidence;
+- validation/report commands that expose request policy, source documentation, comparison tolerance posture, benchmark summaries, and reference-corpus summaries.
 
 ## Remaining implementation goals
 
-### 1. Resolve Pluto and major-body accuracy outliers
+### 1. Establish release-grade body claims
 
-- Keep Pluto as an explicitly downgraded approximate fallback unless a source-backed public-data path is proven and validated for the release profile.
-- Add reference comparisons over representative 1500-2500 epochs for all claimed major bodies.
-- Keep fallback/approximate paths clearly labeled and excluded from release-grade claims.
+- Decide the first release's body claim set by backend and body class.
+- Keep Pluto as an explicitly approximate fallback unless a source-backed pure-Rust path is validated for the claimed range and tolerance.
+- Ensure any approximate or fixture-only path is excluded from release-grade accuracy claims unless evidence supports it.
+- Publish body-class tolerances and validation status for all advertised release-grade bodies.
 
-### 2. Expand reference-source coverage
+### 2. Broaden reference/source coverage
 
-- Decide whether `pleiades-jpl` becomes a parser/reader for a broader public JPL-derived corpus or remains a fixture backend paired with a separate generation input path.
-- Add enough source/reference rows to validate production artifact generation, including boundary dates and high-curvature windows. The checked-in reference snapshot now surfaces the Moon 2451911.5/2451912.5 high-curvature window as a dedicated report slice, the major-body high-curvature summary now extends through the 2451914.5 boundary day across all comparison bodies, the lunar source-window summary now also includes the reference-only apparent Moon comparison windows, the checked-in reference snapshot source-window summary now has typed body-window validation, the selected-asteroid coverage now extends through the 2451910.5 through 2451918.5 window and now explicitly names the 2451914.5 and 2451915.5 boundary coverage; the selected-asteroid boundary-day summary now spans both boundary days, and the production-generation boundary overlay now also exposes a per-body window summary. The production-generation source-window summary now also has drift-rejection coverage for body-order and derived-summary drift. The 2451917.5 comparison-body boundary day is now fully populated, and remaining work is to widen source windows beyond the 2451915.5 boundary-day evidence if production artifact generation needs additional body coverage.
-- Preserve pure-Rust parsing, deterministic fixture manifests, checksums, and provenance records.
-- Expand selected asteroid evidence for Ceres, Pallas, Juno, Vesta, and any custom/named bodies advertised in release profiles.
+- Decide whether `pleiades-jpl` becomes a broader public JPL-derived reader/corpus provider or remains a checked-in fixture backend paired with a separate generation-input path.
+- Add enough public source/reference coverage to support production validation and Phase 2 artifact fitting over the advertised 1500-2500 CE range.
+- Include boundary dates, high-curvature windows, lunar windows, selected asteroid coverage, and independent hold-out rows.
+- Preserve pure-Rust parsing, deterministic manifests, checksum validation, and source provenance.
 
-### 3. Finish lunar-source posture
+### 3. Finalize lunar source posture
 
-- Decide whether the first production release keeps the compact lunar baseline or adds a fuller ELP-style coefficient selection.
-- If keeping the compact baseline, publish release-grade limitations and error envelopes by lunar channel.
-- If adding coefficient data, implement pure-Rust ingestion/evaluation, provenance, redistribution review, and validation against published references.
-- Keep unsupported true apogee/perigee or other lunar points explicit until implemented and validated.
+- Decide whether the first production release keeps the compact Meeus-style lunar baseline or adds a fuller ELP-style coefficient implementation.
+- If the compact baseline remains, publish release limitations and measured error envelopes by supported lunar channel.
+- If coefficient data is added, implement pure-Rust ingestion/evaluation with provenance, redistribution review, and validation against published references.
+- Keep true apogee/perigee and other unsupported lunar points as structured unsupported-body errors until implemented and validated.
 
-### 4. Decide advanced request semantics
+### 4. Finalize advanced request semantics
 
-For each area, either implement the behavior or document the release deferral with structured unsupported errors and capability metadata:
+For each area, either implement the behavior or document release deferral through metadata, compatibility/profile summaries, rustdoc, and structured errors:
 
-- UTC/UT1 convenience conversion and Delta T policy;
+- built-in Delta T policy and UTC/UT1 convenience conversion;
 - apparent-place corrections;
 - topocentric body positions;
-- native sidereal backend output versus domain-layer sidereal conversion; the current posture is now also exposed through a dedicated `native-sidereal-policy-summary` / `native-sidereal-policy` inspection path in both CLIs.
-- equatorial/ecliptic frame transformations and precision expectations.
+- native sidereal backend output versus domain-layer sidereal conversion;
+- ecliptic/equatorial frame transformation precision and supported time-scale assumptions.
 
-### 5. Strengthen validation evidence
+### 5. Strengthen validation gates
 
-- Add golden/reference tests for all claimed bodies and frames.
-- Add boundary-date and out-of-range regression tests.
-- Keep batch/single parity tests for mixed frames and mixed TT/TDB requests.
-- Make validation reports fail or clearly flag any advertised release profile whose bodies exceed release tolerance.
+- Add golden/reference tests for all release-claimed bodies and frames.
+- Add boundary-date, out-of-range, batch/single parity, and unsupported-mode precedence tests where claims expand.
+- Make comparison reports fail or clearly block release when advertised body classes exceed tolerance.
+- Keep validation evidence separate from provenance-only or interpolation-transparency evidence.
 
 ## Done criteria
 
 Phase 1 is complete when:
 
-- no body advertised as release-grade has unresolved tolerance outliers in validation reports;
-- Pluto and any other currently approximate release-scope body is either source-backed or downgraded explicitly and excluded from release-grade claims;
-- JPL/reference-source coverage is sufficient for production artifact generation inputs;
-- Delta T, UTC/UT1, apparentness, topocentric, sidereal, and frame behavior is implemented or explicitly deferred with metadata and structured errors;
-- `cargo fmt --all --check`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`, and `cargo test --workspace` pass.
+- every release-grade body claim has source provenance, measured tolerances, and validation status;
+- Pluto and other approximate paths are either validated within thresholds or explicitly downgraded/excluded from release-grade claims;
+- the reference/generation input corpus is sufficient for Phase 2 artifact fitting;
+- Delta T, UTC/UT1, apparentness, topocentric, native sidereal, and frame behavior is either implemented or explicitly deferred with metadata and structured errors;
+- standard format, lint, and test checks pass.
 
-## Work intentionally deferred
+## Deferred to later phases
 
 - Generating and shipping production compressed artifacts belongs to Phase 2.
 - Completing catalog formula/reference audits belongs to Phase 3.

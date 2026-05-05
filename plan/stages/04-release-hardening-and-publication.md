@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Convert release rehearsal tooling into a publishable release process backed by current validation evidence, production artifacts, compatibility profiles, documentation, audits, checksums, and bundle verification.
+Convert release rehearsal tooling into a publishable process backed by current validation evidence, production artifacts, compatibility profiles, documentation, audits, checksums, and bundle verification.
 
 ## Spec drivers
 
@@ -17,51 +17,44 @@ Convert release rehearsal tooling into a publishable release process backed by c
 
 Implemented and not re-planned here:
 
-- CLI/validation commands for compatibility profiles, backend matrices, API stability posture, validation reports, artifact summaries, comparison-envelope summaries, comparison-corpus release-guard summaries, release notes, release checklists, workspace audits, release summaries, release-profile identifiers summaries, and release bundle generation/verification;
+- CLI/validation commands for compatibility profiles, backend matrices, API stability posture, request policies, validation reports, artifact summaries, benchmarks, release notes, release checklists, release summaries, audits, release-bundle generation, and release-bundle verification;
 - workspace-native audit for mandatory native build hooks;
-- checksum manifests and release-bundle verification over current rehearsal artifacts;
-- README and workflow documentation for local checks and release smoke commands.
-
-Known remaining gaps:
-
-- Release reports must be regenerated after Phase 1-3 production changes and must not retain prototype/interim claims.
-- CI/release gates need to enforce the final validation thresholds, compatibility-profile truthfulness, artifact checksums, and pure-Rust audit.
-- Public rustdoc/examples need final review for units, frames, time scales, error modes, and chart workflows.
-- Versioning, archive layout, and publication checklist need final maintainer approval for first release.
+- checksum manifests and bundle verification over current rehearsal artifacts;
+- README and documentation coverage for local checks, request posture, and release smoke commands.
 
 ## Remaining implementation goals
 
-### 1. Finalize release gates
+### 1. Finalize blocking release gates
 
-- Gate releases on `cargo fmt --all --check`, strict clippy, workspace tests, compatibility-profile verification, artifact validation, release-bundle verification, and pure-Rust audit.
-- Ensure validation commands fail or clearly block publication on advertised accuracy/profile regressions.
-- Capture tool versions, source revision, workspace cleanliness, and benchmark provenance.
+- Gate releases on format, strict clippy, workspace tests, compatibility-profile verification, artifact validation, release-bundle verification, and pure-Rust/native-dependency audit.
+- Ensure validation commands fail or clearly block publication on advertised accuracy, artifact, profile, or compatibility regressions.
+- Capture tool versions, source revision, workspace cleanliness, benchmark parameters, and artifact-generation parameters.
 
-### 2. Produce release artifacts
+### 2. Produce current release artifacts
 
 - Generate and archive the release compatibility profile.
-- Generate backend capability matrix, API stability posture, comparison-envelope summary, comparison-corpus release-guard summary, validation report, benchmark report, artifact summary, release notes, release checklist, and release summary.
-- Include production compressed artifacts, checksums, manifest, and manifest checksum sidecar when packaged data is claimed.
+- Generate backend capability matrix, API stability posture, request-policy summaries, comparison/tolerance reports, validation report, benchmark report, artifact summary, release notes, release checklist, and release summary.
+- Include production compressed artifacts, checksums, manifests, and manifest checksum sidecars when packaged data is claimed.
 - Verify bundles from a clean checkout.
 
 ### 3. Harden documentation
 
 - Update README, docs, and rustdoc examples for main workflows.
 - Document time-scale, Delta T, observer, apparentness, frame, zodiac, house, ayanamsa, backend-selection, artifact, and release-profile semantics.
-- Make known gaps explicit: unsupported apparent/topocentric/native-sidereal modes, approximations, date ranges, and catalog caveats.
+- Make known gaps explicit, including unsupported advanced request modes, approximate paths, date ranges, catalog caveats, and prototype-only artifacts if any remain.
 
 ### 4. Stabilize publication policy
 
-- Decide crate versions, feature flags, minimum supported Rust/toolchain posture, and artifact version compatibility.
+- Decide crate versions, feature flags, MSRV/toolchain posture, artifact version compatibility, and archive layout.
 - Document reproducibility commands for validation reports and artifacts.
-- Preserve pure-Rust requirements across all default build/test/release workflows.
+- Preserve pure-Rust requirements across default build/test/release workflows.
 
 ## Done criteria
 
 Phase 4 is complete when:
 
 - a release bundle can be generated and verified from a clean checkout;
-- all release reports reflect current code, current data, and current compatibility claims;
+- all release reports reflect current code, current data, current artifacts, and current compatibility claims;
 - artifact and validation checksums verify;
 - pure-Rust/native-dependency audits pass;
 - public docs and examples describe supported workflows and known limitations accurately;
@@ -71,5 +64,5 @@ Phase 4 is complete when:
 
 - Expand optional backend families and larger source corpora.
 - Add additional asteroids and higher-level chart utilities.
-- Refine topocentric/apparent/Delta T support if not included in the first release.
+- Refine topocentric, apparent-place, UTC/Delta T, and native sidereal support if deferred.
 - Continue compatibility-catalog expansion under release-profile truthfulness rules.
