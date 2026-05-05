@@ -210,6 +210,10 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
             )?;
             validate_render_cli(args)
         }
+        Some("exact-j2000-evidence") => {
+            ensure_no_extra_args(&args[1..], "exact-j2000-evidence")?;
+            validate_render_cli(args)
+        }
         Some("reference-snapshot-batch-parity-summary") => validate_render_cli(args),
         Some("reference-snapshot-equatorial-parity-summary") => validate_render_cli(args),
         Some("reference-high-curvature-summary") | Some("high-curvature-summary") => {
@@ -2571,6 +2575,14 @@ mod tests {
                 pleiades_jpl::reference_snapshot_exact_j2000_evidence_summary_for_report()
             )
         );
+        let exact_j2000_evidence = render_cli(&["exact-j2000-evidence"])
+            .expect("exact J2000 evidence alias should render");
+        assert_eq!(exact_j2000_evidence, reference_snapshot_exact_j2000);
+        assert_eq!(
+            render_cli(&["exact-j2000-evidence", "extra"])
+                .expect_err("exact J2000 evidence alias should reject extra arguments"),
+            "exact-j2000-evidence does not accept extra arguments"
+        );
         assert_eq!(
             render_cli(&["reference-snapshot-exact-j2000-evidence-summary", "extra"]).expect_err(
                 "reference snapshot exact J2000 evidence should reject extra arguments"
@@ -4540,6 +4552,9 @@ mod tests {
             .contains("reference-snapshot-summary  Print the compact reference snapshot summary"));
         assert!(help.contains(
             "reference-snapshot-exact-j2000-evidence-summary  Print the compact reference snapshot exact J2000 evidence summary"
+        ));
+        assert!(help.contains(
+            "exact-j2000-evidence    Alias for reference-snapshot-exact-j2000-evidence-summary"
         ));
         assert!(help.contains(
             "selected-asteroid-source-evidence-summary  Print the compact selected-asteroid source evidence summary"
