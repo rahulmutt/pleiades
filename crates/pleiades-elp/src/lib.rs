@@ -2196,13 +2196,16 @@ impl std::error::Error for LunarTheoryLimitationsSummaryValidationError {}
 impl LunarTheoryLimitationsSummary {
     /// Returns the compact release-facing limitations line.
     pub fn summary_line(&self) -> String {
+        let reference_envelope = lunar_reference_evidence_envelope_for_report();
+        let equatorial_envelope = lunar_equatorial_reference_evidence_envelope_for_report();
+
         format!(
-            "lunar theory limitations: {}; supported bodies: {}; unsupported bodies: {}; release-grade evidence: {}, {}",
+            "lunar theory limitations: {}; supported bodies: {}; unsupported bodies: {}; release-grade evidence by channel: {}; {}",
             self.baseline_label,
             format_bodies(self.supported_bodies),
             format_bodies(self.unsupported_bodies),
-            self.reference_envelope_label,
-            self.equatorial_envelope_label,
+            reference_envelope,
+            equatorial_envelope,
         )
     }
 
@@ -6070,7 +6073,11 @@ mod tests {
         let limitations_summary = lunar_theory_limitations_summary();
         assert_eq!(
             limitations_summary.summary_line(),
-            "lunar theory limitations: Compact Meeus-style truncated lunar baseline; supported bodies: Moon, Mean Node, True Node, Mean Perigee, Mean Apogee; unsupported bodies: True Apogee, True Perigee; release-grade evidence: lunar reference error envelope, lunar equatorial reference error envelope"
+            format!(
+                "lunar theory limitations: Compact Meeus-style truncated lunar baseline; supported bodies: Moon, Mean Node, True Node, Mean Perigee, Mean Apogee; unsupported bodies: True Apogee, True Perigee; release-grade evidence by channel: {}; {}",
+                lunar_reference_evidence_envelope_for_report(),
+                lunar_equatorial_reference_evidence_envelope_for_report()
+            )
         );
         assert_eq!(
             format_lunar_theory_limitations_summary(&limitations_summary),

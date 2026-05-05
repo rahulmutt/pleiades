@@ -21,7 +21,6 @@ This file lists focused implementation slices that map to the current phase ladd
 ### 3. Lunar source posture decision
 
 - Decide compact lunar baseline versus fuller ELP-style coefficient implementation for the first release.
-- If compact baseline remains, publish measured limitations and error envelopes by lunar channel.
 - If expanding to coefficient data, add pure-Rust ingestion/evaluation, provenance, validation, and tests.
 
 ### 4. Request/time semantics closure
