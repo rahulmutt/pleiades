@@ -13186,9 +13186,16 @@ pub fn independent_holdout_manifest_summary_for_report() -> String {
     }
 }
 
+/// Returns the evidence-classification line used by validation and release reports.
+pub fn jpl_snapshot_evidence_classification_summary_for_report() -> String {
+    "JPL evidence classification: release-tolerance=reference/comparison/production-generation validation summaries; hold-out=independent hold-out rows and interpolation-quality summaries; fixture exactness=reference snapshot exact J2000 evidence; provenance-only=source and manifest summaries"
+        .to_string()
+}
+
 /// Returns the combined snapshot evidence summary used by validation and release reports.
 pub fn jpl_snapshot_evidence_summary_for_report() -> String {
     [
+        jpl_snapshot_evidence_classification_summary_for_report(),
         reference_snapshot_summary_for_report(),
         reference_snapshot_body_class_coverage_summary_for_report(),
         reference_snapshot_equatorial_parity_summary_for_report(),
@@ -21446,6 +21453,7 @@ mod tests {
     #[test]
     fn jpl_snapshot_evidence_summary_combines_the_backend_reports() {
         let report = jpl_snapshot_evidence_summary_for_report();
+        assert!(report.contains(&jpl_snapshot_evidence_classification_summary_for_report()));
         assert!(report.contains(&reference_snapshot_summary_for_report()));
         assert!(report.contains(&reference_snapshot_body_class_coverage_summary_for_report()));
         assert!(report.contains(&reference_snapshot_equatorial_parity_summary_for_report()));

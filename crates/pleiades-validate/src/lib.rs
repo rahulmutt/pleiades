@@ -22308,6 +22308,7 @@ version = "0.9.0"
         assert!(release_summary.contains("JPL production-generation boundary request corpus:"));
         assert!(release_summary.contains("Production generation boundary overlay source:"));
         assert!(release_summary.contains("Source-backed backend evidence:"));
+        assert!(release_summary.contains("JPL evidence classification: release-tolerance=reference/comparison/production-generation validation summaries; hold-out=independent hold-out rows and interpolation-quality summaries; fixture exactness=reference snapshot exact J2000 evidence; provenance-only=source and manifest summaries"));
         assert!(release_summary
             .contains(&reference_snapshot_boundary_epoch_coverage_summary_for_report()));
         assert!(release_summary.contains(&reference_snapshot_sparse_boundary_summary_for_report()));

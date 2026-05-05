@@ -19,7 +19,7 @@ Current implementation status shows:
 - `pleiades-jpl` is a checked-in JPL Horizons snapshot/hold-out fixture backend with provenance and selected asteroid evidence, not a broad production reader/corpus;
 - `pleiades-data` ships a deterministic prototype artifact with codec/profile/checksum/regeneration support, but it is not a production 1500-2500 CE artifact and current fit posture is not release-grade;
 - house and ayanamsa catalogs are broad, but not every release-advertised entry has independent formula/provenance/reference evidence sufficient for full interoperability claims;
-- release-bundle generation and verification exist, but final release gates must be rerun over production accuracy evidence, production artifacts, and truthful compatibility profiles.
+- release-bundle generation and verification exist, and validation/report surfaces now classify evidence as release-tolerance, hold-out, fixture exactness, or provenance-only; final release gates still need to be rerun over production accuracy evidence, production artifacts, and truthful compatibility profiles.
 
 ## Why this frontier comes first
 
@@ -39,7 +39,6 @@ Implement a small, reviewable reference-coverage slice:
 - choose a concrete public source input path for production validation/generation;
 - add a minimal but representative set of new source rows or parser support across the 1500-2500 target range;
 - include at least one boundary or high-curvature window relevant to artifact fitting;
-- add validation that distinguishes production tolerance evidence from provenance-only fixture evidence;
 - update the relevant backend metadata/report summaries and tests without broadening release claims prematurely.
 
 ## Parallel safe work
