@@ -1,8 +1,8 @@
 # Time Scale, Delta T, Apparentness, and Observer Policy
 
-Status: initial policy for the current pre-release backends.
+Status: current release posture for the first-party backends.
 
-Pleiades keeps time-scale conversion and observer semantics explicit so backend accuracy claims remain truthful while the production ephemeris implementations are still being expanded.
+Pleiades keeps time-scale conversion, observer semantics, and apparentness explicit so backend accuracy claims remain truthful while the production ephemeris implementations are still being expanded. The quickest machine-readable entry points are the request-policy, time-scale-policy, utc-convenience-policy, delta-t-policy, observer-policy, apparentness-policy, and frame-policy summaries.
 
 ## Time scales and Delta T
 
@@ -68,7 +68,7 @@ The current contract is intentionally mechanical rather than modeled:
 ## Apparent versus mean coordinates
 
 - Current first-party source/data backends report **mean geometric** coordinates only.
-- Backends whose metadata has `capabilities.apparent = false` must reject `Apparentness::Apparent` requests instead of silently returning mean coordinates.
+- Backends whose metadata has `capabilities.apparent = false` must reject `Apparentness::Apparent` requests with `UnsupportedApparentness` instead of silently returning mean coordinates.
 - The current first-party backends are tropical-only at the backend layer; sidereal requests are handled by the chart façade when supported or rejected explicitly when a backend is queried directly.
 - `pleiades-backend::EphemerisRequest::new` defaults to `Apparentness::Mean` so bare requests line up with the current mean-only first-party backends.
 - `pleiades-core::ChartSnapshot` now renders an explicit apparentness policy line so chart output states whether the snapshot was built from a mean or apparent request before backend-specific accuracy details are consulted.
