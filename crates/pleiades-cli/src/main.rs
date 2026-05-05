@@ -156,6 +156,10 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
             validate_render_cli(args)
         }
         Some("production-generation-source-summary") => validate_render_cli(args),
+        Some("production-generation-source") => {
+            ensure_no_extra_args(&args[1..], "production-generation-source")?;
+            validate_render_cli(args)
+        }
         Some("comparison-snapshot-source-summary") => {
             ensure_no_extra_args(&args[1..], "comparison-snapshot-source-summary")?;
             Ok(comparison_snapshot_source_summary_for_report())
@@ -2464,6 +2468,17 @@ mod tests {
             production_generation_source_summary,
             pleiades_jpl::production_generation_source_summary_for_report()
         );
+        let production_generation_source_alias = render_cli(&["production-generation-source"])
+            .expect("production generation source alias should render");
+        assert_eq!(
+            production_generation_source_alias,
+            pleiades_jpl::production_generation_source_summary_for_report()
+        );
+        assert_eq!(
+            render_cli(&["production-generation-source", "extra"])
+                .expect_err("production generation source alias should reject extra arguments"),
+            "production-generation-source does not accept extra arguments"
+        );
         let reference_snapshot_lunar_boundary_summary =
             render_cli(&["reference-snapshot-lunar-boundary-summary"])
                 .expect("reference snapshot lunar boundary summary should render");
@@ -4482,6 +4497,12 @@ mod tests {
         ));
         assert!(help.contains(
             "production-generation-summary  Print the compact production-generation coverage summary"
+        ));
+        assert!(help.contains(
+            "production-generation-source-summary  Print the compact production-generation source summary"
+        ));
+        assert!(help.contains(
+            "production-generation-source      Alias for production-generation-source-summary"
         ));
         assert!(help
             .contains("production-generation           Alias for production-generation-summary"));

@@ -53,6 +53,8 @@ cargo run -q -p pleiades-validate -- release-checklist-summary
 cargo run -q -p pleiades-validate -- checklist-summary
 cargo run -q -p pleiades-validate -- release-summary
 cargo run -q -p pleiades-validate -- production-generation-boundary-summary
+cargo run -q -p pleiades-validate -- production-generation-source-summary
+cargo run -q -p pleiades-validate -- production-generation-source
 cargo run -q -p pleiades-validate -- reference-snapshot-major-body-bridge-summary
 cargo run -q -p pleiades-validate -- selected-asteroid-bridge-summary
 cargo run -q -p pleiades-validate -- observer-policy-summary
