@@ -450,10 +450,13 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("packaged-artifact-target-threshold-scope-envelopes-summary")
         | Some("packaged-artifact-target-threshold-scope-envelopes") => validate_render_cli(args),
         Some("packaged-artifact-generation-manifest-summary") => validate_render_cli(args),
-        Some("packaged-artifact-generation-policy-summary") => validate_render_cli(args),
+        Some("packaged-artifact-generation-policy-summary")
+        | Some("packaged-artifact-generation-policy") => validate_render_cli(args),
         Some("packaged-artifact-generation-residual-summary") => validate_render_cli(args),
         Some("packaged-artifact-generation-residual-bodies-summary") => validate_render_cli(args),
-        Some("packaged-artifact-regeneration-summary") => validate_render_cli(args),
+        Some("packaged-artifact-regeneration-summary") | Some("packaged-artifact-regeneration") => {
+            validate_render_cli(args)
+        }
         Some("packaged-frame-parity-summary") => validate_render_cli(args),
         Some("packaged-frame-treatment-summary") => validate_render_cli(args),
         Some("packaged-lookup-epoch-policy-summary") | Some("packaged-lookup-epoch-policy") => {
@@ -3988,6 +3991,29 @@ mod tests {
             packaged_artifact_generation_policy,
             pleiades_data::packaged_artifact_generation_policy_summary_for_report()
         );
+        assert_eq!(
+            render_cli(&["packaged-artifact-generation-policy"])
+                .expect("packaged artifact generation policy alias should render"),
+            packaged_artifact_generation_policy
+        );
+
+        let packaged_artifact_regeneration =
+            render_cli(&["packaged-artifact-regeneration-summary"])
+                .expect("packaged artifact regeneration summary should render");
+        assert!(packaged_artifact_regeneration.contains("Packaged-artifact regeneration: "));
+        assert!(packaged_artifact_regeneration.contains("profile id="));
+        assert_eq!(
+            packaged_artifact_regeneration,
+            format!(
+                "Packaged-artifact regeneration: {}",
+                pleiades_data::packaged_artifact_regeneration_summary_for_report()
+            )
+        );
+        assert_eq!(
+            render_cli(&["packaged-artifact-regeneration"])
+                .expect("packaged artifact regeneration alias should render"),
+            packaged_artifact_regeneration
+        );
 
         for (args, expected) in [
             (
@@ -4023,7 +4049,15 @@ mod tests {
                 "packaged-artifact-generation-policy-summary does not accept extra arguments",
             ),
             (
+                &["packaged-artifact-generation-policy", "extra"][..],
+                "packaged-artifact-generation-policy-summary does not accept extra arguments",
+            ),
+            (
                 &["packaged-artifact-regeneration-summary", "extra"][..],
+                "packaged-artifact-regeneration-summary does not accept extra arguments",
+            ),
+            (
+                &["packaged-artifact-regeneration", "extra"][..],
                 "packaged-artifact-regeneration-summary does not accept extra arguments",
             ),
         ] {
@@ -4729,6 +4763,9 @@ mod tests {
             "packaged-artifact-generation-policy-summary  Print the packaged-artifact generation policy summary"
         ));
         assert!(help.contains(
+            "packaged-artifact-generation-policy     Alias for packaged-artifact-generation-policy-summary"
+        ));
+        assert!(help.contains(
             "packaged-artifact-generation-residual-summary  Alias for packaged-artifact-generation-residual-bodies-summary"
         ));
         assert!(help.contains(
@@ -4736,6 +4773,9 @@ mod tests {
         ));
         assert!(help.contains(
             "packaged-artifact-regeneration-summary  Print the packaged-artifact regeneration summary"
+        ));
+        assert!(help.contains(
+            "packaged-artifact-regeneration      Alias for packaged-artifact-regeneration-summary"
         ));
         assert!(
             help.contains("packaged-frame-parity-summary  Print the packaged frame parity summary")
