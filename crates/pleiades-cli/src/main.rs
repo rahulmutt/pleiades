@@ -205,6 +205,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         | Some("major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-major-body-bridge-summary")
         | Some("major-body-bridge-summary") => validate_render_cli(args),
+        Some("reference-snapshot-bridge-day-summary") => validate_render_cli(args),
         Some("reference-snapshot-mars-jupiter-boundary-summary")
         | Some("mars-jupiter-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-mars-outer-boundary-summary")
@@ -2745,6 +2746,19 @@ mod tests {
             render_cli(&["reference-snapshot-major-body-bridge-summary", "extra"])
                 .expect_err("reference major-body bridge summary should reject extra arguments"),
             "reference-snapshot-major-body-bridge-summary does not accept extra arguments"
+        );
+        let reference_bridge_day_summary = render_cli(&["reference-snapshot-bridge-day-summary"])
+            .expect("reference snapshot bridge day summary should render");
+        assert!(reference_bridge_day_summary.contains("Reference snapshot bridge day:"));
+        assert!(reference_bridge_day_summary.contains("2451914.0"));
+        assert_eq!(
+            reference_bridge_day_summary,
+            pleiades_jpl::reference_snapshot_bridge_day_summary_for_report()
+        );
+        assert_eq!(
+            render_cli(&["reference-snapshot-bridge-day-summary", "extra"])
+                .expect_err("reference snapshot bridge day summary should reject extra arguments"),
+            "reference-snapshot-bridge-day-summary does not accept extra arguments"
         );
         let selected_asteroid_dense_boundary_summary =
             render_cli(&["reference-snapshot-selected-asteroid-dense-boundary-summary"])
