@@ -1364,6 +1364,13 @@ mod tests {
         assert!(rendered.contains(
             "lunar-theory-request-policy  Alias for lunar-theory-request-policy-summary"
         ));
+        assert!(
+            rendered.contains("request-policy-summary    Print the compact request-policy summary")
+        );
+        assert!(rendered.contains("request-policy           Alias for request-policy-summary"));
+        assert!(rendered
+            .contains("request-semantics-summary  Print the compact request-policy summary"));
+        assert!(rendered.contains("request-semantics        Alias for request-semantics-summary"));
         assert!(rendered.contains("lunar-theory-frame-treatment-summary"));
         assert!(rendered.contains(
             "lunar-theory-frame-treatment  Alias for lunar-theory-frame-treatment-summary"
