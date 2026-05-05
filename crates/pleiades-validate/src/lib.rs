@@ -19471,6 +19471,17 @@ mod tests {
     }
 
     #[test]
+    fn house_code_alias_summary_command_rejects_extra_arguments() {
+        let error = render_cli(&["house-code-alias-summary", "extra"])
+            .expect_err("house code alias summary should reject extra arguments");
+
+        assert_eq!(
+            error,
+            "house-code-alias-summary does not accept extra arguments"
+        );
+    }
+
+    #[test]
     fn ayanamsa_catalog_validation_summary_command_renders_the_summary() {
         let rendered = render_cli(&["ayanamsa-catalog-validation-summary"])
             .expect("ayanamsa catalog validation summary should render");

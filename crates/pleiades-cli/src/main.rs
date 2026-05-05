@@ -3193,6 +3193,11 @@ mod tests {
                 .expect("house code alias shorthand should render"),
             house_code_aliases_summary
         );
+        assert_eq!(
+            render_cli(&["house-code-alias-summary", "extra"])
+                .expect_err("house code alias shorthand should reject extra arguments"),
+            "house-code-alias-summary does not accept extra arguments"
+        );
         let catalog_inventory_summary = render_cli(&["catalog-inventory-summary"])
             .expect("catalog inventory summary should render");
         assert!(catalog_inventory_summary.contains("Compatibility catalog inventory:"));
