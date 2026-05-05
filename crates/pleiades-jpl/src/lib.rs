@@ -261,7 +261,7 @@ pub fn reference_snapshot_mixed_time_scale_request_corpus() -> Option<Vec<Epheme
 }
 
 const PRODUCTION_GENERATION_BOUNDARY_COVERAGE: &str =
-    "Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2500000, and 2634167, plus Moon at 2451545, 2500000, and 2634167, plus Pluto at 2451545 and 2500000";
+    "Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Pluto at 2451545 and 2500000";
 
 fn production_generation_boundary_entries() -> Option<&'static [SnapshotEntry]> {
     static ENTRIES: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
@@ -12510,7 +12510,7 @@ const INDEPENDENT_HOLDOUT_SOURCE_EXPECTED: &str =
     "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.";
 const INDEPENDENT_HOLDOUT_SOURCE_FALLBACK: &str = "NASA/JPL Horizons API vector tables (DE441)";
 const INDEPENDENT_HOLDOUT_COVERAGE_FALLBACK: &str =
-    "Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2500000, and 2634167, plus Moon at 2451545, 2500000, and 2634167, plus Pluto at 2451545 and 2500000.";
+    "Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Pluto at 2451545 and 2500000.";
 const INDEPENDENT_HOLDOUT_COLUMNS: &str = "epoch_jd, body, x_km, y_km, z_km";
 
 /// Backend-owned provenance summary for the checked-in reference snapshot source material.
@@ -13172,7 +13172,7 @@ pub fn independent_holdout_manifest_summary_for_report() -> String {
         manifest_text,
         "Independent JPL Horizons hold-out snapshot used only for interpolation validation.",
         "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.",
-        "Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2500000, and 2634167, plus Moon at 2451545, 2500000, and 2634167, plus Pluto at 2451545 and 2500000.",
+        "Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Pluto at 2451545 and 2500000.",
         &["epoch_jd", "body", "x_km", "y_km", "z_km"],
     ) {
         return format!("Independent hold-out manifest: unavailable ({error})");
@@ -13182,7 +13182,7 @@ pub fn independent_holdout_manifest_summary_for_report() -> String {
     match summary.validate_with_expected_metadata(
         "Independent JPL Horizons hold-out snapshot used only for interpolation validation.",
         "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.",
-        "Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2500000, and 2634167, plus Moon at 2451545, 2500000, and 2634167, plus Pluto at 2451545 and 2500000.",
+        "Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Pluto at 2451545 and 2500000.",
         &["epoch_jd", "body", "x_km", "y_km", "z_km"],
     ) {
         Ok(()) => summary.summary_line(),
@@ -18224,11 +18224,11 @@ mod tests {
         summary
             .validate()
             .expect("production-generation snapshot summary should validate");
-        assert_eq!(summary.row_count, 284);
+        assert_eq!(summary.row_count, 292);
         assert_eq!(summary.body_count, 16);
         assert_eq!(summary.bodies, reference_bodies());
-        assert_eq!(summary.epoch_count, 22);
-        assert_eq!(summary.boundary_row_count, 34);
+        assert_eq!(summary.epoch_count, 24);
+        assert_eq!(summary.boundary_row_count, 42);
         assert_eq!(summary.boundary_body_count, 10);
         assert_eq!(
             summary.boundary_bodies,
@@ -18245,7 +18245,7 @@ mod tests {
                 CelestialBody::Pluto,
             ]
         );
-        assert_eq!(summary.boundary_epoch_count, 8);
+        assert_eq!(summary.boundary_epoch_count, 10);
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_268_932.5);
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
         assert_eq!(
@@ -18256,7 +18256,7 @@ mod tests {
         assert_eq!(
             summary.summary_line(),
             format!(
-                "Production generation coverage: 284 rows across 16 bodies and 22 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); bodies: {}; boundary overlay (Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2500000, and 2634167, plus Moon at 2451545, 2500000, and 2634167, plus Pluto at 2451545 and 2500000): 34 rows across 10 bodies and 8 epochs (JD 2400000.0 (TDB)..JD 2634167.0 (TDB)); boundary bodies: Mars, Jupiter, Mercury, Venus, Saturn, Uranus, Neptune, Sun, Moon, Pluto",
+                "Production generation coverage: 292 rows across 16 bodies and 24 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); bodies: {}; boundary overlay (Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Pluto at 2451545 and 2500000): 42 rows across 10 bodies and 10 epochs (JD 2400000.0 (TDB)..JD 2634167.0 (TDB)); boundary bodies: Mars, Jupiter, Mercury, Venus, Saturn, Uranus, Neptune, Sun, Moon, Pluto",
                 format_bodies(reference_bodies())
             )
         );
@@ -18283,18 +18283,18 @@ mod tests {
         summary
             .validate()
             .expect("production-generation source window summary should validate");
-        assert_eq!(summary.sample_count, 284);
+        assert_eq!(summary.sample_count, 292);
         assert_eq!(summary.sample_bodies.len(), 16);
         assert_eq!(summary.windows.len(), summary.sample_bodies.len());
         assert_eq!(summary.sample_bodies, reference_bodies());
-        assert_eq!(summary.epoch_count, 22);
+        assert_eq!(summary.epoch_count, 24);
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_268_932.5);
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
         assert_eq!(summary.windows[0].body, CelestialBody::Sun);
         assert!(summary.windows[0].sample_count >= 8);
         assert!(summary.windows[0].summary_line().starts_with("Sun: "));
         assert!(summary.summary_line().starts_with(
-            "Production generation source windows: 284 source-backed samples across 16 bodies and 22 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); windows: "
+            "Production generation source windows: 292 source-backed samples across 16 bodies and 24 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); windows: "
         ));
         assert!(summary.summary_line().contains("Mars:"));
         assert!(summary.summary_line().contains("Jupiter:"));
@@ -18341,7 +18341,7 @@ mod tests {
         summary
             .validate()
             .expect("production-generation body-class coverage summary should validate");
-        assert_eq!(summary.row_count, 284);
+        assert_eq!(summary.row_count, 292);
         assert_eq!(summary.major_bodies.len(), 10);
         assert_eq!(summary.asteroid_bodies.len(), 6);
         assert!(summary
@@ -18363,15 +18363,15 @@ mod tests {
         summary
             .validate()
             .expect("production-generation boundary summary should validate");
-        assert_eq!(summary.row_count, 34);
+        assert_eq!(summary.row_count, 42);
         assert_eq!(summary.body_count, 10);
         assert_eq!(summary.bodies, production_generation_boundary_body_list());
-        assert_eq!(summary.epoch_count, 8);
+        assert_eq!(summary.epoch_count, 10);
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_400_000.0);
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
         assert_eq!(
             summary.summary_line(),
-            "Production generation boundary overlay: 34 rows across 10 bodies and 8 epochs (JD 2400000.0 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Jupiter, Mercury, Venus, Saturn, Uranus, Neptune, Sun, Moon, Pluto"
+            "Production generation boundary overlay: 42 rows across 10 bodies and 10 epochs (JD 2400000.0 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Jupiter, Mercury, Venus, Saturn, Uranus, Neptune, Sun, Moon, Pluto"
         );
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
@@ -18391,7 +18391,7 @@ mod tests {
         assert_eq!(boundary_summary, holdout_summary);
         assert_eq!(
             format_production_generation_boundary_source_summary(&boundary_summary),
-            "Production generation boundary overlay source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2500000, and 2634167, plus Moon at 2451545, 2500000, and 2634167, plus Pluto at 2451545 and 2500000.; columns=epoch_jd, body, x_km, y_km, z_km"
+            "Production generation boundary overlay source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Pluto at 2451545 and 2500000.; columns=epoch_jd, body, x_km, y_km, z_km"
         );
         assert_eq!(
             production_generation_boundary_source_summary_for_report(),
@@ -18403,13 +18403,13 @@ mod tests {
     fn production_generation_boundary_window_summary_reports_the_overlay_windows() {
         let summary = production_generation_boundary_window_summary()
             .expect("production-generation boundary window summary should exist");
-        assert_eq!(summary.sample_count, 34);
+        assert_eq!(summary.sample_count, 42);
         assert_eq!(summary.sample_bodies.len(), 10);
         assert_eq!(
             summary.sample_bodies,
             production_generation_boundary_body_list().to_vec()
         );
-        assert_eq!(summary.epoch_count, 8);
+        assert_eq!(summary.epoch_count, 10);
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_400_000.0);
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
         assert_eq!(summary.windows[0].body, CelestialBody::Mars);
@@ -18423,7 +18423,7 @@ mod tests {
                 format_instant(summary.windows[0].latest_epoch)
             )
         );
-        assert!(summary.summary_line().starts_with("Production generation boundary windows: 34 source-backed samples across 10 bodies and 8 epochs (JD 2400000.0 (TDB)..JD 2634167.0 (TDB)); windows: "));
+        assert!(summary.summary_line().starts_with("Production generation boundary windows: 42 source-backed samples across 10 bodies and 10 epochs (JD 2400000.0 (TDB)..JD 2634167.0 (TDB)); windows: "));
         assert!(summary.summary_line().contains("Mars: 7 samples across 7 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); Jupiter: 6 samples across 6 epochs at JD 2400000.0 (TDB)..JD 2500000.0 (TDB)"));
         assert_eq!(summary.summary_line(), summary.to_string());
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
@@ -18445,14 +18445,14 @@ mod tests {
         summary
             .validate()
             .expect("production-generation boundary body-class coverage summary should validate");
-        assert_eq!(summary.row_count, 34);
-        assert_eq!(summary.major_body_row_count, 34);
+        assert_eq!(summary.row_count, 42);
+        assert_eq!(summary.major_body_row_count, 42);
         assert_eq!(summary.major_bodies.len(), 10);
         assert_eq!(
             summary.major_bodies,
             production_generation_boundary_body_list().to_vec()
         );
-        assert_eq!(summary.major_epoch_count, 8);
+        assert_eq!(summary.major_epoch_count, 10);
         assert_eq!(summary.major_windows.len(), 10);
         assert_eq!(summary.major_windows[0].body, CelestialBody::Mars);
         assert_eq!(summary.asteroid_row_count, 0);
@@ -18460,7 +18460,7 @@ mod tests {
         assert_eq!(summary.asteroid_epoch_count, 0);
         assert!(summary.asteroid_windows.is_empty());
         assert!(summary.summary_line().starts_with(
-            "Production generation boundary body-class coverage: major bodies: 34 rows across 10 bodies and 8 epochs; major windows: "
+            "Production generation boundary body-class coverage: major bodies: 42 rows across 10 bodies and 10 epochs; major windows: "
         ));
         assert!(summary
             .summary_line()
@@ -18756,12 +18756,12 @@ mod tests {
     fn production_generation_snapshot_summary_reports_the_expected_coverage() {
         let summary = production_generation_snapshot_summary()
             .expect("production generation summary should exist");
-        assert_eq!(summary.row_count, 284);
+        assert_eq!(summary.row_count, 292);
         assert_eq!(summary.body_count, 16);
-        assert_eq!(summary.epoch_count, 22);
-        assert_eq!(summary.boundary_row_count, 34);
+        assert_eq!(summary.epoch_count, 24);
+        assert_eq!(summary.boundary_row_count, 42);
         assert_eq!(summary.boundary_body_count, 10);
-        assert_eq!(summary.boundary_epoch_count, 8);
+        assert_eq!(summary.boundary_epoch_count, 10);
         assert_eq!(summary.validate(), Ok(()));
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(summary.to_string(), summary.summary_line());
@@ -18769,7 +18769,7 @@ mod tests {
             production_generation_snapshot_summary_for_report(),
             summary.summary_line()
         );
-        assert!(summary.summary_line().contains("boundary overlay (Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2500000, and 2634167, plus Moon at 2451545, 2500000, and 2634167, plus Pluto at 2451545 and 2500000): 34 rows across 10 bodies and 8 epochs"));
+        assert!(summary.summary_line().contains("boundary overlay (Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Pluto at 2451545 and 2500000): 42 rows across 10 bodies and 10 epochs"));
     }
 
     #[test]
@@ -18777,9 +18777,9 @@ mod tests {
         let summary =
             production_generation_boundary_request_corpus_summary(CoordinateFrame::Ecliptic)
                 .expect("production generation boundary request corpus summary should exist");
-        assert_eq!(summary.request_count, 34);
+        assert_eq!(summary.request_count, 42);
         assert_eq!(summary.body_count, 10);
-        assert_eq!(summary.epoch_count, 8);
+        assert_eq!(summary.epoch_count, 10);
         assert_eq!(summary.frame, CoordinateFrame::Ecliptic);
         assert_eq!(summary.time_scale, TimeScale::Tdb);
         assert_eq!(summary.zodiac_mode, ZodiacMode::Tropical);
@@ -18793,7 +18793,7 @@ mod tests {
         );
         assert!(summary
             .summary_line()
-            .contains("observerless) across 10 bodies and 8 epochs"));
+            .contains("observerless) across 10 bodies and 10 epochs"));
     }
 
     #[test]
@@ -20805,10 +20805,10 @@ mod tests {
         assert_eq!(reference.row_count, reference.pairs.len());
         assert_eq!(reference.bodies.len(), 16);
         assert_eq!(reference.epochs.len(), 22);
-        assert_eq!(holdout.row_count, 34);
+        assert_eq!(holdout.row_count, 42);
         assert_eq!(holdout.row_count, holdout.pairs.len());
         assert_eq!(holdout.bodies.len(), 10);
-        assert_eq!(holdout.epochs.len(), 8);
+        assert_eq!(holdout.epochs.len(), 10);
 
         assert_eq!(
             reference_holdout_overlap_summary().map(|summary| summary.shared_sample_count),
@@ -20945,12 +20945,12 @@ mod tests {
         );
         assert_eq!(
             summary.coverage,
-            "Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2500000, and 2634167, plus Moon at 2451545, 2500000, and 2634167, plus Pluto at 2451545 and 2500000."
+            "Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Pluto at 2451545 and 2500000."
         );
         assert_eq!(summary.columns, "epoch_jd, body, x_km, y_km, z_km");
         assert_eq!(
             summary.summary_line(),
-            "Independent hold-out source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2500000, and 2634167, plus Moon at 2451545, 2500000, and 2634167, plus Pluto at 2451545 and 2500000.; columns=epoch_jd, body, x_km, y_km, z_km"
+            "Independent hold-out source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Pluto at 2451545 and 2500000.; columns=epoch_jd, body, x_km, y_km, z_km"
         );
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(summary.validate(), Ok(()));
@@ -21055,7 +21055,7 @@ mod tests {
     fn independent_holdout_snapshot_summary_reports_the_expected_coverage() {
         let summary = independent_holdout_snapshot_summary()
             .expect("independent hold-out summary should exist");
-        assert_eq!(summary.row_count, 34);
+        assert_eq!(summary.row_count, 42);
         assert_eq!(summary.body_count, 10);
         assert_eq!(
             summary.bodies,
@@ -21064,13 +21064,13 @@ mod tests {
                 "Moon", "Pluto",
             ]
         );
-        assert_eq!(summary.epoch_count, 8);
+        assert_eq!(summary.epoch_count, 10);
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_400_000.0);
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
         assert_eq!(summary.validate(), Ok(()));
         assert_eq!(
             summary.summary_line(),
-            "Independent hold-out coverage: 34 rows across 10 bodies and 8 epochs (JD 2400000.0 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Jupiter, Mercury, Venus, Saturn, Uranus, Neptune, Sun, Moon, Pluto"
+            "Independent hold-out coverage: 42 rows across 10 bodies and 10 epochs (JD 2400000.0 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Jupiter, Mercury, Venus, Saturn, Uranus, Neptune, Sun, Moon, Pluto"
         );
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
@@ -21084,10 +21084,10 @@ mod tests {
     fn independent_holdout_snapshot_source_window_summary_reports_the_expected_windows() {
         let summary = independent_holdout_snapshot_source_window_summary()
             .expect("independent hold-out source window summary should exist");
-        assert_eq!(summary.sample_count, 34);
+        assert_eq!(summary.sample_count, 42);
         assert_eq!(summary.sample_bodies.len(), 10);
         assert_eq!(summary.sample_bodies, independent_holdout_bodies().to_vec());
-        assert_eq!(summary.epoch_count, 8);
+        assert_eq!(summary.epoch_count, 10);
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_400_000.0);
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
         assert_eq!(summary.windows.len(), 10);
@@ -21126,7 +21126,7 @@ mod tests {
             summary.summary_line()
         );
         assert!(summary.summary_line().contains(
-            "Independent hold-out source windows: 34 source-backed samples across 10 bodies and 8 epochs"
+            "Independent hold-out source windows: 42 source-backed samples across 10 bodies and 10 epochs"
         ));
     }
 
@@ -21203,14 +21203,14 @@ mod tests {
     fn independent_holdout_snapshot_equatorial_parity_summary_reports_the_expected_coverage() {
         let summary = independent_holdout_snapshot_equatorial_parity_summary()
             .expect("independent hold-out equatorial parity summary should exist");
-        assert_eq!(summary.row_count, 34);
+        assert_eq!(summary.row_count, 42);
         assert_eq!(summary.body_count, 10);
-        assert_eq!(summary.epoch_count, 8);
+        assert_eq!(summary.epoch_count, 10);
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_400_000.0);
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
         assert_eq!(
             summary.summary_line(),
-            "JPL independent hold-out equatorial parity: 34 rows across 10 bodies and 8 epochs (JD 2400000.0 (TDB)..JD 2634167.0 (TDB)); mean-obliquity transform against the checked-in ecliptic fixture"
+            "JPL independent hold-out equatorial parity: 42 rows across 10 bodies and 10 epochs (JD 2400000.0 (TDB)..JD 2634167.0 (TDB)); mean-obliquity transform against the checked-in ecliptic fixture"
         );
         assert_eq!(summary.validate(), Ok(()));
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
@@ -21243,7 +21243,7 @@ mod tests {
     fn independent_holdout_summary_reports_the_expected_envelope() {
         let summary =
             jpl_independent_holdout_summary().expect("independent hold-out summary should exist");
-        assert_eq!(summary.sample_count, 34);
+        assert_eq!(summary.sample_count, 42);
         assert_eq!(summary.body_count, 10);
         assert_eq!(
             summary.bodies,
@@ -21252,7 +21252,7 @@ mod tests {
                 "Moon", "Pluto",
             ]
         );
-        assert_eq!(summary.epoch_count, 8);
+        assert_eq!(summary.epoch_count, 10);
         assert!(summary.earliest_epoch.julian_day.days() <= summary.latest_epoch.julian_day.days());
         assert!(summary.max_longitude_error_deg.is_finite());
         assert!(summary.mean_longitude_error_deg.is_finite());
@@ -21278,7 +21278,7 @@ mod tests {
         let rendered = format_jpl_independent_holdout_summary(&summary);
         assert!(rendered.contains("JPL independent hold-out:"));
         assert!(rendered.contains(
-            "34 exact rows across 10 bodies (Mars, Jupiter, Mercury, Venus, Saturn, Uranus, Neptune, Sun, Moon, Pluto) and 8 epochs"
+            "42 exact rows across 10 bodies (Mars, Jupiter, Mercury, Venus, Saturn, Uranus, Neptune, Sun, Moon, Pluto) and 10 epochs"
         ));
         assert!(rendered.contains("p95 Δlon="));
         assert!(rendered.contains("p95 Δlat="));
@@ -21396,10 +21396,10 @@ mod tests {
         let summary = independent_holdout_snapshot_batch_parity_summary()
             .expect("independent hold-out batch parity summary should exist");
         assert_eq!(summary.to_string(), summary.summary_line());
-        assert_eq!(summary.snapshot.row_count, 34);
+        assert_eq!(summary.snapshot.row_count, 42);
         assert_eq!(summary.snapshot.body_count, 10);
-        assert_eq!(summary.tt_request_count, 17);
-        assert_eq!(summary.tdb_request_count, 17);
+        assert_eq!(summary.tt_request_count, 21);
+        assert_eq!(summary.tdb_request_count, 21);
         assert!(summary.parity_preserved);
         assert_eq!(
             summary.exact_count
@@ -21414,9 +21414,9 @@ mod tests {
         let rendered = format_independent_holdout_snapshot_batch_parity_summary(&summary);
         assert!(rendered.contains("JPL independent hold-out batch parity:"));
         assert!(rendered.contains(
-            "34 requests across 10 bodies (Mars, Jupiter, Mercury, Venus, Saturn, Uranus, Neptune, Sun, Moon, Pluto) and 8 epochs"
+            "42 requests across 10 bodies (Mars, Jupiter, Mercury, Venus, Saturn, Uranus, Neptune, Sun, Moon, Pluto) and 10 epochs"
         ));
-        assert!(rendered.contains("TT requests=17, TDB requests=17"));
+        assert!(rendered.contains("TT requests=21, TDB requests=21"));
         assert!(rendered.contains("quality counts:"));
         assert!(rendered.contains("order=preserved, single-query parity=preserved"));
     }
@@ -21589,7 +21589,7 @@ mod tests {
         );
         assert_eq!(
             manifest.coverage.as_deref(),
-            Some("Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2500000, and 2634167, plus Moon at 2451545, 2500000, and 2634167, plus Pluto at 2451545 and 2500000.")
+            Some("Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Pluto at 2451545 and 2500000.")
         );
         assert_eq!(
             manifest.columns,
@@ -21598,7 +21598,7 @@ mod tests {
         assert_eq!(manifest.validate(), Ok(()));
         assert_eq!(
             manifest.summary_line("Independent hold-out manifest"),
-            "Independent hold-out manifest: Independent JPL Horizons hold-out snapshot used only for interpolation validation.; source=NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2500000, and 2634167, plus Moon at 2451545, 2500000, and 2634167, plus Pluto at 2451545 and 2500000.; columns=epoch_jd, body, x_km, y_km, z_km"
+            "Independent hold-out manifest: Independent JPL Horizons hold-out snapshot used only for interpolation validation.; source=NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Pluto at 2451545 and 2500000.; columns=epoch_jd, body, x_km, y_km, z_km"
         );
     }
 

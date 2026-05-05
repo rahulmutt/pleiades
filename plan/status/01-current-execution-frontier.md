@@ -16,7 +16,7 @@ Current implementation status shows:
 - chart APIs preserve the distinction between house observers and body observers and provide caller-supplied UTC/UT1/TT/TDB offset helpers, but built-in Delta T/UTC conversion policy remains a release decision;
 - `pleiades-vsop87` is source-backed for Sun through Neptune via generated VSOP87B tables; Pluto remains an explicitly approximate mean-elements fallback;
 - `pleiades-elp` is a compact Meeus-style lunar baseline with validation evidence for supported lunar channels, not a full ELP coefficient implementation;
-- `pleiades-jpl` is a checked-in JPL Horizons snapshot/hold-out fixture backend with provenance and selected asteroid evidence, not a broad production reader/corpus;
+- `pleiades-jpl` is a checked-in JPL Horizons snapshot/hold-out fixture backend with provenance and selected asteroid evidence, including a new 2451915.25/2451915.75 high-curvature hold-out window for Sun, Moon, Mercury, and Venus, not a broad production reader/corpus;
 - `pleiades-data` ships a deterministic prototype artifact with codec/profile/checksum/regeneration support, but it is not a production 1500-2500 CE artifact and current fit posture is not release-grade;
 - house and ayanamsa catalogs are broad, but not every release-advertised entry has independent formula/provenance/reference evidence sufficient for full interoperability claims;
 - release-bundle generation and verification exist, and validation/report surfaces now classify evidence as release-tolerance, hold-out, fixture exactness, or provenance-only; final release gates still need to be rerun over production accuracy evidence, production artifacts, and truthful compatibility profiles.
@@ -34,12 +34,12 @@ Phase 2 production artifacts require trusted generation inputs and target thresh
 
 ## Recommended next slice
 
-The representative early-boundary slice is now checked in for Sun, Moon, Mercury, and Venus at 1500-01-01.
+The representative early-boundary slice is now checked in for Sun, Moon, Mercury, and Venus at 1500-01-01, and a 2451915.25/2451915.75 high-curvature hold-out window now supplements the validation corpus for Sun, Moon, Mercury, and Venus.
 
 Next, implement another small, reviewable reference-coverage slice:
 
-- add a minimal but representative set of additional source rows or parser support across the 1500-2500 target range;
-- include at least one boundary or high-curvature window relevant to artifact fitting;
+- add a minimal but representative set of additional source rows or parser support at another target-range boundary or interior epoch;
+- keep hold-out rows separate from fitting/reference rows;
 - update the relevant backend metadata/report summaries and tests without broadening release claims prematurely.
 
 ## Parallel safe work
