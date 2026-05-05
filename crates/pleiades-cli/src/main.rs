@@ -368,6 +368,9 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("house-validation-summary") | Some("house-validation") => validate_render_cli(args),
         Some("house-formula-families-summary") => validate_render_cli(args),
         Some("house-formula-families") => validate_render_cli(args),
+        Some("house-latitude-sensitive-summary") | Some("house-latitude-sensitive") => {
+            validate_render_cli(args)
+        }
         Some("house-code-aliases-summary") => validate_render_cli(args),
         Some("house-code-alias-summary") => validate_render_cli(args),
         Some("ayanamsa-catalog-validation-summary") => validate_render_cli(args),
@@ -3155,6 +3158,28 @@ mod tests {
                 .expect("house formula families alias should render"),
             house_formula_families_summary
         );
+        let house_latitude_sensitive_summary = render_cli(&["house-latitude-sensitive-summary"])
+            .expect("latitude-sensitive house systems summary should render");
+        assert_eq!(
+            house_latitude_sensitive_summary,
+            "Latitude-sensitive house systems: 8 (Placidus, Koch, Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Topocentric, Sunshine, Gauquelin sectors)"
+        );
+        assert_eq!(
+            house_latitude_sensitive_summary,
+            validate_render_cli(&["house-latitude-sensitive-summary"])
+                .expect("validate facade should render latitude-sensitive house systems summary")
+        );
+        assert_eq!(
+            render_cli(&["house-latitude-sensitive"])
+                .expect("latitude-sensitive house systems alias should render"),
+            house_latitude_sensitive_summary
+        );
+        assert_eq!(
+            render_cli(&["house-latitude-sensitive-summary", "extra"]).expect_err(
+                "latitude-sensitive house systems summary should reject extra arguments"
+            ),
+            "house-latitude-sensitive-summary does not accept extra arguments"
+        );
         let house_code_aliases_summary = render_cli(&["house-code-aliases-summary"])
             .expect("house code aliases summary should render");
         assert!(house_code_aliases_summary.contains("P -> Placidus"));
@@ -4487,6 +4512,12 @@ mod tests {
         assert!(help.contains(
             "release-ayanamsa-canonical-names  Alias for release-ayanamsa-canonical-names-summary"
         ));
+        assert!(help.contains(
+            "house-latitude-sensitive-summary  Print the compact latitude-sensitive house systems summary"
+        ));
+        assert!(
+            help.contains("house-latitude-sensitive  Alias for house-latitude-sensitive-summary")
+        );
         assert!(help.contains("profile-summary           Alias for compatibility-profile-summary"));
         assert!(help.contains(
             "release-profile-identifiers  Alias for release-profile-identifiers-summary"
