@@ -347,6 +347,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("reference-asteroid-source-window-summary") => validate_render_cli(args),
         Some("reference-asteroid-source-summary") => validate_render_cli(args),
         Some("reference-holdout-overlap-summary") => validate_render_cli(args),
+        Some("holdout-overlap-summary") => validate_render_cli(args),
         Some("independent-holdout-source-window-summary") => validate_render_cli(args),
         Some("independent-holdout-summary") => validate_render_cli(args),
         Some("independent-holdout-source-summary") => validate_render_cli(args),
@@ -3016,6 +3017,14 @@ mod tests {
         assert_eq!(
             reference_holdout_overlap_summary,
             pleiades_jpl::reference_holdout_overlap_summary_for_report()
+        );
+        let holdout_overlap_summary =
+            render_cli(&["holdout-overlap-summary"]).expect("hold-out overlap alias should render");
+        assert_eq!(holdout_overlap_summary, reference_holdout_overlap_summary);
+        assert_eq!(
+            render_cli(&["holdout-overlap-summary", "extra"])
+                .expect_err("hold-out overlap alias should reject extra arguments"),
+            "holdout-overlap-summary does not accept extra arguments"
         );
         let independent_holdout_source_window_summary =
             render_cli(&["independent-holdout-source-window-summary"])
