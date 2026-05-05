@@ -420,14 +420,17 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("artifact-summary") | Some("artifact-posture-summary") => validate_render_cli(args),
         Some("artifact-boundary-envelope-summary") => validate_render_cli(args),
         Some("artifact-profile-coverage-summary") => validate_render_cli(args),
-        Some("packaged-artifact-output-support-summary") => validate_render_cli(args),
+        Some("packaged-artifact-output-support-summary")
+        | Some("packaged-artifact-output-support") => validate_render_cli(args),
         Some("packaged-artifact-access-summary") | Some("packaged-artifact-access") => {
             validate_render_cli(args)
         }
         Some("packaged-artifact-path-policy-summary") | Some("packaged-artifact-path-policy") => {
             validate_render_cli(args)
         }
-        Some("packaged-artifact-storage-summary") => validate_render_cli(args),
+        Some("packaged-artifact-storage-summary") | Some("packaged-artifact-storage") => {
+            validate_render_cli(args)
+        }
         Some("packaged-artifact-production-profile-summary")
         | Some("packaged-artifact-production-profile") => validate_render_cli(args),
         Some("packaged-artifact-target-threshold-summary")
@@ -3711,6 +3714,16 @@ mod tests {
                 pleiades_data::packaged_artifact_output_support_summary_for_report()
             )
         );
+        assert_eq!(
+            render_cli(&["packaged-artifact-output-support"])
+                .expect("packaged artifact output support alias should render"),
+            packaged_artifact_output_support
+        );
+        assert_eq!(
+            render_cli(&["packaged-artifact-output-support", "extra"])
+                .expect_err("packaged artifact output support alias should reject extra arguments"),
+            "packaged-artifact-output-support does not accept extra arguments"
+        );
 
         let packaged_artifact_access = render_cli(&["packaged-artifact-access-summary"])
             .expect("packaged artifact access summary should render");
@@ -3768,6 +3781,16 @@ mod tests {
                 "Packaged-artifact storage/reconstruction: {}",
                 pleiades_data::packaged_artifact_storage_summary_for_report()
             )
+        );
+        assert_eq!(
+            render_cli(&["packaged-artifact-storage"])
+                .expect("packaged artifact storage alias should render"),
+            packaged_artifact_storage
+        );
+        assert_eq!(
+            render_cli(&["packaged-artifact-storage", "extra"])
+                .expect_err("packaged artifact storage alias should reject extra arguments"),
+            "packaged-artifact-storage does not accept extra arguments"
         );
 
         let packaged_artifact_production_profile =
@@ -4555,6 +4578,9 @@ mod tests {
             "packaged-artifact-output-support-summary  Print the packaged-artifact output support summary"
         ));
         assert!(help.contains(
+            "packaged-artifact-output-support       Alias for packaged-artifact-output-support-summary"
+        ));
+        assert!(help.contains(
             "packaged-artifact-access-summary  Print the packaged-artifact access summary"
         ));
         assert!(
@@ -4568,6 +4594,9 @@ mod tests {
         ));
         assert!(help.contains(
             "packaged-artifact-storage-summary  Print the packaged-artifact storage/reconstruction summary"
+        ));
+        assert!(help.contains(
+            "packaged-artifact-storage           Alias for packaged-artifact-storage-summary"
         ));
         assert!(help.contains(
             "packaged-artifact-production-profile-summary  Print the packaged-artifact production profile skeleton summary"
