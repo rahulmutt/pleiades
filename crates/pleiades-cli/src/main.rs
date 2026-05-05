@@ -419,6 +419,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("comparison-tolerance-policy-summary") | Some("comparison-tolerance-summary") => {
             validate_render_cli(args)
         }
+        Some("comparison-body-class-tolerance-summary")
+        | Some("comparison-body-class-tolerance") => validate_render_cli(args),
         Some("comparison-envelope-summary") | Some("comparison-envelope") => {
             validate_render_cli(args)
         }
@@ -1407,6 +1409,13 @@ mod tests {
         assert!(rendered.contains(
             "comparison-tolerance-summary  Alias for comparison-tolerance-policy-summary"
         ));
+        assert!(rendered.contains("comparison-body-class-tolerance-summary"));
+        assert!(rendered.contains(
+            "comparison-body-class-tolerance-summary  Print the compact comparison body-class tolerance summary"
+        ));
+        assert!(rendered.contains(
+            "comparison-body-class-tolerance  Alias for comparison-body-class-tolerance-summary"
+        ));
         assert!(rendered.contains("benchmark-corpus-summary"));
         assert!(rendered.contains("comparison-snapshot-summary"));
         assert!(rendered.contains("comparison-snapshot-batch-parity-summary"));
@@ -2252,6 +2261,23 @@ mod tests {
             "comparison tolerance summary alias should match the canonical command"
         );
 
+        let comparison_body_class_tolerance_summary =
+            render_cli(&["comparison-body-class-tolerance-summary"])
+                .expect("comparison body-class tolerance summary should render");
+        assert_eq!(
+            comparison_body_class_tolerance_summary,
+            super::validate_render_cli(&["comparison-body-class-tolerance-summary"])
+                .expect("comparison body-class tolerance summary should match validate CLI")
+        );
+
+        let comparison_body_class_tolerance_alias =
+            render_cli(&["comparison-body-class-tolerance"])
+                .expect("comparison body-class tolerance alias should render");
+        assert_eq!(
+            comparison_body_class_tolerance_alias, comparison_body_class_tolerance_summary,
+            "comparison body-class tolerance alias should match the canonical command"
+        );
+
         let comparison_envelope_summary = render_cli(&["comparison-envelope-summary"])
             .expect("comparison envelope summary should render");
         assert_eq!(
@@ -2269,6 +2295,12 @@ mod tests {
                 .expect_err("comparison tolerance alias should reject extra arguments");
         assert!(comparison_tolerance_alias_error
             .contains("comparison-tolerance-summary does not accept extra arguments"));
+
+        let comparison_body_class_tolerance_alias_error =
+            render_cli(&["comparison-body-class-tolerance", "extra"])
+                .expect_err("comparison body-class tolerance alias should reject extra arguments");
+        assert!(comparison_body_class_tolerance_alias_error
+            .contains("comparison-body-class-tolerance does not accept extra arguments"));
 
         let comparison_envelope_alias_error = render_cli(&["comparison-envelope", "extra"])
             .expect_err("comparison envelope alias should reject extra arguments");
