@@ -203,6 +203,13 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "reference-snapshot-summary")?;
             validate_render_cli(args)
         }
+        Some("reference-snapshot-exact-j2000-evidence-summary") => {
+            ensure_no_extra_args(
+                &args[1..],
+                "reference-snapshot-exact-j2000-evidence-summary",
+            )?;
+            validate_render_cli(args)
+        }
         Some("reference-snapshot-batch-parity-summary") => validate_render_cli(args),
         Some("reference-snapshot-equatorial-parity-summary") => validate_render_cli(args),
         Some("reference-high-curvature-summary") | Some("high-curvature-summary") => {
@@ -2549,6 +2556,28 @@ mod tests {
                 .expect_err("reference snapshot alias should reject extra arguments"),
             "reference-snapshot does not accept extra arguments"
         );
+
+        let reference_snapshot_exact_j2000 =
+            render_cli(&["reference-snapshot-exact-j2000-evidence-summary"])
+                .expect("reference snapshot exact J2000 evidence should render");
+        assert!(reference_snapshot_exact_j2000
+            .contains("Reference snapshot exact J2000 evidence summary"));
+        assert!(reference_snapshot_exact_j2000.contains(
+            "Reference snapshot exact J2000 evidence: 16 exact J2000 samples at JD 2451545.0"
+        ));
+        assert_eq!(
+            reference_snapshot_exact_j2000,
+            format!(
+                "Reference snapshot exact J2000 evidence summary\n{}\n",
+                pleiades_jpl::reference_snapshot_exact_j2000_evidence_summary_for_report()
+            )
+        );
+        assert_eq!(
+            render_cli(&["reference-snapshot-exact-j2000-evidence-summary", "extra"]).expect_err(
+                "reference snapshot exact J2000 evidence should reject extra arguments"
+            ),
+            "reference-snapshot-exact-j2000-evidence-summary does not accept extra arguments"
+        );
         let reference_snapshot_batch_parity_summary =
             render_cli(&["reference-snapshot-batch-parity-summary"])
                 .expect("reference snapshot batch parity summary should render");
@@ -4497,6 +4526,9 @@ mod tests {
         ));
         assert!(help
             .contains("reference-snapshot-summary  Print the compact reference snapshot summary"));
+        assert!(help.contains(
+            "reference-snapshot-exact-j2000-evidence-summary  Print the compact reference snapshot exact J2000 evidence summary"
+        ));
         assert!(help.contains(
             "selected-asteroid-source-evidence-summary  Print the compact selected-asteroid source evidence summary"
         ));
