@@ -2100,25 +2100,47 @@ impl fmt::Display for NativeSiderealPolicySummary {
     }
 }
 
+/// Canonical current policy summary text for direct backend time-scale requests.
+pub const CURRENT_TIME_SCALE_POLICY_SUMMARY_TEXT: &str =
+    "direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T or UTC convenience model";
+
+/// Canonical current policy summary text for the shared Delta T posture.
+pub const CURRENT_DELTA_T_POLICY_SUMMARY_TEXT: &str =
+    "built-in Delta T modeling remains out of scope; UTC/UT1 inputs require caller-supplied conversion helpers";
+
+/// Canonical current policy summary text for the shared UTC-convenience posture.
+pub const CURRENT_UTC_CONVENIENCE_POLICY_SUMMARY_TEXT: &str =
+    "built-in UTC convenience conversion remains out of scope; callers must supply TT/TDB offsets explicitly";
+
+/// Canonical current policy summary text for the shared observer posture.
+pub const CURRENT_OBSERVER_POLICY_SUMMARY_TEXT: &str =
+    "chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests with UnsupportedObserver; malformed observer coordinates remain InvalidObserver; topocentric body positions remain unsupported";
+
+/// Canonical current policy summary text for the shared apparentness posture.
+pub const CURRENT_APPARENTNESS_POLICY_SUMMARY_TEXT: &str =
+    "current first-party backends accept mean geometric output only; apparent-place corrections are rejected unless a backend explicitly advertises support";
+
+/// Canonical current policy summary text for the shared frame posture.
+pub const CURRENT_FRAME_POLICY_SUMMARY_TEXT: &str =
+    "ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported; native sidereal backend output remains unsupported unless a backend explicitly advertises it";
+
+/// Canonical current policy summary text for the shared native sidereal posture.
+pub const CURRENT_NATIVE_SIDEREAL_POLICY_SUMMARY_TEXT: &str =
+    "native sidereal backend output remains unsupported unless a backend explicitly advertises it";
+
 /// Returns the current shared time-scale policy used by validation and reports.
 pub const fn current_time_scale_policy_summary() -> TimeScalePolicySummary {
-    TimeScalePolicySummary::new(
-        "direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T or UTC convenience model",
-    )
+    TimeScalePolicySummary::new(CURRENT_TIME_SCALE_POLICY_SUMMARY_TEXT)
 }
 
 /// Returns the current shared Delta T policy used by validation and reports.
 pub const fn current_delta_t_policy_summary() -> DeltaTPolicySummary {
-    DeltaTPolicySummary::new(
-        "built-in Delta T modeling remains out of scope; UTC/UT1 inputs require caller-supplied conversion helpers",
-    )
+    DeltaTPolicySummary::new(CURRENT_DELTA_T_POLICY_SUMMARY_TEXT)
 }
 
 /// Returns the current shared UTC-convenience policy used by validation and reports.
 pub const fn current_utc_convenience_policy_summary() -> UtcConveniencePolicySummary {
-    UtcConveniencePolicySummary::new(
-        "built-in UTC convenience conversion remains out of scope; callers must supply TT/TDB offsets explicitly",
-    )
+    UtcConveniencePolicySummary::new(CURRENT_UTC_CONVENIENCE_POLICY_SUMMARY_TEXT)
 }
 
 /// Returns the UTC-convenience policy posture used by validation and release reporting.
@@ -2128,16 +2150,12 @@ pub const fn utc_convenience_policy_summary_for_report() -> UtcConveniencePolicy
 
 /// Returns the current shared observer policy used by validation and reports.
 pub const fn current_observer_policy_summary() -> ObserverPolicySummary {
-    ObserverPolicySummary::new(
-        "chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests with UnsupportedObserver; malformed observer coordinates remain InvalidObserver; topocentric body positions remain unsupported",
-    )
+    ObserverPolicySummary::new(CURRENT_OBSERVER_POLICY_SUMMARY_TEXT)
 }
 
 /// Returns the current shared apparentness policy used by validation and reports.
 pub const fn current_apparentness_policy_summary() -> ApparentnessPolicySummary {
-    ApparentnessPolicySummary::new(
-        "current first-party backends accept mean geometric output only; apparent-place corrections are rejected unless a backend explicitly advertises support",
-    )
+    ApparentnessPolicySummary::new(CURRENT_APPARENTNESS_POLICY_SUMMARY_TEXT)
 }
 
 /// Returns the current shared request-policy posture used by validation and reports.
@@ -2146,20 +2164,18 @@ pub const fn current_request_policy_summary() -> RequestPolicySummary {
         time_scale: current_time_scale_policy_summary().summary_line(),
         observer: current_observer_policy_summary().summary_line(),
         apparentness: current_apparentness_policy_summary().summary_line(),
-        frame: "ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported; native sidereal backend output remains unsupported unless a backend explicitly advertises it",
+        frame: CURRENT_FRAME_POLICY_SUMMARY_TEXT,
     }
 }
 
 /// Returns the current shared frame-policy posture used by validation and reports.
 pub const fn current_frame_policy_summary() -> FramePolicySummary {
-    FramePolicySummary::new(current_request_policy_summary().frame)
+    FramePolicySummary::new(CURRENT_FRAME_POLICY_SUMMARY_TEXT)
 }
 
 /// Returns the current native sidereal policy used by validation and reports.
 pub const fn current_native_sidereal_policy_summary() -> NativeSiderealPolicySummary {
-    NativeSiderealPolicySummary::new(
-        "native sidereal backend output remains unsupported unless a backend explicitly advertises it",
-    )
+    NativeSiderealPolicySummary::new(CURRENT_NATIVE_SIDEREAL_POLICY_SUMMARY_TEXT)
 }
 
 /// Returns the native sidereal policy posture used by validation and release reporting.
@@ -3019,7 +3035,7 @@ mod tests {
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             summary.summary_line(),
-            "direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T or UTC convenience model"
+            CURRENT_TIME_SCALE_POLICY_SUMMARY_TEXT
         );
         assert!(summary.summary_line().contains("TT/TDB"));
         assert!(summary.validate().is_ok());
@@ -3062,10 +3078,7 @@ mod tests {
         let summary = DeltaTPolicySummary::current();
 
         assert_eq!(summary.to_string(), summary.summary_line());
-        assert_eq!(
-            summary.summary_line(),
-            "built-in Delta T modeling remains out of scope; UTC/UT1 inputs require caller-supplied conversion helpers"
-        );
+        assert_eq!(summary.summary_line(), CURRENT_DELTA_T_POLICY_SUMMARY_TEXT);
         assert!(summary.summary_line().contains("Delta T"));
         assert!(summary.validate().is_ok());
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
@@ -3107,7 +3120,7 @@ mod tests {
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             summary.summary_line(),
-            "built-in UTC convenience conversion remains out of scope; callers must supply TT/TDB offsets explicitly"
+            CURRENT_UTC_CONVENIENCE_POLICY_SUMMARY_TEXT
         );
         assert!(summary.summary_line().contains("UTC convenience"));
         assert!(summary.validate().is_ok());
@@ -3152,7 +3165,13 @@ mod tests {
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             summary.summary_line(),
-            "time-scale=direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T or UTC convenience model; observer=chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests with UnsupportedObserver; malformed observer coordinates remain InvalidObserver; topocentric body positions remain unsupported; apparentness=current first-party backends accept mean geometric output only; apparent-place corrections are rejected unless a backend explicitly advertises support; frame=ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported; native sidereal backend output remains unsupported unless a backend explicitly advertises it"
+            RequestPolicySummary {
+                time_scale: CURRENT_TIME_SCALE_POLICY_SUMMARY_TEXT,
+                observer: CURRENT_OBSERVER_POLICY_SUMMARY_TEXT,
+                apparentness: CURRENT_APPARENTNESS_POLICY_SUMMARY_TEXT,
+                frame: CURRENT_FRAME_POLICY_SUMMARY_TEXT,
+            }
+            .summary_line()
         );
         assert!(summary.summary_line().contains("time-scale="));
         assert!(summary.summary_line().contains("observer="));
