@@ -19571,6 +19571,30 @@ mod tests {
     }
 
     #[test]
+    fn comparison_snapshot_source_window_summary_validation_rejects_body_order_drift() {
+        let mut summary = comparison_snapshot_source_window_summary()
+            .expect("comparison snapshot source window summary should exist");
+        summary.sample_bodies.swap(0, 1);
+
+        assert_eq!(
+            summary.validate(),
+            Err(
+                ComparisonSnapshotSourceWindowSummaryValidationError::FieldOutOfSync {
+                    field: "sample_bodies"
+                }
+            )
+        );
+        assert_eq!(
+            summary.validated_summary_line(),
+            Err(
+                ComparisonSnapshotSourceWindowSummaryValidationError::FieldOutOfSync {
+                    field: "sample_bodies"
+                }
+            )
+        );
+    }
+
+    #[test]
     fn snapshot_manifest_validation_reports_missing_required_metadata() {
         let manifest = SnapshotManifest {
             title: Some(" ".to_string()),

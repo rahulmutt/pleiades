@@ -151,6 +151,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
             Ok(comparison_snapshot_source_summary_for_report())
         }
         Some("comparison-snapshot-source-window-summary") => validate_render_cli(args),
+        Some("comparison-snapshot-source-window") => validate_render_cli(args),
         Some("comparison-snapshot-body-class-coverage-summary")
         | Some("comparison-body-class-coverage-summary") => validate_render_cli(args),
         Some("comparison-snapshot-manifest-summary") => validate_render_cli(args),
@@ -2270,6 +2271,19 @@ mod tests {
             comparison_snapshot_source_window_summary,
             pleiades_jpl::comparison_snapshot_source_window_summary_for_report()
         );
+        let comparison_snapshot_source_window_alias =
+            render_cli(&["comparison-snapshot-source-window"])
+                .expect("comparison snapshot source window alias should render");
+        assert_eq!(
+            comparison_snapshot_source_window_alias,
+            comparison_snapshot_source_window_summary
+        );
+        assert_eq!(
+            render_cli(&["comparison-snapshot-source-window", "extra"]).expect_err(
+                "comparison snapshot source window alias should reject extra arguments"
+            ),
+            "comparison-snapshot-source-window does not accept extra arguments"
+        );
         let comparison_snapshot_source_summary =
             render_cli(&["comparison-snapshot-source-summary"])
                 .expect("comparison snapshot source summary should render");
@@ -4340,6 +4354,9 @@ mod tests {
         assert!(help.contains("comparison-snapshot         Alias for comparison-snapshot-summary"));
         assert!(help.contains(
             "comparison-snapshot-source-summary  Print the compact comparison snapshot source summary"
+        ));
+        assert!(help.contains(
+            "comparison-snapshot-source-window  Alias for comparison-snapshot-source-window-summary"
         ));
         assert!(help.contains(
             "reference-snapshot-manifest-summary  Print the compact reference snapshot manifest summary"
