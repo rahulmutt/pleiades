@@ -5300,6 +5300,14 @@ mod tests {
         assert_eq!(signed_tt_converted.house_system, request.house_system);
         assert_eq!(signed_tt_converted.bodies, request.bodies);
         assert_eq!(signed_tt_converted.apparentness, request.apparentness);
+
+        let summary = signed_tt_converted.summary_line();
+        assert!(summary.contains("(TT);"));
+        assert!(summary.contains("observer=house-only;"));
+        assert!(summary.contains("body observer=latitude=-23.5°, longitude=313.4°, elevation=n/a"));
+        assert!(summary.contains(
+            "house system=My TDB Custom Houses [aliases: My TDB Alias] (uses a local TDB calibration)"
+        ));
     }
 
     #[test]
