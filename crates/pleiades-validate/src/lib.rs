@@ -5535,6 +5535,8 @@ pub struct CompatibilityProfileVerificationSummary {
     pub house_system_descriptor_count: usize,
     /// Number of house-system labels checked, including aliases.
     pub house_system_label_count: usize,
+    /// Number of house-system aliases checked.
+    pub house_system_alias_count: usize,
     /// Number of Swiss Ephemeris house-table code aliases checked.
     pub house_code_alias_count: usize,
     /// Compact mapping of the Swiss Ephemeris house-table code aliases.
@@ -5545,6 +5547,8 @@ pub struct CompatibilityProfileVerificationSummary {
     pub ayanamsa_descriptor_count: usize,
     /// Number of ayanamsa labels checked, including aliases.
     pub ayanamsa_label_count: usize,
+    /// Number of ayanamsa aliases checked.
+    pub ayanamsa_alias_count: usize,
     /// Number of baseline house-system descriptors.
     pub baseline_house_system_count: usize,
     /// Number of release-specific house-system descriptors.
@@ -5630,6 +5634,16 @@ impl CompatibilityProfileVerificationSummary {
                 ),
             ));
         }
+        let expected_house_system_alias_count = house_labels_checked - profile.house_systems.len();
+        if self.house_system_alias_count != expected_house_system_alias_count {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "compatibility profile verification summary house-system alias count mismatch: expected {}, found {}",
+                    expected_house_system_alias_count, self.house_system_alias_count
+                ),
+            ));
+        }
         if self.house_code_alias_count != profile.house_code_alias_count() {
             return Err(EphemerisError::new(
                 EphemerisErrorKind::InvalidRequest,
@@ -5682,6 +5696,16 @@ impl CompatibilityProfileVerificationSummary {
                 format!(
                     "compatibility profile verification summary ayanamsa label count mismatch: expected {}, found {}",
                     ayanamsa_labels_checked, self.ayanamsa_label_count
+                ),
+            ));
+        }
+        let expected_ayanamsa_alias_count = ayanamsa_labels_checked - profile.ayanamsas.len();
+        if self.ayanamsa_alias_count != expected_ayanamsa_alias_count {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "compatibility profile verification summary ayanamsa alias count mismatch: expected {}, found {}",
+                    expected_ayanamsa_alias_count, self.ayanamsa_alias_count
                 ),
             ));
         }
@@ -5934,7 +5958,11 @@ impl CompatibilityProfileVerificationSummary {
         text.push_str("House code aliases: ");
         text.push_str(&self.house_code_aliases_summary);
         text.push('\n');
-        text.push_str("Alias uniqueness checks: exact and case-insensitive labels verified\n");
+        text.push_str("Alias uniqueness checks: house=");
+        text.push_str(&self.house_system_alias_count.to_string());
+        text.push_str(" aliases, ayanamsa=");
+        text.push_str(&self.ayanamsa_alias_count.to_string());
+        text.push_str(" aliases; exact and case-insensitive labels verified\n");
         text.push_str("Latitude-sensitive house systems verified: ");
         text.push_str(&self.latitude_sensitive_house_systems.len().to_string());
         text.push_str(" descriptors, ");
@@ -6125,6 +6153,7 @@ pub fn compatibility_profile_verification_summary(
         house_system_descriptor_count: profile.house_systems.len(),
         house_system_label_count: house_labels_checked,
         house_code_alias_count: profile.house_code_alias_count(),
+        house_system_alias_count: house_labels_checked - profile.house_systems.len(),
         house_code_aliases_summary: profile.house_code_aliases_summary_line(),
         latitude_sensitive_house_systems: profile
             .latitude_sensitive_house_systems()
@@ -6133,6 +6162,7 @@ pub fn compatibility_profile_verification_summary(
             .collect(),
         ayanamsa_descriptor_count: profile.ayanamsas.len(),
         ayanamsa_label_count: ayanamsa_labels_checked,
+        ayanamsa_alias_count: ayanamsa_labels_checked - profile.ayanamsas.len(),
         baseline_house_system_count: profile.baseline_house_systems.len(),
         release_house_system_count: profile.release_house_systems.len(),
         baseline_ayanamsa_count: profile.baseline_ayanamsas.len(),
@@ -19421,8 +19451,21 @@ mod tests {
             "House code aliases verified: {} short-form labels",
             profile.house_code_alias_count()
         )));
-        assert!(rendered
-            .contains("Alias uniqueness checks: exact and case-insensitive labels verified"));
+        assert!(rendered.contains(&format!(
+            "Alias uniqueness checks: house={} aliases, ayanamsa={} aliases; exact and case-insensitive labels verified",
+            profile
+                .house_systems
+                .iter()
+                .map(|entry| 1 + entry.aliases.len())
+                .sum::<usize>()
+                - profile.house_systems.len(),
+            profile
+                .ayanamsas
+                .iter()
+                .map(|entry| 1 + entry.aliases.len())
+                .sum::<usize>()
+                - profile.ayanamsas.len()
+        )));
         assert!(rendered.contains(
             "Latitude-sensitive house systems verified: 8 descriptors, 8 labels (Placidus, Koch, Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Topocentric, Sunshine, Gauquelin sectors)"
         ));
@@ -19496,6 +19539,15 @@ mod tests {
             summary.house_code_aliases_summary,
             profile.house_code_aliases_summary_line()
         );
+        assert_eq!(
+            summary.house_system_alias_count,
+            profile
+                .house_systems
+                .iter()
+                .map(|entry| 1 + entry.aliases.len())
+                .sum::<usize>()
+                - profile.house_systems.len()
+        );
         assert_eq!(summary.ayanamsa_descriptor_count, profile.ayanamsas.len());
         assert_eq!(
             summary.baseline_house_system_count,
@@ -19535,6 +19587,15 @@ mod tests {
             profile.custom_definition_ayanamsa_labels().join(", ")
         );
         assert_eq!(
+            summary.ayanamsa_alias_count,
+            profile
+                .ayanamsas
+                .iter()
+                .map(|entry| 1 + entry.aliases.len())
+                .sum::<usize>()
+                - profile.ayanamsas.len()
+        );
+        assert_eq!(
             summary.house_formula_family_names,
             profile.house_formula_family_names().join(", ")
         );
@@ -19569,6 +19630,11 @@ mod tests {
         assert!(summary.summary_line().contains(&format!(
             "House code aliases: {}",
             profile.house_code_aliases_summary_line()
+        )));
+        assert!(summary.summary_line().contains(&format!(
+            "Alias uniqueness checks: house={} aliases, ayanamsa={} aliases; exact and case-insensitive labels verified",
+            summary.house_system_alias_count,
+            summary.ayanamsa_alias_count
         )));
         assert!(summary
             .summary_line()
@@ -19609,6 +19675,16 @@ mod tests {
         assert!(error
             .message
             .contains("release ayanamsa canonical names mismatch"));
+
+        let mut summary = compatibility_profile_verification_summary()
+            .expect("compatibility profile verification summary should render");
+        summary.house_system_alias_count = 0;
+
+        let error = summary
+            .validate()
+            .expect_err("stale house-system alias count should fail validation");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error.message.contains("house-system alias count mismatch"));
 
         let mut summary = compatibility_profile_verification_summary()
             .expect("compatibility profile verification summary should render");
@@ -19685,6 +19761,16 @@ mod tests {
             .expect_err("stale release posture should fail validation");
         assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
         assert!(error.message.contains("release posture mismatch"));
+
+        let mut summary = compatibility_profile_verification_summary()
+            .expect("compatibility profile verification summary should render");
+        summary.ayanamsa_alias_count = 0;
+
+        let error = summary
+            .validate()
+            .expect_err("stale ayanamsa alias count should fail validation");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error.message.contains("ayanamsa alias count mismatch"));
 
         let mut summary = compatibility_profile_verification_summary()
             .expect("compatibility profile verification summary should render");
