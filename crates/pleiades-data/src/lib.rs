@@ -3927,7 +3927,7 @@ mod tests {
             .encode()
             .expect("generated packaged artifact should encode");
         assert_eq!(encoded, PACKAGED_ARTIFACT_FIXTURE);
-        assert_eq!(generated.residual_segment_count(), 10);
+        assert_eq!(generated.residual_segment_count(), 11);
         assert_eq!(generated.residual_bodies(), vec![CelestialBody::Moon]);
     }
 
@@ -4046,7 +4046,7 @@ mod tests {
             assert!((ecliptic.distance_au.unwrap() - expected.distance_au.unwrap()).abs() < 1e-12);
         }
 
-        assert_eq!(packaged_artifact().residual_segment_count(), 10);
+        assert_eq!(packaged_artifact().residual_segment_count(), 11);
         assert_eq!(
             packaged_artifact().residual_bodies(),
             vec![CelestialBody::Moon]

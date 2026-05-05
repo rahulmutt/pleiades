@@ -16,7 +16,7 @@ Current implementation status shows:
 - chart APIs preserve the distinction between house observers and body observers and provide caller-supplied UTC/UT1/TT/TDB offset helpers, but built-in Delta T/UTC conversion policy remains a release decision;
 - `pleiades-vsop87` is source-backed for Sun through Neptune via generated VSOP87B tables; Pluto remains an explicitly approximate mean-elements fallback;
 - `pleiades-elp` is a compact Meeus-style lunar baseline with validation evidence for supported lunar channels, not a full ELP coefficient implementation;
-- `pleiades-jpl` is a checked-in JPL Horizons snapshot/hold-out fixture backend with provenance and selected asteroid evidence, including a new 2451915.25/2451915.75 high-curvature hold-out window for Sun, Moon, Mercury, and Venus plus a follow-on 2451916.0 interior reference slice, not a broad production reader/corpus;
+- `pleiades-jpl` is a checked-in JPL Horizons snapshot/hold-out fixture backend with provenance and selected asteroid evidence, including a new 2451915.25/2451915.75 high-curvature hold-out window for Sun, Moon, Mercury, and Venus plus a follow-on 2451917.0 interior reference slice, not a broad production reader/corpus;
 - `pleiades-data` ships a deterministic prototype artifact with codec/profile/checksum/regeneration support, and the checked-in fixture was regenerated after the latest reference-snapshot expansion, but it is not yet a production 1500-2500 CE artifact and current fit posture is not release-grade;
 - house and ayanamsa catalogs are broad, but not every release-advertised entry has independent formula/provenance/reference evidence sufficient for full interoperability claims;
 - release-bundle generation and verification exist, and validation/report surfaces now classify evidence as release-tolerance, hold-out, fixture exactness, or provenance-only; final release gates still need to be rerun over production accuracy evidence, production artifacts, and truthful compatibility profiles.
@@ -44,7 +44,7 @@ Next, implement another small, reviewable reference-coverage slice:
 
 Completed this slice:
 
-- added a 2451916.0 interior reference expansion to the JPL comparison/reference corpus;
+- added a 2451917.0 interior reference expansion to the JPL comparison/reference corpus;
 - regenerated the packaged-artifact fixture to match the refreshed reference snapshot;
 - updated the downstream summary/report expectations and validation tests.
 

@@ -8,7 +8,7 @@ This file lists focused implementation slices that map to the current phase ladd
 
 - Early boundary coverage for Sun, Moon, Mercury, and Venus at 1500-01-01 is now checked in.
 - A 2451915.25/2451915.75 high-curvature hold-out window for Sun, Moon, Mercury, and Venus is now checked in.
-- A 2451916.0 interior reference slice is now checked in, and the packaged-artifact fixture was regenerated to match it.
+- A 2451917.0 interior reference slice is now checked in, and the packaged-artifact fixture was regenerated to match it.
 - Add the next small set of source/reference rows at another target-range boundary or representative interior epoch.
 - Keep hold-out rows separate from fitting/reference rows.
 - Update validation reports to classify evidence as release-tolerance, hold-out, fixture exactness, or provenance-only.
