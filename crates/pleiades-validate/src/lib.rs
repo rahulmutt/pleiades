@@ -8181,6 +8181,8 @@ pub fn render_release_bundle(
     let comparison_envelope_summary_path = output_dir.join("comparison-envelope-summary.txt");
     let comparison_corpus_release_guard_summary_path =
         output_dir.join("comparison-corpus-release-guard-summary.txt");
+    let comparison_corpus_guard_summary_path =
+        output_dir.join("comparison-corpus-guard-summary.txt");
     let reference_holdout_overlap_summary_path =
         output_dir.join("reference-holdout-overlap-summary.txt");
     let catalog_inventory_summary_path = output_dir.join("catalog-inventory-summary.txt");
@@ -8323,6 +8325,10 @@ pub fn render_release_bundle(
     )?;
     fs::write(
         &comparison_corpus_release_guard_summary_path,
+        comparison_corpus_release_guard_summary_text.as_bytes(),
+    )?;
+    fs::write(
+        &comparison_corpus_guard_summary_path,
         comparison_corpus_release_guard_summary_text.as_bytes(),
     )?;
     fs::write(
@@ -8768,6 +8774,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
         "comparison-envelope-summary.txt",
         "benchmark-corpus-summary.txt",
         "comparison-corpus-release-guard-summary.txt",
+        "comparison-corpus-guard-summary.txt",
         "reference-holdout-overlap-summary.txt",
         "catalog-inventory-summary.txt",
         "custom-definition-ayanamsa-labels-summary.txt",
@@ -8978,6 +8985,8 @@ fn verify_release_bundle(
     let comparison_envelope_summary_path = output_dir.join("comparison-envelope-summary.txt");
     let comparison_corpus_release_guard_summary_path =
         output_dir.join("comparison-corpus-release-guard-summary.txt");
+    let comparison_corpus_guard_summary_path =
+        output_dir.join("comparison-corpus-guard-summary.txt");
     let reference_holdout_overlap_summary_path =
         output_dir.join("reference-holdout-overlap-summary.txt");
     let catalog_inventory_summary_path = output_dir.join("catalog-inventory-summary.txt");
@@ -9031,6 +9040,10 @@ fn verify_release_bundle(
         (
             &comparison_corpus_release_guard_summary_path,
             "comparison-corpus release-guard summary",
+        ),
+        (
+            &comparison_corpus_guard_summary_path,
+            "comparison-corpus guard summary alias",
         ),
         (
             &reference_holdout_overlap_summary_path,
@@ -21100,6 +21113,9 @@ version = "0.9.0"
             .join("compatibility-caveats-summary.txt")
             .exists());
         assert!(bundle_dir.join("catalog-inventory-summary.txt").exists());
+        assert!(bundle_dir
+            .join("comparison-corpus-guard-summary.txt")
+            .exists());
         assert!(bundle_dir
             .join("custom-definition-ayanamsa-labels-summary.txt")
             .exists());
