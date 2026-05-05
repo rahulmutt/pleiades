@@ -1868,6 +1868,9 @@ mod tests {
             .expect("benchmark corpus summary should render");
         assert!(benchmark_corpus.contains("Benchmark corpus summary"));
         assert!(benchmark_corpus.contains("name: Representative 1500-2500 window"));
+        assert!(benchmark_corpus.contains("epoch labels: JD 2268559.0 (TT)"));
+        assert!(benchmark_corpus.contains("JD 2451545.0 (TT)"));
+        assert!(benchmark_corpus.contains("JD 2634532.0 (TT)"));
         assert_eq!(
             benchmark_corpus,
             validate_render_cli(&["benchmark-corpus-summary"])

@@ -25106,10 +25106,27 @@ version = "0.9.0"
             "comparison-envelope does not accept extra arguments"
         );
 
+        let benchmark_corpus = benchmark_corpus();
+        let benchmark_summary = benchmark_corpus.summary();
+        assert_eq!(benchmark_summary.epoch_count, 11);
+        assert_eq!(benchmark_summary.earliest_julian_day, 2_268_559.0);
+        assert_eq!(benchmark_summary.latest_julian_day, 2_634_532.0);
+        assert!(benchmark_summary
+            .epochs
+            .iter()
+            .any(|instant| instant.julian_day.days() == 2_451_545.0));
+        assert!(benchmark_summary
+            .epochs
+            .iter()
+            .any(|instant| instant.julian_day.days() == 2_634_167.0));
+
         let benchmark = render_cli(&["benchmark-corpus-summary"])
             .expect("benchmark corpus summary should render");
         assert!(benchmark.contains("Benchmark corpus summary"));
         assert!(benchmark.contains("name: Representative 1500-2500 window"));
+        assert!(benchmark.contains("epoch labels: JD 2268559.0 (TT)"));
+        assert!(benchmark.contains("JD 2451545.0 (TT)"));
+        assert!(benchmark.contains("JD 2634532.0 (TT)"));
         assert_eq!(benchmark, render_benchmark_corpus_summary_text());
     }
 
