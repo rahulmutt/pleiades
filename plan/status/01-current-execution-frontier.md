@@ -49,6 +49,7 @@ Next, implement another small, reviewable slice:
 The following can proceed without blocking Phase 1:
 
 - house/ayanamsa formula, alias, latitude, and custom-definition audits;
+- custom-definition ayanamsa example coverage for the ad hoc labels True Balarama, Aphoric, and Takra;
 - documentation cleanup for already-explicit request policy and known gaps;
 - artifact-profile metadata hardening that does not claim production fit accuracy;
 - release-bundle smoke-test maintenance that keeps existing rehearsal tooling accurate.

@@ -3064,18 +3064,24 @@ mod tests {
 
     #[test]
     fn custom_ayanamsa_uses_explicit_epoch_and_offset_metadata() {
-        let custom = Ayanamsa::Custom(CustomAyanamsa {
-            name: "True Balarama".to_owned(),
-            description: Some("Custom label for a non-built-in sidereal variant".to_owned()),
-            epoch: Some(JulianDay::from_days(2_451_545.0)),
-            offset_degrees: Some(Angle::from_degrees(12.5)),
-        });
-        let instant = Instant::new(
-            JulianDay::from_days(2_451_545.0),
-            pleiades_types::TimeScale::Tt,
-        );
+        for (name, offset_degrees) in [
+            ("True Balarama", 12.5),
+            ("Aphoric", -3.25),
+            ("Takra", 0.125),
+        ] {
+            let custom = Ayanamsa::Custom(CustomAyanamsa {
+                name: name.to_owned(),
+                description: Some("Custom label for a non-built-in sidereal variant".to_owned()),
+                epoch: Some(JulianDay::from_days(2_451_545.0)),
+                offset_degrees: Some(Angle::from_degrees(offset_degrees)),
+            });
+            let instant = Instant::new(
+                JulianDay::from_days(2_451_545.0),
+                pleiades_types::TimeScale::Tt,
+            );
 
-        let offset = sidereal_offset(&custom, instant).expect("custom offset should exist");
-        assert_eq!(offset, Angle::from_degrees(12.5));
+            let offset = sidereal_offset(&custom, instant).expect("custom offset should exist");
+            assert_eq!(offset, Angle::from_degrees(offset_degrees));
+        }
     }
 }

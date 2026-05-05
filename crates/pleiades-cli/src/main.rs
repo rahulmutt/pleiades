@@ -5372,36 +5372,49 @@ mod tests {
 
     #[test]
     fn chart_command_accepts_custom_ayanamsa_definitions() {
-        let rendered = render_chart(&[
-            "--jd",
-            "2451545.0",
-            "--ayanamsa",
-            "custom:True Balarama|2451545.0|12.5",
-            "--body",
-            "Sun",
-        ])
-        .expect("custom ayanamsa chart should render");
+        for (label, offset) in [
+            ("True Balarama", 12.5),
+            ("Aphoric", -3.25),
+            ("Takra", 0.125),
+        ] {
+            let ayanamsa = format!("custom:{label}|2451545.0|{offset}");
+            let rendered = render_chart(&[
+                "--jd",
+                "2451545.0",
+                "--ayanamsa",
+                &ayanamsa,
+                "--body",
+                "Sun",
+            ])
+            .expect("custom ayanamsa chart should render");
 
-        assert!(rendered.contains("Sidereal"));
-        assert!(rendered.contains("True Balarama"));
-        assert!(rendered.contains("12.5"));
-        assert!(rendered.contains("Custom ayanamsa definition supplied via the CLI"));
+            assert!(rendered.contains("Sidereal"));
+            assert!(rendered.contains(label));
+            assert!(rendered.contains(&offset.to_string()));
+            assert!(rendered.contains("Custom ayanamsa definition supplied via the CLI"));
+        }
     }
 
     #[test]
     fn parse_ayanamsa_accepts_custom_definition_labels() {
-        let custom = parse_ayanamsa("custom-definition:True Balarama|2451545.0|12.5")
-            .expect("custom ayanamsa should parse");
+        for (label, offset) in [
+            ("True Balarama", 12.5),
+            ("Aphoric", -3.25),
+            ("Takra", 0.125),
+        ] {
+            let definition = format!("custom-definition:{label}|2451545.0|{offset}");
+            let custom = parse_ayanamsa(&definition).expect("custom ayanamsa should parse");
 
-        assert_eq!(
-            custom,
-            Ayanamsa::Custom(CustomAyanamsa {
-                name: "True Balarama".to_owned(),
-                description: Some("Custom ayanamsa definition supplied via the CLI".to_owned()),
-                epoch: Some(JulianDay::from_days(2_451_545.0)),
-                offset_degrees: Some(Angle::from_degrees(12.5)),
-            })
-        );
+            assert_eq!(
+                custom,
+                Ayanamsa::Custom(CustomAyanamsa {
+                    name: label.to_owned(),
+                    description: Some("Custom ayanamsa definition supplied via the CLI".to_owned()),
+                    epoch: Some(JulianDay::from_days(2_451_545.0)),
+                    offset_degrees: Some(Angle::from_degrees(offset)),
+                })
+            );
+        }
     }
 
     #[test]
