@@ -30,7 +30,7 @@ The repository currently provides:
 - backend traits, metadata validation, batch APIs, routing/composite helpers, and structured unsupported-mode errors;
 - a high-level chart façade with sidereal conversion, house calculation, sign/house placement, aspects, summaries, and request-shape diagnostics;
 - broad built-in house and ayanamsa catalogs, aliases, descriptor validation, compatibility-profile generation, and release-facing summaries;
-- `pleiades-vsop87` with generated public VSOP87B tables for Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, and Neptune; Pluto remains an explicitly approximate fallback;
+- `pleiades-vsop87` with generated public VSOP87B tables for Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, and Neptune; Pluto remains an explicitly approximate fallback excluded from release-grade major-body claims;
 - `pleiades-elp` with a compact Meeus-style lunar baseline for Moon, mean/true node, and mean apogee/perigee, with true apogee/perigee unsupported;
 - `pleiades-jpl` with checked-in JPL Horizons snapshot/hold-out fixtures, new 1500-01-01 early-boundary coverage for Sun, Moon, Mercury, and Venus, an added 2451915.25/2451915.75 high-curvature hold-out window for Sun, Moon, Mercury, and Venus, a 2451920.5 interior reference slice, selected asteroid rows, interpolation transparency evidence, provenance summaries, and validation helpers; it is not yet a broad production JPL reader/corpus;
 - `pleiades-compression` and `pleiades-data` with codec validation, profile metadata, checksums, residual support, a deterministic prototype artifact, regeneration helpers, and packaged lookup behavior; the checked-in fixture tracks the current reference-snapshot slice, but the artifact is not yet a production 1500-2500 CE data product;
@@ -40,7 +40,7 @@ The repository currently provides:
 
 The open work is concentrated in five areas:
 
-1. **Reference-grade ephemeris evidence** — broaden source/reference coverage, resolve or downgrade Pluto for release claims, decide the lunar source posture, and publish body-class tolerances.
+1. **Reference-grade ephemeris evidence** — broaden source/reference coverage, keep Pluto explicitly approximate unless a source-backed path is later validated, decide the lunar source posture, and publish body-class tolerances.
 2. **Request and time semantics** — either implement or explicitly defer built-in Delta T/UTC convenience, apparent-place corrections, topocentric body positions, native sidereal backend output, and final frame precision policy.
 3. **Production compressed artifacts** — replace the prototype packaged artifact with a reproducible 1500-2500 CE artifact generated from validated public inputs and measured against published error thresholds.
 4. **Compatibility catalog evidence** — complete house and ayanamsa formula/provenance audits, alias checks, latitude/numerical failure-mode coverage, custom-definition posture, and truthful release-profile claims.
@@ -67,7 +67,7 @@ The open work is concentrated in five areas:
 
 | Phase | Status | Summary |
 | --- | --- | --- |
-| 1. Reference accuracy and request semantics | Active | Prioritize production-suitable reference coverage, Pluto/lunar release posture, and final request/time semantics decisions. |
+| 1. Reference accuracy and request semantics | Active | Prioritize production-suitable reference coverage, explicit Pluto posture, lunar release posture, and final request/time semantics decisions. |
 | 2. Production compressed artifacts | Queued, prototype groundwork landed | Begins once Phase 1 provides trusted generation inputs and tolerance thresholds. |
 | 3. Compatibility evidence and catalog truthfulness | Parallelizable | Formula/provenance audits and release-profile truthfulness can advance alongside Phase 1. |
 | 4. Release hardening and publication | Queued, rehearsal tooling landed | Finalizes gates and bundles after accuracy, artifact, and catalog evidence are current. |

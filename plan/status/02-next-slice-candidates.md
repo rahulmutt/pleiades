@@ -13,19 +13,13 @@ This file lists focused implementation slices that map to the current phase ladd
 - Keep hold-out rows separate from fitting/reference rows.
 - Update validation reports to classify evidence as release-tolerance, hold-out, fixture exactness, or provenance-only.
 
-### 3. Pluto release-claim closure
-
-- Either add a source-backed Pluto path with validation across the claimed range or keep Pluto explicitly approximate.
-- Ensure comparison/tolerance reports exclude approximate Pluto from release-grade major-body claims unless thresholds are met.
-- Keep backend metadata, compatibility/release summaries, and docs synchronized with the chosen posture.
-
-### 4. Lunar source posture decision
+### 3. Lunar source posture decision
 
 - Decide compact lunar baseline versus fuller ELP-style coefficient implementation for the first release.
 - If compact baseline remains, publish measured limitations and error envelopes by lunar channel.
 - If expanding to coefficient data, add pure-Rust ingestion/evaluation, provenance, validation, and tests.
 
-### 5. Request/time semantics closure
+### 4. Request/time semantics closure
 
 - Decide first-release behavior for built-in Delta T and UTC/UT1 convenience conversion.
 - Decide whether apparent-place corrections and topocentric body positions are implemented or explicitly deferred.

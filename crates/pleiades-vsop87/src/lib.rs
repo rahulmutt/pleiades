@@ -846,9 +846,9 @@ pub struct Vsop87SourceDocumentationSummary {
     pub generated_binary_profile_count: usize,
     /// Number of truncated-slice body profiles.
     pub truncated_profile_count: usize,
-    /// Number of fallback mean-element body profiles.
+    /// Number of approximate fallback mean-element body profiles.
     pub fallback_profile_count: usize,
-    /// Bodies that still use the fallback mean-element path.
+    /// Bodies that still use the approximate fallback mean-element path.
     pub fallback_bodies: Vec<CelestialBody>,
     /// Unique date-range notes carried by the source specifications.
     pub date_ranges: Vec<&'static str>,
@@ -1156,9 +1156,9 @@ pub struct Vsop87SourceDocumentationHealthSummary {
     pub vendored_full_file_profile_count: usize,
     /// Number of truncated-slice body profiles.
     pub truncated_profile_count: usize,
-    /// Number of fallback mean-element body profiles.
+    /// Number of approximate fallback mean-element body profiles.
     pub fallback_profile_count: usize,
-    /// Bodies that still use the fallback mean-element path.
+    /// Bodies that still use the approximate fallback mean-element path.
     pub fallback_bodies: Vec<CelestialBody>,
 }
 
@@ -3299,16 +3299,18 @@ pub fn format_source_documentation_summary(summary: &Vsop87SourceDocumentationSu
     } else {
         format_celestial_bodies(&summary.truncated_bodies)
     };
+    let fallback_profile_label = if summary.fallback_profile_count == 1 {
+        "approximate fallback mean-element body profile"
+    } else {
+        "approximate fallback mean-element body profiles"
+    };
+
     format!(
-        "VSOP87 source documentation: {} source specs, {} source-backed body profiles, {} fallback mean-element body profile{} ({}); source-backed bodies: {}; source files: {}; source-backed breakdown: {} generated binary bodies ({}), {} vendored full-file bodies ({}), {} truncated slice bodies ({}); date ranges: {}",
+        "VSOP87 source documentation: {} source specs, {} source-backed body profiles, {} {} ({}); source-backed bodies: {}; source files: {}; source-backed breakdown: {} generated binary bodies ({}), {} vendored full-file bodies ({}), {} truncated slice bodies ({}); date ranges: {}",
         summary.source_specification_count,
         summary.source_backed_profile_count,
         summary.fallback_profile_count,
-        if summary.fallback_profile_count == 1 {
-            ""
-        } else {
-            "s"
-        },
+        fallback_profile_label,
         fallback_bodies,
         source_backed_bodies,
         source_files,
@@ -3387,7 +3389,7 @@ pub fn format_source_documentation_health_summary(
     };
 
     format!(
-        "VSOP87 source documentation health: {} ({} source specs, {} source files, {} source-backed profiles, {} body profiles; {} generated binary profiles ({}), {} vendored full-file profiles ({}), {} truncated profiles ({}), {} fallback profiles ({}); source files: {}; source-backed order: {}; source-backed partition order: {}; fallback order: {}; documented fields: {}){}",
+        "VSOP87 source documentation health: {} ({} source specs, {} source files, {} source-backed profiles, {} body profiles; {} generated binary profiles ({}), {} vendored full-file profiles ({}), {} truncated profiles ({}), {} approximate fallback profiles ({}); source files: {}; source-backed order: {}; source-backed partition order: {}; fallback order: {}; documented fields: {}){}",
         if summary.consistent { "ok" } else { "needs attention" },
         summary.source_specification_count,
         summary.source_file_count,
@@ -10960,7 +10962,7 @@ mod tests {
         assert_eq!(summary.fallback_bodies, vec![CelestialBody::Pluto]);
         assert_eq!(
             format_source_documentation_health_summary(&summary),
-            "VSOP87 source documentation health: ok (8 source specs, 8 source files, 8 source-backed profiles, 9 body profiles; 8 generated binary profiles (Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune), 0 vendored full-file profiles (none), 0 truncated profiles (none), 1 fallback profiles (Pluto); source files: VSOP87B.ear, VSOP87B.mer, VSOP87B.ven, VSOP87B.mar, VSOP87B.jup, VSOP87B.sat, VSOP87B.ura, VSOP87B.nep; source-backed order: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; source-backed partition order: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; fallback order: Pluto; documented fields: variant, coordinate family, frame, units, reduction, transform note, truncation policy, and date range)"
+            "VSOP87 source documentation health: ok (8 source specs, 8 source files, 8 source-backed profiles, 9 body profiles; 8 generated binary profiles (Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune), 0 vendored full-file profiles (none), 0 truncated profiles (none), 1 approximate fallback profiles (Pluto); source files: VSOP87B.ear, VSOP87B.mer, VSOP87B.ven, VSOP87B.mar, VSOP87B.jup, VSOP87B.sat, VSOP87B.ura, VSOP87B.nep; source-backed order: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; source-backed partition order: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; fallback order: Pluto; documented fields: variant, coordinate family, frame, units, reduction, transform note, truncation policy, and date range)"
         );
         assert_eq!(
             source_documentation_health_summary_for_report(),
@@ -10996,7 +10998,7 @@ mod tests {
 
         assert_eq!(
             format_source_documentation_health_summary(&summary),
-            "VSOP87 source documentation health: needs attention (1 source specs, 2 source files, 1 source-backed profiles, 2 body profiles; 1 generated binary profiles (Sun), 0 vendored full-file profiles (none), 0 truncated profiles (none), 1 fallback profiles (Pluto); source files: VSOP87B.ear; source-backed order: Sun; source-backed partition order: Sun; fallback order: Pluto; documented fields: needs attention); issues: source specification/file count mismatch, documented field mismatch"
+            "VSOP87 source documentation health: needs attention (1 source specs, 2 source files, 1 source-backed profiles, 2 body profiles; 1 generated binary profiles (Sun), 0 vendored full-file profiles (none), 0 truncated profiles (none), 1 approximate fallback profiles (Pluto); source files: VSOP87B.ear; source-backed order: Sun; source-backed partition order: Sun; fallback order: Pluto; documented fields: needs attention); issues: source specification/file count mismatch, documented field mismatch"
         );
         let error = summary
             .validate()
@@ -11006,7 +11008,7 @@ mod tests {
         assert_eq!(error.to_string(), summary.summary_line());
         assert_eq!(
             format_validated_source_documentation_health_summary_for_report(&summary),
-            "VSOP87 source documentation health: unavailable (VSOP87 source documentation health: needs attention (1 source specs, 2 source files, 1 source-backed profiles, 2 body profiles; 1 generated binary profiles (Sun), 0 vendored full-file profiles (none), 0 truncated profiles (none), 1 fallback profiles (Pluto); source files: VSOP87B.ear; source-backed order: Sun; source-backed partition order: Sun; fallback order: Pluto; documented fields: needs attention); issues: source specification/file count mismatch, documented field mismatch)"
+            "VSOP87 source documentation health: unavailable (VSOP87 source documentation health: needs attention (1 source specs, 2 source files, 1 source-backed profiles, 2 body profiles; 1 generated binary profiles (Sun), 0 vendored full-file profiles (none), 0 truncated profiles (none), 1 approximate fallback profiles (Pluto); source files: VSOP87B.ear; source-backed order: Sun; source-backed partition order: Sun; fallback order: Pluto; documented fields: needs attention); issues: source specification/file count mismatch, documented field mismatch)"
         );
     }
 

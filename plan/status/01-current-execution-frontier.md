@@ -14,7 +14,7 @@ Current implementation status shows:
 - the backend trait, metadata, batch APIs, composite/routing helpers, chart façade, compatibility profiles, and validation/report commands are in place;
 - first-party backend request policy is explicit: mean geometric, tropical, geocentric TT/TDB requests are supported; unsupported time scales, apparent-place requests, topocentric body-position requests, and native sidereal backend requests fail with structured errors;
 - chart APIs preserve the distinction between house observers and body observers and provide caller-supplied UTC/UT1/TT/TDB offset helpers, but built-in Delta T/UTC conversion policy remains a release decision;
-- `pleiades-vsop87` is source-backed for Sun through Neptune via generated VSOP87B tables; Pluto remains an explicitly approximate mean-elements fallback;
+- `pleiades-vsop87` is source-backed for Sun through Neptune via generated VSOP87B tables; Pluto remains an explicitly approximate mean-elements fallback excluded from release-grade major-body claims;
 - `pleiades-elp` is a compact Meeus-style lunar baseline with validation evidence for supported lunar channels, not a full ELP coefficient implementation;
 - `pleiades-jpl` is a checked-in JPL Horizons snapshot/hold-out fixture backend with provenance and selected asteroid evidence, including a new 2451915.25/2451915.75 high-curvature hold-out window for Sun, Moon, Mercury, and Venus plus a 2451920.5 interior reference slice, not a broad production reader/corpus;
 - `pleiades-data` ships a deterministic prototype artifact with codec/profile/checksum/regeneration support, and the checked-in fixture tracks the current reference-snapshot slice, but it is not yet a production 1500-2500 CE artifact and current fit posture is not release-grade;
@@ -28,7 +28,7 @@ Phase 2 production artifacts require trusted generation inputs and target thresh
 ## Immediate blockers
 
 1. **Reference corpus breadth** — The production-generation input path is now explicitly documented as the checked-in CSV fixture pair; expand or replace fixture evidence with production-suitable public source/reference data for validation and artifact fitting.
-2. **Pluto release posture** — Either source-back Pluto within release thresholds or keep it visibly approximate and excluded from release-grade major-body claims.
+2. **Pluto release posture** — Pluto is now visibly approximate and excluded from release-grade major-body claims; a source-backed path remains optional if future release claims need it.
 3. **Lunar release posture** — Decide whether the first release ships the compact lunar baseline with measured limitations or implements fuller ELP-style coefficient support.
 4. **Advanced request semantics** — Decide whether built-in Delta T/UTC conversion, apparent corrections, topocentric body positions, and native sidereal backend output are implemented now or explicitly deferred.
 
@@ -42,7 +42,7 @@ Next, implement another small, reviewable slice:
 
 - keep hold-out rows separate from fitting/reference rows;
 - update the relevant backend metadata/report summaries and tests without broadening release claims prematurely;
-- if no further reference row expansion is needed, advance the Pluto or request/time-semantics closures.
+- if no further reference row expansion is needed, advance the request/time-semantics closure.
 
 ## Parallel safe work
 

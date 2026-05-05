@@ -32,8 +32,7 @@ Implemented and not re-planned here:
 ### 1. Establish release-grade body claims
 
 - Decide the first release's body claim set by backend and body class.
-- Keep Pluto as an explicitly approximate fallback unless a source-backed pure-Rust path is validated for the claimed range and tolerance.
-- Ensure any approximate or fixture-only path is excluded from release-grade accuracy claims unless evidence supports it.
+- Keep Pluto as an explicitly approximate fallback and exclude it from release-grade accuracy claims unless a source-backed pure-Rust path is validated for the claimed range and tolerance.
 - Publish body-class tolerances and validation status for all advertised release-grade bodies.
 
 ### 2. Broaden reference/source coverage
