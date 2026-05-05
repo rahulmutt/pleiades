@@ -168,7 +168,9 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("comparison-snapshot-source-window") => validate_render_cli(args),
         Some("comparison-snapshot-body-class-coverage-summary")
         | Some("comparison-body-class-coverage-summary") => validate_render_cli(args),
-        Some("comparison-snapshot-manifest-summary") => validate_render_cli(args),
+        Some("comparison-snapshot-manifest-summary") | Some("comparison-snapshot-manifest") => {
+            validate_render_cli(args)
+        }
         Some("comparison-snapshot") => {
             ensure_no_extra_args(&args[1..], "comparison-snapshot")?;
             Ok(format!(
@@ -203,7 +205,9 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         | Some("2451917-major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-body-class-coverage-summary")
         | Some("reference-body-class-coverage-summary") => validate_render_cli(args),
-        Some("reference-snapshot-manifest-summary") => validate_render_cli(args),
+        Some("reference-snapshot-manifest-summary") | Some("reference-snapshot-manifest") => {
+            validate_render_cli(args)
+        }
         Some("reference-snapshot") => {
             ensure_no_extra_args(&args[1..], "reference-snapshot")?;
             Ok(format!(
@@ -2552,6 +2556,16 @@ mod tests {
             comparison_snapshot_manifest_summary,
             pleiades_jpl::comparison_snapshot_manifest_summary_for_report()
         );
+        assert_eq!(
+            render_cli(&["comparison-snapshot-manifest"])
+                .expect("comparison snapshot manifest alias should render"),
+            comparison_snapshot_manifest_summary
+        );
+        assert_eq!(
+            render_cli(&["comparison-snapshot-manifest", "extra"])
+                .expect_err("comparison snapshot manifest alias should reject extra arguments"),
+            "comparison-snapshot-manifest does not accept extra arguments"
+        );
         let comparison_snapshot_summary = render_cli(&["comparison-snapshot-summary"])
             .expect("comparison snapshot summary should render");
         assert!(comparison_snapshot_summary.contains("Comparison snapshot summary"));
@@ -2591,6 +2605,16 @@ mod tests {
         assert_eq!(
             reference_snapshot_manifest_summary,
             pleiades_jpl::reference_snapshot_manifest_summary_for_report()
+        );
+        assert_eq!(
+            render_cli(&["reference-snapshot-manifest"])
+                .expect("reference snapshot manifest alias should render"),
+            reference_snapshot_manifest_summary
+        );
+        assert_eq!(
+            render_cli(&["reference-snapshot-manifest", "extra"])
+                .expect_err("reference snapshot manifest alias should reject extra arguments"),
+            "reference-snapshot-manifest does not accept extra arguments"
         );
         let reference_snapshot_source_summary = render_cli(&["reference-snapshot-source-summary"])
             .expect("reference snapshot source summary should render");
@@ -4726,6 +4750,9 @@ mod tests {
             "comparison-snapshot-manifest-summary  Print the compact comparison snapshot manifest summary"
         ));
         assert!(help.contains(
+            "comparison-snapshot-manifest  Alias for comparison-snapshot-manifest-summary"
+        ));
+        assert!(help.contains(
             "independent-holdout-batch-parity-summary  Print the compact independent hold-out batch parity summary"
         ));
         assert!(help.contains(
@@ -4743,6 +4770,9 @@ mod tests {
         ));
         assert!(help.contains(
             "reference-snapshot-manifest-summary  Print the compact reference snapshot manifest summary"
+        ));
+        assert!(help.contains(
+            "reference-snapshot-manifest  Alias for reference-snapshot-manifest-summary"
         ));
         assert!(help.contains("reference-snapshot         Alias for reference-snapshot-summary"));
         assert!(help.contains(
