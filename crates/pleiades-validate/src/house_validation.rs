@@ -322,6 +322,26 @@ impl HouseValidationReport {
         (north, south, equatorial)
     }
 
+    /// Returns the number of scenarios whose observer longitudes fall on or off the prime meridian.
+    ///
+    /// `Longitude` values are normalized into `[0, 360)`, so the report can only
+    /// distinguish prime-meridian samples from non-prime-meridian samples.
+    pub fn longitude_coverage(&self) -> (usize, usize) {
+        let mut prime_meridian = 0;
+        let mut non_prime_meridian = 0;
+
+        for scenario in &self.scenarios {
+            let longitude = scenario.observer.longitude.degrees();
+            if longitude == 0.0 {
+                prime_meridian += 1;
+            } else {
+                non_prime_meridian += 1;
+            }
+        }
+
+        (prime_meridian, non_prime_meridian)
+    }
+
     /// Returns the scenario labels represented by the report.
     pub fn scenario_labels(&self) -> Vec<&'static str> {
         self.scenarios
@@ -338,8 +358,9 @@ impl HouseValidationReport {
         let scenario_labels = self.scenario_labels();
         let (north_hemispheres, south_hemispheres, equatorial_hemispheres) =
             self.hemisphere_coverage();
+        let (prime_meridian_longitudes, non_prime_meridian_longitudes) = self.longitude_coverage();
         format!(
-            "House validation corpus: {} scenarios ({}), {} samples, {} successes, {} failures; hemisphere coverage: north={}, south={}, equatorial={}; formula families: {}; latitude-sensitive systems: {}; constraints: {}; implementation posture: {} {} systems validated",
+            "House validation corpus: {} scenarios ({}), {} samples, {} successes, {} failures; hemisphere coverage: north={}, south={}, equatorial={}; longitude coverage: prime-meridian={}, non-prime-meridian={}; formula families: {}; latitude-sensitive systems: {}; constraints: {}; implementation posture: {} {} systems validated",
             self.scenarios.len(),
             if scenario_labels.is_empty() {
                 "none".to_string()
@@ -352,6 +373,8 @@ impl HouseValidationReport {
             north_hemispheres,
             south_hemispheres,
             equatorial_hemispheres,
+            prime_meridian_longitudes,
+            non_prime_meridian_longitudes,
             if formula_families.is_empty() {
                 "none".to_string()
             } else {
@@ -574,6 +597,7 @@ mod tests {
             ]
         );
         assert_eq!(report.hemisphere_coverage(), (5, 3, 1));
+        assert_eq!(report.longitude_coverage(), (2, 7));
         assert_eq!(
             report.scenario_labels(),
             vec![
@@ -601,7 +625,7 @@ mod tests {
         );
         assert_eq!(
             report.summary_line(),
-            "House validation corpus: 9 scenarios (Mid-latitude reference chart, Western hemisphere reference chart, Equatorial reference chart, Polar stress chart, Northern high-latitude stress chart, Northern high-latitude mountain stress chart, Southern high-latitude mountain stress chart, Southern polar stress chart, Southern hemisphere reference chart), 108 samples, 108 successes, 0 failures; hemisphere coverage: north=5, south=3, equatorial=1; formula families: Equal, Whole Sign, Quadrant, Equatorial projection; latitude-sensitive systems: Koch, Placidus, Topocentric; constraints: Koch [Quadrant system with documented high-latitude pathologies.], Placidus [Quadrant system; can fail or become unstable at extreme latitudes.], Topocentric [Topocentric (Polich-Page) house system with geodetic-to-geocentric latitude correction.]; implementation posture: 12 baseline systems validated"
+            "House validation corpus: 9 scenarios (Mid-latitude reference chart, Western hemisphere reference chart, Equatorial reference chart, Polar stress chart, Northern high-latitude stress chart, Northern high-latitude mountain stress chart, Southern high-latitude mountain stress chart, Southern polar stress chart, Southern hemisphere reference chart), 108 samples, 108 successes, 0 failures; hemisphere coverage: north=5, south=3, equatorial=1; longitude coverage: prime-meridian=2, non-prime-meridian=7; formula families: Equal, Whole Sign, Quadrant, Equatorial projection; latitude-sensitive systems: Koch, Placidus, Topocentric; constraints: Koch [Quadrant system with documented high-latitude pathologies.], Placidus [Quadrant system; can fail or become unstable at extreme latitudes.], Topocentric [Topocentric (Polich-Page) house system with geodetic-to-geocentric latitude correction.]; implementation posture: 12 baseline systems validated"
         );
         assert_eq!(
             house_validation_summary_line_for_report(&report),
@@ -669,7 +693,7 @@ mod tests {
         );
         assert_eq!(
             report.summary_line(),
-            "House validation corpus: 9 scenarios (Mid-latitude reference chart, Western hemisphere reference chart, Equatorial reference chart, Polar stress chart, Northern high-latitude stress chart, Northern high-latitude mountain stress chart, Southern high-latitude mountain stress chart, Southern polar stress chart, Southern hemisphere reference chart), 225 samples, 225 successes, 0 failures; hemisphere coverage: north=5, south=3, equatorial=1; formula families: Equal, Whole Sign, Quadrant, Equatorial projection, Great-circle, Solar arc, Sector; latitude-sensitive systems: APC, Gauquelin sectors, Horizon/Azimuth, Koch, Krusinski-Pisa-Goelzer, Placidus, Sunshine, Topocentric; constraints: APC [APC (Ram school) houses with non-opposite quadrant pairs and polar adjustments.], Gauquelin sectors [Thirty-six sectors used by the Gauquelin-sector family.], Horizon/Azimuth [Azimuthal house system that anchors house 1 due East and house 10 at the MC.], Koch [Quadrant system with documented high-latitude pathologies.], Krusinski-Pisa-Goelzer [Great-circle house system centered on the ascendant and zenith; latitude-sensitive near the poles.], Placidus [Quadrant system; can fail or become unstable at extreme latitudes.], Sunshine [Sunshine house system based on the Sun's diurnal and nocturnal arcs; the 1st house is the Ascendant and the 10th house is the MC.], Topocentric [Topocentric (Polich-Page) house system with geodetic-to-geocentric latitude correction.]; implementation posture: 25 built-in systems validated"
+            "House validation corpus: 9 scenarios (Mid-latitude reference chart, Western hemisphere reference chart, Equatorial reference chart, Polar stress chart, Northern high-latitude stress chart, Northern high-latitude mountain stress chart, Southern high-latitude mountain stress chart, Southern polar stress chart, Southern hemisphere reference chart), 225 samples, 225 successes, 0 failures; hemisphere coverage: north=5, south=3, equatorial=1; longitude coverage: prime-meridian=2, non-prime-meridian=7; formula families: Equal, Whole Sign, Quadrant, Equatorial projection, Great-circle, Solar arc, Sector; latitude-sensitive systems: APC, Gauquelin sectors, Horizon/Azimuth, Koch, Krusinski-Pisa-Goelzer, Placidus, Sunshine, Topocentric; constraints: APC [APC (Ram school) houses with non-opposite quadrant pairs and polar adjustments.], Gauquelin sectors [Thirty-six sectors used by the Gauquelin-sector family.], Horizon/Azimuth [Azimuthal house system that anchors house 1 due East and house 10 at the MC.], Koch [Quadrant system with documented high-latitude pathologies.], Krusinski-Pisa-Goelzer [Great-circle house system centered on the ascendant and zenith; latitude-sensitive near the poles.], Placidus [Quadrant system; can fail or become unstable at extreme latitudes.], Sunshine [Sunshine house system based on the Sun's diurnal and nocturnal arcs; the 1st house is the Ascendant and the 10th house is the MC.], Topocentric [Topocentric (Polich-Page) house system with geodetic-to-geocentric latitude correction.]; implementation posture: 25 built-in systems validated"
         );
     }
 
