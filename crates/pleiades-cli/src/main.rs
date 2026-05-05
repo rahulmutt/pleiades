@@ -2107,7 +2107,7 @@ mod tests {
         for (args, expected) in [
             (
                 ["catalog-inventory-summary", "extra"],
-                "catalog-inventory does not accept extra arguments",
+                "catalog-inventory-summary does not accept extra arguments",
             ),
             (
                 ["catalog-inventory", "extra"],

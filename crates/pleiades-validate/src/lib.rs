@@ -4542,7 +4542,11 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "compatibility-caveats")?;
             Ok(render_compatibility_caveats_summary())
         }
-        Some("catalog-inventory-summary") | Some("catalog-inventory") => {
+        Some("catalog-inventory-summary") => {
+            ensure_no_extra_args(&args[1..], "catalog-inventory-summary")?;
+            Ok(render_catalog_inventory_summary())
+        }
+        Some("catalog-inventory") => {
             ensure_no_extra_args(&args[1..], "catalog-inventory")?;
             Ok(render_catalog_inventory_summary())
         }
@@ -18918,6 +18922,18 @@ mod tests {
         assert_eq!(
             render_cli(&["catalog-inventory"]).expect("catalog inventory alias should render"),
             catalog_inventory_summary
+        );
+        let catalog_inventory_summary_error = render_cli(&["catalog-inventory-summary", "extra"])
+            .expect_err("catalog inventory summary should reject extra arguments");
+        assert_eq!(
+            catalog_inventory_summary_error,
+            "catalog-inventory-summary does not accept extra arguments"
+        );
+        let catalog_inventory_alias_error = render_cli(&["catalog-inventory", "extra"])
+            .expect_err("catalog inventory alias should reject extra arguments");
+        assert_eq!(
+            catalog_inventory_alias_error,
+            "catalog-inventory does not accept extra arguments"
         );
         assert!(rendered
             .lines()
