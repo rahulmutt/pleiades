@@ -5273,6 +5273,23 @@ mod tests {
     }
 
     #[test]
+    fn packaged_artifact_production_profile_summary_validation_rejects_request_policy_drift() {
+        let mut summary = packaged_artifact_production_profile_summary_details();
+        summary.request_policy.supports_topocentric_observer = true;
+
+        let error = summary
+            .validate()
+            .expect_err("request-policy drift should be rejected");
+        assert_eq!(
+            error,
+            PackagedArtifactProductionProfileSummaryValidationError::FieldOutOfSync {
+                field: "request_policy"
+            }
+        );
+        assert!(error.to_string().contains("request_policy"));
+    }
+
+    #[test]
     fn packaged_artifact_generator_parameters_validation_rejects_profile_id_drift() {
         let mut parameters = packaged_artifact_generator_parameters_details();
         parameters.profile_id = "pleiades-packaged-artifact-profile/test-drift";
