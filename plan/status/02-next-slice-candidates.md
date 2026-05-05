@@ -88,7 +88,7 @@ The lunar source-window summary slice is now complete in both the validation ren
 
 **Work items:**
 
-- Expand golden/reference offsets for baseline and representative release-specific entries; Lahiri (ICRC), Lahiri (1940), Valens Moon, True Pushya, Udayagiri, True Citra, True Sheoran, Hipparchus, Djwhal Khul, DeLuce, Yukteshwar, PVR Pushya-paksha, Galactic Equator (IAU 1958), Galactic Equator (True), Galactic Equator (Mula), Aryabhata (499 CE), Sassanian, JN Bhasin, Babylonian (Kugler 2), Babylonian (Kugler 3), Babylonian (Eta Piscium), Babylonian (Aldebaran), Babylonian (Huber), and the galactic-center / Dhruva anchors are now in the sample set, and more release-specific anchors can be added if the catalog audit needs them.
+- Expand golden/reference offsets for baseline and representative release-specific entries; Lahiri (ICRC), Lahiri (1940), Valens Moon, True Pushya, Udayagiri, True Citra, Sheoran, True Sheoran, Hipparchus, Djwhal Khul, DeLuce, Yukteshwar, PVR Pushya-paksha, Galactic Equator (IAU 1958), Galactic Equator (True), Galactic Equator (Mula), Aryabhata (499 CE), Sassanian, JN Bhasin, Babylonian (Kugler 2), Babylonian (Kugler 3), Babylonian (Eta Piscium), Babylonian (Aldebaran), Babylonian (Huber), and the galactic-center / Dhruva anchors are now in the sample set, and more release-specific anchors can be added if the catalog audit needs them.
 - Classify custom-definition-only entries explicitly. The compatibility-profile verification summary now also classifies the custom-definition ayanamsa label bucket explicitly, keeping the profile-only custom-definition set visible in the release-facing audit.
 - Verify alias uniqueness and compatibility-profile labels.
 - Keep sidereal conversion deterministic and domain-layer owned.
