@@ -199,6 +199,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         | Some("2500-major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-2453000-major-body-boundary-summary")
         | Some("2453000-major-body-boundary-summary") => validate_render_cli(args),
+        Some("reference-snapshot-2451917-major-body-boundary-summary")
+        | Some("2451917-major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-body-class-coverage-summary")
         | Some("reference-body-class-coverage-summary") => validate_render_cli(args),
         Some("reference-snapshot-manifest-summary") => validate_render_cli(args),
@@ -1336,6 +1338,8 @@ mod tests {
         assert!(rendered.contains("2500-major-body-boundary-summary"));
         assert!(rendered.contains("reference-snapshot-2453000-major-body-boundary-summary"));
         assert!(rendered.contains("2453000-major-body-boundary-summary"));
+        assert!(rendered.contains("reference-snapshot-2451917-major-body-boundary-summary"));
+        assert!(rendered.contains("2451917-major-body-boundary-summary"));
         assert!(rendered.contains("reference-snapshot-major-body-boundary-summary"));
         assert!(rendered.contains("major-body-boundary-summary"));
         assert!(rendered.contains("reference-snapshot-mars-jupiter-boundary-summary"));
@@ -1541,6 +1545,18 @@ mod tests {
         let boundary_2453000_alias = render_cli(&["2453000-major-body-boundary-summary"])
             .expect("2453000 major-body boundary alias should render");
         assert_eq!(boundary_2453000_alias, boundary_2453000);
+    }
+
+    #[test]
+    fn reference_snapshot_2451917_major_body_boundary_aliases_render_the_same_reports() {
+        let boundary_2451917 =
+            render_cli(&["reference-snapshot-2451917-major-body-boundary-summary"])
+                .expect("2451917 major-body boundary summary should render");
+        assert!(boundary_2451917.contains("Reference major-body boundary evidence:"));
+        assert!(boundary_2451917.contains("JD 2451917.5 (TDB)"));
+        let boundary_2451917_alias = render_cli(&["2451917-major-body-boundary-summary"])
+            .expect("2451917 major-body boundary alias should render");
+        assert_eq!(boundary_2451917_alias, boundary_2451917);
     }
 
     #[test]
@@ -4654,6 +4670,9 @@ mod tests {
         ));
         assert!(help.contains(
             "reference-snapshot-2453000-major-body-boundary-summary  Print the compact reference 2453000 major-body boundary evidence summary"
+        ));
+        assert!(help.contains(
+            "reference-snapshot-2451917-major-body-boundary-summary  Print the compact reference 2451917 major-body boundary evidence summary"
         ));
         assert!(help.contains(
             "reference-snapshot-major-body-boundary-summary  Print the compact reference major-body boundary evidence summary"
