@@ -5717,6 +5717,23 @@ mod tests {
     }
 
     #[test]
+    fn packaged_artifact_target_threshold_scope_summary_validation_rejects_drift() {
+        let mut scope_summary =
+            packaged_artifact_target_threshold_scope_envelopes_summary_details()[0].clone();
+        scope_summary.body_count += 1;
+
+        let error = scope_summary
+            .validate()
+            .expect_err("scope envelope drift should be rejected");
+        assert_eq!(
+            error,
+            PackagedArtifactFitEnvelopeSummaryValidationError::FieldOutOfSync {
+                field: "scope fit envelope"
+            }
+        );
+    }
+
+    #[test]
     fn packaged_artifact_target_threshold_scope_envelopes_reflect_the_current_posture() {
         let summary = packaged_artifact_target_threshold_summary_details();
         let expected = format!(
@@ -5761,7 +5778,7 @@ mod tests {
             .contains("packaged artifact regeneration reference snapshot is invalid"));
         assert!(error
             .message
-            .contains("body count 16 does not match body list length 15"));
+            .contains("body count 17 does not match body list length 16"));
     }
 
     #[test]

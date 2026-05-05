@@ -2951,7 +2951,7 @@ mod tests {
             reference_asteroid_source_window_summary.contains("Reference asteroid source windows:")
         );
         assert!(reference_asteroid_source_window_summary
-            .contains("source-backed samples across 5 bodies and 16 epochs"));
+            .contains("source-backed samples across 6 bodies and 16 epochs"));
         assert_eq!(
             reference_asteroid_source_window_summary,
             pleiades_jpl::reference_asteroid_source_window_summary_for_report()
@@ -3285,7 +3285,7 @@ mod tests {
             boundary_epoch_coverage_summary.contains("Reference snapshot boundary epoch coverage:")
         );
         assert!(boundary_epoch_coverage_summary.contains(
-            "JD 2451915.5 (TDB): 15 bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros)"
+            "JD 2451915.5 (TDB): 16 bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis)"
         ));
         assert_eq!(
             boundary_epoch_coverage_alias,
@@ -3304,7 +3304,7 @@ mod tests {
             .expect("boundary day summary alias should render");
         assert!(sparse_boundary_summary.contains("Reference snapshot boundary day:"));
         assert!(sparse_boundary_summary.contains(
-            "JD 2451915.5 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros)"
+            "JD 2451915.5 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis)"
         ));
         assert_eq!(sparse_boundary_alias, sparse_boundary_summary);
         assert_eq!(boundary_day_alias, sparse_boundary_summary);
