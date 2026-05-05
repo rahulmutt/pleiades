@@ -4126,7 +4126,7 @@ mod tests {
 
         let geocentric_only_batch_error = validate_requests_against_metadata(
             &[
-                geocentric_only_request,
+                geocentric_only_request.clone(),
                 geocentric_only_invalid_observer_request.clone(),
             ],
             &metadata,
@@ -4139,6 +4139,45 @@ mod tests {
         assert!(geocentric_only_batch_error
             .message
             .contains("batch request 2: request received invalid observer location"));
+
+        let invalid_observer_frame_request = EphemerisRequest {
+            observer: Some(ObserverLocation::new(
+                Latitude::from_degrees(95.0),
+                Longitude::from_degrees(-0.1),
+                Some(45.0),
+            )),
+            ..frame_request.clone()
+        };
+        let invalid_observer_frame_error =
+            validate_request_against_metadata(&invalid_observer_frame_request, &metadata)
+                .expect_err("frame policy should still win before malformed observer validation");
+        assert_eq!(
+            invalid_observer_frame_error.kind,
+            EphemerisErrorKind::UnsupportedCoordinateFrame
+        );
+        assert_eq!(
+            invalid_observer_frame_error.message,
+            "toy backend only returns [Ecliptic] coordinates"
+        );
+
+        let invalid_observer_frame_batch_error = validate_requests_against_metadata(
+            &[
+                geocentric_only_request.clone(),
+                invalid_observer_frame_request.clone(),
+            ],
+            &metadata,
+        )
+        .expect_err(
+            "batch metadata should preserve frame precedence before invalid observer validation",
+        );
+        assert_eq!(
+            invalid_observer_frame_batch_error.kind,
+            EphemerisErrorKind::UnsupportedCoordinateFrame
+        );
+        assert_eq!(
+            invalid_observer_frame_batch_error.message,
+            "batch request 2: toy backend only returns [Ecliptic] coordinates"
+        );
 
         let unsupported_body_request = EphemerisRequest {
             body: CelestialBody::Mars,
