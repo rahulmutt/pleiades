@@ -19195,6 +19195,23 @@ mod tests {
     }
 
     #[test]
+    fn reference_asteroid_source_window_summary_validation_rejects_sample_body_order_drift() {
+        let mut summary = reference_asteroid_source_window_summary()
+            .expect("reference asteroid source window summary should exist");
+        summary.sample_bodies.swap(0, 1);
+
+        assert!(matches!(
+            summary.validate(),
+            Err(
+                ReferenceAsteroidSourceWindowSummaryValidationError::FieldOutOfSync {
+                    field: "sample_bodies"
+                }
+            )
+        ));
+        assert!(summary.validated_summary_line().is_err());
+    }
+
+    #[test]
     fn reference_asteroid_source_window_summary_validation_rejects_window_order_drift() {
         let mut summary = reference_asteroid_source_window_summary()
             .expect("reference asteroid source window summary should exist");
@@ -19259,6 +19276,23 @@ mod tests {
             summary.summary_line(),
             selected_asteroid_source_window_summary_for_report()
         );
+    }
+
+    #[test]
+    fn selected_asteroid_source_window_summary_validation_rejects_sample_body_order_drift() {
+        let mut summary = selected_asteroid_source_window_summary()
+            .expect("selected asteroid source window summary should exist");
+        summary.sample_bodies.swap(0, 1);
+
+        assert!(matches!(
+            summary.validate(),
+            Err(
+                SelectedAsteroidSourceWindowSummaryValidationError::FieldOutOfSync {
+                    field: "sample_bodies"
+                }
+            )
+        ));
+        assert!(summary.validated_summary_line().is_err());
     }
 
     #[test]
