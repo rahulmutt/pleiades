@@ -4357,6 +4357,7 @@ mod tests {
         assert!(bundle_dir
             .join("release-ayanamsa-canonical-names-summary.txt")
             .exists());
+        assert!(bundle_dir.join("workspace-audit-summary.txt").exists());
         assert!(bundle_dir
             .join("native-dependency-audit-summary.txt")
             .exists());
@@ -4380,6 +4381,7 @@ mod tests {
         assert!(manifest.contains("packaged-artifact access summary checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("packaged-artifact-production-profile-summary.txt"));
         assert!(manifest.contains("packaged-artifact-target-threshold-summary.txt"));
+        assert!(manifest.contains("workspace-audit-summary.txt"));
     }
 
     #[test]
@@ -4397,6 +4399,7 @@ mod tests {
         assert!(verified.contains("catalog-inventory-summary.txt"));
         assert!(verified.contains("reference-snapshot-bridge-day-summary.txt"));
         assert!(verified.contains("custom-definition-ayanamsa-labels-summary.txt"));
+        assert!(verified.contains("workspace-audit-summary.txt"));
         assert!(verified.contains("time-scale-policy-summary.txt"));
         assert!(verified.contains("delta-t-policy-summary.txt"));
         assert!(verified.contains("native-sidereal-policy-summary.txt"));
@@ -4606,6 +4609,10 @@ mod tests {
             "compatibility-caveats-summary  Print the compact compatibility caveats summary"
         ));
         assert!(help.contains("compatibility-caveats    Alias for compatibility-caveats-summary"));
+        assert!(
+            help.contains("workspace-audit-summary   Print the compact workspace audit summary")
+        );
+        assert!(help.contains("native-dependency-audit-summary  Alias for workspace-audit-summary"));
         assert!(help.contains(
             "catalog-inventory-summary  Print the compact compatibility catalog inventory summary"
         ));
