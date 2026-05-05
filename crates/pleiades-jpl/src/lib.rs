@@ -7191,7 +7191,7 @@ pub fn selected_asteroid_source_window_summary_for_report() -> String {
 }
 
 const SELECTED_ASTEROID_BRIDGE_EPOCH: f64 = 2_451_915.0;
-const SELECTED_ASTEROID_BOUNDARY_EPOCHS: &[f64] = &[2_451_914.5, 2_451_915.5];
+const SELECTED_ASTEROID_BOUNDARY_EPOCHS: &[f64] = &[2_451_914.5, 2_451_915.5, 2_451_918.5];
 
 fn selected_asteroid_bridge_entries() -> Option<&'static [SnapshotEntry]> {
     static ENTRIES: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
@@ -19307,13 +19307,13 @@ mod tests {
     fn selected_asteroid_boundary_summary_reports_the_boundary_days() {
         let summary = selected_asteroid_boundary_summary()
             .expect("selected asteroid boundary summary should exist");
-        assert_eq!(summary.sample_count, 11);
-        assert_eq!(summary.epochs.len(), 2);
+        assert_eq!(summary.sample_count, 16);
+        assert_eq!(summary.epochs.len(), 3);
         assert_eq!(summary.validate(), Ok(()));
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             summary.summary_line(),
-            "Selected asteroid boundary evidence: 11 exact samples across 2 epochs at JD 2451914.5 (TDB)..JD 2451915.5 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis)"
+            "Selected asteroid boundary evidence: 16 exact samples across 3 epochs at JD 2451914.5 (TDB)..JD 2451918.5 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis)"
         );
         assert_eq!(
             summary.summary_line(),
