@@ -18057,6 +18057,56 @@ mod tests {
     }
 
     #[test]
+    fn release_bundle_commands_accept_output_aliases_in_the_validation_front_end() {
+        let bundle_dir = unique_temp_dir("pleiades-release-bundle-output-alias-validation");
+        let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
+
+        render_cli(&[
+            "bundle-release",
+            "--output",
+            &bundle_dir_string,
+            "--rounds",
+            "1",
+        ])
+        .expect("bundle-release should accept --output alias in the validation front end");
+        let verified = render_cli(&["verify-release-bundle", "--output", &bundle_dir_string])
+            .expect(
+                "verify-release-bundle should accept --output alias in the validation front end",
+            );
+
+        assert!(verified.contains("Release bundle"));
+        assert!(verified.contains("bundle-manifest.checksum.txt"));
+
+        let mixed_bundle_output_error = render_cli(&[
+            "bundle-release",
+            "--out",
+            &bundle_dir_string,
+            "--output",
+            &bundle_dir_string,
+            "--rounds",
+            "1",
+        ])
+        .expect_err(
+            "bundle-release should reject mixed output aliases in the validation front end",
+        );
+        assert!(mixed_bundle_output_error.contains("duplicate value for --out <dir> argument"));
+
+        let mixed_verify_output_error = render_cli(&[
+            "verify-release-bundle",
+            "--out",
+            &bundle_dir_string,
+            "--output",
+            &bundle_dir_string,
+        ])
+        .expect_err(
+            "verify-release-bundle should reject mixed output aliases in the validation front end",
+        );
+        assert!(mixed_verify_output_error.contains("duplicate value for --out <dir> argument"));
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
+    #[test]
     fn benchmark_corpus_spans_the_target_window() {
         let corpus = benchmark_corpus();
         let summary = corpus.summary();
