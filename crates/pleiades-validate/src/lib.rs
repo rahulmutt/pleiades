@@ -12719,6 +12719,12 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         "Delta T policy: {}",
         format_delta_t_policy_summary_for_report(&delta_t_policy)
     );
+    let utc_convenience_policy = pleiades_backend::utc_convenience_policy_summary_for_report();
+    let _ = writeln!(
+        text,
+        "UTC convenience policy: {}",
+        format_utc_convenience_policy_summary_for_report(&utc_convenience_policy)
+    );
     let _ = writeln!(text, "Observer policy: {}", request_policy.observer);
     let _ = writeln!(text, "Apparentness policy: {}", request_policy.apparentness);
     let native_sidereal_policy = native_sidereal_policy_summary_for_report();
@@ -17987,6 +17993,7 @@ mod tests {
         assert!(validation_report_summary.contains("margin Δdist="));
         assert!(validation_report_summary.contains("Chart benchmark"));
         assert!(validation_report_summary.contains("Comparison tolerance policy: backend family=Composite; scopes=6 (Luminaries, Major planets, Lunar points, Asteroids, Custom bodies, Pluto fallback (approximate)); limits="));
+        assert!(validation_report_summary.contains("UTC convenience policy: built-in UTC convenience conversion remains out of scope; callers must supply TT/TDB offsets explicitly"));
         assert!(validation_report_summary.contains("Comparison tolerance audit"));
         assert!(validation_report_summary.contains("command: compare-backends-audit"));
         assert!(validation_report_summary.contains("status: clean"));
