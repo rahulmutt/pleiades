@@ -1670,6 +1670,14 @@ mod tests {
             "Custom-definition label names verified: {}",
             profile.custom_definition_labels.join(", ")
         )));
+        assert!(verification.contains(&format!(
+            "Custom-definition ayanamsa labels verified: {} labels, all remain custom-definition territory",
+            profile.custom_definition_ayanamsa_labels().len()
+        )));
+        assert!(verification.contains(&format!(
+            "Custom-definition ayanamsa label names verified: {}",
+            profile.custom_definition_ayanamsa_labels().join(", ")
+        )));
         assert!(verification.contains("Ayanamsa reference metadata verified: "));
         assert!(verification.contains(
             "Release posture: baseline milestone preserved, release additions explicit, custom definitions tracked, caveats documented"

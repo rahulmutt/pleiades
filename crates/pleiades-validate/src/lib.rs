@@ -5474,6 +5474,10 @@ pub struct CompatibilityProfileVerificationSummary {
     pub ayanamsa_metadata_gap_count: usize,
     /// Release-specific custom-definition label names.
     pub custom_definition_label_names: String,
+    /// Number of custom-definition ayanamsa labels checked.
+    pub custom_definition_ayanamsa_label_count: usize,
+    /// Custom-definition ayanamsa label names.
+    pub custom_definition_ayanamsa_label_names: String,
     /// Number of release notes documented in the profile.
     pub release_note_count: usize,
     /// Number of validation reference points documented in the profile.
@@ -5731,6 +5735,32 @@ impl CompatibilityProfileVerificationSummary {
                 ),
             ));
         }
+        let expected_custom_definition_ayanamsa_labels =
+            profile.custom_definition_ayanamsa_labels();
+        if self.custom_definition_ayanamsa_label_count
+            != expected_custom_definition_ayanamsa_labels.len()
+        {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "compatibility profile verification summary custom-definition ayanamsa label count mismatch: expected {}, found {}",
+                    expected_custom_definition_ayanamsa_labels.len(), self.custom_definition_ayanamsa_label_count
+                ),
+            ));
+        }
+        let expected_custom_definition_ayanamsa_label_names =
+            expected_custom_definition_ayanamsa_labels.join(", ");
+        if self.custom_definition_ayanamsa_label_names
+            != expected_custom_definition_ayanamsa_label_names
+        {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!(
+                    "compatibility profile verification summary custom-definition ayanamsa label names mismatch: expected {}, found {}",
+                    expected_custom_definition_ayanamsa_label_names, self.custom_definition_ayanamsa_label_names
+                ),
+            ));
+        }
 
         if self.release_note_count != profile.release_notes.len() {
             return Err(EphemerisError::new(
@@ -5868,6 +5898,12 @@ impl CompatibilityProfileVerificationSummary {
         text.push_str("Custom-definition label names verified: ");
         text.push_str(&self.custom_definition_label_names);
         text.push('\n');
+        text.push_str("Custom-definition ayanamsa labels verified: ");
+        text.push_str(&self.custom_definition_ayanamsa_label_count.to_string());
+        text.push_str(" labels, all remain custom-definition territory\n");
+        text.push_str("Custom-definition ayanamsa label names verified: ");
+        text.push_str(&self.custom_definition_ayanamsa_label_names);
+        text.push('\n');
         text.push_str("Compatibility caveats documented: ");
         text.push_str(&self.compatibility_caveat_count.to_string());
         text.push('\n');
@@ -5989,6 +6025,7 @@ pub fn compatibility_profile_verification_summary(
         .iter()
         .filter(|entry| entry.has_sidereal_metadata())
         .count();
+    let custom_definition_ayanamsa_labels = profile.custom_definition_ayanamsa_labels();
 
     Ok(CompatibilityProfileVerificationSummary {
         profile_id: release_profiles.compatibility_profile_id.to_string(),
@@ -6017,6 +6054,8 @@ pub fn compatibility_profile_verification_summary(
         validation_reference_point_count: profile.validation_reference_points.len(),
         custom_definition_label_count: custom_definition_labels_checked,
         custom_definition_label_names: profile.custom_definition_labels.join(", "),
+        custom_definition_ayanamsa_label_count: custom_definition_ayanamsa_labels.len(),
+        custom_definition_ayanamsa_label_names: custom_definition_ayanamsa_labels.join(", "),
         compatibility_caveat_count: profile.known_gaps.len(),
     })
 }
@@ -19003,6 +19042,14 @@ mod tests {
             profile.custom_definition_labels.join(", ")
         )));
         assert!(rendered.contains(&format!(
+            "Custom-definition ayanamsa labels verified: {} labels, all remain custom-definition territory",
+            profile.custom_definition_ayanamsa_labels().len()
+        )));
+        assert!(rendered.contains(&format!(
+            "Custom-definition ayanamsa label names verified: {}",
+            profile.custom_definition_ayanamsa_labels().join(", ")
+        )));
+        assert!(rendered.contains(&format!(
             "Release notes documented: {} entries",
             profile.release_notes.len()
         )));
@@ -19076,6 +19123,14 @@ mod tests {
         assert_eq!(
             summary.custom_definition_label_names,
             profile.custom_definition_labels.join(", ")
+        );
+        assert_eq!(
+            summary.custom_definition_ayanamsa_label_count,
+            profile.custom_definition_ayanamsa_labels().len()
+        );
+        assert_eq!(
+            summary.custom_definition_ayanamsa_label_names,
+            profile.custom_definition_ayanamsa_labels().join(", ")
         );
         assert_eq!(
             summary.house_formula_family_names,
@@ -19184,6 +19239,30 @@ mod tests {
         assert!(error
             .message
             .contains("custom-definition label names mismatch"));
+
+        let mut summary = compatibility_profile_verification_summary()
+            .expect("compatibility profile verification summary should render");
+        summary.custom_definition_ayanamsa_label_count = 0;
+
+        let error = summary
+            .validate()
+            .expect_err("stale custom-definition ayanamsa label count should fail validation");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error
+            .message
+            .contains("custom-definition ayanamsa label count mismatch"));
+
+        let mut summary = compatibility_profile_verification_summary()
+            .expect("compatibility profile verification summary should render");
+        summary.custom_definition_ayanamsa_label_names = "stale summary".to_string();
+
+        let error = summary
+            .validate()
+            .expect_err("stale custom-definition ayanamsa label names should fail validation");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error
+            .message
+            .contains("custom-definition ayanamsa label names mismatch"));
 
         let mut summary = compatibility_profile_verification_summary()
             .expect("compatibility profile verification summary should render");
