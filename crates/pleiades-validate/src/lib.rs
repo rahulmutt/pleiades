@@ -25235,6 +25235,21 @@ version = "0.9.0"
         let alias = render_cli(&["1749-major-body-boundary-summary"])
             .expect("1749 major-body boundary alias should render");
         assert_eq!(alias, rendered);
+        assert_eq!(
+            render_cli(&[
+                "reference-snapshot-1749-major-body-boundary-summary",
+                "extra"
+            ])
+            .expect_err(
+                "reference snapshot 1749 major-body boundary summary should reject extra arguments"
+            ),
+            "reference-snapshot-1749-major-body-boundary-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["1749-major-body-boundary-summary", "extra"])
+                .expect_err("1749 major-body boundary alias should reject extra arguments"),
+            "reference-snapshot-1749-major-body-boundary-summary does not accept extra arguments"
+        );
     }
 
     #[test]
@@ -25251,6 +25266,16 @@ version = "0.9.0"
         let alias = render_cli(&["early-major-body-boundary-summary"])
             .expect("early major-body boundary alias should render");
         assert_eq!(alias, rendered);
+        assert_eq!(
+            render_cli(&["reference-snapshot-early-major-body-boundary-summary", "extra"])
+                .expect_err("reference snapshot early major-body boundary summary should reject extra arguments"),
+            "reference-snapshot-early-major-body-boundary-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["early-major-body-boundary-summary", "extra"])
+                .expect_err("early major-body boundary alias should reject extra arguments"),
+            "reference-snapshot-early-major-body-boundary-summary does not accept extra arguments"
+        );
 
         let reference_snapshot_1800_major_body_boundary_summary =
             render_cli(&["reference-snapshot-1800-major-body-boundary-summary"])
@@ -25265,6 +25290,21 @@ version = "0.9.0"
         let alias = render_cli(&["1800-major-body-boundary-summary"])
             .expect("1800 major-body boundary alias should render");
         assert_eq!(alias, reference_snapshot_1800_major_body_boundary_summary);
+        assert_eq!(
+            render_cli(&[
+                "reference-snapshot-1800-major-body-boundary-summary",
+                "extra"
+            ])
+            .expect_err(
+                "reference snapshot 1800 major-body boundary summary should reject extra arguments"
+            ),
+            "reference-snapshot-1800-major-body-boundary-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["1800-major-body-boundary-summary", "extra"])
+                .expect_err("1800 major-body boundary alias should reject extra arguments"),
+            "reference-snapshot-1800-major-body-boundary-summary does not accept extra arguments"
+        );
     }
 
     #[test]
@@ -25282,6 +25322,21 @@ version = "0.9.0"
         let alias = render_cli(&["2500-major-body-boundary-summary"])
             .expect("2500 major-body boundary alias should render");
         assert_eq!(alias, rendered);
+        assert_eq!(
+            render_cli(&[
+                "reference-snapshot-2500-major-body-boundary-summary",
+                "extra"
+            ])
+            .expect_err(
+                "reference snapshot 2500 major-body boundary summary should reject extra arguments"
+            ),
+            "reference-snapshot-2500-major-body-boundary-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["2500-major-body-boundary-summary", "extra"])
+                .expect_err("2500 major-body boundary alias should reject extra arguments"),
+            "reference-snapshot-2500-major-body-boundary-summary does not accept extra arguments"
+        );
     }
 
     #[test]
@@ -25299,6 +25354,16 @@ version = "0.9.0"
         let alias = render_cli(&["2453000-major-body-boundary-summary"])
             .expect("2453000 major-body boundary alias should render");
         assert_eq!(alias, rendered);
+        assert_eq!(
+            render_cli(&["reference-snapshot-2453000-major-body-boundary-summary", "extra"])
+                .expect_err("reference snapshot 2453000 major-body boundary summary should reject extra arguments"),
+            "reference-snapshot-2453000-major-body-boundary-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["2453000-major-body-boundary-summary", "extra"])
+                .expect_err("2453000 major-body boundary alias should reject extra arguments"),
+            "reference-snapshot-2453000-major-body-boundary-summary does not accept extra arguments"
+        );
     }
 
     #[test]
@@ -25311,6 +25376,16 @@ version = "0.9.0"
         let boundary_2451917_alias = render_cli(&["2451917-major-body-boundary-summary"])
             .expect("2451917 major-body boundary alias should render");
         assert_eq!(boundary_2451917_alias, boundary_2451917);
+        assert_eq!(
+            render_cli(&["reference-snapshot-2451917-major-body-boundary-summary", "extra"])
+                .expect_err("2451917 major-body boundary summary should reject extra arguments"),
+            "reference-snapshot-2451917-major-body-boundary-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["2451917-major-body-boundary-summary", "extra"])
+                .expect_err("2451917 major-body boundary alias should reject extra arguments"),
+            "reference-snapshot-2451917-major-body-boundary-summary does not accept extra arguments"
+        );
     }
 
     #[test]
