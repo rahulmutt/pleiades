@@ -20581,6 +20581,62 @@ mod tests {
             reference_snapshot_source_window_summary_for_report(),
             summary.summary_line()
         );
+        assert_eq!(
+            summary.windows[0].body,
+            pleiades_backend::CelestialBody::Sun
+        );
+        assert_eq!(summary.windows[0].sample_count, 19);
+        assert_eq!(summary.windows[0].epoch_count, 19);
+        assert_eq!(
+            summary.windows[0].earliest_epoch.julian_day.days(),
+            2_360_233.5
+        );
+        assert_eq!(
+            summary.windows[0].latest_epoch.julian_day.days(),
+            2_634_167.0
+        );
+        assert_eq!(
+            summary.windows[5].body,
+            pleiades_backend::CelestialBody::Jupiter
+        );
+        assert_eq!(summary.windows[5].sample_count, 18);
+        assert_eq!(summary.windows[5].epoch_count, 18);
+        assert_eq!(
+            summary.windows[5].earliest_epoch.julian_day.days(),
+            2_360_233.5
+        );
+        assert_eq!(
+            summary.windows[5].latest_epoch.julian_day.days(),
+            2_500_000.0
+        );
+        assert_eq!(
+            summary.windows[9].body,
+            pleiades_backend::CelestialBody::Pluto
+        );
+        assert_eq!(summary.windows[9].sample_count, 17);
+        assert_eq!(summary.windows[9].epoch_count, 17);
+        assert_eq!(
+            summary.windows[9].earliest_epoch.julian_day.days(),
+            2_378_498.5
+        );
+        assert_eq!(
+            summary.windows[9].latest_epoch.julian_day.days(),
+            2_500_000.0
+        );
+        assert_eq!(
+            summary.windows[15].body,
+            pleiades_backend::CelestialBody::Custom(CustomBodyId::new("asteroid", "99942-Apophis"))
+        );
+        assert_eq!(summary.windows[15].sample_count, 6);
+        assert_eq!(summary.windows[15].epoch_count, 6);
+        assert_eq!(
+            summary.windows[15].earliest_epoch.julian_day.days(),
+            2_451_545.0
+        );
+        assert_eq!(
+            summary.windows[15].latest_epoch.julian_day.days(),
+            2_634_167.0
+        );
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             summary.summary_line(),
