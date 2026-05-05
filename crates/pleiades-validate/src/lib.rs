@@ -17183,6 +17183,7 @@ mod tests {
         assert!(rendered.contains("Reference snapshot"));
         assert!(rendered.contains(&comparison_snapshot_body_class_coverage_summary_for_report()));
         assert!(rendered.contains(&reference_snapshot_summary_for_report()));
+        assert!(rendered.contains("Reference 2453000 major-body boundary evidence: 10 exact samples at JD 2453000.5 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); 2453000.5 boundary sample"));
         assert!(rendered.contains(&reference_snapshot_source_window_summary_for_report()));
         assert!(rendered.contains(&reference_snapshot_body_class_coverage_summary_for_report()));
         assert_report_contains_exact_line(
