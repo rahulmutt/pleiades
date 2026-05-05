@@ -1349,6 +1349,8 @@ mod tests {
         assert!(rendered.contains("high-curvature-summary"));
         assert!(rendered.contains("reference-snapshot-2500-major-body-boundary-summary"));
         assert!(rendered.contains("2500-major-body-boundary-summary"));
+        assert!(rendered.contains("reference-snapshot-2500-selected-body-boundary-summary"));
+        assert!(rendered.contains("2500-selected-body-boundary-summary"));
         assert!(rendered.contains("reference-snapshot-2453000-major-body-boundary-summary"));
         assert!(rendered.contains("2453000-major-body-boundary-summary"));
         assert!(rendered.contains("reference-snapshot-2451917-major-body-boundary-summary"));
