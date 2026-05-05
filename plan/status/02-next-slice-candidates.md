@@ -7,6 +7,8 @@ This file lists focused implementation slices that map to the current phase ladd
 ### 1. Representative 1500-2500 reference expansion
 
 - Early boundary coverage for Sun, Moon, Mercury, and Venus at 1500-01-01 is now checked in.
+- A 1750-01-01 interior boundary slice for Sun through Neptune is now checked in.
+- A 2360234.5 interior comparison slice for the source-backed comparison corpus is now checked in.
 - A 2451915.25/2451915.75 high-curvature hold-out window for Sun, Moon, Mercury, and Venus is now checked in.
 - A 2451920.5 interior reference slice is now checked in.
 - Add the next small set of source/reference rows at another target-range boundary or representative interior epoch if reference breadth still needs to grow.

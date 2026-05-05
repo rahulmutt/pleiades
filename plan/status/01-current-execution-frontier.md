@@ -16,7 +16,7 @@ Current implementation status shows:
 - chart APIs preserve the distinction between house observers and body observers and provide caller-supplied UTC/UT1/TT/TDB offset helpers, but built-in Delta T/UTC conversion policy remains a release decision; the validation-report summary now mirrors that UTC-convenience posture explicitly;
 - `pleiades-vsop87` is source-backed for Sun through Neptune via generated VSOP87B tables; Pluto remains an explicitly approximate mean-elements fallback excluded from release-grade major-body claims;
 - `pleiades-elp` is a compact Meeus-style lunar baseline with validation evidence for supported lunar channels, not a full ELP coefficient implementation;
-- `pleiades-jpl` is a checked-in JPL Horizons snapshot/hold-out fixture backend with provenance and selected asteroid evidence, including a new 2451915.25/2451915.75 high-curvature hold-out window for Sun, Moon, Mercury, and Venus plus a 2451920.5 interior reference slice, not a broad production reader/corpus;
+- `pleiades-jpl` is a checked-in JPL Horizons snapshot/hold-out fixture backend with provenance and selected asteroid evidence, including a new 1750-01-01 interior boundary slice for Sun through Neptune, a 2360234.5 interior comparison slice, a 2451915.25/2451915.75 high-curvature hold-out window for Sun, Moon, Mercury, and Venus, and a 2451920.5 interior reference slice, not a broad production reader/corpus;
 - `pleiades-data` ships a deterministic prototype artifact with codec/profile/checksum/regeneration support, and the checked-in fixture tracks the current reference-snapshot slice, but it is not yet a production 1500-2500 CE artifact and current fit posture is not release-grade;
 - house and ayanamsa catalogs are broad, but not every release-advertised entry has independent formula/provenance/reference evidence sufficient for full interoperability claims;
 - release-bundle generation and verification exist, and validation/report surfaces now classify evidence as release-tolerance, hold-out, fixture exactness, or provenance-only; final release gates still need to be rerun over production accuracy evidence, production artifacts, and truthful compatibility profiles.
@@ -27,7 +27,7 @@ Phase 2 production artifacts require trusted generation inputs and target thresh
 
 ## Immediate blockers
 
-1. **Reference corpus breadth** — The production-generation input path is now explicitly documented as the checked-in CSV fixture pair; expand or replace fixture evidence with production-suitable public source/reference data for validation and artifact fitting.
+1. **Reference corpus breadth** — The production-generation input path is now explicitly documented as the checked-in CSV fixture pair, now widened with a 1750-01-01 interior boundary slice; continue expanding or replacing fixture evidence with production-suitable public source/reference data for validation and artifact fitting.
 2. **Pluto release posture** — Pluto is now visibly approximate and excluded from release-grade major-body claims; a source-backed path remains optional if future release claims need it.
 3. **Lunar release posture** — Decide whether the first release ships the compact lunar baseline with measured limitations or implements fuller ELP-style coefficient support.
 4. **Advanced request semantics** — Decide whether built-in Delta T/UTC conversion, apparent corrections, topocentric body positions, and native sidereal backend output are implemented now or explicitly deferred.
@@ -36,7 +36,7 @@ Phase 2 production artifacts require trusted generation inputs and target thresh
 
 The representative early-boundary slice is now checked in for Sun, Moon, Mercury, and Venus at 1500-01-01, and a 2451915.25/2451915.75 high-curvature hold-out window now supplements the validation corpus for Sun, Moon, Mercury, and Venus.
 
-The reference corpus also now includes a 2451920.5 interior major-body slice, so the next reviewable reference-coverage step can move to a different boundary or defer to a request-semantics decision.
+The reference corpus also now includes a 1750-01-01 interior major-body slice, so the next reviewable reference-coverage step can move to a different boundary or defer to a request-semantics decision.
 
 Next, implement another small, reviewable slice:
 
