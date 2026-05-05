@@ -65,8 +65,14 @@ fn shared_request_policy_help_block() -> String {
 
 fn render_cli(args: &[&str]) -> Result<String, String> {
     match args.first().copied() {
-        Some("compare-backends") => validate_render_cli(args),
-        Some("compare-backends-audit") => validate_render_cli(args),
+        Some("compare-backends") => {
+            ensure_no_extra_args(&args[1..], "compare-backends")?;
+            validate_render_cli(args)
+        }
+        Some("compare-backends-audit") => {
+            ensure_no_extra_args(&args[1..], "compare-backends-audit")?;
+            validate_render_cli(args)
+        }
         Some("benchmark") => {
             let rounds = parse_rounds(&args[1..], 10_000)?;
             render_benchmark_report(rounds).map_err(render_error)
@@ -1461,6 +1467,23 @@ mod tests {
         assert!(rendered.contains("result: clean"));
         assert!(rendered.contains("within tolerance bodies: 9"));
         assert!(rendered.contains("outside tolerance bodies: 0"));
+    }
+
+    #[test]
+    fn compare_backends_command_rejects_extra_arguments() {
+        let error = render_cli(&["compare-backends", "extra"])
+            .expect_err("compare-backends should reject extra arguments");
+        assert_eq!(error, "compare-backends does not accept extra arguments");
+    }
+
+    #[test]
+    fn compare_backends_audit_command_rejects_extra_arguments() {
+        let error = render_cli(&["compare-backends-audit", "extra"])
+            .expect_err("compare-backends-audit should reject extra arguments");
+        assert_eq!(
+            error,
+            "compare-backends-audit does not accept extra arguments"
+        );
     }
 
     #[test]
@@ -4677,6 +4700,13 @@ mod tests {
         let error = render_cli(&["benchmark", "--rounds", "1", "--rounds", "2"])
             .expect_err("benchmark should reject duplicate rounds arguments");
         assert!(error.contains("duplicate value for --rounds argument"));
+    }
+
+    #[test]
+    fn benchmark_command_rejects_extra_arguments() {
+        let error = render_cli(&["benchmark", "--rounds", "1", "extra"])
+            .expect_err("benchmark should reject extra arguments");
+        assert_eq!(error, "unknown argument: extra");
     }
 
     #[test]
