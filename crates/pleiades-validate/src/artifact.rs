@@ -12,6 +12,7 @@ use pleiades_core::{
 };
 use pleiades_data::{
     packaged_artifact, packaged_artifact_generation_manifest_for_report,
+    packaged_artifact_output_support_summary_for_report,
     packaged_artifact_production_profile_summary_for_report,
     packaged_artifact_profile_summary_with_body_coverage,
     packaged_artifact_regeneration_summary_for_report,
@@ -1441,6 +1442,9 @@ fn render_artifact_summary_text(report: &ArtifactInspectionReport) -> String {
     text.push_str("  Artifact profile: ");
     text.push_str(&packaged_artifact_profile_summary_with_body_coverage());
     text.push('\n');
+    text.push_str("  Artifact output support: ");
+    text.push_str(&packaged_artifact_output_support_summary_for_report());
+    text.push('\n');
     text.push_str("  Body classes: ");
     text.push_str(&format_body_class_coverage(report));
     text.push('\n');
@@ -2041,6 +2045,11 @@ impl fmt::Display for ArtifactInspectionReport {
             f,
             "  Artifact request policy: {}",
             packaged_request_policy_summary_details()
+        )?;
+        writeln!(
+            f,
+            "  Artifact output support: {}",
+            packaged_artifact_output_support_summary_for_report()
         )?;
         writeln!(f)?;
         writeln!(f, "Bodies")?;

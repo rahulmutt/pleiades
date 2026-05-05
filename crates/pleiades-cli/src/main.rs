@@ -3574,6 +3574,7 @@ mod tests {
         let artifact_summary =
             render_cli(&["artifact-summary"]).expect("artifact summary should render");
         assert!(artifact_summary.contains("Artifact summary"));
+        assert!(artifact_summary.contains("Artifact output support:"));
         assert!(artifact_summary.contains("Artifact boundary envelope"));
         assert!(artifact_summary.contains("Model error envelope"));
         assert!(artifact_summary.lines().any(|line| {
@@ -3863,6 +3864,7 @@ mod tests {
         let artifact_report =
             render_cli(&["validate-artifact"]).expect("validate-artifact should render");
         assert!(artifact_report.contains("Artifact validation report"));
+        assert!(artifact_report.contains("Artifact output support:"));
         assert!(artifact_report.contains("Bodies"));
         assert!(artifact_report.contains("Artifact boundary envelope"));
         assert!(artifact_report.contains("Model error envelope"));
