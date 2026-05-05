@@ -413,7 +413,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("report") | Some("generate-report") => validate_render_cli(args),
         Some("validation-report-summary") | Some("validation-summary") | Some("report-summary") => {
-            render_validation_report_summary(1).map_err(render_error)
+            let rounds = parse_rounds(&args[1..], 1)?;
+            render_validation_report_summary(rounds).map_err(render_error)
         }
         Some("chart") => render_chart(&args[1..]),
         Some("help") | Some("--help") | Some("-h") => Ok(help_text()),
@@ -3774,6 +3775,37 @@ mod tests {
         assert!(validation_summary.contains("House validation corpus"));
         assert!(validation_summary.contains("Benchmark summaries"));
         assert!(validation_summary.contains("Packaged-data benchmark"));
+
+        let validation_summary_rounds = render_cli(&["validation-summary", "--rounds", "10"])
+            .expect("validation summary should accept explicit rounds");
+        let strip_benchmark_timings = |text: &str| -> String {
+            text.lines()
+                .filter(|line| {
+                    !line.contains("ns/")
+                        && !line.contains("throughput")
+                        && !line.contains("per second")
+                })
+                .collect::<Vec<_>>()
+                .join("\n")
+        };
+        let report_summary_rounds = render_cli(&["report-summary", "--rounds", "10"])
+            .expect("report summary should mirror the validation-summary rounds output");
+        let validation_report_summary_rounds =
+            render_cli(&["validation-report-summary", "--rounds", "10"]).expect(
+                "validation-report-summary should mirror the validation-summary rounds output",
+            );
+        assert_eq!(
+            strip_benchmark_timings(&validation_summary_rounds),
+            strip_benchmark_timings(&report_summary_rounds)
+        );
+        assert_eq!(
+            strip_benchmark_timings(&validation_summary_rounds),
+            strip_benchmark_timings(&validation_report_summary_rounds)
+        );
+        assert_eq!(
+            render_cli(&["validation-summary", "extra"]).unwrap_err(),
+            "unknown argument: extra"
+        );
 
         let validation_report_summary = render_cli(&["validation-report-summary"])
             .expect("validation-report-summary should render");
