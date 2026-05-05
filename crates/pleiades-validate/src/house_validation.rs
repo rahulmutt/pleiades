@@ -13,7 +13,7 @@ use pleiades_core::{
     baseline_house_systems, calculate_houses, HouseError, HouseRequest, HouseSnapshot,
     HouseSystemDescriptor, Instant, JulianDay, Latitude, Longitude, ObserverLocation, TimeScale,
 };
-use pleiades_houses::HouseFormulaFamily;
+use pleiades_houses::{built_in_house_systems, HouseFormulaFamily};
 
 /// A house-validation sample for one system in one chart scenario.
 #[derive(Clone, Debug, PartialEq)]
@@ -37,9 +37,11 @@ pub struct HouseValidationScenario {
     pub samples: Vec<HouseValidationSample>,
 }
 
-/// A compact validation corpus for baseline house systems.
+/// A compact validation corpus for a house-system catalog.
 #[derive(Clone, Debug, PartialEq)]
 pub struct HouseValidationReport {
+    catalog_label: &'static str,
+    house_systems: &'static [HouseSystemDescriptor],
     /// Scenarios included in the report.
     pub scenarios: Vec<HouseValidationScenario>,
 }
@@ -102,8 +104,11 @@ impl fmt::Display for HouseValidationReportValidationError {
 impl std::error::Error for HouseValidationReportValidationError {}
 
 impl HouseValidationReport {
-    /// Creates the default house-validation corpus.
-    pub fn new() -> Self {
+    /// Creates a house-validation corpus for the provided catalog.
+    pub fn new_with_catalog(
+        catalog_label: &'static str,
+        house_systems: &'static [HouseSystemDescriptor],
+    ) -> Self {
         let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
         let scenarios = [
             (
@@ -184,7 +189,7 @@ impl HouseValidationReport {
             label,
             instant,
             observer: observer.clone(),
-            samples: baseline_house_systems()
+            samples: house_systems
                 .iter()
                 .map(|descriptor| HouseValidationSample {
                     descriptor: descriptor.clone(),
@@ -198,7 +203,21 @@ impl HouseValidationReport {
         })
         .collect();
 
-        Self { scenarios }
+        Self {
+            catalog_label,
+            house_systems,
+            scenarios,
+        }
+    }
+
+    /// Creates the default baseline house-validation corpus.
+    pub fn new() -> Self {
+        Self::new_with_catalog("baseline", baseline_house_systems())
+    }
+
+    /// Creates the release house-validation corpus spanning every built-in house system.
+    pub fn release() -> Self {
+        Self::new_with_catalog("built-in", built_in_house_systems())
     }
 
     /// Returns the total number of scenario/sample calculations.
@@ -320,7 +339,7 @@ impl HouseValidationReport {
         let (north_hemispheres, south_hemispheres, equatorial_hemispheres) =
             self.hemisphere_coverage();
         format!(
-            "House validation corpus: {} scenarios ({}), {} samples, {} successes, {} failures; hemisphere coverage: north={}, south={}, equatorial={}; formula families: {}; latitude-sensitive systems: {}; constraints: {}; implementation posture: {} baseline systems validated",
+            "House validation corpus: {} scenarios ({}), {} samples, {} successes, {} failures; hemisphere coverage: north={}, south={}, equatorial={}; formula families: {}; latitude-sensitive systems: {}; constraints: {}; implementation posture: {} {} systems validated",
             self.scenarios.len(),
             if scenario_labels.is_empty() {
                 "none".to_string()
@@ -348,17 +367,18 @@ impl HouseValidationReport {
             } else {
                 latitude_sensitive_constraints.join(", ")
             },
-            baseline_house_systems().len()
+            self.house_systems.len(),
+            self.catalog_label
         )
     }
 
-    /// Validates that the report still reflects the expected baseline corpus shape.
+    /// Validates that the report still reflects the expected corpus shape.
     pub fn validate(&self) -> Result<(), HouseValidationReportValidationError> {
         if self.scenarios.is_empty() {
             return Err(HouseValidationReportValidationError::EmptyScenarioList);
         }
 
-        let expected_sample_count = baseline_house_systems().len();
+        let expected_sample_count = self.house_systems.len();
         let mut scenario_labels = BTreeSet::new();
 
         for (index, scenario) in self.scenarios.iter().enumerate() {
@@ -506,9 +526,14 @@ impl fmt::Display for HouseValidationReport {
     }
 }
 
-/// Renders the default house-validation corpus.
+/// Renders the default baseline house-validation corpus.
 pub fn house_validation_report() -> HouseValidationReport {
     HouseValidationReport::new()
+}
+
+/// Renders the release house-validation corpus across all built-in systems.
+pub fn release_house_validation_report() -> HouseValidationReport {
+    HouseValidationReport::release()
 }
 
 /// Returns the compact report-facing summary line, or an unavailable message if validation fails.
@@ -607,8 +632,52 @@ mod tests {
     }
 
     #[test]
+    fn release_report_expands_to_all_built_in_house_systems() {
+        let report = release_house_validation_report();
+
+        assert_eq!(report.scenarios.len(), 9);
+        assert_eq!(
+            report.sample_count(),
+            report.scenarios.len() * built_in_house_systems().len()
+        );
+        assert_eq!(report.failure_count(), 0);
+        assert_eq!(report.validate(), Ok(()));
+        assert_eq!(
+            report.latitude_sensitive_systems(),
+            vec![
+                "APC",
+                "Gauquelin sectors",
+                "Horizon/Azimuth",
+                "Koch",
+                "Krusinski-Pisa-Goelzer",
+                "Placidus",
+                "Sunshine",
+                "Topocentric",
+            ]
+        );
+        assert_eq!(
+            report.formula_families(),
+            vec![
+                "Equal",
+                "Whole Sign",
+                "Quadrant",
+                "Equatorial projection",
+                "Great-circle",
+                "Solar arc",
+                "Sector",
+            ]
+        );
+        assert_eq!(
+            report.summary_line(),
+            "House validation corpus: 9 scenarios (Mid-latitude reference chart, Western hemisphere reference chart, Equatorial reference chart, Polar stress chart, Northern high-latitude stress chart, Northern high-latitude mountain stress chart, Southern high-latitude mountain stress chart, Southern polar stress chart, Southern hemisphere reference chart), 225 samples, 225 successes, 0 failures; hemisphere coverage: north=5, south=3, equatorial=1; formula families: Equal, Whole Sign, Quadrant, Equatorial projection, Great-circle, Solar arc, Sector; latitude-sensitive systems: APC, Gauquelin sectors, Horizon/Azimuth, Koch, Krusinski-Pisa-Goelzer, Placidus, Sunshine, Topocentric; constraints: APC [APC (Ram school) houses with non-opposite quadrant pairs and polar adjustments.], Gauquelin sectors [Thirty-six sectors used by the Gauquelin-sector family.], Horizon/Azimuth [Azimuthal house system that anchors house 1 due East and house 10 at the MC.], Koch [Quadrant system with documented high-latitude pathologies.], Krusinski-Pisa-Goelzer [Great-circle house system centered on the ascendant and zenith; latitude-sensitive near the poles.], Placidus [Quadrant system; can fail or become unstable at extreme latitudes.], Sunshine [Sunshine house system based on the Sun's diurnal and nocturnal arcs; the 1st house is the Ascendant and the 10th house is the MC.], Topocentric [Topocentric (Polich-Page) house system with geodetic-to-geocentric latitude correction.]; implementation posture: 25 built-in systems validated"
+        );
+    }
+
+    #[test]
     fn validate_rejects_drifted_corpus_shapes() {
         let report = HouseValidationReport {
+            catalog_label: "baseline",
+            house_systems: baseline_house_systems(),
             scenarios: vec![HouseValidationScenario {
                 label: "",
                 instant: Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt),
