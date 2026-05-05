@@ -34,9 +34,11 @@ Phase 2 production artifacts require trusted generation inputs and target thresh
 
 ## Recommended next slice
 
-Implement a small, reviewable reference-coverage slice:
+The representative early-boundary slice is now checked in for Sun, Moon, Mercury, and Venus at 1500-01-01.
 
-- add a minimal but representative set of new source rows or parser support across the 1500-2500 target range;
+Next, implement another small, reviewable reference-coverage slice:
+
+- add a minimal but representative set of additional source rows or parser support across the 1500-2500 target range;
 - include at least one boundary or high-curvature window relevant to artifact fitting;
 - update the relevant backend metadata/report summaries and tests without broadening release claims prematurely.
 

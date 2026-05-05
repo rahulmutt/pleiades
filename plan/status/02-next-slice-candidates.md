@@ -6,7 +6,8 @@ This file lists focused implementation slices that map to the current phase ladd
 
 ### 1. Representative 1500-2500 reference expansion
 
-- Add source/reference coverage at target-range boundaries and representative interior epochs.
+- Early boundary coverage for Sun, Moon, Mercury, and Venus at 1500-01-01 is now checked in.
+- Add the next small set of source/reference rows at target-range boundaries and representative interior epochs.
 - Include high-curvature windows needed by future artifact fitting.
 - Keep hold-out rows separate from fitting/reference rows.
 - Update validation reports to classify evidence as release-tolerance, hold-out, fixture exactness, or provenance-only.
