@@ -12730,7 +12730,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     );
     let _ = writeln!(
         text,
-        "lunar theory limitations: {}",
+        "ELP lunar theory limitations: {}",
         lunar_theory_limitations_summary_for_report()
     );
     let _ = writeln!(text, "  {}", lunar_theory_source_summary_for_report());
@@ -21935,7 +21935,7 @@ version = "0.9.0"
             "ELP frame treatment: Geocentric ecliptic coordinates are produced directly from the truncated lunar series; equatorial coordinates are derived with a mean-obliquity transform"
         ));
         assert!(validation_report_summary.contains(
-            "lunar theory limitations: lunar theory limitations: Compact Meeus-style truncated lunar baseline; supported bodies: Moon, Mean Node, True Node, Mean Perigee, Mean Apogee; unsupported bodies: True Apogee, True Perigee; release-grade evidence: lunar reference error envelope, lunar equatorial reference error envelope"
+            "ELP lunar theory limitations: lunar theory limitations: Compact Meeus-style truncated lunar baseline; supported bodies: Moon, Mean Node, True Node, Mean Perigee, Mean Apogee; unsupported bodies: True Apogee, True Perigee; release-grade evidence: lunar reference error envelope, lunar equatorial reference error envelope"
         ));
         assert!(validation_report_summary.contains(
             "lunar theory catalog: 1 entry, 1 selected entry; selected source: meeus-style-truncated-lunar-baseline [Meeus-style truncated analytical baseline]"
