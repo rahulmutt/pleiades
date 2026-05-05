@@ -391,10 +391,10 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("packaged-artifact-storage-summary") => validate_render_cli(args),
         Some("packaged-artifact-production-profile-summary")
         | Some("packaged-artifact-production-profile") => validate_render_cli(args),
-        Some("packaged-artifact-target-threshold-summary") => validate_render_cli(args),
-        Some("packaged-artifact-target-threshold-scope-envelopes-summary") => {
-            validate_render_cli(args)
-        }
+        Some("packaged-artifact-target-threshold-summary")
+        | Some("packaged-artifact-target-threshold") => validate_render_cli(args),
+        Some("packaged-artifact-target-threshold-scope-envelopes-summary")
+        | Some("packaged-artifact-target-threshold-scope-envelopes") => validate_render_cli(args),
         Some("packaged-artifact-generation-manifest-summary") => validate_render_cli(args),
         Some("packaged-artifact-generation-policy-summary") => validate_render_cli(args),
         Some("packaged-artifact-generation-residual-summary") => validate_render_cli(args),
@@ -3646,6 +3646,11 @@ mod tests {
             packaged_artifact_target_threshold.contains("Packaged-artifact target thresholds: ")
         );
         assert_eq!(
+            render_cli(&["packaged-artifact-target-threshold"])
+                .expect("packaged artifact target threshold alias should render"),
+            packaged_artifact_target_threshold
+        );
+        assert_eq!(
             packaged_artifact_target_threshold,
             format!(
                 "Packaged-artifact target thresholds: {}",
@@ -3658,6 +3663,11 @@ mod tests {
                 .expect("packaged artifact target threshold scope envelopes summary should render");
         assert!(packaged_artifact_target_threshold_scope_envelopes
             .contains("Packaged-artifact target-threshold scope envelopes: "));
+        assert_eq!(
+            render_cli(&["packaged-artifact-target-threshold-scope-envelopes"])
+                .expect("packaged artifact target threshold scope envelopes alias should render"),
+            packaged_artifact_target_threshold_scope_envelopes
+        );
         assert_eq!(
             packaged_artifact_target_threshold_scope_envelopes,
             format!(
@@ -3688,7 +3698,15 @@ mod tests {
                 "packaged-artifact-target-threshold-summary does not accept extra arguments",
             ),
             (
+                &["packaged-artifact-target-threshold", "extra"][..],
+                "packaged-artifact-target-threshold-summary does not accept extra arguments",
+            ),
+            (
                 &["packaged-artifact-target-threshold-scope-envelopes-summary", "extra"][..],
+                "packaged-artifact-target-threshold-scope-envelopes-summary does not accept extra arguments",
+            ),
+            (
+                &["packaged-artifact-target-threshold-scope-envelopes", "extra"][..],
                 "packaged-artifact-target-threshold-scope-envelopes-summary does not accept extra arguments",
             ),
             (
@@ -4331,7 +4349,13 @@ mod tests {
             "packaged-artifact-target-threshold-summary  Print the packaged-artifact target thresholds summary"
         ));
         assert!(help.contains(
+            "packaged-artifact-target-threshold  Alias for packaged-artifact-target-threshold-summary"
+        ));
+        assert!(help.contains(
             "packaged-artifact-target-threshold-scope-envelopes-summary  Print the packaged-artifact target-threshold scope envelopes summary"
+        ));
+        assert!(help.contains(
+            "packaged-artifact-target-threshold-scope-envelopes  Alias for packaged-artifact-target-threshold-scope-envelopes-summary"
         ));
         assert!(help.contains(
             "packaged-artifact-generation-manifest-summary  Print the packaged-artifact generation manifest summary"
