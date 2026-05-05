@@ -3774,6 +3774,13 @@ impl fmt::Display for ReleaseBundle {
         )?;
         writeln!(
             f,
+            "  reference snapshot bridge day summary: {}",
+            self.output_dir
+                .join("reference-snapshot-bridge-day-summary.txt")
+                .display()
+        )?;
+        writeln!(
+            f,
             "  reference snapshot summary: {}",
             self.output_dir
                 .join("reference-snapshot-summary.txt")
@@ -8347,6 +8354,8 @@ pub fn render_release_bundle(
         output_dir.join("comparison-corpus-guard-summary.txt");
     let reference_holdout_overlap_summary_path =
         output_dir.join("reference-holdout-overlap-summary.txt");
+    let reference_snapshot_bridge_day_summary_path =
+        output_dir.join("reference-snapshot-bridge-day-summary.txt");
     let reference_snapshot_summary_path = output_dir.join("reference-snapshot-summary.txt");
     let catalog_inventory_summary_path = output_dir.join("catalog-inventory-summary.txt");
     let custom_definition_ayanamsa_labels_summary_path =
@@ -8412,6 +8421,10 @@ pub fn render_release_bundle(
     let reference_holdout_overlap_summary_text = reference_holdout_overlap_summary_for_report();
     let reference_holdout_overlap_summary_checksum =
         checksum64(&reference_holdout_overlap_summary_text);
+    let reference_snapshot_bridge_day_summary_text =
+        reference_snapshot_bridge_day_summary_for_report();
+    let reference_snapshot_bridge_day_summary_checksum =
+        checksum64(&reference_snapshot_bridge_day_summary_text);
     let reference_snapshot_summary_text = reference_snapshot_summary_for_report();
     let reference_snapshot_summary_checksum = checksum64(&reference_snapshot_summary_text);
     let catalog_inventory_summary_checksum = checksum64(&catalog_inventory_summary_text);
@@ -8444,7 +8457,7 @@ pub fn render_release_bundle(
     let benchmark_report_checksum = checksum64(&benchmark_report_text);
     let validation_report_checksum = checksum64(&validation_report_text);
     let manifest_text = format!(
-        "Release bundle manifest\nprofile: compatibility-profile.txt\nprofile checksum (fnv1a-64): 0x{compatibility_profile_checksum:016x}\nprofile summary: compatibility-profile-summary.txt\nprofile summary checksum (fnv1a-64): 0x{compatibility_profile_summary_checksum:016x}\nrelease notes: release-notes.txt\nrelease notes checksum (fnv1a-64): 0x{release_notes_checksum:016x}\nrelease notes summary: release-notes-summary.txt\nrelease notes summary checksum (fnv1a-64): 0x{release_notes_summary_checksum:016x}\nrelease summary: release-summary.txt\nrelease summary checksum (fnv1a-64): 0x{release_summary_checksum:016x}\nrelease-profile identifiers: release-profile-identifiers.txt\nrelease-profile identifiers checksum (fnv1a-64): 0x{release_profile_identifiers_checksum:016x}\nrelease-profile identifiers summary: release-profile-identifiers-summary.txt\nrelease-profile identifiers summary checksum (fnv1a-64): 0x{release_profile_identifiers_summary_checksum:016x}\nrelease-house-system-canonical-names summary: release-house-system-canonical-names-summary.txt\nrelease-house-system-canonical-names summary checksum (fnv1a-64): 0x{release_house_system_canonical_names_summary_checksum:016x}\nrelease-ayanamsa-canonical-names summary: release-ayanamsa-canonical-names-summary.txt\nrelease-ayanamsa-canonical-names summary checksum (fnv1a-64): 0x{release_ayanamsa_canonical_names_summary_checksum:016x}\nrelease checklist: release-checklist.txt\nrelease checklist checksum (fnv1a-64): 0x{release_checklist_checksum:016x}\nrelease checklist summary: release-checklist-summary.txt\nrelease checklist summary checksum (fnv1a-64): 0x{release_checklist_summary_checksum:016x}\nbackend matrix: backend-matrix.txt\nbackend matrix checksum (fnv1a-64): 0x{backend_matrix_checksum:016x}\nbackend matrix summary: backend-matrix-summary.txt\nbackend matrix summary checksum (fnv1a-64): 0x{backend_matrix_summary_checksum:016x}\napi stability posture: api-stability.txt\napi stability checksum (fnv1a-64): 0x{api_stability_checksum:016x}\napi stability summary: api-stability-summary.txt\napi stability summary checksum (fnv1a-64): 0x{api_stability_summary_checksum:016x}\ncomparison-corpus summary: comparison-corpus-summary.txt\ncomparison-corpus summary checksum (fnv1a-64): 0x{comparison_corpus_summary_checksum:016x}\ncomparison-snapshot summary: comparison-snapshot-summary.txt\ncomparison-snapshot summary checksum (fnv1a-64): 0x{comparison_snapshot_summary_checksum:016x}\ncomparison-envelope summary: comparison-envelope-summary.txt\ncomparison-envelope summary checksum (fnv1a-64): 0x{comparison_envelope_summary_checksum:016x}\ncomparison-corpus release-guard summary: comparison-corpus-release-guard-summary.txt\ncomparison-corpus release-guard summary checksum (fnv1a-64): 0x{comparison_corpus_release_guard_summary_checksum:016x}\nreference-holdout overlap summary: reference-holdout-overlap-summary.txt\nreference-holdout overlap summary checksum (fnv1a-64): 0x{reference_holdout_overlap_summary_checksum:016x}\nreference snapshot summary: reference-snapshot-summary.txt\nreference snapshot summary checksum (fnv1a-64): 0x{reference_snapshot_summary_checksum:016x}\ncatalog inventory summary: catalog-inventory-summary.txt\ncatalog inventory summary checksum (fnv1a-64): 0x{catalog_inventory_summary_checksum:016x}\ncustom-definition ayanamsa labels summary: custom-definition-ayanamsa-labels-summary.txt\ncustom-definition ayanamsa labels summary checksum (fnv1a-64): 0x{custom_definition_ayanamsa_labels_summary_checksum:016x}\nvalidation report summary: validation-report-summary.txt\nvalidation report summary checksum (fnv1a-64): 0x{validation_report_summary_checksum:016x}\nrequest policy summary: request-policy-summary.txt\nrequest policy summary checksum (fnv1a-64): 0x{request_policy_summary_checksum:016x}\ntime-scale policy summary: time-scale-policy-summary.txt\ntime-scale policy summary checksum (fnv1a-64): 0x{time_scale_policy_summary_checksum:016x}\nutc-convenience policy summary: utc-convenience-policy-summary.txt\nutc-convenience policy summary checksum (fnv1a-64): 0x{utc_convenience_policy_summary_checksum:016x}\ndelta-t policy summary: delta-t-policy-summary.txt\ndelta-t policy summary checksum (fnv1a-64): 0x{delta_t_policy_summary_checksum:016x}\nnative sidereal policy summary: native-sidereal-policy-summary.txt\nnative sidereal policy summary checksum (fnv1a-64): 0x{native_sidereal_policy_summary_checksum:016x}\nlunar theory limitations summary: lunar-theory-limitations-summary.txt\nlunar theory limitations summary checksum (fnv1a-64): 0x{lunar_theory_limitations_summary_checksum:016x}\nrequest surface summary: request-surface-summary.txt\nrequest surface summary checksum (fnv1a-64): 0x{request_surface_summary_checksum:016x}\ncompatibility caveats summary: compatibility-caveats-summary.txt\ncompatibility caveats summary checksum (fnv1a-64): 0x{compatibility_caveats_summary_checksum:016x}\nworkspace audit summary: workspace-audit-summary.txt\nworkspace audit summary checksum (fnv1a-64): 0x{workspace_audit_summary_checksum:016x}\nnative-dependency audit summary: native-dependency-audit-summary.txt\nnative-dependency audit summary checksum (fnv1a-64): 0x{native_dependency_audit_summary_checksum:016x}\nartifact summary: artifact-summary.txt\nartifact summary checksum (fnv1a-64): 0x{artifact_summary_checksum:016x}\npackaged-artifact access summary: packaged-artifact-access-summary.txt\npackaged-artifact access summary checksum (fnv1a-64): 0x{packaged_artifact_access_summary_checksum:016x}\npackaged-artifact storage summary: packaged-artifact-storage-summary.txt\npackaged-artifact storage summary checksum (fnv1a-64): 0x{packaged_artifact_storage_summary_checksum:016x}\npackaged-artifact production-profile summary: packaged-artifact-production-profile-summary.txt\npackaged-artifact production-profile summary checksum (fnv1a-64): 0x{packaged_artifact_production_profile_summary_checksum:016x}\npackaged-artifact target-threshold summary: packaged-artifact-target-threshold-summary.txt\npackaged-artifact target-threshold summary checksum (fnv1a-64): 0x{packaged_artifact_target_threshold_summary_checksum:016x}\npackaged-artifact generation manifest: packaged-artifact-generation-manifest.txt\npackaged-artifact generation manifest checksum (fnv1a-64): 0x{packaged_artifact_generation_manifest_checksum:016x}\nbenchmark-corpus summary: benchmark-corpus-summary.txt\nbenchmark-corpus summary checksum (fnv1a-64): 0x{benchmark_corpus_summary_checksum:016x}\nbenchmark report: benchmark-report.txt\nbenchmark report checksum (fnv1a-64): 0x{benchmark_report_checksum:016x}\nvalidation report: validation-report.txt\nvalidation report checksum (fnv1a-64): 0x{validation_report_checksum:016x}\nsource revision: {}\nworkspace status: {}\nrustc version: {}\nprofile id: {}\napi stability posture id: {}\nvalidation rounds: {}\n",
+        "Release bundle manifest\nprofile: compatibility-profile.txt\nprofile checksum (fnv1a-64): 0x{compatibility_profile_checksum:016x}\nprofile summary: compatibility-profile-summary.txt\nprofile summary checksum (fnv1a-64): 0x{compatibility_profile_summary_checksum:016x}\nrelease notes: release-notes.txt\nrelease notes checksum (fnv1a-64): 0x{release_notes_checksum:016x}\nrelease notes summary: release-notes-summary.txt\nrelease notes summary checksum (fnv1a-64): 0x{release_notes_summary_checksum:016x}\nrelease summary: release-summary.txt\nrelease summary checksum (fnv1a-64): 0x{release_summary_checksum:016x}\nrelease-profile identifiers: release-profile-identifiers.txt\nrelease-profile identifiers checksum (fnv1a-64): 0x{release_profile_identifiers_checksum:016x}\nrelease-profile identifiers summary: release-profile-identifiers-summary.txt\nrelease-profile identifiers summary checksum (fnv1a-64): 0x{release_profile_identifiers_summary_checksum:016x}\nrelease-house-system-canonical-names summary: release-house-system-canonical-names-summary.txt\nrelease-house-system-canonical-names summary checksum (fnv1a-64): 0x{release_house_system_canonical_names_summary_checksum:016x}\nrelease-ayanamsa-canonical-names summary: release-ayanamsa-canonical-names-summary.txt\nrelease-ayanamsa-canonical-names summary checksum (fnv1a-64): 0x{release_ayanamsa_canonical_names_summary_checksum:016x}\nrelease checklist: release-checklist.txt\nrelease checklist checksum (fnv1a-64): 0x{release_checklist_checksum:016x}\nrelease checklist summary: release-checklist-summary.txt\nrelease checklist summary checksum (fnv1a-64): 0x{release_checklist_summary_checksum:016x}\nbackend matrix: backend-matrix.txt\nbackend matrix checksum (fnv1a-64): 0x{backend_matrix_checksum:016x}\nbackend matrix summary: backend-matrix-summary.txt\nbackend matrix summary checksum (fnv1a-64): 0x{backend_matrix_summary_checksum:016x}\napi stability posture: api-stability.txt\napi stability checksum (fnv1a-64): 0x{api_stability_checksum:016x}\napi stability summary: api-stability-summary.txt\napi stability summary checksum (fnv1a-64): 0x{api_stability_summary_checksum:016x}\ncomparison-corpus summary: comparison-corpus-summary.txt\ncomparison-corpus summary checksum (fnv1a-64): 0x{comparison_corpus_summary_checksum:016x}\ncomparison-snapshot summary: comparison-snapshot-summary.txt\ncomparison-snapshot summary checksum (fnv1a-64): 0x{comparison_snapshot_summary_checksum:016x}\ncomparison-envelope summary: comparison-envelope-summary.txt\ncomparison-envelope summary checksum (fnv1a-64): 0x{comparison_envelope_summary_checksum:016x}\ncomparison-corpus release-guard summary: comparison-corpus-release-guard-summary.txt\ncomparison-corpus release-guard summary checksum (fnv1a-64): 0x{comparison_corpus_release_guard_summary_checksum:016x}\nreference-holdout overlap summary: reference-holdout-overlap-summary.txt\nreference-holdout overlap summary checksum (fnv1a-64): 0x{reference_holdout_overlap_summary_checksum:016x}\nreference snapshot bridge day summary: reference-snapshot-bridge-day-summary.txt\nreference snapshot bridge day summary checksum (fnv1a-64): 0x{reference_snapshot_bridge_day_summary_checksum:016x}\nreference snapshot summary: reference-snapshot-summary.txt\nreference snapshot summary checksum (fnv1a-64): 0x{reference_snapshot_summary_checksum:016x}\ncatalog inventory summary: catalog-inventory-summary.txt\ncatalog inventory summary checksum (fnv1a-64): 0x{catalog_inventory_summary_checksum:016x}\ncustom-definition ayanamsa labels summary: custom-definition-ayanamsa-labels-summary.txt\ncustom-definition ayanamsa labels summary checksum (fnv1a-64): 0x{custom_definition_ayanamsa_labels_summary_checksum:016x}\nvalidation report summary: validation-report-summary.txt\nvalidation report summary checksum (fnv1a-64): 0x{validation_report_summary_checksum:016x}\nrequest policy summary: request-policy-summary.txt\nrequest policy summary checksum (fnv1a-64): 0x{request_policy_summary_checksum:016x}\ntime-scale policy summary: time-scale-policy-summary.txt\ntime-scale policy summary checksum (fnv1a-64): 0x{time_scale_policy_summary_checksum:016x}\nutc-convenience policy summary: utc-convenience-policy-summary.txt\nutc-convenience policy summary checksum (fnv1a-64): 0x{utc_convenience_policy_summary_checksum:016x}\ndelta-t policy summary: delta-t-policy-summary.txt\ndelta-t policy summary checksum (fnv1a-64): 0x{delta_t_policy_summary_checksum:016x}\nnative sidereal policy summary: native-sidereal-policy-summary.txt\nnative sidereal policy summary checksum (fnv1a-64): 0x{native_sidereal_policy_summary_checksum:016x}\nlunar theory limitations summary: lunar-theory-limitations-summary.txt\nlunar theory limitations summary checksum (fnv1a-64): 0x{lunar_theory_limitations_summary_checksum:016x}\nrequest surface summary: request-surface-summary.txt\nrequest surface summary checksum (fnv1a-64): 0x{request_surface_summary_checksum:016x}\ncompatibility caveats summary: compatibility-caveats-summary.txt\ncompatibility caveats summary checksum (fnv1a-64): 0x{compatibility_caveats_summary_checksum:016x}\nworkspace audit summary: workspace-audit-summary.txt\nworkspace audit summary checksum (fnv1a-64): 0x{workspace_audit_summary_checksum:016x}\nnative-dependency audit summary: native-dependency-audit-summary.txt\nnative-dependency audit summary checksum (fnv1a-64): 0x{native_dependency_audit_summary_checksum:016x}\nartifact summary: artifact-summary.txt\nartifact summary checksum (fnv1a-64): 0x{artifact_summary_checksum:016x}\npackaged-artifact access summary: packaged-artifact-access-summary.txt\npackaged-artifact access summary checksum (fnv1a-64): 0x{packaged_artifact_access_summary_checksum:016x}\npackaged-artifact storage summary: packaged-artifact-storage-summary.txt\npackaged-artifact storage summary checksum (fnv1a-64): 0x{packaged_artifact_storage_summary_checksum:016x}\npackaged-artifact production-profile summary: packaged-artifact-production-profile-summary.txt\npackaged-artifact production-profile summary checksum (fnv1a-64): 0x{packaged_artifact_production_profile_summary_checksum:016x}\npackaged-artifact target-threshold summary: packaged-artifact-target-threshold-summary.txt\npackaged-artifact target-threshold summary checksum (fnv1a-64): 0x{packaged_artifact_target_threshold_summary_checksum:016x}\npackaged-artifact generation manifest: packaged-artifact-generation-manifest.txt\npackaged-artifact generation manifest checksum (fnv1a-64): 0x{packaged_artifact_generation_manifest_checksum:016x}\nbenchmark-corpus summary: benchmark-corpus-summary.txt\nbenchmark-corpus summary checksum (fnv1a-64): 0x{benchmark_corpus_summary_checksum:016x}\nbenchmark report: benchmark-report.txt\nbenchmark report checksum (fnv1a-64): 0x{benchmark_report_checksum:016x}\nvalidation report: validation-report.txt\nvalidation report checksum (fnv1a-64): 0x{validation_report_checksum:016x}\nsource revision: {}\nworkspace status: {}\nrustc version: {}\nprofile id: {}\napi stability posture id: {}\nvalidation rounds: {}\n",
         provenance.source_revision,
         provenance.workspace_status,
         provenance.rustc_version,
@@ -8515,6 +8528,10 @@ pub fn render_release_bundle(
     fs::write(
         &reference_holdout_overlap_summary_path,
         reference_holdout_overlap_summary_text.as_bytes(),
+    )?;
+    fs::write(
+        &reference_snapshot_bridge_day_summary_path,
+        reference_snapshot_bridge_day_summary_text.as_bytes(),
     )?;
     fs::write(
         &reference_snapshot_summary_path,
@@ -8649,6 +8666,8 @@ struct ParsedReleaseBundleManifest {
     comparison_corpus_release_guard_summary_checksum: u64,
     reference_holdout_overlap_summary_path: String,
     reference_holdout_overlap_summary_checksum: u64,
+    reference_snapshot_bridge_day_summary_path: String,
+    reference_snapshot_bridge_day_summary_checksum: u64,
     reference_snapshot_summary_path: String,
     reference_snapshot_summary_checksum: u64,
     catalog_inventory_summary_path: String,
@@ -8829,6 +8848,14 @@ impl ParsedReleaseBundleManifest {
             reference_holdout_overlap_summary_checksum: parse_manifest_checksum(
                 text,
                 "reference-holdout overlap summary checksum (fnv1a-64):",
+            )?,
+            reference_snapshot_bridge_day_summary_path: parse_manifest_string(
+                text,
+                "reference snapshot bridge day summary:",
+            )?,
+            reference_snapshot_bridge_day_summary_checksum: parse_manifest_checksum(
+                text,
+                "reference snapshot bridge day summary checksum (fnv1a-64):",
             )?,
             reference_snapshot_summary_path: parse_manifest_string(
                 text,
@@ -9019,6 +9046,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
         "comparison-corpus-release-guard-summary.txt",
         "comparison-corpus-guard-summary.txt",
         "reference-holdout-overlap-summary.txt",
+        "reference-snapshot-bridge-day-summary.txt",
         "reference-snapshot-summary.txt",
         "catalog-inventory-summary.txt",
         "custom-definition-ayanamsa-labels-summary.txt",
@@ -9075,7 +9103,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
 fn ensure_release_bundle_manifest_is_canonical(
     manifest_text: &str,
 ) -> Result<(), ReleaseBundleError> {
-    const EXPECTED_MANIFEST_LINES: [&str; 93] = [
+    const EXPECTED_MANIFEST_LINES: [&str; 95] = [
         "Release bundle manifest",
         "profile:",
         "profile checksum (fnv1a-64):",
@@ -9117,6 +9145,8 @@ fn ensure_release_bundle_manifest_is_canonical(
         "comparison-corpus release-guard summary checksum (fnv1a-64):",
         "reference-holdout overlap summary:",
         "reference-holdout overlap summary checksum (fnv1a-64):",
+        "reference snapshot bridge day summary:",
+        "reference snapshot bridge day summary checksum (fnv1a-64):",
         "reference snapshot summary:",
         "reference snapshot summary checksum (fnv1a-64):",
         "catalog inventory summary:",
@@ -9247,6 +9277,8 @@ fn verify_release_bundle(
         output_dir.join("comparison-corpus-guard-summary.txt");
     let reference_holdout_overlap_summary_path =
         output_dir.join("reference-holdout-overlap-summary.txt");
+    let reference_snapshot_bridge_day_summary_path =
+        output_dir.join("reference-snapshot-bridge-day-summary.txt");
     let reference_snapshot_summary_path = output_dir.join("reference-snapshot-summary.txt");
     let catalog_inventory_summary_path = output_dir.join("catalog-inventory-summary.txt");
     let custom_definition_ayanamsa_labels_summary_path =
@@ -9312,6 +9344,10 @@ fn verify_release_bundle(
         (
             &reference_holdout_overlap_summary_path,
             "reference-holdout overlap summary",
+        ),
+        (
+            &reference_snapshot_bridge_day_summary_path,
+            "reference snapshot bridge day summary",
         ),
         (&catalog_inventory_summary_path, "catalog inventory summary"),
         (&validation_report_summary_path, "validation report summary"),
@@ -9388,6 +9424,10 @@ fn verify_release_bundle(
     let reference_holdout_overlap_summary_text = read_required_bundle_text(
         &reference_holdout_overlap_summary_path,
         "reference-holdout overlap summary",
+    )?;
+    let reference_snapshot_bridge_day_summary_text = read_required_bundle_text(
+        &reference_snapshot_bridge_day_summary_path,
+        "reference snapshot bridge day summary",
     )?;
     let reference_snapshot_summary_text = read_required_bundle_text(
         &reference_snapshot_summary_path,
@@ -9737,6 +9777,8 @@ fn verify_release_bundle(
         checksum64(&comparison_corpus_release_guard_summary_text);
     let reference_holdout_overlap_summary_checksum =
         checksum64(&reference_holdout_overlap_summary_text);
+    let reference_snapshot_bridge_day_summary_checksum =
+        checksum64(&reference_snapshot_bridge_day_summary_text);
     let reference_snapshot_summary_checksum = checksum64(&reference_snapshot_summary_text);
     let catalog_inventory_summary_checksum = checksum64(&catalog_inventory_summary_text);
     let custom_definition_ayanamsa_labels_summary_checksum =
@@ -9953,6 +9995,23 @@ fn verify_release_bundle(
             "reference-holdout overlap summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
             manifest.reference_holdout_overlap_summary_checksum,
             reference_holdout_overlap_summary_checksum
+        )));
+    }
+    if manifest.reference_snapshot_bridge_day_summary_path
+        != "reference-snapshot-bridge-day-summary.txt"
+    {
+        return Err(ReleaseBundleError::Verification(format!(
+            "unexpected reference snapshot bridge day summary file entry: {}",
+            manifest.reference_snapshot_bridge_day_summary_path
+        )));
+    }
+    if manifest.reference_snapshot_bridge_day_summary_checksum
+        != reference_snapshot_bridge_day_summary_checksum
+    {
+        return Err(ReleaseBundleError::Verification(format!(
+            "reference snapshot bridge day summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
+            manifest.reference_snapshot_bridge_day_summary_checksum,
+            reference_snapshot_bridge_day_summary_checksum
         )));
     }
     if manifest.reference_snapshot_summary_path != "reference-snapshot-summary.txt" {
@@ -22472,6 +22531,8 @@ version = "0.9.0"
         assert!(manifest.contains("custom-definition-ayanamsa-labels-summary.txt"));
         assert!(manifest.contains("validation-report-summary.txt"));
         assert!(manifest.contains("request-policy-summary.txt"));
+        assert!(manifest.contains("reference-snapshot-bridge-day-summary.txt"));
+        assert!(manifest.contains("reference snapshot bridge day summary checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("reference-snapshot-summary.txt"));
         assert!(manifest.contains("reference snapshot summary checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("time-scale-policy-summary.txt"));
@@ -22548,6 +22609,7 @@ version = "0.9.0"
         assert!(verified.contains("comparison-snapshot-summary.txt"));
         assert!(verified.contains("comparison-envelope-summary.txt"));
         assert!(verified.contains("comparison-corpus-release-guard-summary.txt"));
+        assert!(verified.contains("reference-snapshot-bridge-day-summary.txt"));
         assert!(verified.contains("catalog-inventory-summary.txt"));
         assert!(verified.contains("custom-definition-ayanamsa-labels-summary.txt"));
         assert!(verified.contains("request-policy-summary.txt"));
@@ -22620,6 +22682,14 @@ version = "0.9.0"
             &[
                 "missing manifest entry: request surface summary:",
                 "missing request surface summary entry",
+            ],
+        );
+        assert_release_bundle_rejects_missing_manifest_entry(
+            "pleiades-release-bundle-missing-reference-snapshot-bridge-day-summary",
+            "reference snapshot bridge day summary:",
+            &[
+                "missing manifest entry: reference snapshot bridge day summary:",
+                "missing reference snapshot bridge day summary entry",
             ],
         );
     }

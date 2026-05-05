@@ -4283,6 +4283,9 @@ mod tests {
         assert!(rendered.contains("bundle-manifest.checksum.txt"));
         assert!(rendered.contains("native-sidereal-policy-summary.txt"));
         assert!(bundle_dir.join("bundle-manifest.txt").exists());
+        assert!(bundle_dir
+            .join("reference-snapshot-bridge-day-summary.txt")
+            .exists());
         assert!(bundle_dir.join("catalog-inventory-summary.txt").exists());
         assert!(bundle_dir
             .join("custom-definition-ayanamsa-labels-summary.txt")
@@ -4327,6 +4330,8 @@ mod tests {
         let manifest = std::fs::read_to_string(bundle_dir.join("bundle-manifest.txt"))
             .expect("bundle manifest should be written");
         assert!(manifest.contains("packaged-artifact-access-summary.txt"));
+        assert!(manifest.contains("reference-snapshot-bridge-day-summary.txt"));
+        assert!(manifest.contains("reference snapshot bridge day summary checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("packaged-artifact access summary checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("packaged-artifact-production-profile-summary.txt"));
         assert!(manifest.contains("packaged-artifact-target-threshold-summary.txt"));
@@ -4345,6 +4350,7 @@ mod tests {
         assert!(verified.contains("Release bundle"));
         assert!(verified.contains("compatibility-profile.txt"));
         assert!(verified.contains("catalog-inventory-summary.txt"));
+        assert!(verified.contains("reference-snapshot-bridge-day-summary.txt"));
         assert!(verified.contains("custom-definition-ayanamsa-labels-summary.txt"));
         assert!(verified.contains("time-scale-policy-summary.txt"));
         assert!(verified.contains("delta-t-policy-summary.txt"));
