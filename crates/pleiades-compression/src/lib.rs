@@ -3209,6 +3209,62 @@ mod tests {
     }
 
     #[test]
+    fn decode_rejects_unsupported_endian_policy() {
+        let artifact = CompressedArtifact::new(
+            ArtifactHeader::with_profile_and_endian(
+                "endian demo",
+                "unit test endian policy",
+                EndianPolicy::LittleEndian,
+                ArtifactProfile::ecliptic_longitude_latitude_distance(),
+            ),
+            vec![BodyArtifact::new(
+                CelestialBody::Sun,
+                vec![Segment::new(
+                    Instant::new(pleiades_types::JulianDay::from_days(0.0), TimeScale::Tt),
+                    Instant::new(pleiades_types::JulianDay::from_days(1.0), TimeScale::Tt),
+                    vec![
+                        PolynomialChannel::linear(ChannelKind::Longitude, 9, 10.0, 11.0),
+                        PolynomialChannel::linear(ChannelKind::Latitude, 9, 1.0, 2.0),
+                        PolynomialChannel::linear(ChannelKind::DistanceAu, 12, 0.1, 0.2),
+                    ],
+                )],
+            )],
+        );
+
+        let mut bytes = artifact
+            .encode()
+            .expect("artifact should encode with explicit endian policy");
+        let mut cursor = Cursor::new(&bytes);
+        assert_eq!(
+            cursor.read_array::<8>().expect("magic should decode"),
+            ARTIFACT_MAGIC
+        );
+        assert_eq!(
+            cursor.read_u16().expect("version should decode"),
+            ARTIFACT_VERSION
+        );
+        let _ = cursor.read_u64().expect("checksum should decode");
+        let _ = cursor.read_string().expect("label should decode");
+        let _ = cursor.read_string().expect("source should decode");
+        let endian_index = cursor.offset;
+        bytes[endian_index] = 1;
+        let payload_offset =
+            ARTIFACT_MAGIC.len() + std::mem::size_of::<u16>() + std::mem::size_of::<u64>();
+        let checksum = fnv1a64(&bytes[payload_offset..]);
+        let checksum_offset = ARTIFACT_MAGIC.len() + std::mem::size_of::<u16>();
+        bytes[checksum_offset..checksum_offset + std::mem::size_of::<u64>()]
+            .copy_from_slice(&checksum.to_le_bytes());
+
+        let error = CompressedArtifact::decode(&bytes)
+            .expect_err("artifact should reject unsupported endian policy");
+        assert_eq!(error.kind, CompressionErrorKind::UnsupportedEndianPolicy);
+        assert_eq!(
+            error.message,
+            "artifact byte-order policy 1 is not supported"
+        );
+    }
+
+    #[test]
     fn artifact_profile_summary_lists_capability_fields() {
         let profile = ArtifactProfile::new(
             vec![
