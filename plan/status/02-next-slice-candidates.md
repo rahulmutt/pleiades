@@ -59,6 +59,7 @@ This file lists focused implementation slices that map to the current phase ladd
 ### 3. Fit-error and benchmark matrix
 
 - Add body-class fit-error reporting for boundary and interior samples.
+- The packaged-artifact fit envelope summary is now surfaced as a dedicated validation command and in the validation report, so future fit-error slices can reuse a first-class summary surface.
 - Benchmark single lookup, batch lookup, decode cost, artifact size, and full-chart packaged-data use.
 - Fail validation when measured errors exceed profile thresholds.
 
