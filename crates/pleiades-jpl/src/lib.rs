@@ -2350,7 +2350,7 @@ pub fn reference_snapshot_summary_for_report() -> String {
         reference_snapshot_2451913_major_body_boundary_summary_for_report(),
         reference_snapshot_2451914_major_body_boundary_summary_for_report(),
         reference_snapshot_2451914_major_body_pre_bridge_summary_for_report(),
-        reference_snapshot_2451914_major_body_bridge_summary_for_report(),
+        reference_snapshot_2451914_bridge_day_summary_for_report(),
         reference_snapshot_2451915_major_body_boundary_summary_for_report(),
         reference_snapshot_2451915_major_body_bridge_summary_for_report(),
         reference_snapshot_2451917_major_body_bridge_summary_for_report(),
@@ -23666,6 +23666,7 @@ mod tests {
         assert!(
             report.contains(&reference_snapshot_2451914_major_body_pre_bridge_summary_for_report())
         );
+        assert!(report.contains(&reference_snapshot_2451914_bridge_day_summary_for_report()));
         assert!(report.contains(&reference_snapshot_2451914_major_body_bridge_summary_for_report()));
         assert!(report.contains(&reference_snapshot_2451915_major_body_bridge_summary_for_report()));
         assert!(
