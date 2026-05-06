@@ -2340,6 +2340,7 @@ pub fn reference_snapshot_summary_for_report() -> String {
         reference_snapshot_1750_selected_body_boundary_summary_for_report(),
         reference_snapshot_1800_major_body_boundary_summary_for_report(),
         reference_snapshot_1900_selected_body_boundary_summary_for_report(),
+        reference_snapshot_lunar_boundary_summary_for_report(),
         reference_snapshot_2400000_major_body_boundary_summary_for_report(),
         reference_snapshot_2451545_major_body_boundary_summary_for_report(),
         reference_snapshot_2360234_major_body_interior_summary_for_report(),
@@ -21563,6 +21564,7 @@ mod tests {
             report.contains(&reference_snapshot_1750_selected_body_boundary_summary_for_report())
         );
         assert!(report.contains(&reference_snapshot_1800_major_body_boundary_summary_for_report()));
+        assert!(report.contains(&reference_snapshot_lunar_boundary_summary_for_report()));
         assert!(
             report.contains(&reference_snapshot_2400000_major_body_boundary_summary_for_report())
         );
@@ -23617,6 +23619,7 @@ mod tests {
         assert!(
             report.contains(&reference_snapshot_1900_selected_body_boundary_summary_for_report())
         );
+        assert!(report.contains(&reference_snapshot_lunar_boundary_summary_for_report()));
         assert!(
             report.contains(&reference_snapshot_2360234_major_body_interior_summary_for_report())
         );
