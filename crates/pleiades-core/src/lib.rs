@@ -136,6 +136,15 @@ pub use release_profiles::{
     ReleaseProfileIdentifiersValidationError,
 };
 
+/// Returns the current shared request-semantics posture.
+///
+/// This is a façade-level alias for [`request_policy_summary_for_report()`] so
+/// callers can use the same request-semantics wording that the CLI and
+/// validation reports expose without depending on the backend crate directly.
+pub const fn request_semantics_summary_for_report() -> RequestPolicySummary {
+    request_policy_summary_for_report()
+}
+
 /// A thin façade around a backend implementation.
 #[derive(Debug)]
 pub struct ChartEngine<B> {
@@ -568,6 +577,26 @@ mod tests {
         assert_eq!(
             current_summary.validated_summary_line().unwrap(),
             summary.validated_summary_line().unwrap()
+        );
+    }
+
+    #[test]
+    fn request_semantics_summary_aliases_request_policy_summary() {
+        assert_eq!(
+            request_semantics_summary_for_report(),
+            request_policy_summary_for_report()
+        );
+        assert_eq!(
+            request_semantics_summary_for_report().summary_line(),
+            request_policy_summary_for_report().summary_line()
+        );
+        assert_eq!(
+            request_semantics_summary_for_report()
+                .validated_summary_line()
+                .unwrap(),
+            request_policy_summary_for_report()
+                .validated_summary_line()
+                .unwrap()
         );
     }
 

@@ -26,7 +26,7 @@ This file lists focused implementation slices that map to the current phase ladd
 
 ### 4. Request/time semantics closure
 
-- Decide first-release behavior for built-in Delta T and UTC/UT1 convenience conversion; validation-report summaries now surface the UTC-convenience deferral explicitly, the core façade now re-exports the UTC-convenience, Delta T, and native sidereal policy summaries plus their current constructors, and the request-surface inventory now lists Delta T as a separate report entrypoint.
+- Decide first-release behavior for built-in Delta T and UTC/UT1 convenience conversion; validation-report summaries now surface the UTC-convenience deferral explicitly, the core façade now re-exports the UTC-convenience, Delta T, and native sidereal policy summaries plus their current constructors, and it also offers a `request_semantics_summary_for_report()` alias for the combined request-policy wording; the request-surface inventory now lists Delta T as a separate report entrypoint.
 - Decide whether apparent-place corrections and topocentric body positions are implemented or explicitly deferred.
 - Keep native sidereal backend output deferred unless a backend advertises equivalent support through capabilities.
 - Add rustdoc/docs and regression tests for whichever posture is chosen.
