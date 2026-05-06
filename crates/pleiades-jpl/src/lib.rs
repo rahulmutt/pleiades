@@ -21546,6 +21546,9 @@ mod tests {
             report.contains(&reference_snapshot_2400000_major_body_boundary_summary_for_report())
         );
         assert!(
+            report.contains(&reference_snapshot_2451545_major_body_boundary_summary_for_report())
+        );
+        assert!(
             report.contains(&reference_snapshot_2360234_major_body_interior_summary_for_report())
         );
         assert!(
@@ -23580,6 +23583,12 @@ mod tests {
         );
         assert!(
             report.contains(&reference_snapshot_2451916_major_body_interior_summary_for_report())
+        );
+        assert!(
+            report.contains(&reference_snapshot_2400000_major_body_boundary_summary_for_report())
+        );
+        assert!(
+            report.contains(&reference_snapshot_2451545_major_body_boundary_summary_for_report())
         );
         assert!(report
             .contains(&reference_snapshot_2451916_major_body_dense_boundary_summary_for_report()));
