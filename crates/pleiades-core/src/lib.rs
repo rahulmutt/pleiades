@@ -108,13 +108,14 @@ pub use pleiades_ayanamsa::{
 };
 pub use pleiades_backend::{
     apparentness_policy_summary_for_report, current_delta_t_policy_summary,
-    current_utc_convenience_policy_summary, delta_t_policy_summary_for_report,
-    frame_policy_summary_for_report, native_sidereal_policy_summary_for_report,
-    observer_policy_summary_for_report, request_policy_summary_for_report,
-    time_scale_policy_summary_for_report, utc_convenience_policy_summary_for_report, AccuracyClass,
-    Apparentness, ApparentnessPolicySummary, BackendCapabilities, BackendFamily, BackendId,
-    BackendMetadata, BackendProvenance, CompositeBackend, DeltaTPolicySummary, EphemerisBackend,
-    EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult, FramePolicySummary,
+    current_native_sidereal_policy_summary, current_utc_convenience_policy_summary,
+    delta_t_policy_summary_for_report, frame_policy_summary_for_report,
+    native_sidereal_policy_summary_for_report, observer_policy_summary_for_report,
+    request_policy_summary_for_report, time_scale_policy_summary_for_report,
+    utc_convenience_policy_summary_for_report, AccuracyClass, Apparentness,
+    ApparentnessPolicySummary, BackendCapabilities, BackendFamily, BackendId, BackendMetadata,
+    BackendProvenance, CompositeBackend, DeltaTPolicySummary, EphemerisBackend, EphemerisError,
+    EphemerisErrorKind, EphemerisRequest, EphemerisResult, FramePolicySummary,
     NativeSiderealPolicySummary, ObserverPolicySummary, QualityAnnotation, RequestPolicySummary,
     RoutingBackend, TimeScalePolicySummary, UtcConveniencePolicySummary,
 };
@@ -563,6 +564,25 @@ mod tests {
             pleiades_backend::CURRENT_DELTA_T_POLICY_SUMMARY_TEXT
         );
         let current_summary: DeltaTPolicySummary = current_delta_t_policy_summary();
+        assert_eq!(current_summary.summary_line(), summary.summary_line());
+        assert_eq!(
+            current_summary.validated_summary_line().unwrap(),
+            summary.validated_summary_line().unwrap()
+        );
+    }
+
+    #[test]
+    fn native_sidereal_policy_summary_is_reexported_from_backend() {
+        let summary: NativeSiderealPolicySummary = native_sidereal_policy_summary_for_report();
+        assert_eq!(
+            summary.summary_line(),
+            pleiades_backend::CURRENT_NATIVE_SIDEREAL_POLICY_SUMMARY_TEXT
+        );
+        assert_eq!(
+            summary.validated_summary_line().unwrap(),
+            pleiades_backend::CURRENT_NATIVE_SIDEREAL_POLICY_SUMMARY_TEXT
+        );
+        let current_summary: NativeSiderealPolicySummary = current_native_sidereal_policy_summary();
         assert_eq!(current_summary.summary_line(), summary.summary_line());
         assert_eq!(
             current_summary.validated_summary_line().unwrap(),

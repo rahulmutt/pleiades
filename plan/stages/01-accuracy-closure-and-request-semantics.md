@@ -25,7 +25,7 @@ Implemented and not re-planned here:
 - VSOP87B generated binary tables for Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, and Neptune;
 - compact lunar baseline for Moon, mean/true node, and mean apogee/perigee;
 - JPL Horizons snapshot and hold-out fixtures with selected asteroid rows, provenance summaries, equatorial reconstruction, interpolation transparency, batch parity evidence, and release-facing 1500-01-01 / 1900-01-01 selected-body boundary summaries;
-- validation/report commands that expose request policy, source documentation, comparison tolerance posture, benchmark summaries, and reference-corpus summaries.
+- validation/report commands that expose request policy, source documentation, comparison tolerance posture, benchmark summaries, and reference-corpus summaries, and the core façade now re-exports the current UTC-convenience, Delta T, and native sidereal policy summaries for consumers that want the same wording without a backend dependency.
 
 ## Remaining implementation goals
 
