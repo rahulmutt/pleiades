@@ -25962,6 +25962,10 @@ version = "0.9.0"
         assert!(reference.contains("Reference snapshot coverage:"));
         assert!(reference.contains("Reference 2500 major-body boundary evidence:"));
         assert!(reference.contains("Reference 2500 selected-body boundary evidence:"));
+        assert!(reference.contains(&selected_asteroid_boundary_summary_for_report()));
+        assert!(reference.contains(&selected_asteroid_bridge_summary_for_report()));
+        assert!(reference.contains(&selected_asteroid_dense_boundary_summary_for_report()));
+        assert!(reference.contains(&selected_asteroid_terminal_boundary_summary_for_report()));
         assert!(reference.contains("Reference 2453000 major-body boundary evidence:"));
         assert!(reference.contains("Reference 2400000 major-body boundary evidence:"));
         assert!(reference.contains("Reference 2451545 major-body boundary evidence:"));

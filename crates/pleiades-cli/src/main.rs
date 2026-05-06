@@ -3000,6 +3000,14 @@ mod tests {
             .expect("reference snapshot summary should render");
         assert!(reference_snapshot_summary.contains("Reference snapshot summary"));
         assert!(reference_snapshot_summary.contains("Reference 2500 major-body boundary evidence:"));
+        assert!(reference_snapshot_summary
+            .contains(&pleiades_jpl::selected_asteroid_boundary_summary_for_report()));
+        assert!(reference_snapshot_summary
+            .contains(&pleiades_jpl::selected_asteroid_bridge_summary_for_report()));
+        assert!(reference_snapshot_summary
+            .contains(&pleiades_jpl::selected_asteroid_dense_boundary_summary_for_report()));
+        assert!(reference_snapshot_summary
+            .contains(&pleiades_jpl::selected_asteroid_terminal_boundary_summary_for_report()));
         assert_eq!(
             reference_snapshot_summary,
             format!(

@@ -2368,6 +2368,10 @@ pub fn reference_snapshot_summary_for_report() -> String {
         reference_snapshot_2451920_major_body_interior_summary_for_report(),
         reference_snapshot_2453000_major_body_boundary_summary_for_report(),
         reference_snapshot_2500_major_body_boundary_summary_for_report(),
+        selected_asteroid_boundary_summary_for_report(),
+        selected_asteroid_bridge_summary_for_report(),
+        selected_asteroid_dense_boundary_summary_for_report(),
+        selected_asteroid_terminal_boundary_summary_for_report(),
         reference_snapshot_2200_selected_body_boundary_summary_for_report(),
         reference_snapshot_mars_outer_boundary_summary_for_report(),
         reference_snapshot_2500_selected_body_boundary_summary_for_report(),
@@ -21846,6 +21850,10 @@ mod tests {
             report.contains(&reference_snapshot_2453000_major_body_boundary_summary_for_report())
         );
         assert!(report.contains(&reference_snapshot_2500_major_body_boundary_summary_for_report()));
+        assert!(report.contains(&selected_asteroid_boundary_summary_for_report()));
+        assert!(report.contains(&selected_asteroid_bridge_summary_for_report()));
+        assert!(report.contains(&selected_asteroid_dense_boundary_summary_for_report()));
+        assert!(report.contains(&selected_asteroid_terminal_boundary_summary_for_report()));
         assert!(
             report.contains(&reference_snapshot_2200_selected_body_boundary_summary_for_report())
         );
@@ -23958,6 +23966,10 @@ mod tests {
         assert!(
             report.contains(&reference_snapshot_2451916_major_body_interior_summary_for_report())
         );
+        assert!(report.contains(&selected_asteroid_boundary_summary_for_report()));
+        assert!(report.contains(&selected_asteroid_bridge_summary_for_report()));
+        assert!(report.contains(&selected_asteroid_dense_boundary_summary_for_report()));
+        assert!(report.contains(&selected_asteroid_terminal_boundary_summary_for_report()));
         assert!(
             report.contains(&reference_snapshot_2400000_major_body_boundary_summary_for_report())
         );
