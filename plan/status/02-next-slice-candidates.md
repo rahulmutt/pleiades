@@ -60,9 +60,9 @@ This file lists focused implementation slices that map to the current phase ladd
 
 ### 2. Ayanamsa provenance batch
 
-- Pick a small group of release-advertised ayanamsas.
-- Add reference epoch/offset/formula provenance, alias evidence, sidereal metadata checks, and golden offsets.
-- Classify custom-definition-only entries explicitly.
+- Representative provenance excerpts for a curated release-facing sample are now surfaced in the validation and release summaries.
+- Expand or refine the curated sample only if additional release-advertised ayanamsas need first-class provenance evidence.
+- Continue classifying custom-definition-only entries explicitly.
 
 ### 3. Compatibility-profile claim audit
 

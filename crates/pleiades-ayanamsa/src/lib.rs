@@ -1306,6 +1306,21 @@ pub const fn reference_offset_sample_ayanamsas() -> &'static [Ayanamsa] {
     ]
 }
 
+/// Returns a representative release-facing provenance sample set used by validation and reports.
+pub const fn provenance_sample_ayanamsas() -> &'static [Ayanamsa] {
+    &[
+        Ayanamsa::TrueCitra,
+        Ayanamsa::TrueRevati,
+        Ayanamsa::TrueMula,
+        Ayanamsa::TruePushya,
+        Ayanamsa::Udayagiri,
+        Ayanamsa::TrueSheoran,
+        Ayanamsa::GalacticCenterRgilbrand,
+        Ayanamsa::BabylonianKugler1,
+        Ayanamsa::ValensMoon,
+    ]
+}
+
 const CUSTOM_DEFINITION_ONLY_AYANAMSAS: &[&str] = &[
     "Babylonian (House)",
     "Babylonian (Sissy)",
@@ -1995,6 +2010,24 @@ mod tests {
                 Ayanamsa::Suryasiddhanta499MeanSun,
                 Ayanamsa::Aryabhata499MeanSun,
                 Ayanamsa::Aryabhata522,
+            ]
+        );
+    }
+
+    #[test]
+    fn provenance_sample_ayanamsas_match_the_documented_release_set() {
+        assert_eq!(
+            provenance_sample_ayanamsas(),
+            &[
+                Ayanamsa::TrueCitra,
+                Ayanamsa::TrueRevati,
+                Ayanamsa::TrueMula,
+                Ayanamsa::TruePushya,
+                Ayanamsa::Udayagiri,
+                Ayanamsa::TrueSheoran,
+                Ayanamsa::GalacticCenterRgilbrand,
+                Ayanamsa::BabylonianKugler1,
+                Ayanamsa::ValensMoon,
             ]
         );
     }

@@ -6829,6 +6829,17 @@ struct AyanamsaReferenceOffsetsSummary {
     examples: Vec<AyanamsaReferenceOffsetExample>,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+struct AyanamsaProvenanceExample {
+    canonical_name: &'static str,
+    provenance_note: &'static str,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+struct AyanamsaProvenanceSummary {
+    examples: Vec<AyanamsaProvenanceExample>,
+}
+
 impl AyanamsaReferenceOffsetsSummary {
     fn validate(&self) -> Result<(), EphemerisError> {
         validate_name_sequence(
@@ -6862,6 +6873,60 @@ impl AyanamsaReferenceOffsetsSummary {
 }
 
 impl fmt::Display for AyanamsaReferenceOffsetsSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+impl AyanamsaProvenanceSummary {
+    fn validate(&self) -> Result<(), EphemerisError> {
+        validate_name_sequence(
+            "ayanamsa provenance examples",
+            self.examples.iter().map(|example| example.canonical_name),
+        )?;
+
+        for example in &self.examples {
+            if example.provenance_note.trim().is_empty()
+                || example.provenance_note.contains('\n')
+                || example.provenance_note.contains('\r')
+                || has_surrounding_whitespace(example.provenance_note)
+            {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    format!(
+                        "ayanamsa provenance example `{}` has an unnormalized provenance note",
+                        example.canonical_name
+                    ),
+                ));
+            }
+        }
+
+        Ok(())
+    }
+
+    fn summary_line(&self) -> String {
+        match self.examples.as_slice() {
+            [] => "representative provenance examples: 0 (none)".to_string(),
+            [single] => format!(
+                "representative provenance examples: 1 ({} — {})",
+                single.canonical_name, single.provenance_note
+            ),
+            _ => format!(
+                "representative provenance examples: {}",
+                self.examples
+                    .iter()
+                    .map(|example| format!(
+                        "{} — {}",
+                        example.canonical_name, example.provenance_note
+                    ))
+                    .collect::<Vec<_>>()
+                    .join("; ")
+            ),
+        }
+    }
+}
+
+impl fmt::Display for AyanamsaProvenanceSummary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.summary_line())
     }
@@ -6917,10 +6982,40 @@ fn format_ayanamsa_reference_offsets_for_report() -> String {
     }
 }
 
+fn summarize_ayanamsa_provenance() -> Result<AyanamsaProvenanceSummary, EphemerisError> {
+    let samples = pleiades_ayanamsa::provenance_sample_ayanamsas();
+
+    let mut examples = Vec::with_capacity(samples.len());
+    for sample in samples {
+        let descriptor = descriptor(sample).ok_or_else(|| {
+            EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!("ayanamsa provenance sample `{sample}` is unavailable"),
+            )
+        })?;
+
+        examples.push(AyanamsaProvenanceExample {
+            canonical_name: descriptor.canonical_name,
+            provenance_note: descriptor.notes,
+        });
+    }
+
+    let summary = AyanamsaProvenanceSummary { examples };
+    summary.validate()?;
+    Ok(summary)
+}
+
 fn format_ayanamsa_metadata_coverage_for_report() -> String {
     match metadata_coverage().validated_summary_line() {
         Ok(summary) => summary,
         Err(error) => format!("ayanamsa sidereal metadata: unavailable ({error})"),
+    }
+}
+
+fn format_ayanamsa_provenance_for_report() -> String {
+    match summarize_ayanamsa_provenance() {
+        Ok(summary) => format!("Ayanamsa provenance: {summary}"),
+        Err(error) => format!("Ayanamsa provenance: unavailable ({error})"),
     }
 }
 
@@ -7179,6 +7274,8 @@ fn render_compatibility_profile_summary_text() -> String {
     text.push_str(&format_ayanamsa_metadata_coverage_for_report());
     text.push('\n');
     text.push_str(&format_ayanamsa_reference_offsets_for_report());
+    text.push('\n');
+    text.push_str(&format_ayanamsa_provenance_for_report());
     text.push('\n');
     text.push_str("Release-specific house-system canonical names: ");
     match profile.validated_release_house_system_canonical_names_summary_line() {
@@ -7811,6 +7908,8 @@ fn render_release_summary_text() -> String {
     }
     text.push('\n');
     text.push_str(&format_ayanamsa_reference_offsets_for_report());
+    text.push('\n');
+    text.push_str(&format_ayanamsa_provenance_for_report());
     text.push('\n');
     text.push_str("Validation reference points: ");
     text.push_str(&summarize_validation_reference_points(
@@ -21326,6 +21425,16 @@ mod tests {
             rendered.contains("Galactic Equator (IAU 1958): epoch=JD 1667118.376332; offset=0°")
         );
         assert!(rendered.contains("Galactic Equator (Fiorenza): epoch=JD 2451544.5; offset=25°"));
+        assert!(rendered.contains("Ayanamsa provenance: representative provenance examples:"));
+        assert!(rendered.contains("True Citra — True Citra sidereal mode with the published zero point used by Swiss Ephemeris-style interoperability tables."));
+        assert!(rendered.contains("True Revati — True-nakshatra mode with the Revati reference point fixed to the Swiss Ephemeris zero date."));
+        assert!(rendered.contains("True Mula — True-nakshatra mode with the Mula reference point fixed to the Swiss Ephemeris zero date."));
+        assert!(rendered.contains("True Pushya — True-nakshatra Pushya reference mode exposed by Swiss Ephemeris and anchored to the published zero date."));
+        assert!(rendered.contains("Udayagiri — Udayagiri sidereal mode treated as the Lahiri/Chitrapaksha/Chitra Paksha 285 CE reference family in the Swiss Ephemeris interoperability catalog."));
+        assert!(rendered.contains("True Sheoran — True-nakshatra Sheoran reference mode with the Swiss Ephemeris zero point at JD 1789947.090881 (+0188/08/09 14:10:52.11 UT)."));
+        assert!(rendered.contains("Galactic Center (Rgilbrand) — Galactic-center reference mode attributed to Rgilbrand, with the Swiss Ephemeris zero point at JD 1861740.329525 (+0385/03/03 19:54:30.99 UT)."));
+        assert!(rendered.contains("Babylonian (Kugler 1) — Babylonian sidereal mode associated with Kugler's first reconstruction, with the Swiss Ephemeris zero point at JD 1833923.577692 (+0309/01/05 01:51:52.62 UT)."));
+        assert!(rendered.contains("Valens Moon — Valens Moon sidereal mode, catalogued with the Swiss Ephemeris reference epoch and offset from the header metadata."));
         assert!(rendered.contains("JN Bhasin"));
         assert!(rendered.contains("Validation reference points: 1 (stage-4 validation corpus)"));
         assert!(rendered.contains("Custom-definition labels: 9"));
