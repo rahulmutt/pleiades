@@ -22366,6 +22366,33 @@ mod tests {
     }
 
     #[test]
+    fn reference_snapshot_2451918_major_body_boundary_summary_validation_rejects_drift() {
+        let mut summary = reference_snapshot_2451918_major_body_boundary_summary()
+            .expect("reference 2451918 major-body boundary summary should exist");
+        summary.sample_bodies[0] = pleiades_backend::CelestialBody::Moon;
+
+        let error = summary
+            .validate()
+            .expect_err("drifted 2451918 major-body boundary summary should fail validation");
+
+        assert!(matches!(
+            error,
+            ReferenceMarsJupiterBoundarySummaryValidationError::BodyOrderMismatch {
+                index: 0,
+                expected: pleiades_backend::CelestialBody::Sun,
+                found: pleiades_backend::CelestialBody::Moon
+            }
+        ));
+        assert!(summary.validated_summary_line().is_err());
+        assert_eq!(
+            reference_snapshot_2451918_major_body_boundary_summary_for_report(),
+            reference_snapshot_2451918_major_body_boundary_summary()
+                .expect("reference 2451918 major-body boundary summary should exist")
+                .summary_line()
+        );
+    }
+
+    #[test]
     fn reference_snapshot_early_major_body_boundary_summary_reports_the_early_boundary_day() {
         let summary = reference_snapshot_early_major_body_boundary_summary()
             .expect("reference early major-body boundary summary should exist");
@@ -23245,6 +23272,9 @@ mod tests {
         );
         assert!(
             report.contains(&reference_snapshot_2451917_major_body_boundary_summary_for_report())
+        );
+        assert!(
+            report.contains(&reference_snapshot_2451918_major_body_boundary_summary_for_report())
         );
         assert!(
             report.contains(&reference_snapshot_2451916_major_body_interior_summary_for_report())
