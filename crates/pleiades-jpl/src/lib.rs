@@ -28098,6 +28098,10 @@ mod tests {
     #[test]
     fn jpl_snapshot_evidence_summary_combines_the_backend_reports() {
         let report = jpl_snapshot_evidence_summary_for_report();
+        let reference_report = reference_snapshot_summary_for_report();
+        let holdout_summary = jpl_independent_holdout_summary_for_report();
+        let holdout_high_curvature = independent_holdout_high_curvature_summary_for_report();
+
         assert!(report.contains(&jpl_snapshot_evidence_classification_summary_for_report()));
         assert!(report.contains(&jpl_source_posture_summary_for_report()));
         assert!(report.contains(&reference_snapshot_summary_for_report()));
@@ -28139,7 +28143,10 @@ mod tests {
         assert!(report.contains(&independent_holdout_source_summary_for_report()));
         assert!(report.contains(&independent_holdout_snapshot_source_window_summary_for_report()));
         assert!(report.contains(&independent_holdout_manifest_summary_for_report()));
-        assert!(report.contains(&jpl_independent_holdout_summary_for_report()));
+        assert!(report.contains(&holdout_summary));
+        assert!(report.contains(&holdout_high_curvature));
+        assert!(!reference_report.contains(&holdout_summary));
+        assert!(!reference_report.contains(&holdout_high_curvature));
     }
 
     #[test]
