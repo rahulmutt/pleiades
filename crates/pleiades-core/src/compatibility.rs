@@ -11,8 +11,8 @@ use core::fmt;
 use std::collections::{BTreeMap, BTreeSet};
 
 use pleiades_ayanamsa::{
-    baseline_ayanamsas, built_in_ayanamsas, metadata_coverage, release_ayanamsas, resolve_ayanamsa,
-    AyanamsaDescriptor,
+    baseline_ayanamsas, built_in_ayanamsas, custom_definition_ayanamsa_labels, metadata_coverage,
+    release_ayanamsas, resolve_ayanamsa, AyanamsaDescriptor,
 };
 use pleiades_houses::{
     baseline_house_systems, built_in_house_systems, house_system_code_aliases,
@@ -1171,17 +1171,7 @@ pub const fn current_compatibility_profile() -> CompatibilityProfile {
         validation_reference_points: &[
             "The stage-4 validation corpus remains the reference point for tightening house formulas whenever future revisions land.",
         ],
-        custom_definition_labels: &[
-            "Babylonian (House)",
-            "Babylonian (Sissy)",
-            "Babylonian (True Geoc)",
-            "Babylonian (True Topc)",
-            "Babylonian (True Obs)",
-            "Babylonian (House Obs)",
-            "True Balarama",
-            "Aphoric",
-            "Takra",
-        ],
+        custom_definition_labels: custom_definition_ayanamsa_labels(),
         known_gaps: &[
             "The newly added historical/reference-frame and formula-variant ayanamsa modes are catalogued and resolvable, and the release line now publishes explicit sidereal metadata for Babylonian (Huber), Babylonian (Britton), Babylonian (Kugler 1), Babylonian (Kugler 2), Babylonian (Kugler 3), Galactic Center (Cochrane), Galactic Center (Mardyks), Galactic Center (Rgilbrand), Galactic Center (Mula/Wilhelm), Galactic Equator (IAU 1958), Galactic Equator (Fiorenza), Suryasiddhanta (Revati), Suryasiddhanta (Citra), True Pushya, True Sheoran, Udayagiri, Lahiri (VP285), Krishnamurti (VP291), Djwhal Khul, Valens Moon, and the remaining historical/reference-frame catalog entries; additional metadata/source mapping work remains scheduled for any unreconciled future breadth batches or custom definitions.",
             "Labels outside the published compatibility profile, including ad hoc names such as True Balarama, Aphoric, and Takra, should be modeled as custom ayanamsa definitions rather than assumed to be built-ins.",

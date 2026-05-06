@@ -1315,6 +1315,27 @@ const CUSTOM_DEFINITION_ONLY_AYANAMSAS: &[&str] = &[
     "Babylonian (House Obs)",
 ];
 
+/// Ad hoc ayanamsa labels intentionally surfaced as custom-definition territory.
+pub const fn custom_definition_example_ayanamsa_labels() -> &'static [&'static str] {
+    &["True Balarama", "Aphoric", "Takra"]
+}
+
+/// Release-profile custom-definition ayanamsa labels, including the built-in
+/// Babylonian custom-definition-only entries and the ad hoc example labels.
+pub const fn custom_definition_ayanamsa_labels() -> &'static [&'static str] {
+    &[
+        "Babylonian (House)",
+        "Babylonian (Sissy)",
+        "Babylonian (True Geoc)",
+        "Babylonian (True Topc)",
+        "Babylonian (True Obs)",
+        "Babylonian (House Obs)",
+        "True Balarama",
+        "Aphoric",
+        "Takra",
+    ]
+}
+
 fn is_custom_definition_only_ayanamsa(canonical_name: &str) -> bool {
     CUSTOM_DEFINITION_ONLY_AYANAMSAS
         .iter()
@@ -3059,6 +3080,28 @@ mod tests {
                 pleiades_types::TimeScale::Tt
             )),
             Some(Angle::from_degrees(0.0))
+        );
+    }
+
+    #[test]
+    fn custom_definition_example_ayanamsa_labels_match_the_release_profile() {
+        assert_eq!(
+            custom_definition_example_ayanamsa_labels(),
+            &["True Balarama", "Aphoric", "Takra"]
+        );
+        assert_eq!(
+            custom_definition_ayanamsa_labels(),
+            &[
+                "Babylonian (House)",
+                "Babylonian (Sissy)",
+                "Babylonian (True Geoc)",
+                "Babylonian (True Topc)",
+                "Babylonian (True Obs)",
+                "Babylonian (House Obs)",
+                "True Balarama",
+                "Aphoric",
+                "Takra",
+            ]
         );
     }
 
