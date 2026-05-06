@@ -276,6 +276,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         | Some("2451914-major-body-bridge-summary") => validate_render_cli(args),
         Some("reference-snapshot-2451915-major-body-bridge-summary")
         | Some("2451915-major-body-bridge-summary") => validate_render_cli(args),
+        Some("reference-snapshot-2451916-major-body-boundary-summary")
+        | Some("2451916-major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-2451916-major-body-dense-boundary-summary")
         | Some("2451916-major-body-dense-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-2451916-major-body-interior-summary")
@@ -1944,6 +1946,16 @@ mod tests {
             render_cli(&["2451916-major-body-dense-boundary-summary"])
                 .expect("2451916 dense boundary alias should render"),
             dense_boundary
+        );
+
+        let boundary = render_cli(&["reference-snapshot-2451916-major-body-boundary-summary"])
+            .expect("2451916 boundary alias should render");
+        assert!(boundary.contains("Reference 2451916 major-body boundary evidence:"));
+        assert!(boundary.contains("JD 2451916.5 (TDB)"));
+        assert_eq!(
+            render_cli(&["2451916-major-body-boundary-summary"])
+                .expect("2451916 boundary alias should render"),
+            boundary
         );
     }
 

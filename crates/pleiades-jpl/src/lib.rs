@@ -17182,6 +17182,25 @@ pub fn reference_snapshot_2451916_major_body_dense_boundary_summary_for_report()
     }
 }
 
+/// Returns the typed summary for the 2451916 major-body boundary reference evidence.
+pub fn reference_snapshot_2451916_major_body_boundary_summary(
+) -> Option<ReferenceSnapshotDenseBoundarySummary> {
+    reference_snapshot_2451916_major_body_dense_boundary_summary()
+}
+
+/// Returns the release-facing 2451916 major-body boundary summary string.
+pub fn reference_snapshot_2451916_major_body_boundary_summary_for_report() -> String {
+    match reference_snapshot_2451916_major_body_boundary_summary() {
+        Some(summary) => format!(
+            "Reference 2451916 major-body boundary evidence: {} exact samples at {} ({}); dense boundary day",
+            summary.sample_count,
+            format_instant(summary.epoch),
+            format_bodies(&summary.sample_bodies),
+        ),
+        None => "Reference 2451916 major-body boundary evidence: unavailable".to_string(),
+    }
+}
+
 /// A single body-window slice inside the major-body high-curvature reference coverage.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ReferenceHighCurvatureWindow {
@@ -24542,6 +24561,32 @@ mod tests {
             summary.summary_line()
         );
         assert!(reference_snapshot_summary_for_report().contains(summary.summary_line().as_str()));
+    }
+
+    #[test]
+    fn reference_snapshot_2451916_major_body_boundary_summary_aliases_the_dense_boundary_day() {
+        let dense_summary = reference_snapshot_2451916_major_body_dense_boundary_summary()
+            .expect("reference 2451916 major-body dense boundary summary should exist");
+        let boundary_summary = reference_snapshot_2451916_major_body_boundary_summary()
+            .expect("reference 2451916 major-body boundary summary should exist");
+        assert_eq!(boundary_summary, dense_summary);
+        assert_eq!(boundary_summary.validate(), Ok(()));
+        assert_eq!(
+            boundary_summary.validated_summary_line(),
+            Ok(boundary_summary.summary_line())
+        );
+        assert_eq!(
+            boundary_summary.summary_line(),
+            dense_summary.summary_line()
+        );
+        assert_eq!(
+            reference_snapshot_2451916_major_body_dense_boundary_summary_for_report(),
+            "Reference 2451916 major-body dense boundary evidence: 15 exact samples at JD 2451916.5 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros); dense boundary day"
+        );
+        assert_eq!(
+            reference_snapshot_2451916_major_body_boundary_summary_for_report(),
+            "Reference 2451916 major-body boundary evidence: 15 exact samples at JD 2451916.5 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros); dense boundary day"
+        );
     }
 
     #[test]
