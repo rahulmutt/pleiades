@@ -13276,22 +13276,21 @@ fn render_reference_holdout_overlap_summary_text() -> String {
     reference_holdout_overlap_summary_for_report()
 }
 
-fn render_request_policy_summary_text() -> String {
+fn render_request_policy_like_summary_text(title: &str) -> String {
     let time_scale_policy = time_scale_policy_summary_for_report();
-    let mut text = String::from("Request policy summary\n");
+    let mut text = String::from(title);
     text.push_str(&format_request_semantics_summary_for_report(
         &time_scale_policy,
     ));
     text
 }
 
+fn render_request_policy_summary_text() -> String {
+    render_request_policy_like_summary_text("Request policy summary\n")
+}
+
 fn render_request_semantics_summary_text() -> String {
-    let time_scale_policy = time_scale_policy_summary_for_report();
-    let mut text = String::from("Request semantics summary\n");
-    text.push_str(&format_request_semantics_summary_for_report(
-        &time_scale_policy,
-    ));
-    text
+    render_request_policy_like_summary_text("Request semantics summary\n")
 }
 
 fn render_request_surface_summary_text() -> String {
