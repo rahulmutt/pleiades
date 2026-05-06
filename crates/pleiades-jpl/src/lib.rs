@@ -2389,6 +2389,9 @@ pub fn reference_snapshot_summary_for_report() -> String {
         selected_asteroid_terminal_boundary_summary_for_report(),
         selected_asteroid_source_evidence_summary_for_report(),
         selected_asteroid_source_window_summary_for_report(),
+        reference_asteroid_evidence_summary_for_report(),
+        reference_asteroid_equatorial_evidence_summary_for_report(),
+        reference_asteroid_source_window_summary_for_report(),
         reference_snapshot_2200_selected_body_boundary_summary_for_report(),
         reference_snapshot_2524593_selected_body_boundary_summary_for_report(),
         reference_snapshot_mars_outer_boundary_summary_for_report(),
@@ -22379,6 +22382,9 @@ mod tests {
         assert!(report.contains(summary.summary_line().as_str()));
         assert!(report.contains(&reference_snapshot_source_summary_for_report()));
         assert!(report.contains(&reference_snapshot_source_window_summary_for_report()));
+        assert!(report.contains(&reference_asteroid_evidence_summary_for_report()));
+        assert!(report.contains(&reference_asteroid_equatorial_evidence_summary_for_report()));
+        assert!(report.contains(&reference_asteroid_source_window_summary_for_report()));
         assert!(report.contains(&reference_snapshot_1749_major_body_boundary_summary_for_report()));
         assert!(
             report.contains(&reference_snapshot_2360233_major_body_boundary_summary_for_report())
@@ -28308,6 +28314,9 @@ mod tests {
         assert!(report.contains(&reference_snapshot_source_window_summary_for_report()));
         assert!(report.contains(&reference_snapshot_major_body_boundary_summary_for_report()));
         assert!(report.contains(&reference_snapshot_mars_jupiter_boundary_summary_for_report()));
+        assert!(report.contains(&reference_asteroid_evidence_summary_for_report()));
+        assert!(report.contains(&reference_asteroid_equatorial_evidence_summary_for_report()));
+        assert!(report.contains(&reference_asteroid_source_window_summary_for_report()));
         assert!(report.contains(&reference_holdout_overlap_summary_for_report()));
         assert!(report.contains(&independent_holdout_high_curvature_summary_for_report()));
         assert!(report.contains(&reference_snapshot_manifest_summary_for_report()));
