@@ -16153,6 +16153,25 @@ pub fn reference_snapshot_dense_boundary_summary_for_report() -> String {
     }
 }
 
+/// Returns the typed summary for the 2451916.5 dense boundary day in the reference snapshot.
+pub fn reference_snapshot_2451916_major_body_dense_boundary_summary(
+) -> Option<ReferenceSnapshotDenseBoundarySummary> {
+    reference_snapshot_dense_boundary_summary()
+}
+
+/// Returns the release-facing 2451916.5 dense boundary day summary string.
+pub fn reference_snapshot_2451916_major_body_dense_boundary_summary_for_report() -> String {
+    match reference_snapshot_2451916_major_body_dense_boundary_summary() {
+        Some(summary) => format!(
+            "Reference 2451916 major-body dense boundary evidence: {} exact samples at {} ({}); dense boundary day",
+            summary.sample_count,
+            format_instant(summary.epoch),
+            format_bodies(&summary.sample_bodies),
+        ),
+        None => "Reference 2451916 major-body dense boundary evidence: unavailable".to_string(),
+    }
+}
+
 /// A single body-window slice inside the major-body high-curvature reference coverage.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ReferenceHighCurvatureWindow {
