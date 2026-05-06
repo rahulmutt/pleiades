@@ -7490,6 +7490,8 @@ fn render_release_notes_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_2500_major_body_boundary_summary_for_report());
     text.push('\n');
+    text.push_str(&reference_snapshot_2453000_major_body_boundary_summary_for_report());
+    text.push('\n');
     text.push_str(&reference_snapshot_high_curvature_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_source_summary_for_report());
@@ -25398,6 +25400,7 @@ version = "0.9.0"
         assert!(reference.contains("Reference snapshot summary"));
         assert!(reference.contains("Reference snapshot coverage:"));
         assert!(reference.contains("Reference 2500 selected-body boundary evidence:"));
+        assert!(reference.contains("Reference 2453000 major-body boundary evidence:"));
         assert!(reference
             .contains(&reference_snapshot_2360234_major_body_interior_summary_for_report()));
         assert_eq!(
