@@ -545,6 +545,19 @@ mod tests {
     }
 
     #[test]
+    fn delta_t_policy_summary_is_reexported_from_backend() {
+        let summary: DeltaTPolicySummary = delta_t_policy_summary_for_report();
+        assert_eq!(
+            summary.summary_line(),
+            pleiades_backend::CURRENT_DELTA_T_POLICY_SUMMARY_TEXT
+        );
+        assert_eq!(
+            summary.validated_summary_line().unwrap(),
+            pleiades_backend::CURRENT_DELTA_T_POLICY_SUMMARY_TEXT
+        );
+    }
+
+    #[test]
     fn validate_chart_requests_prefixes_apparentness_failures() {
         let engine = ChartEngine::new(RestrictedPolicyBackend);
         let instant = Instant::new(JulianDay::from_days(2451545.0), TimeScale::Tt);
