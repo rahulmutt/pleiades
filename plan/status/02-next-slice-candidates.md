@@ -30,7 +30,7 @@ This file lists focused implementation slices that map to the current phase ladd
 
 ### 4. Request/time semantics closure
 
-- The first-release request-policy posture is now explicit: built-in Delta T and UTC/UT1 convenience conversion remain deferred, validation-report summaries surface that deferral explicitly, the backend/core façades re-export the UTC-convenience, Delta T, and native sidereal policy summaries plus their current constructors, and the request-surface inventory lists Delta T as a separate report entrypoint.
+- The first-release request-policy posture is now explicit: built-in Delta T and UTC/UT1 convenience conversion remain deferred, validation-report summaries surface that deferral explicitly, the backend/core façades re-export the UTC-convenience, Delta T, and native sidereal policy summaries plus their current constructors, and the request-surface inventory lists Delta T as a separate report entrypoint. Pluto fallback posture is now also surfaced through a shared typed backend/core summary and validation report line, so keep future cleanup focused on the remaining request/time gaps instead of restating the Pluto fallback prose.
 - Apparent-place corrections and topocentric body positions remain explicitly deferred unless a later backend-capability decision changes that posture.
 - Native sidereal backend output remains deferred unless a backend advertises equivalent support through capabilities.
 - If no request-policy decision changes, prefer the next slice to expand reference breadth (for example by promoting another checked-in interior/boundary epoch to a first-class report surface) before revisiting more request-policy wording.

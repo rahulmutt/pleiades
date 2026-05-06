@@ -2100,6 +2100,88 @@ impl fmt::Display for NativeSiderealPolicySummary {
     }
 }
 
+/// Compact summary of the current Pluto fallback posture.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct PlutoFallbackSummary {
+    summary: &'static str,
+}
+
+/// Validation error for the current Pluto fallback summary.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum PlutoFallbackSummaryValidationError {
+    /// The summary text is blank or whitespace-only.
+    BlankSummary,
+    /// The summary text has surrounding whitespace.
+    WhitespacePaddedSummary,
+    /// The summary text contains an embedded line break.
+    EmbeddedLineBreak,
+    /// The summary text no longer matches the current Pluto fallback posture.
+    CurrentPolicyOutOfSync,
+}
+
+impl fmt::Display for PlutoFallbackSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::BlankSummary => f.write_str("Pluto fallback summary is blank"),
+            Self::WhitespacePaddedSummary => {
+                f.write_str("Pluto fallback summary has surrounding whitespace")
+            }
+            Self::EmbeddedLineBreak => f.write_str("Pluto fallback summary contains a line break"),
+            Self::CurrentPolicyOutOfSync => {
+                f.write_str("Pluto fallback summary is out of sync with the current posture")
+            }
+        }
+    }
+}
+
+impl std::error::Error for PlutoFallbackSummaryValidationError {}
+
+impl PlutoFallbackSummary {
+    /// Creates a new Pluto fallback summary from backend-owned prose.
+    pub const fn new(summary: &'static str) -> Self {
+        Self { summary }
+    }
+
+    /// Returns the compact one-line rendering of the Pluto fallback posture.
+    pub const fn summary_line(self) -> &'static str {
+        self.summary
+    }
+
+    /// Returns the current Pluto fallback posture.
+    pub const fn current() -> Self {
+        current_pluto_fallback_summary()
+    }
+
+    /// Returns `Ok(())` when the summary still contains the current canonical line.
+    pub fn validate(&self) -> Result<(), PlutoFallbackSummaryValidationError> {
+        if self.summary.trim().is_empty() {
+            Err(PlutoFallbackSummaryValidationError::BlankSummary)
+        } else if self.summary.trim() != self.summary {
+            Err(PlutoFallbackSummaryValidationError::WhitespacePaddedSummary)
+        } else if self.summary.contains('\n') || self.summary.contains('\r') {
+            Err(PlutoFallbackSummaryValidationError::EmbeddedLineBreak)
+        } else if self.summary != current_pluto_fallback_summary().summary_line() {
+            Err(PlutoFallbackSummaryValidationError::CurrentPolicyOutOfSync)
+        } else {
+            Ok(())
+        }
+    }
+
+    /// Returns the compact summary line after validating the cached prose.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<&'static str, PlutoFallbackSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for PlutoFallbackSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.summary_line())
+    }
+}
+
 /// Canonical current policy summary text for direct backend time-scale requests.
 pub const CURRENT_TIME_SCALE_POLICY_SUMMARY_TEXT: &str =
     "direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T or UTC convenience model";
@@ -2127,6 +2209,10 @@ pub const CURRENT_FRAME_POLICY_SUMMARY_TEXT: &str =
 /// Canonical current policy summary text for the shared native sidereal posture.
 pub const CURRENT_NATIVE_SIDEREAL_POLICY_SUMMARY_TEXT: &str =
     "native sidereal backend output remains unsupported unless a backend explicitly advertises it";
+
+/// Canonical current policy summary text for the Pluto fallback posture.
+pub const CURRENT_PLUTO_FALLBACK_POLICY_SUMMARY_TEXT: &str =
+    "Pluto remains an explicitly approximate fallback; release-grade major-body claims exclude Pluto";
 
 /// Returns the current shared time-scale policy used by validation and reports.
 pub const fn current_time_scale_policy_summary() -> TimeScalePolicySummary {
@@ -2181,6 +2267,16 @@ pub const fn current_native_sidereal_policy_summary() -> NativeSiderealPolicySum
 /// Returns the native sidereal policy posture used by validation and release reporting.
 pub const fn native_sidereal_policy_summary_for_report() -> NativeSiderealPolicySummary {
     current_native_sidereal_policy_summary()
+}
+
+/// Returns the current Pluto fallback posture used by validation and reports.
+pub const fn current_pluto_fallback_summary() -> PlutoFallbackSummary {
+    PlutoFallbackSummary::new(CURRENT_PLUTO_FALLBACK_POLICY_SUMMARY_TEXT)
+}
+
+/// Returns the Pluto fallback posture used by validation and release reporting.
+pub const fn pluto_fallback_summary_for_report() -> PlutoFallbackSummary {
+    current_pluto_fallback_summary()
 }
 
 /// Returns the request-policy posture used by validation and release reporting.
@@ -3762,6 +3858,32 @@ mod tests {
         assert_eq!(
             summary.validate(),
             Err(NativeSiderealPolicySummaryValidationError::CurrentPolicyOutOfSync)
+        );
+    }
+
+    #[test]
+    fn pluto_fallback_summary_tracks_the_current_posture() {
+        let summary = pluto_fallback_summary_for_report();
+
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(
+            summary.summary_line(),
+            current_pluto_fallback_summary().summary_line()
+        );
+        assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert!(summary.summary_line().contains("Pluto"));
+    }
+
+    #[test]
+    fn pluto_fallback_summary_rejects_policy_drift() {
+        let summary = PlutoFallbackSummary::new(
+            "Pluto is documented elsewhere as a release-grade major body",
+        );
+
+        assert_eq!(
+            summary.validate(),
+            Err(PlutoFallbackSummaryValidationError::CurrentPolicyOutOfSync)
         );
     }
 

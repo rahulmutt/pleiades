@@ -40,8 +40,8 @@ use pleiades_ayanamsa::{
 use pleiades_backend::{
     delta_t_policy_summary_for_report, frame_policy_summary_details,
     frame_policy_summary_for_report, native_sidereal_policy_summary_for_report,
-    request_policy_summary_for_report, time_scale_policy_summary_for_report,
-    zodiac_policy_summary_for_report,
+    pluto_fallback_summary_for_report, request_policy_summary_for_report,
+    time_scale_policy_summary_for_report, zodiac_policy_summary_for_report,
 };
 use pleiades_core::{
     current_api_stability_profile, current_compatibility_profile,
@@ -12901,6 +12901,14 @@ fn render_comparison_envelope_summary_text() -> String {
 }
 
 fn render_pluto_fallback_summary_text() -> String {
+    let policy = pluto_fallback_summary_for_report();
+    let policy_line = match policy.validated_summary_line() {
+        Ok(line) => line,
+        Err(error) => {
+            return format!("Pluto fallback summary\nPluto fallback unavailable ({error})\n");
+        }
+    };
+
     let report = compare_backends(
         &default_reference_backend(),
         &default_candidate_backend(),
@@ -12913,7 +12921,9 @@ fn render_pluto_fallback_summary_text() -> String {
         .find(|entry| entry.scope == ComparisonToleranceScope::Pluto)
         .expect("Pluto fallback summary should include a Pluto scope entry");
     match summary.validated_summary_line() {
-        Ok(line) => format!("Pluto fallback summary\nPluto fallback: {}\n", line),
+        Ok(line) => format!(
+            "Pluto fallback summary\nPluto fallback policy: {policy_line}\nPluto fallback: {line}\n"
+        ),
         Err(error) => format!("Pluto fallback summary\nPluto fallback unavailable ({error})\n"),
     }
 }
@@ -25912,6 +25922,9 @@ version = "0.9.0"
         let pluto_fallback_summary =
             render_cli(&["pluto-fallback-summary"]).expect("Pluto fallback summary should render");
         assert_eq!(pluto_fallback_summary, render_pluto_fallback_summary_text());
+        assert!(pluto_fallback_summary.contains(
+            "Pluto fallback policy: Pluto remains an explicitly approximate fallback; release-grade major-body claims exclude Pluto"
+        ));
         assert_eq!(
             render_cli(&["pluto-fallback"]).expect("Pluto fallback alias should render"),
             pluto_fallback_summary
