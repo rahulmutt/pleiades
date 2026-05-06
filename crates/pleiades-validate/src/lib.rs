@@ -11726,6 +11726,26 @@ fn render_comparison_audit_report_text(report: &ComparisonReport) -> String {
         "  regression bodies: {}",
         format_regression_bodies(&report.notable_regressions())
     );
+    let body_class_tolerance_summaries = report.body_class_tolerance_summaries();
+    let outlier_class_count = body_class_tolerance_summaries
+        .iter()
+        .filter(|summary| summary.outside_tolerance_body_count > 0)
+        .count();
+    let outlier_bodies = body_class_tolerance_summaries
+        .iter()
+        .flat_map(|summary| summary.outside_bodies.iter().cloned())
+        .collect::<Vec<_>>();
+    let _ = writeln!(
+        text,
+        "  body-class tolerance posture: {} classes checked, {} classes with outlier bodies, outlier bodies: {}",
+        body_class_tolerance_summaries.len(),
+        outlier_class_count,
+        if outlier_bodies.is_empty() {
+            "none".to_string()
+        } else {
+            format_bodies(&outlier_bodies)
+        }
+    );
     let _ = writeln!(
         text,
         "  result: {}",
@@ -17706,6 +17726,8 @@ mod tests {
         assert!(report.contains("rms latitude delta:"));
         assert!(report.contains("rms distance delta:"));
         assert!(report.contains("Body-class tolerance posture"));
+        assert!(report.contains("body-class tolerance posture:"));
+        assert!(report.contains("outlier bodies: none"));
         assert!(report.contains("Tolerance policy"));
         assert!(report.contains("Notable regressions\n  none"));
         assert!(report.contains("regression bodies: none"));
