@@ -5162,7 +5162,10 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "reference-snapshot-equatorial-parity-summary")?;
             Ok(reference_snapshot_equatorial_parity_summary_for_report())
         }
-        Some("reference-high-curvature-summary") | Some("high-curvature-summary") => {
+        Some("reference-high-curvature-summary")
+        | Some("high-curvature-summary")
+        | Some("reference-snapshot-major-body-high-curvature-summary")
+        | Some("major-body-high-curvature-summary") => {
             ensure_no_extra_args(&args[1..], "reference-high-curvature-summary")?;
             Ok(reference_snapshot_high_curvature_summary_for_report())
         }
@@ -5249,12 +5252,17 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             )?;
             Ok(reference_snapshot_major_body_boundary_window_summary_for_report())
         }
-        Some("reference-high-curvature-window-summary") | Some("high-curvature-window-summary") => {
+        Some("reference-high-curvature-window-summary")
+        | Some("high-curvature-window-summary")
+        | Some("reference-snapshot-major-body-high-curvature-window-summary")
+        | Some("major-body-high-curvature-window-summary") => {
             ensure_no_extra_args(&args[1..], "reference-high-curvature-window-summary")?;
             Ok(reference_snapshot_high_curvature_window_summary_for_report())
         }
         Some("reference-high-curvature-epoch-coverage-summary")
-        | Some("high-curvature-epoch-coverage-summary") => {
+        | Some("high-curvature-epoch-coverage-summary")
+        | Some("reference-snapshot-major-body-high-curvature-epoch-coverage-summary")
+        | Some("major-body-high-curvature-epoch-coverage-summary") => {
             ensure_no_extra_args(
                 &args[1..],
                 "reference-high-curvature-epoch-coverage-summary",
@@ -17031,10 +17039,16 @@ fn help_text() -> String {
   mars-outer-boundary-summary  Alias for reference-snapshot-mars-outer-boundary-summary
   reference-high-curvature-summary  Print the compact reference major-body high-curvature evidence summary
   high-curvature-summary  Alias for reference-high-curvature-summary
+  reference-snapshot-major-body-high-curvature-summary  Print the compact reference major-body high-curvature evidence summary
+  major-body-high-curvature-summary  Alias for reference-snapshot-major-body-high-curvature-summary
   reference-high-curvature-window-summary  Print the compact reference major-body high-curvature windows summary
   high-curvature-window-summary  Alias for reference-high-curvature-window-summary
+  reference-snapshot-major-body-high-curvature-window-summary  Print the compact reference major-body high-curvature windows summary
+  major-body-high-curvature-window-summary  Alias for reference-snapshot-major-body-high-curvature-window-summary
   reference-high-curvature-epoch-coverage-summary  Print the compact reference major-body high-curvature epoch coverage summary
   high-curvature-epoch-coverage-summary  Alias for reference-high-curvature-epoch-coverage-summary
+  reference-snapshot-major-body-high-curvature-epoch-coverage-summary  Print the compact reference major-body high-curvature epoch coverage summary
+  major-body-high-curvature-epoch-coverage-summary  Alias for reference-snapshot-major-body-high-curvature-epoch-coverage-summary
   reference-snapshot-sparse-boundary-summary  Print the compact reference sparse boundary summary
   sparse-boundary-summary  Alias for reference-snapshot-sparse-boundary-summary
   boundary-day-summary     Alias for reference-snapshot-sparse-boundary-summary

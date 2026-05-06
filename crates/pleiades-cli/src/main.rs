@@ -302,9 +302,10 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("reference-snapshot-batch-parity-summary") => validate_render_cli(args),
         Some("reference-snapshot-equatorial-parity-summary") => validate_render_cli(args),
-        Some("reference-high-curvature-summary") | Some("high-curvature-summary") => {
-            validate_render_cli(args)
-        }
+        Some("reference-high-curvature-summary")
+        | Some("high-curvature-summary")
+        | Some("reference-snapshot-major-body-high-curvature-summary")
+        | Some("major-body-high-curvature-summary") => validate_render_cli(args),
         Some("reference-snapshot-major-body-boundary-summary")
         | Some("major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-major-body-bridge-summary")
@@ -318,11 +319,14 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         | Some("mars-outer-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-major-body-boundary-window-summary")
         | Some("major-body-boundary-window-summary") => validate_render_cli(args),
-        Some("reference-high-curvature-window-summary") | Some("high-curvature-window-summary") => {
-            validate_render_cli(args)
-        }
+        Some("reference-high-curvature-window-summary")
+        | Some("high-curvature-window-summary")
+        | Some("reference-snapshot-major-body-high-curvature-window-summary")
+        | Some("major-body-high-curvature-window-summary") => validate_render_cli(args),
         Some("reference-high-curvature-epoch-coverage-summary")
-        | Some("high-curvature-epoch-coverage-summary") => validate_render_cli(args),
+        | Some("high-curvature-epoch-coverage-summary")
+        | Some("reference-snapshot-major-body-high-curvature-epoch-coverage-summary")
+        | Some("major-body-high-curvature-epoch-coverage-summary") => validate_render_cli(args),
         Some("reference-snapshot-boundary-epoch-coverage-summary")
         | Some("boundary-epoch-coverage-summary") => validate_render_cli(args),
         Some("reference-snapshot-sparse-boundary-summary") | Some("sparse-boundary-summary") => {
@@ -1423,6 +1427,8 @@ mod tests {
         assert!(rendered.contains("UTC convenience policy: built-in UTC convenience conversion remains out of scope; callers must supply TT/TDB offsets explicitly"));
         assert!(rendered.contains("reference-high-curvature-summary"));
         assert!(rendered.contains("high-curvature-summary"));
+        assert!(rendered.contains("reference-snapshot-major-body-high-curvature-summary"));
+        assert!(rendered.contains("major-body-high-curvature-summary"));
         assert!(rendered.contains("reference-snapshot-2500-major-body-boundary-summary"));
         assert!(rendered.contains("2500-major-body-boundary-summary"));
         assert!(rendered.contains("reference-snapshot-2500-selected-body-boundary-summary"));
@@ -1473,8 +1479,13 @@ mod tests {
         assert!(rendered.contains("major-body-boundary-window-summary"));
         assert!(rendered.contains("reference-high-curvature-window-summary"));
         assert!(rendered.contains("high-curvature-window-summary"));
+        assert!(rendered.contains("reference-snapshot-major-body-high-curvature-window-summary"));
+        assert!(rendered.contains("major-body-high-curvature-window-summary"));
         assert!(rendered.contains("reference-high-curvature-epoch-coverage-summary"));
         assert!(rendered.contains("high-curvature-epoch-coverage-summary"));
+        assert!(rendered
+            .contains("reference-snapshot-major-body-high-curvature-epoch-coverage-summary"));
+        assert!(rendered.contains("major-body-high-curvature-epoch-coverage-summary"));
         assert!(rendered.contains("reference-snapshot-sparse-boundary-summary"));
         assert!(rendered.contains("sparse-boundary-summary"));
         assert!(rendered.contains("reference-snapshot-pre-bridge-boundary-summary"));
@@ -3961,6 +3972,16 @@ mod tests {
             super::validate_render_cli(&["high-curvature-summary"])
                 .expect("validation high-curvature summary alias should render")
         );
+        assert_eq!(
+            reference_high_curvature_summary,
+            super::validate_render_cli(&["reference-snapshot-major-body-high-curvature-summary",])
+                .expect("validation snapshot high-curvature summary alias should render")
+        );
+        assert_eq!(
+            reference_high_curvature_summary,
+            super::validate_render_cli(&["major-body-high-curvature-summary"])
+                .expect("validation major-body high-curvature summary alias should render")
+        );
         let reference_major_body_boundary_summary =
             render_cli(&["reference-snapshot-major-body-boundary-summary"])
                 .expect("reference major-body boundary summary should render");
@@ -4040,6 +4061,18 @@ mod tests {
             super::validate_render_cli(&["high-curvature-window-summary"])
                 .expect("validation high-curvature window summary alias should render")
         );
+        assert_eq!(
+            reference_high_curvature_window_summary,
+            super::validate_render_cli(&[
+                "reference-snapshot-major-body-high-curvature-window-summary",
+            ])
+            .expect("validation snapshot high-curvature window summary alias should render")
+        );
+        assert_eq!(
+            reference_high_curvature_window_summary,
+            super::validate_render_cli(&["major-body-high-curvature-window-summary"])
+                .expect("validation major-body high-curvature window summary alias should render")
+        );
         let reference_high_curvature_epoch_coverage_summary =
             render_cli(&["reference-high-curvature-epoch-coverage-summary"])
                 .expect("reference high-curvature epoch coverage summary should render");
@@ -4054,6 +4087,22 @@ mod tests {
             reference_high_curvature_epoch_coverage_summary,
             super::validate_render_cli(&["high-curvature-epoch-coverage-summary"])
                 .expect("validation high-curvature epoch coverage summary alias should render")
+        );
+        assert_eq!(
+            reference_high_curvature_epoch_coverage_summary,
+            super::validate_render_cli(&[
+                "reference-snapshot-major-body-high-curvature-epoch-coverage-summary",
+            ])
+            .expect(
+                "validation snapshot high-curvature epoch coverage summary alias should render"
+            )
+        );
+        assert_eq!(
+            reference_high_curvature_epoch_coverage_summary,
+            super::validate_render_cli(&["major-body-high-curvature-epoch-coverage-summary"])
+                .expect(
+                "validation major-body high-curvature epoch coverage summary alias should render"
+            )
         );
         let boundary_epoch_coverage_summary =
             render_cli(&["reference-snapshot-boundary-epoch-coverage-summary"])
