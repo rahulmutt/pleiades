@@ -199,12 +199,20 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("reference-snapshot-source-window") => validate_render_cli(args),
         Some("reference-snapshot-lunar-boundary-summary") => validate_render_cli(args),
         Some("lunar-boundary-summary") => validate_render_cli(args),
+        Some("reference-snapshot-1500-selected-body-boundary-summary")
+        | Some("1500-selected-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-1600-selected-body-boundary-summary")
         | Some("1600-selected-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-1750-selected-body-boundary-summary")
         | Some("1750-selected-body-boundary-summary") => validate_render_cli(args),
+        Some("reference-snapshot-1750-major-body-interior-summary")
+        | Some("1750-major-body-interior-summary") => validate_render_cli(args),
+        Some("reference-snapshot-1900-selected-body-boundary-summary")
+        | Some("1900-selected-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-2200-selected-body-boundary-summary")
         | Some("2200-selected-body-boundary-summary") => validate_render_cli(args),
+        Some("reference-snapshot-2360234-major-body-interior-summary")
+        | Some("2360234-major-body-interior-summary") => validate_render_cli(args),
         Some("reference-snapshot-2524593-selected-body-boundary-summary")
         | Some("2524593-selected-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-2500-selected-body-boundary-summary")
@@ -1711,6 +1719,52 @@ mod tests {
         let boundary_2453000_alias = render_cli(&["2453000-major-body-boundary-summary"])
             .expect("2453000 major-body boundary alias should render");
         assert_eq!(boundary_2453000_alias, boundary_2453000);
+    }
+
+    #[test]
+    fn reference_snapshot_1500_1750_1900_and_2360234_aliases_render_the_same_reports() {
+        let boundary_1500 = render_cli(&["reference-snapshot-1500-selected-body-boundary-summary"])
+            .expect("1500 selected-body boundary summary should render");
+        assert!(boundary_1500.contains("Reference 1500 selected-body boundary evidence:"));
+        assert!(boundary_1500.contains("JD 2268932.5 (TDB)"));
+        assert_eq!(
+            render_cli(&["1500-selected-body-boundary-summary"])
+                .expect("1500 selected-body boundary alias should render"),
+            boundary_1500
+        );
+
+        let interior_1750 = render_cli(&["reference-snapshot-1750-major-body-interior-summary"])
+            .expect("1750 major-body interior summary should render");
+        assert!(interior_1750.contains("Reference 1750 major-body interior comparison evidence:"));
+        assert!(interior_1750.contains("JD 2360234.5 (TDB)"));
+        assert_eq!(
+            render_cli(&["1750-major-body-interior-summary"])
+                .expect("1750 major-body interior alias should render"),
+            interior_1750
+        );
+
+        let boundary_1900 = render_cli(&["reference-snapshot-1900-selected-body-boundary-summary"])
+            .expect("1900 selected-body boundary summary should render");
+        assert!(boundary_1900.contains("Reference 1900 selected-body boundary evidence:"));
+        assert!(boundary_1900.contains("JD 2415020.5 (TDB)"));
+        assert_eq!(
+            render_cli(&["1900-selected-body-boundary-summary"])
+                .expect("1900 selected-body boundary alias should render"),
+            boundary_1900
+        );
+
+        let interior_2360234 =
+            render_cli(&["reference-snapshot-2360234-major-body-interior-summary"])
+                .expect("2360234 major-body interior summary should render");
+        assert!(
+            interior_2360234.contains("Reference 2360234 major-body interior comparison evidence:")
+        );
+        assert!(interior_2360234.contains("JD 2360234.5 (TDB)"));
+        assert_eq!(
+            render_cli(&["2360234-major-body-interior-summary"])
+                .expect("2360234 major-body interior alias should render"),
+            interior_2360234
+        );
     }
 
     #[test]
