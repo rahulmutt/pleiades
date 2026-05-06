@@ -220,11 +220,13 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("reference-snapshot-2500-selected-body-boundary-summary")
         | Some("2500-selected-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-1749-major-body-boundary-summary")
-        | Some("1749-major-body-boundary-summary") => validate_render_cli(args),
+        | Some("1749-major-body-boundary-summary")
+        | Some("2360233-major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-early-major-body-boundary-summary")
         | Some("early-major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-1800-major-body-boundary-summary")
-        | Some("1800-major-body-boundary-summary") => validate_render_cli(args),
+        | Some("1800-major-body-boundary-summary")
+        | Some("2378499-major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-2400000-major-body-boundary-summary")
         | Some("2400000-major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-2451545-major-body-boundary-summary")
@@ -1453,6 +1455,12 @@ mod tests {
         assert!(rendered.contains("2451916-major-body-interior-summary"));
         assert!(rendered.contains("reference-snapshot-2451920-major-body-interior-summary"));
         assert!(rendered.contains("2451920-major-body-interior-summary"));
+        assert!(rendered.contains("reference-snapshot-1749-major-body-boundary-summary"));
+        assert!(rendered.contains("1749-major-body-boundary-summary"));
+        assert!(rendered.contains("2360233-major-body-boundary-summary"));
+        assert!(rendered.contains("reference-snapshot-1800-major-body-boundary-summary"));
+        assert!(rendered.contains("1800-major-body-boundary-summary"));
+        assert!(rendered.contains("2378499-major-body-boundary-summary"));
         assert!(rendered.contains("reference-snapshot-major-body-boundary-summary"));
         assert!(rendered.contains("major-body-boundary-summary"));
         assert!(rendered.contains("reference-snapshot-mars-jupiter-boundary-summary"));
@@ -1654,6 +1662,9 @@ mod tests {
         let boundary_1749_alias = render_cli(&["1749-major-body-boundary-summary"])
             .expect("1749 major-body boundary alias should render");
         assert_eq!(boundary_1749_alias, boundary_1749);
+        let boundary_2360233_alias = render_cli(&["2360233-major-body-boundary-summary"])
+            .expect("2360233 major-body boundary alias should render");
+        assert_eq!(boundary_2360233_alias, boundary_1749);
     }
 
     #[test]
@@ -1669,6 +1680,9 @@ mod tests {
         let boundary_1800_alias = render_cli(&["1800-major-body-boundary-summary"])
             .expect("1800 major-body boundary alias should render");
         assert_eq!(boundary_1800_alias, boundary_1800);
+        let boundary_2378499_alias = render_cli(&["2378499-major-body-boundary-summary"])
+            .expect("2378499 major-body boundary alias should render");
+        assert_eq!(boundary_2378499_alias, boundary_1800);
     }
 
     #[test]
