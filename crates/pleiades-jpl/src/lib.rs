@@ -16178,6 +16178,17 @@ pub fn reference_snapshot_2451914_bridge_day_summary_for_report() -> String {
     reference_snapshot_bridge_day_summary_for_report()
 }
 
+/// Returns the compact typed summary for the 2451914 major-body bridge-day evidence.
+pub fn reference_snapshot_2451914_major_body_bridge_day_summary(
+) -> Option<ReferenceSnapshotBridgeDaySummary> {
+    reference_snapshot_bridge_day_summary()
+}
+
+/// Returns the release-facing 2451914 major-body bridge-day summary string.
+pub fn reference_snapshot_2451914_major_body_bridge_day_summary_for_report() -> String {
+    reference_snapshot_bridge_day_summary_for_report()
+}
+
 /// Returns the compact typed summary for the 2451914 major-body bridge evidence.
 pub fn reference_snapshot_2451914_major_body_bridge_summary(
 ) -> Option<ReferenceSnapshotBridgeDaySummary> {
