@@ -7676,6 +7676,8 @@ fn render_release_notes_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_1900_selected_body_boundary_summary_for_report());
     text.push('\n');
+    text.push_str(&reference_snapshot_2200_selected_body_boundary_summary_for_report());
+    text.push('\n');
     text.push_str(&reference_snapshot_early_major_body_boundary_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_1800_major_body_boundary_summary_for_report());
@@ -26036,6 +26038,7 @@ version = "0.9.0"
         assert!(reference
             .contains(&reference_snapshot_2451919_major_body_boundary_summary_for_report()));
         assert!(reference.contains("Reference 2500 selected-body boundary evidence:"));
+        assert!(reference.contains("Reference 2200 selected-body boundary evidence:"));
         assert!(reference.contains(&selected_asteroid_boundary_summary_for_report()));
         assert!(reference.contains(&selected_asteroid_bridge_summary_for_report()));
         assert!(reference.contains(&selected_asteroid_dense_boundary_summary_for_report()));
