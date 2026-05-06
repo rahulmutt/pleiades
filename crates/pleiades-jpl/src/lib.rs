@@ -2335,7 +2335,9 @@ pub fn reference_snapshot_summary_for_report() -> String {
 
     let summary_lines = [
         reference_snapshot_1500_selected_body_boundary_summary_for_report(),
+        reference_snapshot_2268932_selected_body_boundary_summary_for_report(),
         reference_snapshot_1600_selected_body_boundary_summary_for_report(),
+        reference_snapshot_2305457_selected_body_boundary_summary_for_report(),
         reference_snapshot_source_summary_for_report(),
         reference_snapshot_source_window_summary_for_report(),
         reference_snapshot_1749_major_body_boundary_summary_for_report(),
@@ -10058,6 +10060,17 @@ pub fn reference_snapshot_1500_selected_body_boundary_summary_for_report() -> St
     }
 }
 
+/// Returns the compact typed summary for the 2268932 selected-body boundary reference evidence.
+pub fn reference_snapshot_2268932_selected_body_boundary_summary(
+) -> Option<Reference1500SelectedBodyBoundarySummary> {
+    reference_snapshot_1500_selected_body_boundary_summary()
+}
+
+/// Returns the release-facing 2268932 selected-body boundary summary string.
+pub fn reference_snapshot_2268932_selected_body_boundary_summary_for_report() -> String {
+    reference_snapshot_1500_selected_body_boundary_summary_for_report()
+}
+
 fn reference_snapshot_1600_selected_body_boundary_entries() -> Option<&'static [SnapshotEntry]> {
     static ENTRIES: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
     let entries = ENTRIES
@@ -10262,6 +10275,17 @@ pub fn reference_snapshot_1600_selected_body_boundary_summary_for_report() -> St
         },
         None => "Reference 1600 selected-body boundary evidence: unavailable".to_string(),
     }
+}
+
+/// Returns the compact typed summary for the 2305457 selected-body boundary reference evidence.
+pub fn reference_snapshot_2305457_selected_body_boundary_summary(
+) -> Option<Reference1600SelectedBodyBoundarySummary> {
+    reference_snapshot_1600_selected_body_boundary_summary()
+}
+
+/// Returns the release-facing 2305457 selected-body boundary summary string.
+pub fn reference_snapshot_2305457_selected_body_boundary_summary_for_report() -> String {
+    reference_snapshot_1600_selected_body_boundary_summary_for_report()
 }
 
 fn reference_snapshot_1750_selected_body_boundary_entries() -> Option<&'static [SnapshotEntry]> {
@@ -22946,6 +22970,16 @@ mod tests {
             reference_snapshot_1500_selected_body_boundary_summary_for_report(),
             summary.summary_line()
         );
+        assert_eq!(
+            reference_snapshot_2268932_selected_body_boundary_summary()
+                .expect("reference 2268932 selected-body boundary summary should exist")
+                .summary_line(),
+            summary.summary_line()
+        );
+        assert_eq!(
+            reference_snapshot_2268932_selected_body_boundary_summary_for_report(),
+            summary.summary_line()
+        );
     }
 
     #[test]
@@ -22996,6 +23030,16 @@ mod tests {
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             reference_snapshot_1600_selected_body_boundary_summary_for_report(),
+            summary.summary_line()
+        );
+        assert_eq!(
+            reference_snapshot_2305457_selected_body_boundary_summary()
+                .expect("reference 2305457 selected-body boundary summary should exist")
+                .summary_line(),
+            summary.summary_line()
+        );
+        assert_eq!(
+            reference_snapshot_2305457_selected_body_boundary_summary_for_report(),
             summary.summary_line()
         );
     }

@@ -139,6 +139,8 @@ use pleiades_jpl::{
     reference_snapshot_1800_major_body_boundary_summary_for_report,
     reference_snapshot_1900_selected_body_boundary_summary_for_report,
     reference_snapshot_2200_selected_body_boundary_summary_for_report,
+    reference_snapshot_2268932_selected_body_boundary_summary_for_report,
+    reference_snapshot_2305457_selected_body_boundary_summary_for_report,
     reference_snapshot_2360233_major_body_boundary_summary_for_report,
     reference_snapshot_2360234_major_body_interior_summary_for_report,
     reference_snapshot_2378499_major_body_boundary_summary_for_report,
@@ -4945,6 +4947,14 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             )?;
             Ok(reference_snapshot_1500_selected_body_boundary_summary_for_report())
         }
+        Some("reference-snapshot-2268932-selected-body-boundary-summary")
+        | Some("2268932-selected-body-boundary-summary") => {
+            ensure_no_extra_args(
+                &args[1..],
+                "reference-snapshot-2268932-selected-body-boundary-summary",
+            )?;
+            Ok(reference_snapshot_2268932_selected_body_boundary_summary_for_report())
+        }
         Some("reference-snapshot-1600-selected-body-boundary-summary")
         | Some("1600-selected-body-boundary-summary") => {
             ensure_no_extra_args(
@@ -4952,6 +4962,14 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
                 "reference-snapshot-1600-selected-body-boundary-summary",
             )?;
             Ok(reference_snapshot_1600_selected_body_boundary_summary_for_report())
+        }
+        Some("reference-snapshot-2305457-selected-body-boundary-summary")
+        | Some("2305457-selected-body-boundary-summary") => {
+            ensure_no_extra_args(
+                &args[1..],
+                "reference-snapshot-2305457-selected-body-boundary-summary",
+            )?;
+            Ok(reference_snapshot_2305457_selected_body_boundary_summary_for_report())
         }
         Some("reference-snapshot-1750-selected-body-boundary-summary")
         | Some("1750-selected-body-boundary-summary") => {
@@ -17308,7 +17326,7 @@ fn help_text() -> String {
   reference-snapshot-exact-j2000-evidence-summary  Print the compact reference snapshot exact J2000 evidence summary
   exact-j2000-evidence    Alias for reference-snapshot-exact-j2000-evidence-summary
   reference-snapshot-batch-parity-summary  Print the compact reference snapshot batch parity summary
-  reference-snapshot-equatorial-parity-summary  Print the compact reference snapshot equatorial parity summary\n  reference-snapshot-lunar-boundary-summary  Print the compact reference lunar boundary evidence summary\n  lunar-boundary-summary   Alias for reference-snapshot-lunar-boundary-summary\n  reference-snapshot-1500-selected-body-boundary-summary  Print the compact reference 1500 selected-body boundary evidence summary\n  1500-selected-body-boundary-summary  Alias for reference-snapshot-1500-selected-body-boundary-summary\n  reference-snapshot-1600-selected-body-boundary-summary  Print the compact reference 1600 selected-body boundary evidence summary\n  1600-selected-body-boundary-summary  Alias for reference-snapshot-1600-selected-body-boundary-summary\n  reference-snapshot-1750-selected-body-boundary-summary  Print the compact reference 1750 selected-body boundary evidence summary\n  1750-selected-body-boundary-summary  Alias for reference-snapshot-1750-selected-body-boundary-summary\n  reference-snapshot-1750-major-body-interior-summary  Print the compact reference 1750 major-body interior comparison evidence summary\n  1750-major-body-interior-summary  Alias for reference-snapshot-1750-major-body-interior-summary\n  reference-snapshot-2360234-major-body-interior-summary  Print the compact reference 2360234 major-body interior comparison evidence summary\n  2360234-major-body-interior-summary  Alias for reference-snapshot-2360234-major-body-interior-summary\n  reference-snapshot-2451916-major-body-interior-summary  Print the compact reference 2451916 major-body interior evidence summary\n  2451916-major-body-interior-summary  Alias for reference-snapshot-2451916-major-body-interior-summary
+  reference-snapshot-equatorial-parity-summary  Print the compact reference snapshot equatorial parity summary\n  reference-snapshot-lunar-boundary-summary  Print the compact reference lunar boundary evidence summary\n  lunar-boundary-summary   Alias for reference-snapshot-lunar-boundary-summary\n  reference-snapshot-1500-selected-body-boundary-summary  Print the compact reference 1500 selected-body boundary evidence summary\n  1500-selected-body-boundary-summary  Alias for reference-snapshot-1500-selected-body-boundary-summary\n  reference-snapshot-2268932-selected-body-boundary-summary  Print the compact reference 2268932 selected-body boundary evidence summary\n  2268932-selected-body-boundary-summary  Alias for reference-snapshot-2268932-selected-body-boundary-summary\n  reference-snapshot-1600-selected-body-boundary-summary  Print the compact reference 1600 selected-body boundary evidence summary\n  1600-selected-body-boundary-summary  Alias for reference-snapshot-1600-selected-body-boundary-summary\n  reference-snapshot-2305457-selected-body-boundary-summary  Print the compact reference 2305457 selected-body boundary evidence summary\n  2305457-selected-body-boundary-summary  Alias for reference-snapshot-2305457-selected-body-boundary-summary\n  reference-snapshot-1750-selected-body-boundary-summary  Print the compact reference 1750 selected-body boundary evidence summary\n  1750-selected-body-boundary-summary  Alias for reference-snapshot-1750-selected-body-boundary-summary\n  reference-snapshot-1750-major-body-interior-summary  Print the compact reference 1750 major-body interior comparison evidence summary\n  1750-major-body-interior-summary  Alias for reference-snapshot-1750-major-body-interior-summary\n  reference-snapshot-2360234-major-body-interior-summary  Print the compact reference 2360234 major-body interior comparison evidence summary\n  2360234-major-body-interior-summary  Alias for reference-snapshot-2360234-major-body-interior-summary\n  reference-snapshot-2451916-major-body-interior-summary  Print the compact reference 2451916 major-body interior evidence summary\n  2451916-major-body-interior-summary  Alias for reference-snapshot-2451916-major-body-interior-summary
   reference-snapshot-2451916-major-body-boundary-summary  Print the compact reference 2451916 major-body boundary evidence summary
   2451916-major-body-boundary-summary  Alias for reference-snapshot-2451916-major-body-boundary-summary
   reference-snapshot-2451916-major-body-dense-boundary-summary  Print the compact reference 2451916 major-body dense boundary evidence summary
@@ -20106,6 +20124,10 @@ mod tests {
         ));
         assert!(rendered.contains("reference-snapshot-1600-selected-body-boundary-summary"));
         assert!(rendered.contains("1600-selected-body-boundary-summary"));
+        assert!(rendered.contains("reference-snapshot-2268932-selected-body-boundary-summary"));
+        assert!(rendered.contains("2268932-selected-body-boundary-summary"));
+        assert!(rendered.contains("reference-snapshot-2305457-selected-body-boundary-summary"));
+        assert!(rendered.contains("2305457-selected-body-boundary-summary"));
         assert!(rendered.contains("reference-snapshot-1750-selected-body-boundary-summary"));
         assert!(rendered.contains("1750-selected-body-boundary-summary"));
         assert!(rendered.contains("reference-snapshot-1750-major-body-interior-summary"));
@@ -27222,6 +27244,22 @@ version = "0.9.0"
             alias,
             reference_snapshot_1500_selected_body_boundary_summary_for_report()
         );
+
+        let epoch_alias = render_cli(&["2268932-selected-body-boundary-summary"])
+            .expect("2268932 selected-body boundary summary alias should render");
+        assert_eq!(
+            epoch_alias,
+            reference_snapshot_2268932_selected_body_boundary_summary_for_report()
+        );
+        assert_eq!(
+            reference_snapshot_2268932_selected_body_boundary_summary_for_report(),
+            reference_snapshot_1500_selected_body_boundary_summary_for_report()
+        );
+        assert_eq!(
+            render_cli(&["2268932-selected-body-boundary-summary", "extra"])
+                .expect_err("2268932 selected-body boundary summary alias should reject extra arguments"),
+            "reference-snapshot-2268932-selected-body-boundary-summary does not accept extra arguments"
+        );
     }
 
     #[test]
@@ -27243,6 +27281,22 @@ version = "0.9.0"
         assert_eq!(
             alias,
             reference_snapshot_1600_selected_body_boundary_summary_for_report()
+        );
+
+        let epoch_alias = render_cli(&["2305457-selected-body-boundary-summary"])
+            .expect("2305457 selected-body boundary summary alias should render");
+        assert_eq!(
+            epoch_alias,
+            reference_snapshot_2305457_selected_body_boundary_summary_for_report()
+        );
+        assert_eq!(
+            reference_snapshot_2305457_selected_body_boundary_summary_for_report(),
+            reference_snapshot_1600_selected_body_boundary_summary_for_report()
+        );
+        assert_eq!(
+            render_cli(&["2305457-selected-body-boundary-summary", "extra"])
+                .expect_err("2305457 selected-body boundary summary alias should reject extra arguments"),
+            "reference-snapshot-2305457-selected-body-boundary-summary does not accept extra arguments"
         );
     }
 

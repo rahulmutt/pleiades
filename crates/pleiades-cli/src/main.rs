@@ -206,8 +206,12 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("lunar-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-1500-selected-body-boundary-summary")
         | Some("1500-selected-body-boundary-summary") => validate_render_cli(args),
+        Some("reference-snapshot-2268932-selected-body-boundary-summary")
+        | Some("2268932-selected-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-1600-selected-body-boundary-summary")
         | Some("1600-selected-body-boundary-summary") => validate_render_cli(args),
+        Some("reference-snapshot-2305457-selected-body-boundary-summary")
+        | Some("2305457-selected-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-1750-selected-body-boundary-summary")
         | Some("1750-selected-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-1750-major-body-interior-summary")
@@ -1668,6 +1672,10 @@ mod tests {
         let boundary_1600_alias = render_cli(&["1600-selected-body-boundary-summary"])
             .expect("1600 selected-body boundary alias should render");
         assert_eq!(boundary_1600_alias, boundary_1600);
+
+        let boundary_2305457 = render_cli(&["2305457-selected-body-boundary-summary"])
+            .expect("2305457 selected-body boundary summary should render");
+        assert_eq!(boundary_2305457, boundary_1600);
     }
 
     #[test]
@@ -1791,6 +1799,9 @@ mod tests {
                 .expect("1500 selected-body boundary alias should render"),
             boundary_1500
         );
+        let boundary_2268932 = render_cli(&["2268932-selected-body-boundary-summary"])
+            .expect("2268932 selected-body boundary summary should render");
+        assert_eq!(boundary_2268932, boundary_1500);
 
         let interior_1750 = render_cli(&["reference-snapshot-1750-major-body-interior-summary"])
             .expect("1750 major-body interior summary should render");
@@ -5543,7 +5554,19 @@ mod tests {
             "reference-snapshot-1749-major-body-boundary-summary  Print the compact reference 1749 major-body boundary evidence summary"
         ));
         assert!(help.contains(
+            "reference-snapshot-2268932-selected-body-boundary-summary  Print the compact reference 2268932 selected-body boundary evidence summary"
+        ));
+        assert!(help.contains(
+            "2268932-selected-body-boundary-summary  Alias for reference-snapshot-2268932-selected-body-boundary-summary"
+        ));
+        assert!(help.contains(
             "reference-snapshot-1600-selected-body-boundary-summary  Print the compact reference 1600 selected-body boundary evidence summary"
+        ));
+        assert!(help.contains(
+            "reference-snapshot-2305457-selected-body-boundary-summary  Print the compact reference 2305457 selected-body boundary evidence summary"
+        ));
+        assert!(help.contains(
+            "2305457-selected-body-boundary-summary  Alias for reference-snapshot-2305457-selected-body-boundary-summary"
         ));
         assert!(help.contains(
             "reference-snapshot-1750-selected-body-boundary-summary  Print the compact reference 1750 selected-body boundary evidence summary"
