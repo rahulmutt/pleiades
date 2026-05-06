@@ -5570,6 +5570,9 @@ mod tests {
             "reference-snapshot-2451919-major-body-boundary-summary  Print the compact reference 2451919 major-body boundary evidence summary"
         ));
         assert!(help.contains(
+            "2451919-major-body-boundary-summary  Alias for reference-snapshot-2451919-major-body-boundary-summary"
+        ));
+        assert!(help.contains(
             "reference-snapshot-2451920-major-body-interior-summary  Print the compact reference 2451920 major-body interior evidence summary"
         ));
         assert!(help.contains(
