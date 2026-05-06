@@ -40,8 +40,9 @@ use pleiades_ayanamsa::{
 use pleiades_backend::{
     delta_t_policy_summary_for_report, frame_policy_summary_details,
     frame_policy_summary_for_report, native_sidereal_policy_summary_for_report,
-    pluto_fallback_summary_for_report, request_policy_summary_for_report,
-    time_scale_policy_summary_for_report, zodiac_policy_summary_for_report,
+    pluto_fallback_summary_for_report, release_body_claims_summary_for_report,
+    request_policy_summary_for_report, time_scale_policy_summary_for_report,
+    zodiac_policy_summary_for_report,
 };
 use pleiades_core::{
     current_api_stability_profile, current_compatibility_profile,
@@ -7993,6 +7994,9 @@ fn render_release_summary_text() -> String {
     text.push_str("Comparison corpus release-grade guard: ");
     text.push_str(comparison_corpus_release_guard_summary());
     text.push('\n');
+    text.push_str("Release-grade body claims: ");
+    text.push_str(&format_release_body_claims_summary_for_report());
+    text.push('\n');
     text.push_str("JPL interpolation posture: ");
     text.push_str(&jpl_interpolation_posture_summary_for_report());
     text.push('\n');
@@ -12900,6 +12904,14 @@ fn render_comparison_envelope_summary_text() -> String {
     )
 }
 
+fn format_release_body_claims_summary_for_report() -> String {
+    let summary = release_body_claims_summary_for_report();
+    match summary.validated_summary_line() {
+        Ok(line) => line.to_string(),
+        Err(error) => format!("release-grade body claims unavailable ({error})"),
+    }
+}
+
 fn render_pluto_fallback_summary_text() -> String {
     let policy = pluto_fallback_summary_for_report();
     let policy_line = match policy.validated_summary_line() {
@@ -12922,7 +12934,8 @@ fn render_pluto_fallback_summary_text() -> String {
         .expect("Pluto fallback summary should include a Pluto scope entry");
     match summary.validated_summary_line() {
         Ok(line) => format!(
-            "Pluto fallback summary\nPluto fallback policy: {policy_line}\nPluto fallback: {line}\n"
+            "Pluto fallback summary\nRelease-grade body claims: {}\nPluto fallback policy: {policy_line}\nPluto fallback: {line}\n",
+            format_release_body_claims_summary_for_report()
         ),
         Err(error) => format!("Pluto fallback summary\nPluto fallback unavailable ({error})\n"),
     }
@@ -22763,6 +22776,7 @@ version = "0.9.0"
         assert!(manifest.contains("release-ayanamsa-canonical-names-summary.txt"));
         assert!(release_summary.contains("Comparison envelope: samples:"));
         assert!(release_summary.contains("Comparison corpus release-grade guard: Pluto excluded from tolerance evidence; 2451913.5 boundary day remains in the release-grade comparison window"));
+        assert!(release_summary.contains("Release-grade body claims: Sun through Neptune are release-grade major-body claims; Pluto remains an explicitly approximate fallback"));
         let comparison_report = compare_backends(
             &default_reference_backend(),
             &default_candidate_backend(),
@@ -25922,6 +25936,9 @@ version = "0.9.0"
         let pluto_fallback_summary =
             render_cli(&["pluto-fallback-summary"]).expect("Pluto fallback summary should render");
         assert_eq!(pluto_fallback_summary, render_pluto_fallback_summary_text());
+        assert!(pluto_fallback_summary.contains(
+            "Release-grade body claims: Sun through Neptune are release-grade major-body claims; Pluto remains an explicitly approximate fallback"
+        ));
         assert!(pluto_fallback_summary.contains(
             "Pluto fallback policy: Pluto remains an explicitly approximate fallback; release-grade major-body claims exclude Pluto"
         ));

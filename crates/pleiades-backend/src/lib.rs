@@ -2182,6 +2182,90 @@ impl fmt::Display for PlutoFallbackSummary {
     }
 }
 
+/// Compact summary of the current release-grade body claims.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct ReleaseBodyClaimsSummary {
+    summary: &'static str,
+}
+
+/// Validation error for the current release-grade body claims summary.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ReleaseBodyClaimsSummaryValidationError {
+    /// The summary text is blank or whitespace-only.
+    BlankSummary,
+    /// The summary text has surrounding whitespace.
+    WhitespacePaddedSummary,
+    /// The summary text contains an embedded line break.
+    EmbeddedLineBreak,
+    /// The summary text no longer matches the current release-grade body claims posture.
+    CurrentPolicyOutOfSync,
+}
+
+impl fmt::Display for ReleaseBodyClaimsSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::BlankSummary => f.write_str("release-grade body claims summary is blank"),
+            Self::WhitespacePaddedSummary => {
+                f.write_str("release-grade body claims summary has surrounding whitespace")
+            }
+            Self::EmbeddedLineBreak => {
+                f.write_str("release-grade body claims summary contains a line break")
+            }
+            Self::CurrentPolicyOutOfSync => f.write_str(
+                "release-grade body claims summary is out of sync with the current posture",
+            ),
+        }
+    }
+}
+
+impl std::error::Error for ReleaseBodyClaimsSummaryValidationError {}
+
+impl ReleaseBodyClaimsSummary {
+    /// Creates a new release-grade body claims summary from backend-owned prose.
+    pub const fn new(summary: &'static str) -> Self {
+        Self { summary }
+    }
+
+    /// Returns the compact one-line rendering of the release-grade body claims posture.
+    pub const fn summary_line(self) -> &'static str {
+        self.summary
+    }
+
+    /// Returns the current release-grade body claims posture.
+    pub const fn current() -> Self {
+        current_release_body_claims_summary()
+    }
+
+    /// Returns `Ok(())` when the summary still contains the current canonical line.
+    pub fn validate(&self) -> Result<(), ReleaseBodyClaimsSummaryValidationError> {
+        if self.summary.trim().is_empty() {
+            Err(ReleaseBodyClaimsSummaryValidationError::BlankSummary)
+        } else if self.summary.trim() != self.summary {
+            Err(ReleaseBodyClaimsSummaryValidationError::WhitespacePaddedSummary)
+        } else if self.summary.contains('\n') || self.summary.contains('\r') {
+            Err(ReleaseBodyClaimsSummaryValidationError::EmbeddedLineBreak)
+        } else if self.summary != current_release_body_claims_summary().summary_line() {
+            Err(ReleaseBodyClaimsSummaryValidationError::CurrentPolicyOutOfSync)
+        } else {
+            Ok(())
+        }
+    }
+
+    /// Returns the compact summary line after validating the cached prose.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<&'static str, ReleaseBodyClaimsSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for ReleaseBodyClaimsSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.summary_line())
+    }
+}
+
 /// Canonical current policy summary text for direct backend time-scale requests.
 pub const CURRENT_TIME_SCALE_POLICY_SUMMARY_TEXT: &str =
     "direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T or UTC convenience model";
@@ -2213,6 +2297,10 @@ pub const CURRENT_NATIVE_SIDEREAL_POLICY_SUMMARY_TEXT: &str =
 /// Canonical current policy summary text for the Pluto fallback posture.
 pub const CURRENT_PLUTO_FALLBACK_POLICY_SUMMARY_TEXT: &str =
     "Pluto remains an explicitly approximate fallback; release-grade major-body claims exclude Pluto";
+
+/// Canonical current policy summary text for the release-grade body claims posture.
+pub const CURRENT_RELEASE_BODY_CLAIMS_SUMMARY_TEXT: &str =
+    "Sun through Neptune are release-grade major-body claims; Pluto remains an explicitly approximate fallback";
 
 /// Returns the current shared time-scale policy used by validation and reports.
 pub const fn current_time_scale_policy_summary() -> TimeScalePolicySummary {
@@ -2272,6 +2360,16 @@ pub const fn native_sidereal_policy_summary_for_report() -> NativeSiderealPolicy
 /// Returns the current Pluto fallback posture used by validation and reports.
 pub const fn current_pluto_fallback_summary() -> PlutoFallbackSummary {
     PlutoFallbackSummary::new(CURRENT_PLUTO_FALLBACK_POLICY_SUMMARY_TEXT)
+}
+
+/// Returns the current release-grade body claims used by validation and reports.
+pub const fn current_release_body_claims_summary() -> ReleaseBodyClaimsSummary {
+    ReleaseBodyClaimsSummary::new(CURRENT_RELEASE_BODY_CLAIMS_SUMMARY_TEXT)
+}
+
+/// Returns the release-grade body claims used by validation and release reporting.
+pub const fn release_body_claims_summary_for_report() -> ReleaseBodyClaimsSummary {
+    current_release_body_claims_summary()
 }
 
 /// Returns the Pluto fallback posture used by validation and release reporting.
@@ -3876,6 +3974,20 @@ mod tests {
     }
 
     #[test]
+    fn release_body_claims_summary_tracks_the_current_posture() {
+        let summary = release_body_claims_summary_for_report();
+
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(
+            summary.summary_line(),
+            current_release_body_claims_summary().summary_line()
+        );
+        assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert!(summary.summary_line().contains("Sun through Neptune"));
+    }
+
+    #[test]
     fn pluto_fallback_summary_rejects_policy_drift() {
         let summary = PlutoFallbackSummary::new(
             "Pluto is documented elsewhere as a release-grade major body",
@@ -3884,6 +3996,18 @@ mod tests {
         assert_eq!(
             summary.validate(),
             Err(PlutoFallbackSummaryValidationError::CurrentPolicyOutOfSync)
+        );
+    }
+
+    #[test]
+    fn release_body_claims_summary_rejects_policy_drift() {
+        let summary = ReleaseBodyClaimsSummary::new(
+            "Sun through Neptune are documented elsewhere as release-grade major bodies",
+        );
+
+        assert_eq!(
+            summary.validate(),
+            Err(ReleaseBodyClaimsSummaryValidationError::CurrentPolicyOutOfSync)
         );
     }
 
