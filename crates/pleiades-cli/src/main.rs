@@ -203,6 +203,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         | Some("1750-selected-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-2200-selected-body-boundary-summary")
         | Some("2200-selected-body-boundary-summary") => validate_render_cli(args),
+        Some("reference-snapshot-2500-selected-body-boundary-summary")
+        | Some("2500-selected-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-1749-major-body-boundary-summary")
         | Some("1749-major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-early-major-body-boundary-summary")
@@ -1642,6 +1644,17 @@ mod tests {
         let boundary_1800_alias = render_cli(&["1800-major-body-boundary-summary"])
             .expect("1800 major-body boundary alias should render");
         assert_eq!(boundary_1800_alias, boundary_1800);
+    }
+
+    #[test]
+    fn reference_snapshot_2500_selected_body_boundary_aliases_render_the_same_reports() {
+        let boundary_2500 = render_cli(&["reference-snapshot-2500-selected-body-boundary-summary"])
+            .expect("2500 selected-body boundary summary should render");
+        assert!(boundary_2500.contains("Reference 2500 selected-body boundary evidence:"));
+        assert!(boundary_2500.contains("JD 2634167.0 (TDB)"));
+        let boundary_2500_alias = render_cli(&["2500-selected-body-boundary-summary"])
+            .expect("2500 selected-body boundary alias should render");
+        assert_eq!(boundary_2500_alias, boundary_2500);
     }
 
     #[test]
