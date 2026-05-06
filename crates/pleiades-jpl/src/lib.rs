@@ -22614,6 +22614,18 @@ mod tests {
             summary.summary_line()
         );
         assert_eq!(
+            reference_snapshot_2451914_bridge_day_summary(),
+            Some(summary.clone())
+        );
+        assert_eq!(
+            reference_snapshot_2451914_major_body_bridge_day_summary(),
+            Some(summary.clone())
+        );
+        assert_eq!(
+            reference_snapshot_2451914_major_body_bridge_summary(),
+            Some(summary.clone())
+        );
+        assert_eq!(
             reference_snapshot_2451914_major_body_bridge_day_summary_for_report(),
             "Reference 2451914 major-body bridge-day evidence: 15 exact samples at JD 2451914.0 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros); 2451914 major-body bridge-day sample"
         );
