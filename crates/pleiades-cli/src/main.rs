@@ -543,6 +543,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         | Some("packaged-artifact-target-threshold") => validate_render_cli(args),
         Some("packaged-artifact-target-threshold-scope-envelopes-summary")
         | Some("packaged-artifact-target-threshold-scope-envelopes") => validate_render_cli(args),
+        Some("packaged-artifact-fit-sample-classes-summary")
+        | Some("packaged-artifact-fit-sample-classes") => validate_render_cli(args),
         Some("packaged-artifact-generation-manifest-summary")
         | Some("packaged-artifact-generation-manifest") => validate_render_cli(args),
         Some("packaged-artifact-generation-policy-summary")
@@ -4633,6 +4635,25 @@ mod tests {
             packaged_artifact_generation_manifest
         );
 
+        let packaged_artifact_fit_sample_classes =
+            render_cli(&["packaged-artifact-fit-sample-classes-summary"])
+                .expect("packaged artifact fit sample classes summary should render");
+        assert!(
+            packaged_artifact_fit_sample_classes.contains("Packaged-artifact fit sample classes: ")
+        );
+        assert_eq!(
+            packaged_artifact_fit_sample_classes,
+            format!(
+                "Packaged-artifact fit sample classes: {}",
+                pleiades_validate::packaged_artifact_fit_sample_classes_summary_for_report()
+            )
+        );
+        assert_eq!(
+            render_cli(&["packaged-artifact-fit-sample-classes"])
+                .expect("packaged artifact fit sample classes alias should render"),
+            packaged_artifact_fit_sample_classes
+        );
+
         let packaged_artifact_regeneration =
             render_cli(&["packaged-artifact-regeneration-summary"])
                 .expect("packaged artifact regeneration summary should render");
@@ -4760,6 +4781,14 @@ mod tests {
             (
                 &["packaged-artifact-target-threshold-scope-envelopes", "extra"][..],
                 "packaged-artifact-target-threshold-scope-envelopes-summary does not accept extra arguments",
+            ),
+            (
+                &["packaged-artifact-fit-sample-classes-summary", "extra"][..],
+                "packaged-artifact-fit-sample-classes-summary does not accept extra arguments",
+            ),
+            (
+                &["packaged-artifact-fit-sample-classes", "extra"][..],
+                "packaged-artifact-fit-sample-classes-summary does not accept extra arguments",
             ),
             (
                 &["packaged-artifact-generation-manifest-summary", "extra"][..],
@@ -5516,6 +5545,12 @@ mod tests {
         ));
         assert!(help.contains(
             "packaged-artifact-target-threshold-scope-envelopes  Alias for packaged-artifact-target-threshold-scope-envelopes-summary"
+        ));
+        assert!(help.contains(
+            "packaged-artifact-fit-sample-classes-summary  Print the packaged-artifact fit sample classes summary"
+        ));
+        assert!(help.contains(
+            "packaged-artifact-fit-sample-classes  Alias for packaged-artifact-fit-sample-classes-summary"
         ));
         assert!(help.contains(
             "packaged-artifact-generation-manifest-summary  Print the packaged-artifact generation manifest summary"

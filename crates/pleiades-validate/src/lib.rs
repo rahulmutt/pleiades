@@ -4655,6 +4655,14 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
                 packaged_artifact_fit_envelope_summary_for_report()
             ))
         }
+        Some("packaged-artifact-fit-sample-classes-summary")
+        | Some("packaged-artifact-fit-sample-classes") => {
+            ensure_no_extra_args(&args[1..], "packaged-artifact-fit-sample-classes-summary")?;
+            Ok(format!(
+                "Packaged-artifact fit sample classes: {}",
+                packaged_artifact_fit_sample_classes_summary_for_report()
+            ))
+        }
         Some("packaged-artifact-generation-manifest-summary")
         | Some("packaged-artifact-generation-manifest") => {
             ensure_no_extra_args(&args[1..], "packaged-artifact-generation-manifest-summary")?;
@@ -12055,6 +12063,25 @@ pub fn render_validation_report_summary(rounds: usize) -> Result<String, Ephemer
     Ok(render_validation_report_summary_text(&report))
 }
 
+/// Returns the combined packaged-artifact boundary and interior fit sample summary for reports.
+pub fn packaged_artifact_fit_sample_classes_summary_for_report() -> String {
+    match artifact_boundary_envelope_summary_for_report() {
+        Ok(boundary) => {
+            let interior = packaged_artifact_fit_envelope_summary_for_report();
+            format!(
+                "fit sample classes: boundary continuity={}; interior fit={}",
+                boundary
+                    .validated_summary_line()
+                    .unwrap_or_else(|error| format!(
+                        "Artifact boundary envelope: unavailable ({error})"
+                    )),
+                interior,
+            )
+        }
+        Err(error) => format!("fit sample classes: unavailable ({error})"),
+    }
+}
+
 /// Renders the comparison report used by the CLI.
 pub fn render_comparison_report() -> Result<String, EphemerisError> {
     let corpus = default_corpus();
@@ -14862,6 +14889,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     );
     let _ = writeln!(
         text,
+        "  Packaged-artifact fit sample classes: {}",
+        packaged_artifact_fit_sample_classes_summary_for_report()
+    );
+    let _ = writeln!(
+        text,
         "  Packaged-artifact target-threshold scope envelopes: {}",
         packaged_artifact_target_threshold_scope_envelopes_for_report()
     );
@@ -17299,7 +17331,7 @@ fn parse_rounds(args: &[&str], default: usize) -> Result<usize, String> {
 fn help_text() -> String {
     let corpus_size = default_corpus().requests.len();
     format!(
-        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  compare-backends-audit    Compare the JPL snapshot against the algorithmic composite backend and fail if the tolerance audit reports regressions\n  backend-matrix            Print the implemented backend capability matrices\n  capability-matrix         Alias for backend-matrix\n  backend-matrix-summary    Print the compact backend capability matrix summary\n  matrix-summary            Alias for backend-matrix-summary\n  compatibility-profile     Print the release compatibility profile\n  profile                   Alias for compatibility-profile\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus and full chart assembly on representative house scenarios\n  comparison-corpus-summary  Print the compact release-grade comparison corpus summary\n  comparison-corpus         Alias for comparison-corpus-summary\n  comparison-corpus-release-guard-summary  Print the compact release-grade comparison corpus guard summary\n  comparison-corpus-release-guard  Alias for comparison-corpus-release-guard-summary\n  comparison-corpus-guard-summary  Alias for comparison-corpus-release-guard-summary\n  comparison-corpus-guard       Alias for comparison-corpus-guard-summary\n  comparison-envelope-summary  Print the compact comparison envelope summary\n  comparison-envelope       Alias for comparison-envelope-summary\n  comparison-tolerance-policy-summary  Print the compact comparison tolerance policy summary\n  comparison-tolerance-summary  Alias for comparison-tolerance-policy-summary\n  comparison-body-class-tolerance-summary  Print the compact comparison body-class tolerance summary\n  comparison-body-class-tolerance  Alias for comparison-body-class-tolerance-summary\n  release-body-claims-summary  Print the compact release-grade body claims summary\n  body-claims-summary          Alias for release-body-claims-summary\n  benchmark-corpus-summary  Print the compact representative benchmark corpus summary\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  validation-report-summary [--rounds N]  Render a compact validation report summary\n  report-summary [--rounds N]  Alias for validation-report-summary\n  validation-summary        Alias for validation-report-summary\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  generate-packaged-artifact  Generate or verify the packaged artifact fixture from the checked-in reference snapshot; pass a file path, --out FILE, --output FILE, or --check\n  regenerate-packaged-artifact  Alias for generate-packaged-artifact\n  artifact-summary          Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  artifact-boundary-envelope-summary  Print the compact packaged-artifact boundary envelope summary\n  artifact-profile-coverage-summary  Print the packaged-artifact profile coverage summary\n  packaged-artifact-output-support-summary  Print the packaged-artifact output support summary\n  packaged-artifact-output-support       Alias for packaged-artifact-output-support-summary\n  packaged-artifact-speed-policy-summary  Print the packaged-artifact speed policy summary\n  packaged-artifact-speed-policy       Alias for packaged-artifact-speed-policy-summary\n  packaged-artifact-access-summary  Print the packaged-artifact access summary\n  packaged-artifact-access  Alias for packaged-artifact-access-summary\n  packaged-artifact-path-policy-summary  Alias for packaged-artifact-access-summary\n  packaged-artifact-path-policy  Alias for packaged-artifact-path-policy-summary\n  packaged-artifact-storage-summary  Print the packaged-artifact storage/reconstruction summary\n  packaged-artifact-storage           Alias for packaged-artifact-storage-summary\n  packaged-artifact-production-profile-summary  Print the packaged-artifact production profile draft summary\n  packaged-artifact-production-profile  Alias for packaged-artifact-production-profile-summary\n  packaged-artifact-target-threshold-summary  Print the packaged-artifact target thresholds summary\n  packaged-artifact-target-threshold  Alias for packaged-artifact-target-threshold-summary\n  packaged-artifact-target-threshold-scope-envelopes-summary  Print the packaged-artifact target-threshold scope envelopes summary\n  packaged-artifact-target-threshold-scope-envelopes  Alias for packaged-artifact-target-threshold-scope-envelopes-summary\n  packaged-artifact-fit-envelope-summary  Print the packaged-artifact fit envelope summary\n  packaged-artifact-fit-envelope  Alias for packaged-artifact-fit-envelope-summary\n  packaged-artifact-generation-manifest-summary  Print the packaged-artifact generation manifest summary
+        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  compare-backends-audit    Compare the JPL snapshot against the algorithmic composite backend and fail if the tolerance audit reports regressions\n  backend-matrix            Print the implemented backend capability matrices\n  capability-matrix         Alias for backend-matrix\n  backend-matrix-summary    Print the compact backend capability matrix summary\n  matrix-summary            Alias for backend-matrix-summary\n  compatibility-profile     Print the release compatibility profile\n  profile                   Alias for compatibility-profile\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus and full chart assembly on representative house scenarios\n  comparison-corpus-summary  Print the compact release-grade comparison corpus summary\n  comparison-corpus         Alias for comparison-corpus-summary\n  comparison-corpus-release-guard-summary  Print the compact release-grade comparison corpus guard summary\n  comparison-corpus-release-guard  Alias for comparison-corpus-release-guard-summary\n  comparison-corpus-guard-summary  Alias for comparison-corpus-release-guard-summary\n  comparison-corpus-guard       Alias for comparison-corpus-guard-summary\n  comparison-envelope-summary  Print the compact comparison envelope summary\n  comparison-envelope       Alias for comparison-envelope-summary\n  comparison-tolerance-policy-summary  Print the compact comparison tolerance policy summary\n  comparison-tolerance-summary  Alias for comparison-tolerance-policy-summary\n  comparison-body-class-tolerance-summary  Print the compact comparison body-class tolerance summary\n  comparison-body-class-tolerance  Alias for comparison-body-class-tolerance-summary\n  release-body-claims-summary  Print the compact release-grade body claims summary\n  body-claims-summary          Alias for release-body-claims-summary\n  benchmark-corpus-summary  Print the compact representative benchmark corpus summary\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  validation-report-summary [--rounds N]  Render a compact validation report summary\n  report-summary [--rounds N]  Alias for validation-report-summary\n  validation-summary        Alias for validation-report-summary\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  generate-packaged-artifact  Generate or verify the packaged artifact fixture from the checked-in reference snapshot; pass a file path, --out FILE, --output FILE, or --check\n  regenerate-packaged-artifact  Alias for generate-packaged-artifact\n  artifact-summary          Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  artifact-boundary-envelope-summary  Print the compact packaged-artifact boundary envelope summary\n  artifact-profile-coverage-summary  Print the packaged-artifact profile coverage summary\n  packaged-artifact-output-support-summary  Print the packaged-artifact output support summary\n  packaged-artifact-output-support       Alias for packaged-artifact-output-support-summary\n  packaged-artifact-speed-policy-summary  Print the packaged-artifact speed policy summary\n  packaged-artifact-speed-policy       Alias for packaged-artifact-speed-policy-summary\n  packaged-artifact-access-summary  Print the packaged-artifact access summary\n  packaged-artifact-access  Alias for packaged-artifact-access-summary\n  packaged-artifact-path-policy-summary  Alias for packaged-artifact-access-summary\n  packaged-artifact-path-policy  Alias for packaged-artifact-path-policy-summary\n  packaged-artifact-storage-summary  Print the packaged-artifact storage/reconstruction summary\n  packaged-artifact-storage           Alias for packaged-artifact-storage-summary\n  packaged-artifact-production-profile-summary  Print the packaged-artifact production profile draft summary\n  packaged-artifact-production-profile  Alias for packaged-artifact-production-profile-summary\n  packaged-artifact-target-threshold-summary  Print the packaged-artifact target thresholds summary\n  packaged-artifact-target-threshold  Alias for packaged-artifact-target-threshold-summary\n  packaged-artifact-target-threshold-scope-envelopes-summary  Print the packaged-artifact target-threshold scope envelopes summary\n  packaged-artifact-target-threshold-scope-envelopes  Alias for packaged-artifact-target-threshold-scope-envelopes-summary\n  packaged-artifact-fit-envelope-summary  Print the packaged-artifact fit envelope summary\n  packaged-artifact-fit-envelope  Alias for packaged-artifact-fit-envelope-summary\n  packaged-artifact-fit-sample-classes-summary  Print the packaged-artifact fit sample classes summary\n  packaged-artifact-fit-sample-classes  Alias for packaged-artifact-fit-sample-classes-summary\n  packaged-artifact-generation-manifest-summary  Print the packaged-artifact generation manifest summary
   packaged-artifact-generation-manifest  Alias for packaged-artifact-generation-manifest-summary\n  packaged-artifact-generation-policy-summary  Print the packaged-artifact generation policy summary\n  packaged-artifact-generation-policy     Alias for packaged-artifact-generation-policy-summary\n  packaged-artifact-generation-residual-summary  Alias for packaged-artifact-generation-residual-bodies-summary\n  packaged-artifact-generation-residual-bodies-summary  Print the packaged-artifact generation residual bodies summary\n  packaged-artifact-regeneration-summary  Print the packaged-artifact regeneration summary\n  packaged-artifact-regeneration      Alias for packaged-artifact-regeneration-summary\n  packaged-frame-parity-summary  Print the packaged frame parity summary\n  packaged-frame-treatment-summary  Print the packaged frame treatment summary\n  packaged-lookup-epoch-policy-summary  Print the packaged lookup epoch policy summary\n  packaged-lookup-epoch-policy         Alias for packaged-lookup-epoch-policy-summary\n  packaged-artifact-lookup-epoch-policy-summary  Print the packaged lookup epoch policy summary\n  packaged-artifact-lookup-epoch-policy         Alias for packaged-artifact-lookup-epoch-policy-summary\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  native-dependency-audit   Alias for workspace-audit\n  workspace-audit-summary   Print the compact workspace audit summary\n  native-dependency-audit-summary  Alias for workspace-audit-summary\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  api-stability-summary     Print the compact API stability summary\n  api-posture-summary       Alias for api-stability-summary\n  compatibility-profile-summary  Print the compact compatibility profile summary
   compatibility-caveats-summary  Print the compact compatibility caveats summary
   compatibility-caveats    Alias for compatibility-caveats-summary
@@ -19416,6 +19448,7 @@ mod tests {
         ));
         assert!(rendered.contains("Packaged-artifact target thresholds: profile id=pleiades-packaged-artifact-profile/stage-5-draft; target thresholds: draft fit envelope recorded; scopes=luminaries, major planets, lunar points, selected asteroids, custom bodies; fit envelope:"));
         assert!(rendered.contains("Packaged-artifact fit envelope: fit envelope:"));
+        assert!(rendered.contains("Packaged-artifact fit sample classes: fit sample classes:"));
         assert!(rendered.contains("Packaged-artifact target-threshold scope envelopes: scope envelopes: scope=luminaries; bodies=2 (Sun, Moon); fit envelope:"));
         assert!(rendered.contains(
             "Packaged-artifact generation manifest: Packaged artifact generation manifest:"
@@ -19502,6 +19535,8 @@ mod tests {
         ));
         assert!(validation_report_summary.contains("Packaged-artifact target thresholds: profile id=pleiades-packaged-artifact-profile/stage-5-draft; target thresholds: draft fit envelope recorded; scopes=luminaries, major planets, lunar points, selected asteroids, custom bodies; fit envelope:"));
         assert!(validation_report_summary.contains("Packaged-artifact fit envelope: fit envelope:"));
+        assert!(validation_report_summary
+            .contains("Packaged-artifact fit sample classes: fit sample classes:"));
         assert!(validation_report_summary.contains("Packaged-artifact target-threshold scope envelopes: scope envelopes: scope=luminaries; bodies=2 (Sun, Moon); fit envelope:"));
         assert!(validation_report_summary.contains(
             "Packaged-artifact generation manifest: Packaged artifact generation manifest:"
@@ -20011,6 +20046,8 @@ mod tests {
         assert!(rendered.contains("packaged-artifact-target-threshold  Alias for packaged-artifact-target-threshold-summary"));
         assert!(rendered.contains("packaged-artifact-target-threshold-scope-envelopes-summary"));
         assert!(rendered.contains("packaged-artifact-target-threshold-scope-envelopes  Alias for packaged-artifact-target-threshold-scope-envelopes-summary"));
+        assert!(rendered.contains("packaged-artifact-fit-sample-classes-summary"));
+        assert!(rendered.contains("packaged-artifact-fit-sample-classes  Alias for packaged-artifact-fit-sample-classes-summary"));
         assert!(rendered.contains("packaged-artifact-generation-manifest-summary"));
         assert!(rendered.contains(
             "packaged-artifact-generation-manifest  Alias for packaged-artifact-generation-manifest-summary"
@@ -26774,6 +26811,38 @@ version = "0.9.0"
             render_cli(&["packaged-artifact-storage", "extra"])
                 .expect_err("packaged artifact storage alias should reject extra arguments"),
             "packaged-artifact-storage does not accept extra arguments"
+        );
+    }
+
+    #[test]
+    fn packaged_artifact_fit_sample_classes_summary_and_alias_commands_render_the_combined_fit_summary(
+    ) {
+        let fit_sample_classes = render_cli(&["packaged-artifact-fit-sample-classes-summary"])
+            .expect("packaged artifact fit sample classes summary should render");
+        assert!(fit_sample_classes.contains("Packaged-artifact fit sample classes: "));
+        assert_eq!(
+            fit_sample_classes,
+            format!(
+                "Packaged-artifact fit sample classes: {}",
+                packaged_artifact_fit_sample_classes_summary_for_report()
+            )
+        );
+        assert_eq!(
+            render_cli(&["packaged-artifact-fit-sample-classes"])
+                .expect("packaged artifact fit sample classes alias should render"),
+            fit_sample_classes
+        );
+        assert_eq!(
+            render_cli(&["packaged-artifact-fit-sample-classes-summary", "extra"]).expect_err(
+                "packaged artifact fit sample classes summary should reject extra arguments"
+            ),
+            "packaged-artifact-fit-sample-classes-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["packaged-artifact-fit-sample-classes", "extra"]).expect_err(
+                "packaged artifact fit sample classes alias should reject extra arguments"
+            ),
+            "packaged-artifact-fit-sample-classes-summary does not accept extra arguments"
         );
     }
 
