@@ -107,7 +107,8 @@ pub use pleiades_ayanamsa::{
     resolve_ayanamsa, AyanamsaDescriptor,
 };
 pub use pleiades_backend::{
-    apparentness_policy_summary_for_report, delta_t_policy_summary_for_report,
+    apparentness_policy_summary_for_report, current_delta_t_policy_summary,
+    current_utc_convenience_policy_summary, delta_t_policy_summary_for_report,
     frame_policy_summary_for_report, native_sidereal_policy_summary_for_report,
     observer_policy_summary_for_report, request_policy_summary_for_report,
     time_scale_policy_summary_for_report, utc_convenience_policy_summary_for_report, AccuracyClass,
@@ -542,6 +543,12 @@ mod tests {
             summary.validated_summary_line().unwrap(),
             pleiades_backend::CURRENT_UTC_CONVENIENCE_POLICY_SUMMARY_TEXT
         );
+        let current_summary: UtcConveniencePolicySummary = current_utc_convenience_policy_summary();
+        assert_eq!(current_summary.summary_line(), summary.summary_line());
+        assert_eq!(
+            current_summary.validated_summary_line().unwrap(),
+            summary.validated_summary_line().unwrap()
+        );
     }
 
     #[test]
@@ -554,6 +561,12 @@ mod tests {
         assert_eq!(
             summary.validated_summary_line().unwrap(),
             pleiades_backend::CURRENT_DELTA_T_POLICY_SUMMARY_TEXT
+        );
+        let current_summary: DeltaTPolicySummary = current_delta_t_policy_summary();
+        assert_eq!(current_summary.summary_line(), summary.summary_line());
+        assert_eq!(
+            current_summary.validated_summary_line().unwrap(),
+            summary.validated_summary_line().unwrap()
         );
     }
 
