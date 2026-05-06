@@ -55,8 +55,9 @@ use pleiades_compression::{
     EndianPolicy, PolynomialChannel, Segment, SpeedPolicy,
 };
 use pleiades_jpl::{
-    format_reference_snapshot_summary, reference_snapshot, reference_snapshot_summary,
-    JplSnapshotBackend, ReferenceSnapshotSummary, SnapshotEntry,
+    format_reference_snapshot_summary, production_generation_source_summary_for_report,
+    reference_snapshot, reference_snapshot_summary, JplSnapshotBackend, ReferenceSnapshotSummary,
+    SnapshotEntry,
 };
 
 const PACKAGE_NAME: &str = "pleiades-data";
@@ -943,6 +944,8 @@ pub struct PackagedArtifactRegenerationSummary {
     pub artifact_version: u16,
     /// Human-readable provenance/source summary.
     pub source: &'static str,
+    /// Canonical source-revision summary for the checked-in production-generation corpus.
+    pub source_revision: String,
     /// Stable identifier for the packaged-artifact profile.
     pub profile_id: &'static str,
     /// Checksum of the checked-in packaged artifact.
@@ -1029,6 +1032,12 @@ impl PackagedArtifactRegenerationSummary {
             return Err(pleiades_compression::CompressionError::new(
                 pleiades_compression::CompressionErrorKind::InvalidFormat,
                 "packaged artifact regeneration summary source does not match the checked-in artifact source",
+            ));
+        }
+        if self.source_revision != production_generation_source_summary_for_report() {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                "packaged artifact regeneration summary source revision does not match the checked-in production-generation source summary",
             ));
         }
         if self.profile_id != ARTIFACT_PROFILE_ID {
@@ -1146,10 +1155,11 @@ impl PackagedArtifactRegenerationSummary {
     /// Returns the full packaged-artifact regeneration provenance summary.
     pub fn summary_line(&self) -> String {
         format!(
-            "Packaged artifact regeneration source: label={}; profile id={}; source={}; checksum=0x{:016x}; {}; segment strategy={}; {}; {}; bundled bodies: {}; {}; fit envelope: {}; artifact version={}",
+            "Packaged artifact regeneration source: label={}; profile id={}; source={}; source revision={}; checksum=0x{:016x}; {}; segment strategy={}; {}; {}; bundled bodies: {}; {}; fit envelope: {}; artifact version={}",
             self.label,
             self.profile_id,
             self.source,
+            self.source_revision,
             self.checksum,
             self.generation_policy_line(),
             self.generation_policy.segment_strategy(),
@@ -1182,6 +1192,7 @@ pub fn packaged_artifact_regeneration_summary_details() -> PackagedArtifactRegen
         label: ARTIFACT_LABEL,
         artifact_version: artifact.header.version,
         source: ARTIFACT_SOURCE,
+        source_revision: production_generation_source_summary_for_report(),
         profile_id: ARTIFACT_PROFILE_ID,
         checksum: artifact.checksum,
         generation_policy: PackagedArtifactGenerationPolicy::AdjacentSameBodyLinearSegments,
@@ -5098,6 +5109,10 @@ mod tests {
         assert_eq!(summary.label, ARTIFACT_LABEL);
         assert_eq!(summary.artifact_version, artifact.header.version);
         assert_eq!(summary.source, ARTIFACT_SOURCE);
+        assert_eq!(
+            summary.source_revision,
+            production_generation_source_summary_for_report()
+        );
         assert_eq!(summary.profile_id, ARTIFACT_PROFILE_ID);
         assert_eq!(summary.checksum, artifact.checksum);
         assert_eq!(
@@ -5162,6 +5177,7 @@ mod tests {
         assert!(provenance
             .contains("Packaged artifact regeneration source: label=stage-5 packaged-data draft"));
         assert!(provenance.contains("profile id=pleiades-packaged-artifact-profile/stage-5-draft"));
+        assert!(provenance.contains("source revision=Production generation source:"));
         assert!(provenance.contains("checksum=0x"));
         assert!(provenance.contains("generation policy: adjacent same-body linear segments"));
         assert!(provenance
@@ -5202,6 +5218,20 @@ mod tests {
         assert!(error
             .to_string()
             .contains("packaged artifact regeneration summary source does not match the checked-in artifact source"));
+    }
+
+    #[test]
+    fn packaged_artifact_regeneration_summary_validation_rejects_source_revision_drift() {
+        let mut summary = packaged_artifact_regeneration_summary_details();
+        summary.source_revision = "drifted source revision".to_string();
+
+        let error = summary
+            .validate()
+            .expect_err("source revision drift should be rejected");
+
+        assert!(error
+            .to_string()
+            .contains("packaged artifact regeneration summary source revision does not match the checked-in production-generation source summary"));
     }
 
     #[test]
@@ -5819,6 +5849,9 @@ mod tests {
             .contains("Packaged artifact generation manifest:"));
         assert!(manifest.summary_line().contains("speed policy=Unsupported"));
         assert!(manifest.summary_line().contains("segment strategy="));
+        assert!(manifest
+            .summary_line()
+            .contains("source revision=Production generation source:"));
         assert!(manifest.summary_line().contains("regeneration="));
         assert!(packaged_artifact_generation_manifest_for_report()
             .contains("Packaged artifact generation manifest:"));
