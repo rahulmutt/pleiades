@@ -139,7 +139,9 @@ use pleiades_jpl::{
     reference_snapshot_1800_major_body_boundary_summary_for_report,
     reference_snapshot_1900_selected_body_boundary_summary_for_report,
     reference_snapshot_2200_selected_body_boundary_summary_for_report,
+    reference_snapshot_2360233_major_body_boundary_summary_for_report,
     reference_snapshot_2360234_major_body_interior_summary_for_report,
+    reference_snapshot_2378499_major_body_boundary_summary_for_report,
     reference_snapshot_2400000_major_body_boundary_summary_for_report,
     reference_snapshot_2451545_major_body_boundary_summary_for_report,
     reference_snapshot_2451910_major_body_boundary_summary_for_report,
@@ -7790,6 +7792,10 @@ fn render_release_notes_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_summary_for_report());
     text.push('\n');
+    text.push_str(&reference_snapshot_2360233_major_body_boundary_summary_for_report());
+    text.push('\n');
+    text.push_str(&reference_snapshot_2378499_major_body_boundary_summary_for_report());
+    text.push('\n');
     text.push_str(&reference_snapshot_2451911_major_body_boundary_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_lunar_boundary_summary_for_report());
@@ -7924,6 +7930,10 @@ fn render_release_notes_summary_text() -> String {
     text.push_str(&reference_asteroid_source_window_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_summary_for_report());
+    text.push('\n');
+    text.push_str(&reference_snapshot_2360233_major_body_boundary_summary_for_report());
+    text.push('\n');
+    text.push_str(&reference_snapshot_2378499_major_body_boundary_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_2451911_major_body_boundary_summary_for_report());
     text.push('\n');
@@ -23467,6 +23477,10 @@ version = "0.9.0"
         ));
         assert!(release_notes_summary.contains("Release-specific coverage:"));
         assert!(release_notes_summary
+            .contains(&reference_snapshot_2360233_major_body_boundary_summary_for_report()));
+        assert!(release_notes_summary
+            .contains(&reference_snapshot_2378499_major_body_boundary_summary_for_report()));
+        assert!(release_notes_summary
             .contains(&reference_snapshot_2451916_major_body_interior_summary_for_report()));
         assert!(release_notes_summary.contains(
             "Latitude-sensitive house systems: 8 (Placidus, Koch, Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Topocentric, Sunshine, Gauquelin sectors)"
@@ -23530,6 +23544,10 @@ version = "0.9.0"
             .contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(release_summary.contains("Backend matrix summary: backend-matrix-summary"));
         assert!(release_summary.contains("JPL interpolation posture: source="));
+        assert!(release_summary
+            .contains(&reference_snapshot_2360233_major_body_boundary_summary_for_report()));
+        assert!(release_summary
+            .contains(&reference_snapshot_2378499_major_body_boundary_summary_for_report()));
         assert!(release_summary
             .contains(&reference_snapshot_2451920_major_body_interior_summary_for_report()));
         assert!(release_summary
