@@ -7697,6 +7697,8 @@ fn render_release_notes_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_summary_for_report());
     text.push('\n');
+    text.push_str(&reference_snapshot_2451911_major_body_boundary_summary_for_report());
+    text.push('\n');
     text.push_str(&reference_snapshot_lunar_boundary_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_1500_selected_body_boundary_summary_for_report());
@@ -7826,6 +7828,8 @@ fn render_release_notes_summary_text() -> String {
     text.push_str(&reference_asteroid_source_window_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_summary_for_report());
+    text.push('\n');
+    text.push_str(&reference_snapshot_2451911_major_body_boundary_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_boundary_epoch_coverage_summary_for_report());
     text.push('\n');
@@ -13590,6 +13594,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(text);
     let _ = writeln!(text, "Reference snapshot");
     let _ = writeln!(text, "  {}", reference_snapshot_summary_for_report());
+    let _ = writeln!(
+        text,
+        "  {}",
+        reference_snapshot_2451911_major_body_boundary_summary_for_report()
+    );
     let _ = writeln!(text, "  {}", reference_snapshot_source_summary_for_report());
     let _ = writeln!(
         text,
@@ -18629,6 +18638,9 @@ mod tests {
         assert!(report.contains(&request_surface_summary_for_report()));
         assert!(report.contains("Reference snapshot"));
         assert!(report.contains(&reference_snapshot_summary_for_report()));
+        assert!(
+            report.contains(&reference_snapshot_2451911_major_body_boundary_summary_for_report())
+        );
         assert!(report.contains(&selected_asteroid_terminal_boundary_summary_for_report()));
         assert!(
             report.contains(&reference_snapshot_2451918_major_body_boundary_summary_for_report())
@@ -21603,6 +21615,9 @@ mod tests {
         assert!(rendered.contains("Selected asteroid source windows: 93 source-backed samples across 6 bodies and 17 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); windows: Ceres: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Pallas: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Juno: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Vesta: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); asteroid:433-Eros: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); asteroid:99942-Apophis: 8 samples across 8 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB)"));
         assert!(rendered.contains(&selected_asteroid_boundary_summary_for_report()));
         assert!(rendered.contains(&selected_asteroid_terminal_boundary_summary_for_report()));
+        assert!(
+            rendered.contains(&reference_snapshot_2451911_major_body_boundary_summary_for_report())
+        );
         assert!(rendered.contains("Custom-definition labels:"));
         assert!(rendered.contains("House formula families: 7 (Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign)"));
         assert!(rendered.contains(&format!(
