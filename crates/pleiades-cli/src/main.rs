@@ -2989,6 +2989,7 @@ mod tests {
         let reference_snapshot_summary = render_cli(&["reference-snapshot-summary"])
             .expect("reference snapshot summary should render");
         assert!(reference_snapshot_summary.contains("Reference snapshot summary"));
+        assert!(reference_snapshot_summary.contains("Reference 2500 major-body boundary evidence:"));
         assert_eq!(
             reference_snapshot_summary,
             format!(

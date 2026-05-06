@@ -2333,37 +2333,7 @@ pub fn reference_snapshot_summary_for_report() -> String {
         None => "Reference snapshot coverage: unavailable".to_string(),
     };
 
-    format!(
-        "{summary_line}
-  {}
-  {}
-  {}
-  {}
-  {}
-  {}
-  {}
-  {}
-  {}
-  {}
-  {}
-  {}
-  {}
-  {}
-  {}
-  {}
-  {}
-  {}
-  {}
-  {}
-  {}
-  {}
-  {}
-  {}
-  {}
-  {}
-  {}
-  {}
-  {}",
+    let summary_lines = [
         reference_snapshot_1500_selected_body_boundary_summary_for_report(),
         reference_snapshot_1600_selected_body_boundary_summary_for_report(),
         reference_snapshot_1749_major_body_boundary_summary_for_report(),
@@ -2390,10 +2360,19 @@ pub fn reference_snapshot_summary_for_report() -> String {
         reference_snapshot_2451919_major_body_boundary_summary_for_report(),
         reference_snapshot_2451920_major_body_interior_summary_for_report(),
         reference_snapshot_2453000_major_body_boundary_summary_for_report(),
+        reference_snapshot_2500_major_body_boundary_summary_for_report(),
         reference_snapshot_2200_selected_body_boundary_summary_for_report(),
         reference_snapshot_mars_outer_boundary_summary_for_report(),
-        reference_snapshot_2500_selected_body_boundary_summary_for_report()
-    )
+        reference_snapshot_2500_selected_body_boundary_summary_for_report(),
+    ];
+
+    let mut report = summary_line;
+    for summary in summary_lines {
+        report.push('\n');
+        report.push_str("  ");
+        report.push_str(&summary);
+    }
+    report
 }
 
 fn reference_snapshot_exact_j2000_entries() -> Vec<&'static SnapshotEntry> {
@@ -21591,6 +21570,7 @@ mod tests {
         assert!(
             report.contains(&reference_snapshot_2453000_major_body_boundary_summary_for_report())
         );
+        assert!(report.contains(&reference_snapshot_2500_major_body_boundary_summary_for_report()));
         assert!(
             report.contains(&reference_snapshot_2200_selected_body_boundary_summary_for_report())
         );

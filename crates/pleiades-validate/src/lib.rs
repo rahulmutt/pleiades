@@ -25797,6 +25797,7 @@ version = "0.9.0"
             .expect("reference snapshot summary should render");
         assert!(reference.contains("Reference snapshot summary"));
         assert!(reference.contains("Reference snapshot coverage:"));
+        assert!(reference.contains("Reference 2500 major-body boundary evidence:"));
         assert!(reference.contains("Reference 2500 selected-body boundary evidence:"));
         assert!(reference.contains("Reference 2453000 major-body boundary evidence:"));
         assert!(reference.contains("Reference 2400000 major-body boundary evidence:"));
