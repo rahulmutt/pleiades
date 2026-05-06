@@ -15,6 +15,7 @@ This file lists focused implementation slices that map to the current phase ladd
 - A 2360234.5 interior comparison slice for the source-backed comparison corpus is now checked in.
 - A 2451915.25/2451915.75 high-curvature hold-out window for Sun, Moon, Mercury, and Venus is now checked in.
 - A 2451920.5 interior reference slice is now checked in.
+- A dedicated 2451917.5 major-body boundary report slice is now first-class and validated.
 - The comparison-corpus guard now reflects the current 2451913.5 boundary-day coverage, so the next reference-breadth slice can target a different boundary or representative interior epoch if breadth still needs to grow.
 - Add the next small set of source/reference rows at another target-range boundary or representative interior epoch if reference breadth still needs to grow.
 - Keep hold-out rows separate from fitting/reference rows.

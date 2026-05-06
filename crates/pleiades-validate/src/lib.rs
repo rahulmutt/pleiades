@@ -129,6 +129,7 @@ use pleiades_jpl::{
     reference_snapshot_1749_major_body_boundary_summary_for_report,
     reference_snapshot_1800_major_body_boundary_summary_for_report,
     reference_snapshot_1900_selected_body_boundary_summary_for_report,
+    reference_snapshot_2451917_major_body_boundary_summary_for_report,
     reference_snapshot_2453000_major_body_boundary_summary_for_report,
     reference_snapshot_2500_major_body_boundary_summary_for_report,
     reference_snapshot_2500_selected_body_boundary_summary_for_report,
@@ -4846,7 +4847,7 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
                 &args[1..],
                 "reference-snapshot-2451917-major-body-boundary-summary",
             )?;
-            Ok(reference_snapshot_major_body_boundary_summary_for_report())
+            Ok(reference_snapshot_2451917_major_body_boundary_summary_for_report())
         }
         Some("reference-snapshot-body-class-coverage-summary")
         | Some("reference-body-class-coverage-summary") => {
@@ -25654,7 +25655,7 @@ version = "0.9.0"
         let boundary_2451917 =
             render_cli(&["reference-snapshot-2451917-major-body-boundary-summary"])
                 .expect("2451917 major-body boundary summary should render");
-        assert!(boundary_2451917.contains("Reference major-body boundary evidence:"));
+        assert!(boundary_2451917.contains("Reference 2451917 major-body boundary evidence:"));
         assert!(boundary_2451917.contains("JD 2451917.5 (TDB)"));
         let boundary_2451917_alias = render_cli(&["2451917-major-body-boundary-summary"])
             .expect("2451917 major-body boundary alias should render");
