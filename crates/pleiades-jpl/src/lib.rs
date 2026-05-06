@@ -2339,10 +2339,12 @@ pub fn reference_snapshot_summary_for_report() -> String {
         reference_snapshot_source_summary_for_report(),
         reference_snapshot_source_window_summary_for_report(),
         reference_snapshot_1749_major_body_boundary_summary_for_report(),
+        reference_snapshot_2360233_major_body_boundary_summary_for_report(),
         reference_snapshot_early_major_body_boundary_summary_for_report(),
         reference_snapshot_1750_selected_body_boundary_summary_for_report(),
         reference_snapshot_1750_major_body_interior_summary_for_report(),
         reference_snapshot_1800_major_body_boundary_summary_for_report(),
+        reference_snapshot_2378499_major_body_boundary_summary_for_report(),
         reference_snapshot_1900_selected_body_boundary_summary_for_report(),
         reference_snapshot_lunar_boundary_summary_for_report(),
         reference_snapshot_high_curvature_summary_for_report(),
@@ -22356,11 +22358,17 @@ mod tests {
         assert!(report.contains(&reference_snapshot_source_summary_for_report()));
         assert!(report.contains(&reference_snapshot_source_window_summary_for_report()));
         assert!(report.contains(&reference_snapshot_1749_major_body_boundary_summary_for_report()));
+        assert!(
+            report.contains(&reference_snapshot_2360233_major_body_boundary_summary_for_report())
+        );
         assert!(report.contains(&reference_snapshot_early_major_body_boundary_summary_for_report()));
         assert!(
             report.contains(&reference_snapshot_1750_selected_body_boundary_summary_for_report())
         );
         assert!(report.contains(&reference_snapshot_1800_major_body_boundary_summary_for_report()));
+        assert!(
+            report.contains(&reference_snapshot_2378499_major_body_boundary_summary_for_report())
+        );
         assert!(report.contains(&reference_snapshot_lunar_boundary_summary_for_report()));
         assert!(report.contains(&reference_snapshot_high_curvature_summary_for_report()));
         assert!(report.contains(&reference_snapshot_high_curvature_window_summary_for_report()));
@@ -24682,11 +24690,17 @@ mod tests {
         assert!(report.contains(&reference_snapshot_source_summary_for_report()));
         assert!(report.contains(&reference_snapshot_source_window_summary_for_report()));
         assert!(report.contains(&reference_snapshot_1749_major_body_boundary_summary_for_report()));
+        assert!(
+            report.contains(&reference_snapshot_2360233_major_body_boundary_summary_for_report())
+        );
         assert!(report.contains(&reference_snapshot_early_major_body_boundary_summary_for_report()));
         assert!(
             report.contains(&reference_snapshot_1750_selected_body_boundary_summary_for_report())
         );
         assert!(report.contains(&reference_snapshot_1800_major_body_boundary_summary_for_report()));
+        assert!(
+            report.contains(&reference_snapshot_2378499_major_body_boundary_summary_for_report())
+        );
         assert!(
             report.contains(&reference_snapshot_1900_selected_body_boundary_summary_for_report())
         );
