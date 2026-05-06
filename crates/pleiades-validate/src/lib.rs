@@ -4451,7 +4451,7 @@ pub fn default_corpus() -> ValidationCorpus {
 pub fn release_grade_corpus() -> ValidationCorpus {
     let mut corpus = default_corpus();
     corpus.name = "JPL Horizons release-grade comparison window".to_string();
-    corpus.description = "Release-grade comparison corpus built from the checked-in JPL Horizons snapshot, with Pluto excluded from tolerance evidence because Pluto remains an approximate fallback; the 2451913.5 boundary day remains in the release-grade comparison window.";
+    corpus.description = "Release-grade comparison corpus built from the checked-in JPL Horizons snapshot, with Pluto excluded from tolerance evidence because Pluto remains an approximate fallback.";
     corpus
         .requests
         .retain(|request| request.body != CelestialBody::Pluto);
@@ -13566,7 +13566,7 @@ fn render_comparison_snapshot_summary_text() -> String {
 }
 
 fn comparison_corpus_release_guard_summary() -> &'static str {
-    "Pluto excluded from tolerance evidence; 2451913.5 boundary day remains in the release-grade comparison window"
+    "Pluto excluded from tolerance evidence"
 }
 
 fn render_comparison_corpus_summary_text() -> String {
@@ -17841,9 +17841,11 @@ mod tests {
         assert!(corpus
             .description
             .contains("Pluto excluded from tolerance evidence"));
-        assert!(corpus
-            .description
-            .contains("2451913.5 boundary day remains in the release-grade comparison window"));
+        assert!(!corpus
+            .summary()
+            .epochs
+            .iter()
+            .any(|epoch| epoch.julian_day.days() == 2_451_913.5));
     }
 
     #[test]
@@ -18511,6 +18513,11 @@ mod tests {
         let report =
             compare_backends(&reference, &candidate, &corpus).expect("comparison should build");
         let body_summaries = report.body_summaries();
+        assert!(!corpus
+            .summary()
+            .epochs
+            .iter()
+            .any(|epoch| epoch.julian_day.days() == 2_451_913.5));
         let summary = body_summaries
             .first()
             .expect("comparison should include at least one body summary");
@@ -19196,7 +19203,7 @@ mod tests {
         ));
         assert!(report.contains(&reference_snapshot_source_window_summary_for_report()));
         assert!(report.contains(&reference_snapshot_body_class_coverage_summary_for_report()));
-        assert!(report.contains("release-grade guard: Pluto excluded from tolerance evidence; 2451913.5 boundary day remains in the release-grade comparison window"));
+        assert!(report.contains("release-grade guard: Pluto excluded from tolerance evidence"));
         assert!(report.contains("epoch labels: JD 2268932.5 (TT)"));
         assert!(report.contains("House validation corpus"));
         assert!(report.contains("House validation corpus: 9 scenarios"));
@@ -23743,7 +23750,9 @@ version = "0.9.0"
         assert!(manifest.contains("release-house-system-canonical-names-summary.txt"));
         assert!(manifest.contains("release-ayanamsa-canonical-names-summary.txt"));
         assert!(release_summary.contains("Comparison envelope: samples:"));
-        assert!(release_summary.contains("Comparison corpus release-grade guard: Pluto excluded from tolerance evidence; 2451913.5 boundary day remains in the release-grade comparison window"));
+        assert!(release_summary.contains(
+            "Comparison corpus release-grade guard: Pluto excluded from tolerance evidence"
+        ));
         assert!(release_summary.contains("Release-grade body claims: Sun through Neptune are release-grade major-body claims; Pluto remains an explicitly approximate fallback"));
         let comparison_report = compare_backends(
             &default_reference_backend(),
@@ -26965,13 +26974,13 @@ version = "0.9.0"
             .expect("comparison corpus summary should render");
         assert!(comparison.contains("Comparison corpus summary"));
         assert!(comparison.contains("name: JPL Horizons release-grade comparison window"));
-        assert!(comparison.contains("release-grade guard: Pluto excluded from tolerance evidence; 2451913.5 boundary day remains in the release-grade comparison window"));
+        assert!(comparison.contains("release-grade guard: Pluto excluded from tolerance evidence"));
         assert_eq!(comparison, render_comparison_corpus_summary_text());
 
         let guard = render_cli(&["comparison-corpus-release-guard-summary"])
             .expect("comparison corpus release guard summary should render");
         assert!(guard.contains("Comparison corpus release-grade guard summary"));
-        assert!(guard.contains("Release-grade guard: Pluto excluded from tolerance evidence; 2451913.5 boundary day remains in the release-grade comparison window"));
+        assert!(guard.contains("Release-grade guard: Pluto excluded from tolerance evidence"));
         assert_eq!(guard, render_comparison_corpus_release_guard_summary_text());
         assert_eq!(
             render_cli(&["comparison-corpus"]).expect("comparison corpus alias should render"),

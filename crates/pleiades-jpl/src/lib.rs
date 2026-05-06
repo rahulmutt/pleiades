@@ -25664,6 +25664,9 @@ mod tests {
             .expect("comparison snapshot requests should exist");
         let entries = comparison_snapshot();
 
+        assert!(!entries
+            .iter()
+            .any(|entry| entry.epoch.julian_day.days() == 2_451_913.5));
         assert_eq!(requests.len(), entries.len());
         for (request, entry) in requests.iter().zip(entries.iter()) {
             assert_eq!(request.body, entry.body);
