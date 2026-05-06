@@ -3950,6 +3950,212 @@ pub fn independent_holdout_snapshot_source_window_summary_for_report() -> String
     }
 }
 
+/// Compact release-facing summary for the independent hold-out high-curvature window.
+#[derive(Clone, Debug, PartialEq)]
+pub struct IndependentHoldoutHighCurvatureSummary {
+    /// Number of samples in the high-curvature slice.
+    pub sample_count: usize,
+    /// Bodies covered by the high-curvature slice in first-seen order.
+    pub sample_bodies: Vec<pleiades_backend::CelestialBody>,
+    /// Number of distinct epochs covered by the high-curvature slice.
+    pub epoch_count: usize,
+    /// Earliest epoch represented in the high-curvature slice.
+    pub earliest_epoch: Instant,
+    /// Latest epoch represented in the high-curvature slice.
+    pub latest_epoch: Instant,
+}
+
+/// Validation error for an independent hold-out high-curvature summary that drifted from the current slice.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum IndependentHoldoutHighCurvatureSummaryValidationError {
+    /// A summary field is out of sync with the checked-in high-curvature slice.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for IndependentHoldoutHighCurvatureSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the independent hold-out high-curvature summary field `{field}` is out of sync with the current slice"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for IndependentHoldoutHighCurvatureSummaryValidationError {}
+
+impl IndependentHoldoutHighCurvatureSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "JPL independent hold-out high-curvature evidence: {} exact samples across {} bodies and {} epochs ({}..{}); bodies: {}; high-curvature interpolation window",
+            self.sample_count,
+            self.sample_bodies.len(),
+            self.epoch_count,
+            format_instant(self.earliest_epoch),
+            format_instant(self.latest_epoch),
+            format_bodies(&self.sample_bodies),
+        )
+    }
+
+    /// Returns `Ok(())` when the summary still matches the checked-in high-curvature slice.
+    pub fn validate(&self) -> Result<(), IndependentHoldoutHighCurvatureSummaryValidationError> {
+        let Some(expected) = independent_holdout_high_curvature_summary_details() else {
+            return Err(
+                IndependentHoldoutHighCurvatureSummaryValidationError::FieldOutOfSync {
+                    field: "sample_count",
+                },
+            );
+        };
+
+        if self.sample_count != expected.sample_count {
+            return Err(
+                IndependentHoldoutHighCurvatureSummaryValidationError::FieldOutOfSync {
+                    field: "sample_count",
+                },
+            );
+        }
+        if self.sample_bodies != expected.sample_bodies {
+            return Err(
+                IndependentHoldoutHighCurvatureSummaryValidationError::FieldOutOfSync {
+                    field: "sample_bodies",
+                },
+            );
+        }
+        if self.epoch_count != expected.epoch_count {
+            return Err(
+                IndependentHoldoutHighCurvatureSummaryValidationError::FieldOutOfSync {
+                    field: "epoch_count",
+                },
+            );
+        }
+        if self.earliest_epoch != expected.earliest_epoch {
+            return Err(
+                IndependentHoldoutHighCurvatureSummaryValidationError::FieldOutOfSync {
+                    field: "earliest_epoch",
+                },
+            );
+        }
+        if self.latest_epoch != expected.latest_epoch {
+            return Err(
+                IndependentHoldoutHighCurvatureSummaryValidationError::FieldOutOfSync {
+                    field: "latest_epoch",
+                },
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns the validated summary line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, IndependentHoldoutHighCurvatureSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for IndependentHoldoutHighCurvatureSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+fn independent_holdout_high_curvature_entries() -> Option<&'static [SnapshotEntry]> {
+    static ENTRIES: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
+    let entries = ENTRIES
+        .get_or_init(|| {
+            independent_holdout_snapshot_entries()
+                .into_iter()
+                .flatten()
+                .filter(|entry| {
+                    matches!(
+                        entry.body,
+                        pleiades_backend::CelestialBody::Sun
+                            | pleiades_backend::CelestialBody::Moon
+                            | pleiades_backend::CelestialBody::Mercury
+                            | pleiades_backend::CelestialBody::Venus
+                    ) && (entry.epoch.julian_day.days() == 2_451_915.25
+                        || entry.epoch.julian_day.days() == 2_451_915.75)
+                })
+                .cloned()
+                .collect()
+        })
+        .as_slice();
+
+    if entries.is_empty() {
+        None
+    } else {
+        Some(entries)
+    }
+}
+
+fn independent_holdout_high_curvature_summary_details(
+) -> Option<IndependentHoldoutHighCurvatureSummary> {
+    let entries = independent_holdout_high_curvature_entries()?;
+    let mut sample_bodies = Vec::new();
+    for entry in entries {
+        if !sample_bodies.contains(&entry.body) {
+            sample_bodies.push(entry.body.clone());
+        }
+    }
+
+    let earliest_epoch = entries
+        .iter()
+        .map(|entry| entry.epoch)
+        .min_by(|left, right| left.julian_day.days().total_cmp(&right.julian_day.days()))
+        .expect(
+            "independent hold-out high-curvature evidence should not be empty after collection",
+        );
+    let latest_epoch = entries
+        .iter()
+        .map(|entry| entry.epoch)
+        .max_by(|left, right| left.julian_day.days().total_cmp(&right.julian_day.days()))
+        .expect(
+            "independent hold-out high-curvature evidence should not be empty after collection",
+        );
+
+    Some(IndependentHoldoutHighCurvatureSummary {
+        sample_count: entries.len(),
+        sample_bodies,
+        epoch_count: entries
+            .iter()
+            .map(|entry| entry.epoch.julian_day.days().to_bits())
+            .collect::<BTreeSet<_>>()
+            .len(),
+        earliest_epoch,
+        latest_epoch,
+    })
+}
+
+/// Returns the compact typed summary for the independent hold-out high-curvature window.
+pub fn independent_holdout_high_curvature_summary() -> Option<IndependentHoldoutHighCurvatureSummary>
+{
+    independent_holdout_high_curvature_summary_details()
+}
+
+/// Formats the independent hold-out high-curvature window for release-facing reporting.
+pub fn format_independent_holdout_high_curvature_summary(
+    summary: &IndependentHoldoutHighCurvatureSummary,
+) -> String {
+    summary.summary_line()
+}
+
+/// Returns the release-facing independent hold-out high-curvature summary string.
+pub fn independent_holdout_high_curvature_summary_for_report() -> String {
+    match independent_holdout_high_curvature_summary() {
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
+            Err(error) => {
+                format!("JPL independent hold-out high-curvature evidence: unavailable ({error})")
+            }
+        },
+        None => "JPL independent hold-out high-curvature evidence: unavailable".to_string(),
+    }
+}
+
 /// Compact release-facing summary for any accidental overlap between the checked-in reference snapshot and the independent hold-out snapshot.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ReferenceHoldoutOverlapSummary {
@@ -22893,6 +23099,35 @@ mod tests {
         );
         assert!(summary.summary_line().contains(
             "Independent hold-out source windows: 42 source-backed samples across 10 bodies and 10 epochs"
+        ));
+    }
+
+    #[test]
+    fn independent_holdout_high_curvature_summary_reports_the_expected_window() {
+        let summary = independent_holdout_high_curvature_summary()
+            .expect("independent hold-out high-curvature summary should exist");
+        assert_eq!(summary.sample_count, 8);
+        assert_eq!(summary.sample_bodies.len(), 4);
+        assert_eq!(
+            summary.sample_bodies,
+            vec![
+                pleiades_backend::CelestialBody::Sun,
+                pleiades_backend::CelestialBody::Moon,
+                pleiades_backend::CelestialBody::Mercury,
+                pleiades_backend::CelestialBody::Venus,
+            ]
+        );
+        assert_eq!(summary.epoch_count, 2);
+        assert_eq!(summary.earliest_epoch.julian_day.days(), 2_451_915.25);
+        assert_eq!(summary.latest_epoch.julian_day.days(), 2_451_915.75);
+        assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(
+            independent_holdout_high_curvature_summary_for_report(),
+            summary.summary_line()
+        );
+        assert!(summary.summary_line().contains(
+            "JPL independent hold-out high-curvature evidence: 8 exact samples across 4 bodies and 2 epochs"
         ));
     }
 

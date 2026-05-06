@@ -383,6 +383,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("independent-holdout-source-window-summary") => validate_render_cli(args),
         Some("independent-holdout-summary") => validate_render_cli(args),
         Some("independent-holdout-source-summary") => validate_render_cli(args),
+        Some("independent-holdout-high-curvature-summary") => validate_render_cli(args),
+        Some("holdout-high-curvature-summary") => validate_render_cli(args),
         Some("independent-holdout-body-class-coverage-summary")
         | Some("holdout-body-class-coverage-summary") => validate_render_cli(args),
         Some("independent-holdout-batch-parity-summary") => validate_render_cli(args),
@@ -3263,6 +3265,17 @@ mod tests {
             independent_holdout_source_summary,
             pleiades_jpl::independent_holdout_source_summary_for_report()
         );
+        let independent_holdout_high_curvature_summary =
+            render_cli(&["independent-holdout-high-curvature-summary"])
+                .expect("independent hold-out high-curvature summary should render");
+        assert!(independent_holdout_high_curvature_summary
+            .contains("JPL independent hold-out high-curvature evidence:"));
+        assert!(independent_holdout_high_curvature_summary
+            .contains("high-curvature interpolation window"));
+        assert_eq!(
+            independent_holdout_high_curvature_summary,
+            pleiades_jpl::independent_holdout_high_curvature_summary_for_report()
+        );
         let independent_holdout_batch_parity_summary =
             render_cli(&["independent-holdout-batch-parity-summary"])
                 .expect("independent hold-out batch parity summary should render");
@@ -4978,6 +4991,10 @@ mod tests {
             "independent-holdout-summary  Print the compact independent hold-out summary"
         ));
         assert!(help.contains("independent-holdout-source-summary  Print the compact independent hold-out source summary"));
+        assert!(help.contains("independent-holdout-high-curvature-summary  Print the compact independent hold-out high-curvature evidence summary"));
+        assert!(help.contains(
+            "holdout-high-curvature-summary  Alias for independent-holdout-high-curvature-summary"
+        ));
         assert!(help
             .contains("source-audit-summary      Print the compact VSOP87 source audit summary"));
         assert!(help.contains(
