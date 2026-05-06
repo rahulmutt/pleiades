@@ -143,6 +143,7 @@ use pleiades_jpl::{
     reference_snapshot_2451911_major_body_boundary_summary_for_report,
     reference_snapshot_2451912_major_body_boundary_summary_for_report,
     reference_snapshot_2451913_major_body_boundary_summary_for_report,
+    reference_snapshot_2451914_bridge_day_summary_for_report,
     reference_snapshot_2451914_major_body_boundary_summary_for_report,
     reference_snapshot_2451915_major_body_boundary_summary_for_report,
     reference_snapshot_2451916_major_body_dense_boundary_summary_for_report,
@@ -5083,7 +5084,7 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("reference-snapshot-2451914-bridge-day-summary")
         | Some("2451914-bridge-day-summary") => {
             ensure_no_extra_args(&args[1..], "reference-snapshot-2451914-bridge-day-summary")?;
-            Ok(reference_snapshot_bridge_day_summary_for_report())
+            Ok(reference_snapshot_2451914_bridge_day_summary_for_report())
         }
         Some("reference-snapshot-2451914-major-body-bridge-summary")
         | Some("2451914-major-body-bridge-summary") => {
@@ -25276,6 +25277,10 @@ version = "0.9.0"
         assert!(rendered.contains("Reference snapshot bridge day:"));
         assert!(rendered.contains("2451914.0"));
         assert_eq!(rendered, reference_snapshot_bridge_day_summary_for_report());
+        assert_eq!(
+            rendered,
+            reference_snapshot_2451914_bridge_day_summary_for_report()
+        );
         assert_eq!(
             render_cli(&["reference-snapshot-bridge-day-summary", "extra"])
                 .expect_err("reference snapshot bridge day summary should reject extra arguments"),
