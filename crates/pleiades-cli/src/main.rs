@@ -229,6 +229,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         | Some("2453000-major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-2451915-major-body-boundary-summary")
         | Some("2451915-major-body-boundary-summary") => validate_render_cli(args),
+        Some("reference-snapshot-2451917-major-body-bridge-summary")
+        | Some("2451917-major-body-bridge-summary") => validate_render_cli(args),
         Some("reference-snapshot-2451917-major-body-boundary-summary")
         | Some("2451917-major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-2451918-major-body-boundary-summary")
@@ -1802,6 +1804,16 @@ mod tests {
         let boundary_2451917_alias = render_cli(&["2451917-major-body-boundary-summary"])
             .expect("2451917 major-body boundary alias should render");
         assert_eq!(boundary_2451917_alias, boundary_2451917);
+
+        let bridge_2451917 = render_cli(&["reference-snapshot-2451917-major-body-bridge-summary"])
+            .expect("2451917 major-body bridge summary should render");
+        assert!(bridge_2451917.contains("Reference 2451917 major-body bridge evidence:"));
+        assert!(bridge_2451917.contains("JD 2451917.0 (TDB)"));
+        assert_eq!(
+            render_cli(&["2451917-major-body-bridge-summary"])
+                .expect("2451917 major-body bridge alias should render"),
+            bridge_2451917
+        );
     }
 
     #[test]
