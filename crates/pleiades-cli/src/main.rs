@@ -217,6 +217,12 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         | Some("2451910-major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-2451911-major-body-boundary-summary")
         | Some("2451911-major-body-boundary-summary") => validate_render_cli(args),
+        Some("reference-snapshot-2451912-major-body-boundary-summary")
+        | Some("2451912-major-body-boundary-summary") => validate_render_cli(args),
+        Some("reference-snapshot-2451913-major-body-boundary-summary")
+        | Some("2451913-major-body-boundary-summary") => validate_render_cli(args),
+        Some("reference-snapshot-2451914-major-body-boundary-summary")
+        | Some("2451914-major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-2500-major-body-boundary-summary")
         | Some("2500-major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-2453000-major-body-boundary-summary")
@@ -225,8 +231,18 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         | Some("2451915-major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-2451917-major-body-boundary-summary")
         | Some("2451917-major-body-boundary-summary") => validate_render_cli(args),
+        Some("reference-snapshot-2451918-major-body-boundary-summary")
+        | Some("2451918-major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-2451919-major-body-boundary-summary")
         | Some("2451919-major-body-boundary-summary") => validate_render_cli(args),
+        Some("reference-snapshot-2451914-major-body-pre-bridge-summary")
+        | Some("2451914-major-body-pre-bridge-summary") => validate_render_cli(args),
+        Some("reference-snapshot-2451914-major-body-bridge-summary")
+        | Some("2451914-major-body-bridge-summary") => validate_render_cli(args),
+        Some("reference-snapshot-2451915-major-body-bridge-summary")
+        | Some("2451915-major-body-bridge-summary") => validate_render_cli(args),
+        Some("reference-snapshot-2451916-major-body-dense-boundary-summary")
+        | Some("2451916-major-body-dense-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-2451916-major-body-interior-summary")
         | Some("2451916-major-body-interior-summary") => validate_render_cli(args),
         Some("reference-snapshot-2451920-major-body-interior-summary")
@@ -1386,10 +1402,24 @@ mod tests {
         assert!(rendered.contains("2451910-major-body-boundary-summary"));
         assert!(rendered.contains("reference-snapshot-2451911-major-body-boundary-summary"));
         assert!(rendered.contains("2451911-major-body-boundary-summary"));
+        assert!(rendered.contains("reference-snapshot-2451912-major-body-boundary-summary"));
+        assert!(rendered.contains("2451912-major-body-boundary-summary"));
+        assert!(rendered.contains("reference-snapshot-2451913-major-body-boundary-summary"));
+        assert!(rendered.contains("2451913-major-body-boundary-summary"));
+        assert!(rendered.contains("reference-snapshot-2451914-major-body-boundary-summary"));
+        assert!(rendered.contains("2451914-major-body-boundary-summary"));
+        assert!(rendered.contains("reference-snapshot-2451914-major-body-pre-bridge-summary"));
+        assert!(rendered.contains("2451914-major-body-pre-bridge-summary"));
+        assert!(rendered.contains("reference-snapshot-2451914-major-body-bridge-summary"));
+        assert!(rendered.contains("2451914-major-body-bridge-summary"));
         assert!(rendered.contains("reference-snapshot-2451915-major-body-boundary-summary"));
         assert!(rendered.contains("2451915-major-body-boundary-summary"));
         assert!(rendered.contains("reference-snapshot-2451917-major-body-boundary-summary"));
         assert!(rendered.contains("2451917-major-body-boundary-summary"));
+        assert!(rendered.contains("reference-snapshot-2451918-major-body-boundary-summary"));
+        assert!(rendered.contains("2451918-major-body-boundary-summary"));
+        assert!(rendered.contains("reference-snapshot-2451916-major-body-dense-boundary-summary"));
+        assert!(rendered.contains("2451916-major-body-dense-boundary-summary"));
         assert!(rendered.contains("reference-snapshot-2451916-major-body-interior-summary"));
         assert!(rendered.contains("2451916-major-body-interior-summary"));
         assert!(rendered.contains("reference-snapshot-2451920-major-body-interior-summary"));
@@ -1670,15 +1700,96 @@ mod tests {
     }
 
     #[test]
-    fn reference_snapshot_2451915_major_body_boundary_aliases_render_the_same_reports() {
-        let boundary_2451915 =
-            render_cli(&["reference-snapshot-2451915-major-body-boundary-summary"])
-                .expect("2451915 major-body boundary summary should render");
-        assert!(boundary_2451915.contains("Reference 2451915 major-body boundary evidence:"));
-        assert!(boundary_2451915.contains("JD 2451915.5 (TDB)"));
-        let boundary_2451915_alias = render_cli(&["2451915-major-body-boundary-summary"])
-            .expect("2451915 major-body boundary alias should render");
-        assert_eq!(boundary_2451915_alias, boundary_2451915);
+    fn reference_snapshot_2451912_2451913_2451914_and_2451918_major_body_boundary_aliases_render_the_same_reports(
+    ) {
+        let boundary_2451912 =
+            render_cli(&["reference-snapshot-2451912-major-body-boundary-summary"])
+                .expect("2451912 major-body boundary summary should render");
+        assert!(boundary_2451912.contains("Reference 2451912 major-body boundary evidence:"));
+        assert!(boundary_2451912.contains("JD 2451912.5 (TDB)"));
+        assert_eq!(
+            render_cli(&["2451912-major-body-boundary-summary"])
+                .expect("2451912 major-body boundary alias should render"),
+            boundary_2451912
+        );
+
+        let boundary_2451913 =
+            render_cli(&["reference-snapshot-2451913-major-body-boundary-summary"])
+                .expect("2451913 major-body boundary summary should render");
+        assert!(boundary_2451913.contains("Reference 2451913 major-body boundary evidence:"));
+        assert!(boundary_2451913.contains("JD 2451913.5 (TDB)"));
+        assert_eq!(
+            render_cli(&["2451913-major-body-boundary-summary"])
+                .expect("2451913 major-body boundary alias should render"),
+            boundary_2451913
+        );
+
+        let boundary_2451914 =
+            render_cli(&["reference-snapshot-2451914-major-body-boundary-summary"])
+                .expect("2451914 major-body boundary summary should render");
+        assert!(boundary_2451914.contains("Reference 2451914 major-body boundary evidence:"));
+        assert!(boundary_2451914.contains("JD 2451914.5 (TDB)"));
+        assert_eq!(
+            render_cli(&["2451914-major-body-boundary-summary"])
+                .expect("2451914 major-body boundary alias should render"),
+            boundary_2451914
+        );
+
+        let boundary_2451918 =
+            render_cli(&["reference-snapshot-2451918-major-body-boundary-summary"])
+                .expect("2451918 major-body boundary summary should render");
+        assert!(boundary_2451918.contains("Reference Mars/Jupiter boundary evidence:"));
+        assert!(boundary_2451918.contains("JD 2451918.5 (TDB)"));
+        assert_eq!(
+            render_cli(&["2451918-major-body-boundary-summary"])
+                .expect("2451918 major-body boundary alias should render"),
+            boundary_2451918
+        );
+    }
+
+    #[test]
+    fn reference_snapshot_2451914_pre_bridge_2451914_bridge_2451915_bridge_and_2451916_dense_boundary_aliases_render_the_same_reports(
+    ) {
+        let pre_bridge = render_cli(&["reference-snapshot-2451914-major-body-pre-bridge-summary"])
+            .expect("2451914 pre-bridge summary should render");
+        assert!(pre_bridge.contains("Reference snapshot pre-bridge boundary day:"));
+        assert!(pre_bridge.contains("JD 2451914.5 (TDB)"));
+        assert_eq!(
+            render_cli(&["2451914-major-body-pre-bridge-summary"])
+                .expect("2451914 pre-bridge alias should render"),
+            pre_bridge
+        );
+
+        let bridge_day = render_cli(&["reference-snapshot-2451914-major-body-bridge-summary"])
+            .expect("2451914 bridge summary should render");
+        assert!(bridge_day.contains("Reference snapshot bridge day:"));
+        assert!(bridge_day.contains("JD 2451914.0 (TDB)"));
+        assert_eq!(
+            render_cli(&["2451914-major-body-bridge-summary"])
+                .expect("2451914 bridge alias should render"),
+            bridge_day
+        );
+
+        let bridge_2451915 = render_cli(&["reference-snapshot-2451915-major-body-bridge-summary"])
+            .expect("2451915 bridge summary should render");
+        assert!(bridge_2451915.contains("Reference major-body bridge evidence:"));
+        assert!(bridge_2451915.contains("JD 2451915.0 (TDB)"));
+        assert_eq!(
+            render_cli(&["2451915-major-body-bridge-summary"])
+                .expect("2451915 bridge alias should render"),
+            bridge_2451915
+        );
+
+        let dense_boundary =
+            render_cli(&["reference-snapshot-2451916-major-body-dense-boundary-summary"])
+                .expect("2451916 dense boundary summary should render");
+        assert!(dense_boundary.contains("Reference 2451916 major-body dense boundary evidence:"));
+        assert!(dense_boundary.contains("JD 2451916.5 (TDB)"));
+        assert_eq!(
+            render_cli(&["2451916-major-body-dense-boundary-summary"])
+                .expect("2451916 dense boundary alias should render"),
+            dense_boundary
+        );
     }
 
     #[test]
