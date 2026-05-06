@@ -18317,6 +18317,9 @@ mod tests {
         assert!(
             report.contains(&reference_snapshot_2451918_major_body_boundary_summary_for_report())
         );
+        assert!(report.contains(
+            &pleiades_jpl::reference_snapshot_2451915_major_body_bridge_summary_for_report()
+        ));
         assert!(report.contains(&reference_snapshot_source_window_summary_for_report()));
         assert!(report.contains(&reference_snapshot_body_class_coverage_summary_for_report()));
         assert!(report.contains("release-grade guard: Pluto excluded from tolerance evidence; 2451913.5 boundary day remains in the release-grade comparison window"));
