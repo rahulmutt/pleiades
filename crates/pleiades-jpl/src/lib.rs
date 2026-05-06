@@ -15875,6 +15875,7 @@ pub fn jpl_snapshot_evidence_summary_for_report() -> String {
         reference_snapshot_sparse_boundary_summary_for_report(),
         reference_snapshot_major_body_boundary_summary_for_report(),
         reference_holdout_overlap_summary_for_report(),
+        independent_holdout_high_curvature_summary_for_report(),
         reference_snapshot_manifest_summary_for_report(),
         production_generation_boundary_source_summary_for_report(),
         production_generation_boundary_window_summary_for_report(),
@@ -24739,6 +24740,7 @@ mod tests {
         assert!(report.contains(&reference_snapshot_major_body_boundary_summary_for_report()));
         assert!(report.contains(&reference_snapshot_mars_jupiter_boundary_summary_for_report()));
         assert!(report.contains(&reference_holdout_overlap_summary_for_report()));
+        assert!(report.contains(&independent_holdout_high_curvature_summary_for_report()));
         assert!(report.contains(&reference_snapshot_manifest_summary_for_report()));
         assert!(report.contains(&production_generation_snapshot_summary_for_report()));
         assert!(report.contains(&production_generation_source_summary_for_report()));
