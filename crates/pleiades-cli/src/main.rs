@@ -245,6 +245,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         | Some("2500-major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-2453000-major-body-boundary-summary")
         | Some("2453000-major-body-boundary-summary") => validate_render_cli(args),
+        Some("reference-snapshot-2500000-major-body-boundary-summary")
+        | Some("2500000-major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-2600000-major-body-boundary-summary")
         | Some("2600000-major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-2451915-major-body-boundary-summary")
@@ -1427,6 +1429,8 @@ mod tests {
         assert!(rendered.contains("2500-selected-body-boundary-summary"));
         assert!(rendered.contains("reference-snapshot-2453000-major-body-boundary-summary"));
         assert!(rendered.contains("2453000-major-body-boundary-summary"));
+        assert!(rendered.contains("reference-snapshot-2500000-major-body-boundary-summary"));
+        assert!(rendered.contains("2500000-major-body-boundary-summary"));
         assert!(rendered.contains("reference-snapshot-2451545-major-body-boundary-summary"));
         assert!(rendered.contains("2451545-major-body-boundary-summary"));
         assert!(rendered.contains("reference-snapshot-2451910-major-body-boundary-summary"));
@@ -1739,6 +1743,17 @@ mod tests {
         let boundary_2453000_alias = render_cli(&["2453000-major-body-boundary-summary"])
             .expect("2453000 major-body boundary alias should render");
         assert_eq!(boundary_2453000_alias, boundary_2453000);
+    }
+
+    #[test]
+    fn reference_snapshot_2500000_major_body_boundary_aliases_render_the_same_reports() {
+        let boundary_2500000 =
+            render_cli(&["reference-snapshot-2500000-major-body-boundary-summary"])
+                .expect("2500000 major-body boundary summary should render");
+        assert!(boundary_2500000.contains("Reference 2500000 major-body boundary evidence:"));
+        let boundary_2500000_alias = render_cli(&["2500000-major-body-boundary-summary"])
+            .expect("2500000 major-body boundary alias should render");
+        assert_eq!(boundary_2500000_alias, boundary_2500000);
     }
 
     #[test]
