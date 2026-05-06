@@ -214,6 +214,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         | Some("1750-major-body-interior-summary") => validate_render_cli(args),
         Some("reference-snapshot-1900-selected-body-boundary-summary")
         | Some("1900-selected-body-boundary-summary") => validate_render_cli(args),
+        Some("reference-snapshot-2415020-selected-body-boundary-summary")
+        | Some("2415020-selected-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-2200-selected-body-boundary-summary")
         | Some("2200-selected-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-2360234-major-body-interior-summary")
@@ -1804,6 +1806,11 @@ mod tests {
         assert_eq!(
             render_cli(&["1900-selected-body-boundary-summary"])
                 .expect("1900 selected-body boundary alias should render"),
+            boundary_1900
+        );
+        assert_eq!(
+            render_cli(&["2415020-selected-body-boundary-summary"])
+                .expect("2415020 selected-body boundary alias should render"),
             boundary_1900
         );
 
