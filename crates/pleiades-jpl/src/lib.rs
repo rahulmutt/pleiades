@@ -2348,8 +2348,8 @@ pub fn reference_snapshot_summary_for_report() -> String {
         reference_snapshot_2451912_major_body_boundary_summary_for_report(),
         reference_snapshot_2451913_major_body_boundary_summary_for_report(),
         reference_snapshot_2451914_major_body_boundary_summary_for_report(),
-        reference_snapshot_pre_bridge_boundary_summary_for_report(),
-        reference_snapshot_bridge_day_summary_for_report(),
+        reference_snapshot_2451914_major_body_pre_bridge_summary_for_report(),
+        reference_snapshot_2451914_major_body_bridge_summary_for_report(),
         reference_snapshot_2451915_major_body_boundary_summary_for_report(),
         reference_snapshot_2451917_major_body_bridge_summary_for_report(),
         reference_snapshot_2451917_major_body_boundary_summary_for_report(),
@@ -17615,6 +17615,9 @@ pub fn jpl_snapshot_evidence_summary_for_report() -> String {
         reference_asteroid_evidence_summary_for_report(),
         reference_asteroid_equatorial_evidence_summary_for_report(),
         reference_asteroid_source_window_summary_for_report(),
+        selected_asteroid_boundary_summary_for_report(),
+        selected_asteroid_bridge_summary_for_report(),
+        selected_asteroid_dense_boundary_summary_for_report(),
         selected_asteroid_terminal_boundary_summary_for_report(),
         comparison_snapshot_summary_for_report(),
         comparison_snapshot_body_class_coverage_summary_for_report(),
@@ -21578,8 +21581,10 @@ mod tests {
         assert!(
             report.contains(&reference_snapshot_2451914_major_body_boundary_summary_for_report())
         );
-        assert!(report.contains(&reference_snapshot_pre_bridge_boundary_summary_for_report()));
-        assert!(report.contains(&reference_snapshot_bridge_day_summary_for_report()));
+        assert!(
+            report.contains(&reference_snapshot_2451914_major_body_pre_bridge_summary_for_report())
+        );
+        assert!(report.contains(&reference_snapshot_2451914_major_body_bridge_summary_for_report()));
         assert!(
             report.contains(&reference_snapshot_2451915_major_body_boundary_summary_for_report())
         );
@@ -23624,8 +23629,10 @@ mod tests {
         assert!(
             report.contains(&reference_snapshot_2451914_major_body_boundary_summary_for_report())
         );
-        assert!(report.contains(&reference_snapshot_pre_bridge_boundary_summary_for_report()));
-        assert!(report.contains(&reference_snapshot_bridge_day_summary_for_report()));
+        assert!(
+            report.contains(&reference_snapshot_2451914_major_body_pre_bridge_summary_for_report())
+        );
+        assert!(report.contains(&reference_snapshot_2451914_major_body_bridge_summary_for_report()));
         assert!(
             report.contains(&reference_snapshot_2451915_major_body_boundary_summary_for_report())
         );
@@ -27098,6 +27105,9 @@ mod tests {
         assert!(report.contains(&reference_asteroid_evidence_summary_for_report()));
         assert!(report.contains(&reference_asteroid_equatorial_evidence_summary_for_report()));
         assert!(report.contains(&reference_asteroid_source_window_summary_for_report()));
+        assert!(report.contains(&selected_asteroid_boundary_summary_for_report()));
+        assert!(report.contains(&selected_asteroid_bridge_summary_for_report()));
+        assert!(report.contains(&selected_asteroid_dense_boundary_summary_for_report()));
         assert!(report.contains(&selected_asteroid_terminal_boundary_summary_for_report()));
         assert!(report.contains(&comparison_snapshot_summary_for_report()));
         assert!(report.contains(&comparison_snapshot_body_class_coverage_summary_for_report()));
