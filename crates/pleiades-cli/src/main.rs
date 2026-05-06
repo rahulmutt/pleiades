@@ -211,6 +211,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         | Some("1800-major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-2451910-major-body-boundary-summary")
         | Some("2451910-major-body-boundary-summary") => validate_render_cli(args),
+        Some("reference-snapshot-2451911-major-body-boundary-summary")
+        | Some("2451911-major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-2500-major-body-boundary-summary")
         | Some("2500-major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-2453000-major-body-boundary-summary")
@@ -1370,6 +1372,8 @@ mod tests {
         assert!(rendered.contains("2453000-major-body-boundary-summary"));
         assert!(rendered.contains("reference-snapshot-2451910-major-body-boundary-summary"));
         assert!(rendered.contains("2451910-major-body-boundary-summary"));
+        assert!(rendered.contains("reference-snapshot-2451911-major-body-boundary-summary"));
+        assert!(rendered.contains("2451911-major-body-boundary-summary"));
         assert!(rendered.contains("reference-snapshot-2451917-major-body-boundary-summary"));
         assert!(rendered.contains("2451917-major-body-boundary-summary"));
         assert!(rendered.contains("reference-snapshot-2451920-major-body-interior-summary"));
