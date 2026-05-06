@@ -9938,6 +9938,212 @@ pub fn reference_snapshot_1600_selected_body_boundary_summary_for_report() -> St
     }
 }
 
+fn reference_snapshot_1750_selected_body_boundary_entries() -> Option<&'static [SnapshotEntry]> {
+    static ENTRIES: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
+    let entries = ENTRIES
+        .get_or_init(|| {
+            snapshot_entries()
+                .into_iter()
+                .flatten()
+                .filter(|entry| {
+                    is_comparison_body(&entry.body)
+                        && entry.epoch.julian_day.days()
+                            == REFERENCE_SNAPSHOT_1750_SELECTED_BODY_BOUNDARY_EPOCH_JD
+                })
+                .cloned()
+                .collect()
+        })
+        .as_slice();
+
+    if entries.is_empty() {
+        None
+    } else {
+        Some(entries)
+    }
+}
+
+/// Compact release-facing summary for the 1750-01-01 selected-body boundary reference evidence.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Reference1750SelectedBodyBoundarySummary {
+    /// Number of exact samples in the boundary slice.
+    pub sample_count: usize,
+    /// Bodies covered by the boundary slice in first-seen order.
+    pub sample_bodies: Vec<pleiades_backend::CelestialBody>,
+    /// Exact epoch shared by the boundary slice.
+    pub epoch: Instant,
+}
+
+/// Validation errors for a 1750 selected-body boundary summary that drifted from the current slice.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Reference1750SelectedBodyBoundarySummaryValidationError {
+    /// The summary did not expose any samples.
+    Empty,
+    /// The summary sample count drifted from the current evidence slice.
+    SampleCountMismatch {
+        sample_count: usize,
+        derived_sample_count: usize,
+    },
+    /// The summary body list drifted from the current evidence slice.
+    BodyOrderMismatch {
+        index: usize,
+        expected: pleiades_backend::CelestialBody,
+        found: pleiades_backend::CelestialBody,
+    },
+    /// The summary epoch drifted from the current evidence slice.
+    EpochMismatch { expected: Instant, found: Instant },
+}
+
+impl fmt::Display for Reference1750SelectedBodyBoundarySummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Empty => {
+                f.write_str("reference 1750 selected-body boundary evidence is unavailable")
+            }
+            Self::SampleCountMismatch {
+                sample_count,
+                derived_sample_count,
+            } => write!(
+                f,
+                "reference 1750 selected-body boundary evidence sample count {sample_count} does not match derived sample count {derived_sample_count}"
+            ),
+            Self::BodyOrderMismatch {
+                index,
+                expected,
+                found,
+            } => write!(
+                f,
+                "reference 1750 selected-body boundary evidence body order mismatch at index {index}: expected {expected}, found {found}"
+            ),
+            Self::EpochMismatch { expected, found } => write!(
+                f,
+                "reference 1750 selected-body boundary evidence epoch mismatch: expected {}, found {}",
+                format_instant(*expected),
+                format_instant(*found)
+            ),
+        }
+    }
+}
+
+impl std::error::Error for Reference1750SelectedBodyBoundarySummaryValidationError {}
+
+impl Reference1750SelectedBodyBoundarySummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "Reference 1750 selected-body boundary evidence: {} exact samples at {} ({}); 1750-01-01 selected-body boundary sample",
+            self.sample_count,
+            format_instant(self.epoch),
+            format_bodies(&self.sample_bodies),
+        )
+    }
+
+    /// Returns `Ok(())` when the summary still matches the current evidence slice.
+    pub fn validate(&self) -> Result<(), Reference1750SelectedBodyBoundarySummaryValidationError> {
+        let evidence = reference_snapshot_1750_selected_body_boundary_entries()
+            .ok_or(Reference1750SelectedBodyBoundarySummaryValidationError::Empty)?;
+
+        if self.sample_count != evidence.len() {
+            return Err(
+                Reference1750SelectedBodyBoundarySummaryValidationError::SampleCountMismatch {
+                    sample_count: self.sample_count,
+                    derived_sample_count: evidence.len(),
+                },
+            );
+        }
+
+        let mut expected_bodies = Vec::new();
+        for entry in evidence {
+            if !expected_bodies.contains(&entry.body) {
+                expected_bodies.push(entry.body.clone());
+            }
+        }
+        if self.sample_bodies.as_slice() != expected_bodies.as_slice() {
+            for (index, (expected, found)) in expected_bodies
+                .iter()
+                .zip(self.sample_bodies.iter())
+                .enumerate()
+            {
+                if expected != found {
+                    return Err(
+                        Reference1750SelectedBodyBoundarySummaryValidationError::BodyOrderMismatch {
+                            index,
+                            expected: expected.clone(),
+                            found: found.clone(),
+                        },
+                    );
+                }
+            }
+            return Err(
+                Reference1750SelectedBodyBoundarySummaryValidationError::SampleCountMismatch {
+                    sample_count: self.sample_count,
+                    derived_sample_count: evidence.len(),
+                },
+            );
+        }
+
+        if self.epoch != evidence[0].epoch {
+            return Err(
+                Reference1750SelectedBodyBoundarySummaryValidationError::EpochMismatch {
+                    expected: evidence[0].epoch,
+                    found: self.epoch,
+                },
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns the compact summary line after validating the current evidence slice.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, Reference1750SelectedBodyBoundarySummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for Reference1750SelectedBodyBoundarySummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+fn reference_snapshot_1750_selected_body_boundary_summary_details(
+) -> Option<Reference1750SelectedBodyBoundarySummary> {
+    let evidence = reference_snapshot_1750_selected_body_boundary_entries()?;
+    let mut sample_bodies = Vec::new();
+    for entry in evidence {
+        if !sample_bodies.contains(&entry.body) {
+            sample_bodies.push(entry.body.clone());
+        }
+    }
+
+    Some(Reference1750SelectedBodyBoundarySummary {
+        sample_count: evidence.len(),
+        sample_bodies,
+        epoch: evidence[0].epoch,
+    })
+}
+
+/// Returns the compact typed summary for the 1750 selected-body boundary reference evidence.
+pub fn reference_snapshot_1750_selected_body_boundary_summary(
+) -> Option<Reference1750SelectedBodyBoundarySummary> {
+    reference_snapshot_1750_selected_body_boundary_summary_details()
+}
+
+/// Returns the release-facing 1750 selected-body boundary summary string.
+pub fn reference_snapshot_1750_selected_body_boundary_summary_for_report() -> String {
+    match reference_snapshot_1750_selected_body_boundary_summary() {
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
+            Err(error) => {
+                format!("Reference 1750 selected-body boundary evidence: unavailable ({error})")
+            }
+        },
+        None => "Reference 1750 selected-body boundary evidence: unavailable".to_string(),
+    }
+}
+
 fn reference_snapshot_1900_selected_body_boundary_entries() -> Option<&'static [SnapshotEntry]> {
     static ENTRIES: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
     let entries = ENTRIES
@@ -17532,6 +17738,7 @@ fn snapshot_bodies() -> &'static [pleiades_backend::CelestialBody] {
 const REFERENCE_SNAPSHOT_1749_MAJOR_BODY_BOUNDARY_EPOCH_JD: f64 = 2_360_233.5;
 const REFERENCE_SNAPSHOT_1500_SELECTED_BODY_BOUNDARY_EPOCH_JD: f64 = 2_268_932.5;
 const REFERENCE_SNAPSHOT_1600_SELECTED_BODY_BOUNDARY_EPOCH_JD: f64 = 2_305_457.5;
+const REFERENCE_SNAPSHOT_1750_SELECTED_BODY_BOUNDARY_EPOCH_JD: f64 = 2_360_234.5;
 const REFERENCE_SNAPSHOT_1900_SELECTED_BODY_BOUNDARY_EPOCH_JD: f64 = 2_415_020.5;
 const REFERENCE_SNAPSHOT_2200_SELECTED_BODY_BOUNDARY_EPOCH_JD: f64 = 2_524_593.5;
 const REFERENCE_SNAPSHOT_2500_SELECTED_BODY_BOUNDARY_EPOCH_JD: f64 = 2_634_167.0;
@@ -18881,6 +19088,62 @@ mod tests {
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             reference_snapshot_1600_selected_body_boundary_summary_for_report(),
+            summary.summary_line()
+        );
+    }
+
+    #[test]
+    fn reference_snapshot_1750_selected_body_boundary_summary_reports_the_boundary_day() {
+        let summary = reference_snapshot_1750_selected_body_boundary_summary()
+            .expect("reference 1750 selected-body boundary summary should exist");
+        assert_eq!(summary.sample_count, 9);
+        assert_eq!(summary.sample_bodies.len(), 9);
+        assert_eq!(summary.epoch.julian_day.days(), 2_360_234.5);
+        assert_eq!(
+            summary.sample_bodies[0],
+            pleiades_backend::CelestialBody::Sun
+        );
+        assert_eq!(
+            summary.sample_bodies[1],
+            pleiades_backend::CelestialBody::Moon
+        );
+        assert_eq!(
+            summary.sample_bodies[2],
+            pleiades_backend::CelestialBody::Mercury
+        );
+        assert_eq!(
+            summary.sample_bodies[3],
+            pleiades_backend::CelestialBody::Venus
+        );
+        assert_eq!(
+            summary.sample_bodies[4],
+            pleiades_backend::CelestialBody::Mars
+        );
+        assert_eq!(
+            summary.sample_bodies[5],
+            pleiades_backend::CelestialBody::Jupiter
+        );
+        assert_eq!(
+            summary.sample_bodies[6],
+            pleiades_backend::CelestialBody::Saturn
+        );
+        assert_eq!(
+            summary.sample_bodies[7],
+            pleiades_backend::CelestialBody::Uranus
+        );
+        assert_eq!(
+            summary.sample_bodies[8],
+            pleiades_backend::CelestialBody::Neptune
+        );
+        assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(
+            summary.summary_line(),
+            "Reference 1750 selected-body boundary evidence: 9 exact samples at JD 2360234.5 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune); 1750-01-01 selected-body boundary sample"
+        );
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(
+            reference_snapshot_1750_selected_body_boundary_summary_for_report(),
             summary.summary_line()
         );
     }
