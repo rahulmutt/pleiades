@@ -474,6 +474,9 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("comparison-envelope-summary") | Some("comparison-envelope") => {
             validate_render_cli(args)
         }
+        Some("release-body-claims-summary") | Some("body-claims-summary") => {
+            validate_render_cli(args)
+        }
         Some("pluto-fallback-summary") => validate_render_cli(args),
         Some("pluto-fallback") => validate_render_cli(args),
         Some("workspace-audit-summary") | Some("native-dependency-audit-summary") => {
@@ -2590,6 +2593,23 @@ mod tests {
             .expect_err("comparison envelope alias should reject extra arguments");
         assert!(comparison_envelope_alias_error
             .contains("comparison-envelope does not accept extra arguments"));
+
+        let release_body_claims_summary = render_cli(&["release-body-claims-summary"])
+            .expect("release body claims summary should render");
+        assert_eq!(
+            release_body_claims_summary,
+            super::validate_render_cli(&["release-body-claims-summary"])
+                .expect("release body claims summary should match validate CLI")
+        );
+        assert_eq!(
+            render_cli(&["body-claims-summary"]).expect("body claims alias should render"),
+            release_body_claims_summary
+        );
+        assert_eq!(
+            render_cli(&["body-claims-summary", "extra"])
+                .expect_err("body claims alias should reject extra arguments"),
+            "body-claims-summary does not accept extra arguments"
+        );
 
         let pluto_fallback_summary =
             render_cli(&["pluto-fallback-summary"]).expect("Pluto fallback summary should render");
