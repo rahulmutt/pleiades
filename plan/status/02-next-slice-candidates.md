@@ -14,7 +14,7 @@ This file lists focused implementation slices that map to the current phase ladd
 - A 1750-01-01 interior boundary slice for Sun through Neptune is now checked in.
 - A 2360234.5 interior comparison slice for the source-backed comparison corpus is now checked in.
 - A 2451920.5 interior reference slice is now checked in.
-- Dedicated 2451913.5 and 2451917.5 major-body boundary report slices are now first-class and validated.
+- Dedicated 2451913.5 and 2451917.5 major-body boundary report slices are now first-class and validated, and the top-level reference snapshot summary now surfaces the 1750-01-01, 2451917.5, and 2451920.5 slices alongside the earlier boundary summaries.
 - The comparison-corpus guard now reflects the current 2451913.5 boundary-day coverage, so the next reference-breadth slice can target a different boundary or representative interior epoch if breadth still needs to grow.
 - Keep hold-out rows separate from fitting/reference rows.
 - Update validation reports to classify evidence as release-tolerance, hold-out, fixture exactness, or provenance-only.
