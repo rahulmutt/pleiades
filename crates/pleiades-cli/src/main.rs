@@ -3194,6 +3194,10 @@ mod tests {
             .contains(&pleiades_jpl::selected_asteroid_dense_boundary_summary_for_report()));
         assert!(reference_snapshot_summary
             .contains(&pleiades_jpl::selected_asteroid_terminal_boundary_summary_for_report()));
+        assert!(reference_snapshot_summary
+            .contains(&pleiades_jpl::selected_asteroid_source_evidence_summary_for_report()));
+        assert!(reference_snapshot_summary
+            .contains(&pleiades_jpl::selected_asteroid_source_window_summary_for_report()));
         assert_eq!(
             reference_snapshot_summary,
             format!(
