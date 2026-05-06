@@ -118,13 +118,14 @@ The bundle currently writes these text artifacts:
 - `workspace-audit-summary.txt`
 - `native-dependency-audit-summary.txt`
 - `artifact-summary.txt`
+- `packaged-frame-treatment-summary.txt`
 - `release-profile-identifiers.txt`
 - `benchmark-report.txt`
 - `validation-report.txt`
 - `bundle-manifest.txt` (includes the recorded source revision, workspace status, Rust compiler version, profile/API identifiers, and validation-round count)
 - `bundle-manifest.checksum.txt` (records the checksum used to verify the staged manifest itself; the verifier expects the canonical single-line `0x...` format with no stray whitespace)
 
-The staged bundle now also carries the catalog inventory, compatibility-caveats, reference-holdout-overlap, release-profile-identifiers summary, release-house-system-canonical-names summary, release-ayanamsa-canonical-names summary, request-policy summary, request-semantics summary, time-scale policy summary, delta-t policy summary, workspace audit summary, native-dependency audit summary, and artifact summary files alongside the core compatibility-profile, release-notes, release-summary, checklist, backend-matrix, API-stability, comparison, validation, benchmark, and manifest artifacts.
+The staged bundle now also carries the catalog inventory, compatibility-caveats, reference-holdout-overlap, release-profile-identifiers summary, release-house-system-canonical-names summary, release-ayanamsa-canonical-names summary, request-policy summary, request-semantics summary, time-scale policy summary, delta-t policy summary, workspace audit summary, native-dependency audit summary, artifact summary, and packaged-frame-treatment summary files alongside the core compatibility-profile, release-notes, release-summary, checklist, backend-matrix, API-stability, comparison, validation, benchmark, and manifest artifacts.
 
 The generated `release-checklist.txt` now also embeds the canonical `bundle-release` and `verify-release-bundle` commands plus a pointer back to this guide, while `release-checklist-summary.txt` provides a compact audit view for quick release review, so the bundle stays self-describing for maintainers.
 

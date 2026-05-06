@@ -18,7 +18,7 @@ This phase depends on Phase 1 because artifact fit error must be measured agains
 Implemented and not re-planned here:
 
 - `pleiades-compression` artifact headers, body/segment structures, polynomial channels, residual support, profile metadata, byte-order policy, checksums, validation helpers, and decode helpers;
-- `pleiades-data` deterministic prototype artifact backend, bundled fixture, regeneration helper, request-policy summaries, frame reconstruction, boundary behavior, checksums, versioned production-profile draft summaries with explicit lookup-epoch policy metadata, release-bundle emission of the packaged lookup-epoch policy and generation policy summaries/checksums, and optional explicit artifact path loading behind a feature;
+- `pleiades-data` deterministic prototype artifact backend, bundled fixture, regeneration helper, request-policy summaries, frame reconstruction, boundary behavior, checksums, versioned production-profile draft summaries with explicit lookup-epoch policy metadata, release-bundle emission of the packaged lookup-epoch policy, generation policy, and frame-treatment summaries/checksums, and optional explicit artifact path loading behind a feature;
 - CLI/validation commands for artifact inspection, validation, target-threshold summaries, regeneration, benchmarks, and release-report inclusion.
 
 ## Remaining implementation goals
