@@ -1979,6 +1979,16 @@ mod tests {
         let boundary_2451919_alias = render_cli(&["2451919-major-body-boundary-summary"])
             .expect("2451919 major-body boundary alias should render");
         assert_eq!(boundary_2451919_alias, boundary_2451919);
+        assert_eq!(
+            render_cli(&["reference-snapshot-2451919-major-body-boundary-summary", "extra"])
+                .expect_err("2451919 major-body boundary summary should reject extra arguments"),
+            "reference-snapshot-2451919-major-body-boundary-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["2451919-major-body-boundary-summary", "extra"])
+                .expect_err("2451919 major-body boundary alias should reject extra arguments"),
+            "reference-snapshot-2451919-major-body-boundary-summary does not accept extra arguments"
+        );
     }
 
     #[test]
