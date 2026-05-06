@@ -17599,6 +17599,8 @@ pub fn jpl_snapshot_evidence_summary_for_report() -> String {
         reference_snapshot_2451911_major_body_boundary_summary_for_report(),
         reference_snapshot_2451912_major_body_boundary_summary_for_report(),
         reference_snapshot_2451913_major_body_boundary_summary_for_report(),
+        reference_snapshot_2451914_major_body_boundary_summary_for_report(),
+        reference_snapshot_2451915_major_body_boundary_summary_for_report(),
         reference_snapshot_body_class_coverage_summary_for_report(),
         reference_snapshot_equatorial_parity_summary_for_report(),
         reference_snapshot_batch_parity_summary_for_report(),
@@ -24336,6 +24338,10 @@ mod tests {
             .contains(&reference_snapshot_2451912_major_body_boundary_summary_for_report()));
         assert!(jpl_snapshot_evidence_summary_for_report()
             .contains(&reference_snapshot_2451913_major_body_boundary_summary_for_report()));
+        assert!(jpl_snapshot_evidence_summary_for_report()
+            .contains(&reference_snapshot_2451914_major_body_boundary_summary_for_report()));
+        assert!(jpl_snapshot_evidence_summary_for_report()
+            .contains(&reference_snapshot_2451915_major_body_boundary_summary_for_report()));
         assert!(jpl_snapshot_evidence_summary_for_report()
             .contains(&production_generation_snapshot_summary_for_report()));
         assert!(jpl_snapshot_evidence_summary_for_report()

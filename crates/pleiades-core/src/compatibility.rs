@@ -1179,6 +1179,21 @@ pub const fn current_compatibility_profile() -> CompatibilityProfile {
     }
 }
 
+/// Returns the compatibility-profile house formula family summary for report surfaces.
+pub fn house_formula_families_summary_for_report() -> String {
+    current_compatibility_profile().house_formula_families_summary_line()
+}
+
+/// Returns the compatibility-profile latitude-sensitive house-system summary for report surfaces.
+pub fn latitude_sensitive_house_systems_summary_for_report() -> String {
+    current_compatibility_profile().latitude_sensitive_house_systems_summary_line()
+}
+
+/// Returns the compatibility-profile custom-definition ayanamsa summary for report surfaces.
+pub fn custom_definition_ayanamsa_labels_summary_for_report() -> String {
+    current_compatibility_profile().custom_definition_ayanamsa_labels_summary_line()
+}
+
 fn write_scope_section(
     f: &mut fmt::Formatter<'_>,
     title: &str,

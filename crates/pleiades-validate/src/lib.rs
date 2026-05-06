@@ -46,7 +46,9 @@ use pleiades_backend::{
 };
 use pleiades_core::{
     current_api_stability_profile, current_compatibility_profile,
-    current_release_profile_identifiers, default_chart_bodies, validate_custom_definition_labels,
+    current_release_profile_identifiers, custom_definition_ayanamsa_labels_summary_for_report,
+    default_chart_bodies, house_formula_families_summary_for_report,
+    latitude_sensitive_house_systems_summary_for_report, validate_custom_definition_labels,
     AccuracyClass, Angle, Apparentness, BackendCapabilities, BackendFamily, BackendMetadata,
     CelestialBody, CompatibilityProfile, CompositeBackend, CoordinateFrame, EclipticCoordinates,
     EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult,
@@ -7186,18 +7188,19 @@ fn format_house_code_aliases_for_report() -> String {
 
 fn format_house_formula_families_for_report() -> String {
     match validated_compatibility_profile_for_report() {
-        Ok(profile) => {
-            format_house_formula_families_summary(&summarize_house_formula_families(&profile))
-        }
+        Ok(_) => format!(
+            "House formula families: {}",
+            house_formula_families_summary_for_report()
+        ),
         Err(error) => format!("house formula families unavailable ({error})"),
     }
 }
 
 fn format_latitude_sensitive_house_systems_for_report() -> String {
     match validated_compatibility_profile_for_report() {
-        Ok(profile) => format!(
+        Ok(_) => format!(
             "Latitude-sensitive house systems: {}",
-            summarize_latitude_sensitive_house_systems(&profile)
+            latitude_sensitive_house_systems_summary_for_report()
         ),
         Err(error) => format!("Latitude-sensitive house systems unavailable ({error})"),
     }
@@ -7205,10 +7208,7 @@ fn format_latitude_sensitive_house_systems_for_report() -> String {
 
 fn format_custom_definition_ayanamsa_labels_for_report() -> String {
     match validated_compatibility_profile_for_report() {
-        Ok(profile) => match profile.validated_custom_definition_ayanamsa_labels_summary_line() {
-            Ok(summary) => summary,
-            Err(error) => format!("custom-definition ayanamsa labels unavailable ({error})"),
-        },
+        Ok(_) => custom_definition_ayanamsa_labels_summary_for_report(),
         Err(error) => format!("custom-definition ayanamsa labels unavailable ({error})"),
     }
 }
