@@ -1147,6 +1147,12 @@ impl PackagedArtifactRegenerationSummary {
                     ));
                 }
             }
+            if self.reference_snapshot != reference_snapshot_summary() {
+                return Err(pleiades_compression::CompressionError::new(
+                    pleiades_compression::CompressionErrorKind::InvalidFormat,
+                    "packaged artifact regeneration summary reference snapshot does not match the checked-in reference snapshot summary",
+                ));
+            }
         }
 
         Ok(())
