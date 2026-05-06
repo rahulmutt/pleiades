@@ -3608,6 +3608,14 @@ mod tests {
                 .expect_err("bridge day alias should reject extra arguments"),
             "bridge-day-summary does not accept extra arguments"
         );
+        let bridge_day_epoch_alias = render_cli(&["2451914-bridge-day-summary"])
+            .expect("2451914 bridge day alias should render");
+        assert_eq!(bridge_day_epoch_alias, reference_bridge_day_summary);
+        assert_eq!(
+            render_cli(&["2451914-bridge-day-summary", "extra"])
+                .expect_err("2451914 bridge day alias should reject extra arguments"),
+            "reference-snapshot-2451914-bridge-day-summary does not accept extra arguments"
+        );
         let bridge_day_major_alias = render_cli(&["2451914-major-body-bridge-day-summary"])
             .expect("2451914 major body bridge-day alias should render");
         assert_eq!(
