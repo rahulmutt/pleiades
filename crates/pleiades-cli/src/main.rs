@@ -263,6 +263,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         | Some("2451914-major-body-pre-bridge-summary") => validate_render_cli(args),
         Some("reference-snapshot-2451914-major-body-bridge-day-summary")
         | Some("2451914-major-body-bridge-day-summary") => validate_render_cli(args),
+        Some("reference-snapshot-2451914-bridge-day-summary")
+        | Some("2451914-bridge-day-summary") => validate_render_cli(args),
         Some("reference-snapshot-2451914-major-body-bridge-summary")
         | Some("2451914-major-body-bridge-summary") => validate_render_cli(args),
         Some("reference-snapshot-2451915-major-body-bridge-summary")
@@ -1893,6 +1895,11 @@ mod tests {
         assert_eq!(
             render_cli(&["2451914-major-body-bridge-summary"])
                 .expect("2451914 bridge alias should render"),
+            bridge_day
+        );
+        assert_eq!(
+            render_cli(&["2451914-bridge-day-summary"])
+                .expect("2451914 bridge-day alias should render"),
             bridge_day
         );
 
