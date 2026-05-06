@@ -136,14 +136,7 @@ pub use release_profiles::{
     ReleaseProfileIdentifiersValidationError,
 };
 
-/// Returns the current shared request-semantics posture.
-///
-/// This is a façade-level alias for [`request_policy_summary_for_report()`] so
-/// callers can use the same request-semantics wording that the CLI and
-/// validation reports expose without depending on the backend crate directly.
-pub const fn request_semantics_summary_for_report() -> RequestPolicySummary {
-    request_policy_summary_for_report()
-}
+pub use pleiades_backend::request_semantics_summary_for_report;
 
 /// A thin façade around a backend implementation.
 #[derive(Debug)]

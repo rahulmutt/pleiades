@@ -2188,6 +2188,15 @@ pub const fn request_policy_summary_for_report() -> RequestPolicySummary {
     current_request_policy_summary()
 }
 
+/// Returns the request-semantics posture used by validation and release reporting.
+///
+/// This is a backend-layer alias for [`request_policy_summary_for_report()`]
+/// so callers that use the request-semantics vocabulary can share the same
+/// typed summary without reinterpreting the compact report wording.
+pub const fn request_semantics_summary_for_report() -> RequestPolicySummary {
+    request_policy_summary_for_report()
+}
+
 /// Returns the observer-policy posture used by validation and release reporting.
 pub const fn observer_policy_summary_for_report() -> ObserverPolicySummary {
     current_observer_policy_summary()
@@ -3179,6 +3188,18 @@ mod tests {
         assert!(summary.summary_line().contains("frame="));
         assert!(summary.validate().is_ok());
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(
+            request_semantics_summary_for_report(),
+            request_policy_summary_for_report()
+        );
+        assert_eq!(
+            request_semantics_summary_for_report().summary_line(),
+            request_policy_summary_for_report().summary_line()
+        );
+        assert_eq!(
+            request_semantics_summary_for_report().validated_summary_line(),
+            request_policy_summary_for_report().validated_summary_line()
+        );
     }
 
     #[test]
