@@ -4949,6 +4949,7 @@ mod tests {
         assert!(rendered.contains("compatibility-profile.txt"));
         assert!(rendered.contains("bundle-manifest.checksum.txt"));
         assert!(rendered.contains("native-sidereal-policy-summary.txt"));
+        assert!(rendered.contains("packaged-artifact-profile-coverage-summary.txt"));
         assert!(bundle_dir.join("bundle-manifest.txt").exists());
         assert!(bundle_dir
             .join("reference-snapshot-bridge-day-summary.txt")
@@ -4987,6 +4988,9 @@ mod tests {
             .join("native-dependency-audit-summary.txt")
             .exists());
         assert!(bundle_dir
+            .join("packaged-artifact-profile-coverage-summary.txt")
+            .exists());
+        assert!(bundle_dir
             .join("packaged-artifact-access-summary.txt")
             .exists());
         assert!(bundle_dir
@@ -5003,11 +5007,15 @@ mod tests {
             .exists());
         let manifest = std::fs::read_to_string(bundle_dir.join("bundle-manifest.txt"))
             .expect("bundle manifest should be written");
+        assert!(manifest.contains("packaged-artifact-profile-coverage-summary.txt"));
         assert!(manifest.contains("packaged-artifact-access-summary.txt"));
         assert!(manifest.contains("release-body-claims-summary.txt"));
         assert!(manifest.contains("pluto-fallback-summary.txt"));
         assert!(manifest.contains("reference-snapshot-bridge-day-summary.txt"));
         assert!(manifest.contains("reference snapshot bridge day summary checksum (fnv1a-64): 0x"));
+        assert!(
+            manifest.contains("packaged-artifact profile coverage summary checksum (fnv1a-64): 0x")
+        );
         assert!(manifest.contains("packaged-artifact access summary checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("packaged-artifact-production-profile-summary.txt"));
         assert!(manifest.contains("packaged-frame-treatment-summary.txt"));

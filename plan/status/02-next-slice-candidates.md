@@ -49,7 +49,7 @@ This file lists focused implementation slices that map to the current phase ladd
 
 ### 1. Production artifact profile manifest
 
-- Specify body set, date range, channels, derived outputs, unsupported outputs, speed policy, and thresholds; lookup-epoch policy and speed policy are now explicit in the production-profile draft and generator manifest, the packaged-data surfaces now expose a standalone speed-policy summary in CLI/validation reporting, and the release bundle now carries the packaged lookup-epoch policy and packaged-artifact speed-policy summary/checksums alongside the production-profile and target-threshold bundle outputs.
+- Specify body set, date range, channels, derived outputs, unsupported outputs, speed policy, and thresholds; lookup-epoch policy and speed policy are now explicit in the production-profile draft and generator manifest, the packaged-data surfaces now expose a standalone speed-policy summary in CLI/validation reporting, and the release bundle now carries the packaged lookup-epoch policy, packaged-artifact profile coverage, and packaged-artifact speed-policy summary/checksums alongside the production-profile and target-threshold bundle outputs.
 - Add validation that fails on profile/threshold drift; the production-profile and generator-parameter summaries now also fail closed when the encoded speed policy drifts from the bundled artifact profile.
 
 ### 2. Deterministic artifact generator
