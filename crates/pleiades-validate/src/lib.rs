@@ -8231,6 +8231,8 @@ fn render_release_summary_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_major_body_bridge_summary_for_report());
     text.push('\n');
+    text.push_str(&reference_snapshot_2451918_major_body_boundary_summary_for_report());
+    text.push('\n');
     text.push_str(&reference_snapshot_mars_jupiter_boundary_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_mars_outer_boundary_summary_for_report());
@@ -13416,6 +13418,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(
         text,
         "  {}",
+        reference_snapshot_2451918_major_body_boundary_summary_for_report()
+    );
+    let _ = writeln!(
+        text,
+        "  {}",
         reference_snapshot_mars_jupiter_boundary_summary_for_report()
     );
     let _ = writeln!(
@@ -18236,6 +18243,9 @@ mod tests {
         assert!(report.contains(&request_surface_summary_for_report()));
         assert!(report.contains("Reference snapshot"));
         assert!(report.contains(&reference_snapshot_summary_for_report()));
+        assert!(
+            report.contains(&reference_snapshot_2451918_major_body_boundary_summary_for_report())
+        );
         assert!(report.contains(&reference_snapshot_source_window_summary_for_report()));
         assert!(report.contains(&reference_snapshot_body_class_coverage_summary_for_report()));
         assert!(report.contains("release-grade guard: Pluto excluded from tolerance evidence; 2451913.5 boundary day remains in the release-grade comparison window"));
@@ -18478,6 +18488,8 @@ mod tests {
         assert!(validation_report_summary.contains("Comparison corpus"));
         assert!(validation_report_summary.contains("Reference snapshot"));
         assert!(validation_report_summary.contains(&reference_snapshot_summary_for_report()));
+        assert!(validation_report_summary
+            .contains(&reference_snapshot_2451918_major_body_boundary_summary_for_report()));
         assert!(validation_report_summary
             .contains(&reference_snapshot_source_window_summary_for_report()));
         assert!(validation_report_summary
@@ -21895,6 +21907,9 @@ mod tests {
         assert!(rendered.contains("Lunar equatorial reference envelope:"));
         assert!(rendered.contains("Lunar source windows:"));
         assert!(rendered.contains("JPL interpolation quality:"));
+        assert!(
+            rendered.contains(&reference_snapshot_2451918_major_body_boundary_summary_for_report())
+        );
         assert!(rendered.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
         assert!(rendered
