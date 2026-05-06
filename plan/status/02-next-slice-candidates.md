@@ -73,6 +73,7 @@ This file lists focused implementation slices that map to the current phase ladd
 - The current house-validation corpus already carries the release-facing formula families, latitude-sensitive systems, and documented constraints for the shipped catalog.
 - Extend that evidence only when new release-advertised house systems are added or existing ones change status.
 - Keep descriptor-only or approximate entries out of fully implemented claims.
+- The packaged-artifact generation manifest summary sidecar is now staged alongside the generation manifest, so the next production-artifact slice can focus on source revisions, segment strategy, and drift-proof manifest updates.
 
 ### 2. Ayanamsa provenance batch
 

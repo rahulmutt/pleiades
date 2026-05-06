@@ -2824,7 +2824,7 @@ impl ValidationReport {
 /// identifiers, release notes, release checklist, backend matrix, API posture,
 /// API stability summary, comparison-corpus summary, comparison-envelope summary,
 /// comparison-corpus release-guard summary, reference-holdout overlap summary, catalog inventory summary, validation report summary,
-/// artifact summary, packaged-artifact speed policy summary, packaged-artifact generation manifest, benchmark-corpus summary,
+/// artifact summary, packaged-artifact speed policy summary, packaged-artifact generation manifest, packaged-artifact generation manifest summary, benchmark-corpus summary,
 /// benchmark report, validation report, and manifest.
 #[derive(Clone, Debug)]
 pub struct ReleaseBundle {
@@ -2888,6 +2888,8 @@ pub struct ReleaseBundle {
     pub packaged_artifact_storage_summary_path: PathBuf,
     /// Path to the generated packaged-artifact generation manifest file.
     pub packaged_artifact_generation_manifest_path: PathBuf,
+    /// Path to the generated packaged-artifact generation manifest summary file.
+    pub packaged_artifact_generation_manifest_summary_path: PathBuf,
     /// Path to the generated benchmark report file.
     pub benchmark_report_path: PathBuf,
     /// Path to the generated validation report file.
@@ -2948,6 +2950,8 @@ pub struct ReleaseBundle {
     pub packaged_artifact_profile_coverage_summary_bytes: usize,
     /// Number of bytes written for the packaged-artifact generation manifest.
     pub packaged_artifact_generation_manifest_bytes: usize,
+    /// Number of bytes written for the packaged-artifact generation manifest summary.
+    pub packaged_artifact_generation_manifest_summary_bytes: usize,
     /// Number of bytes written for the benchmark report.
     pub benchmark_report_bytes: usize,
     /// Number of bytes written for the validation report.
@@ -3006,6 +3010,8 @@ pub struct ReleaseBundle {
     pub packaged_artifact_profile_coverage_summary_checksum: u64,
     /// Deterministic checksum for the packaged-artifact generation manifest contents.
     pub packaged_artifact_generation_manifest_checksum: u64,
+    /// Deterministic checksum for the packaged-artifact generation manifest summary contents.
+    pub packaged_artifact_generation_manifest_summary_checksum: u64,
     /// Deterministic checksum for the benchmark report contents.
     pub benchmark_report_checksum: u64,
     /// Deterministic checksum for the validation report contents.
@@ -3935,6 +3941,17 @@ impl fmt::Display for ReleaseBundle {
         )?;
         writeln!(
             f,
+            "  packaged-artifact generation manifest: {}",
+            self.packaged_artifact_generation_manifest_path.display()
+        )?;
+        writeln!(
+            f,
+            "  packaged-artifact generation manifest summary: {}",
+            self.packaged_artifact_generation_manifest_summary_path
+                .display()
+        )?;
+        writeln!(
+            f,
             "  benchmark-corpus summary: {}",
             self.output_dir
                 .join("benchmark-corpus-summary.txt")
@@ -4150,6 +4167,16 @@ impl fmt::Display for ReleaseBundle {
         )?;
         writeln!(
             f,
+            "  packaged-artifact generation manifest bytes: {}",
+            self.packaged_artifact_generation_manifest_bytes
+        )?;
+        writeln!(
+            f,
+            "  packaged-artifact generation manifest summary bytes: {}",
+            self.packaged_artifact_generation_manifest_summary_bytes
+        )?;
+        writeln!(
+            f,
             "  benchmark report bytes: {}",
             self.benchmark_report_bytes
         )?;
@@ -4212,6 +4239,16 @@ impl fmt::Display for ReleaseBundle {
             f,
             "  packaged-artifact profile coverage summary checksum: 0x{:016x}",
             self.packaged_artifact_profile_coverage_summary_checksum
+        )?;
+        writeln!(
+            f,
+            "  packaged-artifact generation manifest checksum: 0x{:016x}",
+            self.packaged_artifact_generation_manifest_checksum
+        )?;
+        writeln!(
+            f,
+            "  packaged-artifact generation manifest summary checksum: 0x{:016x}",
+            self.packaged_artifact_generation_manifest_summary_checksum
         )?;
         writeln!(
             f,
@@ -8927,6 +8964,8 @@ pub fn render_release_bundle(
         packaged_lookup_epoch_policy_summary_for_report();
     let packaged_artifact_generation_manifest_text =
         packaged_artifact_generation_manifest_for_report();
+    let packaged_artifact_generation_manifest_summary_text =
+        packaged_artifact_generation_manifest_for_report();
     let provenance = workspace_provenance();
     let profile_path = output_dir.join("compatibility-profile.txt");
     let profile_summary_path = output_dir.join("compatibility-profile-summary.txt");
@@ -9004,6 +9043,8 @@ pub fn render_release_bundle(
         output_dir.join("packaged-artifact-generation-policy-summary.txt");
     let packaged_artifact_generation_manifest_path =
         output_dir.join("packaged-artifact-generation-manifest.txt");
+    let packaged_artifact_generation_manifest_summary_path =
+        output_dir.join("packaged-artifact-generation-manifest-summary.txt");
     let benchmark_corpus_summary_path = output_dir.join("benchmark-corpus-summary.txt");
     let benchmark_report_path = output_dir.join("benchmark-report.txt");
     let report_path = output_dir.join("validation-report.txt");
@@ -9095,6 +9136,8 @@ pub fn render_release_bundle(
         checksum64(&packaged_artifact_generation_policy_summary_text);
     let packaged_artifact_generation_manifest_checksum =
         checksum64(&packaged_artifact_generation_manifest_text);
+    let packaged_artifact_generation_manifest_summary_checksum =
+        checksum64(&packaged_artifact_generation_manifest_summary_text);
     let benchmark_corpus_summary_checksum = checksum64(&benchmark_corpus_summary_text);
     let benchmark_report_checksum = checksum64(&benchmark_report_text);
     let validation_report_checksum = checksum64(&validation_report_text);
@@ -9107,6 +9150,8 @@ packaged-artifact generation policy summary: packaged-artifact-generation-policy
 packaged-artifact generation policy summary checksum (fnv1a-64): 0x{packaged_artifact_generation_policy_summary_checksum:016x}
 packaged-artifact generation manifest: packaged-artifact-generation-manifest.txt
 packaged-artifact generation manifest checksum (fnv1a-64): 0x{packaged_artifact_generation_manifest_checksum:016x}
+packaged-artifact generation manifest summary: packaged-artifact-generation-manifest-summary.txt
+packaged-artifact generation manifest summary checksum (fnv1a-64): 0x{packaged_artifact_generation_manifest_summary_checksum:016x}
 benchmark-corpus summary: benchmark-corpus-summary.txt\nbenchmark-corpus summary checksum (fnv1a-64): 0x{benchmark_corpus_summary_checksum:016x}\nbenchmark report: benchmark-report.txt\nbenchmark report checksum (fnv1a-64): 0x{benchmark_report_checksum:016x}\nvalidation report: validation-report.txt\nvalidation report checksum (fnv1a-64): 0x{validation_report_checksum:016x}\nsource revision: {}\nworkspace status: {}\nrustc version: {}\nprofile id: {}\napi stability posture id: {}\nvalidation rounds: {}\n",
         provenance.source_revision,
         provenance.workspace_status,
@@ -9307,6 +9352,10 @@ benchmark-corpus summary: benchmark-corpus-summary.txt\nbenchmark-corpus summary
         packaged_artifact_generation_manifest_text.as_bytes(),
     )?;
     fs::write(
+        &packaged_artifact_generation_manifest_summary_path,
+        packaged_artifact_generation_manifest_summary_text.as_bytes(),
+    )?;
+    fs::write(
         &benchmark_corpus_summary_path,
         benchmark_corpus_summary_text.as_bytes(),
     )?;
@@ -9419,6 +9468,8 @@ struct ParsedReleaseBundleManifest {
     packaged_artifact_generation_policy_summary_checksum: u64,
     packaged_artifact_generation_manifest_path: String,
     packaged_artifact_generation_manifest_checksum: u64,
+    packaged_artifact_generation_manifest_summary_path: String,
+    packaged_artifact_generation_manifest_summary_checksum: u64,
     benchmark_corpus_summary_path: String,
     benchmark_corpus_summary_checksum: u64,
     benchmark_report_path: String,
@@ -9781,6 +9832,14 @@ impl ParsedReleaseBundleManifest {
                 text,
                 "packaged-artifact generation manifest checksum (fnv1a-64):",
             )?,
+            packaged_artifact_generation_manifest_summary_path: parse_manifest_string(
+                text,
+                "packaged-artifact generation manifest summary:",
+            )?,
+            packaged_artifact_generation_manifest_summary_checksum: parse_manifest_checksum(
+                text,
+                "packaged-artifact generation manifest summary checksum (fnv1a-64):",
+            )?,
             benchmark_corpus_summary_path: parse_manifest_string(
                 text,
                 "benchmark-corpus summary:",
@@ -9869,6 +9928,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
         "packaged-lookup-epoch-policy-summary.txt",
         "packaged-artifact-generation-policy-summary.txt",
         "packaged-artifact-generation-manifest.txt",
+        "packaged-artifact-generation-manifest-summary.txt",
         "benchmark-report.txt",
         "validation-report.txt",
         "bundle-manifest.txt",
@@ -9905,7 +9965,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
 fn ensure_release_bundle_manifest_is_canonical(
     manifest_text: &str,
 ) -> Result<(), ReleaseBundleError> {
-    const EXPECTED_MANIFEST_LINES: [&str; 117] = [
+    const EXPECTED_MANIFEST_LINES: [&str; 119] = [
         "Release bundle manifest",
         "profile:",
         "profile checksum (fnv1a-64):",
@@ -10011,6 +10071,8 @@ fn ensure_release_bundle_manifest_is_canonical(
         "packaged-artifact generation policy summary checksum (fnv1a-64):",
         "packaged-artifact generation manifest:",
         "packaged-artifact generation manifest checksum (fnv1a-64):",
+        "packaged-artifact generation manifest summary:",
+        "packaged-artifact generation manifest summary checksum (fnv1a-64):",
         "benchmark-corpus summary:",
         "benchmark-corpus summary checksum (fnv1a-64):",
         "benchmark report:",
@@ -10150,6 +10212,8 @@ fn verify_release_bundle(
         output_dir.join("packaged-artifact-generation-policy-summary.txt");
     let packaged_artifact_generation_manifest_path =
         output_dir.join("packaged-artifact-generation-manifest.txt");
+    let packaged_artifact_generation_manifest_summary_path =
+        output_dir.join("packaged-artifact-generation-manifest-summary.txt");
     let benchmark_corpus_summary_path = output_dir.join("benchmark-corpus-summary.txt");
     let benchmark_report_path = output_dir.join("benchmark-report.txt");
     let validation_report_path = output_dir.join("validation-report.txt");
@@ -10224,6 +10288,14 @@ fn verify_release_bundle(
         (
             &packaged_artifact_target_threshold_summary_path,
             "packaged-artifact target-threshold summary",
+        ),
+        (
+            &packaged_artifact_generation_manifest_path,
+            "packaged-artifact generation manifest",
+        ),
+        (
+            &packaged_artifact_generation_manifest_summary_path,
+            "packaged-artifact generation manifest summary",
         ),
         (&benchmark_report_path, "benchmark report"),
         (&validation_report_path, "validation report"),
@@ -10397,6 +10469,10 @@ fn verify_release_bundle(
     let packaged_artifact_generation_manifest_text = read_required_bundle_text(
         &packaged_artifact_generation_manifest_path,
         "packaged-artifact generation manifest",
+    )?;
+    let packaged_artifact_generation_manifest_summary_text = read_required_bundle_text(
+        &packaged_artifact_generation_manifest_summary_path,
+        "packaged-artifact generation manifest summary",
     )?;
     let benchmark_corpus_summary_text =
         read_required_bundle_text(&benchmark_corpus_summary_path, "benchmark corpus summary")?;
@@ -10693,6 +10769,14 @@ fn verify_release_bundle(
             manifest.packaged_artifact_generation_manifest_path
         )));
     }
+    if manifest.packaged_artifact_generation_manifest_summary_path
+        != "packaged-artifact-generation-manifest-summary.txt"
+    {
+        return Err(ReleaseBundleError::Verification(format!(
+            "unexpected packaged-artifact generation manifest summary file entry: {}",
+            manifest.packaged_artifact_generation_manifest_summary_path
+        )));
+    }
     if manifest.benchmark_report_path != "benchmark-report.txt" {
         return Err(ReleaseBundleError::Verification(format!(
             "unexpected benchmark report file entry: {}",
@@ -10769,6 +10853,8 @@ fn verify_release_bundle(
         checksum64(&packaged_lookup_epoch_policy_summary_text);
     let packaged_artifact_generation_manifest_checksum =
         checksum64(&packaged_artifact_generation_manifest_text);
+    let packaged_artifact_generation_manifest_summary_checksum =
+        checksum64(&packaged_artifact_generation_manifest_summary_text);
     let benchmark_corpus_summary_checksum = checksum64(&benchmark_corpus_summary_text);
     let benchmark_report_checksum = checksum64(&benchmark_report_text);
     let validation_report_checksum = checksum64(&validation_report_text);
@@ -11223,6 +11309,15 @@ fn verify_release_bundle(
             packaged_artifact_generation_manifest_checksum
         )));
     }
+    if manifest.packaged_artifact_generation_manifest_summary_checksum
+        != packaged_artifact_generation_manifest_summary_checksum
+    {
+        return Err(ReleaseBundleError::Verification(format!(
+            "packaged-artifact generation manifest summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
+            manifest.packaged_artifact_generation_manifest_summary_checksum,
+            packaged_artifact_generation_manifest_summary_checksum
+        )));
+    }
     if manifest.benchmark_corpus_summary_path != "benchmark-corpus-summary.txt" {
         return Err(ReleaseBundleError::Verification(format!(
             "unexpected benchmark corpus summary file entry: {}",
@@ -11285,6 +11380,7 @@ fn verify_release_bundle(
         packaged_artifact_profile_coverage_summary_path,
         packaged_artifact_storage_summary_path,
         packaged_artifact_generation_manifest_path,
+        packaged_artifact_generation_manifest_summary_path,
         benchmark_report_path,
         validation_report_path,
         manifest_path,
@@ -11321,6 +11417,8 @@ fn verify_release_bundle(
             packaged_artifact_profile_coverage_summary_text.len(),
         packaged_artifact_generation_manifest_bytes: packaged_artifact_generation_manifest_text
             .len(),
+        packaged_artifact_generation_manifest_summary_bytes:
+            packaged_artifact_generation_manifest_summary_text.len(),
         benchmark_report_bytes: benchmark_report_text.len(),
         validation_report_bytes: validation_report_text.len(),
         manifest_checksum_bytes: manifest_checksum_text.len(),
@@ -11350,6 +11448,7 @@ fn verify_release_bundle(
         artifact_summary_checksum,
         packaged_artifact_profile_coverage_summary_checksum,
         packaged_artifact_generation_manifest_checksum,
+        packaged_artifact_generation_manifest_summary_checksum,
         benchmark_report_checksum,
         validation_report_checksum,
         manifest_checksum: manifest_checksum_value,
