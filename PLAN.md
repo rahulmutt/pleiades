@@ -69,7 +69,7 @@ The open work is concentrated in five areas:
 | --- | --- | --- |
 | 1. Reference accuracy and request semantics | Active | Prioritize production-suitable reference coverage, explicit Pluto posture, lunar release posture, and final request/time semantics decisions. |
 | 2. Production compressed artifacts | Queued, prototype groundwork landed | Begins once Phase 1 provides trusted generation inputs and tolerance thresholds. |
-| 3. Compatibility evidence and catalog truthfulness | Parallelizable | Formula/provenance audits and release-profile truthfulness can advance alongside Phase 1. |
+| 3. Compatibility evidence and catalog truthfulness | Parallelizable | Formula/provenance audits and release-profile truthfulness stay current as new release-advertised catalog entries are added. |
 | 4. Release hardening and publication | Queued, rehearsal tooling landed | Finalizes gates and bundles after accuracy, artifact, and catalog evidence are current. |
 
 For live execution guidance, see:

@@ -55,13 +55,13 @@ This file lists focused implementation slices that map to the current phase ladd
 
 ### 1. House formula evidence batch
 
-- Pick a small group of release-advertised house systems.
-- Add formula/provenance notes, representative golden tests, latitude/failure constraints, and profile caveats.
-- Ensure descriptor-only or approximate entries cannot be advertised as fully implemented.
+- The current house-validation corpus already carries the release-facing formula families, latitude-sensitive systems, and documented constraints for the shipped catalog.
+- Extend that evidence only when new release-advertised house systems are added or existing ones change status.
+- Keep descriptor-only or approximate entries out of fully implemented claims.
 
 ### 2. Ayanamsa provenance batch
 
-- Representative provenance excerpts for a curated release-facing sample are now surfaced in the validation and release summaries.
+- The current validation and release summaries already surface representative provenance excerpts for the curated release-facing ayanamsa sample.
 - Expand or refine the curated sample only if additional release-advertised ayanamsas need first-class provenance evidence.
 - Continue classifying custom-definition-only entries explicitly.
 

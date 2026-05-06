@@ -28,7 +28,7 @@ The workspace already has the required crate family, backend abstraction, typed 
 - Broaden reference-grade ephemeris evidence and finalize the lunar release posture while keeping Pluto explicitly approximate.
 - Finalize built-in versus deferred behavior for Delta T, UTC convenience, apparent-place, topocentric body-position, native sidereal, and frame precision semantics.
 - Produce a production 1500-2500 CE compressed artifact with reproducible generation and acceptable measured fit error.
-- Finish house/ayanamsa formula, alias, provenance, sidereal metadata, custom-definition, and failure-mode evidence.
+- Keep house/ayanamsa formula, alias, provenance, sidereal metadata, custom-definition, and failure-mode evidence current as new release-advertised entries are added.
 - Promote release rehearsal outputs into blocking release gates and final documentation.
 
 ## Planning maintenance
