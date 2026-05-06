@@ -18107,10 +18107,17 @@ pub fn jpl_snapshot_evidence_classification_summary_for_report() -> String {
         .to_string()
 }
 
+/// Returns the source-posture line used by validation and release reports.
+pub fn jpl_source_posture_summary_for_report() -> String {
+    "JPL source posture: checked-in snapshot/hold-out fixture backend paired with a separate generation-input path; not a broad public reader/corpus provider"
+        .to_string()
+}
+
 /// Returns the combined snapshot evidence summary used by validation and release reports.
 pub fn jpl_snapshot_evidence_summary_for_report() -> String {
     [
         jpl_snapshot_evidence_classification_summary_for_report(),
+        jpl_source_posture_summary_for_report(),
         reference_snapshot_summary_for_report(),
         reference_snapshot_early_major_body_boundary_summary_for_report(),
         reference_snapshot_2451910_major_body_boundary_summary_for_report(),
@@ -27812,6 +27819,7 @@ mod tests {
     fn jpl_snapshot_evidence_summary_combines_the_backend_reports() {
         let report = jpl_snapshot_evidence_summary_for_report();
         assert!(report.contains(&jpl_snapshot_evidence_classification_summary_for_report()));
+        assert!(report.contains(&jpl_source_posture_summary_for_report()));
         assert!(report.contains(&reference_snapshot_summary_for_report()));
         assert!(report.contains(&reference_snapshot_body_class_coverage_summary_for_report()));
         assert!(report.contains(&reference_snapshot_equatorial_parity_summary_for_report()));

@@ -37,7 +37,7 @@ Implemented and not re-planned here:
 
 ### 2. Broaden reference/source coverage
 
-- Decide whether `pleiades-jpl` becomes a broader public JPL-derived reader/corpus provider or remains a checked-in fixture backend paired with a separate generation-input path.
+- The JPL source posture is now explicit in the combined snapshot evidence summary: it remains a checked-in fixture backend paired with a separate generation-input path, while broader reader/corpus work stays deferred.
 - Add enough public source/reference coverage to support production validation and Phase 2 artifact fitting over the advertised 1500-2500 CE range; the 2360234.5 interior comparison slice now has a first-class report surface, and the 2451911.5, 2451917.0 bridge, and 2451918.5 Mars/Jupiter boundary slices are now surfaced through the top-level reference snapshot summary.
 - Include boundary dates, high-curvature windows, lunar windows, selected asteroid coverage, and independent hold-out rows.
 - Preserve pure-Rust parsing, deterministic manifests, checksum validation, and source provenance.

@@ -2727,6 +2727,8 @@ mod tests {
 
         let jpl_snapshot_evidence_summary = render_cli(&["jpl-snapshot-evidence-summary"])
             .expect("JPL snapshot evidence summary should render");
+        assert!(jpl_snapshot_evidence_summary
+            .contains(&pleiades_jpl::jpl_source_posture_summary_for_report()));
         assert_eq!(
             jpl_snapshot_evidence_summary,
             super::validate_render_cli(&["jpl-snapshot-evidence-summary"])
