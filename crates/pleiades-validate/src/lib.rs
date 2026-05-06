@@ -15758,7 +15758,7 @@ fn implemented_backend_catalog() -> Vec<BackendMatrixEntry> {
             label: "JPL snapshot reference backend",
             metadata: default_reference_backend().metadata(),
             implementation_status: BackendImplementationStatus::FixtureReference,
-            status_note: "checked-in public-input derivative fixture with exact lookup and cubic interpolation on four-sample windows when available, with quadratic and linear fallbacks for sparser bodies; reference corpus now spans 343 rows across 16 bodies and 28 epochs with expanded bridge and boundary coverage, while the broader production reader remains planned",
+            status_note: "checked-in public-input derivative fixture with exact lookup and cubic interpolation on four-sample windows when available, with quadratic and linear fallbacks for sparser bodies; reference corpus now spans 347 rows across 16 bodies and 29 epochs with expanded bridge and boundary coverage, while the broader production reader remains planned",
             expected_error_kinds: JPL_EXPECTED_ERROR_KINDS,
             required_data_files: JPL_REQUIRED_DATA_FILES,
         },
@@ -16408,9 +16408,9 @@ mod tests {
     fn default_corpus_covers_the_comparison_snapshot() {
         let corpus = default_corpus();
         let summary = corpus.summary();
-        assert_eq!(corpus.requests.len(), 220);
-        assert_eq!(summary.epoch_count, 25);
-        assert_eq!(summary.epochs.len(), 25);
+        assert_eq!(corpus.requests.len(), 224);
+        assert_eq!(summary.epoch_count, 26);
+        assert_eq!(summary.epochs.len(), 26);
         assert!(summary
             .epochs
             .iter()
@@ -16483,7 +16483,7 @@ mod tests {
         }));
         assert!(report.lines().any(|line| line == "  Apparentness: Mean"));
         assert!(report.lines().any(|line| {
-            line == "  epoch labels: JD 2268932.5 (TT), JD 2305457.5 (TT), JD 2360233.5 (TT), JD 2360234.5 (TT), JD 2378499.0 (TT), JD 2400000.0 (TT), JD 2415020.5 (TT), JD 2451545.0 (TT), JD 2451910.5 (TT), JD 2451911.5 (TT), JD 2451912.5 (TT), JD 2451914.0 (TT), JD 2451914.5 (TT), JD 2451915.0 (TT), JD 2451915.5 (TT), JD 2451916.0 (TT), JD 2451916.5 (TT), JD 2451917.0 (TT), JD 2451918.5 (TT), JD 2451919.5 (TT), JD 2451920.5 (TT), JD 2453000.5 (TT), JD 2500000.0 (TT), JD 2600000.0 (TT), JD 2634167.0 (TT)"
+            line == "  epoch labels: JD 2268932.5 (TT), JD 2305457.5 (TT), JD 2360233.5 (TT), JD 2360234.5 (TT), JD 2378499.0 (TT), JD 2400000.0 (TT), JD 2415020.5 (TT), JD 2451545.0 (TT), JD 2451910.5 (TT), JD 2451911.5 (TT), JD 2451912.5 (TT), JD 2451914.0 (TT), JD 2451914.5 (TT), JD 2451915.0 (TT), JD 2451915.5 (TT), JD 2451916.0 (TT), JD 2451916.5 (TT), JD 2451917.0 (TT), JD 2451918.5 (TT), JD 2451919.5 (TT), JD 2451920.5 (TT), JD 2453000.5 (TT), JD 2500000.0 (TT), JD 2524593.5 (TT), JD 2600000.0 (TT), JD 2634167.0 (TT)"
         }));
         assert!(report
             .lines()
@@ -17642,7 +17642,7 @@ mod tests {
         assert!(report.contains("Comparison corpus"));
         assert!(report.contains("JPL Horizons release-grade comparison window"));
         assert!(report
-            .contains("Comparison snapshot coverage: 220 rows across 10 bodies and 25 epochs"));
+            .contains("Comparison snapshot coverage: 224 rows across 10 bodies and 26 epochs"));
         assert!(report.contains("Apparentness: Mean"));
         assert!(report.contains("Benchmark corpus"));
         assert!(report.contains("Representative 1500-2500 window"));
@@ -17747,7 +17747,7 @@ mod tests {
         assert!(report.contains("Luminaries"));
         assert!(report.contains("Major planets"));
         assert!(report.contains("interpolation quality checks:"));
-        assert!(report.contains("JPL interpolation quality: 210 samples across 10 bodies"));
+        assert!(report.contains("JPL interpolation quality: 214 samples across 10 bodies"));
         assert!(report.contains("JPL interpolation quality kind coverage:"));
         assert!(report.contains("JPL interpolation posture: source="));
         assert!(report.contains("Reference/hold-out overlap:"));
@@ -17871,7 +17871,7 @@ mod tests {
         assert!(body_class_tolerance_posture.contains("mean Δdist="));
         assert!(body_class_tolerance_posture.contains("rms Δdist="));
         assert!(report.contains("JPL interpolation quality"));
-        assert!(report.contains("JPL interpolation quality: 210 samples across 10 bodies"));
+        assert!(report.contains("JPL interpolation quality: 214 samples across 10 bodies"));
         assert!(report.contains("Reference/hold-out overlap:"));
         assert!(report.contains("JPL independent hold-out:"));
         assert!(report.contains("JPL independent hold-out equatorial parity:"));
@@ -17986,7 +17986,7 @@ mod tests {
         assert!(rendered.contains(&reference_snapshot_source_window_summary_for_report()));
         assert!(rendered.contains(&reference_snapshot_body_class_coverage_summary_for_report()));
         assert!(rendered
-            .contains("Comparison snapshot coverage: 220 rows across 10 bodies and 25 epochs"));
+            .contains("Comparison snapshot coverage: 224 rows across 10 bodies and 26 epochs"));
         assert!(rendered.contains("Body comparison summaries"));
         assert!(rendered.contains("Release bundle verification: verify-release-bundle"));
         assert!(rendered.contains("Packaged-artifact profile"));
@@ -19349,8 +19349,8 @@ mod tests {
         assert!(rendered.contains("WvA"));
         assert!(rendered.contains("Selected asteroid evidence: 6 exact J2000 samples"));
         assert!(rendered.contains("Selected asteroid batch parity: 6 requests across 6 bodies at JD 2451545.0 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis); frame mix: 3 ecliptic, 3 equatorial; batch/single parity preserved"));
-        assert!(rendered.contains("Reference snapshot coverage: 343 rows across 16 bodies and 28 epochs (93 asteroid rows; JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); bodies:"));
-        assert!(rendered.contains("Reference snapshot body-class coverage: major bodies: 250 rows across 10 bodies and 28 epochs; major windows: "));
+        assert!(rendered.contains("Reference snapshot coverage: 347 rows across 16 bodies and 29 epochs (93 asteroid rows; JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); bodies:"));
+        assert!(rendered.contains("Reference snapshot body-class coverage: major bodies: 254 rows across 10 bodies and 29 epochs; major windows: "));
         assert!(rendered.contains(&reference_snapshot_pre_bridge_boundary_summary_for_report()));
         assert!(rendered.contains(&reference_snapshot_dense_boundary_summary_for_report()));
         assert!(rendered.contains(
@@ -19364,7 +19364,7 @@ mod tests {
         assert!(rendered.contains(&reference_snapshot_source_summary_for_report()));
         assert!(rendered.contains(&reference_snapshot_manifest_summary_for_report()));
         assert!(rendered
-            .contains("Comparison snapshot coverage: 220 rows across 10 bodies and 25 epochs"));
+            .contains("Comparison snapshot coverage: 224 rows across 10 bodies and 26 epochs"));
         assert!(rendered.contains("asteroid:433-Eros"));
         assert!(rendered.contains("Validation reference points:"));
         assert!(rendered.contains("Compatibility caveats:"));
@@ -20883,7 +20883,7 @@ mod tests {
             .any(|line| line == profile.target_ayanamsa_scope.join("; ")));
         assert!(rendered.contains("API stability summary line: API stability posture: pleiades-api-stability/0.1.0; stable surfaces: 6; experimental surfaces: 3; deprecation policy items: 4; intentional limits: 3"));
         assert!(rendered.contains(&reference_snapshot_source_summary_for_report()));
-        assert!(rendered.contains("Reference snapshot body-class coverage: major bodies: 250 rows across 10 bodies and 28 epochs; major windows: "));
+        assert!(rendered.contains("Reference snapshot body-class coverage: major bodies: 254 rows across 10 bodies and 29 epochs; major windows: "));
         assert!(rendered.contains(
             "selected asteroids: 93 rows across 6 bodies and 17 epochs; asteroid windows: "
         ));
@@ -20918,12 +20918,12 @@ mod tests {
             "Release profile identifiers: v1 compatibility={}, api-stability={}",
             release_profiles.compatibility_profile_id, release_profiles.api_stability_profile_id
         )));
-        assert!(rendered.contains("Reference snapshot coverage: 343 rows across 16 bodies and 28 epochs (93 asteroid rows; JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); bodies:"));
+        assert!(rendered.contains("Reference snapshot coverage: 347 rows across 16 bodies and 29 epochs (93 asteroid rows; JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); bodies:"));
         assert!(
             rendered.contains(&reference_snapshot_2500_major_body_boundary_summary_for_report())
         );
         assert!(rendered
-            .contains("Comparison snapshot coverage: 220 rows across 10 bodies and 25 epochs"));
+            .contains("Comparison snapshot coverage: 224 rows across 10 bodies and 26 epochs"));
         assert!(rendered
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
         assert!(rendered.contains("Artifact boundary envelope:"));
@@ -21284,7 +21284,7 @@ mod tests {
         assert!(rendered.contains("median latitude delta:"));
         assert!(rendered.contains("95th percentile latitude delta:"));
         assert!(rendered
-            .contains("Comparison snapshot coverage: 220 rows across 10 bodies and 25 epochs"));
+            .contains("Comparison snapshot coverage: 224 rows across 10 bodies and 26 epochs"));
         assert!(rendered.contains("Body-class error envelopes:"));
         assert!(rendered.contains("max Δlon="));
         assert!(rendered.contains("median Δlon="));
@@ -21564,7 +21564,7 @@ mod tests {
             .expect("JPL backend matrix entry should exist");
         assert!(jpl_entry
             .status_note
-            .contains("reference corpus now spans 343 rows across 16 bodies and 28 epochs"));
+            .contains("reference corpus now spans 347 rows across 16 bodies and 29 epochs"));
         assert!(rendered.contains("Families:"));
         assert!(rendered.contains("Algorithmic: 2"));
         assert!(rendered.contains("ReferenceData: 1"));
@@ -21715,7 +21715,7 @@ mod tests {
         assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(rendered.contains("API stability summary: api-stability-summary"));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
-        assert!(rendered.contains("Reference snapshot coverage: 343 rows across 16 bodies and 28 epochs (93 asteroid rows; JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); bodies:"));
+        assert!(rendered.contains("Reference snapshot coverage: 347 rows across 16 bodies and 29 epochs (93 asteroid rows; JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); bodies:"));
         assert!(rendered.contains(&reference_snapshot_lunar_boundary_summary_for_report()));
         assert!(
             rendered.contains(&reference_snapshot_1500_selected_body_boundary_summary_for_report())
@@ -22357,10 +22357,10 @@ version = "0.9.0"
         }));
         assert!(release_summary.contains("JPL frame treatment: checked-in ecliptic snapshot; equatorial coordinates are derived with a mean-obliquity transform"));
         assert!(release_summary.contains(
-            "JPL reference snapshot equatorial parity: 343 rows across 16 bodies and 28 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
+            "JPL reference snapshot equatorial parity: 347 rows across 16 bodies and 29 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
         ));
         assert!(release_summary.contains(
-            "JPL reference snapshot batch parity: 343 rows across 16 bodies and 28 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
+            "JPL reference snapshot batch parity: 347 rows across 16 bodies and 29 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
         ));
         assert!(release_summary.contains("JPL production-generation coverage:"));
         assert!(release_summary.contains("JPL production-generation source windows:"));
@@ -22383,7 +22383,7 @@ version = "0.9.0"
         assert!(release_summary.contains("Selected asteroid batch parity:"));
         assert!(release_summary.contains("Selected asteroid source windows:"));
         assert!(release_summary.contains("Reference snapshot coverage:"));
-        assert!(release_summary.contains("Reference snapshot body-class coverage: major bodies: 250 rows across 10 bodies and 28 epochs; major windows: "));
+        assert!(release_summary.contains("Reference snapshot body-class coverage: major bodies: 254 rows across 10 bodies and 29 epochs; major windows: "));
         assert!(release_summary.contains(&reference_snapshot_high_curvature_summary_for_report()));
         assert!(release_summary
             .contains(&reference_snapshot_major_body_boundary_window_summary_for_report()));
@@ -22599,7 +22599,7 @@ version = "0.9.0"
         assert!(backend_matrix_summary.contains("Algorithmic: 2"));
         assert!(backend_matrix_summary.contains("Composite: 1"));
         assert!(backend_matrix_summary.contains(
-            "JPL reference snapshot equatorial parity: 343 rows across 16 bodies and 28 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
+            "JPL reference snapshot equatorial parity: 347 rows across 16 bodies and 29 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
         ));
         assert!(backend_matrix_summary
             .contains(&reference_snapshot_major_body_bridge_summary_for_report()));
@@ -24362,7 +24362,7 @@ version = "0.9.0"
             .expect("production generation source window summary should render");
 
         assert!(rendered.contains("Production generation source windows:"));
-        assert!(rendered.contains("351 source-backed samples"));
+        assert!(rendered.contains("355 source-backed samples"));
         assert_eq!(
             rendered,
             production_generation_snapshot_window_summary_for_report()
@@ -24375,7 +24375,7 @@ version = "0.9.0"
             .expect("production generation summary should render");
 
         assert!(rendered.contains("Production generation coverage:"));
-        assert!(rendered.contains("351 rows across 16 bodies and 30 epochs"));
+        assert!(rendered.contains("355 rows across 16 bodies and 31 epochs"));
         assert_eq!(
             rendered,
             production_generation_snapshot_summary_for_report()
@@ -24581,7 +24581,7 @@ version = "0.9.0"
             .expect("comparison snapshot source window summary should render");
 
         assert!(rendered.contains("Comparison snapshot source windows:"));
-        assert!(rendered.contains("220 source-backed samples"));
+        assert!(rendered.contains("224 source-backed samples"));
         assert_eq!(
             rendered,
             comparison_snapshot_source_window_summary_for_report()

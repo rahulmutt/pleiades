@@ -27,7 +27,7 @@ Phase 2 production artifacts require trusted generation inputs and target thresh
 
 ## Immediate blockers
 
-1. **Reference corpus breadth** — The production-generation input path is now explicitly documented as the checked-in CSV fixture pair, now widened with a 1750-01-01 interior boundary slice; continue expanding or replacing fixture evidence with production-suitable public source/reference data for validation and artifact fitting.
+1. **Reference corpus breadth** — The production-generation input path is now explicitly documented as the checked-in CSV fixture pair, now widened with a 1750-01-01 interior boundary slice and a 2200-01-01 interior selected-body slice; continue expanding or replacing fixture evidence with production-suitable public source/reference data for validation and artifact fitting.
 2. **Pluto release posture** — Pluto is now visibly approximate and excluded from release-grade major-body claims; a source-backed path remains optional if future release claims need it.
 3. **Lunar release posture** — Decide whether the first release keeps the compact lunar baseline or implements fuller ELP-style coefficient support; the compact path now publishes measured reference and equatorial channel envelopes in the limitations summary.
 4. **Advanced request semantics** — Decide whether built-in Delta T/UTC conversion, apparent corrections, topocentric body positions, and native sidereal backend output are implemented now or explicitly deferred; frame precision is now stated via the shared mean-obliquity frame round-trip envelope.
@@ -36,7 +36,7 @@ Phase 2 production artifacts require trusted generation inputs and target thresh
 
 The representative early-boundary slice is now checked in for Sun, Moon, Mercury, and Venus at 1500-01-01, now surfaced through a dedicated boundary summary, and the 1600-01-11 and 1900-01-01 selected-body boundary slices plus a 2500-01-01 selected-body boundary slice now give additional release-facing boundary points for the same release corpus. A 2451915.25/2451915.75 high-curvature hold-out window supplements the validation corpus for Sun, Moon, Mercury, and Venus.
 
-The reference corpus also now includes a 1750-01-01 interior major-body slice and a dedicated 2451917.5 boundary-day report, so the next reviewable reference-coverage step can move to request-semantics decisions or a different boundary if additional breadth is needed.
+The reference corpus also now includes a 1750-01-01 interior major-body slice, a 2200-01-01 interior selected-body slice, and a dedicated 2451917.5 boundary-day report, so the next reviewable step can move to request-semantics decisions or a different boundary if additional breadth is needed.
 
 Next, implement another small, reviewable slice:
 
