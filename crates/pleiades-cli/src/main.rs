@@ -209,6 +209,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         | Some("early-major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-1800-major-body-boundary-summary")
         | Some("1800-major-body-boundary-summary") => validate_render_cli(args),
+        Some("reference-snapshot-2451910-major-body-boundary-summary")
+        | Some("2451910-major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-2500-major-body-boundary-summary")
         | Some("2500-major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-2453000-major-body-boundary-summary")
@@ -1366,6 +1368,8 @@ mod tests {
         assert!(rendered.contains("2500-selected-body-boundary-summary"));
         assert!(rendered.contains("reference-snapshot-2453000-major-body-boundary-summary"));
         assert!(rendered.contains("2453000-major-body-boundary-summary"));
+        assert!(rendered.contains("reference-snapshot-2451910-major-body-boundary-summary"));
+        assert!(rendered.contains("2451910-major-body-boundary-summary"));
         assert!(rendered.contains("reference-snapshot-2451917-major-body-boundary-summary"));
         assert!(rendered.contains("2451917-major-body-boundary-summary"));
         assert!(rendered.contains("reference-snapshot-2451920-major-body-interior-summary"));
@@ -2669,6 +2673,22 @@ mod tests {
         assert_eq!(
             reference_snapshot_1800_major_body_boundary_summary,
             pleiades_jpl::reference_snapshot_1800_major_body_boundary_summary_for_report()
+        );
+        let reference_snapshot_2451910_major_body_boundary_summary =
+            render_cli(&["reference-snapshot-2451910-major-body-boundary-summary"])
+                .expect("reference snapshot 2451910 major-body boundary summary should render");
+        assert!(reference_snapshot_2451910_major_body_boundary_summary
+            .contains("Reference 2451910 major-body boundary evidence:"));
+        assert_eq!(
+            reference_snapshot_2451910_major_body_boundary_summary,
+            pleiades_jpl::reference_snapshot_2451910_major_body_boundary_summary_for_report()
+        );
+        let reference_snapshot_2451910_major_body_boundary_alias =
+            render_cli(&["2451910-major-body-boundary-summary"])
+                .expect("2451910 major-body boundary alias should render");
+        assert_eq!(
+            reference_snapshot_2451910_major_body_boundary_alias,
+            reference_snapshot_2451910_major_body_boundary_summary
         );
         let comparison_snapshot_manifest_summary =
             render_cli(&["comparison-snapshot-manifest-summary"])
@@ -4889,6 +4909,9 @@ mod tests {
         ));
         assert!(help.contains(
             "reference-snapshot-2453000-major-body-boundary-summary  Print the compact reference 2453000 major-body boundary evidence summary"
+        ));
+        assert!(help.contains(
+            "reference-snapshot-2451910-major-body-boundary-summary  Print the compact reference 2451910 major-body boundary evidence summary"
         ));
         assert!(help.contains(
             "reference-snapshot-2451917-major-body-boundary-summary  Print the compact reference 2451917 major-body boundary evidence summary"

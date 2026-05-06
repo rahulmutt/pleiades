@@ -24,7 +24,7 @@ Implemented and not re-planned here:
 - chart-level observer handling for houses without silently implying topocentric body positions;
 - VSOP87B generated binary tables for Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, and Neptune;
 - compact lunar baseline for Moon, mean/true node, and mean apogee/perigee;
-- JPL Horizons snapshot and hold-out fixtures with selected asteroid rows, provenance summaries, equatorial reconstruction, interpolation transparency, batch parity evidence, and release-facing 1500-01-01 / 1900-01-01 selected-body boundary summaries, plus the promoted 2451918.5 Mars/Jupiter boundary summary;
+- JPL Horizons snapshot and hold-out fixtures with selected asteroid rows, provenance summaries, equatorial reconstruction, interpolation transparency, batch parity evidence, and release-facing 1500-01-01 / 1900-01-01 selected-body boundary summaries, plus the promoted 2451910.5 major-body boundary summary and 2451918.5 Mars/Jupiter boundary summary;
 - validation/report commands that expose request policy, source documentation, comparison tolerance posture, benchmark summaries, and reference-corpus summaries, and the backend/core façades now re-export the current UTC-convenience, Delta T, and native sidereal policy summaries plus matching request-semantics aliases for consumers that want the same wording without a backend dependency.
 
 ## Remaining implementation goals
