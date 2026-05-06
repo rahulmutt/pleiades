@@ -2352,6 +2352,7 @@ pub fn reference_snapshot_summary_for_report() -> String {
         reference_snapshot_2451914_major_body_boundary_summary_for_report(),
         reference_snapshot_2451914_major_body_pre_bridge_summary_for_report(),
         reference_snapshot_2451914_bridge_day_summary_for_report(),
+        reference_snapshot_2451914_major_body_bridge_day_summary_for_report(),
         reference_snapshot_2451915_major_body_boundary_summary_for_report(),
         reference_snapshot_2451915_major_body_bridge_summary_for_report(),
         reference_snapshot_2451917_major_body_bridge_summary_for_report(),
@@ -16372,7 +16373,20 @@ pub fn reference_snapshot_2451914_major_body_bridge_day_summary(
 
 /// Returns the release-facing 2451914 major-body bridge-day summary string.
 pub fn reference_snapshot_2451914_major_body_bridge_day_summary_for_report() -> String {
-    reference_snapshot_bridge_day_summary_for_report()
+    match reference_snapshot_2451914_major_body_bridge_day_summary() {
+        Some(summary) => match summary.validate() {
+            Ok(()) => format!(
+                "Reference 2451914 major-body bridge-day evidence: {} exact samples at {} ({}); 2451914 major-body bridge-day sample",
+                summary.sample_count,
+                format_instant(summary.epoch),
+                format_bodies(&summary.sample_bodies),
+            ),
+            Err(error) => {
+                format!("Reference 2451914 major-body bridge-day evidence: unavailable ({error})")
+            }
+        },
+        None => "Reference 2451914 major-body bridge-day evidence: unavailable".to_string(),
+    }
 }
 
 /// Returns the compact typed summary for the 2451914 major-body bridge evidence.
@@ -22018,6 +22032,10 @@ mod tests {
             reference_snapshot_2451914_bridge_day_summary_for_report(),
             summary.summary_line()
         );
+        assert_eq!(
+            reference_snapshot_2451914_major_body_bridge_day_summary_for_report(),
+            "Reference 2451914 major-body bridge-day evidence: 15 exact samples at JD 2451914.0 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros); 2451914 major-body bridge-day sample"
+        );
     }
 
     #[test]
@@ -23920,6 +23938,9 @@ mod tests {
             report.contains(&reference_snapshot_2451914_major_body_pre_bridge_summary_for_report())
         );
         assert!(report.contains(&reference_snapshot_2451914_bridge_day_summary_for_report()));
+        assert!(
+            report.contains(&reference_snapshot_2451914_major_body_bridge_day_summary_for_report())
+        );
         assert!(report.contains(&reference_snapshot_2451914_major_body_bridge_summary_for_report()));
         assert!(report.contains(&reference_snapshot_2451915_major_body_bridge_summary_for_report()));
         assert!(
