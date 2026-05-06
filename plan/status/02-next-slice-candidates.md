@@ -55,7 +55,7 @@ This file lists focused implementation slices that map to the current phase ladd
 
 ### 2. Deterministic artifact generator
 
-- Build a generation command that consumes validated public inputs and writes normalized intermediates plus compressed artifacts.
+- Build a generation command that consumes validated public inputs and writes normalized intermediates plus compressed artifacts; the current fixture workflow now exposes both generation and regenerate entrypoints, so follow-on work can focus on normalized intermediates and production artifact writes.
 - Record source revisions, generator parameters, checksums, and output profile identifiers.
 - Keep the prototype fixture path separate from production artifact generation.
 

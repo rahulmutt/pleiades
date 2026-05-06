@@ -552,7 +552,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         | Some("packaged-artifact-lookup-epoch-policy-summary")
         | Some("packaged-artifact-lookup-epoch-policy") => validate_render_cli(args),
         Some("validate-artifact") => validate_render_cli(args),
-        Some("regenerate-packaged-artifact") => {
+        Some("generate-packaged-artifact") | Some("regenerate-packaged-artifact") => {
             if args[1..].iter().any(|arg| *arg == "--help" || *arg == "-h") {
                 return Ok(help_text());
             }
@@ -4776,6 +4776,14 @@ mod tests {
         assert!(regenerated.contains("11 bundled bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros)"));
         assert!(regenerated.contains("Packaged artifact regeneration source:"));
         assert!(regenerated.contains("Reference snapshot coverage:"));
+
+        let generated_alias = render_cli(&[
+            "generate-packaged-artifact",
+            "--out",
+            &artifact_fixture_path_string,
+        ])
+        .expect("packaged artifact generation alias should render");
+        assert_eq!(generated_alias, regenerated);
         assert!(artifact_fixture_path.exists());
         let written = std::fs::read(&artifact_fixture_path)
             .expect("packaged artifact regeneration should write bytes");
