@@ -25736,6 +25736,8 @@ version = "0.9.0"
         assert!(reference.contains("Reference 2453000 major-body boundary evidence:"));
         assert!(reference
             .contains(&reference_snapshot_2360234_major_body_interior_summary_for_report()));
+        assert!(reference
+            .contains(&reference_snapshot_2451920_major_body_interior_summary_for_report()));
         assert_eq!(
             reference,
             format!(
