@@ -2373,9 +2373,11 @@ pub fn reference_snapshot_summary_for_report() -> String {
         selected_asteroid_dense_boundary_summary_for_report(),
         selected_asteroid_terminal_boundary_summary_for_report(),
         reference_snapshot_2200_selected_body_boundary_summary_for_report(),
+        reference_snapshot_2524593_selected_body_boundary_summary_for_report(),
         reference_snapshot_mars_outer_boundary_summary_for_report(),
         reference_snapshot_2600000_major_body_boundary_summary_for_report(),
         reference_snapshot_2500_selected_body_boundary_summary_for_report(),
+        reference_snapshot_2634167_selected_body_boundary_summary_for_report(),
     ];
 
     let mut report = summary_line;
@@ -22135,9 +22137,13 @@ mod tests {
         assert!(
             report.contains(&reference_snapshot_2200_selected_body_boundary_summary_for_report())
         );
+        assert!(report
+            .contains(&reference_snapshot_2524593_selected_body_boundary_summary_for_report()));
         assert!(
             report.contains(&reference_snapshot_2500_selected_body_boundary_summary_for_report())
         );
+        assert!(report
+            .contains(&reference_snapshot_2634167_selected_body_boundary_summary_for_report()));
     }
 
     #[test]
