@@ -8279,6 +8279,8 @@ fn render_release_summary_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_2451918_major_body_boundary_summary_for_report());
     text.push('\n');
+    text.push_str(&reference_snapshot_2451919_major_body_boundary_summary_for_report());
+    text.push('\n');
     text.push_str(&reference_snapshot_mars_jupiter_boundary_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_mars_outer_boundary_summary_for_report());
@@ -13520,6 +13522,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(
         text,
         "  {}",
+        reference_snapshot_2451919_major_body_boundary_summary_for_report()
+    );
+    let _ = writeln!(
+        text,
+        "  {}",
         reference_snapshot_mars_jupiter_boundary_summary_for_report()
     );
     let _ = writeln!(
@@ -18343,6 +18350,9 @@ mod tests {
         assert!(
             report.contains(&reference_snapshot_2451918_major_body_boundary_summary_for_report())
         );
+        assert!(
+            report.contains(&reference_snapshot_2451919_major_body_boundary_summary_for_report())
+        );
         assert!(report.contains(
             &pleiades_jpl::reference_snapshot_2451915_major_body_bridge_summary_for_report()
         ));
@@ -22034,6 +22044,9 @@ mod tests {
         );
         assert!(
             rendered.contains(&reference_snapshot_2451918_major_body_boundary_summary_for_report())
+        );
+        assert!(
+            rendered.contains(&reference_snapshot_2451919_major_body_boundary_summary_for_report())
         );
         assert!(rendered.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
