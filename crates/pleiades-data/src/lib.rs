@@ -251,6 +251,11 @@ impl PackagedArtifactGenerationPolicy {
         }
     }
 
+    /// Returns the segment-strategy text used in release-facing summaries.
+    pub const fn segment_strategy(self) -> &'static str {
+        self.note()
+    }
+
     /// Returns the compact release-facing summary for the generation policy.
     pub fn summary_line(self) -> String {
         format!("{}; {}", self.label(), self.note())
@@ -1073,12 +1078,13 @@ impl PackagedArtifactRegenerationSummary {
     /// Returns the full packaged-artifact regeneration provenance summary.
     pub fn summary_line(&self) -> String {
         format!(
-            "Packaged artifact regeneration source: label={}; profile id={}; source={}; checksum=0x{:016x}; {}; {}; bundled bodies: {}; {}; fit envelope: {}; artifact version={}",
+            "Packaged artifact regeneration source: label={}; profile id={}; source={}; checksum=0x{:016x}; {}; segment strategy={}; {}; bundled bodies: {}; {}; fit envelope: {}; artifact version={}",
             self.label,
             self.profile_id,
             self.source,
             self.checksum,
             self.generation_policy_line(),
+            self.generation_policy.segment_strategy(),
             self.residual_body_line(),
             self.body_coverage_line(),
             self.reference_snapshot_line(),
@@ -1347,7 +1353,7 @@ impl PackagedArtifactProductionProfileSummary {
     /// Returns the production-profile skeleton as a compact human-readable line.
     pub fn summary_line(&self) -> String {
         format!(
-            "Packaged artifact production profile draft: profile id={}; label={}; version={}; time range={}; body coverage={}; artifact profile={}; speed policy={}; generation policy={}; request policy={}; lookup epoch policy={}; frame treatment={}; storage/reconstruction={}; {}",
+            "Packaged artifact production profile draft: profile id={}; label={}; version={}; time range={}; body coverage={}; artifact profile={}; speed policy={}; generation policy={}; segment strategy={}; request policy={}; lookup epoch policy={}; frame treatment={}; storage/reconstruction={}; {}",
             self.profile_id,
             self.label,
             self.artifact_version,
@@ -1356,6 +1362,7 @@ impl PackagedArtifactProductionProfileSummary {
             self.artifact_profile,
             self.speed_policy,
             self.generation_policy,
+            self.generation_policy.segment_strategy(),
             self.request_policy,
             self.lookup_epoch_policy.summary_line(),
             self.frame_treatment,
@@ -1551,7 +1558,7 @@ impl PackagedArtifactGeneratorParameters {
     /// Returns the generator parameters as a compact human-readable line.
     pub fn summary_line(&self) -> String {
         format!(
-            "Packaged artifact generator parameters: profile id={}; label={}; version={}; time range={}; body coverage={}; artifact profile={}; speed policy={}; generation policy={}; request policy={}; lookup epoch policy={}; frame treatment={}; storage/reconstruction={}; {}",
+            "Packaged artifact generator parameters: profile id={}; label={}; version={}; time range={}; body coverage={}; artifact profile={}; speed policy={}; generation policy={}; segment strategy={}; request policy={}; lookup epoch policy={}; frame treatment={}; storage/reconstruction={}; {}",
             self.profile_id,
             self.label,
             self.artifact_version,
@@ -1560,6 +1567,7 @@ impl PackagedArtifactGeneratorParameters {
             self.artifact_profile,
             self.speed_policy,
             self.generation_policy,
+            self.generation_policy.segment_strategy(),
             self.request_policy,
             self.lookup_epoch_policy.summary_line(),
             self.frame_treatment,
@@ -5437,6 +5445,9 @@ mod tests {
         assert!(summary.summary_line().contains("speed policy=Unsupported"));
         assert!(summary
             .summary_line()
+            .contains("segment strategy=bodies with a single sampled epoch use point segments"));
+        assert!(summary
+            .summary_line()
             .contains("target thresholds: draft fit envelope recorded; scopes=luminaries, major planets, lunar points, selected asteroids, custom bodies; fit envelope:"));
         assert!(summary
             .summary_line()
@@ -5718,6 +5729,7 @@ mod tests {
             .summary_line()
             .contains("Packaged artifact generation manifest:"));
         assert!(manifest.summary_line().contains("speed policy=Unsupported"));
+        assert!(manifest.summary_line().contains("segment strategy="));
         assert!(manifest.summary_line().contains("regeneration="));
         assert!(packaged_artifact_generation_manifest_for_report()
             .contains("Packaged artifact generation manifest:"));

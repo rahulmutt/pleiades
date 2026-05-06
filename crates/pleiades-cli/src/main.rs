@@ -2799,6 +2799,9 @@ mod tests {
         assert!(jpl_snapshot_evidence_summary
             .contains(&pleiades_jpl::jpl_source_posture_summary_for_report()));
         assert!(jpl_snapshot_evidence_summary.contains(
+            &pleiades_jpl::reference_snapshot_2451914_major_body_bridge_day_summary_for_report()
+        ));
+        assert!(jpl_snapshot_evidence_summary.contains(
             &pleiades_jpl::reference_snapshot_1750_major_body_interior_summary_for_report()
         ));
         assert_eq!(
