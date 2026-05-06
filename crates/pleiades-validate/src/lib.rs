@@ -4683,8 +4683,16 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "release-checklist")?;
             Ok(render_release_checklist_text())
         }
+        Some("release-gate") => {
+            ensure_no_extra_args(&args[1..], "release-gate")?;
+            Ok(render_release_checklist_text())
+        }
         Some("release-checklist-summary") | Some("checklist-summary") => {
             ensure_no_extra_args(&args[1..], "release-checklist-summary")?;
+            Ok(render_release_checklist_summary_text())
+        }
+        Some("release-gate-summary") => {
+            ensure_no_extra_args(&args[1..], "release-gate-summary")?;
             Ok(render_release_checklist_summary_text())
         }
         Some("release-summary") => {
@@ -16516,7 +16524,7 @@ fn help_text() -> String {
   release-ayanamsa-canonical-names-summary  Print the compact release-specific ayanamsa canonical names summary
   release-ayanamsa-canonical-names  Alias for release-ayanamsa-canonical-names-summary
   profile-summary           Alias for compatibility-profile-summary
-  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  release-notes             Print the release compatibility notes\n  release-notes-summary     Print the compact release notes summary\n  release-checklist         Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  checklist-summary        Alias for release-checklist-summary\n  release-summary           Print the compact release summary\n  jpl-batch-error-taxonomy-summary  Print the compact JPL batch error taxonomy summary\n  jpl-snapshot-evidence-summary  Print the compact combined JPL evidence summary\n  production-generation-boundary-summary  Print the compact production-generation boundary overlay summary\n  production-generation-boundary-request-corpus-summary  Print the compact production-generation boundary request corpus summary\n  production-generation-body-class-coverage-summary  Print the compact production-generation body-class coverage summary\n  production-body-class-coverage-summary  Alias for production-generation-body-class-coverage-summary\n  production-generation-source-window-summary  Print the compact production-generation source windows summary\n  production-generation-summary  Print the compact production-generation coverage summary
+  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  release-notes             Print the release compatibility notes\n  release-notes-summary     Print the compact release notes summary\n  release-checklist         Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  release-gate              Alias for release-checklist\n  release-gate-summary      Alias for release-checklist-summary\n  checklist-summary        Alias for release-checklist-summary\n  release-summary           Print the compact release summary\n  jpl-batch-error-taxonomy-summary  Print the compact JPL batch error taxonomy summary\n  jpl-snapshot-evidence-summary  Print the compact combined JPL evidence summary\n  production-generation-boundary-summary  Print the compact production-generation boundary overlay summary\n  production-generation-boundary-request-corpus-summary  Print the compact production-generation boundary request corpus summary\n  production-generation-body-class-coverage-summary  Print the compact production-generation body-class coverage summary\n  production-body-class-coverage-summary  Alias for production-generation-body-class-coverage-summary\n  production-generation-source-window-summary  Print the compact production-generation source windows summary\n  production-generation-summary  Print the compact production-generation coverage summary
   production-generation           Alias for production-generation-summary
   production-generation-boundary-source-summary  Print the compact production-generation boundary source summary
   production-generation-boundary-window-summary  Print the compact production-generation boundary windows summary
@@ -21619,6 +21627,22 @@ mod tests {
         assert!(
             rendered.contains("See release-summary for the compact one-screen release overview.")
         );
+    }
+
+    #[test]
+    fn release_gate_command_aliases_the_release_checklist() {
+        let checklist =
+            render_cli(&["release-checklist"]).expect("release checklist should render");
+        let gate = render_cli(&["release-gate"]).expect("release gate should render");
+        let checklist_summary = render_cli(&["release-checklist-summary"])
+            .expect("release checklist summary should render");
+        let gate_summary =
+            render_cli(&["release-gate-summary"]).expect("release gate summary should render");
+
+        assert_eq!(gate, checklist);
+        assert_eq!(gate_summary, checklist_summary);
+        assert!(render_cli(&["release-gate", "extra"]).is_err());
+        assert!(render_cli(&["release-gate-summary", "extra"]).is_err());
     }
 
     #[test]

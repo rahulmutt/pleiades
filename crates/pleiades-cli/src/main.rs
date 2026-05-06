@@ -143,7 +143,9 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("release-notes") => validate_render_cli(args),
         Some("release-notes-summary") => validate_render_cli(args),
         Some("release-checklist") => validate_render_cli(args),
+        Some("release-gate") => validate_render_cli(args),
         Some("release-checklist-summary") | Some("checklist-summary") => validate_render_cli(args),
+        Some("release-gate-summary") => validate_render_cli(args),
         Some("release-summary") => validate_render_cli(args),
         Some("jpl-batch-error-taxonomy-summary") => validate_render_cli(args),
         Some("jpl-snapshot-evidence-summary") => validate_render_cli(args),
@@ -2350,6 +2352,12 @@ mod tests {
         assert!(release_checklist_summary.contains("External publishing reminders: 3 items"));
         assert!(release_checklist_summary
             .contains("See release-summary for the compact one-screen release overview."));
+
+        let release_gate = render_cli(&["release-gate"]).expect("release gate should render");
+        let release_gate_summary =
+            render_cli(&["release-gate-summary"]).expect("release gate summary should render");
+        assert_eq!(release_gate, release_checklist);
+        assert_eq!(release_gate_summary, release_checklist_summary);
 
         let release_summary =
             render_cli(&["release-summary"]).expect("release summary should render");
