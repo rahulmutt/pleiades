@@ -545,9 +545,10 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("packaged-frame-parity-summary") => validate_render_cli(args),
         Some("packaged-frame-treatment-summary") => validate_render_cli(args),
-        Some("packaged-lookup-epoch-policy-summary") | Some("packaged-lookup-epoch-policy") => {
-            validate_render_cli(args)
-        }
+        Some("packaged-lookup-epoch-policy-summary")
+        | Some("packaged-lookup-epoch-policy")
+        | Some("packaged-artifact-lookup-epoch-policy-summary")
+        | Some("packaged-artifact-lookup-epoch-policy") => validate_render_cli(args),
         Some("validate-artifact") => validate_render_cli(args),
         Some("regenerate-packaged-artifact") => {
             if args[1..].iter().any(|arg| *arg == "--help" || *arg == "-h") {
@@ -2812,6 +2813,16 @@ mod tests {
             packaged_lookup_epoch_policy_summary,
             render_cli(&["packaged-lookup-epoch-policy"])
                 .expect("packaged lookup epoch policy alias should render")
+        );
+        assert_eq!(
+            packaged_lookup_epoch_policy_summary,
+            render_cli(&["packaged-artifact-lookup-epoch-policy-summary"])
+                .expect("packaged artifact lookup epoch policy summary alias should render")
+        );
+        assert_eq!(
+            packaged_lookup_epoch_policy_summary,
+            render_cli(&["packaged-artifact-lookup-epoch-policy"])
+                .expect("packaged artifact lookup epoch policy alias should render")
         );
 
         let production_generation_boundary_summary =
@@ -5315,6 +5326,8 @@ mod tests {
         assert!(help.contains(
             "packaged-lookup-epoch-policy         Alias for packaged-lookup-epoch-policy-summary"
         ));
+        assert!(help.contains("packaged-artifact-lookup-epoch-policy-summary"));
+        assert!(help.contains("Alias for packaged-artifact-lookup-epoch-policy-summary"));
         assert!(help.contains(
             "production-generation-summary  Print the compact production-generation coverage summary"
         ));
