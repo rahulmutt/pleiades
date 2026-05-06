@@ -8827,7 +8827,7 @@ pub fn render_release_bundle(
     let release_body_claims_summary_text = release_body_claims_summary_for_report().summary_line();
     let pluto_fallback_summary_text = pluto_fallback_summary_for_report().summary_line();
     let request_policy_summary_text = render_request_policy_summary_text();
-    let request_semantics_summary_text = request_policy_summary_text.clone();
+    let request_semantics_summary_text = render_request_semantics_summary_text();
     let time_scale_policy_summary_text = render_time_scale_policy_summary_text();
     let utc_convenience_policy_summary_text = render_utc_convenience_policy_summary_text();
     let delta_t_policy_summary_text = render_delta_t_policy_summary_text();
@@ -22915,6 +22915,9 @@ version = "0.9.0"
         let release_profile_identifiers_summary =
             std::fs::read_to_string(bundle_dir.join("release-profile-identifiers-summary.txt"))
                 .expect("release-profile identifiers summary should be written");
+        let request_semantics_summary =
+            std::fs::read_to_string(bundle_dir.join("request-semantics-summary.txt"))
+                .expect("request semantics summary should be written");
         let release_checklist = std::fs::read_to_string(bundle_dir.join("release-checklist.txt"))
             .expect("release checklist should be written");
         let release_checklist_summary =
@@ -22974,6 +22977,10 @@ version = "0.9.0"
         assert_eq!(
             reference_snapshot_summary,
             reference_snapshot_summary_for_report()
+        );
+        assert_eq!(
+            request_semantics_summary,
+            render_request_semantics_summary_text()
         );
         let manifest = std::fs::read_to_string(bundle_dir.join("bundle-manifest.txt"))
             .expect("manifest should be written");
