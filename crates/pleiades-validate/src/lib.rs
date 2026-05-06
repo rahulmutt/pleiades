@@ -8695,6 +8695,8 @@ pub fn render_release_bundle(
     let artifact_summary_text = render_artifact_summary()
         .map_err(|error| ReleaseBundleError::Verification(error.to_string()))?;
     let packaged_artifact_access_summary_text = packaged_artifact_access_summary_for_report();
+    let packaged_artifact_output_support_summary_text =
+        packaged_artifact_output_support_summary_for_report();
     let packaged_artifact_storage_summary_text = packaged_artifact_storage_summary_for_report();
     let packaged_artifact_production_profile_summary_text =
         packaged_artifact_production_profile_summary_for_report();
@@ -8754,6 +8756,8 @@ pub fn render_release_bundle(
     let artifact_summary_path = output_dir.join("artifact-summary.txt");
     let packaged_artifact_access_summary_path =
         output_dir.join("packaged-artifact-access-summary.txt");
+    let packaged_artifact_output_support_summary_path =
+        output_dir.join("packaged-artifact-output-support-summary.txt");
     let packaged_artifact_storage_summary_path =
         output_dir.join("packaged-artifact-storage-summary.txt");
     let packaged_artifact_production_profile_summary_path =
@@ -8825,6 +8829,8 @@ pub fn render_release_bundle(
     let artifact_summary_checksum = checksum64(&artifact_summary_text);
     let packaged_artifact_access_summary_checksum =
         checksum64(&packaged_artifact_access_summary_text);
+    let packaged_artifact_output_support_summary_checksum =
+        checksum64(&packaged_artifact_output_support_summary_text);
     let packaged_artifact_storage_summary_checksum =
         checksum64(&packaged_artifact_storage_summary_text);
     let packaged_artifact_production_profile_summary_checksum =
@@ -8839,7 +8845,7 @@ pub fn render_release_bundle(
     let benchmark_report_checksum = checksum64(&benchmark_report_text);
     let validation_report_checksum = checksum64(&validation_report_text);
     let manifest_text = format!(
-        "Release bundle manifest\nprofile: compatibility-profile.txt\nprofile checksum (fnv1a-64): 0x{compatibility_profile_checksum:016x}\nprofile summary: compatibility-profile-summary.txt\nprofile summary checksum (fnv1a-64): 0x{compatibility_profile_summary_checksum:016x}\nrelease notes: release-notes.txt\nrelease notes checksum (fnv1a-64): 0x{release_notes_checksum:016x}\nrelease notes summary: release-notes-summary.txt\nrelease notes summary checksum (fnv1a-64): 0x{release_notes_summary_checksum:016x}\nrelease summary: release-summary.txt\nrelease summary checksum (fnv1a-64): 0x{release_summary_checksum:016x}\nrelease-profile identifiers: release-profile-identifiers.txt\nrelease-profile identifiers checksum (fnv1a-64): 0x{release_profile_identifiers_checksum:016x}\nrelease-profile identifiers summary: release-profile-identifiers-summary.txt\nrelease-profile identifiers summary checksum (fnv1a-64): 0x{release_profile_identifiers_summary_checksum:016x}\nrelease-house-system-canonical-names summary: release-house-system-canonical-names-summary.txt\nrelease-house-system-canonical-names summary checksum (fnv1a-64): 0x{release_house_system_canonical_names_summary_checksum:016x}\nrelease-ayanamsa-canonical-names summary: release-ayanamsa-canonical-names-summary.txt\nrelease-ayanamsa-canonical-names summary checksum (fnv1a-64): 0x{release_ayanamsa_canonical_names_summary_checksum:016x}\nrelease checklist: release-checklist.txt\nrelease checklist checksum (fnv1a-64): 0x{release_checklist_checksum:016x}\nrelease checklist summary: release-checklist-summary.txt\nrelease checklist summary checksum (fnv1a-64): 0x{release_checklist_summary_checksum:016x}\nbackend matrix: backend-matrix.txt\nbackend matrix checksum (fnv1a-64): 0x{backend_matrix_checksum:016x}\nbackend matrix summary: backend-matrix-summary.txt\nbackend matrix summary checksum (fnv1a-64): 0x{backend_matrix_summary_checksum:016x}\napi stability posture: api-stability.txt\napi stability checksum (fnv1a-64): 0x{api_stability_checksum:016x}\napi stability summary: api-stability-summary.txt\napi stability summary checksum (fnv1a-64): 0x{api_stability_summary_checksum:016x}\ncomparison-corpus summary: comparison-corpus-summary.txt\ncomparison-corpus summary checksum (fnv1a-64): 0x{comparison_corpus_summary_checksum:016x}\ncomparison-snapshot summary: comparison-snapshot-summary.txt\ncomparison-snapshot summary checksum (fnv1a-64): 0x{comparison_snapshot_summary_checksum:016x}\ncomparison-envelope summary: comparison-envelope-summary.txt\ncomparison-envelope summary checksum (fnv1a-64): 0x{comparison_envelope_summary_checksum:016x}\ncomparison-corpus release-guard summary: comparison-corpus-release-guard-summary.txt\ncomparison-corpus release-guard summary checksum (fnv1a-64): 0x{comparison_corpus_release_guard_summary_checksum:016x}\nreference-holdout overlap summary: reference-holdout-overlap-summary.txt\nreference-holdout overlap summary checksum (fnv1a-64): 0x{reference_holdout_overlap_summary_checksum:016x}\nreference snapshot bridge day summary: reference-snapshot-bridge-day-summary.txt\nreference snapshot bridge day summary checksum (fnv1a-64): 0x{reference_snapshot_bridge_day_summary_checksum:016x}\nreference snapshot summary: reference-snapshot-summary.txt\nreference snapshot summary checksum (fnv1a-64): 0x{reference_snapshot_summary_checksum:016x}\ncatalog inventory summary: catalog-inventory-summary.txt\ncatalog inventory summary checksum (fnv1a-64): 0x{catalog_inventory_summary_checksum:016x}\ncustom-definition ayanamsa labels summary: custom-definition-ayanamsa-labels-summary.txt\ncustom-definition ayanamsa labels summary checksum (fnv1a-64): 0x{custom_definition_ayanamsa_labels_summary_checksum:016x}\nvalidation report summary: validation-report-summary.txt\nvalidation report summary checksum (fnv1a-64): 0x{validation_report_summary_checksum:016x}\nrequest policy summary: request-policy-summary.txt\nrequest policy summary checksum (fnv1a-64): 0x{request_policy_summary_checksum:016x}\ntime-scale policy summary: time-scale-policy-summary.txt\ntime-scale policy summary checksum (fnv1a-64): 0x{time_scale_policy_summary_checksum:016x}\nutc-convenience policy summary: utc-convenience-policy-summary.txt\nutc-convenience policy summary checksum (fnv1a-64): 0x{utc_convenience_policy_summary_checksum:016x}\ndelta-t policy summary: delta-t-policy-summary.txt\ndelta-t policy summary checksum (fnv1a-64): 0x{delta_t_policy_summary_checksum:016x}\nnative sidereal policy summary: native-sidereal-policy-summary.txt\nnative sidereal policy summary checksum (fnv1a-64): 0x{native_sidereal_policy_summary_checksum:016x}\nlunar theory limitations summary: lunar-theory-limitations-summary.txt\nlunar theory limitations summary checksum (fnv1a-64): 0x{lunar_theory_limitations_summary_checksum:016x}\nrequest surface summary: request-surface-summary.txt\nrequest surface summary checksum (fnv1a-64): 0x{request_surface_summary_checksum:016x}\ncompatibility caveats summary: compatibility-caveats-summary.txt\ncompatibility caveats summary checksum (fnv1a-64): 0x{compatibility_caveats_summary_checksum:016x}\nworkspace audit summary: workspace-audit-summary.txt\nworkspace audit summary checksum (fnv1a-64): 0x{workspace_audit_summary_checksum:016x}\nnative-dependency audit summary: native-dependency-audit-summary.txt\nnative-dependency audit summary checksum (fnv1a-64): 0x{native_dependency_audit_summary_checksum:016x}\nartifact summary: artifact-summary.txt\nartifact summary checksum (fnv1a-64): 0x{artifact_summary_checksum:016x}\npackaged-artifact access summary: packaged-artifact-access-summary.txt\npackaged-artifact access summary checksum (fnv1a-64): 0x{packaged_artifact_access_summary_checksum:016x}\npackaged-artifact storage summary: packaged-artifact-storage-summary.txt\npackaged-artifact storage summary checksum (fnv1a-64): 0x{packaged_artifact_storage_summary_checksum:016x}\npackaged-artifact production-profile summary: packaged-artifact-production-profile-summary.txt\npackaged-artifact production-profile summary checksum (fnv1a-64): 0x{packaged_artifact_production_profile_summary_checksum:016x}\npackaged-artifact target-threshold summary: packaged-artifact-target-threshold-summary.txt
+        "Release bundle manifest\nprofile: compatibility-profile.txt\nprofile checksum (fnv1a-64): 0x{compatibility_profile_checksum:016x}\nprofile summary: compatibility-profile-summary.txt\nprofile summary checksum (fnv1a-64): 0x{compatibility_profile_summary_checksum:016x}\nrelease notes: release-notes.txt\nrelease notes checksum (fnv1a-64): 0x{release_notes_checksum:016x}\nrelease notes summary: release-notes-summary.txt\nrelease notes summary checksum (fnv1a-64): 0x{release_notes_summary_checksum:016x}\nrelease summary: release-summary.txt\nrelease summary checksum (fnv1a-64): 0x{release_summary_checksum:016x}\nrelease-profile identifiers: release-profile-identifiers.txt\nrelease-profile identifiers checksum (fnv1a-64): 0x{release_profile_identifiers_checksum:016x}\nrelease-profile identifiers summary: release-profile-identifiers-summary.txt\nrelease-profile identifiers summary checksum (fnv1a-64): 0x{release_profile_identifiers_summary_checksum:016x}\nrelease-house-system-canonical-names summary: release-house-system-canonical-names-summary.txt\nrelease-house-system-canonical-names summary checksum (fnv1a-64): 0x{release_house_system_canonical_names_summary_checksum:016x}\nrelease-ayanamsa-canonical-names summary: release-ayanamsa-canonical-names-summary.txt\nrelease-ayanamsa-canonical-names summary checksum (fnv1a-64): 0x{release_ayanamsa_canonical_names_summary_checksum:016x}\nrelease checklist: release-checklist.txt\nrelease checklist checksum (fnv1a-64): 0x{release_checklist_checksum:016x}\nrelease checklist summary: release-checklist-summary.txt\nrelease checklist summary checksum (fnv1a-64): 0x{release_checklist_summary_checksum:016x}\nbackend matrix: backend-matrix.txt\nbackend matrix checksum (fnv1a-64): 0x{backend_matrix_checksum:016x}\nbackend matrix summary: backend-matrix-summary.txt\nbackend matrix summary checksum (fnv1a-64): 0x{backend_matrix_summary_checksum:016x}\napi stability posture: api-stability.txt\napi stability checksum (fnv1a-64): 0x{api_stability_checksum:016x}\napi stability summary: api-stability-summary.txt\napi stability summary checksum (fnv1a-64): 0x{api_stability_summary_checksum:016x}\ncomparison-corpus summary: comparison-corpus-summary.txt\ncomparison-corpus summary checksum (fnv1a-64): 0x{comparison_corpus_summary_checksum:016x}\ncomparison-snapshot summary: comparison-snapshot-summary.txt\ncomparison-snapshot summary checksum (fnv1a-64): 0x{comparison_snapshot_summary_checksum:016x}\ncomparison-envelope summary: comparison-envelope-summary.txt\ncomparison-envelope summary checksum (fnv1a-64): 0x{comparison_envelope_summary_checksum:016x}\ncomparison-corpus release-guard summary: comparison-corpus-release-guard-summary.txt\ncomparison-corpus release-guard summary checksum (fnv1a-64): 0x{comparison_corpus_release_guard_summary_checksum:016x}\nreference-holdout overlap summary: reference-holdout-overlap-summary.txt\nreference-holdout overlap summary checksum (fnv1a-64): 0x{reference_holdout_overlap_summary_checksum:016x}\nreference snapshot bridge day summary: reference-snapshot-bridge-day-summary.txt\nreference snapshot bridge day summary checksum (fnv1a-64): 0x{reference_snapshot_bridge_day_summary_checksum:016x}\nreference snapshot summary: reference-snapshot-summary.txt\nreference snapshot summary checksum (fnv1a-64): 0x{reference_snapshot_summary_checksum:016x}\ncatalog inventory summary: catalog-inventory-summary.txt\ncatalog inventory summary checksum (fnv1a-64): 0x{catalog_inventory_summary_checksum:016x}\ncustom-definition ayanamsa labels summary: custom-definition-ayanamsa-labels-summary.txt\ncustom-definition ayanamsa labels summary checksum (fnv1a-64): 0x{custom_definition_ayanamsa_labels_summary_checksum:016x}\nvalidation report summary: validation-report-summary.txt\nvalidation report summary checksum (fnv1a-64): 0x{validation_report_summary_checksum:016x}\nrequest policy summary: request-policy-summary.txt\nrequest policy summary checksum (fnv1a-64): 0x{request_policy_summary_checksum:016x}\ntime-scale policy summary: time-scale-policy-summary.txt\ntime-scale policy summary checksum (fnv1a-64): 0x{time_scale_policy_summary_checksum:016x}\nutc-convenience policy summary: utc-convenience-policy-summary.txt\nutc-convenience policy summary checksum (fnv1a-64): 0x{utc_convenience_policy_summary_checksum:016x}\ndelta-t policy summary: delta-t-policy-summary.txt\ndelta-t policy summary checksum (fnv1a-64): 0x{delta_t_policy_summary_checksum:016x}\nnative sidereal policy summary: native-sidereal-policy-summary.txt\nnative sidereal policy summary checksum (fnv1a-64): 0x{native_sidereal_policy_summary_checksum:016x}\nlunar theory limitations summary: lunar-theory-limitations-summary.txt\nlunar theory limitations summary checksum (fnv1a-64): 0x{lunar_theory_limitations_summary_checksum:016x}\nrequest surface summary: request-surface-summary.txt\nrequest surface summary checksum (fnv1a-64): 0x{request_surface_summary_checksum:016x}\ncompatibility caveats summary: compatibility-caveats-summary.txt\ncompatibility caveats summary checksum (fnv1a-64): 0x{compatibility_caveats_summary_checksum:016x}\nworkspace audit summary: workspace-audit-summary.txt\nworkspace audit summary checksum (fnv1a-64): 0x{workspace_audit_summary_checksum:016x}\nnative-dependency audit summary: native-dependency-audit-summary.txt\nnative-dependency audit summary checksum (fnv1a-64): 0x{native_dependency_audit_summary_checksum:016x}\nartifact summary: artifact-summary.txt\nartifact summary checksum (fnv1a-64): 0x{artifact_summary_checksum:016x}\npackaged-artifact access summary: packaged-artifact-access-summary.txt\npackaged-artifact access summary checksum (fnv1a-64): 0x{packaged_artifact_access_summary_checksum:016x}\npackaged-artifact output support summary: packaged-artifact-output-support-summary.txt\npackaged-artifact output support summary checksum (fnv1a-64): 0x{packaged_artifact_output_support_summary_checksum:016x}\npackaged-artifact storage summary: packaged-artifact-storage-summary.txt\npackaged-artifact storage summary checksum (fnv1a-64): 0x{packaged_artifact_storage_summary_checksum:016x}\npackaged-artifact production-profile summary: packaged-artifact-production-profile-summary.txt\npackaged-artifact production-profile summary checksum (fnv1a-64): 0x{packaged_artifact_production_profile_summary_checksum:016x}\npackaged-artifact target-threshold summary: packaged-artifact-target-threshold-summary.txt
 packaged-artifact target-threshold summary checksum (fnv1a-64): 0x{packaged_artifact_target_threshold_summary_checksum:016x}
 packaged-artifact lookup-epoch policy summary: packaged-lookup-epoch-policy-summary.txt
 packaged-artifact lookup-epoch policy summary checksum (fnv1a-64): 0x{packaged_lookup_epoch_policy_summary_checksum:016x}
@@ -8985,6 +8991,10 @@ benchmark-corpus summary: benchmark-corpus-summary.txt\nbenchmark-corpus summary
         packaged_artifact_access_summary_text.as_bytes(),
     )?;
     fs::write(
+        &packaged_artifact_output_support_summary_path,
+        packaged_artifact_output_support_summary_text.as_bytes(),
+    )?;
+    fs::write(
         &packaged_artifact_storage_summary_path,
         packaged_artifact_storage_summary_text.as_bytes(),
     )?;
@@ -9092,6 +9102,7 @@ struct ParsedReleaseBundleManifest {
     artifact_summary_checksum: u64,
     packaged_artifact_access_summary_path: String,
     packaged_artifact_access_summary_checksum: u64,
+    packaged_artifact_output_support_summary_checksum: u64,
     packaged_artifact_storage_summary_checksum: u64,
     packaged_artifact_production_profile_summary_checksum: u64,
     packaged_artifact_target_threshold_summary_checksum: u64,
@@ -9364,6 +9375,10 @@ impl ParsedReleaseBundleManifest {
                 text,
                 "packaged-artifact access summary checksum (fnv1a-64):",
             )?,
+            packaged_artifact_output_support_summary_checksum: parse_manifest_checksum(
+                text,
+                "packaged-artifact output support summary checksum (fnv1a-64):",
+            )?,
             packaged_artifact_storage_summary_checksum: parse_manifest_checksum(
                 text,
                 "packaged-artifact storage summary checksum (fnv1a-64):",
@@ -9465,6 +9480,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
         "native-dependency-audit-summary.txt",
         "artifact-summary.txt",
         "packaged-artifact-access-summary.txt",
+        "packaged-artifact-output-support-summary.txt",
         "packaged-artifact-storage-summary.txt",
         "packaged-artifact-production-profile-summary.txt",
         "packaged-artifact-target-threshold-summary.txt",
@@ -9506,7 +9522,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
 fn ensure_release_bundle_manifest_is_canonical(
     manifest_text: &str,
 ) -> Result<(), ReleaseBundleError> {
-    const EXPECTED_MANIFEST_LINES: [&str; 97] = [
+    const EXPECTED_MANIFEST_LINES: [&str; 99] = [
         "Release bundle manifest",
         "profile:",
         "profile checksum (fnv1a-64):",
@@ -9582,6 +9598,8 @@ fn ensure_release_bundle_manifest_is_canonical(
         "artifact summary checksum (fnv1a-64):",
         "packaged-artifact access summary:",
         "packaged-artifact access summary checksum (fnv1a-64):",
+        "packaged-artifact output support summary:",
+        "packaged-artifact output support summary checksum (fnv1a-64):",
         "packaged-artifact storage summary:",
         "packaged-artifact storage summary checksum (fnv1a-64):",
         "packaged-artifact production-profile summary:",
@@ -9704,6 +9722,8 @@ fn verify_release_bundle(
     let artifact_summary_path = output_dir.join("artifact-summary.txt");
     let packaged_artifact_access_summary_path =
         output_dir.join("packaged-artifact-access-summary.txt");
+    let packaged_artifact_output_support_summary_path =
+        output_dir.join("packaged-artifact-output-support-summary.txt");
     let packaged_artifact_storage_summary_path =
         output_dir.join("packaged-artifact-storage-summary.txt");
     let packaged_artifact_production_profile_summary_path =
@@ -9888,6 +9908,12 @@ fn verify_release_bundle(
     )?;
     let packaged_artifact_access_summary_checksum =
         checksum64(&packaged_artifact_access_summary_text);
+    let packaged_artifact_output_support_summary_text = read_required_bundle_text(
+        &packaged_artifact_output_support_summary_path,
+        "packaged-artifact output support summary",
+    )?;
+    let packaged_artifact_output_support_summary_checksum =
+        checksum64(&packaged_artifact_output_support_summary_text);
     let packaged_artifact_storage_summary_text = read_required_bundle_text(
         &packaged_artifact_storage_summary_path,
         "packaged-artifact storage summary",
@@ -10546,6 +10572,14 @@ fn verify_release_bundle(
         return Err(ReleaseBundleError::Verification(format!(
             "packaged-artifact access summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
             manifest.packaged_artifact_access_summary_checksum, packaged_artifact_access_summary_checksum
+        )));
+    }
+    if manifest.packaged_artifact_output_support_summary_checksum
+        != packaged_artifact_output_support_summary_checksum
+    {
+        return Err(ReleaseBundleError::Verification(format!(
+            "packaged-artifact output support summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
+            manifest.packaged_artifact_output_support_summary_checksum, packaged_artifact_output_support_summary_checksum
         )));
     }
     if manifest.packaged_artifact_storage_summary_checksum
@@ -22434,6 +22468,9 @@ version = "0.9.0"
             .join("packaged-artifact-access-summary.txt")
             .exists());
         assert!(bundle_dir
+            .join("packaged-artifact-output-support-summary.txt")
+            .exists());
+        assert!(bundle_dir
             .join("packaged-artifact-storage-summary.txt")
             .exists());
         assert!(bundle_dir
@@ -23214,6 +23251,10 @@ version = "0.9.0"
         assert!(manifest.contains("artifact-summary.txt"));
         assert!(manifest.contains("packaged-artifact-access-summary.txt"));
         assert!(manifest.contains("packaged-artifact access summary checksum (fnv1a-64): 0x"));
+        assert!(manifest.contains("packaged-artifact output support summary: packaged-artifact-output-support-summary.txt"));
+        assert!(
+            manifest.contains("packaged-artifact output support summary checksum (fnv1a-64): 0x")
+        );
         assert!(manifest.contains("packaged-artifact storage summary checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("packaged-artifact-production-profile-summary.txt"));
         assert!(manifest.contains("packaged-artifact-target-threshold-summary.txt"));
