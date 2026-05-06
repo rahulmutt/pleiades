@@ -8371,6 +8371,8 @@ fn render_release_summary_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_2451919_major_body_boundary_summary_for_report());
     text.push('\n');
+    text.push_str(&reference_snapshot_2451920_major_body_interior_summary_for_report());
+    text.push('\n');
     text.push_str(&reference_snapshot_mars_jupiter_boundary_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_mars_outer_boundary_summary_for_report());
@@ -13833,6 +13835,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         text,
         "  {}",
         reference_snapshot_2451919_major_body_boundary_summary_for_report()
+    );
+    let _ = writeln!(
+        text,
+        "  {}",
+        reference_snapshot_2451920_major_body_interior_summary_for_report()
     );
     let _ = writeln!(
         text,
@@ -22312,6 +22319,9 @@ mod tests {
         assert!(
             rendered.contains(&reference_snapshot_2451919_major_body_boundary_summary_for_report())
         );
+        assert!(
+            rendered.contains(&reference_snapshot_2451920_major_body_interior_summary_for_report())
+        );
         assert!(rendered.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
         assert!(rendered
@@ -23128,6 +23138,8 @@ version = "0.9.0"
             .contains("Compatibility profile summary: compatibility-profile-summary"));
         assert!(release_summary.contains("Backend matrix summary: backend-matrix-summary"));
         assert!(release_summary.contains("JPL interpolation posture: source="));
+        assert!(release_summary
+            .contains(&reference_snapshot_2451920_major_body_interior_summary_for_report()));
         assert!(release_summary.contains(
             "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); request-policy-summary / request-policy / request-semantics-summary / request-semantics / utc-convenience-policy-summary / utc-convenience-policy / delta-t-policy-summary / delta-t-policy (compact request-policy report entrypoints); pleiades-cli chart (explicit --tt|--tdb|--utc|--ut1 flags plus caller-supplied TT/TDB offset aliases: --tt-offset-seconds, --tt-from-utc-offset-seconds, --tt-from-ut1-offset-seconds, --tdb-offset-seconds, --tdb-from-utc-offset-seconds, --tdb-from-ut1-offset-seconds, --tdb-from-tt-offset-seconds, and --tt-from-tdb-offset-seconds; observer-bearing chart requests stay geocentric and use the observer only for houses)"
         ));
