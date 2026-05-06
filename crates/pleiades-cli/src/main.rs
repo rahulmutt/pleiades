@@ -3263,6 +3263,9 @@ mod tests {
             )
         ));
         assert!(reference_snapshot_summary.contains(
+            &pleiades_jpl::reference_snapshot_2451916_major_body_boundary_summary_for_report()
+        ));
+        assert!(reference_snapshot_summary.contains(
             &pleiades_jpl::reference_snapshot_2451918_major_body_boundary_summary_for_report()
         ));
         assert!(reference_snapshot_summary.contains(
