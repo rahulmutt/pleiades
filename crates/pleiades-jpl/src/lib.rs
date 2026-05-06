@@ -15954,6 +15954,17 @@ pub fn reference_snapshot_pre_bridge_boundary_summary_for_report() -> String {
     }
 }
 
+/// Returns the compact typed summary for the 2451914 major-body pre-bridge boundary evidence.
+pub fn reference_snapshot_2451914_major_body_pre_bridge_summary(
+) -> Option<ReferenceSnapshotPreBridgeBoundarySummary> {
+    reference_snapshot_pre_bridge_boundary_summary()
+}
+
+/// Returns the release-facing 2451914 major-body pre-bridge boundary summary string.
+pub fn reference_snapshot_2451914_major_body_pre_bridge_summary_for_report() -> String {
+    reference_snapshot_pre_bridge_boundary_summary_for_report()
+}
+
 const REFERENCE_BRIDGE_DAY_EPOCH: f64 = 2_451_914.0;
 
 fn reference_snapshot_bridge_day_entries() -> Option<&'static [SnapshotEntry]> {
@@ -16150,6 +16161,28 @@ pub fn reference_snapshot_bridge_day_summary_for_report() -> String {
         },
         None => "Reference snapshot bridge day: unavailable".to_string(),
     }
+}
+
+/// Returns the compact typed summary for the 2451914 major-body bridge evidence.
+pub fn reference_snapshot_2451914_major_body_bridge_summary(
+) -> Option<ReferenceSnapshotBridgeDaySummary> {
+    reference_snapshot_bridge_day_summary()
+}
+
+/// Returns the release-facing 2451914 major-body bridge summary string.
+pub fn reference_snapshot_2451914_major_body_bridge_summary_for_report() -> String {
+    reference_snapshot_bridge_day_summary_for_report()
+}
+
+/// Returns the compact typed summary for the 2451915 major-body bridge evidence.
+pub fn reference_snapshot_2451915_major_body_bridge_summary(
+) -> Option<ReferenceMajorBodyBridgeSummary> {
+    reference_snapshot_major_body_bridge_summary()
+}
+
+/// Returns the release-facing 2451915 major-body bridge summary string.
+pub fn reference_snapshot_2451915_major_body_bridge_summary_for_report() -> String {
+    reference_snapshot_major_body_bridge_summary_for_report()
 }
 
 /// Compact release-facing summary for the dense 2451916.5 boundary day in the reference snapshot.
@@ -22569,6 +22602,48 @@ mod tests {
                 .summary_line(),
             reference_snapshot_mars_jupiter_boundary_summary()
                 .expect("reference Mars/Jupiter boundary summary should exist")
+                .summary_line()
+        );
+    }
+
+    #[test]
+    fn reference_snapshot_2451914_and_2451915_boundary_aliases_match_the_generic_reports() {
+        assert_eq!(
+            reference_snapshot_2451914_major_body_pre_bridge_summary_for_report(),
+            reference_snapshot_pre_bridge_boundary_summary_for_report()
+        );
+        assert_eq!(
+            reference_snapshot_2451914_major_body_pre_bridge_summary()
+                .expect("reference 2451914 major-body pre-bridge summary should exist")
+                .summary_line(),
+            reference_snapshot_pre_bridge_boundary_summary()
+                .expect("reference pre-bridge boundary summary should exist")
+                .summary_line()
+        );
+
+        assert_eq!(
+            reference_snapshot_2451914_major_body_bridge_summary_for_report(),
+            reference_snapshot_bridge_day_summary_for_report()
+        );
+        assert_eq!(
+            reference_snapshot_2451914_major_body_bridge_summary()
+                .expect("reference 2451914 major-body bridge summary should exist")
+                .summary_line(),
+            reference_snapshot_bridge_day_summary()
+                .expect("reference bridge day summary should exist")
+                .summary_line()
+        );
+
+        assert_eq!(
+            reference_snapshot_2451915_major_body_bridge_summary_for_report(),
+            reference_snapshot_major_body_bridge_summary_for_report()
+        );
+        assert_eq!(
+            reference_snapshot_2451915_major_body_bridge_summary()
+                .expect("reference 2451915 major-body bridge summary should exist")
+                .summary_line(),
+            reference_snapshot_major_body_bridge_summary()
+                .expect("reference major-body bridge summary should exist")
                 .summary_line()
         );
     }
