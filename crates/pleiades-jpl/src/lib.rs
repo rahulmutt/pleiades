@@ -2356,6 +2356,7 @@ pub fn reference_snapshot_summary_for_report() -> String {
   {}
   {}
   {}
+  {}
   {}",
         reference_snapshot_1749_major_body_boundary_summary_for_report(),
         reference_snapshot_1750_selected_body_boundary_summary_for_report(),
@@ -2378,6 +2379,7 @@ pub fn reference_snapshot_summary_for_report() -> String {
         reference_snapshot_2451920_major_body_interior_summary_for_report(),
         reference_snapshot_2453000_major_body_boundary_summary_for_report(),
         reference_snapshot_2200_selected_body_boundary_summary_for_report(),
+        reference_snapshot_mars_outer_boundary_summary_for_report(),
         reference_snapshot_2500_selected_body_boundary_summary_for_report()
     )
 }
@@ -23548,6 +23550,7 @@ mod tests {
         assert!(
             report.contains(&reference_snapshot_2451920_major_body_interior_summary_for_report())
         );
+        assert!(report.contains(&reference_snapshot_mars_outer_boundary_summary_for_report()));
     }
 
     #[test]
