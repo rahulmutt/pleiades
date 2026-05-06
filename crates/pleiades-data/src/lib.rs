@@ -949,6 +949,8 @@ pub struct PackagedArtifactRegenerationSummary {
     pub checksum: u64,
     /// Generation policy used to turn reference snapshots into segments.
     pub generation_policy: PackagedArtifactGenerationPolicy,
+    /// Per-channel quantization scales captured from the checked-in artifact.
+    pub quantization_scales: String,
     /// Bodies that carry residual correction channels in the packaged artifact.
     pub residual_bodies: Vec<CelestialBody>,
     /// Bodies bundled into the packaged artifact.
@@ -1064,6 +1066,13 @@ impl PackagedArtifactRegenerationSummary {
             )
         })?;
 
+        if self.quantization_scales != packaged_artifact_quantization_scales_line() {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                "packaged artifact regeneration summary quantization scales do not match the checked-in packaged artifact",
+            ));
+        }
+
         self.residual_body_coverage_summary()
             .validate(artifact)
             .map_err(|error| {
@@ -1144,7 +1153,7 @@ impl PackagedArtifactRegenerationSummary {
             self.checksum,
             self.generation_policy_line(),
             self.generation_policy.segment_strategy(),
-            packaged_artifact_quantization_scales_line(),
+            self.quantization_scales,
             self.residual_body_line(),
             self.body_coverage_line(),
             self.reference_snapshot_line(),
@@ -1176,6 +1185,7 @@ pub fn packaged_artifact_regeneration_summary_details() -> PackagedArtifactRegen
         profile_id: ARTIFACT_PROFILE_ID,
         checksum: artifact.checksum,
         generation_policy: PackagedArtifactGenerationPolicy::AdjacentSameBodyLinearSegments,
+        quantization_scales: packaged_artifact_quantization_scales_line(),
         residual_bodies: artifact.residual_bodies(),
         bodies: packaged_bodies().to_vec(),
         fit_envelope: packaged_artifact_fit_envelope_summary_details(),
@@ -5096,6 +5106,10 @@ mod tests {
         );
         assert_eq!(summary.bodies.len(), packaged_bodies().len());
         assert_eq!(
+            summary.quantization_scales,
+            packaged_artifact_quantization_scales_line()
+        );
+        assert_eq!(
             summary.body_coverage_line(),
             "11 bundled bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros)"
         );
@@ -5202,6 +5216,19 @@ mod tests {
         assert!(error
             .to_string()
             .contains("packaged artifact regeneration summary checksum"));
+
+        let mut summary = packaged_artifact_regeneration_summary_details();
+        summary.quantization_scales = "quantization scales: stored=Longitude=10".to_string();
+        let error = summary
+            .validate()
+            .expect_err("quantization scale drift should be rejected");
+        assert_eq!(
+            error.kind,
+            pleiades_compression::CompressionErrorKind::InvalidFormat
+        );
+        assert!(error
+            .message
+            .contains("packaged artifact regeneration summary quantization scales do not match the checked-in packaged artifact"));
     }
 
     #[test]
