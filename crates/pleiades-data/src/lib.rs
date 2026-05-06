@@ -2652,6 +2652,16 @@ fn validate_packaged_artifact_storage_profile(
         ChannelKind::Latitude,
         ChannelKind::DistanceAu,
     ];
+    const EXPECTED_DERIVED_OUTPUTS: [ArtifactOutput; 2] = [
+        ArtifactOutput::EclipticCoordinates,
+        ArtifactOutput::EquatorialCoordinates,
+    ];
+    const EXPECTED_UNSUPPORTED_OUTPUTS: [ArtifactOutput; 4] = [
+        ArtifactOutput::ApparentCorrections,
+        ArtifactOutput::TopocentricCoordinates,
+        ArtifactOutput::SiderealCoordinates,
+        ArtifactOutput::Motion,
+    ];
 
     if profile.stored_channels != EXPECTED_STORED_CHANNELS {
         return Err(
@@ -2661,13 +2671,18 @@ fn validate_packaged_artifact_storage_profile(
         );
     }
 
-    if !profile
-        .derived_outputs
-        .contains(&pleiades_compression::ArtifactOutput::EquatorialCoordinates)
-    {
+    if profile.derived_outputs.as_slice() != EXPECTED_DERIVED_OUTPUTS {
         return Err(
             PackagedArtifactStorageSummaryValidationError::ProfileOutOfSync {
                 field: "derived_outputs",
+            },
+        );
+    }
+
+    if profile.unsupported_outputs.as_slice() != EXPECTED_UNSUPPORTED_OUTPUTS {
+        return Err(
+            PackagedArtifactStorageSummaryValidationError::ProfileOutOfSync {
+                field: "unsupported_outputs",
             },
         );
     }
@@ -2678,7 +2693,7 @@ fn validate_packaged_artifact_storage_profile(
 impl PackagedArtifactStorageSummary {
     /// Returns the storage and reconstruction posture as a compact human-readable line.
     pub const fn summary_line(self) -> &'static str {
-        "Quantized linear segments stored in pleiades-compression artifact format; equatorial coordinates are reconstructed at runtime from stored channels"
+        "Quantized linear segments stored in pleiades-compression artifact format; ecliptic and equatorial coordinates are reconstructed at runtime from stored channels; apparent, topocentric, sidereal, and motion outputs remain unsupported"
     }
 
     /// Returns `Ok(())` when the summary still contains a compact canonical line.
@@ -4493,7 +4508,9 @@ mod tests {
         );
         assert!(metadata.provenance.data_sources[3].contains("Quantized linear segments"));
         assert!(metadata.provenance.data_sources[3]
-            .contains("equatorial coordinates are reconstructed at runtime"));
+            .contains("ecliptic and equatorial coordinates are reconstructed at runtime"));
+        assert!(metadata.provenance.data_sources[3]
+            .contains("apparent, topocentric, sidereal, and motion outputs remain unsupported"));
         assert_eq!(
             packaged_artifact_storage_summary_details().validate(),
             Ok(())
@@ -4835,6 +4852,20 @@ mod tests {
             error,
             PackagedArtifactStorageSummaryValidationError::ProfileOutOfSync {
                 field: "derived_outputs"
+            }
+        );
+
+        let mut profile = packaged_artifact_profile_summary_details().profile.clone();
+        profile
+            .unsupported_outputs
+            .retain(|output| *output != pleiades_compression::ArtifactOutput::Motion);
+
+        let error = validate_packaged_artifact_storage_profile(&profile)
+            .expect_err("drifted packaged storage profile should be rejected");
+        assert_eq!(
+            error,
+            PackagedArtifactStorageSummaryValidationError::ProfileOutOfSync {
+                field: "unsupported_outputs"
             }
         );
     }
