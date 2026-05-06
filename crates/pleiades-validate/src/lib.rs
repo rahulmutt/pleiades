@@ -5097,6 +5097,10 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "reference-snapshot-major-body-bridge-summary")?;
             Ok(reference_snapshot_major_body_bridge_summary_for_report())
         }
+        Some("bridge-summary") => {
+            ensure_no_extra_args(&args[1..], "bridge-summary")?;
+            Ok(reference_snapshot_major_body_bridge_summary_for_report())
+        }
         Some("reference-snapshot-2451915-major-body-bridge-summary")
         | Some("2451915-major-body-bridge-summary") => {
             ensure_no_extra_args(
@@ -16665,6 +16669,7 @@ fn help_text() -> String {
   major-body-boundary-summary  Alias for reference-snapshot-major-body-boundary-summary
   reference-snapshot-major-body-bridge-summary  Print the compact reference major-body bridge evidence summary
   major-body-bridge-summary  Alias for reference-snapshot-major-body-bridge-summary
+  bridge-summary           Alias for reference-snapshot-major-body-bridge-summary
   reference-snapshot-major-body-boundary-window-summary  Print the compact reference major-body boundary windows summary
   major-body-boundary-window-summary  Alias for reference-snapshot-major-body-boundary-window-summary
   reference-snapshot-mars-jupiter-boundary-summary  Print the compact reference Mars/Jupiter boundary evidence summary
@@ -18522,6 +18527,9 @@ mod tests {
         );
         assert!(
             report.contains(&reference_snapshot_2451919_major_body_boundary_summary_for_report())
+        );
+        assert!(
+            report.contains(&reference_snapshot_2451914_major_body_bridge_day_summary_for_report())
         );
         assert!(report.contains(
             &pleiades_jpl::reference_snapshot_2451915_major_body_bridge_summary_for_report()
@@ -25310,6 +25318,8 @@ version = "0.9.0"
         let alias = render_cli(&["major-body-bridge-summary"])
             .expect("major body bridge alias should render");
         assert_eq!(alias, rendered);
+        let concise_alias = render_cli(&["bridge-summary"]).expect("bridge alias should render");
+        assert_eq!(concise_alias, rendered);
         let epoch_alias = render_cli(&["2451915-major-body-bridge-summary"])
             .expect("2451915 major body bridge alias should render");
         assert_eq!(epoch_alias, rendered);
@@ -25317,6 +25327,11 @@ version = "0.9.0"
             render_cli(&["major-body-bridge-summary", "extra"])
                 .expect_err("major body bridge alias should reject extra arguments"),
             "major-body-bridge-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["bridge-summary", "extra"])
+                .expect_err("bridge alias should reject extra arguments"),
+            "bridge-summary does not accept extra arguments"
         );
         assert_eq!(
             render_cli(&["2451915-major-body-bridge-summary", "extra"])

@@ -302,7 +302,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("reference-snapshot-major-body-boundary-summary")
         | Some("major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-major-body-bridge-summary")
-        | Some("major-body-bridge-summary") => validate_render_cli(args),
+        | Some("major-body-bridge-summary")
+        | Some("bridge-summary") => validate_render_cli(args),
         Some("reference-snapshot-bridge-day-summary") => validate_render_cli(args),
         Some("bridge-day-summary") => validate_render_cli(args),
         Some("reference-snapshot-mars-jupiter-boundary-summary")
@@ -1859,6 +1860,15 @@ mod tests {
                 .expect("2451915 bridge alias should render"),
             bridge_2451915
         );
+        assert_eq!(
+            render_cli(&["bridge-summary"]).expect("bridge alias should render"),
+            bridge_2451915
+        );
+        assert_eq!(
+            render_cli(&["bridge-summary", "extra"])
+                .expect_err("bridge alias should reject extra arguments"),
+            "bridge-summary does not accept extra arguments"
+        );
 
         let dense_boundary =
             render_cli(&["reference-snapshot-2451916-major-body-dense-boundary-summary"])
@@ -3096,6 +3106,9 @@ mod tests {
         ));
         assert!(reference_snapshot_summary.contains(
             &pleiades_jpl::reference_snapshot_2451919_major_body_boundary_summary_for_report()
+        ));
+        assert!(reference_snapshot_summary.contains(
+            &pleiades_jpl::reference_snapshot_2451914_major_body_bridge_day_summary_for_report()
         ));
         assert!(reference_snapshot_summary
             .contains(&pleiades_jpl::selected_asteroid_boundary_summary_for_report()));
@@ -5284,6 +5297,9 @@ mod tests {
         assert!(help.contains(
             "reference-snapshot-major-body-bridge-summary  Print the compact reference major-body bridge evidence summary"
         ));
+        assert!(
+            help.contains("bridge-summary  Alias for reference-snapshot-major-body-bridge-summary")
+        );
         assert!(help.contains(
             "reference-snapshot-major-body-boundary-window-summary  Print the compact reference major-body boundary windows summary"
         ));
