@@ -45,6 +45,7 @@ fn ensure_no_extra_args(args: &[&str], command: &str) -> Result<(), String> {
 fn shared_request_policy_help_block() -> String {
     let request_policy = pleiades_core::request_policy_summary_for_report();
     let time_scale_policy = pleiades_core::time_scale_policy_summary_for_report();
+    let utc_convenience_policy = pleiades_core::utc_convenience_policy_summary_for_report();
     let delta_t_policy = pleiades_core::delta_t_policy_summary_for_report();
     let observer_policy = pleiades_core::observer_policy_summary_for_report();
     let apparentness_policy = pleiades_core::apparentness_policy_summary_for_report();
@@ -52,9 +53,10 @@ fn shared_request_policy_help_block() -> String {
     let frame_policy = pleiades_core::frame_policy_summary_for_report();
 
     format!(
-        "  Request policy: {}\n  Time-scale policy: {}\n  Delta T policy: {}\n  Observer policy: {}\n  Apparentness policy: {}\n  Native sidereal policy: {}\n  Frame policy: {}",
+        "  Request policy: {}\n  Time-scale policy: {}\n  UTC convenience policy: {}\n  Delta T policy: {}\n  Observer policy: {}\n  Apparentness policy: {}\n  Native sidereal policy: {}\n  Frame policy: {}",
         request_policy.summary_line(),
         time_scale_policy.summary_line(),
+        utc_convenience_policy.summary_line(),
         delta_t_policy.summary_line(),
         observer_policy.summary_line(),
         apparentness_policy.summary_line(),
@@ -1347,6 +1349,7 @@ mod tests {
         assert!(rendered.contains("--tdb-from-ut1-offset-seconds"));
         assert!(rendered.contains("--tdb-from-tt-offset-seconds"));
         assert!(rendered.contains("--tt-from-tdb-offset-seconds"));
+        assert!(rendered.contains("UTC convenience policy: built-in UTC convenience conversion remains out of scope; callers must supply TT/TDB offsets explicitly"));
         assert!(rendered.contains("reference-high-curvature-summary"));
         assert!(rendered.contains("high-curvature-summary"));
         assert!(rendered.contains("reference-snapshot-2500-major-body-boundary-summary"));
