@@ -231,6 +231,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         | Some("2500-major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-2453000-major-body-boundary-summary")
         | Some("2453000-major-body-boundary-summary") => validate_render_cli(args),
+        Some("reference-snapshot-2600000-major-body-boundary-summary")
+        | Some("2600000-major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-2451915-major-body-boundary-summary")
         | Some("2451915-major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-2451917-major-body-bridge-summary")

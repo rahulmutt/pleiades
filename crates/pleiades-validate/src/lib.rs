@@ -158,6 +158,7 @@ use pleiades_jpl::{
     reference_snapshot_2453000_major_body_boundary_summary_for_report,
     reference_snapshot_2500_major_body_boundary_summary_for_report,
     reference_snapshot_2500_selected_body_boundary_summary_for_report,
+    reference_snapshot_2600000_major_body_boundary_summary_for_report,
     reference_snapshot_batch_parity_summary_for_report,
     reference_snapshot_body_class_coverage_summary_for_report,
     reference_snapshot_boundary_epoch_coverage_summary_for_report,
@@ -5001,6 +5002,14 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
                 "reference-snapshot-2451919-major-body-boundary-summary",
             )?;
             Ok(reference_snapshot_2451919_major_body_boundary_summary_for_report())
+        }
+        Some("reference-snapshot-2600000-major-body-boundary-summary")
+        | Some("2600000-major-body-boundary-summary") => {
+            ensure_no_extra_args(
+                &args[1..],
+                "reference-snapshot-2600000-major-body-boundary-summary",
+            )?;
+            Ok(reference_snapshot_2600000_major_body_boundary_summary_for_report())
         }
         Some("reference-snapshot-2360234-major-body-interior-summary")
         | Some("2360234-major-body-interior-summary") => {
@@ -16554,7 +16563,40 @@ fn help_text() -> String {
   production-generation           Alias for production-generation-summary
   production-generation-boundary-source-summary  Print the compact production-generation boundary source summary
   production-generation-boundary-window-summary  Print the compact production-generation boundary windows summary
-  production-generation-boundary-window  Alias for production-generation-boundary-window-summary\n  production-generation-source      Alias for production-generation-source-summary\n  production-generation-source-summary  Print the compact production-generation source summary\n  comparison-snapshot-source-window-summary  Print the compact comparison snapshot source windows summary\n  comparison-snapshot-source-window  Alias for comparison-snapshot-source-window-summary\n  comparison-snapshot-source-summary  Print the compact comparison snapshot source summary\n  comparison-snapshot-body-class-coverage-summary  Print the compact comparison snapshot body-class coverage summary\n  comparison-body-class-coverage-summary  Alias for comparison-snapshot-body-class-coverage-summary\n  comparison-snapshot-manifest-summary  Print the compact comparison snapshot manifest summary\n  comparison-snapshot-manifest  Alias for comparison-snapshot-manifest-summary\n  comparison-snapshot-summary  Print the compact comparison snapshot summary\n  comparison-snapshot         Alias for comparison-snapshot-summary\n  comparison-snapshot-batch-parity-summary  Print the compact comparison snapshot batch parity summary\n  reference-snapshot-source-window-summary  Print the compact reference snapshot source windows summary\n  reference-snapshot-source-window  Alias for reference-snapshot-source-window-summary\n  reference-snapshot-source-summary  Print the compact reference snapshot source summary\n  reference-snapshot-lunar-boundary-summary  Print the compact reference lunar boundary evidence summary\n  lunar-boundary-summary   Alias for reference-snapshot-lunar-boundary-summary\n  reference-snapshot-1500-selected-body-boundary-summary  Print the compact reference 1500 selected-body boundary evidence summary\n  1500-selected-body-boundary-summary  Alias for reference-snapshot-1500-selected-body-boundary-summary\n  reference-snapshot-1600-selected-body-boundary-summary  Print the compact reference 1600 selected-body boundary evidence summary\n  1600-selected-body-boundary-summary  Alias for reference-snapshot-1600-selected-body-boundary-summary\n  reference-snapshot-1750-selected-body-boundary-summary  Print the compact reference 1750 selected-body boundary evidence summary\n  1750-selected-body-boundary-summary  Alias for reference-snapshot-1750-selected-body-boundary-summary\n  reference-snapshot-1750-major-body-interior-summary  Print the compact reference 1750 major-body interior comparison evidence summary\n  1750-major-body-interior-summary  Alias for reference-snapshot-1750-major-body-interior-summary\n  reference-snapshot-2360234-major-body-interior-summary  Print the compact reference 2360234 major-body interior comparison evidence summary\n  2360234-major-body-interior-summary  Alias for reference-snapshot-2360234-major-body-interior-summary\n  reference-snapshot-2451916-major-body-interior-summary  Print the compact reference 2451916 major-body interior evidence summary\n  2451916-major-body-interior-summary  Alias for reference-snapshot-2451916-major-body-interior-summary\n  reference-snapshot-2451910-major-body-boundary-summary  Print the compact reference 2451910 major-body boundary evidence summary\n  2451910-major-body-boundary-summary  Alias for reference-snapshot-2451910-major-body-boundary-summary\n  reference-snapshot-2451911-major-body-boundary-summary  Print the compact reference 2451911 major-body boundary evidence summary\n  2451911-major-body-boundary-summary  Alias for reference-snapshot-2451911-major-body-boundary-summary\n  reference-snapshot-2451912-major-body-boundary-summary  Print the compact reference 2451912 major-body boundary evidence summary\n  2451912-major-body-boundary-summary  Alias for reference-snapshot-2451912-major-body-boundary-summary\n  reference-snapshot-2200-selected-body-boundary-summary  Print the compact reference 2200 selected-body boundary evidence summary\n  2200-selected-body-boundary-summary  Alias for reference-snapshot-2200-selected-body-boundary-summary\n  reference-snapshot-1900-selected-body-boundary-summary  Print the compact reference 1900 selected-body boundary evidence summary\n  1900-selected-body-boundary-summary  Alias for reference-snapshot-1900-selected-body-boundary-summary\n  reference-snapshot-2500-selected-body-boundary-summary  Print the compact reference 2500 selected-body boundary evidence summary\n  2500-selected-body-boundary-summary  Alias for reference-snapshot-2500-selected-body-boundary-summary\n  reference-snapshot-1749-major-body-boundary-summary  Print the compact reference 1749 major-body boundary evidence summary\n  1749-major-body-boundary-summary  Alias for reference-snapshot-1749-major-body-boundary-summary\n  reference-snapshot-early-major-body-boundary-summary  Print the compact reference early major-body boundary evidence summary\n  early-major-body-boundary-summary  Alias for reference-snapshot-early-major-body-boundary-summary\n  reference-snapshot-1800-major-body-boundary-summary  Print the compact reference 1800 major-body boundary evidence summary\n  1800-major-body-boundary-summary  Alias for reference-snapshot-1800-major-body-boundary-summary\n  reference-snapshot-2400000-major-body-boundary-summary  Print the compact reference 2400000 major-body boundary evidence summary\n  2400000-major-body-boundary-summary  Alias for reference-snapshot-2400000-major-body-boundary-summary\n  reference-snapshot-2451545-major-body-boundary-summary  Print the compact reference 2451545 major-body boundary evidence summary\n  2451545-major-body-boundary-summary  Alias for reference-snapshot-2451545-major-body-boundary-summary\n  reference-snapshot-2500-major-body-boundary-summary  Print the compact reference 2500 major-body boundary evidence summary\n  2500-major-body-boundary-summary  Alias for reference-snapshot-2500-major-body-boundary-summary\n  reference-snapshot-2453000-major-body-boundary-summary  Print the compact reference 2453000 major-body boundary evidence summary\n  2453000-major-body-boundary-summary  Alias for reference-snapshot-2453000-major-body-boundary-summary\n  reference-snapshot-2451913-major-body-boundary-summary  Print the compact reference 2451913 major-body boundary evidence summary\n  2451913-major-body-boundary-summary  Alias for reference-snapshot-2451913-major-body-boundary-summary\n  reference-snapshot-2451914-major-body-boundary-summary  Print the compact reference 2451914 major-body boundary evidence summary\n  2451914-major-body-boundary-summary  Alias for reference-snapshot-2451914-major-body-boundary-summary\n  reference-snapshot-2451915-major-body-boundary-summary  Print the compact reference 2451915 major-body boundary evidence summary\n  2451915-major-body-boundary-summary  Alias for reference-snapshot-2451915-major-body-boundary-summary\n  reference-snapshot-2451917-major-body-boundary-summary  Print the compact reference 2451917 major-body boundary evidence summary\n  2451917-major-body-boundary-summary  Alias for reference-snapshot-2451917-major-body-boundary-summary\n  reference-snapshot-2451918-major-body-boundary-summary  Print the compact reference 2451918 major-body boundary evidence summary\n  2451918-major-body-boundary-summary  Alias for reference-snapshot-2451918-major-body-boundary-summary\n  reference-snapshot-2451919-major-body-boundary-summary  Print the compact reference 2451919 major-body boundary evidence summary\n  2451919-major-body-boundary-summary  Alias for reference-snapshot-2451919-major-body-boundary-summary\n  reference-snapshot-2451920-major-body-interior-summary  Print the compact reference 2451920 major-body interior evidence summary\n  2451920-major-body-interior-summary  Alias for reference-snapshot-2451920-major-body-interior-summary\n  reference-snapshot-major-body-boundary-summary  Print the compact reference major-body boundary evidence summary\n  major-body-boundary-summary  Alias for reference-snapshot-major-body-boundary-summary\n  reference-snapshot-major-body-bridge-summary  Print the compact reference major-body bridge evidence summary\n  major-body-bridge-summary  Alias for reference-snapshot-major-body-bridge-summary\n  reference-snapshot-2451915-major-body-bridge-summary  Print the compact reference major-body bridge evidence summary\n  2451915-major-body-bridge-summary  Alias for reference-snapshot-2451915-major-body-bridge-summary\n  reference-snapshot-2451917-major-body-bridge-summary  Print the compact reference 2451917 major-body bridge evidence summary\n  2451917-major-body-bridge-summary  Alias for reference-snapshot-2451917-major-body-bridge-summary\n  reference-snapshot-bridge-day-summary  Print the compact reference snapshot bridge day summary\n  reference-snapshot-2451914-bridge-day-summary  Print the compact reference 2451914 bridge day summary\n  reference-snapshot-2451914-major-body-bridge-day-summary  Print the compact reference 2451914 major-body bridge-day summary\n  2451914-major-body-bridge-day-summary  Alias for reference-snapshot-2451914-major-body-bridge-day-summary\n  2451914-bridge-day-summary  Alias for reference-snapshot-2451914-bridge-day-summary\n  reference-snapshot-2451914-major-body-bridge-summary  Print the compact reference 2451914 major-body bridge evidence summary\n  2451914-major-body-bridge-summary  Alias for reference-snapshot-2451914-major-body-bridge-summary\n  bridge-day-summary     Alias for reference-snapshot-bridge-day-summary\n  reference-snapshot-mars-jupiter-boundary-summary  Print the compact reference Mars/Jupiter boundary evidence summary\n  mars-jupiter-boundary-summary  Alias for reference-snapshot-mars-jupiter-boundary-summary\n  reference-snapshot-mars-outer-boundary-summary  Print the compact reference Mars outer-boundary evidence summary\n  mars-outer-boundary-summary  Alias for reference-snapshot-mars-outer-boundary-summary\n  reference-snapshot-major-body-boundary-window-summary  Print the compact reference major-body boundary windows summary\n  major-body-boundary-window-summary  Alias for reference-snapshot-major-body-boundary-window-summary\n  reference-snapshot-body-class-coverage-summary  Print the compact reference snapshot body-class coverage summary\n  reference-body-class-coverage-summary  Alias for reference-snapshot-body-class-coverage-summary\n  reference-snapshot-manifest-summary  Print the compact reference snapshot manifest summary\n  reference-snapshot-manifest  Alias for reference-snapshot-manifest-summary\n  reference-snapshot-summary  Print the compact reference snapshot summary\n  reference-snapshot-exact-j2000-evidence-summary  Print the compact reference snapshot exact J2000 evidence summary\n  exact-j2000-evidence    Alias for reference-snapshot-exact-j2000-evidence-summary\n  reference-snapshot         Alias for reference-snapshot-summary\n  reference-snapshot-batch-parity-summary  Print the compact reference snapshot batch parity summary\n  reference-snapshot-equatorial-parity-summary  Print the compact reference snapshot equatorial parity summary\n  reference-high-curvature-summary  Print the compact reference major-body high-curvature evidence summary\n  high-curvature-summary  Alias for reference-high-curvature-summary\n  reference-high-curvature-window-summary  Print the compact reference major-body high-curvature windows summary\n  high-curvature-window-summary  Alias for reference-high-curvature-window-summary\n  reference-high-curvature-epoch-coverage-summary  Print the compact reference major-body high-curvature epoch coverage summary\n  high-curvature-epoch-coverage-summary  Alias for reference-high-curvature-epoch-coverage-summary\n  reference-snapshot-boundary-epoch-coverage-summary  Print the compact reference snapshot boundary epoch coverage summary\n  boundary-epoch-coverage-summary  Alias for reference-snapshot-boundary-epoch-coverage-summary\n  reference-snapshot-sparse-boundary-summary  Print the compact reference boundary day summary\n  sparse-boundary-summary  Alias for reference-snapshot-sparse-boundary-summary\n  boundary-day-summary     Alias for reference-snapshot-sparse-boundary-summary\n  reference-snapshot-pre-bridge-boundary-summary  Print the compact reference pre-bridge boundary day summary\n  pre-bridge-boundary-summary  Alias for reference-snapshot-pre-bridge-boundary-summary\n  reference-snapshot-2451914-major-body-pre-bridge-summary  Print the compact reference 2451914 major-body pre-bridge boundary evidence summary\n  2451914-major-body-pre-bridge-summary  Alias for reference-snapshot-2451914-major-body-pre-bridge-summary\n  reference-snapshot-dense-boundary-summary  Print the compact reference dense boundary day summary\n  dense-boundary-summary  Alias for reference-snapshot-dense-boundary-summary\n  reference-snapshot-2451916-major-body-dense-boundary-summary  Print the compact reference 2451916 major-body dense boundary evidence summary\n  2451916-major-body-dense-boundary-summary  Alias for reference-snapshot-2451916-major-body-dense-boundary-summary\n  source-documentation-summary  Print the compact VSOP87 source-documentation summary\n  source-documentation         Alias for source-documentation-summary\n  source-documentation-health-summary  Print the compact VSOP87 source-documentation health summary\n  source-documentation-health  Alias for source-documentation-health-summary\n  source-audit-summary      Print the compact VSOP87 source audit summary\n  source-audit              Alias for source-audit-summary\n  generated-binary-audit-summary  Print the compact VSOP87 generated binary audit summary\n  generated-binary-audit    Alias for generated-binary-audit-summary\n  time-scale-policy-summary  Print the compact time-scale policy summary\n  time-scale-policy       Alias for time-scale-policy-summary\n  utc-convenience-policy-summary  Print the compact UTC convenience policy summary\n  utc-convenience-policy  Alias for utc-convenience-policy-summary\n  delta-t-policy-summary   Print the compact Delta T policy summary\n  delta-t-policy         Alias for delta-t-policy-summary\n  observer-policy-summary  Print the compact observer policy summary\n  observer-policy        Alias for observer-policy-summary\n  apparentness-policy-summary  Print the compact apparentness policy summary\n  apparentness-policy     Alias for apparentness-policy-summary\n  native-sidereal-policy-summary  Print the compact native sidereal policy summary\n  native-sidereal-policy   Alias for native-sidereal-policy-summary\n  interpolation-posture-summary  Print the compact JPL interpolation posture summary\n  interpolation-posture         Alias for interpolation-posture-summary\n  interpolation-quality-summary  Print the compact JPL interpolation quality summary\n  interpolation-quality-kind-coverage-summary  Print the compact JPL interpolation quality kind coverage summary\n  lunar-reference-error-envelope-summary  Print the compact lunar reference error envelope summary\n  lunar-equatorial-reference-error-envelope-summary  Print the compact lunar equatorial reference error envelope summary\n  lunar-apparent-comparison-summary  Print the compact lunar apparent comparison summary\n  lunar-source-window-summary  Print the compact lunar source windows summary\n  lunar-theory-request-policy-summary  Print the compact ELP lunar request policy summary\n  lunar-theory-request-policy  Alias for lunar-theory-request-policy-summary\n  lunar-theory-frame-treatment-summary  Print the compact ELP lunar frame treatment summary\n  lunar-theory-frame-treatment  Alias for lunar-theory-frame-treatment-summary\n  lunar-theory-limitations-summary  Print the compact ELP lunar limitations summary\n  lunar-theory-limitations   Alias for lunar-theory-limitations-summary\n  lunar-theory-summary      Print the compact ELP lunar theory specification\n  lunar-theory-capability-summary  Print the compact ELP lunar capability summary\n  lunar-theory-source-summary  Print the compact ELP lunar source summary\n  lunar-theory-catalog-summary  Print the compact ELP lunar theory catalog summary\n  lunar-theory-catalog-validation-summary  Print the compact ELP lunar theory catalog validation summary\n  lunar-theory-catalog      Alias for lunar-theory-catalog-summary\n  lunar-theory-catalog-validation  Alias for lunar-theory-catalog-validation-summary\n  selected-asteroid-boundary-summary  Print the compact selected-asteroid boundary evidence summary\n  reference-snapshot-selected-asteroid-bridge-summary  Print the compact selected-asteroid bridge evidence summary\n  selected-asteroid-bridge-summary  Alias for reference-snapshot-selected-asteroid-bridge-summary\n  reference-snapshot-selected-asteroid-dense-boundary-summary  Print the compact selected-asteroid dense boundary evidence summary\n  selected-asteroid-dense-boundary-summary  Alias for reference-snapshot-selected-asteroid-dense-boundary-summary\n  reference-snapshot-selected-asteroid-terminal-boundary-summary  Print the compact selected-asteroid terminal boundary evidence summary\n  selected-asteroid-terminal-boundary-summary  Alias for reference-snapshot-selected-asteroid-terminal-boundary-summary\n  selected-asteroid-source-evidence-summary  Print the compact selected-asteroid source evidence summary\n  selected-asteroid-source-summary  Alias for selected-asteroid-source-evidence-summary\n  selected-asteroid-source-window-summary  Print the compact selected-asteroid source windows summary\n  selected-asteroid-source-window  Alias for selected-asteroid-source-window-summary\n  selected-asteroid-batch-parity-summary  Print the compact selected-asteroid batch-parity summary\n  reference-asteroid-evidence-summary  Print the compact reference asteroid evidence summary\n  reference-asteroid-equatorial-evidence-summary  Print the compact reference asteroid equatorial evidence summary\n  reference-asteroid-source-window-summary  Print the compact reference asteroid source windows summary\n  reference-asteroid-source-summary  Alias for reference-asteroid-source-window-summary\n  reference-holdout-overlap-summary  Print the compact reference/hold-out overlap summary\n  holdout-overlap-summary   Alias for reference-holdout-overlap-summary\n  independent-holdout-source-window-summary  Print the compact independent hold-out source windows summary\n  independent-holdout-summary  Print the compact independent hold-out summary\n  independent-holdout-source-summary  Print the compact independent hold-out source summary\n  independent-holdout-high-curvature-summary  Print the compact independent hold-out high-curvature evidence summary\n  holdout-high-curvature-summary  Alias for independent-holdout-high-curvature-summary\n  independent-holdout-body-class-coverage-summary  Print the compact independent hold-out body-class coverage summary\n  holdout-body-class-coverage-summary  Alias for independent-holdout-body-class-coverage-summary\n  independent-holdout-batch-parity-summary  Print the compact independent hold-out batch parity summary\n  independent-holdout-equatorial-parity-summary  Print the compact independent hold-out equatorial parity summary\n  house-validation-summary   Print the compact house-validation corpus summary\n  house-validation            Alias for house-validation-summary\n  release-house-validation-summary  Print the compact release house-validation corpus summary\n  release-house-validation  Alias for release-house-validation-summary\n  house-formula-families-summary  Print the compact house formula families summary\n  house-formula-families    Alias for house-formula-families-summary\n  house-latitude-sensitive-summary  Print the compact latitude-sensitive house systems summary\n  house-latitude-sensitive  Alias for house-latitude-sensitive-summary\n  house-code-aliases-summary  Print the compact house-code alias summary\n  house-code-alias-summary  Alias for house-code-aliases-summary\n  ayanamsa-catalog-validation-summary  Print the compact ayanamsa catalog validation summary\n  ayanamsa-catalog-validation  Alias for ayanamsa-catalog-validation-summary\n  ayanamsa-metadata-coverage-summary  Print the compact ayanamsa sidereal metadata coverage summary\n  ayanamsa-metadata-coverage  Alias for ayanamsa-metadata-coverage-summary\n  ayanamsa-reference-offsets-summary  Print the compact ayanamsa reference offsets summary\n  ayanamsa-reference-offsets  Alias for ayanamsa-reference-offsets-summary\n  frame-policy-summary      Print the compact frame-policy summary\n  frame-policy             Alias for frame-policy-summary\n  mean-obliquity-frame-round-trip-summary  Print the compact mean-obliquity frame round-trip summary\n  mean-obliquity-frame-round-trip  Alias for mean-obliquity-frame-round-trip-summary\n  release-profile-identifiers-summary  Print the compact release-profile identifiers summary\n  release-profile-identifiers  Alias for release-profile-identifiers-summary\n  request-surface-summary  Print the compact request-surface inventory summary\n  request-surface         Alias for request-surface-summary\n  request-policy-summary    Print the compact request-policy summary\n  request-policy           Alias for request-policy-summary\n  request-semantics-summary  Print the compact request-semantics summary\n  request-semantics        Alias for request-semantics-summary\n  comparison-tolerance-policy-summary  Print the compact comparison tolerance policy summary\n  comparison-tolerance-summary  Alias for comparison-tolerance-policy-summary\n  pluto-fallback-summary   Print the compact Pluto fallback summary\n  pluto-fallback           Alias for pluto-fallback-summary\n  bundle-release --out DIR  Write the release compatibility profile, profile summary, release notes, release notes summary, release summary, release-profile identifiers, release-profile identifiers summary, release-house-system-canonical-names summary, release-ayanamsa-canonical-names summary, release checklist, release checklist summary, backend matrix, backend matrix summary, API posture, API stability summary, comparison-corpus summary, comparison-envelope summary, comparison-body-class-tolerance summary, comparison-corpus release-guard summary, comparison-corpus guard summary, request policy summary, time-scale policy summary, UTC convenience policy summary, delta-t policy summary, native sidereal policy summary, request surface summary, compatibility-caveats summary, workspace audit summary, native-dependency audit summary, reference-holdout overlap summary, reference snapshot bridge day summary, reference snapshot summary, catalog inventory summary, artifact summary, packaged-artifact access summary, packaged-artifact storage summary, packaged-artifact production-profile summary, packaged-artifact target-threshold summary, packaged-artifact lookup-epoch policy summary, packaged-artifact generation manifest, benchmark-corpus summary, benchmark report, validation report, manifest, and manifest checksum sidecar\n  bundle-release --output DIR  Alias for bundle-release --out DIR\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  verify-release-bundle --output DIR  Alias for verify-release-bundle --out DIR\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
+  production-generation-boundary-window  Alias for production-generation-boundary-window-summary\n  production-generation-source      Alias for production-generation-source-summary\n  production-generation-source-summary  Print the compact production-generation source summary\n  comparison-snapshot-source-window-summary  Print the compact comparison snapshot source windows summary\n  comparison-snapshot-source-window  Alias for comparison-snapshot-source-window-summary\n  comparison-snapshot-source-summary  Print the compact comparison snapshot source summary\n  comparison-snapshot-body-class-coverage-summary  Print the compact comparison snapshot body-class coverage summary\n  comparison-body-class-coverage-summary  Alias for comparison-snapshot-body-class-coverage-summary\n  comparison-snapshot-manifest-summary  Print the compact comparison snapshot manifest summary\n  comparison-snapshot-manifest  Alias for comparison-snapshot-manifest-summary\n  comparison-snapshot-summary  Print the compact comparison snapshot summary\n  comparison-snapshot         Alias for comparison-snapshot-summary\n  comparison-snapshot-batch-parity-summary  Print the compact comparison snapshot batch parity summary\n  reference-snapshot-source-window-summary  Print the compact reference snapshot source windows summary\n  reference-snapshot-source-window  Alias for reference-snapshot-source-window-summary\n  reference-snapshot-source-summary  Print the compact reference snapshot source summary\n  reference-snapshot-lunar-boundary-summary  Print the compact reference lunar boundary evidence summary\n  lunar-boundary-summary   Alias for reference-snapshot-lunar-boundary-summary\n  reference-snapshot-1500-selected-body-boundary-summary  Print the compact reference 1500 selected-body boundary evidence summary\n  1500-selected-body-boundary-summary  Alias for reference-snapshot-1500-selected-body-boundary-summary\n  reference-snapshot-1600-selected-body-boundary-summary  Print the compact reference 1600 selected-body boundary evidence summary\n  1600-selected-body-boundary-summary  Alias for reference-snapshot-1600-selected-body-boundary-summary\n  reference-snapshot-1750-selected-body-boundary-summary  Print the compact reference 1750 selected-body boundary evidence summary\n  1750-selected-body-boundary-summary  Alias for reference-snapshot-1750-selected-body-boundary-summary\n  reference-snapshot-1750-major-body-interior-summary  Print the compact reference 1750 major-body interior comparison evidence summary\n  1750-major-body-interior-summary  Alias for reference-snapshot-1750-major-body-interior-summary\n  reference-snapshot-2360234-major-body-interior-summary  Print the compact reference 2360234 major-body interior comparison evidence summary\n  2360234-major-body-interior-summary  Alias for reference-snapshot-2360234-major-body-interior-summary\n  reference-snapshot-2451916-major-body-interior-summary  Print the compact reference 2451916 major-body interior evidence summary\n  2451916-major-body-interior-summary  Alias for reference-snapshot-2451916-major-body-interior-summary\n  reference-snapshot-2451910-major-body-boundary-summary  Print the compact reference 2451910 major-body boundary evidence summary\n  2451910-major-body-boundary-summary  Alias for reference-snapshot-2451910-major-body-boundary-summary\n  reference-snapshot-2451911-major-body-boundary-summary  Print the compact reference 2451911 major-body boundary evidence summary\n  2451911-major-body-boundary-summary  Alias for reference-snapshot-2451911-major-body-boundary-summary\n  reference-snapshot-2451912-major-body-boundary-summary  Print the compact reference 2451912 major-body boundary evidence summary\n  2451912-major-body-boundary-summary  Alias for reference-snapshot-2451912-major-body-boundary-summary\n  reference-snapshot-2200-selected-body-boundary-summary  Print the compact reference 2200 selected-body boundary evidence summary\n  2200-selected-body-boundary-summary  Alias for reference-snapshot-2200-selected-body-boundary-summary\n  reference-snapshot-1900-selected-body-boundary-summary  Print the compact reference 1900 selected-body boundary evidence summary\n  1900-selected-body-boundary-summary  Alias for reference-snapshot-1900-selected-body-boundary-summary\n  reference-snapshot-2500-selected-body-boundary-summary  Print the compact reference 2500 selected-body boundary evidence summary\n  2500-selected-body-boundary-summary  Alias for reference-snapshot-2500-selected-body-boundary-summary\n  reference-snapshot-1749-major-body-boundary-summary  Print the compact reference 1749 major-body boundary evidence summary\n  1749-major-body-boundary-summary  Alias for reference-snapshot-1749-major-body-boundary-summary\n  reference-snapshot-early-major-body-boundary-summary  Print the compact reference early major-body boundary evidence summary\n  early-major-body-boundary-summary  Alias for reference-snapshot-early-major-body-boundary-summary\n  reference-snapshot-1800-major-body-boundary-summary  Print the compact reference 1800 major-body boundary evidence summary\n  1800-major-body-boundary-summary  Alias for reference-snapshot-1800-major-body-boundary-summary\n  reference-snapshot-2400000-major-body-boundary-summary  Print the compact reference 2400000 major-body boundary evidence summary\n  2400000-major-body-boundary-summary  Alias for reference-snapshot-2400000-major-body-boundary-summary\n  reference-snapshot-2451545-major-body-boundary-summary  Print the compact reference 2451545 major-body boundary evidence summary\n  2451545-major-body-boundary-summary  Alias for reference-snapshot-2451545-major-body-boundary-summary\n  reference-snapshot-2500-major-body-boundary-summary  Print the compact reference 2500 major-body boundary evidence summary\n  2500-major-body-boundary-summary  Alias for reference-snapshot-2500-major-body-boundary-summary\n  reference-snapshot-2453000-major-body-boundary-summary  Print the compact reference 2453000 major-body boundary evidence summary\n  2453000-major-body-boundary-summary  Alias for reference-snapshot-2453000-major-body-boundary-summary\n  reference-snapshot-2600000-major-body-boundary-summary  Print the compact reference 2600000 major-body boundary evidence summary
+  2600000-major-body-boundary-summary  Alias for reference-snapshot-2600000-major-body-boundary-summary
+  reference-snapshot-major-body-boundary-summary  Print the compact reference major-body boundary evidence summary
+  major-body-boundary-summary  Alias for reference-snapshot-major-body-boundary-summary
+  reference-snapshot-major-body-bridge-summary  Print the compact reference major-body bridge evidence summary
+  major-body-bridge-summary  Alias for reference-snapshot-major-body-bridge-summary
+  reference-high-curvature-summary  Print the compact reference major-body high-curvature evidence summary
+  high-curvature-summary  Alias for reference-high-curvature-summary
+  reference-high-curvature-window-summary  Print the compact reference major-body high-curvature windows summary
+  high-curvature-window-summary  Alias for reference-high-curvature-window-summary
+  reference-high-curvature-epoch-coverage-summary  Print the compact reference major-body high-curvature epoch coverage summary
+  high-curvature-epoch-coverage-summary  Alias for reference-high-curvature-epoch-coverage-summary
+  reference-snapshot-2451913-major-body-boundary-summary  Print the compact reference 2451913 major-body boundary evidence summary\n  2451913-major-body-boundary-summary  Alias for reference-snapshot-2451913-major-body-boundary-summary\n  reference-snapshot-2451914-major-body-boundary-summary  Print the compact reference 2451914 major-body boundary evidence summary
+  2451914-major-body-boundary-summary  Alias for reference-snapshot-2451914-major-body-boundary-summary
+  reference-snapshot-2451914-major-body-pre-bridge-summary  Print the compact reference 2451914 major-body pre-bridge boundary evidence summary
+  2451914-major-body-pre-bridge-summary  Alias for reference-snapshot-2451914-major-body-pre-bridge-summary
+  reference-snapshot-2451914-bridge-day-summary  Print the compact reference 2451914 bridge day summary
+  2451914-bridge-day-summary  Alias for reference-snapshot-2451914-bridge-day-summary
+  reference-snapshot-2451914-major-body-bridge-day-summary  Print the compact reference 2451914 major-body bridge-day summary
+  2451914-major-body-bridge-day-summary  Alias for reference-snapshot-2451914-major-body-bridge-day-summary
+  reference-snapshot-2451914-major-body-bridge-summary  Print the compact reference 2451914 major-body bridge evidence summary
+  2451914-major-body-bridge-summary  Alias for reference-snapshot-2451914-major-body-bridge-summary
+  reference-snapshot-2451915-major-body-boundary-summary  Print the compact reference 2451915 major-body boundary evidence summary\n  2451915-major-body-boundary-summary  Alias for reference-snapshot-2451915-major-body-boundary-summary\n  reference-snapshot-2451917-major-body-boundary-summary  Print the compact reference 2451917 major-body boundary evidence summary
+  2451917-major-body-boundary-summary  Alias for reference-snapshot-2451917-major-body-boundary-summary
+  reference-snapshot-2451917-major-body-bridge-summary  Print the compact reference 2451917 major-body bridge evidence summary
+  2451917-major-body-bridge-summary  Alias for reference-snapshot-2451917-major-body-bridge-summary
+  reference-snapshot-2451918-major-body-boundary-summary  Print the compact reference 2451918 major-body boundary evidence summary
+  2451918-major-body-boundary-summary  Alias for reference-snapshot-2451918-major-body-boundary-summary
+  reference-snapshot-2451919-major-body-boundary-summary  Print the compact reference 2451919 major-body boundary evidence summary
+  2451919-major-body-boundary-summary  Alias for reference-snapshot-2451919-major-body-boundary-summary
+  reference-snapshot-2600000-major-body-boundary-summary  Print the compact reference 2600000 major-body boundary evidence summary
+  2600000-major-body-boundary-summary  Alias for reference-snapshot-2600000-major-body-boundary-summary
+  reference-snapshot-2451920-major-body-interior-summary  Print the compact reference 2451920 major-body interior evidence summary
+  source-documentation-summary  Print the compact VSOP87 source-documentation summary\n  source-documentation         Alias for source-documentation-summary\n  source-documentation-health-summary  Print the compact VSOP87 source-documentation health summary\n  source-documentation-health  Alias for source-documentation-health-summary\n  source-audit-summary      Print the compact VSOP87 source audit summary\n  source-audit              Alias for source-audit-summary\n  generated-binary-audit-summary  Print the compact VSOP87 generated binary audit summary\n  generated-binary-audit    Alias for generated-binary-audit-summary\n  time-scale-policy-summary  Print the compact time-scale policy summary\n  time-scale-policy       Alias for time-scale-policy-summary\n  utc-convenience-policy-summary  Print the compact UTC convenience policy summary\n  utc-convenience-policy  Alias for utc-convenience-policy-summary\n  delta-t-policy-summary   Print the compact Delta T policy summary\n  delta-t-policy         Alias for delta-t-policy-summary\n  observer-policy-summary  Print the compact observer policy summary\n  observer-policy        Alias for observer-policy-summary\n  apparentness-policy-summary  Print the compact apparentness policy summary\n  apparentness-policy     Alias for apparentness-policy-summary\n  native-sidereal-policy-summary  Print the compact native sidereal policy summary\n  native-sidereal-policy   Alias for native-sidereal-policy-summary\n  interpolation-posture-summary  Print the compact JPL interpolation posture summary\n  interpolation-posture         Alias for interpolation-posture-summary\n  interpolation-quality-summary  Print the compact JPL interpolation quality summary\n  interpolation-quality-kind-coverage-summary  Print the compact JPL interpolation quality kind coverage summary\n  lunar-reference-error-envelope-summary  Print the compact lunar reference error envelope summary\n  lunar-equatorial-reference-error-envelope-summary  Print the compact lunar equatorial reference error envelope summary\n  lunar-apparent-comparison-summary  Print the compact lunar apparent comparison summary\n  lunar-source-window-summary  Print the compact lunar source windows summary\n  lunar-theory-request-policy-summary  Print the compact ELP lunar request policy summary\n  lunar-theory-request-policy  Alias for lunar-theory-request-policy-summary\n  lunar-theory-frame-treatment-summary  Print the compact ELP lunar frame treatment summary\n  lunar-theory-frame-treatment  Alias for lunar-theory-frame-treatment-summary\n  lunar-theory-limitations-summary  Print the compact ELP lunar limitations summary\n  lunar-theory-limitations   Alias for lunar-theory-limitations-summary\n  lunar-theory-summary      Print the compact ELP lunar theory specification\n  lunar-theory-capability-summary  Print the compact ELP lunar capability summary\n  lunar-theory-source-summary  Print the compact ELP lunar source summary\n  lunar-theory-catalog-summary  Print the compact ELP lunar theory catalog summary\n  lunar-theory-catalog-validation-summary  Print the compact ELP lunar theory catalog validation summary\n  lunar-theory-catalog      Alias for lunar-theory-catalog-summary\n  lunar-theory-catalog-validation  Alias for lunar-theory-catalog-validation-summary\n  selected-asteroid-boundary-summary  Print the compact selected-asteroid boundary evidence summary\n  reference-snapshot-selected-asteroid-bridge-summary  Print the compact selected-asteroid bridge evidence summary\n  selected-asteroid-bridge-summary  Alias for reference-snapshot-selected-asteroid-bridge-summary\n  reference-snapshot-selected-asteroid-dense-boundary-summary  Print the compact selected-asteroid dense boundary evidence summary\n  selected-asteroid-dense-boundary-summary  Alias for reference-snapshot-selected-asteroid-dense-boundary-summary\n  reference-snapshot-selected-asteroid-terminal-boundary-summary  Print the compact selected-asteroid terminal boundary evidence summary\n  selected-asteroid-terminal-boundary-summary  Alias for reference-snapshot-selected-asteroid-terminal-boundary-summary\n  selected-asteroid-source-evidence-summary  Print the compact selected-asteroid source evidence summary\n  selected-asteroid-source-summary  Alias for selected-asteroid-source-evidence-summary\n  selected-asteroid-source-window-summary  Print the compact selected-asteroid source windows summary\n  selected-asteroid-source-window  Alias for selected-asteroid-source-window-summary\n  selected-asteroid-batch-parity-summary  Print the compact selected-asteroid batch-parity summary\n  reference-asteroid-evidence-summary  Print the compact reference asteroid evidence summary\n  reference-asteroid-equatorial-evidence-summary  Print the compact reference asteroid equatorial evidence summary\n  reference-asteroid-source-window-summary  Print the compact reference asteroid source windows summary\n  reference-asteroid-source-summary  Alias for reference-asteroid-source-window-summary\n  reference-holdout-overlap-summary  Print the compact reference/hold-out overlap summary\n  holdout-overlap-summary   Alias for reference-holdout-overlap-summary\n  independent-holdout-source-window-summary  Print the compact independent hold-out source windows summary\n  independent-holdout-summary  Print the compact independent hold-out summary\n  independent-holdout-source-summary  Print the compact independent hold-out source summary\n  independent-holdout-high-curvature-summary  Print the compact independent hold-out high-curvature evidence summary\n  holdout-high-curvature-summary  Alias for independent-holdout-high-curvature-summary\n  independent-holdout-body-class-coverage-summary  Print the compact independent hold-out body-class coverage summary\n  holdout-body-class-coverage-summary  Alias for independent-holdout-body-class-coverage-summary\n  independent-holdout-batch-parity-summary  Print the compact independent hold-out batch parity summary\n  independent-holdout-equatorial-parity-summary  Print the compact independent hold-out equatorial parity summary\n  house-validation-summary   Print the compact house-validation corpus summary\n  house-validation            Alias for house-validation-summary\n  release-house-validation-summary  Print the compact release house-validation corpus summary\n  release-house-validation  Alias for release-house-validation-summary\n  house-formula-families-summary  Print the compact house formula families summary\n  house-formula-families    Alias for house-formula-families-summary\n  house-latitude-sensitive-summary  Print the compact latitude-sensitive house systems summary\n  house-latitude-sensitive  Alias for house-latitude-sensitive-summary\n  house-code-aliases-summary  Print the compact house-code alias summary\n  house-code-alias-summary  Alias for house-code-aliases-summary\n  ayanamsa-catalog-validation-summary  Print the compact ayanamsa catalog validation summary\n  ayanamsa-catalog-validation  Alias for ayanamsa-catalog-validation-summary\n  ayanamsa-metadata-coverage-summary  Print the compact ayanamsa sidereal metadata coverage summary\n  ayanamsa-metadata-coverage  Alias for ayanamsa-metadata-coverage-summary\n  ayanamsa-reference-offsets-summary  Print the compact ayanamsa reference offsets summary\n  ayanamsa-reference-offsets  Alias for ayanamsa-reference-offsets-summary\n  frame-policy-summary      Print the compact frame-policy summary\n  frame-policy             Alias for frame-policy-summary\n  mean-obliquity-frame-round-trip-summary  Print the compact mean-obliquity frame round-trip summary\n  mean-obliquity-frame-round-trip  Alias for mean-obliquity-frame-round-trip-summary\n  release-profile-identifiers-summary  Print the compact release-profile identifiers summary\n  release-profile-identifiers  Alias for release-profile-identifiers-summary\n  request-surface-summary  Print the compact request-surface inventory summary\n  request-surface         Alias for request-surface-summary\n  request-policy-summary    Print the compact request-policy summary\n  request-policy           Alias for request-policy-summary\n  request-semantics-summary  Print the compact request-semantics summary\n  request-semantics        Alias for request-semantics-summary\n  comparison-tolerance-policy-summary  Print the compact comparison tolerance policy summary\n  comparison-tolerance-summary  Alias for comparison-tolerance-policy-summary\n  pluto-fallback-summary   Print the compact Pluto fallback summary\n  pluto-fallback           Alias for pluto-fallback-summary\n  bundle-release --out DIR  Write the release compatibility profile, profile summary, release notes, release notes summary, release summary, release-profile identifiers, release-profile identifiers summary, release-house-system-canonical-names summary, release-ayanamsa-canonical-names summary, release checklist, release checklist summary, backend matrix, backend matrix summary, API posture, API stability summary, comparison-corpus summary, comparison-envelope summary, comparison-body-class-tolerance summary, comparison-corpus release-guard summary, comparison-corpus guard summary, request policy summary, time-scale policy summary, UTC convenience policy summary, delta-t policy summary, native sidereal policy summary, request surface summary, compatibility-caveats summary, workspace audit summary, native-dependency audit summary, reference-holdout overlap summary, reference snapshot bridge day summary, reference snapshot summary, catalog inventory summary, artifact summary, packaged-artifact access summary, packaged-artifact storage summary, packaged-artifact production-profile summary, packaged-artifact target-threshold summary, packaged-artifact lookup-epoch policy summary, packaged-artifact generation manifest, benchmark-corpus summary, benchmark report, validation report, manifest, and manifest checksum sidecar\n  bundle-release --output DIR  Alias for bundle-release --out DIR\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  verify-release-bundle --output DIR  Alias for verify-release-bundle --out DIR\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
         banner = banner(),
         corpus_size = corpus_size,
     )
@@ -19255,9 +19297,6 @@ mod tests {
             "reference-snapshot-source-window  Alias for reference-snapshot-source-window-summary"
         ));
         assert!(rendered.contains("reference-snapshot-source-summary"));
-        assert!(
-            rendered.contains("reference-snapshot         Alias for reference-snapshot-summary")
-        );
         assert!(rendered.contains("reference-snapshot-lunar-boundary-summary"));
         assert!(rendered.contains(
             "lunar-boundary-summary   Alias for reference-snapshot-lunar-boundary-summary"
@@ -19288,6 +19327,8 @@ mod tests {
         assert!(rendered.contains("2500-major-body-boundary-summary"));
         assert!(rendered.contains("reference-snapshot-2453000-major-body-boundary-summary"));
         assert!(rendered.contains("2453000-major-body-boundary-summary"));
+        assert!(rendered.contains("reference-snapshot-2600000-major-body-boundary-summary"));
+        assert!(rendered.contains("2600000-major-body-boundary-summary"));
         assert!(rendered.contains("reference-snapshot-2451910-major-body-boundary-summary"));
         assert!(rendered.contains("2451910-major-body-boundary-summary"));
         assert!(rendered.contains("reference-snapshot-2451911-major-body-boundary-summary"));
@@ -19300,158 +19341,6 @@ mod tests {
         assert!(rendered.contains("2451915-major-body-boundary-summary"));
         assert!(rendered.contains("reference-snapshot-2451916-major-body-interior-summary"));
         assert!(rendered.contains("2451916-major-body-interior-summary"));
-        assert!(rendered.contains("reference-snapshot-2451917-major-body-bridge-summary"));
-        assert!(rendered.contains("2451917-major-body-bridge-summary"));
-        assert!(rendered.contains("reference-snapshot-2451914-bridge-day-summary"));
-        assert!(rendered.contains("reference-snapshot-2451914-major-body-bridge-day-summary"));
-        assert!(rendered.contains("2451914-major-body-bridge-day-summary"));
-        assert!(rendered.contains("2451914-bridge-day-summary"));
-        assert!(rendered.contains("reference-snapshot-2451914-major-body-pre-bridge-summary"));
-        assert!(rendered.contains("2451914-major-body-pre-bridge-summary"));
-        assert!(rendered.contains("reference-snapshot-2451917-major-body-boundary-summary"));
-        assert!(rendered.contains("2451917-major-body-boundary-summary"));
-        assert!(rendered.contains("reference-snapshot-2451918-major-body-boundary-summary"));
-        assert!(rendered.contains("2451918-major-body-boundary-summary"));
-        assert!(rendered.contains("reference-snapshot-2451919-major-body-boundary-summary"));
-        assert!(rendered.contains("2451919-major-body-boundary-summary"));
-        assert!(rendered.contains("reference-snapshot-2451920-major-body-interior-summary"));
-        assert!(rendered.contains("2451920-major-body-interior-summary"));
-        assert!(rendered.contains("reference-snapshot-major-body-boundary-summary"));
-        assert!(rendered.contains("major-body-boundary-summary"));
-        assert!(rendered.contains("reference-snapshot-major-body-bridge-summary"));
-        assert!(rendered.contains("major-body-bridge-summary"));
-        assert!(rendered.contains("reference-snapshot-major-body-boundary-window-summary"));
-        assert!(rendered.contains("major-body-boundary-window-summary"));
-        assert!(rendered.contains("reference-snapshot-mars-jupiter-boundary-summary"));
-        assert!(rendered.contains("mars-jupiter-boundary-summary"));
-        assert!(rendered.contains("reference-snapshot-mars-outer-boundary-summary"));
-        assert!(rendered.contains("mars-outer-boundary-summary"));
-        assert!(rendered.contains("reference-snapshot-body-class-coverage-summary"));
-        assert!(rendered.contains("reference-body-class-coverage-summary"));
-        assert!(rendered.contains("reference-snapshot-manifest-summary"));
-        assert!(rendered.contains("reference-snapshot-summary"));
-        assert!(rendered.contains("reference-snapshot-exact-j2000-evidence-summary"));
-        assert!(rendered.contains("exact-j2000-evidence"));
-        assert!(rendered.contains("reference-snapshot-batch-parity-summary"));
-        assert!(rendered.contains("reference-snapshot-equatorial-parity-summary"));
-        assert!(rendered.contains("reference-high-curvature-summary"));
-        assert!(rendered.contains("high-curvature-summary"));
-        assert!(rendered.contains("reference-high-curvature-window-summary"));
-        assert!(rendered.contains("high-curvature-window-summary"));
-        assert!(rendered.contains("boundary-epoch-coverage-summary"));
-        assert!(rendered.contains("reference-snapshot-sparse-boundary-summary"));
-        assert!(rendered.contains("sparse-boundary-summary"));
-        assert!(rendered.contains("reference-snapshot-pre-bridge-boundary-summary"));
-        assert!(rendered.contains("pre-bridge-boundary-summary"));
-        assert!(rendered.contains("boundary-day-summary"));
-        assert!(rendered.contains("reference-snapshot-dense-boundary-summary"));
-        assert!(rendered.contains("dense-boundary-summary"));
-        assert!(rendered.contains("interpolation-posture-summary"));
-        assert!(rendered
-            .contains("interpolation-posture         Alias for interpolation-posture-summary"));
-        assert!(rendered.contains("interpolation-quality-summary"));
-        assert!(rendered.contains("interpolation-quality-kind-coverage-summary"));
-        assert!(rendered.contains("lunar-apparent-comparison-summary"));
-        assert!(rendered.contains("lunar-source-window-summary"));
-        assert!(rendered.contains("lunar-theory-request-policy-summary"));
-        assert!(rendered.contains(
-            "lunar-theory-request-policy  Alias for lunar-theory-request-policy-summary"
-        ));
-        assert!(rendered.contains("lunar-theory-frame-treatment-summary"));
-        assert!(rendered.contains(
-            "lunar-theory-frame-treatment  Alias for lunar-theory-frame-treatment-summary"
-        ));
-        assert!(rendered.contains("lunar-theory-limitations-summary"));
-        assert!(rendered
-            .contains("lunar-theory-limitations   Alias for lunar-theory-limitations-summary"));
-        assert!(rendered.contains("lunar-theory-summary"));
-        assert!(rendered.contains("lunar-theory-capability-summary"));
-        assert!(rendered.contains("lunar-theory-source-summary"));
-        assert!(rendered.contains("lunar-theory-catalog-summary"));
-        assert!(rendered.contains("lunar-theory-catalog-validation-summary"));
-        assert!(
-            rendered.contains("lunar-theory-catalog      Alias for lunar-theory-catalog-summary")
-        );
-        assert!(rendered.contains(
-            "lunar-theory-catalog-validation  Alias for lunar-theory-catalog-validation-summary"
-        ));
-        assert!(rendered.contains("selected-asteroid-boundary-summary"));
-        assert!(rendered.contains("reference-snapshot-selected-asteroid-bridge-summary"));
-        assert!(rendered.contains("selected-asteroid-bridge-summary"));
-        assert!(rendered.contains("reference-snapshot-selected-asteroid-dense-boundary-summary"));
-        assert!(rendered.contains("selected-asteroid-dense-boundary-summary"));
-        assert!(rendered.contains("reference-snapshot-selected-asteroid-terminal-boundary-summary"));
-        assert!(rendered.contains("selected-asteroid-terminal-boundary-summary"));
-        assert!(rendered.contains("selected-asteroid-source-evidence-summary"));
-        assert!(rendered.contains("selected-asteroid-source-summary"));
-        assert!(rendered.contains("selected-asteroid-source-window-summary"));
-        assert!(rendered.contains("selected-asteroid-batch-parity-summary"));
-        assert!(rendered.contains("reference-asteroid-evidence-summary"));
-        assert!(rendered.contains("reference-asteroid-equatorial-evidence-summary"));
-        assert!(rendered.contains("reference-asteroid-source-window-summary"));
-        assert!(rendered.contains("reference-asteroid-source-summary"));
-        assert!(rendered.contains("reference-holdout-overlap-summary"));
-        assert!(rendered
-            .contains("holdout-overlap-summary   Alias for reference-holdout-overlap-summary"));
-        let overlap_summary =
-            render_cli(&["holdout-overlap-summary"]).expect("hold-out overlap alias should render");
-        assert_eq!(
-            overlap_summary,
-            render_cli(&["reference-holdout-overlap-summary"]).unwrap()
-        );
-        assert_eq!(
-            render_cli(&["holdout-overlap-summary", "extra"]).unwrap_err(),
-            "holdout-overlap-summary does not accept extra arguments"
-        );
-        assert!(rendered.contains("independent-holdout-source-window-summary"));
-        assert!(rendered.contains("independent-holdout-summary"));
-        assert!(rendered.contains("independent-holdout-source-summary"));
-        assert!(rendered.contains("independent-holdout-high-curvature-summary"));
-        assert!(rendered.contains("independent-holdout-body-class-coverage-summary"));
-        assert!(rendered.contains("holdout-body-class-coverage-summary"));
-        assert!(rendered.contains("independent-holdout-batch-parity-summary"));
-        assert!(rendered.contains("independent-holdout-equatorial-parity-summary"));
-        assert!(rendered.contains("release-profile-identifiers-summary"));
-        assert!(rendered.contains(
-            "release-profile-identifiers  Alias for release-profile-identifiers-summary"
-        ));
-        assert!(rendered.contains("mean-obliquity-frame-round-trip-summary"));
-        assert!(rendered.contains(
-            "mean-obliquity-frame-round-trip  Alias for mean-obliquity-frame-round-trip-summary"
-        ));
-        assert!(rendered.contains("request-surface-summary"));
-        assert!(rendered.contains("request-surface         Alias for request-surface-summary"));
-        assert!(rendered.contains("request-policy-summary"));
-        assert!(rendered.contains("request-policy           Alias for request-policy-summary"));
-        assert!(rendered
-            .contains("request-semantics-summary  Print the compact request-semantics summary"));
-        assert!(rendered.contains("request-semantics        Alias for request-semantics-summary"));
-        assert!(rendered.contains("comparison-tolerance-policy-summary"));
-        assert!(rendered.contains("comparison-tolerance-summary"));
-        assert!(rendered.contains("pluto-fallback-summary"));
-        assert!(rendered.contains("pluto-fallback           Alias for pluto-fallback-summary"));
-        assert!(rendered.contains("verify-compatibility-profile"));
-        assert!(rendered.contains("release-notes"));
-        assert!(rendered.contains("release-notes-summary"));
-        assert!(rendered.contains("release-checklist"));
-        assert!(rendered.contains("release-checklist-summary"));
-        assert!(rendered.contains("release-summary"));
-        assert!(rendered.contains(
-            "release-profile-identifiers  Alias for release-profile-identifiers-summary"
-        ));
-        assert!(rendered.contains("packaged-lookup-epoch-policy-summary"));
-        assert!(rendered.contains(
-            "packaged-lookup-epoch-policy         Alias for packaged-lookup-epoch-policy-summary"
-        ));
-        assert!(rendered.contains("jpl-batch-error-taxonomy-summary"));
-        assert!(rendered.contains("jpl-snapshot-evidence-summary"));
-        assert!(rendered.contains("bundle-release --out DIR"));
-        assert!(rendered.contains("bundle-release --out DIR  Write the release compatibility profile, profile summary, release notes, release notes summary, release summary, release-profile identifiers, release-profile identifiers summary, release-house-system-canonical-names summary, release-ayanamsa-canonical-names summary, release checklist, release checklist summary, backend matrix, backend matrix summary, API posture, API stability summary, comparison-corpus summary, comparison-envelope summary, comparison-body-class-tolerance summary, comparison-corpus release-guard summary, comparison-corpus guard summary, request policy summary, time-scale policy summary, UTC convenience policy summary, delta-t policy summary, native sidereal policy summary, request surface summary, compatibility-caveats summary, workspace audit summary, native-dependency audit summary"));
-        assert!(rendered.contains("benchmark report"));
-        assert!(rendered.contains("API stability summary"));
-        assert!(rendered.contains("profile-summary"));
-        assert!(rendered.contains("backend matrix"));
-        assert!(rendered.contains("verify-release-bundle"));
     }
 
     #[test]
@@ -26003,6 +25892,7 @@ version = "0.9.0"
         assert!(reference.contains(&selected_asteroid_dense_boundary_summary_for_report()));
         assert!(reference.contains(&selected_asteroid_terminal_boundary_summary_for_report()));
         assert!(reference.contains("Reference 2453000 major-body boundary evidence:"));
+        assert!(reference.contains("Reference 2600000 major-body boundary evidence:"));
         assert!(reference.contains("Reference 2400000 major-body boundary evidence:"));
         assert!(reference.contains("Reference 2451545 major-body boundary evidence:"));
         assert!(reference
@@ -26654,6 +26544,33 @@ version = "0.9.0"
     }
 
     #[test]
+    fn reference_snapshot_2600000_major_body_boundary_summary_command_renders_the_outer_boundary_block(
+    ) {
+        let rendered = render_cli(&["reference-snapshot-2600000-major-body-boundary-summary"])
+            .expect("reference snapshot 2600000 major-body boundary summary should render");
+
+        assert!(rendered.contains("Reference 2600000 major-body boundary evidence:"));
+        assert!(rendered.contains("JD 2600000.0 (TDB)"));
+        assert_eq!(
+            rendered,
+            reference_snapshot_2600000_major_body_boundary_summary_for_report()
+        );
+        let alias = render_cli(&["2600000-major-body-boundary-summary"])
+            .expect("2600000 major-body boundary alias should render");
+        assert_eq!(alias, rendered);
+        assert_eq!(
+            render_cli(&["reference-snapshot-2600000-major-body-boundary-summary", "extra"])
+                .expect_err("reference snapshot 2600000 major-body boundary summary should reject extra arguments"),
+            "reference-snapshot-2600000-major-body-boundary-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["2600000-major-body-boundary-summary", "extra"])
+                .expect_err("2600000 major-body boundary alias should reject extra arguments"),
+            "reference-snapshot-2600000-major-body-boundary-summary does not accept extra arguments"
+        );
+    }
+
+    #[test]
     fn reference_snapshot_2451910_major_body_boundary_summary_aliases_render_the_same_reports() {
         let boundary_2451910 =
             render_cli(&["reference-snapshot-2451910-major-body-boundary-summary"])
@@ -26938,5 +26855,29 @@ version = "0.9.0"
         let alias = render_cli(&["mars-outer-boundary-summary"])
             .expect("Mars outer-boundary alias should render");
         assert_eq!(alias, rendered);
+    }
+
+    #[test]
+    fn reference_snapshot_2600000_major_body_boundary_summary_aliases_render_the_same_reports() {
+        let boundary_2600000 =
+            render_cli(&["reference-snapshot-2600000-major-body-boundary-summary"])
+                .expect("2600000 major-body boundary summary should render");
+        assert!(boundary_2600000.contains("Reference 2600000 major-body boundary evidence:"));
+        assert!(boundary_2600000.contains("JD 2600000.0 (TDB)"));
+        let boundary_2600000_alias = render_cli(&["2600000-major-body-boundary-summary"])
+            .expect("2600000 major-body boundary alias should render");
+        assert_eq!(boundary_2600000_alias, boundary_2600000);
+        assert_eq!(
+            render_cli(&["reference-snapshot-2600000-major-body-boundary-summary", "extra"])
+                .expect_err(
+                    "2600000 major-body boundary summary should reject extra arguments",
+                ),
+            "reference-snapshot-2600000-major-body-boundary-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["2600000-major-body-boundary-summary", "extra"])
+                .expect_err("2600000 major-body boundary alias should reject extra arguments"),
+            "reference-snapshot-2600000-major-body-boundary-summary does not accept extra arguments"
+        );
     }
 }

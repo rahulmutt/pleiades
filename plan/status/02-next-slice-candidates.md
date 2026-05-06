@@ -16,6 +16,7 @@ This file lists focused implementation slices that map to the current phase ladd
 - A 2451920.5 interior reference slice is now checked in, and the validation CLI now explicitly regression-tests it inside the combined reference snapshot summary.
 - The 2451915.25/2451915.75 high-curvature hold-out window is now surfaced through the combined JPL evidence report, and the selected-asteroid boundary, bridge, and dense summaries are now surfaced there too, while the 2451910 through 2451915 major-body boundary summaries and the 2451916.0 interior / 2451916.5 dense-boundary slices are now also explicitly surfaced there; keep hold-out rows separate from fitting/reference rows while the next slice targets any remaining boundary breadth.
 - A 2453000.5 major-body boundary summary is now checked in and surfaced through the top-level reference snapshot summary.
+- A 2600000.0 major-body boundary summary for the Mars outer-boundary anchor is now checked in and surfaced through the top-level reference snapshot summary and CLI/report/help aliases.
 - A 2500 major-body boundary summary is now checked in and surfaced through the top-level reference snapshot summary.
 - The Mars outer-boundary summary is now checked in and surfaced through the top-level reference snapshot summary alongside the late corpus edge at JD 2634167.0.
 - A 2400000.0 major-body boundary summary is now checked in and surfaced through a first-class report surface, and the top-level reference snapshot regression now explicitly anchors that slice alongside the 2451545.0 J2000 boundary.
