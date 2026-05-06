@@ -4587,6 +4587,29 @@ mod tests {
             "toy backend only returns [Ecliptic] coordinates"
         );
 
+        let invalid_observer_time_scale_request = EphemerisRequest {
+            instant: Instant::new(JulianDay::from_days(2451545.0), TimeScale::Tdb),
+            observer: Some(ObserverLocation::new(
+                Latitude::from_degrees(95.0),
+                Longitude::from_degrees(-0.1),
+                Some(45.0),
+            )),
+            ..geocentric_only_request.clone()
+        };
+        let invalid_observer_time_scale_error =
+            validate_request_against_metadata(&invalid_observer_time_scale_request, &metadata)
+                .expect_err(
+                    "time-scale policy should still win before malformed observer validation",
+                );
+        assert_eq!(
+            invalid_observer_time_scale_error.kind,
+            EphemerisErrorKind::UnsupportedTimeScale
+        );
+        assert_eq!(
+            invalid_observer_time_scale_error.message,
+            "toy backend expects one of [TT] for request instants"
+        );
+
         let invalid_observer_frame_batch_error = validate_requests_against_metadata(
             &[
                 geocentric_only_request.clone(),
