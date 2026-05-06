@@ -7833,6 +7833,8 @@ fn render_release_notes_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_2451916_major_body_interior_summary_for_report());
     text.push('\n');
+    text.push_str(&reference_snapshot_2451916_major_body_boundary_summary_for_report());
+    text.push('\n');
     text.push_str(&reference_snapshot_1900_selected_body_boundary_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_2200_selected_body_boundary_summary_for_report());
@@ -8483,6 +8485,8 @@ fn render_release_summary_text() -> String {
     text.push_str(&reference_snapshot_2360234_major_body_interior_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_2451916_major_body_interior_summary_for_report());
+    text.push('\n');
+    text.push_str(&reference_snapshot_2451916_major_body_boundary_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_1900_selected_body_boundary_summary_for_report());
     text.push('\n');
@@ -23586,6 +23590,8 @@ version = "0.9.0"
             .contains(&reference_snapshot_2378499_major_body_boundary_summary_for_report()));
         assert!(release_notes_summary
             .contains(&reference_snapshot_2451916_major_body_interior_summary_for_report()));
+        assert!(release_notes_summary
+            .contains(&reference_snapshot_2451916_major_body_boundary_summary_for_report()));
         assert!(release_notes_summary.contains(
             "Latitude-sensitive house systems: 8 (Placidus, Koch, Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Topocentric, Sunshine, Gauquelin sectors)"
         ));
@@ -23656,6 +23662,8 @@ version = "0.9.0"
             .contains(&reference_snapshot_2451920_major_body_interior_summary_for_report()));
         assert!(release_summary
             .contains(&reference_snapshot_2451916_major_body_interior_summary_for_report()));
+        assert!(release_summary
+            .contains(&reference_snapshot_2451916_major_body_boundary_summary_for_report()));
         assert!(release_summary.contains(
             "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); request-policy-summary / request-policy / request-semantics-summary / request-semantics / utc-convenience-policy-summary / utc-convenience-policy / delta-t-policy-summary / delta-t-policy (compact request-policy report entrypoints); pleiades-cli chart (explicit --tt|--tdb|--utc|--ut1 flags plus caller-supplied TT/TDB offset aliases: --tt-offset-seconds, --tt-from-utc-offset-seconds, --tt-from-ut1-offset-seconds, --tdb-offset-seconds, --tdb-from-utc-offset-seconds, --tdb-from-ut1-offset-seconds, --tdb-from-tt-offset-seconds, and --tt-from-tdb-offset-seconds; observer-bearing chart requests stay geocentric and use the observer only for houses)"
         ));
