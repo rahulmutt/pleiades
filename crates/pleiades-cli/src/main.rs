@@ -3103,6 +3103,22 @@ mod tests {
             reference_snapshot_2451910_major_body_boundary_alias,
             reference_snapshot_2451910_major_body_boundary_summary
         );
+        let reference_snapshot_2451911_major_body_boundary_summary =
+            render_cli(&["reference-snapshot-2451911-major-body-boundary-summary"])
+                .expect("reference snapshot 2451911 major-body boundary summary should render");
+        assert!(reference_snapshot_2451911_major_body_boundary_summary
+            .contains("Reference 2451911 major-body boundary evidence:"));
+        assert_eq!(
+            reference_snapshot_2451911_major_body_boundary_summary,
+            pleiades_jpl::reference_snapshot_2451911_major_body_boundary_summary_for_report()
+        );
+        let reference_snapshot_2451911_major_body_boundary_alias =
+            render_cli(&["2451911-major-body-boundary-summary"])
+                .expect("2451911 major-body boundary alias should render");
+        assert_eq!(
+            reference_snapshot_2451911_major_body_boundary_alias,
+            reference_snapshot_2451911_major_body_boundary_summary
+        );
         let comparison_snapshot_manifest_summary =
             render_cli(&["comparison-snapshot-manifest-summary"])
                 .expect("comparison snapshot manifest summary should render");
