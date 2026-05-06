@@ -225,6 +225,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         | Some("2451915-major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-2451917-major-body-boundary-summary")
         | Some("2451917-major-body-boundary-summary") => validate_render_cli(args),
+        Some("reference-snapshot-2451919-major-body-boundary-summary")
+        | Some("2451919-major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-2451916-major-body-interior-summary")
         | Some("2451916-major-body-interior-summary") => validate_render_cli(args),
         Some("reference-snapshot-2451920-major-body-interior-summary")
@@ -1689,6 +1691,18 @@ mod tests {
         let boundary_2451917_alias = render_cli(&["2451917-major-body-boundary-summary"])
             .expect("2451917 major-body boundary alias should render");
         assert_eq!(boundary_2451917_alias, boundary_2451917);
+    }
+
+    #[test]
+    fn reference_snapshot_2451919_major_body_boundary_aliases_render_the_same_reports() {
+        let boundary_2451919 =
+            render_cli(&["reference-snapshot-2451919-major-body-boundary-summary"])
+                .expect("2451919 major-body boundary summary should render");
+        assert!(boundary_2451919.contains("Reference 2451919 major-body boundary evidence:"));
+        assert!(boundary_2451919.contains("JD 2451919.5 (TDB)"));
+        let boundary_2451919_alias = render_cli(&["2451919-major-body-boundary-summary"])
+            .expect("2451919 major-body boundary alias should render");
+        assert_eq!(boundary_2451919_alias, boundary_2451919);
     }
 
     #[test]
@@ -4984,6 +4998,9 @@ mod tests {
         ));
         assert!(help.contains(
             "reference-snapshot-2451917-major-body-boundary-summary  Print the compact reference 2451917 major-body boundary evidence summary"
+        ));
+        assert!(help.contains(
+            "reference-snapshot-2451919-major-body-boundary-summary  Print the compact reference 2451919 major-body boundary evidence summary"
         ));
         assert!(help.contains(
             "reference-snapshot-2451920-major-body-interior-summary  Print the compact reference 2451920 major-body interior evidence summary"
