@@ -2896,7 +2896,7 @@ pub fn production_generation_source_summary_for_report() -> String {
     }
 
     format!(
-        "Production generation source: {}; {}; input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv; file format=comma-separated values; frame=geocentric ecliptic J2000; time scale=TDB; parser=pure-Rust and deterministic; checksum expectation=byte-identical fixture contents",
+        "Production generation source: {}; {}; input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv; file format=comma-separated values; frame=geocentric ecliptic J2000; time scale=TDB; parser=pure-Rust and deterministic; checksum expectation=byte-identical fixture contents; cadence=31 reference epochs and 10 boundary epochs; hold-out rows remain separate from reference rows",
         reference_summary.summary_line(),
         format_production_generation_boundary_source_summary(&boundary_summary)
     )
@@ -25041,7 +25041,7 @@ mod tests {
         assert_eq!(
             production_generation_source_summary_for_report(),
             format!(
-                "Production generation source: {}; {}; input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv; file format=comma-separated values; frame=geocentric ecliptic J2000; time scale=TDB; parser=pure-Rust and deterministic; checksum expectation=byte-identical fixture contents",
+                "Production generation source: {}; {}; input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv; file format=comma-separated values; frame=geocentric ecliptic J2000; time scale=TDB; parser=pure-Rust and deterministic; checksum expectation=byte-identical fixture contents; cadence=31 reference epochs and 10 boundary epochs; hold-out rows remain separate from reference rows",
                 reference_snapshot_source_summary_for_report(),
                 production_generation_boundary_source_summary_for_report()
             )
@@ -27639,6 +27639,8 @@ mod tests {
         assert!(report.contains("time scale=TDB"));
         assert!(report.contains("parser=pure-Rust and deterministic"));
         assert!(report.contains("checksum expectation=byte-identical fixture contents"));
+        assert!(report.contains("cadence=31 reference epochs and 10 boundary epochs"));
+        assert!(report.contains("hold-out rows remain separate from reference rows"));
     }
 
     #[test]

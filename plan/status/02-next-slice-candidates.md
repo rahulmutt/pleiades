@@ -56,7 +56,7 @@ This file lists focused implementation slices that map to the current phase ladd
 ### 2. Deterministic artifact generator
 
 - Build a generation command that consumes validated public inputs and writes normalized intermediates plus compressed artifacts; the current fixture workflow now exposes both generation and regenerate entrypoints, so follow-on work can focus on normalized intermediates and production artifact writes.
-- Record source revisions, generator parameters, checksums, output profile identifiers, and per-channel quantization scales; the packaged-artifact regeneration provenance now already exposes and validates the codec quantization-scale metadata, so the next slice can concentrate on source-revision and cadence details.
+- Record source revisions, generator parameters, checksums, output profile identifiers, and per-channel quantization scales; the packaged-artifact regeneration provenance now already exposes and validates the codec quantization-scale metadata, so the next slice can concentrate on source-revision details and drift-proof manifest updates.
 - Keep the prototype fixture path separate from production artifact generation.
 
 ### 3. Fit-error and benchmark matrix
@@ -73,7 +73,7 @@ This file lists focused implementation slices that map to the current phase ladd
 - The current house-validation corpus already carries the release-facing formula families, latitude-sensitive systems, and documented constraints for the shipped catalog.
 - Extend that evidence only when new release-advertised house systems are added or existing ones change status.
 - Keep descriptor-only or approximate entries out of fully implemented claims.
-- The packaged-artifact generation manifest summary sidecar is now staged alongside the generation manifest, so the next production-artifact slice can focus on source revisions, cadence details, and drift-proof manifest updates.
+- The packaged-artifact generation manifest summary sidecar is now staged alongside the generation manifest, so the next production-artifact slice can focus on source revisions and drift-proof manifest updates.
 
 ### 2. Ayanamsa provenance batch
 
