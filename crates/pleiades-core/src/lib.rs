@@ -98,10 +98,11 @@ pub use chart::{
     MotionSummary, MotionSummaryValidationError, ObserverPolicy, ObserverSummary, SignSummary,
 };
 pub use compatibility::{
-    custom_definition_ayanamsa_labels_summary_for_report, current_compatibility_profile,
-    current_compatibility_profile_id, house_formula_families_summary_for_report,
-    latitude_sensitive_house_systems_summary_for_report, validate_custom_definition_labels,
-    CompatibilityProfile, HouseCodeAliasInventorySummary, CURRENT_COMPATIBILITY_PROFILE_ID,
+    catalog_inventory_summary_for_report, current_compatibility_profile,
+    current_compatibility_profile_id, custom_definition_ayanamsa_labels_summary_for_report,
+    house_formula_families_summary_for_report, latitude_sensitive_house_systems_summary_for_report,
+    validate_custom_definition_labels, CompatibilityProfile, HouseCodeAliasInventorySummary,
+    CURRENT_COMPATIBILITY_PROFILE_ID,
 };
 pub use pleiades_ayanamsa::{
     baseline_ayanamsas, built_in_ayanamsas, descriptor as ayanamsa_descriptor, release_ayanamsas,
@@ -611,6 +612,10 @@ mod tests {
         assert_eq!(
             custom_definition_ayanamsa_labels_summary_for_report(),
             profile.custom_definition_ayanamsa_labels_summary_line()
+        );
+        assert_eq!(
+            catalog_inventory_summary_for_report(),
+            profile.catalog_inventory_summary_line()
         );
     }
 

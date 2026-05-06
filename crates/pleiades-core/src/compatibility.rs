@@ -1194,6 +1194,11 @@ pub fn custom_definition_ayanamsa_labels_summary_for_report() -> String {
     current_compatibility_profile().custom_definition_ayanamsa_labels_summary_line()
 }
 
+/// Returns the compatibility-profile catalog inventory summary for report surfaces.
+pub fn catalog_inventory_summary_for_report() -> String {
+    current_compatibility_profile().catalog_inventory_summary_line()
+}
+
 fn write_scope_section(
     f: &mut fmt::Formatter<'_>,
     title: &str,
