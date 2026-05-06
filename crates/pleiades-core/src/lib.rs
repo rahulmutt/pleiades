@@ -110,12 +110,12 @@ pub use pleiades_backend::{
     apparentness_policy_summary_for_report, delta_t_policy_summary_for_report,
     frame_policy_summary_for_report, native_sidereal_policy_summary_for_report,
     observer_policy_summary_for_report, request_policy_summary_for_report,
-    time_scale_policy_summary_for_report, AccuracyClass, Apparentness, ApparentnessPolicySummary,
-    BackendCapabilities, BackendFamily, BackendId, BackendMetadata, BackendProvenance,
-    CompositeBackend, DeltaTPolicySummary, EphemerisBackend, EphemerisError, EphemerisErrorKind,
-    EphemerisRequest, EphemerisResult, FramePolicySummary, NativeSiderealPolicySummary,
-    ObserverPolicySummary, QualityAnnotation, RequestPolicySummary, RoutingBackend,
-    TimeScalePolicySummary,
+    time_scale_policy_summary_for_report, utc_convenience_policy_summary_for_report, AccuracyClass,
+    Apparentness, ApparentnessPolicySummary, BackendCapabilities, BackendFamily, BackendId,
+    BackendMetadata, BackendProvenance, CompositeBackend, DeltaTPolicySummary, EphemerisBackend,
+    EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult, FramePolicySummary,
+    NativeSiderealPolicySummary, ObserverPolicySummary, QualityAnnotation, RequestPolicySummary,
+    RoutingBackend, TimeScalePolicySummary, UtcConveniencePolicySummary,
 };
 pub use pleiades_houses::{
     baseline_house_systems, calculate_houses, descriptor as house_system_descriptor,
@@ -528,6 +528,19 @@ mod tests {
         assert_eq!(
             error.message,
             "chart request #2 failed validation: restricted expects one of [TT] for request instants"
+        );
+    }
+
+    #[test]
+    fn utc_convenience_policy_summary_is_reexported_from_backend() {
+        let summary: UtcConveniencePolicySummary = utc_convenience_policy_summary_for_report();
+        assert_eq!(
+            summary.summary_line(),
+            pleiades_backend::CURRENT_UTC_CONVENIENCE_POLICY_SUMMARY_TEXT
+        );
+        assert_eq!(
+            summary.validated_summary_line().unwrap(),
+            pleiades_backend::CURRENT_UTC_CONVENIENCE_POLICY_SUMMARY_TEXT
         );
     }
 
