@@ -17595,6 +17595,8 @@ pub fn jpl_snapshot_evidence_summary_for_report() -> String {
     [
         jpl_snapshot_evidence_classification_summary_for_report(),
         reference_snapshot_summary_for_report(),
+        reference_snapshot_2451910_major_body_boundary_summary_for_report(),
+        reference_snapshot_2451911_major_body_boundary_summary_for_report(),
         reference_snapshot_body_class_coverage_summary_for_report(),
         reference_snapshot_equatorial_parity_summary_for_report(),
         reference_snapshot_batch_parity_summary_for_report(),
@@ -24324,6 +24326,10 @@ mod tests {
         assert!(jpl_snapshot_evidence_summary_for_report().contains(
             "JPL reference snapshot batch parity: 347 rows across 16 bodies and 29 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
         ));
+        assert!(jpl_snapshot_evidence_summary_for_report()
+            .contains(&reference_snapshot_2451910_major_body_boundary_summary_for_report()));
+        assert!(jpl_snapshot_evidence_summary_for_report()
+            .contains(&reference_snapshot_2451911_major_body_boundary_summary_for_report()));
         assert!(jpl_snapshot_evidence_summary_for_report()
             .contains(&production_generation_snapshot_summary_for_report()));
         assert!(jpl_snapshot_evidence_summary_for_report()
