@@ -7831,6 +7831,8 @@ fn render_release_notes_summary_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_2451911_major_body_boundary_summary_for_report());
     text.push('\n');
+    text.push_str(&reference_snapshot_2451916_major_body_dense_boundary_summary_for_report());
+    text.push('\n');
     text.push_str(&reference_snapshot_boundary_epoch_coverage_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_major_body_boundary_window_summary_for_report());
@@ -21668,6 +21670,8 @@ mod tests {
         assert!(
             rendered.contains(&reference_snapshot_2451911_major_body_boundary_summary_for_report())
         );
+        assert!(rendered
+            .contains(&reference_snapshot_2451916_major_body_dense_boundary_summary_for_report()));
         assert!(rendered.contains("Custom-definition labels:"));
         assert!(rendered.contains("House formula families: 7 (Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign)"));
         assert!(rendered.contains(&format!(

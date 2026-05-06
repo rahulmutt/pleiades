@@ -2333,6 +2333,10 @@ mod tests {
         assert!(release_notes_summary.contains("API stability summary line:"));
         assert!(release_notes_summary
             .contains(&pleiades_jpl::selected_asteroid_terminal_boundary_summary_for_report()));
+        assert!(release_notes_summary.contains(
+            &pleiades_jpl::reference_snapshot_2451916_major_body_dense_boundary_summary_for_report(
+            )
+        ));
         assert!(release_notes_summary.contains(profile.target_house_scope.join("; ").as_str()));
         assert!(release_notes_summary.contains(profile.target_ayanamsa_scope.join("; ").as_str()));
         assert!(release_notes_summary.contains(&format!(
