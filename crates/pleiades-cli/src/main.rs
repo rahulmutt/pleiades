@@ -3198,6 +3198,8 @@ mod tests {
             .contains(&pleiades_jpl::selected_asteroid_source_evidence_summary_for_report()));
         assert!(reference_snapshot_summary
             .contains(&pleiades_jpl::selected_asteroid_source_window_summary_for_report()));
+        assert!(!reference_snapshot_summary.contains("JPL independent hold-out:"));
+        assert!(!reference_snapshot_summary.contains("Reference/hold-out overlap:"));
         assert_eq!(
             reference_snapshot_summary,
             format!(

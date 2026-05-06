@@ -24767,6 +24767,8 @@ mod tests {
             report.contains(&reference_snapshot_2500000_major_body_boundary_summary_for_report())
         );
         assert!(report.contains(&reference_snapshot_mars_outer_boundary_summary_for_report()));
+        assert!(!report.contains("JPL independent hold-out:"));
+        assert!(!report.contains("Reference/hold-out overlap:"));
     }
 
     #[test]
