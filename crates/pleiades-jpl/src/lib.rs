@@ -9591,16 +9591,21 @@ pub fn reference_snapshot_2451918_major_body_boundary_summary(
 
 /// Returns the release-facing 2451918 major-body boundary summary string.
 ///
-/// This is a compatibility alias for the Mars/Jupiter boundary report wording.
+/// This is a compatibility alias for the Mars/Jupiter boundary slice with
+/// explicit 2451918 wording for release-facing reports.
 pub fn reference_snapshot_2451918_major_body_boundary_summary_for_report() -> String {
     match reference_snapshot_2451918_major_body_boundary_summary() {
         Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
+            Ok(summary_line) => summary_line.replacen(
+                "Reference Mars/Jupiter boundary evidence",
+                "Reference 2451918 major-body boundary evidence",
+                1,
+            ),
             Err(error) => {
-                format!("Reference Mars/Jupiter boundary evidence: unavailable ({error})")
+                format!("Reference 2451918 major-body boundary evidence: unavailable ({error})")
             }
         },
-        None => "Reference Mars/Jupiter boundary evidence: unavailable".to_string(),
+        None => "Reference 2451918 major-body boundary evidence: unavailable".to_string(),
     }
 }
 
@@ -23209,6 +23214,10 @@ mod tests {
             summary.summary_line(),
             "Reference Mars/Jupiter boundary evidence: 16 exact samples at JD 2451918.5 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis); 2001-01-09 boundary sample"
         );
+        assert_eq!(
+            reference_snapshot_2451918_major_body_boundary_summary_for_report(),
+            "Reference 2451918 major-body boundary evidence: 16 exact samples at JD 2451918.5 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis); 2001-01-09 boundary sample"
+        );
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             reference_snapshot_mars_jupiter_boundary_summary_for_report(),
@@ -23244,20 +23253,30 @@ mod tests {
     }
 
     #[test]
-    fn reference_snapshot_2451918_major_body_boundary_summary_alias_matches_mars_jupiter_boundary_summary(
-    ) {
+    fn reference_snapshot_2451918_major_body_boundary_summary_alias_uses_explicit_2451918_wording()
+    {
+        let boundary_2451918 = reference_snapshot_2451918_major_body_boundary_summary_for_report();
+        let boundary_generic = reference_snapshot_mars_jupiter_boundary_summary_for_report();
+        let summary = reference_snapshot_2451918_major_body_boundary_summary()
+            .expect("reference 2451918 major-body boundary summary should exist");
+
+        assert!(boundary_2451918.contains("Reference 2451918 major-body boundary evidence:"));
+        assert!(boundary_2451918.contains("JD 2451918.5 (TDB)"));
         assert_eq!(
-            reference_snapshot_2451918_major_body_boundary_summary_for_report(),
-            reference_snapshot_mars_jupiter_boundary_summary_for_report()
+            boundary_2451918,
+            summary.summary_line().replacen(
+                "Reference Mars/Jupiter boundary evidence",
+                "Reference 2451918 major-body boundary evidence",
+                1
+            )
         );
         assert_eq!(
-            reference_snapshot_2451918_major_body_boundary_summary()
-                .expect("reference 2451918 major-body boundary summary should exist")
-                .summary_line(),
+            summary.summary_line(),
             reference_snapshot_mars_jupiter_boundary_summary()
                 .expect("reference Mars/Jupiter boundary summary should exist")
                 .summary_line()
         );
+        assert_ne!(boundary_2451918, boundary_generic);
     }
 
     #[test]
@@ -23326,6 +23345,11 @@ mod tests {
             reference_snapshot_2451918_major_body_boundary_summary()
                 .expect("reference 2451918 major-body boundary summary should exist")
                 .summary_line()
+                .replacen(
+                    "Reference Mars/Jupiter boundary evidence",
+                    "Reference 2451918 major-body boundary evidence",
+                    1
+                )
         );
     }
 

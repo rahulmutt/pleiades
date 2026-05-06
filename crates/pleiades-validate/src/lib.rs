@@ -27084,7 +27084,7 @@ version = "0.9.0"
         let boundary_2451918 =
             render_cli(&["reference-snapshot-2451918-major-body-boundary-summary"])
                 .expect("2451918 major-body boundary summary should render");
-        assert!(boundary_2451918.contains("Reference Mars/Jupiter boundary evidence:"));
+        assert!(boundary_2451918.contains("Reference 2451918 major-body boundary evidence:"));
         assert!(boundary_2451918.contains("JD 2451918.5 (TDB)"));
         let boundary_2451918_alias = render_cli(&["2451918-major-body-boundary-summary"])
             .expect("2451918 major-body boundary alias should render");
