@@ -36,7 +36,7 @@ Phase 2 production artifacts require trusted generation inputs and target thresh
 
 The representative early-boundary slice is now checked in for Sun, Moon, Mercury, and Venus at 1500-01-01, now surfaced through a dedicated boundary summary, and the 1600-01-11, 1750-01-01, and 1900-01-01 selected-body boundary slices plus a 2500-01-01 selected-body boundary slice now give additional release-facing boundary points for the same release corpus. A 2451915.25/2451915.75 high-curvature hold-out window supplements the validation corpus for Sun, Moon, Mercury, and Venus.
 
-The reference corpus also now includes a 1750-01-01 interior selected-body slice and a dedicated 2451917.5 boundary-day report, so the next reviewable step can move to request-semantics decisions or a different boundary if additional breadth is needed.
+The reference corpus also now includes a 1750-01-01 interior selected-body slice, a dedicated 2451917.5 boundary-day report, and a dedicated 2451920.5 interior report surface, so the next reviewable step can move to request-semantics decisions or a different boundary if additional breadth is needed.
 
 Next, implement another small, reviewable slice:
 
