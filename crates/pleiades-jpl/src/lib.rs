@@ -11088,20 +11088,29 @@ impl std::error::Error for Reference2200SelectedBodyBoundarySummaryValidationErr
 
 fn format_selected_body_boundary_summary_line(
     epoch_label: &str,
-    summary: &Reference2200SelectedBodyBoundarySummary,
+    sample_count: usize,
+    sample_bodies: &[pleiades_backend::CelestialBody],
+    epoch: Instant,
+    sample_label: &str,
 ) -> String {
     format!(
-        "Reference {epoch_label} selected-body boundary evidence: {} exact samples at {} ({}); 2200-01-01 selected-body boundary sample",
-        summary.sample_count,
-        format_instant(summary.epoch),
-        format_bodies(&summary.sample_bodies),
+        "Reference {epoch_label} selected-body boundary evidence: {} exact samples at {} ({}); {sample_label} selected-body boundary sample",
+        sample_count,
+        format_instant(epoch),
+        format_bodies(sample_bodies),
     )
 }
 
 impl Reference2200SelectedBodyBoundarySummary {
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
-        format_selected_body_boundary_summary_line("2200", self)
+        format_selected_body_boundary_summary_line(
+            "2200",
+            self.sample_count,
+            &self.sample_bodies,
+            self.epoch,
+            "2200-01-01",
+        )
     }
 
     /// Returns `Ok(())` when the summary still matches the current evidence slice.
@@ -11221,7 +11230,13 @@ pub fn reference_snapshot_2524593_selected_body_boundary_summary(
 pub fn reference_snapshot_2524593_selected_body_boundary_summary_for_report() -> String {
     match reference_snapshot_2524593_selected_body_boundary_summary() {
         Some(summary) => match summary.validated_summary_line() {
-            Ok(_) => format_selected_body_boundary_summary_line("2524593", &summary),
+            Ok(_) => format_selected_body_boundary_summary_line(
+                "2524593",
+                summary.sample_count,
+                &summary.sample_bodies,
+                summary.epoch,
+                "2200-01-01",
+            ),
             Err(error) => {
                 format!("Reference 2524593 selected-body boundary evidence: unavailable ({error})")
             }
@@ -11433,6 +11448,32 @@ pub fn reference_snapshot_2500_selected_body_boundary_summary_for_report() -> St
             }
         },
         None => "Reference 2500 selected-body boundary evidence: unavailable".to_string(),
+    }
+}
+
+/// Returns the compact typed summary for the 2634167 selected-body boundary reference evidence.
+#[doc(alias = "reference_snapshot_2500_selected_body_boundary_summary")]
+pub fn reference_snapshot_2634167_selected_body_boundary_summary(
+) -> Option<Reference2500SelectedBodyBoundarySummary> {
+    reference_snapshot_2500_selected_body_boundary_summary()
+}
+
+/// Returns the release-facing 2634167 selected-body boundary summary string.
+pub fn reference_snapshot_2634167_selected_body_boundary_summary_for_report() -> String {
+    match reference_snapshot_2634167_selected_body_boundary_summary() {
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(_) => format_selected_body_boundary_summary_line(
+                "2634167",
+                summary.sample_count,
+                &summary.sample_bodies,
+                summary.epoch,
+                "2500-01-01",
+            ),
+            Err(error) => {
+                format!("Reference 2634167 selected-body boundary evidence: unavailable ({error})")
+            }
+        },
+        None => "Reference 2634167 selected-body boundary evidence: unavailable".to_string(),
     }
 }
 
@@ -22829,6 +22870,46 @@ mod tests {
         assert_eq!(
             reference_snapshot_2500_selected_body_boundary_summary_for_report(),
             summary.summary_line()
+        );
+    }
+
+    #[test]
+    fn reference_snapshot_2634167_selected_body_boundary_summary_reports_the_boundary_day() {
+        let summary = reference_snapshot_2634167_selected_body_boundary_summary()
+            .expect("reference 2634167 selected-body boundary summary should exist");
+        assert_eq!(summary.sample_count, 5);
+        assert_eq!(summary.sample_bodies.len(), 5);
+        assert_eq!(summary.epoch.julian_day.days(), 2_634_167.0);
+        assert_eq!(
+            summary.sample_bodies[0],
+            pleiades_backend::CelestialBody::Mars
+        );
+        assert_eq!(
+            summary.sample_bodies[1],
+            pleiades_backend::CelestialBody::Mercury
+        );
+        assert_eq!(
+            summary.sample_bodies[2],
+            pleiades_backend::CelestialBody::Moon
+        );
+        assert_eq!(
+            summary.sample_bodies[3],
+            pleiades_backend::CelestialBody::Sun
+        );
+        assert_eq!(
+            summary.sample_bodies[4],
+            pleiades_backend::CelestialBody::Venus
+        );
+        assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(
+            summary.summary_line(),
+            "Reference 2500 selected-body boundary evidence: 5 exact samples at JD 2634167.0 (TDB) (Mars, Mercury, Moon, Sun, Venus); 2500-01-01 selected-body boundary sample"
+        );
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(
+            reference_snapshot_2634167_selected_body_boundary_summary_for_report(),
+            "Reference 2634167 selected-body boundary evidence: 5 exact samples at JD 2634167.0 (TDB) (Mars, Mercury, Moon, Sun, Venus); 2500-01-01 selected-body boundary sample"
         );
     }
 

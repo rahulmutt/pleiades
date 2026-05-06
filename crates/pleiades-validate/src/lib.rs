@@ -161,6 +161,7 @@ use pleiades_jpl::{
     reference_snapshot_2500_selected_body_boundary_summary_for_report,
     reference_snapshot_2524593_selected_body_boundary_summary_for_report,
     reference_snapshot_2600000_major_body_boundary_summary_for_report,
+    reference_snapshot_2634167_selected_body_boundary_summary_for_report,
     reference_snapshot_batch_parity_summary_for_report,
     reference_snapshot_body_class_coverage_summary_for_report,
     reference_snapshot_boundary_epoch_coverage_summary_for_report,
@@ -4891,6 +4892,14 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
                 "reference-snapshot-2500-selected-body-boundary-summary",
             )?;
             Ok(reference_snapshot_2500_selected_body_boundary_summary_for_report())
+        }
+        Some("reference-snapshot-2634167-selected-body-boundary-summary")
+        | Some("2634167-selected-body-boundary-summary") => {
+            ensure_no_extra_args(
+                &args[1..],
+                "reference-snapshot-2634167-selected-body-boundary-summary",
+            )?;
+            Ok(reference_snapshot_2634167_selected_body_boundary_summary_for_report())
         }
         Some("reference-snapshot-2400000-major-body-boundary-summary")
         | Some("2400000-major-body-boundary-summary") => {
@@ -16678,7 +16687,9 @@ fn help_text() -> String {
   reference-snapshot-batch-parity-summary  Print the compact reference snapshot batch parity summary
   reference-snapshot-equatorial-parity-summary  Print the compact reference snapshot equatorial parity summary\n  reference-snapshot-lunar-boundary-summary  Print the compact reference lunar boundary evidence summary\n  lunar-boundary-summary   Alias for reference-snapshot-lunar-boundary-summary\n  reference-snapshot-1500-selected-body-boundary-summary  Print the compact reference 1500 selected-body boundary evidence summary\n  1500-selected-body-boundary-summary  Alias for reference-snapshot-1500-selected-body-boundary-summary\n  reference-snapshot-1600-selected-body-boundary-summary  Print the compact reference 1600 selected-body boundary evidence summary\n  1600-selected-body-boundary-summary  Alias for reference-snapshot-1600-selected-body-boundary-summary\n  reference-snapshot-1750-selected-body-boundary-summary  Print the compact reference 1750 selected-body boundary evidence summary\n  1750-selected-body-boundary-summary  Alias for reference-snapshot-1750-selected-body-boundary-summary\n  reference-snapshot-1750-major-body-interior-summary  Print the compact reference 1750 major-body interior comparison evidence summary\n  1750-major-body-interior-summary  Alias for reference-snapshot-1750-major-body-interior-summary\n  reference-snapshot-2360234-major-body-interior-summary  Print the compact reference 2360234 major-body interior comparison evidence summary\n  2360234-major-body-interior-summary  Alias for reference-snapshot-2360234-major-body-interior-summary\n  reference-snapshot-2451916-major-body-interior-summary  Print the compact reference 2451916 major-body interior evidence summary\n  2451916-major-body-interior-summary  Alias for reference-snapshot-2451916-major-body-interior-summary
   reference-snapshot-2451916-major-body-dense-boundary-summary  Print the compact reference 2451916 major-body dense boundary evidence summary
-  2451916-major-body-dense-boundary-summary  Alias for reference-snapshot-2451916-major-body-dense-boundary-summary\n  reference-snapshot-2451910-major-body-boundary-summary  Print the compact reference 2451910 major-body boundary evidence summary\n  2451910-major-body-boundary-summary  Alias for reference-snapshot-2451910-major-body-boundary-summary\n  reference-snapshot-2451911-major-body-boundary-summary  Print the compact reference 2451911 major-body boundary evidence summary\n  2451911-major-body-boundary-summary  Alias for reference-snapshot-2451911-major-body-boundary-summary\n  reference-snapshot-2451912-major-body-boundary-summary  Print the compact reference 2451912 major-body boundary evidence summary\n  2451912-major-body-boundary-summary  Alias for reference-snapshot-2451912-major-body-boundary-summary\n  reference-snapshot-2200-selected-body-boundary-summary  Print the compact reference 2200 selected-body boundary evidence summary\n  2200-selected-body-boundary-summary  Alias for reference-snapshot-2200-selected-body-boundary-summary\n  reference-snapshot-2524593-selected-body-boundary-summary  Print the compact reference 2524593 selected-body boundary evidence summary\n  2524593-selected-body-boundary-summary  Alias for reference-snapshot-2524593-selected-body-boundary-summary\n  reference-snapshot-1900-selected-body-boundary-summary  Print the compact reference 1900 selected-body boundary evidence summary\n  1900-selected-body-boundary-summary  Alias for reference-snapshot-1900-selected-body-boundary-summary\n  reference-snapshot-2500-selected-body-boundary-summary  Print the compact reference 2500 selected-body boundary evidence summary\n  2500-selected-body-boundary-summary  Alias for reference-snapshot-2500-selected-body-boundary-summary\n  reference-snapshot-1749-major-body-boundary-summary  Print the compact reference 1749 major-body boundary evidence summary\n  1749-major-body-boundary-summary  Alias for reference-snapshot-1749-major-body-boundary-summary\n  reference-snapshot-early-major-body-boundary-summary  Print the compact reference early major-body boundary evidence summary\n  early-major-body-boundary-summary  Alias for reference-snapshot-early-major-body-boundary-summary\n  reference-snapshot-1800-major-body-boundary-summary  Print the compact reference 1800 major-body boundary evidence summary\n  1800-major-body-boundary-summary  Alias for reference-snapshot-1800-major-body-boundary-summary\n  reference-snapshot-2400000-major-body-boundary-summary  Print the compact reference 2400000 major-body boundary evidence summary\n  2400000-major-body-boundary-summary  Alias for reference-snapshot-2400000-major-body-boundary-summary\n  reference-snapshot-2451545-major-body-boundary-summary  Print the compact reference 2451545 major-body boundary evidence summary\n  2451545-major-body-boundary-summary  Alias for reference-snapshot-2451545-major-body-boundary-summary\n  reference-snapshot-2500-major-body-boundary-summary  Print the compact reference 2500 major-body boundary evidence summary\n  2500-major-body-boundary-summary  Alias for reference-snapshot-2500-major-body-boundary-summary\n  reference-snapshot-2453000-major-body-boundary-summary  Print the compact reference 2453000 major-body boundary evidence summary\n  2453000-major-body-boundary-summary  Alias for reference-snapshot-2453000-major-body-boundary-summary\n  reference-snapshot-2600000-major-body-boundary-summary  Print the compact reference 2600000 major-body boundary evidence summary
+  2451916-major-body-dense-boundary-summary  Alias for reference-snapshot-2451916-major-body-dense-boundary-summary\n  reference-snapshot-2451910-major-body-boundary-summary  Print the compact reference 2451910 major-body boundary evidence summary\n  2451910-major-body-boundary-summary  Alias for reference-snapshot-2451910-major-body-boundary-summary\n  reference-snapshot-2451911-major-body-boundary-summary  Print the compact reference 2451911 major-body boundary evidence summary\n  2451911-major-body-boundary-summary  Alias for reference-snapshot-2451911-major-body-boundary-summary\n  reference-snapshot-2451912-major-body-boundary-summary  Print the compact reference 2451912 major-body boundary evidence summary\n  2451912-major-body-boundary-summary  Alias for reference-snapshot-2451912-major-body-boundary-summary\n  reference-snapshot-2200-selected-body-boundary-summary  Print the compact reference 2200 selected-body boundary evidence summary\n  2200-selected-body-boundary-summary  Alias for reference-snapshot-2200-selected-body-boundary-summary\n  reference-snapshot-2524593-selected-body-boundary-summary  Print the compact reference 2524593 selected-body boundary evidence summary\n  2524593-selected-body-boundary-summary  Alias for reference-snapshot-2524593-selected-body-boundary-summary
+  reference-snapshot-2634167-selected-body-boundary-summary  Print the compact reference 2634167 selected-body boundary evidence summary
+  2634167-selected-body-boundary-summary  Alias for reference-snapshot-2634167-selected-body-boundary-summary\n  reference-snapshot-1900-selected-body-boundary-summary  Print the compact reference 1900 selected-body boundary evidence summary\n  1900-selected-body-boundary-summary  Alias for reference-snapshot-1900-selected-body-boundary-summary\n  reference-snapshot-2500-selected-body-boundary-summary  Print the compact reference 2500 selected-body boundary evidence summary\n  2500-selected-body-boundary-summary  Alias for reference-snapshot-2500-selected-body-boundary-summary\n  reference-snapshot-1749-major-body-boundary-summary  Print the compact reference 1749 major-body boundary evidence summary\n  1749-major-body-boundary-summary  Alias for reference-snapshot-1749-major-body-boundary-summary\n  reference-snapshot-early-major-body-boundary-summary  Print the compact reference early major-body boundary evidence summary\n  early-major-body-boundary-summary  Alias for reference-snapshot-early-major-body-boundary-summary\n  reference-snapshot-1800-major-body-boundary-summary  Print the compact reference 1800 major-body boundary evidence summary\n  1800-major-body-boundary-summary  Alias for reference-snapshot-1800-major-body-boundary-summary\n  reference-snapshot-2400000-major-body-boundary-summary  Print the compact reference 2400000 major-body boundary evidence summary\n  2400000-major-body-boundary-summary  Alias for reference-snapshot-2400000-major-body-boundary-summary\n  reference-snapshot-2451545-major-body-boundary-summary  Print the compact reference 2451545 major-body boundary evidence summary\n  2451545-major-body-boundary-summary  Alias for reference-snapshot-2451545-major-body-boundary-summary\n  reference-snapshot-2500-major-body-boundary-summary  Print the compact reference 2500 major-body boundary evidence summary\n  2500-major-body-boundary-summary  Alias for reference-snapshot-2500-major-body-boundary-summary\n  reference-snapshot-2453000-major-body-boundary-summary  Print the compact reference 2453000 major-body boundary evidence summary\n  2453000-major-body-boundary-summary  Alias for reference-snapshot-2453000-major-body-boundary-summary\n  reference-snapshot-2600000-major-body-boundary-summary  Print the compact reference 2600000 major-body boundary evidence summary
   2600000-major-body-boundary-summary  Alias for reference-snapshot-2600000-major-body-boundary-summary
   reference-snapshot-major-body-boundary-summary  Print the compact reference major-body boundary evidence summary
   major-body-boundary-summary  Alias for reference-snapshot-major-body-boundary-summary
@@ -19449,6 +19460,8 @@ mod tests {
         assert!(rendered.contains("2200-selected-body-boundary-summary"));
         assert!(rendered.contains("reference-snapshot-2524593-selected-body-boundary-summary"));
         assert!(rendered.contains("2524593-selected-body-boundary-summary"));
+        assert!(rendered.contains("reference-snapshot-2634167-selected-body-boundary-summary"));
+        assert!(rendered.contains("2634167-selected-body-boundary-summary"));
         assert!(rendered.contains("reference-snapshot-1749-major-body-boundary-summary"));
         assert!(rendered.contains("1749-major-body-boundary-summary"));
         assert!(rendered.contains("reference-snapshot-early-major-body-boundary-summary"));
@@ -26487,6 +26500,28 @@ version = "0.9.0"
         assert_eq!(
             alias,
             reference_snapshot_2500_selected_body_boundary_summary_for_report()
+        );
+    }
+
+    #[test]
+    fn reference_snapshot_2634167_selected_body_boundary_summary_command_renders_the_selected_body_boundary_block(
+    ) {
+        let rendered = render_cli(&["reference-snapshot-2634167-selected-body-boundary-summary"])
+            .expect("reference snapshot 2634167 selected-body boundary summary should render");
+
+        assert!(rendered.contains("Reference 2634167 selected-body boundary evidence:"));
+        assert!(rendered.contains("JD 2634167.0 (TDB)"));
+        assert!(rendered.contains("Mars, Mercury, Moon, Sun, Venus"));
+        assert_eq!(
+            rendered,
+            reference_snapshot_2634167_selected_body_boundary_summary_for_report()
+        );
+
+        let alias = render_cli(&["2634167-selected-body-boundary-summary"])
+            .expect("2634167 selected-body boundary summary alias should render");
+        assert_eq!(
+            alias,
+            reference_snapshot_2634167_selected_body_boundary_summary_for_report()
         );
     }
 
