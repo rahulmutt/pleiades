@@ -3829,6 +3829,13 @@ impl fmt::Display for ReleaseBundle {
         )?;
         writeln!(
             f,
+            "  reference snapshot source summary: {}",
+            self.output_dir
+                .join("reference-snapshot-source-summary.txt")
+                .display()
+        )?;
+        writeln!(
+            f,
             "  reference snapshot summary: {}",
             self.output_dir
                 .join("reference-snapshot-summary.txt")
@@ -9829,6 +9836,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
         "comparison-corpus-guard-summary.txt",
         "reference-holdout-overlap-summary.txt",
         "reference-snapshot-bridge-day-summary.txt",
+        "reference-snapshot-source-summary.txt",
         "reference-snapshot-summary.txt",
         "catalog-inventory-summary.txt",
         "custom-definition-ayanamsa-labels-summary.txt",
@@ -9894,7 +9902,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
 fn ensure_release_bundle_manifest_is_canonical(
     manifest_text: &str,
 ) -> Result<(), ReleaseBundleError> {
-    const EXPECTED_MANIFEST_LINES: [&str; 115] = [
+    const EXPECTED_MANIFEST_LINES: [&str; 117] = [
         "Release bundle manifest",
         "profile:",
         "profile checksum (fnv1a-64):",
@@ -23108,6 +23116,7 @@ version = "0.9.0"
         assert!(rendered.contains("api-stability.txt"));
         assert!(rendered.contains("comparison-corpus-summary.txt"));
         assert!(rendered.contains("comparison-snapshot-summary.txt"));
+        assert!(rendered.contains("reference-snapshot-source-summary.txt"));
         assert!(rendered.contains("reference-snapshot-summary.txt"));
         assert!(rendered.contains("validation-report-summary.txt"));
         assert!(rendered.contains("workspace-audit-summary.txt"));
@@ -23127,7 +23136,9 @@ version = "0.9.0"
         assert!(bundle_dir
             .join("custom-definition-ayanamsa-labels-summary.txt")
             .exists());
-        assert!(bundle_dir.join("reference-snapshot-source-summary.txt").exists());
+        assert!(bundle_dir
+            .join("reference-snapshot-source-summary.txt")
+            .exists());
         assert!(bundle_dir.join("reference-snapshot-summary.txt").exists());
         assert!(bundle_dir.join("request-policy-summary.txt").exists());
         assert!(bundle_dir.join("request-semantics-summary.txt").exists());
