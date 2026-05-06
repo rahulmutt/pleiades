@@ -2334,7 +2334,8 @@ pub fn reference_snapshot_summary_for_report() -> String {
     };
 
     format!(
-        "{summary_line}\n  {}\n  {}\n  {}\n  {}\n  {}\n  {}\n  {}",
+        "{summary_line}\n  {}\n  {}\n  {}\n  {}\n  {}\n  {}\n  {}\n  {}",
+        reference_snapshot_1749_major_body_boundary_summary_for_report(),
         reference_snapshot_1750_selected_body_boundary_summary_for_report(),
         reference_snapshot_2451913_major_body_boundary_summary_for_report(),
         reference_snapshot_2451917_major_body_boundary_summary_for_report(),
@@ -19206,8 +19207,9 @@ mod tests {
         assert_eq!(
             reference_snapshot_summary_for_report(),
             format!(
-                "{}\n  {}\n  {}\n  {}\n  {}\n  {}\n  {}\n  {}",
+                "{}\n  {}\n  {}\n  {}\n  {}\n  {}\n  {}\n  {}\n  {}",
                 summary.summary_line(),
+                reference_snapshot_1749_major_body_boundary_summary_for_report(),
                 reference_snapshot_1750_selected_body_boundary_summary_for_report(),
                 reference_snapshot_2451913_major_body_boundary_summary_for_report(),
                 reference_snapshot_2451917_major_body_boundary_summary_for_report(),
@@ -20567,6 +20569,7 @@ mod tests {
     #[test]
     fn reference_snapshot_summary_for_report_highlights_recent_reference_slices() {
         let report = reference_snapshot_summary_for_report();
+        assert!(report.contains(&reference_snapshot_1749_major_body_boundary_summary_for_report()));
         assert!(
             report.contains(&reference_snapshot_1750_selected_body_boundary_summary_for_report())
         );
