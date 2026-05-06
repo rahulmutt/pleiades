@@ -18065,6 +18065,11 @@ pub fn jpl_snapshot_evidence_summary_for_report() -> String {
         reference_snapshot_2451915_major_body_boundary_summary_for_report(),
         reference_snapshot_2451916_major_body_interior_summary_for_report(),
         reference_snapshot_2451916_major_body_dense_boundary_summary_for_report(),
+        reference_snapshot_2451917_major_body_boundary_summary_for_report(),
+        reference_snapshot_2451917_major_body_bridge_summary_for_report(),
+        reference_snapshot_2451918_major_body_boundary_summary_for_report(),
+        reference_snapshot_2451919_major_body_boundary_summary_for_report(),
+        reference_snapshot_2451920_major_body_interior_summary_for_report(),
         reference_snapshot_body_class_coverage_summary_for_report(),
         reference_snapshot_equatorial_parity_summary_for_report(),
         reference_snapshot_batch_parity_summary_for_report(),
@@ -24900,6 +24905,16 @@ mod tests {
             .contains(&reference_snapshot_2451916_major_body_interior_summary_for_report()));
         assert!(jpl_snapshot_evidence_summary_for_report()
             .contains(&reference_snapshot_2451916_major_body_dense_boundary_summary_for_report()));
+        assert!(jpl_snapshot_evidence_summary_for_report()
+            .contains(&reference_snapshot_2451917_major_body_boundary_summary_for_report()));
+        assert!(jpl_snapshot_evidence_summary_for_report()
+            .contains(&reference_snapshot_2451917_major_body_bridge_summary_for_report()));
+        assert!(jpl_snapshot_evidence_summary_for_report()
+            .contains(&reference_snapshot_2451918_major_body_boundary_summary_for_report()));
+        assert!(jpl_snapshot_evidence_summary_for_report()
+            .contains(&reference_snapshot_2451919_major_body_boundary_summary_for_report()));
+        assert!(jpl_snapshot_evidence_summary_for_report()
+            .contains(&reference_snapshot_2451920_major_body_interior_summary_for_report()));
         assert!(jpl_snapshot_evidence_summary_for_report()
             .contains(&production_generation_snapshot_summary_for_report()));
         assert!(jpl_snapshot_evidence_summary_for_report()
