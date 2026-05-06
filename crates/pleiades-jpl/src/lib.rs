@@ -2369,6 +2369,8 @@ pub fn reference_snapshot_summary_for_report() -> String {
         reference_snapshot_2451916_major_body_interior_summary_for_report(),
         reference_snapshot_2451916_major_body_dense_boundary_summary_for_report(),
         reference_snapshot_dense_boundary_summary_for_report(),
+        reference_snapshot_sparse_boundary_summary_for_report(),
+        reference_snapshot_pre_bridge_boundary_summary_for_report(),
         reference_snapshot_boundary_epoch_coverage_summary_for_report(),
         reference_snapshot_major_body_boundary_window_summary_for_report(),
         reference_snapshot_mars_jupiter_boundary_summary_for_report(),
@@ -24362,6 +24364,8 @@ mod tests {
         );
         assert!(report
             .contains(&reference_snapshot_2451916_major_body_dense_boundary_summary_for_report()));
+        assert!(report.contains(&reference_snapshot_sparse_boundary_summary_for_report()));
+        assert!(report.contains(&reference_snapshot_pre_bridge_boundary_summary_for_report()));
         assert!(report.contains(&reference_snapshot_boundary_epoch_coverage_summary_for_report()));
         assert!(
             report.contains(&reference_snapshot_major_body_boundary_window_summary_for_report())
