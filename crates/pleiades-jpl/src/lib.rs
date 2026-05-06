@@ -11086,15 +11086,22 @@ impl fmt::Display for Reference2200SelectedBodyBoundarySummaryValidationError {
 
 impl std::error::Error for Reference2200SelectedBodyBoundarySummaryValidationError {}
 
+fn format_selected_body_boundary_summary_line(
+    epoch_label: &str,
+    summary: &Reference2200SelectedBodyBoundarySummary,
+) -> String {
+    format!(
+        "Reference {epoch_label} selected-body boundary evidence: {} exact samples at {} ({}); 2200-01-01 selected-body boundary sample",
+        summary.sample_count,
+        format_instant(summary.epoch),
+        format_bodies(&summary.sample_bodies),
+    )
+}
+
 impl Reference2200SelectedBodyBoundarySummary {
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
-        format!(
-            "Reference 2200 selected-body boundary evidence: {} exact samples at {} ({}); 2200-01-01 selected-body boundary sample",
-            self.sample_count,
-            format_instant(self.epoch),
-            format_bodies(&self.sample_bodies),
-        )
+        format_selected_body_boundary_summary_line("2200", self)
     }
 
     /// Returns `Ok(())` when the summary still matches the current evidence slice.
@@ -11201,6 +11208,25 @@ pub fn reference_snapshot_2200_selected_body_boundary_summary_for_report() -> St
             }
         },
         None => "Reference 2200 selected-body boundary evidence: unavailable".to_string(),
+    }
+}
+
+/// Returns the compact typed summary for the 2524593 selected-body boundary evidence.
+pub fn reference_snapshot_2524593_selected_body_boundary_summary(
+) -> Option<Reference2200SelectedBodyBoundarySummary> {
+    reference_snapshot_2200_selected_body_boundary_summary()
+}
+
+/// Returns the release-facing 2524593 selected-body boundary summary string.
+pub fn reference_snapshot_2524593_selected_body_boundary_summary_for_report() -> String {
+    match reference_snapshot_2524593_selected_body_boundary_summary() {
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(_) => format_selected_body_boundary_summary_line("2524593", &summary),
+            Err(error) => {
+                format!("Reference 2524593 selected-body boundary evidence: unavailable ({error})")
+            }
+        },
+        None => "Reference 2524593 selected-body boundary evidence: unavailable".to_string(),
     }
 }
 

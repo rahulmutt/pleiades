@@ -18,6 +18,7 @@ This file lists focused implementation slices that map to the current phase ladd
 - A 2453000.5 major-body boundary summary is now checked in and surfaced through the top-level reference snapshot summary.
 - A 2600000.0 major-body boundary summary for the Mars outer-boundary anchor is now checked in and surfaced through the top-level reference snapshot summary and CLI/report/help aliases.
 - A 2500 major-body boundary summary is now checked in and surfaced through the top-level reference snapshot summary.
+- The 2200 selected-body boundary slice now also has a 2524593 JD-labeled alias in the CLI and validation front ends, so that frontier point is fully covered by both year and epoch naming.
 - The Mars outer-boundary summary is now checked in and surfaced through the top-level reference snapshot summary alongside the late corpus edge at JD 2634167.0.
 - A 2400000.0 major-body boundary summary is now checked in and surfaced through a first-class report surface, and the top-level reference snapshot regression now explicitly anchors that slice alongside the 2451545.0 J2000 boundary.
 - A 2451545.0 major-body boundary summary for the J2000 major-body reference slice is now first-class with direct CLI/report aliases and top-level reference-snapshot regression coverage.

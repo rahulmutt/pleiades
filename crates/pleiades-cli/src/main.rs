@@ -205,6 +205,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         | Some("1750-selected-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-2200-selected-body-boundary-summary")
         | Some("2200-selected-body-boundary-summary") => validate_render_cli(args),
+        Some("reference-snapshot-2524593-selected-body-boundary-summary")
+        | Some("2524593-selected-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-2500-selected-body-boundary-summary")
         | Some("2500-selected-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-1749-major-body-boundary-summary")
@@ -2895,6 +2897,15 @@ mod tests {
             reference_snapshot_2200_selected_body_boundary_summary,
             pleiades_jpl::reference_snapshot_2200_selected_body_boundary_summary_for_report()
         );
+        let reference_snapshot_2524593_selected_body_boundary_summary =
+            render_cli(&["reference-snapshot-2524593-selected-body-boundary-summary"])
+                .expect("reference snapshot 2524593 selected-body boundary summary should render");
+        assert!(reference_snapshot_2524593_selected_body_boundary_summary
+            .contains("Reference 2524593 selected-body boundary evidence:"));
+        assert_eq!(
+            reference_snapshot_2524593_selected_body_boundary_summary,
+            pleiades_jpl::reference_snapshot_2524593_selected_body_boundary_summary_for_report()
+        );
         let reference_snapshot_1749_major_body_boundary_summary =
             render_cli(&["reference-snapshot-1749-major-body-boundary-summary"])
                 .expect("reference snapshot 1749 major-body boundary summary should render");
@@ -5165,6 +5176,9 @@ mod tests {
         ));
         assert!(help.contains(
             "reference-snapshot-2200-selected-body-boundary-summary  Print the compact reference 2200 selected-body boundary evidence summary"
+        ));
+        assert!(help.contains(
+            "reference-snapshot-2524593-selected-body-boundary-summary  Print the compact reference 2524593 selected-body boundary evidence summary"
         ));
         assert!(help.contains(
             "reference-snapshot-early-major-body-boundary-summary  Print the compact reference early major-body boundary evidence summary"
