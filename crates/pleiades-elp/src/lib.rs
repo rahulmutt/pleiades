@@ -1,12 +1,11 @@
 //! Lunar backend boundary based on a compact pure-Rust analytical model.
 //!
-//! The full ELP series data is still planned, but this crate now provides a
-//! usable Moon-and-lunar-point backend for chart workflows by combining a
-//! compact Meeus-style truncated lunar position series with geocentric
-//! coordinate transforms, Meeus-style mean node/perigee/apogee formulae, and
-//! finite-difference mean-motion estimates. The backend accepts both TT and
-//! TDB requests as dynamical-time inputs and still rejects UT-based requests
-//! explicitly.
+//! The first release intentionally keeps a compact Moon-and-lunar-point
+//! backend for chart workflows by combining a compact Meeus-style truncated
+//! lunar position series with geocentric coordinate transforms, Meeus-style
+//! mean node/perigee/apogee formulae, and finite-difference mean-motion
+//! estimates. The backend accepts both TT and TDB requests as dynamical-time
+//! inputs and still rejects UT-based requests explicitly.
 //!
 //! The current lunar-theory selection is intentionally explicit: the backend
 //! exposes the Moon plus the mean/true node and mean apogee/perigee channels

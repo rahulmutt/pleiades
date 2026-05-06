@@ -1,11 +1,12 @@
 # Lunar Theory Policy
 
-Status: current pre-source-selection baseline.
+Status: current first-release baseline.
 
 Pleiades' `pleiades-elp` crate currently uses a compact pure-Rust truncated
 lunar baseline derived from published lunar position, node, and mean-point
-formulas. It is intentionally explicit about its present scope so later
-source-backed ELP work can replace it without redesigning the public API.
+formulas. The first release keeps that compact posture intentionally explicit,
+so later source-backed ELP work can replace it without redesigning the public
+API.
 
 ## Current baseline
 
@@ -64,9 +65,9 @@ The current request policy is intentionally narrow and explicit, and the same sh
   does not redistribute external coefficient tables, but any future source-
   backed lunar theory selection should document its own licensing and
   provenance review before it is treated as production data.
-- A future full ELP selection has not been chosen yet; when it lands, this
-  policy should be updated with the chosen source identifier, citation,
-  provenance notes, and any redistribution constraints.
+- A future full ELP selection remains available as follow-on work; when it
+  lands, this policy should be updated with the chosen source identifier,
+  citation, provenance notes, and any redistribution constraints.
 
 ## Validation posture
 

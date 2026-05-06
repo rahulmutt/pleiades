@@ -32,10 +32,10 @@ This file lists focused implementation slices that map to the current phase ladd
 - The release-grade body-claims posture is now explicit in typed backend/core summaries and release reporting, so keep validation work focused on keeping per-class tolerances, claim status, and any newly advertised bodies aligned with that claim set.
 - Update validation reports to classify evidence as release-tolerance, hold-out, fixture exactness, or provenance-only; the comparison audit surface now mirrors body-class tolerance posture for the current release-grade corpus.
 
-### 3. Lunar source posture decision
+### 3. Lunar source posture
 
-- Decide compact lunar baseline versus fuller ELP-style coefficient implementation for the first release.
-- If expanding to coefficient data, add pure-Rust ingestion/evaluation, provenance, validation, and tests.
+- The first release keeps the compact Meeus-style truncated lunar baseline.
+- If future releases add coefficient data, they should bring pure-Rust ingestion/evaluation, provenance, validation, and tests with them.
 
 ### 4. Request/time semantics closure
 

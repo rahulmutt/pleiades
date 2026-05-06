@@ -40,7 +40,7 @@ The repository currently provides:
 
 The open work is concentrated in five areas:
 
-1. **Reference-grade ephemeris evidence** — broaden source/reference coverage, keep Pluto explicitly approximate unless a source-backed path is later validated, decide the lunar source posture, and publish body-class tolerances.
+1. **Reference-grade ephemeris evidence** — broaden source/reference coverage, keep Pluto explicitly approximate unless a source-backed path is later validated, keep the compact lunar baseline as the first-release posture, and publish body-class tolerances.
 2. **Request and time semantics** — either implement or explicitly defer built-in Delta T/UTC convenience, apparent-place corrections, topocentric body positions, and native sidereal backend output; keep frame precision explicit via the shared mean-obliquity frame round-trip envelope.
 3. **Production compressed artifacts** — replace the prototype packaged artifact with a reproducible 1500-2500 CE artifact generated from validated public inputs and measured against published error thresholds.
 4. **Compatibility catalog evidence** — complete house and ayanamsa formula/provenance audits, alias checks, latitude/numerical failure-mode coverage, custom-definition posture, and truthful release-profile claims.
@@ -67,7 +67,7 @@ The open work is concentrated in five areas:
 
 | Phase | Status | Summary |
 | --- | --- | --- |
-| 1. Reference accuracy and request semantics | Active | Prioritize production-suitable reference coverage, explicit Pluto posture, lunar release posture, and final request/time semantics decisions. |
+| 1. Reference accuracy and request semantics | Active | Prioritize production-suitable reference coverage, explicit Pluto posture, compact lunar posture, and final request/time semantics decisions. |
 | 2. Production compressed artifacts | Queued, prototype groundwork landed | Begins once Phase 1 provides trusted generation inputs and tolerance thresholds. |
 | 3. Compatibility evidence and catalog truthfulness | Parallelizable | Formula/provenance audits and release-profile truthfulness stay current as new release-advertised catalog entries are added. |
 | 4. Release hardening and publication | Queued, rehearsal tooling landed | Finalizes gates and bundles after accuracy, artifact, and catalog evidence are current. |
