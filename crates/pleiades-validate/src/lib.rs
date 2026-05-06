@@ -7763,6 +7763,10 @@ fn render_release_notes_summary_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_summary_for_report());
     text.push('\n');
+    text.push_str(&reference_snapshot_boundary_epoch_coverage_summary_for_report());
+    text.push('\n');
+    text.push_str(&reference_snapshot_major_body_boundary_window_summary_for_report());
+    text.push('\n');
     text.push_str(&reference_snapshot_lunar_boundary_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_1500_selected_body_boundary_summary_for_report());
@@ -21497,6 +21501,10 @@ mod tests {
             .any(|line| line == profile.target_ayanamsa_scope.join("; ")));
         assert!(rendered.contains("API stability summary line: API stability posture: pleiades-api-stability/0.1.0; stable surfaces: 6; experimental surfaces: 3; deprecation policy items: 4; intentional limits: 3"));
         assert!(rendered.contains(&reference_snapshot_source_summary_for_report()));
+        assert!(rendered.contains(&reference_snapshot_boundary_epoch_coverage_summary_for_report()));
+        assert!(
+            rendered.contains(&reference_snapshot_major_body_boundary_window_summary_for_report())
+        );
         assert!(rendered.contains("Reference snapshot body-class coverage: major bodies: 254 rows across 10 bodies and 29 epochs; major windows: "));
         assert!(rendered.contains(
             "selected asteroids: 93 rows across 6 bodies and 17 epochs; asteroid windows: "
