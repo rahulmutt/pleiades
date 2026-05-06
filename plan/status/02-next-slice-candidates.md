@@ -10,7 +10,7 @@ This file lists focused implementation slices that map to the current phase ladd
 - The lunar boundary evidence summary is now also surfaced through the top-level reference snapshot summary, and the major-body boundary-window aggregate is now surfaced there as well, so the next breadth slice can focus on another boundary epoch or a representative interior comparison row.
 - A 2500-01-01 selected-body boundary slice for Mars, Mercury, Moon, Sun, and Venus is now checked in and now has direct CLI parity in `pleiades-cli`.
 - A 1749 major-body boundary slice is now checked in and surfaced through the top-level reference snapshot summary.
-- A 1750-01-01 interior boundary slice for Sun through Neptune is now checked in.
+- A 1750-01-01 interior boundary slice for Sun through Neptune is now checked in and now has a first-class 1750 major-body interior report surface.
 - A dedicated 1800-01-03 major-body boundary slice is now checked in and now surfaces through the top-level reference snapshot summary.
 - A 2451916.0 interior reference slice is now checked in and surfaced through a first-class report surface with a direct CLI alias.
 - A 2451920.5 interior reference slice is now checked in, and the validation CLI now explicitly regression-tests it inside the combined reference snapshot summary.
