@@ -23552,8 +23552,18 @@ mod tests {
             report.contains(&reference_snapshot_2451911_major_body_boundary_summary_for_report())
         );
         assert!(
+            report.contains(&reference_snapshot_2451912_major_body_boundary_summary_for_report())
+        );
+        assert!(
+            report.contains(&reference_snapshot_2451913_major_body_boundary_summary_for_report())
+        );
+        assert!(
+            report.contains(&reference_snapshot_2451914_major_body_boundary_summary_for_report())
+        );
+        assert!(
             report.contains(&reference_snapshot_2451915_major_body_boundary_summary_for_report())
         );
+        assert!(report.contains(&reference_snapshot_2451917_major_body_bridge_summary_for_report()));
         assert!(
             report.contains(&reference_snapshot_2451917_major_body_boundary_summary_for_report())
         );
@@ -23563,6 +23573,8 @@ mod tests {
         assert!(
             report.contains(&reference_snapshot_2451916_major_body_interior_summary_for_report())
         );
+        assert!(report
+            .contains(&reference_snapshot_2451916_major_body_dense_boundary_summary_for_report()));
         assert!(
             report.contains(&reference_snapshot_2451919_major_body_boundary_summary_for_report())
         );
