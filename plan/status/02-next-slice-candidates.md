@@ -68,7 +68,8 @@ This file lists focused implementation slices that map to the current phase ladd
 
 ### 3. Compatibility-profile claim audit
 
-- Add verification that distinguishes baseline guarantees, release additions, descriptor-only entries, constrained entries, aliases, and known gaps.
+- The catalog inventory summary now carries an explicit claim-audit clause for baseline guarantees, release additions, custom-definition territory, and known gaps.
+- Extend the same audit vocabulary to any future descriptor-only or constrained entries if those catalog categories are introduced later.
 - Update release notes/docs to match the verified profile output.
 
 ## Phase 4 candidates — Release hardening

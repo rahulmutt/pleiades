@@ -21080,7 +21080,7 @@ mod tests {
         assert_report_contains_exact_line(&rendered, &profile.catalog_inventory_summary_line());
         assert_report_contains_exact_line(
             &rendered,
-            "Compatibility catalog inventory: house systems=25 (12 baseline, 13 release-specific, 156 aliases); house formula families=7 (Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign); house-code aliases=22; ayanamsas=59 (5 baseline, 54 release-specific, 183 aliases); custom-definition labels=9; custom-definition ayanamsa labels=6 (Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs)); known gaps=2",
+            "Compatibility catalog inventory: house systems=25 (12 baseline, 13 release-specific, 156 aliases); house formula families=7 (Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign); house-code aliases=22; ayanamsas=59 (5 baseline, 54 release-specific, 183 aliases); custom-definition labels=9; custom-definition ayanamsa labels=6 (Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs)); known gaps=2; claim audit: baseline catalogs are the published guarantees; release-specific entries are shipped additions; custom-definition labels remain intentionally unresolved; known gaps stay documented",
         );
         assert_report_contains_exact_line(
             &rendered,
