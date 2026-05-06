@@ -38,7 +38,7 @@ Implemented and not re-planned here:
 ### 2. Broaden reference/source coverage
 
 - Decide whether `pleiades-jpl` becomes a broader public JPL-derived reader/corpus provider or remains a checked-in fixture backend paired with a separate generation-input path.
-- Add enough public source/reference coverage to support production validation and Phase 2 artifact fitting over the advertised 1500-2500 CE range.
+- Add enough public source/reference coverage to support production validation and Phase 2 artifact fitting over the advertised 1500-2500 CE range; the 2360234.5 interior comparison slice now has a first-class report surface.
 - Include boundary dates, high-curvature windows, lunar windows, selected asteroid coverage, and independent hold-out rows.
 - Preserve pure-Rust parsing, deterministic manifests, checksum validation, and source provenance.
 
