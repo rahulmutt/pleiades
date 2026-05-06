@@ -2369,7 +2369,7 @@ pub fn reference_snapshot_summary_for_report() -> String {
         reference_snapshot_2451917_major_body_boundary_summary_for_report(),
         reference_snapshot_2451916_major_body_interior_summary_for_report(),
         reference_snapshot_dense_boundary_summary_for_report(),
-        reference_snapshot_mars_jupiter_boundary_summary_for_report(),
+        reference_snapshot_2451918_major_body_boundary_summary_for_report(),
         reference_snapshot_2451919_major_body_boundary_summary_for_report(),
         reference_snapshot_2451920_major_body_interior_summary_for_report(),
         reference_snapshot_2453000_major_body_boundary_summary_for_report(),
@@ -9555,6 +9555,29 @@ pub fn reference_snapshot_mars_jupiter_boundary_summary(
 /// Returns the release-facing Mars/Jupiter boundary summary string.
 pub fn reference_snapshot_mars_jupiter_boundary_summary_for_report() -> String {
     match reference_snapshot_mars_jupiter_boundary_summary() {
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
+            Err(error) => {
+                format!("Reference Mars/Jupiter boundary evidence: unavailable ({error})")
+            }
+        },
+        None => "Reference Mars/Jupiter boundary evidence: unavailable".to_string(),
+    }
+}
+
+/// Returns the compact typed summary for the 2451918 major-body boundary reference evidence.
+///
+/// This is a compatibility alias for the Mars/Jupiter boundary slice.
+pub fn reference_snapshot_2451918_major_body_boundary_summary(
+) -> Option<ReferenceMarsJupiterBoundarySummary> {
+    reference_snapshot_mars_jupiter_boundary_summary_details()
+}
+
+/// Returns the release-facing 2451918 major-body boundary summary string.
+///
+/// This is a compatibility alias for the Mars/Jupiter boundary report wording.
+pub fn reference_snapshot_2451918_major_body_boundary_summary_for_report() -> String {
+    match reference_snapshot_2451918_major_body_boundary_summary() {
         Some(summary) => match summary.validated_summary_line() {
             Ok(summary_line) => summary_line,
             Err(error) => {
@@ -22092,6 +22115,23 @@ mod tests {
         assert!(summary.validated_summary_line().is_err());
         assert_eq!(
             reference_snapshot_mars_jupiter_boundary_summary_for_report(),
+            reference_snapshot_mars_jupiter_boundary_summary()
+                .expect("reference Mars/Jupiter boundary summary should exist")
+                .summary_line()
+        );
+    }
+
+    #[test]
+    fn reference_snapshot_2451918_major_body_boundary_summary_alias_matches_mars_jupiter_boundary_summary(
+    ) {
+        assert_eq!(
+            reference_snapshot_2451918_major_body_boundary_summary_for_report(),
+            reference_snapshot_mars_jupiter_boundary_summary_for_report()
+        );
+        assert_eq!(
+            reference_snapshot_2451918_major_body_boundary_summary()
+                .expect("reference 2451918 major-body boundary summary should exist")
+                .summary_line(),
             reference_snapshot_mars_jupiter_boundary_summary()
                 .expect("reference Mars/Jupiter boundary summary should exist")
                 .summary_line()

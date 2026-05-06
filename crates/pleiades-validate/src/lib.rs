@@ -142,6 +142,7 @@ use pleiades_jpl::{
     reference_snapshot_2451915_major_body_boundary_summary_for_report,
     reference_snapshot_2451916_major_body_interior_summary_for_report,
     reference_snapshot_2451917_major_body_boundary_summary_for_report,
+    reference_snapshot_2451918_major_body_boundary_summary_for_report,
     reference_snapshot_2451919_major_body_boundary_summary_for_report,
     reference_snapshot_2451920_major_body_interior_summary_for_report,
     reference_snapshot_2453000_major_body_boundary_summary_for_report,
@@ -4941,7 +4942,7 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
                 &args[1..],
                 "reference-snapshot-2451918-major-body-boundary-summary",
             )?;
-            Ok(reference_snapshot_mars_jupiter_boundary_summary_for_report())
+            Ok(reference_snapshot_2451918_major_body_boundary_summary_for_report())
         }
         Some("reference-snapshot-2451919-major-body-boundary-summary")
         | Some("2451919-major-body-boundary-summary") => {
