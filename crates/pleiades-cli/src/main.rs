@@ -44,6 +44,10 @@ fn ensure_no_extra_args(args: &[&str], command: &str) -> Result<(), String> {
 
 fn shared_request_policy_help_block() -> String {
     let request_policy = pleiades_core::request_policy_summary_for_report();
+    let request_semantics =
+        request_policy
+            .summary_line()
+            .replacen("Request policy", "Request semantics", 1);
     let time_scale_policy = pleiades_core::time_scale_policy_summary_for_report();
     let utc_convenience_policy = pleiades_core::utc_convenience_policy_summary_for_report();
     let delta_t_policy = pleiades_core::delta_t_policy_summary_for_report();
@@ -53,8 +57,9 @@ fn shared_request_policy_help_block() -> String {
     let frame_policy = pleiades_core::frame_policy_summary_for_report();
 
     format!(
-        "  Request policy: {}\n  Time-scale policy: {}\n  UTC convenience policy: {}\n  Delta T policy: {}\n  Observer policy: {}\n  Apparentness policy: {}\n  Native sidereal policy: {}\n  Frame policy: {}",
+        "  Request policy: {}\n  Request semantics summary: {}\n  Time-scale policy: {}\n  UTC convenience policy: {}\n  Delta T policy: {}\n  Observer policy: {}\n  Apparentness policy: {}\n  Native sidereal policy: {}\n  Frame policy: {}",
         request_policy.summary_line(),
+        request_semantics,
         time_scale_policy.summary_line(),
         utc_convenience_policy.summary_line(),
         delta_t_policy.summary_line(),
@@ -5292,6 +5297,7 @@ mod tests {
     fn chart_help_text_spells_out_the_shared_request_policy() {
         let help = render_chart(&["--help"]).expect("chart help should render");
         assert!(help.contains(&shared_request_policy_help_block()));
+        assert!(help.contains("Request semantics summary:"));
         assert!(help.contains(
             "observer-bearing chart requests stay geocentric and use the observer only for houses"
         ));

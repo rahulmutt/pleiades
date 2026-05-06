@@ -2,7 +2,7 @@
 
 Status: current release posture for the first-party backends.
 
-Pleiades keeps time-scale conversion, observer semantics, and apparentness explicit so backend accuracy claims remain truthful while the production ephemeris implementations are still being expanded. The quickest machine-readable entry points are the request-policy, time-scale-policy, utc-convenience-policy, delta-t-policy, observer-policy, apparentness-policy, and frame-policy summaries.
+Pleiades keeps time-scale conversion, observer semantics, and apparentness explicit so backend accuracy claims remain truthful while the production ephemeris implementations are still being expanded. The quickest machine-readable entry points are the request-policy, request-semantics-summary, time-scale-policy, utc-convenience-policy, delta-t-policy, observer-policy, apparentness-policy, and frame-policy summaries.
 
 ## Time scales and Delta T
 
