@@ -1307,6 +1307,8 @@ pub struct PackagedArtifactProductionProfileSummary {
     pub body_coverage: PackagedBodyCoverageSummary,
     /// Capability profile encoded by the packaged artifact.
     pub artifact_profile: ArtifactProfile,
+    /// Output speed policy encoded by the packaged artifact.
+    pub speed_policy: pleiades_compression::SpeedPolicy,
     /// Generation policy used to turn reference snapshots into segments.
     pub generation_policy: PackagedArtifactGenerationPolicy,
     /// Request policy encoded by the packaged artifact.
@@ -1345,13 +1347,14 @@ impl PackagedArtifactProductionProfileSummary {
     /// Returns the production-profile skeleton as a compact human-readable line.
     pub fn summary_line(&self) -> String {
         format!(
-            "Packaged artifact production profile draft: profile id={}; label={}; version={}; time range={}; body coverage={}; artifact profile={}; generation policy={}; request policy={}; lookup epoch policy={}; frame treatment={}; storage/reconstruction={}; {}",
+            "Packaged artifact production profile draft: profile id={}; label={}; version={}; time range={}; body coverage={}; artifact profile={}; speed policy={}; generation policy={}; request policy={}; lookup epoch policy={}; frame treatment={}; storage/reconstruction={}; {}",
             self.profile_id,
             self.label,
             self.artifact_version,
             self.time_range,
             self.body_coverage,
             self.artifact_profile,
+            self.speed_policy,
             self.generation_policy,
             self.request_policy,
             self.lookup_epoch_policy.summary_line(),
@@ -1400,6 +1403,13 @@ impl PackagedArtifactProductionProfileSummary {
             return Err(
                 PackagedArtifactProductionProfileSummaryValidationError::FieldOutOfSync {
                     field: "artifact_profile",
+                },
+            );
+        }
+        if self.speed_policy != self.artifact_profile.speed_policy {
+            return Err(
+                PackagedArtifactProductionProfileSummaryValidationError::FieldOutOfSync {
+                    field: "speed_policy",
                 },
             );
         }
@@ -1458,13 +1468,16 @@ impl fmt::Display for PackagedArtifactProductionProfileSummary {
 pub fn packaged_artifact_production_profile_summary_details(
 ) -> PackagedArtifactProductionProfileSummary {
     let artifact = packaged_artifact();
+    let profile_summary = packaged_artifact_profile_summary_details();
+    let speed_policy = profile_summary.profile.speed_policy;
     let summary = PackagedArtifactProductionProfileSummary {
         profile_id: ARTIFACT_PROFILE_ID,
         label: ARTIFACT_LABEL,
         artifact_version: artifact.header.version,
         time_range: artifact_time_range(artifact),
         body_coverage: packaged_body_coverage_summary_details(),
-        artifact_profile: packaged_artifact_profile_summary_details().profile,
+        artifact_profile: profile_summary.profile,
+        speed_policy,
         generation_policy: PackagedArtifactGenerationPolicy::AdjacentSameBodyLinearSegments,
         request_policy: packaged_request_policy_summary_details(),
         lookup_epoch_policy: packaged_lookup_epoch_policy_summary_details().policy,
@@ -1518,6 +1531,8 @@ pub struct PackagedArtifactGeneratorParameters {
     pub body_coverage: PackagedBodyCoverageSummary,
     /// Capability profile encoded by the packaged artifact.
     pub artifact_profile: ArtifactProfile,
+    /// Output speed policy encoded by the packaged artifact.
+    pub speed_policy: pleiades_compression::SpeedPolicy,
     /// Generation policy used to turn reference snapshots into segments.
     pub generation_policy: PackagedArtifactGenerationPolicy,
     /// Request policy encoded by the packaged artifact.
@@ -1536,13 +1551,14 @@ impl PackagedArtifactGeneratorParameters {
     /// Returns the generator parameters as a compact human-readable line.
     pub fn summary_line(&self) -> String {
         format!(
-            "Packaged artifact generator parameters: profile id={}; label={}; version={}; time range={}; body coverage={}; artifact profile={}; generation policy={}; request policy={}; lookup epoch policy={}; frame treatment={}; storage/reconstruction={}; {}",
+            "Packaged artifact generator parameters: profile id={}; label={}; version={}; time range={}; body coverage={}; artifact profile={}; speed policy={}; generation policy={}; request policy={}; lookup epoch policy={}; frame treatment={}; storage/reconstruction={}; {}",
             self.profile_id,
             self.label,
             self.artifact_version,
             self.time_range,
             self.body_coverage,
             self.artifact_profile,
+            self.speed_policy,
             self.generation_policy,
             self.request_policy,
             self.lookup_epoch_policy.summary_line(),
@@ -1590,6 +1606,12 @@ impl PackagedArtifactGeneratorParameters {
             return Err(pleiades_compression::CompressionError::new(
                 pleiades_compression::CompressionErrorKind::InvalidFormat,
                 "packaged artifact generator parameters artifact profile does not match the current production profile",
+            ));
+        }
+        if self.speed_policy != current.speed_policy {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                "packaged artifact generator parameters speed policy does not match the current production profile",
             ));
         }
         if self.generation_policy != current.generation_policy {
@@ -1693,6 +1715,7 @@ pub fn packaged_artifact_generator_parameters_details() -> PackagedArtifactGener
         time_range: summary.time_range,
         body_coverage: summary.body_coverage,
         artifact_profile: summary.artifact_profile,
+        speed_policy: summary.speed_policy,
         generation_policy: summary.generation_policy,
         request_policy: summary.request_policy,
         lookup_epoch_policy: summary.lookup_epoch_policy,
@@ -5248,6 +5271,7 @@ mod tests {
             summary.artifact_profile,
             packaged_artifact_profile_summary_details().profile
         );
+        assert_eq!(summary.speed_policy, summary.artifact_profile.speed_policy);
         assert_eq!(
             summary.generation_policy,
             PackagedArtifactGenerationPolicy::AdjacentSameBodyLinearSegments
@@ -5291,6 +5315,7 @@ mod tests {
         assert!(summary
             .summary_line()
             .contains("Packaged artifact production profile draft:"));
+        assert!(summary.summary_line().contains("speed policy=Unsupported"));
         assert!(summary
             .summary_line()
             .contains("target thresholds: draft fit envelope recorded; scopes=luminaries, major planets, lunar points, selected asteroids, custom bodies; fit envelope:"));
@@ -5445,6 +5470,23 @@ mod tests {
     }
 
     #[test]
+    fn packaged_artifact_generator_parameters_validation_rejects_speed_policy_drift() {
+        let mut parameters = packaged_artifact_generator_parameters_details();
+        parameters.speed_policy = pleiades_compression::SpeedPolicy::Stored;
+
+        let error = parameters
+            .validate()
+            .expect_err("speed policy drift should be rejected");
+        assert_eq!(
+            error.kind,
+            pleiades_compression::CompressionErrorKind::InvalidFormat
+        );
+        assert!(error.message.contains(
+            "packaged artifact generator parameters speed policy does not match the current production profile"
+        ));
+    }
+
+    #[test]
     fn packaged_artifact_generator_parameters_validation_rejects_request_policy_drift() {
         let mut parameters = packaged_artifact_generator_parameters_details();
         parameters.request_policy.supports_topocentric_observer = true;
@@ -5506,6 +5548,10 @@ mod tests {
 
         assert_eq!(manifest.parameters, parameters);
         assert_eq!(manifest.regeneration, regeneration);
+        assert_eq!(
+            parameters.speed_policy,
+            parameters.artifact_profile.speed_policy
+        );
         assert_eq!(manifest.to_string(), manifest.summary_line());
         assert_eq!(
             manifest.validated_summary_line(),
@@ -5517,6 +5563,7 @@ mod tests {
         assert!(manifest
             .summary_line()
             .contains("Packaged artifact generation manifest:"));
+        assert!(manifest.summary_line().contains("speed policy=Unsupported"));
         assert!(manifest.summary_line().contains("regeneration="));
         assert!(packaged_artifact_generation_manifest_for_report()
             .contains("Packaged artifact generation manifest:"));
@@ -5704,6 +5751,23 @@ mod tests {
             }
         );
         assert!(error.to_string().contains("artifact_profile"));
+    }
+
+    #[test]
+    fn packaged_artifact_production_profile_summary_validation_rejects_speed_policy_drift() {
+        let mut summary = packaged_artifact_production_profile_summary_details();
+        summary.speed_policy = pleiades_compression::SpeedPolicy::Stored;
+
+        let error = summary
+            .validate()
+            .expect_err("speed policy drift should be rejected");
+        assert_eq!(
+            error,
+            PackagedArtifactProductionProfileSummaryValidationError::FieldOutOfSync {
+                field: "speed_policy",
+            }
+        );
+        assert!(error.to_string().contains("speed_policy"));
     }
 
     #[test]
