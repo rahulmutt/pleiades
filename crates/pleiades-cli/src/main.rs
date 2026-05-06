@@ -502,6 +502,9 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("artifact-profile-coverage-summary") => validate_render_cli(args),
         Some("packaged-artifact-output-support-summary")
         | Some("packaged-artifact-output-support") => validate_render_cli(args),
+        Some("packaged-artifact-speed-policy-summary") | Some("packaged-artifact-speed-policy") => {
+            validate_render_cli(args)
+        }
         Some("packaged-artifact-access-summary") | Some("packaged-artifact-access") => {
             validate_render_cli(args)
         }
@@ -4308,6 +4311,30 @@ mod tests {
             "packaged-artifact-output-support does not accept extra arguments"
         );
 
+        let packaged_artifact_speed_policy =
+            render_cli(&["packaged-artifact-speed-policy-summary"])
+                .expect("packaged artifact speed policy summary should render");
+        assert!(packaged_artifact_speed_policy.contains("Packaged-artifact speed policy: "));
+        assert!(packaged_artifact_speed_policy
+            .contains("Unsupported; motion output support=unsupported"));
+        assert_eq!(
+            packaged_artifact_speed_policy,
+            format!(
+                "Packaged-artifact speed policy: {}",
+                pleiades_data::packaged_artifact_speed_policy_summary_for_report()
+            )
+        );
+        assert_eq!(
+            render_cli(&["packaged-artifact-speed-policy"])
+                .expect("packaged artifact speed policy alias should render"),
+            packaged_artifact_speed_policy
+        );
+        assert_eq!(
+            render_cli(&["packaged-artifact-speed-policy", "extra"])
+                .expect_err("packaged artifact speed policy alias should reject extra arguments"),
+            "packaged-artifact-speed-policy-summary does not accept extra arguments"
+        );
+
         let packaged_artifact_access = render_cli(&["packaged-artifact-access-summary"])
             .expect("packaged artifact access summary should render");
         assert!(packaged_artifact_access.contains("Packaged-artifact access: "));
@@ -5212,6 +5239,12 @@ mod tests {
         ));
         assert!(help.contains(
             "packaged-artifact-output-support       Alias for packaged-artifact-output-support-summary"
+        ));
+        assert!(help.contains(
+            "packaged-artifact-speed-policy-summary  Print the packaged-artifact speed policy summary"
+        ));
+        assert!(help.contains(
+            "packaged-artifact-speed-policy       Alias for packaged-artifact-speed-policy-summary"
         ));
         assert!(help.contains(
             "packaged-artifact-access-summary  Print the packaged-artifact access summary"

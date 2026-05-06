@@ -52,7 +52,7 @@ use pleiades_compression::CompressedArtifact;
 use pleiades_compression::{
     join_display, ArtifactHeader, ArtifactOutput, ArtifactOutputSupport, ArtifactProfile,
     ArtifactProfileCoverageSummary, ArtifactResidualBodyCoverageSummary, BodyArtifact, ChannelKind,
-    EndianPolicy, PolynomialChannel, Segment,
+    EndianPolicy, PolynomialChannel, Segment, SpeedPolicy,
 };
 use pleiades_jpl::{
     format_reference_snapshot_summary, reference_snapshot, reference_snapshot_summary,
@@ -2061,6 +2061,94 @@ pub fn packaged_artifact_output_support_summary_for_report() -> String {
     let summary = packaged_artifact_output_support_summary_details();
     match summary.validated_summary_line() {
         Ok(rendered) => rendered,
+        Err(error) => format!("unavailable ({error})"),
+    }
+}
+
+/// Structured speed-policy semantics for the packaged artifact profile.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct PackagedArtifactSpeedPolicySummary {
+    /// Speed policy encoded by the packaged artifact.
+    pub policy: SpeedPolicy,
+}
+
+/// Validation error for the packaged-data speed-policy summary.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum PackagedArtifactSpeedPolicySummaryValidationError {
+    /// A summary field is out of sync with the current packaged-data posture.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for PackagedArtifactSpeedPolicySummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the packaged artifact speed-policy summary field `{field}` is out of sync with the current posture"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for PackagedArtifactSpeedPolicySummaryValidationError {}
+
+impl PackagedArtifactSpeedPolicySummary {
+    /// Returns the packaged artifact speed policy as a compact human-readable line.
+    pub fn summary_line(self) -> String {
+        format!(
+            "{}; motion output support={}",
+            self.policy,
+            self.policy.motion_output_support()
+        )
+    }
+
+    /// Returns `Ok(())` when the summary still matches the current packaged-data posture.
+    pub fn validate(&self) -> Result<(), PackagedArtifactSpeedPolicySummaryValidationError> {
+        let current_policy = packaged_artifact_profile_summary_details()
+            .profile
+            .speed_policy;
+        if self.policy != current_policy {
+            return Err(
+                PackagedArtifactSpeedPolicySummaryValidationError::FieldOutOfSync {
+                    field: "policy",
+                },
+            );
+        }
+        Ok(())
+    }
+
+    /// Returns the validated packaged artifact speed-policy summary line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, PackagedArtifactSpeedPolicySummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for PackagedArtifactSpeedPolicySummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+const PACKAGED_ARTIFACT_SPEED_POLICY_SUMMARY: PackagedArtifactSpeedPolicySummary =
+    PackagedArtifactSpeedPolicySummary {
+        policy: SpeedPolicy::Unsupported,
+    };
+
+/// Returns the current packaged-artifact speed-policy summary record.
+pub fn packaged_artifact_speed_policy_summary_details() -> PackagedArtifactSpeedPolicySummary {
+    let summary = PACKAGED_ARTIFACT_SPEED_POLICY_SUMMARY;
+    debug_assert!(summary.validate().is_ok());
+    summary
+}
+
+/// Returns the packaged-artifact speed-policy semantics for reporting.
+pub fn packaged_artifact_speed_policy_summary_for_report() -> String {
+    let summary = packaged_artifact_speed_policy_summary_details();
+    match summary.validate() {
+        Ok(()) => summary.summary_line(),
         Err(error) => format!("unavailable ({error})"),
     }
 }
@@ -5332,6 +5420,41 @@ mod tests {
             packaged_artifact_production_profile_summary(),
             summary.summary_line()
         );
+    }
+
+    #[test]
+    fn packaged_artifact_speed_policy_summary_reflects_the_current_posture() {
+        let summary = packaged_artifact_speed_policy_summary_details();
+        let artifact = packaged_artifact();
+
+        assert_eq!(summary.policy, artifact.header.profile.speed_policy);
+        assert_eq!(summary.policy, SpeedPolicy::Unsupported);
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(
+            summary.summary_line(),
+            "Unsupported; motion output support=unsupported"
+        );
+        assert_eq!(
+            packaged_artifact_speed_policy_summary_for_report(),
+            summary.summary_line()
+        );
+        summary
+            .validate()
+            .expect("packaged-artifact speed policy should validate");
+
+        let mut drifted = summary;
+        drifted.policy = SpeedPolicy::Stored;
+        let error = drifted
+            .validate()
+            .expect_err("speed-policy drift should be rejected");
+        assert_eq!(
+            error,
+            PackagedArtifactSpeedPolicySummaryValidationError::FieldOutOfSync { field: "policy" }
+        );
+        assert!(error
+            .to_string()
+            .contains("speed-policy summary field `policy`"));
     }
 
     #[test]
