@@ -24,7 +24,7 @@ Implemented and not re-planned here:
 - chart-level observer handling for houses without silently implying topocentric body positions;
 - VSOP87B generated binary tables for Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, and Neptune;
 - compact lunar baseline for Moon, mean/true node, and mean apogee/perigee;
-- JPL Horizons snapshot and hold-out fixtures with selected asteroid rows, provenance summaries, equatorial reconstruction, interpolation transparency, batch parity evidence, and release-facing 1500-01-01 / 1900-01-01 selected-body boundary summaries, plus the promoted 2451910.5 and 2451911.5 major-body boundary summaries, the 2451917.0 major-body bridge summary, and the 2451918.5 Mars/Jupiter boundary summary;
+- JPL Horizons snapshot and hold-out fixtures with selected asteroid rows, provenance summaries, equatorial reconstruction, interpolation transparency, batch parity evidence, and release-facing 1500-01-01 / 1900-01-01 selected-body boundary summaries, plus the promoted 2451910.5 and 2451911.5 major-body boundary summaries, the 2451917.0 major-body bridge summary, the 2451918.5 Mars/Jupiter boundary summary, and the widened 2451919.5 boundary-epoch coverage slice;
 - validation/report commands that expose request policy, source documentation, comparison tolerance posture, benchmark summaries, and reference-corpus summaries, and the backend/core façades now re-export the current UTC-convenience, Delta T, and native sidereal policy summaries plus matching request-semantics aliases for consumers that want the same wording without a backend dependency.
 
 ## Remaining implementation goals
@@ -38,7 +38,7 @@ Implemented and not re-planned here:
 ### 2. Broaden reference/source coverage
 
 - The JPL source posture is now explicit in the combined snapshot evidence summary: it remains a checked-in fixture backend paired with a separate generation-input path, while broader reader/corpus work stays deferred.
-- Add enough public source/reference coverage to support production validation and Phase 2 artifact fitting over the advertised 1500-2500 CE range; the 2360234.5 interior comparison slice now has a first-class report surface, and the 2451911.5, 2451917.0 bridge, and 2451918.5 Mars/Jupiter boundary slices are now surfaced through the top-level reference snapshot summary.
+- Add enough public source/reference coverage to support production validation and Phase 2 artifact fitting over the advertised 1500-2500 CE range; the 2360234.5 interior comparison slice now has a first-class report surface, and the 2451911.5, 2451917.0 bridge, 2451918.5 Mars/Jupiter boundary, and widened 2451919.5 boundary-epoch coverage slices are now surfaced through the top-level reference snapshot summary.
 - Include boundary dates, high-curvature windows, lunar windows, selected asteroid coverage, and independent hold-out rows.
 - Preserve pure-Rust parsing, deterministic manifests, checksum validation, and source provenance.
 

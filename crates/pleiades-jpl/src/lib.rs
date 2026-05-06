@@ -16139,7 +16139,7 @@ fn reference_snapshot_boundary_epoch_coverage_summary_details(
 ) -> Option<ReferenceSnapshotBoundaryEpochCoverageSummary> {
     let entries = reference_snapshot()
         .iter()
-        .filter(|entry| (2_451_912.5..=2_451_918.5).contains(&entry.epoch.julian_day.days()))
+        .filter(|entry| (2_451_912.5..=2_451_919.5).contains(&entry.epoch.julian_day.days()))
         .collect::<Vec<_>>();
     if entries.is_empty() {
         return None;
@@ -22515,11 +22515,11 @@ mod tests {
     fn reference_snapshot_boundary_epoch_coverage_summary_reports_the_sparse_epochs() {
         let summary = reference_snapshot_boundary_epoch_coverage_summary()
             .expect("reference snapshot boundary epoch coverage summary should exist");
-        assert_eq!(summary.sample_count, 158);
-        assert_eq!(summary.epoch_count, 11);
+        assert_eq!(summary.sample_count, 174);
+        assert_eq!(summary.epoch_count, 12);
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_451_912.5);
-        assert_eq!(summary.latest_epoch.julian_day.days(), 2_451_918.5);
-        assert_eq!(summary.windows.len(), 11);
+        assert_eq!(summary.latest_epoch.julian_day.days(), 2_451_919.5);
+        assert_eq!(summary.windows.len(), 12);
         assert_eq!(summary.windows[0].body_count, 15);
         assert_eq!(summary.windows[3].body_count, 15);
         assert_eq!(
@@ -22535,7 +22535,7 @@ mod tests {
         assert!(
             summary
                 .summary_line()
-                .contains("Reference snapshot boundary epoch coverage: 158 exact samples across 11 epochs (JD 2451912.5 (TDB)..JD 2451918.5 (TDB)); epochs:")
+                .contains("Reference snapshot boundary epoch coverage: 174 exact samples across 12 epochs (JD 2451912.5 (TDB)..JD 2451919.5 (TDB)); epochs:")
         );
         assert!(summary.summary_line().contains(
             "JD 2451914.0 (TDB): 15 bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros)"
@@ -22546,6 +22546,9 @@ mod tests {
         assert!(summary
             .summary_line()
             .contains("JD 2451916.0 (TDB): 10 bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto)"));
+        assert!(summary.summary_line().contains(
+            "JD 2451919.5 (TDB): 16 bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis)"
+        ));
 
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
