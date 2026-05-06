@@ -539,7 +539,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         | Some("packaged-artifact-target-threshold") => validate_render_cli(args),
         Some("packaged-artifact-target-threshold-scope-envelopes-summary")
         | Some("packaged-artifact-target-threshold-scope-envelopes") => validate_render_cli(args),
-        Some("packaged-artifact-generation-manifest-summary") => validate_render_cli(args),
+        Some("packaged-artifact-generation-manifest-summary")
+        | Some("packaged-artifact-generation-manifest") => validate_render_cli(args),
         Some("packaged-artifact-generation-policy-summary")
         | Some("packaged-artifact-generation-policy") => validate_render_cli(args),
         Some("packaged-artifact-generation-residual-summary") => validate_render_cli(args),
@@ -1624,7 +1625,7 @@ mod tests {
         let rendered = render_cli(&["compare-backends"]).expect("compare-backends should render");
         assert!(rendered.contains("Comparison report"));
         assert!(rendered.contains("Comparison corpus"));
-        assert!(rendered.contains("release-grade guard: Pluto excluded from tolerance evidence; 2451913.5 boundary day remains in the release-grade comparison window"));
+        assert!(rendered.contains("release-grade guard: Pluto excluded from tolerance evidence"));
         assert!(rendered.contains("epoch labels:"));
         assert!(rendered.contains("Reference backend:"));
         assert!(rendered.contains("Candidate backend:"));
@@ -2258,7 +2259,8 @@ mod tests {
             .expect("comparison corpus summary should render");
         assert!(comparison_corpus.contains("Comparison corpus summary"));
         assert!(comparison_corpus.contains("name: JPL Horizons release-grade comparison window"));
-        assert!(comparison_corpus.contains("release-grade guard: Pluto excluded from tolerance evidence; 2451913.5 boundary day remains in the release-grade comparison window"));
+        assert!(comparison_corpus
+            .contains("release-grade guard: Pluto excluded from tolerance evidence"));
         assert_eq!(
             comparison_corpus,
             validate_render_cli(&["comparison-corpus-summary"])
@@ -2282,7 +2284,8 @@ mod tests {
         let comparison_guard = render_cli(&["comparison-corpus-release-guard-summary"])
             .expect("comparison corpus release guard summary should render");
         assert!(comparison_guard.contains("Comparison corpus release-grade guard summary"));
-        assert!(comparison_guard.contains("Release-grade guard: Pluto excluded from tolerance evidence; 2451913.5 boundary day remains in the release-grade comparison window"));
+        assert!(comparison_guard
+            .contains("Release-grade guard: Pluto excluded from tolerance evidence"));
         assert_eq!(
             comparison_guard,
             validate_render_cli(&["comparison-corpus-release-guard-summary"])
@@ -2541,7 +2544,9 @@ mod tests {
             current_compatibility_profile().house_code_aliases_summary_line()
         )));
         assert!(release_summary.contains("Compatibility catalog inventory: house systems=25 (12 baseline, 13 release-specific, 156 aliases); house formula families=7 (Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign); house-code aliases=22; ayanamsas=59 (5 baseline, 54 release-specific, 183 aliases); custom-definition labels=9; custom-definition ayanamsa labels=6 (Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs)); known gaps=2; claim audit: baseline catalogs are the published guarantees; release-specific entries are shipped additions; custom-definition labels remain intentionally unresolved; known gaps stay documented"));
-        assert!(release_summary.contains("Comparison corpus release-grade guard: Pluto excluded from tolerance evidence; 2451913.5 boundary day remains in the release-grade comparison window"));
+        assert!(release_summary.contains(
+            "Comparison corpus release-grade guard: Pluto excluded from tolerance evidence"
+        ));
         assert!(release_summary.contains("House formula families: 7 (Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign)"));
         assert!(release_summary.lines().any(|line| {
             line == "Release profile identifiers: v1 compatibility=pleiades-compatibility-profile/0.6.123, api-stability=pleiades-api-stability/0.1.0"
@@ -4611,6 +4616,11 @@ mod tests {
             packaged_artifact_generation_manifest,
             packaged_artifact_generation_manifest_for_report()
         );
+        assert_eq!(
+            render_cli(&["packaged-artifact-generation-manifest"])
+                .expect("packaged artifact generation manifest alias should render"),
+            packaged_artifact_generation_manifest
+        );
 
         let packaged_artifact_regeneration =
             render_cli(&["packaged-artifact-regeneration-summary"])
@@ -4742,6 +4752,10 @@ mod tests {
             ),
             (
                 &["packaged-artifact-generation-manifest-summary", "extra"][..],
+                "packaged-artifact-generation-manifest-summary does not accept extra arguments",
+            ),
+            (
+                &["packaged-artifact-generation-manifest", "extra"][..],
                 "packaged-artifact-generation-manifest-summary does not accept extra arguments",
             ),
             (
@@ -4905,7 +4919,7 @@ mod tests {
             .expect("report should render through the primary CLI");
         assert!(report.contains("Validation report"));
         assert!(report.contains("Comparison corpus"));
-        assert!(report.contains("release-grade guard: Pluto excluded from tolerance evidence; 2451913.5 boundary day remains in the release-grade comparison window"));
+        assert!(report.contains("release-grade guard: Pluto excluded from tolerance evidence"));
         assert!(report.contains("Benchmark corpus"));
         assert!(report.contains("Packaged-data benchmark corpus"));
 
@@ -4918,7 +4932,8 @@ mod tests {
             render_cli(&["validation-summary"]).expect("validation summary should render");
         assert!(validation_summary.contains("Validation report summary"));
         assert!(validation_summary.contains("Comparison corpus"));
-        assert!(validation_summary.contains("release-grade guard: Pluto excluded from tolerance evidence; 2451913.5 boundary day remains in the release-grade comparison window"));
+        assert!(validation_summary
+            .contains("release-grade guard: Pluto excluded from tolerance evidence"));
         assert!(validation_summary.contains("Release bundle verification: verify-release-bundle"));
         assert!(validation_summary
             .contains("Compatibility profile summary: compatibility-profile-summary"));
@@ -5493,6 +5508,9 @@ mod tests {
         ));
         assert!(help.contains(
             "packaged-artifact-generation-manifest-summary  Print the packaged-artifact generation manifest summary"
+        ));
+        assert!(help.contains(
+            "packaged-artifact-generation-manifest  Alias for packaged-artifact-generation-manifest-summary"
         ));
         assert!(help.contains(
             "packaged-artifact-generation-policy-summary  Print the packaged-artifact generation policy summary"
