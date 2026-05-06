@@ -59,7 +59,7 @@ Rough command overview:
 - `backend-matrix-summary` / `matrix-summary`: compact backend matrix summary
 - `benchmark [--rounds N]`: benchmark the candidate backend on the representative corpus and full chart assembly
 - `release-notes`, `release-notes-summary`, `release-checklist`, `release-checklist-summary` / `checklist-summary`, `release-summary`: release metadata and summary views
-- `request-policy-summary` / `request-policy` / `request-semantics-summary` / `request-semantics`: compact request-policy summary
+- `request-policy-summary` / `request-policy`: compact request-policy summary; `request-semantics-summary` / `request-semantics`: compact request-semantics summary
 - `time-scale-policy-summary`, `utc-convenience-policy-summary`, `delta-t-policy-summary`, `observer-policy-summary`, `apparentness-policy-summary`, `frame-policy-summary`: dedicated request-semantics policy summaries
 - `compatibility-caveats-summary` / `compatibility-caveats`: compact compatibility caveats summary of the known release gaps
 - `native-sidereal-policy-summary` / `native-sidereal-policy`: compact native sidereal policy summary

@@ -5635,11 +5635,11 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("request-semantics-summary") => {
             ensure_no_extra_args(&args[1..], "request-semantics-summary")?;
-            Ok(render_request_policy_summary_text())
+            Ok(render_request_semantics_summary_text())
         }
         Some("request-semantics") => {
             ensure_no_extra_args(&args[1..], "request-semantics")?;
-            Ok(render_request_policy_summary_text())
+            Ok(render_request_semantics_summary_text())
         }
         Some("comparison-tolerance-policy-summary") => {
             ensure_no_extra_args(&args[1..], "comparison-tolerance-policy-summary")?;
@@ -13064,6 +13064,15 @@ fn render_reference_holdout_overlap_summary_text() -> String {
 fn render_request_policy_summary_text() -> String {
     let time_scale_policy = time_scale_policy_summary_for_report();
     let mut text = String::from("Request policy summary\n");
+    text.push_str(&format_request_semantics_summary_for_report(
+        &time_scale_policy,
+    ));
+    text
+}
+
+fn render_request_semantics_summary_text() -> String {
+    let time_scale_policy = time_scale_policy_summary_for_report();
+    let mut text = String::from("Request semantics summary\n");
     text.push_str(&format_request_semantics_summary_for_report(
         &time_scale_policy,
     ));
@@ -25752,11 +25761,23 @@ version = "0.9.0"
 
         let request_semantics = render_cli(&["request-semantics-summary"])
             .expect("request semantics summary should render");
-        assert_eq!(request_semantics, request_policy);
+        assert!(request_semantics.contains("Request semantics summary"));
+        assert_eq!(
+            request_semantics.replacen("Request semantics summary", "Request policy summary", 1),
+            request_policy
+        );
 
         let request_semantics_alias =
             render_cli(&["request-semantics"]).expect("request semantics alias should render");
-        assert_eq!(request_semantics_alias, request_policy);
+        assert!(request_semantics_alias.contains("Request semantics summary"));
+        assert_eq!(
+            request_semantics_alias.replacen(
+                "Request semantics summary",
+                "Request policy summary",
+                1
+            ),
+            request_policy
+        );
 
         let native_sidereal_policy = render_cli(&["native-sidereal-policy-summary"])
             .expect("native sidereal policy summary should render");
