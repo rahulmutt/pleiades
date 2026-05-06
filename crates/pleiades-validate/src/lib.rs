@@ -8307,6 +8307,10 @@ fn render_release_summary_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_major_body_bridge_summary_for_report());
     text.push('\n');
+    text.push_str(&reference_snapshot_2451917_major_body_boundary_summary_for_report());
+    text.push('\n');
+    text.push_str(&reference_snapshot_2451917_major_body_bridge_summary_for_report());
+    text.push('\n');
     text.push_str(&reference_snapshot_2451918_major_body_boundary_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_2451919_major_body_boundary_summary_for_report());
@@ -26004,6 +26008,11 @@ version = "0.9.0"
         assert!(reference.contains("Reference 2600000 major-body boundary evidence:"));
         assert!(reference.contains("Reference 2400000 major-body boundary evidence:"));
         assert!(reference.contains("Reference 2451545 major-body boundary evidence:"));
+        assert!(reference
+            .contains(&reference_snapshot_2451917_major_body_boundary_summary_for_report()));
+        assert!(
+            reference.contains(&reference_snapshot_2451917_major_body_bridge_summary_for_report())
+        );
         assert!(reference
             .contains(&reference_snapshot_2360234_major_body_interior_summary_for_report()));
         assert!(reference
