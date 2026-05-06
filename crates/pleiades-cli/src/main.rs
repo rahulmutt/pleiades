@@ -4602,6 +4602,8 @@ mod tests {
                 .expect("packaged artifact regeneration summary should render");
         assert!(packaged_artifact_regeneration.contains("Packaged-artifact regeneration: "));
         assert!(packaged_artifact_regeneration.contains("profile id="));
+        assert!(packaged_artifact_regeneration
+            .contains("quantization scales: stored=Longitude=9, Latitude=9, DistanceAu=12"));
         assert_eq!(
             packaged_artifact_regeneration,
             format!(
@@ -4683,6 +4685,8 @@ mod tests {
                 .expect("packaged artifact regeneration summary should render");
         assert!(packaged_artifact_regeneration.contains("Packaged-artifact regeneration: "));
         assert!(packaged_artifact_regeneration.contains("profile id="));
+        assert!(packaged_artifact_regeneration
+            .contains("quantization scales: stored=Longitude=9, Latitude=9, DistanceAu=12"));
         assert_eq!(
             packaged_artifact_regeneration,
             format!(

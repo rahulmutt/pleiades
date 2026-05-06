@@ -23607,6 +23607,8 @@ version = "0.9.0"
         assert!(release_summary.contains(
             "Packaged-artifact regeneration: Packaged artifact regeneration source: label=stage-5 packaged-data draft"
         ));
+        assert!(release_summary
+            .contains("quantization scales: stored=Longitude=9, Latitude=9, DistanceAu=12"));
         assert!(release_summary.contains("fit envelope:"));
         assert!(release_summary.contains("segment samples across"));
         assert!(release_summary.contains("checksum=0x"));
@@ -23831,6 +23833,8 @@ version = "0.9.0"
         assert!(artifact_summary.contains(
             "regeneration provenance: Packaged artifact regeneration source: label=stage-5 packaged-data draft"
         ));
+        assert!(artifact_summary
+            .contains("quantization scales: stored=Longitude=9, Latitude=9, DistanceAu=12"));
         assert!(artifact_summary.contains("fit envelope:"));
         assert!(artifact_summary.contains("segment samples across"));
         assert!(artifact_summary.contains("checksum=0x"));

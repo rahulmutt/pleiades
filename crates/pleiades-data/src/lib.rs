@@ -875,6 +875,65 @@ fn format_scope_bodies(bodies: &[CelestialBody]) -> String {
     }
 }
 
+fn packaged_artifact_quantization_scales_line() -> String {
+    let artifact = packaged_artifact();
+    let stored = packaged_artifact_channel_quantization_scales(artifact, false);
+    let residual = packaged_artifact_channel_quantization_scales(artifact, true);
+
+    if residual.is_empty() {
+        format!("quantization scales: stored={stored}")
+    } else {
+        format!("quantization scales: stored={stored}; residual={residual}")
+    }
+}
+
+fn packaged_artifact_channel_quantization_scales(
+    artifact: &CompressedArtifact,
+    residual_channels: bool,
+) -> String {
+    let entries = [
+        ChannelKind::Longitude,
+        ChannelKind::Latitude,
+        ChannelKind::DistanceAu,
+    ]
+    .into_iter()
+    .filter_map(|kind| {
+        let mut exponents = artifact
+            .bodies
+            .iter()
+            .flat_map(|body| body.segments.iter())
+            .flat_map(|segment| {
+                let channels = if residual_channels {
+                    &segment.residual_channels
+                } else {
+                    &segment.channels
+                };
+
+                channels
+                    .iter()
+                    .filter(move |channel| channel.kind == kind)
+                    .map(|channel| channel.scale_exponent)
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>();
+
+        if exponents.is_empty() {
+            None
+        } else {
+            exponents.sort_unstable();
+            exponents.dedup();
+            Some(format!("{kind}={}", join_display(&exponents)))
+        }
+    })
+    .collect::<Vec<_>>();
+
+    if entries.is_empty() {
+        "none".to_string()
+    } else {
+        entries.join(", ")
+    }
+}
+
 /// Structured regeneration provenance for the packaged artifact.
 #[derive(Clone, Debug, PartialEq)]
 pub struct PackagedArtifactRegenerationSummary {
@@ -1078,13 +1137,14 @@ impl PackagedArtifactRegenerationSummary {
     /// Returns the full packaged-artifact regeneration provenance summary.
     pub fn summary_line(&self) -> String {
         format!(
-            "Packaged artifact regeneration source: label={}; profile id={}; source={}; checksum=0x{:016x}; {}; segment strategy={}; {}; bundled bodies: {}; {}; fit envelope: {}; artifact version={}",
+            "Packaged artifact regeneration source: label={}; profile id={}; source={}; checksum=0x{:016x}; {}; segment strategy={}; {}; {}; bundled bodies: {}; {}; fit envelope: {}; artifact version={}",
             self.label,
             self.profile_id,
             self.source,
             self.checksum,
             self.generation_policy_line(),
             self.generation_policy.segment_strategy(),
+            packaged_artifact_quantization_scales_line(),
             self.residual_body_line(),
             self.body_coverage_line(),
             self.reference_snapshot_line(),
@@ -5090,6 +5150,8 @@ mod tests {
         assert!(provenance.contains("profile id=pleiades-packaged-artifact-profile/stage-5-draft"));
         assert!(provenance.contains("checksum=0x"));
         assert!(provenance.contains("generation policy: adjacent same-body linear segments"));
+        assert!(provenance
+            .contains("quantization scales: stored=Longitude=9, Latitude=9, DistanceAu=12"));
         assert!(provenance.contains("residual bodies: Moon; applies to 1 bundled body"));
         assert!(provenance.contains(&format!("artifact version={}", artifact.header.version)));
         assert!(provenance.contains("11 bundled bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros)"));
