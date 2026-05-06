@@ -24905,6 +24905,66 @@ version = "0.9.0"
     }
 
     #[test]
+    fn reference_snapshot_major_body_boundary_window_summary_command_renders_the_boundary_window_block(
+    ) {
+        let rendered = render_cli(&["reference-snapshot-major-body-boundary-window-summary"])
+            .expect("reference major-body boundary window summary should render");
+        assert!(rendered.contains("Reference major-body boundary windows:"));
+        assert_eq!(
+            rendered,
+            reference_snapshot_major_body_boundary_window_summary_for_report()
+        );
+        let alias = render_cli(&["major-body-boundary-window-summary"])
+            .expect("major body boundary window alias should render");
+        assert_eq!(alias, rendered);
+        assert_eq!(
+            render_cli(&[
+                "reference-snapshot-major-body-boundary-window-summary",
+                "extra"
+            ])
+            .expect_err(
+                "reference major-body boundary window summary should reject extra arguments"
+            ),
+            "reference-snapshot-major-body-boundary-window-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["major-body-boundary-window-summary", "extra"])
+                .expect_err("major body boundary window alias should reject extra arguments"),
+            "reference-snapshot-major-body-boundary-window-summary does not accept extra arguments"
+        );
+    }
+
+    #[test]
+    fn reference_snapshot_boundary_epoch_coverage_summary_command_renders_the_boundary_epoch_coverage_block(
+    ) {
+        let rendered = render_cli(&["reference-snapshot-boundary-epoch-coverage-summary"])
+            .expect("reference snapshot boundary epoch coverage summary should render");
+        assert!(rendered.contains("Reference snapshot boundary epoch coverage:"));
+        assert_eq!(
+            rendered,
+            reference_snapshot_boundary_epoch_coverage_summary_for_report()
+        );
+        let alias = render_cli(&["boundary-epoch-coverage-summary"])
+            .expect("boundary epoch coverage alias should render");
+        assert_eq!(alias, rendered);
+        assert_eq!(
+            render_cli(&[
+                "reference-snapshot-boundary-epoch-coverage-summary",
+                "extra"
+            ])
+            .expect_err(
+                "reference snapshot boundary epoch coverage summary should reject extra arguments"
+            ),
+            "reference-snapshot-boundary-epoch-coverage-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["boundary-epoch-coverage-summary", "extra"])
+                .expect_err("boundary epoch coverage alias should reject extra arguments"),
+            "reference-snapshot-boundary-epoch-coverage-summary does not accept extra arguments"
+        );
+    }
+
+    #[test]
     fn selected_asteroid_bridge_summary_command_renders_the_bridge_day() {
         let rendered = render_cli(&["selected-asteroid-bridge-summary"])
             .expect("selected asteroid bridge summary should render");
