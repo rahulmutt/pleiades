@@ -1311,6 +1311,8 @@ pub struct PackagedArtifactProductionProfileSummary {
     pub generation_policy: PackagedArtifactGenerationPolicy,
     /// Request policy encoded by the packaged artifact.
     pub request_policy: PackagedRequestPolicySummary,
+    /// Lookup-epoch policy encoded by the packaged artifact.
+    pub lookup_epoch_policy: PackagedLookupEpochPolicy,
     /// Frame-treatment policy encoded by the packaged artifact.
     pub frame_treatment: PackagedFrameTreatmentSummary,
     /// Storage/reconstruction policy encoded by the packaged artifact.
@@ -1343,7 +1345,7 @@ impl PackagedArtifactProductionProfileSummary {
     /// Returns the production-profile skeleton as a compact human-readable line.
     pub fn summary_line(&self) -> String {
         format!(
-            "Packaged artifact production profile draft: profile id={}; label={}; version={}; time range={}; body coverage={}; artifact profile={}; generation policy={}; request policy={}; frame treatment={}; storage/reconstruction={}; {}",
+            "Packaged artifact production profile draft: profile id={}; label={}; version={}; time range={}; body coverage={}; artifact profile={}; generation policy={}; request policy={}; lookup epoch policy={}; frame treatment={}; storage/reconstruction={}; {}",
             self.profile_id,
             self.label,
             self.artifact_version,
@@ -1352,6 +1354,7 @@ impl PackagedArtifactProductionProfileSummary {
             self.artifact_profile,
             self.generation_policy,
             self.request_policy,
+            self.lookup_epoch_policy.summary_line(),
             self.frame_treatment,
             self.storage_summary,
             self.target_thresholds,
@@ -1410,6 +1413,13 @@ impl PackagedArtifactProductionProfileSummary {
                 field: "request_policy",
             }
         })?;
+        if self.lookup_epoch_policy != packaged_lookup_epoch_policy_summary_details().policy {
+            return Err(
+                PackagedArtifactProductionProfileSummaryValidationError::FieldOutOfSync {
+                    field: "lookup_epoch_policy",
+                },
+            );
+        }
         self.frame_treatment.validate().map_err(|_| {
             PackagedArtifactProductionProfileSummaryValidationError::FieldOutOfSync {
                 field: "frame_treatment",
@@ -1457,6 +1467,7 @@ pub fn packaged_artifact_production_profile_summary_details(
         artifact_profile: packaged_artifact_profile_summary_details().profile,
         generation_policy: PackagedArtifactGenerationPolicy::AdjacentSameBodyLinearSegments,
         request_policy: packaged_request_policy_summary_details(),
+        lookup_epoch_policy: packaged_lookup_epoch_policy_summary_details().policy,
         frame_treatment: packaged_frame_treatment_summary_details(),
         storage_summary: packaged_artifact_storage_summary_details(),
         target_thresholds: packaged_artifact_target_threshold_summary_details(),
@@ -1511,6 +1522,8 @@ pub struct PackagedArtifactGeneratorParameters {
     pub generation_policy: PackagedArtifactGenerationPolicy,
     /// Request policy encoded by the packaged artifact.
     pub request_policy: PackagedRequestPolicySummary,
+    /// Lookup-epoch policy encoded by the packaged artifact.
+    pub lookup_epoch_policy: PackagedLookupEpochPolicy,
     /// Frame-treatment policy encoded by the packaged artifact.
     pub frame_treatment: PackagedFrameTreatmentSummary,
     /// Storage/reconstruction policy encoded by the packaged artifact.
@@ -1523,7 +1536,7 @@ impl PackagedArtifactGeneratorParameters {
     /// Returns the generator parameters as a compact human-readable line.
     pub fn summary_line(&self) -> String {
         format!(
-            "Packaged artifact generator parameters: profile id={}; label={}; version={}; time range={}; body coverage={}; artifact profile={}; generation policy={}; request policy={}; frame treatment={}; storage/reconstruction={}; {}",
+            "Packaged artifact generator parameters: profile id={}; label={}; version={}; time range={}; body coverage={}; artifact profile={}; generation policy={}; request policy={}; lookup epoch policy={}; frame treatment={}; storage/reconstruction={}; {}",
             self.profile_id,
             self.label,
             self.artifact_version,
@@ -1532,6 +1545,7 @@ impl PackagedArtifactGeneratorParameters {
             self.artifact_profile,
             self.generation_policy,
             self.request_policy,
+            self.lookup_epoch_policy.summary_line(),
             self.frame_treatment,
             self.storage_summary,
             self.target_thresholds,
@@ -1588,6 +1602,12 @@ impl PackagedArtifactGeneratorParameters {
             return Err(pleiades_compression::CompressionError::new(
                 pleiades_compression::CompressionErrorKind::InvalidFormat,
                 "packaged artifact generator parameters request policy does not match the current production profile",
+            ));
+        }
+        if self.lookup_epoch_policy != current.lookup_epoch_policy {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                "packaged artifact generator parameters lookup epoch policy does not match the current production profile",
             ));
         }
         if self.frame_treatment != current.frame_treatment {
@@ -1675,6 +1695,7 @@ pub fn packaged_artifact_generator_parameters_details() -> PackagedArtifactGener
         artifact_profile: summary.artifact_profile,
         generation_policy: summary.generation_policy,
         request_policy: summary.request_policy,
+        lookup_epoch_policy: summary.lookup_epoch_policy,
         frame_treatment: summary.frame_treatment,
         storage_summary: summary.storage_summary,
         target_thresholds: summary.target_thresholds,
@@ -5236,9 +5257,16 @@ mod tests {
             packaged_request_policy_summary_details()
         );
         assert_eq!(
+            summary.lookup_epoch_policy,
+            packaged_lookup_epoch_policy_summary_details().policy
+        );
+        assert_eq!(
             summary.frame_treatment,
             packaged_frame_treatment_summary_details()
         );
+        assert!(summary.summary_line().contains(
+            "lookup epoch policy=TT-grid retag without relativistic correction; TDB lookup epochs are re-tagged onto the TT grid without applying a relativistic correction"
+        ));
         assert_eq!(
             summary.storage_summary,
             packaged_artifact_storage_summary_details()

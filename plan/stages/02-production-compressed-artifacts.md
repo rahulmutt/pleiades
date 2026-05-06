@@ -18,14 +18,14 @@ This phase depends on Phase 1 because artifact fit error must be measured agains
 Implemented and not re-planned here:
 
 - `pleiades-compression` artifact headers, body/segment structures, polynomial channels, residual support, profile metadata, byte-order policy, checksums, validation helpers, and decode helpers;
-- `pleiades-data` deterministic prototype artifact backend, bundled fixture, regeneration helper, request-policy summaries, frame reconstruction, boundary behavior, checksums, versioned production-profile draft summaries, and optional explicit artifact path loading behind a feature;
+- `pleiades-data` deterministic prototype artifact backend, bundled fixture, regeneration helper, request-policy summaries, frame reconstruction, boundary behavior, checksums, versioned production-profile draft summaries with explicit lookup-epoch policy metadata, and optional explicit artifact path loading behind a feature;
 - CLI/validation commands for artifact inspection, validation, target-threshold summaries, regeneration, benchmarks, and release-report inclusion.
 
 ## Remaining implementation goals
 
 ### 1. Define production artifact profiles
 
-- Specify bundled bodies, time range, stored channels, derived outputs, unsupported outputs, speed policy, frame treatment, lookup epoch policy, source provenance, and compatibility with release profiles.
+- Specify bundled bodies, time range, stored channels, derived outputs, unsupported outputs, speed policy, frame treatment, source provenance, and compatibility with release profiles.
 - Finalize body-class target error envelopes for luminaries, major planets, Pluto if claimed, lunar points, selected asteroids, and any custom/named bodies.
 - Encode profile metadata in artifact headers, manifests, validation summaries, and release reports.
 
