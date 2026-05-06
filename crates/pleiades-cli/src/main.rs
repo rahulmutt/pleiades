@@ -4892,6 +4892,7 @@ mod tests {
             .join("compatibility-caveats-summary.txt")
             .exists());
         assert!(bundle_dir.join("request-policy-summary.txt").exists());
+        assert!(bundle_dir.join("request-semantics-summary.txt").exists());
         assert!(bundle_dir.join("release-body-claims-summary.txt").exists());
         assert!(bundle_dir.join("pluto-fallback-summary.txt").exists());
         assert!(bundle_dir.join("time-scale-policy-summary.txt").exists());
@@ -4957,6 +4958,7 @@ mod tests {
         assert!(verified.contains("reference-snapshot-bridge-day-summary.txt"));
         assert!(verified.contains("custom-definition-ayanamsa-labels-summary.txt"));
         assert!(verified.contains("workspace-audit-summary.txt"));
+        assert!(verified.contains("request-semantics-summary.txt"));
         assert!(verified.contains("time-scale-policy-summary.txt"));
         assert!(verified.contains("delta-t-policy-summary.txt"));
         assert!(verified.contains("native-sidereal-policy-summary.txt"));

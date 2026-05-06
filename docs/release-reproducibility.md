@@ -60,6 +60,7 @@ cargo run -q -p pleiades-validate -- selected-asteroid-bridge-summary
 cargo run -q -p pleiades-validate -- observer-policy-summary
 cargo run -q -p pleiades-validate -- apparentness-policy-summary
 cargo run -q -p pleiades-validate -- request-policy-summary
+cargo run -q -p pleiades-validate -- request-semantics-summary
 cargo run -q -p pleiades-validate -- compatibility-caveats-summary
 cargo run -q -p pleiades-validate -- native-sidereal-policy-summary
 cargo run -q -p pleiades-validate -- interpolation-posture-summary
@@ -71,6 +72,7 @@ cargo run -q -p pleiades-cli -- release-checklist-summary
 cargo run -q -p pleiades-cli -- checklist-summary
 cargo run -q -p pleiades-cli -- release-summary
 cargo run -q -p pleiades-cli -- request-policy-summary
+cargo run -q -p pleiades-cli -- request-semantics-summary
 cargo run -q -p pleiades-cli -- validate-artifact
 cargo run -q -p pleiades-cli -- verify-compatibility-profile
 cargo run -q -p pleiades-cli -- verify-release-bundle --out /tmp/pleiades-release
@@ -110,6 +112,7 @@ The bundle currently writes these text artifacts:
 - `release-ayanamsa-canonical-names-summary.txt`
 - `validation-report-summary.txt`
 - `request-policy-summary.txt`
+- `request-semantics-summary.txt`
 - `time-scale-policy-summary.txt`
 - `delta-t-policy-summary.txt`
 - `workspace-audit-summary.txt`
@@ -121,7 +124,7 @@ The bundle currently writes these text artifacts:
 - `bundle-manifest.txt` (includes the recorded source revision, workspace status, Rust compiler version, profile/API identifiers, and validation-round count)
 - `bundle-manifest.checksum.txt` (records the checksum used to verify the staged manifest itself; the verifier expects the canonical single-line `0x...` format with no stray whitespace)
 
-The staged bundle now also carries the catalog inventory, compatibility-caveats, reference-holdout-overlap, release-profile-identifiers summary, release-house-system-canonical-names summary, release-ayanamsa-canonical-names summary, request-policy summary, time-scale policy summary, delta-t policy summary, workspace audit summary, native-dependency audit summary, and artifact summary files alongside the core compatibility-profile, release-notes, release-summary, checklist, backend-matrix, API-stability, comparison, validation, benchmark, and manifest artifacts.
+The staged bundle now also carries the catalog inventory, compatibility-caveats, reference-holdout-overlap, release-profile-identifiers summary, release-house-system-canonical-names summary, release-ayanamsa-canonical-names summary, request-policy summary, request-semantics summary, time-scale policy summary, delta-t policy summary, workspace audit summary, native-dependency audit summary, and artifact summary files alongside the core compatibility-profile, release-notes, release-summary, checklist, backend-matrix, API-stability, comparison, validation, benchmark, and manifest artifacts.
 
 The generated `release-checklist.txt` now also embeds the canonical `bundle-release` and `verify-release-bundle` commands plus a pointer back to this guide, while `release-checklist-summary.txt` provides a compact audit view for quick release review, so the bundle stays self-describing for maintainers.
 
