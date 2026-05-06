@@ -6,7 +6,7 @@ This file lists focused implementation slices that map to the current phase ladd
 
 ### 1. Representative 1500-2500 reference expansion
 
-- The 1500-01-01, 1600-01-11, 1900-01-01, and 2200-01-01 selected-body boundary slices are now also surfaced through the top-level reference snapshot summary and release notes summary, so this early-boundary sub-slice is complete.
+- The 1500-01-01, 1600-01-11, 1900-01-01, and 2200-01-01 selected-body boundary slices are now also surfaced through the top-level reference snapshot summary and release notes summary, so this early-boundary sub-slice is complete. The release-facing summaries now keep the 1600-01-11 and 1750-01-01 selected-body blocks on separate lines.
 - The lunar boundary evidence summary is now also surfaced through the top-level reference snapshot summary, and the major-body boundary-window aggregate is now surfaced there as well, while the release notes summary now mirrors the boundary-epoch coverage and boundary-window aggregates for the same frontier, so the next breadth slice can focus on another boundary epoch or a representative interior comparison row.
 - A 2500-01-01 selected-body boundary slice for Mars, Mercury, Moon, Sun, and Venus is now checked in and now has direct CLI parity in `pleiades-cli`.
 - A 1749 major-body boundary slice, the early major-body boundary slice, and the Mars/Jupiter boundary slice are now checked in and surfaced through the top-level reference snapshot summary.
