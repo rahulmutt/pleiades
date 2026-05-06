@@ -219,6 +219,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         | Some("2453000-major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-2451917-major-body-boundary-summary")
         | Some("2451917-major-body-boundary-summary") => validate_render_cli(args),
+        Some("reference-snapshot-2451916-major-body-interior-summary")
+        | Some("2451916-major-body-interior-summary") => validate_render_cli(args),
         Some("reference-snapshot-2451920-major-body-interior-summary")
         | Some("2451920-major-body-interior-summary") => validate_render_cli(args),
         Some("reference-snapshot-body-class-coverage-summary")
@@ -1376,6 +1378,8 @@ mod tests {
         assert!(rendered.contains("2451911-major-body-boundary-summary"));
         assert!(rendered.contains("reference-snapshot-2451917-major-body-boundary-summary"));
         assert!(rendered.contains("2451917-major-body-boundary-summary"));
+        assert!(rendered.contains("reference-snapshot-2451916-major-body-interior-summary"));
+        assert!(rendered.contains("2451916-major-body-interior-summary"));
         assert!(rendered.contains("reference-snapshot-2451920-major-body-interior-summary"));
         assert!(rendered.contains("2451920-major-body-interior-summary"));
         assert!(rendered.contains("reference-snapshot-major-body-boundary-summary"));
@@ -1615,6 +1619,18 @@ mod tests {
         let boundary_2453000_alias = render_cli(&["2453000-major-body-boundary-summary"])
             .expect("2453000 major-body boundary alias should render");
         assert_eq!(boundary_2453000_alias, boundary_2453000);
+    }
+
+    #[test]
+    fn reference_snapshot_2451916_major_body_interior_aliases_render_the_same_reports() {
+        let interior_2451916 =
+            render_cli(&["reference-snapshot-2451916-major-body-interior-summary"])
+                .expect("2451916 major-body interior summary should render");
+        assert!(interior_2451916.contains("Reference 2451916 major-body interior evidence:"));
+        assert!(interior_2451916.contains("JD 2451916.0 (TDB)"));
+        let interior_2451916_alias = render_cli(&["2451916-major-body-interior-summary"])
+            .expect("2451916 major-body interior alias should render");
+        assert_eq!(interior_2451916_alias, interior_2451916);
     }
 
     #[test]
