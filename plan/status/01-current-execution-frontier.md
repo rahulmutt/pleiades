@@ -29,7 +29,7 @@ Implement a small artifact-quality slice:
 - keep the draft/prototype label until all advertised scopes pass;
 - add or update regression tests that prevent fit-report drift.
 
-Status update: the Moon residual-correction slice is complete, the adjacent quadratic-window slice is complete, the manifest-completeness slice is complete (encoded artifact size and residual-body coverage are now explicit in the generator parameters), the current draft thresholds are calibrated to the latest artifact, and the main benchmark report now includes packaged-artifact lookup, batch lookup, and decode sections. Next work should still target the remaining high-error body classes or segment families.
+Status update: the Moon residual-correction slice is complete, the adjacent quadratic-window slice is complete, the manifest-completeness slice is complete (encoded artifact size and residual-body coverage are now explicit in the generator parameters), the current draft thresholds are calibrated to the latest artifact, the main benchmark report now includes packaged-artifact lookup, batch lookup, and decode sections, and the artifact summary now adds a channel-major fit-outlier view. Next work should still target the remaining high-error body classes or segment families.
 
 ## Parallel safe work
 

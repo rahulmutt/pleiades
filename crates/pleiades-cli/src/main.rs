@@ -4798,6 +4798,7 @@ mod tests {
         assert!(artifact_summary.contains("Artifact summary"));
         assert!(artifact_summary.contains("Artifact output support:"));
         assert!(artifact_summary.contains("Artifact boundary envelope"));
+        assert!(artifact_summary.contains("Artifact fit outliers by channel"));
         assert!(artifact_summary.contains("Model error envelope"));
         assert!(artifact_summary.lines().any(|line| {
             line == format!(

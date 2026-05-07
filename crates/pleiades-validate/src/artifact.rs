@@ -1877,6 +1877,11 @@ fn render_artifact_summary_text(report: &ArtifactInspectionReport) -> String {
     );
     text.push('\n');
 
+    text.push_str("\nArtifact fit outliers by channel\n");
+    text.push_str("  ");
+    text.push_str(&pleiades_data::packaged_artifact_fit_channel_outlier_summary_for_report());
+    text.push('\n');
+
     text.push_str("\nRelease summary: release-summary\n");
     text.push_str("Release notes summary: release-notes-summary\n");
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");

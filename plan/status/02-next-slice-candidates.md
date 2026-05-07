@@ -11,6 +11,7 @@ This file lists focused implementation slices for the current phase ladder. Comp
 - Evaluate whether the remaining high-error bodies should move to denser windows, Chebyshev, or higher-order polynomial segments.
 - Split body classes by cadence and segment length: inner planets, outer planets, Pluto, and selected asteroids may still need different strategies.
 - Body/channel-specific fit reports now identify the worst segments and source intervals; use them to prioritize the next fit changes.
+- The artifact summary now also includes a channel-major fit-outlier view, which should make cadence-based splitting easier to justify.
 - Keep failures explicit until measured deltas are inside the production target profile.
 
 ### 2. Artifact generation manifest

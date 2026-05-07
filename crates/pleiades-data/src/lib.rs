@@ -800,6 +800,61 @@ impl fmt::Display for PackagedArtifactFitOutlierSummary {
     }
 }
 
+fn packaged_artifact_fit_channel_outlier_summary_for_channel(
+    samples: &[PackagedArtifactFitSample],
+    channel: ChannelKind,
+) -> Option<String> {
+    let mut body_outliers: HashMap<CelestialBody, PackagedArtifactFitChannelOutlier> =
+        HashMap::new();
+
+    for sample in samples {
+        let candidate = packaged_artifact_fit_channel_outlier_from_sample(sample, channel);
+        match body_outliers.get_mut(&sample.body) {
+            Some(existing) if existing.delta >= candidate.delta => {}
+            Some(existing) => *existing = candidate,
+            None => {
+                body_outliers.insert(sample.body.clone(), candidate);
+            }
+        }
+    }
+
+    if body_outliers.is_empty() {
+        return None;
+    }
+
+    let mut body_entries = body_outliers
+        .into_iter()
+        .map(|(body, outlier)| format!("{body}{{{outlier}}}"))
+        .collect::<Vec<_>>();
+    body_entries.sort();
+
+    Some(format!("{channel}{{{}}}", body_entries.join(", ")))
+}
+
+pub fn packaged_artifact_fit_channel_outlier_summary_for_report() -> String {
+    let artifact = packaged_artifact();
+    let samples = packaged_artifact_fit_samples(artifact);
+    let mut channel_entries = Vec::new();
+
+    for channel in [
+        ChannelKind::Longitude,
+        ChannelKind::Latitude,
+        ChannelKind::DistanceAu,
+    ] {
+        if let Some(entry) =
+            packaged_artifact_fit_channel_outlier_summary_for_channel(&samples, channel)
+        {
+            channel_entries.push(entry);
+        }
+    }
+
+    if channel_entries.is_empty() {
+        "fit outliers by channel: none".to_string()
+    } else {
+        format!("fit outliers by channel: {}", channel_entries.join("; "))
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct PackagedArtifactTargetThresholdScopeSummary {
     /// Release-scoped body class that the fit envelope applies to.
@@ -7290,6 +7345,18 @@ mod tests {
             packaged_artifact_fit_outlier_summary_for_report(),
             summary.summary_line()
         );
+    }
+
+    #[test]
+    fn packaged_artifact_fit_channel_outlier_summary_reflects_the_current_posture() {
+        let summary = packaged_artifact_fit_channel_outlier_summary_for_report();
+
+        assert!(summary.starts_with("fit outliers by channel: "));
+        assert!(summary.contains("Longitude{"));
+        assert!(summary.contains("Latitude{"));
+        assert!(summary.contains("DistanceAu{"));
+        assert!(summary.contains("segment "));
+        assert!(summary.contains("x="));
     }
 
     #[test]
