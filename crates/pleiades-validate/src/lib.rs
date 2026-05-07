@@ -17180,7 +17180,7 @@ fn implemented_backend_catalog() -> Vec<BackendMatrixEntry> {
         BackendMatrixEntry {
             label: "Packaged data backend",
             metadata: PackagedDataBackend::new().metadata(),
-            implementation_status: BackendImplementationStatus::PrototypeArtifact,
+            implementation_status: BackendImplementationStatus::DraftArtifact,
             status_note: "sample packaged artifact exercises lookup and profile plumbing; generated 1500-2500 production artifacts are Phase 2 work",
             expected_error_kinds: PACKAGED_EXPECTED_ERROR_KINDS,
             required_data_files: &[],
@@ -17210,7 +17210,7 @@ enum BackendImplementationStatus {
     FixtureReference,
     PartialSourceBacked,
     PreliminaryAlgorithm,
-    PrototypeArtifact,
+    DraftArtifact,
     RoutingFacade,
 }
 
@@ -17220,7 +17220,7 @@ impl BackendImplementationStatus {
             Self::FixtureReference => "fixture-reference",
             Self::PartialSourceBacked => "partial-source-backed",
             Self::PreliminaryAlgorithm => "preliminary-algorithm",
-            Self::PrototypeArtifact => "prototype-artifact",
+            Self::DraftArtifact => "draft-artifact",
             Self::RoutingFacade => "routing-facade",
         }
     }
@@ -22983,7 +22983,7 @@ mod tests {
         assert!(rendered.contains("implementation status: fixture-reference"));
         assert!(rendered.contains("implementation status: partial-source-backed"));
         assert!(rendered.contains("implementation status: preliminary-algorithm"));
-        assert!(rendered.contains("implementation status: prototype-artifact"));
+        assert!(rendered.contains("implementation status: draft-artifact"));
         assert!(rendered.contains("implementation status: routing-facade"));
         assert!(rendered.contains("family posture: data-backed"));
         assert!(rendered.contains("family posture: algorithmic"));
@@ -23108,7 +23108,7 @@ mod tests {
         assert!(rendered.contains("fixture-reference: 1"));
         assert!(rendered.contains("partial-source-backed: 1"));
         assert!(rendered.contains("preliminary-algorithm: 1"));
-        assert!(rendered.contains("prototype-artifact: 1"));
+        assert!(rendered.contains("draft-artifact: 1"));
         assert!(rendered.contains("routing-facade: 1"));
         assert!(rendered.contains("Accuracy classes:"));
         assert!(rendered.contains("Exact: 1"));

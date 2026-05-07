@@ -21,7 +21,7 @@ This directory contains the forward-looking implementation plan for Pleiades. It
 
 ## Foundation already in place
 
-The workspace already has the required crate family, backend abstraction, typed domain model, chart façade, broad catalogs, validation/reporting commands, release-bundle rehearsal tooling, VSOP87B generated tables for Sun-through-Neptune, a compact lunar baseline, JPL snapshot fixtures, compression codecs, and a deterministic prototype packaged-data backend.
+The workspace already has the required crate family, backend abstraction, typed domain model, chart façade, broad catalogs, validation/reporting commands, release-bundle rehearsal tooling, VSOP87B generated tables for Sun-through-Neptune, a compact lunar baseline, JPL snapshot fixtures, compression codecs, and a deterministic draft packaged-data backend.
 
 ## Current remaining work at a glance
 

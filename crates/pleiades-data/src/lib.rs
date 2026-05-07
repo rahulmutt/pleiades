@@ -1,6 +1,6 @@
 //! Packaged compressed ephemeris backend for the common 1500-2500 range.
 //!
-//! This crate now ships a small stage-5 prototype artifact backed by the
+//! This crate now ships a small stage-5 draft artifact backed by the
 //! `pleiades-compression` codec. The bundled data is loaded from a checked-in
 //! deterministic binary fixture that covers the comparison-body planetary set
 //! plus the source-backed custom asteroid `asteroid:433-Eros`, and the backend
