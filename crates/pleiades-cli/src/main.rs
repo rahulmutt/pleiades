@@ -5769,6 +5769,9 @@ mod tests {
             "reference-snapshot-2451910-major-body-boundary-summary  Print the compact reference 2451910 major-body boundary evidence summary"
         ));
         assert!(help.contains(
+            "reference-snapshot-2451911-major-body-boundary-summary  Print the compact reference 2451911 major-body boundary evidence summary"
+        ));
+        assert!(help.contains(
             "reference-snapshot-2451915-major-body-bridge-summary  Print the compact reference 2451915 major-body bridge evidence summary"
         ));
         assert!(help.contains(
