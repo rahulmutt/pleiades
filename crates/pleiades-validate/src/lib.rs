@@ -155,6 +155,7 @@ use pleiades_jpl::{
     reference_snapshot_2451914_bridge_day_summary_for_report,
     reference_snapshot_2451914_major_body_boundary_summary_for_report,
     reference_snapshot_2451914_major_body_bridge_day_summary_for_report,
+    reference_snapshot_2451914_major_body_pre_bridge_summary_for_report,
     reference_snapshot_2451915_major_body_boundary_summary_for_report,
     reference_snapshot_2451915_major_body_bridge_summary_for_report,
     reference_snapshot_2451916_major_body_boundary_summary_for_report,
@@ -7966,6 +7967,8 @@ fn render_release_notes_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_bridge_day_summary_for_report());
     text.push('\n');
+    text.push_str(&reference_snapshot_2451914_major_body_pre_bridge_summary_for_report());
+    text.push('\n');
     text.push_str(&reference_snapshot_2451914_bridge_day_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_2451914_major_body_bridge_day_summary_for_report());
@@ -8122,6 +8125,8 @@ fn render_release_notes_summary_text() -> String {
     text.push_str(&reference_snapshot_2451915_major_body_bridge_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_bridge_day_summary_for_report());
+    text.push('\n');
+    text.push_str(&reference_snapshot_2451914_major_body_pre_bridge_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_2451914_bridge_day_summary_for_report());
     text.push('\n');
@@ -20982,6 +20987,8 @@ mod tests {
         assert!(rendered.contains("Reference snapshot coverage: 347 rows across 16 bodies and 29 epochs (93 asteroid rows; JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); bodies:"));
         assert!(rendered.contains("Reference snapshot body-class coverage: major bodies: 254 rows across 10 bodies and 29 epochs; major windows: "));
         assert!(rendered.contains(&reference_snapshot_pre_bridge_boundary_summary_for_report()));
+        assert!(rendered
+            .contains(&reference_snapshot_2451914_major_body_pre_bridge_summary_for_report()));
         assert!(rendered.contains(&reference_snapshot_dense_boundary_summary_for_report()));
         assert!(rendered.contains(
             "selected asteroids: 93 rows across 6 bodies and 17 epochs; asteroid windows: "
@@ -22530,6 +22537,8 @@ mod tests {
         assert!(
             rendered.contains(&reference_snapshot_2451915_major_body_bridge_summary_for_report())
         );
+        assert!(rendered
+            .contains(&reference_snapshot_2451914_major_body_pre_bridge_summary_for_report()));
         assert!(rendered.contains(&reference_snapshot_2451914_bridge_day_summary_for_report()));
         assert!(rendered
             .contains(&reference_snapshot_2451916_major_body_dense_boundary_summary_for_report()));
