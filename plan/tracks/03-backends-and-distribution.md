@@ -14,15 +14,8 @@ Guide remaining backend, compression, and packaged-data work so Pleiades provide
 
 ## Remaining backend goals
 
-- Resolve Pluto's release posture: source-backed within thresholds or explicitly approximate/excluded from release-grade claims.
-- Expand JPL/reference data from fixture evidence into a production-suitable validation and artifact-generation corpus.
-- Decide whether the lunar backend remains a compact validated baseline or grows into a fuller ELP-style coefficient implementation for the first release.
-- Build deterministic compressed artifacts for 1500-2500 CE with measured error inside published thresholds.
+- Build production compressed artifacts for 1500-2500 CE with measured error inside published thresholds.
+- Expand public reference inputs from fixture evidence into a production-suitable validation and artifact-generation path.
+- Resolve Pluto's release posture through source-backed validation or explicit constrained/excluded claims.
+- Decide whether the lunar backend remains a compact validated baseline or grows into a fuller ELP-style coefficient implementation.
 - Benchmark lookup latency, batch throughput, artifact decode cost, artifact size, and full-chart use.
-
-## Distribution constraints
-
-- No mandatory C/C++ dependencies, build scripts, or native runtime libraries.
-- Large data should be feature-gated or packaged deliberately.
-- Generated artifacts must be reproducible from documented public inputs and versioned parameters.
-- Prototype artifacts must stay labeled as prototype until they meet production thresholds.

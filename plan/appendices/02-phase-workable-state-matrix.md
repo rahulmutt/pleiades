@@ -2,14 +2,14 @@
 
 | Phase | Workable state after completion | Primary users unblocked |
 | --- | --- | --- |
-| Phase 1 — Reference accuracy and request semantics | Maintainers can compute and validate release-claimed body positions with documented source provenance, tolerances, and explicit unsupported-mode behavior. | Backend implementers, validation maintainers, chart API users evaluating accuracy, artifact-generation maintainers. |
-| Phase 2 — Production compressed artifacts | Maintainers can regenerate, decode, validate, benchmark, and query a deterministic 1500-2500 CE artifact whose measured errors fit the published profile. | Application developers needing offline packaged data; release maintainers validating artifacts. |
-| Phase 3 — Compatibility evidence and catalog truthfulness | Maintainers can publish compatibility profiles whose house/ayanamsa coverage, aliases, constraints, custom definitions, and known gaps match implemented and tested behavior. | Astrology application developers comparing interoperability; documentation and release maintainers. |
-| Phase 4 — Release hardening and publication | Maintainers can produce a verified release bundle with profiles, reports, checksums, artifact summaries, release notes, audits, and documentation from a clean checkout. | Downstream users, package maintainers, release managers. |
+| Phase 1 — Production compressed data | Maintainers can regenerate, validate, benchmark, and ship a deterministic artifact whose measured errors fit the published profile. | Application developers needing offline packaged data; release maintainers validating artifacts. |
+| Phase 2 — Production reference inputs | Maintainers can validate release-claimed body positions and fit artifacts from documented public source inputs. | Backend implementers, validation maintainers, artifact-generation maintainers. |
+| Phase 3 — Advanced request support | Callers can rely on implemented advanced modes or structured unsupported errors for every deferred request dimension. | Chart API users, backend implementers, documentation maintainers. |
+| Phase 4 — Compatibility catalog evidence | Release profiles truthfully describe house/ayanamsa coverage, aliases, constraints, custom definitions, and known gaps. | Astrology application developers comparing interoperability; release maintainers. |
+| Phase 5 — Release gate hardening | A clean checkout can produce and verify a release bundle with current claims, reports, checksums, manifests, and docs. | Downstream users, package maintainers, release managers. |
 
-## Workable-state invariants
+## Notes
 
-- Every phase preserves pure Rust default build/test workflows.
-- Every phase preserves backend/domain layering.
+- Phases may overlap, but Phase 1 production claims require Phase 2-quality inputs.
 - Every phase keeps unsupported modes explicit rather than silently approximating them.
-- Every phase removes completed tasks from active plan docs instead of accumulating historical progress notes.
+- Release gates must validate current evidence, not historical report text.

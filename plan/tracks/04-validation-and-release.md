@@ -26,4 +26,4 @@ Ensure remaining implementation work produces evidence strong enough for release
 
 ## Release readiness rule
 
-A release must not claim production ephemeris accuracy, compressed artifact coverage, apparent/topocentric/native-sidereal support, built-in Delta T/UTC conversion, or full compatibility-catalog coverage until generated reports verify those claims from the current source revision.
+A release must not claim production ephemeris accuracy, compressed artifact coverage, apparent/topocentric/native-sidereal support, built-in Delta-T/UTC conversion, or full compatibility-catalog coverage until generated reports verify those claims from the current source revision.

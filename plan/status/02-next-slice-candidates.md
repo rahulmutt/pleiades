@@ -1,109 +1,61 @@
 # Status 2 — Next Slice Candidates
 
-This file lists focused implementation slices that map to the current phase ladder. It intentionally omits completed report-surface, alias, fixture-summary, and release-rehearsal cleanup work.
+This file lists focused implementation slices for the current phase ladder. Completed report aliases, fixture row promotion, and release-rehearsal cleanup are intentionally omitted.
 
-Current note: the remaining Phase 1 reference-breadth candidates are effectively saturated in the codebase, so the next implementation slice should prioritize Phase 2 fit-error and benchmark-matrix coverage; the embedded fit-margin and fit-threshold violation lines are now rendered without duplicated inner labels.
+## Phase 1 — Production compressed data
 
-## Phase 1 candidates — Reference accuracy and request semantics
+### 1. Artifact fitting strategy
 
-### 1. Representative 1500-2500 reference expansion
+- Evaluate whether the current linear/residual approach should move to Chebyshev or higher-order polynomial segments.
+- Split body classes by cadence and segment length: Moon, inner planets, outer planets, Pluto, and selected asteroids may need different strategies.
+- Add body/channel-specific fit reports that identify the worst segments and source intervals.
+- Keep failures explicit until measured deltas are inside published thresholds.
 
-- The 1500-01-01, 1600-01-11, 1900-01-01, and 2200-01-01 selected-body boundary slices are now also surfaced through the top-level reference snapshot summary and release notes summary, so this early-boundary sub-slice is complete. The release-facing summaries now keep the 1600-01-11 and 1750-01-01 selected-body blocks on separate lines, and the CLI/validation fronts now also expose the 2268932 and 2305457 exact-JD aliases for the 1500 and 1600 selected-body boundary slices; the release notes summary now mirrors those exact-JD alias views as well.
-- The generic reference bridge-day summary and 2451914 major-body bridge-day alias are now also promoted through the top-level reference snapshot and release notes summaries, the direct 2451914 bridge-day alias now mirrors there as well, and the 2451914 major-body pre-bridge summary now also appears directly in the release notes summary, so any remaining reference-breadth work can move to another epoch.
-- The lunar boundary evidence summary is now also surfaced through the top-level reference snapshot summary, and the major-body boundary-window aggregate is now surfaced there as well, while the release notes summary now mirrors the boundary-epoch coverage and boundary-window aggregates for the same frontier, so the next breadth slice can focus on another boundary epoch or a representative interior comparison row.
-- The reference snapshot source provenance summary is now also regression-pinned for the 2132-08-31 source-coverage note, so that manifest-only provenance marker is no longer an untested string in the release-facing report path.
-- A 2500-01-01 selected-body boundary slice for Mars, Mercury, Moon, Sun, and Venus is now checked in and now has direct CLI parity in `pleiades-cli`.
-- A 1749 major-body boundary slice, the early major-body boundary slice, and the Mars/Jupiter boundary slice are now checked in and surfaced through the top-level reference snapshot summary. The early boundary slice now also has an exact 2378498 JD alias for naming parity.
-- A 1750-01-01 interior boundary slice for Sun through Neptune is now checked in and now has a first-class 1750 major-body interior report surface.
-- A dedicated 1800-01-03 major-body boundary slice is now checked in and now surfaces through the top-level reference snapshot summary.
-- A 2451916.0 interior reference slice is now checked in and surfaced through a first-class report surface with a direct CLI alias.
-- A 2451920.5 interior reference slice is now checked in, and the validation CLI now explicitly regression-tests it inside the combined reference snapshot summary; the release-summary, release-notes, and validation-report layers now also surface it explicitly.
-- The 2451915.25/2451915.75 high-curvature hold-out window is now surfaced through the combined JPL evidence report, and the selected-asteroid boundary, bridge, dense, and source evidence/window summaries are now surfaced there too, while the 2451910 through 2451915 major-body boundary summaries plus the 2451914 major-body bridge-day summary, the 2451917 boundary and bridge summaries, and the 2451918/2451919 boundary slices with the 2451920 interior slice are now also explicitly surfaced there; keep hold-out rows separate from fitting/reference rows, and the reference snapshot summary regression now explicitly keeps the hold-out block out of the reference summary, while the next slice targets any remaining boundary breadth. The top-level reference snapshot summary now also includes the 2451915 major-body bridge summary and the 2451917 major-body boundary and bridge summaries and now surfaces the major-body high-curvature evidence, window, and epoch-coverage summaries as well, but it still excludes the hold-out high-curvature block. The release-notes summary now also surfaces the 2451914 bridge-day alias and the 2451914 major-body pre-bridge summary alongside the 2451915 bridge summary and the 2451917 boundary and bridge summaries explicitly, and the validation and release-notes summaries now also surface the 2451910 major-body boundary slice explicitly. The 2451918 compatibility alias now renders explicit 2451918 wording in release-facing reports, so alias-parity cleanup for that slice is now complete.
-- The major-body high-curvature summary/window/epoch-coverage surfaces now also expose snapshot-prefixed and major-body-prefixed aliases in the CLI and validation front ends for discoverability.
-- A 2453000.5 major-body boundary summary is now checked in and surfaced through the top-level reference snapshot summary.
-- A 2500000.0 major-body boundary summary is now checked in and surfaced through the top-level reference snapshot summary and CLI/help aliases.
-- A 2600000.0 major-body boundary summary for the Mars outer-boundary anchor is now checked in and surfaced through the top-level reference snapshot summary and CLI/report/help aliases.
-- A 2500 major-body boundary summary is now checked in and surfaced through the top-level reference snapshot summary.
-- The 2200 selected-body boundary slice now also has a 2524593 JD-labeled alias in the CLI and validation front ends, the 1900 selected-body boundary slice now also has a 2415020 JD-labeled alias, and the 2500 selected-body boundary slice now also has a 2634167 JD-labeled alias, so those frontier points are covered by both year and epoch naming. The top-level reference snapshot summary now also surfaces the dedicated 2415020 alias alongside the 1900 boundary entry, and the release notes summary mirrors that alias view.
-- The Mars outer-boundary summary is now checked in and surfaced through the top-level reference snapshot summary alongside the late corpus edge at JD 2634167.0.
-- A 2400000.0 major-body boundary summary is now checked in and surfaced through a first-class report surface, and the top-level reference snapshot regression now explicitly anchors that slice alongside the 2451545.0 J2000 boundary.
-- A 2451545.0 major-body boundary summary for the J2000 major-body reference slice is now first-class with direct CLI/report aliases and top-level reference-snapshot regression coverage.
-- The exact-J2000 evidence summary is now also surfaced through the top-level reference snapshot summary, and the selected-asteroid boundary, bridge, dense, terminal, and source evidence/window slices are now surfaced there as well, and the 2500000 selected-asteroid source slice is now surfaced directly too, along with the reference source and source-window provenance summaries plus the sparse boundary and pre-bridge aggregate summaries, so the next breadth slice can focus on another boundary epoch or representative interior row if more reference breadth is still needed. The release notes summary now also surfaces the 2451915 major-body boundary slice alongside the 2451916 dense boundary slice explicitly, and now carries direct 2451916 interior/boundary lines in addition to the aggregated reference snapshot coverage; the release notes summary and release summary now also surface the 2451916 interior and boundary slices explicitly, and the release notes summary and validation report now also surface the terminal slice explicitly.
-- Dedicated 2451910.5, 2451911.5, 2451912.5, 2451913.5, 2451915.5, 2451917.5, 2451918.5, and 2451919.5 major-body boundary report slices are now first-class and validated, with direct CLI/report surfaces now exposed for 2451910.5, 2451911.5, 2451912.5, 2451913.5, and 2451915.5, plus the 2451917.0 bridge slice, the 2451918.5 Mars/Jupiter boundary slice and its epoch-specific 2451918 alias now has backend drift regression coverage, the 2451916.5 dense boundary day is now also promoted through the top-level reference snapshot summary and now has an epoch-specific 2451916 major-body dense-boundary alias, plus a generic 2451916 major-body boundary alias for discoverability; the top-level reference snapshot summary now also surfaces that generic boundary alias, and the reference snapshot summary regression now also explicitly anchors the 2451916 major-body boundary slice; the CLI parity layer now mirrors the 2451912, 2451913, 2451914, 2451917, 2451918 boundary aliases plus the 2451914 pre-bridge, 2451914 bridge-day, and generic bridge-day aliases, including the 2451914-bridge-day-summary alias, the 2451915 bridge alias now rendering explicit 2451915 wording in release-facing reports, the 2451917 bridge alias, and the 2451916 dense-boundary alias, while the JPL backend API now also exposes epoch-specific aliases for the 2451914 pre-bridge, 2451914 bridge, and 2451915 bridge report surfaces, and the top-level reference snapshot summary now surfaces the 1749, 1750-01-01, 1800-01-03, 2451910.5, 2451911.5, 2451912.5, 2451913.5, 2451915.5, 2451916.5, 2451917.0, 2451917.5, 2451918.5, 2451919.5, 2451920.5, and 2453000.5 slices alongside the earlier boundary summaries, plus the generic bridge-day summary and the 2451914 pre-bridge and bridge-day report surfaces. The reference-snapshot summary regression now also explicitly anchors the 2451912, 2451913, 2451914, 2451916 dense, and 2451917 bridge slices. This alias-parity slice is now complete in the backend API, CLI, validation front ends, and the release-notes summary; the CLI/validation help inventory now also pins the 2451914 bridge-day, 2451915 bridge, 2451916 boundary, and 2451918 boundary aliases explicitly.
-- The validation-report and release-summary layers now also surface the 2451918 and 2451919 boundary slices explicitly, and now also surface the 2451920 interior slice explicitly; the top-level reference snapshot summary also now carries the selected-asteroid source evidence/window slices alongside the already-advertised boundary, bridge, dense, and terminal evidence blocks, and those selected-asteroid source commands now also have reference-snapshot-prefixed CLI/validation aliases for naming parity. The new selected-asteroid 2003-12-27 source slice is now surfaced through a dedicated epoch-specific summary as well. The CLI parity layer now also rejects stray arguments for the 2451919 boundary alias, matching the validation front end, and the CLI help inventory now also asserts the `2451919-major-body-boundary-summary` and `2451920-major-body-interior-summary` alias lines.
-- The comparison-corpus guard stays aligned with the 26-epoch release-grade comparison corpus, while 2451913.5 remains reference-only evidence, and the generic major-body boundary summary is now also first-class in the top-level reference snapshot summary, so the next reference-breadth slice can target another boundary or representative interior epoch if breadth still needs to grow; the 2451914 pre-bridge boundary day now has an epoch-specific CLI alias, the 2451914 bridge day now has its own epoch-specific CLI alias, the 2451914 major-body bridge-day alias is now also exposed for naming parity and surfaced in the top-level reference snapshot summary, the 2451915 major-body boundary day now has a first-class report surface, the 2451917.0 bridge day now has its own epoch-specific CLI alias, the 2451918 Mars/Jupiter boundary day now has its epoch-specific CLI alias, the 2451915 major-body bridge alias now renders explicit 2451915 wording in release-facing reports, and the 2451915 bridge slice is now explicitly regression-anchored in the top-level summary and validation report; the 2451919 boundary slice is now also surfaced in the release-facing reports, the top-level reference snapshot summary regression now also pins the 2451918 and 2451919 boundary surfaces in CLI and validation coverage, the boundary-window / boundary-epoch-coverage aggregate report surfaces now carry direct regression coverage, and the boundary-epoch-coverage slice now widens through JD 2451912.5..JD 2451919.5; the independent hold-out high-curvature window is now included in the combined evidence report without being folded into reference rows; the remaining breadth work can now move to a different epoch, a new source-backed comparison slice, or a concise request-policy cleanup if no further corpus row is needed.
-- The JPL backend API now also exposes explicit 2360233 and 2378499 major-body boundary report aliases for the 1749 and 1800 reference slices, while the CLI runtime now also covers the 1500 selected-body, 1750 major-body interior, 1900 selected-body, 2415020 selected-body, 2360233 major-body boundary, 2360234 major-body interior, 2378499 major-body boundary, and 2451911 major-body boundary aliases directly, so the current alias-parity slice is fully exercised in the CLI and validation fronts. The top-level reference snapshot summary now also surfaces the 2360233.5 and 2378499.0 alias views of those boundary slices, and the release notes summary now mirrors those alias views as well; the 2451911 boundary alias now also has explicit CLI help coverage; the 2451914 bridge-day / major-body bridge-day typed aliases now also have direct regression coverage; the CLI render tests now also pin the `2451914-bridge-day-summary` and `2451914-major-body-bridge-day-summary` aliases alongside the base bridge-day command, so that bridge-day naming path is no longer an open follow-up.
-- The combined JPL evidence report now makes the checked-in fixture backend / separate generation-input posture explicit, so the remaining breadth work is now about corpus coverage rather than source-role ambiguity; it now also surfaces the 1750 major-body interior comparison slice alongside the current boundary coverage and includes the generic bridge-day summary alongside the 2451914 major-body bridge-day slice, plus the 2451914 major-body bridge summary. The release-notes summary and release-summary surfaces now also mirror that 2451914 bridge slice explicitly.
-- Keep hold-out rows separate from fitting/reference rows.
-- The release-grade body-claims posture is now explicit in typed backend/core summaries and release reporting, so keep validation work focused on keeping per-class tolerances, claim status, and any newly advertised bodies aligned with that claim set.
-- Update validation reports to classify evidence as release-tolerance, hold-out, fixture exactness, or provenance-only; the comparison audit surface now mirrors body-class tolerance posture for the current release-grade corpus.
+### 2. Artifact generation manifest
 
-### 3. Lunar source posture
+- Ensure generator parameters fully describe source inputs, segment strategy, quantization scales, residual policy, checksums, and output profile identifiers.
+- Keep normalized intermediate summaries deterministic and reproducible.
+- Make regenerated artifact bytes/checksums comparable from a clean checkout.
 
-- The first release keeps the compact Meeus-style truncated lunar baseline.
-- If future releases add coefficient data, they should bring pure-Rust ingestion/evaluation, provenance, validation, and tests with them.
+### 3. Artifact benchmark coverage
 
-### 4. Request/time semantics closure
+- Benchmark single lookup, batch lookup, decode cost, encoded size, and full-chart packaged-data use.
+- Track benchmark rows in release summaries without treating speed as a substitute for accuracy.
 
-- The first-release request-policy posture is now explicit: built-in Delta T and UTC/UT1 convenience conversion remain deferred, validation-report summaries surface that deferral explicitly, the backend/core façades re-export the UTC-convenience, Delta T, and native sidereal policy summaries plus their current constructors, the request-semantics aliases now render a distinct `Request semantics summary` title while keeping the same policy body, and the request-policy/request-semantics renderers now share the same formatter; the request-surface inventory lists Delta T as a separate report entrypoint. The release bundle now also carries a distinct `request-semantics-summary.txt` sidecar rendered from the request-semantics entrypoint alongside `request-policy-summary.txt`, so the request-policy/request-semantics cleanup is now reflected in the reproducibility outputs as well. The refreshed policy wording is also mirrored in `docs/time-observer-policy.md`, so future cleanup should stay focused on behavior changes rather than prose drift. Pluto fallback posture is now also surfaced through a shared typed backend/core summary and validation report line, and the release-grade body claims posture now has a standalone release-body-claims summary command, so keep future cleanup focused on the remaining request/time gaps instead of restating the Pluto fallback prose. The generic `bridge-summary` alias now covers the major-body bridge report, the 2451914 bridge-day slice is now also regression-anchored in the CLI/validation summary tests, and unsupported-time-scale precedence over malformed observer input is now regression-tested in direct metadata checks, so any further cleanup here should stay limited to report phrasing; the shared CLI request-policy help block now also names the request-semantics line explicitly, and the next reviewable slice should prefer another reference-breadth point or catalog-evidence update unless a new semantics decision is made.
-- Apparent-place corrections and topocentric body positions remain explicitly deferred unless a later backend-capability decision changes that posture.
-- Native sidereal backend output remains deferred unless a backend advertises equivalent support through capabilities.
-- If no request-policy decision changes, prefer the next slice to expand reference breadth (for example by promoting another checked-in interior/boundary epoch to a first-class report surface) before revisiting more request-policy wording; the `request-semantics` help-text cleanup now keeps the alias wording aligned, so any further cleanup here should stay limited to report/help phrasing. The current reference help inventory is now synchronized with the advertised manifest/body-class/exact-J2000/boundary aliases, so future drift fixes should only follow new command additions.
+## Phase 2 — Production reference inputs
 
-## Phase 2 candidates — Production compressed artifacts
+### 1. Source ingestion decision
 
-### 1. Deterministic artifact generator
+- Decide whether to implement a broader JPL reader/parser, a generated public-data fixture corpus, or both.
+- Document provenance, license/redistribution posture, frame, time scale, columns, source revision, and checksum expectations.
 
-- Build a generation command that consumes validated public inputs and writes normalized intermediates plus compressed artifacts; the current fixture workflow now exposes both generation and regenerate entrypoints, and the CLI/validation fronts now also keep the production-generation boundary request corpus, source-window, and boundary-source summaries in parity, with direct aliases now mirroring those entrypoints. The packaged-artifact normalized-intermediates reporting slice is now complete, including the release-bundle sidecar, the release bundle now also stages the packaged-artifact binary plus checksum sidecar, and the generator-parameter summary now explicitly records the packaged-artifact checksum, so follow-on work can focus on production artifact writes and generator plumbing; the regeneration command now also writes optional manifest, manifest-summary, manifest-checksum, and artifact-checksum sidecars, the new production-generation manifest summary now gives the checked-in corpus a single-line audit surface for coverage, source, and boundary request-corpus posture, and the manifest itself now carries a deterministic checksum over its rendered payload, with a dedicated production-generation-manifest-checksum summary now available through the CLI and validation fronts. The generation helper now also accepts an explicit validated reference snapshot slice, which makes the input-corpus boundary explicit for future production-generation work.
-- Record generator parameters, output profile identifiers, and per-channel quantization scales; the packaged-artifact regeneration provenance now already exposes and validates the codec quantization-scale metadata, the checked-in reference snapshot summary equality is now also validated there, the source-revision provenance slice is now closed, the generator parameters now surface the artifact checksum directly, the normalized-intermediates summary is now part of the surfaced provenance set, the regeneration command can also write the normalized-intermediate summary sidecar, and the generation-manifest checksum now has its own first-class summary surface, so the next slice can concentrate on the remaining drift-proof manifest updates.
-- Keep the prototype fixture path separate from production artifact generation.
+### 2. Body and epoch coverage
 
-### 2. Fit-error coverage
+- Expand coverage only where it supports advertised release claims or artifact fitting.
+- Preserve evidence classes: reference, hold-out, fixture exactness, and provenance-only.
+- Keep selected asteroid support bounded to validated bodies and epochs.
 
-- The boundary/interior fit sample classes summary is now surfaced alongside the packaged-artifact fit envelope summary in the validation report and CLI, so the fit-error slice now has a first-class report path; validation report assembly now also preflights the packaged-artifact fit envelope and target-threshold posture before rendering fit claims, the packaged-artifact fit failure now reports field-specific measured-versus-threshold context, threshold-violation counts, and per-field overage deltas while still aggregating every threshold overage in one error, the benchmark matrix now also carries the calibrated fit-threshold summary, dedicated fit-threshold violation count reporting, the new fit-threshold-violations command/alias, detailed threshold-violation reporting, and the current threshold-violation count, and the release summary/report surfaces now also carry fit margins relative to the calibrated thresholds.
-- The benchmark matrix summary now covers reference, candidate, packaged-data, chart, and decode rows, and it now also carries the packaged-artifact fit posture block plus fit margins, the threshold-violation count, an explicit packaged-artifact size line, and storage/reconstruction wording that now states body-indexed random access by body and lookup time across the advertised range; the validation-report and release-summary surfaces now mirror that packaged-artifact size line as well, so the remaining work here is centered on deterministic artifact generation and normalized intermediates rather than adding another reporting surface.
-- Benchmark single lookup, batch lookup, decode cost, packaged-artifact size, and full-chart packaged-data use.
-- Fail validation when measured errors exceed profile thresholds.
+### 3. Release-grade body posture
 
-## Phase 3 candidates — Compatibility catalog evidence
+- Keep Pluto approximate/excluded unless a source-backed path passes thresholds.
+- Keep the compact lunar baseline unless fuller ELP-style coefficient support lands with provenance and validation.
+- Keep lunar point/apogee claims aligned with supported algorithms.
 
-### 1. House formula evidence batch
+## Phase 3 — Advanced request support
 
-- The current house-validation corpus already carries the release-facing formula families, latitude-sensitive systems, and documented constraints for the shipped catalog.
-- Extend that evidence only when new release-advertised house systems are added or existing ones change status.
-- Keep descriptor-only or approximate entries out of fully implemented claims.
-- The packaged-artifact generation manifest summary sidecar is now staged alongside the generation manifest, the packaged-artifact target-threshold scope envelopes summary sidecar is now staged alongside the target-threshold summary, and the bundle-release help/docs now also enumerate the production-generation summary, production-generation source summary, production-generation manifest summary, and production-generation manifest checksum summary surfaces, so the remaining production-artifact work can focus on the fit-error and benchmark-matrix slice.
+- Decide first-release UTC/Delta-T convenience policy.
+- Implement apparent-place or topocentric body support only with capability metadata, validation, and docs.
+- Keep native sidereal backend output unsupported unless a backend explicitly implements it.
+- Add precedence tests for invalid/unsupported request combinations when behavior changes.
 
-### 2. Ayanamsa provenance batch
+## Phase 4 — Compatibility catalog evidence
 
-- The current validation and release summaries already surface representative provenance excerpts for the curated release-facing ayanamsa sample, and that curated sample now also has a dedicated `ayanamsa-provenance-summary` / `ayanamsa-provenance` command for direct CLI and validation access. The curated sample now also covers Babylonian (Britton), Galactic Equator, Suryasiddhanta (Mean Sun), and Aryabhata (522 CE) in addition to the earlier representative entries.
-- Expand or refine the curated sample only if additional release-advertised ayanamsas need first-class provenance evidence.
-- Continue classifying custom-definition-only entries explicitly.
+- Add formula/reference evidence for any house system promoted to fully implemented status.
+- Add provenance/reference evidence for any ayanamsa promoted beyond descriptor/custom-only status.
+- Verify release profiles fail on overstated catalog claims.
 
-### 3. Compatibility-profile claim audit
+## Phase 5 — Release gate hardening
 
-- The catalog inventory summary now carries an explicit claim-audit clause for baseline guarantees, release additions, custom-definition territory, and known gaps, and the release-facing wording now mirrors that phrasing.
-- Extend the same audit vocabulary to any future descriptor-only or constrained entries if those catalog categories are introduced later.
-- Update release notes/docs to match the verified profile output.
-
-## Phase 4 candidates — Release hardening
-
-### 1. Final release gate command
-
-- Compose existing checks into a documented release gate.
-- `release-checklist` is now also reachable as `release-gate` / `release-gate-summary` in the CLI and validation front ends; those gate commands now also perform compatibility-profile verification plus release-bundle generation/verification before rendering the checklist text, the repository-managed gate list now spells out the exact `cargo fmt`, strict `cargo clippy`, `cargo test`, `workspace-audit`, benchmark, and `release-smoke` steps that remain to be composed into a single blocking release gate, `mise run release-gate` now composes those checks in task form, and `release-smoke` now also has a dedicated `pleiades-validate -- release-smoke` command that `mise run release-smoke` delegates to.
-- Ensure the gate blocks publication on stale reports or claim drift.
-
-### 2. Clean-checkout bundle rehearsal
-
-- Generate a release bundle from a clean checkout after Phases 1-3 changes.
-- Verify manifests, sidecar checksums, artifact metadata, and report contents.
-- Update docs for the exact reproducibility commands.
-
-## Selection guidance
-
-Prefer slices that convert an unverified claim into one of three explicit states:
-
-1. implemented and validated,
-2. implemented with documented constraints,
-3. deferred/unsupported with structured errors and release-profile caveats.
+- Make release-gate commands fail on stale generated files, artifact threshold violations, profile drift, or native-dependency regressions.
+- Stage and verify all release-bundle artifacts from a clean checkout.
+- Keep README/docs aligned with the published release compatibility profile and known gaps.
