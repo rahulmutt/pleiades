@@ -2,6 +2,8 @@
 
 This file lists focused implementation slices that map to the current phase ladder. It intentionally omits completed report-surface, alias, fixture-summary, and release-rehearsal cleanup work.
 
+Current note: the remaining Phase 1 reference-breadth candidates are effectively saturated in the codebase, so the next implementation slice should prioritize Phase 2 production-artifact manifest drift-proofing.
+
 ## Phase 1 candidates — Reference accuracy and request semantics
 
 ### 1. Representative 1500-2500 reference expansion
