@@ -59,6 +59,8 @@ use pleiades_data::{
     packaged_artifact_access_summary_for_report, packaged_artifact_bytes,
     packaged_artifact_fit_envelope_summary_details,
     packaged_artifact_fit_envelope_summary_for_report,
+    packaged_artifact_fit_threshold_summary_details,
+    packaged_artifact_fit_threshold_summary_for_report,
     packaged_artifact_generation_manifest_for_report,
     packaged_artifact_generation_policy_summary_for_report,
     packaged_artifact_generation_residual_bodies_summary_for_report,
@@ -12356,12 +12358,21 @@ pub fn workspace_audit_report() -> Result<WorkspaceAuditReport, std::io::Error> 
 }
 
 fn validate_packaged_artifact_fit_posture() -> Result<(), EphemerisError> {
-    packaged_artifact_fit_envelope_summary_details()
-        .validate()
+    let fit_envelope = packaged_artifact_fit_envelope_summary_details();
+    fit_envelope.validate().map_err(|error| {
+        EphemerisError::new(
+            EphemerisErrorKind::InvalidRequest,
+            format!("validation report packaged-artifact fit envelope is invalid: {error}"),
+        )
+    })?;
+    fit_envelope
+        .validate_against_thresholds(&packaged_artifact_fit_threshold_summary_details())
         .map_err(|error| {
             EphemerisError::new(
                 EphemerisErrorKind::InvalidRequest,
-                format!("validation report packaged-artifact fit envelope is invalid: {error}"),
+                format!(
+                    "validation report packaged-artifact fit envelope exceeds calibrated thresholds: {error}"
+                ),
             )
         })?;
     packaged_artifact_target_threshold_summary_details().validate().map_err(|error| {
@@ -13408,6 +13419,7 @@ fn render_benchmark_matrix_summary_text(report: &ValidationReport) -> String {
     );
     let fit_envelope_summary = packaged_artifact_fit_envelope_summary_for_report();
     let fit_sample_classes_summary = packaged_artifact_fit_sample_classes_summary_for_report();
+    let fit_thresholds_summary = packaged_artifact_fit_threshold_summary_for_report();
     let target_threshold_summary = packaged_artifact_target_threshold_summary_for_report();
     let target_threshold_scope_envelopes_summary =
         packaged_artifact_target_threshold_scope_envelopes_for_report();
@@ -13417,6 +13429,9 @@ fn render_benchmark_matrix_summary_text(report: &ValidationReport) -> String {
     let fit_sample_classes = fit_sample_classes_summary
         .strip_prefix("fit sample classes: ")
         .unwrap_or(&fit_sample_classes_summary);
+    let fit_thresholds = fit_thresholds_summary
+        .strip_prefix("fit thresholds: ")
+        .unwrap_or(&fit_thresholds_summary);
     let target_threshold_scope_envelopes = target_threshold_scope_envelopes_summary
         .strip_prefix("scope envelopes: ")
         .unwrap_or(&target_threshold_scope_envelopes_summary);
@@ -13425,6 +13440,7 @@ fn render_benchmark_matrix_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(text, "Packaged-artifact fit posture");
     let _ = writeln!(text, "  fit envelope: {}", fit_envelope);
     let _ = writeln!(text, "  fit sample classes: {}", fit_sample_classes);
+    let _ = writeln!(text, "  fit thresholds: {}", fit_thresholds);
     let _ = writeln!(text, "  target thresholds: {}", target_threshold_summary);
     let _ = writeln!(
         text,
@@ -19401,6 +19417,7 @@ mod tests {
         assert!(rendered.contains("Packaged-artifact fit posture"));
         assert!(rendered.contains("fit envelope: "));
         assert!(rendered.contains("fit sample classes: boundary continuity="));
+        assert!(rendered.contains("fit thresholds: mean Δlon≤"));
         assert!(rendered.contains("target thresholds: profile id="));
         assert!(rendered.contains("target-threshold scope envelopes: scope=luminaries;"));
         assert!(render_benchmark_matrix_summary(1)

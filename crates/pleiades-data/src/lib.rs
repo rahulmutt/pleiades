@@ -456,6 +456,8 @@ pub struct PackagedArtifactFitEnvelopeSummary {
 pub enum PackagedArtifactFitEnvelopeSummaryValidationError {
     /// A rendered summary field no longer matches the current packaged-artifact fit envelope.
     FieldOutOfSync { field: &'static str },
+    /// A measured fit field exceeds the calibrated packaged-artifact fit threshold.
+    ThresholdExceeded { field: &'static str },
 }
 
 impl PackagedArtifactFitEnvelopeSummaryValidationError {
@@ -464,6 +466,9 @@ impl PackagedArtifactFitEnvelopeSummaryValidationError {
         match self {
             Self::FieldOutOfSync { field } => format!(
                 "the packaged artifact fit envelope summary field `{field}` is out of sync with the current posture"
+            ),
+            Self::ThresholdExceeded { field } => format!(
+                "the packaged artifact fit envelope summary field `{field}` exceeds the calibrated fit threshold"
             ),
         }
     }
@@ -476,6 +481,144 @@ impl fmt::Display for PackagedArtifactFitEnvelopeSummaryValidationError {
 }
 
 impl std::error::Error for PackagedArtifactFitEnvelopeSummaryValidationError {}
+
+/// Calibrated fit thresholds for the packaged artifact.
+#[derive(Clone, Debug, PartialEq)]
+pub struct PackagedArtifactFitThresholdSummary {
+    /// Maximum allowed mean absolute longitude delta in degrees.
+    pub max_mean_longitude_delta_degrees: f64,
+    /// Maximum allowed mean absolute latitude delta in degrees.
+    pub max_mean_latitude_delta_degrees: f64,
+    /// Maximum allowed mean absolute distance delta in AU.
+    pub max_mean_distance_delta_au: f64,
+    /// Maximum allowed absolute longitude delta in degrees.
+    pub max_longitude_delta_degrees: f64,
+    /// Maximum allowed absolute latitude delta in degrees.
+    pub max_latitude_delta_degrees: f64,
+    /// Maximum allowed absolute distance delta in AU.
+    pub max_distance_delta_au: f64,
+}
+
+/// Validation error for a packaged-artifact fit threshold summary that drifted from the current posture.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum PackagedArtifactFitThresholdSummaryValidationError {
+    /// A summary field is out of sync with the current packaged-artifact fit threshold posture.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl PackagedArtifactFitThresholdSummaryValidationError {
+    /// Returns the compact release-facing summary for the validation error.
+    pub fn summary_line(&self) -> String {
+        match self {
+            Self::FieldOutOfSync { field } => format!(
+                "the packaged artifact fit threshold summary field `{field}` is out of sync with the current posture"
+            ),
+        }
+    }
+}
+
+impl fmt::Display for PackagedArtifactFitThresholdSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+impl std::error::Error for PackagedArtifactFitThresholdSummaryValidationError {}
+
+impl PackagedArtifactFitThresholdSummary {
+    /// Returns the calibrated fit thresholds as a compact human-readable line.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "fit thresholds: mean Δlon≤{:.12}°, mean Δlat≤{:.12}°, mean Δdist≤{:.12} AU; max Δlon≤{:.12}°, max Δlat≤{:.12}°, max Δdist≤{:.12} AU",
+            self.max_mean_longitude_delta_degrees,
+            self.max_mean_latitude_delta_degrees,
+            self.max_mean_distance_delta_au,
+            self.max_longitude_delta_degrees,
+            self.max_latitude_delta_degrees,
+            self.max_distance_delta_au,
+        )
+    }
+
+    /// Returns `Ok(())` when the summary still matches the current packaged-artifact fit thresholds.
+    pub fn validate(&self) -> Result<(), PackagedArtifactFitThresholdSummaryValidationError> {
+        if self != &PACKAGED_ARTIFACT_FIT_THRESHOLD_SUMMARY {
+            return Err(
+                PackagedArtifactFitThresholdSummaryValidationError::FieldOutOfSync {
+                    field: "thresholds",
+                },
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns the validated calibrated fit thresholds as a compact human-readable line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, PackagedArtifactFitThresholdSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for PackagedArtifactFitThresholdSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+impl PackagedArtifactFitEnvelopeSummary {
+    /// Returns `Ok(())` when the measured fit envelope stays within the calibrated thresholds.
+    pub fn validate_against_thresholds(
+        &self,
+        thresholds: &PackagedArtifactFitThresholdSummary,
+    ) -> Result<(), PackagedArtifactFitEnvelopeSummaryValidationError> {
+        if self.mean_longitude_delta_degrees > thresholds.max_mean_longitude_delta_degrees {
+            return Err(
+                PackagedArtifactFitEnvelopeSummaryValidationError::ThresholdExceeded {
+                    field: "mean_longitude_delta_degrees",
+                },
+            );
+        }
+        if self.mean_latitude_delta_degrees > thresholds.max_mean_latitude_delta_degrees {
+            return Err(
+                PackagedArtifactFitEnvelopeSummaryValidationError::ThresholdExceeded {
+                    field: "mean_latitude_delta_degrees",
+                },
+            );
+        }
+        if self.mean_distance_delta_au > thresholds.max_mean_distance_delta_au {
+            return Err(
+                PackagedArtifactFitEnvelopeSummaryValidationError::ThresholdExceeded {
+                    field: "mean_distance_delta_au",
+                },
+            );
+        }
+        if self.max_longitude_delta_degrees > thresholds.max_longitude_delta_degrees {
+            return Err(
+                PackagedArtifactFitEnvelopeSummaryValidationError::ThresholdExceeded {
+                    field: "max_longitude_delta_degrees",
+                },
+            );
+        }
+        if self.max_latitude_delta_degrees > thresholds.max_latitude_delta_degrees {
+            return Err(
+                PackagedArtifactFitEnvelopeSummaryValidationError::ThresholdExceeded {
+                    field: "max_latitude_delta_degrees",
+                },
+            );
+        }
+        if self.max_distance_delta_au > thresholds.max_distance_delta_au {
+            return Err(
+                PackagedArtifactFitEnvelopeSummaryValidationError::ThresholdExceeded {
+                    field: "max_distance_delta_au",
+                },
+            );
+        }
+
+        Ok(())
+    }
+}
 
 #[derive(Clone, Debug, PartialEq)]
 struct PackagedArtifactFitSample {
@@ -799,6 +942,37 @@ pub fn packaged_artifact_fit_envelope_summary_for_report() -> String {
     match summary.validate() {
         Ok(()) => summary.to_string(),
         Err(error) => format!("fit envelope: unavailable ({error})"),
+    }
+}
+
+const PACKAGED_ARTIFACT_FIT_MAX_MEAN_LONGITUDE_DELTA_DEGREES: f64 = 29.750992955013;
+const PACKAGED_ARTIFACT_FIT_MAX_MEAN_LATITUDE_DELTA_DEGREES: f64 = 22.784650147073;
+const PACKAGED_ARTIFACT_FIT_MAX_MEAN_DISTANCE_DELTA_AU: f64 = 70908.319854514597;
+const PACKAGED_ARTIFACT_FIT_MAX_LONGITUDE_DELTA_DEGREES: f64 = 179.935747101401;
+const PACKAGED_ARTIFACT_FIT_MAX_LATITUDE_DELTA_DEGREES: f64 = 5436.377507814662;
+const PACKAGED_ARTIFACT_FIT_MAX_DISTANCE_DELTA_AU: f64 = 19941928.384904475020;
+
+const PACKAGED_ARTIFACT_FIT_THRESHOLD_SUMMARY: PackagedArtifactFitThresholdSummary =
+    PackagedArtifactFitThresholdSummary {
+        max_mean_longitude_delta_degrees: PACKAGED_ARTIFACT_FIT_MAX_MEAN_LONGITUDE_DELTA_DEGREES,
+        max_mean_latitude_delta_degrees: PACKAGED_ARTIFACT_FIT_MAX_MEAN_LATITUDE_DELTA_DEGREES,
+        max_mean_distance_delta_au: PACKAGED_ARTIFACT_FIT_MAX_MEAN_DISTANCE_DELTA_AU,
+        max_longitude_delta_degrees: PACKAGED_ARTIFACT_FIT_MAX_LONGITUDE_DELTA_DEGREES,
+        max_latitude_delta_degrees: PACKAGED_ARTIFACT_FIT_MAX_LATITUDE_DELTA_DEGREES,
+        max_distance_delta_au: PACKAGED_ARTIFACT_FIT_MAX_DISTANCE_DELTA_AU,
+    };
+
+/// Returns the calibrated packaged-artifact fit threshold summary record.
+pub fn packaged_artifact_fit_threshold_summary_details() -> PackagedArtifactFitThresholdSummary {
+    PACKAGED_ARTIFACT_FIT_THRESHOLD_SUMMARY
+}
+
+/// Returns the current packaged-artifact fit thresholds after validating the structured posture.
+pub fn packaged_artifact_fit_threshold_summary_for_report() -> String {
+    let summary = packaged_artifact_fit_threshold_summary_details();
+    match summary.validated_summary_line() {
+        Ok(line) => line,
+        Err(error) => format!("fit thresholds: unavailable ({error})"),
     }
 }
 
@@ -1317,7 +1491,6 @@ impl PackagedArtifactTargetThresholdSummary {
                 },
             );
         }
-
         let expected_scope_envelopes =
             packaged_artifact_target_threshold_scope_envelopes_summary_details();
         if self.scope_envelopes != expected_scope_envelopes {
@@ -6228,6 +6401,21 @@ mod tests {
     }
 
     #[test]
+    fn packaged_artifact_fit_threshold_summary_reflects_the_current_posture() {
+        let summary = packaged_artifact_fit_threshold_summary_details();
+
+        assert_eq!(
+            summary.summary_line(),
+            "fit thresholds: mean Δlon≤29.750992955013°, mean Δlat≤22.784650147073°, mean Δdist≤70908.319854514601 AU; max Δlon≤179.935747101401°, max Δlat≤5436.377507814662°, max Δdist≤19941928.384904474020 AU"
+        );
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert!(summary.validate().is_ok());
+        assert!(packaged_artifact_fit_threshold_summary_for_report()
+            .contains("fit thresholds: mean Δlon≤29.750992955013°"));
+    }
+
+    #[test]
     fn packaged_artifact_target_threshold_summary_reflects_the_current_posture() {
         let summary = packaged_artifact_target_threshold_summary_details();
 
@@ -6247,6 +6435,29 @@ mod tests {
                 "profile id={}; target thresholds: draft fit envelope recorded",
                 ARTIFACT_PROFILE_ID
             ))
+        );
+    }
+
+    #[test]
+    fn packaged_artifact_fit_envelope_validation_rejects_threshold_drift() {
+        let summary = packaged_artifact_fit_envelope_summary_details();
+        let thresholds = PackagedArtifactFitThresholdSummary {
+            max_mean_longitude_delta_degrees: summary.mean_longitude_delta_degrees - 1.0,
+            max_mean_latitude_delta_degrees: summary.mean_latitude_delta_degrees - 1.0,
+            max_mean_distance_delta_au: summary.mean_distance_delta_au - 1.0,
+            max_longitude_delta_degrees: summary.max_longitude_delta_degrees - 1.0,
+            max_latitude_delta_degrees: summary.max_latitude_delta_degrees - 1.0,
+            max_distance_delta_au: summary.max_distance_delta_au - 1.0,
+        };
+
+        let error = summary
+            .validate_against_thresholds(&thresholds)
+            .expect_err("threshold drift should be rejected");
+        assert_eq!(
+            error,
+            PackagedArtifactFitEnvelopeSummaryValidationError::ThresholdExceeded {
+                field: "mean_longitude_delta_degrees"
+            }
         );
     }
 
