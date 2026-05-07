@@ -146,6 +146,7 @@ use pleiades_jpl::{
     reference_snapshot_2378498_major_body_boundary_summary_for_report,
     reference_snapshot_2378499_major_body_boundary_summary_for_report,
     reference_snapshot_2400000_major_body_boundary_summary_for_report,
+    reference_snapshot_2415020_selected_body_boundary_summary_for_report,
     reference_snapshot_2451545_major_body_boundary_summary_for_report,
     reference_snapshot_2451910_major_body_boundary_summary_for_report,
     reference_snapshot_2451911_major_body_boundary_summary_for_report,
@@ -5068,7 +5069,7 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
                 &args[1..],
                 "reference-snapshot-2415020-selected-body-boundary-summary",
             )?;
-            Ok(reference_snapshot_1900_selected_body_boundary_summary_for_report())
+            Ok(reference_snapshot_2415020_selected_body_boundary_summary_for_report())
         }
         Some("reference-snapshot-2500-selected-body-boundary-summary")
         | Some("2500-selected-body-boundary-summary") => {
@@ -27178,6 +27179,7 @@ version = "0.9.0"
             .contains(&reference_snapshot_2451914_major_body_bridge_day_summary_for_report()));
         assert!(reference.contains("Reference 2500 selected-body boundary evidence:"));
         assert!(reference.contains("Reference 2200 selected-body boundary evidence:"));
+        assert!(reference.contains("Reference 2415020 selected-body boundary evidence:"));
         assert!(reference.contains(&selected_asteroid_boundary_summary_for_report()));
         assert!(reference.contains(&selected_asteroid_bridge_summary_for_report()));
         assert!(reference.contains(&selected_asteroid_dense_boundary_summary_for_report()));
@@ -27642,7 +27644,10 @@ version = "0.9.0"
 
         let epoch_alias = render_cli(&["2415020-selected-body-boundary-summary"])
             .expect("2415020 selected-body boundary summary alias should render");
-        assert_eq!(epoch_alias, rendered);
+        assert_eq!(
+            epoch_alias,
+            reference_snapshot_2415020_selected_body_boundary_summary_for_report()
+        );
         assert_eq!(
             render_cli(&["reference-snapshot-2415020-selected-body-boundary-summary", "extra"])
                 .expect_err("2415020 selected-body boundary summary should reject extra arguments"),

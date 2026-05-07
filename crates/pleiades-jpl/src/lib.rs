@@ -2350,6 +2350,7 @@ pub fn reference_snapshot_summary_for_report() -> String {
         reference_snapshot_1800_major_body_boundary_summary_for_report(),
         reference_snapshot_2378499_major_body_boundary_summary_for_report(),
         reference_snapshot_1900_selected_body_boundary_summary_for_report(),
+        reference_snapshot_2415020_selected_body_boundary_summary_for_report(),
         reference_snapshot_lunar_boundary_summary_for_report(),
         reference_snapshot_high_curvature_summary_for_report(),
         reference_snapshot_high_curvature_window_summary_for_report(),
@@ -11073,6 +11074,32 @@ pub fn reference_snapshot_1900_selected_body_boundary_summary_for_report() -> St
             }
         },
         None => "Reference 1900 selected-body boundary evidence: unavailable".to_string(),
+    }
+}
+
+/// Returns the compact typed summary for the 2415020 selected-body boundary reference evidence.
+#[doc(alias = "reference_snapshot_1900_selected_body_boundary_summary")]
+pub fn reference_snapshot_2415020_selected_body_boundary_summary(
+) -> Option<Reference1900SelectedBodyBoundarySummary> {
+    reference_snapshot_1900_selected_body_boundary_summary()
+}
+
+/// Returns the release-facing 2415020 selected-body boundary summary string.
+pub fn reference_snapshot_2415020_selected_body_boundary_summary_for_report() -> String {
+    match reference_snapshot_2415020_selected_body_boundary_summary() {
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(_) => format_selected_body_boundary_summary_line(
+                "2415020",
+                summary.sample_count,
+                &summary.sample_bodies,
+                summary.epoch,
+                "1900-01-01",
+            ),
+            Err(error) => {
+                format!("Reference 2415020 selected-body boundary evidence: unavailable ({error})")
+            }
+        },
+        None => "Reference 2415020 selected-body boundary evidence: unavailable".to_string(),
     }
 }
 
@@ -23119,6 +23146,10 @@ mod tests {
             reference_snapshot_1900_selected_body_boundary_summary_for_report(),
             summary.summary_line()
         );
+        assert_eq!(
+            reference_snapshot_2415020_selected_body_boundary_summary_for_report(),
+            "Reference 2415020 selected-body boundary evidence: 4 exact samples at JD 2415020.5 (TDB) (Sun, Moon, Mercury, Venus); 1900-01-01 selected-body boundary sample"
+        );
     }
 
     #[test]
@@ -24883,6 +24914,8 @@ mod tests {
         assert!(
             report.contains(&reference_snapshot_1900_selected_body_boundary_summary_for_report())
         );
+        assert!(report
+            .contains(&reference_snapshot_2415020_selected_body_boundary_summary_for_report()));
         assert!(report.contains(&reference_snapshot_lunar_boundary_summary_for_report()));
         assert!(report.contains(&reference_snapshot_high_curvature_summary_for_report()));
         assert!(report.contains(&reference_snapshot_high_curvature_window_summary_for_report()));
