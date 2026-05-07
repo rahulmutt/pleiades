@@ -12359,6 +12359,16 @@ pub fn workspace_audit_report() -> Result<WorkspaceAuditReport, std::io::Error> 
 
 fn validate_packaged_artifact_fit_posture() -> Result<(), EphemerisError> {
     let fit_envelope = packaged_artifact_fit_envelope_summary_details();
+    let thresholds = packaged_artifact_fit_threshold_summary_details();
+    let target_threshold = packaged_artifact_target_threshold_summary_details();
+    validate_packaged_artifact_fit_posture_with(&fit_envelope, &thresholds, &target_threshold)
+}
+
+fn validate_packaged_artifact_fit_posture_with(
+    fit_envelope: &pleiades_data::PackagedArtifactFitEnvelopeSummary,
+    thresholds: &pleiades_data::PackagedArtifactFitThresholdSummary,
+    target_threshold: &pleiades_data::PackagedArtifactTargetThresholdSummary,
+) -> Result<(), EphemerisError> {
     fit_envelope.validate().map_err(|error| {
         EphemerisError::new(
             EphemerisErrorKind::InvalidRequest,
@@ -12366,19 +12376,23 @@ fn validate_packaged_artifact_fit_posture() -> Result<(), EphemerisError> {
         )
     })?;
     fit_envelope
-        .validate_against_thresholds(&packaged_artifact_fit_threshold_summary_details())
+        .validate_against_thresholds(thresholds)
         .map_err(|error| {
             EphemerisError::new(
                 EphemerisErrorKind::InvalidRequest,
                 format!(
-                    "validation report packaged-artifact fit envelope exceeds calibrated thresholds: {error}"
+                    "validation report packaged-artifact fit envelope exceeds calibrated thresholds: {error}; measured {}; thresholds {}",
+                    fit_envelope.summary_line(),
+                    thresholds.summary_line(),
                 ),
             )
         })?;
-    packaged_artifact_target_threshold_summary_details().validate().map_err(|error| {
+    target_threshold.validate().map_err(|error| {
         EphemerisError::new(
             EphemerisErrorKind::InvalidRequest,
-            format!("validation report packaged-artifact target-threshold summary is invalid: {error}"),
+            format!(
+                "validation report packaged-artifact target-threshold summary is invalid: {error}"
+            ),
         )
     })?;
 
@@ -19516,6 +19530,30 @@ mod tests {
     fn packaged_artifact_fit_posture_validation_is_enforced_before_validation_reports_are_built() {
         validate_packaged_artifact_fit_posture()
             .expect("packaged-artifact fit posture should validate before report assembly");
+    }
+
+    #[test]
+    fn packaged_artifact_fit_posture_validation_reports_threshold_context() {
+        let fit_envelope = packaged_artifact_fit_envelope_summary_details();
+        let mut thresholds = packaged_artifact_fit_threshold_summary_details();
+        thresholds.max_mean_longitude_delta_degrees =
+            fit_envelope.mean_longitude_delta_degrees - 1.0;
+        let target_threshold = packaged_artifact_target_threshold_summary_details();
+
+        let error = validate_packaged_artifact_fit_posture_with(
+            &fit_envelope,
+            &thresholds,
+            &target_threshold,
+        )
+        .expect_err("fit threshold drift should be rejected");
+
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error.message.contains(
+            "validation report packaged-artifact fit envelope exceeds calibrated thresholds"
+        ));
+        assert!(error.message.contains("measured fit envelope:"));
+        assert!(error.message.contains("fit thresholds:"));
+        assert!(error.message.contains("mean Δlon≤"));
     }
 
     #[test]
