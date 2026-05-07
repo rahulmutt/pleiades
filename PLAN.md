@@ -29,7 +29,7 @@ The repository currently provides:
 - a VSOP87B-backed planetary implementation for Sun through Neptune, with Pluto still treated as an approximate fallback rather than a release-grade source-backed body;
 - a compact Meeus-style lunar baseline for the Moon and supported lunar points, with fuller ELP coefficient support deferred;
 - checked-in JPL Horizons snapshot/hold-out fixtures used for reference comparison, validation summaries, and artifact-generation rehearsal;
-- `pleiades-compression` and `pleiades-data` codec/profile/checksum support plus a stage-5 draft packaged-data artifact for the 1500-2500 CE range; the packaged artifact has recently been retuned to mixed-order quadratic windows with longitude unwrapping across sampled epochs and then to adjacent linear spans across consecutive sampled pairs, materially improving the fit envelope and reducing artifact size while remaining draft-grade;
+- `pleiades-compression` and `pleiades-data` codec/profile/checksum support plus a stage-5 draft packaged-data artifact for the 1500-2500 CE range; the packaged artifact has recently been retuned to adjacent quadratic windows with longitude unwrapping across sampled epochs and linear tails where needed, materially improving the fit envelope and reducing artifact size while remaining draft-grade;
 - CLI and validation tooling for chart inspection, compatibility profiles, request policies, backend matrices, artifact reports, benchmarks, audits, and release-bundle rehearsal.
 
 The implementation is therefore past the original bootstrap/foundation phases. Remaining work is productionization: source breadth, artifact accuracy, advanced request behavior, catalog evidence, and release gates.
