@@ -1,101 +1,93 @@
 # pleiades
 
-`pleiades` is a pure Rust workspace for ephemeris and chart-building utilities aimed at astrological software.
+`pleiades` is a pure-Rust workspace for ephemeris, house, ayanamsa, and chart-building utilities aimed at astrology software.
 
-The project is being built with a strong focus on correctness, reproducibility, and long-term extensibility. If you are evaluating it today, think of it as an actively maturing foundation rather than a finished end-user product.
+The repository is currently a release-hardening foundation, not a finished end-user ephemeris. The main architectural pieces are in place and are intentionally split into small `pleiades-*` crates so backend implementations, domain calculations, validation tooling, and release artifacts can evolve independently.
 
-## What it is
+## Current state
 
-Today the workspace provides:
+As of the current workspace state, `pleiades` includes:
 
-- a modular set of `pleiades-*` crates,
-- a high-level chart façade,
-- support for tropical and sidereal chart workflows,
-- a growing catalog of house systems and ayanamsas,
-- CLI tooling for validation, inspection, and reporting,
-- reproducible pure-Rust development and release workflows.
+- a backend-agnostic request/result contract with capability metadata,
+- a high-level chart façade with typed tropical/sidereal chart requests,
+- baseline chart body placement, zodiac-sign summaries, aspect summaries, and optional house summaries,
+- a release compatibility profile (`pleiades-compatibility-profile/0.6.123`),
+- an API stability profile (`pleiades-api-stability/0.1.0`),
+- 25 catalogued house systems and 59 catalogued ayanamsas,
+- pure-Rust algorithmic backends for VSOP87-style planetary positions and a compact Meeus-style lunar baseline,
+- checked-in JPL Horizons reference snapshots used for comparison and validation,
+- a stage-5 draft packaged-data artifact for the common 1500-2500 CE range,
+- contributor CLI tools for chart inspection, validation reports, audits, artifact checks, and release-bundle rehearsal.
 
-## Project status
+Important current limits:
 
-`pleiades` is currently in a release-hardening phase.
+- first-party backends currently expose **mean geometric** coordinates; apparent-place corrections are rejected unless a backend advertises support,
+- direct backend requests accept TT/TDB; UTC/UT1 require caller-supplied conversion offsets,
+- body-position observer/topocentric requests remain unsupported by current first-party backends,
+- native sidereal backend output is not assumed; chart-level sidereal longitude is handled by the façade/catalog layer,
+- the packaged-data artifact is a draft reproducibility fixture and should not be treated as final production-accuracy compressed ephemeris data.
 
-That means the core workspace structure, chart façade, packaged-data backend, validation pipeline, and release tooling are already in place, while coverage, polish, and compatibility breadth continue to improve.
+For the source-of-truth design and compatibility targets, read [SPEC.md](SPEC.md) and the documents in [`spec/`](spec/).
 
-If you want the detailed implementation and planning view, see:
+## Workspace layout
 
-- roadmap: [spec/roadmap.md](spec/roadmap.md)
-- architecture: [spec/architecture.md](spec/architecture.md)
-- requirements: [spec/requirements.md](spec/requirements.md)
+| Crate | Role |
+| --- | --- |
+| `pleiades-types` | Shared typed vocabulary: angles, bodies, time scales, observers, coordinates, zodiac modes, house systems, and ayanamsas. |
+| `pleiades-backend` | Backend traits, request/result types, capability metadata, policy summaries, and routing/composite helpers. |
+| `pleiades-core` | High-level chart façade, chart request validation, compatibility profile, API stability profile, and re-exports for common consumers. |
+| `pleiades-houses` | House-system catalog, aliases, formula-family metadata, and baseline house calculations. |
+| `pleiades-ayanamsa` | Ayanamsa catalog, aliases, reference offset metadata, and sidereal offset helpers. |
+| `pleiades-vsop87` | Pure-Rust VSOP87B-backed planetary backend with generated binary coefficient tables and a Pluto fallback. |
+| `pleiades-elp` | Compact Meeus-style lunar/lunar-point backend for Moon, mean/true node, and mean apogee/perigee channels. |
+| `pleiades-jpl` | Checked-in JPL Horizons reference snapshots and snapshot-backed validation helpers. |
+| `pleiades-compression` | Compressed artifact data structures and codec helpers. |
+| `pleiades-data` | Packaged compressed-data backend and checked-in draft artifact fixture. |
+| `pleiades-cli` | Contributor-facing inspection and chart CLI. |
+| `pleiades-validate` | Validation reports, audits, benchmarks, artifact inspection, and release-bundle tooling. |
 
-The roadmap is the best place to look for what is done, what is being stabilized, and what is still ahead.
+All first-party crates follow the `pleiades-*` naming rule required by the specification.
 
-## CLI tools
+## CLI quick start
 
-The workspace currently ships two repo-focused CLI binaries:
-
-- `pleiades-cli`: quick inspection and chart-oriented commands for contributors
-- `pleiades-validate`: validation, benchmarking, audit, and release-bundle tooling
-
-You can run them with `cargo run -p ... -- <command>` during development.
-
-### `pleiades-cli`
-
-Use `pleiades-cli` for lightweight inspection and chart reporting:
+Run contributor commands through Cargo:
 
 ```bash
 cargo run -q -p pleiades-cli -- help
+cargo run -q -p pleiades-validate -- help
 ```
 
-Rough command overview:
-
-- `compare-backends` / `compare-backends-audit`: compare the checked-in JPL snapshot against the algorithmic composite backend and fail the tolerance audit on regressions
-- `compatibility-profile` / `profile`: print the full release compatibility profile
-- `compatibility-profile-summary` / `profile-summary`: compact compatibility summary
-- `catalog-inventory-summary` / `catalog-inventory`: compact compatibility catalog inventory, including house formula-family coverage
-- `house-validation-summary` / `house-formula-families-summary` / `house-code-aliases-summary` / `ayanamsa-catalog-validation-summary` / `ayanamsa-metadata-coverage-summary` / `ayanamsa-reference-offsets-summary`: compact house and ayanamsa catalog audits
-- `api-stability` / `api-posture`: print the API stability posture
-- `api-stability-summary` / `api-posture-summary`: compact API stability summary
-- `backend-matrix` / `capability-matrix`: print implemented backend capability matrices
-- `backend-matrix-summary` / `matrix-summary`: compact backend matrix summary
-- `benchmark [--rounds N]`: benchmark the candidate backend on the representative corpus and full chart assembly
-- `release-notes`, `release-notes-summary`, `release-checklist`, `release-checklist-summary` / `checklist-summary`, `release-gate`, `release-gate-summary`, `release-summary`: release metadata and summary views
-- `request-policy-summary` / `request-policy`: compact request-policy summary; `request-semantics-summary` / `request-semantics`: compact request-semantics summary
-- `time-scale-policy-summary`, `utc-convenience-policy-summary`, `delta-t-policy-summary`, `observer-policy-summary`, `apparentness-policy-summary`, `frame-policy-summary`: dedicated request-semantics policy summaries
-- `compatibility-caveats-summary` / `compatibility-caveats`: compact compatibility caveats summary of the known release gaps
-- `native-sidereal-policy-summary` / `native-sidereal-policy`: compact native sidereal policy summary
-- `lunar-theory-limitations-summary` / `lunar-theory-limitations`: compact lunar baseline limitations summary
-- `house-validation-summary`, `house-formula-families-summary`, `house-code-aliases-summary`, `ayanamsa-catalog-validation-summary`, `ayanamsa-metadata-coverage-summary`, `ayanamsa-reference-offsets-summary`, `release-house-system-canonical-names-summary`, `release-ayanamsa-canonical-names-summary`, `lunar-theory-catalog-summary`, `lunar-theory-catalog-validation-summary`, `lunar-theory-limitations-summary`, `packaged-lookup-epoch-policy-summary`, `verify-compatibility-profile`, `verify-release-bundle`: maintainer-facing catalog-alignment and release checks
-- `comparison-corpus-summary` / `comparison-corpus-release-guard-summary` / `comparison-corpus-release-guard` / `comparison-corpus-guard-summary` / `comparison-corpus-guard` / `comparison-envelope-summary` / `reference-holdout-overlap-summary` / `holdout-overlap-summary` / `independent-holdout-summary`: compact release-grade comparison, hold-out, and validation-overlap summaries
-- `reference-snapshot-1749-major-body-boundary-summary` / `1749-major-body-boundary-summary`, `reference-snapshot-early-major-body-boundary-summary` / `early-major-body-boundary-summary`, `reference-snapshot-1800-major-body-boundary-summary` / `1800-major-body-boundary-summary`, `reference-snapshot-2451911-major-body-boundary-summary` / `2451911-major-body-boundary-summary`, `reference-snapshot-major-body-bridge-summary` / `major-body-bridge-summary`, `reference-snapshot-bridge-day-summary` / `bridge-day-summary`, `reference-snapshot-selected-asteroid-bridge-summary` / `selected-asteroid-bridge-summary`, `reference-snapshot-2500-major-body-boundary-summary` / `2500-major-body-boundary-summary`, `reference-snapshot-selected-asteroid-terminal-boundary-summary` / `selected-asteroid-terminal-boundary-summary`: compact reference boundary archaeology summaries; exact-JD aliases `2268932-selected-body-boundary-summary` and `2305457-selected-body-boundary-summary` cover the 1500 and 1600 selected-body slices
-- `comparison-snapshot-manifest-summary` / `comparison-snapshot-manifest`, `reference-snapshot-manifest-summary` / `reference-snapshot-manifest`: compact source-manifest provenance summaries for the checked-in JPL snapshots (also available through `pleiades-cli`)
-- `artifact-summary` / `artifact-posture-summary`: compact summary of the packaged compressed artifact and its output-support posture
-- `validate-artifact`: full packaged-artifact inspection mirrored from `pleiades-validate`
-- `workspace-audit` / `audit` / `native-dependency-audit`: workspace-native dependency audit mirrored from `pleiades-validate`
-- `report` / `generate-report`: full validation report mirrored from `pleiades-validate`
-- `validation-report-summary` / `validation-summary` / `report-summary`: compact validation report summary
-- `frame-policy-summary`: compact frame-policy summary
-- `observer-policy-summary`: compact observer policy summary
-- `apparentness-policy-summary`: compact apparentness policy summary
-- `source-documentation-summary` / `source-documentation` / `source-documentation-health-summary` / `source-documentation-health`: compact VSOP87 source-documentation provenance and health summaries
-- `production-generation-summary` / `production-generation`: compact production-generation coverage summary
-- `production-generation-source-summary` / `production-generation-source`: compact production-generation source summary
-- `production-generation-boundary-summary`: compact production-generation boundary overlay summary
-- `request-surface-summary`: compact request-surface inventory, including the explicit chart TT/TDB offset aliases and request-policy / request-semantics aliases
-- `chart`: render a basic chart report from a Julian day and optional observer settings
-
-Example usage:
+Useful inspection commands:
 
 ```bash
-# Print the compact compatibility profile
+# One-screen release posture
+cargo run -q -p pleiades-cli -- release-summary
+
+# Current compatibility catalog/profile
 cargo run -q -p pleiades-cli -- profile-summary
 
-# Render a simple tropical chart for J2000 with selected bodies
+# Backend capability matrix
+cargo run -q -p pleiades-cli -- backend-matrix-summary
+
+# Request semantics and time/observer policy
+cargo run -q -p pleiades-cli -- request-surface-summary
+
+# Packaged artifact posture
+cargo run -q -p pleiades-cli -- artifact-summary
+```
+
+Render a basic chart report:
+
+```bash
 cargo run -q -p pleiades-cli -- chart \
   --jd 2451545.0 \
   --body Sun \
   --body Moon
+```
 
-# Render a sidereal chart with houses for a location
+Render a sidereal chart with houses for an observer:
+
+```bash
 cargo run -q -p pleiades-cli -- chart \
   --jd 2451545.0 \
   --lat 51.5074 \
@@ -111,68 +103,37 @@ Notes:
 
 - `chart` defaults to `JD 2451545.0` if `--jd` is omitted.
 - If no `--body` flags are given, the CLI uses the default chart body set from `pleiades-core`.
-- `--ayanamsa` accepts built-in names like `Lahiri` and custom definitions such as `custom:True Balarama|2451545.0|12.5`.
-- `--body` accepts built-in labels like `Sun`, `Moon`, `Ceres`, and custom identifiers like `asteroid:433-Eros`.
-- Current first-party backends expose mean geometric coordinates only; `--apparent` is parsed for API compatibility but returns `UnsupportedApparentness` until apparent-place corrections are implemented. Geocentric-only requests that include an observer return `UnsupportedObserver` rather than silently becoming topocentric. The chart CLI keeps UTC/UT1/TDB conversion explicit via `--tt-offset-seconds`, `--tt-from-utc-offset-seconds`, `--tt-from-ut1-offset-seconds`, `--tdb-offset-seconds`, `--tdb-from-utc-offset-seconds`, `--tdb-from-ut1-offset-seconds`, `--tdb-from-tt-offset-seconds`, and `--tt-from-tdb-offset-seconds`, and the request-policy/request-semantics summaries now call out UTC convenience separately from Delta T. The standalone `utc-convenience-policy-summary` / `utc-convenience-policy` commands expose that same UTC-convenience posture directly. See [docs/time-observer-policy.md](docs/time-observer-policy.md).
+- `--body` accepts built-in labels such as `Sun`, `Moon`, and `Ceres`, plus custom identifiers such as `asteroid:433-Eros` when supported by the selected path.
+- `--ayanamsa` accepts built-in names such as `Lahiri` and custom definitions such as `custom:True Balarama|2451545.0|12.5`.
+- UTC/UT1 convenience is explicit: use the `--tt-*` or `--tdb-*` offset flags when converting from UTC/UT1 at the CLI boundary. See [docs/time-observer-policy.md](docs/time-observer-policy.md).
 
-### `pleiades-validate`
+## Validation and release tooling
 
-Use `pleiades-validate` for comparison reports, benchmarks, artifact inspection, workspace audits, compatibility-profile verification, and release-bundle generation:
-
-```bash
-cargo run -q -p pleiades-validate -- help
-```
-
-Rough command overview:
-
-- `compare-backends` / `compare-backends-audit`: compare the checked-in JPL snapshot against the algorithmic composite backend and fail the tolerance audit on regressions
-- `backend-matrix` / `capability-matrix`: print detailed backend capability matrices
-- `backend-matrix-summary` / `matrix-summary`: print compact backend capability matrices
-- `benchmark [--rounds N]`: benchmark the candidate backend on the representative corpus
-- `report` / `generate-report`: render the full validation report
-- `validation-report-summary` / `validation-summary` / `report-summary`: compact validation report summary
-- `validate-artifact`: inspect and validate the packaged compressed artifact in detail
-- `artifact-summary` / `artifact-posture-summary`: compact packaged-artifact summary
-- `workspace-audit` / `audit` / `native-dependency-audit`: check the workspace for mandatory native build hooks
-- `compatibility-profile`: print the full release compatibility profile
-- `compatibility-profile-summary`: compact compatibility profile summary
-- `verify-compatibility-profile`: verify the release compatibility profile against the canonical catalogs
-- `api-stability`, `api-stability-summary`, `release-notes`, `release-notes-summary`, `release-checklist`, `release-checklist-summary`, `release-gate`, `release-gate-summary`, `release-summary`, `comparison-corpus-summary` / `comparison-corpus-release-guard-summary` / `comparison-corpus-release-guard` / `comparison-corpus-guard-summary` / `comparison-corpus-guard`, `comparison-envelope-summary`, `reference-holdout-overlap-summary` / `holdout-overlap-summary` / `independent-holdout-summary`, `production-generation-summary` / `production-generation`, `production-generation-source-summary` / `production-generation-source`, `production-generation-boundary-summary`, `frame-policy-summary`, `observer-policy-summary`, `apparentness-policy-summary`, `time-scale-policy-summary`, `utc-convenience-policy-summary`, `delta-t-policy-summary`, `request-surface-summary` / `request-surface`, `compatibility-caveats-summary`, `native-sidereal-policy-summary`, `interpolation-posture-summary`, `packaged-lookup-epoch-policy-summary`, `lunar-reference-error-envelope-summary`, `lunar-equatorial-reference-error-envelope-summary`, `request-policy-summary` / `request-policy` / `request-semantics-summary` / `request-semantics`, `workspace-audit-summary` / `native-dependency-audit-summary`: release-facing report helpers
-- `bundle-release --out DIR` (or `--output DIR`): write a staged release bundle to a directory
-- `verify-release-bundle --out DIR` (or `--output DIR`): verify a previously staged release bundle
-- `regenerate-packaged-artifact FILE` or `regenerate-packaged-artifact --out FILE` / `--output FILE`: rebuild the checked-in packaged artifact fixture from the reference snapshot; optional `--manifest-out FILE`, `--manifest-checksum-out FILE`, `--artifact-checksum-out FILE`, and `--normalized-intermediate-summary-out FILE` sidecars are supported
-
-Example usage:
+`pleiades-validate` is the maintainer tool for audits, reports, artifact inspection, and release rehearsal:
 
 ```bash
-# Compare the reference snapshot with the current algorithmic backend
-cargo run -q -p pleiades-validate -- compare-backends
+# Native dependency / build-hook audit
+cargo run -q -p pleiades-validate -- workspace-audit
 
-# Generate a compact validation summary with fewer benchmark rounds
-cargo run -q -p pleiades-validate -- report-summary --rounds 100
-
-# Inspect the packaged artifact
-cargo run -q -p pleiades-validate -- validate-artifact
-
-# Run the workspace native-build audit
-cargo run -q -p pleiades-validate -- audit
-
-# Verify that the compatibility profile still matches the canonical catalogs
+# Compatibility profile verification
 cargo run -q -p pleiades-validate -- verify-compatibility-profile
 
-# Generate and then verify a release bundle
+# Full packaged-artifact inspection
+cargo run -q -p pleiades-validate -- validate-artifact
+
+# Compact validation report
+cargo run -q -p pleiades-validate -- report-summary --rounds 100
+
+# Stage and verify a release bundle
 cargo run -q -p pleiades-validate -- bundle-release --out /tmp/pleiades-release
 cargo run -q -p pleiades-validate -- verify-release-bundle --out /tmp/pleiades-release
-
-# Regenerate the packaged artifact fixture
-cargo run -q -p pleiades-cli -- regenerate-packaged-artifact /tmp/pleiades-packaged.bin
 ```
 
-These tools are primarily contributor-facing today: they help exercise the chart stack, inspect release metadata, validate the packaged data backend, and rehearse the release workflow described in [docs/release-reproducibility.md](docs/release-reproducibility.md).
+For release reproducibility details, see [docs/release-reproducibility.md](docs/release-reproducibility.md).
 
 ## Local development
 
-Install the pinned Rust toolchain and run the standard checks with `mise`:
+Tooling is pinned with [`mise.toml`](mise.toml):
 
 ```bash
 mise install
@@ -181,7 +142,7 @@ mise run lint
 mise run test
 ```
 
-The equivalent direct Cargo commands are:
+Equivalent direct Cargo checks:
 
 ```bash
 cargo fmt --all --check
@@ -189,31 +150,29 @@ cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace
 ```
 
-For a workspace-native dependency audit, run:
+Additional useful tasks:
 
 ```bash
+mise run docs
 mise run audit
-```
-
-That audit checks the workspace manifests, lockfile, and crate-root `build.rs` files for mandatory native build hooks.
-
-For a release-style smoke check of the validation bundle, run:
-
-```bash
-cargo run -q -p pleiades-validate -- release-smoke
-# or: mise run release-smoke
-```
-
-For the full release gate, run:
-
-```bash
+mise run release-smoke
 mise run release-gate
 ```
 
-That smoke check runs the workspace audit, validates the bundled compressed artifact, generates the bundle, and verifies the manifest checksums plus the manifest checksum sidecar through `pleiades-validate`. The release gate adds the repository checks for format, clippy, tests, and benchmark generation before it runs that smoke path.
+`release-smoke` runs the native dependency audit, validates the bundled compressed artifact, stages a release bundle, and verifies the bundle. `release-gate` also runs formatting, clippy, tests, and benchmark generation before invoking the smoke path.
 
-For a step-by-step description of the release workflow, see [docs/release-reproducibility.md](docs/release-reproducibility.md).
+## Documentation map
 
-## Workspace layout
+- [SPEC.md](SPEC.md) — top-level specification and crate family.
+- [spec/architecture.md](spec/architecture.md) — workspace layering and dependency boundaries.
+- [spec/requirements.md](spec/requirements.md) — functional and non-functional requirements.
+- [spec/api-and-ergonomics.md](spec/api-and-ergonomics.md) — public API shape and error posture.
+- [spec/validation-and-testing.md](spec/validation-and-testing.md) — validation, benchmarking, and release gates.
+- [spec/roadmap.md](spec/roadmap.md) — implementation roadmap.
+- [docs/time-observer-policy.md](docs/time-observer-policy.md) — current time-scale, observer, apparentness, and frame policy.
+- [docs/lunar-theory-policy.md](docs/lunar-theory-policy.md) — current lunar theory selection and limitations.
+- [docs/release-reproducibility.md](docs/release-reproducibility.md) — release bundle and artifact reproducibility workflow.
 
-The first-party crates live under `crates/` and follow the `pleiades-*` naming rule required by the specification.
+## Licensing
+
+Workspace manifests declare `MIT OR Apache-2.0`. The checked-in [LICENSE](LICENSE) file contains the Apache-2.0 text.
