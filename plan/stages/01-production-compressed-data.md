@@ -6,7 +6,7 @@ Turn the current stage-5 draft packaged-data fixture into a production-quality 1
 
 ## Starting point
 
-The workspace already has artifact structures, codec roundtrips, checksums, manifest summaries, regeneration helpers, benchmark/report surfaces, and a draft artifact. The artifact has now been retuned to adjacent linear spans across consecutive sampled epochs, which materially improved the fit envelope and refreshed the encoded size/checksum provenance, but the mean longitude-error profile is still draft-grade; the packaged-artifact reports continue to expose body/channel worst-segment intervals for the remaining fit work.
+The workspace already has artifact structures, codec roundtrips, checksums, manifest summaries, regeneration helpers, benchmark/report surfaces, and a draft artifact. The artifact has now been retuned to mixed-order quadratic windows with longitude unwrapping across consecutive sampled epochs, which materially improved the fit envelope and refreshed the encoded size/checksum provenance, but the remaining latitude/distance outlier profile is still draft-grade; the packaged-artifact reports continue to expose body/channel worst-segment intervals for the remaining fit work.
 
 ## Implementation goals
 
