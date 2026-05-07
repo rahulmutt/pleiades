@@ -77,6 +77,12 @@ pub struct ArtifactBodyInspection {
     pub latest: Instant,
     /// Number of sample lookups exercised for this body.
     pub sample_count: usize,
+    /// Smallest observed segment span in days.
+    pub min_segment_span_days: f64,
+    /// Largest observed segment span in days.
+    pub max_segment_span_days: f64,
+    /// Mean observed segment span in days.
+    pub mean_segment_span_days: f64,
     /// Number of segments that carry residual-correction channels.
     pub residual_segment_count: usize,
     /// Number of shared segment boundaries checked for continuity.
@@ -165,9 +171,12 @@ impl ArtifactBodyInspection {
     /// Returns a compact one-line summary of the body inspection envelope.
     pub fn summary_line(&self) -> String {
         format!(
-            "{}: {} segments, {} → {}, {} samples, {} boundary checks, {} residual-bearing segments, mean boundary Δlon={:.12}°, rms boundary Δlon={:.12}°, mean boundary Δlat={:.12}°, rms boundary Δlat={:.12}°, mean boundary Δdist={}, rms boundary Δdist={}, max boundary Δlon={:.12}°, Δlat={:.12}°, Δdist={}",
+            "{}: {} segments, span days={:.12}..{:.12} (mean {:.12}), {} → {}, {} samples, {} boundary checks, {} residual-bearing segments, mean boundary Δlon={:.12}°, rms boundary Δlon={:.12}°, mean boundary Δlat={:.12}°, rms boundary Δlat={:.12}°, mean boundary Δdist={}, rms boundary Δdist={}, max boundary Δlon={:.12}°, Δlat={:.12}°, Δdist={}",
             self.body,
             self.segment_count,
+            self.min_segment_span_days,
+            self.max_segment_span_days,
+            self.mean_segment_span_days,
             self.earliest,
             self.latest,
             self.sample_count,
@@ -1540,6 +1549,23 @@ fn inspect_body(
         .last()
         .map(|segment| segment.end)
         .unwrap_or_else(|| artifact_first_instant(artifact));
+    let mut min_segment_span_days: f64 = f64::INFINITY;
+    let mut max_segment_span_days: f64 = 0.0;
+    let mut sum_segment_span_days: f64 = 0.0;
+    for segment in &body.segments {
+        let span_days = segment.end.julian_day.days() - segment.start.julian_day.days();
+        min_segment_span_days = min_segment_span_days.min(span_days);
+        max_segment_span_days = max_segment_span_days.max(span_days);
+        sum_segment_span_days += span_days;
+    }
+    if min_segment_span_days.is_infinite() {
+        min_segment_span_days = 0.0;
+    }
+    let mean_segment_span_days = if body.segments.is_empty() {
+        0.0
+    } else {
+        sum_segment_span_days / body.segments.len() as f64
+    };
 
     Ok(ArtifactBodyInspection {
         body: body.body.clone(),
@@ -1547,6 +1573,9 @@ fn inspect_body(
         earliest,
         latest,
         sample_count,
+        min_segment_span_days,
+        max_segment_span_days,
+        mean_segment_span_days,
         residual_segment_count: body
             .segments
             .iter()
@@ -1651,6 +1680,9 @@ fn render_artifact_summary_text(report: &ArtifactInspectionReport) -> String {
     text.push('\n');
     text.push_str("  Body classes: ");
     text.push_str(&format_body_class_coverage(report));
+    text.push('\n');
+    text.push_str("  Body-class cadence: ");
+    text.push_str(&format_body_class_cadence(report));
     text.push('\n');
     text.push_str("  Production profile skeleton: ");
     text.push_str(&packaged_artifact_production_profile_summary_for_report());
@@ -2232,6 +2264,113 @@ fn write_body_class_envelopes(
     Ok(())
 }
 
+#[derive(Clone, Debug)]
+struct BodyClassCadenceAccumulator {
+    class: BodyClass,
+    body_count: usize,
+    segment_count: usize,
+    min_segment_span_days: f64,
+    max_segment_span_days: f64,
+    sum_segment_span_days: f64,
+}
+
+impl BodyClassCadenceAccumulator {
+    const fn new(class: BodyClass) -> Self {
+        Self {
+            class,
+            body_count: 0,
+            segment_count: 0,
+            min_segment_span_days: f64::INFINITY,
+            max_segment_span_days: 0.0,
+            sum_segment_span_days: 0.0,
+        }
+    }
+
+    fn push(&mut self, body: &ArtifactBodyInspection) {
+        self.body_count += 1;
+        self.segment_count += body.segment_count;
+        if body.segment_count == 0 {
+            return;
+        }
+
+        self.min_segment_span_days = self.min_segment_span_days.min(body.min_segment_span_days);
+        self.max_segment_span_days = self.max_segment_span_days.max(body.max_segment_span_days);
+        self.sum_segment_span_days += body.mean_segment_span_days * body.segment_count as f64;
+    }
+
+    fn finish(self) -> Option<BodyClassCadenceSummary> {
+        if self.body_count == 0 {
+            return None;
+        }
+
+        Some(BodyClassCadenceSummary {
+            class: self.class,
+            body_count: self.body_count,
+            segment_count: self.segment_count,
+            min_segment_span_days: if self.min_segment_span_days.is_infinite() {
+                0.0
+            } else {
+                self.min_segment_span_days
+            },
+            max_segment_span_days: self.max_segment_span_days,
+            mean_segment_span_days: if self.segment_count == 0 {
+                0.0
+            } else {
+                self.sum_segment_span_days / self.segment_count as f64
+            },
+        })
+    }
+}
+
+#[derive(Clone, Debug)]
+struct BodyClassCadenceSummary {
+    class: BodyClass,
+    body_count: usize,
+    segment_count: usize,
+    min_segment_span_days: f64,
+    max_segment_span_days: f64,
+    mean_segment_span_days: f64,
+}
+
+impl BodyClassCadenceSummary {
+    fn summary_line(&self) -> String {
+        format!(
+            "{}: {} bodies, {} segments, span days={:.12}..{:.12} (mean {:.12})",
+            self.class.label(),
+            self.body_count,
+            self.segment_count,
+            self.min_segment_span_days,
+            self.max_segment_span_days,
+            self.mean_segment_span_days,
+        )
+    }
+}
+
+fn body_class_cadence_summaries(report: &ArtifactInspectionReport) -> Vec<BodyClassCadenceSummary> {
+    let mut accumulators = BodyClass::ALL.map(BodyClassCadenceAccumulator::new);
+    for body in &report.bodies {
+        accumulators[body_class(&body.body).index()].push(body);
+    }
+
+    accumulators
+        .into_iter()
+        .filter_map(BodyClassCadenceAccumulator::finish)
+        .collect()
+}
+
+fn format_body_class_cadence(report: &ArtifactInspectionReport) -> String {
+    let summaries = body_class_cadence_summaries(report);
+    if summaries.is_empty() {
+        "none".to_string()
+    } else {
+        summaries
+            .into_iter()
+            .map(|summary| summary.summary_line())
+            .collect::<Vec<_>>()
+            .join("; ")
+    }
+}
+
 impl fmt::Display for ArtifactInspectionReport {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "Artifact validation report")?;
@@ -2332,6 +2471,8 @@ impl fmt::Display for ArtifactInspectionReport {
 
         writeln!(f)?;
         write_body_class_envelopes(f, &self.model_comparison.samples)?;
+        writeln!(f, "Body-class cadence")?;
+        writeln!(f, "  {}", format_body_class_cadence(self))?;
         writeln!(f)?;
 
         let notable_regressions = self.model_comparison.notable_regressions();
@@ -2589,6 +2730,9 @@ mod tests {
             earliest: instant(1.0),
             latest: instant(2.0),
             sample_count: 6,
+            min_segment_span_days: 0.5,
+            max_segment_span_days: 1.5,
+            mean_segment_span_days: 1.0,
             residual_segment_count: 1,
             boundary_checks: 2,
             sum_boundary_longitude_delta_deg: 0.20,
@@ -2607,6 +2751,7 @@ mod tests {
         assert!(summary.contains("Sun: 2 segments,"));
         assert!(summary.contains("JD 1 TT → JD 2 TT"));
         assert!(summary.contains("6 samples, 2 boundary checks, 1 residual-bearing segments"));
+        assert!(summary.contains("span days=0.500000000000..1.500000000000 (mean 1.000000000000)"));
         assert!(summary.contains("mean boundary Δlon=0.100000000000°"));
         assert!(summary.contains("rms boundary Δlon=0.158113883008°"));
         assert!(summary.contains("mean boundary Δlat=0.200000000000°"));
