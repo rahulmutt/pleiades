@@ -6,11 +6,11 @@ Turn the current stage-5 draft packaged-data fixture into a production-quality 1
 
 ## Starting point
 
-The workspace already has artifact structures, codec roundtrips, checksums, manifest summaries, regeneration helpers, benchmark/report surfaces, and a draft artifact. The draft artifact has now been retuned to overlapping three-point quadratic spans and the current calibrated fit thresholds pass, but the mean error envelope is still draft-grade; the packaged-artifact reports continue to expose body/channel worst-segment intervals for the remaining fit work, and regeneration provenance now records encoded artifact size for reproducibility and benchmark accounting.
+The workspace already has artifact structures, codec roundtrips, checksums, manifest summaries, regeneration helpers, benchmark/report surfaces, and a draft artifact. The artifact has now been retuned to adjacent linear spans across consecutive sampled epochs, which materially improved the fit envelope and refreshed the encoded size/checksum provenance, but the mean longitude-error profile is still draft-grade; the packaged-artifact reports continue to expose body/channel worst-segment intervals for the remaining fit work.
 
 ## Implementation goals
 
-- Replace the draft fitting approach with a production strategy suitable for Sun, Moon, planets, and selected asteroid coverage.
+- Continue tightening the draft fitting approach toward a production strategy suitable for Sun, Moon, planets, and selected asteroid coverage.
 - Define body-class and channel-specific target thresholds before claiming success.
 - Generate normalized intermediates and compressed artifacts from validated public inputs with deterministic parameters, including encoded artifact size and other reproducibility metadata.
 - Keep stored, derived, and unsupported outputs explicit in the artifact profile.

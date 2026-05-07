@@ -64,7 +64,7 @@ use pleiades_jpl::{
 const PACKAGE_NAME: &str = "pleiades-data";
 const ARTIFACT_LABEL: &str = "stage-5 packaged-data draft";
 const ARTIFACT_PROFILE_ID: &str = "pleiades-packaged-artifact-profile/stage-5-draft";
-const ARTIFACT_SOURCE: &str = "Quantized overlapping three-point spans with longitude-unwrapped quadratic Moon and planet fits fitted to JPL Horizons reference epochs (1800, 2000, 2500 CE) for the comparison-body planetary set plus asteroid:433-Eros, with point segments only for single-epoch bodies and linear segments only when a body has exactly two sampled epochs.";
+const ARTIFACT_SOURCE: &str = "Quantized adjacent linear spans with longitude-unwrapped Moon and planet fits fitted to JPL Horizons reference epochs (1800, 2000, 2500 CE) for the comparison-body planetary set plus asteroid:433-Eros, with point segments only for single-epoch bodies and linear segments across consecutive sampled epochs for bodies with multiple epochs.";
 const PACKAGED_BASE_BODIES: [CelestialBody; 10] = [
     CelestialBody::Sun,
     CelestialBody::Moon,
@@ -206,7 +206,7 @@ pub fn packaged_body_coverage_summary() -> String {
 /// Structured generation policy for the packaged artifact.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PackagedArtifactGenerationPolicy {
-    /// Same-body source epochs are fit with overlapping quadratic spans.
+    /// Same-body source epochs are fit with adjacent linear spans.
     AdjacentSameBodyLinearSegments,
 }
 
@@ -240,7 +240,7 @@ impl PackagedArtifactGenerationPolicy {
     /// Returns the compact label used in release-facing summaries.
     pub const fn label(self) -> &'static str {
         match self {
-            Self::AdjacentSameBodyLinearSegments => "overlapping same-body quadratic spans",
+            Self::AdjacentSameBodyLinearSegments => "adjacent same-body linear spans",
         }
     }
 
@@ -248,7 +248,7 @@ impl PackagedArtifactGenerationPolicy {
     pub const fn note(self) -> &'static str {
         match self {
             Self::AdjacentSameBodyLinearSegments => {
-                "bodies with a single sampled epoch use point segments; bodies with two sampled epochs remain linear; bodies with three or more sampled epochs are fit with overlapping three-point spans using quadratic base fits and longitude unwrapping"
+                "bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are fit with adjacent linear spans between consecutive epochs"
             }
         }
     }
@@ -4744,26 +4744,10 @@ fn body_segments_from_entries(entries: &[&SnapshotEntry]) -> Vec<Segment> {
     match entries.len() {
         0 => Vec::new(),
         1 => vec![segment_from_entries(entries[0], entries[0])],
-        2 => vec![segment_from_entries(entries[0], entries[1])],
-        _ => {
-            let mut segments = Vec::new();
-            let mut index = 0;
-
-            while index + 2 < entries.len() {
-                segments.push(segment_from_entries_with_midpoint(
-                    entries[index],
-                    entries[index + 1],
-                    entries[index + 2],
-                ));
-                index += 2;
-            }
-
-            if index + 1 < entries.len() {
-                segments.push(segment_from_entries(entries[index], entries[index + 1]));
-            }
-
-            segments
-        }
+        _ => entries
+            .windows(2)
+            .map(|pair| segment_from_entries(pair[0], pair[1]))
+            .collect(),
     }
 }
 
@@ -4793,109 +4777,6 @@ fn segment_from_entries(start: &SnapshotEntry, end: &SnapshotEntry) -> Segment {
                 end_coordinates.distance_au.unwrap_or_default(),
             ),
         ],
-    )
-}
-
-fn segment_from_entries_with_midpoint(
-    start: &SnapshotEntry,
-    midpoint: &SnapshotEntry,
-    end: &SnapshotEntry,
-) -> Segment {
-    let start_coordinates = coordinates(start);
-    let midpoint_coordinates = coordinates(midpoint);
-    let end_coordinates = coordinates(end);
-    let start_instant = Instant::new(start.epoch.julian_day, TimeScale::Tt);
-    let midpoint_instant = Instant::new(midpoint.epoch.julian_day, TimeScale::Tt);
-    let end_instant = Instant::new(end.epoch.julian_day, TimeScale::Tt);
-    let span = end_instant.julian_day.days() - start_instant.julian_day.days();
-    let midpoint_x = (midpoint_instant.julian_day.days() - start_instant.julian_day.days()) / span;
-
-    Segment::new(
-        start_instant,
-        end_instant,
-        vec![
-            quadratic_channel(
-                ChannelKind::Longitude,
-                9,
-                start_coordinates.longitude.degrees(),
-                midpoint_coordinates.longitude.degrees(),
-                end_coordinates.longitude.degrees(),
-                midpoint_x,
-            ),
-            quadratic_channel(
-                ChannelKind::Latitude,
-                9,
-                start_coordinates.latitude.degrees(),
-                midpoint_coordinates.latitude.degrees(),
-                end_coordinates.latitude.degrees(),
-                midpoint_x,
-            ),
-            quadratic_channel(
-                ChannelKind::DistanceAu,
-                12,
-                start_coordinates.distance_au.unwrap_or_default(),
-                midpoint_coordinates.distance_au.unwrap_or_default(),
-                end_coordinates.distance_au.unwrap_or_default(),
-                midpoint_x,
-            ),
-        ],
-    )
-}
-
-fn polynomial_channel_from_samples(
-    kind: ChannelKind,
-    scale_exponent: u8,
-    samples: &[(f64, f64)],
-) -> PolynomialChannel {
-    debug_assert!(samples.len() >= 2);
-
-    let mut coefficients = vec![0.0; samples.len()];
-
-    for (sample_index, &(sample_x, sample_y)) in samples.iter().enumerate() {
-        let mut basis = vec![1.0];
-        let mut denominator = 1.0;
-
-        for (other_index, &(other_x, _)) in samples.iter().enumerate() {
-            if other_index == sample_index {
-                continue;
-            }
-
-            denominator *= sample_x - other_x;
-            basis = multiply_polynomial_by_x_minus_root(&basis, other_x);
-        }
-
-        let scale = sample_y / denominator;
-        for (coefficient_index, coefficient) in basis.into_iter().enumerate() {
-            coefficients[coefficient_index] += coefficient * scale;
-        }
-    }
-
-    PolynomialChannel::new(kind, scale_exponent, coefficients)
-}
-
-fn multiply_polynomial_by_x_minus_root(coefficients: &[f64], root: f64) -> Vec<f64> {
-    let mut result = vec![0.0; coefficients.len() + 1];
-
-    for (index, coefficient) in coefficients.iter().enumerate() {
-        result[index] -= coefficient * root;
-        result[index + 1] += coefficient;
-    }
-
-    result
-}
-
-fn quadratic_channel(
-    kind: ChannelKind,
-    scale_exponent: u8,
-    start: f64,
-    midpoint: f64,
-    end: f64,
-    midpoint_x: f64,
-) -> PolynomialChannel {
-    polynomial_channel_from_samples(
-        kind,
-        scale_exponent,
-        &[(0.0, start), (midpoint_x, midpoint), (1.0, end)],
     )
 }
 
@@ -5199,7 +5080,7 @@ mod tests {
     }
 
     #[test]
-    fn lookup_uses_packaged_moon_quadratic_segments() {
+    fn lookup_uses_packaged_moon_linear_segments() {
         let body = CelestialBody::Moon;
         for epoch in [2_400_000.0, 2_500_000.0] {
             let reference = reference_snapshot()
@@ -5982,7 +5863,7 @@ mod tests {
             summary.policy,
             PackagedArtifactGenerationPolicy::AdjacentSameBodyLinearSegments
         );
-        assert_eq!(summary.summary_line(), "overlapping same-body quadratic spans; bodies with a single sampled epoch use point segments; bodies with two sampled epochs remain linear; bodies with three or more sampled epochs are fit with overlapping three-point spans using quadratic base fits and longitude unwrapping");
+        assert_eq!(summary.summary_line(), "adjacent same-body linear spans; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are fit with adjacent linear spans between consecutive epochs");
         assert_eq!(summary.to_string(), summary.summary_line());
         assert!(artifact.residual_bodies().is_empty());
         summary
@@ -6065,7 +5946,7 @@ mod tests {
         );
         assert_eq!(
             summary.generation_policy_line(),
-            "generation policy: overlapping same-body quadratic spans; bodies with a single sampled epoch use point segments; bodies with two sampled epochs remain linear; bodies with three or more sampled epochs are fit with overlapping three-point spans using quadratic base fits and longitude unwrapping"
+            "generation policy: adjacent same-body linear spans; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are fit with adjacent linear spans between consecutive epochs"
         );
         assert_eq!(
             summary.residual_body_line(),
@@ -6124,7 +6005,7 @@ mod tests {
         assert!(provenance.contains("segment span days="));
         assert!(provenance.contains("checksum=0x"));
         assert!(provenance.contains("artifact size="));
-        assert!(provenance.contains("generation policy: overlapping same-body quadratic spans"));
+        assert!(provenance.contains("generation policy: adjacent same-body linear spans"));
         assert!(provenance
             .contains("quantization scales: stored=Longitude=9, Latitude=9, DistanceAu=12"));
         assert!(provenance.contains("residual bodies: none; applies to 0 bundled bodies"));

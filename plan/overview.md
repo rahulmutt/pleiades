@@ -14,7 +14,7 @@ The active plan now starts after that foundation. It focuses on closing the rema
 
 ## Current priority
 
-The next implementation work should prioritize **Phase 1: Production compressed data**. The draft artifact is reproducible and inspectable, but its current fit errors are far outside production thresholds. Work should improve the fitting strategy, generation inputs, validation thresholds, and benchmarks without broadening user-facing accuracy claims prematurely.
+The next implementation work should prioritize **Phase 1: Production compressed data**. The draft artifact is reproducible and inspectable, and the adjacent-linear-span slice has materially improved its fit envelope, but it still remains outside production thresholds. Work should continue improving the fitting strategy, generation inputs, validation thresholds, and benchmarks without broadening user-facing accuracy claims prematurely.
 
 ## Cross-cutting rules
 
