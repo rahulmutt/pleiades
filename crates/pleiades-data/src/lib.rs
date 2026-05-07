@@ -2459,6 +2459,20 @@ pub fn packaged_artifact_generation_manifest_for_report() -> String {
     }
 }
 
+/// Returns the current deterministic packaged-artifact generation manifest checksum after validation.
+pub fn packaged_artifact_generation_manifest_checksum_for_report() -> String {
+    let manifest = packaged_artifact_generation_manifest_details();
+    match manifest.validate() {
+        Ok(()) => format!(
+            "Packaged artifact generation manifest checksum: 0x{:016x}",
+            manifest.manifest_checksum
+        ),
+        Err(error) => {
+            format!("Packaged artifact generation manifest checksum: unavailable ({error})")
+        }
+    }
+}
+
 /// Returns the current deterministic packaged-artifact generation manifest.
 pub fn packaged_artifact_generation_manifest() -> &'static str {
     static SUMMARY: OnceLock<String> = OnceLock::new();
