@@ -64,7 +64,7 @@ use pleiades_jpl::{
 const PACKAGE_NAME: &str = "pleiades-data";
 const ARTIFACT_LABEL: &str = "stage-5 packaged-data draft";
 const ARTIFACT_PROFILE_ID: &str = "pleiades-packaged-artifact-profile/stage-5-draft";
-const ARTIFACT_SOURCE: &str = "Quantized adjacent same-body quadratic windows with longitude-unwrapped Moon and planet fits fitted to JPL Horizons reference epochs (1800, 2000, 2500 CE) for the comparison-body planetary set plus asteroid:433-Eros, with point segments only for single-epoch bodies and quadratic spans between consecutive sampled epochs for multi-epoch bodies.";
+const ARTIFACT_SOURCE: &str = "Quantized adjacent same-body cubic windows with longitude-unwrapped Moon and planet fits fitted to JPL Horizons reference epochs (1800, 2000, 2500 CE) for the comparison-body planetary set plus asteroid:433-Eros, with point segments only for single-epoch bodies and recursively subdivided cubic spans for multi-epoch bodies using body-class span caps, with quadratic fallback where four-point sampling is unavailable.";
 const PACKAGED_BASE_BODIES: [CelestialBody; 10] = [
     CelestialBody::Sun,
     CelestialBody::Moon,
@@ -206,7 +206,7 @@ pub fn packaged_body_coverage_summary() -> String {
 /// Structured generation policy for the packaged artifact.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PackagedArtifactGenerationPolicy {
-    /// Same-body source epochs are fit with adjacent quadratic windows.
+    /// Same-body source epochs are fit with adjacent cubic windows.
     AdjacentSameBodyQuadraticWindows,
 }
 
@@ -240,7 +240,7 @@ impl PackagedArtifactGenerationPolicy {
     /// Returns the compact label used in release-facing summaries.
     pub const fn label(self) -> &'static str {
         match self {
-            Self::AdjacentSameBodyQuadraticWindows => "adjacent same-body quadratic windows",
+            Self::AdjacentSameBodyQuadraticWindows => "adjacent same-body cubic windows",
         }
     }
 
@@ -248,7 +248,7 @@ impl PackagedArtifactGenerationPolicy {
     pub const fn note(self) -> &'static str {
         match self {
             Self::AdjacentSameBodyQuadraticWindows => {
-                "bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are fit with quadratic windows between consecutive sampled epochs"
+                "bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps, with quadratic fallback when four-point sampling is unavailable"
             }
         }
     }
@@ -1389,6 +1389,46 @@ fn packaged_artifact_body_scope(body: &CelestialBody) -> &'static str {
         }
         CelestialBody::Custom(_) => "custom bodies",
         _ => "custom bodies",
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum PackagedArtifactBodyCadence {
+    Luminaries,
+    InnerPlanets,
+    OuterPlanets,
+    Pluto,
+    LunarPoints,
+    SelectedAsteroids,
+    CustomBodies,
+}
+
+fn packaged_artifact_body_cadence(body: &CelestialBody) -> PackagedArtifactBodyCadence {
+    match body {
+        CelestialBody::Sun | CelestialBody::Moon => PackagedArtifactBodyCadence::Luminaries,
+        CelestialBody::Mercury | CelestialBody::Venus | CelestialBody::Mars => {
+            PackagedArtifactBodyCadence::InnerPlanets
+        }
+        CelestialBody::Jupiter
+        | CelestialBody::Saturn
+        | CelestialBody::Uranus
+        | CelestialBody::Neptune => PackagedArtifactBodyCadence::OuterPlanets,
+        CelestialBody::Pluto => PackagedArtifactBodyCadence::Pluto,
+        CelestialBody::MeanNode
+        | CelestialBody::TrueNode
+        | CelestialBody::MeanApogee
+        | CelestialBody::TrueApogee
+        | CelestialBody::MeanPerigee
+        | CelestialBody::TruePerigee => PackagedArtifactBodyCadence::LunarPoints,
+        CelestialBody::Ceres
+        | CelestialBody::Pallas
+        | CelestialBody::Juno
+        | CelestialBody::Vesta => PackagedArtifactBodyCadence::SelectedAsteroids,
+        CelestialBody::Custom(custom) if custom.catalog.eq_ignore_ascii_case("asteroid") => {
+            PackagedArtifactBodyCadence::SelectedAsteroids
+        }
+        CelestialBody::Custom(_) => PackagedArtifactBodyCadence::CustomBodies,
+        _ => PackagedArtifactBodyCadence::CustomBodies,
     }
 }
 
@@ -4830,8 +4870,142 @@ fn body_segments_from_entries(
         1 => vec![segment_from_single_entry(entries[0])],
         _ => entries
             .windows(2)
-            .map(|window| segment_from_pair(window[0], window[1], reference_backend))
+            .flat_map(|window| {
+                body_segment_windows_for_interval(window[0], window[1], reference_backend)
+            })
             .collect(),
+    }
+}
+
+fn segment_from_linear_interval(start: &SnapshotEntry, end: &SnapshotEntry) -> Segment {
+    let start_coordinates = coordinates(start);
+    let end_coordinates = coordinates(end);
+
+    Segment::new(
+        Instant::new(start.epoch.julian_day, TimeScale::Tt),
+        Instant::new(end.epoch.julian_day, TimeScale::Tt),
+        vec![
+            PolynomialChannel::linear(
+                ChannelKind::Longitude,
+                9,
+                start_coordinates.longitude.degrees(),
+                end_coordinates.longitude.degrees(),
+            ),
+            PolynomialChannel::linear(
+                ChannelKind::Latitude,
+                9,
+                start_coordinates.latitude.degrees(),
+                end_coordinates.latitude.degrees(),
+            ),
+            PolynomialChannel::linear(
+                ChannelKind::DistanceAu,
+                10,
+                start_coordinates.distance_au.unwrap_or_default(),
+                end_coordinates.distance_au.unwrap_or_default(),
+            ),
+        ],
+    )
+}
+
+fn body_segment_span_limit(body: &CelestialBody) -> f64 {
+    match packaged_artifact_body_cadence(body) {
+        PackagedArtifactBodyCadence::Luminaries => 256.0,
+        PackagedArtifactBodyCadence::InnerPlanets => 384.0,
+        PackagedArtifactBodyCadence::OuterPlanets => 768.0,
+        PackagedArtifactBodyCadence::Pluto => 1_536.0,
+        PackagedArtifactBodyCadence::LunarPoints => 256.0,
+        PackagedArtifactBodyCadence::SelectedAsteroids => 256.0,
+        PackagedArtifactBodyCadence::CustomBodies => 512.0,
+    }
+}
+
+fn body_segment_windows_for_interval(
+    start: &SnapshotEntry,
+    end: &SnapshotEntry,
+    reference_backend: &JplSnapshotBackend,
+) -> Vec<Segment> {
+    let span_days = end.epoch.julian_day.days() - start.epoch.julian_day.days();
+    let span_limit = body_segment_span_limit(&start.body);
+    let candidate = segment_from_pair(start, end, reference_backend);
+
+    if span_days <= 1.0 {
+        return vec![segment_from_linear_interval(start, end)];
+    }
+
+    if span_days <= span_limit && segment_fits_quantization(&candidate) {
+        return vec![candidate];
+    }
+
+    let midpoint_jd = (start.epoch.julian_day.days() + end.epoch.julian_day.days()) / 2.0;
+    if midpoint_jd <= start.epoch.julian_day.days() || midpoint_jd >= end.epoch.julian_day.days() {
+        return vec![segment_from_linear_interval(start, end)];
+    }
+    let Some(midpoint_coordinates) =
+        sample_reference_coordinates_at(&start.body, midpoint_jd, reference_backend)
+    else {
+        return vec![candidate];
+    };
+
+    let midpoint_entry = snapshot_entry_from_ecliptic_coordinates(
+        start.body.clone(),
+        midpoint_jd,
+        midpoint_coordinates,
+    );
+
+    let mut segments = body_segment_windows_for_interval(start, &midpoint_entry, reference_backend);
+    segments.extend(body_segment_windows_for_interval(
+        &midpoint_entry,
+        end,
+        reference_backend,
+    ));
+    segments
+}
+
+fn segment_fits_quantization(segment: &Segment) -> bool {
+    segment
+        .channels
+        .iter()
+        .chain(segment.residual_channels.iter())
+        .all(|channel| {
+            channel_coefficients_fit_quantization(channel.scale_exponent, &channel.coefficients)
+        })
+}
+
+fn sample_reference_coordinates_at(
+    body: &CelestialBody,
+    julian_day: f64,
+    reference_backend: &JplSnapshotBackend,
+) -> Option<EclipticCoordinates> {
+    let request = EphemerisRequest {
+        body: body.clone(),
+        instant: Instant::new(JulianDay::from_days(julian_day), TimeScale::Tt),
+        observer: None,
+        frame: CoordinateFrame::Ecliptic,
+        zodiac_mode: ZodiacMode::Tropical,
+        apparent: Apparentness::Mean,
+    };
+
+    reference_backend
+        .position(&request)
+        .ok()
+        .and_then(|result| result.ecliptic)
+}
+
+fn snapshot_entry_from_ecliptic_coordinates(
+    body: CelestialBody,
+    julian_day: f64,
+    coordinates: EclipticCoordinates,
+) -> SnapshotEntry {
+    let radius_km = coordinates.distance_au.unwrap_or_default() * AU_IN_KM;
+    let longitude_radians = coordinates.longitude.degrees().to_radians();
+    let latitude_radians = coordinates.latitude.degrees().to_radians();
+    let cos_latitude = latitude_radians.cos();
+    SnapshotEntry {
+        body,
+        epoch: Instant::new(JulianDay::from_days(julian_day), TimeScale::Tt),
+        x_km: radius_km * cos_latitude * longitude_radians.cos(),
+        y_km: radius_km * cos_latitude * longitude_radians.sin(),
+        z_km: radius_km * latitude_radians.sin(),
     }
 }
 
@@ -4862,7 +5036,7 @@ fn segment_from_single_entry(entry: &SnapshotEntry) -> Segment {
             ),
             PolynomialChannel::linear(
                 ChannelKind::DistanceAu,
-                12,
+                10,
                 coordinates.distance_au.unwrap_or_default(),
                 coordinates.distance_au.unwrap_or_default(),
             ),
@@ -4880,24 +5054,31 @@ fn segment_from_pair(
     let start_longitude = start_coordinates.longitude.degrees();
     let end_longitude =
         unwrap_longitude_degrees(start_longitude, end_coordinates.longitude.degrees());
-    let midpoint_jd = (start.epoch.julian_day.days() + end.epoch.julian_day.days()) / 2.0;
-    let midpoint_request = EphemerisRequest {
-        body: start.body.clone(),
-        instant: Instant::new(JulianDay::from_days(midpoint_jd), TimeScale::Tt),
-        observer: None,
-        frame: CoordinateFrame::Ecliptic,
-        zodiac_mode: ZodiacMode::Tropical,
-        apparent: Apparentness::Mean,
+    let start_instant = Instant::new(start.epoch.julian_day, TimeScale::Tt);
+    let end_instant = Instant::new(end.epoch.julian_day, TimeScale::Tt);
+
+    let sample_fraction = |fraction: f64| -> Option<EclipticCoordinates> {
+        let sample_jd = start.epoch.julian_day.days()
+            + (end.epoch.julian_day.days() - start.epoch.julian_day.days()) * fraction;
+        let request = EphemerisRequest {
+            body: start.body.clone(),
+            instant: Instant::new(JulianDay::from_days(sample_jd), TimeScale::Tt),
+            observer: None,
+            frame: CoordinateFrame::Ecliptic,
+            zodiac_mode: ZodiacMode::Tropical,
+            apparent: Apparentness::Mean,
+        };
+
+        reference_backend
+            .position(&request)
+            .ok()
+            .and_then(|result| result.ecliptic)
     };
 
-    let Some(midpoint_coordinates) = reference_backend
-        .position(&midpoint_request)
-        .ok()
-        .and_then(|result| result.ecliptic)
-    else {
+    let Some(midpoint_coordinates) = sample_fraction(0.5) else {
         return Segment::new(
-            Instant::new(start.epoch.julian_day, TimeScale::Tt),
-            Instant::new(end.epoch.julian_day, TimeScale::Tt),
+            start_instant,
+            end_instant,
             vec![
                 PolynomialChannel::linear(
                     ChannelKind::Longitude,
@@ -4913,7 +5094,7 @@ fn segment_from_pair(
                 ),
                 PolynomialChannel::linear(
                     ChannelKind::DistanceAu,
-                    12,
+                    10,
                     start_coordinates.distance_au.unwrap_or_default(),
                     end_coordinates.distance_au.unwrap_or_default(),
                 ),
@@ -4921,12 +5102,130 @@ fn segment_from_pair(
         );
     };
 
+    let Some(first_third_coordinates) = sample_fraction(1.0 / 3.0) else {
+        let midpoint_longitude =
+            unwrap_longitude_degrees(start_longitude, midpoint_coordinates.longitude.degrees());
+        return Segment::new(
+            start_instant,
+            end_instant,
+            vec![
+                PolynomialChannel::quadratic(
+                    ChannelKind::Longitude,
+                    9,
+                    start_longitude,
+                    midpoint_longitude,
+                    end_longitude,
+                    0.5,
+                ),
+                PolynomialChannel::quadratic(
+                    ChannelKind::Latitude,
+                    9,
+                    start_coordinates.latitude.degrees(),
+                    midpoint_coordinates.latitude.degrees(),
+                    end_coordinates.latitude.degrees(),
+                    0.5,
+                ),
+                PolynomialChannel::linear(
+                    ChannelKind::DistanceAu,
+                    10,
+                    start_coordinates.distance_au.unwrap_or_default(),
+                    end_coordinates.distance_au.unwrap_or_default(),
+                ),
+            ],
+        );
+    };
+
+    let Some(second_third_coordinates) = sample_fraction(2.0 / 3.0) else {
+        let midpoint_longitude =
+            unwrap_longitude_degrees(start_longitude, midpoint_coordinates.longitude.degrees());
+        return Segment::new(
+            start_instant,
+            end_instant,
+            vec![
+                PolynomialChannel::quadratic(
+                    ChannelKind::Longitude,
+                    9,
+                    start_longitude,
+                    midpoint_longitude,
+                    end_longitude,
+                    0.5,
+                ),
+                PolynomialChannel::quadratic(
+                    ChannelKind::Latitude,
+                    9,
+                    start_coordinates.latitude.degrees(),
+                    midpoint_coordinates.latitude.degrees(),
+                    end_coordinates.latitude.degrees(),
+                    0.5,
+                ),
+                PolynomialChannel::linear(
+                    ChannelKind::DistanceAu,
+                    10,
+                    start_coordinates.distance_au.unwrap_or_default(),
+                    end_coordinates.distance_au.unwrap_or_default(),
+                ),
+            ],
+        );
+    };
+
+    let longitude_samples = unwrap_longitude_samples(&[
+        start_longitude,
+        first_third_coordinates.longitude.degrees(),
+        second_third_coordinates.longitude.degrees(),
+        end_longitude,
+    ]);
+
+    if let (Some(longitude_channel), Some(latitude_channel), Some(distance_channel)) = (
+        cubic_channel_from_samples(
+            ChannelKind::Longitude,
+            9,
+            &[
+                (0.0, longitude_samples[0]),
+                (1.0 / 3.0, longitude_samples[1]),
+                (2.0 / 3.0, longitude_samples[2]),
+                (1.0, longitude_samples[3]),
+            ],
+        ),
+        cubic_channel_from_samples(
+            ChannelKind::Latitude,
+            9,
+            &[
+                (0.0, start_coordinates.latitude.degrees()),
+                (1.0 / 3.0, first_third_coordinates.latitude.degrees()),
+                (2.0 / 3.0, second_third_coordinates.latitude.degrees()),
+                (1.0, end_coordinates.latitude.degrees()),
+            ],
+        ),
+        cubic_channel_from_samples(
+            ChannelKind::DistanceAu,
+            10,
+            &[
+                (0.0, start_coordinates.distance_au.unwrap_or_default()),
+                (
+                    1.0 / 3.0,
+                    first_third_coordinates.distance_au.unwrap_or_default(),
+                ),
+                (
+                    2.0 / 3.0,
+                    second_third_coordinates.distance_au.unwrap_or_default(),
+                ),
+                (1.0, end_coordinates.distance_au.unwrap_or_default()),
+            ],
+        ),
+    ) {
+        return Segment::new(
+            start_instant,
+            end_instant,
+            vec![longitude_channel, latitude_channel, distance_channel],
+        );
+    }
+
     let midpoint_longitude =
         unwrap_longitude_degrees(start_longitude, midpoint_coordinates.longitude.degrees());
 
     Segment::new(
-        Instant::new(start.epoch.julian_day, TimeScale::Tt),
-        Instant::new(end.epoch.julian_day, TimeScale::Tt),
+        start_instant,
+        end_instant,
         vec![
             PolynomialChannel::quadratic(
                 ChannelKind::Longitude,
@@ -4946,12 +5245,107 @@ fn segment_from_pair(
             ),
             PolynomialChannel::linear(
                 ChannelKind::DistanceAu,
-                12,
+                10,
                 start_coordinates.distance_au.unwrap_or_default(),
                 end_coordinates.distance_au.unwrap_or_default(),
             ),
         ],
     )
+}
+
+fn unwrap_longitude_samples(samples: &[f64]) -> Vec<f64> {
+    let mut unwrapped = Vec::with_capacity(samples.len());
+
+    for &sample in samples {
+        if let Some(&previous) = unwrapped.last() {
+            unwrapped.push(unwrap_longitude_degrees(previous, sample));
+        } else {
+            unwrapped.push(sample);
+        }
+    }
+
+    unwrapped
+}
+
+#[allow(clippy::needless_range_loop)]
+fn fit_polynomial_coefficients(samples: &[(f64, f64)]) -> Option<Vec<f64>> {
+    let order = samples.len();
+    if order == 0 {
+        return None;
+    }
+
+    let mut matrix = vec![vec![0.0; order + 1]; order];
+    for (row, (x, y)) in samples.iter().enumerate() {
+        let mut power = 1.0;
+        for column in 0..order {
+            matrix[row][column] = power;
+            power *= *x;
+        }
+        matrix[row][order] = *y;
+    }
+
+    for pivot_index in 0..order {
+        let mut best_row = pivot_index;
+        let mut best_value = matrix[pivot_index][pivot_index].abs();
+        for row in (pivot_index + 1)..order {
+            let candidate = matrix[row][pivot_index].abs();
+            if candidate > best_value {
+                best_value = candidate;
+                best_row = row;
+            }
+        }
+
+        if best_value == 0.0 {
+            return None;
+        }
+
+        if best_row != pivot_index {
+            matrix.swap(pivot_index, best_row);
+        }
+
+        let pivot = matrix[pivot_index][pivot_index];
+        for column in pivot_index..=order {
+            matrix[pivot_index][column] /= pivot;
+        }
+
+        for row in 0..order {
+            if row == pivot_index {
+                continue;
+            }
+
+            let factor = matrix[row][pivot_index];
+            if factor == 0.0 {
+                continue;
+            }
+
+            for column in pivot_index..=order {
+                matrix[row][column] -= factor * matrix[pivot_index][column];
+            }
+        }
+    }
+
+    Some(matrix.into_iter().map(|row| row[order]).collect())
+}
+
+fn channel_coefficients_fit_quantization(scale_exponent: u8, coefficients: &[f64]) -> bool {
+    let scale = 10f64.powi(scale_exponent as i32);
+    coefficients.iter().all(|coefficient| {
+        let scaled = coefficient * scale;
+        scaled.is_finite() && scaled.round() >= i64::MIN as f64 && scaled.round() <= i64::MAX as f64
+    })
+}
+
+fn cubic_channel_from_samples(
+    kind: ChannelKind,
+    scale_exponent: u8,
+    samples: &[(f64, f64)],
+) -> Option<PolynomialChannel> {
+    let coefficients = fit_polynomial_coefficients(samples)?;
+    if !channel_coefficients_fit_quantization(scale_exponent, &coefficients) {
+        return None;
+    }
+
+    Some(PolynomialChannel::new(kind, scale_exponent, coefficients))
 }
 
 fn coordinates(entry: &SnapshotEntry) -> EclipticCoordinates {
@@ -5173,7 +5567,7 @@ mod tests {
 
         assert!((ecliptic.longitude.degrees() - expected.longitude.degrees()).abs() < 1e-8);
         assert!((ecliptic.latitude.degrees() - expected.latitude.degrees()).abs() < 1e-8);
-        assert!((ecliptic.distance_au.unwrap() - expected.distance_au.unwrap()).abs() < 1e-12);
+        assert!((ecliptic.distance_au.unwrap() - expected.distance_au.unwrap()).abs() < 1e-9);
     }
 
     #[test]
@@ -5215,7 +5609,7 @@ mod tests {
         );
         assert!(
             (actual_ecliptic.distance_au.unwrap() - expected_ecliptic.distance_au.unwrap()).abs()
-                < 1e-12
+                < 1e-9
         );
         let actual_equatorial = result
             .equatorial
@@ -5229,7 +5623,7 @@ mod tests {
             (actual_equatorial.declination.degrees() - expected.declination.degrees()).abs() < 1e-8
         );
         assert!(
-            (actual_equatorial.distance_au.unwrap() - expected.distance_au.unwrap()).abs() < 1e-12
+            (actual_equatorial.distance_au.unwrap() - expected.distance_au.unwrap()).abs() < 1e-9
         );
         assert_eq!(result.quality, QualityAnnotation::Interpolated);
     }
@@ -5317,7 +5711,7 @@ mod tests {
                 assert!((ecliptic.longitude.degrees() - expected.longitude.degrees()).abs() < 1e-8);
                 assert!((ecliptic.latitude.degrees() - expected.latitude.degrees()).abs() < 1e-8);
                 assert!(
-                    (ecliptic.distance_au.unwrap() - expected.distance_au.unwrap()).abs() < 1e-12
+                    (ecliptic.distance_au.unwrap() - expected.distance_au.unwrap()).abs() < 1e-9
                 );
             }
         }
@@ -6037,7 +6431,7 @@ mod tests {
             summary.policy,
             PackagedArtifactGenerationPolicy::AdjacentSameBodyQuadraticWindows
         );
-        assert_eq!(summary.summary_line(), "adjacent same-body quadratic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are fit with quadratic windows between consecutive sampled epochs");
+        assert_eq!(summary.summary_line(), "adjacent same-body cubic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps, with quadratic fallback when four-point sampling is unavailable");
         assert_eq!(summary.to_string(), summary.summary_line());
         assert!(artifact.residual_bodies().is_empty());
         summary
@@ -6120,7 +6514,7 @@ mod tests {
         );
         assert_eq!(
             summary.generation_policy_line(),
-            "generation policy: adjacent same-body quadratic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are fit with quadratic windows between consecutive sampled epochs"
+            "generation policy: adjacent same-body cubic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps, with quadratic fallback when four-point sampling is unavailable"
         );
         assert_eq!(
             summary.residual_body_line(),
@@ -6179,9 +6573,9 @@ mod tests {
         assert!(provenance.contains("segment span days="));
         assert!(provenance.contains("checksum=0x"));
         assert!(provenance.contains("artifact size="));
-        assert!(provenance.contains("generation policy: adjacent same-body quadratic windows"));
+        assert!(provenance.contains("generation policy: adjacent same-body cubic windows"));
         assert!(provenance
-            .contains("quantization scales: stored=Longitude=9, Latitude=9, DistanceAu=12"));
+            .contains("quantization scales: stored=Longitude=9, Latitude=9, DistanceAu=10"));
         assert!(provenance.contains("residual bodies: none; applies to 0 bundled bodies"));
         assert!(provenance.contains(&format!("artifact version={}", artifact.header.version)));
         assert!(provenance.contains("11 bundled bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros)"));

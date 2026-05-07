@@ -7,9 +7,9 @@ This file lists focused implementation slices for the current phase ladder. Comp
 ### 1. Artifact fitting strategy
 
 - The Moon slice has already moved from residual-correction segments to quadratic base fits.
-- The latest follow-on slice now uses same-body quadratic windows with longitude unwrapping across the bundled bodies; current thresholds are calibrated to the latest draft artifact.
+- The latest follow-on slice now uses recursively subdivided cubic windows with longitude unwrapping and tighter body-class span caps across the bundled bodies; current thresholds are calibrated to the latest draft artifact, and the body-class cadence view now makes the remaining inner/outer/Pluto/asteroid splits explicit.
 - Evaluate whether the remaining high-error bodies should move to denser windows, Chebyshev, or higher-order polynomial segments.
-- Split body classes by cadence and segment length: inner planets, outer planets, Pluto, and selected asteroids may still need different strategies.
+- Split body classes by cadence and segment length: inner planets, outer planets, Pluto, and selected asteroids may still need different strategies, but the current cadence-aware caps already establish the faster/sparser split.
 - Body/channel-specific fit reports now identify the worst segments and source intervals; use them to prioritize the next fit changes.
 - The artifact summary now also includes a channel-major fit-outlier view, which should make cadence-based splitting easier to justify.
 - Keep failures explicit until measured deltas are inside the production target profile.
@@ -20,7 +20,7 @@ This file lists focused implementation slices for the current phase ladder. Comp
 - Generator parameters now also carry residual-body coverage, making the residual posture explicit in the manifest trail; source-input provenance, quantization metadata, and output-profile identifiers still need to stay complete and reproducible.
 - Keep normalized intermediate summaries deterministic and reproducible.
 - Make regenerated artifact bytes/checksums comparable from a clean checkout.
-- Use the improved quadratic-window fixture as the new baseline for any follow-on fit experiments.
+- Use the improved cubic-window fixture as the new baseline for any follow-on fit experiments.
 
 ### 3. Artifact benchmark coverage
 
