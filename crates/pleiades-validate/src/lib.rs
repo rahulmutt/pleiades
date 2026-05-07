@@ -13588,6 +13588,11 @@ fn render_benchmark_matrix_summary_text(report: &ValidationReport) -> String {
         "  artifact decode benchmark: {}",
         report.artifact_decode_benchmark.summary_line()
     );
+    let _ = writeln!(
+        text,
+        "  packaged-artifact size: {} bytes",
+        report.artifact_decode_benchmark.encoded_bytes
+    );
     let fit_envelope_summary = packaged_artifact_fit_envelope_summary_for_report();
     let fit_sample_classes_summary = packaged_artifact_fit_sample_classes_summary_for_report();
     let fit_thresholds_summary = packaged_artifact_fit_threshold_summary_for_report();
@@ -19678,6 +19683,7 @@ mod tests {
         assert!(rendered.contains("packaged-data benchmark: backend="));
         assert!(rendered.contains("chart benchmark: backend="));
         assert!(rendered.contains("artifact decode benchmark: artifact="));
+        assert!(rendered.contains("packaged-artifact size: "));
         assert!(rendered.contains("Packaged-artifact fit posture"));
         assert!(rendered.contains("fit envelope: "));
         assert!(rendered.contains("fit margins: "));
