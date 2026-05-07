@@ -57,6 +57,7 @@ use pleiades_core::{
 };
 use pleiades_data::{
     packaged_artifact_access_summary_for_report, packaged_artifact_bytes,
+    packaged_artifact_fit_envelope_summary_details,
     packaged_artifact_fit_envelope_summary_for_report,
     packaged_artifact_generation_manifest_for_report,
     packaged_artifact_generation_policy_summary_for_report,
@@ -69,6 +70,7 @@ use pleiades_data::{
     packaged_artifact_speed_policy_summary_for_report,
     packaged_artifact_storage_summary_for_report,
     packaged_artifact_target_threshold_scope_envelopes_for_report,
+    packaged_artifact_target_threshold_summary_details,
     packaged_artifact_target_threshold_summary_for_report,
     packaged_frame_parity_summary_for_report, packaged_frame_treatment_summary_for_report,
     packaged_lookup_epoch_policy_summary_for_report,
@@ -12353,7 +12355,27 @@ pub fn workspace_audit_report() -> Result<WorkspaceAuditReport, std::io::Error> 
     })
 }
 
+fn validate_packaged_artifact_fit_posture() -> Result<(), EphemerisError> {
+    packaged_artifact_fit_envelope_summary_details()
+        .validate()
+        .map_err(|error| {
+            EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!("validation report packaged-artifact fit envelope is invalid: {error}"),
+            )
+        })?;
+    packaged_artifact_target_threshold_summary_details().validate().map_err(|error| {
+        EphemerisError::new(
+            EphemerisErrorKind::InvalidRequest,
+            format!("validation report packaged-artifact target-threshold summary is invalid: {error}"),
+        )
+    })?;
+
+    Ok(())
+}
+
 fn build_validation_report(rounds: usize) -> Result<ValidationReport, EphemerisError> {
+    validate_packaged_artifact_fit_posture()?;
     let comparison_corpus = release_grade_corpus();
     let benchmark_corpus = benchmark_corpus();
     let packaged_benchmark_corpus = artifact::packaged_artifact_corpus();
@@ -19440,6 +19462,12 @@ mod tests {
                 field: "rustc version"
             }
         );
+    }
+
+    #[test]
+    fn packaged_artifact_fit_posture_validation_is_enforced_before_validation_reports_are_built() {
+        validate_packaged_artifact_fit_posture()
+            .expect("packaged-artifact fit posture should validate before report assembly");
     }
 
     #[test]

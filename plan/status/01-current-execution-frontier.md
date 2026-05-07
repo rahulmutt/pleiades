@@ -45,7 +45,7 @@ The reference corpus breadth is already covered by the existing 1500-2500 CE bou
 
 Next, implement another small, reviewable slice:
 
-- tighten fit-error reporting and thresholds so packaged-data fit claims stay measurable; the benchmark matrix summary is now in place;
+- tighten fit-error reporting and thresholds so packaged-data fit claims stay measurable; the benchmark matrix summary is now in place, and validation report assembly now preflights the packaged-artifact fit envelope and target-threshold posture before rendering fit claims;
 - keep the prototype fixture path separate from production artifact generation;
 - add or update validation/report tests only where they tighten drift detection without claiming production fit accuracy.
 
