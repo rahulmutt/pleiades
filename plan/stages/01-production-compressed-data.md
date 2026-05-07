@@ -6,7 +6,7 @@ Turn the current stage-5 draft packaged-data fixture into a production-quality 1
 
 ## Starting point
 
-The workspace already has artifact structures, codec roundtrips, checksums, residual support, manifest summaries, regeneration helpers, benchmark/report surfaces, and a draft artifact. The draft artifact is not production-grade: validation reports show large fit errors and threshold violations.
+The workspace already has artifact structures, codec roundtrips, checksums, manifest summaries, regeneration helpers, benchmark/report surfaces, and a draft artifact. The draft artifact is not production-grade: validation reports still show large fit errors and threshold violations, although the Moon segment family has already been moved from residual-correction segments to quadratic base fits.
 
 ## Implementation goals
 

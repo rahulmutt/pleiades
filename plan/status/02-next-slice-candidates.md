@@ -6,8 +6,9 @@ This file lists focused implementation slices for the current phase ladder. Comp
 
 ### 1. Artifact fitting strategy
 
-- Evaluate whether the current linear/residual approach should move to Chebyshev or higher-order polynomial segments.
-- Split body classes by cadence and segment length: Moon, inner planets, outer planets, Pluto, and selected asteroids may need different strategies.
+- The Moon slice has already moved from residual-correction segments to quadratic base fits.
+- Evaluate whether the remaining high-error bodies should move to Chebyshev or higher-order polynomial segments.
+- Split body classes by cadence and segment length: inner planets, outer planets, Pluto, and selected asteroids may still need different strategies.
 - Add body/channel-specific fit reports that identify the worst segments and source intervals.
 - Keep failures explicit until measured deltas are inside published thresholds.
 

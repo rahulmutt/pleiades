@@ -247,7 +247,7 @@ impl PackagedArtifactGenerationPolicy {
     pub const fn note(self) -> &'static str {
         match self {
             Self::AdjacentSameBodyLinearSegments => {
-                "bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs; the Moon uses overlapping three-point spans with quadratic residual corrections to keep the high-curvature fit compact"
+                "bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs; the Moon uses overlapping three-point spans with quadratic base fits to keep the high-curvature fit compact"
             }
         }
     }
@@ -319,7 +319,7 @@ fn validate_packaged_artifact_generation_policy_residual_bodies(
 ) -> Result<(), PackagedArtifactGenerationPolicySummaryValidationError> {
     match policy {
         PackagedArtifactGenerationPolicy::AdjacentSameBodyLinearSegments => {
-            if residual_bodies != [CelestialBody::Moon] {
+            if !residual_bodies.is_empty() {
                 return Err(
                     PackagedArtifactGenerationPolicySummaryValidationError::FieldOutOfSync {
                         field: "residual_bodies",
@@ -4558,31 +4558,11 @@ fn segment_from_entries_with_midpoint(
     let span = end_instant.julian_day.days() - start_instant.julian_day.days();
     let midpoint_x = (midpoint_instant.julian_day.days() - start_instant.julian_day.days()) / span;
 
-    Segment::with_residual_channels(
+    Segment::new(
         start_instant,
         end_instant,
         vec![
-            PolynomialChannel::linear(
-                ChannelKind::Longitude,
-                9,
-                start_coordinates.longitude.degrees(),
-                end_coordinates.longitude.degrees(),
-            ),
-            PolynomialChannel::linear(
-                ChannelKind::Latitude,
-                9,
-                start_coordinates.latitude.degrees(),
-                end_coordinates.latitude.degrees(),
-            ),
-            PolynomialChannel::linear(
-                ChannelKind::DistanceAu,
-                12,
-                start_coordinates.distance_au.unwrap_or_default(),
-                end_coordinates.distance_au.unwrap_or_default(),
-            ),
-        ],
-        vec![
-            residual_channel(
+            quadratic_channel(
                 ChannelKind::Longitude,
                 9,
                 start_coordinates.longitude.degrees(),
@@ -4590,7 +4570,7 @@ fn segment_from_entries_with_midpoint(
                 end_coordinates.longitude.degrees(),
                 midpoint_x,
             ),
-            residual_channel(
+            quadratic_channel(
                 ChannelKind::Latitude,
                 9,
                 start_coordinates.latitude.degrees(),
@@ -4598,7 +4578,7 @@ fn segment_from_entries_with_midpoint(
                 end_coordinates.latitude.degrees(),
                 midpoint_x,
             ),
-            residual_channel(
+            quadratic_channel(
                 ChannelKind::DistanceAu,
                 12,
                 start_coordinates.distance_au.unwrap_or_default(),
@@ -4610,7 +4590,7 @@ fn segment_from_entries_with_midpoint(
     )
 }
 
-fn residual_channel(
+fn quadratic_channel(
     kind: ChannelKind,
     scale_exponent: u8,
     start: f64,
@@ -4618,12 +4598,7 @@ fn residual_channel(
     end: f64,
     midpoint_x: f64,
 ) -> PolynomialChannel {
-    let base_midpoint = start + (end - start) * midpoint_x;
-    let delta = midpoint - base_midpoint;
-    let scale = midpoint_x * (1.0 - midpoint_x);
-    let amplitude = if scale == 0.0 { 0.0 } else { delta / scale };
-
-    PolynomialChannel::new(kind, scale_exponent, vec![0.0, amplitude, -amplitude])
+    PolynomialChannel::quadratic(kind, scale_exponent, start, midpoint, end, midpoint_x)
 }
 
 fn coordinates(entry: &SnapshotEntry) -> EclipticCoordinates {
@@ -4813,8 +4788,8 @@ mod tests {
             .encode()
             .expect("generated packaged artifact should encode");
         assert_eq!(encoded, PACKAGED_ARTIFACT_FIXTURE);
-        assert_eq!(generated.residual_segment_count(), 13);
-        assert_eq!(generated.residual_bodies(), vec![CelestialBody::Moon]);
+        assert_eq!(generated.residual_segment_count(), 0);
+        assert!(generated.residual_bodies().is_empty());
     }
 
     #[test]
@@ -4926,7 +4901,7 @@ mod tests {
     }
 
     #[test]
-    fn lookup_uses_packaged_moon_residual_segments() {
+    fn lookup_uses_packaged_moon_quadratic_segments() {
         let body = CelestialBody::Moon;
         for epoch in [2_400_000.0, 2_500_000.0] {
             let reference = reference_snapshot()
@@ -4945,11 +4920,8 @@ mod tests {
             assert!((ecliptic.distance_au.unwrap() - expected.distance_au.unwrap()).abs() < 1e-12);
         }
 
-        assert_eq!(packaged_artifact().residual_segment_count(), 13);
-        assert_eq!(
-            packaged_artifact().residual_bodies(),
-            vec![CelestialBody::Moon]
-        );
+        assert_eq!(packaged_artifact().residual_segment_count(), 0);
+        assert!(packaged_artifact().residual_bodies().is_empty());
     }
 
     #[test]
@@ -5712,9 +5684,9 @@ mod tests {
             summary.policy,
             PackagedArtifactGenerationPolicy::AdjacentSameBodyLinearSegments
         );
-        assert_eq!(summary.summary_line(), "adjacent same-body linear segments; bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs; the Moon uses overlapping three-point spans with quadratic residual corrections to keep the high-curvature fit compact");
+        assert_eq!(summary.summary_line(), "adjacent same-body linear segments; bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs; the Moon uses overlapping three-point spans with quadratic base fits to keep the high-curvature fit compact");
         assert_eq!(summary.to_string(), summary.summary_line());
-        assert_eq!(artifact.residual_bodies(), vec![CelestialBody::Moon]);
+        assert!(artifact.residual_bodies().is_empty());
         summary
             .validate()
             .expect("generation policy summary should validate");
@@ -5723,16 +5695,16 @@ mod tests {
             summary.to_string()
         );
         let residual_bodies = packaged_artifact_generation_residual_bodies_summary_details();
-        assert_eq!(residual_bodies.body_count, 1);
-        assert_eq!(residual_bodies.bodies, vec![CelestialBody::Moon]);
-        assert_eq!(residual_bodies.summary_line(), "residual bodies: Moon");
+        assert_eq!(residual_bodies.body_count, 0);
+        assert!(residual_bodies.bodies.is_empty());
+        assert_eq!(residual_bodies.summary_line(), "residual bodies: none");
         assert_eq!(residual_bodies.to_string(), residual_bodies.summary_line());
         residual_bodies
             .validate(artifact)
             .expect("residual body coverage summary should validate");
         assert_eq!(
             packaged_artifact_generation_residual_bodies_summary_for_report(),
-            "residual bodies: Moon; applies to 1 bundled body"
+            "residual bodies: none; applies to 0 bundled bodies"
         );
     }
 
@@ -5795,11 +5767,11 @@ mod tests {
         );
         assert_eq!(
             summary.generation_policy_line(),
-            "generation policy: adjacent same-body linear segments; bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs; the Moon uses overlapping three-point spans with quadratic residual corrections to keep the high-curvature fit compact"
+            "generation policy: adjacent same-body linear segments; bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs; the Moon uses overlapping three-point spans with quadratic base fits to keep the high-curvature fit compact"
         );
         assert_eq!(
             summary.residual_body_line(),
-            "residual bodies: Moon; applies to 1 bundled body"
+            "residual bodies: none; applies to 0 bundled bodies"
         );
         assert_eq!(summary.fit_envelope.body_count, packaged_bodies().len());
         assert_eq!(
@@ -5811,8 +5783,8 @@ mod tests {
             .validate()
             .expect("packaged fit envelope should validate");
         let residual_coverage = summary.residual_body_coverage_summary();
-        assert_eq!(residual_coverage.body_count, 1);
-        assert_eq!(residual_coverage.summary_line(), "residual bodies: Moon");
+        assert_eq!(residual_coverage.body_count, 0);
+        assert_eq!(residual_coverage.summary_line(), "residual bodies: none");
         assert_eq!(
             residual_coverage.to_string(),
             residual_coverage.summary_line()
@@ -5849,14 +5821,14 @@ mod tests {
         assert!(provenance.contains("source revision=Production generation source:"));
         assert!(provenance.contains("normalized intermediates: label=stage-5 packaged-data draft; profile id=pleiades-packaged-artifact-profile/stage-5-draft; version="));
         assert!(provenance.contains("body count=11; segments="));
-        assert!(provenance.contains("residual-bearing segments=1"));
+        assert!(provenance.contains("residual-bearing segments=0"));
         assert!(provenance.contains("stored channels="));
         assert!(provenance.contains("segment span days="));
         assert!(provenance.contains("checksum=0x"));
         assert!(provenance.contains("generation policy: adjacent same-body linear segments"));
         assert!(provenance
             .contains("quantization scales: stored=Longitude=9, Latitude=9, DistanceAu=12"));
-        assert!(provenance.contains("residual bodies: Moon; applies to 1 bundled body"));
+        assert!(provenance.contains("residual bodies: none; applies to 0 bundled bodies"));
         assert!(provenance.contains(&format!("artifact version={}", artifact.header.version)));
         assert!(provenance.contains("11 bundled bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros)"));
         assert!(provenance.contains("Reference snapshot coverage:"));

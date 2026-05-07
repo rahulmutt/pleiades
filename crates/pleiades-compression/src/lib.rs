@@ -759,6 +759,32 @@ impl PolynomialChannel {
         Self::new(kind, scale_exponent, vec![start, end - start])
     }
 
+    /// Creates a quadratic channel that interpolates start, midpoint, and end values
+    /// over the normalized interval `[0, 1]`.
+    pub fn quadratic(
+        kind: ChannelKind,
+        scale_exponent: u8,
+        start: f64,
+        midpoint: f64,
+        end: f64,
+        midpoint_x: f64,
+    ) -> Self {
+        let linear_delta = end - start;
+        let midpoint_residual = midpoint - (start + linear_delta * midpoint_x);
+        let curvature_scale = midpoint_x * (1.0 - midpoint_x);
+
+        if curvature_scale == 0.0 {
+            return Self::linear(kind, scale_exponent, start, end);
+        }
+
+        let curvature = midpoint_residual / curvature_scale;
+        Self::new(
+            kind,
+            scale_exponent,
+            vec![start, linear_delta + curvature, -curvature],
+        )
+    }
+
     /// Validates that the channel coefficients are finite before encoding or lookup.
     pub fn validate(&self) -> Result<(), CompressionError> {
         for (index, coefficient) in self.coefficients.iter().enumerate() {
@@ -2194,6 +2220,16 @@ mod tests {
         let error =
             CompressedArtifact::decode(&encoded).expect_err("tampered artifact should fail");
         assert_eq!(error.kind, CompressionErrorKind::ChecksumMismatch);
+    }
+
+    #[test]
+    fn polynomial_channel_quadratic_interpolates_start_midpoint_and_end() {
+        let channel =
+            PolynomialChannel::quadratic(ChannelKind::Longitude, 9, 10.0, 16.0, 20.0, 0.5);
+
+        assert!((channel.evaluate(0.0) - 10.0).abs() < 1e-12);
+        assert!((channel.evaluate(0.5) - 16.0).abs() < 1e-12);
+        assert!((channel.evaluate(1.0) - 20.0).abs() < 1e-12);
     }
 
     #[test]
