@@ -811,8 +811,8 @@ fn packaged_artifact_body_scope(body: &CelestialBody) -> &'static str {
         | CelestialBody::Jupiter
         | CelestialBody::Saturn
         | CelestialBody::Uranus
-        | CelestialBody::Neptune
-        | CelestialBody::Pluto => "major planets",
+        | CelestialBody::Neptune => "major planets",
+        CelestialBody::Pluto => "pluto",
         CelestialBody::MeanNode
         | CelestialBody::TrueNode
         | CelestialBody::MeanApogee
@@ -1231,6 +1231,7 @@ const PACKAGED_ARTIFACT_TARGET_THRESHOLD_STATUS: &str = "draft fit envelope reco
 const PACKAGED_ARTIFACT_TARGET_THRESHOLD_SCOPES: &[&str] = &[
     "luminaries",
     "major planets",
+    "pluto",
     "lunar points",
     "selected asteroids",
     "custom bodies",
@@ -5576,7 +5577,7 @@ mod tests {
             .contains("segment strategy=bodies with a single sampled epoch use point segments"));
         assert!(summary
             .summary_line()
-            .contains("target thresholds: draft fit envelope recorded; scopes=luminaries, major planets, lunar points, selected asteroids, custom bodies; fit envelope:"));
+            .contains("target thresholds: draft fit envelope recorded; scopes=luminaries, major planets, pluto, lunar points, selected asteroids, custom bodies; fit envelope:"));
         assert!(summary
             .summary_line()
             .contains("scope envelopes=scope=luminaries; bodies=2 (Sun, Moon); fit envelope:"));
@@ -6139,7 +6140,7 @@ mod tests {
             summary.scope_envelopes,
             packaged_artifact_target_threshold_scope_envelopes_summary_details()
         );
-        assert_eq!(summary.summary_line(), format!("profile id={}; target thresholds: draft fit envelope recorded; scopes=luminaries, major planets, lunar points, selected asteroids, custom bodies; {}; scope envelopes={}", ARTIFACT_PROFILE_ID, summary.fit_envelope.summary_line(), join_display(&summary.scope_envelopes)));
+        assert_eq!(summary.summary_line(), format!("profile id={}; target thresholds: draft fit envelope recorded; scopes=luminaries, major planets, pluto, lunar points, selected asteroids, custom bodies; {}; scope envelopes={}", ARTIFACT_PROFILE_ID, summary.fit_envelope.summary_line(), join_display(&summary.scope_envelopes)));
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert!(summary.validate().is_ok());
@@ -6186,6 +6187,7 @@ mod tests {
         );
         assert!(expected.contains("scope=luminaries; bodies="));
         assert!(expected.contains("scope=major planets; bodies="));
+        assert!(expected.contains("scope=pluto; bodies=1 (Pluto); fit envelope:"));
         assert!(expected.contains("scope=lunar points; bodies="));
         assert!(expected.contains("scope=selected asteroids; bodies="));
         assert!(expected.contains("scope=custom bodies; bodies="));

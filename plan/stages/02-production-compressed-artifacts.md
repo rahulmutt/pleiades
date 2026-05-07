@@ -18,7 +18,7 @@ This phase depends on Phase 1 because artifact fit error must be measured agains
 Implemented and not re-planned here:
 
 - `pleiades-compression` artifact headers, body/segment structures, polynomial channels, residual support, profile metadata, byte-order policy, checksums, validation helpers, and decode helpers;
-- `pleiades-data` deterministic draft artifact backend, bundled fixture, regeneration helper, request-policy summaries, frame reconstruction, boundary behavior, checksums, versioned production-profile draft summaries with explicit lookup-epoch policy metadata, release-bundle emission of the packaged lookup-epoch policy, packaged-artifact profile coverage, output-support, speed-policy, generation policy, and frame-treatment summaries/checksums, regeneration-summary source-revision and quantization-scale metadata validation, cadence details in the production-generation source summary, and optional explicit artifact path loading behind a feature;
+- `pleiades-data` deterministic draft artifact backend, bundled fixture, regeneration helper, request-policy summaries, frame reconstruction, boundary behavior, checksums, versioned production-profile draft summaries with explicit lookup-epoch policy metadata, release-bundle emission of the packaged lookup-epoch policy, packaged-artifact profile coverage, output-support, speed-policy, generation policy, and frame-treatment summaries/checksums, regeneration-summary source-revision and quantization-scale metadata validation, cadence details in the production-generation source summary, scope-specific target-threshold envelopes that now split Pluto into its own release-facing scope, and optional explicit artifact path loading behind a feature;
 - CLI/validation commands for artifact inspection, validation, target-threshold summaries, fit sample class summaries, regeneration, benchmarks, and release-report inclusion.
 
 ## Remaining implementation goals
@@ -26,7 +26,7 @@ Implemented and not re-planned here:
 ### 1. Define production artifact profiles
 
 - Specify bundled bodies, time range, stored channels, derived outputs, unsupported outputs, speed policy, frame treatment, source provenance, and compatibility with release profiles.
-- Finalize body-class target error envelopes for luminaries, major planets, Pluto if claimed, lunar points, selected asteroids, and any custom/named bodies.
+- Finalize the scope-specific target error envelopes for luminaries, major planets, Pluto, lunar points, selected asteroids, and any custom/named bodies.
 - Encode profile metadata in artifact headers, manifests, validation summaries, and release reports.
 
 ### 2. Build deterministic generation from public inputs
