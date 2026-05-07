@@ -156,6 +156,7 @@ use pleiades_jpl::{
     reference_snapshot_2451914_major_body_boundary_summary_for_report,
     reference_snapshot_2451914_major_body_bridge_day_summary_for_report,
     reference_snapshot_2451915_major_body_boundary_summary_for_report,
+    reference_snapshot_2451915_major_body_bridge_summary_for_report,
     reference_snapshot_2451916_major_body_boundary_summary_for_report,
     reference_snapshot_2451916_major_body_dense_boundary_summary_for_report,
     reference_snapshot_2451916_major_body_interior_summary_for_report,
@@ -7922,6 +7923,10 @@ fn render_release_notes_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_2451911_major_body_boundary_summary_for_report());
     text.push('\n');
+    text.push_str(&reference_snapshot_2451915_major_body_boundary_summary_for_report());
+    text.push('\n');
+    text.push_str(&reference_snapshot_2451915_major_body_bridge_summary_for_report());
+    text.push('\n');
     text.push_str(&reference_snapshot_bridge_day_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_2451914_major_body_bridge_day_summary_for_report());
@@ -8068,6 +8073,8 @@ fn render_release_notes_summary_text() -> String {
     text.push_str(&reference_snapshot_2451911_major_body_boundary_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_2451915_major_body_boundary_summary_for_report());
+    text.push('\n');
+    text.push_str(&reference_snapshot_2451915_major_body_bridge_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_bridge_day_summary_for_report());
     text.push('\n');
@@ -8614,6 +8621,10 @@ fn render_release_summary_text() -> String {
     text.push_str(&reference_snapshot_major_body_boundary_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_major_body_bridge_summary_for_report());
+    text.push('\n');
+    text.push_str(&reference_snapshot_2451915_major_body_boundary_summary_for_report());
+    text.push('\n');
+    text.push_str(&reference_snapshot_2451915_major_body_bridge_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_2451917_major_body_boundary_summary_for_report());
     text.push('\n');
@@ -22390,6 +22401,9 @@ mod tests {
         assert!(
             rendered.contains(&reference_snapshot_2451915_major_body_boundary_summary_for_report())
         );
+        assert!(
+            rendered.contains(&reference_snapshot_2451915_major_body_bridge_summary_for_report())
+        );
         assert!(rendered
             .contains(&reference_snapshot_2451916_major_body_dense_boundary_summary_for_report()));
         assert!(
@@ -27182,6 +27196,11 @@ version = "0.9.0"
         assert!(reference.contains(&reference_snapshot_bridge_day_summary_for_report()));
         assert!(reference
             .contains(&reference_snapshot_2451914_major_body_bridge_day_summary_for_report()));
+        assert!(reference
+            .contains(&reference_snapshot_2451915_major_body_boundary_summary_for_report()));
+        assert!(
+            reference.contains(&reference_snapshot_2451915_major_body_bridge_summary_for_report())
+        );
         assert!(reference.contains("Reference 2500 selected-body boundary evidence:"));
         assert!(reference.contains("Reference 2200 selected-body boundary evidence:"));
         assert!(reference.contains("Reference 2415020 selected-body boundary evidence:"));
