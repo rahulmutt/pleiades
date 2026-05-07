@@ -23,8 +23,8 @@ This file lists focused implementation slices for the current phase ladder. Comp
 
 ### 3. Artifact benchmark coverage
 
-- The main benchmark report now includes packaged-artifact lookup and decode sections, alongside backend and chart timings.
-- Follow on with any missing benchmark views only if they add materially new evidence, such as a dedicated batch-oriented artifact lookup path.
+- The main benchmark report now includes packaged-artifact lookup, batch lookup, and decode sections, alongside backend and chart timings.
+- Follow on with any missing benchmark views only if they add materially new evidence.
 - Track benchmark rows in release summaries without treating speed as a substitute for accuracy.
 
 ## Phase 2 — Production reference inputs

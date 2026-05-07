@@ -19,7 +19,8 @@ mod house_validation;
 
 pub use artifact::{
     artifact_boundary_envelope_summary_for_report, artifact_inspection_summary_for_report,
-    render_artifact_report, render_artifact_summary, ArtifactBodyInspection,
+    render_artifact_report, render_artifact_summary, ArtifactBatchLookupBenchmarkReport,
+    ArtifactBatchLookupBenchmarkReportValidationError, ArtifactBodyInspection,
     ArtifactDecodeBenchmarkReport, ArtifactDecodeBenchmarkReportValidationError,
     ArtifactInspectionReport, ArtifactLookupBenchmarkReport,
     ArtifactLookupBenchmarkReportValidationError,
@@ -25621,6 +25622,7 @@ version = "0.9.0"
         assert!(artifact_summary.contains("Comparison tolerance audit"));
         assert!(artifact_summary.contains("bodies checked:"));
         assert!(artifact_summary.contains("Artifact lookup benchmark"));
+        assert!(artifact_summary.contains("Artifact batch lookup benchmark"));
         assert!(artifact_summary.contains("ns/lookup="));
         assert!(artifact_summary.contains("lookups/s="));
         assert!(artifact_summary.contains("Artifact decode benchmark"));
@@ -27231,6 +27233,8 @@ version = "0.9.0"
         assert!(report.contains("Artifact request policy"));
         assert!(report.contains("Model error envelope"));
         assert!(report.contains("Body-class error envelopes"));
+        assert!(report.contains("Artifact lookup benchmark"));
+        assert!(report.contains("Artifact batch lookup benchmark"));
         assert!(report.contains("Artifact decode benchmark"));
         assert!(report.contains("nanoseconds per decode:"));
         assert!(report.contains("decodes per second:"));

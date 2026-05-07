@@ -32,7 +32,7 @@ The repository currently provides:
 - `pleiades-compression` and `pleiades-data` codec/profile/checksum support plus a stage-5 draft packaged-data artifact for the 1500-2500 CE range; the packaged artifact has recently been retuned to adjacent quadratic windows with longitude unwrapping across sampled epochs and linear tails where needed, materially improving the fit envelope and reducing artifact size while remaining draft-grade;
 - CLI and validation tooling for chart inspection, compatibility profiles, request policies, backend matrices, artifact reports, benchmarks, audits, and release-bundle rehearsal.
 
-The implementation is therefore past the original bootstrap/foundation phases. Remaining work is productionization: source breadth, artifact accuracy, advanced request behavior, catalog evidence, and release gates.
+The implementation is therefore past the original bootstrap/foundation phases. Remaining work is productionization: source breadth, artifact accuracy, advanced request behavior, catalog evidence, and release gates. The artifact reporting surface now also includes separate single-lookup, batch-lookup, and decode benchmark sections so throughput evidence stays visible alongside the fit report.
 
 ## Remaining specification gaps
 
