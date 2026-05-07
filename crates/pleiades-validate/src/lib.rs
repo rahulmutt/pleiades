@@ -3226,11 +3226,11 @@ impl fmt::Display for WorkspaceAuditSummary {
 }
 
 const RELEASE_CHECKLIST_REPOSITORY_MANAGED_RELEASE_GATES: [&str; 10] = [
-    "[x] mise run fmt",
-    "[x] mise run lint",
-    "[x] mise run test",
-    "[x] mise run audit",
-    "[x] mise run release-smoke",
+    "[x] cargo fmt --all --check",
+    "[x] cargo clippy --workspace --all-targets --all-features -- -D warnings",
+    "[x] cargo test --workspace",
+    "[x] cargo run -q -p pleiades-validate -- workspace-audit",
+    "[x] cargo run -q -p pleiades-validate -- release-smoke",
     "[x] cargo run -q -p pleiades-validate -- verify-compatibility-profile",
     "[x] cargo run -q -p pleiades-validate -- validate-artifact",
     "[x] cargo run -q -p pleiades-validate -- verify-release-bundle --out /tmp/pleiades-release",
@@ -8890,11 +8890,11 @@ fn render_release_summary_text() -> String {
     text.push('\n');
     text.push_str("Release gate reminders:\n");
     for item in [
-        "[x] mise run fmt",
-        "[x] mise run lint",
-        "[x] mise run test",
-        "[x] mise run audit",
-        "[x] mise run release-smoke",
+        "[x] cargo fmt --all --check",
+        "[x] cargo clippy --workspace --all-targets --all-features -- -D warnings",
+        "[x] cargo test --workspace",
+        "[x] cargo run -q -p pleiades-validate -- workspace-audit",
+        "[x] cargo run -q -p pleiades-validate -- release-smoke",
         "[x] cargo run -q -p pleiades-validate -- verify-compatibility-profile",
         "[x] cargo run -q -p pleiades-validate -- validate-artifact",
         "[x] cargo run -q -p pleiades-validate -- bundle-release --out /tmp/pleiades-release",
