@@ -1171,6 +1171,223 @@ fn packaged_artifact_channel_quantization_scales(
     }
 }
 
+fn packaged_artifact_segment_span_bounds(artifact: &CompressedArtifact) -> (f64, f64) {
+    let mut min_span_days: f64 = f64::INFINITY;
+    let mut max_span_days: f64 = 0.0;
+
+    for body in &artifact.bodies {
+        for segment in &body.segments {
+            let span_days = segment.end.julian_day.days() - segment.start.julian_day.days();
+            min_span_days = min_span_days.min(span_days);
+            max_span_days = max_span_days.max(span_days);
+        }
+    }
+
+    if min_span_days.is_infinite() {
+        (0.0, 0.0)
+    } else {
+        (min_span_days, max_span_days)
+    }
+}
+
+fn packaged_artifact_channel_count(
+    artifact: &CompressedArtifact,
+    residual_channels: bool,
+) -> usize {
+    artifact
+        .bodies
+        .iter()
+        .flat_map(|body| body.segments.iter())
+        .map(|segment| {
+            if residual_channels {
+                segment.residual_channels.len()
+            } else {
+                segment.channels.len()
+            }
+        })
+        .sum()
+}
+
+/// Structured normalized-intermediate provenance for the packaged artifact.
+#[derive(Clone, Debug, PartialEq)]
+pub struct PackagedArtifactNormalizedIntermediateSummary {
+    /// Human-readable generation label.
+    pub label: &'static str,
+    /// Version of the packaged artifact format.
+    pub artifact_version: u16,
+    /// Human-readable provenance/source summary.
+    pub source: &'static str,
+    /// Canonical source-revision summary for the checked-in production-generation corpus.
+    pub source_revision: String,
+    /// Stable identifier for the packaged-artifact profile.
+    pub profile_id: &'static str,
+    /// Covered time range for the normalized intermediate layout.
+    pub time_range: TimeRange,
+    /// Generation policy used to turn reference snapshots into segments.
+    pub generation_policy: PackagedArtifactGenerationPolicy,
+    /// Per-channel quantization scales captured from the checked-in artifact.
+    pub quantization_scales: String,
+    /// Bodies bundled into the packaged artifact.
+    pub body_count: usize,
+    /// Total segment count across all bundled bodies.
+    pub segment_count: usize,
+    /// Total count of segments carrying residual correction channels.
+    pub residual_segment_count: usize,
+    /// Total count of stored channels across all segments.
+    pub stored_channel_count: usize,
+    /// Total count of residual channels across all segments.
+    pub residual_channel_count: usize,
+    /// Smallest observed segment span in days.
+    pub min_segment_span_days: f64,
+    /// Largest observed segment span in days.
+    pub max_segment_span_days: f64,
+}
+
+impl PackagedArtifactNormalizedIntermediateSummary {
+    /// Returns the normalized intermediates as a compact human-readable line.
+    pub fn summary_fields_line(&self) -> String {
+        format!(
+            "label={}; profile id={}; version={}; time range={}; source={}; source revision={}; body count={}; segments={}; residual-bearing segments={}; stored channels={}; residual channels={}; segment span days={:.12}..{:.12}; segment strategy={}; {}",
+            self.label,
+            self.profile_id,
+            self.artifact_version,
+            self.time_range,
+            self.source,
+            self.source_revision,
+            self.body_count,
+            self.segment_count,
+            self.residual_segment_count,
+            self.stored_channel_count,
+            self.residual_channel_count,
+            self.min_segment_span_days,
+            self.max_segment_span_days,
+            self.generation_policy.segment_strategy(),
+            self.quantization_scales,
+        )
+    }
+
+    /// Returns the normalized intermediates as a compact human-readable line.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "Packaged artifact normalized intermediates: {}",
+            self.summary_fields_line()
+        )
+    }
+
+    /// Returns `Ok(())` when the summary still matches the current packaged-artifact posture.
+    pub fn validate(&self) -> Result<(), pleiades_compression::CompressionError> {
+        let artifact = packaged_artifact();
+        if self.label != ARTIFACT_LABEL {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                "packaged artifact normalized intermediate summary label does not match the checked-in artifact label",
+            ));
+        }
+        if self.artifact_version != artifact.header.version {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                "packaged artifact normalized intermediate summary artifact version does not match the checked-in packaged artifact version",
+            ));
+        }
+        if self.source != ARTIFACT_SOURCE {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                "packaged artifact normalized intermediate summary source does not match the checked-in artifact source",
+            ));
+        }
+        if self.source_revision != production_generation_source_summary_for_report() {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                "packaged artifact normalized intermediate summary source revision does not match the checked-in production-generation source summary",
+            ));
+        }
+        if self.profile_id != ARTIFACT_PROFILE_ID {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                "packaged artifact normalized intermediate summary profile id does not match the checked-in artifact profile id",
+            ));
+        }
+        if self.time_range != artifact_time_range(artifact) {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                "packaged artifact normalized intermediate summary time range does not match the checked-in packaged artifact",
+            ));
+        }
+        if self.generation_policy
+            != PackagedArtifactGenerationPolicy::AdjacentSameBodyLinearSegments
+        {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                "packaged artifact normalized intermediate summary generation policy does not match the checked-in packaged artifact",
+            ));
+        }
+        if self.quantization_scales != packaged_artifact_quantization_scales_line() {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                "packaged artifact normalized intermediate summary quantization scales do not match the checked-in packaged artifact",
+            ));
+        }
+        if self.body_count != artifact.bodies.len() {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                "packaged artifact normalized intermediate summary body count does not match the checked-in packaged artifact",
+            ));
+        }
+        if self.segment_count != artifact.segment_count() {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                "packaged artifact normalized intermediate summary segment count does not match the checked-in packaged artifact",
+            ));
+        }
+        if self.residual_segment_count != artifact.residual_segment_count() {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                "packaged artifact normalized intermediate summary residual segment count does not match the checked-in packaged artifact",
+            ));
+        }
+        if self.stored_channel_count != packaged_artifact_channel_count(artifact, false) {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                "packaged artifact normalized intermediate summary stored channel count does not match the checked-in packaged artifact",
+            ));
+        }
+        if self.residual_channel_count != packaged_artifact_channel_count(artifact, true) {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                "packaged artifact normalized intermediate summary residual channel count does not match the checked-in packaged artifact",
+            ));
+        }
+        let (expected_min_segment_span_days, expected_max_segment_span_days) =
+            packaged_artifact_segment_span_bounds(artifact);
+        if self.min_segment_span_days != expected_min_segment_span_days {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                "packaged artifact normalized intermediate summary minimum segment span does not match the checked-in packaged artifact",
+            ));
+        }
+        if self.max_segment_span_days != expected_max_segment_span_days {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                "packaged artifact normalized intermediate summary maximum segment span does not match the checked-in packaged artifact",
+            ));
+        }
+
+        Ok(())
+    }
+
+    /// Returns the validated normalized intermediates as a compact human-readable line.
+    pub fn validated_summary_line(&self) -> Result<String, pleiades_compression::CompressionError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for PackagedArtifactNormalizedIntermediateSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// Structured regeneration provenance for the packaged artifact.
 #[derive(Clone, Debug, PartialEq)]
 pub struct PackagedArtifactRegenerationSummary {
@@ -1194,6 +1411,8 @@ pub struct PackagedArtifactRegenerationSummary {
     pub residual_bodies: Vec<CelestialBody>,
     /// Bodies bundled into the packaged artifact.
     pub bodies: Vec<CelestialBody>,
+    /// Normalized intermediate layout captured from the checked-in artifact.
+    pub normalized_intermediates: PackagedArtifactNormalizedIntermediateSummary,
     /// Fit envelope measured against the generation source samples.
     pub fit_envelope: PackagedArtifactFitEnvelopeSummary,
     /// Coverage summary for the checked-in JPL reference snapshot used for regeneration.
@@ -1215,6 +1434,11 @@ impl PackagedArtifactRegenerationSummary {
         self.reference_snapshot
             .map(|summary| format_reference_snapshot_summary(&summary))
             .unwrap_or_else(|| "Reference snapshot coverage: unavailable".to_string())
+    }
+
+    /// Returns the normalized intermediate layout as a compact human-readable line.
+    pub fn normalized_intermediates_line(&self) -> String {
+        self.normalized_intermediates.summary_fields_line()
     }
 
     /// Returns the residual-correction body coverage as a compact structured summary.
@@ -1276,6 +1500,14 @@ impl PackagedArtifactRegenerationSummary {
                 "packaged artifact regeneration summary source revision does not match the checked-in production-generation source summary",
             ));
         }
+        self.normalized_intermediates.validate().map_err(|error| {
+            pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                format!(
+                    "packaged artifact regeneration summary normalized intermediates are invalid: {error}"
+                ),
+            )
+        })?;
         if self.profile_id != ARTIFACT_PROFILE_ID {
             return Err(pleiades_compression::CompressionError::new(
                 pleiades_compression::CompressionErrorKind::InvalidFormat,
@@ -1397,11 +1629,12 @@ impl PackagedArtifactRegenerationSummary {
     /// Returns the full packaged-artifact regeneration provenance summary.
     pub fn summary_line(&self) -> String {
         format!(
-            "Packaged artifact regeneration source: label={}; profile id={}; source={}; source revision={}; checksum=0x{:016x}; {}; segment strategy={}; {}; {}; bundled bodies: {}; {}; fit envelope: {}; artifact version={}",
+            "Packaged artifact regeneration source: label={}; profile id={}; source={}; source revision={}; normalized intermediates: {}; checksum=0x{:016x}; {}; segment strategy={}; {}; {}; bundled bodies: {}; {}; fit envelope: {}; artifact version={}",
             self.label,
             self.profile_id,
             self.source,
             self.source_revision,
+            self.normalized_intermediates_line(),
             self.checksum,
             self.generation_policy_line(),
             self.generation_policy.segment_strategy(),
@@ -1441,6 +1674,7 @@ pub fn packaged_artifact_regeneration_summary_details() -> PackagedArtifactRegen
         quantization_scales: packaged_artifact_quantization_scales_line(),
         residual_bodies: artifact.residual_bodies(),
         bodies: packaged_bodies().to_vec(),
+        normalized_intermediates: packaged_artifact_normalized_intermediate_summary_details(),
         fit_envelope: packaged_artifact_fit_envelope_summary_details(),
         reference_snapshot: reference_snapshot_summary(),
     };
@@ -1460,6 +1694,40 @@ pub fn packaged_artifact_regeneration_summary_for_report() -> String {
     match summary.validated_summary_line() {
         Ok(line) => line,
         Err(error) => format!("Packaged artifact regeneration source: unavailable ({error})"),
+    }
+}
+
+/// Returns the structured normalized-intermediate provenance.
+pub fn packaged_artifact_normalized_intermediate_summary_details(
+) -> PackagedArtifactNormalizedIntermediateSummary {
+    let artifact = packaged_artifact();
+    let summary = PackagedArtifactNormalizedIntermediateSummary {
+        label: ARTIFACT_LABEL,
+        artifact_version: artifact.header.version,
+        source: ARTIFACT_SOURCE,
+        source_revision: production_generation_source_summary_for_report(),
+        profile_id: ARTIFACT_PROFILE_ID,
+        time_range: artifact_time_range(artifact),
+        generation_policy: PackagedArtifactGenerationPolicy::AdjacentSameBodyLinearSegments,
+        quantization_scales: packaged_artifact_quantization_scales_line(),
+        body_count: artifact.bodies.len(),
+        segment_count: artifact.segment_count(),
+        residual_segment_count: artifact.residual_segment_count(),
+        stored_channel_count: packaged_artifact_channel_count(artifact, false),
+        residual_channel_count: packaged_artifact_channel_count(artifact, true),
+        min_segment_span_days: packaged_artifact_segment_span_bounds(artifact).0,
+        max_segment_span_days: packaged_artifact_segment_span_bounds(artifact).1,
+    };
+    debug_assert!(summary.validate().is_ok());
+    summary
+}
+
+/// Returns the normalized-intermediate provenance summary.
+pub fn packaged_artifact_normalized_intermediate_summary_for_report() -> String {
+    let summary = packaged_artifact_normalized_intermediate_summary_details();
+    match summary.validated_summary_line() {
+        Ok(line) => line,
+        Err(error) => format!("Packaged artifact normalized intermediates: unavailable ({error})"),
     }
 }
 
@@ -5439,10 +5707,19 @@ mod tests {
         summary
             .validate()
             .expect("packaged regeneration summary should validate");
+        assert_eq!(
+            summary.normalized_intermediates.summary_line(),
+            packaged_artifact_normalized_intermediate_summary_for_report()
+        );
         assert!(provenance
             .contains("Packaged artifact regeneration source: label=stage-5 packaged-data draft"));
         assert!(provenance.contains("profile id=pleiades-packaged-artifact-profile/stage-5-draft"));
         assert!(provenance.contains("source revision=Production generation source:"));
+        assert!(provenance.contains("normalized intermediates: label=stage-5 packaged-data draft; profile id=pleiades-packaged-artifact-profile/stage-5-draft; version="));
+        assert!(provenance.contains("body count=11; segments="));
+        assert!(provenance.contains("residual-bearing segments=1"));
+        assert!(provenance.contains("stored channels="));
+        assert!(provenance.contains("segment span days="));
         assert!(provenance.contains("checksum=0x"));
         assert!(provenance.contains("generation policy: adjacent same-body linear segments"));
         assert!(provenance
@@ -5455,6 +5732,60 @@ mod tests {
         assert!(provenance.contains("segment samples across"));
         assert!(provenance.contains("rows across"));
         assert!(provenance.contains("asteroid rows"));
+    }
+
+    #[test]
+    fn packaged_artifact_normalized_intermediate_summary_matches_current_posture() {
+        let summary = packaged_artifact_normalized_intermediate_summary_details();
+        let artifact = packaged_artifact();
+
+        assert_eq!(summary.label, ARTIFACT_LABEL);
+        assert_eq!(summary.artifact_version, artifact.header.version);
+        assert_eq!(summary.source, ARTIFACT_SOURCE);
+        assert_eq!(
+            summary.source_revision,
+            production_generation_source_summary_for_report()
+        );
+        assert_eq!(summary.profile_id, ARTIFACT_PROFILE_ID);
+        assert_eq!(summary.time_range, artifact_time_range(artifact));
+        assert_eq!(
+            summary.generation_policy,
+            PackagedArtifactGenerationPolicy::AdjacentSameBodyLinearSegments
+        );
+        assert_eq!(
+            summary.quantization_scales,
+            packaged_artifact_quantization_scales_line()
+        );
+        assert_eq!(summary.body_count, artifact.bodies.len());
+        assert_eq!(summary.segment_count, artifact.segment_count());
+        assert_eq!(
+            summary.residual_segment_count,
+            artifact.residual_segment_count()
+        );
+        assert_eq!(
+            summary.stored_channel_count,
+            packaged_artifact_channel_count(artifact, false)
+        );
+        assert_eq!(
+            summary.residual_channel_count,
+            packaged_artifact_channel_count(artifact, true)
+        );
+        assert_eq!(
+            summary.min_segment_span_days,
+            packaged_artifact_segment_span_bounds(artifact).0
+        );
+        assert_eq!(
+            summary.max_segment_span_days,
+            packaged_artifact_segment_span_bounds(artifact).1
+        );
+        assert!(summary.summary_line().contains(
+            "Packaged artifact normalized intermediates: label=stage-5 packaged-data draft"
+        ));
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        summary
+            .validate()
+            .expect("normalized intermediates summary should validate");
     }
 
     #[test]
