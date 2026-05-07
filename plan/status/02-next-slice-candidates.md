@@ -72,7 +72,7 @@ Current note: the remaining Phase 1 reference-breadth candidates are effectively
 - The current house-validation corpus already carries the release-facing formula families, latitude-sensitive systems, and documented constraints for the shipped catalog.
 - Extend that evidence only when new release-advertised house systems are added or existing ones change status.
 - Keep descriptor-only or approximate entries out of fully implemented claims.
-- The packaged-artifact generation manifest summary sidecar is now staged alongside the generation manifest, the packaged-artifact target-threshold scope envelopes summary sidecar is now staged alongside the target-threshold summary, and the bundle-release help/docs now also enumerate the production-generation summary, production-generation source summary, and production-generation manifest summary surfaces, so the remaining production-artifact work can focus on the fit-error and benchmark-matrix slice.
+- The packaged-artifact generation manifest summary sidecar is now staged alongside the generation manifest, the packaged-artifact target-threshold scope envelopes summary sidecar is now staged alongside the target-threshold summary, and the bundle-release help/docs now also enumerate the production-generation summary, production-generation source summary, production-generation manifest summary, and production-generation manifest checksum summary surfaces, so the remaining production-artifact work can focus on the fit-error and benchmark-matrix slice.
 
 ### 2. Ayanamsa provenance batch
 
