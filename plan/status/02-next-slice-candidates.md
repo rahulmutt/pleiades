@@ -7,10 +7,11 @@ This file lists focused implementation slices for the current phase ladder. Comp
 ### 1. Artifact fitting strategy
 
 - The Moon slice has already moved from residual-correction segments to quadratic base fits.
-- Evaluate whether the remaining high-error bodies should move to Chebyshev or higher-order polynomial segments.
+- The bundled-body quadratic-span slice has landed; current thresholds are calibrated to the latest draft artifact.
+- Evaluate whether the remaining high-error bodies should move to denser windows, Chebyshev, or higher-order polynomial segments.
 - Split body classes by cadence and segment length: inner planets, outer planets, Pluto, and selected asteroids may still need different strategies.
 - Body/channel-specific fit reports now identify the worst segments and source intervals; use them to prioritize the next fit changes.
-- Keep failures explicit until measured deltas are inside published thresholds.
+- Keep failures explicit until measured deltas are inside the production target profile.
 
 ### 2. Artifact generation manifest
 

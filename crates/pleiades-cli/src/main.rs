@@ -2725,7 +2725,7 @@ mod tests {
             .lines()
             .any(|line| line == packaged_artifact_access_report_line()));
         assert!(release_notes_summary.lines().any(|line| {
-            line == "Packaged-artifact generation policy: adjacent same-body linear segments; bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs with longitude unwrapping; the Moon uses overlapping three-point spans with quadratic base fits and longitude unwrapping to keep the high-curvature fit compact"
+            line == "Packaged-artifact generation policy: overlapping same-body quadratic spans; bodies with a single sampled epoch use point segments; bodies with two sampled epochs remain linear; bodies with three or more sampled epochs are fit with overlapping three-point spans using quadratic base fits and longitude unwrapping"
         }));
         assert!(release_notes_summary.contains("Packaged request policy:"));
         assert!(release_notes_summary.contains("Packaged lookup epoch policy:"));
@@ -4730,7 +4730,7 @@ mod tests {
             .lines()
             .any(|line| line == packaged_artifact_access_report_line()));
         assert!(release_summary.lines().any(|line| {
-            line == "Packaged-artifact generation policy: adjacent same-body linear segments; bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs with longitude unwrapping; the Moon uses overlapping three-point spans with quadratic base fits and longitude unwrapping to keep the high-curvature fit compact"
+            line == "Packaged-artifact generation policy: overlapping same-body quadratic spans; bodies with a single sampled epoch use point segments; bodies with two sampled epochs remain linear; bodies with three or more sampled epochs are fit with overlapping three-point spans using quadratic base fits and longitude unwrapping"
         }));
         assert!(release_summary.lines().any(|line| {
             line == format!(
@@ -5240,7 +5240,7 @@ mod tests {
         assert!(regenerated.contains("Packaged artifact regenerated"));
         assert!(regenerated.contains("stage-5 packaged-data draft"));
         assert!(regenerated.contains("checksum=0x"));
-        assert!(regenerated.contains("generation policy: adjacent same-body linear segments"));
+        assert!(regenerated.contains("generation policy: overlapping same-body quadratic spans"));
         assert!(regenerated.contains("11 bundled bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros)"));
         assert!(regenerated.contains("Packaged artifact regeneration source:"));
         assert!(regenerated.contains("Reference snapshot coverage:"));

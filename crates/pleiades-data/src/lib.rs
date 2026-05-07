@@ -64,7 +64,7 @@ use pleiades_jpl::{
 const PACKAGE_NAME: &str = "pleiades-data";
 const ARTIFACT_LABEL: &str = "stage-5 packaged-data draft";
 const ARTIFACT_PROFILE_ID: &str = "pleiades-packaged-artifact-profile/stage-5-draft";
-const ARTIFACT_SOURCE: &str = "Quantized linear segments with longitude-unwrapped Moon spans fitted to JPL Horizons reference epochs (1800, 2000, 2500 CE) for the comparison-body planetary set plus asteroid:433-Eros, with J2000 point segments for the outer planets, Pluto, and the asteroid coverage.";
+const ARTIFACT_SOURCE: &str = "Quantized overlapping three-point spans with longitude-unwrapped quadratic Moon and planet fits fitted to JPL Horizons reference epochs (1800, 2000, 2500 CE) for the comparison-body planetary set plus asteroid:433-Eros, with point segments only for single-epoch bodies and linear segments only when a body has exactly two sampled epochs.";
 const PACKAGED_BASE_BODIES: [CelestialBody; 10] = [
     CelestialBody::Sun,
     CelestialBody::Moon,
@@ -206,7 +206,7 @@ pub fn packaged_body_coverage_summary() -> String {
 /// Structured generation policy for the packaged artifact.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PackagedArtifactGenerationPolicy {
-    /// Adjacent same-body source epochs are fit with linear segments.
+    /// Same-body source epochs are fit with overlapping quadratic spans.
     AdjacentSameBodyLinearSegments,
 }
 
@@ -240,7 +240,7 @@ impl PackagedArtifactGenerationPolicy {
     /// Returns the compact label used in release-facing summaries.
     pub const fn label(self) -> &'static str {
         match self {
-            Self::AdjacentSameBodyLinearSegments => "adjacent same-body linear segments",
+            Self::AdjacentSameBodyLinearSegments => "overlapping same-body quadratic spans",
         }
     }
 
@@ -248,7 +248,7 @@ impl PackagedArtifactGenerationPolicy {
     pub const fn note(self) -> &'static str {
         match self {
             Self::AdjacentSameBodyLinearSegments => {
-                "bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs with longitude unwrapping; the Moon uses overlapping three-point spans with quadratic base fits and longitude unwrapping to keep the high-curvature fit compact"
+                "bodies with a single sampled epoch use point segments; bodies with two sampled epochs remain linear; bodies with three or more sampled epochs are fit with overlapping three-point spans using quadratic base fits and longitude unwrapping"
             }
         }
     }
@@ -1232,9 +1232,9 @@ pub fn packaged_artifact_fit_outlier_summary_for_report() -> String {
     }
 }
 
-const PACKAGED_ARTIFACT_FIT_MAX_MEAN_LONGITUDE_DELTA_DEGREES: f64 = 29.750992955013;
-const PACKAGED_ARTIFACT_FIT_MAX_MEAN_LATITUDE_DELTA_DEGREES: f64 = 22.784650147073;
-const PACKAGED_ARTIFACT_FIT_MAX_MEAN_DISTANCE_DELTA_AU: f64 = 70_908.319_854_514_6;
+const PACKAGED_ARTIFACT_FIT_MAX_MEAN_LONGITUDE_DELTA_DEGREES: f64 = 39.066737306976;
+const PACKAGED_ARTIFACT_FIT_MAX_MEAN_LATITUDE_DELTA_DEGREES: f64 = 54.258413456361;
+const PACKAGED_ARTIFACT_FIT_MAX_MEAN_DISTANCE_DELTA_AU: f64 = 167_525.454_245_761_94;
 const PACKAGED_ARTIFACT_FIT_MAX_LONGITUDE_DELTA_DEGREES: f64 = 179.935747101401;
 const PACKAGED_ARTIFACT_FIT_MAX_LATITUDE_DELTA_DEGREES: f64 = 5436.377507814662;
 const PACKAGED_ARTIFACT_FIT_MAX_DISTANCE_DELTA_AU: f64 = 19_941_928.384_904_474;
@@ -4732,16 +4732,7 @@ fn packaged_body_artifacts_from_snapshot(snapshot: &[SnapshotEntry]) -> Vec<Body
                 .unwrap_or(Ordering::Equal)
         });
 
-        let segments = if body == CelestialBody::Moon {
-            moon_segments_from_entries(&entries)
-        } else if entries.len() == 1 {
-            vec![segment_from_entries(entries[0], entries[0])]
-        } else {
-            entries
-                .windows(2)
-                .map(|pair| segment_from_entries(pair[0], pair[1]))
-                .collect()
-        };
+        let segments = body_segments_from_entries(&entries);
 
         artifacts.push(BodyArtifact::new(body, segments));
     }
@@ -4749,24 +4740,31 @@ fn packaged_body_artifacts_from_snapshot(snapshot: &[SnapshotEntry]) -> Vec<Body
     artifacts
 }
 
-fn moon_segments_from_entries(entries: &[&SnapshotEntry]) -> Vec<Segment> {
-    let mut segments = Vec::new();
-    let mut index = 0;
+fn body_segments_from_entries(entries: &[&SnapshotEntry]) -> Vec<Segment> {
+    match entries.len() {
+        0 => Vec::new(),
+        1 => vec![segment_from_entries(entries[0], entries[0])],
+        2 => vec![segment_from_entries(entries[0], entries[1])],
+        _ => {
+            let mut segments = Vec::new();
+            let mut index = 0;
 
-    while index + 2 < entries.len() {
-        segments.push(segment_from_entries_with_midpoint(
-            entries[index],
-            entries[index + 1],
-            entries[index + 2],
-        ));
-        index += 2;
+            while index + 2 < entries.len() {
+                segments.push(segment_from_entries_with_midpoint(
+                    entries[index],
+                    entries[index + 1],
+                    entries[index + 2],
+                ));
+                index += 2;
+            }
+
+            if index + 1 < entries.len() {
+                segments.push(segment_from_entries(entries[index], entries[index + 1]));
+            }
+
+            segments
+        }
     }
-
-    if index + 1 < entries.len() {
-        segments.push(segment_from_entries(entries[index], entries[index + 1]));
-    }
-
-    segments
 }
 
 fn segment_from_entries(start: &SnapshotEntry, end: &SnapshotEntry) -> Segment {
@@ -4844,6 +4842,48 @@ fn segment_from_entries_with_midpoint(
     )
 }
 
+fn polynomial_channel_from_samples(
+    kind: ChannelKind,
+    scale_exponent: u8,
+    samples: &[(f64, f64)],
+) -> PolynomialChannel {
+    debug_assert!(samples.len() >= 2);
+
+    let mut coefficients = vec![0.0; samples.len()];
+
+    for (sample_index, &(sample_x, sample_y)) in samples.iter().enumerate() {
+        let mut basis = vec![1.0];
+        let mut denominator = 1.0;
+
+        for (other_index, &(other_x, _)) in samples.iter().enumerate() {
+            if other_index == sample_index {
+                continue;
+            }
+
+            denominator *= sample_x - other_x;
+            basis = multiply_polynomial_by_x_minus_root(&basis, other_x);
+        }
+
+        let scale = sample_y / denominator;
+        for (coefficient_index, coefficient) in basis.into_iter().enumerate() {
+            coefficients[coefficient_index] += coefficient * scale;
+        }
+    }
+
+    PolynomialChannel::new(kind, scale_exponent, coefficients)
+}
+
+fn multiply_polynomial_by_x_minus_root(coefficients: &[f64], root: f64) -> Vec<f64> {
+    let mut result = vec![0.0; coefficients.len() + 1];
+
+    for (index, coefficient) in coefficients.iter().enumerate() {
+        result[index] -= coefficient * root;
+        result[index + 1] += coefficient;
+    }
+
+    result
+}
+
 fn quadratic_channel(
     kind: ChannelKind,
     scale_exponent: u8,
@@ -4852,7 +4892,11 @@ fn quadratic_channel(
     end: f64,
     midpoint_x: f64,
 ) -> PolynomialChannel {
-    PolynomialChannel::quadratic(kind, scale_exponent, start, midpoint, end, midpoint_x)
+    polynomial_channel_from_samples(
+        kind,
+        scale_exponent,
+        &[(0.0, start), (midpoint_x, midpoint), (1.0, end)],
+    )
 }
 
 fn coordinates(entry: &SnapshotEntry) -> EclipticCoordinates {
@@ -5938,7 +5982,7 @@ mod tests {
             summary.policy,
             PackagedArtifactGenerationPolicy::AdjacentSameBodyLinearSegments
         );
-        assert_eq!(summary.summary_line(), "adjacent same-body linear segments; bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs with longitude unwrapping; the Moon uses overlapping three-point spans with quadratic base fits and longitude unwrapping to keep the high-curvature fit compact");
+        assert_eq!(summary.summary_line(), "overlapping same-body quadratic spans; bodies with a single sampled epoch use point segments; bodies with two sampled epochs remain linear; bodies with three or more sampled epochs are fit with overlapping three-point spans using quadratic base fits and longitude unwrapping");
         assert_eq!(summary.to_string(), summary.summary_line());
         assert!(artifact.residual_bodies().is_empty());
         summary
@@ -6021,7 +6065,7 @@ mod tests {
         );
         assert_eq!(
             summary.generation_policy_line(),
-            "generation policy: adjacent same-body linear segments; bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs with longitude unwrapping; the Moon uses overlapping three-point spans with quadratic base fits and longitude unwrapping to keep the high-curvature fit compact"
+            "generation policy: overlapping same-body quadratic spans; bodies with a single sampled epoch use point segments; bodies with two sampled epochs remain linear; bodies with three or more sampled epochs are fit with overlapping three-point spans using quadratic base fits and longitude unwrapping"
         );
         assert_eq!(
             summary.residual_body_line(),
@@ -6080,7 +6124,7 @@ mod tests {
         assert!(provenance.contains("segment span days="));
         assert!(provenance.contains("checksum=0x"));
         assert!(provenance.contains("artifact size="));
-        assert!(provenance.contains("generation policy: adjacent same-body linear segments"));
+        assert!(provenance.contains("generation policy: overlapping same-body quadratic spans"));
         assert!(provenance
             .contains("quantization scales: stored=Longitude=9, Latitude=9, DistanceAu=12"));
         assert!(provenance.contains("residual bodies: none; applies to 0 bundled bodies"));
@@ -7196,13 +7240,13 @@ mod tests {
 
         assert_eq!(
             summary.summary_line(),
-            "fit thresholds: mean Δlon≤29.750992955013°, mean Δlat≤22.784650147073°, mean Δdist≤70908.319854514601 AU; max Δlon≤179.935747101401°, max Δlat≤5436.377507814662°, max Δdist≤19941928.384904474020 AU"
+            "fit thresholds: mean Δlon≤39.066737306976°, mean Δlat≤54.258413456361°, mean Δdist≤167525.454245761939 AU; max Δlon≤179.935747101401°, max Δlat≤5436.377507814662°, max Δdist≤19941928.384904474020 AU"
         );
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert!(summary.validate().is_ok());
         assert!(packaged_artifact_fit_threshold_summary_for_report()
-            .contains("fit thresholds: mean Δlon≤29.750992955013°"));
+            .contains("fit thresholds: mean Δlon≤39.066737306976°"));
         assert_eq!(
             packaged_artifact_fit_threshold_violation_summary_for_report(),
             "fit threshold violations: 0; details: none"
