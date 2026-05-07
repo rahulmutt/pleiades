@@ -48,7 +48,7 @@ Implemented and not re-planned here:
 - Validate checksum, header, profile, body index, segment directory, residual consistency, boundary lookups, interior samples, unsupported bodies, and unsupported outputs.
 - Compare decoded results to generation sources and publish measured fit errors by body, body class, coordinate channel, and time slice.
 - Benchmark decode, lookup, batch lookup, memory footprint, artifact size, and full-chart packaged-data use.
-- Make validation fail on profile, threshold, checksum, or claim drift, and report measured-versus-threshold context when fit thresholds are exceeded.
+- Make validation fail on profile, threshold, checksum, or claim drift, and report field-specific measured-versus-threshold context when fit thresholds are exceeded.
 
 ### 5. Finalize distribution behavior
 

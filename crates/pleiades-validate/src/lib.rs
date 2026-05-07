@@ -12381,7 +12381,7 @@ fn validate_packaged_artifact_fit_posture_with(
             EphemerisError::new(
                 EphemerisErrorKind::InvalidRequest,
                 format!(
-                    "validation report packaged-artifact fit envelope exceeds calibrated thresholds: {error}; measured {}; thresholds {}",
+                    "validation report packaged-artifact fit envelope exceeds calibrated thresholds: {error}; measured fit envelope: {}; fit thresholds: {}",
                     fit_envelope.summary_line(),
                     thresholds.summary_line(),
                 ),
@@ -19551,8 +19551,9 @@ mod tests {
         assert!(error.message.contains(
             "validation report packaged-artifact fit envelope exceeds calibrated thresholds"
         ));
-        assert!(error.message.contains("measured fit envelope:"));
-        assert!(error.message.contains("fit thresholds:"));
+        assert!(error.message.contains("mean_longitude_delta_degrees"));
+        assert!(error.message.contains("measured="));
+        assert!(error.message.contains("threshold="));
         assert!(error.message.contains("mean Δlon≤"));
     }
 

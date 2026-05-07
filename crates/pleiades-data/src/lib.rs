@@ -457,7 +457,11 @@ pub enum PackagedArtifactFitEnvelopeSummaryValidationError {
     /// A rendered summary field no longer matches the current packaged-artifact fit envelope.
     FieldOutOfSync { field: &'static str },
     /// A measured fit field exceeds the calibrated packaged-artifact fit threshold.
-    ThresholdExceeded { field: &'static str },
+    ThresholdExceeded {
+        field: &'static str,
+        measured_bits: u64,
+        threshold_bits: u64,
+    },
 }
 
 impl PackagedArtifactFitEnvelopeSummaryValidationError {
@@ -467,8 +471,14 @@ impl PackagedArtifactFitEnvelopeSummaryValidationError {
             Self::FieldOutOfSync { field } => format!(
                 "the packaged artifact fit envelope summary field `{field}` is out of sync with the current posture"
             ),
-            Self::ThresholdExceeded { field } => format!(
-                "the packaged artifact fit envelope summary field `{field}` exceeds the calibrated fit threshold"
+            Self::ThresholdExceeded {
+                field,
+                measured_bits,
+                threshold_bits,
+            } => format!(
+                "the packaged artifact fit envelope summary field `{field}` exceeds the calibrated fit threshold (measured={:.12}, threshold={:.12})",
+                f64::from_bits(*measured_bits),
+                f64::from_bits(*threshold_bits),
             ),
         }
     }
@@ -577,6 +587,8 @@ impl PackagedArtifactFitEnvelopeSummary {
             return Err(
                 PackagedArtifactFitEnvelopeSummaryValidationError::ThresholdExceeded {
                     field: "mean_longitude_delta_degrees",
+                    measured_bits: self.mean_longitude_delta_degrees.to_bits(),
+                    threshold_bits: thresholds.max_mean_longitude_delta_degrees.to_bits(),
                 },
             );
         }
@@ -584,6 +596,8 @@ impl PackagedArtifactFitEnvelopeSummary {
             return Err(
                 PackagedArtifactFitEnvelopeSummaryValidationError::ThresholdExceeded {
                     field: "mean_latitude_delta_degrees",
+                    measured_bits: self.mean_latitude_delta_degrees.to_bits(),
+                    threshold_bits: thresholds.max_mean_latitude_delta_degrees.to_bits(),
                 },
             );
         }
@@ -591,6 +605,8 @@ impl PackagedArtifactFitEnvelopeSummary {
             return Err(
                 PackagedArtifactFitEnvelopeSummaryValidationError::ThresholdExceeded {
                     field: "mean_distance_delta_au",
+                    measured_bits: self.mean_distance_delta_au.to_bits(),
+                    threshold_bits: thresholds.max_mean_distance_delta_au.to_bits(),
                 },
             );
         }
@@ -598,6 +614,8 @@ impl PackagedArtifactFitEnvelopeSummary {
             return Err(
                 PackagedArtifactFitEnvelopeSummaryValidationError::ThresholdExceeded {
                     field: "max_longitude_delta_degrees",
+                    measured_bits: self.max_longitude_delta_degrees.to_bits(),
+                    threshold_bits: thresholds.max_longitude_delta_degrees.to_bits(),
                 },
             );
         }
@@ -605,6 +623,8 @@ impl PackagedArtifactFitEnvelopeSummary {
             return Err(
                 PackagedArtifactFitEnvelopeSummaryValidationError::ThresholdExceeded {
                     field: "max_latitude_delta_degrees",
+                    measured_bits: self.max_latitude_delta_degrees.to_bits(),
+                    threshold_bits: thresholds.max_latitude_delta_degrees.to_bits(),
                 },
             );
         }
@@ -612,6 +632,8 @@ impl PackagedArtifactFitEnvelopeSummary {
             return Err(
                 PackagedArtifactFitEnvelopeSummaryValidationError::ThresholdExceeded {
                     field: "max_distance_delta_au",
+                    measured_bits: self.max_distance_delta_au.to_bits(),
+                    threshold_bits: thresholds.max_distance_delta_au.to_bits(),
                 },
             );
         }
@@ -947,10 +969,10 @@ pub fn packaged_artifact_fit_envelope_summary_for_report() -> String {
 
 const PACKAGED_ARTIFACT_FIT_MAX_MEAN_LONGITUDE_DELTA_DEGREES: f64 = 29.750992955013;
 const PACKAGED_ARTIFACT_FIT_MAX_MEAN_LATITUDE_DELTA_DEGREES: f64 = 22.784650147073;
-const PACKAGED_ARTIFACT_FIT_MAX_MEAN_DISTANCE_DELTA_AU: f64 = 70908.319854514597;
+const PACKAGED_ARTIFACT_FIT_MAX_MEAN_DISTANCE_DELTA_AU: f64 = 70_908.319_854_514_6;
 const PACKAGED_ARTIFACT_FIT_MAX_LONGITUDE_DELTA_DEGREES: f64 = 179.935747101401;
 const PACKAGED_ARTIFACT_FIT_MAX_LATITUDE_DELTA_DEGREES: f64 = 5436.377507814662;
-const PACKAGED_ARTIFACT_FIT_MAX_DISTANCE_DELTA_AU: f64 = 19941928.384904475020;
+const PACKAGED_ARTIFACT_FIT_MAX_DISTANCE_DELTA_AU: f64 = 19_941_928.384_904_474;
 
 const PACKAGED_ARTIFACT_FIT_THRESHOLD_SUMMARY: PackagedArtifactFitThresholdSummary =
     PackagedArtifactFitThresholdSummary {
@@ -6456,9 +6478,13 @@ mod tests {
         assert_eq!(
             error,
             PackagedArtifactFitEnvelopeSummaryValidationError::ThresholdExceeded {
-                field: "mean_longitude_delta_degrees"
+                field: "mean_longitude_delta_degrees",
+                measured_bits: summary.mean_longitude_delta_degrees.to_bits(),
+                threshold_bits: thresholds.max_mean_longitude_delta_degrees.to_bits(),
             }
         );
+        assert!(error.summary_line().contains("measured="));
+        assert!(error.summary_line().contains("threshold="));
     }
 
     #[test]
