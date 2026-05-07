@@ -460,6 +460,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         | Some("selected-asteroid-source-summary") => validate_render_cli(args),
         Some("reference-snapshot-selected-asteroid-source-window-summary")
         | Some("selected-asteroid-source-window-summary") => validate_render_cli(args),
+        Some("reference-snapshot-2453000-selected-asteroid-source-summary")
+        | Some("2453000-selected-asteroid-source-summary") => validate_render_cli(args),
         Some("selected-asteroid-source-window") => validate_render_cli(args),
         Some("selected-asteroid-batch-parity-summary") => validate_render_cli(args),
         Some("reference-asteroid-evidence-summary") => validate_render_cli(args),
@@ -3827,6 +3829,23 @@ mod tests {
             selected_asteroid_source_window_summary
         );
         assert_eq!(
+            render_cli(&["reference-snapshot-2453000-selected-asteroid-source-summary"]).expect(
+                "reference snapshot 2453000 selected asteroid source summary should render"
+            ),
+            pleiades_jpl::selected_asteroid_source_2453000_summary_for_report()
+        );
+        assert_eq!(
+            render_cli(&["2453000-selected-asteroid-source-summary"])
+                .expect("2453000 selected asteroid source summary alias should render"),
+            pleiades_jpl::selected_asteroid_source_2453000_summary_for_report()
+        );
+        assert_eq!(
+            render_cli(&["2453000-selected-asteroid-source-summary", "extra"]).expect_err(
+                "2453000 selected asteroid source summary alias should reject extra arguments"
+            ),
+            "2453000-selected-asteroid-source-summary does not accept extra arguments"
+        );
+        assert_eq!(
             render_cli(&["selected-asteroid-source-window", "extra"])
                 .expect_err("selected asteroid source window alias should reject extra arguments"),
             "selected-asteroid-source-window does not accept extra arguments"
@@ -5841,6 +5860,12 @@ mod tests {
         ));
         assert!(help.contains(
             "reference-snapshot-selected-asteroid-source-window-summary  Print the compact selected-asteroid source windows summary"
+        ));
+        assert!(help.contains(
+            "reference-snapshot-2453000-selected-asteroid-source-summary  Print the compact reference 2003-12-27 selected-asteroid source evidence summary"
+        ));
+        assert!(help.contains(
+            "2453000-selected-asteroid-source-summary  Alias for reference-snapshot-2453000-selected-asteroid-source-summary"
         ));
         assert!(help.contains(
             "reference-snapshot-selected-asteroid-dense-boundary-summary  Print the compact selected-asteroid dense boundary evidence summary"
