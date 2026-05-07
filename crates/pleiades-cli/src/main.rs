@@ -2531,7 +2531,7 @@ mod tests {
         assert!(release_checklist_summary.lines().any(|line| {
             line == "Compact summary views: release-notes-summary, api-stability-summary, backend-matrix-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary"
         }));
-        assert!(release_checklist_summary.contains("Repository-managed release gates: 7 items"));
+        assert!(release_checklist_summary.contains("Repository-managed release gates: 10 items"));
         assert!(release_checklist_summary.contains("Manual bundle workflow: 3 items"));
         assert!(release_checklist_summary.contains("Bundle contents: 17 items"));
         assert!(release_checklist_summary.contains("External publishing reminders: 3 items"));

@@ -26,7 +26,7 @@ Implemented and not re-planned here:
 
 ### 1. Finalize blocking release gates
 
-- Gate releases on format, strict clippy, workspace tests, compatibility-profile verification, artifact validation, release-bundle verification, and pure-Rust/native-dependency audit.
+- Gate releases on format, strict clippy, workspace tests, compatibility-profile verification, artifact validation, release-bundle verification, benchmark/report generation, and pure-Rust/native-dependency audit.
 - Ensure validation commands fail or clearly block publication on advertised accuracy, artifact, profile, or compatibility regressions.
 - Capture tool versions, source revision, workspace cleanliness, benchmark parameters, and artifact-generation parameters.
 

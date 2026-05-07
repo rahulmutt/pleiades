@@ -3221,7 +3221,7 @@ impl fmt::Display for WorkspaceAuditSummary {
     }
 }
 
-const RELEASE_CHECKLIST_REPOSITORY_MANAGED_RELEASE_GATES: [&str; 7] = [
+const RELEASE_CHECKLIST_REPOSITORY_MANAGED_RELEASE_GATES: [&str; 10] = [
     "[x] mise run fmt",
     "[x] mise run lint",
     "[x] mise run test",
@@ -3229,6 +3229,9 @@ const RELEASE_CHECKLIST_REPOSITORY_MANAGED_RELEASE_GATES: [&str; 7] = [
     "[x] mise run release-smoke",
     "[x] cargo run -q -p pleiades-validate -- verify-compatibility-profile",
     "[x] cargo run -q -p pleiades-validate -- validate-artifact",
+    "[x] cargo run -q -p pleiades-validate -- verify-release-bundle --out /tmp/pleiades-release",
+    "[x] cargo run -q -p pleiades-validate -- benchmark --rounds 5",
+    "[x] cargo run -q -p pleiades-validate -- report --rounds 5",
 ];
 
 const RELEASE_CHECKLIST_MANUAL_BUNDLE_WORKFLOW: [&str; 3] = [
@@ -22419,6 +22422,9 @@ mod tests {
         assert!(rendered.contains("Release summary: release-summary"));
         assert!(rendered.contains("Compact summary views: release-notes-summary, api-stability-summary, backend-matrix-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary"));
         assert!(rendered.contains("Repository-managed release gates:"));
+        assert!(rendered.contains("[x] cargo run -q -p pleiades-validate -- verify-release-bundle --out /tmp/pleiades-release"));
+        assert!(rendered.contains("[x] cargo run -q -p pleiades-validate -- benchmark --rounds 5"));
+        assert!(rendered.contains("[x] cargo run -q -p pleiades-validate -- report --rounds 5"));
         assert!(rendered.contains("Manual bundle workflow:"));
         assert!(rendered.contains("Bundle contents:"));
         assert!(rendered.contains("backend-matrix-summary.txt"));
@@ -22456,7 +22462,7 @@ mod tests {
         assert!(rendered.contains("Release bundle verification: verify-release-bundle"));
         assert!(rendered.contains("Release summary: release-summary"));
         assert!(rendered.contains("Compact summary views: release-notes-summary, api-stability-summary, backend-matrix-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary"));
-        assert!(rendered.contains("Repository-managed release gates: 7 items"));
+        assert!(rendered.contains("Repository-managed release gates: 10 items"));
         assert!(rendered.contains("Manual bundle workflow: 3 items"));
         assert!(rendered.contains("Bundle contents: 17 items"));
         assert!(rendered.contains("External publishing reminders: 3 items"));
@@ -24101,7 +24107,7 @@ version = "0.9.0"
             release_checklist_summary.contains("Workspace audit summary: workspace-audit-summary")
         );
         assert!(release_checklist_summary.contains("Workspace audit: workspace-audit / audit"));
-        assert!(release_checklist_summary.contains("Repository-managed release gates: 7 items"));
+        assert!(release_checklist_summary.contains("Repository-managed release gates: 10 items"));
         assert!(release_checklist_summary.contains("Manual bundle workflow: 3 items"));
         assert!(release_checklist_summary.contains("Bundle contents: 17 items"));
         assert!(release_checklist_summary.contains("External publishing reminders: 3 items"));
