@@ -8092,6 +8092,10 @@ fn render_release_notes_summary_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_2451914_major_body_bridge_day_summary_for_report());
     text.push('\n');
+    text.push_str(&reference_snapshot_2451916_major_body_interior_summary_for_report());
+    text.push('\n');
+    text.push_str(&reference_snapshot_2451916_major_body_boundary_summary_for_report());
+    text.push('\n');
     text.push_str(&reference_snapshot_2451916_major_body_dense_boundary_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_2451917_major_body_boundary_summary_for_report());
@@ -23847,6 +23851,12 @@ version = "0.9.0"
             .contains(&reference_snapshot_2451916_major_body_interior_summary_for_report()));
         assert!(release_notes_summary
             .contains(&reference_snapshot_2451916_major_body_boundary_summary_for_report()));
+        assert!(release_notes_summary.lines().any(|line| {
+            line == reference_snapshot_2451916_major_body_interior_summary_for_report()
+        }));
+        assert!(release_notes_summary.lines().any(|line| {
+            line == reference_snapshot_2451916_major_body_boundary_summary_for_report()
+        }));
         assert!(release_notes_summary.contains(&reference_snapshot_bridge_day_summary_for_report()));
         assert!(release_notes_summary
             .contains(&reference_snapshot_2451914_major_body_bridge_day_summary_for_report()));
