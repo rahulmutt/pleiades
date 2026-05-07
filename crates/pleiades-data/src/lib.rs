@@ -4433,14 +4433,18 @@ fn build_packaged_artifact() -> CompressedArtifact {
         .expect("packaged artifact fixture should decode and validate")
 }
 
-/// Rebuilds the packaged artifact from the checked-in JPL reference snapshot.
+/// Rebuilds the packaged artifact from validated JPL reference-snapshot inputs.
 ///
 /// This helper is deterministic and pure Rust so maintainers can regenerate the
-/// checked-in fixture without relying on platform-specific tooling.
-pub fn regenerate_packaged_artifact() -> CompressedArtifact {
+/// checked-in fixture without relying on platform-specific tooling. Callers can
+/// supply a validated reference snapshot slice to make the generation inputs
+/// explicit while preserving the same bundled artifact layout.
+pub fn regenerate_packaged_artifact_from_snapshot(
+    snapshot: &[SnapshotEntry],
+) -> CompressedArtifact {
     let mut artifact = CompressedArtifact::new(
         ArtifactHeader::new(ARTIFACT_LABEL, ARTIFACT_SOURCE),
-        packaged_body_artifacts(),
+        packaged_body_artifacts_from_snapshot(snapshot),
     );
     artifact.checksum = artifact
         .checksum()
@@ -4451,9 +4455,13 @@ pub fn regenerate_packaged_artifact() -> CompressedArtifact {
     artifact
 }
 
-fn packaged_body_artifacts() -> Vec<BodyArtifact> {
+/// Rebuilds the packaged artifact from the checked-in JPL reference snapshot.
+pub fn regenerate_packaged_artifact() -> CompressedArtifact {
+    regenerate_packaged_artifact_from_snapshot(reference_snapshot())
+}
+
+fn packaged_body_artifacts_from_snapshot(snapshot: &[SnapshotEntry]) -> Vec<BodyArtifact> {
     let mut artifacts = Vec::new();
-    let snapshot = reference_snapshot();
 
     for body in packaged_bodies().iter().cloned() {
         let mut entries: Vec<&SnapshotEntry> =
@@ -4807,6 +4815,19 @@ mod tests {
         assert_eq!(encoded, PACKAGED_ARTIFACT_FIXTURE);
         assert_eq!(generated.residual_segment_count(), 13);
         assert_eq!(generated.residual_bodies(), vec![CelestialBody::Moon]);
+    }
+
+    #[test]
+    fn packaged_artifact_generation_from_supplied_snapshot_matches_the_default_fixture() {
+        let snapshot = reference_snapshot();
+        let generated_from_snapshot = regenerate_packaged_artifact_from_snapshot(snapshot);
+        let generated_default = regenerate_packaged_artifact();
+
+        assert_eq!(generated_from_snapshot, generated_default);
+        assert_eq!(
+            generated_from_snapshot.encode().unwrap(),
+            PACKAGED_ARTIFACT_FIXTURE
+        );
     }
 
     #[test]
