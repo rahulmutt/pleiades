@@ -451,16 +451,36 @@ pub struct PackagedArtifactFitEnvelopeSummary {
     pub max_distance_delta_au: f64,
 }
 
+/// A packaged-artifact fit threshold violation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PackagedArtifactFitThresholdViolation {
+    /// The field that exceeds the calibrated threshold.
+    pub field: &'static str,
+    /// The measured value, encoded as raw bits so the summary stays lossless.
+    pub measured_bits: u64,
+    /// The calibrated threshold, encoded as raw bits so the summary stays lossless.
+    pub threshold_bits: u64,
+}
+
+impl PackagedArtifactFitThresholdViolation {
+    fn summary_line(&self) -> String {
+        format!(
+            "`{}` measured={:.12}, threshold={:.12}",
+            self.field,
+            f64::from_bits(self.measured_bits),
+            f64::from_bits(self.threshold_bits),
+        )
+    }
+}
+
 /// Validation error for a packaged-artifact fit envelope that drifted from the current posture.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PackagedArtifactFitEnvelopeSummaryValidationError {
     /// A rendered summary field no longer matches the current packaged-artifact fit envelope.
     FieldOutOfSync { field: &'static str },
-    /// A measured fit field exceeds the calibrated packaged-artifact fit threshold.
+    /// One or more measured fit fields exceed the calibrated packaged-artifact fit thresholds.
     ThresholdExceeded {
-        field: &'static str,
-        measured_bits: u64,
-        threshold_bits: u64,
+        violations: Vec<PackagedArtifactFitThresholdViolation>,
     },
 }
 
@@ -471,15 +491,16 @@ impl PackagedArtifactFitEnvelopeSummaryValidationError {
             Self::FieldOutOfSync { field } => format!(
                 "the packaged artifact fit envelope summary field `{field}` is out of sync with the current posture"
             ),
-            Self::ThresholdExceeded {
-                field,
-                measured_bits,
-                threshold_bits,
-            } => format!(
-                "the packaged artifact fit envelope summary field `{field}` exceeds the calibrated fit threshold (measured={:.12}, threshold={:.12})",
-                f64::from_bits(*measured_bits),
-                f64::from_bits(*threshold_bits),
-            ),
+            Self::ThresholdExceeded { violations } => {
+                let rendered = violations
+                    .iter()
+                    .map(PackagedArtifactFitThresholdViolation::summary_line)
+                    .collect::<Vec<_>>()
+                    .join("; ");
+                format!(
+                    "the packaged artifact fit envelope summary exceeds the calibrated fit thresholds: {rendered}"
+                )
+            }
         }
     }
 }
@@ -583,62 +604,56 @@ impl PackagedArtifactFitEnvelopeSummary {
         &self,
         thresholds: &PackagedArtifactFitThresholdSummary,
     ) -> Result<(), PackagedArtifactFitEnvelopeSummaryValidationError> {
-        if self.mean_longitude_delta_degrees > thresholds.max_mean_longitude_delta_degrees {
-            return Err(
-                PackagedArtifactFitEnvelopeSummaryValidationError::ThresholdExceeded {
-                    field: "mean_longitude_delta_degrees",
-                    measured_bits: self.mean_longitude_delta_degrees.to_bits(),
-                    threshold_bits: thresholds.max_mean_longitude_delta_degrees.to_bits(),
-                },
-            );
-        }
-        if self.mean_latitude_delta_degrees > thresholds.max_mean_latitude_delta_degrees {
-            return Err(
-                PackagedArtifactFitEnvelopeSummaryValidationError::ThresholdExceeded {
-                    field: "mean_latitude_delta_degrees",
-                    measured_bits: self.mean_latitude_delta_degrees.to_bits(),
-                    threshold_bits: thresholds.max_mean_latitude_delta_degrees.to_bits(),
-                },
-            );
-        }
-        if self.mean_distance_delta_au > thresholds.max_mean_distance_delta_au {
-            return Err(
-                PackagedArtifactFitEnvelopeSummaryValidationError::ThresholdExceeded {
-                    field: "mean_distance_delta_au",
-                    measured_bits: self.mean_distance_delta_au.to_bits(),
-                    threshold_bits: thresholds.max_mean_distance_delta_au.to_bits(),
-                },
-            );
-        }
-        if self.max_longitude_delta_degrees > thresholds.max_longitude_delta_degrees {
-            return Err(
-                PackagedArtifactFitEnvelopeSummaryValidationError::ThresholdExceeded {
-                    field: "max_longitude_delta_degrees",
-                    measured_bits: self.max_longitude_delta_degrees.to_bits(),
-                    threshold_bits: thresholds.max_longitude_delta_degrees.to_bits(),
-                },
-            );
-        }
-        if self.max_latitude_delta_degrees > thresholds.max_latitude_delta_degrees {
-            return Err(
-                PackagedArtifactFitEnvelopeSummaryValidationError::ThresholdExceeded {
-                    field: "max_latitude_delta_degrees",
-                    measured_bits: self.max_latitude_delta_degrees.to_bits(),
-                    threshold_bits: thresholds.max_latitude_delta_degrees.to_bits(),
-                },
-            );
-        }
-        if self.max_distance_delta_au > thresholds.max_distance_delta_au {
-            return Err(
-                PackagedArtifactFitEnvelopeSummaryValidationError::ThresholdExceeded {
-                    field: "max_distance_delta_au",
-                    measured_bits: self.max_distance_delta_au.to_bits(),
-                    threshold_bits: thresholds.max_distance_delta_au.to_bits(),
-                },
-            );
+        let mut violations = Vec::new();
+
+        macro_rules! check_threshold {
+            ($field:literal, $measured:expr, $threshold:expr) => {
+                if $measured > $threshold {
+                    violations.push(PackagedArtifactFitThresholdViolation {
+                        field: $field,
+                        measured_bits: $measured.to_bits(),
+                        threshold_bits: $threshold.to_bits(),
+                    });
+                }
+            };
         }
 
-        Ok(())
+        check_threshold!(
+            "mean_longitude_delta_degrees",
+            self.mean_longitude_delta_degrees,
+            thresholds.max_mean_longitude_delta_degrees
+        );
+        check_threshold!(
+            "mean_latitude_delta_degrees",
+            self.mean_latitude_delta_degrees,
+            thresholds.max_mean_latitude_delta_degrees
+        );
+        check_threshold!(
+            "mean_distance_delta_au",
+            self.mean_distance_delta_au,
+            thresholds.max_mean_distance_delta_au
+        );
+        check_threshold!(
+            "max_longitude_delta_degrees",
+            self.max_longitude_delta_degrees,
+            thresholds.max_longitude_delta_degrees
+        );
+        check_threshold!(
+            "max_latitude_delta_degrees",
+            self.max_latitude_delta_degrees,
+            thresholds.max_latitude_delta_degrees
+        );
+        check_threshold!(
+            "max_distance_delta_au",
+            self.max_distance_delta_au,
+            thresholds.max_distance_delta_au
+        );
+
+        if violations.is_empty() {
+            Ok(())
+        } else {
+            Err(PackagedArtifactFitEnvelopeSummaryValidationError::ThresholdExceeded { violations })
+        }
     }
 }
 
@@ -6516,13 +6531,46 @@ mod tests {
         assert_eq!(
             error,
             PackagedArtifactFitEnvelopeSummaryValidationError::ThresholdExceeded {
-                field: "mean_longitude_delta_degrees",
-                measured_bits: summary.mean_longitude_delta_degrees.to_bits(),
-                threshold_bits: thresholds.max_mean_longitude_delta_degrees.to_bits(),
+                violations: vec![
+                    PackagedArtifactFitThresholdViolation {
+                        field: "mean_longitude_delta_degrees",
+                        measured_bits: summary.mean_longitude_delta_degrees.to_bits(),
+                        threshold_bits: thresholds.max_mean_longitude_delta_degrees.to_bits(),
+                    },
+                    PackagedArtifactFitThresholdViolation {
+                        field: "mean_latitude_delta_degrees",
+                        measured_bits: summary.mean_latitude_delta_degrees.to_bits(),
+                        threshold_bits: thresholds.max_mean_latitude_delta_degrees.to_bits(),
+                    },
+                    PackagedArtifactFitThresholdViolation {
+                        field: "mean_distance_delta_au",
+                        measured_bits: summary.mean_distance_delta_au.to_bits(),
+                        threshold_bits: thresholds.max_mean_distance_delta_au.to_bits(),
+                    },
+                    PackagedArtifactFitThresholdViolation {
+                        field: "max_longitude_delta_degrees",
+                        measured_bits: summary.max_longitude_delta_degrees.to_bits(),
+                        threshold_bits: thresholds.max_longitude_delta_degrees.to_bits(),
+                    },
+                    PackagedArtifactFitThresholdViolation {
+                        field: "max_latitude_delta_degrees",
+                        measured_bits: summary.max_latitude_delta_degrees.to_bits(),
+                        threshold_bits: thresholds.max_latitude_delta_degrees.to_bits(),
+                    },
+                    PackagedArtifactFitThresholdViolation {
+                        field: "max_distance_delta_au",
+                        measured_bits: summary.max_distance_delta_au.to_bits(),
+                        threshold_bits: thresholds.max_distance_delta_au.to_bits(),
+                    },
+                ],
             }
         );
         assert!(error.summary_line().contains("measured="));
         assert!(error.summary_line().contains("threshold="));
+        assert!(error
+            .summary_line()
+            .contains("mean_longitude_delta_degrees"));
+        assert!(error.summary_line().contains("max_distance_delta_au"));
     }
 
     #[test]
