@@ -587,7 +587,12 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
                 PackagedArtifactCommand::Write {
                     output_path,
                     manifest_path,
-                } => render_packaged_artifact_regeneration(output_path, manifest_path),
+                    manifest_checksum_path,
+                } => render_packaged_artifact_regeneration(
+                    output_path,
+                    manifest_path,
+                    manifest_checksum_path,
+                ),
                 PackagedArtifactCommand::Check => render_packaged_artifact_regeneration_check(),
             }
         }
@@ -972,6 +977,7 @@ enum PackagedArtifactCommand {
     Write {
         output_path: String,
         manifest_path: Option<String>,
+        manifest_checksum_path: Option<String>,
     },
     Check,
 }
@@ -979,13 +985,14 @@ enum PackagedArtifactCommand {
 fn parse_packaged_artifact_command(args: &[&str]) -> Result<PackagedArtifactCommand, String> {
     if args.is_empty() {
         return Err(
-            "missing required output path argument; pass a file path, --out <file>, --output <file>, --manifest-out <file>, or --check"
+            "missing required output path argument; pass a file path, --out <file>, --output <file>, --manifest-out <file>, --manifest-checksum-out <file>, or --check"
                 .to_string(),
         );
     }
 
     let mut output_path = None;
     let mut manifest_path = None;
+    let mut manifest_checksum_path = None;
     let mut check = false;
     let mut iter = args.iter().copied();
 
@@ -1010,6 +1017,17 @@ fn parse_packaged_artifact_command(args: &[&str]) -> Result<PackagedArtifactComm
                     return Err("duplicate manifest path argument: --manifest-out".to_string());
                 }
             }
+            "--manifest-checksum-out" => {
+                let path = iter
+                    .next()
+                    .ok_or_else(|| "missing value for --manifest-checksum-out".to_string())?;
+                if manifest_checksum_path.replace(path.to_string()).is_some() {
+                    return Err(
+                        "duplicate manifest checksum path argument: --manifest-checksum-out"
+                            .to_string(),
+                    );
+                }
+            }
             other if other.starts_with('-') => return Err(format!("unknown argument: {other}")),
             path => {
                 if output_path.replace(path.to_string()).is_some() {
@@ -1020,20 +1038,21 @@ fn parse_packaged_artifact_command(args: &[&str]) -> Result<PackagedArtifactComm
     }
 
     if check {
-        if output_path.is_some() || manifest_path.is_some() {
+        if output_path.is_some() || manifest_path.is_some() || manifest_checksum_path.is_some() {
             return Err("the --check flag cannot be combined with output paths".to_string());
         }
         return Ok(PackagedArtifactCommand::Check);
     }
 
     let output_path = output_path.ok_or_else(|| {
-        "missing required output path argument; pass a file path, --out <file>, --output <file>, --manifest-out <file>, or --check"
+        "missing required output path argument; pass a file path, --out <file>, --output <file>, --manifest-out <file>, --manifest-checksum-out <file>, or --check"
             .to_string()
     })?;
 
     Ok(PackagedArtifactCommand::Write {
         output_path,
         manifest_path,
+        manifest_checksum_path,
     })
 }
 
@@ -1047,9 +1066,19 @@ fn write_text_file(path: &str, contents: &str) -> Result<(), String> {
     std::fs::write(path, contents).map_err(|error| format!("failed to write {}: {error}", path))
 }
 
+fn checksum64(text: &str) -> u64 {
+    let mut hash = 0xcbf2_9ce4_8422_2325u64;
+    for byte in text.as_bytes() {
+        hash ^= u64::from(*byte);
+        hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
+    }
+    hash
+}
+
 fn render_packaged_artifact_regeneration(
     output_path: String,
     manifest_path: Option<String>,
+    manifest_checksum_path: Option<String>,
 ) -> Result<String, String> {
     let artifact = regenerate_packaged_artifact();
     let encoded = artifact.encode().map_err(|error| error.to_string())?;
@@ -1062,16 +1091,35 @@ fn render_packaged_artifact_regeneration(
     std::fs::write(&output_path, &encoded)
         .map_err(|error| format!("failed to write {}: {error}", output_path))?;
 
+    let manifest = if manifest_path.is_some() || manifest_checksum_path.is_some() {
+        Some(packaged_artifact_generation_manifest().to_string())
+    } else {
+        None
+    };
+
     let manifest_line = if let Some(manifest_path) = manifest_path {
-        let manifest = packaged_artifact_generation_manifest();
-        write_text_file(&manifest_path, manifest)?;
+        let manifest_text = manifest
+            .as_deref()
+            .expect("manifest text should be available when a manifest path is requested");
+        write_text_file(&manifest_path, manifest_text)?;
         format!("\n  manifest: {}", manifest_path)
     } else {
         String::new()
     };
 
+    let manifest_checksum_line = if let Some(manifest_checksum_path) = manifest_checksum_path {
+        let manifest_text = manifest
+            .as_deref()
+            .expect("manifest text should be available when a manifest checksum path is requested");
+        let checksum_text = format!("0x{:016x}\n", checksum64(manifest_text));
+        write_text_file(&manifest_checksum_path, &checksum_text)?;
+        format!("\n  manifest checksum sidecar: {}", manifest_checksum_path)
+    } else {
+        String::new()
+    };
+
     Ok(format!(
-        "Packaged artifact regenerated\n  path: {}\n  label: {}\n  source: {}\n  checksum: 0x{:016x}\n  bytes: {}\n  {}{}",
+        "Packaged artifact regenerated\n  path: {}\n  label: {}\n  source: {}\n  checksum: 0x{:016x}\n  bytes: {}\n  {}{}{}",
         output_path,
         artifact.header.generation_label,
         artifact.header.source,
@@ -1079,6 +1127,7 @@ fn render_packaged_artifact_regeneration(
         encoded.len(),
         packaged_artifact_regeneration_summary_for_report(),
         manifest_line,
+        manifest_checksum_line,
     ))
 }
 
@@ -5065,6 +5114,35 @@ mod tests {
             std::fs::read_to_string(&manifest_fixture_path)
                 .expect("packaged artifact regeneration should write the manifest sidecar"),
             pleiades_data::packaged_artifact_generation_manifest_for_report()
+        );
+
+        let manifest_checksum_fixture_path =
+            artifact_fixture_dir.join("packaged-artifact.manifest.checksum.txt");
+        let manifest_checksum_fixture_path_string =
+            manifest_checksum_fixture_path.display().to_string();
+        let regenerated_with_manifest_checksum = render_cli(&[
+            "regenerate-packaged-artifact",
+            "--out",
+            &artifact_fixture_path_string,
+            "--manifest-checksum-out",
+            &manifest_checksum_fixture_path_string,
+        ])
+        .expect("packaged artifact regeneration should write a manifest checksum sidecar");
+        assert!(regenerated_with_manifest_checksum.contains("manifest checksum sidecar:"));
+        assert!(regenerated_with_manifest_checksum.contains(&manifest_checksum_fixture_path_string));
+        assert_eq!(
+            std::fs::read_to_string(&manifest_checksum_fixture_path).expect(
+                "packaged artifact regeneration should write the manifest checksum sidecar"
+            ),
+            format!("0x{:016x}\n", {
+                let manifest = pleiades_data::packaged_artifact_generation_manifest_for_report();
+                let mut hash = 0xcbf2_9ce4_8422_2325u64;
+                for byte in manifest.as_bytes() {
+                    hash ^= u64::from(*byte);
+                    hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
+                }
+                hash
+            })
         );
 
         let output_alias_fixture_path =
