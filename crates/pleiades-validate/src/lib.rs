@@ -7966,6 +7966,8 @@ fn render_release_notes_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_bridge_day_summary_for_report());
     text.push('\n');
+    text.push_str(&reference_snapshot_2451914_bridge_day_summary_for_report());
+    text.push('\n');
     text.push_str(&reference_snapshot_2451914_major_body_bridge_day_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_lunar_boundary_summary_for_report());
@@ -8120,6 +8122,8 @@ fn render_release_notes_summary_text() -> String {
     text.push_str(&reference_snapshot_2451915_major_body_bridge_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_bridge_day_summary_for_report());
+    text.push('\n');
+    text.push_str(&reference_snapshot_2451914_bridge_day_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_2451914_major_body_bridge_day_summary_for_report());
     text.push('\n');
@@ -22526,6 +22530,7 @@ mod tests {
         assert!(
             rendered.contains(&reference_snapshot_2451915_major_body_bridge_summary_for_report())
         );
+        assert!(rendered.contains(&reference_snapshot_2451914_bridge_day_summary_for_report()));
         assert!(rendered
             .contains(&reference_snapshot_2451916_major_body_dense_boundary_summary_for_report()));
         assert!(
@@ -22813,6 +22818,7 @@ mod tests {
         );
         assert!(rendered.contains("House formula families: 7 (Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign)"));
         assert!(rendered.contains("Release notes summary: release-notes-summary"));
+        assert!(rendered.contains(&reference_snapshot_2451914_bridge_day_summary_for_report()));
         assert!(rendered.contains(&format!(
             "{}\n{}",
             reference_snapshot_1600_selected_body_boundary_summary_for_report(),
