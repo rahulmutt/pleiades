@@ -13693,16 +13693,21 @@ pub fn render_benchmark_report(rounds: usize) -> Result<String, EphemerisError> 
     let corpus = benchmark_corpus();
     let candidate = default_candidate_backend();
     let backend_report = benchmark_backend(&candidate, &corpus, rounds)?;
-    let artifact_report =
+    let artifact_lookup_report =
+        artifact::benchmark_packaged_artifact_lookup(rounds).map_err(|error| {
+            EphemerisError::new(EphemerisErrorKind::MissingDataset, error.to_string())
+        })?;
+    let artifact_decode_report =
         artifact::benchmark_packaged_artifact_decode(rounds).map_err(|error| {
             EphemerisError::new(EphemerisErrorKind::MissingDataset, error.to_string())
         })?;
     let chart_report = benchmark_chart_backend(default_candidate_backend(), rounds)?;
     Ok(format!(
-        "{}\n\n{}\n\n{}\n\n{}",
+        "{}\n\n{}\n\n{}\n\n{}\n\n{}",
         benchmark_provenance_text(),
         backend_report,
-        artifact_report,
+        artifact_lookup_report,
+        artifact_decode_report,
         chart_report
     ))
 }
@@ -20015,8 +20020,11 @@ mod tests {
         assert!(report.contains("Nanoseconds per request (single):"));
         assert!(report.contains("Nanoseconds per request (batch):"));
         assert!(report.contains("Batch throughput:"));
-        assert!(report.contains("Artifact decode benchmark report"));
+        assert!(report.contains("Artifact lookup benchmark report"));
         assert!(report.contains("Encoded bytes:"));
+        assert!(report.contains("Nanoseconds per lookup:"));
+        assert!(report.contains("Lookups per second:"));
+        assert!(report.contains("Artifact decode benchmark report"));
         assert!(report.contains("Nanoseconds per decode:"));
         assert!(report.contains("Decodes per second:"));
         assert!(report.contains("Chart benchmark report"));
