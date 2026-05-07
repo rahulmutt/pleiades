@@ -2340,6 +2340,8 @@ pub fn reference_snapshot_summary_for_report() -> String {
         reference_snapshot_2305457_selected_body_boundary_summary_for_report(),
         reference_snapshot_source_summary_for_report(),
         reference_snapshot_source_window_summary_for_report(),
+        reference_snapshot_equatorial_parity_summary_for_report(),
+        reference_snapshot_batch_parity_summary_for_report(),
         reference_snapshot_1749_major_body_boundary_summary_for_report(),
         reference_snapshot_2360233_major_body_boundary_summary_for_report(),
         reference_snapshot_early_major_body_boundary_summary_for_report(),
@@ -24864,6 +24866,8 @@ mod tests {
         );
         assert!(report.contains(&reference_snapshot_source_summary_for_report()));
         assert!(report.contains(&reference_snapshot_source_window_summary_for_report()));
+        assert!(report.contains(&reference_snapshot_equatorial_parity_summary_for_report()));
+        assert!(report.contains(&reference_snapshot_batch_parity_summary_for_report()));
         assert!(report.contains(&reference_snapshot_1749_major_body_boundary_summary_for_report()));
         assert!(
             report.contains(&reference_snapshot_2360233_major_body_boundary_summary_for_report())
