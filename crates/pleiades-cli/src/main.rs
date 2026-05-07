@@ -448,8 +448,10 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("reference-snapshot-selected-asteroid-terminal-boundary-summary")
         | Some("selected-asteroid-terminal-boundary-summary") => validate_render_cli(args),
         Some("selected-asteroid-source-evidence-summary") => validate_render_cli(args),
-        Some("selected-asteroid-source-summary") => validate_render_cli(args),
-        Some("selected-asteroid-source-window-summary") => validate_render_cli(args),
+        Some("reference-snapshot-selected-asteroid-source-summary")
+        | Some("selected-asteroid-source-summary") => validate_render_cli(args),
+        Some("reference-snapshot-selected-asteroid-source-window-summary")
+        | Some("selected-asteroid-source-window-summary") => validate_render_cli(args),
         Some("selected-asteroid-source-window") => validate_render_cli(args),
         Some("selected-asteroid-batch-parity-summary") => validate_render_cli(args),
         Some("reference-asteroid-evidence-summary") => validate_render_cli(args),
@@ -3744,6 +3746,11 @@ mod tests {
                 .expect("selected asteroid source summary alias should render"),
             selected_asteroid_source_evidence_summary
         );
+        assert_eq!(
+            render_cli(&["reference-snapshot-selected-asteroid-source-summary"])
+                .expect("reference snapshot selected asteroid source summary alias should render"),
+            selected_asteroid_source_evidence_summary
+        );
 
         let selected_asteroid_source_window_summary =
             render_cli(&["selected-asteroid-source-window-summary"])
@@ -3759,6 +3766,11 @@ mod tests {
         assert_eq!(
             render_cli(&["selected-asteroid-source-window"])
                 .expect("selected asteroid source window alias should render"),
+            selected_asteroid_source_window_summary
+        );
+        assert_eq!(
+            render_cli(&["reference-snapshot-selected-asteroid-source-window-summary"])
+                .expect("reference snapshot selected asteroid source window alias should render"),
             selected_asteroid_source_window_summary
         );
         assert_eq!(
@@ -5751,6 +5763,12 @@ mod tests {
         ));
         assert!(help.contains(
             "selected-asteroid-source-evidence-summary  Print the compact selected-asteroid source evidence summary"
+        ));
+        assert!(help.contains(
+            "reference-snapshot-selected-asteroid-source-summary  Print the compact selected-asteroid source evidence summary"
+        ));
+        assert!(help.contains(
+            "reference-snapshot-selected-asteroid-source-window-summary  Print the compact selected-asteroid source windows summary"
         ));
         assert!(help.contains(
             "reference-snapshot-selected-asteroid-dense-boundary-summary  Print the compact selected-asteroid dense boundary evidence summary"
