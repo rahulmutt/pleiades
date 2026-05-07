@@ -6,13 +6,13 @@ Turn the current stage-5 draft packaged-data fixture into a production-quality 1
 
 ## Starting point
 
-The workspace already has artifact structures, codec roundtrips, checksums, manifest summaries, regeneration helpers, benchmark/report surfaces, and a draft artifact. The draft artifact is not production-grade: validation reports still show large fit errors and threshold violations, although the Moon segment family has already been moved from residual-correction segments to quadratic base fits and the packaged-artifact reports now expose body/channel worst-segment intervals for the remaining fit work.
+The workspace already has artifact structures, codec roundtrips, checksums, manifest summaries, regeneration helpers, benchmark/report surfaces, and a draft artifact. The draft artifact is not production-grade: validation reports still show large fit errors and threshold violations, although the Moon segment family has already been moved from residual-correction segments to quadratic base fits, the packaged-artifact reports now expose body/channel worst-segment intervals for the remaining fit work, and regeneration provenance now records encoded artifact size for reproducibility and benchmark accounting.
 
 ## Implementation goals
 
 - Replace the draft fitting approach with a production strategy suitable for Sun, Moon, planets, and selected asteroid coverage.
 - Define body-class and channel-specific target thresholds before claiming success.
-- Generate normalized intermediates and compressed artifacts from validated public inputs with deterministic parameters.
+- Generate normalized intermediates and compressed artifacts from validated public inputs with deterministic parameters, including encoded artifact size and other reproducibility metadata.
 - Keep stored, derived, and unsupported outputs explicit in the artifact profile.
 - Improve segment selection, polynomial/Chebyshev order, quantization, and residual correction until measured errors fit the published profile.
 - Benchmark lookup latency, batch throughput, decode cost, artifact size, and chart-style packaged-data use.

@@ -14,6 +14,7 @@ This file lists focused implementation slices for the current phase ladder. Comp
 
 ### 2. Artifact generation manifest
 
+- Regeneration provenance now records encoded artifact size alongside the checksum, keeping size accounting explicit in the manifest trail.
 - Ensure generator parameters fully describe source inputs, segment strategy, quantization scales, residual policy, checksums, and output profile identifiers.
 - Keep normalized intermediate summaries deterministic and reproducible.
 - Make regenerated artifact bytes/checksums comparable from a clean checkout.

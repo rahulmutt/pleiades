@@ -8,7 +8,7 @@ The previous reference-surface and release-rehearsal cleanup work is treated as 
 
 ## Why this frontier comes first
 
-The current packaged-data artifact is reproducible and inspectable, but it is still a draft fixture with large measured fit errors. A first fit-quality slice has landed: Moon segments now use quadratic base fits instead of residual-correction segments, removing the previous Moon residual-bearing posture, and the packaged-artifact reports now expose body/channel worst-segment intervals for the remaining fit work. The specification still requires a compressed 1500-2500 CE artifact with published accuracy measurements, deterministic generation, efficient random access, and clear stored/derived/unsupported output semantics.
+The current packaged-data artifact is reproducible and inspectable, but it is still a draft fixture with large measured fit errors. A first fit-quality slice has landed: Moon segments now use quadratic base fits instead of residual-correction segments, removing the previous Moon residual-bearing posture, and the packaged-artifact reports now expose body/channel worst-segment intervals for the remaining fit work. A follow-on manifest slice has also landed: regeneration provenance now records encoded artifact size so the size accounting stays reproducible. The specification still requires a compressed 1500-2500 CE artifact with published accuracy measurements, deterministic generation, efficient random access, and clear stored/derived/unsupported output semantics.
 
 Production artifacts also depend on trustworthy reference inputs. If existing fixtures cannot support the required fitting and validation thresholds, Phase 2 work should expand or replace them before artifact claims broaden.
 

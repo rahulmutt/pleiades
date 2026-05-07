@@ -1478,6 +1478,13 @@ fn packaged_artifact_channel_count(
         .sum()
 }
 
+fn packaged_artifact_encoded_bytes(artifact: &CompressedArtifact) -> usize {
+    artifact
+        .encode()
+        .expect("packaged artifact should be encodable")
+        .len()
+}
+
 /// Structured normalized-intermediate provenance for the packaged artifact.
 #[derive(Clone, Debug, PartialEq)]
 pub struct PackagedArtifactNormalizedIntermediateSummary {
@@ -1673,6 +1680,8 @@ pub struct PackagedArtifactRegenerationSummary {
     pub profile_id: &'static str,
     /// Checksum of the checked-in packaged artifact.
     pub checksum: u64,
+    /// Encoded size of the checked-in packaged artifact in bytes.
+    pub artifact_size_bytes: usize,
     /// Generation policy used to turn reference snapshots into segments.
     pub generation_policy: PackagedArtifactGenerationPolicy,
     /// Per-channel quantization scales captured from the checked-in artifact.
@@ -1804,6 +1813,17 @@ impl PackagedArtifactRegenerationSummary {
                 ),
             ));
         }
+        let expected_artifact_size_bytes = packaged_artifact_encoded_bytes(artifact);
+        if self.artifact_size_bytes != expected_artifact_size_bytes {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                format!(
+                    "packaged artifact regeneration summary artifact size {} bytes does not match the checked-in packaged artifact size {} bytes",
+                    self.artifact_size_bytes,
+                    expected_artifact_size_bytes
+                ),
+            ));
+        }
         self.generation_policy.validate().map_err(|error| {
             pleiades_compression::CompressionError::new(
                 pleiades_compression::CompressionErrorKind::InvalidFormat,
@@ -1899,13 +1919,14 @@ impl PackagedArtifactRegenerationSummary {
     /// Returns the full packaged-artifact regeneration provenance summary.
     pub fn summary_line(&self) -> String {
         format!(
-            "Packaged artifact regeneration source: label={}; profile id={}; source={}; source revision={}; normalized intermediates: {}; checksum=0x{:016x}; {}; segment strategy={}; {}; {}; bundled bodies: {}; {}; fit envelope: {}; artifact version={}",
+            "Packaged artifact regeneration source: label={}; profile id={}; source={}; source revision={}; normalized intermediates: {}; checksum=0x{:016x}; artifact size={} bytes; {}; segment strategy={}; {}; {}; bundled bodies: {}; {}; fit envelope: {}; artifact version={}",
             self.label,
             self.profile_id,
             self.source,
             self.source_revision,
             self.normalized_intermediates_line(),
             self.checksum,
+            self.artifact_size_bytes,
             self.generation_policy_line(),
             self.generation_policy.segment_strategy(),
             self.quantization_scales,
@@ -1940,6 +1961,7 @@ pub fn packaged_artifact_regeneration_summary_details() -> PackagedArtifactRegen
         source_revision: production_generation_source_summary_for_report(),
         profile_id: ARTIFACT_PROFILE_ID,
         checksum: artifact.checksum,
+        artifact_size_bytes: packaged_artifact_encoded_bytes(artifact),
         generation_policy: PackagedArtifactGenerationPolicy::AdjacentSameBodyLinearSegments,
         quantization_scales: packaged_artifact_quantization_scales_line(),
         residual_bodies: artifact.residual_bodies(),
@@ -6057,6 +6079,7 @@ mod tests {
         assert!(provenance.contains("stored channels="));
         assert!(provenance.contains("segment span days="));
         assert!(provenance.contains("checksum=0x"));
+        assert!(provenance.contains("artifact size="));
         assert!(provenance.contains("generation policy: adjacent same-body linear segments"));
         assert!(provenance
             .contains("quantization scales: stored=Longitude=9, Latitude=9, DistanceAu=12"));
