@@ -1397,6 +1397,8 @@ pub struct PackagedArtifactProductionProfileSummary {
     pub artifact_version: u16,
     /// Covered time range for the packaged artifact.
     pub time_range: TimeRange,
+    /// Provenance summary for the checked-in production-generation corpus.
+    pub source_provenance: String,
     /// Bodies bundled into the packaged artifact.
     pub body_coverage: PackagedBodyCoverageSummary,
     /// Capability profile encoded by the packaged artifact.
@@ -1441,11 +1443,12 @@ impl PackagedArtifactProductionProfileSummary {
     /// Returns the production-profile skeleton as a compact human-readable line.
     pub fn summary_line(&self) -> String {
         format!(
-            "Packaged artifact production profile draft: profile id={}; label={}; version={}; time range={}; body coverage={}; artifact profile={}; output support={}; speed policy={}; generation policy={}; segment strategy={}; request policy={}; lookup epoch policy={}; frame treatment={}; storage/reconstruction={}; {}",
+            "Packaged artifact production profile draft: profile id={}; label={}; version={}; time range={}; source provenance={}; body coverage={}; artifact profile={}; output support={}; speed policy={}; generation policy={}; segment strategy={}; request policy={}; lookup epoch policy={}; frame treatment={}; storage/reconstruction={}; {}",
             self.profile_id,
             self.label,
             self.artifact_version,
             self.time_range,
+            self.source_provenance,
             self.body_coverage,
             self.artifact_profile,
             self.artifact_profile.output_support_entries_summary_line(),
@@ -1487,6 +1490,13 @@ impl PackagedArtifactProductionProfileSummary {
             return Err(
                 PackagedArtifactProductionProfileSummaryValidationError::FieldOutOfSync {
                     field: "time_range",
+                },
+            );
+        }
+        if self.source_provenance != production_generation_source_summary_for_report() {
+            return Err(
+                PackagedArtifactProductionProfileSummaryValidationError::FieldOutOfSync {
+                    field: "source_provenance",
                 },
             );
         }
@@ -1571,6 +1581,7 @@ pub fn packaged_artifact_production_profile_summary_details(
         label: ARTIFACT_LABEL,
         artifact_version: artifact.header.version,
         time_range: artifact_time_range(artifact),
+        source_provenance: production_generation_source_summary_for_report(),
         body_coverage: packaged_body_coverage_summary_details(),
         artifact_profile: profile_summary.profile,
         speed_policy,
@@ -1623,6 +1634,8 @@ pub struct PackagedArtifactGeneratorParameters {
     pub artifact_version: u16,
     /// Covered time range for the packaged artifact.
     pub time_range: TimeRange,
+    /// Provenance summary for the checked-in production-generation corpus.
+    pub source_provenance: String,
     /// Bodies bundled into the packaged artifact.
     pub body_coverage: PackagedBodyCoverageSummary,
     /// Capability profile encoded by the packaged artifact.
@@ -1647,11 +1660,12 @@ impl PackagedArtifactGeneratorParameters {
     /// Returns the generator parameters as a compact human-readable line.
     pub fn summary_line(&self) -> String {
         format!(
-            "Packaged artifact generator parameters: profile id={}; label={}; version={}; time range={}; body coverage={}; artifact profile={}; output support={}; speed policy={}; generation policy={}; segment strategy={}; request policy={}; lookup epoch policy={}; frame treatment={}; storage/reconstruction={}; {}",
+            "Packaged artifact generator parameters: profile id={}; label={}; version={}; time range={}; source provenance={}; body coverage={}; artifact profile={}; output support={}; speed policy={}; generation policy={}; segment strategy={}; request policy={}; lookup epoch policy={}; frame treatment={}; storage/reconstruction={}; {}",
             self.profile_id,
             self.label,
             self.artifact_version,
             self.time_range,
+            self.source_provenance,
             self.body_coverage,
             self.artifact_profile,
             self.artifact_profile.output_support_entries_summary_line(),
@@ -1692,6 +1706,12 @@ impl PackagedArtifactGeneratorParameters {
             return Err(pleiades_compression::CompressionError::new(
                 pleiades_compression::CompressionErrorKind::InvalidFormat,
                 "packaged artifact generator parameters time range does not match the current production profile",
+            ));
+        }
+        if self.source_provenance != current.source_provenance {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                "packaged artifact generator parameters source provenance does not match the current production profile",
             ));
         }
         if self.body_coverage != current.body_coverage {
@@ -1811,6 +1831,7 @@ pub fn packaged_artifact_generator_parameters_details() -> PackagedArtifactGener
         label: summary.label,
         artifact_version: summary.artifact_version,
         time_range: summary.time_range,
+        source_provenance: summary.source_provenance,
         body_coverage: summary.body_coverage,
         artifact_profile: summary.artifact_profile,
         speed_policy: summary.speed_policy,
@@ -5570,6 +5591,9 @@ mod tests {
         assert!(summary
             .summary_line()
             .contains("Packaged artifact production profile draft:"));
+        assert!(summary
+            .summary_line()
+            .contains("source provenance=Production generation source:"));
         assert!(summary.summary_line().contains("output support="));
         assert!(summary.summary_line().contains("speed policy=Unsupported"));
         assert!(summary
@@ -5642,6 +5666,23 @@ mod tests {
                 field: "time_range"
             }
         );
+    }
+
+    #[test]
+    fn packaged_artifact_production_profile_summary_validation_rejects_source_provenance_drift() {
+        let mut summary = packaged_artifact_production_profile_summary_details();
+        summary.source_provenance = "drifted source provenance".to_string();
+
+        let error = summary
+            .validate()
+            .expect_err("source-provenance drift should be rejected");
+        assert_eq!(
+            error,
+            PackagedArtifactProductionProfileSummaryValidationError::FieldOutOfSync {
+                field: "source_provenance"
+            }
+        );
+        assert!(error.to_string().contains("source_provenance"));
     }
 
     #[test]
@@ -5743,6 +5784,23 @@ mod tests {
         );
         assert!(error.message.contains(
             "packaged artifact generator parameters version does not match the current production profile"
+        ));
+    }
+
+    #[test]
+    fn packaged_artifact_generator_parameters_validation_rejects_source_provenance_drift() {
+        let mut parameters = packaged_artifact_generator_parameters_details();
+        parameters.source_provenance = "drifted source provenance".to_string();
+
+        let error = parameters
+            .validate()
+            .expect_err("source-provenance drift should be rejected");
+        assert_eq!(
+            error.kind,
+            pleiades_compression::CompressionErrorKind::InvalidFormat
+        );
+        assert!(error.message.contains(
+            "packaged artifact generator parameters source provenance does not match the current production profile"
         ));
     }
 
@@ -5900,7 +5958,13 @@ mod tests {
         );
         assert!(production_profile
             .summary_line()
+            .contains("source provenance=Production generation source:"));
+        assert!(production_profile
+            .summary_line()
             .contains("lookup epoch policy=TT-grid retag without relativistic correction"));
+        assert!(manifest
+            .summary_line()
+            .contains("source provenance=Production generation source:"));
         assert!(manifest
             .summary_line()
             .contains("segment strategy=bodies with a single sampled epoch use point segments"));
