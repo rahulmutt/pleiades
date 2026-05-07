@@ -2915,6 +2915,35 @@ pub fn production_generation_source_summary_for_report() -> String {
     )
 }
 
+fn strip_report_prefix<'a>(text: &'a str, prefix: &str) -> &'a str {
+    text.strip_prefix(prefix).unwrap_or(text)
+}
+
+/// Returns a compact production-generation manifest summary for release-facing reports.
+pub fn production_generation_manifest_summary_for_report() -> String {
+    let coverage = production_generation_snapshot_summary_for_report();
+    let source = production_generation_source_summary_for_report();
+    let body_class_coverage =
+        production_generation_snapshot_body_class_coverage_summary_for_report();
+    let boundary = production_generation_boundary_summary_for_report();
+    let boundary_windows = production_generation_boundary_window_summary_for_report();
+    let boundary_request_corpus =
+        production_generation_boundary_request_corpus_summary_for_report();
+
+    format!(
+        "Production generation manifest: coverage={}; source={}; body-class coverage={}; boundary overlay={}; boundary windows={}; boundary request corpus={}",
+        strip_report_prefix(&coverage, "Production generation coverage: "),
+        strip_report_prefix(&source, "Production generation source: "),
+        strip_report_prefix(&body_class_coverage, "Production generation body-class coverage: "),
+        strip_report_prefix(&boundary, "Production generation boundary overlay: "),
+        strip_report_prefix(&boundary_windows, "Production generation boundary windows: "),
+        strip_report_prefix(
+            &boundary_request_corpus,
+            "Production generation boundary request corpus: ",
+        ),
+    )
+}
+
 /// A single body-window slice inside the production-generation coverage corpus.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ProductionGenerationSnapshotWindow {
