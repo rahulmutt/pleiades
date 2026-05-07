@@ -8367,6 +8367,9 @@ fn render_release_notes_summary_text() -> String {
     text.push_str("Packaged-artifact generation manifest: ");
     text.push_str(&packaged_artifact_generation_manifest_for_report());
     text.push('\n');
+    text.push_str("Packaged-artifact size: ");
+    text.push_str(&format!("{} bytes", packaged_artifact_bytes().len()));
+    text.push('\n');
     text.push_str("Packaged request policy: ");
     text.push_str(&packaged_request_policy_summary_for_report());
     text.push('\n');
@@ -8964,6 +8967,9 @@ fn render_release_summary_text() -> String {
     text.push('\n');
     text.push_str("Packaged-artifact generation manifest: ");
     text.push_str(&packaged_artifact_generation_manifest_for_report());
+    text.push('\n');
+    text.push_str("Packaged-artifact size: ");
+    text.push_str(&format!("{} bytes", packaged_artifact_bytes().len()));
     text.push('\n');
     text.push_str("Artifact profile coverage: ");
     text.push_str(&packaged_artifact_profile_coverage_summary_for_report());
@@ -15571,6 +15577,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         "  Packaged-artifact generation manifest: {}",
         packaged_artifact_generation_manifest_for_report()
     );
+    let _ = writeln!(
+        text,
+        "  Packaged-artifact size: {} bytes",
+        report.artifact_decode_benchmark.encoded_bytes
+    );
     let _ = writeln!(text, "  {}", packaged_request_policy_summary_for_report());
     let _ = writeln!(
         text,
@@ -20412,6 +20423,7 @@ mod tests {
         assert!(validation_report_summary.contains(
             "Packaged-artifact generation manifest: Packaged artifact generation manifest:"
         ));
+        assert!(validation_report_summary.contains("Packaged-artifact size: "));
         assert_report_contains_exact_line(
             &validation_report_summary,
             &format!(
@@ -24875,6 +24887,7 @@ version = "0.9.0"
         assert!(release_summary.contains(
             "Packaged-artifact generation manifest: Packaged artifact generation manifest:"
         ));
+        assert!(release_summary.contains("Packaged-artifact size: "));
         assert!(release_summary.contains(
             "Artifact profile coverage: stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported; applies to 11 bundled bodies; bundled bodies: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros"
         ));
