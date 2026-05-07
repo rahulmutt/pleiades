@@ -2457,6 +2457,11 @@ mod tests {
             pleiades_jpl::reference_snapshot_1600_selected_body_boundary_summary_for_report(),
             pleiades_jpl::reference_snapshot_1750_selected_body_boundary_summary_for_report()
         )));
+        assert!(release_notes_summary.contains(&format!(
+            "{}\n{}",
+            pleiades_jpl::reference_snapshot_2268932_selected_body_boundary_summary_for_report(),
+            pleiades_jpl::reference_snapshot_2305457_selected_body_boundary_summary_for_report()
+        )));
         assert!(release_notes_summary.contains(profile.target_house_scope.join("; ").as_str()));
         assert!(release_notes_summary.contains(profile.target_ayanamsa_scope.join("; ").as_str()));
         assert!(release_notes_summary.contains(&format!(

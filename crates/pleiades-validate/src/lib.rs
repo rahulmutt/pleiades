@@ -7917,6 +7917,10 @@ fn render_release_notes_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_summary_for_report());
     text.push('\n');
+    text.push_str(&reference_snapshot_2268932_selected_body_boundary_summary_for_report());
+    text.push('\n');
+    text.push_str(&reference_snapshot_2305457_selected_body_boundary_summary_for_report());
+    text.push('\n');
     text.push_str(&reference_snapshot_2360233_major_body_boundary_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_2378499_major_body_boundary_summary_for_report());
@@ -8067,6 +8071,10 @@ fn render_release_notes_summary_text() -> String {
     text.push_str(&reference_asteroid_source_window_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_summary_for_report());
+    text.push('\n');
+    text.push_str(&reference_snapshot_2268932_selected_body_boundary_summary_for_report());
+    text.push('\n');
+    text.push_str(&reference_snapshot_2305457_selected_body_boundary_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_2360233_major_body_boundary_summary_for_report());
     text.push('\n');
@@ -23827,6 +23835,10 @@ version = "0.9.0"
             "Comparison tolerance policy: backend family=Composite; scopes=6 (Luminaries, Major planets, Lunar points, Asteroids, Custom bodies, Pluto fallback (approximate)); limits="
         ));
         assert!(release_notes_summary.contains("Release-specific coverage:"));
+        assert!(release_notes_summary
+            .contains(&reference_snapshot_2268932_selected_body_boundary_summary_for_report()));
+        assert!(release_notes_summary
+            .contains(&reference_snapshot_2305457_selected_body_boundary_summary_for_report()));
         assert!(release_notes_summary
             .contains(&reference_snapshot_2360233_major_body_boundary_summary_for_report()));
         assert!(release_notes_summary
