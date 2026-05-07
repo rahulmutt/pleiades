@@ -2,7 +2,7 @@
 
 ## Frontier
 
-The active frontier is still formally **Phase 1 — Reference Accuracy and Request Semantics**, but the current reference-breadth slice is saturated; the benchmark matrix summary now also carries the packaged-artifact fit posture block, calibrated fit thresholds, fit margins, and the current threshold-violation count, and validation-report fit failures now include field-specific measured-versus-threshold context plus a threshold-violation count while the packaged-artifact fit validator now aggregates every threshold overage in one error, so the next reviewable code slice shifts to Phase 2 deterministic artifact generation, while the normalized-intermediates reporting slice is now covered in both validation and release-bundle outputs.
+The active frontier is still formally **Phase 1 — Reference Accuracy and Request Semantics**, but the current reference-breadth slice is saturated; the benchmark matrix summary now also carries the packaged-artifact fit posture block, calibrated fit thresholds, fit margins, and detailed threshold-violation reporting, and validation-report fit failures now include field-specific measured-versus-threshold context plus a threshold-violation count while the packaged-artifact fit validator now aggregates every threshold overage in one error, so the next reviewable code slice shifts to Phase 2 deterministic artifact generation, while the normalized-intermediates reporting slice is now covered in both validation and release-bundle outputs.
 
 The repository is past bootstrap, MVP API work, catalog scaffolding, report-surface expansion, and release-bundle rehearsal. The remaining work now centers on turning the packaged-data prototype into a reproducible production artifact without widening claims prematurely.
 

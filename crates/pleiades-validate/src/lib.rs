@@ -62,7 +62,7 @@ use pleiades_data::{
     packaged_artifact_fit_margin_summary_for_report,
     packaged_artifact_fit_threshold_summary_details,
     packaged_artifact_fit_threshold_summary_for_report,
-    packaged_artifact_fit_threshold_violation_count_for_report,
+    packaged_artifact_fit_threshold_violation_summary_for_report,
     packaged_artifact_generation_manifest_for_report,
     packaged_artifact_generation_policy_summary_for_report,
     packaged_artifact_generation_residual_bodies_summary_for_report,
@@ -8940,7 +8940,7 @@ fn render_release_summary_text() -> String {
     text.push_str(&packaged_artifact_fit_margin_summary_for_report());
     text.push('\n');
     text.push_str("Packaged-artifact fit threshold violations: ");
-    text.push_str(&packaged_artifact_fit_threshold_violation_count_for_report());
+    text.push_str(&packaged_artifact_fit_threshold_violation_summary_for_report());
     text.push('\n');
     text.push_str("Packaged-artifact target thresholds: ");
     text.push_str(&packaged_artifact_target_threshold_summary_for_report());
@@ -13609,7 +13609,7 @@ fn render_benchmark_matrix_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(
         text,
         "  fit threshold violations: {}",
-        packaged_artifact_fit_threshold_violation_count_for_report()
+        packaged_artifact_fit_threshold_violation_summary_for_report()
     );
     let _ = writeln!(text, "  fit sample classes: {}", fit_sample_classes);
     let _ = writeln!(text, "  fit thresholds: {}", fit_thresholds);
@@ -15535,7 +15535,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(
         text,
         "  Packaged-artifact fit threshold violations: {}",
-        packaged_artifact_fit_threshold_violation_count_for_report()
+        packaged_artifact_fit_threshold_violation_summary_for_report()
     );
     let _ = writeln!(
         text,
@@ -19604,7 +19604,7 @@ mod tests {
         assert!(rendered.contains("Packaged-artifact fit posture"));
         assert!(rendered.contains("fit envelope: "));
         assert!(rendered.contains("fit margins: "));
-        assert!(rendered.contains("fit threshold violations: 0"));
+        assert!(rendered.contains("fit threshold violations: 0; details: none"));
         assert!(rendered.contains("fit sample classes: boundary continuity="));
         assert!(rendered.contains("fit thresholds: mean Δlon≤"));
         assert!(rendered.contains("target thresholds: profile id="));
@@ -20266,8 +20266,7 @@ mod tests {
         assert!(validation_report_summary.contains("Packaged-artifact target thresholds: profile id=pleiades-packaged-artifact-profile/stage-5-draft; target thresholds: draft fit envelope recorded; scopes=luminaries, major planets, pluto, lunar points, selected asteroids, custom bodies; fit envelope:"));
         assert!(validation_report_summary.contains("Packaged-artifact fit envelope: fit envelope:"));
         assert!(validation_report_summary.contains("Packaged-artifact fit margins: fit margins:"));
-        assert!(validation_report_summary
-            .contains("Packaged-artifact fit threshold violations: fit threshold violations: 0"));
+        assert!(validation_report_summary.contains("Packaged-artifact fit threshold violations: fit threshold violations: 0; details: none"));
         assert!(validation_report_summary
             .contains("Packaged-artifact fit sample classes: fit sample classes:"));
         assert!(validation_report_summary.contains("Packaged-artifact target-threshold scope envelopes: scope envelopes: scope=luminaries; bodies=2 (Sun, Moon); fit envelope:"));
@@ -24688,8 +24687,7 @@ version = "0.9.0"
         ));
         assert!(release_summary.contains("Packaged-artifact target thresholds: profile id=pleiades-packaged-artifact-profile/stage-5-draft; target thresholds: draft fit envelope recorded; scopes=luminaries, major planets, pluto, lunar points, selected asteroids, custom bodies; fit envelope:"));
         assert!(release_summary.contains("Packaged-artifact fit margins: fit margins:"));
-        assert!(release_summary
-            .contains("Packaged-artifact fit threshold violations: fit threshold violations: 0"));
+        assert!(release_summary.contains("Packaged-artifact fit threshold violations: fit threshold violations: 0; details: none"));
         assert!(release_summary.contains("Packaged-artifact target-threshold scope envelopes: scope envelopes: scope=luminaries; bodies=2 (Sun, Moon); fit envelope:"));
         assert!(release_summary.contains(
             "Packaged-artifact generation manifest: Packaged artifact generation manifest:"

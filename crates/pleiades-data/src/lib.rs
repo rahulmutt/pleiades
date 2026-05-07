@@ -1057,6 +1057,21 @@ pub fn packaged_artifact_fit_threshold_violation_count_for_report() -> String {
     }
 }
 
+/// Returns the packaged-artifact fit threshold violations with field-level context.
+pub fn packaged_artifact_fit_threshold_violation_summary_for_report() -> String {
+    let envelope = packaged_artifact_fit_envelope_summary_details();
+    let thresholds = packaged_artifact_fit_threshold_summary_details();
+
+    match envelope.validate_against_thresholds(&thresholds) {
+        Ok(()) => "fit threshold violations: 0; details: none".to_string(),
+        Err(error) => format!(
+            "fit threshold violations: {}; details: {}",
+            error.violation_count(),
+            error.summary_line(),
+        ),
+    }
+}
+
 fn packaged_artifact_body_scope(body: &CelestialBody) -> &'static str {
     match body {
         CelestialBody::Sun | CelestialBody::Moon => "luminaries",
@@ -6855,6 +6870,10 @@ mod tests {
         assert!(summary.validate().is_ok());
         assert!(packaged_artifact_fit_threshold_summary_for_report()
             .contains("fit thresholds: mean Δlon≤29.750992955013°"));
+        assert_eq!(
+            packaged_artifact_fit_threshold_violation_summary_for_report(),
+            "fit threshold violations: 0; details: none"
+        );
     }
 
     #[test]
@@ -6962,6 +6981,10 @@ mod tests {
         assert_eq!(
             packaged_artifact_fit_threshold_violation_count_for_report(),
             "fit threshold violations: 0"
+        );
+        assert_eq!(
+            packaged_artifact_fit_threshold_violation_summary_for_report(),
+            "fit threshold violations: 0; details: none"
         );
     }
 
