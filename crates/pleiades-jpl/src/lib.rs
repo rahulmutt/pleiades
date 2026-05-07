@@ -2919,6 +2919,19 @@ fn strip_report_prefix<'a>(text: &'a str, prefix: &str) -> &'a str {
     text.strip_prefix(prefix).unwrap_or(text)
 }
 
+/// Computes a deterministic 64-bit checksum for report text.
+fn checksum64(text: &str) -> u64 {
+    const FNV_OFFSET_BASIS: u64 = 0xcbf2_9ce4_8422_2325;
+    const FNV_PRIME: u64 = 0x0000_0001_0000_01b3;
+
+    let mut hash = FNV_OFFSET_BASIS;
+    for byte in text.as_bytes() {
+        hash ^= u64::from(*byte);
+        hash = hash.wrapping_mul(FNV_PRIME);
+    }
+    hash
+}
+
 /// Returns a compact production-generation manifest summary for release-facing reports.
 pub fn production_generation_manifest_summary_for_report() -> String {
     let coverage = production_generation_snapshot_summary_for_report();
@@ -2941,6 +2954,15 @@ pub fn production_generation_manifest_summary_for_report() -> String {
             &boundary_request_corpus,
             "Production generation boundary request corpus: ",
         ),
+    )
+}
+
+/// Returns the release-facing production-generation manifest checksum summary string.
+pub fn production_generation_manifest_checksum_for_report() -> String {
+    let summary = production_generation_manifest_summary_for_report();
+    format!(
+        "Production generation manifest checksum: 0x{:016x}",
+        checksum64(&summary)
     )
 }
 
