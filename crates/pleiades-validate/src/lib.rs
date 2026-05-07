@@ -20619,7 +20619,7 @@ mod tests {
             "Packaged-artifact speed policy: Unsupported; motion output support=unsupported"
         ));
         assert!(validation_report_summary.contains(
-            "Packaged-artifact storage/reconstruction: Quantized linear segments stored in pleiades-compression artifact format; body-indexed lookups support random access by body and lookup time across the advertised range; ecliptic and equatorial coordinates are reconstructed at runtime from stored channels; apparent, topocentric, sidereal, and motion outputs remain unsupported"
+            "Packaged-artifact storage/reconstruction: Quantized linear segments stored in pleiades-compression artifact format; body-indexed segment tables support random access by body and lookup time across the advertised range; ecliptic and equatorial coordinates are reconstructed at runtime from stored channels; apparent, topocentric, sidereal, and motion outputs remain unsupported"
         ));
         assert!(validation_report_summary.contains("Packaged-artifact target thresholds: profile id=pleiades-packaged-artifact-profile/stage-5-draft; target thresholds: draft fit envelope recorded; scopes=luminaries, major planets, pluto, lunar points, selected asteroids, custom bodies; fit envelope:"));
         assert!(validation_report_summary.contains("Packaged-artifact fit envelope: fit envelope:"));
@@ -25059,7 +25059,7 @@ version = "0.9.0"
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
         assert!(release_notes_summary
             .contains("Artifact summary: artifact-summary / artifact-posture-summary"));
-        assert!(release_notes_summary.contains("Packaged-artifact storage/reconstruction: Quantized linear segments stored in pleiades-compression artifact format; body-indexed lookups support random access by body and lookup time across the advertised range; ecliptic and equatorial coordinates are reconstructed at runtime from stored channels; apparent, topocentric, sidereal, and motion outputs remain unsupported"));
+        assert!(release_notes_summary.contains("Packaged-artifact storage/reconstruction: Quantized linear segments stored in pleiades-compression artifact format; body-indexed segment tables support random access by body and lookup time across the advertised range; ecliptic and equatorial coordinates are reconstructed at runtime from stored channels; apparent, topocentric, sidereal, and motion outputs remain unsupported"));
         assert_report_contains_exact_line(
             &release_notes_summary,
             &format!(
@@ -25135,7 +25135,7 @@ version = "0.9.0"
             "Packaged-artifact output support: EclipticCoordinates=derived, EquatorialCoordinates=derived, ApparentCorrections=unsupported, TopocentricCoordinates=unsupported, SiderealCoordinates=unsupported, Motion=unsupported"
         ));
         assert!(release_summary.contains(
-            "Packaged-artifact storage/reconstruction: Quantized linear segments stored in pleiades-compression artifact format; body-indexed lookups support random access by body and lookup time across the advertised range; ecliptic and equatorial coordinates are reconstructed at runtime from stored channels; apparent, topocentric, sidereal, and motion outputs remain unsupported"
+            "Packaged-artifact storage/reconstruction: Quantized linear segments stored in pleiades-compression artifact format; body-indexed segment tables support random access by body and lookup time across the advertised range; ecliptic and equatorial coordinates are reconstructed at runtime from stored channels; apparent, topocentric, sidereal, and motion outputs remain unsupported"
         ));
         assert!(release_summary.contains("Packaged-artifact target thresholds: profile id=pleiades-packaged-artifact-profile/stage-5-draft; target thresholds: draft fit envelope recorded; scopes=luminaries, major planets, pluto, lunar points, selected asteroids, custom bodies; fit envelope:"));
         assert!(release_summary.contains("Packaged-artifact fit margins: mean Δlon="));
@@ -25408,7 +25408,7 @@ version = "0.9.0"
         assert!(artifact_summary.contains("Packaged artifact generation manifest:"));
         assert!(artifact_summary.contains("Artifact request policy"));
         assert!(artifact_summary.contains(
-            "Artifact storage: Quantized linear segments stored in pleiades-compression artifact format; body-indexed lookups support random access by body and lookup time across the advertised range; ecliptic and equatorial coordinates are reconstructed at runtime from stored channels; apparent, topocentric, sidereal, and motion outputs remain unsupported"
+            "Artifact storage: Quantized linear segments stored in pleiades-compression artifact format; body-indexed segment tables support random access by body and lookup time across the advertised range; ecliptic and equatorial coordinates are reconstructed at runtime from stored channels; apparent, topocentric, sidereal, and motion outputs remain unsupported"
         ));
         assert!(artifact_summary.contains(
             "regeneration provenance: Packaged artifact regeneration source: label=stage-5 packaged-data draft"
