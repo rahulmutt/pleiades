@@ -2943,6 +2943,21 @@ mod tests {
             production_generation_boundary_request_corpus_summary,
             pleiades_jpl::production_generation_boundary_request_corpus_summary_for_report()
         );
+        let production_generation_source_window_summary =
+            render_cli(&["production-generation-source-window-summary"])
+                .expect("production generation source window summary should render");
+        assert!(production_generation_source_window_summary
+            .contains("Production generation source windows:"));
+        assert_eq!(
+            production_generation_source_window_summary,
+            pleiades_jpl::production_generation_snapshot_window_summary_for_report()
+        );
+        assert_eq!(
+            render_cli(&["production-generation-source-window-summary", "extra"]).expect_err(
+                "production generation source window summary should reject extra arguments"
+            ),
+            "production-generation-source-window-summary does not accept extra arguments"
+        );
         let production_generation_body_class_coverage_summary =
             render_cli(&["production-generation-body-class-coverage-summary"])
                 .expect("production generation body-class coverage summary should render");
@@ -5494,6 +5509,15 @@ mod tests {
         assert!(help.contains("Alias for packaged-artifact-lookup-epoch-policy-summary"));
         assert!(help.contains(
             "production-generation-summary  Print the compact production-generation coverage summary"
+        ));
+        assert!(help.contains(
+            "production-generation-boundary-request-corpus-summary  Print the compact production-generation boundary request corpus summary"
+        ));
+        assert!(help.contains(
+            "production-generation-source-window-summary  Print the compact production-generation source windows summary"
+        ));
+        assert!(help.contains(
+            "production-generation-boundary-source-summary  Print the compact production-generation boundary source summary"
         ));
         assert!(help.contains(
             "production-generation-source-summary  Print the compact production-generation source summary"

@@ -56,7 +56,7 @@ This file lists focused implementation slices that map to the current phase ladd
 
 ### 2. Deterministic artifact generator
 
-- Build a generation command that consumes validated public inputs and writes normalized intermediates plus compressed artifacts; the current fixture workflow now exposes both generation and regenerate entrypoints, so follow-on work can focus on normalized intermediates and production artifact writes.
+- Build a generation command that consumes validated public inputs and writes normalized intermediates plus compressed artifacts; the current fixture workflow now exposes both generation and regenerate entrypoints, and the CLI/validation fronts now also keep the production-generation boundary request corpus, source-window, and boundary-source summaries in parity, so follow-on work can focus on normalized intermediates and production artifact writes.
 - Record generator parameters, checksums, output profile identifiers, and per-channel quantization scales; the packaged-artifact regeneration provenance now already exposes and validates the codec quantization-scale metadata, the checked-in reference snapshot summary equality is now also validated there, and the source-revision provenance slice is now closed, so the next slice can concentrate on the remaining drift-proof manifest updates.
 - Keep the prototype fixture path separate from production artifact generation.
 
