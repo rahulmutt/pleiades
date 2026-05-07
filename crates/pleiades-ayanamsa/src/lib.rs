@@ -1315,8 +1315,12 @@ pub const fn provenance_sample_ayanamsas() -> &'static [Ayanamsa] {
         Ayanamsa::TruePushya,
         Ayanamsa::Udayagiri,
         Ayanamsa::TrueSheoran,
+        Ayanamsa::BabylonianBritton,
         Ayanamsa::GalacticCenterRgilbrand,
         Ayanamsa::BabylonianKugler1,
+        Ayanamsa::GalacticEquator,
+        Ayanamsa::Suryasiddhanta499MeanSun,
+        Ayanamsa::Aryabhata522,
         Ayanamsa::ValensMoon,
     ]
 }
@@ -2025,8 +2029,12 @@ mod tests {
                 Ayanamsa::TruePushya,
                 Ayanamsa::Udayagiri,
                 Ayanamsa::TrueSheoran,
+                Ayanamsa::BabylonianBritton,
                 Ayanamsa::GalacticCenterRgilbrand,
                 Ayanamsa::BabylonianKugler1,
+                Ayanamsa::GalacticEquator,
+                Ayanamsa::Suryasiddhanta499MeanSun,
+                Ayanamsa::Aryabhata522,
                 Ayanamsa::ValensMoon,
             ]
         );

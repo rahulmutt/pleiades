@@ -21330,8 +21330,12 @@ mod tests {
         assert!(rendered.contains("True Pushya —"));
         assert!(rendered.contains("Udayagiri —"));
         assert!(rendered.contains("True Sheoran —"));
+        assert!(rendered.contains("Babylonian (Britton) —"));
         assert!(rendered.contains("Galactic Center (Rgilbrand) —"));
         assert!(rendered.contains("Babylonian (Kugler 1) —"));
+        assert!(rendered.contains("Galactic Equator —"));
+        assert!(rendered.contains("Suryasiddhanta (Mean Sun) —"));
+        assert!(rendered.contains("Aryabhata (522 CE) —"));
         assert!(rendered.contains("Valens Moon —"));
         assert_eq!(
             render_cli(&["ayanamsa-provenance-summary", "extra"])
