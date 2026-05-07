@@ -2366,6 +2366,7 @@ pub fn reference_snapshot_summary_for_report() -> String {
         reference_snapshot_bridge_day_summary_for_report(),
         reference_snapshot_2451914_bridge_day_summary_for_report(),
         reference_snapshot_2451914_major_body_bridge_day_summary_for_report(),
+        reference_snapshot_2451914_major_body_bridge_summary_for_report(),
         reference_snapshot_2451915_major_body_boundary_summary_for_report(),
         reference_snapshot_2451915_major_body_bridge_summary_for_report(),
         reference_snapshot_2451917_major_body_bridge_summary_for_report(),
@@ -18473,6 +18474,7 @@ pub fn jpl_snapshot_evidence_summary_for_report() -> String {
         reference_snapshot_2451915_major_body_boundary_summary_for_report(),
         reference_snapshot_bridge_day_summary_for_report(),
         reference_snapshot_2451914_major_body_bridge_day_summary_for_report(),
+        reference_snapshot_2451914_major_body_bridge_summary_for_report(),
         reference_snapshot_1750_major_body_interior_summary_for_report(),
         reference_snapshot_2451916_major_body_interior_summary_for_report(),
         reference_snapshot_2451916_major_body_dense_boundary_summary_for_report(),
@@ -25638,6 +25640,8 @@ mod tests {
             .contains(&reference_snapshot_bridge_day_summary_for_report()));
         assert!(jpl_snapshot_evidence_summary_for_report()
             .contains(&reference_snapshot_2451914_major_body_bridge_day_summary_for_report()));
+        assert!(jpl_snapshot_evidence_summary_for_report()
+            .contains(&reference_snapshot_2451914_major_body_bridge_summary_for_report()));
         assert!(jpl_snapshot_evidence_summary_for_report()
             .contains(&reference_snapshot_1750_major_body_interior_summary_for_report()));
         assert!(jpl_snapshot_evidence_summary_for_report()
