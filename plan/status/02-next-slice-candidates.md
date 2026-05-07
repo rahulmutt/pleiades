@@ -2,7 +2,7 @@
 
 This file lists focused implementation slices that map to the current phase ladder. It intentionally omits completed report-surface, alias, fixture-summary, and release-rehearsal cleanup work.
 
-Current note: the remaining Phase 1 reference-breadth candidates are effectively saturated in the codebase, so the next implementation slice should prioritize Phase 2 fit-error and benchmark-matrix coverage.
+Current note: the remaining Phase 1 reference-breadth candidates are effectively saturated in the codebase, so the next implementation slice should prioritize Phase 2 fit-error and benchmark-matrix coverage; the embedded fit-margin and fit-threshold violation lines are now rendered without duplicated inner labels.
 
 ## Phase 1 candidates — Reference accuracy and request semantics
 

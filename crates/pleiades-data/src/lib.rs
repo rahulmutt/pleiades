@@ -3424,7 +3424,7 @@ fn validate_packaged_artifact_storage_profile(
 impl PackagedArtifactStorageSummary {
     /// Returns the storage and reconstruction posture as a compact human-readable line.
     pub const fn summary_line(self) -> &'static str {
-        "Quantized linear segments stored in pleiades-compression artifact format; ecliptic and equatorial coordinates are reconstructed at runtime from stored channels; apparent, topocentric, sidereal, and motion outputs remain unsupported"
+        "Quantized linear segments stored in pleiades-compression artifact format; body-indexed lookups support random access by body and lookup time across the advertised range; ecliptic and equatorial coordinates are reconstructed at runtime from stored channels; apparent, topocentric, sidereal, and motion outputs remain unsupported"
     }
 
     /// Returns `Ok(())` when the summary still contains a compact canonical line.
@@ -5238,6 +5238,8 @@ mod tests {
             packaged_artifact_storage_summary()
         );
         assert!(metadata.provenance.data_sources[3].contains("Quantized linear segments"));
+        assert!(metadata.provenance.data_sources[3]
+            .contains("body-indexed lookups support random access by body and lookup time across the advertised range"));
         assert!(metadata.provenance.data_sources[3]
             .contains("ecliptic and equatorial coordinates are reconstructed at runtime"));
         assert!(metadata.provenance.data_sources[3]

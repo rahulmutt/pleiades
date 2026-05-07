@@ -8978,11 +8978,19 @@ fn render_release_summary_text() -> String {
     text.push_str("Packaged-artifact production profile draft: ");
     text.push_str(&packaged_artifact_production_profile_summary_for_report());
     text.push('\n');
+    let fit_margin_summary = report_summary_payload(
+        packaged_artifact_fit_margin_summary_for_report(),
+        "fit margins: ",
+    );
     text.push_str("Packaged-artifact fit margins: ");
-    text.push_str(&packaged_artifact_fit_margin_summary_for_report());
+    text.push_str(&fit_margin_summary);
     text.push('\n');
+    let fit_threshold_violation_summary = report_summary_payload(
+        packaged_artifact_fit_threshold_violation_summary_for_report(),
+        "fit threshold violations: ",
+    );
     text.push_str("Packaged-artifact fit threshold violations: ");
-    text.push_str(&packaged_artifact_fit_threshold_violation_summary_for_report());
+    text.push_str(&fit_threshold_violation_summary);
     text.push('\n');
     text.push_str("Packaged-artifact target thresholds: ");
     text.push_str(&packaged_artifact_target_threshold_summary_for_report());
@@ -13659,6 +13667,13 @@ pub fn render_benchmark_matrix_summary(rounds: usize) -> Result<String, Ephemeri
     Ok(render_benchmark_matrix_summary_text(&report))
 }
 
+fn report_summary_payload(summary: String, prefix: &str) -> String {
+    summary
+        .strip_prefix(prefix)
+        .unwrap_or(summary.as_str())
+        .to_string()
+}
+
 fn render_benchmark_matrix_summary_text(report: &ValidationReport) -> String {
     use std::fmt::Write as _;
 
@@ -13723,6 +13738,14 @@ fn render_benchmark_matrix_summary_text(report: &ValidationReport) -> String {
     let target_threshold_summary = packaged_artifact_target_threshold_summary_for_report();
     let target_threshold_scope_envelopes_summary =
         packaged_artifact_target_threshold_scope_envelopes_for_report();
+    let fit_margin_summary = report_summary_payload(
+        packaged_artifact_fit_margin_summary_for_report(),
+        "fit margins: ",
+    );
+    let fit_threshold_violation_summary = report_summary_payload(
+        packaged_artifact_fit_threshold_violation_summary_for_report(),
+        "fit threshold violations: ",
+    );
     let fit_envelope = fit_envelope_summary
         .strip_prefix("fit envelope: ")
         .unwrap_or(&fit_envelope_summary);
@@ -13739,15 +13762,11 @@ fn render_benchmark_matrix_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(text);
     let _ = writeln!(text, "Packaged-artifact fit posture");
     let _ = writeln!(text, "  fit envelope: {}", fit_envelope);
-    let _ = writeln!(
-        text,
-        "  fit margins: {}",
-        packaged_artifact_fit_margin_summary_for_report()
-    );
+    let _ = writeln!(text, "  fit margins: {}", fit_margin_summary);
     let _ = writeln!(
         text,
         "  fit threshold violations: {}",
-        packaged_artifact_fit_threshold_violation_summary_for_report()
+        fit_threshold_violation_summary
     );
     let _ = writeln!(text, "  fit sample classes: {}", fit_sample_classes);
     let _ = writeln!(text, "  fit thresholds: {}", fit_thresholds);
@@ -15665,15 +15684,23 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         "  Packaged-artifact fit envelope: {}",
         packaged_artifact_fit_envelope_summary_for_report()
     );
+    let fit_margin_summary = report_summary_payload(
+        packaged_artifact_fit_margin_summary_for_report(),
+        "fit margins: ",
+    );
+    let fit_threshold_violation_summary = report_summary_payload(
+        packaged_artifact_fit_threshold_violation_summary_for_report(),
+        "fit threshold violations: ",
+    );
     let _ = writeln!(
         text,
         "  Packaged-artifact fit margins: {}",
-        packaged_artifact_fit_margin_summary_for_report()
+        fit_margin_summary
     );
     let _ = writeln!(
         text,
         "  Packaged-artifact fit threshold violations: {}",
-        packaged_artifact_fit_threshold_violation_summary_for_report()
+        fit_threshold_violation_summary
     );
     let _ = writeln!(
         text,
@@ -20592,12 +20619,13 @@ mod tests {
             "Packaged-artifact speed policy: Unsupported; motion output support=unsupported"
         ));
         assert!(validation_report_summary.contains(
-            "Packaged-artifact storage/reconstruction: Quantized linear segments stored in pleiades-compression artifact format; ecliptic and equatorial coordinates are reconstructed at runtime from stored channels; apparent, topocentric, sidereal, and motion outputs remain unsupported"
+            "Packaged-artifact storage/reconstruction: Quantized linear segments stored in pleiades-compression artifact format; body-indexed lookups support random access by body and lookup time across the advertised range; ecliptic and equatorial coordinates are reconstructed at runtime from stored channels; apparent, topocentric, sidereal, and motion outputs remain unsupported"
         ));
         assert!(validation_report_summary.contains("Packaged-artifact target thresholds: profile id=pleiades-packaged-artifact-profile/stage-5-draft; target thresholds: draft fit envelope recorded; scopes=luminaries, major planets, pluto, lunar points, selected asteroids, custom bodies; fit envelope:"));
         assert!(validation_report_summary.contains("Packaged-artifact fit envelope: fit envelope:"));
-        assert!(validation_report_summary.contains("Packaged-artifact fit margins: fit margins:"));
-        assert!(validation_report_summary.contains("Packaged-artifact fit threshold violations: fit threshold violations: 0; details: none"));
+        assert!(validation_report_summary.contains("Packaged-artifact fit margins: mean Δlon="));
+        assert!(validation_report_summary
+            .contains("Packaged-artifact fit threshold violations: 0; details: none"));
         assert!(validation_report_summary
             .contains("Packaged-artifact fit sample classes: fit sample classes:"));
         assert!(validation_report_summary.contains("Packaged-artifact target-threshold scope envelopes: scope envelopes: scope=luminaries; bodies=2 (Sun, Moon); fit envelope:"));
@@ -25031,7 +25059,7 @@ version = "0.9.0"
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
         assert!(release_notes_summary
             .contains("Artifact summary: artifact-summary / artifact-posture-summary"));
-        assert!(release_notes_summary.contains("Packaged-artifact storage/reconstruction: Quantized linear segments stored in pleiades-compression artifact format; ecliptic and equatorial coordinates are reconstructed at runtime from stored channels; apparent, topocentric, sidereal, and motion outputs remain unsupported"));
+        assert!(release_notes_summary.contains("Packaged-artifact storage/reconstruction: Quantized linear segments stored in pleiades-compression artifact format; body-indexed lookups support random access by body and lookup time across the advertised range; ecliptic and equatorial coordinates are reconstructed at runtime from stored channels; apparent, topocentric, sidereal, and motion outputs remain unsupported"));
         assert_report_contains_exact_line(
             &release_notes_summary,
             &format!(
@@ -25107,11 +25135,12 @@ version = "0.9.0"
             "Packaged-artifact output support: EclipticCoordinates=derived, EquatorialCoordinates=derived, ApparentCorrections=unsupported, TopocentricCoordinates=unsupported, SiderealCoordinates=unsupported, Motion=unsupported"
         ));
         assert!(release_summary.contains(
-            "Packaged-artifact storage/reconstruction: Quantized linear segments stored in pleiades-compression artifact format; ecliptic and equatorial coordinates are reconstructed at runtime from stored channels; apparent, topocentric, sidereal, and motion outputs remain unsupported"
+            "Packaged-artifact storage/reconstruction: Quantized linear segments stored in pleiades-compression artifact format; body-indexed lookups support random access by body and lookup time across the advertised range; ecliptic and equatorial coordinates are reconstructed at runtime from stored channels; apparent, topocentric, sidereal, and motion outputs remain unsupported"
         ));
         assert!(release_summary.contains("Packaged-artifact target thresholds: profile id=pleiades-packaged-artifact-profile/stage-5-draft; target thresholds: draft fit envelope recorded; scopes=luminaries, major planets, pluto, lunar points, selected asteroids, custom bodies; fit envelope:"));
-        assert!(release_summary.contains("Packaged-artifact fit margins: fit margins:"));
-        assert!(release_summary.contains("Packaged-artifact fit threshold violations: fit threshold violations: 0; details: none"));
+        assert!(release_summary.contains("Packaged-artifact fit margins: mean Δlon="));
+        assert!(release_summary
+            .contains("Packaged-artifact fit threshold violations: 0; details: none"));
         assert!(release_summary.contains("Packaged-artifact target-threshold scope envelopes: scope envelopes: scope=luminaries; bodies=2 (Sun, Moon); fit envelope:"));
         assert!(release_summary.contains(
             "Packaged-artifact generation manifest: Packaged artifact generation manifest:"
@@ -25379,7 +25408,7 @@ version = "0.9.0"
         assert!(artifact_summary.contains("Packaged artifact generation manifest:"));
         assert!(artifact_summary.contains("Artifact request policy"));
         assert!(artifact_summary.contains(
-            "Artifact storage: Quantized linear segments stored in pleiades-compression artifact format; ecliptic and equatorial coordinates are reconstructed at runtime from stored channels; apparent, topocentric, sidereal, and motion outputs remain unsupported"
+            "Artifact storage: Quantized linear segments stored in pleiades-compression artifact format; body-indexed lookups support random access by body and lookup time across the advertised range; ecliptic and equatorial coordinates are reconstructed at runtime from stored channels; apparent, topocentric, sidereal, and motion outputs remain unsupported"
         ));
         assert!(artifact_summary.contains(
             "regeneration provenance: Packaged artifact regeneration source: label=stage-5 packaged-data draft"
