@@ -2158,6 +2158,8 @@ pub struct PackagedArtifactGeneratorParameters {
     pub time_range: TimeRange,
     /// Provenance summary for the checked-in production-generation corpus.
     pub source_provenance: String,
+    /// Deterministic checksum of the checked-in packaged artifact.
+    pub checksum: u64,
     /// Bodies bundled into the packaged artifact.
     pub body_coverage: PackagedBodyCoverageSummary,
     /// Capability profile encoded by the packaged artifact.
@@ -2182,12 +2184,13 @@ impl PackagedArtifactGeneratorParameters {
     /// Returns the generator parameters as a compact human-readable line.
     pub fn summary_line(&self) -> String {
         format!(
-            "Packaged artifact generator parameters: profile id={}; label={}; version={}; time range={}; source provenance={}; body coverage={}; artifact profile={}; output support={}; speed policy={}; generation policy={}; segment strategy={}; request policy={}; lookup epoch policy={}; frame treatment={}; storage/reconstruction={}; {}",
+            "Packaged artifact generator parameters: profile id={}; label={}; version={}; time range={}; source provenance={}; checksum=0x{:016x}; body coverage={}; artifact profile={}; output support={}; speed policy={}; generation policy={}; segment strategy={}; request policy={}; lookup epoch policy={}; frame treatment={}; storage/reconstruction={}; {}",
             self.profile_id,
             self.label,
             self.artifact_version,
             self.time_range,
             self.source_provenance,
+            self.checksum,
             self.body_coverage,
             self.artifact_profile,
             self.artifact_profile.output_support_entries_summary_line(),
@@ -2205,6 +2208,7 @@ impl PackagedArtifactGeneratorParameters {
     /// Returns `Ok(())` when the parameters still match the current packaged-artifact posture.
     pub fn validate(&self) -> Result<(), pleiades_compression::CompressionError> {
         let current = packaged_artifact_production_profile_summary_details();
+        let artifact = packaged_artifact();
 
         if self.profile_id != current.profile_id {
             return Err(pleiades_compression::CompressionError::new(
@@ -2234,6 +2238,12 @@ impl PackagedArtifactGeneratorParameters {
             return Err(pleiades_compression::CompressionError::new(
                 pleiades_compression::CompressionErrorKind::InvalidFormat,
                 "packaged artifact generator parameters source provenance does not match the current production profile",
+            ));
+        }
+        if self.checksum != artifact.checksum {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                "packaged artifact generator parameters checksum does not match the current packaged artifact",
             ));
         }
         if self.body_coverage != current.body_coverage {
@@ -2348,12 +2358,14 @@ impl fmt::Display for PackagedArtifactGenerationManifest {
 /// Returns the current packaged-artifact generator parameters.
 pub fn packaged_artifact_generator_parameters_details() -> PackagedArtifactGeneratorParameters {
     let summary = packaged_artifact_production_profile_summary_details();
+    let regeneration = packaged_artifact_regeneration_summary_details();
     let parameters = PackagedArtifactGeneratorParameters {
         profile_id: summary.profile_id,
         label: summary.label,
         artifact_version: summary.artifact_version,
         time_range: summary.time_range,
         source_provenance: summary.source_provenance,
+        checksum: regeneration.checksum,
         body_coverage: summary.body_coverage,
         artifact_profile: summary.artifact_profile,
         speed_policy: summary.speed_policy,
@@ -6390,6 +6402,23 @@ mod tests {
     }
 
     #[test]
+    fn packaged_artifact_generator_parameters_validation_rejects_checksum_drift() {
+        let mut parameters = packaged_artifact_generator_parameters_details();
+        parameters.checksum ^= 0x1;
+
+        let error = parameters
+            .validate()
+            .expect_err("checksum drift should be rejected");
+        assert_eq!(
+            error.kind,
+            pleiades_compression::CompressionErrorKind::InvalidFormat
+        );
+        assert!(error
+            .message
+            .contains("packaged artifact generator parameters checksum does not match the current packaged artifact"));
+    }
+
+    #[test]
     fn packaged_artifact_generator_parameters_validation_rejects_artifact_profile_drift() {
         let mut parameters = packaged_artifact_generator_parameters_details();
         parameters.artifact_profile.speed_policy = pleiades_compression::SpeedPolicy::Stored;
@@ -6501,6 +6530,7 @@ mod tests {
             .summary_line()
             .contains("Packaged artifact generation manifest:"));
         assert!(manifest.summary_line().contains("output support="));
+        assert!(manifest.summary_line().contains("checksum=0x"));
         assert!(manifest.summary_line().contains("speed policy=Unsupported"));
         assert!(manifest.summary_line().contains("segment strategy="));
         assert!(manifest
