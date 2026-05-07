@@ -34,6 +34,7 @@
 
 #![forbid(unsafe_code)]
 
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, OnceLock};
 use std::{cmp::Ordering, fmt};
@@ -678,9 +679,125 @@ impl PackagedArtifactFitEnvelopeSummary {
 #[derive(Clone, Debug, PartialEq)]
 struct PackagedArtifactFitSample {
     body: CelestialBody,
+    segment_start: Instant,
+    segment_end: Instant,
+    sample_instant: Instant,
+    sample_fraction: f64,
     longitude_delta_degrees: f64,
     latitude_delta_degrees: f64,
     distance_delta_au: f64,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct PackagedArtifactFitChannelOutlier {
+    /// Channel whose fit error is being tracked.
+    pub channel: ChannelKind,
+    /// Absolute delta for the channel.
+    pub delta: f64,
+    /// Inclusive segment start for the source interval.
+    pub segment_start: Instant,
+    /// Inclusive segment end for the source interval.
+    pub segment_end: Instant,
+    /// Sample instant that produced the tracked delta.
+    pub sample_instant: Instant,
+    /// Sample position inside the segment, expressed as a normalized fraction.
+    pub sample_fraction: f64,
+}
+
+impl PackagedArtifactFitChannelOutlier {
+    fn delta_unit(&self) -> &'static str {
+        match self.channel {
+            ChannelKind::Longitude | ChannelKind::Latitude => "°",
+            ChannelKind::DistanceAu => " AU",
+            _ => unreachable!("unsupported packaged-artifact channel kind"),
+        }
+    }
+
+    fn summary_line(&self) -> String {
+        format!(
+            "{}={:.12}{} @ {} (segment {} → {}, x={:.3})",
+            self.channel,
+            self.delta,
+            self.delta_unit(),
+            self.sample_instant,
+            self.segment_start,
+            self.segment_end,
+            self.sample_fraction,
+        )
+    }
+}
+
+impl fmt::Display for PackagedArtifactFitChannelOutlier {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct PackagedArtifactFitBodyOutlierSummary {
+    /// Bundled body whose fit outliers are summarized.
+    pub body: CelestialBody,
+    /// Worst sampled delta for each stored channel.
+    pub channel_outliers: Vec<PackagedArtifactFitChannelOutlier>,
+}
+
+impl PackagedArtifactFitBodyOutlierSummary {
+    fn summary_line(&self) -> String {
+        format!("{}{{{}}}", self.body, join_display(&self.channel_outliers))
+    }
+}
+
+impl fmt::Display for PackagedArtifactFitBodyOutlierSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct PackagedArtifactFitOutlierSummary {
+    /// Number of bundled bodies represented in the outlier report.
+    pub body_count: usize,
+    /// Body-level summaries for the worst sampled fit deltas.
+    pub body_summaries: Vec<PackagedArtifactFitBodyOutlierSummary>,
+}
+
+impl PackagedArtifactFitOutlierSummary {
+    /// Returns the body/channel fit outliers as a compact human-readable line.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "fit outliers: {} bundled bodies; {}",
+            self.body_count,
+            join_display(&self.body_summaries)
+        )
+    }
+
+    /// Returns `Ok(())` when the summary still matches the current packaged artifact.
+    pub fn validate(&self) -> Result<(), PackagedArtifactFitEnvelopeSummaryValidationError> {
+        let expected = packaged_artifact_fit_outlier_summary_details();
+        if self != &expected {
+            return Err(
+                PackagedArtifactFitEnvelopeSummaryValidationError::FieldOutOfSync {
+                    field: "outlier summary",
+                },
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns the validated body/channel fit outliers as a compact human-readable line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, PackagedArtifactFitEnvelopeSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for PackagedArtifactFitOutlierSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -913,6 +1030,10 @@ where
 
                 samples.push(PackagedArtifactFitSample {
                     body: body_artifact.body.clone(),
+                    segment_start: segment.start,
+                    segment_end: segment.end,
+                    sample_instant: instant,
+                    sample_fraction: *fraction,
                     longitude_delta_degrees: Angle::from_degrees(
                         actual_ecliptic.longitude.degrees() - expected_ecliptic.longitude.degrees(),
                     )
@@ -997,6 +1118,117 @@ pub fn packaged_artifact_fit_envelope_summary_for_report() -> String {
     match summary.validate() {
         Ok(()) => summary.to_string(),
         Err(error) => format!("fit envelope: unavailable ({error})"),
+    }
+}
+
+fn packaged_artifact_fit_channel_rank(channel: ChannelKind) -> usize {
+    match channel {
+        ChannelKind::Longitude => 0,
+        ChannelKind::Latitude => 1,
+        ChannelKind::DistanceAu => 2,
+        _ => unreachable!("unsupported packaged-artifact channel kind"),
+    }
+}
+
+fn packaged_artifact_fit_channel_delta(
+    sample: &PackagedArtifactFitSample,
+    channel: ChannelKind,
+) -> f64 {
+    match channel {
+        ChannelKind::Longitude => sample.longitude_delta_degrees,
+        ChannelKind::Latitude => sample.latitude_delta_degrees,
+        ChannelKind::DistanceAu => sample.distance_delta_au,
+        _ => unreachable!("unsupported packaged-artifact channel kind"),
+    }
+}
+
+fn packaged_artifact_fit_channel_outlier_from_sample(
+    sample: &PackagedArtifactFitSample,
+    channel: ChannelKind,
+) -> PackagedArtifactFitChannelOutlier {
+    PackagedArtifactFitChannelOutlier {
+        channel,
+        delta: packaged_artifact_fit_channel_delta(sample, channel),
+        segment_start: sample.segment_start,
+        segment_end: sample.segment_end,
+        sample_instant: sample.sample_instant,
+        sample_fraction: sample.sample_fraction,
+    }
+}
+
+fn packaged_artifact_fit_outlier_summary_from_samples(
+    samples: &[PackagedArtifactFitSample],
+) -> PackagedArtifactFitOutlierSummary {
+    let mut body_channel_outliers: HashMap<
+        CelestialBody,
+        [Option<PackagedArtifactFitChannelOutlier>; 3],
+    > = HashMap::new();
+
+    for sample in samples {
+        let entry = body_channel_outliers
+            .entry(sample.body.clone())
+            .or_insert_with(|| [None, None, None]);
+
+        for channel in [
+            ChannelKind::Longitude,
+            ChannelKind::Latitude,
+            ChannelKind::DistanceAu,
+        ] {
+            let index = packaged_artifact_fit_channel_rank(channel);
+            let candidate = packaged_artifact_fit_channel_outlier_from_sample(sample, channel);
+            let should_replace = entry[index]
+                .as_ref()
+                .map(|existing| candidate.delta > existing.delta)
+                .unwrap_or(true);
+
+            if should_replace {
+                entry[index] = Some(candidate);
+            }
+        }
+    }
+
+    let mut body_summaries = body_channel_outliers
+        .into_iter()
+        .map(|(body, outliers)| {
+            let mut channel_outliers = Vec::new();
+            for channel in [
+                ChannelKind::Longitude,
+                ChannelKind::Latitude,
+                ChannelKind::DistanceAu,
+            ] {
+                if let Some(outlier) = outliers[packaged_artifact_fit_channel_rank(channel)].clone()
+                {
+                    channel_outliers.push(outlier);
+                }
+            }
+            PackagedArtifactFitBodyOutlierSummary {
+                body,
+                channel_outliers,
+            }
+        })
+        .collect::<Vec<_>>();
+
+    body_summaries.sort_by_key(|summary| summary.body.to_string());
+
+    PackagedArtifactFitOutlierSummary {
+        body_count: body_summaries.len(),
+        body_summaries,
+    }
+}
+
+/// Returns the current packaged-artifact body/channel fit outlier summary record.
+pub fn packaged_artifact_fit_outlier_summary_details() -> PackagedArtifactFitOutlierSummary {
+    let artifact = packaged_artifact();
+    let samples = packaged_artifact_fit_samples(artifact);
+    packaged_artifact_fit_outlier_summary_from_samples(&samples)
+}
+
+/// Returns the current packaged-artifact body/channel fit outlier summary after validating the structured posture.
+pub fn packaged_artifact_fit_outlier_summary_for_report() -> String {
+    let summary = packaged_artifact_fit_outlier_summary_details();
+    match summary.validated_summary_line() {
+        Ok(line) => line,
+        Err(error) => format!("fit outliers: unavailable ({error})"),
     }
 }
 
@@ -6970,6 +7202,42 @@ mod tests {
                 thresholds.max_latitude_delta_degrees - envelope.max_latitude_delta_degrees,
                 thresholds.max_distance_delta_au - envelope.max_distance_delta_au,
             )
+        );
+    }
+
+    #[test]
+    fn packaged_artifact_fit_outlier_summary_reflects_the_current_posture() {
+        let summary = packaged_artifact_fit_outlier_summary_details();
+
+        assert!(summary.summary_line().starts_with("fit outliers: "));
+        assert_eq!(summary.body_count, summary.body_summaries.len());
+        assert!(summary.body_count > 0);
+        assert!(summary
+            .body_summaries
+            .iter()
+            .all(|body| !body.channel_outliers.is_empty()));
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert!(summary.validate().is_ok());
+        assert_eq!(
+            packaged_artifact_fit_outlier_summary_for_report(),
+            summary.summary_line()
+        );
+    }
+
+    #[test]
+    fn packaged_artifact_fit_outlier_summary_validation_rejects_drift() {
+        let mut summary = packaged_artifact_fit_outlier_summary_details();
+        summary.body_summaries[0].channel_outliers[0].delta += 1.0;
+
+        let error = summary
+            .validate()
+            .expect_err("fit outlier drift should be rejected");
+        assert_eq!(
+            error,
+            PackagedArtifactFitEnvelopeSummaryValidationError::FieldOutOfSync {
+                field: "outlier summary",
+            }
         );
     }
 

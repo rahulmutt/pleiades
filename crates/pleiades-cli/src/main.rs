@@ -564,6 +564,9 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         | Some("packaged-artifact-target-threshold-scope-envelopes") => validate_render_cli(args),
         Some("packaged-artifact-fit-sample-classes-summary")
         | Some("packaged-artifact-fit-sample-classes") => validate_render_cli(args),
+        Some("packaged-artifact-fit-outliers-summary") | Some("packaged-artifact-fit-outliers") => {
+            validate_render_cli(args)
+        }
         Some("packaged-artifact-fit-threshold-violation-count-summary")
         | Some("packaged-artifact-fit-threshold-violation-count") => validate_render_cli(args),
         Some("packaged-artifact-fit-threshold-violations-summary")
@@ -4989,6 +4992,23 @@ mod tests {
             packaged_artifact_fit_sample_classes
         );
 
+        let packaged_artifact_fit_outliers =
+            render_cli(&["packaged-artifact-fit-outliers-summary"])
+                .expect("packaged artifact fit outliers summary should render");
+        assert!(packaged_artifact_fit_outliers.contains("Packaged-artifact fit outliers: "));
+        assert_eq!(
+            packaged_artifact_fit_outliers,
+            format!(
+                "Packaged-artifact fit outliers: {}",
+                pleiades_data::packaged_artifact_fit_outlier_summary_for_report()
+            )
+        );
+        assert_eq!(
+            render_cli(&["packaged-artifact-fit-outliers"])
+                .expect("packaged artifact fit outliers alias should render"),
+            packaged_artifact_fit_outliers
+        );
+
         let packaged_artifact_fit_threshold_violation_count =
             render_cli(&["packaged-artifact-fit-threshold-violation-count-summary"])
                 .expect("packaged artifact fit threshold violation count summary should render");
@@ -5146,6 +5166,14 @@ mod tests {
             (
                 &["packaged-artifact-fit-sample-classes", "extra"][..],
                 "packaged-artifact-fit-sample-classes-summary does not accept extra arguments",
+            ),
+            (
+                &["packaged-artifact-fit-outliers-summary", "extra"][..],
+                "packaged-artifact-fit-outliers-summary does not accept extra arguments",
+            ),
+            (
+                &["packaged-artifact-fit-outliers", "extra"][..],
+                "packaged-artifact-fit-outliers-summary does not accept extra arguments",
             ),
             (
                 &["packaged-artifact-generation-manifest-summary", "extra"][..],
@@ -6039,6 +6067,12 @@ mod tests {
         ));
         assert!(help.contains(
             "packaged-artifact-fit-sample-classes  Alias for packaged-artifact-fit-sample-classes-summary"
+        ));
+        assert!(help.contains(
+            "packaged-artifact-fit-outliers-summary  Print the packaged-artifact body/channel fit outlier summary"
+        ));
+        assert!(help.contains(
+            "packaged-artifact-fit-outliers  Alias for packaged-artifact-fit-outliers-summary"
         ));
         assert!(help.contains(
             "packaged-artifact-fit-threshold-violation-count-summary  Print the packaged-artifact fit threshold violation count summary"
