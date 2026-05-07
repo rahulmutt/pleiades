@@ -7,7 +7,7 @@ This file lists focused implementation slices for the current phase ladder. Comp
 ### 1. Artifact fitting strategy
 
 - The Moon slice has already moved from residual-correction segments to quadratic base fits.
-- The bundled-body quadratic-window slice has landed; current thresholds are calibrated to the latest draft artifact.
+- The bundled-body quadratic-window slice has landed, and the latest follow-on slice now uses adjacent linear spans across consecutive sampled pairs; current thresholds are calibrated to the latest draft artifact.
 - Evaluate whether the remaining high-error bodies should move to denser windows, Chebyshev, or higher-order polynomial segments.
 - Split body classes by cadence and segment length: inner planets, outer planets, Pluto, and selected asteroids may still need different strategies.
 - Body/channel-specific fit reports now identify the worst segments and source intervals; use them to prioritize the next fit changes.
@@ -19,7 +19,7 @@ This file lists focused implementation slices for the current phase ladder. Comp
 - Ensure generator parameters fully describe source inputs, segment strategy, quantization scales, residual policy, checksums, and output profile identifiers.
 - Keep normalized intermediate summaries deterministic and reproducible.
 - Make regenerated artifact bytes/checksums comparable from a clean checkout.
-- Use the improved mixed-order quadratic-window fixture as the new baseline for any follow-on fit experiments.
+- Use the improved mixed-order linear-span fixture as the new baseline for any follow-on fit experiments.
 
 ### 3. Artifact benchmark coverage
 

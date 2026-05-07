@@ -64,7 +64,7 @@ use pleiades_jpl::{
 const PACKAGE_NAME: &str = "pleiades-data";
 const ARTIFACT_LABEL: &str = "stage-5 packaged-data draft";
 const ARTIFACT_PROFILE_ID: &str = "pleiades-packaged-artifact-profile/stage-5-draft";
-const ARTIFACT_SOURCE: &str = "Quantized adjacent quadratic windows with longitude-unwrapped Moon and planet fits fitted to JPL Horizons reference epochs (1800, 2000, 2500 CE) for the comparison-body planetary set plus asteroid:433-Eros, with point segments only for single-epoch bodies, linear spans for two-sample bodies, and adjacent quadratic windows across consecutive sampled triples for bodies with three or more samples.";
+const ARTIFACT_SOURCE: &str = "Quantized adjacent linear spans with longitude-unwrapped Moon and planet fits fitted to JPL Horizons reference epochs (1800, 2000, 2500 CE) for the comparison-body planetary set plus asteroid:433-Eros, with point segments only for single-epoch bodies, linear spans for two-sample bodies, and adjacent linear spans across consecutive sampled pairs for bodies with three or more samples.";
 const PACKAGED_BASE_BODIES: [CelestialBody; 10] = [
     CelestialBody::Sun,
     CelestialBody::Moon,
@@ -240,7 +240,7 @@ impl PackagedArtifactGenerationPolicy {
     /// Returns the compact label used in release-facing summaries.
     pub const fn label(self) -> &'static str {
         match self {
-            Self::AdjacentSameBodyQuadraticWindows => "adjacent same-body quadratic windows",
+            Self::AdjacentSameBodyQuadraticWindows => "adjacent same-body linear spans",
         }
     }
 
@@ -248,7 +248,7 @@ impl PackagedArtifactGenerationPolicy {
     pub const fn note(self) -> &'static str {
         match self {
             Self::AdjacentSameBodyQuadraticWindows => {
-                "bodies with a single sampled epoch use point segments; bodies with two sampled epochs use linear spans between the endpoints; bodies with three or more sampled epochs are fit with adjacent quadratic windows across consecutive sampled triples, with a linear tail when needed"
+                "bodies with a single sampled epoch use point segments; bodies with two sampled epochs use linear spans between the endpoints; bodies with three or more sampled epochs are fit with adjacent linear spans across consecutive sampled pairs"
             }
         }
     }
@@ -4744,40 +4744,10 @@ fn body_segments_from_entries(entries: &[&SnapshotEntry]) -> Vec<Segment> {
     match entries.len() {
         0 => Vec::new(),
         1 => vec![segment_from_single_entry(entries[0])],
-        2 => vec![segment_from_pair(entries[0], entries[1])],
-        _ => {
-            let mut segments = Vec::new();
-            let mut index = 0;
-
-            while index < entries.len() {
-                let remaining = entries.len() - index;
-                match remaining {
-                    0 | 1 => break,
-                    2 => {
-                        segments.push(segment_from_pair(entries[index], entries[index + 1]));
-                        break;
-                    }
-                    3 => {
-                        segments.push(segment_from_triplet(
-                            entries[index],
-                            entries[index + 1],
-                            entries[index + 2],
-                        ));
-                        break;
-                    }
-                    _ => {
-                        segments.push(segment_from_triplet(
-                            entries[index],
-                            entries[index + 1],
-                            entries[index + 2],
-                        ));
-                        index += 2;
-                    }
-                }
-            }
-
-            segments
-        }
+        _ => entries
+            .windows(2)
+            .map(|window| segment_from_pair(window[0], window[1]))
+            .collect(),
     }
 }
 
@@ -4828,57 +4798,6 @@ fn segment_from_pair(start: &SnapshotEntry, end: &SnapshotEntry) -> Segment {
         Instant::new(end.epoch.julian_day, TimeScale::Tt),
         vec![
             PolynomialChannel::linear(ChannelKind::Longitude, 9, start_longitude, end_longitude),
-            PolynomialChannel::linear(
-                ChannelKind::Latitude,
-                9,
-                start_coordinates.latitude.degrees(),
-                end_coordinates.latitude.degrees(),
-            ),
-            PolynomialChannel::linear(
-                ChannelKind::DistanceAu,
-                12,
-                start_coordinates.distance_au.unwrap_or_default(),
-                end_coordinates.distance_au.unwrap_or_default(),
-            ),
-        ],
-    )
-}
-
-fn segment_from_triplet(
-    start: &SnapshotEntry,
-    mid: &SnapshotEntry,
-    end: &SnapshotEntry,
-) -> Segment {
-    let start_coordinates = coordinates(start);
-    let mid_coordinates = coordinates(mid);
-    let end_coordinates = coordinates(end);
-    let start_longitude = start_coordinates.longitude.degrees();
-    let mid_longitude =
-        unwrap_longitude_degrees(start_longitude, mid_coordinates.longitude.degrees());
-    let end_longitude =
-        unwrap_longitude_degrees(mid_longitude, end_coordinates.longitude.degrees());
-    let start_jd = start.epoch.julian_day.days();
-    let mid_jd = mid.epoch.julian_day.days();
-    let end_jd = end.epoch.julian_day.days();
-    let span_days = end_jd - start_jd;
-    let midpoint_x = if span_days == 0.0 {
-        0.0
-    } else {
-        (mid_jd - start_jd) / span_days
-    };
-
-    Segment::new(
-        Instant::new(start.epoch.julian_day, TimeScale::Tt),
-        Instant::new(end.epoch.julian_day, TimeScale::Tt),
-        vec![
-            PolynomialChannel::quadratic(
-                ChannelKind::Longitude,
-                9,
-                start_longitude,
-                mid_longitude,
-                end_longitude,
-                midpoint_x,
-            ),
             PolynomialChannel::linear(
                 ChannelKind::Latitude,
                 9,
@@ -5978,7 +5897,7 @@ mod tests {
             summary.policy,
             PackagedArtifactGenerationPolicy::AdjacentSameBodyQuadraticWindows
         );
-        assert_eq!(summary.summary_line(), "adjacent same-body quadratic windows; bodies with a single sampled epoch use point segments; bodies with two sampled epochs use linear spans between the endpoints; bodies with three or more sampled epochs are fit with adjacent quadratic windows across consecutive sampled triples, with a linear tail when needed");
+        assert_eq!(summary.summary_line(), "adjacent same-body linear spans; bodies with a single sampled epoch use point segments; bodies with two sampled epochs use linear spans between the endpoints; bodies with three or more sampled epochs are fit with adjacent linear spans across consecutive sampled pairs");
         assert_eq!(summary.to_string(), summary.summary_line());
         assert!(artifact.residual_bodies().is_empty());
         summary
@@ -6061,7 +5980,7 @@ mod tests {
         );
         assert_eq!(
             summary.generation_policy_line(),
-            "generation policy: adjacent same-body quadratic windows; bodies with a single sampled epoch use point segments; bodies with two sampled epochs use linear spans between the endpoints; bodies with three or more sampled epochs are fit with adjacent quadratic windows across consecutive sampled triples, with a linear tail when needed"
+            "generation policy: adjacent same-body linear spans; bodies with a single sampled epoch use point segments; bodies with two sampled epochs use linear spans between the endpoints; bodies with three or more sampled epochs are fit with adjacent linear spans across consecutive sampled pairs"
         );
         assert_eq!(
             summary.residual_body_line(),
@@ -6120,7 +6039,7 @@ mod tests {
         assert!(provenance.contains("segment span days="));
         assert!(provenance.contains("checksum=0x"));
         assert!(provenance.contains("artifact size="));
-        assert!(provenance.contains("generation policy: adjacent same-body quadratic windows"));
+        assert!(provenance.contains("generation policy: adjacent same-body linear spans"));
         assert!(provenance
             .contains("quantization scales: stored=Longitude=9, Latitude=9, DistanceAu=12"));
         assert!(provenance.contains("residual bodies: none; applies to 0 bundled bodies"));
