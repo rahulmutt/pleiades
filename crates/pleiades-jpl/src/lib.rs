@@ -11756,6 +11756,30 @@ pub fn reference_snapshot_early_major_body_boundary_summary_for_report() -> Stri
     }
 }
 
+/// Returns the compact typed summary for the 2378498 major-body boundary reference evidence.
+#[doc(alias = "reference_snapshot_early_major_body_boundary_summary")]
+pub fn reference_snapshot_2378498_major_body_boundary_summary(
+) -> Option<ReferenceEarlyMajorBodyBoundarySummary> {
+    reference_snapshot_early_major_body_boundary_summary()
+}
+
+/// Returns the release-facing 2378498 major-body boundary summary string.
+pub fn reference_snapshot_2378498_major_body_boundary_summary_for_report() -> String {
+    match reference_snapshot_2378498_major_body_boundary_summary() {
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line.replacen(
+                "Reference early major-body boundary evidence",
+                "Reference 2378498 major-body boundary evidence",
+                1,
+            ),
+            Err(error) => {
+                format!("Reference 2378498 major-body boundary evidence: unavailable ({error})")
+            }
+        },
+        None => "Reference 2378498 major-body boundary evidence: unavailable".to_string(),
+    }
+}
+
 fn reference_snapshot_1800_major_body_boundary_entries() -> Option<&'static [SnapshotEntry]> {
     static ENTRIES: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
     let entries = ENTRIES
@@ -23796,6 +23820,33 @@ mod tests {
             reference_snapshot_early_major_body_boundary_summary_for_report(),
             summary.summary_line()
         );
+    }
+
+    #[test]
+    fn reference_snapshot_2378498_major_body_boundary_summary_alias_uses_explicit_2378498_wording()
+    {
+        let boundary_2378498 = reference_snapshot_2378498_major_body_boundary_summary_for_report();
+        let boundary_generic = reference_snapshot_early_major_body_boundary_summary_for_report();
+        let summary = reference_snapshot_2378498_major_body_boundary_summary()
+            .expect("reference 2378498 major-body boundary summary should exist");
+
+        assert!(boundary_2378498.contains("Reference 2378498 major-body boundary evidence:"));
+        assert!(boundary_2378498.contains("JD 2378498.5 (TDB)"));
+        assert_eq!(
+            boundary_2378498,
+            summary.summary_line().replacen(
+                "Reference early major-body boundary evidence",
+                "Reference 2378498 major-body boundary evidence",
+                1
+            )
+        );
+        assert_eq!(
+            summary.summary_line(),
+            reference_snapshot_early_major_body_boundary_summary()
+                .expect("reference early major-body boundary summary should exist")
+                .summary_line()
+        );
+        assert_ne!(boundary_2378498, boundary_generic);
     }
 
     #[test]

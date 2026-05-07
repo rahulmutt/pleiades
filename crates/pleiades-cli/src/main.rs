@@ -235,6 +235,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         | Some("2360233-major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-early-major-body-boundary-summary")
         | Some("early-major-body-boundary-summary") => validate_render_cli(args),
+        Some("reference-snapshot-2378498-major-body-boundary-summary")
+        | Some("2378498-major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-1800-major-body-boundary-summary")
         | Some("1800-major-body-boundary-summary")
         | Some("2378499-major-body-boundary-summary") => validate_render_cli(args),
@@ -3164,6 +3166,25 @@ mod tests {
             reference_snapshot_early_major_body_boundary_summary,
             pleiades_jpl::reference_snapshot_early_major_body_boundary_summary_for_report()
         );
+        let reference_snapshot_2378498_major_body_boundary_summary =
+            render_cli(&["reference-snapshot-2378498-major-body-boundary-summary"])
+                .expect("reference snapshot 2378498 major-body boundary summary should render");
+        assert!(reference_snapshot_2378498_major_body_boundary_summary
+            .contains("Reference 2378498 major-body boundary evidence:"));
+        assert_eq!(
+            reference_snapshot_2378498_major_body_boundary_summary,
+            pleiades_jpl::reference_snapshot_2378498_major_body_boundary_summary_for_report()
+        );
+        assert_eq!(
+            render_cli(&["reference-snapshot-2378498-major-body-boundary-summary", "extra"])
+                .expect_err("reference snapshot 2378498 major-body boundary summary should reject extra arguments"),
+            "reference-snapshot-2378498-major-body-boundary-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["2378498-major-body-boundary-summary", "extra"])
+                .expect_err("2378498 major-body boundary alias should reject extra arguments"),
+            "reference-snapshot-2378498-major-body-boundary-summary does not accept extra arguments"
+        );
         let reference_snapshot_1800_major_body_boundary_summary =
             render_cli(&["reference-snapshot-1800-major-body-boundary-summary"])
                 .expect("reference snapshot 1800 major-body boundary summary should render");
@@ -5646,6 +5667,12 @@ mod tests {
         ));
         assert!(help.contains(
             "reference-snapshot-early-major-body-boundary-summary  Print the compact reference early major-body boundary evidence summary"
+        ));
+        assert!(help.contains(
+            "reference-snapshot-2378498-major-body-boundary-summary  Print the compact reference 2378498 major-body boundary evidence summary"
+        ));
+        assert!(help.contains(
+            "2378498-major-body-boundary-summary  Alias for reference-snapshot-2378498-major-body-boundary-summary"
         ));
         assert!(help.contains(
             "reference-snapshot-1800-major-body-boundary-summary  Print the compact reference 1800 major-body boundary evidence summary"
