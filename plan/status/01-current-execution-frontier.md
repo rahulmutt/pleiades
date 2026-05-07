@@ -2,7 +2,7 @@
 
 ## Frontier
 
-The active frontier is still formally **Phase 1 — Reference Accuracy and Request Semantics**, but the current reference-breadth slice is saturated; the next reviewable code slice is Phase 2 fit-error and benchmark-matrix coverage.
+The active frontier is still formally **Phase 1 — Reference Accuracy and Request Semantics**, but the current reference-breadth slice is saturated; the next reviewable code slice is Phase 2 fit-error coverage now that the benchmark matrix summary slice has landed.
 
 The repository is past bootstrap, MVP API work, catalog scaffolding, report-surface expansion, and release-bundle rehearsal. The remaining work now centers on turning the packaged-data prototype into a reproducible production artifact without widening claims prematurely.
 
@@ -45,7 +45,7 @@ The reference corpus breadth is already covered by the existing 1500-2500 CE bou
 
 Next, implement another small, reviewable slice:
 
-- build out the fit-error and benchmark matrix so packaged-data fit claims stay measurable;
+- tighten fit-error reporting and thresholds so packaged-data fit claims stay measurable; the benchmark matrix summary is now in place;
 - keep the prototype fixture path separate from production artifact generation;
 - add or update validation/report tests only where they tighten drift detection without claiming production fit accuracy.
 

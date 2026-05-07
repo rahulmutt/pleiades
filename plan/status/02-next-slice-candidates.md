@@ -58,9 +58,10 @@ Current note: the remaining Phase 1 reference-breadth candidates are effectively
 - Record generator parameters, checksums, output profile identifiers, and per-channel quantization scales; the packaged-artifact regeneration provenance now already exposes and validates the codec quantization-scale metadata, the checked-in reference snapshot summary equality is now also validated there, and the source-revision provenance slice is now closed, so the next slice can concentrate on the remaining drift-proof manifest updates.
 - Keep the prototype fixture path separate from production artifact generation.
 
-### 2. Fit-error and benchmark matrix
+### 2. Fit-error coverage
 
 - The boundary/interior fit sample classes summary is now surfaced alongside the packaged-artifact fit envelope summary in the validation report and CLI, so the fit-error slice now has a first-class report path.
+- The benchmark matrix summary now covers reference, candidate, packaged-data, chart, and decode rows; remaining work here should focus on benchmarked fit error thresholds rather than adding another reporting surface.
 - Benchmark single lookup, batch lookup, decode cost, artifact size, and full-chart packaged-data use.
 - Fail validation when measured errors exceed profile thresholds.
 
