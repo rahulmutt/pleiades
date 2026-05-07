@@ -460,15 +460,18 @@ pub struct PackagedArtifactFitThresholdViolation {
     pub measured_bits: u64,
     /// The calibrated threshold, encoded as raw bits so the summary stays lossless.
     pub threshold_bits: u64,
+    /// The amount by which the measured value exceeds the calibrated threshold.
+    pub overage_bits: u64,
 }
 
 impl PackagedArtifactFitThresholdViolation {
     fn summary_line(&self) -> String {
         format!(
-            "`{}` measured={:.12}, threshold={:.12}",
+            "`{}` measured={:.12}, threshold={:.12}, overage={:+.12}",
             self.field,
             f64::from_bits(self.measured_bits),
             f64::from_bits(self.threshold_bits),
+            f64::from_bits(self.overage_bits),
         )
     }
 }
@@ -627,6 +630,7 @@ impl PackagedArtifactFitEnvelopeSummary {
                         field: $field,
                         measured_bits: $measured.to_bits(),
                         threshold_bits: $threshold.to_bits(),
+                        overage_bits: ($measured - $threshold).to_bits(),
                     });
                 }
             };
@@ -7020,31 +7024,49 @@ mod tests {
                         field: "mean_longitude_delta_degrees",
                         measured_bits: summary.mean_longitude_delta_degrees.to_bits(),
                         threshold_bits: thresholds.max_mean_longitude_delta_degrees.to_bits(),
+                        overage_bits: (summary.mean_longitude_delta_degrees
+                            - thresholds.max_mean_longitude_delta_degrees)
+                            .to_bits(),
                     },
                     PackagedArtifactFitThresholdViolation {
                         field: "mean_latitude_delta_degrees",
                         measured_bits: summary.mean_latitude_delta_degrees.to_bits(),
                         threshold_bits: thresholds.max_mean_latitude_delta_degrees.to_bits(),
+                        overage_bits: (summary.mean_latitude_delta_degrees
+                            - thresholds.max_mean_latitude_delta_degrees)
+                            .to_bits(),
                     },
                     PackagedArtifactFitThresholdViolation {
                         field: "mean_distance_delta_au",
                         measured_bits: summary.mean_distance_delta_au.to_bits(),
                         threshold_bits: thresholds.max_mean_distance_delta_au.to_bits(),
+                        overage_bits: (summary.mean_distance_delta_au
+                            - thresholds.max_mean_distance_delta_au)
+                            .to_bits(),
                     },
                     PackagedArtifactFitThresholdViolation {
                         field: "max_longitude_delta_degrees",
                         measured_bits: summary.max_longitude_delta_degrees.to_bits(),
                         threshold_bits: thresholds.max_longitude_delta_degrees.to_bits(),
+                        overage_bits: (summary.max_longitude_delta_degrees
+                            - thresholds.max_longitude_delta_degrees)
+                            .to_bits(),
                     },
                     PackagedArtifactFitThresholdViolation {
                         field: "max_latitude_delta_degrees",
                         measured_bits: summary.max_latitude_delta_degrees.to_bits(),
                         threshold_bits: thresholds.max_latitude_delta_degrees.to_bits(),
+                        overage_bits: (summary.max_latitude_delta_degrees
+                            - thresholds.max_latitude_delta_degrees)
+                            .to_bits(),
                     },
                     PackagedArtifactFitThresholdViolation {
                         field: "max_distance_delta_au",
                         measured_bits: summary.max_distance_delta_au.to_bits(),
                         threshold_bits: thresholds.max_distance_delta_au.to_bits(),
+                        overage_bits: (summary.max_distance_delta_au
+                            - thresholds.max_distance_delta_au)
+                            .to_bits(),
                     },
                 ],
             }
@@ -7053,6 +7075,7 @@ mod tests {
         assert!(error.summary_line().contains("6 violations"));
         assert!(error.summary_line().contains("measured="));
         assert!(error.summary_line().contains("threshold="));
+        assert!(error.summary_line().contains("overage="));
         assert!(error
             .summary_line()
             .contains("mean_longitude_delta_degrees"));
