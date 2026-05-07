@@ -588,12 +588,14 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
                 PackagedArtifactCommand::Write {
                     output_path,
                     manifest_path,
+                    manifest_summary_path,
                     manifest_checksum_path,
                     artifact_checksum_path,
                     normalized_intermediate_path,
                 } => render_packaged_artifact_regeneration(
                     output_path,
                     manifest_path,
+                    manifest_summary_path,
                     manifest_checksum_path,
                     artifact_checksum_path,
                     normalized_intermediate_path,
@@ -982,6 +984,7 @@ enum PackagedArtifactCommand {
     Write {
         output_path: String,
         manifest_path: Option<String>,
+        manifest_summary_path: Option<String>,
         manifest_checksum_path: Option<String>,
         artifact_checksum_path: Option<String>,
         normalized_intermediate_path: Option<String>,
@@ -992,13 +995,14 @@ enum PackagedArtifactCommand {
 fn parse_packaged_artifact_command(args: &[&str]) -> Result<PackagedArtifactCommand, String> {
     if args.is_empty() {
         return Err(
-            "missing required output path argument; pass a file path, --out <file>, --output <file>, --manifest-out <file>, --manifest-checksum-out <file>, --artifact-checksum-out <file>, --normalized-intermediate-summary-out <file>, or --check"
+            "missing required output path argument; pass a file path, --out <file>, --output <file>, --manifest-out <file>, --manifest-summary-out <file>, --manifest-checksum-out <file>, --artifact-checksum-out <file>, --normalized-intermediate-summary-out <file>, or --check"
                 .to_string(),
         );
     }
 
     let mut output_path = None;
     let mut manifest_path = None;
+    let mut manifest_summary_path = None;
     let mut manifest_checksum_path = None;
     let mut artifact_checksum_path = None;
     let mut normalized_intermediate_path = None;
@@ -1024,6 +1028,17 @@ fn parse_packaged_artifact_command(args: &[&str]) -> Result<PackagedArtifactComm
                     .ok_or_else(|| "missing value for --manifest-out".to_string())?;
                 if manifest_path.replace(path.to_string()).is_some() {
                     return Err("duplicate manifest path argument: --manifest-out".to_string());
+                }
+            }
+            "--manifest-summary-out" => {
+                let path = iter
+                    .next()
+                    .ok_or_else(|| "missing value for --manifest-summary-out".to_string())?;
+                if manifest_summary_path.replace(path.to_string()).is_some() {
+                    return Err(
+                        "duplicate manifest summary path argument: --manifest-summary-out"
+                            .to_string(),
+                    );
                 }
             }
             "--manifest-checksum-out" => {
@@ -1074,6 +1089,7 @@ fn parse_packaged_artifact_command(args: &[&str]) -> Result<PackagedArtifactComm
     if check {
         if output_path.is_some()
             || manifest_path.is_some()
+            || manifest_summary_path.is_some()
             || manifest_checksum_path.is_some()
             || artifact_checksum_path.is_some()
             || normalized_intermediate_path.is_some()
@@ -1084,13 +1100,14 @@ fn parse_packaged_artifact_command(args: &[&str]) -> Result<PackagedArtifactComm
     }
 
     let output_path = output_path.ok_or_else(|| {
-        "missing required output path argument; pass a file path, --out <file>, --output <file>, --manifest-out <file>, --manifest-checksum-out <file>, --artifact-checksum-out <file>, --normalized-intermediate-summary-out <file>, or --check"
+        "missing required output path argument; pass a file path, --out <file>, --output <file>, --manifest-out <file>, --manifest-summary-out <file>, --manifest-checksum-out <file>, --artifact-checksum-out <file>, --normalized-intermediate-summary-out <file>, or --check"
             .to_string()
     })?;
 
     Ok(PackagedArtifactCommand::Write {
         output_path,
         manifest_path,
+        manifest_summary_path,
         manifest_checksum_path,
         artifact_checksum_path,
         normalized_intermediate_path,
@@ -1119,6 +1136,7 @@ fn checksum64(text: &str) -> u64 {
 fn render_packaged_artifact_regeneration(
     output_path: String,
     manifest_path: Option<String>,
+    manifest_summary_path: Option<String>,
     manifest_checksum_path: Option<String>,
     artifact_checksum_path: Option<String>,
     normalized_intermediate_path: Option<String>,
@@ -1134,7 +1152,10 @@ fn render_packaged_artifact_regeneration(
     std::fs::write(&output_path, &encoded)
         .map_err(|error| format!("failed to write {}: {error}", output_path))?;
 
-    let manifest = if manifest_path.is_some() || manifest_checksum_path.is_some() {
+    let manifest = if manifest_path.is_some()
+        || manifest_summary_path.is_some()
+        || manifest_checksum_path.is_some()
+    {
         Some(packaged_artifact_generation_manifest().to_string())
     } else {
         None
@@ -1151,6 +1172,16 @@ fn render_packaged_artifact_regeneration(
             .expect("manifest text should be available when a manifest path is requested");
         write_text_file(&manifest_path, manifest_text)?;
         format!("\n  manifest: {}", manifest_path)
+    } else {
+        String::new()
+    };
+
+    let manifest_summary_line = if let Some(manifest_summary_path) = manifest_summary_path {
+        let manifest_text = manifest
+            .as_deref()
+            .expect("manifest text should be available when a manifest summary path is requested");
+        write_text_file(&manifest_summary_path, manifest_text)?;
+        format!("\n  manifest summary sidecar: {}", manifest_summary_path)
     } else {
         String::new()
     };
@@ -1190,7 +1221,7 @@ fn render_packaged_artifact_regeneration(
     };
 
     Ok(format!(
-        "Packaged artifact regenerated\n  path: {}\n  label: {}\n  source: {}\n  checksum: 0x{:016x}\n  bytes: {}\n  {}{}{}{}{}",
+        "Packaged artifact regenerated\n  path: {}\n  label: {}\n  source: {}\n  checksum: 0x{:016x}\n  bytes: {}\n  {}{}{}{}{}{}",
         output_path,
         artifact.header.generation_label,
         artifact.header.source,
@@ -1198,6 +1229,7 @@ fn render_packaged_artifact_regeneration(
         encoded.len(),
         packaged_artifact_regeneration_summary_for_report(),
         manifest_line,
+        manifest_summary_line,
         manifest_checksum_line,
         artifact_checksum_line,
         normalized_intermediate_line,
@@ -5189,6 +5221,26 @@ mod tests {
         assert_eq!(
             std::fs::read_to_string(&manifest_fixture_path)
                 .expect("packaged artifact regeneration should write the manifest sidecar"),
+            pleiades_data::packaged_artifact_generation_manifest_for_report()
+        );
+
+        let manifest_summary_fixture_path =
+            artifact_fixture_dir.join("packaged-artifact.manifest.summary.txt");
+        let manifest_summary_fixture_path_string =
+            manifest_summary_fixture_path.display().to_string();
+        let regenerated_with_manifest_summary = render_cli(&[
+            "generate-packaged-artifact",
+            "--out",
+            &artifact_fixture_path_string,
+            "--manifest-summary-out",
+            &manifest_summary_fixture_path_string,
+        ])
+        .expect("packaged artifact regeneration should write a manifest summary sidecar");
+        assert!(regenerated_with_manifest_summary.contains("manifest summary sidecar:"));
+        assert!(regenerated_with_manifest_summary.contains(&manifest_summary_fixture_path_string));
+        assert_eq!(
+            std::fs::read_to_string(&manifest_summary_fixture_path)
+                .expect("packaged artifact regeneration should write the manifest summary sidecar"),
             pleiades_data::packaged_artifact_generation_manifest_for_report()
         );
 
