@@ -7921,6 +7921,8 @@ fn render_release_notes_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_2378499_major_body_boundary_summary_for_report());
     text.push('\n');
+    text.push_str(&reference_snapshot_2451910_major_body_boundary_summary_for_report());
+    text.push('\n');
     text.push_str(&reference_snapshot_2451911_major_body_boundary_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_2451915_major_body_boundary_summary_for_report());
@@ -8069,6 +8071,8 @@ fn render_release_notes_summary_text() -> String {
     text.push_str(&reference_snapshot_2360233_major_body_boundary_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_2378499_major_body_boundary_summary_for_report());
+    text.push('\n');
+    text.push_str(&reference_snapshot_2451910_major_body_boundary_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_2451911_major_body_boundary_summary_for_report());
     text.push('\n');
@@ -19335,6 +19339,9 @@ mod tests {
         assert!(report.contains("Reference snapshot"));
         assert!(report.contains(&reference_snapshot_summary_for_report()));
         assert!(
+            report.contains(&reference_snapshot_2451910_major_body_boundary_summary_for_report())
+        );
+        assert!(
             report.contains(&reference_snapshot_2451911_major_body_boundary_summary_for_report())
         );
         assert!(report.contains(&selected_asteroid_terminal_boundary_summary_for_report()));
@@ -22393,6 +22400,9 @@ mod tests {
         assert!(rendered.contains("Release-specific coverage:"));
         assert!(rendered.contains("Selected asteroid source evidence: 93 source-backed samples across 6 bodies and 17 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies: Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis"));
         assert!(rendered.contains("Selected asteroid source windows: 93 source-backed samples across 6 bodies and 17 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); windows: Ceres: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Pallas: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Juno: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Vesta: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); asteroid:433-Eros: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); asteroid:99942-Apophis: 8 samples across 8 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB)"));
+        assert!(
+            rendered.contains(&reference_snapshot_2451910_major_body_boundary_summary_for_report())
+        );
         assert!(rendered.contains(&selected_asteroid_boundary_summary_for_report()));
         assert!(rendered.contains(&selected_asteroid_terminal_boundary_summary_for_report()));
         assert!(
@@ -27204,6 +27214,8 @@ version = "0.9.0"
         assert!(reference.contains("Reference 2500 selected-body boundary evidence:"));
         assert!(reference.contains("Reference 2200 selected-body boundary evidence:"));
         assert!(reference.contains("Reference 2415020 selected-body boundary evidence:"));
+        assert!(reference
+            .contains(&reference_snapshot_2451910_major_body_boundary_summary_for_report()));
         assert!(reference.contains(&selected_asteroid_boundary_summary_for_report()));
         assert!(reference.contains(&selected_asteroid_bridge_summary_for_report()));
         assert!(reference.contains(&selected_asteroid_dense_boundary_summary_for_report()));
