@@ -8,7 +8,7 @@ The previous reference-surface and release-rehearsal cleanup work is treated as 
 
 ## Why this frontier comes first
 
-The current packaged-data artifact is reproducible and inspectable, but it is still a draft fixture with a calibrated fit envelope rather than a production-quality one. A first fit-quality slice landed on the Moon, and the latest body-slice now uses adjacent linear spans with longitude unwrapping across the bundled bodies so the packaged-artifact reports can keep narrowing the remaining body/channel worst-segment intervals. A follow-on manifest slice has also landed: regeneration provenance now records encoded artifact size so the size accounting stays reproducible. The main benchmark report now also surfaces packaged-artifact lookup, batch lookup, and decode sections, keeping throughput and decode cost visible alongside the chart and backend timings. The specification still requires a compressed 1500-2500 CE artifact with published accuracy measurements, deterministic generation, efficient random access, and clear stored/derived/unsupported output semantics.
+The current packaged-data artifact is reproducible and inspectable, but it is still a draft fixture with a calibrated fit envelope rather than a production-quality one. A first fit-quality slice landed on the Moon, and the latest body-slice now uses adjacent linear spans with longitude unwrapping across the bundled bodies so the packaged-artifact reports can keep narrowing the remaining body/channel worst-segment intervals. A follow-on manifest slice has also landed: regeneration provenance now records encoded artifact size, and the generator parameters now also record residual-body coverage so size and residual posture stay reproducible. The main benchmark report now also surfaces packaged-artifact lookup, batch lookup, and decode sections, keeping throughput and decode cost visible alongside the chart and backend timings. The specification still requires a compressed 1500-2500 CE artifact with published accuracy measurements, deterministic generation, efficient random access, and clear stored/derived/unsupported output semantics.
 
 Production artifacts also depend on trustworthy reference inputs. If existing fixtures cannot support the required fitting and validation thresholds, Phase 2 work should expand or replace them before artifact claims broaden.
 
@@ -29,7 +29,7 @@ Implement a small artifact-quality slice:
 - keep the draft/prototype label until all advertised scopes pass;
 - add or update regression tests that prevent fit-report drift.
 
-Status update: the Moon residual-correction slice is complete, the adjacent linear-span slice is complete, the current draft thresholds are calibrated to the latest artifact, and the main benchmark report now includes packaged-artifact lookup, batch lookup, and decode sections. Next work should still target the remaining high-error body classes or segment families.
+Status update: the Moon residual-correction slice is complete, the adjacent linear-span slice is complete, the manifest-completeness slice is complete (encoded artifact size and residual-body coverage are now explicit in the generator parameters), the current draft thresholds are calibrated to the latest artifact, and the main benchmark report now includes packaged-artifact lookup, batch lookup, and decode sections. Next work should still target the remaining high-error body classes or segment families.
 
 ## Parallel safe work
 

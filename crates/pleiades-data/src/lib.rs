@@ -2433,8 +2433,12 @@ pub struct PackagedArtifactGeneratorParameters {
     pub source_provenance: String,
     /// Deterministic checksum of the checked-in packaged artifact.
     pub checksum: u64,
+    /// Encoded size of the checked-in packaged artifact in bytes.
+    pub artifact_size_bytes: usize,
     /// Bodies bundled into the packaged artifact.
     pub body_coverage: PackagedBodyCoverageSummary,
+    /// Residual-bearing body coverage encoded by the packaged artifact.
+    pub residual_body_coverage: ArtifactResidualBodyCoverageSummary,
     /// Capability profile encoded by the packaged artifact.
     pub artifact_profile: ArtifactProfile,
     /// Output speed policy encoded by the packaged artifact.
@@ -2457,14 +2461,16 @@ impl PackagedArtifactGeneratorParameters {
     /// Returns the generator parameters as a compact human-readable line.
     pub fn summary_line(&self) -> String {
         format!(
-            "Packaged artifact generator parameters: profile id={}; label={}; version={}; time range={}; source provenance={}; checksum=0x{:016x}; body coverage={}; artifact profile={}; output support={}; speed policy={}; generation policy={}; segment strategy={}; request policy={}; lookup epoch policy={}; frame treatment={}; storage/reconstruction={}; {}",
+            "Packaged artifact generator parameters: profile id={}; label={}; version={}; time range={}; source provenance={}; checksum=0x{:016x}; artifact size={} bytes; body coverage={}; residual bodies={}; artifact profile={}; output support={}; speed policy={}; generation policy={}; segment strategy={}; request policy={}; lookup epoch policy={}; frame treatment={}; storage/reconstruction={}; {}",
             self.profile_id,
             self.label,
             self.artifact_version,
             self.time_range,
             self.source_provenance,
             self.checksum,
+            self.artifact_size_bytes,
             self.body_coverage,
+            self.residual_body_coverage.summary_line_with_body_count(),
             self.artifact_profile,
             self.artifact_profile.output_support_entries_summary_line(),
             self.speed_policy,
@@ -2519,10 +2525,27 @@ impl PackagedArtifactGeneratorParameters {
                 "packaged artifact generator parameters checksum does not match the current packaged artifact",
             ));
         }
+        let expected_artifact_size_bytes = packaged_artifact_encoded_bytes(artifact);
+        if self.artifact_size_bytes != expected_artifact_size_bytes {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                format!(
+                    "packaged artifact generator parameters artifact size {} bytes does not match the current packaged artifact size {} bytes",
+                    self.artifact_size_bytes,
+                    expected_artifact_size_bytes
+                ),
+            ));
+        }
         if self.body_coverage != current.body_coverage {
             return Err(pleiades_compression::CompressionError::new(
                 pleiades_compression::CompressionErrorKind::InvalidFormat,
                 "packaged artifact generator parameters body coverage does not match the current production profile",
+            ));
+        }
+        if self.residual_body_coverage != artifact.residual_body_coverage_summary() {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                "packaged artifact generator parameters residual body coverage does not match the current packaged artifact",
             ));
         }
         if self.artifact_profile != current.artifact_profile {
@@ -2678,7 +2701,9 @@ pub fn packaged_artifact_generator_parameters_details() -> PackagedArtifactGener
         time_range: summary.time_range,
         source_provenance: summary.source_provenance,
         checksum: regeneration.checksum,
+        artifact_size_bytes: regeneration.artifact_size_bytes,
         body_coverage: summary.body_coverage,
+        residual_body_coverage: regeneration.residual_body_coverage_summary(),
         artifact_profile: summary.artifact_profile,
         speed_policy: summary.speed_policy,
         generation_policy: summary.generation_policy,

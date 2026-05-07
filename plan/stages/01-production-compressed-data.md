@@ -6,13 +6,13 @@ Turn the current stage-5 draft packaged-data fixture into a production-quality 1
 
 ## Starting point
 
-The workspace already has artifact structures, codec roundtrips, checksums, manifest summaries, regeneration helpers, benchmark/report surfaces, and a draft artifact. The artifact has now been retuned to adjacent linear spans with longitude unwrapping across sampled epochs, which materially improved the fit envelope and refreshed the encoded size/checksum provenance, and the packaged-artifact reports now also surface separate lookup, batch-lookup, and decode benchmark sections. The packaged-artifact reports still expose body/channel worst-segment intervals for the remaining fit work.
+The workspace already has artifact structures, codec roundtrips, checksums, manifest summaries, regeneration helpers, benchmark/report surfaces, and a draft artifact. The artifact has now been retuned to adjacent linear spans with longitude unwrapping across sampled epochs, which materially improved the fit envelope and refreshed the encoded size/checksum provenance; the generation parameters now also record residual-body coverage so the manifest trail keeps size and residual posture explicit, and the packaged-artifact reports now also surface separate lookup, batch-lookup, and decode benchmark sections. The packaged-artifact reports still expose body/channel worst-segment intervals for the remaining fit work.
 
 ## Implementation goals
 
 - Continue tightening the draft fitting approach toward a production strategy suitable for Sun, Moon, planets, and selected asteroid coverage.
 - Define body-class and channel-specific target thresholds before claiming success.
-- Generate normalized intermediates and compressed artifacts from validated public inputs with deterministic parameters, including encoded artifact size and other reproducibility metadata.
+- Generate normalized intermediates and compressed artifacts from validated public inputs with deterministic parameters, including encoded artifact size, residual-body coverage, and other reproducibility metadata.
 - Keep stored, derived, and unsupported outputs explicit in the artifact profile.
 - Improve segment selection, polynomial/Chebyshev order, quantization, and residual correction until measured errors fit the published profile.
 - Benchmark lookup latency, batch throughput, decode cost, artifact size, and chart-style packaged-data use.
