@@ -91,7 +91,7 @@ This file lists focused implementation slices that map to the current phase ladd
 ### 1. Final release gate command
 
 - Compose existing checks into a documented release gate.
-- `release-checklist` is now also reachable as `release-gate` / `release-gate-summary` in the CLI and validation front ends; the repository-managed gate list now explicitly includes bundle verification and benchmark/report generation alongside format, clippy, tests, compatibility verification, artifact validation, and audits, and the remaining work is the full blocking composition around those checks.
+- `release-checklist` is now also reachable as `release-gate` / `release-gate-summary` in the CLI and validation front ends; those gate commands now also perform compatibility-profile verification plus release-bundle generation/verification before rendering the checklist text, and the remaining work is the full composition of format, strict clippy, workspace tests, and audit steps into the same blocking gate.
 - Ensure the gate blocks publication on stale reports or claim drift.
 
 ### 2. Clean-checkout bundle rehearsal

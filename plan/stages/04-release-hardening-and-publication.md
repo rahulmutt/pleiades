@@ -17,7 +17,7 @@ Convert release rehearsal tooling into a publishable process backed by current v
 
 Implemented and not re-planned here:
 
-- CLI/validation commands for compatibility profiles, backend matrices, API stability posture, request policies, validation reports, artifact summaries, benchmarks, release notes, release checklists, release summaries, audits, release-bundle generation, and release-bundle verification;
+- CLI/validation commands for compatibility profiles, backend matrices, API stability posture, request policies, validation reports, artifact summaries, benchmarks, release notes, release checklists, release summaries, audits, release-bundle generation, and release-bundle verification; the `release-gate` / `release-gate-summary` front ends now also run compatibility-profile verification plus release-bundle generation/verification before they render the checklist text;
 - workspace-native audit for mandatory native build hooks;
 - checksum manifests and bundle verification over current rehearsal artifacts;
 - README and documentation coverage for local checks, request posture, and release smoke commands.
