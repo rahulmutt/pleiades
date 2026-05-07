@@ -491,6 +491,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("ayanamsa-metadata-coverage") => validate_render_cli(args),
         Some("ayanamsa-reference-offsets-summary") => validate_render_cli(args),
         Some("ayanamsa-reference-offsets") => validate_render_cli(args),
+        Some("ayanamsa-provenance-summary") => validate_render_cli(args),
+        Some("ayanamsa-provenance") => validate_render_cli(args),
         Some("frame-policy-summary") => {
             ensure_no_extra_args(&args[1..], "frame-policy-summary")?;
             validate_render_cli(args)
@@ -5517,6 +5519,10 @@ mod tests {
         assert!(help.contains(
             "custom-definition-ayanamsa-labels  Alias for custom-definition-ayanamsa-labels-summary"
         ));
+        assert!(help.contains(
+            "ayanamsa-provenance-summary  Print the compact ayanamsa provenance summary"
+        ));
+        assert!(help.contains("ayanamsa-provenance        Alias for ayanamsa-provenance-summary"));
         assert!(help.contains(
             "release-house-system-canonical-names-summary  Print the compact release-specific house-system canonical names summary"
         ));

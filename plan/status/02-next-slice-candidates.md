@@ -77,7 +77,7 @@ This file lists focused implementation slices that map to the current phase ladd
 
 ### 2. Ayanamsa provenance batch
 
-- The current validation and release summaries already surface representative provenance excerpts for the curated release-facing ayanamsa sample.
+- The current validation and release summaries already surface representative provenance excerpts for the curated release-facing ayanamsa sample, and that curated sample now also has a dedicated `ayanamsa-provenance-summary` / `ayanamsa-provenance` command for direct CLI and validation access.
 - Expand or refine the curated sample only if additional release-advertised ayanamsas need first-class provenance evidence.
 - Continue classifying custom-definition-only entries explicitly.
 
