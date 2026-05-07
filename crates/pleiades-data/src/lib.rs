@@ -1440,13 +1440,14 @@ impl PackagedArtifactProductionProfileSummary {
     /// Returns the production-profile skeleton as a compact human-readable line.
     pub fn summary_line(&self) -> String {
         format!(
-            "Packaged artifact production profile draft: profile id={}; label={}; version={}; time range={}; body coverage={}; artifact profile={}; speed policy={}; generation policy={}; segment strategy={}; request policy={}; lookup epoch policy={}; frame treatment={}; storage/reconstruction={}; {}",
+            "Packaged artifact production profile draft: profile id={}; label={}; version={}; time range={}; body coverage={}; artifact profile={}; output support={}; speed policy={}; generation policy={}; segment strategy={}; request policy={}; lookup epoch policy={}; frame treatment={}; storage/reconstruction={}; {}",
             self.profile_id,
             self.label,
             self.artifact_version,
             self.time_range,
             self.body_coverage,
             self.artifact_profile,
+            self.artifact_profile.output_support_entries_summary_line(),
             self.speed_policy,
             self.generation_policy,
             self.generation_policy.segment_strategy(),
@@ -1645,13 +1646,14 @@ impl PackagedArtifactGeneratorParameters {
     /// Returns the generator parameters as a compact human-readable line.
     pub fn summary_line(&self) -> String {
         format!(
-            "Packaged artifact generator parameters: profile id={}; label={}; version={}; time range={}; body coverage={}; artifact profile={}; speed policy={}; generation policy={}; segment strategy={}; request policy={}; lookup epoch policy={}; frame treatment={}; storage/reconstruction={}; {}",
+            "Packaged artifact generator parameters: profile id={}; label={}; version={}; time range={}; body coverage={}; artifact profile={}; output support={}; speed policy={}; generation policy={}; segment strategy={}; request policy={}; lookup epoch policy={}; frame treatment={}; storage/reconstruction={}; {}",
             self.profile_id,
             self.label,
             self.artifact_version,
             self.time_range,
             self.body_coverage,
             self.artifact_profile,
+            self.artifact_profile.output_support_entries_summary_line(),
             self.speed_policy,
             self.generation_policy,
             self.generation_policy.segment_strategy(),
@@ -5567,6 +5569,7 @@ mod tests {
         assert!(summary
             .summary_line()
             .contains("Packaged artifact production profile draft:"));
+        assert!(summary.summary_line().contains("output support="));
         assert!(summary.summary_line().contains("speed policy=Unsupported"));
         assert!(summary
             .summary_line()
@@ -5853,6 +5856,7 @@ mod tests {
         assert!(manifest
             .summary_line()
             .contains("Packaged artifact generation manifest:"));
+        assert!(manifest.summary_line().contains("output support="));
         assert!(manifest.summary_line().contains("speed policy=Unsupported"));
         assert!(manifest.summary_line().contains("segment strategy="));
         assert!(manifest
