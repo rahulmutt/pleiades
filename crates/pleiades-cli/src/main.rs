@@ -279,7 +279,13 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("reference-snapshot-2451914-major-body-bridge-summary")
         | Some("2451914-major-body-bridge-summary") => validate_render_cli(args),
         Some("reference-snapshot-2451915-major-body-bridge-summary")
-        | Some("2451915-major-body-bridge-summary") => validate_render_cli(args),
+        | Some("2451915-major-body-bridge-summary") => {
+            ensure_no_extra_args(
+                &args[1..],
+                "reference-snapshot-2451915-major-body-bridge-summary",
+            )?;
+            Ok(pleiades_jpl::reference_snapshot_2451915_major_body_bridge_summary_for_report())
+        }
         Some("reference-snapshot-2451916-major-body-boundary-summary")
         | Some("2451916-major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-2451916-major-body-dense-boundary-summary")
@@ -1940,16 +1946,17 @@ mod tests {
 
         let bridge_2451915 = render_cli(&["reference-snapshot-2451915-major-body-bridge-summary"])
             .expect("2451915 bridge summary should render");
-        assert!(bridge_2451915.contains("Reference major-body bridge evidence:"));
+        assert!(bridge_2451915.contains("Reference 2451915 major-body bridge evidence:"));
         assert!(bridge_2451915.contains("JD 2451915.0 (TDB)"));
         assert_eq!(
             render_cli(&["2451915-major-body-bridge-summary"])
                 .expect("2451915 bridge alias should render"),
-            bridge_2451915
+            pleiades_jpl::reference_snapshot_2451915_major_body_bridge_summary_for_report()
         );
         assert_eq!(
             render_cli(&["bridge-summary"]).expect("bridge alias should render"),
-            bridge_2451915
+            render_cli(&["major-body-bridge-summary"])
+                .expect("major body bridge alias should render")
         );
         assert_eq!(
             render_cli(&["bridge-summary", "extra"])

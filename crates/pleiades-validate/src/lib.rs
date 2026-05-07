@@ -5321,7 +5321,7 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
                 &args[1..],
                 "reference-snapshot-2451915-major-body-bridge-summary",
             )?;
-            Ok(reference_snapshot_major_body_bridge_summary_for_report())
+            Ok(pleiades_jpl::reference_snapshot_2451915_major_body_bridge_summary_for_report())
         }
         Some("reference-snapshot-2451917-major-body-bridge-summary")
         | Some("2451917-major-body-bridge-summary") => {
@@ -26317,7 +26317,11 @@ version = "0.9.0"
         assert_eq!(concise_alias, rendered);
         let epoch_alias = render_cli(&["2451915-major-body-bridge-summary"])
             .expect("2451915 major body bridge alias should render");
-        assert_eq!(epoch_alias, rendered);
+        assert!(epoch_alias.contains("Reference 2451915 major-body bridge evidence:"));
+        assert_eq!(
+            epoch_alias,
+            pleiades_jpl::reference_snapshot_2451915_major_body_bridge_summary_for_report()
+        );
         assert_eq!(
             render_cli(&["major-body-bridge-summary", "extra"])
                 .expect_err("major body bridge alias should reject extra arguments"),

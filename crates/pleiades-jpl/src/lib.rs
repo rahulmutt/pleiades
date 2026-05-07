@@ -16988,7 +16988,20 @@ pub fn reference_snapshot_2451915_major_body_bridge_summary(
 
 /// Returns the release-facing 2451915 major-body bridge summary string.
 pub fn reference_snapshot_2451915_major_body_bridge_summary_for_report() -> String {
-    reference_snapshot_major_body_bridge_summary_for_report()
+    match reference_snapshot_2451915_major_body_bridge_summary() {
+        Some(summary) => match summary.validate() {
+            Ok(()) => format!(
+                "Reference 2451915 major-body bridge evidence: {} exact samples at {} ({}); 2451915 major-body bridge sample",
+                summary.sample_count,
+                format_instant(summary.epoch),
+                format_bodies(&summary.sample_bodies),
+            ),
+            Err(error) => {
+                format!("Reference 2451915 major-body bridge evidence: unavailable ({error})")
+            }
+        },
+        None => "Reference 2451915 major-body bridge evidence: unavailable".to_string(),
+    }
 }
 
 /// Compact release-facing summary for the dense 2451916.5 boundary day in the reference snapshot.
@@ -23706,14 +23719,19 @@ mod tests {
                 .summary_line()
         );
 
+        let summary = reference_snapshot_2451915_major_body_bridge_summary()
+            .expect("reference 2451915 major-body bridge summary should exist");
         assert_eq!(
             reference_snapshot_2451915_major_body_bridge_summary_for_report(),
-            reference_snapshot_major_body_bridge_summary_for_report()
+            format!(
+                "Reference 2451915 major-body bridge evidence: {} exact samples at {} ({}); 2451915 major-body bridge sample",
+                summary.sample_count,
+                format_instant(summary.epoch),
+                format_bodies(&summary.sample_bodies),
+            )
         );
         assert_eq!(
-            reference_snapshot_2451915_major_body_bridge_summary()
-                .expect("reference 2451915 major-body bridge summary should exist")
-                .summary_line(),
+            summary.summary_line(),
             reference_snapshot_major_body_bridge_summary()
                 .expect("reference major-body bridge summary should exist")
                 .summary_line()
