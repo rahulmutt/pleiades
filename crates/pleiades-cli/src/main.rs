@@ -1843,7 +1843,7 @@ mod tests {
         assert_eq!(
             render_cli(&["2415020-selected-body-boundary-summary"])
                 .expect("2415020 selected-body boundary alias should render"),
-            boundary_1900
+            pleiades_jpl::reference_snapshot_2415020_selected_body_boundary_summary_for_report()
         );
 
         let interior_2360234 =

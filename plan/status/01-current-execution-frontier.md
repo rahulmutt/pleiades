@@ -26,7 +26,7 @@ Current implementation status shows:
 - release-bundle generation and verification exist, and validation/report surfaces now classify evidence as release-tolerance, hold-out, fixture exactness, or provenance-only; the comparison audit surface now also mirrors body-class tolerance posture for the release-grade corpus, the boundary-epoch coverage summary now spans JD 2451912.5..JD 2451919.5 across 12 epochs, and the staged bundle now carries the comparison-body-class-tolerance summary alongside the envelope/guard outputs plus the release-grade body-claims, Pluto-fallback, and reference snapshot source summaries; final release gates still need to be rerun over production accuracy evidence, production artifacts, and truthful compatibility profiles.
 
 - the top-level reference snapshot summary now also surfaces the reference-asteroid evidence, equatorial-evidence, and source-window summaries alongside the existing selected-asteroid and major-body evidence blocks, and now also carries the reference equatorial and batch parity summaries, so the current reference breadth is a little more complete without changing the fixture/backend posture.
-- the generic reference bridge-day summary and 2451914 major-body bridge-day alias are now also promoted through the top-level reference snapshot and release notes summaries, closing that aggregate reporting slice.
+- the generic reference bridge-day summary, generic major-body bridge summary, and 2451914 major-body bridge-day alias are now also promoted through the top-level reference snapshot and release notes summaries, closing that aggregate reporting slice.
 
 ## Why this frontier comes first
 
