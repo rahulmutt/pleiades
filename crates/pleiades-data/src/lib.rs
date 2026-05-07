@@ -998,6 +998,25 @@ pub fn packaged_artifact_fit_threshold_summary_for_report() -> String {
     }
 }
 
+/// Returns the current packaged-artifact fit margins relative to the calibrated thresholds.
+pub fn packaged_artifact_fit_margin_summary_for_report() -> String {
+    let envelope = packaged_artifact_fit_envelope_summary_details();
+    let thresholds = packaged_artifact_fit_threshold_summary_details();
+
+    match envelope.validate_against_thresholds(&thresholds) {
+        Ok(()) => format!(
+            "fit margins: mean Δlon={:+.12}°, mean Δlat={:+.12}°, mean Δdist={:+.12} AU; max Δlon={:+.12}°, max Δlat={:+.12}°, max Δdist={:+.12} AU",
+            thresholds.max_mean_longitude_delta_degrees - envelope.mean_longitude_delta_degrees,
+            thresholds.max_mean_latitude_delta_degrees - envelope.mean_latitude_delta_degrees,
+            thresholds.max_mean_distance_delta_au - envelope.mean_distance_delta_au,
+            thresholds.max_longitude_delta_degrees - envelope.max_longitude_delta_degrees,
+            thresholds.max_latitude_delta_degrees - envelope.max_latitude_delta_degrees,
+            thresholds.max_distance_delta_au - envelope.max_distance_delta_au,
+        ),
+        Err(error) => format!("fit margins: unavailable ({error})"),
+    }
+}
+
 fn packaged_artifact_body_scope(body: &CelestialBody) -> &'static str {
     match body {
         CelestialBody::Sun | CelestialBody::Moon => "luminaries",
@@ -6435,6 +6454,25 @@ mod tests {
         assert!(summary.validate().is_ok());
         assert!(packaged_artifact_fit_threshold_summary_for_report()
             .contains("fit thresholds: mean Δlon≤29.750992955013°"));
+    }
+
+    #[test]
+    fn packaged_artifact_fit_margin_summary_reflects_the_current_posture() {
+        let envelope = packaged_artifact_fit_envelope_summary_details();
+        let thresholds = packaged_artifact_fit_threshold_summary_details();
+
+        assert_eq!(
+            packaged_artifact_fit_margin_summary_for_report(),
+            format!(
+                "fit margins: mean Δlon={:+.12}°, mean Δlat={:+.12}°, mean Δdist={:+.12} AU; max Δlon={:+.12}°, max Δlat={:+.12}°, max Δdist={:+.12} AU",
+                thresholds.max_mean_longitude_delta_degrees - envelope.mean_longitude_delta_degrees,
+                thresholds.max_mean_latitude_delta_degrees - envelope.mean_latitude_delta_degrees,
+                thresholds.max_mean_distance_delta_au - envelope.mean_distance_delta_au,
+                thresholds.max_longitude_delta_degrees - envelope.max_longitude_delta_degrees,
+                thresholds.max_latitude_delta_degrees - envelope.max_latitude_delta_degrees,
+                thresholds.max_distance_delta_au - envelope.max_distance_delta_au,
+            )
+        );
     }
 
     #[test]

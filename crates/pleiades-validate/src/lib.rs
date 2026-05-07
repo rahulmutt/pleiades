@@ -59,6 +59,7 @@ use pleiades_data::{
     packaged_artifact_access_summary_for_report, packaged_artifact_bytes,
     packaged_artifact_fit_envelope_summary_details,
     packaged_artifact_fit_envelope_summary_for_report,
+    packaged_artifact_fit_margin_summary_for_report,
     packaged_artifact_fit_threshold_summary_details,
     packaged_artifact_fit_threshold_summary_for_report,
     packaged_artifact_generation_manifest_for_report,
@@ -8900,6 +8901,9 @@ fn render_release_summary_text() -> String {
     text.push_str("Packaged-artifact production profile draft: ");
     text.push_str(&packaged_artifact_production_profile_summary_for_report());
     text.push('\n');
+    text.push_str("Packaged-artifact fit margins: ");
+    text.push_str(&packaged_artifact_fit_margin_summary_for_report());
+    text.push('\n');
     text.push_str("Packaged-artifact target thresholds: ");
     text.push_str(&packaged_artifact_target_threshold_summary_for_report());
     text.push('\n');
@@ -13453,6 +13457,11 @@ fn render_benchmark_matrix_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(text);
     let _ = writeln!(text, "Packaged-artifact fit posture");
     let _ = writeln!(text, "  fit envelope: {}", fit_envelope);
+    let _ = writeln!(
+        text,
+        "  fit margins: {}",
+        packaged_artifact_fit_margin_summary_for_report()
+    );
     let _ = writeln!(text, "  fit sample classes: {}", fit_sample_classes);
     let _ = writeln!(text, "  fit thresholds: {}", fit_thresholds);
     let _ = writeln!(text, "  target thresholds: {}", target_threshold_summary);
@@ -15363,6 +15372,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         text,
         "  Packaged-artifact fit envelope: {}",
         packaged_artifact_fit_envelope_summary_for_report()
+    );
+    let _ = writeln!(
+        text,
+        "  Packaged-artifact fit margins: {}",
+        packaged_artifact_fit_margin_summary_for_report()
     );
     let _ = writeln!(
         text,
@@ -19430,6 +19444,7 @@ mod tests {
         assert!(rendered.contains("artifact decode benchmark: artifact="));
         assert!(rendered.contains("Packaged-artifact fit posture"));
         assert!(rendered.contains("fit envelope: "));
+        assert!(rendered.contains("fit margins: "));
         assert!(rendered.contains("fit sample classes: boundary continuity="));
         assert!(rendered.contains("fit thresholds: mean Δlon≤"));
         assert!(rendered.contains("target thresholds: profile id="));
@@ -20089,6 +20104,7 @@ mod tests {
         ));
         assert!(validation_report_summary.contains("Packaged-artifact target thresholds: profile id=pleiades-packaged-artifact-profile/stage-5-draft; target thresholds: draft fit envelope recorded; scopes=luminaries, major planets, pluto, lunar points, selected asteroids, custom bodies; fit envelope:"));
         assert!(validation_report_summary.contains("Packaged-artifact fit envelope: fit envelope:"));
+        assert!(validation_report_summary.contains("Packaged-artifact fit margins: fit margins:"));
         assert!(validation_report_summary
             .contains("Packaged-artifact fit sample classes: fit sample classes:"));
         assert!(validation_report_summary.contains("Packaged-artifact target-threshold scope envelopes: scope envelopes: scope=luminaries; bodies=2 (Sun, Moon); fit envelope:"));
@@ -24445,6 +24461,7 @@ version = "0.9.0"
             "Packaged-artifact storage/reconstruction: Quantized linear segments stored in pleiades-compression artifact format; ecliptic and equatorial coordinates are reconstructed at runtime from stored channels; apparent, topocentric, sidereal, and motion outputs remain unsupported"
         ));
         assert!(release_summary.contains("Packaged-artifact target thresholds: profile id=pleiades-packaged-artifact-profile/stage-5-draft; target thresholds: draft fit envelope recorded; scopes=luminaries, major planets, pluto, lunar points, selected asteroids, custom bodies; fit envelope:"));
+        assert!(release_summary.contains("Packaged-artifact fit margins: fit margins:"));
         assert!(release_summary.contains("Packaged-artifact target-threshold scope envelopes: scope envelopes: scope=luminaries; bodies=2 (Sun, Moon); fit envelope:"));
         assert!(release_summary.contains(
             "Packaged-artifact generation manifest: Packaged artifact generation manifest:"
