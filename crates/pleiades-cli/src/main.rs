@@ -1472,8 +1472,12 @@ mod tests {
         assert!(rendered.contains("2451914-major-body-pre-bridge-summary"));
         assert!(rendered.contains("reference-snapshot-2451914-major-body-bridge-summary"));
         assert!(rendered.contains("2451914-major-body-bridge-summary"));
+        assert!(rendered.contains("reference-snapshot-2451914-major-body-bridge-day-summary"));
+        assert!(rendered.contains("2451914-major-body-bridge-day-summary"));
         assert!(rendered.contains("reference-snapshot-2451915-major-body-boundary-summary"));
         assert!(rendered.contains("2451915-major-body-boundary-summary"));
+        assert!(rendered.contains("reference-snapshot-2451915-major-body-bridge-summary"));
+        assert!(rendered.contains("2451915-major-body-bridge-summary"));
         assert!(rendered.contains("reference-snapshot-2451917-major-body-boundary-summary"));
         assert!(rendered.contains("2451917-major-body-boundary-summary"));
         assert!(rendered.contains("reference-snapshot-2451918-major-body-boundary-summary"));
@@ -5637,7 +5641,10 @@ mod tests {
             "reference-snapshot-2451910-major-body-boundary-summary  Print the compact reference 2451910 major-body boundary evidence summary"
         ));
         assert!(help.contains(
-            "reference-snapshot-2451915-major-body-boundary-summary  Print the compact reference 2451915 major-body boundary evidence summary"
+            "reference-snapshot-2451915-major-body-bridge-summary  Print the compact reference 2451915 major-body bridge evidence summary"
+        ));
+        assert!(help.contains(
+            "2451915-major-body-bridge-summary  Alias for reference-snapshot-2451915-major-body-bridge-summary"
         ));
         assert!(help.contains(
             "reference-snapshot-2451917-major-body-boundary-summary  Print the compact reference 2451917 major-body boundary evidence summary"
