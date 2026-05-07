@@ -16,8 +16,15 @@ run = "RUSTDOCFLAGS=\"-D warnings\" cargo doc --workspace --no-deps --all-featur
 [tasks.audit]
 run = "cargo run -q -p pleiades-validate -- workspace-audit"
 
+[tasks.benchmark]
+run = "cargo run -q -p pleiades-validate -- benchmark --rounds 5"
+
 [tasks.release-smoke]
 run = "cargo run -q -p pleiades-validate -- release-smoke"
+
+[tasks.release-gate]
+depends = ["fmt", "lint", "test", "benchmark", "audit", "release-smoke"]
+run = "cargo run -q -p pleiades-validate -- release-gate"
 
 [tasks.ci]
 depends = ["fmt", "lint", "test", "docs", "audit", "release-smoke"]

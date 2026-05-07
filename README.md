@@ -58,7 +58,7 @@ Rough command overview:
 - `backend-matrix` / `capability-matrix`: print implemented backend capability matrices
 - `backend-matrix-summary` / `matrix-summary`: compact backend matrix summary
 - `benchmark [--rounds N]`: benchmark the candidate backend on the representative corpus and full chart assembly
-- `release-notes`, `release-notes-summary`, `release-checklist`, `release-checklist-summary` / `checklist-summary`, `release-summary`: release metadata and summary views
+- `release-notes`, `release-notes-summary`, `release-checklist`, `release-checklist-summary` / `checklist-summary`, `release-gate`, `release-gate-summary`, `release-summary`: release metadata and summary views
 - `request-policy-summary` / `request-policy`: compact request-policy summary; `request-semantics-summary` / `request-semantics`: compact request-semantics summary
 - `time-scale-policy-summary`, `utc-convenience-policy-summary`, `delta-t-policy-summary`, `observer-policy-summary`, `apparentness-policy-summary`, `frame-policy-summary`: dedicated request-semantics policy summaries
 - `compatibility-caveats-summary` / `compatibility-caveats`: compact compatibility caveats summary of the known release gaps
@@ -137,7 +137,7 @@ Rough command overview:
 - `compatibility-profile`: print the full release compatibility profile
 - `compatibility-profile-summary`: compact compatibility profile summary
 - `verify-compatibility-profile`: verify the release compatibility profile against the canonical catalogs
-- `api-stability`, `api-stability-summary`, `release-notes`, `release-notes-summary`, `release-checklist`, `release-checklist-summary`, `release-summary`, `comparison-corpus-summary` / `comparison-corpus-release-guard-summary` / `comparison-corpus-release-guard` / `comparison-corpus-guard-summary` / `comparison-corpus-guard` / `comparison-envelope-summary` / `reference-holdout-overlap-summary` / `holdout-overlap-summary` / `independent-holdout-summary`, `production-generation-summary` / `production-generation`, `production-generation-source-summary` / `production-generation-source`, `production-generation-boundary-summary`, `frame-policy-summary`, `observer-policy-summary`, `apparentness-policy-summary`, `time-scale-policy-summary`, `utc-convenience-policy-summary`, `delta-t-policy-summary`, `request-surface-summary` / `request-surface`, `compatibility-caveats-summary`, `native-sidereal-policy-summary`, `interpolation-posture-summary`, `packaged-lookup-epoch-policy-summary`, `lunar-reference-error-envelope-summary`, `lunar-equatorial-reference-error-envelope-summary`, `request-policy-summary` / `request-policy` / `request-semantics-summary` / `request-semantics`, `workspace-audit-summary` / `native-dependency-audit-summary`: release-facing report helpers
+- `api-stability`, `api-stability-summary`, `release-notes`, `release-notes-summary`, `release-checklist`, `release-checklist-summary`, `release-gate`, `release-gate-summary`, `release-summary`, `comparison-corpus-summary` / `comparison-corpus-release-guard-summary` / `comparison-corpus-release-guard` / `comparison-corpus-guard-summary` / `comparison-corpus-guard`, `comparison-envelope-summary`, `reference-holdout-overlap-summary` / `holdout-overlap-summary` / `independent-holdout-summary`, `production-generation-summary` / `production-generation`, `production-generation-source-summary` / `production-generation-source`, `production-generation-boundary-summary`, `frame-policy-summary`, `observer-policy-summary`, `apparentness-policy-summary`, `time-scale-policy-summary`, `utc-convenience-policy-summary`, `delta-t-policy-summary`, `request-surface-summary` / `request-surface`, `compatibility-caveats-summary`, `native-sidereal-policy-summary`, `interpolation-posture-summary`, `packaged-lookup-epoch-policy-summary`, `lunar-reference-error-envelope-summary`, `lunar-equatorial-reference-error-envelope-summary`, `request-policy-summary` / `request-policy` / `request-semantics-summary` / `request-semantics`, `workspace-audit-summary` / `native-dependency-audit-summary`: release-facing report helpers
 - `bundle-release --out DIR` (or `--output DIR`): write a staged release bundle to a directory
 - `verify-release-bundle --out DIR` (or `--output DIR`): verify a previously staged release bundle
 - `regenerate-packaged-artifact FILE` or `regenerate-packaged-artifact --out FILE` / `--output FILE`: rebuild the checked-in packaged artifact fixture from the reference snapshot
@@ -204,7 +204,13 @@ cargo run -q -p pleiades-validate -- release-smoke
 # or: mise run release-smoke
 ```
 
-That smoke check runs the workspace audit, validates the bundled compressed artifact, generates the bundle, and verifies the manifest checksums plus the manifest checksum sidecar through `pleiades-validate`.
+For the full release gate, run:
+
+```bash
+mise run release-gate
+```
+
+That smoke check runs the workspace audit, validates the bundled compressed artifact, generates the bundle, and verifies the manifest checksums plus the manifest checksum sidecar through `pleiades-validate`. The release gate adds the repository checks for format, clippy, tests, and benchmark generation before it runs that smoke path.
 
 For a step-by-step description of the release workflow, see [docs/release-reproducibility.md](docs/release-reproducibility.md).
 
