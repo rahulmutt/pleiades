@@ -7960,6 +7960,10 @@ fn render_release_notes_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_2451915_major_body_bridge_summary_for_report());
     text.push('\n');
+    text.push_str(&reference_snapshot_2451917_major_body_bridge_summary_for_report());
+    text.push('\n');
+    text.push_str(&reference_snapshot_2451917_major_body_boundary_summary_for_report());
+    text.push('\n');
     text.push_str(&reference_snapshot_bridge_day_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_2451914_major_body_bridge_day_summary_for_report());
@@ -19451,6 +19455,12 @@ mod tests {
         );
         assert!(report.contains(
             &pleiades_jpl::reference_snapshot_2451915_major_body_bridge_summary_for_report()
+        ));
+        assert!(report.contains(
+            &pleiades_jpl::reference_snapshot_2451917_major_body_bridge_summary_for_report()
+        ));
+        assert!(report.contains(
+            &pleiades_jpl::reference_snapshot_2451917_major_body_boundary_summary_for_report()
         ));
         assert!(report.contains(&reference_snapshot_source_window_summary_for_report()));
         assert!(report.contains(&reference_snapshot_body_class_coverage_summary_for_report()));
