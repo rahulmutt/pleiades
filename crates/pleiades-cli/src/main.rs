@@ -16,8 +16,9 @@ use pleiades_core::{
     JulianDay, Latitude, Longitude, ObserverLocation, RoutingBackend, TimeScale, ZodiacMode,
 };
 use pleiades_data::{
-    packaged_artifact_bytes, packaged_artifact_regeneration_summary_for_report,
-    regenerate_packaged_artifact, PackagedDataBackend,
+    packaged_artifact_bytes, packaged_artifact_generation_manifest,
+    packaged_artifact_regeneration_summary_for_report, regenerate_packaged_artifact,
+    PackagedDataBackend,
 };
 use pleiades_elp::ElpBackend;
 use pleiades_jpl::{
@@ -583,9 +584,10 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
                 return Ok(help_text());
             }
             match parse_packaged_artifact_command(&args[1..])? {
-                PackagedArtifactCommand::Write { output_path } => {
-                    render_packaged_artifact_regeneration(output_path)
-                }
+                PackagedArtifactCommand::Write {
+                    output_path,
+                    manifest_path,
+                } => render_packaged_artifact_regeneration(output_path, manifest_path),
                 PackagedArtifactCommand::Check => render_packaged_artifact_regeneration_check(),
             }
         }
@@ -967,33 +969,88 @@ fn parse_release_bundle_output_dir<'a>(args: &'a [&'a str]) -> Result<&'a str, S
 }
 
 enum PackagedArtifactCommand {
-    Write { output_path: String },
+    Write {
+        output_path: String,
+        manifest_path: Option<String>,
+    },
     Check,
 }
 
 fn parse_packaged_artifact_command(args: &[&str]) -> Result<PackagedArtifactCommand, String> {
-    match args {
-        [] => Err(
-            "missing required output path argument; pass a file path, --out <file>, --output <file>, or --check"
+    if args.is_empty() {
+        return Err(
+            "missing required output path argument; pass a file path, --out <file>, --output <file>, --manifest-out <file>, or --check"
                 .to_string(),
-        ),
-        ["--check"] => Ok(PackagedArtifactCommand::Check),
-        ["--out"] => Err("missing value for --out".to_string()),
-        ["--output"] => Err("missing value for --output".to_string()),
-        ["--out", path] | ["--output", path] => Ok(PackagedArtifactCommand::Write {
-            output_path: (*path).to_string(),
-        }),
-        ["--out", _, extra, ..] | ["--output", _, extra, ..] => {
-            Err(format!("unknown argument: {extra}"))
-        }
-        [path] if !path.starts_with('-') => Ok(PackagedArtifactCommand::Write {
-            output_path: (*path).to_string(),
-        }),
-        [other, ..] => Err(format!("unknown argument: {other}")),
+        );
     }
+
+    let mut output_path = None;
+    let mut manifest_path = None;
+    let mut check = false;
+    let mut iter = args.iter().copied();
+
+    while let Some(arg) = iter.next() {
+        match arg {
+            "--check" => {
+                check = true;
+            }
+            "--out" | "--output" => {
+                let path = iter
+                    .next()
+                    .ok_or_else(|| format!("missing value for {arg}"))?;
+                if output_path.replace(path.to_string()).is_some() {
+                    return Err(format!("duplicate output path argument: {arg}"));
+                }
+            }
+            "--manifest-out" => {
+                let path = iter
+                    .next()
+                    .ok_or_else(|| "missing value for --manifest-out".to_string())?;
+                if manifest_path.replace(path.to_string()).is_some() {
+                    return Err("duplicate manifest path argument: --manifest-out".to_string());
+                }
+            }
+            other if other.starts_with('-') => return Err(format!("unknown argument: {other}")),
+            path => {
+                if output_path.replace(path.to_string()).is_some() {
+                    return Err(format!("unexpected positional output path: {path}"));
+                }
+            }
+        }
+    }
+
+    if check {
+        if output_path.is_some() || manifest_path.is_some() {
+            return Err("the --check flag cannot be combined with output paths".to_string());
+        }
+        return Ok(PackagedArtifactCommand::Check);
+    }
+
+    let output_path = output_path.ok_or_else(|| {
+        "missing required output path argument; pass a file path, --out <file>, --output <file>, --manifest-out <file>, or --check"
+            .to_string()
+    })?;
+
+    Ok(PackagedArtifactCommand::Write {
+        output_path,
+        manifest_path,
+    })
 }
 
-fn render_packaged_artifact_regeneration(output_path: String) -> Result<String, String> {
+fn write_text_file(path: &str, contents: &str) -> Result<(), String> {
+    if let Some(parent) = std::path::Path::new(path).parent() {
+        if !parent.as_os_str().is_empty() {
+            std::fs::create_dir_all(parent)
+                .map_err(|error| format!("failed to create {}: {error}", parent.display()))?;
+        }
+    }
+    std::fs::write(path, contents).map_err(|error| format!("failed to write {}: {error}", path))
+}
+
+fn render_packaged_artifact_regeneration(
+    output_path: String,
+    manifest_path: Option<String>,
+) -> Result<String, String> {
     let artifact = regenerate_packaged_artifact();
     let encoded = artifact.encode().map_err(|error| error.to_string())?;
     if let Some(parent) = std::path::Path::new(&output_path).parent() {
@@ -1005,14 +1062,23 @@ fn render_packaged_artifact_regeneration(output_path: String) -> Result<String, 
     std::fs::write(&output_path, &encoded)
         .map_err(|error| format!("failed to write {}: {error}", output_path))?;
 
+    let manifest_line = if let Some(manifest_path) = manifest_path {
+        let manifest = packaged_artifact_generation_manifest();
+        write_text_file(&manifest_path, manifest)?;
+        format!("\n  manifest: {}", manifest_path)
+    } else {
+        String::new()
+    };
+
     Ok(format!(
-        "Packaged artifact regenerated\n  path: {}\n  label: {}\n  source: {}\n  checksum: 0x{:016x}\n  bytes: {}\n  {}",
+        "Packaged artifact regenerated\n  path: {}\n  label: {}\n  source: {}\n  checksum: 0x{:016x}\n  bytes: {}\n  {}{}",
         output_path,
         artifact.header.generation_label,
         artifact.header.source,
         artifact.checksum,
         encoded.len(),
         packaged_artifact_regeneration_summary_for_report(),
+        manifest_line,
     ))
 }
 
@@ -4982,6 +5048,24 @@ mod tests {
             .encode()
             .expect("regenerated packaged artifact should encode");
         assert_eq!(written, expected);
+
+        let manifest_fixture_path = artifact_fixture_dir.join("packaged-artifact.manifest.txt");
+        let manifest_fixture_path_string = manifest_fixture_path.display().to_string();
+        let regenerated_with_manifest = render_cli(&[
+            "regenerate-packaged-artifact",
+            "--out",
+            &artifact_fixture_path_string,
+            "--manifest-out",
+            &manifest_fixture_path_string,
+        ])
+        .expect("packaged artifact regeneration should write a manifest sidecar");
+        assert!(regenerated_with_manifest.contains("manifest:"));
+        assert!(regenerated_with_manifest.contains(&manifest_fixture_path_string));
+        assert_eq!(
+            std::fs::read_to_string(&manifest_fixture_path)
+                .expect("packaged artifact regeneration should write the manifest sidecar"),
+            pleiades_data::packaged_artifact_generation_manifest_for_report()
+        );
 
         let output_alias_fixture_path =
             artifact_fixture_dir.join("packaged-artifact-output-alias.bin");
