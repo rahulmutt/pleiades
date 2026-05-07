@@ -1,17 +1,16 @@
 //! Packaged compressed ephemeris backend for the common 1500-2500 range.
 //!
 //! This crate now ships a small stage-5 draft artifact backed by the
-//! `pleiades-compression` codec. The bundled data is loaded from a checked-in
-//! deterministic binary fixture that covers the comparison-body planetary set
-//! plus the source-backed custom asteroid `asteroid:433-Eros`, and the backend
-//! falls back to other providers when callers request bodies outside that
-//! packaged slice. The packaged artifact stores ecliptic coordinates directly
-//! and reconstructs equatorial coordinates from the stored channels and
-//! mean-obliquity transform when requested. The fixture is still regenerated
-//! from the checked-in JPL reference snapshot in tests so the packaged data
-//! stays reproducible. A maintainer-facing regeneration helper can rebuild the
-//! checked-in fixture from the bundled JPL reference snapshot without
-//! introducing any native tooling. When the `packaged-artifact-path` feature is
+//! `pleiades-compression` codec. The bundled data is regenerated from the
+//! checked-in JPL reference snapshot and validated against a deterministic
+//! binary fixture that covers the comparison-body planetary set plus the
+//! source-backed custom asteroid `asteroid:433-Eros`, and the backend falls
+//! back to other providers when callers request bodies outside that packaged
+//! slice. The packaged artifact stores ecliptic coordinates directly and
+//! reconstructs equatorial coordinates from the stored channels and
+//! mean-obliquity transform when requested. A maintainer-facing regeneration
+//! helper can rebuild the checked-in fixture from the bundled JPL reference
+//! snapshot without introducing any native tooling. When the `packaged-artifact-path` feature is
 //! enabled, callers can also load an explicit artifact file for larger or
 //! externally distributed packaged datasets. See `docs/time-observer-policy.md`
 //! for the explicit packaged request/lookup-epoch policy, and
@@ -4803,8 +4802,7 @@ impl EphemerisBackend for PackagedDataBackend {
 }
 
 fn build_packaged_artifact() -> CompressedArtifact {
-    packaged_artifact_from_bytes(PACKAGED_ARTIFACT_FIXTURE)
-        .expect("packaged artifact fixture should decode and validate")
+    regenerate_packaged_artifact()
 }
 
 /// Rebuilds the packaged artifact from validated JPL reference-snapshot inputs.
@@ -4917,6 +4915,46 @@ fn body_segment_span_limit(body: &CelestialBody) -> f64 {
         PackagedArtifactBodyCadence::SelectedAsteroids => 256.0,
         PackagedArtifactBodyCadence::CustomBodies => 512.0,
     }
+}
+
+fn packaged_artifact_body_class_span_cap_entries() -> Vec<(&'static str, f64)> {
+    vec![
+        ("luminaries", body_segment_span_limit(&CelestialBody::Sun)),
+        (
+            "inner planets",
+            body_segment_span_limit(&CelestialBody::Mercury),
+        ),
+        (
+            "outer planets",
+            body_segment_span_limit(&CelestialBody::Jupiter),
+        ),
+        ("pluto", body_segment_span_limit(&CelestialBody::Pluto)),
+        (
+            "lunar points",
+            body_segment_span_limit(&CelestialBody::MeanNode),
+        ),
+        (
+            "selected asteroids",
+            body_segment_span_limit(&CelestialBody::Ceres),
+        ),
+        (
+            "custom bodies",
+            body_segment_span_limit(&CelestialBody::Custom(CustomBodyId::new(
+                "catalog",
+                "designation",
+            ))),
+        ),
+    ]
+}
+
+/// Returns the current packaged-artifact body-class span caps as a compact human-readable line.
+pub fn packaged_artifact_body_class_span_cap_summary_for_report() -> String {
+    let entries = packaged_artifact_body_class_span_cap_entries()
+        .into_iter()
+        .map(|(label, days)| format!("{label}={days:.0} days"))
+        .collect::<Vec<_>>();
+
+    format!("body-class span caps: {}", join_display(&entries))
 }
 
 fn body_segment_windows_for_interval(
@@ -7699,6 +7737,14 @@ mod tests {
         assert_eq!(
             packaged_artifact_fit_threshold_violation_summary_for_report(),
             "fit threshold violations: 0; details: none"
+        );
+    }
+
+    #[test]
+    fn packaged_artifact_body_class_span_cap_summary_reflects_the_current_posture() {
+        assert_eq!(
+            packaged_artifact_body_class_span_cap_summary_for_report(),
+            "body-class span caps: luminaries=256 days, inner planets=384 days, outer planets=768 days, pluto=1536 days, lunar points=256 days, selected asteroids=256 days, custom bodies=512 days"
         );
     }
 
