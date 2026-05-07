@@ -62,6 +62,7 @@ use pleiades_data::{
     packaged_artifact_fit_margin_summary_for_report,
     packaged_artifact_fit_threshold_summary_details,
     packaged_artifact_fit_threshold_summary_for_report,
+    packaged_artifact_fit_threshold_violation_count_for_report,
     packaged_artifact_fit_threshold_violation_summary_for_report,
     packaged_artifact_generation_manifest_checksum_for_report,
     packaged_artifact_generation_manifest_for_report,
@@ -4783,6 +4784,20 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
                 packaged_artifact_fit_sample_classes_summary_for_report()
             ))
         }
+        Some("packaged-artifact-fit-threshold-violation-count-summary")
+        | Some("packaged-artifact-fit-threshold-violation-count") => {
+            ensure_no_extra_args(
+                &args[1..],
+                "packaged-artifact-fit-threshold-violation-count-summary",
+            )?;
+            Ok(format!(
+                "Packaged-artifact fit threshold violation count: {}",
+                report_summary_payload(
+                    packaged_artifact_fit_threshold_violation_count_for_report(),
+                    "fit threshold violations: ",
+                )
+            ))
+        }
         Some("packaged-artifact-generation-manifest-summary")
         | Some("packaged-artifact-generation-manifest") => {
             ensure_no_extra_args(&args[1..], "packaged-artifact-generation-manifest-summary")?;
@@ -8986,6 +9001,13 @@ fn render_release_summary_text() -> String {
     );
     text.push_str("Packaged-artifact fit margins: ");
     text.push_str(&fit_margin_summary);
+    text.push('\n');
+    let fit_threshold_violation_count_summary = report_summary_payload(
+        packaged_artifact_fit_threshold_violation_count_for_report(),
+        "fit threshold violations: ",
+    );
+    text.push_str("Packaged-artifact fit threshold violation count: ");
+    text.push_str(&fit_threshold_violation_count_summary);
     text.push('\n');
     let fit_threshold_violation_summary = report_summary_payload(
         packaged_artifact_fit_threshold_violation_summary_for_report(),
@@ -13744,6 +13766,10 @@ fn render_benchmark_matrix_summary_text(report: &ValidationReport) -> String {
         packaged_artifact_fit_margin_summary_for_report(),
         "fit margins: ",
     );
+    let fit_threshold_violation_count_summary = report_summary_payload(
+        packaged_artifact_fit_threshold_violation_count_for_report(),
+        "fit threshold violations: ",
+    );
     let fit_threshold_violation_summary = report_summary_payload(
         packaged_artifact_fit_threshold_violation_summary_for_report(),
         "fit threshold violations: ",
@@ -13765,6 +13791,11 @@ fn render_benchmark_matrix_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(text, "Packaged-artifact fit posture");
     let _ = writeln!(text, "  fit envelope: {}", fit_envelope);
     let _ = writeln!(text, "  fit margins: {}", fit_margin_summary);
+    let _ = writeln!(
+        text,
+        "  fit threshold violation count: {}",
+        fit_threshold_violation_count_summary
+    );
     let _ = writeln!(
         text,
         "  fit threshold violations: {}",
@@ -15690,6 +15721,10 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         packaged_artifact_fit_margin_summary_for_report(),
         "fit margins: ",
     );
+    let fit_threshold_violation_count_summary = report_summary_payload(
+        packaged_artifact_fit_threshold_violation_count_for_report(),
+        "fit threshold violations: ",
+    );
     let fit_threshold_violation_summary = report_summary_payload(
         packaged_artifact_fit_threshold_violation_summary_for_report(),
         "fit threshold violations: ",
@@ -15698,6 +15733,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         text,
         "  Packaged-artifact fit margins: {}",
         fit_margin_summary
+    );
+    let _ = writeln!(
+        text,
+        "  Packaged-artifact fit threshold violation count: {}",
+        fit_threshold_violation_count_summary
     );
     let _ = writeln!(
         text,
@@ -18157,7 +18197,7 @@ fn parse_rounds(args: &[&str], default: usize) -> Result<usize, String> {
 fn help_text() -> String {
     let corpus_size = default_corpus().requests.len();
     format!(
-        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  compare-backends-audit    Compare the JPL snapshot against the algorithmic composite backend and fail if the tolerance audit reports regressions\n  backend-matrix            Print the implemented backend capability matrices\n  capability-matrix         Alias for backend-matrix\n  backend-matrix-summary    Print the compact backend capability matrix summary\n  matrix-summary            Alias for backend-matrix-summary\n  compatibility-profile     Print the release compatibility profile\n  profile                   Alias for compatibility-profile\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus and full chart assembly on representative house scenarios\n  benchmark-matrix-summary [--rounds N]  Print the compact benchmark matrix summary\n  benchmark-matrix [--rounds N]  Alias for benchmark-matrix-summary\n  comparison-corpus-summary  Print the compact release-grade comparison corpus summary\n  comparison-corpus         Alias for comparison-corpus-summary\n  comparison-corpus-release-guard-summary  Print the compact release-grade comparison corpus guard summary\n  comparison-corpus-release-guard  Alias for comparison-corpus-release-guard-summary\n  comparison-corpus-guard-summary  Alias for comparison-corpus-release-guard-summary\n  comparison-corpus-guard       Alias for comparison-corpus-guard-summary\n  comparison-envelope-summary  Print the compact comparison envelope summary\n  comparison-envelope       Alias for comparison-envelope-summary\n  comparison-tolerance-policy-summary  Print the compact comparison tolerance policy summary\n  comparison-tolerance-summary  Alias for comparison-tolerance-policy-summary\n  comparison-body-class-tolerance-summary  Print the compact comparison body-class tolerance summary\n  comparison-body-class-tolerance  Alias for comparison-body-class-tolerance-summary\n  release-body-claims-summary  Print the compact release-grade body claims summary\n  body-claims-summary          Alias for release-body-claims-summary\n  benchmark-corpus-summary  Print the compact representative benchmark corpus summary\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  validation-report-summary [--rounds N]  Render a compact validation report summary\n  report-summary [--rounds N]  Alias for validation-report-summary\n  validation-summary        Alias for validation-report-summary\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  generate-packaged-artifact  Generate or verify the packaged artifact fixture from the checked-in reference snapshot; pass a file path, --out FILE, --output FILE, --manifest-out FILE, --manifest-summary-out FILE, --manifest-checksum-out FILE, --artifact-checksum-out FILE, --normalized-intermediate-summary-out FILE, or --check\n  regenerate-packaged-artifact  Alias for generate-packaged-artifact\n  artifact-summary          Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  artifact-boundary-envelope-summary  Print the compact packaged-artifact boundary envelope summary\n  artifact-profile-coverage-summary  Print the packaged-artifact profile coverage summary\n  packaged-artifact-output-support-summary  Print the packaged-artifact output support summary\n  packaged-artifact-output-support       Alias for packaged-artifact-output-support-summary\n  packaged-artifact-speed-policy-summary  Print the packaged-artifact speed policy summary\n  packaged-artifact-speed-policy       Alias for packaged-artifact-speed-policy-summary\n  packaged-artifact-access-summary  Print the packaged-artifact access summary\n  packaged-artifact-access  Alias for packaged-artifact-access-summary\n  packaged-artifact-path-policy-summary  Alias for packaged-artifact-access-summary\n  packaged-artifact-path-policy  Alias for packaged-artifact-path-policy-summary\n  packaged-artifact-storage-summary  Print the packaged-artifact storage/reconstruction summary\n  packaged-artifact-storage           Alias for packaged-artifact-storage-summary\n  packaged-artifact-production-profile-summary  Print the packaged-artifact production profile draft summary\n  packaged-artifact-production-profile  Alias for packaged-artifact-production-profile-summary\n  packaged-artifact-target-threshold-summary  Print the packaged-artifact target thresholds summary\n  packaged-artifact-target-threshold  Alias for packaged-artifact-target-threshold-summary\n  packaged-artifact-target-threshold-scope-envelopes-summary  Print the packaged-artifact target-threshold scope envelopes summary\n  packaged-artifact-target-threshold-scope-envelopes  Alias for packaged-artifact-target-threshold-scope-envelopes-summary\n  packaged-artifact-fit-envelope-summary  Print the packaged-artifact fit envelope summary\n  packaged-artifact-fit-envelope  Alias for packaged-artifact-fit-envelope-summary\n  packaged-artifact-fit-sample-classes-summary  Print the packaged-artifact fit sample classes summary\n  packaged-artifact-fit-sample-classes  Alias for packaged-artifact-fit-sample-classes-summary\n  packaged-artifact-generation-manifest-summary  Print the packaged-artifact generation manifest summary\n  packaged-artifact-generation-manifest  Alias for packaged-artifact-generation-manifest-summary\n  packaged-artifact-generation-manifest-checksum-summary  Print the packaged-artifact generation manifest checksum summary\n  packaged-artifact-generation-manifest-checksum  Alias for packaged-artifact-generation-manifest-checksum-summary\n  packaged-artifact-generation-policy-summary  Print the packaged-artifact generation policy summary\n  packaged-artifact-generation-policy     Alias for packaged-artifact-generation-policy-summary\n  packaged-artifact-normalized-intermediate-summary  Print the packaged-artifact normalized intermediates summary\n  packaged-artifact-normalized-intermediate  Alias for packaged-artifact-normalized-intermediate-summary\n  packaged-artifact-generation-residual-summary  Alias for packaged-artifact-generation-residual-bodies-summary\n  packaged-artifact-generation-residual-bodies-summary  Print the packaged-artifact generation residual bodies summary\n  packaged-artifact-regeneration-summary  Print the packaged-artifact regeneration summary\n  packaged-artifact-regeneration      Alias for packaged-artifact-regeneration-summary\n  packaged-frame-parity-summary  Print the packaged frame parity summary\n  packaged-frame-treatment-summary  Print the packaged frame treatment summary\n  packaged-lookup-epoch-policy-summary  Print the packaged lookup epoch policy summary\n  packaged-lookup-epoch-policy         Alias for packaged-lookup-epoch-policy-summary\n  packaged-artifact-lookup-epoch-policy-summary  Print the packaged lookup epoch policy summary\n  packaged-artifact-lookup-epoch-policy         Alias for packaged-artifact-lookup-epoch-policy-summary\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  native-dependency-audit   Alias for workspace-audit\n  workspace-audit-summary   Print the compact workspace audit summary\n  native-dependency-audit-summary  Alias for workspace-audit-summary\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  api-stability-summary     Print the compact API stability summary\n  api-posture-summary       Alias for api-stability-summary\n  compatibility-profile-summary  Print the compact compatibility profile summary
+        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  compare-backends-audit    Compare the JPL snapshot against the algorithmic composite backend and fail if the tolerance audit reports regressions\n  backend-matrix            Print the implemented backend capability matrices\n  capability-matrix         Alias for backend-matrix\n  backend-matrix-summary    Print the compact backend capability matrix summary\n  matrix-summary            Alias for backend-matrix-summary\n  compatibility-profile     Print the release compatibility profile\n  profile                   Alias for compatibility-profile\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus and full chart assembly on representative house scenarios\n  benchmark-matrix-summary [--rounds N]  Print the compact benchmark matrix summary\n  benchmark-matrix [--rounds N]  Alias for benchmark-matrix-summary\n  comparison-corpus-summary  Print the compact release-grade comparison corpus summary\n  comparison-corpus         Alias for comparison-corpus-summary\n  comparison-corpus-release-guard-summary  Print the compact release-grade comparison corpus guard summary\n  comparison-corpus-release-guard  Alias for comparison-corpus-release-guard-summary\n  comparison-corpus-guard-summary  Alias for comparison-corpus-release-guard-summary\n  comparison-corpus-guard       Alias for comparison-corpus-guard-summary\n  comparison-envelope-summary  Print the compact comparison envelope summary\n  comparison-envelope       Alias for comparison-envelope-summary\n  comparison-tolerance-policy-summary  Print the compact comparison tolerance policy summary\n  comparison-tolerance-summary  Alias for comparison-tolerance-policy-summary\n  comparison-body-class-tolerance-summary  Print the compact comparison body-class tolerance summary\n  comparison-body-class-tolerance  Alias for comparison-body-class-tolerance-summary\n  release-body-claims-summary  Print the compact release-grade body claims summary\n  body-claims-summary          Alias for release-body-claims-summary\n  benchmark-corpus-summary  Print the compact representative benchmark corpus summary\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  validation-report-summary [--rounds N]  Render a compact validation report summary\n  report-summary [--rounds N]  Alias for validation-report-summary\n  validation-summary        Alias for validation-report-summary\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  generate-packaged-artifact  Generate or verify the packaged artifact fixture from the checked-in reference snapshot; pass a file path, --out FILE, --output FILE, --manifest-out FILE, --manifest-summary-out FILE, --manifest-checksum-out FILE, --artifact-checksum-out FILE, --normalized-intermediate-summary-out FILE, or --check\n  regenerate-packaged-artifact  Alias for generate-packaged-artifact\n  artifact-summary          Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  artifact-boundary-envelope-summary  Print the compact packaged-artifact boundary envelope summary\n  artifact-profile-coverage-summary  Print the packaged-artifact profile coverage summary\n  packaged-artifact-output-support-summary  Print the packaged-artifact output support summary\n  packaged-artifact-output-support       Alias for packaged-artifact-output-support-summary\n  packaged-artifact-speed-policy-summary  Print the packaged-artifact speed policy summary\n  packaged-artifact-speed-policy       Alias for packaged-artifact-speed-policy-summary\n  packaged-artifact-access-summary  Print the packaged-artifact access summary\n  packaged-artifact-access  Alias for packaged-artifact-access-summary\n  packaged-artifact-path-policy-summary  Alias for packaged-artifact-access-summary\n  packaged-artifact-path-policy  Alias for packaged-artifact-path-policy-summary\n  packaged-artifact-storage-summary  Print the packaged-artifact storage/reconstruction summary\n  packaged-artifact-storage           Alias for packaged-artifact-storage-summary\n  packaged-artifact-production-profile-summary  Print the packaged-artifact production profile draft summary\n  packaged-artifact-production-profile  Alias for packaged-artifact-production-profile-summary\n  packaged-artifact-target-threshold-summary  Print the packaged-artifact target thresholds summary\n  packaged-artifact-target-threshold  Alias for packaged-artifact-target-threshold-summary\n  packaged-artifact-target-threshold-scope-envelopes-summary  Print the packaged-artifact target-threshold scope envelopes summary\n  packaged-artifact-target-threshold-scope-envelopes  Alias for packaged-artifact-target-threshold-scope-envelopes-summary\n  packaged-artifact-fit-envelope-summary  Print the packaged-artifact fit envelope summary\n  packaged-artifact-fit-envelope  Alias for packaged-artifact-fit-envelope-summary\n  packaged-artifact-fit-sample-classes-summary  Print the packaged-artifact fit sample classes summary\n  packaged-artifact-fit-sample-classes  Alias for packaged-artifact-fit-sample-classes-summary\n  packaged-artifact-fit-threshold-violation-count-summary  Print the packaged-artifact fit threshold violation count summary\n  packaged-artifact-fit-threshold-violation-count  Alias for packaged-artifact-fit-threshold-violation-count-summary\n  packaged-artifact-generation-manifest-summary  Print the packaged-artifact generation manifest summary\n  packaged-artifact-generation-manifest  Alias for packaged-artifact-generation-manifest-summary\n  packaged-artifact-generation-manifest-checksum-summary  Print the packaged-artifact generation manifest checksum summary\n  packaged-artifact-generation-manifest-checksum  Alias for packaged-artifact-generation-manifest-checksum-summary\n  packaged-artifact-generation-policy-summary  Print the packaged-artifact generation policy summary\n  packaged-artifact-generation-policy     Alias for packaged-artifact-generation-policy-summary\n  packaged-artifact-normalized-intermediate-summary  Print the packaged-artifact normalized intermediates summary\n  packaged-artifact-normalized-intermediate  Alias for packaged-artifact-normalized-intermediate-summary\n  packaged-artifact-generation-residual-summary  Alias for packaged-artifact-generation-residual-bodies-summary\n  packaged-artifact-generation-residual-bodies-summary  Print the packaged-artifact generation residual bodies summary\n  packaged-artifact-regeneration-summary  Print the packaged-artifact regeneration summary\n  packaged-artifact-regeneration      Alias for packaged-artifact-regeneration-summary\n  packaged-frame-parity-summary  Print the packaged frame parity summary\n  packaged-frame-treatment-summary  Print the packaged frame treatment summary\n  packaged-lookup-epoch-policy-summary  Print the packaged lookup epoch policy summary\n  packaged-lookup-epoch-policy         Alias for packaged-lookup-epoch-policy-summary\n  packaged-artifact-lookup-epoch-policy-summary  Print the packaged lookup epoch policy summary\n  packaged-artifact-lookup-epoch-policy         Alias for packaged-artifact-lookup-epoch-policy-summary\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  native-dependency-audit   Alias for workspace-audit\n  workspace-audit-summary   Print the compact workspace audit summary\n  native-dependency-audit-summary  Alias for workspace-audit-summary\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  api-stability-summary     Print the compact API stability summary\n  api-posture-summary       Alias for api-stability-summary\n  compatibility-profile-summary  Print the compact compatibility profile summary
   compatibility-caveats-summary  Print the compact compatibility caveats summary
   compatibility-caveats    Alias for compatibility-caveats-summary
   catalog-inventory-summary  Print the compact compatibility catalog inventory summary
@@ -19998,6 +20038,7 @@ mod tests {
         assert!(rendered.contains("Packaged-artifact fit posture"));
         assert!(rendered.contains("fit envelope: "));
         assert!(rendered.contains("fit margins: "));
+        assert!(rendered.contains("fit threshold violation count: 0"));
         assert!(rendered.contains("fit threshold violations: 0; details: none"));
         assert!(rendered.contains("fit sample classes: boundary continuity="));
         assert!(rendered.contains("fit thresholds: mean Δlon≤"));
@@ -20125,6 +20166,20 @@ mod tests {
         assert!(error.message.contains("measured="));
         assert!(error.message.contains("threshold="));
         assert!(error.message.contains("mean Δlon≤"));
+    }
+
+    #[test]
+    fn packaged_artifact_fit_threshold_violation_count_summary_reflects_the_current_posture() {
+        assert_eq!(
+            packaged_artifact_fit_threshold_violation_count_for_report(),
+            "fit threshold violations: 0"
+        );
+        let rendered = render_cli(&["packaged-artifact-fit-threshold-violation-count-summary"])
+            .expect("fit threshold violation count summary should render");
+        assert!(rendered.contains("Packaged-artifact fit threshold violation count: 0"));
+        let alias_rendered = render_cli(&["packaged-artifact-fit-threshold-violation-count"])
+            .expect("fit threshold violation count alias should render");
+        assert!(alias_rendered.contains("Packaged-artifact fit threshold violation count: 0"));
     }
 
     #[test]
@@ -20661,6 +20716,8 @@ mod tests {
         assert!(validation_report_summary.contains("Packaged-artifact fit envelope: fit envelope:"));
         assert!(validation_report_summary.contains("Packaged-artifact fit margins: mean Δlon="));
         assert!(validation_report_summary
+            .contains("Packaged-artifact fit threshold violation count: 0"));
+        assert!(validation_report_summary
             .contains("Packaged-artifact fit threshold violations: 0; details: none"));
         assert!(validation_report_summary
             .contains("Packaged-artifact fit sample classes: fit sample classes:"));
@@ -21185,6 +21242,8 @@ mod tests {
         assert!(rendered.contains("packaged-artifact-target-threshold-scope-envelopes  Alias for packaged-artifact-target-threshold-scope-envelopes-summary"));
         assert!(rendered.contains("packaged-artifact-fit-sample-classes-summary"));
         assert!(rendered.contains("packaged-artifact-fit-sample-classes  Alias for packaged-artifact-fit-sample-classes-summary"));
+        assert!(rendered.contains("packaged-artifact-fit-threshold-violation-count-summary"));
+        assert!(rendered.contains("packaged-artifact-fit-threshold-violation-count  Alias for packaged-artifact-fit-threshold-violation-count-summary"));
         assert!(rendered.contains("packaged-artifact-generation-manifest-summary"));
         assert!(rendered.contains(
             "packaged-artifact-generation-manifest  Alias for packaged-artifact-generation-manifest-summary"
@@ -25193,6 +25252,7 @@ version = "0.9.0"
         ));
         assert!(release_summary.contains("Packaged-artifact target thresholds: profile id=pleiades-packaged-artifact-profile/stage-5-draft; target thresholds: draft fit envelope recorded; scopes=luminaries, major planets, pluto, lunar points, selected asteroids, custom bodies; fit envelope:"));
         assert!(release_summary.contains("Packaged-artifact fit margins: mean Δlon="));
+        assert!(release_summary.contains("Packaged-artifact fit threshold violation count: 0"));
         assert!(release_summary
             .contains("Packaged-artifact fit threshold violations: 0; details: none"));
         assert!(release_summary.contains("Packaged-artifact target-threshold scope envelopes: scope envelopes: scope=luminaries; bodies=2 (Sun, Moon); fit envelope:"));

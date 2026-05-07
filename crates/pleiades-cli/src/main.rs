@@ -564,6 +564,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         | Some("packaged-artifact-target-threshold-scope-envelopes") => validate_render_cli(args),
         Some("packaged-artifact-fit-sample-classes-summary")
         | Some("packaged-artifact-fit-sample-classes") => validate_render_cli(args),
+        Some("packaged-artifact-fit-threshold-violation-count-summary")
+        | Some("packaged-artifact-fit-threshold-violation-count") => validate_render_cli(args),
         Some("packaged-artifact-generation-manifest-summary")
         | Some("packaged-artifact-generation-manifest") => validate_render_cli(args),
         Some("packaged-artifact-generation-policy-summary")
@@ -4985,6 +4987,17 @@ mod tests {
             packaged_artifact_fit_sample_classes
         );
 
+        let packaged_artifact_fit_threshold_violation_count =
+            render_cli(&["packaged-artifact-fit-threshold-violation-count-summary"])
+                .expect("packaged artifact fit threshold violation count summary should render");
+        assert!(packaged_artifact_fit_threshold_violation_count
+            .contains("Packaged-artifact fit threshold violation count: 0"));
+        assert_eq!(
+            render_cli(&["packaged-artifact-fit-threshold-violation-count"])
+                .expect("packaged artifact fit threshold violation count alias should render"),
+            packaged_artifact_fit_threshold_violation_count
+        );
+
         let packaged_artifact_regeneration =
             render_cli(&["packaged-artifact-regeneration-summary"])
                 .expect("packaged artifact regeneration summary should render");
@@ -6013,6 +6026,12 @@ mod tests {
         ));
         assert!(help.contains(
             "packaged-artifact-fit-sample-classes  Alias for packaged-artifact-fit-sample-classes-summary"
+        ));
+        assert!(help.contains(
+            "packaged-artifact-fit-threshold-violation-count-summary  Print the packaged-artifact fit threshold violation count summary"
+        ));
+        assert!(help.contains(
+            "packaged-artifact-fit-threshold-violation-count  Alias for packaged-artifact-fit-threshold-violation-count-summary"
         ));
         assert!(help.contains(
             "packaged-artifact-generation-manifest-summary  Print the packaged-artifact generation manifest summary"
