@@ -26,10 +26,11 @@ mise run audit
 The repository also ships a release-style smoke check that exercises the validation bundle path end to end:
 
 ```bash
-mise run release-smoke
+cargo run -q -p pleiades-validate -- release-smoke
+# or: mise run release-smoke
 ```
 
-That task first runs the workspace audit, validates the bundled compressed artifact, then generates a temporary release bundle and verifies the staged manifest checksums and manifest checksum sidecar using `pleiades-validate`.
+That command first runs the workspace audit, validates the bundled compressed artifact, then generates a temporary release bundle and verifies the staged manifest checksums and manifest checksum sidecar using `pleiades-validate`.
 
 ## Manual bundle generation
 

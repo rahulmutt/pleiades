@@ -148,6 +148,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("release-notes") => validate_render_cli(args),
         Some("release-notes-summary") => validate_render_cli(args),
         Some("release-checklist") => validate_render_cli(args),
+        Some("release-smoke") => validate_render_cli(args),
         Some("release-gate") => validate_render_cli(args),
         Some("release-checklist-summary") | Some("checklist-summary") => validate_render_cli(args),
         Some("release-gate-summary") => validate_render_cli(args),

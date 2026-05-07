@@ -4480,7 +4480,7 @@ pub fn benchmark_corpus() -> ValidationCorpus {
     ValidationCorpus::representative_window()
 }
 
-fn validate_release_gate_at(output_dir: impl AsRef<Path>) -> Result<(), String> {
+fn validate_release_smoke_at(output_dir: impl AsRef<Path>) -> Result<(), String> {
     struct Cleanup(PathBuf);
 
     impl Drop for Cleanup {
@@ -4492,16 +4492,39 @@ fn validate_release_gate_at(output_dir: impl AsRef<Path>) -> Result<(), String> 
     let output_dir = output_dir.as_ref();
     fs::create_dir_all(output_dir).map_err(|error| {
         format!(
-            "release gate working directory {} could not be created: {error}",
+            "release smoke working directory {} could not be created: {error}",
             output_dir.display()
         )
     })?;
     let _cleanup = Cleanup(output_dir.to_path_buf());
 
+    let report = workspace_audit_report().map_err(|error| error.to_string())?;
+    if !report.is_clean() {
+        return Err(format!("release smoke failed:\n{report}"));
+    }
+
     verify_compatibility_profile().map_err(render_error)?;
+    let _ = render_artifact_report().map_err(render_artifact_error)?;
     let _ = render_release_bundle(1, output_dir).map_err(render_release_bundle_error)?;
     let _ = verify_release_bundle(output_dir).map_err(render_release_bundle_error)?;
     Ok(())
+}
+
+fn validate_release_smoke() -> Result<(), String> {
+    let unique = format!(
+        "pleiades-release-smoke-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("system clock should be after UNIX_EPOCH")
+            .as_nanos()
+    );
+    let output_dir = std::env::temp_dir().join(unique);
+    validate_release_smoke_at(output_dir)
+}
+
+fn validate_release_gate_at(output_dir: impl AsRef<Path>) -> Result<(), String> {
+    validate_release_smoke_at(output_dir).map_err(|error| format!("release gate failed: {error}"))
 }
 
 fn validate_release_gate() -> Result<(), String> {
@@ -4858,6 +4881,11 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("release-checklist") => {
             ensure_no_extra_args(&args[1..], "release-checklist")?;
             Ok(render_release_checklist_text())
+        }
+        Some("release-smoke") => {
+            ensure_no_extra_args(&args[1..], "release-smoke")?;
+            validate_release_smoke()?;
+            Ok(render_release_smoke_text())
         }
         Some("release-gate") => {
             ensure_no_extra_args(&args[1..], "release-gate")?;
@@ -8991,6 +9019,17 @@ fn render_release_checklist_summary_text() -> String {
     text.push_str("See release-checklist for the full maintainer-facing artifact.\n");
     text.push_str("See release-summary for the compact one-screen release overview.\n");
 
+    text
+}
+
+fn render_release_smoke_text() -> String {
+    let mut text = String::new();
+    text.push_str("Release smoke\n");
+    text.push_str("  workspace audit: ok\n");
+    text.push_str("  compatibility profile verification: ok\n");
+    text.push_str("  artifact validation: ok\n");
+    text.push_str("  release bundle generation: ok\n");
+    text.push_str("  release bundle verification: ok\n");
     text
 }
 
@@ -17559,7 +17598,7 @@ fn help_text() -> String {
   release-ayanamsa-canonical-names-summary  Print the compact release-specific ayanamsa canonical names summary
   release-ayanamsa-canonical-names  Alias for release-ayanamsa-canonical-names-summary
   profile-summary           Alias for compatibility-profile-summary
-  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  release-notes             Print the release compatibility notes\n  release-notes-summary     Print the compact release notes summary\n  release-checklist         Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  release-gate              Run the release gate checks and render the release checklist\n  release-gate-summary      Run the release gate checks and render the compact release checklist summary\n  checklist-summary        Alias for release-checklist-summary\n  release-summary           Print the compact release summary\n  jpl-batch-error-taxonomy-summary  Print the compact JPL batch error taxonomy summary\n  jpl-snapshot-evidence-summary  Print the compact combined JPL evidence summary\n  production-generation-boundary-summary  Print the compact production-generation boundary overlay summary\n  production-generation-boundary-request-corpus-summary  Print the compact production-generation boundary request corpus summary\n  production-generation-boundary-request-corpus  Alias for production-generation-boundary-request-corpus-summary\n  production-generation-body-class-coverage-summary  Print the compact production-generation body-class coverage summary\n  production-body-class-coverage-summary  Alias for production-generation-body-class-coverage-summary\n  production-generation-source-window-summary  Print the compact production-generation source windows summary\n  production-generation-source-window  Alias for production-generation-source-window-summary\n  production-generation-summary  Print the compact production-generation coverage summary
+  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  release-notes             Print the release compatibility notes\n  release-notes-summary     Print the compact release notes summary\n  release-checklist         Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  release-smoke            Run the release smoke checks and render the short smoke report\n  release-gate              Run the release gate checks and render the release checklist\n  release-gate-summary      Run the release gate checks and render the compact release checklist summary\n  checklist-summary        Alias for release-checklist-summary\n  release-summary           Print the compact release summary\n  jpl-batch-error-taxonomy-summary  Print the compact JPL batch error taxonomy summary\n  jpl-snapshot-evidence-summary  Print the compact combined JPL evidence summary\n  production-generation-boundary-summary  Print the compact production-generation boundary overlay summary\n  production-generation-boundary-request-corpus-summary  Print the compact production-generation boundary request corpus summary\n  production-generation-boundary-request-corpus  Alias for production-generation-boundary-request-corpus-summary\n  production-generation-body-class-coverage-summary  Print the compact production-generation body-class coverage summary\n  production-body-class-coverage-summary  Alias for production-generation-body-class-coverage-summary\n  production-generation-source-window-summary  Print the compact production-generation source windows summary\n  production-generation-source-window  Alias for production-generation-source-window-summary\n  production-generation-summary  Print the compact production-generation coverage summary
   production-generation           Alias for production-generation-summary
   production-generation-boundary-source-summary  Print the compact production-generation boundary source summary
   production-generation-boundary-source  Alias for production-generation-boundary-source-summary
@@ -22775,6 +22814,19 @@ mod tests {
         assert_eq!(gate_summary, checklist_summary);
         assert!(render_cli(&["release-gate", "extra"]).is_err());
         assert!(render_cli(&["release-gate-summary", "extra"]).is_err());
+    }
+
+    #[test]
+    fn release_smoke_command_renders_the_smoke_report() {
+        let rendered = render_cli(&["release-smoke"]).expect("release smoke should render");
+
+        assert!(rendered.contains("Release smoke"));
+        assert!(rendered.contains("workspace audit: ok"));
+        assert!(rendered.contains("compatibility profile verification: ok"));
+        assert!(rendered.contains("artifact validation: ok"));
+        assert!(rendered.contains("release bundle generation: ok"));
+        assert!(rendered.contains("release bundle verification: ok"));
+        assert!(render_cli(&["release-smoke", "extra"]).is_err());
     }
 
     #[test]

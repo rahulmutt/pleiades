@@ -93,7 +93,7 @@ This file lists focused implementation slices that map to the current phase ladd
 ### 1. Final release gate command
 
 - Compose existing checks into a documented release gate.
-- `release-checklist` is now also reachable as `release-gate` / `release-gate-summary` in the CLI and validation front ends; those gate commands now also perform compatibility-profile verification plus release-bundle generation/verification before rendering the checklist text, and the repository-managed gate list now spells out the exact `cargo fmt`, strict `cargo clippy`, `cargo test`, `workspace-audit`, and `release-smoke` steps that remain to be composed into a single blocking release gate.
+- `release-checklist` is now also reachable as `release-gate` / `release-gate-summary` in the CLI and validation front ends; those gate commands now also perform compatibility-profile verification plus release-bundle generation/verification before rendering the checklist text, the repository-managed gate list now spells out the exact `cargo fmt`, strict `cargo clippy`, `cargo test`, `workspace-audit`, and `release-smoke` steps that remain to be composed into a single blocking release gate, and `release-smoke` now also has a dedicated `pleiades-validate -- release-smoke` command that `mise run release-smoke` delegates to.
 - Ensure the gate blocks publication on stale reports or claim drift.
 
 ### 2. Clean-checkout bundle rehearsal

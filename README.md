@@ -200,7 +200,8 @@ That audit checks the workspace manifests, lockfile, and crate-root `build.rs` f
 For a release-style smoke check of the validation bundle, run:
 
 ```bash
-mise run release-smoke
+cargo run -q -p pleiades-validate -- release-smoke
+# or: mise run release-smoke
 ```
 
 That smoke check runs the workspace audit, validates the bundled compressed artifact, generates the bundle, and verifies the manifest checksums plus the manifest checksum sidecar through `pleiades-validate`.
