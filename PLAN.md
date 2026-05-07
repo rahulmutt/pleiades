@@ -29,14 +29,14 @@ The repository currently provides:
 - a VSOP87B-backed planetary implementation for Sun through Neptune, with Pluto still treated as an approximate fallback rather than a release-grade source-backed body;
 - a compact Meeus-style lunar baseline for the Moon and supported lunar points, with fuller ELP coefficient support deferred;
 - checked-in JPL Horizons snapshot/hold-out fixtures used for reference comparison, validation summaries, and artifact-generation rehearsal;
-- `pleiades-compression` and `pleiades-data` codec/profile/checksum support plus a stage-5 draft packaged-data artifact for the 1500-2500 CE range; the packaged artifact has recently been retuned to recursively subdivided cubic windows with longitude unwrapping and tighter cadence-aware body-class span caps, materially improving the fit envelope and body-class cadence reporting while remaining draft-grade; the artifact reports now also surface channel-major fit-outlier and body-class cadence views to help prioritize the next fit slices;
+- `pleiades-compression` and `pleiades-data` codec/profile/checksum support plus a stage-5 draft packaged-data artifact for the 1500-2500 CE range; the packaged artifact has recently been retuned to recursively subdivided cubic windows with longitude unwrapping and tighter cadence-aware body-class span caps, materially improving the fit envelope and body-class cadence reporting while remaining draft-grade; the artifact reports now also surface channel-major fit-outlier, body-class cadence, and body-class span-cap views to help prioritize the next fit slices;
 - CLI and validation tooling for chart inspection, compatibility profiles, request policies, backend matrices, artifact reports, benchmarks, audits, and release-bundle rehearsal.
 
 The implementation is therefore past the original bootstrap/foundation phases. Remaining work is productionization: source breadth, artifact accuracy, advanced request behavior, catalog evidence, and release gates. The artifact reporting surface now also includes separate single-lookup, batch-lookup, and decode benchmark sections so throughput evidence stays visible alongside the fit report.
 
 ## Remaining specification gaps
 
-1. **Production compressed data** — the packaged artifact is still a draft fixture. It must become a reproducible 1500-2500 CE data product with measured errors inside published thresholds.
+1. **Production compressed data** — the packaged artifact is still a draft fixture. It must become a reproducible 1500-2500 CE data product with measured errors inside published thresholds; the reporting surface now includes cadence and span-cap views to guide the next fit slice.
 2. **Reference/data-source breadth** — the JPL path is a checked-in reference fixture, not a broad production reader or corpus suitable for all validation and artifact-generation needs.
 3. **Advanced request semantics** — first-party backends still explicitly reject or defer built-in UTC/Delta-T convenience, apparent-place corrections, topocentric body positions, and native sidereal backend output.
 4. **Release-grade body coverage** — Pluto, fuller lunar theory, lunar points, and selected asteroid claims need either source-backed validation or explicit exclusion/constrained status in release claims.
@@ -65,7 +65,7 @@ The implementation is therefore past the original bootstrap/foundation phases. R
 
 | Phase | Status | Summary |
 | --- | --- | --- |
-| 1. Production compressed data | Active | Highest leverage next work: continue reducing the remaining high-error bodies after the cadence-aware cubic-window slice; the new channel-major fit-outlier and body-class cadence views should help split cadence-driven follow-on work, then tighten thresholds and benchmarks. |
+| 1. Production compressed data | Active | Highest leverage next work: continue reducing the remaining high-error bodies after the cadence-aware cubic-window slice; the channel-major fit-outlier, body-class cadence, and body-class span-cap views should help split cadence-driven follow-on work, then tighten thresholds and benchmarks. |
 | 2. Production reference inputs | Active dependency | Expand or replace checked-in fixtures with production-suitable public inputs where Phase 1 and body claims require stronger evidence. |
 | 3. Advanced request support decisions | Deferred by policy | Keep current structured rejections truthful unless implementation and validation land. |
 | 4. Compatibility catalog evidence | Parallelizable | Continue formula/provenance audits as catalog claims change; do not relabel descriptor-only entries as fully implemented without evidence. |

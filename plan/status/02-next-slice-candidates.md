@@ -8,7 +8,7 @@ This file lists focused implementation slices for the current phase ladder. Comp
 
 - The Moon slice has already moved from residual-correction segments to quadratic base fits.
 - The latest follow-on slice now uses recursively subdivided cubic windows with longitude unwrapping and tighter body-class span caps across the bundled bodies; current thresholds are calibrated to the latest draft artifact, and the body-class cadence view now makes the remaining inner/outer/Pluto/asteroid splits explicit.
-- The runtime packaged artifact now regenerates from the checked-in snapshot before being cached, and a compact body-class span-cap summary is available for the next fit-choice review.
+- The runtime packaged artifact now regenerates from the checked-in snapshot before being cached, and a compact body-class span-cap summary is available for the next fit-choice review; the artifact summary also exposes those caps inline now.
 - Evaluate whether the remaining high-error bodies should move to denser windows, Chebyshev, or higher-order polynomial segments.
 - Split body classes by cadence and segment length: inner planets, outer planets, Pluto, and selected asteroids may still need different strategies, but the current cadence-aware caps already establish the faster/sparser split.
 - Body/channel-specific fit reports now identify the worst segments and source intervals; use them to prioritize the next fit changes.

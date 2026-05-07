@@ -1684,6 +1684,9 @@ fn render_artifact_summary_text(report: &ArtifactInspectionReport) -> String {
     text.push_str("  Body-class cadence: ");
     text.push_str(&format_body_class_cadence(report));
     text.push('\n');
+    text.push_str("  Body-class span caps: ");
+    text.push_str(&format_body_class_span_caps());
+    text.push('\n');
     text.push_str("  Production profile skeleton: ");
     text.push_str(&packaged_artifact_production_profile_summary_for_report());
     text.push('\n');
@@ -2371,6 +2374,10 @@ fn format_body_class_cadence(report: &ArtifactInspectionReport) -> String {
     }
 }
 
+fn format_body_class_span_caps() -> String {
+    pleiades_data::packaged_artifact_body_class_span_cap_summary_for_report()
+}
+
 impl fmt::Display for ArtifactInspectionReport {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "Artifact validation report")?;
@@ -2473,6 +2480,8 @@ impl fmt::Display for ArtifactInspectionReport {
         write_body_class_envelopes(f, &self.model_comparison.samples)?;
         writeln!(f, "Body-class cadence")?;
         writeln!(f, "  {}", format_body_class_cadence(self))?;
+        writeln!(f, "Body-class span caps")?;
+        writeln!(f, "  {}", format_body_class_span_caps())?;
         writeln!(f)?;
 
         let notable_regressions = self.model_comparison.notable_regressions();
@@ -2831,6 +2840,15 @@ mod tests {
             report.validated_summary_line(),
             Ok(rendered) if rendered == summary
         ));
+    }
+
+    #[test]
+    fn render_artifact_summary_includes_span_caps() {
+        let rendered = super::render_artifact_summary().expect("artifact summary should render");
+
+        assert!(rendered.contains("Artifact summary"));
+        assert!(rendered.contains("Body-class cadence:"));
+        assert!(rendered.contains("Body-class span caps: luminaries=256 days, inner planets=384 days, outer planets=768 days, pluto=1536 days, lunar points=256 days, selected asteroids=256 days, custom bodies=512 days"));
     }
 
     #[test]
