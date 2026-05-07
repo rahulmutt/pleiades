@@ -2,7 +2,7 @@
 
 ## Frontier
 
-The active frontier is still formally **Phase 1 — Reference Accuracy and Request Semantics**, but the current reference-breadth slice is saturated; the next reviewable code slice is Phase 2 production compressed-artifact manifest drift-proofing.
+The active frontier is still formally **Phase 1 — Reference Accuracy and Request Semantics**, but the current reference-breadth slice is saturated; the next reviewable code slice is Phase 2 fit-error and benchmark-matrix coverage.
 
 The repository is past bootstrap, MVP API work, catalog scaffolding, report-surface expansion, and release-bundle rehearsal. The remaining work now centers on turning the packaged-data prototype into a reproducible production artifact without widening claims prematurely.
 
@@ -41,11 +41,11 @@ Phase 2 production artifacts require trusted generation inputs and target thresh
 
 ## Recommended next slice
 
-The reference corpus breadth is already covered by the existing 1500-2500 CE boundary and interior slices, including the 2451911 and 2451916 release-facing report surfaces and their release-note mirrors. The next reviewable step should move to Phase 2 artifact-manifest drift-proofing rather than adding another boundary row.
+The reference corpus breadth is already covered by the existing 1500-2500 CE boundary and interior slices, including the 2451911 and 2451916 release-facing report surfaces and their release-note mirrors. The next reviewable step should move to Phase 2 fit-error and benchmark-matrix coverage rather than adding another boundary row.
 
 Next, implement another small, reviewable slice:
 
-- harden the packaged-artifact manifest and checksum sidecars so production-profile, lookup-epoch, and generation-policy metadata stay in lockstep;
+- build out the fit-error and benchmark matrix so packaged-data fit claims stay measurable;
 - keep the prototype fixture path separate from production artifact generation;
 - add or update validation/report tests only where they tighten drift detection without claiming production fit accuracy.
 

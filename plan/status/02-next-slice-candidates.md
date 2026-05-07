@@ -2,7 +2,7 @@
 
 This file lists focused implementation slices that map to the current phase ladder. It intentionally omits completed report-surface, alias, fixture-summary, and release-rehearsal cleanup work.
 
-Current note: the remaining Phase 1 reference-breadth candidates are effectively saturated in the codebase, so the next implementation slice should prioritize Phase 2 production-artifact manifest drift-proofing.
+Current note: the remaining Phase 1 reference-breadth candidates are effectively saturated in the codebase, so the next implementation slice should prioritize Phase 2 fit-error and benchmark-matrix coverage.
 
 ## Phase 1 candidates — Reference accuracy and request semantics
 
@@ -52,18 +52,13 @@ Current note: the remaining Phase 1 reference-breadth candidates are effectively
 
 ## Phase 2 candidates — Production compressed artifacts
 
-### 1. Production artifact profile manifest
-
-- Specify body set, date range, channels, derived outputs, unsupported outputs, speed policy, and thresholds; lookup-epoch policy and source-provenance metadata are now explicit in the production-profile draft and generator parameters, the production-profile/generator/manifest summaries now also call out the segment strategy explicitly, and the production-profile/generator summaries now also spell out output-support semantics directly; the packaged-data surfaces now expose a standalone speed-policy summary in CLI/validation reporting, the CLI/validation front ends now also mirror the packaged lookup-epoch policy with packaged-artifact-prefixed aliases, the packaged-artifact generation manifest summary now also has a direct `packaged-artifact-generation-manifest` alias, the release bundle now carries the packaged lookup-epoch policy, packaged-artifact profile coverage, and packaged-artifact speed-policy summary/checksums alongside the production-profile and target-threshold bundle outputs, the target-threshold posture now splits Pluto into its own scope envelope, and the production-profile/generator/manifest surfaces now also have regression coverage keeping lookup-epoch policy and segment strategy aligned.
-- Add validation that fails on profile/threshold drift; the production-profile and generator-parameter summaries now also fail closed when the encoded speed policy drifts from the bundled artifact profile.
-
-### 2. Deterministic artifact generator
+### 1. Deterministic artifact generator
 
 - Build a generation command that consumes validated public inputs and writes normalized intermediates plus compressed artifacts; the current fixture workflow now exposes both generation and regenerate entrypoints, and the CLI/validation fronts now also keep the production-generation boundary request corpus, source-window, and boundary-source summaries in parity, with direct aliases now mirroring those entrypoints, so follow-on work can focus on normalized intermediates and production artifact writes.
 - Record generator parameters, checksums, output profile identifiers, and per-channel quantization scales; the packaged-artifact regeneration provenance now already exposes and validates the codec quantization-scale metadata, the checked-in reference snapshot summary equality is now also validated there, and the source-revision provenance slice is now closed, so the next slice can concentrate on the remaining drift-proof manifest updates.
 - Keep the prototype fixture path separate from production artifact generation.
 
-### 3. Fit-error and benchmark matrix
+### 2. Fit-error and benchmark matrix
 
 - The boundary/interior fit sample classes summary is now surfaced alongside the packaged-artifact fit envelope summary in the validation report and CLI, so the fit-error slice now has a first-class report path.
 - Benchmark single lookup, batch lookup, decode cost, artifact size, and full-chart packaged-data use.
@@ -76,7 +71,7 @@ Current note: the remaining Phase 1 reference-breadth candidates are effectively
 - The current house-validation corpus already carries the release-facing formula families, latitude-sensitive systems, and documented constraints for the shipped catalog.
 - Extend that evidence only when new release-advertised house systems are added or existing ones change status.
 - Keep descriptor-only or approximate entries out of fully implemented claims.
-- The packaged-artifact generation manifest summary sidecar is now staged alongside the generation manifest, the packaged-artifact target-threshold scope envelopes summary sidecar is now staged alongside the target-threshold summary, and the bundle-release help/docs now also enumerate the production-generation summary and production-generation source summary sidecars, so the next production-artifact slice can focus on drift-proof manifest updates.
+- The packaged-artifact generation manifest summary sidecar is now staged alongside the generation manifest, the packaged-artifact target-threshold scope envelopes summary sidecar is now staged alongside the target-threshold summary, and the bundle-release help/docs now also enumerate the production-generation summary and production-generation source summary sidecars, so the remaining production-artifact work can focus on the fit-error and benchmark-matrix slice.
 
 ### 2. Ayanamsa provenance batch
 
