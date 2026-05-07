@@ -8079,6 +8079,8 @@ fn render_release_notes_summary_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_2451917_major_body_bridge_summary_for_report());
     text.push('\n');
+    text.push_str(&reference_snapshot_2451920_major_body_interior_summary_for_report());
+    text.push('\n');
     text.push_str(&reference_snapshot_boundary_epoch_coverage_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_major_body_boundary_window_summary_for_report());
@@ -22395,6 +22397,9 @@ mod tests {
         );
         assert!(
             rendered.contains(&reference_snapshot_2451917_major_body_bridge_summary_for_report())
+        );
+        assert!(
+            rendered.contains(&reference_snapshot_2451920_major_body_interior_summary_for_report())
         );
         assert!(rendered.contains(&format!(
             "{}\n{}",
