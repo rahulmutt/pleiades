@@ -13406,6 +13406,31 @@ fn render_benchmark_matrix_summary_text(report: &ValidationReport) -> String {
         "  artifact decode benchmark: {}",
         report.artifact_decode_benchmark.summary_line()
     );
+    let fit_envelope_summary = packaged_artifact_fit_envelope_summary_for_report();
+    let fit_sample_classes_summary = packaged_artifact_fit_sample_classes_summary_for_report();
+    let target_threshold_summary = packaged_artifact_target_threshold_summary_for_report();
+    let target_threshold_scope_envelopes_summary =
+        packaged_artifact_target_threshold_scope_envelopes_for_report();
+    let fit_envelope = fit_envelope_summary
+        .strip_prefix("fit envelope: ")
+        .unwrap_or(&fit_envelope_summary);
+    let fit_sample_classes = fit_sample_classes_summary
+        .strip_prefix("fit sample classes: ")
+        .unwrap_or(&fit_sample_classes_summary);
+    let target_threshold_scope_envelopes = target_threshold_scope_envelopes_summary
+        .strip_prefix("scope envelopes: ")
+        .unwrap_or(&target_threshold_scope_envelopes_summary);
+
+    let _ = writeln!(text);
+    let _ = writeln!(text, "Packaged-artifact fit posture");
+    let _ = writeln!(text, "  fit envelope: {}", fit_envelope);
+    let _ = writeln!(text, "  fit sample classes: {}", fit_sample_classes);
+    let _ = writeln!(text, "  target thresholds: {}", target_threshold_summary);
+    let _ = writeln!(
+        text,
+        "  target-threshold scope envelopes: {}",
+        target_threshold_scope_envelopes
+    );
     text
 }
 
@@ -19373,15 +19398,21 @@ mod tests {
         assert!(rendered.contains("packaged-data benchmark: backend="));
         assert!(rendered.contains("chart benchmark: backend="));
         assert!(rendered.contains("artifact decode benchmark: artifact="));
+        assert!(rendered.contains("Packaged-artifact fit posture"));
+        assert!(rendered.contains("fit envelope: "));
+        assert!(rendered.contains("fit sample classes: boundary continuity="));
+        assert!(rendered.contains("target thresholds: profile id="));
+        assert!(rendered.contains("target-threshold scope envelopes: scope=luminaries;"));
         assert!(render_benchmark_matrix_summary(1)
             .expect("benchmark matrix summary should build")
-            .contains("Benchmark matrix summary"));
+            .contains("Packaged-artifact fit posture"));
 
         let alias_rendered = render_cli(&["benchmark-matrix", "--rounds", "1"])
             .expect("benchmark matrix alias should render");
         assert!(alias_rendered.contains("Benchmark matrix summary"));
         assert!(alias_rendered.contains("Benchmark corpora"));
         assert!(alias_rendered.contains("Benchmark rows"));
+        assert!(alias_rendered.contains("Packaged-artifact fit posture"));
     }
 
     #[test]

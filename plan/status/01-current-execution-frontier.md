@@ -2,7 +2,7 @@
 
 ## Frontier
 
-The active frontier is still formally **Phase 1 — Reference Accuracy and Request Semantics**, but the current reference-breadth slice is saturated; the next reviewable code slice is Phase 2 fit-error coverage now that the benchmark matrix summary slice has landed.
+The active frontier is still formally **Phase 1 — Reference Accuracy and Request Semantics**, but the current reference-breadth slice is saturated; the benchmark matrix summary now also carries the packaged-artifact fit posture block, so the next reviewable code slice shifts to any remaining Phase 2 fit-error threshold calibration.
 
 The repository is past bootstrap, MVP API work, catalog scaffolding, report-surface expansion, and release-bundle rehearsal. The remaining work now centers on turning the packaged-data prototype into a reproducible production artifact without widening claims prematurely.
 

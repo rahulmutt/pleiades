@@ -61,7 +61,7 @@ Current note: the remaining Phase 1 reference-breadth candidates are effectively
 ### 2. Fit-error coverage
 
 - The boundary/interior fit sample classes summary is now surfaced alongside the packaged-artifact fit envelope summary in the validation report and CLI, so the fit-error slice now has a first-class report path; validation report assembly now also preflights the packaged-artifact fit envelope and target-threshold posture before rendering fit claims.
-- The benchmark matrix summary now covers reference, candidate, packaged-data, chart, and decode rows; remaining work here should focus on benchmarked fit error thresholds rather than adding another reporting surface.
+- The benchmark matrix summary now covers reference, candidate, packaged-data, chart, and decode rows, and it now also carries the packaged-artifact fit posture block; remaining work here should focus on benchmarked fit error thresholds rather than adding another reporting surface.
 - Benchmark single lookup, batch lookup, decode cost, artifact size, and full-chart packaged-data use.
 - Fail validation when measured errors exceed profile thresholds.
 
