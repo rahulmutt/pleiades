@@ -5769,7 +5769,19 @@ mod tests {
             "2451915-major-body-bridge-summary  Alias for reference-snapshot-2451915-major-body-bridge-summary"
         ));
         assert!(help.contains(
+            "reference-snapshot-2451916-major-body-boundary-summary  Print the compact reference 2451916 major-body boundary evidence summary"
+        ));
+        assert!(help.contains(
+            "2451916-major-body-boundary-summary  Alias for reference-snapshot-2451916-major-body-boundary-summary"
+        ));
+        assert!(help.contains(
             "reference-snapshot-2451917-major-body-boundary-summary  Print the compact reference 2451917 major-body boundary evidence summary"
+        ));
+        assert!(help.contains(
+            "reference-snapshot-2451918-major-body-boundary-summary  Print the compact reference 2451918 major-body boundary evidence summary"
+        ));
+        assert!(help.contains(
+            "2451918-major-body-boundary-summary  Alias for reference-snapshot-2451918-major-body-boundary-summary"
         ));
         assert!(help.contains(
             "reference-snapshot-2451919-major-body-boundary-summary  Print the compact reference 2451919 major-body boundary evidence summary"
