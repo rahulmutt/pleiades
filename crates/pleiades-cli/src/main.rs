@@ -17,6 +17,7 @@ use pleiades_core::{
 };
 use pleiades_data::{
     packaged_artifact_bytes, packaged_artifact_generation_manifest,
+    packaged_artifact_normalized_intermediate_summary_for_report,
     packaged_artifact_regeneration_summary_for_report, regenerate_packaged_artifact,
     PackagedDataBackend,
 };
@@ -588,10 +589,12 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
                     output_path,
                     manifest_path,
                     manifest_checksum_path,
+                    normalized_intermediate_path,
                 } => render_packaged_artifact_regeneration(
                     output_path,
                     manifest_path,
                     manifest_checksum_path,
+                    normalized_intermediate_path,
                 ),
                 PackagedArtifactCommand::Check => render_packaged_artifact_regeneration_check(),
             }
@@ -978,6 +981,7 @@ enum PackagedArtifactCommand {
         output_path: String,
         manifest_path: Option<String>,
         manifest_checksum_path: Option<String>,
+        normalized_intermediate_path: Option<String>,
     },
     Check,
 }
@@ -985,7 +989,7 @@ enum PackagedArtifactCommand {
 fn parse_packaged_artifact_command(args: &[&str]) -> Result<PackagedArtifactCommand, String> {
     if args.is_empty() {
         return Err(
-            "missing required output path argument; pass a file path, --out <file>, --output <file>, --manifest-out <file>, --manifest-checksum-out <file>, or --check"
+            "missing required output path argument; pass a file path, --out <file>, --output <file>, --manifest-out <file>, --manifest-checksum-out <file>, --normalized-intermediate-summary-out <file>, or --check"
                 .to_string(),
         );
     }
@@ -993,6 +997,7 @@ fn parse_packaged_artifact_command(args: &[&str]) -> Result<PackagedArtifactComm
     let mut output_path = None;
     let mut manifest_path = None;
     let mut manifest_checksum_path = None;
+    let mut normalized_intermediate_path = None;
     let mut check = false;
     let mut iter = args.iter().copied();
 
@@ -1028,6 +1033,20 @@ fn parse_packaged_artifact_command(args: &[&str]) -> Result<PackagedArtifactComm
                     );
                 }
             }
+            "--normalized-intermediate-summary-out" => {
+                let path = iter.next().ok_or_else(|| {
+                    "missing value for --normalized-intermediate-summary-out".to_string()
+                })?;
+                if normalized_intermediate_path
+                    .replace(path.to_string())
+                    .is_some()
+                {
+                    return Err(
+                        "duplicate normalized intermediate path argument: --normalized-intermediate-summary-out"
+                            .to_string(),
+                    );
+                }
+            }
             other if other.starts_with('-') => return Err(format!("unknown argument: {other}")),
             path => {
                 if output_path.replace(path.to_string()).is_some() {
@@ -1038,14 +1057,18 @@ fn parse_packaged_artifact_command(args: &[&str]) -> Result<PackagedArtifactComm
     }
 
     if check {
-        if output_path.is_some() || manifest_path.is_some() || manifest_checksum_path.is_some() {
+        if output_path.is_some()
+            || manifest_path.is_some()
+            || manifest_checksum_path.is_some()
+            || normalized_intermediate_path.is_some()
+        {
             return Err("the --check flag cannot be combined with output paths".to_string());
         }
         return Ok(PackagedArtifactCommand::Check);
     }
 
     let output_path = output_path.ok_or_else(|| {
-        "missing required output path argument; pass a file path, --out <file>, --output <file>, --manifest-out <file>, --manifest-checksum-out <file>, or --check"
+        "missing required output path argument; pass a file path, --out <file>, --output <file>, --manifest-out <file>, --manifest-checksum-out <file>, --normalized-intermediate-summary-out <file>, or --check"
             .to_string()
     })?;
 
@@ -1053,6 +1076,7 @@ fn parse_packaged_artifact_command(args: &[&str]) -> Result<PackagedArtifactComm
         output_path,
         manifest_path,
         manifest_checksum_path,
+        normalized_intermediate_path,
     })
 }
 
@@ -1079,6 +1103,7 @@ fn render_packaged_artifact_regeneration(
     output_path: String,
     manifest_path: Option<String>,
     manifest_checksum_path: Option<String>,
+    normalized_intermediate_path: Option<String>,
 ) -> Result<String, String> {
     let artifact = regenerate_packaged_artifact();
     let encoded = artifact.encode().map_err(|error| error.to_string())?;
@@ -1093,6 +1118,11 @@ fn render_packaged_artifact_regeneration(
 
     let manifest = if manifest_path.is_some() || manifest_checksum_path.is_some() {
         Some(packaged_artifact_generation_manifest().to_string())
+    } else {
+        None
+    };
+    let normalized_intermediate = if normalized_intermediate_path.is_some() {
+        Some(packaged_artifact_normalized_intermediate_summary_for_report())
     } else {
         None
     };
@@ -1118,8 +1148,23 @@ fn render_packaged_artifact_regeneration(
         String::new()
     };
 
+    let normalized_intermediate_line = if let Some(normalized_intermediate_path) =
+        normalized_intermediate_path
+    {
+        let normalized_intermediate_text = normalized_intermediate
+            .as_deref()
+            .expect("normalized intermediate text should be available when a normalized intermediate path is requested");
+        write_text_file(&normalized_intermediate_path, normalized_intermediate_text)?;
+        format!(
+            "\n  normalized intermediate sidecar: {}",
+            normalized_intermediate_path
+        )
+    } else {
+        String::new()
+    };
+
     Ok(format!(
-        "Packaged artifact regenerated\n  path: {}\n  label: {}\n  source: {}\n  checksum: 0x{:016x}\n  bytes: {}\n  {}{}{}",
+        "Packaged artifact regenerated\n  path: {}\n  label: {}\n  source: {}\n  checksum: 0x{:016x}\n  bytes: {}\n  {}{}{}{}",
         output_path,
         artifact.header.generation_label,
         artifact.header.source,
@@ -1128,6 +1173,7 @@ fn render_packaged_artifact_regeneration(
         packaged_artifact_regeneration_summary_for_report(),
         manifest_line,
         manifest_checksum_line,
+        normalized_intermediate_line,
     ))
 }
 
@@ -1510,7 +1556,10 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use pleiades_core::{current_compatibility_profile, current_release_profile_identifiers};
-    use pleiades_data::packaged_artifact_generation_manifest_for_report;
+    use pleiades_data::{
+        packaged_artifact_generation_manifest_for_report,
+        packaged_artifact_normalized_intermediate_summary_for_report,
+    };
     use pleiades_validate::{house_validation_report, house_validation_summary_line_for_report};
 
     use super::{
@@ -5143,6 +5192,30 @@ mod tests {
                 }
                 hash
             })
+        );
+
+        let normalized_intermediate_fixture_path =
+            artifact_fixture_dir.join("packaged-artifact.normalized-intermediate-summary.txt");
+        let normalized_intermediate_fixture_path_string =
+            normalized_intermediate_fixture_path.display().to_string();
+        let regenerated_with_normalized_intermediate = render_cli(&[
+            "generate-packaged-artifact",
+            "--out",
+            &artifact_fixture_path_string,
+            "--normalized-intermediate-summary-out",
+            &normalized_intermediate_fixture_path_string,
+        ])
+        .expect("packaged artifact regeneration should write a normalized intermediate sidecar");
+        assert!(
+            regenerated_with_normalized_intermediate.contains("normalized intermediate sidecar:")
+        );
+        assert!(regenerated_with_normalized_intermediate
+            .contains(&normalized_intermediate_fixture_path_string));
+        assert_eq!(
+            std::fs::read_to_string(&normalized_intermediate_fixture_path).expect(
+                "packaged artifact regeneration should write the normalized intermediate sidecar"
+            ),
+            packaged_artifact_normalized_intermediate_summary_for_report()
         );
 
         let output_alias_fixture_path =
