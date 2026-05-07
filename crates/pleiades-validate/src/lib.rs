@@ -8058,6 +8058,8 @@ fn render_release_notes_summary_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_2451911_major_body_boundary_summary_for_report());
     text.push('\n');
+    text.push_str(&reference_snapshot_2451915_major_body_boundary_summary_for_report());
+    text.push('\n');
     text.push_str(&reference_snapshot_bridge_day_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_2451914_major_body_bridge_day_summary_for_report());
@@ -22345,6 +22347,9 @@ mod tests {
         assert!(rendered.contains(&selected_asteroid_terminal_boundary_summary_for_report()));
         assert!(
             rendered.contains(&reference_snapshot_2451911_major_body_boundary_summary_for_report())
+        );
+        assert!(
+            rendered.contains(&reference_snapshot_2451915_major_body_boundary_summary_for_report())
         );
         assert!(rendered
             .contains(&reference_snapshot_2451916_major_body_dense_boundary_summary_for_report()));
