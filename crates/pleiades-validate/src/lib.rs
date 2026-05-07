@@ -155,6 +155,7 @@ use pleiades_jpl::{
     reference_snapshot_2451914_bridge_day_summary_for_report,
     reference_snapshot_2451914_major_body_boundary_summary_for_report,
     reference_snapshot_2451914_major_body_bridge_day_summary_for_report,
+    reference_snapshot_2451914_major_body_bridge_summary_for_report,
     reference_snapshot_2451914_major_body_pre_bridge_summary_for_report,
     reference_snapshot_2451915_major_body_boundary_summary_for_report,
     reference_snapshot_2451915_major_body_bridge_summary_for_report,
@@ -7973,6 +7974,8 @@ fn render_release_notes_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_2451914_major_body_bridge_day_summary_for_report());
     text.push('\n');
+    text.push_str(&reference_snapshot_2451914_major_body_bridge_summary_for_report());
+    text.push('\n');
     text.push_str(&reference_snapshot_lunar_boundary_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_1500_selected_body_boundary_summary_for_report());
@@ -8131,6 +8134,8 @@ fn render_release_notes_summary_text() -> String {
     text.push_str(&reference_snapshot_2451914_bridge_day_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_2451914_major_body_bridge_day_summary_for_report());
+    text.push('\n');
+    text.push_str(&reference_snapshot_2451914_major_body_bridge_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_2451916_major_body_interior_summary_for_report());
     text.push('\n');
@@ -15460,6 +15465,8 @@ fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_major_body_bridge_summary_for_report());
     text.push('\n');
+    text.push_str(&reference_snapshot_2451914_major_body_bridge_summary_for_report());
+    text.push('\n');
     text.push_str(&reference_snapshot_lunar_boundary_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_1500_selected_body_boundary_summary_for_report());
@@ -20989,6 +20996,9 @@ mod tests {
         assert!(rendered.contains(&reference_snapshot_pre_bridge_boundary_summary_for_report()));
         assert!(rendered
             .contains(&reference_snapshot_2451914_major_body_pre_bridge_summary_for_report()));
+        assert!(
+            rendered.contains(&reference_snapshot_2451914_major_body_bridge_summary_for_report())
+        );
         assert!(rendered.contains(&reference_snapshot_dense_boundary_summary_for_report()));
         assert!(rendered.contains(
             "selected asteroids: 93 rows across 6 bodies and 17 epochs; asteroid windows: "
@@ -22540,6 +22550,9 @@ mod tests {
         assert!(rendered
             .contains(&reference_snapshot_2451914_major_body_pre_bridge_summary_for_report()));
         assert!(rendered.contains(&reference_snapshot_2451914_bridge_day_summary_for_report()));
+        assert!(
+            rendered.contains(&reference_snapshot_2451914_major_body_bridge_summary_for_report())
+        );
         assert!(rendered
             .contains(&reference_snapshot_2451916_major_body_dense_boundary_summary_for_report()));
         assert!(
@@ -24246,6 +24259,8 @@ version = "0.9.0"
             .contains(&reference_snapshot_1600_selected_body_boundary_summary_for_report()));
         assert!(release_summary.contains(&reference_snapshot_source_summary_for_report()));
         assert!(release_summary.contains(&reference_snapshot_source_window_summary_for_report()));
+        assert!(release_summary
+            .contains(&reference_snapshot_2451914_major_body_bridge_summary_for_report()));
         assert!(release_summary.contains("Selected asteroid evidence:"));
         assert!(release_summary.contains("Selected asteroid equatorial evidence:"));
         assert!(release_summary.contains("Comparison snapshot coverage:"));
