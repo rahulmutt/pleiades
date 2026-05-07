@@ -497,8 +497,14 @@ impl PackagedArtifactFitEnvelopeSummaryValidationError {
                     .map(PackagedArtifactFitThresholdViolation::summary_line)
                     .collect::<Vec<_>>()
                     .join("; ");
+                let violation_count = violations.len();
+                let violation_label = if violation_count == 1 {
+                    "violation"
+                } else {
+                    "violations"
+                };
                 format!(
-                    "the packaged artifact fit envelope summary exceeds the calibrated fit thresholds: {rendered}"
+                    "the packaged artifact fit envelope summary exceeds the calibrated fit thresholds ({violation_count} {violation_label}): {rendered}"
                 )
             }
         }
@@ -6565,6 +6571,7 @@ mod tests {
                 ],
             }
         );
+        assert!(error.summary_line().contains("6 violations"));
         assert!(error.summary_line().contains("measured="));
         assert!(error.summary_line().contains("threshold="));
         assert!(error

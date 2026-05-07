@@ -19566,6 +19566,7 @@ mod tests {
         assert!(error.message.contains(
             "validation report packaged-artifact fit envelope exceeds calibrated thresholds"
         ));
+        assert!(error.message.contains("1 violation"));
         assert!(error.message.contains("mean_longitude_delta_degrees"));
         assert!(error.message.contains("measured="));
         assert!(error.message.contains("threshold="));
