@@ -2332,6 +2332,29 @@ impl fmt::Display for PackagedArtifactGeneratorParameters {
     }
 }
 
+fn fnv1a64(bytes: &[u8]) -> u64 {
+    const OFFSET_BASIS: u64 = 0xcbf29ce484222325;
+    const PRIME: u64 = 0x100000001b3;
+
+    let mut hash = OFFSET_BASIS;
+    for byte in bytes {
+        hash ^= u64::from(*byte);
+        hash = hash.wrapping_mul(PRIME);
+    }
+    hash
+}
+
+fn packaged_artifact_generation_manifest_checksum(
+    parameters: &PackagedArtifactGeneratorParameters,
+    regeneration: &PackagedArtifactRegenerationSummary,
+) -> u64 {
+    let mut bytes = Vec::new();
+    bytes.extend_from_slice(parameters.summary_line().as_bytes());
+    bytes.push(b'\n');
+    bytes.extend_from_slice(regeneration.summary_line().as_bytes());
+    fnv1a64(&bytes)
+}
+
 /// Structured deterministic manifest for the packaged artifact generator.
 #[derive(Clone, Debug, PartialEq)]
 pub struct PackagedArtifactGenerationManifest {
@@ -2339,14 +2362,16 @@ pub struct PackagedArtifactGenerationManifest {
     pub parameters: PackagedArtifactGeneratorParameters,
     /// Regeneration provenance anchored to the checked-in artifact and source snapshot.
     pub regeneration: PackagedArtifactRegenerationSummary,
+    /// Deterministic checksum of the rendered manifest content.
+    pub manifest_checksum: u64,
 }
 
 impl PackagedArtifactGenerationManifest {
     /// Returns the deterministic manifest as a compact human-readable line.
     pub fn summary_line(&self) -> String {
         format!(
-            "Packaged artifact generation manifest: {}; regeneration={}",
-            self.parameters, self.regeneration,
+            "Packaged artifact generation manifest: manifest checksum=0x{:016x}; {}; regeneration={}",
+            self.manifest_checksum, self.parameters, self.regeneration,
         )
     }
 
@@ -2354,6 +2379,20 @@ impl PackagedArtifactGenerationManifest {
     pub fn validate(&self) -> Result<(), pleiades_compression::CompressionError> {
         self.parameters.validate()?;
         self.regeneration.validate()?;
+
+        let expected_checksum =
+            packaged_artifact_generation_manifest_checksum(&self.parameters, &self.regeneration);
+        if self.manifest_checksum != expected_checksum {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                format!(
+                    "packaged artifact generation manifest checksum 0x{:016x} does not match the current packaged-artifact manifest checksum 0x{:016x}",
+                    self.manifest_checksum,
+                    expected_checksum
+                ),
+            ));
+        }
+
         Ok(())
     }
 
@@ -2397,9 +2436,15 @@ pub fn packaged_artifact_generator_parameters_details() -> PackagedArtifactGener
 
 /// Returns the current deterministic packaged-artifact generation manifest.
 pub fn packaged_artifact_generation_manifest_details() -> PackagedArtifactGenerationManifest {
+    let parameters = packaged_artifact_generator_parameters_details();
+    let regeneration = packaged_artifact_regeneration_summary_details();
     let manifest = PackagedArtifactGenerationManifest {
-        parameters: packaged_artifact_generator_parameters_details(),
-        regeneration: packaged_artifact_regeneration_summary_details(),
+        manifest_checksum: packaged_artifact_generation_manifest_checksum(
+            &parameters,
+            &regeneration,
+        ),
+        parameters,
+        regeneration,
     };
     debug_assert!(manifest.validate().is_ok());
     manifest
@@ -6650,6 +6695,26 @@ mod tests {
         assert!(error.message.contains(
             "packaged artifact generator parameters artifact profile does not match the current production profile"
         ));
+    }
+
+    #[test]
+    fn packaged_artifact_generation_manifest_validation_rejects_checksum_drift() {
+        let mut manifest = packaged_artifact_generation_manifest_details();
+        manifest.manifest_checksum ^= 1;
+
+        let error = manifest
+            .validate()
+            .expect_err("drifted generation manifest checksum should be rejected");
+        assert_eq!(
+            error.kind,
+            pleiades_compression::CompressionErrorKind::InvalidFormat
+        );
+        assert!(error
+            .message
+            .contains("packaged artifact generation manifest checksum 0x"));
+        assert!(error
+            .message
+            .contains("does not match the current packaged-artifact manifest checksum 0x"));
     }
 
     #[test]
