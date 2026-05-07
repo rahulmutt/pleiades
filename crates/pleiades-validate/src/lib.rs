@@ -4885,7 +4885,8 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "production-generation-boundary-summary")?;
             Ok(production_generation_boundary_summary_for_report())
         }
-        Some("production-generation-boundary-request-corpus-summary") => {
+        Some("production-generation-boundary-request-corpus-summary")
+        | Some("production-generation-boundary-request-corpus") => {
             ensure_no_extra_args(
                 &args[1..],
                 "production-generation-boundary-request-corpus-summary",
@@ -4900,7 +4901,8 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             )?;
             Ok(production_generation_snapshot_body_class_coverage_summary_for_report())
         }
-        Some("production-generation-source-window-summary") => {
+        Some("production-generation-source-window-summary")
+        | Some("production-generation-source-window") => {
             ensure_no_extra_args(&args[1..], "production-generation-source-window-summary")?;
             Ok(production_generation_snapshot_window_summary_for_report())
         }
@@ -4912,7 +4914,8 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "production-generation-summary")?;
             Ok(production_generation_snapshot_summary_for_report())
         }
-        Some("production-generation-boundary-source-summary") => {
+        Some("production-generation-boundary-source-summary")
+        | Some("production-generation-boundary-source") => {
             ensure_no_extra_args(&args[1..], "production-generation-boundary-source-summary")?;
             Ok(production_generation_boundary_source_summary_for_report())
         }
@@ -17457,9 +17460,10 @@ fn help_text() -> String {
   release-ayanamsa-canonical-names-summary  Print the compact release-specific ayanamsa canonical names summary
   release-ayanamsa-canonical-names  Alias for release-ayanamsa-canonical-names-summary
   profile-summary           Alias for compatibility-profile-summary
-  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  release-notes             Print the release compatibility notes\n  release-notes-summary     Print the compact release notes summary\n  release-checklist         Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  release-gate              Run the release gate checks and render the release checklist\n  release-gate-summary      Run the release gate checks and render the compact release checklist summary\n  checklist-summary        Alias for release-checklist-summary\n  release-summary           Print the compact release summary\n  jpl-batch-error-taxonomy-summary  Print the compact JPL batch error taxonomy summary\n  jpl-snapshot-evidence-summary  Print the compact combined JPL evidence summary\n  production-generation-boundary-summary  Print the compact production-generation boundary overlay summary\n  production-generation-boundary-request-corpus-summary  Print the compact production-generation boundary request corpus summary\n  production-generation-body-class-coverage-summary  Print the compact production-generation body-class coverage summary\n  production-body-class-coverage-summary  Alias for production-generation-body-class-coverage-summary\n  production-generation-source-window-summary  Print the compact production-generation source windows summary\n  production-generation-summary  Print the compact production-generation coverage summary
+  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  release-notes             Print the release compatibility notes\n  release-notes-summary     Print the compact release notes summary\n  release-checklist         Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  release-gate              Run the release gate checks and render the release checklist\n  release-gate-summary      Run the release gate checks and render the compact release checklist summary\n  checklist-summary        Alias for release-checklist-summary\n  release-summary           Print the compact release summary\n  jpl-batch-error-taxonomy-summary  Print the compact JPL batch error taxonomy summary\n  jpl-snapshot-evidence-summary  Print the compact combined JPL evidence summary\n  production-generation-boundary-summary  Print the compact production-generation boundary overlay summary\n  production-generation-boundary-request-corpus-summary  Print the compact production-generation boundary request corpus summary\n  production-generation-boundary-request-corpus  Alias for production-generation-boundary-request-corpus-summary\n  production-generation-body-class-coverage-summary  Print the compact production-generation body-class coverage summary\n  production-body-class-coverage-summary  Alias for production-generation-body-class-coverage-summary\n  production-generation-source-window-summary  Print the compact production-generation source windows summary\n  production-generation-source-window  Alias for production-generation-source-window-summary\n  production-generation-summary  Print the compact production-generation coverage summary
   production-generation           Alias for production-generation-summary
   production-generation-boundary-source-summary  Print the compact production-generation boundary source summary
+  production-generation-boundary-source  Alias for production-generation-boundary-source-summary
   production-generation-boundary-window-summary  Print the compact production-generation boundary windows summary
   production-generation-boundary-window  Alias for production-generation-boundary-window-summary\n  production-generation-source      Alias for production-generation-source-summary\n  production-generation-source-summary  Print the compact production-generation source summary\n  comparison-snapshot-source-window-summary  Print the compact comparison snapshot source windows summary\n  comparison-snapshot-source-window  Alias for comparison-snapshot-source-window-summary\n  comparison-snapshot-source-summary  Print the compact comparison snapshot source summary\n  comparison-snapshot-body-class-coverage-summary  Print the compact comparison snapshot body-class coverage summary\n  comparison-body-class-coverage-summary  Alias for comparison-snapshot-body-class-coverage-summary\n  comparison-snapshot-manifest-summary  Print the compact comparison snapshot manifest summary\n  comparison-snapshot-manifest  Alias for comparison-snapshot-manifest-summary\n  comparison-snapshot-summary  Print the compact comparison snapshot summary\n  comparison-snapshot         Alias for comparison-snapshot-summary\n  comparison-snapshot-batch-parity-summary  Print the compact comparison snapshot batch parity summary\n  reference-snapshot-source-window-summary  Print the compact reference snapshot source windows summary\n  reference-snapshot-source-window  Alias for reference-snapshot-source-window-summary\n  reference-snapshot-source-summary  Print the compact reference snapshot source summary
   reference-snapshot-manifest-summary  Print the compact reference snapshot manifest summary
@@ -20246,13 +20250,16 @@ mod tests {
         assert!(rendered.contains("frame-policy             Alias for frame-policy-summary"));
         assert!(rendered.contains("production-generation-boundary-summary"));
         assert!(rendered.contains("production-generation-boundary-request-corpus-summary"));
+        assert!(rendered.contains("production-generation-boundary-request-corpus  Alias for production-generation-boundary-request-corpus-summary"));
         assert!(rendered.contains("production-generation-body-class-coverage-summary"));
         assert!(rendered.contains("production-body-class-coverage-summary"));
         assert!(rendered.contains("production-generation-source-window-summary"));
+        assert!(rendered.contains("production-generation-source-window  Alias for production-generation-source-window-summary"));
         assert!(rendered.contains("production-generation-summary"));
         assert!(rendered
             .contains("production-generation           Alias for production-generation-summary"));
         assert!(rendered.contains("production-generation-boundary-source-summary"));
+        assert!(rendered.contains("production-generation-boundary-source  Alias for production-generation-boundary-source-summary"));
         assert!(rendered.contains("production-generation-boundary-window-summary"));
         assert!(rendered.contains("production-generation-boundary-window  Alias for production-generation-boundary-window-summary"));
         assert!(rendered.contains("production-generation-source-summary"));
@@ -26135,6 +26142,30 @@ version = "0.9.0"
     }
 
     #[test]
+    fn production_generation_boundary_request_corpus_alias_command_renders_the_request_corpus_block(
+    ) {
+        let rendered = render_cli(&["production-generation-boundary-request-corpus"])
+            .expect("production generation boundary request corpus alias should render");
+
+        assert_eq!(
+            rendered,
+            production_generation_boundary_request_corpus_summary_for_report()
+        );
+    }
+
+    #[test]
+    fn production_generation_boundary_request_corpus_alias_rejects_extra_arguments() {
+        let error = render_cli(&["production-generation-boundary-request-corpus", "extra"])
+            .expect_err(
+                "production generation boundary request corpus alias should reject extra arguments",
+            );
+
+        assert!(error.contains(
+            "production-generation-boundary-request-corpus-summary does not accept extra arguments"
+        ));
+    }
+
+    #[test]
     fn production_generation_source_window_summary_command_renders_the_source_windows_block() {
         let rendered = render_cli(&["production-generation-source-window-summary"])
             .expect("production generation source window summary should render");
@@ -26145,6 +26176,27 @@ version = "0.9.0"
             rendered,
             production_generation_snapshot_window_summary_for_report()
         );
+    }
+
+    #[test]
+    fn production_generation_source_window_alias_command_renders_the_source_windows_block() {
+        let rendered = render_cli(&["production-generation-source-window"])
+            .expect("production generation source window alias should render");
+
+        assert_eq!(
+            rendered,
+            production_generation_snapshot_window_summary_for_report()
+        );
+    }
+
+    #[test]
+    fn production_generation_source_window_alias_rejects_extra_arguments() {
+        let error = render_cli(&["production-generation-source-window", "extra"])
+            .expect_err("production generation source window alias should reject extra arguments");
+
+        assert!(error.contains(
+            "production-generation-source-window-summary does not accept extra arguments"
+        ));
     }
 
     #[test]
@@ -26217,6 +26269,28 @@ version = "0.9.0"
             rendered,
             production_generation_boundary_source_summary_for_report()
         );
+    }
+
+    #[test]
+    fn production_generation_boundary_source_alias_command_renders_the_source_block() {
+        let rendered = render_cli(&["production-generation-boundary-source"])
+            .expect("production generation boundary source alias should render");
+
+        assert_eq!(
+            rendered,
+            production_generation_boundary_source_summary_for_report()
+        );
+    }
+
+    #[test]
+    fn production_generation_boundary_source_alias_rejects_extra_arguments() {
+        let error = render_cli(&["production-generation-boundary-source", "extra"]).expect_err(
+            "production generation boundary source alias should reject extra arguments",
+        );
+
+        assert!(error.contains(
+            "production-generation-boundary-source-summary does not accept extra arguments"
+        ));
     }
 
     #[test]
