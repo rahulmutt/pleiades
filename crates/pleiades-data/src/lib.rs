@@ -485,6 +485,14 @@ pub enum PackagedArtifactFitEnvelopeSummaryValidationError {
 }
 
 impl PackagedArtifactFitEnvelopeSummaryValidationError {
+    /// Returns the number of threshold violations captured by the validation error.
+    pub fn violation_count(&self) -> usize {
+        match self {
+            Self::FieldOutOfSync { .. } => 0,
+            Self::ThresholdExceeded { violations } => violations.len(),
+        }
+    }
+
     /// Returns the compact release-facing summary for the validation error.
     pub fn summary_line(&self) -> String {
         match self {
@@ -1035,6 +1043,17 @@ pub fn packaged_artifact_fit_margin_summary_for_report() -> String {
             thresholds.max_distance_delta_au - envelope.max_distance_delta_au,
         ),
         Err(error) => format!("fit margins: unavailable ({error})"),
+    }
+}
+
+/// Returns the number of packaged-artifact fit threshold violations relative to the calibrated thresholds.
+pub fn packaged_artifact_fit_threshold_violation_count_for_report() -> String {
+    let envelope = packaged_artifact_fit_envelope_summary_details();
+    let thresholds = packaged_artifact_fit_threshold_summary_details();
+
+    match envelope.validate_against_thresholds(&thresholds) {
+        Ok(()) => "fit threshold violations: 0".to_string(),
+        Err(error) => format!("fit threshold violations: {}", error.violation_count()),
     }
 }
 
@@ -6902,6 +6921,7 @@ mod tests {
                 ],
             }
         );
+        assert_eq!(error.violation_count(), 6);
         assert!(error.summary_line().contains("6 violations"));
         assert!(error.summary_line().contains("measured="));
         assert!(error.summary_line().contains("threshold="));
@@ -6909,6 +6929,10 @@ mod tests {
             .summary_line()
             .contains("mean_longitude_delta_degrees"));
         assert!(error.summary_line().contains("max_distance_delta_au"));
+        assert_eq!(
+            packaged_artifact_fit_threshold_violation_count_for_report(),
+            "fit threshold violations: 0"
+        );
     }
 
     #[test]
