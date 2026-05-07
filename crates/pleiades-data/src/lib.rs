@@ -5873,6 +5873,40 @@ mod tests {
     }
 
     #[test]
+    fn packaged_artifact_generation_artifacts_keep_lookup_epoch_and_segment_strategy_aligned() {
+        let production_profile = packaged_artifact_production_profile_summary_details();
+        let generator_parameters = packaged_artifact_generator_parameters_details();
+        let manifest = packaged_artifact_generation_manifest_details();
+
+        assert_eq!(
+            production_profile.lookup_epoch_policy,
+            generator_parameters.lookup_epoch_policy
+        );
+        assert_eq!(
+            generator_parameters.lookup_epoch_policy,
+            manifest.parameters.lookup_epoch_policy
+        );
+        assert_eq!(
+            production_profile.lookup_epoch_policy.summary_line(),
+            generator_parameters.lookup_epoch_policy.summary_line()
+        );
+        assert_eq!(
+            generator_parameters.generation_policy.segment_strategy(),
+            manifest.parameters.generation_policy.segment_strategy()
+        );
+        assert_eq!(
+            production_profile.generation_policy.segment_strategy(),
+            generator_parameters.generation_policy.segment_strategy()
+        );
+        assert!(production_profile
+            .summary_line()
+            .contains("lookup epoch policy=TT-grid retag without relativistic correction"));
+        assert!(manifest
+            .summary_line()
+            .contains("segment strategy=bodies with a single sampled epoch use point segments"));
+    }
+
+    #[test]
     fn packaged_artifact_generation_manifest_validation_rejects_profile_id_drift() {
         let mut manifest = packaged_artifact_generation_manifest_details();
         manifest.parameters.profile_id = "pleiades-packaged-artifact-profile/test-drift";
