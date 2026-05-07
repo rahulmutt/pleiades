@@ -64,7 +64,7 @@ use pleiades_jpl::{
 const PACKAGE_NAME: &str = "pleiades-data";
 const ARTIFACT_LABEL: &str = "stage-5 packaged-data draft";
 const ARTIFACT_PROFILE_ID: &str = "pleiades-packaged-artifact-profile/stage-5-draft";
-const ARTIFACT_SOURCE: &str = "Quantized linear segments with residual-corrected Moon spans fitted to JPL Horizons reference epochs (1800, 2000, 2500 CE) for the comparison-body planetary set plus asteroid:433-Eros, with J2000 point segments for the outer planets, Pluto, and the asteroid coverage.";
+const ARTIFACT_SOURCE: &str = "Quantized linear segments with longitude-unwrapped Moon spans fitted to JPL Horizons reference epochs (1800, 2000, 2500 CE) for the comparison-body planetary set plus asteroid:433-Eros, with J2000 point segments for the outer planets, Pluto, and the asteroid coverage.";
 const PACKAGED_BASE_BODIES: [CelestialBody; 10] = [
     CelestialBody::Sun,
     CelestialBody::Moon,
@@ -248,7 +248,7 @@ impl PackagedArtifactGenerationPolicy {
     pub const fn note(self) -> &'static str {
         match self {
             Self::AdjacentSameBodyLinearSegments => {
-                "bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs; the Moon uses overlapping three-point spans with quadratic base fits to keep the high-curvature fit compact"
+                "bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs with longitude unwrapping; the Moon uses overlapping three-point spans with quadratic base fits and longitude unwrapping to keep the high-curvature fit compact"
             }
         }
     }
@@ -5938,7 +5938,7 @@ mod tests {
             summary.policy,
             PackagedArtifactGenerationPolicy::AdjacentSameBodyLinearSegments
         );
-        assert_eq!(summary.summary_line(), "adjacent same-body linear segments; bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs; the Moon uses overlapping three-point spans with quadratic base fits to keep the high-curvature fit compact");
+        assert_eq!(summary.summary_line(), "adjacent same-body linear segments; bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs with longitude unwrapping; the Moon uses overlapping three-point spans with quadratic base fits and longitude unwrapping to keep the high-curvature fit compact");
         assert_eq!(summary.to_string(), summary.summary_line());
         assert!(artifact.residual_bodies().is_empty());
         summary
@@ -6021,7 +6021,7 @@ mod tests {
         );
         assert_eq!(
             summary.generation_policy_line(),
-            "generation policy: adjacent same-body linear segments; bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs; the Moon uses overlapping three-point spans with quadratic base fits to keep the high-curvature fit compact"
+            "generation policy: adjacent same-body linear segments; bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs with longitude unwrapping; the Moon uses overlapping three-point spans with quadratic base fits and longitude unwrapping to keep the high-curvature fit compact"
         );
         assert_eq!(
             summary.residual_body_line(),

@@ -2725,7 +2725,7 @@ mod tests {
             .lines()
             .any(|line| line == packaged_artifact_access_report_line()));
         assert!(release_notes_summary.lines().any(|line| {
-            line == "Packaged-artifact generation policy: adjacent same-body linear segments; bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs; the Moon uses overlapping three-point spans with quadratic base fits to keep the high-curvature fit compact"
+            line == "Packaged-artifact generation policy: adjacent same-body linear segments; bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs with longitude unwrapping; the Moon uses overlapping three-point spans with quadratic base fits and longitude unwrapping to keep the high-curvature fit compact"
         }));
         assert!(release_notes_summary.contains("Packaged request policy:"));
         assert!(release_notes_summary.contains("Packaged lookup epoch policy:"));
@@ -4730,7 +4730,7 @@ mod tests {
             .lines()
             .any(|line| line == packaged_artifact_access_report_line()));
         assert!(release_summary.lines().any(|line| {
-            line == "Packaged-artifact generation policy: adjacent same-body linear segments; bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs; the Moon uses overlapping three-point spans with quadratic base fits to keep the high-curvature fit compact"
+            line == "Packaged-artifact generation policy: adjacent same-body linear segments; bodies with a single sampled epoch use point segments; multi-epoch non-lunar bodies are fit with linear segments between adjacent same-body source epochs with longitude unwrapping; the Moon uses overlapping three-point spans with quadratic base fits and longitude unwrapping to keep the high-curvature fit compact"
         }));
         assert!(release_summary.lines().any(|line| {
             line == format!(
