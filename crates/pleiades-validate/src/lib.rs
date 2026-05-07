@@ -7904,6 +7904,10 @@ fn render_release_notes_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_2451911_major_body_boundary_summary_for_report());
     text.push('\n');
+    text.push_str(&reference_snapshot_bridge_day_summary_for_report());
+    text.push('\n');
+    text.push_str(&reference_snapshot_2451914_major_body_bridge_day_summary_for_report());
+    text.push('\n');
     text.push_str(&reference_snapshot_lunar_boundary_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_1500_selected_body_boundary_summary_for_report());
@@ -8044,6 +8048,10 @@ fn render_release_notes_summary_text() -> String {
     text.push_str(&reference_snapshot_2378499_major_body_boundary_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_2451911_major_body_boundary_summary_for_report());
+    text.push('\n');
+    text.push_str(&reference_snapshot_bridge_day_summary_for_report());
+    text.push('\n');
+    text.push_str(&reference_snapshot_2451914_major_body_bridge_day_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_2451916_major_body_dense_boundary_summary_for_report());
     text.push('\n');
@@ -23742,6 +23750,9 @@ version = "0.9.0"
             .contains(&reference_snapshot_2451916_major_body_interior_summary_for_report()));
         assert!(release_notes_summary
             .contains(&reference_snapshot_2451916_major_body_boundary_summary_for_report()));
+        assert!(release_notes_summary.contains(&reference_snapshot_bridge_day_summary_for_report()));
+        assert!(release_notes_summary
+            .contains(&reference_snapshot_2451914_major_body_bridge_day_summary_for_report()));
         assert!(release_notes_summary.contains(
             "Latitude-sensitive house systems: 8 (Placidus, Koch, Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Topocentric, Sunshine, Gauquelin sectors)"
         ));
@@ -27103,6 +27114,9 @@ version = "0.9.0"
             .contains(&reference_snapshot_2451918_major_body_boundary_summary_for_report()));
         assert!(reference
             .contains(&reference_snapshot_2451919_major_body_boundary_summary_for_report()));
+        assert!(reference.contains(&reference_snapshot_bridge_day_summary_for_report()));
+        assert!(reference
+            .contains(&reference_snapshot_2451914_major_body_bridge_day_summary_for_report()));
         assert!(reference.contains("Reference 2500 selected-body boundary evidence:"));
         assert!(reference.contains("Reference 2200 selected-body boundary evidence:"));
         assert!(reference.contains(&selected_asteroid_boundary_summary_for_report()));
