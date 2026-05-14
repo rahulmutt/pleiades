@@ -1,25 +1,23 @@
 # Plan Overview
 
-`pleiades` has completed the original workspace bootstrap: mandatory crates exist, core typed APIs are in place, catalogs are broad, validation and release-rehearsal tooling exists, and a draft packaged-data artifact is checked in.
-
-The active plan now starts after that foundation. It focuses on closing the remaining specification gaps needed before production release claims are truthful.
+`pleiades` has completed the bootstrap/foundation roadmap. The active plan now tracks only production gaps that remain against `SPEC.md` and `spec/*.md`.
 
 ## Active phases
 
-1. [Production compressed data](stages/01-production-compressed-data.md)
-2. [Production reference inputs](stages/02-production-reference-inputs.md)
-3. [Advanced request support](stages/03-advanced-request-support.md)
-4. [Compatibility catalog evidence](stages/04-compatibility-catalog-evidence.md)
-5. [Release gate hardening](stages/05-release-gate-hardening.md)
+1. **Artifact accuracy and packaged-data production** — replace the draft packaged-data fixture with a production 1500-2500 CE artifact.
+2. **Reference/source corpus productionization** — provide public, documented, deterministic inputs for validation and artifact fitting.
+3. **Body-model completion and claim boundaries** — settle Pluto, fuller lunar theory/lunar points, and selected asteroid release claims.
+4. **Advanced request modes and policy** — implement or consistently reject UTC/Delta-T, apparent, topocentric, and native-sidereal modes.
+5. **Compatibility catalog evidence** — audit house and ayanamsa formulas, aliases, constraints, and profile status.
+6. **Release gate hardening** — make release bundles and gates fail closed on drift or unsupported claims.
 
 ## Current priority
 
-The next implementation work should prioritize **Phase 1: Production compressed data**. The draft artifact is reproducible and inspectable, and the recursive cubic-window slice with longitude unwrapping and body-class span caps has materially improved its fit envelope, but it still remains outside production thresholds. Work should continue improving the fitting strategy, generation inputs, validation thresholds, and benchmarks without broadening user-facing accuracy claims prematurely.
+Prioritize Phase 1, but do not broaden packaged-data claims until Phase 2-quality inputs are available. Current artifact manifest, checksum, output-support, cadence, fit-outlier, and benchmark reports are useful diagnostics; they are not substitutes for production accuracy.
 
 ## Cross-cutting rules
 
-- Keep all first-party code pure Rust.
-- Preserve crate layering from `spec/architecture.md`.
-- Treat checked-in fixtures and hold-out rows as evidence classes, not as a substitute for production source coverage.
-- Keep unsupported advanced modes as structured errors until implemented and validated.
-- Keep compatibility profiles aligned with implemented behavior and known gaps.
+- Keep the workspace pure Rust and layered according to `spec/architecture.md`.
+- Keep unsupported modes as structured errors until implemented and validated.
+- Keep release profiles and public docs aligned with current generated evidence.
+- Remove completed implementation slices from active status files instead of accumulating historical notes.

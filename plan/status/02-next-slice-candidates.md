@@ -1,69 +1,62 @@
 # Status 2 — Next Slice Candidates
 
-This file lists focused implementation slices for the current phase ladder. Completed report aliases, fixture row promotion, and release-rehearsal cleanup are intentionally omitted.
+This file lists focused implementation slices for the current phase ladder. Completed report surfaces and historical cleanup tasks are intentionally omitted.
 
-## Phase 1 — Production compressed data
+## Phase 1 — Artifact accuracy and packaged-data production
 
-### 1. Artifact fitting strategy
+### 1. Diagnose current artifact error classes
 
-- The Moon slice has already moved from residual-correction segments to quadratic base fits.
-- The latest follow-on slice now uses recursively subdivided cubic windows with longitude unwrapping and tighter body-class span caps across the bundled bodies; current thresholds are calibrated to the latest draft artifact, and the body-class cadence view now makes the remaining inner/outer/Pluto/asteroid splits explicit.
-- The runtime packaged artifact now regenerates from the checked-in snapshot before being cached, and a compact body-class span-cap summary is available for the next fit-choice review; the artifact summary also exposes those caps inline now.
-- Evaluate whether the remaining high-error bodies should move to denser windows, Chebyshev, or higher-order polynomial segments.
-- Split body classes by cadence and segment length: inner planets, outer planets, Pluto, and selected asteroids may still need different strategies, but the current cadence-aware caps already establish the faster/sparser split.
-- Body/channel-specific fit reports now identify the worst segments and source intervals; use them to prioritize the next fit changes.
-- The artifact summary now also includes a channel-major fit-outlier view, which should make cadence-based splitting easier to justify.
-- Keep failures explicit until measured deltas are inside the production target profile.
+- Use the channel-major fit-outlier report to group failures by body, channel, segment span, and interpolation position.
+- Separate source-cadence failures from reconstruction bugs, unit mistakes, wrapping errors, and quantization artifacts.
+- Add regression coverage for the smallest failing segment family before changing the fitter.
 
-### 2. Artifact generation manifest
+### 2. Improve fitting/reconstruction strategy
 
-- Regeneration provenance now records encoded artifact size alongside the checksum, keeping size accounting explicit in the manifest trail.
-- Generator parameters now also carry residual-body coverage, making the residual posture explicit in the manifest trail; source-input provenance, quantization metadata, and output-profile identifiers still need to stay complete and reproducible.
-- Keep normalized intermediate summaries deterministic and reproducible.
-- Make regenerated artifact bytes/checksums comparable from a clean checkout.
-- Use the body-class span-cap summary to decide which cadence bucket or segment family should get the next fit slice.
-- Use the improved cubic-window fixture as the new baseline for any follow-on fit experiments.
+- Evaluate denser source windows, body-specific cadence, Chebyshev segments, higher-order fits, residual tables, or channel-specific reconstruction.
+- Treat distance-channel outliers as a first-class blocker; do not hide them behind longitude-only thresholds.
+- Keep artifact size and decode benchmarks current, but do not trade correctness away for size.
 
-### 3. Artifact benchmark coverage
+### 3. Promote draft thresholds to production thresholds
 
-- The main benchmark report now includes packaged-artifact lookup, batch lookup, and decode sections, alongside backend and chart timings.
-- Follow on with any missing benchmark views only if they add materially new evidence.
-- Track benchmark rows in release summaries without treating speed as a substitute for accuracy.
+- Define body-class/channel thresholds before claiming production readiness.
+- Require both source-fit and independent hold-out checks for advertised scopes.
+- Keep unsupported outputs explicit in the artifact profile.
 
-## Phase 2 — Production reference inputs
+## Phase 2 — Reference/source corpus productionization
 
 ### 1. Source ingestion decision
 
-- Decide whether to implement a broader JPL reader/parser, a generated public-data fixture corpus, or both.
+- Choose a broader JPL reader/parser, a reproducibly generated public fixture corpus, or a hybrid.
 - Document provenance, license/redistribution posture, frame, time scale, columns, source revision, and checksum expectations.
 
-### 2. Body and epoch coverage
+### 2. Coverage expansion
 
-- Expand coverage only where it supports advertised release claims or artifact fitting.
-- Preserve evidence classes: reference, hold-out, fixture exactness, and provenance-only.
+- Expand body/epoch/channel coverage only where it supports artifact fitting or release claims.
+- Preserve evidence classes: reference, hold-out, boundary overlay, fixture exactness, and provenance-only.
 - Keep selected asteroid support bounded to validated bodies and epochs.
 
-### 3. Release-grade body posture
+## Phase 3 — Body-model completion and claim boundaries
 
-- Keep Pluto approximate/excluded unless a source-backed path passes thresholds.
-- Keep the compact lunar baseline unless fuller ELP-style coefficient support lands with provenance and validation.
-- Keep lunar point/apogee claims aligned with supported algorithms.
+- Resolve Pluto as source-backed, artifact-backed, approximate, constrained, or excluded.
+- Decide whether fuller ELP-style lunar coefficients are required for first production release.
+- Keep lunar node/apogee/perigee claims aligned with implemented formulas and evidence.
+- Promote Ceres/Pallas/Juno/Vesta only when source coverage and backend support are ready.
 
-## Phase 3 — Advanced request support
+## Phase 4 — Advanced request modes and policy
 
-- Decide first-release UTC/Delta-T convenience policy.
+- Decide whether built-in UTC/Delta-T convenience belongs in the first production release.
 - Implement apparent-place or topocentric body support only with capability metadata, validation, and docs.
 - Keep native sidereal backend output unsupported unless a backend explicitly implements it.
 - Add precedence tests for invalid/unsupported request combinations when behavior changes.
 
-## Phase 4 — Compatibility catalog evidence
+## Phase 5 — Compatibility catalog evidence
 
 - Add formula/reference evidence for any house system promoted to fully implemented status.
 - Add provenance/reference evidence for any ayanamsa promoted beyond descriptor/custom-only status.
 - Verify release profiles fail on overstated catalog claims.
 
-## Phase 5 — Release gate hardening
+## Phase 6 — Release gate hardening
 
-- Make release-gate commands fail on stale generated files, artifact threshold violations, profile drift, or native-dependency regressions.
+- Make release-gate commands fail on stale generated files, artifact threshold violations, profile drift, unsupported-mode claim drift, or native-dependency regressions.
 - Stage and verify all release-bundle artifacts from a clean checkout.
 - Keep README/docs aligned with the published release compatibility profile and known gaps.

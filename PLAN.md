@@ -1,6 +1,6 @@
 # Pleiades Development Plan
 
-This plan is the forward execution map for `pleiades` after the architectural bootstrap and release-rehearsal foundation have landed. It tracks only remaining specification gaps from `SPEC.md` and `spec/*.md`; completed scaffolding, report-alias work, and historical phase notes belong in git history, not in the active plan.
+This is the active forward plan for `pleiades`. It intentionally omits completed bootstrap, catalog-scaffolding, report-alias, release-rehearsal, fixture-promotion, manifest-completeness, and benchmark-surface work. Those details remain in git history and generated reports, not in the active task list.
 
 ## Source material
 
@@ -20,83 +20,54 @@ This plan is derived from:
 
 ## Current implementation baseline
 
-The repository currently provides:
+The repository is past the original foundation roadmap. The current workspace includes all mandatory first-party crates, pure-Rust tooling checks, typed shared domain models, backend traits, capability metadata, batch helpers, routing/composite helpers, chart façade APIs, broad house and ayanamsa catalogs, compatibility-profile reporting, source/provenance summaries, validation tooling, release-bundle rehearsal, and a checked-in draft packaged-data artifact.
 
-- all mandatory `pleiades-*` workspace crates and pure-Rust tooling checks;
-- shared domain types, backend traits, capability metadata, batch APIs, structured errors, and composite-routing helpers;
-- a high-level chart façade with sidereal conversion, house/sign placement, aspects, diagnostics, and compatibility-profile access;
-- broad house and ayanamsa catalogs with aliases, descriptor validation, compatibility summaries, and release-profile verification;
-- a VSOP87B-backed planetary implementation for Sun through Neptune, with Pluto still treated as an approximate fallback rather than a release-grade source-backed body;
-- a compact Meeus-style lunar baseline for the Moon and supported lunar points, with fuller ELP coefficient support deferred;
-- checked-in JPL Horizons snapshot/hold-out fixtures used for reference comparison, validation summaries, and artifact-generation rehearsal;
-- `pleiades-compression` and `pleiades-data` codec/profile/checksum support plus a stage-5 draft packaged-data artifact for the 1500-2500 CE range; the packaged artifact has recently been retuned to recursively subdivided cubic windows with longitude unwrapping and tighter cadence-aware body-class span caps, materially improving the fit envelope and body-class cadence reporting while remaining draft-grade; the artifact reports now also surface channel-major fit-outlier, body-class cadence, and body-class span-cap views to help prioritize the next fit slices;
-- CLI and validation tooling for chart inspection, compatibility profiles, request policies, backend matrices, artifact reports, benchmarks, audits, and release-bundle rehearsal.
+Current backend and data posture:
 
-The implementation is therefore past the original bootstrap/foundation phases. Remaining work is productionization: source breadth, artifact accuracy, advanced request behavior, catalog evidence, and release gates. The artifact reporting surface now also includes separate single-lookup, batch-lookup, and decode benchmark sections so throughput evidence stays visible alongside the fit report.
+- `pleiades-vsop87` has source-backed VSOP87B tables for Sun through Neptune and keeps Pluto as approximate fallback evidence, not a full release-grade source-backed claim.
+- `pleiades-elp` provides a compact Meeus-style lunar/lunar-point baseline with published-example evidence, not a full ELP coefficient implementation.
+- `pleiades-jpl` provides checked-in JPL Horizons snapshots and hold-out fixtures with provenance and validation helpers, not a broad production source reader.
+- `pleiades-data` provides a deterministic stage-5 draft artifact with manifest, checksum, output-profile, body-class cadence, fit-outlier, lookup, batch-lookup, and decode reports, but its model error envelope is far outside production thresholds.
+- Current first-party request policy is explicit: TT/TDB mean geometric geocentric tropical requests are supported where metadata says so; built-in Delta T/UTC modeling, apparent-place corrections, topocentric body positions, and native sidereal backend output remain unsupported unless a future backend advertises and validates them.
 
 ## Remaining specification gaps
 
-1. **Production compressed data** — the packaged artifact is still a draft fixture. It must become a reproducible 1500-2500 CE data product with measured errors inside published thresholds; the reporting surface now includes cadence and span-cap views to guide the next fit slice.
-2. **Reference/data-source breadth** — the JPL path is a checked-in reference fixture, not a broad production reader or corpus suitable for all validation and artifact-generation needs.
-3. **Advanced request semantics** — first-party backends still explicitly reject or defer built-in UTC/Delta-T convenience, apparent-place corrections, topocentric body positions, and native sidereal backend output.
-4. **Release-grade body coverage** — Pluto, fuller lunar theory, lunar points, and selected asteroid claims need either source-backed validation or explicit exclusion/constrained status in release claims.
-5. **Compatibility evidence** — the broad house and ayanamsa catalogs need continuing formula/provenance/reference audits whenever entries are claimed as implemented rather than descriptor-only or constrained.
-6. **Release hardening** — release rehearsal tooling exists, but final gates must fail closed on stale profiles, native-dependency drift, artifact threshold failures, inaccurate backend claims, or unreproducible bundles.
+1. **Production compressed ephemeris** — the artifact format and reporting exist, but the bundled 1500-2500 CE data product remains draft-grade and fails production accuracy expectations.
+2. **Production reference inputs** — checked-in snapshots are valuable regression and comparison evidence, but the project still needs a production-suitable public source ingestion or generated-corpus path for artifact fitting and body claims.
+3. **Release-grade body coverage** — Pluto, full lunar theory, lunar points beyond the current compact baseline, and selected asteroids need source-backed validation or constrained/excluded release status.
+4. **Advanced request implementation choices** — UTC/Delta-T convenience, apparent corrections, topocentric body positions, and native sidereal backend output must either be implemented with evidence or remain consistently rejected and documented.
+5. **Compatibility evidence** — broad house and ayanamsa catalogs need continued formula/provenance/reference audits before entries are promoted beyond descriptor, constrained, custom, or approximate status.
+6. **Fail-closed release gates** — production releases must block stale profiles, native-dependency drift, artifact threshold failures, inaccurate backend claims, and unreproducible bundles.
 
-## Planning principles
-
-1. **Plan only remaining work.** Remove completed report surfaces, aliases, fixture rows, and scaffolding tasks from active plans.
-2. **Evidence before claims.** Accuracy, compatibility, and release readiness require current tests, validation reports, tolerances, and provenance.
-3. **Package from trusted inputs.** Production compressed artifacts must be generated from validated public source outputs, not from undocumented or ad hoc samples.
-4. **Fail closed.** Unsupported apparent, topocentric, native-sidereal, out-of-range, missing-data, and unsupported time-scale requests must remain structured errors until implemented and validated.
-5. **Preserve pure Rust and layering.** New readers, generators, datasets, and tooling must respect `spec/architecture.md`.
-
-## Active development phases
+## Active implementation phases
 
 | Phase | Focus | Workable-state promise | Detailed doc |
 | --- | --- | --- | --- |
-| 1 | Production compressed data | Maintainers can regenerate, validate, benchmark, and ship a deterministic 1500-2500 CE artifact within published thresholds | [plan/stages/01-production-compressed-data.md](plan/stages/01-production-compressed-data.md) |
-| 2 | Production reference inputs | Maintainers have a pure-Rust source/reference path broad enough for backend validation, body claims, and artifact fitting | [plan/stages/02-production-reference-inputs.md](plan/stages/02-production-reference-inputs.md) |
-| 3 | Advanced request support decisions | The public API either implements or explicitly defers UTC/Delta-T convenience, apparent corrections, topocentric positions, and native sidereal backend output | [plan/stages/03-advanced-request-support.md](plan/stages/03-advanced-request-support.md) |
-| 4 | Compatibility catalog evidence | Release profiles accurately distinguish implemented, constrained, descriptor-only, custom, and unsupported house/ayanamsa entries | [plan/stages/04-compatibility-catalog-evidence.md](plan/stages/04-compatibility-catalog-evidence.md) |
-| 5 | Release gate hardening | A clean checkout can produce verified release artifacts whose claims match current evidence | [plan/stages/05-release-gate-hardening.md](plan/stages/05-release-gate-hardening.md) |
+| 1 | Artifact accuracy and packaged-data production | Maintainers can regenerate and ship a deterministic 1500-2500 CE artifact whose measured errors are within the published profile | [plan/stages/01-production-compressed-data.md](plan/stages/01-production-compressed-data.md) |
+| 2 | Reference/source corpus productionization | Maintainers have documented public inputs broad enough for release body claims, backend validation, and artifact fitting | [plan/stages/02-production-reference-inputs.md](plan/stages/02-production-reference-inputs.md) |
+| 3 | Body-model completion and claim boundaries | Pluto, lunar theory/lunar points, and selected asteroid claims are either source-backed or explicitly constrained/excluded | [plan/stages/03-body-coverage-and-claims.md](plan/stages/03-body-coverage-and-claims.md) |
+| 4 | Advanced request modes and policy | UTC/Delta-T, apparent, topocentric, and native-sidereal behavior is implemented with evidence or consistently rejected | [plan/stages/04-advanced-request-modes.md](plan/stages/04-advanced-request-modes.md) |
+| 5 | Compatibility catalog evidence | Release profiles truthfully classify house and ayanamsa built-ins, aliases, constraints, custom entries, and known gaps | [plan/stages/05-compatibility-catalog-evidence.md](plan/stages/05-compatibility-catalog-evidence.md) |
+| 6 | Release gate hardening | A clean checkout can produce verified release artifacts whose claims match current generated evidence | [plan/stages/06-release-gate-hardening.md](plan/stages/06-release-gate-hardening.md) |
 
-## Current planning posture
+## Current priority
 
-| Phase | Status | Summary |
-| --- | --- | --- |
-| 1. Production compressed data | Active | Highest leverage next work: continue reducing the remaining high-error bodies after the cadence-aware cubic-window slice; the channel-major fit-outlier, body-class cadence, and body-class span-cap views should help split cadence-driven follow-on work, then tighten thresholds and benchmarks. |
-| 2. Production reference inputs | Active dependency | Expand or replace checked-in fixtures with production-suitable public inputs where Phase 1 and body claims require stronger evidence. |
-| 3. Advanced request support decisions | Deferred by policy | Keep current structured rejections truthful unless implementation and validation land. |
-| 4. Compatibility catalog evidence | Parallelizable | Continue formula/provenance audits as catalog claims change; do not relabel descriptor-only entries as fully implemented without evidence. |
-| 5. Release gate hardening | Queued/continuous | Maintain rehearsal tooling now; make it blocking once artifact, reference, and compatibility evidence are current. |
+The execution frontier is Phase 1, with Phase 2 as its main dependency. The next implementation slice should reduce the packaged-data error envelope using a trusted source corpus, not add more report surfaces around the current draft fixture.
 
 For live execution guidance, see:
 
 - [plan/status/01-current-execution-frontier.md](plan/status/01-current-execution-frontier.md)
 - [plan/status/02-next-slice-candidates.md](plan/status/02-next-slice-candidates.md)
 
-## Plan directory structure
-
-```text
-PLAN.md
-plan/
-  overview.md
-  stages/
-  status/
-  tracks/
-  checklists/
-  appendices/
-```
-
 ## Detailed plan index
 
 - [plan/overview.md](plan/overview.md)
 - [plan/stages/01-production-compressed-data.md](plan/stages/01-production-compressed-data.md)
 - [plan/stages/02-production-reference-inputs.md](plan/stages/02-production-reference-inputs.md)
-- [plan/stages/03-advanced-request-support.md](plan/stages/03-advanced-request-support.md)
-- [plan/stages/04-compatibility-catalog-evidence.md](plan/stages/04-compatibility-catalog-evidence.md)
-- [plan/stages/05-release-gate-hardening.md](plan/stages/05-release-gate-hardening.md)
+- [plan/stages/03-body-coverage-and-claims.md](plan/stages/03-body-coverage-and-claims.md)
+- [plan/stages/04-advanced-request-modes.md](plan/stages/04-advanced-request-modes.md)
+- [plan/stages/05-compatibility-catalog-evidence.md](plan/stages/05-compatibility-catalog-evidence.md)
+- [plan/stages/06-release-gate-hardening.md](plan/stages/06-release-gate-hardening.md)
 - [plan/status/01-current-execution-frontier.md](plan/status/01-current-execution-frontier.md)
 - [plan/status/02-next-slice-candidates.md](plan/status/02-next-slice-candidates.md)
 - [plan/tracks/01-workspace-and-tooling.md](plan/tracks/01-workspace-and-tooling.md)
@@ -110,6 +81,6 @@ plan/
 
 ## Plan maintenance rules
 
-When implementation closes a gap, remove it from the active plan/status docs and update the phase map. When a spec requirement changes, map it into an active or queued phase in the same change.
+When implementation closes a gap, remove it from the active phase/status docs and update the phase map. Do not keep completed report aliases, already-landed summaries, or historical phase notes as future work.
 
-Status: Updated 2026-05-07 after reviewing `SPEC.md`, `spec/*.md`, current crate implementations, README status, and existing plan/status documents. This revision removes completed historical phase tasks and replaces them with production-focused implementation phases.
+Status: Updated 2026-05-14 after reviewing `SPEC.md`, `spec/*.md`, README status, CLI/report posture, and current plan documents.

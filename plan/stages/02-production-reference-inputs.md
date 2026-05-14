@@ -1,28 +1,29 @@
-# Phase 2 — Production Reference Inputs
+# Phase 2 — Reference/Source Corpus Productionization
 
 ## Goal
 
-Provide a pure-Rust source/reference path broad enough to support backend validation, release-grade body claims, and Phase 1 artifact generation.
+Provide documented public source inputs broad enough for backend validation, release-grade body claims, and production artifact fitting.
 
 ## Starting point
 
-`pleiades-jpl` currently uses checked-in JPL Horizons snapshot and hold-out fixtures with provenance and report surfaces. This is useful validation evidence, but it is not yet a broad production reader/corpus.
+`pleiades-jpl` includes checked-in JPL Horizons snapshots, hold-out fixtures, provenance summaries, batch/single parity checks, source-window summaries, selected asteroid samples, and production-generation manifest reports. This is regression-quality evidence, but not yet a broad production reader or generated corpus covering all advertised body/date/channel claims.
 
 ## Implementation goals
 
-- Decide whether `pleiades-jpl` should parse public JPL files directly, ingest a documented derived public dataset, or maintain a generated fixture corpus with reproducible provenance.
-- Expand source coverage to the bodies, epochs, frames, and channels required by release claims and artifact fitting.
-- Keep reference, hold-out, fixture-exactness, and provenance-only evidence separated in reports.
-- Publish body-class tolerances and empirical error summaries for each release-claimed backend path.
-- Resolve release posture for Pluto: either validate a source-backed path or keep it explicitly approximate/excluded from release-grade claims.
-- Decide whether fuller ELP-style lunar coefficient support is required for the first production release; if so, implement pure-Rust ingestion/evaluation with provenance and tests.
-- Preserve small golden fixtures for regression tests even if broader source readers land.
+- Choose the production source strategy: pure-Rust JPL-file reader, reproducibly generated public fixture corpus, or a documented hybrid.
+- Record source provenance, frame, time scale, columns/channels, source revision, generation command, checksums, and redistribution posture.
+- Expand coverage only where it supports release claims or artifact fitting.
+- Keep reference, hold-out, boundary-overlay, fixture-exactness, and provenance-only evidence classes separate.
+- Publish body-class tolerance reports and empirical error envelopes for release-claimed backend paths.
+- Preserve small golden fixtures for fast regression tests even if broader ingestion lands.
+- Ensure all ingestion/build steps remain pure Rust and deterministic.
 
 ## Completion criteria
 
-Phase 2 is complete when validation and artifact-generation inputs cover the advertised release body set and range with documented public provenance, deterministic ingestion, and current tolerance reports.
+Phase 2 is complete when validation and artifact-generation inputs cover the advertised release body set and range with documented provenance, reproducible generation, checksums, and current tolerance reports.
 
 ## Out of scope
 
-- Shipping compressed artifacts; that belongs to Phase 1.
-- Changing high-level astrology-domain catalog claims; that belongs to Phase 4.
+- Shipping the compressed artifact; that belongs to Phase 1.
+- Deciding final body release status; that belongs to Phase 3.
+- Promoting house or ayanamsa catalog claims; that belongs to Phase 5.
