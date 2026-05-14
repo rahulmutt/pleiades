@@ -2236,8 +2236,32 @@ pub fn packaged_artifact_normalized_intermediate_summary_for_report() -> String 
     }
 }
 
-const PACKAGED_ARTIFACT_TARGET_THRESHOLD_STATUS: &str =
-    "calibrated fit envelope recorded; production thresholds pending";
+/// Release-state for the packaged-artifact target thresholds.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PackagedArtifactTargetThresholdState {
+    /// Calibrated fit envelope is recorded, but production thresholds are still pending.
+    Draft,
+    /// Production thresholds have been finalized for the current profile.
+    ProductionReady,
+}
+
+impl PackagedArtifactTargetThresholdState {
+    /// Returns the compact label used in release-facing summaries.
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Draft => "calibrated fit envelope recorded; production thresholds pending",
+            Self::ProductionReady => "production thresholds recorded",
+        }
+    }
+
+    /// Returns whether the target thresholds are finalized for production release.
+    pub const fn is_production_ready(self) -> bool {
+        matches!(self, Self::ProductionReady)
+    }
+}
+
+const PACKAGED_ARTIFACT_TARGET_THRESHOLD_STATE: PackagedArtifactTargetThresholdState =
+    PackagedArtifactTargetThresholdState::Draft;
 const PACKAGED_ARTIFACT_TARGET_THRESHOLD_SCOPES: &[&str] = &[
     "luminaries",
     "major planets",
@@ -2253,7 +2277,7 @@ pub struct PackagedArtifactTargetThresholdSummary {
     /// Stable identifier for the release profile that the thresholds apply to.
     pub profile_id: &'static str,
     /// Current release posture for the production thresholds.
-    pub status: &'static str,
+    pub state: PackagedArtifactTargetThresholdState,
     /// Body-class scopes that still require finalized thresholds.
     pub scopes: &'static [&'static str],
     /// Measured fit envelope captured for the current packaged artifact posture.
@@ -2288,7 +2312,7 @@ impl PackagedArtifactTargetThresholdSummary {
         format!(
             "profile id={}; target thresholds: {}; scopes={}; {}; scope envelopes={}",
             self.profile_id,
-            self.status,
+            self.state.label(),
             self.scopes.join(", "),
             self.fit_envelope.summary_line(),
             join_display(&self.scope_envelopes),
@@ -2304,10 +2328,10 @@ impl PackagedArtifactTargetThresholdSummary {
                 },
             );
         }
-        if self.status != PACKAGED_ARTIFACT_TARGET_THRESHOLD_STATUS {
+        if self.state != PACKAGED_ARTIFACT_TARGET_THRESHOLD_STATE {
             return Err(
                 PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
-                    field: "status",
+                    field: "state",
                 },
             );
         }
@@ -2360,7 +2384,7 @@ pub fn packaged_artifact_target_threshold_summary_details() -> PackagedArtifactT
 {
     let summary = PackagedArtifactTargetThresholdSummary {
         profile_id: ARTIFACT_PROFILE_ID,
-        status: PACKAGED_ARTIFACT_TARGET_THRESHOLD_STATUS,
+        state: PACKAGED_ARTIFACT_TARGET_THRESHOLD_STATE,
         scopes: PACKAGED_ARTIFACT_TARGET_THRESHOLD_SCOPES,
         fit_envelope: packaged_artifact_fit_envelope_summary_details(),
         scope_envelopes: packaged_artifact_target_threshold_scope_envelopes_summary_details(),
@@ -7660,7 +7684,7 @@ mod tests {
     #[test]
     fn packaged_artifact_generator_parameters_validation_rejects_target_threshold_drift() {
         let mut parameters = packaged_artifact_generator_parameters_details();
-        parameters.target_thresholds.status = "drifted";
+        parameters.target_thresholds.state = PackagedArtifactTargetThresholdState::ProductionReady;
 
         let error = parameters
             .validate()
@@ -7887,7 +7911,7 @@ mod tests {
         let mut manifest = packaged_artifact_generation_manifest_details();
         manifest.parameters.target_thresholds = PackagedArtifactTargetThresholdSummary {
             profile_id: ARTIFACT_PROFILE_ID,
-            status: "drifted",
+            state: PackagedArtifactTargetThresholdState::ProductionReady,
             scopes: &["luminaries"],
             fit_envelope: packaged_artifact_fit_envelope_summary_details(),
             scope_envelopes: packaged_artifact_target_threshold_scope_envelopes_summary_details(),
@@ -8032,7 +8056,7 @@ mod tests {
         let mut summary = packaged_artifact_production_profile_summary_details();
         summary.target_thresholds = PackagedArtifactTargetThresholdSummary {
             profile_id: ARTIFACT_PROFILE_ID,
-            status: "drifted",
+            state: PackagedArtifactTargetThresholdState::ProductionReady,
             scopes: &["luminaries"],
             fit_envelope: packaged_artifact_fit_envelope_summary_details(),
             scope_envelopes: packaged_artifact_target_threshold_scope_envelopes_summary_details(),
@@ -8186,7 +8210,8 @@ mod tests {
         let summary = packaged_artifact_target_threshold_summary_details();
 
         assert_eq!(summary.profile_id, ARTIFACT_PROFILE_ID);
-        assert_eq!(summary.status, PACKAGED_ARTIFACT_TARGET_THRESHOLD_STATUS);
+        assert_eq!(summary.state, PACKAGED_ARTIFACT_TARGET_THRESHOLD_STATE);
+        assert!(!summary.state.is_production_ready());
         assert_eq!(summary.scopes, PACKAGED_ARTIFACT_TARGET_THRESHOLD_SCOPES);
         assert_eq!(
             summary.scope_envelopes,

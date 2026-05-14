@@ -6,7 +6,7 @@ Ship a production-quality compressed ephemeris artifact for 1500-2500 CE that sa
 
 ## Starting point
 
-The codec, artifact structures, deterministic regeneration path, checksums, generation manifest, output-support profile, body-class cadence summary, channel fit-outlier reports, boundary checks, lookup benchmarks, batch-lookup benchmarks, and decode benchmarks already exist. The generator now applies a six-point Chebyshev-Lobatto fit plus measured-fit subdivision on short spans, and the checked-in fixture has been regenerated from that path; it is still a draft artifact until production thresholds and Phase 2 source inputs are finalized.
+The codec, artifact structures, deterministic regeneration path, checksums, generation manifest, output-support profile, body-class cadence summary, channel fit-outlier reports, boundary checks, lookup benchmarks, batch-lookup benchmarks, and decode benchmarks already exist. The generator now applies a six-point Chebyshev-Lobatto fit plus measured-fit subdivision on short spans, and the checked-in fixture has been regenerated from that path; it is still a draft artifact until production thresholds and Phase 2 source inputs are finalized. The target-threshold posture is now modeled as a typed draft/production-ready state so the eventual production-threshold policy stays explicit instead of being hidden in raw text.
 
 ## Implementation goals
 

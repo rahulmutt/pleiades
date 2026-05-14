@@ -10,6 +10,7 @@ This file lists focused implementation slices for the current phase ladder. Comp
 - The validation report now renders the body-class span-cap summary without duplicating the summary prefix.
 - The packaged-artifact generator now tries six-point Chebyshev-Lobatto fits before falling back to the previous cubic/quadratic ladder.
 - The generator now applies measured-fit subdivision on short spans, chooses the better candidate-versus-fallback reconstruction when the span is tiny, regenerates the checked-in fixture, and caches artifact-derived fit samples so CLI/report rendering stays tractable.
+- The packaged-artifact target-threshold posture is now represented by a typed release-state enum, which keeps the draft-versus-production-ready hook explicit for the eventual production-threshold policy.
 
 ### 1. Improve fitting/reconstruction strategy
 
