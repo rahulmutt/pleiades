@@ -2909,9 +2909,10 @@ pub fn production_generation_source_summary_for_report() -> String {
     }
 
     format!(
-        "Production generation source: strategy=documented hybrid fixture corpus; {}; {}; input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv; file format=comma-separated values; frame=geocentric ecliptic J2000; time scale=TDB; parser=pure-Rust and deterministic; checksum expectation=byte-identical fixture contents; cadence=31 reference epochs and 10 boundary epochs; reference and hold-out rows remain separate; redistribution posture=repository-checked regression fixtures, not a broad public corpus",
+        "Production generation source: strategy=documented hybrid fixture corpus; {}; {}; input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv; {}; file format=comma-separated values; frame=geocentric ecliptic J2000; time scale=TDB; parser=pure-Rust and deterministic; checksum expectation=byte-identical fixture contents; cadence=31 reference epochs and 10 boundary epochs; reference and hold-out rows remain separate; redistribution posture=repository-checked regression fixtures, not a broad public corpus",
         reference_summary.summary_line(),
-        format_production_generation_boundary_source_summary(&boundary_summary)
+        format_production_generation_boundary_source_summary(&boundary_summary),
+        production_generation_source_revision_summary()
     )
 }
 
@@ -2930,6 +2931,21 @@ fn checksum64(text: &str) -> u64 {
         hash = hash.wrapping_mul(FNV_PRIME);
     }
     hash
+}
+
+fn production_generation_source_revision_summary() -> String {
+    let reference_checksum = checksum64(include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/data/reference_snapshot.csv"
+    )));
+    let holdout_checksum = checksum64(include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/data/independent_holdout_snapshot.csv"
+    )));
+
+    format!(
+        "source revision=reference_snapshot.csv checksum=0x{reference_checksum:016x}; independent_holdout_snapshot.csv checksum=0x{holdout_checksum:016x}"
+    )
 }
 
 /// Returns a compact production-generation manifest summary for release-facing reports.
@@ -25675,9 +25691,10 @@ mod tests {
         assert_eq!(
             production_generation_source_summary_for_report(),
             format!(
-                "Production generation source: strategy=documented hybrid fixture corpus; {}; {}; input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv; file format=comma-separated values; frame=geocentric ecliptic J2000; time scale=TDB; parser=pure-Rust and deterministic; checksum expectation=byte-identical fixture contents; cadence=31 reference epochs and 10 boundary epochs; reference and hold-out rows remain separate; redistribution posture=repository-checked regression fixtures, not a broad public corpus",
+                "Production generation source: strategy=documented hybrid fixture corpus; {}; {}; input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv; {}; file format=comma-separated values; frame=geocentric ecliptic J2000; time scale=TDB; parser=pure-Rust and deterministic; checksum expectation=byte-identical fixture contents; cadence=31 reference epochs and 10 boundary epochs; reference and hold-out rows remain separate; redistribution posture=repository-checked regression fixtures, not a broad public corpus",
                 reference_snapshot_source_summary_for_report(),
-                production_generation_boundary_source_summary_for_report()
+                production_generation_boundary_source_summary_for_report(),
+                production_generation_source_revision_summary()
             )
         );
     }
@@ -28323,6 +28340,8 @@ mod tests {
         assert!(report.contains("frame=geocentric ecliptic J2000"));
         assert!(report.contains("time scale=TDB"));
         assert!(report.contains("parser=pure-Rust and deterministic"));
+        assert!(report.contains("source revision=reference_snapshot.csv checksum=0x"));
+        assert!(report.contains("independent_holdout_snapshot.csv checksum=0x"));
         assert!(report.contains("checksum expectation=byte-identical fixture contents"));
         assert!(report.contains("cadence=31 reference epochs and 10 boundary epochs"));
         assert!(report.contains("reference and hold-out rows remain separate"));

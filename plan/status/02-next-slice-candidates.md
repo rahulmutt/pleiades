@@ -29,7 +29,7 @@ This file lists focused implementation slices for the current phase ladder. Comp
 
 ### 1. Source ingestion decision
 
-- Completed: the production source posture is now documented as a hybrid fixture corpus, with checked-in reference and hold-out fixtures plus a separate generation-input path.
+- Completed: the production source posture is now documented as a hybrid fixture corpus, with checked-in reference and hold-out fixtures plus a separate generation-input path, and the release-facing source summary now includes explicit per-fixture checksum revision markers.
 - Document provenance, license/redistribution posture, frame, time scale, columns, source revision, and checksum expectations.
 
 ### 2. Coverage expansion
