@@ -9,6 +9,7 @@ This file lists focused implementation slices for the current phase ladder. Comp
 - The channel-major fit-outlier report now keeps segment-span and family sample-count context, and tie-breaks prefer the shorter failing family when two candidates have the same delta.
 - The validation report now renders the body-class span-cap summary without duplicating the summary prefix.
 - The packaged-artifact generator now tries six-point Chebyshev-Lobatto fits before falling back to the previous cubic/quadratic ladder.
+- The generator now applies measured-fit subdivision on short spans, chooses the better candidate-versus-fallback reconstruction when the span is tiny, regenerates the checked-in fixture, and caches artifact-derived fit samples so CLI/report rendering stays tractable.
 
 ### 1. Improve fitting/reconstruction strategy
 

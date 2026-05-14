@@ -25354,11 +25354,11 @@ version = "0.9.0"
             "Packaged-artifact regeneration: Packaged artifact regeneration source: label=stage-5 packaged-data draft"
         ));
         assert!(release_summary
-            .contains("quantization scales: stored=Longitude=9, Latitude=9, DistanceAu=12"));
+            .contains("quantization scales: stored=Longitude=9, Latitude=9, DistanceAu=10"));
         assert!(release_summary.contains("fit envelope:"));
         assert!(release_summary.contains("segment samples across"));
         assert!(release_summary.contains("checksum=0x"));
-        assert!(release_summary.contains("generation policy: adjacent same-body quadratic windows"));
+        assert!(release_summary.contains("generation policy: adjacent same-body cubic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps and measured-fit validation, with quadratic fallback when four-point sampling is unavailable"));
         assert!(release_summary.contains(&format!(
             "artifact version={}",
             pleiades_data::packaged_artifact_regeneration_summary_details().artifact_version
@@ -25586,12 +25586,12 @@ version = "0.9.0"
             "regeneration provenance: Packaged artifact regeneration source: label=stage-5 packaged-data draft"
         ));
         assert!(artifact_summary
-            .contains("quantization scales: stored=Longitude=9, Latitude=9, DistanceAu=12"));
+            .contains("quantization scales: stored=Longitude=9, Latitude=9, DistanceAu=10"));
         assert!(artifact_summary.contains("fit envelope:"));
         assert!(artifact_summary.contains("segment samples across"));
         assert!(artifact_summary.contains("checksum=0x"));
         assert!(
-            artifact_summary.contains("generation policy: adjacent same-body quadratic windows")
+            artifact_summary.contains("generation policy: adjacent same-body cubic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps and measured-fit validation, with quadratic fallback when four-point sampling is unavailable")
         );
         assert!(artifact_summary.contains("residual bodies: none; applies to 0 bundled bodies"));
         assert!(artifact_summary.contains(&format!(

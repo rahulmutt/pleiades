@@ -27,7 +27,7 @@ Current backend and data posture:
 - `pleiades-vsop87` has source-backed VSOP87B tables for Sun through Neptune and keeps Pluto as approximate fallback evidence, not a full release-grade source-backed claim.
 - `pleiades-elp` provides a compact Meeus-style lunar/lunar-point baseline with published-example evidence, not a full ELP coefficient implementation.
 - `pleiades-jpl` provides checked-in JPL Horizons snapshots and hold-out fixtures with provenance and validation helpers, not a broad production source reader.
-- `pleiades-data` provides a deterministic stage-5 draft artifact with manifest, checksum, output-profile, body-class cadence, fit-outlier, lookup, batch-lookup, and decode reports, but its model error envelope is far outside production thresholds.
+- `pleiades-data` provides a deterministic stage-5 draft artifact with manifest, checksum, output-profile, body-class cadence, fit-outlier, lookup, batch-lookup, and decode reports; the current draft path now passes the calibrated fit thresholds, but production thresholds and source corpus alignment are still open.
 - Current first-party request policy is explicit: TT/TDB mean geometric geocentric tropical requests are supported where metadata says so; built-in Delta T/UTC modeling, apparent-place corrections, topocentric body positions, and native sidereal backend output remain unsupported unless a future backend advertises and validates them.
 
 ## Remaining specification gaps
@@ -52,7 +52,7 @@ Current backend and data posture:
 
 ## Current priority
 
-The execution frontier is Phase 1, with Phase 2 as its main dependency. The next implementation slice should reduce the packaged-data error envelope using a trusted source corpus, not add more report surfaces around the current draft fixture.
+The execution frontier is Phase 1, with Phase 2 as its main dependency. The next implementation slice should define production thresholds and keep the measured-fit path aligned with a trusted source corpus, not add more report surfaces around the current draft fixture.
 
 For live execution guidance, see:
 

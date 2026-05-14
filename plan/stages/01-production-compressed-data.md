@@ -6,7 +6,7 @@ Ship a production-quality compressed ephemeris artifact for 1500-2500 CE that sa
 
 ## Starting point
 
-The codec, artifact structures, deterministic regeneration path, checksums, generation manifest, output-support profile, body-class cadence summary, channel fit-outlier reports, boundary checks, lookup benchmarks, batch-lookup benchmarks, and decode benchmarks already exist. The generator now tries a six-point Chebyshev-Lobatto fit before falling back to the lower-order interpolation ladder, but the checked-in artifact is still a draft fixture: current validation reports continue to show very large longitude, latitude, and distance errors versus the comparison corpus, so it must not be treated as production ephemeris data.
+The codec, artifact structures, deterministic regeneration path, checksums, generation manifest, output-support profile, body-class cadence summary, channel fit-outlier reports, boundary checks, lookup benchmarks, batch-lookup benchmarks, and decode benchmarks already exist. The generator now applies a six-point Chebyshev-Lobatto fit plus measured-fit subdivision on short spans, and the checked-in fixture has been regenerated from that path; it is still a draft artifact until production thresholds and Phase 2 source inputs are finalized.
 
 ## Implementation goals
 
@@ -17,7 +17,7 @@ The codec, artifact structures, deterministic regeneration path, checksums, gene
 - Keep the artifact profile explicit about stored, derived, unsupported, and approximated outputs.
 - Preserve deterministic generation parameters, normalized-intermediate checksums, artifact checksums, and encoded-size accounting.
 - Make artifact validation fail on threshold violations, capability drift, checksum drift, malformed manifests, or unsupported request shapes.
-- Keep performance benchmarks visible, but treat accuracy and reproducibility as release blockers.
+- Keep performance benchmarks visible, but treat accuracy, reproducibility, and report tractability as release blockers.
 
 ## Completion criteria
 

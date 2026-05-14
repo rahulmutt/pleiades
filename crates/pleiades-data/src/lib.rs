@@ -63,7 +63,7 @@ use pleiades_jpl::{
 const PACKAGE_NAME: &str = "pleiades-data";
 const ARTIFACT_LABEL: &str = "stage-5 packaged-data draft";
 const ARTIFACT_PROFILE_ID: &str = "pleiades-packaged-artifact-profile/stage-5-draft";
-const ARTIFACT_SOURCE: &str = "Quantized adjacent same-body cubic windows with longitude-unwrapped Moon and planet fits fitted to JPL Horizons reference epochs (1800, 2000, 2500 CE) for the comparison-body planetary set plus asteroid:433-Eros, with point segments only for single-epoch bodies and recursively subdivided cubic spans for multi-epoch bodies using body-class span caps, with quadratic fallback where four-point sampling is unavailable.";
+const ARTIFACT_SOURCE: &str = "Quantized adjacent same-body cubic windows with longitude-unwrapped Moon and planet fits fitted to JPL Horizons reference epochs (1800, 2000, 2500 CE) for the comparison-body planetary set plus asteroid:433-Eros, with point segments only for single-epoch bodies and recursively subdivided cubic spans for multi-epoch bodies using body-class span caps and measured-fit validation, with quadratic fallback where four-point sampling is unavailable.";
 const PACKAGED_BASE_BODIES: [CelestialBody; 10] = [
     CelestialBody::Sun,
     CelestialBody::Moon,
@@ -247,7 +247,7 @@ impl PackagedArtifactGenerationPolicy {
     pub const fn note(self) -> &'static str {
         match self {
             Self::AdjacentSameBodyQuadraticWindows => {
-                "bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps, with quadratic fallback when four-point sampling is unavailable"
+                "bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps and measured-fit validation, with quadratic fallback when four-point sampling is unavailable"
             }
         }
     }
@@ -935,8 +935,7 @@ fn packaged_artifact_fit_channel_outlier_summary_for_channel(
 }
 
 pub fn packaged_artifact_fit_channel_outlier_summary_for_report() -> String {
-    let artifact = packaged_artifact();
-    let samples = packaged_artifact_fit_samples(artifact);
+    let samples = packaged_artifact_fit_samples_for_current_artifact();
     let mut channel_entries = Vec::new();
 
     for channel in [
@@ -945,7 +944,7 @@ pub fn packaged_artifact_fit_channel_outlier_summary_for_report() -> String {
         ChannelKind::DistanceAu,
     ] {
         if let Some(entry) =
-            packaged_artifact_fit_channel_outlier_summary_for_channel(&samples, channel)
+            packaged_artifact_fit_channel_outlier_summary_for_channel(samples, channel)
         {
             channel_entries.push(entry);
         }
@@ -1210,8 +1209,14 @@ where
     samples
 }
 
-fn packaged_artifact_fit_samples(artifact: &CompressedArtifact) -> Vec<PackagedArtifactFitSample> {
-    packaged_artifact_fit_samples_with_filter(artifact, |_| true)
+fn packaged_artifact_fit_samples_for_current_artifact() -> &'static [PackagedArtifactFitSample] {
+    static SAMPLES: OnceLock<Vec<PackagedArtifactFitSample>> = OnceLock::new();
+    SAMPLES
+        .get_or_init(|| {
+            let artifact = packaged_artifact();
+            packaged_artifact_fit_samples_with_filter(artifact, |_| true)
+        })
+        .as_slice()
 }
 
 fn packaged_artifact_fit_envelope_summary_from_samples(
@@ -1263,9 +1268,9 @@ fn packaged_artifact_fit_envelope_summary_from_samples(
 /// Returns the current packaged-artifact fit envelope summary record.
 pub fn packaged_artifact_fit_envelope_summary_details() -> PackagedArtifactFitEnvelopeSummary {
     let artifact = packaged_artifact();
-    let samples = packaged_artifact_fit_samples(artifact);
+    let samples = packaged_artifact_fit_samples_for_current_artifact();
     packaged_artifact_fit_envelope_summary_from_samples(
-        &samples,
+        samples,
         packaged_artifact_fit_expected_sample_count(artifact),
     )
 }
@@ -1385,9 +1390,8 @@ fn packaged_artifact_fit_outlier_summary_from_samples(
 
 /// Returns the current packaged-artifact body/channel fit outlier summary record.
 pub fn packaged_artifact_fit_outlier_summary_details() -> PackagedArtifactFitOutlierSummary {
-    let artifact = packaged_artifact();
-    let samples = packaged_artifact_fit_samples(artifact);
-    packaged_artifact_fit_outlier_summary_from_samples(&samples)
+    let samples = packaged_artifact_fit_samples_for_current_artifact();
+    packaged_artifact_fit_outlier_summary_from_samples(samples)
 }
 
 /// Returns the current packaged-artifact body/channel fit outlier summary after validating the structured posture.
@@ -1555,9 +1559,11 @@ fn packaged_artifact_target_threshold_scope_envelope_summary_details(
         .map(|body| body.body.clone())
         .collect();
     let body_count = bodies.len();
-    let samples = packaged_artifact_fit_samples_with_filter(artifact, |body| {
-        packaged_artifact_body_scope(body) == scope
-    });
+    let samples = packaged_artifact_fit_samples_for_current_artifact()
+        .iter()
+        .filter(|sample| packaged_artifact_body_scope(&sample.body) == scope)
+        .cloned()
+        .collect::<Vec<_>>();
     let expected_sample_count =
         packaged_artifact_fit_expected_sample_count_with_filter(artifact, |body| {
             packaged_artifact_body_scope(body) == scope
@@ -4988,36 +4994,6 @@ fn body_segments_from_entries(
     }
 }
 
-fn segment_from_linear_interval(start: &SnapshotEntry, end: &SnapshotEntry) -> Segment {
-    let start_coordinates = coordinates(start);
-    let end_coordinates = coordinates(end);
-
-    Segment::new(
-        Instant::new(start.epoch.julian_day, TimeScale::Tt),
-        Instant::new(end.epoch.julian_day, TimeScale::Tt),
-        vec![
-            PolynomialChannel::linear(
-                ChannelKind::Longitude,
-                9,
-                start_coordinates.longitude.degrees(),
-                end_coordinates.longitude.degrees(),
-            ),
-            PolynomialChannel::linear(
-                ChannelKind::Latitude,
-                9,
-                start_coordinates.latitude.degrees(),
-                end_coordinates.latitude.degrees(),
-            ),
-            PolynomialChannel::linear(
-                ChannelKind::DistanceAu,
-                10,
-                start_coordinates.distance_au.unwrap_or_default(),
-                end_coordinates.distance_au.unwrap_or_default(),
-            ),
-        ],
-    )
-}
-
 fn body_segment_span_limit(body: &CelestialBody) -> f64 {
     match packaged_artifact_body_cadence(body) {
         PackagedArtifactBodyCadence::Luminaries => 256.0,
@@ -5028,6 +5004,72 @@ fn body_segment_span_limit(body: &CelestialBody) -> f64 {
         PackagedArtifactBodyCadence::SelectedAsteroids => 256.0,
         PackagedArtifactBodyCadence::CustomBodies => 512.0,
     }
+}
+
+#[derive(Clone, Copy, Debug)]
+struct PackagedArtifactSegmentFitError {
+    longitude_degrees: f64,
+    latitude_degrees: f64,
+    distance_au: f64,
+}
+
+impl PackagedArtifactSegmentFitError {
+    fn max_delta(self) -> f64 {
+        self.longitude_degrees
+            .max(self.latitude_degrees)
+            .max(self.distance_au)
+    }
+}
+
+fn packaged_artifact_segment_validation_fractions() -> &'static [f64] {
+    &[0.125, 0.25, 0.5, 0.75, 0.875]
+}
+
+fn packaged_artifact_segment_fit_error(
+    body: &CelestialBody,
+    segment: &Segment,
+    reference_backend: &JplSnapshotBackend,
+) -> Option<PackagedArtifactSegmentFitError> {
+    let artifact = CompressedArtifact::new(
+        ArtifactHeader::new(ARTIFACT_LABEL, ARTIFACT_SOURCE),
+        vec![BodyArtifact::new(body.clone(), vec![segment.clone()])],
+    );
+    let span_days = segment.end.julian_day.days() - segment.start.julian_day.days();
+    let mut saw_sample = false;
+    let mut longitude_degrees: f64 = 0.0;
+    let mut latitude_degrees: f64 = 0.0;
+    let mut distance_au: f64 = 0.0;
+
+    for fraction in packaged_artifact_segment_validation_fractions() {
+        let sample_jd = segment.start.julian_day.days() + span_days * fraction;
+        let request = EphemerisRequest {
+            body: body.clone(),
+            instant: Instant::new(JulianDay::from_days(sample_jd), TimeScale::Tt),
+            observer: None,
+            frame: CoordinateFrame::Ecliptic,
+            zodiac_mode: ZodiacMode::Tropical,
+            apparent: Apparentness::Mean,
+        };
+
+        let expected = reference_backend.position(&request).ok()?.ecliptic?;
+        let actual = artifact.lookup_ecliptic(body, request.instant).ok()?;
+        longitude_degrees = longitude_degrees.max(
+            Angle::from_degrees(actual.longitude.degrees() - expected.longitude.degrees())
+                .normalized_signed()
+                .degrees()
+                .abs(),
+        );
+        latitude_degrees =
+            latitude_degrees.max((actual.latitude.degrees() - expected.latitude.degrees()).abs());
+        distance_au = distance_au.max((actual.distance_au? - expected.distance_au?).abs());
+        saw_sample = true;
+    }
+
+    saw_sample.then_some(PackagedArtifactSegmentFitError {
+        longitude_degrees,
+        latitude_degrees,
+        distance_au,
+    })
 }
 
 fn packaged_artifact_body_class_span_cap_entries() -> Vec<(&'static str, f64)> {
@@ -5077,24 +5119,95 @@ fn body_segment_windows_for_interval(
 ) -> Vec<Segment> {
     let span_days = end.epoch.julian_day.days() - start.epoch.julian_day.days();
     let span_limit = body_segment_span_limit(&start.body);
+    let start_coordinates = coordinates(start);
+    let end_coordinates = coordinates(end);
+    let start_longitude = start_coordinates.longitude.degrees();
+    let end_longitude =
+        unwrap_longitude_degrees(start_longitude, end_coordinates.longitude.degrees());
+    let start_instant = Instant::new(start.epoch.julian_day, TimeScale::Tt);
+    let end_instant = Instant::new(end.epoch.julian_day, TimeScale::Tt);
+    let sample_fraction = |fraction: f64| -> Option<EclipticCoordinates> {
+        let sample_jd = start.epoch.julian_day.days()
+            + (end.epoch.julian_day.days() - start.epoch.julian_day.days()) * fraction;
+        let request = EphemerisRequest {
+            body: start.body.clone(),
+            instant: Instant::new(JulianDay::from_days(sample_jd), TimeScale::Tt),
+            observer: None,
+            frame: CoordinateFrame::Ecliptic,
+            zodiac_mode: ZodiacMode::Tropical,
+            apparent: Apparentness::Mean,
+        };
+
+        reference_backend
+            .position(&request)
+            .ok()
+            .and_then(|result| result.ecliptic)
+    };
     let candidate = segment_from_pair(start, end, reference_backend);
+    let candidate_error_measured = segment_fits_quantization(&candidate)
+        && packaged_artifact_segment_fit_error(&start.body, &candidate, reference_backend)
+            .is_some();
 
     if span_days <= 1.0 {
-        return vec![segment_from_linear_interval(start, end)];
+        let fallback = segment_from_pair_fallback(
+            start_instant,
+            end_instant,
+            start_longitude,
+            end_longitude,
+            &start_coordinates,
+            &end_coordinates,
+            &sample_fraction,
+        );
+        let candidate_error = if segment_fits_quantization(&candidate) {
+            packaged_artifact_segment_fit_error(&start.body, &candidate, reference_backend)
+        } else {
+            None
+        };
+        let fallback_error = if segment_fits_quantization(&fallback) {
+            packaged_artifact_segment_fit_error(&start.body, &fallback, reference_backend)
+        } else {
+            None
+        };
+
+        return match (candidate_error, fallback_error) {
+            (Some(candidate_error), Some(fallback_error)) => {
+                if candidate_error.max_delta() <= fallback_error.max_delta() {
+                    vec![candidate]
+                } else {
+                    vec![fallback]
+                }
+            }
+            (Some(_), None) => vec![candidate],
+            (None, Some(_)) | (None, None) => vec![fallback],
+        };
     }
 
-    if span_days <= span_limit && segment_fits_quantization(&candidate) {
+    if span_days <= span_limit && candidate_error_measured {
         return vec![candidate];
     }
 
     let midpoint_jd = (start.epoch.julian_day.days() + end.epoch.julian_day.days()) / 2.0;
     if midpoint_jd <= start.epoch.julian_day.days() || midpoint_jd >= end.epoch.julian_day.days() {
-        return vec![segment_from_linear_interval(start, end)];
+        return vec![segment_from_pair_fallback(
+            start_instant,
+            end_instant,
+            start_longitude,
+            end_longitude,
+            &start_coordinates,
+            &end_coordinates,
+            &sample_fraction,
+        )];
     }
-    let Some(midpoint_coordinates) =
-        sample_reference_coordinates_at(&start.body, midpoint_jd, reference_backend)
-    else {
-        return vec![candidate];
+    let Some(midpoint_coordinates) = sample_fraction(0.5) else {
+        return vec![segment_from_pair_fallback(
+            start_instant,
+            end_instant,
+            start_longitude,
+            end_longitude,
+            &start_coordinates,
+            &end_coordinates,
+            &sample_fraction,
+        )];
     };
 
     let midpoint_entry = snapshot_entry_from_ecliptic_coordinates(
@@ -5120,26 +5233,6 @@ fn segment_fits_quantization(segment: &Segment) -> bool {
         .all(|channel| {
             channel_coefficients_fit_quantization(channel.scale_exponent, &channel.coefficients)
         })
-}
-
-fn sample_reference_coordinates_at(
-    body: &CelestialBody,
-    julian_day: f64,
-    reference_backend: &JplSnapshotBackend,
-) -> Option<EclipticCoordinates> {
-    let request = EphemerisRequest {
-        body: body.clone(),
-        instant: Instant::new(JulianDay::from_days(julian_day), TimeScale::Tt),
-        observer: None,
-        frame: CoordinateFrame::Ecliptic,
-        zodiac_mode: ZodiacMode::Tropical,
-        apparent: Apparentness::Mean,
-    };
-
-    reference_backend
-        .position(&request)
-        .ok()
-        .and_then(|result| result.ecliptic)
 }
 
 fn snapshot_entry_from_ecliptic_coordinates(
@@ -6704,7 +6797,7 @@ mod tests {
             summary.policy,
             PackagedArtifactGenerationPolicy::AdjacentSameBodyQuadraticWindows
         );
-        assert_eq!(summary.summary_line(), "adjacent same-body cubic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps, with quadratic fallback when four-point sampling is unavailable");
+        assert_eq!(summary.summary_line(), "adjacent same-body cubic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps and measured-fit validation, with quadratic fallback when four-point sampling is unavailable");
         assert_eq!(summary.to_string(), summary.summary_line());
         assert!(artifact.residual_bodies().is_empty());
         summary
@@ -6787,7 +6880,7 @@ mod tests {
         );
         assert_eq!(
             summary.generation_policy_line(),
-            "generation policy: adjacent same-body cubic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps, with quadratic fallback when four-point sampling is unavailable"
+            "generation policy: adjacent same-body cubic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps and measured-fit validation, with quadratic fallback when four-point sampling is unavailable"
         );
         assert_eq!(
             summary.residual_body_line(),

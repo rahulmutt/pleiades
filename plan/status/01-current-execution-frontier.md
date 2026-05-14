@@ -8,34 +8,32 @@ Completed work such as workspace bootstrap, broad catalog scaffolding, report al
 
 ## Why this frontier comes first
 
-The specification requires a compressed 1500-2500 CE artifact with measured accuracy, deterministic generation, efficient random access, and explicit stored/derived/unsupported output semantics. The current artifact has the structure and reports needed to diagnose it, but validation still shows draft-grade errors far outside production thresholds.
+The specification requires a compressed 1500-2500 CE artifact with measured accuracy, deterministic generation, efficient random access, and explicit stored/derived/unsupported output semantics. The current artifact has the structure and reports needed to diagnose it, and the draft path now passes the current calibrated thresholds, but release-grade thresholds and corpus coverage are still not finalized.
 
-Accuracy work should therefore precede any release claim broadening. If the current sparse snapshots cannot support production fitting, Phase 2 source/corpus work should happen before more artifact tuning.
+Accuracy work should therefore precede any release claim broadening. Phase 2 source/corpus work still needs to lock down the production threshold policy before broader artifact claims move forward.
 
-Recent progress: the packaged-artifact fit-outlier diagnostics now preserve segment-span and family-sample-count context, the validation report no longer double-prefixes the body-class span-cap summary, and the packaged-artifact generator now tries higher-order Chebyshev-Lobatto fits before falling back to the lower-order ladder.
+Recent progress: the packaged-artifact fit-outlier diagnostics now preserve segment-span and family-sample-count context, the validation report no longer double-prefixes the body-class span-cap summary, the packaged-artifact generator now applies measured-fit subdivision with a short-span candidate-vs-fallback choice, the checked-in fixture has been regenerated, and artifact-derived fit samples are cached so summary reports stay tractable.
 
 ## Immediate blockers
 
-1. **Artifact model error** — current packaged-data comparison reports show very large longitude, latitude, and distance deviations; the draft artifact cannot be shipped as production ephemeris data.
+1. **Production thresholds** — the draft artifact now passes the current calibrated fit thresholds, but release-grade body/channel thresholds still need to be defined and validated before the artifact can be promoted.
 2. **Source coverage** — checked-in JPL snapshots and boundary overlays are not yet a broad production corpus for all release bodies and epochs.
 3. **Body claim boundaries** — Pluto, fuller lunar theory, lunar points, Ceres/Pallas/Juno/Vesta, and selected custom asteroids need source-backed validation or constrained/excluded release status.
 4. **Release fail-closed behavior** — release gates must block artifact threshold failures, stale generated summaries, and overbroad compatibility/backend claims.
 
 ## Recommended next slice
 
-Implement one artifact-accuracy slice that starts from a concrete outlier family:
+Promote the draft threshold posture to a production threshold policy once the Phase 2 corpus is ready:
 
-- select a high-error body/channel/segment class from the current fit-outlier report;
-- confirm whether the error is caused by sparse source cadence, coordinate conversion, distance-unit reconstruction, longitude wrapping, segment order, or quantization;
-- add or expand source samples only when needed and document their provenance;
-- update fitting/reconstruction logic and regression tests together;
-- if higher-order interpolation still misses target envelopes, schedule error-aware subdivision or denser source cadence before broadening claims;
-- keep the artifact labeled draft until all advertised scopes pass published thresholds.
+- define the body-class/channel thresholds that will gate release claims;
+- require both source-fit and hold-out validation before expanding the advertised scope;
+- keep the artifact labeled draft until the production thresholds and source corpus are aligned;
+- continue using the cached fit summaries and measured-fit subdivision path to keep report generation tractable.
 
 ## Parallel safe work
 
 - Decide and document the production source-ingestion strategy.
-- Follow up the new higher-order fit path with an error-aware subdivision slice if validation remains draft-grade.
+- Promote the measured-fit draft posture into release-grade thresholds once the Phase 2 source corpus is ready.
 - Audit body release status for Pluto, lunar channels, and selected asteroids.
 - Audit house/ayanamsa entries whose release claims are stronger than their evidence.
 - Keep request-policy docs and structured unsupported errors synchronized.
