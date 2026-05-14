@@ -2725,7 +2725,7 @@ mod tests {
             .lines()
             .any(|line| line == packaged_artifact_access_report_line()));
         assert!(release_notes_summary.lines().any(|line| {
-            line == "Packaged-artifact generation policy: adjacent same-body cubic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps and measured-fit validation, with quadratic fallback when four-point sampling is unavailable"
+            line == "Packaged-artifact generation policy: adjacent same-body cubic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps and measured-fit comparison against the fallback, with quadratic fallback when four-point sampling is unavailable"
         }));
         assert!(release_notes_summary.contains("Packaged request policy:"));
         assert!(release_notes_summary.contains("Packaged lookup epoch policy:"));
@@ -4730,7 +4730,7 @@ mod tests {
             .lines()
             .any(|line| line == packaged_artifact_access_report_line()));
         assert!(release_summary.lines().any(|line| {
-            line == "Packaged-artifact generation policy: adjacent same-body cubic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps and measured-fit validation, with quadratic fallback when four-point sampling is unavailable"
+            line == "Packaged-artifact generation policy: adjacent same-body cubic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps and measured-fit comparison against the fallback, with quadratic fallback when four-point sampling is unavailable"
         }));
         assert!(release_summary.lines().any(|line| {
             line == format!(

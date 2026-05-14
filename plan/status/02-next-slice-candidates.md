@@ -9,14 +9,14 @@ This file lists focused implementation slices for the current phase ladder. Comp
 - The channel-major fit-outlier report now keeps segment-span and family sample-count context, and tie-breaks prefer the shorter failing family when two candidates have the same delta.
 - The validation report now renders the body-class span-cap summary without duplicating the summary prefix.
 - The packaged-artifact generator now tries six-point Chebyshev-Lobatto fits before falling back to the previous cubic/quadratic ladder.
-- The generator now applies measured-fit subdivision on short spans, chooses the better candidate-versus-fallback reconstruction when the span is tiny, regenerates the checked-in fixture, and caches artifact-derived fit samples so CLI/report rendering stays tractable.
+- The generator now applies measured-fit subdivision on short spans, chooses the better candidate-versus-fallback reconstruction when the span is tiny, compares span-limited candidates against their fallback reconstruction before accepting them, regenerates the checked-in fixture, and caches artifact-derived fit samples so CLI/report rendering stays tractable.
 - The packaged-artifact target-threshold posture is now represented by a typed release-state enum, which keeps the draft-versus-production-ready hook explicit for the eventual production-threshold policy.
 
 ### 1. Improve fitting/reconstruction strategy
 
 - Evaluate denser source windows, body-specific cadence, Chebyshev segments, higher-order fits, residual tables, or channel-specific reconstruction.
 - Treat distance-channel outliers as a first-class blocker; do not hide them behind longitude-only thresholds.
-- If higher-order interpolation remains draft-grade, add error-aware subdivision so segment splitting depends on measured fit error instead of quantization alone.
+- The current generator now compares span-limited polynomial candidates against their fallback reconstruction before accepting them; further improvement can still come from denser source windows, residual tables, or channel-specific reconstruction.
 - Keep artifact size and decode benchmarks current, but do not trade correctness away for size.
 
 ### 2. Promote draft thresholds to production thresholds

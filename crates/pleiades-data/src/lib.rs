@@ -63,7 +63,7 @@ use pleiades_jpl::{
 const PACKAGE_NAME: &str = "pleiades-data";
 const ARTIFACT_LABEL: &str = "stage-5 packaged-data draft";
 const ARTIFACT_PROFILE_ID: &str = "pleiades-packaged-artifact-profile/stage-5-draft";
-const ARTIFACT_SOURCE: &str = "Quantized adjacent same-body cubic windows with longitude-unwrapped Moon and planet fits fitted to JPL Horizons reference epochs (1800, 2000, 2500 CE) for the comparison-body planetary set plus asteroid:433-Eros, with point segments only for single-epoch bodies and recursively subdivided cubic spans for multi-epoch bodies using body-class span caps and measured-fit validation, with quadratic fallback where four-point sampling is unavailable.";
+const ARTIFACT_SOURCE: &str = "Quantized adjacent same-body cubic windows with longitude-unwrapped Moon and planet fits fitted to JPL Horizons reference epochs (1800, 2000, 2500 CE) for the comparison-body planetary set plus asteroid:433-Eros, with point segments only for single-epoch bodies and recursively subdivided cubic spans for multi-epoch bodies using body-class span caps and measured-fit comparison against the fallback, with quadratic fallback where four-point sampling is unavailable.";
 const PACKAGED_BASE_BODIES: [CelestialBody; 10] = [
     CelestialBody::Sun,
     CelestialBody::Moon,
@@ -247,7 +247,7 @@ impl PackagedArtifactGenerationPolicy {
     pub const fn note(self) -> &'static str {
         match self {
             Self::AdjacentSameBodyQuadraticWindows => {
-                "bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps and measured-fit validation, with quadratic fallback when four-point sampling is unavailable"
+                "bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps and measured-fit comparison against the fallback, with quadratic fallback when four-point sampling is unavailable"
             }
         }
     }
@@ -5046,6 +5046,23 @@ impl PackagedArtifactSegmentFitError {
     }
 }
 
+const PACKAGED_ARTIFACT_SEGMENT_FIT_ACCEPTANCE_RATIO: f64 = 2.0;
+
+fn segment_error_prefers_candidate(
+    candidate_error: Option<PackagedArtifactSegmentFitError>,
+    fallback_error: Option<PackagedArtifactSegmentFitError>,
+) -> bool {
+    candidate_error.is_some()
+        && match (candidate_error, fallback_error) {
+            (Some(candidate_error), Some(fallback_error)) => {
+                candidate_error.max_delta()
+                    <= fallback_error.max_delta() * PACKAGED_ARTIFACT_SEGMENT_FIT_ACCEPTANCE_RATIO
+            }
+            (Some(_), None) => true,
+            (None, _) => false,
+        }
+}
+
 fn packaged_artifact_segment_validation_fractions() -> &'static [f64] {
     &[0.125, 0.25, 0.5, 0.75, 0.875]
 }
@@ -5169,9 +5186,11 @@ fn body_segment_windows_for_interval(
             .and_then(|result| result.ecliptic)
     };
     let candidate = segment_from_pair(start, end, reference_backend);
-    let candidate_error_measured = segment_fits_quantization(&candidate)
-        && packaged_artifact_segment_fit_error(&start.body, &candidate, reference_backend)
-            .is_some();
+    let candidate_error = if segment_fits_quantization(&candidate) {
+        packaged_artifact_segment_fit_error(&start.body, &candidate, reference_backend)
+    } else {
+        None
+    };
 
     if span_days <= 1.0 {
         let fallback = segment_from_pair_fallback(
@@ -5183,32 +5202,38 @@ fn body_segment_windows_for_interval(
             &end_coordinates,
             &sample_fraction,
         );
-        let candidate_error = if segment_fits_quantization(&candidate) {
-            packaged_artifact_segment_fit_error(&start.body, &candidate, reference_backend)
-        } else {
-            None
-        };
         let fallback_error = if segment_fits_quantization(&fallback) {
             packaged_artifact_segment_fit_error(&start.body, &fallback, reference_backend)
         } else {
             None
         };
 
-        return match (candidate_error, fallback_error) {
-            (Some(candidate_error), Some(fallback_error)) => {
-                if candidate_error.max_delta() <= fallback_error.max_delta() {
-                    vec![candidate]
-                } else {
-                    vec![fallback]
-                }
-            }
-            (Some(_), None) => vec![candidate],
-            (None, Some(_)) | (None, None) => vec![fallback],
+        return if segment_error_prefers_candidate(candidate_error, fallback_error) {
+            vec![candidate]
+        } else {
+            vec![fallback]
         };
     }
 
-    if span_days <= span_limit && candidate_error_measured {
-        return vec![candidate];
+    if span_days <= span_limit {
+        let fallback = segment_from_pair_fallback(
+            start_instant,
+            end_instant,
+            start_longitude,
+            end_longitude,
+            &start_coordinates,
+            &end_coordinates,
+            &sample_fraction,
+        );
+        let fallback_error = if segment_fits_quantization(&fallback) {
+            packaged_artifact_segment_fit_error(&start.body, &fallback, reference_backend)
+        } else {
+            None
+        };
+
+        if segment_error_prefers_candidate(candidate_error, fallback_error) {
+            return vec![candidate];
+        }
     }
 
     let midpoint_jd = (start.epoch.julian_day.days() + end.epoch.julian_day.days()) / 2.0;
@@ -6822,7 +6847,7 @@ mod tests {
             summary.policy,
             PackagedArtifactGenerationPolicy::AdjacentSameBodyQuadraticWindows
         );
-        assert_eq!(summary.summary_line(), "adjacent same-body cubic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps and measured-fit validation, with quadratic fallback when four-point sampling is unavailable");
+        assert_eq!(summary.summary_line(), "adjacent same-body cubic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps and measured-fit comparison against the fallback, with quadratic fallback when four-point sampling is unavailable");
         assert_eq!(summary.to_string(), summary.summary_line());
         assert!(artifact.residual_bodies().is_empty());
         summary
@@ -6905,7 +6930,7 @@ mod tests {
         );
         assert_eq!(
             summary.generation_policy_line(),
-            "generation policy: adjacent same-body cubic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps and measured-fit validation, with quadratic fallback when four-point sampling is unavailable"
+            "generation policy: adjacent same-body cubic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps and measured-fit comparison against the fallback, with quadratic fallback when four-point sampling is unavailable"
         );
         assert_eq!(
             summary.residual_body_line(),
