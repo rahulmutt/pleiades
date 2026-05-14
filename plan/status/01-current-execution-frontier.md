@@ -12,7 +12,7 @@ The specification requires a compressed 1500-2500 CE artifact with measured accu
 
 Accuracy work should therefore precede any release claim broadening. Phase 2 source/corpus work still needs to lock down the production threshold policy before broader artifact claims move forward.
 
-Recent progress: the packaged-artifact fit-outlier diagnostics now preserve segment-span and family-sample-count context, the validation report no longer double-prefixes the body-class span-cap summary, the packaged-artifact generator now applies measured-fit subdivision with a short-span candidate-vs-fallback choice, the checked-in fixture has been regenerated, and artifact-derived fit samples are cached so summary reports stay tractable.
+Recent progress: the packaged-artifact fit-outlier diagnostics now preserve segment-span and family-sample-count context, the validation report no longer double-prefixes the body-class span-cap summary, the packaged-artifact generator now applies measured-fit subdivision with a short-span candidate-vs-fallback choice, the checked-in fixture has been regenerated, artifact-derived fit samples are cached so summary reports stay tractable, and the target-threshold posture is now rendered as calibrated fit envelope recorded with production thresholds pending.
 
 ## Immediate blockers
 

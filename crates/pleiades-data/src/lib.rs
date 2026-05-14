@@ -2236,7 +2236,8 @@ pub fn packaged_artifact_normalized_intermediate_summary_for_report() -> String 
     }
 }
 
-const PACKAGED_ARTIFACT_TARGET_THRESHOLD_STATUS: &str = "draft fit envelope recorded";
+const PACKAGED_ARTIFACT_TARGET_THRESHOLD_STATUS: &str =
+    "calibrated fit envelope recorded; production thresholds pending";
 const PACKAGED_ARTIFACT_TARGET_THRESHOLD_SCOPES: &[&str] = &[
     "luminaries",
     "major planets",
@@ -7385,7 +7386,7 @@ mod tests {
             .contains("segment strategy=bodies with a single sampled epoch use point segments"));
         assert!(summary
             .summary_line()
-            .contains("target thresholds: draft fit envelope recorded; scopes=luminaries, major planets, pluto, lunar points, selected asteroids, custom bodies; fit envelope:"));
+            .contains("target thresholds: calibrated fit envelope recorded; production thresholds pending; scopes=luminaries, major planets, pluto, lunar points, selected asteroids, custom bodies; fit envelope:"));
         assert!(summary
             .summary_line()
             .contains("scope envelopes=scope=luminaries; bodies=2 (Sun, Moon); fit envelope:"));
@@ -8191,13 +8192,13 @@ mod tests {
             summary.scope_envelopes,
             packaged_artifact_target_threshold_scope_envelopes_summary_details()
         );
-        assert_eq!(summary.summary_line(), format!("profile id={}; target thresholds: draft fit envelope recorded; scopes=luminaries, major planets, pluto, lunar points, selected asteroids, custom bodies; {}; scope envelopes={}", ARTIFACT_PROFILE_ID, summary.fit_envelope.summary_line(), join_display(&summary.scope_envelopes)));
+        assert_eq!(summary.summary_line(), format!("profile id={}; target thresholds: calibrated fit envelope recorded; production thresholds pending; scopes=luminaries, major planets, pluto, lunar points, selected asteroids, custom bodies; {}; scope envelopes={}", ARTIFACT_PROFILE_ID, summary.fit_envelope.summary_line(), join_display(&summary.scope_envelopes)));
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert!(summary.validate().is_ok());
         assert!(
             packaged_artifact_target_threshold_summary_for_report().contains(&format!(
-                "profile id={}; target thresholds: draft fit envelope recorded",
+                "profile id={}; target thresholds: calibrated fit envelope recorded; production thresholds pending",
                 ARTIFACT_PROFILE_ID
             ))
         );
