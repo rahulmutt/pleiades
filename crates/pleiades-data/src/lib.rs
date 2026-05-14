@@ -2261,7 +2261,7 @@ impl PackagedArtifactTargetThresholdState {
 }
 
 const PACKAGED_ARTIFACT_TARGET_THRESHOLD_STATE: PackagedArtifactTargetThresholdState =
-    PackagedArtifactTargetThresholdState::Draft;
+    PackagedArtifactTargetThresholdState::ProductionReady;
 const PACKAGED_ARTIFACT_TARGET_THRESHOLD_SCOPES: &[&str] = &[
     "luminaries",
     "major planets",
@@ -2278,7 +2278,7 @@ pub struct PackagedArtifactTargetThresholdSummary {
     pub profile_id: &'static str,
     /// Current release posture for the production thresholds.
     pub state: PackagedArtifactTargetThresholdState,
-    /// Body-class scopes that still require finalized thresholds.
+    /// Body-class scopes covered by the current threshold policy.
     pub scopes: &'static [&'static str],
     /// Measured fit envelope captured for the current packaged artifact posture.
     pub fit_envelope: PackagedArtifactFitEnvelopeSummary,
@@ -2350,6 +2350,16 @@ impl PackagedArtifactTargetThresholdSummary {
                     field: "fit_envelope",
                 },
             );
+        }
+        if self.state.is_production_ready() {
+            let thresholds = packaged_artifact_fit_threshold_summary_details();
+            self.fit_envelope
+                .validate_against_thresholds(&thresholds)
+                .map_err(|_| {
+                    PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+                        field: "fit_envelope",
+                    }
+                })?;
         }
         let expected_scope_envelopes =
             packaged_artifact_target_threshold_scope_envelopes_summary_details();
@@ -2448,7 +2458,7 @@ pub struct PackagedArtifactProductionProfileSummary {
     pub frame_treatment: PackagedFrameTreatmentSummary,
     /// Storage/reconstruction policy encoded by the packaged artifact.
     pub storage_summary: PackagedArtifactStorageSummary,
-    /// Release-facing statement about the still-open production target thresholds.
+    /// Release-facing statement about the packaged-artifact target thresholds.
     pub target_thresholds: PackagedArtifactTargetThresholdSummary,
 }
 
@@ -2691,7 +2701,7 @@ pub struct PackagedArtifactGeneratorParameters {
     pub frame_treatment: PackagedFrameTreatmentSummary,
     /// Storage/reconstruction policy encoded by the packaged artifact.
     pub storage_summary: PackagedArtifactStorageSummary,
-    /// Release-facing statement about the still-open production target thresholds.
+    /// Release-facing statement about the packaged-artifact target thresholds.
     pub target_thresholds: PackagedArtifactTargetThresholdSummary,
 }
 
@@ -7435,7 +7445,7 @@ mod tests {
             .contains("segment strategy=bodies with a single sampled epoch use point segments"));
         assert!(summary
             .summary_line()
-            .contains("target thresholds: calibrated fit envelope recorded; production thresholds pending; scopes=luminaries, major planets, pluto, lunar points, selected asteroids, custom bodies; fit envelope:"));
+            .contains("target thresholds: production thresholds recorded; scopes=luminaries, major planets, pluto, lunar points, selected asteroids, custom bodies; fit envelope:"));
         assert!(summary
             .summary_line()
             .contains("scope envelopes=scope=luminaries; bodies=2 (Sun, Moon); fit envelope:"));
@@ -8236,19 +8246,19 @@ mod tests {
 
         assert_eq!(summary.profile_id, ARTIFACT_PROFILE_ID);
         assert_eq!(summary.state, PACKAGED_ARTIFACT_TARGET_THRESHOLD_STATE);
-        assert!(!summary.state.is_production_ready());
+        assert!(summary.state.is_production_ready());
         assert_eq!(summary.scopes, PACKAGED_ARTIFACT_TARGET_THRESHOLD_SCOPES);
         assert_eq!(
             summary.scope_envelopes,
             packaged_artifact_target_threshold_scope_envelopes_summary_details()
         );
-        assert_eq!(summary.summary_line(), format!("profile id={}; target thresholds: calibrated fit envelope recorded; production thresholds pending; scopes=luminaries, major planets, pluto, lunar points, selected asteroids, custom bodies; {}; scope envelopes={}", ARTIFACT_PROFILE_ID, summary.fit_envelope.summary_line(), join_display(&summary.scope_envelopes)));
+        assert_eq!(summary.summary_line(), format!("profile id={}; target thresholds: production thresholds recorded; scopes=luminaries, major planets, pluto, lunar points, selected asteroids, custom bodies; {}; scope envelopes={}", ARTIFACT_PROFILE_ID, summary.fit_envelope.summary_line(), join_display(&summary.scope_envelopes)));
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert!(summary.validate().is_ok());
         assert!(
             packaged_artifact_target_threshold_summary_for_report().contains(&format!(
-                "profile id={}; target thresholds: calibrated fit envelope recorded; production thresholds pending",
+                "profile id={}; target thresholds: production thresholds recorded",
                 ARTIFACT_PROFILE_ID
             ))
         );

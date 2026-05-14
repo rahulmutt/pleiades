@@ -8,32 +8,30 @@ Completed work such as workspace bootstrap, broad catalog scaffolding, report al
 
 ## Why this frontier comes first
 
-The specification requires a compressed 1500-2500 CE artifact with measured accuracy, deterministic generation, efficient random access, and explicit stored/derived/unsupported output semantics. The current artifact has the structure and reports needed to diagnose it, and the draft path now passes the current calibrated thresholds, but release-grade thresholds and corpus coverage are still not finalized.
+The specification requires a compressed 1500-2500 CE artifact with measured accuracy, deterministic generation, efficient random access, and explicit stored/derived/unsupported output semantics. The current artifact has the structure and reports needed to diagnose it, and the draft path now passes the current calibrated thresholds while the target-threshold policy is recorded as production-ready, but release-grade corpus coverage is still not finalized.
 
-Accuracy work should therefore precede any release claim broadening. Phase 2 source/corpus work still needs to lock down the production threshold policy before broader artifact claims move forward.
+Accuracy work should therefore precede any release claim broadening. Phase 2 source/corpus work still needs to broaden the trusted corpus before broader artifact claims move forward.
 
-Recent progress: the packaged-artifact fit-outlier diagnostics now preserve segment-span and family-sample-count context, the validation report no longer double-prefixes the body-class span-cap summary, the packaged-artifact generator now applies measured-fit subdivision with an error-aware span-limited candidate-versus-fallback choice, the checked-in fixture has been regenerated, artifact-derived fit samples are cached so summary reports stay tractable, the target-threshold posture is now carried by a typed draft/production-ready state while still rendering calibrated fit envelope recorded with production thresholds pending, the JPL source posture is now documented as a hybrid fixture corpus, and the production-generation source summary now carries explicit per-fixture checksum revision markers.
+Recent progress: the packaged-artifact fit-outlier diagnostics now preserve segment-span and family-sample-count context, the validation report no longer double-prefixes the body-class span-cap summary, the packaged-artifact generator now applies measured-fit subdivision with an error-aware span-limited candidate-versus-fallback choice, the checked-in fixture has been regenerated, artifact-derived fit samples are cached so summary reports stay tractable, the target-threshold posture is now carried by a typed production-ready state while rendering production thresholds recorded, the JPL source posture is now documented as a hybrid fixture corpus, and the production-generation source summary now carries explicit per-fixture checksum revision markers.
 
 ## Immediate blockers
 
-1. **Production thresholds** — the draft artifact now passes the current calibrated fit thresholds, but release-grade body/channel thresholds still need to be defined and validated before the artifact can be promoted.
-2. **Source coverage** — checked-in JPL snapshots and boundary overlays are not yet a broad production corpus for all release bodies and epochs.
-3. **Body claim boundaries** — Pluto, fuller lunar theory, lunar points, Ceres/Pallas/Juno/Vesta, and selected custom asteroids need source-backed validation or constrained/excluded release status.
-4. **Release fail-closed behavior** — release gates must block artifact threshold failures, stale generated summaries, and overbroad compatibility/backend claims.
+1. **Source coverage** — checked-in JPL snapshots and boundary overlays are not yet a broad production corpus for all release bodies and epochs.
+2. **Body claim boundaries** — Pluto, fuller lunar theory, lunar points, Ceres/Pallas/Juno/Vesta, and selected custom asteroids need source-backed validation or constrained/excluded release status.
+3. **Release fail-closed behavior** — release gates must block stale generated summaries and overbroad compatibility/backend claims.
 
 ## Recommended next slice
 
-Promote the draft threshold posture to a production threshold policy once the Phase 2 corpus is ready:
+Align the finalized threshold posture with the Phase 2 corpus and hold-out validation:
 
-- define the body-class/channel thresholds that will gate release claims;
-- require both source-fit and hold-out validation before expanding the advertised scope;
-- keep the artifact labeled draft until the production thresholds and source corpus are aligned;
+- keep the source-fit and hold-out checks synchronized with the recorded production-ready threshold policy;
+- keep the artifact labeled draft until the source corpus is aligned;
 - continue using the cached fit summaries and measured-fit subdivision path to keep report generation tractable.
 
 ## Parallel safe work
 
 - Expand the documented hybrid source corpus with broader coverage and provenance.
-- Promote the measured-fit draft posture into release-grade thresholds once the Phase 2 source corpus is ready.
+- Align the finalized threshold posture with the Phase 2 source corpus.
 - Audit body release status for Pluto, lunar channels, and selected asteroids.
 - Audit house/ayanamsa entries whose release claims are stronger than their evidence.
 - Keep request-policy docs and structured unsupported errors synchronized.

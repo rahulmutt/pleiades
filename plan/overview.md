@@ -13,7 +13,7 @@
 
 ## Current priority
 
-Prioritize Phase 1, but do not broaden packaged-data claims until Phase 2-quality inputs are available. The current draft path now passes the calibrated fit thresholds, but the production threshold policy and Phase 2 corpus still need to be finalized; current artifact manifest, checksum, output-support, cadence, fit-outlier, and benchmark reports are useful diagnostics, not substitutes for release-grade evidence.
+Prioritize Phase 1, but do not broaden packaged-data claims until Phase 2-quality inputs are available. The current draft path now passes the calibrated fit thresholds, and the target-threshold policy is recorded as production-ready, but the Phase 2 corpus still needs to be finalized; current artifact manifest, checksum, output-support, cadence, fit-outlier, and benchmark reports are useful diagnostics, not substitutes for release-grade evidence.
 
 ## Cross-cutting rules
 
