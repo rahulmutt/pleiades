@@ -4,19 +4,18 @@ This file lists focused implementation slices for the current phase ladder. Comp
 
 ## Phase 1 — Artifact accuracy and packaged-data production
 
-### 1. Diagnose current artifact error classes
+### Completed diagnostic slice
 
-- Use the channel-major fit-outlier report to group failures by body, channel, segment span, and interpolation position.
-- Separate source-cadence failures from reconstruction bugs, unit mistakes, wrapping errors, and quantization artifacts.
-- Add regression coverage for the smallest failing segment family before changing the fitter.
+- The channel-major fit-outlier report now keeps segment-span and family sample-count context, and tie-breaks prefer the shorter failing family when two candidates have the same delta.
+- The validation report now renders the body-class span-cap summary without duplicating the summary prefix.
 
-### 2. Improve fitting/reconstruction strategy
+### 1. Improve fitting/reconstruction strategy
 
 - Evaluate denser source windows, body-specific cadence, Chebyshev segments, higher-order fits, residual tables, or channel-specific reconstruction.
 - Treat distance-channel outliers as a first-class blocker; do not hide them behind longitude-only thresholds.
 - Keep artifact size and decode benchmarks current, but do not trade correctness away for size.
 
-### 3. Promote draft thresholds to production thresholds
+### 2. Promote draft thresholds to production thresholds
 
 - Define body-class/channel thresholds before claiming production readiness.
 - Require both source-fit and independent hold-out checks for advertised scopes.

@@ -12,6 +12,8 @@ The specification requires a compressed 1500-2500 CE artifact with measured accu
 
 Accuracy work should therefore precede any release claim broadening. If the current sparse snapshots cannot support production fitting, Phase 2 source/corpus work should happen before more artifact tuning.
 
+Recent progress: the packaged-artifact fit-outlier diagnostics now preserve segment-span and family-sample-count context, and the validation report no longer double-prefixes the body-class span-cap summary.
+
 ## Immediate blockers
 
 1. **Artifact model error** — current packaged-data comparison reports show very large longitude, latitude, and distance deviations; the draft artifact cannot be shipped as production ephemeris data.

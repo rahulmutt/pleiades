@@ -687,6 +687,68 @@ struct PackagedArtifactFitSample {
     distance_delta_au: f64,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+struct PackagedArtifactFitSegmentFamilyKey {
+    segment_start_days_bits: u64,
+    segment_start_scale: TimeScale,
+    segment_end_days_bits: u64,
+    segment_end_scale: TimeScale,
+}
+
+impl PackagedArtifactFitSegmentFamilyKey {
+    fn from_sample(sample: &PackagedArtifactFitSample) -> Self {
+        Self {
+            segment_start_days_bits: sample.segment_start.julian_day.days().to_bits(),
+            segment_start_scale: sample.segment_start.scale,
+            segment_end_days_bits: sample.segment_end.julian_day.days().to_bits(),
+            segment_end_scale: sample.segment_end.scale,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+struct PackagedArtifactFitChannelFamilyAccumulator {
+    sample_count: usize,
+    worst_sample: Option<PackagedArtifactFitSample>,
+}
+
+impl PackagedArtifactFitChannelFamilyAccumulator {
+    fn new() -> Self {
+        Self {
+            sample_count: 0,
+            worst_sample: None,
+        }
+    }
+
+    fn push(&mut self, sample: &PackagedArtifactFitSample, channel: ChannelKind) {
+        self.sample_count += 1;
+        let should_replace = self
+            .worst_sample
+            .as_ref()
+            .map(|existing| {
+                let existing_delta = packaged_artifact_fit_channel_delta(existing, channel);
+                let candidate_delta = packaged_artifact_fit_channel_delta(sample, channel);
+                candidate_delta > existing_delta
+                    || (candidate_delta == existing_delta
+                        && (sample.segment_end.julian_day.days()
+                            - sample.segment_start.julian_day.days())
+                            < (existing.segment_end.julian_day.days()
+                                - existing.segment_start.julian_day.days()))
+            })
+            .unwrap_or(true);
+
+        if should_replace {
+            self.worst_sample = Some(sample.clone());
+        }
+    }
+
+    fn finish(self, channel: ChannelKind) -> Option<PackagedArtifactFitChannelOutlier> {
+        self.worst_sample.as_ref().map(|sample| {
+            PackagedArtifactFitChannelOutlier::from_sample(sample, channel, self.sample_count)
+        })
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct PackagedArtifactFitChannelOutlier {
     /// Channel whose fit error is being tracked.
@@ -697,13 +759,35 @@ pub struct PackagedArtifactFitChannelOutlier {
     pub segment_start: Instant,
     /// Inclusive segment end for the source interval.
     pub segment_end: Instant,
+    /// Segment span in days.
+    pub segment_span_days: f64,
     /// Sample instant that produced the tracked delta.
     pub sample_instant: Instant,
     /// Sample position inside the segment, expressed as a normalized fraction.
     pub sample_fraction: f64,
+    /// Number of fit samples that shared the same body/channel/segment family.
+    pub sample_count: usize,
 }
 
 impl PackagedArtifactFitChannelOutlier {
+    fn from_sample(
+        sample: &PackagedArtifactFitSample,
+        channel: ChannelKind,
+        sample_count: usize,
+    ) -> Self {
+        Self {
+            channel,
+            delta: packaged_artifact_fit_channel_delta(sample, channel),
+            segment_start: sample.segment_start,
+            segment_end: sample.segment_end,
+            segment_span_days: sample.segment_end.julian_day.days()
+                - sample.segment_start.julian_day.days(),
+            sample_instant: sample.sample_instant,
+            sample_fraction: sample.sample_fraction,
+            sample_count,
+        }
+    }
+
     fn delta_unit(&self) -> &'static str {
         match self.channel {
             ChannelKind::Longitude | ChannelKind::Latitude => "°",
@@ -714,14 +798,16 @@ impl PackagedArtifactFitChannelOutlier {
 
     fn summary_line(&self) -> String {
         format!(
-            "{}={:.12}{} @ {} (segment {} → {}, x={:.3})",
+            "{}={:.12}{} @ {} (segment {} → {}, span={:.12} d, x={:.3}, samples={})",
             self.channel,
             self.delta,
             self.delta_unit(),
             self.sample_instant,
             self.segment_start,
             self.segment_end,
+            self.segment_span_days,
             self.sample_fraction,
+            self.sample_count,
         )
     }
 }
@@ -803,16 +889,34 @@ fn packaged_artifact_fit_channel_outlier_summary_for_channel(
     samples: &[PackagedArtifactFitSample],
     channel: ChannelKind,
 ) -> Option<String> {
+    let mut families: HashMap<
+        (CelestialBody, PackagedArtifactFitSegmentFamilyKey),
+        PackagedArtifactFitChannelFamilyAccumulator,
+    > = HashMap::new();
+
+    for sample in samples {
+        let family_key = PackagedArtifactFitSegmentFamilyKey::from_sample(sample);
+        let entry = families
+            .entry((sample.body.clone(), family_key))
+            .or_insert_with(PackagedArtifactFitChannelFamilyAccumulator::new);
+        entry.push(sample, channel);
+    }
+
     let mut body_outliers: HashMap<CelestialBody, PackagedArtifactFitChannelOutlier> =
         HashMap::new();
 
-    for sample in samples {
-        let candidate = packaged_artifact_fit_channel_outlier_from_sample(sample, channel);
-        match body_outliers.get_mut(&sample.body) {
-            Some(existing) if existing.delta >= candidate.delta => {}
+    for ((body, _family_key), family) in families {
+        let Some(candidate) = family.finish(channel) else {
+            continue;
+        };
+        match body_outliers.get_mut(&body) {
+            Some(existing) if existing.delta > candidate.delta => {}
+            Some(existing)
+                if existing.delta == candidate.delta
+                    && existing.segment_span_days <= candidate.segment_span_days => {}
             Some(existing) => *existing = candidate,
             None => {
-                body_outliers.insert(sample.body.clone(), candidate);
+                body_outliers.insert(body, candidate);
             }
         }
     }
@@ -1196,48 +1300,57 @@ fn packaged_artifact_fit_channel_delta(
     }
 }
 
-fn packaged_artifact_fit_channel_outlier_from_sample(
-    sample: &PackagedArtifactFitSample,
-    channel: ChannelKind,
-) -> PackagedArtifactFitChannelOutlier {
-    PackagedArtifactFitChannelOutlier {
-        channel,
-        delta: packaged_artifact_fit_channel_delta(sample, channel),
-        segment_start: sample.segment_start,
-        segment_end: sample.segment_end,
-        sample_instant: sample.sample_instant,
-        sample_fraction: sample.sample_fraction,
-    }
-}
-
 fn packaged_artifact_fit_outlier_summary_from_samples(
     samples: &[PackagedArtifactFitSample],
 ) -> PackagedArtifactFitOutlierSummary {
-    let mut body_channel_outliers: HashMap<
-        CelestialBody,
-        [Option<PackagedArtifactFitChannelOutlier>; 3],
+    let mut families: HashMap<
+        (
+            CelestialBody,
+            ChannelKind,
+            PackagedArtifactFitSegmentFamilyKey,
+        ),
+        PackagedArtifactFitChannelFamilyAccumulator,
     > = HashMap::new();
 
     for sample in samples {
-        let entry = body_channel_outliers
-            .entry(sample.body.clone())
-            .or_insert_with(|| [None, None, None]);
+        let family_key = PackagedArtifactFitSegmentFamilyKey::from_sample(sample);
 
         for channel in [
             ChannelKind::Longitude,
             ChannelKind::Latitude,
             ChannelKind::DistanceAu,
         ] {
-            let index = packaged_artifact_fit_channel_rank(channel);
-            let candidate = packaged_artifact_fit_channel_outlier_from_sample(sample, channel);
-            let should_replace = entry[index]
-                .as_ref()
-                .map(|existing| candidate.delta > existing.delta)
-                .unwrap_or(true);
+            let entry = families
+                .entry((sample.body.clone(), channel, family_key))
+                .or_insert_with(PackagedArtifactFitChannelFamilyAccumulator::new);
+            entry.push(sample, channel);
+        }
+    }
 
-            if should_replace {
-                entry[index] = Some(candidate);
-            }
+    let mut body_channel_outliers: HashMap<
+        CelestialBody,
+        [Option<PackagedArtifactFitChannelOutlier>; 3],
+    > = HashMap::new();
+
+    for ((body, channel, _family_key), family) in families {
+        let Some(outlier) = family.finish(channel) else {
+            continue;
+        };
+        let entry = body_channel_outliers
+            .entry(body)
+            .or_insert_with(|| [None, None, None]);
+        let channel_index = packaged_artifact_fit_channel_rank(channel);
+        let should_replace = entry[channel_index]
+            .as_ref()
+            .map(|existing| {
+                outlier.delta > existing.delta
+                    || (outlier.delta == existing.delta
+                        && outlier.segment_span_days < existing.segment_span_days)
+            })
+            .unwrap_or(true);
+
+        if should_replace {
+            entry[channel_index] = Some(outlier);
         }
     }
 
@@ -7796,7 +7909,44 @@ mod tests {
         assert!(summary.contains("Latitude{"));
         assert!(summary.contains("DistanceAu{"));
         assert!(summary.contains("segment "));
+        assert!(summary.contains("span="));
         assert!(summary.contains("x="));
+        assert!(summary.contains("samples="));
+    }
+
+    #[test]
+    fn packaged_artifact_fit_channel_outlier_summary_prefers_shorter_families_on_equal_delta() {
+        let body = CelestialBody::Sun;
+        let longer_segment_sample = PackagedArtifactFitSample {
+            body: body.clone(),
+            segment_start: Instant::new(JulianDay::from_days(1.0), TimeScale::Tt),
+            segment_end: Instant::new(JulianDay::from_days(11.0), TimeScale::Tt),
+            sample_instant: Instant::new(JulianDay::from_days(6.0), TimeScale::Tt),
+            sample_fraction: 0.25,
+            longitude_delta_degrees: 5.0,
+            latitude_delta_degrees: 0.0,
+            distance_delta_au: 0.0,
+        };
+        let shorter_segment_sample = PackagedArtifactFitSample {
+            body,
+            segment_start: Instant::new(JulianDay::from_days(20.0), TimeScale::Tt),
+            segment_end: Instant::new(JulianDay::from_days(21.0), TimeScale::Tt),
+            sample_instant: Instant::new(JulianDay::from_days(20.75), TimeScale::Tt),
+            sample_fraction: 0.75,
+            longitude_delta_degrees: 5.0,
+            latitude_delta_degrees: 0.0,
+            distance_delta_au: 0.0,
+        };
+
+        let summary = packaged_artifact_fit_channel_outlier_summary_for_channel(
+            &[longer_segment_sample, shorter_segment_sample],
+            ChannelKind::Longitude,
+        )
+        .expect("fit outlier summary should be present");
+
+        assert!(summary.contains("span=1.000000000000 d"));
+        assert!(summary.contains("samples=1"));
+        assert!(!summary.contains("span=10.000000000000 d"));
     }
 
     #[test]

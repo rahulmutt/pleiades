@@ -2375,7 +2375,11 @@ fn format_body_class_cadence(report: &ArtifactInspectionReport) -> String {
 }
 
 fn format_body_class_span_caps() -> String {
-    pleiades_data::packaged_artifact_body_class_span_cap_summary_for_report()
+    let summary = pleiades_data::packaged_artifact_body_class_span_cap_summary_for_report();
+    summary
+        .strip_prefix("body-class span caps: ")
+        .unwrap_or(&summary)
+        .to_string()
 }
 
 impl fmt::Display for ArtifactInspectionReport {
