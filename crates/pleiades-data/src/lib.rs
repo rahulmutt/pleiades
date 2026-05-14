@@ -7719,7 +7719,7 @@ mod tests {
     #[test]
     fn packaged_artifact_generator_parameters_validation_rejects_target_threshold_drift() {
         let mut parameters = packaged_artifact_generator_parameters_details();
-        parameters.target_thresholds.state = PackagedArtifactTargetThresholdState::ProductionReady;
+        parameters.target_thresholds.state = PackagedArtifactTargetThresholdState::Draft;
 
         let error = parameters
             .validate()
