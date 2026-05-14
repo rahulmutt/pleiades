@@ -7150,6 +7150,91 @@ fn selected_asteroid_source_entries() -> Option<&'static [SnapshotEntry]> {
     }
 }
 
+/// Returns the selected-asteroid source request corpus in the requested frame.
+pub fn selected_asteroid_source_requests(frame: CoordinateFrame) -> Option<Vec<EphemerisRequest>> {
+    selected_asteroid_source_entries().map(|entries| {
+        entries
+            .iter()
+            .map(|entry| EphemerisRequest {
+                body: entry.body.clone(),
+                instant: entry.epoch,
+                observer: None,
+                frame,
+                zodiac_mode: ZodiacMode::Tropical,
+                apparent: Apparentness::Mean,
+            })
+            .collect()
+    })
+}
+
+/// This is a compatibility alias for [`selected_asteroid_source_requests`].
+#[doc(alias = "selected_asteroid_source_requests")]
+pub fn selected_asteroid_source_request_corpus(
+    frame: CoordinateFrame,
+) -> Option<Vec<EphemerisRequest>> {
+    selected_asteroid_source_requests(frame)
+}
+
+/// Returns the selected-asteroid source request corpus used by batch parity checks.
+///
+/// This is a compatibility alias for [`selected_asteroid_source_requests`].
+#[doc(alias = "selected_asteroid_source_requests")]
+pub fn selected_asteroid_source_ecliptic_request_corpus() -> Option<Vec<EphemerisRequest>> {
+    selected_asteroid_source_requests(CoordinateFrame::Ecliptic)
+}
+
+/// Returns the selected-asteroid source request corpus used by batch parity checks.
+///
+/// This is a compatibility alias for [`selected_asteroid_source_ecliptic_request_corpus`].
+#[doc(alias = "selected_asteroid_source_ecliptic_request_corpus")]
+pub fn selected_asteroid_source_ecliptic_requests() -> Option<Vec<EphemerisRequest>> {
+    selected_asteroid_source_ecliptic_request_corpus()
+}
+
+/// Returns the selected-asteroid source request corpus used by batch parity checks.
+///
+/// This is a compatibility alias for [`selected_asteroid_source_requests`].
+#[doc(alias = "selected_asteroid_source_requests")]
+pub fn selected_asteroid_source_equatorial_request_corpus() -> Option<Vec<EphemerisRequest>> {
+    selected_asteroid_source_requests(CoordinateFrame::Equatorial)
+}
+
+/// Returns the selected-asteroid source request corpus used by batch parity checks.
+///
+/// This is a compatibility alias for [`selected_asteroid_source_equatorial_request_corpus`].
+#[doc(alias = "selected_asteroid_source_equatorial_request_corpus")]
+pub fn selected_asteroid_source_equatorial_requests() -> Option<Vec<EphemerisRequest>> {
+    selected_asteroid_source_equatorial_request_corpus()
+}
+
+/// Returns the mixed-frame selected-asteroid source request corpus used by batch parity checks.
+pub fn selected_asteroid_source_batch_parity_requests() -> Option<Vec<EphemerisRequest>> {
+    selected_asteroid_source_entries().map(|entries| {
+        entries
+            .iter()
+            .enumerate()
+            .map(|(index, entry)| EphemerisRequest {
+                body: entry.body.clone(),
+                instant: entry.epoch,
+                observer: None,
+                frame: if index % 2 == 0 {
+                    CoordinateFrame::Ecliptic
+                } else {
+                    CoordinateFrame::Equatorial
+                },
+                zodiac_mode: ZodiacMode::Tropical,
+                apparent: Apparentness::Mean,
+            })
+            .collect()
+    })
+}
+
+/// This is a compatibility alias for [`selected_asteroid_source_batch_parity_requests`].
+#[doc(alias = "selected_asteroid_source_batch_parity_requests")]
+pub fn selected_asteroid_source_batch_parity_request_corpus() -> Option<Vec<EphemerisRequest>> {
+    selected_asteroid_source_batch_parity_requests()
+}
+
 /// A single body-window slice inside the expanded selected-asteroid source coverage.
 #[derive(Clone, Debug, PartialEq)]
 pub struct SelectedAsteroidSourceWindow {
@@ -26524,6 +26609,34 @@ mod tests {
             reference_snapshot_mixed_tt_tdb_batch_parity_requests()
         );
         assert_eq!(
+            selected_asteroid_source_request_corpus(CoordinateFrame::Ecliptic),
+            selected_asteroid_source_requests(CoordinateFrame::Ecliptic)
+        );
+        assert_eq!(
+            selected_asteroid_source_ecliptic_request_corpus(),
+            selected_asteroid_source_requests(CoordinateFrame::Ecliptic)
+        );
+        assert_eq!(
+            selected_asteroid_source_ecliptic_requests(),
+            selected_asteroid_source_ecliptic_request_corpus()
+        );
+        assert_eq!(
+            selected_asteroid_source_request_corpus(CoordinateFrame::Equatorial),
+            selected_asteroid_source_requests(CoordinateFrame::Equatorial)
+        );
+        assert_eq!(
+            selected_asteroid_source_equatorial_request_corpus(),
+            selected_asteroid_source_requests(CoordinateFrame::Equatorial)
+        );
+        assert_eq!(
+            selected_asteroid_source_equatorial_requests(),
+            selected_asteroid_source_equatorial_request_corpus()
+        );
+        assert_eq!(
+            selected_asteroid_source_batch_parity_request_corpus(),
+            selected_asteroid_source_batch_parity_requests()
+        );
+        assert_eq!(
             production_generation_boundary_request_corpus(CoordinateFrame::Ecliptic),
             production_generation_boundary_requests(CoordinateFrame::Ecliptic)
         );
@@ -26838,6 +26951,91 @@ mod tests {
             summary.summary_line(),
             selected_asteroid_source_window_summary_for_report()
         );
+    }
+
+    #[test]
+    fn selected_asteroid_source_requests_preserve_the_source_slice() {
+        let backend = JplSnapshotBackend;
+        let requests = selected_asteroid_source_requests(CoordinateFrame::Equatorial)
+            .expect("selected asteroid source requests should exist");
+        let entries = selected_asteroid_source_entries()
+            .expect("selected asteroid source entries should exist");
+        let results = backend
+            .positions(&requests)
+            .expect("selected asteroid source batch query should preserve the source slice");
+
+        assert_eq!(results.len(), entries.len());
+        for ((request, result), entry) in requests.iter().zip(results.iter()).zip(entries.iter()) {
+            assert_eq!(request.body, entry.body);
+            assert_eq!(request.instant, entry.epoch);
+            assert_eq!(request.frame, CoordinateFrame::Equatorial);
+            assert_eq!(request.zodiac_mode, ZodiacMode::Tropical);
+            assert_eq!(request.apparent, Apparentness::Mean);
+            assert!(request.observer.is_none());
+            assert_eq!(result.body, entry.body);
+            assert_eq!(result.instant, entry.epoch);
+            assert_eq!(result.frame, CoordinateFrame::Equatorial);
+            assert_eq!(result.quality, QualityAnnotation::Exact);
+
+            let ecliptic = result
+                .ecliptic
+                .expect("selected asteroid source rows should include ecliptic coordinates");
+            assert_eq!(ecliptic, entry.ecliptic());
+
+            let expected_equatorial = ecliptic.to_equatorial(result.instant.mean_obliquity());
+            let equatorial = result
+                .equatorial
+                .expect("selected asteroid source rows should include equatorial coordinates");
+            assert_eq!(equatorial, expected_equatorial);
+        }
+    }
+
+    #[test]
+    fn selected_asteroid_source_batch_parity_requests_preserve_the_source_slice() {
+        let backend = JplSnapshotBackend;
+        let requests = selected_asteroid_source_batch_parity_requests()
+            .expect("selected asteroid source batch parity requests should exist");
+        let entries = selected_asteroid_source_entries()
+            .expect("selected asteroid source entries should exist");
+        let results = backend.positions(&requests).expect(
+            "mixed-frame selected asteroid source batch query should preserve the source slice",
+        );
+
+        assert_eq!(results.len(), entries.len());
+        for ((index, request), (result, entry)) in requests
+            .iter()
+            .enumerate()
+            .zip(results.iter().zip(entries.iter()))
+        {
+            assert_eq!(request.body, entry.body);
+            assert_eq!(request.instant, entry.epoch);
+            assert_eq!(
+                request.frame,
+                if index % 2 == 0 {
+                    CoordinateFrame::Ecliptic
+                } else {
+                    CoordinateFrame::Equatorial
+                }
+            );
+            assert_eq!(request.zodiac_mode, ZodiacMode::Tropical);
+            assert_eq!(request.apparent, Apparentness::Mean);
+            assert!(request.observer.is_none());
+            assert_eq!(result.body, entry.body);
+            assert_eq!(result.instant, entry.epoch);
+            assert_eq!(result.frame, request.frame);
+            assert_eq!(result.quality, QualityAnnotation::Exact);
+
+            let ecliptic = result
+                .ecliptic
+                .expect("selected asteroid source rows should include ecliptic coordinates");
+            assert_eq!(ecliptic, entry.ecliptic());
+
+            let expected_equatorial = ecliptic.to_equatorial(result.instant.mean_obliquity());
+            let equatorial = result
+                .equatorial
+                .expect("selected asteroid source rows should include equatorial coordinates");
+            assert_eq!(equatorial, expected_equatorial);
+        }
     }
 
     #[test]

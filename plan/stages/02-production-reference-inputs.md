@@ -6,7 +6,7 @@ Provide documented public source inputs broad enough for backend validation, rel
 
 ## Starting point
 
-`pleiades-jpl` includes checked-in JPL Horizons snapshots, hold-out fixtures, provenance summaries, batch/single parity checks, source-window summaries, selected asteroid samples, and production-generation manifest reports. This is regression-quality evidence, but not yet a broad production reader or generated corpus covering all advertised body/date/channel claims.
+`pleiades-jpl` includes checked-in JPL Horizons snapshots, hold-out fixtures, provenance summaries, batch/single parity checks, source-window summaries, selected asteroid samples, selected-asteroid request corpora, and production-generation manifest reports. This is regression-quality evidence, but not yet a broad production reader or generated corpus covering all advertised body/date/channel claims.
 
 ## Implementation goals
 
