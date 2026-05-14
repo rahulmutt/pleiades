@@ -28,7 +28,7 @@ This file lists focused implementation slices for the current phase ladder. Comp
 
 ### 1. Source ingestion decision
 
-- Choose a broader JPL reader/parser, a reproducibly generated public fixture corpus, or a hybrid.
+- Completed: the production source posture is now documented as a hybrid fixture corpus, with checked-in reference and hold-out fixtures plus a separate generation-input path.
 - Document provenance, license/redistribution posture, frame, time scale, columns, source revision, and checksum expectations.
 
 ### 2. Coverage expansion

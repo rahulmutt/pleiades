@@ -2909,7 +2909,7 @@ pub fn production_generation_source_summary_for_report() -> String {
     }
 
     format!(
-        "Production generation source: {}; {}; input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv; file format=comma-separated values; frame=geocentric ecliptic J2000; time scale=TDB; parser=pure-Rust and deterministic; checksum expectation=byte-identical fixture contents; cadence=31 reference epochs and 10 boundary epochs; hold-out rows remain separate from reference rows",
+        "Production generation source: strategy=documented hybrid fixture corpus; {}; {}; input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv; file format=comma-separated values; frame=geocentric ecliptic J2000; time scale=TDB; parser=pure-Rust and deterministic; checksum expectation=byte-identical fixture contents; cadence=31 reference epochs and 10 boundary epochs; reference and hold-out rows remain separate; redistribution posture=repository-checked regression fixtures, not a broad public corpus",
         reference_summary.summary_line(),
         format_production_generation_boundary_source_summary(&boundary_summary)
     )
@@ -18946,7 +18946,7 @@ pub fn jpl_snapshot_evidence_classification_summary_for_report() -> String {
 
 /// Returns the source-posture line used by validation and release reports.
 pub fn jpl_source_posture_summary_for_report() -> String {
-    "JPL source posture: checked-in snapshot/hold-out fixture backend paired with a separate generation-input path; not a broad public reader/corpus provider"
+    "JPL source posture: documented hybrid snapshot/hold-out fixture backend with a separate generation-input path; pure-Rust include_str! ingestion; not a broad public reader/corpus provider"
         .to_string()
 }
 
@@ -25675,7 +25675,7 @@ mod tests {
         assert_eq!(
             production_generation_source_summary_for_report(),
             format!(
-                "Production generation source: {}; {}; input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv; file format=comma-separated values; frame=geocentric ecliptic J2000; time scale=TDB; parser=pure-Rust and deterministic; checksum expectation=byte-identical fixture contents; cadence=31 reference epochs and 10 boundary epochs; hold-out rows remain separate from reference rows",
+                "Production generation source: strategy=documented hybrid fixture corpus; {}; {}; input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv; file format=comma-separated values; frame=geocentric ecliptic J2000; time scale=TDB; parser=pure-Rust and deterministic; checksum expectation=byte-identical fixture contents; cadence=31 reference epochs and 10 boundary epochs; reference and hold-out rows remain separate; redistribution posture=repository-checked regression fixtures, not a broad public corpus",
                 reference_snapshot_source_summary_for_report(),
                 production_generation_boundary_source_summary_for_report()
             )
@@ -28315,6 +28315,7 @@ mod tests {
     fn production_generation_source_summary_documents_the_checked_in_csv_path() {
         let report = production_generation_source_summary_for_report();
 
+        assert!(report.contains("strategy=documented hybrid fixture corpus"));
         assert!(report.contains(
             "input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv"
         ));
@@ -28324,7 +28325,8 @@ mod tests {
         assert!(report.contains("parser=pure-Rust and deterministic"));
         assert!(report.contains("checksum expectation=byte-identical fixture contents"));
         assert!(report.contains("cadence=31 reference epochs and 10 boundary epochs"));
-        assert!(report.contains("hold-out rows remain separate from reference rows"));
+        assert!(report.contains("reference and hold-out rows remain separate"));
+        assert!(report.contains("redistribution posture=repository-checked regression fixtures, not a broad public corpus"));
     }
 
     #[test]

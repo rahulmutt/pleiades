@@ -26,14 +26,14 @@ Current backend and data posture:
 
 - `pleiades-vsop87` has source-backed VSOP87B tables for Sun through Neptune and keeps Pluto as approximate fallback evidence, not a full release-grade source-backed claim.
 - `pleiades-elp` provides a compact Meeus-style lunar/lunar-point baseline with published-example evidence, not a full ELP coefficient implementation.
-- `pleiades-jpl` provides checked-in JPL Horizons snapshots and hold-out fixtures with provenance and validation helpers, not a broad production source reader.
+- `pleiades-jpl` provides checked-in JPL Horizons snapshots and hold-out fixtures with provenance and validation helpers; its release-facing source posture is now documented as a hybrid fixture corpus, not a broad production source reader.
 - `pleiades-data` provides a deterministic stage-5 draft artifact with manifest, checksum, output-profile, body-class cadence, fit-outlier, lookup, batch-lookup, and decode reports; the current draft path now passes the calibrated fit thresholds, and the release-facing target-threshold posture now spells out that production thresholds are still pending, but source corpus alignment remains open.
 - Current first-party request policy is explicit: TT/TDB mean geometric geocentric tropical requests are supported where metadata says so; built-in Delta T/UTC modeling, apparent-place corrections, topocentric body positions, and native sidereal backend output remain unsupported unless a future backend advertises and validates them.
 
 ## Remaining specification gaps
 
 1. **Production compressed ephemeris** — the artifact format and reporting exist, but the bundled 1500-2500 CE data product remains draft-grade and fails production accuracy expectations.
-2. **Production reference inputs** — checked-in snapshots are valuable regression and comparison evidence, but the project still needs a production-suitable public source ingestion or generated-corpus path for artifact fitting and body claims.
+2. **Production reference inputs** — checked-in snapshots are valuable regression and comparison evidence, but the project still needs broader production-suitable corpus coverage for artifact fitting and body claims.
 3. **Release-grade body coverage** — Pluto, full lunar theory, lunar points beyond the current compact baseline, and selected asteroids need source-backed validation or constrained/excluded release status.
 4. **Advanced request implementation choices** — UTC/Delta-T convenience, apparent corrections, topocentric body positions, and native sidereal backend output must either be implemented with evidence or remain consistently rejected and documented.
 5. **Compatibility evidence** — broad house and ayanamsa catalogs need continued formula/provenance/reference audits before entries are promoted beyond descriptor, constrained, custom, or approximate status.

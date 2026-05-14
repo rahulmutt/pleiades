@@ -10,7 +10,7 @@ Provide documented public source inputs broad enough for backend validation, rel
 
 ## Implementation goals
 
-- Choose the production source strategy: pure-Rust JPL-file reader, reproducibly generated public fixture corpus, or a documented hybrid.
+- The production source strategy is documented as a hybrid fixture corpus: checked-in reference and hold-out fixtures plus a separate generation-input path.
 - Record source provenance, frame, time scale, columns/channels, source revision, generation command, checksums, and redistribution posture.
 - Expand coverage only where it supports release claims or artifact fitting.
 - Keep reference, hold-out, boundary-overlay, fixture-exactness, and provenance-only evidence classes separate.

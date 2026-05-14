@@ -12,7 +12,7 @@ The specification requires a compressed 1500-2500 CE artifact with measured accu
 
 Accuracy work should therefore precede any release claim broadening. Phase 2 source/corpus work still needs to lock down the production threshold policy before broader artifact claims move forward.
 
-Recent progress: the packaged-artifact fit-outlier diagnostics now preserve segment-span and family-sample-count context, the validation report no longer double-prefixes the body-class span-cap summary, the packaged-artifact generator now applies measured-fit subdivision with a short-span candidate-vs-fallback choice, the checked-in fixture has been regenerated, artifact-derived fit samples are cached so summary reports stay tractable, and the target-threshold posture is now rendered as calibrated fit envelope recorded with production thresholds pending.
+Recent progress: the packaged-artifact fit-outlier diagnostics now preserve segment-span and family-sample-count context, the validation report no longer double-prefixes the body-class span-cap summary, the packaged-artifact generator now applies measured-fit subdivision with a short-span candidate-vs-fallback choice, the checked-in fixture has been regenerated, artifact-derived fit samples are cached so summary reports stay tractable, the target-threshold posture is now rendered as calibrated fit envelope recorded with production thresholds pending, and the JPL source posture is now documented as a hybrid fixture corpus.
 
 ## Immediate blockers
 
@@ -32,7 +32,7 @@ Promote the draft threshold posture to a production threshold policy once the Ph
 
 ## Parallel safe work
 
-- Decide and document the production source-ingestion strategy.
+- Expand the documented hybrid source corpus with broader coverage and provenance.
 - Promote the measured-fit draft posture into release-grade thresholds once the Phase 2 source corpus is ready.
 - Audit body release status for Pluto, lunar channels, and selected asteroids.
 - Audit house/ayanamsa entries whose release claims are stronger than their evidence.
