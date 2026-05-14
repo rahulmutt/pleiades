@@ -6,7 +6,7 @@ Ship a production-quality compressed ephemeris artifact for 1500-2500 CE that sa
 
 ## Starting point
 
-The codec, artifact structures, deterministic regeneration path, checksums, generation manifest, output-support profile, body-class cadence summary, channel fit-outlier reports, boundary checks, lookup benchmarks, batch-lookup benchmarks, and decode benchmarks already exist. The checked-in artifact is still a draft fixture: current validation reports show very large longitude, latitude, and distance errors versus the comparison corpus, so it must not be treated as production ephemeris data.
+The codec, artifact structures, deterministic regeneration path, checksums, generation manifest, output-support profile, body-class cadence summary, channel fit-outlier reports, boundary checks, lookup benchmarks, batch-lookup benchmarks, and decode benchmarks already exist. The generator now tries a six-point Chebyshev-Lobatto fit before falling back to the lower-order interpolation ladder, but the checked-in artifact is still a draft fixture: current validation reports continue to show very large longitude, latitude, and distance errors versus the comparison corpus, so it must not be treated as production ephemeris data.
 
 ## Implementation goals
 

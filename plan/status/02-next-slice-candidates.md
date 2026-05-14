@@ -8,11 +8,13 @@ This file lists focused implementation slices for the current phase ladder. Comp
 
 - The channel-major fit-outlier report now keeps segment-span and family sample-count context, and tie-breaks prefer the shorter failing family when two candidates have the same delta.
 - The validation report now renders the body-class span-cap summary without duplicating the summary prefix.
+- The packaged-artifact generator now tries six-point Chebyshev-Lobatto fits before falling back to the previous cubic/quadratic ladder.
 
 ### 1. Improve fitting/reconstruction strategy
 
 - Evaluate denser source windows, body-specific cadence, Chebyshev segments, higher-order fits, residual tables, or channel-specific reconstruction.
 - Treat distance-channel outliers as a first-class blocker; do not hide them behind longitude-only thresholds.
+- If higher-order interpolation remains draft-grade, add error-aware subdivision so segment splitting depends on measured fit error instead of quantization alone.
 - Keep artifact size and decode benchmarks current, but do not trade correctness away for size.
 
 ### 2. Promote draft thresholds to production thresholds

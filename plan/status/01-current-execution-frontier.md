@@ -12,7 +12,7 @@ The specification requires a compressed 1500-2500 CE artifact with measured accu
 
 Accuracy work should therefore precede any release claim broadening. If the current sparse snapshots cannot support production fitting, Phase 2 source/corpus work should happen before more artifact tuning.
 
-Recent progress: the packaged-artifact fit-outlier diagnostics now preserve segment-span and family-sample-count context, and the validation report no longer double-prefixes the body-class span-cap summary.
+Recent progress: the packaged-artifact fit-outlier diagnostics now preserve segment-span and family-sample-count context, the validation report no longer double-prefixes the body-class span-cap summary, and the packaged-artifact generator now tries higher-order Chebyshev-Lobatto fits before falling back to the lower-order ladder.
 
 ## Immediate blockers
 
@@ -29,11 +29,13 @@ Implement one artifact-accuracy slice that starts from a concrete outlier family
 - confirm whether the error is caused by sparse source cadence, coordinate conversion, distance-unit reconstruction, longitude wrapping, segment order, or quantization;
 - add or expand source samples only when needed and document their provenance;
 - update fitting/reconstruction logic and regression tests together;
+- if higher-order interpolation still misses target envelopes, schedule error-aware subdivision or denser source cadence before broadening claims;
 - keep the artifact labeled draft until all advertised scopes pass published thresholds.
 
 ## Parallel safe work
 
 - Decide and document the production source-ingestion strategy.
+- Follow up the new higher-order fit path with an error-aware subdivision slice if validation remains draft-grade.
 - Audit body release status for Pluto, lunar channels, and selected asteroids.
 - Audit house/ayanamsa entries whose release claims are stronger than their evidence.
 - Keep request-policy docs and structured unsupported errors synchronized.

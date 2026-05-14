@@ -5226,6 +5226,92 @@ fn segment_from_pair(
             .and_then(|result| result.ecliptic)
     };
 
+    let fit_sample_fractions = chebyshev_lobatto_fractions(6);
+    let Some(fit_sample_coordinates) = fit_sample_fractions
+        .iter()
+        .map(|fraction| sample_fraction(*fraction))
+        .collect::<Option<Vec<_>>>()
+    else {
+        return segment_from_pair_fallback(
+            start_instant,
+            end_instant,
+            start_longitude,
+            end_longitude,
+            &start_coordinates,
+            &end_coordinates,
+            &sample_fraction,
+        );
+    };
+
+    let longitude_samples = unwrap_longitude_samples(
+        &fit_sample_coordinates
+            .iter()
+            .map(|coordinates| coordinates.longitude.degrees())
+            .collect::<Vec<_>>(),
+    );
+
+    let fit_samples = fit_sample_fractions
+        .iter()
+        .copied()
+        .zip(fit_sample_coordinates.iter())
+        .collect::<Vec<_>>();
+
+    if let (Some(longitude_channel), Some(latitude_channel), Some(distance_channel)) = (
+        polynomial_channel_from_samples(
+            ChannelKind::Longitude,
+            9,
+            &fit_samples
+                .iter()
+                .enumerate()
+                .map(|(index, (fraction, _))| (*fraction, longitude_samples[index]))
+                .collect::<Vec<_>>(),
+        ),
+        polynomial_channel_from_samples(
+            ChannelKind::Latitude,
+            9,
+            &fit_samples
+                .iter()
+                .map(|(fraction, coordinates)| (*fraction, coordinates.latitude.degrees()))
+                .collect::<Vec<_>>(),
+        ),
+        polynomial_channel_from_samples(
+            ChannelKind::DistanceAu,
+            10,
+            &fit_samples
+                .iter()
+                .map(|(fraction, coordinates)| {
+                    (*fraction, coordinates.distance_au.unwrap_or_default())
+                })
+                .collect::<Vec<_>>(),
+        ),
+    ) {
+        return Segment::new(
+            start_instant,
+            end_instant,
+            vec![longitude_channel, latitude_channel, distance_channel],
+        );
+    }
+
+    segment_from_pair_fallback(
+        start_instant,
+        end_instant,
+        start_longitude,
+        end_longitude,
+        &start_coordinates,
+        &end_coordinates,
+        &sample_fraction,
+    )
+}
+
+fn segment_from_pair_fallback(
+    start_instant: Instant,
+    end_instant: Instant,
+    start_longitude: f64,
+    end_longitude: f64,
+    start_coordinates: &EclipticCoordinates,
+    end_coordinates: &EclipticCoordinates,
+    sample_fraction: &dyn Fn(f64) -> Option<EclipticCoordinates>,
+) -> Segment {
     let Some(midpoint_coordinates) = sample_fraction(0.5) else {
         return Segment::new(
             start_instant,
@@ -5327,7 +5413,7 @@ fn segment_from_pair(
     ]);
 
     if let (Some(longitude_channel), Some(latitude_channel), Some(distance_channel)) = (
-        cubic_channel_from_samples(
+        polynomial_channel_from_samples(
             ChannelKind::Longitude,
             9,
             &[
@@ -5337,7 +5423,7 @@ fn segment_from_pair(
                 (1.0, longitude_samples[3]),
             ],
         ),
-        cubic_channel_from_samples(
+        polynomial_channel_from_samples(
             ChannelKind::Latitude,
             9,
             &[
@@ -5347,7 +5433,7 @@ fn segment_from_pair(
                 (1.0, end_coordinates.latitude.degrees()),
             ],
         ),
-        cubic_channel_from_samples(
+        polynomial_channel_from_samples(
             ChannelKind::DistanceAu,
             10,
             &[
@@ -5402,6 +5488,19 @@ fn segment_from_pair(
             ),
         ],
     )
+}
+
+fn chebyshev_lobatto_fractions(sample_count: usize) -> Vec<f64> {
+    match sample_count {
+        0 => Vec::new(),
+        1 => vec![0.0],
+        _ => (0..sample_count)
+            .map(|index| {
+                let theta = std::f64::consts::PI * index as f64 / (sample_count - 1) as f64;
+                (1.0 - theta.cos()) / 2.0
+            })
+            .collect(),
+    }
 }
 
 fn unwrap_longitude_samples(samples: &[f64]) -> Vec<f64> {
@@ -5486,7 +5585,7 @@ fn channel_coefficients_fit_quantization(scale_exponent: u8, coefficients: &[f64
     })
 }
 
-fn cubic_channel_from_samples(
+fn polynomial_channel_from_samples(
     kind: ChannelKind,
     scale_exponent: u8,
     samples: &[(f64, f64)],
@@ -5701,6 +5800,29 @@ mod tests {
             generated_from_snapshot.encode().unwrap(),
             PACKAGED_ARTIFACT_FIXTURE
         );
+    }
+
+    #[test]
+    fn polynomial_channel_from_samples_supports_chebyshev_lobatto_fits() {
+        let fractions = chebyshev_lobatto_fractions(6);
+        let samples = fractions
+            .iter()
+            .copied()
+            .map(|fraction| {
+                let value = 1.0 + 2.0 * fraction - 3.0 * fraction.powi(2) + 4.0 * fraction.powi(3)
+                    - 5.0 * fraction.powi(4)
+                    + 6.0 * fraction.powi(5);
+                (fraction, value)
+            })
+            .collect::<Vec<_>>();
+        let channel = polynomial_channel_from_samples(ChannelKind::Longitude, 9, &samples)
+            .expect("six-point fit should succeed");
+
+        assert_eq!(channel.coefficients.len(), 6);
+        let expected_coefficients = [1.0, 2.0, -3.0, 4.0, -5.0, 6.0];
+        for (actual, expected) in channel.coefficients.iter().zip(expected_coefficients) {
+            assert!((actual - expected).abs() < 1e-9);
+        }
     }
 
     #[test]
