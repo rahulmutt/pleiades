@@ -42,7 +42,7 @@ This file lists focused implementation slices for the current phase ladder. Comp
 - Resolve Pluto as source-backed, artifact-backed, approximate, constrained, or excluded.
 - Decide whether fuller ELP-style lunar coefficients are required for first production release.
 - Keep lunar node/apogee/perigee claims aligned with implemented formulas and evidence.
-- Promote Ceres/Pallas/Juno/Vesta only when source coverage and backend support are ready.
+- The JPL reference snapshot already contains source evidence for Ceres/Pallas/Juno/Vesta, so the next slice is to decide whether those bodies stay backend-fallback-only or graduate into packaged/release claims.
 
 ## Phase 4 — Advanced request modes and policy
 

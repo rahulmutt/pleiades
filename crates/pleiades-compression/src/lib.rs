@@ -1436,6 +1436,7 @@ fn validate_artifact_profile(profile: &ArtifactProfile) -> Result<(), Compressio
         "artifact profile unsupported outputs",
         &profile.unsupported_outputs,
     )?;
+    validate_explicit_output_classification(profile)?;
     validate_coordinate_output_policy(profile)?;
     validate_motion_policy(profile)?;
     Ok(())
@@ -1452,6 +1453,23 @@ fn validate_artifact_output_order(
                 format!(
                     "{field} must be ordered by artifact output kind; found {:?} before {:?}",
                     pair[0], pair[1]
+                ),
+            ));
+        }
+    }
+
+    Ok(())
+}
+
+fn validate_explicit_output_classification(
+    profile: &ArtifactProfile,
+) -> Result<(), CompressionError> {
+    for output in ArtifactOutput::all() {
+        if profile.output_support(output) == ArtifactOutputSupport::Unlisted {
+            return Err(CompressionError::new(
+                CompressionErrorKind::InvalidFormat,
+                format!(
+                    "artifact profile output {output} must be explicitly listed as stored, derived, or unsupported"
                 ),
             ));
         }
@@ -2243,7 +2261,9 @@ mod tests {
             vec![ArtifactOutput::EclipticCoordinates, ArtifactOutput::Motion],
             vec![
                 ArtifactOutput::EquatorialCoordinates,
+                ArtifactOutput::ApparentCorrections,
                 ArtifactOutput::TopocentricCoordinates,
+                ArtifactOutput::SiderealCoordinates,
             ],
             SpeedPolicy::FittedDerivative,
         );
@@ -2527,7 +2547,12 @@ mod tests {
                 ChannelKind::DistanceAu,
             ],
             vec![ArtifactOutput::EclipticCoordinates],
-            Vec::new(),
+            vec![
+                ArtifactOutput::EquatorialCoordinates,
+                ArtifactOutput::ApparentCorrections,
+                ArtifactOutput::TopocentricCoordinates,
+                ArtifactOutput::SiderealCoordinates,
+            ],
             SpeedPolicy::Stored,
         );
         assert_eq!(
@@ -2558,7 +2583,12 @@ mod tests {
         let unsupported_motion_mismatch = ArtifactProfile::new(
             vec![ChannelKind::Longitude],
             vec![ArtifactOutput::EclipticCoordinates],
-            Vec::new(),
+            vec![
+                ArtifactOutput::EquatorialCoordinates,
+                ArtifactOutput::ApparentCorrections,
+                ArtifactOutput::TopocentricCoordinates,
+                ArtifactOutput::SiderealCoordinates,
+            ],
             SpeedPolicy::Unsupported,
         );
         let unsupported_motion_error = unsupported_motion_mismatch
@@ -2592,8 +2622,16 @@ mod tests {
 
         let derived_coordinate_channel_mismatch = ArtifactProfile::new(
             vec![ChannelKind::Longitude, ChannelKind::Latitude],
-            vec![ArtifactOutput::EquatorialCoordinates],
-            vec![ArtifactOutput::Motion],
+            vec![
+                ArtifactOutput::EclipticCoordinates,
+                ArtifactOutput::EquatorialCoordinates,
+            ],
+            vec![
+                ArtifactOutput::ApparentCorrections,
+                ArtifactOutput::TopocentricCoordinates,
+                ArtifactOutput::SiderealCoordinates,
+                ArtifactOutput::Motion,
+            ],
             SpeedPolicy::Unsupported,
         );
         let derived_coordinate_channel_error = derived_coordinate_channel_mismatch
@@ -2611,8 +2649,16 @@ mod tests {
 
         let derived_coordinate_channel_missing_latitude = ArtifactProfile::new(
             vec![ChannelKind::Longitude, ChannelKind::DistanceAu],
-            vec![ArtifactOutput::EquatorialCoordinates],
-            vec![ArtifactOutput::Motion],
+            vec![
+                ArtifactOutput::EclipticCoordinates,
+                ArtifactOutput::EquatorialCoordinates,
+            ],
+            vec![
+                ArtifactOutput::ApparentCorrections,
+                ArtifactOutput::TopocentricCoordinates,
+                ArtifactOutput::SiderealCoordinates,
+                ArtifactOutput::Motion,
+            ],
             SpeedPolicy::Unsupported,
         );
         let derived_coordinate_channel_missing_latitude_error =

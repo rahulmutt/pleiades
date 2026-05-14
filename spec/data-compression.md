@@ -76,6 +76,8 @@ Instead, each artifact profile must declare:
 - which channels are derived deterministically during decode
 - which optional outputs are unsupported by that artifact
 
+Every built-in artifact output must be classified explicitly; profiles must not leave a built-in output implicitly unlisted.
+
 For example, an artifact may store ecliptic longitude, latitude, and distance directly while deriving equatorial coordinates from those values plus auxiliary parameters available to the runtime.
 
 If speed values are provided, the profile must state whether they are:
