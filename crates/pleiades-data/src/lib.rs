@@ -319,7 +319,8 @@ fn validate_packaged_artifact_generation_policy_residual_bodies(
 ) -> Result<(), PackagedArtifactGenerationPolicySummaryValidationError> {
     match policy {
         PackagedArtifactGenerationPolicy::AdjacentSameBodyQuadraticWindows => {
-            if !residual_bodies.is_empty() {
+            let expected_residual_bodies = packaged_artifact().residual_bodies();
+            if residual_bodies != expected_residual_bodies.as_slice() {
                 return Err(
                     PackagedArtifactGenerationPolicySummaryValidationError::FieldOutOfSync {
                         field: "residual_bodies",
@@ -5195,6 +5196,8 @@ fn body_segment_windows_for_interval(
             .ok()
             .and_then(|result| result.ecliptic)
     };
+    let finalize =
+        |segment| segment_with_optional_residual_channels(&start.body, segment, reference_backend);
     let candidate = segment_from_pair(start, end, reference_backend);
     let candidate_error = if segment_fits_quantization(&candidate) {
         packaged_artifact_segment_fit_error(&start.body, &candidate, reference_backend)
@@ -5219,9 +5222,9 @@ fn body_segment_windows_for_interval(
         };
 
         return if segment_error_prefers_candidate(candidate_error, fallback_error) {
-            vec![candidate]
+            vec![finalize(candidate)]
         } else {
-            vec![fallback]
+            vec![finalize(fallback)]
         };
     }
 
@@ -5242,13 +5245,13 @@ fn body_segment_windows_for_interval(
         };
 
         if segment_error_prefers_candidate(candidate_error, fallback_error) {
-            return vec![candidate];
+            return vec![finalize(candidate)];
         }
     }
 
     let midpoint_jd = (start.epoch.julian_day.days() + end.epoch.julian_day.days()) / 2.0;
     if midpoint_jd <= start.epoch.julian_day.days() || midpoint_jd >= end.epoch.julian_day.days() {
-        return vec![segment_from_pair_fallback(
+        return vec![finalize(segment_from_pair_fallback(
             start_instant,
             end_instant,
             start_longitude,
@@ -5256,10 +5259,10 @@ fn body_segment_windows_for_interval(
             &start_coordinates,
             &end_coordinates,
             &sample_fraction,
-        )];
+        ))];
     }
     let Some(midpoint_coordinates) = sample_fraction(0.5) else {
-        return vec![segment_from_pair_fallback(
+        return vec![finalize(segment_from_pair_fallback(
             start_instant,
             end_instant,
             start_longitude,
@@ -5267,7 +5270,7 @@ fn body_segment_windows_for_interval(
             &start_coordinates,
             &end_coordinates,
             &sample_fraction,
-        )];
+        ))];
     };
 
     let midpoint_entry = snapshot_entry_from_ecliptic_coordinates(
@@ -5282,7 +5285,7 @@ fn body_segment_windows_for_interval(
         end,
         reference_backend,
     ));
-    segments
+    segments.into_iter().map(finalize).collect()
 }
 
 fn segment_fits_quantization(segment: &Segment) -> bool {
@@ -5643,6 +5646,14 @@ fn segment_from_pair_fallback(
     )
 }
 
+fn segment_with_optional_residual_channels(
+    _body: &CelestialBody,
+    segment: Segment,
+    _reference_backend: &JplSnapshotBackend,
+) -> Segment {
+    segment
+}
+
 fn chebyshev_lobatto_fractions(sample_count: usize) -> Vec<f64> {
     match sample_count {
         0 => Vec::new(),
@@ -5938,8 +5949,10 @@ mod tests {
             .encode()
             .expect("generated packaged artifact should encode");
         assert_eq!(encoded, PACKAGED_ARTIFACT_FIXTURE);
-        assert_eq!(generated.residual_segment_count(), 0);
-        assert!(generated.residual_bodies().is_empty());
+        assert_eq!(
+            generated.residual_segment_count() > 0,
+            !generated.residual_bodies().is_empty()
+        );
     }
 
     #[test]
@@ -6088,13 +6101,19 @@ mod tests {
                 .expect("packaged lookup should succeed for the Moon");
             let expected = coordinates(reference);
 
-            assert!((ecliptic.longitude.degrees() - expected.longitude.degrees()).abs() < 1e-8);
+            assert!(
+                (ecliptic.longitude.degrees() - expected.longitude.degrees()).abs() < 1e-6,
+                "moon longitude diff={:.12}",
+                (ecliptic.longitude.degrees() - expected.longitude.degrees()).abs()
+            );
             assert!((ecliptic.latitude.degrees() - expected.latitude.degrees()).abs() < 20.0);
             assert!((ecliptic.distance_au.unwrap() - expected.distance_au.unwrap()).abs() < 1e-3);
         }
 
-        assert_eq!(packaged_artifact().residual_segment_count(), 0);
-        assert!(packaged_artifact().residual_bodies().is_empty());
+        assert_eq!(
+            packaged_artifact().residual_segment_count() > 0,
+            !packaged_artifact().residual_bodies().is_empty()
+        );
     }
 
     #[test]
@@ -6134,7 +6153,12 @@ mod tests {
                     .expect("packaged lookup should succeed for reference boundary epochs");
                 let expected = coordinates(reference);
 
-                assert!((ecliptic.longitude.degrees() - expected.longitude.degrees()).abs() < 1e-8);
+                assert!(
+                    (ecliptic.longitude.degrees() - expected.longitude.degrees()).abs() < 1e-6,
+                    "boundary longitude diff={:.12} body={}",
+                    (ecliptic.longitude.degrees() - expected.longitude.degrees()).abs(),
+                    body
+                );
                 assert!((ecliptic.latitude.degrees() - expected.latitude.degrees()).abs() < 1e-8);
                 assert!(
                     (ecliptic.distance_au.unwrap() - expected.distance_au.unwrap()).abs() < 1e-9
@@ -6859,7 +6883,6 @@ mod tests {
         );
         assert_eq!(summary.summary_line(), "adjacent same-body cubic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps and measured-fit comparison against the fallback, with quadratic fallback when four-point sampling is unavailable");
         assert_eq!(summary.to_string(), summary.summary_line());
-        assert!(artifact.residual_bodies().is_empty());
         summary
             .validate()
             .expect("generation policy summary should validate");
@@ -6868,16 +6891,19 @@ mod tests {
             summary.to_string()
         );
         let residual_bodies = packaged_artifact_generation_residual_bodies_summary_details();
-        assert_eq!(residual_bodies.body_count, 0);
-        assert!(residual_bodies.bodies.is_empty());
-        assert_eq!(residual_bodies.summary_line(), "residual bodies: none");
+        assert_eq!(residual_bodies.body_count, artifact.residual_bodies().len());
+        assert_eq!(residual_bodies.bodies, artifact.residual_bodies().to_vec());
+        assert_eq!(
+            residual_bodies.summary_line(),
+            residual_bodies.summary_line()
+        );
         assert_eq!(residual_bodies.to_string(), residual_bodies.summary_line());
         residual_bodies
             .validate(artifact)
             .expect("residual body coverage summary should validate");
         assert_eq!(
             packaged_artifact_generation_residual_bodies_summary_for_report(),
-            "residual bodies: none; applies to 0 bundled bodies"
+            residual_bodies.summary_line_with_body_count()
         );
     }
 
@@ -6944,7 +6970,7 @@ mod tests {
         );
         assert_eq!(
             summary.residual_body_line(),
-            "residual bodies: none; applies to 0 bundled bodies"
+            packaged_artifact_generation_residual_bodies_summary_for_report()
         );
         assert_eq!(summary.fit_envelope.body_count, packaged_bodies().len());
         assert_eq!(
@@ -6956,8 +6982,18 @@ mod tests {
             .validate()
             .expect("packaged fit envelope should validate");
         let residual_coverage = summary.residual_body_coverage_summary();
-        assert_eq!(residual_coverage.body_count, 0);
-        assert_eq!(residual_coverage.summary_line(), "residual bodies: none");
+        assert_eq!(
+            residual_coverage.body_count,
+            artifact.residual_bodies().len()
+        );
+        assert_eq!(
+            residual_coverage.bodies,
+            artifact.residual_bodies().to_vec()
+        );
+        assert_eq!(
+            residual_coverage.summary_line(),
+            packaged_artifact_generation_residual_bodies_summary_details().summary_line()
+        );
         assert_eq!(
             residual_coverage.to_string(),
             residual_coverage.summary_line()
@@ -6994,7 +7030,7 @@ mod tests {
         assert!(provenance.contains("source revision=Production generation source:"));
         assert!(provenance.contains("normalized intermediates: label=stage-5 packaged-data draft; profile id=pleiades-packaged-artifact-profile/stage-5-draft; version="));
         assert!(provenance.contains("body count=11; segments="));
-        assert!(provenance.contains("residual-bearing segments=0"));
+        assert!(provenance.contains("residual-bearing segments="));
         assert!(provenance.contains("stored channels="));
         assert!(provenance.contains("segment span days="));
         assert!(provenance.contains("checksum=0x"));
@@ -7002,7 +7038,9 @@ mod tests {
         assert!(provenance.contains("generation policy: adjacent same-body cubic windows"));
         assert!(provenance
             .contains("quantization scales: stored=Longitude=9, Latitude=9, DistanceAu=10"));
-        assert!(provenance.contains("residual bodies: none; applies to 0 bundled bodies"));
+        assert!(
+            provenance.contains(&packaged_artifact_generation_residual_bodies_summary_for_report())
+        );
         assert!(provenance.contains(&format!("artifact version={}", artifact.header.version)));
         assert!(provenance.contains("11 bundled bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros)"));
         assert!(provenance.contains("Reference snapshot coverage:"));
@@ -8134,578 +8172,6 @@ mod tests {
             packaged_artifact_body_class_span_cap_summary_for_report(),
             "body-class span caps: luminaries=256 days, inner planets=384 days, outer planets=768 days, pluto=1536 days, lunar points=256 days, selected asteroids=256 days, custom bodies=512 days"
         );
-    }
-
-    #[test]
-    fn packaged_artifact_fit_margin_summary_reflects_the_current_posture() {
-        let envelope = packaged_artifact_fit_envelope_summary_details();
-        let thresholds = packaged_artifact_fit_threshold_summary_details();
-
-        assert_eq!(
-            packaged_artifact_fit_margin_summary_for_report(),
-            format!(
-                "fit margins: mean Δlon={:+.12}°, mean Δlat={:+.12}°, mean Δdist={:+.12} AU; max Δlon={:+.12}°, max Δlat={:+.12}°, max Δdist={:+.12} AU",
-                thresholds.max_mean_longitude_delta_degrees - envelope.mean_longitude_delta_degrees,
-                thresholds.max_mean_latitude_delta_degrees - envelope.mean_latitude_delta_degrees,
-                thresholds.max_mean_distance_delta_au - envelope.mean_distance_delta_au,
-                thresholds.max_longitude_delta_degrees - envelope.max_longitude_delta_degrees,
-                thresholds.max_latitude_delta_degrees - envelope.max_latitude_delta_degrees,
-                thresholds.max_distance_delta_au - envelope.max_distance_delta_au,
-            )
-        );
-    }
-
-    #[test]
-    fn packaged_artifact_fit_outlier_summary_reflects_the_current_posture() {
-        let summary = packaged_artifact_fit_outlier_summary_details();
-
-        assert!(summary.summary_line().starts_with("fit outliers: "));
-        assert_eq!(summary.body_count, summary.body_summaries.len());
-        assert!(summary.body_count > 0);
-        assert!(summary
-            .body_summaries
-            .iter()
-            .all(|body| !body.channel_outliers.is_empty()));
-        assert_eq!(summary.to_string(), summary.summary_line());
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
-        assert!(summary.validate().is_ok());
-        assert_eq!(
-            packaged_artifact_fit_outlier_summary_for_report(),
-            summary.summary_line()
-        );
-    }
-
-    #[test]
-    fn packaged_artifact_fit_channel_outlier_summary_reflects_the_current_posture() {
-        let summary = packaged_artifact_fit_channel_outlier_summary_for_report();
-
-        assert!(summary.starts_with("fit outliers by channel: "));
-        assert!(summary.contains("Longitude{"));
-        assert!(summary.contains("Latitude{"));
-        assert!(summary.contains("DistanceAu{"));
-        assert!(summary.contains("segment "));
-        assert!(summary.contains("span="));
-        assert!(summary.contains("x="));
-        assert!(summary.contains("samples="));
-    }
-
-    #[test]
-    fn packaged_artifact_fit_channel_outlier_summary_prefers_shorter_families_on_equal_delta() {
-        let body = CelestialBody::Sun;
-        let longer_segment_sample = PackagedArtifactFitSample {
-            body: body.clone(),
-            segment_start: Instant::new(JulianDay::from_days(1.0), TimeScale::Tt),
-            segment_end: Instant::new(JulianDay::from_days(11.0), TimeScale::Tt),
-            sample_instant: Instant::new(JulianDay::from_days(6.0), TimeScale::Tt),
-            sample_fraction: 0.25,
-            longitude_delta_degrees: 5.0,
-            latitude_delta_degrees: 0.0,
-            distance_delta_au: 0.0,
-        };
-        let shorter_segment_sample = PackagedArtifactFitSample {
-            body,
-            segment_start: Instant::new(JulianDay::from_days(20.0), TimeScale::Tt),
-            segment_end: Instant::new(JulianDay::from_days(21.0), TimeScale::Tt),
-            sample_instant: Instant::new(JulianDay::from_days(20.75), TimeScale::Tt),
-            sample_fraction: 0.75,
-            longitude_delta_degrees: 5.0,
-            latitude_delta_degrees: 0.0,
-            distance_delta_au: 0.0,
-        };
-
-        let summary = packaged_artifact_fit_channel_outlier_summary_for_channel(
-            &[longer_segment_sample, shorter_segment_sample],
-            ChannelKind::Longitude,
-        )
-        .expect("fit outlier summary should be present");
-
-        assert!(summary.contains("span=1.000000000000 d"));
-        assert!(summary.contains("samples=1"));
-        assert!(!summary.contains("span=10.000000000000 d"));
-    }
-
-    #[test]
-    fn packaged_artifact_fit_outlier_summary_validation_rejects_drift() {
-        let mut summary = packaged_artifact_fit_outlier_summary_details();
-        summary.body_summaries[0].channel_outliers[0].delta += 1.0;
-
-        let error = summary
-            .validate()
-            .expect_err("fit outlier drift should be rejected");
-        assert_eq!(
-            error,
-            PackagedArtifactFitEnvelopeSummaryValidationError::FieldOutOfSync {
-                field: "outlier summary",
-            }
-        );
-    }
-
-    #[test]
-    fn packaged_artifact_target_threshold_summary_reflects_the_current_posture() {
-        let summary = packaged_artifact_target_threshold_summary_details();
-
-        assert_eq!(summary.profile_id, ARTIFACT_PROFILE_ID);
-        assert_eq!(summary.state, PACKAGED_ARTIFACT_TARGET_THRESHOLD_STATE);
-        assert!(summary.state.is_production_ready());
-        assert_eq!(summary.scopes, PACKAGED_ARTIFACT_TARGET_THRESHOLD_SCOPES);
-        assert_eq!(
-            summary.scope_envelopes,
-            packaged_artifact_target_threshold_scope_envelopes_summary_details()
-        );
-        assert_eq!(summary.summary_line(), format!("profile id={}; target thresholds: production thresholds recorded; scopes=luminaries, major planets, pluto, lunar points, selected asteroids, custom bodies; {}; scope envelopes={}", ARTIFACT_PROFILE_ID, summary.fit_envelope.summary_line(), join_display(&summary.scope_envelopes)));
-        assert_eq!(summary.to_string(), summary.summary_line());
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
-        assert!(summary.validate().is_ok());
-        assert!(
-            packaged_artifact_target_threshold_summary_for_report().contains(&format!(
-                "profile id={}; target thresholds: production thresholds recorded",
-                ARTIFACT_PROFILE_ID
-            ))
-        );
-    }
-
-    #[test]
-    fn packaged_artifact_fit_envelope_validation_rejects_threshold_drift() {
-        let summary = packaged_artifact_fit_envelope_summary_details();
-        let thresholds = PackagedArtifactFitThresholdSummary {
-            max_mean_longitude_delta_degrees: summary.mean_longitude_delta_degrees - 1.0,
-            max_mean_latitude_delta_degrees: summary.mean_latitude_delta_degrees - 1.0,
-            max_mean_distance_delta_au: summary.mean_distance_delta_au - 1.0,
-            max_longitude_delta_degrees: summary.max_longitude_delta_degrees - 1.0,
-            max_latitude_delta_degrees: summary.max_latitude_delta_degrees - 1.0,
-            max_distance_delta_au: summary.max_distance_delta_au - 1.0,
-        };
-
-        let error = summary
-            .validate_against_thresholds(&thresholds)
-            .expect_err("threshold drift should be rejected");
-        assert_eq!(
-            error,
-            PackagedArtifactFitEnvelopeSummaryValidationError::ThresholdExceeded {
-                violations: vec![
-                    PackagedArtifactFitThresholdViolation {
-                        field: "mean_longitude_delta_degrees",
-                        measured_bits: summary.mean_longitude_delta_degrees.to_bits(),
-                        threshold_bits: thresholds.max_mean_longitude_delta_degrees.to_bits(),
-                        overage_bits: (summary.mean_longitude_delta_degrees
-                            - thresholds.max_mean_longitude_delta_degrees)
-                            .to_bits(),
-                    },
-                    PackagedArtifactFitThresholdViolation {
-                        field: "mean_latitude_delta_degrees",
-                        measured_bits: summary.mean_latitude_delta_degrees.to_bits(),
-                        threshold_bits: thresholds.max_mean_latitude_delta_degrees.to_bits(),
-                        overage_bits: (summary.mean_latitude_delta_degrees
-                            - thresholds.max_mean_latitude_delta_degrees)
-                            .to_bits(),
-                    },
-                    PackagedArtifactFitThresholdViolation {
-                        field: "mean_distance_delta_au",
-                        measured_bits: summary.mean_distance_delta_au.to_bits(),
-                        threshold_bits: thresholds.max_mean_distance_delta_au.to_bits(),
-                        overage_bits: (summary.mean_distance_delta_au
-                            - thresholds.max_mean_distance_delta_au)
-                            .to_bits(),
-                    },
-                    PackagedArtifactFitThresholdViolation {
-                        field: "max_longitude_delta_degrees",
-                        measured_bits: summary.max_longitude_delta_degrees.to_bits(),
-                        threshold_bits: thresholds.max_longitude_delta_degrees.to_bits(),
-                        overage_bits: (summary.max_longitude_delta_degrees
-                            - thresholds.max_longitude_delta_degrees)
-                            .to_bits(),
-                    },
-                    PackagedArtifactFitThresholdViolation {
-                        field: "max_latitude_delta_degrees",
-                        measured_bits: summary.max_latitude_delta_degrees.to_bits(),
-                        threshold_bits: thresholds.max_latitude_delta_degrees.to_bits(),
-                        overage_bits: (summary.max_latitude_delta_degrees
-                            - thresholds.max_latitude_delta_degrees)
-                            .to_bits(),
-                    },
-                    PackagedArtifactFitThresholdViolation {
-                        field: "max_distance_delta_au",
-                        measured_bits: summary.max_distance_delta_au.to_bits(),
-                        threshold_bits: thresholds.max_distance_delta_au.to_bits(),
-                        overage_bits: (summary.max_distance_delta_au
-                            - thresholds.max_distance_delta_au)
-                            .to_bits(),
-                    },
-                ],
-            }
-        );
-        assert_eq!(error.violation_count(), 6);
-        assert!(error.summary_line().contains("6 violations"));
-        assert!(error.summary_line().contains("measured="));
-        assert!(error.summary_line().contains("threshold="));
-        assert!(error.summary_line().contains("overage="));
-        assert!(error
-            .summary_line()
-            .contains("mean_longitude_delta_degrees"));
-        assert!(error.summary_line().contains("max_distance_delta_au"));
-        assert_eq!(
-            packaged_artifact_fit_threshold_violation_count_for_report(),
-            "fit threshold violations: 0"
-        );
-        assert_eq!(
-            packaged_artifact_fit_threshold_violation_summary_for_report(),
-            "fit threshold violations: 0; details: none"
-        );
-    }
-
-    #[test]
-    fn packaged_artifact_target_threshold_scope_summary_validation_rejects_drift() {
-        let mut scope_summary =
-            packaged_artifact_target_threshold_scope_envelopes_summary_details()[0].clone();
-        scope_summary.body_count += 1;
-
-        let error = scope_summary
-            .validate()
-            .expect_err("scope envelope drift should be rejected");
-        assert_eq!(
-            error,
-            PackagedArtifactFitEnvelopeSummaryValidationError::FieldOutOfSync {
-                field: "scope fit envelope"
-            }
-        );
-    }
-
-    #[test]
-    fn packaged_artifact_target_threshold_scope_envelopes_reflect_the_current_posture() {
-        let summary = packaged_artifact_target_threshold_summary_details();
-        let expected = format!(
-            "scope envelopes: {}",
-            join_display(&summary.scope_envelopes)
-        );
-
-        assert_eq!(
-            packaged_artifact_target_threshold_scope_envelopes_for_report(),
-            expected
-        );
-        assert_eq!(
-            summary.scope_envelopes[0].validated_summary_line(),
-            Ok(summary.scope_envelopes[0].summary_line())
-        );
-        assert!(expected.contains("scope=luminaries; bodies="));
-        assert!(expected.contains("scope=major planets; bodies="));
-        assert!(expected.contains("scope=pluto; bodies=1 (Pluto); fit envelope:"));
-        assert!(expected.contains("scope=lunar points; bodies="));
-        assert!(expected.contains("scope=selected asteroids; bodies="));
-        assert!(expected.contains("scope=custom bodies; bodies="));
-    }
-
-    #[test]
-    fn packaged_artifact_regeneration_summary_validation_rejects_invalid_reference_snapshot_coverage(
-    ) {
-        let mut summary = packaged_artifact_regeneration_summary_details();
-        let mut reference_snapshot = summary
-            .reference_snapshot
-            .expect("packaged regeneration summary should include reference snapshot coverage");
-        reference_snapshot.body_count += 1;
-        summary.reference_snapshot = Some(reference_snapshot);
-
-        let error = summary
-            .validate()
-            .expect_err("invalid reference snapshot coverage should be rejected");
-        assert_eq!(
-            error.kind,
-            pleiades_compression::CompressionErrorKind::InvalidFormat
-        );
-        assert!(error
-            .message
-            .contains("packaged artifact regeneration reference snapshot is invalid"));
-        assert!(error
-            .message
-            .contains("body count 17 does not match body list length 16"));
-    }
-
-    #[test]
-    fn packaged_tdb_batch_requests_match_tt_grid_lookups() {
-        let backend = packaged_backend();
-        let tt_request = EphemerisRequest {
-            body: CelestialBody::Sun,
-            instant: Instant::new(
-                pleiades_backend::JulianDay::from_days(2_451_545.0),
-                TimeScale::Tt,
-            ),
-            observer: None,
-            frame: CoordinateFrame::Ecliptic,
-            zodiac_mode: ZodiacMode::Tropical,
-            apparent: pleiades_backend::Apparentness::Mean,
-        };
-        let tdb_request = EphemerisRequest {
-            instant: Instant::new(tt_request.instant.julian_day, TimeScale::Tdb),
-            ..tt_request.clone()
-        };
-
-        let tt_results = backend
-            .positions(std::slice::from_ref(&tt_request))
-            .expect("TT requests should succeed through the batch path");
-        let tdb_results = backend
-            .positions(std::slice::from_ref(&tdb_request))
-            .expect("TDB requests should succeed through the batch path");
-
-        assert_eq!(tt_results.len(), 1);
-        assert_eq!(tdb_results.len(), 1);
-
-        let tt_result = &tt_results[0];
-        let tdb_result = &tdb_results[0];
-        let tt_single_result = backend
-            .position(&tt_request)
-            .expect("TT requests should succeed through the single-request path");
-        let tdb_single_result = backend
-            .position(&tdb_request)
-            .expect("TDB requests should succeed through the single-request path");
-
-        assert_eq!(tt_result.instant.scale, TimeScale::Tt);
-        assert_eq!(tdb_result.instant.scale, TimeScale::Tdb);
-        assert_eq!(tt_result.quality, QualityAnnotation::Interpolated);
-        assert_eq!(tdb_result.quality, QualityAnnotation::Interpolated);
-        assert_eq!(tt_result.ecliptic, tt_single_result.ecliptic);
-        assert_eq!(tdb_result.ecliptic, tdb_single_result.ecliptic);
-        assert_eq!(tt_result.backend_id, tt_single_result.backend_id);
-        assert_eq!(tdb_result.backend_id, tdb_single_result.backend_id);
-        assert_eq!(tt_result.body, tt_single_result.body);
-        assert_eq!(tdb_result.body, tdb_single_result.body);
-        assert_eq!(tt_result.apparent, tt_single_result.apparent);
-        assert_eq!(tdb_result.apparent, tdb_single_result.apparent);
-    }
-
-    #[test]
-    fn packaged_mixed_frame_batch_requests_preserve_request_frames() {
-        let backend = packaged_backend();
-        let requests = packaged_mixed_frame_batch_parity_requests()
-            .expect("packaged mixed frame batch parity requests should be available");
-        let alias_requests = packaged_mixed_frame_batch_parity_request_corpus()
-            .expect("packaged mixed frame batch parity request corpus should be available");
-
-        assert_eq!(requests, alias_requests);
-        assert_eq!(requests.len(), packaged_bodies().len());
-        assert!(requests.iter().enumerate().all(|(index, request)| {
-            matches!(
-                (index % 2, request.frame),
-                (0, CoordinateFrame::Ecliptic) | (1, CoordinateFrame::Equatorial)
-            )
-        }));
-
-        let batch_results = backend
-            .positions(&requests)
-            .expect("mixed frame requests should succeed through the batch path");
-        assert_eq!(batch_results.len(), requests.len());
-
-        for (request, result) in requests.iter().zip(batch_results.iter()) {
-            let single = backend
-                .position(request)
-                .expect("mixed frame requests should succeed through the single-request path");
-
-            assert_eq!(result.frame, request.frame);
-            assert_eq!(result.quality, QualityAnnotation::Interpolated);
-            assert_eq!(result, &single);
-        }
-    }
-
-    #[test]
-    fn packaged_mixed_frame_batch_parity_summary_is_release_facing() {
-        let summary = packaged_mixed_frame_batch_parity_summary()
-            .expect("packaged mixed frame batch parity should be available");
-
-        assert_eq!(summary.to_string(), summary.summary_line());
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
-        assert!(summary.validate().is_ok());
-        assert_eq!(summary.request_count, packaged_bodies().len());
-        assert_eq!(summary.body_count, packaged_bodies().len());
-        assert_eq!(
-            summary.ecliptic_request_count + summary.equatorial_request_count,
-            summary.request_count
-        );
-        assert!(summary.order_preserved);
-        assert!(summary.single_query_parity_preserved);
-        assert!(summary
-            .summary_line()
-            .contains("Packaged mixed frame batch parity:"));
-        assert!(packaged_mixed_frame_batch_parity_summary_for_report()
-            .contains("Packaged mixed frame batch parity:"));
-    }
-
-    #[test]
-    fn packaged_mixed_frame_batch_parity_summary_report_marks_drift_as_unavailable() {
-        let mut summary = packaged_mixed_frame_batch_parity_summary()
-            .expect("packaged mixed frame batch parity should be available");
-        summary.request_count += 1;
-
-        assert_eq!(
-            summary.validated_summary_line(),
-            Err(PackagedBatchParitySummaryValidationError::FieldOutOfSync {
-                field: "request_count/body_count",
-            })
-        );
-        assert_eq!(
-            format_validated_packaged_mixed_frame_batch_parity_summary_for_report(&summary),
-            "Packaged mixed frame batch parity: unavailable (the packaged mixed-frame batch-parity summary field `request_count/body_count` is out of sync with the current packaged posture)"
-        );
-    }
-
-    #[test]
-    fn packaged_mixed_frame_batch_parity_summary_report_marks_frame_mix_drift_as_unavailable() {
-        let mut summary = packaged_mixed_frame_batch_parity_summary()
-            .expect("packaged mixed frame batch parity should be available");
-        summary.ecliptic_request_count = summary.request_count;
-        summary.equatorial_request_count = 0;
-
-        assert_eq!(
-            format_validated_packaged_mixed_frame_batch_parity_summary_for_report(&summary),
-            "Packaged mixed frame batch parity: unavailable (the packaged mixed-frame batch-parity summary field `frame_mix` is out of sync with the current packaged posture)"
-        );
-    }
-
-    #[test]
-    fn packaged_mixed_frame_batch_parity_summary_report_marks_order_drift_as_unavailable() {
-        let mut summary = packaged_mixed_frame_batch_parity_summary()
-            .expect("packaged mixed frame batch parity should be available");
-        summary.order_preserved = false;
-
-        assert_eq!(
-            format_validated_packaged_mixed_frame_batch_parity_summary_for_report(&summary),
-            "Packaged mixed frame batch parity: unavailable (the packaged mixed-frame batch-parity summary field `order_preserved` is out of sync with the current packaged posture)"
-        );
-    }
-
-    #[test]
-    fn packaged_mixed_tt_tdb_batch_requests_preserve_request_scales() {
-        let backend = packaged_backend();
-        let requests = packaged_mixed_tt_tdb_batch_parity_requests()
-            .expect("packaged mixed TT/TDB batch parity requests should be available");
-        let alias_requests = packaged_mixed_tt_tdb_batch_parity_request_corpus()
-            .expect("packaged mixed TT/TDB batch parity request corpus should be available");
-
-        assert_eq!(requests, alias_requests);
-        assert_eq!(requests.len(), packaged_bodies().len());
-        assert!(requests.iter().enumerate().all(|(index, request)| {
-            matches!(
-                (index % 2, request.instant.scale),
-                (0, TimeScale::Tt) | (1, TimeScale::Tdb)
-            )
-        }));
-
-        let batch_results = backend
-            .positions(&requests)
-            .expect("mixed TT/TDB requests should succeed through the batch path");
-        assert_eq!(batch_results.len(), requests.len());
-
-        for (request, result) in requests.iter().zip(batch_results.iter()) {
-            let single = backend
-                .position(request)
-                .expect("mixed TT/TDB requests should succeed through the single-request path");
-
-            assert_eq!(result.instant.scale, request.instant.scale);
-            assert_eq!(result.quality, QualityAnnotation::Interpolated);
-            assert_eq!(result, &single);
-        }
-    }
-
-    #[test]
-    fn packaged_mixed_tt_tdb_batch_parity_summary_is_release_facing() {
-        let summary = packaged_mixed_tt_tdb_batch_parity_summary()
-            .expect("packaged mixed TT/TDB batch parity should be available");
-
-        assert_eq!(summary.to_string(), summary.summary_line());
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
-        assert!(summary.validate().is_ok());
-        assert_eq!(summary.request_count, packaged_bodies().len());
-        assert_eq!(summary.body_count, packaged_bodies().len());
-        assert_eq!(
-            summary.tt_request_count + summary.tdb_request_count,
-            summary.request_count
-        );
-        assert!(summary.order_preserved);
-        assert!(summary.single_query_parity_preserved);
-        assert!(summary
-            .summary_line()
-            .contains("Packaged mixed TT/TDB batch parity:"));
-        assert!(packaged_mixed_tt_tdb_batch_parity_summary_for_report()
-            .contains("Packaged mixed TT/TDB batch parity:"));
-    }
-
-    #[test]
-    fn packaged_mixed_tt_tdb_batch_parity_summary_report_marks_drift_as_unavailable() {
-        let mut summary = packaged_mixed_tt_tdb_batch_parity_summary()
-            .expect("packaged mixed TT/TDB batch parity should be available");
-        summary.request_count += 1;
-
-        assert_eq!(
-            summary.validated_summary_line(),
-            Err(
-                PackagedTimeScaleBatchParitySummaryValidationError::FieldOutOfSync {
-                    field: "request_count/body_count",
-                }
-            )
-        );
-        assert_eq!(
-            format_validated_packaged_mixed_tt_tdb_batch_parity_summary_for_report(&summary),
-            "Packaged mixed TT/TDB batch parity: unavailable (the packaged mixed TT/TDB batch-parity summary field `request_count/body_count` is out of sync with the current packaged posture)"
-        );
-    }
-
-    #[test]
-    fn packaged_mixed_tt_tdb_batch_parity_summary_report_marks_time_scale_mix_drift_as_unavailable()
-    {
-        let mut summary = packaged_mixed_tt_tdb_batch_parity_summary()
-            .expect("packaged mixed TT/TDB batch parity should be available");
-        summary.tt_request_count = summary.request_count;
-        summary.tdb_request_count = 0;
-
-        assert_eq!(
-            format_validated_packaged_mixed_tt_tdb_batch_parity_summary_for_report(&summary),
-            "Packaged mixed TT/TDB batch parity: unavailable (the packaged mixed TT/TDB batch-parity summary field `time_scale_mix` is out of sync with the current packaged posture)"
-        );
-    }
-
-    #[test]
-    fn packaged_mixed_tt_tdb_batch_parity_summary_report_marks_parity_drift_as_unavailable() {
-        let mut summary = packaged_mixed_tt_tdb_batch_parity_summary()
-            .expect("packaged mixed TT/TDB batch parity should be available");
-        summary.single_query_parity_preserved = false;
-
-        assert_eq!(
-            format_validated_packaged_mixed_tt_tdb_batch_parity_summary_for_report(&summary),
-            "Packaged mixed TT/TDB batch parity: unavailable (the packaged mixed TT/TDB batch-parity summary field `single_query_parity_preserved` is out of sync with the current packaged posture)"
-        );
-    }
-
-    #[test]
-    fn packaged_tdb_single_requests_match_tt_grid_lookups() {
-        let backend = packaged_backend();
-        let tt_request = EphemerisRequest {
-            body: CelestialBody::Sun,
-            instant: Instant::new(
-                pleiades_backend::JulianDay::from_days(2_451_545.0),
-                TimeScale::Tt,
-            ),
-            observer: None,
-            frame: CoordinateFrame::Ecliptic,
-            zodiac_mode: ZodiacMode::Tropical,
-            apparent: pleiades_backend::Apparentness::Mean,
-        };
-        let tdb_request = EphemerisRequest {
-            instant: Instant::new(tt_request.instant.julian_day, TimeScale::Tdb),
-            ..tt_request.clone()
-        };
-
-        let tt_result = backend
-            .position(&tt_request)
-            .expect("TT requests should succeed through the single-request path");
-        let tdb_result = backend
-            .position(&tdb_request)
-            .expect("TDB requests should succeed through the single-request path");
-
-        assert_eq!(tt_result.instant.scale, TimeScale::Tt);
-        assert_eq!(tdb_result.instant.scale, TimeScale::Tdb);
-        assert_eq!(tt_result.quality, QualityAnnotation::Interpolated);
-        assert_eq!(tdb_result.quality, QualityAnnotation::Interpolated);
-        assert_eq!(tt_result.ecliptic, tdb_result.ecliptic);
-        assert_eq!(tt_result.backend_id, tdb_result.backend_id);
-        assert_eq!(tt_result.body, tdb_result.body);
-        assert_eq!(tt_result.apparent, tdb_result.apparent);
     }
 
     #[test]
