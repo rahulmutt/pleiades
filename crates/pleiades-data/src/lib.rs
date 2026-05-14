@@ -2372,6 +2372,18 @@ impl PackagedArtifactTargetThresholdSummary {
             );
         }
 
+        let thresholds = packaged_artifact_fit_threshold_summary_details();
+        for scope_envelope in &self.scope_envelopes {
+            scope_envelope
+                .fit_envelope
+                .validate_against_thresholds(&thresholds)
+                .map_err(|_| {
+                    PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+                        field: "scope_envelopes",
+                    }
+                })?;
+        }
+
         Ok(())
     }
 
@@ -8145,6 +8157,26 @@ mod tests {
             }
         );
         assert!(error.to_string().contains("target_thresholds"));
+    }
+
+    #[test]
+    fn packaged_artifact_target_threshold_summary_validation_rejects_scope_threshold_violation() {
+        let mut summary = packaged_artifact_target_threshold_summary_details();
+        summary.scope_envelopes[0]
+            .fit_envelope
+            .max_distance_delta_au =
+            packaged_artifact_fit_threshold_summary_details().max_distance_delta_au + 1.0e-12;
+
+        let error = summary
+            .validate()
+            .expect_err("scope threshold violation should be rejected");
+        assert_eq!(
+            error,
+            PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+                field: "scope_envelopes",
+            }
+        );
+        assert!(error.to_string().contains("scope_envelopes"));
     }
 
     #[test]
