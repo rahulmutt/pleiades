@@ -940,9 +940,9 @@ pub fn packaged_artifact_fit_channel_outlier_summary_for_report() -> String {
     let mut channel_entries = Vec::new();
 
     for channel in [
+        ChannelKind::DistanceAu,
         ChannelKind::Longitude,
         ChannelKind::Latitude,
-        ChannelKind::DistanceAu,
     ] {
         if let Some(entry) =
             packaged_artifact_fit_channel_outlier_summary_for_channel(samples, channel)
@@ -1287,9 +1287,9 @@ pub fn packaged_artifact_fit_envelope_summary_for_report() -> String {
 
 fn packaged_artifact_fit_channel_rank(channel: ChannelKind) -> usize {
     match channel {
-        ChannelKind::Longitude => 0,
-        ChannelKind::Latitude => 1,
-        ChannelKind::DistanceAu => 2,
+        ChannelKind::DistanceAu => 0,
+        ChannelKind::Longitude => 1,
+        ChannelKind::Latitude => 2,
         _ => unreachable!("unsupported packaged-artifact channel kind"),
     }
 }
@@ -1322,9 +1322,9 @@ fn packaged_artifact_fit_outlier_summary_from_samples(
         let family_key = PackagedArtifactFitSegmentFamilyKey::from_sample(sample);
 
         for channel in [
+            ChannelKind::DistanceAu,
             ChannelKind::Longitude,
             ChannelKind::Latitude,
-            ChannelKind::DistanceAu,
         ] {
             let entry = families
                 .entry((sample.body.clone(), channel, family_key))
@@ -1365,9 +1365,9 @@ fn packaged_artifact_fit_outlier_summary_from_samples(
         .map(|(body, outliers)| {
             let mut channel_outliers = Vec::new();
             for channel in [
+                ChannelKind::DistanceAu,
                 ChannelKind::Longitude,
                 ChannelKind::Latitude,
-                ChannelKind::DistanceAu,
             ] {
                 if let Some(outlier) = outliers[packaged_artifact_fit_channel_rank(channel)].clone()
                 {
@@ -8164,6 +8164,38 @@ mod tests {
             packaged_artifact_fit_threshold_violation_summary_for_report(),
             "fit threshold violations: 0; details: none"
         );
+    }
+
+    #[test]
+    fn packaged_artifact_fit_outlier_summary_prioritizes_distance_channel_outliers() {
+        let summary = packaged_artifact_fit_outlier_summary_details();
+        let first_body_summary = summary
+            .body_summaries
+            .first()
+            .expect("packaged artifact fit outlier summary should include at least one body")
+            .summary_line();
+        let distance = first_body_summary
+            .find("DistanceAu=")
+            .expect("distance outliers should be surfaced first within body summaries");
+        let longitude = first_body_summary
+            .find("Longitude=")
+            .expect("longitude outliers should still be rendered");
+        let latitude = first_body_summary
+            .find("Latitude=")
+            .expect("latitude outliers should still be rendered");
+        assert!(distance < longitude && distance < latitude);
+
+        let by_channel = packaged_artifact_fit_channel_outlier_summary_for_report();
+        let distance = by_channel
+            .find("DistanceAu{")
+            .expect("distance outliers should be surfaced in the channel summary");
+        let longitude = by_channel
+            .find("Longitude{")
+            .expect("longitude outliers should still be rendered");
+        let latitude = by_channel
+            .find("Latitude{")
+            .expect("latitude outliers should still be rendered");
+        assert!(distance < longitude && distance < latitude);
     }
 
     #[test]
