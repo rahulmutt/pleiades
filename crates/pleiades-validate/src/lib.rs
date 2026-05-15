@@ -25420,7 +25420,7 @@ version = "0.9.0"
         assert!(release_summary.contains(
             "Comparison corpus release-grade guard: Pluto excluded from tolerance evidence"
         ));
-        assert!(release_summary.contains("Release-grade body claims: Sun through Neptune are release-grade major-body claims; Pluto remains an explicitly approximate fallback; selected asteroids remain source-backed validation bodies"));
+        assert!(release_summary.contains("Release-grade body claims: Sun through Neptune are release-grade major-body claims; Pluto remains an explicitly approximate fallback; selected asteroids (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) remain source-backed validation bodies"));
         let comparison_report = compare_backends(
             &default_reference_backend(),
             &default_candidate_backend(),
@@ -29042,7 +29042,7 @@ version = "0.9.0"
             render_release_body_claims_summary_text()
         );
         assert!(release_body_claims_summary.contains(
-            "Release-grade body claims: Sun through Neptune are release-grade major-body claims; Pluto remains an explicitly approximate fallback; selected asteroids remain source-backed validation bodies"
+            "Release-grade body claims: Sun through Neptune are release-grade major-body claims; Pluto remains an explicitly approximate fallback; selected asteroids (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) remain source-backed validation bodies"
         ));
         assert_eq!(
             render_cli(&["body-claims-summary"]).expect("body claims alias should render"),
@@ -29058,7 +29058,7 @@ version = "0.9.0"
             render_cli(&["pluto-fallback-summary"]).expect("Pluto fallback summary should render");
         assert_eq!(pluto_fallback_summary, render_pluto_fallback_summary_text());
         assert!(pluto_fallback_summary.contains(
-            "Release-grade body claims: Sun through Neptune are release-grade major-body claims; Pluto remains an explicitly approximate fallback; selected asteroids remain source-backed validation bodies"
+            "Release-grade body claims: Sun through Neptune are release-grade major-body claims; Pluto remains an explicitly approximate fallback; selected asteroids (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) remain source-backed validation bodies"
         ));
         assert!(pluto_fallback_summary.contains(
             "Pluto fallback policy: Pluto remains an explicitly approximate fallback; release-grade major-body claims exclude Pluto"

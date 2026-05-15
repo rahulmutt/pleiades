@@ -2300,7 +2300,7 @@ pub const CURRENT_PLUTO_FALLBACK_POLICY_SUMMARY_TEXT: &str =
 
 /// Canonical current policy summary text for the release-grade body claims posture.
 pub const CURRENT_RELEASE_BODY_CLAIMS_SUMMARY_TEXT: &str =
-    "Sun through Neptune are release-grade major-body claims; Pluto remains an explicitly approximate fallback; selected asteroids remain source-backed validation bodies";
+    "Sun through Neptune are release-grade major-body claims; Pluto remains an explicitly approximate fallback; selected asteroids (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) remain source-backed validation bodies";
 
 /// Returns the current shared time-scale policy used by validation and reports.
 pub const fn current_time_scale_policy_summary() -> TimeScalePolicySummary {
