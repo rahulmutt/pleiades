@@ -6,7 +6,7 @@ Make production release claims reproducible and enforceable from a clean checkou
 
 ## Starting point
 
-CLI and validation tooling can render audits, summaries, artifact reports, benchmark matrices, compatibility checks, API stability reports, and release-bundle rehearsals. These gates must become blocking once artifact, reference, body-claim, request-policy, and catalog evidence are production-ready.
+CLI and validation tooling can render audits, summaries, artifact reports, benchmark matrices, compatibility checks, API stability reports, release-house-validation summaries, and release-bundle rehearsals. These gates must become blocking once artifact, reference, body-claim, request-policy, and catalog evidence are production-ready.
 
 ## Implementation goals
 
