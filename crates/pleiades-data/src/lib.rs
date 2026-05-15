@@ -8,8 +8,8 @@
 //! back to other providers when callers request bodies outside that packaged
 //! slice. The packaged artifact stores ecliptic coordinates directly,
 //! reconstructs equatorial coordinates from the stored channels and
-//! mean-obliquity transform when requested, and adds Moon longitude residual
-//! corrections on high-curvature spans when they improve the fit. A
+//! mean-obliquity transform when requested, and adds Moon residual correction
+//! channels on high-curvature spans when they improve the fit. A
 //! maintainer-facing regeneration helper can rebuild the checked-in fixture
 //! from the bundled JPL reference snapshot without introducing any native
 //! tooling. When the `packaged-artifact-path` feature is
@@ -66,7 +66,7 @@ use pleiades_jpl::{
 const PACKAGE_NAME: &str = "pleiades-data";
 const ARTIFACT_LABEL: &str = "stage-5 packaged-data draft";
 const ARTIFACT_PROFILE_ID: &str = "pleiades-packaged-artifact-profile/stage-5-draft";
-const ARTIFACT_SOURCE: &str = "Quantized adjacent same-body cubic windows with longitude-unwrapped Moon and planet fits fitted to JPL Horizons reference epochs (1800, 2000, 2500 CE) for the comparison-body planetary set plus asteroid:433-Eros, with point segments only for single-epoch bodies and recursively subdivided cubic spans for multi-epoch bodies using body-class span caps and measured-fit comparison against the fallback, with a Moon longitude residual correction on high-curvature spans and quadratic fallback where four-point sampling is unavailable.";
+const ARTIFACT_SOURCE: &str = "Quantized adjacent same-body cubic windows with longitude-unwrapped Moon and planet fits fitted to JPL Horizons reference epochs (1800, 2000, 2500 CE) for the comparison-body planetary set plus asteroid:433-Eros, with point segments only for single-epoch bodies and recursively subdivided cubic spans for multi-epoch bodies using body-class span caps and measured-fit comparison against the fallback, with Moon residual correction channels on high-curvature spans when they improve the fit and quadratic fallback where four-point sampling is unavailable.";
 const PACKAGED_BASE_BODIES: [CelestialBody; 10] = [
     CelestialBody::Sun,
     CelestialBody::Moon,
@@ -250,7 +250,7 @@ impl PackagedArtifactGenerationPolicy {
     pub const fn note(self) -> &'static str {
         match self {
             Self::AdjacentSameBodyQuadraticWindows => {
-                "bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps and measured-fit comparison against the fallback, with quadratic fallback when four-point sampling is unavailable"
+                "bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps and measured-fit comparison against the fallback, with Moon residual correction channels on high-curvature spans when they improve the fit and quadratic fallback when four-point sampling is unavailable"
             }
         }
     }
@@ -5903,35 +5903,55 @@ fn segment_with_optional_residual_channels(
         return segment;
     }
 
-    let Some(candidate) = moon_residual_segment(&segment, reference_backend) else {
-        return segment;
-    };
-
-    let Some(base_error) = packaged_artifact_segment_fit_error(body, &segment, reference_backend)
+    let Some(mut best_error) =
+        packaged_artifact_segment_fit_error(body, &segment, reference_backend)
     else {
         return segment;
     };
-    let Some(candidate_error) =
-        packaged_artifact_segment_fit_error(body, &candidate, reference_backend)
-    else {
-        return segment;
-    };
+    let mut best_segment = segment;
 
-    if candidate_error.max_delta() < base_error.max_delta() {
-        candidate
-    } else {
-        segment
+    for channel_kind in [
+        ChannelKind::Longitude,
+        ChannelKind::Latitude,
+        ChannelKind::DistanceAu,
+    ] {
+        let Some(candidate) = moon_residual_segment(&best_segment, reference_backend, channel_kind)
+        else {
+            continue;
+        };
+
+        let Some(candidate_error) =
+            packaged_artifact_segment_fit_error(body, &candidate, reference_backend)
+        else {
+            continue;
+        };
+
+        if candidate_error.max_delta() < best_error.max_delta() {
+            best_error = candidate_error;
+            best_segment = candidate;
+        }
     }
+
+    best_segment
 }
 
 fn moon_residual_segment(
     segment: &Segment,
     reference_backend: &JplSnapshotBackend,
+    kind: ChannelKind,
 ) -> Option<Segment> {
-    let longitude_channel = segment
+    if segment
+        .residual_channels
+        .iter()
+        .any(|channel| channel.kind == kind)
+    {
+        return None;
+    }
+
+    let channel = segment
         .channels
         .iter()
-        .find(|channel| channel.kind == ChannelKind::Longitude)?;
+        .find(|channel| channel.kind == kind)?;
     let span_days = segment.end.julian_day.days() - segment.start.julian_day.days();
     let residual_samples = packaged_artifact_residual_sample_fractions()
         .iter()
@@ -5953,25 +5973,33 @@ fn moon_residual_segment(
             } else {
                 (sample_jd - segment.start.julian_day.days()) / span_days
             };
-            let base_longitude = evaluate_polynomial_channel(longitude_channel, x);
-            let residual = Angle::from_degrees(expected.longitude.degrees() - base_longitude)
-                .normalized_signed()
-                .degrees();
+            let current_value = segment_channel_value(segment, kind, x)?;
+            let residual = match kind {
+                ChannelKind::Longitude => {
+                    Angle::from_degrees(expected.longitude.degrees() - current_value)
+                        .normalized_signed()
+                        .degrees()
+                }
+                ChannelKind::Latitude => expected.latitude.degrees() - current_value,
+                ChannelKind::DistanceAu => expected.distance_au? - current_value,
+                _ => unreachable!("unsupported packaged-artifact channel kind"),
+            };
             Some((fraction, residual))
         })
         .collect::<Option<Vec<_>>>()?;
 
-    let residual_channel = polynomial_channel_from_samples(
-        ChannelKind::Longitude,
-        longitude_channel.scale_exponent,
-        &residual_samples,
-    )?;
+    let residual_channel =
+        polynomial_channel_from_samples(kind, channel.scale_exponent, &residual_samples)?;
+
+    let mut residual_channels = segment.residual_channels.clone();
+    residual_channels.push(residual_channel);
+    residual_channels.sort_by_key(|channel| channel.kind as u8);
 
     let residual_segment = Segment::with_residual_channels(
         segment.start,
         segment.end,
         segment.channels.clone(),
-        vec![residual_channel],
+        residual_channels,
     );
 
     if segment_fits_quantization(&residual_segment) {
@@ -5983,6 +6011,21 @@ fn moon_residual_segment(
 
 fn packaged_artifact_residual_sample_fractions() -> &'static [f64] {
     &[0.0, 0.25, 0.5, 0.75, 1.0]
+}
+
+fn segment_channel_value(segment: &Segment, kind: ChannelKind, x: f64) -> Option<f64> {
+    let base = segment
+        .channels
+        .iter()
+        .find(|channel| channel.kind == kind)?;
+    let residual = segment
+        .residual_channels
+        .iter()
+        .find(|channel| channel.kind == kind)
+        .map(|channel| evaluate_polynomial_channel(channel, x))
+        .unwrap_or(0.0);
+
+    Some(evaluate_polynomial_channel(base, x) + residual)
 }
 
 fn evaluate_polynomial_channel(channel: &PolynomialChannel, x: f64) -> f64 {
@@ -7250,7 +7293,7 @@ mod tests {
             summary.policy,
             PackagedArtifactGenerationPolicy::AdjacentSameBodyQuadraticWindows
         );
-        assert_eq!(summary.summary_line(), "adjacent same-body cubic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps and measured-fit comparison against the fallback, with quadratic fallback when four-point sampling is unavailable");
+        assert_eq!(summary.summary_line(), "adjacent same-body cubic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps and measured-fit comparison against the fallback, with Moon residual correction channels on high-curvature spans when they improve the fit and quadratic fallback when four-point sampling is unavailable");
         assert_eq!(summary.to_string(), summary.summary_line());
         summary
             .validate()
@@ -7337,7 +7380,7 @@ mod tests {
         );
         assert_eq!(
             summary.generation_policy_line(),
-            "generation policy: adjacent same-body cubic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps and measured-fit comparison against the fallback, with quadratic fallback when four-point sampling is unavailable"
+            "generation policy: adjacent same-body cubic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps and measured-fit comparison against the fallback, with Moon residual correction channels on high-curvature spans when they improve the fit and quadratic fallback when four-point sampling is unavailable"
         );
         assert_eq!(
             summary.residual_body_line(),

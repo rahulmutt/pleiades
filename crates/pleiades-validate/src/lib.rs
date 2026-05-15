@@ -86,7 +86,7 @@ use pleiades_data::{
     packaged_frame_parity_summary_for_report, packaged_frame_treatment_summary_for_report,
     packaged_lookup_epoch_policy_summary_for_report,
     packaged_mixed_tt_tdb_batch_parity_summary_for_report,
-    packaged_request_policy_summary_for_report, PackagedDataBackend,
+    packaged_request_policy_summary_for_report, regenerate_packaged_artifact, PackagedDataBackend,
 };
 use pleiades_elp::{
     lunar_apparent_comparison_evidence, lunar_apparent_comparison_summary,
@@ -18558,15 +18558,17 @@ fn render_packaged_artifact_regeneration(
     artifact_checksum_path: Option<String>,
     normalized_intermediate_path: Option<String>,
 ) -> Result<String, String> {
-    let artifact = packaged_artifact();
-    let encoded = packaged_artifact_bytes();
+    let artifact = regenerate_packaged_artifact();
+    let encoded = artifact
+        .encode()
+        .expect("packaged artifact should encode deterministically");
     if let Some(parent) = Path::new(&output_path).parent() {
         if !parent.as_os_str().is_empty() {
             fs::create_dir_all(parent)
                 .map_err(|error| format!("failed to create {}: {error}", parent.display()))?;
         }
     }
-    fs::write(&output_path, encoded)
+    fs::write(&output_path, &encoded)
         .map_err(|error| format!("failed to write {}: {error}", output_path))?;
 
     let manifest = if manifest_path.is_some()
@@ -25388,7 +25390,7 @@ version = "0.9.0"
         assert!(release_summary.contains("fit envelope:"));
         assert!(release_summary.contains("segment samples across"));
         assert!(release_summary.contains("checksum=0x"));
-        assert!(release_summary.contains("generation policy: adjacent same-body cubic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps and measured-fit comparison against the fallback, with quadratic fallback when four-point sampling is unavailable"));
+        assert!(release_summary.contains("generation policy: adjacent same-body cubic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps and measured-fit comparison against the fallback, with Moon residual correction channels on high-curvature spans when they improve the fit and quadratic fallback when four-point sampling is unavailable"));
         assert!(release_summary.contains(&format!(
             "artifact version={}",
             pleiades_data::packaged_artifact_regeneration_summary_details().artifact_version
@@ -25621,7 +25623,7 @@ version = "0.9.0"
         assert!(artifact_summary.contains("segment samples across"));
         assert!(artifact_summary.contains("checksum=0x"));
         assert!(
-            artifact_summary.contains("generation policy: adjacent same-body cubic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps and measured-fit comparison against the fallback, with quadratic fallback when four-point sampling is unavailable")
+            artifact_summary.contains("generation policy: adjacent same-body cubic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps and measured-fit comparison against the fallback, with Moon residual correction channels on high-curvature spans when they improve the fit and quadratic fallback when four-point sampling is unavailable")
         );
         assert!(artifact_summary.contains("residual bodies: Moon; applies to 1 bundled body"));
         assert!(artifact_summary.contains(&format!(
