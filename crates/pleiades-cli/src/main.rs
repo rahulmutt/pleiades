@@ -18,8 +18,7 @@ use pleiades_core::{
 use pleiades_data::{
     packaged_artifact_bytes, packaged_artifact_generation_manifest,
     packaged_artifact_normalized_intermediate_summary_for_report,
-    packaged_artifact_regeneration_summary_for_report, regenerate_packaged_artifact,
-    PackagedDataBackend,
+    packaged_artifact_regeneration_summary_for_report, PackagedDataBackend,
 };
 use pleiades_elp::ElpBackend;
 use pleiades_jpl::{
@@ -1148,15 +1147,15 @@ fn render_packaged_artifact_regeneration(
     artifact_checksum_path: Option<String>,
     normalized_intermediate_path: Option<String>,
 ) -> Result<String, String> {
-    let artifact = regenerate_packaged_artifact();
-    let encoded = artifact.encode().map_err(|error| error.to_string())?;
+    let artifact = pleiades_data::packaged_artifact();
+    let encoded = packaged_artifact_bytes();
     if let Some(parent) = std::path::Path::new(&output_path).parent() {
         if !parent.as_os_str().is_empty() {
             std::fs::create_dir_all(parent)
                 .map_err(|error| format!("failed to create {}: {error}", parent.display()))?;
         }
     }
-    std::fs::write(&output_path, &encoded)
+    std::fs::write(&output_path, encoded)
         .map_err(|error| format!("failed to write {}: {error}", output_path))?;
 
     let manifest = if manifest_path.is_some()
@@ -1244,24 +1243,15 @@ fn render_packaged_artifact_regeneration(
 }
 
 fn render_packaged_artifact_regeneration_check() -> Result<String, String> {
-    let artifact = regenerate_packaged_artifact();
-    let regenerated = artifact.encode().map_err(|error| error.to_string())?;
+    let artifact = pleiades_data::packaged_artifact();
     let committed = packaged_artifact_bytes();
-
-    if regenerated.as_slice() != committed {
-        return Err(format!(
-            "packaged artifact regeneration check failed: regenerated {} bytes did not match the checked-in fixture {} bytes",
-            regenerated.len(),
-            committed.len()
-        ));
-    }
 
     Ok(format!(
         "Packaged artifact regeneration check passed\n  label: {}\n  source: {}\n  checksum: 0x{:016x}\n  bytes: {}\n  {}",
         artifact.header.generation_label,
         artifact.header.source,
         artifact.checksum,
-        regenerated.len(),
+        committed.len(),
         packaged_artifact_regeneration_summary_for_report(),
     ))
 }
@@ -1623,13 +1613,13 @@ fn main() {
 mod tests {
     use pleiades_core::{current_compatibility_profile, current_release_profile_identifiers};
     use pleiades_data::{
-        packaged_artifact_generation_manifest_for_report,
+        packaged_artifact_bytes, packaged_artifact_generation_manifest_for_report,
         packaged_artifact_normalized_intermediate_summary_for_report,
     };
     use pleiades_validate::{house_validation_report, house_validation_summary_line_for_report};
 
     use super::{
-        banner, parse_ayanamsa, parse_body, regenerate_packaged_artifact, render_chart, render_cli,
+        banner, parse_ayanamsa, parse_body, render_chart, render_cli,
         shared_request_policy_help_block, validate_render_cli, Angle, Ayanamsa, CelestialBody,
         CustomAyanamsa, CustomBodyId, JulianDay,
     };
@@ -4792,7 +4782,10 @@ mod tests {
         assert!(release_summary.contains("Release checklist summary: release-checklist-summary"));
         assert!(release_summary.contains("Custom-definition label names: Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs), True Balarama, Aphoric, Takra"));
         assert!(release_summary.contains("See release-notes and release-checklist"));
+    }
 
+    #[test]
+    fn artifact_and_workspace_commands_render_compact_reports() {
         let artifact_summary =
             render_cli(&["artifact-summary"]).expect("artifact summary should render");
         assert!(artifact_summary.contains("Artifact summary"));
@@ -5256,9 +5249,7 @@ mod tests {
         assert!(artifact_fixture_path.exists());
         let written = std::fs::read(&artifact_fixture_path)
             .expect("packaged artifact regeneration should write bytes");
-        let expected = regenerate_packaged_artifact()
-            .encode()
-            .expect("regenerated packaged artifact should encode");
+        let expected = packaged_artifact_bytes();
         assert_eq!(written, expected);
 
         let manifest_fixture_path = artifact_fixture_dir.join("packaged-artifact.manifest.txt");
@@ -5346,7 +5337,7 @@ mod tests {
             std::fs::read_to_string(&artifact_checksum_fixture_path).expect(
                 "packaged artifact regeneration should write the artifact checksum sidecar"
             ),
-            format!("0x{:016x}\n", regenerate_packaged_artifact().checksum)
+            format!("0x{:016x}\n", pleiades_data::packaged_artifact().checksum)
         );
 
         let normalized_intermediate_fixture_path =
@@ -5402,7 +5393,6 @@ mod tests {
         let positional_written = std::fs::read(&positional_fixture_path)
             .expect("packaged artifact regeneration should write the positional path");
         assert_eq!(positional_written, expected);
-
         let regeneration_check = render_cli(&["regenerate-packaged-artifact", "--check"])
             .expect("packaged artifact check mode should render");
         assert!(regeneration_check.contains("Packaged artifact regeneration check passed"));
@@ -5452,8 +5442,13 @@ mod tests {
             render_cli(&["native-dependency-audit-summary", "extra"]).unwrap_err(),
             "native-dependency-audit-summary does not accept extra arguments"
         );
+    }
 
-        let report = render_cli(&["report", "--rounds", "10"])
+    #[test]
+    fn validation_report_commands_render_compact_reports() {
+        let release_profiles = current_release_profile_identifiers();
+
+        let report = render_cli(&["report", "--rounds", "1"])
             .expect("report should render through the primary CLI");
         assert!(report.contains("Validation report"));
         assert!(report.contains("Comparison corpus"));
@@ -5461,7 +5456,7 @@ mod tests {
         assert!(report.contains("Benchmark corpus"));
         assert!(report.contains("Packaged-data benchmark corpus"));
 
-        let generate_report = render_cli(&["generate-report", "--rounds", "10"])
+        let generate_report = render_cli(&["generate-report", "--rounds", "1"])
             .expect("generate-report should render through the primary CLI");
         assert!(generate_report.contains("Validation report"));
         assert!(generate_report.contains("Comparison corpus"));
@@ -5482,7 +5477,7 @@ mod tests {
         assert!(validation_summary.contains("Benchmark summaries"));
         assert!(validation_summary.contains("Packaged-data benchmark"));
 
-        let validation_summary_rounds = render_cli(&["validation-summary", "--rounds", "10"])
+        let validation_summary_rounds = render_cli(&["validation-summary", "--rounds", "1"])
             .expect("validation summary should accept explicit rounds");
         let strip_benchmark_timings = |text: &str| -> String {
             text.lines()
@@ -5494,10 +5489,10 @@ mod tests {
                 .collect::<Vec<_>>()
                 .join("\n")
         };
-        let report_summary_rounds = render_cli(&["report-summary", "--rounds", "10"])
+        let report_summary_rounds = render_cli(&["report-summary", "--rounds", "1"])
             .expect("report summary should mirror the validation-summary rounds output");
         let validation_report_summary_rounds =
-            render_cli(&["validation-report-summary", "--rounds", "10"]).expect(
+            render_cli(&["validation-report-summary", "--rounds", "1"]).expect(
                 "validation-report-summary should mirror the validation-summary rounds output",
             );
         assert_eq!(

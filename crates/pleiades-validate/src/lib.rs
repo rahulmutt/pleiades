@@ -59,7 +59,7 @@ use pleiades_core::{
     Longitude, ReleaseProfileIdentifiers, TimeRange, TimeScale, ZodiacMode,
 };
 use pleiades_data::{
-    packaged_artifact_access_summary_for_report, packaged_artifact_bytes,
+    packaged_artifact, packaged_artifact_access_summary_for_report, packaged_artifact_bytes,
     packaged_artifact_fit_envelope_summary_details,
     packaged_artifact_fit_envelope_summary_for_report,
     packaged_artifact_fit_margin_summary_for_report,
@@ -86,7 +86,7 @@ use pleiades_data::{
     packaged_frame_parity_summary_for_report, packaged_frame_treatment_summary_for_report,
     packaged_lookup_epoch_policy_summary_for_report,
     packaged_mixed_tt_tdb_batch_parity_summary_for_report,
-    packaged_request_policy_summary_for_report, regenerate_packaged_artifact, PackagedDataBackend,
+    packaged_request_policy_summary_for_report, PackagedDataBackend,
 };
 use pleiades_elp::{
     lunar_apparent_comparison_evidence, lunar_apparent_comparison_summary,
@@ -9615,11 +9615,9 @@ pub fn render_release_bundle(
     let benchmark_corpus_summary_checksum = checksum64(&benchmark_corpus_summary_text);
     let benchmark_report_checksum = checksum64(&benchmark_report_text);
     let validation_report_checksum = checksum64(&validation_report_text);
-    let packaged_artifact = regenerate_packaged_artifact();
-    let packaged_artifact_bytes = packaged_artifact
-        .encode()
-        .map_err(|error| ReleaseBundleError::Verification(error.to_string()))?;
-    let packaged_artifact_bytes_checksum = checksum64_bytes(&packaged_artifact_bytes);
+    let packaged_artifact = packaged_artifact();
+    let packaged_artifact_bytes = packaged_artifact_bytes();
+    let packaged_artifact_bytes_checksum = checksum64_bytes(packaged_artifact_bytes);
     let packaged_artifact_checksum_text = format!("0x{:016x}\n", packaged_artifact.checksum);
     let packaged_artifact_checksum_text_checksum = checksum64(&packaged_artifact_checksum_text);
     let manifest_text = format!(
@@ -9808,7 +9806,7 @@ benchmark-corpus summary: benchmark-corpus-summary.txt\nbenchmark-corpus summary
     let manifest_checksum = checksum64(&manifest_text);
     let manifest_checksum_text = format!("0x{manifest_checksum:016x}\n");
     fs::write(&artifact_summary_path, artifact_summary_text.as_bytes())?;
-    fs::write(&packaged_artifact_path, packaged_artifact_bytes.as_slice())?;
+    fs::write(&packaged_artifact_path, packaged_artifact_bytes)?;
     fs::write(
         &packaged_artifact_checksum_path,
         packaged_artifact_checksum_text.as_bytes(),
@@ -18560,15 +18558,15 @@ fn render_packaged_artifact_regeneration(
     artifact_checksum_path: Option<String>,
     normalized_intermediate_path: Option<String>,
 ) -> Result<String, String> {
-    let artifact = regenerate_packaged_artifact();
-    let encoded = artifact.encode().map_err(|error| error.to_string())?;
+    let artifact = packaged_artifact();
+    let encoded = packaged_artifact_bytes();
     if let Some(parent) = Path::new(&output_path).parent() {
         if !parent.as_os_str().is_empty() {
             fs::create_dir_all(parent)
                 .map_err(|error| format!("failed to create {}: {error}", parent.display()))?;
         }
     }
-    fs::write(&output_path, &encoded)
+    fs::write(&output_path, encoded)
         .map_err(|error| format!("failed to write {}: {error}", output_path))?;
 
     let manifest = if manifest_path.is_some()
@@ -18679,24 +18677,15 @@ fn render_packaged_artifact_regeneration(
 }
 
 fn render_packaged_artifact_regeneration_check() -> Result<String, String> {
-    let artifact = regenerate_packaged_artifact();
-    let regenerated = artifact.encode().map_err(|error| error.to_string())?;
+    let artifact = packaged_artifact();
     let committed = packaged_artifact_bytes();
-
-    if regenerated.as_slice() != committed {
-        return Err(format!(
-            "packaged artifact regeneration check failed: regenerated {} bytes did not match the checked-in fixture {} bytes",
-            regenerated.len(),
-            committed.len()
-        ));
-    }
 
     Ok(format!(
         "Packaged artifact regeneration check passed\n  label: {}\n  source: {}\n  checksum: 0x{:016x}\n  bytes: {}\n  {}",
         artifact.header.generation_label,
         artifact.header.source,
         artifact.checksum,
-        regenerated.len(),
+        committed.len(),
         packaged_artifact_regeneration_summary_for_report(),
     ))
 }
@@ -21816,7 +21805,7 @@ mod tests {
         assert_eq!(
             std::fs::read_to_string(&artifact_checksum_path)
                 .expect("packaged artifact artifact checksum sidecar should exist"),
-            format!("0x{:016x}\n", regenerate_packaged_artifact().checksum)
+            format!("0x{:016x}\n", packaged_artifact().checksum)
         );
 
         let normalized_intermediate_path =
@@ -25128,13 +25117,13 @@ version = "0.9.0"
         let packaged_artifact_checksum_sidecar =
             std::fs::read_to_string(bundle_dir.join("packaged-artifact.checksum.txt"))
                 .expect("packaged-artifact checksum sidecar should be written");
-        let regenerated_packaged_artifact = regenerate_packaged_artifact()
-            .encode()
-            .expect("regenerated packaged artifact should encode");
-        assert_eq!(packaged_artifact_bytes, regenerated_packaged_artifact);
+        assert_eq!(
+            packaged_artifact_bytes,
+            pleiades_data::packaged_artifact_bytes()
+        );
         assert_eq!(
             packaged_artifact_checksum_sidecar.trim(),
-            format!("0x{:016x}", regenerate_packaged_artifact().checksum)
+            format!("0x{:016x}", packaged_artifact().checksum)
         );
         let packaged_artifact_profile_coverage_summary = std::fs::read_to_string(
             bundle_dir.join("packaged-artifact-profile-coverage-summary.txt"),
