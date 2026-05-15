@@ -6,7 +6,7 @@ Ensure house-system and ayanamsa release claims satisfy `requirements.md` FR-4/F
 
 ## Starting point
 
-The workspace has broad house and ayanamsa catalogs, aliases, descriptor validation, custom-definition handling, release-profile summaries, and representative provenance surfaces. Remaining work is evidence depth and truthful status classification, not catalog scaffolding.
+The workspace has broad house and ayanamsa catalogs, aliases, descriptor validation, custom-definition handling, release-profile summaries, representative provenance surfaces, and now validated report wrappers for the house-formula-family and latitude-sensitive house-system sections. Remaining work is evidence depth and truthful status classification, not catalog scaffolding.
 
 ## Implementation goals
 

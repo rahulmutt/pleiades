@@ -50,12 +50,12 @@ use pleiades_core::{
     catalog_inventory_summary_for_report, current_api_stability_profile,
     current_compatibility_profile, current_release_profile_identifiers,
     custom_definition_ayanamsa_labels_summary_for_report, default_chart_bodies,
-    house_formula_families_summary_for_report, latitude_sensitive_house_systems_summary_for_report,
-    validate_custom_definition_labels, AccuracyClass, Angle, Apparentness, BackendCapabilities,
-    BackendFamily, BackendMetadata, CelestialBody, CompatibilityProfile, CompositeBackend,
-    CoordinateFrame, EclipticCoordinates, EphemerisBackend, EphemerisError, EphemerisErrorKind,
-    EphemerisRequest, EphemerisResult, Instant, JulianDay, Longitude, ReleaseProfileIdentifiers,
-    TimeRange, TimeScale, ZodiacMode,
+    validate_custom_definition_labels, validated_house_formula_families_summary_for_report,
+    validated_latitude_sensitive_house_systems_summary_for_report, AccuracyClass, Angle,
+    Apparentness, BackendCapabilities, BackendFamily, BackendMetadata, CelestialBody,
+    CompatibilityProfile, CompositeBackend, CoordinateFrame, EclipticCoordinates, EphemerisBackend,
+    EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult, Instant, JulianDay,
+    Longitude, ReleaseProfileIdentifiers, TimeRange, TimeScale, ZodiacMode,
 };
 use pleiades_data::{
     packaged_artifact_access_summary_for_report, packaged_artifact_bytes,
@@ -7702,21 +7702,15 @@ fn format_house_code_aliases_for_report() -> String {
 }
 
 fn format_house_formula_families_for_report() -> String {
-    match validated_compatibility_profile_for_report() {
-        Ok(_) => format!(
-            "House formula families: {}",
-            house_formula_families_summary_for_report()
-        ),
+    match validated_house_formula_families_summary_for_report() {
+        Ok(summary) => format!("House formula families: {summary}"),
         Err(error) => format!("house formula families unavailable ({error})"),
     }
 }
 
 fn format_latitude_sensitive_house_systems_for_report() -> String {
-    match validated_compatibility_profile_for_report() {
-        Ok(_) => format!(
-            "Latitude-sensitive house systems: {}",
-            latitude_sensitive_house_systems_summary_for_report()
-        ),
+    match validated_latitude_sensitive_house_systems_summary_for_report() {
+        Ok(summary) => format!("Latitude-sensitive house systems: {summary}"),
         Err(error) => format!("Latitude-sensitive house systems unavailable ({error})"),
     }
 }

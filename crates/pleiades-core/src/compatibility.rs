@@ -263,6 +263,14 @@ impl CompatibilityProfile {
         format_canonical_name_summary(&self.latitude_sensitive_house_systems())
     }
 
+    /// Returns the latitude-sensitive house-system coverage after validating the profile.
+    pub fn validated_latitude_sensitive_house_systems_summary_line(
+        &self,
+    ) -> Result<String, CompatibilityProfileValidationError> {
+        self.validate()?;
+        Ok(self.latitude_sensitive_house_systems_summary_line())
+    }
+
     /// Returns the unique house formula families represented in the profile,
     /// sorted by their release-facing labels.
     pub fn house_formula_family_names(&self) -> Vec<String> {
@@ -282,6 +290,14 @@ impl CompatibilityProfile {
             [single] => format!("1 ({single})"),
             _ => format!("{} ({})", names.len(), names.join(", ")),
         }
+    }
+
+    /// Returns the house-formula-family coverage after validating the profile.
+    pub fn validated_house_formula_families_summary_line(
+        &self,
+    ) -> Result<String, CompatibilityProfileValidationError> {
+        self.validate()?;
+        Ok(self.house_formula_families_summary_line())
     }
 
     /// Returns the canonical names for the built-in house-system baseline.
@@ -1195,9 +1211,21 @@ pub fn house_formula_families_summary_for_report() -> String {
     current_compatibility_profile().house_formula_families_summary_line()
 }
 
+/// Returns the compatibility-profile house formula family summary after validating the profile.
+pub fn validated_house_formula_families_summary_for_report(
+) -> Result<String, CompatibilityProfileValidationError> {
+    current_compatibility_profile().validated_house_formula_families_summary_line()
+}
+
 /// Returns the compatibility-profile latitude-sensitive house-system summary for report surfaces.
 pub fn latitude_sensitive_house_systems_summary_for_report() -> String {
     current_compatibility_profile().latitude_sensitive_house_systems_summary_line()
+}
+
+/// Returns the compatibility-profile latitude-sensitive house-system summary after validating the profile.
+pub fn validated_latitude_sensitive_house_systems_summary_for_report(
+) -> Result<String, CompatibilityProfileValidationError> {
+    current_compatibility_profile().validated_latitude_sensitive_house_systems_summary_line()
 }
 
 /// Returns the compatibility-profile custom-definition ayanamsa summary for report surfaces.
@@ -3320,6 +3348,12 @@ mod tests {
         assert!(invalid_profile
             .validated_release_ayanamsa_canonical_names_summary_line()
             .is_err());
+        assert!(invalid_profile
+            .validated_house_formula_families_summary_line()
+            .is_err());
+        assert!(invalid_profile
+            .validated_latitude_sensitive_house_systems_summary_line()
+            .is_err());
         assert_eq!(
             invalid_profile.to_string(),
             "Compatibility profile unavailable (compatibility profile summary is blank)"
@@ -3405,6 +3439,14 @@ mod tests {
         assert_eq!(
             profile.validated_release_ayanamsa_canonical_names_summary_line(),
             Ok(ayanamsa_summary.clone())
+        );
+        assert_eq!(
+            profile.validated_house_formula_families_summary_line(),
+            Ok(profile.house_formula_families_summary_line())
+        );
+        assert_eq!(
+            profile.validated_latitude_sensitive_house_systems_summary_line(),
+            Ok(profile.latitude_sensitive_house_systems_summary_line())
         );
     }
 
