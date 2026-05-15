@@ -5903,36 +5903,66 @@ fn segment_with_optional_residual_channels(
         return segment;
     }
 
-    let Some(mut best_error) =
-        packaged_artifact_segment_fit_error(body, &segment, reference_backend)
+    let Some(base_error) = packaged_artifact_segment_fit_error(body, &segment, reference_backend)
     else {
         return segment;
     };
-    let mut best_segment = segment;
 
-    for channel_kind in [
-        ChannelKind::Longitude,
-        ChannelKind::Latitude,
-        ChannelKind::DistanceAu,
-    ] {
-        let Some(candidate) = moon_residual_segment(&best_segment, reference_backend, channel_kind)
+    let candidate_for_kind = |segment: &Segment,
+                              channel_kind: ChannelKind|
+     -> Option<(Segment, PackagedArtifactSegmentFitError)> {
+        let candidate = moon_residual_segment(segment, reference_backend, channel_kind)?;
+        let candidate_error =
+            packaged_artifact_segment_fit_error(body, &candidate, reference_backend)?;
+        Some((candidate, candidate_error))
+    };
+
+    let (best_segment, _) = best_moon_residual_segment(
+        segment,
+        base_error,
+        &[
+            ChannelKind::Longitude,
+            ChannelKind::Latitude,
+            ChannelKind::DistanceAu,
+        ],
+        &candidate_for_kind,
+    );
+
+    best_segment
+}
+
+fn best_moon_residual_segment<F>(
+    current_segment: Segment,
+    current_error: PackagedArtifactSegmentFitError,
+    remaining_kinds: &[ChannelKind],
+    candidate_for_kind: &F,
+) -> (Segment, PackagedArtifactSegmentFitError)
+where
+    F: Fn(&Segment, ChannelKind) -> Option<(Segment, PackagedArtifactSegmentFitError)>,
+{
+    let mut best_segment = current_segment.clone();
+    let mut best_error = current_error;
+
+    for (index, kind) in remaining_kinds.iter().copied().enumerate() {
+        let Some((candidate_segment, candidate_error)) = candidate_for_kind(&current_segment, kind)
         else {
             continue;
         };
 
-        let Some(candidate_error) =
-            packaged_artifact_segment_fit_error(body, &candidate, reference_backend)
-        else {
-            continue;
-        };
+        let (recursive_segment, recursive_error) = best_moon_residual_segment(
+            candidate_segment,
+            candidate_error,
+            &remaining_kinds[index + 1..],
+            candidate_for_kind,
+        );
 
-        if candidate_error.max_delta() < best_error.max_delta() {
-            best_error = candidate_error;
-            best_segment = candidate;
+        if recursive_error.max_delta() < best_error.max_delta() {
+            best_segment = recursive_segment;
+            best_error = recursive_error;
         }
     }
 
-    best_segment
+    (best_segment, best_error)
 }
 
 fn moon_residual_segment(
@@ -6499,7 +6529,7 @@ mod tests {
     }
 
     #[test]
-    fn lookup_uses_packaged_moon_linear_segments() {
+    fn lookup_uses_packaged_moon_segments() {
         let body = CelestialBody::Moon;
         for epoch in [2_400_000.0, 2_500_000.0] {
             let reference = reference_snapshot()
@@ -6526,6 +6556,100 @@ mod tests {
             packaged_artifact().residual_segment_count() > 0,
             !packaged_artifact().residual_bodies().is_empty()
         );
+    }
+
+    #[test]
+    fn moon_residual_search_can_compose_multiple_channel_candidates() {
+        fn candidate_for_kind(
+            segment: &Segment,
+            kind: ChannelKind,
+        ) -> Option<(Segment, PackagedArtifactSegmentFitError)> {
+            if segment
+                .residual_channels
+                .iter()
+                .any(|channel| channel.kind == kind)
+            {
+                return None;
+            }
+
+            let mut residual_channels = segment.residual_channels.clone();
+            residual_channels.push(PolynomialChannel::new(kind, 0, vec![0.0]));
+            residual_channels.sort_by_key(|channel| channel.kind as u8);
+
+            let candidate = Segment::with_residual_channels(
+                segment.start,
+                segment.end,
+                segment.channels.clone(),
+                residual_channels.clone(),
+            );
+
+            let error = match residual_channels.len() {
+                0 => unreachable!("candidate helper always adds a residual channel"),
+                1 => match residual_channels[0].kind {
+                    ChannelKind::Longitude => PackagedArtifactSegmentFitError {
+                        longitude_degrees: 9.0,
+                        latitude_degrees: 9.0,
+                        distance_au: 9.0,
+                    },
+                    ChannelKind::Latitude => PackagedArtifactSegmentFitError {
+                        longitude_degrees: 11.0,
+                        latitude_degrees: 11.0,
+                        distance_au: 11.0,
+                    },
+                    ChannelKind::DistanceAu => PackagedArtifactSegmentFitError {
+                        longitude_degrees: 8.0,
+                        latitude_degrees: 8.0,
+                        distance_au: 8.0,
+                    },
+                    _ => unreachable!("unexpected residual channel kind"),
+                },
+                2 => PackagedArtifactSegmentFitError {
+                    longitude_degrees: 2.0,
+                    latitude_degrees: 2.0,
+                    distance_au: 2.0,
+                },
+                _ => PackagedArtifactSegmentFitError {
+                    longitude_degrees: 7.0,
+                    latitude_degrees: 7.0,
+                    distance_au: 7.0,
+                },
+            };
+
+            Some((candidate, error))
+        }
+
+        let current_segment = Segment::new(
+            Instant::new(JulianDay::from_days(0.0), TimeScale::Tt),
+            Instant::new(JulianDay::from_days(1.0), TimeScale::Tt),
+            vec![PolynomialChannel::new(ChannelKind::Longitude, 0, vec![0.0])],
+        );
+        let current_error = PackagedArtifactSegmentFitError {
+            longitude_degrees: 10.0,
+            latitude_degrees: 10.0,
+            distance_au: 10.0,
+        };
+
+        let (best_segment, best_error) = best_moon_residual_segment(
+            current_segment,
+            current_error,
+            &[
+                ChannelKind::Longitude,
+                ChannelKind::Latitude,
+                ChannelKind::DistanceAu,
+            ],
+            &candidate_for_kind,
+        );
+
+        assert_eq!(best_segment.residual_channels.len(), 2);
+        assert_eq!(
+            best_segment
+                .residual_channels
+                .iter()
+                .map(|channel| channel.kind)
+                .collect::<Vec<_>>(),
+            vec![ChannelKind::Longitude, ChannelKind::Latitude]
+        );
+        assert_eq!(best_error.max_delta(), 2.0);
     }
 
     #[test]
