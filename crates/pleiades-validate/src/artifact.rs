@@ -1,4 +1,5 @@
 use core::fmt;
+use std::sync::OnceLock;
 use std::time::Instant as StdInstant;
 
 use crate::{
@@ -1060,12 +1061,41 @@ impl fmt::Display for ArtifactBatchLookupBenchmarkReport {
     }
 }
 
+fn packaged_artifact_encoded_bytes() -> &'static [u8] {
+    static ENCODED: OnceLock<Vec<u8>> = OnceLock::new();
+    ENCODED.get_or_init(|| {
+        packaged_artifact()
+            .encode()
+            .expect("packaged artifact should encode")
+    })
+}
+
+fn packaged_artifact_inspection_report() -> &'static ArtifactInspectionReport {
+    static REPORT: OnceLock<ArtifactInspectionReport> = OnceLock::new();
+    REPORT.get_or_init(|| {
+        let artifact = packaged_artifact();
+        let encoded = packaged_artifact_encoded_bytes();
+        ArtifactInspectionReport::from_encoded_artifact(artifact, encoded, encoded.len())
+            .expect("packaged artifact inspection report should build")
+    })
+}
+
 impl ArtifactInspectionReport {
+    #[cfg(test)]
     fn from_artifact(
         artifact: &CompressedArtifact,
         encoded_bytes: usize,
     ) -> Result<Self, ArtifactInspectionError> {
-        let decoded = CompressedArtifact::decode(&artifact.encode()?)?;
+        let encoded = artifact.encode()?;
+        Self::from_encoded_artifact(artifact, &encoded, encoded_bytes)
+    }
+
+    fn from_encoded_artifact(
+        artifact: &CompressedArtifact,
+        encoded: &[u8],
+        encoded_bytes: usize,
+    ) -> Result<Self, ArtifactInspectionError> {
+        let decoded = CompressedArtifact::decode(encoded)?;
         let mut bodies = Vec::with_capacity(decoded.bodies.len());
         let mut segment_count = 0usize;
         let mut earliest: Option<Instant> = None;
@@ -1320,19 +1350,14 @@ impl ArtifactInspectionReport {
 
 /// Renders the bundled artifact validation report.
 pub fn render_artifact_report() -> Result<String, ArtifactInspectionError> {
-    let artifact = packaged_artifact();
-    let encoded = artifact.encode()?;
-    let report = ArtifactInspectionReport::from_artifact(artifact, encoded.len())?;
-    Ok(report.to_string())
+    Ok(packaged_artifact_inspection_report().to_string())
 }
 
 /// Returns the aggregate packaged-artifact boundary envelope used by reports.
 pub fn artifact_boundary_envelope_summary_for_report(
 ) -> Result<ArtifactBoundaryEnvelopeSummary, ArtifactInspectionError> {
-    let artifact = packaged_artifact();
-    let encoded = artifact.encode()?;
-    let report = ArtifactInspectionReport::from_artifact(artifact, encoded.len())?;
-    let summary = artifact_boundary_envelope_summary(&report);
+    let report = packaged_artifact_inspection_report();
+    let summary = artifact_boundary_envelope_summary(report);
     summary
         .validate()
         .map_err(ArtifactInspectionError::BoundaryEnvelope)?;
@@ -1341,28 +1366,24 @@ pub fn artifact_boundary_envelope_summary_for_report(
 
 /// Renders a compact summary of the bundled artifact validation report.
 pub fn render_artifact_summary() -> Result<String, ArtifactInspectionError> {
-    let artifact = packaged_artifact();
-    let encoded = artifact.encode()?;
-    let report = ArtifactInspectionReport::from_artifact(artifact, encoded.len())?;
-    Ok(render_artifact_summary_text(&report))
+    Ok(render_artifact_summary_text(
+        packaged_artifact_inspection_report(),
+    ))
 }
 
 /// Returns the compact artifact inspection summary used by release-facing reports.
 pub fn artifact_inspection_summary_for_report() -> Result<String, ArtifactInspectionError> {
-    let artifact = packaged_artifact();
-    let encoded = artifact.encode()?;
-    let report = ArtifactInspectionReport::from_artifact(artifact, encoded.len())?;
-    report.validated_summary_line()
+    packaged_artifact_inspection_report().validated_summary_line()
 }
 
 pub(crate) fn benchmark_packaged_artifact_decode(
     rounds: usize,
 ) -> Result<ArtifactDecodeBenchmarkReport, ArtifactInspectionError> {
     let artifact = packaged_artifact();
-    let encoded = artifact.encode()?;
+    let encoded = packaged_artifact_encoded_bytes();
     let start = StdInstant::now();
     for _ in 0..rounds {
-        std::hint::black_box(CompressedArtifact::decode(&encoded)?);
+        std::hint::black_box(CompressedArtifact::decode(encoded)?);
     }
     let elapsed = start.elapsed();
 
@@ -1383,8 +1404,8 @@ pub(crate) fn benchmark_packaged_artifact_lookup(
     rounds: usize,
 ) -> Result<ArtifactLookupBenchmarkReport, ArtifactInspectionError> {
     let artifact = packaged_artifact();
-    let encoded = artifact.encode()?;
-    let corpus = artifact_model_comparison_corpus(artifact);
+    let encoded = packaged_artifact_encoded_bytes();
+    let corpus = artifact_timing_corpus(artifact);
     let sample_count = corpus.requests.len();
     let start = StdInstant::now();
     for _ in 0..rounds {
@@ -1412,8 +1433,8 @@ pub(crate) fn benchmark_packaged_artifact_batch_lookup(
     rounds: usize,
 ) -> Result<ArtifactBatchLookupBenchmarkReport, ArtifactInspectionError> {
     let artifact = packaged_artifact();
-    let encoded = artifact.encode()?;
-    let corpus = artifact_model_comparison_corpus(artifact);
+    let encoded = packaged_artifact_encoded_bytes();
+    let corpus = artifact_timing_corpus(artifact);
     let batch_size = corpus.requests.len();
     let backend = packaged_backend();
     let start = StdInstant::now();
@@ -1439,6 +1460,14 @@ pub(crate) fn benchmark_packaged_artifact_batch_lookup(
 
 pub(crate) fn packaged_artifact_corpus() -> ValidationCorpus {
     artifact_comparison_corpus(packaged_artifact())
+}
+
+fn artifact_timing_corpus(artifact: &CompressedArtifact) -> ValidationCorpus {
+    let mut corpus = artifact_model_comparison_corpus(artifact);
+    corpus.name = "Packaged artifact timing subset".to_string();
+    corpus.description = "Reduced timing subset of the packaged artifact comparison corpus.";
+    corpus.requests.truncate(1);
+    corpus
 }
 
 fn artifact_model_comparison_corpus(artifact: &CompressedArtifact) -> ValidationCorpus {

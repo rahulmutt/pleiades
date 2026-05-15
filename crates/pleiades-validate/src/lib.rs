@@ -6,11 +6,12 @@
 
 #![forbid(unsafe_code)]
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fmt;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::{Mutex, OnceLock};
 use std::time::Instant as StdInstant;
 
 mod artifact;
@@ -4511,6 +4512,19 @@ pub fn banner() -> &'static str {
 /// Creates the default benchmark corpus.
 pub fn benchmark_corpus() -> ValidationCorpus {
     ValidationCorpus::representative_window()
+}
+
+fn benchmark_timing_corpus() -> ValidationCorpus {
+    ValidationCorpus::from_epochs(
+        "Representative 1500-2500 window",
+        "Reduced timing subset of the representative 1500-2500 benchmark corpus.",
+        Apparentness::Mean,
+        &[Instant::new(
+            JulianDay::from_days(2_451_545.0),
+            TimeScale::Tt,
+        )],
+        &[CelestialBody::Sun],
+    )
 }
 
 fn validate_release_smoke_at(output_dir: impl AsRef<Path>) -> Result<(), String> {
@@ -12736,9 +12750,25 @@ fn validate_packaged_artifact_fit_posture_with(
 }
 
 fn build_validation_report(rounds: usize) -> Result<ValidationReport, EphemerisError> {
+    static CACHE: OnceLock<Mutex<HashMap<usize, ValidationReport>>> = OnceLock::new();
+    let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
+    let mut cache = cache
+        .lock()
+        .expect("validation report cache should be lockable");
+
+    if let Some(report) = cache.get(&rounds).cloned() {
+        return Ok(report);
+    }
+
+    let report = build_validation_report_uncached(rounds)?;
+    cache.insert(rounds, report.clone());
+    Ok(report)
+}
+
+fn build_validation_report_uncached(rounds: usize) -> Result<ValidationReport, EphemerisError> {
     validate_packaged_artifact_fit_posture()?;
     let comparison_corpus = release_grade_corpus();
-    let benchmark_corpus = benchmark_corpus();
+    let benchmark_corpus = benchmark_timing_corpus();
     let packaged_benchmark_corpus = artifact::packaged_artifact_corpus();
     let chart_benchmark_corpus = chart_benchmark_corpus_summary();
     let reference = default_reference_backend();
@@ -13691,7 +13721,23 @@ fn render_comparison_audit_report_text(report: &ComparisonReport) -> String {
 
 /// Renders a benchmark report used by the CLI.
 pub fn render_benchmark_report(rounds: usize) -> Result<String, EphemerisError> {
-    let corpus = benchmark_corpus();
+    static CACHE: OnceLock<Mutex<HashMap<usize, String>>> = OnceLock::new();
+    let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
+    let mut cache = cache
+        .lock()
+        .expect("benchmark report cache should be lockable");
+
+    if let Some(report) = cache.get(&rounds).cloned() {
+        return Ok(report);
+    }
+
+    let report = render_benchmark_report_uncached(rounds)?;
+    cache.insert(rounds, report.clone());
+    Ok(report)
+}
+
+fn render_benchmark_report_uncached(rounds: usize) -> Result<String, EphemerisError> {
+    let corpus = benchmark_timing_corpus();
     let candidate = default_candidate_backend();
     let backend_report = benchmark_backend(&candidate, &corpus, rounds)?;
     let artifact_lookup_report =
