@@ -101,7 +101,9 @@ pub use compatibility::{
     catalog_inventory_summary_for_report, current_compatibility_profile,
     current_compatibility_profile_id, custom_definition_ayanamsa_labels_summary_for_report,
     house_formula_families_summary_for_report, latitude_sensitive_house_systems_summary_for_report,
-    validate_custom_definition_labels, validated_house_formula_families_summary_for_report,
+    validate_custom_definition_labels,
+    validated_custom_definition_ayanamsa_labels_summary_for_report,
+    validated_house_formula_families_summary_for_report,
     validated_latitude_sensitive_house_systems_summary_for_report, CompatibilityProfile,
     HouseCodeAliasInventorySummary, CURRENT_COMPATIBILITY_PROFILE_ID,
 };

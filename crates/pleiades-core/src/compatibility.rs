@@ -1233,6 +1233,12 @@ pub fn custom_definition_ayanamsa_labels_summary_for_report() -> String {
     current_compatibility_profile().custom_definition_ayanamsa_labels_summary_line()
 }
 
+/// Returns the compatibility-profile custom-definition ayanamsa summary after validating the profile.
+pub fn validated_custom_definition_ayanamsa_labels_summary_for_report(
+) -> Result<String, CompatibilityProfileValidationError> {
+    current_compatibility_profile().validated_custom_definition_ayanamsa_labels_summary_line()
+}
+
 /// Returns the compatibility-profile catalog inventory summary for report surfaces.
 pub fn catalog_inventory_summary_for_report() -> String {
     current_compatibility_profile().catalog_inventory_summary_line()
@@ -3354,6 +3360,9 @@ mod tests {
         assert!(invalid_profile
             .validated_latitude_sensitive_house_systems_summary_line()
             .is_err());
+        assert!(invalid_profile
+            .validated_custom_definition_ayanamsa_labels_summary_line()
+            .is_err());
         assert_eq!(
             invalid_profile.to_string(),
             "Compatibility profile unavailable (compatibility profile summary is blank)"
@@ -3447,6 +3456,10 @@ mod tests {
         assert_eq!(
             profile.validated_latitude_sensitive_house_systems_summary_line(),
             Ok(profile.latitude_sensitive_house_systems_summary_line())
+        );
+        assert_eq!(
+            profile.validated_custom_definition_ayanamsa_labels_summary_line(),
+            Ok(profile.custom_definition_ayanamsa_labels_summary_line())
         );
     }
 
