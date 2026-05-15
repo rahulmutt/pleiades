@@ -936,7 +936,7 @@ fn packaged_artifact_fit_channel_outlier_summary_for_channel(
 }
 
 pub fn packaged_artifact_fit_channel_outlier_summary_for_report() -> String {
-    let samples = packaged_artifact_fit_samples_for_current_artifact();
+    let samples = packaged_artifact_fit_outlier_samples_for_current_artifact();
     let mut channel_entries = Vec::new();
 
     for channel in [
@@ -1220,6 +1220,101 @@ fn packaged_artifact_fit_samples_for_current_artifact() -> &'static [PackagedArt
         .as_slice()
 }
 
+fn packaged_artifact_fit_outlier_sample_fractions(segment: &Segment) -> &'static [f64] {
+    if segment.start.julian_day.days() == segment.end.julian_day.days() {
+        &[0.0]
+    } else {
+        packaged_artifact_segment_validation_fractions()
+    }
+}
+
+fn packaged_artifact_fit_outlier_samples_with_filter<F>(
+    artifact: &CompressedArtifact,
+    mut include_body: F,
+) -> Vec<PackagedArtifactFitSample>
+where
+    F: FnMut(&CelestialBody) -> bool,
+{
+    let reference_backend = JplSnapshotBackend;
+    let packaged_backend = packaged_backend();
+    let mut samples = Vec::new();
+
+    for body_artifact in &artifact.bodies {
+        if !include_body(&body_artifact.body) {
+            continue;
+        }
+
+        for segment in &body_artifact.segments {
+            let start = segment.start.julian_day.days();
+            let span = segment.end.julian_day.days() - start;
+            for fraction in packaged_artifact_fit_outlier_sample_fractions(segment) {
+                let instant = Instant::new(
+                    JulianDay::from_days(start + span * fraction),
+                    segment.start.scale,
+                );
+                let request = EphemerisRequest {
+                    body: body_artifact.body.clone(),
+                    instant,
+                    observer: None,
+                    frame: CoordinateFrame::Ecliptic,
+                    zodiac_mode: ZodiacMode::Tropical,
+                    apparent: Apparentness::Mean,
+                };
+                let expected = match reference_backend.position(&request) {
+                    Ok(result) => result,
+                    Err(_) => continue,
+                };
+                let actual = match packaged_backend.position(&request) {
+                    Ok(result) => result,
+                    Err(_) => continue,
+                };
+
+                let (Some(expected_ecliptic), Some(actual_ecliptic)) =
+                    (expected.ecliptic, actual.ecliptic)
+                else {
+                    continue;
+                };
+                let (Some(expected_distance), Some(actual_distance)) =
+                    (expected_ecliptic.distance_au, actual_ecliptic.distance_au)
+                else {
+                    continue;
+                };
+
+                samples.push(PackagedArtifactFitSample {
+                    body: body_artifact.body.clone(),
+                    segment_start: segment.start,
+                    segment_end: segment.end,
+                    sample_instant: instant,
+                    sample_fraction: *fraction,
+                    longitude_delta_degrees: Angle::from_degrees(
+                        actual_ecliptic.longitude.degrees() - expected_ecliptic.longitude.degrees(),
+                    )
+                    .normalized_signed()
+                    .degrees()
+                    .abs(),
+                    latitude_delta_degrees: (actual_ecliptic.latitude.degrees()
+                        - expected_ecliptic.latitude.degrees())
+                    .abs(),
+                    distance_delta_au: (actual_distance - expected_distance).abs(),
+                });
+            }
+        }
+    }
+
+    samples
+}
+
+fn packaged_artifact_fit_outlier_samples_for_current_artifact(
+) -> &'static [PackagedArtifactFitSample] {
+    static SAMPLES: OnceLock<Vec<PackagedArtifactFitSample>> = OnceLock::new();
+    SAMPLES
+        .get_or_init(|| {
+            let artifact = packaged_artifact();
+            packaged_artifact_fit_outlier_samples_with_filter(artifact, |_| true)
+        })
+        .as_slice()
+}
+
 fn packaged_artifact_fit_envelope_summary_from_samples(
     samples: &[PackagedArtifactFitSample],
     expected_sample_count: usize,
@@ -1391,7 +1486,7 @@ fn packaged_artifact_fit_outlier_summary_from_samples(
 
 /// Returns the current packaged-artifact body/channel fit outlier summary record.
 pub fn packaged_artifact_fit_outlier_summary_details() -> PackagedArtifactFitOutlierSummary {
-    let samples = packaged_artifact_fit_samples_for_current_artifact();
+    let samples = packaged_artifact_fit_outlier_samples_for_current_artifact();
     packaged_artifact_fit_outlier_summary_from_samples(samples)
 }
 
@@ -6001,6 +6096,26 @@ mod tests {
         for (actual, expected) in channel.coefficients.iter().zip(expected_coefficients) {
             assert!((actual - expected).abs() < 1e-9);
         }
+    }
+
+    #[test]
+    fn packaged_artifact_fit_outlier_sample_fractions_track_the_validation_lattice() {
+        let artifact = packaged_artifact();
+        let segment = artifact
+            .bodies
+            .iter()
+            .flat_map(|body| body.segments.iter())
+            .find(|segment| segment.start.julian_day.days() != segment.end.julian_day.days())
+            .expect("packaged artifact should include at least one multi-day segment");
+
+        assert_eq!(
+            packaged_artifact_fit_sample_fractions(segment),
+            &[0.25, 0.5, 0.75]
+        );
+        assert_eq!(
+            packaged_artifact_fit_outlier_sample_fractions(segment),
+            packaged_artifact_segment_validation_fractions()
+        );
     }
 
     #[test]
