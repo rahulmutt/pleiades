@@ -24432,7 +24432,7 @@ mod tests {
             &artifact_inspection_summary_for_report()
                 .expect("artifact inspection summary should build")
         ));
-        assert!(rendered.contains("residual-bearing bodies: none"));
+        assert!(rendered.contains("residual-bearing bodies: Moon"));
         assert!(rendered.contains("Release checklist summary: release-checklist-summary"));
         assert!(rendered.contains("Release gate reminders:"));
         assert!(rendered.contains("verify-compatibility-profile"));
@@ -25602,7 +25602,7 @@ version = "0.9.0"
             &artifact_inspection_summary_for_report()
                 .expect("artifact inspection summary should build")
         ));
-        assert!(release_summary.contains("residual-bearing bodies: none"));
+        assert!(release_summary.contains("residual-bearing bodies: Moon"));
         assert!(release_summary.contains("applies to 11 bundled bodies"));
         assert!(release_summary.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
         assert!(release_summary
@@ -25611,8 +25611,8 @@ version = "0.9.0"
         assert!(artifact_summary.contains("Artifact summary"));
         assert!(packaged_artifact_generation_manifest
             .contains("Packaged artifact generation manifest:"));
-        assert!(artifact_summary.contains("residual-bearing segments: 0"));
-        assert!(artifact_summary.contains("residual-bearing bodies: none"));
+        assert!(artifact_summary.contains("residual-bearing segments:"));
+        assert!(artifact_summary.contains("residual-bearing bodies: Moon"));
         assert!(artifact_summary.contains("Body classes: luminaries=2; major planets=8; lunar points=0; built-in asteroids=0; custom bodies=1; other bodies=0"));
         assert!(artifact_summary.contains(
             "Artifact profile: byte order: little-endian; stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported; applies to 11 bundled bodies; bundled bodies: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros"
@@ -25634,7 +25634,7 @@ version = "0.9.0"
         assert!(
             artifact_summary.contains("generation policy: adjacent same-body cubic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps and measured-fit comparison against the fallback, with quadratic fallback when four-point sampling is unavailable")
         );
-        assert!(artifact_summary.contains("residual bodies: none; applies to 0 bundled bodies"));
+        assert!(artifact_summary.contains("residual bodies: Moon; applies to 1 bundled body"));
         assert!(artifact_summary.contains(&format!(
             "artifact version={}",
             pleiades_data::packaged_artifact_regeneration_summary_details().artifact_version

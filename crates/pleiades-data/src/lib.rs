@@ -6,11 +6,13 @@
 //! binary fixture that covers the comparison-body planetary set plus the
 //! source-backed custom asteroid `asteroid:433-Eros`, and the backend falls
 //! back to other providers when callers request bodies outside that packaged
-//! slice. The packaged artifact stores ecliptic coordinates directly and
+//! slice. The packaged artifact stores ecliptic coordinates directly,
 //! reconstructs equatorial coordinates from the stored channels and
-//! mean-obliquity transform when requested. A maintainer-facing regeneration
-//! helper can rebuild the checked-in fixture from the bundled JPL reference
-//! snapshot without introducing any native tooling. When the `packaged-artifact-path` feature is
+//! mean-obliquity transform when requested, and adds Moon longitude residual
+//! corrections on high-curvature spans when they improve the fit. A
+//! maintainer-facing regeneration helper can rebuild the checked-in fixture
+//! from the bundled JPL reference snapshot without introducing any native
+//! tooling. When the `packaged-artifact-path` feature is
 //! enabled, callers can also load an explicit artifact file for larger or
 //! externally distributed packaged datasets. See `docs/time-observer-policy.md`
 //! for the explicit packaged request/lookup-epoch policy, and
@@ -64,7 +66,7 @@ use pleiades_jpl::{
 const PACKAGE_NAME: &str = "pleiades-data";
 const ARTIFACT_LABEL: &str = "stage-5 packaged-data draft";
 const ARTIFACT_PROFILE_ID: &str = "pleiades-packaged-artifact-profile/stage-5-draft";
-const ARTIFACT_SOURCE: &str = "Quantized adjacent same-body cubic windows with longitude-unwrapped Moon and planet fits fitted to JPL Horizons reference epochs (1800, 2000, 2500 CE) for the comparison-body planetary set plus asteroid:433-Eros, with point segments only for single-epoch bodies and recursively subdivided cubic spans for multi-epoch bodies using body-class span caps and measured-fit comparison against the fallback, with quadratic fallback where four-point sampling is unavailable.";
+const ARTIFACT_SOURCE: &str = "Quantized adjacent same-body cubic windows with longitude-unwrapped Moon and planet fits fitted to JPL Horizons reference epochs (1800, 2000, 2500 CE) for the comparison-body planetary set plus asteroid:433-Eros, with point segments only for single-epoch bodies and recursively subdivided cubic spans for multi-epoch bodies using body-class span caps and measured-fit comparison against the fallback, with a Moon longitude residual correction on high-curvature spans and quadratic fallback where four-point sampling is unavailable.";
 const PACKAGED_BASE_BODIES: [CelestialBody; 10] = [
     CelestialBody::Sun,
     CelestialBody::Moon,
@@ -5863,11 +5865,104 @@ fn segment_from_pair_fallback(
 }
 
 fn segment_with_optional_residual_channels(
-    _body: &CelestialBody,
+    body: &CelestialBody,
     segment: Segment,
-    _reference_backend: &JplSnapshotBackend,
+    reference_backend: &JplSnapshotBackend,
 ) -> Segment {
-    segment
+    if *body != CelestialBody::Moon {
+        return segment;
+    }
+
+    let Some(candidate) = moon_residual_segment(&segment, reference_backend) else {
+        return segment;
+    };
+
+    let Some(base_error) = packaged_artifact_segment_fit_error(body, &segment, reference_backend)
+    else {
+        return segment;
+    };
+    let Some(candidate_error) =
+        packaged_artifact_segment_fit_error(body, &candidate, reference_backend)
+    else {
+        return segment;
+    };
+
+    if candidate_error.max_delta() < base_error.max_delta() {
+        candidate
+    } else {
+        segment
+    }
+}
+
+fn moon_residual_segment(
+    segment: &Segment,
+    reference_backend: &JplSnapshotBackend,
+) -> Option<Segment> {
+    let longitude_channel = segment
+        .channels
+        .iter()
+        .find(|channel| channel.kind == ChannelKind::Longitude)?;
+    let span_days = segment.end.julian_day.days() - segment.start.julian_day.days();
+    let residual_samples = packaged_artifact_residual_sample_fractions()
+        .iter()
+        .copied()
+        .map(|fraction| {
+            let sample_jd = segment.start.julian_day.days() + span_days * fraction;
+            let request = EphemerisRequest {
+                body: CelestialBody::Moon,
+                instant: Instant::new(JulianDay::from_days(sample_jd), TimeScale::Tt),
+                observer: None,
+                frame: CoordinateFrame::Ecliptic,
+                zodiac_mode: ZodiacMode::Tropical,
+                apparent: Apparentness::Mean,
+            };
+
+            let expected = reference_backend.position(&request).ok()?.ecliptic?;
+            let x = if span_days == 0.0 {
+                0.0
+            } else {
+                (sample_jd - segment.start.julian_day.days()) / span_days
+            };
+            let base_longitude = evaluate_polynomial_channel(longitude_channel, x);
+            let residual = Angle::from_degrees(expected.longitude.degrees() - base_longitude)
+                .normalized_signed()
+                .degrees();
+            Some((fraction, residual))
+        })
+        .collect::<Option<Vec<_>>>()?;
+
+    let residual_channel = polynomial_channel_from_samples(
+        ChannelKind::Longitude,
+        longitude_channel.scale_exponent,
+        &residual_samples,
+    )?;
+
+    let residual_segment = Segment::with_residual_channels(
+        segment.start,
+        segment.end,
+        segment.channels.clone(),
+        vec![residual_channel],
+    );
+
+    if segment_fits_quantization(&residual_segment) {
+        Some(residual_segment)
+    } else {
+        None
+    }
+}
+
+fn packaged_artifact_residual_sample_fractions() -> &'static [f64] {
+    &[0.0, 0.25, 0.5, 0.75, 1.0]
+}
+
+fn evaluate_polynomial_channel(channel: &PolynomialChannel, x: f64) -> f64 {
+    let mut result = 0.0;
+    let mut power = 1.0;
+    for coefficient in &channel.coefficients {
+        result += coefficient * power;
+        power *= x;
+    }
+    result
 }
 
 fn chebyshev_lobatto_fractions(sample_count: usize) -> Vec<f64> {
@@ -7127,6 +7222,8 @@ mod tests {
             summary.to_string()
         );
         let residual_bodies = packaged_artifact_generation_residual_bodies_summary_details();
+        assert!(artifact.residual_bodies().contains(&CelestialBody::Moon));
+        assert!(artifact.residual_segment_count() > 0);
         assert_eq!(residual_bodies.body_count, artifact.residual_bodies().len());
         assert_eq!(residual_bodies.bodies, artifact.residual_bodies().to_vec());
         assert_eq!(

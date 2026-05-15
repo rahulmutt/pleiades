@@ -2862,8 +2862,8 @@ mod tests {
 
         let summary = report.summary_line();
         assert!(summary.contains("artifact inspection:"));
-        assert!(summary.contains("residual-bearing segments: 0"));
-        assert!(summary.contains("residual-bearing bodies: none"));
+        assert!(summary.contains("residual-bearing segments:"));
+        assert!(summary.contains("residual-bearing bodies: Moon"));
         assert!(summary.contains("body classes: luminaries=2; major planets=8; lunar points=0; built-in asteroids=0; custom bodies=1; other bodies=0"));
         assert!(summary.contains("roundtrip=ok"));
         assert!(summary.contains("checksum=ok"));
@@ -2932,7 +2932,7 @@ mod tests {
             .expect_err("residual body drift should fail validation");
         assert!(error
             .to_string()
-            .contains("artifact inspection report field `residual_bodies` must stay empty when no residual segments are present"));
+            .contains("artifact inspection report field `residual_bodies` does not match the inspected residual-bearing body set"));
     }
 
     #[test]
@@ -2948,7 +2948,7 @@ mod tests {
             .expect_err("residual segment count drift should fail validation");
         assert!(error
             .to_string()
-            .contains("artifact inspection report field `residual_bodies` must name the residual-bearing bodies"));
+            .contains("artifact inspection report field `residual_segment_count` does not match the inspected residual-bearing segment count"));
     }
 
     #[test]
