@@ -3026,7 +3026,7 @@ fn lunar_source_window_requests() -> Vec<EphemerisRequest> {
     requests
 }
 
-/// This is a compatibility alias for [`lunar_source_window_requests`].
+/// This is a compatibility alias for `lunar_source_window_requests`.
 #[doc(alias = "lunar_source_window_requests")]
 pub fn lunar_source_window_request_corpus() -> Vec<EphemerisRequest> {
     lunar_source_window_requests()
