@@ -54,7 +54,7 @@ This file lists focused implementation slices for the current phase ladder. Comp
 
 - Add formula/reference evidence for any house system promoted to fully implemented status.
 - Add provenance/reference evidence for any ayanamsa promoted beyond descriptor/custom-only status.
-- Verify release profiles fail on overstated catalog claims.
+- The compatibility profile summary now fails closed if it stops describing the baseline/release split explicitly; extend similar claim checks to the remaining release-facing summary surfaces.
 
 ## Phase 6 — Release gate hardening
 

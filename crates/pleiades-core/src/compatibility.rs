@@ -406,6 +406,8 @@ pub enum CompatibilityProfileValidationError {
     BlankProfileIdentifier,
     /// The summary is blank.
     BlankSummary,
+    /// The summary no longer describes the baseline/release split explicitly.
+    SummaryDoesNotDescribeReleaseSplit,
     /// A text section is empty or contains a blank entry.
     BlankTextSectionEntry {
         /// Section that failed validation.
@@ -518,6 +520,9 @@ impl fmt::Display for CompatibilityProfileValidationError {
                 f.write_str("compatibility profile identifier is blank")
             }
             Self::BlankSummary => f.write_str("compatibility profile summary is blank"),
+            Self::SummaryDoesNotDescribeReleaseSplit => f.write_str(
+                "compatibility profile summary no longer describes the baseline/release split explicitly",
+            ),
             Self::BlankTextSectionEntry { section_label } => {
                 write!(f, "compatibility profile {section_label} entry is blank")
             }
@@ -629,6 +634,12 @@ fn validate_profile_identifier(
 fn validate_profile_summary(summary: &str) -> Result<(), CompatibilityProfileValidationError> {
     if summary.trim().is_empty() {
         return Err(CompatibilityProfileValidationError::BlankSummary);
+    }
+
+    if !summary.contains("baseline catalogs remain published")
+        || !summary.contains("target Swiss-Ephemeris-class compatibility catalog stays explicit")
+    {
+        return Err(CompatibilityProfileValidationError::SummaryDoesNotDescribeReleaseSplit);
     }
 
     Ok(())
@@ -3346,6 +3357,20 @@ mod tests {
         let summary = HouseCodeAliasInventorySummary::new(&[]);
 
         assert!(summary.validated_summary_line().is_err());
+    }
+
+    #[test]
+    fn compatibility_profile_validation_rejects_release_summary_drift() {
+        let mut profile = current_compatibility_profile();
+        profile.summary = "Stage 6 release profile: all built-ins are fully complete and the compatibility catalog is already exhaustive";
+
+        let error = profile
+            .validate()
+            .expect_err("summary overclaim should fail validation");
+        assert_eq!(
+            error,
+            CompatibilityProfileValidationError::SummaryDoesNotDescribeReleaseSplit
+        );
     }
 
     #[test]
