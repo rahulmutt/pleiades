@@ -685,9 +685,36 @@ pub fn format_production_generation_boundary_source_summary(
     summary: &IndependentHoldoutSourceSummary,
 ) -> String {
     format!(
-        "Production generation boundary overlay source: {}; coverage={}; columns={}",
-        summary.source, summary.coverage, summary.columns
+        "Production generation boundary overlay source: {}; coverage={}; columns={}; checksum=0x{:016x}",
+        summary.source,
+        summary.coverage,
+        summary.columns,
+        independent_holdout_snapshot_checksum(),
     )
+}
+
+fn independent_holdout_snapshot_checksum() -> u64 {
+    static CHECKSUM: OnceLock<u64> = OnceLock::new();
+    *CHECKSUM.get_or_init(|| {
+        fnv1a64(
+            include_str!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/data/independent_holdout_snapshot.csv"
+            ))
+            .as_bytes(),
+        )
+    })
+}
+
+fn fnv1a64(bytes: &[u8]) -> u64 {
+    const OFFSET_BASIS: u64 = 0xcbf29ce484222325;
+    const PRIME: u64 = 0x100000001b3;
+    let mut hash = OFFSET_BASIS;
+    for &byte in bytes {
+        hash ^= byte as u64;
+        hash = hash.wrapping_mul(PRIME);
+    }
+    hash
 }
 
 /// Returns the release-facing provenance summary string for the production-generation boundary overlay.
@@ -25922,7 +25949,7 @@ mod tests {
         assert_eq!(boundary_summary, holdout_summary);
         assert_eq!(
             format_production_generation_boundary_source_summary(&boundary_summary),
-            "Production generation boundary overlay source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Pluto at 2451545 and 2500000.; columns=epoch_jd, body, x_km, y_km, z_km"
+            "Production generation boundary overlay source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Pluto at 2451545 and 2500000.; columns=epoch_jd, body, x_km, y_km, z_km; checksum=0x3613b0300feba255"
         );
         assert_eq!(
             production_generation_boundary_source_summary_for_report(),
