@@ -21,7 +21,7 @@ This file lists focused implementation slices for the current phase ladder. Comp
 
 ### 2. Keep the finalized threshold policy aligned with Phase 2 corpus evidence
 
-- Keep the recorded production-ready body-class/channel thresholds synchronized with source-fit and independent hold-out checks.
+- Completed: the packaged-artifact target-threshold summary now carries explicit phase-2 reference, comparison, and independent hold-out corpus alignment evidence and fails closed on phase2 alignment drift.
 
 ## Phase 2 — Reference/source corpus productionization
 

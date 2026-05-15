@@ -55,9 +55,10 @@ use pleiades_compression::{
     EndianPolicy, PolynomialChannel, Segment, SpeedPolicy,
 };
 use pleiades_jpl::{
-    format_reference_snapshot_summary, production_generation_source_summary_for_report,
-    reference_snapshot, reference_snapshot_summary, JplSnapshotBackend, ReferenceSnapshotSummary,
-    SnapshotEntry,
+    comparison_snapshot_body_class_coverage_summary, format_reference_snapshot_summary,
+    independent_holdout_snapshot_body_class_coverage_summary,
+    production_generation_source_summary_for_report, reference_snapshot,
+    reference_snapshot_summary, JplSnapshotBackend, ReferenceSnapshotSummary, SnapshotEntry,
 };
 
 const PACKAGE_NAME: &str = "pleiades-data";
@@ -2367,6 +2368,90 @@ const PACKAGED_ARTIFACT_TARGET_THRESHOLD_SCOPES: &[&str] = &[
     "custom bodies",
 ];
 
+/// Phase-2 corpus evidence used to keep the packaged-artifact threshold policy aligned
+/// with the current reference, comparison, and hold-out corpora.
+#[derive(Clone, Debug, PartialEq)]
+pub struct PackagedArtifactPhase2CorpusAlignmentSummary {
+    /// Body-class coverage evidence from the checked-in reference snapshot.
+    pub reference_snapshot: pleiades_jpl::ReferenceSnapshotBodyClassCoverageSummary,
+    /// Body-class coverage evidence from the checked-in comparison snapshot.
+    pub comparison_snapshot: pleiades_jpl::ComparisonSnapshotBodyClassCoverageSummary,
+    /// Body-class coverage evidence from the checked-in independent hold-out snapshot.
+    pub independent_holdout: pleiades_jpl::IndependentHoldoutSnapshotBodyClassCoverageSummary,
+}
+
+impl PackagedArtifactPhase2CorpusAlignmentSummary {
+    /// Returns the phase-2 corpus alignment posture as a compact human-readable line.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "reference snapshot={}; comparison snapshot={}; independent hold-out={}",
+            self.reference_snapshot.summary_line(),
+            self.comparison_snapshot.summary_line(),
+            self.independent_holdout.summary_line(),
+        )
+    }
+
+    /// Returns `Ok(())` when the phase-2 corpus evidence still matches the current packaged-artifact posture.
+    pub fn validate(&self) -> Result<(), PackagedArtifactTargetThresholdSummaryValidationError> {
+        let Some(expected) = packaged_artifact_phase2_corpus_alignment_summary_details() else {
+            return Err(
+                PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+                    field: "phase2_corpus_alignment",
+                },
+            );
+        };
+
+        if self != &expected {
+            return Err(
+                PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+                    field: "phase2_corpus_alignment",
+                },
+            );
+        }
+
+        self.reference_snapshot.validate().map_err(|_| {
+            PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+                field: "phase2_corpus_alignment",
+            }
+        })?;
+        self.comparison_snapshot.validate().map_err(|_| {
+            PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+                field: "phase2_corpus_alignment",
+            }
+        })?;
+        self.independent_holdout.validate().map_err(|_| {
+            PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+                field: "phase2_corpus_alignment",
+            }
+        })?;
+
+        Ok(())
+    }
+
+    /// Returns the validated phase-2 corpus alignment posture as a compact human-readable line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, PackagedArtifactTargetThresholdSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for PackagedArtifactPhase2CorpusAlignmentSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+fn packaged_artifact_phase2_corpus_alignment_summary_details(
+) -> Option<PackagedArtifactPhase2CorpusAlignmentSummary> {
+    Some(PackagedArtifactPhase2CorpusAlignmentSummary {
+        reference_snapshot: pleiades_jpl::reference_snapshot_body_class_coverage_summary()?,
+        comparison_snapshot: comparison_snapshot_body_class_coverage_summary()?,
+        independent_holdout: independent_holdout_snapshot_body_class_coverage_summary()?,
+    })
+}
+
 /// Structured target-threshold posture for the packaged artifact generator.
 #[derive(Clone, Debug, PartialEq)]
 pub struct PackagedArtifactTargetThresholdSummary {
@@ -2380,6 +2465,8 @@ pub struct PackagedArtifactTargetThresholdSummary {
     pub fit_envelope: PackagedArtifactFitEnvelopeSummary,
     /// Body-class-specific fit envelopes captured for the current packaged artifact posture.
     pub scope_envelopes: Vec<PackagedArtifactTargetThresholdScopeSummary>,
+    /// Phase-2 corpus evidence that keeps the threshold posture aligned with the current corpus.
+    pub phase2_corpus_alignment: PackagedArtifactPhase2CorpusAlignmentSummary,
 }
 
 /// Validation error for a packaged-artifact target-threshold summary that drifted from the current posture.
@@ -2406,12 +2493,13 @@ impl PackagedArtifactTargetThresholdSummary {
     /// Returns the target-threshold posture as a compact human-readable line.
     pub fn summary_line(&self) -> String {
         format!(
-            "profile id={}; target thresholds: {}; scopes={}; {}; scope envelopes={}",
+            "profile id={}; target thresholds: {}; scopes={}; {}; scope envelopes={}; phase 2 corpus alignment={}",
             self.profile_id,
             self.state.label(),
             self.scopes.join(", "),
             self.fit_envelope.summary_line(),
             join_display(&self.scope_envelopes),
+            self.phase2_corpus_alignment.summary_line(),
         )
     }
 
@@ -2467,6 +2555,25 @@ impl PackagedArtifactTargetThresholdSummary {
             );
         }
 
+        let expected_phase2_corpus_alignment =
+            packaged_artifact_phase2_corpus_alignment_summary_details().ok_or(
+                PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+                    field: "phase2_corpus_alignment",
+                },
+            )?;
+        if self.phase2_corpus_alignment != expected_phase2_corpus_alignment {
+            return Err(
+                PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+                    field: "phase2_corpus_alignment",
+                },
+            );
+        }
+        self.phase2_corpus_alignment.validate().map_err(|_| {
+            PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+                field: "phase2_corpus_alignment",
+            }
+        })?;
+
         let thresholds = packaged_artifact_fit_threshold_summary_details();
         for scope_envelope in &self.scope_envelopes {
             scope_envelope
@@ -2506,6 +2613,8 @@ pub fn packaged_artifact_target_threshold_summary_details() -> PackagedArtifactT
         scopes: PACKAGED_ARTIFACT_TARGET_THRESHOLD_SCOPES,
         fit_envelope: packaged_artifact_fit_envelope_summary_details(),
         scope_envelopes: packaged_artifact_target_threshold_scope_envelopes_summary_details(),
+        phase2_corpus_alignment: packaged_artifact_phase2_corpus_alignment_summary_details()
+            .expect("phase-2 corpus evidence should be available"),
     };
     debug_assert!(summary.validate().is_ok());
     summary
@@ -8115,6 +8224,8 @@ mod tests {
             scopes: &["luminaries"],
             fit_envelope: packaged_artifact_fit_envelope_summary_details(),
             scope_envelopes: packaged_artifact_target_threshold_scope_envelopes_summary_details(),
+            phase2_corpus_alignment: packaged_artifact_phase2_corpus_alignment_summary_details()
+                .expect("phase-2 corpus evidence should be available"),
         };
 
         let error = manifest
@@ -8260,6 +8371,8 @@ mod tests {
             scopes: &["luminaries"],
             fit_envelope: packaged_artifact_fit_envelope_summary_details(),
             scope_envelopes: packaged_artifact_target_threshold_scope_envelopes_summary_details(),
+            phase2_corpus_alignment: packaged_artifact_phase2_corpus_alignment_summary_details()
+                .expect("phase-2 corpus evidence should be available"),
         };
 
         let error = summary
@@ -8292,6 +8405,47 @@ mod tests {
             }
         );
         assert!(error.to_string().contains("scope_envelopes"));
+    }
+
+    #[test]
+    fn packaged_artifact_target_threshold_summary_includes_phase2_corpus_alignment() {
+        let summary = packaged_artifact_target_threshold_summary_details();
+        assert!(summary
+            .summary_line()
+            .contains("phase 2 corpus alignment=reference snapshot="));
+        assert!(summary
+            .phase2_corpus_alignment
+            .summary_line()
+            .contains("Reference snapshot body-class coverage"));
+        assert!(summary
+            .phase2_corpus_alignment
+            .summary_line()
+            .contains("Independent hold-out body-class coverage"));
+        assert!(summary
+            .phase2_corpus_alignment
+            .validated_summary_line()
+            .is_ok());
+    }
+
+    #[test]
+    fn packaged_artifact_target_threshold_summary_validation_rejects_phase2_corpus_alignment_drift()
+    {
+        let mut summary = packaged_artifact_target_threshold_summary_details();
+        summary
+            .phase2_corpus_alignment
+            .independent_holdout
+            .row_count += 1;
+
+        let error = summary
+            .validate()
+            .expect_err("phase-2 corpus alignment drift should be rejected");
+        assert_eq!(
+            error,
+            PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+                field: "phase2_corpus_alignment",
+            }
+        );
+        assert!(error.to_string().contains("phase2_corpus_alignment"));
     }
 
     #[test]
