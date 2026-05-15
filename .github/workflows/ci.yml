@@ -11,10 +11,23 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install mise-managed tools
+      - name: Set up mise
         uses: jdx/mise-action@v2
         with:
-          install: true
+          install: false
+
+      - name: Cache Rust toolchain and Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.rustup
+            ~/.cargo
+          key: ${{ runner.os }}-rust-${{ hashFiles('mise.toml', 'Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-rust-
+
+      - name: Install mise-managed tools
+        run: mise install
 
       - name: Run workspace checks
         run: mise run ci
