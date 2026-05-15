@@ -53,7 +53,7 @@ Current backend and data posture:
 
 ## Current priority
 
-The execution frontier is Phase 1, with Phase 2 as its main dependency. The target-threshold policy is now recorded as production-ready, and the next implementation slice should keep the measured-fit path aligned with a trusted source corpus rather than add more report surfaces around the current draft fixture.
+The execution frontier is Phase 1, with Phase 2 as its main dependency. The target-threshold policy is now recorded as production-ready with explicit phase-2 corpus alignment evidence, and the next implementation slice should keep the measured-fit path aligned with a trusted source corpus rather than add more report surfaces around the current draft fixture.
 
 For live execution guidance, see:
 
@@ -84,4 +84,4 @@ For live execution guidance, see:
 
 When implementation closes a gap, remove it from the active phase/status docs and update the phase map. Do not keep completed report aliases, already-landed summaries, or historical phase notes as future work.
 
-Status: Updated 2026-05-14 after reviewing `SPEC.md`, `spec/*.md`, README status, CLI/report posture, and current plan documents.
+Status: Updated 2026-05-15 after reviewing `SPEC.md`, `spec/*.md`, README status, CLI/report posture, and current plan documents.
