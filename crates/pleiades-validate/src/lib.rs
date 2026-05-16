@@ -6012,11 +6012,11 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("ayanamsa-catalog-validation-summary") => {
             ensure_no_extra_args(&args[1..], "ayanamsa-catalog-validation-summary")?;
-            Ok(ayanamsa_catalog_validation_summary().summary_line())
+            Ok(format_ayanamsa_catalog_validation_for_report())
         }
         Some("ayanamsa-catalog-validation") => {
             ensure_no_extra_args(&args[1..], "ayanamsa-catalog-validation")?;
-            Ok(ayanamsa_catalog_validation_summary().summary_line())
+            Ok(format_ayanamsa_catalog_validation_for_report())
         }
         Some("ayanamsa-metadata-coverage-summary") => {
             ensure_no_extra_args(&args[1..], "ayanamsa-metadata-coverage-summary")?;
@@ -7696,6 +7696,13 @@ fn summarize_ayanamsa_provenance() -> Result<AyanamsaProvenanceSummary, Ephemeri
     Ok(summary)
 }
 
+fn format_ayanamsa_catalog_validation_for_report() -> String {
+    match ayanamsa_catalog_validation_summary().validated_summary_line() {
+        Ok(summary) => summary,
+        Err(error) => format!("ayanamsa catalog validation: unavailable ({error})"),
+    }
+}
+
 fn format_ayanamsa_metadata_coverage_for_report() -> String {
     match metadata_coverage().validated_summary_line() {
         Ok(summary) => summary,
@@ -7952,7 +7959,7 @@ fn render_compatibility_profile_summary_text() -> String {
         Err(error) => return format!("Compatibility profile summary unavailable ({error})"),
     }
     text.push('\n');
-    text.push_str(&ayanamsa_catalog_validation_summary().summary_line());
+    text.push_str(&format_ayanamsa_catalog_validation_for_report());
     text.push('\n');
     text.push_str(&format_ayanamsa_metadata_coverage_for_report());
     text.push('\n');
@@ -8808,7 +8815,7 @@ fn render_release_summary_text() -> String {
             &report.house_validation,
         ));
         text.push('\n');
-        text.push_str(&ayanamsa_catalog_validation_summary().summary_line());
+        text.push_str(&format_ayanamsa_catalog_validation_for_report());
         text.push('\n');
         text.push_str("Comparison tolerance policy: ");
         text.push_str(&format_comparison_tolerance_policy_for_report(
@@ -15761,11 +15768,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         "House validation corpus: {}",
         house_validation_summary
     );
-    let _ = writeln!(
-        text,
-        "{}",
-        ayanamsa_catalog_validation_summary().summary_line()
-    );
+    let _ = writeln!(text, "{}", format_ayanamsa_catalog_validation_for_report());
     let _ = writeln!(text);
     let _ = writeln!(text, "VSOP87 source-backed evidence");
     let _ = writeln!(text, "  {}", format_vsop87_source_documentation_summary());
@@ -22804,7 +22807,9 @@ mod tests {
         assert!(rendered.contains("baseline=5, release=54"));
         assert_eq!(
             rendered,
-            ayanamsa_catalog_validation_summary().summary_line()
+            ayanamsa_catalog_validation_summary()
+                .validated_summary_line()
+                .expect("ayanamsa catalog validation summary should validate")
         );
     }
 

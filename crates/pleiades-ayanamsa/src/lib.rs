@@ -1731,6 +1731,26 @@ pub struct AyanamsaCatalogValidationSummary {
     pub validation_result: Result<(), AyanamsaCatalogValidationError>,
 }
 
+/// Validation error for an ayanamsa catalog validation summary that drifted from the current posture.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum AyanamsaCatalogValidationSummaryValidationError {
+    /// A summary field is out of sync with the current ayanamsa catalog posture.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for AyanamsaCatalogValidationSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the ayanamsa catalog validation summary field `{field}` is out of sync with the current posture"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for AyanamsaCatalogValidationSummaryValidationError {}
+
 impl AyanamsaCatalogValidationSummary {
     /// Returns the compact release-facing summary line for the ayanamsa catalog validation state.
     pub fn summary_line(&self) -> String {
@@ -1754,6 +1774,80 @@ impl AyanamsaCatalogValidationSummary {
                 self.release_entry_count,
             ),
         }
+    }
+
+    /// Returns `Ok(())` when the summary still matches the current ayanamsa catalog posture.
+    pub fn validate(&self) -> Result<(), AyanamsaCatalogValidationSummaryValidationError> {
+        let expected_entry_count = built_in_ayanamsas().len();
+        if self.entry_count != expected_entry_count {
+            return Err(
+                AyanamsaCatalogValidationSummaryValidationError::FieldOutOfSync {
+                    field: "entry_count",
+                },
+            );
+        }
+
+        let expected_baseline_entry_count = baseline_ayanamsas().len();
+        if self.baseline_entry_count != expected_baseline_entry_count {
+            return Err(
+                AyanamsaCatalogValidationSummaryValidationError::FieldOutOfSync {
+                    field: "baseline_entry_count",
+                },
+            );
+        }
+
+        let expected_release_entry_count = release_ayanamsas().len();
+        if self.release_entry_count != expected_release_entry_count {
+            return Err(
+                AyanamsaCatalogValidationSummaryValidationError::FieldOutOfSync {
+                    field: "release_entry_count",
+                },
+            );
+        }
+
+        let expected_metadata_coverage = metadata_coverage();
+        if self.metadata_coverage != expected_metadata_coverage {
+            return Err(
+                AyanamsaCatalogValidationSummaryValidationError::FieldOutOfSync {
+                    field: "metadata_coverage",
+                },
+            );
+        }
+        self.metadata_coverage.validate().map_err(|_| {
+            AyanamsaCatalogValidationSummaryValidationError::FieldOutOfSync {
+                field: "metadata_coverage",
+            }
+        })?;
+
+        let (expected_label_count, expected_validation_result) =
+            match validate_ayanamsa_catalog_entries(built_in_ayanamsas()) {
+                Ok(label_count) => (label_count, Ok(())),
+                Err(error) => (0, Err(error)),
+            };
+        if self.label_count != expected_label_count {
+            return Err(
+                AyanamsaCatalogValidationSummaryValidationError::FieldOutOfSync {
+                    field: "label_count",
+                },
+            );
+        }
+        if self.validation_result != expected_validation_result {
+            return Err(
+                AyanamsaCatalogValidationSummaryValidationError::FieldOutOfSync {
+                    field: "validation_result",
+                },
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns the validated release-facing summary line for the ayanamsa catalog validation state.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, AyanamsaCatalogValidationSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
     }
 }
 
@@ -1980,7 +2074,25 @@ mod tests {
         assert!(summary
             .summary_line()
             .contains(&expected_custom_definition_only_labels));
+        assert!(summary.validated_summary_line().is_ok());
         assert_eq!(validate_ayanamsa_catalog(), Ok(()));
+    }
+
+    #[test]
+    fn catalog_validation_summary_validated_summary_line_rejects_label_count_drift() {
+        let mut summary = ayanamsa_catalog_validation_summary();
+        summary.label_count += 1;
+
+        let error = summary
+            .validated_summary_line()
+            .expect_err("label count drift should be rejected");
+        assert_eq!(
+            error,
+            AyanamsaCatalogValidationSummaryValidationError::FieldOutOfSync {
+                field: "label_count",
+            }
+        );
+        assert!(error.to_string().contains("label_count"));
     }
 
     #[test]

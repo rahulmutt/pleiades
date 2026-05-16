@@ -56,7 +56,7 @@ This file lists focused implementation slices for the current phase ladder. Comp
 
 - Add formula/reference evidence for any house system promoted to fully implemented status.
 - Add provenance/reference evidence for any ayanamsa promoted beyond descriptor/custom-only status.
-- The compatibility profile summary now fails closed if it stops describing the baseline/release split explicitly, and the house-formula-family / latitude-sensitive / house-code-alias / custom-definition report surfaces now use validated wrappers; the individual house and ayanamsa descriptor summary surfaces now also validate before rendering; the compatibility-caveats and release-notes summary surfaces now also route through validated latitude-sensitive house-system, house-code alias, and custom-definition ayanamsa wrappers; extend similar claim checks only to any newly identified release-facing summary surfaces that still bypass profile validation.
+- The compatibility profile summary now fails closed if it stops describing the baseline/release split explicitly, and the house-formula-family / latitude-sensitive / house-code-alias / custom-definition report surfaces now use validated wrappers; the individual house and ayanamsa descriptor summary surfaces now also validate before rendering; the ayanamsa catalog validation summary itself now has a validated wrapper in release-facing report surfaces; the compatibility-caveats and release-notes summary surfaces now also route through validated latitude-sensitive house-system, house-code alias, and custom-definition ayanamsa wrappers; extend similar claim checks only to any newly identified release-facing summary surfaces that still bypass profile validation.
 
 ## Phase 6 — Release gate hardening
 
