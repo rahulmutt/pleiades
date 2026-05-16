@@ -28,7 +28,7 @@ This file lists focused implementation slices for the current phase ladder. Comp
 
 ### 1. Source ingestion decision
 
-- Completed: the production source posture is now documented as a hybrid fixture corpus, with checked-in reference and hold-out fixtures plus a separate generation-input path; the reference snapshot and independent hold-out source summaries now expose deterministic source checksums alongside the CSV column schema metadata, the production-generation source summary now includes explicit per-fixture checksum revision markers plus CSV column schema metadata, the boundary overlay source summary now carries an explicit hold-out checksum marker, and the selected-asteroid source request corpus now exposes frame-specific and mixed-frame validation shapes.
+- Completed: the production source posture is now documented as a hybrid fixture corpus, with checked-in reference and hold-out fixtures plus a separate generation-input path; the reference snapshot and independent hold-out source summaries now expose deterministic source checksums alongside the CSV column schema metadata, the production-generation source summary now includes explicit per-fixture checksum revision markers plus CSV column schema metadata and the generation command, the boundary overlay source summary now carries an explicit hold-out checksum marker, and the selected-asteroid source request corpus now exposes frame-specific and mixed-frame validation shapes.
 - Continue documenting provenance, license/redistribution posture, frame, time scale, columns, source revision, and checksum expectations for any broader source-corpus expansion.
 
 ### 2. Coverage expansion

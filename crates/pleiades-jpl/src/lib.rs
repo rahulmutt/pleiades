@@ -2936,7 +2936,7 @@ pub fn production_generation_source_summary_for_report() -> String {
     }
 
     format!(
-        "Production generation source: strategy=documented hybrid fixture corpus; {}; {}; input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv; {}; file format=comma-separated values; columns=epoch_jd, body, x_km, y_km, z_km; frame=geocentric ecliptic J2000; time scale=TDB; parser=pure-Rust and deterministic; checksum expectation=byte-identical fixture contents; cadence=31 reference epochs and 10 boundary epochs; reference and hold-out rows remain separate; redistribution posture=repository-checked regression fixtures, not a broad public corpus",
+        "Production generation source: strategy=documented hybrid fixture corpus; {}; {}; input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv; {}; generation command=generate-packaged-artifact --check (consuming the checked-in CSV fixtures); file format=comma-separated values; columns=epoch_jd, body, x_km, y_km, z_km; frame=geocentric ecliptic J2000; time scale=TDB; parser=pure-Rust and deterministic; checksum expectation=byte-identical fixture contents; cadence=31 reference epochs and 10 boundary epochs; reference and hold-out rows remain separate; redistribution posture=repository-checked regression fixtures, not a broad public corpus",
         reference_summary.summary_line(),
         format_production_generation_boundary_source_summary(&boundary_summary),
         production_generation_source_revision_summary()
@@ -25867,7 +25867,7 @@ mod tests {
         assert_eq!(
             production_generation_source_summary_for_report(),
             format!(
-                "Production generation source: strategy=documented hybrid fixture corpus; {}; {}; input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv; {}; file format=comma-separated values; columns=epoch_jd, body, x_km, y_km, z_km; frame=geocentric ecliptic J2000; time scale=TDB; parser=pure-Rust and deterministic; checksum expectation=byte-identical fixture contents; cadence=31 reference epochs and 10 boundary epochs; reference and hold-out rows remain separate; redistribution posture=repository-checked regression fixtures, not a broad public corpus",
+                "Production generation source: strategy=documented hybrid fixture corpus; {}; {}; input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv; {}; generation command=generate-packaged-artifact --check (consuming the checked-in CSV fixtures); file format=comma-separated values; columns=epoch_jd, body, x_km, y_km, z_km; frame=geocentric ecliptic J2000; time scale=TDB; parser=pure-Rust and deterministic; checksum expectation=byte-identical fixture contents; cadence=31 reference epochs and 10 boundary epochs; reference and hold-out rows remain separate; redistribution posture=repository-checked regression fixtures, not a broad public corpus",
                 reference_snapshot_source_summary_for_report(),
                 production_generation_boundary_source_summary_for_report(),
                 production_generation_source_revision_summary()
@@ -28636,6 +28636,7 @@ mod tests {
         assert!(report.contains("parser=pure-Rust and deterministic"));
         assert!(report.contains("source revision=reference_snapshot.csv checksum=0x"));
         assert!(report.contains("independent_holdout_snapshot.csv checksum=0x"));
+        assert!(report.contains("generation command=generate-packaged-artifact --check"));
         assert!(report.contains("checksum expectation=byte-identical fixture contents"));
         assert!(report.contains("cadence=31 reference epochs and 10 boundary epochs"));
         assert!(report.contains("reference and hold-out rows remain separate"));

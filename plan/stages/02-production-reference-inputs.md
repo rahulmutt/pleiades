@@ -12,6 +12,7 @@ Provide documented public source inputs broad enough for backend validation, rel
 
 - The production source strategy is documented as a hybrid fixture corpus: checked-in reference and hold-out fixtures plus a separate generation-input path.
 - Record source provenance, frame, time scale, columns/channels, source revision, generation command, checksums, and redistribution posture.
+- Completed: the production-generation source summary now records the generation command alongside the checked-in CSV provenance, frame, time scale, schema, and checksum markers.
 - Expand coverage only where it supports release claims or artifact fitting.
 - Keep reference, hold-out, boundary-overlay, fixture-exactness, and provenance-only evidence classes separate.
 - Publish body-class tolerance reports and empirical error envelopes for release-claimed backend paths.
