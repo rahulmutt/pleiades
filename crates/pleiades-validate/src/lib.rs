@@ -9378,8 +9378,16 @@ pub fn render_release_bundle(
     let custom_definition_ayanamsa_labels_summary_text =
         render_custom_definition_ayanamsa_labels_summary();
     let validation_report_summary_text = render_validation_report_summary_text(&validation_report);
-    let release_body_claims_summary_text = release_body_claims_summary_for_report().summary_line();
-    let pluto_fallback_summary_text = pluto_fallback_summary_for_report().summary_line();
+    let release_body_claims_summary = release_body_claims_summary_for_report();
+    release_body_claims_summary
+        .validated_summary_line()
+        .map_err(|error| ReleaseBundleError::Verification(error.to_string()))?;
+    let release_body_claims_summary_text = release_body_claims_summary.summary_line();
+    let pluto_fallback_summary = pluto_fallback_summary_for_report();
+    pluto_fallback_summary
+        .validated_summary_line()
+        .map_err(|error| ReleaseBundleError::Verification(error.to_string()))?;
+    let pluto_fallback_summary_text = pluto_fallback_summary.summary_line();
     let request_policy_summary_text = render_request_policy_summary_text();
     let request_semantics_summary_text = render_request_semantics_summary_text();
     let time_scale_policy_summary_text = render_time_scale_policy_summary_text();

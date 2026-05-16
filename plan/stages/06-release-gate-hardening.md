@@ -6,7 +6,7 @@ Make production release claims reproducible and enforceable from a clean checkou
 
 ## Starting point
 
-CLI and validation tooling can render audits, summaries, artifact reports, benchmark matrices, compatibility checks, API stability reports, release-house-validation summaries, and release-bundle rehearsals. These gates must become blocking once artifact, reference, body-claim, request-policy, and catalog evidence are production-ready. The backend matrix summary now validates the compatibility profile before rendering so release matrix output fails closed on profile drift.
+CLI and validation tooling can render audits, summaries, artifact reports, benchmark matrices, compatibility checks, API stability reports, release-house-validation summaries, and release-bundle rehearsals. These gates must become blocking once artifact, reference, body-claim, request-policy, and catalog evidence are production-ready. The backend matrix summary now validates the compatibility profile before rendering so release matrix output fails closed on profile drift, and the release bundle generator now validates the release-grade body-claims and Pluto-fallback summaries before serializing them.
 
 ## Implementation goals
 
