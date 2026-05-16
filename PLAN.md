@@ -84,4 +84,4 @@ For live execution guidance, see:
 
 When implementation closes a gap, remove it from the active phase/status docs and update the phase map. Do not keep completed report aliases, already-landed summaries, or historical phase notes as future work.
 
-Status: Updated 2026-05-16 after reviewing `SPEC.md`, `spec/*.md`, README status, CLI/report posture, and current plan documents; descriptor-level validated summary wrappers were added for the house and ayanamsa catalogs.
+Status: Updated 2026-05-16 after reviewing `SPEC.md`, `spec/*.md`, README status, CLI/report posture, and current plan documents; descriptor-level validated summary wrappers were added for the house and ayanamsa catalogs, and the compatibility-caveats/release-notes summary surfaces now use validated house-system and ayanamsa wrappers.

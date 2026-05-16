@@ -8020,10 +8020,16 @@ fn render_compatibility_caveats_summary_text() -> String {
     text.push_str(&profile.known_gaps.len().to_string());
     text.push('\n');
     text.push_str("Latitude-sensitive house systems: ");
-    text.push_str(&profile.latitude_sensitive_house_systems_summary_line());
+    match profile.validated_latitude_sensitive_house_systems_summary_line() {
+        Ok(summary) => text.push_str(&summary),
+        Err(error) => return format!("Compatibility caveats summary unavailable ({error})"),
+    }
     text.push('\n');
     text.push_str("Descriptor-only ayanamsa labels: ");
-    text.push_str(&profile.custom_definition_ayanamsa_labels_summary_line());
+    match profile.validated_custom_definition_ayanamsa_labels_summary_line() {
+        Ok(summary) => text.push_str(&summary),
+        Err(error) => return format!("Compatibility caveats summary unavailable ({error})"),
+    }
     text.push('\n');
     for gap in profile.known_gaps {
         text.push_str("- ");
@@ -8267,7 +8273,10 @@ fn render_release_notes_summary_text() -> String {
     text.push_str(&profile.release_notes.len().to_string());
     text.push('\n');
     text.push_str("Latitude-sensitive house systems: ");
-    text.push_str(&summarize_latitude_sensitive_house_systems(&profile));
+    match profile.validated_latitude_sensitive_house_systems_summary_line() {
+        Ok(summary) => text.push_str(&summary),
+        Err(error) => return format!("Release notes summary unavailable ({error})"),
+    }
     text.push('\n');
     text.push_str("House formula families: ");
     text.push_str(&format_house_formula_families_summary(
@@ -8275,7 +8284,10 @@ fn render_release_notes_summary_text() -> String {
     ));
     text.push('\n');
     text.push_str("House code aliases: ");
-    text.push_str(&profile.house_code_aliases_summary_line());
+    match profile.validated_house_code_aliases_summary_line() {
+        Ok(summary) => text.push_str(&summary),
+        Err(error) => return format!("Release notes summary unavailable ({error})"),
+    }
     text.push('\n');
     text.push_str(&request_surface_summary_for_report());
     text.push('\n');
