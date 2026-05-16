@@ -247,6 +247,12 @@ impl HouseSystemDescriptor {
         text.push_str(self.notes);
         text
     }
+
+    /// Returns the descriptor summary after validating the entry first.
+    pub fn validated_summary_line(&self) -> Result<String, HouseCatalogValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
 
 impl fmt::Display for HouseSystemDescriptor {
@@ -268,6 +274,12 @@ impl HouseSystemCodeAlias {
     /// Returns a compact one-line rendering of the alias mapping.
     pub fn summary_line(&self) -> String {
         format!("{} -> {}", self.label, self.system)
+    }
+
+    /// Returns the alias mapping after validating the entry first.
+    pub fn validated_summary_line(&self) -> Result<String, HouseSystemCodeAliasValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
     }
 
     /// Validates the alias normalization and round-trip behavior for one entry.
@@ -1505,7 +1517,37 @@ mod tests {
         let expected =
             "Equal (aliases: Alias One, Alias Two) [formula: Equal] [latitude-sensitive] — Summary note";
         assert_eq!(descriptor.summary_line(), expected);
+        assert_eq!(
+            descriptor.validated_summary_line(),
+            Ok(expected.to_string())
+        );
         assert_eq!(descriptor.to_string(), expected);
+    }
+
+    #[test]
+    fn validated_summary_line_rejects_descriptor_drift() {
+        let descriptor = HouseSystemDescriptor::new(
+            HouseSystem::Equal,
+            "Equal",
+            &["Alias One"],
+            " Summary note",
+            true,
+        );
+
+        assert_eq!(
+            descriptor.validated_summary_line(),
+            Err(HouseCatalogValidationError::DescriptorNotesNotNormalized { label: "Equal" })
+        );
+
+        let alias = HouseSystemCodeAlias {
+            label: " T",
+            system: HouseSystem::Topocentric,
+        };
+
+        assert_eq!(
+            alias.validated_summary_line(),
+            Err(HouseSystemCodeAliasValidationError::LabelNotNormalized { label: " T" })
+        );
     }
 
     #[test]

@@ -177,6 +177,12 @@ impl AyanamsaDescriptor {
         text.push_str(self.notes);
         text
     }
+
+    /// Returns the descriptor summary after validating the entry first.
+    pub fn validated_summary_line(&self) -> Result<String, AyanamsaCatalogValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
 
 impl fmt::Display for AyanamsaDescriptor {
@@ -1930,7 +1936,28 @@ mod tests {
         let expected =
             "Lahiri (aliases: Alias One, Alias Two) [epoch: JD 2451545] [offset: 23.5°] — Summary note";
         assert_eq!(descriptor.summary_line(), expected);
+        assert_eq!(
+            descriptor.validated_summary_line(),
+            Ok(expected.to_string())
+        );
         assert_eq!(descriptor.to_string(), expected);
+    }
+
+    #[test]
+    fn validated_summary_line_rejects_partial_sidereal_metadata() {
+        let descriptor = AyanamsaDescriptor::new(
+            Ayanamsa::Lahiri,
+            "Lahiri",
+            &[],
+            "Summary note",
+            Some(JulianDay::from_days(2_451_545.0)),
+            None,
+        );
+
+        assert_eq!(
+            descriptor.validated_summary_line(),
+            Err(AyanamsaCatalogValidationError::PartialSiderealMetadata { label: "Lahiri" })
+        );
     }
 
     #[test]
