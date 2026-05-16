@@ -6,14 +6,14 @@ Ensure house-system and ayanamsa release claims satisfy `requirements.md` FR-4/F
 
 ## Starting point
 
-The workspace has broad house and ayanamsa catalogs, aliases, descriptor validation, custom-definition handling, release-profile summaries, representative provenance surfaces, and now validated report wrappers for the house-formula-family, latitude-sensitive house-system, custom-definition ayanamsa sections, and direct descriptor summary surfaces. Remaining work is evidence depth and truthful status classification, not catalog scaffolding.
+The workspace has broad house and ayanamsa catalogs, aliases, descriptor validation, custom-definition handling, release-profile summaries, representative provenance surfaces, and now validated report wrappers for the house-formula-family, latitude-sensitive house-system, house-code alias inventory, custom-definition ayanamsa sections, and direct descriptor summary surfaces. Remaining work is evidence depth and truthful status classification, not catalog scaffolding.
 
 ## Implementation goals
 
 - Audit release-advertised house systems for formula source, assumptions, aliases, latitude constraints, numerical failure modes, and tests.
 - Audit release-advertised ayanamsas for reference epochs, offsets, formulas, aliases, equivalence claims, and provenance.
 - Keep descriptor-only, constrained, approximate, custom-only, and unsupported entries distinct from fully implemented built-ins.
-- Extend validated summary wrappers to any remaining release-facing descriptor or alias surfaces that do not yet fail closed.
+- Extend validated summary wrappers to any remaining release-facing descriptor or alias surfaces that do not yet fail closed; the house-code alias inventory summary now validates before rendering.
 - Add golden/reference tests for representative house and ayanamsa outputs, especially alias-sensitive and latitude-sensitive cases.
 - Make compatibility-profile verification fail on overstated catalog claims.
 - Keep target-catalog identifiers extensible so future Swiss-Ephemeris-class breadth does not require public API redesign.

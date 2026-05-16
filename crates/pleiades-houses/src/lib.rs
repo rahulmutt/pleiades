@@ -420,6 +420,13 @@ pub fn house_system_code_aliases_summary_line() -> String {
         .join(", ")
 }
 
+/// Returns the alias table summary after validating the built-in alias inventory.
+pub fn validated_house_system_code_aliases_summary_line(
+) -> Result<String, HouseSystemCodeAliasValidationError> {
+    validate_house_system_code_aliases()?;
+    Ok(house_system_code_aliases_summary_line())
+}
+
 /// Errors emitted when validating the Swiss-Ephemeris-style house-code alias table.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum HouseSystemCodeAliasValidationError {
@@ -2336,6 +2343,10 @@ mod tests {
         assert_eq!(
             house_system_code_aliases_summary_line(),
             "P -> Placidus, K -> Koch, R -> Regiomontanus, C -> Campanus, O -> Porphyry, D -> Equal (MC), E -> Equal, W -> Whole Sign, V -> Vehlow Equal, A -> Axial, H -> Horizon/Azimuth, B -> Alcabitius, M -> Morinus, S -> Sripati, I -> Sunshine, G -> Gauquelin sectors, T -> Topocentric, U -> Krusinski-Pisa-Goelzer, Axial Rotation -> Meridian, Axial rotation system -> Meridian, X -> Meridian, Y -> APC"
+        );
+        assert_eq!(
+            validated_house_system_code_aliases_summary_line().unwrap(),
+            house_system_code_aliases_summary_line()
         );
         assert_eq!(
             resolve_house_system("axial rotation"),

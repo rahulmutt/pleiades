@@ -107,9 +107,8 @@ use pleiades_elp::{
     lunar_theory_specification, lunar_theory_summary_for_report, ElpBackend,
 };
 use pleiades_houses::{
-    baseline_house_systems, built_in_house_systems, house_system_code_aliases_summary_line,
-    release_house_systems, resolve_house_system, validate_house_catalog,
-    validate_house_system_code_aliases,
+    baseline_house_systems, built_in_house_systems, release_house_systems, resolve_house_system,
+    validate_house_catalog,
 };
 use pleiades_jpl::{
     comparison_snapshot_batch_parity_summary_for_report,
@@ -7712,8 +7711,8 @@ fn format_ayanamsa_provenance_for_report() -> String {
 }
 
 fn format_house_code_aliases_for_report() -> String {
-    match validate_house_system_code_aliases() {
-        Ok(()) => house_system_code_aliases_summary_line(),
+    match pleiades_houses::validated_house_system_code_aliases_summary_line() {
+        Ok(summary) => summary,
         Err(error) => format!("house-code aliases unavailable ({error})"),
     }
 }
