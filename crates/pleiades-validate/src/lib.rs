@@ -9624,7 +9624,8 @@ pub fn render_release_bundle(
     let request_surface_summary_checksum = checksum64(&request_surface_summary_text);
     let compatibility_caveats_summary_checksum = checksum64(&compatibility_caveats_summary_text);
     let workspace_audit_summary_checksum = checksum64(&workspace_audit_summary_text);
-    let native_dependency_audit_summary_checksum = workspace_audit_summary_checksum;
+    let native_dependency_audit_summary_text = workspace_audit_summary_text.as_str();
+    let native_dependency_audit_summary_checksum = checksum64(native_dependency_audit_summary_text);
     let artifact_summary_checksum = checksum64(&artifact_summary_text);
     let packaged_artifact_profile_coverage_summary_checksum =
         checksum64(&packaged_artifact_profile_coverage_summary_text);
@@ -9853,7 +9854,7 @@ benchmark-corpus summary: benchmark-corpus-summary.txt\nbenchmark-corpus summary
     )?;
     fs::write(
         &native_dependency_audit_summary_path,
-        workspace_audit_summary_text.as_bytes(),
+        native_dependency_audit_summary_text.as_bytes(),
     )?;
     let manifest_checksum = checksum64(&manifest_text);
     let manifest_checksum_text = format!("0x{manifest_checksum:016x}\n");
@@ -12328,7 +12329,7 @@ fn verify_release_bundle(
         catalog_inventory_summary_bytes: catalog_inventory_summary_text.len(),
         validation_report_summary_bytes: validation_report_summary_text.len(),
         workspace_audit_summary_bytes: workspace_audit_summary_text.len(),
-        native_dependency_audit_summary_bytes: workspace_audit_summary_text.len(),
+        native_dependency_audit_summary_bytes: native_dependency_audit_summary_text.len(),
         artifact_summary_bytes: artifact_summary_text.len(),
         packaged_artifact_profile_coverage_summary_bytes:
             packaged_artifact_profile_coverage_summary_text.len(),
