@@ -18390,6 +18390,26 @@ const INDEPENDENT_HOLDOUT_COVERAGE_FALLBACK: &str =
     "Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Pluto at 2451545 and 2500000.";
 const INDEPENDENT_HOLDOUT_COLUMNS: &str = "epoch_jd, body, x_km, y_km, z_km";
 
+fn reference_snapshot_source_checksum() -> u64 {
+    static CHECKSUM: OnceLock<u64> = OnceLock::new();
+    *CHECKSUM.get_or_init(|| {
+        checksum64(include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/data/reference_snapshot.csv"
+        )))
+    })
+}
+
+fn independent_holdout_source_checksum() -> u64 {
+    static CHECKSUM: OnceLock<u64> = OnceLock::new();
+    *CHECKSUM.get_or_init(|| {
+        checksum64(include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/data/independent_holdout_snapshot.csv"
+        )))
+    })
+}
+
 /// Backend-owned provenance summary for the checked-in reference snapshot source material.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ReferenceSnapshotSourceSummary {
@@ -18399,6 +18419,8 @@ pub struct ReferenceSnapshotSourceSummary {
     pub coverage: String,
     /// Column schema described by the checked-in reference snapshot.
     pub columns: String,
+    /// Deterministic checksum of the checked-in reference snapshot source material.
+    pub checksum: u64,
     /// Frame and coordinate posture described by the checked-in reference snapshot.
     pub frame_treatment: String,
     /// Reference epoch used by the checked-in snapshot.
@@ -18453,6 +18475,9 @@ impl ReferenceSnapshotSourceSummary {
                 ReferenceSnapshotSourceSummaryValidationError::FieldOutOfSync { field: "columns" },
             );
         }
+        if self.checksum != reference_snapshot_source_checksum() {
+            return Err(ReferenceSnapshotSourceSummaryValidationError::ChecksumMismatch);
+        }
         if self.frame_treatment.trim().is_empty() {
             return Err(ReferenceSnapshotSourceSummaryValidationError::BlankFrameTreatment);
         }
@@ -18479,10 +18504,11 @@ impl ReferenceSnapshotSourceSummary {
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
         format!(
-            "Reference snapshot source: {}; coverage={}; columns={}; {}; TDB reference epoch {}",
+            "Reference snapshot source: {}; coverage={}; columns={}; checksum=0x{:016x}; {}; TDB reference epoch {}",
             self.source,
             self.coverage,
             self.columns,
+            self.checksum,
             self.frame_treatment,
             format_instant(self.reference_epoch),
         )
@@ -18512,6 +18538,8 @@ pub enum ReferenceSnapshotSourceSummaryValidationError {
     SurroundedByWhitespace { field: &'static str },
     /// One of the canonical summary fields drifted from the checked-in slice.
     FieldOutOfSync { field: &'static str },
+    /// The summary checksum drifted from the checked-in source material.
+    ChecksumMismatch,
     /// The summary carried an unexpected reference epoch.
     ReferenceEpochMismatch,
 }
@@ -18526,6 +18554,7 @@ impl ReferenceSnapshotSourceSummaryValidationError {
             Self::BlankColumns => "blank columns",
             Self::SurroundedByWhitespace { .. } => "surrounded by whitespace",
             Self::FieldOutOfSync { .. } => "field out of sync",
+            Self::ChecksumMismatch => "checksum mismatch",
             Self::ReferenceEpochMismatch => "reference epoch mismatch",
         }
     }
@@ -18538,6 +18567,7 @@ impl fmt::Display for ReferenceSnapshotSourceSummaryValidationError {
                 write!(f, "{field} contains surrounding whitespace")
             }
             Self::FieldOutOfSync { field } => write!(f, "{field} is out of sync"),
+            Self::ChecksumMismatch => f.write_str("checksum mismatch"),
             Self::ReferenceEpochMismatch => f.write_str("reference epoch mismatch"),
             _ => f.write_str(self.label()),
         }
@@ -18565,6 +18595,7 @@ pub fn reference_snapshot_source_summary() -> ReferenceSnapshotSourceSummary {
                     .coverage_or(REFERENCE_SNAPSHOT_COVERAGE_FALLBACK)
                     .to_string(),
                 columns: manifest.columns.join(", "),
+                checksum: reference_snapshot_source_checksum(),
                 frame_treatment: "geocentric ecliptic J2000".to_string(),
                 reference_epoch: reference_instant(),
             }
@@ -18899,6 +18930,8 @@ pub struct IndependentHoldoutSourceSummary {
     pub coverage: String,
     /// CSV column layout for the hold-out snapshot.
     pub columns: String,
+    /// Deterministic checksum of the checked-in hold-out snapshot source material.
+    pub checksum: u64,
 }
 
 impl IndependentHoldoutSourceSummary {
@@ -18951,14 +18984,17 @@ impl IndependentHoldoutSourceSummary {
                 IndependentHoldoutSourceSummaryValidationError::FieldOutOfSync { field: "columns" },
             );
         }
+        if self.checksum != independent_holdout_source_checksum() {
+            return Err(IndependentHoldoutSourceSummaryValidationError::ChecksumMismatch);
+        }
         Ok(())
     }
 
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
         format!(
-            "Independent hold-out source: {}; coverage={}; columns={}",
-            self.source, self.coverage, self.columns
+            "Independent hold-out source: {}; coverage={}; columns={}; checksum=0x{:016x}",
+            self.source, self.coverage, self.columns, self.checksum
         )
     }
 
@@ -18984,6 +19020,8 @@ pub enum IndependentHoldoutSourceSummaryValidationError {
     SurroundedByWhitespace { field: &'static str },
     /// One of the canonical summary fields drifted from the checked-in slice.
     FieldOutOfSync { field: &'static str },
+    /// The summary checksum drifted from the checked-in source material.
+    ChecksumMismatch,
 }
 
 impl IndependentHoldoutSourceSummaryValidationError {
@@ -18995,6 +19033,7 @@ impl IndependentHoldoutSourceSummaryValidationError {
             Self::BlankColumns => "blank columns",
             Self::SurroundedByWhitespace { .. } => "surrounded by whitespace",
             Self::FieldOutOfSync { .. } => "field out of sync",
+            Self::ChecksumMismatch => "checksum mismatch",
         }
     }
 }
@@ -19006,6 +19045,7 @@ impl fmt::Display for IndependentHoldoutSourceSummaryValidationError {
                 write!(f, "{field} contains surrounding whitespace")
             }
             Self::FieldOutOfSync { field } => write!(f, "{field} is out of sync"),
+            Self::ChecksumMismatch => f.write_str("checksum mismatch"),
             _ => f.write_str(self.label()),
         }
     }
@@ -19033,6 +19073,7 @@ pub fn independent_holdout_source_summary() -> IndependentHoldoutSourceSummary {
                     .coverage_or(INDEPENDENT_HOLDOUT_COVERAGE_FALLBACK)
                     .to_string(),
                 columns: manifest.columns_summary(),
+                checksum: independent_holdout_source_checksum(),
             }
         })
         .clone()
@@ -28200,13 +28241,10 @@ mod tests {
         assert_eq!(summary.frame_treatment, "geocentric ecliptic J2000");
         assert!(summary.summary_line().contains("2132-08-31"));
         assert_eq!(summary.reference_epoch.julian_day.days(), 2_451_545.0);
-        assert_eq!(
-            summary.summary_line(),
-            format!(
-                "Reference snapshot source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=selected bodies sampled at 1500-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 1600-01-11 for Sun, Moon, Mercury, Venus, Mars, Jupiter, Uranus, Neptune; major bodies sampled at 1749-12-31 for Sun through Neptune; selected bodies sampled at 1750-01-01 for Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; inner planets sampled across 1800-2500; major bodies sampled at 1800-01-03 for Sun through Pluto; selected bodies sampled at 1900-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 2200-01-01 for Sun, Moon, Mercury, Venus; major bodies sampled at 2400000, 2451545, 2451910.5, 2451911.5, 2451912.5, 2451913.5, 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451916.0, 2451916.5, 2451917.0, 2451917.5, 2451918.5, 2451919.5, 2451920.5, 2453000.5, and 2500000; major bodies sampled at 2451915.5 for Sun through Pluto; Mars sampled at 2600000 and 2634167 for outer boundary coverage; major bodies sampled at 2451913.5 through 2451917.5 for additional boundary coverage; selected asteroids sampled at J2000, 2378498.5, 2451910.5 through 2451919.5, with 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451918.5, and 2451919.5 boundary coverage, 1800-01-03, 2003-12-27, 2132-08-31, 2500-01-01, and 2634167.; columns=epoch_jd, body, x_km, y_km, z_km; geocentric ecliptic J2000; TDB reference epoch {}",
-                format_instant(summary.reference_epoch)
-            )
-        );
+        assert_eq!(summary.checksum, reference_snapshot_source_checksum());
+        assert!(summary
+            .summary_line()
+            .contains(&format!("checksum=0x{:016x}", summary.checksum)));
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(summary.validate(), Ok(()));
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
@@ -28627,6 +28665,7 @@ mod tests {
             source: " ".to_string(),
             coverage: "coverage".to_string(),
             columns: REFERENCE_SNAPSHOT_COLUMNS.to_string(),
+            checksum: reference_snapshot_source_checksum(),
             frame_treatment: "geocentric ecliptic J2000".to_string(),
             reference_epoch: reference_instant(),
         };
@@ -28639,6 +28678,7 @@ mod tests {
             source: REFERENCE_SNAPSHOT_SOURCE_EXPECTED.to_string(),
             coverage: "\n".to_string(),
             columns: REFERENCE_SNAPSHOT_COLUMNS.to_string(),
+            checksum: reference_snapshot_source_checksum(),
             frame_treatment: REFERENCE_SNAPSHOT_FRAME_TREATMENT.to_string(),
             reference_epoch: reference_instant(),
         };
@@ -28651,6 +28691,7 @@ mod tests {
             source: REFERENCE_SNAPSHOT_SOURCE_EXPECTED.to_string(),
             coverage: " coverage ".to_string(),
             columns: REFERENCE_SNAPSHOT_COLUMNS.to_string(),
+            checksum: reference_snapshot_source_checksum(),
             frame_treatment: REFERENCE_SNAPSHOT_FRAME_TREATMENT.to_string(),
             reference_epoch: reference_instant(),
         };
@@ -28667,6 +28708,7 @@ mod tests {
             source: "source\nline".to_string(),
             coverage: REFERENCE_SNAPSHOT_COVERAGE_FALLBACK.to_string(),
             columns: REFERENCE_SNAPSHOT_COLUMNS.to_string(),
+            checksum: reference_snapshot_source_checksum(),
             frame_treatment: REFERENCE_SNAPSHOT_FRAME_TREATMENT.to_string(),
             reference_epoch: reference_instant(),
         };
@@ -28683,6 +28725,7 @@ mod tests {
             source: REFERENCE_SNAPSHOT_SOURCE_EXPECTED.to_string(),
             coverage: REFERENCE_SNAPSHOT_COVERAGE_FALLBACK.to_string(),
             columns: "\t".to_string(),
+            checksum: reference_snapshot_source_checksum(),
             frame_treatment: REFERENCE_SNAPSHOT_FRAME_TREATMENT.to_string(),
             reference_epoch: reference_instant(),
         };
@@ -28695,6 +28738,7 @@ mod tests {
             source: REFERENCE_SNAPSHOT_SOURCE_EXPECTED.to_string(),
             coverage: REFERENCE_SNAPSHOT_COVERAGE_FALLBACK.to_string(),
             columns: REFERENCE_SNAPSHOT_COLUMNS.to_string(),
+            checksum: reference_snapshot_source_checksum(),
             frame_treatment: "\n".to_string(),
             reference_epoch: reference_instant(),
         };
@@ -28707,6 +28751,7 @@ mod tests {
             source: REFERENCE_SNAPSHOT_SOURCE_EXPECTED.to_string(),
             coverage: REFERENCE_SNAPSHOT_COVERAGE_FALLBACK.to_string(),
             columns: REFERENCE_SNAPSHOT_COLUMNS.to_string(),
+            checksum: reference_snapshot_source_checksum(),
             frame_treatment: " geocentric ecliptic J2000 ".to_string(),
             reference_epoch: reference_instant(),
         };
@@ -28733,10 +28778,9 @@ mod tests {
             "Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Pluto at 2451545 and 2500000."
         );
         assert_eq!(summary.columns, "epoch_jd, body, x_km, y_km, z_km");
-        assert_eq!(
-            summary.summary_line(),
-            "Independent hold-out source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Pluto at 2451545 and 2500000.; columns=epoch_jd, body, x_km, y_km, z_km"
-        );
+        assert!(summary
+            .summary_line()
+            .contains(&format!("checksum=0x{:016x}", summary.checksum)));
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(summary.validate(), Ok(()));
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
@@ -28752,6 +28796,7 @@ mod tests {
             source: " ".to_string(),
             coverage: "coverage".to_string(),
             columns: "epoch_jd, body, x_km, y_km, z_km".to_string(),
+            checksum: independent_holdout_source_checksum(),
         };
         assert_eq!(
             blank_source.validate(),
@@ -28762,6 +28807,7 @@ mod tests {
             source: INDEPENDENT_HOLDOUT_SOURCE_EXPECTED.to_string(),
             coverage: "\t".to_string(),
             columns: INDEPENDENT_HOLDOUT_COLUMNS.to_string(),
+            checksum: independent_holdout_source_checksum(),
         };
         assert_eq!(
             blank_coverage.validate(),
@@ -28772,6 +28818,7 @@ mod tests {
             source: INDEPENDENT_HOLDOUT_SOURCE_EXPECTED.to_string(),
             coverage: INDEPENDENT_HOLDOUT_COVERAGE_FALLBACK.to_string(),
             columns: "  ".to_string(),
+            checksum: independent_holdout_source_checksum(),
         };
         assert_eq!(
             blank_columns.validate(),
@@ -28782,6 +28829,7 @@ mod tests {
             source: INDEPENDENT_HOLDOUT_SOURCE_EXPECTED.to_string(),
             coverage: INDEPENDENT_HOLDOUT_COVERAGE_FALLBACK.to_string(),
             columns: " epoch_jd, body, x_km, y_km, z_km ".to_string(),
+            checksum: independent_holdout_source_checksum(),
         };
         assert_eq!(
             padded_columns.validate(),
@@ -28796,6 +28844,7 @@ mod tests {
             source: INDEPENDENT_HOLDOUT_SOURCE_EXPECTED.to_string(),
             coverage: "coverage\nmore".to_string(),
             columns: INDEPENDENT_HOLDOUT_COLUMNS.to_string(),
+            checksum: independent_holdout_source_checksum(),
         };
         assert_eq!(
             multiline_coverage.validate(),
