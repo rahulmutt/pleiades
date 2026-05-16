@@ -21841,9 +21841,15 @@ mod tests {
             .expect("packaged artifact regeneration should write bytes");
         assert!(rendered.contains("Packaged artifact regenerated"));
         assert!(rendered.contains("checksum: 0x"));
+        let regenerated_bytes =
+            std::fs::read(&output_path).expect("regenerated artifact should exist");
+        let committed_bytes = packaged_artifact_bytes();
         assert_eq!(
-            std::fs::read(&output_path).expect("regenerated artifact should exist"),
-            packaged_artifact_bytes()
+            regenerated_bytes,
+            committed_bytes,
+            "regenerated artifact should match the checked-in fixture (written checksum 0x{:016x}, committed checksum 0x{:016x})",
+            checksum64_bytes(&regenerated_bytes),
+            checksum64_bytes(committed_bytes)
         );
 
         let output_alias_dir = unique_temp_dir("pleiades-packaged-artifact-regeneration-output");
@@ -21857,9 +21863,15 @@ mod tests {
         .expect("packaged artifact regeneration should accept --output");
         assert!(rendered_alias.contains("Packaged artifact regenerated"));
         assert!(rendered_alias.contains("checksum: 0x"));
+        let regenerated_alias_bytes =
+            std::fs::read(&output_alias_path).expect("regenerated artifact alias should exist");
+        let committed_bytes = packaged_artifact_bytes();
         assert_eq!(
-            std::fs::read(&output_alias_path).expect("regenerated artifact alias should exist"),
-            packaged_artifact_bytes()
+            regenerated_alias_bytes,
+            committed_bytes,
+            "regenerated artifact alias should match the checked-in fixture (written checksum 0x{:016x}, committed checksum 0x{:016x})",
+            checksum64_bytes(&regenerated_alias_bytes),
+            checksum64_bytes(committed_bytes)
         );
 
         let manifest_path = output_alias_dir.join("packaged-artifact.manifest.txt");

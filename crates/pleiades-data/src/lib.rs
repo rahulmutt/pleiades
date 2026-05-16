@@ -6013,7 +6013,7 @@ fn residual_segment(
         .iter()
         .find(|channel| channel.kind == kind)?;
     let span_days = segment.end.julian_day.days() - segment.start.julian_day.days();
-    let residual_samples = packaged_artifact_residual_sample_fractions()
+    let residual_samples = packaged_artifact_residual_sample_fractions(body)
         .iter()
         .copied()
         .map(|fraction| {
@@ -6069,8 +6069,17 @@ fn residual_segment(
     }
 }
 
-fn packaged_artifact_residual_sample_fractions() -> &'static [f64] {
-    &[0.0, 0.25, 0.5, 0.75, 1.0]
+const PACKAGED_ARTIFACT_RESIDUAL_SAMPLE_FRACTIONS: &[f64] = &[0.0, 0.25, 0.5, 0.75, 1.0];
+const PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS: &[f64] =
+    &[0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1.0];
+
+fn packaged_artifact_residual_sample_fractions(body: &CelestialBody) -> &'static [f64] {
+    match packaged_artifact_body_cadence(body) {
+        PackagedArtifactBodyCadence::Luminaries => {
+            PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS
+        }
+        _ => PACKAGED_ARTIFACT_RESIDUAL_SAMPLE_FRACTIONS,
+    }
 }
 
 fn segment_channel_value(segment: &Segment, kind: ChannelKind, x: f64) -> Option<f64> {
@@ -6585,6 +6594,21 @@ mod tests {
         assert_eq!(
             packaged_artifact().residual_segment_count() > 0,
             !packaged_artifact().residual_bodies().is_empty()
+        );
+    }
+
+    #[test]
+    fn packaged_artifact_residual_sample_fractions_use_a_denser_luminary_lattice() {
+        let luminary_fractions = packaged_artifact_residual_sample_fractions(&CelestialBody::Moon);
+        let outer_planet_fractions =
+            packaged_artifact_residual_sample_fractions(&CelestialBody::Saturn);
+
+        assert_eq!(luminary_fractions.first().copied(), Some(0.0));
+        assert_eq!(luminary_fractions.last().copied(), Some(1.0));
+        assert!(luminary_fractions.len() > outer_planet_fractions.len());
+        assert_eq!(
+            outer_planet_fractions,
+            PACKAGED_ARTIFACT_RESIDUAL_SAMPLE_FRACTIONS
         );
     }
 
