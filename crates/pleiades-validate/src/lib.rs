@@ -6317,8 +6317,8 @@ pub fn render_compatibility_caveats_summary() -> String {
 
 /// Renders the compact compatibility catalog inventory summary used by release tooling.
 pub fn render_catalog_inventory_summary() -> String {
-    match validated_compatibility_profile_for_report() {
-        Ok(_) => catalog_inventory_summary_for_report(),
+    match validated_catalog_inventory_summary_for_report() {
+        Ok(summary) => summary,
         Err(error) => format!("Compatibility catalog inventory unavailable ({error})"),
     }
 }
@@ -14855,6 +14855,12 @@ fn validated_release_profile_identifiers_for_report() -> Result<ReleaseProfileId
     Ok(release_profiles)
 }
 
+fn validated_catalog_inventory_summary_for_report() -> Result<String, String> {
+    validated_compatibility_profile_for_report()?;
+    validated_release_profile_identifiers_for_report()?;
+    Ok(catalog_inventory_summary_for_report())
+}
+
 fn format_release_profile_identifiers_summary(
     release_profiles: &ReleaseProfileIdentifiers,
 ) -> String {
@@ -22400,6 +22406,11 @@ mod tests {
             profile
                 .validated_catalog_inventory_summary_line()
                 .expect("catalog inventory summary should validate")
+        );
+        assert_eq!(
+            catalog_inventory_summary,
+            validated_catalog_inventory_summary_for_report()
+                .expect("catalog inventory summary helper should validate")
         );
         assert_eq!(
             render_cli(&["catalog-inventory"]).expect("catalog inventory alias should render"),
