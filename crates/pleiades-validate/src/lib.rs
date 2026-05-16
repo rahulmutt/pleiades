@@ -3573,7 +3573,10 @@ impl fmt::Display for ValidationReport {
         writeln!(
             f,
             "  release-grade guard: {}",
-            comparison_corpus_release_guard_summary()
+            match validated_comparison_corpus_release_guard_summary_for_report() {
+                Ok(summary) => summary,
+                Err(_) => return Err(fmt::Error),
+            }
         )?;
         writeln!(f, "  {}", comparison_snapshot_summary_for_report())?;
         writeln!(
@@ -8640,7 +8643,10 @@ fn render_release_summary_text() -> String {
     text.push_str(&request_surface_summary_for_report());
     text.push('\n');
     text.push_str("Comparison corpus release-grade guard: ");
-    text.push_str(comparison_corpus_release_guard_summary());
+    match validated_comparison_corpus_release_guard_summary_for_report() {
+        Ok(summary) => text.push_str(summary),
+        Err(error) => return format!("Release summary unavailable ({error})"),
+    }
     text.push('\n');
     text.push_str("Release-grade body claims: ");
     text.push_str(&format_release_body_claims_summary_for_report());
@@ -14608,6 +14614,19 @@ fn comparison_corpus_release_guard_summary() -> &'static str {
     "Pluto excluded from tolerance evidence"
 }
 
+fn validated_comparison_corpus_release_guard_summary_for_report() -> Result<&'static str, String> {
+    const EXPECTED: &str = "Pluto excluded from tolerance evidence";
+    let summary = comparison_corpus_release_guard_summary();
+
+    if summary == EXPECTED {
+        Ok(summary)
+    } else {
+        Err(format!(
+            "comparison corpus release-grade guard mismatch: expected {EXPECTED}, found {summary}"
+        ))
+    }
+}
+
 fn render_comparison_corpus_summary_text() -> String {
     use std::fmt::Write as _;
 
@@ -14615,19 +14634,24 @@ fn render_comparison_corpus_summary_text() -> String {
     let summary = corpus.summary();
     let mut text = String::from("Comparison corpus summary\n");
     write_corpus_summary_text(&mut text, &summary);
-    let _ = writeln!(
-        text,
-        "  release-grade guard: {}",
-        comparison_corpus_release_guard_summary()
-    );
+    let release_grade_guard = match validated_comparison_corpus_release_guard_summary_for_report() {
+        Ok(guard) => guard,
+        Err(error) => return format!("Comparison corpus summary unavailable ({error})"),
+    };
+    let _ = writeln!(text, "  release-grade guard: {release_grade_guard}");
     text.push('\n');
     text
 }
 
 fn render_comparison_corpus_release_guard_summary_text() -> String {
+    let release_grade_guard = match validated_comparison_corpus_release_guard_summary_for_report() {
+        Ok(guard) => guard,
+        Err(error) => {
+            return format!("Comparison corpus release-grade guard summary unavailable ({error})")
+        }
+    };
     format!(
-        "Comparison corpus release-grade guard summary\nRelease-grade guard: {}\n",
-        comparison_corpus_release_guard_summary()
+        "Comparison corpus release-grade guard summary\nRelease-grade guard: {release_grade_guard}\n",
     )
 }
 
@@ -15145,11 +15169,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         "  {}",
         comparison_snapshot_manifest_summary_for_report()
     );
-    let _ = writeln!(
-        text,
-        "  release-grade guard: {}",
-        comparison_corpus_release_guard_summary()
-    );
+    let release_grade_guard = match validated_comparison_corpus_release_guard_summary_for_report() {
+        Ok(guard) => guard,
+        Err(error) => return format!("Comparison corpus summary unavailable ({error})"),
+    };
+    let _ = writeln!(text, "  release-grade guard: {release_grade_guard}");
     let _ = writeln!(text);
     let _ = writeln!(text, "Reference snapshot");
     let _ = writeln!(text, "  {}", reference_snapshot_summary_for_report());
@@ -16627,7 +16651,10 @@ impl fmt::Display for ComparisonReport {
         writeln!(
             f,
             "  release-grade guard: {}",
-            comparison_corpus_release_guard_summary()
+            match validated_comparison_corpus_release_guard_summary_for_report() {
+                Ok(summary) => summary,
+                Err(_) => return Err(fmt::Error),
+            }
         )?;
         writeln!(f)?;
         writeln!(f, "Reference backend: {}", self.reference_backend.id)?;
@@ -29057,6 +29084,11 @@ version = "0.9.0"
 
     #[test]
     fn comparison_and_benchmark_corpus_summary_commands_render_the_corpus_blocks() {
+        assert_eq!(
+            validated_comparison_corpus_release_guard_summary_for_report(),
+            Ok("Pluto excluded from tolerance evidence")
+        );
+
         let comparison = render_cli(&["comparison-corpus-summary"])
             .expect("comparison corpus summary should render");
         assert!(comparison.contains("Comparison corpus summary"));
