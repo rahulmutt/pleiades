@@ -5413,6 +5413,47 @@ pub fn packaged_artifact_body_class_span_cap_summary_for_report() -> String {
     format!("body-class span caps: {}", join_display(&entries))
 }
 
+fn packaged_artifact_body_cadence_counts() -> [(&'static str, usize); 7] {
+    let mut counts = [0usize; 7];
+
+    for body in packaged_bodies() {
+        match packaged_artifact_body_cadence(body) {
+            PackagedArtifactBodyCadence::Luminaries => counts[0] += 1,
+            PackagedArtifactBodyCadence::InnerPlanets => counts[1] += 1,
+            PackagedArtifactBodyCadence::OuterPlanets => counts[2] += 1,
+            PackagedArtifactBodyCadence::Pluto => counts[3] += 1,
+            PackagedArtifactBodyCadence::LunarPoints => counts[4] += 1,
+            PackagedArtifactBodyCadence::SelectedAsteroids => counts[5] += 1,
+            PackagedArtifactBodyCadence::CustomBodies => counts[6] += 1,
+        }
+    }
+
+    [
+        ("luminaries", counts[0]),
+        ("inner planets", counts[1]),
+        ("outer planets", counts[2]),
+        ("pluto", counts[3]),
+        ("lunar points", counts[4]),
+        ("selected asteroids", counts[5]),
+        ("custom bodies", counts[6]),
+    ]
+}
+
+/// Returns the current packaged-artifact body cadence as a compact human-readable line.
+pub fn packaged_artifact_body_cadence_summary_for_report() -> String {
+    let entries = packaged_artifact_body_cadence_counts()
+        .into_iter()
+        .map(|(label, count)| {
+            format!(
+                "{label}={count} {}",
+                if count == 1 { "body" } else { "bodies" }
+            )
+        })
+        .collect::<Vec<_>>();
+
+    format!("body cadence: {}", join_display(&entries))
+}
+
 fn body_segment_windows_for_interval(
     start: &SnapshotEntry,
     end: &SnapshotEntry,
@@ -8806,6 +8847,14 @@ mod tests {
         assert_eq!(
             packaged_artifact_body_class_span_cap_summary_for_report(),
             "body-class span caps: luminaries=256 days, inner planets=384 days, outer planets=768 days, pluto=1536 days, lunar points=256 days, selected asteroids=256 days, custom bodies=512 days"
+        );
+    }
+
+    #[test]
+    fn packaged_artifact_body_cadence_summary_reflects_the_current_posture() {
+        assert_eq!(
+            packaged_artifact_body_cadence_summary_for_report(),
+            "body cadence: luminaries=2 bodies, inner planets=3 bodies, outer planets=4 bodies, pluto=1 body, lunar points=0 bodies, selected asteroids=1 body, custom bodies=0 bodies"
         );
     }
 
