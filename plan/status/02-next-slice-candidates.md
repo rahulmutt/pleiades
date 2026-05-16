@@ -62,5 +62,5 @@ This file lists focused implementation slices for the current phase ladder. Comp
 
 - Make release-gate commands fail on stale generated files, artifact threshold violations, profile drift, unsupported-mode claim drift, or native-dependency regressions.
 - Stage and verify all release-bundle artifacts from a clean checkout.
-- Completed: release bundles now stage and verify the release-house-validation summary alongside the other release catalog evidence files.
+- Completed: release bundles now stage and verify the release-house-validation summary alongside the other release catalog evidence files, and the backend matrix summary now validates the compatibility profile before rendering.
 - Keep README/docs aligned with the published release compatibility profile and known gaps.

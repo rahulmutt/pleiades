@@ -16099,7 +16099,10 @@ fn render_backend_matrix_summary_text() -> String {
         Ok(release_profiles) => release_profiles,
         Err(error) => return format!("Backend matrix summary unavailable ({error})"),
     };
-    let profile = current_compatibility_profile();
+    let profile = match validated_compatibility_profile_for_report() {
+        Ok(profile) => profile,
+        Err(error) => return format!("Backend matrix summary unavailable ({error})"),
+    };
     let catalog = implemented_backend_catalog();
     let mut family_counts: BTreeMap<String, usize> = BTreeMap::new();
     let mut bodies: Vec<String> = Vec::new();
@@ -24626,6 +24629,10 @@ mod tests {
             render_cli(&["backend-matrix-summary"]).expect("backend matrix summary should render");
         assert!(rendered.contains("Backend matrix summary"));
         assert!(rendered.contains("Backends: 5"));
+        assert!(rendered.contains(&format!(
+            "Profile: {}",
+            current_compatibility_profile().profile_id
+        )));
         let jpl_entry = implemented_backend_catalog()
             .into_iter()
             .find(|entry| entry.label == "JPL snapshot reference backend")
