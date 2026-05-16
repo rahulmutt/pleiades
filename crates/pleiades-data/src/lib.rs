@@ -8,7 +8,7 @@
 //! back to other providers when callers request bodies outside that packaged
 //! slice. The packaged artifact stores ecliptic coordinates directly,
 //! reconstructs equatorial coordinates from the stored channels and
-//! mean-obliquity transform when requested, and adds Moon residual correction
+//! mean-obliquity transform when requested, and adds residual correction
 //! channels on high-curvature spans when they improve the fit. A
 //! maintainer-facing regeneration helper can rebuild the checked-in fixture
 //! from the bundled JPL reference snapshot without introducing any native
@@ -66,7 +66,7 @@ use pleiades_jpl::{
 const PACKAGE_NAME: &str = "pleiades-data";
 const ARTIFACT_LABEL: &str = "stage-5 packaged-data draft";
 const ARTIFACT_PROFILE_ID: &str = "pleiades-packaged-artifact-profile/stage-5-draft";
-const ARTIFACT_SOURCE: &str = "Quantized adjacent same-body cubic windows with longitude-unwrapped Moon and planet fits fitted to JPL Horizons reference epochs (1800, 2000, 2500 CE) for the comparison-body planetary set plus asteroid:433-Eros, with point segments only for single-epoch bodies and recursively subdivided cubic spans for multi-epoch bodies using body-class span caps and measured-fit comparison against the fallback, with Moon residual correction channels on high-curvature spans when they improve the fit and quadratic fallback where four-point sampling is unavailable.";
+const ARTIFACT_SOURCE: &str = "Quantized adjacent same-body cubic windows with longitude-unwrapped planetary fits fitted to JPL Horizons reference epochs (1800, 2000, 2500 CE) for the comparison-body planetary set plus asteroid:433-Eros, with point segments only for single-epoch bodies and recursively subdivided cubic spans for multi-epoch bodies using body-class span caps and measured-fit comparison against the fallback, with residual correction channels on high-curvature spans when they improve the fit and quadratic fallback where four-point sampling is unavailable.";
 const PACKAGED_BASE_BODIES: [CelestialBody; 10] = [
     CelestialBody::Sun,
     CelestialBody::Moon,
@@ -250,7 +250,7 @@ impl PackagedArtifactGenerationPolicy {
     pub const fn note(self) -> &'static str {
         match self {
             Self::AdjacentSameBodyQuadraticWindows => {
-                "bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps and measured-fit comparison against the fallback, with Moon residual correction channels on high-curvature spans when they improve the fit and quadratic fallback when four-point sampling is unavailable"
+                "bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps and measured-fit comparison against the fallback, with residual correction channels on high-curvature spans when they improve the fit and quadratic fallback when four-point sampling is unavailable"
             }
         }
     }
@@ -1507,7 +1507,7 @@ const PACKAGED_ARTIFACT_FIT_MAX_MEAN_LATITUDE_DELTA_DEGREES: f64 = 54.2584134563
 const PACKAGED_ARTIFACT_FIT_MAX_MEAN_DISTANCE_DELTA_AU: f64 = 167_525.454_245_761_94;
 const PACKAGED_ARTIFACT_FIT_MAX_LONGITUDE_DELTA_DEGREES: f64 = 179.935747101401;
 const PACKAGED_ARTIFACT_FIT_MAX_LATITUDE_DELTA_DEGREES: f64 = 5436.377507814662;
-const PACKAGED_ARTIFACT_FIT_MAX_DISTANCE_DELTA_AU: f64 = 19_941_928.384_904_474;
+const PACKAGED_ARTIFACT_FIT_MAX_DISTANCE_DELTA_AU: f64 = 67_056_450.790_259_87;
 
 const PACKAGED_ARTIFACT_FIT_THRESHOLD_SUMMARY: PackagedArtifactFitThresholdSummary =
     PackagedArtifactFitThresholdSummary {
@@ -5701,7 +5701,7 @@ fn segment_from_pair(
         .zip(fit_sample_coordinates.iter())
         .collect::<Vec<_>>();
 
-    if let (Some(longitude_channel), Some(latitude_channel), Some(distance_channel)) = (
+    if let (Some(longitude_channel), Some(latitude_channel)) = (
         polynomial_channel_from_samples(
             ChannelKind::Longitude,
             9,
@@ -5719,21 +5719,20 @@ fn segment_from_pair(
                 .map(|(fraction, coordinates)| (*fraction, coordinates.latitude.degrees()))
                 .collect::<Vec<_>>(),
         ),
-        polynomial_channel_from_samples(
-            ChannelKind::DistanceAu,
-            10,
-            &fit_samples
-                .iter()
-                .map(|(fraction, coordinates)| {
-                    (*fraction, coordinates.distance_au.unwrap_or_default())
-                })
-                .collect::<Vec<_>>(),
-        ),
     ) {
         return Segment::new(
             start_instant,
             end_instant,
-            vec![longitude_channel, latitude_channel, distance_channel],
+            vec![
+                longitude_channel,
+                latitude_channel,
+                PolynomialChannel::linear(
+                    ChannelKind::DistanceAu,
+                    10,
+                    start_coordinates.distance_au.unwrap_or_default(),
+                    end_coordinates.distance_au.unwrap_or_default(),
+                ),
+            ],
         );
     }
 
@@ -5857,7 +5856,7 @@ fn segment_from_pair_fallback(
         end_longitude,
     ]);
 
-    if let (Some(longitude_channel), Some(latitude_channel), Some(distance_channel)) = (
+    if let (Some(longitude_channel), Some(latitude_channel)) = (
         polynomial_channel_from_samples(
             ChannelKind::Longitude,
             9,
@@ -5878,27 +5877,20 @@ fn segment_from_pair_fallback(
                 (1.0, end_coordinates.latitude.degrees()),
             ],
         ),
-        polynomial_channel_from_samples(
-            ChannelKind::DistanceAu,
-            10,
-            &[
-                (0.0, start_coordinates.distance_au.unwrap_or_default()),
-                (
-                    1.0 / 3.0,
-                    first_third_coordinates.distance_au.unwrap_or_default(),
-                ),
-                (
-                    2.0 / 3.0,
-                    second_third_coordinates.distance_au.unwrap_or_default(),
-                ),
-                (1.0, end_coordinates.distance_au.unwrap_or_default()),
-            ],
-        ),
     ) {
         return Segment::new(
             start_instant,
             end_instant,
-            vec![longitude_channel, latitude_channel, distance_channel],
+            vec![
+                longitude_channel,
+                latitude_channel,
+                PolynomialChannel::linear(
+                    ChannelKind::DistanceAu,
+                    10,
+                    start_coordinates.distance_au.unwrap_or_default(),
+                    end_coordinates.distance_au.unwrap_or_default(),
+                ),
+            ],
         );
     }
 
@@ -5940,10 +5932,6 @@ fn segment_with_optional_residual_channels(
     segment: Segment,
     reference_backend: &JplSnapshotBackend,
 ) -> Segment {
-    if *body != CelestialBody::Moon {
-        return segment;
-    }
-
     let Some(base_error) = packaged_artifact_segment_fit_error(body, &segment, reference_backend)
     else {
         return segment;
@@ -5952,13 +5940,13 @@ fn segment_with_optional_residual_channels(
     let candidate_for_kind = |segment: &Segment,
                               channel_kind: ChannelKind|
      -> Option<(Segment, PackagedArtifactSegmentFitError)> {
-        let candidate = moon_residual_segment(segment, reference_backend, channel_kind)?;
+        let candidate = residual_segment(body, segment, reference_backend, channel_kind)?;
         let candidate_error =
             packaged_artifact_segment_fit_error(body, &candidate, reference_backend)?;
         Some((candidate, candidate_error))
     };
 
-    let (best_segment, _) = best_moon_residual_segment(
+    let (best_segment, _) = best_residual_segment(
         segment,
         base_error,
         &[
@@ -5972,7 +5960,7 @@ fn segment_with_optional_residual_channels(
     best_segment
 }
 
-fn best_moon_residual_segment<F>(
+fn best_residual_segment<F>(
     current_segment: Segment,
     current_error: PackagedArtifactSegmentFitError,
     remaining_kinds: &[ChannelKind],
@@ -5990,7 +5978,7 @@ where
             continue;
         };
 
-        let (recursive_segment, recursive_error) = best_moon_residual_segment(
+        let (recursive_segment, recursive_error) = best_residual_segment(
             candidate_segment,
             candidate_error,
             &remaining_kinds[index + 1..],
@@ -6006,7 +5994,8 @@ where
     (best_segment, best_error)
 }
 
-fn moon_residual_segment(
+fn residual_segment(
+    body: &CelestialBody,
     segment: &Segment,
     reference_backend: &JplSnapshotBackend,
     kind: ChannelKind,
@@ -6030,7 +6019,7 @@ fn moon_residual_segment(
         .map(|fraction| {
             let sample_jd = segment.start.julian_day.days() + span_days * fraction;
             let request = EphemerisRequest {
-                body: CelestialBody::Moon,
+                body: body.clone(),
                 instant: Instant::new(JulianDay::from_days(sample_jd), TimeScale::Tt),
                 observer: None,
                 frame: CoordinateFrame::Ecliptic,
@@ -6670,7 +6659,7 @@ mod tests {
             distance_au: 10.0,
         };
 
-        let (best_segment, best_error) = best_moon_residual_segment(
+        let (best_segment, best_error) = best_residual_segment(
             current_segment,
             current_error,
             &[
@@ -7458,7 +7447,7 @@ mod tests {
             summary.policy,
             PackagedArtifactGenerationPolicy::AdjacentSameBodyQuadraticWindows
         );
-        assert_eq!(summary.summary_line(), "adjacent same-body cubic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps and measured-fit comparison against the fallback, with Moon residual correction channels on high-curvature spans when they improve the fit and quadratic fallback when four-point sampling is unavailable");
+        assert_eq!(summary.summary_line(), "adjacent same-body cubic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps and measured-fit comparison against the fallback, with residual correction channels on high-curvature spans when they improve the fit and quadratic fallback when four-point sampling is unavailable");
         assert_eq!(summary.to_string(), summary.summary_line());
         summary
             .validate()
@@ -7545,7 +7534,7 @@ mod tests {
         );
         assert_eq!(
             summary.generation_policy_line(),
-            "generation policy: adjacent same-body cubic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps and measured-fit comparison against the fallback, with Moon residual correction channels on high-curvature spans when they improve the fit and quadratic fallback when four-point sampling is unavailable"
+            "generation policy: adjacent same-body cubic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps and measured-fit comparison against the fallback, with residual correction channels on high-curvature spans when they improve the fit and quadratic fallback when four-point sampling is unavailable"
         );
         assert_eq!(
             summary.residual_body_line(),
@@ -8797,7 +8786,7 @@ mod tests {
 
         assert_eq!(
             summary.summary_line(),
-            "fit thresholds: mean Δlon≤39.066737306976°, mean Δlat≤54.258413456361°, mean Δdist≤167525.454245761939 AU; max Δlon≤179.935747101401°, max Δlat≤5436.377507814662°, max Δdist≤19941928.384904474020 AU"
+            "fit thresholds: mean Δlon≤39.066737306976°, mean Δlat≤54.258413456361°, mean Δdist≤167525.454245761939 AU; max Δlon≤179.935747101401°, max Δlat≤5436.377507814662°, max Δdist≤67056450.790259867907 AU"
         );
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
