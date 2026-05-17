@@ -85,4 +85,5 @@ This file lists focused implementation slices for the current phase ladder. Comp
 - Completed: the validation-report and packaged-data backend provenance surfaces now route request-policy and frame-treatment through validated helpers, so those release-facing metadata lines fail closed instead of echoing raw summary text.
 - Completed: the comparison tolerance scope coverage summary command now publishes the per-scope body-class tolerance rows behind the aggregate comparison tolerance policy line, so the release-facing tolerance posture can be inspected independently from the combined policy summary.
 - Completed: the verify-release-bundle display now includes the packaged-artifact phase-2 corpus alignment summary in staged-bundle output, matching the manifest entry and checksum checks.
+- Completed: benchmark provenance now records cargo version alongside source revision, workspace status, and rustc version so the release bundle's benchmark report carries the additional tool-version evidence needed for reproducibility.
 - Keep README/docs aligned with the published release compatibility profile and known gaps.
