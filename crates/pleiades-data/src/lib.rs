@@ -5815,7 +5815,9 @@ fn segment_fit_candidate_is_better(
     }
 }
 
-const PACKAGED_ARTIFACT_SEGMENT_FIT_ACCEPTANCE_RATIO: f64 = 2.0;
+// Keep candidate-versus-fallback selection accuracy-first: only prefer a candidate
+// when its measured fit is no worse than the fallback reconstruction.
+const PACKAGED_ARTIFACT_SEGMENT_FIT_ACCEPTANCE_RATIO: f64 = 1.0;
 
 fn segment_complexity(segment: &Segment) -> usize {
     segment
@@ -7951,6 +7953,52 @@ mod tests {
             candidate_error,
             &candidate_segment,
             fallback_error,
+        ));
+    }
+
+    #[test]
+    fn segment_error_prefers_the_fallback_when_it_is_more_accurate() {
+        let candidate_segment = Segment::with_residual_channels(
+            Instant::new(JulianDay::from_days(0.0), TimeScale::Tt),
+            Instant::new(JulianDay::from_days(1.0), TimeScale::Tt),
+            vec![PolynomialChannel::new(
+                ChannelKind::Longitude,
+                0,
+                vec![0.0, 1.0, 2.0],
+            )],
+            vec![PolynomialChannel::new(
+                ChannelKind::Latitude,
+                0,
+                vec![0.0, 1.0],
+            )],
+        );
+        let fallback_segment = Segment::new(
+            Instant::new(JulianDay::from_days(0.0), TimeScale::Tt),
+            Instant::new(JulianDay::from_days(1.0), TimeScale::Tt),
+            vec![PolynomialChannel::new(ChannelKind::Longitude, 0, vec![0.0])],
+        );
+        let candidate_error = Some(PackagedArtifactSegmentFitError {
+            longitude_degrees: 1.1,
+            latitude_degrees: 1.1,
+            distance_au: 1.1,
+        });
+        let fallback_error = Some(PackagedArtifactSegmentFitError {
+            longitude_degrees: 1.0,
+            latitude_degrees: 1.0,
+            distance_au: 1.0,
+        });
+
+        assert!(!segment_error_prefers_candidate(
+            &candidate_segment,
+            candidate_error,
+            &fallback_segment,
+            fallback_error,
+        ));
+        assert!(segment_error_prefers_candidate(
+            &fallback_segment,
+            fallback_error,
+            &candidate_segment,
+            candidate_error,
         ));
     }
 

@@ -3269,7 +3269,7 @@ fn validate_production_generation_source_summary_text(
         if !text.contains(fragment) {
             return Err(
                 ProductionGenerationSourceSummaryValidationError::RenderedSummaryOutOfSync {
-                    field: *field,
+                    field,
                 },
             );
         }
