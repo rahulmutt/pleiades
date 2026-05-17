@@ -6338,7 +6338,7 @@ const PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS: &[f64] =
 const PACKAGED_ARTIFACT_DENSE_VALIDATION_SAMPLE_FRACTIONS: &[f64] =
     &[0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875];
 const PACKAGED_ARTIFACT_FIT_SAMPLE_COUNTS: &[usize] = &[6];
-const PACKAGED_ARTIFACT_DENSE_FIT_SAMPLE_COUNTS: &[usize] = &[6, 8];
+const PACKAGED_ARTIFACT_DENSE_FIT_SAMPLE_COUNTS: &[usize] = &[6, 8, 10];
 
 fn packaged_artifact_fit_sample_counts_for_body(body: &CelestialBody) -> &'static [usize] {
     match packaged_artifact_body_cadence(body) {
@@ -6821,6 +6821,14 @@ mod tests {
         );
         assert_eq!(
             packaged_artifact_fit_sample_counts_for_body(moon_segment.0),
+            PACKAGED_ARTIFACT_DENSE_FIT_SAMPLE_COUNTS
+        );
+        assert_eq!(
+            packaged_artifact_fit_sample_counts_for_body(&CelestialBody::Pluto),
+            PACKAGED_ARTIFACT_DENSE_FIT_SAMPLE_COUNTS
+        );
+        assert_eq!(
+            packaged_artifact_fit_sample_counts_for_body(&CelestialBody::Ceres),
             PACKAGED_ARTIFACT_DENSE_FIT_SAMPLE_COUNTS
         );
         assert_eq!(
