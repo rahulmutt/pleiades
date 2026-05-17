@@ -5514,7 +5514,7 @@ fn segment_fit_candidate_is_better(
     match candidate.max_delta().total_cmp(&existing.max_delta()) {
         Ordering::Less => true,
         Ordering::Greater => false,
-        Ordering::Equal => candidate.sample_count > existing.sample_count,
+        Ordering::Equal => candidate.sample_count < existing.sample_count,
     }
 }
 
@@ -7166,7 +7166,7 @@ mod tests {
     }
 
     #[test]
-    fn packaged_artifact_fit_candidate_scoring_prefers_lower_error_and_higher_order_ties() {
+    fn packaged_artifact_fit_candidate_scoring_prefers_lower_error_and_lower_order_ties() {
         let lower_order_worse = PackagedArtifactFitCandidateScore {
             sample_count: 6,
             error: PackagedArtifactSegmentFitError {
@@ -7205,12 +7205,12 @@ mod tests {
             higher_order_better
         ));
         assert!(segment_fit_candidate_is_better(
-            equal_error_lower_order,
-            equal_error_higher_order
-        ));
-        assert!(!segment_fit_candidate_is_better(
             equal_error_higher_order,
             equal_error_lower_order
+        ));
+        assert!(!segment_fit_candidate_is_better(
+            equal_error_lower_order,
+            equal_error_higher_order
         ));
     }
 
