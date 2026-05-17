@@ -6345,7 +6345,7 @@ fn residual_segment(
         .iter()
         .find(|channel| channel.kind == kind)?;
     let span_days = segment.end.julian_day.days() - segment.start.julian_day.days();
-    let residual_samples = packaged_artifact_residual_sample_fractions(body)
+    let residual_samples = packaged_artifact_residual_sample_fractions_for_channel(body, kind)
         .iter()
         .copied()
         .map(|fraction| {
@@ -6420,15 +6420,19 @@ fn packaged_artifact_fit_sample_counts_for_body(body: &CelestialBody) -> &'stati
     }
 }
 
-fn packaged_artifact_residual_sample_fractions(body: &CelestialBody) -> &'static [f64] {
-    match packaged_artifact_body_cadence(body) {
-        PackagedArtifactBodyCadence::Luminaries
-        | PackagedArtifactBodyCadence::LunarPoints
-        | PackagedArtifactBodyCadence::Pluto
-        | PackagedArtifactBodyCadence::SelectedAsteroids
-        | PackagedArtifactBodyCadence::CustomBodies => {
-            PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS
-        }
+fn packaged_artifact_residual_sample_fractions_for_channel(
+    body: &CelestialBody,
+    kind: ChannelKind,
+) -> &'static [f64] {
+    match (packaged_artifact_body_cadence(body), kind) {
+        (
+            PackagedArtifactBodyCadence::Luminaries
+            | PackagedArtifactBodyCadence::LunarPoints
+            | PackagedArtifactBodyCadence::Pluto
+            | PackagedArtifactBodyCadence::SelectedAsteroids
+            | PackagedArtifactBodyCadence::CustomBodies,
+            ChannelKind::Longitude | ChannelKind::Latitude,
+        ) => PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS,
         _ => PACKAGED_ARTIFACT_RESIDUAL_SAMPLE_FRACTIONS,
     }
 }
@@ -6909,8 +6913,25 @@ mod tests {
             Some(16)
         );
         assert_eq!(
-            packaged_artifact_residual_sample_fractions(&lunar_point_body),
+            packaged_artifact_residual_sample_fractions_for_channel(
+                &lunar_point_body,
+                ChannelKind::Longitude,
+            ),
             PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS
+        );
+        assert_eq!(
+            packaged_artifact_residual_sample_fractions_for_channel(
+                &lunar_point_body,
+                ChannelKind::Longitude,
+            ),
+            PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS
+        );
+        assert_eq!(
+            packaged_artifact_residual_sample_fractions_for_channel(
+                &lunar_point_body,
+                ChannelKind::DistanceAu,
+            ),
+            PACKAGED_ARTIFACT_RESIDUAL_SAMPLE_FRACTIONS
         );
         assert_eq!(
             packaged_artifact_segment_validation_fractions_for_body(custom_segment.0),
@@ -7052,14 +7073,27 @@ mod tests {
     }
 
     #[test]
-    fn packaged_artifact_residual_sample_fractions_use_a_denser_luminary_lattice() {
-        let luminary_fractions = packaged_artifact_residual_sample_fractions(&CelestialBody::Moon);
-        let outer_planet_fractions =
-            packaged_artifact_residual_sample_fractions(&CelestialBody::Saturn);
+    fn packaged_artifact_residual_sample_fractions_use_channel_specific_lattices() {
+        let luminary_longitude_fractions = packaged_artifact_residual_sample_fractions_for_channel(
+            &CelestialBody::Moon,
+            ChannelKind::Longitude,
+        );
+        let luminary_distance_fractions = packaged_artifact_residual_sample_fractions_for_channel(
+            &CelestialBody::Moon,
+            ChannelKind::DistanceAu,
+        );
+        let outer_planet_fractions = packaged_artifact_residual_sample_fractions_for_channel(
+            &CelestialBody::Saturn,
+            ChannelKind::Longitude,
+        );
 
-        assert_eq!(luminary_fractions.first().copied(), Some(0.0));
-        assert_eq!(luminary_fractions.last().copied(), Some(1.0));
-        assert!(luminary_fractions.len() > outer_planet_fractions.len());
+        assert_eq!(luminary_longitude_fractions.first().copied(), Some(0.0));
+        assert_eq!(luminary_longitude_fractions.last().copied(), Some(1.0));
+        assert!(luminary_longitude_fractions.len() > outer_planet_fractions.len());
+        assert_eq!(
+            luminary_distance_fractions,
+            PACKAGED_ARTIFACT_RESIDUAL_SAMPLE_FRACTIONS
+        );
         assert_eq!(
             outer_planet_fractions,
             PACKAGED_ARTIFACT_RESIDUAL_SAMPLE_FRACTIONS
