@@ -7873,16 +7873,23 @@ fn format_custom_definition_ayanamsa_labels_for_report() -> String {
     }
 }
 
+fn validated_release_house_system_canonical_names_for_report() -> Result<String, String> {
+    let profile = validated_compatibility_profile_for_report()?;
+    profile
+        .validated_release_house_system_canonical_names_summary_line()
+        .map_err(|error| error.to_string())
+}
+
+fn validated_release_ayanamsa_canonical_names_for_report() -> Result<String, String> {
+    let profile = validated_compatibility_profile_for_report()?;
+    profile
+        .validated_release_ayanamsa_canonical_names_summary_line()
+        .map_err(|error| error.to_string())
+}
+
 fn format_release_house_system_canonical_names_for_report() -> String {
-    match validated_compatibility_profile_for_report() {
-        Ok(profile) => {
-            match profile.validated_release_house_system_canonical_names_summary_line() {
-                Ok(summary) => format!("Release-specific house-system canonical names: {summary}"),
-                Err(error) => {
-                    format!("Release-specific house-system canonical names unavailable ({error})")
-                }
-            }
-        }
+    match validated_release_house_system_canonical_names_for_report() {
+        Ok(summary) => format!("Release-specific house-system canonical names: {summary}"),
         Err(error) => {
             format!("Release-specific house-system canonical names unavailable ({error})")
         }
@@ -7890,14 +7897,11 @@ fn format_release_house_system_canonical_names_for_report() -> String {
 }
 
 fn format_release_ayanamsa_canonical_names_for_report() -> String {
-    match validated_compatibility_profile_for_report() {
-        Ok(profile) => match profile.validated_release_ayanamsa_canonical_names_summary_line() {
-            Ok(summary) => format!("Release-specific ayanamsa canonical names: {summary}"),
-            Err(error) => {
-                format!("Release-specific ayanamsa canonical names unavailable ({error})")
-            }
-        },
-        Err(error) => format!("Release-specific ayanamsa canonical names unavailable ({error})"),
+    match validated_release_ayanamsa_canonical_names_for_report() {
+        Ok(summary) => format!("Release-specific ayanamsa canonical names: {summary}"),
+        Err(error) => {
+            format!("Release-specific ayanamsa canonical names unavailable ({error})")
+        }
     }
 }
 
