@@ -5776,6 +5776,9 @@ mod tests {
             .join("packaged-artifact-target-threshold-summary.txt")
             .exists());
         assert!(bundle_dir
+            .join("packaged-artifact-phase2-corpus-alignment-summary.txt")
+            .exists());
+        assert!(bundle_dir
             .join("packaged-artifact-generation-manifest.txt")
             .exists());
         let manifest = std::fs::read_to_string(bundle_dir.join("bundle-manifest.txt"))
@@ -5793,6 +5796,10 @@ mod tests {
         assert!(manifest.contains("packaged-artifact-production-profile-summary.txt"));
         assert!(manifest.contains("packaged-frame-treatment-summary.txt"));
         assert!(manifest.contains("packaged-artifact-target-threshold-summary.txt"));
+        assert!(manifest.contains("packaged-artifact-phase2-corpus-alignment-summary.txt"));
+        assert!(manifest.contains(
+            "packaged-artifact phase-2 corpus alignment summary checksum (fnv1a-64): 0x"
+        ));
         assert!(manifest.contains("workspace-audit-summary.txt"));
     }
 
@@ -5816,6 +5823,7 @@ mod tests {
         assert!(verified.contains("time-scale-policy-summary.txt"));
         assert!(verified.contains("delta-t-policy-summary.txt"));
         assert!(verified.contains("native-sidereal-policy-summary.txt"));
+        assert!(verified.contains("packaged-artifact-phase2-corpus-alignment-summary.txt"));
         assert!(verified.contains("release-house-system-canonical-names-summary.txt"));
         assert!(verified.contains("release-ayanamsa-canonical-names-summary.txt"));
         assert!(verified.contains("bundle-manifest.checksum.txt"));

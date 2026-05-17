@@ -84,4 +84,5 @@ This file lists focused implementation slices for the current phase ladder. Comp
 - Completed: the packaged-artifact storage/reconstruction and production-profile summary surfaces now route through explicit validated wrappers before rendering, so the release-facing artifact posture lines fail closed if the underlying summary validation drifts.
 - Completed: the validation-report and packaged-data backend provenance surfaces now route request-policy and frame-treatment through validated helpers, so those release-facing metadata lines fail closed instead of echoing raw summary text.
 - Completed: the comparison tolerance scope coverage summary command now publishes the per-scope body-class tolerance rows behind the aggregate comparison tolerance policy line, so the release-facing tolerance posture can be inspected independently from the combined policy summary.
+- Completed: the verify-release-bundle display now includes the packaged-artifact phase-2 corpus alignment summary in staged-bundle output, matching the manifest entry and checksum checks.
 - Keep README/docs aligned with the published release compatibility profile and known gaps.

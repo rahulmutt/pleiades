@@ -4105,6 +4105,13 @@ impl fmt::Display for ReleaseBundle {
         )?;
         writeln!(
             f,
+            "  packaged-artifact phase-2 corpus alignment summary: {}",
+            self.output_dir
+                .join("packaged-artifact-phase2-corpus-alignment-summary.txt")
+                .display()
+        )?;
+        writeln!(
+            f,
             "  packaged-artifact generation manifest: {}",
             self.packaged_artifact_generation_manifest_path.display()
         )?;
