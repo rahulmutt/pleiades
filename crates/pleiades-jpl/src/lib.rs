@@ -27519,6 +27519,62 @@ mod tests {
     }
 
     #[test]
+    fn comparison_snapshot_summary_validation_rejects_missing_rows() {
+        let mut summary = comparison_snapshot_summary().expect("comparison summary should exist");
+        summary.row_count = 0;
+
+        assert_eq!(
+            summary.validate(),
+            Err(ComparisonSnapshotSummaryValidationError::MissingRows)
+        );
+        assert_eq!(
+            summary.validated_summary_line(),
+            Err(ComparisonSnapshotSummaryValidationError::MissingRows)
+        );
+    }
+
+    #[test]
+    fn comparison_snapshot_summary_validation_rejects_missing_bodies() {
+        let mut summary = comparison_snapshot_summary().expect("comparison summary should exist");
+        summary.row_count = 1;
+        summary.body_count = 0;
+        summary.bodies.clear();
+
+        assert_eq!(
+            summary.validate(),
+            Err(ComparisonSnapshotSummaryValidationError::MissingBodies)
+        );
+        assert_eq!(
+            summary.validated_summary_line(),
+            Err(ComparisonSnapshotSummaryValidationError::MissingBodies)
+        );
+    }
+
+    #[test]
+    fn comparison_snapshot_summary_validation_rejects_invalid_epoch_range() {
+        let mut summary = comparison_snapshot_summary().expect("comparison summary should exist");
+        summary.earliest_epoch = pleiades_types::Instant::new(
+            summary.latest_epoch.julian_day.add_seconds(1.0),
+            summary.latest_epoch.scale,
+        );
+
+        assert!(matches!(
+            summary.validate(),
+            Err(ComparisonSnapshotSummaryValidationError::InvalidEpochRange {
+                earliest_epoch,
+                latest_epoch,
+            }) if earliest_epoch == summary.earliest_epoch && latest_epoch == summary.latest_epoch
+        ));
+        assert!(matches!(
+            summary.validated_summary_line(),
+            Err(ComparisonSnapshotSummaryValidationError::InvalidEpochRange {
+                earliest_epoch,
+                latest_epoch,
+            }) if earliest_epoch == summary.earliest_epoch && latest_epoch == summary.latest_epoch
+        ));
+    }
+
+    #[test]
     fn comparison_snapshot_summary_validation_rejects_body_order_mismatch() {
         let mut summary = comparison_snapshot_summary().expect("comparison summary should exist");
         summary.bodies.swap(0, 1);
