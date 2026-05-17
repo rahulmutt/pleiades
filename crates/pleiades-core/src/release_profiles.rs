@@ -154,6 +154,20 @@ pub const fn current_release_profile_identifiers() -> ReleaseProfileIdentifiers 
     }
 }
 
+/// Returns the compact release-profile identifier summary for report surfaces.
+pub fn release_profile_identifiers_summary_for_report(
+    release_profiles: &ReleaseProfileIdentifiers,
+) -> String {
+    release_profiles.summary_line()
+}
+
+/// Returns the compact release-profile identifier summary after validating the pair.
+pub fn validated_release_profile_identifiers_summary_for_report(
+    release_profiles: &ReleaseProfileIdentifiers,
+) -> Result<String, ReleaseProfileIdentifiersValidationError> {
+    release_profiles.validated_summary_line()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -267,6 +281,21 @@ mod tests {
         assert_eq!(
             api_stability_multiline.validate().unwrap_err(),
             ReleaseProfileIdentifiersValidationError::ApiStabilityProfileIdOutOfSync
+        );
+    }
+
+    #[test]
+    fn report_helpers_render_the_current_release_profile_identifiers() {
+        let identifiers = current_release_profile_identifiers();
+        let expected = identifiers.summary_line();
+
+        assert_eq!(
+            release_profile_identifiers_summary_for_report(&identifiers),
+            expected
+        );
+        assert_eq!(
+            validated_release_profile_identifiers_summary_for_report(&identifiers).unwrap(),
+            expected
         );
     }
 }

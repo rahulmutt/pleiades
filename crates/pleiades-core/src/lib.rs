@@ -146,7 +146,8 @@ pub use pleiades_types::{
     ZodiacSign, SECONDS_PER_DAY,
 };
 pub use release_profiles::{
-    current_release_profile_identifiers, ReleaseProfileIdentifiers,
+    current_release_profile_identifiers, release_profile_identifiers_summary_for_report,
+    validated_release_profile_identifiers_summary_for_report, ReleaseProfileIdentifiers,
     ReleaseProfileIdentifiersValidationError,
 };
 
