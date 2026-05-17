@@ -1996,7 +1996,14 @@ const SIDEREAL_PRECESSION_DEGREES_PER_CENTURY: f64 = 1.396_971_277_777_777_8;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use pleiades_types::CustomAyanamsa;
+    use pleiades_types::{CustomAyanamsa, TimeScale};
+
+    fn assert_close_degrees(actual: f64, expected: f64) {
+        assert!(
+            (actual - expected).abs() < 1.0e-12,
+            "expected {expected}, got {actual}"
+        );
+    }
 
     #[test]
     fn baseline_catalog_includes_required_milestone_entries() {
@@ -2052,6 +2059,32 @@ mod tests {
             descriptor.validated_summary_line(),
             Err(AyanamsaCatalogValidationError::PartialSiderealMetadata { label: "Lahiri" })
         );
+    }
+
+    #[test]
+    fn reference_epoch_offsets_match_the_documented_baseline_values() {
+        for body in [
+            Ayanamsa::Lahiri,
+            Ayanamsa::Raman,
+            Ayanamsa::Krishnamurti,
+            Ayanamsa::FaganBradley,
+            Ayanamsa::TrueChitra,
+        ] {
+            let descriptor = descriptor(&body).expect("baseline ayanamsa should resolve");
+            let epoch = Instant::new(
+                descriptor
+                    .epoch
+                    .expect("baseline ayanamsa should carry an epoch"),
+                TimeScale::Tt,
+            );
+            let offset = descriptor
+                .offset_at(epoch)
+                .expect("baseline ayanamsa should carry an offset");
+            assert_close_degrees(
+                offset.degrees(),
+                descriptor.offset_degrees.unwrap().degrees(),
+            );
+        }
     }
 
     #[test]

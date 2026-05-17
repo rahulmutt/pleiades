@@ -1459,6 +1459,13 @@ mod tests {
         )
     }
 
+    fn assert_close_degrees(actual: f64, expected: f64) {
+        assert!(
+            (actual - expected).abs() < 1.0e-12,
+            "expected {expected}, got {actual}"
+        );
+    }
+
     #[test]
     fn house_request_summary_line_reports_instant_observer_system_and_obliquity() {
         let request = sample_request(HouseSystem::WholeSign);
@@ -1677,6 +1684,26 @@ mod tests {
         assert!(error
             .message
             .contains("observer elevation must be finite when provided"));
+    }
+
+    #[test]
+    fn topocentric_house_snapshot_matches_a_frozen_reference_point() {
+        let mut request = sample_request(HouseSystem::Topocentric);
+        request.observer.latitude = Latitude::from_degrees(45.0);
+        request.observer.longitude = Longitude::from_degrees(10.0);
+        request.observer.elevation_m = Some(2_000.0);
+        request.obliquity = Some(Angle::from_degrees(23.439_291_1));
+
+        let snapshot = calculate_houses(&request).expect("topocentric houses should work");
+
+        assert_eq!(snapshot.cusps.len(), 12);
+        assert_close_degrees(snapshot.angles.ascendant.degrees(), 217.122_815_618_733_26);
+        assert_close_degrees(snapshot.angles.descendant.degrees(), 37.122_815_618_733_284);
+        assert_close_degrees(snapshot.angles.midheaven.degrees(), 292.129_512_677_589_9);
+        assert_close_degrees(snapshot.angles.imum_coeli.degrees(), 112.129_512_677_589_9);
+        assert_close_degrees(snapshot.cusps[0].degrees(), 216.964_467_676_271_37);
+        assert_close_degrees(snapshot.cusps[1].degrees(), 197.289_982_488_456_3);
+        assert_close_degrees(snapshot.cusps[9].degrees(), 292.129_512_677_589_9);
     }
 
     #[test]
