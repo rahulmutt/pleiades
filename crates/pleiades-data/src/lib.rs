@@ -2383,7 +2383,7 @@ const PACKAGED_ARTIFACT_TARGET_THRESHOLD_SCOPES: &[&str] = &[
 ];
 
 /// Phase-2 corpus evidence used to keep the packaged-artifact threshold policy aligned
-/// with the current reference, comparison, and hold-out corpora.
+/// with the current reference, comparison, hold-out, and selected-asteroid corpora.
 #[derive(Clone, Debug, PartialEq)]
 pub struct PackagedArtifactPhase2CorpusAlignmentSummary {
     /// Source-material evidence from the checked-in reference snapshot.
@@ -2398,19 +2398,25 @@ pub struct PackagedArtifactPhase2CorpusAlignmentSummary {
     pub independent_holdout_source: pleiades_jpl::IndependentHoldoutSourceSummary,
     /// Body-class coverage evidence from the checked-in independent hold-out snapshot.
     pub independent_holdout: pleiades_jpl::IndependentHoldoutSnapshotBodyClassCoverageSummary,
+    /// Source-backed evidence for the selected-asteroid validation corpus.
+    pub selected_asteroid_source: pleiades_jpl::SelectedAsteroidSourceSummary,
+    /// Source-backed window evidence for the selected-asteroid validation corpus.
+    pub selected_asteroid_source_windows: pleiades_jpl::SelectedAsteroidSourceWindowSummary,
 }
 
 impl PackagedArtifactPhase2CorpusAlignmentSummary {
     /// Returns the phase-2 corpus alignment posture as a compact human-readable line.
     pub fn summary_line(&self) -> String {
         format!(
-            "reference source={}; reference snapshot={}; comparison source={}; comparison snapshot={}; independent hold-out source={}; independent hold-out={}",
+            "reference source={}; reference snapshot={}; comparison source={}; comparison snapshot={}; independent hold-out source={}; independent hold-out={}; selected asteroid source evidence={}; selected asteroid source windows={}",
             self.reference_snapshot_source.summary_line(),
             self.reference_snapshot.summary_line(),
             self.comparison_snapshot_source.summary_line(),
             self.comparison_snapshot.summary_line(),
             self.independent_holdout_source.summary_line(),
             self.independent_holdout.summary_line(),
+            self.selected_asteroid_source.summary_line(),
+            self.selected_asteroid_source_windows.summary_line(),
         )
     }
 
@@ -2462,6 +2468,18 @@ impl PackagedArtifactPhase2CorpusAlignmentSummary {
                 field: "phase2_corpus_alignment",
             }
         })?;
+        self.selected_asteroid_source.validate().map_err(|_| {
+            PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+                field: "phase2_corpus_alignment",
+            }
+        })?;
+        self.selected_asteroid_source_windows
+            .validate()
+            .map_err(
+                |_| PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+                    field: "phase2_corpus_alignment",
+                },
+            )?;
 
         Ok(())
     }
@@ -2490,6 +2508,8 @@ fn packaged_artifact_phase2_corpus_alignment_summary_details(
         comparison_snapshot: comparison_snapshot_body_class_coverage_summary()?,
         independent_holdout_source: pleiades_jpl::independent_holdout_source_summary(),
         independent_holdout: independent_holdout_snapshot_body_class_coverage_summary()?,
+        selected_asteroid_source: pleiades_jpl::selected_asteroid_source_evidence_summary()?,
+        selected_asteroid_source_windows: pleiades_jpl::selected_asteroid_source_window_summary()?,
     })
 }
 
@@ -8890,6 +8910,14 @@ mod tests {
             .phase2_corpus_alignment
             .summary_line()
             .contains("independent hold-out source=Independent hold-out source:"));
+        assert!(summary
+            .phase2_corpus_alignment
+            .summary_line()
+            .contains("selected asteroid source evidence=Selected asteroid source evidence:"));
+        assert!(summary
+            .phase2_corpus_alignment
+            .summary_line()
+            .contains("selected asteroid source windows=Selected asteroid source windows:"));
         assert!(summary
             .phase2_corpus_alignment
             .summary_line()
