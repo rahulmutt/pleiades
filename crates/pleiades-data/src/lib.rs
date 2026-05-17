@@ -2828,6 +2828,8 @@ pub struct PackagedArtifactSourceFitHoldoutSyncSummary {
     pub fit_thresholds: PackagedArtifactFitThresholdSummary,
     /// Release-threshold posture that keeps the phase-2 corpus alignment synchronized.
     pub target_thresholds: PackagedArtifactTargetThresholdSummary,
+    /// Phase-2 corpus evidence that anchors the threshold posture to current source coverage.
+    pub phase2_corpus_alignment: PackagedArtifactPhase2CorpusAlignmentSummary,
 }
 
 /// Validation error for a packaged-artifact source-fit and hold-out sync summary that drifted from the current posture.
@@ -2854,9 +2856,10 @@ impl PackagedArtifactSourceFitHoldoutSyncSummary {
     /// Returns the source-fit and hold-out sync posture as a compact human-readable line.
     pub fn summary_line(&self) -> String {
         format!(
-            "source-fit and hold-out sync: fit thresholds={}; target thresholds={}",
+            "source-fit and hold-out sync: fit thresholds={}; target thresholds={}; phase 2 corpus alignment={}",
             self.fit_thresholds.summary_line(),
             self.target_thresholds.summary_line(),
+            self.phase2_corpus_alignment.summary_line(),
         )
     }
 
@@ -2892,6 +2895,25 @@ impl PackagedArtifactSourceFitHoldoutSyncSummary {
             }
         })?;
 
+        let expected_phase2_corpus_alignment =
+            packaged_artifact_phase2_corpus_alignment_summary_details().ok_or(
+                PackagedArtifactSourceFitHoldoutSyncSummaryValidationError::FieldOutOfSync {
+                    field: "phase2_corpus_alignment",
+                },
+            )?;
+        if self.phase2_corpus_alignment != expected_phase2_corpus_alignment {
+            return Err(
+                PackagedArtifactSourceFitHoldoutSyncSummaryValidationError::FieldOutOfSync {
+                    field: "phase2_corpus_alignment",
+                },
+            );
+        }
+        self.phase2_corpus_alignment.validate().map_err(|_| {
+            PackagedArtifactSourceFitHoldoutSyncSummaryValidationError::FieldOutOfSync {
+                field: "phase2_corpus_alignment",
+            }
+        })?;
+
         Ok(())
     }
 
@@ -2916,6 +2938,8 @@ pub fn packaged_artifact_source_fit_holdout_sync_summary_details(
     let summary = PackagedArtifactSourceFitHoldoutSyncSummary {
         fit_thresholds: packaged_artifact_fit_threshold_summary_details(),
         target_thresholds: packaged_artifact_target_threshold_summary_details(),
+        phase2_corpus_alignment: packaged_artifact_phase2_corpus_alignment_summary_details()
+            .expect("phase-2 corpus evidence should be available"),
     };
     debug_assert!(summary.validate().is_ok());
     summary
@@ -9929,6 +9953,9 @@ mod tests {
         assert!(summary
             .summary_line()
             .contains("target thresholds: production thresholds recorded"));
+        assert!(summary
+            .summary_line()
+            .contains("phase 2 corpus alignment=reference source="));
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
@@ -9970,6 +9997,27 @@ mod tests {
             }
         );
         assert!(error.to_string().contains("target_thresholds"));
+    }
+
+    #[test]
+    fn packaged_artifact_source_fit_holdout_sync_summary_validation_rejects_phase2_drift() {
+        let mut summary = packaged_artifact_source_fit_holdout_sync_summary_details();
+        summary
+            .phase2_corpus_alignment
+            .reference_snapshot_source
+            .source
+            .push_str(" drift");
+
+        let error = summary
+            .validate()
+            .expect_err("phase-2 corpus drift should be rejected");
+        assert_eq!(
+            error,
+            PackagedArtifactSourceFitHoldoutSyncSummaryValidationError::FieldOutOfSync {
+                field: "phase2_corpus_alignment",
+            }
+        );
+        assert!(error.to_string().contains("phase2_corpus_alignment"));
     }
 
     #[test]
