@@ -5726,6 +5726,7 @@ pub fn comparison_snapshot_manifest_summary_for_report() -> String {
         "JPL Horizons reference snapshot.",
         "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.",
         "Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000.",
+        None,
         &["body", "x_km", "y_km", "z_km"],
     ) {
         return format!("Comparison snapshot manifest: unavailable ({error})");
@@ -18904,6 +18905,7 @@ pub fn reference_snapshot_manifest_summary_for_report() -> String {
         "JPL Horizons reference snapshot.",
         "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.",
         "selected bodies sampled at 1500-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 1600-01-11 for Sun, Moon, Mercury, Venus, Mars, Jupiter, Uranus, Neptune; major bodies sampled at 1749-12-31 for Sun through Neptune; selected bodies sampled at 1750-01-01 for Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; inner planets sampled across 1800-2500; major bodies sampled at 1800-01-03 for Sun through Pluto; selected bodies sampled at 1900-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 2200-01-01 for Sun, Moon, Mercury, Venus; major bodies sampled at 2400000, 2451545, 2451910.5, 2451911.5, 2451912.5, 2451913.5, 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451916.0, 2451916.5, 2451917.0, 2451917.5, 2451918.5, 2451919.5, 2451920.5, 2453000.5, and 2500000; major bodies sampled at 2451915.5 for Sun through Pluto; Mars sampled at 2600000 and 2634167 for outer boundary coverage; major bodies sampled at 2451913.5 through 2451917.5 for additional boundary coverage; selected asteroids sampled at J2000, 2378498.5, 2451910.5 through 2451919.5, with 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451918.5, and 2451919.5 boundary coverage, 1800-01-03, 2003-12-27, 2132-08-31, 2500-01-01, and 2634167.",
+        Some("repository-checked regression fixtures, not a broad public corpus."),
         &["epoch_jd", "body", "x_km", "y_km", "z_km"],
     ) {
         return format!("Reference snapshot manifest: unavailable ({error})");
@@ -19113,6 +19115,7 @@ pub fn independent_holdout_manifest_summary_for_report() -> String {
         "Independent JPL Horizons hold-out snapshot used only for interpolation validation.",
         "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.",
         "Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Pluto at 2451545 and 2500000.",
+        Some("repository-checked regression fixtures, not a broad public corpus."),
         &["epoch_jd", "body", "x_km", "y_km", "z_km"],
     ) {
         return format!("Independent hold-out manifest: unavailable ({error})");
@@ -21420,6 +21423,8 @@ pub struct SnapshotManifest {
     pub source: Option<String>,
     /// Coverage comment from the fixture.
     pub coverage: Option<String>,
+    /// Redistribution posture comment from the fixture.
+    pub redistribution: Option<String>,
     /// Parsed columns comment from the fixture.
     pub columns: Vec<String>,
 }
@@ -21435,6 +21440,8 @@ pub enum SnapshotManifestValidationError {
     MissingColumns,
     /// The manifest included a blank coverage comment after trimming.
     BlankCoverage,
+    /// The manifest included a blank redistribution comment after trimming.
+    BlankRedistribution,
     /// The manifest carried surrounding whitespace in a provenance field.
     SurroundedByWhitespace { field: &'static str },
     /// A parsed column name was blank after trimming.
@@ -21455,6 +21462,7 @@ impl SnapshotManifestValidationError {
             Self::MissingSource => "missing source",
             Self::MissingColumns => "missing columns",
             Self::BlankCoverage => "blank coverage",
+            Self::BlankRedistribution => "blank redistribution",
             Self::SurroundedByWhitespace { .. } => "surrounded by whitespace",
             Self::BlankColumn { .. } => "blank column",
             Self::DuplicateColumn { .. } => "duplicate column",
@@ -21500,6 +21508,11 @@ impl SnapshotManifest {
     /// Returns the coverage label, or the provided fallback when the manifest omits it.
     pub fn coverage_or(&self, fallback: &'static str) -> Cow<'_, str> {
         Self::trimmed_or(self.coverage.as_deref(), fallback)
+    }
+
+    /// Returns the redistribution label, or the provided fallback when the manifest omits it.
+    pub fn redistribution_or(&self, fallback: &'static str) -> Cow<'_, str> {
+        Self::trimmed_or(self.redistribution.as_deref(), fallback)
     }
 
     fn columns_summary(&self) -> String {
@@ -21559,6 +21572,19 @@ impl SnapshotManifest {
                 field: "coverage",
             });
         }
+        if matches!(self.redistribution.as_deref(), Some(redistribution) if redistribution.trim().is_empty())
+        {
+            return Err(SnapshotManifestValidationError::BlankRedistribution);
+        }
+        if self
+            .redistribution
+            .as_deref()
+            .is_some_and(has_surrounding_whitespace)
+        {
+            return Err(SnapshotManifestValidationError::SurroundedByWhitespace {
+                field: "redistribution",
+            });
+        }
         if self.columns.is_empty() {
             return Err(SnapshotManifestValidationError::MissingColumns);
         }
@@ -21606,7 +21632,18 @@ impl SnapshotManifest {
         let source = self.source_or(source_fallback);
         let coverage = self.coverage_or(coverage_fallback);
         let columns = self.columns_summary();
-        format!("{label}: {title}; source={source}; coverage={coverage}; columns={columns}")
+        let mut text =
+            format!("{label}: {title}; source={source}; coverage={coverage}; columns={columns}");
+        if let Some(redistribution) = self
+            .redistribution
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+        {
+            text.push_str("; redistribution=");
+            text.push_str(redistribution);
+        }
+        text
     }
 }
 
@@ -21831,6 +21868,8 @@ fn parse_snapshot_manifest(source: &str) -> SnapshotManifest {
             manifest.source = Some(value.trim().to_string());
         } else if let Some(value) = comment.strip_prefix("Coverage:") {
             manifest.coverage = Some(value.trim().to_string());
+        } else if let Some(value) = comment.strip_prefix("Redistribution:") {
+            manifest.redistribution = Some(value.trim().to_string());
         } else if let Some(value) = comment.strip_prefix("Columns:") {
             manifest.columns = value
                 .split(',')
@@ -21885,14 +21924,18 @@ fn validate_snapshot_manifest_header_structure(
     expected_title: &str,
     expected_source: &str,
     expected_coverage: &str,
+    expected_redistribution: Option<&str>,
     expected_columns: &[&str],
 ) -> Result<(), SnapshotManifestHeaderStructureError> {
-    let expected_comments = [
+    let mut expected_comments = vec![
         expected_title.to_string(),
         format!("Source: {expected_source}"),
         format!("Coverage: {expected_coverage}"),
-        format!("Columns: {}", expected_columns.join(",")),
     ];
+    if let Some(expected_redistribution) = expected_redistribution {
+        expected_comments.push(format!("Redistribution: {expected_redistribution}"));
+    }
+    expected_comments.push(format!("Columns: {}", expected_columns.join(",")));
     let comments = source
         .lines()
         .filter_map(|line| {
@@ -21921,6 +21964,7 @@ fn validate_snapshot_manifest_header_structure(
                     0 => "title",
                     1 => "source",
                     2 => "coverage",
+                    3 => "redistribution",
                     _ => "columns",
                 },
                 expected: expected.clone(),
@@ -25990,7 +26034,7 @@ mod tests {
         assert_eq!(boundary_summary, holdout_summary);
         assert_eq!(
             format_production_generation_boundary_source_summary(&boundary_summary),
-            "Production generation boundary overlay source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Pluto at 2451545 and 2500000.; columns=epoch_jd, body, x_km, y_km, z_km; checksum=0x3613b0300feba255"
+            "Production generation boundary overlay source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Pluto at 2451545 and 2500000.; columns=epoch_jd, body, x_km, y_km, z_km; checksum=0x2b2a38474384b973"
         );
         assert_eq!(
             production_generation_boundary_source_summary_for_report(),
@@ -27601,6 +27645,7 @@ mod tests {
             title: Some("Example snapshot.".to_string()),
             source: Some(" ".to_string()),
             coverage: Some("coverage".to_string()),
+            redistribution: None,
             columns: vec!["body".to_string()],
         };
         assert_eq!(
@@ -27774,6 +27819,7 @@ mod tests {
             title: Some(" ".to_string()),
             source: None,
             coverage: Some("ignored".to_string()),
+            redistribution: None,
             columns: vec!["body".to_string(), "".to_string()],
         };
 
@@ -27786,6 +27832,7 @@ mod tests {
             title: Some("Example snapshot.".to_string()),
             source: Some(" ".to_string()),
             coverage: None,
+            redistribution: None,
             columns: vec!["body".to_string()],
         };
 
@@ -27798,6 +27845,7 @@ mod tests {
             title: Some("Example snapshot.".to_string()),
             source: Some("Example source".to_string()),
             coverage: None,
+            redistribution: None,
             columns: Vec::new(),
         };
 
@@ -27810,6 +27858,7 @@ mod tests {
             title: Some("Example snapshot.".to_string()),
             source: Some("Example source".to_string()),
             coverage: Some(" ".to_string()),
+            redistribution: None,
             columns: vec!["body".to_string()],
         };
 
@@ -27821,6 +27870,22 @@ mod tests {
             SnapshotManifestValidationError::BlankCoverage.to_string(),
             "blank coverage"
         );
+        let manifest = SnapshotManifest {
+            title: Some("Example snapshot.".to_string()),
+            source: Some("Example source".to_string()),
+            coverage: None,
+            redistribution: Some(" ".to_string()),
+            columns: vec!["body".to_string()],
+        };
+
+        assert_eq!(
+            manifest.validate(),
+            Err(SnapshotManifestValidationError::BlankRedistribution)
+        );
+        assert_eq!(
+            SnapshotManifestValidationError::BlankRedistribution.to_string(),
+            "blank redistribution"
+        );
         assert_eq!(
             manifest.summary_line("Example manifest"),
             "Example manifest: Example snapshot.; source=Example source; coverage=unknown; columns=body"
@@ -27830,6 +27895,7 @@ mod tests {
             title: Some(" Example snapshot.".to_string()),
             source: Some("Example source".to_string()),
             coverage: None,
+            redistribution: None,
             columns: vec!["body".to_string()],
         };
 
@@ -27846,6 +27912,7 @@ mod tests {
             title: Some("Example snapshot.".to_string()),
             source: Some(" Example source".to_string()),
             coverage: None,
+            redistribution: None,
             columns: vec!["body".to_string()],
         };
 
@@ -27858,6 +27925,7 @@ mod tests {
             title: Some("Example snapshot.".to_string()),
             source: Some("Example source".to_string()),
             coverage: Some(" Coverage".to_string()),
+            redistribution: None,
             columns: vec!["body".to_string()],
         };
 
@@ -27870,6 +27938,7 @@ mod tests {
             title: Some("Example snapshot.".to_string()),
             source: Some("Example source".to_string()),
             coverage: None,
+            redistribution: None,
             columns: vec!["body".to_string(), "".to_string()],
         };
 
@@ -27886,6 +27955,7 @@ mod tests {
             title: Some("Example snapshot.".to_string()),
             source: Some("Example source".to_string()),
             coverage: None,
+            redistribution: None,
             columns: vec!["body".to_string(), "body".to_string()],
         };
 
@@ -27934,6 +28004,7 @@ mod tests {
             title: Some(" Example snapshot.".to_string()),
             source: Some("Example source".to_string()),
             coverage: None,
+            redistribution: None,
             columns: vec!["body".to_string()],
         };
 
@@ -27946,6 +28017,7 @@ mod tests {
             title: Some("Example snapshot.".to_string()),
             source: Some(" Example source".to_string()),
             coverage: None,
+            redistribution: None,
             columns: vec!["body".to_string()],
         };
 
@@ -27958,6 +28030,7 @@ mod tests {
             title: Some("Example snapshot.".to_string()),
             source: Some("Example source".to_string()),
             coverage: Some(" Coverage".to_string()),
+            redistribution: None,
             columns: vec!["body".to_string()],
         };
 
@@ -28017,6 +28090,7 @@ mod tests {
                 title: Some("Example snapshot.".to_string()),
                 source: Some("Example source".to_string()),
                 coverage: Some("Example coverage".to_string()),
+                redistribution: None,
                 columns: vec!["body".to_string(), "x_km".to_string()],
             },
             source_fallback: "unknown",
@@ -28035,6 +28109,7 @@ mod tests {
                 title: Some("Reference snapshot.".to_string()),
                 source: Some("NASA/JPL Horizons API".to_string()),
                 coverage: Some("Example coverage".to_string()),
+                redistribution: None,
                 columns: vec![
                     "body".to_string(),
                     "x_km".to_string(),
@@ -28071,6 +28146,7 @@ mod tests {
             title: Some("Example snapshot.".to_string()),
             source: Some("Example source".to_string()),
             coverage: Some("".to_string()),
+            redistribution: None,
             columns: vec!["body".to_string()],
         };
 
@@ -28086,6 +28162,7 @@ mod tests {
             title: Some("Example snapshot.".to_string()),
             source: None,
             coverage: Some("Example coverage".to_string()),
+            redistribution: None,
             columns: vec!["body".to_string()],
         };
 
@@ -29388,13 +29465,17 @@ mod tests {
         );
         assert_eq!(manifest.coverage.as_deref(), Some("selected bodies sampled at 1500-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 1600-01-11 for Sun, Moon, Mercury, Venus, Mars, Jupiter, Uranus, Neptune; major bodies sampled at 1749-12-31 for Sun through Neptune; selected bodies sampled at 1750-01-01 for Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; inner planets sampled across 1800-2500; major bodies sampled at 1800-01-03 for Sun through Pluto; selected bodies sampled at 1900-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 2200-01-01 for Sun, Moon, Mercury, Venus; major bodies sampled at 2400000, 2451545, 2451910.5, 2451911.5, 2451912.5, 2451913.5, 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451916.0, 2451916.5, 2451917.0, 2451917.5, 2451918.5, 2451919.5, 2451920.5, 2453000.5, and 2500000; major bodies sampled at 2451915.5 for Sun through Pluto; Mars sampled at 2600000 and 2634167 for outer boundary coverage; major bodies sampled at 2451913.5 through 2451917.5 for additional boundary coverage; selected asteroids sampled at J2000, 2378498.5, 2451910.5 through 2451919.5, with 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451918.5, and 2451919.5 boundary coverage, 1800-01-03, 2003-12-27, 2132-08-31, 2500-01-01, and 2634167."));
         assert_eq!(
+            manifest.redistribution.as_deref(),
+            Some("repository-checked regression fixtures, not a broad public corpus.")
+        );
+        assert_eq!(
             manifest.columns,
             ["epoch_jd", "body", "x_km", "y_km", "z_km"]
         );
         assert_eq!(manifest.validate(), Ok(()));
         assert_eq!(
             manifest.summary_line("Reference snapshot manifest"),
-            "Reference snapshot manifest: JPL Horizons reference snapshot.; source=NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=selected bodies sampled at 1500-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 1600-01-11 for Sun, Moon, Mercury, Venus, Mars, Jupiter, Uranus, Neptune; major bodies sampled at 1749-12-31 for Sun through Neptune; selected bodies sampled at 1750-01-01 for Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; inner planets sampled across 1800-2500; major bodies sampled at 1800-01-03 for Sun through Pluto; selected bodies sampled at 1900-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 2200-01-01 for Sun, Moon, Mercury, Venus; major bodies sampled at 2400000, 2451545, 2451910.5, 2451911.5, 2451912.5, 2451913.5, 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451916.0, 2451916.5, 2451917.0, 2451917.5, 2451918.5, 2451919.5, 2451920.5, 2453000.5, and 2500000; major bodies sampled at 2451915.5 for Sun through Pluto; Mars sampled at 2600000 and 2634167 for outer boundary coverage; major bodies sampled at 2451913.5 through 2451917.5 for additional boundary coverage; selected asteroids sampled at J2000, 2378498.5, 2451910.5 through 2451919.5, with 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451918.5, and 2451919.5 boundary coverage, 1800-01-03, 2003-12-27, 2132-08-31, 2500-01-01, and 2634167.; columns=epoch_jd, body, x_km, y_km, z_km"
+            "Reference snapshot manifest: JPL Horizons reference snapshot.; source=NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=selected bodies sampled at 1500-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 1600-01-11 for Sun, Moon, Mercury, Venus, Mars, Jupiter, Uranus, Neptune; major bodies sampled at 1749-12-31 for Sun through Neptune; selected bodies sampled at 1750-01-01 for Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; inner planets sampled across 1800-2500; major bodies sampled at 1800-01-03 for Sun through Pluto; selected bodies sampled at 1900-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 2200-01-01 for Sun, Moon, Mercury, Venus; major bodies sampled at 2400000, 2451545, 2451910.5, 2451911.5, 2451912.5, 2451913.5, 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451916.0, 2451916.5, 2451917.0, 2451917.5, 2451918.5, 2451919.5, 2451920.5, 2453000.5, and 2500000; major bodies sampled at 2451915.5 for Sun through Pluto; Mars sampled at 2600000 and 2634167 for outer boundary coverage; major bodies sampled at 2451913.5 through 2451917.5 for additional boundary coverage; selected asteroids sampled at J2000, 2378498.5, 2451910.5 through 2451919.5, with 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451918.5, and 2451919.5 boundary coverage, 1800-01-03, 2003-12-27, 2132-08-31, 2500-01-01, and 2634167.; columns=epoch_jd, body, x_km, y_km, z_km; redistribution=repository-checked regression fixtures, not a broad public corpus."
         );
     }
 
@@ -29421,6 +29502,7 @@ mod tests {
         let duplicate_comment_block = "\
 # JPL Horizons reference snapshot.
 # Source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.
+# Redistribution: repository-checked regression fixtures, not a broad public corpus
 # Coverage: major bodies sampled at 1749-12-31 for Sun through Neptune
 # Columns: epoch_jd,body,x_km,y_km,z_km
 # Coverage: duplicate
@@ -29432,11 +29514,12 @@ mod tests {
                 "JPL Horizons reference snapshot.",
                 "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.",
                 "major bodies sampled at 1749-12-31 for Sun through Neptune",
+                Some("repository-checked regression fixtures, not a broad public corpus."),
                 &["epoch_jd", "body", "x_km", "y_km", "z_km"],
             ),
             Err(SnapshotManifestHeaderStructureError::CommentCountMismatch {
-                expected: 4,
-                found: 5,
+                expected: 5,
+                found: 6,
             })
         ));
 
@@ -29444,6 +29527,7 @@ mod tests {
 # JPL Horizons reference snapshot.
 # Coverage: major bodies sampled at 1749-12-31 for Sun through Neptune
 # Source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.
+# Redistribution: repository-checked regression fixtures, not a broad public corpus
 # Columns: epoch_jd,body,x_km,y_km,z_km
 2451545.0,Sun,1,2,3
 ";
@@ -29453,6 +29537,7 @@ mod tests {
                 "JPL Horizons reference snapshot.",
                 "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.",
                 "major bodies sampled at 1749-12-31 for Sun through Neptune",
+                Some("repository-checked regression fixtures, not a broad public corpus."),
                 &["epoch_jd", "body", "x_km", "y_km", "z_km"],
             ),
             Err(SnapshotManifestHeaderStructureError::CommentMismatch {
@@ -29476,13 +29561,17 @@ mod tests {
             Some("Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Pluto at 2451545 and 2500000.")
         );
         assert_eq!(
+            manifest.redistribution.as_deref(),
+            Some("repository-checked regression fixtures, not a broad public corpus.")
+        );
+        assert_eq!(
             manifest.columns,
             ["epoch_jd", "body", "x_km", "y_km", "z_km"]
         );
         assert_eq!(manifest.validate(), Ok(()));
         assert_eq!(
             manifest.summary_line("Independent hold-out manifest"),
-            "Independent hold-out manifest: Independent JPL Horizons hold-out snapshot used only for interpolation validation.; source=NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Pluto at 2451545 and 2500000.; columns=epoch_jd, body, x_km, y_km, z_km"
+            "Independent hold-out manifest: Independent JPL Horizons hold-out snapshot used only for interpolation validation.; source=NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Pluto at 2451545 and 2500000.; columns=epoch_jd, body, x_km, y_km, z_km; redistribution=repository-checked regression fixtures, not a broad public corpus."
         );
     }
 
