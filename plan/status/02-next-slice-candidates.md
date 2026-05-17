@@ -24,6 +24,7 @@ This file lists focused implementation slices for the current phase ladder. Comp
 ### 2. Keep the finalized threshold policy aligned with Phase 2 corpus evidence
 
 - Completed: the packaged-artifact target-threshold summary now carries explicit phase-2 reference, comparison, and independent hold-out corpus alignment evidence and fails closed on phase2 alignment drift.
+- Completed: direct and batch request-policy validation now pins invalid-observer precedence ahead of unsupported-body coverage, so mixed request-shape failures keep surfacing the malformed observer before body-coverage rejection.
 
 ## Phase 2 — Reference/source corpus productionization
 
@@ -53,6 +54,7 @@ This file lists focused implementation slices for the current phase ladder. Comp
 - Keep native sidereal backend output unsupported unless a backend explicitly implements it.
 - Add precedence tests for invalid/unsupported request combinations when behavior changes.
 - Completed: the frame-policy summary surface now validates before rendering in the CLI and validation report paths.
+- Completed: request-policy validation now preserves invalid-observer precedence ahead of unsupported-body coverage in both direct and batch metadata checks.
 
 ## Phase 5 — Compatibility catalog evidence
 

@@ -4653,6 +4653,45 @@ mod tests {
         assert_eq!(error.kind, EphemerisErrorKind::UnsupportedBody);
         assert_eq!(error.message, "toy backend does not support Mars");
 
+        let unsupported_body_with_invalid_observer_request = EphemerisRequest {
+            observer: Some(ObserverLocation::new(
+                Latitude::from_degrees(95.0),
+                Longitude::from_degrees(-0.1),
+                Some(45.0),
+            )),
+            ..unsupported_body_request.clone()
+        };
+        let unsupported_body_with_invalid_observer_error = validate_request_against_metadata(
+            &unsupported_body_with_invalid_observer_request,
+            &metadata,
+        )
+        .expect_err("observer validation should win before unsupported body coverage is reported");
+        assert_eq!(
+            unsupported_body_with_invalid_observer_error.kind,
+            EphemerisErrorKind::InvalidObserver
+        );
+        assert!(unsupported_body_with_invalid_observer_error
+            .message
+            .contains("request received invalid observer location"));
+
+        let unsupported_body_batch_error = validate_requests_against_metadata(
+            &[
+                geocentric_only_request.clone(),
+                unsupported_body_with_invalid_observer_request.clone(),
+            ],
+            &metadata,
+        )
+        .expect_err(
+            "batch metadata should preserve invalid observer precedence over unsupported bodies",
+        );
+        assert_eq!(
+            unsupported_body_batch_error.kind,
+            EphemerisErrorKind::InvalidObserver
+        );
+        assert!(unsupported_body_batch_error
+            .message
+            .contains("batch request 2: request received invalid observer location"));
+
         let sidereal_request = EphemerisRequest {
             zodiac_mode: ZodiacMode::Sidereal {
                 ayanamsa: pleiades_types::Ayanamsa::FaganBradley,
