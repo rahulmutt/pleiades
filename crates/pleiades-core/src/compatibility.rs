@@ -114,6 +114,14 @@ impl CompatibilityProfile {
         self.summary
     }
 
+    /// Returns the release note after validating the profile's release-facing metadata.
+    pub fn validated_release_note(
+        &self,
+    ) -> Result<&'static str, CompatibilityProfileValidationError> {
+        self.validate()?;
+        Ok(self.summary)
+    }
+
     /// Returns a typed summary of the Swiss-Ephemeris house-code alias inventory.
     pub fn house_code_alias_inventory_summary(&self) -> HouseCodeAliasInventorySummary {
         HouseCodeAliasInventorySummary::new(house_system_code_aliases())
@@ -3424,6 +3432,14 @@ mod tests {
             error,
             CompatibilityProfileValidationError::SummaryDoesNotDescribeReleaseSplit
         );
+        assert!(profile.validated_release_note().is_err());
+    }
+
+    #[test]
+    fn compatibility_profile_validated_release_note_tracks_the_built_in_summary() {
+        let profile = current_compatibility_profile();
+
+        assert_eq!(profile.validated_release_note(), Ok(profile.release_note()));
     }
 
     #[test]

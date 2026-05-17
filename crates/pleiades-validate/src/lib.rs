@@ -8178,7 +8178,10 @@ fn render_release_notes_text() -> String {
     text.push_str(release_profiles.compatibility_profile_id);
     text.push('\n');
     text.push_str("Summary:\n");
-    text.push_str(profile.summary);
+    match profile.validated_release_note() {
+        Ok(summary) => text.push_str(summary),
+        Err(error) => return format!("Release notes unavailable ({error})"),
+    }
     text.push('\n');
     text.push('\n');
     match profile.validated_catalog_inventory_summary_line() {
@@ -8772,7 +8775,10 @@ fn render_release_summary_text() -> String {
     text.push_str(&zodiac_policy_summary_for_report(&[ZodiacMode::Tropical]));
     text.push('\n');
     text.push_str("Release summary line: ");
-    text.push_str(profile.summary);
+    match profile.validated_release_note() {
+        Ok(summary) => text.push_str(summary),
+        Err(error) => return format!("Release summary unavailable ({error})"),
+    }
     text.push('\n');
     match profile.validated_catalog_inventory_summary_line() {
         Ok(summary) => text.push_str(&summary),

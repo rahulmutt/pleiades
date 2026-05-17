@@ -31,6 +31,7 @@ Current backend and data posture:
 - Packaged artifact profiles now fail closed when any built-in output would remain unlisted, keeping stored/derived/unsupported capability classifications explicit.
 - The packaged-artifact generator now uses midpoint-aware quadratic distance reconstruction on pair-based spans, and the checked-in fixture has been regenerated to the new bytes.
 - Current first-party request policy is explicit: TT/TDB mean geometric geocentric tropical requests are supported where metadata says so; built-in Delta T/UTC modeling, apparent-place corrections, topocentric body positions, and native sidereal backend output remain unsupported unless a future backend advertises and validates them.
+- The release notes and release summary surfaces now route the compatibility profile's release note through a validated helper before rendering, so those release-facing entries fail closed on profile summary drift.
 
 ## Remaining specification gaps
 
