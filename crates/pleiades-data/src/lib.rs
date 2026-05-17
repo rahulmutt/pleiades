@@ -68,6 +68,8 @@ const PACKAGE_NAME: &str = "pleiades-data";
 const ARTIFACT_LABEL: &str = "stage-5 packaged-data draft";
 const ARTIFACT_PROFILE_ID: &str = "pleiades-packaged-artifact-profile/stage-5-draft";
 const ARTIFACT_SOURCE: &str = "Quantized adjacent same-body quadratic windows with longitude-unwrapped planetary fits fitted to JPL Horizons reference epochs (1800, 2000, 2500 CE) for the comparison-body planetary set plus asteroid:433-Eros, with point segments only for single-epoch bodies and recursively subdivided quadratic spans for multi-epoch bodies using body-class span caps and measured-fit comparison against the fallback, with 8-point and 10-point Chebyshev-Lobatto baseline candidates before the dense body-specific ladders, residual correction channels on high-curvature spans when they improve the fit, higher-order distance reconstruction from fit samples when it quantizes cleanly, cubic distance reconstruction from four-point control points when available, and quadratic fallback otherwise.";
+
+const PACKAGED_ARTIFACT_GENERATION_POLICY_NOTE: &str = "bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into quadratic windows using body-class span caps and measured-fit comparison against the fallback, with 8-point and 10-point Chebyshev-Lobatto baseline candidates before the dense body-specific ladders (10-point, 12-point, 14-point, 16-point, 18-point, and 20-point options for luminaries, Pluto, selected asteroids, and custom bodies), and the best dense candidate wins before fallback, residual correction channels on high-curvature spans when they improve the fit, higher-order distance reconstruction from fit samples when it quantizes cleanly, cubic distance reconstruction from four-point control points when available, and quadratic fallback otherwise";
 const PACKAGED_BASE_BODIES: [CelestialBody; 10] = [
     CelestialBody::Sun,
     CelestialBody::Moon,
@@ -250,9 +252,7 @@ impl PackagedArtifactGenerationPolicy {
     /// Returns the explanatory note used in release-facing summaries.
     pub const fn note(self) -> &'static str {
         match self {
-            Self::AdjacentSameBodyQuadraticWindows => {
-                "bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into quadratic windows using body-class span caps and measured-fit comparison against the fallback, with 8-point and 10-point Chebyshev-Lobatto baseline candidates before the dense body-specific ladders, residual correction channels on high-curvature spans when they improve the fit, higher-order distance reconstruction from fit samples when it quantizes cleanly, cubic distance reconstruction from four-point control points when available, and quadratic fallback otherwise"
-            }
+            Self::AdjacentSameBodyQuadraticWindows => PACKAGED_ARTIFACT_GENERATION_POLICY_NOTE,
         }
     }
 
@@ -8073,7 +8073,13 @@ mod tests {
             summary.policy,
             PackagedArtifactGenerationPolicy::AdjacentSameBodyQuadraticWindows
         );
-        assert_eq!(summary.summary_line(), "adjacent same-body quadratic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into quadratic windows using body-class span caps and measured-fit comparison against the fallback, with 8-point and 10-point Chebyshev-Lobatto baseline candidates before the dense body-specific ladders, residual correction channels on high-curvature spans when they improve the fit, higher-order distance reconstruction from fit samples when it quantizes cleanly, cubic distance reconstruction from four-point control points when available, and quadratic fallback otherwise");
+        assert_eq!(
+            summary.summary_line(),
+            format!(
+                "adjacent same-body quadratic windows; {}",
+                PACKAGED_ARTIFACT_GENERATION_POLICY_NOTE
+            )
+        );
         assert_eq!(summary.to_string(), summary.summary_line());
         summary
             .validate()
@@ -8160,7 +8166,10 @@ mod tests {
         );
         assert_eq!(
             summary.generation_policy_line(),
-            "generation policy: adjacent same-body quadratic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into quadratic windows using body-class span caps and measured-fit comparison against the fallback, with 8-point and 10-point Chebyshev-Lobatto baseline candidates before the dense body-specific ladders, residual correction channels on high-curvature spans when they improve the fit, higher-order distance reconstruction from fit samples when it quantizes cleanly, cubic distance reconstruction from four-point control points when available, and quadratic fallback otherwise"
+            format!(
+                "generation policy: adjacent same-body quadratic windows; {}",
+                PACKAGED_ARTIFACT_GENERATION_POLICY_NOTE
+            )
         );
         assert_eq!(
             summary.residual_body_line(),
