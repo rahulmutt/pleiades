@@ -15006,6 +15006,14 @@ fn validated_catalog_inventory_summary_for_report() -> Result<String, String> {
     Ok(catalog_inventory_summary_for_report())
 }
 
+fn validated_house_code_aliases_summary_for_report(
+    profile: &CompatibilityProfile,
+) -> Result<String, String> {
+    profile
+        .validated_house_code_aliases_summary_line()
+        .map_err(|error| error.to_string())
+}
+
 fn format_release_profile_identifiers_summary(
     release_profiles: &ReleaseProfileIdentifiers,
 ) -> String {
@@ -16438,7 +16446,10 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(&selected_asteroid_terminal_boundary_summary_for_report());
     text.push('\n');
     text.push_str("House code aliases: ");
-    text.push_str(&profile.house_code_aliases_summary_line());
+    match validated_house_code_aliases_summary_for_report(&profile) {
+        Ok(summary) => text.push_str(&summary),
+        Err(error) => return format!("Backend matrix summary unavailable ({error})"),
+    }
     text.push('\n');
     text.push_str(&reference_asteroid_evidence_summary_for_report());
     text.push('\n');
@@ -16724,7 +16735,12 @@ fn backend_family_label(family: &BackendFamily) -> String {
 
 /// Renders a backend capability matrix for the implemented backend catalog.
 pub fn render_backend_matrix_report() -> Result<String, EphemerisError> {
-    let profile = current_compatibility_profile();
+    let profile = validated_compatibility_profile_for_report().map_err(|error| {
+        EphemerisError::new(
+            EphemerisErrorKind::InvalidRequest,
+            format!("backend capability matrix unavailable ({error})"),
+        )
+    })?;
     let mut rendered = String::new();
     fmt::write(
         &mut rendered,
@@ -16737,12 +16753,17 @@ pub fn render_backend_matrix_report() -> Result<String, EphemerisError> {
         )
     })?;
 
+    let house_code_aliases =
+        validated_house_code_aliases_summary_for_report(&profile).map_err(|error| {
+            EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!("backend capability matrix unavailable ({error})"),
+            )
+        })?;
+
     fmt::write(
         &mut rendered,
-        format_args!(
-            "House code aliases: {}\n\n",
-            profile.house_code_aliases_summary_line()
-        ),
+        format_args!("House code aliases: {}\n\n", house_code_aliases),
     )
     .map_err(|_| {
         EphemerisError::new(
@@ -25015,6 +25036,27 @@ mod tests {
             .to_string()
             .contains("backend matrix entry `broken backend` has invalid metadata"));
         assert!(error.to_string().contains("provenance summary"));
+    }
+
+    #[test]
+    fn validated_house_code_aliases_summary_for_report_matches_current_profile() {
+        let profile = current_compatibility_profile();
+        assert_eq!(
+            validated_house_code_aliases_summary_for_report(&profile).unwrap(),
+            profile.house_code_aliases_summary_line()
+        );
+    }
+
+    #[test]
+    fn validated_house_code_aliases_summary_for_report_rejects_invalid_profiles() {
+        let profile = CompatibilityProfile {
+            summary: "",
+            ..current_compatibility_profile()
+        };
+
+        let error = validated_house_code_aliases_summary_for_report(&profile)
+            .expect_err("invalid compatibility profiles should be rejected");
+        assert!(error.contains("compatibility profile summary is blank"));
     }
 
     #[test]
