@@ -26332,7 +26332,7 @@ version = "0.9.0"
         assert!(release_summary.contains("fit envelope:"));
         assert!(release_summary.contains("segment samples across"));
         assert!(release_summary.contains("checksum=0x"));
-        assert!(release_summary.contains("generation policy: adjacent same-body quadratic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into quadratic windows using body-class span caps and measured-fit comparison against the fallback, with residual correction channels on high-curvature spans when they improve the fit, quadratic distance reconstruction when midpoint samples are available, and quadratic fallback when four-point sampling is unavailable"));
+        assert!(release_summary.contains("generation policy: adjacent same-body quadratic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into quadratic windows using body-class span caps and measured-fit comparison against the fallback, with residual correction channels on high-curvature spans when they improve the fit, higher-order distance reconstruction from fit samples when it quantizes cleanly, cubic distance reconstruction from four-point control points when available, and quadratic fallback otherwise"));
         assert!(release_summary.contains(&format!(
             "artifact version={}",
             pleiades_data::packaged_artifact_regeneration_summary_details().artifact_version
@@ -26567,7 +26567,7 @@ version = "0.9.0"
         assert!(artifact_summary.contains("segment samples across"));
         assert!(artifact_summary.contains("checksum=0x"));
         assert!(
-            artifact_summary.contains("generation policy: adjacent same-body quadratic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into quadratic windows using body-class span caps and measured-fit comparison against the fallback, with residual correction channels on high-curvature spans when they improve the fit, quadratic distance reconstruction when midpoint samples are available, and quadratic fallback when four-point sampling is unavailable")
+            artifact_summary.contains("generation policy: adjacent same-body quadratic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into quadratic windows using body-class span caps and measured-fit comparison against the fallback, with residual correction channels on high-curvature spans when they improve the fit, higher-order distance reconstruction from fit samples when it quantizes cleanly, cubic distance reconstruction from four-point control points when available, and quadratic fallback otherwise")
         );
         assert!(artifact_summary.contains("residual bodies: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros; applies to 11 bundled bodies"));
         assert!(artifact_summary.contains(&format!(
