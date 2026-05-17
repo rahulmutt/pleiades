@@ -45,7 +45,8 @@ use pleiades_backend::{
     native_sidereal_policy_summary_for_report, pluto_fallback_summary_for_report,
     release_body_claims_summary_for_report, request_policy_summary_for_report,
     time_scale_policy_summary_for_report, validated_frame_policy_summary_for_report,
-    zodiac_policy_summary_for_report,
+    validated_pluto_fallback_summary_line_for_report,
+    validated_release_body_claims_summary_line_for_report, zodiac_policy_summary_for_report,
 };
 use pleiades_core::{
     current_api_stability_profile, current_compatibility_profile,
@@ -15130,13 +15131,11 @@ fn validate_release_body_claims_posture(
 }
 
 fn format_release_body_claims_summary_for_report() -> String {
-    let summary = release_body_claims_summary_for_report();
-    let pluto_fallback_summary = pluto_fallback_summary_for_report();
-    let summary_line = match summary.validated_summary_line() {
+    let summary_line = match validated_release_body_claims_summary_line_for_report() {
         Ok(line) => line,
         Err(error) => return format!("release-grade body claims unavailable ({error})"),
     };
-    let pluto_line = match pluto_fallback_summary.validated_summary_line() {
+    let pluto_line = match validated_pluto_fallback_summary_line_for_report() {
         Ok(line) => line,
         Err(error) => return format!("release-grade body claims unavailable ({error})"),
     };
@@ -15154,16 +15153,14 @@ fn render_release_body_claims_summary_text() -> String {
 }
 
 fn render_pluto_fallback_summary_text() -> String {
-    let policy = pluto_fallback_summary_for_report();
-    let policy_line = match policy.validated_summary_line() {
+    let policy_line = match validated_pluto_fallback_summary_line_for_report() {
         Ok(line) => line,
         Err(error) => {
             return format!("Pluto fallback summary\nPluto fallback unavailable ({error})\n");
         }
     };
 
-    let release_body_claims_summary = release_body_claims_summary_for_report();
-    let release_body_claims_line = match release_body_claims_summary.validated_summary_line() {
+    let release_body_claims_line = match validated_release_body_claims_summary_line_for_report() {
         Ok(line) => line,
         Err(error) => {
             return format!("Pluto fallback summary\nPluto fallback unavailable ({error})\n");

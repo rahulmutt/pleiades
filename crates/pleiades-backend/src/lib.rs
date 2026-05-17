@@ -2372,9 +2372,21 @@ pub const fn release_body_claims_summary_for_report() -> ReleaseBodyClaimsSummar
     current_release_body_claims_summary()
 }
 
+/// Returns the validated release-grade body-claims summary line used by validation and release reporting.
+pub fn validated_release_body_claims_summary_line_for_report(
+) -> Result<&'static str, ReleaseBodyClaimsSummaryValidationError> {
+    current_release_body_claims_summary().validated_summary_line()
+}
+
 /// Returns the Pluto fallback posture used by validation and release reporting.
 pub const fn pluto_fallback_summary_for_report() -> PlutoFallbackSummary {
     current_pluto_fallback_summary()
+}
+
+/// Returns the validated Pluto fallback summary line used by validation and release reporting.
+pub fn validated_pluto_fallback_summary_line_for_report(
+) -> Result<&'static str, PlutoFallbackSummaryValidationError> {
+    current_pluto_fallback_summary().validated_summary_line()
 }
 
 /// Returns the request-policy posture used by validation and release reporting.
@@ -3982,6 +3994,10 @@ mod tests {
         );
         assert_eq!(summary.validate(), Ok(()));
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(
+            validated_pluto_fallback_summary_line_for_report(),
+            Ok(summary.summary_line())
+        );
         assert!(summary.summary_line().contains("Pluto"));
     }
 
@@ -3996,6 +4012,10 @@ mod tests {
         );
         assert_eq!(summary.validate(), Ok(()));
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(
+            validated_release_body_claims_summary_line_for_report(),
+            Ok(summary.summary_line())
+        );
         assert!(summary.summary_line().contains("Sun through Neptune"));
     }
 

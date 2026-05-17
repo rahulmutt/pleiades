@@ -51,6 +51,7 @@ This file lists focused implementation slices for the current phase ladder. Comp
 - Decide whether fuller ELP-style lunar coefficients are required for first production release.
 - Keep lunar node/apogee/perigee claims aligned with implemented formulas and evidence.
 - Completed: the JPL reference snapshot already contains source evidence for Ceres/Pallas/Juno/Vesta, and the release body claims summary now explicitly lists the selected asteroid validation bodies (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) while keeping them validation-only rather than release-grade claims; the backend-matrix and reference-asteroid selected-asteroid coverage line now routes through a validated summary helper.
+- Completed: backend-layer validated summary-line helpers now centralize the Pluto fallback and release-grade body-claims posture checks, so the claim-boundary surfaces can share one validation path instead of duplicating policy parsing.
 
 ## Phase 4 — Advanced request modes and policy
 
