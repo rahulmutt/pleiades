@@ -23615,6 +23615,18 @@ mod tests {
 
         let mut summary = compatibility_profile_verification_summary()
             .expect("compatibility profile verification summary should render");
+        summary.release_house_canonical_names = "stale summary".to_string();
+
+        let error = summary
+            .validate()
+            .expect_err("stale release house-system canonical names should fail validation");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error
+            .message
+            .contains("release house-system canonical names mismatch"));
+
+        let mut summary = compatibility_profile_verification_summary()
+            .expect("compatibility profile verification summary should render");
         summary.house_system_alias_count = 0;
 
         let error = summary

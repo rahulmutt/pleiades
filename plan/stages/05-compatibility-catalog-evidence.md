@@ -15,6 +15,7 @@ The workspace has broad house and ayanamsa catalogs, aliases, descriptor validat
 - Keep descriptor-only, constrained, approximate, custom-only, and unsupported entries distinct from fully implemented built-ins.
 - Extend validated summary wrappers to any remaining release-facing descriptor or alias surfaces that do not yet fail closed; the house-code alias inventory summary now validates before rendering, and the catalog inventory summary now also validates the release-profile identifiers before rendering.
 - Completed: representative golden/reference tests now pin the latitude-sensitive topocentric house snapshot and baseline ayanamsa epoch offsets, complementing the existing alias-resolution coverage.
+- Completed: compatibility-profile verification now also rejects stale release house-system canonical names alongside the existing ayanamsa and alias drift checks, keeping the release-specific catalog summary fail-closed.
 - Make compatibility-profile verification fail on overstated catalog claims.
 - Keep target-catalog identifiers extensible so future Swiss-Ephemeris-class breadth does not require public API redesign.
 
