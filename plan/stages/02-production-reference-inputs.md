@@ -12,7 +12,7 @@ Provide documented public source inputs broad enough for backend validation, rel
 
 - The production source strategy is documented as a hybrid fixture corpus: checked-in reference and hold-out fixtures plus a separate generation-input path.
 - Record source provenance, frame, time scale, columns/channels, source revision, generation command, checksums, and redistribution posture.
-- Completed: the production-generation source summary now records the generation command alongside the checked-in CSV provenance, frame, time scale, schema, and checksum markers.
+- Completed: the production-generation source summary now records the generation command alongside the checked-in CSV provenance, frame, time scale, schema, and checksum markers, and now validates the merged provenance block before rendering.
 - Completed: the production-generation boundary source summary now stages and verifies in the release bundle alongside the reference snapshot source summary.
 - Completed: the packaged-artifact phase-2 corpus alignment summary now includes the source/provenance lines for the reference, comparison, and hold-out corpora alongside the body-class coverage evidence, and now also keeps the selected-asteroid source evidence/windows in the same phase-2 posture, keeping the threshold posture aligned with the recorded corpus metadata.
 - Completed: the independent hold-out source summary now surfaces redistribution posture in release-facing reports so the hybrid fixture corpus provenance stays explicit alongside checksum-bearing source metadata.

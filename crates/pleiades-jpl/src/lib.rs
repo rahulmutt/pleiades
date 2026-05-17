@@ -2920,28 +2920,95 @@ pub fn production_generation_snapshot_summary_for_report() -> String {
     }
 }
 
+/// Combined provenance for the production-generation corpus.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ProductionGenerationSourceSummary {
+    /// Source summary for the reference snapshot.
+    pub reference_summary: ReferenceSnapshotSourceSummary,
+    /// Source summary for the independent hold-out boundary overlay.
+    pub boundary_summary: IndependentHoldoutSourceSummary,
+    /// Deterministic revision summary for the checked-in CSV fixtures.
+    pub source_revision: String,
+}
+
+impl ProductionGenerationSourceSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "Production generation source: strategy=documented hybrid fixture corpus; {}; {}; input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv; {}; generation command=generate-packaged-artifact --check (consuming the checked-in CSV fixtures); file format=comma-separated values; columns=epoch_jd, body, x_km, y_km, z_km; frame=geocentric ecliptic J2000; time scale=TDB; parser=pure-Rust and deterministic; checksum expectation=byte-identical fixture contents; cadence=31 reference epochs and 10 boundary epochs; reference and hold-out rows remain separate; redistribution posture=repository-checked regression fixtures, not a broad public corpus",
+            self.reference_summary.summary_line(),
+            format_production_generation_boundary_source_summary(&self.boundary_summary),
+            self.source_revision,
+        )
+    }
+
+    /// Returns `Ok(())` when the source summary still matches the derived corpus evidence.
+    pub fn validate(&self) -> Result<(), ProductionGenerationSourceSummaryValidationError> {
+        self.reference_summary
+            .validate()
+            .map_err(ProductionGenerationSourceSummaryValidationError::Reference)?;
+        self.boundary_summary
+            .validate()
+            .map_err(ProductionGenerationSourceSummaryValidationError::Boundary)?;
+        if self.source_revision != production_generation_source_revision_summary() {
+            return Err(ProductionGenerationSourceSummaryValidationError::SourceRevisionMismatch);
+        }
+
+        Ok(())
+    }
+
+    /// Returns a compact summary line after validating the source summary.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, ProductionGenerationSourceSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+/// Structured validation errors for the production-generation provenance summary.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ProductionGenerationSourceSummaryValidationError {
+    /// The reference snapshot source summary drifted from the checked-in evidence.
+    Reference(ReferenceSnapshotSourceSummaryValidationError),
+    /// The boundary overlay source summary drifted from the checked-in evidence.
+    Boundary(IndependentHoldoutSourceSummaryValidationError),
+    /// The deterministic revision summary drifted from the checked-in fixture contents.
+    SourceRevisionMismatch,
+}
+
+impl fmt::Display for ProductionGenerationSourceSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Reference(error) => write!(f, "reference summary validation failed: {error}"),
+            Self::Boundary(error) => write!(f, "boundary summary validation failed: {error}"),
+            Self::SourceRevisionMismatch => f.write_str("source revision mismatch"),
+        }
+    }
+}
+
+impl std::error::Error for ProductionGenerationSourceSummaryValidationError {}
+
 /// Returns the combined source provenance for the production-generation corpus.
 ///
 /// The production-generation inputs remain the checked-in CSV fixtures that are
 /// parsed in pure Rust via `include_str!`, so the regeneration path stays fully
 /// deterministic and hashable from repository contents alone.
+pub fn production_generation_source_summary() -> ProductionGenerationSourceSummary {
+    ProductionGenerationSourceSummary {
+        reference_summary: reference_snapshot_source_summary(),
+        boundary_summary: production_generation_boundary_source_summary(),
+        source_revision: production_generation_source_revision_summary(),
+    }
+}
+
+/// Returns the release-facing production-generation source summary string.
 pub fn production_generation_source_summary_for_report() -> String {
-    let reference_summary = reference_snapshot_source_summary();
-    let boundary_summary = production_generation_boundary_source_summary();
-
-    if let Err(error) = reference_summary.validate() {
-        return format!("Production generation source: unavailable ({error})");
+    let summary = production_generation_source_summary();
+    match summary.validated_summary_line() {
+        Ok(summary_line) => summary_line,
+        Err(error) => format!("Production generation source: unavailable ({error})"),
     }
-    if let Err(error) = boundary_summary.validate() {
-        return format!("Production generation source: unavailable ({error})");
-    }
-
-    format!(
-        "Production generation source: strategy=documented hybrid fixture corpus; {}; {}; input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv; {}; generation command=generate-packaged-artifact --check (consuming the checked-in CSV fixtures); file format=comma-separated values; columns=epoch_jd, body, x_km, y_km, z_km; frame=geocentric ecliptic J2000; time scale=TDB; parser=pure-Rust and deterministic; checksum expectation=byte-identical fixture contents; cadence=31 reference epochs and 10 boundary epochs; reference and hold-out rows remain separate; redistribution posture=repository-checked regression fixtures, not a broad public corpus",
-        reference_summary.summary_line(),
-        format_production_generation_boundary_source_summary(&boundary_summary),
-        production_generation_source_revision_summary()
-    )
 }
 
 fn strip_report_prefix<'a>(text: &'a str, prefix: &str) -> &'a str {
@@ -29223,8 +29290,10 @@ mod tests {
 
     #[test]
     fn production_generation_source_summary_documents_the_checked_in_csv_path() {
+        let summary = production_generation_source_summary();
         let report = production_generation_source_summary_for_report();
 
+        assert!(summary.validate().is_ok());
         assert!(report.contains("strategy=documented hybrid fixture corpus"));
         assert!(report.contains(
             "input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv"
@@ -29240,6 +29309,27 @@ mod tests {
         assert!(report.contains("cadence=31 reference epochs and 10 boundary epochs"));
         assert!(report.contains("reference and hold-out rows remain separate"));
         assert!(report.contains("redistribution posture=repository-checked regression fixtures, not a broad public corpus"));
+    }
+
+    #[test]
+    fn production_generation_source_summary_validation_rejects_drift() {
+        let mut summary = production_generation_source_summary();
+        summary.source_revision.push_str("-drift");
+
+        assert!(matches!(
+            summary.validate(),
+            Err(ProductionGenerationSourceSummaryValidationError::SourceRevisionMismatch)
+        ));
+        assert!(summary.validated_summary_line().is_err());
+
+        let mut nested_drift = production_generation_source_summary();
+        nested_drift.reference_summary.coverage = "drifted coverage".to_string();
+        assert!(matches!(
+            nested_drift.validate(),
+            Err(ProductionGenerationSourceSummaryValidationError::Reference(
+                ReferenceSnapshotSourceSummaryValidationError::FieldOutOfSync { field: "coverage" }
+            ))
+        ));
     }
 
     #[test]
