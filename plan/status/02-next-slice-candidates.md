@@ -55,7 +55,7 @@ This file lists focused implementation slices for the current phase ladder. Comp
 - Keep native sidereal backend output unsupported unless a backend explicitly implements it.
 - Add precedence tests for invalid/unsupported request combinations when behavior changes.
 - Completed: the frame-policy summary surface now validates before rendering in the CLI and validation report paths.
-- Completed: request-policy validation now preserves invalid-observer precedence ahead of unsupported-body coverage in both direct and batch metadata checks.
+- Completed: request-policy validation now preserves invalid-observer precedence ahead of unsupported-body coverage in both direct and batch metadata checks, and the request-policy/request-semantics report titles now share a guarded validation helper so the paired release-facing blocks fail closed if the title wording drifts.
 
 ## Phase 5 — Compatibility catalog evidence
 

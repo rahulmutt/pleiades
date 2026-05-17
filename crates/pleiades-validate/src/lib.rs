@@ -14921,8 +14921,48 @@ fn render_reference_holdout_overlap_summary_text() -> String {
     reference_holdout_overlap_summary_for_report()
 }
 
-fn render_request_policy_like_summary_text(title: &str) -> String {
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum RequestPolicyReportKind {
+    Policy,
+    Semantics,
+}
+
+impl RequestPolicyReportKind {
+    const fn title(self) -> &'static str {
+        match self {
+            Self::Policy => "Request policy summary\n",
+            Self::Semantics => "Request semantics summary\n",
+        }
+    }
+
+    const fn unavailable_prefix(self) -> &'static str {
+        match self {
+            Self::Policy => "Request policy summary unavailable",
+            Self::Semantics => "Request semantics summary unavailable",
+        }
+    }
+}
+
+fn validate_request_policy_report_title(
+    kind: RequestPolicyReportKind,
+    title: &str,
+) -> Result<(), String> {
+    let expected = kind.title();
+    if title != expected {
+        return Err(format!("{} ({title})", kind.unavailable_prefix()));
+    }
+    Ok(())
+}
+
+fn render_request_policy_like_summary_text(
+    title: &'static str,
+    kind: RequestPolicyReportKind,
+) -> String {
     let time_scale_policy = time_scale_policy_summary_for_report();
+    if let Err(error) = validate_request_policy_report_title(kind, title) {
+        return error;
+    }
+
     let mut text = String::from(title);
     text.push_str(&format_request_semantics_summary_for_report(
         &time_scale_policy,
@@ -14931,11 +14971,17 @@ fn render_request_policy_like_summary_text(title: &str) -> String {
 }
 
 fn render_request_policy_summary_text() -> String {
-    render_request_policy_like_summary_text("Request policy summary\n")
+    render_request_policy_like_summary_text(
+        "Request policy summary\n",
+        RequestPolicyReportKind::Policy,
+    )
 }
 
 fn render_request_semantics_summary_text() -> String {
-    render_request_policy_like_summary_text("Request semantics summary\n")
+    render_request_policy_like_summary_text(
+        "Request semantics summary\n",
+        RequestPolicyReportKind::Semantics,
+    )
 }
 
 fn render_request_surface_summary_text() -> String {
@@ -29027,6 +29073,30 @@ version = "0.9.0"
             ),
             "selected-asteroid-terminal-boundary-summary does not accept extra arguments"
         );
+    }
+
+    #[test]
+    fn request_policy_report_title_validation_rejects_drift() {
+        assert!(validate_request_policy_report_title(
+            RequestPolicyReportKind::Policy,
+            "Request semantics summary\n",
+        )
+        .is_err());
+        assert!(validate_request_policy_report_title(
+            RequestPolicyReportKind::Semantics,
+            "Request policy summary\n",
+        )
+        .is_err());
+        assert!(validate_request_policy_report_title(
+            RequestPolicyReportKind::Policy,
+            "Request policy summary\n",
+        )
+        .is_ok());
+        assert!(validate_request_policy_report_title(
+            RequestPolicyReportKind::Semantics,
+            "Request semantics summary\n",
+        )
+        .is_ok());
     }
 
     #[test]
