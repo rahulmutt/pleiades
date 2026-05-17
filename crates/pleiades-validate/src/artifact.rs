@@ -15,6 +15,7 @@ use pleiades_core::{
 use pleiades_data::{
     packaged_artifact, packaged_artifact_bytes, packaged_artifact_generation_manifest_for_report,
     packaged_artifact_output_support_summary_for_report,
+    packaged_artifact_phase2_corpus_alignment_summary_for_report,
     packaged_artifact_production_profile_summary_for_report,
     packaged_artifact_profile_summary_with_body_coverage,
     packaged_artifact_regeneration_summary_for_report,
@@ -1730,6 +1731,9 @@ fn render_artifact_summary_text(report: &ArtifactInspectionReport) -> String {
     text.push('\n');
     text.push_str("  Generation manifest: ");
     text.push_str(&packaged_artifact_generation_manifest_for_report());
+    text.push('\n');
+    text.push_str("  Packaged-artifact phase-2 corpus alignment: ");
+    text.push_str(&packaged_artifact_phase2_corpus_alignment_summary_for_report());
     text.push('\n');
     text.push_str("  Artifact request policy: ");
     text.push_str(&packaged_request_policy_summary_for_report());

@@ -8580,6 +8580,9 @@ fn render_release_notes_summary_text() -> String {
     text.push_str("Packaged-artifact target-threshold scope envelopes: ");
     text.push_str(&packaged_artifact_target_threshold_scope_envelopes_for_report());
     text.push('\n');
+    text.push_str("Packaged-artifact phase-2 corpus alignment: ");
+    text.push_str(&packaged_artifact_phase2_corpus_alignment_summary_for_report());
+    text.push('\n');
     text.push_str("Packaged-artifact generation manifest: ");
     text.push_str(&packaged_artifact_generation_manifest_for_report());
     text.push('\n');
@@ -9209,6 +9212,9 @@ fn render_release_summary_text() -> String {
     text.push('\n');
     text.push_str("Packaged-artifact target-threshold scope envelopes: ");
     text.push_str(&packaged_artifact_target_threshold_scope_envelopes_for_report());
+    text.push('\n');
+    text.push_str("Packaged-artifact phase-2 corpus alignment: ");
+    text.push_str(&packaged_artifact_phase2_corpus_alignment_summary_for_report());
     text.push('\n');
     text.push_str("Packaged-artifact generation manifest: ");
     text.push_str(&packaged_artifact_generation_manifest_for_report());
@@ -16390,6 +16396,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     );
     let _ = writeln!(
         text,
+        "  Packaged-artifact phase-2 corpus alignment: {}",
+        packaged_artifact_phase2_corpus_alignment_summary_for_report()
+    );
+    let _ = writeln!(
+        text,
         "  Packaged-artifact generation manifest: {}",
         packaged_artifact_generation_manifest_for_report()
     );
@@ -21486,6 +21497,7 @@ mod tests {
         assert!(rendered.contains("Packaged-artifact fit envelope: fit envelope:"));
         assert!(rendered.contains("Packaged-artifact fit sample classes: fit sample classes:"));
         assert!(rendered.contains("Packaged-artifact target-threshold scope envelopes: scope envelopes: scope=luminaries; bodies=2 (Sun, Moon); fit envelope:"));
+        assert!(rendered.contains("Packaged-artifact phase-2 corpus alignment: "));
         assert!(rendered.contains(
             "Packaged-artifact generation manifest: Packaged artifact generation manifest:"
         ));
@@ -21579,6 +21591,7 @@ mod tests {
         assert!(validation_report_summary
             .contains("Packaged-artifact fit sample classes: fit sample classes:"));
         assert!(validation_report_summary.contains("Packaged-artifact target-threshold scope envelopes: scope envelopes: scope=luminaries; bodies=2 (Sun, Moon); fit envelope:"));
+        assert!(validation_report_summary.contains("Packaged-artifact phase-2 corpus alignment: "));
         assert!(validation_report_summary.contains(
             "Packaged-artifact generation manifest: Packaged artifact generation manifest:"
         ));
@@ -26487,6 +26500,7 @@ version = "0.9.0"
             "Artifact profile: byte order: little-endian; stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported; applies to 11 bundled bodies; bundled bodies: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros"
         ));
         assert!(artifact_summary.contains("Generation manifest:"));
+        assert!(artifact_summary.contains("Packaged-artifact phase-2 corpus alignment: "));
         assert!(artifact_summary.contains("Packaged artifact generation manifest:"));
         assert!(artifact_summary.contains("Artifact request policy"));
         assert!(artifact_summary.contains(
