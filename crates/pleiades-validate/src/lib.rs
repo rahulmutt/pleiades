@@ -2518,6 +2518,12 @@ impl RegressionFinding {
             self.note,
         )
     }
+
+    /// Returns the validated compact summary line for the regression case.
+    pub fn validated_summary_line(&self) -> Result<String, EphemerisError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
 
 impl fmt::Display for RegressionFinding {
@@ -18312,7 +18318,10 @@ fn write_regression_section(
     }
 
     for finding in findings {
-        writeln!(f, "  {}", finding.summary_line())?;
+        match finding.validated_summary_line() {
+            Ok(line) => writeln!(f, "  {line}"),
+            Err(error) => writeln!(f, "  regression finding unavailable ({error})"),
+        }?;
     }
     Ok(())
 }
@@ -18329,7 +18338,10 @@ fn write_regression_archive_section(
     }
 
     for finding in &archive.cases {
-        writeln!(f, "  {}", finding.summary_line())?;
+        match finding.validated_summary_line() {
+            Ok(line) => writeln!(f, "  {line}"),
+            Err(error) => writeln!(f, "  regression finding unavailable ({error})"),
+        }?;
     }
     Ok(())
 }
@@ -20468,9 +20480,28 @@ mod tests {
             .expect("comparison should include at least one notable regression");
 
         assert_eq!(finding.summary_line(), finding.to_string());
+        assert_eq!(finding.validated_summary_line(), Ok(finding.summary_line()));
         assert!(finding.summary_line().contains("Δlon="));
         assert!(finding.summary_line().contains("Δlat="));
         assert!(finding.summary_line().contains("Δdist="));
+    }
+
+    #[test]
+    fn regression_finding_validated_summary_line_rejects_blank_notes() {
+        let finding = RegressionFinding {
+            body: CelestialBody::Mars,
+            longitude_delta_deg: 0.25,
+            latitude_delta_deg: 0.15,
+            distance_delta_au: Some(0.01),
+            note: "  ".to_string(),
+        };
+
+        let error = finding
+            .validated_summary_line()
+            .expect_err("blank regression notes should fail validation");
+        assert!(error
+            .to_string()
+            .contains("regression finding note must not be blank"));
     }
 
     #[test]
