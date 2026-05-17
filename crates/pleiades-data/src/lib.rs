@@ -2568,7 +2568,8 @@ impl fmt::Display for PackagedArtifactPhase2CorpusAlignmentSummary {
     }
 }
 
-fn packaged_artifact_phase2_corpus_alignment_summary_details(
+/// Returns the structured phase-2 corpus alignment posture used to keep the packaged-artifact threshold policy aligned with the current corpus.
+pub fn packaged_artifact_phase2_corpus_alignment_summary_details(
 ) -> Option<PackagedArtifactPhase2CorpusAlignmentSummary> {
     Some(PackagedArtifactPhase2CorpusAlignmentSummary {
         reference_snapshot_source: pleiades_jpl::reference_snapshot_source_summary(),
@@ -9174,6 +9175,20 @@ mod tests {
         assert!(rendered.contains("independent hold-out="));
         assert!(rendered.contains("Reference snapshot body-class coverage"));
         assert!(rendered.contains("Independent hold-out body-class coverage"));
+    }
+
+    #[test]
+    fn packaged_artifact_phase2_corpus_alignment_summary_details_remain_publicly_reusable() {
+        let summary = packaged_artifact_phase2_corpus_alignment_summary_details()
+            .expect("phase-2 corpus evidence should be available");
+
+        assert!(summary.validate().is_ok());
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(
+            packaged_artifact_phase2_corpus_alignment_summary_for_report(),
+            summary.summary_line()
+        );
     }
 
     #[test]
