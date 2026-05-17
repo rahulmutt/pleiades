@@ -2461,6 +2461,21 @@ fn packaged_artifact_phase2_corpus_alignment_summary_details(
     })
 }
 
+/// Returns the current packaged-artifact phase-2 corpus alignment posture after validating the structured evidence.
+pub fn packaged_artifact_phase2_corpus_alignment_summary_for_report() -> String {
+    static SUMMARY: OnceLock<String> = OnceLock::new();
+    SUMMARY
+        .get_or_init(|| {
+            let summary = packaged_artifact_phase2_corpus_alignment_summary_details();
+            match summary.as_ref().map(PackagedArtifactPhase2CorpusAlignmentSummary::validated_summary_line) {
+                Some(Ok(line)) => line,
+                Some(Err(error)) => format!("phase 2 corpus alignment: unavailable ({error})"),
+                None => "phase 2 corpus alignment: unavailable (phase-2 corpus evidence should be available)".to_string(),
+            }
+        })
+        .clone()
+}
+
 /// Structured target-threshold posture for the packaged artifact generator.
 #[derive(Clone, Debug, PartialEq)]
 pub struct PackagedArtifactTargetThresholdSummary {
@@ -8802,6 +8817,16 @@ mod tests {
             }
         );
         assert!(error.to_string().contains("phase2_corpus_alignment"));
+    }
+
+    #[test]
+    fn packaged_artifact_phase2_corpus_alignment_summary_for_report_is_validated() {
+        let rendered = packaged_artifact_phase2_corpus_alignment_summary_for_report();
+        assert!(rendered.contains("reference snapshot="));
+        assert!(rendered.contains("comparison snapshot="));
+        assert!(rendered.contains("independent hold-out="));
+        assert!(rendered.contains("Reference snapshot body-class coverage"));
+        assert!(rendered.contains("Independent hold-out body-class coverage"));
     }
 
     #[test]
