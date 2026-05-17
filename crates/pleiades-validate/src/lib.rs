@@ -207,6 +207,7 @@ use pleiades_jpl::{
     reference_snapshot_manifest_summary_for_report,
     reference_snapshot_mars_jupiter_boundary_summary_for_report,
     reference_snapshot_mars_outer_boundary_summary_for_report,
+    reference_snapshot_mixed_time_scale_batch_parity_summary_for_report,
     reference_snapshot_pre_bridge_boundary_summary_for_report,
     reference_snapshot_source_summary_for_report,
     reference_snapshot_source_window_summary_for_report,
@@ -5630,6 +5631,14 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("reference-snapshot-batch-parity-summary") => {
             ensure_no_extra_args(&args[1..], "reference-snapshot-batch-parity-summary")?;
             Ok(reference_snapshot_batch_parity_summary_for_report())
+        }
+        Some("reference-snapshot-mixed-time-scale-batch-parity-summary")
+        | Some("reference-snapshot-mixed-tt-tdb-batch-parity-summary") => {
+            ensure_no_extra_args(
+                &args[1..],
+                "reference-snapshot-mixed-time-scale-batch-parity-summary",
+            )?;
+            Ok(reference_snapshot_mixed_time_scale_batch_parity_summary_for_report())
         }
         Some("reference-snapshot-equatorial-parity-summary") => {
             ensure_no_extra_args(&args[1..], "reference-snapshot-equatorial-parity-summary")?;

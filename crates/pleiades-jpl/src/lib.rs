@@ -2223,6 +2223,285 @@ pub fn reference_snapshot_batch_parity_summary_for_report() -> String {
     }
 }
 
+/// Compact mixed TT/TDB batch parity for the checked-in reference snapshot.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ReferenceSnapshotMixedTimeScaleBatchParitySummary {
+    /// Reference snapshot body and epoch coverage used to build the mixed-scale slice.
+    pub snapshot: ReferenceSnapshotSummary,
+    /// Number of requests in the mixed-scale batch regression.
+    pub request_count: usize,
+    /// Number of bodies covered by the batch regression.
+    pub body_count: usize,
+    /// Number of TT requests in the batch regression.
+    pub tt_request_count: usize,
+    /// Number of TDB requests in the batch regression.
+    pub tdb_request_count: usize,
+    /// Number of exact-quality results observed in the batch regression.
+    pub exact_count: usize,
+    /// Number of interpolated-quality results observed in the batch regression.
+    pub interpolated_count: usize,
+    /// Number of approximate-quality results observed in the batch regression.
+    pub approximate_count: usize,
+    /// Number of unknown-quality results observed in the batch regression.
+    pub unknown_count: usize,
+    /// Whether the batch regression preserved request order.
+    pub order_preserved: bool,
+    /// Whether the batch regression preserved batch/single parity.
+    pub single_query_parity_preserved: bool,
+}
+
+/// Validation error for a mixed TT/TDB reference-snapshot batch-parity summary.
+#[derive(Clone, Debug, PartialEq)]
+pub enum ReferenceSnapshotMixedTimeScaleBatchParitySummaryValidationError {
+    /// The nested reference snapshot summary failed validation.
+    Snapshot(ReferenceSnapshotSummaryValidationError),
+    /// The number of mixed-scale requests does not match the row count.
+    RequestCountMismatch {
+        tt_request_count: usize,
+        tdb_request_count: usize,
+        row_count: usize,
+    },
+    /// The quality counts do not match the row count.
+    QualityCountMismatch {
+        exact_count: usize,
+        interpolated_count: usize,
+        approximate_count: usize,
+        unknown_count: usize,
+        row_count: usize,
+    },
+    /// The summary drifted away from the checked-in derived evidence.
+    DerivedSummaryMismatch,
+}
+
+impl fmt::Display for ReferenceSnapshotMixedTimeScaleBatchParitySummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Snapshot(error) => write!(f, "reference snapshot validation failed: {error}"),
+            Self::RequestCountMismatch {
+                tt_request_count,
+                tdb_request_count,
+                row_count,
+            } => write!(
+                f,
+                "request count {}+{} does not match row count {}",
+                tt_request_count, tdb_request_count, row_count,
+            ),
+            Self::QualityCountMismatch {
+                exact_count,
+                interpolated_count,
+                approximate_count,
+                unknown_count,
+                row_count,
+            } => write!(
+                f,
+                "quality counts {}+{}+{}+{} do not match row count {}",
+                exact_count, interpolated_count, approximate_count, unknown_count, row_count,
+            ),
+            Self::DerivedSummaryMismatch => f.write_str("derived summary mismatch"),
+        }
+    }
+}
+
+impl std::error::Error for ReferenceSnapshotMixedTimeScaleBatchParitySummaryValidationError {}
+
+impl ReferenceSnapshotMixedTimeScaleBatchParitySummary {
+    /// Returns `Ok(())` when the summary still matches the current reference snapshot posture.
+    pub fn validate(
+        &self,
+    ) -> Result<(), ReferenceSnapshotMixedTimeScaleBatchParitySummaryValidationError> {
+        self.snapshot
+            .validate()
+            .map_err(ReferenceSnapshotMixedTimeScaleBatchParitySummaryValidationError::Snapshot)?;
+
+        if self.request_count != self.snapshot.row_count {
+            return Err(
+                ReferenceSnapshotMixedTimeScaleBatchParitySummaryValidationError::RequestCountMismatch {
+                    tt_request_count: self.tt_request_count,
+                    tdb_request_count: self.tdb_request_count,
+                    row_count: self.snapshot.row_count,
+                },
+            );
+        }
+
+        if self.body_count != self.snapshot.body_count {
+            return Err(
+                ReferenceSnapshotMixedTimeScaleBatchParitySummaryValidationError::DerivedSummaryMismatch,
+            );
+        }
+
+        if self.tt_request_count + self.tdb_request_count != self.request_count {
+            return Err(
+                ReferenceSnapshotMixedTimeScaleBatchParitySummaryValidationError::RequestCountMismatch {
+                    tt_request_count: self.tt_request_count,
+                    tdb_request_count: self.tdb_request_count,
+                    row_count: self.request_count,
+                },
+            );
+        }
+
+        if self.tt_request_count == 0 || self.tdb_request_count == 0 {
+            return Err(
+                ReferenceSnapshotMixedTimeScaleBatchParitySummaryValidationError::RequestCountMismatch {
+                    tt_request_count: self.tt_request_count,
+                    tdb_request_count: self.tdb_request_count,
+                    row_count: self.request_count,
+                },
+            );
+        }
+
+        if self.exact_count + self.interpolated_count + self.approximate_count + self.unknown_count
+            != self.request_count
+        {
+            return Err(
+                ReferenceSnapshotMixedTimeScaleBatchParitySummaryValidationError::QualityCountMismatch {
+                    exact_count: self.exact_count,
+                    interpolated_count: self.interpolated_count,
+                    approximate_count: self.approximate_count,
+                    unknown_count: self.unknown_count,
+                    row_count: self.request_count,
+                },
+            );
+        }
+
+        if !self.order_preserved || !self.single_query_parity_preserved {
+            return Err(
+                ReferenceSnapshotMixedTimeScaleBatchParitySummaryValidationError::DerivedSummaryMismatch,
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns the validated batch-parity summary line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, ReferenceSnapshotMixedTimeScaleBatchParitySummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        let order = if self.order_preserved {
+            "preserved"
+        } else {
+            "needs attention"
+        };
+        let parity = if self.single_query_parity_preserved {
+            "preserved"
+        } else {
+            "needs attention"
+        };
+        format!(
+            "JPL reference snapshot mixed TT/TDB batch parity: {} requests across {} bodies, TT requests={}, TDB requests={}; quality counts: Exact={}, Interpolated={}, Approximate={}, Unknown={}; order={}, single-query parity={}",
+            self.request_count,
+            self.body_count,
+            self.tt_request_count,
+            self.tdb_request_count,
+            self.exact_count,
+            self.interpolated_count,
+            self.approximate_count,
+            self.unknown_count,
+            order,
+            parity,
+        )
+    }
+}
+
+impl fmt::Display for ReferenceSnapshotMixedTimeScaleBatchParitySummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Returns a compact mixed TT/TDB batch parity summary for the checked-in reference snapshot.
+pub fn reference_snapshot_mixed_time_scale_batch_parity_summary(
+) -> Option<ReferenceSnapshotMixedTimeScaleBatchParitySummary> {
+    let backend = JplSnapshotBackend;
+    let requests = reference_snapshot_mixed_time_scale_batch_parity_requests()?;
+    let entries = reference_snapshot();
+    let results = backend.positions(&requests).ok()?;
+
+    if results.len() != requests.len() {
+        return None;
+    }
+
+    let mut tt_request_count = 0usize;
+    let mut tdb_request_count = 0usize;
+    let mut exact_count = 0usize;
+    let mut interpolated_count = 0usize;
+    let mut approximate_count = 0usize;
+    let mut unknown_count = 0usize;
+    let mut order_preserved = true;
+    let mut single_query_parity = true;
+
+    for ((request, result), entry) in requests.iter().zip(results.iter()).zip(entries.iter()) {
+        let single = backend.position(request).ok();
+        single_query_parity &= single.as_ref().is_some_and(|single| single == result);
+
+        order_preserved &= result.body == entry.body
+            && result.instant.julian_day == entry.epoch.julian_day
+            && result.frame == request.frame
+            && result.zodiac_mode == request.zodiac_mode
+            && result.apparent == request.apparent;
+
+        match request.instant.scale {
+            TimeScale::Tt => tt_request_count += 1,
+            TimeScale::Tdb => tdb_request_count += 1,
+            _ => return None,
+        }
+
+        match result.quality {
+            QualityAnnotation::Exact => exact_count += 1,
+            QualityAnnotation::Interpolated => interpolated_count += 1,
+            QualityAnnotation::Approximate => approximate_count += 1,
+            QualityAnnotation::Unknown => unknown_count += 1,
+            _ => unknown_count += 1,
+        }
+    }
+
+    let snapshot = reference_snapshot_summary()?;
+    let request_count = requests.len();
+    let body_count = snapshot.body_count;
+    let summary = ReferenceSnapshotMixedTimeScaleBatchParitySummary {
+        snapshot,
+        request_count,
+        body_count,
+        tt_request_count,
+        tdb_request_count,
+        exact_count,
+        interpolated_count,
+        approximate_count,
+        unknown_count,
+        order_preserved,
+        single_query_parity_preserved: single_query_parity,
+    };
+
+    debug_assert!(summary.validate().is_ok());
+    Some(summary)
+}
+
+/// Formats the checked-in mixed TT/TDB reference snapshot batch parity summary for release-facing reporting.
+pub fn format_reference_snapshot_mixed_time_scale_batch_parity_summary(
+    summary: &ReferenceSnapshotMixedTimeScaleBatchParitySummary,
+) -> String {
+    summary.summary_line()
+}
+
+/// Returns the release-facing mixed TT/TDB reference snapshot batch parity summary string.
+#[doc(alias = "reference_snapshot_mixed_tt_tdb_batch_parity_summary")]
+pub fn reference_snapshot_mixed_time_scale_batch_parity_summary_for_report() -> String {
+    match reference_snapshot_mixed_time_scale_batch_parity_summary() {
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
+            Err(error) => {
+                format!("JPL reference snapshot mixed TT/TDB batch parity: unavailable ({error})")
+            }
+        },
+        None => "JPL reference snapshot mixed TT/TDB batch parity: unavailable".to_string(),
+    }
+}
+
 impl ReferenceSnapshotSummary {
     /// Validates that the summary remains internally consistent and still matches the derived evidence.
     pub fn validate(&self) -> Result<(), ReferenceSnapshotSummaryValidationError> {
@@ -31300,6 +31579,40 @@ mod tests {
                     .expect("single-query distance should exist")
             );
         }
+    }
+
+    #[test]
+    fn reference_snapshot_mixed_time_scale_batch_parity_summary_reports_the_mixed_request_slice() {
+        let summary = reference_snapshot_mixed_time_scale_batch_parity_summary()
+            .expect("reference snapshot mixed TT/TDB batch parity summary should exist");
+
+        assert_eq!(summary.request_count, summary.snapshot.row_count);
+        assert_eq!(summary.body_count, summary.snapshot.body_count);
+        assert!(summary.tt_request_count > 0);
+        assert!(summary.tdb_request_count > 0);
+        assert_eq!(
+            summary.tt_request_count + summary.tdb_request_count,
+            summary.request_count
+        );
+        assert_eq!(
+            summary.exact_count
+                + summary.interpolated_count
+                + summary.approximate_count
+                + summary.unknown_count,
+            summary.request_count
+        );
+        assert!(summary.order_preserved);
+        assert!(summary.single_query_parity_preserved);
+        assert!(summary.validate().is_ok());
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(
+            reference_snapshot_mixed_time_scale_batch_parity_summary_for_report(),
+            summary.summary_line()
+        );
+        assert!(
+            reference_snapshot_mixed_time_scale_batch_parity_summary_for_report()
+                .starts_with("JPL reference snapshot mixed TT/TDB batch parity: ")
+        );
     }
 
     #[test]
