@@ -5298,8 +5298,16 @@ pub fn regenerate_packaged_artifact_from_snapshot(
 }
 
 /// Rebuilds the packaged artifact from the checked-in JPL reference snapshot.
+///
+/// The regenerated artifact is cached in-process so repeated validation and report paths
+/// can reuse the same deterministic reconstruction without paying the full rebuild cost
+/// on every call.
 pub fn regenerate_packaged_artifact() -> CompressedArtifact {
-    regenerate_packaged_artifact_from_snapshot(reference_snapshot())
+    static ARTIFACT: OnceLock<CompressedArtifact> = OnceLock::new();
+
+    ARTIFACT
+        .get_or_init(|| regenerate_packaged_artifact_from_snapshot(reference_snapshot()))
+        .clone()
 }
 
 fn packaged_body_artifacts_from_snapshot(snapshot: &[SnapshotEntry]) -> Vec<BodyArtifact> {
