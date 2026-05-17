@@ -6435,16 +6435,22 @@ where
     let mut best_segment = current_segment.clone();
     let mut best_error = current_error;
 
-    for (index, kind) in remaining_kinds.iter().copied().enumerate() {
+    for kind in remaining_kinds.iter().copied() {
         let Some((candidate_segment, candidate_error)) = candidate_for_kind(&current_segment, kind)
         else {
             continue;
         };
 
+        let next_remaining_kinds = remaining_kinds
+            .iter()
+            .copied()
+            .filter(|candidate_kind| *candidate_kind != kind)
+            .collect::<Vec<_>>();
+
         let (recursive_segment, recursive_error) = best_residual_segment(
             candidate_segment,
             candidate_error,
-            &remaining_kinds[index + 1..],
+            &next_remaining_kinds,
             candidate_for_kind,
         );
 
@@ -7316,7 +7322,6 @@ mod tests {
 
             let mut residual_channels = segment.residual_channels.clone();
             residual_channels.push(PolynomialChannel::new(kind, 0, vec![0.0]));
-            residual_channels.sort_by_key(|channel| channel.kind as u8);
 
             let candidate = Segment::with_residual_channels(
                 segment.start,
@@ -7325,9 +7330,8 @@ mod tests {
                 residual_channels.clone(),
             );
 
-            let error = match residual_channels.len() {
-                0 => unreachable!("candidate helper always adds a residual channel"),
-                1 => match residual_channels[0].kind {
+            let error = match residual_channels.as_slice() {
+                [channel] => match channel.kind {
                     ChannelKind::Longitude => PackagedArtifactSegmentFitError {
                         longitude_degrees: 9.0,
                         latitude_degrees: 9.0,
@@ -7345,10 +7349,26 @@ mod tests {
                     },
                     _ => unreachable!("unexpected residual channel kind"),
                 },
-                2 => PackagedArtifactSegmentFitError {
-                    longitude_degrees: 2.0,
-                    latitude_degrees: 2.0,
-                    distance_au: 2.0,
+                [first, second] => match (first.kind, second.kind) {
+                    (ChannelKind::Longitude, ChannelKind::Latitude) => {
+                        PackagedArtifactSegmentFitError {
+                            longitude_degrees: 6.0,
+                            latitude_degrees: 6.0,
+                            distance_au: 6.0,
+                        }
+                    }
+                    (ChannelKind::Latitude, ChannelKind::Longitude) => {
+                        PackagedArtifactSegmentFitError {
+                            longitude_degrees: 1.0,
+                            latitude_degrees: 1.0,
+                            distance_au: 1.0,
+                        }
+                    }
+                    _ => PackagedArtifactSegmentFitError {
+                        longitude_degrees: 7.0,
+                        latitude_degrees: 7.0,
+                        distance_au: 7.0,
+                    },
                 },
                 _ => PackagedArtifactSegmentFitError {
                     longitude_degrees: 7.0,
@@ -7383,15 +7403,15 @@ mod tests {
         );
 
         assert_eq!(best_segment.residual_channels.len(), 2);
-        assert_eq!(
-            best_segment
-                .residual_channels
-                .iter()
-                .map(|channel| channel.kind)
-                .collect::<Vec<_>>(),
-            vec![ChannelKind::Longitude, ChannelKind::Latitude]
-        );
-        assert_eq!(best_error.max_delta(), 2.0);
+        assert!(best_segment
+            .residual_channels
+            .iter()
+            .any(|channel| channel.kind == ChannelKind::Longitude));
+        assert!(best_segment
+            .residual_channels
+            .iter()
+            .any(|channel| channel.kind == ChannelKind::Latitude));
+        assert_eq!(best_error.max_delta(), 1.0);
     }
 
     #[test]
