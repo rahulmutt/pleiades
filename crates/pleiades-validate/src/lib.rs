@@ -13796,42 +13796,55 @@ fn comparison_report_for_default_render() -> Result<ComparisonReport, String> {
     .map_err(|error| error.to_string())
 }
 
+fn validated_comparison_body_class_tolerance_posture_line(
+    report: &ComparisonReport,
+) -> Result<String, String> {
+    use std::fmt::Write as _;
+
+    let summaries = report.body_class_tolerance_summaries();
+    if summaries.is_empty() {
+        return Err(
+            "comparison report did not produce any body-class tolerance summaries".to_string(),
+        );
+    }
+
+    let outlier_class_count = summaries
+        .iter()
+        .filter(|summary| summary.outside_tolerance_body_count > 0)
+        .count();
+    let outlier_bodies = summaries
+        .iter()
+        .flat_map(|summary| summary.outside_bodies.iter().cloned())
+        .collect::<Vec<_>>();
+
+    let mut text = String::new();
+    let _ = write!(
+        text,
+        "body-class tolerance posture: {} classes checked, {} classes with outlier bodies, outlier bodies: {}",
+        summaries.len(),
+        outlier_class_count,
+        if outlier_bodies.is_empty() {
+            "none".to_string()
+        } else {
+            format_bodies(&outlier_bodies)
+        }
+    );
+    Ok(text)
+}
+
+fn validated_comparison_body_class_tolerance_posture_for_report() -> Result<String, String> {
+    let report = comparison_report_for_default_render()?;
+    validated_comparison_body_class_tolerance_posture_line(&report)
+}
+
 fn format_body_class_tolerance_posture_for_report() -> String {
     static SUMMARY: OnceLock<String> = OnceLock::new();
 
     SUMMARY
         .get_or_init(|| {
-            use std::fmt::Write as _;
-
-            let report = match comparison_report_for_default_render() {
-                Ok(report) => report,
-                Err(error) => {
-                    return format!("body-class tolerance posture unavailable ({error})");
-                }
-            };
-            let summaries = report.body_class_tolerance_summaries();
-            let outlier_class_count = summaries
-                .iter()
-                .filter(|summary| summary.outside_tolerance_body_count > 0)
-                .count();
-            let outlier_bodies = summaries
-                .iter()
-                .flat_map(|summary| summary.outside_bodies.iter().cloned())
-                .collect::<Vec<_>>();
-
-            let mut text = String::new();
-            let _ = write!(
-                text,
-                "body-class tolerance posture: {} classes checked, {} classes with outlier bodies, outlier bodies: {}",
-                summaries.len(),
-                outlier_class_count,
-                if outlier_bodies.is_empty() {
-                    "none".to_string()
-                } else {
-                    format_bodies(&outlier_bodies)
-                }
-            );
-            text
+            validated_comparison_body_class_tolerance_posture_for_report().unwrap_or_else(|error| {
+                format!("body-class tolerance posture unavailable ({error})")
+            })
         })
         .clone()
 }
@@ -14019,26 +14032,12 @@ fn render_comparison_audit_report_text(report: &ComparisonReport) -> String {
         "  regression bodies: {}",
         format_regression_bodies(&report.notable_regressions())
     );
-    let body_class_tolerance_summaries = report.body_class_tolerance_summaries();
-    let outlier_class_count = body_class_tolerance_summaries
-        .iter()
-        .filter(|summary| summary.outside_tolerance_body_count > 0)
-        .count();
-    let outlier_bodies = body_class_tolerance_summaries
-        .iter()
-        .flat_map(|summary| summary.outside_bodies.iter().cloned())
-        .collect::<Vec<_>>();
-    let _ = writeln!(
-        text,
-        "  body-class tolerance posture: {} classes checked, {} classes with outlier bodies, outlier bodies: {}",
-        body_class_tolerance_summaries.len(),
-        outlier_class_count,
-        if outlier_bodies.is_empty() {
-            "none".to_string()
-        } else {
-            format_bodies(&outlier_bodies)
-        }
-    );
+    let body_class_tolerance_posture =
+        match validated_comparison_body_class_tolerance_posture_line(report) {
+            Ok(line) => line,
+            Err(error) => format!("body-class tolerance posture unavailable ({error})"),
+        };
+    let _ = writeln!(text, "  {}", body_class_tolerance_posture);
     let _ = writeln!(
         text,
         "  result: {}",
@@ -15268,10 +15267,15 @@ fn render_comparison_body_class_tolerance_summary_text() -> String {
 }
 
 fn render_comparison_body_class_tolerance_posture_summary_text() -> String {
-    format!(
-        "Comparison body-class tolerance posture summary\n{}\n",
-        format_body_class_tolerance_posture_for_report()
-    )
+    match validated_comparison_body_class_tolerance_posture_for_report() {
+        Ok(summary) => format!(
+            "Comparison body-class tolerance posture summary\n{}\n",
+            summary
+        ),
+        Err(error) => format!(
+            "Comparison body-class tolerance posture summary\nComparison body-class tolerance unavailable ({error})\n"
+        ),
+    }
 }
 
 fn render_comparison_envelope_summary_text() -> String {
@@ -20126,6 +20130,11 @@ mod tests {
             render_cli(&["comparison-body-class-tolerance-posture"])
                 .expect("comparison body-class tolerance posture alias should render"),
             posture
+        );
+        assert_eq!(
+            validated_comparison_body_class_tolerance_posture_for_report()
+                .expect("comparison body-class tolerance posture helper should validate"),
+            format_body_class_tolerance_posture_for_report()
         );
         assert_eq!(
             render_cli(&["comparison-body-class-tolerance-posture-summary", "extra"]).expect_err(
