@@ -7904,51 +7904,6 @@ fn format_release_ayanamsa_canonical_names_for_report() -> String {
     }
 }
 
-fn summarize_latitude_sensitive_house_systems(profile: &CompatibilityProfile) -> String {
-    profile.latitude_sensitive_house_systems_summary_line()
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-struct HouseFormulaFamiliesSummary {
-    names: Vec<String>,
-}
-
-impl HouseFormulaFamiliesSummary {
-    fn validate(&self) -> Result<(), EphemerisError> {
-        validate_name_sequence(
-            "house formula families summary",
-            self.names.iter().map(String::as_str),
-        )
-    }
-
-    fn summary_line(&self) -> String {
-        match self.names.as_slice() {
-            [] => "0 (none)".to_string(),
-            [single] => format!("1 ({single})"),
-            _ => format!("{} ({})", self.names.len(), self.names.join(", ")),
-        }
-    }
-}
-
-impl fmt::Display for HouseFormulaFamiliesSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
-}
-
-fn summarize_house_formula_families(profile: &CompatibilityProfile) -> HouseFormulaFamiliesSummary {
-    HouseFormulaFamiliesSummary {
-        names: profile.house_formula_family_names(),
-    }
-}
-
-fn format_house_formula_families_summary(summary: &HouseFormulaFamiliesSummary) -> String {
-    match summary.validate() {
-        Ok(()) => summary.summary_line(),
-        Err(error) => format!("unavailable ({error})"),
-    }
-}
-
 fn validate_name_sequence<'a, I>(
     section_label: &'static str,
     names: I,
@@ -8060,13 +8015,9 @@ fn render_compatibility_profile_summary_text() -> String {
     text.push_str(" baseline, ");
     text.push_str(&profile.release_house_systems.len().to_string());
     text.push_str(" release-specific)\n");
-    text.push_str("Latitude-sensitive house systems: ");
-    text.push_str(&summarize_latitude_sensitive_house_systems(&profile));
+    text.push_str(&format_latitude_sensitive_house_systems_for_report());
     text.push('\n');
-    text.push_str("House formula families: ");
-    text.push_str(&format_house_formula_families_summary(
-        &summarize_house_formula_families(&profile),
-    ));
+    text.push_str(&format_house_formula_families_for_report());
     text.push('\n');
     text.push_str("House code aliases: ");
     match profile.validated_house_code_aliases_summary_line() {
@@ -8419,16 +8370,9 @@ fn render_release_notes_summary_text() -> String {
     text.push_str("Release-specific coverage: ");
     text.push_str(&profile.release_notes.len().to_string());
     text.push('\n');
-    text.push_str("Latitude-sensitive house systems: ");
-    match profile.validated_latitude_sensitive_house_systems_summary_line() {
-        Ok(summary) => text.push_str(&summary),
-        Err(error) => return format!("Release notes summary unavailable ({error})"),
-    }
+    text.push_str(&format_latitude_sensitive_house_systems_for_report());
     text.push('\n');
-    text.push_str("House formula families: ");
-    text.push_str(&format_house_formula_families_summary(
-        &summarize_house_formula_families(&profile),
-    ));
+    text.push_str(&format_house_formula_families_for_report());
     text.push('\n');
     text.push_str("House code aliases: ");
     match profile.validated_house_code_aliases_summary_line() {
@@ -8817,13 +8761,9 @@ fn render_release_summary_text() -> String {
         Err(error) => return format!("Release summary unavailable ({error})"),
     }
     text.push('\n');
-    text.push_str("Latitude-sensitive house systems: ");
-    text.push_str(&summarize_latitude_sensitive_house_systems(&profile));
+    text.push_str(&format_latitude_sensitive_house_systems_for_report());
     text.push('\n');
-    text.push_str("House formula families: ");
-    text.push_str(&format_house_formula_families_summary(
-        &summarize_house_formula_families(&profile),
-    ));
+    text.push_str(&format_house_formula_families_for_report());
     text.push('\n');
     text.push_str(&lunar_theory_catalog_summary_for_report());
     text.push('\n');
@@ -23833,33 +23773,6 @@ mod tests {
         let error = summary
             .validate()
             .expect_err("case-insensitive duplicate descriptor names should fail validation");
-        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
-        assert!(error.message.contains("case-insensitive duplicate name"));
-    }
-
-    #[test]
-    fn house_formula_families_summary_renders_and_validates() {
-        let summary = HouseFormulaFamiliesSummary {
-            names: current_compatibility_profile().house_formula_family_names(),
-        };
-        let expected = "7 (Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign)";
-
-        summary
-            .validate()
-            .expect("current house formula families summary should validate");
-        assert_eq!(summary.summary_line(), expected);
-        assert_eq!(summary.to_string(), expected);
-    }
-
-    #[test]
-    fn house_formula_families_summary_validation_rejects_stale_names() {
-        let summary = HouseFormulaFamiliesSummary {
-            names: vec!["Equal".to_string(), "equal".to_string()],
-        };
-
-        let error = summary
-            .validate()
-            .expect_err("case-insensitive duplicate house formula families should fail validation");
         assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
         assert!(error.message.contains("case-insensitive duplicate name"));
     }
