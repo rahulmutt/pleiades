@@ -3199,6 +3199,26 @@ pub fn production_generation_snapshot_summary_for_report() -> String {
     }
 }
 
+/// Deterministic revision metadata for the checked-in CSV fixtures.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ProductionGenerationSourceRevisionSummary {
+    /// Checksum of the checked-in reference snapshot fixture.
+    pub reference_snapshot_checksum: u64,
+    /// Checksum of the checked-in independent hold-out snapshot fixture.
+    pub independent_holdout_snapshot_checksum: u64,
+}
+
+impl ProductionGenerationSourceRevisionSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "source revision=reference_snapshot.csv checksum=0x{reference_snapshot_checksum:016x}; independent_holdout_snapshot.csv checksum=0x{independent_holdout_snapshot_checksum:016x}",
+            reference_snapshot_checksum = self.reference_snapshot_checksum,
+            independent_holdout_snapshot_checksum = self.independent_holdout_snapshot_checksum,
+        )
+    }
+}
+
 /// Combined provenance for the production-generation corpus.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ProductionGenerationSourceSummary {
@@ -3208,8 +3228,8 @@ pub struct ProductionGenerationSourceSummary {
     pub boundary_summary: IndependentHoldoutSourceSummary,
     /// Source-window summary for the merged production-generation corpus.
     pub source_windows: ProductionGenerationSnapshotWindowSummary,
-    /// Deterministic revision summary for the checked-in CSV fixtures.
-    pub source_revision: String,
+    /// Deterministic revision metadata for the checked-in CSV fixtures.
+    pub source_revision: ProductionGenerationSourceRevisionSummary,
 }
 
 impl ProductionGenerationSourceSummary {
@@ -3223,7 +3243,7 @@ impl ProductionGenerationSourceSummary {
                 &self.source_windows.summary_line(),
                 "Production generation source windows: ",
             ),
-            self.source_revision,
+            self.source_revision.summary_line(),
         )
     }
 
@@ -3331,7 +3351,7 @@ fn checksum64(text: &str) -> u64 {
     hash
 }
 
-fn production_generation_source_revision_summary() -> String {
+fn production_generation_source_revision_summary() -> ProductionGenerationSourceRevisionSummary {
     let reference_checksum = checksum64(include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/data/reference_snapshot.csv"
@@ -3341,9 +3361,10 @@ fn production_generation_source_revision_summary() -> String {
         "/data/independent_holdout_snapshot.csv"
     )));
 
-    format!(
-        "source revision=reference_snapshot.csv checksum=0x{reference_checksum:016x}; independent_holdout_snapshot.csv checksum=0x{holdout_checksum:016x}"
-    )
+    ProductionGenerationSourceRevisionSummary {
+        reference_snapshot_checksum: reference_checksum,
+        independent_holdout_snapshot_checksum: holdout_checksum,
+    }
 }
 
 /// Returns a compact production-generation manifest summary for release-facing reports.
@@ -27181,7 +27202,7 @@ mod tests {
                     &production_generation_snapshot_window_summary_for_report(),
                     "Production generation source windows: ",
                 ),
-                production_generation_source_revision_summary()
+                production_generation_source_revision_summary().summary_line()
             )
         );
     }
@@ -30165,7 +30186,7 @@ mod tests {
     #[test]
     fn production_generation_source_summary_validation_rejects_drift() {
         let mut summary = production_generation_source_summary();
-        summary.source_revision.push_str("-drift");
+        summary.source_revision.reference_snapshot_checksum ^= 1;
 
         assert!(matches!(
             summary.validate(),

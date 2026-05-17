@@ -10094,7 +10094,8 @@ mod tests {
         summary
             .phase2_corpus_alignment
             .production_generation_source
-            .source_revision = "drifted source revision".to_string();
+            .source_revision
+            .reference_snapshot_checksum ^= 1;
 
         let error = summary
             .validate()
