@@ -11154,6 +11154,73 @@ fn read_required_bundle_text(path: &Path, label: &str) -> Result<String, Release
     })
 }
 
+fn ensure_packaged_artifact_phase2_alignment_matches_source_fit_holdout_sync(
+    source_fit_holdout_sync_summary_text: &str,
+    phase2_corpus_alignment_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    fn summary_payload<'a>(text: &'a str, prefix: &str) -> Result<&'a str, ReleaseBundleError> {
+        if let Some(payload) = text
+            .lines()
+            .filter_map(|line| line.strip_prefix(prefix))
+            .next()
+        {
+            if text
+                .lines()
+                .filter_map(|line| line.strip_prefix(prefix))
+                .nth(1)
+                .is_some()
+            {
+                return Err(ReleaseBundleError::Verification(format!(
+                    "duplicate entry: {prefix}"
+                )));
+            }
+            if payload != payload.trim() {
+                return Err(ReleaseBundleError::Verification(format!(
+                    "unexpected leading or trailing whitespace in manifest entry: {prefix}"
+                )));
+            }
+            return Ok(payload);
+        }
+
+        if text.lines().count() != 1 {
+            return Err(ReleaseBundleError::Verification(format!(
+                "missing manifest entry: {prefix}"
+            )));
+        }
+        if text != text.trim() {
+            return Err(ReleaseBundleError::Verification(format!(
+                "unexpected leading or trailing whitespace in manifest entry: {prefix}"
+            )));
+        }
+
+        Ok(text)
+    }
+
+    let source_fit_holdout_sync_payload = summary_payload(
+        source_fit_holdout_sync_summary_text,
+        "Packaged-artifact source-fit and hold-out sync: ",
+    )?;
+    let phase2_corpus_alignment_payload = summary_payload(
+        phase2_corpus_alignment_summary_text,
+        "Packaged-artifact phase-2 corpus alignment: ",
+    )?;
+    let Some((_, embedded_phase2_corpus_alignment_payload)) =
+        source_fit_holdout_sync_payload.rsplit_once("phase 2 corpus alignment=")
+    else {
+        return Err(ReleaseBundleError::Verification(
+            "packaged-artifact source-fit and hold-out sync summary is missing its phase-2 corpus alignment payload".to_string(),
+        ));
+    };
+
+    if embedded_phase2_corpus_alignment_payload != phase2_corpus_alignment_payload {
+        return Err(ReleaseBundleError::Verification(
+            "packaged-artifact source-fit and hold-out sync summary phase-2 corpus alignment payload does not match the packaged-artifact phase-2 corpus alignment summary".to_string(),
+        ));
+    }
+
+    Ok(())
+}
+
 fn verify_release_bundle(
     output_dir: impl AsRef<Path>,
 ) -> Result<ReleaseBundle, ReleaseBundleError> {
@@ -12042,6 +12109,11 @@ fn verify_release_bundle(
     let profile_id = extract_prefixed_value(&profile_text, "Compatibility profile: ")?;
     let api_stability_posture_id =
         extract_prefixed_value(&api_stability_text, "API stability posture: ")?;
+
+    ensure_packaged_artifact_phase2_alignment_matches_source_fit_holdout_sync(
+        &packaged_artifact_source_fit_holdout_sync_summary_text,
+        &packaged_artifact_phase2_corpus_alignment_summary_text,
+    )?;
 
     if manifest.release_summary_checksum != release_summary_checksum {
         return Err(ReleaseBundleError::Verification(format!(
@@ -28149,6 +28221,45 @@ version = "0.9.0"
             "release-notes-summary.txt",
             "release notes summary checksum mismatch",
         );
+    }
+
+    #[test]
+    fn packaged_artifact_phase2_alignment_matches_source_fit_holdout_sync_payload() {
+        let sync_summary = packaged_artifact_source_fit_holdout_sync_summary_for_report();
+        let phase2_summary = packaged_artifact_phase2_corpus_alignment_summary_for_report();
+
+        ensure_packaged_artifact_phase2_alignment_matches_source_fit_holdout_sync(
+            &format!(
+                "Packaged-artifact source-fit and hold-out sync: {}",
+                sync_summary
+            ),
+            &format!(
+                "Packaged-artifact phase-2 corpus alignment: {}",
+                phase2_summary
+            ),
+        )
+        .expect("phase-2 alignment payload should match the source-fit sync payload");
+    }
+
+    #[test]
+    fn packaged_artifact_phase2_alignment_payload_validation_rejects_drift() {
+        let sync_summary = packaged_artifact_source_fit_holdout_sync_summary_for_report();
+        let phase2_summary = "reference source=drifted; reference snapshot=drifted";
+
+        let error = ensure_packaged_artifact_phase2_alignment_matches_source_fit_holdout_sync(
+            &format!(
+                "Packaged-artifact source-fit and hold-out sync: {}",
+                sync_summary
+            ),
+            &format!(
+                "Packaged-artifact phase-2 corpus alignment: {}",
+                phase2_summary
+            ),
+        )
+        .expect_err("drifted phase-2 alignment payload should be rejected");
+        assert!(error
+            .to_string()
+            .contains("phase-2 corpus alignment payload does not match"));
     }
 
     #[test]
