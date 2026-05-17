@@ -11,8 +11,8 @@ use core::{fmt, time::Duration};
 
 use pleiades_ayanamsa::{resolve_ayanamsa, sidereal_offset};
 use pleiades_backend::{
-    frame_treatment_summary_for_report, request_policy_summary_for_report,
-    time_scale_policy_summary_for_report, validate_request_against_metadata, Apparentness,
+    request_policy_summary_for_report, time_scale_policy_summary_for_report,
+    validate_request_against_metadata, validated_frame_treatment_summary_for_report, Apparentness,
     BackendMetadata, EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest,
     EphemerisResult, EphemerisResultValidationError,
 };
@@ -2658,7 +2658,7 @@ impl fmt::Display for ChartSnapshot {
         writeln!(
             f,
             "Frame policy: {}",
-            frame_treatment_summary_for_report().summary_line()
+            validated_frame_treatment_summary_for_report()
         )?;
         writeln!(f, "Zodiac mode: {}", self.zodiac_mode)?;
         writeln!(f, "Apparentness: {}", self.apparentness)?;
@@ -3453,7 +3453,7 @@ mod tests {
         assert!(rendered.contains("Instant: JD 2451545 (TT)"));
         assert!(rendered.contains(&format!(
             "Frame policy: {}",
-            frame_treatment_summary_for_report().summary_line()
+            validated_frame_treatment_summary_for_report()
         )));
         assert!(rendered.contains(&format!(
             "Apparentness policy: {}",

@@ -121,6 +121,7 @@ pub use pleiades_backend::{
     request_policy_summary_for_report, time_scale_policy_summary_for_report,
     utc_convenience_policy_summary_for_report, validated_apparentness_policy_summary_for_report,
     validated_delta_t_policy_summary_for_report, validated_frame_policy_summary_for_report,
+    validated_frame_treatment_summary_for_report,
     validated_native_sidereal_policy_summary_for_report,
     validated_observer_policy_summary_for_report, validated_request_policy_summary_for_report,
     validated_time_scale_policy_summary_for_report,

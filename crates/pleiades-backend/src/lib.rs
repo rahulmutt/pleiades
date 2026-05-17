@@ -2774,6 +2774,14 @@ pub const fn frame_treatment_summary_for_report() -> FrameTreatmentSummary {
     FrameTreatmentSummary::new(current_request_policy_summary().frame)
 }
 
+/// Returns the current frame-treatment posture after validation.
+pub fn validated_frame_treatment_summary_for_report() -> String {
+    match frame_treatment_summary_for_report().validated_summary_line() {
+        Ok(summary) => summary.to_string(),
+        Err(error) => format!("frame treatment unavailable ({error})"),
+    }
+}
+
 /// Formats the zodiac-mode policy shared by the current first-party backends.
 pub fn zodiac_policy_summary_for_report(supported_zodiac_modes: &[ZodiacMode]) -> String {
     if supported_zodiac_modes.len() == 1 && supported_zodiac_modes[0] == ZodiacMode::Tropical {
@@ -3963,6 +3971,10 @@ mod tests {
         assert_eq!(summary.summary_line(), "geocentric ecliptic inputs; equatorial coordinates are derived with a mean-obliquity transform");
         assert_eq!(summary.validate(), Ok(()));
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(
+            validated_frame_treatment_summary_for_report(),
+            current_request_policy_summary().frame
+        );
         assert!(summary.summary_line().contains("mean-obliquity"));
     }
 
