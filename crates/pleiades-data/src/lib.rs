@@ -5349,8 +5349,10 @@ fn packaged_artifact_segment_validation_fractions() -> &'static [f64] {
 fn packaged_artifact_segment_validation_fractions_for_body(body: &CelestialBody) -> &'static [f64] {
     match packaged_artifact_body_cadence(body) {
         PackagedArtifactBodyCadence::Luminaries
-        | PackagedArtifactBodyCadence::SelectedAsteroids => {
-            &[0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875]
+        | PackagedArtifactBodyCadence::SelectedAsteroids
+        | PackagedArtifactBodyCadence::Pluto
+        | PackagedArtifactBodyCadence::CustomBodies => {
+            PACKAGED_ARTIFACT_DENSE_VALIDATION_SAMPLE_FRACTIONS
         }
         _ => packaged_artifact_segment_validation_fractions(),
     }
@@ -6102,10 +6104,15 @@ fn residual_segment(
 const PACKAGED_ARTIFACT_RESIDUAL_SAMPLE_FRACTIONS: &[f64] = &[0.0, 0.25, 0.5, 0.75, 1.0];
 const PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS: &[f64] =
     &[0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1.0];
+const PACKAGED_ARTIFACT_DENSE_VALIDATION_SAMPLE_FRACTIONS: &[f64] =
+    &[0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875];
 
 fn packaged_artifact_residual_sample_fractions(body: &CelestialBody) -> &'static [f64] {
     match packaged_artifact_body_cadence(body) {
-        PackagedArtifactBodyCadence::Luminaries => {
+        PackagedArtifactBodyCadence::Luminaries
+        | PackagedArtifactBodyCadence::Pluto
+        | PackagedArtifactBodyCadence::SelectedAsteroids
+        | PackagedArtifactBodyCadence::CustomBodies => {
             PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS
         }
         _ => PACKAGED_ARTIFACT_RESIDUAL_SAMPLE_FRACTIONS,
@@ -6511,16 +6518,11 @@ mod tests {
                     .map(|segment| (&body.body, segment))
             })
             .expect("packaged artifact should include at least one multi-day Saturn segment");
-        let selected_asteroid_segment = artifact
+        let custom_segment = artifact
             .bodies
             .iter()
-            .filter(|body| {
-                matches!(
-                    packaged_artifact_body_cadence(&body.body),
-                    PackagedArtifactBodyCadence::SelectedAsteroids
-                )
-            })
-            .find_map(|body| {
+            .find(|body| matches!(body.body, CelestialBody::Custom(_)))
+            .and_then(|body| {
                 body.segments
                     .iter()
                     .find(|segment| {
@@ -6528,9 +6530,7 @@ mod tests {
                     })
                     .map(|segment| (&body.body, segment))
             })
-            .expect(
-                "packaged artifact should include at least one multi-day selected-asteroid segment",
-            );
+            .expect("packaged artifact should include at least one multi-day custom-body segment");
 
         assert_eq!(
             packaged_artifact_fit_sample_fractions(moon_segment.1),
@@ -6545,15 +6545,12 @@ mod tests {
             packaged_artifact_segment_validation_fractions()
         );
         assert_eq!(
-            packaged_artifact_segment_validation_fractions_for_body(selected_asteroid_segment.0),
-            &[0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875]
+            packaged_artifact_segment_validation_fractions_for_body(custom_segment.0),
+            PACKAGED_ARTIFACT_DENSE_VALIDATION_SAMPLE_FRACTIONS
         );
         assert_eq!(
-            packaged_artifact_fit_outlier_sample_fractions(
-                selected_asteroid_segment.0,
-                selected_asteroid_segment.1,
-            ),
-            packaged_artifact_segment_validation_fractions_for_body(selected_asteroid_segment.0)
+            packaged_artifact_fit_outlier_sample_fractions(custom_segment.0, custom_segment.1),
+            PACKAGED_ARTIFACT_DENSE_VALIDATION_SAMPLE_FRACTIONS
         );
     }
 
