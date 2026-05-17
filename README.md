@@ -22,7 +22,7 @@ As of the current workspace state, `pleiades` includes:
 Important current limits:
 
 - first-party backends currently expose **mean geometric** coordinates; apparent-place corrections are rejected unless a backend advertises support,
-- direct backend requests accept TT/TDB; UTC/UT1 require caller-supplied conversion offsets,
+- direct backend requests accept TT/TDB; UTC/UT1 require caller-supplied conversion offsets, and the dedicated `utc-convenience-policy-summary` keeps that deliberate non-goal explicit,
 - body-position observer/topocentric requests remain unsupported by current first-party backends,
 - native sidereal backend output is not assumed; chart-level sidereal longitude is handled by the façade/catalog layer,
 - the packaged-data artifact is a draft reproducibility fixture and should not be treated as final production-accuracy compressed ephemeris data.
@@ -71,6 +71,7 @@ cargo run -q -p pleiades-cli -- backend-matrix-summary
 
 # Request semantics and time/observer policy
 cargo run -q -p pleiades-cli -- request-surface-summary
+cargo run -q -p pleiades-cli -- utc-convenience-policy-summary
 
 # Packaged artifact posture
 cargo run -q -p pleiades-cli -- artifact-summary
