@@ -17613,9 +17613,8 @@ fn write_backend_matrix(f: &mut fmt::Formatter<'_>, backend: &BackendMetadata) -
     if let Some(asteroids) = selected_asteroid_coverage(&backend.body_coverage) {
         writeln!(
             f,
-            "  selected asteroid coverage: {} bodies ({})",
-            asteroids.len(),
-            format_bodies(&asteroids)
+            "  {}",
+            selected_asteroid_coverage_summary_for_report(&asteroids)
         )?;
         if backend.id.as_str() == "jpl-snapshot" {
             writeln!(
@@ -18208,7 +18207,11 @@ fn write_reference_asteroid_section(f: &mut fmt::Formatter<'_>) -> fmt::Result {
     if asteroids.is_empty() {
         writeln!(f, "  none")?;
     } else {
-        writeln!(f, "  bodies: {}", format_bodies(asteroids))?;
+        writeln!(
+            f,
+            "  {}",
+            selected_asteroid_coverage_summary_for_report(asteroids)
+        )?;
         let evidence = reference_asteroid_evidence();
         if evidence.is_empty() {
             writeln!(f, "  exact J2000 evidence: unavailable")?;
@@ -18428,6 +18431,123 @@ fn selected_asteroid_coverage(bodies: &[CelestialBody]) -> Option<Vec<CelestialB
         None
     } else {
         Some(asteroids)
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct SelectedAsteroidCoverageSummary {
+    body_count: usize,
+    bodies: Vec<CelestialBody>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+enum SelectedAsteroidCoverageSummaryValidationError {
+    MissingBodies,
+    BodyCountMismatch {
+        body_count: usize,
+        bodies_len: usize,
+    },
+    DuplicateBody {
+        first_index: usize,
+        second_index: usize,
+        body: String,
+    },
+    UnsupportedBody {
+        index: usize,
+        body: String,
+    },
+}
+
+impl fmt::Display for SelectedAsteroidCoverageSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::MissingBodies => f.write_str("missing bodies"),
+            Self::BodyCountMismatch {
+                body_count,
+                bodies_len,
+            } => write!(f, "body count {body_count} does not match body list length {bodies_len}"),
+            Self::DuplicateBody {
+                first_index,
+                second_index,
+                body,
+            } => write!(f, "duplicate body '{body}' at index {second_index} (first seen at index {first_index})"),
+            Self::UnsupportedBody { index, body } => write!(f, "body '{body}' at index {index} is not a selected asteroid"),
+        }
+    }
+}
+
+impl std::error::Error for SelectedAsteroidCoverageSummaryValidationError {}
+
+impl SelectedAsteroidCoverageSummary {
+    fn summary_line(&self) -> String {
+        format!(
+            "selected asteroid coverage: {} bodies ({})",
+            self.body_count,
+            format_bodies(&self.bodies)
+        )
+    }
+
+    fn validate(&self) -> Result<(), SelectedAsteroidCoverageSummaryValidationError> {
+        if self.body_count == 0 || self.bodies.is_empty() {
+            return Err(SelectedAsteroidCoverageSummaryValidationError::MissingBodies);
+        }
+        if self.body_count != self.bodies.len() {
+            return Err(
+                SelectedAsteroidCoverageSummaryValidationError::BodyCountMismatch {
+                    body_count: self.body_count,
+                    bodies_len: self.bodies.len(),
+                },
+            );
+        }
+        for (index, body) in self.bodies.iter().enumerate() {
+            if self.bodies[..index].iter().any(|other| other == body) {
+                return Err(
+                    SelectedAsteroidCoverageSummaryValidationError::DuplicateBody {
+                        first_index: self.bodies[..index]
+                            .iter()
+                            .position(|other| other == body)
+                            .expect("duplicate body should have a first index"),
+                        second_index: index,
+                        body: body.to_string(),
+                    },
+                );
+            }
+            if !is_selected_asteroid(body) {
+                return Err(
+                    SelectedAsteroidCoverageSummaryValidationError::UnsupportedBody {
+                        index,
+                        body: body.to_string(),
+                    },
+                );
+            }
+        }
+
+        Ok(())
+    }
+
+    fn validated_summary_line(
+        &self,
+    ) -> Result<String, SelectedAsteroidCoverageSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+fn selected_asteroid_coverage_summary(
+    bodies: &[CelestialBody],
+) -> Option<SelectedAsteroidCoverageSummary> {
+    selected_asteroid_coverage(bodies).map(|bodies| SelectedAsteroidCoverageSummary {
+        body_count: bodies.len(),
+        bodies,
+    })
+}
+
+fn selected_asteroid_coverage_summary_for_report(bodies: &[CelestialBody]) -> String {
+    match selected_asteroid_coverage_summary(bodies) {
+        Some(summary) => summary
+            .validated_summary_line()
+            .unwrap_or_else(|error| format!("selected asteroid coverage: unavailable ({error})")),
+        None => "selected asteroid coverage: unavailable".to_string(),
     }
 }
 
@@ -24832,6 +24952,33 @@ mod tests {
         assert!(rendered.contains("unsupported bodies: True Apogee, True Perigee"));
         assert!(rendered.contains("Packaged data backend"));
         assert!(rendered.contains("Composite routed backend"));
+    }
+
+    #[test]
+    fn selected_asteroid_coverage_summary_validates_selected_body_lists() {
+        let asteroids = reference_asteroids();
+        let summary = selected_asteroid_coverage_summary(asteroids)
+            .expect("reference asteroids should produce a coverage summary");
+        assert_eq!(
+            summary.validated_summary_line(),
+            Ok("selected asteroid coverage: 6 bodies (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis)".to_string())
+        );
+
+        let mut drifted_bodies = asteroids.to_vec();
+        drifted_bodies[0] = CelestialBody::Moon;
+        let error = SelectedAsteroidCoverageSummary {
+            body_count: drifted_bodies.len(),
+            bodies: drifted_bodies,
+        }
+        .validate()
+        .expect_err("non-asteroid bodies should be rejected");
+        assert_eq!(
+            error,
+            SelectedAsteroidCoverageSummaryValidationError::UnsupportedBody {
+                index: 0,
+                body: "Moon".to_string(),
+            }
+        );
     }
 
     #[test]
