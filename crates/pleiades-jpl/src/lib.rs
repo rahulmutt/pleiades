@@ -3232,6 +3232,52 @@ pub struct ProductionGenerationSourceSummary {
     pub source_revision: ProductionGenerationSourceRevisionSummary,
 }
 
+fn validate_production_generation_source_summary_text(
+    text: &str,
+) -> Result<(), ProductionGenerationSourceSummaryValidationError> {
+    const REQUIRED_FRAGMENTS: &[(&str, &str)] = &[
+        ("strategy", "strategy=documented hybrid fixture corpus"),
+        (
+            "input path",
+            "input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv",
+        ),
+        ("file format", "file format=comma-separated values"),
+        ("columns", "columns=epoch_jd, body, x_km, y_km, z_km"),
+        ("frame", "frame=geocentric ecliptic J2000"),
+        ("time scale", "time scale=TDB"),
+        ("parser", "parser=pure-Rust and deterministic"),
+        (
+            "generation command",
+            "generation command=generate-packaged-artifact --check",
+        ),
+        (
+            "checksum expectation",
+            "checksum expectation=byte-identical fixture contents",
+        ),
+        ("cadence", "cadence=31 reference epochs and 10 boundary epochs"),
+        (
+            "row separation",
+            "reference and hold-out rows remain separate",
+        ),
+        (
+            "redistribution posture",
+            "redistribution posture=repository-checked regression fixtures, not a broad public corpus",
+        ),
+    ];
+
+    for (field, fragment) in REQUIRED_FRAGMENTS {
+        if !text.contains(fragment) {
+            return Err(
+                ProductionGenerationSourceSummaryValidationError::RenderedSummaryOutOfSync {
+                    field: *field,
+                },
+            );
+        }
+    }
+
+    Ok(())
+}
+
 impl ProductionGenerationSourceSummary {
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
@@ -3267,6 +3313,8 @@ impl ProductionGenerationSourceSummary {
             return Err(ProductionGenerationSourceSummaryValidationError::SourceRevisionMismatch);
         }
 
+        validate_production_generation_source_summary_text(&self.summary_line())?;
+
         Ok(())
     }
 
@@ -3292,6 +3340,8 @@ pub enum ProductionGenerationSourceSummaryValidationError {
     SourceWindowsMismatch,
     /// The deterministic revision summary drifted from the checked-in fixture contents.
     SourceRevisionMismatch,
+    /// The rendered summary text drifted from the expected release-facing provenance fragments.
+    RenderedSummaryOutOfSync { field: &'static str },
 }
 
 impl fmt::Display for ProductionGenerationSourceSummaryValidationError {
@@ -3304,6 +3354,10 @@ impl fmt::Display for ProductionGenerationSourceSummaryValidationError {
             }
             Self::SourceWindowsMismatch => f.write_str("source windows mismatch"),
             Self::SourceRevisionMismatch => f.write_str("source revision mismatch"),
+            Self::RenderedSummaryOutOfSync { field } => write!(
+                f,
+                "rendered production-generation source summary field `{field}` is out of sync"
+            ),
         }
     }
 }
@@ -30180,7 +30234,26 @@ mod tests {
         assert!(report.contains("checksum expectation=byte-identical fixture contents"));
         assert!(report.contains("cadence=31 reference epochs and 10 boundary epochs"));
         assert!(report.contains("reference and hold-out rows remain separate"));
+        assert!(report.contains("columns=epoch_jd, body, x_km, y_km, z_km"));
         assert!(report.contains("redistribution posture=repository-checked regression fixtures, not a broad public corpus"));
+    }
+
+    #[test]
+    fn production_generation_source_summary_validation_rejects_rendered_text_drift() {
+        let summary = production_generation_source_summary();
+        let drifted = summary.summary_line().replace(
+            "columns=epoch_jd, body, x_km, y_km, z_km",
+            "columns=epoch_jd, body, x_km, y_km",
+        );
+
+        assert!(matches!(
+            validate_production_generation_source_summary_text(&drifted),
+            Err(
+                ProductionGenerationSourceSummaryValidationError::RenderedSummaryOutOfSync {
+                    field: "columns"
+                }
+            )
+        ));
     }
 
     #[test]
