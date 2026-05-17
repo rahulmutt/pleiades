@@ -75,4 +75,5 @@ This file lists focused implementation slices for the current phase ladder. Comp
 - Completed: the backend matrix and validation-report summary surfaces now route house-code aliases through a validated profile-backed helper, keeping the release-facing summary surfaces aligned with the compatibility-profile validation gate.
 - Completed: the JPL snapshot evidence classification and source-posture report lines now route through validated summary helpers, so the release-facing evidence banner fails closed if the posture text drifts.
 - Completed: the validation report now renders archived regression findings through validated summary helpers so malformed notes fail closed instead of leaking into release-facing output.
+- Completed: the packaged-artifact body-class span cap summary now validates before rendering in CLI and validation-report paths, so the release-facing body-layout evidence can fail closed if the generated posture drifts.
 - Keep README/docs aligned with the published release compatibility profile and known gaps.

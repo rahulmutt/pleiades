@@ -544,6 +544,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("artifact-profile-coverage-summary") => validate_render_cli(args),
         Some("packaged-artifact-output-support-summary")
         | Some("packaged-artifact-output-support") => validate_render_cli(args),
+        Some("packaged-artifact-body-class-span-cap-summary")
+        | Some("packaged-artifact-body-class-span-cap") => validate_render_cli(args),
         Some("packaged-artifact-speed-policy-summary") | Some("packaged-artifact-speed-policy") => {
             validate_render_cli(args)
         }
@@ -4850,6 +4852,36 @@ mod tests {
             "packaged-artifact-output-support does not accept extra arguments"
         );
 
+        let packaged_artifact_body_class_span_caps =
+            render_cli(&["packaged-artifact-body-class-span-cap-summary"])
+                .expect("packaged artifact body-class span cap summary should render");
+        assert!(packaged_artifact_body_class_span_caps
+            .contains("Packaged-artifact body-class span caps: "));
+        assert_eq!(
+            packaged_artifact_body_class_span_caps,
+            format!(
+                "Packaged-artifact body-class span caps: {}",
+                pleiades_data::packaged_artifact_body_class_span_cap_summary_for_report()
+            )
+        );
+        assert_eq!(
+            render_cli(&["packaged-artifact-body-class-span-cap"])
+                .expect("packaged artifact body-class span cap alias should render"),
+            packaged_artifact_body_class_span_caps
+        );
+        assert_eq!(
+            render_cli(&["packaged-artifact-body-class-span-cap-summary", "extra"]).expect_err(
+                "packaged artifact body-class span cap summary should reject extra arguments"
+            ),
+            "packaged-artifact-body-class-span-cap-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["packaged-artifact-body-class-span-cap", "extra"]).expect_err(
+                "packaged artifact body-class span cap alias should reject extra arguments"
+            ),
+            "packaged-artifact-body-class-span-cap-summary does not accept extra arguments"
+        );
+
         let packaged_artifact_speed_policy =
             render_cli(&["packaged-artifact-speed-policy-summary"])
                 .expect("packaged artifact speed policy summary should render");
@@ -6022,6 +6054,12 @@ mod tests {
         ));
         assert!(help.contains(
             "packaged-artifact-output-support       Alias for packaged-artifact-output-support-summary"
+        ));
+        assert!(help.contains(
+            "packaged-artifact-body-class-span-cap-summary  Print the packaged-artifact body-class span caps summary"
+        ));
+        assert!(help.contains(
+            "packaged-artifact-body-class-span-cap  Alias for packaged-artifact-body-class-span-cap-summary"
         ));
         assert!(help.contains(
             "packaged-artifact-speed-policy-summary  Print the packaged-artifact speed policy summary"

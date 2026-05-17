@@ -5560,14 +5560,88 @@ fn packaged_artifact_body_class_span_cap_entries() -> Vec<(&'static str, f64)> {
     ]
 }
 
-/// Returns the current packaged-artifact body-class span caps as a compact human-readable line.
-pub fn packaged_artifact_body_class_span_cap_summary_for_report() -> String {
-    let entries = packaged_artifact_body_class_span_cap_entries()
-        .into_iter()
-        .map(|(label, days)| format!("{label}={days:.0} days"))
-        .collect::<Vec<_>>();
+/// Structured summary for the packaged-artifact body-class span caps.
+#[derive(Clone, Debug, PartialEq)]
+pub struct PackagedArtifactBodyClassSpanCapSummary {
+    /// Body-class span cap entries in release-facing order.
+    pub entries: Vec<(&'static str, f64)>,
+}
 
-    format!("body-class span caps: {}", join_display(&entries))
+/// Validation error for a packaged-artifact body-class span cap summary that drifted from the current posture.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum PackagedArtifactBodyClassSpanCapSummaryValidationError {
+    /// A summary field is out of sync with the current packaged-artifact posture.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl PackagedArtifactBodyClassSpanCapSummaryValidationError {
+    /// Returns the compact release-facing summary for the validation error.
+    pub fn summary_line(&self) -> String {
+        match self {
+            Self::FieldOutOfSync { field } => format!(
+                "the packaged artifact body-class span cap summary field `{field}` is out of sync with the current posture"
+            ),
+        }
+    }
+}
+
+impl fmt::Display for PackagedArtifactBodyClassSpanCapSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+impl std::error::Error for PackagedArtifactBodyClassSpanCapSummaryValidationError {}
+
+impl PackagedArtifactBodyClassSpanCapSummary {
+    /// Returns the body-class span cap summary as a compact human-readable line.
+    pub fn summary_line(&self) -> String {
+        let entries = self
+            .entries
+            .iter()
+            .map(|(label, days)| format!("{label}={days:.0} days"))
+            .collect::<Vec<_>>();
+
+        format!("body-class span caps: {}", join_display(&entries))
+    }
+
+    /// Returns `Ok(())` when the summary still matches the current packaged-artifact posture.
+    pub fn validate(&self) -> Result<(), PackagedArtifactBodyClassSpanCapSummaryValidationError> {
+        if self.entries != packaged_artifact_body_class_span_cap_entries() {
+            return Err(
+                PackagedArtifactBodyClassSpanCapSummaryValidationError::FieldOutOfSync {
+                    field: "entries",
+                },
+            );
+        }
+
+        Ok(())
+    }
+}
+
+impl fmt::Display for PackagedArtifactBodyClassSpanCapSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Returns the current packaged-artifact body-class span caps summary record.
+pub fn packaged_artifact_body_class_span_cap_summary_details(
+) -> PackagedArtifactBodyClassSpanCapSummary {
+    let summary = PackagedArtifactBodyClassSpanCapSummary {
+        entries: packaged_artifact_body_class_span_cap_entries(),
+    };
+    debug_assert!(summary.validate().is_ok());
+    summary
+}
+
+/// Returns the current packaged-artifact body-class span caps after validating the structured posture.
+pub fn packaged_artifact_body_class_span_cap_summary_for_report() -> String {
+    let summary = packaged_artifact_body_class_span_cap_summary_details();
+    match summary.validate() {
+        Ok(()) => summary.to_string(),
+        Err(error) => format!("body-class span caps: unavailable ({error})"),
+    }
 }
 
 fn packaged_artifact_body_cadence_counts() -> [(&'static str, usize); 7] {
@@ -9155,9 +9229,35 @@ mod tests {
 
     #[test]
     fn packaged_artifact_body_class_span_cap_summary_reflects_the_current_posture() {
+        let summary = packaged_artifact_body_class_span_cap_summary_details();
+        assert_eq!(
+            summary.summary_line(),
+            "body-class span caps: luminaries=256 days, inner planets=384 days, outer planets=768 days, pluto=1536 days, lunar points=256 days, selected asteroids=256 days, custom bodies=512 days"
+        );
         assert_eq!(
             packaged_artifact_body_class_span_cap_summary_for_report(),
-            "body-class span caps: luminaries=256 days, inner planets=384 days, outer planets=768 days, pluto=1536 days, lunar points=256 days, selected asteroids=256 days, custom bodies=512 days"
+            summary.to_string()
+        );
+        assert!(summary.validate().is_ok());
+    }
+
+    #[test]
+    fn packaged_artifact_body_class_span_cap_summary_validation_rejects_drift() {
+        let mut summary = packaged_artifact_body_class_span_cap_summary_details();
+        summary.entries[0].1 += 1.0;
+
+        let error = summary
+            .validate()
+            .expect_err("body-class span cap drift should be rejected");
+        assert_eq!(
+            error,
+            PackagedArtifactBodyClassSpanCapSummaryValidationError::FieldOutOfSync {
+                field: "entries",
+            }
+        );
+        assert_eq!(
+            error.to_string(),
+            "the packaged artifact body-class span cap summary field `entries` is out of sync with the current posture"
         );
     }
 
