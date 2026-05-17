@@ -24627,7 +24627,7 @@ mod tests {
         assert!(rendered.contains(
             "selected asteroids: 93 rows across 6 bodies and 17 epochs; asteroid windows: "
         ));
-        assert!(rendered.contains("Comparison snapshot source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.; coverage=Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000.; columns=body, x_km, y_km, z_km"));
+        assert!(rendered.contains(&pleiades_jpl::comparison_snapshot_source_summary_for_report()));
         assert!(rendered
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
         assert!(rendered.contains(&format!(

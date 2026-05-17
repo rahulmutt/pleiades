@@ -5334,6 +5334,22 @@ pub fn comparison_snapshot_body_class_coverage_summary_for_report() -> String {
     }
 }
 
+const COMPARISON_SNAPSHOT_SOURCE_EXPECTED: &str =
+    "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.";
+const COMPARISON_SNAPSHOT_COVERAGE_EXPECTED: &str =
+    "Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000.";
+const COMPARISON_SNAPSHOT_COLUMNS: &str = "body, x_km, y_km, z_km";
+
+fn comparison_snapshot_source_checksum() -> u64 {
+    static CHECKSUM: OnceLock<u64> = OnceLock::new();
+    *CHECKSUM.get_or_init(|| {
+        checksum64(include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/data/j2000_snapshot.csv"
+        )))
+    })
+}
+
 /// Backend-owned provenance summary for the comparison snapshot used by validation.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ComparisonSnapshotSourceSummary {
@@ -5343,6 +5359,8 @@ pub struct ComparisonSnapshotSourceSummary {
     pub coverage: String,
     /// CSV column layout for the comparison snapshot.
     pub columns: String,
+    /// Deterministic checksum of the checked-in comparison snapshot source material.
+    pub checksum: u64,
 }
 
 /// Structured validation errors for a comparison snapshot provenance summary.
@@ -5356,6 +5374,10 @@ pub enum ComparisonSnapshotSourceSummaryValidationError {
     BlankColumns,
     /// The summary carried surrounding whitespace in one of its labels.
     SurroundedByWhitespace { field: &'static str },
+    /// One of the canonical summary fields drifted from the checked-in slice.
+    FieldOutOfSync { field: &'static str },
+    /// The summary checksum drifted from the checked-in source material.
+    ChecksumMismatch,
 }
 
 impl ComparisonSnapshotSourceSummaryValidationError {
@@ -5366,6 +5388,8 @@ impl ComparisonSnapshotSourceSummaryValidationError {
             Self::BlankCoverage => "blank coverage",
             Self::BlankColumns => "blank columns",
             Self::SurroundedByWhitespace { .. } => "surrounded by whitespace",
+            Self::FieldOutOfSync { .. } => "field out of sync",
+            Self::ChecksumMismatch => "checksum mismatch",
         }
     }
 }
@@ -5376,6 +5400,8 @@ impl fmt::Display for ComparisonSnapshotSourceSummaryValidationError {
             Self::SurroundedByWhitespace { field } => {
                 write!(f, "{field} contains surrounding whitespace")
             }
+            Self::FieldOutOfSync { field } => write!(f, "{field} is out of sync"),
+            Self::ChecksumMismatch => f.write_str("checksum mismatch"),
             _ => f.write_str(self.label()),
         }
     }
@@ -5396,12 +5422,24 @@ impl ComparisonSnapshotSourceSummary {
                 },
             );
         }
+        if self.source != COMPARISON_SNAPSHOT_SOURCE_EXPECTED {
+            return Err(
+                ComparisonSnapshotSourceSummaryValidationError::FieldOutOfSync { field: "source" },
+            );
+        }
         if self.coverage.trim().is_empty() {
             return Err(ComparisonSnapshotSourceSummaryValidationError::BlankCoverage);
         }
         if has_surrounding_whitespace(&self.coverage) {
             return Err(
                 ComparisonSnapshotSourceSummaryValidationError::SurroundedByWhitespace {
+                    field: "coverage",
+                },
+            );
+        }
+        if self.coverage != COMPARISON_SNAPSHOT_COVERAGE_EXPECTED {
+            return Err(
+                ComparisonSnapshotSourceSummaryValidationError::FieldOutOfSync {
                     field: "coverage",
                 },
             );
@@ -5416,14 +5454,22 @@ impl ComparisonSnapshotSourceSummary {
                 },
             );
         }
+        if self.columns != COMPARISON_SNAPSHOT_COLUMNS {
+            return Err(
+                ComparisonSnapshotSourceSummaryValidationError::FieldOutOfSync { field: "columns" },
+            );
+        }
+        if self.checksum != comparison_snapshot_source_checksum() {
+            return Err(ComparisonSnapshotSourceSummaryValidationError::ChecksumMismatch);
+        }
         Ok(())
     }
 
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
         format!(
-            "Comparison snapshot source: {}; coverage={}; columns={}",
-            self.source, self.coverage, self.columns
+            "Comparison snapshot source: {}; coverage={}; columns={}; checksum=0x{:016x}",
+            self.source, self.coverage, self.columns, self.checksum
         )
     }
 
@@ -5450,13 +5496,13 @@ pub fn comparison_snapshot_source_summary() -> ComparisonSnapshotSourceSummary {
             let manifest = comparison_snapshot_manifest();
             ComparisonSnapshotSourceSummary {
                 source: manifest
-                    .source_or("NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.")
+                    .source_or(COMPARISON_SNAPSHOT_SOURCE_EXPECTED)
                     .to_string(),
-                coverage: manifest.coverage_or(
-                    "Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000.",
-                )
-                .to_string(),
+                coverage: manifest
+                    .coverage_or(COMPARISON_SNAPSHOT_COVERAGE_EXPECTED)
+                    .to_string(),
                 columns: manifest.columns_summary(),
+                checksum: comparison_snapshot_source_checksum(),
             }
         })
         .clone()
@@ -28268,7 +28314,10 @@ mod tests {
         assert_eq!(manifest.validate(), Ok(()));
         assert_eq!(
             source_summary.summary_line(),
-            "Comparison snapshot source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.; coverage=Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000.; columns=body, x_km, y_km, z_km"
+            format!(
+                "Comparison snapshot source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.; coverage=Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000.; columns=body, x_km, y_km, z_km; checksum=0x{:016x}",
+                comparison_snapshot_source_checksum()
+            )
         );
         assert_eq!(source_summary.to_string(), source_summary.summary_line());
         assert_eq!(source_summary.validate(), Ok(()));
@@ -28357,6 +28406,7 @@ mod tests {
             source: " ".to_string(),
             coverage: "coverage".to_string(),
             columns: "body, x_km, y_km, z_km".to_string(),
+            checksum: comparison_snapshot_source_checksum(),
         };
         assert_eq!(
             blank_source.validate(),
@@ -28364,9 +28414,10 @@ mod tests {
         );
 
         let blank_coverage = ComparisonSnapshotSourceSummary {
-            source: "source".to_string(),
+            source: COMPARISON_SNAPSHOT_SOURCE_EXPECTED.to_string(),
             coverage: "\t".to_string(),
-            columns: "body, x_km, y_km, z_km".to_string(),
+            columns: COMPARISON_SNAPSHOT_COLUMNS.to_string(),
+            checksum: comparison_snapshot_source_checksum(),
         };
         assert_eq!(
             blank_coverage.validate(),
@@ -28374,9 +28425,10 @@ mod tests {
         );
 
         let blank_columns = ComparisonSnapshotSourceSummary {
-            source: "source".to_string(),
-            coverage: "coverage".to_string(),
+            source: COMPARISON_SNAPSHOT_SOURCE_EXPECTED.to_string(),
+            coverage: COMPARISON_SNAPSHOT_COVERAGE_EXPECTED.to_string(),
             columns: "  ".to_string(),
+            checksum: comparison_snapshot_source_checksum(),
         };
         assert_eq!(
             blank_columns.validate(),
@@ -28385,8 +28437,9 @@ mod tests {
 
         let padded_source = ComparisonSnapshotSourceSummary {
             source: " source".to_string(),
-            coverage: "coverage".to_string(),
-            columns: "body, x_km, y_km, z_km".to_string(),
+            coverage: COMPARISON_SNAPSHOT_COVERAGE_EXPECTED.to_string(),
+            columns: COMPARISON_SNAPSHOT_COLUMNS.to_string(),
+            checksum: comparison_snapshot_source_checksum(),
         };
         assert_eq!(
             padded_source.validate(),
@@ -28398,9 +28451,10 @@ mod tests {
         );
 
         let multiline_columns = ComparisonSnapshotSourceSummary {
-            source: "source".to_string(),
-            coverage: "coverage".to_string(),
+            source: COMPARISON_SNAPSHOT_SOURCE_EXPECTED.to_string(),
+            coverage: COMPARISON_SNAPSHOT_COVERAGE_EXPECTED.to_string(),
             columns: "body,\nx_km, y_km, z_km".to_string(),
+            checksum: comparison_snapshot_source_checksum(),
         };
         assert_eq!(
             multiline_columns.validate(),
@@ -28409,6 +28463,17 @@ mod tests {
                     field: "columns",
                 }
             )
+        );
+
+        let checksum_drift = ComparisonSnapshotSourceSummary {
+            source: COMPARISON_SNAPSHOT_SOURCE_EXPECTED.to_string(),
+            coverage: COMPARISON_SNAPSHOT_COVERAGE_EXPECTED.to_string(),
+            columns: COMPARISON_SNAPSHOT_COLUMNS.to_string(),
+            checksum: comparison_snapshot_source_checksum() ^ 0x1,
+        };
+        assert_eq!(
+            checksum_drift.validate(),
+            Err(ComparisonSnapshotSourceSummaryValidationError::ChecksumMismatch)
         );
     }
 
