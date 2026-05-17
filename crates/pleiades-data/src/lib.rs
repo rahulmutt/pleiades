@@ -66,7 +66,7 @@ use pleiades_jpl::{
 const PACKAGE_NAME: &str = "pleiades-data";
 const ARTIFACT_LABEL: &str = "stage-5 packaged-data draft";
 const ARTIFACT_PROFILE_ID: &str = "pleiades-packaged-artifact-profile/stage-5-draft";
-const ARTIFACT_SOURCE: &str = "Quantized adjacent same-body cubic windows with longitude-unwrapped planetary fits fitted to JPL Horizons reference epochs (1800, 2000, 2500 CE) for the comparison-body planetary set plus asteroid:433-Eros, with point segments only for single-epoch bodies and recursively subdivided cubic spans for multi-epoch bodies using body-class span caps and measured-fit comparison against the fallback, with residual correction channels on high-curvature spans when they improve the fit and quadratic fallback where four-point sampling is unavailable.";
+const ARTIFACT_SOURCE: &str = "Quantized adjacent same-body cubic windows with longitude-unwrapped planetary fits fitted to JPL Horizons reference epochs (1800, 2000, 2500 CE) for the comparison-body planetary set plus asteroid:433-Eros, with point segments only for single-epoch bodies and recursively subdivided cubic spans for multi-epoch bodies using body-class span caps and measured-fit comparison against the fallback, with residual correction channels on high-curvature spans when they improve the fit, quadratic distance reconstruction when midpoint samples are available, and quadratic fallback where four-point sampling is unavailable.";
 const PACKAGED_BASE_BODIES: [CelestialBody; 10] = [
     CelestialBody::Sun,
     CelestialBody::Moon,
@@ -250,7 +250,7 @@ impl PackagedArtifactGenerationPolicy {
     pub const fn note(self) -> &'static str {
         match self {
             Self::AdjacentSameBodyQuadraticWindows => {
-                "bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps and measured-fit comparison against the fallback, with residual correction channels on high-curvature spans when they improve the fit and quadratic fallback when four-point sampling is unavailable"
+                "bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps and measured-fit comparison against the fallback, with residual correction channels on high-curvature spans when they improve the fit, quadratic distance reconstruction when midpoint samples are available, and quadratic fallback when four-point sampling is unavailable"
             }
         }
     }
@@ -1131,6 +1131,14 @@ fn packaged_artifact_fit_sample_fractions_for_body(
             _ => packaged_artifact_fit_sample_fractions(segment),
         }
     }
+}
+
+fn distance_channel_from_samples(start: f64, midpoint: Option<f64>, end: f64) -> PolynomialChannel {
+    midpoint
+        .map(|midpoint| {
+            PolynomialChannel::quadratic(ChannelKind::DistanceAu, 10, start, midpoint, end, 0.5)
+        })
+        .unwrap_or_else(|| PolynomialChannel::linear(ChannelKind::DistanceAu, 10, start, end))
 }
 
 fn packaged_artifact_fit_expected_sample_count_with_filter<F>(
@@ -5952,16 +5960,17 @@ fn segment_from_pair(
                 .collect::<Vec<_>>(),
         ),
     ) {
+        let midpoint_distance_au =
+            sample_fraction(0.5).and_then(|coordinates| coordinates.distance_au);
         return Segment::new(
             start_instant,
             end_instant,
             vec![
                 longitude_channel,
                 latitude_channel,
-                PolynomialChannel::linear(
-                    ChannelKind::DistanceAu,
-                    10,
+                distance_channel_from_samples(
                     start_coordinates.distance_au.unwrap_or_default(),
+                    midpoint_distance_au,
                     end_coordinates.distance_au.unwrap_or_default(),
                 ),
             ],
@@ -6005,15 +6014,15 @@ fn segment_from_pair_fallback(
                     start_coordinates.latitude.degrees(),
                     end_coordinates.latitude.degrees(),
                 ),
-                PolynomialChannel::linear(
-                    ChannelKind::DistanceAu,
-                    10,
+                distance_channel_from_samples(
                     start_coordinates.distance_au.unwrap_or_default(),
+                    None,
                     end_coordinates.distance_au.unwrap_or_default(),
                 ),
             ],
         );
     };
+    let midpoint_distance_au = midpoint_coordinates.distance_au;
 
     let Some(first_third_coordinates) = sample_fraction(1.0 / 3.0) else {
         let midpoint_longitude =
@@ -6038,10 +6047,9 @@ fn segment_from_pair_fallback(
                     end_coordinates.latitude.degrees(),
                     0.5,
                 ),
-                PolynomialChannel::linear(
-                    ChannelKind::DistanceAu,
-                    10,
+                distance_channel_from_samples(
                     start_coordinates.distance_au.unwrap_or_default(),
+                    midpoint_coordinates.distance_au,
                     end_coordinates.distance_au.unwrap_or_default(),
                 ),
             ],
@@ -6071,10 +6079,9 @@ fn segment_from_pair_fallback(
                     end_coordinates.latitude.degrees(),
                     0.5,
                 ),
-                PolynomialChannel::linear(
-                    ChannelKind::DistanceAu,
-                    10,
+                distance_channel_from_samples(
                     start_coordinates.distance_au.unwrap_or_default(),
+                    midpoint_coordinates.distance_au,
                     end_coordinates.distance_au.unwrap_or_default(),
                 ),
             ],
@@ -6149,10 +6156,9 @@ fn segment_from_pair_fallback(
                 end_coordinates.latitude.degrees(),
                 0.5,
             ),
-            PolynomialChannel::linear(
-                ChannelKind::DistanceAu,
-                10,
+            distance_channel_from_samples(
                 start_coordinates.distance_au.unwrap_or_default(),
+                midpoint_distance_au,
                 end_coordinates.distance_au.unwrap_or_default(),
             ),
         ],
@@ -6688,6 +6694,19 @@ mod tests {
         for (actual, expected) in channel.coefficients.iter().zip(expected_coefficients) {
             assert!((actual - expected).abs() < 1e-9);
         }
+    }
+
+    #[test]
+    fn distance_channel_from_samples_uses_midpoint_quadratic_reconstruction() {
+        let channel = distance_channel_from_samples(1.0, Some(2.0), 3.0);
+        assert_eq!(channel.coefficients.len(), 3);
+        assert!((evaluate_polynomial_channel(&channel, 0.0) - 1.0).abs() < 1e-12);
+        assert!((evaluate_polynomial_channel(&channel, 0.5) - 2.0).abs() < 1e-12);
+        assert!((evaluate_polynomial_channel(&channel, 1.0) - 3.0).abs() < 1e-12);
+
+        let linear = distance_channel_from_samples(1.0, None, 3.0);
+        assert_eq!(linear.coefficients.len(), 2);
+        assert!((evaluate_polynomial_channel(&linear, 0.5) - 2.0).abs() < 1e-12);
     }
 
     #[test]
@@ -7779,7 +7798,7 @@ mod tests {
             summary.policy,
             PackagedArtifactGenerationPolicy::AdjacentSameBodyQuadraticWindows
         );
-        assert_eq!(summary.summary_line(), "adjacent same-body cubic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps and measured-fit comparison against the fallback, with residual correction channels on high-curvature spans when they improve the fit and quadratic fallback when four-point sampling is unavailable");
+        assert_eq!(summary.summary_line(), "adjacent same-body cubic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps and measured-fit comparison against the fallback, with residual correction channels on high-curvature spans when they improve the fit, quadratic distance reconstruction when midpoint samples are available, and quadratic fallback when four-point sampling is unavailable");
         assert_eq!(summary.to_string(), summary.summary_line());
         summary
             .validate()
@@ -7866,7 +7885,7 @@ mod tests {
         );
         assert_eq!(
             summary.generation_policy_line(),
-            "generation policy: adjacent same-body cubic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps and measured-fit comparison against the fallback, with residual correction channels on high-curvature spans when they improve the fit and quadratic fallback when four-point sampling is unavailable"
+            "generation policy: adjacent same-body cubic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps and measured-fit comparison against the fallback, with residual correction channels on high-curvature spans when they improve the fit, quadratic distance reconstruction when midpoint samples are available, and quadratic fallback when four-point sampling is unavailable"
         );
         assert_eq!(
             summary.residual_body_line(),

@@ -17,6 +17,7 @@ This file lists focused implementation slices for the current phase ladder. Comp
 - The packaged artifact now exposes a bundled-body cadence summary surface so future body-specific window tuning stays explicit without perturbing the current validation lattice.
 - The packaged-artifact target-threshold posture is now represented by a typed release-state enum, the current posture is recorded as production-ready, the target-threshold validation now fails closed when any advertised scope exceeds the calibrated fit thresholds, and the parameter-validation regression now checks that a Draft posture is rejected against that baseline.
 - The regenerated packaged-artifact fixture is now resynced to the current code path, and the release bundle directory/manifest listings now include the release-house-validation summary with checksum verification.
+- Completed: the packaged-artifact generator now uses midpoint-aware quadratic distance reconstruction on pair-based spans, and the checked-in fixture has been regenerated to the new bytes.
 - The compatibility-profile and release-summary renderers now re-validate the target-house and target-ayanamsa scope prose before emitting release-facing text, so the catalog posture fails closed if those scope sections drift.
 
 ### 1. Improve fitting/reconstruction strategy
