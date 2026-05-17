@@ -67,9 +67,9 @@ use pleiades_jpl::{
 const PACKAGE_NAME: &str = "pleiades-data";
 const ARTIFACT_LABEL: &str = "stage-5 packaged-data draft";
 const ARTIFACT_PROFILE_ID: &str = "pleiades-packaged-artifact-profile/stage-5-draft";
-const ARTIFACT_SOURCE: &str = "Quantized adjacent same-body quadratic windows with longitude-unwrapped planetary fits fitted to JPL Horizons reference epochs (1800, 2000, 2500 CE) for the comparison-body planetary set plus asteroid:433-Eros, with point segments only for single-epoch bodies and recursively subdivided quadratic spans for multi-epoch bodies using body-class span caps and measured-fit comparison against the fallback, with 8-point and 10-point Chebyshev-Lobatto baseline candidates before the dense body-specific ladders, residual correction channels on high-curvature spans when they improve the fit, higher-order distance reconstruction from fit samples when it quantizes cleanly, cubic distance reconstruction from four-point control points when available, and quadratic fallback otherwise.";
+const ARTIFACT_SOURCE: &str = "Quantized adjacent same-body quadratic windows with longitude-unwrapped planetary fits fitted to JPL Horizons reference epochs (1800, 2000, 2500 CE) for the comparison-body planetary set plus asteroid:433-Eros, with point segments only for single-epoch bodies and recursively subdivided quadratic spans for multi-epoch bodies using body-class span caps and measured-fit comparison against the fallback, with 8-point and 10-point Chebyshev-Lobatto baseline candidates before the dense body-specific ladders and 12-point candidates for inner and outer planets before fallback, residual correction channels on high-curvature spans when they improve the fit, higher-order distance reconstruction from fit samples when it quantizes cleanly, cubic distance reconstruction from four-point control points when available, and quadratic fallback otherwise.";
 
-const PACKAGED_ARTIFACT_GENERATION_POLICY_NOTE: &str = "bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into quadratic windows using body-class span caps and measured-fit comparison against the fallback, with 8-point and 10-point Chebyshev-Lobatto baseline candidates before the dense body-specific ladders (10-point, 12-point, 14-point, 16-point, 18-point, and 20-point options for luminaries, Pluto, selected asteroids, and custom bodies), and the best dense candidate wins before fallback, residual correction channels on high-curvature spans when they improve the fit, higher-order distance reconstruction from fit samples when it quantizes cleanly, cubic distance reconstruction from four-point control points when available, and quadratic fallback otherwise";
+const PACKAGED_ARTIFACT_GENERATION_POLICY_NOTE: &str = "bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into quadratic windows using body-class span caps and measured-fit comparison against the fallback, with 8-point and 10-point Chebyshev-Lobatto baseline candidates before the dense body-specific ladders and 12-point candidates for inner and outer planets before fallback, with 10-point, 12-point, 14-point, 16-point, 18-point, and 20-point options for luminaries, Pluto, selected asteroids, and custom bodies, and the best dense candidate wins before fallback, residual correction channels on high-curvature spans when they improve the fit, higher-order distance reconstruction from fit samples when it quantizes cleanly, cubic distance reconstruction from four-point control points when available, and quadratic fallback otherwise";
 const PACKAGED_BASE_BODIES: [CelestialBody; 10] = [
     CelestialBody::Sun,
     CelestialBody::Moon,
@@ -6543,7 +6543,7 @@ const PACKAGED_ARTIFACT_MEDIUM_VALIDATION_SAMPLE_FRACTIONS: &[f64] =
     &[0.125, 0.25, 0.5, 0.75, 0.875];
 const PACKAGED_ARTIFACT_DENSE_VALIDATION_SAMPLE_FRACTIONS: &[f64] =
     &[0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875];
-const PACKAGED_ARTIFACT_FIT_SAMPLE_COUNTS: &[usize] = &[6, 8, 10];
+const PACKAGED_ARTIFACT_MEDIUM_FIT_SAMPLE_COUNTS: &[usize] = &[6, 8, 10, 12];
 const PACKAGED_ARTIFACT_DENSE_FIT_SAMPLE_COUNTS: &[usize] = &[6, 8, 10, 12, 14, 16, 18, 20];
 
 fn packaged_artifact_fit_sample_counts_for_body(body: &CelestialBody) -> &'static [usize] {
@@ -6553,7 +6553,9 @@ fn packaged_artifact_fit_sample_counts_for_body(body: &CelestialBody) -> &'stati
         | PackagedArtifactBodyCadence::Pluto
         | PackagedArtifactBodyCadence::SelectedAsteroids
         | PackagedArtifactBodyCadence::CustomBodies => PACKAGED_ARTIFACT_DENSE_FIT_SAMPLE_COUNTS,
-        _ => PACKAGED_ARTIFACT_FIT_SAMPLE_COUNTS,
+        PackagedArtifactBodyCadence::InnerPlanets | PackagedArtifactBodyCadence::OuterPlanets => {
+            PACKAGED_ARTIFACT_MEDIUM_FIT_SAMPLE_COUNTS
+        }
     }
 }
 
@@ -7086,10 +7088,14 @@ mod tests {
             PACKAGED_ARTIFACT_DENSE_FIT_SAMPLE_COUNTS
         );
         assert_eq!(
-            packaged_artifact_fit_sample_counts_for_body(saturn_segment.0),
-            PACKAGED_ARTIFACT_FIT_SAMPLE_COUNTS
+            packaged_artifact_fit_sample_counts_for_body(mercury_segment.0),
+            PACKAGED_ARTIFACT_MEDIUM_FIT_SAMPLE_COUNTS
         );
-        assert_eq!(PACKAGED_ARTIFACT_FIT_SAMPLE_COUNTS, &[6, 8, 10]);
+        assert_eq!(
+            packaged_artifact_fit_sample_counts_for_body(saturn_segment.0),
+            PACKAGED_ARTIFACT_MEDIUM_FIT_SAMPLE_COUNTS
+        );
+        assert_eq!(PACKAGED_ARTIFACT_MEDIUM_FIT_SAMPLE_COUNTS, &[6, 8, 10, 12]);
         assert_eq!(
             PACKAGED_ARTIFACT_DENSE_FIT_SAMPLE_COUNTS.last().copied(),
             Some(20)
