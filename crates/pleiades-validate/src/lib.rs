@@ -76,7 +76,6 @@ use pleiades_data::{
     packaged_artifact_generation_manifest_checksum_for_report,
     packaged_artifact_generation_manifest_for_report,
     packaged_artifact_generation_policy_summary_for_report,
-    packaged_artifact_generation_residual_bodies_summary_for_report,
     packaged_artifact_normalized_intermediate_summary_for_report,
     packaged_artifact_output_support_summary_for_report,
     packaged_artifact_phase2_corpus_alignment_summary_for_report,
@@ -5040,9 +5039,11 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("packaged-artifact-generation-residual-summary") => {
             ensure_no_extra_args(&args[1..], "packaged-artifact-generation-residual-summary")?;
+            let summary =
+                validated_packaged_artifact_generation_residual_bodies_summary_for_report()?;
             Ok(format!(
                 "Packaged-artifact generation residual bodies: {}",
-                packaged_artifact_generation_residual_bodies_summary_for_report()
+                summary
             ))
         }
         Some("packaged-artifact-generation-residual-bodies-summary") => {
@@ -5050,9 +5051,11 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
                 &args[1..],
                 "packaged-artifact-generation-residual-bodies-summary",
             )?;
+            let summary =
+                validated_packaged_artifact_generation_residual_bodies_summary_for_report()?;
             Ok(format!(
                 "Packaged-artifact generation residual bodies: {}",
-                packaged_artifact_generation_residual_bodies_summary_for_report()
+                summary
             ))
         }
         Some("packaged-artifact-regeneration-summary") | Some("packaged-artifact-regeneration") => {
@@ -8651,7 +8654,12 @@ fn render_release_notes_summary_text() -> String {
     text.push_str(&packaged_artifact_normalized_intermediate_summary_for_report());
     text.push('\n');
     text.push_str("Packaged-artifact generation residual bodies: ");
-    text.push_str(&packaged_artifact_generation_residual_bodies_summary_for_report());
+    let residual_bodies =
+        match validated_packaged_artifact_generation_residual_bodies_summary_for_report() {
+            Ok(summary) => summary,
+            Err(error) => return format!("Release notes unavailable ({error})"),
+        };
+    text.push_str(&residual_bodies);
     text.push('\n');
     text.push_str("Packaged-artifact target thresholds: ");
     text.push_str(&packaged_artifact_target_threshold_summary_for_report());
@@ -9329,7 +9337,12 @@ fn render_release_summary_text() -> String {
     text.push_str(&packaged_artifact_normalized_intermediate_summary_for_report());
     text.push('\n');
     text.push_str("Packaged-artifact generation residual bodies: ");
-    text.push_str(&packaged_artifact_generation_residual_bodies_summary_for_report());
+    let residual_bodies =
+        match validated_packaged_artifact_generation_residual_bodies_summary_for_report() {
+            Ok(summary) => summary,
+            Err(error) => return format!("Release summary unavailable ({error})"),
+        };
+    text.push_str(&residual_bodies);
     text.push('\n');
     text.push_str("Packaged-artifact regeneration: ");
     text.push_str(&packaged_artifact_regeneration_summary_for_report());
@@ -15854,6 +15867,23 @@ fn validated_packaged_artifact_storage_summary_for_report() -> String {
     }
 }
 
+fn validate_packaged_artifact_generation_residual_bodies_summary(
+    summary: &pleiades_compression::ArtifactResidualBodyCoverageSummary,
+    artifact: &pleiades_compression::CompressedArtifact,
+) -> Result<String, String> {
+    summary
+        .validated_summary_line_with_body_count(artifact)
+        .map_err(|error| error.to_string())
+}
+
+fn validated_packaged_artifact_generation_residual_bodies_summary_for_report(
+) -> Result<String, String> {
+    validate_packaged_artifact_generation_residual_bodies_summary(
+        &pleiades_data::packaged_artifact_generation_residual_bodies_summary_details(),
+        packaged_artifact(),
+    )
+}
+
 fn validated_packaged_artifact_production_profile_summary_for_report() -> String {
     let summary = pleiades_data::packaged_artifact_production_profile_summary_details();
     match summary.validated_summary_line() {
@@ -16704,7 +16734,10 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(
         text,
         "  Packaged-artifact generation residual bodies: {}",
-        packaged_artifact_generation_residual_bodies_summary_for_report()
+        match validated_packaged_artifact_generation_residual_bodies_summary_for_report() {
+            Ok(summary) => summary,
+            Err(error) => return format!("Validation report summary unavailable ({error})"),
+        }
     );
     let _ = writeln!(
         text,
@@ -19646,7 +19679,7 @@ fn render_packaged_artifact_regeneration(
                 .map_err(|error| format!("failed to create {}: {error}", parent.display()))?;
         }
     }
-    fs::write(&output_path, &encoded)
+    fs::write(&output_path, encoded)
         .map_err(|error| format!("failed to write {}: {error}", output_path))?;
 
     let manifest = if manifest_path.is_some()
@@ -22034,7 +22067,8 @@ mod tests {
             &validation_report_summary,
             &format!(
                 "Packaged-artifact generation residual bodies: {}",
-                packaged_artifact_generation_residual_bodies_summary_for_report()
+                validated_packaged_artifact_generation_residual_bodies_summary_for_report()
+                    .expect("packaged artifact residual bodies summary should validate")
             ),
         );
         assert!(validation_report_summary.contains("Packaged request policy"));
@@ -22884,6 +22918,25 @@ mod tests {
             ),
             "packaged-artifact-generation-policy-summary does not accept extra arguments"
         );
+    }
+
+    #[test]
+    fn packaged_artifact_generation_residual_bodies_validation_rejects_artifact_drift() {
+        let artifact = packaged_artifact();
+        let mut summary =
+            pleiades_data::packaged_artifact_generation_residual_bodies_summary_details();
+        *summary
+            .bodies
+            .first_mut()
+            .expect("the residual body list should not be empty") = CelestialBody::Custom(
+            pleiades_backend::CustomBodyId::new("test", "residual-drift"),
+        );
+
+        let error =
+            validate_packaged_artifact_generation_residual_bodies_summary(&summary, artifact)
+                .expect_err("residual body drift should fail validation");
+
+        assert!(error.contains("does not match the current artifact"));
     }
 
     #[test]
@@ -26618,7 +26671,8 @@ version = "0.9.0"
             &release_notes_summary,
             &format!(
                 "Packaged-artifact generation residual bodies: {}",
-                packaged_artifact_generation_residual_bodies_summary_for_report()
+                validated_packaged_artifact_generation_residual_bodies_summary_for_report()
+                    .expect("packaged artifact residual bodies summary should validate")
             ),
         );
         assert!(release_notes_summary
@@ -26716,7 +26770,8 @@ version = "0.9.0"
             &release_summary,
             &format!(
                 "Packaged-artifact generation residual bodies: {}",
-                packaged_artifact_generation_residual_bodies_summary_for_report()
+                validated_packaged_artifact_generation_residual_bodies_summary_for_report()
+                    .expect("packaged artifact residual bodies summary should validate")
             ),
         );
         assert_report_contains_exact_line(
