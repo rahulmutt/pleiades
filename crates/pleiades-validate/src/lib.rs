@@ -13778,6 +13778,15 @@ fn format_body_class_tolerance_envelope_for_report(summary: &BodyClassToleranceS
     }
 }
 
+fn comparison_report_for_default_render() -> Result<ComparisonReport, String> {
+    compare_backends(
+        &default_reference_backend(),
+        &default_candidate_backend(),
+        &default_corpus(),
+    )
+    .map_err(|error| error.to_string())
+}
+
 fn format_body_class_tolerance_posture_for_report() -> String {
     static SUMMARY: OnceLock<String> = OnceLock::new();
 
@@ -13785,12 +13794,12 @@ fn format_body_class_tolerance_posture_for_report() -> String {
         .get_or_init(|| {
             use std::fmt::Write as _;
 
-            let report = compare_backends(
-                &default_reference_backend(),
-                &default_candidate_backend(),
-                &default_corpus(),
-            )
-            .expect("comparison body-class tolerance posture should build");
+            let report = match comparison_report_for_default_render() {
+                Ok(report) => report,
+                Err(error) => {
+                    return format!("body-class tolerance posture unavailable ({error})");
+                }
+            };
             let summaries = report.body_class_tolerance_summaries();
             let outlier_class_count = summaries
                 .iter()
@@ -15181,27 +15190,34 @@ fn render_request_surface_summary_text() -> String {
     )
 }
 
+fn render_comparison_tolerance_policy_summary_text_from_report(
+    report: Result<ComparisonReport, String>,
+) -> String {
+    match report {
+        Ok(report) => format!(
+            "Comparison tolerance policy summary\nComparison tolerance policy: {}\n",
+            format_comparison_tolerance_policy_for_report(&report)
+        ),
+        Err(error) => format!(
+            "Comparison tolerance policy summary\nComparison tolerance policy unavailable ({error})\n"
+        ),
+    }
+}
+
 fn render_comparison_tolerance_policy_summary_text() -> String {
-    let report = compare_backends(
-        &default_reference_backend(),
-        &default_candidate_backend(),
-        &default_corpus(),
-    )
-    .expect("comparison tolerance policy summary should build");
-    format!(
-        "Comparison tolerance policy summary\nComparison tolerance policy: {}\n",
-        format_comparison_tolerance_policy_for_report(&report)
+    render_comparison_tolerance_policy_summary_text_from_report(
+        comparison_report_for_default_render(),
     )
 }
 fn render_comparison_tolerance_scope_coverage_summary_text() -> String {
     use std::fmt::Write as _;
 
-    let report = compare_backends(
-        &default_reference_backend(),
-        &default_candidate_backend(),
-        &default_corpus(),
-    )
-    .expect("comparison tolerance scope coverage summary should build");
+    let report = match comparison_report_for_default_render() {
+        Ok(report) => report,
+        Err(error) => {
+            return format!("Comparison tolerance scope coverage summary\nComparison tolerance scope coverage unavailable ({error})\n");
+        }
+    };
     let summary = report.tolerance_policy_summary();
 
     let mut text = String::from("Comparison tolerance scope coverage summary\n");
@@ -15222,12 +15238,12 @@ fn render_comparison_tolerance_scope_coverage_summary_text() -> String {
 fn render_comparison_body_class_tolerance_summary_text() -> String {
     use std::fmt::Write as _;
 
-    let report = compare_backends(
-        &default_reference_backend(),
-        &default_candidate_backend(),
-        &default_corpus(),
-    )
-    .expect("comparison body-class tolerance summary should build");
+    let report = match comparison_report_for_default_render() {
+        Ok(report) => report,
+        Err(error) => {
+            return format!("Comparison body-class tolerance summary\nComparison body-class tolerance unavailable ({error})\n");
+        }
+    };
     let summaries = report.body_class_tolerance_summaries();
 
     let mut text = String::from("Comparison body-class tolerance summary\n");
@@ -15250,12 +15266,14 @@ fn render_comparison_body_class_tolerance_posture_summary_text() -> String {
 }
 
 fn render_comparison_envelope_summary_text() -> String {
-    let report = compare_backends(
-        &default_reference_backend(),
-        &default_candidate_backend(),
-        &default_corpus(),
-    )
-    .expect("comparison envelope summary should build");
+    let report = match comparison_report_for_default_render() {
+        Ok(report) => report,
+        Err(error) => {
+            return format!(
+                "Comparison envelope summary\nComparison envelope unavailable ({error})\n"
+            );
+        }
+    };
     let envelope = comparison_envelope_summary(&report.summary, &report.samples);
     let summary_line = envelope
         .validated_summary_line(&report.samples)
@@ -15320,7 +15338,9 @@ fn render_release_body_claims_summary_text() -> String {
     )
 }
 
-fn render_pluto_fallback_summary_text() -> String {
+fn render_pluto_fallback_summary_text_from_report(
+    report: Result<ComparisonReport, String>,
+) -> String {
     let policy_line = match validated_pluto_fallback_summary_line_for_report() {
         Ok(line) => line,
         Err(error) => {
@@ -15339,17 +15359,22 @@ fn render_pluto_fallback_summary_text() -> String {
         return format!("Pluto fallback summary\nPluto fallback unavailable ({error})\n");
     }
 
-    let report = compare_backends(
-        &default_reference_backend(),
-        &default_candidate_backend(),
-        &default_corpus(),
-    )
-    .expect("Pluto fallback summary should build");
-    let summary = comparison_tolerance_policy_summary_details(&report)
+    let report = match report {
+        Ok(report) => report,
+        Err(error) => {
+            return format!("Pluto fallback summary\nPluto fallback unavailable ({error})\n");
+        }
+    };
+    let summary = match comparison_tolerance_policy_summary_details(&report)
         .entries
         .into_iter()
         .find(|entry| entry.scope == ComparisonToleranceScope::Pluto)
-        .expect("Pluto fallback summary should include a Pluto scope entry");
+    {
+        Some(summary) => summary,
+        None => {
+            return "Pluto fallback summary\nPluto fallback unavailable (comparison report is missing a Pluto scope entry)\n".to_string();
+        }
+    };
     match summary.validated_summary_line() {
         Ok(line) => format!(
             "Pluto fallback summary\nRelease-grade body claims: {}\nPluto fallback policy: {policy_line}\nPluto fallback: {line}\n",
@@ -15357,6 +15382,10 @@ fn render_pluto_fallback_summary_text() -> String {
         ),
         Err(error) => format!("Pluto fallback summary\nPluto fallback unavailable ({error})\n"),
     }
+}
+
+fn render_pluto_fallback_summary_text() -> String {
+    render_pluto_fallback_summary_text_from_report(comparison_report_for_default_render())
 }
 
 fn validated_api_stability_profile_for_report() -> Result<pleiades_core::ApiStabilityProfile, String>
@@ -19996,6 +20025,30 @@ mod tests {
             .validated_summary_line()
             .expect_err("summary should reject drifted counts");
         assert!(error.to_string().contains("sample-count mismatch"));
+    }
+
+    #[test]
+    fn comparison_tolerance_policy_summary_renderer_falls_back_when_the_report_fails() {
+        let rendered = render_comparison_tolerance_policy_summary_text_from_report(Err(
+            "comparison report construction failed".to_string(),
+        ));
+
+        assert_eq!(
+            rendered,
+            "Comparison tolerance policy summary\nComparison tolerance policy unavailable (comparison report construction failed)\n"
+        );
+    }
+
+    #[test]
+    fn pluto_fallback_summary_renderer_falls_back_when_the_report_fails() {
+        let rendered = render_pluto_fallback_summary_text_from_report(Err(
+            "comparison report construction failed".to_string(),
+        ));
+
+        assert_eq!(
+            rendered,
+            "Pluto fallback summary\nPluto fallback unavailable (comparison report construction failed)\n"
+        );
     }
 
     #[test]
