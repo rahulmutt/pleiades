@@ -47,9 +47,9 @@ use pleiades_backend::{
     zodiac_policy_summary_for_report,
 };
 use pleiades_core::{
-    catalog_inventory_summary_for_report, current_api_stability_profile,
-    current_compatibility_profile, current_release_profile_identifiers, default_chart_bodies,
-    validate_custom_definition_labels,
+    current_api_stability_profile, current_compatibility_profile,
+    current_release_profile_identifiers, default_chart_bodies, validate_custom_definition_labels,
+    validated_catalog_inventory_summary_for_report as core_validated_catalog_inventory_summary_for_report,
     validated_custom_definition_ayanamsa_labels_summary_for_report,
     validated_house_formula_families_summary_for_report,
     validated_latitude_sensitive_house_systems_summary_for_report, AccuracyClass, Angle,
@@ -15121,7 +15121,7 @@ fn validated_release_profile_identifiers_for_report() -> Result<ReleaseProfileId
 fn validated_catalog_inventory_summary_for_report() -> Result<String, String> {
     validated_compatibility_profile_for_report()?;
     validated_release_profile_identifiers_for_report()?;
-    Ok(catalog_inventory_summary_for_report())
+    core_validated_catalog_inventory_summary_for_report().map_err(|error| error.to_string())
 }
 
 fn validated_house_code_aliases_summary_for_report(

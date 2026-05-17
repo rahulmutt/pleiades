@@ -1244,6 +1244,12 @@ pub fn catalog_inventory_summary_for_report() -> String {
     current_compatibility_profile().catalog_inventory_summary_line()
 }
 
+/// Returns the compatibility-profile catalog inventory summary after validating the profile.
+pub fn validated_catalog_inventory_summary_for_report(
+) -> Result<String, CompatibilityProfileValidationError> {
+    current_compatibility_profile().validated_catalog_inventory_summary_line()
+}
+
 fn write_scope_section(
     f: &mut fmt::Formatter<'_>,
     title: &str,
@@ -3326,6 +3332,10 @@ mod tests {
         );
         assert_eq!(
             profile.validated_catalog_inventory_summary_line(),
+            Ok(rendered.clone())
+        );
+        assert_eq!(
+            validated_catalog_inventory_summary_for_report(),
             Ok(rendered.clone())
         );
         assert_eq!(
