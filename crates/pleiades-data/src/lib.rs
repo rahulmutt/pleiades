@@ -5706,6 +5706,22 @@ pub fn regenerate_packaged_artifact() -> CompressedArtifact {
         .clone()
 }
 
+/// Returns the encoded bytes for the regenerated packaged artifact.
+///
+/// This caches the encoded payload separately so regeneration commands can reuse the same
+/// deterministic bytes across repeated sidecar writes without re-encoding the artifact.
+pub fn regenerate_packaged_artifact_bytes() -> &'static [u8] {
+    static BYTES: OnceLock<Vec<u8>> = OnceLock::new();
+
+    BYTES
+        .get_or_init(|| {
+            regenerate_packaged_artifact()
+                .encode()
+                .expect("packaged artifact should encode deterministically")
+        })
+        .as_slice()
+}
+
 fn packaged_body_artifacts_from_snapshot(snapshot: &[SnapshotEntry]) -> Vec<BodyArtifact> {
     let mut artifacts = Vec::new();
     let reference_backend = JplSnapshotBackend;

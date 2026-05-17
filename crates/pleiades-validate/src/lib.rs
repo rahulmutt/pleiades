@@ -91,7 +91,8 @@ use pleiades_data::{
     packaged_frame_parity_summary_for_report, packaged_frame_treatment_summary_for_report,
     packaged_lookup_epoch_policy_summary_for_report,
     packaged_mixed_tt_tdb_batch_parity_summary_for_report,
-    packaged_request_policy_summary_for_report, regenerate_packaged_artifact, PackagedDataBackend,
+    packaged_request_policy_summary_for_report, regenerate_packaged_artifact,
+    regenerate_packaged_artifact_bytes, PackagedDataBackend,
 };
 use pleiades_elp::{
     lunar_apparent_comparison_evidence, lunar_apparent_comparison_summary,
@@ -19638,9 +19639,7 @@ fn render_packaged_artifact_regeneration(
     normalized_intermediate_path: Option<String>,
 ) -> Result<String, String> {
     let artifact = regenerate_packaged_artifact();
-    let encoded = artifact
-        .encode()
-        .expect("packaged artifact should encode deterministically");
+    let encoded = regenerate_packaged_artifact_bytes();
     if let Some(parent) = Path::new(&output_path).parent() {
         if !parent.as_os_str().is_empty() {
             fs::create_dir_all(parent)
