@@ -2688,6 +2688,14 @@ pub const fn frame_policy_summary_for_report() -> &'static str {
     current_frame_policy_summary().summary_line()
 }
 
+/// Returns the compact report wording for the current frame policy after validation.
+pub fn validated_frame_policy_summary_for_report() -> String {
+    match current_frame_policy_summary().validated_summary_line() {
+        Ok(summary) => summary.to_string(),
+        Err(error) => format!("frame policy unavailable ({error})"),
+    }
+}
+
 /// Returns the compact typed frame-policy posture for reporting.
 pub const fn frame_policy_summary_details() -> FramePolicySummary {
     current_frame_policy_summary()
@@ -3926,6 +3934,10 @@ mod tests {
         );
         assert_eq!(
             frame_policy_summary_for_report(),
+            current_request_policy_summary().frame
+        );
+        assert_eq!(
+            validated_frame_policy_summary_for_report(),
             current_request_policy_summary().frame
         );
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));

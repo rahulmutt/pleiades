@@ -41,9 +41,9 @@ use pleiades_ayanamsa::{
 };
 use pleiades_backend::{
     delta_t_policy_summary_for_report, frame_policy_summary_details,
-    frame_policy_summary_for_report, native_sidereal_policy_summary_for_report,
-    pluto_fallback_summary_for_report, release_body_claims_summary_for_report,
-    request_policy_summary_for_report, time_scale_policy_summary_for_report,
+    native_sidereal_policy_summary_for_report, pluto_fallback_summary_for_report,
+    release_body_claims_summary_for_report, request_policy_summary_for_report,
+    time_scale_policy_summary_for_report, validated_frame_policy_summary_for_report,
     zodiac_policy_summary_for_report,
 };
 use pleiades_core::{
@@ -16373,7 +16373,7 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(&request_surface_summary_for_report());
     text.push('\n');
     text.push_str("Frame policy: ");
-    text.push_str(frame_policy_summary_for_report());
+    text.push_str(&validated_frame_policy_summary_for_report());
     text.push('\n');
     text.push_str("Mean-obliquity frame round-trip: ");
     text.push_str(&mean_obliquity_frame_round_trip_summary_for_report());

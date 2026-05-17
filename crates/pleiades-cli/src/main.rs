@@ -11,9 +11,10 @@ use core::time::Duration;
 
 use pleiades_core::{
     default_chart_bodies, native_sidereal_policy_summary_for_report, resolve_ayanamsa,
-    resolve_house_system, Angle, Apparentness, Ayanamsa, CelestialBody, ChartEngine, ChartRequest,
-    CompositeBackend, CustomAyanamsa, CustomBodyId, EphemerisError, HouseSystem, Instant,
-    JulianDay, Latitude, Longitude, ObserverLocation, RoutingBackend, TimeScale, ZodiacMode,
+    resolve_house_system, validated_frame_policy_summary_for_report, Angle, Apparentness, Ayanamsa,
+    CelestialBody, ChartEngine, ChartRequest, CompositeBackend, CustomAyanamsa, CustomBodyId,
+    EphemerisError, HouseSystem, Instant, JulianDay, Latitude, Longitude, ObserverLocation,
+    RoutingBackend, TimeScale, ZodiacMode,
 };
 use pleiades_data::{
     packaged_artifact_bytes, packaged_artifact_generation_manifest,
@@ -55,7 +56,7 @@ fn shared_request_policy_help_block() -> String {
     let observer_policy = pleiades_core::observer_policy_summary_for_report();
     let apparentness_policy = pleiades_core::apparentness_policy_summary_for_report();
     let native_sidereal_policy = native_sidereal_policy_summary_for_report();
-    let frame_policy = pleiades_core::frame_policy_summary_for_report();
+    let frame_policy = validated_frame_policy_summary_for_report();
 
     format!(
         "  Request policy: {}\n  Request semantics summary: {}\n  Time-scale policy: {}\n  UTC convenience policy: {}\n  Delta T policy: {}\n  Observer policy: {}\n  Apparentness policy: {}\n  Native sidereal policy: {}\n  Frame policy: {}",

@@ -51,6 +51,7 @@ This file lists focused implementation slices for the current phase ladder. Comp
 - Implement apparent-place or topocentric body support only with capability metadata, validation, and docs.
 - Keep native sidereal backend output unsupported unless a backend explicitly implements it.
 - Add precedence tests for invalid/unsupported request combinations when behavior changes.
+- Completed: the frame-policy summary surface now validates before rendering in the CLI and validation report paths.
 
 ## Phase 5 — Compatibility catalog evidence
 
