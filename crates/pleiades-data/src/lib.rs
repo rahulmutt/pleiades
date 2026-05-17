@@ -5911,22 +5911,46 @@ fn segment_from_pair(
             .and_then(|result| result.ecliptic)
     };
 
-    let fit_sample_fractions = chebyshev_lobatto_fractions(6);
-    let Some(fit_sample_coordinates) = fit_sample_fractions
-        .iter()
-        .map(|fraction| sample_fraction(*fraction))
-        .collect::<Option<Vec<_>>>()
-    else {
-        return segment_from_pair_fallback(
+    for sample_count in packaged_artifact_fit_sample_counts_for_body(&start.body) {
+        if let Some(segment) = segment_from_pair_fit_attempt(
             start_instant,
             end_instant,
-            start_longitude,
-            end_longitude,
             &start_coordinates,
             &end_coordinates,
             &sample_fraction,
-        );
-    };
+            *sample_count,
+        ) {
+            return segment;
+        }
+    }
+
+    segment_from_pair_fallback(
+        start_instant,
+        end_instant,
+        start_longitude,
+        end_longitude,
+        &start_coordinates,
+        &end_coordinates,
+        &sample_fraction,
+    )
+}
+
+fn segment_from_pair_fit_attempt<F>(
+    start_instant: Instant,
+    end_instant: Instant,
+    start_coordinates: &EclipticCoordinates,
+    end_coordinates: &EclipticCoordinates,
+    sample_fraction: &F,
+    sample_count: usize,
+) -> Option<Segment>
+where
+    F: Fn(f64) -> Option<EclipticCoordinates>,
+{
+    let fit_sample_fractions = chebyshev_lobatto_fractions(sample_count);
+    let fit_sample_coordinates = fit_sample_fractions
+        .iter()
+        .map(|fraction| sample_fraction(*fraction))
+        .collect::<Option<Vec<_>>>()?;
 
     let longitude_samples = unwrap_longitude_samples(
         &fit_sample_coordinates
@@ -5941,7 +5965,7 @@ fn segment_from_pair(
         .zip(fit_sample_coordinates.iter())
         .collect::<Vec<_>>();
 
-    if let (Some(longitude_channel), Some(latitude_channel)) = (
+    let (Some(longitude_channel), Some(latitude_channel)) = (
         polynomial_channel_from_samples(
             ChannelKind::Longitude,
             9,
@@ -5959,33 +5983,24 @@ fn segment_from_pair(
                 .map(|(fraction, coordinates)| (*fraction, coordinates.latitude.degrees()))
                 .collect::<Vec<_>>(),
         ),
-    ) {
-        let midpoint_distance_au =
-            sample_fraction(0.5).and_then(|coordinates| coordinates.distance_au);
-        return Segment::new(
-            start_instant,
-            end_instant,
-            vec![
-                longitude_channel,
-                latitude_channel,
-                distance_channel_from_samples(
-                    start_coordinates.distance_au.unwrap_or_default(),
-                    midpoint_distance_au,
-                    end_coordinates.distance_au.unwrap_or_default(),
-                ),
-            ],
-        );
-    }
+    ) else {
+        return None;
+    };
 
-    segment_from_pair_fallback(
+    let midpoint_distance_au = sample_fraction(0.5).and_then(|coordinates| coordinates.distance_au);
+    Some(Segment::new(
         start_instant,
         end_instant,
-        start_longitude,
-        end_longitude,
-        &start_coordinates,
-        &end_coordinates,
-        &sample_fraction,
-    )
+        vec![
+            longitude_channel,
+            latitude_channel,
+            distance_channel_from_samples(
+                start_coordinates.distance_au.unwrap_or_default(),
+                midpoint_distance_au,
+                end_coordinates.distance_au.unwrap_or_default(),
+            ),
+        ],
+    ))
 }
 
 fn segment_from_pair_fallback(
@@ -6312,6 +6327,19 @@ const PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS: &[f64] =
     &[0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1.0];
 const PACKAGED_ARTIFACT_DENSE_VALIDATION_SAMPLE_FRACTIONS: &[f64] =
     &[0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875];
+const PACKAGED_ARTIFACT_FIT_SAMPLE_COUNTS: &[usize] = &[6];
+const PACKAGED_ARTIFACT_DENSE_FIT_SAMPLE_COUNTS: &[usize] = &[6, 8];
+
+fn packaged_artifact_fit_sample_counts_for_body(body: &CelestialBody) -> &'static [usize] {
+    match packaged_artifact_body_cadence(body) {
+        PackagedArtifactBodyCadence::Luminaries
+        | PackagedArtifactBodyCadence::LunarPoints
+        | PackagedArtifactBodyCadence::Pluto
+        | PackagedArtifactBodyCadence::SelectedAsteroids
+        | PackagedArtifactBodyCadence::CustomBodies => PACKAGED_ARTIFACT_DENSE_FIT_SAMPLE_COUNTS,
+        _ => PACKAGED_ARTIFACT_FIT_SAMPLE_COUNTS,
+    }
+}
 
 fn packaged_artifact_residual_sample_fractions(body: &CelestialBody) -> &'static [f64] {
     match packaged_artifact_body_cadence(body) {
@@ -6780,6 +6808,14 @@ mod tests {
         assert_eq!(
             packaged_artifact_fit_outlier_sample_fractions(&lunar_point_body, moon_segment.1),
             PACKAGED_ARTIFACT_DENSE_VALIDATION_SAMPLE_FRACTIONS
+        );
+        assert_eq!(
+            packaged_artifact_fit_sample_counts_for_body(moon_segment.0),
+            PACKAGED_ARTIFACT_DENSE_FIT_SAMPLE_COUNTS
+        );
+        assert_eq!(
+            packaged_artifact_fit_sample_counts_for_body(saturn_segment.0),
+            PACKAGED_ARTIFACT_FIT_SAMPLE_COUNTS
         );
         assert_eq!(
             packaged_artifact_residual_sample_fractions(&lunar_point_body),
