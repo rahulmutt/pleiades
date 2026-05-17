@@ -15,7 +15,7 @@ The codec, artifact structures, deterministic regeneration path, checksums, gene
 - Keep the finalized body-class/channel thresholds synchronized with source-fit and independent hold-out validation.
 - Decide whether polynomial order, Chebyshev fitting, residual tables, per-body cadence, or channel-specific storage changes are required.
 - Residual correction now uses channel-specific sample fractions so angular channels can keep the dense lattice while distance channels stay on the sparse lattice.
-- Residual correction search now also explores all remaining channel-order permutations when composing channels, so order-sensitive candidates no longer depend on the previous suffix-only traversal.
+- Residual correction search now also explores all remaining channel-order permutations when composing channels, so order-sensitive candidates no longer depend on the previous suffix-only traversal, and equal-error candidates now prefer the smaller residual footprint.
 - Keep the artifact profile explicit about stored, derived, unsupported, and approximated outputs, and render the explicit empty unlisted bucket in release-facing output-support summaries.
 - Preserve deterministic generation parameters, normalized-intermediate checksums, artifact checksums, and encoded-size accounting.
 - Make artifact validation fail on threshold violations, capability drift, checksum drift, malformed manifests, or unsupported request shapes.

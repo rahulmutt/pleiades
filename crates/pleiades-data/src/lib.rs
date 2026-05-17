@@ -6535,6 +6535,43 @@ fn segment_with_optional_residual_channels(
     best_segment
 }
 
+fn residual_segment_is_better(
+    candidate_segment: &Segment,
+    candidate_error: PackagedArtifactSegmentFitError,
+    existing_segment: &Segment,
+    existing_error: PackagedArtifactSegmentFitError,
+) -> bool {
+    match candidate_error
+        .max_delta()
+        .total_cmp(&existing_error.max_delta())
+    {
+        Ordering::Less => true,
+        Ordering::Greater => false,
+        Ordering::Equal => match candidate_segment
+            .residual_channels
+            .len()
+            .cmp(&existing_segment.residual_channels.len())
+        {
+            Ordering::Less => true,
+            Ordering::Greater => false,
+            Ordering::Equal => {
+                let candidate_residual_coefficients = candidate_segment
+                    .residual_channels
+                    .iter()
+                    .map(|channel| channel.coefficients.len())
+                    .sum::<usize>();
+                let existing_residual_coefficients = existing_segment
+                    .residual_channels
+                    .iter()
+                    .map(|channel| channel.coefficients.len())
+                    .sum::<usize>();
+
+                candidate_residual_coefficients < existing_residual_coefficients
+            }
+        },
+    }
+}
+
 fn best_residual_segment<F>(
     current_segment: Segment,
     current_error: PackagedArtifactSegmentFitError,
@@ -6566,7 +6603,12 @@ where
             candidate_for_kind,
         );
 
-        if recursive_error.max_delta() < best_error.max_delta() {
+        if residual_segment_is_better(
+            &recursive_segment,
+            recursive_error,
+            &best_segment,
+            best_error,
+        ) {
             best_segment = recursive_segment;
             best_error = recursive_error;
         }
@@ -7556,6 +7598,103 @@ mod tests {
             .residual_channels
             .iter()
             .any(|channel| channel.kind == ChannelKind::Latitude));
+        assert_eq!(best_error.max_delta(), 1.0);
+    }
+
+    #[test]
+    fn moon_residual_search_prefers_lower_footprint_equal_error_candidates() {
+        fn candidate_for_kind(
+            segment: &Segment,
+            kind: ChannelKind,
+        ) -> Option<(Segment, PackagedArtifactSegmentFitError)> {
+            if segment
+                .residual_channels
+                .iter()
+                .any(|channel| channel.kind == kind)
+            {
+                return None;
+            }
+
+            let mut residual_channels = segment.residual_channels.clone();
+            residual_channels.push(PolynomialChannel::new(kind, 0, vec![0.0]));
+
+            let candidate = Segment::with_residual_channels(
+                segment.start,
+                segment.end,
+                segment.channels.clone(),
+                residual_channels.clone(),
+            );
+
+            let error = match residual_channels.as_slice() {
+                [channel] => match channel.kind {
+                    ChannelKind::Longitude => PackagedArtifactSegmentFitError {
+                        longitude_degrees: 2.0,
+                        latitude_degrees: 2.0,
+                        distance_au: 2.0,
+                    },
+                    ChannelKind::Latitude => PackagedArtifactSegmentFitError {
+                        longitude_degrees: 1.0,
+                        latitude_degrees: 1.0,
+                        distance_au: 1.0,
+                    },
+                    ChannelKind::DistanceAu => PackagedArtifactSegmentFitError {
+                        longitude_degrees: 8.0,
+                        latitude_degrees: 8.0,
+                        distance_au: 8.0,
+                    },
+                    _ => unreachable!("unexpected residual channel kind"),
+                },
+                [first, second] => match (first.kind, second.kind) {
+                    (ChannelKind::Longitude, ChannelKind::Latitude) => {
+                        PackagedArtifactSegmentFitError {
+                            longitude_degrees: 1.0,
+                            latitude_degrees: 1.0,
+                            distance_au: 1.0,
+                        }
+                    }
+                    _ => PackagedArtifactSegmentFitError {
+                        longitude_degrees: 7.0,
+                        latitude_degrees: 7.0,
+                        distance_au: 7.0,
+                    },
+                },
+                _ => PackagedArtifactSegmentFitError {
+                    longitude_degrees: 7.0,
+                    latitude_degrees: 7.0,
+                    distance_au: 7.0,
+                },
+            };
+
+            Some((candidate, error))
+        }
+
+        let current_segment = Segment::new(
+            Instant::new(JulianDay::from_days(0.0), TimeScale::Tt),
+            Instant::new(JulianDay::from_days(1.0), TimeScale::Tt),
+            vec![PolynomialChannel::new(ChannelKind::Longitude, 0, vec![0.0])],
+        );
+        let current_error = PackagedArtifactSegmentFitError {
+            longitude_degrees: 10.0,
+            latitude_degrees: 10.0,
+            distance_au: 10.0,
+        };
+
+        let (best_segment, best_error) = best_residual_segment(
+            current_segment,
+            current_error,
+            &[
+                ChannelKind::Longitude,
+                ChannelKind::Latitude,
+                ChannelKind::DistanceAu,
+            ],
+            &candidate_for_kind,
+        );
+
+        assert_eq!(best_segment.residual_channels.len(), 1);
+        assert_eq!(
+            best_segment.residual_channels[0].kind,
+            ChannelKind::Latitude
+        );
         assert_eq!(best_error.max_delta(), 1.0);
     }
 
