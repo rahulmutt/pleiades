@@ -7773,6 +7773,260 @@ pub fn selected_asteroid_source_window_summary_for_report() -> String {
     }
 }
 
+/// Compact release-facing summary for the selected-asteroid source request corpus.
+#[derive(Clone, Debug, PartialEq)]
+pub struct SelectedAsteroidSourceRequestCorpusSummary {
+    /// Number of generated requests.
+    pub request_count: usize,
+    /// Number of distinct bodies covered by the request corpus.
+    pub body_count: usize,
+    /// Bodies covered by the request corpus in first-seen order.
+    pub bodies: Vec<pleiades_backend::CelestialBody>,
+    /// Number of distinct epochs covered by the request corpus.
+    pub epoch_count: usize,
+    /// Earliest epoch represented in the request corpus.
+    pub earliest_epoch: Instant,
+    /// Latest epoch represented in the request corpus.
+    pub latest_epoch: Instant,
+    /// Coordinate frame requested by the corpus.
+    pub frame: CoordinateFrame,
+    /// Time scale requested by the corpus.
+    pub time_scale: TimeScale,
+    /// Zodiac mode requested by the corpus.
+    pub zodiac_mode: ZodiacMode,
+    /// Apparentness requested by the corpus.
+    pub apparentness: Apparentness,
+}
+
+/// Validation error for a selected-asteroid source request corpus summary.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum SelectedAsteroidSourceRequestCorpusSummaryValidationError {
+    /// A summary field is out of sync with the checked-in request corpus.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl SelectedAsteroidSourceRequestCorpusSummaryValidationError {
+    /// Returns the compact label used in release-facing summaries and tests.
+    pub const fn label(&self) -> &'static str {
+        match self {
+            Self::FieldOutOfSync { .. } => "field out of sync",
+        }
+    }
+}
+
+impl fmt::Display for SelectedAsteroidSourceRequestCorpusSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the selected asteroid source request corpus summary field `{field}` is out of sync with the current slice"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for SelectedAsteroidSourceRequestCorpusSummaryValidationError {}
+
+impl SelectedAsteroidSourceRequestCorpusSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "Selected asteroid source request corpus: {} requests (frame={}; time scale={}; zodiac mode={}; apparentness={}; observerless) across {} bodies and {} epochs ({}..{}); bodies: {}",
+            self.request_count,
+            self.frame,
+            self.time_scale,
+            self.zodiac_mode,
+            self.apparentness,
+            self.body_count,
+            self.epoch_count,
+            format_instant(self.earliest_epoch),
+            format_instant(self.latest_epoch),
+            format_bodies(&self.bodies),
+        )
+    }
+
+    /// Returns `Ok(())` when the request corpus summary still matches the checked-in slice.
+    pub fn validate(
+        &self,
+    ) -> Result<(), SelectedAsteroidSourceRequestCorpusSummaryValidationError> {
+        let Some(expected) = selected_asteroid_source_request_corpus_summary_details(self.frame)
+        else {
+            return Err(
+                SelectedAsteroidSourceRequestCorpusSummaryValidationError::FieldOutOfSync {
+                    field: "request_count",
+                },
+            );
+        };
+
+        if self.request_count != expected.request_count {
+            return Err(
+                SelectedAsteroidSourceRequestCorpusSummaryValidationError::FieldOutOfSync {
+                    field: "request_count",
+                },
+            );
+        }
+        if self.body_count != expected.body_count {
+            return Err(
+                SelectedAsteroidSourceRequestCorpusSummaryValidationError::FieldOutOfSync {
+                    field: "body_count",
+                },
+            );
+        }
+        if self.bodies != expected.bodies {
+            return Err(
+                SelectedAsteroidSourceRequestCorpusSummaryValidationError::FieldOutOfSync {
+                    field: "bodies",
+                },
+            );
+        }
+        if self.epoch_count != expected.epoch_count {
+            return Err(
+                SelectedAsteroidSourceRequestCorpusSummaryValidationError::FieldOutOfSync {
+                    field: "epoch_count",
+                },
+            );
+        }
+        if self.earliest_epoch != expected.earliest_epoch {
+            return Err(
+                SelectedAsteroidSourceRequestCorpusSummaryValidationError::FieldOutOfSync {
+                    field: "earliest_epoch",
+                },
+            );
+        }
+        if self.latest_epoch != expected.latest_epoch {
+            return Err(
+                SelectedAsteroidSourceRequestCorpusSummaryValidationError::FieldOutOfSync {
+                    field: "latest_epoch",
+                },
+            );
+        }
+        if self.frame != expected.frame {
+            return Err(
+                SelectedAsteroidSourceRequestCorpusSummaryValidationError::FieldOutOfSync {
+                    field: "frame",
+                },
+            );
+        }
+        if self.time_scale != expected.time_scale {
+            return Err(
+                SelectedAsteroidSourceRequestCorpusSummaryValidationError::FieldOutOfSync {
+                    field: "time_scale",
+                },
+            );
+        }
+        if self.zodiac_mode != expected.zodiac_mode {
+            return Err(
+                SelectedAsteroidSourceRequestCorpusSummaryValidationError::FieldOutOfSync {
+                    field: "zodiac_mode",
+                },
+            );
+        }
+        if self.apparentness != expected.apparentness {
+            return Err(
+                SelectedAsteroidSourceRequestCorpusSummaryValidationError::FieldOutOfSync {
+                    field: "apparentness",
+                },
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns the validated selected-asteroid request corpus summary line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, SelectedAsteroidSourceRequestCorpusSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for SelectedAsteroidSourceRequestCorpusSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+fn selected_asteroid_source_request_corpus_summary_details(
+    frame: CoordinateFrame,
+) -> Option<SelectedAsteroidSourceRequestCorpusSummary> {
+    let entries = selected_asteroid_source_entries()?;
+    let requests = selected_asteroid_source_requests(frame)?;
+    if requests.is_empty() {
+        return None;
+    }
+
+    let mut bodies = Vec::new();
+    let mut epochs = BTreeSet::new();
+    let mut earliest_epoch = requests[0].instant;
+    let mut latest_epoch = requests[0].instant;
+    let time_scale = requests[0].instant.scale;
+
+    for (request, entry) in requests.iter().zip(entries.iter()) {
+        if request.body != entry.body
+            || request.instant != entry.epoch
+            || request.frame != frame
+            || request.instant.scale != time_scale
+            || request.zodiac_mode != ZodiacMode::Tropical
+            || request.apparent != Apparentness::Mean
+            || request.observer.is_some()
+        {
+            return None;
+        }
+
+        if !bodies.contains(&request.body) {
+            bodies.push(request.body.clone());
+        }
+        epochs.insert(request.instant.julian_day.days().to_bits());
+        if request.instant.julian_day.days() < earliest_epoch.julian_day.days() {
+            earliest_epoch = request.instant;
+        }
+        if request.instant.julian_day.days() > latest_epoch.julian_day.days() {
+            latest_epoch = request.instant;
+        }
+    }
+
+    Some(SelectedAsteroidSourceRequestCorpusSummary {
+        request_count: requests.len(),
+        body_count: bodies.len(),
+        bodies,
+        epoch_count: epochs.len(),
+        earliest_epoch,
+        latest_epoch,
+        frame,
+        time_scale,
+        zodiac_mode: ZodiacMode::Tropical,
+        apparentness: Apparentness::Mean,
+    })
+}
+
+/// Returns the selected-asteroid source request corpus summary in the requested frame.
+pub fn selected_asteroid_source_request_corpus_summary(
+    frame: CoordinateFrame,
+) -> Option<SelectedAsteroidSourceRequestCorpusSummary> {
+    selected_asteroid_source_request_corpus_summary_details(frame)
+}
+
+/// Formats the selected-asteroid source request corpus for release-facing reporting.
+pub fn format_selected_asteroid_source_request_corpus_summary(
+    summary: &SelectedAsteroidSourceRequestCorpusSummary,
+) -> String {
+    summary.summary_line()
+}
+
+/// Returns the release-facing selected-asteroid source request corpus summary string.
+pub fn selected_asteroid_source_request_corpus_summary_for_report() -> String {
+    match selected_asteroid_source_request_corpus_summary(CoordinateFrame::Ecliptic) {
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
+            Err(error) => {
+                format!("Selected asteroid source request corpus: unavailable ({error})")
+            }
+        },
+        None => "Selected asteroid source request corpus: unavailable".to_string(),
+    }
+}
+
 const SELECTED_ASTEROID_SOURCE_2453000_EPOCH: f64 = 2_453_000.5;
 
 fn selected_asteroid_source_2453000_entries() -> Option<&'static [SnapshotEntry]> {
@@ -27797,6 +28051,46 @@ mod tests {
             summary.summary_line(),
             selected_asteroid_source_window_summary_for_report()
         );
+    }
+
+    #[test]
+    fn selected_asteroid_source_request_corpus_summary_reports_the_frame_specific_request_slice() {
+        let summary = selected_asteroid_source_request_corpus_summary(CoordinateFrame::Ecliptic)
+            .expect("selected asteroid source request corpus summary should exist");
+        assert_eq!(summary.request_count, 93);
+        assert_eq!(summary.body_count, 6);
+        assert_eq!(summary.epoch_count, 17);
+        assert_eq!(summary.frame, CoordinateFrame::Ecliptic);
+        assert_eq!(summary.zodiac_mode, ZodiacMode::Tropical);
+        assert_eq!(summary.apparentness, Apparentness::Mean);
+        assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(
+            selected_asteroid_source_request_corpus_summary_for_report(),
+            summary.summary_line()
+        );
+        assert!(summary
+            .summary_line()
+            .contains("observerless) across 6 bodies and 17 epochs"));
+    }
+
+    #[test]
+    fn selected_asteroid_source_request_corpus_summary_validation_rejects_request_count_drift() {
+        let mut summary =
+            selected_asteroid_source_request_corpus_summary(CoordinateFrame::Ecliptic)
+                .expect("selected asteroid source request corpus summary should exist");
+        summary.request_count += 1;
+
+        assert!(matches!(
+            summary.validate(),
+            Err(
+                SelectedAsteroidSourceRequestCorpusSummaryValidationError::FieldOutOfSync {
+                    field: "request_count"
+                }
+            )
+        ));
+        assert!(summary.validated_summary_line().is_err());
     }
 
     #[test]
