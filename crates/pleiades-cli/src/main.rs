@@ -447,6 +447,9 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("lunar-theory-summary") => validate_render_cli(args),
         Some("lunar-theory-capability-summary") => validate_render_cli(args),
         Some("lunar-theory-source-summary") => validate_render_cli(args),
+        Some("lunar-theory-source-family-summary") | Some("lunar-theory-source-family") => {
+            validate_render_cli(args)
+        }
         Some("lunar-theory-catalog-summary") | Some("lunar-theory-catalog") => {
             validate_render_cli(args)
         }
@@ -1853,6 +1856,9 @@ mod tests {
         assert!(rendered.contains("lunar-theory-limitations-summary"));
         assert!(rendered.contains("lunar-theory-capability-summary"));
         assert!(rendered.contains("lunar-theory-source-summary"));
+        assert!(rendered.contains("lunar-theory-source-family-summary"));
+        assert!(rendered
+            .contains("lunar-theory-source-family  Alias for lunar-theory-source-family-summary"));
         assert!(rendered.contains("lunar-theory-catalog-summary"));
         assert!(rendered.contains("lunar-theory-catalog-validation-summary"));
         assert!(
@@ -3899,6 +3905,18 @@ mod tests {
         assert_eq!(
             lunar_theory_source_summary,
             pleiades_elp::lunar_theory_source_summary_for_report()
+        );
+        let lunar_theory_source_family_summary =
+            render_cli(&["lunar-theory-source-family-summary"])
+                .expect("lunar theory source family summary should render");
+        assert!(lunar_theory_source_family_summary.contains("lunar source family:"));
+        assert_eq!(
+            lunar_theory_source_family_summary,
+            pleiades_elp::lunar_theory_source_family_summary_for_report()
+        );
+        assert_eq!(
+            render_cli(&["lunar-theory-source-family"]).unwrap(),
+            lunar_theory_source_family_summary
         );
         let lunar_theory_catalog_summary = render_cli(&["lunar-theory-catalog-summary"])
             .expect("lunar theory catalog summary should render");
