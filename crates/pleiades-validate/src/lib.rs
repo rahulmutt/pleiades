@@ -42,10 +42,9 @@ use pleiades_ayanamsa::{
 };
 use pleiades_backend::{
     delta_t_policy_summary_for_report, frame_policy_summary_details,
-    native_sidereal_policy_summary_for_report, pluto_fallback_summary_for_report,
-    release_body_claims_summary_for_report, request_policy_summary_for_report,
-    time_scale_policy_summary_for_report, validated_frame_policy_summary_for_report,
-    validated_pluto_fallback_summary_line_for_report,
+    pluto_fallback_summary_for_report, release_body_claims_summary_for_report,
+    request_policy_summary_for_report, time_scale_policy_summary_for_report,
+    validated_frame_policy_summary_for_report, validated_pluto_fallback_summary_line_for_report,
     validated_release_body_claims_summary_line_for_report, zodiac_policy_summary_for_report,
 };
 use pleiades_core::{
@@ -14762,15 +14761,6 @@ fn format_delta_t_policy_summary_for_report(
     }
 }
 
-fn format_utc_convenience_policy_summary_for_report(
-    summary: &pleiades_backend::UtcConveniencePolicySummary,
-) -> String {
-    match summary.validated_summary_line() {
-        Ok(line) => line.to_string(),
-        Err(error) => format!("UTC convenience policy unavailable ({error})"),
-    }
-}
-
 fn format_observer_policy_summary_for_report(
     summary: &pleiades_backend::ObserverPolicySummary,
 ) -> String {
@@ -14786,15 +14776,6 @@ fn format_apparentness_policy_summary_for_report(
     match summary.validated_summary_line() {
         Ok(line) => line.to_string(),
         Err(error) => format!("apparentness policy unavailable ({error})"),
-    }
-}
-
-fn format_native_sidereal_policy_summary_for_report(
-    summary: &pleiades_backend::NativeSiderealPolicySummary,
-) -> String {
-    match summary.validated_summary_line() {
-        Ok(line) => line.to_string(),
-        Err(error) => format!("native sidereal policy unavailable ({error})"),
     }
 }
 
@@ -14826,12 +14807,9 @@ fn format_request_semantics_summary_for_report(
         format_time_scale_policy_summary_for_report(time_scale_policy)
     );
 
-    let utc_convenience_policy = pleiades_backend::utc_convenience_policy_summary_for_report();
-    let _ = writeln!(
-        text,
-        "UTC convenience policy: {}",
-        format_utc_convenience_policy_summary_for_report(&utc_convenience_policy)
-    );
+    let utc_convenience_policy =
+        pleiades_backend::validated_utc_convenience_policy_summary_for_report();
+    let _ = writeln!(text, "UTC convenience policy: {}", utc_convenience_policy);
 
     let delta_t_policy = delta_t_policy_summary_for_report();
     let _ = writeln!(
@@ -14840,12 +14818,9 @@ fn format_request_semantics_summary_for_report(
         format_delta_t_policy_summary_for_report(&delta_t_policy)
     );
 
-    let native_sidereal_policy = native_sidereal_policy_summary_for_report();
-    let _ = writeln!(
-        text,
-        "Native sidereal policy: {}",
-        format_native_sidereal_policy_summary_for_report(&native_sidereal_policy)
-    );
+    let native_sidereal_policy =
+        pleiades_backend::validated_native_sidereal_policy_summary_for_report();
+    let _ = writeln!(text, "Native sidereal policy: {}", native_sidereal_policy);
 
     let request_policy = match validated_request_policy_summary_for_report() {
         Ok(summary) => summary,
@@ -14897,17 +14872,10 @@ fn render_delta_t_policy_summary_text() -> String {
 }
 
 fn render_utc_convenience_policy_summary_text() -> String {
-    match pleiades_backend::utc_convenience_policy_summary_for_report().validated_summary_line() {
-        Ok(summary) => format!(
-            "UTC convenience policy summary\nUTC convenience policy: {}\n",
-            summary
-        ),
-        Err(error) => {
-            format!(
-                "UTC convenience policy summary\nUTC convenience policy unavailable ({error})\n"
-            )
-        }
-    }
+    format!(
+        "UTC convenience policy summary\nUTC convenience policy: {}\n",
+        pleiades_backend::validated_utc_convenience_policy_summary_for_report()
+    )
 }
 
 fn render_observer_policy_summary_text() -> String {
@@ -14930,17 +14898,10 @@ fn render_apparentness_policy_summary_text() -> String {
 }
 
 fn render_native_sidereal_policy_summary_text() -> String {
-    match native_sidereal_policy_summary_for_report().validated_summary_line() {
-        Ok(summary) => format!(
-            "Native sidereal policy summary\nNative sidereal policy: {}\n",
-            summary
-        ),
-        Err(error) => {
-            format!(
-                "Native sidereal policy summary\nNative sidereal policy unavailable ({error})\n"
-            )
-        }
-    }
+    format!(
+        "Native sidereal policy summary\nNative sidereal policy: {}\n",
+        pleiades_backend::validated_native_sidereal_policy_summary_for_report()
+    )
 }
 
 fn render_interpolation_posture_summary_text() -> String {
@@ -15613,20 +15574,14 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         "Delta T policy: {}",
         format_delta_t_policy_summary_for_report(&delta_t_policy)
     );
-    let utc_convenience_policy = pleiades_backend::utc_convenience_policy_summary_for_report();
-    let _ = writeln!(
-        text,
-        "UTC convenience policy: {}",
-        format_utc_convenience_policy_summary_for_report(&utc_convenience_policy)
-    );
+    let utc_convenience_policy =
+        pleiades_backend::validated_utc_convenience_policy_summary_for_report();
+    let _ = writeln!(text, "UTC convenience policy: {}", utc_convenience_policy);
     let _ = writeln!(text, "Observer policy: {}", request_policy.observer);
     let _ = writeln!(text, "Apparentness policy: {}", request_policy.apparentness);
-    let native_sidereal_policy = native_sidereal_policy_summary_for_report();
-    let _ = writeln!(
-        text,
-        "Native sidereal policy: {}",
-        format_native_sidereal_policy_summary_for_report(&native_sidereal_policy)
-    );
+    let native_sidereal_policy =
+        pleiades_backend::validated_native_sidereal_policy_summary_for_report();
+    let _ = writeln!(text, "Native sidereal policy: {}", native_sidereal_policy);
     let _ = writeln!(text, "Frame policy: {}", request_policy.frame);
     let _ = writeln!(
         text,
@@ -17000,9 +16955,7 @@ fn render_backend_matrix_summary_text() -> String {
     ));
     text.push('\n');
     text.push_str("Native sidereal policy: ");
-    text.push_str(&format_native_sidereal_policy_summary_for_report(
-        &native_sidereal_policy_summary_for_report(),
-    ));
+    text.push_str(&pleiades_backend::validated_native_sidereal_policy_summary_for_report());
     text.push('\n');
     text.push_str("Zodiac policy: ");
     text.push_str(&zodiac_policy_summary_for_report(&[ZodiacMode::Tropical]));

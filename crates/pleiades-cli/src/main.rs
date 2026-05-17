@@ -10,8 +10,9 @@
 use core::time::Duration;
 
 use pleiades_core::{
-    default_chart_bodies, native_sidereal_policy_summary_for_report, resolve_ayanamsa,
-    resolve_house_system, validated_frame_policy_summary_for_report, Angle, Apparentness, Ayanamsa,
+    default_chart_bodies, resolve_ayanamsa, resolve_house_system,
+    validated_frame_policy_summary_for_report, validated_native_sidereal_policy_summary_for_report,
+    validated_utc_convenience_policy_summary_for_report, Angle, Apparentness, Ayanamsa,
     CelestialBody, ChartEngine, ChartRequest, CompositeBackend, CustomAyanamsa, CustomBodyId,
     EphemerisError, HouseSystem, Instant, JulianDay, Latitude, Longitude, ObserverLocation,
     RoutingBackend, TimeScale, ZodiacMode,
@@ -64,10 +65,7 @@ fn shared_request_policy_help_block() -> String {
         pleiades_core::time_scale_policy_summary_for_report().validated_summary_line(),
         "Time-scale policy",
     );
-    let utc_convenience_policy = render_validated_summary_line(
-        pleiades_core::utc_convenience_policy_summary_for_report().validated_summary_line(),
-        "UTC convenience policy",
-    );
+    let utc_convenience_policy = validated_utc_convenience_policy_summary_for_report();
     let delta_t_policy = render_validated_summary_line(
         pleiades_core::delta_t_policy_summary_for_report().validated_summary_line(),
         "Delta T policy",
@@ -80,10 +78,7 @@ fn shared_request_policy_help_block() -> String {
         pleiades_core::apparentness_policy_summary_for_report().validated_summary_line(),
         "Apparentness policy",
     );
-    let native_sidereal_policy = render_validated_summary_line(
-        native_sidereal_policy_summary_for_report().validated_summary_line(),
-        "Native sidereal policy",
-    );
+    let native_sidereal_policy = validated_native_sidereal_policy_summary_for_report();
     let frame_policy = validated_frame_policy_summary_for_report();
 
     format!(

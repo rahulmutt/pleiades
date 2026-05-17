@@ -2322,6 +2322,14 @@ pub const fn utc_convenience_policy_summary_for_report() -> UtcConveniencePolicy
     current_utc_convenience_policy_summary()
 }
 
+/// Returns the validated UTC-convenience policy summary line used by validation and release reporting.
+pub fn validated_utc_convenience_policy_summary_for_report() -> String {
+    match current_utc_convenience_policy_summary().validated_summary_line() {
+        Ok(summary) => summary.to_string(),
+        Err(error) => format!("UTC convenience policy unavailable ({error})"),
+    }
+}
+
 /// Returns the current shared observer policy used by validation and reports.
 pub const fn current_observer_policy_summary() -> ObserverPolicySummary {
     ObserverPolicySummary::new(CURRENT_OBSERVER_POLICY_SUMMARY_TEXT)
@@ -2355,6 +2363,14 @@ pub const fn current_native_sidereal_policy_summary() -> NativeSiderealPolicySum
 /// Returns the native sidereal policy posture used by validation and release reporting.
 pub const fn native_sidereal_policy_summary_for_report() -> NativeSiderealPolicySummary {
     current_native_sidereal_policy_summary()
+}
+
+/// Returns the validated native sidereal policy summary line used by validation and release reporting.
+pub fn validated_native_sidereal_policy_summary_for_report() -> String {
+    match current_native_sidereal_policy_summary().validated_summary_line() {
+        Ok(summary) => summary.to_string(),
+        Err(error) => format!("native sidereal policy unavailable ({error})"),
+    }
 }
 
 /// Returns the current Pluto fallback posture used by validation and reports.
@@ -3382,6 +3398,14 @@ mod tests {
     }
 
     #[test]
+    fn validated_utc_convenience_policy_summary_for_report_tracks_the_current_posture() {
+        assert_eq!(
+            validated_utc_convenience_policy_summary_for_report(),
+            CURRENT_UTC_CONVENIENCE_POLICY_SUMMARY_TEXT
+        );
+    }
+
+    #[test]
     fn request_policy_summary_has_a_compact_display() {
         let summary = RequestPolicySummary::current();
 
@@ -3980,6 +4004,14 @@ mod tests {
         assert_eq!(
             summary.validate(),
             Err(NativeSiderealPolicySummaryValidationError::CurrentPolicyOutOfSync)
+        );
+    }
+
+    #[test]
+    fn validated_native_sidereal_policy_summary_for_report_tracks_the_current_posture() {
+        assert_eq!(
+            validated_native_sidereal_policy_summary_for_report(),
+            CURRENT_NATIVE_SIDEREAL_POLICY_SUMMARY_TEXT
         );
     }
 
