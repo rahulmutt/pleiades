@@ -1821,6 +1821,8 @@ pub struct PackagedArtifactNormalizedIntermediateSummary {
     pub generation_policy: PackagedArtifactGenerationPolicy,
     /// Per-channel quantization scales captured from the checked-in artifact.
     pub quantization_scales: String,
+    /// Deterministic checksum of the rendered normalized-intermediate payload.
+    pub checksum: u64,
     /// Bodies bundled into the packaged artifact.
     pub body_count: usize,
     /// Total segment count across all bundled bodies.
@@ -1838,8 +1840,8 @@ pub struct PackagedArtifactNormalizedIntermediateSummary {
 }
 
 impl PackagedArtifactNormalizedIntermediateSummary {
-    /// Returns the normalized intermediates as a compact human-readable line.
-    pub fn summary_fields_line(&self) -> String {
+    /// Returns the normalized-intermediate payload used for checksuming and rendering.
+    fn summary_payload_line(&self) -> String {
         format!(
             "label={}; profile id={}; version={}; time range={}; source={}; source revision={}; body count={}; segments={}; residual-bearing segments={}; stored channels={}; residual channels={}; segment span days={:.12}..{:.12}; segment strategy={}; {}",
             self.label,
@@ -1857,6 +1859,15 @@ impl PackagedArtifactNormalizedIntermediateSummary {
             self.max_segment_span_days,
             self.generation_policy.segment_strategy(),
             self.quantization_scales,
+        )
+    }
+
+    /// Returns the normalized intermediates as a compact human-readable line.
+    pub fn summary_fields_line(&self) -> String {
+        format!(
+            "{}; checksum=0x{:016x}",
+            self.summary_payload_line(),
+            self.checksum,
         )
     }
 
@@ -1963,6 +1974,18 @@ impl PackagedArtifactNormalizedIntermediateSummary {
             return Err(pleiades_compression::CompressionError::new(
                 pleiades_compression::CompressionErrorKind::InvalidFormat,
                 "packaged artifact normalized intermediate summary maximum segment span does not match the checked-in packaged artifact",
+            ));
+        }
+
+        let expected_checksum = fnv1a64(self.summary_payload_line().as_bytes());
+        if self.checksum != expected_checksum {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                format!(
+                    "packaged artifact normalized intermediate summary checksum 0x{:016x} does not match the current normalized-intermediate checksum 0x{:016x}",
+                    self.checksum,
+                    expected_checksum
+                ),
             ));
         }
 
@@ -2317,6 +2340,27 @@ pub fn packaged_artifact_regeneration_summary_for_report() -> String {
 pub fn packaged_artifact_normalized_intermediate_summary_details(
 ) -> PackagedArtifactNormalizedIntermediateSummary {
     let artifact = packaged_artifact();
+    let payload_checksum = fnv1a64(
+        format!(
+            "label={}; profile id={}; version={}; time range={}; source={}; source revision={}; body count={}; segments={}; residual-bearing segments={}; stored channels={}; residual channels={}; segment span days={:.12}..{:.12}; segment strategy={}; {}",
+            ARTIFACT_LABEL,
+            ARTIFACT_PROFILE_ID,
+            artifact.header.version,
+            artifact_time_range(artifact),
+            ARTIFACT_SOURCE,
+            production_generation_source_summary_for_report(),
+            artifact.bodies.len(),
+            artifact.segment_count(),
+            artifact.residual_segment_count(),
+            packaged_artifact_channel_count(artifact, false),
+            packaged_artifact_channel_count(artifact, true),
+            packaged_artifact_segment_span_bounds(artifact).0,
+            packaged_artifact_segment_span_bounds(artifact).1,
+            PackagedArtifactGenerationPolicy::AdjacentSameBodyQuadraticWindows.segment_strategy(),
+            packaged_artifact_quantization_scales_line(),
+        )
+        .as_bytes(),
+    );
     let summary = PackagedArtifactNormalizedIntermediateSummary {
         label: ARTIFACT_LABEL,
         artifact_version: artifact.header.version,
@@ -2326,6 +2370,7 @@ pub fn packaged_artifact_normalized_intermediate_summary_details(
         time_range: artifact_time_range(artifact),
         generation_policy: PackagedArtifactGenerationPolicy::AdjacentSameBodyQuadraticWindows,
         quantization_scales: packaged_artifact_quantization_scales_line(),
+        checksum: payload_checksum,
         body_count: artifact.bodies.len(),
         segment_count: artifact.segment_count(),
         residual_segment_count: artifact.residual_segment_count(),
@@ -7826,11 +7871,26 @@ mod tests {
         assert!(summary.summary_line().contains(
             "Packaged artifact normalized intermediates: label=stage-5 packaged-data draft"
         ));
+        assert!(summary.summary_line().contains("checksum=0x"));
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         summary
             .validate()
             .expect("normalized intermediates summary should validate");
+    }
+
+    #[test]
+    fn packaged_artifact_normalized_intermediate_summary_validation_rejects_checksum_drift() {
+        let mut summary = packaged_artifact_normalized_intermediate_summary_details();
+        summary.checksum ^= 0x1;
+
+        let error = summary
+            .validate()
+            .expect_err("normalized intermediate checksum drift should be rejected");
+
+        assert!(error
+            .to_string()
+            .contains("packaged artifact normalized intermediate summary checksum 0x"));
     }
 
     #[test]
