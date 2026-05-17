@@ -21211,7 +21211,7 @@ mod tests {
         assert!(report.contains("Luminaries"));
         assert!(report.contains("Major planets"));
         assert!(report.contains("interpolation quality checks:"));
-        assert!(report.contains("JPL interpolation quality: 214 samples across 10 bodies"));
+        assert!(report.contains("JPL interpolation quality: 285 samples across 16 bodies"));
         assert!(report.contains("JPL interpolation quality kind coverage:"));
         assert!(report.contains("JPL interpolation posture: source="));
         assert!(report.contains("Reference/hold-out overlap:"));
@@ -21360,7 +21360,7 @@ mod tests {
         assert!(body_class_tolerance_posture.contains("mean Δdist="));
         assert!(body_class_tolerance_posture.contains("rms Δdist="));
         assert!(report.contains("JPL interpolation quality"));
-        assert!(report.contains("JPL interpolation quality: 214 samples across 10 bodies"));
+        assert!(report.contains("JPL interpolation quality: 285 samples across 16 bodies"));
         assert!(report.contains("Reference/hold-out overlap:"));
         assert!(report.contains("JPL independent hold-out:"));
         assert!(report.contains("JPL independent hold-out equatorial parity:"));

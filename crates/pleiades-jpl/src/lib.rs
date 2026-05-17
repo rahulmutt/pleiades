@@ -21782,7 +21782,7 @@ pub fn jpl_interpolation_body_class_error_envelopes(
         JplInterpolationBodyClassErrorEnvelopeAccumulator::new("Luminaries"),
         JplInterpolationBodyClassErrorEnvelopeAccumulator::new("Major planets"),
         JplInterpolationBodyClassErrorEnvelopeAccumulator::new("Lunar points"),
-        JplInterpolationBodyClassErrorEnvelopeAccumulator::new("Asteroids"),
+        JplInterpolationBodyClassErrorEnvelopeAccumulator::new("Selected asteroids"),
         JplInterpolationBodyClassErrorEnvelopeAccumulator::new("Custom bodies"),
     ];
 
@@ -23383,70 +23383,85 @@ fn interpolation_quality_sample_list() -> &'static [InterpolationQualitySample] 
                 .cloned()
                 .collect::<Vec<_>>();
 
-            for body in comparison_body_list() {
-                let mut body_entries = entries
-                    .iter()
-                    .filter(|entry| &entry.body == body)
-                    .collect::<Vec<_>>();
-                body_entries.sort_by(|left, right| {
-                    left.epoch
-                        .julian_day
-                        .days()
-                        .partial_cmp(&right.epoch.julian_day.days())
-                        .unwrap_or(std::cmp::Ordering::Equal)
-                });
-
-                for window in body_entries.windows(3) {
-                    let before = window[0];
-                    let exact = window[1];
-                    let after = window[2];
-                    let epoch_jd = exact.epoch.julian_day.days();
-                    let leave_one_out_entries = entries
-                        .iter()
-                        .filter(|entry| {
-                            entry.body != exact.body || entry.epoch.julian_day.days() != epoch_jd
-                        })
-                        .cloned()
-                        .collect::<Vec<_>>();
-                    let interpolation_kind = match body_entries.len().saturating_sub(1) {
-                        0..=2 => InterpolationQualityKind::Linear,
-                        3 => InterpolationQualityKind::Quadratic,
-                        _ => InterpolationQualityKind::Cubic,
-                    };
-                    let interpolated = resolve_fixture_state_from_entries(
-                        &leave_one_out_entries,
-                        exact.body.clone(),
-                        epoch_jd,
-                    )
-                    .expect("held-out sample should still interpolate")
-                    .entry;
-                    let exact_ecliptic = exact.ecliptic();
-                    let interpolated_ecliptic = interpolated.ecliptic();
-                    let exact_distance = exact_ecliptic.distance_au.unwrap_or_default();
-                    let interpolated_distance =
-                        interpolated_ecliptic.distance_au.unwrap_or_default();
-
-                    samples.push(InterpolationQualitySample {
-                        body: exact.body.clone(),
-                        epoch: exact.epoch,
-                        interpolation_kind,
-                        bracket_span_days: after.epoch.julian_day.days()
-                            - before.epoch.julian_day.days(),
-                        longitude_error_deg: angular_degrees_delta(
-                            exact_ecliptic.longitude.degrees(),
-                            interpolated_ecliptic.longitude.degrees(),
-                        ),
-                        latitude_error_deg: (exact_ecliptic.latitude.degrees()
-                            - interpolated_ecliptic.latitude.degrees())
-                        .abs(),
-                        distance_error_au: (exact_distance - interpolated_distance).abs(),
-                    });
-                }
-            }
+            push_interpolation_quality_samples_for_bodies(
+                &mut samples,
+                &entries,
+                comparison_body_list(),
+            );
+            push_interpolation_quality_samples_for_bodies(
+                &mut samples,
+                &entries,
+                reference_asteroid_list(),
+            );
 
             samples
         })
         .as_slice()
+}
+
+fn push_interpolation_quality_samples_for_bodies(
+    samples: &mut Vec<InterpolationQualitySample>,
+    entries: &[SnapshotEntry],
+    bodies: &[pleiades_backend::CelestialBody],
+) {
+    for body in bodies {
+        let mut body_entries = entries
+            .iter()
+            .filter(|entry| &entry.body == body)
+            .collect::<Vec<_>>();
+        body_entries.sort_by(|left, right| {
+            left.epoch
+                .julian_day
+                .days()
+                .partial_cmp(&right.epoch.julian_day.days())
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+
+        for window in body_entries.windows(3) {
+            let before = window[0];
+            let exact = window[1];
+            let after = window[2];
+            let epoch_jd = exact.epoch.julian_day.days();
+            let leave_one_out_entries = entries
+                .iter()
+                .filter(|entry| {
+                    entry.body != exact.body || entry.epoch.julian_day.days() != epoch_jd
+                })
+                .cloned()
+                .collect::<Vec<_>>();
+            let interpolation_kind = match body_entries.len().saturating_sub(1) {
+                0..=2 => InterpolationQualityKind::Linear,
+                3 => InterpolationQualityKind::Quadratic,
+                _ => InterpolationQualityKind::Cubic,
+            };
+            let interpolated = resolve_fixture_state_from_entries(
+                &leave_one_out_entries,
+                exact.body.clone(),
+                epoch_jd,
+            )
+            .expect("held-out sample should still interpolate")
+            .entry;
+            let exact_ecliptic = exact.ecliptic();
+            let interpolated_ecliptic = interpolated.ecliptic();
+            let exact_distance = exact_ecliptic.distance_au.unwrap_or_default();
+            let interpolated_distance = interpolated_ecliptic.distance_au.unwrap_or_default();
+
+            samples.push(InterpolationQualitySample {
+                body: exact.body.clone(),
+                epoch: exact.epoch,
+                interpolation_kind,
+                bracket_span_days: after.epoch.julian_day.days() - before.epoch.julian_day.days(),
+                longitude_error_deg: angular_degrees_delta(
+                    exact_ecliptic.longitude.degrees(),
+                    interpolated_ecliptic.longitude.degrees(),
+                ),
+                latitude_error_deg: (exact_ecliptic.latitude.degrees()
+                    - interpolated_ecliptic.latitude.degrees())
+                .abs(),
+                distance_error_au: (exact_distance - interpolated_distance).abs(),
+            });
+        }
+    }
 }
 
 fn snapshot_instants() -> &'static [Instant] {
@@ -30994,7 +31009,7 @@ mod tests {
     #[test]
     fn interpolation_quality_samples_are_reportable() {
         let samples = interpolation_quality_samples();
-        assert_eq!(samples.len(), 214);
+        assert_eq!(samples.len(), 285);
         assert!(samples.iter().all(|sample| {
             let epoch = sample.epoch.julian_day.days();
             let summary_line = sample.summary_line();
@@ -31140,8 +31155,8 @@ mod tests {
     #[test]
     fn interpolation_quality_summary_reports_the_worst_case_labels() {
         let summary = jpl_interpolation_quality_summary().expect("summary should exist");
-        assert_eq!(summary.sample_count, 214);
-        assert_eq!(summary.body_count, 10);
+        assert_eq!(summary.sample_count, 285);
+        assert_eq!(summary.body_count, 16);
         assert_eq!(summary.epoch_count, 25);
         assert!(summary.earliest_epoch.julian_day.days() <= summary.latest_epoch.julian_day.days());
         assert_eq!(
@@ -31179,7 +31194,7 @@ mod tests {
         assert!(rendered.contains("cubic"));
         assert!(rendered.contains("quadratic"));
         assert!(rendered.contains("linear"));
-        assert!(rendered.contains("214 samples across 10 bodies and 25 epochs"));
+        assert!(rendered.contains("285 samples across 16 bodies and 25 epochs"));
         assert!(rendered.contains("epoch window"));
         assert!(rendered.contains("mean bracket span="));
         assert!(rendered.contains("median bracket span="));
@@ -31224,8 +31239,8 @@ mod tests {
     #[test]
     fn interpolation_quality_kind_coverage_reports_the_distinct_body_breakdown() {
         let coverage = jpl_interpolation_quality_kind_coverage().expect("coverage should exist");
-        assert_eq!(coverage.sample_count, 214);
-        assert_eq!(coverage.body_count, 10);
+        assert_eq!(coverage.sample_count, 285);
+        assert_eq!(coverage.body_count, 16);
         assert_eq!(coverage.bodies.len(), coverage.body_count);
         assert!(!coverage.bodies.is_empty());
         assert!(coverage.cubic_body_count > 0);
@@ -31240,7 +31255,7 @@ mod tests {
 
         let rendered = format_jpl_interpolation_quality_kind_coverage(&coverage);
         assert!(rendered.contains("JPL interpolation quality kind coverage:"));
-        assert!(rendered.contains("214 samples across 10 bodies ["));
+        assert!(rendered.contains("285 samples across 16 bodies ["));
         assert!(rendered.contains(&coverage.bodies[0]));
         assert!(rendered.contains("cubic bodies"));
         assert!(rendered.contains("quadratic bodies"));
@@ -31270,9 +31285,11 @@ mod tests {
         let summaries = jpl_interpolation_body_class_error_envelopes()
             .expect("body-class envelopes should exist");
 
-        assert_eq!(summaries.len(), 2);
+        assert_eq!(summaries.len(), 4);
         assert_eq!(summaries[0].class, "Luminaries");
         assert_eq!(summaries[1].class, "Major planets");
+        assert_eq!(summaries[2].class, "Selected asteroids");
+        assert_eq!(summaries[3].class, "Custom bodies");
         assert!(summaries.iter().all(|summary| summary.validate().is_ok()));
         assert!(jpl_interpolation_body_class_error_envelopes_for_report()
             .contains("JPL interpolation body-class error envelopes:"));
@@ -31340,8 +31357,8 @@ mod tests {
 
         assert_eq!(summary.source, reference_snapshot_source_summary().source);
         assert_eq!(summary.derivation, JPL_INTERPOLATION_QUALITY_DERIVATION);
-        assert_eq!(summary.sample_count, 214);
-        assert_eq!(summary.body_count, 10);
+        assert_eq!(summary.sample_count, 285);
+        assert_eq!(summary.body_count, 16);
         assert_eq!(summary.epoch_count, 25);
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(summary.validate(), Ok(()));
