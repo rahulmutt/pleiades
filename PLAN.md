@@ -32,6 +32,7 @@ Current backend and data posture:
 - The packaged-artifact generator now uses higher-order distance reconstruction from fit samples plus cubic four-point control-point reconstruction when available, the generation-policy wording now matches its quadratic-window strategy, and the checked-in fixture remains byte-stable.
 - Current first-party request policy is explicit: TT/TDB mean geometric geocentric tropical requests are supported where metadata says so; built-in Delta T/UTC modeling, apparent-place corrections, topocentric body positions, and native sidereal backend output remain unsupported unless a future backend advertises and validates them.
 - The release notes and release summary surfaces now route the compatibility profile's release note through a validated helper before rendering, so those release-facing entries fail closed on profile summary drift.
+- The zodiac policy summary now also routes through a validated release helper in validation and release-facing report surfaces, so the shared zodiac-posture wording fails closed when report prose drifts.
 
 ## Remaining specification gaps
 

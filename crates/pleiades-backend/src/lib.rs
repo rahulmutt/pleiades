@@ -2100,6 +2100,88 @@ impl fmt::Display for NativeSiderealPolicySummary {
     }
 }
 
+/// Compact summary of the current shared zodiac policy.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct ZodiacPolicySummary {
+    summary: &'static str,
+}
+
+/// Validation error for the shared zodiac-policy summary.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ZodiacPolicySummaryValidationError {
+    /// The summary text is blank or whitespace-only.
+    BlankSummary,
+    /// The summary text has surrounding whitespace.
+    WhitespacePaddedSummary,
+    /// The summary text contains an embedded line break.
+    EmbeddedLineBreak,
+    /// The summary text no longer matches the current zodiac posture.
+    CurrentPolicyOutOfSync,
+}
+
+impl fmt::Display for ZodiacPolicySummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::BlankSummary => f.write_str("zodiac policy summary is blank"),
+            Self::WhitespacePaddedSummary => {
+                f.write_str("zodiac policy summary has surrounding whitespace")
+            }
+            Self::EmbeddedLineBreak => f.write_str("zodiac policy summary contains a line break"),
+            Self::CurrentPolicyOutOfSync => {
+                f.write_str("zodiac policy summary is out of sync with the current posture")
+            }
+        }
+    }
+}
+
+impl std::error::Error for ZodiacPolicySummaryValidationError {}
+
+impl ZodiacPolicySummary {
+    /// Creates a new zodiac policy summary from a backend-owned note.
+    pub const fn new(summary: &'static str) -> Self {
+        Self { summary }
+    }
+
+    /// Returns the compact one-line rendering of the zodiac policy posture.
+    pub const fn summary_line(self) -> &'static str {
+        self.summary
+    }
+
+    /// Returns the current shared zodiac policy posture.
+    pub const fn current() -> Self {
+        Self::new(CURRENT_ZODIAC_POLICY_SUMMARY_TEXT)
+    }
+
+    /// Returns `Ok(())` when the summary still contains the current canonical line.
+    pub fn validate(&self) -> Result<(), ZodiacPolicySummaryValidationError> {
+        if self.summary.trim().is_empty() {
+            Err(ZodiacPolicySummaryValidationError::BlankSummary)
+        } else if self.summary.trim() != self.summary {
+            Err(ZodiacPolicySummaryValidationError::WhitespacePaddedSummary)
+        } else if self.summary.contains('\n') || self.summary.contains('\r') {
+            Err(ZodiacPolicySummaryValidationError::EmbeddedLineBreak)
+        } else if self.summary != current_zodiac_policy_summary().summary_line() {
+            Err(ZodiacPolicySummaryValidationError::CurrentPolicyOutOfSync)
+        } else {
+            Ok(())
+        }
+    }
+
+    /// Returns the compact summary line after validating the cached prose.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<&'static str, ZodiacPolicySummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for ZodiacPolicySummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.summary_line())
+    }
+}
+
 /// Compact summary of the current Pluto fallback posture.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct PlutoFallbackSummary {
@@ -2294,6 +2376,9 @@ pub const CURRENT_FRAME_POLICY_SUMMARY_TEXT: &str =
 pub const CURRENT_NATIVE_SIDEREAL_POLICY_SUMMARY_TEXT: &str =
     "native sidereal backend output remains unsupported unless a backend explicitly advertises it";
 
+/// Canonical current policy summary text for the shared zodiac posture.
+pub const CURRENT_ZODIAC_POLICY_SUMMARY_TEXT: &str = "tropical only";
+
 /// Canonical current policy summary text for the Pluto fallback posture.
 pub const CURRENT_PLUTO_FALLBACK_POLICY_SUMMARY_TEXT: &str =
     "Pluto remains an explicitly approximate fallback; release-grade major-body claims exclude Pluto";
@@ -2370,6 +2455,19 @@ pub fn validated_native_sidereal_policy_summary_for_report() -> String {
     match current_native_sidereal_policy_summary().validated_summary_line() {
         Ok(summary) => summary.to_string(),
         Err(error) => format!("native sidereal policy unavailable ({error})"),
+    }
+}
+
+/// Returns the current zodiac posture used by validation and reports.
+pub const fn current_zodiac_policy_summary() -> ZodiacPolicySummary {
+    ZodiacPolicySummary::new(CURRENT_ZODIAC_POLICY_SUMMARY_TEXT)
+}
+
+/// Returns the validated zodiac policy summary line used by validation and release reporting.
+pub fn validated_zodiac_policy_summary_for_report() -> String {
+    match current_zodiac_policy_summary().validated_summary_line() {
+        Ok(summary) => summary.to_string(),
+        Err(error) => format!("zodiac policy unavailable ({error})"),
     }
 }
 
@@ -4090,6 +4188,54 @@ mod tests {
         assert_eq!(
             validated_native_sidereal_policy_summary_for_report(),
             CURRENT_NATIVE_SIDEREAL_POLICY_SUMMARY_TEXT
+        );
+    }
+
+    #[test]
+    fn zodiac_policy_summary_tracks_the_current_posture() {
+        let summary = current_zodiac_policy_summary();
+
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(
+            summary.summary_line(),
+            current_zodiac_policy_summary().summary_line()
+        );
+        assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(summary.summary_line(), CURRENT_ZODIAC_POLICY_SUMMARY_TEXT);
+    }
+
+    #[test]
+    fn zodiac_policy_summary_rejects_invalid_cached_prose() {
+        assert_eq!(
+            ZodiacPolicySummary::new("   ").validate(),
+            Err(ZodiacPolicySummaryValidationError::BlankSummary)
+        );
+        assert_eq!(
+            ZodiacPolicySummary::new(" tropical only ").validate(),
+            Err(ZodiacPolicySummaryValidationError::WhitespacePaddedSummary)
+        );
+        assert_eq!(
+            ZodiacPolicySummary::new("tropical\nonly").validate(),
+            Err(ZodiacPolicySummaryValidationError::EmbeddedLineBreak)
+        );
+    }
+
+    #[test]
+    fn zodiac_policy_summary_rejects_policy_drift() {
+        let summary = ZodiacPolicySummary::new("sidereal zodiac output is documented elsewhere");
+
+        assert_eq!(
+            summary.validate(),
+            Err(ZodiacPolicySummaryValidationError::CurrentPolicyOutOfSync)
+        );
+    }
+
+    #[test]
+    fn validated_zodiac_policy_summary_for_report_tracks_the_current_posture() {
+        assert_eq!(
+            validated_zodiac_policy_summary_for_report(),
+            CURRENT_ZODIAC_POLICY_SUMMARY_TEXT
         );
     }
 

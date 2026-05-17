@@ -72,6 +72,7 @@ This file lists focused implementation slices for the current phase ladder. Comp
 - Completed: request-policy validation now preserves invalid-observer precedence ahead of unsupported-body coverage in both direct and batch metadata checks, and the request-policy/request-semantics report titles now share a guarded validation helper so the paired release-facing blocks fail closed if the title wording drifts.
 - Completed: the chart/help text request-policy block now validates the shared request-policy summaries before rendering, so the user-facing CLI help mirrors the release-facing policy validation posture instead of echoing unchecked wording.
 - Completed: the backend frame-treatment posture now has a validated report helper, and the core chart façade renders its frame-policy line through that helper instead of echoing the raw summary line.
+- Completed: the zodiac policy summary now also routes through a validated release helper in validation and release-facing report surfaces, so the shared zodiac-posture wording fails closed when report prose drifts.
 
 ## Phase 5 — Compatibility catalog evidence
 

@@ -19,6 +19,7 @@ Current first-party backends support mean geometric geocentric tropical requests
 - Add precedence tests whenever invalid and unsupported request dimensions interact.
 - Keep the request-policy and request-semantics release-facing summaries title-validated so the paired report blocks fail closed if their wording drifts.
 - Validate the shared request-policy wording in the user-facing CLI help block too, so the chart/report help text does not bypass the same policy-posture drift checks.
+- Completed: the zodiac policy summary now also routes through a validated release helper in validation and release-facing report surfaces, so the shared zodiac-posture wording fails closed when report prose drifts.
 
 ## Completion criteria
 

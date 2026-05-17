@@ -46,7 +46,8 @@ use pleiades_backend::{
     pluto_fallback_summary_for_report, release_body_claims_summary_for_report,
     request_policy_summary_for_report, time_scale_policy_summary_for_report,
     validated_frame_policy_summary_for_report, validated_pluto_fallback_summary_line_for_report,
-    validated_release_body_claims_summary_line_for_report, zodiac_policy_summary_for_report,
+    validated_release_body_claims_summary_line_for_report,
+    validated_zodiac_policy_summary_for_report,
 };
 use pleiades_core::{
     current_api_stability_profile, current_compatibility_profile,
@@ -8841,7 +8842,7 @@ fn render_release_summary_text() -> String {
     text.push_str(&jpl_interpolation_posture_summary_for_report());
     text.push('\n');
     text.push_str("Zodiac policy: ");
-    text.push_str(&zodiac_policy_summary_for_report(&[ZodiacMode::Tropical]));
+    text.push_str(&validated_zodiac_policy_summary_for_report());
     text.push('\n');
     text.push_str("Release summary line: ");
     match profile.validated_release_note() {
@@ -9392,7 +9393,7 @@ fn render_release_checklist_summary_text() -> String {
     text.push_str("Backend matrix summary: backend-matrix-summary\n");
     text.push_str("API stability summary: api-stability-summary\n");
     text.push_str("Zodiac policy: ");
-    text.push_str(&zodiac_policy_summary_for_report(&[ZodiacMode::Tropical]));
+    text.push_str(&validated_zodiac_policy_summary_for_report());
     text.push('\n');
     text.push_str("Validation report summary: validation-report-summary / validation-summary / report-summary\n");
     text.push_str("Packaged-artifact summary: artifact-summary / artifact-posture-summary\n");
@@ -15743,7 +15744,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(
         text,
         "Zodiac policy: {}",
-        zodiac_policy_summary_for_report(&[ZodiacMode::Tropical])
+        validated_zodiac_policy_summary_for_report()
     );
     let _ = writeln!(text);
     let _ = writeln!(text, "Comparison corpus");
@@ -16993,7 +16994,7 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(&mean_obliquity_frame_round_trip_summary_for_report());
     text.push('\n');
     text.push_str("Zodiac policy: ");
-    text.push_str(&zodiac_policy_summary_for_report(&[ZodiacMode::Tropical]));
+    text.push_str(&validated_zodiac_policy_summary_for_report());
     text.push('\n');
     text.push_str("Backends with external data sources: ");
     text.push_str(&data_source_count.to_string());
@@ -17104,7 +17105,7 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(&pleiades_backend::validated_native_sidereal_policy_summary_for_report());
     text.push('\n');
     text.push_str("Zodiac policy: ");
-    text.push_str(&zodiac_policy_summary_for_report(&[ZodiacMode::Tropical]));
+    text.push_str(&validated_zodiac_policy_summary_for_report());
     text.push('\n');
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
     text.push_str("Release profile identifiers: ");
