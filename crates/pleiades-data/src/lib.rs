@@ -5535,10 +5535,6 @@ fn segment_error_prefers_candidate(
         }
 }
 
-fn packaged_artifact_segment_validation_fractions() -> &'static [f64] {
-    &[0.125, 0.25, 0.5, 0.75, 0.875]
-}
-
 fn packaged_artifact_segment_validation_fractions_for_body(body: &CelestialBody) -> &'static [f64] {
     match packaged_artifact_body_cadence(body) {
         PackagedArtifactBodyCadence::Luminaries
@@ -5548,7 +5544,9 @@ fn packaged_artifact_segment_validation_fractions_for_body(body: &CelestialBody)
         | PackagedArtifactBodyCadence::CustomBodies => {
             PACKAGED_ARTIFACT_DENSE_VALIDATION_SAMPLE_FRACTIONS
         }
-        _ => packaged_artifact_segment_validation_fractions(),
+        PackagedArtifactBodyCadence::InnerPlanets | PackagedArtifactBodyCadence::OuterPlanets => {
+            PACKAGED_ARTIFACT_MEDIUM_VALIDATION_SAMPLE_FRACTIONS
+        }
     }
 }
 
@@ -6541,6 +6539,8 @@ fn residual_segment(
 const PACKAGED_ARTIFACT_RESIDUAL_SAMPLE_FRACTIONS: &[f64] = &[0.0, 0.25, 0.5, 0.75, 1.0];
 const PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS: &[f64] =
     &[0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1.0];
+const PACKAGED_ARTIFACT_MEDIUM_VALIDATION_SAMPLE_FRACTIONS: &[f64] =
+    &[0.125, 0.25, 0.5, 0.75, 0.875];
 const PACKAGED_ARTIFACT_DENSE_VALIDATION_SAMPLE_FRACTIONS: &[f64] =
     &[0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875];
 const PACKAGED_ARTIFACT_FIT_SAMPLE_COUNTS: &[usize] = &[6, 8, 10];
@@ -6992,6 +6992,19 @@ mod tests {
                     .map(|segment| (&body.body, segment))
             })
             .expect("packaged artifact should include at least one multi-day Moon segment");
+        let mercury_segment = artifact
+            .bodies
+            .iter()
+            .find(|body| body.body == CelestialBody::Mercury)
+            .and_then(|body| {
+                body.segments
+                    .iter()
+                    .find(|segment| {
+                        segment.start.julian_day.days() != segment.end.julian_day.days()
+                    })
+                    .map(|segment| (&body.body, segment))
+            })
+            .expect("packaged artifact should include at least one multi-day Mercury segment");
         let saturn_segment = artifact
             .bodies
             .iter()
@@ -7033,8 +7046,20 @@ mod tests {
             &[0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875]
         );
         assert_eq!(
+            packaged_artifact_segment_validation_fractions_for_body(mercury_segment.0),
+            PACKAGED_ARTIFACT_MEDIUM_VALIDATION_SAMPLE_FRACTIONS
+        );
+        assert_eq!(
+            packaged_artifact_fit_outlier_sample_fractions(mercury_segment.0, mercury_segment.1),
+            PACKAGED_ARTIFACT_MEDIUM_VALIDATION_SAMPLE_FRACTIONS
+        );
+        assert_eq!(
+            packaged_artifact_fit_sample_fractions_for_body(saturn_segment.0, saturn_segment.1),
+            packaged_artifact_fit_sample_fractions(saturn_segment.1)
+        );
+        assert_eq!(
             packaged_artifact_fit_outlier_sample_fractions(saturn_segment.0, saturn_segment.1),
-            packaged_artifact_segment_validation_fractions()
+            PACKAGED_ARTIFACT_MEDIUM_VALIDATION_SAMPLE_FRACTIONS
         );
         assert_eq!(
             packaged_artifact_segment_validation_fractions_for_body(&lunar_point_body),
