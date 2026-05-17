@@ -420,6 +420,26 @@ impl ArtifactProfile {
         )
     }
 
+    /// Returns the validated capability summary line.
+    pub fn validated_summary_line(&self) -> Result<String, CompressionError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+
+    /// Returns the validated compact support entries used by the output-support summary.
+    pub fn validated_output_support_entries_summary_line(
+        &self,
+    ) -> Result<String, CompressionError> {
+        self.validate()?;
+        Ok(self.output_support_entries_summary_line())
+    }
+
+    /// Returns the validated output-support summary line.
+    pub fn validated_output_support_summary_line(&self) -> Result<String, CompressionError> {
+        self.validate()?;
+        Ok(self.output_support_summary_line())
+    }
+
     /// Returns the capability summary annotated with how many bodies share it.
     pub fn summary_for_body_count(&self, body_count: usize) -> String {
         format!(
@@ -3408,6 +3428,24 @@ mod tests {
         assert_eq!(
             profile.output_support_summary_line(),
             "EclipticCoordinates=derived, EquatorialCoordinates=derived, ApparentCorrections=unsupported, TopocentricCoordinates=unsupported, SiderealCoordinates=unsupported, Motion=unsupported; unlisted outputs: []"
+        );
+        assert_eq!(
+            profile
+                .validated_summary_line()
+                .expect("profile summary should validate"),
+            profile.summary_line()
+        );
+        assert_eq!(
+            profile
+                .validated_output_support_entries_summary_line()
+                .expect("output-support entries should validate"),
+            profile.output_support_entries_summary_line()
+        );
+        assert_eq!(
+            profile
+                .validated_output_support_summary_line()
+                .expect("output-support summary should validate"),
+            profile.output_support_summary_line()
         );
         assert_eq!(coverage.body_count, 2);
         assert_eq!(

@@ -3541,7 +3541,11 @@ impl PackagedArtifactProfileSummary {
         &self,
     ) -> Result<String, pleiades_compression::CompressionError> {
         self.validate()?;
-        Ok(self.summary_line_with_output_support())
+        Ok(format!(
+            "{}; output support: {}",
+            self.summary_line_with_bodies(),
+            self.profile.validated_output_support_summary_line()?
+        ))
     }
 
     /// Renders the packaged artifact profile into a release-facing summary line.
