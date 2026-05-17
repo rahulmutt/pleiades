@@ -79,4 +79,5 @@ This file lists focused implementation slices for the current phase ladder. Comp
 - Completed: the validation report now renders archived regression findings through validated summary helpers so malformed notes fail closed instead of leaking into release-facing output.
 - Completed: the packaged-artifact body-class span cap summary now validates before rendering in CLI and validation-report paths, so the release-facing body-layout evidence can fail closed if the generated posture drifts.
 - Completed: the packaged-artifact fit sample classes summary now validates its boundary continuity component before rendering, so the combined fit sample report no longer skips validation on the boundary half of the line.
+- Completed: the packaged-artifact storage/reconstruction and production-profile summary surfaces now route through explicit validated wrappers before rendering, so the release-facing artifact posture lines fail closed if the underlying summary validation drifts.
 - Keep README/docs aligned with the published release compatibility profile and known gaps.

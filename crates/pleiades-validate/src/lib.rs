@@ -77,12 +77,10 @@ use pleiades_data::{
     packaged_artifact_normalized_intermediate_summary_for_report,
     packaged_artifact_output_support_summary_for_report,
     packaged_artifact_phase2_corpus_alignment_summary_for_report,
-    packaged_artifact_production_profile_summary_for_report,
     packaged_artifact_profile_coverage_summary_for_report,
     packaged_artifact_profile_summary_with_body_coverage,
     packaged_artifact_regeneration_summary_for_report,
     packaged_artifact_speed_policy_summary_for_report,
-    packaged_artifact_storage_summary_for_report,
     packaged_artifact_target_threshold_scope_envelopes_for_report,
     packaged_artifact_target_threshold_summary_details,
     packaged_artifact_target_threshold_summary_for_report,
@@ -4874,23 +4872,23 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "packaged-artifact-storage-summary")?;
             Ok(format!(
                 "Packaged-artifact storage/reconstruction: {}",
-                packaged_artifact_storage_summary_for_report()
+                validated_packaged_artifact_storage_summary_for_report()
             ))
         }
         Some("packaged-artifact-storage") => {
             ensure_no_extra_args(&args[1..], "packaged-artifact-storage")?;
             Ok(format!(
                 "Packaged-artifact storage/reconstruction: {}",
-                packaged_artifact_storage_summary_for_report()
+                validated_packaged_artifact_storage_summary_for_report()
             ))
         }
         Some("packaged-artifact-production-profile-summary") => {
             ensure_no_extra_args(&args[1..], "packaged-artifact-production-profile-summary")?;
-            Ok(packaged_artifact_production_profile_summary_for_report())
+            Ok(validated_packaged_artifact_production_profile_summary_for_report())
         }
         Some("packaged-artifact-production-profile") => {
             ensure_no_extra_args(&args[1..], "packaged-artifact-production-profile")?;
-            Ok(packaged_artifact_production_profile_summary_for_report())
+            Ok(validated_packaged_artifact_production_profile_summary_for_report())
         }
         Some("packaged-artifact-target-threshold-summary")
         | Some("packaged-artifact-target-threshold") => {
@@ -8591,7 +8589,7 @@ fn render_release_notes_summary_text() -> String {
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
     text.push_str("Packaged-artifact summary: artifact-summary / artifact-posture-summary\n");
     text.push_str("Packaged-artifact storage/reconstruction: ");
-    text.push_str(&packaged_artifact_storage_summary_for_report());
+    text.push_str(&validated_packaged_artifact_storage_summary_for_report());
     text.push('\n');
     text.push_str("Packaged-artifact access: ");
     text.push_str(&format_packaged_artifact_access_summary());
@@ -9213,7 +9211,7 @@ fn render_release_summary_text() -> String {
     text.push_str(&format_packaged_artifact_profile_summary());
     text.push('\n');
     text.push_str("Packaged-artifact production profile draft: ");
-    text.push_str(&packaged_artifact_production_profile_summary_for_report());
+    text.push_str(&validated_packaged_artifact_production_profile_summary_for_report());
     text.push('\n');
     let fit_margin_summary = report_summary_payload(
         packaged_artifact_fit_margin_summary_for_report(),
@@ -9585,9 +9583,10 @@ pub fn render_release_bundle(
         packaged_artifact_normalized_intermediate_summary_for_report();
     let packaged_artifact_speed_policy_summary_text =
         packaged_artifact_speed_policy_summary_for_report();
-    let packaged_artifact_storage_summary_text = packaged_artifact_storage_summary_for_report();
+    let packaged_artifact_storage_summary_text =
+        validated_packaged_artifact_storage_summary_for_report();
     let packaged_artifact_production_profile_summary_text =
-        packaged_artifact_production_profile_summary_for_report();
+        validated_packaged_artifact_production_profile_summary_for_report();
     let packaged_frame_treatment_summary_text = packaged_frame_treatment_summary_for_report();
     let packaged_artifact_target_threshold_summary_text =
         packaged_artifact_target_threshold_summary_for_report();
@@ -15370,8 +15369,24 @@ fn format_packaged_artifact_speed_policy_summary() -> String {
     packaged_artifact_speed_policy_summary_for_report()
 }
 
+fn validated_packaged_artifact_storage_summary_for_report() -> String {
+    let summary = pleiades_data::packaged_artifact_storage_summary_details();
+    match summary.validate() {
+        Ok(()) => summary.to_string(),
+        Err(error) => format!("Packaged-artifact storage/reconstruction: unavailable ({error})"),
+    }
+}
+
+fn validated_packaged_artifact_production_profile_summary_for_report() -> String {
+    let summary = pleiades_data::packaged_artifact_production_profile_summary_details();
+    match summary.validated_summary_line() {
+        Ok(line) => line,
+        Err(error) => format!("Packaged artifact production profile draft: unavailable ({error})"),
+    }
+}
+
 fn format_packaged_artifact_storage_summary() -> String {
-    packaged_artifact_storage_summary_for_report()
+    validated_packaged_artifact_storage_summary_for_report()
 }
 
 fn format_packaged_artifact_access_summary() -> String {
@@ -29396,7 +29411,7 @@ version = "0.9.0"
             storage,
             format!(
                 "Packaged-artifact storage/reconstruction: {}",
-                packaged_artifact_storage_summary_for_report()
+                validated_packaged_artifact_storage_summary_for_report()
             )
         );
         assert_eq!(
@@ -29538,7 +29553,7 @@ version = "0.9.0"
         assert!(production_profile.contains("Packaged artifact production profile draft:"));
         assert_eq!(
             production_profile,
-            packaged_artifact_production_profile_summary_for_report()
+            validated_packaged_artifact_production_profile_summary_for_report()
         );
         assert_eq!(
             render_cli(&["packaged-artifact-production-profile"])
