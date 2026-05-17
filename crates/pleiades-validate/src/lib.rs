@@ -12172,6 +12172,12 @@ fn verify_release_bundle(
             manifest.pluto_fallback_summary_checksum, pluto_fallback_summary_checksum
         )));
     }
+    if let Err(error) = validate_release_body_claims_posture(
+        &release_body_claims_summary_text,
+        &pluto_fallback_summary_text,
+    ) {
+        return Err(ReleaseBundleError::Verification(error));
+    }
     if manifest.request_policy_summary_checksum != request_policy_summary_checksum {
         return Err(ReleaseBundleError::Verification(format!(
             "request policy summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
@@ -15040,12 +15046,50 @@ fn render_comparison_envelope_summary_text() -> String {
     )
 }
 
+fn validate_release_body_claims_posture(
+    release_body_claims_summary: &str,
+    pluto_fallback_summary: &str,
+) -> Result<(), String> {
+    const PLUTO_FALLBACK_PHRASE: &str = "Pluto remains an explicitly approximate fallback";
+    const PLUTO_EXCLUSION_PHRASE: &str = "release-grade major-body claims exclude Pluto";
+    const SELECTED_ASTEROIDS_PHRASE: &str = "selected asteroids (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) remain source-backed validation bodies";
+
+    if !release_body_claims_summary.contains(PLUTO_FALLBACK_PHRASE) {
+        return Err(format!(
+            "release-grade body claims summary no longer references the current Pluto fallback phrase `{PLUTO_FALLBACK_PHRASE}`"
+        ));
+    }
+    if !release_body_claims_summary.contains(SELECTED_ASTEROIDS_PHRASE) {
+        return Err(
+            "release-grade body claims summary no longer keeps the selected asteroid validation bodies explicit"
+                .to_string(),
+        );
+    }
+
+    if !pluto_fallback_summary.contains(PLUTO_EXCLUSION_PHRASE) {
+        return Err(format!(
+            "Pluto fallback summary no longer states that {PLUTO_EXCLUSION_PHRASE}"
+        ));
+    }
+
+    Ok(())
+}
+
 fn format_release_body_claims_summary_for_report() -> String {
     let summary = release_body_claims_summary_for_report();
-    match summary.validated_summary_line() {
-        Ok(line) => line.to_string(),
-        Err(error) => format!("release-grade body claims unavailable ({error})"),
+    let pluto_fallback_summary = pluto_fallback_summary_for_report();
+    let summary_line = match summary.validated_summary_line() {
+        Ok(line) => line,
+        Err(error) => return format!("release-grade body claims unavailable ({error})"),
+    };
+    let pluto_line = match pluto_fallback_summary.validated_summary_line() {
+        Ok(line) => line,
+        Err(error) => return format!("release-grade body claims unavailable ({error})"),
+    };
+    if let Err(error) = validate_release_body_claims_posture(summary_line, pluto_line) {
+        return format!("release-grade body claims unavailable ({error})");
     }
+    summary_line.to_string()
 }
 
 fn render_release_body_claims_summary_text() -> String {
@@ -15063,6 +15107,18 @@ fn render_pluto_fallback_summary_text() -> String {
             return format!("Pluto fallback summary\nPluto fallback unavailable ({error})\n");
         }
     };
+
+    let release_body_claims_summary = release_body_claims_summary_for_report();
+    let release_body_claims_line = match release_body_claims_summary.validated_summary_line() {
+        Ok(line) => line,
+        Err(error) => {
+            return format!("Pluto fallback summary\nPluto fallback unavailable ({error})\n");
+        }
+    };
+    if let Err(error) = validate_release_body_claims_posture(release_body_claims_line, policy_line)
+    {
+        return format!("Pluto fallback summary\nPluto fallback unavailable ({error})\n");
+    }
 
     let report = compare_backends(
         &default_reference_backend(),
@@ -29833,6 +29889,21 @@ version = "0.9.0"
         assert!(pluto_fallback_summary.contains(
             "Pluto fallback policy: Pluto remains an explicitly approximate fallback; release-grade major-body claims exclude Pluto"
         ));
+        let release_body_claims_line = release_body_claims_summary_for_report()
+            .validated_summary_line()
+            .expect("release body claims posture should validate");
+        let pluto_fallback_line = pluto_fallback_summary_for_report()
+            .validated_summary_line()
+            .expect("Pluto fallback posture should validate");
+        assert_eq!(
+            validate_release_body_claims_posture(release_body_claims_line, pluto_fallback_line,),
+            Ok(())
+        );
+        assert!(validate_release_body_claims_posture(
+            &release_body_claims_line.replace("Pluto remains an explicitly approximate fallback; ", ""),
+            "Pluto remains an explicitly approximate fallback; release-grade major-body claims include Pluto",
+        )
+        .is_err());
         assert_eq!(
             render_cli(&["pluto-fallback"]).expect("Pluto fallback alias should render"),
             pluto_fallback_summary
