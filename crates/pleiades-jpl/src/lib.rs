@@ -685,10 +685,11 @@ pub fn format_production_generation_boundary_source_summary(
     summary: &IndependentHoldoutSourceSummary,
 ) -> String {
     format!(
-        "Production generation boundary overlay source: {}; coverage={}; columns={}; checksum=0x{:016x}",
+        "Production generation boundary overlay source: {}; coverage={}; columns={}; redistribution={}; checksum=0x{:016x}",
         summary.source,
         summary.coverage,
         summary.columns,
+        summary.redistribution,
         independent_holdout_snapshot_checksum(),
     )
 }
@@ -18390,6 +18391,8 @@ const INDEPENDENT_HOLDOUT_SOURCE_FALLBACK: &str = "NASA/JPL Horizons API vector 
 const INDEPENDENT_HOLDOUT_COVERAGE_FALLBACK: &str =
     "Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Pluto at 2451545 and 2500000.";
 const INDEPENDENT_HOLDOUT_COLUMNS: &str = "epoch_jd, body, x_km, y_km, z_km";
+const INDEPENDENT_HOLDOUT_REDISTRIBUTION_FALLBACK: &str =
+    "repository-checked regression fixtures, not a broad public corpus.";
 
 fn reference_snapshot_source_checksum() -> u64 {
     static CHECKSUM: OnceLock<u64> = OnceLock::new();
@@ -18932,6 +18935,8 @@ pub struct IndependentHoldoutSourceSummary {
     pub coverage: String,
     /// CSV column layout for the hold-out snapshot.
     pub columns: String,
+    /// Redistribution posture for the hold-out snapshot.
+    pub redistribution: String,
     /// Deterministic checksum of the checked-in hold-out snapshot source material.
     pub checksum: u64,
 }
@@ -18986,6 +18991,23 @@ impl IndependentHoldoutSourceSummary {
                 IndependentHoldoutSourceSummaryValidationError::FieldOutOfSync { field: "columns" },
             );
         }
+        if self.redistribution.trim().is_empty() {
+            return Err(IndependentHoldoutSourceSummaryValidationError::BlankRedistribution);
+        }
+        if has_surrounding_whitespace(&self.redistribution) {
+            return Err(
+                IndependentHoldoutSourceSummaryValidationError::SurroundedByWhitespace {
+                    field: "redistribution",
+                },
+            );
+        }
+        if self.redistribution != INDEPENDENT_HOLDOUT_REDISTRIBUTION_FALLBACK {
+            return Err(
+                IndependentHoldoutSourceSummaryValidationError::FieldOutOfSync {
+                    field: "redistribution",
+                },
+            );
+        }
         if self.checksum != independent_holdout_source_checksum() {
             return Err(IndependentHoldoutSourceSummaryValidationError::ChecksumMismatch);
         }
@@ -18995,8 +19017,8 @@ impl IndependentHoldoutSourceSummary {
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
         format!(
-            "Independent hold-out source: {}; coverage={}; columns={}; checksum=0x{:016x}",
-            self.source, self.coverage, self.columns, self.checksum
+            "Independent hold-out source: {}; coverage={}; columns={}; redistribution={}; checksum=0x{:016x}",
+            self.source, self.coverage, self.columns, self.redistribution, self.checksum
         )
     }
 
@@ -19024,6 +19046,8 @@ pub enum IndependentHoldoutSourceSummaryValidationError {
     FieldOutOfSync { field: &'static str },
     /// The summary checksum drifted from the checked-in source material.
     ChecksumMismatch,
+    /// The summary did not include a non-empty redistribution label.
+    BlankRedistribution,
 }
 
 impl IndependentHoldoutSourceSummaryValidationError {
@@ -19036,6 +19060,7 @@ impl IndependentHoldoutSourceSummaryValidationError {
             Self::SurroundedByWhitespace { .. } => "surrounded by whitespace",
             Self::FieldOutOfSync { .. } => "field out of sync",
             Self::ChecksumMismatch => "checksum mismatch",
+            Self::BlankRedistribution => "blank redistribution",
         }
     }
 }
@@ -19075,6 +19100,9 @@ pub fn independent_holdout_source_summary() -> IndependentHoldoutSourceSummary {
                     .coverage_or(INDEPENDENT_HOLDOUT_COVERAGE_FALLBACK)
                     .to_string(),
                 columns: manifest.columns_summary(),
+                redistribution: manifest
+                    .redistribution_or(INDEPENDENT_HOLDOUT_REDISTRIBUTION_FALLBACK)
+                    .to_string(),
                 checksum: independent_holdout_source_checksum(),
             }
         })
@@ -26388,7 +26416,7 @@ mod tests {
         assert_eq!(boundary_summary, holdout_summary);
         assert_eq!(
             format_production_generation_boundary_source_summary(&boundary_summary),
-            "Production generation boundary overlay source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Pluto at 2451545 and 2500000.; columns=epoch_jd, body, x_km, y_km, z_km; checksum=0x2b2a38474384b973"
+            "Production generation boundary overlay source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Pluto at 2451545 and 2500000.; columns=epoch_jd, body, x_km, y_km, z_km; redistribution=repository-checked regression fixtures, not a broad public corpus.; checksum=0x2b2a38474384b973"
         );
         assert_eq!(
             production_generation_boundary_source_summary_for_report(),
@@ -29210,6 +29238,13 @@ mod tests {
             "Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Pluto at 2451545 and 2500000."
         );
         assert_eq!(summary.columns, "epoch_jd, body, x_km, y_km, z_km");
+        assert_eq!(
+            summary.redistribution,
+            "repository-checked regression fixtures, not a broad public corpus."
+        );
+        assert!(summary.summary_line().contains(
+            "redistribution=repository-checked regression fixtures, not a broad public corpus."
+        ));
         assert!(summary
             .summary_line()
             .contains(&format!("checksum=0x{:016x}", summary.checksum)));
@@ -29228,6 +29263,7 @@ mod tests {
             source: " ".to_string(),
             coverage: "coverage".to_string(),
             columns: "epoch_jd, body, x_km, y_km, z_km".to_string(),
+            redistribution: INDEPENDENT_HOLDOUT_REDISTRIBUTION_FALLBACK.to_string(),
             checksum: independent_holdout_source_checksum(),
         };
         assert_eq!(
@@ -29239,6 +29275,7 @@ mod tests {
             source: INDEPENDENT_HOLDOUT_SOURCE_EXPECTED.to_string(),
             coverage: "\t".to_string(),
             columns: INDEPENDENT_HOLDOUT_COLUMNS.to_string(),
+            redistribution: INDEPENDENT_HOLDOUT_REDISTRIBUTION_FALLBACK.to_string(),
             checksum: independent_holdout_source_checksum(),
         };
         assert_eq!(
@@ -29250,6 +29287,7 @@ mod tests {
             source: INDEPENDENT_HOLDOUT_SOURCE_EXPECTED.to_string(),
             coverage: INDEPENDENT_HOLDOUT_COVERAGE_FALLBACK.to_string(),
             columns: "  ".to_string(),
+            redistribution: INDEPENDENT_HOLDOUT_REDISTRIBUTION_FALLBACK.to_string(),
             checksum: independent_holdout_source_checksum(),
         };
         assert_eq!(
@@ -29257,10 +29295,23 @@ mod tests {
             Err(IndependentHoldoutSourceSummaryValidationError::BlankColumns)
         );
 
+        let blank_redistribution = IndependentHoldoutSourceSummary {
+            source: INDEPENDENT_HOLDOUT_SOURCE_EXPECTED.to_string(),
+            coverage: INDEPENDENT_HOLDOUT_COVERAGE_FALLBACK.to_string(),
+            columns: INDEPENDENT_HOLDOUT_COLUMNS.to_string(),
+            redistribution: " ".to_string(),
+            checksum: independent_holdout_source_checksum(),
+        };
+        assert_eq!(
+            blank_redistribution.validate(),
+            Err(IndependentHoldoutSourceSummaryValidationError::BlankRedistribution)
+        );
+
         let padded_columns = IndependentHoldoutSourceSummary {
             source: INDEPENDENT_HOLDOUT_SOURCE_EXPECTED.to_string(),
             coverage: INDEPENDENT_HOLDOUT_COVERAGE_FALLBACK.to_string(),
             columns: " epoch_jd, body, x_km, y_km, z_km ".to_string(),
+            redistribution: INDEPENDENT_HOLDOUT_REDISTRIBUTION_FALLBACK.to_string(),
             checksum: independent_holdout_source_checksum(),
         };
         assert_eq!(
@@ -29276,6 +29327,7 @@ mod tests {
             source: INDEPENDENT_HOLDOUT_SOURCE_EXPECTED.to_string(),
             coverage: "coverage\nmore".to_string(),
             columns: INDEPENDENT_HOLDOUT_COLUMNS.to_string(),
+            redistribution: INDEPENDENT_HOLDOUT_REDISTRIBUTION_FALLBACK.to_string(),
             checksum: independent_holdout_source_checksum(),
         };
         assert_eq!(
@@ -29313,6 +29365,17 @@ mod tests {
             drifted_columns.validate(),
             Err(
                 IndependentHoldoutSourceSummaryValidationError::FieldOutOfSync { field: "columns" }
+            )
+        );
+
+        let mut drifted_redistribution = independent_holdout_source_summary();
+        drifted_redistribution.redistribution = "fixture redistribution drift".to_string();
+        assert_eq!(
+            drifted_redistribution.validate(),
+            Err(
+                IndependentHoldoutSourceSummaryValidationError::FieldOutOfSync {
+                    field: "redistribution"
+                }
             )
         );
     }

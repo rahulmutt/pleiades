@@ -14,6 +14,7 @@ Provide documented public source inputs broad enough for backend validation, rel
 - Record source provenance, frame, time scale, columns/channels, source revision, generation command, checksums, and redistribution posture.
 - Completed: the production-generation source summary now records the generation command alongside the checked-in CSV provenance, frame, time scale, schema, and checksum markers.
 - Completed: the production-generation boundary source summary now stages and verifies in the release bundle alongside the reference snapshot source summary.
+- Completed: the independent hold-out source summary now surfaces redistribution posture in release-facing reports so the hybrid fixture corpus provenance stays explicit alongside checksum-bearing source metadata.
 - Completed: the reference and hold-out snapshot manifests now record a redistribution posture comment so the checked-in fixture headers carry the same provenance posture as the generation summaries.
 - Expand coverage only where it supports release claims or artifact fitting.
 - Keep reference, hold-out, boundary-overlay, fixture-exactness, and provenance-only evidence classes separate.
