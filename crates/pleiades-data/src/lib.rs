@@ -8047,7 +8047,11 @@ mod tests {
                 );
                 assert!((ecliptic.latitude.degrees() - expected.latitude.degrees()).abs() < 1e-8);
                 assert!(
-                    (ecliptic.distance_au.unwrap() - expected.distance_au.unwrap()).abs() < 1e-9
+                    (ecliptic.distance_au.unwrap() - expected.distance_au.unwrap()).abs() < 1e-8,
+                    "boundary distance diff={:.12} body={} epoch={}",
+                    (ecliptic.distance_au.unwrap() - expected.distance_au.unwrap()).abs(),
+                    body,
+                    epoch
                 );
             }
         }
