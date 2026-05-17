@@ -2957,6 +2957,8 @@ pub struct ReleaseBundle {
     pub workspace_status: String,
     /// Rust compiler version recorded when the bundle was generated.
     pub rustc_version: String,
+    /// Cargo version recorded when the bundle was generated.
+    pub cargo_version: String,
     /// Output directory chosen by the caller.
     pub output_dir: PathBuf,
     /// Path to the generated compatibility profile file.
@@ -4161,6 +4163,7 @@ impl fmt::Display for ReleaseBundle {
         writeln!(f, "  source revision: {}", self.source_revision)?;
         writeln!(f, "  workspace status: {}", self.workspace_status)?;
         writeln!(f, "  rustc version: {}", self.rustc_version)?;
+        writeln!(f, "  cargo version: {}", self.cargo_version)?;
         writeln!(f, "  validation rounds: {}", self.validation_rounds)?;
         writeln!(
             f,
@@ -4615,6 +4618,7 @@ impl ReleaseBundle {
         ensure_canonical_manifest_value(&self.source_revision, "source revision")?;
         ensure_canonical_manifest_value(&self.workspace_status, "workspace status")?;
         ensure_canonical_manifest_value(&self.rustc_version, "rustc version")?;
+        ensure_canonical_manifest_value(&self.cargo_version, "cargo version")?;
         if self.validation_rounds == 0 {
             return Err(ReleaseBundleError::Verification(
                 "release bundle validation rounds must be greater than zero".to_string(),
@@ -9857,10 +9861,11 @@ packaged-artifact generation manifest checksum sidecar: packaged-artifact-genera
 packaged-artifact generation manifest checksum sidecar checksum (fnv1a-64): 0x{packaged_artifact_generation_manifest_checksum_checksum:016x}
 packaged-artifact generation manifest summary: packaged-artifact-generation-manifest-summary.txt
 packaged-artifact generation manifest summary checksum (fnv1a-64): 0x{packaged_artifact_generation_manifest_summary_checksum:016x}
-benchmark-corpus summary: benchmark-corpus-summary.txt\nbenchmark-corpus summary checksum (fnv1a-64): 0x{benchmark_corpus_summary_checksum:016x}\nbenchmark report: benchmark-report.txt\nbenchmark report checksum (fnv1a-64): 0x{benchmark_report_checksum:016x}\nvalidation report: validation-report.txt\nvalidation report checksum (fnv1a-64): 0x{validation_report_checksum:016x}\nsource revision: {}\nworkspace status: {}\nrustc version: {}\nprofile id: {}\napi stability posture id: {}\nvalidation rounds: {}\n",
+benchmark-corpus summary: benchmark-corpus-summary.txt\nbenchmark-corpus summary checksum (fnv1a-64): 0x{benchmark_corpus_summary_checksum:016x}\nbenchmark report: benchmark-report.txt\nbenchmark report checksum (fnv1a-64): 0x{benchmark_report_checksum:016x}\nvalidation report: validation-report.txt\nvalidation report checksum (fnv1a-64): 0x{validation_report_checksum:016x}\nsource revision: {}\nworkspace status: {}\nrustc version: {}\ncargo version: {}\nprofile id: {}\napi stability posture id: {}\nvalidation rounds: {}\n",
         provenance.source_revision,
         provenance.workspace_status,
         provenance.rustc_version,
+        provenance.cargo_version,
         current_compatibility_profile().profile_id,
         current_api_stability_profile().profile_id,
         rounds,
@@ -10264,6 +10269,7 @@ struct ParsedReleaseBundleManifest {
     source_revision: String,
     workspace_status: String,
     rustc_version: String,
+    cargo_version: String,
     profile_id: String,
     api_stability_posture_id: String,
     validation_rounds: usize,
@@ -10751,6 +10757,7 @@ impl ParsedReleaseBundleManifest {
             source_revision: parse_manifest_string(text, "source revision:")?,
             workspace_status: parse_manifest_string(text, "workspace status:")?,
             rustc_version: parse_manifest_string(text, "rustc version:")?,
+            cargo_version: parse_manifest_string(text, "cargo version:")?,
             profile_id: parse_manifest_string(text, "profile id:")?,
             api_stability_posture_id: parse_manifest_string(text, "api stability posture id:")?,
             validation_rounds: parse_manifest_usize(
@@ -10869,7 +10876,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
 fn ensure_release_bundle_manifest_is_canonical(
     manifest_text: &str,
 ) -> Result<(), ReleaseBundleError> {
-    const EXPECTED_MANIFEST_LINES: [&str; 147] = [
+    const EXPECTED_MANIFEST_LINES: [&str; 148] = [
         "Release bundle manifest",
         "profile:",
         "profile checksum (fnv1a-64):",
@@ -11014,6 +11021,7 @@ fn ensure_release_bundle_manifest_is_canonical(
         "source revision:",
         "workspace status:",
         "rustc version:",
+        "cargo version:",
         "profile id:",
         "api stability posture id:",
         "validation rounds:",
@@ -11501,6 +11509,7 @@ fn verify_release_bundle(
     ensure_canonical_manifest_value(&manifest.source_revision, "source revision")?;
     ensure_canonical_manifest_value(&manifest.workspace_status, "workspace status")?;
     ensure_canonical_manifest_value(&manifest.rustc_version, "rustc version")?;
+    ensure_canonical_manifest_value(&manifest.cargo_version, "cargo version")?;
     ensure_canonical_manifest_value(&manifest.profile_id, "profile id")?;
     ensure_canonical_manifest_value(
         &manifest.api_stability_posture_id,
@@ -12624,6 +12633,7 @@ fn verify_release_bundle(
         source_revision: manifest.source_revision,
         workspace_status: manifest.workspace_status,
         rustc_version: manifest.rustc_version,
+        cargo_version: manifest.cargo_version,
         output_dir: output_dir.to_path_buf(),
         compatibility_profile_path: profile_path,
         compatibility_profile_summary_path: profile_summary_path,
@@ -25818,6 +25828,7 @@ version = "0.9.0"
         assert!(rendered.contains("compatibility-profile-summary.txt"));
         assert!(rendered.contains("validation rounds: 1"));
         assert!(rendered.contains("release-notes.txt"));
+        assert!(rendered.contains("cargo version:"));
         assert!(rendered.contains("release-notes-summary.txt"));
         assert!(rendered.contains("release-checklist.txt"));
         assert!(rendered.contains("backend-matrix.txt"));
@@ -26866,6 +26877,7 @@ version = "0.9.0"
         assert!(manifest.contains("source revision:"));
         assert!(manifest.contains("workspace status:"));
         assert!(manifest.contains("rustc version:"));
+        assert!(manifest.contains("cargo version:"));
         assert!(manifest.contains("profile checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("profile summary checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("release notes checksum (fnv1a-64): 0x"));
@@ -26943,6 +26955,7 @@ version = "0.9.0"
         assert!(verified.contains("source revision:"));
         assert!(verified.contains("workspace status:"));
         assert!(verified.contains("rustc version:"));
+        assert!(verified.contains("cargo version:"));
         assert!(verified.contains("validation rounds: 1"));
         assert!(verified.contains("release notes checksum: 0x"));
         assert!(verified.contains("release notes summary checksum: 0x"));
@@ -27058,6 +27071,18 @@ version = "0.9.0"
     }
 
     #[test]
+    fn verify_release_bundle_rejects_missing_cargo_version_entry() {
+        assert_release_bundle_rejects_missing_manifest_entry(
+            "pleiades-release-bundle-missing-cargo",
+            "cargo version:",
+            &[
+                "missing manifest entry: cargo version:",
+                "missing cargo version entry",
+            ],
+        );
+    }
+
+    #[test]
     fn verify_release_bundle_rejects_blank_source_revision_entry() {
         assert_release_bundle_rejects_blank_manifest_value(
             "pleiades-release-bundle-blank-source-revision",
@@ -27081,6 +27106,15 @@ version = "0.9.0"
             "pleiades-release-bundle-blank-rustc",
             "rustc version:",
             &["missing rustc version entry"],
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_blank_cargo_version_entry() {
+        assert_release_bundle_rejects_blank_manifest_value(
+            "pleiades-release-bundle-blank-cargo",
+            "cargo version:",
+            &["missing cargo version entry"],
         );
     }
 
@@ -27115,6 +27149,18 @@ version = "0.9.0"
             "rustc version:",
             &[
                 "duplicate entry: rustc version:",
+                "release bundle verification failed",
+            ],
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_duplicate_cargo_version_entry() {
+        assert_release_bundle_rejects_duplicate_manifest_entry(
+            "pleiades-release-bundle-duplicate-cargo",
+            "cargo version:",
+            &[
+                "duplicate entry: cargo version:",
                 "release bundle verification failed",
             ],
         );
