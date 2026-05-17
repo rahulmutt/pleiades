@@ -58,9 +58,10 @@ use pleiades_compression::{
 };
 use pleiades_jpl::{
     comparison_snapshot_body_class_coverage_summary, format_reference_snapshot_summary,
-    independent_holdout_snapshot_body_class_coverage_summary,
+    independent_holdout_snapshot_body_class_coverage_summary, production_generation_source_summary,
     production_generation_source_summary_for_report, reference_snapshot,
-    reference_snapshot_summary, JplSnapshotBackend, ReferenceSnapshotSummary, SnapshotEntry,
+    reference_snapshot_summary, JplSnapshotBackend, ProductionGenerationSourceSummary,
+    ReferenceSnapshotSummary, SnapshotEntry,
 };
 
 const PACKAGE_NAME: &str = "pleiades-data";
@@ -2460,7 +2461,7 @@ const PACKAGED_ARTIFACT_TARGET_THRESHOLD_SCOPES: &[&str] = &[
 ];
 
 /// Phase-2 corpus evidence used to keep the packaged-artifact threshold policy aligned
-/// with the current reference, comparison, hold-out, and selected-asteroid corpora.
+/// with the current reference, comparison, hold-out, selected-asteroid, and production-generation corpora.
 #[derive(Clone, Debug, PartialEq)]
 pub struct PackagedArtifactPhase2CorpusAlignmentSummary {
     /// Source-material evidence from the checked-in reference snapshot.
@@ -2479,13 +2480,15 @@ pub struct PackagedArtifactPhase2CorpusAlignmentSummary {
     pub selected_asteroid_source: pleiades_jpl::SelectedAsteroidSourceSummary,
     /// Source-backed window evidence for the selected-asteroid validation corpus.
     pub selected_asteroid_source_windows: pleiades_jpl::SelectedAsteroidSourceWindowSummary,
+    /// Combined provenance for the checked-in production-generation corpus.
+    pub production_generation_source: ProductionGenerationSourceSummary,
 }
 
 impl PackagedArtifactPhase2CorpusAlignmentSummary {
     /// Returns the phase-2 corpus alignment posture as a compact human-readable line.
     pub fn summary_line(&self) -> String {
         format!(
-            "reference source={}; reference snapshot={}; comparison source={}; comparison snapshot={}; independent hold-out source={}; independent hold-out={}; selected asteroid source evidence={}; selected asteroid source windows={}",
+            "reference source={}; reference snapshot={}; comparison source={}; comparison snapshot={}; independent hold-out source={}; independent hold-out={}; selected asteroid source evidence={}; selected asteroid source windows={}; production generation source={}",
             self.reference_snapshot_source.summary_line(),
             self.reference_snapshot.summary_line(),
             self.comparison_snapshot_source.summary_line(),
@@ -2494,6 +2497,7 @@ impl PackagedArtifactPhase2CorpusAlignmentSummary {
             self.independent_holdout.summary_line(),
             self.selected_asteroid_source.summary_line(),
             self.selected_asteroid_source_windows.summary_line(),
+            self.production_generation_source.summary_line(),
         )
     }
 
@@ -2557,6 +2561,11 @@ impl PackagedArtifactPhase2CorpusAlignmentSummary {
                     field: "phase2_corpus_alignment",
                 },
             )?;
+        self.production_generation_source.validate().map_err(|_| {
+            PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+                field: "phase2_corpus_alignment",
+            }
+        })?;
 
         Ok(())
     }
@@ -2588,6 +2597,7 @@ pub fn packaged_artifact_phase2_corpus_alignment_summary_details(
         independent_holdout: independent_holdout_snapshot_body_class_coverage_summary()?,
         selected_asteroid_source: pleiades_jpl::selected_asteroid_source_evidence_summary()?,
         selected_asteroid_source_windows: pleiades_jpl::selected_asteroid_source_window_summary()?,
+        production_generation_source: production_generation_source_summary(),
     })
 }
 
@@ -9170,6 +9180,10 @@ mod tests {
         assert!(summary
             .phase2_corpus_alignment
             .summary_line()
+            .contains("production generation source=Production generation source:"));
+        assert!(summary
+            .phase2_corpus_alignment
+            .summary_line()
             .contains("Reference snapshot body-class coverage"));
         assert!(summary
             .phase2_corpus_alignment
@@ -9223,11 +9237,33 @@ mod tests {
     }
 
     #[test]
+    fn packaged_artifact_target_threshold_summary_validation_rejects_phase2_generation_source_drift(
+    ) {
+        let mut summary = packaged_artifact_target_threshold_summary_details();
+        summary
+            .phase2_corpus_alignment
+            .production_generation_source
+            .source_revision = "drifted source revision".to_string();
+
+        let error = summary
+            .validate()
+            .expect_err("phase-2 generation source drift should be rejected");
+        assert_eq!(
+            error,
+            PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+                field: "phase2_corpus_alignment",
+            }
+        );
+        assert!(error.to_string().contains("phase2_corpus_alignment"));
+    }
+
+    #[test]
     fn packaged_artifact_phase2_corpus_alignment_summary_for_report_is_validated() {
         let rendered = packaged_artifact_phase2_corpus_alignment_summary_for_report();
         assert!(rendered.contains("reference snapshot="));
         assert!(rendered.contains("comparison snapshot="));
         assert!(rendered.contains("independent hold-out="));
+        assert!(rendered.contains("production generation source=Production generation source:"));
         assert!(rendered.contains("Reference snapshot body-class coverage"));
         assert!(rendered.contains("Independent hold-out body-class coverage"));
     }
