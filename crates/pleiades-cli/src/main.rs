@@ -5301,7 +5301,7 @@ mod tests {
         assert!(regenerated.contains("Packaged artifact regenerated"));
         assert!(regenerated.contains("stage-5 packaged-data draft"));
         assert!(regenerated.contains("checksum=0x"));
-        assert!(regenerated.contains("generation policy: adjacent same-body cubic windows"));
+        assert!(regenerated.contains("generation policy: adjacent same-body quadratic windows"));
         assert!(regenerated.contains("11 bundled bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros)"));
         assert!(regenerated.contains("Packaged artifact regeneration source:"));
         assert!(regenerated.contains("Reference snapshot coverage:"));
