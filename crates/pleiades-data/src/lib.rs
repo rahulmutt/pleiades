@@ -60,8 +60,8 @@ use pleiades_jpl::{
     comparison_snapshot_body_class_coverage_summary, format_reference_snapshot_summary,
     independent_holdout_snapshot_body_class_coverage_summary, production_generation_source_summary,
     production_generation_source_summary_for_report, reference_snapshot,
-    reference_snapshot_summary, JplSnapshotBackend, ProductionGenerationSourceSummary,
-    ReferenceSnapshotSummary, SnapshotEntry,
+    reference_snapshot_summary, selected_asteroid_source_request_corpus_summary,
+    JplSnapshotBackend, ProductionGenerationSourceSummary, ReferenceSnapshotSummary, SnapshotEntry,
 };
 
 const PACKAGE_NAME: &str = "pleiades-data";
@@ -2490,6 +2490,9 @@ pub struct PackagedArtifactPhase2CorpusAlignmentSummary {
     pub selected_asteroid_source: pleiades_jpl::SelectedAsteroidSourceSummary,
     /// Source-backed window evidence for the selected-asteroid validation corpus.
     pub selected_asteroid_source_windows: pleiades_jpl::SelectedAsteroidSourceWindowSummary,
+    /// Checked-in request-corpus evidence for the selected-asteroid validation corpus.
+    pub selected_asteroid_source_request_corpus:
+        pleiades_jpl::SelectedAsteroidSourceRequestCorpusSummary,
     /// Body-class coverage evidence for the checked-in production-generation corpus.
     pub production_generation_body_class_coverage:
         pleiades_jpl::ProductionGenerationSnapshotBodyClassCoverageSummary,
@@ -2501,7 +2504,7 @@ impl PackagedArtifactPhase2CorpusAlignmentSummary {
     /// Returns the phase-2 corpus alignment posture as a compact human-readable line.
     pub fn summary_line(&self) -> String {
         format!(
-            "reference source={}; reference snapshot={}; comparison source={}; comparison snapshot={}; independent hold-out source={}; independent hold-out={}; selected asteroid source evidence={}; selected asteroid source windows={}; production generation body-class coverage={}; production generation source={}",
+            "reference source={}; reference snapshot={}; comparison source={}; comparison snapshot={}; independent hold-out source={}; independent hold-out={}; selected asteroid source evidence={}; selected asteroid source windows={}; selected asteroid source request corpus={}; production generation body-class coverage={}; production generation source={}",
             self.reference_snapshot_source.summary_line(),
             self.reference_snapshot.summary_line(),
             self.comparison_snapshot_source.summary_line(),
@@ -2510,6 +2513,7 @@ impl PackagedArtifactPhase2CorpusAlignmentSummary {
             self.independent_holdout.summary_line(),
             self.selected_asteroid_source.summary_line(),
             self.selected_asteroid_source_windows.summary_line(),
+            self.selected_asteroid_source_request_corpus.summary_line(),
             self.production_generation_body_class_coverage.summary_line(),
             self.production_generation_source.summary_line(),
         )
@@ -2575,6 +2579,13 @@ impl PackagedArtifactPhase2CorpusAlignmentSummary {
                     field: "phase2_corpus_alignment",
                 },
             )?;
+        self.selected_asteroid_source_request_corpus
+            .validate()
+            .map_err(
+                |_| PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+                    field: "phase2_corpus_alignment",
+                },
+            )?;
         self.production_generation_body_class_coverage
             .validate()
             .map_err(
@@ -2618,6 +2629,9 @@ pub fn packaged_artifact_phase2_corpus_alignment_summary_details(
         independent_holdout: independent_holdout_snapshot_body_class_coverage_summary()?,
         selected_asteroid_source: pleiades_jpl::selected_asteroid_source_evidence_summary()?,
         selected_asteroid_source_windows: pleiades_jpl::selected_asteroid_source_window_summary()?,
+        selected_asteroid_source_request_corpus: selected_asteroid_source_request_corpus_summary(
+            CoordinateFrame::Ecliptic,
+        )?,
         production_generation_body_class_coverage:
             pleiades_jpl::production_generation_snapshot_body_class_coverage_summary()?,
         production_generation_source: production_generation_source_summary(),
@@ -9903,6 +9917,9 @@ mod tests {
             .summary_line()
             .contains("selected asteroid source windows=Selected asteroid source windows:"));
         assert!(summary.phase2_corpus_alignment.summary_line().contains(
+            "selected asteroid source request corpus=Selected asteroid source request corpus:"
+        ));
+        assert!(summary.phase2_corpus_alignment.summary_line().contains(
             "production generation body-class coverage=Production generation body-class coverage:"
         ));
         assert!(summary
@@ -9986,6 +10003,26 @@ mod tests {
     }
 
     #[test]
+    fn packaged_artifact_target_threshold_summary_validation_rejects_phase2_request_corpus_drift() {
+        let mut summary = packaged_artifact_target_threshold_summary_details();
+        summary
+            .phase2_corpus_alignment
+            .selected_asteroid_source_request_corpus
+            .request_count += 1;
+
+        let error = summary
+            .validate()
+            .expect_err("phase-2 request corpus drift should be rejected");
+        assert_eq!(
+            error,
+            PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+                field: "phase2_corpus_alignment",
+            }
+        );
+        assert!(error.to_string().contains("phase2_corpus_alignment"));
+    }
+
+    #[test]
     fn packaged_artifact_phase2_corpus_alignment_summary_for_report_is_validated() {
         let rendered = packaged_artifact_phase2_corpus_alignment_summary_for_report();
         assert!(rendered.contains("reference snapshot="));
@@ -9997,6 +10034,9 @@ mod tests {
         assert!(rendered.contains("production generation source=Production generation source:"));
         assert!(rendered.contains("Reference snapshot body-class coverage"));
         assert!(rendered.contains("Independent hold-out body-class coverage"));
+        assert!(rendered.contains(
+            "selected asteroid source request corpus=Selected asteroid source request corpus:"
+        ));
     }
 
     #[test]
@@ -10029,6 +10069,9 @@ mod tests {
         assert!(summary
             .summary_line()
             .contains("phase 2 corpus alignment=reference source="));
+        assert!(summary.summary_line().contains(
+            "selected asteroid source request corpus=Selected asteroid source request corpus:"
+        ));
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(

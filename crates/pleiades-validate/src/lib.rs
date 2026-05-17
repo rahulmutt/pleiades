@@ -21771,6 +21771,9 @@ mod tests {
         assert!(rendered.contains("Packaged-artifact target-threshold scope envelopes: scope envelopes: scope=luminaries; bodies=2 (Sun, Moon); fit envelope:"));
         assert!(rendered.contains("Packaged-artifact phase-2 corpus alignment: "));
         assert!(rendered.contains(
+            "selected asteroid source request corpus=Selected asteroid source request corpus:"
+        ));
+        assert!(rendered.contains(
             "Packaged-artifact generation manifest: Packaged artifact generation manifest:"
         ));
         assert!(rendered.contains("Packaged batch parity:"));
@@ -26511,6 +26514,9 @@ version = "0.9.0"
         assert!(release_summary.contains("Packaged-artifact target-threshold scope envelopes: scope envelopes: scope=luminaries; bodies=2 (Sun, Moon); fit envelope:"));
         assert!(release_summary.contains("Packaged-artifact source-fit and hold-out sync: "));
         assert!(release_summary.contains(
+            "selected asteroid source request corpus=Selected asteroid source request corpus:"
+        ));
+        assert!(release_summary.contains(
             "Packaged-artifact generation manifest: Packaged artifact generation manifest:"
         ));
         assert!(release_summary.contains("Packaged-artifact size: "));
@@ -26778,6 +26784,9 @@ version = "0.9.0"
         ));
         assert!(artifact_summary.contains("Generation manifest:"));
         assert!(artifact_summary.contains("Packaged-artifact phase-2 corpus alignment: "));
+        assert!(artifact_summary.contains(
+            "selected asteroid source request corpus=Selected asteroid source request corpus:"
+        ));
         assert!(artifact_summary.contains("Packaged-artifact source-fit and hold-out sync: "));
         assert!(artifact_summary.contains("Packaged artifact generation manifest:"));
         assert!(artifact_summary.contains("Artifact request policy"));
