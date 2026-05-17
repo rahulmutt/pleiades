@@ -1820,6 +1820,27 @@ struct BodyClassSummary {
     percentile_distance_delta_au: Option<f64>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum BodyClassSummaryValidationError {
+    MissingSamples,
+    FieldOutOfSync { class: BodyClass },
+}
+
+impl fmt::Display for BodyClassSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::MissingSamples => f.write_str("body-class summary is unavailable"),
+            Self::FieldOutOfSync { class } => write!(
+                f,
+                "the body-class summary for {} is out of sync with the current evidence",
+                class.label()
+            ),
+        }
+    }
+}
+
+impl std::error::Error for BodyClassSummaryValidationError {}
+
 #[derive(Clone, Debug)]
 struct BodyClassToleranceSummary {
     class: BodyClass,
@@ -2282,6 +2303,72 @@ impl fmt::Display for BodyClassToleranceSummary {
 }
 
 impl BodyClassSummary {
+    fn validate(&self) -> Result<(), BodyClassSummaryValidationError> {
+        if self.sample_count == 0 {
+            return Err(BodyClassSummaryValidationError::MissingSamples);
+        }
+
+        for (_label, value) in [
+            ("max_longitude_delta_deg", self.max_longitude_delta_deg),
+            ("sum_longitude_delta_deg", self.sum_longitude_delta_deg),
+            (
+                "sum_longitude_delta_sq_deg",
+                self.sum_longitude_delta_sq_deg,
+            ),
+            (
+                "median_longitude_delta_deg",
+                self.median_longitude_delta_deg,
+            ),
+            (
+                "percentile_longitude_delta_deg",
+                self.percentile_longitude_delta_deg,
+            ),
+            ("max_latitude_delta_deg", self.max_latitude_delta_deg),
+            ("sum_latitude_delta_deg", self.sum_latitude_delta_deg),
+            ("sum_latitude_delta_sq_deg", self.sum_latitude_delta_sq_deg),
+            ("median_latitude_delta_deg", self.median_latitude_delta_deg),
+            (
+                "percentile_latitude_delta_deg",
+                self.percentile_latitude_delta_deg,
+            ),
+            ("sum_distance_delta_au", self.sum_distance_delta_au),
+            ("sum_distance_delta_sq_au", self.sum_distance_delta_sq_au),
+        ] {
+            if !value.is_finite() || value.is_sign_negative() {
+                return Err(BodyClassSummaryValidationError::FieldOutOfSync { class: self.class });
+            }
+        }
+
+        if self.max_longitude_delta_body.is_none() || self.max_latitude_delta_body.is_none() {
+            return Err(BodyClassSummaryValidationError::FieldOutOfSync { class: self.class });
+        }
+
+        if self.distance_count == 0 {
+            if self.max_distance_delta_body.is_some()
+                || self.max_distance_delta_au.is_some()
+                || self.median_distance_delta_au.is_some()
+                || self.percentile_distance_delta_au.is_some()
+            {
+                return Err(BodyClassSummaryValidationError::FieldOutOfSync { class: self.class });
+            }
+        } else {
+            if self.max_distance_delta_body.is_none()
+                || self.max_distance_delta_au.is_none()
+                || self.median_distance_delta_au.is_none()
+                || self.percentile_distance_delta_au.is_none()
+            {
+                return Err(BodyClassSummaryValidationError::FieldOutOfSync { class: self.class });
+            }
+        }
+
+        Ok(())
+    }
+
+    fn validated_summary_line(&self) -> Result<String, BodyClassSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+
     fn mean_longitude_delta_deg(&self) -> f64 {
         if self.sample_count == 0 {
             0.0
@@ -2386,7 +2473,10 @@ impl BodyClassSummary {
         }
 
         writeln!(f, "  {}", self.class.label())?;
-        writeln!(f, "    {}", self.summary_line())?;
+        match self.validated_summary_line() {
+            Ok(summary_line) => writeln!(f, "    {}", summary_line)?,
+            Err(error) => writeln!(f, "    body-class error envelope unavailable ({error})")?,
+        }
 
         Ok(())
     }
@@ -13421,7 +13511,10 @@ fn format_comparison_envelope_for_report(
 }
 
 fn format_body_class_comparison_envelope_for_report(summary: &BodyClassSummary) -> String {
-    summary.summary_line()
+    match summary.validated_summary_line() {
+        Ok(line) => line,
+        Err(error) => format!("body-class error envelope unavailable ({error})"),
+    }
 }
 
 fn format_body_class_tolerance_envelope_for_report(summary: &BodyClassToleranceSummary) -> String {
@@ -21333,10 +21426,53 @@ mod tests {
         let expected = "samples=1, max Δlon=1.234000000000° (Mars), mean Δlon=1.000000000000°, median Δlon=1.000000000000°, 95th percentile longitude delta: 1.000000000000°, rms Δlon=1.000000000000°, max Δlat=0.500000000000° (Mars), mean Δlat=0.500000000000°, median Δlat=0.500000000000°, 95th percentile latitude delta: 0.500000000000°, rms Δlat=0.500000000000°, max Δdist=2.500000000000 AU (Mars), mean Δdist=2.500000000000 AU, median Δdist=2.500000000000 AU, 95th percentile distance delta: 2.500000000000 AU, rms Δdist=2.500000000000 AU";
 
         assert_eq!(summary.summary_line(), expected);
+        assert_eq!(summary.validated_summary_line(), Ok(expected.to_string()));
         assert_eq!(summary.to_string(), expected);
         assert_eq!(
             format_body_class_comparison_envelope_for_report(&summary),
             expected
+        );
+    }
+
+    #[test]
+    fn body_class_summary_validation_rejects_drift() {
+        let mut summary = BodyClassSummary {
+            class: BodyClass::MajorPlanet,
+            sample_count: 1,
+            max_longitude_delta_body: Some(CelestialBody::Mars),
+            max_longitude_delta_deg: 1.234,
+            sum_longitude_delta_deg: 1.0,
+            sum_longitude_delta_sq_deg: 1.0,
+            median_longitude_delta_deg: 1.0,
+            percentile_longitude_delta_deg: 1.0,
+            max_latitude_delta_body: Some(CelestialBody::Mars),
+            max_latitude_delta_deg: 0.5,
+            sum_latitude_delta_deg: 0.5,
+            sum_latitude_delta_sq_deg: 0.25,
+            median_latitude_delta_deg: 0.5,
+            percentile_latitude_delta_deg: 0.5,
+            max_distance_delta_body: Some(CelestialBody::Mars),
+            max_distance_delta_au: Some(2.5),
+            sum_distance_delta_au: 2.5,
+            sum_distance_delta_sq_au: 6.25,
+            distance_count: 1,
+            median_distance_delta_au: Some(2.5),
+            percentile_distance_delta_au: Some(2.5),
+        };
+
+        summary.max_latitude_delta_body = None;
+
+        assert_eq!(
+            summary.validate(),
+            Err(BodyClassSummaryValidationError::FieldOutOfSync {
+                class: BodyClass::MajorPlanet
+            })
+        );
+        assert_eq!(
+            summary.validated_summary_line(),
+            Err(BodyClassSummaryValidationError::FieldOutOfSync {
+                class: BodyClass::MajorPlanet
+            })
         );
     }
 
