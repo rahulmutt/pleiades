@@ -12600,6 +12600,7 @@ fn verify_release_bundle(
             manifest.catalog_inventory_summary_checksum, catalog_inventory_summary_checksum
         )));
     }
+    ensure_catalog_inventory_alignment(&catalog_inventory_summary_text)?;
     if manifest.custom_definition_ayanamsa_labels_summary_checksum
         != custom_definition_ayanamsa_labels_summary_checksum
     {
@@ -12609,6 +12610,9 @@ fn verify_release_bundle(
             custom_definition_ayanamsa_labels_summary_checksum
         )));
     }
+    ensure_custom_definition_ayanamsa_labels_alignment(
+        &custom_definition_ayanamsa_labels_summary_text,
+    )?;
     if manifest.validation_report_summary_checksum != validation_report_summary_checksum {
         return Err(ReleaseBundleError::Verification(format!(
             "validation report summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
@@ -13262,6 +13266,36 @@ fn ensure_release_profile_identifiers_alignment(
     if found != expected {
         return Err(ReleaseBundleError::Verification(format!(
             "release-profile identifiers mismatch: expected '{expected}', found '{found}'"
+        )));
+    }
+
+    Ok(())
+}
+
+fn ensure_catalog_inventory_alignment(text: &str) -> Result<(), ReleaseBundleError> {
+    let expected = current_compatibility_profile()
+        .validated_catalog_inventory_summary_line()
+        .map_err(|error| ReleaseBundleError::Verification(error.to_string()))?;
+    let found = text.trim_end();
+    if found != expected {
+        return Err(ReleaseBundleError::Verification(format!(
+            "catalog inventory summary mismatch: expected '{expected}', found '{found}'"
+        )));
+    }
+
+    Ok(())
+}
+
+fn ensure_custom_definition_ayanamsa_labels_alignment(
+    text: &str,
+) -> Result<(), ReleaseBundleError> {
+    let expected = current_compatibility_profile()
+        .validated_custom_definition_ayanamsa_labels_summary_line()
+        .map_err(|error| ReleaseBundleError::Verification(error.to_string()))?;
+    let found = text.trim_end();
+    if found != expected {
+        return Err(ReleaseBundleError::Verification(format!(
+            "custom-definition ayanamsa labels summary mismatch: expected '{expected}', found '{found}'"
         )));
     }
 
@@ -28501,6 +28535,12 @@ version = "0.9.0"
         let release_profile_identifiers = format!(
             "Release profile identifiers: v1 compatibility={profile_id}, api-stability={api_stability_posture_id}\n"
         );
+        let catalog_inventory = current_compatibility_profile()
+            .validated_catalog_inventory_summary_line()
+            .expect("catalog inventory summary should validate");
+        let custom_definition_ayanamsa_labels = current_compatibility_profile()
+            .validated_custom_definition_ayanamsa_labels_summary_line()
+            .expect("custom-definition ayanamsa labels summary should validate");
 
         ensure_release_profile_line_alignment(
             "release notes",
@@ -28535,6 +28575,10 @@ version = "0.9.0"
             api_stability_posture_id,
         )
         .expect("matching release profile identifiers should verify");
+        ensure_catalog_inventory_alignment(&catalog_inventory)
+            .expect("matching catalog inventory should verify");
+        ensure_custom_definition_ayanamsa_labels_alignment(&custom_definition_ayanamsa_labels)
+            .expect("matching custom-definition labels should verify");
     }
 
     #[test]
@@ -28566,6 +28610,20 @@ version = "0.9.0"
         assert!(error
             .to_string()
             .contains("release-profile identifiers mismatch"));
+
+        let error = ensure_catalog_inventory_alignment("Compatibility catalog inventory: tampered")
+            .expect_err("mismatched catalog inventory should fail");
+        assert!(error
+            .to_string()
+            .contains("catalog inventory summary mismatch"));
+
+        let error = ensure_custom_definition_ayanamsa_labels_alignment(
+            "Babylonian (House), Babylonian (Sissy)",
+        )
+        .expect_err("mismatched custom-definition labels should fail");
+        assert!(error
+            .to_string()
+            .contains("custom-definition ayanamsa labels summary mismatch"));
     }
 
     #[test]
