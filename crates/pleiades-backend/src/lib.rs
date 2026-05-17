@@ -2410,6 +2410,14 @@ pub const fn request_policy_summary_for_report() -> RequestPolicySummary {
     current_request_policy_summary()
 }
 
+/// Returns the validated request-policy summary line used by validation and release reporting.
+pub fn validated_request_policy_summary_for_report() -> String {
+    match current_request_policy_summary().validated_summary_line() {
+        Ok(summary) => summary,
+        Err(error) => format!("request policy unavailable ({error})"),
+    }
+}
+
 /// Returns the request-semantics posture used by validation and release reporting.
 ///
 /// This is a backend-layer alias for [`request_policy_summary_for_report()`]
@@ -2424,9 +2432,25 @@ pub const fn observer_policy_summary_for_report() -> ObserverPolicySummary {
     current_observer_policy_summary()
 }
 
+/// Returns the validated observer-policy summary line used by validation and release reporting.
+pub fn validated_observer_policy_summary_for_report() -> String {
+    match current_observer_policy_summary().validated_summary_line() {
+        Ok(summary) => summary.to_string(),
+        Err(error) => format!("observer policy unavailable ({error})"),
+    }
+}
+
 /// Returns the apparentness-policy posture used by validation and release reporting.
 pub const fn apparentness_policy_summary_for_report() -> ApparentnessPolicySummary {
     current_apparentness_policy_summary()
+}
+
+/// Returns the validated apparentness-policy summary line used by validation and release reporting.
+pub fn validated_apparentness_policy_summary_for_report() -> String {
+    match current_apparentness_policy_summary().validated_summary_line() {
+        Ok(summary) => summary.to_string(),
+        Err(error) => format!("apparentness policy unavailable ({error})"),
+    }
 }
 
 /// Validates the request-shape policy shared by the current first-party backends.
@@ -2706,9 +2730,25 @@ pub const fn time_scale_policy_summary_for_report() -> TimeScalePolicySummary {
     current_time_scale_policy_summary()
 }
 
+/// Returns the validated compact time-scale policy summary line used by validation and release reporting.
+pub fn validated_time_scale_policy_summary_for_report() -> String {
+    match current_time_scale_policy_summary().validated_summary_line() {
+        Ok(summary) => summary.to_string(),
+        Err(error) => format!("time-scale policy unavailable ({error})"),
+    }
+}
+
 /// Returns the compact report wording for the current Delta T policy.
 pub const fn delta_t_policy_summary_for_report() -> DeltaTPolicySummary {
     current_delta_t_policy_summary()
+}
+
+/// Returns the validated compact Delta T policy summary line used by validation and release reporting.
+pub fn validated_delta_t_policy_summary_for_report() -> String {
+    match current_delta_t_policy_summary().validated_summary_line() {
+        Ok(summary) => summary.to_string(),
+        Err(error) => format!("Delta T policy unavailable ({error})"),
+    }
 }
 
 /// Returns the compact report wording for the current frame policy.
@@ -3402,6 +3442,32 @@ mod tests {
         assert_eq!(
             validated_utc_convenience_policy_summary_for_report(),
             CURRENT_UTC_CONVENIENCE_POLICY_SUMMARY_TEXT
+        );
+    }
+
+    #[test]
+    fn validated_request_policy_component_summaries_track_the_current_posture() {
+        assert_eq!(
+            validated_time_scale_policy_summary_for_report(),
+            CURRENT_TIME_SCALE_POLICY_SUMMARY_TEXT
+        );
+        assert_eq!(
+            validated_delta_t_policy_summary_for_report(),
+            CURRENT_DELTA_T_POLICY_SUMMARY_TEXT
+        );
+        assert_eq!(
+            validated_request_policy_summary_for_report(),
+            current_request_policy_summary()
+                .validated_summary_line()
+                .unwrap()
+        );
+        assert_eq!(
+            validated_observer_policy_summary_for_report(),
+            CURRENT_OBSERVER_POLICY_SUMMARY_TEXT
+        );
+        assert_eq!(
+            validated_apparentness_policy_summary_for_report(),
+            CURRENT_APPARENTNESS_POLICY_SUMMARY_TEXT
         );
     }
 

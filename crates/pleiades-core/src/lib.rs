@@ -119,8 +119,11 @@ pub use pleiades_backend::{
     native_sidereal_policy_summary_for_report, observer_policy_summary_for_report,
     pluto_fallback_summary_for_report, release_body_claims_summary_for_report,
     request_policy_summary_for_report, time_scale_policy_summary_for_report,
-    utc_convenience_policy_summary_for_report, validated_frame_policy_summary_for_report,
+    utc_convenience_policy_summary_for_report, validated_apparentness_policy_summary_for_report,
+    validated_delta_t_policy_summary_for_report, validated_frame_policy_summary_for_report,
     validated_native_sidereal_policy_summary_for_report,
+    validated_observer_policy_summary_for_report, validated_request_policy_summary_for_report,
+    validated_time_scale_policy_summary_for_report,
     validated_utc_convenience_policy_summary_for_report, AccuracyClass, Apparentness,
     ApparentnessPolicySummary, BackendCapabilities, BackendFamily, BackendId, BackendMetadata,
     BackendProvenance, CompositeBackend, DeltaTPolicySummary, EphemerisBackend, EphemerisError,
@@ -584,6 +587,32 @@ mod tests {
         assert_eq!(
             current_summary.validated_summary_line().unwrap(),
             summary.validated_summary_line().unwrap()
+        );
+    }
+
+    #[test]
+    fn request_policy_component_summaries_are_reexported_from_backend() {
+        assert_eq!(
+            validated_time_scale_policy_summary_for_report(),
+            pleiades_backend::CURRENT_TIME_SCALE_POLICY_SUMMARY_TEXT
+        );
+        assert_eq!(
+            validated_delta_t_policy_summary_for_report(),
+            pleiades_backend::CURRENT_DELTA_T_POLICY_SUMMARY_TEXT
+        );
+        assert_eq!(
+            validated_observer_policy_summary_for_report(),
+            pleiades_backend::CURRENT_OBSERVER_POLICY_SUMMARY_TEXT
+        );
+        assert_eq!(
+            validated_apparentness_policy_summary_for_report(),
+            pleiades_backend::CURRENT_APPARENTNESS_POLICY_SUMMARY_TEXT
+        );
+        assert_eq!(
+            validated_request_policy_summary_for_report(),
+            request_policy_summary_for_report()
+                .validated_summary_line()
+                .unwrap()
         );
     }
 

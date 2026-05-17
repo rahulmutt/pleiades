@@ -11,7 +11,10 @@ use core::time::Duration;
 
 use pleiades_core::{
     default_chart_bodies, resolve_ayanamsa, resolve_house_system,
+    validated_apparentness_policy_summary_for_report, validated_delta_t_policy_summary_for_report,
     validated_frame_policy_summary_for_report, validated_native_sidereal_policy_summary_for_report,
+    validated_observer_policy_summary_for_report, validated_request_policy_summary_for_report,
+    validated_time_scale_policy_summary_for_report,
     validated_utc_convenience_policy_summary_for_report, Angle, Apparentness, Ayanamsa,
     CelestialBody, ChartEngine, ChartRequest, CompositeBackend, CustomAyanamsa, CustomBodyId,
     EphemerisError, HouseSystem, Instant, JulianDay, Latitude, Longitude, ObserverLocation,
@@ -45,45 +48,20 @@ fn ensure_no_extra_args(args: &[&str], command: &str) -> Result<(), String> {
     }
 }
 
-fn render_validated_summary_line<T, E>(summary: Result<T, E>, unavailable_label: &str) -> String
-where
-    T: AsRef<str>,
-    E: core::fmt::Display,
-{
-    match summary {
-        Ok(line) => line.as_ref().to_string(),
-        Err(error) => format!("{unavailable_label} unavailable ({error})"),
-    }
-}
-
 fn shared_request_policy_help_block() -> String {
-    let request_policy = pleiades_core::request_policy_summary_for_report();
-    let request_policy_line =
-        render_validated_summary_line(request_policy.validated_summary_line(), "Request policy");
-    let request_semantics = request_policy_line.replacen("Request policy", "Request semantics", 1);
-    let time_scale_policy = render_validated_summary_line(
-        pleiades_core::time_scale_policy_summary_for_report().validated_summary_line(),
-        "Time-scale policy",
-    );
+    let request_policy = validated_request_policy_summary_for_report();
+    let request_semantics = request_policy.replacen("Request policy", "Request semantics", 1);
+    let time_scale_policy = validated_time_scale_policy_summary_for_report();
     let utc_convenience_policy = validated_utc_convenience_policy_summary_for_report();
-    let delta_t_policy = render_validated_summary_line(
-        pleiades_core::delta_t_policy_summary_for_report().validated_summary_line(),
-        "Delta T policy",
-    );
-    let observer_policy = render_validated_summary_line(
-        pleiades_core::observer_policy_summary_for_report().validated_summary_line(),
-        "Observer policy",
-    );
-    let apparentness_policy = render_validated_summary_line(
-        pleiades_core::apparentness_policy_summary_for_report().validated_summary_line(),
-        "Apparentness policy",
-    );
+    let delta_t_policy = validated_delta_t_policy_summary_for_report();
+    let observer_policy = validated_observer_policy_summary_for_report();
+    let apparentness_policy = validated_apparentness_policy_summary_for_report();
     let native_sidereal_policy = validated_native_sidereal_policy_summary_for_report();
     let frame_policy = validated_frame_policy_summary_for_report();
 
     format!(
         "  Request policy: {}\n  Request semantics summary: {}\n  Time-scale policy: {}\n  UTC convenience policy: {}\n  Delta T policy: {}\n  Observer policy: {}\n  Apparentness policy: {}\n  Native sidereal policy: {}\n  Frame policy: {}",
-        request_policy_line,
+        request_policy,
         request_semantics,
         time_scale_policy,
         utc_convenience_policy,
