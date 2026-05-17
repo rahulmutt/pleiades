@@ -8778,6 +8778,9 @@ fn render_release_summary_text() -> String {
         Err(error) => return format!("Release summary unavailable ({error})"),
     }
     text.push('\n');
+    text.push_str("Comparison body-class tolerance: ");
+    text.push_str(&format_body_class_tolerance_posture_for_report());
+    text.push('\n');
     text.push_str("Release-grade body claims: ");
     text.push_str(&format_release_body_claims_summary_for_report());
     text.push('\n');
@@ -13750,6 +13753,46 @@ fn format_body_class_tolerance_envelope_for_report(summary: &BodyClassToleranceS
         Ok(()) => summary.summary_line(),
         Err(error) => format!("body-class tolerance envelope unavailable ({error})"),
     }
+}
+
+fn format_body_class_tolerance_posture_for_report() -> String {
+    static SUMMARY: OnceLock<String> = OnceLock::new();
+
+    SUMMARY
+        .get_or_init(|| {
+            use std::fmt::Write as _;
+
+            let report = compare_backends(
+                &default_reference_backend(),
+                &default_candidate_backend(),
+                &default_corpus(),
+            )
+            .expect("comparison body-class tolerance posture should build");
+            let summaries = report.body_class_tolerance_summaries();
+            let outlier_class_count = summaries
+                .iter()
+                .filter(|summary| summary.outside_tolerance_body_count > 0)
+                .count();
+            let outlier_bodies = summaries
+                .iter()
+                .flat_map(|summary| summary.outside_bodies.iter().cloned())
+                .collect::<Vec<_>>();
+
+            let mut text = String::new();
+            let _ = write!(
+                text,
+                "body-class tolerance posture: {} classes checked, {} classes with outlier bodies, outlier bodies: {}",
+                summaries.len(),
+                outlier_class_count,
+                if outlier_bodies.is_empty() {
+                    "none".to_string()
+                } else {
+                    format_bodies(&outlier_bodies)
+                }
+            );
+            text
+        })
+        .clone()
 }
 
 fn validate_comparison_sample_distance_channels(
@@ -24857,6 +24900,7 @@ mod tests {
             .lines()
             .any(|line| line == profile.target_ayanamsa_scope.join("; ")));
         assert!(rendered.lines().any(|line| line == "Release summary"));
+        assert!(rendered.contains("Comparison body-class tolerance: body-class tolerance posture:"));
         assert!(rendered.contains("Release summary line:"));
         assert!(rendered.contains(&format!(
             "Packaged lookup epoch policy: {}",
