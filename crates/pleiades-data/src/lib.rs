@@ -5266,8 +5266,8 @@ impl EphemerisBackend for PackagedDataBackend {
                 summary: artifact.header.source.clone(),
                 data_sources: vec![
                     packaged_body_coverage_summary(),
-                    packaged_request_policy_summary_details().to_string(),
-                    packaged_frame_treatment_summary_details().to_string(),
+                    packaged_request_policy_summary_for_report(),
+                    packaged_frame_treatment_summary_for_report(),
                     packaged_artifact_storage_summary_for_report(),
                     packaged_artifact_access_summary_for_report(),
                 ],
@@ -7296,11 +7296,11 @@ mod tests {
         );
         assert_eq!(
             metadata.provenance.data_sources[1],
-            request_policy.to_string()
+            packaged_request_policy_summary_for_report()
         );
         assert_eq!(
             metadata.provenance.data_sources[2],
-            packaged_frame_treatment_summary_details().summary_line()
+            packaged_frame_treatment_summary_for_report()
         );
         assert_eq!(
             packaged_frame_treatment_summary_details().to_string(),

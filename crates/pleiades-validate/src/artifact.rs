@@ -19,7 +19,7 @@ use pleiades_data::{
     packaged_artifact_profile_summary_with_body_coverage,
     packaged_artifact_regeneration_summary_for_report,
     packaged_artifact_storage_summary_for_report, packaged_backend,
-    packaged_frame_treatment_summary_details, packaged_request_policy_summary_details,
+    packaged_frame_treatment_summary_for_report, packaged_request_policy_summary_for_report,
 };
 
 /// A report describing the bundled compressed artifact and its boundary checks.
@@ -1732,13 +1732,13 @@ fn render_artifact_summary_text(report: &ArtifactInspectionReport) -> String {
     text.push_str(&packaged_artifact_generation_manifest_for_report());
     text.push('\n');
     text.push_str("  Artifact request policy: ");
-    text.push_str(&packaged_request_policy_summary_details().to_string());
+    text.push_str(&packaged_request_policy_summary_for_report());
     text.push('\n');
     text.push_str("  Artifact storage: ");
     text.push_str(&packaged_artifact_storage_summary_for_report());
     text.push('\n');
     text.push_str("  Packaged frame treatment: ");
-    text.push_str(&packaged_frame_treatment_summary_details().to_string());
+    text.push_str(&packaged_frame_treatment_summary_for_report());
     text.push('\n');
     text.push_str("  coverage: ");
     text.push_str(&report.earliest.julian_day.to_string());
@@ -2452,7 +2452,7 @@ impl fmt::Display for ArtifactInspectionReport {
         writeln!(
             f,
             "  Artifact request policy: {}",
-            packaged_request_policy_summary_details()
+            packaged_request_policy_summary_for_report()
         )?;
         writeln!(
             f,
