@@ -460,6 +460,12 @@ impl HouseValidationReport {
             .map(|sample| sample.descriptor.canonical_name)
             .collect()
     }
+
+    /// Returns the compact release-facing summary line if validation succeeds.
+    pub fn validated_summary_line(&self) -> Result<String, HouseValidationReportValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
 
 impl Default for HouseValidationReport {
@@ -561,10 +567,17 @@ pub fn release_house_validation_report() -> HouseValidationReport {
 
 /// Returns the compact report-facing summary line, or an unavailable message if validation fails.
 pub fn house_validation_summary_line_for_report(report: &HouseValidationReport) -> String {
-    match report.validate() {
-        Ok(()) => report.summary_line(),
+    match validated_house_validation_summary_line_for_report(report) {
+        Ok(summary) => summary,
         Err(error) => format!("House validation corpus unavailable: {error}"),
     }
+}
+
+/// Returns the compact report-facing summary line if validation succeeds.
+pub fn validated_house_validation_summary_line_for_report(
+    report: &HouseValidationReport,
+) -> Result<String, HouseValidationReportValidationError> {
+    report.validated_summary_line()
 }
 
 #[cfg(test)]
@@ -631,6 +644,11 @@ mod tests {
             house_validation_summary_line_for_report(&report),
             report.summary_line()
         );
+        assert_eq!(report.validated_summary_line(), Ok(report.summary_line()));
+        assert_eq!(
+            validated_house_validation_summary_line_for_report(&report),
+            Ok(report.summary_line())
+        );
         assert_eq!(report.validate(), Ok(()));
     }
 
@@ -652,6 +670,10 @@ mod tests {
         assert_eq!(
             house_validation_summary_line_for_report(&report),
             "House validation corpus unavailable: house validation scenario label 'mid-latitude reference chart' is duplicated"
+        );
+        assert_eq!(
+            validated_house_validation_summary_line_for_report(&report),
+            Err(error)
         );
     }
 

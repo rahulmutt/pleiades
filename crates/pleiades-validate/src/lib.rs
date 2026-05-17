@@ -32,8 +32,9 @@ pub use chart_benchmark::{
 };
 pub use house_validation::{
     house_validation_report, house_validation_summary_line_for_report,
-    release_house_validation_report, HouseValidationReport, HouseValidationReportValidationError,
-    HouseValidationSample, HouseValidationScenario,
+    release_house_validation_report, validated_house_validation_summary_line_for_report,
+    HouseValidationReport, HouseValidationReportValidationError, HouseValidationSample,
+    HouseValidationScenario,
 };
 
 use pleiades_ayanamsa::{
@@ -6129,15 +6130,21 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("house-validation-summary") => {
             ensure_no_extra_args(&args[1..], "house-validation-summary")?;
-            Ok(house_validation_summary_line_for_report(
-                &house_validation_report(),
-            ))
+            Ok(
+                validated_house_validation_summary_line_for_report(&house_validation_report())
+                    .unwrap_or_else(|error| {
+                        format!("House validation corpus unavailable: {error}")
+                    }),
+            )
         }
         Some("house-validation") => {
             ensure_no_extra_args(&args[1..], "house-validation")?;
-            Ok(house_validation_summary_line_for_report(
-                &house_validation_report(),
-            ))
+            Ok(
+                validated_house_validation_summary_line_for_report(&house_validation_report())
+                    .unwrap_or_else(|error| {
+                        format!("House validation corpus unavailable: {error}")
+                    }),
+            )
         }
         Some("house-latitude-sensitive-summary") => {
             ensure_no_extra_args(&args[1..], "house-latitude-sensitive-summary")?;
@@ -6149,15 +6156,17 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("release-house-validation-summary") => {
             ensure_no_extra_args(&args[1..], "release-house-validation-summary")?;
-            Ok(house_validation_summary_line_for_report(
+            Ok(validated_house_validation_summary_line_for_report(
                 &release_house_validation_report(),
-            ))
+            )
+            .unwrap_or_else(|error| format!("House validation corpus unavailable: {error}")))
         }
         Some("release-house-validation") => {
             ensure_no_extra_args(&args[1..], "release-house-validation")?;
-            Ok(house_validation_summary_line_for_report(
+            Ok(validated_house_validation_summary_line_for_report(
                 &release_house_validation_report(),
-            ))
+            )
+            .unwrap_or_else(|error| format!("House validation corpus unavailable: {error}")))
         }
         Some("house-formula-families-summary") => {
             ensure_no_extra_args(&args[1..], "house-formula-families-summary")?;
