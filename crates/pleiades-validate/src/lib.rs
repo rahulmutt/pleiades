@@ -3654,7 +3654,7 @@ impl fmt::Display for ValidationReport {
         writeln!(
             f,
             "Release profile identifiers: {}",
-            format_release_profile_identifiers_summary(&release_profiles)
+            validated_release_profile_identifiers_summary_for_report(&release_profiles)
         )?;
         writeln!(f, "{}", current_api_stability_profile())?;
         writeln!(f)?;
@@ -8201,7 +8201,7 @@ fn render_release_notes_text() -> String {
     text.push_str("Release notes summary: release-notes-summary\n");
     text.push_str("Release summary: release-summary\n");
     text.push_str("Release profile identifiers: ");
-    text.push_str(&format_release_profile_identifiers_summary(
+    text.push_str(&validated_release_profile_identifiers_summary_for_report(
         &release_profiles,
     ));
     text.push('\n');
@@ -8613,7 +8613,7 @@ fn render_release_notes_summary_text() -> String {
     text.push_str("Compatibility profile verification: verify-compatibility-profile\n");
     text.push_str("Release summary: release-summary\n");
     text.push_str("Release profile identifiers: ");
-    text.push_str(&format_release_profile_identifiers_summary(
+    text.push_str(&validated_release_profile_identifiers_summary_for_report(
         &release_profiles,
     ));
     text.push('\n');
@@ -8727,7 +8727,7 @@ fn render_release_summary_text() -> String {
     text.push_str(release_profiles.api_stability_profile_id);
     text.push('\n');
     text.push_str("Release profile identifiers: ");
-    text.push_str(&format_release_profile_identifiers_summary(
+    text.push_str(&validated_release_profile_identifiers_summary_for_report(
         &release_profiles,
     ));
     text.push('\n');
@@ -15279,7 +15279,7 @@ fn validated_house_code_aliases_summary_for_report(
         .map_err(|error| error.to_string())
 }
 
-fn format_release_profile_identifiers_summary(
+fn validated_release_profile_identifiers_summary_for_report(
     release_profiles: &ReleaseProfileIdentifiers,
 ) -> String {
     match release_profiles.validated_summary_line() {
@@ -15298,7 +15298,7 @@ pub fn render_release_profile_identifiers_summary() -> String {
     let mut text = String::new();
     text.push_str("Release profile identifiers summary\n");
     text.push_str("Summary line: ");
-    text.push_str(&format_release_profile_identifiers_summary(
+    text.push_str(&validated_release_profile_identifiers_summary_for_report(
         &release_profiles,
     ));
     text.push('\n');
@@ -15533,7 +15533,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(
         text,
         "Release profile identifiers: {}",
-        format_release_profile_identifiers_summary(&release_profiles)
+        validated_release_profile_identifiers_summary_for_report(&release_profiles)
     );
     let _ = writeln!(text, "Time-scale policy: {}", request_policy.time_scale);
     let delta_t_policy = delta_t_policy_summary_for_report();
@@ -16933,7 +16933,7 @@ fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
     text.push_str("Release profile identifiers: ");
-    text.push_str(&format_release_profile_identifiers_summary(
+    text.push_str(&validated_release_profile_identifiers_summary_for_report(
         &release_profiles,
     ));
     text.push('\n');
@@ -16975,7 +16975,7 @@ fn render_api_stability_summary_text() -> String {
             text.push_str(release_profiles.compatibility_profile_id);
             text.push('\n');
             text.push_str("Release profile identifiers: ");
-            text.push_str(&format_release_profile_identifiers_summary(
+            text.push_str(&validated_release_profile_identifiers_summary_for_report(
                 &release_profiles,
             ));
             text.push('\n');
@@ -27889,7 +27889,7 @@ version = "0.9.0"
             api_stability_profile_id: compatibility_profile_id,
         };
 
-        let rendered = format_release_profile_identifiers_summary(&release_profiles);
+        let rendered = validated_release_profile_identifiers_summary_for_report(&release_profiles);
         assert!(rendered.contains("unavailable"));
         assert!(rendered.contains("release-profile identifiers must be distinct"));
     }

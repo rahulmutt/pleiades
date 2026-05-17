@@ -5996,6 +5996,7 @@ fn segment_from_pair(
     finalize(fallback)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn segment_from_pair_fit_attempt<F>(
     start_instant: Instant,
     end_instant: Instant,
