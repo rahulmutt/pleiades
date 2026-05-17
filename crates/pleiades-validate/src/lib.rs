@@ -32,9 +32,9 @@ pub use chart_benchmark::{
 };
 pub use house_validation::{
     house_validation_report, house_validation_summary_line_for_report,
-    release_house_validation_report, validated_house_validation_summary_line_for_report,
-    HouseValidationReport, HouseValidationReportValidationError, HouseValidationSample,
-    HouseValidationScenario,
+    release_house_validation_report, release_house_validation_summary_for_report,
+    validated_house_validation_summary_line_for_report, HouseValidationReport,
+    HouseValidationReportValidationError, HouseValidationSample, HouseValidationScenario,
 };
 
 use pleiades_ayanamsa::{
@@ -6170,17 +6170,11 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("release-house-validation-summary") => {
             ensure_no_extra_args(&args[1..], "release-house-validation-summary")?;
-            Ok(validated_house_validation_summary_line_for_report(
-                &release_house_validation_report(),
-            )
-            .unwrap_or_else(|error| format!("House validation corpus unavailable: {error}")))
+            Ok(release_house_validation_summary_for_report())
         }
         Some("release-house-validation") => {
             ensure_no_extra_args(&args[1..], "release-house-validation")?;
-            Ok(validated_house_validation_summary_line_for_report(
-                &release_house_validation_report(),
-            )
-            .unwrap_or_else(|error| format!("House validation corpus unavailable: {error}")))
+            Ok(release_house_validation_summary_for_report())
         }
         Some("house-formula-families-summary") => {
             ensure_no_extra_args(&args[1..], "house-formula-families-summary")?;
@@ -9795,8 +9789,7 @@ pub fn render_release_bundle(
         render_release_ayanamsa_canonical_names_summary();
     let release_ayanamsa_canonical_names_summary_checksum =
         checksum64(&release_ayanamsa_canonical_names_summary_text);
-    let release_house_validation_summary_text =
-        house_validation_summary_line_for_report(&release_house_validation_report());
+    let release_house_validation_summary_text = release_house_validation_summary_for_report();
     let release_house_validation_summary_checksum =
         checksum64(&release_house_validation_summary_text);
     let release_checklist_checksum = checksum64(&release_checklist_text);
@@ -23698,6 +23691,24 @@ mod tests {
             render_cli(&["house-validation", "extra"])
                 .expect_err("house validation alias should reject extra arguments"),
             "house-validation does not accept extra arguments"
+        );
+    }
+
+    #[test]
+    fn release_house_validation_summary_command_renders_the_release_summary() {
+        let rendered = render_cli(&["release-house-validation-summary"])
+            .expect("release house validation summary should render");
+
+        assert_eq!(rendered, release_house_validation_summary_for_report());
+        assert_eq!(
+            render_cli(&["release-house-validation"])
+                .expect("release house validation alias should render"),
+            release_house_validation_summary_for_report()
+        );
+        assert_eq!(
+            render_cli(&["release-house-validation", "extra"])
+                .expect_err("release house validation alias should reject extra arguments"),
+            "release-house-validation does not accept extra arguments"
         );
     }
 
