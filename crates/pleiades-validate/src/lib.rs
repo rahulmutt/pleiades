@@ -7829,6 +7829,11 @@ impl AyanamsaProvenanceSummary {
             ),
         }
     }
+
+    fn validated_summary_line(&self) -> Result<String, EphemerisError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
 
 impl fmt::Display for AyanamsaProvenanceSummary {
@@ -7926,7 +7931,10 @@ fn format_ayanamsa_metadata_coverage_for_report() -> String {
 
 fn format_ayanamsa_provenance_for_report() -> String {
     match summarize_ayanamsa_provenance() {
-        Ok(summary) => format!("Ayanamsa provenance: {summary}"),
+        Ok(summary) => match summary.validated_summary_line() {
+            Ok(summary) => format!("Ayanamsa provenance: {summary}"),
+            Err(error) => format!("Ayanamsa provenance: unavailable ({error})"),
+        },
         Err(error) => format!("Ayanamsa provenance: unavailable ({error})"),
     }
 }
@@ -23725,6 +23733,19 @@ mod tests {
                 .expect_err("ayanamsa provenance alias should reject extra arguments"),
             "ayanamsa-provenance does not accept extra arguments"
         );
+    }
+
+    #[test]
+    fn ayanamsa_provenance_summary_validated_summary_line_rejects_note_drift() {
+        let summary = AyanamsaProvenanceSummary {
+            examples: vec![AyanamsaProvenanceExample {
+                canonical_name: "Example",
+                provenance_note: " drifted note ",
+            }],
+        };
+
+        assert!(summary.summary_line().contains(" drifted note "));
+        assert!(summary.validated_summary_line().is_err());
     }
 
     #[test]

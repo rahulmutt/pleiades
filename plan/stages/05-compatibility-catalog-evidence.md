@@ -19,6 +19,7 @@ The workspace has broad house and ayanamsa catalogs, aliases, descriptor validat
 - Completed: the release-specific house-system and ayanamsa canonical-name summary commands now route through explicit validated helpers before formatting, so the public release-facing aliases fail closed if the catalog posture drifts.
 - Completed: the compatibility-profile and release-summary renderers now re-validate the target-house and target-ayanamsa scope prose before emitting release-facing text, so the rendered catalog posture fails closed if those scope sections drift.
 - Completed: the compatibility-profile verification summary now exposes a validated compact summary-line helper, so direct release-facing verification rendering fails closed instead of relying on the raw formatter.
+- Completed: the ayanamsa provenance summary now validates before rendering in release-facing report surfaces, so representative provenance examples fail closed if the sample notes drift.
 - Make compatibility-profile verification fail on overstated catalog claims.
 - Keep target-catalog identifiers extensible so future Swiss-Ephemeris-class breadth does not require public API redesign.
 
