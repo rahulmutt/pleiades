@@ -18450,6 +18450,8 @@ const REFERENCE_SNAPSHOT_SOURCE_EXPECTED: &str =
 const REFERENCE_SNAPSHOT_SOURCE_FALLBACK: &str = "NASA/JPL Horizons API vector tables (DE441)";
 const REFERENCE_SNAPSHOT_COVERAGE_FALLBACK: &str =
     "selected bodies sampled at 1500-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 1600-01-11 for Sun, Moon, Mercury, Venus, Mars, Jupiter, Uranus, Neptune; major bodies sampled at 1749-12-31 for Sun through Neptune; selected bodies sampled at 1750-01-01 for Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; inner planets sampled across 1800-2500; major bodies sampled at 1800-01-03 for Sun through Pluto; selected bodies sampled at 1900-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 2200-01-01 for Sun, Moon, Mercury, Venus; major bodies sampled at 2400000, 2451545, 2451910.5, 2451911.5, 2451912.5, 2451913.5, 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451916.0, 2451916.5, 2451917.0, 2451917.5, 2451918.5, 2451919.5, 2451920.5, 2453000.5, and 2500000; major bodies sampled at 2451915.5 for Sun through Pluto; Mars sampled at 2600000 and 2634167 for outer boundary coverage; major bodies sampled at 2451913.5 through 2451917.5 for additional boundary coverage; selected asteroids sampled at J2000, 2378498.5, 2451910.5 through 2451919.5, with 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451918.5, and 2451919.5 boundary coverage, 1800-01-03, 2003-12-27, 2132-08-31, 2500-01-01, and 2634167.";
+const REFERENCE_SNAPSHOT_REDISTRIBUTION_FALLBACK: &str =
+    "repository-checked regression fixtures, not a broad public corpus.";
 const REFERENCE_SNAPSHOT_FRAME_TREATMENT: &str = "geocentric ecliptic J2000";
 const REFERENCE_SNAPSHOT_COLUMNS: &str = "epoch_jd, body, x_km, y_km, z_km";
 const INDEPENDENT_HOLDOUT_SOURCE_EXPECTED: &str =
@@ -18490,6 +18492,8 @@ pub struct ReferenceSnapshotSourceSummary {
     pub coverage: String,
     /// Column schema described by the checked-in reference snapshot.
     pub columns: String,
+    /// Redistribution posture described by the checked-in reference snapshot.
+    pub redistribution: String,
     /// Deterministic checksum of the checked-in reference snapshot source material.
     pub checksum: u64,
     /// Frame and coordinate posture described by the checked-in reference snapshot.
@@ -18546,6 +18550,23 @@ impl ReferenceSnapshotSourceSummary {
                 ReferenceSnapshotSourceSummaryValidationError::FieldOutOfSync { field: "columns" },
             );
         }
+        if self.redistribution.trim().is_empty() {
+            return Err(ReferenceSnapshotSourceSummaryValidationError::BlankRedistribution);
+        }
+        if has_surrounding_whitespace(&self.redistribution) {
+            return Err(
+                ReferenceSnapshotSourceSummaryValidationError::SurroundedByWhitespace {
+                    field: "redistribution",
+                },
+            );
+        }
+        if self.redistribution != REFERENCE_SNAPSHOT_REDISTRIBUTION_FALLBACK {
+            return Err(
+                ReferenceSnapshotSourceSummaryValidationError::FieldOutOfSync {
+                    field: "redistribution",
+                },
+            );
+        }
         if self.checksum != reference_snapshot_source_checksum() {
             return Err(ReferenceSnapshotSourceSummaryValidationError::ChecksumMismatch);
         }
@@ -18575,10 +18596,11 @@ impl ReferenceSnapshotSourceSummary {
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
         format!(
-            "Reference snapshot source: {}; coverage={}; columns={}; checksum=0x{:016x}; {}; TDB reference epoch {}",
+            "Reference snapshot source: {}; coverage={}; columns={}; redistribution={}; checksum=0x{:016x}; {}; TDB reference epoch {}",
             self.source,
             self.coverage,
             self.columns,
+            self.redistribution,
             self.checksum,
             self.frame_treatment,
             format_instant(self.reference_epoch),
@@ -18603,6 +18625,8 @@ pub enum ReferenceSnapshotSourceSummaryValidationError {
     BlankCoverage,
     /// The summary did not include a non-empty frame-treatment label.
     BlankFrameTreatment,
+    /// The summary did not include a non-empty redistribution label.
+    BlankRedistribution,
     /// The summary did not include a non-empty columns label.
     BlankColumns,
     /// The summary carried surrounding whitespace in one of its labels.
@@ -18623,6 +18647,7 @@ impl ReferenceSnapshotSourceSummaryValidationError {
             Self::BlankCoverage => "blank coverage",
             Self::BlankFrameTreatment => "blank frame treatment",
             Self::BlankColumns => "blank columns",
+            Self::BlankRedistribution => "blank redistribution",
             Self::SurroundedByWhitespace { .. } => "surrounded by whitespace",
             Self::FieldOutOfSync { .. } => "field out of sync",
             Self::ChecksumMismatch => "checksum mismatch",
@@ -18666,6 +18691,9 @@ pub fn reference_snapshot_source_summary() -> ReferenceSnapshotSourceSummary {
                     .coverage_or(REFERENCE_SNAPSHOT_COVERAGE_FALLBACK)
                     .to_string(),
                 columns: manifest.columns.join(", "),
+                redistribution: manifest
+                    .redistribution_or(REFERENCE_SNAPSHOT_REDISTRIBUTION_FALLBACK)
+                    .to_string(),
                 checksum: reference_snapshot_source_checksum(),
                 frame_treatment: "geocentric ecliptic J2000".to_string(),
                 reference_epoch: reference_instant(),
@@ -28904,6 +28932,13 @@ mod tests {
             "selected bodies sampled at 1500-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 1600-01-11 for Sun, Moon, Mercury, Venus, Mars, Jupiter, Uranus, Neptune; major bodies sampled at 1749-12-31 for Sun through Neptune; selected bodies sampled at 1750-01-01 for Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; inner planets sampled across 1800-2500; major bodies sampled at 1800-01-03 for Sun through Pluto; selected bodies sampled at 1900-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 2200-01-01 for Sun, Moon, Mercury, Venus; major bodies sampled at 2400000, 2451545, 2451910.5, 2451911.5, 2451912.5, 2451913.5, 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451916.0, 2451916.5, 2451917.0, 2451917.5, 2451918.5, 2451919.5, 2451920.5, 2453000.5, and 2500000; major bodies sampled at 2451915.5 for Sun through Pluto; Mars sampled at 2600000 and 2634167 for outer boundary coverage; major bodies sampled at 2451913.5 through 2451917.5 for additional boundary coverage; selected asteroids sampled at J2000, 2378498.5, 2451910.5 through 2451919.5, with 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451918.5, and 2451919.5 boundary coverage, 1800-01-03, 2003-12-27, 2132-08-31, 2500-01-01, and 2634167."
         );
         assert_eq!(summary.columns, REFERENCE_SNAPSHOT_COLUMNS);
+        assert_eq!(
+            summary.redistribution,
+            REFERENCE_SNAPSHOT_REDISTRIBUTION_FALLBACK
+        );
+        assert!(summary.summary_line().contains(
+            "redistribution=repository-checked regression fixtures, not a broad public corpus."
+        ));
         assert_eq!(summary.frame_treatment, "geocentric ecliptic J2000");
         assert!(summary.summary_line().contains("2132-08-31"));
         assert_eq!(summary.reference_epoch.julian_day.days(), 2_451_545.0);
@@ -28930,6 +28965,17 @@ mod tests {
         assert_eq!(
             drifted_source.validate(),
             Err(ReferenceSnapshotSourceSummaryValidationError::FieldOutOfSync { field: "source" })
+        );
+
+        let mut drifted_redistribution = summary.clone();
+        drifted_redistribution.redistribution = "fixture redistribution drift".to_string();
+        assert_eq!(
+            drifted_redistribution.validate(),
+            Err(
+                ReferenceSnapshotSourceSummaryValidationError::FieldOutOfSync {
+                    field: "redistribution"
+                }
+            )
         );
 
         let mut drifted_coverage = summary.clone();
@@ -29355,6 +29401,7 @@ mod tests {
             source: " ".to_string(),
             coverage: "coverage".to_string(),
             columns: REFERENCE_SNAPSHOT_COLUMNS.to_string(),
+            redistribution: REFERENCE_SNAPSHOT_REDISTRIBUTION_FALLBACK.to_string(),
             checksum: reference_snapshot_source_checksum(),
             frame_treatment: "geocentric ecliptic J2000".to_string(),
             reference_epoch: reference_instant(),
@@ -29368,6 +29415,7 @@ mod tests {
             source: REFERENCE_SNAPSHOT_SOURCE_EXPECTED.to_string(),
             coverage: "\n".to_string(),
             columns: REFERENCE_SNAPSHOT_COLUMNS.to_string(),
+            redistribution: REFERENCE_SNAPSHOT_REDISTRIBUTION_FALLBACK.to_string(),
             checksum: reference_snapshot_source_checksum(),
             frame_treatment: REFERENCE_SNAPSHOT_FRAME_TREATMENT.to_string(),
             reference_epoch: reference_instant(),
@@ -29381,6 +29429,7 @@ mod tests {
             source: REFERENCE_SNAPSHOT_SOURCE_EXPECTED.to_string(),
             coverage: " coverage ".to_string(),
             columns: REFERENCE_SNAPSHOT_COLUMNS.to_string(),
+            redistribution: REFERENCE_SNAPSHOT_REDISTRIBUTION_FALLBACK.to_string(),
             checksum: reference_snapshot_source_checksum(),
             frame_treatment: REFERENCE_SNAPSHOT_FRAME_TREATMENT.to_string(),
             reference_epoch: reference_instant(),
@@ -29398,6 +29447,7 @@ mod tests {
             source: "source\nline".to_string(),
             coverage: REFERENCE_SNAPSHOT_COVERAGE_FALLBACK.to_string(),
             columns: REFERENCE_SNAPSHOT_COLUMNS.to_string(),
+            redistribution: REFERENCE_SNAPSHOT_REDISTRIBUTION_FALLBACK.to_string(),
             checksum: reference_snapshot_source_checksum(),
             frame_treatment: REFERENCE_SNAPSHOT_FRAME_TREATMENT.to_string(),
             reference_epoch: reference_instant(),
@@ -29415,6 +29465,7 @@ mod tests {
             source: REFERENCE_SNAPSHOT_SOURCE_EXPECTED.to_string(),
             coverage: REFERENCE_SNAPSHOT_COVERAGE_FALLBACK.to_string(),
             columns: "\t".to_string(),
+            redistribution: REFERENCE_SNAPSHOT_REDISTRIBUTION_FALLBACK.to_string(),
             checksum: reference_snapshot_source_checksum(),
             frame_treatment: REFERENCE_SNAPSHOT_FRAME_TREATMENT.to_string(),
             reference_epoch: reference_instant(),
@@ -29424,10 +29475,25 @@ mod tests {
             Err(ReferenceSnapshotSourceSummaryValidationError::BlankColumns)
         );
 
+        let blank_redistribution = ReferenceSnapshotSourceSummary {
+            source: REFERENCE_SNAPSHOT_SOURCE_EXPECTED.to_string(),
+            coverage: REFERENCE_SNAPSHOT_COVERAGE_FALLBACK.to_string(),
+            columns: REFERENCE_SNAPSHOT_COLUMNS.to_string(),
+            redistribution: "\n".to_string(),
+            checksum: reference_snapshot_source_checksum(),
+            frame_treatment: REFERENCE_SNAPSHOT_FRAME_TREATMENT.to_string(),
+            reference_epoch: reference_instant(),
+        };
+        assert_eq!(
+            blank_redistribution.validate(),
+            Err(ReferenceSnapshotSourceSummaryValidationError::BlankRedistribution)
+        );
+
         let blank_frame_treatment = ReferenceSnapshotSourceSummary {
             source: REFERENCE_SNAPSHOT_SOURCE_EXPECTED.to_string(),
             coverage: REFERENCE_SNAPSHOT_COVERAGE_FALLBACK.to_string(),
             columns: REFERENCE_SNAPSHOT_COLUMNS.to_string(),
+            redistribution: REFERENCE_SNAPSHOT_REDISTRIBUTION_FALLBACK.to_string(),
             checksum: reference_snapshot_source_checksum(),
             frame_treatment: "\n".to_string(),
             reference_epoch: reference_instant(),
@@ -29441,6 +29507,7 @@ mod tests {
             source: REFERENCE_SNAPSHOT_SOURCE_EXPECTED.to_string(),
             coverage: REFERENCE_SNAPSHOT_COVERAGE_FALLBACK.to_string(),
             columns: REFERENCE_SNAPSHOT_COLUMNS.to_string(),
+            redistribution: REFERENCE_SNAPSHOT_REDISTRIBUTION_FALLBACK.to_string(),
             checksum: reference_snapshot_source_checksum(),
             frame_treatment: " geocentric ecliptic J2000 ".to_string(),
             reference_epoch: reference_instant(),
