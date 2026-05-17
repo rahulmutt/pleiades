@@ -19161,16 +19161,156 @@ pub fn independent_holdout_manifest_summary_for_report() -> String {
     }
 }
 
+const JPL_SNAPSHOT_EVIDENCE_CLASSIFICATION_SUMMARY: &str = "JPL evidence classification: release-tolerance=reference/comparison/production-generation validation summaries; hold-out=independent hold-out rows and interpolation-quality summaries; fixture exactness=reference snapshot exact J2000 evidence; provenance-only=source and manifest summaries";
+const JPL_SOURCE_POSTURE_SUMMARY: &str = "JPL source posture: documented hybrid snapshot/hold-out fixture backend with a separate generation-input path; pure-Rust include_str! ingestion; not a broad public reader/corpus provider";
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct JplSnapshotEvidenceClassificationSummary {
+    /// Evidence-classification line used by validation and release reports.
+    pub text: &'static str,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum JplSnapshotEvidenceClassificationSummaryValidationError {
+    /// A summary field is out of sync with the current posture.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for JplSnapshotEvidenceClassificationSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the JPL snapshot evidence classification summary field `{field}` is out of sync with the current posture"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for JplSnapshotEvidenceClassificationSummaryValidationError {}
+
+impl JplSnapshotEvidenceClassificationSummary {
+    /// Returns the evidence-classification line used by validation and release reports.
+    pub fn summary_line(&self) -> String {
+        self.text.to_string()
+    }
+
+    /// Returns `Ok(())` when the summary still matches the current posture.
+    pub fn validate(&self) -> Result<(), JplSnapshotEvidenceClassificationSummaryValidationError> {
+        if self.text != JPL_SNAPSHOT_EVIDENCE_CLASSIFICATION_SUMMARY {
+            return Err(
+                JplSnapshotEvidenceClassificationSummaryValidationError::FieldOutOfSync {
+                    field: "text",
+                },
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns the validated evidence-classification line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, JplSnapshotEvidenceClassificationSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for JplSnapshotEvidenceClassificationSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// Returns the evidence-classification line used by validation and release reports.
+pub fn jpl_snapshot_evidence_classification_summary_details(
+) -> JplSnapshotEvidenceClassificationSummary {
+    let summary = JplSnapshotEvidenceClassificationSummary {
+        text: JPL_SNAPSHOT_EVIDENCE_CLASSIFICATION_SUMMARY,
+    };
+    debug_assert!(summary.validate().is_ok());
+    summary
+}
+
+/// Returns the validated evidence-classification line used by validation and release reports.
 pub fn jpl_snapshot_evidence_classification_summary_for_report() -> String {
-    "JPL evidence classification: release-tolerance=reference/comparison/production-generation validation summaries; hold-out=independent hold-out rows and interpolation-quality summaries; fixture exactness=reference snapshot exact J2000 evidence; provenance-only=source and manifest summaries"
-        .to_string()
+    let summary = jpl_snapshot_evidence_classification_summary_details();
+    match summary.validated_summary_line() {
+        Ok(rendered) => rendered,
+        Err(error) => format!("JPL evidence classification: unavailable ({error})"),
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct JplSourcePostureSummary {
+    /// Source-posture line used by validation and release reports.
+    pub text: &'static str,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum JplSourcePostureSummaryValidationError {
+    /// A summary field is out of sync with the current posture.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for JplSourcePostureSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the JPL source posture summary field `{field}` is out of sync with the current posture"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for JplSourcePostureSummaryValidationError {}
+
+impl JplSourcePostureSummary {
+    /// Returns the source-posture line used by validation and release reports.
+    pub fn summary_line(&self) -> String {
+        self.text.to_string()
+    }
+
+    /// Returns `Ok(())` when the summary still matches the current posture.
+    pub fn validate(&self) -> Result<(), JplSourcePostureSummaryValidationError> {
+        if self.text != JPL_SOURCE_POSTURE_SUMMARY {
+            return Err(JplSourcePostureSummaryValidationError::FieldOutOfSync { field: "text" });
+        }
+
+        Ok(())
+    }
+
+    /// Returns the validated source-posture line.
+    pub fn validated_summary_line(&self) -> Result<String, JplSourcePostureSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for JplSourcePostureSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
 }
 
 /// Returns the source-posture line used by validation and release reports.
+pub fn jpl_source_posture_summary_details() -> JplSourcePostureSummary {
+    let summary = JplSourcePostureSummary {
+        text: JPL_SOURCE_POSTURE_SUMMARY,
+    };
+    debug_assert!(summary.validate().is_ok());
+    summary
+}
+
+/// Returns the validated source-posture line used by validation and release reports.
 pub fn jpl_source_posture_summary_for_report() -> String {
-    "JPL source posture: documented hybrid snapshot/hold-out fixture backend with a separate generation-input path; pure-Rust include_str! ingestion; not a broad public reader/corpus provider"
-        .to_string()
+    let summary = jpl_source_posture_summary_details();
+    match summary.validated_summary_line() {
+        Ok(rendered) => rendered,
+        Err(error) => format!("JPL source posture: unavailable ({error})"),
+    }
 }
 
 /// Returns the combined snapshot evidence summary used by validation and release reports.
@@ -29867,6 +30007,43 @@ mod tests {
         assert!(report.contains(&holdout_high_curvature));
         assert!(!reference_report.contains(&holdout_summary));
         assert!(!reference_report.contains(&holdout_high_curvature));
+    }
+
+    #[test]
+    fn jpl_snapshot_evidence_posture_summaries_validate_and_fail_closed() {
+        let classification = jpl_snapshot_evidence_classification_summary_details();
+        let posture = jpl_source_posture_summary_details();
+
+        assert_eq!(
+            classification.summary_line(),
+            jpl_snapshot_evidence_classification_summary_for_report()
+        );
+        assert_eq!(
+            posture.summary_line(),
+            jpl_source_posture_summary_for_report()
+        );
+        assert_eq!(classification.validate(), Ok(()));
+        assert_eq!(posture.validate(), Ok(()));
+
+        let drifted_classification = JplSnapshotEvidenceClassificationSummary {
+            text: "JPL evidence classification: drifted",
+        };
+        let drifted_posture = JplSourcePostureSummary {
+            text: "JPL source posture: drifted",
+        };
+
+        assert!(drifted_classification.validate().is_err());
+        assert!(drifted_posture.validate().is_err());
+        assert!(drifted_classification
+            .validated_summary_line()
+            .expect_err("drifted evidence classification should fail closed")
+            .to_string()
+            .contains("out of sync"));
+        assert!(drifted_posture
+            .validated_summary_line()
+            .expect_err("drifted source posture should fail closed")
+            .to_string()
+            .contains("out of sync"));
     }
 
     #[test]
