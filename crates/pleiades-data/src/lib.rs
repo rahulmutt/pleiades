@@ -5658,16 +5658,37 @@ fn segment_fit_candidate_is_better(
 
 const PACKAGED_ARTIFACT_SEGMENT_FIT_ACCEPTANCE_RATIO: f64 = 2.0;
 
+fn segment_complexity(segment: &Segment) -> usize {
+    segment
+        .channels
+        .iter()
+        .chain(segment.residual_channels.iter())
+        .map(|channel| channel.coefficients.len())
+        .sum()
+}
+
 fn segment_error_prefers_candidate(
+    candidate_segment: &Segment,
     candidate_error: Option<PackagedArtifactSegmentFitError>,
+    fallback_segment: &Segment,
     fallback_error: Option<PackagedArtifactSegmentFitError>,
 ) -> bool {
     candidate_error.is_some()
         && match (candidate_error, fallback_error) {
-            (Some(candidate_error), Some(fallback_error)) => {
-                candidate_error.max_delta()
-                    <= fallback_error.max_delta() * PACKAGED_ARTIFACT_SEGMENT_FIT_ACCEPTANCE_RATIO
-            }
+            (Some(candidate_error), Some(fallback_error)) => match candidate_error
+                .max_delta()
+                .total_cmp(&fallback_error.max_delta())
+            {
+                Ordering::Less => true,
+                Ordering::Equal => {
+                    segment_complexity(candidate_segment) <= segment_complexity(fallback_segment)
+                }
+                Ordering::Greater => {
+                    candidate_error.max_delta()
+                        <= fallback_error.max_delta()
+                            * PACKAGED_ARTIFACT_SEGMENT_FIT_ACCEPTANCE_RATIO
+                }
+            },
             (Some(_), None) => true,
             (None, _) => false,
         }
@@ -6032,7 +6053,12 @@ fn body_segment_windows_for_interval(
             None
         };
 
-        return if segment_error_prefers_candidate(candidate_error, fallback_error) {
+        return if segment_error_prefers_candidate(
+            &candidate,
+            candidate_error,
+            &fallback,
+            fallback_error,
+        ) {
             vec![finalize(candidate)]
         } else {
             vec![finalize(fallback)]
@@ -6055,7 +6081,7 @@ fn body_segment_windows_for_interval(
             None
         };
 
-        if segment_error_prefers_candidate(candidate_error, fallback_error) {
+        if segment_error_prefers_candidate(&candidate, candidate_error, &fallback, fallback_error) {
             return vec![finalize(candidate)];
         }
     }
@@ -6237,7 +6263,8 @@ fn segment_from_pair(
     };
 
     if let Some((candidate, score)) = &best_candidate {
-        if segment_error_prefers_candidate(Some(score.error), fallback_error) {
+        if segment_error_prefers_candidate(candidate, Some(score.error), &fallback, fallback_error)
+        {
             return finalize(candidate.clone());
         }
     }
@@ -7720,6 +7747,52 @@ mod tests {
             ChannelKind::Latitude
         );
         assert_eq!(best_error.max_delta(), 1.0);
+    }
+
+    #[test]
+    fn segment_error_prefers_the_simpler_segment_when_errors_match() {
+        let candidate_segment = Segment::with_residual_channels(
+            Instant::new(JulianDay::from_days(0.0), TimeScale::Tt),
+            Instant::new(JulianDay::from_days(1.0), TimeScale::Tt),
+            vec![PolynomialChannel::new(
+                ChannelKind::Longitude,
+                0,
+                vec![0.0, 1.0, 2.0],
+            )],
+            vec![PolynomialChannel::new(
+                ChannelKind::Latitude,
+                0,
+                vec![0.0, 1.0],
+            )],
+        );
+        let fallback_segment = Segment::new(
+            Instant::new(JulianDay::from_days(0.0), TimeScale::Tt),
+            Instant::new(JulianDay::from_days(1.0), TimeScale::Tt),
+            vec![PolynomialChannel::new(ChannelKind::Longitude, 0, vec![0.0])],
+        );
+        let candidate_error = Some(PackagedArtifactSegmentFitError {
+            longitude_degrees: 1.0,
+            latitude_degrees: 1.0,
+            distance_au: 1.0,
+        });
+        let fallback_error = Some(PackagedArtifactSegmentFitError {
+            longitude_degrees: 1.0,
+            latitude_degrees: 1.0,
+            distance_au: 1.0,
+        });
+
+        assert!(!segment_error_prefers_candidate(
+            &candidate_segment,
+            candidate_error,
+            &fallback_segment,
+            fallback_error,
+        ));
+        assert!(segment_error_prefers_candidate(
+            &fallback_segment,
+            candidate_error,
+            &candidate_segment,
+            fallback_error,
+        ));
     }
 
     #[test]
