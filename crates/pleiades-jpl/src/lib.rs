@@ -3206,6 +3206,8 @@ pub struct ProductionGenerationSourceSummary {
     pub reference_summary: ReferenceSnapshotSourceSummary,
     /// Source summary for the independent hold-out boundary overlay.
     pub boundary_summary: IndependentHoldoutSourceSummary,
+    /// Source-window summary for the merged production-generation corpus.
+    pub source_windows: ProductionGenerationSnapshotWindowSummary,
     /// Deterministic revision summary for the checked-in CSV fixtures.
     pub source_revision: String,
 }
@@ -3214,9 +3216,13 @@ impl ProductionGenerationSourceSummary {
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
         format!(
-            "Production generation source: strategy=documented hybrid fixture corpus; {}; {}; input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv; {}; generation command=generate-packaged-artifact --check (consuming the checked-in CSV fixtures); file format=comma-separated values; columns=epoch_jd, body, x_km, y_km, z_km; frame=geocentric ecliptic J2000; time scale=TDB; parser=pure-Rust and deterministic; checksum expectation=byte-identical fixture contents; cadence=31 reference epochs and 10 boundary epochs; reference and hold-out rows remain separate; redistribution posture=repository-checked regression fixtures, not a broad public corpus",
+            "Production generation source: strategy=documented hybrid fixture corpus; {}; {}; source windows={}; input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv; {}; generation command=generate-packaged-artifact --check (consuming the checked-in CSV fixtures); file format=comma-separated values; columns=epoch_jd, body, x_km, y_km, z_km; frame=geocentric ecliptic J2000; time scale=TDB; parser=pure-Rust and deterministic; checksum expectation=byte-identical fixture contents; cadence=31 reference epochs and 10 boundary epochs; reference and hold-out rows remain separate; redistribution posture=repository-checked regression fixtures, not a broad public corpus",
             self.reference_summary.summary_line(),
             format_production_generation_boundary_source_summary(&self.boundary_summary),
+            strip_report_prefix(
+                &self.source_windows.summary_line(),
+                "Production generation source windows: ",
+            ),
             self.source_revision,
         )
     }
@@ -3229,6 +3235,14 @@ impl ProductionGenerationSourceSummary {
         self.boundary_summary
             .validate()
             .map_err(ProductionGenerationSourceSummaryValidationError::Boundary)?;
+        self.source_windows
+            .validate()
+            .map_err(ProductionGenerationSourceSummaryValidationError::SourceWindows)?;
+        let expected_source_windows = production_generation_snapshot_window_summary()
+            .ok_or(ProductionGenerationSourceSummaryValidationError::SourceWindowsMismatch)?;
+        if self.source_windows != expected_source_windows {
+            return Err(ProductionGenerationSourceSummaryValidationError::SourceWindowsMismatch);
+        }
         if self.source_revision != production_generation_source_revision_summary() {
             return Err(ProductionGenerationSourceSummaryValidationError::SourceRevisionMismatch);
         }
@@ -3246,12 +3260,16 @@ impl ProductionGenerationSourceSummary {
 }
 
 /// Structured validation errors for the production-generation provenance summary.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ProductionGenerationSourceSummaryValidationError {
     /// The reference snapshot source summary drifted from the checked-in evidence.
     Reference(ReferenceSnapshotSourceSummaryValidationError),
     /// The boundary overlay source summary drifted from the checked-in evidence.
     Boundary(IndependentHoldoutSourceSummaryValidationError),
+    /// The source-window summary drifted from the checked-in evidence.
+    SourceWindows(ProductionGenerationSnapshotWindowSummaryValidationError),
+    /// The source-window summary no longer matches the current derived corpus evidence.
+    SourceWindowsMismatch,
     /// The deterministic revision summary drifted from the checked-in fixture contents.
     SourceRevisionMismatch,
 }
@@ -3261,6 +3279,10 @@ impl fmt::Display for ProductionGenerationSourceSummaryValidationError {
         match self {
             Self::Reference(error) => write!(f, "reference summary validation failed: {error}"),
             Self::Boundary(error) => write!(f, "boundary summary validation failed: {error}"),
+            Self::SourceWindows(error) => {
+                write!(f, "source window summary validation failed: {error}")
+            }
+            Self::SourceWindowsMismatch => f.write_str("source windows mismatch"),
             Self::SourceRevisionMismatch => f.write_str("source revision mismatch"),
         }
     }
@@ -3277,6 +3299,8 @@ pub fn production_generation_source_summary() -> ProductionGenerationSourceSumma
     ProductionGenerationSourceSummary {
         reference_summary: reference_snapshot_source_summary(),
         boundary_summary: production_generation_boundary_source_summary(),
+        source_windows: production_generation_snapshot_window_summary()
+            .expect("production generation source windows should exist"),
         source_revision: production_generation_source_revision_summary(),
     }
 }
@@ -30125,6 +30149,8 @@ mod tests {
         assert!(report.contains("parser=pure-Rust and deterministic"));
         assert!(report.contains("source revision=reference_snapshot.csv checksum=0x"));
         assert!(report.contains("independent_holdout_snapshot.csv checksum=0x"));
+        assert!(report
+            .contains("source windows=355 source-backed samples across 16 bodies and 31 epochs"));
         assert!(report.contains("generation command=generate-packaged-artifact --check"));
         assert!(report.contains("checksum expectation=byte-identical fixture contents"));
         assert!(report.contains("cadence=31 reference epochs and 10 boundary epochs"));
@@ -30149,6 +30175,15 @@ mod tests {
             nested_drift.validate(),
             Err(ProductionGenerationSourceSummaryValidationError::Reference(
                 ReferenceSnapshotSourceSummaryValidationError::FieldOutOfSync { field: "coverage" }
+            ))
+        ));
+
+        let mut source_windows_drift = production_generation_source_summary();
+        source_windows_drift.source_windows.sample_count += 1;
+        assert!(matches!(
+            source_windows_drift.validate(),
+            Err(ProductionGenerationSourceSummaryValidationError::SourceWindows(
+                ProductionGenerationSnapshotWindowSummaryValidationError::DerivedSummaryMismatch
             ))
         ));
     }
