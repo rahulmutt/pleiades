@@ -67,9 +67,30 @@ use pleiades_jpl::{
 const PACKAGE_NAME: &str = "pleiades-data";
 const ARTIFACT_LABEL: &str = "stage-5 packaged-data draft";
 const ARTIFACT_PROFILE_ID: &str = "pleiades-packaged-artifact-profile/stage-5-draft";
-const ARTIFACT_SOURCE: &str = "Quantized adjacent same-body quadratic windows with longitude-unwrapped planetary fits fitted to JPL Horizons reference epochs (1800, 2000, 2500 CE) for the comparison-body planetary set plus asteroid:433-Eros, with point segments only for single-epoch bodies and recursively subdivided quadratic spans for multi-epoch bodies using body-class span caps and measured-fit comparison against the fallback, with 8-point and 10-point Chebyshev-Lobatto baseline candidates before the dense body-specific ladders and 12-point candidates for inner and outer planets before fallback, with 10-point, 12-point, 14-point, 16-point, 18-point, and 20-point options for luminaries, Pluto, selected asteroids, and custom bodies, and the best dense candidate wins before fallback, residual correction channels on high-curvature spans when they improve the fit, higher-order distance reconstruction from fit samples when it quantizes cleanly, cubic distance reconstruction from four-point control points when available, and quadratic fallback otherwise.";
+const PACKAGED_ARTIFACT_GENERATION_STRATEGY_TAIL: &str = "with 8-point and 10-point Chebyshev-Lobatto baseline candidates before the dense body-specific ladders and 12-point candidates for inner and outer planets before fallback, with 10-point, 12-point, 14-point, 16-point, 18-point, and 20-point options for luminaries, Pluto, selected asteroids, and custom bodies, and the best dense candidate wins before fallback, residual correction channels on high-curvature spans when they improve the fit, higher-order distance reconstruction from fit samples when it quantizes cleanly, cubic distance reconstruction from four-point control points when available, and quadratic fallback otherwise";
 
-const PACKAGED_ARTIFACT_GENERATION_POLICY_NOTE: &str = "bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into quadratic windows using body-class span caps and measured-fit comparison against the fallback, with 8-point and 10-point Chebyshev-Lobatto baseline candidates before the dense body-specific ladders and 12-point candidates for inner and outer planets before fallback, with 10-point, 12-point, 14-point, 16-point, 18-point, and 20-point options for luminaries, Pluto, selected asteroids, and custom bodies, and the best dense candidate wins before fallback, residual correction channels on high-curvature spans when they improve the fit, higher-order distance reconstruction from fit samples when it quantizes cleanly, cubic distance reconstruction from four-point control points when available, and quadratic fallback otherwise";
+fn packaged_artifact_generation_policy_note_text() -> &'static str {
+    static NOTE: OnceLock<String> = OnceLock::new();
+    NOTE.get_or_init(|| {
+        format!(
+            "bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into quadratic windows using body-class span caps and measured-fit comparison against the fallback, {}",
+            PACKAGED_ARTIFACT_GENERATION_STRATEGY_TAIL
+        )
+    })
+    .as_str()
+}
+
+fn packaged_artifact_source_text() -> &'static str {
+    static SOURCE: OnceLock<String> = OnceLock::new();
+    SOURCE.get_or_init(|| {
+        format!(
+            "Quantized adjacent same-body quadratic windows with longitude-unwrapped planetary fits fitted to JPL Horizons reference epochs (1800, 2000, 2500 CE) for the comparison-body planetary set plus asteroid:433-Eros, with point segments only for single-epoch bodies and recursively subdivided quadratic spans for multi-epoch bodies using body-class span caps and measured-fit comparison against the fallback, {}.",
+            PACKAGED_ARTIFACT_GENERATION_STRATEGY_TAIL
+        )
+    })
+    .as_str()
+}
+
 const PACKAGED_BASE_BODIES: [CelestialBody; 10] = [
     CelestialBody::Sun,
     CelestialBody::Moon,
@@ -250,14 +271,16 @@ impl PackagedArtifactGenerationPolicy {
     }
 
     /// Returns the explanatory note used in release-facing summaries.
-    pub const fn note(self) -> &'static str {
+    pub fn note(self) -> &'static str {
         match self {
-            Self::AdjacentSameBodyQuadraticWindows => PACKAGED_ARTIFACT_GENERATION_POLICY_NOTE,
+            Self::AdjacentSameBodyQuadraticWindows => {
+                packaged_artifact_generation_policy_note_text()
+            }
         }
     }
 
     /// Returns the segment-strategy text used in release-facing summaries.
-    pub const fn segment_strategy(self) -> &'static str {
+    pub fn segment_strategy(self) -> &'static str {
         self.note()
     }
 
@@ -2043,7 +2066,7 @@ impl PackagedArtifactNormalizedIntermediateSummary {
                 "packaged artifact normalized intermediate summary artifact version does not match the checked-in packaged artifact version",
             ));
         }
-        if self.source != ARTIFACT_SOURCE {
+        if self.source != packaged_artifact_source_text() {
             return Err(pleiades_compression::CompressionError::new(
                 pleiades_compression::CompressionErrorKind::InvalidFormat,
                 "packaged artifact normalized intermediate summary source does not match the checked-in artifact source",
@@ -2256,7 +2279,7 @@ impl PackagedArtifactRegenerationSummary {
                 "packaged artifact regeneration summary label does not match the checked-in artifact label",
             ));
         }
-        if self.source != ARTIFACT_SOURCE {
+        if self.source != packaged_artifact_source_text() {
             return Err(pleiades_compression::CompressionError::new(
                 pleiades_compression::CompressionErrorKind::InvalidFormat,
                 "packaged artifact regeneration summary source does not match the checked-in artifact source",
@@ -2446,7 +2469,7 @@ pub fn packaged_artifact_regeneration_summary_details() -> PackagedArtifactRegen
     let summary = PackagedArtifactRegenerationSummary {
         label: ARTIFACT_LABEL,
         artifact_version: artifact.header.version,
-        source: ARTIFACT_SOURCE,
+        source: packaged_artifact_source_text(),
         source_revision: production_generation_source_summary_for_report(),
         profile_id: ARTIFACT_PROFILE_ID,
         checksum: artifact.checksum,
@@ -2496,7 +2519,7 @@ pub fn packaged_artifact_normalized_intermediate_summary_details(
             ARTIFACT_PROFILE_ID,
             artifact.header.version,
             artifact_time_range(artifact),
-            ARTIFACT_SOURCE,
+            packaged_artifact_source_text(),
             production_generation_source_summary_for_report(),
             artifact.bodies.len(),
             artifact.segment_count(),
@@ -2513,7 +2536,7 @@ pub fn packaged_artifact_normalized_intermediate_summary_details(
     let summary = PackagedArtifactNormalizedIntermediateSummary {
         label: ARTIFACT_LABEL,
         artifact_version: artifact.header.version,
-        source: ARTIFACT_SOURCE,
+        source: packaged_artifact_source_text(),
         source_revision: production_generation_source_summary_for_report(),
         profile_id: ARTIFACT_PROFILE_ID,
         time_range: artifact_time_range(artifact),
@@ -5658,7 +5681,7 @@ pub fn regenerate_packaged_artifact_from_snapshot(
     snapshot: &[SnapshotEntry],
 ) -> CompressedArtifact {
     let mut artifact = CompressedArtifact::new(
-        ArtifactHeader::new(ARTIFACT_LABEL, ARTIFACT_SOURCE),
+        ArtifactHeader::new(ARTIFACT_LABEL, packaged_artifact_source_text()),
         packaged_body_artifacts_from_snapshot(snapshot),
     );
     artifact.checksum = artifact
@@ -5835,7 +5858,7 @@ fn packaged_artifact_segment_fit_error(
     reference_backend: &JplSnapshotBackend,
 ) -> Option<PackagedArtifactSegmentFitError> {
     let artifact = CompressedArtifact::new(
-        ArtifactHeader::new(ARTIFACT_LABEL, ARTIFACT_SOURCE),
+        ArtifactHeader::new(ARTIFACT_LABEL, packaged_artifact_source_text()),
         vec![BodyArtifact::new(body.clone(), vec![segment.clone()])],
     );
     let span_days = segment.end.julian_day.days() - segment.start.julian_day.days();
@@ -8684,7 +8707,7 @@ mod tests {
             summary.summary_line(),
             format!(
                 "adjacent same-body quadratic windows; {}",
-                PACKAGED_ARTIFACT_GENERATION_POLICY_NOTE
+                packaged_artifact_generation_policy_note_text()
             )
         );
         assert_eq!(summary.to_string(), summary.summary_line());
@@ -8751,7 +8774,7 @@ mod tests {
         let artifact = packaged_artifact();
         assert_eq!(summary.label, ARTIFACT_LABEL);
         assert_eq!(summary.artifact_version, artifact.header.version);
-        assert_eq!(summary.source, ARTIFACT_SOURCE);
+        assert_eq!(summary.source, packaged_artifact_source_text());
         assert_eq!(
             summary.source_revision,
             production_generation_source_summary_for_report()
@@ -8775,7 +8798,7 @@ mod tests {
             summary.generation_policy_line(),
             format!(
                 "generation policy: adjacent same-body quadratic windows; {}",
-                PACKAGED_ARTIFACT_GENERATION_POLICY_NOTE
+                packaged_artifact_generation_policy_note_text()
             )
         );
         assert_eq!(
@@ -8867,7 +8890,7 @@ mod tests {
 
         assert_eq!(summary.label, ARTIFACT_LABEL);
         assert_eq!(summary.artifact_version, artifact.header.version);
-        assert_eq!(summary.source, ARTIFACT_SOURCE);
+        assert_eq!(summary.source, packaged_artifact_source_text());
         assert_eq!(
             summary.source_revision,
             production_generation_source_summary_for_report()
@@ -8913,6 +8936,17 @@ mod tests {
         summary
             .validate()
             .expect("normalized intermediates summary should validate");
+    }
+
+    #[test]
+    fn packaged_artifact_source_and_policy_prose_share_the_generation_tail() {
+        assert!(packaged_artifact_generation_policy_note_text()
+            .ends_with(PACKAGED_ARTIFACT_GENERATION_STRATEGY_TAIL));
+        assert!(
+            packaged_artifact_source_text().contains(PACKAGED_ARTIFACT_GENERATION_STRATEGY_TAIL)
+        );
+        assert!(packaged_artifact_source_text()
+            .ends_with(&format!("{PACKAGED_ARTIFACT_GENERATION_STRATEGY_TAIL}.")));
     }
 
     #[test]

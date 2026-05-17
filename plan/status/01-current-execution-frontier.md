@@ -18,6 +18,8 @@ The reference snapshot mixed TT/TDB batch-parity summary is now exposed as a rel
 
 The packaged-artifact source-fit and hold-out sync summary now has a validated CLI surface and also appears in artifact, validation, and release-bundle surfaces, so the calibrated fit thresholds can be reviewed alongside the current target-threshold posture without leaving the release-facing report set; the sync line now also carries the explicit phase-2 corpus alignment evidence so the threshold posture and corpus posture stay visible together, and the release-bundle verifier now cross-checks that shared phase-2 payload against the stand-alone phase-2 corpus alignment summary before accepting a staged bundle.
 
+The packaged-artifact source/provenance prose now shares the generation-tail wording between the artifact source summary and the generation-policy note, reducing drift in release-facing narrative while preserving the fail-closed validation path.
+
 ## Immediate blockers
 
 1. **Source coverage** — checked-in JPL snapshots and boundary overlays are not yet a broad production corpus for all release bodies and epochs.

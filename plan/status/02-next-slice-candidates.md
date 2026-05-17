@@ -26,6 +26,7 @@ This file lists focused implementation slices for the current phase ladder. Comp
 - Completed: the packaged-artifact generator now uses higher-order distance reconstruction from fit samples and cubic four-point control-point reconstruction when available, and the checked-in fixture remains byte-stable.
 - The compatibility-profile and release-summary renderers now re-validate the target-house and target-ayanamsa scope prose before emitting release-facing text, so the catalog posture fails closed if those scope sections drift.
 - Completed: the packaged-artifact generation policy wording now matches the quadratic-window strategy, keeping the release-facing generation-policy prose aligned with the actual adjacent same-body quadratic window label.
+- Completed: the packaged-artifact source/provenance prose now reuses the same generation-tail wording across the artifact source summary and the generation-policy note, reducing drift in release-facing narrative.
 
 ### 1. Improve fitting/reconstruction strategy
 
