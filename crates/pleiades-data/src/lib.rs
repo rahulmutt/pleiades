@@ -5468,6 +5468,29 @@ impl PackagedArtifactSegmentFitError {
     }
 }
 
+#[derive(Clone, Copy, Debug)]
+struct PackagedArtifactFitCandidateScore {
+    sample_count: usize,
+    error: PackagedArtifactSegmentFitError,
+}
+
+impl PackagedArtifactFitCandidateScore {
+    fn max_delta(self) -> f64 {
+        self.error.max_delta()
+    }
+}
+
+fn segment_fit_candidate_is_better(
+    existing: PackagedArtifactFitCandidateScore,
+    candidate: PackagedArtifactFitCandidateScore,
+) -> bool {
+    match candidate.max_delta().total_cmp(&existing.max_delta()) {
+        Ordering::Less => true,
+        Ordering::Greater => false,
+        Ordering::Equal => candidate.sample_count > existing.sample_count,
+    }
+}
+
 const PACKAGED_ARTIFACT_SEGMENT_FIT_ACCEPTANCE_RATIO: f64 = 2.0;
 
 fn segment_error_prefers_candidate(
@@ -5902,7 +5925,6 @@ fn segment_from_pair(
         unwrap_longitude_degrees(start_longitude, end_coordinates.longitude.degrees());
     let start_instant = Instant::new(start.epoch.julian_day, TimeScale::Tt);
     let end_instant = Instant::new(end.epoch.julian_day, TimeScale::Tt);
-
     let sample_fraction = |fraction: f64| -> Option<EclipticCoordinates> {
         let sample_jd = start.epoch.julian_day.days()
             + (end.epoch.julian_day.days() - start.epoch.julian_day.days()) * fraction;
@@ -5921,20 +5943,36 @@ fn segment_from_pair(
             .and_then(|result| result.ecliptic)
     };
 
+    let finalize =
+        |segment| segment_with_optional_residual_channels(&start.body, segment, reference_backend);
+
+    let mut best_candidate: Option<(Segment, PackagedArtifactFitCandidateScore)> = None;
     for sample_count in packaged_artifact_fit_sample_counts_for_body(&start.body) {
-        if let Some(segment) = segment_from_pair_fit_attempt(
+        if let Some((segment, error)) = segment_from_pair_fit_attempt(
             start_instant,
             end_instant,
+            &start.body,
             &start_coordinates,
             &end_coordinates,
             &sample_fraction,
+            reference_backend,
             *sample_count,
         ) {
-            return segment;
+            let score = PackagedArtifactFitCandidateScore {
+                sample_count: *sample_count,
+                error,
+            };
+            let should_replace = best_candidate
+                .as_ref()
+                .map(|(_, existing_score)| segment_fit_candidate_is_better(*existing_score, score))
+                .unwrap_or(true);
+            if should_replace {
+                best_candidate = Some((segment, score));
+            }
         }
     }
 
-    segment_from_pair_fallback(
+    let fallback = segment_from_pair_fallback(
         start_instant,
         end_instant,
         start_longitude,
@@ -5942,17 +5980,32 @@ fn segment_from_pair(
         &start_coordinates,
         &end_coordinates,
         &sample_fraction,
-    )
+    );
+    let fallback_error = if segment_fits_quantization(&fallback) {
+        packaged_artifact_segment_fit_error(&start.body, &fallback, reference_backend)
+    } else {
+        None
+    };
+
+    if let Some((candidate, score)) = &best_candidate {
+        if segment_error_prefers_candidate(Some(score.error), fallback_error) {
+            return finalize(candidate.clone());
+        }
+    }
+
+    finalize(fallback)
 }
 
 fn segment_from_pair_fit_attempt<F>(
     start_instant: Instant,
     end_instant: Instant,
+    body: &CelestialBody,
     start_coordinates: &EclipticCoordinates,
     end_coordinates: &EclipticCoordinates,
     sample_fraction: &F,
+    reference_backend: &JplSnapshotBackend,
     sample_count: usize,
-) -> Option<Segment>
+) -> Option<(Segment, PackagedArtifactSegmentFitError)>
 where
     F: Fn(f64) -> Option<EclipticCoordinates>,
 {
@@ -5998,7 +6051,7 @@ where
     };
 
     let midpoint_distance_au = sample_fraction(0.5).and_then(|coordinates| coordinates.distance_au);
-    Some(Segment::new(
+    let segment = Segment::new(
         start_instant,
         end_instant,
         vec![
@@ -6010,7 +6063,9 @@ where
                 end_coordinates.distance_au.unwrap_or_default(),
             ),
         ],
-    ))
+    );
+    let error = packaged_artifact_segment_fit_error(body, &segment, reference_backend)?;
+    Some((segment, error))
 }
 
 fn segment_from_pair_fallback(
@@ -6338,7 +6393,7 @@ const PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS: &[f64] =
 const PACKAGED_ARTIFACT_DENSE_VALIDATION_SAMPLE_FRACTIONS: &[f64] =
     &[0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875];
 const PACKAGED_ARTIFACT_FIT_SAMPLE_COUNTS: &[usize] = &[6];
-const PACKAGED_ARTIFACT_DENSE_FIT_SAMPLE_COUNTS: &[usize] = &[6, 8, 10];
+const PACKAGED_ARTIFACT_DENSE_FIT_SAMPLE_COUNTS: &[usize] = &[6, 8, 10, 12];
 
 fn packaged_artifact_fit_sample_counts_for_body(body: &CelestialBody) -> &'static [usize] {
     match packaged_artifact_body_cadence(body) {
@@ -6991,6 +7046,55 @@ mod tests {
             outer_planet_fractions,
             PACKAGED_ARTIFACT_RESIDUAL_SAMPLE_FRACTIONS
         );
+    }
+
+    #[test]
+    fn packaged_artifact_fit_candidate_scoring_prefers_lower_error_and_higher_order_ties() {
+        let lower_order_worse = PackagedArtifactFitCandidateScore {
+            sample_count: 6,
+            error: PackagedArtifactSegmentFitError {
+                longitude_degrees: 2.0,
+                latitude_degrees: 2.0,
+                distance_au: 2.0,
+            },
+        };
+        let higher_order_better = PackagedArtifactFitCandidateScore {
+            sample_count: 12,
+            error: PackagedArtifactSegmentFitError {
+                longitude_degrees: 1.0,
+                latitude_degrees: 1.0,
+                distance_au: 1.0,
+            },
+        };
+        let equal_error_lower_order = PackagedArtifactFitCandidateScore {
+            sample_count: 8,
+            error: PackagedArtifactSegmentFitError {
+                longitude_degrees: 1.5,
+                latitude_degrees: 1.5,
+                distance_au: 1.5,
+            },
+        };
+        let equal_error_higher_order = PackagedArtifactFitCandidateScore {
+            sample_count: 12,
+            error: PackagedArtifactSegmentFitError {
+                longitude_degrees: 1.5,
+                latitude_degrees: 1.5,
+                distance_au: 1.5,
+            },
+        };
+
+        assert!(segment_fit_candidate_is_better(
+            lower_order_worse,
+            higher_order_better
+        ));
+        assert!(segment_fit_candidate_is_better(
+            equal_error_lower_order,
+            equal_error_higher_order
+        ));
+        assert!(!segment_fit_candidate_is_better(
+            equal_error_higher_order,
+            equal_error_lower_order
+        ));
     }
 
     #[test]
