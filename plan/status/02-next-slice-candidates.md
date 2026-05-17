@@ -19,6 +19,7 @@ This file lists focused implementation slices for the current phase ladder. Comp
 - The regenerated packaged-artifact fixture is now resynced to the current code path, and the release bundle directory/manifest listings now include the release-house-validation summary with checksum verification.
 - Completed: the packaged-artifact generator now uses midpoint-aware quadratic distance reconstruction on pair-based spans, and the checked-in fixture has been regenerated to the new bytes.
 - The compatibility-profile and release-summary renderers now re-validate the target-house and target-ayanamsa scope prose before emitting release-facing text, so the catalog posture fails closed if those scope sections drift.
+- Completed: the packaged-artifact generation policy wording now matches the quadratic-window strategy, keeping the release-facing generation-policy prose aligned with the actual adjacent same-body quadratic window label.
 
 ### 1. Improve fitting/reconstruction strategy
 

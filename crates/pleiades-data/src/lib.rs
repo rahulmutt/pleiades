@@ -67,7 +67,7 @@ use pleiades_jpl::{
 const PACKAGE_NAME: &str = "pleiades-data";
 const ARTIFACT_LABEL: &str = "stage-5 packaged-data draft";
 const ARTIFACT_PROFILE_ID: &str = "pleiades-packaged-artifact-profile/stage-5-draft";
-const ARTIFACT_SOURCE: &str = "Quantized adjacent same-body cubic windows with longitude-unwrapped planetary fits fitted to JPL Horizons reference epochs (1800, 2000, 2500 CE) for the comparison-body planetary set plus asteroid:433-Eros, with point segments only for single-epoch bodies and recursively subdivided cubic spans for multi-epoch bodies using body-class span caps and measured-fit comparison against the fallback, with residual correction channels on high-curvature spans when they improve the fit, quadratic distance reconstruction when midpoint samples are available, and quadratic fallback where four-point sampling is unavailable.";
+const ARTIFACT_SOURCE: &str = "Quantized adjacent same-body quadratic windows with longitude-unwrapped planetary fits fitted to JPL Horizons reference epochs (1800, 2000, 2500 CE) for the comparison-body planetary set plus asteroid:433-Eros, with point segments only for single-epoch bodies and recursively subdivided quadratic spans for multi-epoch bodies using body-class span caps and measured-fit comparison against the fallback, with residual correction channels on high-curvature spans when they improve the fit, quadratic distance reconstruction when midpoint samples are available, and quadratic fallback where four-point sampling is unavailable.";
 const PACKAGED_BASE_BODIES: [CelestialBody; 10] = [
     CelestialBody::Sun,
     CelestialBody::Moon,
@@ -209,7 +209,7 @@ pub fn packaged_body_coverage_summary() -> String {
 /// Structured generation policy for the packaged artifact.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PackagedArtifactGenerationPolicy {
-    /// Same-body source epochs are fit with adjacent cubic windows.
+    /// Same-body source epochs are fit with adjacent quadratic windows.
     AdjacentSameBodyQuadraticWindows,
 }
 
@@ -243,7 +243,7 @@ impl PackagedArtifactGenerationPolicy {
     /// Returns the compact label used in release-facing summaries.
     pub const fn label(self) -> &'static str {
         match self {
-            Self::AdjacentSameBodyQuadraticWindows => "adjacent same-body cubic windows",
+            Self::AdjacentSameBodyQuadraticWindows => "adjacent same-body quadratic windows",
         }
     }
 
@@ -251,7 +251,7 @@ impl PackagedArtifactGenerationPolicy {
     pub const fn note(self) -> &'static str {
         match self {
             Self::AdjacentSameBodyQuadraticWindows => {
-                "bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps and measured-fit comparison against the fallback, with residual correction channels on high-curvature spans when they improve the fit, quadratic distance reconstruction when midpoint samples are available, and quadratic fallback when four-point sampling is unavailable"
+                "bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into quadratic windows using body-class span caps and measured-fit comparison against the fallback, with residual correction channels on high-curvature spans when they improve the fit, quadratic distance reconstruction when midpoint samples are available, and quadratic fallback when four-point sampling is unavailable"
             }
         }
     }
@@ -7961,7 +7961,7 @@ mod tests {
             summary.policy,
             PackagedArtifactGenerationPolicy::AdjacentSameBodyQuadraticWindows
         );
-        assert_eq!(summary.summary_line(), "adjacent same-body cubic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps and measured-fit comparison against the fallback, with residual correction channels on high-curvature spans when they improve the fit, quadratic distance reconstruction when midpoint samples are available, and quadratic fallback when four-point sampling is unavailable");
+        assert_eq!(summary.summary_line(), "adjacent same-body quadratic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into quadratic windows using body-class span caps and measured-fit comparison against the fallback, with residual correction channels on high-curvature spans when they improve the fit, quadratic distance reconstruction when midpoint samples are available, and quadratic fallback when four-point sampling is unavailable");
         assert_eq!(summary.to_string(), summary.summary_line());
         summary
             .validate()
@@ -8048,7 +8048,7 @@ mod tests {
         );
         assert_eq!(
             summary.generation_policy_line(),
-            "generation policy: adjacent same-body cubic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into cubic windows using body-class span caps and measured-fit comparison against the fallback, with residual correction channels on high-curvature spans when they improve the fit, quadratic distance reconstruction when midpoint samples are available, and quadratic fallback when four-point sampling is unavailable"
+            "generation policy: adjacent same-body quadratic windows; bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into quadratic windows using body-class span caps and measured-fit comparison against the fallback, with residual correction channels on high-curvature spans when they improve the fit, quadratic distance reconstruction when midpoint samples are available, and quadratic fallback when four-point sampling is unavailable"
         );
         assert_eq!(
             summary.residual_body_line(),
@@ -8117,7 +8117,7 @@ mod tests {
         assert!(provenance.contains("segment span days="));
         assert!(provenance.contains("checksum=0x"));
         assert!(provenance.contains("artifact size="));
-        assert!(provenance.contains("generation policy: adjacent same-body cubic windows"));
+        assert!(provenance.contains("generation policy: adjacent same-body quadratic windows"));
         assert!(provenance
             .contains("quantization scales: stored=Longitude=9, Latitude=9, DistanceAu=10"));
         assert!(
