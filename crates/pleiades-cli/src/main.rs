@@ -484,6 +484,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("selected-asteroid-source-evidence-summary") => validate_render_cli(args),
         Some("reference-snapshot-selected-asteroid-source-summary")
         | Some("selected-asteroid-source-summary") => validate_render_cli(args),
+        Some("selected-asteroid-source-request-corpus-summary") => validate_render_cli(args),
+        Some("selected-asteroid-source-request-corpus") => validate_render_cli(args),
         Some("reference-snapshot-selected-asteroid-source-window-summary")
         | Some("selected-asteroid-source-window-summary") => validate_render_cli(args),
         Some("reference-snapshot-2453000-selected-asteroid-source-summary")
@@ -4059,6 +4061,28 @@ mod tests {
             selected_asteroid_source_evidence_summary
         );
 
+        let selected_asteroid_source_request_corpus_summary =
+            render_cli(&["selected-asteroid-source-request-corpus-summary"])
+                .expect("selected asteroid source request corpus summary should render");
+        assert!(selected_asteroid_source_request_corpus_summary
+            .contains("Selected asteroid source request corpus:"));
+        assert!(selected_asteroid_source_request_corpus_summary.contains("observerless"));
+        assert_eq!(
+            selected_asteroid_source_request_corpus_summary,
+            pleiades_jpl::selected_asteroid_source_request_corpus_summary_for_report()
+        );
+        assert_eq!(
+            render_cli(&["selected-asteroid-source-request-corpus"])
+                .expect("selected asteroid source request corpus alias should render"),
+            selected_asteroid_source_request_corpus_summary
+        );
+        assert_eq!(
+            render_cli(&["selected-asteroid-source-request-corpus-summary", "extra"]).expect_err(
+                "selected asteroid source request corpus summary should reject extra arguments"
+            ),
+            "selected-asteroid-source-request-corpus-summary does not accept extra arguments"
+        );
+
         let selected_asteroid_source_window_summary =
             render_cli(&["selected-asteroid-source-window-summary"])
                 .expect("selected asteroid source window summary should render");
@@ -6385,6 +6409,12 @@ mod tests {
         ));
         assert!(help.contains(
             "reference-snapshot-selected-asteroid-source-summary  Print the compact selected-asteroid source evidence summary"
+        ));
+        assert!(help.contains(
+            "selected-asteroid-source-request-corpus-summary  Print the compact selected-asteroid source request corpus summary"
+        ));
+        assert!(help.contains(
+            "selected-asteroid-source-request-corpus  Alias for selected-asteroid-source-request-corpus-summary"
         ));
         assert!(help.contains(
             "reference-snapshot-selected-asteroid-source-window-summary  Print the compact selected-asteroid source windows summary"
