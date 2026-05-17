@@ -2480,6 +2480,9 @@ pub struct PackagedArtifactPhase2CorpusAlignmentSummary {
     pub selected_asteroid_source: pleiades_jpl::SelectedAsteroidSourceSummary,
     /// Source-backed window evidence for the selected-asteroid validation corpus.
     pub selected_asteroid_source_windows: pleiades_jpl::SelectedAsteroidSourceWindowSummary,
+    /// Body-class coverage evidence for the checked-in production-generation corpus.
+    pub production_generation_body_class_coverage:
+        pleiades_jpl::ProductionGenerationSnapshotBodyClassCoverageSummary,
     /// Combined provenance for the checked-in production-generation corpus.
     pub production_generation_source: ProductionGenerationSourceSummary,
 }
@@ -2488,7 +2491,7 @@ impl PackagedArtifactPhase2CorpusAlignmentSummary {
     /// Returns the phase-2 corpus alignment posture as a compact human-readable line.
     pub fn summary_line(&self) -> String {
         format!(
-            "reference source={}; reference snapshot={}; comparison source={}; comparison snapshot={}; independent hold-out source={}; independent hold-out={}; selected asteroid source evidence={}; selected asteroid source windows={}; production generation source={}",
+            "reference source={}; reference snapshot={}; comparison source={}; comparison snapshot={}; independent hold-out source={}; independent hold-out={}; selected asteroid source evidence={}; selected asteroid source windows={}; production generation body-class coverage={}; production generation source={}",
             self.reference_snapshot_source.summary_line(),
             self.reference_snapshot.summary_line(),
             self.comparison_snapshot_source.summary_line(),
@@ -2497,6 +2500,7 @@ impl PackagedArtifactPhase2CorpusAlignmentSummary {
             self.independent_holdout.summary_line(),
             self.selected_asteroid_source.summary_line(),
             self.selected_asteroid_source_windows.summary_line(),
+            self.production_generation_body_class_coverage.summary_line(),
             self.production_generation_source.summary_line(),
         )
     }
@@ -2561,6 +2565,13 @@ impl PackagedArtifactPhase2CorpusAlignmentSummary {
                     field: "phase2_corpus_alignment",
                 },
             )?;
+        self.production_generation_body_class_coverage
+            .validate()
+            .map_err(
+                |_| PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+                    field: "phase2_corpus_alignment",
+                },
+            )?;
         self.production_generation_source.validate().map_err(|_| {
             PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
                 field: "phase2_corpus_alignment",
@@ -2597,6 +2608,8 @@ pub fn packaged_artifact_phase2_corpus_alignment_summary_details(
         independent_holdout: independent_holdout_snapshot_body_class_coverage_summary()?,
         selected_asteroid_source: pleiades_jpl::selected_asteroid_source_evidence_summary()?,
         selected_asteroid_source_windows: pleiades_jpl::selected_asteroid_source_window_summary()?,
+        production_generation_body_class_coverage:
+            pleiades_jpl::production_generation_snapshot_body_class_coverage_summary()?,
         production_generation_source: production_generation_source_summary(),
     })
 }
@@ -9294,6 +9307,9 @@ mod tests {
             .phase2_corpus_alignment
             .summary_line()
             .contains("selected asteroid source windows=Selected asteroid source windows:"));
+        assert!(summary.phase2_corpus_alignment.summary_line().contains(
+            "production generation body-class coverage=Production generation body-class coverage:"
+        ));
         assert!(summary
             .phase2_corpus_alignment
             .summary_line()
@@ -9380,6 +9396,9 @@ mod tests {
         assert!(rendered.contains("reference snapshot="));
         assert!(rendered.contains("comparison snapshot="));
         assert!(rendered.contains("independent hold-out="));
+        assert!(rendered.contains(
+            "production generation body-class coverage=Production generation body-class coverage:"
+        ));
         assert!(rendered.contains("production generation source=Production generation source:"));
         assert!(rendered.contains("Reference snapshot body-class coverage"));
         assert!(rendered.contains("Independent hold-out body-class coverage"));
