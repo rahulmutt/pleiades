@@ -21155,11 +21155,365 @@ pub fn format_jpl_interpolation_quality_summary_for_report() -> String {
                 rendered.insert_str(0, &format!("{}\n", source_summary));
                 rendered.push('\n');
                 rendered.push_str(&jpl_interpolation_quality_kind_coverage_for_report());
+                rendered.push('\n');
+                rendered.push_str(&jpl_interpolation_body_class_error_envelopes_for_report());
                 rendered
             }
             Err(_) => "JPL interpolation quality: unavailable".to_string(),
         },
         None => "JPL interpolation quality: unavailable".to_string(),
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct JplInterpolationBodyClassErrorEnvelopeSummary {
+    /// Body class represented by this envelope.
+    pub class: &'static str,
+    /// Total number of interpolation-quality samples in the class.
+    pub sample_count: usize,
+    /// Number of distinct bodies represented by the samples.
+    pub body_count: usize,
+    /// Bodies represented by the samples in first-seen order.
+    pub bodies: Vec<String>,
+    /// Number of distinct epochs represented by the samples.
+    pub epoch_count: usize,
+    /// Earliest epoch represented by the samples.
+    pub earliest_epoch: Instant,
+    /// Latest epoch represented by the samples.
+    pub latest_epoch: Instant,
+    /// Largest longitude error among the samples.
+    pub max_longitude_error_deg: f64,
+    /// Body associated with the largest longitude error.
+    pub max_longitude_error_body: String,
+    /// Held-out epoch associated with the largest longitude error.
+    pub max_longitude_error_epoch: Instant,
+    /// Mean longitude error across the samples.
+    pub mean_longitude_error_deg: f64,
+    /// Root-mean-square longitude error across the samples.
+    pub rms_longitude_error_deg: f64,
+    /// Largest latitude error among the samples.
+    pub max_latitude_error_deg: f64,
+    /// Body associated with the largest latitude error.
+    pub max_latitude_error_body: String,
+    /// Held-out epoch associated with the largest latitude error.
+    pub max_latitude_error_epoch: Instant,
+    /// Mean latitude error across the samples.
+    pub mean_latitude_error_deg: f64,
+    /// Root-mean-square latitude error across the samples.
+    pub rms_latitude_error_deg: f64,
+    /// Largest distance error among the samples.
+    pub max_distance_error_au: f64,
+    /// Body associated with the largest distance error.
+    pub max_distance_error_body: String,
+    /// Held-out epoch associated with the largest distance error.
+    pub max_distance_error_epoch: Instant,
+    /// Mean distance error across the samples.
+    pub mean_distance_error_au: f64,
+    /// Root-mean-square distance error across the samples.
+    pub rms_distance_error_au: f64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum JplInterpolationBodyClassErrorEnvelopeSummaryValidationError {
+    /// No interpolation-quality samples were available.
+    MissingSamples,
+    /// A rendered summary line drifted from the current evidence.
+    FieldOutOfSync { class: &'static str },
+}
+
+impl fmt::Display for JplInterpolationBodyClassErrorEnvelopeSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::MissingSamples => f.write_str(
+                "JPL interpolation body-class error envelopes are unavailable",
+            ),
+            Self::FieldOutOfSync { class } => write!(
+                f,
+                "the JPL interpolation body-class error envelope for {class} is out of sync with the current evidence"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for JplInterpolationBodyClassErrorEnvelopeSummaryValidationError {}
+
+impl JplInterpolationBodyClassErrorEnvelopeSummary {
+    fn summary_line(&self) -> String {
+        format!(
+            "JPL interpolation body-class error envelope: {}: {} samples across {} bodies [{}] and {} epochs ({} → {}); max Δlon={:.12}° ({} @ {}); mean Δlon={:.12}°; rms Δlon={:.12}°; max Δlat={:.12}° ({} @ {}); mean Δlat={:.12}°; rms Δlat={:.12}°; max Δdist={:.12} AU ({} @ {}); mean Δdist={:.12} AU; rms Δdist={:.12} AU",
+            self.class,
+            self.sample_count,
+            self.body_count,
+            self.bodies.join(", "),
+            self.epoch_count,
+            format_instant(self.earliest_epoch),
+            format_instant(self.latest_epoch),
+            self.max_longitude_error_deg,
+            self.max_longitude_error_body,
+            format_instant(self.max_longitude_error_epoch),
+            self.mean_longitude_error_deg,
+            self.rms_longitude_error_deg,
+            self.max_latitude_error_deg,
+            self.max_latitude_error_body,
+            format_instant(self.max_latitude_error_epoch),
+            self.mean_latitude_error_deg,
+            self.rms_latitude_error_deg,
+            self.max_distance_error_au,
+            self.max_distance_error_body,
+            format_instant(self.max_distance_error_epoch),
+            self.mean_distance_error_au,
+            self.rms_distance_error_au,
+        )
+    }
+
+    fn validate(&self) -> Result<(), JplInterpolationBodyClassErrorEnvelopeSummaryValidationError> {
+        let Some(expected_summaries) = jpl_interpolation_body_class_error_envelopes() else {
+            return Err(
+                JplInterpolationBodyClassErrorEnvelopeSummaryValidationError::MissingSamples,
+            );
+        };
+
+        let Some(expected_summary) = expected_summaries
+            .iter()
+            .find(|summary| summary.class == self.class)
+        else {
+            return Err(
+                JplInterpolationBodyClassErrorEnvelopeSummaryValidationError::FieldOutOfSync {
+                    class: self.class,
+                },
+            );
+        };
+
+        if self.summary_line() != expected_summary.summary_line() {
+            return Err(
+                JplInterpolationBodyClassErrorEnvelopeSummaryValidationError::FieldOutOfSync {
+                    class: self.class,
+                },
+            );
+        }
+
+        Ok(())
+    }
+
+    fn validated_summary_line(
+        &self,
+    ) -> Result<String, JplInterpolationBodyClassErrorEnvelopeSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for JplInterpolationBodyClassErrorEnvelopeSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+struct JplInterpolationBodyClassErrorEnvelopeAccumulator {
+    class: &'static str,
+    sample_count: usize,
+    bodies: Vec<String>,
+    seen_bodies: BTreeSet<String>,
+    epochs: BTreeSet<u64>,
+    earliest_epoch: Option<Instant>,
+    latest_epoch: Option<Instant>,
+    max_longitude_error_deg: f64,
+    max_longitude_error_body: String,
+    max_longitude_error_epoch: Instant,
+    sum_longitude_error_deg: f64,
+    sum_longitude_error_sq_deg: f64,
+    max_latitude_error_deg: f64,
+    max_latitude_error_body: String,
+    max_latitude_error_epoch: Instant,
+    sum_latitude_error_deg: f64,
+    sum_latitude_error_sq_deg: f64,
+    max_distance_error_au: f64,
+    max_distance_error_body: String,
+    max_distance_error_epoch: Instant,
+    sum_distance_error_au: f64,
+    sum_distance_error_sq_au: f64,
+}
+
+impl JplInterpolationBodyClassErrorEnvelopeAccumulator {
+    fn new(class: &'static str) -> Self {
+        Self {
+            class,
+            sample_count: 0,
+            bodies: Vec::new(),
+            seen_bodies: BTreeSet::new(),
+            epochs: BTreeSet::new(),
+            earliest_epoch: None,
+            latest_epoch: None,
+            max_longitude_error_deg: 0.0,
+            max_longitude_error_body: String::new(),
+            max_longitude_error_epoch: reference_instant(),
+            sum_longitude_error_deg: 0.0,
+            sum_longitude_error_sq_deg: 0.0,
+            max_latitude_error_deg: 0.0,
+            max_latitude_error_body: String::new(),
+            max_latitude_error_epoch: reference_instant(),
+            sum_latitude_error_deg: 0.0,
+            sum_latitude_error_sq_deg: 0.0,
+            max_distance_error_au: 0.0,
+            max_distance_error_body: String::new(),
+            max_distance_error_epoch: reference_instant(),
+            sum_distance_error_au: 0.0,
+            sum_distance_error_sq_au: 0.0,
+        }
+    }
+
+    fn push(&mut self, sample: &InterpolationQualitySample) {
+        self.sample_count += 1;
+
+        let body = sample.body.to_string();
+        if self.seen_bodies.insert(body.clone()) {
+            self.bodies.push(body.clone());
+        }
+        self.epochs.insert(sample.epoch.julian_day.days().to_bits());
+        self.earliest_epoch = Some(match self.earliest_epoch {
+            Some(current) if current.julian_day.days() <= sample.epoch.julian_day.days() => current,
+            _ => sample.epoch,
+        });
+        self.latest_epoch = Some(match self.latest_epoch {
+            Some(current) if current.julian_day.days() >= sample.epoch.julian_day.days() => current,
+            _ => sample.epoch,
+        });
+
+        self.sum_longitude_error_deg += sample.longitude_error_deg;
+        self.sum_longitude_error_sq_deg += sample.longitude_error_deg * sample.longitude_error_deg;
+        self.sum_latitude_error_deg += sample.latitude_error_deg;
+        self.sum_latitude_error_sq_deg += sample.latitude_error_deg * sample.latitude_error_deg;
+        self.sum_distance_error_au += sample.distance_error_au;
+        self.sum_distance_error_sq_au += sample.distance_error_au * sample.distance_error_au;
+
+        if sample.longitude_error_deg >= self.max_longitude_error_deg {
+            self.max_longitude_error_deg = sample.longitude_error_deg;
+            self.max_longitude_error_body = body.clone();
+            self.max_longitude_error_epoch = sample.epoch;
+        }
+        if sample.latitude_error_deg >= self.max_latitude_error_deg {
+            self.max_latitude_error_deg = sample.latitude_error_deg;
+            self.max_latitude_error_body = body.clone();
+            self.max_latitude_error_epoch = sample.epoch;
+        }
+        if sample.distance_error_au >= self.max_distance_error_au {
+            self.max_distance_error_au = sample.distance_error_au;
+            self.max_distance_error_body = body;
+            self.max_distance_error_epoch = sample.epoch;
+        }
+    }
+
+    fn finish(self) -> Option<JplInterpolationBodyClassErrorEnvelopeSummary> {
+        let earliest_epoch = self.earliest_epoch?;
+        let latest_epoch = self.latest_epoch?;
+        let sample_count = self.sample_count as f64;
+
+        Some(JplInterpolationBodyClassErrorEnvelopeSummary {
+            class: self.class,
+            sample_count: self.sample_count,
+            body_count: self.bodies.len(),
+            bodies: self.bodies,
+            epoch_count: self.epochs.len(),
+            earliest_epoch,
+            latest_epoch,
+            max_longitude_error_deg: self.max_longitude_error_deg,
+            max_longitude_error_body: self.max_longitude_error_body,
+            max_longitude_error_epoch: self.max_longitude_error_epoch,
+            mean_longitude_error_deg: self.sum_longitude_error_deg / sample_count,
+            rms_longitude_error_deg: (self.sum_longitude_error_sq_deg / sample_count).sqrt(),
+            max_latitude_error_deg: self.max_latitude_error_deg,
+            max_latitude_error_body: self.max_latitude_error_body,
+            max_latitude_error_epoch: self.max_latitude_error_epoch,
+            mean_latitude_error_deg: self.sum_latitude_error_deg / sample_count,
+            rms_latitude_error_deg: (self.sum_latitude_error_sq_deg / sample_count).sqrt(),
+            max_distance_error_au: self.max_distance_error_au,
+            max_distance_error_body: self.max_distance_error_body,
+            max_distance_error_epoch: self.max_distance_error_epoch,
+            mean_distance_error_au: self.sum_distance_error_au / sample_count,
+            rms_distance_error_au: (self.sum_distance_error_sq_au / sample_count).sqrt(),
+        })
+    }
+}
+
+fn interpolation_quality_body_class_index(body: &pleiades_backend::CelestialBody) -> usize {
+    match body {
+        pleiades_backend::CelestialBody::Sun | pleiades_backend::CelestialBody::Moon => 0,
+        pleiades_backend::CelestialBody::Mercury
+        | pleiades_backend::CelestialBody::Venus
+        | pleiades_backend::CelestialBody::Mars
+        | pleiades_backend::CelestialBody::Jupiter
+        | pleiades_backend::CelestialBody::Saturn
+        | pleiades_backend::CelestialBody::Uranus
+        | pleiades_backend::CelestialBody::Neptune
+        | pleiades_backend::CelestialBody::Pluto => 1,
+        pleiades_backend::CelestialBody::MeanNode
+        | pleiades_backend::CelestialBody::TrueNode
+        | pleiades_backend::CelestialBody::MeanApogee
+        | pleiades_backend::CelestialBody::TrueApogee
+        | pleiades_backend::CelestialBody::MeanPerigee
+        | pleiades_backend::CelestialBody::TruePerigee => 2,
+        pleiades_backend::CelestialBody::Ceres
+        | pleiades_backend::CelestialBody::Pallas
+        | pleiades_backend::CelestialBody::Juno
+        | pleiades_backend::CelestialBody::Vesta => 3,
+        pleiades_backend::CelestialBody::Custom(_) => 4,
+        _ => 4,
+    }
+}
+
+/// Returns the body-class error envelopes for the interpolation-quality samples.
+pub fn jpl_interpolation_body_class_error_envelopes(
+) -> Option<Vec<JplInterpolationBodyClassErrorEnvelopeSummary>> {
+    let samples = interpolation_quality_samples();
+    if samples.is_empty() {
+        return None;
+    }
+
+    let mut accumulators = [
+        JplInterpolationBodyClassErrorEnvelopeAccumulator::new("Luminaries"),
+        JplInterpolationBodyClassErrorEnvelopeAccumulator::new("Major planets"),
+        JplInterpolationBodyClassErrorEnvelopeAccumulator::new("Lunar points"),
+        JplInterpolationBodyClassErrorEnvelopeAccumulator::new("Asteroids"),
+        JplInterpolationBodyClassErrorEnvelopeAccumulator::new("Custom bodies"),
+    ];
+
+    for sample in samples {
+        accumulators[interpolation_quality_body_class_index(&sample.body)].push(sample);
+    }
+
+    let summaries = accumulators
+        .into_iter()
+        .filter_map(JplInterpolationBodyClassErrorEnvelopeAccumulator::finish)
+        .collect::<Vec<_>>();
+
+    if summaries.is_empty() {
+        None
+    } else {
+        Some(summaries)
+    }
+}
+
+/// Returns the release-facing body-class error envelopes for the interpolation-quality samples.
+pub fn jpl_interpolation_body_class_error_envelopes_for_report() -> String {
+    match jpl_interpolation_body_class_error_envelopes() {
+        Some(summaries) => {
+            let mut rendered = String::from("JPL interpolation body-class error envelopes:");
+            for summary in summaries {
+                match summary.validated_summary_line() {
+                    Ok(summary_line) => {
+                        rendered.push('\n');
+                        rendered.push_str(&summary_line);
+                    }
+                    Err(error) => {
+                        return format!(
+                            "JPL interpolation body-class error envelopes: unavailable ({error})"
+                        )
+                    }
+                }
+            }
+            rendered
+        }
+        None => "JPL interpolation body-class error envelopes: unavailable".to_string(),
     }
 }
 
@@ -30390,6 +30744,42 @@ mod tests {
         assert!(rendered.contains(&source_summary.summary_line()));
         assert!(rendered.contains(&format_jpl_interpolation_quality_summary(&summary)));
         assert!(rendered.contains(&format_jpl_interpolation_quality_kind_coverage(&coverage)));
+        assert!(rendered.contains(&jpl_interpolation_body_class_error_envelopes_for_report()));
+    }
+
+    #[test]
+    fn interpolation_body_class_error_envelope_summary_reports_the_expected_body_classes() {
+        let summaries = jpl_interpolation_body_class_error_envelopes()
+            .expect("body-class envelopes should exist");
+
+        assert_eq!(summaries.len(), 2);
+        assert_eq!(summaries[0].class, "Luminaries");
+        assert_eq!(summaries[1].class, "Major planets");
+        assert!(summaries.iter().all(|summary| summary.validate().is_ok()));
+        assert!(jpl_interpolation_body_class_error_envelopes_for_report()
+            .contains("JPL interpolation body-class error envelopes:"));
+        assert!(jpl_interpolation_body_class_error_envelopes_for_report().contains("Luminaries"));
+        assert!(jpl_interpolation_body_class_error_envelopes_for_report().contains("Major planets"));
+    }
+
+    #[test]
+    fn interpolation_body_class_error_envelope_summary_validation_rejects_drift() {
+        let mut summary = jpl_interpolation_body_class_error_envelopes()
+            .expect("body-class envelopes should exist")
+            .into_iter()
+            .find(|summary| summary.class == "Luminaries")
+            .expect("luminary envelope should exist");
+
+        summary.mean_longitude_error_deg += 1e-12;
+
+        assert_eq!(
+            summary.validate(),
+            Err(
+                JplInterpolationBodyClassErrorEnvelopeSummaryValidationError::FieldOutOfSync {
+                    class: "Luminaries"
+                }
+            )
+        );
     }
 
     #[test]
