@@ -1122,6 +1122,7 @@ fn packaged_artifact_fit_sample_fractions_for_body(
     } else {
         match packaged_artifact_body_cadence(body) {
             PackagedArtifactBodyCadence::Luminaries
+            | PackagedArtifactBodyCadence::LunarPoints
             | PackagedArtifactBodyCadence::SelectedAsteroids
             | PackagedArtifactBodyCadence::Pluto
             | PackagedArtifactBodyCadence::CustomBodies => {
@@ -5472,6 +5473,7 @@ fn packaged_artifact_segment_validation_fractions() -> &'static [f64] {
 fn packaged_artifact_segment_validation_fractions_for_body(body: &CelestialBody) -> &'static [f64] {
     match packaged_artifact_body_cadence(body) {
         PackagedArtifactBodyCadence::Luminaries
+        | PackagedArtifactBodyCadence::LunarPoints
         | PackagedArtifactBodyCadence::SelectedAsteroids
         | PackagedArtifactBodyCadence::Pluto
         | PackagedArtifactBodyCadence::CustomBodies => {
@@ -6233,6 +6235,7 @@ const PACKAGED_ARTIFACT_DENSE_VALIDATION_SAMPLE_FRACTIONS: &[f64] =
 fn packaged_artifact_residual_sample_fractions(body: &CelestialBody) -> &'static [f64] {
     match packaged_artifact_body_cadence(body) {
         PackagedArtifactBodyCadence::Luminaries
+        | PackagedArtifactBodyCadence::LunarPoints
         | PackagedArtifactBodyCadence::Pluto
         | PackagedArtifactBodyCadence::SelectedAsteroids
         | PackagedArtifactBodyCadence::CustomBodies => {
@@ -6641,6 +6644,7 @@ mod tests {
                     .map(|segment| (&body.body, segment))
             })
             .expect("packaged artifact should include at least one multi-day Saturn segment");
+        let lunar_point_body = CelestialBody::MeanNode;
         let custom_segment = artifact
             .bodies
             .iter()
@@ -6670,6 +6674,22 @@ mod tests {
         assert_eq!(
             packaged_artifact_fit_outlier_sample_fractions(saturn_segment.0, saturn_segment.1),
             packaged_artifact_segment_validation_fractions()
+        );
+        assert_eq!(
+            packaged_artifact_segment_validation_fractions_for_body(&lunar_point_body),
+            PACKAGED_ARTIFACT_DENSE_VALIDATION_SAMPLE_FRACTIONS
+        );
+        assert_eq!(
+            packaged_artifact_fit_sample_fractions_for_body(&lunar_point_body, moon_segment.1),
+            PACKAGED_ARTIFACT_DENSE_VALIDATION_SAMPLE_FRACTIONS
+        );
+        assert_eq!(
+            packaged_artifact_fit_outlier_sample_fractions(&lunar_point_body, moon_segment.1),
+            PACKAGED_ARTIFACT_DENSE_VALIDATION_SAMPLE_FRACTIONS
+        );
+        assert_eq!(
+            packaged_artifact_residual_sample_fractions(&lunar_point_body),
+            PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS
         );
         assert_eq!(
             packaged_artifact_segment_validation_fractions_for_body(custom_segment.0),
