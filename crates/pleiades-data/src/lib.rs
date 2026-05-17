@@ -5739,19 +5739,105 @@ fn packaged_artifact_body_cadence_counts() -> [(&'static str, usize); 7] {
     ]
 }
 
+/// Structured summary for the packaged-artifact body cadence.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PackagedArtifactBodyCadenceSummary {
+    /// Body-cadence entries in release-facing order.
+    pub entries: Vec<(&'static str, usize)>,
+}
+
+/// Validation error for a packaged-artifact body cadence summary that drifted from the current posture.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum PackagedArtifactBodyCadenceSummaryValidationError {
+    /// A summary field is out of sync with the current packaged-artifact posture.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl PackagedArtifactBodyCadenceSummaryValidationError {
+    /// Returns the compact release-facing summary for the validation error.
+    pub fn summary_line(&self) -> String {
+        match self {
+            Self::FieldOutOfSync { field } => format!(
+                "the packaged artifact body cadence summary field `{field}` is out of sync with the current posture"
+            ),
+        }
+    }
+}
+
+impl fmt::Display for PackagedArtifactBodyCadenceSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+impl std::error::Error for PackagedArtifactBodyCadenceSummaryValidationError {}
+
+impl PackagedArtifactBodyCadenceSummary {
+    /// Returns the body cadence summary as a compact human-readable line.
+    pub fn summary_line(&self) -> String {
+        let entries = self
+            .entries
+            .iter()
+            .map(|(label, count)| {
+                format!(
+                    "{label}={count} {}",
+                    if *count == 1 { "body" } else { "bodies" }
+                )
+            })
+            .collect::<Vec<_>>();
+
+        format!("body cadence: {}", join_display(&entries))
+    }
+
+    /// Returns `Ok(())` when the summary still matches the current packaged-artifact posture.
+    pub fn validate(&self) -> Result<(), PackagedArtifactBodyCadenceSummaryValidationError> {
+        if self.entries != packaged_artifact_body_cadence_counts().to_vec() {
+            return Err(
+                PackagedArtifactBodyCadenceSummaryValidationError::FieldOutOfSync {
+                    field: "entries",
+                },
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns the summary line after validating the structured posture.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, PackagedArtifactBodyCadenceSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for PackagedArtifactBodyCadenceSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Returns the current packaged-artifact body cadence summary record.
+pub fn packaged_artifact_body_cadence_summary_details() -> PackagedArtifactBodyCadenceSummary {
+    let summary = PackagedArtifactBodyCadenceSummary {
+        entries: packaged_artifact_body_cadence_counts().to_vec(),
+    };
+    debug_assert!(summary.validate().is_ok());
+    summary
+}
+
+fn render_packaged_artifact_body_cadence_summary(
+    summary: &PackagedArtifactBodyCadenceSummary,
+) -> String {
+    match summary.validated_summary_line() {
+        Ok(line) => line,
+        Err(error) => format!("body cadence: unavailable ({error})"),
+    }
+}
+
 /// Returns the current packaged-artifact body cadence as a compact human-readable line.
 pub fn packaged_artifact_body_cadence_summary_for_report() -> String {
-    let entries = packaged_artifact_body_cadence_counts()
-        .into_iter()
-        .map(|(label, count)| {
-            format!(
-                "{label}={count} {}",
-                if count == 1 { "body" } else { "bodies" }
-            )
-        })
-        .collect::<Vec<_>>();
-
-    format!("body cadence: {}", join_display(&entries))
+    render_packaged_artifact_body_cadence_summary(&packaged_artifact_body_cadence_summary_details())
 }
 
 fn body_segment_windows_for_interval(
@@ -9613,9 +9699,49 @@ mod tests {
 
     #[test]
     fn packaged_artifact_body_cadence_summary_reflects_the_current_posture() {
+        let summary = packaged_artifact_body_cadence_summary_details();
+        assert_eq!(
+            summary.entries,
+            vec![
+                ("luminaries", 2),
+                ("inner planets", 3),
+                ("outer planets", 4),
+                ("pluto", 1),
+                ("lunar points", 0),
+                ("selected asteroids", 1),
+                ("custom bodies", 0),
+            ]
+        );
+        assert_eq!(
+            summary.summary_line(),
+            "body cadence: luminaries=2 bodies, inner planets=3 bodies, outer planets=4 bodies, pluto=1 body, lunar points=0 bodies, selected asteroids=1 body, custom bodies=0 bodies"
+        );
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        summary
+            .validate()
+            .expect("packaged artifact body cadence summary should validate");
         assert_eq!(
             packaged_artifact_body_cadence_summary_for_report(),
-            "body cadence: luminaries=2 bodies, inner planets=3 bodies, outer planets=4 bodies, pluto=1 body, lunar points=0 bodies, selected asteroids=1 body, custom bodies=0 bodies"
+            summary.summary_line()
+        );
+    }
+
+    #[test]
+    fn packaged_artifact_body_cadence_summary_validation_rejects_drift() {
+        let mut summary = packaged_artifact_body_cadence_summary_details();
+        summary.entries[0].1 += 1;
+
+        let error = summary
+            .validate()
+            .expect_err("body cadence drift should be rejected");
+        assert_eq!(
+            error,
+            PackagedArtifactBodyCadenceSummaryValidationError::FieldOutOfSync { field: "entries" }
+        );
+        assert_eq!(
+            error.to_string(),
+            "the packaged artifact body cadence summary field `entries` is out of sync with the current posture"
         );
     }
 
