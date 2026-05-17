@@ -18,6 +18,7 @@ Current first-party backends support mean geometric geocentric tropical requests
 - Preserve structured errors for unsupported apparentness, observer-bearing geocentric-only requests, unsupported time scales, unsupported frames, and malformed observers.
 - Add precedence tests whenever invalid and unsupported request dimensions interact.
 - Keep the request-policy and request-semantics release-facing summaries title-validated so the paired report blocks fail closed if their wording drifts.
+- Validate the shared request-policy wording in the user-facing CLI help block too, so the chart/report help text does not bypass the same policy-posture drift checks.
 
 ## Completion criteria
 

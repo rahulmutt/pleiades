@@ -44,30 +44,58 @@ fn ensure_no_extra_args(args: &[&str], command: &str) -> Result<(), String> {
     }
 }
 
+fn render_validated_summary_line<T, E>(summary: Result<T, E>, unavailable_label: &str) -> String
+where
+    T: AsRef<str>,
+    E: core::fmt::Display,
+{
+    match summary {
+        Ok(line) => line.as_ref().to_string(),
+        Err(error) => format!("{unavailable_label} unavailable ({error})"),
+    }
+}
+
 fn shared_request_policy_help_block() -> String {
     let request_policy = pleiades_core::request_policy_summary_for_report();
-    let request_semantics =
-        request_policy
-            .summary_line()
-            .replacen("Request policy", "Request semantics", 1);
-    let time_scale_policy = pleiades_core::time_scale_policy_summary_for_report();
-    let utc_convenience_policy = pleiades_core::utc_convenience_policy_summary_for_report();
-    let delta_t_policy = pleiades_core::delta_t_policy_summary_for_report();
-    let observer_policy = pleiades_core::observer_policy_summary_for_report();
-    let apparentness_policy = pleiades_core::apparentness_policy_summary_for_report();
-    let native_sidereal_policy = native_sidereal_policy_summary_for_report();
+    let request_policy_line =
+        render_validated_summary_line(request_policy.validated_summary_line(), "Request policy");
+    let request_semantics = request_policy_line.replacen("Request policy", "Request semantics", 1);
+    let time_scale_policy = render_validated_summary_line(
+        pleiades_core::time_scale_policy_summary_for_report().validated_summary_line(),
+        "Time-scale policy",
+    );
+    let utc_convenience_policy = render_validated_summary_line(
+        pleiades_core::utc_convenience_policy_summary_for_report().validated_summary_line(),
+        "UTC convenience policy",
+    );
+    let delta_t_policy = render_validated_summary_line(
+        pleiades_core::delta_t_policy_summary_for_report().validated_summary_line(),
+        "Delta T policy",
+    );
+    let observer_policy = render_validated_summary_line(
+        pleiades_core::observer_policy_summary_for_report().validated_summary_line(),
+        "Observer policy",
+    );
+    let apparentness_policy = render_validated_summary_line(
+        pleiades_core::apparentness_policy_summary_for_report().validated_summary_line(),
+        "Apparentness policy",
+    );
+    let native_sidereal_policy = render_validated_summary_line(
+        native_sidereal_policy_summary_for_report().validated_summary_line(),
+        "Native sidereal policy",
+    );
     let frame_policy = validated_frame_policy_summary_for_report();
 
     format!(
         "  Request policy: {}\n  Request semantics summary: {}\n  Time-scale policy: {}\n  UTC convenience policy: {}\n  Delta T policy: {}\n  Observer policy: {}\n  Apparentness policy: {}\n  Native sidereal policy: {}\n  Frame policy: {}",
-        request_policy.summary_line(),
+        request_policy_line,
         request_semantics,
-        time_scale_policy.summary_line(),
-        utc_convenience_policy.summary_line(),
-        delta_t_policy.summary_line(),
-        observer_policy.summary_line(),
-        apparentness_policy.summary_line(),
-        native_sidereal_policy.summary_line(),
+        time_scale_policy,
+        utc_convenience_policy,
+        delta_t_policy,
+        observer_policy,
+        apparentness_policy,
+        native_sidereal_policy,
         frame_policy,
     )
 }
@@ -5955,7 +5983,15 @@ mod tests {
     #[test]
     fn chart_help_text_spells_out_the_shared_request_policy() {
         let help = render_chart(&["--help"]).expect("chart help should render");
+        let request_policy = pleiades_core::request_policy_summary_for_report()
+            .validated_summary_line()
+            .expect("request policy should validate");
         assert!(help.contains(&shared_request_policy_help_block()));
+        assert!(help.contains(&format!("Request policy: {request_policy}")));
+        assert!(help.contains(&format!(
+            "Request semantics summary: {}",
+            request_policy.replacen("Request policy", "Request semantics", 1)
+        )));
         assert!(help.contains("Request semantics summary:"));
         assert!(help.contains(
             "observer-bearing chart requests stay geocentric and use the observer only for houses"
