@@ -18,6 +18,7 @@ mod artifact;
 mod chart_benchmark;
 mod house_validation;
 
+use artifact::ArtifactBoundaryEnvelopeSummary;
 pub use artifact::{
     artifact_boundary_envelope_summary_for_report, artifact_inspection_summary_for_report,
     render_artifact_report, render_artifact_summary, ArtifactBatchLookupBenchmarkReport,
@@ -13162,21 +13163,29 @@ pub fn render_validation_report_summary(rounds: usize) -> Result<String, Ephemer
     Ok(render_validation_report_summary_text(&report))
 }
 
+fn validated_packaged_artifact_fit_sample_classes_summary_for_report(
+    boundary: &ArtifactBoundaryEnvelopeSummary,
+) -> Result<String, String> {
+    let boundary = boundary
+        .validated_summary_line()
+        .map_err(|error| error.to_string())?;
+    let interior = packaged_artifact_fit_envelope_summary_for_report();
+
+    Ok(format!(
+        "fit sample classes: boundary continuity={}; interior fit={}",
+        boundary, interior,
+    ))
+}
+
 /// Returns the combined packaged-artifact boundary and interior fit sample summary for reports.
 pub fn packaged_artifact_fit_sample_classes_summary_for_report() -> String {
-    match artifact_boundary_envelope_summary_for_report() {
-        Ok(boundary) => {
-            let interior = packaged_artifact_fit_envelope_summary_for_report();
-            format!(
-                "fit sample classes: boundary continuity={}; interior fit={}",
-                boundary
-                    .validated_summary_line()
-                    .unwrap_or_else(|error| format!(
-                        "Artifact boundary envelope: unavailable ({error})"
-                    )),
-                interior,
-            )
-        }
+    let boundary = match artifact_boundary_envelope_summary_for_report() {
+        Ok(boundary) => boundary,
+        Err(error) => return format!("fit sample classes: unavailable ({error})"),
+    };
+
+    match validated_packaged_artifact_fit_sample_classes_summary_for_report(&boundary) {
+        Ok(summary) => summary,
         Err(error) => format!("fit sample classes: unavailable ({error})"),
     }
 }
@@ -29432,6 +29441,32 @@ version = "0.9.0"
             ),
             "packaged-artifact-fit-sample-classes-summary does not accept extra arguments"
         );
+    }
+
+    #[test]
+    fn packaged_artifact_fit_sample_classes_summary_validation_rejects_invalid_boundary_envelope() {
+        let invalid_boundary = ArtifactBoundaryEnvelopeSummary {
+            body_count: 1,
+            boundary_check_count: 1,
+            sum_boundary_longitude_delta_deg: f64::NAN,
+            sum_boundary_longitude_delta_deg_sq: 0.0,
+            sum_boundary_latitude_delta_deg: 0.0,
+            sum_boundary_latitude_delta_deg_sq: 0.0,
+            sum_boundary_distance_delta_au: None,
+            sum_boundary_distance_delta_au_sq: None,
+            boundary_distance_check_count: 0,
+            max_boundary_longitude_delta_body: Some(CelestialBody::Sun),
+            max_boundary_longitude_delta_deg: 0.0,
+            max_boundary_latitude_delta_body: Some(CelestialBody::Sun),
+            max_boundary_latitude_delta_deg: 0.0,
+            max_boundary_distance_delta_body: None,
+            max_boundary_distance_delta_au: None,
+        };
+
+        let error =
+            validated_packaged_artifact_fit_sample_classes_summary_for_report(&invalid_boundary)
+                .expect_err("invalid boundary envelope should fail validation before rendering");
+        assert!(error.contains("must be finite"));
     }
 
     #[test]
