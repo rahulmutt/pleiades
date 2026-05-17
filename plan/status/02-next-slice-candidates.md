@@ -33,7 +33,7 @@ This file lists focused implementation slices for the current phase ladder. Comp
 ### 2. Keep the finalized threshold policy aligned with Phase 2 corpus evidence
 
 - Completed: the packaged-artifact target-threshold summary now carries explicit phase-2 reference, comparison, and independent hold-out corpus alignment evidence and fails closed on phase2 alignment drift.
-- Completed: the comparison snapshot source summary now stages and verifies in the release bundle, keeping the comparison corpus provenance aligned with the reference and hold-out source summaries.
+- Completed: the comparison snapshot source summary now stages and verifies in the release bundle, and now carries redistribution posture directly in the provenance line, keeping the comparison corpus provenance aligned with the reference and hold-out source summaries.
 - Completed: direct and batch request-policy validation now pins invalid-observer precedence ahead of unsupported-body coverage, so mixed request-shape failures keep surfacing the malformed observer before body-coverage rejection.
 
 ## Phase 2 — Reference/source corpus productionization
