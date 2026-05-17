@@ -1113,6 +1113,25 @@ fn packaged_artifact_fit_sample_fractions(segment: &Segment) -> &'static [f64] {
     }
 }
 
+fn packaged_artifact_fit_sample_fractions_for_body(
+    body: &CelestialBody,
+    segment: &Segment,
+) -> &'static [f64] {
+    if segment.start.julian_day.days() == segment.end.julian_day.days() {
+        &[0.0]
+    } else {
+        match packaged_artifact_body_cadence(body) {
+            PackagedArtifactBodyCadence::Luminaries
+            | PackagedArtifactBodyCadence::SelectedAsteroids
+            | PackagedArtifactBodyCadence::Pluto
+            | PackagedArtifactBodyCadence::CustomBodies => {
+                PACKAGED_ARTIFACT_DENSE_VALIDATION_SAMPLE_FRACTIONS
+            }
+            _ => packaged_artifact_fit_sample_fractions(segment),
+        }
+    }
+}
+
 fn packaged_artifact_fit_expected_sample_count_with_filter<F>(
     artifact: &CompressedArtifact,
     mut include_body: F,
@@ -1127,7 +1146,9 @@ where
         .map(|body| {
             body.segments
                 .iter()
-                .map(|segment| packaged_artifact_fit_sample_fractions(segment).len())
+                .map(|segment| {
+                    packaged_artifact_fit_sample_fractions_for_body(&body.body, segment).len()
+                })
                 .sum::<usize>()
         })
         .sum()
@@ -1156,7 +1177,9 @@ where
         for segment in &body_artifact.segments {
             let start = segment.start.julian_day.days();
             let span = segment.end.julian_day.days() - start;
-            for fraction in packaged_artifact_fit_sample_fractions(segment) {
+            for fraction in
+                packaged_artifact_fit_sample_fractions_for_body(&body_artifact.body, segment)
+            {
                 let instant = Instant::new(
                     JulianDay::from_days(start + span * fraction),
                     segment.start.scale,
@@ -6637,6 +6660,10 @@ mod tests {
             &[0.25, 0.5, 0.75]
         );
         assert_eq!(
+            packaged_artifact_fit_sample_fractions_for_body(moon_segment.0, moon_segment.1),
+            PACKAGED_ARTIFACT_DENSE_VALIDATION_SAMPLE_FRACTIONS
+        );
+        assert_eq!(
             packaged_artifact_fit_outlier_sample_fractions(moon_segment.0, moon_segment.1),
             &[0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875]
         );
@@ -6646,6 +6673,10 @@ mod tests {
         );
         assert_eq!(
             packaged_artifact_segment_validation_fractions_for_body(custom_segment.0),
+            PACKAGED_ARTIFACT_DENSE_VALIDATION_SAMPLE_FRACTIONS
+        );
+        assert_eq!(
+            packaged_artifact_fit_sample_fractions_for_body(custom_segment.0, custom_segment.1),
             PACKAGED_ARTIFACT_DENSE_VALIDATION_SAMPLE_FRACTIONS
         );
         assert_eq!(
