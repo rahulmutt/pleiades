@@ -481,6 +481,59 @@ impl PackagedArtifactFitThresholdViolation {
     }
 }
 
+fn packaged_artifact_fit_threshold_violations_from_envelope_and_thresholds(
+    envelope: &PackagedArtifactFitEnvelopeSummary,
+    thresholds: &PackagedArtifactFitThresholdSummary,
+) -> Vec<PackagedArtifactFitThresholdViolation> {
+    let mut violations = Vec::new();
+
+    macro_rules! check_threshold {
+        ($field:literal, $measured:expr, $threshold:expr) => {
+            if $measured > $threshold {
+                violations.push(PackagedArtifactFitThresholdViolation {
+                    field: $field,
+                    measured_bits: $measured.to_bits(),
+                    threshold_bits: $threshold.to_bits(),
+                    overage_bits: ($measured - $threshold).to_bits(),
+                });
+            }
+        };
+    }
+
+    check_threshold!(
+        "mean_longitude_delta_degrees",
+        envelope.mean_longitude_delta_degrees,
+        thresholds.max_mean_longitude_delta_degrees
+    );
+    check_threshold!(
+        "mean_latitude_delta_degrees",
+        envelope.mean_latitude_delta_degrees,
+        thresholds.max_mean_latitude_delta_degrees
+    );
+    check_threshold!(
+        "mean_distance_delta_au",
+        envelope.mean_distance_delta_au,
+        thresholds.max_mean_distance_delta_au
+    );
+    check_threshold!(
+        "max_longitude_delta_degrees",
+        envelope.max_longitude_delta_degrees,
+        thresholds.max_longitude_delta_degrees
+    );
+    check_threshold!(
+        "max_latitude_delta_degrees",
+        envelope.max_latitude_delta_degrees,
+        thresholds.max_latitude_delta_degrees
+    );
+    check_threshold!(
+        "max_distance_delta_au",
+        envelope.max_distance_delta_au,
+        thresholds.max_distance_delta_au
+    );
+
+    violations
+}
+
 /// Validation error for a packaged-artifact fit envelope that drifted from the current posture.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PackagedArtifactFitEnvelopeSummaryValidationError {
@@ -620,56 +673,102 @@ impl fmt::Display for PackagedArtifactFitThresholdSummary {
     }
 }
 
+/// Packaged-artifact fit threshold violations captured for the current posture.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PackagedArtifactFitThresholdViolationsSummary {
+    /// Threshold violations ordered by field as they appear in the envelope.
+    pub violations: Vec<PackagedArtifactFitThresholdViolation>,
+}
+
+/// Validation error for a packaged-artifact fit threshold violation summary that drifted from the current posture.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum PackagedArtifactFitThresholdViolationsSummaryValidationError {
+    /// A summary field is out of sync with the current packaged-artifact fit threshold violation posture.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl PackagedArtifactFitThresholdViolationsSummaryValidationError {
+    /// Returns the compact release-facing summary for the validation error.
+    pub fn summary_line(&self) -> String {
+        match self {
+            Self::FieldOutOfSync { field } => format!(
+                "the packaged artifact fit threshold violation summary field `{field}` is out of sync with the current posture"
+            ),
+        }
+    }
+}
+
+impl fmt::Display for PackagedArtifactFitThresholdViolationsSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+impl std::error::Error for PackagedArtifactFitThresholdViolationsSummaryValidationError {}
+
+impl PackagedArtifactFitThresholdViolationsSummary {
+    /// Returns the packaged-artifact fit threshold violations as a compact human-readable line.
+    pub fn summary_line(&self) -> String {
+        let violation_count = self.violations.len();
+        if violation_count == 0 {
+            return "fit threshold violations: 0; details: none".to_string();
+        }
+
+        let rendered = self
+            .violations
+            .iter()
+            .map(PackagedArtifactFitThresholdViolation::summary_line)
+            .collect::<Vec<_>>()
+            .join("; ");
+        let violation_label = if violation_count == 1 {
+            "violation"
+        } else {
+            "violations"
+        };
+        format!(
+            "fit threshold violations: {violation_count} {violation_label}; details: {rendered}"
+        )
+    }
+
+    /// Returns `Ok(())` when the summary still matches the current packaged-artifact fit threshold violation posture.
+    pub fn validate(
+        &self,
+    ) -> Result<(), PackagedArtifactFitThresholdViolationsSummaryValidationError> {
+        let current = packaged_artifact_fit_threshold_violation_summary_details();
+        if self == &current {
+            Ok(())
+        } else {
+            Err(
+                PackagedArtifactFitThresholdViolationsSummaryValidationError::FieldOutOfSync {
+                    field: "violations",
+                },
+            )
+        }
+    }
+
+    /// Returns the validated packaged-artifact fit threshold violations as a compact human-readable line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, PackagedArtifactFitThresholdViolationsSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for PackagedArtifactFitThresholdViolationsSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 impl PackagedArtifactFitEnvelopeSummary {
     /// Returns `Ok(())` when the measured fit envelope stays within the calibrated thresholds.
     pub fn validate_against_thresholds(
         &self,
         thresholds: &PackagedArtifactFitThresholdSummary,
     ) -> Result<(), PackagedArtifactFitEnvelopeSummaryValidationError> {
-        let mut violations = Vec::new();
-
-        macro_rules! check_threshold {
-            ($field:literal, $measured:expr, $threshold:expr) => {
-                if $measured > $threshold {
-                    violations.push(PackagedArtifactFitThresholdViolation {
-                        field: $field,
-                        measured_bits: $measured.to_bits(),
-                        threshold_bits: $threshold.to_bits(),
-                        overage_bits: ($measured - $threshold).to_bits(),
-                    });
-                }
-            };
-        }
-
-        check_threshold!(
-            "mean_longitude_delta_degrees",
-            self.mean_longitude_delta_degrees,
-            thresholds.max_mean_longitude_delta_degrees
-        );
-        check_threshold!(
-            "mean_latitude_delta_degrees",
-            self.mean_latitude_delta_degrees,
-            thresholds.max_mean_latitude_delta_degrees
-        );
-        check_threshold!(
-            "mean_distance_delta_au",
-            self.mean_distance_delta_au,
-            thresholds.max_mean_distance_delta_au
-        );
-        check_threshold!(
-            "max_longitude_delta_degrees",
-            self.max_longitude_delta_degrees,
-            thresholds.max_longitude_delta_degrees
-        );
-        check_threshold!(
-            "max_latitude_delta_degrees",
-            self.max_latitude_delta_degrees,
-            thresholds.max_latitude_delta_degrees
-        );
-        check_threshold!(
-            "max_distance_delta_au",
-            self.max_distance_delta_au,
-            thresholds.max_distance_delta_au
+        let violations = packaged_artifact_fit_threshold_violations_from_envelope_and_thresholds(
+            self, thresholds,
         );
 
         if violations.is_empty() {
@@ -1600,29 +1699,36 @@ pub fn packaged_artifact_fit_margin_summary_for_report() -> String {
     }
 }
 
-/// Returns the number of packaged-artifact fit threshold violations relative to the calibrated thresholds.
-pub fn packaged_artifact_fit_threshold_violation_count_for_report() -> String {
+/// Returns the current packaged-artifact fit threshold violations summary record.
+pub fn packaged_artifact_fit_threshold_violation_summary_details(
+) -> PackagedArtifactFitThresholdViolationsSummary {
     let envelope = packaged_artifact_fit_envelope_summary_details();
     let thresholds = packaged_artifact_fit_threshold_summary_details();
+    let violations = packaged_artifact_fit_threshold_violations_from_envelope_and_thresholds(
+        &envelope,
+        &thresholds,
+    );
 
-    match envelope.validate_against_thresholds(&thresholds) {
-        Ok(()) => "fit threshold violations: 0".to_string(),
-        Err(error) => format!("fit threshold violations: {}", error.violation_count()),
+    PackagedArtifactFitThresholdViolationsSummary { violations }
+}
+
+/// Returns the number of packaged-artifact fit threshold violations relative to the calibrated thresholds.
+pub fn packaged_artifact_fit_threshold_violation_count_for_report() -> String {
+    let summary = packaged_artifact_fit_threshold_violation_summary_details();
+
+    match summary.validate() {
+        Ok(()) => format!("fit threshold violations: {}", summary.violations.len()),
+        Err(error) => format!("fit threshold violations: unavailable ({error})"),
     }
 }
 
 /// Returns the packaged-artifact fit threshold violations with field-level context.
 pub fn packaged_artifact_fit_threshold_violation_summary_for_report() -> String {
-    let envelope = packaged_artifact_fit_envelope_summary_details();
-    let thresholds = packaged_artifact_fit_threshold_summary_details();
+    let summary = packaged_artifact_fit_threshold_violation_summary_details();
 
-    match envelope.validate_against_thresholds(&thresholds) {
-        Ok(()) => "fit threshold violations: 0; details: none".to_string(),
-        Err(error) => format!(
-            "fit threshold violations: {}; details: {}",
-            error.violation_count(),
-            error.summary_line(),
-        ),
+    match summary.validated_summary_line() {
+        Ok(line) => line,
+        Err(error) => format!("fit threshold violations: unavailable ({error})"),
     }
 }
 
@@ -10139,6 +10245,7 @@ mod tests {
     #[test]
     fn packaged_artifact_fit_threshold_summary_reflects_the_current_posture() {
         let summary = packaged_artifact_fit_threshold_summary_details();
+        let violations = packaged_artifact_fit_threshold_violation_summary_details();
 
         assert_eq!(
             summary.summary_line(),
@@ -10147,12 +10254,50 @@ mod tests {
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert!(summary.validate().is_ok());
+        assert_eq!(
+            violations.summary_line(),
+            "fit threshold violations: 0; details: none"
+        );
+        assert_eq!(violations.to_string(), violations.summary_line());
+        assert_eq!(
+            violations.validated_summary_line(),
+            Ok(violations.summary_line())
+        );
+        assert!(violations.validate().is_ok());
         assert!(packaged_artifact_fit_threshold_summary_for_report()
             .contains("fit thresholds: mean Δlon≤39.066737306976°"));
+        assert_eq!(
+            packaged_artifact_fit_threshold_violation_count_for_report(),
+            "fit threshold violations: 0"
+        );
         assert_eq!(
             packaged_artifact_fit_threshold_violation_summary_for_report(),
             "fit threshold violations: 0; details: none"
         );
+    }
+
+    #[test]
+    fn packaged_artifact_fit_threshold_violation_summary_validation_rejects_drift() {
+        let mut summary = packaged_artifact_fit_threshold_violation_summary_details();
+        summary
+            .violations
+            .push(PackagedArtifactFitThresholdViolation {
+                field: "drift",
+                measured_bits: 1.0f64.to_bits(),
+                threshold_bits: 0.5f64.to_bits(),
+                overage_bits: 0.5f64.to_bits(),
+            });
+
+        let error = summary
+            .validate()
+            .expect_err("threshold violation drift should be rejected");
+        assert_eq!(
+            error,
+            PackagedArtifactFitThresholdViolationsSummaryValidationError::FieldOutOfSync {
+                field: "violations",
+            }
+        );
+        assert!(error.to_string().contains("violations"));
     }
 
     #[test]
