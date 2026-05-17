@@ -2386,10 +2386,16 @@ const PACKAGED_ARTIFACT_TARGET_THRESHOLD_SCOPES: &[&str] = &[
 /// with the current reference, comparison, and hold-out corpora.
 #[derive(Clone, Debug, PartialEq)]
 pub struct PackagedArtifactPhase2CorpusAlignmentSummary {
+    /// Source-material evidence from the checked-in reference snapshot.
+    pub reference_snapshot_source: pleiades_jpl::ReferenceSnapshotSourceSummary,
     /// Body-class coverage evidence from the checked-in reference snapshot.
     pub reference_snapshot: pleiades_jpl::ReferenceSnapshotBodyClassCoverageSummary,
+    /// Source-material evidence from the checked-in comparison snapshot.
+    pub comparison_snapshot_source: pleiades_jpl::ComparisonSnapshotSourceSummary,
     /// Body-class coverage evidence from the checked-in comparison snapshot.
     pub comparison_snapshot: pleiades_jpl::ComparisonSnapshotBodyClassCoverageSummary,
+    /// Source-material evidence from the checked-in independent hold-out snapshot.
+    pub independent_holdout_source: pleiades_jpl::IndependentHoldoutSourceSummary,
     /// Body-class coverage evidence from the checked-in independent hold-out snapshot.
     pub independent_holdout: pleiades_jpl::IndependentHoldoutSnapshotBodyClassCoverageSummary,
 }
@@ -2398,9 +2404,12 @@ impl PackagedArtifactPhase2CorpusAlignmentSummary {
     /// Returns the phase-2 corpus alignment posture as a compact human-readable line.
     pub fn summary_line(&self) -> String {
         format!(
-            "reference snapshot={}; comparison snapshot={}; independent hold-out={}",
+            "reference source={}; reference snapshot={}; comparison source={}; comparison snapshot={}; independent hold-out source={}; independent hold-out={}",
+            self.reference_snapshot_source.summary_line(),
             self.reference_snapshot.summary_line(),
+            self.comparison_snapshot_source.summary_line(),
             self.comparison_snapshot.summary_line(),
+            self.independent_holdout_source.summary_line(),
             self.independent_holdout.summary_line(),
         )
     }
@@ -2423,12 +2432,27 @@ impl PackagedArtifactPhase2CorpusAlignmentSummary {
             );
         }
 
+        self.reference_snapshot_source.validate().map_err(|_| {
+            PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+                field: "phase2_corpus_alignment",
+            }
+        })?;
         self.reference_snapshot.validate().map_err(|_| {
             PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
                 field: "phase2_corpus_alignment",
             }
         })?;
+        self.comparison_snapshot_source.validate().map_err(|_| {
+            PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+                field: "phase2_corpus_alignment",
+            }
+        })?;
         self.comparison_snapshot.validate().map_err(|_| {
+            PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+                field: "phase2_corpus_alignment",
+            }
+        })?;
+        self.independent_holdout_source.validate().map_err(|_| {
             PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
                 field: "phase2_corpus_alignment",
             }
@@ -2460,8 +2484,11 @@ impl fmt::Display for PackagedArtifactPhase2CorpusAlignmentSummary {
 fn packaged_artifact_phase2_corpus_alignment_summary_details(
 ) -> Option<PackagedArtifactPhase2CorpusAlignmentSummary> {
     Some(PackagedArtifactPhase2CorpusAlignmentSummary {
+        reference_snapshot_source: pleiades_jpl::reference_snapshot_source_summary(),
         reference_snapshot: pleiades_jpl::reference_snapshot_body_class_coverage_summary()?,
+        comparison_snapshot_source: pleiades_jpl::comparison_snapshot_source_summary(),
         comparison_snapshot: comparison_snapshot_body_class_coverage_summary()?,
+        independent_holdout_source: pleiades_jpl::independent_holdout_source_summary(),
         independent_holdout: independent_holdout_snapshot_body_class_coverage_summary()?,
     })
 }
@@ -8850,7 +8877,19 @@ mod tests {
         let summary = packaged_artifact_target_threshold_summary_details();
         assert!(summary
             .summary_line()
-            .contains("phase 2 corpus alignment=reference snapshot="));
+            .contains("phase 2 corpus alignment=reference source=Reference snapshot source:"));
+        assert!(summary
+            .phase2_corpus_alignment
+            .summary_line()
+            .contains("reference source=Reference snapshot source:"));
+        assert!(summary
+            .phase2_corpus_alignment
+            .summary_line()
+            .contains("comparison source=Comparison snapshot source:"));
+        assert!(summary
+            .phase2_corpus_alignment
+            .summary_line()
+            .contains("independent hold-out source=Independent hold-out source:"));
         assert!(summary
             .phase2_corpus_alignment
             .summary_line()
@@ -8877,6 +8916,26 @@ mod tests {
         let error = summary
             .validate()
             .expect_err("phase-2 corpus alignment drift should be rejected");
+        assert_eq!(
+            error,
+            PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+                field: "phase2_corpus_alignment",
+            }
+        );
+        assert!(error.to_string().contains("phase2_corpus_alignment"));
+    }
+
+    #[test]
+    fn packaged_artifact_target_threshold_summary_validation_rejects_phase2_source_drift() {
+        let mut summary = packaged_artifact_target_threshold_summary_details();
+        summary
+            .phase2_corpus_alignment
+            .reference_snapshot_source
+            .source = "drifted source".to_string();
+
+        let error = summary
+            .validate()
+            .expect_err("phase-2 source drift should be rejected");
         assert_eq!(
             error,
             PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
