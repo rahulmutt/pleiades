@@ -2821,6 +2821,120 @@ pub fn packaged_artifact_target_threshold_summary_for_report() -> String {
         .clone()
 }
 
+/// Structured sync summary for the packaged-artifact source-fit and hold-out checks.
+#[derive(Clone, Debug, PartialEq)]
+pub struct PackagedArtifactSourceFitHoldoutSyncSummary {
+    /// Calibrated fit thresholds used by the current packaged-artifact posture.
+    pub fit_thresholds: PackagedArtifactFitThresholdSummary,
+    /// Release-threshold posture that keeps the phase-2 corpus alignment synchronized.
+    pub target_thresholds: PackagedArtifactTargetThresholdSummary,
+}
+
+/// Validation error for a packaged-artifact source-fit and hold-out sync summary that drifted from the current posture.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum PackagedArtifactSourceFitHoldoutSyncSummaryValidationError {
+    /// A summary field is out of sync with the current packaged-artifact posture.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for PackagedArtifactSourceFitHoldoutSyncSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the packaged artifact source-fit and hold-out sync summary field `{field}` is out of sync with the current posture"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for PackagedArtifactSourceFitHoldoutSyncSummaryValidationError {}
+
+impl PackagedArtifactSourceFitHoldoutSyncSummary {
+    /// Returns the source-fit and hold-out sync posture as a compact human-readable line.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "source-fit and hold-out sync: fit thresholds={}; target thresholds={}",
+            self.fit_thresholds.summary_line(),
+            self.target_thresholds.summary_line(),
+        )
+    }
+
+    /// Returns `Ok(())` when the sync summary still matches the current packaged-artifact posture.
+    pub fn validate(
+        &self,
+    ) -> Result<(), PackagedArtifactSourceFitHoldoutSyncSummaryValidationError> {
+        let expected_fit_thresholds = packaged_artifact_fit_threshold_summary_details();
+        if self.fit_thresholds != expected_fit_thresholds {
+            return Err(
+                PackagedArtifactSourceFitHoldoutSyncSummaryValidationError::FieldOutOfSync {
+                    field: "fit_thresholds",
+                },
+            );
+        }
+        self.fit_thresholds.validate().map_err(|_| {
+            PackagedArtifactSourceFitHoldoutSyncSummaryValidationError::FieldOutOfSync {
+                field: "fit_thresholds",
+            }
+        })?;
+
+        let expected_target_thresholds = packaged_artifact_target_threshold_summary_details();
+        if self.target_thresholds != expected_target_thresholds {
+            return Err(
+                PackagedArtifactSourceFitHoldoutSyncSummaryValidationError::FieldOutOfSync {
+                    field: "target_thresholds",
+                },
+            );
+        }
+        self.target_thresholds.validate().map_err(|_| {
+            PackagedArtifactSourceFitHoldoutSyncSummaryValidationError::FieldOutOfSync {
+                field: "target_thresholds",
+            }
+        })?;
+
+        Ok(())
+    }
+
+    /// Returns the validated source-fit and hold-out sync posture as a compact human-readable line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, PackagedArtifactSourceFitHoldoutSyncSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for PackagedArtifactSourceFitHoldoutSyncSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Returns the current packaged-artifact source-fit and hold-out sync summary record.
+pub fn packaged_artifact_source_fit_holdout_sync_summary_details(
+) -> PackagedArtifactSourceFitHoldoutSyncSummary {
+    let summary = PackagedArtifactSourceFitHoldoutSyncSummary {
+        fit_thresholds: packaged_artifact_fit_threshold_summary_details(),
+        target_thresholds: packaged_artifact_target_threshold_summary_details(),
+    };
+    debug_assert!(summary.validate().is_ok());
+    summary
+}
+
+/// Returns the current packaged-artifact source-fit and hold-out sync posture after validating the structured evidence.
+pub fn packaged_artifact_source_fit_holdout_sync_summary_for_report() -> String {
+    static SUMMARY: OnceLock<String> = OnceLock::new();
+    SUMMARY
+        .get_or_init(|| {
+            let summary = packaged_artifact_source_fit_holdout_sync_summary_details();
+            match summary.validated_summary_line() {
+                Ok(line) => line,
+                Err(error) => format!("source-fit and hold-out sync: unavailable ({error})"),
+            }
+        })
+        .clone()
+}
+
 /// Returns the current packaged-artifact body-class target-threshold envelopes after validating the structured posture.
 pub fn packaged_artifact_target_threshold_scope_envelopes_for_report() -> String {
     static SUMMARY: OnceLock<String> = OnceLock::new();
@@ -9661,6 +9775,62 @@ mod tests {
             packaged_artifact_phase2_corpus_alignment_summary_for_report(),
             summary.summary_line()
         );
+    }
+
+    #[test]
+    fn packaged_artifact_source_fit_holdout_sync_summary_reflects_the_current_posture() {
+        let summary = packaged_artifact_source_fit_holdout_sync_summary_details();
+
+        assert!(summary
+            .summary_line()
+            .contains("source-fit and hold-out sync:"));
+        assert!(summary
+            .summary_line()
+            .contains("fit thresholds: mean Δlon≤39.066737306976°"));
+        assert!(summary
+            .summary_line()
+            .contains("target thresholds: production thresholds recorded"));
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(
+            packaged_artifact_source_fit_holdout_sync_summary_for_report(),
+            summary.summary_line()
+        );
+    }
+
+    #[test]
+    fn packaged_artifact_source_fit_holdout_sync_summary_validation_rejects_fit_threshold_drift() {
+        let mut summary = packaged_artifact_source_fit_holdout_sync_summary_details();
+        summary.fit_thresholds.max_distance_delta_au += 1.0;
+
+        let error = summary
+            .validate()
+            .expect_err("fit threshold drift should be rejected");
+        assert_eq!(
+            error,
+            PackagedArtifactSourceFitHoldoutSyncSummaryValidationError::FieldOutOfSync {
+                field: "fit_thresholds",
+            }
+        );
+        assert!(error.to_string().contains("fit_thresholds"));
+    }
+
+    #[test]
+    fn packaged_artifact_source_fit_holdout_sync_summary_validation_rejects_target_threshold_drift()
+    {
+        let mut summary = packaged_artifact_source_fit_holdout_sync_summary_details();
+        summary.target_thresholds.state = PackagedArtifactTargetThresholdState::Draft;
+
+        let error = summary
+            .validate()
+            .expect_err("target threshold drift should be rejected");
+        assert_eq!(
+            error,
+            PackagedArtifactSourceFitHoldoutSyncSummaryValidationError::FieldOutOfSync {
+                field: "target_thresholds",
+            }
+        );
+        assert!(error.to_string().contains("target_thresholds"));
     }
 
     #[test]

@@ -569,6 +569,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         | Some("packaged-artifact-target-threshold") => validate_render_cli(args),
         Some("packaged-artifact-target-threshold-scope-envelopes-summary")
         | Some("packaged-artifact-target-threshold-scope-envelopes") => validate_render_cli(args),
+        Some("packaged-artifact-source-fit-holdout-sync-summary")
+        | Some("packaged-artifact-source-fit-holdout-sync") => validate_render_cli(args),
         Some("packaged-artifact-fit-sample-classes-summary")
         | Some("packaged-artifact-fit-sample-classes") => validate_render_cli(args),
         Some("packaged-artifact-fit-outliers-summary") | Some("packaged-artifact-fit-outliers") => {
@@ -6043,6 +6045,35 @@ mod tests {
     }
 
     #[test]
+    fn packaged_artifact_source_fit_holdout_sync_summary_and_alias_commands_render_the_summary() {
+        let sync = render_cli(&["packaged-artifact-source-fit-holdout-sync-summary"])
+            .expect("packaged artifact source-fit and hold-out sync summary should render");
+        assert!(sync.contains("Packaged-artifact source-fit and hold-out sync: "));
+        assert_eq!(
+            render_cli(&["packaged-artifact-source-fit-holdout-sync"])
+                .expect("packaged artifact source-fit and hold-out sync alias should render"),
+            sync
+        );
+        assert_eq!(
+            sync,
+            format!(
+                "Packaged-artifact source-fit and hold-out sync: {}",
+                pleiades_data::packaged_artifact_source_fit_holdout_sync_summary_for_report()
+            )
+        );
+        assert_eq!(
+            render_cli(&["packaged-artifact-source-fit-holdout-sync-summary", "extra"])
+                .expect_err("packaged artifact source-fit and hold-out sync summary should reject extra arguments"),
+            "packaged-artifact-source-fit-holdout-sync-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["packaged-artifact-source-fit-holdout-sync", "extra"])
+                .expect_err("packaged artifact source-fit and hold-out sync alias should reject extra arguments"),
+            "packaged-artifact-source-fit-holdout-sync-summary does not accept extra arguments"
+        );
+    }
+
+    #[test]
     fn help_text_lists_the_packaged_lookup_epoch_policy_summary_command() {
         let help = render_cli(&["help"]).expect("help text should render");
         assert!(help.contains(
@@ -6179,6 +6210,12 @@ mod tests {
         ));
         assert!(help.contains(
             "packaged-artifact-target-threshold-scope-envelopes  Alias for packaged-artifact-target-threshold-scope-envelopes-summary"
+        ));
+        assert!(help.contains(
+            "packaged-artifact-source-fit-holdout-sync-summary  Print the packaged-artifact source-fit and hold-out sync summary"
+        ));
+        assert!(help.contains(
+            "packaged-artifact-source-fit-holdout-sync  Alias for packaged-artifact-source-fit-holdout-sync-summary"
         ));
         assert!(help.contains(
             "packaged-artifact-fit-sample-classes-summary  Print the packaged-artifact fit sample classes summary"
