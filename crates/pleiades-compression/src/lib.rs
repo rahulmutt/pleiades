@@ -444,10 +444,20 @@ impl ArtifactProfile {
     }
 
     /// Returns a compact one-line summary of each artifact output's support state.
+    ///
+    /// The rendered line also makes the explicit `unlisted` bucket visible so
+    /// release-facing summaries can fail closed if a built-in output stops being
+    /// classified.
     pub fn output_support_summary_line(&self) -> String {
+        let unlisted_outputs = ArtifactOutput::all()
+            .into_iter()
+            .filter(|output| self.output_support(*output) == ArtifactOutputSupport::Unlisted)
+            .collect::<Vec<_>>();
+
         format!(
-            "output support: {}",
-            self.output_support_entries_summary_line()
+            "{}; unlisted outputs: {}",
+            self.output_support_entries_summary_line(),
+            format_bracketed_labels(&unlisted_outputs),
         )
     }
 
@@ -3397,7 +3407,7 @@ mod tests {
         );
         assert_eq!(
             profile.output_support_summary_line(),
-            "output support: EclipticCoordinates=derived, EquatorialCoordinates=derived, ApparentCorrections=unsupported, TopocentricCoordinates=unsupported, SiderealCoordinates=unsupported, Motion=unsupported"
+            "EclipticCoordinates=derived, EquatorialCoordinates=derived, ApparentCorrections=unsupported, TopocentricCoordinates=unsupported, SiderealCoordinates=unsupported, Motion=unsupported; unlisted outputs: []"
         );
         assert_eq!(coverage.body_count, 2);
         assert_eq!(

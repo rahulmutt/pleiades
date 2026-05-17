@@ -3556,7 +3556,7 @@ impl PackagedArtifactProfileSummary {
 
     /// Returns the packaged artifact profile's output-support summary line.
     pub fn output_support_summary_line(&self) -> String {
-        self.profile.output_support_entries_summary_line()
+        self.profile.output_support_summary_line()
     }
 
     /// Renders the packaged artifact profile with its bundled body list.
@@ -3721,7 +3721,7 @@ impl PackagedArtifactOutputSupportSummary {
 
     /// Renders the packaged artifact profile's output-support semantics.
     pub fn summary_line(&self) -> String {
-        self.profile.output_support_entries_summary_line()
+        self.profile.output_support_summary_line()
     }
 }
 
@@ -7721,7 +7721,7 @@ mod tests {
         assert_eq!(output_support_summary.profile, summary.profile);
         assert_eq!(
             output_support_summary.summary_line(),
-            summary.profile.output_support_entries_summary_line()
+            summary.profile.output_support_summary_line()
         );
         output_support_summary
             .validate()
@@ -7732,18 +7732,18 @@ mod tests {
         );
         assert_eq!(
             packaged_artifact_output_support_summary_for_report(),
-            summary.profile.output_support_entries_summary_line()
+            summary.profile.output_support_summary_line()
         );
         assert_eq!(
             summary.output_support_summary_line(),
-            summary.profile.output_support_entries_summary_line()
+            summary.profile.output_support_summary_line()
         );
         assert_eq!(
             summary.summary_line_with_output_support(),
             format!(
                 "{}; output support: {}",
                 summary.summary_line_with_bodies(),
-                summary.profile.output_support_entries_summary_line()
+                summary.profile.output_support_summary_line()
             )
         );
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
@@ -8005,7 +8005,7 @@ mod tests {
         let summary = packaged_artifact_output_support_summary_details();
         assert_eq!(
             summary.summary_line(),
-            summary.profile.output_support_entries_summary_line()
+            summary.profile.output_support_summary_line()
         );
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
