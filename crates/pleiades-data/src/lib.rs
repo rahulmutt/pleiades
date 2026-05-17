@@ -1223,11 +1223,14 @@ fn packaged_artifact_fit_samples_for_current_artifact() -> &'static [PackagedArt
         .as_slice()
 }
 
-fn packaged_artifact_fit_outlier_sample_fractions(segment: &Segment) -> &'static [f64] {
+fn packaged_artifact_fit_outlier_sample_fractions(
+    body: &CelestialBody,
+    segment: &Segment,
+) -> &'static [f64] {
     if segment.start.julian_day.days() == segment.end.julian_day.days() {
         &[0.0]
     } else {
-        packaged_artifact_segment_validation_fractions()
+        packaged_artifact_segment_validation_fractions_for_body(body)
     }
 }
 
@@ -1250,7 +1253,9 @@ where
         for segment in &body_artifact.segments {
             let start = segment.start.julian_day.days();
             let span = segment.end.julian_day.days() - start;
-            for fraction in packaged_artifact_fit_outlier_sample_fractions(segment) {
+            for fraction in
+                packaged_artifact_fit_outlier_sample_fractions(&body_artifact.body, segment)
+            {
                 let instant = Instant::new(
                     JulianDay::from_days(start + span * fraction),
                     segment.start.scale,
@@ -5341,6 +5346,16 @@ fn packaged_artifact_segment_validation_fractions() -> &'static [f64] {
     &[0.125, 0.25, 0.5, 0.75, 0.875]
 }
 
+fn packaged_artifact_segment_validation_fractions_for_body(body: &CelestialBody) -> &'static [f64] {
+    match packaged_artifact_body_cadence(body) {
+        PackagedArtifactBodyCadence::Luminaries
+        | PackagedArtifactBodyCadence::SelectedAsteroids => {
+            &[0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875]
+        }
+        _ => packaged_artifact_segment_validation_fractions(),
+    }
+}
+
 fn packaged_artifact_segment_fit_error(
     body: &CelestialBody,
     segment: &Segment,
@@ -5356,7 +5371,7 @@ fn packaged_artifact_segment_fit_error(
     let mut latitude_degrees: f64 = 0.0;
     let mut distance_au: f64 = 0.0;
 
-    for fraction in packaged_artifact_segment_validation_fractions() {
+    for fraction in packaged_artifact_segment_validation_fractions_for_body(body) {
         let sample_jd = segment.start.julian_day.days() + span_days * fraction;
         let request = EphemerisRequest {
             body: body.clone(),
@@ -6470,20 +6485,75 @@ mod tests {
     #[test]
     fn packaged_artifact_fit_outlier_sample_fractions_track_the_validation_lattice() {
         let artifact = packaged_artifact();
-        let segment = artifact
+        let moon_segment = artifact
             .bodies
             .iter()
-            .flat_map(|body| body.segments.iter())
-            .find(|segment| segment.start.julian_day.days() != segment.end.julian_day.days())
-            .expect("packaged artifact should include at least one multi-day segment");
+            .find(|body| body.body == CelestialBody::Moon)
+            .and_then(|body| {
+                body.segments
+                    .iter()
+                    .find(|segment| {
+                        segment.start.julian_day.days() != segment.end.julian_day.days()
+                    })
+                    .map(|segment| (&body.body, segment))
+            })
+            .expect("packaged artifact should include at least one multi-day Moon segment");
+        let saturn_segment = artifact
+            .bodies
+            .iter()
+            .find(|body| body.body == CelestialBody::Saturn)
+            .and_then(|body| {
+                body.segments
+                    .iter()
+                    .find(|segment| {
+                        segment.start.julian_day.days() != segment.end.julian_day.days()
+                    })
+                    .map(|segment| (&body.body, segment))
+            })
+            .expect("packaged artifact should include at least one multi-day Saturn segment");
+        let selected_asteroid_segment = artifact
+            .bodies
+            .iter()
+            .filter(|body| {
+                matches!(
+                    packaged_artifact_body_cadence(&body.body),
+                    PackagedArtifactBodyCadence::SelectedAsteroids
+                )
+            })
+            .find_map(|body| {
+                body.segments
+                    .iter()
+                    .find(|segment| {
+                        segment.start.julian_day.days() != segment.end.julian_day.days()
+                    })
+                    .map(|segment| (&body.body, segment))
+            })
+            .expect(
+                "packaged artifact should include at least one multi-day selected-asteroid segment",
+            );
 
         assert_eq!(
-            packaged_artifact_fit_sample_fractions(segment),
+            packaged_artifact_fit_sample_fractions(moon_segment.1),
             &[0.25, 0.5, 0.75]
         );
         assert_eq!(
-            packaged_artifact_fit_outlier_sample_fractions(segment),
+            packaged_artifact_fit_outlier_sample_fractions(moon_segment.0, moon_segment.1),
+            &[0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875]
+        );
+        assert_eq!(
+            packaged_artifact_fit_outlier_sample_fractions(saturn_segment.0, saturn_segment.1),
             packaged_artifact_segment_validation_fractions()
+        );
+        assert_eq!(
+            packaged_artifact_segment_validation_fractions_for_body(selected_asteroid_segment.0),
+            &[0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875]
+        );
+        assert_eq!(
+            packaged_artifact_fit_outlier_sample_fractions(
+                selected_asteroid_segment.0,
+                selected_asteroid_segment.1,
+            ),
+            packaged_artifact_segment_validation_fractions_for_body(selected_asteroid_segment.0)
         );
     }
 
