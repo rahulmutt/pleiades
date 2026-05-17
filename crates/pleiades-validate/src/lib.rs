@@ -6993,6 +6993,12 @@ impl CompatibilityProfileVerificationSummary {
         Ok(())
     }
 
+    /// Returns the validated compact summary line for the verification posture.
+    pub fn validated_summary_line(&self) -> Result<String, EphemerisError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+
     /// Renders the verification summary as compact release-facing text.
     pub fn summary_line(&self) -> String {
         let mut text = String::new();
@@ -7239,9 +7245,7 @@ pub fn compatibility_profile_verification_summary(
 /// Verifies that the release compatibility profile stays synchronized with the
 /// canonical house-system and ayanamsa catalogs.
 pub fn verify_compatibility_profile() -> Result<String, EphemerisError> {
-    let summary = compatibility_profile_verification_summary()?;
-    summary.validate()?;
-    Ok(summary.summary_line())
+    compatibility_profile_verification_summary()?.validated_summary_line()
 }
 
 fn ensure_profile_slice_matches<T>(
@@ -24126,6 +24130,10 @@ mod tests {
             .expect("fresh compatibility profile verification summary should validate");
         assert_eq!(summary.summary_line(), summary.to_string());
         assert_eq!(
+            summary.validated_summary_line().unwrap(),
+            summary.summary_line()
+        );
+        assert_eq!(
             verify_compatibility_profile().unwrap(),
             summary.summary_line()
         );
@@ -24173,6 +24181,18 @@ mod tests {
 
     #[test]
     fn compatibility_profile_verification_summary_validation_rejects_stale_fields() {
+        let mut summary = compatibility_profile_verification_summary()
+            .expect("compatibility profile verification summary should render");
+        summary.release_ayanamsa_canonical_names = "stale summary".to_string();
+
+        let error = summary
+            .validated_summary_line()
+            .expect_err("stale compatibility profile verification summary should fail validation");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest);
+        assert!(error
+            .message
+            .contains("release ayanamsa canonical names mismatch"));
+
         let mut summary = compatibility_profile_verification_summary()
             .expect("compatibility profile verification summary should render");
         summary.release_ayanamsa_canonical_names = "stale summary".to_string();
