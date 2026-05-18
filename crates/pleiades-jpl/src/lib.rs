@@ -19725,15 +19725,32 @@ pub fn format_reference_snapshot_source_window_summary(
     summary.summary_line()
 }
 
+fn format_validated_reference_snapshot_source_window_summary_for_report(
+    summary: &ReferenceSnapshotSourceWindowSummary,
+) -> String {
+    match summary.validated_summary_line() {
+        Ok(summary_line) => summary_line,
+        Err(error) => format!("Reference snapshot source windows: unavailable ({error})"),
+    }
+}
+
 /// Returns the body-window summary for the checked-in reference snapshot.
 pub fn reference_snapshot_source_window_summary_for_report() -> String {
     match reference_snapshot_source_window_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => format!("Reference snapshot source windows: unavailable ({error})"),
-        },
+        Some(summary) => {
+            format_validated_reference_snapshot_source_window_summary_for_report(&summary)
+        }
         None => "Reference snapshot source windows: unavailable".to_string(),
     }
+}
+
+/// Returns the validated body-window summary for the checked-in reference snapshot.
+pub fn validated_reference_snapshot_source_window_summary_for_report() -> Result<String, String> {
+    let summary = reference_snapshot_source_window_summary()
+        .ok_or_else(|| "reference snapshot source windows unavailable".to_string())?;
+    summary
+        .validated_summary_line()
+        .map_err(|error| error.to_string())
 }
 
 /// Returns the manifest summary for the checked-in reference snapshot.
@@ -28739,6 +28756,37 @@ mod tests {
             )
         ));
         assert!(summary.validated_summary_line().is_err());
+    }
+
+    #[test]
+    fn reference_snapshot_source_window_summary_validated_report_matches_summary_line() {
+        let summary = reference_snapshot_source_window_summary()
+            .expect("reference snapshot source window summary should exist");
+
+        assert_eq!(
+            validated_reference_snapshot_source_window_summary_for_report().unwrap(),
+            summary.summary_line()
+        );
+        assert_eq!(
+            reference_snapshot_source_window_summary_for_report(),
+            summary.summary_line()
+        );
+        assert!(
+            format_validated_reference_snapshot_source_window_summary_for_report(&summary)
+                .contains("Reference snapshot source windows: ")
+        );
+    }
+
+    #[test]
+    fn reference_snapshot_source_window_summary_validated_report_falls_back_on_drift() {
+        let mut summary = reference_snapshot_source_window_summary()
+            .expect("reference snapshot source window summary should exist");
+        summary.windows.swap(0, 1);
+
+        assert!(
+            format_validated_reference_snapshot_source_window_summary_for_report(&summary)
+                .starts_with("Reference snapshot source windows: unavailable (")
+        );
     }
 
     #[test]
