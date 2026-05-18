@@ -21,7 +21,7 @@ use pleiades_core::{
     RoutingBackend, TimeScale, ZodiacMode,
 };
 use pleiades_data::{
-    packaged_artifact_bytes, packaged_artifact_generation_manifest,
+    packaged_artifact_generation_manifest,
     packaged_artifact_normalized_intermediate_summary_for_report,
     packaged_artifact_regeneration_summary_for_report, PackagedDataBackend,
 };
@@ -1165,8 +1165,8 @@ fn render_packaged_artifact_regeneration(
     artifact_checksum_path: Option<String>,
     normalized_intermediate_path: Option<String>,
 ) -> Result<String, String> {
-    let artifact = pleiades_data::packaged_artifact();
-    let encoded = packaged_artifact_bytes();
+    let artifact = pleiades_data::regenerate_packaged_artifact();
+    let encoded = pleiades_data::regenerate_packaged_artifact_bytes();
     if let Some(parent) = std::path::Path::new(&output_path).parent() {
         if !parent.as_os_str().is_empty() {
             std::fs::create_dir_all(parent)
@@ -1261,15 +1261,15 @@ fn render_packaged_artifact_regeneration(
 }
 
 fn render_packaged_artifact_regeneration_check() -> Result<String, String> {
-    let artifact = pleiades_data::packaged_artifact();
-    let committed = packaged_artifact_bytes();
+    let artifact = pleiades_data::regenerate_packaged_artifact();
+    let encoded = pleiades_data::regenerate_packaged_artifact_bytes();
 
     Ok(format!(
         "Packaged artifact regeneration check passed\n  label: {}\n  source: {}\n  checksum: 0x{:016x}\n  bytes: {}\n  {}",
         artifact.header.generation_label,
         artifact.header.source,
         artifact.checksum,
-        committed.len(),
+        encoded.len(),
         packaged_artifact_regeneration_summary_for_report(),
     ))
 }
@@ -5388,7 +5388,8 @@ mod tests {
         assert!(artifact_fixture_path.exists());
         let written = std::fs::read(&artifact_fixture_path)
             .expect("packaged artifact regeneration should write bytes");
-        let expected = packaged_artifact_bytes();
+        let expected = pleiades_data::regenerate_packaged_artifact_bytes();
+        assert_eq!(expected, packaged_artifact_bytes());
         assert_eq!(written, expected);
 
         let manifest_fixture_path = artifact_fixture_dir.join("packaged-artifact.manifest.txt");
