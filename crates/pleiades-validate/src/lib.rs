@@ -11805,6 +11805,22 @@ fn ensure_packaged_artifact_fit_sample_classes_summary_matches_current_rendering
     }
 }
 
+fn ensure_benchmark_corpus_summary_matches_current_rendering(
+    benchmark_corpus_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if benchmark_corpus_summary_text
+        == validated_benchmark_corpus_summary_for_report()
+            .map_err(ReleaseBundleError::Verification)?
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "benchmark corpus summary no longer matches the current benchmark-corpus posture"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_interpolation_quality_request_corpus_summary_matches_current_rendering(
     interpolation_quality_request_corpus_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -12425,6 +12441,7 @@ fn verify_release_bundle(
     )?;
     let benchmark_corpus_summary_text =
         read_required_bundle_text(&benchmark_corpus_summary_path, "benchmark corpus summary")?;
+    ensure_benchmark_corpus_summary_matches_current_rendering(&benchmark_corpus_summary_text)?;
     let interpolation_quality_request_corpus_summary_text = read_required_bundle_text(
         &interpolation_quality_request_corpus_summary_path,
         "interpolation-quality sample request corpus summary",
@@ -16200,13 +16217,22 @@ fn render_comparison_corpus_release_guard_summary_text() -> String {
     )
 }
 
-fn render_benchmark_corpus_summary_text() -> String {
+fn validated_benchmark_corpus_summary_for_report() -> Result<String, String> {
     let corpus = benchmark_corpus();
     let summary = corpus.summary();
+    summary.validate().map_err(|error| error.to_string())?;
+
     let mut text = String::from("Benchmark corpus summary\n");
     write_corpus_summary_text(&mut text, &summary);
     text.push('\n');
-    text
+    Ok(text)
+}
+
+fn render_benchmark_corpus_summary_text() -> String {
+    match validated_benchmark_corpus_summary_for_report() {
+        Ok(summary) => summary,
+        Err(error) => format!("Benchmark corpus summary unavailable ({error})\n"),
+    }
 }
 
 fn render_reference_snapshot_summary_text() -> String {
@@ -32911,6 +32937,21 @@ version = "0.9.0"
         assert!(benchmark.contains("JD 2451545.0 (TT)"));
         assert!(benchmark.contains("JD 2634532.0 (TT)"));
         assert_eq!(benchmark, render_benchmark_corpus_summary_text());
+        assert_eq!(
+            benchmark,
+            validated_benchmark_corpus_summary_for_report()
+                .expect("benchmark corpus summary should validate")
+        );
+        assert!(ensure_benchmark_corpus_summary_matches_current_rendering(&benchmark).is_ok());
+        let drifted_benchmark = benchmark.replace(
+            "Benchmark corpus summary",
+            "Drifted benchmark corpus summary",
+        );
+        let error = ensure_benchmark_corpus_summary_matches_current_rendering(&drifted_benchmark)
+            .expect_err("benchmark corpus summary drift should be rejected");
+        assert!(error
+            .to_string()
+            .contains("benchmark corpus summary no longer matches"));
     }
 
     #[test]

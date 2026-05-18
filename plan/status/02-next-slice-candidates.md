@@ -129,4 +129,5 @@ This file lists focused implementation slices for the current phase ladder. Comp
 - Completed: the verify-release-bundle display now includes the packaged-artifact phase-2 corpus alignment summary in staged-bundle output, matching the manifest entry and checksum checks.
 - Completed: the release bundle verifier now also cross-checks the lunar-theory source-family summary against the live renderer, so the family-posture line fails closed even when the staged checksum is refreshed.
 - Completed: benchmark provenance now records cargo version alongside source revision, workspace status, and rustc version so the release bundle's benchmark report carries the additional tool-version evidence needed for reproducibility.
+- Completed: the benchmark corpus summary now has a validated wrapper and the release bundle verifier now cross-checks it against the live renderer, so benchmark corpus drift fails closed in release bundles.
 - Keep README/docs aligned with the published release compatibility profile and known gaps.
