@@ -11998,6 +11998,19 @@ fn ensure_request_surface_summary_matches_current_rendering(
     }
 }
 
+fn ensure_native_sidereal_policy_summary_matches_current_rendering(
+    native_sidereal_policy_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if native_sidereal_policy_summary_text == render_native_sidereal_policy_summary_text() {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "native sidereal policy summary no longer matches the current native-sidereal posture"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_lunar_theory_source_selection_summary_matches_current_rendering(
     lunar_theory_source_selection_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -13631,6 +13644,9 @@ fn verify_release_bundle(
             manifest.native_sidereal_policy_summary_checksum, native_sidereal_policy_summary_checksum
         )));
     }
+    ensure_native_sidereal_policy_summary_matches_current_rendering(
+        &native_sidereal_policy_summary_text,
+    )?;
     if manifest.lunar_theory_limitations_summary_checksum
         != lunar_theory_limitations_summary_checksum
     {
@@ -30729,6 +30745,19 @@ version = "0.9.0"
             "aliases=1",
             "aliases=2",
             "lunar theory catalog validation summary no longer matches the current lunar theory catalog posture",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_native_sidereal_policy_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-native-sidereal-policy-semantic",
+            "native-sidereal-policy-summary.txt",
+            "native sidereal policy summary checksum (fnv1a-64):",
+            "native sidereal backend output remains unsupported unless a backend explicitly advertises it",
+            "native sidereal backend output is now advertised by default",
+            "native sidereal policy summary no longer matches the current native-sidereal posture",
         );
     }
 
