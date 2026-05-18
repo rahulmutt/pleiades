@@ -5815,6 +5815,9 @@ mod tests {
         assert!(bundle_dir
             .join("native-sidereal-policy-summary.txt")
             .exists());
+        assert!(bundle_dir
+            .join("lunar-theory-source-family-summary.txt")
+            .exists());
         assert!(bundle_dir.join("request-surface-summary.txt").exists());
         assert!(bundle_dir
             .join("release-profile-identifiers-summary.txt")
@@ -5875,6 +5878,8 @@ mod tests {
         assert!(manifest.contains(
             "packaged-artifact phase-2 corpus alignment summary checksum (fnv1a-64): 0x"
         ));
+        assert!(manifest.contains("lunar-theory-source-family-summary.txt"));
+        assert!(manifest.contains("lunar theory source family summary checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("workspace-audit-summary.txt"));
     }
 
@@ -5899,6 +5904,7 @@ mod tests {
         assert!(verified.contains("delta-t-policy-summary.txt"));
         assert!(verified.contains("native-sidereal-policy-summary.txt"));
         assert!(verified.contains("packaged-artifact-phase2-corpus-alignment-summary.txt"));
+        assert!(verified.contains("lunar-theory-source-family-summary.txt"));
         assert!(verified.contains("release-house-system-canonical-names-summary.txt"));
         assert!(verified.contains("release-ayanamsa-canonical-names-summary.txt"));
         assert!(verified.contains("bundle-manifest.checksum.txt"));
