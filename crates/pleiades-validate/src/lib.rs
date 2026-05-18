@@ -30540,6 +30540,19 @@ version = "0.9.0"
     }
 
     #[test]
+    fn verify_release_bundle_rejects_tampered_benchmark_corpus_summary_even_with_updated_checksum()
+    {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-benchmark-corpus-semantic",
+            "benchmark-corpus-summary.txt",
+            "benchmark-corpus summary checksum (fnv1a-64):",
+            "Benchmark corpus summary",
+            "Benchmark corpus summary (drifted)",
+            "benchmark corpus summary no longer matches the current benchmark-corpus posture",
+        );
+    }
+
+    #[test]
     fn verify_release_bundle_rejects_tampered_packaged_artifact_phase2_corpus_alignment_summary_even_with_updated_checksum(
     ) {
         assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
