@@ -4,7 +4,7 @@
 
 The active frontier is **Phase 1: Artifact accuracy and packaged-data production**, with **Phase 2: Reference/source corpus productionization** and **Phase 3: Body-model completion and claim boundaries** as dependencies.
 
-Recent progress: the validation-report interpolation-quality subsection now appends the JPL body-class error-envelope evidence line, so the release-facing backend diagnostics surface the empirical envelopes alongside the existing quality, coverage, posture, and hold-out rows.
+Recent progress: the validation-report interpolation-quality subsection now appends the JPL body-class error-envelope evidence line, so the release-facing backend diagnostics surface the empirical envelopes alongside the existing quality, coverage, posture, and hold-out rows. The comparison snapshot source, body-class coverage, and batch-parity CLI commands now also route through validated helpers instead of the fallback-string path, so malformed comparison snapshot provenance fails closed at the command boundary.
 
 Completed work such as workspace bootstrap, broad catalog scaffolding, report aliases, release-bundle rehearsal, artifact manifest completeness, body-class cadence summaries, span-cap summaries, and packaged lookup/decode benchmark surfaces is no longer listed as active implementation work.
 

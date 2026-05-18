@@ -226,7 +226,10 @@ use pleiades_jpl::{
     selected_asteroid_source_evidence_summary_for_report,
     selected_asteroid_source_request_corpus_summary_for_report,
     selected_asteroid_source_window_summary_for_report,
-    selected_asteroid_terminal_boundary_summary_for_report, JplSnapshotBackend,
+    selected_asteroid_terminal_boundary_summary_for_report,
+    validated_comparison_snapshot_batch_parity_summary_for_report,
+    validated_comparison_snapshot_body_class_coverage_summary_for_report,
+    validated_comparison_snapshot_source_summary_for_report, JplSnapshotBackend,
 };
 use pleiades_vsop87::{
     body_source_profiles, canonical_epoch_equatorial_body_class_evidence_summary_for_report,
@@ -5291,7 +5294,7 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("comparison-snapshot-source-summary") => {
             ensure_no_extra_args(&args[1..], "comparison-snapshot-source-summary")?;
-            Ok(comparison_snapshot_source_summary_for_report())
+            validated_comparison_snapshot_source_summary_for_report()
         }
         Some("comparison-snapshot-source-window-summary") => {
             ensure_no_extra_args(&args[1..], "comparison-snapshot-source-window-summary")?;
@@ -5307,7 +5310,7 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
                 &args[1..],
                 "comparison-snapshot-body-class-coverage-summary",
             )?;
-            Ok(comparison_snapshot_body_class_coverage_summary_for_report())
+            validated_comparison_snapshot_body_class_coverage_summary_for_report()
         }
         Some("comparison-snapshot-manifest-summary") => {
             ensure_no_extra_args(&args[1..], "comparison-snapshot-manifest-summary")?;
@@ -5327,7 +5330,7 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("comparison-snapshot-batch-parity-summary") => {
             ensure_no_extra_args(&args[1..], "comparison-snapshot-batch-parity-summary")?;
-            Ok(comparison_snapshot_batch_parity_summary_for_report())
+            validated_comparison_snapshot_batch_parity_summary_for_report()
         }
         Some("reference-snapshot-source-summary") => {
             ensure_no_extra_args(&args[1..], "reference-snapshot-source-summary")?;

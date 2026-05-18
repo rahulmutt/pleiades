@@ -5582,6 +5582,8 @@ pub struct ComparisonSnapshotBodyClassCoverageSummary {
 /// Validation error for a comparison snapshot body-class coverage summary.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ComparisonSnapshotBodyClassCoverageSummaryValidationError {
+    /// The comparison snapshot body-class coverage summary is unavailable.
+    Unavailable,
     /// A summary field is out of sync with the checked-in body-class coverage.
     FieldOutOfSync { field: &'static str },
 }
@@ -5589,6 +5591,7 @@ pub enum ComparisonSnapshotBodyClassCoverageSummaryValidationError {
 impl fmt::Display for ComparisonSnapshotBodyClassCoverageSummaryValidationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::Unavailable => f.write_str("the comparison snapshot body-class coverage summary is unavailable"),
             Self::FieldOutOfSync { field } => write!(
                 f,
                 "the comparison snapshot body-class coverage summary field `{field}` is out of sync with the current slice"
@@ -5710,6 +5713,17 @@ pub fn comparison_snapshot_body_class_coverage_summary_for_report() -> String {
         },
         None => "Comparison snapshot body-class coverage: unavailable".to_string(),
     }
+}
+
+/// Returns the validated release-facing body-class coverage summary string for the comparison snapshot.
+pub fn validated_comparison_snapshot_body_class_coverage_summary_for_report(
+) -> Result<String, String> {
+    let summary = comparison_snapshot_body_class_coverage_summary().ok_or_else(|| {
+        ComparisonSnapshotBodyClassCoverageSummaryValidationError::Unavailable.to_string()
+    })?;
+    summary
+        .validated_summary_line()
+        .map_err(|error| error.to_string())
 }
 
 const COMPARISON_SNAPSHOT_SOURCE_EXPECTED: &str =
@@ -5941,6 +5955,15 @@ pub fn comparison_snapshot_source_summary_for_report() -> String {
         &comparison_snapshot_source_summary(),
         comparison_snapshot_manifest(),
     )
+}
+
+/// Returns the validated source/material summary for the comparison snapshot.
+pub fn validated_comparison_snapshot_source_summary_for_report() -> Result<String, String> {
+    let manifest = comparison_snapshot_manifest();
+    manifest.validate().map_err(|error| error.to_string())?;
+    comparison_snapshot_source_summary()
+        .validated_summary_line()
+        .map_err(|error| error.to_string())
 }
 
 /// A single body-window slice inside the comparison snapshot source coverage.
@@ -6480,6 +6503,8 @@ pub fn comparison_snapshot_batch_parity_summary() -> Option<ComparisonSnapshotBa
 /// Structured validation errors for a comparison snapshot batch parity summary.
 #[derive(Clone, Debug, PartialEq)]
 pub enum ComparisonSnapshotBatchParitySummaryValidationError {
+    /// The comparison snapshot batch parity summary is unavailable.
+    Unavailable,
     /// The nested comparison snapshot summary failed validation.
     Snapshot(ComparisonSnapshotSummaryValidationError),
     /// The number of mixed-frame requests does not match the row count.
@@ -6503,6 +6528,9 @@ pub enum ComparisonSnapshotBatchParitySummaryValidationError {
 impl fmt::Display for ComparisonSnapshotBatchParitySummaryValidationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::Unavailable => {
+                f.write_str("the comparison snapshot batch parity summary is unavailable")
+            }
             Self::Snapshot(error) => write!(f, "comparison snapshot validation failed: {error}"),
             Self::RequestCountMismatch {
                 ecliptic_request_count,
@@ -6621,6 +6649,16 @@ pub fn comparison_snapshot_batch_parity_summary_for_report() -> String {
         },
         None => "JPL comparison snapshot batch parity: unavailable".to_string(),
     }
+}
+
+/// Returns the validated release-facing comparison snapshot batch parity summary string.
+pub fn validated_comparison_snapshot_batch_parity_summary_for_report() -> Result<String, String> {
+    let summary = comparison_snapshot_batch_parity_summary().ok_or_else(|| {
+        ComparisonSnapshotBatchParitySummaryValidationError::Unavailable.to_string()
+    })?;
+    summary
+        .validated_summary_line()
+        .map_err(|error| error.to_string())
 }
 
 /// Returns the source-backed asteroid subset present in the reference snapshot.
@@ -28111,6 +28149,10 @@ mod tests {
             comparison_snapshot_body_class_coverage_summary_for_report(),
             summary.summary_line()
         );
+        assert_eq!(
+            validated_comparison_snapshot_body_class_coverage_summary_for_report(),
+            Ok(summary.summary_line())
+        );
         assert!(summary
             .summary_line()
             .starts_with("Comparison snapshot body-class coverage: 224 rows across 10 bodies and 26 epochs; bodies: "));
@@ -28186,6 +28228,10 @@ mod tests {
         assert_eq!(
             comparison_snapshot_batch_parity_summary_for_report(),
             summary.summary_line()
+        );
+        assert_eq!(
+            validated_comparison_snapshot_batch_parity_summary_for_report(),
+            Ok(summary.summary_line())
         );
     }
 
@@ -29310,6 +29356,10 @@ mod tests {
         assert_eq!(
             comparison_snapshot_source_summary_for_report(),
             source_summary.summary_line()
+        );
+        assert_eq!(
+            validated_comparison_snapshot_source_summary_for_report(),
+            Ok(source_summary.summary_line())
         );
         let source_window_summary = comparison_snapshot_source_window_summary()
             .expect("comparison snapshot source window summary should exist");
