@@ -9717,7 +9717,7 @@ pub fn render_release_bundle(
     let packaged_artifact_body_cadence_summary_text =
         packaged_artifact_body_cadence_summary_for_report();
     let packaged_artifact_normalized_intermediate_summary_text =
-        packaged_artifact_normalized_intermediate_summary_for_report();
+        validated_packaged_artifact_normalized_intermediate_summary_for_report();
     let packaged_artifact_speed_policy_summary_text =
         packaged_artifact_speed_policy_summary_for_report();
     let packaged_artifact_storage_summary_text =
@@ -11582,6 +11582,21 @@ fn ensure_packaged_artifact_generation_policy_summary_matches_current_rendering(
     }
 }
 
+fn ensure_packaged_artifact_normalized_intermediate_summary_matches_current_rendering(
+    packaged_artifact_normalized_intermediate_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if packaged_artifact_normalized_intermediate_summary_text
+        == validated_packaged_artifact_normalized_intermediate_summary_for_report()
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "packaged-artifact normalized intermediate summary no longer matches the current packaged-artifact normalized-intermediate posture"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_packaged_artifact_fit_sample_classes_summary_matches_current_rendering(
     packaged_artifact_fit_sample_classes_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -13225,6 +13240,9 @@ fn verify_release_bundle(
             manifest.packaged_artifact_normalized_intermediate_summary_checksum, packaged_artifact_normalized_intermediate_summary_checksum
         )));
     }
+    ensure_packaged_artifact_normalized_intermediate_summary_matches_current_rendering(
+        &packaged_artifact_normalized_intermediate_summary_text,
+    )?;
     if manifest.packaged_artifact_speed_policy_summary_checksum
         != packaged_artifact_speed_policy_summary_checksum
     {
@@ -16456,6 +16474,14 @@ fn validated_packaged_artifact_generation_policy_summary_for_report() -> String 
     match summary.validate() {
         Ok(()) => summary.to_string(),
         Err(error) => format!("Packaged-artifact generation policy: unavailable ({error})"),
+    }
+}
+
+fn validated_packaged_artifact_normalized_intermediate_summary_for_report() -> String {
+    let summary = pleiades_data::packaged_artifact_normalized_intermediate_summary_details();
+    match summary.validated_summary_line() {
+        Ok(line) => line,
+        Err(error) => format!("Packaged artifact normalized intermediates: unavailable ({error})"),
     }
 }
 
@@ -20316,7 +20342,7 @@ fn render_packaged_artifact_regeneration(
         None
     };
     let normalized_intermediate = if normalized_intermediate_path.is_some() {
-        Some(packaged_artifact_normalized_intermediate_summary_for_report())
+        Some(validated_packaged_artifact_normalized_intermediate_summary_for_report())
     } else {
         None
     };
@@ -23645,7 +23671,7 @@ mod tests {
             summary,
             format!(
                 "Packaged-artifact normalized intermediates: {}",
-                packaged_artifact_normalized_intermediate_summary_for_report()
+                validated_packaged_artifact_normalized_intermediate_summary_for_report()
             )
         );
         assert!(summary.contains(
@@ -29566,6 +29592,36 @@ version = "0.9.0"
             .expect(
                 "packaged-artifact target-threshold summary should match the current rendering",
             );
+    }
+
+    #[test]
+    fn packaged_artifact_normalized_intermediate_summary_matches_current_rendering() {
+        let summary = validated_packaged_artifact_normalized_intermediate_summary_for_report();
+
+        ensure_packaged_artifact_normalized_intermediate_summary_matches_current_rendering(
+            &summary,
+        )
+        .expect(
+            "packaged-artifact normalized intermediate summary should match the current rendering",
+        );
+    }
+
+    #[test]
+    fn packaged_artifact_normalized_intermediate_summary_validation_rejects_drift() {
+        let summary = validated_packaged_artifact_normalized_intermediate_summary_for_report();
+        let drifted_summary = summary.replace(
+            "label=stage-5 packaged-data draft",
+            "label=stage-5 drifted packaged-data draft",
+        );
+
+        let error =
+            ensure_packaged_artifact_normalized_intermediate_summary_matches_current_rendering(
+                &drifted_summary,
+            )
+            .expect_err("drifted normalized intermediate summary should be rejected");
+        assert!(error
+            .to_string()
+            .contains("normalized intermediate summary no longer matches"));
     }
 
     #[test]
