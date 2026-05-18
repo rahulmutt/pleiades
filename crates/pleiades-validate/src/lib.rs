@@ -90,8 +90,7 @@ use pleiades_data::{
     packaged_frame_parity_summary_for_report, packaged_frame_treatment_summary_for_report,
     packaged_lookup_epoch_policy_summary_for_report,
     packaged_mixed_tt_tdb_batch_parity_summary_for_report,
-    packaged_request_policy_summary_for_report, regenerate_packaged_artifact,
-    regenerate_packaged_artifact_bytes, PackagedDataBackend,
+    packaged_request_policy_summary_for_report, PackagedDataBackend,
 };
 use pleiades_elp::{
     lunar_apparent_comparison_evidence, lunar_apparent_comparison_summary,
@@ -20169,8 +20168,8 @@ fn render_packaged_artifact_regeneration(
     artifact_checksum_path: Option<String>,
     normalized_intermediate_path: Option<String>,
 ) -> Result<String, String> {
-    let artifact = regenerate_packaged_artifact();
-    let encoded = regenerate_packaged_artifact_bytes();
+    let artifact = packaged_artifact();
+    let encoded = packaged_artifact_bytes();
     if let Some(parent) = Path::new(&output_path).parent() {
         if !parent.as_os_str().is_empty() {
             fs::create_dir_all(parent)
@@ -23563,7 +23562,7 @@ mod tests {
     }
 
     #[test]
-    fn regenerate_packaged_artifact_command_checks_and_writes_the_fixture() {
+    fn regenerate_packaged_artifact_check_command_reports_success() {
         let check = render_cli(&["regenerate-packaged-artifact", "--check"])
             .expect("packaged artifact regeneration check should render");
         assert!(check.contains("Packaged artifact regeneration check passed"));
@@ -23573,7 +23572,10 @@ mod tests {
         let generated_check = render_cli(&["generate-packaged-artifact", "--check"])
             .expect("packaged artifact generation alias should render");
         assert_eq!(generated_check, check);
+    }
 
+    #[test]
+    fn regenerate_packaged_artifact_out_command_writes_bytes() {
         let output_dir = unique_temp_dir("pleiades-packaged-artifact-regeneration");
         let output_path = output_dir.join("packaged-artifact.bin");
         let output_path_string = output_path.to_string_lossy().to_string();
@@ -23584,7 +23586,10 @@ mod tests {
         let regenerated_bytes =
             std::fs::read(&output_path).expect("regenerated artifact should exist");
         assert!(!regenerated_bytes.is_empty());
+    }
 
+    #[test]
+    fn regenerate_packaged_artifact_output_alias_writes_bytes() {
         let output_alias_dir = unique_temp_dir("pleiades-packaged-artifact-regeneration-output");
         let output_alias_path = output_alias_dir.join("packaged-artifact.bin");
         let output_alias_path_string = output_alias_path.to_string_lossy().to_string();
@@ -23599,7 +23604,13 @@ mod tests {
         let regenerated_alias_bytes =
             std::fs::read(&output_alias_path).expect("regenerated artifact alias should exist");
         assert!(!regenerated_alias_bytes.is_empty());
+    }
 
+    #[test]
+    fn regenerate_packaged_artifact_command_writes_all_sidecars() {
+        let output_alias_dir = unique_temp_dir("pleiades-packaged-artifact-regeneration-sidecars");
+        let output_alias_path = output_alias_dir.join("packaged-artifact.bin");
+        let output_alias_path_string = output_alias_path.to_string_lossy().to_string();
         let manifest_path = output_alias_dir.join("packaged-artifact.manifest.txt");
         let manifest_path_string = manifest_path.to_string_lossy().to_string();
         let manifest_summary_path = output_alias_dir.join("packaged-artifact.manifest.summary.txt");
