@@ -3640,6 +3640,14 @@ pub fn render_workspace_audit_summary() -> Result<String, std::io::Error> {
     Ok(render_workspace_audit_summary_text(&report))
 }
 
+/// Renders the compact native-dependency audit summary used by release bundling.
+///
+/// This stays explicit even though it currently shares the same underlying report,
+/// so release-bundle bookkeeping can keep the native-dependency path separate.
+pub fn render_native_dependency_audit_summary() -> Result<String, std::io::Error> {
+    render_workspace_audit_summary()
+}
+
 impl fmt::Display for ValidationReport {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if let Err(error) = self.validate() {
@@ -5123,7 +5131,7 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("native-dependency-audit-summary") => {
             ensure_no_extra_args(&args[1..], "native-dependency-audit-summary")?;
-            render_workspace_audit_summary().map_err(|error| error.to_string())
+            render_native_dependency_audit_summary().map_err(|error| error.to_string())
         }
         Some("api-stability-summary") | Some("api-posture-summary") => {
             ensure_no_extra_args(&args[1..], "api-stability-summary")?;
@@ -9919,8 +9927,10 @@ pub fn render_release_bundle(
     let request_surface_summary_checksum = checksum64(&request_surface_summary_text);
     let compatibility_caveats_summary_checksum = checksum64(&compatibility_caveats_summary_text);
     let workspace_audit_summary_checksum = checksum64(&workspace_audit_summary_text);
-    let native_dependency_audit_summary_text = workspace_audit_summary_text.as_str();
-    let native_dependency_audit_summary_checksum = checksum64(native_dependency_audit_summary_text);
+    let native_dependency_audit_summary_text = render_native_dependency_audit_summary()
+        .map_err(|error| ReleaseBundleError::Verification(error.to_string()))?;
+    let native_dependency_audit_summary_checksum =
+        checksum64(&native_dependency_audit_summary_text);
     let artifact_summary_checksum = checksum64(&artifact_summary_text);
     let packaged_artifact_profile_coverage_summary_checksum =
         checksum64(&packaged_artifact_profile_coverage_summary_text);
@@ -11417,6 +11427,21 @@ fn ensure_request_surface_summary_matches_current_rendering(
     }
 }
 
+fn ensure_native_dependency_audit_summary_matches_current_rendering(
+    native_dependency_audit_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    let current_text = render_native_dependency_audit_summary()
+        .map_err(|error| ReleaseBundleError::Verification(error.to_string()))?;
+    if native_dependency_audit_summary_text == current_text {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "native-dependency audit summary no longer matches the current workspace audit posture"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_api_stability_summary_matches_current_rendering(
     api_stability_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -11787,6 +11812,15 @@ fn verify_release_bundle(
     let native_dependency_audit_summary_text = read_required_bundle_text(
         &native_dependency_audit_summary_path,
         "native-dependency audit summary",
+    )?;
+    if workspace_audit_summary_text != native_dependency_audit_summary_text {
+        return Err(ReleaseBundleError::Verification(
+            "native-dependency audit summary no longer matches the workspace audit summary"
+                .to_string(),
+        ));
+    }
+    ensure_native_dependency_audit_summary_matches_current_rendering(
+        &native_dependency_audit_summary_text,
     )?;
     let native_dependency_audit_summary_checksum =
         checksum64(&native_dependency_audit_summary_text);
@@ -26464,8 +26498,11 @@ mod tests {
 
         let rendered = render_cli(&["workspace-audit-summary"])
             .expect("workspace audit summary should render");
+        let native_dependency_rendered = render_native_dependency_audit_summary()
+            .expect("native dependency audit summary should render");
         let alias = render_cli(&["native-dependency-audit-summary"])
             .expect("native dependency audit summary should render");
+        assert_eq!(rendered, native_dependency_rendered);
         assert_eq!(rendered, alias);
         assert!(rendered.contains("Workspace audit summary"));
         assert!(rendered.contains("Summary: workspace root:"));
