@@ -2364,6 +2364,30 @@ mod tests {
         assert!(!profile.is_unsupported_output(ArtifactOutput::EquatorialCoordinates));
         assert!(profile.is_unsupported_output(ArtifactOutput::SiderealCoordinates));
 
+        let unlisted_summary_profile = ArtifactProfile::new(
+            vec![
+                ChannelKind::Longitude,
+                ChannelKind::Latitude,
+                ChannelKind::DistanceAu,
+            ],
+            vec![ArtifactOutput::EclipticCoordinates],
+            vec![
+                ArtifactOutput::ApparentCorrections,
+                ArtifactOutput::TopocentricCoordinates,
+                ArtifactOutput::SiderealCoordinates,
+                ArtifactOutput::Motion,
+            ],
+            SpeedPolicy::Unsupported,
+        );
+        let error = unlisted_summary_profile
+            .validate()
+            .expect_err("unlisted profile output should be rejected");
+        assert_eq!(error.kind, CompressionErrorKind::InvalidFormat);
+        assert_eq!(
+            error.message,
+            "artifact profile output EquatorialCoordinates must be explicitly listed as stored, derived, or unsupported"
+        );
+
         assert_eq!(
             SpeedPolicy::Stored.motion_output_support(),
             ArtifactOutputSupport::Stored
