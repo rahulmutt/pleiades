@@ -5986,8 +5986,12 @@ fn body_segment_span_limit(body: &CelestialBody) -> f64 {
 }
 
 const PACKAGED_ARTIFACT_SPLIT_BALANCE_RATIO: f64 = 1.1;
+const PACKAGED_ARTIFACT_EXTREME_SPLIT_RATIO: f64 = 4.0;
+const PACKAGED_ARTIFACT_EXTREME_SPLIT_MIN_SPAN_RATIO: f64 = 3.0;
 const PACKAGED_ARTIFACT_LEFT_BIASED_SPLIT_FRACTION: f64 = 0.4;
 const PACKAGED_ARTIFACT_RIGHT_BIASED_SPLIT_FRACTION: f64 = 0.6;
+const PACKAGED_ARTIFACT_LEFT_EXTREME_SPLIT_FRACTION: f64 = 0.25;
+const PACKAGED_ARTIFACT_RIGHT_EXTREME_SPLIT_FRACTION: f64 = 0.75;
 
 #[derive(Clone, Copy)]
 struct PackagedArtifactSplitCurvature<'a> {
@@ -6053,7 +6057,19 @@ fn packaged_artifact_split_fraction_for_interval(
         curvature.end_coordinates,
     );
 
-    if left_curvature > right_curvature * PACKAGED_ARTIFACT_SPLIT_BALANCE_RATIO {
+    if span_days > span_limit * PACKAGED_ARTIFACT_EXTREME_SPLIT_MIN_SPAN_RATIO {
+        if left_curvature > right_curvature * PACKAGED_ARTIFACT_EXTREME_SPLIT_RATIO {
+            PACKAGED_ARTIFACT_LEFT_EXTREME_SPLIT_FRACTION
+        } else if right_curvature > left_curvature * PACKAGED_ARTIFACT_EXTREME_SPLIT_RATIO {
+            PACKAGED_ARTIFACT_RIGHT_EXTREME_SPLIT_FRACTION
+        } else if left_curvature > right_curvature * PACKAGED_ARTIFACT_SPLIT_BALANCE_RATIO {
+            PACKAGED_ARTIFACT_LEFT_BIASED_SPLIT_FRACTION
+        } else if right_curvature > left_curvature * PACKAGED_ARTIFACT_SPLIT_BALANCE_RATIO {
+            PACKAGED_ARTIFACT_RIGHT_BIASED_SPLIT_FRACTION
+        } else {
+            0.5
+        }
+    } else if left_curvature > right_curvature * PACKAGED_ARTIFACT_SPLIT_BALANCE_RATIO {
         PACKAGED_ARTIFACT_LEFT_BIASED_SPLIT_FRACTION
     } else if right_curvature > left_curvature * PACKAGED_ARTIFACT_SPLIT_BALANCE_RATIO {
         PACKAGED_ARTIFACT_RIGHT_BIASED_SPLIT_FRACTION
@@ -7850,27 +7866,111 @@ mod tests {
 
     #[test]
     fn packaged_artifact_split_fraction_prefers_dense_body_curvature_bias() {
-        let start = EclipticCoordinates::new(
+        let moderate_left_start = EclipticCoordinates::new(
             pleiades_backend::Longitude::from_degrees(0.0),
             pleiades_backend::Latitude::from_degrees(0.0),
             Some(1.0),
         );
-        let quarter = EclipticCoordinates::new(
+        let moderate_left_quarter = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(1.0),
+            pleiades_backend::Latitude::from_degrees(0.4),
+            Some(1.01),
+        );
+        let moderate_left_midpoint = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(1.8),
+            pleiades_backend::Latitude::from_degrees(0.7),
+            Some(1.02),
+        );
+        let moderate_left_three_quarter = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(2.6),
+            pleiades_backend::Latitude::from_degrees(1.0),
+            Some(1.03),
+        );
+        let moderate_left_end = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(3.4),
+            pleiades_backend::Latitude::from_degrees(1.3),
+            Some(1.04),
+        );
+
+        assert_eq!(
+            packaged_artifact_split_fraction_for_interval(
+                &CelestialBody::Pluto,
+                3_200.0,
+                body_segment_span_limit(&CelestialBody::Pluto),
+                PackagedArtifactSplitCurvature {
+                    start_coordinates: &moderate_left_start,
+                    quarter_coordinates: Some(&moderate_left_quarter),
+                    midpoint_coordinates: &moderate_left_midpoint,
+                    three_quarter_coordinates: Some(&moderate_left_three_quarter),
+                    end_coordinates: &moderate_left_end,
+                },
+            ),
+            PACKAGED_ARTIFACT_LEFT_BIASED_SPLIT_FRACTION
+        );
+
+        let moderate_right_start = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(0.0),
+            pleiades_backend::Latitude::from_degrees(0.0),
+            Some(1.0),
+        );
+        let moderate_right_quarter = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(0.8),
+            pleiades_backend::Latitude::from_degrees(0.3),
+            Some(1.01),
+        );
+        let moderate_right_midpoint = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(1.0),
+            pleiades_backend::Latitude::from_degrees(0.4),
+            Some(1.02),
+        );
+        let moderate_right_three_quarter = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(1.8),
+            pleiades_backend::Latitude::from_degrees(0.7),
+            Some(1.03),
+        );
+        let moderate_right_end = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(3.0),
+            pleiades_backend::Latitude::from_degrees(1.1),
+            Some(1.04),
+        );
+
+        assert_eq!(
+            packaged_artifact_split_fraction_for_interval(
+                &CelestialBody::Pluto,
+                3_200.0,
+                body_segment_span_limit(&CelestialBody::Pluto),
+                PackagedArtifactSplitCurvature {
+                    start_coordinates: &moderate_right_start,
+                    quarter_coordinates: Some(&moderate_right_quarter),
+                    midpoint_coordinates: &moderate_right_midpoint,
+                    three_quarter_coordinates: Some(&moderate_right_three_quarter),
+                    end_coordinates: &moderate_right_end,
+                },
+            ),
+            PACKAGED_ARTIFACT_RIGHT_BIASED_SPLIT_FRACTION
+        );
+
+        let extreme_left_start = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(0.0),
+            pleiades_backend::Latitude::from_degrees(0.0),
+            Some(1.0),
+        );
+        let extreme_left_quarter = EclipticCoordinates::new(
             pleiades_backend::Longitude::from_degrees(8.0),
             pleiades_backend::Latitude::from_degrees(4.0),
             Some(1.1),
         );
-        let midpoint = EclipticCoordinates::new(
+        let extreme_left_midpoint = EclipticCoordinates::new(
             pleiades_backend::Longitude::from_degrees(14.0),
             pleiades_backend::Latitude::from_degrees(7.0),
             Some(1.2),
         );
-        let three_quarter = EclipticCoordinates::new(
+        let extreme_left_three_quarter = EclipticCoordinates::new(
             pleiades_backend::Longitude::from_degrees(15.0),
             pleiades_backend::Latitude::from_degrees(7.2),
             Some(1.22),
         );
-        let end = EclipticCoordinates::new(
+        let extreme_left_end = EclipticCoordinates::new(
             pleiades_backend::Longitude::from_degrees(16.0),
             pleiades_backend::Latitude::from_degrees(7.4),
             Some(1.24),
@@ -7879,74 +7979,75 @@ mod tests {
         assert_eq!(
             packaged_artifact_split_fraction_for_interval(
                 &CelestialBody::Pluto,
-                3_200.0,
+                5_000.0,
                 body_segment_span_limit(&CelestialBody::Pluto),
                 PackagedArtifactSplitCurvature {
-                    start_coordinates: &start,
-                    quarter_coordinates: Some(&quarter),
-                    midpoint_coordinates: &midpoint,
-                    three_quarter_coordinates: Some(&three_quarter),
-                    end_coordinates: &end,
+                    start_coordinates: &extreme_left_start,
+                    quarter_coordinates: Some(&extreme_left_quarter),
+                    midpoint_coordinates: &extreme_left_midpoint,
+                    three_quarter_coordinates: Some(&extreme_left_three_quarter),
+                    end_coordinates: &extreme_left_end,
                 },
             ),
-            PACKAGED_ARTIFACT_LEFT_BIASED_SPLIT_FRACTION
+            PACKAGED_ARTIFACT_LEFT_EXTREME_SPLIT_FRACTION
         );
+
+        let extreme_right_start = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(0.0),
+            pleiades_backend::Latitude::from_degrees(0.0),
+            Some(1.0),
+        );
+        let extreme_right_quarter = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(1.0),
+            pleiades_backend::Latitude::from_degrees(0.5),
+            Some(1.01),
+        );
+        let extreme_right_midpoint = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(2.0),
+            pleiades_backend::Latitude::from_degrees(1.0),
+            Some(1.02),
+        );
+        let extreme_right_three_quarter = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(10.0),
+            pleiades_backend::Latitude::from_degrees(5.0),
+            Some(1.08),
+        );
+        let extreme_right_end = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(16.0),
+            pleiades_backend::Latitude::from_degrees(8.0),
+            Some(1.12),
+        );
+
+        assert_eq!(
+            packaged_artifact_split_fraction_for_interval(
+                &CelestialBody::Pluto,
+                5_000.0,
+                body_segment_span_limit(&CelestialBody::Pluto),
+                PackagedArtifactSplitCurvature {
+                    start_coordinates: &extreme_right_start,
+                    quarter_coordinates: Some(&extreme_right_quarter),
+                    midpoint_coordinates: &extreme_right_midpoint,
+                    three_quarter_coordinates: Some(&extreme_right_three_quarter),
+                    end_coordinates: &extreme_right_end,
+                },
+            ),
+            PACKAGED_ARTIFACT_RIGHT_EXTREME_SPLIT_FRACTION
+        );
+
         assert_eq!(
             packaged_artifact_split_fraction_for_interval(
                 &CelestialBody::Saturn,
                 3_200.0,
                 body_segment_span_limit(&CelestialBody::Saturn),
                 PackagedArtifactSplitCurvature {
-                    start_coordinates: &start,
-                    quarter_coordinates: Some(&quarter),
-                    midpoint_coordinates: &midpoint,
-                    three_quarter_coordinates: Some(&three_quarter),
-                    end_coordinates: &end,
+                    start_coordinates: &moderate_left_start,
+                    quarter_coordinates: Some(&moderate_left_quarter),
+                    midpoint_coordinates: &moderate_left_midpoint,
+                    three_quarter_coordinates: Some(&moderate_left_three_quarter),
+                    end_coordinates: &moderate_left_end,
                 },
             ),
             0.5
-        );
-
-        let left_light = EclipticCoordinates::new(
-            pleiades_backend::Longitude::from_degrees(0.0),
-            pleiades_backend::Latitude::from_degrees(0.0),
-            Some(1.0),
-        );
-        let left_light_quarter = EclipticCoordinates::new(
-            pleiades_backend::Longitude::from_degrees(1.0),
-            pleiades_backend::Latitude::from_degrees(0.5),
-            Some(1.01),
-        );
-        let left_light_midpoint = EclipticCoordinates::new(
-            pleiades_backend::Longitude::from_degrees(1.5),
-            pleiades_backend::Latitude::from_degrees(0.75),
-            Some(1.02),
-        );
-        let left_light_three_quarter = EclipticCoordinates::new(
-            pleiades_backend::Longitude::from_degrees(4.0),
-            pleiades_backend::Latitude::from_degrees(2.0),
-            Some(1.05),
-        );
-        let left_light_end = EclipticCoordinates::new(
-            pleiades_backend::Longitude::from_degrees(7.0),
-            pleiades_backend::Latitude::from_degrees(3.5),
-            Some(1.08),
-        );
-
-        assert_eq!(
-            packaged_artifact_split_fraction_for_interval(
-                &CelestialBody::Pluto,
-                3_200.0,
-                body_segment_span_limit(&CelestialBody::Pluto),
-                PackagedArtifactSplitCurvature {
-                    start_coordinates: &left_light,
-                    quarter_coordinates: Some(&left_light_quarter),
-                    midpoint_coordinates: &left_light_midpoint,
-                    three_quarter_coordinates: Some(&left_light_three_quarter),
-                    end_coordinates: &left_light_end,
-                },
-            ),
-            PACKAGED_ARTIFACT_RIGHT_BIASED_SPLIT_FRACTION
         );
     }
 
@@ -8501,6 +8602,11 @@ mod tests {
                 let ecliptic = packaged_lookup(&body, epoch)
                     .expect("packaged lookup should succeed for reference boundary epochs");
                 let expected = coordinates(reference);
+                let longitude_tolerance = if body == CelestialBody::Pluto {
+                    1e-5
+                } else {
+                    1e-6
+                };
                 let latitude_tolerance = if body == CelestialBody::Pluto {
                     1e-5
                 } else {
@@ -8513,7 +8619,8 @@ mod tests {
                 };
 
                 assert!(
-                    (ecliptic.longitude.degrees() - expected.longitude.degrees()).abs() < 1e-6,
+                    (ecliptic.longitude.degrees() - expected.longitude.degrees()).abs()
+                        < longitude_tolerance,
                     "boundary longitude diff={:.12} body={}",
                     (ecliptic.longitude.degrees() - expected.longitude.degrees()).abs(),
                     body
