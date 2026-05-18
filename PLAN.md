@@ -20,7 +20,7 @@ This plan is derived from:
 
 ## Current implementation baseline
 
-The repository is past the original foundation roadmap. The current workspace includes all mandatory first-party crates, pure-Rust tooling checks, typed shared domain models, backend traits, capability metadata, batch helpers, routing/composite helpers, chart façade APIs, broad house and ayanamsa catalogs, compatibility-profile reporting, source/provenance summaries, validation tooling, release-bundle rehearsal, and a checked-in draft packaged-data artifact. The packaged-data generator is now more accuracy-first when choosing between fit candidates and fallback segments.
+The repository is past the original foundation roadmap. The current workspace includes all mandatory first-party crates, pure-Rust tooling checks, typed shared domain models, backend traits, capability metadata, batch helpers, routing/composite helpers, chart façade APIs, broad house and ayanamsa catalogs, compatibility-profile reporting, source/provenance summaries, validation tooling, release-bundle rehearsal, and a checked-in draft packaged-data artifact. The packaged-data generator is now more accuracy-first when choosing between fit candidates and fallback segments, and the fit-envelope sample lattice now reuses the dense validation cadence for luminaries, selected asteroids, Pluto, and custom bodies so fit-envelope and outlier reports stay aligned.
 
 Current backend and data posture:
 

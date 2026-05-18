@@ -1310,7 +1310,7 @@ fn packaged_artifact_fit_sample_fractions_for_body(
             | PackagedArtifactBodyCadence::SelectedAsteroids
             | PackagedArtifactBodyCadence::Pluto
             | PackagedArtifactBodyCadence::CustomBodies => {
-                PACKAGED_ARTIFACT_DENSE_VALIDATION_SAMPLE_FRACTIONS
+                packaged_artifact_segment_validation_fractions_for_body(body)
             }
             _ => packaged_artifact_fit_sample_fractions(segment),
         }
@@ -7493,6 +7493,10 @@ mod tests {
             PACKAGED_ARTIFACT_DENSE_VALIDATION_SAMPLE_FRACTIONS
         );
         assert_eq!(
+            packaged_artifact_fit_sample_fractions_for_body(moon_segment.0, moon_segment.1),
+            packaged_artifact_fit_outlier_sample_fractions(moon_segment.0, moon_segment.1)
+        );
+        assert_eq!(
             packaged_artifact_fit_outlier_sample_fractions(moon_segment.0, moon_segment.1),
             &[0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875]
         );
@@ -7519,6 +7523,10 @@ mod tests {
         assert_eq!(
             packaged_artifact_fit_sample_fractions_for_body(&lunar_point_body, moon_segment.1),
             PACKAGED_ARTIFACT_DENSE_VALIDATION_SAMPLE_FRACTIONS
+        );
+        assert_eq!(
+            packaged_artifact_fit_sample_fractions_for_body(&lunar_point_body, moon_segment.1),
+            packaged_artifact_fit_outlier_sample_fractions(&lunar_point_body, moon_segment.1)
         );
         assert_eq!(
             packaged_artifact_fit_outlier_sample_fractions(&lunar_point_body, moon_segment.1),
@@ -7577,6 +7585,10 @@ mod tests {
         assert_eq!(
             packaged_artifact_fit_sample_fractions_for_body(custom_segment.0, custom_segment.1),
             PACKAGED_ARTIFACT_DENSE_VALIDATION_SAMPLE_FRACTIONS
+        );
+        assert_eq!(
+            packaged_artifact_fit_sample_fractions_for_body(custom_segment.0, custom_segment.1),
+            packaged_artifact_fit_outlier_sample_fractions(custom_segment.0, custom_segment.1)
         );
         assert_eq!(
             packaged_artifact_fit_outlier_sample_fractions(custom_segment.0, custom_segment.1),
