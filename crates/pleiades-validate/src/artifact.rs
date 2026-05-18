@@ -1077,6 +1077,16 @@ fn packaged_artifact_inspection_report() -> &'static ArtifactInspectionReport {
     })
 }
 
+fn packaged_artifact_report_text() -> &'static String {
+    static TEXT: OnceLock<String> = OnceLock::new();
+    TEXT.get_or_init(|| packaged_artifact_inspection_report().to_string())
+}
+
+fn packaged_artifact_summary_text() -> &'static String {
+    static TEXT: OnceLock<String> = OnceLock::new();
+    TEXT.get_or_init(|| render_artifact_summary_text(packaged_artifact_inspection_report()))
+}
+
 impl ArtifactInspectionReport {
     #[cfg(test)]
     fn from_artifact(
@@ -1347,7 +1357,7 @@ impl ArtifactInspectionReport {
 
 /// Renders the bundled artifact validation report.
 pub fn render_artifact_report() -> Result<String, ArtifactInspectionError> {
-    Ok(packaged_artifact_inspection_report().to_string())
+    Ok(packaged_artifact_report_text().clone())
 }
 
 /// Returns the aggregate packaged-artifact boundary envelope used by reports.
@@ -1363,9 +1373,7 @@ pub fn artifact_boundary_envelope_summary_for_report(
 
 /// Renders a compact summary of the bundled artifact validation report.
 pub fn render_artifact_summary() -> Result<String, ArtifactInspectionError> {
-    Ok(render_artifact_summary_text(
-        packaged_artifact_inspection_report(),
-    ))
+    Ok(packaged_artifact_summary_text().clone())
 }
 
 /// Returns the compact artifact inspection summary used by release-facing reports.

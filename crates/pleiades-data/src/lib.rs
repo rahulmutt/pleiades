@@ -1597,12 +1597,17 @@ fn packaged_artifact_fit_envelope_summary_from_samples(
 
 /// Returns the current packaged-artifact fit envelope summary record.
 pub fn packaged_artifact_fit_envelope_summary_details() -> PackagedArtifactFitEnvelopeSummary {
-    let artifact = packaged_artifact();
-    let samples = packaged_artifact_fit_samples_for_current_artifact();
-    packaged_artifact_fit_envelope_summary_from_samples(
-        samples,
-        packaged_artifact_fit_expected_sample_count(artifact),
-    )
+    static SUMMARY: OnceLock<PackagedArtifactFitEnvelopeSummary> = OnceLock::new();
+    SUMMARY
+        .get_or_init(|| {
+            let artifact = packaged_artifact();
+            let samples = packaged_artifact_fit_samples_for_current_artifact();
+            packaged_artifact_fit_envelope_summary_from_samples(
+                samples,
+                packaged_artifact_fit_expected_sample_count(artifact),
+            )
+        })
+        .clone()
 }
 
 /// Returns the current packaged-artifact fit envelope after validating the structured posture.
@@ -1720,8 +1725,13 @@ fn packaged_artifact_fit_outlier_summary_from_samples(
 
 /// Returns the current packaged-artifact body/channel fit outlier summary record.
 pub fn packaged_artifact_fit_outlier_summary_details() -> PackagedArtifactFitOutlierSummary {
-    let samples = packaged_artifact_fit_outlier_samples_for_current_artifact();
-    packaged_artifact_fit_outlier_summary_from_samples(samples)
+    static SUMMARY: OnceLock<PackagedArtifactFitOutlierSummary> = OnceLock::new();
+    SUMMARY
+        .get_or_init(|| {
+            let samples = packaged_artifact_fit_outlier_samples_for_current_artifact();
+            packaged_artifact_fit_outlier_summary_from_samples(samples)
+        })
+        .clone()
 }
 
 /// Returns the current packaged-artifact body/channel fit outlier summary after validating the structured posture.
@@ -2539,25 +2549,32 @@ impl fmt::Display for PackagedArtifactRegenerationSummary {
 
 /// Returns the structured packaged-artifact regeneration provenance.
 pub fn packaged_artifact_regeneration_summary_details() -> PackagedArtifactRegenerationSummary {
-    let artifact = packaged_artifact();
-    let summary = PackagedArtifactRegenerationSummary {
-        label: ARTIFACT_LABEL,
-        artifact_version: artifact.header.version,
-        source: packaged_artifact_source_text(),
-        source_revision: production_generation_source_summary_for_report(),
-        profile_id: ARTIFACT_PROFILE_ID,
-        checksum: artifact.checksum,
-        artifact_size_bytes: packaged_artifact_encoded_bytes(artifact),
-        generation_policy: PackagedArtifactGenerationPolicy::AdjacentSameBodyQuadraticWindows,
-        quantization_scales: packaged_artifact_quantization_scales_line(),
-        residual_bodies: artifact.residual_bodies(),
-        bodies: packaged_bodies().to_vec(),
-        normalized_intermediates: packaged_artifact_normalized_intermediate_summary_details(),
-        fit_envelope: packaged_artifact_fit_envelope_summary_details(),
-        reference_snapshot: reference_snapshot_summary(),
-    };
-    debug_assert!(summary.validate().is_ok());
-    summary
+    static SUMMARY: OnceLock<PackagedArtifactRegenerationSummary> = OnceLock::new();
+    SUMMARY
+        .get_or_init(|| {
+            let artifact = packaged_artifact();
+            let summary = PackagedArtifactRegenerationSummary {
+                label: ARTIFACT_LABEL,
+                artifact_version: artifact.header.version,
+                source: packaged_artifact_source_text(),
+                source_revision: production_generation_source_summary_for_report(),
+                profile_id: ARTIFACT_PROFILE_ID,
+                checksum: artifact.checksum,
+                artifact_size_bytes: packaged_artifact_encoded_bytes(artifact),
+                generation_policy:
+                    PackagedArtifactGenerationPolicy::AdjacentSameBodyQuadraticWindows,
+                quantization_scales: packaged_artifact_quantization_scales_line(),
+                residual_bodies: artifact.residual_bodies(),
+                bodies: packaged_bodies().to_vec(),
+                normalized_intermediates: packaged_artifact_normalized_intermediate_summary_details(
+                ),
+                fit_envelope: packaged_artifact_fit_envelope_summary_details(),
+                reference_snapshot: reference_snapshot_summary(),
+            };
+            debug_assert!(summary.validate().is_ok());
+            summary
+        })
+        .clone()
 }
 
 /// Returns the packaged-artifact regeneration provenance summary.
