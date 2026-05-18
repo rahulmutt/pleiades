@@ -64,6 +64,7 @@ use pleiades_core::{
 };
 use pleiades_data::{
     packaged_artifact, packaged_artifact_access_summary_for_report,
+    packaged_artifact_body_cadence_summary_for_report,
     packaged_artifact_body_class_span_cap_summary_for_report, packaged_artifact_bytes,
     packaged_artifact_fit_envelope_summary_details,
     packaged_artifact_fit_envelope_summary_for_report,
@@ -5001,6 +5002,13 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
                 packaged_artifact_fit_sample_classes_summary_for_report()
             ))
         }
+        Some("packaged-artifact-body-cadence-summary") | Some("packaged-artifact-body-cadence") => {
+            ensure_no_extra_args(&args[1..], "packaged-artifact-body-cadence-summary")?;
+            Ok(format!(
+                "Packaged-artifact body cadence: {}",
+                packaged_artifact_body_cadence_summary_for_report()
+            ))
+        }
         Some("packaged-artifact-fit-outliers-summary") | Some("packaged-artifact-fit-outliers") => {
             ensure_no_extra_args(&args[1..], "packaged-artifact-fit-outliers-summary")?;
             Ok(format!(
@@ -9708,6 +9716,8 @@ pub fn render_release_bundle(
         packaged_artifact_output_support_summary_for_report();
     let packaged_artifact_fit_sample_classes_summary_text =
         packaged_artifact_fit_sample_classes_summary_for_report();
+    let packaged_artifact_body_cadence_summary_text =
+        packaged_artifact_body_cadence_summary_for_report();
     let packaged_artifact_normalized_intermediate_summary_text =
         packaged_artifact_normalized_intermediate_summary_for_report();
     let packaged_artifact_speed_policy_summary_text =
@@ -9817,6 +9827,8 @@ pub fn render_release_bundle(
         output_dir.join("packaged-artifact-output-support-summary.txt");
     let packaged_artifact_fit_sample_classes_summary_path =
         output_dir.join("packaged-artifact-fit-sample-classes-summary.txt");
+    let packaged_artifact_body_cadence_summary_path =
+        output_dir.join("packaged-artifact-body-cadence-summary.txt");
     let packaged_artifact_normalized_intermediate_summary_path =
         output_dir.join("packaged-artifact-normalized-intermediate-summary.txt");
     let packaged_artifact_speed_policy_summary_path =
@@ -9959,6 +9971,8 @@ pub fn render_release_bundle(
         checksum64(&packaged_artifact_output_support_summary_text);
     let packaged_artifact_fit_sample_classes_summary_checksum =
         checksum64(&packaged_artifact_fit_sample_classes_summary_text);
+    let packaged_artifact_body_cadence_summary_checksum =
+        checksum64(&packaged_artifact_body_cadence_summary_text);
     let packaged_artifact_normalized_intermediate_summary_checksum =
         checksum64(&packaged_artifact_normalized_intermediate_summary_text);
     let packaged_artifact_speed_policy_summary_checksum =
@@ -10221,6 +10235,9 @@ benchmark-corpus summary: benchmark-corpus-summary.txt\nbenchmark-corpus summary
         &native_dependency_audit_summary_path,
         native_dependency_audit_summary_text.as_bytes(),
     )?;
+    let manifest_text = format!(
+        "{manifest_text}packaged-artifact body cadence summary: packaged-artifact-body-cadence-summary.txt\npackaged-artifact body cadence summary checksum (fnv1a-64): 0x{packaged_artifact_body_cadence_summary_checksum:016x}\n"
+    );
     let manifest_checksum = checksum64(&manifest_text);
     let manifest_checksum_text = format!("0x{manifest_checksum:016x}\n");
     fs::write(&artifact_summary_path, artifact_summary_text.as_bytes())?;
@@ -10244,6 +10261,10 @@ benchmark-corpus summary: benchmark-corpus-summary.txt\nbenchmark-corpus summary
     fs::write(
         &packaged_artifact_fit_sample_classes_summary_path,
         packaged_artifact_fit_sample_classes_summary_text.as_bytes(),
+    )?;
+    fs::write(
+        &packaged_artifact_body_cadence_summary_path,
+        packaged_artifact_body_cadence_summary_text.as_bytes(),
     )?;
     fs::write(
         &packaged_artifact_normalized_intermediate_summary_path,
@@ -10429,6 +10450,8 @@ struct ParsedReleaseBundleManifest {
     packaged_artifact_output_support_summary_checksum: u64,
     packaged_artifact_fit_sample_classes_summary_path: String,
     packaged_artifact_fit_sample_classes_summary_checksum: u64,
+    packaged_artifact_body_cadence_summary_path: String,
+    packaged_artifact_body_cadence_summary_checksum: u64,
     packaged_artifact_normalized_intermediate_summary_path: String,
     packaged_artifact_normalized_intermediate_summary_checksum: u64,
     packaged_artifact_speed_policy_summary_path: String,
@@ -10873,6 +10896,14 @@ impl ParsedReleaseBundleManifest {
                 text,
                 "packaged-artifact fit sample classes summary checksum (fnv1a-64):",
             )?,
+            packaged_artifact_body_cadence_summary_path: parse_manifest_string(
+                text,
+                "packaged-artifact body cadence summary:",
+            )?,
+            packaged_artifact_body_cadence_summary_checksum: parse_manifest_checksum(
+                text,
+                "packaged-artifact body cadence summary checksum (fnv1a-64):",
+            )?,
             packaged_artifact_normalized_intermediate_summary_path: parse_manifest_string(
                 text,
                 "packaged-artifact normalized intermediate summary:",
@@ -11064,6 +11095,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
         "packaged-artifact-access-summary.txt",
         "packaged-artifact-output-support-summary.txt",
         "packaged-artifact-fit-sample-classes-summary.txt",
+        "packaged-artifact-body-cadence-summary.txt",
         "packaged-artifact-normalized-intermediate-summary.txt",
         "packaged-artifact-speed-policy-summary.txt",
         "packaged-artifact-storage-summary.txt",
@@ -11114,7 +11146,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
 fn ensure_release_bundle_manifest_is_canonical(
     manifest_text: &str,
 ) -> Result<(), ReleaseBundleError> {
-    const EXPECTED_MANIFEST_LINES: [&str; 158] = [
+    const EXPECTED_MANIFEST_LINES: [&str; 160] = [
         "Release bundle manifest",
         "profile:",
         "profile checksum (fnv1a-64):",
@@ -11273,6 +11305,8 @@ fn ensure_release_bundle_manifest_is_canonical(
         "profile id:",
         "api stability posture id:",
         "validation rounds:",
+        "packaged-artifact body cadence summary:",
+        "packaged-artifact body cadence summary checksum (fnv1a-64):",
     ];
 
     let lines = manifest_text.lines().collect::<Vec<_>>();
@@ -11683,6 +11717,8 @@ fn verify_release_bundle(
         output_dir.join("packaged-artifact-output-support-summary.txt");
     let packaged_artifact_fit_sample_classes_summary_path =
         output_dir.join("packaged-artifact-fit-sample-classes-summary.txt");
+    let packaged_artifact_body_cadence_summary_path =
+        output_dir.join("packaged-artifact-body-cadence-summary.txt");
     let packaged_artifact_normalized_intermediate_summary_path =
         output_dir.join("packaged-artifact-normalized-intermediate-summary.txt");
     let packaged_artifact_speed_policy_summary_path =
@@ -12016,6 +12052,12 @@ fn verify_release_bundle(
     )?;
     let packaged_artifact_fit_sample_classes_summary_checksum =
         checksum64(&packaged_artifact_fit_sample_classes_summary_text);
+    let packaged_artifact_body_cadence_summary_text = read_required_bundle_text(
+        &packaged_artifact_body_cadence_summary_path,
+        "packaged-artifact body cadence summary",
+    )?;
+    let packaged_artifact_body_cadence_summary_checksum =
+        checksum64(&packaged_artifact_body_cadence_summary_text);
     let packaged_artifact_normalized_intermediate_summary_text = read_required_bundle_text(
         &packaged_artifact_normalized_intermediate_summary_path,
         "packaged-artifact normalized intermediate summary",
@@ -13133,6 +13175,22 @@ fn verify_release_bundle(
         return Err(ReleaseBundleError::Verification(format!(
             "packaged-artifact fit sample classes summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
             manifest.packaged_artifact_fit_sample_classes_summary_checksum, packaged_artifact_fit_sample_classes_summary_checksum
+        )));
+    }
+    if manifest.packaged_artifact_body_cadence_summary_path
+        != "packaged-artifact-body-cadence-summary.txt"
+    {
+        return Err(ReleaseBundleError::Verification(format!(
+            "unexpected packaged-artifact body cadence summary file entry: {}",
+            manifest.packaged_artifact_body_cadence_summary_path
+        )));
+    }
+    if manifest.packaged_artifact_body_cadence_summary_checksum
+        != packaged_artifact_body_cadence_summary_checksum
+    {
+        return Err(ReleaseBundleError::Verification(format!(
+            "packaged-artifact body cadence summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
+            manifest.packaged_artifact_body_cadence_summary_checksum, packaged_artifact_body_cadence_summary_checksum
         )));
     }
     if manifest.packaged_artifact_normalized_intermediate_summary_path
@@ -19933,7 +19991,7 @@ fn parse_rounds(args: &[&str], default: usize) -> Result<usize, String> {
 fn help_text() -> String {
     let corpus_size = default_corpus().requests.len();
     format!(
-        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  compare-backends-audit    Compare the JPL snapshot against the algorithmic composite backend and fail if the tolerance audit reports regressions\n  backend-matrix            Print the implemented backend capability matrices\n  capability-matrix         Alias for backend-matrix\n  backend-matrix-summary    Print the compact backend capability matrix summary\n  matrix-summary            Alias for backend-matrix-summary\n  compatibility-profile     Print the release compatibility profile\n  profile                   Alias for compatibility-profile\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus and full chart assembly on representative house scenarios\n  benchmark-matrix-summary [--rounds N]  Print the compact benchmark matrix summary\n  benchmark-matrix [--rounds N]  Alias for benchmark-matrix-summary\n  comparison-corpus-summary  Print the compact release-grade comparison corpus summary\n  comparison-corpus         Alias for comparison-corpus-summary\n  comparison-corpus-release-guard-summary  Print the compact release-grade comparison corpus guard summary\n  comparison-corpus-release-guard  Alias for comparison-corpus-release-guard-summary\n  comparison-corpus-guard-summary  Alias for comparison-corpus-release-guard-summary\n  comparison-corpus-guard       Alias for comparison-corpus-guard-summary\n  comparison-envelope-summary  Print the compact comparison envelope summary\n  comparison-envelope       Alias for comparison-envelope-summary\n  comparison-tolerance-policy-summary  Print the compact comparison tolerance policy summary\n  comparison-tolerance-summary  Alias for comparison-tolerance-policy-summary\n  comparison-tolerance-scope-coverage-summary  Print the compact comparison tolerance scope coverage summary\n  comparison-tolerance-scope-coverage  Alias for comparison-tolerance-scope-coverage-summary\n  comparison-body-class-tolerance-summary  Print the compact comparison body-class tolerance summary\n  comparison-body-class-tolerance  Alias for comparison-body-class-tolerance-summary\n  comparison-body-class-tolerance-posture-summary  Print the compact comparison body-class tolerance posture summary\n  comparison-body-class-tolerance-posture  Alias for comparison-body-class-tolerance-posture-summary\n  release-body-claims-summary  Print the compact release-grade body claims summary\n  body-claims-summary          Alias for release-body-claims-summary\n  benchmark-corpus-summary  Print the compact representative benchmark corpus summary\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  validation-report-summary [--rounds N]  Render a compact validation report summary\n  report-summary [--rounds N]  Alias for validation-report-summary\n  validation-summary        Alias for validation-report-summary\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  generate-packaged-artifact  Generate or verify the packaged artifact fixture from the checked-in reference snapshot; pass a file path, --out FILE, --output FILE, --manifest-out FILE, --manifest-summary-out FILE, --manifest-checksum-out FILE, --artifact-checksum-out FILE, --normalized-intermediate-summary-out FILE, or --check\n  regenerate-packaged-artifact  Alias for generate-packaged-artifact\n  artifact-summary          Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  artifact-boundary-envelope-summary  Print the compact packaged-artifact boundary envelope summary\n  artifact-profile-coverage-summary  Print the packaged-artifact profile coverage summary\n  packaged-artifact-output-support-summary  Print the packaged-artifact output support summary\n  packaged-artifact-output-support       Alias for packaged-artifact-output-support-summary\n  packaged-artifact-body-class-span-cap-summary  Print the packaged-artifact body-class span caps summary\n  packaged-artifact-body-class-span-cap  Alias for packaged-artifact-body-class-span-cap-summary\n  packaged-artifact-speed-policy-summary  Print the packaged-artifact speed policy summary\n  packaged-artifact-speed-policy       Alias for packaged-artifact-speed-policy-summary\n  packaged-artifact-access-summary  Print the packaged-artifact access summary\n  packaged-artifact-access  Alias for packaged-artifact-access-summary\n  packaged-artifact-path-policy-summary  Alias for packaged-artifact-access-summary\n  packaged-artifact-path-policy  Alias for packaged-artifact-path-policy-summary\n  packaged-artifact-storage-summary  Print the packaged-artifact storage/reconstruction summary\n  packaged-artifact-storage           Alias for packaged-artifact-storage-summary\n  packaged-artifact-production-profile-summary  Print the packaged-artifact production profile draft summary\n  packaged-artifact-production-profile  Alias for packaged-artifact-production-profile-summary\n  packaged-artifact-target-threshold-summary  Print the packaged-artifact target thresholds summary\n  packaged-artifact-target-threshold  Alias for packaged-artifact-target-threshold-summary\n  packaged-artifact-target-threshold-scope-envelopes-summary  Print the packaged-artifact target-threshold scope envelopes summary\n  packaged-artifact-target-threshold-scope-envelopes  Alias for packaged-artifact-target-threshold-scope-envelopes-summary\n  packaged-artifact-phase2-corpus-alignment-summary  Print the packaged-artifact phase-2 corpus alignment summary\n  packaged-artifact-phase2-corpus-alignment  Alias for packaged-artifact-phase2-corpus-alignment-summary\n  packaged-artifact-source-fit-holdout-sync-summary  Print the packaged-artifact source-fit and hold-out sync summary\n  packaged-artifact-source-fit-holdout-sync  Alias for packaged-artifact-source-fit-holdout-sync-summary\n  packaged-artifact-fit-envelope-summary  Print the packaged-artifact fit envelope summary\n  packaged-artifact-fit-envelope  Alias for packaged-artifact-fit-envelope-summary\n  packaged-artifact-fit-sample-classes-summary  Print the packaged-artifact fit sample classes summary\n  packaged-artifact-fit-sample-classes  Alias for packaged-artifact-fit-sample-classes-summary\n  packaged-artifact-fit-outliers-summary  Print the packaged-artifact body/channel fit outlier summary\n  packaged-artifact-fit-outliers  Alias for packaged-artifact-fit-outliers-summary\n  packaged-artifact-fit-threshold-violation-count-summary  Print the packaged-artifact fit threshold violation count summary\n  packaged-artifact-fit-threshold-violation-count  Alias for packaged-artifact-fit-threshold-violation-count-summary\n  packaged-artifact-fit-threshold-violations-summary  Print the packaged-artifact fit threshold violations summary\n  packaged-artifact-fit-threshold-violations  Alias for packaged-artifact-fit-threshold-violations-summary\n  packaged-artifact-generation-manifest-summary  Print the packaged-artifact generation manifest summary\n  packaged-artifact-generation-manifest  Alias for packaged-artifact-generation-manifest-summary\n  packaged-artifact-generation-manifest-checksum-summary  Print the packaged-artifact generation manifest checksum summary\n  packaged-artifact-generation-manifest-checksum  Alias for packaged-artifact-generation-manifest-checksum-summary\n  packaged-artifact-generation-policy-summary  Print the packaged-artifact generation policy summary\n  packaged-artifact-generation-policy     Alias for packaged-artifact-generation-policy-summary\n  packaged-artifact-normalized-intermediate-summary  Print the packaged-artifact normalized intermediates summary\n  packaged-artifact-normalized-intermediate  Alias for packaged-artifact-normalized-intermediate-summary\n  packaged-artifact-generation-residual-summary  Alias for packaged-artifact-generation-residual-bodies-summary\n  packaged-artifact-generation-residual-bodies-summary  Print the packaged-artifact generation residual bodies summary\n  packaged-artifact-regeneration-summary  Print the packaged-artifact regeneration summary\n  packaged-artifact-regeneration      Alias for packaged-artifact-regeneration-summary\n  packaged-frame-parity-summary  Print the packaged frame parity summary\n  packaged-frame-treatment-summary  Print the packaged frame treatment summary\n  packaged-lookup-epoch-policy-summary  Print the packaged lookup epoch policy summary\n  packaged-lookup-epoch-policy         Alias for packaged-lookup-epoch-policy-summary\n  packaged-artifact-lookup-epoch-policy-summary  Print the packaged lookup epoch policy summary\n  packaged-artifact-lookup-epoch-policy         Alias for packaged-artifact-lookup-epoch-policy-summary\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  native-dependency-audit   Alias for workspace-audit\n  workspace-audit-summary   Print the compact workspace audit summary\n  native-dependency-audit-summary  Alias for workspace-audit-summary\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  api-stability-summary     Print the compact API stability summary\n  api-posture-summary       Alias for api-stability-summary\n  compatibility-profile-summary  Print the compact compatibility profile summary
+        "{banner}\n\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  compare-backends-audit    Compare the JPL snapshot against the algorithmic composite backend and fail if the tolerance audit reports regressions\n  backend-matrix            Print the implemented backend capability matrices\n  capability-matrix         Alias for backend-matrix\n  backend-matrix-summary    Print the compact backend capability matrix summary\n  matrix-summary            Alias for backend-matrix-summary\n  compatibility-profile     Print the release compatibility profile\n  profile                   Alias for compatibility-profile\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus and full chart assembly on representative house scenarios\n  benchmark-matrix-summary [--rounds N]  Print the compact benchmark matrix summary\n  benchmark-matrix [--rounds N]  Alias for benchmark-matrix-summary\n  comparison-corpus-summary  Print the compact release-grade comparison corpus summary\n  comparison-corpus         Alias for comparison-corpus-summary\n  comparison-corpus-release-guard-summary  Print the compact release-grade comparison corpus guard summary\n  comparison-corpus-release-guard  Alias for comparison-corpus-release-guard-summary\n  comparison-corpus-guard-summary  Alias for comparison-corpus-release-guard-summary\n  comparison-corpus-guard       Alias for comparison-corpus-guard-summary\n  comparison-envelope-summary  Print the compact comparison envelope summary\n  comparison-envelope       Alias for comparison-envelope-summary\n  comparison-tolerance-policy-summary  Print the compact comparison tolerance policy summary\n  comparison-tolerance-summary  Alias for comparison-tolerance-policy-summary\n  comparison-tolerance-scope-coverage-summary  Print the compact comparison tolerance scope coverage summary\n  comparison-tolerance-scope-coverage  Alias for comparison-tolerance-scope-coverage-summary\n  comparison-body-class-tolerance-summary  Print the compact comparison body-class tolerance summary\n  comparison-body-class-tolerance  Alias for comparison-body-class-tolerance-summary\n  comparison-body-class-tolerance-posture-summary  Print the compact comparison body-class tolerance posture summary\n  comparison-body-class-tolerance-posture  Alias for comparison-body-class-tolerance-posture-summary\n  release-body-claims-summary  Print the compact release-grade body claims summary\n  body-claims-summary          Alias for release-body-claims-summary\n  benchmark-corpus-summary  Print the compact representative benchmark corpus summary\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  validation-report-summary [--rounds N]  Render a compact validation report summary\n  report-summary [--rounds N]  Alias for validation-report-summary\n  validation-summary        Alias for validation-report-summary\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  generate-packaged-artifact  Generate or verify the packaged artifact fixture from the checked-in reference snapshot; pass a file path, --out FILE, --output FILE, --manifest-out FILE, --manifest-summary-out FILE, --manifest-checksum-out FILE, --artifact-checksum-out FILE, --normalized-intermediate-summary-out FILE, or --check\n  regenerate-packaged-artifact  Alias for generate-packaged-artifact\n  artifact-summary          Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  artifact-boundary-envelope-summary  Print the compact packaged-artifact boundary envelope summary\n  artifact-profile-coverage-summary  Print the packaged-artifact profile coverage summary\n  packaged-artifact-output-support-summary  Print the packaged-artifact output support summary\n  packaged-artifact-output-support       Alias for packaged-artifact-output-support-summary\n  packaged-artifact-body-class-span-cap-summary  Print the packaged-artifact body-class span caps summary\n  packaged-artifact-body-class-span-cap  Alias for packaged-artifact-body-class-span-cap-summary\n  packaged-artifact-speed-policy-summary  Print the packaged-artifact speed policy summary\n  packaged-artifact-speed-policy       Alias for packaged-artifact-speed-policy-summary\n  packaged-artifact-access-summary  Print the packaged-artifact access summary\n  packaged-artifact-access  Alias for packaged-artifact-access-summary\n  packaged-artifact-path-policy-summary  Alias for packaged-artifact-access-summary\n  packaged-artifact-path-policy  Alias for packaged-artifact-path-policy-summary\n  packaged-artifact-storage-summary  Print the packaged-artifact storage/reconstruction summary\n  packaged-artifact-storage           Alias for packaged-artifact-storage-summary\n  packaged-artifact-production-profile-summary  Print the packaged-artifact production profile draft summary\n  packaged-artifact-production-profile  Alias for packaged-artifact-production-profile-summary\n  packaged-artifact-target-threshold-summary  Print the packaged-artifact target thresholds summary\n  packaged-artifact-target-threshold  Alias for packaged-artifact-target-threshold-summary\n  packaged-artifact-target-threshold-scope-envelopes-summary  Print the packaged-artifact target-threshold scope envelopes summary\n  packaged-artifact-target-threshold-scope-envelopes  Alias for packaged-artifact-target-threshold-scope-envelopes-summary\n  packaged-artifact-phase2-corpus-alignment-summary  Print the packaged-artifact phase-2 corpus alignment summary\n  packaged-artifact-phase2-corpus-alignment  Alias for packaged-artifact-phase2-corpus-alignment-summary\n  packaged-artifact-source-fit-holdout-sync-summary  Print the packaged-artifact source-fit and hold-out sync summary\n  packaged-artifact-source-fit-holdout-sync  Alias for packaged-artifact-source-fit-holdout-sync-summary\n  packaged-artifact-fit-envelope-summary  Print the packaged-artifact fit envelope summary\n  packaged-artifact-fit-envelope  Alias for packaged-artifact-fit-envelope-summary\n  packaged-artifact-fit-sample-classes-summary  Print the packaged-artifact fit sample classes summary\n  packaged-artifact-fit-sample-classes  Alias for packaged-artifact-fit-sample-classes-summary\n  packaged-artifact-body-cadence-summary  Print the packaged-artifact body cadence summary\n  packaged-artifact-body-cadence         Alias for packaged-artifact-body-cadence-summary\n  packaged-artifact-fit-outliers-summary  Print the packaged-artifact body/channel fit outlier summary\n  packaged-artifact-fit-outliers  Alias for packaged-artifact-fit-outliers-summary\n  packaged-artifact-fit-threshold-violation-count-summary  Print the packaged-artifact fit threshold violation count summary\n  packaged-artifact-fit-threshold-violation-count  Alias for packaged-artifact-fit-threshold-violation-count-summary\n  packaged-artifact-fit-threshold-violations-summary  Print the packaged-artifact fit threshold violations summary\n  packaged-artifact-fit-threshold-violations  Alias for packaged-artifact-fit-threshold-violations-summary\n  packaged-artifact-generation-manifest-summary  Print the packaged-artifact generation manifest summary\n  packaged-artifact-generation-manifest  Alias for packaged-artifact-generation-manifest-summary\n  packaged-artifact-generation-manifest-checksum-summary  Print the packaged-artifact generation manifest checksum summary\n  packaged-artifact-generation-manifest-checksum  Alias for packaged-artifact-generation-manifest-checksum-summary\n  packaged-artifact-generation-policy-summary  Print the packaged-artifact generation policy summary\n  packaged-artifact-generation-policy     Alias for packaged-artifact-generation-policy-summary\n  packaged-artifact-normalized-intermediate-summary  Print the packaged-artifact normalized intermediates summary\n  packaged-artifact-normalized-intermediate  Alias for packaged-artifact-normalized-intermediate-summary\n  packaged-artifact-generation-residual-summary  Alias for packaged-artifact-generation-residual-bodies-summary\n  packaged-artifact-generation-residual-bodies-summary  Print the packaged-artifact generation residual bodies summary\n  packaged-artifact-regeneration-summary  Print the packaged-artifact regeneration summary\n  packaged-artifact-regeneration      Alias for packaged-artifact-regeneration-summary\n  packaged-frame-parity-summary  Print the packaged frame parity summary\n  packaged-frame-treatment-summary  Print the packaged frame treatment summary\n  packaged-lookup-epoch-policy-summary  Print the packaged lookup epoch policy summary\n  packaged-lookup-epoch-policy         Alias for packaged-lookup-epoch-policy-summary\n  packaged-artifact-lookup-epoch-policy-summary  Print the packaged lookup epoch policy summary\n  packaged-artifact-lookup-epoch-policy         Alias for packaged-artifact-lookup-epoch-policy-summary\n  workspace-audit           Check the workspace for mandatory native build hooks\n  audit                     Alias for workspace-audit\n  native-dependency-audit   Alias for workspace-audit\n  workspace-audit-summary   Print the compact workspace audit summary\n  native-dependency-audit-summary  Alias for workspace-audit-summary\n  api-stability             Print the release API stability posture\n  api-posture               Alias for api-stability\n  api-stability-summary     Print the compact API stability summary\n  api-posture-summary       Alias for api-stability-summary\n  compatibility-profile-summary  Print the compact compatibility profile summary
   compatibility-caveats-summary  Print the compact compatibility caveats summary
   compatibility-caveats    Alias for compatibility-caveats-summary
   catalog-inventory-summary  Print the compact compatibility catalog inventory summary
@@ -23591,6 +23649,30 @@ mod tests {
     }
 
     #[test]
+    fn packaged_artifact_body_cadence_summary_and_alias_commands_render_the_summary() {
+        let summary = render_cli(&["packaged-artifact-body-cadence-summary"])
+            .expect("packaged artifact body cadence summary should render");
+        assert_eq!(
+            summary,
+            format!(
+                "Packaged-artifact body cadence: {}",
+                packaged_artifact_body_cadence_summary_for_report()
+            )
+        );
+        assert!(summary.contains("Packaged-artifact body cadence: body cadence:"));
+        assert_eq!(
+            render_cli(&["packaged-artifact-body-cadence"])
+                .expect("packaged artifact body cadence alias should render"),
+            summary
+        );
+        assert_eq!(
+            render_cli(&["packaged-artifact-body-cadence", "extra"])
+                .expect_err("packaged artifact body cadence alias should reject extra arguments"),
+            "packaged-artifact-body-cadence-summary does not accept extra arguments"
+        );
+    }
+
+    #[test]
     fn packaged_artifact_lookup_epoch_policy_summary_and_alias_commands_render_the_policy() {
         let summary = render_cli(&["packaged-artifact-lookup-epoch-policy-summary"])
             .expect("packaged artifact lookup epoch policy summary should render");
@@ -27085,6 +27167,9 @@ version = "0.9.0"
         assert!(bundle_dir
             .join("packaged-artifact-source-fit-holdout-sync-summary.txt")
             .exists());
+        assert!(bundle_dir
+            .join("packaged-artifact-body-cadence-summary.txt")
+            .exists());
         assert!(rendered.contains("artifact-summary.txt"));
         assert!(rendered.contains("packaged-artifact-profile-coverage-summary.txt"));
         assert!(bundle_dir
@@ -28041,6 +28126,10 @@ version = "0.9.0"
         ));
         assert!(manifest
             .contains("packaged-artifact fit sample classes summary checksum (fnv1a-64): 0x"));
+        assert!(manifest.contains(
+            "packaged-artifact body cadence summary: packaged-artifact-body-cadence-summary.txt"
+        ));
+        assert!(manifest.contains("packaged-artifact body cadence summary checksum (fnv1a-64): 0x"));
         assert!(manifest.contains(
             "packaged-artifact normalized intermediate summary: packaged-artifact-normalized-intermediate-summary.txt"
         ));
