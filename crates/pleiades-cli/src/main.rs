@@ -5585,6 +5585,71 @@ mod tests {
     }
 
     #[test]
+    fn regenerate_packaged_artifact_repeated_sidecar_writes_stay_stable() {
+        let artifact_fixture_dir =
+            unique_temp_dir("pleiades-packaged-artifact-regeneration-repeat");
+        let artifact_fixture_path = artifact_fixture_dir.join("packaged-artifact.bin");
+        let artifact_fixture_path_string = artifact_fixture_path.display().to_string();
+        let manifest_fixture_path = artifact_fixture_dir.join("packaged-artifact.manifest.txt");
+        let manifest_fixture_path_string = manifest_fixture_path.display().to_string();
+        let artifact_checksum_fixture_path =
+            artifact_fixture_dir.join("packaged-artifact.checksum.txt");
+        let artifact_checksum_fixture_path_string =
+            artifact_checksum_fixture_path.display().to_string();
+
+        let regenerated_first = render_cli(&[
+            "generate-packaged-artifact",
+            "--out",
+            &artifact_fixture_path_string,
+            "--manifest-out",
+            &manifest_fixture_path_string,
+            "--artifact-checksum-out",
+            &artifact_checksum_fixture_path_string,
+        ])
+        .expect("packaged artifact regeneration should render on the first pass");
+        let first_artifact_bytes =
+            std::fs::read(&artifact_fixture_path).expect("first regenerated artifact should exist");
+        let first_manifest = std::fs::read_to_string(&manifest_fixture_path)
+            .expect("first regenerated manifest should exist");
+        let first_artifact_checksum = std::fs::read_to_string(&artifact_checksum_fixture_path)
+            .expect("first regenerated artifact checksum should exist");
+
+        let regenerated_second = render_cli(&[
+            "generate-packaged-artifact",
+            "--out",
+            &artifact_fixture_path_string,
+            "--manifest-out",
+            &manifest_fixture_path_string,
+            "--artifact-checksum-out",
+            &artifact_checksum_fixture_path_string,
+        ])
+        .expect("packaged artifact regeneration should render on the second pass");
+        let second_artifact_bytes = std::fs::read(&artifact_fixture_path)
+            .expect("second regenerated artifact should exist");
+        let second_manifest = std::fs::read_to_string(&manifest_fixture_path)
+            .expect("second regenerated manifest should exist");
+        let second_artifact_checksum = std::fs::read_to_string(&artifact_checksum_fixture_path)
+            .expect("second regenerated artifact checksum should exist");
+
+        assert_eq!(regenerated_first, regenerated_second);
+        assert_eq!(first_artifact_bytes, second_artifact_bytes);
+        assert_eq!(first_manifest, second_manifest);
+        assert_eq!(first_artifact_checksum, second_artifact_checksum);
+        assert_eq!(
+            first_artifact_bytes,
+            pleiades_data::regenerate_packaged_artifact_bytes()
+        );
+        assert_eq!(
+            first_manifest,
+            pleiades_data::packaged_artifact_generation_manifest_for_report()
+        );
+        assert_eq!(
+            first_artifact_checksum,
+            format!("0x{:016x}\n", pleiades_data::packaged_artifact().checksum)
+        );
+    }
+
+    #[test]
     fn validation_report_commands_render_compact_reports() {
         let release_profiles = current_release_profile_identifiers();
 
