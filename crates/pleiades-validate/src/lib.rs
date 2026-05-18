@@ -82,7 +82,6 @@ use pleiades_data::{
     packaged_artifact_profile_coverage_summary_for_report,
     packaged_artifact_profile_summary_with_body_coverage,
     packaged_artifact_regeneration_summary_for_report,
-    packaged_artifact_source_fit_holdout_sync_summary_for_report,
     packaged_artifact_speed_policy_summary_for_report,
     packaged_artifact_target_threshold_scope_envelopes_for_report,
     packaged_artifact_target_threshold_summary_details,
@@ -4973,7 +4972,7 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             )?;
             Ok(format!(
                 "Packaged-artifact source-fit and hold-out sync: {}",
-                packaged_artifact_source_fit_holdout_sync_summary_for_report()
+                validated_packaged_artifact_source_fit_holdout_sync_summary_for_report()
             ))
         }
         Some("packaged-artifact-phase2-corpus-alignment-summary")
@@ -8699,7 +8698,7 @@ fn render_release_notes_summary_text() -> String {
     text.push_str(&packaged_artifact_target_threshold_summary_for_report());
     text.push('\n');
     text.push_str("Packaged-artifact source-fit and hold-out sync: ");
-    text.push_str(&packaged_artifact_source_fit_holdout_sync_summary_for_report());
+    text.push_str(&validated_packaged_artifact_source_fit_holdout_sync_summary_for_report());
     text.push('\n');
     text.push_str("Packaged-artifact target-threshold scope envelopes: ");
     text.push_str(&packaged_artifact_target_threshold_scope_envelopes_for_report());
@@ -9338,7 +9337,7 @@ fn render_release_summary_text() -> String {
     text.push_str(&packaged_artifact_target_threshold_summary_for_report());
     text.push('\n');
     text.push_str("Packaged-artifact source-fit and hold-out sync: ");
-    text.push_str(&packaged_artifact_source_fit_holdout_sync_summary_for_report());
+    text.push_str(&validated_packaged_artifact_source_fit_holdout_sync_summary_for_report());
     text.push('\n');
     text.push_str("Packaged-artifact target-threshold scope envelopes: ");
     text.push_str(&packaged_artifact_target_threshold_scope_envelopes_for_report());
@@ -9721,7 +9720,7 @@ pub fn render_release_bundle(
     let packaged_artifact_target_threshold_summary_text =
         packaged_artifact_target_threshold_summary_for_report();
     let packaged_artifact_source_fit_holdout_sync_summary_text =
-        packaged_artifact_source_fit_holdout_sync_summary_for_report();
+        validated_packaged_artifact_source_fit_holdout_sync_summary_for_report();
     let packaged_artifact_target_threshold_scope_envelopes_summary_text =
         packaged_artifact_target_threshold_scope_envelopes_for_report();
     let packaged_artifact_phase2_corpus_alignment_summary_text =
@@ -16387,6 +16386,14 @@ fn validated_packaged_artifact_storage_summary_for_report() -> String {
     }
 }
 
+fn validated_packaged_artifact_source_fit_holdout_sync_summary_for_report() -> String {
+    let summary = pleiades_data::packaged_artifact_source_fit_holdout_sync_summary_details();
+    match summary.validated_summary_line() {
+        Ok(line) => line,
+        Err(error) => format!("source-fit and hold-out sync: unavailable ({error})"),
+    }
+}
+
 fn format_packaged_artifact_output_support_summary() -> String {
     validated_packaged_artifact_output_support_summary_for_report()
 }
@@ -17321,7 +17328,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(
         text,
         "  Packaged-artifact source-fit and hold-out sync: {}",
-        packaged_artifact_source_fit_holdout_sync_summary_for_report()
+        validated_packaged_artifact_source_fit_holdout_sync_summary_for_report()
     );
     let _ = writeln!(
         text,
@@ -29355,7 +29362,7 @@ version = "0.9.0"
 
     #[test]
     fn packaged_artifact_phase2_alignment_matches_source_fit_holdout_sync_payload() {
-        let sync_summary = packaged_artifact_source_fit_holdout_sync_summary_for_report();
+        let sync_summary = validated_packaged_artifact_source_fit_holdout_sync_summary_for_report();
         let phase2_summary = packaged_artifact_phase2_corpus_alignment_summary_for_report();
 
         ensure_packaged_artifact_phase2_alignment_matches_source_fit_holdout_sync(
@@ -29431,7 +29438,7 @@ version = "0.9.0"
 
     #[test]
     fn packaged_artifact_phase2_alignment_payload_validation_rejects_drift() {
-        let sync_summary = packaged_artifact_source_fit_holdout_sync_summary_for_report();
+        let sync_summary = validated_packaged_artifact_source_fit_holdout_sync_summary_for_report();
         let phase2_summary = "reference source=drifted; reference snapshot=drifted";
 
         let error = ensure_packaged_artifact_phase2_alignment_matches_source_fit_holdout_sync(
@@ -31492,7 +31499,7 @@ version = "0.9.0"
             sync,
             format!(
                 "Packaged-artifact source-fit and hold-out sync: {}",
-                packaged_artifact_source_fit_holdout_sync_summary_for_report()
+                validated_packaged_artifact_source_fit_holdout_sync_summary_for_report()
             )
         );
         assert_eq!(
