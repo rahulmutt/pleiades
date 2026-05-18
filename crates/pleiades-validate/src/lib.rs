@@ -30841,6 +30841,19 @@ version = "0.9.0"
     }
 
     #[test]
+    fn verify_release_bundle_rejects_tampered_native_dependency_audit_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-native-dependency-audit-semantic",
+            "native-dependency-audit-summary.txt",
+            "native-dependency audit summary checksum (fnv1a-64):",
+            "Result: no mandatory native build hooks detected",
+            "Result: drifted native build hooks detected",
+            "native-dependency audit summary no longer matches the workspace audit summary",
+        );
+    }
+
+    #[test]
     fn packaged_artifact_phase2_alignment_matches_source_fit_holdout_sync_payload() {
         let sync_summary = validated_packaged_artifact_source_fit_holdout_sync_summary_for_report();
         let phase2_summary =
