@@ -9695,6 +9695,8 @@ pub fn render_release_bundle(
     let packaged_artifact_access_summary_text = packaged_artifact_access_summary_for_report();
     let packaged_artifact_output_support_summary_text =
         packaged_artifact_output_support_summary_for_report();
+    let packaged_artifact_fit_sample_classes_summary_text =
+        packaged_artifact_fit_sample_classes_summary_for_report();
     let packaged_artifact_normalized_intermediate_summary_text =
         packaged_artifact_normalized_intermediate_summary_for_report();
     let packaged_artifact_speed_policy_summary_text =
@@ -9800,6 +9802,8 @@ pub fn render_release_bundle(
         output_dir.join("packaged-artifact-access-summary.txt");
     let packaged_artifact_output_support_summary_path =
         output_dir.join("packaged-artifact-output-support-summary.txt");
+    let packaged_artifact_fit_sample_classes_summary_path =
+        output_dir.join("packaged-artifact-fit-sample-classes-summary.txt");
     let packaged_artifact_normalized_intermediate_summary_path =
         output_dir.join("packaged-artifact-normalized-intermediate-summary.txt");
     let packaged_artifact_speed_policy_summary_path =
@@ -9938,6 +9942,8 @@ pub fn render_release_bundle(
         checksum64(&packaged_artifact_access_summary_text);
     let packaged_artifact_output_support_summary_checksum =
         checksum64(&packaged_artifact_output_support_summary_text);
+    let packaged_artifact_fit_sample_classes_summary_checksum =
+        checksum64(&packaged_artifact_fit_sample_classes_summary_text);
     let packaged_artifact_normalized_intermediate_summary_checksum =
         checksum64(&packaged_artifact_normalized_intermediate_summary_text);
     let packaged_artifact_speed_policy_summary_checksum =
@@ -10209,6 +10215,10 @@ benchmark-corpus summary: benchmark-corpus-summary.txt\nbenchmark-corpus summary
     fs::write(
         &packaged_artifact_output_support_summary_path,
         packaged_artifact_output_support_summary_text.as_bytes(),
+    )?;
+    fs::write(
+        &packaged_artifact_fit_sample_classes_summary_path,
+        packaged_artifact_fit_sample_classes_summary_text.as_bytes(),
     )?;
     fs::write(
         &packaged_artifact_normalized_intermediate_summary_path,
@@ -11545,6 +11555,8 @@ fn verify_release_bundle(
         output_dir.join("packaged-artifact-access-summary.txt");
     let packaged_artifact_output_support_summary_path =
         output_dir.join("packaged-artifact-output-support-summary.txt");
+    let packaged_artifact_fit_sample_classes_summary_path =
+        output_dir.join("packaged-artifact-fit-sample-classes-summary.txt");
     let packaged_artifact_normalized_intermediate_summary_path =
         output_dir.join("packaged-artifact-normalized-intermediate-summary.txt");
     let packaged_artifact_speed_policy_summary_path =
@@ -11857,6 +11869,12 @@ fn verify_release_bundle(
     )?;
     let packaged_artifact_output_support_summary_checksum =
         checksum64(&packaged_artifact_output_support_summary_text);
+    let packaged_artifact_fit_sample_classes_summary_text = read_required_bundle_text(
+        &packaged_artifact_fit_sample_classes_summary_path,
+        "packaged-artifact fit sample classes summary",
+    )?;
+    let packaged_artifact_fit_sample_classes_summary_checksum =
+        checksum64(&packaged_artifact_fit_sample_classes_summary_text);
     let packaged_artifact_normalized_intermediate_summary_text = read_required_bundle_text(
         &packaged_artifact_normalized_intermediate_summary_path,
         "packaged-artifact normalized intermediate summary",
@@ -12936,6 +12954,22 @@ fn verify_release_bundle(
         return Err(ReleaseBundleError::Verification(format!(
             "packaged-artifact output support summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
             manifest.packaged_artifact_output_support_summary_checksum, packaged_artifact_output_support_summary_checksum
+        )));
+    }
+    if manifest.packaged_artifact_fit_sample_classes_summary_path
+        != "packaged-artifact-fit-sample-classes-summary.txt"
+    {
+        return Err(ReleaseBundleError::Verification(format!(
+            "unexpected packaged-artifact fit sample classes summary file entry: {}",
+            manifest.packaged_artifact_fit_sample_classes_summary_path
+        )));
+    }
+    if manifest.packaged_artifact_fit_sample_classes_summary_checksum
+        != packaged_artifact_fit_sample_classes_summary_checksum
+    {
+        return Err(ReleaseBundleError::Verification(format!(
+            "packaged-artifact fit sample classes summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
+            manifest.packaged_artifact_fit_sample_classes_summary_checksum, packaged_artifact_fit_sample_classes_summary_checksum
         )));
     }
     if manifest.packaged_artifact_normalized_intermediate_summary_path
