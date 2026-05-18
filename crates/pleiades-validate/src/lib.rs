@@ -11511,6 +11511,21 @@ fn ensure_packaged_artifact_target_threshold_summary_matches_current_rendering(
     }
 }
 
+fn ensure_packaged_artifact_source_fit_holdout_sync_summary_matches_current_rendering(
+    packaged_artifact_source_fit_holdout_sync_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if packaged_artifact_source_fit_holdout_sync_summary_text
+        == validated_packaged_artifact_source_fit_holdout_sync_summary_for_report()
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "packaged-artifact source-fit and hold-out sync summary no longer matches the current packaged-artifact source-fit and hold-out sync posture"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_packaged_artifact_output_support_summary_matches_current_rendering(
     packaged_artifact_output_support_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -12578,6 +12593,9 @@ fn verify_release_bundle(
         checksum64(&packaged_artifact_target_threshold_scope_envelopes_summary_text);
     ensure_packaged_artifact_target_threshold_summary_matches_current_rendering(
         &packaged_artifact_target_threshold_summary_text,
+    )?;
+    ensure_packaged_artifact_source_fit_holdout_sync_summary_matches_current_rendering(
+        &packaged_artifact_source_fit_holdout_sync_summary_text,
     )?;
     let packaged_artifact_phase2_corpus_alignment_summary_checksum =
         checksum64(&packaged_artifact_phase2_corpus_alignment_summary_text);
@@ -29465,6 +29483,63 @@ version = "0.9.0"
             "release-notes-summary.txt",
             "release notes summary checksum mismatch",
         );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_packaged_artifact_source_fit_holdout_sync_summary_even_with_updated_checksum(
+    ) {
+        let bundle_dir =
+            unique_temp_dir("pleiades-release-bundle-tampered-source-fit-holdout-sync-semantic");
+        let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
+        render_cli(&[
+            "bundle-release",
+            "--out",
+            &bundle_dir_string,
+            "--rounds",
+            "1",
+        ])
+        .expect("bundle release should render");
+
+        let summary_path = bundle_dir.join("packaged-artifact-source-fit-holdout-sync-summary.txt");
+        let summary = std::fs::read_to_string(&summary_path)
+            .expect("packaged-artifact source-fit and hold-out sync summary should exist");
+        let tampered_summary = summary.replace(
+            "source-fit and hold-out sync",
+            "tampered source-fit and hold-out sync",
+        );
+        std::fs::write(&summary_path, &tampered_summary)
+            .expect("packaged-artifact source-fit and hold-out sync summary should be writable");
+
+        let manifest_path = bundle_dir.join("bundle-manifest.txt");
+        let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");
+        let old_checksum_line = manifest
+            .lines()
+            .find(|line| {
+                line.starts_with(
+                    "packaged-artifact source-fit and hold-out sync summary checksum (fnv1a-64):",
+                )
+            })
+            .expect("manifest should contain the packaged-artifact source-fit and hold-out sync summary checksum line");
+        let new_checksum_line = format!(
+            "packaged-artifact source-fit and hold-out sync summary checksum (fnv1a-64): 0x{:016x}",
+            checksum64(&tampered_summary)
+        );
+        let updated_manifest = manifest.replacen(old_checksum_line, &new_checksum_line, 1);
+        std::fs::write(&manifest_path, &updated_manifest).expect("manifest should be writable");
+
+        let checksum_path = bundle_dir.join("bundle-manifest.checksum.txt");
+        std::fs::write(
+            &checksum_path,
+            format!("0x{:016x}\n", checksum64(&updated_manifest)),
+        )
+        .expect("manifest checksum sidecar should be writable");
+
+        let error = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string])
+            .expect_err("verification should fail for semantic packaged-artifact source-fit and hold-out sync drift");
+        assert!(error.contains("release bundle verification failed"));
+        assert!(error.contains("source-fit and hold-out sync summary no longer matches"));
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
     }
 
     #[test]
