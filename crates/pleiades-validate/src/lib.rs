@@ -11711,6 +11711,21 @@ fn ensure_packaged_artifact_source_fit_holdout_sync_summary_matches_current_rend
     }
 }
 
+fn ensure_packaged_artifact_target_threshold_scope_envelopes_summary_matches_current_rendering(
+    packaged_artifact_target_threshold_scope_envelopes_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if packaged_artifact_target_threshold_scope_envelopes_summary_text
+        == validated_packaged_artifact_target_threshold_scope_envelopes_summary_for_report()
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "packaged-artifact target-threshold scope envelopes summary no longer matches the current packaged-artifact target-threshold scope envelopes posture"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_packaged_artifact_output_support_summary_matches_current_rendering(
     packaged_artifact_output_support_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -12458,6 +12473,9 @@ fn verify_release_bundle(
             &packaged_artifact_target_threshold_scope_envelopes_summary_path,
             "packaged-artifact target-threshold scope envelopes summary",
         )?;
+    ensure_packaged_artifact_target_threshold_scope_envelopes_summary_matches_current_rendering(
+        &packaged_artifact_target_threshold_scope_envelopes_summary_text,
+    )?;
     let packaged_artifact_phase2_corpus_alignment_summary_text = read_required_bundle_text(
         &packaged_artifact_phase2_corpus_alignment_summary_path,
         "packaged-artifact phase-2 corpus alignment summary",
@@ -30134,6 +30152,19 @@ version = "0.9.0"
             "pleiades-release-bundle-tampered-release-notes-summary",
             "release-notes-summary.txt",
             "release notes summary checksum mismatch",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_packaged_artifact_target_threshold_scope_envelopes_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-target-threshold-scope-envelopes-semantic",
+            "packaged-artifact-target-threshold-scope-envelopes-summary.txt",
+            "packaged-artifact target-threshold scope envelopes summary checksum (fnv1a-64):",
+            "scope=luminaries; bodies=2 (Sun, Moon); fit envelope:",
+            "scope=luminaries; bodies=2 (Sun, Moon); drifted fit envelope:",
+            "packaged-artifact target-threshold scope envelopes summary no longer matches the current packaged-artifact target-threshold scope envelopes posture",
         );
     }
 
