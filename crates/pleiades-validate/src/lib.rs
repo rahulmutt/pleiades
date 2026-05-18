@@ -81,7 +81,6 @@ use pleiades_data::{
     packaged_artifact_generation_policy_summary_for_report,
     packaged_artifact_normalized_intermediate_summary_for_report,
     packaged_artifact_output_support_summary_for_report,
-    packaged_artifact_phase2_corpus_alignment_summary_for_report,
     packaged_artifact_profile_coverage_summary_for_report,
     packaged_artifact_profile_summary_with_body_coverage,
     packaged_artifact_regeneration_summary_for_report,
@@ -4984,7 +4983,7 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             )?;
             Ok(format!(
                 "Packaged-artifact phase-2 corpus alignment: {}",
-                packaged_artifact_phase2_corpus_alignment_summary_for_report()
+                validated_packaged_artifact_phase2_corpus_alignment_summary_for_report()
             ))
         }
         Some("packaged-artifact-fit-envelope-summary") | Some("packaged-artifact-fit-envelope") => {
@@ -8753,7 +8752,7 @@ fn render_release_notes_summary_text() -> String {
     text.push_str(&packaged_artifact_target_threshold_scope_envelopes_for_report());
     text.push('\n');
     text.push_str("Packaged-artifact phase-2 corpus alignment: ");
-    text.push_str(&packaged_artifact_phase2_corpus_alignment_summary_for_report());
+    text.push_str(&validated_packaged_artifact_phase2_corpus_alignment_summary_for_report());
     text.push('\n');
     text.push_str("Packaged-artifact generation manifest: ");
     text.push_str(&packaged_artifact_generation_manifest_for_report());
@@ -9392,7 +9391,7 @@ fn render_release_summary_text() -> String {
     text.push_str(&packaged_artifact_target_threshold_scope_envelopes_for_report());
     text.push('\n');
     text.push_str("Packaged-artifact phase-2 corpus alignment: ");
-    text.push_str(&packaged_artifact_phase2_corpus_alignment_summary_for_report());
+    text.push_str(&validated_packaged_artifact_phase2_corpus_alignment_summary_for_report());
     text.push('\n');
     text.push_str("Packaged-artifact generation manifest: ");
     text.push_str(&packaged_artifact_generation_manifest_for_report());
@@ -9775,7 +9774,7 @@ pub fn render_release_bundle(
     let packaged_artifact_target_threshold_scope_envelopes_summary_text =
         packaged_artifact_target_threshold_scope_envelopes_for_report();
     let packaged_artifact_phase2_corpus_alignment_summary_text =
-        packaged_artifact_phase2_corpus_alignment_summary_for_report();
+        validated_packaged_artifact_phase2_corpus_alignment_summary_for_report();
     let packaged_lookup_epoch_policy_summary_text =
         packaged_lookup_epoch_policy_summary_for_report();
     let packaged_artifact_generation_manifest_text =
@@ -11466,7 +11465,7 @@ fn ensure_packaged_artifact_phase2_corpus_alignment_summary_matches_current_rend
     packaged_artifact_phase2_corpus_alignment_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
     if packaged_artifact_phase2_corpus_alignment_summary_text
-        == packaged_artifact_phase2_corpus_alignment_summary_for_report()
+        == validated_packaged_artifact_phase2_corpus_alignment_summary_for_report()
     {
         Ok(())
     } else {
@@ -16682,6 +16681,21 @@ fn validated_packaged_artifact_source_fit_holdout_sync_summary_for_report() -> S
     }
 }
 
+fn validated_packaged_artifact_phase2_corpus_alignment_summary_for_report() -> String {
+    let summary = match pleiades_data::packaged_artifact_phase2_corpus_alignment_summary_details()
+    {
+        Some(summary) => summary,
+        None => {
+            return "Packaged-artifact phase-2 corpus alignment: unavailable (phase-2 corpus evidence should be available)".to_string()
+        }
+    };
+
+    match summary.validated_summary_line() {
+        Ok(line) => line,
+        Err(error) => format!("Packaged-artifact phase-2 corpus alignment: unavailable ({error})"),
+    }
+}
+
 fn format_packaged_artifact_output_support_summary() -> String {
     validated_packaged_artifact_output_support_summary_for_report()
 }
@@ -17621,7 +17635,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(
         text,
         "  Packaged-artifact phase-2 corpus alignment: {}",
-        packaged_artifact_phase2_corpus_alignment_summary_for_report()
+        validated_packaged_artifact_phase2_corpus_alignment_summary_for_report()
     );
     let _ = writeln!(
         text,
@@ -29892,7 +29906,8 @@ version = "0.9.0"
     #[test]
     fn packaged_artifact_phase2_alignment_matches_source_fit_holdout_sync_payload() {
         let sync_summary = validated_packaged_artifact_source_fit_holdout_sync_summary_for_report();
-        let phase2_summary = packaged_artifact_phase2_corpus_alignment_summary_for_report();
+        let phase2_summary =
+            validated_packaged_artifact_phase2_corpus_alignment_summary_for_report();
 
         ensure_packaged_artifact_phase2_alignment_matches_source_fit_holdout_sync(
             &format!(
@@ -30085,7 +30100,7 @@ version = "0.9.0"
 
     #[test]
     fn packaged_artifact_phase2_corpus_alignment_summary_matches_current_rendering() {
-        let summary = packaged_artifact_phase2_corpus_alignment_summary_for_report();
+        let summary = validated_packaged_artifact_phase2_corpus_alignment_summary_for_report();
 
         ensure_packaged_artifact_phase2_corpus_alignment_summary_matches_current_rendering(
             &summary,
@@ -30097,7 +30112,7 @@ version = "0.9.0"
 
     #[test]
     fn packaged_artifact_phase2_corpus_alignment_summary_validation_rejects_drift() {
-        let summary = packaged_artifact_phase2_corpus_alignment_summary_for_report();
+        let summary = validated_packaged_artifact_phase2_corpus_alignment_summary_for_report();
         let drifted_summary = summary.replace(
             "reference source=Reference snapshot source:",
             "reference source=Drifted snapshot source:",
@@ -32177,7 +32192,7 @@ version = "0.9.0"
             phase2_alignment,
             format!(
                 "Packaged-artifact phase-2 corpus alignment: {}",
-                packaged_artifact_phase2_corpus_alignment_summary_for_report()
+                validated_packaged_artifact_phase2_corpus_alignment_summary_for_report()
             )
         );
         assert_eq!(
