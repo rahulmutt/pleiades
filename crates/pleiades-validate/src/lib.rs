@@ -29396,9 +29396,26 @@ version = "0.9.0"
         let rendered = render_cli(&["production-generation-source-summary"])
             .expect("production generation source summary should render");
 
-        assert!(rendered.contains("Production generation source:"));
-        assert!(rendered.contains("Reference snapshot source:"));
-        assert!(rendered.contains("Production generation boundary overlay source:"));
+        let source_index = rendered
+            .find("Production generation source:")
+            .expect("production generation source heading should render");
+        let reference_index = rendered
+            .find("Reference snapshot source:")
+            .expect("reference snapshot source heading should render");
+        let boundary_index = rendered
+            .find("Production generation boundary overlay source:")
+            .expect("production generation boundary overlay heading should render");
+        let window_index = rendered
+            .find("source windows=")
+            .expect("source-window evidence should render");
+        let input_path_index = rendered
+            .find("input path=")
+            .expect("generation input path should render");
+
+        assert!(source_index < reference_index);
+        assert!(reference_index < boundary_index);
+        assert!(boundary_index < window_index);
+        assert!(window_index < input_path_index);
         assert_eq!(rendered, production_generation_source_summary_for_report());
     }
 
