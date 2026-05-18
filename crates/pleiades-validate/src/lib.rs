@@ -103,7 +103,6 @@ use pleiades_elp::{
     lunar_reference_evidence_envelope_for_report, lunar_reference_evidence_summary,
     lunar_reference_evidence_summary_for_report, lunar_source_window_summary_for_report,
     lunar_theory_capability_summary_for_report, lunar_theory_catalog_summary_for_report,
-    lunar_theory_catalog_validation_summary_for_report,
     lunar_theory_frame_treatment_summary_for_report, lunar_theory_limitations_summary_for_report,
     lunar_theory_request_policy_summary, lunar_theory_source_summary_for_report,
     lunar_theory_specification, lunar_theory_summary_for_report, ElpBackend,
@@ -6039,7 +6038,7 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("lunar-theory-catalog-validation-summary")
         | Some("lunar-theory-catalog-validation") => {
             ensure_no_extra_args(&args[1..], "lunar-theory-catalog-validation-summary")?;
-            Ok(lunar_theory_catalog_validation_summary_for_report())
+            Ok(validated_lunar_theory_catalog_validation_summary_for_report())
         }
         Some("selected-asteroid-boundary-summary") => {
             ensure_no_extra_args(&args[1..], "selected-asteroid-boundary-summary")?;
@@ -8998,7 +8997,7 @@ fn render_release_summary_text() -> String {
     text.push('\n');
     text.push_str(&lunar_theory_catalog_summary_for_report());
     text.push('\n');
-    text.push_str(&lunar_theory_catalog_validation_summary_for_report());
+    text.push_str(&validated_lunar_theory_catalog_validation_summary_for_report());
     text.push('\n');
     text.push_str(&lunar_theory_source_summary_for_report());
     text.push('\n');
@@ -9765,8 +9764,18 @@ pub fn render_release_bundle(
     let lunar_theory_limitations_summary_text = lunar_theory_limitations_summary_for_report();
     let lunar_theory_source_family_summary_text =
         pleiades_elp::lunar_theory_source_family_summary_for_report();
+    let lunar_theory_catalog_validation_summary =
+        pleiades_elp::lunar_theory_catalog_validation_summary();
+    lunar_theory_catalog_validation_summary
+        .validation_result
+        .as_ref()
+        .map_err(|error| {
+            ReleaseBundleError::Verification(format!(
+                "lunar theory catalog validation summary is invalid: {error}"
+            ))
+        })?;
     let lunar_theory_catalog_validation_summary_text =
-        lunar_theory_catalog_validation_summary_for_report();
+        validated_lunar_theory_catalog_validation_summary_for_report();
     let request_surface_summary_text = render_request_surface_summary_text();
     let compatibility_caveats_summary_text = render_compatibility_caveats_summary();
     let benchmark_corpus_summary_text = render_benchmark_corpus_summary_text();
@@ -11898,6 +11907,29 @@ fn ensure_lunar_theory_source_family_summary_matches_current_rendering(
     }
 }
 
+fn validated_lunar_theory_catalog_validation_summary_for_report() -> String {
+    let summary = pleiades_elp::lunar_theory_catalog_validation_summary();
+    match &summary.validation_result {
+        Ok(()) => summary.summary_line(),
+        Err(error) => format!("lunar theory catalog validation: unavailable ({error})"),
+    }
+}
+
+fn ensure_lunar_theory_catalog_validation_summary_matches_current_rendering(
+    lunar_theory_catalog_validation_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if lunar_theory_catalog_validation_summary_text
+        == validated_lunar_theory_catalog_validation_summary_for_report()
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "lunar theory catalog validation summary no longer matches the current lunar theory catalog posture"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_native_dependency_audit_summary_matches_current_rendering(
     native_dependency_audit_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -12298,6 +12330,9 @@ fn verify_release_bundle(
     let lunar_theory_catalog_validation_summary_text = read_required_bundle_text(
         &lunar_theory_catalog_validation_summary_path,
         "lunar theory catalog validation summary",
+    )?;
+    ensure_lunar_theory_catalog_validation_summary_matches_current_rendering(
+        &lunar_theory_catalog_validation_summary_text,
     )?;
     let request_surface_summary_text =
         read_required_bundle_text(&request_surface_summary_path, "request surface summary")?;
@@ -17744,7 +17779,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(
         text,
         "  {}",
-        lunar_theory_catalog_validation_summary_for_report()
+        validated_lunar_theory_catalog_validation_summary_for_report()
     );
     let _ = writeln!(text, "  {}", lunar_theory_source_summary_for_report());
     let _ = writeln!(text, "  {}", lunar_theory_summary_for_report());
@@ -18322,7 +18357,7 @@ fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str(&lunar_theory_catalog_summary_for_report());
     text.push('\n');
-    text.push_str(&lunar_theory_catalog_validation_summary_for_report());
+    text.push_str(&validated_lunar_theory_catalog_validation_summary_for_report());
     text.push('\n');
     text.push_str(&lunar_theory_source_summary_for_report());
     text.push('\n');
@@ -19543,7 +19578,7 @@ fn write_backend_catalog_entry(
         writeln!(
             f,
             "    catalog validation: {}",
-            lunar_theory_catalog_validation_summary_for_report()
+            validated_lunar_theory_catalog_validation_summary_for_report()
         )?;
         writeln!(f, "    model: {}", theory.model_name)?;
         writeln!(
@@ -25332,9 +25367,31 @@ mod tests {
         );
         assert_eq!(
             rendered,
-            lunar_theory_catalog_validation_summary_for_report()
+            validated_lunar_theory_catalog_validation_summary_for_report()
         );
         assert!(rendered.contains("lunar theory catalog validation: ok"));
+    }
+
+    #[test]
+    fn lunar_theory_catalog_validation_summary_matches_current_rendering() {
+        let summary = validated_lunar_theory_catalog_validation_summary_for_report();
+
+        ensure_lunar_theory_catalog_validation_summary_matches_current_rendering(&summary)
+            .expect("lunar theory catalog validation summary should match the current rendering");
+    }
+
+    #[test]
+    fn lunar_theory_catalog_validation_summary_validation_rejects_drift() {
+        let summary = validated_lunar_theory_catalog_validation_summary_for_report();
+        let drifted_summary = summary.replace("aliases=1", "aliases=2");
+
+        let error = ensure_lunar_theory_catalog_validation_summary_matches_current_rendering(
+            &drifted_summary,
+        )
+        .expect_err("drifted lunar theory catalog validation summary should be rejected");
+        assert!(error
+            .to_string()
+            .contains("no longer matches the current lunar theory catalog posture"));
     }
 
     #[test]
@@ -30169,6 +30226,19 @@ version = "0.9.0"
             "selected model=",
             "selected model=drifted-",
             "lunar theory source family summary no longer matches the current lunar source-family posture",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_lunar_theory_catalog_validation_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-lunar-theory-catalog-validation-semantic",
+            "lunar-theory-catalog-validation-summary.txt",
+            "lunar theory catalog validation summary checksum (fnv1a-64):",
+            "aliases=1",
+            "aliases=2",
+            "lunar theory catalog validation summary no longer matches the current lunar theory catalog posture",
         );
     }
 
