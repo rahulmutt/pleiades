@@ -97,6 +97,7 @@ This file lists focused implementation slices for the current phase ladder. Comp
 - Add provenance/reference evidence for any ayanamsa promoted beyond descriptor/custom-only status.
 - Completed: representative golden/reference tests now pin the latitude-sensitive topocentric house snapshot and baseline ayanamsa epoch offsets.
 - Completed: the release-specific house-system and ayanamsa canonical-name summary commands now route through explicit validated helpers before formatting, keeping the public release-facing aliases fail-closed when the catalog posture drifts.
+- Completed: the core façade now also exports matching release-specific house-system and ayanamsa canonical-name report helpers, and the validation surfaces reuse those public wrappers so the release-facing catalog summaries share one public path.
 - Completed: the UTC convenience and native sidereal policy summaries now also route through validated release helpers in backend, core, CLI, and validation-report surfaces, so the advanced request-policy wording no longer depends on ad hoc validation formatting.
 - Completed: the remaining time-scale, Delta T, observer, apparentness, and request-policy summary surfaces now also route through validated release helpers in backend, core, and CLI surfaces, so the shared request-policy wording follows the same fail-closed path as the UTC/native-sidereal helpers.
 - Completed: the ayanamsa provenance summary now validates before rendering in release-facing report surfaces, so representative provenance examples fail closed if the sample notes drift.

@@ -101,10 +101,14 @@ pub use compatibility::{
     catalog_inventory_summary_for_report, current_compatibility_profile,
     current_compatibility_profile_id, custom_definition_ayanamsa_labels_summary_for_report,
     house_formula_families_summary_for_report, latitude_sensitive_house_systems_summary_for_report,
-    validate_custom_definition_labels, validated_catalog_inventory_summary_for_report,
+    release_ayanamsa_canonical_names_summary_for_report,
+    release_house_system_canonical_names_summary_for_report, validate_custom_definition_labels,
+    validated_catalog_inventory_summary_for_report,
     validated_custom_definition_ayanamsa_labels_summary_for_report,
     validated_house_formula_families_summary_for_report,
-    validated_latitude_sensitive_house_systems_summary_for_report, CompatibilityProfile,
+    validated_latitude_sensitive_house_systems_summary_for_report,
+    validated_release_ayanamsa_canonical_names_summary_for_report,
+    validated_release_house_system_canonical_names_summary_for_report, CompatibilityProfile,
     HouseCodeAliasInventorySummary, CURRENT_COMPATIBILITY_PROFILE_ID,
 };
 pub use pleiades_ayanamsa::{

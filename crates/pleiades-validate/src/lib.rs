@@ -56,6 +56,8 @@ use pleiades_core::{
     validated_custom_definition_ayanamsa_labels_summary_for_report,
     validated_house_formula_families_summary_for_report,
     validated_latitude_sensitive_house_systems_summary_for_report,
+    validated_release_ayanamsa_canonical_names_summary_for_report as core_validated_release_ayanamsa_canonical_names_summary_for_report,
+    validated_release_house_system_canonical_names_summary_for_report as core_validated_release_house_system_canonical_names_summary_for_report,
     validated_release_profile_identifiers_summary_for_report as core_validated_release_profile_identifiers_summary_for_report,
     AccuracyClass, Angle, Apparentness, BackendCapabilities, BackendFamily, BackendMetadata,
     CelestialBody, CompatibilityProfile, CompositeBackend, CoordinateFrame, EclipticCoordinates,
@@ -8020,16 +8022,12 @@ fn format_custom_definition_ayanamsa_labels_for_report() -> String {
 }
 
 fn validated_release_house_system_canonical_names_for_report() -> Result<String, String> {
-    let profile = validated_compatibility_profile_for_report()?;
-    profile
-        .validated_release_house_system_canonical_names_summary_line()
+    core_validated_release_house_system_canonical_names_summary_for_report()
         .map_err(|error| error.to_string())
 }
 
 fn validated_release_ayanamsa_canonical_names_for_report() -> Result<String, String> {
-    let profile = validated_compatibility_profile_for_report()?;
-    profile
-        .validated_release_ayanamsa_canonical_names_summary_line()
+    core_validated_release_ayanamsa_canonical_names_summary_for_report()
         .map_err(|error| error.to_string())
 }
 

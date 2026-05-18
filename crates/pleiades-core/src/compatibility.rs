@@ -1259,6 +1259,28 @@ pub fn validated_catalog_inventory_summary_for_report(
     current_compatibility_profile().validated_catalog_inventory_summary_line()
 }
 
+/// Returns the release-specific house-system canonical names summary for report surfaces.
+pub fn release_house_system_canonical_names_summary_for_report() -> String {
+    current_compatibility_profile().release_house_system_canonical_names_summary_line()
+}
+
+/// Returns the release-specific house-system canonical names summary after validating the profile.
+pub fn validated_release_house_system_canonical_names_summary_for_report(
+) -> Result<String, CompatibilityProfileValidationError> {
+    current_compatibility_profile().validated_release_house_system_canonical_names_summary_line()
+}
+
+/// Returns the release-specific ayanamsa canonical names summary for report surfaces.
+pub fn release_ayanamsa_canonical_names_summary_for_report() -> String {
+    current_compatibility_profile().release_ayanamsa_canonical_names_summary_line()
+}
+
+/// Returns the release-specific ayanamsa canonical names summary after validating the profile.
+pub fn validated_release_ayanamsa_canonical_names_summary_for_report(
+) -> Result<String, CompatibilityProfileValidationError> {
+    current_compatibility_profile().validated_release_ayanamsa_canonical_names_summary_line()
+}
+
 fn write_scope_section(
     f: &mut fmt::Formatter<'_>,
     title: &str,
@@ -3490,6 +3512,22 @@ mod tests {
         assert_eq!(
             profile.validated_release_ayanamsa_canonical_names_summary_line(),
             Ok(ayanamsa_summary.clone())
+        );
+        assert_eq!(
+            release_house_system_canonical_names_summary_for_report(),
+            house_summary
+        );
+        assert_eq!(
+            release_ayanamsa_canonical_names_summary_for_report(),
+            ayanamsa_summary
+        );
+        assert_eq!(
+            validated_release_house_system_canonical_names_summary_for_report(),
+            Ok(profile.release_house_system_canonical_names_summary_line())
+        );
+        assert_eq!(
+            validated_release_ayanamsa_canonical_names_summary_for_report(),
+            Ok(profile.release_ayanamsa_canonical_names_summary_line())
         );
         assert_eq!(
             profile.validated_house_formula_families_summary_line(),
