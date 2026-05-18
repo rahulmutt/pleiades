@@ -5949,17 +5949,10 @@ fn segment_error_prefers_candidate(
 }
 
 fn packaged_artifact_segment_validation_fractions_for_body(body: &CelestialBody) -> &'static [f64] {
-    match packaged_artifact_body_cadence(body) {
-        PackagedArtifactBodyCadence::Luminaries
-        | PackagedArtifactBodyCadence::LunarPoints
-        | PackagedArtifactBodyCadence::SelectedAsteroids
-        | PackagedArtifactBodyCadence::Pluto
-        | PackagedArtifactBodyCadence::CustomBodies => {
-            PACKAGED_ARTIFACT_DENSE_VALIDATION_SAMPLE_FRACTIONS
-        }
-        PackagedArtifactBodyCadence::InnerPlanets | PackagedArtifactBodyCadence::OuterPlanets => {
-            PACKAGED_ARTIFACT_MEDIUM_VALIDATION_SAMPLE_FRACTIONS
-        }
+    if packaged_artifact_body_cadence(body).uses_dense_sampling() {
+        PACKAGED_ARTIFACT_DENSE_VALIDATION_SAMPLE_FRACTIONS
+    } else {
+        PACKAGED_ARTIFACT_MEDIUM_VALIDATION_SAMPLE_FRACTIONS
     }
 }
 
@@ -7522,6 +7515,10 @@ mod tests {
         );
         assert_eq!(
             packaged_artifact_segment_validation_fractions_for_body(&lunar_point_body),
+            PACKAGED_ARTIFACT_DENSE_VALIDATION_SAMPLE_FRACTIONS
+        );
+        assert_eq!(
+            packaged_artifact_segment_validation_fractions_for_body(&CelestialBody::Pluto),
             PACKAGED_ARTIFACT_DENSE_VALIDATION_SAMPLE_FRACTIONS
         );
         assert_eq!(
