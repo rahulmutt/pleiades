@@ -1396,6 +1396,59 @@ fn distance_channel_from_samples(start: f64, midpoint: Option<f64>, end: f64) ->
         .unwrap_or_else(|| PolynomialChannel::linear(ChannelKind::DistanceAu, 10, start, end))
 }
 
+fn distance_channel_from_four_point_control_points(
+    start: f64,
+    first_third: f64,
+    second_third: f64,
+    end: f64,
+) -> Option<PolynomialChannel> {
+    polynomial_channel_from_samples(
+        ChannelKind::DistanceAu,
+        10,
+        &[
+            (0.0, start),
+            (1.0 / 3.0, first_third),
+            (2.0 / 3.0, second_third),
+            (1.0, end),
+        ],
+    )
+}
+
+fn distance_channel_from_fit_control_points(samples: &[(f64, f64)]) -> Option<PolynomialChannel> {
+    const TARGET_FRACTIONS: [f64; 4] = [0.0, 1.0 / 3.0, 2.0 / 3.0, 1.0];
+
+    if samples.len() < TARGET_FRACTIONS.len() {
+        return None;
+    }
+
+    let mut selected_samples = Vec::with_capacity(TARGET_FRACTIONS.len());
+    let mut used_indices = vec![false; samples.len()];
+
+    for target_fraction in TARGET_FRACTIONS {
+        let mut best_index = None;
+        let mut best_distance = f64::INFINITY;
+
+        for (index, (fraction, _)) in samples.iter().enumerate() {
+            if used_indices[index] {
+                continue;
+            }
+
+            let distance = (*fraction - target_fraction).abs();
+            if distance < best_distance {
+                best_distance = distance;
+                best_index = Some(index);
+            }
+        }
+
+        let index = best_index?;
+
+        used_indices[index] = true;
+        selected_samples.push(samples[index]);
+    }
+
+    polynomial_channel_from_samples(ChannelKind::DistanceAu, 10, &selected_samples)
+}
+
 fn distance_channel_from_fit_samples(
     samples: &[(f64, f64)],
     start: f64,
@@ -1403,6 +1456,7 @@ fn distance_channel_from_fit_samples(
     end: f64,
 ) -> PolynomialChannel {
     polynomial_channel_from_samples(ChannelKind::DistanceAu, 10, samples)
+        .or_else(|| distance_channel_from_fit_control_points(samples))
         .unwrap_or_else(|| distance_channel_from_samples(start, midpoint, end))
 }
 
@@ -6999,15 +7053,11 @@ fn segment_from_pair_fallback(
             first_third_coordinates.distance_au,
             second_third_coordinates.distance_au,
         ) {
-            polynomial_channel_from_samples(
-                ChannelKind::DistanceAu,
-                10,
-                &[
-                    (0.0, distance_start),
-                    (1.0 / 3.0, first_third_distance),
-                    (2.0 / 3.0, second_third_distance),
-                    (1.0, distance_end),
-                ],
+            distance_channel_from_four_point_control_points(
+                distance_start,
+                first_third_distance,
+                second_third_distance,
+                distance_end,
             )
             .unwrap_or_else(|| {
                 distance_channel_from_samples(
@@ -7678,6 +7728,28 @@ mod tests {
             })
             .collect::<Vec<_>>();
         let channel = distance_channel_from_fit_samples(&samples, 1.0, Some(2.0), 3.0);
+
+        assert_eq!(channel.coefficients.len(), 4);
+        let expected_coefficients = [1.0, 2.0, -3.0, 4.0];
+        for (actual, expected) in channel.coefficients.iter().zip(expected_coefficients) {
+            assert!((actual - expected).abs() < 1e-9);
+        }
+    }
+
+    #[test]
+    fn distance_channel_from_fit_samples_prefers_four_point_control_points_when_needed() {
+        let cubic =
+            |fraction: f64| 1.0 + 2.0 * fraction - 3.0 * fraction.powi(2) + 4.0 * fraction.powi(3);
+        let samples = [
+            (0.0, cubic(0.0)),
+            (0.1, 1.0e20),
+            (0.3, cubic(0.3)),
+            (0.7, cubic(0.7)),
+            (0.9, -1.0e20),
+            (1.0, cubic(1.0)),
+        ];
+        let channel =
+            distance_channel_from_fit_samples(&samples, cubic(0.0), Some(cubic(0.5)), cubic(1.0));
 
         assert_eq!(channel.coefficients.len(), 4);
         let expected_coefficients = [1.0, 2.0, -3.0, 4.0];
