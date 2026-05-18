@@ -11346,6 +11346,18 @@ fn ensure_request_surface_summary_matches_current_rendering(
     }
 }
 
+fn ensure_api_stability_summary_matches_current_rendering(
+    api_stability_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if api_stability_summary_text == render_api_stability_summary_text() {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "API stability summary no longer matches the current API-stability posture".to_string(),
+        ))
+    }
+}
+
 fn verify_release_bundle(
     output_dir: impl AsRef<Path>,
 ) -> Result<ReleaseBundle, ReleaseBundleError> {
@@ -11604,6 +11616,7 @@ fn verify_release_bundle(
     let api_stability_text = read_required_bundle_text(&api_stability_path, "API stability")?;
     let api_stability_summary_text =
         read_required_bundle_text(&api_stability_summary_path, "API stability summary")?;
+    ensure_api_stability_summary_matches_current_rendering(&api_stability_summary_text)?;
     let comparison_corpus_summary_text =
         read_required_bundle_text(&comparison_corpus_summary_path, "comparison corpus summary")?;
     let comparison_snapshot_summary_text = read_required_bundle_text(
@@ -28432,6 +28445,55 @@ version = "0.9.0"
                 || error.contains("invalid api stability summary checksum")
                 || error.contains("missing 0x prefix")
         );
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_api_stability_summary_even_with_updated_checksum() {
+        let bundle_dir = unique_temp_dir("pleiades-release-bundle-tampered-api-summary-semantic");
+        let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
+        render_cli(&[
+            "bundle-release",
+            "--out",
+            &bundle_dir_string,
+            "--rounds",
+            "1",
+        ])
+        .expect("bundle release should render");
+
+        let summary_path = bundle_dir.join("api-stability-summary.txt");
+        let summary =
+            std::fs::read_to_string(&summary_path).expect("API stability summary should exist");
+        let tampered_summary =
+            summary.replace("API stability summary", "Tampered API stability summary");
+        std::fs::write(&summary_path, &tampered_summary)
+            .expect("API stability summary should be writable");
+
+        let manifest_path = bundle_dir.join("bundle-manifest.txt");
+        let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");
+        let old_checksum_line = manifest
+            .lines()
+            .find(|line| line.starts_with("api stability summary checksum (fnv1a-64):"))
+            .expect("manifest should contain the API stability summary checksum line");
+        let new_checksum_line = format!(
+            "api stability summary checksum (fnv1a-64): 0x{:016x}",
+            checksum64(&tampered_summary)
+        );
+        let updated_manifest = manifest.replacen(old_checksum_line, &new_checksum_line, 1);
+        std::fs::write(&manifest_path, &updated_manifest).expect("manifest should be writable");
+
+        let checksum_path = bundle_dir.join("bundle-manifest.checksum.txt");
+        std::fs::write(
+            &checksum_path,
+            format!("0x{:016x}\n", checksum64(&updated_manifest)),
+        )
+        .expect("manifest checksum sidecar should be writable");
+
+        let error = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string])
+            .expect_err("verification should fail for semantic API stability summary drift");
+        assert!(error.contains("release bundle verification failed"));
+        assert!(error.contains("API stability summary no longer matches"));
 
         let _ = std::fs::remove_dir_all(&bundle_dir);
     }
