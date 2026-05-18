@@ -11401,6 +11401,21 @@ fn ensure_production_generation_source_summary_matches_source_windows(
     Ok(())
 }
 
+fn ensure_packaged_artifact_target_threshold_summary_matches_current_rendering(
+    packaged_artifact_target_threshold_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if packaged_artifact_target_threshold_summary_text
+        == packaged_artifact_target_threshold_summary_for_report()
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "packaged-artifact target-threshold summary no longer matches the current packaged-artifact target-threshold posture"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_request_policy_summary_matches_current_rendering(
     request_policy_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -12347,6 +12362,9 @@ fn verify_release_bundle(
         checksum64(&packaged_artifact_target_threshold_summary_text);
     let packaged_artifact_target_threshold_scope_envelopes_summary_checksum =
         checksum64(&packaged_artifact_target_threshold_scope_envelopes_summary_text);
+    ensure_packaged_artifact_target_threshold_summary_matches_current_rendering(
+        &packaged_artifact_target_threshold_summary_text,
+    )?;
     let packaged_artifact_phase2_corpus_alignment_summary_checksum =
         checksum64(&packaged_artifact_phase2_corpus_alignment_summary_text);
     let packaged_lookup_epoch_policy_summary_checksum =
@@ -28809,6 +28827,33 @@ version = "0.9.0"
             ),
         )
         .expect("phase-2 alignment payload should match the source-fit sync payload");
+    }
+
+    #[test]
+    fn packaged_artifact_target_threshold_summary_matches_current_rendering() {
+        let summary = packaged_artifact_target_threshold_summary_for_report();
+
+        ensure_packaged_artifact_target_threshold_summary_matches_current_rendering(&summary)
+            .expect(
+                "packaged-artifact target-threshold summary should match the current rendering",
+            );
+    }
+
+    #[test]
+    fn packaged_artifact_target_threshold_summary_validation_rejects_drift() {
+        let summary = packaged_artifact_target_threshold_summary_for_report();
+        let drifted_summary = summary.replace(
+            "production thresholds recorded",
+            "production thresholds drifting",
+        );
+
+        let error = ensure_packaged_artifact_target_threshold_summary_matches_current_rendering(
+            &drifted_summary,
+        )
+        .expect_err("drifted target-threshold summary should be rejected");
+        assert!(error
+            .to_string()
+            .contains("no longer matches the current packaged-artifact target-threshold posture"));
     }
 
     #[test]
