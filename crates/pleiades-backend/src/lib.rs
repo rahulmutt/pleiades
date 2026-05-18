@@ -4898,6 +4898,26 @@ mod tests {
             "toy backend expects one of [TT] for request instants"
         );
 
+        let invalid_observer_apparent_request = EphemerisRequest {
+            observer: Some(ObserverLocation::new(
+                Latitude::from_degrees(95.0),
+                Longitude::from_degrees(-0.1),
+                Some(45.0),
+            )),
+            ..apparent_request.clone()
+        };
+        let invalid_observer_apparent_error =
+            validate_request_against_metadata(&invalid_observer_apparent_request, &metadata)
+                .expect_err("apparentness should still win before malformed observer validation");
+        assert_eq!(
+            invalid_observer_apparent_error.kind,
+            EphemerisErrorKind::UnsupportedApparentness
+        );
+        assert_eq!(
+            invalid_observer_apparent_error.message,
+            "toy backend currently returns mean geometric coordinates only; apparent corrections are not implemented"
+        );
+
         let invalid_observer_frame_batch_error = validate_requests_against_metadata(
             &[
                 geocentric_only_request.clone(),
