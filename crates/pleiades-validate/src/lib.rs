@@ -11439,6 +11439,36 @@ fn ensure_packaged_artifact_target_threshold_summary_matches_current_rendering(
     }
 }
 
+fn ensure_packaged_artifact_output_support_summary_matches_current_rendering(
+    packaged_artifact_output_support_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if packaged_artifact_output_support_summary_text
+        == packaged_artifact_output_support_summary_for_report()
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "packaged-artifact output support summary no longer matches the current packaged-artifact output-support posture"
+                .to_string(),
+        ))
+    }
+}
+
+fn ensure_packaged_artifact_speed_policy_summary_matches_current_rendering(
+    packaged_artifact_speed_policy_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if packaged_artifact_speed_policy_summary_text
+        == packaged_artifact_speed_policy_summary_for_report()
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "packaged-artifact speed policy summary no longer matches the current packaged-artifact speed-policy posture"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_request_policy_summary_matches_current_rendering(
     request_policy_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -11880,6 +11910,9 @@ fn verify_release_bundle(
         &packaged_artifact_output_support_summary_path,
         "packaged-artifact output support summary",
     )?;
+    ensure_packaged_artifact_output_support_summary_matches_current_rendering(
+        &packaged_artifact_output_support_summary_text,
+    )?;
     let packaged_artifact_output_support_summary_checksum =
         checksum64(&packaged_artifact_output_support_summary_text);
     let packaged_artifact_fit_sample_classes_summary_text = read_required_bundle_text(
@@ -11897,6 +11930,9 @@ fn verify_release_bundle(
     let packaged_artifact_speed_policy_summary_text = read_required_bundle_text(
         &packaged_artifact_speed_policy_summary_path,
         "packaged-artifact speed policy summary",
+    )?;
+    ensure_packaged_artifact_speed_policy_summary_matches_current_rendering(
+        &packaged_artifact_speed_policy_summary_text,
     )?;
     let packaged_artifact_speed_policy_summary_checksum =
         checksum64(&packaged_artifact_speed_policy_summary_text);
@@ -28720,6 +28756,113 @@ version = "0.9.0"
             .expect_err("verification should fail for semantic API stability summary drift");
         assert!(error.contains("release bundle verification failed"));
         assert!(error.contains("API stability summary no longer matches"));
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_packaged_artifact_output_support_summary_even_with_updated_checksum(
+    ) {
+        let bundle_dir =
+            unique_temp_dir("pleiades-release-bundle-tampered-output-support-semantic");
+        let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
+        render_cli(&[
+            "bundle-release",
+            "--out",
+            &bundle_dir_string,
+            "--rounds",
+            "1",
+        ])
+        .expect("bundle release should render");
+
+        let summary_path = bundle_dir.join("packaged-artifact-output-support-summary.txt");
+        let summary = std::fs::read_to_string(&summary_path)
+            .expect("packaged-artifact output support summary should exist");
+        let mut tampered_summary = summary;
+        tampered_summary.push_str("\nTampered packaged-artifact output support summary.\n");
+        std::fs::write(&summary_path, &tampered_summary)
+            .expect("packaged-artifact output support summary should be writable");
+
+        let manifest_path = bundle_dir.join("bundle-manifest.txt");
+        let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");
+        let old_checksum_line = manifest
+            .lines()
+            .find(|line| line.starts_with("packaged-artifact output support summary checksum (fnv1a-64):"))
+            .expect("manifest should contain the packaged-artifact output support summary checksum line");
+        let new_checksum_line = format!(
+            "packaged-artifact output support summary checksum (fnv1a-64): 0x{:016x}",
+            checksum64(&tampered_summary)
+        );
+        let updated_manifest = manifest.replacen(old_checksum_line, &new_checksum_line, 1);
+        std::fs::write(&manifest_path, &updated_manifest).expect("manifest should be writable");
+
+        let checksum_path = bundle_dir.join("bundle-manifest.checksum.txt");
+        std::fs::write(
+            &checksum_path,
+            format!("0x{:016x}\n", checksum64(&updated_manifest)),
+        )
+        .expect("manifest checksum sidecar should be writable");
+
+        let error = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string]).expect_err(
+            "verification should fail for semantic packaged-artifact output support drift",
+        );
+        assert!(error.contains("release bundle verification failed"));
+        assert!(error.contains("packaged-artifact output support summary no longer matches"));
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_packaged_artifact_speed_policy_summary_even_with_updated_checksum(
+    ) {
+        let bundle_dir = unique_temp_dir("pleiades-release-bundle-tampered-speed-policy-semantic");
+        let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
+        render_cli(&[
+            "bundle-release",
+            "--out",
+            &bundle_dir_string,
+            "--rounds",
+            "1",
+        ])
+        .expect("bundle release should render");
+
+        let summary_path = bundle_dir.join("packaged-artifact-speed-policy-summary.txt");
+        let summary = std::fs::read_to_string(&summary_path)
+            .expect("packaged-artifact speed policy summary should exist");
+        let mut tampered_summary = summary;
+        tampered_summary.push_str("\nTampered packaged-artifact speed policy summary.\n");
+        std::fs::write(&summary_path, &tampered_summary)
+            .expect("packaged-artifact speed policy summary should be writable");
+
+        let manifest_path = bundle_dir.join("bundle-manifest.txt");
+        let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");
+        let old_checksum_line = manifest
+            .lines()
+            .find(|line| {
+                line.starts_with("packaged-artifact speed policy summary checksum (fnv1a-64):")
+            })
+            .expect(
+                "manifest should contain the packaged-artifact speed policy summary checksum line",
+            );
+        let new_checksum_line = format!(
+            "packaged-artifact speed policy summary checksum (fnv1a-64): 0x{:016x}",
+            checksum64(&tampered_summary)
+        );
+        let updated_manifest = manifest.replacen(old_checksum_line, &new_checksum_line, 1);
+        std::fs::write(&manifest_path, &updated_manifest).expect("manifest should be writable");
+
+        let checksum_path = bundle_dir.join("bundle-manifest.checksum.txt");
+        std::fs::write(
+            &checksum_path,
+            format!("0x{:016x}\n", checksum64(&updated_manifest)),
+        )
+        .expect("manifest checksum sidecar should be writable");
+
+        let error = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string]).expect_err(
+            "verification should fail for semantic packaged-artifact speed policy drift",
+        );
+        assert!(error.contains("release bundle verification failed"));
+        assert!(error.contains("packaged-artifact speed policy summary no longer matches"));
 
         let _ = std::fs::remove_dir_all(&bundle_dir);
     }
