@@ -11816,6 +11816,21 @@ fn ensure_request_surface_summary_matches_current_rendering(
     }
 }
 
+fn ensure_lunar_theory_source_family_summary_matches_current_rendering(
+    lunar_theory_source_family_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if lunar_theory_source_family_summary_text
+        == pleiades_elp::lunar_theory_source_family_summary_for_report()
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "lunar theory source family summary no longer matches the current lunar source-family posture"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_native_dependency_audit_summary_matches_current_rendering(
     native_dependency_audit_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -12205,6 +12220,9 @@ fn verify_release_bundle(
     let lunar_theory_source_family_summary_text = read_required_bundle_text(
         &lunar_theory_source_family_summary_path,
         "lunar theory source family summary",
+    )?;
+    ensure_lunar_theory_source_family_summary_matches_current_rendering(
+        &lunar_theory_source_family_summary_text,
     )?;
     let lunar_theory_source_family_summary_checksum =
         checksum64(&lunar_theory_source_family_summary_text);
@@ -29953,6 +29971,19 @@ version = "0.9.0"
             "reference source=Reference snapshot source:",
             "reference source=Drifted snapshot source:",
             "packaged-artifact phase-2 corpus alignment summary no longer matches",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_lunar_theory_source_family_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-lunar-theory-source-family-semantic",
+            "lunar-theory-source-family-summary.txt",
+            "lunar theory source family summary checksum (fnv1a-64):",
+            "selected model=",
+            "selected model=drifted-",
+            "lunar theory source family summary no longer matches the current lunar source-family posture",
         );
     }
 
