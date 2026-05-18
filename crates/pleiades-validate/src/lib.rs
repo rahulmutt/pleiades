@@ -11320,6 +11320,81 @@ fn ensure_packaged_artifact_phase2_alignment_matches_source_fit_holdout_sync(
     Ok(())
 }
 
+fn ensure_production_generation_source_summary_matches_source_windows(
+    production_generation_source_summary_text: &str,
+    production_generation_source_window_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    fn summary_payload<'a>(text: &'a str, prefix: &str) -> Result<&'a str, ReleaseBundleError> {
+        if let Some(payload) = text
+            .lines()
+            .filter_map(|line| line.strip_prefix(prefix))
+            .next()
+        {
+            if text
+                .lines()
+                .filter_map(|line| line.strip_prefix(prefix))
+                .nth(1)
+                .is_some()
+            {
+                return Err(ReleaseBundleError::Verification(format!(
+                    "duplicate entry: {prefix}"
+                )));
+            }
+            if payload != payload.trim() {
+                return Err(ReleaseBundleError::Verification(format!(
+                    "unexpected leading or trailing whitespace in manifest entry: {prefix}"
+                )));
+            }
+            return Ok(payload);
+        }
+
+        if text.lines().count() != 1 {
+            return Err(ReleaseBundleError::Verification(format!(
+                "missing manifest entry: {prefix}"
+            )));
+        }
+        if text != text.trim() {
+            return Err(ReleaseBundleError::Verification(format!(
+                "unexpected leading or trailing whitespace in manifest entry: {prefix}"
+            )));
+        }
+
+        Ok(text)
+    }
+
+    let production_generation_source_summary_payload = summary_payload(
+        production_generation_source_summary_text,
+        "Production generation source: ",
+    )?;
+    let production_generation_source_window_summary_payload = summary_payload(
+        production_generation_source_window_summary_text,
+        "Production generation source windows: ",
+    )?;
+    let Some((_, embedded_source_windows_payload)) =
+        production_generation_source_summary_payload.rsplit_once("source windows=")
+    else {
+        return Err(ReleaseBundleError::Verification(
+            "production generation source summary is missing its source windows payload"
+                .to_string(),
+        ));
+    };
+    let Some((embedded_source_windows_payload, _)) =
+        embedded_source_windows_payload.split_once("; input path=")
+    else {
+        return Err(ReleaseBundleError::Verification(
+            "production generation source summary source windows payload is malformed".to_string(),
+        ));
+    };
+
+    if embedded_source_windows_payload != production_generation_source_window_summary_payload {
+        return Err(ReleaseBundleError::Verification(
+            "production generation source summary source windows payload does not match the production generation source window summary".to_string(),
+        ));
+    }
+
+    Ok(())
+}
+
 fn ensure_request_policy_summary_matches_current_rendering(
     request_policy_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -12269,6 +12344,10 @@ fn verify_release_bundle(
     ensure_packaged_artifact_phase2_alignment_matches_source_fit_holdout_sync(
         &packaged_artifact_source_fit_holdout_sync_summary_text,
         &packaged_artifact_phase2_corpus_alignment_summary_text,
+    )?;
+    ensure_production_generation_source_summary_matches_source_windows(
+        &production_generation_source_summary_text,
+        &production_generation_source_window_summary_text,
     )?;
 
     if manifest.release_summary_checksum != release_summary_checksum {
@@ -28653,6 +28732,37 @@ version = "0.9.0"
             ),
         )
         .expect("phase-2 alignment payload should match the source-fit sync payload");
+    }
+
+    #[test]
+    fn production_generation_source_summary_embeds_the_source_window_payload() {
+        let source_summary = production_generation_source_summary_for_report();
+        let source_window_summary = production_generation_snapshot_window_summary_for_report();
+
+        ensure_production_generation_source_summary_matches_source_windows(
+            &source_summary,
+            &source_window_summary,
+        )
+        .expect("production-generation source summary should match the source-window payload");
+    }
+
+    #[test]
+    fn production_generation_source_summary_source_window_payload_validation_rejects_drift() {
+        let source_summary = production_generation_source_summary_for_report();
+        let drifted_source_windows = production_generation_snapshot_window_summary_for_report()
+            .replace("355 source-backed samples", "356 source-backed samples");
+
+        let error = ensure_production_generation_source_summary_matches_source_windows(
+            &source_summary,
+            &format!(
+                "Production generation source windows: {}",
+                drifted_source_windows
+            ),
+        )
+        .expect_err("drifted source-window payload should be rejected");
+        assert!(error
+            .to_string()
+            .contains("source windows payload does not match"));
     }
 
     #[test]
