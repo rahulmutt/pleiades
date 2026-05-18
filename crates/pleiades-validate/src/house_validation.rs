@@ -573,9 +573,18 @@ pub fn house_validation_summary_line_for_report(report: &HouseValidationReport) 
     }
 }
 
+/// Returns the compact release-facing summary line if the release corpus validates.
+pub fn validated_release_house_validation_summary_line_for_report(
+) -> Result<String, HouseValidationReportValidationError> {
+    release_house_validation_report().validated_summary_line()
+}
+
 /// Returns the compact release-facing summary line for the release house-validation corpus.
 pub fn release_house_validation_summary_for_report() -> String {
-    house_validation_summary_line_for_report(&release_house_validation_report())
+    match validated_release_house_validation_summary_line_for_report() {
+        Ok(summary) => summary,
+        Err(error) => format!("House validation corpus unavailable: {error}"),
+    }
 }
 
 /// Returns the compact report-facing summary line if validation succeeds.
@@ -657,6 +666,10 @@ mod tests {
         assert_eq!(
             release_house_validation_summary_for_report(),
             house_validation_summary_line_for_report(&release_house_validation_report())
+        );
+        assert_eq!(
+            validated_release_house_validation_summary_line_for_report(),
+            Ok(release_house_validation_report().summary_line())
         );
         assert_eq!(report.validate(), Ok(()));
     }

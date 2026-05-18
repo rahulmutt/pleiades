@@ -11930,6 +11930,19 @@ fn ensure_lunar_theory_catalog_validation_summary_matches_current_rendering(
     }
 }
 
+fn ensure_release_house_validation_summary_matches_current_rendering(
+    release_house_validation_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if release_house_validation_summary_text == release_house_validation_summary_for_report() {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "release house validation summary no longer matches the current release-house-validation posture"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_native_dependency_audit_summary_matches_current_rendering(
     native_dependency_audit_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -12210,6 +12223,9 @@ fn verify_release_bundle(
     let release_house_validation_summary_text = read_required_bundle_text(
         &release_house_validation_summary_path,
         "release house validation summary",
+    )?;
+    ensure_release_house_validation_summary_matches_current_rendering(
+        &release_house_validation_summary_text,
     )?;
     let release_checklist_text =
         read_required_bundle_text(&release_checklist_path, "release checklist")?;
@@ -25248,6 +25264,20 @@ mod tests {
                 .expect_err("release house validation alias should reject extra arguments"),
             "release-house-validation does not accept extra arguments"
         );
+    }
+
+    #[test]
+    fn release_house_validation_summary_validation_rejects_drift() {
+        let summary = release_house_validation_summary_for_report();
+        let drifted_summary = format!("{summary} drift");
+
+        let error =
+            ensure_release_house_validation_summary_matches_current_rendering(&drifted_summary)
+                .expect_err("drifted release house validation summary should be rejected");
+
+        assert!(error
+            .to_string()
+            .contains("release house validation summary no longer matches"));
     }
 
     #[test]
