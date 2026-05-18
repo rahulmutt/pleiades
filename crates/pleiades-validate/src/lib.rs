@@ -1463,34 +1463,30 @@ fn write_tolerance_policy(
     comparison: &ComparisonReport,
 ) -> fmt::Result {
     let family_label = tolerance_backend_family_label(&comparison.candidate_backend.family);
-    let coverage = comparison_tolerance_policy_coverage(comparison);
-    let coordinate_frames = format_frames(comparison_coordinate_frames(comparison));
+    let summary = match validated_comparison_tolerance_policy_summary_for_report(comparison) {
+        Ok(summary) => summary,
+        Err(error) => {
+            writeln!(f, "Tolerance policy catalog")?;
+            writeln!(f, "  unavailable ({error})")?;
+            return Ok(());
+        }
+    };
+    let coordinate_frames = format_frames(&summary.coordinate_frames);
     writeln!(f, "Tolerance policy catalog")?;
     writeln!(f, "  candidate backend family: {}", family_label)?;
     writeln!(
         f,
         "  comparison evidence: {} bodies, {} samples",
-        comparison.body_summaries().len(),
-        comparison.summary.sample_count
+        summary.comparison_body_count, summary.comparison_sample_count
     )?;
     writeln!(
         f,
-        "  comparison window: JD {:.1} → {:.1}",
-        comparison.corpus_summary.earliest_julian_day, comparison.corpus_summary.latest_julian_day
+        "  comparison window: {}",
+        summary.comparison_window.summary_line()
     )?;
     writeln!(f, "  coordinate frames: {}", coordinate_frames)?;
-    for scope_coverage in coverage {
-        writeln!(
-            f,
-            "  {}",
-            match scope_coverage.validated_summary_line() {
-                Ok(line) => line,
-                Err(error) => format!(
-                    "{} unavailable ({error})",
-                    scope_coverage.entry.scope.label()
-                ),
-            }
-        )?;
+    for scope_coverage in summary.coverage {
+        writeln!(f, "  {}", scope_coverage.summary_line())?;
     }
     Ok(())
 }
@@ -1499,34 +1495,30 @@ fn write_tolerance_policy_text(text: &mut String, comparison: &ComparisonReport)
     use std::fmt::Write as _;
 
     let family_label = tolerance_backend_family_label(&comparison.candidate_backend.family);
-    let coverage = comparison_tolerance_policy_coverage(comparison);
-    let coordinate_frames = format_frames(comparison_coordinate_frames(comparison));
+    let summary = match validated_comparison_tolerance_policy_summary_for_report(comparison) {
+        Ok(summary) => summary,
+        Err(error) => {
+            let _ = writeln!(text, "Tolerance policy catalog");
+            let _ = writeln!(text, "  unavailable ({error})");
+            return;
+        }
+    };
+    let coordinate_frames = format_frames(&summary.coordinate_frames);
     let _ = writeln!(text, "Tolerance policy catalog");
     let _ = writeln!(text, "  candidate backend family: {}", family_label);
     let _ = writeln!(
         text,
         "  comparison evidence: {} bodies, {} samples",
-        comparison.body_summaries().len(),
-        comparison.summary.sample_count
+        summary.comparison_body_count, summary.comparison_sample_count
     );
     let _ = writeln!(
         text,
-        "  comparison window: JD {:.1} → {:.1}",
-        comparison.corpus_summary.earliest_julian_day, comparison.corpus_summary.latest_julian_day
+        "  comparison window: {}",
+        summary.comparison_window.summary_line()
     );
     let _ = writeln!(text, "  coordinate frames: {}", coordinate_frames);
-    for scope_coverage in coverage {
-        let _ = writeln!(
-            text,
-            "  {}",
-            match scope_coverage.validated_summary_line() {
-                Ok(line) => line,
-                Err(error) => format!(
-                    "{} unavailable ({error})",
-                    scope_coverage.entry.scope.label()
-                ),
-            }
-        );
+    for scope_coverage in summary.coverage {
+        let _ = writeln!(text, "  {}", scope_coverage.summary_line());
     }
 }
 
@@ -14396,6 +14388,14 @@ fn comparison_tolerance_policy_summary_details(
     }
 }
 
+fn validated_comparison_tolerance_policy_summary_for_report(
+    comparison: &ComparisonReport,
+) -> Result<ComparisonTolerancePolicySummary, String> {
+    let summary = comparison_tolerance_policy_summary_details(comparison);
+    summary.validate().map_err(|error| error.to_string())?;
+    Ok(summary)
+}
+
 fn format_comparison_tolerance_policy_for_report(comparison: &ComparisonReport) -> String {
     let summary = comparison_tolerance_policy_summary_details(comparison);
     match summary.validated_summary_line() {
@@ -15681,16 +15681,22 @@ fn render_comparison_tolerance_policy_summary_text() -> String {
         comparison_report_for_default_render(),
     )
 }
-fn render_comparison_tolerance_scope_coverage_summary_text() -> String {
+fn render_comparison_tolerance_scope_coverage_summary_text_from_summary(
+    summary: Result<ComparisonTolerancePolicySummary, String>,
+) -> String {
     use std::fmt::Write as _;
 
-    let report = match comparison_report_for_default_render() {
-        Ok(report) => report,
+    let summary = match summary {
+        Ok(summary) => match summary.validate() {
+            Ok(()) => summary,
+            Err(error) => {
+                return format!("Comparison tolerance scope coverage summary\nComparison tolerance scope coverage unavailable ({error})\n");
+            }
+        },
         Err(error) => {
             return format!("Comparison tolerance scope coverage summary\nComparison tolerance scope coverage unavailable ({error})\n");
         }
     };
-    let summary = report.tolerance_policy_summary();
 
     let mut text = String::from("Comparison tolerance scope coverage summary\n");
     let _ = writeln!(
@@ -15698,13 +15704,19 @@ fn render_comparison_tolerance_scope_coverage_summary_text() -> String {
         "Scope coverage posture: {} rows",
         summary.coverage.len()
     );
-    for coverage in summary.coverage {
-        let line = coverage.validated_summary_line().unwrap_or_else(|error| {
-            format!("{} unavailable ({error})", coverage.entry.scope.label())
-        });
-        let _ = writeln!(text, "  {line}");
+    for coverage in &summary.coverage {
+        let _ = writeln!(text, "  {}", coverage.summary_line());
     }
     text
+}
+
+fn render_comparison_tolerance_scope_coverage_summary_text() -> String {
+    let summary = match comparison_report_for_default_render() {
+        Ok(report) => validated_comparison_tolerance_policy_summary_for_report(&report),
+        Err(error) => Err(error),
+    };
+
+    render_comparison_tolerance_scope_coverage_summary_text_from_summary(summary)
 }
 
 fn render_comparison_body_class_tolerance_summary_text() -> String {
@@ -20609,6 +20621,24 @@ mod tests {
             ),
             "comparison-tolerance-scope-coverage does not accept extra arguments"
         );
+    }
+
+    #[test]
+    fn comparison_tolerance_scope_coverage_summary_renderer_fails_closed_on_invalid_rows() {
+        let corpus = release_grade_corpus();
+        let reference = default_reference_backend();
+        let candidate = default_candidate_backend();
+        let report =
+            compare_backends(&reference, &candidate, &corpus).expect("comparison should build");
+        let mut summary = report.tolerance_policy_summary();
+        summary.coverage[0].body_count = summary.coverage[0].bodies.len() + 1;
+
+        let rendered =
+            render_comparison_tolerance_scope_coverage_summary_text_from_summary(Ok(summary));
+
+        assert!(rendered.contains("Comparison tolerance scope coverage summary"));
+        assert!(rendered.contains("Comparison tolerance scope coverage unavailable"));
+        assert!(rendered.contains("body-count mismatch"));
     }
 
     #[test]
