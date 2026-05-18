@@ -249,6 +249,8 @@ pub enum ArtifactOutputSupport {
     Stored,
     /// The output is reconstructed deterministically from stored data.
     Derived,
+    /// The output is approximated numerically from neighboring decoded data.
+    Approximated,
     /// The output is explicitly unsupported by the profile.
     Unsupported,
     /// The output is neither stored nor explicitly declared by the profile.
@@ -261,6 +263,7 @@ impl ArtifactOutputSupport {
         match self {
             Self::Stored => "stored",
             Self::Derived => "derived",
+            Self::Approximated => "approximated",
             Self::Unsupported => "unsupported",
             Self::Unlisted => "unlisted",
         }
@@ -334,7 +337,8 @@ impl SpeedPolicy {
         match self {
             Self::Unsupported => ArtifactOutputSupport::Unsupported,
             Self::Stored => ArtifactOutputSupport::Stored,
-            Self::FittedDerivative | Self::NumericalDifference => ArtifactOutputSupport::Derived,
+            Self::FittedDerivative => ArtifactOutputSupport::Derived,
+            Self::NumericalDifference => ArtifactOutputSupport::Approximated,
         }
     }
 }
@@ -402,14 +406,14 @@ impl ArtifactProfile {
         validate_artifact_profile(self)
     }
 
-    /// Returns a compact one-line summary of the stored, derived, unsupported,
-    /// and speed-policy capabilities encoded by this profile.
+    /// Returns a compact one-line summary of the stored, derived, approximated,
+    /// unsupported, and speed-policy capabilities encoded by this profile.
     pub fn summary(&self) -> String {
         self.summary_line()
     }
 
-    /// Returns a compact one-line summary of the stored, derived, unsupported,
-    /// and speed-policy capabilities encoded by this profile.
+    /// Returns a compact one-line summary of the stored, derived, approximated,
+    /// unsupported, and speed-policy capabilities encoded by this profile.
     pub fn summary_line(&self) -> String {
         format!(
             "stored channels: {}; derived outputs: {}; unsupported outputs: {}; speed policy: {}",
@@ -467,7 +471,8 @@ impl ArtifactProfile {
     ///
     /// The rendered line also makes the explicit `unlisted` bucket visible so
     /// release-facing summaries can fail closed if a built-in output stops being
-    /// classified.
+    /// classified. Approximated motion support is labeled separately from
+    /// deterministically derived outputs.
     pub fn output_support_summary_line(&self) -> String {
         let unlisted_outputs = ArtifactOutput::all()
             .into_iter()
@@ -498,7 +503,9 @@ impl ArtifactProfile {
     pub fn supports_output(&self, output: ArtifactOutput) -> bool {
         matches!(
             self.output_support(output),
-            ArtifactOutputSupport::Stored | ArtifactOutputSupport::Derived
+            ArtifactOutputSupport::Stored
+                | ArtifactOutputSupport::Derived
+                | ArtifactOutputSupport::Approximated
         )
     }
 
@@ -1499,7 +1506,7 @@ fn validate_explicit_output_classification(
             return Err(CompressionError::new(
                 CompressionErrorKind::InvalidFormat,
                 format!(
-                    "artifact profile output {output} must be explicitly listed as stored, derived, or unsupported"
+                    "artifact profile output {output} must be explicitly listed as stored, derived, approximated, or unsupported"
                 ),
             ));
         }
@@ -1563,6 +1570,32 @@ fn validate_motion_policy(profile: &ArtifactProfile) -> Result<(), CompressionEr
                     ),
                 ));
             }
+            if profile
+                .unsupported_outputs
+                .contains(&ArtifactOutput::Motion)
+            {
+                return Err(CompressionError::new(
+                    CompressionErrorKind::InvalidFormat,
+                    "artifact profile speed policy FittedDerivative must not list Motion in unsupported outputs",
+                ));
+            }
+        }
+        ArtifactOutputSupport::Approximated => {
+            if profile.derived_outputs.contains(&ArtifactOutput::Motion) {
+                return Err(CompressionError::new(
+                    CompressionErrorKind::InvalidFormat,
+                    "artifact profile speed policy NumericalDifference must not list Motion in derived outputs",
+                ));
+            }
+            if profile
+                .unsupported_outputs
+                .contains(&ArtifactOutput::Motion)
+            {
+                return Err(CompressionError::new(
+                    CompressionErrorKind::InvalidFormat,
+                    "artifact profile speed policy NumericalDifference must not list Motion in unsupported outputs",
+                ));
+            }
         }
         ArtifactOutputSupport::Unsupported => {
             if !profile
@@ -1579,7 +1612,7 @@ fn validate_motion_policy(profile: &ArtifactProfile) -> Result<(), CompressionEr
             }
         }
         ArtifactOutputSupport::Unlisted => {
-            unreachable!("motion support is always stored, derived, or unsupported")
+            unreachable!("motion support is always stored, derived, approximated, or unsupported")
         }
     }
 
@@ -2385,7 +2418,7 @@ mod tests {
         assert_eq!(error.kind, CompressionErrorKind::InvalidFormat);
         assert_eq!(
             error.message,
-            "artifact profile output EquatorialCoordinates must be explicitly listed as stored, derived, or unsupported"
+            "artifact profile output EquatorialCoordinates must be explicitly listed as stored, derived, approximated, or unsupported"
         );
 
         assert_eq!(
@@ -2398,8 +2431,21 @@ mod tests {
         );
         assert_eq!(
             SpeedPolicy::NumericalDifference.motion_output_support(),
-            ArtifactOutputSupport::Derived
+            ArtifactOutputSupport::Approximated
         );
+
+        let numerical_difference_profile = ArtifactProfile::new(
+            vec![ChannelKind::Longitude],
+            Vec::new(),
+            Vec::new(),
+            SpeedPolicy::NumericalDifference,
+        );
+        assert_eq!(
+            numerical_difference_profile.output_support(ArtifactOutput::Motion),
+            ArtifactOutputSupport::Approximated
+        );
+        assert!(numerical_difference_profile.supports_output(ArtifactOutput::Motion));
+        assert!(!numerical_difference_profile.is_unsupported_output(ArtifactOutput::Motion));
 
         let unlisted_profile = ArtifactProfile::new(
             vec![ChannelKind::Longitude],
@@ -2410,6 +2456,11 @@ mod tests {
         assert_eq!(
             unlisted_profile.output_support(ArtifactOutput::Motion),
             ArtifactOutputSupport::Unsupported
+        );
+        assert_eq!(ArtifactOutputSupport::Approximated.label(), "approximated");
+        assert_eq!(
+            ArtifactOutputSupport::Approximated.to_string(),
+            "approximated"
         );
         assert!(!unlisted_profile.supports_output(ArtifactOutput::Motion));
         assert!(unlisted_profile.is_unsupported_output(ArtifactOutput::Motion));

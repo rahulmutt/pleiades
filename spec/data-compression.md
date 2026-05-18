@@ -78,7 +78,7 @@ Instead, each artifact profile must declare:
 
 Every built-in artifact output must be classified explicitly; profiles must not leave a built-in output implicitly unlisted.
 
-For example, an artifact may store ecliptic longitude, latitude, and distance directly while deriving equatorial coordinates from those values plus auxiliary parameters available to the runtime.
+Profiles may also mark an output as approximated when it is reconstructed deterministically by a numerical approximation rather than by a direct stored or analytic derivation. For example, motion values may be approximated from neighboring decoded samples while ecliptic longitude, latitude, and distance are stored directly and equatorial coordinates are derived from those values plus auxiliary parameters available to the runtime.
 
 If speed values are provided, the profile must state whether they are:
 
