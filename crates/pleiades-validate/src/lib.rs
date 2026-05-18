@@ -11612,6 +11612,27 @@ fn ensure_packaged_artifact_fit_sample_classes_summary_matches_current_rendering
     }
 }
 
+fn ensure_validation_report_fit_envelope_matches_current_rendering(
+    validation_report_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    let expected_line = format!(
+        "  Packaged-artifact fit envelope: {}",
+        packaged_artifact_fit_envelope_summary_for_report()
+    );
+
+    if validation_report_summary_text
+        .lines()
+        .any(|line| line == expected_line)
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "validation report summary no longer matches the current packaged-artifact fit envelope posture"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_request_policy_summary_matches_current_rendering(
     request_policy_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -12180,6 +12201,9 @@ fn verify_release_bundle(
     ensure_canonical_manifest_value(
         &manifest.api_stability_posture_id,
         "API stability posture id",
+    )?;
+    ensure_validation_report_fit_envelope_matches_current_rendering(
+        &validation_report_summary_text,
     )?;
     if manifest.profile_path != "compatibility-profile.txt" {
         return Err(ReleaseBundleError::Verification(format!(
@@ -29913,6 +29937,59 @@ version = "0.9.0"
             "validation-report.txt",
             "validation report checksum mismatch",
         );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_validation_report_summary_file_even_with_updated_checksum(
+    ) {
+        let bundle_dir =
+            unique_temp_dir("pleiades-release-bundle-tampered-validation-report-summary-semantic");
+        let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
+        render_cli(&[
+            "bundle-release",
+            "--out",
+            &bundle_dir_string,
+            "--rounds",
+            "1",
+        ])
+        .expect("bundle release should render");
+
+        let report_path = bundle_dir.join("validation-report-summary.txt");
+        let report =
+            std::fs::read_to_string(&report_path).expect("validation report summary should exist");
+        let tampered_report = report.replace(
+            "Packaged-artifact fit envelope:",
+            "Tampered packaged-artifact fit envelope:",
+        );
+        std::fs::write(&report_path, &tampered_report)
+            .expect("validation report summary should be writable");
+
+        let manifest_path = bundle_dir.join("bundle-manifest.txt");
+        let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");
+        let old_checksum_line = manifest
+            .lines()
+            .find(|line| line.starts_with("validation report summary checksum (fnv1a-64):"))
+            .expect("manifest should contain the validation report summary checksum line");
+        let new_checksum_line = format!(
+            "validation report summary checksum (fnv1a-64): 0x{:016x}",
+            checksum64(&tampered_report)
+        );
+        let updated_manifest = manifest.replacen(old_checksum_line, &new_checksum_line, 1);
+        std::fs::write(&manifest_path, &updated_manifest).expect("manifest should be writable");
+
+        let checksum_path = bundle_dir.join("bundle-manifest.checksum.txt");
+        std::fs::write(
+            &checksum_path,
+            format!("0x{:016x}\n", checksum64(&updated_manifest)),
+        )
+        .expect("manifest checksum sidecar should be writable");
+
+        let error = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string])
+            .expect_err("verification should fail for semantic validation-report-summary drift");
+        assert!(error.contains("release bundle verification failed"));
+        assert!(error.contains("validation report summary no longer matches"));
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
     }
 
     #[test]
