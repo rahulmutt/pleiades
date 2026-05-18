@@ -21,6 +21,7 @@ The workspace has broad house and ayanamsa catalogs, aliases, descriptor validat
 - Completed: the compatibility-profile and release-summary renderers now re-validate the target-house and target-ayanamsa scope prose before emitting release-facing text, so the rendered catalog posture fails closed if those scope sections drift.
 - Completed: the compatibility-profile verification summary now exposes a validated compact summary-line helper, so direct release-facing verification rendering fails closed instead of relying on the raw formatter.
 - Completed: the ayanamsa provenance summary now validates before rendering in release-facing report surfaces, so representative provenance examples fail closed if the sample notes drift.
+- Completed: the ayanamsa reference offsets summary now also routes through a validated report helper, so the zero-point evidence line fails closed before the release-facing summary is rendered.
 - Completed: compatibility-profile verification now requires the canonical release summary text exactly, so overstated catalog claims fail closed even when they reuse the baseline/release split wording.
 - Keep target-catalog identifiers extensible so future Swiss-Ephemeris-class breadth does not require public API redesign.
 

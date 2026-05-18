@@ -7935,9 +7935,19 @@ fn summarize_ayanamsa_reference_offsets() -> Result<AyanamsaReferenceOffsetsSumm
     Ok(summary)
 }
 
+fn validated_ayanamsa_reference_offsets_summary_for_report(
+    summary: &AyanamsaReferenceOffsetsSummary,
+) -> Result<String, EphemerisError> {
+    summary.validate()?;
+    Ok(summary.to_string())
+}
+
 fn format_ayanamsa_reference_offsets_for_report() -> String {
     match summarize_ayanamsa_reference_offsets() {
-        Ok(summary) => format!("Ayanamsa reference offsets: {summary}"),
+        Ok(summary) => match validated_ayanamsa_reference_offsets_summary_for_report(&summary) {
+            Ok(summary) => format!("Ayanamsa reference offsets: {summary}"),
+            Err(error) => format!("Ayanamsa reference offsets: unavailable ({error})"),
+        },
         Err(error) => format!("Ayanamsa reference offsets: unavailable ({error})"),
     }
 }
@@ -24842,6 +24852,13 @@ mod tests {
             rendered
         );
 
+        let summary = summarize_ayanamsa_reference_offsets()
+            .expect("reference offsets summary should validate");
+        assert_eq!(
+            validated_ayanamsa_reference_offsets_summary_for_report(&summary),
+            Ok(summary.to_string())
+        );
+
         assert!(
             rendered.contains("Ayanamsa reference offsets: representative zero-point examples:")
         );
@@ -25156,8 +25173,7 @@ mod tests {
             ],
         };
 
-        let error = summary
-            .validate()
+        let error = validated_ayanamsa_reference_offsets_summary_for_report(&summary)
             .expect_err("duplicate ayanamsa reference labels should fail validation");
         assert!(error
             .to_string()
