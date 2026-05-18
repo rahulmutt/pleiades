@@ -11553,6 +11553,32 @@ fn ensure_production_generation_source_window_summary_matches_current_rendering(
     }
 }
 
+fn ensure_reference_snapshot_source_summary_matches_current_rendering(
+    reference_snapshot_source_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if reference_snapshot_source_summary_text == reference_snapshot_source_summary_for_report() {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "reference snapshot source summary no longer matches the current reference snapshot source posture"
+                .to_string(),
+        ))
+    }
+}
+
+fn ensure_comparison_snapshot_source_summary_matches_current_rendering(
+    comparison_snapshot_source_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if comparison_snapshot_source_summary_text == comparison_snapshot_source_summary_for_report() {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "comparison snapshot source summary no longer matches the current comparison snapshot source posture"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_packaged_artifact_target_threshold_summary_matches_current_rendering(
     packaged_artifact_target_threshold_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -12020,6 +12046,9 @@ fn verify_release_bundle(
         &comparison_snapshot_source_summary_path,
         "comparison snapshot source summary",
     )?;
+    ensure_comparison_snapshot_source_summary_matches_current_rendering(
+        &comparison_snapshot_source_summary_text,
+    )?;
     let comparison_envelope_summary_text = read_required_bundle_text(
         &comparison_envelope_summary_path,
         "comparison envelope summary",
@@ -12045,6 +12074,9 @@ fn verify_release_bundle(
     let reference_snapshot_source_summary_text = read_required_bundle_text(
         &reference_snapshot_source_summary_path,
         "reference snapshot source summary",
+    )?;
+    ensure_reference_snapshot_source_summary_matches_current_rendering(
+        &reference_snapshot_source_summary_text,
     )?;
     let production_generation_boundary_source_summary_text = read_required_bundle_text(
         &production_generation_boundary_source_summary_path,
@@ -29811,6 +29843,48 @@ version = "0.9.0"
         assert!(error
             .to_string()
             .contains("no longer matches the current production-generation source-window posture"));
+    }
+
+    #[test]
+    fn reference_snapshot_source_summary_matches_current_rendering() {
+        let summary = reference_snapshot_source_summary_for_report();
+
+        ensure_reference_snapshot_source_summary_matches_current_rendering(&summary)
+            .expect("reference snapshot source summary should match the current rendering");
+    }
+
+    #[test]
+    fn reference_snapshot_source_summary_validation_rejects_drift() {
+        let summary = reference_snapshot_source_summary_for_report();
+        let drifted_summary = summary.replace("coverage=", "coverage=drifted-");
+
+        let error =
+            ensure_reference_snapshot_source_summary_matches_current_rendering(&drifted_summary)
+                .expect_err("drifted reference snapshot source summary should be rejected");
+        assert!(error
+            .to_string()
+            .contains("no longer matches the current reference snapshot source posture"));
+    }
+
+    #[test]
+    fn comparison_snapshot_source_summary_matches_current_rendering() {
+        let summary = comparison_snapshot_source_summary_for_report();
+
+        ensure_comparison_snapshot_source_summary_matches_current_rendering(&summary)
+            .expect("comparison snapshot source summary should match the current rendering");
+    }
+
+    #[test]
+    fn comparison_snapshot_source_summary_validation_rejects_drift() {
+        let summary = comparison_snapshot_source_summary_for_report();
+        let drifted_summary = summary.replace("coverage=", "coverage=drifted-");
+
+        let error =
+            ensure_comparison_snapshot_source_summary_matches_current_rendering(&drifted_summary)
+                .expect_err("drifted comparison snapshot source summary should be rejected");
+        assert!(error
+            .to_string()
+            .contains("no longer matches the current comparison snapshot source posture"));
     }
 
     #[test]
