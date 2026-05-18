@@ -5909,6 +5909,83 @@ fn body_segment_span_limit(body: &CelestialBody) -> f64 {
     }
 }
 
+const PACKAGED_ARTIFACT_SPLIT_BALANCE_RATIO: f64 = 1.1;
+const PACKAGED_ARTIFACT_LEFT_BIASED_SPLIT_FRACTION: f64 = 0.4;
+const PACKAGED_ARTIFACT_RIGHT_BIASED_SPLIT_FRACTION: f64 = 0.6;
+
+#[derive(Clone, Copy)]
+struct PackagedArtifactSplitCurvature<'a> {
+    start_coordinates: &'a EclipticCoordinates,
+    quarter_coordinates: Option<&'a EclipticCoordinates>,
+    midpoint_coordinates: &'a EclipticCoordinates,
+    three_quarter_coordinates: Option<&'a EclipticCoordinates>,
+    end_coordinates: &'a EclipticCoordinates,
+}
+
+fn packaged_artifact_coordinate_step_delta(
+    lhs: &EclipticCoordinates,
+    rhs: &EclipticCoordinates,
+) -> f64 {
+    let longitude_delta = Angle::from_degrees(rhs.longitude.degrees() - lhs.longitude.degrees())
+        .normalized_signed()
+        .degrees()
+        .abs();
+    let latitude_delta = (rhs.latitude.degrees() - lhs.latitude.degrees()).abs();
+    let distance_delta = match (lhs.distance_au, rhs.distance_au) {
+        (Some(lhs_distance), Some(rhs_distance)) => (rhs_distance - lhs_distance).abs(),
+        _ => 0.0,
+    };
+
+    longitude_delta.max(latitude_delta).max(distance_delta)
+}
+
+fn packaged_artifact_segment_transition_curvature(
+    start: &EclipticCoordinates,
+    middle: &EclipticCoordinates,
+    end: &EclipticCoordinates,
+) -> f64 {
+    packaged_artifact_coordinate_step_delta(start, middle)
+        .max(packaged_artifact_coordinate_step_delta(middle, end))
+}
+
+fn packaged_artifact_split_fraction_for_interval(
+    body: &CelestialBody,
+    span_days: f64,
+    span_limit: f64,
+    curvature: PackagedArtifactSplitCurvature<'_>,
+) -> f64 {
+    if !packaged_artifact_body_cadence(body).uses_dense_sampling() || span_days <= span_limit * 2.0
+    {
+        return 0.5;
+    }
+
+    let (Some(quarter_coordinates), Some(three_quarter_coordinates)) = (
+        curvature.quarter_coordinates,
+        curvature.three_quarter_coordinates,
+    ) else {
+        return 0.5;
+    };
+
+    let left_curvature = packaged_artifact_segment_transition_curvature(
+        curvature.start_coordinates,
+        quarter_coordinates,
+        curvature.midpoint_coordinates,
+    );
+    let right_curvature = packaged_artifact_segment_transition_curvature(
+        curvature.midpoint_coordinates,
+        three_quarter_coordinates,
+        curvature.end_coordinates,
+    );
+
+    if left_curvature > right_curvature * PACKAGED_ARTIFACT_SPLIT_BALANCE_RATIO {
+        PACKAGED_ARTIFACT_LEFT_BIASED_SPLIT_FRACTION
+    } else if right_curvature > left_curvature * PACKAGED_ARTIFACT_SPLIT_BALANCE_RATIO {
+        PACKAGED_ARTIFACT_RIGHT_BIASED_SPLIT_FRACTION
+    } else {
+        0.5
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 struct PackagedArtifactSegmentFitError {
     longitude_degrees: f64,
@@ -6400,16 +6477,65 @@ fn body_segment_windows_for_interval(
             &sample_fraction,
         ))];
     };
-
-    let midpoint_entry = snapshot_entry_from_ecliptic_coordinates(
-        start.body.clone(),
-        midpoint_jd,
-        midpoint_coordinates,
+    let use_curvature_bias = packaged_artifact_body_cadence(&start.body).uses_dense_sampling()
+        && span_days > span_limit * 2.0;
+    let quarter_coordinates = if use_curvature_bias {
+        sample_fraction(0.25)
+    } else {
+        None
+    };
+    let three_quarter_coordinates = if use_curvature_bias {
+        sample_fraction(0.75)
+    } else {
+        None
+    };
+    let split_fraction = packaged_artifact_split_fraction_for_interval(
+        &start.body,
+        span_days,
+        span_limit,
+        PackagedArtifactSplitCurvature {
+            start_coordinates: &start_coordinates,
+            quarter_coordinates: quarter_coordinates.as_ref(),
+            midpoint_coordinates: &midpoint_coordinates,
+            three_quarter_coordinates: three_quarter_coordinates.as_ref(),
+            end_coordinates: &end_coordinates,
+        },
     );
+    let split_jd = start.epoch.julian_day.days() + span_days * split_fraction;
+    if split_jd <= start.epoch.julian_day.days() || split_jd >= end.epoch.julian_day.days() {
+        return vec![finalize(segment_from_pair_fallback(
+            start_instant,
+            end_instant,
+            start_longitude,
+            end_longitude,
+            &start_coordinates,
+            &end_coordinates,
+            &sample_fraction,
+        ))];
+    }
+    let split_coordinates = if (split_fraction - 0.5).abs() < f64::EPSILON {
+        midpoint_coordinates
+    } else {
+        let Some(split_coordinates) = sample_fraction(split_fraction) else {
+            return vec![finalize(segment_from_pair_fallback(
+                start_instant,
+                end_instant,
+                start_longitude,
+                end_longitude,
+                &start_coordinates,
+                &end_coordinates,
+                &sample_fraction,
+            ))];
+        };
+        split_coordinates
+    };
 
-    let mut segments = body_segment_windows_for_interval(start, &midpoint_entry, reference_backend);
+    let split_entry =
+        snapshot_entry_from_ecliptic_coordinates(start.body.clone(), split_jd, split_coordinates);
+
+    let mut segments = body_segment_windows_for_interval(start, &split_entry, reference_backend);
     segments.extend(body_segment_windows_for_interval(
-        &midpoint_entry,
+        &split_entry,
         end,
         reference_backend,
     ));
@@ -7643,6 +7769,108 @@ mod tests {
         assert_eq!(
             packaged_artifact_fit_outlier_sample_fractions(custom_segment.0, custom_segment.1),
             PACKAGED_ARTIFACT_DENSE_VALIDATION_SAMPLE_FRACTIONS
+        );
+    }
+
+    #[test]
+    fn packaged_artifact_split_fraction_prefers_dense_body_curvature_bias() {
+        let start = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(0.0),
+            pleiades_backend::Latitude::from_degrees(0.0),
+            Some(1.0),
+        );
+        let quarter = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(8.0),
+            pleiades_backend::Latitude::from_degrees(4.0),
+            Some(1.1),
+        );
+        let midpoint = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(14.0),
+            pleiades_backend::Latitude::from_degrees(7.0),
+            Some(1.2),
+        );
+        let three_quarter = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(15.0),
+            pleiades_backend::Latitude::from_degrees(7.2),
+            Some(1.22),
+        );
+        let end = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(16.0),
+            pleiades_backend::Latitude::from_degrees(7.4),
+            Some(1.24),
+        );
+
+        assert_eq!(
+            packaged_artifact_split_fraction_for_interval(
+                &CelestialBody::Pluto,
+                3_200.0,
+                body_segment_span_limit(&CelestialBody::Pluto),
+                PackagedArtifactSplitCurvature {
+                    start_coordinates: &start,
+                    quarter_coordinates: Some(&quarter),
+                    midpoint_coordinates: &midpoint,
+                    three_quarter_coordinates: Some(&three_quarter),
+                    end_coordinates: &end,
+                },
+            ),
+            PACKAGED_ARTIFACT_LEFT_BIASED_SPLIT_FRACTION
+        );
+        assert_eq!(
+            packaged_artifact_split_fraction_for_interval(
+                &CelestialBody::Saturn,
+                3_200.0,
+                body_segment_span_limit(&CelestialBody::Saturn),
+                PackagedArtifactSplitCurvature {
+                    start_coordinates: &start,
+                    quarter_coordinates: Some(&quarter),
+                    midpoint_coordinates: &midpoint,
+                    three_quarter_coordinates: Some(&three_quarter),
+                    end_coordinates: &end,
+                },
+            ),
+            0.5
+        );
+
+        let left_light = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(0.0),
+            pleiades_backend::Latitude::from_degrees(0.0),
+            Some(1.0),
+        );
+        let left_light_quarter = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(1.0),
+            pleiades_backend::Latitude::from_degrees(0.5),
+            Some(1.01),
+        );
+        let left_light_midpoint = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(1.5),
+            pleiades_backend::Latitude::from_degrees(0.75),
+            Some(1.02),
+        );
+        let left_light_three_quarter = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(4.0),
+            pleiades_backend::Latitude::from_degrees(2.0),
+            Some(1.05),
+        );
+        let left_light_end = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(7.0),
+            pleiades_backend::Latitude::from_degrees(3.5),
+            Some(1.08),
+        );
+
+        assert_eq!(
+            packaged_artifact_split_fraction_for_interval(
+                &CelestialBody::Pluto,
+                3_200.0,
+                body_segment_span_limit(&CelestialBody::Pluto),
+                PackagedArtifactSplitCurvature {
+                    start_coordinates: &left_light,
+                    quarter_coordinates: Some(&left_light_quarter),
+                    midpoint_coordinates: &left_light_midpoint,
+                    three_quarter_coordinates: Some(&left_light_three_quarter),
+                    end_coordinates: &left_light_end,
+                },
+            ),
+            PACKAGED_ARTIFACT_RIGHT_BIASED_SPLIT_FRACTION
         );
     }
 
