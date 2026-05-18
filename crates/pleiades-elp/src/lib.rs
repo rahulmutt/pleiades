@@ -1366,6 +1366,14 @@ pub fn lunar_theory_source_selection_summary() -> String {
     format_validated_lunar_theory_source_selection_for_report(&lunar_theory_source_selection())
 }
 
+/// Returns the compact source-selection summary for report-facing consumers.
+///
+/// This keeps the report-facing naming aligned with the other typed lunar
+/// provenance helpers used by `pleiades-validate`.
+pub fn lunar_theory_source_selection_summary_for_report() -> String {
+    lunar_theory_source_selection_summary()
+}
+
 /// Formats a structured lunar source selection for reporting.
 ///
 /// The formatter validates the provided selection against the current lunar-theory
