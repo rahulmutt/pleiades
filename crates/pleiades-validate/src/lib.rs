@@ -13489,6 +13489,18 @@ fn audit_build_script_path(manifest_path: &Path) -> Option<WorkspaceAuditViolati
 
 /// Renders the workspace audit used by the CLI and release smoke checks.
 pub fn workspace_audit_report() -> Result<WorkspaceAuditReport, std::io::Error> {
+    static CACHE: OnceLock<WorkspaceAuditReport> = OnceLock::new();
+
+    if let Some(report) = CACHE.get() {
+        return Ok(report.clone());
+    }
+
+    let report = workspace_audit_report_uncached()?;
+    let _ = CACHE.set(report.clone());
+    Ok(report)
+}
+
+fn workspace_audit_report_uncached() -> Result<WorkspaceAuditReport, std::io::Error> {
     let workspace_root = fs::canonicalize(workspace_root())?;
     let manifest_paths = workspace_manifest_paths(&workspace_root)?;
     let lockfile_path = workspace_root.join("Cargo.lock");
