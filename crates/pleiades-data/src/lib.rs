@@ -2705,6 +2705,26 @@ pub struct PackagedArtifactPhase2CorpusAlignmentSummary {
     pub production_generation_source: ProductionGenerationSourceSummary,
 }
 
+/// Validation error for a phase-2 corpus alignment summary that drifted from the current posture.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum PackagedArtifactPhase2CorpusAlignmentSummaryValidationError {
+    /// A summary field is out of sync with the current packaged-artifact posture.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for PackagedArtifactPhase2CorpusAlignmentSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the packaged artifact phase-2 corpus alignment summary field `{field}` is out of sync with the current posture"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for PackagedArtifactPhase2CorpusAlignmentSummaryValidationError {}
+
 impl PackagedArtifactPhase2CorpusAlignmentSummary {
     /// Returns the phase-2 corpus alignment posture as a compact human-readable line.
     pub fn summary_line(&self) -> String {
@@ -2728,10 +2748,12 @@ impl PackagedArtifactPhase2CorpusAlignmentSummary {
     }
 
     /// Returns `Ok(())` when the phase-2 corpus evidence still matches the current packaged-artifact posture.
-    pub fn validate(&self) -> Result<(), PackagedArtifactTargetThresholdSummaryValidationError> {
+    pub fn validate(
+        &self,
+    ) -> Result<(), PackagedArtifactPhase2CorpusAlignmentSummaryValidationError> {
         let Some(expected) = packaged_artifact_phase2_corpus_alignment_summary_details() else {
             return Err(
-                PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+                PackagedArtifactPhase2CorpusAlignmentSummaryValidationError::FieldOutOfSync {
                     field: "phase2_corpus_alignment",
                 },
             );
@@ -2739,77 +2761,77 @@ impl PackagedArtifactPhase2CorpusAlignmentSummary {
 
         if self != &expected {
             return Err(
-                PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+                PackagedArtifactPhase2CorpusAlignmentSummaryValidationError::FieldOutOfSync {
                     field: "phase2_corpus_alignment",
                 },
             );
         }
 
         self.reference_snapshot_source.validate().map_err(|_| {
-            PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+            PackagedArtifactPhase2CorpusAlignmentSummaryValidationError::FieldOutOfSync {
                 field: "phase2_corpus_alignment",
             }
         })?;
         self.reference_snapshot.validate().map_err(|_| {
-            PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+            PackagedArtifactPhase2CorpusAlignmentSummaryValidationError::FieldOutOfSync {
                 field: "phase2_corpus_alignment",
             }
         })?;
         self.comparison_snapshot_source.validate().map_err(|_| {
-            PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+            PackagedArtifactPhase2CorpusAlignmentSummaryValidationError::FieldOutOfSync {
                 field: "phase2_corpus_alignment",
             }
         })?;
         self.comparison_snapshot.validate().map_err(|_| {
-            PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+            PackagedArtifactPhase2CorpusAlignmentSummaryValidationError::FieldOutOfSync {
                 field: "phase2_corpus_alignment",
             }
         })?;
         self.independent_holdout_source.validate().map_err(|_| {
-            PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+            PackagedArtifactPhase2CorpusAlignmentSummaryValidationError::FieldOutOfSync {
                 field: "phase2_corpus_alignment",
             }
         })?;
         self.independent_holdout.validate().map_err(|_| {
-            PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+            PackagedArtifactPhase2CorpusAlignmentSummaryValidationError::FieldOutOfSync {
                 field: "phase2_corpus_alignment",
             }
         })?;
         self.selected_asteroid_source.validate().map_err(|_| {
-            PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+            PackagedArtifactPhase2CorpusAlignmentSummaryValidationError::FieldOutOfSync {
                 field: "phase2_corpus_alignment",
             }
         })?;
         self.selected_asteroid_source_windows
             .validate()
-            .map_err(
-                |_| PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+            .map_err(|_| {
+                PackagedArtifactPhase2CorpusAlignmentSummaryValidationError::FieldOutOfSync {
                     field: "phase2_corpus_alignment",
-                },
-            )?;
+                }
+            })?;
         self.selected_asteroid_source_request_corpus
             .validate()
-            .map_err(
-                |_| PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+            .map_err(|_| {
+                PackagedArtifactPhase2CorpusAlignmentSummaryValidationError::FieldOutOfSync {
                     field: "phase2_corpus_alignment",
-                },
-            )?;
+                }
+            })?;
         self.production_generation_boundary_source
             .validate()
-            .map_err(
-                |_| PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+            .map_err(|_| {
+                PackagedArtifactPhase2CorpusAlignmentSummaryValidationError::FieldOutOfSync {
                     field: "phase2_corpus_alignment",
-                },
-            )?;
+                }
+            })?;
         self.production_generation_body_class_coverage
             .validate()
-            .map_err(
-                |_| PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+            .map_err(|_| {
+                PackagedArtifactPhase2CorpusAlignmentSummaryValidationError::FieldOutOfSync {
                     field: "phase2_corpus_alignment",
-                },
-            )?;
+                }
+            })?;
         self.production_generation_source.validate().map_err(|_| {
-            PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+            PackagedArtifactPhase2CorpusAlignmentSummaryValidationError::FieldOutOfSync {
                 field: "phase2_corpus_alignment",
             }
         })?;
@@ -2820,7 +2842,7 @@ impl PackagedArtifactPhase2CorpusAlignmentSummary {
     /// Returns the validated phase-2 corpus alignment posture as a compact human-readable line.
     pub fn validated_summary_line(
         &self,
-    ) -> Result<String, PackagedArtifactTargetThresholdSummaryValidationError> {
+    ) -> Result<String, PackagedArtifactPhase2CorpusAlignmentSummaryValidationError> {
         self.validate()?;
         Ok(self.summary_line())
     }
@@ -10393,6 +10415,24 @@ mod tests {
         assert!(rendered.contains(
             "production generation boundary source=Production generation boundary overlay source:"
         ));
+    }
+
+    #[test]
+    fn packaged_artifact_phase2_corpus_alignment_summary_validation_rejects_source_drift() {
+        let mut summary = packaged_artifact_phase2_corpus_alignment_summary_details()
+            .expect("phase-2 corpus evidence should be available");
+        summary.reference_snapshot_source.source = "drifted source".to_string();
+
+        let error = summary
+            .validate()
+            .expect_err("phase-2 corpus alignment drift should be rejected");
+        assert_eq!(
+            error,
+            PackagedArtifactPhase2CorpusAlignmentSummaryValidationError::FieldOutOfSync {
+                field: "phase2_corpus_alignment",
+            }
+        );
+        assert!(error.to_string().contains("phase2_corpus_alignment"));
     }
 
     #[test]
