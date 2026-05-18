@@ -11724,6 +11724,21 @@ fn ensure_packaged_artifact_generation_policy_summary_matches_current_rendering(
     }
 }
 
+fn ensure_packaged_artifact_generation_manifest_summary_matches_current_rendering(
+    packaged_artifact_generation_manifest_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if packaged_artifact_generation_manifest_summary_text
+        == packaged_artifact_generation_manifest_for_report()
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "packaged-artifact generation manifest summary no longer matches the current packaged-artifact generation-manifest posture"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_packaged_artifact_normalized_intermediate_summary_matches_current_rendering(
     packaged_artifact_normalized_intermediate_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -12329,6 +12344,9 @@ fn verify_release_bundle(
     let packaged_artifact_generation_manifest_summary_text = read_required_bundle_text(
         &packaged_artifact_generation_manifest_summary_path,
         "packaged-artifact generation manifest summary",
+    )?;
+    ensure_packaged_artifact_generation_manifest_summary_matches_current_rendering(
+        &packaged_artifact_generation_manifest_summary_text,
     )?;
     let packaged_artifact_generation_manifest_checksum_text = read_required_bundle_text(
         &packaged_artifact_generation_manifest_checksum_path,
@@ -31160,6 +31178,36 @@ version = "0.9.0"
             ),
             "production-generation-manifest-checksum-summary does not accept extra arguments"
         );
+    }
+
+    #[test]
+    fn packaged_artifact_generation_manifest_summary_command_renders_the_manifest_block() {
+        let rendered = render_cli(&["packaged-artifact-generation-manifest-summary"])
+            .expect("packaged artifact generation manifest summary should render");
+
+        assert!(rendered.contains("Packaged artifact generation manifest:"));
+        assert!(rendered.contains("coverage="));
+        assert_eq!(rendered, packaged_artifact_generation_manifest_for_report());
+        assert_eq!(
+            render_cli(&["packaged-artifact-generation-manifest", "extra"]).expect_err(
+                "packaged artifact generation manifest alias should reject extra arguments"
+            ),
+            "packaged-artifact-generation-manifest-summary does not accept extra arguments"
+        );
+    }
+
+    #[test]
+    fn packaged_artifact_generation_manifest_summary_validation_rejects_drift() {
+        let summary = packaged_artifact_generation_manifest_for_report();
+        let drifted_summary = summary.replace("coverage=", "coverage=drifted-");
+
+        let error = ensure_packaged_artifact_generation_manifest_summary_matches_current_rendering(
+            &drifted_summary,
+        )
+        .expect_err("drifted packaged artifact generation manifest summary should be rejected");
+        assert!(error
+            .to_string()
+            .contains("generation manifest summary no longer matches"));
     }
 
     #[test]
