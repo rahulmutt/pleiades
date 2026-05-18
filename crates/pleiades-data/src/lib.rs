@@ -10367,6 +10367,9 @@ mod tests {
     #[test]
     fn packaged_artifact_source_fit_holdout_sync_summary_reflects_the_current_posture() {
         let summary = packaged_artifact_source_fit_holdout_sync_summary_details();
+        let phase2_summary = packaged_artifact_phase2_corpus_alignment_summary_details()
+            .expect("phase-2 corpus evidence should be available");
+        let target_thresholds = packaged_artifact_target_threshold_summary_details();
 
         assert!(summary
             .summary_line()
@@ -10383,6 +10386,9 @@ mod tests {
         assert!(summary.summary_line().contains(
             "selected asteroid source request corpus=Selected asteroid source request corpus:"
         ));
+        assert_eq!(summary.phase2_corpus_alignment, phase2_summary);
+        assert_eq!(target_thresholds.phase2_corpus_alignment, phase2_summary);
+        assert_eq!(summary.target_thresholds, target_thresholds);
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
