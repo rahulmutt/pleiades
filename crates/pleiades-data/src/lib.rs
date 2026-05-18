@@ -1198,6 +1198,77 @@ impl fmt::Display for PackagedArtifactTargetThresholdScopeSummary {
     }
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct PackagedArtifactTargetThresholdScopeEnvelopesSummary {
+    /// Scope-specific fit envelopes that make up the current packaged-artifact posture.
+    pub scope_envelopes: Vec<PackagedArtifactTargetThresholdScopeSummary>,
+}
+
+/// Validation error for a packaged-artifact target-threshold scope envelopes summary that drifted from the current posture.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum PackagedArtifactTargetThresholdScopeEnvelopesSummaryValidationError {
+    /// A summary field is out of sync with the current packaged-artifact posture.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for PackagedArtifactTargetThresholdScopeEnvelopesSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the packaged-artifact target-threshold scope envelopes summary field `{field}` is out of sync with the current posture"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for PackagedArtifactTargetThresholdScopeEnvelopesSummaryValidationError {}
+
+impl PackagedArtifactTargetThresholdScopeEnvelopesSummary {
+    /// Returns the scope-envelope posture as a compact human-readable line.
+    pub fn summary_line(&self) -> String {
+        format!("scope envelopes: {}", join_display(&self.scope_envelopes))
+    }
+
+    /// Returns `Ok(())` when the scope-envelope posture still matches the current packaged-artifact posture.
+    pub fn validate(
+        &self,
+    ) -> Result<(), PackagedArtifactTargetThresholdScopeEnvelopesSummaryValidationError> {
+        let expected = packaged_artifact_target_threshold_scope_envelopes_summary_details();
+        if self != &expected {
+            return Err(
+                PackagedArtifactTargetThresholdScopeEnvelopesSummaryValidationError::FieldOutOfSync {
+                    field: "scope_envelopes",
+                },
+            );
+        }
+
+        for scope_envelope in &self.scope_envelopes {
+            scope_envelope.validate().map_err(|_| {
+                PackagedArtifactTargetThresholdScopeEnvelopesSummaryValidationError::FieldOutOfSync {
+                    field: "scope_envelopes",
+                }
+            })?;
+        }
+
+        Ok(())
+    }
+
+    /// Returns the validated scope-envelope posture as a compact human-readable line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, PackagedArtifactTargetThresholdScopeEnvelopesSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for PackagedArtifactTargetThresholdScopeEnvelopesSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 impl PackagedArtifactFitEnvelopeSummary {
     /// Returns the packaged-artifact fit evidence as a compact human-readable line.
     pub fn summary_line(&self) -> String {
@@ -1938,13 +2009,21 @@ fn packaged_artifact_target_threshold_scope_envelope_summary_details(
     }
 }
 
-fn packaged_artifact_target_threshold_scope_envelopes_summary_details(
+fn packaged_artifact_target_threshold_scope_envelope_summaries_details(
 ) -> Vec<PackagedArtifactTargetThresholdScopeSummary> {
     PACKAGED_ARTIFACT_TARGET_THRESHOLD_SCOPES
         .iter()
         .copied()
         .map(packaged_artifact_target_threshold_scope_envelope_summary_details)
         .collect()
+}
+
+/// Returns the current packaged-artifact body-class target-threshold scope envelopes after validating the structured posture.
+pub fn packaged_artifact_target_threshold_scope_envelopes_summary_details(
+) -> PackagedArtifactTargetThresholdScopeEnvelopesSummary {
+    PackagedArtifactTargetThresholdScopeEnvelopesSummary {
+        scope_envelopes: packaged_artifact_target_threshold_scope_envelope_summaries_details(),
+    }
 }
 
 fn format_scope_bodies(bodies: &[CelestialBody]) -> String {
@@ -2921,7 +3000,7 @@ pub struct PackagedArtifactTargetThresholdSummary {
     /// Measured fit envelope captured for the current packaged artifact posture.
     pub fit_envelope: PackagedArtifactFitEnvelopeSummary,
     /// Body-class-specific fit envelopes captured for the current packaged artifact posture.
-    pub scope_envelopes: Vec<PackagedArtifactTargetThresholdScopeSummary>,
+    pub scope_envelopes: PackagedArtifactTargetThresholdScopeEnvelopesSummary,
     /// Phase-2 corpus evidence that keeps the threshold posture aligned with the current corpus.
     pub phase2_corpus_alignment: PackagedArtifactPhase2CorpusAlignmentSummary,
 }
@@ -2955,7 +3034,7 @@ impl PackagedArtifactTargetThresholdSummary {
             self.state.label(),
             self.scopes.join(", "),
             self.fit_envelope.summary_line(),
-            join_display(&self.scope_envelopes),
+            join_display(&self.scope_envelopes.scope_envelopes),
             self.phase2_corpus_alignment.summary_line(),
         )
     }
@@ -3011,6 +3090,11 @@ impl PackagedArtifactTargetThresholdSummary {
                 },
             );
         }
+        self.scope_envelopes.validate().map_err(|_| {
+            PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+                field: "scope_envelopes",
+            }
+        })?;
 
         let expected_phase2_corpus_alignment =
             packaged_artifact_phase2_corpus_alignment_summary_details().ok_or(
@@ -3032,7 +3116,7 @@ impl PackagedArtifactTargetThresholdSummary {
         })?;
 
         let thresholds = packaged_artifact_fit_threshold_summary_details();
-        for scope_envelope in &self.scope_envelopes {
+        for scope_envelope in &self.scope_envelopes.scope_envelopes {
             scope_envelope
                 .fit_envelope
                 .validate_against_thresholds(&thresholds)
@@ -3234,17 +3318,9 @@ pub fn packaged_artifact_target_threshold_scope_envelopes_for_report() -> String
     static SUMMARY: OnceLock<String> = OnceLock::new();
     SUMMARY
         .get_or_init(|| {
-            let summary = packaged_artifact_target_threshold_summary_details();
-            match summary.validate() {
-                Ok(()) => match summary
-                    .scope_envelopes
-                    .iter()
-                    .map(|scope| scope.validated_summary_line())
-                    .collect::<Result<Vec<_>, _>>()
-                {
-                    Ok(lines) => format!("scope envelopes: {}", lines.join(", ")),
-                    Err(error) => format!("scope envelopes: unavailable ({error})"),
-                },
+            let summary = packaged_artifact_target_threshold_scope_envelopes_summary_details();
+            match summary.validated_summary_line() {
+                Ok(line) => line,
                 Err(error) => format!("scope envelopes: unavailable ({error})"),
             }
         })
@@ -10466,12 +10542,49 @@ mod tests {
     }
 
     #[test]
-    fn packaged_artifact_target_threshold_summary_validation_rejects_scope_threshold_violation() {
-        let mut summary = packaged_artifact_target_threshold_summary_details();
+    fn packaged_artifact_target_threshold_scope_envelopes_summary_reflects_the_current_posture() {
+        let summary = packaged_artifact_target_threshold_scope_envelopes_summary_details();
+
+        assert_eq!(
+            summary.scope_envelopes.len(),
+            PACKAGED_ARTIFACT_TARGET_THRESHOLD_SCOPES.len()
+        );
+        assert!(summary
+            .summary_line()
+            .contains("scope=luminaries; bodies=2 (Sun, Moon); fit envelope:"));
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        summary
+            .validate()
+            .expect("target-threshold scope envelopes should validate");
+    }
+
+    #[test]
+    fn packaged_artifact_target_threshold_scope_envelopes_summary_validation_rejects_drift() {
+        let mut summary = packaged_artifact_target_threshold_scope_envelopes_summary_details();
         summary.scope_envelopes[0]
             .fit_envelope
+            .max_distance_delta_au += 1.0;
+
+        let error = summary
+            .validate()
+            .expect_err("target-threshold scope envelope drift should be rejected");
+        assert_eq!(
+            error,
+            PackagedArtifactTargetThresholdScopeEnvelopesSummaryValidationError::FieldOutOfSync {
+                field: "scope_envelopes",
+            }
+        );
+        assert!(error.to_string().contains("scope_envelopes"));
+    }
+
+    #[test]
+    fn packaged_artifact_target_threshold_summary_validation_rejects_scope_threshold_violation() {
+        let mut summary = packaged_artifact_target_threshold_summary_details();
+        summary.scope_envelopes.scope_envelopes[0]
+            .fit_envelope
             .max_distance_delta_au =
-            packaged_artifact_fit_threshold_summary_details().max_distance_delta_au + 1.0e-12;
+            packaged_artifact_fit_threshold_summary_details().max_distance_delta_au + 1.0;
 
         let error = summary
             .validate()

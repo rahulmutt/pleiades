@@ -19,6 +19,7 @@ The codec, artifact structures, deterministic regeneration path, checksums, gene
 - Completed: validation now rejects any unlisted artifact output classification, and release-facing output-support summaries render the explicit empty unlisted bucket.
 - Preserve deterministic generation parameters, normalized-intermediate checksums, artifact checksums, and encoded-size accounting.
 - Completed: the comparison body-class tolerance summary renderer now validates each class row before formatting, so malformed tolerance rows fail closed instead of leaking partial drift text.
+- Completed: the packaged-artifact target-threshold scope envelopes summary now has a typed validated wrapper, and the release-facing scope-envelope helper now reuses that structured posture instead of rebuilding the lines manually.
 - Make artifact validation fail on threshold violations, capability drift, checksum drift, malformed manifests, or unsupported request shapes.
 - Keep performance benchmarks visible, but treat accuracy, reproducibility, and report tractability as release blockers.
 

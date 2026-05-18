@@ -17011,17 +17011,10 @@ fn validated_packaged_artifact_target_threshold_summary_for_report() -> String {
 }
 
 fn validated_packaged_artifact_target_threshold_scope_envelopes_summary_for_report() -> String {
-    let summary = pleiades_data::packaged_artifact_target_threshold_summary_details();
-    match summary.validate() {
-        Ok(()) => match summary
-            .scope_envelopes
-            .iter()
-            .map(|scope| scope.validated_summary_line())
-            .collect::<Result<Vec<_>, _>>()
-        {
-            Ok(lines) => format!("scope envelopes: {}", lines.join(", ")),
-            Err(error) => format!("scope envelopes: unavailable ({error})"),
-        },
+    let summary =
+        pleiades_data::packaged_artifact_target_threshold_scope_envelopes_summary_details();
+    match summary.validated_summary_line() {
+        Ok(line) => line,
         Err(error) => format!("scope envelopes: unavailable ({error})"),
     }
 }
