@@ -13280,6 +13280,8 @@ fn verify_release_bundle(
     ensure_release_profile_identifiers_summary_matches_current_rendering(
         &release_profile_identifiers_summary_text,
     )?;
+    ensure_compatibility_profile_summary_matches_current_rendering(&profile_summary_text)?;
+    ensure_release_summary_matches_current_rendering(&release_summary_text)?;
 
     if manifest.comparison_corpus_summary_path != "comparison-corpus-summary.txt" {
         return Err(ReleaseBundleError::Verification(format!(
@@ -14276,6 +14278,33 @@ fn ensure_release_profile_identifiers_summary_matches_current_rendering(
         Err(ReleaseBundleError::Verification(
             "release-profile identifiers summary no longer matches the current release-profile identifiers posture"
                 .to_string(),
+        ))
+    }
+}
+
+fn ensure_compatibility_profile_summary_matches_current_rendering(
+    compatibility_profile_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if compatibility_profile_summary_text.trim_end()
+        == render_compatibility_profile_summary_text().trim_end()
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "compatibility profile summary no longer matches the current compatibility profile summary posture"
+                .to_string(),
+        ))
+    }
+}
+
+fn ensure_release_summary_matches_current_rendering(
+    release_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if release_summary_text.trim_end() == render_release_summary_text().trim_end() {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "release summary no longer matches the current release summary posture".to_string(),
         ))
     }
 }
@@ -30284,6 +30313,30 @@ version = "0.9.0"
             "pleiades-release-bundle-tampered-release-summary",
             "release-summary.txt",
             "release summary checksum mismatch",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_semantically_tampered_compatibility_profile_summary_file() {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-semantic-compatibility-profile-summary",
+            "compatibility-profile-summary.txt",
+            "profile summary checksum (fnv1a-64):",
+            "Compatibility profile summary",
+            "Tampered compatibility profile summary",
+            "compatibility profile summary no longer matches the current compatibility profile summary posture",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_semantically_tampered_release_summary_file() {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-semantic-release-summary",
+            "release-summary.txt",
+            "release summary checksum (fnv1a-64):",
+            "Release summary",
+            "Tampered release summary",
+            "release summary no longer matches the current release summary posture",
         );
     }
 
