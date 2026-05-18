@@ -11311,6 +11311,32 @@ fn ensure_packaged_artifact_phase2_alignment_matches_source_fit_holdout_sync(
     Ok(())
 }
 
+fn ensure_request_policy_summary_matches_current_rendering(
+    request_policy_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if request_policy_summary_text == render_request_policy_summary_text() {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "request policy summary no longer matches the current request-policy posture"
+                .to_string(),
+        ))
+    }
+}
+
+fn ensure_request_surface_summary_matches_current_rendering(
+    request_surface_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if request_surface_summary_text == render_request_surface_summary_text() {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "request surface summary no longer matches the current request-surface inventory"
+                .to_string(),
+        ))
+    }
+}
+
 fn verify_release_bundle(
     output_dir: impl AsRef<Path>,
 ) -> Result<ReleaseBundle, ReleaseBundleError> {
@@ -11657,6 +11683,8 @@ fn verify_release_bundle(
     )?;
     let request_surface_summary_text =
         read_required_bundle_text(&request_surface_summary_path, "request surface summary")?;
+    ensure_request_policy_summary_matches_current_rendering(&request_policy_summary_text)?;
+    ensure_request_surface_summary_matches_current_rendering(&request_surface_summary_text)?;
     let compatibility_caveats_summary_text = read_required_bundle_text(
         &compatibility_caveats_summary_path,
         "compatibility caveats summary",
@@ -20338,6 +20366,32 @@ mod tests {
         let error = render_cli(&["request-surface", "extra"])
             .expect_err("request surface alias should reject extra arguments");
         assert_eq!(error, "request-surface does not accept extra arguments");
+    }
+
+    #[test]
+    fn request_policy_summary_semantic_check_rejects_stale_rendering() {
+        let mut stale = render_request_policy_summary_text();
+        stale.push_str(" stale");
+
+        let error = ensure_request_policy_summary_matches_current_rendering(&stale).expect_err(
+            "stale request policy summary should fail the release-bundle semantic check",
+        );
+        assert!(error
+            .to_string()
+            .contains("request policy summary no longer matches"));
+    }
+
+    #[test]
+    fn request_surface_summary_semantic_check_rejects_stale_rendering() {
+        let mut stale = render_request_surface_summary_text();
+        stale.push_str(" stale");
+
+        let error = ensure_request_surface_summary_matches_current_rendering(&stale).expect_err(
+            "stale request surface summary should fail the release-bundle semantic check",
+        );
+        assert!(error
+            .to_string()
+            .contains("request surface summary no longer matches"));
     }
 
     #[test]
