@@ -12026,6 +12026,19 @@ fn ensure_native_sidereal_policy_summary_matches_current_rendering(
     }
 }
 
+fn ensure_lunar_theory_limitations_summary_matches_current_rendering(
+    lunar_theory_limitations_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if lunar_theory_limitations_summary_text == lunar_theory_limitations_summary_for_report() {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "lunar theory limitations summary no longer matches the current lunar-theory limitations posture"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_lunar_theory_source_selection_summary_matches_current_rendering(
     lunar_theory_source_selection_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -12494,6 +12507,9 @@ fn verify_release_bundle(
     let lunar_theory_limitations_summary_text = read_required_bundle_text(
         &lunar_theory_limitations_summary_path,
         "lunar theory limitations summary",
+    )?;
+    ensure_lunar_theory_limitations_summary_matches_current_rendering(
+        &lunar_theory_limitations_summary_text,
     )?;
     let lunar_theory_source_selection_summary_text = read_required_bundle_text(
         &lunar_theory_source_selection_summary_path,
@@ -30811,6 +30827,19 @@ version = "0.9.0"
             "selected key: source identifier=meeus-style-truncated-lunar-baseline",
             "selected key: source identifier=drifted-meeus-style-truncated-lunar-baseline",
             "lunar theory source selection summary no longer matches the current lunar source-selection posture",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_lunar_theory_limitations_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-lunar-theory-limitations-semantic",
+            "lunar-theory-limitations-summary.txt",
+            "lunar theory limitations summary checksum (fnv1a-64):",
+            "Compact Meeus-style truncated lunar baseline",
+            "Drifted Meeus-style truncated lunar baseline",
+            "lunar theory limitations summary no longer matches the current lunar-theory limitations posture",
         );
     }
 
