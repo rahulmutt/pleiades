@@ -20814,6 +20814,257 @@ pub fn interpolation_quality_sample_request_corpus() -> Option<Vec<EphemerisRequ
     interpolation_quality_sample_requests()
 }
 
+/// Compact release-facing summary for the interpolation-quality sample request corpus.
+#[derive(Clone, Debug, PartialEq)]
+pub struct InterpolationQualitySampleRequestCorpusSummary {
+    /// Total number of generated requests.
+    pub request_count: usize,
+    /// Number of distinct bodies covered by the request corpus.
+    pub body_count: usize,
+    /// Bodies covered by the request corpus in first-seen order.
+    pub bodies: Vec<pleiades_backend::CelestialBody>,
+    /// Number of distinct epochs covered by the request corpus.
+    pub epoch_count: usize,
+    /// Earliest epoch represented in the request corpus.
+    pub earliest_epoch: Instant,
+    /// Latest epoch represented in the request corpus.
+    pub latest_epoch: Instant,
+    /// Coordinate frame requested by the corpus.
+    pub frame: CoordinateFrame,
+    /// Time scale requested by the corpus.
+    pub time_scale: TimeScale,
+    /// Zodiac mode requested by the corpus.
+    pub zodiac_mode: ZodiacMode,
+    /// Apparentness requested by the corpus.
+    pub apparentness: Apparentness,
+}
+
+/// Validation error for an interpolation-quality sample request corpus summary.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum InterpolationQualitySampleRequestCorpusSummaryValidationError {
+    /// A summary field is out of sync with the checked-in request corpus.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl InterpolationQualitySampleRequestCorpusSummaryValidationError {
+    /// Returns the compact label used in release-facing summaries and tests.
+    pub const fn label(&self) -> &'static str {
+        match self {
+            Self::FieldOutOfSync { .. } => "field out of sync",
+        }
+    }
+}
+
+impl fmt::Display for InterpolationQualitySampleRequestCorpusSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the interpolation-quality sample request corpus summary field `{field}` is out of sync with the current slice"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for InterpolationQualitySampleRequestCorpusSummaryValidationError {}
+
+impl InterpolationQualitySampleRequestCorpusSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "Interpolation-quality sample request corpus: {} requests (frame={}; time scale={}; zodiac mode={}; apparentness={}; observerless) across {} bodies and {} epochs ({}..{}); bodies: {}",
+            self.request_count,
+            self.frame,
+            self.time_scale,
+            self.zodiac_mode,
+            self.apparentness,
+            self.body_count,
+            self.epoch_count,
+            format_instant(self.earliest_epoch),
+            format_instant(self.latest_epoch),
+            format_bodies(&self.bodies),
+        )
+    }
+
+    /// Returns `Ok(())` when the summary still matches the checked-in request corpus.
+    pub fn validate(
+        &self,
+    ) -> Result<(), InterpolationQualitySampleRequestCorpusSummaryValidationError> {
+        let Some(expected) = interpolation_quality_sample_request_corpus_summary_details() else {
+            return Err(
+                InterpolationQualitySampleRequestCorpusSummaryValidationError::FieldOutOfSync {
+                    field: "request_count",
+                },
+            );
+        };
+
+        if self.request_count != expected.request_count {
+            return Err(
+                InterpolationQualitySampleRequestCorpusSummaryValidationError::FieldOutOfSync {
+                    field: "request_count",
+                },
+            );
+        }
+        if self.body_count != expected.body_count {
+            return Err(
+                InterpolationQualitySampleRequestCorpusSummaryValidationError::FieldOutOfSync {
+                    field: "body_count",
+                },
+            );
+        }
+        if self.bodies != expected.bodies {
+            return Err(
+                InterpolationQualitySampleRequestCorpusSummaryValidationError::FieldOutOfSync {
+                    field: "bodies",
+                },
+            );
+        }
+        if self.epoch_count != expected.epoch_count {
+            return Err(
+                InterpolationQualitySampleRequestCorpusSummaryValidationError::FieldOutOfSync {
+                    field: "epoch_count",
+                },
+            );
+        }
+        if self.earliest_epoch != expected.earliest_epoch {
+            return Err(
+                InterpolationQualitySampleRequestCorpusSummaryValidationError::FieldOutOfSync {
+                    field: "earliest_epoch",
+                },
+            );
+        }
+        if self.latest_epoch != expected.latest_epoch {
+            return Err(
+                InterpolationQualitySampleRequestCorpusSummaryValidationError::FieldOutOfSync {
+                    field: "latest_epoch",
+                },
+            );
+        }
+        if self.frame != expected.frame {
+            return Err(
+                InterpolationQualitySampleRequestCorpusSummaryValidationError::FieldOutOfSync {
+                    field: "frame",
+                },
+            );
+        }
+        if self.time_scale != expected.time_scale {
+            return Err(
+                InterpolationQualitySampleRequestCorpusSummaryValidationError::FieldOutOfSync {
+                    field: "time_scale",
+                },
+            );
+        }
+        if self.zodiac_mode != expected.zodiac_mode {
+            return Err(
+                InterpolationQualitySampleRequestCorpusSummaryValidationError::FieldOutOfSync {
+                    field: "zodiac_mode",
+                },
+            );
+        }
+        if self.apparentness != expected.apparentness {
+            return Err(
+                InterpolationQualitySampleRequestCorpusSummaryValidationError::FieldOutOfSync {
+                    field: "apparentness",
+                },
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns the validated interpolation-quality request corpus summary line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, InterpolationQualitySampleRequestCorpusSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for InterpolationQualitySampleRequestCorpusSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+fn interpolation_quality_sample_request_corpus_summary_details(
+) -> Option<InterpolationQualitySampleRequestCorpusSummary> {
+    let samples = interpolation_quality_samples();
+    let requests = interpolation_quality_sample_request_corpus()?;
+    if requests.is_empty() || requests.len() != samples.len() {
+        return None;
+    }
+
+    let mut bodies = Vec::new();
+    let mut epochs = BTreeSet::new();
+    let mut earliest_epoch = requests[0].instant;
+    let mut latest_epoch = requests[0].instant;
+    let time_scale = requests[0].instant.scale;
+
+    for (request, sample) in requests.iter().zip(samples.iter()) {
+        if request.body != sample.body
+            || request.instant != sample.epoch
+            || request.frame != CoordinateFrame::Ecliptic
+            || request.instant.scale != time_scale
+            || request.zodiac_mode != ZodiacMode::Tropical
+            || request.apparent != Apparentness::Mean
+            || request.observer.is_some()
+        {
+            return None;
+        }
+
+        if !bodies.contains(&request.body) {
+            bodies.push(request.body.clone());
+        }
+        epochs.insert(request.instant.julian_day.days().to_bits());
+        if request.instant.julian_day.days() < earliest_epoch.julian_day.days() {
+            earliest_epoch = request.instant;
+        }
+        if request.instant.julian_day.days() > latest_epoch.julian_day.days() {
+            latest_epoch = request.instant;
+        }
+    }
+
+    Some(InterpolationQualitySampleRequestCorpusSummary {
+        request_count: requests.len(),
+        body_count: bodies.len(),
+        bodies,
+        epoch_count: epochs.len(),
+        earliest_epoch,
+        latest_epoch,
+        frame: CoordinateFrame::Ecliptic,
+        time_scale,
+        zodiac_mode: ZodiacMode::Tropical,
+        apparentness: Apparentness::Mean,
+    })
+}
+
+/// Returns the interpolation-quality sample request corpus summary.
+pub fn interpolation_quality_sample_request_corpus_summary(
+) -> Option<InterpolationQualitySampleRequestCorpusSummary> {
+    interpolation_quality_sample_request_corpus_summary_details()
+}
+
+/// Formats the interpolation-quality sample request corpus for release-facing reporting.
+pub fn format_interpolation_quality_sample_request_corpus_summary(
+    summary: &InterpolationQualitySampleRequestCorpusSummary,
+) -> String {
+    summary.summary_line()
+}
+
+/// Returns the release-facing interpolation-quality sample request corpus summary string.
+pub fn interpolation_quality_sample_request_corpus_summary_for_report() -> String {
+    match interpolation_quality_sample_request_corpus_summary() {
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
+            Err(error) => {
+                format!("Interpolation-quality sample request corpus: unavailable ({error})")
+            }
+        },
+        None => "Interpolation-quality sample request corpus: unavailable".to_string(),
+    }
+}
+
 /// A compact interpolation-quality summary for the checked-in JPL snapshot.
 #[derive(Clone, Debug, PartialEq)]
 pub struct JplInterpolationQualitySummary {
@@ -22108,7 +22359,8 @@ pub fn jpl_interpolation_quality_source_summary_for_report() -> String {
     }
 }
 
-/// Formats the interpolation-quality summary together with the distinct-body coverage line.
+/// Formats the interpolation-quality summary together with the distinct-body coverage
+/// and sample request corpus lines.
 pub fn format_jpl_interpolation_quality_summary_for_report() -> String {
     let source_summary = match jpl_interpolation_quality_source_summary() {
         Some(summary) => match summary.validated_summary_line() {
@@ -22124,6 +22376,9 @@ pub fn format_jpl_interpolation_quality_summary_for_report() -> String {
                 rendered.insert_str(0, &format!("{}\n", source_summary));
                 rendered.push('\n');
                 rendered.push_str(&jpl_interpolation_quality_kind_coverage_for_report());
+                rendered.push('\n');
+                rendered
+                    .push_str(&interpolation_quality_sample_request_corpus_summary_for_report());
                 rendered.push('\n');
                 rendered.push_str(&jpl_interpolation_body_class_error_envelopes_for_report());
                 rendered
@@ -32073,6 +32328,48 @@ mod tests {
     }
 
     #[test]
+    fn interpolation_quality_sample_request_corpus_reports_the_explicit_request_slice() {
+        let summary = interpolation_quality_sample_request_corpus_summary()
+            .expect("sample request corpus should exist");
+        assert_eq!(summary.request_count, 285);
+        assert_eq!(summary.body_count, 16);
+        assert_eq!(summary.bodies.len(), summary.body_count);
+        assert!(!summary.bodies.is_empty());
+        assert_eq!(summary.frame, CoordinateFrame::Ecliptic);
+        assert_eq!(summary.time_scale, TimeScale::Tdb);
+        assert_eq!(summary.zodiac_mode, ZodiacMode::Tropical);
+        assert_eq!(summary.apparentness, Apparentness::Mean);
+        assert!(summary.earliest_epoch.julian_day.days() <= summary.latest_epoch.julian_day.days());
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(
+            interpolation_quality_sample_request_corpus_summary_for_report(),
+            summary.summary_line()
+        );
+        assert!(
+            format_interpolation_quality_sample_request_corpus_summary(&summary)
+                .contains("Interpolation-quality sample request corpus:")
+        );
+        assert!(summary.summary_line().contains("observerless"));
+    }
+
+    #[test]
+    fn interpolation_quality_sample_request_corpus_summary_validation_rejects_drift() {
+        let mut summary = interpolation_quality_sample_request_corpus_summary()
+            .expect("sample request corpus should exist");
+        summary.request_count += 1;
+        assert_eq!(
+            summary.validate(),
+            Err(
+                InterpolationQualitySampleRequestCorpusSummaryValidationError::FieldOutOfSync {
+                    field: "request_count"
+                }
+            )
+        );
+    }
+
+    #[test]
     fn interpolation_quality_summary_for_report_combines_source_summary_summary_and_coverage() {
         let source_summary =
             jpl_interpolation_quality_source_summary().expect("source summary should exist");
@@ -32083,6 +32380,9 @@ mod tests {
         assert!(rendered.contains(&source_summary.summary_line()));
         assert!(rendered.contains(&format_jpl_interpolation_quality_summary(&summary)));
         assert!(rendered.contains(&format_jpl_interpolation_quality_kind_coverage(&coverage)));
+        assert!(
+            rendered.contains(&interpolation_quality_sample_request_corpus_summary_for_report())
+        );
         assert!(rendered.contains(&jpl_interpolation_body_class_error_envelopes_for_report()));
     }
 

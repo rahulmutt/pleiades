@@ -433,6 +433,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("interpolation-posture") => validate_render_cli(args),
         Some("interpolation-quality-summary") => validate_render_cli(args),
         Some("interpolation-quality-kind-coverage-summary") => validate_render_cli(args),
+        Some("interpolation-quality-request-corpus-summary") => validate_render_cli(args),
+        Some("interpolation-quality-request-corpus") => validate_render_cli(args),
         Some("lunar-reference-error-envelope-summary") => validate_render_cli(args),
         Some("lunar-equatorial-reference-error-envelope-summary") => validate_render_cli(args),
         Some("lunar-apparent-comparison-summary") => validate_render_cli(args),
@@ -3800,6 +3802,20 @@ mod tests {
                 .expect("interpolation quality kind coverage summary should render");
         assert!(interpolation_quality_kind_coverage_summary
             .contains("JPL interpolation quality kind coverage:"));
+        let interpolation_quality_request_corpus_summary =
+            render_cli(&["interpolation-quality-request-corpus-summary"])
+                .expect("interpolation quality request corpus summary should render");
+        assert!(interpolation_quality_request_corpus_summary
+            .contains("Interpolation-quality sample request corpus:"));
+        assert_eq!(
+            interpolation_quality_request_corpus_summary,
+            pleiades_jpl::interpolation_quality_sample_request_corpus_summary_for_report()
+        );
+        assert_eq!(
+            render_cli(&["interpolation-quality-request-corpus"])
+                .expect("interpolation quality request corpus alias should render"),
+            interpolation_quality_request_corpus_summary
+        );
         let lunar_reference_error_envelope_summary =
             render_cli(&["lunar-reference-error-envelope-summary"])
                 .expect("lunar reference error envelope summary should render");
@@ -6110,6 +6126,9 @@ mod tests {
         ));
         assert!(help.contains(
             "production-generation-source-window-summary  Print the compact production-generation source windows summary"
+        ));
+        assert!(help.contains(
+            "interpolation-quality-request-corpus-summary  Print the compact JPL interpolation-quality sample request corpus summary"
         ));
         assert!(help.contains(
             "production-generation-boundary-source-summary  Print the compact production-generation boundary source summary"

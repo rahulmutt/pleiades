@@ -53,7 +53,7 @@ This file lists focused implementation slices for the current phase ladder. Comp
 
 ### 2. Coverage expansion
 
-- Completed: the JPL interpolation-quality report now also includes body-class error envelopes for the luminary, major-planet, selected-asteroid, and custom-body slices, keeping empirical envelope evidence explicit in the validation path.
+- Completed: the JPL interpolation-quality report now also includes body-class error envelopes for the luminary, major-planet, selected-asteroid, and custom-body slices, keeping empirical envelope evidence explicit in the validation path, and the interpolation-quality sample request corpus now also has a release-facing summary surface for the exact held-out request slice.
 - Expand body/epoch/channel coverage only where it supports artifact fitting or release claims.
 - Preserve evidence classes: reference, hold-out, boundary overlay, fixture exactness, and provenance-only.
 - Keep selected asteroid support bounded to validated bodies and epochs.
