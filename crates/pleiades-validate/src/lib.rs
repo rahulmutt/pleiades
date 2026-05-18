@@ -11842,6 +11842,21 @@ fn ensure_packaged_artifact_speed_policy_summary_matches_current_rendering(
     }
 }
 
+fn ensure_packaged_lookup_epoch_policy_summary_matches_current_rendering(
+    packaged_lookup_epoch_policy_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if packaged_lookup_epoch_policy_summary_text
+        == packaged_lookup_epoch_policy_summary_for_report()
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "packaged-artifact lookup-epoch policy summary no longer matches the current packaged-artifact lookup-epoch posture"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_packaged_artifact_generation_policy_summary_matches_current_rendering(
     packaged_artifact_generation_policy_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -12623,6 +12638,9 @@ fn verify_release_bundle(
     let packaged_lookup_epoch_policy_summary_text = read_required_bundle_text(
         &packaged_lookup_epoch_policy_summary_path,
         "packaged lookup-epoch policy summary",
+    )?;
+    ensure_packaged_lookup_epoch_policy_summary_matches_current_rendering(
+        &packaged_lookup_epoch_policy_summary_text,
     )?;
     let packaged_artifact_generation_policy_summary_text = read_required_bundle_text(
         &packaged_artifact_generation_policy_summary_path,
@@ -30347,6 +30365,67 @@ version = "0.9.0"
         );
         assert!(error.contains("release bundle verification failed"));
         assert!(error.contains("packaged-artifact generation policy summary no longer matches"));
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_packaged_artifact_lookup_epoch_policy_summary_even_with_updated_checksum(
+    ) {
+        let bundle_dir =
+            unique_temp_dir("pleiades-release-bundle-tampered-lookup-epoch-policy-semantic");
+        let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
+        render_cli(&[
+            "bundle-release",
+            "--out",
+            &bundle_dir_string,
+            "--rounds",
+            "1",
+        ])
+        .expect("bundle release should render");
+
+        let summary_path = bundle_dir.join("packaged-lookup-epoch-policy-summary.txt");
+        let summary = std::fs::read_to_string(&summary_path)
+            .expect("packaged lookup epoch policy summary should exist");
+        let tampered_summary = summary.replace(
+            "TT-grid retag without relativistic correction",
+            "drifted TT-grid retag without relativistic correction",
+        );
+        assert_ne!(
+            summary, tampered_summary,
+            "summary should change under the regression edit"
+        );
+        std::fs::write(&summary_path, &tampered_summary)
+            .expect("packaged lookup epoch policy summary should be writable");
+
+        let manifest_path = bundle_dir.join("bundle-manifest.txt");
+        let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");
+        let old_checksum_line = manifest
+            .lines()
+            .find(|line| {
+                line.starts_with("packaged-artifact lookup-epoch policy summary checksum (fnv1a-64):")
+            })
+            .expect(
+                "manifest should contain the packaged-artifact lookup-epoch policy summary checksum line",
+            );
+        let new_checksum_line = format!(
+            "packaged-artifact lookup-epoch policy summary checksum (fnv1a-64): 0x{:016x}",
+            checksum64(&tampered_summary)
+        );
+        let updated_manifest = manifest.replacen(old_checksum_line, &new_checksum_line, 1);
+        std::fs::write(&manifest_path, &updated_manifest).expect("manifest should be writable");
+
+        let checksum_path = bundle_dir.join("bundle-manifest.checksum.txt");
+        std::fs::write(
+            &checksum_path,
+            format!("0x{:016x}\n", checksum64(&updated_manifest)),
+        )
+        .expect("manifest checksum sidecar should be writable");
+
+        let error = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string])
+            .expect_err("verification should fail for semantic packaged lookup epoch policy drift");
+        assert!(error.contains("release bundle verification failed"));
+        assert!(error.contains("lookup-epoch policy summary no longer matches"));
 
         let _ = std::fs::remove_dir_all(&bundle_dir);
     }
