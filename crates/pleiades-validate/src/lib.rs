@@ -85,7 +85,6 @@ use pleiades_data::{
     packaged_artifact_profile_summary_with_body_coverage,
     packaged_artifact_regeneration_summary_for_report,
     packaged_artifact_speed_policy_summary_for_report,
-    packaged_artifact_target_threshold_scope_envelopes_for_report,
     packaged_artifact_target_threshold_summary_details, packaged_frame_parity_summary_for_report,
     packaged_frame_treatment_summary_for_report, packaged_lookup_epoch_policy_summary_for_report,
     packaged_mixed_tt_tdb_batch_parity_summary_for_report,
@@ -4961,7 +4960,7 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             )?;
             Ok(format!(
                 "Packaged-artifact target-threshold scope envelopes: {}",
-                packaged_artifact_target_threshold_scope_envelopes_for_report()
+                validated_packaged_artifact_target_threshold_scope_envelopes_summary_for_report()
             ))
         }
         Some("packaged-artifact-source-fit-holdout-sync-summary")
@@ -8749,7 +8748,9 @@ fn render_release_notes_summary_text() -> String {
     text.push_str(&validated_packaged_artifact_source_fit_holdout_sync_summary_for_report());
     text.push('\n');
     text.push_str("Packaged-artifact target-threshold scope envelopes: ");
-    text.push_str(&packaged_artifact_target_threshold_scope_envelopes_for_report());
+    text.push_str(
+        &validated_packaged_artifact_target_threshold_scope_envelopes_summary_for_report(),
+    );
     text.push('\n');
     text.push_str("Packaged-artifact phase-2 corpus alignment: ");
     text.push_str(&validated_packaged_artifact_phase2_corpus_alignment_summary_for_report());
@@ -9388,7 +9389,9 @@ fn render_release_summary_text() -> String {
     text.push_str(&validated_packaged_artifact_source_fit_holdout_sync_summary_for_report());
     text.push('\n');
     text.push_str("Packaged-artifact target-threshold scope envelopes: ");
-    text.push_str(&packaged_artifact_target_threshold_scope_envelopes_for_report());
+    text.push_str(
+        &validated_packaged_artifact_target_threshold_scope_envelopes_summary_for_report(),
+    );
     text.push('\n');
     text.push_str("Packaged-artifact phase-2 corpus alignment: ");
     text.push_str(&validated_packaged_artifact_phase2_corpus_alignment_summary_for_report());
@@ -9772,7 +9775,7 @@ pub fn render_release_bundle(
     let packaged_artifact_source_fit_holdout_sync_summary_text =
         validated_packaged_artifact_source_fit_holdout_sync_summary_for_report();
     let packaged_artifact_target_threshold_scope_envelopes_summary_text =
-        packaged_artifact_target_threshold_scope_envelopes_for_report();
+        validated_packaged_artifact_target_threshold_scope_envelopes_summary_for_report();
     let packaged_artifact_phase2_corpus_alignment_summary_text =
         validated_packaged_artifact_phase2_corpus_alignment_summary_for_report();
     let packaged_lookup_epoch_policy_summary_text =
@@ -15367,7 +15370,7 @@ fn render_benchmark_matrix_summary_text(report: &ValidationReport) -> String {
     let target_threshold_summary =
         validated_packaged_artifact_target_threshold_summary_for_report();
     let target_threshold_scope_envelopes_summary =
-        packaged_artifact_target_threshold_scope_envelopes_for_report();
+        validated_packaged_artifact_target_threshold_scope_envelopes_summary_for_report();
     let fit_margin_summary = report_summary_payload(
         packaged_artifact_fit_margin_summary_for_report(),
         "fit margins: ",
@@ -16673,6 +16676,22 @@ fn validated_packaged_artifact_target_threshold_summary_for_report() -> String {
     }
 }
 
+fn validated_packaged_artifact_target_threshold_scope_envelopes_summary_for_report() -> String {
+    let summary = pleiades_data::packaged_artifact_target_threshold_summary_details();
+    match summary.validate() {
+        Ok(()) => match summary
+            .scope_envelopes
+            .iter()
+            .map(|scope| scope.validated_summary_line())
+            .collect::<Result<Vec<_>, _>>()
+        {
+            Ok(lines) => format!("scope envelopes: {}", lines.join(", ")),
+            Err(error) => format!("scope envelopes: unavailable ({error})"),
+        },
+        Err(error) => format!("scope envelopes: unavailable ({error})"),
+    }
+}
+
 fn validated_packaged_artifact_source_fit_holdout_sync_summary_for_report() -> String {
     let summary = pleiades_data::packaged_artifact_source_fit_holdout_sync_summary_details();
     match summary.validated_summary_line() {
@@ -17625,7 +17644,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(
         text,
         "  Packaged-artifact target-threshold scope envelopes: {}",
-        packaged_artifact_target_threshold_scope_envelopes_for_report()
+        validated_packaged_artifact_target_threshold_scope_envelopes_summary_for_report()
     );
     let _ = writeln!(
         text,
@@ -32180,6 +32199,41 @@ version = "0.9.0"
                 "packaged artifact target threshold alias should reject extra arguments"
             ),
             "packaged-artifact-target-threshold-summary does not accept extra arguments"
+        );
+    }
+
+    #[test]
+    fn packaged_artifact_target_threshold_scope_envelopes_summary_and_alias_commands_render_the_summary(
+    ) {
+        let scope_envelopes =
+            render_cli(&["packaged-artifact-target-threshold-scope-envelopes-summary"])
+                .expect("packaged artifact target-threshold scope envelopes summary should render");
+        assert!(scope_envelopes.contains("Packaged-artifact target-threshold scope envelopes: "));
+        assert_eq!(
+            scope_envelopes,
+            format!(
+                "Packaged-artifact target-threshold scope envelopes: {}",
+                validated_packaged_artifact_target_threshold_scope_envelopes_summary_for_report()
+            )
+        );
+        assert_eq!(
+            render_cli(&["packaged-artifact-target-threshold-scope-envelopes"])
+                .expect("packaged artifact target-threshold scope envelopes alias should render"),
+            scope_envelopes
+        );
+        assert_eq!(
+            render_cli(&["packaged-artifact-target-threshold-scope-envelopes-summary", "extra"])
+                .expect_err(
+                    "packaged artifact target-threshold scope envelopes summary should reject extra arguments"
+                ),
+            "packaged-artifact-target-threshold-scope-envelopes-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["packaged-artifact-target-threshold-scope-envelopes", "extra"])
+                .expect_err(
+                    "packaged artifact target-threshold scope envelopes alias should reject extra arguments"
+                ),
+            "packaged-artifact-target-threshold-scope-envelopes-summary does not accept extra arguments"
         );
     }
 
