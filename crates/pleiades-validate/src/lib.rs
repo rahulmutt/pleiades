@@ -11462,6 +11462,21 @@ fn ensure_packaged_artifact_phase2_alignment_matches_source_fit_holdout_sync(
     Ok(())
 }
 
+fn ensure_packaged_artifact_phase2_corpus_alignment_summary_matches_current_rendering(
+    packaged_artifact_phase2_corpus_alignment_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if packaged_artifact_phase2_corpus_alignment_summary_text
+        == packaged_artifact_phase2_corpus_alignment_summary_for_report()
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "packaged-artifact phase-2 corpus alignment summary no longer matches the current packaged-artifact phase-2 corpus alignment posture"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_production_generation_source_summary_matches_source_windows(
     production_generation_source_summary_text: &str,
     production_generation_source_window_summary_text: &str,
@@ -12787,6 +12802,9 @@ fn verify_release_bundle(
 
     ensure_packaged_artifact_phase2_alignment_matches_source_fit_holdout_sync(
         &packaged_artifact_source_fit_holdout_sync_summary_text,
+        &packaged_artifact_phase2_corpus_alignment_summary_text,
+    )?;
+    ensure_packaged_artifact_phase2_corpus_alignment_summary_matches_current_rendering(
         &packaged_artifact_phase2_corpus_alignment_summary_text,
     )?;
     ensure_production_generation_source_summary_matches_source_windows(
@@ -29859,6 +29877,19 @@ version = "0.9.0"
     }
 
     #[test]
+    fn verify_release_bundle_rejects_tampered_packaged_artifact_phase2_corpus_alignment_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-packaged-artifact-phase2-corpus-alignment-semantic",
+            "packaged-artifact-phase2-corpus-alignment-summary.txt",
+            "packaged-artifact phase-2 corpus alignment summary checksum (fnv1a-64):",
+            "reference source=Reference snapshot source:",
+            "reference source=Drifted snapshot source:",
+            "packaged-artifact phase-2 corpus alignment summary no longer matches",
+        );
+    }
+
+    #[test]
     fn packaged_artifact_phase2_alignment_matches_source_fit_holdout_sync_payload() {
         let sync_summary = validated_packaged_artifact_source_fit_holdout_sync_summary_for_report();
         let phase2_summary = packaged_artifact_phase2_corpus_alignment_summary_for_report();
@@ -30050,6 +30081,36 @@ version = "0.9.0"
         assert!(error
             .to_string()
             .contains("phase-2 corpus alignment payload does not match"));
+    }
+
+    #[test]
+    fn packaged_artifact_phase2_corpus_alignment_summary_matches_current_rendering() {
+        let summary = packaged_artifact_phase2_corpus_alignment_summary_for_report();
+
+        ensure_packaged_artifact_phase2_corpus_alignment_summary_matches_current_rendering(
+            &summary,
+        )
+        .expect(
+            "packaged-artifact phase-2 corpus alignment summary should match the current rendering",
+        );
+    }
+
+    #[test]
+    fn packaged_artifact_phase2_corpus_alignment_summary_validation_rejects_drift() {
+        let summary = packaged_artifact_phase2_corpus_alignment_summary_for_report();
+        let drifted_summary = summary.replace(
+            "reference source=Reference snapshot source:",
+            "reference source=Drifted snapshot source:",
+        );
+
+        let error =
+            ensure_packaged_artifact_phase2_corpus_alignment_summary_matches_current_rendering(
+                &drifted_summary,
+            )
+            .expect_err("drifted phase-2 corpus alignment summary should be rejected");
+        assert!(error
+            .to_string()
+            .contains("phase-2 corpus alignment summary no longer matches"));
     }
 
     #[test]
