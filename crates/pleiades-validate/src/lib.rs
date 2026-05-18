@@ -11454,6 +11454,19 @@ fn ensure_packaged_artifact_output_support_summary_matches_current_rendering(
     }
 }
 
+fn ensure_packaged_artifact_access_summary_matches_current_rendering(
+    packaged_artifact_access_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if packaged_artifact_access_summary_text == packaged_artifact_access_summary_for_report() {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "packaged-artifact access summary no longer matches the current packaged-artifact access posture"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_packaged_artifact_speed_policy_summary_matches_current_rendering(
     packaged_artifact_speed_policy_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -11903,6 +11916,9 @@ fn verify_release_bundle(
     let packaged_artifact_access_summary_text = read_required_bundle_text(
         &packaged_artifact_access_summary_path,
         "packaged-artifact access summary",
+    )?;
+    ensure_packaged_artifact_access_summary_matches_current_rendering(
+        &packaged_artifact_access_summary_text,
     )?;
     let packaged_artifact_access_summary_checksum =
         checksum64(&packaged_artifact_access_summary_text);
@@ -28808,6 +28824,56 @@ version = "0.9.0"
         );
         assert!(error.contains("release bundle verification failed"));
         assert!(error.contains("packaged-artifact output support summary no longer matches"));
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_packaged_artifact_access_summary_even_with_updated_checksum(
+    ) {
+        let bundle_dir = unique_temp_dir("pleiades-release-bundle-tampered-access-semantic");
+        let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
+        render_cli(&[
+            "bundle-release",
+            "--out",
+            &bundle_dir_string,
+            "--rounds",
+            "1",
+        ])
+        .expect("bundle release should render");
+
+        let summary_path = bundle_dir.join("packaged-artifact-access-summary.txt");
+        let summary = std::fs::read_to_string(&summary_path)
+            .expect("packaged-artifact access summary should exist");
+        let mut tampered_summary = summary;
+        tampered_summary.push_str("\nTampered packaged-artifact access summary.\n");
+        std::fs::write(&summary_path, &tampered_summary)
+            .expect("packaged-artifact access summary should be writable");
+
+        let manifest_path = bundle_dir.join("bundle-manifest.txt");
+        let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");
+        let old_checksum_line = manifest
+            .lines()
+            .find(|line| line.starts_with("packaged-artifact access summary checksum (fnv1a-64):"))
+            .expect("manifest should contain the packaged-artifact access summary checksum line");
+        let new_checksum_line = format!(
+            "packaged-artifact access summary checksum (fnv1a-64): 0x{:016x}",
+            checksum64(&tampered_summary)
+        );
+        let updated_manifest = manifest.replacen(old_checksum_line, &new_checksum_line, 1);
+        std::fs::write(&manifest_path, &updated_manifest).expect("manifest should be writable");
+
+        let checksum_path = bundle_dir.join("bundle-manifest.checksum.txt");
+        std::fs::write(
+            &checksum_path,
+            format!("0x{:016x}\n", checksum64(&updated_manifest)),
+        )
+        .expect("manifest checksum sidecar should be writable");
+
+        let error = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string])
+            .expect_err("verification should fail for semantic packaged-artifact access drift");
+        assert!(error.contains("release bundle verification failed"));
+        assert!(error.contains("packaged-artifact access summary no longer matches"));
 
         let _ = std::fs::remove_dir_all(&bundle_dir);
     }
