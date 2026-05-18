@@ -696,6 +696,67 @@ impl fmt::Display for PackagedArtifactFitThresholdSummary {
     }
 }
 
+/// Structured fit margins for the packaged artifact.
+#[derive(Clone, Debug, PartialEq)]
+pub struct PackagedArtifactFitMarginSummary {
+    /// Measured fit envelope for the current packaged artifact.
+    pub envelope: PackagedArtifactFitEnvelopeSummary,
+    /// Calibrated thresholds used to compute the current margins.
+    pub thresholds: PackagedArtifactFitThresholdSummary,
+}
+
+impl PackagedArtifactFitMarginSummary {
+    /// Returns the fit margins relative to the calibrated thresholds as a compact human-readable line.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "fit margins: mean Δlon={:+.12}°, mean Δlat={:+.12}°, mean Δdist={:+.12} AU; max Δlon={:+.12}°, max Δlat={:+.12}°, max Δdist={:+.12} AU",
+            self.thresholds.max_mean_longitude_delta_degrees - self.envelope.mean_longitude_delta_degrees,
+            self.thresholds.max_mean_latitude_delta_degrees - self.envelope.mean_latitude_delta_degrees,
+            self.thresholds.max_mean_distance_delta_au - self.envelope.mean_distance_delta_au,
+            self.thresholds.max_longitude_delta_degrees - self.envelope.max_longitude_delta_degrees,
+            self.thresholds.max_latitude_delta_degrees - self.envelope.max_latitude_delta_degrees,
+            self.thresholds.max_distance_delta_au - self.envelope.max_distance_delta_au,
+        )
+    }
+
+    /// Returns `Ok(())` when the summary still matches the current packaged-artifact fit posture.
+    pub fn validate(&self) -> Result<(), PackagedArtifactFitEnvelopeSummaryValidationError> {
+        let current_envelope = packaged_artifact_fit_envelope_summary_details();
+        if self.envelope != current_envelope {
+            return Err(
+                PackagedArtifactFitEnvelopeSummaryValidationError::FieldOutOfSync {
+                    field: "envelope",
+                },
+            );
+        }
+
+        let current_thresholds = packaged_artifact_fit_threshold_summary_details();
+        if self.thresholds != current_thresholds {
+            return Err(
+                PackagedArtifactFitEnvelopeSummaryValidationError::FieldOutOfSync {
+                    field: "thresholds",
+                },
+            );
+        }
+
+        self.envelope.validate_against_thresholds(&self.thresholds)
+    }
+
+    /// Returns the validated fit margins relative to the calibrated thresholds as a compact human-readable line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, PackagedArtifactFitEnvelopeSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for PackagedArtifactFitMarginSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 /// Packaged-artifact fit threshold violations captured for the current posture.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PackagedArtifactFitThresholdViolationsSummary {
@@ -1704,20 +1765,20 @@ pub fn packaged_artifact_fit_threshold_summary_for_report() -> String {
 }
 
 /// Returns the current packaged-artifact fit margins relative to the calibrated thresholds.
-pub fn packaged_artifact_fit_margin_summary_for_report() -> String {
-    let envelope = packaged_artifact_fit_envelope_summary_details();
-    let thresholds = packaged_artifact_fit_threshold_summary_details();
+pub fn packaged_artifact_fit_margin_summary_details() -> PackagedArtifactFitMarginSummary {
+    let summary = PackagedArtifactFitMarginSummary {
+        envelope: packaged_artifact_fit_envelope_summary_details(),
+        thresholds: packaged_artifact_fit_threshold_summary_details(),
+    };
+    debug_assert!(summary.validate().is_ok());
+    summary
+}
 
-    match envelope.validate_against_thresholds(&thresholds) {
-        Ok(()) => format!(
-            "fit margins: mean Δlon={:+.12}°, mean Δlat={:+.12}°, mean Δdist={:+.12} AU; max Δlon={:+.12}°, max Δlat={:+.12}°, max Δdist={:+.12} AU",
-            thresholds.max_mean_longitude_delta_degrees - envelope.mean_longitude_delta_degrees,
-            thresholds.max_mean_latitude_delta_degrees - envelope.mean_latitude_delta_degrees,
-            thresholds.max_mean_distance_delta_au - envelope.mean_distance_delta_au,
-            thresholds.max_longitude_delta_degrees - envelope.max_longitude_delta_degrees,
-            thresholds.max_latitude_delta_degrees - envelope.max_latitude_delta_degrees,
-            thresholds.max_distance_delta_au - envelope.max_distance_delta_au,
-        ),
+/// Returns the current packaged-artifact fit margins relative to the calibrated thresholds after validating the structured posture.
+pub fn packaged_artifact_fit_margin_summary_for_report() -> String {
+    let summary = packaged_artifact_fit_margin_summary_details();
+    match summary.validated_summary_line() {
+        Ok(line) => line,
         Err(error) => format!("fit margins: unavailable ({error})"),
     }
 }
@@ -10442,6 +10503,50 @@ mod tests {
             }
         );
         assert!(error.to_string().contains("violations"));
+    }
+
+    #[test]
+    fn packaged_artifact_fit_margin_summary_reflects_the_current_posture() {
+        let summary = packaged_artifact_fit_margin_summary_details();
+        assert_eq!(
+            summary.summary_line(),
+            packaged_artifact_fit_margin_summary_for_report()
+        );
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert!(summary.validate().is_ok());
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+    }
+
+    #[test]
+    fn packaged_artifact_fit_margin_summary_validation_rejects_envelope_drift() {
+        let mut summary = packaged_artifact_fit_margin_summary_details();
+        summary.envelope.mean_distance_delta_au += 1.0;
+
+        let error = summary
+            .validate()
+            .expect_err("fit margin envelope drift should be rejected");
+        assert_eq!(
+            error,
+            PackagedArtifactFitEnvelopeSummaryValidationError::FieldOutOfSync { field: "envelope" }
+        );
+        assert!(error.to_string().contains("envelope"));
+    }
+
+    #[test]
+    fn packaged_artifact_fit_margin_summary_validation_rejects_threshold_drift() {
+        let mut summary = packaged_artifact_fit_margin_summary_details();
+        summary.thresholds.max_distance_delta_au += 1.0;
+
+        let error = summary
+            .validate()
+            .expect_err("fit margin threshold drift should be rejected");
+        assert_eq!(
+            error,
+            PackagedArtifactFitEnvelopeSummaryValidationError::FieldOutOfSync {
+                field: "thresholds",
+            }
+        );
+        assert!(error.to_string().contains("thresholds"));
     }
 
     #[test]
