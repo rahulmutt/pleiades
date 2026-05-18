@@ -46,3 +46,4 @@ Align the finalized threshold posture with the Phase 2 corpus and hold-out valid
 - Audit house/ayanamsa entries whose release claims are stronger than their evidence.
 - Keep request-policy docs and structured unsupported errors synchronized.
 - Harden release-bundle verification without changing feature claims, and keep the lunar-theory source-family summary exposed as a release-facing CLI surface with matching docs.
+- The chart help block now reuses the same compact request-policy line for the request-semantics alias instead of applying a dead string rewrite, keeping the CLI help wording aligned with the docs.

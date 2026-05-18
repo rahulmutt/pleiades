@@ -50,7 +50,7 @@ fn ensure_no_extra_args(args: &[&str], command: &str) -> Result<(), String> {
 
 fn shared_request_policy_help_block() -> String {
     let request_policy = validated_request_policy_summary_for_report();
-    let request_semantics = request_policy.replacen("Request policy", "Request semantics", 1);
+    let request_semantics = request_policy.clone();
     let time_scale_policy = validated_time_scale_policy_summary_for_report();
     let utc_convenience_policy = validated_utc_convenience_policy_summary_for_report();
     let delta_t_policy = validated_delta_t_policy_summary_for_report();
@@ -6146,10 +6146,7 @@ mod tests {
             .expect("request policy should validate");
         assert!(help.contains(&shared_request_policy_help_block()));
         assert!(help.contains(&format!("Request policy: {request_policy}")));
-        assert!(help.contains(&format!(
-            "Request semantics summary: {}",
-            request_policy.replacen("Request policy", "Request semantics", 1)
-        )));
+        assert!(help.contains(&format!("Request semantics summary: {request_policy}")));
         assert!(help.contains("Request semantics summary:"));
         assert!(help.contains(
             "observer-bearing chart requests stay geocentric and use the observer only for houses"
