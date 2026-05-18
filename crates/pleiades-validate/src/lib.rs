@@ -8137,6 +8137,45 @@ fn summarize_descriptor_names<T>(
     }
 }
 
+fn validate_compatibility_profile_summary_text(
+    text: &str,
+    profile: &CompatibilityProfile,
+    release_profiles: &ReleaseProfileIdentifiers,
+) -> Result<(), String> {
+    let expected_house_line = format!(
+        "House systems: {} total ({} baseline, {} release-specific)",
+        profile.house_systems.len(),
+        profile.baseline_house_systems.len(),
+        profile.release_house_systems.len()
+    );
+    if !text.contains(&expected_house_line) {
+        return Err(format!(
+            "compatibility profile summary house-system baseline/release split mismatch: expected `{expected_house_line}`"
+        ));
+    }
+
+    let expected_ayanamsa_line = format!(
+        "Ayanamsas: {} total ({} baseline, {} release-specific)",
+        profile.ayanamsas.len(),
+        profile.baseline_ayanamsas.len(),
+        profile.release_ayanamsas.len()
+    );
+    if !text.contains(&expected_ayanamsa_line) {
+        return Err(format!(
+            "compatibility profile summary ayanamsa baseline/release split mismatch: expected `{expected_ayanamsa_line}`"
+        ));
+    }
+
+    let expected_profile_line = format!("Profile: {}", release_profiles.compatibility_profile_id);
+    if !text.contains(&expected_profile_line) {
+        return Err(format!(
+            "compatibility profile summary profile id mismatch: expected `{expected_profile_line}`"
+        ));
+    }
+
+    Ok(())
+}
+
 fn render_compatibility_profile_summary_text() -> String {
     let profile = match validated_compatibility_profile_for_report() {
         Ok(profile) => profile,
@@ -8240,6 +8279,12 @@ fn render_compatibility_profile_summary_text() -> String {
     text.push_str("Release checklist summary: release-checklist-summary\n");
     text.push_str("Release bundle verification: verify-release-bundle\n");
     text.push_str("See release-summary for the compact one-screen release overview.\n");
+
+    if let Err(error) =
+        validate_compatibility_profile_summary_text(&text, &profile, &release_profiles)
+    {
+        return format!("Compatibility profile summary unavailable ({error})");
+    }
 
     text
 }
@@ -24465,6 +24510,46 @@ mod tests {
         assert!(
             rendered.contains("See release-summary for the compact one-screen release overview.")
         );
+    }
+
+    #[test]
+    fn compatibility_profile_summary_text_validation_rejects_split_drift() {
+        let profile = validated_compatibility_profile_for_report()
+            .expect("compatibility profile should validate");
+        let release_profiles = validated_release_profile_identifiers_for_report()
+            .expect("release profile identifiers should validate");
+        let rendered = render_compatibility_profile_summary_text();
+        let expected_house_line = format!(
+            "House systems: {} total ({} baseline, {} release-specific)",
+            profile.house_systems.len(),
+            profile.baseline_house_systems.len(),
+            profile.release_house_systems.len()
+        );
+        let expected_ayanamsa_line = format!(
+            "Ayanamsas: {} total ({} baseline, {} release-specific)",
+            profile.ayanamsas.len(),
+            profile.baseline_ayanamsas.len(),
+            profile.release_ayanamsas.len()
+        );
+
+        assert!(validate_compatibility_profile_summary_text(
+            &rendered,
+            &profile,
+            &release_profiles,
+        )
+        .is_ok());
+
+        let tampered = rendered.replacen(&expected_house_line, "House systems: split omitted", 1);
+        let error =
+            validate_compatibility_profile_summary_text(&tampered, &profile, &release_profiles)
+                .expect_err("tampered compatibility profile summary should fail validation");
+        assert!(error.contains("baseline/release split mismatch"));
+
+        let tampered = rendered.replacen(&expected_ayanamsa_line, "Ayanamsas: split omitted", 1);
+        let error =
+            validate_compatibility_profile_summary_text(&tampered, &profile, &release_profiles)
+                .expect_err("tampered compatibility profile summary should fail validation");
+        assert!(error.contains("baseline/release split mismatch"));
     }
 
     #[test]
