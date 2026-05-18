@@ -3818,6 +3818,16 @@ pub fn production_generation_snapshot_window_summary_for_report() -> String {
     }
 }
 
+/// Returns the validated release-facing production-generation source window summary string.
+pub fn validated_production_generation_snapshot_window_summary_for_report() -> Result<String, String>
+{
+    let summary = production_generation_snapshot_window_summary()
+        .ok_or_else(|| "production generation source windows unavailable".to_string())?;
+    summary
+        .validated_summary_line()
+        .map_err(|error| error.to_string())
+}
+
 /// A compact body-class coverage summary for the merged production-generation corpus.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ProductionGenerationSnapshotBodyClassCoverageSummary {

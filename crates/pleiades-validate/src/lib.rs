@@ -11537,6 +11537,22 @@ fn ensure_production_generation_source_summary_matches_source_windows(
     Ok(())
 }
 
+fn ensure_production_generation_source_window_summary_matches_current_rendering(
+    production_generation_source_window_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if production_generation_source_window_summary_text
+        == pleiades_jpl::validated_production_generation_snapshot_window_summary_for_report()
+            .map_err(ReleaseBundleError::Verification)?
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "production generation source window summary no longer matches the current production-generation source-window posture"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_packaged_artifact_target_threshold_summary_matches_current_rendering(
     packaged_artifact_target_threshold_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -12707,6 +12723,9 @@ fn verify_release_bundle(
     )?;
     ensure_production_generation_source_summary_matches_source_windows(
         &production_generation_source_summary_text,
+        &production_generation_source_window_summary_text,
+    )?;
+    ensure_production_generation_source_window_summary_matches_current_rendering(
         &production_generation_source_window_summary_text,
     )?;
 
@@ -29767,6 +29786,31 @@ version = "0.9.0"
             &source_window_summary,
         )
         .expect("production-generation source summary should match the source-window payload");
+    }
+
+    #[test]
+    fn production_generation_source_window_summary_matches_current_rendering() {
+        let summary = production_generation_snapshot_window_summary_for_report();
+
+        ensure_production_generation_source_window_summary_matches_current_rendering(&summary)
+            .expect(
+                "production-generation source window summary should match the current rendering",
+            );
+    }
+
+    #[test]
+    fn production_generation_source_window_summary_validation_rejects_drift() {
+        let summary = production_generation_snapshot_window_summary_for_report();
+        let drifted_summary =
+            summary.replace("355 source-backed samples", "356 source-backed samples");
+
+        let error = ensure_production_generation_source_window_summary_matches_current_rendering(
+            &drifted_summary,
+        )
+        .expect_err("drifted production-generation source window summary should be rejected");
+        assert!(error
+            .to_string()
+            .contains("no longer matches the current production-generation source-window posture"));
     }
 
     #[test]
