@@ -25,7 +25,7 @@ Provide documented public source inputs broad enough for backend validation, rel
 - Completed: the reference snapshot source summary now surfaces redistribution posture directly alongside the checked-in checksum-bearing source metadata, the independent hold-out source summary now surfaces redistribution posture in release-facing reports, and the reference and hold-out snapshot manifests now record redistribution posture comments so the checked-in fixture headers carry the same provenance posture as the generation summaries.
 - Expand coverage only where it supports release claims or artifact fitting.
 - Keep reference, hold-out, boundary-overlay, fixture-exactness, and provenance-only evidence classes separate.
-- Publish body-class tolerance reports and empirical error envelopes for release-claimed backend paths.
+- Completed: body-class tolerance reports and empirical error envelopes for release-claimed backend paths now surface through the validation report and a standalone comparison-body-class-error-envelope CLI summary, so the empirical envelope evidence has both a detailed report path and a compact release-facing summary.
 - Preserve small golden fixtures for fast regression tests even if broader ingestion lands.
 - Ensure all ingestion/build steps remain pure Rust and deterministic.
 
