@@ -87,10 +87,8 @@ use pleiades_data::{
     packaged_artifact_regeneration_summary_for_report,
     packaged_artifact_speed_policy_summary_for_report,
     packaged_artifact_target_threshold_scope_envelopes_for_report,
-    packaged_artifact_target_threshold_summary_details,
-    packaged_artifact_target_threshold_summary_for_report,
-    packaged_frame_parity_summary_for_report, packaged_frame_treatment_summary_for_report,
-    packaged_lookup_epoch_policy_summary_for_report,
+    packaged_artifact_target_threshold_summary_details, packaged_frame_parity_summary_for_report,
+    packaged_frame_treatment_summary_for_report, packaged_lookup_epoch_policy_summary_for_report,
     packaged_mixed_tt_tdb_batch_parity_summary_for_report,
     packaged_request_policy_summary_for_report, PackagedDataBackend,
 };
@@ -4953,7 +4951,7 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "packaged-artifact-target-threshold-summary")?;
             Ok(format!(
                 "Packaged-artifact target thresholds: {}",
-                packaged_artifact_target_threshold_summary_for_report()
+                validated_packaged_artifact_target_threshold_summary_for_report()
             ))
         }
         Some("packaged-artifact-target-threshold-scope-envelopes-summary")
@@ -8746,7 +8744,7 @@ fn render_release_notes_summary_text() -> String {
     text.push_str(&residual_bodies);
     text.push('\n');
     text.push_str("Packaged-artifact target thresholds: ");
-    text.push_str(&packaged_artifact_target_threshold_summary_for_report());
+    text.push_str(&validated_packaged_artifact_target_threshold_summary_for_report());
     text.push('\n');
     text.push_str("Packaged-artifact source-fit and hold-out sync: ");
     text.push_str(&validated_packaged_artifact_source_fit_holdout_sync_summary_for_report());
@@ -9385,7 +9383,7 @@ fn render_release_summary_text() -> String {
     text.push_str(&fit_threshold_violation_summary);
     text.push('\n');
     text.push_str("Packaged-artifact target thresholds: ");
-    text.push_str(&packaged_artifact_target_threshold_summary_for_report());
+    text.push_str(&validated_packaged_artifact_target_threshold_summary_for_report());
     text.push('\n');
     text.push_str("Packaged-artifact source-fit and hold-out sync: ");
     text.push_str(&validated_packaged_artifact_source_fit_holdout_sync_summary_for_report());
@@ -9771,7 +9769,7 @@ pub fn render_release_bundle(
         validated_packaged_artifact_production_profile_summary_for_report();
     let packaged_frame_treatment_summary_text = packaged_frame_treatment_summary_for_report();
     let packaged_artifact_target_threshold_summary_text =
-        packaged_artifact_target_threshold_summary_for_report();
+        validated_packaged_artifact_target_threshold_summary_for_report();
     let packaged_artifact_source_fit_holdout_sync_summary_text =
         validated_packaged_artifact_source_fit_holdout_sync_summary_for_report();
     let packaged_artifact_target_threshold_scope_envelopes_summary_text =
@@ -11543,7 +11541,7 @@ fn ensure_packaged_artifact_target_threshold_summary_matches_current_rendering(
     packaged_artifact_target_threshold_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
     if packaged_artifact_target_threshold_summary_text
-        == packaged_artifact_target_threshold_summary_for_report()
+        == validated_packaged_artifact_target_threshold_summary_for_report()
     {
         Ok(())
     } else {
@@ -15262,7 +15260,8 @@ fn render_benchmark_matrix_summary_text(report: &ValidationReport) -> String {
     let fit_sample_classes_summary = packaged_artifact_fit_sample_classes_summary_for_report();
     let fit_outlier_summary = packaged_artifact_fit_outlier_summary_for_report();
     let fit_thresholds_summary = packaged_artifact_fit_threshold_summary_for_report();
-    let target_threshold_summary = packaged_artifact_target_threshold_summary_for_report();
+    let target_threshold_summary =
+        validated_packaged_artifact_target_threshold_summary_for_report();
     let target_threshold_scope_envelopes_summary =
         packaged_artifact_target_threshold_scope_envelopes_for_report();
     let fit_margin_summary = report_summary_payload(
@@ -16562,6 +16561,14 @@ fn validated_packaged_artifact_storage_summary_for_report() -> String {
     }
 }
 
+fn validated_packaged_artifact_target_threshold_summary_for_report() -> String {
+    let summary = pleiades_data::packaged_artifact_target_threshold_summary_details();
+    match summary.validated_summary_line() {
+        Ok(line) => line,
+        Err(error) => format!("Packaged-artifact target thresholds: unavailable ({error})"),
+    }
+}
+
 fn validated_packaged_artifact_source_fit_holdout_sync_summary_for_report() -> String {
     let summary = pleiades_data::packaged_artifact_source_fit_holdout_sync_summary_details();
     match summary.validated_summary_line() {
@@ -17457,7 +17464,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(
         text,
         "  Packaged-artifact target thresholds: {}",
-        packaged_artifact_target_threshold_summary_for_report()
+        validated_packaged_artifact_target_threshold_summary_for_report()
     );
     let _ = writeln!(
         text,
@@ -29695,7 +29702,7 @@ version = "0.9.0"
 
     #[test]
     fn packaged_artifact_target_threshold_summary_matches_current_rendering() {
-        let summary = packaged_artifact_target_threshold_summary_for_report();
+        let summary = validated_packaged_artifact_target_threshold_summary_for_report();
 
         ensure_packaged_artifact_target_threshold_summary_matches_current_rendering(&summary)
             .expect(
@@ -29735,7 +29742,7 @@ version = "0.9.0"
 
     #[test]
     fn packaged_artifact_target_threshold_summary_validation_rejects_drift() {
-        let summary = packaged_artifact_target_threshold_summary_for_report();
+        let summary = validated_packaged_artifact_target_threshold_summary_for_report();
         let drifted_summary = summary.replace(
             "production thresholds recorded",
             "production thresholds drifting",
@@ -31835,7 +31842,7 @@ version = "0.9.0"
             target_threshold,
             format!(
                 "Packaged-artifact target thresholds: {}",
-                packaged_artifact_target_threshold_summary_for_report()
+                validated_packaged_artifact_target_threshold_summary_for_report()
             )
         );
         assert_eq!(
