@@ -18,6 +18,7 @@ The codec, artifact structures, deterministic regeneration path, checksums, gene
 - Residual correction search now also explores all remaining channel-order permutations when composing channels, so order-sensitive candidates no longer depend on the previous suffix-only traversal, and equal-error candidates now prefer the smaller residual footprint. Equal-error candidate-versus-fallback decisions now prefer the simpler segment, and the candidate-vs-fallback path is now accuracy-first so a worse fit no longer wins purely because it is simpler.
 - Completed: validation now rejects any unlisted artifact output classification, and release-facing output-support summaries render the explicit empty unlisted bucket.
 - Preserve deterministic generation parameters, normalized-intermediate checksums, artifact checksums, and encoded-size accounting.
+- Completed: the comparison body-class tolerance summary renderer now validates each class row before formatting, so malformed tolerance rows fail closed instead of leaking partial drift text.
 - Make artifact validation fail on threshold violations, capability drift, checksum drift, malformed manifests, or unsupported request shapes.
 - Keep performance benchmarks visible, but treat accuracy, reproducibility, and report tractability as release blockers.
 

@@ -16382,16 +16382,27 @@ fn render_comparison_tolerance_scope_coverage_summary_text() -> String {
     render_comparison_tolerance_scope_coverage_summary_text_from_summary(summary)
 }
 
-fn render_comparison_body_class_tolerance_summary_text() -> String {
+fn render_comparison_body_class_tolerance_summary_text_from_summaries(
+    summaries: Result<Vec<BodyClassToleranceSummary>, String>,
+) -> String {
     use std::fmt::Write as _;
 
-    let report = match comparison_report_for_default_render() {
-        Ok(report) => report,
+    let summaries = match summaries {
+        Ok(summaries) => summaries,
         Err(error) => {
             return format!("Comparison body-class tolerance summary\nComparison body-class tolerance unavailable ({error})\n");
         }
     };
-    let summaries = report.body_class_tolerance_summaries();
+
+    if summaries.is_empty() {
+        return "Comparison body-class tolerance summary\nComparison body-class tolerance unavailable (comparison report did not produce any body-class tolerance summaries)\n".to_string();
+    }
+
+    for summary in &summaries {
+        if let Err(error) = summary.validate() {
+            return format!("Comparison body-class tolerance summary\nComparison body-class tolerance unavailable ({error})\n");
+        }
+    }
 
     let mut text = String::from("Comparison body-class tolerance summary\n");
     let _ = writeln!(text, "Body-class tolerance posture: {}", summaries.len());
@@ -16403,6 +16414,15 @@ fn render_comparison_body_class_tolerance_summary_text() -> String {
         );
     }
     text
+}
+
+fn render_comparison_body_class_tolerance_summary_text() -> String {
+    let summaries = match comparison_report_for_default_render() {
+        Ok(report) => Ok(report.body_class_tolerance_summaries()),
+        Err(error) => Err(error),
+    };
+
+    render_comparison_body_class_tolerance_summary_text_from_summaries(summaries)
 }
 
 fn render_comparison_body_class_tolerance_posture_summary_text() -> String {
@@ -21531,6 +21551,24 @@ mod tests {
             ),
             "comparison-body-class-tolerance-posture does not accept extra arguments"
         );
+    }
+
+    #[test]
+    fn comparison_body_class_tolerance_summary_renderer_fails_closed_on_invalid_rows() {
+        let corpus = release_grade_corpus();
+        let reference = default_reference_backend();
+        let candidate = default_candidate_backend();
+        let report =
+            compare_backends(&reference, &candidate, &corpus).expect("comparison should build");
+        let mut summaries = report.body_class_tolerance_summaries();
+        summaries[0].body_count += 1;
+
+        let rendered =
+            render_comparison_body_class_tolerance_summary_text_from_summaries(Ok(summaries));
+
+        assert!(rendered.contains("Comparison body-class tolerance summary"));
+        assert!(rendered.contains("Comparison body-class tolerance unavailable"));
+        assert!(rendered.contains("body-class tolerance summary body-count mismatch"));
     }
 
     #[test]

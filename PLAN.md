@@ -33,6 +33,7 @@ Current backend and data posture:
 - Current first-party request policy is explicit: TT/TDB mean geometric geocentric tropical requests are supported where metadata says so; built-in Delta T/UTC modeling, apparent-place corrections, topocentric body positions, and native sidereal backend output remain unsupported unless a future backend advertises and validates them.
 - The release notes and release summary surfaces now route the compatibility profile's release note through a validated helper before rendering, so those release-facing entries fail closed on profile summary drift.
 - The zodiac policy summary now also routes through a validated release helper in validation and release-facing report surfaces, so the shared zodiac-posture wording fails closed when report prose drifts.
+- The comparison body-class tolerance summary renderer now validates each class row before formatting, so malformed tolerance rows fail closed instead of leaking partial drift text.
 
 ## Remaining specification gaps
 
