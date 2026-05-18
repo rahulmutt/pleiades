@@ -2600,7 +2600,7 @@ const PACKAGED_ARTIFACT_TARGET_THRESHOLD_SCOPES: &[&str] = &[
 ];
 
 /// Phase-2 corpus evidence used to keep the packaged-artifact threshold policy aligned
-/// with the current reference, comparison, hold-out, selected-asteroid, and production-generation corpora.
+/// with the current reference, comparison, hold-out, selected-asteroid, boundary-overlay, and production-generation corpora.
 #[derive(Clone, Debug, PartialEq)]
 pub struct PackagedArtifactPhase2CorpusAlignmentSummary {
     /// Source-material evidence from the checked-in reference snapshot.
@@ -2622,6 +2622,8 @@ pub struct PackagedArtifactPhase2CorpusAlignmentSummary {
     /// Checked-in request-corpus evidence for the selected-asteroid validation corpus.
     pub selected_asteroid_source_request_corpus:
         pleiades_jpl::SelectedAsteroidSourceRequestCorpusSummary,
+    /// Source-material evidence for the checked-in production-generation boundary overlay.
+    pub production_generation_boundary_source: pleiades_jpl::IndependentHoldoutSourceSummary,
     /// Body-class coverage evidence for the checked-in production-generation corpus.
     pub production_generation_body_class_coverage:
         pleiades_jpl::ProductionGenerationSnapshotBodyClassCoverageSummary,
@@ -2633,7 +2635,7 @@ impl PackagedArtifactPhase2CorpusAlignmentSummary {
     /// Returns the phase-2 corpus alignment posture as a compact human-readable line.
     pub fn summary_line(&self) -> String {
         format!(
-            "reference source={}; reference snapshot={}; comparison source={}; comparison snapshot={}; independent hold-out source={}; independent hold-out={}; selected asteroid source evidence={}; selected asteroid source windows={}; selected asteroid source request corpus={}; production generation body-class coverage={}; production generation source={}",
+            "reference source={}; reference snapshot={}; comparison source={}; comparison snapshot={}; independent hold-out source={}; independent hold-out={}; selected asteroid source evidence={}; selected asteroid source windows={}; selected asteroid source request corpus={}; production generation boundary source={}; production generation body-class coverage={}; production generation source={}",
             self.reference_snapshot_source.summary_line(),
             self.reference_snapshot.summary_line(),
             self.comparison_snapshot_source.summary_line(),
@@ -2643,6 +2645,9 @@ impl PackagedArtifactPhase2CorpusAlignmentSummary {
             self.selected_asteroid_source.summary_line(),
             self.selected_asteroid_source_windows.summary_line(),
             self.selected_asteroid_source_request_corpus.summary_line(),
+            pleiades_jpl::format_production_generation_boundary_source_summary(
+                &self.production_generation_boundary_source,
+            ),
             self.production_generation_body_class_coverage.summary_line(),
             self.production_generation_source.summary_line(),
         )
@@ -2715,6 +2720,13 @@ impl PackagedArtifactPhase2CorpusAlignmentSummary {
                     field: "phase2_corpus_alignment",
                 },
             )?;
+        self.production_generation_boundary_source
+            .validate()
+            .map_err(
+                |_| PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+                    field: "phase2_corpus_alignment",
+                },
+            )?;
         self.production_generation_body_class_coverage
             .validate()
             .map_err(
@@ -2761,6 +2773,8 @@ pub fn packaged_artifact_phase2_corpus_alignment_summary_details(
         selected_asteroid_source_request_corpus: selected_asteroid_source_request_corpus_summary(
             CoordinateFrame::Ecliptic,
         )?,
+        production_generation_boundary_source:
+            pleiades_jpl::production_generation_boundary_source_summary(),
         production_generation_body_class_coverage:
             pleiades_jpl::production_generation_snapshot_body_class_coverage_summary()?,
         production_generation_source: production_generation_source_summary(),
@@ -10128,6 +10142,9 @@ mod tests {
             "selected asteroid source request corpus=Selected asteroid source request corpus:"
         ));
         assert!(summary.phase2_corpus_alignment.summary_line().contains(
+            "production generation boundary source=Production generation boundary overlay source:"
+        ));
+        assert!(summary.phase2_corpus_alignment.summary_line().contains(
             "production generation body-class coverage=Production generation body-class coverage:"
         ));
         assert!(summary
@@ -10180,6 +10197,27 @@ mod tests {
         let error = summary
             .validate()
             .expect_err("phase-2 source drift should be rejected");
+        assert_eq!(
+            error,
+            PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+                field: "phase2_corpus_alignment",
+            }
+        );
+        assert!(error.to_string().contains("phase2_corpus_alignment"));
+    }
+
+    #[test]
+    fn packaged_artifact_target_threshold_summary_validation_rejects_phase2_boundary_source_drift()
+    {
+        let mut summary = packaged_artifact_target_threshold_summary_details();
+        summary
+            .phase2_corpus_alignment
+            .production_generation_boundary_source
+            .source = "drifted source".to_string();
+
+        let error = summary
+            .validate()
+            .expect_err("phase-2 boundary source drift should be rejected");
         assert_eq!(
             error,
             PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
@@ -10245,6 +10283,9 @@ mod tests {
         assert!(rendered.contains("Independent hold-out body-class coverage"));
         assert!(rendered.contains(
             "selected asteroid source request corpus=Selected asteroid source request corpus:"
+        ));
+        assert!(rendered.contains(
+            "production generation boundary source=Production generation boundary overlay source:"
         ));
     }
 
