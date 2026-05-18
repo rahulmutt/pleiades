@@ -67,7 +67,7 @@ use pleiades_jpl::{
 const PACKAGE_NAME: &str = "pleiades-data";
 const ARTIFACT_LABEL: &str = "stage-5 packaged-data draft";
 const ARTIFACT_PROFILE_ID: &str = "pleiades-packaged-artifact-profile/stage-5-draft";
-const PACKAGED_ARTIFACT_GENERATION_STRATEGY_TAIL: &str = "with 8-point and 10-point Chebyshev-Lobatto baseline candidates before the dense body-specific ladders and 12-point candidates for inner and outer planets before fallback, with 10-point, 12-point, 14-point, 16-point, 18-point, and 20-point options for luminaries, Pluto, selected asteroids, and custom bodies, and the best dense candidate wins before fallback, residual correction channels on high-curvature spans when they improve the fit, higher-order distance reconstruction from fit samples when it quantizes cleanly, cubic distance reconstruction from four-point control points when available, and quadratic fallback otherwise";
+const PACKAGED_ARTIFACT_GENERATION_STRATEGY_TAIL: &str = "with 8-point and 10-point Chebyshev-Lobatto baseline candidates before the dense body-specific ladders and 12-point candidates for inner and outer planets before fallback, with 10-point, 12-point, 14-point, 16-point, 18-point, and 20-point options for luminaries, Pluto, selected asteroids, and custom bodies, and the best dense candidate wins before fallback, with equal-error, equal-sample-count ties preferring the simpler segment, residual correction channels on high-curvature spans when they improve the fit, higher-order distance reconstruction from fit samples when it quantizes cleanly, cubic distance reconstruction from four-point control points when available, and quadratic fallback otherwise";
 
 fn packaged_artifact_generation_policy_note_text() -> &'static str {
     static NOTE: OnceLock<String> = OnceLock::new();
@@ -5870,6 +5870,7 @@ impl PackagedArtifactSegmentFitError {
 #[derive(Clone, Copy, Debug)]
 struct PackagedArtifactFitCandidateScore {
     sample_count: usize,
+    complexity: usize,
     error: PackagedArtifactSegmentFitError,
 }
 
@@ -5886,7 +5887,11 @@ fn segment_fit_candidate_is_better(
     match candidate.max_delta().total_cmp(&existing.max_delta()) {
         Ordering::Less => true,
         Ordering::Greater => false,
-        Ordering::Equal => candidate.sample_count < existing.sample_count,
+        Ordering::Equal => match candidate.sample_count.cmp(&existing.sample_count) {
+            Ordering::Less => true,
+            Ordering::Greater => false,
+            Ordering::Equal => candidate.complexity < existing.complexity,
+        },
     }
 }
 
@@ -6471,6 +6476,7 @@ fn segment_from_pair(
         ) {
             let score = PackagedArtifactFitCandidateScore {
                 sample_count: *sample_count,
+                complexity: segment_complexity(&segment),
                 error,
             };
             let should_replace = best_candidate
@@ -7735,6 +7741,7 @@ mod tests {
     fn packaged_artifact_fit_candidate_scoring_prefers_lower_error_and_lower_order_ties() {
         let lower_order_worse = PackagedArtifactFitCandidateScore {
             sample_count: 6,
+            complexity: 9,
             error: PackagedArtifactSegmentFitError {
                 longitude_degrees: 2.0,
                 latitude_degrees: 2.0,
@@ -7743,6 +7750,7 @@ mod tests {
         };
         let higher_order_better = PackagedArtifactFitCandidateScore {
             sample_count: 12,
+            complexity: 12,
             error: PackagedArtifactSegmentFitError {
                 longitude_degrees: 1.0,
                 latitude_degrees: 1.0,
@@ -7751,6 +7759,7 @@ mod tests {
         };
         let equal_error_lower_order = PackagedArtifactFitCandidateScore {
             sample_count: 8,
+            complexity: 8,
             error: PackagedArtifactSegmentFitError {
                 longitude_degrees: 1.5,
                 latitude_degrees: 1.5,
@@ -7758,7 +7767,8 @@ mod tests {
             },
         };
         let equal_error_higher_order = PackagedArtifactFitCandidateScore {
-            sample_count: 12,
+            sample_count: 8,
+            complexity: 12,
             error: PackagedArtifactSegmentFitError {
                 longitude_degrees: 1.5,
                 latitude_degrees: 1.5,
@@ -7777,6 +7787,18 @@ mod tests {
         assert!(!segment_fit_candidate_is_better(
             equal_error_lower_order,
             equal_error_higher_order
+        ));
+        assert!(segment_fit_candidate_is_better(
+            equal_error_higher_order,
+            PackagedArtifactFitCandidateScore {
+                sample_count: 8,
+                complexity: 8,
+                error: PackagedArtifactSegmentFitError {
+                    longitude_degrees: 1.5,
+                    latitude_degrees: 1.5,
+                    distance_au: 1.5,
+                },
+            }
         ));
     }
 
