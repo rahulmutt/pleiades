@@ -11553,6 +11553,36 @@ fn ensure_production_generation_source_window_summary_matches_current_rendering(
     }
 }
 
+fn ensure_production_generation_boundary_source_summary_matches_current_rendering(
+    production_generation_boundary_source_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if production_generation_boundary_source_summary_text
+        == production_generation_boundary_source_summary_for_report()
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "production generation boundary source summary no longer matches the current production-generation boundary source posture"
+                .to_string(),
+        ))
+    }
+}
+
+fn ensure_production_generation_boundary_request_corpus_summary_matches_current_rendering(
+    production_generation_boundary_request_corpus_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if production_generation_boundary_request_corpus_summary_text
+        == production_generation_boundary_request_corpus_summary_for_report()
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "production generation boundary request corpus summary no longer matches the current production-generation boundary request corpus posture"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_reference_snapshot_source_summary_matches_current_rendering(
     reference_snapshot_source_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -12085,6 +12115,12 @@ fn verify_release_bundle(
     let production_generation_boundary_request_corpus_summary_text = read_required_bundle_text(
         &production_generation_boundary_request_corpus_summary_path,
         "production generation boundary request corpus summary",
+    )?;
+    ensure_production_generation_boundary_source_summary_matches_current_rendering(
+        &production_generation_boundary_source_summary_text,
+    )?;
+    ensure_production_generation_boundary_request_corpus_summary_matches_current_rendering(
+        &production_generation_boundary_request_corpus_summary_text,
     )?;
     let reference_snapshot_summary_text = read_required_bundle_text(
         &reference_snapshot_summary_path,
@@ -20653,6 +20689,69 @@ mod tests {
 
         let error = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string])
             .expect_err("verification should fail for a tampered release bundle file");
+        assert!(
+            error.contains("release bundle verification failed")
+                || error.contains(expected_fragment),
+            "unexpected error: {error}"
+        );
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
+    fn assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+        bundle_dir_prefix: &str,
+        file_name: &str,
+        manifest_checksum_prefix: &str,
+        from: &str,
+        to: &str,
+        expected_fragment: &str,
+    ) {
+        let bundle_dir = unique_temp_dir(bundle_dir_prefix);
+        let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
+        render_cli(&[
+            "bundle-release",
+            "--out",
+            &bundle_dir_string,
+            "--rounds",
+            "1",
+        ])
+        .expect("bundle release should render");
+
+        let file_path = bundle_dir.join(file_name);
+        let original = std::fs::read_to_string(&file_path)
+            .unwrap_or_else(|error| panic!("{file_name} should exist: {error}"));
+        let tampered = original.replace(from, to);
+        assert_ne!(
+            original, tampered,
+            "{file_name} should be changed by the regression edit"
+        );
+        std::fs::write(&file_path, &tampered)
+            .unwrap_or_else(|error| panic!("{file_name} should be writable: {error}"));
+
+        let manifest_path = bundle_dir.join("bundle-manifest.txt");
+        let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");
+        let old_checksum_line = manifest
+            .lines()
+            .find(|line| line.starts_with(manifest_checksum_prefix))
+            .unwrap_or_else(|| {
+                panic!("manifest should contain the {manifest_checksum_prefix} line")
+            });
+        let new_checksum_line = format!(
+            "{manifest_checksum_prefix} 0x{:016x}",
+            checksum64(&tampered)
+        );
+        let updated_manifest = manifest.replacen(old_checksum_line, &new_checksum_line, 1);
+        std::fs::write(&manifest_path, &updated_manifest).expect("manifest should be writable");
+
+        let checksum_path = bundle_dir.join("bundle-manifest.checksum.txt");
+        std::fs::write(
+            &checksum_path,
+            format!("0x{:016x}\n", checksum64(&updated_manifest)),
+        )
+        .expect("manifest checksum sidecar should be writable");
+
+        let error = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string])
+            .expect_err("verification should fail for semantic release bundle drift");
         assert!(
             error.contains("release bundle verification failed")
                 || error.contains(expected_fragment),
@@ -29731,6 +29830,32 @@ version = "0.9.0"
         assert!(error.contains("source-fit and hold-out sync summary no longer matches"));
 
         let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_production_generation_boundary_source_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-production-generation-boundary-source-semantic",
+            "production-generation-boundary-source-summary.txt",
+            "production generation boundary source summary checksum (fnv1a-64):",
+            "coverage=Mars and Jupiter",
+            "coverage=drifted Mars and Jupiter",
+            "production generation boundary source summary no longer matches the current production-generation boundary source posture",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_production_generation_boundary_request_corpus_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-production-generation-boundary-request-corpus-semantic",
+            "production-generation-boundary-request-corpus-summary.txt",
+            "production generation boundary request corpus summary checksum (fnv1a-64):",
+            "42 requests",
+            "43 drifted requests",
+            "production generation boundary request corpus summary no longer matches the current production-generation boundary request corpus posture",
+        );
     }
 
     #[test]
