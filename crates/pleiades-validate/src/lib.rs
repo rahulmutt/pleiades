@@ -13083,6 +13083,9 @@ fn verify_release_bundle(
         profile_id,
         api_stability_posture_id,
     )?;
+    ensure_release_profile_identifiers_summary_matches_current_rendering(
+        &release_profile_identifiers_summary_text,
+    )?;
 
     if manifest.comparison_corpus_summary_path != "comparison-corpus-summary.txt" {
         return Err(ReleaseBundleError::Verification(format!(
@@ -14040,6 +14043,21 @@ fn ensure_release_profile_identifiers_alignment(
     }
 
     Ok(())
+}
+
+fn ensure_release_profile_identifiers_summary_matches_current_rendering(
+    release_profile_identifiers_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if release_profile_identifiers_summary_text.trim_end()
+        == render_release_profile_identifiers_summary().trim_end()
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "release-profile identifiers summary no longer matches the current release-profile identifiers posture"
+                .to_string(),
+        ))
+    }
 }
 
 fn ensure_catalog_inventory_alignment(text: &str) -> Result<(), ReleaseBundleError> {
@@ -30372,6 +30390,10 @@ version = "0.9.0"
             api_stability_posture_id,
         )
         .expect("matching release profile identifiers should verify");
+        ensure_release_profile_identifiers_summary_matches_current_rendering(
+            &render_release_profile_identifiers_summary(),
+        )
+        .expect("matching release-profile identifiers summary should verify");
         ensure_catalog_inventory_alignment(&catalog_inventory)
             .expect("matching catalog inventory should verify");
         ensure_custom_definition_ayanamsa_labels_alignment(&custom_definition_ayanamsa_labels)
@@ -30407,6 +30429,14 @@ version = "0.9.0"
         assert!(error
             .to_string()
             .contains("release-profile identifiers mismatch"));
+
+        let error = ensure_release_profile_identifiers_summary_matches_current_rendering(
+            "Release profile identifiers summary\nRelease profile identifiers: tampered\n",
+        )
+        .expect_err("mismatched release-profile identifiers summary should fail");
+        assert!(error
+            .to_string()
+            .contains("release-profile identifiers summary no longer matches"));
 
         let error = ensure_catalog_inventory_alignment("Compatibility catalog inventory: tampered")
             .expect_err("mismatched catalog inventory should fail");
