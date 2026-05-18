@@ -16347,12 +16347,36 @@ fn format_packaged_artifact_profile_summary() -> String {
     packaged_artifact_profile_summary_with_body_coverage()
 }
 
-fn format_packaged_artifact_output_support_summary() -> String {
-    packaged_artifact_output_support_summary_for_report()
+fn validated_packaged_artifact_output_support_summary_for_report() -> String {
+    let summary = pleiades_data::packaged_artifact_output_support_summary_details();
+    match summary.validate() {
+        Ok(()) => summary.to_string(),
+        Err(error) => format!("Packaged-artifact output support: unavailable ({error})"),
+    }
 }
 
-fn format_packaged_artifact_speed_policy_summary() -> String {
-    packaged_artifact_speed_policy_summary_for_report()
+fn validated_packaged_artifact_speed_policy_summary_for_report() -> String {
+    let summary = pleiades_data::packaged_artifact_speed_policy_summary_details();
+    match summary.validate() {
+        Ok(()) => summary.to_string(),
+        Err(error) => format!("Packaged-artifact speed policy: unavailable ({error})"),
+    }
+}
+
+fn validated_packaged_artifact_access_summary_for_report() -> String {
+    let summary = pleiades_data::packaged_artifact_access_summary_details();
+    match summary.validate() {
+        Ok(()) => summary.to_string(),
+        Err(error) => format!("Packaged-artifact access: unavailable ({error})"),
+    }
+}
+
+fn validated_packaged_artifact_generation_policy_summary_for_report() -> String {
+    let summary = pleiades_data::packaged_artifact_generation_policy_summary_details();
+    match summary.validate() {
+        Ok(()) => summary.to_string(),
+        Err(error) => format!("Packaged-artifact generation policy: unavailable ({error})"),
+    }
 }
 
 fn validated_packaged_artifact_storage_summary_for_report() -> String {
@@ -16361,6 +16385,18 @@ fn validated_packaged_artifact_storage_summary_for_report() -> String {
         Ok(()) => summary.to_string(),
         Err(error) => format!("Packaged-artifact storage/reconstruction: unavailable ({error})"),
     }
+}
+
+fn format_packaged_artifact_output_support_summary() -> String {
+    validated_packaged_artifact_output_support_summary_for_report()
+}
+
+fn format_packaged_artifact_speed_policy_summary() -> String {
+    validated_packaged_artifact_speed_policy_summary_for_report()
+}
+
+fn format_packaged_artifact_generation_policy_summary() -> String {
+    validated_packaged_artifact_generation_policy_summary_for_report()
 }
 
 fn validate_packaged_artifact_generation_residual_bodies_summary(
@@ -16393,7 +16429,7 @@ fn format_packaged_artifact_storage_summary() -> String {
 }
 
 fn format_packaged_artifact_access_summary() -> String {
-    packaged_artifact_access_summary_for_report()
+    validated_packaged_artifact_access_summary_for_report()
 }
 
 fn format_packaged_frame_parity_summary() -> String {
@@ -17220,7 +17256,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(
         text,
         "  Packaged-artifact generation policy: {}",
-        packaged_artifact_generation_policy_summary_for_report()
+        format_packaged_artifact_generation_policy_summary()
     );
     let _ = writeln!(
         text,
