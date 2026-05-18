@@ -5966,6 +5966,16 @@ pub fn validated_comparison_snapshot_source_summary_for_report() -> Result<Strin
         .map_err(|error| error.to_string())
 }
 
+/// Returns the validated source-window summary for the comparison snapshot.
+pub fn validated_comparison_snapshot_source_window_summary_for_report() -> Result<String, String> {
+    match comparison_snapshot_source_window_summary() {
+        Some(summary) => summary
+            .validated_summary_line()
+            .map_err(|error| error.to_string()),
+        None => Err("comparison snapshot source windows unavailable".to_string()),
+    }
+}
+
 /// A single body-window slice inside the comparison snapshot source coverage.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ComparisonSnapshotSourceWindow {
@@ -6218,12 +6228,12 @@ pub fn format_comparison_snapshot_source_window_summary(
 
 /// Returns the body-window summary for the comparison snapshot.
 pub fn comparison_snapshot_source_window_summary_for_report() -> String {
-    match comparison_snapshot_source_window_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => format!("Comparison snapshot source windows: unavailable ({error})"),
-        },
-        None => "Comparison snapshot source windows: unavailable".to_string(),
+    match validated_comparison_snapshot_source_window_summary_for_report() {
+        Ok(summary_line) => summary_line,
+        Err(error) if error == "comparison snapshot source windows unavailable" => {
+            "Comparison snapshot source windows: unavailable".to_string()
+        }
+        Err(error) => format!("Comparison snapshot source windows: unavailable ({error})"),
     }
 }
 
@@ -29559,6 +29569,10 @@ mod tests {
         assert_eq!(
             comparison_snapshot_source_window_summary_for_report(),
             summary.summary_line()
+        );
+        assert_eq!(
+            validated_comparison_snapshot_source_window_summary_for_report(),
+            Ok(summary.summary_line())
         );
         assert_eq!(
             format_comparison_snapshot_source_window_summary(&summary),
