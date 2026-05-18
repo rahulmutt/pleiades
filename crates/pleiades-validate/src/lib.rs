@@ -8871,176 +8871,184 @@ fn release_checklist_summary_for_report() -> Result<ReleaseChecklistSummary, Str
 }
 
 fn render_release_checklist_text() -> String {
-    let summary = match release_checklist_summary_for_report() {
-        Ok(summary) => summary,
-        Err(error) => return format!("Release checklist unavailable ({error})"),
-    };
-    let mut text = String::new();
+    static CACHE: OnceLock<String> = OnceLock::new();
+    CACHE
+        .get_or_init(|| {
+            let summary = match release_checklist_summary_for_report() {
+                Ok(summary) => summary,
+                Err(error) => return format!("Release checklist unavailable ({error})"),
+            };
+            let mut text = String::new();
 
-    text.push_str("Release checklist\n");
-    text.push_str("Profile: ");
-    text.push_str(summary.release_profile_identifiers.compatibility_profile_id);
-    text.push('\n');
-    text.push_str("API stability posture: ");
-    text.push_str(summary.release_profile_identifiers.api_stability_profile_id);
-    text.push('\n');
-    text.push_str("Summary: ");
-    text.push_str(&summary.summary_line());
-    text.push('\n');
-    text.push_str("Release notes summary: release-notes-summary\n");
-    text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
-    text.push_str("Backend matrix summary: backend-matrix-summary\n");
-    text.push_str("API stability summary: api-stability-summary\n");
-    text.push_str("Validation report summary: validation-report-summary / validation-summary / report-summary\n");
-    text.push_str("Packaged-artifact summary: artifact-summary / artifact-posture-summary\n");
-    text.push_str("Workspace audit summary: workspace-audit-summary\n");
-    text.push_str("Artifact validation: validate-artifact\n");
-    text.push_str("Release summary: release-summary\n");
-    text.push_str("Compact summary views: release-notes-summary, api-stability-summary, backend-matrix-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary\n");
-    text.push('\n');
-    text.push_str("Repository-managed release gates:\n");
-    for &item in release_checklist_repository_managed_release_gates() {
-        text.push_str("- ");
-        text.push_str(item);
-        text.push('\n');
-    }
-    text.push('\n');
-    text.push_str("Manual bundle workflow:\n");
-    for &item in release_checklist_manual_bundle_workflow() {
-        text.push_str("- ");
-        text.push_str(item);
-        text.push('\n');
-    }
-    text.push('\n');
-    text.push_str("Bundle contents:\n");
-    for &item in release_checklist_bundle_contents() {
-        text.push_str("- ");
-        text.push_str(item);
-        text.push('\n');
-    }
-    text.push('\n');
-    text.push_str("External publishing reminders:\n");
-    for &item in release_checklist_external_publishing_reminders() {
-        text.push_str("- ");
-        text.push_str(item);
-        text.push('\n');
-    }
+            text.push_str("Release checklist\n");
+            text.push_str("Profile: ");
+            text.push_str(summary.release_profile_identifiers.compatibility_profile_id);
+            text.push('\n');
+            text.push_str("API stability posture: ");
+            text.push_str(summary.release_profile_identifiers.api_stability_profile_id);
+            text.push('\n');
+            text.push_str("Summary: ");
+            text.push_str(&summary.summary_line());
+            text.push('\n');
+            text.push_str("Release notes summary: release-notes-summary\n");
+            text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
+            text.push_str("Backend matrix summary: backend-matrix-summary\n");
+            text.push_str("API stability summary: api-stability-summary\n");
+            text.push_str("Validation report summary: validation-report-summary / validation-summary / report-summary\n");
+            text.push_str("Packaged-artifact summary: artifact-summary / artifact-posture-summary\n");
+            text.push_str("Workspace audit summary: workspace-audit-summary\n");
+            text.push_str("Artifact validation: validate-artifact\n");
+            text.push_str("Release summary: release-summary\n");
+            text.push_str("Compact summary views: release-notes-summary, api-stability-summary, backend-matrix-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary\n");
+            text.push('\n');
+            text.push_str("Repository-managed release gates:\n");
+            for &item in release_checklist_repository_managed_release_gates() {
+                text.push_str("- ");
+                text.push_str(item);
+                text.push('\n');
+            }
+            text.push('\n');
+            text.push_str("Manual bundle workflow:\n");
+            for &item in release_checklist_manual_bundle_workflow() {
+                text.push_str("- ");
+                text.push_str(item);
+                text.push('\n');
+            }
+            text.push('\n');
+            text.push_str("Bundle contents:\n");
+            for &item in release_checklist_bundle_contents() {
+                text.push_str("- ");
+                text.push_str(item);
+                text.push('\n');
+            }
+            text.push('\n');
+            text.push_str("External publishing reminders:\n");
+            for &item in release_checklist_external_publishing_reminders() {
+                text.push_str("- ");
+                text.push_str(item);
+                text.push('\n');
+            }
 
-    text
+            text
+        })
+        .clone()
 }
 
 fn render_release_summary_text() -> String {
-    let profile = match validated_compatibility_profile_for_report() {
-        Ok(profile) => profile,
-        Err(error) => return format!("Release summary unavailable ({error})"),
-    };
-    let release_profiles = match validated_release_profile_identifiers_for_report() {
-        Ok(release_profiles) => release_profiles,
-        Err(error) => return format!("Release summary unavailable ({error})"),
-    };
-    let request_policy = request_policy_summary_for_report();
-    let mut text = String::new();
+    static CACHE: OnceLock<String> = OnceLock::new();
+    CACHE
+        .get_or_init(|| {
+            let profile = match validated_compatibility_profile_for_report() {
+                Ok(profile) => profile,
+                Err(error) => return format!("Release summary unavailable ({error})"),
+            };
+            let release_profiles = match validated_release_profile_identifiers_for_report() {
+                Ok(release_profiles) => release_profiles,
+                Err(error) => return format!("Release summary unavailable ({error})"),
+            };
+            let request_policy = request_policy_summary_for_report();
+            let mut text = String::new();
 
-    text.push_str("Release summary\n");
-    text.push_str("Profile: ");
-    text.push_str(release_profiles.compatibility_profile_id);
-    text.push('\n');
-    text.push_str("API stability posture: ");
-    text.push_str(release_profiles.api_stability_profile_id);
-    text.push('\n');
-    text.push_str("Release profile identifiers: ");
-    text.push_str(&validated_release_profile_identifiers_summary_for_report(
-        &release_profiles,
-    ));
-    text.push('\n');
-    match validated_profile_text_section_summary("target-house-scope", profile.target_house_scope) {
-        Ok(summary) => text.push_str(&summary),
-        Err(error) => return format!("Release summary unavailable ({error})"),
-    }
-    text.push('\n');
-    match validated_profile_text_section_summary(
-        "target-ayanamsa-scope",
-        profile.target_ayanamsa_scope,
-    ) {
-        Ok(summary) => text.push_str(&summary),
-        Err(error) => return format!("Release summary unavailable ({error})"),
-    }
-    text.push('\n');
-    let time_scale_policy = time_scale_policy_summary_for_report();
-    text.push_str(&format_request_semantics_summary_for_report(
-        &time_scale_policy,
-    ));
-    text.push_str("Frame policy: ");
-    text.push_str(request_policy.frame);
-    text.push('\n');
-    text.push_str("Mean-obliquity frame round-trip: ");
-    text.push_str(&mean_obliquity_frame_round_trip_summary_for_report());
-    text.push('\n');
-    text.push_str(&request_surface_summary_for_report());
-    text.push('\n');
-    text.push_str("Comparison corpus release-grade guard: ");
-    match validated_comparison_corpus_release_guard_summary_for_report() {
-        Ok(summary) => text.push_str(summary),
-        Err(error) => return format!("Release summary unavailable ({error})"),
-    }
-    text.push('\n');
-    text.push_str("Comparison body-class tolerance: ");
-    text.push_str(&format_body_class_tolerance_posture_for_report());
-    text.push('\n');
-    text.push_str("Comparison body-class error envelopes: ");
-    text.push_str(&comparison_body_class_error_envelope_summary_for_report());
-    text.push('\n');
-    text.push_str("Release-grade body claims: ");
-    text.push_str(&format_release_body_claims_summary_for_report());
-    text.push('\n');
-    text.push_str("JPL interpolation posture: ");
-    text.push_str(&jpl_interpolation_posture_summary_for_report());
-    text.push('\n');
-    text.push_str("Zodiac policy: ");
-    text.push_str(&validated_zodiac_policy_summary_for_report());
-    text.push('\n');
-    text.push_str("Release summary line: ");
-    match profile.validated_release_note() {
-        Ok(summary) => text.push_str(summary),
-        Err(error) => return format!("Release summary unavailable ({error})"),
-    }
-    text.push('\n');
-    match profile.validated_catalog_inventory_summary_line() {
-        Ok(summary) => text.push_str(&summary),
-        Err(error) => return format!("Release summary unavailable ({error})"),
-    }
-    text.push('\n');
-    text.push_str("House code aliases: ");
-    match profile.validated_house_code_aliases_summary_line() {
-        Ok(summary) => text.push_str(&summary),
-        Err(error) => return format!("Release summary unavailable ({error})"),
-    }
-    text.push('\n');
-    text.push_str(&format_latitude_sensitive_house_systems_for_report());
-    text.push('\n');
-    text.push_str(&format_house_formula_families_for_report());
-    text.push('\n');
-    text.push_str(&lunar_theory_catalog_summary_for_report());
-    text.push('\n');
-    text.push_str(&validated_lunar_theory_catalog_validation_summary_for_report());
-    text.push('\n');
-    text.push_str(&lunar_theory_source_summary_for_report());
-    text.push('\n');
-    text.push_str("House systems: ");
-    text.push_str(&profile.house_systems.len().to_string());
-    text.push_str(" total (");
-    text.push_str(&profile.baseline_house_systems.len().to_string());
-    text.push_str(" baseline, ");
-    text.push_str(&profile.release_house_systems.len().to_string());
-    text.push_str(" release-specific)\n");
-    text.push_str("House-code aliases: ");
-    text.push_str(&profile.house_code_alias_count().to_string());
-    text.push('\n');
-    text.push_str("Release-specific house-system canonical names: ");
-    match profile.validated_release_house_system_canonical_names_summary_line() {
-        Ok(summary) => text.push_str(&summary),
-        Err(error) => return format!("Release notes unavailable ({error})"),
-    }
+            text.push_str("Release summary\n");
+            text.push_str("Profile: ");
+            text.push_str(release_profiles.compatibility_profile_id);
+            text.push('\n');
+            text.push_str("API stability posture: ");
+            text.push_str(release_profiles.api_stability_profile_id);
+            text.push('\n');
+            text.push_str("Release profile identifiers: ");
+            text.push_str(&validated_release_profile_identifiers_summary_for_report(
+                &release_profiles,
+            ));
+            text.push('\n');
+            match validated_profile_text_section_summary("target-house-scope", profile.target_house_scope) {
+                Ok(summary) => text.push_str(&summary),
+                Err(error) => return format!("Release summary unavailable ({error})"),
+            }
+            text.push('\n');
+            match validated_profile_text_section_summary(
+                "target-ayanamsa-scope",
+                profile.target_ayanamsa_scope,
+            ) {
+                Ok(summary) => text.push_str(&summary),
+                Err(error) => return format!("Release summary unavailable ({error})"),
+            }
+            text.push('\n');
+            let time_scale_policy = time_scale_policy_summary_for_report();
+            text.push_str(&format_request_semantics_summary_for_report(
+                &time_scale_policy,
+            ));
+            text.push_str("Frame policy: ");
+            text.push_str(request_policy.frame);
+            text.push('\n');
+            text.push_str("Mean-obliquity frame round-trip: ");
+            text.push_str(&mean_obliquity_frame_round_trip_summary_for_report());
+            text.push('\n');
+            text.push_str(&request_surface_summary_for_report());
+            text.push('\n');
+            text.push_str("Comparison corpus release-grade guard: ");
+            match validated_comparison_corpus_release_guard_summary_for_report() {
+                Ok(summary) => text.push_str(summary),
+                Err(error) => return format!("Release summary unavailable ({error})"),
+            }
+            text.push('\n');
+            text.push_str("Comparison body-class tolerance: ");
+            text.push_str(&format_body_class_tolerance_posture_for_report());
+            text.push('\n');
+            text.push_str("Comparison body-class error envelopes: ");
+            text.push_str(&comparison_body_class_error_envelope_summary_for_report());
+            text.push('\n');
+            text.push_str("Release-grade body claims: ");
+            text.push_str(&format_release_body_claims_summary_for_report());
+            text.push('\n');
+            text.push_str("JPL interpolation posture: ");
+            text.push_str(&jpl_interpolation_posture_summary_for_report());
+            text.push('\n');
+            text.push_str("Zodiac policy: ");
+            text.push_str(&validated_zodiac_policy_summary_for_report());
+            text.push('\n');
+            text.push_str("Release summary line: ");
+            match profile.validated_release_note() {
+                Ok(summary) => text.push_str(summary),
+                Err(error) => return format!("Release summary unavailable ({error})"),
+            }
+            text.push('\n');
+            match profile.validated_catalog_inventory_summary_line() {
+                Ok(summary) => text.push_str(&summary),
+                Err(error) => return format!("Release summary unavailable ({error})"),
+            }
+            text.push('\n');
+            text.push_str("House code aliases: ");
+            match profile.validated_house_code_aliases_summary_line() {
+                Ok(summary) => text.push_str(&summary),
+                Err(error) => return format!("Release summary unavailable ({error})"),
+            }
+            text.push('\n');
+            text.push_str(&format_latitude_sensitive_house_systems_for_report());
+            text.push('\n');
+            text.push_str(&format_house_formula_families_for_report());
+            text.push('\n');
+            text.push_str(&lunar_theory_catalog_summary_for_report());
+            text.push('\n');
+            text.push_str(&validated_lunar_theory_catalog_validation_summary_for_report());
+            text.push('\n');
+            text.push_str(&lunar_theory_source_summary_for_report());
+            text.push('\n');
+            text.push_str("House systems: ");
+            text.push_str(&profile.house_systems.len().to_string());
+            text.push_str(" total (");
+            text.push_str(&profile.baseline_house_systems.len().to_string());
+            text.push_str(" baseline, ");
+            text.push_str(&profile.release_house_systems.len().to_string());
+            text.push_str(" release-specific)\n");
+            text.push_str("House-code aliases: ");
+            text.push_str(&profile.house_code_alias_count().to_string());
+            text.push('\n');
+            text.push_str("Release-specific house-system canonical names: ");
+            match profile.validated_release_house_system_canonical_names_summary_line() {
+                Ok(summary) => text.push_str(&summary),
+                Err(error) => return format!("Release notes unavailable ({error})"),
+            }
     text.push('\n');
     text.push_str("Ayanamsas: ");
     text.push_str(&profile.ayanamsas.len().to_string());
@@ -9533,70 +9541,82 @@ fn render_release_summary_text() -> String {
         "See release-notes and release-checklist for the full maintainer-facing artifacts; use release-checklist-summary for a compact checklist audit.\n",
     );
 
-    text
+            text
+        })
+        .clone()
 }
 
 fn render_release_checklist_summary_text() -> String {
-    let summary = match release_checklist_summary_for_report() {
-        Ok(summary) => summary,
-        Err(error) => return format!("Release checklist summary unavailable ({error})"),
-    };
-    let mut text = String::new();
+    static CACHE: OnceLock<String> = OnceLock::new();
+    CACHE
+        .get_or_init(|| {
+            let summary = match release_checklist_summary_for_report() {
+                Ok(summary) => summary,
+                Err(error) => return format!("Release checklist summary unavailable ({error})"),
+            };
+            let mut text = String::new();
 
-    text.push_str("Release checklist summary\n");
-    text.push_str("Profile: ");
-    text.push_str(summary.release_profile_identifiers.compatibility_profile_id);
-    text.push('\n');
-    text.push_str("API stability posture: ");
-    text.push_str(summary.release_profile_identifiers.api_stability_profile_id);
-    text.push('\n');
-    text.push_str("Summary: ");
-    text.push_str(&summary.summary_line());
-    text.push('\n');
-    text.push_str("Release notes summary: release-notes-summary\n");
-    text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
-    text.push_str("Backend matrix summary: backend-matrix-summary\n");
-    text.push_str("API stability summary: api-stability-summary\n");
-    text.push_str("Zodiac policy: ");
-    text.push_str(&validated_zodiac_policy_summary_for_report());
-    text.push('\n');
-    text.push_str("Validation report summary: validation-report-summary / validation-summary / report-summary\n");
-    text.push_str("Packaged-artifact summary: artifact-summary / artifact-posture-summary\n");
-    text.push_str("Workspace audit summary: workspace-audit-summary\n");
-    text.push_str("Workspace audit: workspace-audit / audit\n");
-    text.push_str("Compatibility profile verification: verify-compatibility-profile\n");
-    text.push_str("Artifact validation: validate-artifact\n");
-    text.push_str("Release bundle verification: verify-release-bundle\n");
-    text.push_str("Release summary: release-summary\n");
-    text.push_str("Compact summary views: release-notes-summary, api-stability-summary, backend-matrix-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary\n");
-    text.push_str("Repository-managed release gates: ");
-    text.push_str(&summary.repository_managed_release_gates.to_string());
-    text.push_str(" items\n");
-    text.push_str("Manual bundle workflow: ");
-    text.push_str(&summary.manual_bundle_workflow_items.to_string());
-    text.push_str(" items\n");
-    text.push_str("Bundle contents: ");
-    text.push_str(&summary.bundle_contents_items.to_string());
-    text.push_str(" items\n");
-    text.push_str("External publishing reminders: ");
-    text.push_str(&summary.external_publishing_reminders.to_string());
-    text.push_str(" items\n");
-    text.push('\n');
-    text.push_str("See release-checklist for the full maintainer-facing artifact.\n");
-    text.push_str("See release-summary for the compact one-screen release overview.\n");
+            text.push_str("Release checklist summary\n");
+            text.push_str("Profile: ");
+            text.push_str(summary.release_profile_identifiers.compatibility_profile_id);
+            text.push('\n');
+            text.push_str("API stability posture: ");
+            text.push_str(summary.release_profile_identifiers.api_stability_profile_id);
+            text.push('\n');
+            text.push_str("Summary: ");
+            text.push_str(&summary.summary_line());
+            text.push('\n');
+            text.push_str("Release notes summary: release-notes-summary\n");
+            text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
+            text.push_str("Backend matrix summary: backend-matrix-summary\n");
+            text.push_str("API stability summary: api-stability-summary\n");
+            text.push_str("Zodiac policy: ");
+            text.push_str(&validated_zodiac_policy_summary_for_report());
+            text.push('\n');
+            text.push_str("Validation report summary: validation-report-summary / validation-summary / report-summary\n");
+            text.push_str("Packaged-artifact summary: artifact-summary / artifact-posture-summary\n");
+            text.push_str("Workspace audit summary: workspace-audit-summary\n");
+            text.push_str("Workspace audit: workspace-audit / audit\n");
+            text.push_str("Compatibility profile verification: verify-compatibility-profile\n");
+            text.push_str("Artifact validation: validate-artifact\n");
+            text.push_str("Release bundle verification: verify-release-bundle\n");
+            text.push_str("Release summary: release-summary\n");
+            text.push_str("Compact summary views: release-notes-summary, api-stability-summary, backend-matrix-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary\n");
+            text.push_str("Repository-managed release gates: ");
+            text.push_str(&summary.repository_managed_release_gates.to_string());
+            text.push_str(" items\n");
+            text.push_str("Manual bundle workflow: ");
+            text.push_str(&summary.manual_bundle_workflow_items.to_string());
+            text.push_str(" items\n");
+            text.push_str("Bundle contents: ");
+            text.push_str(&summary.bundle_contents_items.to_string());
+            text.push_str(" items\n");
+            text.push_str("External publishing reminders: ");
+            text.push_str(&summary.external_publishing_reminders.to_string());
+            text.push_str(" items\n");
+            text.push('\n');
+            text.push_str("See release-checklist for the full maintainer-facing artifact.\n");
+            text.push_str("See release-summary for the compact one-screen release overview.\n");
 
-    text
+            text
+        })
+        .clone()
 }
 
 fn render_release_smoke_text() -> String {
-    let mut text = String::new();
-    text.push_str("Release smoke\n");
-    text.push_str("  workspace audit: ok\n");
-    text.push_str("  compatibility profile verification: ok\n");
-    text.push_str("  artifact validation: ok\n");
-    text.push_str("  release bundle generation: ok\n");
-    text.push_str("  release bundle verification: ok\n");
-    text
+    static CACHE: OnceLock<String> = OnceLock::new();
+    CACHE
+        .get_or_init(|| {
+            let mut text = String::new();
+            text.push_str("Release smoke\n");
+            text.push_str("  workspace audit: ok\n");
+            text.push_str("  compatibility profile verification: ok\n");
+            text.push_str("  artifact validation: ok\n");
+            text.push_str("  release bundle generation: ok\n");
+            text.push_str("  release bundle verification: ok\n");
+            text
+        })
+        .clone()
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
