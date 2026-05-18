@@ -16276,6 +16276,13 @@ impl RequestSurfaceSummary {
 
     /// Returns the chart-help clause that spells out the explicit UTC/UT1 and
     /// TT/TDB aliases used by the chart CLI.
+    pub fn validated_chart_help_clause(self) -> Result<&'static str, EphemerisError> {
+        self.validate()?;
+        Ok(self.cli_chart)
+    }
+
+    /// Returns the chart-help clause that spells out the explicit UTC/UT1 and
+    /// TT/TDB aliases used by the chart CLI.
     pub const fn chart_help_clause(self) -> &'static str {
         self.cli_chart
     }
@@ -20737,6 +20744,10 @@ mod tests {
         let summary = RequestSurfaceSummary::current();
         assert_eq!(summary.validate(), Ok(()));
         assert_eq!(summary.summary_line(), summary.to_string());
+        assert_eq!(
+            summary.validated_chart_help_clause(),
+            Ok(summary.chart_help_clause())
+        );
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(summary.to_string(), request_surface_summary_for_report());
         assert_eq!(
@@ -20760,6 +20771,13 @@ mod tests {
             request_policy: "",
             cli_chart: "",
         };
+
+        let error = summary
+            .validated_chart_help_clause()
+            .expect_err("summary should reject blank request-surface labels");
+        assert!(error
+            .to_string()
+            .contains("primary request surface instant mismatch"));
 
         let error = summary
             .validated_summary_line()
