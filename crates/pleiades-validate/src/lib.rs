@@ -131,7 +131,8 @@ use pleiades_jpl::{
     independent_holdout_snapshot_source_window_summary_for_report,
     independent_holdout_source_summary_for_report,
     interpolation_quality_sample_request_corpus_summary_for_report, interpolation_quality_samples,
-    jpl_independent_holdout_summary_for_report, jpl_interpolation_posture_summary,
+    jpl_independent_holdout_summary_for_report,
+    jpl_interpolation_body_class_error_envelopes_for_report, jpl_interpolation_posture_summary,
     jpl_interpolation_posture_summary_for_report,
     jpl_interpolation_quality_kind_coverage_for_report,
     jpl_snapshot_batch_error_taxonomy_summary_for_report, jpl_snapshot_evidence_summary_for_report,
@@ -18839,6 +18840,11 @@ fn write_jpl_interpolation_quality(f: &mut fmt::Formatter<'_>) -> fmt::Result {
     for sample in interpolation_quality_samples() {
         writeln!(f, "    {}", sample.summary_line())?;
     }
+    writeln!(
+        f,
+        "    {}",
+        jpl_interpolation_body_class_error_envelopes_for_report()
+    )?;
     Ok(())
 }
 
@@ -21928,6 +21934,7 @@ mod tests {
         assert!(report.contains("JPL interpolation quality: 285 samples across 16 bodies"));
         assert!(report.contains("JPL interpolation quality kind coverage:"));
         assert!(report.contains("JPL interpolation posture: source="));
+        assert!(report.contains("JPL interpolation body-class error envelopes:"));
         assert!(report.contains("Reference/hold-out overlap:"));
         assert!(report.contains("JPL independent hold-out:"));
         assert!(report.contains(&comparison_snapshot_body_class_coverage_summary_for_report()));
