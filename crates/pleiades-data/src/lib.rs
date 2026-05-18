@@ -1856,6 +1856,19 @@ enum PackagedArtifactBodyCadence {
     CustomBodies,
 }
 
+impl PackagedArtifactBodyCadence {
+    fn uses_dense_sampling(self) -> bool {
+        matches!(
+            self,
+            Self::Luminaries
+                | Self::Pluto
+                | Self::LunarPoints
+                | Self::SelectedAsteroids
+                | Self::CustomBodies
+        )
+    }
+}
+
 fn packaged_artifact_body_cadence(body: &CelestialBody) -> PackagedArtifactBodyCadence {
     match body {
         CelestialBody::Sun | CelestialBody::Moon => PackagedArtifactBodyCadence::Luminaries,
@@ -6996,15 +7009,10 @@ const PACKAGED_ARTIFACT_MEDIUM_FIT_SAMPLE_COUNTS: &[usize] = &[6, 8, 10, 12];
 const PACKAGED_ARTIFACT_DENSE_FIT_SAMPLE_COUNTS: &[usize] = &[6, 8, 10, 12, 14, 16, 18, 20];
 
 fn packaged_artifact_fit_sample_counts_for_body(body: &CelestialBody) -> &'static [usize] {
-    match packaged_artifact_body_cadence(body) {
-        PackagedArtifactBodyCadence::Luminaries
-        | PackagedArtifactBodyCadence::LunarPoints
-        | PackagedArtifactBodyCadence::Pluto
-        | PackagedArtifactBodyCadence::SelectedAsteroids
-        | PackagedArtifactBodyCadence::CustomBodies => PACKAGED_ARTIFACT_DENSE_FIT_SAMPLE_COUNTS,
-        PackagedArtifactBodyCadence::InnerPlanets | PackagedArtifactBodyCadence::OuterPlanets => {
-            PACKAGED_ARTIFACT_MEDIUM_FIT_SAMPLE_COUNTS
-        }
+    if packaged_artifact_body_cadence(body).uses_dense_sampling() {
+        PACKAGED_ARTIFACT_DENSE_FIT_SAMPLE_COUNTS
+    } else {
+        PACKAGED_ARTIFACT_MEDIUM_FIT_SAMPLE_COUNTS
     }
 }
 
@@ -7012,16 +7020,12 @@ fn packaged_artifact_residual_sample_fractions_for_channel(
     body: &CelestialBody,
     kind: ChannelKind,
 ) -> &'static [f64] {
-    match (packaged_artifact_body_cadence(body), kind) {
-        (
-            PackagedArtifactBodyCadence::Luminaries
-            | PackagedArtifactBodyCadence::LunarPoints
-            | PackagedArtifactBodyCadence::Pluto
-            | PackagedArtifactBodyCadence::SelectedAsteroids
-            | PackagedArtifactBodyCadence::CustomBodies,
-            ChannelKind::Longitude | ChannelKind::Latitude,
-        ) => PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS,
-        _ => PACKAGED_ARTIFACT_RESIDUAL_SAMPLE_FRACTIONS,
+    if packaged_artifact_body_cadence(body).uses_dense_sampling()
+        && matches!(kind, ChannelKind::Longitude | ChannelKind::Latitude)
+    {
+        PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS
+    } else {
+        PACKAGED_ARTIFACT_RESIDUAL_SAMPLE_FRACTIONS
     }
 }
 
@@ -7544,6 +7548,11 @@ mod tests {
             packaged_artifact_fit_sample_counts_for_body(&CelestialBody::Ceres),
             PACKAGED_ARTIFACT_DENSE_FIT_SAMPLE_COUNTS
         );
+        assert!(packaged_artifact_body_cadence(moon_segment.0).uses_dense_sampling());
+        assert!(packaged_artifact_body_cadence(&CelestialBody::Pluto).uses_dense_sampling());
+        assert!(packaged_artifact_body_cadence(&CelestialBody::Ceres).uses_dense_sampling());
+        assert!(!packaged_artifact_body_cadence(mercury_segment.0).uses_dense_sampling());
+        assert!(!packaged_artifact_body_cadence(saturn_segment.0).uses_dense_sampling());
         assert_eq!(
             packaged_artifact_fit_sample_counts_for_body(mercury_segment.0),
             PACKAGED_ARTIFACT_MEDIUM_FIT_SAMPLE_COUNTS
