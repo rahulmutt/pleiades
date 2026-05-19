@@ -17914,6 +17914,7 @@ fn validated_catalog_inventory_summary_for_report() -> Result<String, String> {
     core_validated_catalog_inventory_summary_for_report().map_err(|error| error.to_string())
 }
 
+#[cfg(test)]
 fn validated_house_code_aliases_summary_for_profile(
     profile: &CompatibilityProfile,
 ) -> Result<String, String> {
@@ -19368,10 +19369,9 @@ fn render_backend_matrix_summary_text() -> String {
         Ok(release_profiles) => release_profiles,
         Err(error) => return format!("Backend matrix summary unavailable ({error})"),
     };
-    let profile = match validated_compatibility_profile_for_report() {
-        Ok(profile) => profile,
-        Err(error) => return format!("Backend matrix summary unavailable ({error})"),
-    };
+    if let Err(error) = validated_compatibility_profile_for_report() {
+        return format!("Backend matrix summary unavailable ({error})");
+    }
     let catalog = implemented_backend_catalog();
     let mut family_counts: BTreeMap<String, usize> = BTreeMap::new();
     let mut bodies: Vec<String> = Vec::new();
@@ -19795,7 +19795,7 @@ fn backend_family_label(family: &BackendFamily) -> String {
 
 /// Renders a backend capability matrix for the implemented backend catalog.
 pub fn render_backend_matrix_report() -> Result<String, EphemerisError> {
-    let profile = validated_compatibility_profile_for_report().map_err(|error| {
+    validated_compatibility_profile_for_report().map_err(|error| {
         EphemerisError::new(
             EphemerisErrorKind::InvalidRequest,
             format!("backend capability matrix unavailable ({error})"),

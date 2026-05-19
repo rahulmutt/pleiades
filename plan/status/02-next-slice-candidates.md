@@ -76,6 +76,7 @@ This file lists focused implementation slices for the current phase ladder. Comp
 
 - Completed: the JPL interpolation-quality report now also includes body-class error envelopes for the luminary, major-planet, selected-asteroid, and custom-body slices, keeping empirical envelope evidence explicit in the validation path, and the interpolation-quality sample request corpus now also has a release-facing summary surface for the exact held-out request slice.
 - Completed: the comparison body-class error envelopes now also have a standalone compact CLI summary, the release summary now surfaces the envelope count directly alongside the comparison tolerance posture, and the new comparison-body-class-error-envelope summary now stages and verifies in the release bundle so the empirical envelope evidence also fails closed at the bundle boundary.
+- Completed: the house-code alias inventory now also has a shared validated report helper in `pleiades-core`, and the backend-matrix report path now uses the current-profile helper directly so the alias surface fails closed without duplicating the profile plumbing in each report layer.
 - Expand body/epoch/channel coverage only where it supports artifact fitting or release claims.
 - Preserve evidence classes: reference, hold-out, boundary overlay, fixture exactness, and provenance-only.
 - Keep selected asteroid support bounded to validated bodies and epochs.
