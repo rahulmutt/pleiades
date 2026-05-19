@@ -7743,14 +7743,23 @@ pub fn reference_asteroid_source_window_summary() -> Option<ReferenceAsteroidSou
     reference_asteroid_source_window_summary_details()
 }
 
+/// Returns the validated release-facing reference asteroid source window summary string.
+pub fn validated_reference_asteroid_source_window_summary_for_report() -> Result<String, String> {
+    let summary = reference_asteroid_source_window_summary()
+        .ok_or_else(|| "reference asteroid source windows unavailable".to_string())?;
+    summary
+        .validated_summary_line()
+        .map_err(|error| error.to_string())
+}
+
 /// Returns the release-facing reference asteroid source window summary string.
 pub fn reference_asteroid_source_window_summary_for_report() -> String {
-    match reference_asteroid_source_window_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => format!("Reference asteroid source windows: unavailable ({error})"),
-        },
-        None => "Reference asteroid source windows: unavailable".to_string(),
+    match validated_reference_asteroid_source_window_summary_for_report() {
+        Ok(summary_line) => summary_line,
+        Err(error) if error == "reference asteroid source windows unavailable" => {
+            "Reference asteroid source windows: unavailable".to_string()
+        }
+        Err(error) => format!("Reference asteroid source windows: unavailable ({error})"),
     }
 }
 
@@ -28743,6 +28752,10 @@ mod tests {
         assert_eq!(
             summary.summary_line(),
             reference_asteroid_source_window_summary_for_report()
+        );
+        assert_eq!(
+            validated_reference_asteroid_source_window_summary_for_report(),
+            Ok(summary.summary_line())
         );
     }
 

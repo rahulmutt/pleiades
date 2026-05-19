@@ -225,7 +225,9 @@ use pleiades_jpl::{
     validated_comparison_snapshot_batch_parity_summary_for_report,
     validated_comparison_snapshot_body_class_coverage_summary_for_report,
     validated_comparison_snapshot_source_summary_for_report,
+    validated_comparison_snapshot_source_window_summary_for_report,
     validated_production_generation_source_summary_for_report,
+    validated_reference_asteroid_source_window_summary_for_report,
     validated_selected_asteroid_source_evidence_summary_for_report,
     validated_selected_asteroid_source_request_corpus_summary_for_report,
     validated_selected_asteroid_source_window_summary_for_report, JplSnapshotBackend,
@@ -5387,11 +5389,11 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("comparison-snapshot-source-window-summary") => {
             ensure_no_extra_args(&args[1..], "comparison-snapshot-source-window-summary")?;
-            Ok(comparison_snapshot_source_window_summary_for_report())
+            validated_comparison_snapshot_source_window_summary_for_report()
         }
         Some("comparison-snapshot-source-window") => {
             ensure_no_extra_args(&args[1..], "comparison-snapshot-source-window")?;
-            Ok(comparison_snapshot_source_window_summary_for_report())
+            validated_comparison_snapshot_source_window_summary_for_report()
         }
         Some("comparison-snapshot-body-class-coverage-summary")
         | Some("comparison-body-class-coverage-summary") => {
@@ -6192,11 +6194,11 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("selected-asteroid-source-window-summary") => {
             ensure_no_extra_args(&args[1..], "selected-asteroid-source-window-summary")?;
-            Ok(selected_asteroid_source_window_summary_for_report())
+            validated_selected_asteroid_source_window_summary_for_report()
         }
         Some("selected-asteroid-source-window") => {
             ensure_no_extra_args(&args[1..], "selected-asteroid-source-window")?;
-            Ok(selected_asteroid_source_window_summary_for_report())
+            validated_selected_asteroid_source_window_summary_for_report()
         }
         Some("selected-asteroid-batch-parity-summary") => {
             ensure_no_extra_args(&args[1..], "selected-asteroid-batch-parity-summary")?;
@@ -6212,11 +6214,11 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("reference-asteroid-source-window-summary") => {
             ensure_no_extra_args(&args[1..], "reference-asteroid-source-window-summary")?;
-            Ok(reference_asteroid_source_window_summary_for_report())
+            validated_reference_asteroid_source_window_summary_for_report()
         }
         Some("reference-asteroid-source-summary") => {
             ensure_no_extra_args(&args[1..], "reference-asteroid-source-summary")?;
-            Ok(reference_asteroid_source_window_summary_for_report())
+            validated_reference_asteroid_source_window_summary_for_report()
         }
         Some("independent-holdout-source-window-summary") => {
             ensure_no_extra_args(&args[1..], "independent-holdout-source-window-summary")?;
@@ -33329,6 +33331,31 @@ version = "0.9.0"
             render_cli(&["selected-asteroid-source-window", "extra"])
                 .expect_err("selected asteroid source window alias should reject extra arguments"),
             "selected-asteroid-source-window does not accept extra arguments"
+        );
+    }
+
+    #[test]
+    fn reference_asteroid_source_window_summary_command_renders_the_source_windows_block() {
+        let rendered = render_cli(&["reference-asteroid-source-window-summary"])
+            .expect("reference asteroid source window summary should render");
+        assert!(rendered.contains("Reference asteroid source windows:"));
+        assert!(rendered.contains("Ceres"));
+        assert_eq!(
+            rendered,
+            validated_reference_asteroid_source_window_summary_for_report()
+                .expect("reference asteroid source window summary should validate")
+        );
+
+        assert_eq!(
+            render_cli(&["reference-asteroid-source-summary"])
+                .expect("reference asteroid source summary alias should render"),
+            rendered
+        );
+        assert_eq!(
+            render_cli(&["reference-asteroid-source-summary", "extra"]).expect_err(
+                "reference asteroid source summary alias should reject extra arguments"
+            ),
+            "reference-asteroid-source-summary does not accept extra arguments"
         );
     }
 
