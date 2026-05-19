@@ -9896,6 +9896,10 @@ pub fn render_release_bundle(
         packaged_artifact_output_support_summary_for_report();
     let packaged_artifact_fit_sample_classes_summary_text =
         packaged_artifact_fit_sample_classes_summary_for_report();
+    let packaged_artifact_fit_threshold_violation_count_summary_text =
+        packaged_artifact_fit_threshold_violation_count_for_report();
+    let packaged_artifact_fit_threshold_violations_summary_text =
+        packaged_artifact_fit_threshold_violation_summary_for_report();
     let packaged_artifact_body_cadence_summary_text =
         validated_packaged_artifact_body_cadence_summary_for_report();
     let packaged_artifact_normalized_intermediate_summary_text =
@@ -10011,6 +10015,10 @@ pub fn render_release_bundle(
         output_dir.join("packaged-artifact-output-support-summary.txt");
     let packaged_artifact_fit_sample_classes_summary_path =
         output_dir.join("packaged-artifact-fit-sample-classes-summary.txt");
+    let packaged_artifact_fit_threshold_violation_count_summary_path =
+        output_dir.join("packaged-artifact-fit-threshold-violation-count-summary.txt");
+    let packaged_artifact_fit_threshold_violations_summary_path =
+        output_dir.join("packaged-artifact-fit-threshold-violations-summary.txt");
     let packaged_artifact_body_cadence_summary_path =
         output_dir.join("packaged-artifact-body-cadence-summary.txt");
     let packaged_artifact_normalized_intermediate_summary_path =
@@ -10172,6 +10180,10 @@ pub fn render_release_bundle(
         checksum64(&packaged_artifact_output_support_summary_text);
     let packaged_artifact_fit_sample_classes_summary_checksum =
         checksum64(&packaged_artifact_fit_sample_classes_summary_text);
+    let packaged_artifact_fit_threshold_violation_count_summary_checksum =
+        checksum64(&packaged_artifact_fit_threshold_violation_count_summary_text);
+    let packaged_artifact_fit_threshold_violations_summary_checksum =
+        checksum64(&packaged_artifact_fit_threshold_violations_summary_text);
     let packaged_artifact_body_cadence_summary_checksum =
         checksum64(&packaged_artifact_body_cadence_summary_text);
     let packaged_artifact_normalized_intermediate_summary_checksum =
@@ -10227,7 +10239,7 @@ lunar theory source family summary: lunar-theory-source-family-summary.txt
 lunar theory source family summary checksum (fnv1a-64): 0x{lunar_theory_source_family_summary_checksum:016x}
 lunar theory catalog validation summary: lunar-theory-catalog-validation-summary.txt
 lunar theory catalog validation summary checksum (fnv1a-64): 0x{lunar_theory_catalog_validation_summary_checksum:016x}
-request surface summary: request-surface-summary.txt\nrequest surface summary checksum (fnv1a-64): 0x{request_surface_summary_checksum:016x}\ncompatibility caveats summary: compatibility-caveats-summary.txt\ncompatibility caveats summary checksum (fnv1a-64): 0x{compatibility_caveats_summary_checksum:016x}\nworkspace audit summary: workspace-audit-summary.txt\nworkspace audit summary checksum (fnv1a-64): 0x{workspace_audit_summary_checksum:016x}\nnative-dependency audit summary: native-dependency-audit-summary.txt\nnative-dependency audit summary checksum (fnv1a-64): 0x{native_dependency_audit_summary_checksum:016x}\nartifact summary: artifact-summary.txt\nartifact summary checksum (fnv1a-64): 0x{artifact_summary_checksum:016x}\npackaged-artifact: packaged-artifact.bin\npackaged-artifact checksum (fnv1a-64): 0x{packaged_artifact_bytes_checksum:016x}\npackaged-artifact checksum sidecar: packaged-artifact.checksum.txt\npackaged-artifact checksum sidecar checksum (fnv1a-64): 0x{packaged_artifact_checksum_text_checksum:016x}\npackaged-artifact profile coverage summary: packaged-artifact-profile-coverage-summary.txt\npackaged-artifact profile coverage summary checksum (fnv1a-64): 0x{packaged_artifact_profile_coverage_summary_checksum:016x}\npackaged-artifact access summary: packaged-artifact-access-summary.txt\npackaged-artifact access summary checksum (fnv1a-64): 0x{packaged_artifact_access_summary_checksum:016x}\npackaged-artifact output support summary: packaged-artifact-output-support-summary.txt\npackaged-artifact output support summary checksum (fnv1a-64): 0x{packaged_artifact_output_support_summary_checksum:016x}\npackaged-artifact fit sample classes summary: packaged-artifact-fit-sample-classes-summary.txt\npackaged-artifact fit sample classes summary checksum (fnv1a-64): 0x{packaged_artifact_fit_sample_classes_summary_checksum:016x}\npackaged-artifact normalized intermediate summary: packaged-artifact-normalized-intermediate-summary.txt\npackaged-artifact normalized intermediate summary checksum (fnv1a-64): 0x{packaged_artifact_normalized_intermediate_summary_checksum:016x}\npackaged-artifact speed policy summary: packaged-artifact-speed-policy-summary.txt\npackaged-artifact speed policy summary checksum (fnv1a-64): 0x{packaged_artifact_speed_policy_summary_checksum:016x}\npackaged-artifact storage summary: packaged-artifact-storage-summary.txt\npackaged-artifact storage summary checksum (fnv1a-64): 0x{packaged_artifact_storage_summary_checksum:016x}\npackaged-artifact production-profile summary: packaged-artifact-production-profile-summary.txt\npackaged-artifact production-profile summary checksum (fnv1a-64): 0x{packaged_artifact_production_profile_summary_checksum:016x}\npackaged-frame-treatment summary: packaged-frame-treatment-summary.txt\npackaged-frame-treatment summary checksum (fnv1a-64): 0x{packaged_frame_treatment_summary_checksum:016x}\npackaged-artifact target-threshold summary: packaged-artifact-target-threshold-summary.txt
+request surface summary: request-surface-summary.txt\nrequest surface summary checksum (fnv1a-64): 0x{request_surface_summary_checksum:016x}\ncompatibility caveats summary: compatibility-caveats-summary.txt\ncompatibility caveats summary checksum (fnv1a-64): 0x{compatibility_caveats_summary_checksum:016x}\nworkspace audit summary: workspace-audit-summary.txt\nworkspace audit summary checksum (fnv1a-64): 0x{workspace_audit_summary_checksum:016x}\nnative-dependency audit summary: native-dependency-audit-summary.txt\nnative-dependency audit summary checksum (fnv1a-64): 0x{native_dependency_audit_summary_checksum:016x}\nartifact summary: artifact-summary.txt\nartifact summary checksum (fnv1a-64): 0x{artifact_summary_checksum:016x}\npackaged-artifact: packaged-artifact.bin\npackaged-artifact checksum (fnv1a-64): 0x{packaged_artifact_bytes_checksum:016x}\npackaged-artifact checksum sidecar: packaged-artifact.checksum.txt\npackaged-artifact checksum sidecar checksum (fnv1a-64): 0x{packaged_artifact_checksum_text_checksum:016x}\npackaged-artifact profile coverage summary: packaged-artifact-profile-coverage-summary.txt\npackaged-artifact profile coverage summary checksum (fnv1a-64): 0x{packaged_artifact_profile_coverage_summary_checksum:016x}\npackaged-artifact access summary: packaged-artifact-access-summary.txt\npackaged-artifact access summary checksum (fnv1a-64): 0x{packaged_artifact_access_summary_checksum:016x}\npackaged-artifact output support summary: packaged-artifact-output-support-summary.txt\npackaged-artifact output support summary checksum (fnv1a-64): 0x{packaged_artifact_output_support_summary_checksum:016x}\npackaged-artifact fit sample classes summary: packaged-artifact-fit-sample-classes-summary.txt\npackaged-artifact fit sample classes summary checksum (fnv1a-64): 0x{packaged_artifact_fit_sample_classes_summary_checksum:016x}\npackaged-artifact fit threshold violation count summary: packaged-artifact-fit-threshold-violation-count-summary.txt\npackaged-artifact fit threshold violation count summary checksum (fnv1a-64): 0x{packaged_artifact_fit_threshold_violation_count_summary_checksum:016x}\npackaged-artifact fit threshold violations summary: packaged-artifact-fit-threshold-violations-summary.txt\npackaged-artifact fit threshold violations summary checksum (fnv1a-64): 0x{packaged_artifact_fit_threshold_violations_summary_checksum:016x}\npackaged-artifact normalized intermediate summary: packaged-artifact-normalized-intermediate-summary.txt\npackaged-artifact normalized intermediate summary checksum (fnv1a-64): 0x{packaged_artifact_normalized_intermediate_summary_checksum:016x}\npackaged-artifact speed policy summary: packaged-artifact-speed-policy-summary.txt\npackaged-artifact speed policy summary checksum (fnv1a-64): 0x{packaged_artifact_speed_policy_summary_checksum:016x}\npackaged-artifact storage summary: packaged-artifact-storage-summary.txt\npackaged-artifact storage summary checksum (fnv1a-64): 0x{packaged_artifact_storage_summary_checksum:016x}\npackaged-artifact production-profile summary: packaged-artifact-production-profile-summary.txt\npackaged-artifact production-profile summary checksum (fnv1a-64): 0x{packaged_artifact_production_profile_summary_checksum:016x}\npackaged-frame-treatment summary: packaged-frame-treatment-summary.txt\npackaged-frame-treatment summary checksum (fnv1a-64): 0x{packaged_frame_treatment_summary_checksum:016x}\npackaged-artifact target-threshold summary: packaged-artifact-target-threshold-summary.txt
 packaged-artifact target-threshold summary checksum (fnv1a-64): 0x{packaged_artifact_target_threshold_summary_checksum:016x}
 packaged-artifact source-fit and hold-out sync summary: packaged-artifact-source-fit-holdout-sync-summary.txt
 packaged-artifact source-fit and hold-out sync summary checksum (fnv1a-64): 0x{packaged_artifact_source_fit_holdout_sync_summary_checksum:016x}
@@ -10480,6 +10492,14 @@ benchmark-corpus summary: benchmark-corpus-summary.txt\nbenchmark-corpus summary
         packaged_artifact_fit_sample_classes_summary_text.as_bytes(),
     )?;
     fs::write(
+        &packaged_artifact_fit_threshold_violation_count_summary_path,
+        packaged_artifact_fit_threshold_violation_count_summary_text.as_bytes(),
+    )?;
+    fs::write(
+        &packaged_artifact_fit_threshold_violations_summary_path,
+        packaged_artifact_fit_threshold_violations_summary_text.as_bytes(),
+    )?;
+    fs::write(
         &packaged_artifact_body_cadence_summary_path,
         packaged_artifact_body_cadence_summary_text.as_bytes(),
     )?;
@@ -10687,6 +10707,10 @@ struct ParsedReleaseBundleManifest {
     packaged_artifact_output_support_summary_checksum: u64,
     packaged_artifact_fit_sample_classes_summary_path: String,
     packaged_artifact_fit_sample_classes_summary_checksum: u64,
+    packaged_artifact_fit_threshold_violation_count_summary_path: String,
+    packaged_artifact_fit_threshold_violation_count_summary_checksum: u64,
+    packaged_artifact_fit_threshold_violations_summary_path: String,
+    packaged_artifact_fit_threshold_violations_summary_checksum: u64,
     packaged_artifact_body_cadence_summary_path: String,
     packaged_artifact_body_cadence_summary_checksum: u64,
     packaged_artifact_normalized_intermediate_summary_path: String,
@@ -11157,6 +11181,22 @@ impl ParsedReleaseBundleManifest {
                 text,
                 "packaged-artifact fit sample classes summary checksum (fnv1a-64):",
             )?,
+            packaged_artifact_fit_threshold_violation_count_summary_path: parse_manifest_string(
+                text,
+                "packaged-artifact fit threshold violation count summary:",
+            )?,
+            packaged_artifact_fit_threshold_violation_count_summary_checksum: parse_manifest_checksum(
+                text,
+                "packaged-artifact fit threshold violation count summary checksum (fnv1a-64):",
+            )?,
+            packaged_artifact_fit_threshold_violations_summary_path: parse_manifest_string(
+                text,
+                "packaged-artifact fit threshold violations summary:",
+            )?,
+            packaged_artifact_fit_threshold_violations_summary_checksum: parse_manifest_checksum(
+                text,
+                "packaged-artifact fit threshold violations summary checksum (fnv1a-64):",
+            )?,
             packaged_artifact_body_cadence_summary_path: parse_manifest_string(
                 text,
                 "packaged-artifact body cadence summary:",
@@ -11393,6 +11433,8 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
         "packaged-artifact-access-summary.txt",
         "packaged-artifact-output-support-summary.txt",
         "packaged-artifact-fit-sample-classes-summary.txt",
+        "packaged-artifact-fit-threshold-violation-count-summary.txt",
+        "packaged-artifact-fit-threshold-violations-summary.txt",
         "packaged-artifact-body-cadence-summary.txt",
         "packaged-artifact-normalized-intermediate-summary.txt",
         "packaged-artifact-speed-policy-summary.txt",
@@ -11445,7 +11487,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
 fn ensure_release_bundle_manifest_is_canonical(
     manifest_text: &str,
 ) -> Result<(), ReleaseBundleError> {
-    const EXPECTED_MANIFEST_LINES: [&str; 172] = [
+    const EXPECTED_MANIFEST_LINES: [&str; 176] = [
         "Release bundle manifest",
         "profile:",
         "profile checksum (fnv1a-64):",
@@ -11567,6 +11609,10 @@ fn ensure_release_bundle_manifest_is_canonical(
         "packaged-artifact output support summary checksum (fnv1a-64):",
         "packaged-artifact fit sample classes summary:",
         "packaged-artifact fit sample classes summary checksum (fnv1a-64):",
+        "packaged-artifact fit threshold violation count summary:",
+        "packaged-artifact fit threshold violation count summary checksum (fnv1a-64):",
+        "packaged-artifact fit threshold violations summary:",
+        "packaged-artifact fit threshold violations summary checksum (fnv1a-64):",
         "packaged-artifact normalized intermediate summary:",
         "packaged-artifact normalized intermediate summary checksum (fnv1a-64):",
         "packaged-artifact speed policy summary:",
@@ -12118,6 +12164,36 @@ fn ensure_packaged_artifact_fit_sample_classes_summary_matches_current_rendering
     }
 }
 
+fn ensure_packaged_artifact_fit_threshold_violation_count_summary_matches_current_rendering(
+    packaged_artifact_fit_threshold_violation_count_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if packaged_artifact_fit_threshold_violation_count_summary_text
+        == packaged_artifact_fit_threshold_violation_count_for_report()
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "packaged-artifact fit threshold violation count summary no longer matches the current packaged-artifact fit threshold violation count posture"
+                .to_string(),
+        ))
+    }
+}
+
+fn ensure_packaged_artifact_fit_threshold_violations_summary_matches_current_rendering(
+    packaged_artifact_fit_threshold_violations_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if packaged_artifact_fit_threshold_violations_summary_text
+        == packaged_artifact_fit_threshold_violation_summary_for_report()
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "packaged-artifact fit threshold violations summary no longer matches the current packaged-artifact fit threshold violations posture"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_packaged_artifact_body_cadence_summary_matches_current_rendering(
     packaged_artifact_body_cadence_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -12459,6 +12535,10 @@ fn verify_release_bundle(
         output_dir.join("packaged-artifact-output-support-summary.txt");
     let packaged_artifact_fit_sample_classes_summary_path =
         output_dir.join("packaged-artifact-fit-sample-classes-summary.txt");
+    let packaged_artifact_fit_threshold_violation_count_summary_path =
+        output_dir.join("packaged-artifact-fit-threshold-violation-count-summary.txt");
+    let packaged_artifact_fit_threshold_violations_summary_path =
+        output_dir.join("packaged-artifact-fit-threshold-violations-summary.txt");
     let packaged_artifact_body_cadence_summary_path =
         output_dir.join("packaged-artifact-body-cadence-summary.txt");
     let packaged_artifact_normalized_intermediate_summary_path =
@@ -12861,6 +12941,24 @@ fn verify_release_bundle(
     )?;
     let packaged_artifact_fit_sample_classes_summary_checksum =
         checksum64(&packaged_artifact_fit_sample_classes_summary_text);
+    let packaged_artifact_fit_threshold_violation_count_summary_text = read_required_bundle_text(
+        &packaged_artifact_fit_threshold_violation_count_summary_path,
+        "packaged-artifact fit threshold violation count summary",
+    )?;
+    ensure_packaged_artifact_fit_threshold_violation_count_summary_matches_current_rendering(
+        &packaged_artifact_fit_threshold_violation_count_summary_text,
+    )?;
+    let packaged_artifact_fit_threshold_violation_count_summary_checksum =
+        checksum64(&packaged_artifact_fit_threshold_violation_count_summary_text);
+    let packaged_artifact_fit_threshold_violations_summary_text = read_required_bundle_text(
+        &packaged_artifact_fit_threshold_violations_summary_path,
+        "packaged-artifact fit threshold violations summary",
+    )?;
+    ensure_packaged_artifact_fit_threshold_violations_summary_matches_current_rendering(
+        &packaged_artifact_fit_threshold_violations_summary_text,
+    )?;
+    let packaged_artifact_fit_threshold_violations_summary_checksum =
+        checksum64(&packaged_artifact_fit_threshold_violations_summary_text);
     let packaged_artifact_body_cadence_summary_text = read_required_bundle_text(
         &packaged_artifact_body_cadence_summary_path,
         "packaged-artifact body cadence summary",
@@ -14110,6 +14208,38 @@ fn verify_release_bundle(
         return Err(ReleaseBundleError::Verification(format!(
             "packaged-artifact fit sample classes summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
             manifest.packaged_artifact_fit_sample_classes_summary_checksum, packaged_artifact_fit_sample_classes_summary_checksum
+        )));
+    }
+    if manifest.packaged_artifact_fit_threshold_violation_count_summary_path
+        != "packaged-artifact-fit-threshold-violation-count-summary.txt"
+    {
+        return Err(ReleaseBundleError::Verification(format!(
+            "unexpected packaged-artifact fit threshold violation count summary file entry: {}",
+            manifest.packaged_artifact_fit_threshold_violation_count_summary_path
+        )));
+    }
+    if manifest.packaged_artifact_fit_threshold_violation_count_summary_checksum
+        != packaged_artifact_fit_threshold_violation_count_summary_checksum
+    {
+        return Err(ReleaseBundleError::Verification(format!(
+            "packaged-artifact fit threshold violation count summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
+            manifest.packaged_artifact_fit_threshold_violation_count_summary_checksum, packaged_artifact_fit_threshold_violation_count_summary_checksum
+        )));
+    }
+    if manifest.packaged_artifact_fit_threshold_violations_summary_path
+        != "packaged-artifact-fit-threshold-violations-summary.txt"
+    {
+        return Err(ReleaseBundleError::Verification(format!(
+            "unexpected packaged-artifact fit threshold violations summary file entry: {}",
+            manifest.packaged_artifact_fit_threshold_violations_summary_path
+        )));
+    }
+    if manifest.packaged_artifact_fit_threshold_violations_summary_checksum
+        != packaged_artifact_fit_threshold_violations_summary_checksum
+    {
+        return Err(ReleaseBundleError::Verification(format!(
+            "packaged-artifact fit threshold violations summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
+            manifest.packaged_artifact_fit_threshold_violations_summary_checksum, packaged_artifact_fit_threshold_violations_summary_checksum
         )));
     }
     if manifest.packaged_artifact_body_cadence_summary_path
@@ -29555,6 +29685,18 @@ version = "0.9.0"
         assert!(manifest
             .contains("packaged-artifact fit sample classes summary checksum (fnv1a-64): 0x"));
         assert!(manifest.contains(
+            "packaged-artifact fit threshold violation count summary: packaged-artifact-fit-threshold-violation-count-summary.txt"
+        ));
+        assert!(manifest.contains(
+            "packaged-artifact fit threshold violation count summary checksum (fnv1a-64): 0x"
+        ));
+        assert!(manifest.contains(
+            "packaged-artifact fit threshold violations summary: packaged-artifact-fit-threshold-violations-summary.txt"
+        ));
+        assert!(manifest.contains(
+            "packaged-artifact fit threshold violations summary checksum (fnv1a-64): 0x"
+        ));
+        assert!(manifest.contains(
             "packaged-artifact body cadence summary: packaged-artifact-body-cadence-summary.txt"
         ));
         assert!(manifest.contains("packaged-artifact body cadence summary checksum (fnv1a-64): 0x"));
@@ -29588,7 +29730,9 @@ version = "0.9.0"
         assert!(manifest.contains("benchmark-corpus-summary.txt"));
         assert!(manifest.contains("selected-asteroid-source-request-corpus-summary.txt"));
         assert!(manifest.contains("selected-asteroid-source-window-summary.txt"));
-        assert!(manifest.contains("selected asteroid source window summary checksum (fnv1a-64): 0x"));
+        assert!(
+            manifest.contains("selected asteroid source window summary checksum (fnv1a-64): 0x")
+        );
         assert!(manifest.contains("interpolation-quality-request-corpus-summary.txt"));
         assert!(manifest.contains("benchmark-report.txt"));
         assert!(manifest.contains("validation-report.txt"));
@@ -30610,6 +30754,32 @@ version = "0.9.0"
         assert!(error.contains("packaged-artifact fit sample classes summary no longer matches"));
 
         let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_packaged_artifact_fit_threshold_violation_count_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-fit-threshold-violation-count-semantic",
+            "packaged-artifact-fit-threshold-violation-count-summary.txt",
+            "packaged-artifact fit threshold violation count summary checksum (fnv1a-64):",
+            "fit threshold violations: 0",
+            "fit threshold violations: 1",
+            "packaged-artifact fit threshold violation count summary no longer matches the current packaged-artifact fit threshold violation count posture",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_packaged_artifact_fit_threshold_violations_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-fit-threshold-violations-semantic",
+            "packaged-artifact-fit-threshold-violations-summary.txt",
+            "packaged-artifact fit threshold violations summary checksum (fnv1a-64):",
+            "fit threshold violations: 0; details: none",
+            "fit threshold violations: 1; details: tampered",
+            "packaged-artifact fit threshold violations summary no longer matches the current packaged-artifact fit threshold violations posture",
+        );
     }
 
     #[test]
