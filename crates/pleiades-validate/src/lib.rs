@@ -33312,6 +33312,19 @@ version = "0.9.0"
     }
 
     #[test]
+    fn verify_release_bundle_rejects_tampered_packaged_artifact_target_threshold_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-packaged-artifact-target-threshold-semantic",
+            "packaged-artifact-target-threshold-summary.txt",
+            "packaged-artifact target-threshold summary checksum (fnv1a-64):",
+            "production thresholds recorded",
+            "production thresholds drifting",
+            "packaged-artifact target-threshold summary no longer matches the current packaged-artifact target-threshold posture",
+        );
+    }
+
+    #[test]
     fn packaged_artifact_target_threshold_state_summary_validation_rejects_drift() {
         assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
             "pleiades-release-bundle-tampered-packaged-artifact-target-threshold-state-semantic",
