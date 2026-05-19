@@ -32470,6 +32470,21 @@ version = "0.9.0"
     }
 
     #[test]
+    fn packaged_artifact_source_fit_holdout_sync_summary_validation_rejects_drift() {
+        let summary = validated_packaged_artifact_source_fit_holdout_sync_summary_for_report();
+        let drifted_summary = summary.replace("fit thresholds=", "fit thresholds=drifted-");
+
+        let error =
+            ensure_packaged_artifact_source_fit_holdout_sync_summary_matches_current_rendering(
+                &drifted_summary,
+            )
+            .expect_err("drifted source-fit and hold-out sync summary should be rejected");
+        assert!(error.to_string().contains(
+            "no longer matches the current packaged-artifact source-fit and hold-out sync posture"
+        ));
+    }
+
+    #[test]
     fn production_generation_source_summary_embeds_the_source_window_payload() {
         let source_summary = production_generation_source_summary_for_report();
         let source_window_summary = production_generation_snapshot_window_summary_for_report();
