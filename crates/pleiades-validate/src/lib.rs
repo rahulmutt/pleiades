@@ -13799,6 +13799,9 @@ fn verify_release_bundle(
     ensure_packaged_artifact_phase2_corpus_alignment_summary_matches_current_rendering(
         &packaged_artifact_phase2_corpus_alignment_summary_text,
     )?;
+    ensure_comparison_corpus_release_guard_summary_matches_current_rendering(
+        &comparison_corpus_release_guard_summary_text,
+    )?;
     ensure_production_generation_source_summary_matches_source_windows(
         &production_generation_source_summary_text,
         &production_generation_source_window_summary_text,
@@ -17332,6 +17335,21 @@ fn render_comparison_corpus_release_guard_summary_text() -> String {
     format!(
         "Comparison corpus release-grade guard summary\nRelease-grade guard: {release_grade_guard}\n",
     )
+}
+
+fn ensure_comparison_corpus_release_guard_summary_matches_current_rendering(
+    comparison_corpus_release_guard_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if comparison_corpus_release_guard_summary_text
+        != render_comparison_corpus_release_guard_summary_text()
+    {
+        return Err(ReleaseBundleError::Verification(
+            "comparison-corpus release-guard summary no longer matches the current comparison-corpus release-guard posture"
+                .to_string(),
+        ));
+    }
+
+    Ok(())
 }
 
 fn validated_benchmark_corpus_summary_for_report() -> Result<String, String> {
@@ -31575,6 +31593,19 @@ version = "0.9.0"
             "scope=luminaries; bodies=2 (Sun, Moon); fit envelope:",
             "scope=luminaries; bodies=2 (Sun, Moon); drifted fit envelope:",
             "packaged-artifact target-threshold scope envelopes summary no longer matches the current packaged-artifact target-threshold scope envelopes posture",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_comparison_corpus_release_guard_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-comparison-corpus-release-guard-semantic",
+            "comparison-corpus-release-guard-summary.txt",
+            "comparison-corpus release-guard summary checksum (fnv1a-64):",
+            "Pluto excluded from tolerance evidence",
+            "Pluto excluded from tolerance evidence (tampered)",
+            "comparison-corpus release-guard summary no longer matches the current comparison-corpus release-guard posture",
         );
     }
 
