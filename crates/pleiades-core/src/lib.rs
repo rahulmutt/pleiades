@@ -750,6 +750,42 @@ mod tests {
     }
 
     #[test]
+    fn validate_chart_request_and_batch_preserve_invalid_observer_before_unsupported_apparentness()
+    {
+        let engine = ChartEngine::new(RestrictedPolicyBackend);
+        let instant = Instant::new(JulianDay::from_days(2451545.0), TimeScale::Tt);
+        let invalid_observer_request = ChartRequest::new(instant)
+            .with_bodies(vec![CelestialBody::Sun])
+            .with_observer(ObserverLocation::new(
+                Latitude::from_degrees(95.0),
+                Longitude::from_degrees(12.5),
+                Some(0.0),
+            ))
+            .with_apparentness(Apparentness::Apparent);
+
+        let single_error = engine
+            .validate_chart_request(&invalid_observer_request)
+            .expect_err(
+                "chart validation should reject malformed observers before apparentness checks",
+            );
+        assert_eq!(single_error.kind, EphemerisErrorKind::InvalidObserver);
+        assert!(single_error
+            .message
+            .contains("observer latitude must stay within [-90, 90], got 95"));
+
+        let batch_error = engine
+            .validate_chart_requests(&[
+                ChartRequest::new(instant).with_bodies(vec![CelestialBody::Sun]),
+                invalid_observer_request,
+            ])
+            .expect_err("batch chart validation should preserve malformed observer precedence");
+        assert_eq!(batch_error.kind, EphemerisErrorKind::InvalidObserver);
+        assert!(batch_error
+            .message
+            .contains("observer latitude must stay within [-90, 90], got 95"));
+    }
+
+    #[test]
     fn validate_chart_requests_prefixes_topocentric_house_failures() {
         let engine = ChartEngine::new(SimpleBackend);
         let instant = Instant::new(JulianDay::from_days(2451545.0), TimeScale::Tt);
