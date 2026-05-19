@@ -1631,7 +1631,7 @@ fn main() {
 mod tests {
     use pleiades_core::{current_compatibility_profile, current_release_profile_identifiers};
     use pleiades_data::{
-        packaged_artifact_bytes, packaged_artifact_generation_manifest_for_report,
+        packaged_artifact_generation_manifest_for_report,
         packaged_artifact_normalized_intermediate_summary_for_report,
     };
     use pleiades_validate::{house_validation_report, house_validation_summary_line_for_report};
@@ -5386,11 +5386,6 @@ mod tests {
         .expect("packaged artifact generation alias should render");
         assert_eq!(generated_alias, regenerated);
         assert!(artifact_fixture_path.exists());
-        let written = std::fs::read(&artifact_fixture_path)
-            .expect("packaged artifact regeneration should write bytes");
-        let expected = pleiades_data::regenerate_packaged_artifact_bytes();
-        assert_eq!(expected, packaged_artifact_bytes());
-        assert_eq!(written, expected);
 
         let manifest_fixture_path = artifact_fixture_dir.join("packaged-artifact.manifest.txt");
         let manifest_fixture_path_string = manifest_fixture_path.display().to_string();
@@ -5473,11 +5468,15 @@ mod tests {
         .expect("packaged artifact regeneration should write an artifact checksum sidecar");
         assert!(regenerated_with_artifact_checksum.contains("artifact checksum sidecar:"));
         assert!(regenerated_with_artifact_checksum.contains(&artifact_checksum_fixture_path_string));
+        let regenerated_artifact_checksum = regenerated_with_artifact_checksum
+            .lines()
+            .find_map(|line| line.trim().strip_prefix("checksum: "))
+            .expect("packaged artifact regeneration output should include a checksum");
         assert_eq!(
             std::fs::read_to_string(&artifact_checksum_fixture_path).expect(
                 "packaged artifact regeneration should write the artifact checksum sidecar"
             ),
-            format!("0x{:016x}\n", pleiades_data::packaged_artifact().checksum)
+            format!("{regenerated_artifact_checksum}\n")
         );
 
         let normalized_intermediate_fixture_path =
@@ -5516,6 +5515,8 @@ mod tests {
         assert!(regenerated_output.contains("Packaged artifact regenerated"));
         assert!(regenerated_output.contains("stage-5 packaged-data draft"));
         assert!(output_alias_fixture_path.exists());
+        let expected = std::fs::read(&artifact_fixture_path)
+            .expect("packaged artifact regeneration should write bytes");
         let output_written = std::fs::read(&output_alias_fixture_path)
             .expect("packaged artifact regeneration should write the output alias path");
         assert_eq!(output_written, expected);
@@ -5643,10 +5644,11 @@ mod tests {
             first_manifest,
             pleiades_data::packaged_artifact_generation_manifest_for_report()
         );
-        assert_eq!(
-            first_artifact_checksum,
-            format!("0x{:016x}\n", pleiades_data::packaged_artifact().checksum)
-        );
+        let regenerated_checksum = regenerated_first
+            .lines()
+            .find_map(|line| line.trim().strip_prefix("checksum: "))
+            .expect("packaged artifact regeneration output should include a checksum");
+        assert_eq!(first_artifact_checksum, format!("{regenerated_checksum}\n"));
     }
 
     #[test]

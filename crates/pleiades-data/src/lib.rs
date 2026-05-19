@@ -1462,6 +1462,28 @@ fn channel_from_fit_samples_with_control_points(
         .or_else(|| channel_from_fit_control_points(kind, scale_exponent, samples))
 }
 
+fn channel_from_dense_fit_samples_with_control_points(
+    kind: ChannelKind,
+    scale_exponent: u8,
+    samples: &[(f64, f64)],
+) -> Option<PolynomialChannel> {
+    channel_from_fit_control_points(kind, scale_exponent, samples)
+        .or_else(|| polynomial_channel_from_samples(kind, scale_exponent, samples))
+}
+
+fn distance_channel_from_dense_fit_samples(
+    samples: &[(f64, f64)],
+    start: f64,
+    midpoint: Option<f64>,
+    end: f64,
+) -> PolynomialChannel {
+    channel_from_fit_control_points(ChannelKind::DistanceAu, 10, samples)
+        .or_else(|| {
+            channel_from_fit_samples_with_control_points(ChannelKind::DistanceAu, 10, samples)
+        })
+        .unwrap_or_else(|| distance_channel_from_samples(start, midpoint, end))
+}
+
 fn distance_channel_from_fit_samples(
     samples: &[(f64, f64)],
     start: f64,
@@ -6970,6 +6992,77 @@ fn segment_from_pair_fallback(
     let midpoint_distance_au = midpoint_coordinates.distance_au;
     let distance_start = start_coordinates.distance_au.unwrap_or_default();
     let distance_end = end_coordinates.distance_au.unwrap_or_default();
+    let midpoint_longitude =
+        unwrap_longitude_degrees(start_longitude, midpoint_coordinates.longitude.degrees());
+
+    let quarter_coordinates = sample_fraction(0.25);
+    let three_quarter_coordinates = sample_fraction(0.75);
+    if let (Some(quarter_coordinates), Some(three_quarter_coordinates)) = (
+        quarter_coordinates.as_ref(),
+        three_quarter_coordinates.as_ref(),
+    ) {
+        if let (
+            Some(quarter_distance_au),
+            Some(midpoint_distance_au),
+            Some(three_quarter_distance_au),
+        ) = (
+            quarter_coordinates.distance_au,
+            midpoint_distance_au,
+            three_quarter_coordinates.distance_au,
+        ) {
+            let longitude_samples = unwrap_longitude_samples(&[
+                start_longitude,
+                quarter_coordinates.longitude.degrees(),
+                midpoint_longitude,
+                three_quarter_coordinates.longitude.degrees(),
+                end_longitude,
+            ]);
+
+            if let (Some(longitude_channel), Some(latitude_channel)) = (
+                channel_from_dense_fit_samples_with_control_points(
+                    ChannelKind::Longitude,
+                    9,
+                    &[
+                        (0.0, longitude_samples[0]),
+                        (0.25, longitude_samples[1]),
+                        (0.5, longitude_samples[2]),
+                        (0.75, longitude_samples[3]),
+                        (1.0, longitude_samples[4]),
+                    ],
+                ),
+                channel_from_dense_fit_samples_with_control_points(
+                    ChannelKind::Latitude,
+                    9,
+                    &[
+                        (0.0, start_coordinates.latitude.degrees()),
+                        (0.25, quarter_coordinates.latitude.degrees()),
+                        (0.5, midpoint_coordinates.latitude.degrees()),
+                        (0.75, three_quarter_coordinates.latitude.degrees()),
+                        (1.0, end_coordinates.latitude.degrees()),
+                    ],
+                ),
+            ) {
+                let distance_channel = distance_channel_from_dense_fit_samples(
+                    &[
+                        (0.0, distance_start),
+                        (0.25, quarter_distance_au),
+                        (0.5, midpoint_distance_au),
+                        (0.75, three_quarter_distance_au),
+                        (1.0, distance_end),
+                    ],
+                    distance_start,
+                    Some(midpoint_distance_au),
+                    distance_end,
+                );
+
+                return Segment::new(
+                    start_instant,
+                    end_instant,
+                    vec![longitude_channel, latitude_channel, distance_channel],
+                );
+            }
+        }
+    }
 
     let Some(first_third_coordinates) = sample_fraction(1.0 / 3.0) else {
         let midpoint_longitude =
@@ -7770,6 +7863,77 @@ mod tests {
         let expected_coefficients = [1.0, 2.0, -3.0, 4.0];
         for (actual, expected) in channel.coefficients.iter().zip(expected_coefficients) {
             assert!((actual - expected).abs() < 1e-9);
+        }
+    }
+
+    #[test]
+    fn segment_from_pair_fallback_can_use_dense_quarter_point_samples() {
+        let longitude =
+            |fraction: f64| 10.0 + 2.0 * fraction - 3.0 * fraction.powi(2) + 4.0 * fraction.powi(3);
+        let latitude = |fraction: f64| -5.0 + fraction + 2.0 * fraction.powi(2) - fraction.powi(3);
+        let distance = |fraction: f64| {
+            1.0 + 0.5 * fraction - 0.25 * fraction.powi(2) + 0.125 * fraction.powi(3)
+        };
+        let start_coordinates = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(longitude(0.0)),
+            pleiades_backend::Latitude::from_degrees(latitude(0.0)),
+            Some(distance(0.0)),
+        );
+        let end_coordinates = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(longitude(1.0)),
+            pleiades_backend::Latitude::from_degrees(latitude(1.0)),
+            Some(distance(1.0)),
+        );
+        let sample_fraction = |fraction: f64| -> Option<EclipticCoordinates> {
+            if (fraction - 0.5).abs() < f64::EPSILON {
+                return Some(EclipticCoordinates::new(
+                    pleiades_backend::Longitude::from_degrees(1.0e20),
+                    pleiades_backend::Latitude::from_degrees(-1.0e20),
+                    Some(1.0e20),
+                ));
+            }
+
+            Some(EclipticCoordinates::new(
+                pleiades_backend::Longitude::from_degrees(longitude(fraction)),
+                pleiades_backend::Latitude::from_degrees(latitude(fraction)),
+                Some(distance(fraction)),
+            ))
+        };
+        let segment = segment_from_pair_fallback(
+            Instant::new(JulianDay::from_days(0.0), TimeScale::Tt),
+            Instant::new(JulianDay::from_days(1.0), TimeScale::Tt),
+            longitude(0.0),
+            longitude(1.0),
+            &start_coordinates,
+            &end_coordinates,
+            &sample_fraction,
+        );
+
+        for fraction in [0.25, 0.5, 0.75] {
+            let actual_longitude =
+                segment_channel_value(&segment, ChannelKind::Longitude, fraction)
+                    .expect("longitude channel should evaluate");
+            let actual_latitude = segment_channel_value(&segment, ChannelKind::Latitude, fraction)
+                .expect("latitude channel should evaluate");
+            let actual_distance =
+                segment_channel_value(&segment, ChannelKind::DistanceAu, fraction)
+                    .expect("distance channel should evaluate");
+
+            assert!(
+                (actual_longitude - longitude(fraction)).abs() < 1e-9,
+                "longitude mismatch at fraction {fraction}: {actual_longitude} vs {}",
+                longitude(fraction)
+            );
+            assert!(
+                (actual_latitude - latitude(fraction)).abs() < 1e-9,
+                "latitude mismatch at fraction {fraction}: {actual_latitude} vs {}",
+                latitude(fraction)
+            );
+            assert!(
+                (actual_distance - distance(fraction)).abs() < 1e-9,
+                "distance mismatch at fraction {fraction}: {actual_distance} vs {}",
+                distance(fraction)
+            );
         }
     }
 
