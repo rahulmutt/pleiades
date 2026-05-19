@@ -67,7 +67,7 @@ use pleiades_jpl::{
 const PACKAGE_NAME: &str = "pleiades-data";
 const ARTIFACT_LABEL: &str = "stage-5 packaged-data draft";
 const ARTIFACT_PROFILE_ID: &str = "pleiades-packaged-artifact-profile/stage-5-draft";
-const PACKAGED_ARTIFACT_GENERATION_STRATEGY_TAIL: &str = "with 8-point and 10-point Chebyshev-Lobatto baseline candidates before the dense body-specific ladders and 12-point candidates for inner and outer planets before fallback, with 10-point, 12-point, 14-point, 16-point, 18-point, and 20-point options for luminaries, Pluto, selected asteroids, and custom bodies, and the best dense candidate wins before fallback, with equal-error, equal-sample-count ties preferring the simpler segment, residual correction channels on high-curvature spans when they improve the fit, higher-order distance reconstruction from fit samples when it quantizes cleanly, cubic distance reconstruction from four-point control points when available, and quadratic fallback otherwise";
+const PACKAGED_ARTIFACT_GENERATION_STRATEGY_TAIL: &str = "with 8-point and 10-point Chebyshev-Lobatto baseline candidates before the dense body-specific ladders and 12-point candidates for inner and outer planets before fallback, with 10-point, 12-point, 14-point, 16-point, 18-point, and 20-point options for luminaries, Pluto, selected asteroids, and custom bodies, and the best dense candidate wins before fallback, with equal-error, equal-sample-count ties preferring the simpler segment, residual correction channels on high-curvature spans when they improve the fit, higher-order distance reconstruction from fit samples when it quantizes cleanly, cubic distance reconstruction from four-point control points when available, one-third and two-third probe fractions on dense-body spans when quarter-point curvature stays balanced, and quadratic fallback otherwise";
 
 fn packaged_artifact_generation_policy_note_text() -> &'static str {
     static NOTE: OnceLock<String> = OnceLock::new();
@@ -6086,12 +6086,16 @@ const PACKAGED_ARTIFACT_LEFT_BIASED_SPLIT_FRACTION: f64 = 0.4;
 const PACKAGED_ARTIFACT_RIGHT_BIASED_SPLIT_FRACTION: f64 = 0.6;
 const PACKAGED_ARTIFACT_LEFT_EXTREME_SPLIT_FRACTION: f64 = 0.25;
 const PACKAGED_ARTIFACT_RIGHT_EXTREME_SPLIT_FRACTION: f64 = 0.75;
+const PACKAGED_ARTIFACT_ONE_THIRD_SPLIT_FRACTION: f64 = 1.0 / 3.0;
+const PACKAGED_ARTIFACT_TWO_THIRD_SPLIT_FRACTION: f64 = 2.0 / 3.0;
 
 #[derive(Clone, Copy)]
 struct PackagedArtifactSplitCurvature<'a> {
     start_coordinates: &'a EclipticCoordinates,
     quarter_coordinates: Option<&'a EclipticCoordinates>,
+    one_third_coordinates: Option<&'a EclipticCoordinates>,
     midpoint_coordinates: &'a EclipticCoordinates,
+    two_third_coordinates: Option<&'a EclipticCoordinates>,
     three_quarter_coordinates: Option<&'a EclipticCoordinates>,
     end_coordinates: &'a EclipticCoordinates,
 }
@@ -6153,20 +6157,48 @@ fn packaged_artifact_split_fraction_for_interval(
 
     if span_days > span_limit * PACKAGED_ARTIFACT_EXTREME_SPLIT_MIN_SPAN_RATIO {
         if left_curvature > right_curvature * PACKAGED_ARTIFACT_EXTREME_SPLIT_RATIO {
-            PACKAGED_ARTIFACT_LEFT_EXTREME_SPLIT_FRACTION
-        } else if right_curvature > left_curvature * PACKAGED_ARTIFACT_EXTREME_SPLIT_RATIO {
-            PACKAGED_ARTIFACT_RIGHT_EXTREME_SPLIT_FRACTION
-        } else if left_curvature > right_curvature * PACKAGED_ARTIFACT_SPLIT_BALANCE_RATIO {
-            PACKAGED_ARTIFACT_LEFT_BIASED_SPLIT_FRACTION
-        } else if right_curvature > left_curvature * PACKAGED_ARTIFACT_SPLIT_BALANCE_RATIO {
-            PACKAGED_ARTIFACT_RIGHT_BIASED_SPLIT_FRACTION
-        } else {
-            0.5
+            return PACKAGED_ARTIFACT_LEFT_EXTREME_SPLIT_FRACTION;
         }
-    } else if left_curvature > right_curvature * PACKAGED_ARTIFACT_SPLIT_BALANCE_RATIO {
-        PACKAGED_ARTIFACT_LEFT_BIASED_SPLIT_FRACTION
-    } else if right_curvature > left_curvature * PACKAGED_ARTIFACT_SPLIT_BALANCE_RATIO {
-        PACKAGED_ARTIFACT_RIGHT_BIASED_SPLIT_FRACTION
+        if right_curvature > left_curvature * PACKAGED_ARTIFACT_EXTREME_SPLIT_RATIO {
+            return PACKAGED_ARTIFACT_RIGHT_EXTREME_SPLIT_FRACTION;
+        }
+        if left_curvature > right_curvature * PACKAGED_ARTIFACT_SPLIT_BALANCE_RATIO {
+            return PACKAGED_ARTIFACT_LEFT_BIASED_SPLIT_FRACTION;
+        }
+        if right_curvature > left_curvature * PACKAGED_ARTIFACT_SPLIT_BALANCE_RATIO {
+            return PACKAGED_ARTIFACT_RIGHT_BIASED_SPLIT_FRACTION;
+        }
+    } else {
+        if left_curvature > right_curvature * PACKAGED_ARTIFACT_SPLIT_BALANCE_RATIO {
+            return PACKAGED_ARTIFACT_LEFT_BIASED_SPLIT_FRACTION;
+        }
+        if right_curvature > left_curvature * PACKAGED_ARTIFACT_SPLIT_BALANCE_RATIO {
+            return PACKAGED_ARTIFACT_RIGHT_BIASED_SPLIT_FRACTION;
+        }
+    }
+
+    let (Some(one_third_coordinates), Some(two_third_coordinates)) = (
+        curvature.one_third_coordinates,
+        curvature.two_third_coordinates,
+    ) else {
+        return 0.5;
+    };
+
+    let left_third_curvature = packaged_artifact_segment_transition_curvature(
+        curvature.start_coordinates,
+        one_third_coordinates,
+        curvature.midpoint_coordinates,
+    );
+    let right_third_curvature = packaged_artifact_segment_transition_curvature(
+        curvature.midpoint_coordinates,
+        two_third_coordinates,
+        curvature.end_coordinates,
+    );
+
+    if left_third_curvature > right_third_curvature * PACKAGED_ARTIFACT_SPLIT_BALANCE_RATIO {
+        PACKAGED_ARTIFACT_ONE_THIRD_SPLIT_FRACTION
+    } else if right_third_curvature > left_third_curvature * PACKAGED_ARTIFACT_SPLIT_BALANCE_RATIO {
+        PACKAGED_ARTIFACT_TWO_THIRD_SPLIT_FRACTION
     } else {
         0.5
     }
@@ -6675,6 +6707,16 @@ fn body_segment_windows_for_interval(
     } else {
         None
     };
+    let one_third_coordinates = if use_curvature_bias {
+        sample_fraction(1.0 / 3.0)
+    } else {
+        None
+    };
+    let two_third_coordinates = if use_curvature_bias {
+        sample_fraction(2.0 / 3.0)
+    } else {
+        None
+    };
     let split_fraction = packaged_artifact_split_fraction_for_interval(
         &start.body,
         span_days,
@@ -6682,7 +6724,9 @@ fn body_segment_windows_for_interval(
         PackagedArtifactSplitCurvature {
             start_coordinates: &start_coordinates,
             quarter_coordinates: quarter_coordinates.as_ref(),
+            one_third_coordinates: one_third_coordinates.as_ref(),
             midpoint_coordinates: &midpoint_coordinates,
+            two_third_coordinates: two_third_coordinates.as_ref(),
             three_quarter_coordinates: three_quarter_coordinates.as_ref(),
             end_coordinates: &end_coordinates,
         },
@@ -8177,7 +8221,9 @@ mod tests {
                 PackagedArtifactSplitCurvature {
                     start_coordinates: &moderate_left_start,
                     quarter_coordinates: Some(&moderate_left_quarter),
+                    one_third_coordinates: None,
                     midpoint_coordinates: &moderate_left_midpoint,
+                    two_third_coordinates: None,
                     three_quarter_coordinates: Some(&moderate_left_three_quarter),
                     end_coordinates: &moderate_left_end,
                 },
@@ -8219,7 +8265,9 @@ mod tests {
                 PackagedArtifactSplitCurvature {
                     start_coordinates: &moderate_right_start,
                     quarter_coordinates: Some(&moderate_right_quarter),
+                    one_third_coordinates: None,
                     midpoint_coordinates: &moderate_right_midpoint,
+                    two_third_coordinates: None,
                     three_quarter_coordinates: Some(&moderate_right_three_quarter),
                     end_coordinates: &moderate_right_end,
                 },
@@ -8261,7 +8309,9 @@ mod tests {
                 PackagedArtifactSplitCurvature {
                     start_coordinates: &extreme_left_start,
                     quarter_coordinates: Some(&extreme_left_quarter),
+                    one_third_coordinates: None,
                     midpoint_coordinates: &extreme_left_midpoint,
+                    two_third_coordinates: None,
                     three_quarter_coordinates: Some(&extreme_left_three_quarter),
                     end_coordinates: &extreme_left_end,
                 },
@@ -8303,7 +8353,9 @@ mod tests {
                 PackagedArtifactSplitCurvature {
                     start_coordinates: &extreme_right_start,
                     quarter_coordinates: Some(&extreme_right_quarter),
+                    one_third_coordinates: None,
                     midpoint_coordinates: &extreme_right_midpoint,
+                    two_third_coordinates: None,
                     three_quarter_coordinates: Some(&extreme_right_three_quarter),
                     end_coordinates: &extreme_right_end,
                 },
@@ -8319,12 +8371,72 @@ mod tests {
                 PackagedArtifactSplitCurvature {
                     start_coordinates: &moderate_left_start,
                     quarter_coordinates: Some(&moderate_left_quarter),
+                    one_third_coordinates: None,
                     midpoint_coordinates: &moderate_left_midpoint,
+                    two_third_coordinates: None,
                     three_quarter_coordinates: Some(&moderate_left_three_quarter),
                     end_coordinates: &moderate_left_end,
                 },
             ),
             0.5
+        );
+    }
+
+    #[test]
+    fn packaged_artifact_split_fraction_uses_dense_third_point_bias_when_quarter_curvature_is_balanced(
+    ) {
+        let start = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(0.0),
+            pleiades_backend::Latitude::from_degrees(0.0),
+            Some(1.0),
+        );
+        let quarter = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(1.0),
+            pleiades_backend::Latitude::from_degrees(0.4),
+            Some(1.02),
+        );
+        let one_third = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(5.0),
+            pleiades_backend::Latitude::from_degrees(2.0),
+            Some(1.08),
+        );
+        let midpoint = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(2.0),
+            pleiades_backend::Latitude::from_degrees(0.8),
+            Some(1.04),
+        );
+        let two_third = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(2.1),
+            pleiades_backend::Latitude::from_degrees(0.85),
+            Some(1.05),
+        );
+        let three_quarter = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(3.0),
+            pleiades_backend::Latitude::from_degrees(1.2),
+            Some(1.06),
+        );
+        let end = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(4.0),
+            pleiades_backend::Latitude::from_degrees(1.6),
+            Some(1.08),
+        );
+
+        assert_eq!(
+            packaged_artifact_split_fraction_for_interval(
+                &CelestialBody::Pluto,
+                3_200.0,
+                body_segment_span_limit(&CelestialBody::Pluto),
+                PackagedArtifactSplitCurvature {
+                    start_coordinates: &start,
+                    quarter_coordinates: Some(&quarter),
+                    one_third_coordinates: Some(&one_third),
+                    midpoint_coordinates: &midpoint,
+                    two_third_coordinates: Some(&two_third),
+                    three_quarter_coordinates: Some(&three_quarter),
+                    end_coordinates: &end,
+                },
+            ),
+            PACKAGED_ARTIFACT_ONE_THIRD_SPLIT_FRACTION
         );
     }
 
