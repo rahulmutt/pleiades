@@ -3414,10 +3414,11 @@ const RELEASE_CHECKLIST_REPOSITORY_MANAGED_RELEASE_GATES: [&str; 10] = [
     "[x] cargo run -q -p pleiades-validate -- report --rounds 5",
 ];
 
-const RELEASE_CHECKLIST_MANUAL_BUNDLE_WORKFLOW: [&str; 3] = [
+const RELEASE_CHECKLIST_MANUAL_BUNDLE_WORKFLOW: [&str; 4] = [
     "[x] cargo run -q -p pleiades-validate -- bundle-release --out /tmp/pleiades-release",
     "[x] cargo run -q -p pleiades-validate -- verify-release-bundle --out /tmp/pleiades-release",
     "[x] docs/release-reproducibility.md",
+    "[x] docs/release-reproducibility.md (broader source-corpus provenance contract)",
 ];
 
 const RELEASE_CHECKLIST_BUNDLE_CONTENTS: [&str; 17] = [
@@ -28413,7 +28414,7 @@ mod tests {
         assert!(rendered.contains("Release summary: release-summary"));
         assert!(rendered.contains("Compact summary views: release-notes-summary, api-stability-summary, backend-matrix-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary"));
         assert!(rendered.contains("Repository-managed release gates: 10 items"));
-        assert!(rendered.contains("Manual bundle workflow: 3 items"));
+        assert!(rendered.contains("Manual bundle workflow: 4 items"));
         assert!(rendered.contains("Bundle contents: 17 items"));
         assert!(rendered.contains("External publishing reminders: 3 items"));
         assert!(rendered.contains("See release-checklist for the full maintainer-facing artifact."));
@@ -30249,6 +30250,9 @@ version = "0.9.0"
         assert!(release_checklist.contains("bundle-release --out /tmp/pleiades-release"));
         assert!(release_checklist.contains("verify-release-bundle --out /tmp/pleiades-release"));
         assert!(release_checklist.contains("docs/release-reproducibility.md"));
+        assert!(release_checklist.contains(
+            "docs/release-reproducibility.md (broader source-corpus provenance contract)"
+        ));
         assert!(release_checklist.contains("Bundle contents:"));
         assert!(release_checklist.contains("compatibility-profile-summary.txt"));
         assert!(release_checklist.contains("release-notes-summary.txt"));
@@ -30267,7 +30271,7 @@ version = "0.9.0"
         );
         assert!(release_checklist_summary.contains("Workspace audit: workspace-audit / audit"));
         assert!(release_checklist_summary.contains("Repository-managed release gates: 10 items"));
-        assert!(release_checklist_summary.contains("Manual bundle workflow: 3 items"));
+        assert!(release_checklist_summary.contains("Manual bundle workflow: 4 items"));
         assert!(release_checklist_summary.contains("Bundle contents: 17 items"));
         assert!(release_checklist_summary.contains("External publishing reminders: 3 items"));
         assert!(backend_matrix.contains("Implemented backend matrices"));
