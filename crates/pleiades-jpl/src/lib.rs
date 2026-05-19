@@ -4992,13 +4992,19 @@ pub fn format_reference_holdout_overlap_summary(
 
 /// Returns the release-facing reference/hold-out overlap summary string.
 pub fn reference_holdout_overlap_summary_for_report() -> String {
-    match reference_holdout_overlap_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => format!("Reference/hold-out overlap: unavailable ({error})"),
-        },
-        None => "Reference/hold-out overlap: unavailable".to_string(),
+    match validated_reference_holdout_overlap_summary_for_report() {
+        Ok(summary_line) => summary_line,
+        Err(error) => format!("Reference/hold-out overlap: unavailable ({error})"),
     }
+}
+
+/// Returns the validated release-facing reference/hold-out overlap summary string.
+pub fn validated_reference_holdout_overlap_summary_for_report() -> Result<String, String> {
+    let summary = reference_holdout_overlap_summary()
+        .ok_or_else(|| "reference/hold-out overlap unavailable".to_string())?;
+    summary
+        .validated_summary_line()
+        .map_err(|error| error.to_string())
 }
 
 /// Formats the independent hold-out corpus coverage for release-facing reporting.
@@ -30642,6 +30648,10 @@ mod tests {
         assert_eq!(
             reference_holdout_overlap_summary_for_report(),
             summary.summary_line()
+        );
+        assert_eq!(
+            validated_reference_holdout_overlap_summary_for_report(),
+            Ok(summary.summary_line())
         );
         assert_eq!(
             summary.summary_line(),

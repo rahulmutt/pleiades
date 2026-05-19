@@ -147,7 +147,6 @@ use pleiades_jpl::{
     reference_asteroid_equatorial_evidence_summary_for_report, reference_asteroid_evidence,
     reference_asteroid_evidence_summary_for_report,
     reference_asteroid_source_window_summary_for_report, reference_asteroids,
-    reference_holdout_overlap_summary_for_report,
     reference_snapshot_1500_selected_body_boundary_summary_for_report,
     reference_snapshot_1600_selected_body_boundary_summary_for_report,
     reference_snapshot_1749_major_body_boundary_summary_for_report,
@@ -228,6 +227,7 @@ use pleiades_jpl::{
     validated_independent_holdout_snapshot_batch_parity_summary_for_report,
     validated_production_generation_source_summary_for_report,
     validated_reference_asteroid_source_window_summary_for_report,
+    validated_reference_holdout_overlap_summary_for_report,
     validated_reference_snapshot_batch_parity_summary_for_report,
     validated_reference_snapshot_mixed_time_scale_batch_parity_summary_for_report,
     validated_selected_asteroid_source_evidence_summary_for_report,
@@ -9306,7 +9306,7 @@ fn render_release_summary_text() -> String {
     text.push('\n');
     text.push_str(&independent_holdout_high_curvature_summary_for_report());
     text.push('\n');
-    text.push_str(&reference_holdout_overlap_summary_for_report());
+    text.push_str(&render_reference_holdout_overlap_summary_text());
     text.push('\n');
     text.push_str(&independent_holdout_manifest_summary_for_report());
     text.push('\n');
@@ -10190,7 +10190,9 @@ pub fn render_release_bundle(
         checksum64(&comparison_body_class_error_envelope_summary_text);
     let comparison_corpus_release_guard_summary_checksum =
         checksum64(&comparison_corpus_release_guard_summary_text);
-    let reference_holdout_overlap_summary_text = reference_holdout_overlap_summary_for_report();
+    let reference_holdout_overlap_summary_text =
+        validated_reference_holdout_overlap_summary_for_report()
+            .map_err(|error| ReleaseBundleError::Verification(error.to_string()))?;
     let reference_holdout_overlap_summary_checksum =
         checksum64(&reference_holdout_overlap_summary_text);
     let reference_snapshot_bridge_day_summary_text =
@@ -12214,7 +12216,10 @@ fn ensure_production_generation_boundary_request_corpus_summary_matches_current_
 fn ensure_reference_holdout_overlap_summary_matches_current_rendering(
     reference_holdout_overlap_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
-    if reference_holdout_overlap_summary_text == reference_holdout_overlap_summary_for_report() {
+    if reference_holdout_overlap_summary_text
+        == validated_reference_holdout_overlap_summary_for_report()
+            .map_err(|error| ReleaseBundleError::Verification(error.to_string()))?
+    {
         Ok(())
     } else {
         Err(ReleaseBundleError::Verification(
@@ -17817,7 +17822,10 @@ fn render_frame_policy_summary_text() -> String {
 }
 
 fn render_reference_holdout_overlap_summary_text() -> String {
-    reference_holdout_overlap_summary_for_report()
+    match validated_reference_holdout_overlap_summary_for_report() {
+        Ok(summary_line) => summary_line,
+        Err(error) => format!("Reference/hold-out overlap: unavailable ({error})"),
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -18752,7 +18760,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         format_jpl_interpolation_quality_summary_for_report()
     );
     let _ = writeln!(text, "  {}", jpl_independent_holdout_summary_for_report());
-    let _ = writeln!(text, "  {}", reference_holdout_overlap_summary_for_report());
+    let _ = writeln!(
+        text,
+        "  {}",
+        render_reference_holdout_overlap_summary_text()
+    );
     let _ = writeln!(
         text,
         "  {}",
@@ -21201,7 +21213,7 @@ fn write_jpl_interpolation_quality(f: &mut fmt::Formatter<'_>) -> fmt::Result {
     )?;
     writeln!(f, "    {}", jpl_interpolation_posture_summary_for_report())?;
     writeln!(f, "    {}", jpl_independent_holdout_summary_for_report())?;
-    writeln!(f, "    {}", reference_holdout_overlap_summary_for_report())?;
+    writeln!(f, "    {}", render_reference_holdout_overlap_summary_text())?;
     writeln!(
         f,
         "    {}",
