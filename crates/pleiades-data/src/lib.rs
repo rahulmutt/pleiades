@@ -67,7 +67,7 @@ use pleiades_jpl::{
 const PACKAGE_NAME: &str = "pleiades-data";
 const ARTIFACT_LABEL: &str = "stage-5 packaged-data draft";
 const ARTIFACT_PROFILE_ID: &str = "pleiades-packaged-artifact-profile/stage-5-draft";
-const PACKAGED_ARTIFACT_GENERATION_STRATEGY_TAIL: &str = "with 8-point and 10-point Chebyshev-Lobatto baseline candidates before the dense body-specific ladders and 12-point candidates for inner and outer planets before fallback, with 10-point, 12-point, 14-point, 16-point, 18-point, and 20-point options for luminaries, Pluto, selected asteroids, and custom bodies, and the best dense candidate wins before fallback, with equal-error, equal-sample-count ties preferring the simpler segment, residual correction channels on high-curvature spans when they improve the fit, higher-order distance reconstruction from fit samples when it quantizes cleanly, cubic distance reconstruction from four-point control points when available, one-third and two-thirds probe fractions on dense-body spans when quarter-point curvature stays balanced, and quadratic fallback otherwise";
+const PACKAGED_ARTIFACT_GENERATION_STRATEGY_TAIL: &str = "with 8-point and 10-point Chebyshev-Lobatto baseline candidates before the dense body-specific ladders and 12-point and 14-point candidates for inner and outer planets before fallback, with 10-point, 12-point, 14-point, 16-point, 18-point, and 20-point options for luminaries, Pluto, selected asteroids, and custom bodies, and the best dense candidate wins before fallback, with equal-error, equal-sample-count ties preferring the simpler segment, residual correction channels on high-curvature spans when they improve the fit, higher-order distance reconstruction from fit samples when it quantizes cleanly, cubic distance reconstruction from four-point control points when available, one-third and two-thirds probe fractions on dense-body spans when quarter-point curvature stays balanced, and quadratic fallback otherwise";
 
 fn packaged_artifact_generation_policy_note_text() -> &'static str {
     static NOTE: OnceLock<String> = OnceLock::new();
@@ -7576,7 +7576,7 @@ const PACKAGED_ARTIFACT_MEDIUM_VALIDATION_SAMPLE_FRACTIONS: &[f64] =
     &[0.125, 0.25, 0.5, 0.75, 0.875];
 const PACKAGED_ARTIFACT_DENSE_VALIDATION_SAMPLE_FRACTIONS: &[f64] =
     &[0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875];
-const PACKAGED_ARTIFACT_MEDIUM_FIT_SAMPLE_COUNTS: &[usize] = &[6, 8, 10, 12];
+const PACKAGED_ARTIFACT_MEDIUM_FIT_SAMPLE_COUNTS: &[usize] = &[6, 8, 10, 12, 14];
 const PACKAGED_ARTIFACT_DENSE_FIT_SAMPLE_COUNTS: &[usize] = &[6, 8, 10, 12, 14, 16, 18, 20];
 
 fn packaged_artifact_fit_sample_counts_for_body(body: &CelestialBody) -> &'static [usize] {
@@ -8247,7 +8247,10 @@ mod tests {
             packaged_artifact_fit_sample_counts_for_body(saturn_segment.0),
             PACKAGED_ARTIFACT_MEDIUM_FIT_SAMPLE_COUNTS
         );
-        assert_eq!(PACKAGED_ARTIFACT_MEDIUM_FIT_SAMPLE_COUNTS, &[6, 8, 10, 12]);
+        assert_eq!(
+            PACKAGED_ARTIFACT_MEDIUM_FIT_SAMPLE_COUNTS,
+            &[6, 8, 10, 12, 14]
+        );
         assert_eq!(
             PACKAGED_ARTIFACT_DENSE_FIT_SAMPLE_COUNTS.last().copied(),
             Some(20)
