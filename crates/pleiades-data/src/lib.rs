@@ -1073,6 +1073,80 @@ impl fmt::Display for PackagedArtifactFitOutlierSummary {
     }
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct PackagedArtifactFitChannelOutlierSummary {
+    /// Channel-level summaries for the worst sampled fit deltas.
+    pub channel_summaries: Vec<String>,
+}
+
+/// Validation error for a packaged-artifact fit outlier-by-channel summary that drifted from the current posture.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum PackagedArtifactFitChannelOutlierSummaryValidationError {
+    /// A summary field is out of sync with the current packaged-artifact posture.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl PackagedArtifactFitChannelOutlierSummaryValidationError {
+    /// Returns the compact release-facing summary for the validation error.
+    pub fn summary_line(&self) -> String {
+        match self {
+            Self::FieldOutOfSync { field } => format!(
+                "the packaged artifact fit outlier-by-channel summary field `{field}` is out of sync with the current posture"
+            ),
+        }
+    }
+}
+
+impl fmt::Display for PackagedArtifactFitChannelOutlierSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+impl std::error::Error for PackagedArtifactFitChannelOutlierSummaryValidationError {}
+
+impl PackagedArtifactFitChannelOutlierSummary {
+    /// Returns the channel-level fit outliers as a compact human-readable line.
+    pub fn summary_line(&self) -> String {
+        if self.channel_summaries.is_empty() {
+            "fit outliers by channel: none".to_string()
+        } else {
+            format!(
+                "fit outliers by channel: {}",
+                self.channel_summaries.join("; ")
+            )
+        }
+    }
+
+    /// Returns `Ok(())` when the summary still matches the current packaged artifact.
+    pub fn validate(&self) -> Result<(), PackagedArtifactFitChannelOutlierSummaryValidationError> {
+        let expected = packaged_artifact_fit_channel_outlier_summary_details();
+        if self != &expected {
+            return Err(
+                PackagedArtifactFitChannelOutlierSummaryValidationError::FieldOutOfSync {
+                    field: "channel_summaries",
+                },
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns the validated channel-level fit outliers as a compact human-readable line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, PackagedArtifactFitChannelOutlierSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for PackagedArtifactFitChannelOutlierSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 fn packaged_artifact_fit_channel_outlier_summary_for_channel(
     samples: &[PackagedArtifactFitSample],
     channel: ChannelKind,
@@ -1122,9 +1196,11 @@ fn packaged_artifact_fit_channel_outlier_summary_for_channel(
     Some(format!("{channel}{{{}}}", body_entries.join(", ")))
 }
 
-pub fn packaged_artifact_fit_channel_outlier_summary_for_report() -> String {
+/// Returns the current packaged-artifact fit outliers by channel as a structured summary record.
+pub fn packaged_artifact_fit_channel_outlier_summary_details(
+) -> PackagedArtifactFitChannelOutlierSummary {
     let samples = packaged_artifact_fit_outlier_samples_for_current_artifact();
-    let mut channel_entries = Vec::new();
+    let mut channel_summaries = Vec::new();
 
     for channel in [
         ChannelKind::DistanceAu,
@@ -1134,14 +1210,19 @@ pub fn packaged_artifact_fit_channel_outlier_summary_for_report() -> String {
         if let Some(entry) =
             packaged_artifact_fit_channel_outlier_summary_for_channel(samples, channel)
         {
-            channel_entries.push(entry);
+            channel_summaries.push(entry);
         }
     }
 
-    if channel_entries.is_empty() {
-        "fit outliers by channel: none".to_string()
-    } else {
-        format!("fit outliers by channel: {}", channel_entries.join("; "))
+    PackagedArtifactFitChannelOutlierSummary { channel_summaries }
+}
+
+/// Returns the current packaged-artifact fit outliers by channel after validating the structured posture.
+pub fn packaged_artifact_fit_channel_outlier_summary_for_report() -> String {
+    let summary = packaged_artifact_fit_channel_outlier_summary_details();
+    match summary.validated_summary_line() {
+        Ok(line) => line,
+        Err(error) => format!("fit outliers by channel: unavailable ({error})"),
     }
 }
 
@@ -12191,7 +12272,8 @@ mod tests {
             .expect("latitude outliers should still be rendered");
         assert!(distance < longitude && distance < latitude);
 
-        let by_channel = packaged_artifact_fit_channel_outlier_summary_for_report();
+        let by_channel_summary = packaged_artifact_fit_channel_outlier_summary_details();
+        let by_channel = by_channel_summary.summary_line();
         let distance = by_channel
             .find("DistanceAu{")
             .expect("distance outliers should be surfaced in the channel summary");
@@ -12202,6 +12284,33 @@ mod tests {
             .find("Latitude{")
             .expect("latitude outliers should still be rendered");
         assert!(distance < longitude && distance < latitude);
+        assert_eq!(by_channel_summary.to_string(), by_channel);
+        assert_eq!(
+            by_channel_summary.validated_summary_line(),
+            Ok(by_channel.clone())
+        );
+        assert!(by_channel_summary.validate().is_ok());
+        assert_eq!(
+            packaged_artifact_fit_channel_outlier_summary_for_report(),
+            by_channel
+        );
+    }
+
+    #[test]
+    fn packaged_artifact_fit_channel_outlier_summary_validation_rejects_drift() {
+        let mut summary = packaged_artifact_fit_channel_outlier_summary_details();
+        summary.channel_summaries.pop();
+
+        let error = summary
+            .validate()
+            .expect_err("channel outlier drift should be rejected");
+        assert_eq!(
+            error,
+            PackagedArtifactFitChannelOutlierSummaryValidationError::FieldOutOfSync {
+                field: "channel_summaries",
+            }
+        );
+        assert!(error.to_string().contains("channel_summaries"));
     }
 
     #[test]
