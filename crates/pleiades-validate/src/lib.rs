@@ -4212,6 +4212,13 @@ impl fmt::Display for ReleaseBundle {
         )?;
         writeln!(
             f,
+            "  selected asteroid source window summary: {}",
+            self.output_dir
+                .join("selected-asteroid-source-window-summary.txt")
+                .display()
+        )?;
+        writeln!(
+            f,
             "  interpolation-quality sample request corpus summary: {}",
             self.interpolation_quality_request_corpus_summary_path
                 .display()
@@ -9872,6 +9879,11 @@ pub fn render_release_bundle(
             .map_err(|error| ReleaseBundleError::Verification(error.to_string()))?;
     let selected_asteroid_source_request_corpus_summary_checksum =
         checksum64(&selected_asteroid_source_request_corpus_summary_text);
+    let selected_asteroid_source_window_summary_text =
+        validated_selected_asteroid_source_window_summary_for_report()
+            .map_err(|error| ReleaseBundleError::Verification(error.to_string()))?;
+    let selected_asteroid_source_window_summary_checksum =
+        checksum64(&selected_asteroid_source_window_summary_text);
     let benchmark_report_text = render_benchmark_report(rounds)?;
     let workspace_audit_summary_text = render_workspace_audit_summary()
         .map_err(|error| ReleaseBundleError::Verification(error.to_string()))?;
@@ -10036,6 +10048,8 @@ pub fn render_release_bundle(
         output_dir.join("interpolation-quality-request-corpus-summary.txt");
     let selected_asteroid_source_request_corpus_summary_path =
         output_dir.join("selected-asteroid-source-request-corpus-summary.txt");
+    let selected_asteroid_source_window_summary_path =
+        output_dir.join("selected-asteroid-source-window-summary.txt");
     let benchmark_report_path = output_dir.join("benchmark-report.txt");
     let report_path = output_dir.join("validation-report.txt");
     let manifest_path = output_dir.join("bundle-manifest.txt");
@@ -10233,7 +10247,7 @@ packaged-artifact generation manifest summary: packaged-artifact-generation-mani
 packaged-artifact generation manifest summary checksum (fnv1a-64): 0x{packaged_artifact_generation_manifest_summary_checksum:016x}
 packaged-artifact generation manifest checksum summary: packaged-artifact-generation-manifest-checksum-summary.txt
 packaged-artifact generation manifest checksum summary checksum (fnv1a-64): 0x{packaged_artifact_generation_manifest_checksum_summary_checksum:016x}
-benchmark-corpus summary: benchmark-corpus-summary.txt\nbenchmark-corpus summary checksum (fnv1a-64): 0x{benchmark_corpus_summary_checksum:016x}\nselected asteroid source request corpus summary: selected-asteroid-source-request-corpus-summary.txt\nselected asteroid source request corpus summary checksum (fnv1a-64): 0x{selected_asteroid_source_request_corpus_summary_checksum:016x}\ninterpolation-quality sample request corpus summary: interpolation-quality-request-corpus-summary.txt\ninterpolation-quality sample request corpus summary checksum (fnv1a-64): 0x{interpolation_quality_request_corpus_summary_checksum:016x}\nbenchmark report: benchmark-report.txt\nbenchmark report checksum (fnv1a-64): 0x{benchmark_report_checksum:016x}\nvalidation report: validation-report.txt\nvalidation report checksum (fnv1a-64): 0x{validation_report_checksum:016x}\nsource revision: {}\nworkspace status: {}\nrustc version: {}\ncargo version: {}\nprofile id: {}\napi stability posture id: {}\nvalidation rounds: {}\n",
+benchmark-corpus summary: benchmark-corpus-summary.txt\nbenchmark-corpus summary checksum (fnv1a-64): 0x{benchmark_corpus_summary_checksum:016x}\nselected asteroid source request corpus summary: selected-asteroid-source-request-corpus-summary.txt\nselected asteroid source request corpus summary checksum (fnv1a-64): 0x{selected_asteroid_source_request_corpus_summary_checksum:016x}\nselected asteroid source window summary: selected-asteroid-source-window-summary.txt\nselected asteroid source window summary checksum (fnv1a-64): 0x{selected_asteroid_source_window_summary_checksum:016x}\ninterpolation-quality sample request corpus summary: interpolation-quality-request-corpus-summary.txt\ninterpolation-quality sample request corpus summary checksum (fnv1a-64): 0x{interpolation_quality_request_corpus_summary_checksum:016x}\nbenchmark report: benchmark-report.txt\nbenchmark report checksum (fnv1a-64): 0x{benchmark_report_checksum:016x}\nvalidation report: validation-report.txt\nvalidation report checksum (fnv1a-64): 0x{validation_report_checksum:016x}\nsource revision: {}\nworkspace status: {}\nrustc version: {}\ncargo version: {}\nprofile id: {}\napi stability posture id: {}\nvalidation rounds: {}\n",
         provenance.source_revision,
         provenance.workspace_status,
         provenance.rustc_version,
@@ -10541,6 +10555,10 @@ benchmark-corpus summary: benchmark-corpus-summary.txt\nbenchmark-corpus summary
         &selected_asteroid_source_request_corpus_summary_path,
         selected_asteroid_source_request_corpus_summary_text.as_bytes(),
     )?;
+    fs::write(
+        &selected_asteroid_source_window_summary_path,
+        selected_asteroid_source_window_summary_text.as_bytes(),
+    )?;
     fs::write(&benchmark_report_path, benchmark_report_text.as_bytes())?;
     fs::write(&report_path, validation_report_text.as_bytes())?;
     fs::write(&manifest_path, manifest_text.as_bytes())?;
@@ -10701,6 +10719,8 @@ struct ParsedReleaseBundleManifest {
     benchmark_corpus_summary_checksum: u64,
     selected_asteroid_source_request_corpus_summary_path: String,
     selected_asteroid_source_request_corpus_summary_checksum: u64,
+    selected_asteroid_source_window_summary_path: String,
+    selected_asteroid_source_window_summary_checksum: u64,
     interpolation_quality_request_corpus_summary_path: String,
     interpolation_quality_request_corpus_summary_checksum: u64,
     benchmark_report_path: String,
@@ -11265,6 +11285,14 @@ impl ParsedReleaseBundleManifest {
                 text,
                 "selected asteroid source request corpus summary checksum (fnv1a-64):",
             )?,
+            selected_asteroid_source_window_summary_path: parse_manifest_string(
+                text,
+                "selected asteroid source window summary:",
+            )?,
+            selected_asteroid_source_window_summary_checksum: parse_manifest_checksum(
+                text,
+                "selected asteroid source window summary checksum (fnv1a-64):",
+            )?,
             interpolation_quality_request_corpus_summary_path: parse_manifest_string(
                 text,
                 "interpolation-quality sample request corpus summary:",
@@ -11323,6 +11351,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
         "comparison-body-class-tolerance-summary.txt",
         "benchmark-corpus-summary.txt",
         "selected-asteroid-source-request-corpus-summary.txt",
+        "selected-asteroid-source-window-summary.txt",
         "interpolation-quality-request-corpus-summary.txt",
         "comparison-corpus-release-guard-summary.txt",
         "comparison-corpus-guard-summary.txt",
@@ -11416,7 +11445,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
 fn ensure_release_bundle_manifest_is_canonical(
     manifest_text: &str,
 ) -> Result<(), ReleaseBundleError> {
-    const EXPECTED_MANIFEST_LINES: [&str; 170] = [
+    const EXPECTED_MANIFEST_LINES: [&str; 172] = [
         "Release bundle manifest",
         "profile:",
         "profile checksum (fnv1a-64):",
@@ -11572,6 +11601,8 @@ fn ensure_release_bundle_manifest_is_canonical(
         "benchmark-corpus summary checksum (fnv1a-64):",
         "selected asteroid source request corpus summary:",
         "selected asteroid source request corpus summary checksum (fnv1a-64):",
+        "selected asteroid source window summary:",
+        "selected asteroid source window summary checksum (fnv1a-64):",
         "interpolation-quality sample request corpus summary:",
         "interpolation-quality sample request corpus summary checksum (fnv1a-64):",
         "benchmark report:",
@@ -12463,6 +12494,8 @@ fn verify_release_bundle(
     let benchmark_corpus_summary_path = output_dir.join("benchmark-corpus-summary.txt");
     let selected_asteroid_source_request_corpus_summary_path =
         output_dir.join("selected-asteroid-source-request-corpus-summary.txt");
+    let selected_asteroid_source_window_summary_path =
+        output_dir.join("selected-asteroid-source-window-summary.txt");
     let interpolation_quality_request_corpus_summary_path =
         output_dir.join("interpolation-quality-request-corpus-summary.txt");
     let benchmark_report_path = output_dir.join("benchmark-report.txt");
@@ -12948,6 +12981,20 @@ fn verify_release_bundle(
     )?;
     let selected_asteroid_source_request_corpus_summary_checksum =
         checksum64(&selected_asteroid_source_request_corpus_summary_text);
+    let selected_asteroid_source_window_summary_text = read_required_bundle_text(
+        &selected_asteroid_source_window_summary_path,
+        "selected asteroid source window summary",
+    )?;
+    if selected_asteroid_source_window_summary_text
+        != selected_asteroid_source_window_summary_for_report()
+    {
+        return Err(ReleaseBundleError::Verification(
+            "selected asteroid source window summary no longer matches the current selected asteroid source window posture"
+                .to_string(),
+        ));
+    }
+    let selected_asteroid_source_window_summary_checksum =
+        checksum64(&selected_asteroid_source_window_summary_text);
     let interpolation_quality_request_corpus_summary_text = read_required_bundle_text(
         &interpolation_quality_request_corpus_summary_path,
         "interpolation-quality sample request corpus summary",
@@ -14284,6 +14331,23 @@ fn verify_release_bundle(
             "selected asteroid source request corpus summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
             manifest.selected_asteroid_source_request_corpus_summary_checksum,
             selected_asteroid_source_request_corpus_summary_checksum
+        )));
+    }
+    if manifest.selected_asteroid_source_window_summary_path
+        != "selected-asteroid-source-window-summary.txt"
+    {
+        return Err(ReleaseBundleError::Verification(format!(
+            "unexpected selected asteroid source window summary file entry: {}",
+            manifest.selected_asteroid_source_window_summary_path
+        )));
+    }
+    if manifest.selected_asteroid_source_window_summary_checksum
+        != selected_asteroid_source_window_summary_checksum
+    {
+        return Err(ReleaseBundleError::Verification(format!(
+            "selected asteroid source window summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
+            manifest.selected_asteroid_source_window_summary_checksum,
+            selected_asteroid_source_window_summary_checksum
         )));
     }
     if manifest.interpolation_quality_request_corpus_summary_path
@@ -29523,6 +29587,8 @@ version = "0.9.0"
         assert!(manifest.contains("packaged-artifact-generation-manifest.checksum.txt"));
         assert!(manifest.contains("benchmark-corpus-summary.txt"));
         assert!(manifest.contains("selected-asteroid-source-request-corpus-summary.txt"));
+        assert!(manifest.contains("selected-asteroid-source-window-summary.txt"));
+        assert!(manifest.contains("selected asteroid source window summary checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("interpolation-quality-request-corpus-summary.txt"));
         assert!(manifest.contains("benchmark-report.txt"));
         assert!(manifest.contains("validation-report.txt"));
@@ -29610,6 +29676,7 @@ version = "0.9.0"
         assert!(verified.contains("artifact-summary.txt"));
         assert!(verified.contains("benchmark-corpus-summary.txt"));
         assert!(verified.contains("selected-asteroid-source-request-corpus-summary.txt"));
+        assert!(verified.contains("selected-asteroid-source-window-summary.txt"));
         assert!(verified.contains("interpolation-quality-request-corpus-summary.txt"));
         assert!(verified.contains("benchmark-report.txt"));
         assert!(verified.contains("source revision:"));
@@ -31171,6 +31238,19 @@ version = "0.9.0"
             "Selected asteroid source request corpus:",
             "Tampered selected asteroid source request corpus:",
             "selected asteroid source request corpus summary no longer matches the current selected asteroid source request corpus posture",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_selected_asteroid_source_window_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-selected-asteroid-source-window-semantic",
+            "selected-asteroid-source-window-summary.txt",
+            "selected asteroid source window summary checksum (fnv1a-64):",
+            "Selected asteroid source windows:",
+            "Tampered selected asteroid source windows:",
+            "selected asteroid source window summary no longer matches the current selected asteroid source window posture",
         );
     }
 
