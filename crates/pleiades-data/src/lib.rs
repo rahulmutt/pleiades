@@ -67,7 +67,7 @@ use pleiades_jpl::{
 const PACKAGE_NAME: &str = "pleiades-data";
 const ARTIFACT_LABEL: &str = "stage-5 packaged-data draft";
 const ARTIFACT_PROFILE_ID: &str = "pleiades-packaged-artifact-profile/stage-5-draft";
-const PACKAGED_ARTIFACT_GENERATION_STRATEGY_TAIL: &str = "with 8-point and 10-point Chebyshev-Lobatto baseline candidates before the dense body-specific ladders and 12-point and 14-point candidates for inner and outer planets before fallback, with 10-point, 12-point, 14-point, 16-point, 18-point, and 20-point options for luminaries, Pluto, selected asteroids, and custom bodies, and the best dense candidate wins before fallback, with equal-error, equal-sample-count ties preferring the simpler segment, residual correction channels on high-curvature spans when they improve the fit, residual-channel combinations and remaining channel-order permutations when composing those channels, preferring the smaller residual footprint on equal-error ties, higher-order reconstruction from fit samples when it quantizes cleanly, shared four-point control-point fallback across longitude, latitude, and distance channels when the higher-order fit does not quantize cleanly, quarter-biased splits on very long dense-body spans when quarter-point curvature is strongly asymmetric, a dense quarter-point control-point lattice before exact-third fallback on irregular spans, one-sixth and five-sixth probe fractions on very long dense-body spans when quarter-point curvature stays balanced, one-third and two-thirds probe fractions on long dense-body spans when quarter-point curvature stays balanced, one-fifth and four-fifth probe fractions on the longest dense-body spans when the coarser probes stay balanced, one-ninth and eight-ninths probe fractions on super-extreme dense-body spans when the finer probes stay balanced, and quadratic fallback otherwise";
+const PACKAGED_ARTIFACT_GENERATION_STRATEGY_TAIL: &str = "with 8-point and 10-point Chebyshev-Lobatto baseline candidates before the dense body-specific ladders and 12-point and 14-point candidates for inner and outer planets before fallback, with 10-point, 12-point, 14-point, 16-point, 18-point, and 20-point options for luminaries, Pluto, selected asteroids, and custom bodies, and the best dense candidate wins before fallback, with equal-error, equal-sample-count ties preferring the simpler segment, residual correction channels on high-curvature spans when they improve the fit, residual-channel combinations and remaining channel-order permutations when composing those channels, preferring the smaller residual footprint on equal-error ties, higher-order reconstruction from fit samples when it quantizes cleanly, shared four-point control-point fallback across longitude, latitude, and distance channels when the higher-order fit does not quantize cleanly, quarter-biased splits on very long dense-body spans when quarter-point curvature is strongly asymmetric, a dense quarter-point control-point lattice before exact-third fallback on irregular spans, one-sixth and five-sixth probe fractions on very long dense-body spans when quarter-point curvature stays balanced, one-third and two-thirds probe fractions on long dense-body spans when quarter-point curvature stays balanced, one-ninth and eight-ninths probe fractions on super-extreme dense-body spans when the finer probes stay balanced, one-seventh and six-sevenths probe fractions on extreme dense-body spans when the super-extreme probes stay balanced, one-fifth and four-fifth probe fractions on the longest dense-body spans when the coarser probes stay balanced, and quadratic fallback otherwise";
 
 fn packaged_artifact_generation_policy_note_text() -> &'static str {
     static NOTE: OnceLock<String> = OnceLock::new();
@@ -7042,6 +7042,11 @@ fn body_segment_windows_for_interval(
     } else {
         None
     };
+    let six_sevenths_coordinates = if use_curvature_bias && span_days > span_limit * 16.0 {
+        sample_fraction(6.0 / 7.0)
+    } else {
+        None
+    };
     let three_quarter_coordinates = if use_curvature_bias {
         sample_fraction(0.75)
     } else {
@@ -7087,7 +7092,7 @@ fn body_segment_windows_for_interval(
             one_fifth_coordinates: one_fifth_coordinates.as_ref(),
             one_sixth_coordinates: one_sixth_coordinates.as_ref(),
             one_seventh_coordinates: one_seventh_coordinates.as_ref(),
-            six_sevenths_coordinates: None,
+            six_sevenths_coordinates: six_sevenths_coordinates.as_ref(),
             one_ninth_coordinates: one_ninth_coordinates.as_ref(),
             eight_ninths_coordinates: eight_ninths_coordinates.as_ref(),
             one_third_coordinates: one_third_coordinates.as_ref(),
@@ -10995,6 +11000,24 @@ mod tests {
             .contains("one-fifth and four-fifth probe fractions"));
         assert!(packaged_artifact_generation_policy_note_text()
             .contains("one-ninth and eight-ninths probe fractions"));
+        assert!(packaged_artifact_generation_policy_note_text()
+            .contains("one-seventh and six-sevenths probe fractions"));
+        assert!(
+            packaged_artifact_generation_policy_note_text()
+                .find("one-ninth and eight-ninths probe fractions")
+                .expect("ninth probe text should be present")
+                < packaged_artifact_generation_policy_note_text()
+                    .find("one-seventh and six-sevenths probe fractions")
+                    .expect("seventh probe text should be present")
+        );
+        assert!(
+            packaged_artifact_generation_policy_note_text()
+                .find("one-seventh and six-sevenths probe fractions")
+                .expect("seventh probe text should be present")
+                < packaged_artifact_generation_policy_note_text()
+                    .find("one-fifth and four-fifth probe fractions")
+                    .expect("fifth probe text should be present")
+        );
         assert!(packaged_artifact_source_text()
             .contains("quarter-biased splits on very long dense-body spans"));
         assert!(
