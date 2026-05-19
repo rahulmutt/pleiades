@@ -9864,7 +9864,7 @@ pub fn benchmark_provenance_text() -> String {
 /// release checklist summary, backend matrix, API posture, API stability summary,
 /// comparison-envelope summary, comparison-corpus release-guard summary, validation report summary, artifact summary,
 /// packaged-artifact production-profile summary, packaged-artifact target-threshold summary,
-/// packaged-artifact target-threshold scope envelopes summary, packaged-artifact phase-2 corpus alignment summary, packaged-artifact lookup-epoch policy summary, packaged-artifact generation policy summary, packaged-artifact normalized intermediate summary, packaged-artifact speed policy summary, production-generation summary, production-generation boundary request corpus summary, production-generation source summary, production-generation manifest summary, production-generation manifest checksum summary, selected-asteroid source request corpus summary, packaged-artifact generation manifest, packaged-artifact generation manifest summary, packaged-artifact generation manifest checksum summary, packaged-artifact generation manifest checksum sidecar, benchmark report, validation report, and a manifest.
+/// packaged-artifact target-threshold state summary, packaged-artifact target-threshold scope envelopes summary, packaged-artifact phase-2 corpus alignment summary, packaged-artifact lookup-epoch policy summary, packaged-artifact generation policy summary, packaged-artifact normalized intermediate summary, packaged-artifact speed policy summary, production-generation summary, production-generation boundary request corpus summary, production-generation source summary, production-generation manifest summary, production-generation manifest checksum summary, selected-asteroid source request corpus summary, packaged-artifact generation manifest, packaged-artifact generation manifest summary, packaged-artifact generation manifest checksum summary, packaged-artifact generation manifest checksum sidecar, benchmark report, validation report, and a manifest.
 pub fn render_release_bundle(
     rounds: usize,
     output_dir: impl AsRef<Path>,
@@ -9985,6 +9985,8 @@ pub fn render_release_bundle(
     let packaged_frame_treatment_summary_text = packaged_frame_treatment_summary_for_report();
     let packaged_artifact_target_threshold_summary_text =
         validated_packaged_artifact_target_threshold_summary_for_report();
+    let packaged_artifact_target_threshold_state_summary_text =
+        validated_packaged_artifact_target_threshold_state_for_report();
     let packaged_artifact_source_fit_holdout_sync_summary_text =
         validated_packaged_artifact_source_fit_holdout_sync_summary_for_report();
     let packaged_artifact_target_threshold_scope_envelopes_summary_text =
@@ -10114,6 +10116,8 @@ pub fn render_release_bundle(
         output_dir.join("packaged-frame-treatment-summary.txt");
     let packaged_artifact_target_threshold_summary_path =
         output_dir.join("packaged-artifact-target-threshold-summary.txt");
+    let packaged_artifact_target_threshold_state_summary_path =
+        output_dir.join("packaged-artifact-target-threshold-state-summary.txt");
     let packaged_artifact_source_fit_holdout_sync_summary_path =
         output_dir.join("packaged-artifact-source-fit-holdout-sync-summary.txt");
     let packaged_artifact_target_threshold_scope_envelopes_summary_path =
@@ -10299,6 +10303,8 @@ pub fn render_release_bundle(
         checksum64(&packaged_frame_treatment_summary_text);
     let packaged_artifact_target_threshold_summary_checksum =
         checksum64(&packaged_artifact_target_threshold_summary_text);
+    let packaged_artifact_target_threshold_state_summary_checksum =
+        checksum64(&packaged_artifact_target_threshold_state_summary_text);
     let packaged_artifact_source_fit_holdout_sync_summary_checksum =
         checksum64(&packaged_artifact_source_fit_holdout_sync_summary_text);
     let packaged_artifact_target_threshold_scope_envelopes_summary_checksum =
@@ -10348,6 +10354,8 @@ lunar theory catalog validation summary: lunar-theory-catalog-validation-summary
 lunar theory catalog validation summary checksum (fnv1a-64): 0x{lunar_theory_catalog_validation_summary_checksum:016x}
 request surface summary: request-surface-summary.txt\nrequest surface summary checksum (fnv1a-64): 0x{request_surface_summary_checksum:016x}\ncompatibility caveats summary: compatibility-caveats-summary.txt\ncompatibility caveats summary checksum (fnv1a-64): 0x{compatibility_caveats_summary_checksum:016x}\nworkspace audit summary: workspace-audit-summary.txt\nworkspace audit summary checksum (fnv1a-64): 0x{workspace_audit_summary_checksum:016x}\nnative-dependency audit summary: native-dependency-audit-summary.txt\nnative-dependency audit summary checksum (fnv1a-64): 0x{native_dependency_audit_summary_checksum:016x}\nartifact summary: artifact-summary.txt\nartifact summary checksum (fnv1a-64): 0x{artifact_summary_checksum:016x}\npackaged-artifact: packaged-artifact.bin\npackaged-artifact checksum (fnv1a-64): 0x{packaged_artifact_bytes_checksum:016x}\npackaged-artifact checksum sidecar: packaged-artifact.checksum.txt\npackaged-artifact checksum sidecar checksum (fnv1a-64): 0x{packaged_artifact_checksum_text_checksum:016x}\npackaged-artifact profile coverage summary: packaged-artifact-profile-coverage-summary.txt\npackaged-artifact profile coverage summary checksum (fnv1a-64): 0x{packaged_artifact_profile_coverage_summary_checksum:016x}\npackaged-artifact access summary: packaged-artifact-access-summary.txt\npackaged-artifact access summary checksum (fnv1a-64): 0x{packaged_artifact_access_summary_checksum:016x}\npackaged-artifact output support summary: packaged-artifact-output-support-summary.txt\npackaged-artifact output support summary checksum (fnv1a-64): 0x{packaged_artifact_output_support_summary_checksum:016x}\npackaged-artifact fit sample classes summary: packaged-artifact-fit-sample-classes-summary.txt\npackaged-artifact fit sample classes summary checksum (fnv1a-64): 0x{packaged_artifact_fit_sample_classes_summary_checksum:016x}\npackaged-artifact fit threshold violation count summary: packaged-artifact-fit-threshold-violation-count-summary.txt\npackaged-artifact fit threshold violation count summary checksum (fnv1a-64): 0x{packaged_artifact_fit_threshold_violation_count_summary_checksum:016x}\npackaged-artifact fit threshold violations summary: packaged-artifact-fit-threshold-violations-summary.txt\npackaged-artifact fit threshold violations summary checksum (fnv1a-64): 0x{packaged_artifact_fit_threshold_violations_summary_checksum:016x}\npackaged-artifact normalized intermediate summary: packaged-artifact-normalized-intermediate-summary.txt\npackaged-artifact normalized intermediate summary checksum (fnv1a-64): 0x{packaged_artifact_normalized_intermediate_summary_checksum:016x}\npackaged-artifact speed policy summary: packaged-artifact-speed-policy-summary.txt\npackaged-artifact speed policy summary checksum (fnv1a-64): 0x{packaged_artifact_speed_policy_summary_checksum:016x}\npackaged-artifact storage summary: packaged-artifact-storage-summary.txt\npackaged-artifact storage summary checksum (fnv1a-64): 0x{packaged_artifact_storage_summary_checksum:016x}\npackaged-artifact production-profile summary: packaged-artifact-production-profile-summary.txt\npackaged-artifact production-profile summary checksum (fnv1a-64): 0x{packaged_artifact_production_profile_summary_checksum:016x}\npackaged-frame-treatment summary: packaged-frame-treatment-summary.txt\npackaged-frame-treatment summary checksum (fnv1a-64): 0x{packaged_frame_treatment_summary_checksum:016x}\npackaged-artifact target-threshold summary: packaged-artifact-target-threshold-summary.txt
 packaged-artifact target-threshold summary checksum (fnv1a-64): 0x{packaged_artifact_target_threshold_summary_checksum:016x}
+packaged-artifact target-threshold state summary: packaged-artifact-target-threshold-state-summary.txt
+packaged-artifact target-threshold state summary checksum (fnv1a-64): 0x{packaged_artifact_target_threshold_state_summary_checksum:016x}
 packaged-artifact source-fit and hold-out sync summary: packaged-artifact-source-fit-holdout-sync-summary.txt
 packaged-artifact source-fit and hold-out sync summary checksum (fnv1a-64): 0x{packaged_artifact_source_fit_holdout_sync_summary_checksum:016x}
 packaged-artifact target-threshold scope envelopes summary: packaged-artifact-target-threshold-scope-envelopes-summary.txt
@@ -10657,6 +10665,10 @@ benchmark-corpus summary: benchmark-corpus-summary.txt\nbenchmark-corpus summary
         packaged_artifact_target_threshold_summary_text.as_bytes(),
     )?;
     fs::write(
+        &packaged_artifact_target_threshold_state_summary_path,
+        packaged_artifact_target_threshold_state_summary_text.as_bytes(),
+    )?;
+    fs::write(
         &packaged_artifact_source_fit_holdout_sync_summary_path,
         packaged_artifact_source_fit_holdout_sync_summary_text.as_bytes(),
     )?;
@@ -10864,6 +10876,8 @@ struct ParsedReleaseBundleManifest {
     packaged_artifact_production_profile_summary_checksum: u64,
     packaged_frame_treatment_summary_checksum: u64,
     packaged_artifact_target_threshold_summary_checksum: u64,
+    packaged_artifact_target_threshold_state_summary_path: String,
+    packaged_artifact_target_threshold_state_summary_checksum: u64,
     packaged_artifact_source_fit_holdout_sync_summary_path: String,
     packaged_artifact_source_fit_holdout_sync_summary_checksum: u64,
     packaged_artifact_target_threshold_scope_envelopes_summary_path: String,
@@ -11422,6 +11436,14 @@ impl ParsedReleaseBundleManifest {
                 text,
                 "packaged-artifact target-threshold summary checksum (fnv1a-64):",
             )?,
+            packaged_artifact_target_threshold_state_summary_path: parse_manifest_string(
+                text,
+                "packaged-artifact target-threshold state summary:",
+            )?,
+            packaged_artifact_target_threshold_state_summary_checksum: parse_manifest_checksum(
+                text,
+                "packaged-artifact target-threshold state summary checksum (fnv1a-64):",
+            )?,
             packaged_artifact_source_fit_holdout_sync_summary_path: parse_manifest_string(
                 text,
                 "packaged-artifact source-fit and hold-out sync summary:",
@@ -11640,6 +11662,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
         "packaged-artifact-production-profile-summary.txt",
         "packaged-frame-treatment-summary.txt",
         "packaged-artifact-target-threshold-summary.txt",
+        "packaged-artifact-target-threshold-state-summary.txt",
         "packaged-artifact-source-fit-holdout-sync-summary.txt",
         "packaged-artifact-target-threshold-scope-envelopes-summary.txt",
         "packaged-artifact-phase2-corpus-alignment-summary.txt",
@@ -11686,7 +11709,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
 fn ensure_release_bundle_manifest_is_canonical(
     manifest_text: &str,
 ) -> Result<(), ReleaseBundleError> {
-    const EXPECTED_MANIFEST_LINES: [&str; 188] = [
+    const EXPECTED_MANIFEST_LINES: [&str; 190] = [
         "Release bundle manifest",
         "profile:",
         "profile checksum (fnv1a-64):",
@@ -11834,6 +11857,8 @@ fn ensure_release_bundle_manifest_is_canonical(
         "packaged-frame-treatment summary checksum (fnv1a-64):",
         "packaged-artifact target-threshold summary:",
         "packaged-artifact target-threshold summary checksum (fnv1a-64):",
+        "packaged-artifact target-threshold state summary:",
+        "packaged-artifact target-threshold state summary checksum (fnv1a-64):",
         "packaged-artifact source-fit and hold-out sync summary:",
         "packaged-artifact source-fit and hold-out sync summary checksum (fnv1a-64):",
         "packaged-artifact target-threshold scope envelopes summary:",
@@ -12296,6 +12321,21 @@ fn ensure_packaged_artifact_target_threshold_summary_matches_current_rendering(
     } else {
         Err(ReleaseBundleError::Verification(
             "packaged-artifact target-threshold summary no longer matches the current packaged-artifact target-threshold posture"
+                .to_string(),
+        ))
+    }
+}
+
+fn ensure_packaged_artifact_target_threshold_state_matches_current_rendering(
+    packaged_artifact_target_threshold_state_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if packaged_artifact_target_threshold_state_summary_text
+        == validated_packaged_artifact_target_threshold_state_for_report()
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "packaged-artifact target-threshold state summary no longer matches the current packaged-artifact target-threshold posture"
                 .to_string(),
         ))
     }
@@ -12928,6 +12968,8 @@ fn verify_release_bundle(
         output_dir.join("packaged-frame-treatment-summary.txt");
     let packaged_artifact_target_threshold_summary_path =
         output_dir.join("packaged-artifact-target-threshold-summary.txt");
+    let packaged_artifact_target_threshold_state_summary_path =
+        output_dir.join("packaged-artifact-target-threshold-state-summary.txt");
     let packaged_artifact_source_fit_holdout_sync_summary_path =
         output_dir.join("packaged-artifact-source-fit-holdout-sync-summary.txt");
     let packaged_artifact_target_threshold_scope_envelopes_summary_path =
@@ -13438,6 +13480,10 @@ fn verify_release_bundle(
     let packaged_artifact_target_threshold_summary_text = read_required_bundle_text(
         &packaged_artifact_target_threshold_summary_path,
         "packaged-artifact target-threshold summary",
+    )?;
+    let packaged_artifact_target_threshold_state_summary_text = read_required_bundle_text(
+        &packaged_artifact_target_threshold_state_summary_path,
+        "packaged-artifact target-threshold state summary",
     )?;
     let packaged_artifact_source_fit_holdout_sync_summary_text = read_required_bundle_text(
         &packaged_artifact_source_fit_holdout_sync_summary_path,
@@ -14024,10 +14070,15 @@ fn verify_release_bundle(
         checksum64(&packaged_frame_treatment_summary_text);
     let packaged_artifact_target_threshold_summary_checksum =
         checksum64(&packaged_artifact_target_threshold_summary_text);
+    let packaged_artifact_target_threshold_state_summary_checksum =
+        checksum64(&packaged_artifact_target_threshold_state_summary_text);
     let packaged_artifact_target_threshold_scope_envelopes_summary_checksum =
         checksum64(&packaged_artifact_target_threshold_scope_envelopes_summary_text);
     ensure_packaged_artifact_target_threshold_summary_matches_current_rendering(
         &packaged_artifact_target_threshold_summary_text,
+    )?;
+    ensure_packaged_artifact_target_threshold_state_matches_current_rendering(
+        &packaged_artifact_target_threshold_state_summary_text,
     )?;
     ensure_packaged_artifact_source_fit_holdout_sync_summary_matches_current_rendering(
         &packaged_artifact_source_fit_holdout_sync_summary_text,
@@ -14859,6 +14910,23 @@ fn verify_release_bundle(
             "packaged-artifact target-threshold summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
             manifest.packaged_artifact_target_threshold_summary_checksum,
             packaged_artifact_target_threshold_summary_checksum
+        )));
+    }
+    if manifest.packaged_artifact_target_threshold_state_summary_checksum
+        != packaged_artifact_target_threshold_state_summary_checksum
+    {
+        return Err(ReleaseBundleError::Verification(format!(
+            "packaged-artifact target-threshold state summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
+            manifest.packaged_artifact_target_threshold_state_summary_checksum,
+            packaged_artifact_target_threshold_state_summary_checksum
+        )));
+    }
+    if manifest.packaged_artifact_target_threshold_state_summary_path
+        != "packaged-artifact-target-threshold-state-summary.txt"
+    {
+        return Err(ReleaseBundleError::Verification(format!(
+            "unexpected packaged-artifact target-threshold state summary file entry: {}",
+            manifest.packaged_artifact_target_threshold_state_summary_path
         )));
     }
     if manifest.packaged_artifact_source_fit_holdout_sync_summary_path
@@ -30352,6 +30420,7 @@ version = "0.9.0"
         assert!(manifest.contains("packaged-artifact-production-profile-summary.txt"));
         assert!(manifest.contains("packaged-frame-treatment-summary.txt"));
         assert!(manifest.contains("packaged-artifact-target-threshold-summary.txt"));
+        assert!(manifest.contains("packaged-artifact-target-threshold-state-summary.txt"));
         assert!(manifest.contains("packaged-artifact-source-fit-holdout-sync-summary.txt"));
         assert!(manifest.contains(
             "packaged-artifact source-fit and hold-out sync summary checksum (fnv1a-64): 0x"
