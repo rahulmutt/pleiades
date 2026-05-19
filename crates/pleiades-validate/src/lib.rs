@@ -30784,6 +30784,34 @@ version = "0.9.0"
     }
 
     #[test]
+    fn verify_release_bundle_rejects_missing_release_catalog_summary_entries() {
+        assert_release_bundle_rejects_missing_manifest_entry(
+            "pleiades-release-bundle-missing-release-house-system-canonical-names-summary",
+            "release-house-system-canonical-names summary:",
+            &[
+                "missing manifest entry: release-house-system-canonical-names summary:",
+                "missing release-house-system-canonical-names summary entry",
+            ],
+        );
+        assert_release_bundle_rejects_missing_manifest_entry(
+            "pleiades-release-bundle-missing-release-ayanamsa-canonical-names-summary",
+            "release-ayanamsa-canonical-names summary:",
+            &[
+                "missing manifest entry: release-ayanamsa-canonical-names summary:",
+                "missing release-ayanamsa-canonical-names summary entry",
+            ],
+        );
+        assert_release_bundle_rejects_missing_manifest_entry(
+            "pleiades-release-bundle-missing-release-house-validation-summary",
+            "release-house-validation summary:",
+            &[
+                "missing manifest entry: release-house-validation summary:",
+                "missing release-house-validation summary entry",
+            ],
+        );
+    }
+
+    #[test]
     fn verify_release_bundle_rejects_missing_reference_snapshot_source_window_summary_entry() {
         assert_release_bundle_rejects_missing_manifest_entry(
             "pleiades-release-bundle-missing-reference-snapshot-source-window-summary",
