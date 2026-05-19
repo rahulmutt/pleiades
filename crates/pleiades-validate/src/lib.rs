@@ -13541,6 +13541,9 @@ fn verify_release_bundle(
         &packaged_frame_treatment_summary_path,
         "packaged frame treatment summary",
     )?;
+    ensure_packaged_frame_treatment_summary_matches_current_rendering(
+        &packaged_frame_treatment_summary_text,
+    )?;
     let packaged_artifact_target_threshold_summary_text = read_required_bundle_text(
         &packaged_artifact_target_threshold_summary_path,
         "packaged-artifact target-threshold summary",
@@ -18496,6 +18499,14 @@ fn validated_packaged_artifact_storage_summary_for_report() -> String {
     }
 }
 
+fn validated_packaged_frame_treatment_summary_for_report() -> String {
+    let summary = pleiades_data::packaged_frame_treatment_summary_details();
+    match summary.validate() {
+        Ok(()) => summary.to_string(),
+        Err(error) => format!("Packaged frame treatment: unavailable ({error})"),
+    }
+}
+
 fn ensure_packaged_artifact_storage_summary_matches_current_rendering(
     packaged_artifact_storage_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -18506,6 +18517,21 @@ fn ensure_packaged_artifact_storage_summary_matches_current_rendering(
     } else {
         Err(ReleaseBundleError::Verification(
             "packaged-artifact storage summary no longer matches the current packaged-artifact storage posture"
+                .to_string(),
+        ))
+    }
+}
+
+fn ensure_packaged_frame_treatment_summary_matches_current_rendering(
+    packaged_frame_treatment_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if packaged_frame_treatment_summary_text
+        == validated_packaged_frame_treatment_summary_for_report()
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "packaged frame treatment summary no longer matches the current packaged frame treatment posture"
                 .to_string(),
         ))
     }
@@ -31628,6 +31654,19 @@ version = "0.9.0"
             "reconstructed at runtime",
             "reconstructed at validation time",
             "packaged-artifact storage summary no longer matches the current packaged-artifact storage posture",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_packaged_frame_treatment_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-frame-treatment-semantic",
+            "packaged-frame-treatment-summary.txt",
+            "packaged-frame-treatment summary checksum (fnv1a-64):",
+            "stores ecliptic coordinates directly",
+            "stores ecliptic coordinates explicitly",
+            "packaged frame treatment summary no longer matches the current packaged frame treatment posture",
         );
     }
 
