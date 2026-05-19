@@ -45,6 +45,7 @@ use pleiades_backend::{
     delta_t_policy_summary_for_report, frame_policy_summary_details,
     pluto_fallback_summary_for_report, release_body_claims_summary_for_report,
     request_policy_summary_for_report, time_scale_policy_summary_for_report,
+    validate_release_body_claims_posture as validate_release_body_claims_posture_backend,
     validated_frame_policy_summary_for_report, validated_pluto_fallback_summary_line_for_report,
     validated_release_body_claims_summary_line_for_report,
     validated_zodiac_policy_summary_for_report,
@@ -17383,29 +17384,11 @@ fn validate_release_body_claims_posture(
     release_body_claims_summary: &str,
     pluto_fallback_summary: &str,
 ) -> Result<(), String> {
-    const PLUTO_FALLBACK_PHRASE: &str = "Pluto remains an explicitly approximate fallback";
-    const PLUTO_EXCLUSION_PHRASE: &str = "release-grade major-body claims exclude Pluto";
-    const SELECTED_ASTEROIDS_PHRASE: &str = "selected asteroids (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) remain source-backed validation bodies";
-
-    if !release_body_claims_summary.contains(PLUTO_FALLBACK_PHRASE) {
-        return Err(format!(
-            "release-grade body claims summary no longer references the current Pluto fallback phrase `{PLUTO_FALLBACK_PHRASE}`"
-        ));
-    }
-    if !release_body_claims_summary.contains(SELECTED_ASTEROIDS_PHRASE) {
-        return Err(
-            "release-grade body claims summary no longer keeps the selected asteroid validation bodies explicit"
-                .to_string(),
-        );
-    }
-
-    if !pluto_fallback_summary.contains(PLUTO_EXCLUSION_PHRASE) {
-        return Err(format!(
-            "Pluto fallback summary no longer states that {PLUTO_EXCLUSION_PHRASE}"
-        ));
-    }
-
-    Ok(())
+    validate_release_body_claims_posture_backend(
+        release_body_claims_summary,
+        pluto_fallback_summary,
+    )
+    .map_err(|error| error.to_string())
 }
 
 fn format_release_body_claims_summary_for_report() -> String {

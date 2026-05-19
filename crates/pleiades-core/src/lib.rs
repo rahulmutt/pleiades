@@ -123,9 +123,9 @@ pub use pleiades_backend::{
     native_sidereal_policy_summary_for_report, observer_policy_summary_for_report,
     pluto_fallback_summary_for_report, release_body_claims_summary_for_report,
     request_policy_summary_for_report, time_scale_policy_summary_for_report,
-    utc_convenience_policy_summary_for_report, validated_apparentness_policy_summary_for_report,
-    validated_delta_t_policy_summary_for_report, validated_frame_policy_summary_for_report,
-    validated_frame_treatment_summary_for_report,
+    utc_convenience_policy_summary_for_report, validate_release_body_claims_posture,
+    validated_apparentness_policy_summary_for_report, validated_delta_t_policy_summary_for_report,
+    validated_frame_policy_summary_for_report, validated_frame_treatment_summary_for_report,
     validated_native_sidereal_policy_summary_for_report,
     validated_observer_policy_summary_for_report, validated_request_policy_summary_for_report,
     validated_time_scale_policy_summary_for_report,
@@ -134,8 +134,8 @@ pub use pleiades_backend::{
     BackendProvenance, CompositeBackend, DeltaTPolicySummary, EphemerisBackend, EphemerisError,
     EphemerisErrorKind, EphemerisRequest, EphemerisResult, FramePolicySummary,
     NativeSiderealPolicySummary, ObserverPolicySummary, PlutoFallbackSummary, QualityAnnotation,
-    ReleaseBodyClaimsSummary, RequestPolicySummary, RoutingBackend, TimeScalePolicySummary,
-    UtcConveniencePolicySummary,
+    ReleaseBodyClaimsPostureValidationError, ReleaseBodyClaimsSummary, RequestPolicySummary,
+    RoutingBackend, TimeScalePolicySummary, UtcConveniencePolicySummary,
 };
 pub use pleiades_houses::{
     baseline_house_systems, calculate_houses, descriptor as house_system_descriptor,

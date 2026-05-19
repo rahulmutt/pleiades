@@ -2348,6 +2348,110 @@ impl fmt::Display for ReleaseBodyClaimsSummary {
     }
 }
 
+/// Validation error for the combined release-grade body-claims posture.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ReleaseBodyClaimsPostureValidationError {
+    /// The release-grade body claims summary itself is invalid.
+    ReleaseBodyClaimsSummary(ReleaseBodyClaimsSummaryValidationError),
+    /// The Pluto fallback summary itself is invalid.
+    PlutoFallbackSummary(PlutoFallbackSummaryValidationError),
+    /// The release-grade body claims summary no longer mentions the current Pluto fallback phrase.
+    MissingPlutoFallbackPhrase,
+    /// The release-grade body claims summary no longer keeps the selected asteroid validation bodies explicit.
+    MissingSelectedAsteroidsPhrase,
+    /// The Pluto fallback summary no longer states that Pluto is excluded from release-grade claims.
+    MissingPlutoExclusionPhrase,
+}
+
+impl fmt::Display for ReleaseBodyClaimsPostureValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::ReleaseBodyClaimsSummary(error) => {
+                write!(f, "release-grade body claims summary is invalid: {error}")
+            }
+            Self::PlutoFallbackSummary(error) => {
+                write!(f, "Pluto fallback summary is invalid: {error}")
+            }
+            Self::MissingPlutoFallbackPhrase => f.write_str(
+                "release-grade body claims summary no longer references the current Pluto fallback phrase",
+            ),
+            Self::MissingSelectedAsteroidsPhrase => f.write_str(
+                "release-grade body claims summary no longer keeps the selected asteroid validation bodies explicit",
+            ),
+            Self::MissingPlutoExclusionPhrase => f.write_str(
+                "Pluto fallback summary no longer states that Pluto is excluded from release-grade claims",
+            ),
+        }
+    }
+}
+
+impl std::error::Error for ReleaseBodyClaimsPostureValidationError {}
+
+/// Validates the combined release-grade body claims and Pluto fallback posture.
+pub fn validate_release_body_claims_posture(
+    release_body_claims_summary: &str,
+    pluto_fallback_summary: &str,
+) -> Result<(), ReleaseBodyClaimsPostureValidationError> {
+    if release_body_claims_summary.trim().is_empty() {
+        return Err(
+            ReleaseBodyClaimsPostureValidationError::ReleaseBodyClaimsSummary(
+                ReleaseBodyClaimsSummaryValidationError::BlankSummary,
+            ),
+        );
+    }
+    if release_body_claims_summary.trim() != release_body_claims_summary {
+        return Err(
+            ReleaseBodyClaimsPostureValidationError::ReleaseBodyClaimsSummary(
+                ReleaseBodyClaimsSummaryValidationError::WhitespacePaddedSummary,
+            ),
+        );
+    }
+    if release_body_claims_summary.contains('\n') || release_body_claims_summary.contains('\r') {
+        return Err(
+            ReleaseBodyClaimsPostureValidationError::ReleaseBodyClaimsSummary(
+                ReleaseBodyClaimsSummaryValidationError::EmbeddedLineBreak,
+            ),
+        );
+    }
+    if pluto_fallback_summary.trim().is_empty() {
+        return Err(
+            ReleaseBodyClaimsPostureValidationError::PlutoFallbackSummary(
+                PlutoFallbackSummaryValidationError::BlankSummary,
+            ),
+        );
+    }
+    if pluto_fallback_summary.trim() != pluto_fallback_summary {
+        return Err(
+            ReleaseBodyClaimsPostureValidationError::PlutoFallbackSummary(
+                PlutoFallbackSummaryValidationError::WhitespacePaddedSummary,
+            ),
+        );
+    }
+    if pluto_fallback_summary.contains('\n') || pluto_fallback_summary.contains('\r') {
+        return Err(
+            ReleaseBodyClaimsPostureValidationError::PlutoFallbackSummary(
+                PlutoFallbackSummaryValidationError::EmbeddedLineBreak,
+            ),
+        );
+    }
+
+    const PLUTO_FALLBACK_PHRASE: &str = "Pluto remains an explicitly approximate fallback";
+    const PLUTO_EXCLUSION_PHRASE: &str = "release-grade major-body claims exclude Pluto";
+    const SELECTED_ASTEROIDS_PHRASE: &str = "selected asteroids (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) remain source-backed validation bodies";
+
+    if !release_body_claims_summary.contains(PLUTO_FALLBACK_PHRASE) {
+        return Err(ReleaseBodyClaimsPostureValidationError::MissingPlutoFallbackPhrase);
+    }
+    if !release_body_claims_summary.contains(SELECTED_ASTEROIDS_PHRASE) {
+        return Err(ReleaseBodyClaimsPostureValidationError::MissingSelectedAsteroidsPhrase);
+    }
+    if !pluto_fallback_summary.contains(PLUTO_EXCLUSION_PHRASE) {
+        return Err(ReleaseBodyClaimsPostureValidationError::MissingPlutoExclusionPhrase);
+    }
+
+    Ok(())
+}
+
 /// Canonical current policy summary text for direct backend time-scale requests.
 pub const CURRENT_TIME_SCALE_POLICY_SUMMARY_TEXT: &str =
     "direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T or UTC convenience model";
@@ -4296,6 +4400,29 @@ mod tests {
         assert_eq!(
             summary.validate(),
             Err(ReleaseBodyClaimsSummaryValidationError::CurrentPolicyOutOfSync)
+        );
+    }
+
+    #[test]
+    fn release_body_claims_posture_validation_tracks_the_current_boundary() {
+        assert_eq!(
+            validate_release_body_claims_posture(
+                CURRENT_RELEASE_BODY_CLAIMS_SUMMARY_TEXT,
+                CURRENT_PLUTO_FALLBACK_POLICY_SUMMARY_TEXT,
+            ),
+            Ok(())
+        );
+
+        let release_body_claims_summary =
+            "Sun through Neptune are release-grade major-body claims; Pluto remains an explicitly approximate fallback; selected asteroids (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) remain source-backed validation bodies";
+        let pluto_fallback_summary =
+            "Pluto remains an explicitly approximate fallback; release-grade major-body claims include Pluto";
+        assert_eq!(
+            validate_release_body_claims_posture(
+                release_body_claims_summary,
+                pluto_fallback_summary
+            ),
+            Err(ReleaseBodyClaimsPostureValidationError::MissingPlutoExclusionPhrase)
         );
     }
 
