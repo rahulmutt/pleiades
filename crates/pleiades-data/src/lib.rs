@@ -2980,82 +2980,101 @@ impl PackagedArtifactPhase2CorpusAlignmentSummary {
             );
         };
 
-        if self != &expected {
-            return Err(
-                PackagedArtifactPhase2CorpusAlignmentSummaryValidationError::FieldOutOfSync {
-                    field: "phase2_corpus_alignment",
-                },
-            );
-        }
+        let field_out_of_sync = |field| {
+            PackagedArtifactPhase2CorpusAlignmentSummaryValidationError::FieldOutOfSync { field }
+        };
 
-        self.reference_snapshot_source.validate().map_err(|_| {
-            PackagedArtifactPhase2CorpusAlignmentSummaryValidationError::FieldOutOfSync {
-                field: "phase2_corpus_alignment",
-            }
-        })?;
-        self.reference_snapshot.validate().map_err(|_| {
-            PackagedArtifactPhase2CorpusAlignmentSummaryValidationError::FieldOutOfSync {
-                field: "phase2_corpus_alignment",
-            }
-        })?;
-        self.comparison_snapshot_source.validate().map_err(|_| {
-            PackagedArtifactPhase2CorpusAlignmentSummaryValidationError::FieldOutOfSync {
-                field: "phase2_corpus_alignment",
-            }
-        })?;
-        self.comparison_snapshot.validate().map_err(|_| {
-            PackagedArtifactPhase2CorpusAlignmentSummaryValidationError::FieldOutOfSync {
-                field: "phase2_corpus_alignment",
-            }
-        })?;
-        self.independent_holdout_source.validate().map_err(|_| {
-            PackagedArtifactPhase2CorpusAlignmentSummaryValidationError::FieldOutOfSync {
-                field: "phase2_corpus_alignment",
-            }
-        })?;
-        self.independent_holdout.validate().map_err(|_| {
-            PackagedArtifactPhase2CorpusAlignmentSummaryValidationError::FieldOutOfSync {
-                field: "phase2_corpus_alignment",
-            }
-        })?;
-        self.selected_asteroid_source.validate().map_err(|_| {
-            PackagedArtifactPhase2CorpusAlignmentSummaryValidationError::FieldOutOfSync {
-                field: "phase2_corpus_alignment",
-            }
-        })?;
+        if self.reference_snapshot_source != expected.reference_snapshot_source {
+            return Err(field_out_of_sync("reference_snapshot_source"));
+        }
+        self.reference_snapshot_source
+            .validate()
+            .map_err(|_| field_out_of_sync("reference_snapshot_source"))?;
+
+        if self.reference_snapshot != expected.reference_snapshot {
+            return Err(field_out_of_sync("reference_snapshot"));
+        }
+        self.reference_snapshot
+            .validate()
+            .map_err(|_| field_out_of_sync("reference_snapshot"))?;
+
+        if self.comparison_snapshot_source != expected.comparison_snapshot_source {
+            return Err(field_out_of_sync("comparison_snapshot_source"));
+        }
+        self.comparison_snapshot_source
+            .validate()
+            .map_err(|_| field_out_of_sync("comparison_snapshot_source"))?;
+
+        if self.comparison_snapshot != expected.comparison_snapshot {
+            return Err(field_out_of_sync("comparison_snapshot"));
+        }
+        self.comparison_snapshot
+            .validate()
+            .map_err(|_| field_out_of_sync("comparison_snapshot"))?;
+
+        if self.independent_holdout_source != expected.independent_holdout_source {
+            return Err(field_out_of_sync("independent_holdout_source"));
+        }
+        self.independent_holdout_source
+            .validate()
+            .map_err(|_| field_out_of_sync("independent_holdout_source"))?;
+
+        if self.independent_holdout != expected.independent_holdout {
+            return Err(field_out_of_sync("independent_holdout"));
+        }
+        self.independent_holdout
+            .validate()
+            .map_err(|_| field_out_of_sync("independent_holdout"))?;
+
+        if self.selected_asteroid_source != expected.selected_asteroid_source {
+            return Err(field_out_of_sync("selected_asteroid_source"));
+        }
+        self.selected_asteroid_source
+            .validate()
+            .map_err(|_| field_out_of_sync("selected_asteroid_source"))?;
+
+        if self.selected_asteroid_source_windows != expected.selected_asteroid_source_windows {
+            return Err(field_out_of_sync("selected_asteroid_source_windows"));
+        }
         self.selected_asteroid_source_windows
             .validate()
-            .map_err(|_| {
-                PackagedArtifactPhase2CorpusAlignmentSummaryValidationError::FieldOutOfSync {
-                    field: "phase2_corpus_alignment",
-                }
-            })?;
+            .map_err(|_| field_out_of_sync("selected_asteroid_source_windows"))?;
+
+        if self.selected_asteroid_source_request_corpus
+            != expected.selected_asteroid_source_request_corpus
+        {
+            return Err(field_out_of_sync("selected_asteroid_source_request_corpus"));
+        }
         self.selected_asteroid_source_request_corpus
             .validate()
-            .map_err(|_| {
-                PackagedArtifactPhase2CorpusAlignmentSummaryValidationError::FieldOutOfSync {
-                    field: "phase2_corpus_alignment",
-                }
-            })?;
+            .map_err(|_| field_out_of_sync("selected_asteroid_source_request_corpus"))?;
+
+        if self.production_generation_boundary_source
+            != expected.production_generation_boundary_source
+        {
+            return Err(field_out_of_sync("production_generation_boundary_source"));
+        }
         self.production_generation_boundary_source
             .validate()
-            .map_err(|_| {
-                PackagedArtifactPhase2CorpusAlignmentSummaryValidationError::FieldOutOfSync {
-                    field: "phase2_corpus_alignment",
-                }
-            })?;
+            .map_err(|_| field_out_of_sync("production_generation_boundary_source"))?;
+
+        if self.production_generation_body_class_coverage
+            != expected.production_generation_body_class_coverage
+        {
+            return Err(field_out_of_sync(
+                "production_generation_body_class_coverage",
+            ));
+        }
         self.production_generation_body_class_coverage
             .validate()
-            .map_err(|_| {
-                PackagedArtifactPhase2CorpusAlignmentSummaryValidationError::FieldOutOfSync {
-                    field: "phase2_corpus_alignment",
-                }
-            })?;
-        self.production_generation_source.validate().map_err(|_| {
-            PackagedArtifactPhase2CorpusAlignmentSummaryValidationError::FieldOutOfSync {
-                field: "phase2_corpus_alignment",
-            }
-        })?;
+            .map_err(|_| field_out_of_sync("production_generation_body_class_coverage"))?;
+
+        if self.production_generation_source != expected.production_generation_source {
+            return Err(field_out_of_sync("production_generation_source"));
+        }
+        self.production_generation_source
+            .validate()
+            .map_err(|_| field_out_of_sync("production_generation_source"))?;
 
         Ok(())
     }
@@ -11375,10 +11394,10 @@ mod tests {
         assert_eq!(
             error,
             PackagedArtifactPhase2CorpusAlignmentSummaryValidationError::FieldOutOfSync {
-                field: "phase2_corpus_alignment",
+                field: "reference_snapshot_source",
             }
         );
-        assert!(error.to_string().contains("phase2_corpus_alignment"));
+        assert!(error.to_string().contains("reference_snapshot_source"));
     }
 
     #[test]
