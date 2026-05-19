@@ -114,7 +114,6 @@ use pleiades_houses::{
     validate_house_catalog,
 };
 use pleiades_jpl::{
-    comparison_snapshot_batch_parity_summary_for_report,
     comparison_snapshot_body_class_coverage_summary_for_report,
     comparison_snapshot_manifest_summary_for_report, comparison_snapshot_requests,
     comparison_snapshot_source_summary_for_report,
@@ -123,7 +122,6 @@ use pleiades_jpl::{
     frame_treatment_summary_for_report as jpl_frame_treatment_summary_for_report,
     independent_holdout_high_curvature_summary_for_report,
     independent_holdout_manifest_summary_for_report,
-    independent_holdout_snapshot_batch_parity_summary_for_report as jpl_independent_holdout_snapshot_batch_parity_summary_for_report,
     independent_holdout_snapshot_body_class_coverage_summary_for_report,
     independent_holdout_snapshot_equatorial_parity_summary_for_report as jpl_independent_holdout_snapshot_equatorial_parity_summary_for_report,
     independent_holdout_snapshot_source_window_summary_for_report,
@@ -193,7 +191,6 @@ use pleiades_jpl::{
     reference_snapshot_2524593_selected_body_boundary_summary_for_report,
     reference_snapshot_2600000_major_body_boundary_summary_for_report,
     reference_snapshot_2634167_selected_body_boundary_summary_for_report,
-    reference_snapshot_batch_parity_summary_for_report,
     reference_snapshot_body_class_coverage_summary_for_report,
     reference_snapshot_boundary_epoch_coverage_summary_for_report,
     reference_snapshot_bridge_day_summary_for_report,
@@ -211,7 +208,6 @@ use pleiades_jpl::{
     reference_snapshot_manifest_summary_for_report,
     reference_snapshot_mars_jupiter_boundary_summary_for_report,
     reference_snapshot_mars_outer_boundary_summary_for_report,
-    reference_snapshot_mixed_time_scale_batch_parity_summary_for_report,
     reference_snapshot_pre_bridge_boundary_summary_for_report,
     reference_snapshot_source_summary_for_report,
     reference_snapshot_source_window_summary_for_report,
@@ -229,8 +225,11 @@ use pleiades_jpl::{
     validated_comparison_snapshot_body_class_coverage_summary_for_report,
     validated_comparison_snapshot_source_summary_for_report,
     validated_comparison_snapshot_source_window_summary_for_report,
+    validated_independent_holdout_snapshot_batch_parity_summary_for_report,
     validated_production_generation_source_summary_for_report,
     validated_reference_asteroid_source_window_summary_for_report,
+    validated_reference_snapshot_batch_parity_summary_for_report,
+    validated_reference_snapshot_mixed_time_scale_batch_parity_summary_for_report,
     validated_selected_asteroid_source_evidence_summary_for_report,
     validated_selected_asteroid_source_request_corpus_summary_for_report,
     validated_selected_asteroid_source_window_summary_for_report, JplSnapshotBackend,
@@ -251,6 +250,30 @@ use pleiades_vsop87::{
     supported_body_j2000_equatorial_batch_parity_summary_for_report,
     vsop87_request_policy_summary_for_report, Vsop87Backend,
 };
+
+fn comparison_snapshot_batch_parity_summary_text() -> String {
+    validated_comparison_snapshot_batch_parity_summary_for_report().unwrap_or_else(|error| {
+        format!("JPL comparison snapshot batch parity: unavailable ({error})")
+    })
+}
+
+fn reference_snapshot_batch_parity_summary_text() -> String {
+    validated_reference_snapshot_batch_parity_summary_for_report().unwrap_or_else(|error| {
+        format!("JPL reference snapshot batch parity: unavailable ({error})")
+    })
+}
+
+fn reference_snapshot_mixed_time_scale_batch_parity_summary_text() -> String {
+    validated_reference_snapshot_mixed_time_scale_batch_parity_summary_for_report().unwrap_or_else(
+        |error| format!("JPL reference snapshot mixed TT/TDB batch parity: unavailable ({error})"),
+    )
+}
+
+fn independent_holdout_snapshot_batch_parity_summary_text() -> String {
+    validated_independent_holdout_snapshot_batch_parity_summary_for_report().unwrap_or_else(
+        |error| format!("JPL independent hold-out batch parity: unavailable ({error})"),
+    )
+}
 
 const DEFAULT_BENCHMARK_ROUNDS: usize = 10_000;
 const SUMMARY_BENCHMARK_ROUNDS: usize = 1;
@@ -3712,11 +3735,7 @@ impl fmt::Display for ValidationReport {
             "  {}",
             comparison_snapshot_body_class_coverage_summary_for_report()
         )?;
-        writeln!(
-            f,
-            "  {}",
-            comparison_snapshot_batch_parity_summary_for_report()
-        )?;
+        writeln!(f, "  {}", comparison_snapshot_batch_parity_summary_text())?;
         writeln!(f)?;
         writeln!(f, "Benchmark corpus")?;
         write_corpus_summary(f, &self.benchmark_corpus)?;
@@ -5444,7 +5463,7 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("comparison-snapshot-batch-parity-summary") => {
             ensure_no_extra_args(&args[1..], "comparison-snapshot-batch-parity-summary")?;
-            validated_comparison_snapshot_batch_parity_summary_for_report()
+            Ok(comparison_snapshot_batch_parity_summary_text())
         }
         Some("reference-snapshot-source-summary") => {
             ensure_no_extra_args(&args[1..], "reference-snapshot-source-summary")?;
@@ -5774,7 +5793,7 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("reference-snapshot-batch-parity-summary") => {
             ensure_no_extra_args(&args[1..], "reference-snapshot-batch-parity-summary")?;
-            Ok(reference_snapshot_batch_parity_summary_for_report())
+            Ok(reference_snapshot_batch_parity_summary_text())
         }
         Some("reference-snapshot-mixed-time-scale-batch-parity-summary")
         | Some("reference-snapshot-mixed-tt-tdb-batch-parity-summary") => {
@@ -5782,7 +5801,7 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
                 &args[1..],
                 "reference-snapshot-mixed-time-scale-batch-parity-summary",
             )?;
-            Ok(reference_snapshot_mixed_time_scale_batch_parity_summary_for_report())
+            Ok(reference_snapshot_mixed_time_scale_batch_parity_summary_text())
         }
         Some("reference-snapshot-equatorial-parity-summary") => {
             ensure_no_extra_args(&args[1..], "reference-snapshot-equatorial-parity-summary")?;
@@ -6273,7 +6292,7 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("independent-holdout-batch-parity-summary") => {
             ensure_no_extra_args(&args[1..], "independent-holdout-batch-parity-summary")?;
-            Ok(jpl_independent_holdout_snapshot_batch_parity_summary_for_report())
+            Ok(independent_holdout_snapshot_batch_parity_summary_text())
         }
         Some("independent-holdout-equatorial-parity-summary") => {
             ensure_no_extra_args(&args[1..], "independent-holdout-equatorial-parity-summary")?;
@@ -8598,13 +8617,13 @@ fn render_release_notes_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_manifest_summary_for_report());
     text.push('\n');
-    text.push_str(&reference_snapshot_batch_parity_summary_for_report());
+    text.push_str(&reference_snapshot_batch_parity_summary_text());
     text.push('\n');
     text.push_str(&comparison_snapshot_summary_for_report());
     text.push('\n');
     text.push_str(&comparison_snapshot_body_class_coverage_summary_for_report());
     text.push('\n');
-    text.push_str(&comparison_snapshot_batch_parity_summary_for_report());
+    text.push_str(&comparison_snapshot_batch_parity_summary_text());
     text.push('\n');
     text.push_str(&comparison_snapshot_source_summary_for_report());
     text.push('\n');
@@ -8788,7 +8807,7 @@ fn render_release_notes_summary_text() -> String {
     text.push('\n');
     text.push_str(&comparison_snapshot_body_class_coverage_summary_for_report());
     text.push('\n');
-    text.push_str(&comparison_snapshot_batch_parity_summary_for_report());
+    text.push_str(&comparison_snapshot_batch_parity_summary_text());
     text.push('\n');
     text.push_str(&comparison_snapshot_source_summary_for_report());
     text.push('\n');
@@ -9247,7 +9266,7 @@ fn render_release_summary_text() -> String {
         text.push('\n');
         text.push_str(&comparison_snapshot_body_class_coverage_summary_for_report());
         text.push('\n');
-        text.push_str(&reference_snapshot_batch_parity_summary_for_report());
+        text.push_str(&reference_snapshot_batch_parity_summary_text());
         text.push('\n');
     }
     text.push_str("JPL interpolation evidence: ");
@@ -9263,7 +9282,7 @@ fn render_release_summary_text() -> String {
     text.push('\n');
     text.push_str(&independent_holdout_manifest_summary_for_report());
     text.push('\n');
-    text.push_str(&jpl_independent_holdout_snapshot_batch_parity_summary_for_report());
+    text.push_str(&independent_holdout_snapshot_batch_parity_summary_text());
     text.push('\n');
     text.push_str(&jpl_independent_holdout_snapshot_equatorial_parity_summary_for_report());
     text.push('\n');
@@ -9333,7 +9352,7 @@ fn render_release_summary_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_dense_boundary_summary_for_report());
     text.push('\n');
-    text.push_str(&reference_snapshot_batch_parity_summary_for_report());
+    text.push_str(&reference_snapshot_batch_parity_summary_text());
     text.push('\n');
     text.push_str("JPL production-generation coverage: ");
     text.push_str(&production_generation_snapshot_summary_for_report());
@@ -18562,7 +18581,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     let _ = writeln!(
         text,
         "  {}",
-        jpl_independent_holdout_snapshot_batch_parity_summary_for_report()
+        independent_holdout_snapshot_batch_parity_summary_text()
     );
     let _ = writeln!(
         text,
@@ -19563,7 +19582,7 @@ fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_equatorial_parity_summary_for_report());
     text.push('\n');
-    text.push_str(&reference_snapshot_batch_parity_summary_for_report());
+    text.push_str(&reference_snapshot_batch_parity_summary_text());
     text.push('\n');
     text.push_str(&jpl_snapshot_batch_error_taxonomy_summary_for_report());
     text.push('\n');
@@ -19573,7 +19592,7 @@ fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str(&comparison_snapshot_body_class_coverage_summary_for_report());
     text.push('\n');
-    text.push_str(&comparison_snapshot_batch_parity_summary_for_report());
+    text.push_str(&comparison_snapshot_batch_parity_summary_text());
     text.push('\n');
     text.push_str(&comparison_snapshot_source_summary_for_report());
     text.push('\n');
@@ -20966,7 +20985,7 @@ fn write_jpl_interpolation_quality(f: &mut fmt::Formatter<'_>) -> fmt::Result {
     writeln!(
         f,
         "    {}",
-        jpl_independent_holdout_snapshot_batch_parity_summary_for_report()
+        independent_holdout_snapshot_batch_parity_summary_text()
     )?;
     writeln!(
         f,

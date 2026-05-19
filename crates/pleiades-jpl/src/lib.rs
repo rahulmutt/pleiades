@@ -2223,6 +2223,15 @@ pub fn reference_snapshot_batch_parity_summary_for_report() -> String {
     }
 }
 
+/// Returns the validated release-facing reference snapshot batch parity summary string.
+pub fn validated_reference_snapshot_batch_parity_summary_for_report() -> Result<String, String> {
+    let summary = reference_snapshot_batch_parity_summary()
+        .ok_or_else(|| "JPL reference snapshot batch parity: unavailable".to_string())?;
+    summary
+        .validated_summary_line()
+        .map_err(|error| error.to_string())
+}
+
 /// Compact mixed TT/TDB batch parity for the checked-in reference snapshot.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ReferenceSnapshotMixedTimeScaleBatchParitySummary {
@@ -2500,6 +2509,18 @@ pub fn reference_snapshot_mixed_time_scale_batch_parity_summary_for_report() -> 
         },
         None => "JPL reference snapshot mixed TT/TDB batch parity: unavailable".to_string(),
     }
+}
+
+/// Returns the validated release-facing mixed TT/TDB reference snapshot batch parity summary string.
+#[doc(alias = "validated_reference_snapshot_mixed_tt_tdb_batch_parity_summary_for_report")]
+pub fn validated_reference_snapshot_mixed_time_scale_batch_parity_summary_for_report(
+) -> Result<String, String> {
+    let summary = reference_snapshot_mixed_time_scale_batch_parity_summary().ok_or_else(|| {
+        "JPL reference snapshot mixed TT/TDB batch parity: unavailable".to_string()
+    })?;
+    summary
+        .validated_summary_line()
+        .map_err(|error| error.to_string())
 }
 
 impl ReferenceSnapshotSummary {
@@ -5406,6 +5427,16 @@ pub fn independent_holdout_snapshot_batch_parity_summary_for_report() -> String 
         },
         None => "JPL independent hold-out batch parity: unavailable".to_string(),
     }
+}
+
+/// Returns the validated release-facing independent hold-out mixed-scale batch parity summary string.
+pub fn validated_independent_holdout_snapshot_batch_parity_summary_for_report(
+) -> Result<String, String> {
+    let summary = independent_holdout_snapshot_batch_parity_summary()
+        .ok_or_else(|| "JPL independent hold-out batch parity: unavailable".to_string())?;
+    summary
+        .validated_summary_line()
+        .map_err(|error| error.to_string())
 }
 
 /// A compact coverage summary for the independent hold-out corpus in
@@ -28102,6 +28133,10 @@ mod tests {
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
+            validated_reference_snapshot_batch_parity_summary_for_report(),
+            Ok(summary.summary_line())
+        );
+        assert_eq!(
             reference_snapshot_batch_parity_summary_for_report(),
             summary.summary_line()
         );
@@ -31444,6 +31479,10 @@ mod tests {
         );
         assert_eq!(summary.validate(), Ok(()));
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(
+            validated_independent_holdout_snapshot_batch_parity_summary_for_report(),
+            Ok(summary.summary_line())
+        );
 
         let rendered = format_independent_holdout_snapshot_batch_parity_summary(&summary);
         assert!(rendered.contains("JPL independent hold-out batch parity:"));
@@ -32209,6 +32248,10 @@ mod tests {
         assert!(summary.single_query_parity_preserved);
         assert!(summary.validate().is_ok());
         assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(
+            validated_reference_snapshot_mixed_time_scale_batch_parity_summary_for_report(),
+            Ok(summary.summary_line())
+        );
         assert_eq!(
             reference_snapshot_mixed_time_scale_batch_parity_summary_for_report(),
             summary.summary_line()
