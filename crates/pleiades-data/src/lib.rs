@@ -6270,29 +6270,29 @@ fn packaged_artifact_split_fraction_for_interval(
     }
 
     if span_days > span_limit * 4.0 {
-        let (Some(one_sixth_coordinates), Some(five_sixth_coordinates)) = (
+        if let (Some(one_sixth_coordinates), Some(five_sixth_coordinates)) = (
             curvature.one_sixth_coordinates,
             curvature.five_sixth_coordinates,
-        ) else {
-            return 0.5;
-        };
+        ) {
+            let left_sixth_curvature = packaged_artifact_segment_transition_curvature(
+                curvature.start_coordinates,
+                one_sixth_coordinates,
+                curvature.midpoint_coordinates,
+            );
+            let right_sixth_curvature = packaged_artifact_segment_transition_curvature(
+                curvature.midpoint_coordinates,
+                five_sixth_coordinates,
+                curvature.end_coordinates,
+            );
 
-        let left_sixth_curvature = packaged_artifact_segment_transition_curvature(
-            curvature.start_coordinates,
-            one_sixth_coordinates,
-            curvature.midpoint_coordinates,
-        );
-        let right_sixth_curvature = packaged_artifact_segment_transition_curvature(
-            curvature.midpoint_coordinates,
-            five_sixth_coordinates,
-            curvature.end_coordinates,
-        );
-
-        if left_sixth_curvature > right_sixth_curvature * PACKAGED_ARTIFACT_SPLIT_BALANCE_RATIO {
-            return PACKAGED_ARTIFACT_ONE_SIXTH_SPLIT_FRACTION;
-        }
-        if right_sixth_curvature > left_sixth_curvature * PACKAGED_ARTIFACT_SPLIT_BALANCE_RATIO {
-            return 5.0 / 6.0;
+            if left_sixth_curvature > right_sixth_curvature * PACKAGED_ARTIFACT_SPLIT_BALANCE_RATIO
+            {
+                return PACKAGED_ARTIFACT_ONE_SIXTH_SPLIT_FRACTION;
+            }
+            if right_sixth_curvature > left_sixth_curvature * PACKAGED_ARTIFACT_SPLIT_BALANCE_RATIO
+            {
+                return 5.0 / 6.0;
+            }
         }
     }
 
@@ -8692,6 +8692,66 @@ mod tests {
                 },
             ),
             5.0 / 6.0
+        );
+    }
+
+    #[test]
+    fn packaged_artifact_split_fraction_falls_back_to_dense_third_point_bias_when_sixth_points_are_unavailable(
+    ) {
+        let start = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(0.0),
+            pleiades_backend::Latitude::from_degrees(0.0),
+            Some(1.0),
+        );
+        let quarter = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(1.0),
+            pleiades_backend::Latitude::from_degrees(0.4),
+            Some(1.01),
+        );
+        let one_third = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(5.0),
+            pleiades_backend::Latitude::from_degrees(2.0),
+            Some(2.0),
+        );
+        let midpoint = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(2.0),
+            pleiades_backend::Latitude::from_degrees(0.8),
+            Some(1.02),
+        );
+        let two_third = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(2.1),
+            pleiades_backend::Latitude::from_degrees(0.85),
+            Some(1.05),
+        );
+        let three_quarter = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(3.0),
+            pleiades_backend::Latitude::from_degrees(1.2),
+            Some(1.03),
+        );
+        let end = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(4.0),
+            pleiades_backend::Latitude::from_degrees(1.6),
+            Some(1.04),
+        );
+
+        assert_eq!(
+            packaged_artifact_split_fraction_for_interval(
+                &CelestialBody::Pluto,
+                7_000.0,
+                body_segment_span_limit(&CelestialBody::Pluto),
+                PackagedArtifactSplitCurvature {
+                    start_coordinates: &start,
+                    quarter_coordinates: Some(&quarter),
+                    one_sixth_coordinates: None,
+                    one_third_coordinates: Some(&one_third),
+                    midpoint_coordinates: &midpoint,
+                    two_third_coordinates: Some(&two_third),
+                    five_sixth_coordinates: None,
+                    three_quarter_coordinates: Some(&three_quarter),
+                    end_coordinates: &end,
+                },
+            ),
+            PACKAGED_ARTIFACT_ONE_THIRD_SPLIT_FRACTION
         );
     }
 
