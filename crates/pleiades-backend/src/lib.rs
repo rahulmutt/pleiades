@@ -5017,6 +5017,37 @@ mod tests {
         assert!(error.message.contains("tropical coordinates only"));
         assert!(!error.message.contains("invalid observer location"));
 
+        let unsupported_body_apparent_request = EphemerisRequest {
+            body: CelestialBody::Mars,
+            frame: CoordinateFrame::Ecliptic,
+            apparent: Apparentness::Apparent,
+            ..frame_request.clone()
+        };
+        let unsupported_body_apparent_error =
+            validate_request_against_metadata(&unsupported_body_apparent_request, &metadata)
+                .expect_err("apparentness should win before unsupported body coverage");
+        assert_eq!(
+            unsupported_body_apparent_error.kind,
+            EphemerisErrorKind::UnsupportedApparentness
+        );
+        assert_eq!(unsupported_body_apparent_error.message, "toy backend currently returns mean geometric coordinates only; apparent corrections are not implemented");
+
+        let unsupported_body_apparent_batch_error = validate_requests_against_metadata(
+            &[
+                geocentric_only_request.clone(),
+                unsupported_body_apparent_request.clone(),
+            ],
+            &metadata,
+        )
+        .expect_err(
+            "batch validation should preserve apparentness precedence before body coverage",
+        );
+        assert_eq!(
+            unsupported_body_apparent_batch_error.kind,
+            EphemerisErrorKind::UnsupportedApparentness
+        );
+        assert_eq!(unsupported_body_apparent_batch_error.message, "batch request 2: toy backend currently returns mean geometric coordinates only; apparent corrections are not implemented");
+
         let sidereal_metadata = BackendMetadata {
             capabilities: BackendCapabilities {
                 native_sidereal: true,

@@ -21,6 +21,7 @@ Current first-party backends support mean geometric geocentric tropical requests
 - Validate the shared request-policy wording in the user-facing CLI help block too, so the chart/report help text does not bypass the same policy-posture drift checks.
 - Completed: the chart CLI help clause now validates the shared request-surface inventory before rendering the explicit UTC/UT1 and TT/TDB alias wording, so the user-facing help path fails closed if the request-surface posture drifts.
 - Completed: the zodiac policy summary now also routes through a validated release helper in validation and release-facing report surfaces, so the shared zodiac-posture wording fails closed when report prose drifts.
+- Completed: request-policy validation now keeps apparentness rejection ahead of sidereal routing and unsupported body coverage when those dimensions interact, and the batch helper preserves the same apparentness-first ordering with indexed error messages.
 
 ## Completion criteria
 
