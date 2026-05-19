@@ -105,7 +105,8 @@ use pleiades_elp::{
     lunar_theory_capability_summary_for_report, lunar_theory_catalog_summary_for_report,
     lunar_theory_frame_treatment_summary_for_report, lunar_theory_limitations_summary_for_report,
     lunar_theory_request_policy_summary, lunar_theory_source_summary_for_report,
-    lunar_theory_specification, lunar_theory_summary_for_report, ElpBackend,
+    lunar_theory_specification, lunar_theory_summary_for_report,
+    validated_lunar_source_window_summary_for_report, ElpBackend,
 };
 use pleiades_houses::{
     baseline_house_systems, built_in_house_systems, release_house_systems, resolve_house_system,
@@ -4134,6 +4135,13 @@ impl fmt::Display for ReleaseBundle {
         )?;
         writeln!(
             f,
+            "  lunar source window summary: {}",
+            self.output_dir
+                .join("lunar-source-window-summary.txt")
+                .display()
+        )?;
+        writeln!(
+            f,
             "  lunar-theory catalog validation summary: {}",
             self.output_dir
                 .join("lunar-theory-catalog-validation-summary.txt")
@@ -6056,7 +6064,7 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("lunar-source-window-summary") => {
             ensure_no_extra_args(&args[1..], "lunar-source-window-summary")?;
-            Ok(lunar_source_window_summary_for_report())
+            validated_lunar_source_window_summary_for_report()
         }
         Some("lunar-theory-request-policy-summary") => {
             ensure_no_extra_args(&args[1..], "lunar-theory-request-policy-summary")?;
@@ -9864,6 +9872,9 @@ pub fn render_release_bundle(
         pleiades_elp::lunar_theory_source_selection_summary_for_report();
     let lunar_theory_source_family_summary_text =
         pleiades_elp::lunar_theory_source_family_summary_for_report();
+    let lunar_source_window_summary_text = validated_lunar_source_window_summary_for_report()
+        .map_err(|error| ReleaseBundleError::Verification(error.to_string()))?;
+    let lunar_source_window_summary_checksum = checksum64(&lunar_source_window_summary_text);
     let lunar_theory_catalog_validation_summary =
         pleiades_elp::lunar_theory_catalog_validation_summary();
     lunar_theory_catalog_validation_summary
@@ -10008,6 +10019,7 @@ pub fn render_release_bundle(
         output_dir.join("lunar-theory-source-selection-summary.txt");
     let lunar_theory_source_family_summary_path =
         output_dir.join("lunar-theory-source-family-summary.txt");
+    let lunar_source_window_summary_path = output_dir.join("lunar-source-window-summary.txt");
     let lunar_theory_catalog_validation_summary_path =
         output_dir.join("lunar-theory-catalog-validation-summary.txt");
     let request_surface_summary_path = output_dir.join("request-surface-summary.txt");
@@ -10252,6 +10264,8 @@ lunar theory source selection summary: lunar-theory-source-selection-summary.txt
 lunar theory source selection summary checksum (fnv1a-64): 0x{lunar_theory_source_selection_summary_checksum:016x}
 lunar theory source family summary: lunar-theory-source-family-summary.txt
 lunar theory source family summary checksum (fnv1a-64): 0x{lunar_theory_source_family_summary_checksum:016x}
+lunar theory source window summary: lunar-source-window-summary.txt
+lunar theory source window summary checksum (fnv1a-64): 0x{lunar_source_window_summary_checksum:016x}
 lunar theory catalog validation summary: lunar-theory-catalog-validation-summary.txt
 lunar theory catalog validation summary checksum (fnv1a-64): 0x{lunar_theory_catalog_validation_summary_checksum:016x}
 request surface summary: request-surface-summary.txt\nrequest surface summary checksum (fnv1a-64): 0x{request_surface_summary_checksum:016x}\ncompatibility caveats summary: compatibility-caveats-summary.txt\ncompatibility caveats summary checksum (fnv1a-64): 0x{compatibility_caveats_summary_checksum:016x}\nworkspace audit summary: workspace-audit-summary.txt\nworkspace audit summary checksum (fnv1a-64): 0x{workspace_audit_summary_checksum:016x}\nnative-dependency audit summary: native-dependency-audit-summary.txt\nnative-dependency audit summary checksum (fnv1a-64): 0x{native_dependency_audit_summary_checksum:016x}\nartifact summary: artifact-summary.txt\nartifact summary checksum (fnv1a-64): 0x{artifact_summary_checksum:016x}\npackaged-artifact: packaged-artifact.bin\npackaged-artifact checksum (fnv1a-64): 0x{packaged_artifact_bytes_checksum:016x}\npackaged-artifact checksum sidecar: packaged-artifact.checksum.txt\npackaged-artifact checksum sidecar checksum (fnv1a-64): 0x{packaged_artifact_checksum_text_checksum:016x}\npackaged-artifact profile coverage summary: packaged-artifact-profile-coverage-summary.txt\npackaged-artifact profile coverage summary checksum (fnv1a-64): 0x{packaged_artifact_profile_coverage_summary_checksum:016x}\npackaged-artifact access summary: packaged-artifact-access-summary.txt\npackaged-artifact access summary checksum (fnv1a-64): 0x{packaged_artifact_access_summary_checksum:016x}\npackaged-artifact output support summary: packaged-artifact-output-support-summary.txt\npackaged-artifact output support summary checksum (fnv1a-64): 0x{packaged_artifact_output_support_summary_checksum:016x}\npackaged-artifact fit sample classes summary: packaged-artifact-fit-sample-classes-summary.txt\npackaged-artifact fit sample classes summary checksum (fnv1a-64): 0x{packaged_artifact_fit_sample_classes_summary_checksum:016x}\npackaged-artifact fit threshold violation count summary: packaged-artifact-fit-threshold-violation-count-summary.txt\npackaged-artifact fit threshold violation count summary checksum (fnv1a-64): 0x{packaged_artifact_fit_threshold_violation_count_summary_checksum:016x}\npackaged-artifact fit threshold violations summary: packaged-artifact-fit-threshold-violations-summary.txt\npackaged-artifact fit threshold violations summary checksum (fnv1a-64): 0x{packaged_artifact_fit_threshold_violations_summary_checksum:016x}\npackaged-artifact normalized intermediate summary: packaged-artifact-normalized-intermediate-summary.txt\npackaged-artifact normalized intermediate summary checksum (fnv1a-64): 0x{packaged_artifact_normalized_intermediate_summary_checksum:016x}\npackaged-artifact speed policy summary: packaged-artifact-speed-policy-summary.txt\npackaged-artifact speed policy summary checksum (fnv1a-64): 0x{packaged_artifact_speed_policy_summary_checksum:016x}\npackaged-artifact storage summary: packaged-artifact-storage-summary.txt\npackaged-artifact storage summary checksum (fnv1a-64): 0x{packaged_artifact_storage_summary_checksum:016x}\npackaged-artifact production-profile summary: packaged-artifact-production-profile-summary.txt\npackaged-artifact production-profile summary checksum (fnv1a-64): 0x{packaged_artifact_production_profile_summary_checksum:016x}\npackaged-frame-treatment summary: packaged-frame-treatment-summary.txt\npackaged-frame-treatment summary checksum (fnv1a-64): 0x{packaged_frame_treatment_summary_checksum:016x}\npackaged-artifact target-threshold summary: packaged-artifact-target-threshold-summary.txt
@@ -10462,6 +10476,10 @@ benchmark-corpus summary: benchmark-corpus-summary.txt\nbenchmark-corpus summary
     fs::write(
         &lunar_theory_source_family_summary_path,
         lunar_theory_source_family_summary_text.as_bytes(),
+    )?;
+    fs::write(
+        &lunar_source_window_summary_path,
+        lunar_source_window_summary_text.as_bytes(),
     )?;
     fs::write(
         &lunar_theory_catalog_validation_summary_path,
@@ -10706,6 +10724,8 @@ struct ParsedReleaseBundleManifest {
     lunar_theory_source_selection_summary_checksum: u64,
     lunar_theory_source_family_summary_path: String,
     lunar_theory_source_family_summary_checksum: u64,
+    lunar_source_window_summary_path: String,
+    lunar_source_window_summary_checksum: u64,
     lunar_theory_catalog_validation_summary_path: String,
     lunar_theory_catalog_validation_summary_checksum: u64,
     request_surface_summary_path: String,
@@ -11134,6 +11154,14 @@ impl ParsedReleaseBundleManifest {
                 text,
                 "lunar theory source family summary checksum (fnv1a-64):",
             )?,
+            lunar_source_window_summary_path: parse_manifest_string(
+                text,
+                "lunar theory source window summary:",
+            )?,
+            lunar_source_window_summary_checksum: parse_manifest_checksum(
+                text,
+                "lunar theory source window summary checksum (fnv1a-64):",
+            )?,
             lunar_theory_catalog_validation_summary_path: parse_manifest_string(
                 text,
                 "lunar theory catalog validation summary:",
@@ -11451,6 +11479,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
         "lunar-theory-limitations-summary.txt",
         "lunar-theory-source-selection-summary.txt",
         "lunar-theory-source-family-summary.txt",
+        "lunar-source-window-summary.txt",
         "lunar-theory-catalog-validation-summary.txt",
         "request-surface-summary.txt",
         "compatibility-caveats-summary.txt",
@@ -11517,7 +11546,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
 fn ensure_release_bundle_manifest_is_canonical(
     manifest_text: &str,
 ) -> Result<(), ReleaseBundleError> {
-    const EXPECTED_MANIFEST_LINES: [&str; 178] = [
+    const EXPECTED_MANIFEST_LINES: [&str; 180] = [
         "Release bundle manifest",
         "profile:",
         "profile checksum (fnv1a-64):",
@@ -11617,6 +11646,8 @@ fn ensure_release_bundle_manifest_is_canonical(
         "lunar theory source selection summary checksum (fnv1a-64):",
         "lunar theory source family summary:",
         "lunar theory source family summary checksum (fnv1a-64):",
+        "lunar theory source window summary:",
+        "lunar theory source window summary checksum (fnv1a-64):",
         "lunar theory catalog validation summary:",
         "lunar theory catalog validation summary checksum (fnv1a-64):",
         "request surface summary:",
@@ -12580,6 +12611,7 @@ fn verify_release_bundle(
         output_dir.join("lunar-theory-source-selection-summary.txt");
     let lunar_theory_source_family_summary_path =
         output_dir.join("lunar-theory-source-family-summary.txt");
+    let lunar_source_window_summary_path = output_dir.join("lunar-source-window-summary.txt");
     let lunar_theory_catalog_validation_summary_path =
         output_dir.join("lunar-theory-catalog-validation-summary.txt");
     let request_surface_summary_path = output_dir.join("request-surface-summary.txt");
@@ -12938,16 +12970,27 @@ fn verify_release_bundle(
         &lunar_theory_source_family_summary_path,
         "lunar theory source family summary",
     )?;
+    let lunar_source_window_summary_text = read_required_bundle_text(
+        &lunar_source_window_summary_path,
+        "lunar source window summary",
+    )?;
     ensure_lunar_theory_source_selection_summary_matches_current_rendering(
         &lunar_theory_source_selection_summary_text,
     )?;
     ensure_lunar_theory_source_family_summary_matches_current_rendering(
         &lunar_theory_source_family_summary_text,
     )?;
+    if lunar_source_window_summary_text != lunar_source_window_summary_for_report() {
+        return Err(ReleaseBundleError::Verification(
+            "lunar source window summary no longer matches the current lunar source-window posture"
+                .to_string(),
+        ));
+    }
     let lunar_theory_source_selection_summary_checksum =
         checksum64(&lunar_theory_source_selection_summary_text);
     let lunar_theory_source_family_summary_checksum =
         checksum64(&lunar_theory_source_family_summary_text);
+    let lunar_source_window_summary_checksum = checksum64(&lunar_source_window_summary_text);
     let lunar_theory_catalog_validation_summary_text = read_required_bundle_text(
         &lunar_theory_catalog_validation_summary_path,
         "lunar theory catalog validation summary",
@@ -13425,6 +13468,12 @@ fn verify_release_bundle(
         return Err(ReleaseBundleError::Verification(format!(
             "unexpected lunar theory source family summary file entry: {}",
             manifest.lunar_theory_source_family_summary_path
+        )));
+    }
+    if manifest.lunar_source_window_summary_path != "lunar-source-window-summary.txt" {
+        return Err(ReleaseBundleError::Verification(format!(
+            "unexpected lunar source window summary file entry: {}",
+            manifest.lunar_source_window_summary_path
         )));
     }
     if manifest.lunar_theory_catalog_validation_summary_path
@@ -14218,6 +14267,13 @@ fn verify_release_bundle(
             "lunar theory source family summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
             manifest.lunar_theory_source_family_summary_checksum,
             lunar_theory_source_family_summary_checksum
+        )));
+    }
+    if manifest.lunar_source_window_summary_checksum != lunar_source_window_summary_checksum {
+        return Err(ReleaseBundleError::Verification(format!(
+            "lunar source window summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
+            manifest.lunar_source_window_summary_checksum,
+            lunar_source_window_summary_checksum
         )));
     }
     if manifest.lunar_theory_catalog_validation_summary_checksum
@@ -28719,6 +28775,7 @@ version = "0.9.0"
         assert!(rendered.contains("lunar-theory-limitations-summary.txt"));
         assert!(rendered.contains("lunar-theory-source-selection-summary.txt"));
         assert!(rendered.contains("lunar-theory-source-family-summary.txt"));
+        assert!(rendered.contains("lunar-source-window-summary.txt"));
         assert!(rendered.contains("lunar-theory-catalog-validation-summary.txt"));
         assert!(bundle_dir
             .join("compatibility-caveats-summary.txt")
@@ -28762,6 +28819,7 @@ version = "0.9.0"
         assert!(bundle_dir
             .join("lunar-theory-source-family-summary.txt")
             .exists());
+        assert!(bundle_dir.join("lunar-source-window-summary.txt").exists());
         assert!(bundle_dir
             .join("lunar-theory-catalog-validation-summary.txt")
             .exists());
@@ -29745,6 +29803,9 @@ version = "0.9.0"
             "lunar theory source family summary: lunar-theory-source-family-summary.txt"
         ));
         assert!(manifest.contains("lunar theory source family summary checksum (fnv1a-64): 0x"));
+        assert!(manifest
+            .contains("lunar theory source window summary: lunar-source-window-summary.txt"));
+        assert!(manifest.contains("lunar theory source window summary checksum (fnv1a-64): 0x"));
         assert!(manifest.contains(
             "lunar theory catalog validation summary: lunar-theory-catalog-validation-summary.txt"
         ));
@@ -31636,6 +31697,19 @@ version = "0.9.0"
             "selected model=",
             "selected model=drifted-",
             "lunar theory source family summary no longer matches the current lunar source-family posture",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_lunar_source_window_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-lunar-source-window-semantic",
+            "lunar-source-window-summary.txt",
+            "lunar theory source window summary checksum (fnv1a-64):",
+            "exact Moon samples across",
+            "drifted exact Moon samples across",
+            "lunar source window summary no longer matches the current lunar source-window posture",
         );
     }
 

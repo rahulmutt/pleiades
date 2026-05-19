@@ -3067,6 +3067,32 @@ pub struct LunarSourceWindowSummary {
     pub latest_epoch: Instant,
 }
 
+/// Validation error for a lunar source-window summary that drifted from the current evidence.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum LunarSourceWindowSummaryValidationError {
+    /// The summary no longer matches the current lunar source-window evidence.
+    Unavailable,
+    /// A rendered summary field no longer matches the current lunar source-window evidence.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for LunarSourceWindowSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Unavailable => write!(
+                f,
+                "the lunar source-window summary is unavailable from the current evidence"
+            ),
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the lunar source-window summary field `{field}` is out of sync with the current evidence"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for LunarSourceWindowSummaryValidationError {}
+
 impl LunarSourceWindowSummary {
     /// Returns the release-facing one-line lunar source-window summary.
     pub fn summary_line(&self) -> String {
@@ -3080,6 +3106,58 @@ impl LunarSourceWindowSummary {
             self.apparent_window_count,
             format_epoch_range(self.earliest_epoch, self.latest_epoch),
         )
+    }
+
+    /// Returns `Ok(())` when the summary still matches the current lunar evidence.
+    pub fn validate(&self) -> Result<(), LunarSourceWindowSummaryValidationError> {
+        let Some(current) = lunar_source_window_summary() else {
+            return Err(LunarSourceWindowSummaryValidationError::Unavailable);
+        };
+
+        if self.exact_sample_count != current.exact_sample_count {
+            return Err(LunarSourceWindowSummaryValidationError::FieldOutOfSync {
+                field: "exact_sample_count",
+            });
+        }
+        if self.apparent_sample_count != current.apparent_sample_count {
+            return Err(LunarSourceWindowSummaryValidationError::FieldOutOfSync {
+                field: "apparent_sample_count",
+            });
+        }
+        if self.body_count != current.body_count {
+            return Err(LunarSourceWindowSummaryValidationError::FieldOutOfSync {
+                field: "body_count",
+            });
+        }
+        if self.exact_window_count != current.exact_window_count {
+            return Err(LunarSourceWindowSummaryValidationError::FieldOutOfSync {
+                field: "exact_window_count",
+            });
+        }
+        if self.apparent_window_count != current.apparent_window_count {
+            return Err(LunarSourceWindowSummaryValidationError::FieldOutOfSync {
+                field: "apparent_window_count",
+            });
+        }
+        if self.earliest_epoch != current.earliest_epoch {
+            return Err(LunarSourceWindowSummaryValidationError::FieldOutOfSync {
+                field: "earliest_epoch",
+            });
+        }
+        if self.latest_epoch != current.latest_epoch {
+            return Err(LunarSourceWindowSummaryValidationError::FieldOutOfSync {
+                field: "latest_epoch",
+            });
+        }
+
+        Ok(())
+    }
+
+    /// Returns the release-facing one-line summary when the current evidence still matches.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, LunarSourceWindowSummaryValidationError> {
+        self.validate().map(|()| self.summary_line())
     }
 }
 
@@ -3137,14 +3215,37 @@ pub fn lunar_source_window_summary() -> Option<LunarSourceWindowSummary> {
 }
 
 /// Formats the broader lunar source-window summary for release-facing reporting.
+fn format_validated_lunar_source_window_summary_for_report(
+    summary: &LunarSourceWindowSummary,
+) -> String {
+    match summary.validated_summary_line() {
+        Ok(summary_line) => summary_line,
+        Err(error) => format!("lunar source windows: unavailable ({error})"),
+    }
+}
+
+/// Formats the broader lunar source-window summary for release-facing reporting.
 pub fn format_lunar_source_window_summary(summary: &LunarSourceWindowSummary) -> String {
-    summary.summary_line()
+    format_validated_lunar_source_window_summary_for_report(summary)
+}
+
+/// Returns the validated release-facing broader lunar source-window summary string.
+pub fn validated_lunar_source_window_summary_for_report() -> Result<String, String> {
+    lunar_source_window_summary()
+        .ok_or_else(|| {
+            "the lunar source-window summary is unavailable from the current evidence".to_string()
+        })
+        .and_then(|summary| {
+            summary
+                .validated_summary_line()
+                .map_err(|error| error.to_string())
+        })
 }
 
 /// Returns the release-facing broader lunar source-window summary string.
 pub fn lunar_source_window_summary_for_report() -> String {
     match lunar_source_window_summary() {
-        Some(summary) => format_lunar_source_window_summary(&summary),
+        Some(summary) => format_validated_lunar_source_window_summary_for_report(&summary),
         None => "lunar source windows: unavailable".to_string(),
     }
 }
@@ -7040,6 +7141,12 @@ mod tests {
 
         assert_eq!(report, summary.summary_line());
         assert_eq!(report, format_lunar_source_window_summary(&summary));
+        assert_eq!(
+            report,
+            summary
+                .validated_summary_line()
+                .expect("summary should validate")
+        );
         assert!(report.contains(
             "lunar source windows: 7 exact Moon samples across 1 bodies in 2 exact windows; 4 reference-only apparent Moon samples across 1 bodies in 4 apparent windows"
         ));
@@ -7049,6 +7156,26 @@ mod tests {
         assert!(report.contains(
             "apparent windows: published 1992-04-12 apparent geocentric Moon comparison datum; published 1968-12-24 low-accuracy Meeus-style geocentric Moon example; published 2004-04-01 NASA RP 1349 apparent Moon table row; published 2006-09-07 EclipseWise apparent Moon coordinate row"
         ));
+    }
+
+    #[test]
+    fn lunar_source_window_validation_rejects_drifted_fields() {
+        let mut summary =
+            lunar_source_window_summary().expect("source window summary should exist");
+        summary.exact_sample_count += 1;
+
+        let error = summary
+            .validate()
+            .expect_err("drifted summary should fail validation");
+        assert_eq!(
+            error,
+            LunarSourceWindowSummaryValidationError::FieldOutOfSync {
+                field: "exact_sample_count"
+            }
+        );
+        assert!(error
+            .to_string()
+            .contains("lunar source-window summary field `exact_sample_count`"));
     }
 
     #[test]
