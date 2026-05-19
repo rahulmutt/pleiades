@@ -6540,6 +6540,14 @@ impl PackagedArtifactBodyClassSpanCapSummary {
         join_display(&entries)
     }
 
+    /// Returns the validated body-class span cap summary as a compact human-readable line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, PackagedArtifactBodyClassSpanCapSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+
     /// Returns `Ok(())` when the summary still matches the current packaged-artifact posture.
     pub fn validate(&self) -> Result<(), PackagedArtifactBodyClassSpanCapSummaryValidationError> {
         if self.entries != packaged_artifact_body_class_span_cap_entries() {
@@ -6573,8 +6581,8 @@ pub fn packaged_artifact_body_class_span_cap_summary_details(
 /// Returns the current packaged-artifact body-class span caps after validating the structured posture.
 pub fn packaged_artifact_body_class_span_cap_summary_for_report() -> String {
     let summary = packaged_artifact_body_class_span_cap_summary_details();
-    match summary.validate() {
-        Ok(()) => summary.to_string(),
+    match summary.validated_summary_line() {
+        Ok(line) => line,
         Err(error) => format!("body-class span caps: unavailable ({error})"),
     }
 }
@@ -6582,8 +6590,8 @@ pub fn packaged_artifact_body_class_span_cap_summary_for_report() -> String {
 /// Returns the current packaged-artifact body-class span-cap entries after validating the structured posture.
 pub fn packaged_artifact_body_class_span_cap_entries_for_report() -> String {
     let summary = packaged_artifact_body_class_span_cap_summary_details();
-    match summary.validate() {
-        Ok(()) => summary.entries_summary_line(),
+    match summary.validated_summary_line() {
+        Ok(_) => summary.entries_summary_line(),
         Err(error) => format!("unavailable ({error})"),
     }
 }
@@ -11932,6 +11940,7 @@ mod tests {
             packaged_artifact_body_class_span_cap_entries_for_report(),
             "luminaries=256 days, inner planets=384 days, outer planets=768 days, pluto=1536 days, lunar points=256 days, selected asteroids=256 days, custom bodies=512 days"
         );
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert!(summary.validate().is_ok());
     }
 
