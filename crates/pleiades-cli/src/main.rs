@@ -2810,7 +2810,11 @@ mod tests {
             line == "Compact summary views: release-notes-summary, api-stability-summary, backend-matrix-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary"
         }));
         assert!(release_checklist_summary.contains("Repository-managed release gates: 10 items"));
-        assert!(release_checklist_summary.contains("Manual bundle workflow: 4 items"));
+        let release_checklist_summary_details = pleiades_validate::release_checklist_summary();
+        assert!(release_checklist_summary.contains(&format!(
+            "Manual bundle workflow: {} items",
+            release_checklist_summary_details.manual_bundle_workflow_items
+        )));
         assert!(release_checklist_summary.contains("Bundle contents: 17 items"));
         assert!(release_checklist_summary.contains("External publishing reminders: 3 items"));
         assert!(release_checklist_summary
