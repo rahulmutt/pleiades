@@ -32667,6 +32667,19 @@ version = "0.9.0"
     }
 
     #[test]
+    fn verify_release_bundle_rejects_semantically_tampered_custom_definition_ayanamsa_labels_summary_file_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-semantic-custom-definition-ayanamsa-labels-summary",
+            "custom-definition-ayanamsa-labels-summary.txt",
+            "custom-definition ayanamsa labels summary checksum (fnv1a-64):",
+            "Babylonian (House)",
+            "Tampered (House)",
+            "custom-definition ayanamsa labels summary mismatch",
+        );
+    }
+
+    #[test]
     fn verify_release_bundle_rejects_tampered_release_notes_summary_file() {
         assert_release_bundle_rejects_tampered_text_file(
             "pleiades-release-bundle-tampered-release-notes-summary",
