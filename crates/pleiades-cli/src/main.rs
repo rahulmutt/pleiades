@@ -5883,6 +5883,9 @@ mod tests {
         assert!(rendered.contains("packaged-artifact-profile-coverage-summary.txt"));
         assert!(bundle_dir.join("bundle-manifest.txt").exists());
         assert!(bundle_dir
+            .join("comparison-snapshot-body-class-coverage-summary.txt")
+            .exists());
+        assert!(bundle_dir
             .join("reference-snapshot-bridge-day-summary.txt")
             .exists());
         assert!(bundle_dir.join("catalog-inventory-summary.txt").exists());
@@ -5948,6 +5951,7 @@ mod tests {
         let manifest = std::fs::read_to_string(bundle_dir.join("bundle-manifest.txt"))
             .expect("bundle manifest should be written");
         assert!(manifest.contains("packaged-artifact-profile-coverage-summary.txt"));
+        assert!(manifest.contains("comparison-snapshot-body-class-coverage-summary.txt"));
         assert!(manifest.contains("packaged-artifact-access-summary.txt"));
         assert!(manifest.contains("packaged-artifact-fit-sample-classes-summary.txt"));
         assert!(manifest
@@ -5984,6 +5988,7 @@ mod tests {
 
         assert!(verified.contains("Release bundle"));
         assert!(verified.contains("compatibility-profile.txt"));
+        assert!(verified.contains("comparison-snapshot-body-class-coverage-summary.txt"));
         assert!(verified.contains("catalog-inventory-summary.txt"));
         assert!(verified.contains("reference-snapshot-bridge-day-summary.txt"));
         assert!(verified.contains("custom-definition-ayanamsa-labels-summary.txt"));

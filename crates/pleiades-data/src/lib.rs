@@ -6180,6 +6180,8 @@ const PACKAGED_ARTIFACT_FOUR_FIFTHS_SPLIT_FRACTION: f64 = 4.0 / 5.0;
 const PACKAGED_ARTIFACT_ONE_THIRD_SPLIT_FRACTION: f64 = 1.0 / 3.0;
 const PACKAGED_ARTIFACT_TWO_THIRD_SPLIT_FRACTION: f64 = 2.0 / 3.0;
 const PACKAGED_ARTIFACT_ONE_SIXTH_SPLIT_FRACTION: f64 = 1.0 / 6.0;
+const PACKAGED_ARTIFACT_VERY_LONG_DENSE_SPLIT_SPAN_RATIO: f64 = 4.0;
+const PACKAGED_ARTIFACT_LONGEST_DENSE_SPLIT_SPAN_RATIO: f64 = 8.0;
 
 #[derive(Clone, Copy)]
 struct PackagedArtifactSplitCurvature<'a> {
@@ -6273,7 +6275,7 @@ fn packaged_artifact_split_fraction_for_interval(
         }
     }
 
-    if span_days > span_limit * 4.0 {
+    if span_days > span_limit * PACKAGED_ARTIFACT_VERY_LONG_DENSE_SPLIT_SPAN_RATIO {
         if let (Some(one_sixth_coordinates), Some(five_sixth_coordinates)) = (
             curvature.one_sixth_coordinates,
             curvature.five_sixth_coordinates,
@@ -6325,7 +6327,7 @@ fn packaged_artifact_split_fraction_for_interval(
         return PACKAGED_ARTIFACT_TWO_THIRD_SPLIT_FRACTION;
     }
 
-    if span_days > span_limit * 8.0 {
+    if span_days > span_limit * PACKAGED_ARTIFACT_LONGEST_DENSE_SPLIT_SPAN_RATIO {
         if let (Some(one_fifth_coordinates), Some(four_fifth_coordinates)) = (
             curvature.one_fifth_coordinates,
             curvature.four_fifth_coordinates,
@@ -8893,6 +8895,78 @@ mod tests {
                 },
             ),
             PACKAGED_ARTIFACT_ONE_FIFTH_SPLIT_FRACTION
+        );
+    }
+
+    #[test]
+    fn packaged_artifact_split_fraction_ignores_fifth_point_bias_before_the_longest_span_threshold()
+    {
+        let start = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(0.0),
+            pleiades_backend::Latitude::from_degrees(0.0),
+            Some(1.0),
+        );
+        let quarter = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(1.0),
+            pleiades_backend::Latitude::from_degrees(0.4),
+            Some(1.01),
+        );
+        let one_fifth = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(6.2),
+            pleiades_backend::Latitude::from_degrees(3.1),
+            Some(1.062),
+        );
+        let one_third = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(1.5),
+            pleiades_backend::Latitude::from_degrees(0.6),
+            Some(1.015),
+        );
+        let midpoint = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(2.0),
+            pleiades_backend::Latitude::from_degrees(0.8),
+            Some(1.02),
+        );
+        let two_third = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(2.5),
+            pleiades_backend::Latitude::from_degrees(1.0),
+            Some(1.03),
+        );
+        let four_fifth = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(6.0),
+            pleiades_backend::Latitude::from_degrees(3.0),
+            Some(1.06),
+        );
+        let three_quarter = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(3.0),
+            pleiades_backend::Latitude::from_degrees(1.2),
+            Some(1.04),
+        );
+        let end = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(4.0),
+            pleiades_backend::Latitude::from_degrees(1.6),
+            Some(1.08),
+        );
+
+        assert_eq!(
+            packaged_artifact_split_fraction_for_interval(
+                &CelestialBody::Pluto,
+                7_000.0,
+                body_segment_span_limit(&CelestialBody::Pluto),
+                PackagedArtifactSplitCurvature {
+                    start_coordinates: &start,
+                    quarter_coordinates: Some(&quarter),
+                    one_fifth_coordinates: Some(&one_fifth),
+                    one_sixth_coordinates: None,
+                    one_third_coordinates: Some(&one_third),
+                    midpoint_coordinates: &midpoint,
+                    two_third_coordinates: Some(&two_third),
+                    four_fifth_coordinates: Some(&four_fifth),
+                    five_sixth_coordinates: None,
+                    three_quarter_coordinates: Some(&three_quarter),
+                    end_coordinates: &end,
+                },
+            ),
+            0.5
         );
     }
 
