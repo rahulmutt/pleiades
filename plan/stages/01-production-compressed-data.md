@@ -21,6 +21,7 @@ The codec, artifact structures, deterministic regeneration path, checksums, gene
 - Preserve deterministic generation parameters, normalized-intermediate checksums, artifact checksums, and encoded-size accounting.
 - Completed: the comparison body-class tolerance summary renderer now validates each class row before formatting, so malformed tolerance rows fail closed instead of leaking partial drift text.
 - Completed: the packaged-artifact target-threshold scope envelopes summary now has a typed validated wrapper, and the release-facing scope-envelope helper now reuses that structured posture instead of rebuilding the lines manually.
+- Completed: the packaged-artifact target-threshold state summary now also has a semantic-drift release-bundle regression, so the release-facing state line fails closed even after checksum refreshes.
 - Completed: the packaged-artifact body-class span-cap summary now exposes a direct validated helper, and the report surfaces now reuse it instead of duplicating the validation step before rendering.
 - Make artifact validation fail on threshold violations, capability drift, checksum drift, malformed manifests, or unsupported request shapes.
 - Keep performance benchmarks visible, but treat accuracy, reproducibility, and report tractability as release blockers.

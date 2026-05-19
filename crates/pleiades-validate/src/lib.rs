@@ -32662,6 +32662,18 @@ version = "0.9.0"
     }
 
     #[test]
+    fn packaged_artifact_target_threshold_state_summary_validation_rejects_drift() {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-packaged-artifact-target-threshold-state-semantic",
+            "packaged-artifact-target-threshold-state-summary.txt",
+            "packaged-artifact target-threshold state summary checksum (fnv1a-64):",
+            "production thresholds recorded",
+            "production thresholds drifting",
+            "packaged-artifact target-threshold state summary no longer matches the current packaged-artifact target-threshold posture",
+        );
+    }
+
+    #[test]
     fn packaged_artifact_source_fit_holdout_sync_summary_validation_rejects_drift() {
         let summary = validated_packaged_artifact_source_fit_holdout_sync_summary_for_report();
         let drifted_summary = summary.replace("fit thresholds=", "fit thresholds=drifted-");
