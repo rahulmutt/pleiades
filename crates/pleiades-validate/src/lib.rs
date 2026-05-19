@@ -8894,9 +8894,15 @@ fn render_release_notes_summary_text() -> String {
     text.push_str("Compatibility caveats: ");
     text.push_str(&profile.known_gaps.len().to_string());
     text.push('\n');
-    text.push_str(&profile.target_house_scope.join("; "));
+    match profile.validated_target_house_scope_summary_line() {
+        Ok(summary) => text.push_str(&summary),
+        Err(error) => return format!("Release notes unavailable ({error})"),
+    }
     text.push('\n');
-    text.push_str(&profile.target_ayanamsa_scope.join("; "));
+    match profile.validated_target_ayanamsa_scope_summary_line() {
+        Ok(summary) => text.push_str(&summary),
+        Err(error) => return format!("Release notes unavailable ({error})"),
+    }
     text.push('\n');
     text.push_str("API stability summary line: ");
     text.push_str(&api_stability_summary_line_for_report());
@@ -28357,6 +28363,18 @@ mod tests {
             "Custom-definition label names: {}",
             profile.custom_definition_labels.join(", ")
         )));
+        assert!(rendered.contains(
+            profile
+                .validated_target_house_scope_summary_line()
+                .expect("target house scope summary should validate")
+                .as_str()
+        ));
+        assert!(rendered.contains(
+            profile
+                .validated_target_ayanamsa_scope_summary_line()
+                .expect("target ayanamsa scope summary should validate")
+                .as_str()
+        ));
         assert!(rendered.contains(&format!(
             "Compatibility caveats: {}",
             profile.known_gaps.len()
