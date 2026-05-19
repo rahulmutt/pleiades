@@ -32109,6 +32109,19 @@ version = "0.9.0"
     }
 
     #[test]
+    fn verify_release_bundle_rejects_tampered_reference_asteroid_source_window_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-reference-asteroid-source-window-semantic",
+            "reference-asteroid-source-window-summary.txt",
+            "reference asteroid source window summary checksum (fnv1a-64):",
+            "Reference asteroid source windows:",
+            "Tampered reference asteroid source windows:",
+            "reference asteroid source window summary no longer matches the current reference asteroid source-window posture",
+        );
+    }
+
+    #[test]
     fn verify_release_bundle_rejects_tampered_independent_holdout_source_window_summary_even_with_updated_checksum(
     ) {
         assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
