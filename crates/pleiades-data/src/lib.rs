@@ -9186,6 +9186,26 @@ mod tests {
             &CelestialBody::Moon,
             ChannelKind::DistanceAu,
         );
+        let selected_asteroid_longitude_fractions =
+            packaged_artifact_residual_sample_fractions_for_channel(
+                &CelestialBody::Ceres,
+                ChannelKind::Longitude,
+            );
+        let selected_asteroid_distance_fractions =
+            packaged_artifact_residual_sample_fractions_for_channel(
+                &CelestialBody::Ceres,
+                ChannelKind::DistanceAu,
+            );
+        let custom_body_longitude_fractions =
+            packaged_artifact_residual_sample_fractions_for_channel(
+                &CelestialBody::Custom(CustomBodyId::new("comet", "1P-Halley")),
+                ChannelKind::Longitude,
+            );
+        let custom_body_distance_fractions =
+            packaged_artifact_residual_sample_fractions_for_channel(
+                &CelestialBody::Custom(CustomBodyId::new("comet", "1P-Halley")),
+                ChannelKind::DistanceAu,
+            );
         let outer_planet_fractions = packaged_artifact_residual_sample_fractions_for_channel(
             &CelestialBody::Saturn,
             ChannelKind::Longitude,
@@ -9195,7 +9215,28 @@ mod tests {
         assert_eq!(luminary_longitude_fractions.last().copied(), Some(1.0));
         assert!(luminary_longitude_fractions.len() > outer_planet_fractions.len());
         assert_eq!(
+            selected_asteroid_longitude_fractions,
+            PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS
+        );
+        assert_eq!(
+            custom_body_longitude_fractions,
+            PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS
+        );
+        assert!(
+            selected_asteroid_longitude_fractions.len()
+                > selected_asteroid_distance_fractions.len()
+        );
+        assert!(custom_body_longitude_fractions.len() > custom_body_distance_fractions.len());
+        assert_eq!(
             luminary_distance_fractions,
+            PACKAGED_ARTIFACT_RESIDUAL_SAMPLE_FRACTIONS
+        );
+        assert_eq!(
+            selected_asteroid_distance_fractions,
+            PACKAGED_ARTIFACT_RESIDUAL_SAMPLE_FRACTIONS
+        );
+        assert_eq!(
+            custom_body_distance_fractions,
             PACKAGED_ARTIFACT_RESIDUAL_SAMPLE_FRACTIONS
         );
         assert_eq!(
