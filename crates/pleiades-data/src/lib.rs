@@ -2864,6 +2864,11 @@ impl PackagedArtifactTargetThresholdState {
         }
     }
 
+    /// Returns a compact human-readable line for the target-threshold state.
+    pub fn summary_line(self) -> String {
+        format!("target-threshold state: {}", self)
+    }
+
     /// Returns whether the target thresholds are finalized for production release.
     pub const fn is_production_ready(self) -> bool {
         matches!(self, Self::ProductionReady)
@@ -2879,11 +2884,27 @@ impl PackagedArtifactTargetThresholdState {
             Err(PackagedArtifactTargetThresholdStateValidationError::Draft)
         }
     }
+
+    /// Returns the validated target-threshold state as a compact human-readable line.
+    pub fn validated_summary_line(
+        self,
+    ) -> Result<String, PackagedArtifactTargetThresholdStateValidationError> {
+        self.validate_production_ready()?;
+        Ok(self.summary_line())
+    }
 }
 
 impl fmt::Display for PackagedArtifactTargetThresholdState {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(self.label())
+    }
+}
+
+/// Returns the current packaged-artifact target-threshold state after validating the release posture.
+pub fn packaged_artifact_target_threshold_state_for_report() -> String {
+    match PACKAGED_ARTIFACT_TARGET_THRESHOLD_STATE.validated_summary_line() {
+        Ok(line) => line,
+        Err(error) => format!("target-threshold state: unavailable ({error})"),
     }
 }
 
@@ -11414,6 +11435,20 @@ mod tests {
         let error = PackagedArtifactTargetThresholdState::Draft
             .validate_production_ready()
             .expect_err("draft target-threshold state should be rejected");
+        assert_eq!(
+            error,
+            PackagedArtifactTargetThresholdStateValidationError::Draft
+        );
+        assert!(error
+            .to_string()
+            .contains("production thresholds are still pending"));
+    }
+
+    #[test]
+    fn packaged_artifact_target_threshold_state_summary_rejects_draft_state() {
+        let error = PackagedArtifactTargetThresholdState::Draft
+            .validated_summary_line()
+            .expect_err("draft target-threshold state summary should be rejected");
         assert_eq!(
             error,
             PackagedArtifactTargetThresholdStateValidationError::Draft
