@@ -32667,6 +32667,19 @@ version = "0.9.0"
     }
 
     #[test]
+    fn verify_release_bundle_rejects_semantically_tampered_release_profile_identifiers_summary_file_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-semantic-release-profile-identifiers-summary",
+            "release-profile-identifiers-summary.txt",
+            "release-profile identifiers summary checksum (fnv1a-64):",
+            "Summary line: v1 compatibility=",
+            "Summary line: tampered compatibility=",
+            "release-profile identifiers summary no longer matches",
+        );
+    }
+
+    #[test]
     fn verify_release_bundle_rejects_semantically_tampered_custom_definition_ayanamsa_labels_summary_file_even_with_updated_checksum(
     ) {
         assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
