@@ -8,6 +8,7 @@
 
 use core::fmt;
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::OnceLock;
 
 use pleiades_core::{
     baseline_house_systems, calculate_houses, HouseError, HouseRequest, HouseSnapshot,
@@ -557,12 +558,16 @@ impl fmt::Display for HouseValidationReport {
 
 /// Renders the default baseline house-validation corpus.
 pub fn house_validation_report() -> HouseValidationReport {
-    HouseValidationReport::new()
+    static CACHE: OnceLock<HouseValidationReport> = OnceLock::new();
+
+    CACHE.get_or_init(HouseValidationReport::new).clone()
 }
 
 /// Renders the release house-validation corpus across all built-in systems.
 pub fn release_house_validation_report() -> HouseValidationReport {
-    HouseValidationReport::release()
+    static CACHE: OnceLock<HouseValidationReport> = OnceLock::new();
+
+    CACHE.get_or_init(HouseValidationReport::release).clone()
 }
 
 /// Returns the compact report-facing summary line, or an unavailable message if validation fails.
