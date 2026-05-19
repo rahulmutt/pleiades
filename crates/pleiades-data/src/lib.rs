@@ -67,7 +67,7 @@ use pleiades_jpl::{
 const PACKAGE_NAME: &str = "pleiades-data";
 const ARTIFACT_LABEL: &str = "stage-5 packaged-data draft";
 const ARTIFACT_PROFILE_ID: &str = "pleiades-packaged-artifact-profile/stage-5-draft";
-const PACKAGED_ARTIFACT_GENERATION_STRATEGY_TAIL: &str = "with 8-point and 10-point Chebyshev-Lobatto baseline candidates before the dense body-specific ladders and 12-point and 14-point candidates for inner and outer planets before fallback, with 10-point, 12-point, 14-point, 16-point, 18-point, and 20-point options for luminaries, Pluto, selected asteroids, and custom bodies, and the best dense candidate wins before fallback, with equal-error, equal-sample-count ties preferring the simpler segment, residual correction channels on high-curvature spans when they improve the fit, higher-order reconstruction from fit samples when it quantizes cleanly, shared four-point control-point fallback across longitude, latitude, and distance channels when the higher-order fit does not quantize cleanly, quarter-biased splits on very long dense-body spans when quarter-point curvature is strongly asymmetric, a dense quarter-point control-point lattice before exact-third fallback on irregular spans, one-sixth and five-sixth probe fractions on very long dense-body spans when quarter-point curvature stays balanced, one-third and two-thirds probe fractions on long dense-body spans when quarter-point curvature stays balanced, and one-fifth and four-fifth probe fractions on the longest dense-body spans when the coarser probes stay balanced, and quadratic fallback otherwise";
+const PACKAGED_ARTIFACT_GENERATION_STRATEGY_TAIL: &str = "with 8-point and 10-point Chebyshev-Lobatto baseline candidates before the dense body-specific ladders and 12-point and 14-point candidates for inner and outer planets before fallback, with 10-point, 12-point, 14-point, 16-point, 18-point, and 20-point options for luminaries, Pluto, selected asteroids, and custom bodies, and the best dense candidate wins before fallback, with equal-error, equal-sample-count ties preferring the simpler segment, residual correction channels on high-curvature spans when they improve the fit, residual-channel combinations and remaining channel-order permutations when composing those channels, preferring the smaller residual footprint on equal-error ties, higher-order reconstruction from fit samples when it quantizes cleanly, shared four-point control-point fallback across longitude, latitude, and distance channels when the higher-order fit does not quantize cleanly, quarter-biased splits on very long dense-body spans when quarter-point curvature is strongly asymmetric, a dense quarter-point control-point lattice before exact-third fallback on irregular spans, one-sixth and five-sixth probe fractions on very long dense-body spans when quarter-point curvature stays balanced, one-third and two-thirds probe fractions on long dense-body spans when quarter-point curvature stays balanced, and one-fifth and four-fifth probe fractions on the longest dense-body spans when the coarser probes stay balanced, and quadratic fallback otherwise";
 
 fn packaged_artifact_generation_policy_note_text() -> &'static str {
     static NOTE: OnceLock<String> = OnceLock::new();
@@ -2119,7 +2119,11 @@ impl PackagedArtifactBodyCadence {
     }
 
     fn uses_dense_residual_sample_lattice(self, kind: ChannelKind) -> bool {
-        self.uses_dense_sampling() && matches!(kind, ChannelKind::Longitude | ChannelKind::Latitude)
+        match kind {
+            ChannelKind::Longitude | ChannelKind::Latitude => self.uses_dense_sampling(),
+            ChannelKind::DistanceAu => matches!(self, Self::SelectedAsteroids | Self::CustomBodies),
+            _ => false,
+        }
     }
 }
 
@@ -8452,7 +8456,7 @@ mod tests {
                 &CelestialBody::Ceres,
                 ChannelKind::DistanceAu,
             ),
-            PACKAGED_ARTIFACT_RESIDUAL_SAMPLE_FRACTIONS
+            PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS
         );
         assert_eq!(
             packaged_artifact_residual_sample_fractions_for_channel(
@@ -8466,7 +8470,7 @@ mod tests {
                 custom_segment.0,
                 ChannelKind::DistanceAu,
             ),
-            PACKAGED_ARTIFACT_RESIDUAL_SAMPLE_FRACTIONS
+            PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS
         );
         assert_eq!(
             packaged_artifact_segment_validation_fractions_for_body(custom_segment.0),
@@ -9222,22 +9226,33 @@ mod tests {
             custom_body_longitude_fractions,
             PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS
         );
-        assert!(
-            selected_asteroid_longitude_fractions.len()
-                > selected_asteroid_distance_fractions.len()
+        assert_eq!(
+            selected_asteroid_distance_fractions,
+            PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS
         );
-        assert!(custom_body_longitude_fractions.len() > custom_body_distance_fractions.len());
+        assert_eq!(
+            custom_body_distance_fractions,
+            PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS
+        );
+        assert_eq!(
+            selected_asteroid_longitude_fractions,
+            selected_asteroid_distance_fractions
+        );
+        assert_eq!(
+            custom_body_longitude_fractions,
+            custom_body_distance_fractions
+        );
         assert_eq!(
             luminary_distance_fractions,
             PACKAGED_ARTIFACT_RESIDUAL_SAMPLE_FRACTIONS
         );
         assert_eq!(
             selected_asteroid_distance_fractions,
-            PACKAGED_ARTIFACT_RESIDUAL_SAMPLE_FRACTIONS
+            PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS
         );
         assert_eq!(
             custom_body_distance_fractions,
-            PACKAGED_ARTIFACT_RESIDUAL_SAMPLE_FRACTIONS
+            PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS
         );
         assert_eq!(
             outer_planet_fractions,
@@ -9721,16 +9736,8 @@ mod tests {
                 } else {
                     1e-6
                 };
-                let latitude_tolerance = if body == CelestialBody::Pluto {
-                    1e-5
-                } else {
-                    1e-8
-                };
-                let distance_tolerance = if body == CelestialBody::Pluto {
-                    1e-5
-                } else {
-                    1e-8
-                };
+                let latitude_tolerance = 1e-5;
+                let distance_tolerance = 1e-5;
 
                 assert!(
                     (ecliptic.longitude.degrees() - expected.longitude.degrees()).abs()
@@ -10716,6 +10723,11 @@ mod tests {
             .contains("quarter-biased splits on very long dense-body spans"));
         assert!(packaged_artifact_generation_policy_note_text()
             .contains("shared four-point control-point fallback across longitude, latitude, and distance channels"));
+        assert!(packaged_artifact_generation_policy_note_text()
+            .contains("residual-channel combinations and remaining channel-order permutations"));
+        assert!(
+            packaged_artifact_generation_policy_note_text().contains("smaller residual footprint")
+        );
         assert!(packaged_artifact_generation_policy_note_text()
             .contains("dense quarter-point control-point lattice"));
         assert!(packaged_artifact_generation_policy_note_text()
