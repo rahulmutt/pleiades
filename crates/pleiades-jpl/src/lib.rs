@@ -8244,6 +8244,15 @@ pub fn selected_asteroid_source_evidence_summary_for_report() -> String {
     }
 }
 
+/// Returns the validated release-facing expanded selected-asteroid source coverage summary string.
+pub fn validated_selected_asteroid_source_evidence_summary_for_report() -> Result<String, String> {
+    let summary = selected_asteroid_source_evidence_summary()
+        .ok_or_else(|| "selected asteroid source evidence unavailable".to_string())?;
+    summary
+        .validated_summary_line()
+        .map_err(|error| error.to_string())
+}
+
 /// Returns the release-facing selected-asteroid source-window summary string.
 pub fn selected_asteroid_source_window_summary_for_report() -> String {
     match selected_asteroid_source_window_summary() {
@@ -8253,6 +8262,15 @@ pub fn selected_asteroid_source_window_summary_for_report() -> String {
         },
         None => "Selected asteroid source windows: unavailable".to_string(),
     }
+}
+
+/// Returns the validated release-facing selected-asteroid source-window summary string.
+pub fn validated_selected_asteroid_source_window_summary_for_report() -> Result<String, String> {
+    let summary = selected_asteroid_source_window_summary()
+        .ok_or_else(|| "selected asteroid source windows unavailable".to_string())?;
+    summary
+        .validated_summary_line()
+        .map_err(|error| error.to_string())
 }
 
 /// Compact release-facing summary for the selected-asteroid source request corpus.
@@ -8507,6 +8525,16 @@ pub fn selected_asteroid_source_request_corpus_summary_for_report() -> String {
         },
         None => "Selected asteroid source request corpus: unavailable".to_string(),
     }
+}
+
+/// Returns the validated release-facing selected-asteroid source request corpus summary string.
+pub fn validated_selected_asteroid_source_request_corpus_summary_for_report(
+) -> Result<String, String> {
+    let summary = selected_asteroid_source_request_corpus_summary(CoordinateFrame::Ecliptic)
+        .ok_or_else(|| "selected asteroid source request corpus unavailable".to_string())?;
+    summary
+        .validated_summary_line()
+        .map_err(|error| error.to_string())
 }
 
 const SELECTED_ASTEROID_SOURCE_2453000_EPOCH: f64 = 2_453_000.5;
@@ -28829,6 +28857,10 @@ mod tests {
             summary.summary_line(),
             selected_asteroid_source_evidence_summary_for_report()
         );
+        assert_eq!(
+            validated_selected_asteroid_source_evidence_summary_for_report(),
+            Ok(summary.summary_line())
+        );
     }
 
     #[test]
@@ -28848,6 +28880,10 @@ mod tests {
             summary.summary_line(),
             selected_asteroid_source_window_summary_for_report()
         );
+        assert_eq!(
+            validated_selected_asteroid_source_window_summary_for_report(),
+            Ok(summary.summary_line())
+        );
     }
 
     #[test]
@@ -28866,6 +28902,10 @@ mod tests {
         assert_eq!(
             selected_asteroid_source_request_corpus_summary_for_report(),
             summary.summary_line()
+        );
+        assert_eq!(
+            validated_selected_asteroid_source_request_corpus_summary_for_report(),
+            Ok(summary.summary_line())
         );
         assert!(summary
             .summary_line()
