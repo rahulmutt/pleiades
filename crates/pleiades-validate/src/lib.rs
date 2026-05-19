@@ -14100,6 +14100,7 @@ fn verify_release_bundle(
         profile_id,
         api_stability_posture_id,
     )?;
+    ensure_release_notes_summary_matches_current_rendering(&release_notes_summary_text)?;
     ensure_release_profile_summary_alignment(
         "release summary",
         &release_summary_text,
@@ -15280,6 +15281,19 @@ fn ensure_release_profile_identifiers_summary_matches_current_rendering(
     } else {
         Err(ReleaseBundleError::Verification(
             "release-profile identifiers summary no longer matches the current release-profile identifiers posture"
+                .to_string(),
+        ))
+    }
+}
+
+fn ensure_release_notes_summary_matches_current_rendering(
+    release_notes_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if release_notes_summary_text.trim_end() == render_release_notes_summary_text().trim_end() {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "release notes summary no longer matches the current release notes summary posture"
                 .to_string(),
         ))
     }
@@ -32447,6 +32461,8 @@ version = "0.9.0"
             api_stability_posture_id,
         )
         .expect("matching release notes summary should verify");
+        ensure_release_notes_summary_matches_current_rendering(&render_release_notes_summary_text())
+            .expect("matching release notes summary should match the current rendering");
         ensure_release_profile_summary_alignment(
             "release summary",
             &release_summary,
@@ -32482,6 +32498,14 @@ version = "0.9.0"
         let release_profiles = current_release_profile_identifiers();
         let profile_id = release_profiles.compatibility_profile_id;
         let api_stability_posture_id = release_profiles.api_stability_profile_id;
+
+        let error = ensure_release_notes_summary_matches_current_rendering(
+            "Release notes summary\nProfile: incorrect-profile\nAPI stability posture: incorrect-api\n",
+        )
+        .expect_err("mismatched release notes summary should fail");
+        assert!(error
+            .to_string()
+            .contains("release notes summary no longer matches"));
 
         let error = ensure_release_profile_summary_alignment(
             "release summary",
