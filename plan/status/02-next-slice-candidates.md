@@ -117,6 +117,7 @@ This file lists focused implementation slices for the current phase ladder. Comp
 - Completed: the remaining time-scale, Delta T, observer, apparentness, and request-policy summary surfaces now also route through validated release helpers in backend, core, and CLI surfaces, so the shared request-policy wording follows the same fail-closed path as the UTC/native-sidereal helpers.
 - Completed: the ayanamsa provenance summary now validates before rendering in release-facing report surfaces, so representative provenance examples fail closed if the sample notes drift.
 - Completed: the compatibility-profile summary now fails closed if it stops describing the baseline/release split explicitly, and the related house-formula-family, latitude-sensitive, house-code-alias, custom-definition, catalog inventory, release-profile identifier, compatibility-caveat, release-notes, and release-summary surfaces continue to use validated wrappers; the individual house and ayanamsa descriptor summary surfaces still validate before rendering, the ayanamsa catalog validation summary still has a validated wrapper in release-facing report surfaces, and the compatibility-profile verification summary still exposes the validated compact summary-line helper.
+- Completed: the compatibility-profile and release-summary renderers now reuse core target-scope summary helpers for the target-house and target-ayanamsa sections, so the long-term catalog scopes share the same validation path instead of duplicating the join logic in the validate crate.
 
 ## Phase 6 — Release gate hardening
 

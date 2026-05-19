@@ -7689,14 +7689,6 @@ fn verify_profile_text_section(
     Ok(entries_checked)
 }
 
-fn validated_profile_text_section_summary(
-    section_label: &str,
-    entries: &[&str],
-) -> Result<String, EphemerisError> {
-    verify_profile_text_section(section_label, entries)?;
-    Ok(entries.join("; "))
-}
-
 fn verify_profile_text_sections_are_disjoint(
     sections: &[(&'static str, &'static [&'static str])],
 ) -> Result<(), EphemerisError> {
@@ -8331,15 +8323,12 @@ fn render_compatibility_profile_summary_text() -> String {
     text.push_str(" baseline, ");
     text.push_str(&profile.release_ayanamsas.len().to_string());
     text.push_str(" release-specific)\n");
-    match validated_profile_text_section_summary("target-house-scope", profile.target_house_scope) {
+    match profile.validated_target_house_scope_summary_line() {
         Ok(summary) => text.push_str(&summary),
         Err(error) => return format!("Compatibility profile summary unavailable ({error})"),
     }
     text.push('\n');
-    match validated_profile_text_section_summary(
-        "target-ayanamsa-scope",
-        profile.target_ayanamsa_scope,
-    ) {
+    match profile.validated_target_ayanamsa_scope_summary_line() {
         Ok(summary) => text.push_str(&summary),
         Err(error) => return format!("Compatibility profile summary unavailable ({error})"),
     }
@@ -9040,15 +9029,12 @@ fn render_release_summary_text() -> String {
                 &release_profiles,
             ));
             text.push('\n');
-            match validated_profile_text_section_summary("target-house-scope", profile.target_house_scope) {
+            match profile.validated_target_house_scope_summary_line() {
                 Ok(summary) => text.push_str(&summary),
                 Err(error) => return format!("Release summary unavailable ({error})"),
             }
             text.push('\n');
-            match validated_profile_text_section_summary(
-                "target-ayanamsa-scope",
-                profile.target_ayanamsa_scope,
-            ) {
+            match profile.validated_target_ayanamsa_scope_summary_line() {
                 Ok(summary) => text.push_str(&summary),
                 Err(error) => return format!("Release summary unavailable ({error})"),
             }
@@ -27752,19 +27738,15 @@ mod tests {
         ])
         .expect("target scope prose should remain disjoint from release prose");
         assert_eq!(
-            validated_profile_text_section_summary(
-                "target-house-scope",
-                profile.target_house_scope,
-            )
-            .expect("target house scope summary should validate"),
+            profile
+                .validated_target_house_scope_summary_line()
+                .expect("target house scope summary should validate"),
             profile.target_house_scope.join("; ")
         );
         assert_eq!(
-            validated_profile_text_section_summary(
-                "target-ayanamsa-scope",
-                profile.target_ayanamsa_scope,
-            )
-            .expect("target ayanamsa scope summary should validate"),
+            profile
+                .validated_target_ayanamsa_scope_summary_line()
+                .expect("target ayanamsa scope summary should validate"),
             profile.target_ayanamsa_scope.join("; ")
         );
     }

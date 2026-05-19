@@ -125,6 +125,32 @@ impl CompatibilityProfile {
         Ok(self.summary)
     }
 
+    /// Returns the long-term target house-system scope as a compact summary.
+    pub fn target_house_scope_summary_line(&self) -> String {
+        self.target_house_scope.join("; ")
+    }
+
+    /// Returns the long-term target house-system scope after validating the profile.
+    pub fn validated_target_house_scope_summary_line(
+        &self,
+    ) -> Result<String, CompatibilityProfileValidationError> {
+        self.validate()?;
+        Ok(self.target_house_scope_summary_line())
+    }
+
+    /// Returns the long-term target ayanamsa scope as a compact summary.
+    pub fn target_ayanamsa_scope_summary_line(&self) -> String {
+        self.target_ayanamsa_scope.join("; ")
+    }
+
+    /// Returns the long-term target ayanamsa scope after validating the profile.
+    pub fn validated_target_ayanamsa_scope_summary_line(
+        &self,
+    ) -> Result<String, CompatibilityProfileValidationError> {
+        self.validate()?;
+        Ok(self.target_ayanamsa_scope_summary_line())
+    }
+
     /// Returns a typed summary of the Swiss-Ephemeris house-code alias inventory.
     pub fn house_code_alias_inventory_summary(&self) -> HouseCodeAliasInventorySummary {
         HouseCodeAliasInventorySummary::new(house_system_code_aliases())
@@ -2275,6 +2301,32 @@ mod tests {
         current_compatibility_profile()
             .validate()
             .expect("current compatibility profile should validate");
+    }
+
+    #[test]
+    fn compatibility_profile_target_scope_summary_helpers_render_and_validate() {
+        let profile = current_compatibility_profile();
+
+        assert_eq!(
+            profile.target_house_scope_summary_line(),
+            profile.target_house_scope.join("; ")
+        );
+        assert_eq!(
+            profile
+                .validated_target_house_scope_summary_line()
+                .expect("target house scope should validate"),
+            profile.target_house_scope.join("; ")
+        );
+        assert_eq!(
+            profile.target_ayanamsa_scope_summary_line(),
+            profile.target_ayanamsa_scope.join("; ")
+        );
+        assert_eq!(
+            profile
+                .validated_target_ayanamsa_scope_summary_line()
+                .expect("target ayanamsa scope should validate"),
+            profile.target_ayanamsa_scope.join("; ")
+        );
     }
 
     #[test]

@@ -34,6 +34,7 @@ Current backend and data posture:
 - The release notes and release summary surfaces now route the compatibility profile's release note through a validated helper before rendering, so those release-facing entries fail closed on profile summary drift.
 - The zodiac policy summary now also routes through a validated release helper in validation and release-facing report surfaces, so the shared zodiac-posture wording fails closed when report prose drifts.
 - The comparison body-class tolerance summary renderer now validates each class row before formatting, so malformed tolerance rows fail closed instead of leaking partial drift text.
+- The compatibility-profile and release-summary renderers now reuse core target-scope summary helpers for the long-term house-system and ayanamsa scope lines, so those release-facing sections share the same validation path instead of duplicating the join logic in the validate crate.
 
 ## Remaining specification gaps
 
