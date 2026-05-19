@@ -6262,6 +6262,9 @@ const PACKAGED_ARTIFACT_LEFT_EXTREME_SPLIT_FRACTION: f64 = 0.25;
 const PACKAGED_ARTIFACT_RIGHT_EXTREME_SPLIT_FRACTION: f64 = 0.75;
 const PACKAGED_ARTIFACT_ONE_FIFTH_SPLIT_FRACTION: f64 = 1.0 / 5.0;
 const PACKAGED_ARTIFACT_FOUR_FIFTHS_SPLIT_FRACTION: f64 = 4.0 / 5.0;
+const PACKAGED_ARTIFACT_ONE_SEVENTH_SPLIT_FRACTION: f64 = 1.0 / 7.0;
+const PACKAGED_ARTIFACT_SIX_SEVENTHS_SPLIT_FRACTION: f64 = 6.0 / 7.0;
+const PACKAGED_ARTIFACT_EXTREME_DENSE_SPLIT_SPAN_RATIO: f64 = 16.0;
 const PACKAGED_ARTIFACT_ONE_THIRD_SPLIT_FRACTION: f64 = 1.0 / 3.0;
 const PACKAGED_ARTIFACT_TWO_THIRD_SPLIT_FRACTION: f64 = 2.0 / 3.0;
 const PACKAGED_ARTIFACT_ONE_SIXTH_SPLIT_FRACTION: f64 = 1.0 / 6.0;
@@ -6274,6 +6277,8 @@ struct PackagedArtifactSplitCurvature<'a> {
     quarter_coordinates: Option<&'a EclipticCoordinates>,
     one_fifth_coordinates: Option<&'a EclipticCoordinates>,
     one_sixth_coordinates: Option<&'a EclipticCoordinates>,
+    one_seventh_coordinates: Option<&'a EclipticCoordinates>,
+    six_sevenths_coordinates: Option<&'a EclipticCoordinates>,
     one_third_coordinates: Option<&'a EclipticCoordinates>,
     midpoint_coordinates: &'a EclipticCoordinates,
     two_third_coordinates: Option<&'a EclipticCoordinates>,
@@ -6410,6 +6415,35 @@ fn packaged_artifact_split_fraction_for_interval(
     }
     if right_third_curvature > left_third_curvature * PACKAGED_ARTIFACT_SPLIT_BALANCE_RATIO {
         return PACKAGED_ARTIFACT_TWO_THIRD_SPLIT_FRACTION;
+    }
+
+    if span_days > span_limit * PACKAGED_ARTIFACT_EXTREME_DENSE_SPLIT_SPAN_RATIO {
+        if let (Some(one_seventh_coordinates), Some(six_sevenths_coordinates)) = (
+            curvature.one_seventh_coordinates,
+            curvature.six_sevenths_coordinates,
+        ) {
+            let left_seventh_curvature = packaged_artifact_segment_transition_curvature(
+                curvature.start_coordinates,
+                one_seventh_coordinates,
+                curvature.midpoint_coordinates,
+            );
+            let right_seventh_curvature = packaged_artifact_segment_transition_curvature(
+                curvature.midpoint_coordinates,
+                six_sevenths_coordinates,
+                curvature.end_coordinates,
+            );
+
+            if left_seventh_curvature
+                > right_seventh_curvature * PACKAGED_ARTIFACT_SPLIT_BALANCE_RATIO
+            {
+                return PACKAGED_ARTIFACT_ONE_SEVENTH_SPLIT_FRACTION;
+            }
+            if right_seventh_curvature
+                > left_seventh_curvature * PACKAGED_ARTIFACT_SPLIT_BALANCE_RATIO
+            {
+                return PACKAGED_ARTIFACT_SIX_SEVENTHS_SPLIT_FRACTION;
+            }
+        }
     }
 
     if span_days > span_limit * PACKAGED_ARTIFACT_LONGEST_DENSE_SPLIT_SPAN_RATIO {
@@ -7005,6 +7039,8 @@ fn body_segment_windows_for_interval(
             quarter_coordinates: quarter_coordinates.as_ref(),
             one_fifth_coordinates: one_fifth_coordinates.as_ref(),
             one_sixth_coordinates: one_sixth_coordinates.as_ref(),
+            one_seventh_coordinates: None,
+            six_sevenths_coordinates: None,
             one_third_coordinates: one_third_coordinates.as_ref(),
             midpoint_coordinates: &midpoint_coordinates,
             two_third_coordinates: two_third_coordinates.as_ref(),
@@ -8529,6 +8565,8 @@ mod tests {
                     one_fifth_coordinates: None,
                     one_sixth_coordinates: None,
                     one_third_coordinates: None,
+                    one_seventh_coordinates: None,
+                    six_sevenths_coordinates: None,
                     midpoint_coordinates: &moderate_left_midpoint,
                     two_third_coordinates: None,
                     four_fifth_coordinates: None,
@@ -8577,6 +8615,8 @@ mod tests {
                     one_fifth_coordinates: None,
                     one_sixth_coordinates: None,
                     one_third_coordinates: None,
+                    one_seventh_coordinates: None,
+                    six_sevenths_coordinates: None,
                     midpoint_coordinates: &moderate_right_midpoint,
                     two_third_coordinates: None,
                     four_fifth_coordinates: None,
@@ -8625,6 +8665,8 @@ mod tests {
                     one_fifth_coordinates: None,
                     one_sixth_coordinates: None,
                     one_third_coordinates: None,
+                    one_seventh_coordinates: None,
+                    six_sevenths_coordinates: None,
                     midpoint_coordinates: &extreme_left_midpoint,
                     two_third_coordinates: None,
                     four_fifth_coordinates: None,
@@ -8673,6 +8715,8 @@ mod tests {
                     one_fifth_coordinates: None,
                     one_sixth_coordinates: None,
                     one_third_coordinates: None,
+                    one_seventh_coordinates: None,
+                    six_sevenths_coordinates: None,
                     midpoint_coordinates: &extreme_right_midpoint,
                     two_third_coordinates: None,
                     four_fifth_coordinates: None,
@@ -8695,6 +8739,8 @@ mod tests {
                     one_fifth_coordinates: None,
                     one_sixth_coordinates: None,
                     one_third_coordinates: None,
+                    one_seventh_coordinates: None,
+                    six_sevenths_coordinates: None,
                     midpoint_coordinates: &moderate_left_midpoint,
                     two_third_coordinates: None,
                     four_fifth_coordinates: None,
@@ -8757,6 +8803,8 @@ mod tests {
                     one_fifth_coordinates: None,
                     one_sixth_coordinates: None,
                     one_third_coordinates: Some(&one_third),
+                    one_seventh_coordinates: None,
+                    six_sevenths_coordinates: None,
                     midpoint_coordinates: &midpoint,
                     two_third_coordinates: Some(&two_third),
                     four_fifth_coordinates: None,
@@ -8828,6 +8876,8 @@ mod tests {
                     one_fifth_coordinates: None,
                     one_sixth_coordinates: Some(&one_sixth),
                     one_third_coordinates: Some(&one_third),
+                    one_seventh_coordinates: None,
+                    six_sevenths_coordinates: None,
                     midpoint_coordinates: &midpoint,
                     two_third_coordinates: Some(&two_third),
                     four_fifth_coordinates: None,
@@ -8890,6 +8940,8 @@ mod tests {
                     one_fifth_coordinates: None,
                     one_sixth_coordinates: None,
                     one_third_coordinates: Some(&one_third),
+                    one_seventh_coordinates: None,
+                    six_sevenths_coordinates: None,
                     midpoint_coordinates: &midpoint,
                     two_third_coordinates: Some(&two_third),
                     four_fifth_coordinates: None,
@@ -8971,6 +9023,8 @@ mod tests {
                     one_fifth_coordinates: Some(&one_fifth),
                     one_sixth_coordinates: Some(&one_sixth),
                     one_third_coordinates: Some(&one_third),
+                    one_seventh_coordinates: None,
+                    six_sevenths_coordinates: None,
                     midpoint_coordinates: &midpoint,
                     two_third_coordinates: Some(&two_third),
                     four_fifth_coordinates: Some(&four_fifth),
@@ -9043,6 +9097,8 @@ mod tests {
                     one_fifth_coordinates: Some(&one_fifth),
                     one_sixth_coordinates: None,
                     one_third_coordinates: Some(&one_third),
+                    one_seventh_coordinates: None,
+                    six_sevenths_coordinates: None,
                     midpoint_coordinates: &midpoint,
                     two_third_coordinates: Some(&two_third),
                     four_fifth_coordinates: Some(&four_fifth),
@@ -9052,6 +9108,69 @@ mod tests {
                 },
             ),
             0.5
+        );
+    }
+
+    #[test]
+    fn packaged_artifact_split_fraction_uses_dense_seventh_point_bias_on_extreme_spans() {
+        let point = |longitude: f64, latitude: f64| {
+            EclipticCoordinates::new(
+                pleiades_backend::Longitude::from_degrees(longitude),
+                pleiades_backend::Latitude::from_degrees(latitude),
+                Some(1.0),
+            )
+        };
+
+        let baseline = point(0.0, 0.0);
+        let one_seventh = point(12.0, 4.8);
+        let six_sevenths = point(12.0, 4.8);
+
+        assert_eq!(
+            packaged_artifact_split_fraction_for_interval(
+                &CelestialBody::Pluto,
+                30_000.0,
+                body_segment_span_limit(&CelestialBody::Pluto),
+                PackagedArtifactSplitCurvature {
+                    start_coordinates: &baseline,
+                    quarter_coordinates: Some(&baseline),
+                    one_fifth_coordinates: None,
+                    one_sixth_coordinates: Some(&baseline),
+                    one_seventh_coordinates: Some(&one_seventh),
+                    six_sevenths_coordinates: Some(&baseline),
+                    one_third_coordinates: Some(&baseline),
+                    midpoint_coordinates: &baseline,
+                    two_third_coordinates: Some(&baseline),
+                    four_fifth_coordinates: Some(&baseline),
+                    five_sixth_coordinates: Some(&baseline),
+                    three_quarter_coordinates: Some(&baseline),
+                    end_coordinates: &baseline,
+                },
+            ),
+            PACKAGED_ARTIFACT_ONE_SEVENTH_SPLIT_FRACTION
+        );
+
+        assert_eq!(
+            packaged_artifact_split_fraction_for_interval(
+                &CelestialBody::Pluto,
+                30_000.0,
+                body_segment_span_limit(&CelestialBody::Pluto),
+                PackagedArtifactSplitCurvature {
+                    start_coordinates: &baseline,
+                    quarter_coordinates: Some(&baseline),
+                    one_fifth_coordinates: None,
+                    one_sixth_coordinates: Some(&baseline),
+                    one_seventh_coordinates: Some(&baseline),
+                    six_sevenths_coordinates: Some(&six_sevenths),
+                    one_third_coordinates: Some(&baseline),
+                    midpoint_coordinates: &baseline,
+                    two_third_coordinates: Some(&baseline),
+                    four_fifth_coordinates: Some(&baseline),
+                    five_sixth_coordinates: Some(&baseline),
+                    three_quarter_coordinates: Some(&baseline),
+                    end_coordinates: &baseline,
+                },
+            ),
+            PACKAGED_ARTIFACT_SIX_SEVENTHS_SPLIT_FRACTION
         );
     }
 
