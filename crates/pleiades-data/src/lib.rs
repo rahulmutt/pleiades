@@ -2846,6 +2846,12 @@ impl PackagedArtifactTargetThresholdState {
     }
 }
 
+impl fmt::Display for PackagedArtifactTargetThresholdState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.label())
+    }
+}
+
 const PACKAGED_ARTIFACT_TARGET_THRESHOLD_STATE: PackagedArtifactTargetThresholdState =
     PackagedArtifactTargetThresholdState::ProductionReady;
 const PACKAGED_ARTIFACT_TARGET_THRESHOLD_SCOPES: &[&str] = &[
@@ -3119,7 +3125,7 @@ impl PackagedArtifactTargetThresholdSummary {
         format!(
             "profile id={}; target thresholds: {}; scopes={}; {}; scope envelopes={}; phase 2 corpus alignment={}",
             self.profile_id,
-            self.state.label(),
+            self.state,
             self.scopes.join(", "),
             self.fit_envelope.summary_line(),
             join_display(&self.scope_envelopes.scope_envelopes),
@@ -10992,6 +10998,23 @@ mod tests {
             }
         );
         assert!(error.to_string().contains("scope_envelopes"));
+    }
+
+    #[test]
+    fn packaged_artifact_target_threshold_summary_validation_rejects_draft_state() {
+        let mut summary = packaged_artifact_target_threshold_summary_details();
+        summary.state = PackagedArtifactTargetThresholdState::Draft;
+
+        let error = summary
+            .validate()
+            .expect_err("draft target-threshold state should be rejected");
+        assert_eq!(
+            error,
+            PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+                field: "state",
+            }
+        );
+        assert!(error.to_string().contains("state"));
     }
 
     #[test]
