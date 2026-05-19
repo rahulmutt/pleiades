@@ -11886,6 +11886,21 @@ fn ensure_production_generation_source_window_summary_matches_current_rendering(
     }
 }
 
+fn ensure_independent_holdout_source_window_summary_matches_current_rendering(
+    independent_holdout_source_window_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if independent_holdout_source_window_summary_text
+        == independent_holdout_snapshot_source_window_summary_for_report()
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "independent-holdout source window summary no longer matches the current independent-holdout source-window posture"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_production_generation_source_summary_matches_current_rendering(
     production_generation_source_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -13886,6 +13901,9 @@ fn verify_release_bundle(
             independent_holdout_source_window_summary_checksum
         )));
     }
+    ensure_independent_holdout_source_window_summary_matches_current_rendering(
+        &independent_holdout_source_window_summary_text,
+    )?;
     if manifest.production_generation_boundary_source_summary_path
         != "production-generation-boundary-source-summary.txt"
     {
@@ -31427,6 +31445,19 @@ version = "0.9.0"
     }
 
     #[test]
+    fn verify_release_bundle_rejects_tampered_independent_holdout_source_window_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-independent-holdout-source-window-semantic",
+            "independent-holdout-source-window-summary.txt",
+            "independent-holdout source window summary checksum (fnv1a-64):",
+            "source-backed samples",
+            "tampered source-backed samples",
+            "independent-holdout source window summary no longer matches the current independent-holdout source-window posture",
+        );
+    }
+
+    #[test]
     fn verify_release_bundle_rejects_tampered_benchmark_corpus_summary_even_with_updated_checksum()
     {
         assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
@@ -31693,6 +31724,21 @@ version = "0.9.0"
         assert!(error
             .to_string()
             .contains("no longer matches the current production-generation source-window posture"));
+    }
+
+    #[test]
+    fn independent_holdout_source_window_summary_validation_rejects_drift() {
+        let summary = independent_holdout_snapshot_source_window_summary_for_report();
+        let drifted_summary =
+            summary.replace("source-backed samples", "tampered source-backed samples");
+
+        let error = ensure_independent_holdout_source_window_summary_matches_current_rendering(
+            &drifted_summary,
+        )
+        .expect_err("drifted independent-holdout source window summary should be rejected");
+        assert!(error
+            .to_string()
+            .contains("no longer matches the current independent-holdout source-window posture"));
     }
 
     #[test]
