@@ -2829,7 +2829,7 @@ pub fn packaged_artifact_normalized_intermediate_summary_for_report() -> String 
 /// Release-state for the packaged-artifact target thresholds.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PackagedArtifactTargetThresholdState {
-    /// Calibrated fit envelope is recorded, but production thresholds are still pending.
+    /// Calibrated fit envelope is recorded, but production thresholds are not yet release-ready.
     Draft,
     /// Production thresholds have been finalized for the current profile.
     ProductionReady,
@@ -2847,7 +2847,7 @@ impl fmt::Display for PackagedArtifactTargetThresholdStateValidationError {
         match self {
             Self::Draft => write!(
                 f,
-                "the packaged-artifact target-threshold state is draft; production thresholds are still pending"
+                "the packaged-artifact target-threshold state is draft; production thresholds are not yet release-ready"
             ),
         }
     }
@@ -2859,7 +2859,9 @@ impl PackagedArtifactTargetThresholdState {
     /// Returns the compact label used in release-facing summaries.
     pub const fn label(self) -> &'static str {
         match self {
-            Self::Draft => "calibrated fit envelope recorded; production thresholds pending",
+            Self::Draft => {
+                "calibrated fit envelope recorded; production thresholds not yet release-ready"
+            }
             Self::ProductionReady => "production thresholds recorded",
         }
     }
@@ -11449,7 +11451,7 @@ mod tests {
         );
         assert!(error
             .to_string()
-            .contains("production thresholds are still pending"));
+            .contains("production thresholds are not yet release-ready"));
     }
 
     #[test]
@@ -11463,7 +11465,7 @@ mod tests {
         );
         assert!(error
             .to_string()
-            .contains("production thresholds are still pending"));
+            .contains("production thresholds are not yet release-ready"));
     }
 
     #[test]
