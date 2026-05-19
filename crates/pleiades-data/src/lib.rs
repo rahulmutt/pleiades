@@ -2831,6 +2831,26 @@ pub enum PackagedArtifactTargetThresholdState {
     ProductionReady,
 }
 
+/// Validation error for a packaged-artifact target-threshold state that is not release-ready.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum PackagedArtifactTargetThresholdStateValidationError {
+    /// The target-threshold state is still draft.
+    Draft,
+}
+
+impl fmt::Display for PackagedArtifactTargetThresholdStateValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Draft => write!(
+                f,
+                "the packaged-artifact target-threshold state is draft; production thresholds are still pending"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for PackagedArtifactTargetThresholdStateValidationError {}
+
 impl PackagedArtifactTargetThresholdState {
     /// Returns the compact label used in release-facing summaries.
     pub const fn label(self) -> &'static str {
@@ -2843,6 +2863,17 @@ impl PackagedArtifactTargetThresholdState {
     /// Returns whether the target thresholds are finalized for production release.
     pub const fn is_production_ready(self) -> bool {
         matches!(self, Self::ProductionReady)
+    }
+
+    /// Returns `Ok(())` when the state is release-ready.
+    pub fn validate_production_ready(
+        self,
+    ) -> Result<(), PackagedArtifactTargetThresholdStateValidationError> {
+        if self.is_production_ready() {
+            Ok(())
+        } else {
+            Err(PackagedArtifactTargetThresholdStateValidationError::Draft)
+        }
     }
 }
 
@@ -3142,6 +3173,9 @@ impl PackagedArtifactTargetThresholdSummary {
                 },
             );
         }
+        self.state.validate_production_ready().map_err(|_| {
+            PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync { field: "state" }
+        })?;
         if self.state != PACKAGED_ARTIFACT_TARGET_THRESHOLD_STATE {
             return Err(
                 PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
@@ -3835,6 +3869,15 @@ impl PackagedArtifactGeneratorParameters {
                 "packaged artifact generator parameters storage summary does not match the current production profile",
             ));
         }
+        self.target_thresholds
+            .state
+            .validate_production_ready()
+            .map_err(|_| {
+                pleiades_compression::CompressionError::new(
+                    pleiades_compression::CompressionErrorKind::InvalidFormat,
+                    "packaged artifact generator parameters target thresholds do not match the current production profile",
+                )
+            })?;
         if self.target_thresholds != current.target_thresholds {
             return Err(pleiades_compression::CompressionError::new(
                 pleiades_compression::CompressionErrorKind::InvalidFormat,
@@ -11110,6 +11153,20 @@ mod tests {
             }
         );
         assert!(error.to_string().contains("scope_envelopes"));
+    }
+
+    #[test]
+    fn packaged_artifact_target_threshold_state_validation_rejects_draft() {
+        let error = PackagedArtifactTargetThresholdState::Draft
+            .validate_production_ready()
+            .expect_err("draft target-threshold state should be rejected");
+        assert_eq!(
+            error,
+            PackagedArtifactTargetThresholdStateValidationError::Draft
+        );
+        assert!(error
+            .to_string()
+            .contains("production thresholds are still pending"));
     }
 
     #[test]
