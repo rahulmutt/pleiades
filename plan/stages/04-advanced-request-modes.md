@@ -23,6 +23,7 @@ Current first-party backends support mean geometric geocentric tropical requests
 - Completed: the zodiac policy summary now also routes through a validated release helper in validation and release-facing report surfaces, so the shared zodiac-posture wording fails closed when report prose drifts.
 - Completed: request-policy validation now keeps apparentness rejection ahead of sidereal routing and unsupported body coverage when those dimensions interact, and the batch helper preserves the same apparentness-first ordering with indexed error messages.
 - Completed: the chart façade's request preflight now preserves invalid-observer precedence before unsupported apparentness in both single-request and batch validation, so malformed observer coordinates still fail closed before backend capability checks in the façade-level path.
+- Completed: the core chart snapshot display now routes its frame-policy line through the validated frame-policy helper, keeping the façade's release-facing chart output aligned with the shared request-policy wording.
 
 ## Completion criteria
 
