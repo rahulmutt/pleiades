@@ -1285,6 +1285,17 @@ pub fn validated_catalog_inventory_summary_for_report(
     current_compatibility_profile().validated_catalog_inventory_summary_line()
 }
 
+/// Returns the house-code alias inventory for report surfaces.
+pub fn house_code_aliases_summary_for_report() -> String {
+    current_compatibility_profile().house_code_aliases_summary_line()
+}
+
+/// Returns the house-code alias inventory after validating the current profile.
+pub fn validated_house_code_aliases_summary_for_report(
+) -> Result<String, CompatibilityProfileValidationError> {
+    current_compatibility_profile().validated_house_code_aliases_summary_line()
+}
+
 /// Returns the release-specific house-system canonical names summary for report surfaces.
 pub fn release_house_system_canonical_names_summary_for_report() -> String {
     current_compatibility_profile().release_house_system_canonical_names_summary_line()

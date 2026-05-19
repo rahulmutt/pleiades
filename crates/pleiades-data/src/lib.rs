@@ -8949,6 +8949,79 @@ mod tests {
     }
 
     #[test]
+    fn moon_residual_search_prefers_smaller_residual_coefficient_footprint_equal_error_candidates()
+    {
+        fn candidate_for_kind(
+            segment: &Segment,
+            kind: ChannelKind,
+        ) -> Option<(Segment, PackagedArtifactSegmentFitError)> {
+            if segment
+                .residual_channels
+                .iter()
+                .any(|channel| channel.kind == kind)
+            {
+                return None;
+            }
+
+            let coefficients = match kind {
+                ChannelKind::Longitude => vec![0.0, 1.0],
+                ChannelKind::Latitude => vec![0.0],
+                ChannelKind::DistanceAu => vec![0.0, 1.0, 2.0],
+                _ => unreachable!("unexpected residual channel kind"),
+            };
+
+            let mut residual_channels = segment.residual_channels.clone();
+            residual_channels.push(PolynomialChannel::new(kind, 0, coefficients));
+
+            let candidate = Segment::with_residual_channels(
+                segment.start,
+                segment.end,
+                segment.channels.clone(),
+                residual_channels,
+            );
+
+            Some((
+                candidate,
+                PackagedArtifactSegmentFitError {
+                    longitude_degrees: 1.0,
+                    latitude_degrees: 1.0,
+                    distance_au: 1.0,
+                },
+            ))
+        }
+
+        let current_segment = Segment::new(
+            Instant::new(JulianDay::from_days(0.0), TimeScale::Tt),
+            Instant::new(JulianDay::from_days(1.0), TimeScale::Tt),
+            vec![PolynomialChannel::new(ChannelKind::Longitude, 0, vec![0.0])],
+        );
+        let current_error = PackagedArtifactSegmentFitError {
+            longitude_degrees: 10.0,
+            latitude_degrees: 10.0,
+            distance_au: 10.0,
+        };
+
+        let (best_segment, best_error) = best_residual_segment(
+            current_segment,
+            current_error,
+            &[
+                ChannelKind::Longitude,
+                ChannelKind::Latitude,
+                ChannelKind::DistanceAu,
+            ],
+            &candidate_for_kind,
+        );
+
+        assert_eq!(best_segment.residual_channels.len(), 1);
+        assert_eq!(
+            best_segment.residual_channels[0].kind,
+            ChannelKind::Latitude
+        );
+        assert_eq!(best_segment.residual_channels[0].coefficients.len(), 1);
+        assert_eq!(best_error.max_delta(), 1.0);
+    }
+
+    #[test]
     fn segment_error_prefers_the_simpler_segment_when_errors_match() {
         let candidate_segment = Segment::with_residual_channels(
             Instant::new(JulianDay::from_days(0.0), TimeScale::Tt),

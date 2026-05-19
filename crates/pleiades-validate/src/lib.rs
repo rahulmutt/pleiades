@@ -55,6 +55,7 @@ use pleiades_core::{
     current_release_profile_identifiers, default_chart_bodies, validate_custom_definition_labels,
     validated_catalog_inventory_summary_for_report as core_validated_catalog_inventory_summary_for_report,
     validated_custom_definition_ayanamsa_labels_summary_for_report,
+    validated_house_code_aliases_summary_for_report as core_validated_house_code_aliases_summary_for_report,
     validated_house_formula_families_summary_for_report,
     validated_latitude_sensitive_house_systems_summary_for_report,
     validated_release_ayanamsa_canonical_names_summary_for_report as core_validated_release_ayanamsa_canonical_names_summary_for_report,
@@ -17913,12 +17914,16 @@ fn validated_catalog_inventory_summary_for_report() -> Result<String, String> {
     core_validated_catalog_inventory_summary_for_report().map_err(|error| error.to_string())
 }
 
-fn validated_house_code_aliases_summary_for_report(
+fn validated_house_code_aliases_summary_for_profile(
     profile: &CompatibilityProfile,
 ) -> Result<String, String> {
     profile
         .validated_house_code_aliases_summary_line()
         .map_err(|error| error.to_string())
+}
+
+fn validated_house_code_aliases_summary_for_report() -> Result<String, String> {
+    core_validated_house_code_aliases_summary_for_report().map_err(|error| error.to_string())
 }
 
 fn validated_release_profile_identifiers_summary_for_report(
@@ -19503,7 +19508,7 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(&selected_asteroid_terminal_boundary_summary_for_report());
     text.push('\n');
     text.push_str("House code aliases: ");
-    match validated_house_code_aliases_summary_for_report(&profile) {
+    match validated_house_code_aliases_summary_for_report() {
         Ok(summary) => text.push_str(&summary),
         Err(error) => return format!("Backend matrix summary unavailable ({error})"),
     }
@@ -19809,7 +19814,7 @@ pub fn render_backend_matrix_report() -> Result<String, EphemerisError> {
     })?;
 
     let house_code_aliases =
-        validated_house_code_aliases_summary_for_report(&profile).map_err(|error| {
+        validated_house_code_aliases_summary_for_report().map_err(|error| {
             EphemerisError::new(
                 EphemerisErrorKind::InvalidRequest,
                 format!("backend capability matrix unavailable ({error})"),
@@ -28601,7 +28606,7 @@ mod tests {
     fn validated_house_code_aliases_summary_for_report_matches_current_profile() {
         let profile = current_compatibility_profile();
         assert_eq!(
-            validated_house_code_aliases_summary_for_report(&profile).unwrap(),
+            validated_house_code_aliases_summary_for_profile(&profile).unwrap(),
             profile.house_code_aliases_summary_line()
         );
     }
@@ -28613,7 +28618,7 @@ mod tests {
             ..current_compatibility_profile()
         };
 
-        let error = validated_house_code_aliases_summary_for_report(&profile)
+        let error = validated_house_code_aliases_summary_for_profile(&profile)
             .expect_err("invalid compatibility profiles should be rejected");
         assert!(error.contains("compatibility profile summary is blank"));
     }
