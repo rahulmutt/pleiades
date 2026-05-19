@@ -10128,6 +10128,8 @@ pub fn render_release_bundle(
         output_dir.join("packaged-lookup-epoch-policy-summary.txt");
     let packaged_artifact_generation_policy_summary_path =
         output_dir.join("packaged-artifact-generation-policy-summary.txt");
+    let packaged_artifact_generation_residual_bodies_summary_path =
+        output_dir.join("packaged-artifact-generation-residual-bodies-summary.txt");
     let packaged_artifact_regeneration_summary_path =
         output_dir.join("packaged-artifact-regeneration-summary.txt");
     let packaged_artifact_generation_manifest_path =
@@ -10319,6 +10321,11 @@ pub fn render_release_bundle(
         packaged_artifact_generation_policy_summary_for_report();
     let packaged_artifact_generation_policy_summary_checksum =
         checksum64(&packaged_artifact_generation_policy_summary_text);
+    let packaged_artifact_generation_residual_bodies_summary_text =
+        validated_packaged_artifact_generation_residual_bodies_summary_for_report()
+            .map_err(ReleaseBundleError::Verification)?;
+    let packaged_artifact_generation_residual_bodies_summary_checksum =
+        checksum64(&packaged_artifact_generation_residual_bodies_summary_text);
     let packaged_artifact_regeneration_summary_text =
         packaged_artifact_regeneration_summary_for_report();
     let packaged_artifact_regeneration_summary_checksum =
@@ -10368,6 +10375,8 @@ packaged-artifact lookup-epoch policy summary: packaged-lookup-epoch-policy-summ
 packaged-artifact lookup-epoch policy summary checksum (fnv1a-64): 0x{packaged_lookup_epoch_policy_summary_checksum:016x}
 packaged-artifact generation policy summary: packaged-artifact-generation-policy-summary.txt
 packaged-artifact generation policy summary checksum (fnv1a-64): 0x{packaged_artifact_generation_policy_summary_checksum:016x}
+packaged-artifact generation residual bodies summary: packaged-artifact-generation-residual-bodies-summary.txt
+packaged-artifact generation residual bodies summary checksum (fnv1a-64): 0x{packaged_artifact_generation_residual_bodies_summary_checksum:016x}
 packaged-artifact regeneration summary: packaged-artifact-regeneration-summary.txt
 packaged-artifact regeneration summary checksum (fnv1a-64): 0x{packaged_artifact_regeneration_summary_checksum:016x}
 packaged-artifact generation manifest: packaged-artifact-generation-manifest.txt
@@ -10691,6 +10700,10 @@ benchmark-corpus summary: benchmark-corpus-summary.txt\nbenchmark-corpus summary
         packaged_artifact_generation_policy_summary_text.as_bytes(),
     )?;
     fs::write(
+        &packaged_artifact_generation_residual_bodies_summary_path,
+        packaged_artifact_generation_residual_bodies_summary_text.as_bytes(),
+    )?;
+    fs::write(
         &packaged_artifact_regeneration_summary_path,
         packaged_artifact_regeneration_summary_text.as_bytes(),
     )?;
@@ -10890,6 +10903,8 @@ struct ParsedReleaseBundleManifest {
     packaged_lookup_epoch_policy_summary_checksum: u64,
     packaged_artifact_generation_policy_summary_path: String,
     packaged_artifact_generation_policy_summary_checksum: u64,
+    packaged_artifact_generation_residual_bodies_summary_path: String,
+    packaged_artifact_generation_residual_bodies_summary_checksum: u64,
     packaged_artifact_regeneration_summary_path: String,
     packaged_artifact_regeneration_summary_checksum: u64,
     packaged_artifact_generation_manifest_path: String,
@@ -11486,6 +11501,14 @@ impl ParsedReleaseBundleManifest {
                 text,
                 "packaged-artifact generation policy summary checksum (fnv1a-64):",
             )?,
+            packaged_artifact_generation_residual_bodies_summary_path: parse_manifest_string(
+                text,
+                "packaged-artifact generation residual bodies summary:",
+            )?,
+            packaged_artifact_generation_residual_bodies_summary_checksum: parse_manifest_checksum(
+                text,
+                "packaged-artifact generation residual bodies summary checksum (fnv1a-64):",
+            )?,
             packaged_artifact_regeneration_summary_path: parse_manifest_string(
                 text,
                 "packaged-artifact regeneration summary:",
@@ -11670,6 +11693,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
         "packaged-artifact-phase2-corpus-alignment-summary.txt",
         "packaged-lookup-epoch-policy-summary.txt",
         "packaged-artifact-generation-policy-summary.txt",
+        "packaged-artifact-generation-residual-bodies-summary.txt",
         "packaged-artifact-regeneration-summary.txt",
         "packaged-artifact-generation-manifest.txt",
         "packaged-artifact-generation-manifest-summary.txt",
@@ -11711,7 +11735,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
 fn ensure_release_bundle_manifest_is_canonical(
     manifest_text: &str,
 ) -> Result<(), ReleaseBundleError> {
-    const EXPECTED_MANIFEST_LINES: [&str; 190] = [
+    const EXPECTED_MANIFEST_LINES: [&str; 192] = [
         "Release bundle manifest",
         "profile:",
         "profile checksum (fnv1a-64):",
@@ -11871,6 +11895,8 @@ fn ensure_release_bundle_manifest_is_canonical(
         "packaged-artifact lookup-epoch policy summary checksum (fnv1a-64):",
         "packaged-artifact generation policy summary:",
         "packaged-artifact generation policy summary checksum (fnv1a-64):",
+        "packaged-artifact generation residual bodies summary:",
+        "packaged-artifact generation residual bodies summary checksum (fnv1a-64):",
         "packaged-artifact regeneration summary:",
         "packaged-artifact regeneration summary checksum (fnv1a-64):",
         "packaged-artifact generation manifest:",
@@ -12477,6 +12503,23 @@ fn ensure_packaged_artifact_generation_policy_summary_matches_current_rendering(
     }
 }
 
+fn ensure_packaged_artifact_generation_residual_bodies_summary_matches_current_rendering(
+    packaged_artifact_generation_residual_bodies_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if packaged_artifact_generation_residual_bodies_summary_text
+        == validated_packaged_artifact_generation_residual_bodies_summary_for_report()
+            .map_err(ReleaseBundleError::Verification)?
+            .as_str()
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "packaged-artifact generation residual bodies summary no longer matches the current packaged-artifact residual-body posture"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_packaged_artifact_regeneration_summary_matches_current_rendering(
     packaged_artifact_regeneration_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -12998,6 +13041,8 @@ fn verify_release_bundle(
         output_dir.join("packaged-lookup-epoch-policy-summary.txt");
     let packaged_artifact_generation_policy_summary_path =
         output_dir.join("packaged-artifact-generation-policy-summary.txt");
+    let packaged_artifact_generation_residual_bodies_summary_path =
+        output_dir.join("packaged-artifact-generation-residual-bodies-summary.txt");
     let packaged_artifact_regeneration_summary_path =
         output_dir.join("packaged-artifact-regeneration-summary.txt");
     let packaged_artifact_generation_manifest_path =
@@ -13538,6 +13583,15 @@ fn verify_release_bundle(
     )?;
     let packaged_artifact_generation_policy_summary_checksum =
         checksum64(&packaged_artifact_generation_policy_summary_text);
+    let packaged_artifact_generation_residual_bodies_summary_text = read_required_bundle_text(
+        &packaged_artifact_generation_residual_bodies_summary_path,
+        "packaged-artifact generation residual bodies summary",
+    )?;
+    ensure_packaged_artifact_generation_residual_bodies_summary_matches_current_rendering(
+        &packaged_artifact_generation_residual_bodies_summary_text,
+    )?;
+    let packaged_artifact_generation_residual_bodies_summary_checksum =
+        checksum64(&packaged_artifact_generation_residual_bodies_summary_text);
     let packaged_artifact_regeneration_summary_text = read_required_bundle_text(
         &packaged_artifact_regeneration_summary_path,
         "packaged-artifact regeneration summary",
@@ -13952,6 +14006,14 @@ fn verify_release_bundle(
         return Err(ReleaseBundleError::Verification(format!(
             "unexpected packaged-artifact generation policy summary file entry: {}",
             manifest.packaged_artifact_generation_policy_summary_path
+        )));
+    }
+    if manifest.packaged_artifact_generation_residual_bodies_summary_path
+        != "packaged-artifact-generation-residual-bodies-summary.txt"
+    {
+        return Err(ReleaseBundleError::Verification(format!(
+            "unexpected packaged-artifact generation residual bodies summary file entry: {}",
+            manifest.packaged_artifact_generation_residual_bodies_summary_path
         )));
     }
     if manifest.packaged_artifact_generation_manifest_path
@@ -15015,6 +15077,15 @@ fn verify_release_bundle(
             "packaged-artifact generation policy summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
             manifest.packaged_artifact_generation_policy_summary_checksum,
             packaged_artifact_generation_policy_summary_checksum
+        )));
+    }
+    if manifest.packaged_artifact_generation_residual_bodies_summary_checksum
+        != packaged_artifact_generation_residual_bodies_summary_checksum
+    {
+        return Err(ReleaseBundleError::Verification(format!(
+            "packaged-artifact generation residual bodies summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
+            manifest.packaged_artifact_generation_residual_bodies_summary_checksum,
+            packaged_artifact_generation_residual_bodies_summary_checksum
         )));
     }
     if manifest.packaged_artifact_regeneration_summary_path
@@ -31732,6 +31803,19 @@ version = "0.9.0"
         assert!(error.contains("packaged-artifact generation policy summary no longer matches"));
 
         let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_packaged_artifact_generation_residual_bodies_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-packaged-artifact-generation-residual-bodies-semantic",
+            "packaged-artifact-generation-residual-bodies-summary.txt",
+            "packaged-artifact generation residual bodies summary checksum (fnv1a-64):",
+            "residual bodies: ",
+            "residual bodies (drifted): ",
+            "packaged-artifact generation residual bodies summary no longer matches the current packaged-artifact residual-body posture",
+        );
     }
 
     #[test]
