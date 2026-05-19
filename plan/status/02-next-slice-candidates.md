@@ -48,8 +48,8 @@ This file lists focused implementation slices for the current phase ladder. Comp
 
 ### 1. Improve fitting/reconstruction strategy
 
-- Evaluate denser source windows, body-specific cadence, Chebyshev segments, higher-order fits, residual tables, or channel-specific reconstruction.
-- The current generator now compares span-limited polynomial candidates against their fallback reconstruction before accepting them and can already attach residual-correction channels across the bundled body set when that improves the measured fit; further improvement can still come from denser source windows, residual tables, or channel-specific reconstruction.
+- Evaluate denser source windows, body-specific cadence, Chebyshev segments, residual tables, or any remaining channel-specific reconstruction gaps.
+- The current generator now compares span-limited polynomial candidates against their fallback reconstruction before accepting them and can already attach residual-correction channels across the bundled body set when that improves the measured fit; further improvement can still come from denser source windows or residual tables.
 - Keep artifact size and decode benchmarks current, but do not trade correctness away for size.
 
 ### 2. Keep the finalized threshold policy aligned with Phase 2 corpus evidence

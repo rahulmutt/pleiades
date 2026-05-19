@@ -1414,7 +1414,11 @@ fn distance_channel_from_four_point_control_points(
     )
 }
 
-fn distance_channel_from_fit_control_points(samples: &[(f64, f64)]) -> Option<PolynomialChannel> {
+fn channel_from_fit_control_points(
+    kind: ChannelKind,
+    scale_exponent: u8,
+    samples: &[(f64, f64)],
+) -> Option<PolynomialChannel> {
     const TARGET_FRACTIONS: [f64; 4] = [0.0, 1.0 / 3.0, 2.0 / 3.0, 1.0];
 
     if samples.len() < TARGET_FRACTIONS.len() {
@@ -1446,7 +1450,16 @@ fn distance_channel_from_fit_control_points(samples: &[(f64, f64)]) -> Option<Po
         selected_samples.push(samples[index]);
     }
 
-    polynomial_channel_from_samples(ChannelKind::DistanceAu, 10, &selected_samples)
+    polynomial_channel_from_samples(kind, scale_exponent, &selected_samples)
+}
+
+fn channel_from_fit_samples_with_control_points(
+    kind: ChannelKind,
+    scale_exponent: u8,
+    samples: &[(f64, f64)],
+) -> Option<PolynomialChannel> {
+    polynomial_channel_from_samples(kind, scale_exponent, samples)
+        .or_else(|| channel_from_fit_control_points(kind, scale_exponent, samples))
 }
 
 fn distance_channel_from_fit_samples(
@@ -1455,8 +1468,7 @@ fn distance_channel_from_fit_samples(
     midpoint: Option<f64>,
     end: f64,
 ) -> PolynomialChannel {
-    polynomial_channel_from_samples(ChannelKind::DistanceAu, 10, samples)
-        .or_else(|| distance_channel_from_fit_control_points(samples))
+    channel_from_fit_samples_with_control_points(ChannelKind::DistanceAu, 10, samples)
         .unwrap_or_else(|| distance_channel_from_samples(start, midpoint, end))
 }
 
@@ -6869,23 +6881,26 @@ where
         .zip(fit_sample_coordinates.iter())
         .collect::<Vec<_>>();
 
+    let longitude_fit_samples = fit_samples
+        .iter()
+        .enumerate()
+        .map(|(index, (fraction, _))| (*fraction, longitude_samples[index]))
+        .collect::<Vec<_>>();
+    let latitude_fit_samples = fit_samples
+        .iter()
+        .map(|(fraction, coordinates)| (*fraction, coordinates.latitude.degrees()))
+        .collect::<Vec<_>>();
+
     let (Some(longitude_channel), Some(latitude_channel)) = (
-        polynomial_channel_from_samples(
+        channel_from_fit_samples_with_control_points(
             ChannelKind::Longitude,
             9,
-            &fit_samples
-                .iter()
-                .enumerate()
-                .map(|(index, (fraction, _))| (*fraction, longitude_samples[index]))
-                .collect::<Vec<_>>(),
+            &longitude_fit_samples,
         ),
-        polynomial_channel_from_samples(
+        channel_from_fit_samples_with_control_points(
             ChannelKind::Latitude,
             9,
-            &fit_samples
-                .iter()
-                .map(|(fraction, coordinates)| (*fraction, coordinates.latitude.degrees()))
-                .collect::<Vec<_>>(),
+            &latitude_fit_samples,
         ),
     ) else {
         return None;
@@ -7755,6 +7770,26 @@ mod tests {
         let expected_coefficients = [1.0, 2.0, -3.0, 4.0];
         for (actual, expected) in channel.coefficients.iter().zip(expected_coefficients) {
             assert!((actual - expected).abs() < 1e-9);
+        }
+    }
+
+    #[test]
+    fn channel_from_fit_samples_with_control_points_falls_back_when_higher_order_fit_overflows() {
+        let samples = [
+            (0.0, 0.0),
+            (0.2, 1.0e20),
+            (0.4, 0.0),
+            (0.6, 0.0),
+            (0.8, 1.0e20),
+            (1.0, 0.0),
+        ];
+        let channel =
+            channel_from_fit_samples_with_control_points(ChannelKind::Latitude, 0, &samples)
+                .expect("control-point fallback should succeed");
+
+        assert_eq!(channel.coefficients.len(), 4);
+        for coefficient in &channel.coefficients {
+            assert!(coefficient.abs() < 1e-12);
         }
     }
 
