@@ -12576,6 +12576,19 @@ fn ensure_request_surface_summary_matches_current_rendering(
     }
 }
 
+fn ensure_compatibility_caveats_summary_matches_current_rendering(
+    compatibility_caveats_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if compatibility_caveats_summary_text == render_compatibility_caveats_summary_text() {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "compatibility caveats summary no longer matches the current compatibility-caveats posture"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_native_sidereal_policy_summary_matches_current_rendering(
     native_sidereal_policy_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -13191,6 +13204,9 @@ fn verify_release_bundle(
     let compatibility_caveats_summary_text = read_required_bundle_text(
         &compatibility_caveats_summary_path,
         "compatibility caveats summary",
+    )?;
+    ensure_compatibility_caveats_summary_matches_current_rendering(
+        &compatibility_caveats_summary_text,
     )?;
     let workspace_audit_summary_text =
         read_required_bundle_text(&workspace_audit_summary_path, "workspace audit summary")?;
@@ -31746,6 +31762,19 @@ version = "0.9.0"
             "Release summary",
             "Tampered release summary",
             "release summary no longer matches the current release summary posture",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_semantically_tampered_compatibility_caveats_summary_file_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-semantic-compatibility-caveats-summary",
+            "compatibility-caveats-summary.txt",
+            "compatibility caveats summary checksum (fnv1a-64):",
+            "Compatibility caveats summary",
+            "Tampered compatibility caveats summary",
+            "compatibility caveats summary no longer matches the current compatibility-caveats posture",
         );
     }
 
