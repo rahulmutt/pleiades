@@ -12186,6 +12186,19 @@ fn ensure_production_generation_boundary_request_corpus_summary_matches_current_
     }
 }
 
+fn ensure_reference_holdout_overlap_summary_matches_current_rendering(
+    reference_holdout_overlap_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if reference_holdout_overlap_summary_text == reference_holdout_overlap_summary_for_report() {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "reference/hold-out overlap summary no longer matches the current reference/hold-out overlap posture"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_reference_snapshot_bridge_day_summary_matches_current_rendering(
     reference_snapshot_bridge_day_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -13147,6 +13160,9 @@ fn verify_release_bundle(
     let reference_holdout_overlap_summary_text = read_required_bundle_text(
         &reference_holdout_overlap_summary_path,
         "reference-holdout overlap summary",
+    )?;
+    ensure_reference_holdout_overlap_summary_matches_current_rendering(
+        &reference_holdout_overlap_summary_text,
     )?;
     let reference_snapshot_bridge_day_summary_text = read_required_bundle_text(
         &reference_snapshot_bridge_day_summary_path,
@@ -32076,6 +32092,19 @@ version = "0.9.0"
         assert!(error.contains("source-fit and hold-out sync summary no longer matches"));
 
         let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_reference_holdout_overlap_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-reference-holdout-overlap-semantic",
+            "reference-holdout-overlap-summary.txt",
+            "reference-holdout overlap summary checksum (fnv1a-64):",
+            "Reference/hold-out overlap:",
+            "Reference/hold-out overlap (drifted):",
+            "reference/hold-out overlap summary no longer matches the current reference/hold-out overlap posture",
+        );
     }
 
     #[test]
