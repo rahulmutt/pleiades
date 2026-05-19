@@ -12782,6 +12782,19 @@ fn ensure_request_policy_summary_matches_current_rendering(
     }
 }
 
+fn ensure_request_semantics_summary_matches_current_rendering(
+    request_semantics_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if request_semantics_summary_text == render_request_semantics_summary_text() {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "request-semantics summary no longer matches the current request-semantics posture"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_request_surface_summary_matches_current_rendering(
     request_surface_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -14746,12 +14759,14 @@ fn verify_release_bundle(
             manifest.request_policy_summary_checksum, request_policy_summary_checksum
         )));
     }
+    ensure_request_policy_summary_matches_current_rendering(&request_policy_summary_text)?;
     if manifest.request_semantics_summary_checksum != request_semantics_summary_checksum {
         return Err(ReleaseBundleError::Verification(format!(
             "request-semantics summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
             manifest.request_semantics_summary_checksum, request_semantics_summary_checksum
         )));
     }
+    ensure_request_semantics_summary_matches_current_rendering(&request_semantics_summary_text)?;
     if manifest.time_scale_policy_summary_checksum != time_scale_policy_summary_checksum {
         if manifest.utc_convenience_policy_summary_checksum
             != utc_convenience_policy_summary_checksum
@@ -23082,6 +23097,19 @@ mod tests {
         assert!(error
             .to_string()
             .contains("request policy summary no longer matches"));
+    }
+
+    #[test]
+    fn request_semantics_summary_semantic_check_rejects_stale_rendering() {
+        let mut stale = render_request_semantics_summary_text();
+        stale.push_str(" stale");
+
+        let error = ensure_request_semantics_summary_matches_current_rendering(&stale).expect_err(
+            "stale request-semantics summary should fail the release-bundle semantic check",
+        );
+        assert!(error
+            .to_string()
+            .contains("request-semantics summary no longer matches"));
     }
 
     #[test]
