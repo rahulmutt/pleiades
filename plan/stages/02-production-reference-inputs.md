@@ -27,7 +27,7 @@ Provide documented public source inputs broad enough for backend validation, rel
 - Expand coverage only where it supports release claims or artifact fitting.
 - Keep reference, hold-out, boundary-overlay, fixture-exactness, and provenance-only evidence classes separate.
 - Completed: body-class tolerance reports and empirical error envelopes for release-claimed backend paths now surface through the validation report and a standalone comparison-body-class-error-envelope CLI summary, so the empirical envelope evidence has both a detailed report path and a compact release-facing summary, and the release bundle now stages and verifies that summary with a live-renderer cross-check.
-- Completed: the reference snapshot exact J2000 evidence summary now also routes through a validated helper in the release-facing report surfaces, keeping the fixture-exactness line fail-closed alongside the other reference provenance summaries.
+- Completed: the reference snapshot exact J2000 evidence summary now also routes through a validated helper in the release-facing report surfaces and now stages and verifies in the release bundle, keeping the fixture-exactness line fail-closed alongside the other reference provenance summaries.
 - Preserve small golden fixtures for fast regression tests even if broader ingestion lands.
 - Ensure all ingestion/build steps remain pure Rust and deterministic.
 

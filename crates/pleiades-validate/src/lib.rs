@@ -8556,6 +8556,8 @@ fn render_release_notes_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_bridge_day_summary_for_report());
     text.push('\n');
+    text.push_str(&reference_snapshot_exact_j2000_evidence_summary_for_report());
+    text.push('\n');
     text.push_str(&reference_snapshot_2451914_major_body_pre_bridge_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_2451914_bridge_day_summary_for_report());
@@ -8715,6 +8717,8 @@ fn render_release_notes_summary_text() -> String {
     text.push_str(&reference_snapshot_2451915_major_body_bridge_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_bridge_day_summary_for_report());
+    text.push('\n');
+    text.push_str(&reference_snapshot_exact_j2000_evidence_summary_for_report());
     text.push('\n');
     text.push_str(&reference_snapshot_2451914_major_body_pre_bridge_summary_for_report());
     text.push('\n');
@@ -11509,6 +11513,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
         "comparison-corpus-guard-summary.txt",
         "reference-holdout-overlap-summary.txt",
         "reference-snapshot-bridge-day-summary.txt",
+        "reference-snapshot-exact-j2000-evidence-summary.txt",
         "reference-snapshot-source-summary.txt",
         "reference-asteroid-source-window-summary.txt",
         "independent-holdout-source-window-summary.txt",
@@ -11601,7 +11606,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
 fn ensure_release_bundle_manifest_is_canonical(
     manifest_text: &str,
 ) -> Result<(), ReleaseBundleError> {
-    const EXPECTED_MANIFEST_LINES: [&str; 182] = [
+    const EXPECTED_MANIFEST_LINES: [&str; 184] = [
         "Release bundle manifest",
         "profile:",
         "profile checksum (fnv1a-64):",
@@ -11653,6 +11658,8 @@ fn ensure_release_bundle_manifest_is_canonical(
         "reference-holdout overlap summary checksum (fnv1a-64):",
         "reference snapshot bridge day summary:",
         "reference snapshot bridge day summary checksum (fnv1a-64):",
+        "reference snapshot exact J2000 evidence summary:",
+        "reference snapshot exact J2000 evidence summary checksum (fnv1a-64):",
         "reference snapshot source summary:",
         "reference snapshot source summary checksum (fnv1a-64):",
         "reference asteroid source window summary:",
@@ -12105,6 +12112,21 @@ fn ensure_reference_snapshot_bridge_day_summary_matches_current_rendering(
     } else {
         Err(ReleaseBundleError::Verification(
             "reference snapshot bridge day summary no longer matches the current reference snapshot bridge day posture"
+                .to_string(),
+        ))
+    }
+}
+
+fn ensure_reference_snapshot_exact_j2000_evidence_summary_matches_current_rendering(
+    reference_snapshot_exact_j2000_evidence_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if reference_snapshot_exact_j2000_evidence_summary_text
+        == reference_snapshot_exact_j2000_evidence_summary_for_report()
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "reference snapshot exact J2000 evidence summary no longer matches the current reference snapshot exact J2000 evidence posture"
                 .to_string(),
         ))
     }
@@ -28958,6 +28980,9 @@ version = "0.9.0"
             .join("reference-snapshot-source-summary.txt")
             .exists());
         assert!(bundle_dir
+            .join("reference-snapshot-exact-j2000-evidence-summary.txt")
+            .exists());
+        assert!(bundle_dir
             .join("reference-asteroid-source-window-summary.txt")
             .exists());
         assert!(bundle_dir
@@ -31724,6 +31749,19 @@ version = "0.9.0"
             "2451914.0",
             "2451914.1",
             "reference snapshot bridge day summary no longer matches the current reference snapshot bridge day posture",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_reference_snapshot_exact_j2000_evidence_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-reference-snapshot-exact-j2000-semantic",
+            "reference-snapshot-exact-j2000-evidence-summary.txt",
+            "reference snapshot exact J2000 evidence summary checksum (fnv1a-64):",
+            "Reference snapshot exact J2000 evidence: 16 exact J2000 samples at JD 2451545.0",
+            "Reference snapshot exact J2000 evidence: 16 exact J2000 samples at JD 2451545.1",
+            "reference snapshot exact J2000 evidence summary no longer matches the current reference snapshot exact J2000 evidence posture",
         );
     }
 
