@@ -4960,7 +4960,7 @@ mod tests {
         assert_eq!(
             packaged_artifact_body_class_span_caps,
             format!(
-                "Packaged-artifact body-class span caps: {}",
+                "Packaged-artifact {}",
                 pleiades_data::packaged_artifact_body_class_span_cap_summary_for_report()
             )
         );
