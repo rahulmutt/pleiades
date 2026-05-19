@@ -30886,6 +30886,19 @@ version = "0.9.0"
     }
 
     #[test]
+    fn verify_release_bundle_rejects_missing_packaged_artifact_normalized_intermediate_summary_entry(
+    ) {
+        assert_release_bundle_rejects_missing_manifest_entry(
+            "pleiades-release-bundle-missing-packaged-artifact-normalized-intermediate-summary",
+            "packaged-artifact normalized intermediate summary:",
+            &[
+                "missing manifest entry: packaged-artifact normalized intermediate summary:",
+                "missing packaged-artifact normalized intermediate summary entry",
+            ],
+        );
+    }
+
+    #[test]
     fn verify_release_bundle_rejects_missing_rustc_version_entry() {
         assert_release_bundle_rejects_missing_manifest_entry(
             "pleiades-release-bundle-missing-rustc",
