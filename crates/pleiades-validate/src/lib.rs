@@ -13392,6 +13392,9 @@ fn verify_release_bundle(
         &packaged_artifact_storage_summary_path,
         "packaged-artifact storage summary",
     )?;
+    ensure_packaged_artifact_storage_summary_matches_current_rendering(
+        &packaged_artifact_storage_summary_text,
+    )?;
     let packaged_artifact_storage_summary_checksum =
         checksum64(&packaged_artifact_storage_summary_text);
     let packaged_artifact_production_profile_summary_text = read_required_bundle_text(
@@ -18295,6 +18298,21 @@ fn validated_packaged_artifact_storage_summary_for_report() -> String {
     match summary.validate() {
         Ok(()) => summary.to_string(),
         Err(error) => format!("Packaged-artifact storage/reconstruction: unavailable ({error})"),
+    }
+}
+
+fn ensure_packaged_artifact_storage_summary_matches_current_rendering(
+    packaged_artifact_storage_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if packaged_artifact_storage_summary_text
+        == validated_packaged_artifact_storage_summary_for_report()
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "packaged-artifact storage summary no longer matches the current packaged-artifact storage posture"
+                .to_string(),
+        ))
     }
 }
 
@@ -31385,6 +31403,19 @@ version = "0.9.0"
             "fit threshold violations: 0; details: none",
             "fit threshold violations: 1; details: tampered",
             "packaged-artifact fit threshold violations summary no longer matches the current packaged-artifact fit threshold violations posture",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_packaged_artifact_storage_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-storage-semantic",
+            "packaged-artifact-storage-summary.txt",
+            "packaged-artifact storage summary checksum (fnv1a-64):",
+            "reconstructed at runtime",
+            "reconstructed at validation time",
+            "packaged-artifact storage summary no longer matches the current packaged-artifact storage posture",
         );
     }
 
