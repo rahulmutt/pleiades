@@ -25821,6 +25821,19 @@ mod tests {
     }
 
     #[test]
+    fn verify_release_bundle_rejects_tampered_release_house_validation_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-release-house-validation-semantic",
+            "release-house-validation-summary.txt",
+            "release-house-validation summary checksum (fnv1a-64):",
+            "House validation corpus:",
+            "Tampered house validation corpus:",
+            "release house validation summary no longer matches the current release-house-validation posture",
+        );
+    }
+
+    #[test]
     fn house_formula_families_summary_command_renders_the_family_list() {
         let rendered = render_cli(&["house-formula-families-summary"])
             .expect("house formula families summary should render");
