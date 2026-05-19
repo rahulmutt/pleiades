@@ -8563,7 +8563,12 @@ fn render_release_notes_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_2451917_major_body_boundary_summary_for_report());
     text.push('\n');
-    text.push_str(&reference_snapshot_bridge_day_summary_for_report());
+    text.push_str(
+        &match pleiades_jpl::validated_reference_snapshot_bridge_day_summary_for_report() {
+            Ok(summary) => summary,
+            Err(error) => format!("Reference snapshot bridge day unavailable ({error})"),
+        },
+    );
     text.push('\n');
     text.push_str(&reference_snapshot_exact_j2000_evidence_summary_for_report());
     text.push('\n');
@@ -8725,7 +8730,12 @@ fn render_release_notes_summary_text() -> String {
     text.push('\n');
     text.push_str(&reference_snapshot_2451915_major_body_bridge_summary_for_report());
     text.push('\n');
-    text.push_str(&reference_snapshot_bridge_day_summary_for_report());
+    text.push_str(
+        &match pleiades_jpl::validated_reference_snapshot_bridge_day_summary_for_report() {
+            Ok(summary) => summary,
+            Err(error) => format!("Reference snapshot bridge day unavailable ({error})"),
+        },
+    );
     text.push('\n');
     text.push_str(&reference_snapshot_exact_j2000_evidence_summary_for_report());
     text.push('\n');
@@ -10160,7 +10170,8 @@ pub fn render_release_bundle(
     let reference_holdout_overlap_summary_checksum =
         checksum64(&reference_holdout_overlap_summary_text);
     let reference_snapshot_bridge_day_summary_text =
-        reference_snapshot_bridge_day_summary_for_report();
+        pleiades_jpl::validated_reference_snapshot_bridge_day_summary_for_report()
+            .map_err(|error| ReleaseBundleError::Verification(error.to_string()))?;
     let reference_snapshot_bridge_day_summary_checksum =
         checksum64(&reference_snapshot_bridge_day_summary_text);
     let reference_snapshot_exact_j2000_evidence_summary_text =

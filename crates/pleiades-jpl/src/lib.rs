@@ -18507,6 +18507,15 @@ pub fn reference_snapshot_bridge_day_summary_for_report() -> String {
     }
 }
 
+/// Returns the validated release-facing bridge day summary string.
+pub fn validated_reference_snapshot_bridge_day_summary_for_report() -> Result<String, String> {
+    let summary = reference_snapshot_bridge_day_summary()
+        .ok_or_else(|| "reference snapshot bridge day unavailable".to_string())?;
+    summary
+        .validated_summary_line()
+        .map_err(|error| error.to_string())
+}
+
 /// Returns the compact typed summary for the 2451914 bridge-day evidence.
 pub fn reference_snapshot_2451914_bridge_day_summary() -> Option<ReferenceSnapshotBridgeDaySummary>
 {
@@ -25209,6 +25218,10 @@ mod tests {
         assert_eq!(
             reference_snapshot_bridge_day_summary_for_report(),
             summary.summary_line()
+        );
+        assert_eq!(
+            validated_reference_snapshot_bridge_day_summary_for_report(),
+            Ok(summary.summary_line())
         );
         assert_eq!(
             reference_snapshot_2451914_bridge_day_summary(),
