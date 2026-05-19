@@ -412,6 +412,11 @@ impl ArtifactProfile {
         self.summary_line()
     }
 
+    /// Returns how motion output is represented by this profile.
+    pub fn motion_output_support(&self) -> ArtifactOutputSupport {
+        self.speed_policy.motion_output_support()
+    }
+
     /// Returns a compact one-line summary of the stored, derived, approximated,
     /// unsupported, and speed-policy capabilities encoded by this profile.
     pub fn summary_line(&self) -> String {
@@ -489,7 +494,7 @@ impl ArtifactProfile {
     /// Returns how a high-level output is represented by this profile.
     pub fn output_support(&self, output: ArtifactOutput) -> ArtifactOutputSupport {
         if output == ArtifactOutput::Motion {
-            self.speed_policy.motion_output_support()
+            self.motion_output_support()
         } else if self.derived_outputs.contains(&output) {
             ArtifactOutputSupport::Derived
         } else if self.unsupported_outputs.contains(&output) {
@@ -1542,7 +1547,7 @@ fn validate_coordinate_output_policy(profile: &ArtifactProfile) -> Result<(), Co
 }
 
 fn validate_motion_policy(profile: &ArtifactProfile) -> Result<(), CompressionError> {
-    match profile.speed_policy.motion_output_support() {
+    match profile.motion_output_support() {
         ArtifactOutputSupport::Stored => {
             if profile.derived_outputs.contains(&ArtifactOutput::Motion) {
                 return Err(CompressionError::new(
@@ -2392,6 +2397,10 @@ mod tests {
             profile.speed_policy.motion_output_support(),
             ArtifactOutputSupport::Unsupported
         );
+        assert_eq!(
+            profile.motion_output_support(),
+            ArtifactOutputSupport::Unsupported
+        );
         assert!(profile.supports_output(ArtifactOutput::EclipticCoordinates));
         assert!(profile.supports_output(ArtifactOutput::EquatorialCoordinates));
         assert!(!profile.is_unsupported_output(ArtifactOutput::EquatorialCoordinates));
@@ -2442,6 +2451,10 @@ mod tests {
         );
         assert_eq!(
             numerical_difference_profile.output_support(ArtifactOutput::Motion),
+            ArtifactOutputSupport::Approximated
+        );
+        assert_eq!(
+            numerical_difference_profile.motion_output_support(),
             ArtifactOutputSupport::Approximated
         );
         assert!(numerical_difference_profile.supports_output(ArtifactOutput::Motion));
