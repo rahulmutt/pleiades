@@ -3388,6 +3388,14 @@ pub fn production_generation_source_summary_for_report() -> String {
     }
 }
 
+/// Returns the validated release-facing production-generation source summary string.
+pub fn validated_production_generation_source_summary_for_report() -> Result<String, String> {
+    let summary = production_generation_source_summary();
+    summary
+        .validated_summary_line()
+        .map_err(|error| error.to_string())
+}
+
 fn strip_report_prefix<'a>(text: &'a str, prefix: &str) -> &'a str {
     text.strip_prefix(prefix).unwrap_or(text)
 }
@@ -30623,6 +30631,15 @@ mod tests {
         assert!(report.contains("reference and hold-out rows remain separate"));
         assert!(report.contains("columns=epoch_jd, body, x_km, y_km, z_km"));
         assert!(report.contains("redistribution posture=repository-checked regression fixtures, not a broad public corpus"));
+    }
+
+    #[test]
+    fn production_generation_source_summary_validated_report_matches_current_rendering() {
+        let report = production_generation_source_summary_for_report();
+        let validated = validated_production_generation_source_summary_for_report()
+            .expect("validated production generation source summary should exist");
+
+        assert_eq!(validated, report);
     }
 
     #[test]

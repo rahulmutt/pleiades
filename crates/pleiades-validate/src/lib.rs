@@ -224,7 +224,8 @@ use pleiades_jpl::{
     selected_asteroid_terminal_boundary_summary_for_report,
     validated_comparison_snapshot_batch_parity_summary_for_report,
     validated_comparison_snapshot_body_class_coverage_summary_for_report,
-    validated_comparison_snapshot_source_summary_for_report, JplSnapshotBackend,
+    validated_comparison_snapshot_source_summary_for_report,
+    validated_production_generation_source_summary_for_report, JplSnapshotBackend,
 };
 use pleiades_vsop87::{
     body_source_profiles, canonical_epoch_equatorial_body_class_evidence_summary_for_report,
@@ -5319,11 +5320,11 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("production-generation-source-summary") => {
             ensure_no_extra_args(&args[1..], "production-generation-source-summary")?;
-            Ok(production_generation_source_summary_for_report())
+            validated_production_generation_source_summary_for_report()
         }
         Some("production-generation-source") => {
             ensure_no_extra_args(&args[1..], "production-generation-source")?;
-            Ok(production_generation_source_summary_for_report())
+            validated_production_generation_source_summary_for_report()
         }
         Some("packaged-artifact-normalized-intermediate-summary")
         | Some("packaged-artifact-normalized-intermediate") => {
@@ -10060,6 +10061,9 @@ pub fn render_release_bundle(
         production_generation_source_summary_for_report();
     let production_generation_source_summary_checksum =
         checksum64(&production_generation_source_summary_text);
+    ensure_production_generation_source_summary_matches_current_rendering(
+        &production_generation_source_summary_text,
+    )?;
     let production_generation_source_window_summary_text =
         production_generation_snapshot_window_summary_for_report();
     let production_generation_source_window_summary_checksum =
@@ -11717,6 +11721,22 @@ fn ensure_production_generation_source_window_summary_matches_current_rendering(
     }
 }
 
+fn ensure_production_generation_source_summary_matches_current_rendering(
+    production_generation_source_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if production_generation_source_summary_text
+        == pleiades_jpl::validated_production_generation_source_summary_for_report()
+            .map_err(ReleaseBundleError::Verification)?
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "production generation source summary no longer matches the current production-generation source posture"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_production_generation_boundary_source_summary_matches_current_rendering(
     production_generation_boundary_source_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -13165,6 +13185,9 @@ fn verify_release_bundle(
         production_generation_source_summary_for_report();
     let production_generation_source_summary_checksum =
         checksum64(&production_generation_source_summary_text);
+    ensure_production_generation_source_summary_matches_current_rendering(
+        &production_generation_source_summary_text,
+    )?;
     let production_generation_source_window_summary_text =
         production_generation_snapshot_window_summary_for_report();
     let production_generation_source_window_summary_checksum =
@@ -30926,6 +30949,19 @@ version = "0.9.0"
             "reference source=Reference snapshot source:",
             "reference source=Drifted snapshot source:",
             "packaged-artifact phase-2 corpus alignment summary no longer matches",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_production_generation_source_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-production-generation-source-semantic",
+            "production-generation-source-summary.txt",
+            "production generation source summary checksum (fnv1a-64):",
+            "generation command=generate-packaged-artifact --check",
+            "generation command=generate-packaged-artifact --check (drifted)",
+            "production generation source summary no longer matches",
         );
     }
 
