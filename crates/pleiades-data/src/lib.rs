@@ -67,7 +67,7 @@ use pleiades_jpl::{
 const PACKAGE_NAME: &str = "pleiades-data";
 const ARTIFACT_LABEL: &str = "stage-5 packaged-data draft";
 const ARTIFACT_PROFILE_ID: &str = "pleiades-packaged-artifact-profile/stage-5-draft";
-const PACKAGED_ARTIFACT_GENERATION_STRATEGY_TAIL: &str = "with 8-point and 10-point Chebyshev-Lobatto baseline candidates before the dense body-specific ladders and 12-point and 14-point candidates for inner and outer planets before fallback, with 10-point, 12-point, 14-point, 16-point, 18-point, and 20-point options for luminaries, Pluto, selected asteroids, and custom bodies, and the best dense candidate wins before fallback, with equal-error, equal-sample-count ties preferring the simpler segment, residual correction channels on high-curvature spans when they improve the fit, residual-channel combinations and remaining channel-order permutations when composing those channels, preferring the smaller residual footprint on equal-error ties, higher-order reconstruction from fit samples when it quantizes cleanly, shared four-point control-point fallback across longitude, latitude, and distance channels when the higher-order fit does not quantize cleanly, quarter-biased splits on very long dense-body spans when quarter-point curvature is strongly asymmetric, a dense quarter-point control-point lattice before exact-third fallback on irregular spans, one-sixth and five-sixth probe fractions on very long dense-body spans when quarter-point curvature stays balanced, one-third and two-thirds probe fractions on long dense-body spans when quarter-point curvature stays balanced, one-ninth and eight-ninths probe fractions on super-extreme dense-body spans when the finer probes stay balanced, one-seventh and six-sevenths probe fractions on extreme dense-body spans when the super-extreme probes stay balanced, one-fifth and four-fifth probe fractions on the longest dense-body spans when the coarser probes stay balanced, and quadratic fallback otherwise";
+const PACKAGED_ARTIFACT_GENERATION_STRATEGY_TAIL: &str = "with 8-point and 10-point Chebyshev-Lobatto baseline candidates before the dense body-specific ladders and 12-point and 14-point candidates for inner and outer planets before fallback, with 10-point, 12-point, 14-point, 16-point, 18-point, and 20-point options for luminaries, Pluto, selected asteroids, and custom bodies, and the best dense candidate wins before fallback, with equal-error, equal-sample-count ties preferring the simpler segment, residual correction channels on high-curvature spans when they improve the fit, residual-channel combinations and remaining channel-order permutations when composing those channels, preferring the smaller residual footprint on equal-error ties, higher-order reconstruction from fit samples when it quantizes cleanly, shared four-point control-point fallback across longitude, latitude, and distance channels when the higher-order fit does not quantize cleanly, quarter-biased splits on very long dense-body spans when quarter-point curvature is strongly asymmetric, a dense quarter-point control-point lattice before exact-third fallback on irregular spans, one-sixth and five-sixth probe fractions on very long dense-body spans when quarter-point curvature stays balanced, one-third and two-thirds probe fractions on long dense-body spans when quarter-point curvature stays balanced, a dense five-point fallback on the longest dense-body spans when one-fifth through four-fifth samples fit cleanly, one-ninth and eight-ninths probe fractions on super-extreme dense-body spans when the finer probes stay balanced, one-seventh and six-sevenths probe fractions on extreme dense-body spans when the super-extreme probes stay balanced, one-fifth and four-fifth probe fractions on the longest dense-body spans when the coarser probes stay balanced, and quadratic fallback otherwise";
 
 fn packaged_artifact_generation_policy_note_text() -> &'static str {
     static NOTE: OnceLock<String> = OnceLock::new();
@@ -6956,6 +6956,8 @@ fn body_segment_windows_for_interval(
             end_longitude,
             &start_coordinates,
             &end_coordinates,
+            Some(span_days),
+            Some(span_limit),
             &sample_fraction,
         );
         let fallback_error = if segment_fits_quantization(&fallback) {
@@ -6984,6 +6986,8 @@ fn body_segment_windows_for_interval(
             end_longitude,
             &start_coordinates,
             &end_coordinates,
+            Some(span_days),
+            Some(span_limit),
             &sample_fraction,
         );
         let fallback_error = if segment_fits_quantization(&fallback) {
@@ -7006,6 +7010,8 @@ fn body_segment_windows_for_interval(
             end_longitude,
             &start_coordinates,
             &end_coordinates,
+            Some(span_days),
+            Some(span_limit),
             &sample_fraction,
         ))];
     }
@@ -7017,6 +7023,8 @@ fn body_segment_windows_for_interval(
             end_longitude,
             &start_coordinates,
             &end_coordinates,
+            Some(span_days),
+            Some(span_limit),
             &sample_fraction,
         ))];
     };
@@ -7113,6 +7121,8 @@ fn body_segment_windows_for_interval(
             end_longitude,
             &start_coordinates,
             &end_coordinates,
+            Some(span_days),
+            Some(span_limit),
             &sample_fraction,
         ))];
     }
@@ -7127,6 +7137,8 @@ fn body_segment_windows_for_interval(
                 end_longitude,
                 &start_coordinates,
                 &end_coordinates,
+                Some(span_days),
+                Some(span_limit),
                 &sample_fraction,
             ))];
         };
@@ -7213,6 +7225,8 @@ fn segment_from_pair(
     end: &SnapshotEntry,
     reference_backend: &JplSnapshotBackend,
 ) -> Segment {
+    let span_days = end.epoch.julian_day.days() - start.epoch.julian_day.days();
+    let span_limit = body_segment_span_limit(&start.body);
     let start_coordinates = coordinates(start);
     let end_coordinates = coordinates(end);
     let start_longitude = start_coordinates.longitude.degrees();
@@ -7275,6 +7289,8 @@ fn segment_from_pair(
         end_longitude,
         &start_coordinates,
         &end_coordinates,
+        Some(span_days),
+        Some(span_limit),
         &sample_fraction,
     );
     let fallback_error = if segment_fits_quantization(&fallback) {
@@ -7385,6 +7401,8 @@ fn segment_from_pair_fallback(
     end_longitude: f64,
     start_coordinates: &EclipticCoordinates,
     end_coordinates: &EclipticCoordinates,
+    span_days: Option<f64>,
+    span_limit: Option<f64>,
     sample_fraction: &dyn Fn(f64) -> Option<EclipticCoordinates>,
 ) -> Segment {
     let Some(midpoint_coordinates) = sample_fraction(0.5) else {
@@ -7483,6 +7501,94 @@ fn segment_from_pair_fallback(
                     end_instant,
                     vec![longitude_channel, latitude_channel, distance_channel],
                 );
+            }
+        }
+    }
+
+    if let (Some(span_days), Some(span_limit)) = (span_days, span_limit) {
+        if span_days > span_limit * PACKAGED_ARTIFACT_LONGEST_DENSE_SPLIT_SPAN_RATIO {
+            let one_fifth_coordinates = sample_fraction(1.0 / 5.0);
+            let two_fifth_coordinates = sample_fraction(2.0 / 5.0);
+            let three_fifth_coordinates = sample_fraction(3.0 / 5.0);
+            let four_fifth_coordinates = sample_fraction(4.0 / 5.0);
+            if let (
+                Some(one_fifth_coordinates),
+                Some(two_fifth_coordinates),
+                Some(three_fifth_coordinates),
+                Some(four_fifth_coordinates),
+            ) = (
+                one_fifth_coordinates.as_ref(),
+                two_fifth_coordinates.as_ref(),
+                three_fifth_coordinates.as_ref(),
+                four_fifth_coordinates.as_ref(),
+            ) {
+                let longitude_samples = unwrap_longitude_samples(&[
+                    start_longitude,
+                    one_fifth_coordinates.longitude.degrees(),
+                    two_fifth_coordinates.longitude.degrees(),
+                    three_fifth_coordinates.longitude.degrees(),
+                    four_fifth_coordinates.longitude.degrees(),
+                    end_longitude,
+                ]);
+
+                if let (Some(longitude_channel), Some(latitude_channel)) = (
+                    channel_from_fit_samples_with_control_points(
+                        ChannelKind::Longitude,
+                        9,
+                        &[
+                            (0.0, longitude_samples[0]),
+                            (1.0 / 5.0, longitude_samples[1]),
+                            (2.0 / 5.0, longitude_samples[2]),
+                            (3.0 / 5.0, longitude_samples[3]),
+                            (4.0 / 5.0, longitude_samples[4]),
+                            (1.0, longitude_samples[5]),
+                        ],
+                    ),
+                    channel_from_fit_samples_with_control_points(
+                        ChannelKind::Latitude,
+                        9,
+                        &[
+                            (0.0, start_coordinates.latitude.degrees()),
+                            (1.0 / 5.0, one_fifth_coordinates.latitude.degrees()),
+                            (2.0 / 5.0, two_fifth_coordinates.latitude.degrees()),
+                            (3.0 / 5.0, three_fifth_coordinates.latitude.degrees()),
+                            (4.0 / 5.0, four_fifth_coordinates.latitude.degrees()),
+                            (1.0, end_coordinates.latitude.degrees()),
+                        ],
+                    ),
+                ) {
+                    if let (
+                        Some(one_fifth_distance_au),
+                        Some(two_fifth_distance_au),
+                        Some(three_fifth_distance_au),
+                        Some(four_fifth_distance_au),
+                    ) = (
+                        one_fifth_coordinates.distance_au,
+                        two_fifth_coordinates.distance_au,
+                        three_fifth_coordinates.distance_au,
+                        four_fifth_coordinates.distance_au,
+                    ) {
+                        let distance_channel = distance_channel_from_fit_samples(
+                            &[
+                                (0.0, start_coordinates.distance_au.unwrap_or_default()),
+                                (1.0 / 5.0, one_fifth_distance_au),
+                                (2.0 / 5.0, two_fifth_distance_au),
+                                (3.0 / 5.0, three_fifth_distance_au),
+                                (4.0 / 5.0, four_fifth_distance_au),
+                                (1.0, end_coordinates.distance_au.unwrap_or_default()),
+                            ],
+                            start_coordinates.distance_au.unwrap_or_default(),
+                            midpoint_coordinates.distance_au,
+                            end_coordinates.distance_au.unwrap_or_default(),
+                        );
+
+                        return Segment::new(
+                            start_instant,
+                            end_instant,
+                            vec![longitude_channel, latitude_channel, distance_channel],
+                        );
+                    }
+                }
             }
         }
     }
@@ -8327,6 +8433,8 @@ mod tests {
             longitude(1.0),
             &start_coordinates,
             &end_coordinates,
+            Some(1.0),
+            Some(1.0),
             &sample_fraction,
         );
 
@@ -8352,6 +8460,84 @@ mod tests {
             );
             assert!(
                 (actual_distance - distance(fraction)).abs() < 1e-9,
+                "distance mismatch at fraction {fraction}: {actual_distance} vs {}",
+                distance(fraction)
+            );
+        }
+    }
+
+    #[test]
+    fn segment_from_pair_fallback_can_use_dense_five_point_samples_on_long_spans() {
+        let longitude = |fraction: f64| {
+            15.0 - 3.0 * fraction + 2.0 * fraction.powi(2) - fraction.powi(3)
+                + 0.5 * fraction.powi(4)
+                - 0.25 * fraction.powi(5)
+        };
+        let latitude = |fraction: f64| {
+            -2.0 + 4.0 * fraction - 1.5 * fraction.powi(2) + 0.75 * fraction.powi(3)
+                - 0.5 * fraction.powi(4)
+                + 0.125 * fraction.powi(5)
+        };
+        let distance = |fraction: f64| {
+            3.0 + 0.25 * fraction + 0.5 * fraction.powi(2) - 0.125 * fraction.powi(3)
+                + 0.0625 * fraction.powi(4)
+                - 0.03125 * fraction.powi(5)
+        };
+        let start_coordinates = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(longitude(0.0)),
+            pleiades_backend::Latitude::from_degrees(latitude(0.0)),
+            Some(distance(0.0)),
+        );
+        let end_coordinates = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(longitude(1.0)),
+            pleiades_backend::Latitude::from_degrees(latitude(1.0)),
+            Some(distance(1.0)),
+        );
+        let sample_fraction = |fraction: f64| -> Option<EclipticCoordinates> {
+            if (fraction - 0.25).abs() < f64::EPSILON || (fraction - 0.75).abs() < f64::EPSILON {
+                return None;
+            }
+
+            Some(EclipticCoordinates::new(
+                pleiades_backend::Longitude::from_degrees(longitude(fraction)),
+                pleiades_backend::Latitude::from_degrees(latitude(fraction)),
+                Some(distance(fraction)),
+            ))
+        };
+        let segment = segment_from_pair_fallback(
+            Instant::new(JulianDay::from_days(0.0), TimeScale::Tt),
+            Instant::new(JulianDay::from_days(13_000.0), TimeScale::Tt),
+            longitude(0.0),
+            longitude(1.0),
+            &start_coordinates,
+            &end_coordinates,
+            Some(13_000.0),
+            Some(1_536.0),
+            &sample_fraction,
+        );
+
+        for fraction in [0.2, 0.4, 0.5, 0.6, 0.8] {
+            let actual_longitude =
+                segment_channel_value(&segment, ChannelKind::Longitude, fraction)
+                    .expect("longitude channel should evaluate");
+            let actual_latitude = segment_channel_value(&segment, ChannelKind::Latitude, fraction)
+                .expect("latitude channel should evaluate");
+            let actual_distance =
+                segment_channel_value(&segment, ChannelKind::DistanceAu, fraction)
+                    .expect("distance channel should evaluate");
+
+            assert!(
+                (actual_longitude - longitude(fraction)).abs() < 1e-8,
+                "longitude mismatch at fraction {fraction}: {actual_longitude} vs {}",
+                longitude(fraction)
+            );
+            assert!(
+                (actual_latitude - latitude(fraction)).abs() < 1e-8,
+                "latitude mismatch at fraction {fraction}: {actual_latitude} vs {}",
+                latitude(fraction)
+            );
+            assert!(
+                (actual_distance - distance(fraction)).abs() < 1e-8,
                 "distance mismatch at fraction {fraction}: {actual_distance} vs {}",
                 distance(fraction)
             );
@@ -10996,6 +11182,8 @@ mod tests {
             .contains("dense quarter-point control-point lattice"));
         assert!(packaged_artifact_generation_policy_note_text()
             .contains("one-sixth and five-sixth probe fractions"));
+        assert!(packaged_artifact_generation_policy_note_text()
+            .contains("five-point fallback on the longest dense-body spans"));
         assert!(packaged_artifact_generation_policy_note_text()
             .contains("one-fifth and four-fifth probe fractions"));
         assert!(packaged_artifact_generation_policy_note_text()
