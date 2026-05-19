@@ -11823,6 +11823,36 @@ fn ensure_production_generation_source_summary_matches_current_rendering(
     }
 }
 
+fn ensure_production_generation_manifest_summary_matches_current_rendering(
+    production_generation_manifest_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if production_generation_manifest_summary_text
+        == production_generation_manifest_summary_for_report()
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "production generation manifest summary no longer matches the current production-generation manifest posture"
+                .to_string(),
+        ))
+    }
+}
+
+fn ensure_production_generation_manifest_checksum_summary_matches_current_rendering(
+    production_generation_manifest_checksum_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if production_generation_manifest_checksum_summary_text
+        == production_generation_manifest_checksum_for_report()
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "production generation manifest checksum summary no longer matches the current production-generation manifest checksum posture"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_production_generation_boundary_source_summary_matches_current_rendering(
     production_generation_boundary_source_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -12355,6 +12385,12 @@ fn verify_release_bundle(
         output_dir.join("production-generation-boundary-source-summary.txt");
     let production_generation_boundary_request_corpus_summary_path =
         output_dir.join("production-generation-boundary-request-corpus-summary.txt");
+    let production_generation_source_window_summary_path =
+        output_dir.join("production-generation-source-window-summary.txt");
+    let production_generation_manifest_summary_path =
+        output_dir.join("production-generation-manifest-summary.txt");
+    let production_generation_manifest_checksum_path =
+        output_dir.join("production-generation-manifest-checksum-summary.txt");
     let reference_snapshot_summary_path = output_dir.join("reference-snapshot-summary.txt");
     let catalog_inventory_summary_path = output_dir.join("catalog-inventory-summary.txt");
     let custom_definition_ayanamsa_labels_summary_path =
@@ -12636,6 +12672,10 @@ fn verify_release_bundle(
         &independent_holdout_source_window_summary_path,
         "independent-holdout source window summary",
     )?;
+    let production_generation_source_window_summary_text = read_required_bundle_text(
+        &production_generation_source_window_summary_path,
+        "production generation source window summary",
+    )?;
     let production_generation_boundary_source_summary_text = read_required_bundle_text(
         &production_generation_boundary_source_summary_path,
         "production generation boundary source summary",
@@ -12649,6 +12689,20 @@ fn verify_release_bundle(
     )?;
     ensure_production_generation_boundary_request_corpus_summary_matches_current_rendering(
         &production_generation_boundary_request_corpus_summary_text,
+    )?;
+    let production_generation_manifest_summary_text = read_required_bundle_text(
+        &production_generation_manifest_summary_path,
+        "production generation manifest summary",
+    )?;
+    ensure_production_generation_manifest_summary_matches_current_rendering(
+        &production_generation_manifest_summary_text,
+    )?;
+    let production_generation_manifest_checksum_summary_text = read_required_bundle_text(
+        &production_generation_manifest_checksum_path,
+        "production generation manifest checksum summary",
+    )?;
+    ensure_production_generation_manifest_checksum_summary_matches_current_rendering(
+        &production_generation_manifest_checksum_summary_text,
     )?;
     let reference_snapshot_summary_text = read_required_bundle_text(
         &reference_snapshot_summary_path,
@@ -13315,6 +13369,7 @@ fn verify_release_bundle(
         checksum64(&reference_snapshot_bridge_day_summary_text);
     let reference_snapshot_source_summary_checksum =
         checksum64(&reference_snapshot_source_summary_text);
+    let reference_snapshot_summary_checksum = checksum64(&reference_snapshot_summary_text);
     let independent_holdout_source_window_summary_checksum =
         checksum64(&independent_holdout_source_window_summary_text);
     let production_generation_boundary_source_summary_checksum =
@@ -13330,19 +13385,12 @@ fn verify_release_bundle(
     ensure_production_generation_source_summary_matches_current_rendering(
         &production_generation_source_summary_text,
     )?;
-    let production_generation_source_window_summary_text =
-        production_generation_snapshot_window_summary_for_report();
     let production_generation_source_window_summary_checksum =
         checksum64(&production_generation_source_window_summary_text);
-    let production_generation_manifest_summary_text =
-        production_generation_manifest_summary_for_report();
     let production_generation_manifest_summary_checksum =
         checksum64(&production_generation_manifest_summary_text);
-    let production_generation_manifest_checksum_text =
-        production_generation_manifest_checksum_for_report();
-    let production_generation_manifest_checksum_checksum =
-        checksum64(&production_generation_manifest_checksum_text);
-    let reference_snapshot_summary_checksum = checksum64(&reference_snapshot_summary_text);
+    let production_generation_manifest_checksum_summary_checksum =
+        checksum64(&production_generation_manifest_checksum_summary_text);
     let catalog_inventory_summary_checksum = checksum64(&catalog_inventory_summary_text);
     let custom_definition_ayanamsa_labels_summary_checksum =
         checksum64(&custom_definition_ayanamsa_labels_summary_text);
@@ -13809,12 +13857,12 @@ fn verify_release_bundle(
         )));
     }
     if manifest.production_generation_manifest_checksum_checksum
-        != production_generation_manifest_checksum_checksum
+        != production_generation_manifest_checksum_summary_checksum
     {
         return Err(ReleaseBundleError::Verification(format!(
             "production generation manifest checksum summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
             manifest.production_generation_manifest_checksum_checksum,
-            production_generation_manifest_checksum_checksum
+            production_generation_manifest_checksum_summary_checksum
         )));
     }
     if manifest.catalog_inventory_summary_checksum != catalog_inventory_summary_checksum {
@@ -31162,6 +31210,32 @@ version = "0.9.0"
             "generation command=generate-packaged-artifact --check",
             "generation command=generate-packaged-artifact --check (drifted)",
             "production generation source summary no longer matches",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_production_generation_manifest_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-production-generation-manifest-semantic",
+            "production-generation-manifest-summary.txt",
+            "production generation manifest summary checksum (fnv1a-64):",
+            "Production generation manifest:",
+            "Tampered production generation manifest:",
+            "production generation manifest summary no longer matches",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_production_generation_manifest_checksum_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-production-generation-manifest-checksum-semantic",
+            "production-generation-manifest-checksum-summary.txt",
+            "production generation manifest checksum summary checksum (fnv1a-64):",
+            "Production generation manifest checksum:",
+            "Tampered production generation manifest checksum:",
+            "production generation manifest checksum summary no longer matches",
         );
     }
 

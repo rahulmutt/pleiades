@@ -43,7 +43,7 @@ This file lists focused implementation slices for the current phase ladder. Comp
 - The compatibility-profile and release-summary renderers now re-validate the target-house and target-ayanamsa scope prose before emitting release-facing text, so the catalog posture fails closed if those scope sections drift.
 - Completed: the packaged-artifact generation policy wording now matches the quadratic-window strategy, keeping the release-facing generation-policy prose aligned with the actual adjacent same-body quadratic window label.
 - Completed: the packaged-artifact source/provenance prose now reuses the same generation-tail wording across the artifact source summary and the generation-policy note, reducing drift in release-facing narrative.
-- Completed: the production-generation source summary now also validates its rendered provenance fragments, so the release-facing columns and redistribution-posture wording fail closed if the prose drifts.
+- Completed: the production-generation source summary now also validates its rendered provenance fragments, so the release-facing columns and redistribution-posture wording fail closed if the prose drifts. The release bundle verifier now also cross-checks the production-generation manifest summary and checksum summary against the live renderer, so those phase-2 manifest files fail closed on semantic drift.
 - Completed: the packaged-artifact generation residual bodies summary now routes through a validated helper in the CLI and release/validation report surfaces, so residual-body drift fails closed instead of echoing stale text.
 
 ### 1. Improve fitting/reconstruction strategy
