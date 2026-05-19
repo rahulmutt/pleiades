@@ -243,8 +243,8 @@ use pleiades_vsop87::{
     canonical_mixed_time_scale_batch_parity_summary_for_report, frame_treatment_summary_for_report,
     generated_binary_audit_summary_for_report, source_audit_summary_for_report, source_audits,
     source_body_class_evidence_summary_for_report, source_body_evidence_summary_for_report,
-    source_documentation_health_summary_for_report, source_documentation_summary_for_report,
-    source_specifications, supported_body_j1900_ecliptic_batch_parity_summary_for_report,
+    source_documentation_health_summary, source_documentation_summary, source_specifications,
+    supported_body_j1900_ecliptic_batch_parity_summary_for_report,
     supported_body_j1900_equatorial_batch_parity_summary_for_report,
     supported_body_j2000_ecliptic_batch_parity_summary_for_report,
     supported_body_j2000_equatorial_batch_parity_summary_for_report,
@@ -5998,19 +5998,19 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("source-documentation-summary") => {
             ensure_no_extra_args(&args[1..], "source-documentation-summary")?;
-            Ok(source_documentation_summary_for_report())
+            Ok(format_vsop87_source_documentation_summary())
         }
         Some("source-documentation") => {
             ensure_no_extra_args(&args[1..], "source-documentation")?;
-            Ok(source_documentation_summary_for_report())
+            Ok(format_vsop87_source_documentation_summary())
         }
         Some("source-documentation-health-summary") => {
             ensure_no_extra_args(&args[1..], "source-documentation-health-summary")?;
-            Ok(source_documentation_health_summary_for_report())
+            Ok(format_vsop87_source_documentation_health_summary())
         }
         Some("source-documentation-health") => {
             ensure_no_extra_args(&args[1..], "source-documentation-health")?;
-            Ok(source_documentation_health_summary_for_report())
+            Ok(format_vsop87_source_documentation_health_summary())
         }
         Some("source-audit-summary") => {
             ensure_no_extra_args(&args[1..], "source-audit-summary")?;
@@ -8851,7 +8851,7 @@ fn render_release_notes_summary_text() -> String {
     text.push('\n');
     text.push_str(&comparison_snapshot_manifest_summary_for_report());
     text.push('\n');
-    text.push_str(&source_documentation_health_summary_for_report());
+    text.push_str(&format_vsop87_source_documentation_health_summary());
     text.push('\n');
     text.push_str("JPL request policy: ");
     text.push_str(&jpl_snapshot_request_policy_summary_for_report());
@@ -17368,12 +17368,32 @@ fn format_vsop87_canonical_outlier_note_summary() -> String {
     canonical_epoch_outlier_note_for_report()
 }
 
+fn format_validated_vsop87_source_documentation_summary_for_report(
+    summary: &pleiades_vsop87::Vsop87SourceDocumentationSummary,
+) -> String {
+    match summary.validated_summary_line() {
+        Ok(summary_line) => summary_line,
+        Err(error) => format!("VSOP87 source documentation: unavailable ({error})"),
+    }
+}
+
+fn format_validated_vsop87_source_documentation_health_summary_for_report(
+    summary: &pleiades_vsop87::Vsop87SourceDocumentationHealthSummary,
+) -> String {
+    match summary.validate() {
+        Ok(()) => summary.summary_line(),
+        Err(error) => format!("VSOP87 source documentation health: unavailable ({error})"),
+    }
+}
+
 fn format_vsop87_source_documentation_summary() -> String {
-    source_documentation_summary_for_report()
+    format_validated_vsop87_source_documentation_summary_for_report(&source_documentation_summary())
 }
 
 fn format_vsop87_source_documentation_health_summary() -> String {
-    source_documentation_health_summary_for_report()
+    format_validated_vsop87_source_documentation_health_summary_for_report(
+        &source_documentation_health_summary(),
+    )
 }
 
 fn format_vsop87_frame_treatment_summary() -> String {
@@ -28872,7 +28892,7 @@ mod tests {
             .expect("source documentation alias should render");
         assert_eq!(
             source_documentation_alias,
-            source_documentation_summary_for_report()
+            format_vsop87_source_documentation_summary()
         );
         let source_documentation_health_alias = render_cli(&["source-documentation-health"])
             .expect("source documentation health alias should render");
@@ -28889,6 +28909,30 @@ mod tests {
             render_cli(&["source-documentation", "extra"])
                 .expect_err("source documentation alias should reject extra arguments"),
             "source-documentation does not accept extra arguments"
+        );
+        let mut source_documentation_summary = source_documentation_summary();
+        source_documentation_summary.source_specification_count += 1;
+        let source_documentation_error = source_documentation_summary
+            .validate()
+            .expect_err("source documentation summary should detect catalog drift");
+        assert_eq!(
+            format_validated_vsop87_source_documentation_summary_for_report(
+                &source_documentation_summary
+            ),
+            format!("VSOP87 source documentation: unavailable ({source_documentation_error})")
+        );
+        let mut source_documentation_health_summary = source_documentation_health_summary();
+        source_documentation_health_summary.source_file_count += 1;
+        let source_documentation_health_error = source_documentation_health_summary
+            .validate()
+            .expect_err("source documentation health should detect catalog drift");
+        assert_eq!(
+            format_validated_vsop87_source_documentation_health_summary_for_report(
+                &source_documentation_health_summary
+            ),
+            format!(
+                "VSOP87 source documentation health: unavailable ({source_documentation_health_error})"
+            )
         );
         let source_audit_alias =
             render_cli(&["source-audit"]).expect("source audit alias should render");
