@@ -6504,13 +6504,17 @@ impl std::error::Error for PackagedArtifactBodyClassSpanCapSummaryValidationErro
 impl PackagedArtifactBodyClassSpanCapSummary {
     /// Returns the body-class span cap summary as a compact human-readable line.
     pub fn summary_line(&self) -> String {
+        format!("body-class span caps: {}", self.entries_summary_line())
+    }
+
+    fn entries_summary_line(&self) -> String {
         let entries = self
             .entries
             .iter()
             .map(|(label, days)| format!("{label}={days:.0} days"))
             .collect::<Vec<_>>();
 
-        format!("body-class span caps: {}", join_display(&entries))
+        join_display(&entries)
     }
 
     /// Returns `Ok(())` when the summary still matches the current packaged-artifact posture.
@@ -6549,6 +6553,15 @@ pub fn packaged_artifact_body_class_span_cap_summary_for_report() -> String {
     match summary.validate() {
         Ok(()) => summary.to_string(),
         Err(error) => format!("body-class span caps: unavailable ({error})"),
+    }
+}
+
+/// Returns the current packaged-artifact body-class span-cap entries after validating the structured posture.
+pub fn packaged_artifact_body_class_span_cap_entries_for_report() -> String {
+    let summary = packaged_artifact_body_class_span_cap_summary_details();
+    match summary.validate() {
+        Ok(()) => summary.entries_summary_line(),
+        Err(error) => format!("unavailable ({error})"),
     }
 }
 
@@ -11869,6 +11882,10 @@ mod tests {
         assert_eq!(
             packaged_artifact_body_class_span_cap_summary_for_report(),
             summary.to_string()
+        );
+        assert_eq!(
+            packaged_artifact_body_class_span_cap_entries_for_report(),
+            "luminaries=256 days, inner planets=384 days, outer planets=768 days, pluto=1536 days, lunar points=256 days, selected asteroids=256 days, custom bodies=512 days"
         );
         assert!(summary.validate().is_ok());
     }

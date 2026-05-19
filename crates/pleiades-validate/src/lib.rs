@@ -68,7 +68,7 @@ use pleiades_core::{
 };
 use pleiades_data::{
     packaged_artifact, packaged_artifact_access_summary_for_report,
-    packaged_artifact_body_class_span_cap_summary_for_report, packaged_artifact_bytes,
+    packaged_artifact_body_class_span_cap_entries_for_report, packaged_artifact_bytes,
     packaged_artifact_fit_envelope_summary_details,
     packaged_artifact_fit_envelope_summary_for_report,
     packaged_artifact_fit_margin_summary_for_report,
@@ -5005,7 +5005,7 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "packaged-artifact-body-class-span-cap-summary")?;
             Ok(format!(
                 "Packaged-artifact body-class span caps: {}",
-                packaged_artifact_body_class_span_cap_summary_for_report()
+                packaged_artifact_body_class_span_cap_entries_for_report()
             ))
         }
         Some("packaged-artifact-access-summary") => {
@@ -34565,12 +34565,11 @@ version = "0.9.0"
     fn packaged_artifact_body_class_span_cap_summary_and_alias_commands_render_the_summary() {
         let span_caps = render_cli(&["packaged-artifact-body-class-span-cap-summary"])
             .expect("packaged artifact body-class span cap summary should render");
-        assert!(span_caps.contains("Packaged-artifact body-class span caps: "));
         assert_eq!(
             span_caps,
             format!(
                 "Packaged-artifact body-class span caps: {}",
-                pleiades_data::packaged_artifact_body_class_span_cap_summary_for_report()
+                pleiades_data::packaged_artifact_body_class_span_cap_entries_for_report()
             )
         );
         assert_eq!(
