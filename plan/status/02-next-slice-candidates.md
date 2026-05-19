@@ -166,4 +166,4 @@ This file lists focused implementation slices for the current phase ladder. Comp
 - Completed: the reference-asteroid source window summary now also has a semantic-drift release-bundle regression, so the reference-asteroid provenance slice fails closed even after the checksum sidecar is refreshed.
 - Completed: the packaged-artifact generation manifest checksum summary now stages and verifies in release bundles, and the lunar-theory source-selection summary now routes through a validated wrapper in the release-bundle verifier.
 - Completed: the packaged-artifact regeneration summary now stages and verifies in release bundles with a live-renderer cross-check, so regeneration prose now fails closed alongside the other packaged-artifact release files.
-- Keep README/docs aligned with the published release compatibility profile and known gaps.
+- Completed: the release-reproducibility guide now names `lunar-theory-source-selection-summary.txt` alongside the lunar-theory source-family bundle artifact and the lunar-theory source-selection CLI surface, keeping the documented bundle inventory aligned with the current lunar provenance release surfaces.
