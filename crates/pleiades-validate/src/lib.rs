@@ -6668,10 +6668,17 @@ pub fn render_compatibility_caveats_summary() -> String {
 
 /// Renders the compact compatibility catalog inventory summary used by release tooling.
 pub fn render_catalog_inventory_summary() -> String {
-    match validated_catalog_inventory_summary_for_report() {
-        Ok(summary) => summary,
-        Err(error) => format!("Compatibility catalog inventory unavailable ({error})"),
-    }
+    render_catalog_inventory_summary_text()
+}
+
+fn render_catalog_inventory_summary_text() -> String {
+    static CACHE: OnceLock<String> = OnceLock::new();
+    CACHE
+        .get_or_init(|| match validated_catalog_inventory_summary_for_report() {
+            Ok(summary) => summary,
+            Err(error) => format!("Compatibility catalog inventory unavailable ({error})"),
+        })
+        .clone()
 }
 
 /// Renders the compact custom-definition ayanamsa label summary used by release tooling.
@@ -17724,29 +17731,40 @@ fn validated_release_profile_identifiers_summary_for_report(
 
 /// Renders the compact release-profile identifiers summary.
 pub fn render_release_profile_identifiers_summary() -> String {
-    let release_profiles = match validated_release_profile_identifiers_for_report() {
-        Ok(release_profiles) => release_profiles,
-        Err(error) => return format!("Release profile identifiers summary unavailable ({error})"),
-    };
+    render_release_profile_identifiers_summary_text()
+}
 
-    let mut text = String::new();
-    text.push_str("Release profile identifiers summary\n");
-    text.push_str("Summary line: ");
-    text.push_str(&validated_release_profile_identifiers_summary_for_report(
-        &release_profiles,
-    ));
-    text.push('\n');
-    text.push_str("Compatibility profile: ");
-    text.push_str(release_profiles.compatibility_profile_id);
-    text.push('\n');
-    text.push_str("API stability posture: ");
-    text.push_str(release_profiles.api_stability_profile_id);
-    text.push('\n');
-    text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
-    text.push_str("API stability summary: api-stability-summary\n");
-    text.push_str("Release summary: release-summary\n");
+fn render_release_profile_identifiers_summary_text() -> String {
+    static CACHE: OnceLock<String> = OnceLock::new();
+    CACHE
+        .get_or_init(|| {
+            let release_profiles = match validated_release_profile_identifiers_for_report() {
+                Ok(release_profiles) => release_profiles,
+                Err(error) => {
+                    return format!("Release profile identifiers summary unavailable ({error})");
+                }
+            };
 
-    text
+            let mut text = String::new();
+            text.push_str("Release profile identifiers summary\n");
+            text.push_str("Summary line: ");
+            text.push_str(&validated_release_profile_identifiers_summary_for_report(
+                &release_profiles,
+            ));
+            text.push('\n');
+            text.push_str("Compatibility profile: ");
+            text.push_str(release_profiles.compatibility_profile_id);
+            text.push('\n');
+            text.push_str("API stability posture: ");
+            text.push_str(release_profiles.api_stability_profile_id);
+            text.push('\n');
+            text.push_str("Compatibility profile summary: compatibility-profile-summary\n");
+            text.push_str("API stability summary: api-stability-summary\n");
+            text.push_str("Release summary: release-summary\n");
+
+            text
+        })
+        .clone()
 }
 
 fn api_stability_summary_line_for_report() -> String {
