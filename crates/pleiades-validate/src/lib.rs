@@ -10000,6 +10000,8 @@ pub fn render_release_bundle(
         output_dir.join("packaged-artifact-generation-manifest.txt");
     let packaged_artifact_generation_manifest_summary_path =
         output_dir.join("packaged-artifact-generation-manifest-summary.txt");
+    let packaged_artifact_generation_manifest_checksum_summary_path =
+        output_dir.join("packaged-artifact-generation-manifest-checksum-summary.txt");
     let packaged_artifact_generation_manifest_checksum_path =
         output_dir.join("packaged-artifact-generation-manifest.checksum.txt");
     let benchmark_corpus_summary_path = output_dir.join("benchmark-corpus-summary.txt");
@@ -10159,6 +10161,10 @@ pub fn render_release_bundle(
         checksum64(&packaged_artifact_generation_manifest_text);
     let packaged_artifact_generation_manifest_checksum_text =
         format!("0x{packaged_artifact_generation_manifest_checksum:016x}\n");
+    let packaged_artifact_generation_manifest_checksum_summary_text =
+        packaged_artifact_generation_manifest_checksum_for_report();
+    let packaged_artifact_generation_manifest_checksum_summary_checksum =
+        checksum64(&packaged_artifact_generation_manifest_checksum_summary_text);
     let packaged_artifact_generation_manifest_checksum_checksum =
         checksum64(&packaged_artifact_generation_manifest_checksum_text);
     let packaged_artifact_generation_manifest_summary_checksum =
@@ -10198,6 +10204,8 @@ packaged-artifact generation manifest checksum sidecar: packaged-artifact-genera
 packaged-artifact generation manifest checksum sidecar checksum (fnv1a-64): 0x{packaged_artifact_generation_manifest_checksum_checksum:016x}
 packaged-artifact generation manifest summary: packaged-artifact-generation-manifest-summary.txt
 packaged-artifact generation manifest summary checksum (fnv1a-64): 0x{packaged_artifact_generation_manifest_summary_checksum:016x}
+packaged-artifact generation manifest checksum summary: packaged-artifact-generation-manifest-checksum-summary.txt
+packaged-artifact generation manifest checksum summary checksum (fnv1a-64): 0x{packaged_artifact_generation_manifest_checksum_summary_checksum:016x}
 benchmark-corpus summary: benchmark-corpus-summary.txt\nbenchmark-corpus summary checksum (fnv1a-64): 0x{benchmark_corpus_summary_checksum:016x}\nselected asteroid source request corpus summary: selected-asteroid-source-request-corpus-summary.txt\nselected asteroid source request corpus summary checksum (fnv1a-64): 0x{selected_asteroid_source_request_corpus_summary_checksum:016x}\ninterpolation-quality sample request corpus summary: interpolation-quality-request-corpus-summary.txt\ninterpolation-quality sample request corpus summary checksum (fnv1a-64): 0x{interpolation_quality_request_corpus_summary_checksum:016x}\nbenchmark report: benchmark-report.txt\nbenchmark report checksum (fnv1a-64): 0x{benchmark_report_checksum:016x}\nvalidation report: validation-report.txt\nvalidation report checksum (fnv1a-64): 0x{validation_report_checksum:016x}\nsource revision: {}\nworkspace status: {}\nrustc version: {}\ncargo version: {}\nprofile id: {}\napi stability posture id: {}\nvalidation rounds: {}\n",
         provenance.source_revision,
         provenance.workspace_status,
@@ -12165,9 +12173,10 @@ fn ensure_lunar_theory_limitations_summary_matches_current_rendering(
 fn ensure_lunar_theory_source_selection_summary_matches_current_rendering(
     lunar_theory_source_selection_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
-    if lunar_theory_source_selection_summary_text
-        == pleiades_elp::lunar_theory_source_selection_summary_for_report()
-    {
+    let expected = pleiades_elp::validated_lunar_theory_source_selection_summary_for_report()
+        .map_err(ReleaseBundleError::Verification)?;
+
+    if lunar_theory_source_selection_summary_text == expected {
         Ok(())
     } else {
         Err(ReleaseBundleError::Verification(
@@ -12367,6 +12376,8 @@ fn verify_release_bundle(
         output_dir.join("packaged-artifact-generation-manifest.txt");
     let packaged_artifact_generation_manifest_summary_path =
         output_dir.join("packaged-artifact-generation-manifest-summary.txt");
+    let packaged_artifact_generation_manifest_checksum_summary_path =
+        output_dir.join("packaged-artifact-generation-manifest-checksum-summary.txt");
     let packaged_artifact_generation_manifest_checksum_path =
         output_dir.join("packaged-artifact-generation-manifest.checksum.txt");
     let benchmark_corpus_summary_path = output_dir.join("benchmark-corpus-summary.txt");
