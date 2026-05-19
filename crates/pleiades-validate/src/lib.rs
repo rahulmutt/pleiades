@@ -12244,6 +12244,19 @@ fn ensure_reference_snapshot_bridge_day_summary_matches_current_rendering(
     }
 }
 
+fn ensure_reference_snapshot_summary_matches_current_rendering(
+    reference_snapshot_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if reference_snapshot_summary_text == reference_snapshot_summary_for_report() {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "reference snapshot summary no longer matches the current reference snapshot coverage"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_reference_snapshot_exact_j2000_evidence_summary_matches_current_rendering(
     reference_snapshot_exact_j2000_evidence_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -13286,6 +13299,7 @@ fn verify_release_bundle(
         &reference_snapshot_summary_path,
         "reference snapshot summary",
     )?;
+    ensure_reference_snapshot_summary_matches_current_rendering(&reference_snapshot_summary_text)?;
     let catalog_inventory_summary_text =
         read_required_bundle_text(&catalog_inventory_summary_path, "catalog inventory summary")?;
     let custom_definition_ayanamsa_labels_summary_text = read_required_bundle_text(
@@ -32198,6 +32212,19 @@ version = "0.9.0"
             "2451914.0",
             "2451914.1",
             "reference snapshot bridge day summary no longer matches the current reference snapshot bridge day posture",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_reference_snapshot_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-reference-snapshot-summary-semantic",
+            "reference-snapshot-summary.txt",
+            "reference snapshot summary checksum (fnv1a-64):",
+            "Reference snapshot coverage:",
+            "Tampered reference snapshot coverage:",
+            "reference snapshot summary no longer matches the current reference snapshot coverage",
         );
     }
 
