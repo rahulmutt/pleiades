@@ -8570,9 +8570,9 @@ pub fn format_selected_asteroid_source_request_corpus_summary(
     summary.summary_line()
 }
 
-/// Returns the release-facing selected-asteroid source request corpus summary string.
-pub fn selected_asteroid_source_request_corpus_summary_for_report() -> String {
-    match selected_asteroid_source_request_corpus_summary(CoordinateFrame::Ecliptic) {
+/// Returns the release-facing selected-asteroid source request corpus summary string for the requested frame.
+pub fn selected_asteroid_source_request_corpus_summary_for_frame(frame: CoordinateFrame) -> String {
+    match selected_asteroid_source_request_corpus_summary(frame) {
         Some(summary) => match summary.validated_summary_line() {
             Ok(summary_line) => summary_line,
             Err(error) => {
@@ -8583,14 +8583,37 @@ pub fn selected_asteroid_source_request_corpus_summary_for_report() -> String {
     }
 }
 
-/// Returns the validated release-facing selected-asteroid source request corpus summary string.
-pub fn validated_selected_asteroid_source_request_corpus_summary_for_report(
+/// Returns the validated release-facing selected-asteroid source request corpus summary string for the requested frame.
+pub fn validated_selected_asteroid_source_request_corpus_summary_for_frame(
+    frame: CoordinateFrame,
 ) -> Result<String, String> {
-    let summary = selected_asteroid_source_request_corpus_summary(CoordinateFrame::Ecliptic)
+    let summary = selected_asteroid_source_request_corpus_summary(frame)
         .ok_or_else(|| "selected asteroid source request corpus unavailable".to_string())?;
     summary
         .validated_summary_line()
         .map_err(|error| error.to_string())
+}
+
+/// Returns the release-facing selected-asteroid source request corpus summary string.
+pub fn selected_asteroid_source_request_corpus_summary_for_report() -> String {
+    selected_asteroid_source_request_corpus_summary_for_frame(CoordinateFrame::Ecliptic)
+}
+
+/// Returns the validated release-facing selected-asteroid source request corpus summary string.
+pub fn validated_selected_asteroid_source_request_corpus_summary_for_report(
+) -> Result<String, String> {
+    validated_selected_asteroid_source_request_corpus_summary_for_frame(CoordinateFrame::Ecliptic)
+}
+
+/// Returns the release-facing equatorial selected-asteroid source request corpus summary string.
+pub fn selected_asteroid_source_request_corpus_equatorial_summary_for_report() -> String {
+    selected_asteroid_source_request_corpus_summary_for_frame(CoordinateFrame::Equatorial)
+}
+
+/// Returns the validated release-facing equatorial selected-asteroid source request corpus summary string.
+pub fn validated_selected_asteroid_source_request_corpus_equatorial_summary_for_report(
+) -> Result<String, String> {
+    validated_selected_asteroid_source_request_corpus_summary_for_frame(CoordinateFrame::Equatorial)
 }
 
 const SELECTED_ASTEROID_SOURCE_2453000_EPOCH: f64 = 2_453_000.5;
@@ -28987,6 +29010,22 @@ mod tests {
         assert_eq!(
             validated_selected_asteroid_source_request_corpus_summary_for_report(),
             Ok(summary.summary_line())
+        );
+        assert_eq!(
+            selected_asteroid_source_request_corpus_equatorial_summary_for_report(),
+            selected_asteroid_source_request_corpus_summary(CoordinateFrame::Equatorial)
+                .expect("selected asteroid source request corpus equatorial summary should exist")
+                .summary_line()
+        );
+        assert_eq!(
+            validated_selected_asteroid_source_request_corpus_equatorial_summary_for_report(),
+            Ok(
+                selected_asteroid_source_request_corpus_summary(CoordinateFrame::Equatorial)
+                    .expect(
+                        "selected asteroid source request corpus equatorial summary should exist"
+                    )
+                    .summary_line()
+            )
         );
         assert!(summary
             .summary_line()

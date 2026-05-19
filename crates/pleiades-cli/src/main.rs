@@ -469,6 +469,10 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         | Some("selected-asteroid-source-summary") => validate_render_cli(args),
         Some("selected-asteroid-source-request-corpus-summary") => validate_render_cli(args),
         Some("selected-asteroid-source-request-corpus") => validate_render_cli(args),
+        Some("selected-asteroid-source-request-corpus-equatorial-summary") => {
+            validate_render_cli(args)
+        }
+        Some("selected-asteroid-source-request-corpus-equatorial") => validate_render_cli(args),
         Some("reference-snapshot-selected-asteroid-source-window-summary")
         | Some("selected-asteroid-source-window-summary") => validate_render_cli(args),
         Some("reference-snapshot-2453000-selected-asteroid-source-summary")
@@ -4134,6 +4138,16 @@ mod tests {
             selected_asteroid_source_request_corpus_summary
         );
         assert_eq!(
+            render_cli(&["selected-asteroid-source-request-corpus-equatorial-summary"])
+                .expect("selected asteroid source request corpus equatorial summary should render"),
+            pleiades_jpl::selected_asteroid_source_request_corpus_equatorial_summary_for_report()
+        );
+        assert_eq!(
+            render_cli(&["selected-asteroid-source-request-corpus-equatorial"])
+                .expect("selected asteroid source request corpus equatorial alias should render"),
+            pleiades_jpl::selected_asteroid_source_request_corpus_equatorial_summary_for_report()
+        );
+        assert_eq!(
             render_cli(&["selected-asteroid-source-request-corpus-summary", "extra"]).expect_err(
                 "selected asteroid source request corpus summary should reject extra arguments"
             ),
@@ -6587,6 +6601,12 @@ mod tests {
         ));
         assert!(help.contains(
             "selected-asteroid-source-request-corpus  Alias for selected-asteroid-source-request-corpus-summary"
+        ));
+        assert!(help.contains(
+            "selected-asteroid-source-request-corpus-equatorial-summary  Print the compact selected-asteroid source request corpus summary in the equatorial frame"
+        ));
+        assert!(help.contains(
+            "selected-asteroid-source-request-corpus-equatorial  Alias for selected-asteroid-source-request-corpus-equatorial-summary"
         ));
         assert!(help.contains(
             "reference-snapshot-selected-asteroid-source-window-summary  Print the compact selected-asteroid source windows summary"
