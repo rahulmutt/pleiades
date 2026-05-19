@@ -67,7 +67,7 @@ use pleiades_jpl::{
 const PACKAGE_NAME: &str = "pleiades-data";
 const ARTIFACT_LABEL: &str = "stage-5 packaged-data draft";
 const ARTIFACT_PROFILE_ID: &str = "pleiades-packaged-artifact-profile/stage-5-draft";
-const PACKAGED_ARTIFACT_GENERATION_STRATEGY_TAIL: &str = "with 8-point and 10-point Chebyshev-Lobatto baseline candidates before the dense body-specific ladders and 12-point and 14-point candidates for inner and outer planets before fallback, with 10-point, 12-point, 14-point, 16-point, 18-point, and 20-point options for luminaries, Pluto, selected asteroids, and custom bodies, and the best dense candidate wins before fallback, with equal-error, equal-sample-count ties preferring the simpler segment, residual correction channels on high-curvature spans when they improve the fit, higher-order distance reconstruction from fit samples when it quantizes cleanly, cubic distance reconstruction from four-point control points when available, a dense quarter-point control-point lattice before exact-third fallback on irregular spans, one-sixth and five-sixth probe fractions on very long dense-body spans when quarter-point curvature stays balanced, one-third and two-thirds probe fractions on long dense-body spans when quarter-point curvature stays balanced, and quadratic fallback otherwise";
+const PACKAGED_ARTIFACT_GENERATION_STRATEGY_TAIL: &str = "with 8-point and 10-point Chebyshev-Lobatto baseline candidates before the dense body-specific ladders and 12-point and 14-point candidates for inner and outer planets before fallback, with 10-point, 12-point, 14-point, 16-point, 18-point, and 20-point options for luminaries, Pluto, selected asteroids, and custom bodies, and the best dense candidate wins before fallback, with equal-error, equal-sample-count ties preferring the simpler segment, residual correction channels on high-curvature spans when they improve the fit, higher-order distance reconstruction from fit samples when it quantizes cleanly, cubic distance reconstruction from four-point control points when available, quarter-biased splits on very long dense-body spans when quarter-point curvature is strongly asymmetric, a dense quarter-point control-point lattice before exact-third fallback on irregular spans, one-sixth and five-sixth probe fractions on very long dense-body spans when quarter-point curvature stays balanced, one-third and two-thirds probe fractions on long dense-body spans when quarter-point curvature stays balanced, and quadratic fallback otherwise";
 
 fn packaged_artifact_generation_policy_note_text() -> &'static str {
     static NOTE: OnceLock<String> = OnceLock::new();
@@ -10306,9 +10306,13 @@ mod tests {
         assert!(packaged_artifact_generation_policy_note_text()
             .ends_with(PACKAGED_ARTIFACT_GENERATION_STRATEGY_TAIL));
         assert!(packaged_artifact_generation_policy_note_text()
+            .contains("quarter-biased splits on very long dense-body spans"));
+        assert!(packaged_artifact_generation_policy_note_text()
             .contains("dense quarter-point control-point lattice"));
         assert!(packaged_artifact_generation_policy_note_text()
             .contains("one-sixth and five-sixth probe fractions"));
+        assert!(packaged_artifact_source_text()
+            .contains("quarter-biased splits on very long dense-body spans"));
         assert!(
             packaged_artifact_source_text().contains(PACKAGED_ARTIFACT_GENERATION_STRATEGY_TAIL)
         );
