@@ -66,7 +66,6 @@ use pleiades_core::{
 };
 use pleiades_data::{
     packaged_artifact, packaged_artifact_access_summary_for_report,
-    packaged_artifact_body_cadence_summary_for_report,
     packaged_artifact_body_class_span_cap_summary_for_report, packaged_artifact_bytes,
     packaged_artifact_fit_envelope_summary_details,
     packaged_artifact_fit_envelope_summary_for_report,
@@ -5030,7 +5029,7 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "packaged-artifact-body-cadence-summary")?;
             Ok(format!(
                 "Packaged-artifact body cadence: {}",
-                packaged_artifact_body_cadence_summary_for_report()
+                validated_packaged_artifact_body_cadence_summary_for_report()
             ))
         }
         Some("packaged-artifact-fit-outliers-summary") | Some("packaged-artifact-fit-outliers") => {
@@ -9843,7 +9842,7 @@ pub fn render_release_bundle(
     let packaged_artifact_fit_sample_classes_summary_text =
         packaged_artifact_fit_sample_classes_summary_for_report();
     let packaged_artifact_body_cadence_summary_text =
-        packaged_artifact_body_cadence_summary_for_report();
+        validated_packaged_artifact_body_cadence_summary_for_report();
     let packaged_artifact_normalized_intermediate_summary_text =
         validated_packaged_artifact_normalized_intermediate_summary_for_report();
     let packaged_artifact_speed_policy_summary_text =
@@ -11952,6 +11951,21 @@ fn ensure_packaged_artifact_fit_sample_classes_summary_matches_current_rendering
     }
 }
 
+fn ensure_packaged_artifact_body_cadence_summary_matches_current_rendering(
+    packaged_artifact_body_cadence_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if packaged_artifact_body_cadence_summary_text
+        == validated_packaged_artifact_body_cadence_summary_for_report()
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "packaged-artifact body cadence summary no longer matches the current packaged-artifact body cadence posture"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_benchmark_corpus_summary_matches_current_rendering(
     benchmark_corpus_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -12632,6 +12646,9 @@ fn verify_release_bundle(
     let packaged_artifact_body_cadence_summary_text = read_required_bundle_text(
         &packaged_artifact_body_cadence_summary_path,
         "packaged-artifact body cadence summary",
+    )?;
+    ensure_packaged_artifact_body_cadence_summary_matches_current_rendering(
+        &packaged_artifact_body_cadence_summary_text,
     )?;
     let packaged_artifact_body_cadence_summary_checksum =
         checksum64(&packaged_artifact_body_cadence_summary_text);
@@ -17259,6 +17276,14 @@ fn validated_packaged_artifact_generation_policy_summary_for_report() -> String 
     match summary.validate() {
         Ok(()) => summary.to_string(),
         Err(error) => format!("Packaged-artifact generation policy: unavailable ({error})"),
+    }
+}
+
+fn validated_packaged_artifact_body_cadence_summary_for_report() -> String {
+    let summary = pleiades_data::packaged_artifact_body_cadence_summary_details();
+    match summary.validated_summary_line() {
+        Ok(line) => line,
+        Err(error) => format!("body cadence: unavailable ({error})"),
     }
 }
 
@@ -24644,7 +24669,7 @@ mod tests {
             summary,
             format!(
                 "Packaged-artifact body cadence: {}",
-                packaged_artifact_body_cadence_summary_for_report()
+                validated_packaged_artifact_body_cadence_summary_for_report()
             )
         );
         assert!(summary.contains("Packaged-artifact body cadence: body cadence:"));
@@ -30901,6 +30926,19 @@ version = "0.9.0"
             "reference source=Reference snapshot source:",
             "reference source=Drifted snapshot source:",
             "packaged-artifact phase-2 corpus alignment summary no longer matches",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_packaged_artifact_body_cadence_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-packaged-artifact-body-cadence-semantic",
+            "packaged-artifact-body-cadence-summary.txt",
+            "packaged-artifact body cadence summary checksum (fnv1a-64):",
+            "body cadence: ",
+            "body cadence: drifted ",
+            "packaged-artifact body cadence summary no longer matches the current packaged-artifact body cadence posture",
         );
     }
 
