@@ -13,6 +13,7 @@
 
 - [ ] Source ingestion/generation path is pure Rust and documented.
 - [ ] Public provenance, frame, time scale, columns, source revision, and checksums are recorded.
+- [ ] Broader source-corpus additions keep license/redistribution posture, columns/channels, generation command, and evidence class explicit in the release-facing docs.
 - [ ] Validation corpus covers release-claimed bodies, frames, channels, and date ranges.
 - [ ] Reference, hold-out, boundary, fixture-exactness, and provenance-only evidence stay separated.
 

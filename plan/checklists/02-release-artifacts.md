@@ -11,6 +11,6 @@ A production release bundle should contain current generated copies of:
 - pure-Rust/native-dependency audit summary;
 - API stability summary;
 - release checklist, release notes, and release summary;
-- source revision, tool versions, generation parameters, and reproducibility instructions.
+- source revision, tool versions, generation parameters, reproducibility instructions, and the provenance contract for any broader source-corpus expansion.
 
 Do not include a production claim for any body, artifact scope, request mode, house system, or ayanamsa that lacks matching generated evidence.
