@@ -1374,6 +1374,14 @@ pub fn lunar_theory_source_selection_summary_for_report() -> String {
     lunar_theory_source_selection_summary()
 }
 
+/// Returns the validated compact source-selection summary for report-facing consumers.
+pub fn validated_lunar_theory_source_selection_summary_for_report() -> Result<String, String> {
+    let selection = lunar_theory_source_selection();
+    selection
+        .validated_summary_line()
+        .map_err(|error| error.to_string())
+}
+
 /// Formats a structured lunar source selection for reporting.
 ///
 /// The formatter validates the provided selection against the current lunar-theory
@@ -6717,6 +6725,10 @@ mod tests {
         assert!(summary.contains(selection.license_note));
         assert_eq!(selection.validated_summary_line().unwrap(), summary);
         assert_eq!(selection.validate(), Ok(()));
+        assert_eq!(
+            validated_lunar_theory_source_selection_summary_for_report(),
+            Ok(summary)
+        );
     }
 
     #[test]
