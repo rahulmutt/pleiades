@@ -11978,6 +11978,21 @@ fn ensure_production_generation_boundary_request_corpus_summary_matches_current_
     }
 }
 
+fn ensure_reference_snapshot_bridge_day_summary_matches_current_rendering(
+    reference_snapshot_bridge_day_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if reference_snapshot_bridge_day_summary_text
+        == reference_snapshot_bridge_day_summary_for_report()
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "reference snapshot bridge day summary no longer matches the current reference snapshot bridge day posture"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_reference_snapshot_source_summary_matches_current_rendering(
     reference_snapshot_source_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -12791,6 +12806,9 @@ fn verify_release_bundle(
     let reference_snapshot_bridge_day_summary_text = read_required_bundle_text(
         &reference_snapshot_bridge_day_summary_path,
         "reference snapshot bridge day summary",
+    )?;
+    ensure_reference_snapshot_bridge_day_summary_matches_current_rendering(
+        &reference_snapshot_bridge_day_summary_text,
     )?;
     let reference_snapshot_source_summary_text = read_required_bundle_text(
         &reference_snapshot_source_summary_path,
@@ -31363,6 +31381,19 @@ version = "0.9.0"
     }
 
     #[test]
+    fn verify_release_bundle_rejects_tampered_reference_snapshot_bridge_day_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-reference-snapshot-bridge-day-semantic",
+            "reference-snapshot-bridge-day-summary.txt",
+            "reference snapshot bridge day summary checksum (fnv1a-64):",
+            "2451914.0",
+            "2451914.1",
+            "reference snapshot bridge day summary no longer matches the current reference snapshot bridge day posture",
+        );
+    }
+
+    #[test]
     fn verify_release_bundle_rejects_tampered_production_generation_boundary_source_summary_even_with_updated_checksum(
     ) {
         assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
@@ -31730,6 +31761,20 @@ version = "0.9.0"
 
         ensure_reference_snapshot_source_summary_matches_current_rendering(&summary)
             .expect("reference snapshot source summary should match the current rendering");
+    }
+
+    #[test]
+    fn reference_snapshot_bridge_day_summary_validation_rejects_drift() {
+        let summary = reference_snapshot_bridge_day_summary_for_report();
+        let drifted_summary = summary.replace("2451914.0", "2451914.1");
+
+        let error = ensure_reference_snapshot_bridge_day_summary_matches_current_rendering(
+            &drifted_summary,
+        )
+        .expect_err("drifted reference snapshot bridge day summary should be rejected");
+        assert!(error
+            .to_string()
+            .contains("no longer matches the current reference snapshot bridge day posture"));
     }
 
     #[test]
