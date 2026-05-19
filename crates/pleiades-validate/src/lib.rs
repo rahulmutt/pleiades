@@ -12378,6 +12378,21 @@ fn ensure_packaged_artifact_generation_manifest_summary_matches_current_renderin
     }
 }
 
+fn ensure_packaged_artifact_generation_manifest_checksum_summary_matches_current_rendering(
+    packaged_artifact_generation_manifest_checksum_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if packaged_artifact_generation_manifest_checksum_summary_text
+        == packaged_artifact_generation_manifest_checksum_for_report()
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "packaged-artifact generation manifest checksum summary no longer matches the current packaged-artifact generation-manifest checksum posture"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_packaged_artifact_normalized_intermediate_summary_matches_current_rendering(
     packaged_artifact_normalized_intermediate_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -13396,14 +13411,9 @@ fn verify_release_bundle(
         &packaged_artifact_generation_manifest_checksum_summary_path,
         "packaged-artifact generation manifest checksum summary",
     )?;
-    if packaged_artifact_generation_manifest_checksum_summary_text
-        != packaged_artifact_generation_manifest_checksum_for_report()
-    {
-        return Err(ReleaseBundleError::Verification(
-            "packaged-artifact generation manifest checksum summary no longer matches the current packaged-artifact generation-manifest checksum posture"
-                .to_string(),
-        ));
-    }
+    ensure_packaged_artifact_generation_manifest_checksum_summary_matches_current_rendering(
+        &packaged_artifact_generation_manifest_checksum_summary_text,
+    )?;
     let packaged_artifact_generation_manifest_checksum_summary_checksum =
         checksum64(&packaged_artifact_generation_manifest_checksum_summary_text);
     let packaged_artifact_generation_manifest_checksum_text = read_required_bundle_text(
@@ -33560,6 +33570,19 @@ version = "0.9.0"
             render_cli(&["packaged-artifact-generation-manifest-checksum", "extra"])
                 .expect_err("packaged artifact generation manifest checksum alias should reject extra arguments"),
             "packaged-artifact-generation-manifest-checksum-summary does not accept extra arguments"
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_packaged_artifact_generation_manifest_checksum_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-packaged-artifact-generation-manifest-checksum-semantic",
+            "packaged-artifact-generation-manifest-checksum-summary.txt",
+            "packaged-artifact generation manifest checksum summary checksum (fnv1a-64):",
+            "Packaged artifact generation manifest checksum:",
+            "Tampered packaged artifact generation manifest checksum:",
+            "packaged-artifact generation manifest checksum summary no longer matches the current packaged-artifact generation-manifest checksum posture",
         );
     }
 
