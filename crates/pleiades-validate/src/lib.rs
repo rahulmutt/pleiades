@@ -113,6 +113,10 @@ use pleiades_houses::{
     baseline_house_systems, built_in_house_systems, release_house_systems, resolve_house_system,
     validate_house_catalog,
 };
+
+#[cfg(test)]
+use pleiades_jpl::production_generation_snapshot_body_class_coverage_summary_for_report;
+
 use pleiades_jpl::{
     comparison_snapshot_body_class_coverage_summary_for_report,
     comparison_snapshot_manifest_summary_for_report, comparison_snapshot_requests,
@@ -140,7 +144,6 @@ use pleiades_jpl::{
     production_generation_boundary_window_summary_for_report,
     production_generation_manifest_checksum_for_report,
     production_generation_manifest_summary_for_report,
-    production_generation_snapshot_body_class_coverage_summary_for_report,
     production_generation_snapshot_summary_for_report,
     production_generation_snapshot_window_summary_for_report,
     production_generation_source_summary_for_report,
@@ -225,6 +228,7 @@ use pleiades_jpl::{
     validated_comparison_snapshot_source_summary_for_report,
     validated_comparison_snapshot_source_window_summary_for_report,
     validated_independent_holdout_snapshot_batch_parity_summary_for_report,
+    validated_production_generation_snapshot_body_class_coverage_summary_for_report,
     validated_production_generation_source_summary_for_report,
     validated_reference_asteroid_source_window_summary_for_report,
     validated_reference_holdout_overlap_summary_for_report,
@@ -5400,7 +5404,7 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
                 &args[1..],
                 "production-generation-body-class-coverage-summary",
             )?;
-            Ok(production_generation_snapshot_body_class_coverage_summary_for_report())
+            Ok(validated_production_generation_body_class_coverage_summary_for_report())
         }
         Some("production-generation-source-window-summary")
         | Some("production-generation-source-window") => {
@@ -9431,7 +9435,7 @@ fn render_release_summary_text() -> String {
     text.push_str(&production_generation_snapshot_window_summary_for_report());
     text.push('\n');
     text.push_str("JPL production-generation body-class coverage: ");
-    text.push_str(&production_generation_snapshot_body_class_coverage_summary_for_report());
+    text.push_str(&validated_production_generation_body_class_coverage_summary_for_report());
     text.push('\n');
     text.push_str("JPL production-generation boundary overlay: ");
     text.push_str(&production_generation_boundary_summary_for_report());
@@ -10292,7 +10296,7 @@ pub fn render_release_bundle(
     let production_generation_summary_text = production_generation_snapshot_summary_for_report();
     let production_generation_summary_checksum = checksum64(&production_generation_summary_text);
     let production_generation_body_class_coverage_summary_text =
-        production_generation_snapshot_body_class_coverage_summary_for_report();
+        validated_production_generation_body_class_coverage_summary_for_report();
     let production_generation_body_class_coverage_summary_checksum =
         checksum64(&production_generation_body_class_coverage_summary_text);
     let production_generation_source_summary_text =
@@ -12368,6 +12372,21 @@ fn ensure_production_generation_boundary_request_corpus_summary_matches_current_
     }
 }
 
+fn ensure_production_generation_body_class_coverage_summary_matches_current_rendering(
+    production_generation_body_class_coverage_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if production_generation_body_class_coverage_summary_text
+        == validated_production_generation_body_class_coverage_summary_for_report()
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "production generation body-class coverage summary no longer matches the current production-generation body-class coverage posture"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_reference_holdout_overlap_summary_matches_current_rendering(
     reference_holdout_overlap_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -14356,7 +14375,7 @@ fn verify_release_bundle(
     let production_generation_summary_text = production_generation_snapshot_summary_for_report();
     let production_generation_summary_checksum = checksum64(&production_generation_summary_text);
     let production_generation_body_class_coverage_summary_text =
-        production_generation_snapshot_body_class_coverage_summary_for_report();
+        validated_production_generation_body_class_coverage_summary_for_report();
     let production_generation_body_class_coverage_summary_checksum =
         checksum64(&production_generation_body_class_coverage_summary_text);
     let production_generation_source_summary_text =
@@ -14365,6 +14384,9 @@ fn verify_release_bundle(
         checksum64(&production_generation_source_summary_text);
     ensure_production_generation_source_summary_matches_current_rendering(
         &production_generation_source_summary_text,
+    )?;
+    ensure_production_generation_body_class_coverage_summary_matches_current_rendering(
+        &production_generation_body_class_coverage_summary_text,
     )?;
     let production_generation_source_window_summary_checksum =
         checksum64(&production_generation_source_window_summary_text);
@@ -14924,6 +14946,9 @@ fn verify_release_bundle(
             manifest.production_generation_body_class_coverage_summary_checksum, production_generation_body_class_coverage_summary_checksum
         )));
     }
+    ensure_production_generation_body_class_coverage_summary_matches_current_rendering(
+        &production_generation_body_class_coverage_summary_text,
+    )?;
     if manifest.production_generation_source_summary_path
         != "production-generation-source-summary.txt"
     {
@@ -17982,6 +18007,13 @@ fn validated_request_policy_summary_for_report(
     let summary = request_policy_summary_for_report();
     summary.validate().map_err(|error| error.to_string())?;
     Ok(summary)
+}
+
+fn validated_production_generation_body_class_coverage_summary_for_report() -> String {
+    match validated_production_generation_snapshot_body_class_coverage_summary_for_report() {
+        Ok(summary) => summary,
+        Err(error) => format!("Production generation body-class coverage unavailable ({error})"),
+    }
 }
 
 fn format_request_semantics_summary_for_report(

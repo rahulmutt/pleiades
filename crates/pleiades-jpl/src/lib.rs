@@ -4063,6 +4063,21 @@ pub fn production_generation_snapshot_body_class_coverage_summary_for_report() -
     }
 }
 
+/// Returns the validated release-facing body-class coverage summary string for the merged production-generation corpus.
+pub fn validated_production_generation_snapshot_body_class_coverage_summary_for_report(
+) -> Result<String, String> {
+    let summary =
+        production_generation_snapshot_body_class_coverage_summary().ok_or_else(|| {
+            ProductionGenerationSnapshotBodyClassCoverageSummaryValidationError::FieldOutOfSync {
+                field: "row_count",
+            }
+            .to_string()
+        })?;
+    summary
+        .validated_summary_line()
+        .map_err(|error| error.to_string())
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct ComparisonSnapshotSummary {
     /// Total number of parsed snapshot rows.
@@ -27810,6 +27825,10 @@ mod tests {
         assert_eq!(
             production_generation_snapshot_body_class_coverage_summary_for_report(),
             summary.summary_line()
+        );
+        assert_eq!(
+            validated_production_generation_snapshot_body_class_coverage_summary_for_report(),
+            Ok(summary.summary_line())
         );
     }
 

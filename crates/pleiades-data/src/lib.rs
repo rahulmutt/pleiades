@@ -7394,6 +7394,7 @@ where
     Some((segment, error))
 }
 
+#[allow(clippy::too_many_arguments)]
 fn segment_from_pair_fallback(
     start_instant: Instant,
     end_instant: Instant,
