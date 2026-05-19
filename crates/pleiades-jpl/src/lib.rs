@@ -2898,14 +2898,24 @@ pub fn reference_snapshot_exact_j2000_evidence_summary(
     })
 }
 
+/// Returns the validated release-facing reference snapshot exact J2000 evidence summary string.
+pub fn validated_reference_snapshot_exact_j2000_evidence_summary_for_report(
+) -> Result<String, String> {
+    let summary = reference_snapshot_exact_j2000_evidence_summary()
+        .ok_or_else(|| "reference snapshot exact J2000 evidence unavailable".to_string())?;
+    summary
+        .validated_summary_line()
+        .map_err(|error| error.to_string())
+}
+
 /// Returns the release-facing reference snapshot exact J2000 evidence summary string.
 pub fn reference_snapshot_exact_j2000_evidence_summary_for_report() -> String {
-    match reference_snapshot_exact_j2000_evidence_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => format!("Reference snapshot exact J2000 evidence: unavailable ({error})"),
-        },
-        None => "Reference snapshot exact J2000 evidence: unavailable".to_string(),
+    match validated_reference_snapshot_exact_j2000_evidence_summary_for_report() {
+        Ok(summary_line) => summary_line,
+        Err(error) if error == "reference snapshot exact J2000 evidence unavailable" => {
+            "Reference snapshot exact J2000 evidence: unavailable".to_string()
+        }
+        Err(error) => format!("Reference snapshot exact J2000 evidence: unavailable ({error})"),
     }
 }
 
@@ -25004,6 +25014,10 @@ mod tests {
         assert_eq!(summary.summary_line(), format!("Reference snapshot exact J2000 evidence: 16 exact J2000 samples at JD 2451545.0 (TDB) ({})", format_bodies(reference_bodies())));
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(
+            validated_reference_snapshot_exact_j2000_evidence_summary_for_report(),
+            Ok(summary.summary_line())
+        );
         assert_eq!(
             reference_snapshot_exact_j2000_evidence_summary_for_report(),
             summary.summary_line()

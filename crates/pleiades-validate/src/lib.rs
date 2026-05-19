@@ -199,7 +199,6 @@ use pleiades_jpl::{
     reference_snapshot_dense_boundary_summary_for_report,
     reference_snapshot_early_major_body_boundary_summary_for_report,
     reference_snapshot_equatorial_parity_summary_for_report,
-    reference_snapshot_exact_j2000_evidence_summary_for_report,
     reference_snapshot_high_curvature_epoch_coverage_summary_for_report,
     reference_snapshot_high_curvature_summary_for_report,
     reference_snapshot_high_curvature_window_summary_for_report,
@@ -230,6 +229,7 @@ use pleiades_jpl::{
     validated_comparison_snapshot_source_window_summary_for_report,
     validated_production_generation_source_summary_for_report,
     validated_reference_asteroid_source_window_summary_for_report,
+    validated_reference_snapshot_exact_j2000_evidence_summary_for_report,
     validated_selected_asteroid_source_evidence_summary_for_report,
     validated_selected_asteroid_source_request_corpus_summary_for_report,
     validated_selected_asteroid_source_window_summary_for_report, JplSnapshotBackend,
@@ -17378,10 +17378,12 @@ fn render_reference_snapshot_summary_text() -> String {
 }
 
 fn render_reference_snapshot_exact_j2000_evidence_text() -> String {
-    format!(
-        "Reference snapshot exact J2000 evidence summary\n{}\n",
-        reference_snapshot_exact_j2000_evidence_summary_for_report()
-    )
+    match validated_reference_snapshot_exact_j2000_evidence_summary_for_report() {
+        Ok(summary) => format!("Reference snapshot exact J2000 evidence summary\n{}\n", summary),
+        Err(error) => format!(
+            "Reference snapshot exact J2000 evidence summary\nReference snapshot exact J2000 evidence unavailable ({error})\n"
+        ),
+    }
 }
 
 fn render_lunar_reference_error_envelope_summary_text() -> String {
@@ -20541,7 +20543,11 @@ fn write_backend_matrix(f: &mut fmt::Formatter<'_>, backend: &BackendMetadata) -
             writeln!(
                 f,
                 "  {}",
-                reference_snapshot_exact_j2000_evidence_summary_for_report()
+                match validated_reference_snapshot_exact_j2000_evidence_summary_for_report() {
+                    Ok(summary) => summary,
+                    Err(error) =>
+                        format!("Reference snapshot exact J2000 evidence: unavailable ({error})"),
+                }
             )?;
             writeln!(
                 f,
@@ -34555,7 +34561,8 @@ version = "0.9.0"
             reference_exact_j2000,
             format!(
                 "Reference snapshot exact J2000 evidence summary\n{}\n",
-                reference_snapshot_exact_j2000_evidence_summary_for_report()
+                validated_reference_snapshot_exact_j2000_evidence_summary_for_report()
+                    .expect("reference snapshot exact J2000 evidence should validate")
             )
         );
         let exact_j2000_evidence = render_cli(&["exact-j2000-evidence"])
