@@ -2036,6 +2036,10 @@ impl PackagedArtifactBodyCadence {
                 | Self::CustomBodies
         )
     }
+
+    fn uses_dense_residual_sample_lattice(self, kind: ChannelKind) -> bool {
+        self.uses_dense_sampling() && matches!(kind, ChannelKind::Longitude | ChannelKind::Latitude)
+    }
 }
 
 fn packaged_artifact_body_cadence(body: &CelestialBody) -> PackagedArtifactBodyCadence {
@@ -7545,9 +7549,7 @@ fn packaged_artifact_residual_sample_fractions_for_channel(
     body: &CelestialBody,
     kind: ChannelKind,
 ) -> &'static [f64] {
-    if packaged_artifact_body_cadence(body).uses_dense_sampling()
-        && matches!(kind, ChannelKind::Longitude | ChannelKind::Latitude)
-    {
+    if packaged_artifact_body_cadence(body).uses_dense_residual_sample_lattice(kind) {
         PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS
     } else {
         PACKAGED_ARTIFACT_RESIDUAL_SAMPLE_FRACTIONS
@@ -8218,13 +8220,34 @@ mod tests {
         assert_eq!(
             packaged_artifact_residual_sample_fractions_for_channel(
                 &lunar_point_body,
+                ChannelKind::DistanceAu,
+            ),
+            PACKAGED_ARTIFACT_RESIDUAL_SAMPLE_FRACTIONS
+        );
+        assert_eq!(
+            packaged_artifact_residual_sample_fractions_for_channel(
+                &CelestialBody::Ceres,
                 ChannelKind::Longitude,
             ),
             PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS
         );
         assert_eq!(
             packaged_artifact_residual_sample_fractions_for_channel(
-                &lunar_point_body,
+                &CelestialBody::Ceres,
+                ChannelKind::DistanceAu,
+            ),
+            PACKAGED_ARTIFACT_RESIDUAL_SAMPLE_FRACTIONS
+        );
+        assert_eq!(
+            packaged_artifact_residual_sample_fractions_for_channel(
+                custom_segment.0,
+                ChannelKind::Latitude,
+            ),
+            PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS
+        );
+        assert_eq!(
+            packaged_artifact_residual_sample_fractions_for_channel(
+                custom_segment.0,
                 ChannelKind::DistanceAu,
             ),
             PACKAGED_ARTIFACT_RESIDUAL_SAMPLE_FRACTIONS
