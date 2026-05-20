@@ -6152,15 +6152,46 @@ fn build_packaged_artifact() -> CompressedArtifact {
         .expect("checked-in packaged artifact fixture should decode and validate")
 }
 
+fn validate_packaged_artifact_reference_snapshot_inputs(
+    snapshot: &[SnapshotEntry],
+) -> Result<(), pleiades_compression::CompressionError> {
+    let reference_snapshot = reference_snapshot();
+    if snapshot.len() != reference_snapshot.len() {
+        return Err(pleiades_compression::CompressionError::new(
+            pleiades_compression::CompressionErrorKind::InvalidFormat,
+            format!(
+                "packaged artifact regeneration snapshot input length {} does not match the checked-in reference snapshot length {}",
+                snapshot.len(),
+                reference_snapshot.len()
+            ),
+        ));
+    }
+
+    for (index, (actual, expected)) in snapshot.iter().zip(reference_snapshot).enumerate() {
+        if actual != expected {
+            return Err(pleiades_compression::CompressionError::new(
+                pleiades_compression::CompressionErrorKind::InvalidFormat,
+                format!(
+                    "packaged artifact regeneration snapshot input at index {index} does not match the checked-in reference snapshot: expected {expected:?}; found {actual:?}",
+                ),
+            ));
+        }
+    }
+
+    Ok(())
+}
+
 /// Rebuilds the packaged artifact from validated JPL reference-snapshot inputs.
 ///
 /// This helper is deterministic and pure Rust so maintainers can regenerate the
 /// checked-in fixture without relying on platform-specific tooling. Callers can
-/// supply a validated reference snapshot slice to make the generation inputs
+/// supply the checked-in reference snapshot slice to make the generation inputs
 /// explicit while preserving the same bundled artifact layout.
-pub fn regenerate_packaged_artifact_from_snapshot(
+pub fn try_regenerate_packaged_artifact_from_snapshot(
     snapshot: &[SnapshotEntry],
-) -> CompressedArtifact {
+) -> Result<CompressedArtifact, pleiades_compression::CompressionError> {
+    validate_packaged_artifact_reference_snapshot_inputs(snapshot)?;
+
     let mut artifact = CompressedArtifact::new(
         ArtifactHeader::new(ARTIFACT_LABEL, packaged_artifact_source_text()),
         packaged_body_artifacts_from_snapshot(snapshot),
@@ -6171,7 +6202,20 @@ pub fn regenerate_packaged_artifact_from_snapshot(
     artifact
         .validate()
         .expect("packaged artifact should validate before encoding");
-    artifact
+    Ok(artifact)
+}
+
+/// Rebuilds the packaged artifact from validated JPL reference-snapshot inputs.
+///
+/// This helper is deterministic and pure Rust so maintainers can regenerate the
+/// checked-in fixture without relying on platform-specific tooling. Callers can
+/// supply the checked-in reference snapshot slice to make the generation inputs
+/// explicit while preserving the same bundled artifact layout.
+pub fn regenerate_packaged_artifact_from_snapshot(
+    snapshot: &[SnapshotEntry],
+) -> CompressedArtifact {
+    try_regenerate_packaged_artifact_from_snapshot(snapshot)
+        .expect("checked-in reference snapshot inputs should validate")
 }
 
 /// Rebuilds the packaged artifact from the checked-in JPL reference snapshot.
@@ -8319,6 +8363,22 @@ mod tests {
         assert_eq!(
             generated_from_snapshot.encode().unwrap(),
             PACKAGED_ARTIFACT_FIXTURE
+        );
+    }
+
+    #[test]
+    fn packaged_artifact_generation_rejects_tampered_reference_snapshot_inputs() {
+        let mut snapshot = reference_snapshot().to_vec();
+        snapshot[0].x_km += 1.0;
+
+        let error = try_regenerate_packaged_artifact_from_snapshot(&snapshot)
+            .expect_err("tampered reference snapshot inputs should be rejected");
+
+        assert!(
+            error
+                .to_string()
+                .contains("packaged artifact regeneration snapshot input at index 0 does not match the checked-in reference snapshot"),
+            "unexpected validation error: {error}"
         );
     }
 
