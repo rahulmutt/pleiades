@@ -8,7 +8,7 @@ This file lists only active implementation slices. Completed report aliases, sum
 - Keep corpus provenance surfaces aligned; JPL reference, hold-out, and boundary-overlay summaries now surface explicit evidence-class labels alongside the existing source revision checksums.
 - Create independent hold-out coverage that is not consumed by artifact fitting.
 - Make backend matrices and release profiles derive body/date/channel claims from validated corpus evidence.
-- Keep corpus provenance surfaces aligned; source revision checksums now have a dedicated `production-generation-source-revision-summary` report command.
+- Keep corpus provenance surfaces aligned; source revision checksums now have a dedicated `production-generation-source-revision-summary` report command and are bundled/verified as a first-class release artifact.
 
 ## Phase 2 — Production compressed ephemeris
 
