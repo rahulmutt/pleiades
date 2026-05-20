@@ -2,28 +2,23 @@
 
 ## Role
 
-Ensure remaining implementation work produces evidence strong enough for release claims: accuracy reports, compatibility profiles, backend matrices, artifact summaries, benchmarks, audits, and reproducible bundles.
+Turn generated evidence into release gates that prevent stale artifacts and overstated claims.
 
 ## Standards
 
-- Validate against authoritative public source data where practical.
-- Preserve small golden fixtures for regression tests even after full readers/generators exist.
-- Publish tolerances by backend, body class, time range, coordinate output, and artifact profile.
-- Include known gaps and constraints in compatibility profiles instead of hiding them.
-- Archive release reports, artifact metadata, manifests, source revisions, tool versions, and checksums with each release bundle.
-- Make release-facing commands fail closed when generated evidence contradicts advertised claims.
+- Validation should distinguish reference, hold-out, boundary, fixture-exactness, and provenance-only evidence.
+- Release profiles must state exact shipped built-ins, aliases, constraints, known gaps, and unsupported modes.
+- Bundle verification must compare staged files to live renderers or reproducible source inputs where practical.
 
 ## Required report families
 
-- cross-backend comparison and tolerance reports;
-- source/reference corpus and provenance reports;
-- artifact validation and benchmark reports;
-- body-claim and backend capability matrices;
-- compatibility-profile verification reports;
-- API stability and request-policy posture reports;
-- release notes, release checklists, release summaries, and bundle manifests;
-- pure-Rust/native-dependency audit summaries.
+- source-corpus provenance and coverage
+- backend capability and body-claim matrices
+- packaged-artifact profile, accuracy, regeneration, checksum, and benchmarks
+- house/ayanamsa compatibility evidence
+- request-mode policy summaries
+- native dependency/build audit
 
 ## Release readiness rule
 
-A release must not claim production ephemeris accuracy, compressed artifact coverage, release-grade Pluto/lunar/asteroid coverage, apparent/topocentric/native-sidereal support, built-in Delta-T/UTC conversion, or full compatibility-catalog coverage until generated reports verify those claims from the current source revision.
+A release is not ready until validation and bundle verification fail closed on missing inputs, stale generated outputs, artifact threshold failures, unsupported-mode claim drift, and compatibility-profile overclaims.

@@ -1,16 +1,13 @@
 # Appendix 2 — Phase Workable-State Matrix
 
-| Phase | Workable state after completion | Primary users unblocked |
-| --- | --- | --- |
-| Phase 1 — Artifact accuracy and packaged-data production | Maintainers can regenerate, validate, benchmark, and ship a deterministic artifact whose measured errors fit the published profile. | Application developers needing offline packaged data; release maintainers validating artifacts. |
-| Phase 2 — Reference/source corpus productionization | Maintainers can validate release-claimed body positions and fit artifacts from documented public source inputs. | Backend implementers, validation maintainers, artifact-generation maintainers. |
-| Phase 3 — Body-model completion and claim boundaries | Release body lists distinguish source-backed, approximate, interpolated, constrained, custom, and unsupported bodies. | Chart API users, backend implementers, package maintainers. |
-| Phase 4 — Advanced request modes and policy | Callers can rely on implemented advanced modes or structured unsupported errors for every deferred request dimension. | Chart API users, backend implementers, documentation maintainers. |
-| Phase 5 — Compatibility catalog evidence | Release profiles truthfully describe house/ayanamsa coverage, aliases, constraints, custom definitions, and known gaps. | Astrology application developers comparing interoperability; release maintainers. |
-| Phase 6 — Release gate hardening | A clean checkout can produce and verify a release bundle with current claims, reports, checksums, manifests, and docs. | Downstream users, package maintainers, release managers. |
+| Phase | Workable state |
+| --- | --- |
+| 1 — Production reference/source corpus | Maintainers can reproduce the source corpus and know exactly which bodies, epochs, frames, channels, and evidence classes it validates. |
+| 2 — Production compressed ephemeris | Maintainers can regenerate and ship a 1500-2500 CE artifact whose measured errors and performance match the published profile. |
+| 3 — Body and backend claim completion | Public body/backend claims are source-backed, artifact-backed, constrained, approximate, or unsupported with no ambiguous middle state. |
+| 4 — Advanced request modes | Every advanced request mode is implemented with documented assumptions and tests or rejected with a structured error. |
+| 5 — Compatibility and release readiness | A clean checkout can build, validate, benchmark, bundle, and verify a release without stale claims or hidden tooling. |
 
 ## Notes
 
-- Phases may overlap, but Phase 1 production claims require Phase 2-quality inputs and Phase 3 body-claim decisions.
-- Every phase keeps unsupported modes explicit rather than silently approximating them.
-- Release gates must validate current evidence, not historical report text.
+Phase numbers describe dependency order, not strict serialization. Work may proceed in parallel when it does not broaden public claims before evidence exists.

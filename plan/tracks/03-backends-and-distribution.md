@@ -2,21 +2,17 @@
 
 ## Role
 
-Guide backend, compression, source-corpus, and packaged-data work so Pleiades provides interchangeable pure-Rust ephemeris sources and offline artifacts with truthful capability claims.
+Advance backend implementations, source corpora, and compressed distribution without coupling the public API to one source family.
 
 ## Standards
 
-- Keep each backend family in its own first-party crate.
-- Keep backend metadata current for source material, time range, body coverage, frames, time scales, topocentric/apparent/mean support, determinism, offline status, and accuracy class.
-- Return structured errors for unsupported bodies, frames, time scales, missing data, out-of-range dates, apparent requests, and observer-bearing geocentric-only requests.
-- Keep composite routing transparent through metadata, capability summaries, and result backend identifiers.
-- Make packaged artifacts state stored, derived, approximated, and unsupported outputs and enforce those claims at decode/lookup time.
+- Source-specific backend crates may depend only on lower-layer crates permitted by `spec/architecture.md`.
+- Backend metadata must reflect actual body, time-range, frame, apparentness, observer, and accuracy support.
+- Packaged artifacts must be reproducible from documented public inputs.
 
 ## Remaining backend goals
 
-- Build a production compressed artifact for 1500-2500 CE with measured errors inside published thresholds.
-- Expand public reference inputs from fixture evidence into a production-suitable validation and artifact-generation path.
-- Resolve Pluto's release posture through source-backed validation, artifact-backed support, or explicit constrained/excluded claims.
-- Decide whether the lunar backend remains a compact validated baseline or grows into a fuller ELP-style coefficient implementation.
-- Promote selected asteroid support only where source coverage, backend implementation, and tolerance reports agree.
-- Benchmark lookup latency, batch throughput, artifact decode cost, artifact size, and full-chart use.
+- Production source corpus or reader strategy.
+- Production-grade 1500-2500 CE compressed artifact.
+- Pluto, fuller lunar theory/lunar points, and selected asteroid claim resolution.
+- Empirical accuracy documentation for each advertised backend path.

@@ -1,16 +1,17 @@
 # Checklist 2 — Release Artifacts
 
-A production release bundle should contain current generated copies of:
+A production release bundle must include current, reproducible evidence for the claims it makes.
 
-- release compatibility profile and verification summary;
-- backend capability matrix and request-policy summaries;
-- reference/source provenance reports and body-class tolerance reports;
-- compressed artifact binary, manifest, normalized-intermediate summary, profile, checksums, and validation report;
-- artifact benchmark matrix covering lookup, batch, decode, size, and chart-style use;
-- house and ayanamsa catalog evidence summaries;
-- pure-Rust/native-dependency audit summary;
-- API stability summary;
-- release checklist, release notes, and release summary;
-- source revision, tool versions, generation parameters, reproducibility instructions, and the provenance contract for any broader source-corpus expansion.
+## Required artifact families
 
-Do not include a production claim for any body, artifact scope, request mode, house system, or ayanamsa that lacks matching generated evidence.
+- Compatibility profile and release notes.
+- Backend capability matrix and body-claim summaries.
+- Source-corpus provenance, coverage, checksums, and hold-out reports.
+- Packaged-artifact binary, manifest, checksum sidecars, profile, validation reports, and benchmarks.
+- House and ayanamsa catalog evidence summaries, including aliases and constraints.
+- Request-mode policy summaries for time scale, observer/topocentric, apparentness, frame, zodiac/sidereal, and unsupported modes.
+- Native dependency/build-hook audit and workspace tool-version provenance.
+
+## Release readiness rule
+
+Do not publish a release bundle when any generated artifact is stale, any production threshold is exceeded, any public profile overclaims support, or any required source/provenance checksum cannot be reproduced from the documented inputs.

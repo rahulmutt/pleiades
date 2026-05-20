@@ -2,21 +2,17 @@
 
 ## Role
 
-Protect the typed, backend-agnostic public API while remaining phases improve production accuracy, body coverage, request semantics, catalog evidence, artifact distribution, and release guarantees.
+Keep domain types and façade APIs stable while body coverage, request modes, and compatibility evidence mature.
 
 ## Standards
 
-- Keep shared domain vocabulary in `pleiades-types`.
-- Keep backend contracts in `pleiades-backend` and source-specific calculations in backend crates.
-- Keep house, ayanamsa, sidereal conversion, sign placement, house placement, aspects, and chart assembly out of source-specific backends.
-- Prefer extensible identifiers, descriptors, validation helpers, and compatibility-profile metadata over breaking enum churn.
-- Document units, frames, normalization, time scales, coordinate assumptions, and failure modes for public APIs.
-- Keep unsupported request modes as structured errors until implemented and validated.
+- Use strongly typed units, frames, time scales, observer data, bodies, houses, ayanamsas, and errors.
+- Keep sidereal conversion, house logic, and chart assembly outside source-specific backend crates.
+- Keep unsupported modes explicit and structured.
 
 ## Remaining domain/API concerns
 
-- Keep body identifiers extensible while making unsupported or approximate bodies explicit in metadata and release profiles.
-- Resolve or explicitly defer built-in UTC/Delta-T convenience, apparent-place corrections, topocentric body positions, and native sidereal backend output.
-- Validate release-advertised house and ayanamsa formulas/aliases or mark them constrained, descriptor-only, custom-only, approximate, or unsupported.
-- Keep custom body, house, and ayanamsa identifiers distinguishable from built-ins in profiles, summaries, and serialization.
-- Ensure release profiles truthfully separate baseline guarantees, release additions, known gaps, constraints, and unsupported modes.
+- UTC/Delta-T convenience policy and any future built-in civil-time conversion.
+- Apparent-place and topocentric body-position semantics.
+- House and ayanamsa entries whose implementation/evidence status is weaker than their descriptor presence.
+- Public docs and rustdoc examples for production-ready chart workflows once claims are settled.

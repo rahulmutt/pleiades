@@ -1,23 +1,22 @@
 # Plan Overview
 
-`pleiades` has completed the bootstrap/foundation roadmap. The active plan now tracks only production gaps that remain against `SPEC.md` and `spec/*.md`.
+`pleiades` has completed bootstrap and foundation work. The active plan tracks only remaining production gaps against the specification.
 
 ## Active phases
 
-1. **Artifact accuracy and packaged-data production** — replace the draft packaged-data fixture with a production 1500-2500 CE artifact.
-2. **Reference/source corpus productionization** — provide public, documented, deterministic inputs for validation and artifact fitting.
-3. **Body-model completion and claim boundaries** — settle Pluto, fuller lunar theory/lunar points, and selected asteroid release claims.
-4. **Advanced request modes and policy** — implement or consistently reject UTC/Delta-T, apparent, topocentric, and native-sidereal modes.
-5. **Compatibility catalog evidence** — audit house and ayanamsa formulas, aliases, constraints, and profile status.
-6. **Release gate hardening** — make release bundles and gates fail closed on drift or unsupported claims.
+1. **Production reference/source corpus** — build or ingest public, reproducible source inputs broad enough for validation and artifact generation.
+2. **Production compressed ephemeris** — replace the draft packaged-data fixture with a release-grade 1500-2500 CE artifact.
+3. **Body/backend claim completion** — settle accuracy and release status for Pluto, lunar theory/lunar points, selected asteroids, and backend capability matrices.
+4. **Advanced request modes** — implement or consistently reject UTC/Delta-T modeling, apparent-place corrections, topocentric body positions, and native sidereal output.
+5. **Compatibility and release readiness** — audit house/ayanamsa evidence and make release gates fail closed on stale or overstated claims.
 
 ## Current priority
 
-Prioritize Phase 1, but do not broaden packaged-data claims until Phase 2-quality inputs are available. The current draft path now passes the calibrated fit thresholds, can add Moon residual-correction channels when they improve the measured fit, and the target-threshold policy is recorded as production-ready, but the Phase 2 corpus still needs to be finalized; current artifact manifest, checksum, output-support, cadence, fit-outlier, and benchmark reports are useful diagnostics, not substitutes for release-grade evidence.
+Phase 1 is the execution frontier. Phase 2 can improve generation algorithms in parallel, but the artifact must remain draft-grade until source coverage and hold-out validation are production-ready.
 
 ## Cross-cutting rules
 
-- Keep the workspace pure Rust and layered according to `spec/architecture.md`.
+- Preserve pure-Rust, layered crate boundaries from `spec/architecture.md`.
 - Keep unsupported modes as structured errors until implemented and validated.
-- Keep release profiles and public docs aligned with current generated evidence.
-- Remove completed implementation slices from active status files instead of accumulating historical notes.
+- Keep release compatibility profiles truthful about exact built-ins, aliases, constraints, and known gaps.
+- Keep validation/report artifacts generated from current code and source inputs, not manually-maintained prose.
