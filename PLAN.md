@@ -14,6 +14,7 @@ The workspace has completed the original foundation roadmap:
 - JPL source-corpus evidence now includes a dedicated provenance-only posture line so provenance-only rows remain separate from tolerance, hold-out, and fixture-exactness evidence in release-facing reports;
 - production-generation source-revision checksums now validate against the current fixture contents before they are surfaced or bundled, so the release-facing checksum line fails closed on drift;
 - release bundles now carry independent-holdout body-class coverage alongside the existing independent-holdout source-window evidence so hold-out coverage stays explicit in staged artifacts;
+- release bundles now also carry the production-generation corpus-shape summary alongside the source-window and manifest summaries, and bundle verification fails closed if the staged directory or manifest omits it;
 - house and ayanamsa crates contain broad catalog descriptors plus baseline calculations/conversions, and the compatibility inventory now also surfaces ayanamsa alias-bearing entry counts to keep alias audits explicit;
 - VSOP87-style planetary, compact lunar/lunar-point, JPL snapshot, and packaged-data backend crates exist;
 - validation, CLI, release-bundle, audit, benchmark, and report-generation surfaces exist.
