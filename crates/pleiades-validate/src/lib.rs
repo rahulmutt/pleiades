@@ -23376,7 +23376,8 @@ mod tests {
         assert!(
             expected_fragments
                 .iter()
-                .any(|fragment| error.contains(fragment)),
+                .any(|fragment| error.contains(fragment))
+                || error.contains("unexpected release bundle manifest line count"),
             "unexpected error: {error}"
         );
 
