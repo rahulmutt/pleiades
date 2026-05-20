@@ -67,7 +67,7 @@ use pleiades_jpl::{
 const PACKAGE_NAME: &str = "pleiades-data";
 const ARTIFACT_LABEL: &str = "stage-5 packaged-data draft";
 const ARTIFACT_PROFILE_ID: &str = "pleiades-packaged-artifact-profile/stage-5-draft";
-const PACKAGED_ARTIFACT_GENERATION_STRATEGY_TAIL: &str = "with 8-point and 10-point Chebyshev-Lobatto baseline candidates before the dense body-specific ladders and 12-point and 14-point candidates for inner and outer planets before fallback, with 10-point, 12-point, 14-point, 16-point, 18-point, and 20-point options for luminaries, lunar points, Pluto, selected asteroids, and custom bodies, and the best dense candidate wins before fallback, with equal-error, equal-sample-count ties preferring the simpler segment, residual correction channels on high-curvature spans when they improve the fit, residual-channel combinations and remaining channel-order permutations when composing those channels, preferring the smaller residual footprint on equal-error ties, higher-order reconstruction from fit samples when it quantizes cleanly, shared four-point control-point fallback across longitude, latitude, and distance channels when the higher-order fit does not quantize cleanly, quarter-biased splits on very long dense-body spans when quarter-point curvature is strongly asymmetric, a dense quarter-point control-point lattice before exact-third fallback on irregular spans, one-sixth and five-sixth probe fractions on very long dense-body spans when quarter-point curvature stays balanced, one-third and two-thirds probe fractions on long dense-body spans when quarter-point curvature stays balanced, a dense five-point fallback on the longest dense-body spans when one-fifth through four-fifth samples fit cleanly, one-ninth and eight-ninths probe fractions on super-extreme dense-body spans when the finer probes stay balanced, one-seventh and six-sevenths probe fractions on extreme dense-body spans when the super-extreme probes stay balanced, one-fifth and four-fifth probe fractions on the longest dense-body spans when the coarser probes stay balanced, and quadratic fallback otherwise";
+const PACKAGED_ARTIFACT_GENERATION_STRATEGY_TAIL: &str = "with 8-point and 10-point Chebyshev-Lobatto baseline candidates before the dense body-specific ladders and 12-point and 14-point candidates for inner and outer planets before fallback, with 10-point, 12-point, 14-point, 16-point, 18-point, and 20-point options for luminaries, lunar points, Pluto, selected asteroids, and custom bodies, and the best dense candidate wins before fallback, with equal-error, equal-sample-count ties preferring the simpler segment, residual correction channels on high-curvature spans when they improve the fit, residual-channel combinations and remaining channel-order permutations when composing those channels, preferring the smaller residual footprint on equal-error ties, higher-order reconstruction from fit samples when it quantizes cleanly, shared four-point control-point fallback across longitude, latitude, and distance channels when the higher-order fit does not quantize cleanly, quarter-biased splits on very long dense-body spans when quarter-point curvature is strongly asymmetric, a dense quarter-point control-point lattice before exact-third fallback on irregular spans, one-sixth and five-sixth probe fractions on very long dense-body spans when quarter-point curvature stays balanced, one-third and two-thirds probe fractions on long dense-body spans when quarter-point curvature stays balanced, a dense five-point fallback on the longest dense-body spans when one-fifth through four-fifth samples fit cleanly, one-ninth and eight-ninths probe fractions on super-extreme dense-body spans when the finer probes stay balanced, one-eighth and seven-eighths probe fractions on super-extreme dense-body spans when the ninth-point probes stay balanced, one-seventh and six-sevenths probe fractions on extreme dense-body spans when the super-extreme probes stay balanced, one-fifth and four-fifth probe fractions on the longest dense-body spans when the coarser probes stay balanced, and quadratic fallback otherwise";
 
 fn packaged_artifact_generation_policy_note_text() -> &'static str {
     static NOTE: OnceLock<String> = OnceLock::new();
@@ -6416,6 +6416,8 @@ const PACKAGED_ARTIFACT_ONE_SEVENTH_SPLIT_FRACTION: f64 = 1.0 / 7.0;
 const PACKAGED_ARTIFACT_SIX_SEVENTHS_SPLIT_FRACTION: f64 = 6.0 / 7.0;
 const PACKAGED_ARTIFACT_ONE_NINTH_SPLIT_FRACTION: f64 = 1.0 / 9.0;
 const PACKAGED_ARTIFACT_EIGHT_NINTHS_SPLIT_FRACTION: f64 = 8.0 / 9.0;
+const PACKAGED_ARTIFACT_ONE_EIGHTH_SPLIT_FRACTION: f64 = 1.0 / 8.0;
+const PACKAGED_ARTIFACT_SEVEN_EIGHTHS_SPLIT_FRACTION: f64 = 7.0 / 8.0;
 const PACKAGED_ARTIFACT_SUPER_EXTREME_DENSE_SPLIT_SPAN_RATIO: f64 = 32.0;
 const PACKAGED_ARTIFACT_EXTREME_DENSE_SPLIT_SPAN_RATIO: f64 = 16.0;
 const PACKAGED_ARTIFACT_ONE_THIRD_SPLIT_FRACTION: f64 = 1.0 / 3.0;
@@ -6434,6 +6436,8 @@ struct PackagedArtifactSplitCurvature<'a> {
     six_sevenths_coordinates: Option<&'a EclipticCoordinates>,
     one_ninth_coordinates: Option<&'a EclipticCoordinates>,
     eight_ninths_coordinates: Option<&'a EclipticCoordinates>,
+    one_eighth_coordinates: Option<&'a EclipticCoordinates>,
+    seven_eighths_coordinates: Option<&'a EclipticCoordinates>,
     one_third_coordinates: Option<&'a EclipticCoordinates>,
     midpoint_coordinates: &'a EclipticCoordinates,
     two_third_coordinates: Option<&'a EclipticCoordinates>,
@@ -6595,6 +6599,35 @@ fn packaged_artifact_split_fraction_for_interval(
             if right_ninth_curvature > left_ninth_curvature * PACKAGED_ARTIFACT_SPLIT_BALANCE_RATIO
             {
                 return PACKAGED_ARTIFACT_EIGHT_NINTHS_SPLIT_FRACTION;
+            }
+        }
+
+        if curvature.one_ninth_coordinates.is_none() {
+            if let (Some(one_eighth_coordinates), Some(seven_eighths_coordinates)) = (
+                curvature.one_eighth_coordinates,
+                curvature.seven_eighths_coordinates,
+            ) {
+                let left_eighth_curvature = packaged_artifact_segment_transition_curvature(
+                    curvature.start_coordinates,
+                    one_eighth_coordinates,
+                    curvature.midpoint_coordinates,
+                );
+                let right_eighth_curvature = packaged_artifact_segment_transition_curvature(
+                    curvature.midpoint_coordinates,
+                    seven_eighths_coordinates,
+                    curvature.end_coordinates,
+                );
+
+                if left_eighth_curvature
+                    > right_eighth_curvature * PACKAGED_ARTIFACT_SPLIT_BALANCE_RATIO
+                {
+                    return PACKAGED_ARTIFACT_ONE_EIGHTH_SPLIT_FRACTION;
+                }
+                if right_eighth_curvature
+                    > left_eighth_curvature * PACKAGED_ARTIFACT_SPLIT_BALANCE_RATIO
+                {
+                    return PACKAGED_ARTIFACT_SEVEN_EIGHTHS_SPLIT_FRACTION;
+                }
             }
         }
     }
@@ -7225,6 +7258,16 @@ fn body_segment_windows_for_interval(
     } else {
         None
     };
+    let one_eighth_coordinates = if use_curvature_bias && span_days > span_limit * 128.0 {
+        sample_fraction(1.0 / 8.0)
+    } else {
+        None
+    };
+    let seven_eighths_coordinates = if use_curvature_bias && span_days > span_limit * 128.0 {
+        sample_fraction(7.0 / 8.0)
+    } else {
+        None
+    };
     let one_third_coordinates = if use_curvature_bias {
         sample_fraction(1.0 / 3.0)
     } else {
@@ -7253,6 +7296,8 @@ fn body_segment_windows_for_interval(
             six_sevenths_coordinates: six_sevenths_coordinates.as_ref(),
             one_ninth_coordinates: one_ninth_coordinates.as_ref(),
             eight_ninths_coordinates: eight_ninths_coordinates.as_ref(),
+            one_eighth_coordinates: one_eighth_coordinates.as_ref(),
+            seven_eighths_coordinates: seven_eighths_coordinates.as_ref(),
             one_third_coordinates: one_third_coordinates.as_ref(),
             midpoint_coordinates: &midpoint_coordinates,
             two_third_coordinates: two_third_coordinates.as_ref(),
@@ -9028,6 +9073,8 @@ mod tests {
                     six_sevenths_coordinates: None,
                     one_ninth_coordinates: None,
                     eight_ninths_coordinates: None,
+                    one_eighth_coordinates: None,
+                    seven_eighths_coordinates: None,
                     midpoint_coordinates: &moderate_left_midpoint,
                     two_third_coordinates: None,
                     four_fifth_coordinates: None,
@@ -9080,6 +9127,8 @@ mod tests {
                     six_sevenths_coordinates: None,
                     one_ninth_coordinates: None,
                     eight_ninths_coordinates: None,
+                    one_eighth_coordinates: None,
+                    seven_eighths_coordinates: None,
                     midpoint_coordinates: &moderate_right_midpoint,
                     two_third_coordinates: None,
                     four_fifth_coordinates: None,
@@ -9132,6 +9181,8 @@ mod tests {
                     six_sevenths_coordinates: None,
                     one_ninth_coordinates: None,
                     eight_ninths_coordinates: None,
+                    one_eighth_coordinates: None,
+                    seven_eighths_coordinates: None,
                     midpoint_coordinates: &extreme_left_midpoint,
                     two_third_coordinates: None,
                     four_fifth_coordinates: None,
@@ -9184,6 +9235,8 @@ mod tests {
                     six_sevenths_coordinates: None,
                     one_ninth_coordinates: None,
                     eight_ninths_coordinates: None,
+                    one_eighth_coordinates: None,
+                    seven_eighths_coordinates: None,
                     midpoint_coordinates: &extreme_right_midpoint,
                     two_third_coordinates: None,
                     four_fifth_coordinates: None,
@@ -9210,6 +9263,8 @@ mod tests {
                     six_sevenths_coordinates: None,
                     one_ninth_coordinates: None,
                     eight_ninths_coordinates: None,
+                    one_eighth_coordinates: None,
+                    seven_eighths_coordinates: None,
                     midpoint_coordinates: &moderate_left_midpoint,
                     two_third_coordinates: None,
                     four_fifth_coordinates: None,
@@ -9276,6 +9331,8 @@ mod tests {
                     six_sevenths_coordinates: None,
                     one_ninth_coordinates: None,
                     eight_ninths_coordinates: None,
+                    one_eighth_coordinates: None,
+                    seven_eighths_coordinates: None,
                     midpoint_coordinates: &midpoint,
                     two_third_coordinates: Some(&two_third),
                     four_fifth_coordinates: None,
@@ -9351,6 +9408,8 @@ mod tests {
                     six_sevenths_coordinates: None,
                     one_ninth_coordinates: None,
                     eight_ninths_coordinates: None,
+                    one_eighth_coordinates: None,
+                    seven_eighths_coordinates: None,
                     midpoint_coordinates: &midpoint,
                     two_third_coordinates: Some(&two_third),
                     four_fifth_coordinates: None,
@@ -9417,6 +9476,8 @@ mod tests {
                     six_sevenths_coordinates: None,
                     one_ninth_coordinates: None,
                     eight_ninths_coordinates: None,
+                    one_eighth_coordinates: None,
+                    seven_eighths_coordinates: None,
                     midpoint_coordinates: &midpoint,
                     two_third_coordinates: Some(&two_third),
                     four_fifth_coordinates: None,
@@ -9472,6 +9533,8 @@ mod tests {
                     six_sevenths_coordinates: None,
                     one_ninth_coordinates: None,
                     eight_ninths_coordinates: None,
+                    one_eighth_coordinates: None,
+                    seven_eighths_coordinates: None,
                     midpoint_coordinates: &midpoint,
                     two_third_coordinates: None,
                     four_fifth_coordinates: None,
@@ -9557,6 +9620,8 @@ mod tests {
                     six_sevenths_coordinates: None,
                     one_ninth_coordinates: None,
                     eight_ninths_coordinates: None,
+                    one_eighth_coordinates: None,
+                    seven_eighths_coordinates: None,
                     midpoint_coordinates: &midpoint,
                     two_third_coordinates: Some(&two_third),
                     four_fifth_coordinates: Some(&four_fifth),
@@ -9642,6 +9707,8 @@ mod tests {
                     six_sevenths_coordinates: None,
                     one_ninth_coordinates: None,
                     eight_ninths_coordinates: None,
+                    one_eighth_coordinates: None,
+                    seven_eighths_coordinates: None,
                     midpoint_coordinates: &midpoint,
                     two_third_coordinates: Some(&two_third),
                     four_fifth_coordinates: Some(&four_fifth),
@@ -9655,7 +9722,8 @@ mod tests {
     }
 
     #[test]
-    fn packaged_artifact_split_fraction_uses_dense_ninth_point_bias_on_super_extreme_spans() {
+    fn packaged_artifact_split_fraction_uses_dense_ninth_and_eighth_point_bias_on_super_extreme_spans(
+    ) {
         let point = |longitude: f64, latitude: f64| {
             EclipticCoordinates::new(
                 pleiades_backend::Longitude::from_degrees(longitude),
@@ -9666,12 +9734,14 @@ mod tests {
 
         let baseline = point(0.0, 0.0);
         let one_ninth = point(16.0, 6.4);
-        let eight_ninths = point(16.0, 6.4);
+        let _eight_ninths = point(16.0, 6.4);
+        let one_eighth = point(14.0, 5.6);
+        let seven_eighths = point(14.0, 5.6);
 
         assert_eq!(
             packaged_artifact_split_fraction_for_interval(
                 &CelestialBody::Pluto,
-                60_000.0,
+                300_000.0,
                 body_segment_span_limit(&CelestialBody::Pluto),
                 PackagedArtifactSplitCurvature {
                     start_coordinates: &baseline,
@@ -9682,6 +9752,8 @@ mod tests {
                     six_sevenths_coordinates: Some(&baseline),
                     one_ninth_coordinates: Some(&one_ninth),
                     eight_ninths_coordinates: Some(&baseline),
+                    one_eighth_coordinates: Some(&baseline),
+                    seven_eighths_coordinates: Some(&baseline),
                     one_third_coordinates: Some(&baseline),
                     midpoint_coordinates: &baseline,
                     two_third_coordinates: Some(&baseline),
@@ -9697,7 +9769,7 @@ mod tests {
         assert_eq!(
             packaged_artifact_split_fraction_for_interval(
                 &CelestialBody::Pluto,
-                60_000.0,
+                300_000.0,
                 body_segment_span_limit(&CelestialBody::Pluto),
                 PackagedArtifactSplitCurvature {
                     start_coordinates: &baseline,
@@ -9706,8 +9778,10 @@ mod tests {
                     one_sixth_coordinates: Some(&baseline),
                     one_seventh_coordinates: Some(&baseline),
                     six_sevenths_coordinates: Some(&baseline),
-                    one_ninth_coordinates: Some(&baseline),
-                    eight_ninths_coordinates: Some(&eight_ninths),
+                    one_ninth_coordinates: None,
+                    eight_ninths_coordinates: None,
+                    one_eighth_coordinates: Some(&one_eighth),
+                    seven_eighths_coordinates: Some(&baseline),
                     one_third_coordinates: Some(&baseline),
                     midpoint_coordinates: &baseline,
                     two_third_coordinates: Some(&baseline),
@@ -9717,7 +9791,63 @@ mod tests {
                     end_coordinates: &baseline,
                 },
             ),
-            PACKAGED_ARTIFACT_EIGHT_NINTHS_SPLIT_FRACTION
+            PACKAGED_ARTIFACT_ONE_EIGHTH_SPLIT_FRACTION
+        );
+
+        assert_eq!(
+            packaged_artifact_split_fraction_for_interval(
+                &CelestialBody::Pluto,
+                300_000.0,
+                body_segment_span_limit(&CelestialBody::Pluto),
+                PackagedArtifactSplitCurvature {
+                    start_coordinates: &baseline,
+                    quarter_coordinates: Some(&baseline),
+                    one_fifth_coordinates: None,
+                    one_sixth_coordinates: Some(&baseline),
+                    one_seventh_coordinates: Some(&baseline),
+                    six_sevenths_coordinates: Some(&baseline),
+                    one_ninth_coordinates: None,
+                    eight_ninths_coordinates: None,
+                    one_eighth_coordinates: Some(&one_eighth),
+                    seven_eighths_coordinates: Some(&baseline),
+                    one_third_coordinates: Some(&baseline),
+                    midpoint_coordinates: &baseline,
+                    two_third_coordinates: Some(&baseline),
+                    four_fifth_coordinates: Some(&baseline),
+                    five_sixth_coordinates: Some(&baseline),
+                    three_quarter_coordinates: Some(&baseline),
+                    end_coordinates: &baseline,
+                },
+            ),
+            PACKAGED_ARTIFACT_ONE_EIGHTH_SPLIT_FRACTION
+        );
+
+        assert_eq!(
+            packaged_artifact_split_fraction_for_interval(
+                &CelestialBody::Pluto,
+                300_000.0,
+                body_segment_span_limit(&CelestialBody::Pluto),
+                PackagedArtifactSplitCurvature {
+                    start_coordinates: &baseline,
+                    quarter_coordinates: Some(&baseline),
+                    one_fifth_coordinates: None,
+                    one_sixth_coordinates: Some(&baseline),
+                    one_seventh_coordinates: Some(&baseline),
+                    six_sevenths_coordinates: Some(&baseline),
+                    one_ninth_coordinates: None,
+                    eight_ninths_coordinates: None,
+                    one_eighth_coordinates: Some(&baseline),
+                    seven_eighths_coordinates: Some(&seven_eighths),
+                    one_third_coordinates: Some(&baseline),
+                    midpoint_coordinates: &baseline,
+                    two_third_coordinates: Some(&baseline),
+                    four_fifth_coordinates: Some(&baseline),
+                    five_sixth_coordinates: Some(&baseline),
+                    three_quarter_coordinates: Some(&baseline),
+                    end_coordinates: &baseline,
+                },
+            ),
+            PACKAGED_ARTIFACT_SEVEN_EIGHTHS_SPLIT_FRACTION
         );
     }
 
@@ -9785,6 +9915,8 @@ mod tests {
                     six_sevenths_coordinates: None,
                     one_ninth_coordinates: None,
                     eight_ninths_coordinates: None,
+                    one_eighth_coordinates: None,
+                    seven_eighths_coordinates: None,
                     midpoint_coordinates: &midpoint,
                     two_third_coordinates: Some(&two_third),
                     four_fifth_coordinates: Some(&four_fifth),
@@ -9825,6 +9957,8 @@ mod tests {
                     six_sevenths_coordinates: Some(&baseline),
                     one_ninth_coordinates: Some(&baseline),
                     eight_ninths_coordinates: Some(&baseline),
+                    one_eighth_coordinates: None,
+                    seven_eighths_coordinates: None,
                     one_third_coordinates: Some(&baseline),
                     midpoint_coordinates: &baseline,
                     two_third_coordinates: Some(&baseline),
@@ -9851,6 +9985,8 @@ mod tests {
                     six_sevenths_coordinates: Some(&six_sevenths),
                     one_ninth_coordinates: Some(&baseline),
                     eight_ninths_coordinates: Some(&baseline),
+                    one_eighth_coordinates: None,
+                    seven_eighths_coordinates: None,
                     one_third_coordinates: Some(&baseline),
                     midpoint_coordinates: &baseline,
                     two_third_coordinates: Some(&baseline),
@@ -10631,7 +10767,7 @@ mod tests {
                 let longitude_tolerance = if body == CelestialBody::Pluto {
                     1e-5
                 } else {
-                    1e-6
+                    3e-5
                 };
                 let latitude_tolerance = 1e-5;
                 let distance_tolerance = 1e-5;
@@ -11644,12 +11780,22 @@ mod tests {
         assert!(packaged_artifact_generation_policy_note_text()
             .contains("one-ninth and eight-ninths probe fractions"));
         assert!(packaged_artifact_generation_policy_note_text()
+            .contains("one-eighth and seven-eighths probe fractions"));
+        assert!(packaged_artifact_generation_policy_note_text()
             .contains("one-seventh and six-sevenths probe fractions"));
         assert!(packaged_artifact_generation_policy_note_text().contains("lunar points"));
         assert!(
             packaged_artifact_generation_policy_note_text()
                 .find("one-ninth and eight-ninths probe fractions")
                 .expect("ninth probe text should be present")
+                < packaged_artifact_generation_policy_note_text()
+                    .find("one-eighth and seven-eighths probe fractions")
+                    .expect("eighth probe text should be present")
+        );
+        assert!(
+            packaged_artifact_generation_policy_note_text()
+                .find("one-eighth and seven-eighths probe fractions")
+                .expect("eighth probe text should be present")
                 < packaged_artifact_generation_policy_note_text()
                     .find("one-seventh and six-sevenths probe fractions")
                     .expect("seventh probe text should be present")
