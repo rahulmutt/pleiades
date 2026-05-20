@@ -2620,6 +2620,15 @@ pub fn validated_request_policy_summary_for_report() -> String {
     }
 }
 
+/// Returns the validated request-semantics summary line used by validation and release reporting.
+///
+/// This is a backend-layer alias for [`validated_request_policy_summary_for_report()`]
+/// so callers that use the request-semantics vocabulary can share the same
+/// guarded compact line without reinterpreting the compact report wording.
+pub fn validated_request_semantics_summary_for_report() -> String {
+    validated_request_policy_summary_for_report()
+}
+
 /// Returns the request-semantics posture used by validation and release reporting.
 ///
 /// This is a backend-layer alias for [`request_policy_summary_for_report()`]
@@ -3702,6 +3711,10 @@ mod tests {
         assert!(summary.summary_line().contains("frame="));
         assert!(summary.validate().is_ok());
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(
+            validated_request_semantics_summary_for_report(),
+            validated_request_policy_summary_for_report()
+        );
         assert_eq!(
             request_semantics_summary_for_report(),
             request_policy_summary_for_report()

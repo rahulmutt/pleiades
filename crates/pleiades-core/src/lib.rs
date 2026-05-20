@@ -130,7 +130,7 @@ pub use pleiades_backend::{
     validated_frame_policy_summary_for_report, validated_frame_treatment_summary_for_report,
     validated_native_sidereal_policy_summary_for_report,
     validated_observer_policy_summary_for_report, validated_request_policy_summary_for_report,
-    validated_time_scale_policy_summary_for_report,
+    validated_request_semantics_summary_for_report, validated_time_scale_policy_summary_for_report,
     validated_utc_convenience_policy_summary_for_report, AccuracyClass, Apparentness,
     ApparentnessPolicySummary, BackendCapabilities, BackendFamily, BackendId, BackendMetadata,
     BackendProvenance, CompositeBackend, DeltaTPolicySummary, EphemerisBackend, EphemerisError,
@@ -621,6 +621,10 @@ mod tests {
             request_policy_summary_for_report()
                 .validated_summary_line()
                 .unwrap()
+        );
+        assert_eq!(
+            validated_request_semantics_summary_for_report(),
+            validated_request_policy_summary_for_report()
         );
     }
 

@@ -14,7 +14,7 @@ use pleiades_core::{
     validated_apparentness_policy_summary_for_report, validated_delta_t_policy_summary_for_report,
     validated_frame_policy_summary_for_report, validated_native_sidereal_policy_summary_for_report,
     validated_observer_policy_summary_for_report, validated_request_policy_summary_for_report,
-    validated_time_scale_policy_summary_for_report,
+    validated_request_semantics_summary_for_report, validated_time_scale_policy_summary_for_report,
     validated_utc_convenience_policy_summary_for_report, Angle, Apparentness, Ayanamsa,
     CelestialBody, ChartEngine, ChartRequest, CompositeBackend, CustomAyanamsa, CustomBodyId,
     EphemerisError, HouseSystem, Instant, JulianDay, Latitude, Longitude, ObserverLocation,
@@ -50,7 +50,7 @@ fn ensure_no_extra_args(args: &[&str], command: &str) -> Result<(), String> {
 
 fn shared_request_policy_help_block() -> String {
     let request_policy = validated_request_policy_summary_for_report();
-    let request_semantics = request_policy.clone();
+    let request_semantics = validated_request_semantics_summary_for_report();
     let time_scale_policy = validated_time_scale_policy_summary_for_report();
     let utc_convenience_policy = validated_utc_convenience_policy_summary_for_report();
     let delta_t_policy = validated_delta_t_policy_summary_for_report();
