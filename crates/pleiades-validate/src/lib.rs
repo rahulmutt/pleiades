@@ -13082,6 +13082,75 @@ fn ensure_validation_report_fit_outliers_matches_current_rendering(
     }
 }
 
+fn ensure_validation_report_fit_sample_classes_matches_current_rendering(
+    validation_report_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    let expected_line = format!(
+        "  Packaged-artifact fit sample classes: {}",
+        packaged_artifact_fit_sample_classes_summary_for_report()
+    );
+
+    if validation_report_summary_text
+        .lines()
+        .any(|line| line == expected_line)
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "validation report summary no longer matches the current packaged-artifact fit sample classes posture"
+                .to_string(),
+        ))
+    }
+}
+
+fn ensure_validation_report_fit_threshold_violation_count_matches_current_rendering(
+    validation_report_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    let expected_line = format!(
+        "  Packaged-artifact fit threshold violation count: {}",
+        report_summary_payload(
+            packaged_artifact_fit_threshold_violation_count_for_report(),
+            "fit threshold violations: ",
+        )
+    );
+
+    if validation_report_summary_text
+        .lines()
+        .any(|line| line == expected_line)
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "validation report summary no longer matches the current packaged-artifact fit threshold violation count posture"
+                .to_string(),
+        ))
+    }
+}
+
+fn ensure_validation_report_fit_threshold_violations_matches_current_rendering(
+    validation_report_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    let expected_line = format!(
+        "  Packaged-artifact fit threshold violations: {}",
+        report_summary_payload(
+            packaged_artifact_fit_threshold_violation_summary_for_report(),
+            "fit threshold violations: ",
+        )
+    );
+
+    if validation_report_summary_text
+        .lines()
+        .any(|line| line == expected_line)
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "validation report summary no longer matches the current packaged-artifact fit threshold violations posture"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_backend_matrix_selected_asteroid_source_lines_match_current_rendering(
     backend_matrix_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -14126,6 +14195,15 @@ fn verify_release_bundle(
     )?;
     ensure_validation_report_fit_margin_matches_current_rendering(&validation_report_summary_text)?;
     ensure_validation_report_fit_outliers_matches_current_rendering(
+        &validation_report_summary_text,
+    )?;
+    ensure_validation_report_fit_sample_classes_matches_current_rendering(
+        &validation_report_summary_text,
+    )?;
+    ensure_validation_report_fit_threshold_violation_count_matches_current_rendering(
+        &validation_report_summary_text,
+    )?;
+    ensure_validation_report_fit_threshold_violations_matches_current_rendering(
         &validation_report_summary_text,
     )?;
     ensure_backend_matrix_selected_asteroid_source_lines_match_current_rendering(
@@ -34544,6 +34622,171 @@ version = "0.9.0"
         );
         assert!(error.contains("release bundle verification failed"));
         assert!(error.contains("validation report summary no longer matches the current packaged-artifact fit outliers posture"));
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_validation_report_fit_sample_classes_summary_even_with_updated_checksum(
+    ) {
+        let bundle_dir = unique_temp_dir(
+            "pleiades-release-bundle-tampered-validation-report-fit-sample-classes-semantic",
+        );
+        let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
+        render_cli(&[
+            "bundle-release",
+            "--out",
+            &bundle_dir_string,
+            "--rounds",
+            "1",
+        ])
+        .expect("bundle release should render");
+
+        let report_path = bundle_dir.join("validation-report-summary.txt");
+        let report =
+            std::fs::read_to_string(&report_path).expect("validation report summary should exist");
+        let tampered_report = report.replace(
+            "  Packaged-artifact fit sample classes: fit sample classes:",
+            "  Packaged-artifact fit sample classes: drifted fit sample classes:",
+        );
+        std::fs::write(&report_path, &tampered_report)
+            .expect("validation report summary should be writable");
+
+        let manifest_path = bundle_dir.join("bundle-manifest.txt");
+        let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");
+        let old_checksum_line = manifest
+            .lines()
+            .find(|line| line.starts_with("validation report summary checksum (fnv1a-64):"))
+            .expect("manifest should contain the validation report summary checksum line");
+        let new_checksum_line = format!(
+            "validation report summary checksum (fnv1a-64): 0x{:016x}",
+            checksum64(&tampered_report)
+        );
+        let updated_manifest = manifest.replacen(old_checksum_line, &new_checksum_line, 1);
+        std::fs::write(&manifest_path, &updated_manifest).expect("manifest should be writable");
+
+        let checksum_path = bundle_dir.join("bundle-manifest.checksum.txt");
+        std::fs::write(
+            &checksum_path,
+            format!("0x{:016x}\n", checksum64(&updated_manifest)),
+        )
+        .expect("manifest checksum sidecar should be writable");
+
+        let error = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string]).expect_err(
+            "verification should fail for semantic validation-report fit-sample-classes drift",
+        );
+        assert!(error.contains("release bundle verification failed"));
+        assert!(error.contains("validation report summary no longer matches the current packaged-artifact fit sample classes posture"));
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_validation_report_fit_threshold_violation_count_summary_even_with_updated_checksum(
+    ) {
+        let bundle_dir = unique_temp_dir(
+            "pleiades-release-bundle-tampered-validation-report-fit-threshold-violation-count-semantic",
+        );
+        let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
+        render_cli(&[
+            "bundle-release",
+            "--out",
+            &bundle_dir_string,
+            "--rounds",
+            "1",
+        ])
+        .expect("bundle release should render");
+
+        let report_path = bundle_dir.join("validation-report-summary.txt");
+        let report =
+            std::fs::read_to_string(&report_path).expect("validation report summary should exist");
+        let tampered_report = report.replace(
+            "  Packaged-artifact fit threshold violation count: 0",
+            "  Packaged-artifact fit threshold violation count: 1",
+        );
+        std::fs::write(&report_path, &tampered_report)
+            .expect("validation report summary should be writable");
+
+        let manifest_path = bundle_dir.join("bundle-manifest.txt");
+        let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");
+        let old_checksum_line = manifest
+            .lines()
+            .find(|line| line.starts_with("validation report summary checksum (fnv1a-64):"))
+            .expect("manifest should contain the validation report summary checksum line");
+        let new_checksum_line = format!(
+            "validation report summary checksum (fnv1a-64): 0x{:016x}",
+            checksum64(&tampered_report)
+        );
+        let updated_manifest = manifest.replacen(old_checksum_line, &new_checksum_line, 1);
+        std::fs::write(&manifest_path, &updated_manifest).expect("manifest should be writable");
+
+        let checksum_path = bundle_dir.join("bundle-manifest.checksum.txt");
+        std::fs::write(
+            &checksum_path,
+            format!("0x{:016x}\n", checksum64(&updated_manifest)),
+        )
+        .expect("manifest checksum sidecar should be writable");
+
+        let error = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string]).expect_err(
+            "verification should fail for semantic validation-report fit-threshold-violation-count drift",
+        );
+        assert!(error.contains("release bundle verification failed"));
+        assert!(error.contains("validation report summary no longer matches the current packaged-artifact fit threshold violation count posture"));
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_validation_report_fit_threshold_violations_summary_even_with_updated_checksum(
+    ) {
+        let bundle_dir = unique_temp_dir(
+            "pleiades-release-bundle-tampered-validation-report-fit-threshold-violations-semantic",
+        );
+        let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
+        render_cli(&[
+            "bundle-release",
+            "--out",
+            &bundle_dir_string,
+            "--rounds",
+            "1",
+        ])
+        .expect("bundle release should render");
+
+        let report_path = bundle_dir.join("validation-report-summary.txt");
+        let report =
+            std::fs::read_to_string(&report_path).expect("validation report summary should exist");
+        let tampered_report = report.replace(
+            "  Packaged-artifact fit threshold violations: 0; details: none",
+            "  Packaged-artifact fit threshold violations: 1; details: tampered",
+        );
+        std::fs::write(&report_path, &tampered_report)
+            .expect("validation report summary should be writable");
+
+        let manifest_path = bundle_dir.join("bundle-manifest.txt");
+        let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");
+        let old_checksum_line = manifest
+            .lines()
+            .find(|line| line.starts_with("validation report summary checksum (fnv1a-64):"))
+            .expect("manifest should contain the validation report summary checksum line");
+        let new_checksum_line = format!(
+            "validation report summary checksum (fnv1a-64): 0x{:016x}",
+            checksum64(&tampered_report)
+        );
+        let updated_manifest = manifest.replacen(old_checksum_line, &new_checksum_line, 1);
+        std::fs::write(&manifest_path, &updated_manifest).expect("manifest should be writable");
+
+        let checksum_path = bundle_dir.join("bundle-manifest.checksum.txt");
+        std::fs::write(
+            &checksum_path,
+            format!("0x{:016x}\n", checksum64(&updated_manifest)),
+        )
+        .expect("manifest checksum sidecar should be writable");
+
+        let error = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string]).expect_err(
+            "verification should fail for semantic validation-report fit-threshold-violations drift",
+        );
+        assert!(error.contains("release bundle verification failed"));
+        assert!(error.contains("validation report summary no longer matches the current packaged-artifact fit threshold violations posture"));
 
         let _ = std::fs::remove_dir_all(&bundle_dir);
     }
