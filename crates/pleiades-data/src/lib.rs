@@ -8924,6 +8924,37 @@ mod tests {
             packaged_artifact_fit_sample_counts_for_body(custom_segment.0),
             PACKAGED_ARTIFACT_DENSE_FIT_SAMPLE_COUNTS
         );
+        for lunar_point in [
+            CelestialBody::TrueNode,
+            CelestialBody::MeanApogee,
+            CelestialBody::TrueApogee,
+            CelestialBody::MeanPerigee,
+            CelestialBody::TruePerigee,
+        ] {
+            assert!(packaged_artifact_body_cadence(&lunar_point).uses_dense_sampling());
+            assert_eq!(
+                packaged_artifact_fit_sample_counts_for_body(&lunar_point),
+                PACKAGED_ARTIFACT_DENSE_FIT_SAMPLE_COUNTS
+            );
+            assert_eq!(
+                packaged_artifact_segment_validation_fractions_for_body(&lunar_point),
+                PACKAGED_ARTIFACT_DENSE_VALIDATION_SAMPLE_FRACTIONS
+            );
+            assert_eq!(
+                packaged_artifact_residual_sample_fractions_for_channel(
+                    &lunar_point,
+                    ChannelKind::Longitude,
+                ),
+                PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS
+            );
+            assert_eq!(
+                packaged_artifact_residual_sample_fractions_for_channel(
+                    &lunar_point,
+                    ChannelKind::DistanceAu,
+                ),
+                PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS
+            );
+        }
         assert!(packaged_artifact_body_cadence(moon_segment.0).uses_dense_sampling());
         assert!(packaged_artifact_body_cadence(&CelestialBody::Pluto).uses_dense_sampling());
         assert!(packaged_artifact_body_cadence(&CelestialBody::Ceres).uses_dense_sampling());
