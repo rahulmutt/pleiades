@@ -13151,6 +13151,20 @@ fn ensure_validation_report_fit_threshold_violations_matches_current_rendering(
     }
 }
 
+fn ensure_validation_report_summary_matches_current_rendering(
+    validation_report_summary_text: &str,
+    rounds: usize,
+) -> Result<(), ReleaseBundleError> {
+    match render_validation_report_summary(rounds) {
+        Ok(expected) if validation_report_summary_text == expected => Ok(()),
+        Ok(_) => Err(ReleaseBundleError::Verification(
+            "validation report summary no longer matches the current validation report posture"
+                .to_string(),
+        )),
+        Err(error) => Err(ReleaseBundleError::Verification(error.to_string())),
+    }
+}
+
 fn ensure_backend_matrix_selected_asteroid_source_lines_match_current_rendering(
     backend_matrix_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -14205,6 +14219,10 @@ fn verify_release_bundle(
     )?;
     ensure_validation_report_fit_threshold_violations_matches_current_rendering(
         &validation_report_summary_text,
+    )?;
+    ensure_validation_report_summary_matches_current_rendering(
+        &validation_report_summary_text,
+        manifest.validation_rounds,
     )?;
     ensure_backend_matrix_selected_asteroid_source_lines_match_current_rendering(
         &backend_matrix_text,
@@ -34515,6 +34533,19 @@ version = "0.9.0"
         assert!(error.contains("validation report summary no longer matches"));
 
         let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_validation_report_summary_header_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-validation-report-summary-header-semantic",
+            "validation-report-summary.txt",
+            "validation report summary checksum (fnv1a-64):",
+            "Validation report summary",
+            "Tampered validation report summary",
+            "validation report summary no longer matches the current validation report posture",
+        );
     }
 
     #[test]
