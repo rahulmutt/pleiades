@@ -22987,17 +22987,23 @@ fn render_packaged_artifact_regeneration(
 }
 
 fn render_packaged_artifact_regeneration_check() -> Result<String, String> {
-    let artifact = packaged_artifact();
-    let committed = packaged_artifact_bytes();
+    static CACHE: OnceLock<String> = OnceLock::new();
 
-    Ok(format!(
-        "Packaged artifact regeneration check passed\n  label: {}\n  source: {}\n  checksum: 0x{:016x}\n  bytes: {}\n  {}",
-        artifact.header.generation_label,
-        artifact.header.source,
-        artifact.checksum,
-        committed.len(),
-        packaged_artifact_regeneration_summary_for_report(),
-    ))
+    Ok(CACHE
+        .get_or_init(|| {
+            let artifact = packaged_artifact();
+            let committed = packaged_artifact_bytes();
+
+            format!(
+                "Packaged artifact regeneration check passed\n  label: {}\n  source: {}\n  checksum: 0x{:016x}\n  bytes: {}\n  {}",
+                artifact.header.generation_label,
+                artifact.header.source,
+                artifact.checksum,
+                committed.len(),
+                packaged_artifact_regeneration_summary_for_report(),
+            )
+        })
+        .clone())
 }
 
 fn render_error(error: EphemerisError) -> String {
