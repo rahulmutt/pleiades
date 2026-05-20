@@ -10020,6 +10020,8 @@ pub fn render_release_bundle(
         packaged_artifact_fit_threshold_violation_summary_for_report();
     let packaged_artifact_body_cadence_summary_text =
         validated_packaged_artifact_body_cadence_summary_for_report();
+    let packaged_artifact_body_class_span_cap_summary_text =
+        validated_packaged_artifact_body_class_span_cap_summary_for_report();
     let packaged_artifact_normalized_intermediate_summary_text =
         validated_packaged_artifact_normalized_intermediate_summary_for_report();
     let packaged_artifact_speed_policy_summary_text =
@@ -10158,6 +10160,8 @@ pub fn render_release_bundle(
         output_dir.join("packaged-artifact-fit-threshold-violations-summary.txt");
     let packaged_artifact_body_cadence_summary_path =
         output_dir.join("packaged-artifact-body-cadence-summary.txt");
+    let packaged_artifact_body_class_span_cap_summary_path =
+        output_dir.join("packaged-artifact-body-class-span-cap-summary.txt");
     let packaged_artifact_normalized_intermediate_summary_path =
         output_dir.join("packaged-artifact-normalized-intermediate-summary.txt");
     let packaged_artifact_speed_policy_summary_path =
@@ -10366,6 +10370,8 @@ pub fn render_release_bundle(
         checksum64(&packaged_artifact_fit_threshold_violations_summary_text);
     let packaged_artifact_body_cadence_summary_checksum =
         checksum64(&packaged_artifact_body_cadence_summary_text);
+    let packaged_artifact_body_class_span_cap_summary_checksum =
+        checksum64(&packaged_artifact_body_class_span_cap_summary_text);
     let packaged_artifact_normalized_intermediate_summary_checksum =
         checksum64(&packaged_artifact_normalized_intermediate_summary_text);
     let packaged_artifact_speed_policy_summary_checksum =
@@ -10700,7 +10706,7 @@ benchmark-corpus summary: benchmark-corpus-summary.txt\nbenchmark-corpus summary
         native_dependency_audit_summary_text.as_bytes(),
     )?;
     let manifest_text = format!(
-        "{manifest_text}packaged-artifact body cadence summary: packaged-artifact-body-cadence-summary.txt\npackaged-artifact body cadence summary checksum (fnv1a-64): 0x{packaged_artifact_body_cadence_summary_checksum:016x}\n"
+        "{manifest_text}packaged-artifact body cadence summary: packaged-artifact-body-cadence-summary.txt\npackaged-artifact body cadence summary checksum (fnv1a-64): 0x{packaged_artifact_body_cadence_summary_checksum:016x}\npackaged-artifact body-class span cap summary: packaged-artifact-body-class-span-cap-summary.txt\npackaged-artifact body-class span cap summary checksum (fnv1a-64): 0x{packaged_artifact_body_class_span_cap_summary_checksum:016x}\n"
     );
     let manifest_checksum = checksum64(&manifest_text);
     let manifest_checksum_text = format!("0x{manifest_checksum:016x}\n");
@@ -10737,6 +10743,10 @@ benchmark-corpus summary: benchmark-corpus-summary.txt\nbenchmark-corpus summary
     fs::write(
         &packaged_artifact_body_cadence_summary_path,
         packaged_artifact_body_cadence_summary_text.as_bytes(),
+    )?;
+    fs::write(
+        &packaged_artifact_body_class_span_cap_summary_path,
+        packaged_artifact_body_class_span_cap_summary_text.as_bytes(),
     )?;
     fs::write(
         &packaged_artifact_normalized_intermediate_summary_path,
@@ -10978,6 +10988,8 @@ struct ParsedReleaseBundleManifest {
     packaged_artifact_fit_threshold_violations_summary_checksum: u64,
     packaged_artifact_body_cadence_summary_path: String,
     packaged_artifact_body_cadence_summary_checksum: u64,
+    packaged_artifact_body_class_span_cap_summary_path: String,
+    packaged_artifact_body_class_span_cap_summary_checksum: u64,
     packaged_artifact_normalized_intermediate_summary_path: String,
     packaged_artifact_normalized_intermediate_summary_checksum: u64,
     packaged_artifact_speed_policy_summary_path: String,
@@ -11548,6 +11560,14 @@ impl ParsedReleaseBundleManifest {
                 text,
                 "packaged-artifact body cadence summary checksum (fnv1a-64):",
             )?,
+            packaged_artifact_body_class_span_cap_summary_path: parse_manifest_string(
+                text,
+                "packaged-artifact body-class span cap summary:",
+            )?,
+            packaged_artifact_body_class_span_cap_summary_checksum: parse_manifest_checksum(
+                text,
+                "packaged-artifact body-class span cap summary checksum (fnv1a-64):",
+            )?,
             packaged_artifact_normalized_intermediate_summary_path: parse_manifest_string(
                 text,
                 "packaged-artifact normalized intermediate summary:",
@@ -11812,6 +11832,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
         "packaged-artifact-fit-threshold-violation-count-summary.txt",
         "packaged-artifact-fit-threshold-violations-summary.txt",
         "packaged-artifact-body-cadence-summary.txt",
+        "packaged-artifact-body-class-span-cap-summary.txt",
         "packaged-artifact-normalized-intermediate-summary.txt",
         "packaged-artifact-speed-policy-summary.txt",
         "packaged-artifact-storage-summary.txt",
@@ -11866,7 +11887,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
 fn ensure_release_bundle_manifest_is_canonical(
     manifest_text: &str,
 ) -> Result<(), ReleaseBundleError> {
-    const EXPECTED_MANIFEST_LINES: [&str; 200] = [
+    const EXPECTED_MANIFEST_LINES: [&str; 202] = [
         "Release bundle manifest",
         "profile:",
         "profile checksum (fnv1a-64):",
@@ -12067,6 +12088,8 @@ fn ensure_release_bundle_manifest_is_canonical(
         "validation rounds:",
         "packaged-artifact body cadence summary:",
         "packaged-artifact body cadence summary checksum (fnv1a-64):",
+        "packaged-artifact body-class span cap summary:",
+        "packaged-artifact body-class span cap summary checksum (fnv1a-64):",
     ];
 
     let lines = manifest_text.lines().collect::<Vec<_>>();
@@ -12909,6 +12932,21 @@ fn ensure_packaged_artifact_body_cadence_summary_matches_current_rendering(
     }
 }
 
+fn ensure_packaged_artifact_body_class_span_cap_summary_matches_current_rendering(
+    packaged_artifact_body_class_span_cap_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if packaged_artifact_body_class_span_cap_summary_text
+        == validated_packaged_artifact_body_class_span_cap_summary_for_report()
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "packaged-artifact body-class span cap summary no longer matches the current packaged-artifact body-class span cap posture"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_benchmark_corpus_summary_matches_current_rendering(
     benchmark_corpus_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -13343,6 +13381,8 @@ fn verify_release_bundle(
         output_dir.join("packaged-artifact-fit-threshold-violations-summary.txt");
     let packaged_artifact_body_cadence_summary_path =
         output_dir.join("packaged-artifact-body-cadence-summary.txt");
+    let packaged_artifact_body_class_span_cap_summary_path =
+        output_dir.join("packaged-artifact-body-class-span-cap-summary.txt");
     let packaged_artifact_normalized_intermediate_summary_path =
         output_dir.join("packaged-artifact-normalized-intermediate-summary.txt");
     let packaged_artifact_speed_policy_summary_path =
@@ -13858,6 +13898,15 @@ fn verify_release_bundle(
     )?;
     let packaged_artifact_body_cadence_summary_checksum =
         checksum64(&packaged_artifact_body_cadence_summary_text);
+    let packaged_artifact_body_class_span_cap_summary_text = read_required_bundle_text(
+        &packaged_artifact_body_class_span_cap_summary_path,
+        "packaged-artifact body-class span cap summary",
+    )?;
+    ensure_packaged_artifact_body_class_span_cap_summary_matches_current_rendering(
+        &packaged_artifact_body_class_span_cap_summary_text,
+    )?;
+    let packaged_artifact_body_class_span_cap_summary_checksum =
+        checksum64(&packaged_artifact_body_class_span_cap_summary_text);
     let packaged_artifact_normalized_intermediate_summary_text = read_required_bundle_text(
         &packaged_artifact_normalized_intermediate_summary_path,
         "packaged-artifact normalized intermediate summary",
@@ -15379,6 +15428,22 @@ fn verify_release_bundle(
         return Err(ReleaseBundleError::Verification(format!(
             "packaged-artifact body cadence summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
             manifest.packaged_artifact_body_cadence_summary_checksum, packaged_artifact_body_cadence_summary_checksum
+        )));
+    }
+    if manifest.packaged_artifact_body_class_span_cap_summary_path
+        != "packaged-artifact-body-class-span-cap-summary.txt"
+    {
+        return Err(ReleaseBundleError::Verification(format!(
+            "unexpected packaged-artifact body-class span cap summary file entry: {}",
+            manifest.packaged_artifact_body_class_span_cap_summary_path
+        )));
+    }
+    if manifest.packaged_artifact_body_class_span_cap_summary_checksum
+        != packaged_artifact_body_class_span_cap_summary_checksum
+    {
+        return Err(ReleaseBundleError::Verification(format!(
+            "packaged-artifact body-class span cap summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
+            manifest.packaged_artifact_body_class_span_cap_summary_checksum, packaged_artifact_body_class_span_cap_summary_checksum
         )));
     }
     if manifest.packaged_artifact_normalized_intermediate_summary_path
@@ -18972,6 +19037,13 @@ fn validated_packaged_artifact_body_cadence_summary_for_report() -> String {
         Ok(line) => line,
         Err(error) => format!("body cadence: unavailable ({error})"),
     }
+}
+
+fn validated_packaged_artifact_body_class_span_cap_summary_for_report() -> String {
+    format!(
+        "Packaged-artifact body-class span caps: {}",
+        pleiades_data::packaged_artifact_body_class_span_cap_entries_for_report()
+    )
 }
 
 fn validated_packaged_artifact_normalized_intermediate_summary_for_report() -> String {
@@ -30103,6 +30175,9 @@ version = "0.9.0"
         assert!(bundle_dir
             .join("packaged-artifact-body-cadence-summary.txt")
             .exists());
+        assert!(bundle_dir
+            .join("packaged-artifact-body-class-span-cap-summary.txt")
+            .exists());
         assert!(rendered.contains("artifact-summary.txt"));
         assert!(rendered.contains("packaged-artifact-profile-coverage-summary.txt"));
         assert!(bundle_dir
@@ -31119,6 +31194,11 @@ version = "0.9.0"
             "packaged-artifact body cadence summary: packaged-artifact-body-cadence-summary.txt"
         ));
         assert!(manifest.contains("packaged-artifact body cadence summary checksum (fnv1a-64): 0x"));
+        assert!(manifest.contains(
+            "packaged-artifact body-class span cap summary: packaged-artifact-body-class-span-cap-summary.txt"
+        ));
+        assert!(manifest
+            .contains("packaged-artifact body-class span cap summary checksum (fnv1a-64): 0x"));
         assert!(manifest.contains(
             "packaged-artifact normalized intermediate summary: packaged-artifact-normalized-intermediate-summary.txt"
         ));
@@ -33307,6 +33387,19 @@ version = "0.9.0"
             "body cadence: ",
             "body cadence: drifted ",
             "packaged-artifact body cadence summary no longer matches the current packaged-artifact body cadence posture",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_packaged_artifact_body_class_span_cap_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-packaged-artifact-body-class-span-cap-semantic",
+            "packaged-artifact-body-class-span-cap-summary.txt",
+            "packaged-artifact body-class span cap summary checksum (fnv1a-64):",
+            "Packaged-artifact body-class span caps: ",
+            "Packaged-artifact body-class span caps: drifted ",
+            "packaged-artifact body-class span cap summary no longer matches the current packaged-artifact body-class span cap posture",
         );
     }
 
