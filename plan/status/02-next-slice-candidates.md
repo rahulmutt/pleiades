@@ -4,8 +4,8 @@ This file lists only active implementation slices. Completed report aliases, sum
 
 ## Phase 1 — Production reference/source corpus
 
-- Select the production source strategy and document why it satisfies pure-Rust and redistribution constraints.
 - Expand source coverage for all release-claimed major bodies, lunar channels, Pluto policy, and selected asteroids across 1500-2500 CE.
+- Keep corpus provenance surfaces aligned; JPL reference, hold-out, and boundary-overlay summaries now surface explicit evidence-class labels alongside the existing source revision checksums.
 - Create independent hold-out coverage that is not consumed by artifact fitting.
 - Make backend matrices and release profiles derive body/date/channel claims from validated corpus evidence.
 - Keep corpus provenance surfaces aligned; source revision checksums now have a dedicated `production-generation-source-revision-summary` report command.

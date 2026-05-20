@@ -685,8 +685,9 @@ pub fn format_production_generation_boundary_source_summary(
     summary: &IndependentHoldoutSourceSummary,
 ) -> String {
     format!(
-        "Production generation boundary overlay source: {}; coverage={}; columns={}; redistribution={}; checksum=0x{:016x}",
+        "Production generation boundary overlay source: {}; evidence class={}; coverage={}; columns={}; redistribution={}; checksum=0x{:016x}",
         summary.source,
+        summary.evidence_class,
         summary.coverage,
         summary.columns,
         summary.redistribution,
@@ -19525,6 +19526,7 @@ pub fn reference_snapshot_high_curvature_epoch_coverage_summary_for_report() -> 
     }
 }
 
+const REFERENCE_SNAPSHOT_EVIDENCE_CLASS: &str = "reference";
 const REFERENCE_SNAPSHOT_SOURCE_EXPECTED: &str =
     "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.";
 const REFERENCE_SNAPSHOT_SOURCE_FALLBACK: &str = "NASA/JPL Horizons API vector tables (DE441)";
@@ -19534,6 +19536,7 @@ const REFERENCE_SNAPSHOT_REDISTRIBUTION_FALLBACK: &str =
     "repository-checked regression fixtures, not a broad public corpus.";
 const REFERENCE_SNAPSHOT_FRAME_TREATMENT: &str = "geocentric ecliptic J2000";
 const REFERENCE_SNAPSHOT_COLUMNS: &str = "epoch_jd, body, x_km, y_km, z_km";
+const INDEPENDENT_HOLDOUT_EVIDENCE_CLASS: &str = "hold-out";
 const INDEPENDENT_HOLDOUT_SOURCE_EXPECTED: &str =
     "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.";
 const INDEPENDENT_HOLDOUT_SOURCE_FALLBACK: &str = "NASA/JPL Horizons API vector tables (DE441)";
@@ -19568,6 +19571,8 @@ fn independent_holdout_source_checksum() -> u64 {
 pub struct ReferenceSnapshotSourceSummary {
     /// Source attribution for the checked-in reference snapshot.
     pub source: String,
+    /// Evidence class for the checked-in reference snapshot.
+    pub evidence_class: String,
     /// Body and epoch coverage described by the checked-in reference snapshot.
     pub coverage: String,
     /// Column schema described by the checked-in reference snapshot.
@@ -19598,6 +19603,23 @@ impl ReferenceSnapshotSourceSummary {
         if self.source != REFERENCE_SNAPSHOT_SOURCE_EXPECTED {
             return Err(
                 ReferenceSnapshotSourceSummaryValidationError::FieldOutOfSync { field: "source" },
+            );
+        }
+        if self.evidence_class.trim().is_empty() {
+            return Err(ReferenceSnapshotSourceSummaryValidationError::BlankEvidenceClass);
+        }
+        if has_surrounding_whitespace(&self.evidence_class) {
+            return Err(
+                ReferenceSnapshotSourceSummaryValidationError::SurroundedByWhitespace {
+                    field: "evidence_class",
+                },
+            );
+        }
+        if self.evidence_class != REFERENCE_SNAPSHOT_EVIDENCE_CLASS {
+            return Err(
+                ReferenceSnapshotSourceSummaryValidationError::FieldOutOfSync {
+                    field: "evidence_class",
+                },
             );
         }
         if self.coverage.trim().is_empty() {
@@ -19676,8 +19698,9 @@ impl ReferenceSnapshotSourceSummary {
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
         format!(
-            "Reference snapshot source: {}; coverage={}; columns={}; redistribution={}; checksum=0x{:016x}; {}; TDB reference epoch {}",
+            "Reference snapshot source: {}; evidence class={}; coverage={}; columns={}; redistribution={}; checksum=0x{:016x}; {}; TDB reference epoch {}",
             self.source,
+            self.evidence_class,
             self.coverage,
             self.columns,
             self.redistribution,
@@ -19701,6 +19724,8 @@ impl ReferenceSnapshotSourceSummary {
 pub enum ReferenceSnapshotSourceSummaryValidationError {
     /// The summary did not include a non-empty source label.
     BlankSource,
+    /// The summary did not include a non-empty evidence-class label.
+    BlankEvidenceClass,
     /// The summary did not include a non-empty coverage label.
     BlankCoverage,
     /// The summary did not include a non-empty frame-treatment label.
@@ -19724,6 +19749,7 @@ impl ReferenceSnapshotSourceSummaryValidationError {
     pub const fn label(&self) -> &'static str {
         match self {
             Self::BlankSource => "blank source",
+            Self::BlankEvidenceClass => "blank evidence class",
             Self::BlankCoverage => "blank coverage",
             Self::BlankFrameTreatment => "blank frame treatment",
             Self::BlankColumns => "blank columns",
@@ -19767,6 +19793,7 @@ pub fn reference_snapshot_source_summary() -> ReferenceSnapshotSourceSummary {
             let source = manifest.source_or(REFERENCE_SNAPSHOT_SOURCE_FALLBACK);
             ReferenceSnapshotSourceSummary {
                 source: source.to_string(),
+                evidence_class: REFERENCE_SNAPSHOT_EVIDENCE_CLASS.to_string(),
                 coverage: manifest
                     .coverage_or(REFERENCE_SNAPSHOT_COVERAGE_FALLBACK)
                     .to_string(),
@@ -20123,6 +20150,8 @@ pub fn reference_snapshot_manifest_summary_for_report() -> String {
 pub struct IndependentHoldoutSourceSummary {
     /// Source attribution for the hold-out snapshot.
     pub source: String,
+    /// Evidence class for the hold-out snapshot.
+    pub evidence_class: String,
     /// Coverage note for the hold-out snapshot.
     pub coverage: String,
     /// CSV column layout for the hold-out snapshot.
@@ -20149,6 +20178,23 @@ impl IndependentHoldoutSourceSummary {
         if self.source != INDEPENDENT_HOLDOUT_SOURCE_EXPECTED {
             return Err(
                 IndependentHoldoutSourceSummaryValidationError::FieldOutOfSync { field: "source" },
+            );
+        }
+        if self.evidence_class.trim().is_empty() {
+            return Err(IndependentHoldoutSourceSummaryValidationError::BlankEvidenceClass);
+        }
+        if has_surrounding_whitespace(&self.evidence_class) {
+            return Err(
+                IndependentHoldoutSourceSummaryValidationError::SurroundedByWhitespace {
+                    field: "evidence_class",
+                },
+            );
+        }
+        if self.evidence_class != INDEPENDENT_HOLDOUT_EVIDENCE_CLASS {
+            return Err(
+                IndependentHoldoutSourceSummaryValidationError::FieldOutOfSync {
+                    field: "evidence_class",
+                },
             );
         }
         if self.coverage.trim().is_empty() {
@@ -20209,8 +20255,8 @@ impl IndependentHoldoutSourceSummary {
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
         format!(
-            "Independent hold-out source: {}; coverage={}; columns={}; redistribution={}; checksum=0x{:016x}",
-            self.source, self.coverage, self.columns, self.redistribution, self.checksum
+            "Independent hold-out source: {}; evidence class={}; coverage={}; columns={}; redistribution={}; checksum=0x{:016x}",
+            self.source, self.evidence_class, self.coverage, self.columns, self.redistribution, self.checksum
         )
     }
 
@@ -20228,6 +20274,8 @@ impl IndependentHoldoutSourceSummary {
 pub enum IndependentHoldoutSourceSummaryValidationError {
     /// The summary did not include a non-empty source label.
     BlankSource,
+    /// The summary did not include a non-empty evidence-class label.
+    BlankEvidenceClass,
     /// The summary did not include a non-empty coverage label.
     BlankCoverage,
     /// The summary did not include a non-empty columns label.
@@ -20247,6 +20295,7 @@ impl IndependentHoldoutSourceSummaryValidationError {
     pub const fn label(&self) -> &'static str {
         match self {
             Self::BlankSource => "blank source",
+            Self::BlankEvidenceClass => "blank evidence class",
             Self::BlankCoverage => "blank coverage",
             Self::BlankColumns => "blank columns",
             Self::SurroundedByWhitespace { .. } => "surrounded by whitespace",
@@ -20288,6 +20337,7 @@ pub fn independent_holdout_source_summary() -> IndependentHoldoutSourceSummary {
                 source: manifest
                     .source_or(INDEPENDENT_HOLDOUT_SOURCE_FALLBACK)
                     .to_string(),
+                evidence_class: INDEPENDENT_HOLDOUT_EVIDENCE_CLASS.to_string(),
                 coverage: manifest
                     .coverage_or(INDEPENDENT_HOLDOUT_COVERAGE_FALLBACK)
                     .to_string(),
@@ -28034,7 +28084,7 @@ mod tests {
         assert_eq!(boundary_summary, holdout_summary);
         assert_eq!(
             format_production_generation_boundary_source_summary(&boundary_summary),
-            "Production generation boundary overlay source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Pluto at 2451545 and 2500000.; columns=epoch_jd, body, x_km, y_km, z_km; redistribution=repository-checked regression fixtures, not a broad public corpus.; checksum=0x2b2a38474384b973"
+            "Production generation boundary overlay source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; evidence class=hold-out; coverage=Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Pluto at 2451545 and 2500000.; columns=epoch_jd, body, x_km, y_km, z_km; redistribution=repository-checked regression fixtures, not a broad public corpus.; checksum=0x2b2a38474384b973"
         );
         assert_eq!(
             production_generation_boundary_source_summary_for_report(),
@@ -30550,11 +30600,13 @@ mod tests {
             summary.coverage,
             "selected bodies sampled at 1500-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 1600-01-11 for Sun, Moon, Mercury, Venus, Mars, Jupiter, Uranus, Neptune; major bodies sampled at 1749-12-31 for Sun through Neptune; selected bodies sampled at 1750-01-01 for Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; inner planets sampled across 1800-2500; major bodies sampled at 1800-01-03 for Sun through Pluto; selected bodies sampled at 1900-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 2200-01-01 for Sun, Moon, Mercury, Venus; major bodies sampled at 2400000, 2451545, 2451910.5, 2451911.5, 2451912.5, 2451913.5, 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451916.0, 2451916.5, 2451917.0, 2451917.5, 2451918.5, 2451919.5, 2451920.5, 2453000.5, and 2500000; major bodies sampled at 2451915.5 for Sun through Pluto; Mars sampled at 2600000 and 2634167 for outer boundary coverage; major bodies sampled at 2451913.5 through 2451917.5 for additional boundary coverage; selected asteroids sampled at J2000, 2378498.5, 2451910.5 through 2451919.5, with 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451918.5, and 2451919.5 boundary coverage, 1800-01-03, 2003-12-27, 2132-08-31, 2500-01-01, and 2634167."
         );
+        assert_eq!(summary.evidence_class, REFERENCE_SNAPSHOT_EVIDENCE_CLASS);
         assert_eq!(summary.columns, REFERENCE_SNAPSHOT_COLUMNS);
         assert_eq!(
             summary.redistribution,
             REFERENCE_SNAPSHOT_REDISTRIBUTION_FALLBACK
         );
+        assert!(summary.summary_line().contains("evidence class=reference"));
         assert!(summary.summary_line().contains(
             "redistribution=repository-checked regression fixtures, not a broad public corpus."
         ));
@@ -30584,6 +30636,17 @@ mod tests {
         assert_eq!(
             drifted_source.validate(),
             Err(ReferenceSnapshotSourceSummaryValidationError::FieldOutOfSync { field: "source" })
+        );
+
+        let mut drifted_evidence_class = summary.clone();
+        drifted_evidence_class.evidence_class = "reference-drift".to_string();
+        assert_eq!(
+            drifted_evidence_class.validate(),
+            Err(
+                ReferenceSnapshotSourceSummaryValidationError::FieldOutOfSync {
+                    field: "evidence_class"
+                }
+            )
         );
 
         let mut drifted_redistribution = summary.clone();
@@ -30972,6 +31035,7 @@ mod tests {
         assert!(report.contains("time scale=TDB"));
         assert!(report.contains("parser=pure-Rust and deterministic"));
         assert!(report.contains("source revision=reference_snapshot.csv checksum=0x"));
+        assert!(report.contains("evidence class=reference"));
         assert!(report.contains("independent_holdout_snapshot.csv checksum=0x"));
         assert!(report
             .contains("source windows=355 source-backed samples across 16 bodies and 31 epochs"));
@@ -31128,6 +31192,7 @@ mod tests {
     fn reference_snapshot_source_summary_validation_reports_blank_fields() {
         let blank_source = ReferenceSnapshotSourceSummary {
             source: " ".to_string(),
+            evidence_class: REFERENCE_SNAPSHOT_EVIDENCE_CLASS.to_string(),
             coverage: "coverage".to_string(),
             columns: REFERENCE_SNAPSHOT_COLUMNS.to_string(),
             redistribution: REFERENCE_SNAPSHOT_REDISTRIBUTION_FALLBACK.to_string(),
@@ -31142,6 +31207,7 @@ mod tests {
 
         let blank_coverage = ReferenceSnapshotSourceSummary {
             source: REFERENCE_SNAPSHOT_SOURCE_EXPECTED.to_string(),
+            evidence_class: REFERENCE_SNAPSHOT_EVIDENCE_CLASS.to_string(),
             coverage: "\n".to_string(),
             columns: REFERENCE_SNAPSHOT_COLUMNS.to_string(),
             redistribution: REFERENCE_SNAPSHOT_REDISTRIBUTION_FALLBACK.to_string(),
@@ -31156,6 +31222,7 @@ mod tests {
 
         let padded_coverage = ReferenceSnapshotSourceSummary {
             source: REFERENCE_SNAPSHOT_SOURCE_EXPECTED.to_string(),
+            evidence_class: REFERENCE_SNAPSHOT_EVIDENCE_CLASS.to_string(),
             coverage: " coverage ".to_string(),
             columns: REFERENCE_SNAPSHOT_COLUMNS.to_string(),
             redistribution: REFERENCE_SNAPSHOT_REDISTRIBUTION_FALLBACK.to_string(),
@@ -31174,6 +31241,7 @@ mod tests {
 
         let multiline_source = ReferenceSnapshotSourceSummary {
             source: "source\nline".to_string(),
+            evidence_class: REFERENCE_SNAPSHOT_EVIDENCE_CLASS.to_string(),
             coverage: REFERENCE_SNAPSHOT_COVERAGE_FALLBACK.to_string(),
             columns: REFERENCE_SNAPSHOT_COLUMNS.to_string(),
             redistribution: REFERENCE_SNAPSHOT_REDISTRIBUTION_FALLBACK.to_string(),
@@ -31192,6 +31260,7 @@ mod tests {
 
         let blank_columns = ReferenceSnapshotSourceSummary {
             source: REFERENCE_SNAPSHOT_SOURCE_EXPECTED.to_string(),
+            evidence_class: REFERENCE_SNAPSHOT_EVIDENCE_CLASS.to_string(),
             coverage: REFERENCE_SNAPSHOT_COVERAGE_FALLBACK.to_string(),
             columns: "\t".to_string(),
             redistribution: REFERENCE_SNAPSHOT_REDISTRIBUTION_FALLBACK.to_string(),
@@ -31206,6 +31275,7 @@ mod tests {
 
         let blank_redistribution = ReferenceSnapshotSourceSummary {
             source: REFERENCE_SNAPSHOT_SOURCE_EXPECTED.to_string(),
+            evidence_class: REFERENCE_SNAPSHOT_EVIDENCE_CLASS.to_string(),
             coverage: REFERENCE_SNAPSHOT_COVERAGE_FALLBACK.to_string(),
             columns: REFERENCE_SNAPSHOT_COLUMNS.to_string(),
             redistribution: "\n".to_string(),
@@ -31220,6 +31290,7 @@ mod tests {
 
         let blank_frame_treatment = ReferenceSnapshotSourceSummary {
             source: REFERENCE_SNAPSHOT_SOURCE_EXPECTED.to_string(),
+            evidence_class: REFERENCE_SNAPSHOT_EVIDENCE_CLASS.to_string(),
             coverage: REFERENCE_SNAPSHOT_COVERAGE_FALLBACK.to_string(),
             columns: REFERENCE_SNAPSHOT_COLUMNS.to_string(),
             redistribution: REFERENCE_SNAPSHOT_REDISTRIBUTION_FALLBACK.to_string(),
@@ -31234,6 +31305,7 @@ mod tests {
 
         let padded_frame_treatment = ReferenceSnapshotSourceSummary {
             source: REFERENCE_SNAPSHOT_SOURCE_EXPECTED.to_string(),
+            evidence_class: REFERENCE_SNAPSHOT_EVIDENCE_CLASS.to_string(),
             coverage: REFERENCE_SNAPSHOT_COVERAGE_FALLBACK.to_string(),
             columns: REFERENCE_SNAPSHOT_COLUMNS.to_string(),
             redistribution: REFERENCE_SNAPSHOT_REDISTRIBUTION_FALLBACK.to_string(),
@@ -31263,11 +31335,13 @@ mod tests {
             summary.coverage,
             "Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Pluto at 2451545 and 2500000."
         );
+        assert_eq!(summary.evidence_class, INDEPENDENT_HOLDOUT_EVIDENCE_CLASS);
         assert_eq!(summary.columns, "epoch_jd, body, x_km, y_km, z_km");
         assert_eq!(
             summary.redistribution,
             "repository-checked regression fixtures, not a broad public corpus."
         );
+        assert!(summary.summary_line().contains("evidence class=hold-out"));
         assert!(summary.summary_line().contains(
             "redistribution=repository-checked regression fixtures, not a broad public corpus."
         ));
@@ -31287,6 +31361,7 @@ mod tests {
     fn independent_holdout_source_summary_validation_reports_blank_fields() {
         let blank_source = IndependentHoldoutSourceSummary {
             source: " ".to_string(),
+            evidence_class: INDEPENDENT_HOLDOUT_EVIDENCE_CLASS.to_string(),
             coverage: "coverage".to_string(),
             columns: "epoch_jd, body, x_km, y_km, z_km".to_string(),
             redistribution: INDEPENDENT_HOLDOUT_REDISTRIBUTION_FALLBACK.to_string(),
@@ -31299,6 +31374,7 @@ mod tests {
 
         let blank_coverage = IndependentHoldoutSourceSummary {
             source: INDEPENDENT_HOLDOUT_SOURCE_EXPECTED.to_string(),
+            evidence_class: INDEPENDENT_HOLDOUT_EVIDENCE_CLASS.to_string(),
             coverage: "\t".to_string(),
             columns: INDEPENDENT_HOLDOUT_COLUMNS.to_string(),
             redistribution: INDEPENDENT_HOLDOUT_REDISTRIBUTION_FALLBACK.to_string(),
@@ -31311,6 +31387,7 @@ mod tests {
 
         let blank_columns = IndependentHoldoutSourceSummary {
             source: INDEPENDENT_HOLDOUT_SOURCE_EXPECTED.to_string(),
+            evidence_class: INDEPENDENT_HOLDOUT_EVIDENCE_CLASS.to_string(),
             coverage: INDEPENDENT_HOLDOUT_COVERAGE_FALLBACK.to_string(),
             columns: "  ".to_string(),
             redistribution: INDEPENDENT_HOLDOUT_REDISTRIBUTION_FALLBACK.to_string(),
@@ -31323,6 +31400,7 @@ mod tests {
 
         let blank_redistribution = IndependentHoldoutSourceSummary {
             source: INDEPENDENT_HOLDOUT_SOURCE_EXPECTED.to_string(),
+            evidence_class: INDEPENDENT_HOLDOUT_EVIDENCE_CLASS.to_string(),
             coverage: INDEPENDENT_HOLDOUT_COVERAGE_FALLBACK.to_string(),
             columns: INDEPENDENT_HOLDOUT_COLUMNS.to_string(),
             redistribution: " ".to_string(),
@@ -31335,6 +31413,7 @@ mod tests {
 
         let padded_columns = IndependentHoldoutSourceSummary {
             source: INDEPENDENT_HOLDOUT_SOURCE_EXPECTED.to_string(),
+            evidence_class: INDEPENDENT_HOLDOUT_EVIDENCE_CLASS.to_string(),
             coverage: INDEPENDENT_HOLDOUT_COVERAGE_FALLBACK.to_string(),
             columns: " epoch_jd, body, x_km, y_km, z_km ".to_string(),
             redistribution: INDEPENDENT_HOLDOUT_REDISTRIBUTION_FALLBACK.to_string(),
@@ -31351,6 +31430,7 @@ mod tests {
 
         let multiline_coverage = IndependentHoldoutSourceSummary {
             source: INDEPENDENT_HOLDOUT_SOURCE_EXPECTED.to_string(),
+            evidence_class: INDEPENDENT_HOLDOUT_EVIDENCE_CLASS.to_string(),
             coverage: "coverage\nmore".to_string(),
             columns: INDEPENDENT_HOLDOUT_COLUMNS.to_string(),
             redistribution: INDEPENDENT_HOLDOUT_REDISTRIBUTION_FALLBACK.to_string(),
@@ -31372,6 +31452,17 @@ mod tests {
         assert_eq!(
             drifted_summary.validate(),
             Err(IndependentHoldoutSourceSummaryValidationError::FieldOutOfSync { field: "source" })
+        );
+
+        let mut drifted_evidence_class = independent_holdout_source_summary();
+        drifted_evidence_class.evidence_class = "hold-out-drift".to_string();
+        assert_eq!(
+            drifted_evidence_class.validate(),
+            Err(
+                IndependentHoldoutSourceSummaryValidationError::FieldOutOfSync {
+                    field: "evidence_class"
+                }
+            )
         );
 
         let mut drifted_coverage = independent_holdout_source_summary();
