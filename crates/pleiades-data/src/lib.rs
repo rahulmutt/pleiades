@@ -10313,6 +10313,47 @@ mod tests {
     }
 
     #[test]
+    fn short_dense_span_prefers_the_fit_candidate_over_the_fallback_when_it_is_no_worse() {
+        let reference_backend = JplSnapshotBackend;
+        let body = CelestialBody::Moon;
+        let start_julian_day = 2_451_545.0;
+        let end_julian_day = start_julian_day + 1.0;
+        let request_for = |julian_day| EphemerisRequest {
+            body: body.clone(),
+            instant: Instant::new(JulianDay::from_days(julian_day), TimeScale::Tt),
+            observer: None,
+            frame: CoordinateFrame::Ecliptic,
+            zodiac_mode: ZodiacMode::Tropical,
+            apparent: Apparentness::Mean,
+        };
+
+        let start_coordinates = reference_backend
+            .position(&request_for(start_julian_day))
+            .expect("short-span start position should be available")
+            .ecliptic
+            .expect("short-span start position should include ecliptic coordinates");
+        let end_coordinates = reference_backend
+            .position(&request_for(end_julian_day))
+            .expect("short-span end position should be available")
+            .ecliptic
+            .expect("short-span end position should include ecliptic coordinates");
+        let start = snapshot_entry_from_ecliptic_coordinates(
+            body.clone(),
+            start_julian_day,
+            start_coordinates,
+        );
+        let end =
+            snapshot_entry_from_ecliptic_coordinates(body.clone(), end_julian_day, end_coordinates);
+
+        let segment = segment_from_pair(&start, &end, &reference_backend);
+
+        assert!(segment
+            .channels
+            .iter()
+            .all(|channel| channel.coefficients.len() >= 6));
+    }
+
+    #[test]
     fn lookup_uses_packaged_boundary_epochs_for_every_reference_body() {
         use std::collections::HashMap;
 
