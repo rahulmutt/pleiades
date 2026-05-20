@@ -235,6 +235,7 @@ use pleiades_jpl::{
     validated_independent_holdout_snapshot_batch_parity_summary_for_report,
     validated_production_generation_corpus_shape_summary_for_report,
     validated_production_generation_snapshot_body_class_coverage_summary_for_report,
+    validated_production_generation_source_revision_summary_for_report,
     validated_production_generation_source_summary_for_report,
     validated_reference_asteroid_source_window_summary_for_report,
     validated_reference_holdout_overlap_summary_for_report,
@@ -5495,7 +5496,8 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("production-generation-source-revision-summary")
         | Some("production-generation-source-revision") => {
             ensure_no_extra_args(&args[1..], "production-generation-source-revision-summary")?;
-            Ok(production_generation_source_revision_summary_for_report())
+            validated_production_generation_source_revision_summary_for_report()
+                .map_err(|error| error.to_string())
         }
         Some("production-generation-source") => {
             ensure_no_extra_args(&args[1..], "production-generation-source")?;
@@ -12497,7 +12499,8 @@ fn ensure_production_generation_source_revision_summary_matches_current_renderin
     production_generation_source_revision_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
     if production_generation_source_revision_summary_text
-        == production_generation_source_revision_summary_for_report()
+        == validated_production_generation_source_revision_summary_for_report()
+            .map_err(|error| ReleaseBundleError::Verification(error.to_string()))?
     {
         Ok(())
     } else {

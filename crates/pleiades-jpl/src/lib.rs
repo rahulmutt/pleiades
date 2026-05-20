@@ -3240,6 +3240,25 @@ pub struct ProductionGenerationSourceRevisionSummary {
     pub independent_holdout_snapshot_checksum: u64,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ProductionGenerationSourceRevisionSummaryValidationError {
+    /// The revision summary no longer matches the current fixture checksums.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for ProductionGenerationSourceRevisionSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the production generation source revision summary field `{field}` is out of sync with the current fixture checksums"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for ProductionGenerationSourceRevisionSummaryValidationError {}
+
 impl ProductionGenerationSourceRevisionSummary {
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
@@ -3249,12 +3268,43 @@ impl ProductionGenerationSourceRevisionSummary {
             independent_holdout_snapshot_checksum = self.independent_holdout_snapshot_checksum,
         )
     }
+
+    /// Returns `Ok(())` when the summary still matches the current fixture checksums.
+    pub fn validate(&self) -> Result<(), ProductionGenerationSourceRevisionSummaryValidationError> {
+        if self != &production_generation_source_revision_summary() {
+            return Err(
+                ProductionGenerationSourceRevisionSummaryValidationError::FieldOutOfSync {
+                    field: "summary",
+                },
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns the validated compact summary line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, ProductionGenerationSourceRevisionSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
 
 /// Returns the release-facing production-generation source revision summary string.
 #[doc(alias = "production_generation_source_revision_summary")]
 pub fn production_generation_source_revision_summary_for_report() -> String {
-    production_generation_source_revision_summary().summary_line()
+    match production_generation_source_revision_summary().validated_summary_line() {
+        Ok(summary) => summary,
+        Err(error) => format!("source revision=unavailable ({error})"),
+    }
+}
+
+/// Returns the validated release-facing production-generation source revision summary string.
+#[doc(alias = "production_generation_source_revision_summary")]
+pub fn validated_production_generation_source_revision_summary_for_report(
+) -> Result<String, ProductionGenerationSourceRevisionSummaryValidationError> {
+    production_generation_source_revision_summary().validated_summary_line()
 }
 
 /// Combined provenance for the production-generation corpus.
@@ -31272,10 +31322,29 @@ mod tests {
     fn production_generation_source_revision_summary_documents_fixture_checksums() {
         let summary = production_generation_source_revision_summary();
         let report = production_generation_source_revision_summary_for_report();
+        let validated = validated_production_generation_source_revision_summary_for_report()
+            .expect("validated production generation source revision summary should exist");
 
         assert_eq!(report, summary.summary_line());
+        assert_eq!(validated, report);
         assert!(report.contains("reference_snapshot.csv checksum=0x"));
         assert!(report.contains("independent_holdout_snapshot.csv checksum=0x"));
+    }
+
+    #[test]
+    fn production_generation_source_revision_summary_validation_rejects_drift() {
+        let mut summary = production_generation_source_revision_summary();
+        summary.reference_snapshot_checksum ^= 1;
+
+        assert!(matches!(
+            summary.validate(),
+            Err(
+                ProductionGenerationSourceRevisionSummaryValidationError::FieldOutOfSync {
+                    field: "summary"
+                }
+            )
+        ));
+        assert!(summary.validated_summary_line().is_err());
     }
 
     #[test]
