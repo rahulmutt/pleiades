@@ -9302,6 +9302,91 @@ mod tests {
     }
 
     #[test]
+    fn packaged_artifact_split_fraction_uses_dense_four_fifth_point_bias_on_very_long_spans() {
+        let start = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(0.0),
+            pleiades_backend::Latitude::from_degrees(0.0),
+            Some(1.0),
+        );
+        let quarter = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(1.0),
+            pleiades_backend::Latitude::from_degrees(0.4),
+            Some(1.01),
+        );
+        let one_fifth = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(1.1),
+            pleiades_backend::Latitude::from_degrees(0.44),
+            Some(1.011),
+        );
+        let one_sixth = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(0.8),
+            pleiades_backend::Latitude::from_degrees(0.32),
+            Some(1.008),
+        );
+        let one_third = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(1.5),
+            pleiades_backend::Latitude::from_degrees(0.6),
+            Some(1.015),
+        );
+        let midpoint = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(2.0),
+            pleiades_backend::Latitude::from_degrees(0.8),
+            Some(1.02),
+        );
+        let two_third = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(2.5),
+            pleiades_backend::Latitude::from_degrees(1.0),
+            Some(1.03),
+        );
+        let four_fifth = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(7.0),
+            pleiades_backend::Latitude::from_degrees(3.5),
+            Some(1.07),
+        );
+        let five_sixth = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(3.2),
+            pleiades_backend::Latitude::from_degrees(1.28),
+            Some(1.036),
+        );
+        let three_quarter = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(3.0),
+            pleiades_backend::Latitude::from_degrees(1.2),
+            Some(1.04),
+        );
+        let end = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(4.0),
+            pleiades_backend::Latitude::from_degrees(1.6),
+            Some(1.08),
+        );
+
+        assert_eq!(
+            packaged_artifact_split_fraction_for_interval(
+                &CelestialBody::Pluto,
+                13_000.0,
+                body_segment_span_limit(&CelestialBody::Pluto),
+                PackagedArtifactSplitCurvature {
+                    start_coordinates: &start,
+                    quarter_coordinates: Some(&quarter),
+                    one_fifth_coordinates: Some(&one_fifth),
+                    one_sixth_coordinates: Some(&one_sixth),
+                    one_third_coordinates: Some(&one_third),
+                    one_seventh_coordinates: None,
+                    six_sevenths_coordinates: None,
+                    one_ninth_coordinates: None,
+                    eight_ninths_coordinates: None,
+                    midpoint_coordinates: &midpoint,
+                    two_third_coordinates: Some(&two_third),
+                    four_fifth_coordinates: Some(&four_fifth),
+                    five_sixth_coordinates: Some(&five_sixth),
+                    three_quarter_coordinates: Some(&three_quarter),
+                    end_coordinates: &end,
+                },
+            ),
+            PACKAGED_ARTIFACT_FOUR_FIFTHS_SPLIT_FRACTION
+        );
+    }
+
+    #[test]
     fn packaged_artifact_split_fraction_uses_dense_ninth_point_bias_on_super_extreme_spans() {
         let point = |longitude: f64, latitude: f64| {
             EclipticCoordinates::new(
