@@ -6312,30 +6312,54 @@ pub fn regenerate_packaged_artifact_bytes() -> &'static [u8] {
 }
 
 fn packaged_body_artifacts_from_snapshot(snapshot: &[SnapshotEntry]) -> Vec<BodyArtifact> {
-    let mut artifacts = Vec::new();
-    let reference_backend = JplSnapshotBackend;
+    let mut entries_by_body: HashMap<CelestialBody, Vec<&SnapshotEntry>> = HashMap::new();
 
-    for body in packaged_bodies().iter().cloned() {
-        let mut entries: Vec<&SnapshotEntry> =
-            snapshot.iter().filter(|entry| entry.body == body).collect();
-        if entries.is_empty() {
-            continue;
-        }
-
-        entries.sort_by(|left, right| {
-            left.epoch
-                .julian_day
-                .days()
-                .partial_cmp(&right.epoch.julian_day.days())
-                .unwrap_or(Ordering::Equal)
-        });
-
-        let segments = body_segments_from_entries(&entries, &reference_backend);
-
-        artifacts.push(BodyArtifact::new(body, segments));
+    for entry in snapshot {
+        entries_by_body
+            .entry(entry.body.clone())
+            .or_default()
+            .push(entry);
     }
 
+    let mut artifacts = Vec::new();
+    std::thread::scope(|scope| {
+        let mut handles = Vec::new();
+
+        for (body_index, body) in packaged_bodies().iter().cloned().enumerate() {
+            let Some(mut entries) = entries_by_body.remove(&body) else {
+                continue;
+            };
+
+            handles.push(scope.spawn(move || {
+                entries.sort_by(|left, right| {
+                    left.epoch
+                        .julian_day
+                        .days()
+                        .partial_cmp(&right.epoch.julian_day.days())
+                        .unwrap_or(Ordering::Equal)
+                });
+
+                let reference_backend = JplSnapshotBackend;
+                let segments = body_segments_from_entries(&entries, &reference_backend);
+
+                (body_index, BodyArtifact::new(body, segments))
+            }));
+        }
+
+        for handle in handles {
+            artifacts.push(
+                handle
+                    .join()
+                    .expect("packaged artifact body reconstruction should not panic"),
+            );
+        }
+    });
+
+    artifacts.sort_by_key(|(body_index, _)| *body_index);
     artifacts
+        .into_iter()
+        .map(|(_, artifact)| artifact)
+        .collect()
 }
 
 fn body_segments_from_entries(
