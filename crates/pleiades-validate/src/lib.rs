@@ -30173,6 +30173,7 @@ version = "0.9.0"
         assert!(rendered.contains("lunar-theory-source-family-summary.txt"));
         assert!(rendered.contains("lunar-source-window-summary.txt"));
         assert!(rendered.contains("lunar-theory-catalog-validation-summary.txt"));
+        assert!(rendered.contains("release-house-validation-summary.txt"));
         assert!(bundle_dir
             .join("compatibility-caveats-summary.txt")
             .exists());
