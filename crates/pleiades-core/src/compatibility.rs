@@ -1285,6 +1285,35 @@ pub fn validated_catalog_inventory_summary_for_report(
     current_compatibility_profile().validated_catalog_inventory_summary_line()
 }
 
+/// Returns the compatibility-caveats summary for report surfaces.
+pub fn compatibility_caveats_summary_for_report(
+    profile: &CompatibilityProfile,
+    release_profiles: &crate::release_profiles::ReleaseProfileIdentifiers,
+) -> String {
+    let mut text = String::new();
+
+    text.push_str("Compatibility caveats summary\n");
+    text.push_str("Profile: ");
+    text.push_str(release_profiles.compatibility_profile_id);
+    text.push('\n');
+    text.push_str("Compatibility caveats: ");
+    text.push_str(&profile.known_gaps.len().to_string());
+    text.push('\n');
+    text.push_str("Latitude-sensitive house systems: ");
+    text.push_str(&profile.latitude_sensitive_house_systems_summary_line());
+    text.push('\n');
+    text.push_str("Descriptor-only ayanamsa labels: ");
+    text.push_str(&profile.custom_definition_ayanamsa_labels_summary_line());
+    text.push('\n');
+    for gap in profile.known_gaps {
+        text.push_str("- ");
+        text.push_str(gap);
+        text.push('\n');
+    }
+
+    text
+}
+
 /// Returns the house-code alias inventory for report surfaces.
 pub fn house_code_aliases_summary_for_report() -> String {
     current_compatibility_profile().house_code_aliases_summary_line()
@@ -3471,6 +3500,29 @@ mod tests {
             invalid_profile.to_string(),
             "Compatibility profile unavailable (compatibility profile summary is blank)"
         );
+    }
+
+    #[test]
+    fn compatibility_caveats_summary_for_report_tracks_the_current_profile() {
+        let profile = current_compatibility_profile();
+        let release_profiles = crate::release_profiles::current_release_profile_identifiers();
+        let rendered = compatibility_caveats_summary_for_report(&profile, &release_profiles);
+
+        assert!(rendered.starts_with("Compatibility caveats summary\nProfile: "));
+        assert!(rendered.contains(release_profiles.compatibility_profile_id));
+        assert!(rendered.contains("Latitude-sensitive house systems: "));
+        assert!(rendered.contains("Descriptor-only ayanamsa labels: "));
+        let expected_prefix = format!(
+            "Compatibility caveats summary\nProfile: {}\nCompatibility caveats: {}\nLatitude-sensitive house systems: {}\nDescriptor-only ayanamsa labels: {}\n",
+            release_profiles.compatibility_profile_id,
+            profile.known_gaps.len(),
+            profile.latitude_sensitive_house_systems_summary_line(),
+            profile.custom_definition_ayanamsa_labels_summary_line()
+        );
+        assert!(rendered.starts_with(&expected_prefix));
+        for gap in profile.known_gaps {
+            assert!(rendered.contains(gap));
+        }
     }
 
     #[test]

@@ -52,6 +52,7 @@ use pleiades_backend::{
     validated_zodiac_policy_summary_for_report,
 };
 use pleiades_core::{
+    compatibility_caveats_summary_for_report as core_compatibility_caveats_summary_for_report,
     current_api_stability_profile, current_compatibility_profile,
     current_release_profile_identifiers, default_chart_bodies, validate_custom_definition_labels,
     validated_catalog_inventory_summary_for_report as core_validated_catalog_inventory_summary_for_report,
@@ -8472,42 +8473,24 @@ fn render_compatibility_profile_summary_text() -> String {
 }
 
 fn render_compatibility_caveats_summary_text() -> String {
-    let profile = match validated_compatibility_profile_for_report() {
-        Ok(profile) => profile,
-        Err(error) => return format!("Compatibility caveats summary unavailable ({error})"),
-    };
-    let release_profiles = match validated_release_profile_identifiers_for_report() {
-        Ok(release_profiles) => release_profiles,
-        Err(error) => return format!("Compatibility caveats summary unavailable ({error})"),
-    };
-    let mut text = String::new();
-
-    text.push_str("Compatibility caveats summary\n");
-    text.push_str("Profile: ");
-    text.push_str(release_profiles.compatibility_profile_id);
-    text.push('\n');
-    text.push_str("Compatibility caveats: ");
-    text.push_str(&profile.known_gaps.len().to_string());
-    text.push('\n');
-    text.push_str("Latitude-sensitive house systems: ");
-    match profile.validated_latitude_sensitive_house_systems_summary_line() {
-        Ok(summary) => text.push_str(&summary),
-        Err(error) => return format!("Compatibility caveats summary unavailable ({error})"),
-    }
-    text.push('\n');
-    text.push_str("Descriptor-only ayanamsa labels: ");
-    match profile.validated_custom_definition_ayanamsa_labels_summary_line() {
-        Ok(summary) => text.push_str(&summary),
-        Err(error) => return format!("Compatibility caveats summary unavailable ({error})"),
-    }
-    text.push('\n');
-    for gap in profile.known_gaps {
-        text.push_str("- ");
-        text.push_str(gap);
-        text.push('\n');
-    }
-
-    text
+    static CACHE: OnceLock<String> = OnceLock::new();
+    CACHE
+        .get_or_init(|| {
+            let profile = match validated_compatibility_profile_for_report() {
+                Ok(profile) => profile,
+                Err(error) => {
+                    return format!("Compatibility caveats summary unavailable ({error})")
+                }
+            };
+            let release_profiles = match validated_release_profile_identifiers_for_report() {
+                Ok(release_profiles) => release_profiles,
+                Err(error) => {
+                    return format!("Compatibility caveats summary unavailable ({error})")
+                }
+            };
+            core_compatibility_caveats_summary_for_report(&profile, &release_profiles)
+        })
+        .clone()
 }
 
 fn render_release_notes_text() -> String {
