@@ -6602,32 +6602,30 @@ fn packaged_artifact_split_fraction_for_interval(
             }
         }
 
-        if curvature.one_ninth_coordinates.is_none() {
-            if let (Some(one_eighth_coordinates), Some(seven_eighths_coordinates)) = (
-                curvature.one_eighth_coordinates,
-                curvature.seven_eighths_coordinates,
-            ) {
-                let left_eighth_curvature = packaged_artifact_segment_transition_curvature(
-                    curvature.start_coordinates,
-                    one_eighth_coordinates,
-                    curvature.midpoint_coordinates,
-                );
-                let right_eighth_curvature = packaged_artifact_segment_transition_curvature(
-                    curvature.midpoint_coordinates,
-                    seven_eighths_coordinates,
-                    curvature.end_coordinates,
-                );
+        if let (Some(one_eighth_coordinates), Some(seven_eighths_coordinates)) = (
+            curvature.one_eighth_coordinates,
+            curvature.seven_eighths_coordinates,
+        ) {
+            let left_eighth_curvature = packaged_artifact_segment_transition_curvature(
+                curvature.start_coordinates,
+                one_eighth_coordinates,
+                curvature.midpoint_coordinates,
+            );
+            let right_eighth_curvature = packaged_artifact_segment_transition_curvature(
+                curvature.midpoint_coordinates,
+                seven_eighths_coordinates,
+                curvature.end_coordinates,
+            );
 
-                if left_eighth_curvature
-                    > right_eighth_curvature * PACKAGED_ARTIFACT_SPLIT_BALANCE_RATIO
-                {
-                    return PACKAGED_ARTIFACT_ONE_EIGHTH_SPLIT_FRACTION;
-                }
-                if right_eighth_curvature
-                    > left_eighth_curvature * PACKAGED_ARTIFACT_SPLIT_BALANCE_RATIO
-                {
-                    return PACKAGED_ARTIFACT_SEVEN_EIGHTHS_SPLIT_FRACTION;
-                }
+            if left_eighth_curvature
+                > right_eighth_curvature * PACKAGED_ARTIFACT_SPLIT_BALANCE_RATIO
+            {
+                return PACKAGED_ARTIFACT_ONE_EIGHTH_SPLIT_FRACTION;
+            }
+            if right_eighth_curvature
+                > left_eighth_curvature * PACKAGED_ARTIFACT_SPLIT_BALANCE_RATIO
+            {
+                return PACKAGED_ARTIFACT_SEVEN_EIGHTHS_SPLIT_FRACTION;
             }
         }
     }
@@ -9765,7 +9763,6 @@ mod tests {
 
         let baseline = point(0.0, 0.0);
         let one_ninth = point(16.0, 6.4);
-        let _eight_ninths = point(16.0, 6.4);
         let one_eighth = point(14.0, 5.6);
         let seven_eighths = point(14.0, 5.6);
 
@@ -9809,36 +9806,8 @@ mod tests {
                     one_sixth_coordinates: Some(&baseline),
                     one_seventh_coordinates: Some(&baseline),
                     six_sevenths_coordinates: Some(&baseline),
-                    one_ninth_coordinates: None,
-                    eight_ninths_coordinates: None,
-                    one_eighth_coordinates: Some(&one_eighth),
-                    seven_eighths_coordinates: Some(&baseline),
-                    one_third_coordinates: Some(&baseline),
-                    midpoint_coordinates: &baseline,
-                    two_third_coordinates: Some(&baseline),
-                    four_fifth_coordinates: Some(&baseline),
-                    five_sixth_coordinates: Some(&baseline),
-                    three_quarter_coordinates: Some(&baseline),
-                    end_coordinates: &baseline,
-                },
-            ),
-            PACKAGED_ARTIFACT_ONE_EIGHTH_SPLIT_FRACTION
-        );
-
-        assert_eq!(
-            packaged_artifact_split_fraction_for_interval(
-                &CelestialBody::Pluto,
-                300_000.0,
-                body_segment_span_limit(&CelestialBody::Pluto),
-                PackagedArtifactSplitCurvature {
-                    start_coordinates: &baseline,
-                    quarter_coordinates: Some(&baseline),
-                    one_fifth_coordinates: None,
-                    one_sixth_coordinates: Some(&baseline),
-                    one_seventh_coordinates: Some(&baseline),
-                    six_sevenths_coordinates: Some(&baseline),
-                    one_ninth_coordinates: None,
-                    eight_ninths_coordinates: None,
+                    one_ninth_coordinates: Some(&baseline),
+                    eight_ninths_coordinates: Some(&baseline),
                     one_eighth_coordinates: Some(&one_eighth),
                     seven_eighths_coordinates: Some(&baseline),
                     one_third_coordinates: Some(&baseline),
