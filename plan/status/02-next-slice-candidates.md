@@ -77,6 +77,7 @@ This file lists focused implementation slices for the current phase ladder. Comp
 
 - Evaluate denser source windows, body-specific cadence, Chebyshev segments, residual tables, or any remaining channel-specific reconstruction gaps.
 - The current generator now compares span-limited polynomial candidates against their fallback reconstruction before accepting them and can already attach residual-correction channels across the bundled body set when that improves the measured fit; further improvement can still come from denser source windows or residual tables.
+- Completed: the fit-envelope sample lattice now uses the medium validation cadence for inner and outer planets too, so the major-planet fit diagnostics are no longer limited to the sparse quarter-point samples.
 - Keep artifact size and decode benchmarks current, but do not trade correctness away for size.
 
 ### 2. Keep the finalized threshold policy aligned with Phase 2 corpus evidence

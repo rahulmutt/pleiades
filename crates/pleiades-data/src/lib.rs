@@ -1451,6 +1451,7 @@ impl fmt::Display for PackagedArtifactFitEnvelopeSummary {
     }
 }
 
+#[cfg(test)]
 fn packaged_artifact_fit_sample_fractions(segment: &Segment) -> &'static [f64] {
     if segment.start.julian_day.days() == segment.end.julian_day.days() {
         &[0.0]
@@ -1474,7 +1475,10 @@ fn packaged_artifact_fit_sample_fractions_for_body(
             | PackagedArtifactBodyCadence::CustomBodies => {
                 packaged_artifact_segment_validation_fractions_for_body(body)
             }
-            _ => packaged_artifact_fit_sample_fractions(segment),
+            PackagedArtifactBodyCadence::InnerPlanets
+            | PackagedArtifactBodyCadence::OuterPlanets => {
+                PACKAGED_ARTIFACT_MEDIUM_VALIDATION_SAMPLE_FRACTIONS
+            }
         }
     }
 }
@@ -9054,12 +9058,16 @@ mod tests {
             PACKAGED_ARTIFACT_DENSE_VALIDATION_SAMPLE_FRACTIONS
         );
         assert_eq!(
+            packaged_artifact_fit_sample_fractions_for_body(mercury_segment.0, mercury_segment.1),
+            PACKAGED_ARTIFACT_MEDIUM_VALIDATION_SAMPLE_FRACTIONS
+        );
+        assert_eq!(
             packaged_artifact_fit_outlier_sample_fractions(mercury_segment.0, mercury_segment.1),
             PACKAGED_ARTIFACT_DENSE_VALIDATION_SAMPLE_FRACTIONS
         );
         assert_eq!(
             packaged_artifact_fit_sample_fractions_for_body(saturn_segment.0, saturn_segment.1),
-            packaged_artifact_fit_sample_fractions(saturn_segment.1)
+            PACKAGED_ARTIFACT_MEDIUM_VALIDATION_SAMPLE_FRACTIONS
         );
         assert_eq!(
             packaged_artifact_segment_validation_fractions_for_body(saturn_segment.0),
@@ -9251,7 +9259,7 @@ mod tests {
             );
             assert_eq!(
                 packaged_artifact_fit_sample_fractions_for_body(&body, &sample_segment),
-                &[0.25, 0.5, 0.75]
+                PACKAGED_ARTIFACT_MEDIUM_VALIDATION_SAMPLE_FRACTIONS
             );
             assert_eq!(
                 packaged_artifact_fit_outlier_sample_fractions(&body, &sample_segment),
