@@ -245,6 +245,11 @@ impl CompatibilityProfile {
         let ayanamsa_alias_count = alias_count(self.ayanamsas, |entry| entry.aliases);
         let custom_definition_ayanamsa_labels = self.custom_definition_ayanamsa_labels();
         let ayanamsa_metadata_gap_count = metadata_coverage().without_sidereal_metadata.len();
+        let ayanamsa_alias_bearing_entry_count = self
+            .ayanamsas
+            .iter()
+            .filter(|entry| !entry.aliases.is_empty())
+            .count();
 
         let mut text = String::from("Compatibility catalog inventory: ");
         text.push_str("house systems=");
@@ -277,6 +282,8 @@ impl CompatibilityProfile {
         text.push_str(&custom_definition_ayanamsa_labels.join(", "));
         text.push_str("); ayanamsa metadata gaps=");
         text.push_str(&ayanamsa_metadata_gap_count.to_string());
+        text.push_str("; ayanamsa alias-bearing entries=");
+        text.push_str(&ayanamsa_alias_bearing_entry_count.to_string());
         text.push_str("; known gaps=");
         text.push_str(&self.known_gaps.len().to_string());
         text.push_str("; claim audit: baseline catalogs are the published guarantees; release-specific entries are shipped additions; custom-definition labels remain custom-definition territory; known gaps stay documented");
@@ -3432,8 +3439,13 @@ mod tests {
             .iter()
             .map(|entry| entry.aliases.len())
             .sum();
+        let ayanamsa_alias_bearing_entry_count: usize = profile
+            .ayanamsas
+            .iter()
+            .filter(|entry| !entry.aliases.is_empty())
+            .count();
         assert!(rendered.contains(&format!(
-            "Compatibility catalog inventory: house systems={} ({} baseline, {} release-specific, {} aliases); house formula families={}; house latitude-sensitive constraints={}; house-code aliases={}; ayanamsas={} ({} baseline, {} release-specific, {} aliases); custom-definition labels={}; custom-definition ayanamsa labels={} (Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs)); ayanamsa metadata gaps={}; known gaps={}; claim audit: baseline catalogs are the published guarantees; release-specific entries are shipped additions; custom-definition labels remain custom-definition territory; known gaps stay documented",
+            "Compatibility catalog inventory: house systems={} ({} baseline, {} release-specific, {} aliases); house formula families={}; house latitude-sensitive constraints={}; house-code aliases={}; ayanamsas={} ({} baseline, {} release-specific, {} aliases); custom-definition labels={}; custom-definition ayanamsa labels={} (Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs)); ayanamsa metadata gaps={}; ayanamsa alias-bearing entries={}; known gaps={}; claim audit: baseline catalogs are the published guarantees; release-specific entries are shipped additions; custom-definition labels remain custom-definition territory; known gaps stay documented",
             profile.house_systems.len(),
             profile.baseline_house_systems.len(),
             profile.release_house_systems.len(),
@@ -3448,11 +3460,13 @@ mod tests {
             profile.custom_definition_labels.len(),
             profile.custom_definition_ayanamsa_labels().len(),
             metadata_coverage().without_sidereal_metadata.len(),
+            ayanamsa_alias_bearing_entry_count,
             profile.known_gaps.len()
         )));
         assert!(rendered.contains("house systems: 25 total"));
         assert!(rendered.contains("ayanamsas: 59 total"));
         assert!(rendered.contains("ayanamsa metadata gaps=0"));
+        assert!(rendered.contains("ayanamsa alias-bearing entries="));
     }
 
     #[test]
