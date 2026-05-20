@@ -20878,6 +20878,18 @@ fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str(&production_generation_manifest_summary_for_report());
     text.push('\n');
+    text.push_str("JPL production-generation coverage: ");
+    text.push_str(&production_generation_snapshot_summary_for_report());
+    text.push('\n');
+    text.push_str("JPL production-generation body-class coverage: ");
+    text.push_str(&validated_production_generation_body_class_coverage_summary_for_report());
+    text.push('\n');
+    text.push_str("JPL production-generation corpus shape: ");
+    text.push_str(&production_generation_corpus_shape_summary_for_report());
+    text.push('\n');
+    text.push_str("JPL source corpus contract: ");
+    text.push_str(&jpl_source_corpus_contract_summary_for_report());
+    text.push('\n');
     text.push_str(&comparison_snapshot_summary_for_report());
     text.push('\n');
     text.push_str(&comparison_snapshot_body_class_coverage_summary_for_report());
@@ -30070,6 +30082,10 @@ mod tests {
         assert!(rendered.contains("VSOP87 supported-body J1900 equatorial batch parity:"));
         assert!(rendered.contains("VSOP87 canonical mixed TT/TDB batch parity:"));
         assert!(rendered.contains("JPL batch error taxonomy: supported body Ceres; unsupported body Mean Node -> UnsupportedBody; out-of-range Ceres -> OutOfRangeInstant"));
+        assert!(rendered.contains("JPL production-generation coverage:"));
+        assert!(rendered.contains("JPL production-generation body-class coverage:"));
+        assert!(rendered.contains("JPL production-generation corpus shape:"));
+        assert!(rendered.contains("JPL source corpus contract:"));
         assert!(rendered.contains(
             "Comparison corpus release-grade guard: Pluto excluded from tolerance evidence"
         ));
