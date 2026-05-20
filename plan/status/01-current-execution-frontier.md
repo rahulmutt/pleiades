@@ -47,3 +47,4 @@ Align the finalized threshold posture with the Phase 2 corpus and hold-out valid
 - Keep request-policy docs and structured unsupported errors synchronized.
 - Harden release-bundle verification without changing feature claims, and keep the lunar-theory source-family and lunar source-window summaries exposed as release-facing CLI surfaces with matching docs.
 - The chart help block now reuses the same compact request-policy line for the request-semantics alias instead of applying a dead string rewrite, keeping the CLI help wording aligned with the docs.
+- The custom-asteroid cadence classification is now pinned too, so asteroid-catalog custom bodies stay on the selected-asteroid ladder while other custom bodies retain the wider custom-body span cap.

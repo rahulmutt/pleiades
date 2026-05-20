@@ -8856,6 +8856,23 @@ mod tests {
     }
 
     #[test]
+    fn packaged_artifact_body_cadence_distinguishes_custom_asteroid_and_custom_body_catalogs() {
+        let custom_asteroid = CelestialBody::Custom(CustomBodyId::new("ASTEROID", "99942-Apophis"));
+        let custom_comet = CelestialBody::Custom(CustomBodyId::new("comet", "1P-Halley"));
+
+        assert!(matches!(
+            packaged_artifact_body_cadence(&custom_asteroid),
+            PackagedArtifactBodyCadence::SelectedAsteroids
+        ));
+        assert_eq!(body_segment_span_limit(&custom_asteroid), 256.0);
+        assert!(matches!(
+            packaged_artifact_body_cadence(&custom_comet),
+            PackagedArtifactBodyCadence::CustomBodies
+        ));
+        assert_eq!(body_segment_span_limit(&custom_comet), 512.0);
+    }
+
+    #[test]
     fn packaged_artifact_split_fraction_prefers_dense_body_curvature_bias() {
         let moderate_left_start = EclipticCoordinates::new(
             pleiades_backend::Longitude::from_degrees(0.0),
