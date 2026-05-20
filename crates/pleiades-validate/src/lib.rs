@@ -31715,6 +31715,103 @@ version = "0.9.0"
     }
 
     #[test]
+    fn verify_release_bundle_rejects_missing_packaged_artifact_bundle_entries() {
+        for (bundle_dir_prefix, manifest_line_prefix, expected_fragments) in [
+            (
+                "pleiades-release-bundle-missing-packaged-artifact-binary",
+                "packaged-artifact:",
+                ["missing manifest entry: packaged-artifact:", "missing packaged-artifact entry"],
+            ),
+            (
+                "pleiades-release-bundle-missing-packaged-artifact-checksum-sidecar",
+                "packaged-artifact checksum sidecar:",
+                [
+                    "missing manifest entry: packaged-artifact checksum sidecar:",
+                    "missing packaged-artifact checksum sidecar entry",
+                ],
+            ),
+            (
+                "pleiades-release-bundle-missing-packaged-artifact-generation-manifest",
+                "packaged-artifact generation manifest:",
+                [
+                    "missing manifest entry: packaged-artifact generation manifest:",
+                    "missing packaged-artifact generation manifest entry",
+                ],
+            ),
+            (
+                "pleiades-release-bundle-missing-packaged-artifact-generation-manifest-checksum-sidecar",
+                "packaged-artifact generation manifest checksum sidecar:",
+                [
+                    "missing manifest entry: packaged-artifact generation manifest checksum sidecar:",
+                    "missing packaged-artifact generation manifest checksum sidecar entry",
+                ],
+            ),
+            (
+                "pleiades-release-bundle-missing-packaged-artifact-profile-coverage-summary",
+                "packaged-artifact profile coverage summary:",
+                [
+                    "missing manifest entry: packaged-artifact profile coverage summary:",
+                    "missing packaged-artifact profile coverage summary entry",
+                ],
+            ),
+            (
+                "pleiades-release-bundle-missing-packaged-artifact-access-summary",
+                "packaged-artifact access summary:",
+                [
+                    "missing manifest entry: packaged-artifact access summary:",
+                    "missing packaged-artifact access summary entry",
+                ],
+            ),
+            (
+                "pleiades-release-bundle-missing-packaged-artifact-output-support-summary",
+                "packaged-artifact output support summary:",
+                [
+                    "missing manifest entry: packaged-artifact output support summary:",
+                    "missing packaged-artifact output support summary entry",
+                ],
+            ),
+            (
+                "pleiades-release-bundle-missing-packaged-artifact-speed-policy-summary",
+                "packaged-artifact speed policy summary:",
+                [
+                    "missing manifest entry: packaged-artifact speed policy summary:",
+                    "missing packaged-artifact speed policy summary entry",
+                ],
+            ),
+            (
+                "pleiades-release-bundle-missing-packaged-artifact-storage-summary",
+                "packaged-artifact storage summary:",
+                [
+                    "missing manifest entry: packaged-artifact storage summary:",
+                    "missing packaged-artifact storage summary entry",
+                ],
+            ),
+            (
+                "pleiades-release-bundle-missing-packaged-artifact-production-profile-summary",
+                "packaged-artifact production-profile summary:",
+                [
+                    "missing manifest entry: packaged-artifact production-profile summary:",
+                    "missing packaged-artifact production-profile summary entry",
+                ],
+            ),
+            (
+                "pleiades-release-bundle-missing-packaged-frame-treatment-summary",
+                "packaged-frame-treatment summary:",
+                [
+                    "missing manifest entry: packaged-frame-treatment summary:",
+                    "missing packaged-frame-treatment summary entry",
+                ],
+            ),
+        ] {
+            assert_release_bundle_rejects_missing_manifest_entry(
+                bundle_dir_prefix,
+                manifest_line_prefix,
+                &expected_fragments,
+            );
+        }
+    }
+
+    #[test]
     fn verify_release_bundle_rejects_missing_rustc_version_entry() {
         assert_release_bundle_rejects_missing_manifest_entry(
             "pleiades-release-bundle-missing-rustc",
