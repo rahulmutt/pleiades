@@ -8848,6 +8848,14 @@ mod tests {
             PACKAGED_ARTIFACT_MEDIUM_FIT_SAMPLE_COUNTS
         );
         assert_eq!(
+            packaged_artifact_fit_sample_counts_for_body(&CelestialBody::Venus),
+            PACKAGED_ARTIFACT_MEDIUM_FIT_SAMPLE_COUNTS
+        );
+        assert_eq!(
+            packaged_artifact_fit_sample_counts_for_body(&CelestialBody::Jupiter),
+            PACKAGED_ARTIFACT_MEDIUM_FIT_SAMPLE_COUNTS
+        );
+        assert_eq!(
             packaged_artifact_fit_sample_counts_for_body(saturn_segment.0),
             PACKAGED_ARTIFACT_MEDIUM_FIT_SAMPLE_COUNTS
         );
