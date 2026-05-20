@@ -9861,24 +9861,40 @@ mod tests {
                 &CelestialBody::Custom(CustomBodyId::new("comet", "1P-Halley")),
                 ChannelKind::DistanceAu,
             );
+        let inner_planet_longitude_fractions =
+            packaged_artifact_residual_sample_fractions_for_channel(
+                &CelestialBody::Mercury,
+                ChannelKind::Longitude,
+            );
+        let inner_planet_latitude_fractions =
+            packaged_artifact_residual_sample_fractions_for_channel(
+                &CelestialBody::Mercury,
+                ChannelKind::Latitude,
+            );
         let inner_planet_distance_fractions =
             packaged_artifact_residual_sample_fractions_for_channel(
                 &CelestialBody::Mercury,
                 ChannelKind::DistanceAu,
+            );
+        let outer_planet_longitude_fractions =
+            packaged_artifact_residual_sample_fractions_for_channel(
+                &CelestialBody::Saturn,
+                ChannelKind::Longitude,
+            );
+        let outer_planet_latitude_fractions =
+            packaged_artifact_residual_sample_fractions_for_channel(
+                &CelestialBody::Saturn,
+                ChannelKind::Latitude,
             );
         let outer_planet_distance_fractions =
             packaged_artifact_residual_sample_fractions_for_channel(
                 &CelestialBody::Saturn,
                 ChannelKind::DistanceAu,
             );
-        let outer_planet_fractions = packaged_artifact_residual_sample_fractions_for_channel(
-            &CelestialBody::Saturn,
-            ChannelKind::Longitude,
-        );
 
         assert_eq!(luminary_longitude_fractions.first().copied(), Some(0.0));
         assert_eq!(luminary_longitude_fractions.last().copied(), Some(1.0));
-        assert!(luminary_longitude_fractions.len() > outer_planet_fractions.len());
+        assert!(luminary_longitude_fractions.len() > outer_planet_longitude_fractions.len());
         assert_eq!(
             lunar_point_distance_fractions,
             PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS
@@ -9912,16 +9928,28 @@ mod tests {
             PACKAGED_ARTIFACT_RESIDUAL_SAMPLE_FRACTIONS
         );
         assert_eq!(
+            inner_planet_longitude_fractions,
+            PACKAGED_ARTIFACT_RESIDUAL_SAMPLE_FRACTIONS
+        );
+        assert_eq!(
+            inner_planet_latitude_fractions,
+            PACKAGED_ARTIFACT_RESIDUAL_SAMPLE_FRACTIONS
+        );
+        assert_eq!(
             inner_planet_distance_fractions,
             PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS
         );
         assert_eq!(
-            outer_planet_distance_fractions,
-            PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS
+            outer_planet_longitude_fractions,
+            PACKAGED_ARTIFACT_RESIDUAL_SAMPLE_FRACTIONS
         );
         assert_eq!(
-            outer_planet_fractions,
+            outer_planet_latitude_fractions,
             PACKAGED_ARTIFACT_RESIDUAL_SAMPLE_FRACTIONS
+        );
+        assert_eq!(
+            outer_planet_distance_fractions,
+            PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS
         );
     }
 
