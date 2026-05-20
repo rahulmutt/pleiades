@@ -5,7 +5,7 @@
 - [x] Artifact generator consumes validated documented inputs.
 - [x] Normalized intermediates are deterministic and checksumed.
 - [x] Artifact profile states stored, derived, approximated, and unsupported outputs.
-- [ ] Body/channel errors pass published thresholds for advertised scopes.
+- [x] Body/channel errors pass published thresholds for advertised scopes.
 - [ ] Reference and hold-out validation reports are current.
 - [ ] Lookup, batch, decode, size, and chart-style benchmarks are current.
 

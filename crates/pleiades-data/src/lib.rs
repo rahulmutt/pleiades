@@ -13349,7 +13349,9 @@ mod tests {
     #[test]
     fn packaged_artifact_fit_threshold_summary_reflects_the_current_posture() {
         let summary = packaged_artifact_fit_threshold_summary_details();
+        let thresholds = packaged_artifact_fit_threshold_summary_details();
         let violations = packaged_artifact_fit_threshold_violation_summary_details();
+        let scope_envelopes = packaged_artifact_target_threshold_scope_envelopes_summary_details();
 
         assert_eq!(
             summary.summary_line(),
@@ -13358,6 +13360,18 @@ mod tests {
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert!(summary.validate().is_ok());
+        assert_eq!(
+            scope_envelopes.scope_envelopes.len(),
+            PACKAGED_ARTIFACT_TARGET_THRESHOLD_SCOPES.len()
+        );
+        assert!(scope_envelopes.validate().is_ok());
+        for scope in &scope_envelopes.scope_envelopes {
+            assert_eq!(scope.validate(), Ok(()));
+            assert!(scope
+                .fit_envelope
+                .validate_against_thresholds(&thresholds)
+                .is_ok());
+        }
         assert_eq!(
             violations.summary_line(),
             "fit threshold violations: 0; details: none"
