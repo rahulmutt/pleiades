@@ -12417,23 +12417,12 @@ fn ensure_production_generation_source_summary_matches_source_windows(
         production_generation_source_window_summary_text,
         "Production generation source windows: ",
     )?;
-    let Some((_, embedded_source_windows_payload)) =
-        production_generation_source_summary_payload.rsplit_once("source windows=")
-    else {
-        return Err(ReleaseBundleError::Verification(
-            "production generation source summary is missing its source windows payload"
-                .to_string(),
-        ));
-    };
-    let Some((embedded_source_windows_payload, _)) =
-        embedded_source_windows_payload.split_once("; input path=")
-    else {
-        return Err(ReleaseBundleError::Verification(
-            "production generation source summary source windows payload is malformed".to_string(),
-        ));
-    };
+    let expected_source_window_fragment = format!(
+        "source windows={}; evidence classes=reference, hold-out, boundary overlay, provenance-only; input path=",
+        production_generation_source_window_summary_payload.trim()
+    );
 
-    if embedded_source_windows_payload != production_generation_source_window_summary_payload {
+    if !production_generation_source_summary_payload.contains(&expected_source_window_fragment) {
         return Err(ReleaseBundleError::Verification(
             "production generation source summary source windows payload does not match the production generation source window summary".to_string(),
         ));
