@@ -11545,6 +11545,14 @@ mod tests {
         let summary = packaged_artifact_normalized_intermediate_summary_details();
         let artifact = packaged_artifact();
 
+        assert_eq!(
+            summary,
+            packaged_artifact_normalized_intermediate_summary_details()
+        );
+        assert_eq!(
+            summary.checksum,
+            fnv1a64(summary.summary_payload_line().as_bytes())
+        );
         assert_eq!(summary.label, ARTIFACT_LABEL);
         assert_eq!(summary.artifact_version, artifact.header.version);
         assert_eq!(summary.source, packaged_artifact_source_text());

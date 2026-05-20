@@ -3,7 +3,7 @@
 ## Phase 1: Artifact accuracy and packaged-data production
 
 - [x] Artifact generator consumes validated documented inputs.
-- [ ] Normalized intermediates are deterministic and checksumed.
+- [x] Normalized intermediates are deterministic and checksumed.
 - [x] Artifact profile states stored, derived, approximated, and unsupported outputs.
 - [ ] Body/channel errors pass published thresholds for advertised scopes.
 - [ ] Reference and hold-out validation reports are current.
