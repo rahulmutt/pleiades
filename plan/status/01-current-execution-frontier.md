@@ -8,6 +8,8 @@ The active frontier is **Phase 1: Production Reference/Source Corpus**. Producti
 
 The specification requires compressed 1500-2500 CE data to be reproducible from public inputs and validated against measured error envelopes. The current artifact and reports are useful infrastructure, but current comparison output still shows production tolerance failures. A better generator alone is insufficient until the source corpus is broad, documented, and separated into fitting/reference/hold-out evidence.
 
+Recent implementation note: production-generation source-summary validation now checks the exact rendered source-revision checksum payload, so checksum drift in the corpus provenance block is no longer only implied by nested struct equality.
+
 ## Immediate blockers
 
 1. **Production source coverage** — checked-in snapshots do not yet form a broad production corpus for all release bodies, channels, and epochs.

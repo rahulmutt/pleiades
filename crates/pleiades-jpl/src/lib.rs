@@ -3264,40 +3264,58 @@ pub struct ProductionGenerationSourceSummary {
 }
 
 fn validate_production_generation_source_summary_text(
+    summary: &ProductionGenerationSourceSummary,
     text: &str,
 ) -> Result<(), ProductionGenerationSourceSummaryValidationError> {
-    const REQUIRED_FRAGMENTS: &[(&str, &str)] = &[
-        ("strategy", "strategy=documented hybrid fixture corpus"),
+    let source_windows_fragment = format!(
+        "source windows={}",
+        strip_report_prefix(
+            &summary.source_windows.summary_line(),
+            "Production generation source windows: ",
+        )
+    );
+    let source_revision_fragment = summary.source_revision.summary_line();
+
+    let required_fragments = [
+        ("strategy", "strategy=documented hybrid fixture corpus".to_string()),
         (
             "input path",
-            "input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv",
+            "input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv".to_string(),
         ),
-        ("file format", "file format=comma-separated values"),
-        ("columns", "columns=epoch_jd, body, x_km, y_km, z_km"),
-        ("frame", "frame=geocentric ecliptic J2000"),
-        ("time scale", "time scale=TDB"),
-        ("parser", "parser=pure-Rust and deterministic"),
+        ("file format", "file format=comma-separated values".to_string()),
+        ("columns", "columns=epoch_jd, body, x_km, y_km, z_km".to_string()),
+        ("frame", "frame=geocentric ecliptic J2000".to_string()),
+        ("time scale", "time scale=TDB".to_string()),
+        ("parser", "parser=pure-Rust and deterministic".to_string()),
         (
             "generation command",
-            "generation command=generate-packaged-artifact --check",
+            "generation command=generate-packaged-artifact --check".to_string(),
         ),
         (
             "checksum expectation",
-            "checksum expectation=byte-identical fixture contents",
+            "checksum expectation=byte-identical fixture contents".to_string(),
         ),
-        ("cadence", "cadence=31 reference epochs and 10 boundary epochs"),
+        ("cadence", "cadence=31 reference epochs and 10 boundary epochs".to_string()),
         (
             "row separation",
-            "reference and hold-out rows remain separate",
+            "reference and hold-out rows remain separate".to_string(),
+        ),
+        (
+            "source windows",
+            source_windows_fragment,
+        ),
+        (
+            "source revision",
+            source_revision_fragment,
         ),
         (
             "redistribution posture",
-            "redistribution posture=repository-checked regression fixtures, not a broad public corpus",
+            "redistribution posture=repository-checked regression fixtures, not a broad public corpus".to_string(),
         ),
     ];
 
-    for (field, fragment) in REQUIRED_FRAGMENTS {
-        if !text.contains(fragment) {
+    for (field, fragment) in required_fragments {
+        if !text.contains(&fragment) {
             return Err(
                 ProductionGenerationSourceSummaryValidationError::RenderedSummaryOutOfSync {
                     field,
@@ -3344,7 +3362,7 @@ impl ProductionGenerationSourceSummary {
             return Err(ProductionGenerationSourceSummaryValidationError::SourceRevisionMismatch);
         }
 
-        validate_production_generation_source_summary_text(&self.summary_line())?;
+        validate_production_generation_source_summary_text(self, &self.summary_line())?;
 
         Ok(())
     }
@@ -30842,10 +30860,28 @@ mod tests {
         );
 
         assert!(matches!(
-            validate_production_generation_source_summary_text(&drifted),
+            validate_production_generation_source_summary_text(&summary, &drifted),
             Err(
                 ProductionGenerationSourceSummaryValidationError::RenderedSummaryOutOfSync {
                     field: "columns"
+                }
+            )
+        ));
+    }
+
+    #[test]
+    fn production_generation_source_summary_validation_rejects_checksum_text_drift() {
+        let summary = production_generation_source_summary();
+        let drifted = summary.summary_line().replace(
+            &summary.source_revision.summary_line(),
+            "source revision=reference_snapshot.csv checksum=0x0000000000000000; independent_holdout_snapshot.csv checksum=0x0000000000000000",
+        );
+
+        assert!(matches!(
+            validate_production_generation_source_summary_text(&summary, &drifted),
+            Err(
+                ProductionGenerationSourceSummaryValidationError::RenderedSummaryOutOfSync {
+                    field: "source revision"
                 }
             )
         ));
