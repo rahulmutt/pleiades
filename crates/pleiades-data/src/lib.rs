@@ -2124,7 +2124,12 @@ impl PackagedArtifactBodyCadence {
             ChannelKind::DistanceAu => {
                 matches!(
                     self,
-                    Self::LunarPoints | Self::SelectedAsteroids | Self::CustomBodies
+                    Self::InnerPlanets
+                        | Self::OuterPlanets
+                        | Self::Pluto
+                        | Self::LunarPoints
+                        | Self::SelectedAsteroids
+                        | Self::CustomBodies
                 )
             }
             _ => false,
@@ -9856,6 +9861,16 @@ mod tests {
                 &CelestialBody::Custom(CustomBodyId::new("comet", "1P-Halley")),
                 ChannelKind::DistanceAu,
             );
+        let inner_planet_distance_fractions =
+            packaged_artifact_residual_sample_fractions_for_channel(
+                &CelestialBody::Mercury,
+                ChannelKind::DistanceAu,
+            );
+        let outer_planet_distance_fractions =
+            packaged_artifact_residual_sample_fractions_for_channel(
+                &CelestialBody::Saturn,
+                ChannelKind::DistanceAu,
+            );
         let outer_planet_fractions = packaged_artifact_residual_sample_fractions_for_channel(
             &CelestialBody::Saturn,
             ChannelKind::Longitude,
@@ -9895,6 +9910,14 @@ mod tests {
         assert_eq!(
             luminary_distance_fractions,
             PACKAGED_ARTIFACT_RESIDUAL_SAMPLE_FRACTIONS
+        );
+        assert_eq!(
+            inner_planet_distance_fractions,
+            PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS
+        );
+        assert_eq!(
+            outer_planet_distance_fractions,
+            PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS
         );
         assert_eq!(
             outer_planet_fractions,
