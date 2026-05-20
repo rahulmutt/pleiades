@@ -9043,6 +9043,48 @@ mod tests {
     }
 
     #[test]
+    fn packaged_artifact_outer_planets_use_medium_fit_sampling_and_dense_distance_validation() {
+        for body in [
+            CelestialBody::Jupiter,
+            CelestialBody::Saturn,
+            CelestialBody::Uranus,
+            CelestialBody::Neptune,
+        ] {
+            assert!(!packaged_artifact_body_cadence(&body).uses_dense_sampling());
+            assert!(packaged_artifact_body_cadence(&body).uses_dense_validation_sampling());
+            assert_eq!(
+                packaged_artifact_fit_sample_counts_for_body(&body),
+                PACKAGED_ARTIFACT_MEDIUM_FIT_SAMPLE_COUNTS
+            );
+            assert_eq!(
+                packaged_artifact_segment_validation_fractions_for_body(&body),
+                PACKAGED_ARTIFACT_DENSE_VALIDATION_SAMPLE_FRACTIONS
+            );
+            assert_eq!(
+                packaged_artifact_residual_sample_fractions_for_channel(
+                    &body,
+                    ChannelKind::Longitude
+                ),
+                PACKAGED_ARTIFACT_RESIDUAL_SAMPLE_FRACTIONS
+            );
+            assert_eq!(
+                packaged_artifact_residual_sample_fractions_for_channel(
+                    &body,
+                    ChannelKind::Latitude
+                ),
+                PACKAGED_ARTIFACT_RESIDUAL_SAMPLE_FRACTIONS
+            );
+            assert_eq!(
+                packaged_artifact_residual_sample_fractions_for_channel(
+                    &body,
+                    ChannelKind::DistanceAu
+                ),
+                PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS
+            );
+        }
+    }
+
+    #[test]
     fn packaged_artifact_body_cadence_distinguishes_custom_asteroid_and_custom_body_catalogs() {
         let custom_asteroid = CelestialBody::Custom(CustomBodyId::new("ASTEROID", "99942-Apophis"));
         let custom_comet = CelestialBody::Custom(CustomBodyId::new("comet", "1P-Halley"));
