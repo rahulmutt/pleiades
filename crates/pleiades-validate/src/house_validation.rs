@@ -570,6 +570,15 @@ pub fn release_house_validation_report() -> HouseValidationReport {
     CACHE.get_or_init(HouseValidationReport::release).clone()
 }
 
+/// Returns the compact baseline house-validation summary line.
+pub fn house_validation_summary_for_report() -> String {
+    static CACHE: OnceLock<String> = OnceLock::new();
+
+    CACHE
+        .get_or_init(|| house_validation_summary_line_for_report(&house_validation_report()))
+        .clone()
+}
+
 /// Returns the compact report-facing summary line, or an unavailable message if validation fails.
 pub fn house_validation_summary_line_for_report(report: &HouseValidationReport) -> String {
     match validated_house_validation_summary_line_for_report(report) {
@@ -586,10 +595,16 @@ pub fn validated_release_house_validation_summary_line_for_report(
 
 /// Returns the compact release-facing summary line for the release house-validation corpus.
 pub fn release_house_validation_summary_for_report() -> String {
-    match validated_release_house_validation_summary_line_for_report() {
-        Ok(summary) => summary,
-        Err(error) => format!("House validation corpus unavailable: {error}"),
-    }
+    static CACHE: OnceLock<String> = OnceLock::new();
+
+    CACHE
+        .get_or_init(
+            || match validated_release_house_validation_summary_line_for_report() {
+                Ok(summary) => summary,
+                Err(error) => format!("House validation corpus unavailable: {error}"),
+            },
+        )
+        .clone()
 }
 
 /// Returns the compact report-facing summary line if validation succeeds.

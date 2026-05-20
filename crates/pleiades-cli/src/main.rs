@@ -1638,7 +1638,7 @@ mod tests {
         packaged_artifact_generation_manifest_for_report,
         packaged_artifact_normalized_intermediate_summary_for_report,
     };
-    use pleiades_validate::{house_validation_report, house_validation_summary_line_for_report};
+    use pleiades_validate::house_validation_summary_for_report;
 
     use super::{
         banner, parse_ayanamsa, parse_body, render_chart, render_cli,
@@ -4347,7 +4347,7 @@ mod tests {
             .contains("latitude-sensitive systems: Koch, Placidus, Topocentric"));
         assert_eq!(
             house_validation_summary,
-            house_validation_summary_line_for_report(&house_validation_report())
+            house_validation_summary_for_report()
         );
         assert_eq!(
             render_cli(&["house-validation-summary", "extra"])

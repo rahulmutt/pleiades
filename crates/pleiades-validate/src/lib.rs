@@ -31,8 +31,9 @@ pub use chart_benchmark::{
     benchmark_chart_backend, chart_benchmark_corpus_summary, ChartBenchmarkReport,
 };
 pub use house_validation::{
-    house_validation_report, house_validation_summary_line_for_report,
-    release_house_validation_report, release_house_validation_summary_for_report,
+    house_validation_report, house_validation_summary_for_report,
+    house_validation_summary_line_for_report, release_house_validation_report,
+    release_house_validation_summary_for_report,
     validated_house_validation_summary_line_for_report, HouseValidationReport,
     HouseValidationReportValidationError, HouseValidationSample, HouseValidationScenario,
 };
@@ -6367,21 +6368,11 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("house-validation-summary") => {
             ensure_no_extra_args(&args[1..], "house-validation-summary")?;
-            Ok(
-                validated_house_validation_summary_line_for_report(&house_validation_report())
-                    .unwrap_or_else(|error| {
-                        format!("House validation corpus unavailable: {error}")
-                    }),
-            )
+            Ok(house_validation_summary_for_report())
         }
         Some("house-validation") => {
             ensure_no_extra_args(&args[1..], "house-validation")?;
-            Ok(
-                validated_house_validation_summary_line_for_report(&house_validation_report())
-                    .unwrap_or_else(|error| {
-                        format!("House validation corpus unavailable: {error}")
-                    }),
-            )
+            Ok(house_validation_summary_for_report())
         }
         Some("house-latitude-sensitive-summary") => {
             ensure_no_extra_args(&args[1..], "house-latitude-sensitive-summary")?;
@@ -27399,10 +27390,7 @@ mod tests {
         assert!(rendered
             .contains("formula families: Equal, Whole Sign, Quadrant, Equatorial projection"));
         assert!(rendered.contains("latitude-sensitive systems: Koch, Placidus, Topocentric"));
-        assert_eq!(
-            rendered,
-            house_validation_summary_line_for_report(&house_validation_report())
-        );
+        assert_eq!(rendered, house_validation_summary_for_report());
     }
 
     #[test]
@@ -27410,10 +27398,7 @@ mod tests {
         let rendered =
             render_cli(&["house-validation"]).expect("house validation alias should render");
 
-        assert_eq!(
-            rendered,
-            house_validation_summary_line_for_report(&house_validation_report())
-        );
+        assert_eq!(rendered, house_validation_summary_for_report());
         assert_eq!(
             render_cli(&["house-validation", "extra"])
                 .expect_err("house validation alias should reject extra arguments"),
