@@ -119,7 +119,7 @@ This file lists focused implementation slices for the current phase ladder. Comp
 - Decide whether built-in UTC/Delta-T convenience belongs in the first production release.
 - Implement apparent-place or topocentric body support only with capability metadata, validation, and docs.
 - Keep native sidereal backend output unsupported unless a backend explicitly implements it.
-- Add precedence tests for invalid/unsupported request combinations when behavior changes.
+- Completed: precedence tests now cover malformed observers ahead of unsupported apparentness and unsupported body coverage in both single-request and batch validation paths, keeping the request-preflight failure order pinned for future policy changes.
 - Completed: the frame-policy summary surface now validates before rendering in the CLI and validation report paths.
 - Completed: request-policy validation now preserves invalid-observer precedence ahead of unsupported-body coverage in both direct and batch metadata checks, and the request-policy/request-semantics report titles now share a guarded validation helper so the paired release-facing blocks fail closed if the title wording drifts.
 - Completed: direct request-policy validation now also preserves unsupported-apparentness precedence ahead of invalid-observer validation, keeping malformed observers from displacing the advertised apparentness failure in the direct backend preflight path.
