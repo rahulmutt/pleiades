@@ -31438,6 +31438,14 @@ version = "0.9.0"
             ],
         );
         assert_release_bundle_rejects_missing_manifest_entry(
+            "pleiades-release-bundle-missing-production-generation-source-window-summary",
+            "production generation source window summary:",
+            &[
+                "missing manifest entry: production generation source window summary:",
+                "missing production generation source window summary entry",
+            ],
+        );
+        assert_release_bundle_rejects_missing_manifest_entry(
             "pleiades-release-bundle-missing-production-generation-boundary-request-corpus-summary",
             "production generation boundary request corpus summary:",
             &[
@@ -33367,6 +33375,19 @@ version = "0.9.0"
             "generation command=generate-packaged-artifact --check",
             "generation command=generate-packaged-artifact --check (drifted)",
             "production generation source summary no longer matches",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_production_generation_source_window_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-production-generation-source-window-semantic",
+            "production-generation-source-window-summary.txt",
+            "production generation source window summary checksum (fnv1a-64):",
+            "Production generation source windows:",
+            "Production generation source windows (tampered):",
+            "production generation source window summary no longer matches the current production-generation source-window posture",
         );
     }
 
