@@ -18393,17 +18393,27 @@ fn validated_chart_benchmark_corpus_summary_for_report() -> Result<String, Strin
 }
 
 fn render_benchmark_corpus_summary_text() -> String {
-    match validated_benchmark_corpus_summary_for_report() {
-        Ok(summary) => summary,
-        Err(error) => format!("Benchmark corpus summary unavailable ({error})\n"),
-    }
+    static CACHE: OnceLock<String> = OnceLock::new();
+
+    CACHE
+        .get_or_init(|| match validated_benchmark_corpus_summary_for_report() {
+            Ok(summary) => summary,
+            Err(error) => format!("Benchmark corpus summary unavailable ({error})\n"),
+        })
+        .clone()
 }
 
 fn render_chart_benchmark_corpus_summary_text() -> String {
-    match validated_chart_benchmark_corpus_summary_for_report() {
-        Ok(summary) => summary,
-        Err(error) => format!("Chart benchmark corpus summary unavailable ({error})\n"),
-    }
+    static CACHE: OnceLock<String> = OnceLock::new();
+
+    CACHE
+        .get_or_init(
+            || match validated_chart_benchmark_corpus_summary_for_report() {
+                Ok(summary) => summary,
+                Err(error) => format!("Chart benchmark corpus summary unavailable ({error})\n"),
+            },
+        )
+        .clone()
 }
 
 fn render_reference_snapshot_summary_text() -> String {
