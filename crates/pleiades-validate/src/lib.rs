@@ -31627,6 +31627,34 @@ version = "0.9.0"
     }
 
     #[test]
+    fn verify_release_bundle_rejects_missing_packaged_artifact_target_threshold_summary_entries() {
+        assert_release_bundle_rejects_missing_manifest_entry(
+            "pleiades-release-bundle-missing-packaged-artifact-target-threshold-summary",
+            "packaged-artifact target-threshold summary:",
+            &[
+                "missing manifest entry: packaged-artifact target-threshold summary:",
+                "missing packaged-artifact target-threshold summary entry",
+            ],
+        );
+        assert_release_bundle_rejects_missing_manifest_entry(
+            "pleiades-release-bundle-missing-packaged-artifact-target-threshold-state-summary",
+            "packaged-artifact target-threshold state summary:",
+            &[
+                "missing manifest entry: packaged-artifact target-threshold state summary:",
+                "missing packaged-artifact target-threshold state summary entry",
+            ],
+        );
+        assert_release_bundle_rejects_missing_manifest_entry(
+            "pleiades-release-bundle-missing-packaged-artifact-target-threshold-scope-envelopes-summary",
+            "packaged-artifact target-threshold scope envelopes summary:",
+            &[
+                "missing manifest entry: packaged-artifact target-threshold scope envelopes summary:",
+                "missing packaged-artifact target-threshold scope envelopes summary entry",
+            ],
+        );
+    }
+
+    #[test]
     fn verify_release_bundle_rejects_missing_rustc_version_entry() {
         assert_release_bundle_rejects_missing_manifest_entry(
             "pleiades-release-bundle-missing-rustc",
