@@ -11,6 +11,7 @@ The workspace has completed the original foundation roadmap:
 - backend traits, metadata, batch helpers, and composite/routing helpers exist;
 - `pleiades-core` exposes chart façade APIs, sign/aspect/house summaries, release compatibility metadata, and API-stability reporting;
 - release-facing backend matrix summaries now also surface corpus-derived claim posture by folding in the comparison corpus release-grade guard, reference/hold-out overlap, independent hold-out, release-grade body claims, and Pluto fallback lines;
+- release bundles now carry independent-holdout body-class coverage alongside the existing independent-holdout source-window evidence so hold-out coverage stays explicit in staged artifacts;
 - house and ayanamsa crates contain broad catalog descriptors plus baseline calculations/conversions;
 - VSOP87-style planetary, compact lunar/lunar-point, JPL snapshot, and packaged-data backend crates exist;
 - validation, CLI, release-bundle, audit, benchmark, and report-generation surfaces exist.
