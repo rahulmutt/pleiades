@@ -23,6 +23,7 @@ The codec, artifact structures, deterministic regeneration path, checksums, gene
 - Completed: the packaged-artifact target-threshold scope envelopes summary now has a typed validated wrapper, and the release-facing scope-envelope helper now reuses that structured posture instead of rebuilding the lines manually.
 - Completed: the packaged-artifact target-threshold state summary now also has a semantic-drift release-bundle regression, so the release-facing state line fails closed even after checksum refreshes.
 - Completed: the packaged-artifact body-class span-cap summary now exposes a direct validated helper, and the report surfaces now reuse it instead of duplicating the validation step before rendering.
+- Completed: the packaged-artifact fit margins summary now has a direct CLI surface with alias coverage, keeping the fit-margin posture inspectable outside the full validation report.
 - Completed: the release bundle verification tests now also cover missing packaged-artifact normalized intermediate summary entries, so that artifact sidecar cannot silently disappear from the staged bundle.
 - Make artifact validation fail on threshold violations, capability drift, checksum drift, malformed manifests, or unsupported request shapes.
 - Keep performance benchmarks visible, but treat accuracy, reproducibility, and report tractability as release blockers.
