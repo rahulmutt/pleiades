@@ -105,6 +105,9 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
             validate_render_cli(args)
         }
         Some("benchmark-corpus-summary") => validate_render_cli(args),
+        Some("chart-benchmark-corpus-summary") | Some("chart-benchmark-corpus") => {
+            validate_render_cli(args)
+        }
         Some("compatibility-profile") | Some("profile") => validate_render_cli(args),
         Some("compatibility-profile-summary") | Some("profile-summary") => {
             validate_render_cli(args)
@@ -2633,10 +2636,28 @@ mod tests {
             validate_render_cli(&["benchmark-corpus-summary"])
                 .expect("benchmark corpus summary should match validation output")
         );
+        let chart_benchmark_corpus = render_cli(&["chart-benchmark-corpus-summary"])
+            .expect("chart benchmark corpus summary should render");
+        assert!(chart_benchmark_corpus.contains("Chart benchmark corpus summary"));
+        assert!(chart_benchmark_corpus.contains("name: Representative chart validation scenarios"));
+        assert!(chart_benchmark_corpus.contains("requests: 9"));
+        assert!(chart_benchmark_corpus.contains("epochs: 1"));
+        assert!(chart_benchmark_corpus.contains("epoch labels: JD 2451545.0 (TT)"));
+        assert!(chart_benchmark_corpus.contains("bodies: 10"));
+        assert_eq!(
+            chart_benchmark_corpus,
+            validate_render_cli(&["chart-benchmark-corpus-summary"])
+                .expect("chart benchmark corpus summary should match validation output")
+        );
         assert_eq!(
             render_cli(&["benchmark-corpus-summary", "extra"])
                 .expect_err("benchmark corpus summary should reject extra arguments"),
             "benchmark-corpus-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["chart-benchmark-corpus-summary", "extra"])
+                .expect_err("chart benchmark corpus summary should reject extra arguments"),
+            "chart-benchmark-corpus-summary does not accept extra arguments"
         );
 
         let api_stability =
