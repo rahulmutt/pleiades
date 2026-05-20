@@ -137,7 +137,7 @@ use pleiades_jpl::{
     jpl_interpolation_posture_summary_for_report,
     jpl_interpolation_quality_kind_coverage_for_report,
     jpl_snapshot_batch_error_taxonomy_summary_for_report, jpl_snapshot_evidence_summary_for_report,
-    jpl_snapshot_request_policy_summary_for_report,
+    jpl_snapshot_request_policy_summary_for_report, jpl_source_corpus_contract_summary_for_report,
     production_generation_boundary_body_class_coverage_summary_for_report,
     production_generation_boundary_request_corpus_summary_for_report,
     production_generation_boundary_source_summary_for_report,
@@ -9476,6 +9476,9 @@ fn render_release_summary_text() -> String {
     text.push('\n');
     text.push_str("Comparison snapshot source windows: ");
     text.push_str(&comparison_snapshot_source_window_summary_for_report());
+    text.push('\n');
+    text.push_str("JPL source corpus contract: ");
+    text.push_str(&jpl_source_corpus_contract_summary_for_report());
     text.push('\n');
     text.push_str("Source-backed backend evidence: ");
     text.push_str(&jpl_snapshot_evidence_summary_for_report());
@@ -30942,6 +30945,7 @@ version = "0.9.0"
         assert!(release_summary.contains("JPL production-generation boundary windows:"));
         assert!(release_summary.contains("JPL production-generation boundary request corpus:"));
         assert!(release_summary.contains("Production generation boundary overlay source:"));
+        assert!(release_summary.contains("JPL source corpus contract:"));
         assert!(release_summary.contains("Source-backed backend evidence:"));
         assert!(release_summary.contains("JPL evidence classification: release-tolerance=reference/comparison/production-generation validation summaries; hold-out=independent hold-out rows and interpolation-quality summaries; fixture exactness=reference snapshot exact J2000 evidence; provenance-only=source and manifest summaries"));
         assert!(release_summary

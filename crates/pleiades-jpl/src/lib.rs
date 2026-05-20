@@ -20555,6 +20555,97 @@ pub fn jpl_source_posture_summary_for_report() -> String {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct JplSourceCorpusContractSummary {
+    /// Evidence-classification line for the current corpus contract.
+    pub evidence_classification: JplSnapshotEvidenceClassificationSummary,
+    /// Source-posture line for the current corpus contract.
+    pub source_posture: JplSourcePostureSummary,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum JplSourceCorpusContractSummaryValidationError {
+    /// A field is out of sync with the current corpus contract posture.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for JplSourceCorpusContractSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the JPL source corpus contract summary field `{field}` is out of sync with the current posture"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for JplSourceCorpusContractSummaryValidationError {}
+
+impl JplSourceCorpusContractSummary {
+    /// Returns the source-corpus contract line used by validation and release reports.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "JPL source corpus contract: {}; {}",
+            self.evidence_classification.summary_line(),
+            self.source_posture.summary_line(),
+        )
+    }
+
+    /// Returns `Ok(())` when the summary still matches the current posture.
+    pub fn validate(&self) -> Result<(), JplSourceCorpusContractSummaryValidationError> {
+        if self.evidence_classification != jpl_snapshot_evidence_classification_summary_details() {
+            return Err(
+                JplSourceCorpusContractSummaryValidationError::FieldOutOfSync {
+                    field: "evidence_classification",
+                },
+            );
+        }
+        if self.source_posture != jpl_source_posture_summary_details() {
+            return Err(
+                JplSourceCorpusContractSummaryValidationError::FieldOutOfSync {
+                    field: "source_posture",
+                },
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns the validated source-corpus contract line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, JplSourceCorpusContractSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for JplSourceCorpusContractSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Returns the source-corpus contract line used by validation and release reports.
+pub fn jpl_source_corpus_contract_summary_details() -> JplSourceCorpusContractSummary {
+    let summary = JplSourceCorpusContractSummary {
+        evidence_classification: jpl_snapshot_evidence_classification_summary_details(),
+        source_posture: jpl_source_posture_summary_details(),
+    };
+    debug_assert!(summary.validate().is_ok());
+    summary
+}
+
+/// Returns the validated source-corpus contract line used by validation and release reports.
+pub fn jpl_source_corpus_contract_summary_for_report() -> String {
+    let summary = jpl_source_corpus_contract_summary_details();
+    match summary.validated_summary_line() {
+        Ok(rendered) => rendered,
+        Err(error) => format!("JPL source corpus contract: unavailable ({error})"),
+    }
+}
+
 /// Returns the combined snapshot evidence summary used by validation and release reports.
 pub fn jpl_snapshot_evidence_summary_for_report() -> String {
     [
@@ -31994,6 +32085,7 @@ mod tests {
     fn jpl_snapshot_evidence_posture_summaries_validate_and_fail_closed() {
         let classification = jpl_snapshot_evidence_classification_summary_details();
         let posture = jpl_source_posture_summary_details();
+        let contract = jpl_source_corpus_contract_summary_details();
 
         assert_eq!(
             classification.summary_line(),
@@ -32003,8 +32095,13 @@ mod tests {
             posture.summary_line(),
             jpl_source_posture_summary_for_report()
         );
+        assert_eq!(
+            contract.summary_line(),
+            jpl_source_corpus_contract_summary_for_report()
+        );
         assert_eq!(classification.validate(), Ok(()));
         assert_eq!(posture.validate(), Ok(()));
+        assert_eq!(contract.validate(), Ok(()));
 
         let drifted_classification = JplSnapshotEvidenceClassificationSummary {
             text: "JPL evidence classification: drifted",
@@ -32012,9 +32109,14 @@ mod tests {
         let drifted_posture = JplSourcePostureSummary {
             text: "JPL source posture: drifted",
         };
+        let drifted_contract = JplSourceCorpusContractSummary {
+            evidence_classification: drifted_classification.clone(),
+            source_posture: drifted_posture.clone(),
+        };
 
         assert!(drifted_classification.validate().is_err());
         assert!(drifted_posture.validate().is_err());
+        assert!(drifted_contract.validate().is_err());
         assert!(drifted_classification
             .validated_summary_line()
             .expect_err("drifted evidence classification should fail closed")
@@ -32023,6 +32125,11 @@ mod tests {
         assert!(drifted_posture
             .validated_summary_line()
             .expect_err("drifted source posture should fail closed")
+            .to_string()
+            .contains("out of sync"));
+        assert!(drifted_contract
+            .validated_summary_line()
+            .expect_err("drifted source corpus contract should fail closed")
             .to_string()
             .contains("out of sync"));
     }
