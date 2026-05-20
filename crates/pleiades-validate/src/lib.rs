@@ -14067,6 +14067,8 @@ fn verify_release_bundle(
         &manifest.api_stability_posture_id,
         "API stability posture id",
     )?;
+    // The fit-envelope / fit-margin / fit-outlier posture lines are staged in
+    // validation-report-summary.txt, not the full validation report body.
     ensure_validation_report_fit_envelope_matches_current_rendering(
         &validation_report_summary_text,
     )?;
