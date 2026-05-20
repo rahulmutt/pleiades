@@ -8385,6 +8385,21 @@ mod tests {
     #[test]
     fn polynomial_channel_from_samples_supports_chebyshev_lobatto_fits() {
         let fractions = chebyshev_lobatto_fractions(6);
+        assert_eq!(fractions.len(), 6);
+        assert_eq!(fractions.first().copied(), Some(0.0));
+        assert_eq!(fractions.last().copied(), Some(1.0));
+        let expected_fractions = [
+            0.0,
+            0.095_491_502_812_526_27,
+            0.345_491_502_812_526_3,
+            0.654_508_497_187_473_7,
+            0.904_508_497_187_473_7,
+            1.0,
+        ];
+        for (actual, expected) in fractions.iter().zip(expected_fractions) {
+            assert!((actual - expected).abs() < 1e-12);
+        }
+
         let samples = fractions
             .iter()
             .copied()
