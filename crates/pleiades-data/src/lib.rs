@@ -3068,6 +3068,32 @@ impl fmt::Display for PackagedArtifactPhase2CorpusAlignmentSummaryValidationErro
 
 impl std::error::Error for PackagedArtifactPhase2CorpusAlignmentSummaryValidationError {}
 
+fn phase2_corpus_alignment_validation_field_path(field: &'static str) -> &'static str {
+    match field {
+        "reference_snapshot_source" => "phase2_corpus_alignment.reference_snapshot_source",
+        "reference_snapshot" => "phase2_corpus_alignment.reference_snapshot",
+        "comparison_snapshot_source" => "phase2_corpus_alignment.comparison_snapshot_source",
+        "comparison_snapshot" => "phase2_corpus_alignment.comparison_snapshot",
+        "independent_holdout_source" => "phase2_corpus_alignment.independent_holdout_source",
+        "independent_holdout" => "phase2_corpus_alignment.independent_holdout",
+        "selected_asteroid_source" => "phase2_corpus_alignment.selected_asteroid_source",
+        "selected_asteroid_source_windows" => {
+            "phase2_corpus_alignment.selected_asteroid_source_windows"
+        }
+        "selected_asteroid_source_request_corpus" => {
+            "phase2_corpus_alignment.selected_asteroid_source_request_corpus"
+        }
+        "production_generation_boundary_source" => {
+            "phase2_corpus_alignment.production_generation_boundary_source"
+        }
+        "production_generation_body_class_coverage" => {
+            "phase2_corpus_alignment.production_generation_body_class_coverage"
+        }
+        "production_generation_source" => "phase2_corpus_alignment.production_generation_source",
+        _ => "phase2_corpus_alignment",
+    }
+}
+
 impl PackagedArtifactPhase2CorpusAlignmentSummary {
     /// Returns the phase-2 corpus alignment posture as a compact human-readable line.
     pub fn summary_line(&self) -> String {
@@ -3371,6 +3397,15 @@ impl PackagedArtifactTargetThresholdSummary {
                     field: "phase2_corpus_alignment",
                 },
             )?;
+        self.phase2_corpus_alignment
+            .validate()
+            .map_err(|error| match error {
+                PackagedArtifactPhase2CorpusAlignmentSummaryValidationError::FieldOutOfSync {
+                    field,
+                } => PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
+                    field: phase2_corpus_alignment_validation_field_path(field),
+                },
+            })?;
         if self.phase2_corpus_alignment != expected_phase2_corpus_alignment {
             return Err(
                 PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
@@ -3378,11 +3413,6 @@ impl PackagedArtifactTargetThresholdSummary {
                 },
             );
         }
-        self.phase2_corpus_alignment.validate().map_err(|_| {
-            PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
-                field: "phase2_corpus_alignment",
-            }
-        })?;
 
         let thresholds = packaged_artifact_fit_threshold_summary_details();
         for scope_envelope in &self.scope_envelopes.scope_envelopes {
@@ -3524,6 +3554,15 @@ impl PackagedArtifactSourceFitHoldoutSyncSummary {
                     field: "phase2_corpus_alignment",
                 },
             )?;
+        self.phase2_corpus_alignment
+            .validate()
+            .map_err(|error| match error {
+                PackagedArtifactPhase2CorpusAlignmentSummaryValidationError::FieldOutOfSync {
+                    field,
+                } => PackagedArtifactSourceFitHoldoutSyncSummaryValidationError::FieldOutOfSync {
+                    field: phase2_corpus_alignment_validation_field_path(field),
+                },
+            })?;
         if self.phase2_corpus_alignment != expected_phase2_corpus_alignment {
             return Err(
                 PackagedArtifactSourceFitHoldoutSyncSummaryValidationError::FieldOutOfSync {
@@ -3531,11 +3570,6 @@ impl PackagedArtifactSourceFitHoldoutSyncSummary {
                 },
             );
         }
-        self.phase2_corpus_alignment.validate().map_err(|_| {
-            PackagedArtifactSourceFitHoldoutSyncSummaryValidationError::FieldOutOfSync {
-                field: "phase2_corpus_alignment",
-            }
-        })?;
 
         Ok(())
     }
@@ -12730,10 +12764,12 @@ mod tests {
         assert_eq!(
             error,
             PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
-                field: "phase2_corpus_alignment",
+                field: "phase2_corpus_alignment.independent_holdout",
             }
         );
-        assert!(error.to_string().contains("phase2_corpus_alignment"));
+        assert!(error
+            .to_string()
+            .contains("phase2_corpus_alignment.independent_holdout"));
     }
 
     #[test]
@@ -12750,10 +12786,12 @@ mod tests {
         assert_eq!(
             error,
             PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
-                field: "phase2_corpus_alignment",
+                field: "phase2_corpus_alignment.reference_snapshot_source",
             }
         );
-        assert!(error.to_string().contains("phase2_corpus_alignment"));
+        assert!(error
+            .to_string()
+            .contains("phase2_corpus_alignment.reference_snapshot_source"));
     }
 
     #[test]
@@ -12771,10 +12809,12 @@ mod tests {
         assert_eq!(
             error,
             PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
-                field: "phase2_corpus_alignment",
+                field: "phase2_corpus_alignment.production_generation_boundary_source",
             }
         );
-        assert!(error.to_string().contains("phase2_corpus_alignment"));
+        assert!(error
+            .to_string()
+            .contains("phase2_corpus_alignment.production_generation_boundary_source"));
     }
 
     #[test]
@@ -12793,10 +12833,12 @@ mod tests {
         assert_eq!(
             error,
             PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
-                field: "phase2_corpus_alignment",
+                field: "phase2_corpus_alignment.production_generation_source",
             }
         );
-        assert!(error.to_string().contains("phase2_corpus_alignment"));
+        assert!(error
+            .to_string()
+            .contains("phase2_corpus_alignment.production_generation_source"));
     }
 
     #[test]
@@ -12813,10 +12855,12 @@ mod tests {
         assert_eq!(
             error,
             PackagedArtifactTargetThresholdSummaryValidationError::FieldOutOfSync {
-                field: "phase2_corpus_alignment",
+                field: "phase2_corpus_alignment.selected_asteroid_source_request_corpus",
             }
         );
-        assert!(error.to_string().contains("phase2_corpus_alignment"));
+        assert!(error
+            .to_string()
+            .contains("phase2_corpus_alignment.selected_asteroid_source_request_corpus"));
     }
 
     #[test]
@@ -12954,10 +12998,12 @@ mod tests {
         assert_eq!(
             error,
             PackagedArtifactSourceFitHoldoutSyncSummaryValidationError::FieldOutOfSync {
-                field: "phase2_corpus_alignment",
+                field: "phase2_corpus_alignment.reference_snapshot_source",
             }
         );
-        assert!(error.to_string().contains("phase2_corpus_alignment"));
+        assert!(error
+            .to_string()
+            .contains("phase2_corpus_alignment.reference_snapshot_source"));
     }
 
     #[test]
