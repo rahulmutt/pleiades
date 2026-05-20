@@ -148,6 +148,7 @@ use pleiades_jpl::{
     production_generation_manifest_summary_for_report,
     production_generation_snapshot_summary_for_report,
     production_generation_snapshot_window_summary_for_report,
+    production_generation_source_revision_summary_for_report,
     production_generation_source_summary_for_report,
     reference_asteroid_equatorial_evidence_summary_for_report, reference_asteroid_evidence,
     reference_asteroid_evidence_summary_for_report,
@@ -5489,6 +5490,11 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("production-generation-source-summary") => {
             ensure_no_extra_args(&args[1..], "production-generation-source-summary")?;
             validated_production_generation_source_summary_for_report()
+        }
+        Some("production-generation-source-revision-summary")
+        | Some("production-generation-source-revision") => {
+            ensure_no_extra_args(&args[1..], "production-generation-source-revision-summary")?;
+            Ok(production_generation_source_revision_summary_for_report())
         }
         Some("production-generation-source") => {
             ensure_no_extra_args(&args[1..], "production-generation-source")?;
@@ -22907,7 +22913,7 @@ fn help_text() -> String {
   production-generation-boundary-source-summary  Print the compact production-generation boundary source summary
   production-generation-boundary-source  Alias for production-generation-boundary-source-summary
   production-generation-boundary-window-summary  Print the compact production-generation boundary windows summary
-  production-generation-boundary-window  Alias for production-generation-boundary-window-summary\n  production-generation-manifest-summary  Print the compact production-generation manifest summary\n  production-generation-manifest  Alias for production-generation-manifest-summary\n  production-generation-manifest-checksum-summary  Print the compact production-generation manifest checksum summary\n  production-generation-manifest-checksum  Alias for production-generation-manifest-checksum-summary\n  production-generation-source      Alias for production-generation-source-summary\n  production-generation-source-summary  Print the compact production-generation source summary\n  comparison-snapshot-source-window-summary  Print the compact comparison snapshot source windows summary\n  comparison-snapshot-source-window  Alias for comparison-snapshot-source-window-summary\n  comparison-snapshot-source-summary  Print the compact comparison snapshot source summary\n  comparison-snapshot-body-class-coverage-summary  Print the compact comparison snapshot body-class coverage summary\n  comparison-body-class-coverage-summary  Alias for comparison-snapshot-body-class-coverage-summary\n  comparison-snapshot-manifest-summary  Print the compact comparison snapshot manifest summary\n  comparison-snapshot-manifest  Alias for comparison-snapshot-manifest-summary\n  comparison-snapshot-summary  Print the compact comparison snapshot summary\n  comparison-snapshot         Alias for comparison-snapshot-summary\n  comparison-snapshot-batch-parity-summary  Print the compact comparison snapshot batch parity summary\n  reference-snapshot-source-window-summary  Print the compact reference snapshot source windows summary\n  reference-snapshot-source-window  Alias for reference-snapshot-source-window-summary\n  reference-snapshot-source-summary  Print the compact reference snapshot source summary
+  production-generation-boundary-window  Alias for production-generation-boundary-window-summary\n  production-generation-manifest-summary  Print the compact production-generation manifest summary\n  production-generation-manifest  Alias for production-generation-manifest-summary\n  production-generation-manifest-checksum-summary  Print the compact production-generation manifest checksum summary\n  production-generation-manifest-checksum  Alias for production-generation-manifest-checksum-summary\n  production-generation-source      Alias for production-generation-source-summary\n  production-generation-source-summary  Print the compact production-generation source summary\n  production-generation-source-revision-summary  Print the compact production-generation source revision summary\n  production-generation-source-revision  Alias for production-generation-source-revision-summary\n  comparison-snapshot-source-window-summary  Print the compact comparison snapshot source windows summary\n  comparison-snapshot-source-window  Alias for comparison-snapshot-source-window-summary\n  comparison-snapshot-source-summary  Print the compact comparison snapshot source summary\n  comparison-snapshot-body-class-coverage-summary  Print the compact comparison snapshot body-class coverage summary\n  comparison-body-class-coverage-summary  Alias for comparison-snapshot-body-class-coverage-summary\n  comparison-snapshot-manifest-summary  Print the compact comparison snapshot manifest summary\n  comparison-snapshot-manifest  Alias for comparison-snapshot-manifest-summary\n  comparison-snapshot-summary  Print the compact comparison snapshot summary\n  comparison-snapshot         Alias for comparison-snapshot-summary\n  comparison-snapshot-batch-parity-summary  Print the compact comparison snapshot batch parity summary\n  reference-snapshot-source-window-summary  Print the compact reference snapshot source windows summary\n  reference-snapshot-source-window  Alias for reference-snapshot-source-window-summary\n  reference-snapshot-source-summary  Print the compact reference snapshot source summary
   reference-asteroid-source-window-summary  Print the compact reference asteroid source windows summary
   reference-snapshot-manifest-summary  Print the compact reference snapshot manifest summary
   reference-snapshot-manifest  Alias for reference-snapshot-manifest-summary
@@ -26461,6 +26467,10 @@ mod tests {
             "production-generation-manifest-checksum  Alias for production-generation-manifest-checksum-summary"
         ));
         assert!(rendered.contains("production-generation-source-summary"));
+        assert!(rendered.contains("production-generation-source-revision-summary"));
+        assert!(rendered.contains(
+            "production-generation-source-revision  Alias for production-generation-source-revision-summary"
+        ));
         assert!(rendered.contains("comparison-snapshot-source-window-summary"));
         assert!(rendered.contains(
             "comparison-snapshot-source-window  Alias for comparison-snapshot-source-window-summary"
@@ -35551,6 +35561,30 @@ version = "0.9.0"
             render_cli(&["production-generation-source", "extra"])
                 .expect_err("production generation source alias should reject extra arguments"),
             "production-generation-source does not accept extra arguments"
+        );
+    }
+
+    #[test]
+    fn production_generation_source_revision_summary_command_renders_the_revision_block() {
+        let rendered = render_cli(&["production-generation-source-revision-summary"])
+            .expect("production generation source revision summary should render");
+
+        assert!(rendered.contains("source revision=reference_snapshot.csv checksum=0x"));
+        assert!(rendered.contains("independent_holdout_snapshot.csv checksum=0x"));
+        assert_eq!(
+            rendered,
+            production_generation_source_revision_summary_for_report()
+        );
+        assert_eq!(
+            render_cli(&["production-generation-source-revision"])
+                .expect("production generation source revision alias should render"),
+            rendered
+        );
+        assert_eq!(
+            render_cli(&["production-generation-source-revision", "extra"]).expect_err(
+                "production generation source revision alias should reject extra arguments"
+            ),
+            "production-generation-source-revision-summary does not accept extra arguments"
         );
     }
 

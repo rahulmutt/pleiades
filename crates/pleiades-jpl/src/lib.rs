@@ -3250,6 +3250,12 @@ impl ProductionGenerationSourceRevisionSummary {
     }
 }
 
+/// Returns the release-facing production-generation source revision summary string.
+#[doc(alias = "production_generation_source_revision_summary")]
+pub fn production_generation_source_revision_summary_for_report() -> String {
+    production_generation_source_revision_summary().summary_line()
+}
+
 /// Combined provenance for the production-generation corpus.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ProductionGenerationSourceSummary {
@@ -30984,6 +30990,16 @@ mod tests {
             .expect("validated production generation source summary should exist");
 
         assert_eq!(validated, report);
+    }
+
+    #[test]
+    fn production_generation_source_revision_summary_documents_fixture_checksums() {
+        let summary = production_generation_source_revision_summary();
+        let report = production_generation_source_revision_summary_for_report();
+
+        assert_eq!(report, summary.summary_line());
+        assert!(report.contains("reference_snapshot.csv checksum=0x"));
+        assert!(report.contains("independent_holdout_snapshot.csv checksum=0x"));
     }
 
     #[test]
