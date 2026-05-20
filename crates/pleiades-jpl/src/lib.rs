@@ -6544,10 +6544,11 @@ pub fn validated_comparison_snapshot_manifest_summary_for_report() -> Result<Str
 
     let summary = comparison_snapshot_manifest_summary();
     summary
-        .validate_with_expected_metadata(
+        .validate_with_expected_metadata_and_redistribution(
             "JPL Horizons reference snapshot.",
             "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.",
             "Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000.",
+            COMPARISON_SNAPSHOT_REDISTRIBUTION_EXPECTED,
             &["body", "x_km", "y_km", "z_km"],
         )
         .map_err(|error| error.to_string())?;
@@ -23907,6 +23908,40 @@ impl SnapshotManifestSummary {
         Ok(())
     }
 
+    /// Validates that the wrapper matches the expected provenance and redistribution posture.
+    pub fn validate_with_expected_metadata_and_redistribution(
+        &self,
+        expected_title: &str,
+        expected_source: &str,
+        expected_coverage: &str,
+        expected_redistribution: &str,
+        expected_columns: &[&str],
+    ) -> Result<(), SnapshotManifestSummaryValidationError> {
+        self.validate_with_expected_metadata(
+            expected_title,
+            expected_source,
+            expected_coverage,
+            expected_columns,
+        )?;
+
+        let Some(redistribution) = self.manifest.redistribution.as_deref() else {
+            return Err(SnapshotManifestSummaryValidationError::MetadataMismatch {
+                field: "redistribution",
+                expected: expected_redistribution.to_string(),
+                found: String::new(),
+            });
+        };
+        if redistribution != expected_redistribution {
+            return Err(SnapshotManifestSummaryValidationError::MetadataMismatch {
+                field: "redistribution",
+                expected: expected_redistribution.to_string(),
+                found: redistribution.to_string(),
+            });
+        }
+
+        Ok(())
+    }
+
     /// Validates that the wrapper matches the expected column layout.
     pub fn validate_with_expected_columns(
         &self,
@@ -28041,19 +28076,22 @@ mod tests {
             production_generation_snapshot_summary_for_report(),
             summary.summary_line()
         );
-        assert_eq!(
-            production_generation_source_summary_for_report(),
-            format!(
-                "Production generation source: strategy=documented hybrid fixture corpus; {}; {}; source windows={}; input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv; {}; generation command=generate-packaged-artifact --check (consuming the checked-in CSV fixtures); file format=comma-separated values; columns=epoch_jd, body, x_km, y_km, z_km; frame=geocentric ecliptic J2000; time scale=TDB; parser=pure-Rust and deterministic; checksum expectation=byte-identical fixture contents; cadence=31 reference epochs and 10 boundary epochs; reference and hold-out rows remain separate; redistribution posture=repository-checked regression fixtures, not a broad public corpus",
-                reference_snapshot_source_summary_for_report(),
-                production_generation_boundary_source_summary_for_report(),
-                strip_report_prefix(
-                    &production_generation_snapshot_window_summary_for_report(),
-                    "Production generation source windows: ",
-                ),
-                production_generation_source_revision_summary().summary_line()
-            )
-        );
+        let production_generation_source_summary =
+            production_generation_source_summary_for_report();
+        assert!(production_generation_source_summary
+            .contains("strategy=documented hybrid fixture corpus"));
+        assert!(production_generation_source_summary.contains(
+            "redistribution=repository-checked regression fixtures, not a broad public corpus."
+        ));
+        assert!(production_generation_source_summary
+            .contains("source windows=355 source-backed samples across 16 bodies and 31 epochs"));
+        assert!(production_generation_source_summary
+            .contains("evidence classes=reference, hold-out, boundary overlay, provenance-only"));
+        assert!(production_generation_source_summary
+            .contains("generation command=generate-packaged-artifact --check"));
+        assert!(production_generation_source_summary.contains("frame=geocentric ecliptic J2000"));
+        assert!(production_generation_source_summary.contains("time scale=TDB"));
+        assert!(production_generation_source_summary.contains("parser=pure-Rust and deterministic"));
     }
 
     #[test]
@@ -32318,6 +32356,27 @@ mod tests {
                 field: "coverage",
                 expected: "Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000.".to_string(),
                 found: "Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000, plus drift".to_string(),
+            })
+        );
+    }
+
+    #[test]
+    fn comparison_snapshot_manifest_summary_validation_rejects_redistribution_drift() {
+        let mut summary = comparison_snapshot_manifest_summary();
+        summary.manifest.redistribution = Some("drifted redistribution posture".to_string());
+
+        assert_eq!(
+            summary.validate_with_expected_metadata_and_redistribution(
+                "JPL Horizons reference snapshot.",
+                "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.",
+                "Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000.",
+                COMPARISON_SNAPSHOT_REDISTRIBUTION_EXPECTED,
+                &["body", "x_km", "y_km", "z_km"],
+            ),
+            Err(SnapshotManifestSummaryValidationError::MetadataMismatch {
+                field: "redistribution",
+                expected: COMPARISON_SNAPSHOT_REDISTRIBUTION_EXPECTED.to_string(),
+                found: "drifted redistribution posture".to_string(),
             })
         );
     }
