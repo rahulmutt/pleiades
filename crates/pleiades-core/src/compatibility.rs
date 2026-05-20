@@ -256,6 +256,8 @@ impl CompatibilityProfile {
         text.push_str(&house_alias_count.to_string());
         text.push_str(" aliases); house formula families=");
         text.push_str(&self.house_formula_families_summary_line());
+        text.push_str("; house latitude-sensitive constraints=");
+        text.push_str(&self.latitude_sensitive_house_constraints_summary_line());
         text.push_str("; house-code aliases=");
         text.push_str(&house_code_alias_count.to_string());
         text.push_str("; ayanamsas=");
@@ -306,6 +308,28 @@ impl CompatibilityProfile {
     ) -> Result<String, CompatibilityProfileValidationError> {
         self.validate()?;
         Ok(self.latitude_sensitive_house_systems_summary_line())
+    }
+
+    /// Returns the release-facing latitude-sensitive constraint notes.
+    pub fn latitude_sensitive_house_constraints(&self) -> Vec<String> {
+        self.house_systems
+            .iter()
+            .filter(|entry| entry.latitude_sensitive)
+            .map(|entry| format!("{} [{}]", entry.canonical_name, entry.notes))
+            .collect()
+    }
+
+    /// Returns the latitude-sensitive house constraints as a compact human-readable line.
+    pub fn latitude_sensitive_house_constraints_summary_line(&self) -> String {
+        format_string_summary(&self.latitude_sensitive_house_constraints())
+    }
+
+    /// Returns the latitude-sensitive house constraints after validating the profile.
+    pub fn validated_latitude_sensitive_house_constraints_summary_line(
+        &self,
+    ) -> Result<String, CompatibilityProfileValidationError> {
+        self.validate()?;
+        Ok(self.latitude_sensitive_house_constraints_summary_line())
     }
 
     /// Returns the unique house formula families represented in the profile,
@@ -370,6 +394,14 @@ fn format_canonical_name_summary(names: &[&'static str]) -> String {
         [] => "0 (none)".to_string(),
         [single] => format!("1 ({single})"),
         _ => format!("{} ({})", names.len(), names.join(", ")),
+    }
+}
+
+fn format_string_summary(items: &[String]) -> String {
+    match items {
+        [] => "0 (none)".to_string(),
+        [single] => format!("1 ({single})"),
+        _ => format!("{} ({})", items.len(), items.join(", ")),
     }
 }
 
@@ -1263,6 +1295,17 @@ pub fn validated_latitude_sensitive_house_systems_summary_for_report(
     current_compatibility_profile().validated_latitude_sensitive_house_systems_summary_line()
 }
 
+/// Returns the compatibility-profile latitude-sensitive house-constraint summary for report surfaces.
+pub fn latitude_sensitive_house_constraints_summary_for_report() -> String {
+    current_compatibility_profile().latitude_sensitive_house_constraints_summary_line()
+}
+
+/// Returns the compatibility-profile latitude-sensitive house-constraint summary after validating the profile.
+pub fn validated_latitude_sensitive_house_constraints_summary_for_report(
+) -> Result<String, CompatibilityProfileValidationError> {
+    current_compatibility_profile().validated_latitude_sensitive_house_constraints_summary_line()
+}
+
 /// Returns the compatibility-profile custom-definition ayanamsa summary for report surfaces.
 pub fn custom_definition_ayanamsa_labels_summary_for_report() -> String {
     current_compatibility_profile().custom_definition_ayanamsa_labels_summary_line()
@@ -1301,6 +1344,9 @@ pub fn compatibility_caveats_summary_for_report(
     text.push('\n');
     text.push_str("Latitude-sensitive house systems: ");
     text.push_str(&profile.latitude_sensitive_house_systems_summary_line());
+    text.push('\n');
+    text.push_str("Latitude-sensitive house constraints: ");
+    text.push_str(&profile.latitude_sensitive_house_constraints_summary_line());
     text.push('\n');
     text.push_str("Descriptor-only ayanamsa labels: ");
     text.push_str(&profile.custom_definition_ayanamsa_labels_summary_line());
@@ -1947,6 +1993,11 @@ impl fmt::Display for CompatibilityProfile {
             f,
             "- latitude-sensitive house systems: {}",
             self.latitude_sensitive_house_systems_summary_line()
+        )?;
+        writeln!(
+            f,
+            "- latitude-sensitive house constraints: {}",
+            self.latitude_sensitive_house_constraints_summary_line()
         )?;
         if !coverage.custom_definition_only.is_empty() {
             writeln!(
@@ -3039,6 +3090,10 @@ mod tests {
             "latitude-sensitive house systems: {}",
             profile.latitude_sensitive_house_systems_summary_line()
         )));
+        assert!(rendered.contains(&format!(
+            "latitude-sensitive house constraints: {}",
+            profile.latitude_sensitive_house_constraints_summary_line()
+        )));
         assert!(rendered.contains("ayanamsa sidereal metadata:"));
         assert!(rendered.contains(&format!(
             "custom-definition ayanamsas: {} (tracked without sidereal metadata)",
@@ -3375,12 +3430,13 @@ mod tests {
             .map(|entry| entry.aliases.len())
             .sum();
         assert!(rendered.contains(&format!(
-            "Compatibility catalog inventory: house systems={} ({} baseline, {} release-specific, {} aliases); house formula families={}; house-code aliases={}; ayanamsas={} ({} baseline, {} release-specific, {} aliases); custom-definition labels={}; custom-definition ayanamsa labels={} (Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs)); known gaps={}; claim audit: baseline catalogs are the published guarantees; release-specific entries are shipped additions; custom-definition labels remain custom-definition territory; known gaps stay documented",
+            "Compatibility catalog inventory: house systems={} ({} baseline, {} release-specific, {} aliases); house formula families={}; house latitude-sensitive constraints={}; house-code aliases={}; ayanamsas={} ({} baseline, {} release-specific, {} aliases); custom-definition labels={}; custom-definition ayanamsa labels={} (Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs)); known gaps={}; claim audit: baseline catalogs are the published guarantees; release-specific entries are shipped additions; custom-definition labels remain custom-definition territory; known gaps stay documented",
             profile.house_systems.len(),
             profile.baseline_house_systems.len(),
             profile.release_house_systems.len(),
             house_alias_count,
             profile.house_formula_families_summary_line(),
+            profile.latitude_sensitive_house_constraints_summary_line(),
             pleiades_houses::house_system_code_aliases().len(),
             profile.ayanamsas.len(),
             profile.baseline_ayanamsas.len(),
@@ -3445,6 +3501,10 @@ mod tests {
             "custom-definition ayanamsa labels={} (Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs))",
             profile.custom_definition_ayanamsa_labels().len()
         )));
+        assert!(rendered.contains(&format!(
+            "house latitude-sensitive constraints={}",
+            profile.latitude_sensitive_house_constraints_summary_line()
+        )));
         assert_eq!(
             profile.custom_definition_ayanamsa_labels(),
             metadata_coverage().custom_definition_only
@@ -3494,6 +3554,9 @@ mod tests {
             .validated_latitude_sensitive_house_systems_summary_line()
             .is_err());
         assert!(invalid_profile
+            .validated_latitude_sensitive_house_constraints_summary_line()
+            .is_err());
+        assert!(invalid_profile
             .validated_custom_definition_ayanamsa_labels_summary_line()
             .is_err());
         assert_eq!(
@@ -3513,10 +3576,11 @@ mod tests {
         assert!(rendered.contains("Latitude-sensitive house systems: "));
         assert!(rendered.contains("Descriptor-only ayanamsa labels: "));
         let expected_prefix = format!(
-            "Compatibility caveats summary\nProfile: {}\nCompatibility caveats: {}\nLatitude-sensitive house systems: {}\nDescriptor-only ayanamsa labels: {}\n",
+            "Compatibility caveats summary\nProfile: {}\nCompatibility caveats: {}\nLatitude-sensitive house systems: {}\nLatitude-sensitive house constraints: {}\nDescriptor-only ayanamsa labels: {}\n",
             release_profiles.compatibility_profile_id,
             profile.known_gaps.len(),
             profile.latitude_sensitive_house_systems_summary_line(),
+            profile.latitude_sensitive_house_constraints_summary_line(),
             profile.custom_definition_ayanamsa_labels_summary_line()
         );
         assert!(rendered.starts_with(&expected_prefix));

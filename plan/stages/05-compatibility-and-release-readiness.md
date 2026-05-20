@@ -6,7 +6,7 @@ Make compatibility catalog claims and release artifacts trustworthy enough for p
 
 ## Starting point
 
-The workspace has broad house and ayanamsa descriptors, baseline calculations, custom-definition support, release compatibility profiles, report helpers, audits, and release-bundle rehearsal. The remaining gap is evidence and gate strictness, not catalog scaffolding.
+The workspace has broad house and ayanamsa descriptors, baseline calculations, custom-definition support, release compatibility profiles, explicit latitude-sensitive house-constraint reporting, report helpers, audits, and release-bundle rehearsal. The remaining gap is evidence and gate strictness, not catalog scaffolding.
 
 ## Implementation goals
 

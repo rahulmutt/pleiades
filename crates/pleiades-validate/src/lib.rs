@@ -59,6 +59,7 @@ use pleiades_core::{
     validated_custom_definition_ayanamsa_labels_summary_for_report,
     validated_house_code_aliases_summary_for_report as core_validated_house_code_aliases_summary_for_report,
     validated_house_formula_families_summary_for_report,
+    validated_latitude_sensitive_house_constraints_summary_for_report,
     validated_latitude_sensitive_house_systems_summary_for_report,
     validated_release_ayanamsa_canonical_names_summary_for_report as core_validated_release_ayanamsa_canonical_names_summary_for_report,
     validated_release_house_system_canonical_names_summary_for_report as core_validated_release_house_system_canonical_names_summary_for_report,
@@ -8231,6 +8232,13 @@ fn format_latitude_sensitive_house_systems_for_report() -> String {
     }
 }
 
+fn format_latitude_sensitive_house_constraints_for_report() -> String {
+    match validated_latitude_sensitive_house_constraints_summary_for_report() {
+        Ok(summary) => format!("Latitude-sensitive house constraints: {summary}"),
+        Err(error) => format!("Latitude-sensitive house constraints unavailable ({error})"),
+    }
+}
+
 fn format_custom_definition_ayanamsa_labels_for_report() -> String {
     match validated_custom_definition_ayanamsa_labels_summary_for_report() {
         Ok(summary) => summary,
@@ -8371,6 +8379,16 @@ fn validate_compatibility_profile_summary_text(
         ));
     }
 
+    let expected_constraints_line = format!(
+        "Latitude-sensitive house constraints: {}",
+        profile.latitude_sensitive_house_constraints_summary_line()
+    );
+    if !text.contains(&expected_constraints_line) {
+        return Err(format!(
+            "compatibility profile summary latitude-sensitive house constraints mismatch: expected `{expected_constraints_line}`"
+        ));
+    }
+
     let expected_ayanamsa_line = format!(
         "Ayanamsas: {} total ({} baseline, {} release-specific)",
         profile.ayanamsas.len(),
@@ -8417,6 +8435,8 @@ fn render_compatibility_profile_summary_text() -> String {
     text.push_str(&profile.release_house_systems.len().to_string());
     text.push_str(" release-specific)\n");
     text.push_str(&format_latitude_sensitive_house_systems_for_report());
+    text.push('\n');
+    text.push_str(&format_latitude_sensitive_house_constraints_for_report());
     text.push('\n');
     text.push_str(&format_house_formula_families_for_report());
     text.push('\n');
@@ -8767,6 +8787,8 @@ fn render_release_notes_summary_text() -> String {
     text.push_str(&profile.release_notes.len().to_string());
     text.push('\n');
     text.push_str(&format_latitude_sensitive_house_systems_for_report());
+    text.push('\n');
+    text.push_str(&format_latitude_sensitive_house_constraints_for_report());
     text.push('\n');
     text.push_str(&format_house_formula_families_for_report());
     text.push('\n');
@@ -27471,6 +27493,10 @@ mod tests {
         assert!(rendered.contains("House systems:"));
         assert!(rendered.contains("House systems: 25 total (12 baseline, 13 release-specific)"));
         assert!(rendered.contains(&format!(
+            "Latitude-sensitive house constraints: {}",
+            profile.latitude_sensitive_house_constraints_summary_line()
+        )));
+        assert!(rendered.contains(&format!(
             "House code aliases: {}",
             profile.house_code_aliases_summary_line()
         )));
@@ -27527,6 +27553,11 @@ mod tests {
         )));
         assert!(caveats_summary.contains("Compatibility caveats: 2"));
         assert!(caveats_summary.contains("Latitude-sensitive house systems: 8 (Placidus, Koch, Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Topocentric, Sunshine, Gauquelin sectors)"));
+        assert!(caveats_summary.contains("Latitude-sensitive house constraints: 8 ("));
+        assert!(caveats_summary.contains("Placidus ["));
+        assert!(caveats_summary.contains("Koch ["));
+        assert!(caveats_summary.contains("Topocentric ["));
+        assert!(caveats_summary.contains("Gauquelin sectors ["));
         assert!(caveats_summary.contains("Descriptor-only ayanamsa labels: 6 (Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs))"));
         assert!(caveats_summary.contains(profile.known_gaps[0]));
         assert!(caveats_summary.contains(profile.known_gaps[1]));
@@ -29427,10 +29458,10 @@ mod tests {
             .lines()
             .any(|line| line == "Backend matrix summary: backend-matrix-summary"));
         assert_report_contains_exact_line(&rendered, &profile.catalog_inventory_summary_line());
-        assert_report_contains_exact_line(
-            &rendered,
-            "Compatibility catalog inventory: house systems=25 (12 baseline, 13 release-specific, 156 aliases); house formula families=7 (Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign); house-code aliases=22; ayanamsas=59 (5 baseline, 54 release-specific, 183 aliases); custom-definition labels=9; custom-definition ayanamsa labels=6 (Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs)); known gaps=2; claim audit: baseline catalogs are the published guarantees; release-specific entries are shipped additions; custom-definition labels remain custom-definition territory; known gaps stay documented",
-        );
+        assert!(rendered.contains(&format!(
+            "house latitude-sensitive constraints={}",
+            profile.latitude_sensitive_house_constraints_summary_line()
+        )));
         assert_report_contains_exact_line(
             &rendered,
             &format!(
