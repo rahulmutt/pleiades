@@ -31531,6 +31531,32 @@ version = "0.9.0"
     }
 
     #[test]
+    fn verify_release_bundle_rejects_missing_packaged_artifact_phase2_corpus_alignment_summary_entry(
+    ) {
+        assert_release_bundle_rejects_missing_manifest_entry(
+            "pleiades-release-bundle-missing-packaged-artifact-phase2-corpus-alignment-summary",
+            "packaged-artifact phase-2 corpus alignment summary:",
+            &[
+                "missing manifest entry: packaged-artifact phase-2 corpus alignment summary:",
+                "missing packaged-artifact phase-2 corpus alignment summary entry",
+            ],
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_missing_packaged_artifact_source_fit_holdout_sync_summary_entry(
+    ) {
+        assert_release_bundle_rejects_missing_manifest_entry(
+            "pleiades-release-bundle-missing-packaged-artifact-source-fit-holdout-sync-summary",
+            "packaged-artifact source-fit and hold-out sync summary:",
+            &[
+                "missing manifest entry: packaged-artifact source-fit and hold-out sync summary:",
+                "missing packaged-artifact source-fit and hold-out sync summary entry",
+            ],
+        );
+    }
+
+    #[test]
     fn verify_release_bundle_rejects_missing_rustc_version_entry() {
         assert_release_bundle_rejects_missing_manifest_entry(
             "pleiades-release-bundle-missing-rustc",
