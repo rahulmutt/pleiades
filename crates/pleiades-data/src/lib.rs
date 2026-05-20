@@ -9044,6 +9044,12 @@ mod tests {
 
     #[test]
     fn packaged_artifact_outer_planets_use_medium_fit_sampling_and_dense_distance_validation() {
+        let sample_segment = Segment::new(
+            Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt),
+            Instant::new(JulianDay::from_days(2_451_555.0), TimeScale::Tt),
+            Vec::new(),
+        );
+
         for body in [
             CelestialBody::Jupiter,
             CelestialBody::Saturn,
@@ -9055,6 +9061,14 @@ mod tests {
             assert_eq!(
                 packaged_artifact_fit_sample_counts_for_body(&body),
                 PACKAGED_ARTIFACT_MEDIUM_FIT_SAMPLE_COUNTS
+            );
+            assert_eq!(
+                packaged_artifact_fit_sample_fractions_for_body(&body, &sample_segment),
+                &[0.25, 0.5, 0.75]
+            );
+            assert_eq!(
+                packaged_artifact_fit_outlier_sample_fractions(&body, &sample_segment),
+                PACKAGED_ARTIFACT_DENSE_VALIDATION_SAMPLE_FRACTIONS
             );
             assert_eq!(
                 packaged_artifact_segment_validation_fractions_for_body(&body),
