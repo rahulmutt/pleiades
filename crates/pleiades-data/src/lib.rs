@@ -415,11 +415,16 @@ pub fn packaged_artifact_generation_policy_summary_details(
 
 /// Returns the current packaged-artifact generation policy summary after validating the structured posture.
 pub fn packaged_artifact_generation_policy_summary_for_report() -> String {
-    let summary = packaged_artifact_generation_policy_summary_details();
-    match summary.validate() {
-        Ok(()) => summary.to_string(),
-        Err(error) => format!("Packaged-artifact generation policy: unavailable ({error})"),
-    }
+    static SUMMARY: OnceLock<String> = OnceLock::new();
+    SUMMARY
+        .get_or_init(|| {
+            let summary = packaged_artifact_generation_policy_summary_details();
+            match summary.validate() {
+                Ok(()) => summary.to_string(),
+                Err(error) => format!("Packaged-artifact generation policy: unavailable ({error})"),
+            }
+        })
+        .clone()
 }
 
 /// Returns the current packaged-artifact residual-bearing body coverage summary record.
@@ -433,13 +438,18 @@ pub fn packaged_artifact_generation_residual_bodies_summary_details(
 
 /// Returns the current packaged-artifact residual-bearing body set after validating the structured posture.
 pub fn packaged_artifact_generation_residual_bodies_summary_for_report() -> String {
-    let artifact = packaged_artifact();
-    let summary = packaged_artifact_generation_residual_bodies_summary_details();
+    static SUMMARY: OnceLock<String> = OnceLock::new();
+    SUMMARY
+        .get_or_init(|| {
+            let artifact = packaged_artifact();
+            let summary = packaged_artifact_generation_residual_bodies_summary_details();
 
-    match summary.validated_summary_line_with_body_count(artifact) {
-        Ok(line) => line,
-        Err(error) => format!("residual bodies: unavailable ({error})"),
-    }
+            match summary.validated_summary_line_with_body_count(artifact) {
+                Ok(line) => line,
+                Err(error) => format!("residual bodies: unavailable ({error})"),
+            }
+        })
+        .clone()
 }
 
 /// Returns the current packaged-artifact generation policy summary.
@@ -4412,17 +4422,22 @@ pub fn packaged_artifact_profile_coverage_summary_details() -> ArtifactProfileCo
 
 /// Returns the current packaged-artifact profile coverage summary for reporting.
 pub fn packaged_artifact_profile_coverage_summary_for_report() -> String {
-    let summary = packaged_artifact_profile_summary_details();
-    match summary.validate() {
-        Ok(()) => match summary
-            .profile_coverage_summary()
-            .validated_summary_line_with_bodies()
-        {
-            Ok(line) => line,
-            Err(error) => format!("Artifact profile coverage: unavailable ({error})"),
-        },
-        Err(error) => format!("Artifact profile coverage: unavailable ({error})"),
-    }
+    static SUMMARY: OnceLock<String> = OnceLock::new();
+    SUMMARY
+        .get_or_init(|| {
+            let summary = packaged_artifact_profile_summary_details();
+            match summary.validate() {
+                Ok(()) => match summary
+                    .profile_coverage_summary()
+                    .validated_summary_line_with_bodies()
+                {
+                    Ok(line) => line,
+                    Err(error) => format!("Artifact profile coverage: unavailable ({error})"),
+                },
+                Err(error) => format!("Artifact profile coverage: unavailable ({error})"),
+            }
+        })
+        .clone()
 }
 
 /// Returns the current packaged-artifact profile summary.
@@ -4547,11 +4562,16 @@ pub fn packaged_artifact_output_support_summary_details() -> PackagedArtifactOut
 
 /// Returns the output-support semantics of the packaged artifact profile for reporting.
 pub fn packaged_artifact_output_support_summary_for_report() -> String {
-    let summary = packaged_artifact_output_support_summary_details();
-    match summary.validated_summary_line() {
-        Ok(rendered) => rendered,
-        Err(error) => format!("unavailable ({error})"),
-    }
+    static SUMMARY: OnceLock<String> = OnceLock::new();
+    SUMMARY
+        .get_or_init(|| {
+            let summary = packaged_artifact_output_support_summary_details();
+            match summary.validated_summary_line() {
+                Ok(rendered) => rendered,
+                Err(error) => format!("unavailable ({error})"),
+            }
+        })
+        .clone()
 }
 
 /// Structured speed-policy semantics for the packaged artifact profile.
@@ -4635,11 +4655,16 @@ pub fn packaged_artifact_speed_policy_summary_details() -> PackagedArtifactSpeed
 
 /// Returns the packaged-artifact speed-policy semantics for reporting.
 pub fn packaged_artifact_speed_policy_summary_for_report() -> String {
-    let summary = packaged_artifact_speed_policy_summary_details();
-    match summary.validate() {
-        Ok(()) => summary.summary_line(),
-        Err(error) => format!("unavailable ({error})"),
-    }
+    static SUMMARY: OnceLock<String> = OnceLock::new();
+    SUMMARY
+        .get_or_init(|| {
+            let summary = packaged_artifact_speed_policy_summary_details();
+            match summary.validate() {
+                Ok(()) => summary.summary_line(),
+                Err(error) => format!("unavailable ({error})"),
+            }
+        })
+        .clone()
 }
 
 fn render_packaged_artifact_profile_summary(

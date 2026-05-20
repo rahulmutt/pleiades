@@ -26,6 +26,7 @@ The codec, artifact structures, deterministic regeneration path, checksums, gene
 - Completed: the split-reconstruction ladder now has explicit midpoint fallback coverage when dense third-point probes are unavailable, keeping the long-span fit search fail-closed when that rung is missing.
 - Completed: the packaged-artifact fit margins summary now has a direct CLI surface with alias coverage, keeping the fit-margin posture inspectable outside the full validation report.
 - Completed: the release bundle verification tests now also cover missing packaged-artifact normalized intermediate summary entries, so that artifact sidecar cannot silently disappear from the staged bundle.
+- Completed: the remaining packaged-artifact profile coverage, output-support, speed-policy, generation-policy, and residual-body report wrappers now cache their rendered text in-process, trimming repeated release-facing recomputation on the compact artifact-report surfaces.
 - Make artifact validation fail on threshold violations, capability drift, checksum drift, malformed manifests, or unsupported request shapes.
 - Keep performance benchmarks visible, but treat accuracy, reproducibility, and report tractability as release blockers.
 
