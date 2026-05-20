@@ -118,8 +118,7 @@ use pleiades_houses::{
 use pleiades_jpl::production_generation_snapshot_body_class_coverage_summary_for_report;
 
 use pleiades_jpl::{
-    comparison_snapshot_body_class_coverage_summary_for_report,
-    comparison_snapshot_manifest_summary_for_report, comparison_snapshot_requests,
+    comparison_snapshot_body_class_coverage_summary_for_report, comparison_snapshot_requests,
     comparison_snapshot_source_summary_for_report,
     comparison_snapshot_source_window_summary_for_report, comparison_snapshot_summary_for_report,
     format_jpl_interpolation_quality_summary_for_report,
@@ -225,6 +224,7 @@ use pleiades_jpl::{
     selected_asteroid_terminal_boundary_summary_for_report,
     validated_comparison_snapshot_batch_parity_summary_for_report,
     validated_comparison_snapshot_body_class_coverage_summary_for_report,
+    validated_comparison_snapshot_manifest_summary_for_report,
     validated_comparison_snapshot_source_summary_for_report,
     validated_comparison_snapshot_source_window_summary_for_report,
     validated_independent_holdout_snapshot_batch_parity_summary_for_report,
@@ -5492,11 +5492,11 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("comparison-snapshot-manifest-summary") => {
             ensure_no_extra_args(&args[1..], "comparison-snapshot-manifest-summary")?;
-            Ok(comparison_snapshot_manifest_summary_for_report())
+            Ok(format_comparison_snapshot_manifest_summary())
         }
         Some("comparison-snapshot-manifest") => {
             ensure_no_extra_args(&args[1..], "comparison-snapshot-manifest")?;
-            Ok(comparison_snapshot_manifest_summary_for_report())
+            Ok(format_comparison_snapshot_manifest_summary())
         }
         Some("comparison-snapshot") => {
             ensure_no_extra_args(&args[1..], "comparison-snapshot")?;
@@ -8693,7 +8693,7 @@ fn render_release_notes_text() -> String {
     text.push('\n');
     text.push_str(&comparison_snapshot_source_window_summary_for_report());
     text.push('\n');
-    text.push_str(&comparison_snapshot_manifest_summary_for_report());
+    text.push_str(&format_comparison_snapshot_manifest_summary());
     text.push('\n');
 
     if !profile.custom_definition_labels.is_empty() {
@@ -8882,7 +8882,7 @@ fn render_release_notes_summary_text() -> String {
     text.push('\n');
     text.push_str(&comparison_snapshot_source_window_summary_for_report());
     text.push('\n');
-    text.push_str(&comparison_snapshot_manifest_summary_for_report());
+    text.push_str(&format_comparison_snapshot_manifest_summary());
     text.push('\n');
     text.push_str(&format_vsop87_source_documentation_health_summary());
     text.push('\n');
@@ -19096,6 +19096,13 @@ fn format_packaged_frame_treatment_summary() -> String {
     packaged_frame_treatment_summary_for_report()
 }
 
+fn format_comparison_snapshot_manifest_summary() -> String {
+    match validated_comparison_snapshot_manifest_summary_for_report() {
+        Ok(summary_line) => summary_line,
+        Err(error) => format!("Comparison snapshot manifest: unavailable ({error})"),
+    }
+}
+
 fn render_validation_report_summary_text(report: &ValidationReport) -> String {
     use std::fmt::Write as _;
 
@@ -19189,11 +19196,7 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         "  {}",
         comparison_snapshot_source_summary_for_report()
     );
-    let _ = writeln!(
-        text,
-        "  {}",
-        comparison_snapshot_manifest_summary_for_report()
-    );
+    let _ = writeln!(text, "  {}", format_comparison_snapshot_manifest_summary());
     let release_grade_guard = match validated_comparison_corpus_release_guard_summary_for_report() {
         Ok(guard) => guard,
         Err(error) => return format!("Comparison corpus summary unavailable ({error})"),
@@ -20407,7 +20410,7 @@ fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str(&comparison_snapshot_source_summary_for_report());
     text.push('\n');
-    text.push_str(&comparison_snapshot_manifest_summary_for_report());
+    text.push_str(&format_comparison_snapshot_manifest_summary());
     text.push('\n');
     if let Ok(report) = build_validation_report(SUMMARY_BENCHMARK_ROUNDS) {
         text.push_str("Comparison audit: compare-backends-audit; ");
@@ -36516,7 +36519,8 @@ version = "0.9.0"
         assert!(comparison.contains("Comparison snapshot manifest:"));
         assert_eq!(
             comparison,
-            comparison_snapshot_manifest_summary_for_report()
+            validated_comparison_snapshot_manifest_summary_for_report()
+                .expect("comparison snapshot manifest summary should validate")
         );
         assert_eq!(
             render_cli(&["comparison-snapshot-manifest"])

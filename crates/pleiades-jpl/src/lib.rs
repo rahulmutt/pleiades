@@ -6360,31 +6360,39 @@ pub fn comparison_snapshot_manifest_summary() -> SnapshotManifestSummary {
 
 /// Returns the manifest summary for the comparison snapshot used by validation.
 pub fn comparison_snapshot_manifest_summary_for_report() -> String {
+    match validated_comparison_snapshot_manifest_summary_for_report() {
+        Ok(summary_line) => summary_line,
+        Err(error) => format!("Comparison snapshot manifest: unavailable ({error})"),
+    }
+}
+
+/// Returns the validated manifest summary for the comparison snapshot used by validation.
+pub fn validated_comparison_snapshot_manifest_summary_for_report() -> Result<String, String> {
     let manifest_text = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/data/j2000_snapshot.csv"
     ));
-    if let Err(error) = validate_snapshot_manifest_header_structure(
+    validate_snapshot_manifest_header_structure(
         manifest_text,
         "JPL Horizons reference snapshot.",
         "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.",
         "Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000.",
         Some(COMPARISON_SNAPSHOT_REDISTRIBUTION_EXPECTED),
         &["body", "x_km", "y_km", "z_km"],
-    ) {
-        return format!("Comparison snapshot manifest: unavailable ({error})");
-    }
+    )
+    .map_err(|error| error.to_string())?;
 
     let summary = comparison_snapshot_manifest_summary();
-    match summary.validate_with_expected_metadata(
-        "JPL Horizons reference snapshot.",
-        "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.",
-        "Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000.",
-        &["body", "x_km", "y_km", "z_km"],
-    ) {
-        Ok(()) => summary.summary_line(),
-        Err(error) => format!("Comparison snapshot manifest: unavailable ({error})"),
-    }
+    summary
+        .validate_with_expected_metadata(
+            "JPL Horizons reference snapshot.",
+            "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.",
+            "Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000.",
+            &["body", "x_km", "y_km", "z_km"],
+        )
+        .map_err(|error| error.to_string())?;
+
+    Ok(summary.summary_line())
 }
 
 impl ComparisonSnapshotSummary {
@@ -31862,7 +31870,8 @@ mod tests {
         );
         assert_eq!(
             summary.summary_line(),
-            comparison_snapshot_manifest_summary_for_report()
+            validated_comparison_snapshot_manifest_summary_for_report()
+                .expect("comparison snapshot manifest summary should validate")
         );
         assert_eq!(summary.to_string(), summary.summary_line());
     }

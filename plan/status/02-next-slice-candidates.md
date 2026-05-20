@@ -76,7 +76,7 @@ This file lists focused implementation slices for the current phase ladder. Comp
 
 - Completed: the packaged-artifact target-threshold summary now carries explicit phase-2 reference, comparison, and independent hold-out corpus alignment evidence and fails closed on phase2 alignment drift. The release-bundle tamper regression now also rejects semantic packaged-artifact target-threshold summary drift after its checksum sidecar is refreshed.
 - Completed: the combined release-grade body-claims and Pluto-fallback posture validation now lives in `pleiades-backend` and is reused by the validation/report surfaces, so the Pluto boundary check is centralized with the other public summary helpers.
-- Completed: the comparison snapshot source summary now stages and verifies in the release bundle, and now carries redistribution posture directly in the provenance line, keeping the comparison corpus provenance aligned with the reference and hold-out source summaries.
+- Completed: the comparison snapshot source summary now stages and verifies in the release bundle, and now carries redistribution posture directly in the provenance line, keeping the comparison corpus provenance aligned with the reference and hold-out source summaries. The comparison snapshot manifest summary now also routes through a validated helper in the CLI and validation-report surfaces, so the manifest provenance line fails closed too.
 - Completed: direct and batch request-policy validation now pins invalid-observer precedence ahead of unsupported-body coverage, so mixed request-shape failures keep surfacing the malformed observer before body-coverage rejection.
 
 ## Phase 2 — Reference/source corpus productionization

@@ -3545,7 +3545,8 @@ mod tests {
         assert!(comparison_snapshot_manifest_summary.contains("Comparison snapshot manifest:"));
         assert_eq!(
             comparison_snapshot_manifest_summary,
-            pleiades_jpl::comparison_snapshot_manifest_summary_for_report()
+            pleiades_jpl::validated_comparison_snapshot_manifest_summary_for_report()
+                .expect("comparison snapshot manifest summary should validate")
         );
         assert_eq!(
             render_cli(&["comparison-snapshot-manifest"])
