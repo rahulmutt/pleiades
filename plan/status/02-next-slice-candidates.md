@@ -11,6 +11,7 @@ This file lists only active implementation slices. Completed report aliases, sum
 - The release bundle now carries independent-holdout body-class coverage alongside the source-window evidence so hold-out coverage is explicit in staged artifacts.
 - Make backend matrices and release profiles derive body/date/channel claims from validated corpus evidence; the backend matrix summary now also carries the comparison corpus release-grade guard, reference/hold-out overlap, independent hold-out, release-grade body claims, and Pluto fallback posture.
 - Keep corpus provenance surfaces aligned; source revision checksums now have a dedicated `production-generation-source-revision-summary` report command and are bundled/verified as a first-class release artifact.
+- JPL provenance-only evidence now renders as its own report line so provenance-only rows stay separate from tolerance, hold-out, and fixture-exactness evidence.
 
 ## Phase 2 — Production compressed ephemeris
 

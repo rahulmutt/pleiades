@@ -20556,6 +20556,81 @@ pub fn jpl_source_posture_summary_for_report() -> String {
     }
 }
 
+const JPL_PROVENANCE_ONLY_SUMMARY: &str = "JPL provenance-only evidence: source and manifest summaries are provenance-only evidence; they validate corpus provenance and checksum posture but are excluded from tolerance, hold-out, and fixture-exactness claims";
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct JplProvenanceOnlySummary {
+    /// Provenance-only line used by validation and release reports.
+    pub text: &'static str,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum JplProvenanceOnlySummaryValidationError {
+    /// A summary field is out of sync with the current posture.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for JplProvenanceOnlySummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the JPL provenance-only summary field `{field}` is out of sync with the current posture"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for JplProvenanceOnlySummaryValidationError {}
+
+impl JplProvenanceOnlySummary {
+    /// Returns the provenance-only line used by validation and release reports.
+    pub fn summary_line(&self) -> String {
+        self.text.to_string()
+    }
+
+    /// Returns `Ok(())` when the summary still matches the current posture.
+    pub fn validate(&self) -> Result<(), JplProvenanceOnlySummaryValidationError> {
+        if self.text != JPL_PROVENANCE_ONLY_SUMMARY {
+            return Err(JplProvenanceOnlySummaryValidationError::FieldOutOfSync { field: "text" });
+        }
+
+        Ok(())
+    }
+
+    /// Returns the validated provenance-only line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, JplProvenanceOnlySummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for JplProvenanceOnlySummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Returns the provenance-only line used by validation and release reports.
+pub fn jpl_provenance_only_summary_details() -> JplProvenanceOnlySummary {
+    let summary = JplProvenanceOnlySummary {
+        text: JPL_PROVENANCE_ONLY_SUMMARY,
+    };
+    debug_assert!(summary.validate().is_ok());
+    summary
+}
+
+/// Returns the validated provenance-only line used by validation and release reports.
+pub fn jpl_provenance_only_summary_for_report() -> String {
+    let summary = jpl_provenance_only_summary_details();
+    match summary.validated_summary_line() {
+        Ok(rendered) => rendered,
+        Err(error) => format!("JPL provenance-only evidence: unavailable ({error})"),
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct JplSourceCorpusContractSummary {
     /// Evidence-classification line for the current corpus contract.
@@ -20652,6 +20727,7 @@ pub fn jpl_snapshot_evidence_summary_for_report() -> String {
     [
         jpl_snapshot_evidence_classification_summary_for_report(),
         jpl_source_posture_summary_for_report(),
+        jpl_provenance_only_summary_for_report(),
         reference_snapshot_summary_for_report(),
         reference_snapshot_early_major_body_boundary_summary_for_report(),
         reference_snapshot_2451910_major_body_boundary_summary_for_report(),
@@ -32069,6 +32145,7 @@ mod tests {
 
         assert!(report.contains(&jpl_snapshot_evidence_classification_summary_for_report()));
         assert!(report.contains(&jpl_source_posture_summary_for_report()));
+        assert!(report.contains(&jpl_provenance_only_summary_for_report()));
         assert!(report.contains(&reference_snapshot_summary_for_report()));
         assert!(report.contains(&reference_snapshot_body_class_coverage_summary_for_report()));
         assert!(report.contains(&reference_snapshot_equatorial_parity_summary_for_report()));
@@ -32125,6 +32202,7 @@ mod tests {
     fn jpl_snapshot_evidence_posture_summaries_validate_and_fail_closed() {
         let classification = jpl_snapshot_evidence_classification_summary_details();
         let posture = jpl_source_posture_summary_details();
+        let provenance_only = jpl_provenance_only_summary_details();
         let contract = jpl_source_corpus_contract_summary_details();
 
         assert_eq!(
@@ -32136,11 +32214,16 @@ mod tests {
             jpl_source_posture_summary_for_report()
         );
         assert_eq!(
+            provenance_only.summary_line(),
+            jpl_provenance_only_summary_for_report()
+        );
+        assert_eq!(
             contract.summary_line(),
             jpl_source_corpus_contract_summary_for_report()
         );
         assert_eq!(classification.validate(), Ok(()));
         assert_eq!(posture.validate(), Ok(()));
+        assert_eq!(provenance_only.validate(), Ok(()));
         assert_eq!(contract.validate(), Ok(()));
 
         let drifted_classification = JplSnapshotEvidenceClassificationSummary {
@@ -32149,6 +32232,9 @@ mod tests {
         let drifted_posture = JplSourcePostureSummary {
             text: "JPL source posture: drifted",
         };
+        let drifted_provenance_only = JplProvenanceOnlySummary {
+            text: "JPL provenance-only evidence: drifted",
+        };
         let drifted_contract = JplSourceCorpusContractSummary {
             evidence_classification: drifted_classification.clone(),
             source_posture: drifted_posture.clone(),
@@ -32156,6 +32242,7 @@ mod tests {
 
         assert!(drifted_classification.validate().is_err());
         assert!(drifted_posture.validate().is_err());
+        assert!(drifted_provenance_only.validate().is_err());
         assert!(drifted_contract.validate().is_err());
         assert!(drifted_classification
             .validated_summary_line()
@@ -32165,6 +32252,11 @@ mod tests {
         assert!(drifted_posture
             .validated_summary_line()
             .expect_err("drifted source posture should fail closed")
+            .to_string()
+            .contains("out of sync"));
+        assert!(drifted_provenance_only
+            .validated_summary_line()
+            .expect_err("drifted provenance-only summary should fail closed")
             .to_string()
             .contains("out of sync"));
         assert!(drifted_contract
