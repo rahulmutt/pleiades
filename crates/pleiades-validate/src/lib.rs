@@ -20718,6 +20718,27 @@ fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str(&selected_asteroid_terminal_boundary_summary_for_report());
     text.push('\n');
+    text.push_str("Comparison corpus release-grade guard: ");
+    match validated_comparison_corpus_release_guard_summary_for_report() {
+        Ok(summary) => text.push_str(summary),
+        Err(error) => return format!("Backend matrix summary unavailable ({error})"),
+    }
+    text.push('\n');
+    text.push_str("Reference/hold-out overlap: ");
+    text.push_str(&render_reference_holdout_overlap_summary_text());
+    text.push('\n');
+    text.push_str("JPL independent hold-out: ");
+    text.push_str(&jpl_independent_holdout_summary_for_report());
+    text.push('\n');
+    text.push_str("Release-grade body claims: ");
+    text.push_str(&format_release_body_claims_summary_for_report());
+    text.push('\n');
+    text.push_str("Pluto fallback: ");
+    match validated_pluto_fallback_summary_line_for_report() {
+        Ok(summary) => text.push_str(summary),
+        Err(error) => return format!("Backend matrix summary unavailable ({error})"),
+    }
+    text.push('\n');
     text.push_str("House code aliases: ");
     match validated_house_code_aliases_summary_for_report() {
         Ok(summary) => text.push_str(&summary),
@@ -29963,6 +29984,15 @@ mod tests {
         assert!(rendered.contains("VSOP87 supported-body J1900 equatorial batch parity:"));
         assert!(rendered.contains("VSOP87 canonical mixed TT/TDB batch parity:"));
         assert!(rendered.contains("JPL batch error taxonomy: supported body Ceres; unsupported body Mean Node -> UnsupportedBody; out-of-range Ceres -> OutOfRangeInstant"));
+        assert!(rendered.contains(
+            "Comparison corpus release-grade guard: Pluto excluded from tolerance evidence"
+        ));
+        assert!(rendered.contains("Reference/hold-out overlap:"));
+        assert!(rendered.contains("JPL independent hold-out:"));
+        assert!(rendered.contains("Release-grade body claims:"));
+        assert!(
+            rendered.contains("Pluto fallback: Pluto remains an explicitly approximate fallback")
+        );
         assert!(rendered.contains(&reference_snapshot_boundary_epoch_coverage_summary_for_report()));
         assert!(rendered.contains(&reference_snapshot_sparse_boundary_summary_for_report()));
         assert!(rendered.contains(&reference_snapshot_pre_bridge_boundary_summary_for_report()));
