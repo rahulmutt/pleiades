@@ -12372,6 +12372,19 @@ fn ensure_production_generation_boundary_request_corpus_summary_matches_current_
     }
 }
 
+fn ensure_production_generation_summary_matches_current_rendering(
+    production_generation_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if production_generation_summary_text == production_generation_snapshot_summary_for_report() {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "production generation summary no longer matches the current production-generation posture"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_production_generation_body_class_coverage_summary_matches_current_rendering(
     production_generation_body_class_coverage_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -14374,6 +14387,9 @@ fn verify_release_bundle(
         checksum64(&production_generation_boundary_request_corpus_summary_text);
     let production_generation_summary_text = production_generation_snapshot_summary_for_report();
     let production_generation_summary_checksum = checksum64(&production_generation_summary_text);
+    ensure_production_generation_summary_matches_current_rendering(
+        &production_generation_summary_text,
+    )?;
     let production_generation_body_class_coverage_summary_text =
         validated_production_generation_body_class_coverage_summary_for_report();
     let production_generation_body_class_coverage_summary_checksum =
@@ -33088,6 +33104,19 @@ version = "0.9.0"
             "reference source=Reference snapshot source:",
             "reference source=Drifted snapshot source:",
             "packaged-artifact phase-2 corpus alignment summary no longer matches",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_production_generation_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-production-generation-semantic",
+            "production-generation-summary.txt",
+            "production generation summary checksum (fnv1a-64):",
+            "Production generation coverage:",
+            "Production generation coverage: drifted",
+            "production generation summary no longer matches",
         );
     }
 
