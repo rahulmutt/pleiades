@@ -67,7 +67,7 @@ use pleiades_jpl::{
 const PACKAGE_NAME: &str = "pleiades-data";
 const ARTIFACT_LABEL: &str = "stage-5 packaged-data draft";
 const ARTIFACT_PROFILE_ID: &str = "pleiades-packaged-artifact-profile/stage-5-draft";
-const PACKAGED_ARTIFACT_GENERATION_STRATEGY_TAIL: &str = "with 8-point and 10-point Chebyshev-Lobatto baseline candidates before the dense body-specific ladders and 12-point and 14-point candidates for inner and outer planets before fallback, with 10-point, 12-point, 14-point, 16-point, 18-point, and 20-point options for luminaries, lunar points, Pluto, selected asteroids, and custom bodies, and the best dense candidate wins before fallback, with equal-error, equal-sample-count ties preferring the simpler segment, residual correction channels on high-curvature spans when they improve the fit, residual-channel combinations and remaining channel-order permutations when composing those channels, preferring the smaller residual footprint on equal-error ties, higher-order reconstruction from fit samples when it quantizes cleanly, shared four-point control-point fallback across longitude, latitude, and distance channels when the higher-order fit does not quantize cleanly, quarter-biased splits on very long dense-body spans when quarter-point curvature is strongly asymmetric, a dense quarter-point control-point lattice before exact-third fallback on irregular spans, one-sixth and five-sixth probe fractions on very long dense-body spans when quarter-point curvature stays balanced, one-third and two-thirds probe fractions on long dense-body spans when quarter-point curvature stays balanced, a dense five-point fallback on the longest dense-body spans when one-fifth through four-fifth samples fit cleanly, one-ninth and eight-ninths probe fractions on super-extreme dense-body spans when the finer probes stay balanced, one-eighth and seven-eighths probe fractions on super-extreme dense-body spans when the ninth-point probes stay balanced, one-seventh and six-sevenths probe fractions on extreme dense-body spans when the super-extreme probes stay balanced, one-fifth and four-fifth probe fractions on the longest dense-body spans when the coarser probes stay balanced, and quadratic fallback otherwise";
+const PACKAGED_ARTIFACT_GENERATION_STRATEGY_TAIL: &str = "with 8-point and 10-point Chebyshev-Lobatto baseline candidates before the dense body-specific ladders and 12-point and 14-point candidates for inner and outer planets before fallback, with 10-point, 12-point, 14-point, 16-point, 18-point, and 20-point options for luminaries, lunar points, Pluto, selected asteroids, and custom bodies, and the best dense candidate wins before fallback, with equal-error, equal-sample-count ties preferring the simpler segment, residual correction channels on high-curvature spans when they improve the fit, residual-channel combinations and remaining channel-order permutations when composing those channels, preferring the smaller residual footprint on equal-error ties, higher-order reconstruction from fit samples when it quantizes cleanly, shared four-point control-point fallback across longitude, latitude, and distance channels when the higher-order fit does not quantize cleanly, quarter-biased splits on very long dense-body spans when quarter-point curvature is strongly asymmetric, a dense quarter-point control-point lattice before exact-third fallback on irregular spans, one-sixth and five-sixth probe fractions on very long dense-body spans when quarter-point curvature stays balanced, one-third and two-thirds probe fractions on long dense-body spans when quarter-point curvature stays balanced, a dense five-point fallback on the longest dense-body spans when one-fifth through four-fifth samples fit cleanly, a dense seven-point fallback on super-extreme dense-body spans when one-seventh through six-sevenths samples fit cleanly, one-ninth and eight-ninths probe fractions on super-extreme dense-body spans when the finer probes stay balanced, one-eighth and seven-eighths probe fractions on super-extreme dense-body spans when the ninth-point probes stay balanced, one-seventh and six-sevenths probe fractions on extreme dense-body spans when the super-extreme probes stay balanced, one-fifth and four-fifth probe fractions on the longest dense-body spans when the coarser probes stay balanced, and quadratic fallback otherwise";
 
 fn packaged_artifact_generation_policy_note_text() -> &'static str {
     static NOTE: OnceLock<String> = OnceLock::new();
@@ -7785,6 +7785,110 @@ fn segment_from_pair_fallback(
                 }
             }
         }
+
+        if span_days > span_limit * PACKAGED_ARTIFACT_SUPER_EXTREME_DENSE_SPLIT_SPAN_RATIO {
+            let one_seventh_coordinates = sample_fraction(1.0 / 7.0);
+            let two_seventh_coordinates = sample_fraction(2.0 / 7.0);
+            let three_seventh_coordinates = sample_fraction(3.0 / 7.0);
+            let four_seventh_coordinates = sample_fraction(4.0 / 7.0);
+            let five_seventh_coordinates = sample_fraction(5.0 / 7.0);
+            let six_seventh_coordinates = sample_fraction(6.0 / 7.0);
+            if let (
+                Some(one_seventh_coordinates),
+                Some(two_seventh_coordinates),
+                Some(three_seventh_coordinates),
+                Some(four_seventh_coordinates),
+                Some(five_seventh_coordinates),
+                Some(six_seventh_coordinates),
+            ) = (
+                one_seventh_coordinates.as_ref(),
+                two_seventh_coordinates.as_ref(),
+                three_seventh_coordinates.as_ref(),
+                four_seventh_coordinates.as_ref(),
+                five_seventh_coordinates.as_ref(),
+                six_seventh_coordinates.as_ref(),
+            ) {
+                let longitude_samples = unwrap_longitude_samples(&[
+                    start_longitude,
+                    one_seventh_coordinates.longitude.degrees(),
+                    two_seventh_coordinates.longitude.degrees(),
+                    three_seventh_coordinates.longitude.degrees(),
+                    four_seventh_coordinates.longitude.degrees(),
+                    five_seventh_coordinates.longitude.degrees(),
+                    six_seventh_coordinates.longitude.degrees(),
+                    end_longitude,
+                ]);
+
+                if let (Some(longitude_channel), Some(latitude_channel)) = (
+                    channel_from_dense_fit_samples_with_control_points(
+                        ChannelKind::Longitude,
+                        9,
+                        &[
+                            (0.0, longitude_samples[0]),
+                            (1.0 / 7.0, longitude_samples[1]),
+                            (2.0 / 7.0, longitude_samples[2]),
+                            (3.0 / 7.0, longitude_samples[3]),
+                            (4.0 / 7.0, longitude_samples[4]),
+                            (5.0 / 7.0, longitude_samples[5]),
+                            (6.0 / 7.0, longitude_samples[6]),
+                            (1.0, longitude_samples[7]),
+                        ],
+                    ),
+                    channel_from_dense_fit_samples_with_control_points(
+                        ChannelKind::Latitude,
+                        9,
+                        &[
+                            (0.0, start_coordinates.latitude.degrees()),
+                            (1.0 / 7.0, one_seventh_coordinates.latitude.degrees()),
+                            (2.0 / 7.0, two_seventh_coordinates.latitude.degrees()),
+                            (3.0 / 7.0, three_seventh_coordinates.latitude.degrees()),
+                            (4.0 / 7.0, four_seventh_coordinates.latitude.degrees()),
+                            (5.0 / 7.0, five_seventh_coordinates.latitude.degrees()),
+                            (6.0 / 7.0, six_seventh_coordinates.latitude.degrees()),
+                            (1.0, end_coordinates.latitude.degrees()),
+                        ],
+                    ),
+                ) {
+                    if let (
+                        Some(one_seventh_distance_au),
+                        Some(two_seventh_distance_au),
+                        Some(three_seventh_distance_au),
+                        Some(four_seventh_distance_au),
+                        Some(five_seventh_distance_au),
+                        Some(six_seventh_distance_au),
+                    ) = (
+                        one_seventh_coordinates.distance_au,
+                        two_seventh_coordinates.distance_au,
+                        three_seventh_coordinates.distance_au,
+                        four_seventh_coordinates.distance_au,
+                        five_seventh_coordinates.distance_au,
+                        six_seventh_coordinates.distance_au,
+                    ) {
+                        let distance_channel = distance_channel_from_dense_fit_samples(
+                            &[
+                                (0.0, start_coordinates.distance_au.unwrap_or_default()),
+                                (1.0 / 7.0, one_seventh_distance_au),
+                                (2.0 / 7.0, two_seventh_distance_au),
+                                (3.0 / 7.0, three_seventh_distance_au),
+                                (4.0 / 7.0, four_seventh_distance_au),
+                                (5.0 / 7.0, five_seventh_distance_au),
+                                (6.0 / 7.0, six_seventh_distance_au),
+                                (1.0, end_coordinates.distance_au.unwrap_or_default()),
+                            ],
+                            start_coordinates.distance_au.unwrap_or_default(),
+                            midpoint_coordinates.distance_au,
+                            end_coordinates.distance_au.unwrap_or_default(),
+                        );
+
+                        return Segment::new(
+                            start_instant,
+                            end_instant,
+                            vec![longitude_channel, latitude_channel, distance_channel],
+                        );
+                    }
+                }
+            }
+        }
     }
 
     let Some(first_third_coordinates) = sample_fraction(1.0 / 3.0) else {
@@ -8742,6 +8846,89 @@ mod tests {
         );
 
         for fraction in [0.2, 0.4, 0.5, 0.6, 0.8] {
+            let actual_longitude =
+                segment_channel_value(&segment, ChannelKind::Longitude, fraction)
+                    .expect("longitude channel should evaluate");
+            let actual_latitude = segment_channel_value(&segment, ChannelKind::Latitude, fraction)
+                .expect("latitude channel should evaluate");
+            let actual_distance =
+                segment_channel_value(&segment, ChannelKind::DistanceAu, fraction)
+                    .expect("distance channel should evaluate");
+
+            assert!(
+                (actual_longitude - longitude(fraction)).abs() < 1e-8,
+                "longitude mismatch at fraction {fraction}: {actual_longitude} vs {}",
+                longitude(fraction)
+            );
+            assert!(
+                (actual_latitude - latitude(fraction)).abs() < 1e-8,
+                "latitude mismatch at fraction {fraction}: {actual_latitude} vs {}",
+                latitude(fraction)
+            );
+            assert!(
+                (actual_distance - distance(fraction)).abs() < 1e-8,
+                "distance mismatch at fraction {fraction}: {actual_distance} vs {}",
+                distance(fraction)
+            );
+        }
+    }
+
+    #[test]
+    fn segment_from_pair_fallback_can_use_dense_seven_point_samples_on_super_extreme_spans() {
+        let longitude = |fraction: f64| {
+            8.0 + 1.25 * fraction - 0.5 * fraction.powi(2) + 0.125 * fraction.powi(3)
+        };
+        let latitude = |fraction: f64| {
+            -3.0 + 0.75 * fraction + 0.25 * fraction.powi(2) - 0.0625 * fraction.powi(3)
+        };
+        let distance = |fraction: f64| {
+            2.0 + 0.5 * fraction - 0.125 * fraction.powi(2) + 0.03125 * fraction.powi(3)
+        };
+        let start_coordinates = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(longitude(0.0)),
+            pleiades_backend::Latitude::from_degrees(latitude(0.0)),
+            Some(distance(0.0)),
+        );
+        let end_coordinates = EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(longitude(1.0)),
+            pleiades_backend::Latitude::from_degrees(latitude(1.0)),
+            Some(distance(1.0)),
+        );
+        let sample_fraction = |fraction: f64| -> Option<EclipticCoordinates> {
+            if (fraction - 0.2).abs() < f64::EPSILON
+                || (fraction - 0.4).abs() < f64::EPSILON
+                || (fraction - 0.6).abs() < f64::EPSILON
+                || (fraction - 0.8).abs() < f64::EPSILON
+            {
+                return None;
+            }
+
+            Some(EclipticCoordinates::new(
+                pleiades_backend::Longitude::from_degrees(longitude(fraction)),
+                pleiades_backend::Latitude::from_degrees(latitude(fraction)),
+                Some(distance(fraction)),
+            ))
+        };
+        let segment = segment_from_pair_fallback(
+            Instant::new(JulianDay::from_days(0.0), TimeScale::Tt),
+            Instant::new(JulianDay::from_days(50_000.0), TimeScale::Tt),
+            longitude(0.0),
+            longitude(1.0),
+            &start_coordinates,
+            &end_coordinates,
+            Some(50_000.0),
+            Some(1_536.0),
+            &sample_fraction,
+        );
+
+        for fraction in [
+            1.0 / 7.0,
+            2.0 / 7.0,
+            3.0 / 7.0,
+            4.0 / 7.0,
+            5.0 / 7.0,
+            6.0 / 7.0,
+        ] {
             let actual_longitude =
                 segment_channel_value(&segment, ChannelKind::Longitude, fraction)
                     .expect("longitude channel should evaluate");
@@ -11832,6 +12019,8 @@ mod tests {
         assert!(packaged_artifact_generation_policy_note_text()
             .contains("five-point fallback on the longest dense-body spans"));
         assert!(packaged_artifact_generation_policy_note_text()
+            .contains("seven-point fallback on super-extreme dense-body spans"));
+        assert!(packaged_artifact_generation_policy_note_text()
             .contains("one-fifth and four-fifth probe fractions"));
         assert!(packaged_artifact_generation_policy_note_text()
             .contains("one-ninth and eight-ninths probe fractions"));
@@ -11840,6 +12029,14 @@ mod tests {
         assert!(packaged_artifact_generation_policy_note_text()
             .contains("one-seventh and six-sevenths probe fractions"));
         assert!(packaged_artifact_generation_policy_note_text().contains("lunar points"));
+        assert!(
+            packaged_artifact_generation_policy_note_text()
+                .find("seven-point fallback on super-extreme dense-body spans")
+                .expect("seven-point fallback text should be present")
+                < packaged_artifact_generation_policy_note_text()
+                    .find("one-ninth and eight-ninths probe fractions")
+                    .expect("ninth probe text should be present")
+        );
         assert!(
             packaged_artifact_generation_policy_note_text()
                 .find("one-ninth and eight-ninths probe fractions")
