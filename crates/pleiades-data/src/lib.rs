@@ -8766,6 +8766,14 @@ mod tests {
             packaged_artifact_fit_sample_counts_for_body(&CelestialBody::Ceres),
             PACKAGED_ARTIFACT_DENSE_FIT_SAMPLE_COUNTS
         );
+        assert_eq!(
+            packaged_artifact_fit_sample_counts_for_body(&lunar_point_body),
+            PACKAGED_ARTIFACT_DENSE_FIT_SAMPLE_COUNTS
+        );
+        assert_eq!(
+            packaged_artifact_fit_sample_counts_for_body(custom_segment.0),
+            PACKAGED_ARTIFACT_DENSE_FIT_SAMPLE_COUNTS
+        );
         assert!(packaged_artifact_body_cadence(moon_segment.0).uses_dense_sampling());
         assert!(packaged_artifact_body_cadence(&CelestialBody::Pluto).uses_dense_sampling());
         assert!(packaged_artifact_body_cadence(&CelestialBody::Ceres).uses_dense_sampling());
