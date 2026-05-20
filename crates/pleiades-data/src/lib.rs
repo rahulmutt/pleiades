@@ -12914,6 +12914,59 @@ mod tests {
     }
 
     #[test]
+    fn packaged_artifact_fit_channel_outlier_summary_prefers_shorter_failing_family_on_equal_delta()
+    {
+        let body = CelestialBody::Moon;
+        let long_segment_start = Instant::new(JulianDay::from_days(0.0), TimeScale::Tt);
+        let long_segment_end = Instant::new(JulianDay::from_days(10.0), TimeScale::Tt);
+        let short_segment_start = Instant::new(JulianDay::from_days(20.0), TimeScale::Tt);
+        let short_segment_end = Instant::new(JulianDay::from_days(22.0), TimeScale::Tt);
+
+        let samples = vec![
+            PackagedArtifactFitSample {
+                body: body.clone(),
+                segment_start: long_segment_start,
+                segment_end: long_segment_end,
+                sample_instant: Instant::new(JulianDay::from_days(2.5), TimeScale::Tt),
+                sample_fraction: 0.25,
+                longitude_delta_degrees: 1.0,
+                latitude_delta_degrees: 0.0,
+                distance_delta_au: 0.0,
+            },
+            PackagedArtifactFitSample {
+                body: body.clone(),
+                segment_start: long_segment_start,
+                segment_end: long_segment_end,
+                sample_instant: Instant::new(JulianDay::from_days(7.5), TimeScale::Tt),
+                sample_fraction: 0.75,
+                longitude_delta_degrees: 1.0,
+                latitude_delta_degrees: 0.0,
+                distance_delta_au: 0.0,
+            },
+            PackagedArtifactFitSample {
+                body,
+                segment_start: short_segment_start,
+                segment_end: short_segment_end,
+                sample_instant: Instant::new(JulianDay::from_days(21.0), TimeScale::Tt),
+                sample_fraction: 0.5,
+                longitude_delta_degrees: 1.0,
+                latitude_delta_degrees: 0.0,
+                distance_delta_au: 0.0,
+            },
+        ];
+
+        let summary = packaged_artifact_fit_channel_outlier_summary_for_channel(
+            &samples,
+            ChannelKind::Longitude,
+        )
+        .expect("channel summary should exist");
+
+        assert!(summary.contains("span=2.000000000000 d"));
+        assert!(summary.contains("samples=1"));
+        assert!(!summary.contains("span=10.000000000000 d"));
+    }
+
+    #[test]
     fn packaged_artifact_fit_channel_outlier_summary_validation_rejects_drift() {
         let mut summary = packaged_artifact_fit_channel_outlier_summary_details();
         summary.channel_summaries.pop();
