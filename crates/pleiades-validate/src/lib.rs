@@ -143,6 +143,7 @@ use pleiades_jpl::{
     production_generation_boundary_source_summary_for_report,
     production_generation_boundary_summary_for_report,
     production_generation_boundary_window_summary_for_report,
+    production_generation_corpus_shape_summary_for_report,
     production_generation_manifest_checksum_for_report,
     production_generation_manifest_summary_for_report,
     production_generation_snapshot_summary_for_report,
@@ -230,6 +231,7 @@ use pleiades_jpl::{
     validated_comparison_snapshot_source_summary_for_report,
     validated_comparison_snapshot_source_window_summary_for_report,
     validated_independent_holdout_snapshot_batch_parity_summary_for_report,
+    validated_production_generation_corpus_shape_summary_for_report,
     validated_production_generation_snapshot_body_class_coverage_summary_for_report,
     validated_production_generation_source_summary_for_report,
     validated_reference_asteroid_source_window_summary_for_report,
@@ -5479,6 +5481,11 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "production-generation-boundary-window")?;
             Ok(production_generation_boundary_window_summary_for_report())
         }
+        Some("production-generation-corpus-shape-summary")
+        | Some("production-generation-corpus-shape") => {
+            ensure_no_extra_args(&args[1..], "production-generation-corpus-shape-summary")?;
+            validated_production_generation_corpus_shape_summary_for_report()
+        }
         Some("production-generation-source-summary") => {
             ensure_no_extra_args(&args[1..], "production-generation-source-summary")?;
             validated_production_generation_source_summary_for_report()
@@ -9440,6 +9447,9 @@ fn render_release_summary_text() -> String {
     text.push('\n');
     text.push_str("JPL production-generation source windows: ");
     text.push_str(&production_generation_snapshot_window_summary_for_report());
+    text.push('\n');
+    text.push_str("JPL production-generation corpus shape: ");
+    text.push_str(&production_generation_corpus_shape_summary_for_report());
     text.push('\n');
     text.push_str("JPL production-generation body-class coverage: ");
     text.push_str(&validated_production_generation_body_class_coverage_summary_for_report());
@@ -22892,7 +22902,7 @@ fn help_text() -> String {
   release-ayanamsa-canonical-names-summary  Print the compact release-specific ayanamsa canonical names summary
   release-ayanamsa-canonical-names  Alias for release-ayanamsa-canonical-names-summary
   profile-summary           Alias for compatibility-profile-summary
-  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  release-notes             Print the release compatibility notes\n  release-notes-summary     Print the compact release notes summary\n  release-checklist         Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  release-smoke            Run the release smoke checks and render the short smoke report\n  release-gate              Run the release gate checks and render the release checklist\n  release-gate-summary      Run the release gate checks and render the compact release checklist summary\n  checklist-summary        Alias for release-checklist-summary\n  release-summary           Print the compact release summary\n  jpl-batch-error-taxonomy-summary  Print the compact JPL batch error taxonomy summary\n  jpl-snapshot-evidence-summary  Print the compact combined JPL evidence summary\n  production-generation-boundary-summary  Print the compact production-generation boundary overlay summary\n  production-generation-boundary-request-corpus-summary  Print the compact production-generation boundary request corpus summary\n  production-generation-boundary-request-corpus  Alias for production-generation-boundary-request-corpus-summary\n  production-generation-body-class-coverage-summary  Print the compact production-generation body-class coverage summary\n  production-body-class-coverage-summary  Alias for production-generation-body-class-coverage-summary\n  production-generation-source-window-summary  Print the compact production-generation source windows summary\n  production-generation-source-window  Alias for production-generation-source-window-summary\n  production-generation-summary  Print the compact production-generation coverage summary
+  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  release-notes             Print the release compatibility notes\n  release-notes-summary     Print the compact release notes summary\n  release-checklist         Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  release-smoke            Run the release smoke checks and render the short smoke report\n  release-gate              Run the release gate checks and render the release checklist\n  release-gate-summary      Run the release gate checks and render the compact release checklist summary\n  checklist-summary        Alias for release-checklist-summary\n  release-summary           Print the compact release summary\n  jpl-batch-error-taxonomy-summary  Print the compact JPL batch error taxonomy summary\n  jpl-snapshot-evidence-summary  Print the compact combined JPL evidence summary\n  production-generation-boundary-summary  Print the compact production-generation boundary overlay summary\n  production-generation-boundary-request-corpus-summary  Print the compact production-generation boundary request corpus summary\n  production-generation-boundary-request-corpus  Alias for production-generation-boundary-request-corpus-summary\n  production-generation-body-class-coverage-summary  Print the compact production-generation body-class coverage summary\n  production-body-class-coverage-summary  Alias for production-generation-body-class-coverage-summary\n  production-generation-source-window-summary  Print the compact production-generation source windows summary\n  production-generation-source-window  Alias for production-generation-source-window-summary\n  production-generation-corpus-shape-summary  Print the compact production-generation corpus shape summary\n  production-generation-corpus-shape  Alias for production-generation-corpus-shape-summary\n  production-generation-summary  Print the compact production-generation coverage summary
   production-generation           Alias for production-generation-summary
   production-generation-boundary-source-summary  Print the compact production-generation boundary source summary
   production-generation-boundary-source  Alias for production-generation-boundary-source-summary
@@ -35387,6 +35397,40 @@ version = "0.9.0"
             .expect_err("production generation summary should reject extra arguments");
 
         assert!(error.contains("production-generation-summary does not accept extra arguments"));
+    }
+
+    #[test]
+    fn production_generation_corpus_shape_summary_command_renders_the_shape_block() {
+        let rendered = render_cli(&["production-generation-corpus-shape-summary"])
+            .expect("production generation corpus shape summary should render");
+
+        assert!(rendered.contains("Production generation corpus shape:"));
+        assert!(rendered.contains("validated fields=body order, epochs, frame, time scale, columns, apparentness, checksums"));
+        assert_eq!(
+            rendered,
+            production_generation_corpus_shape_summary_for_report()
+        );
+    }
+
+    #[test]
+    fn production_generation_corpus_shape_alias_command_renders_the_shape_block() {
+        let rendered = render_cli(&["production-generation-corpus-shape"])
+            .expect("production generation corpus shape alias should render");
+
+        assert_eq!(
+            rendered,
+            production_generation_corpus_shape_summary_for_report()
+        );
+    }
+
+    #[test]
+    fn production_generation_corpus_shape_alias_rejects_extra_arguments() {
+        let error = render_cli(&["production-generation-corpus-shape", "extra"])
+            .expect_err("production generation corpus shape alias should reject extra arguments");
+
+        assert!(error.contains(
+            "production-generation-corpus-shape-summary does not accept extra arguments"
+        ));
     }
 
     #[test]

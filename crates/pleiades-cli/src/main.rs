@@ -175,6 +175,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "production-generation-boundary-window")?;
             validate_render_cli(args)
         }
+        Some("production-generation-corpus-shape-summary")
+        | Some("production-generation-corpus-shape") => validate_render_cli(args),
         Some("production-generation-source-summary") => validate_render_cli(args),
         Some("production-generation-source") => {
             ensure_no_extra_args(&args[1..], "production-generation-source")?;
@@ -3405,6 +3407,28 @@ mod tests {
             ),
             "production-generation-boundary-window does not accept extra arguments"
         );
+        let production_generation_corpus_shape_summary =
+            render_cli(&["production-generation-corpus-shape-summary"])
+                .expect("production generation corpus shape summary should render");
+        assert!(production_generation_corpus_shape_summary
+            .contains("Production generation corpus shape:"));
+        assert_eq!(
+            production_generation_corpus_shape_summary,
+            pleiades_jpl::production_generation_corpus_shape_summary_for_report()
+        );
+        let production_generation_corpus_shape_alias =
+            render_cli(&["production-generation-corpus-shape"])
+                .expect("production generation corpus shape alias should render");
+        assert_eq!(
+            production_generation_corpus_shape_alias,
+            pleiades_jpl::production_generation_corpus_shape_summary_for_report()
+        );
+        assert_eq!(
+            render_cli(&["production-generation-corpus-shape", "extra"]).expect_err(
+                "production generation corpus shape alias should reject extra arguments"
+            ),
+            "production-generation-corpus-shape-summary does not accept extra arguments"
+        );
         let production_generation_source_summary =
             render_cli(&["production-generation-source-summary"])
                 .expect("production generation source summary should render");
@@ -6251,6 +6275,9 @@ mod tests {
         ));
         assert!(help.contains(
             "production-generation-source-window-summary  Print the compact production-generation source windows summary"
+        ));
+        assert!(help.contains(
+            "production-generation-corpus-shape-summary  Print the compact production-generation corpus shape summary"
         ));
         assert!(help.contains(
             "interpolation-quality-request-corpus-summary  Print the compact JPL interpolation-quality sample request corpus summary"

@@ -3445,6 +3445,141 @@ pub fn validated_production_generation_source_summary_for_report() -> Result<Str
         .map_err(|error| error.to_string())
 }
 
+/// Compact release-facing contract summary for the production-generation corpus shape.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ProductionGenerationCorpusShapeSummary {
+    /// Source provenance summary for the merged production-generation corpus.
+    pub source_summary: ProductionGenerationSourceSummary,
+    /// Boundary request corpus used to validate apparentness and frame posture.
+    pub boundary_request_corpus: ProductionGenerationBoundaryRequestCorpusSummary,
+}
+
+/// Structured validation errors for the production-generation corpus shape summary.
+#[derive(Clone, Debug, PartialEq)]
+pub enum ProductionGenerationCorpusShapeSummaryValidationError {
+    /// The nested source summary drifted from the checked-in evidence.
+    Source(ProductionGenerationSourceSummaryValidationError),
+    /// The nested boundary request corpus drifted from the checked-in evidence.
+    BoundaryRequestCorpus(ProductionGenerationBoundaryRequestCorpusSummaryValidationError),
+    /// A derived field drifted from the current checked-in corpus posture.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for ProductionGenerationCorpusShapeSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Source(error) => write!(f, "source summary validation failed: {error}"),
+            Self::BoundaryRequestCorpus(error) => {
+                write!(f, "boundary request corpus validation failed: {error}")
+            }
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the production-generation corpus shape field `{field}` is out of sync"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for ProductionGenerationCorpusShapeSummaryValidationError {}
+
+impl ProductionGenerationCorpusShapeSummary {
+    /// Returns a compact release-facing corpus-shape summary.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "Production generation corpus shape: source={}; boundary request corpus={}; validated fields=body order, epochs, frame, time scale, columns, apparentness, checksums",
+            strip_report_prefix(
+                &self.source_summary.summary_line(),
+                "Production generation source: ",
+            ),
+            strip_report_prefix(
+                &self.boundary_request_corpus.summary_line(),
+                "Production generation boundary request corpus: ",
+            ),
+        )
+    }
+
+    /// Returns `Ok(())` when the corpus-shape summary still matches the current corpus posture.
+    pub fn validate(&self) -> Result<(), ProductionGenerationCorpusShapeSummaryValidationError> {
+        self.source_summary
+            .validate()
+            .map_err(ProductionGenerationCorpusShapeSummaryValidationError::Source)?;
+        self.boundary_request_corpus.validate().map_err(
+            ProductionGenerationCorpusShapeSummaryValidationError::BoundaryRequestCorpus,
+        )?;
+
+        let expected_source_summary = production_generation_source_summary();
+        if self.source_summary != expected_source_summary {
+            return Err(
+                ProductionGenerationCorpusShapeSummaryValidationError::FieldOutOfSync {
+                    field: "source summary",
+                },
+            );
+        }
+
+        let expected_boundary_request_corpus =
+            production_generation_boundary_request_corpus_summary(CoordinateFrame::Ecliptic)
+                .ok_or(
+                    ProductionGenerationCorpusShapeSummaryValidationError::FieldOutOfSync {
+                        field: "boundary request corpus",
+                    },
+                )?;
+        if self.boundary_request_corpus != expected_boundary_request_corpus {
+            return Err(
+                ProductionGenerationCorpusShapeSummaryValidationError::FieldOutOfSync {
+                    field: "boundary request corpus",
+                },
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns the validated corpus-shape summary line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, ProductionGenerationCorpusShapeSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for ProductionGenerationCorpusShapeSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Returns the compact production-generation corpus-shape summary.
+pub fn production_generation_corpus_shape_summary() -> Option<ProductionGenerationCorpusShapeSummary>
+{
+    Some(ProductionGenerationCorpusShapeSummary {
+        source_summary: production_generation_source_summary(),
+        boundary_request_corpus: production_generation_boundary_request_corpus_summary(
+            CoordinateFrame::Ecliptic,
+        )?,
+    })
+}
+
+/// Returns the release-facing production-generation corpus-shape summary string.
+pub fn production_generation_corpus_shape_summary_for_report() -> String {
+    match production_generation_corpus_shape_summary() {
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
+            Err(error) => format!("Production generation corpus shape: unavailable ({error})"),
+        },
+        None => "Production generation corpus shape: unavailable".to_string(),
+    }
+}
+
+/// Returns the validated release-facing production-generation corpus-shape summary string.
+pub fn validated_production_generation_corpus_shape_summary_for_report() -> Result<String, String> {
+    let summary = production_generation_corpus_shape_summary()
+        .ok_or_else(|| "production generation corpus shape unavailable".to_string())?;
+    summary
+        .validated_summary_line()
+        .map_err(|error| error.to_string())
+}
+
 fn strip_report_prefix<'a>(text: &'a str, prefix: &str) -> &'a str {
     text.strip_prefix(prefix).unwrap_or(text)
 }
@@ -30849,6 +30984,45 @@ mod tests {
             .expect("validated production generation source summary should exist");
 
         assert_eq!(validated, report);
+    }
+
+    #[test]
+    fn production_generation_corpus_shape_summary_documents_the_current_contract() {
+        let summary = production_generation_corpus_shape_summary()
+            .expect("production generation corpus shape summary should exist");
+        let report = production_generation_corpus_shape_summary_for_report();
+
+        assert!(summary.validate().is_ok());
+        assert!(report.contains("Production generation corpus shape: source="));
+        assert!(report.contains("boundary request corpus="));
+        assert!(report.contains(
+            "validated fields=body order, epochs, frame, time scale, columns, apparentness, checksums"
+        ));
+        assert!(report.contains("columns=epoch_jd, body, x_km, y_km, z_km"));
+        assert!(report.contains("frame=geocentric ecliptic J2000"));
+        assert!(report.contains("time scale=TDB"));
+        assert!(report.contains("apparentness=Mean"));
+    }
+
+    #[test]
+    fn production_generation_corpus_shape_summary_validated_report_matches_current_rendering() {
+        let report = production_generation_corpus_shape_summary_for_report();
+        let validated = validated_production_generation_corpus_shape_summary_for_report()
+            .expect("validated production generation corpus shape summary should exist");
+
+        assert_eq!(validated, report);
+    }
+
+    #[test]
+    fn production_generation_corpus_shape_summary_validation_rejects_drift() {
+        let mut summary = production_generation_corpus_shape_summary()
+            .expect("production generation corpus shape summary should exist");
+        summary.boundary_request_corpus.apparentness = Apparentness::Apparent;
+
+        assert!(matches!(
+            summary.validate(),
+            Err(ProductionGenerationCorpusShapeSummaryValidationError::BoundaryRequestCorpus(_))
+        ));
     }
 
     #[test]

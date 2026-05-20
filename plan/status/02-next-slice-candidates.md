@@ -7,7 +7,6 @@ This file lists only active implementation slices. Completed report aliases, sum
 - Select the production source strategy and document why it satisfies pure-Rust and redistribution constraints.
 - Expand source coverage for all release-claimed major bodies, lunar channels, Pluto policy, and selected asteroids across 1500-2500 CE.
 - Create independent hold-out coverage that is not consumed by artifact fitting.
-- Add corpus-shape validation for body order, epochs, frames, time scales, columns, apparentness, and checksums.
 - Make backend matrices and release profiles derive body/date/channel claims from validated corpus evidence.
 
 ## Phase 2 — Production compressed ephemeris
