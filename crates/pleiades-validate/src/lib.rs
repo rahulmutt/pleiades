@@ -31278,6 +31278,18 @@ version = "0.9.0"
     }
 
     #[test]
+    fn verify_release_bundle_rejects_missing_reference_holdout_overlap_summary_entry() {
+        assert_release_bundle_rejects_missing_manifest_entry(
+            "pleiades-release-bundle-missing-reference-holdout-overlap-summary",
+            "reference-holdout overlap summary:",
+            &[
+                "missing manifest entry: reference-holdout overlap summary:",
+                "missing reference-holdout overlap summary entry",
+            ],
+        );
+    }
+
+    #[test]
     fn verify_release_bundle_rejects_missing_reference_snapshot_source_window_summary_entry() {
         assert_release_bundle_rejects_missing_manifest_entry(
             "pleiades-release-bundle-missing-reference-snapshot-source-window-summary",
