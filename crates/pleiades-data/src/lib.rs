@@ -2128,6 +2128,19 @@ impl PackagedArtifactBodyCadence {
         )
     }
 
+    fn uses_dense_validation_sampling(self) -> bool {
+        matches!(
+            self,
+            Self::Luminaries
+                | Self::InnerPlanets
+                | Self::OuterPlanets
+                | Self::Pluto
+                | Self::LunarPoints
+                | Self::SelectedAsteroids
+                | Self::CustomBodies
+        )
+    }
+
     fn uses_dense_residual_sample_lattice(self, kind: ChannelKind) -> bool {
         match kind {
             ChannelKind::Longitude | ChannelKind::Latitude => self.uses_dense_sampling(),
@@ -6729,7 +6742,7 @@ fn segment_error_prefers_candidate(
 }
 
 fn packaged_artifact_segment_validation_fractions_for_body(body: &CelestialBody) -> &'static [f64] {
-    if packaged_artifact_body_cadence(body).uses_dense_sampling() {
+    if packaged_artifact_body_cadence(body).uses_dense_validation_sampling() {
         PACKAGED_ARTIFACT_DENSE_VALIDATION_SAMPLE_FRACTIONS
     } else {
         PACKAGED_ARTIFACT_MEDIUM_VALIDATION_SAMPLE_FRACTIONS
@@ -8808,19 +8821,23 @@ mod tests {
         );
         assert_eq!(
             packaged_artifact_segment_validation_fractions_for_body(mercury_segment.0),
-            PACKAGED_ARTIFACT_MEDIUM_VALIDATION_SAMPLE_FRACTIONS
+            PACKAGED_ARTIFACT_DENSE_VALIDATION_SAMPLE_FRACTIONS
         );
         assert_eq!(
             packaged_artifact_fit_outlier_sample_fractions(mercury_segment.0, mercury_segment.1),
-            PACKAGED_ARTIFACT_MEDIUM_VALIDATION_SAMPLE_FRACTIONS
+            PACKAGED_ARTIFACT_DENSE_VALIDATION_SAMPLE_FRACTIONS
         );
         assert_eq!(
             packaged_artifact_fit_sample_fractions_for_body(saturn_segment.0, saturn_segment.1),
             packaged_artifact_fit_sample_fractions(saturn_segment.1)
         );
         assert_eq!(
+            packaged_artifact_segment_validation_fractions_for_body(saturn_segment.0),
+            PACKAGED_ARTIFACT_DENSE_VALIDATION_SAMPLE_FRACTIONS
+        );
+        assert_eq!(
             packaged_artifact_fit_outlier_sample_fractions(saturn_segment.0, saturn_segment.1),
-            PACKAGED_ARTIFACT_MEDIUM_VALIDATION_SAMPLE_FRACTIONS
+            PACKAGED_ARTIFACT_DENSE_VALIDATION_SAMPLE_FRACTIONS
         );
         assert_eq!(
             packaged_artifact_segment_validation_fractions_for_body(&lunar_point_body),
