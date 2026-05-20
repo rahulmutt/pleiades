@@ -4803,18 +4803,26 @@ impl ReleaseBundle {
 
 /// Builds the default validation corpus.
 pub fn default_corpus() -> ValidationCorpus {
-    ValidationCorpus::jpl_snapshot()
+    static CACHE: OnceLock<ValidationCorpus> = OnceLock::new();
+
+    CACHE.get_or_init(ValidationCorpus::jpl_snapshot).clone()
 }
 
 /// Builds the release-grade comparison corpus with Pluto excluded from tolerance evidence.
 pub fn release_grade_corpus() -> ValidationCorpus {
-    let mut corpus = default_corpus();
-    corpus.name = "JPL Horizons release-grade comparison window".to_string();
-    corpus.description = "Release-grade comparison corpus built from the checked-in JPL Horizons snapshot, with Pluto excluded from tolerance evidence because Pluto remains an approximate fallback.";
-    corpus
-        .requests
-        .retain(|request| request.body != CelestialBody::Pluto);
-    corpus
+    static CACHE: OnceLock<ValidationCorpus> = OnceLock::new();
+
+    CACHE
+        .get_or_init(|| {
+            let mut corpus = default_corpus();
+            corpus.name = "JPL Horizons release-grade comparison window".to_string();
+            corpus.description = "Release-grade comparison corpus built from the checked-in JPL Horizons snapshot, with Pluto excluded from tolerance evidence because Pluto remains an approximate fallback.";
+            corpus
+                .requests
+                .retain(|request| request.body != CelestialBody::Pluto);
+            corpus
+        })
+        .clone()
 }
 
 /// Returns the CLI banner.
@@ -4824,20 +4832,30 @@ pub fn banner() -> &'static str {
 
 /// Creates the default benchmark corpus.
 pub fn benchmark_corpus() -> ValidationCorpus {
-    ValidationCorpus::representative_window()
+    static CACHE: OnceLock<ValidationCorpus> = OnceLock::new();
+
+    CACHE
+        .get_or_init(ValidationCorpus::representative_window)
+        .clone()
 }
 
 fn benchmark_timing_corpus() -> ValidationCorpus {
-    ValidationCorpus::from_epochs(
-        "Representative 1500-2500 window",
-        "Reduced timing subset of the representative 1500-2500 benchmark corpus.",
-        Apparentness::Mean,
-        &[Instant::new(
-            JulianDay::from_days(2_451_545.0),
-            TimeScale::Tt,
-        )],
-        &[CelestialBody::Sun],
-    )
+    static CACHE: OnceLock<ValidationCorpus> = OnceLock::new();
+
+    CACHE
+        .get_or_init(|| {
+            ValidationCorpus::from_epochs(
+                "Representative 1500-2500 window",
+                "Reduced timing subset of the representative 1500-2500 benchmark corpus.",
+                Apparentness::Mean,
+                &[Instant::new(
+                    JulianDay::from_days(2_451_545.0),
+                    TimeScale::Tt,
+                )],
+                &[CelestialBody::Sun],
+            )
+        })
+        .clone()
 }
 
 fn validate_release_smoke_at(output_dir: impl AsRef<Path>) -> Result<(), String> {
@@ -16471,11 +16489,43 @@ fn build_validation_report_uncached(rounds: usize) -> Result<ValidationReport, E
 
 /// Renders the validation report used by the CLI.
 pub fn render_validation_report(rounds: usize) -> Result<String, EphemerisError> {
+    static CACHE: OnceLock<Mutex<HashMap<usize, String>>> = OnceLock::new();
+    let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
+    let mut cache = cache
+        .lock()
+        .expect("validation report cache should be lockable");
+
+    if let Some(report) = cache.get(&rounds).cloned() {
+        return Ok(report);
+    }
+
+    let report = render_validation_report_uncached(rounds)?;
+    cache.insert(rounds, report.clone());
+    Ok(report)
+}
+
+fn render_validation_report_uncached(rounds: usize) -> Result<String, EphemerisError> {
     Ok(build_validation_report(rounds)?.to_string())
 }
 
 /// Renders a compact validation-report summary used by the CLI.
 pub fn render_validation_report_summary(rounds: usize) -> Result<String, EphemerisError> {
+    static CACHE: OnceLock<Mutex<HashMap<usize, String>>> = OnceLock::new();
+    let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
+    let mut cache = cache
+        .lock()
+        .expect("validation report summary cache should be lockable");
+
+    if let Some(report) = cache.get(&rounds).cloned() {
+        return Ok(report);
+    }
+
+    let report = render_validation_report_summary_uncached(rounds)?;
+    cache.insert(rounds, report.clone());
+    Ok(report)
+}
+
+fn render_validation_report_summary_uncached(rounds: usize) -> Result<String, EphemerisError> {
     let report = build_validation_report(rounds)?;
     Ok(render_validation_report_summary_text(&report))
 }

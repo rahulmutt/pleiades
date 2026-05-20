@@ -8,6 +8,7 @@
 #![forbid(unsafe_code)]
 
 use core::fmt;
+use std::sync::OnceLock;
 use std::time::Instant as StdInstant;
 
 use pleiades_core::{
@@ -152,9 +153,15 @@ impl fmt::Display for ChartBenchmarkReport {
     }
 }
 
+fn chart_benchmark_corpus() -> ChartBenchmarkCorpus {
+    static CACHE: OnceLock<ChartBenchmarkCorpus> = OnceLock::new();
+
+    CACHE.get_or_init(ChartBenchmarkCorpus::new).clone()
+}
+
 /// Returns the chart-benchmark corpus summary used by validation reports.
 pub fn chart_benchmark_corpus_summary() -> CorpusSummary {
-    ChartBenchmarkCorpus::new().summary()
+    chart_benchmark_corpus().summary()
 }
 
 /// Benchmarks full chart assembly for a backend using a representative chart corpus.
@@ -162,7 +169,7 @@ pub fn benchmark_chart_backend<B: EphemerisBackend>(
     backend: B,
     rounds: usize,
 ) -> Result<ChartBenchmarkReport, EphemerisError> {
-    let corpus = ChartBenchmarkCorpus::new();
+    let corpus = chart_benchmark_corpus();
     let backend_metadata = backend.metadata();
     let engine = ChartEngine::new(backend);
 
