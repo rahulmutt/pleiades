@@ -34894,7 +34894,7 @@ version = "0.9.0"
         let error = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string])
             .expect_err("verification should fail for semantic packaged-artifact source-fit and hold-out sync drift");
         assert!(error.contains("release bundle verification failed"));
-        assert!(error.contains("source-fit and hold-out sync summary no longer matches"));
+        assert!(error.contains("packaged-artifact source-fit and hold-out sync summary no longer matches the current packaged-artifact source-fit and hold-out sync posture"));
 
         let _ = std::fs::remove_dir_all(&bundle_dir);
     }
