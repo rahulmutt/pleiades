@@ -7937,7 +7937,7 @@ impl ReferenceAsteroidSourceWindowSummary {
             .collect::<Vec<_>>()
             .join("; ");
         format!(
-            "Reference asteroid source windows: {} source-backed samples across {} bodies and {} epochs ({}..{}); windows: {}",
+            "Reference asteroid source windows: {} source-backed samples across {} bodies and {} epochs ({}..{}); evidence class=source-backed; frame=geocentric ecliptic J2000; time scale=TDB; windows: {}",
             self.sample_count,
             self.sample_bodies.len(),
             self.epoch_count,
@@ -8269,7 +8269,7 @@ impl SelectedAsteroidSourceSummary {
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
         format!(
-            "Selected asteroid source evidence: {} source-backed samples across {} bodies and {} epochs ({}..{}); bodies: {}",
+            "Selected asteroid source evidence: {} source-backed samples across {} bodies and {} epochs ({}..{}); evidence class=source-backed; frame=geocentric ecliptic J2000; time scale=TDB; bodies: {}",
             self.sample_count,
             self.sample_bodies.len(),
             self.epoch_count,
@@ -8384,7 +8384,7 @@ impl SelectedAsteroidSourceWindowSummary {
             .collect::<Vec<_>>()
             .join("; ");
         format!(
-            "Selected asteroid source windows: {} source-backed samples across {} bodies and {} epochs ({}..{}); windows: {}",
+            "Selected asteroid source windows: {} source-backed samples across {} bodies and {} epochs ({}..{}); evidence class=source-backed; frame=geocentric ecliptic J2000; time scale=TDB; windows: {}",
             self.sample_count,
             self.sample_bodies.len(),
             self.epoch_count,
@@ -29485,7 +29485,7 @@ mod tests {
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             summary.summary_line(),
-            "Reference asteroid source windows: 93 source-backed samples across 6 bodies and 17 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); windows: Ceres: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Pallas: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Juno: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Vesta: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); asteroid:433-Eros: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); asteroid:99942-Apophis: 8 samples across 8 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB)"
+            "Reference asteroid source windows: 93 source-backed samples across 6 bodies and 17 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); evidence class=source-backed; frame=geocentric ecliptic J2000; time scale=TDB; windows: Ceres: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Pallas: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Juno: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Vesta: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); asteroid:433-Eros: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); asteroid:99942-Apophis: 8 samples across 8 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB)"
         );
         assert_eq!(
             summary.summary_line(),
@@ -29602,7 +29602,7 @@ mod tests {
             .expect("selected asteroid source evidence summary should exist");
         assert_eq!(
             summary.summary_line(),
-            "Selected asteroid source evidence: 93 source-backed samples across 6 bodies and 17 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies: Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis"
+            "Selected asteroid source evidence: 93 source-backed samples across 6 bodies and 17 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); evidence class=source-backed; frame=geocentric ecliptic J2000; time scale=TDB; bodies: Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis"
         );
         assert_eq!(
             summary.summary_line(),
@@ -29625,7 +29625,7 @@ mod tests {
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             summary.summary_line(),
-            "Selected asteroid source windows: 93 source-backed samples across 6 bodies and 17 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); windows: Ceres: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Pallas: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Juno: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Vesta: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); asteroid:433-Eros: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); asteroid:99942-Apophis: 8 samples across 8 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB)"
+            "Selected asteroid source windows: 93 source-backed samples across 6 bodies and 17 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); evidence class=source-backed; frame=geocentric ecliptic J2000; time scale=TDB; windows: Ceres: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Pallas: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Juno: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Vesta: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); asteroid:433-Eros: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); asteroid:99942-Apophis: 8 samples across 8 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB)"
         );
         assert_eq!(
             summary.summary_line(),
