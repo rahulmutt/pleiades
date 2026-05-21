@@ -3320,6 +3320,20 @@ pub struct ProductionGenerationSourceSummary {
     pub source_revision: ProductionGenerationSourceRevisionSummary,
 }
 
+fn production_generation_source_cadence_fragment(
+    summary: &ProductionGenerationSourceSummary,
+) -> Result<String, ProductionGenerationSourceSummaryValidationError> {
+    let boundary_epoch_count =
+        production_generation_boundary_request_corpus_summary(CoordinateFrame::Ecliptic)
+            .ok_or(ProductionGenerationSourceSummaryValidationError::SourceWindowsMismatch)?
+            .epoch_count;
+
+    Ok(format!(
+        "cadence={} reference epochs and {} boundary epochs",
+        summary.source_windows.epoch_count, boundary_epoch_count
+    ))
+}
+
 fn validate_production_generation_source_summary_text(
     summary: &ProductionGenerationSourceSummary,
     text: &str,
@@ -3332,6 +3346,7 @@ fn validate_production_generation_source_summary_text(
         )
     );
     let source_revision_fragment = summary.source_revision.summary_line();
+    let cadence_fragment = production_generation_source_cadence_fragment(summary)?;
 
     let required_fragments = [
         ("strategy", "strategy=documented hybrid fixture corpus".to_string()),
@@ -3352,7 +3367,7 @@ fn validate_production_generation_source_summary_text(
             "checksum expectation",
             "checksum expectation=byte-identical fixture contents".to_string(),
         ),
-        ("cadence", "cadence=31 reference epochs and 10 boundary epochs".to_string()),
+        ("cadence", cadence_fragment),
         (
             "row separation",
             "reference and hold-out rows remain separate".to_string(),
@@ -3391,8 +3406,11 @@ fn validate_production_generation_source_summary_text(
 impl ProductionGenerationSourceSummary {
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
+        let cadence_fragment = production_generation_source_cadence_fragment(self)
+            .unwrap_or_else(|error| format!("cadence unavailable ({error})"));
+
         format!(
-            "Production generation source: strategy=documented hybrid fixture corpus; {}; {}; source windows={}; evidence classes=reference, hold-out, boundary overlay, provenance-only; input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv; license posture=public-source provenance only; checked-in fixtures remain repository-local regression data; {}; generation command=generate-packaged-artifact --check (consuming the checked-in CSV fixtures); file format=comma-separated values; columns=epoch_jd, body, x_km, y_km, z_km; frame=geocentric ecliptic J2000; time scale=TDB; parser=pure-Rust and deterministic; checksum expectation=byte-identical fixture contents; cadence=31 reference epochs and 10 boundary epochs; reference and hold-out rows remain separate; redistribution posture=repository-checked regression fixtures, not a broad public corpus",
+            "Production generation source: strategy=documented hybrid fixture corpus; {}; {}; source windows={}; evidence classes=reference, hold-out, boundary overlay, provenance-only; input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv; license posture=public-source provenance only; checked-in fixtures remain repository-local regression data; {}; generation command=generate-packaged-artifact --check (consuming the checked-in CSV fixtures); file format=comma-separated values; columns=epoch_jd, body, x_km, y_km, z_km; frame=geocentric ecliptic J2000; time scale=TDB; parser=pure-Rust and deterministic; checksum expectation=byte-identical fixture contents; {}; reference and hold-out rows remain separate; redistribution posture=repository-checked regression fixtures, not a broad public corpus",
             self.reference_summary.summary_line(),
             format_production_generation_boundary_source_summary(&self.boundary_summary),
             strip_report_prefix(
@@ -3400,6 +3418,7 @@ impl ProductionGenerationSourceSummary {
                 "Production generation source windows: ",
             ),
             self.source_revision.summary_line(),
+            cadence_fragment,
         )
     }
 
@@ -31320,7 +31339,14 @@ mod tests {
         assert!(report.contains("license posture=public-source provenance only; checked-in fixtures remain repository-local regression data"));
         assert!(report.contains("generation command=generate-packaged-artifact --check"));
         assert!(report.contains("checksum expectation=byte-identical fixture contents"));
-        assert!(report.contains("cadence=31 reference epochs and 10 boundary epochs"));
+        let expected_cadence = format!(
+            "cadence={} reference epochs and {} boundary epochs",
+            summary.source_windows.epoch_count,
+            production_generation_boundary_request_corpus_summary(CoordinateFrame::Ecliptic)
+                .expect("production generation boundary request corpus should exist")
+                .epoch_count,
+        );
+        assert!(report.contains(&expected_cadence));
         assert!(report.contains("reference and hold-out rows remain separate"));
         assert!(report.contains("columns=epoch_jd, body, x_km, y_km, z_km"));
         assert!(report.contains("redistribution posture=repository-checked regression fixtures, not a broad public corpus"));
