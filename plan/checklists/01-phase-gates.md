@@ -7,7 +7,7 @@ Use this checklist for active implementation only. Completed historical work sho
 - [x] Production source strategy is documented and pure-Rust compatible.
 - [x] Provenance, redistribution posture, frame, time scale, schema, source revision, generation command, and checksums are recorded.
 - [ ] Corpus covers every release-claimed body/channel/frame/date range.
-- [ ] Fitting/reference, independent hold-out, boundary overlay, fixture-exactness, and provenance-only evidence are separated.
+- [x] Fitting/reference, independent hold-out, boundary overlay, fixture-exactness, and provenance-only evidence are separated.
 - [x] Corpus validation fails on body, epoch, channel, frame, apparentness, or checksum drift.
 
 ## Phase 2: Production compressed ephemeris

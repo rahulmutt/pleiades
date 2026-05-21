@@ -138,9 +138,11 @@ use pleiades_jpl::{
     jpl_independent_holdout_summary_for_report,
     jpl_interpolation_body_class_error_envelopes_for_report, jpl_interpolation_posture_summary,
     jpl_interpolation_posture_summary_for_report,
-    jpl_interpolation_quality_kind_coverage_for_report,
-    jpl_snapshot_batch_error_taxonomy_summary_for_report, jpl_snapshot_evidence_summary_for_report,
-    jpl_snapshot_request_policy_summary_for_report, jpl_source_corpus_contract_summary_for_report,
+    jpl_interpolation_quality_kind_coverage_for_report, jpl_provenance_only_summary_for_report,
+    jpl_snapshot_batch_error_taxonomy_summary_for_report,
+    jpl_snapshot_evidence_classification_summary_for_report,
+    jpl_snapshot_evidence_summary_for_report, jpl_snapshot_request_policy_summary_for_report,
+    jpl_source_corpus_contract_summary_for_report,
     production_generation_boundary_body_class_coverage_summary_for_report,
     production_generation_boundary_request_corpus_equatorial_summary_for_report,
     production_generation_boundary_request_corpus_summary_for_report,
@@ -18975,9 +18977,17 @@ fn validated_source_corpus_summary_for_report() -> Result<String, String> {
     let jpl_source_corpus_contract = jpl_source_corpus_contract
         .strip_prefix("JPL source corpus contract: ")
         .unwrap_or(jpl_source_corpus_contract.as_str());
+    let jpl_evidence_classification = jpl_snapshot_evidence_classification_summary_for_report();
+    let jpl_evidence_classification = jpl_evidence_classification
+        .strip_prefix("JPL evidence classification: ")
+        .unwrap_or(jpl_evidence_classification.as_str());
+    let jpl_provenance_only = jpl_provenance_only_summary_for_report();
+    let jpl_provenance_only = jpl_provenance_only
+        .strip_prefix("JPL provenance-only evidence: ")
+        .unwrap_or(jpl_provenance_only.as_str());
 
     Ok(format!(
-        "comparison corpus release-grade guard: {release_grade_guard}; JPL source corpus contract: {jpl_source_corpus_contract}; shared schema=epoch_jd, body, x_km, y_km, z_km; phase-2 corpus alignment: {}",
+        "comparison corpus release-grade guard: {release_grade_guard}; JPL source corpus contract: {jpl_source_corpus_contract}; evidence classification={jpl_evidence_classification}; provenance-only={jpl_provenance_only}; shared schema=epoch_jd, body, x_km, y_km, z_km; phase-2 corpus alignment: {}",
         validated_packaged_artifact_phase2_corpus_alignment_summary_for_report()
     ))
 }
@@ -25939,6 +25949,8 @@ mod tests {
         assert!(report.contains("Comparison corpus"));
         assert!(report.contains("Source corpus: comparison corpus release-grade guard:"));
         assert!(report.contains("JPL source corpus contract:"));
+        assert!(report.contains("evidence classification=release-tolerance=reference/comparison/production-generation validation summaries; hold-out=independent hold-out rows and interpolation-quality summaries; fixture exactness=reference snapshot exact J2000 evidence; provenance-only=source and manifest summaries"));
+        assert!(report.contains("provenance-only=source and manifest summaries are provenance-only evidence; they validate corpus provenance and checksum posture but are excluded from tolerance, hold-out, and fixture-exactness claims"));
         assert!(!report.contains("JPL source corpus contract: JPL source corpus contract:"));
         assert!(report.contains("phase-2 corpus alignment:"));
         assert_eq!(
@@ -38912,6 +38924,8 @@ version = "0.9.0"
             render_cli(&["source-corpus-summary"]).expect("source corpus summary should render");
         assert_eq!(rendered, source_corpus_summary_for_report());
         assert!(rendered.contains("shared schema=epoch_jd, body, x_km, y_km, z_km"));
+        assert!(rendered.contains("evidence classification=release-tolerance=reference/comparison/production-generation validation summaries; hold-out=independent hold-out rows and interpolation-quality summaries; fixture exactness=reference snapshot exact J2000 evidence; provenance-only=source and manifest summaries"));
+        assert!(rendered.contains("provenance-only=source and manifest summaries are provenance-only evidence; they validate corpus provenance and checksum posture but are excluded from tolerance, hold-out, and fixture-exactness claims"));
         assert!(!rendered.contains("JPL source corpus contract: JPL source corpus contract:"));
         assert_eq!(
             render_cli(&["source-corpus"]).expect("source corpus alias should render"),
