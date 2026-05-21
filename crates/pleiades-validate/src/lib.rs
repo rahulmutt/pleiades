@@ -21075,6 +21075,9 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str("Release-grade body claims: ");
     text.push_str(&format_release_body_claims_summary_for_report());
     text.push('\n');
+    text.push_str("Source corpus: ");
+    text.push_str(&source_corpus_summary_for_report());
+    text.push('\n');
     text.push_str("Pluto fallback: ");
     match validated_pluto_fallback_summary_line_for_report() {
         Ok(summary) => text.push_str(summary),
@@ -30387,6 +30390,7 @@ mod tests {
         assert!(rendered.contains("Reference/hold-out overlap:"));
         assert!(rendered.contains("JPL independent hold-out:"));
         assert!(rendered.contains("Release-grade body claims:"));
+        assert!(rendered.contains("Source corpus: comparison corpus release-grade guard:"));
         assert!(
             rendered.contains("Pluto fallback: Pluto remains an explicitly approximate fallback")
         );
