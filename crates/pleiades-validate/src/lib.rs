@@ -34648,8 +34648,8 @@ version = "0.9.0"
             "pleiades-release-bundle-tampered-production-generation-boundary-request-corpus-semantic",
             "production-generation-boundary-request-corpus-summary.txt",
             "production generation boundary request corpus summary checksum (fnv1a-64):",
-            "65 requests",
-            "66 drifted requests",
+            "77 requests",
+            "78 drifted requests",
             "production generation boundary request corpus summary no longer matches the current production-generation boundary request corpus posture",
         );
     }
@@ -34687,8 +34687,8 @@ version = "0.9.0"
             "pleiades-release-bundle-tampered-production-generation-boundary-request-corpus-equatorial-semantic",
             "production-generation-boundary-request-corpus-equatorial-summary.txt",
             "production generation boundary request corpus equatorial summary checksum (fnv1a-64):",
-            "65 requests",
-            "66 drifted requests",
+            "77 requests",
+            "78 drifted requests",
             "production generation boundary request corpus equatorial summary no longer matches the current production-generation boundary request corpus equatorial posture",
         );
     }
