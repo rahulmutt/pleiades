@@ -4,6 +4,8 @@
 
 The active frontier is **Phase 1: Production Reference/Source Corpus**. Production compressed-data work depends on a broader source and hold-out corpus, so artifact changes must not broaden release claims until Phase 1 is complete.
 
+Recent implementation note: the consolidated source-corpus posture now also has a standalone `source-corpus-summary` / `source-corpus` surface in the validation and CLI front-ends, so the release-grade guard, JPL source-corpus contract, and phase-2 corpus alignment can be inspected directly without going through the larger release summary.
+
 ## Why this frontier comes first
 
 The specification requires compressed 1500-2500 CE data to be reproducible from public inputs and validated against measured error envelopes. The current artifact and reports are useful infrastructure, but current comparison output still shows production tolerance failures. A better generator alone is insufficient until the source corpus is broad, documented, and separated into fitting/reference/hold-out evidence.

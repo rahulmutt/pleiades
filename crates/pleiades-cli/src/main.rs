@@ -159,6 +159,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("release-checklist-summary") | Some("checklist-summary") => validate_render_cli(args),
         Some("release-gate-summary") => validate_render_cli(args),
         Some("release-summary") => validate_render_cli(args),
+        Some("source-corpus-summary") => validate_render_cli(args),
+        Some("source-corpus") => validate_render_cli(args),
         Some("jpl-batch-error-taxonomy-summary") => validate_render_cli(args),
         Some("jpl-snapshot-evidence-summary") => validate_render_cli(args),
         Some("jpl-source-corpus-contract-summary") | Some("jpl-source-corpus-contract") => {
@@ -3214,6 +3216,31 @@ mod tests {
             render_cli(&["jpl-source-corpus-contract", "extra"])
                 .expect_err("JPL source corpus contract alias should reject extra arguments"),
             "jpl-source-corpus-contract does not accept extra arguments"
+        );
+
+        let source_corpus_summary =
+            render_cli(&["source-corpus-summary"]).expect("source corpus summary should render");
+        assert_eq!(
+            source_corpus_summary,
+            super::validate_render_cli(&["source-corpus-summary"])
+                .expect("validation source corpus summary should render")
+        );
+        assert!(source_corpus_summary.contains("comparison corpus release-grade guard:"));
+        assert!(source_corpus_summary.contains("JPL source corpus contract:"));
+        assert!(source_corpus_summary.contains("phase-2 corpus alignment:"));
+        assert_eq!(
+            source_corpus_summary,
+            render_cli(&["source-corpus"]).expect("source corpus alias should render")
+        );
+        assert_eq!(
+            source_corpus_summary,
+            super::validate_render_cli(&["source-corpus"])
+                .expect("validation source corpus alias should render")
+        );
+        assert_eq!(
+            render_cli(&["source-corpus", "extra"])
+                .expect_err("source corpus alias should reject extra arguments"),
+            "source-corpus does not accept extra arguments"
         );
 
         let packaged_lookup_epoch_policy_summary =

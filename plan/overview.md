@@ -12,7 +12,7 @@
 
 ## Current priority
 
-Phase 1 is the execution frontier. Phase 2 can improve generation algorithms in parallel, but the artifact must remain draft-grade until source coverage and hold-out validation are production-ready.
+Phase 1 is the execution frontier. Phase 2 can improve generation algorithms in parallel, but the artifact must remain draft-grade until source coverage and hold-out validation are production-ready. The consolidated source-corpus posture now also has a standalone summary surface for release-facing inspection.
 
 ## Cross-cutting rules
 
