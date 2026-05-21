@@ -34,6 +34,11 @@ use pleiades_types::{
     Longitude, Motion, TimeRange, TimeScale, ZodiacMode,
 };
 
+mod selected_asteroid_2001;
+pub use selected_asteroid_2001::{
+    selected_asteroid_source_2451917_summary, selected_asteroid_source_2451917_summary_for_report,
+};
+
 const REFERENCE_EPOCH_JD: f64 = 2_451_545.0;
 const AU_IN_KM: f64 = 149_597_870.7;
 
@@ -2753,6 +2758,7 @@ pub fn reference_snapshot_summary_for_report() -> String {
         selected_asteroid_terminal_boundary_summary_for_report(),
         selected_asteroid_source_evidence_summary_for_report(),
         selected_asteroid_source_window_summary_for_report(),
+        selected_asteroid_source_2451917_summary_for_report(),
         selected_asteroid_source_2453000_summary_for_report(),
         selected_asteroid_source_2500000_summary_for_report(),
         reference_asteroid_evidence_summary_for_report(),
@@ -21024,6 +21030,7 @@ pub fn jpl_snapshot_evidence_summary_for_report() -> String {
         reference_asteroid_evidence_summary_for_report(),
         reference_asteroid_equatorial_evidence_summary_for_report(),
         reference_asteroid_source_window_summary_for_report(),
+        selected_asteroid_source_2451917_summary_for_report(),
         selected_asteroid_source_2453000_summary_for_report(),
         selected_asteroid_boundary_summary_for_report(),
         selected_asteroid_bridge_summary_for_report(),
@@ -28097,6 +28104,7 @@ mod tests {
         );
         assert!(report.contains(&reference_snapshot_source_summary_for_report()));
         assert!(report.contains(&reference_snapshot_source_window_summary_for_report()));
+        assert!(report.contains(&selected_asteroid_source_2451917_summary_for_report()));
         assert!(report.contains(&selected_asteroid_source_2453000_summary_for_report()));
         assert!(report.contains(&selected_asteroid_source_2500000_summary_for_report()));
         assert!(report.contains(&reference_snapshot_major_body_bridge_summary_for_report()));
@@ -32632,6 +32640,7 @@ mod tests {
         assert!(report.contains(&reference_asteroid_evidence_summary_for_report()));
         assert!(report.contains(&reference_asteroid_equatorial_evidence_summary_for_report()));
         assert!(report.contains(&reference_asteroid_source_window_summary_for_report()));
+        assert!(report.contains(&selected_asteroid_source_2451917_summary_for_report()));
         assert!(report.contains(&selected_asteroid_source_2453000_summary_for_report()));
         assert!(report.contains(&selected_asteroid_source_2500000_summary_for_report()));
         assert!(report.contains(&selected_asteroid_boundary_summary_for_report()));
