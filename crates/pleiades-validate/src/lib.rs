@@ -3029,6 +3029,10 @@ pub struct ReleaseBundle {
     pub release_ayanamsa_canonical_names_summary_path: PathBuf,
     /// Path to the generated release-house-validation summary file.
     pub release_house_validation_summary_path: PathBuf,
+    /// Path to the generated house-formula-families summary file.
+    pub house_formula_families_summary_path: PathBuf,
+    /// Path to the generated house-latitude-sensitive summary file.
+    pub house_latitude_sensitive_summary_path: PathBuf,
     /// Path to the generated release checklist file.
     pub release_checklist_path: PathBuf,
     /// Path to the generated release checklist summary file.
@@ -3105,6 +3109,10 @@ pub struct ReleaseBundle {
     pub release_ayanamsa_canonical_names_summary_bytes: usize,
     /// Number of bytes written for the release-house-validation summary.
     pub release_house_validation_summary_bytes: usize,
+    /// Number of bytes written for the house-formula-families summary.
+    pub house_formula_families_summary_bytes: usize,
+    /// Number of bytes written for the house-latitude-sensitive summary.
+    pub house_latitude_sensitive_summary_bytes: usize,
     /// Number of bytes written for the release checklist.
     pub release_checklist_bytes: usize,
     /// Number of bytes written for the release checklist summary.
@@ -3173,6 +3181,10 @@ pub struct ReleaseBundle {
     pub release_ayanamsa_canonical_names_summary_checksum: u64,
     /// Deterministic checksum for the release-house-validation summary contents.
     pub release_house_validation_summary_checksum: u64,
+    /// Deterministic checksum for the house-formula-families summary contents.
+    pub house_formula_families_summary_checksum: u64,
+    /// Deterministic checksum for the house-latitude-sensitive summary contents.
+    pub house_latitude_sensitive_summary_checksum: u64,
     /// Deterministic checksum for the release checklist contents.
     pub release_checklist_checksum: u64,
     /// Deterministic checksum for the release checklist summary contents.
@@ -3994,6 +4006,16 @@ impl fmt::Display for ReleaseBundle {
         )?;
         writeln!(
             f,
+            "  house formula families summary: {}",
+            self.house_formula_families_summary_path.display()
+        )?;
+        writeln!(
+            f,
+            "  house latitude-sensitive summary: {}",
+            self.house_latitude_sensitive_summary_path.display()
+        )?;
+        writeln!(
+            f,
             "  release checklist: {}",
             self.release_checklist_path.display()
         )?;
@@ -4706,6 +4728,16 @@ impl ReleaseBundle {
                 &self.release_house_validation_summary_path,
                 "release-house-validation-summary.txt",
                 "release house validation summary",
+            ),
+            (
+                &self.house_formula_families_summary_path,
+                "house-formula-families-summary.txt",
+                "house formula families summary",
+            ),
+            (
+                &self.house_latitude_sensitive_summary_path,
+                "house-latitude-sensitive-summary.txt",
+                "house latitude-sensitive summary",
             ),
             (
                 &self.release_checklist_path,
@@ -10255,6 +10287,9 @@ pub fn render_release_bundle(
         output_dir.join("release-ayanamsa-canonical-names-summary.txt");
     let release_house_validation_summary_path =
         output_dir.join("release-house-validation-summary.txt");
+    let house_formula_families_summary_path = output_dir.join("house-formula-families-summary.txt");
+    let house_latitude_sensitive_summary_path =
+        output_dir.join("house-latitude-sensitive-summary.txt");
     let release_checklist_path = output_dir.join("release-checklist.txt");
     let release_checklist_summary_path = output_dir.join("release-checklist-summary.txt");
     let backend_matrix_path = output_dir.join("backend-matrix.txt");
@@ -10438,6 +10473,12 @@ pub fn render_release_bundle(
     let release_ayanamsa_canonical_names_summary_checksum =
         checksum64(&release_ayanamsa_canonical_names_summary_text);
     let release_house_validation_summary_text = release_house_validation_summary_for_report();
+    let house_formula_families_summary_text = format_house_formula_families_for_report();
+    let house_formula_families_summary_checksum = checksum64(&house_formula_families_summary_text);
+    let house_latitude_sensitive_summary_text =
+        format_latitude_sensitive_house_systems_for_report();
+    let house_latitude_sensitive_summary_checksum =
+        checksum64(&house_latitude_sensitive_summary_text);
     let release_house_validation_summary_checksum =
         checksum64(&release_house_validation_summary_text);
     let release_checklist_checksum = checksum64(&release_checklist_text);
@@ -10669,7 +10710,7 @@ pub fn render_release_bundle(
     let packaged_artifact_checksum_text = format!("0x{:016x}\n", packaged_artifact.checksum);
     let packaged_artifact_checksum_text_checksum = checksum64(&packaged_artifact_checksum_text);
     let manifest_text = format!(
-        "Release bundle manifest\nprofile: compatibility-profile.txt\nprofile checksum (fnv1a-64): 0x{compatibility_profile_checksum:016x}\nprofile summary: compatibility-profile-summary.txt\nprofile summary checksum (fnv1a-64): 0x{compatibility_profile_summary_checksum:016x}\nrelease notes: release-notes.txt\nrelease notes checksum (fnv1a-64): 0x{release_notes_checksum:016x}\nrelease notes summary: release-notes-summary.txt\nrelease notes summary checksum (fnv1a-64): 0x{release_notes_summary_checksum:016x}\nrelease summary: release-summary.txt\nrelease summary checksum (fnv1a-64): 0x{release_summary_checksum:016x}\nrelease-profile identifiers: release-profile-identifiers.txt\nrelease-profile identifiers checksum (fnv1a-64): 0x{release_profile_identifiers_checksum:016x}\nrelease-profile identifiers summary: release-profile-identifiers-summary.txt\nrelease-profile identifiers summary checksum (fnv1a-64): 0x{release_profile_identifiers_summary_checksum:016x}\nrelease-house-system-canonical-names summary: release-house-system-canonical-names-summary.txt\nrelease-house-system-canonical-names summary checksum (fnv1a-64): 0x{release_house_system_canonical_names_summary_checksum:016x}\nrelease-ayanamsa-canonical-names summary: release-ayanamsa-canonical-names-summary.txt\nrelease-ayanamsa-canonical-names summary checksum (fnv1a-64): 0x{release_ayanamsa_canonical_names_summary_checksum:016x}\nrelease-house-validation summary: release-house-validation-summary.txt\nrelease-house-validation summary checksum (fnv1a-64): 0x{release_house_validation_summary_checksum:016x}\nrelease checklist: release-checklist.txt\nrelease checklist checksum (fnv1a-64): 0x{release_checklist_checksum:016x}\nrelease checklist summary: release-checklist-summary.txt\nrelease checklist summary checksum (fnv1a-64): 0x{release_checklist_summary_checksum:016x}\nbackend matrix: backend-matrix.txt\nbackend matrix checksum (fnv1a-64): 0x{backend_matrix_checksum:016x}\nbackend matrix summary: backend-matrix-summary.txt\nbackend matrix summary checksum (fnv1a-64): 0x{backend_matrix_summary_checksum:016x}\napi stability posture: api-stability.txt\napi stability checksum (fnv1a-64): 0x{api_stability_checksum:016x}\napi stability summary: api-stability-summary.txt\napi stability summary checksum (fnv1a-64): 0x{api_stability_summary_checksum:016x}\ncomparison-corpus summary: comparison-corpus-summary.txt\ncomparison-corpus summary checksum (fnv1a-64): 0x{comparison_corpus_summary_checksum:016x}\nsource-corpus summary: source-corpus-summary.txt\nsource-corpus summary checksum (fnv1a-64): 0x{source_corpus_summary_checksum:016x}\ncomparison-snapshot summary: comparison-snapshot-summary.txt\ncomparison-snapshot summary checksum (fnv1a-64): 0x{comparison_snapshot_summary_checksum:016x}\ncomparison-snapshot source summary: comparison-snapshot-source-summary.txt\ncomparison-snapshot source summary checksum (fnv1a-64): 0x{comparison_snapshot_source_summary_checksum:016x}\ncomparison-snapshot source window summary: comparison-snapshot-source-window-summary.txt\ncomparison-snapshot source window summary checksum (fnv1a-64): 0x{comparison_snapshot_source_window_summary_checksum:016x}\ncomparison-snapshot body-class coverage summary: comparison-snapshot-body-class-coverage-summary.txt\ncomparison-snapshot body-class coverage summary checksum (fnv1a-64): 0x{comparison_snapshot_body_class_coverage_summary_checksum:016x}\ncomparison-envelope summary: comparison-envelope-summary.txt\ncomparison-envelope summary checksum (fnv1a-64): 0x{comparison_envelope_summary_checksum:016x}\ncomparison-body-class-tolerance summary: comparison-body-class-tolerance-summary.txt\ncomparison-body-class-tolerance summary checksum (fnv1a-64): 0x{comparison_body_class_tolerance_summary_checksum:016x}\ncomparison-body-class-error-envelope summary: comparison-body-class-error-envelope-summary.txt\ncomparison-body-class-error-envelope summary checksum (fnv1a-64): 0x{comparison_body_class_error_envelope_summary_checksum:016x}\ncomparison-corpus release-guard summary: comparison-corpus-release-guard-summary.txt\ncomparison-corpus release-guard summary checksum (fnv1a-64): 0x{comparison_corpus_release_guard_summary_checksum:016x}\nreference-holdout overlap summary: reference-holdout-overlap-summary.txt\nreference-holdout overlap summary checksum (fnv1a-64): 0x{reference_holdout_overlap_summary_checksum:016x}\nreference snapshot bridge day summary: reference-snapshot-bridge-day-summary.txt\nreference snapshot bridge day summary checksum (fnv1a-64): 0x{reference_snapshot_bridge_day_summary_checksum:016x}\nreference snapshot sparse boundary summary: reference-snapshot-sparse-boundary-summary.txt\nreference snapshot sparse boundary summary checksum (fnv1a-64): 0x{reference_snapshot_sparse_boundary_summary_checksum:016x}\nreference snapshot exact J2000 evidence summary: reference-snapshot-exact-j2000-evidence-summary.txt\nreference snapshot exact J2000 evidence summary checksum (fnv1a-64): 0x{reference_snapshot_exact_j2000_evidence_summary_checksum:016x}\nreference snapshot source summary: reference-snapshot-source-summary.txt\nreference snapshot source summary checksum (fnv1a-64): 0x{reference_snapshot_source_summary_checksum:016x}\nreference snapshot source window summary: reference-snapshot-source-window-summary.txt\nreference snapshot source window summary checksum (fnv1a-64): 0x{reference_snapshot_source_window_summary_checksum:016x}\nreference snapshot equatorial parity summary: reference-snapshot-equatorial-parity-summary.txt\nreference snapshot equatorial parity summary checksum (fnv1a-64): 0x{reference_snapshot_equatorial_parity_summary_checksum:016x}\nreference asteroid source window summary: reference-asteroid-source-window-summary.txt\nreference asteroid source window summary checksum (fnv1a-64): 0x{reference_asteroid_source_window_summary_checksum:016x}\nindependent-holdout source window summary: independent-holdout-source-window-summary.txt\nindependent-holdout source window summary checksum (fnv1a-64): 0x{independent_holdout_source_window_summary_checksum:016x}\nindependent-holdout equatorial parity summary: independent-holdout-equatorial-parity-summary.txt\nindependent-holdout equatorial parity summary checksum (fnv1a-64): 0x{independent_holdout_equatorial_parity_summary_checksum:016x}\nindependent-holdout body-class coverage summary: independent-holdout-body-class-coverage-summary.txt\nindependent-holdout body-class coverage summary checksum (fnv1a-64): 0x{independent_holdout_body_class_coverage_summary_checksum:016x}\nproduction generation boundary source summary: production-generation-boundary-source-summary.txt\nproduction generation boundary source summary checksum (fnv1a-64): 0x{production_generation_boundary_source_summary_checksum:016x}\nproduction generation boundary request corpus summary: production-generation-boundary-request-corpus-summary.txt\nproduction generation boundary request corpus summary checksum (fnv1a-64): 0x{production_generation_boundary_request_corpus_summary_checksum:016x}\nproduction generation boundary request corpus equatorial summary: production-generation-boundary-request-corpus-equatorial-summary.txt\nproduction generation boundary request corpus equatorial summary checksum (fnv1a-64): 0x{production_generation_boundary_request_corpus_equatorial_summary_checksum:016x}\nreference snapshot summary: reference-snapshot-summary.txt\nreference snapshot summary checksum (fnv1a-64): 0x{reference_snapshot_summary_checksum:016x}\nproduction generation summary: production-generation-summary.txt\nproduction generation summary checksum (fnv1a-64): 0x{production_generation_summary_checksum:016x}\nproduction generation body-class coverage summary: production-generation-body-class-coverage-summary.txt\nproduction generation body-class coverage summary checksum (fnv1a-64): 0x{production_generation_body_class_coverage_summary_checksum:016x}\nproduction generation source summary: production-generation-source-summary.txt\nproduction generation source summary checksum (fnv1a-64): 0x{production_generation_source_summary_checksum:016x}\nproduction generation source revision summary: production-generation-source-revision-summary.txt\nproduction generation source revision summary checksum (fnv1a-64): 0x{production_generation_source_revision_summary_checksum:016x}\nproduction generation source window summary: production-generation-source-window-summary.txt\nproduction generation source window summary checksum (fnv1a-64): 0x{production_generation_source_window_summary_checksum:016x}\nproduction generation corpus shape summary: production-generation-corpus-shape-summary.txt\nproduction generation corpus shape summary checksum (fnv1a-64): 0x{production_generation_corpus_shape_summary_checksum:016x}\nproduction generation manifest summary: production-generation-manifest-summary.txt\nproduction generation manifest summary checksum (fnv1a-64): 0x{production_generation_manifest_summary_checksum:016x}\nproduction generation manifest checksum summary: production-generation-manifest-checksum-summary.txt\nproduction generation manifest checksum summary checksum (fnv1a-64): 0x{production_generation_manifest_checksum_checksum:016x}\ncatalog inventory summary: catalog-inventory-summary.txt\ncatalog inventory summary checksum (fnv1a-64): 0x{catalog_inventory_summary_checksum:016x}\ncatalog posture summary: catalog-posture-summary.txt\ncatalog posture summary checksum (fnv1a-64): 0x{catalog_posture_summary_checksum:016x}\ncustom-definition ayanamsa labels summary: custom-definition-ayanamsa-labels-summary.txt\ncustom-definition ayanamsa labels summary checksum (fnv1a-64): 0x{custom_definition_ayanamsa_labels_summary_checksum:016x}\nvalidation report summary: validation-report-summary.txt\nvalidation report summary checksum (fnv1a-64): 0x{validation_report_summary_checksum:016x}\nrelease body claims summary: release-body-claims-summary.txt
+        "Release bundle manifest\nprofile: compatibility-profile.txt\nprofile checksum (fnv1a-64): 0x{compatibility_profile_checksum:016x}\nprofile summary: compatibility-profile-summary.txt\nprofile summary checksum (fnv1a-64): 0x{compatibility_profile_summary_checksum:016x}\nrelease notes: release-notes.txt\nrelease notes checksum (fnv1a-64): 0x{release_notes_checksum:016x}\nrelease notes summary: release-notes-summary.txt\nrelease notes summary checksum (fnv1a-64): 0x{release_notes_summary_checksum:016x}\nrelease summary: release-summary.txt\nrelease summary checksum (fnv1a-64): 0x{release_summary_checksum:016x}\nrelease-profile identifiers: release-profile-identifiers.txt\nrelease-profile identifiers checksum (fnv1a-64): 0x{release_profile_identifiers_checksum:016x}\nrelease-profile identifiers summary: release-profile-identifiers-summary.txt\nrelease-profile identifiers summary checksum (fnv1a-64): 0x{release_profile_identifiers_summary_checksum:016x}\nrelease-house-system-canonical-names summary: release-house-system-canonical-names-summary.txt\nrelease-house-system-canonical-names summary checksum (fnv1a-64): 0x{release_house_system_canonical_names_summary_checksum:016x}\nrelease-ayanamsa-canonical-names summary: release-ayanamsa-canonical-names-summary.txt\nrelease-ayanamsa-canonical-names summary checksum (fnv1a-64): 0x{release_ayanamsa_canonical_names_summary_checksum:016x}\nrelease-house-validation summary: release-house-validation-summary.txt\nrelease-house-validation summary checksum (fnv1a-64): 0x{release_house_validation_summary_checksum:016x}\nhouse formula families summary: house-formula-families-summary.txt\nhouse formula families summary checksum (fnv1a-64): 0x{house_formula_families_summary_checksum:016x}\nhouse latitude-sensitive summary: house-latitude-sensitive-summary.txt\nhouse latitude-sensitive summary checksum (fnv1a-64): 0x{house_latitude_sensitive_summary_checksum:016x}\nrelease checklist: release-checklist.txt\nrelease checklist checksum (fnv1a-64): 0x{release_checklist_checksum:016x}\nrelease checklist summary: release-checklist-summary.txt\nrelease checklist summary checksum (fnv1a-64): 0x{release_checklist_summary_checksum:016x}\nbackend matrix: backend-matrix.txt\nbackend matrix checksum (fnv1a-64): 0x{backend_matrix_checksum:016x}\nbackend matrix summary: backend-matrix-summary.txt\nbackend matrix summary checksum (fnv1a-64): 0x{backend_matrix_summary_checksum:016x}\napi stability posture: api-stability.txt\napi stability checksum (fnv1a-64): 0x{api_stability_checksum:016x}\napi stability summary: api-stability-summary.txt\napi stability summary checksum (fnv1a-64): 0x{api_stability_summary_checksum:016x}\ncomparison-corpus summary: comparison-corpus-summary.txt\ncomparison-corpus summary checksum (fnv1a-64): 0x{comparison_corpus_summary_checksum:016x}\nsource-corpus summary: source-corpus-summary.txt\nsource-corpus summary checksum (fnv1a-64): 0x{source_corpus_summary_checksum:016x}\ncomparison-snapshot summary: comparison-snapshot-summary.txt\ncomparison-snapshot summary checksum (fnv1a-64): 0x{comparison_snapshot_summary_checksum:016x}\ncomparison-snapshot source summary: comparison-snapshot-source-summary.txt\ncomparison-snapshot source summary checksum (fnv1a-64): 0x{comparison_snapshot_source_summary_checksum:016x}\ncomparison-snapshot source window summary: comparison-snapshot-source-window-summary.txt\ncomparison-snapshot source window summary checksum (fnv1a-64): 0x{comparison_snapshot_source_window_summary_checksum:016x}\ncomparison-snapshot body-class coverage summary: comparison-snapshot-body-class-coverage-summary.txt\ncomparison-snapshot body-class coverage summary checksum (fnv1a-64): 0x{comparison_snapshot_body_class_coverage_summary_checksum:016x}\ncomparison-envelope summary: comparison-envelope-summary.txt\ncomparison-envelope summary checksum (fnv1a-64): 0x{comparison_envelope_summary_checksum:016x}\ncomparison-body-class-tolerance summary: comparison-body-class-tolerance-summary.txt\ncomparison-body-class-tolerance summary checksum (fnv1a-64): 0x{comparison_body_class_tolerance_summary_checksum:016x}\ncomparison-body-class-error-envelope summary: comparison-body-class-error-envelope-summary.txt\ncomparison-body-class-error-envelope summary checksum (fnv1a-64): 0x{comparison_body_class_error_envelope_summary_checksum:016x}\ncomparison-corpus release-guard summary: comparison-corpus-release-guard-summary.txt\ncomparison-corpus release-guard summary checksum (fnv1a-64): 0x{comparison_corpus_release_guard_summary_checksum:016x}\nreference-holdout overlap summary: reference-holdout-overlap-summary.txt\nreference-holdout overlap summary checksum (fnv1a-64): 0x{reference_holdout_overlap_summary_checksum:016x}\nreference snapshot bridge day summary: reference-snapshot-bridge-day-summary.txt\nreference snapshot bridge day summary checksum (fnv1a-64): 0x{reference_snapshot_bridge_day_summary_checksum:016x}\nreference snapshot sparse boundary summary: reference-snapshot-sparse-boundary-summary.txt\nreference snapshot sparse boundary summary checksum (fnv1a-64): 0x{reference_snapshot_sparse_boundary_summary_checksum:016x}\nreference snapshot exact J2000 evidence summary: reference-snapshot-exact-j2000-evidence-summary.txt\nreference snapshot exact J2000 evidence summary checksum (fnv1a-64): 0x{reference_snapshot_exact_j2000_evidence_summary_checksum:016x}\nreference snapshot source summary: reference-snapshot-source-summary.txt\nreference snapshot source summary checksum (fnv1a-64): 0x{reference_snapshot_source_summary_checksum:016x}\nreference snapshot source window summary: reference-snapshot-source-window-summary.txt\nreference snapshot source window summary checksum (fnv1a-64): 0x{reference_snapshot_source_window_summary_checksum:016x}\nreference snapshot equatorial parity summary: reference-snapshot-equatorial-parity-summary.txt\nreference snapshot equatorial parity summary checksum (fnv1a-64): 0x{reference_snapshot_equatorial_parity_summary_checksum:016x}\nreference asteroid source window summary: reference-asteroid-source-window-summary.txt\nreference asteroid source window summary checksum (fnv1a-64): 0x{reference_asteroid_source_window_summary_checksum:016x}\nindependent-holdout source window summary: independent-holdout-source-window-summary.txt\nindependent-holdout source window summary checksum (fnv1a-64): 0x{independent_holdout_source_window_summary_checksum:016x}\nindependent-holdout equatorial parity summary: independent-holdout-equatorial-parity-summary.txt\nindependent-holdout equatorial parity summary checksum (fnv1a-64): 0x{independent_holdout_equatorial_parity_summary_checksum:016x}\nindependent-holdout body-class coverage summary: independent-holdout-body-class-coverage-summary.txt\nindependent-holdout body-class coverage summary checksum (fnv1a-64): 0x{independent_holdout_body_class_coverage_summary_checksum:016x}\nproduction generation boundary source summary: production-generation-boundary-source-summary.txt\nproduction generation boundary source summary checksum (fnv1a-64): 0x{production_generation_boundary_source_summary_checksum:016x}\nproduction generation boundary request corpus summary: production-generation-boundary-request-corpus-summary.txt\nproduction generation boundary request corpus summary checksum (fnv1a-64): 0x{production_generation_boundary_request_corpus_summary_checksum:016x}\nproduction generation boundary request corpus equatorial summary: production-generation-boundary-request-corpus-equatorial-summary.txt\nproduction generation boundary request corpus equatorial summary checksum (fnv1a-64): 0x{production_generation_boundary_request_corpus_equatorial_summary_checksum:016x}\nreference snapshot summary: reference-snapshot-summary.txt\nreference snapshot summary checksum (fnv1a-64): 0x{reference_snapshot_summary_checksum:016x}\nproduction generation summary: production-generation-summary.txt\nproduction generation summary checksum (fnv1a-64): 0x{production_generation_summary_checksum:016x}\nproduction generation body-class coverage summary: production-generation-body-class-coverage-summary.txt\nproduction generation body-class coverage summary checksum (fnv1a-64): 0x{production_generation_body_class_coverage_summary_checksum:016x}\nproduction generation source summary: production-generation-source-summary.txt\nproduction generation source summary checksum (fnv1a-64): 0x{production_generation_source_summary_checksum:016x}\nproduction generation source revision summary: production-generation-source-revision-summary.txt\nproduction generation source revision summary checksum (fnv1a-64): 0x{production_generation_source_revision_summary_checksum:016x}\nproduction generation source window summary: production-generation-source-window-summary.txt\nproduction generation source window summary checksum (fnv1a-64): 0x{production_generation_source_window_summary_checksum:016x}\nproduction generation corpus shape summary: production-generation-corpus-shape-summary.txt\nproduction generation corpus shape summary checksum (fnv1a-64): 0x{production_generation_corpus_shape_summary_checksum:016x}\nproduction generation manifest summary: production-generation-manifest-summary.txt\nproduction generation manifest summary checksum (fnv1a-64): 0x{production_generation_manifest_summary_checksum:016x}\nproduction generation manifest checksum summary: production-generation-manifest-checksum-summary.txt\nproduction generation manifest checksum summary checksum (fnv1a-64): 0x{production_generation_manifest_checksum_checksum:016x}\ncatalog inventory summary: catalog-inventory-summary.txt\ncatalog inventory summary checksum (fnv1a-64): 0x{catalog_inventory_summary_checksum:016x}\ncatalog posture summary: catalog-posture-summary.txt\ncatalog posture summary checksum (fnv1a-64): 0x{catalog_posture_summary_checksum:016x}\ncustom-definition ayanamsa labels summary: custom-definition-ayanamsa-labels-summary.txt\ncustom-definition ayanamsa labels summary checksum (fnv1a-64): 0x{custom_definition_ayanamsa_labels_summary_checksum:016x}\nvalidation report summary: validation-report-summary.txt\nvalidation report summary checksum (fnv1a-64): 0x{validation_report_summary_checksum:016x}\nrelease body claims summary: release-body-claims-summary.txt
 release body claims summary checksum (fnv1a-64): 0x{release_body_claims_summary_checksum:016x}
 body/date/channel claims summary: body-date-channel-claims-summary.txt
 body/date/channel claims summary checksum (fnv1a-64): 0x{body_date_channel_claims_summary_checksum:016x}
@@ -10750,6 +10791,14 @@ benchmark-corpus summary: benchmark-corpus-summary.txt\nbenchmark-corpus summary
     fs::write(
         &release_house_validation_summary_path,
         release_house_validation_summary_text.as_bytes(),
+    )?;
+    fs::write(
+        &house_formula_families_summary_path,
+        house_formula_families_summary_text.as_bytes(),
+    )?;
+    fs::write(
+        &house_latitude_sensitive_summary_path,
+        house_latitude_sensitive_summary_text.as_bytes(),
     )?;
     fs::write(
         &backend_matrix_summary_path,
@@ -11165,6 +11214,10 @@ struct ParsedReleaseBundleManifest {
     release_ayanamsa_canonical_names_summary_checksum: u64,
     release_house_validation_summary_path: String,
     release_house_validation_summary_checksum: u64,
+    house_formula_families_summary_path: String,
+    house_formula_families_summary_checksum: u64,
+    house_latitude_sensitive_summary_path: String,
+    house_latitude_sensitive_summary_checksum: u64,
     release_checklist_path: String,
     release_checklist_checksum: u64,
     release_checklist_summary_path: String,
@@ -11430,6 +11483,22 @@ impl ParsedReleaseBundleManifest {
             release_house_validation_summary_checksum: parse_manifest_checksum(
                 text,
                 "release-house-validation summary checksum (fnv1a-64):",
+            )?,
+            house_formula_families_summary_path: parse_manifest_string(
+                text,
+                "house formula families summary:",
+            )?,
+            house_formula_families_summary_checksum: parse_manifest_checksum(
+                text,
+                "house formula families summary checksum (fnv1a-64):",
+            )?,
+            house_latitude_sensitive_summary_path: parse_manifest_string(
+                text,
+                "house latitude-sensitive summary:",
+            )?,
+            house_latitude_sensitive_summary_checksum: parse_manifest_checksum(
+                text,
+                "house latitude-sensitive summary checksum (fnv1a-64):",
             )?,
             release_checklist_path: parse_manifest_string(text, "release checklist:")?,
             release_checklist_checksum: parse_manifest_checksum(
@@ -12185,6 +12254,8 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
         "release-house-system-canonical-names-summary.txt",
         "release-ayanamsa-canonical-names-summary.txt",
         "release-house-validation-summary.txt",
+        "house-formula-families-summary.txt",
+        "house-latitude-sensitive-summary.txt",
         "release-checklist.txt",
         "release-checklist-summary.txt",
         "backend-matrix.txt",
@@ -12319,7 +12390,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
 fn ensure_release_bundle_manifest_is_canonical(
     manifest_text: &str,
 ) -> Result<(), ReleaseBundleError> {
-    const EXPECTED_MANIFEST_LINES: [&str; 226] = [
+    const EXPECTED_MANIFEST_LINES: [&str; 230] = [
         "Release bundle manifest",
         "profile:",
         "profile checksum (fnv1a-64):",
@@ -12341,6 +12412,10 @@ fn ensure_release_bundle_manifest_is_canonical(
         "release-ayanamsa-canonical-names summary checksum (fnv1a-64):",
         "release-house-validation summary:",
         "release-house-validation summary checksum (fnv1a-64):",
+        "house formula families summary:",
+        "house formula families summary checksum (fnv1a-64):",
+        "house latitude-sensitive summary:",
+        "house latitude-sensitive summary checksum (fnv1a-64):",
         "release checklist:",
         "release checklist checksum (fnv1a-64):",
         "release checklist summary:",
@@ -13872,6 +13947,33 @@ fn ensure_release_house_validation_summary_matches_current_rendering(
     }
 }
 
+fn ensure_house_formula_families_summary_matches_current_rendering(
+    house_formula_families_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if house_formula_families_summary_text == format_house_formula_families_for_report() {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "house formula families summary no longer matches the current house-formula-families posture"
+                .to_string(),
+        ))
+    }
+}
+
+fn ensure_house_latitude_sensitive_summary_matches_current_rendering(
+    house_latitude_sensitive_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if house_latitude_sensitive_summary_text == format_latitude_sensitive_house_systems_for_report()
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "house latitude-sensitive summary no longer matches the current latitude-sensitive-house posture"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_native_dependency_audit_summary_matches_current_rendering(
     native_dependency_audit_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -13923,6 +14025,9 @@ fn verify_release_bundle_internal(
         output_dir.join("release-ayanamsa-canonical-names-summary.txt");
     let release_house_validation_summary_path =
         output_dir.join("release-house-validation-summary.txt");
+    let house_formula_families_summary_path = output_dir.join("house-formula-families-summary.txt");
+    let house_latitude_sensitive_summary_path =
+        output_dir.join("house-latitude-sensitive-summary.txt");
     let release_checklist_path = output_dir.join("release-checklist.txt");
     let release_checklist_summary_path = output_dir.join("release-checklist-summary.txt");
     let backend_matrix_path = output_dir.join("backend-matrix.txt");
@@ -14098,6 +14203,14 @@ fn verify_release_bundle_internal(
             &release_house_validation_summary_path,
             "release house validation summary",
         ),
+        (
+            &house_formula_families_summary_path,
+            "house formula families summary",
+        ),
+        (
+            &house_latitude_sensitive_summary_path,
+            "house latitude-sensitive summary",
+        ),
         (&release_checklist_path, "release checklist"),
         (&release_checklist_summary_path, "release checklist summary"),
         (&backend_matrix_path, "backend matrix"),
@@ -14236,6 +14349,23 @@ fn verify_release_bundle_internal(
     ensure_release_house_validation_summary_matches_current_rendering(
         &release_house_validation_summary_text,
     )?;
+    let house_formula_families_summary_text = read_required_bundle_text(
+        &house_formula_families_summary_path,
+        "house formula families summary",
+    )?;
+    ensure_house_formula_families_summary_matches_current_rendering(
+        &house_formula_families_summary_text,
+    )?;
+    let house_latitude_sensitive_summary_text = read_required_bundle_text(
+        &house_latitude_sensitive_summary_path,
+        "house latitude-sensitive summary",
+    )?;
+    ensure_house_latitude_sensitive_summary_matches_current_rendering(
+        &house_latitude_sensitive_summary_text,
+    )?;
+    let house_formula_families_summary_checksum = checksum64(&house_formula_families_summary_text);
+    let house_latitude_sensitive_summary_checksum =
+        checksum64(&house_latitude_sensitive_summary_text);
     let release_checklist_text =
         read_required_bundle_text(&release_checklist_path, "release checklist")?;
     let release_checklist_summary_text =
@@ -14922,6 +15052,18 @@ fn verify_release_bundle_internal(
             manifest.release_house_validation_summary_path
         )));
     }
+    if manifest.house_formula_families_summary_path != "house-formula-families-summary.txt" {
+        return Err(ReleaseBundleError::Verification(format!(
+            "unexpected house formula families summary file entry: {}",
+            manifest.house_formula_families_summary_path
+        )));
+    }
+    if manifest.house_latitude_sensitive_summary_path != "house-latitude-sensitive-summary.txt" {
+        return Err(ReleaseBundleError::Verification(format!(
+            "unexpected house latitude-sensitive summary file entry: {}",
+            manifest.house_latitude_sensitive_summary_path
+        )));
+    }
     if manifest.release_checklist_path != "release-checklist.txt" {
         return Err(ReleaseBundleError::Verification(format!(
             "unexpected release checklist file entry: {}",
@@ -15483,6 +15625,22 @@ fn verify_release_bundle_internal(
             "release house validation summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
             manifest.release_house_validation_summary_checksum,
             release_house_validation_summary_checksum
+        )));
+    }
+    if manifest.house_formula_families_summary_checksum != house_formula_families_summary_checksum {
+        return Err(ReleaseBundleError::Verification(format!(
+            "house formula families summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
+            manifest.house_formula_families_summary_checksum,
+            house_formula_families_summary_checksum
+        )));
+    }
+    if manifest.house_latitude_sensitive_summary_checksum
+        != house_latitude_sensitive_summary_checksum
+    {
+        return Err(ReleaseBundleError::Verification(format!(
+            "house latitude-sensitive summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
+            manifest.house_latitude_sensitive_summary_checksum,
+            house_latitude_sensitive_summary_checksum
         )));
     }
     if manifest.release_checklist_checksum != release_checklist_checksum {
@@ -16749,6 +16907,8 @@ fn verify_release_bundle_internal(
         release_house_system_canonical_names_summary_path,
         release_ayanamsa_canonical_names_summary_path,
         release_house_validation_summary_path,
+        house_formula_families_summary_path,
+        house_latitude_sensitive_summary_path,
         release_checklist_path,
         release_checklist_summary_path,
         backend_matrix_path,
@@ -16789,6 +16949,8 @@ fn verify_release_bundle_internal(
         release_ayanamsa_canonical_names_summary_bytes:
             release_ayanamsa_canonical_names_summary_text.len(),
         release_house_validation_summary_bytes: release_house_validation_summary_text.len(),
+        house_formula_families_summary_bytes: house_formula_families_summary_text.len(),
+        house_latitude_sensitive_summary_bytes: house_latitude_sensitive_summary_text.len(),
         release_checklist_bytes: release_checklist_text.len(),
         release_checklist_summary_bytes: release_checklist_summary_text.len(),
         backend_matrix_bytes: backend_matrix_text.len(),
@@ -16831,6 +16993,8 @@ fn verify_release_bundle_internal(
         release_house_system_canonical_names_summary_checksum,
         release_ayanamsa_canonical_names_summary_checksum,
         release_house_validation_summary_checksum,
+        house_formula_families_summary_checksum,
+        house_latitude_sensitive_summary_checksum,
         release_checklist_checksum,
         release_checklist_summary_checksum,
         backend_matrix_checksum,
@@ -32246,6 +32410,8 @@ version = "0.9.0"
         assert!(manifest.contains("release-house-system-canonical-names-summary.txt"));
         assert!(manifest.contains("release-ayanamsa-canonical-names-summary.txt"));
         assert!(manifest.contains("release-house-validation-summary.txt"));
+        assert!(manifest.contains("house-formula-families-summary.txt"));
+        assert!(manifest.contains("house-latitude-sensitive-summary.txt"));
         assert!(release_summary.contains("Comparison envelope: samples:"));
         assert!(release_summary.contains(
             "Comparison corpus release-grade guard: Pluto excluded from tolerance evidence"
@@ -33007,6 +33173,8 @@ version = "0.9.0"
         assert!(verified.contains("release-house-system-canonical-names-summary.txt"));
         assert!(verified.contains("release-ayanamsa-canonical-names-summary.txt"));
         assert!(verified.contains("release-house-validation-summary.txt"));
+        assert!(verified.contains("house-formula-families-summary.txt"));
+        assert!(verified.contains("house-latitude-sensitive-summary.txt"));
         assert!(verified.contains("comparison-corpus-summary.txt"));
         assert!(verified.contains("source-corpus-summary.txt"));
         assert!(verified.contains("comparison-snapshot-summary.txt"));
