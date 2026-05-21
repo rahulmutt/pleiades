@@ -106,6 +106,7 @@ The bundle currently writes these text artifacts:
 - `release-notes.txt`
 - `release-notes-summary.txt`
 - `release-summary.txt`
+- `source-corpus-summary.txt`
 - `comparison-envelope-summary.txt`
 - `comparison-corpus-release-guard-summary.txt`
 - `reference-holdout-overlap-summary.txt`
@@ -143,7 +144,7 @@ The staged bundle now also carries the catalog inventory, compatibility-caveats,
 
 If you broaden a source corpus beyond the checked-in fixtures, keep the provenance contract explicit in the same release-facing files: source origin, license/redistribution posture, frame, time scale, column/channel schema, source revision, generation command, checksums, and the evidence class (reference, hold-out, boundary overlay, or provenance-only). The checked-in JPL provenance summaries now surface that evidence class directly, and the production-generation source summary now also names the license posture alongside redistribution, so release bundles do not have to infer it from surrounding prose.
 
-The generated `release-checklist.txt` now also embeds the canonical `bundle-release` and `verify-release-bundle` commands plus a pointer back to this guide, and it now carries the broader source-corpus provenance contract reminder, while `release-checklist-summary.txt` provides a compact audit view for quick release review, so the bundle stays self-describing for maintainers.
+The generated `release-checklist.txt` now also embeds the canonical `bundle-release` and `verify-release-bundle` commands plus a pointer back to this guide, and it now carries the broader source-corpus provenance contract reminder, while `source-corpus-summary.txt` makes the source-corpus posture explicit in the staged bundle and `release-checklist-summary.txt` provides a compact audit view for quick release review, so the bundle stays self-describing for maintainers.
 
 The VSOP87 source-backed coefficient blobs are also reproducible from the vendored public source text via the maintainer helper binary:
 
