@@ -19187,30 +19187,149 @@ fn required_summary_payload(
         })
 }
 
-fn validated_source_corpus_summary_for_report() -> Result<String, String> {
-    let release_grade_guard = validated_comparison_corpus_release_guard_summary_for_report()?;
+#[derive(Clone, Debug, PartialEq)]
+struct SourceCorpusSummary {
+    comparison_corpus_release_grade_guard: String,
+    jpl_source_corpus_contract: String,
+    jpl_evidence_classification: String,
+    jpl_provenance_only: String,
+    shared_schema: String,
+    release_grade_body_claims: String,
+    phase2_corpus_alignment: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+enum SourceCorpusSummaryValidationError {
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for SourceCorpusSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the source corpus summary field `{field}` is out of sync with the current posture"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for SourceCorpusSummaryValidationError {}
+
+impl SourceCorpusSummary {
+    fn summary_line(&self) -> String {
+        format!(
+            "comparison corpus release-grade guard: {}; JPL source corpus contract: {}; evidence classification={}; provenance-only={}; shared schema={}; release-grade body claims={}; phase-2 corpus alignment: {}",
+            self.comparison_corpus_release_grade_guard,
+            self.jpl_source_corpus_contract,
+            self.jpl_evidence_classification,
+            self.jpl_provenance_only,
+            self.shared_schema,
+            self.release_grade_body_claims,
+            self.phase2_corpus_alignment,
+        )
+    }
+
+    fn validate(&self) -> Result<(), SourceCorpusSummaryValidationError> {
+        let expected = source_corpus_summary_details().ok_or(
+            SourceCorpusSummaryValidationError::FieldOutOfSync {
+                field: "source_corpus_summary",
+            },
+        )?;
+
+        if self.comparison_corpus_release_grade_guard
+            != expected.comparison_corpus_release_grade_guard
+        {
+            return Err(SourceCorpusSummaryValidationError::FieldOutOfSync {
+                field: "comparison_corpus_release_grade_guard",
+            });
+        }
+        if self.jpl_source_corpus_contract != expected.jpl_source_corpus_contract {
+            return Err(SourceCorpusSummaryValidationError::FieldOutOfSync {
+                field: "jpl_source_corpus_contract",
+            });
+        }
+        if self.jpl_evidence_classification != expected.jpl_evidence_classification {
+            return Err(SourceCorpusSummaryValidationError::FieldOutOfSync {
+                field: "jpl_evidence_classification",
+            });
+        }
+        if self.jpl_provenance_only != expected.jpl_provenance_only {
+            return Err(SourceCorpusSummaryValidationError::FieldOutOfSync {
+                field: "jpl_provenance_only",
+            });
+        }
+        if self.shared_schema != expected.shared_schema {
+            return Err(SourceCorpusSummaryValidationError::FieldOutOfSync {
+                field: "shared_schema",
+            });
+        }
+        if self.release_grade_body_claims != expected.release_grade_body_claims {
+            return Err(SourceCorpusSummaryValidationError::FieldOutOfSync {
+                field: "release_grade_body_claims",
+            });
+        }
+        if self.phase2_corpus_alignment != expected.phase2_corpus_alignment {
+            return Err(SourceCorpusSummaryValidationError::FieldOutOfSync {
+                field: "phase2_corpus_alignment",
+            });
+        }
+
+        Ok(())
+    }
+
+    fn validated_summary_line(&self) -> Result<String, SourceCorpusSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+fn source_corpus_summary_details() -> Option<SourceCorpusSummary> {
+    let comparison_corpus_release_grade_guard =
+        validated_comparison_corpus_release_guard_summary_for_report()
+            .ok()?
+            .to_string();
     let jpl_source_corpus_contract = required_summary_payload(
         jpl_source_corpus_contract_summary_for_report(),
         "JPL source corpus contract: ",
         "JPL source corpus contract",
-    )?;
+    )
+    .ok()?;
     let jpl_evidence_classification = required_summary_payload(
         jpl_snapshot_evidence_classification_summary_for_report(),
         "JPL evidence classification: ",
         "JPL evidence classification",
-    )?;
+    )
+    .ok()?;
     let jpl_provenance_only = required_summary_payload(
         jpl_provenance_only_summary_for_report(),
         "JPL provenance-only evidence: ",
         "JPL provenance-only evidence",
-    )?;
-    let release_body_claims = validated_release_body_claims_summary_line_for_report()
-        .map_err(|error| error.to_string())?;
+    )
+    .ok()?;
+    let release_grade_body_claims = validated_release_body_claims_summary_line_for_report()
+        .ok()?
+        .to_string();
+    let phase2_corpus_alignment =
+        validated_packaged_artifact_phase2_corpus_alignment_summary_for_report();
 
-    Ok(format!(
-        "comparison corpus release-grade guard: {release_grade_guard}; JPL source corpus contract: {jpl_source_corpus_contract}; evidence classification={jpl_evidence_classification}; provenance-only={jpl_provenance_only}; shared schema=epoch_jd, body, x_km, y_km, z_km; release-grade body claims={release_body_claims}; phase-2 corpus alignment: {}",
-        validated_packaged_artifact_phase2_corpus_alignment_summary_for_report()
-    ))
+    Some(SourceCorpusSummary {
+        comparison_corpus_release_grade_guard,
+        jpl_source_corpus_contract,
+        jpl_evidence_classification,
+        jpl_provenance_only,
+        shared_schema: "epoch_jd, body, x_km, y_km, z_km".to_string(),
+        release_grade_body_claims,
+        phase2_corpus_alignment,
+    })
+}
+
+fn validated_source_corpus_summary_for_report() -> Result<String, String> {
+    let summary =
+        source_corpus_summary_details().ok_or_else(|| "source corpus unavailable".to_string())?;
+    summary
+        .validated_summary_line()
+        .map_err(|error| error.to_string())
 }
 
 fn source_corpus_summary_for_report() -> String {
@@ -39283,6 +39402,21 @@ version = "0.9.0"
         assert_eq!(
             error,
             "source corpus summary field `example field` is out of sync with the current posture"
+        );
+    }
+
+    #[test]
+    fn source_corpus_summary_details_validate_field_drift() {
+        let mut summary =
+            source_corpus_summary_details().expect("source corpus summary should exist");
+        summary.shared_schema = "epoch_jd, body, x_km, y_km, z_km, drifted".to_string();
+
+        let error = summary
+            .validated_summary_line()
+            .expect_err("shared schema drift should fail closed");
+        assert_eq!(
+            error.to_string(),
+            "the source corpus summary field `shared_schema` is out of sync with the current posture"
         );
     }
 }
