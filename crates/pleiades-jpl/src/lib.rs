@@ -31064,7 +31064,11 @@ mod tests {
         drifted_time_scale.time_scale = "TT".to_string();
         assert_eq!(
             drifted_time_scale.validate(),
-            Err(ReferenceSnapshotSourceSummaryValidationError::FieldOutOfSync { field: "time_scale" })
+            Err(
+                ReferenceSnapshotSourceSummaryValidationError::FieldOutOfSync {
+                    field: "time_scale"
+                }
+            )
         );
         assert_eq!(
             reference_snapshot_source_summary_for_report(),
@@ -31961,7 +31965,11 @@ mod tests {
         drifted_time_scale.time_scale = "TT".to_string();
         assert_eq!(
             drifted_time_scale.validate(),
-            Err(IndependentHoldoutSourceSummaryValidationError::FieldOutOfSync { field: "time_scale" })
+            Err(
+                IndependentHoldoutSourceSummaryValidationError::FieldOutOfSync {
+                    field: "time_scale"
+                }
+            )
         );
     }
 
