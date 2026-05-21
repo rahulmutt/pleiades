@@ -3533,8 +3533,10 @@ pub fn validated_production_generation_source_summary_for_report() -> Result<Str
 pub struct ProductionGenerationCorpusShapeSummary {
     /// Source provenance summary for the merged production-generation corpus.
     pub source_summary: ProductionGenerationSourceSummary,
-    /// Boundary request corpus used to validate apparentness and frame posture.
-    pub boundary_request_corpus: ProductionGenerationBoundaryRequestCorpusSummary,
+    /// Boundary request corpus used to validate apparentness and frame posture in ecliptic coordinates.
+    pub boundary_request_corpus_ecliptic: ProductionGenerationBoundaryRequestCorpusSummary,
+    /// Boundary request corpus used to validate apparentness and frame posture in equatorial coordinates.
+    pub boundary_request_corpus_equatorial: ProductionGenerationBoundaryRequestCorpusSummary,
 }
 
 /// Structured validation errors for the production-generation corpus shape summary.
@@ -3542,8 +3544,12 @@ pub struct ProductionGenerationCorpusShapeSummary {
 pub enum ProductionGenerationCorpusShapeSummaryValidationError {
     /// The nested source summary drifted from the checked-in evidence.
     Source(ProductionGenerationSourceSummaryValidationError),
-    /// The nested boundary request corpus drifted from the checked-in evidence.
-    BoundaryRequestCorpus(ProductionGenerationBoundaryRequestCorpusSummaryValidationError),
+    /// The nested ecliptic boundary request corpus drifted from the checked-in evidence.
+    BoundaryRequestCorpusEcliptic(ProductionGenerationBoundaryRequestCorpusSummaryValidationError),
+    /// The nested equatorial boundary request corpus drifted from the checked-in evidence.
+    BoundaryRequestCorpusEquatorial(
+        ProductionGenerationBoundaryRequestCorpusSummaryValidationError,
+    ),
     /// A derived field drifted from the current checked-in corpus posture.
     FieldOutOfSync { field: &'static str },
 }
@@ -3552,8 +3558,17 @@ impl fmt::Display for ProductionGenerationCorpusShapeSummaryValidationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Source(error) => write!(f, "source summary validation failed: {error}"),
-            Self::BoundaryRequestCorpus(error) => {
-                write!(f, "boundary request corpus validation failed: {error}")
+            Self::BoundaryRequestCorpusEcliptic(error) => {
+                write!(
+                    f,
+                    "ecliptic boundary request corpus validation failed: {error}"
+                )
+            }
+            Self::BoundaryRequestCorpusEquatorial(error) => {
+                write!(
+                    f,
+                    "equatorial boundary request corpus validation failed: {error}"
+                )
             }
             Self::FieldOutOfSync { field } => write!(
                 f,
@@ -3569,13 +3584,17 @@ impl ProductionGenerationCorpusShapeSummary {
     /// Returns a compact release-facing corpus-shape summary.
     pub fn summary_line(&self) -> String {
         format!(
-            "Production generation corpus shape: source={}; boundary request corpus={}; validated fields=body order, epochs, frame, time scale, columns, apparentness, checksums",
+            "Production generation corpus shape: source={}; boundary request corpora: ecliptic={}; equatorial={}; validated fields=body order, epochs, frame, time scale, columns, apparentness, checksums",
             strip_report_prefix(
                 &self.source_summary.summary_line(),
                 "Production generation source: ",
             ),
             strip_report_prefix(
-                &self.boundary_request_corpus.summary_line(),
+                &self.boundary_request_corpus_ecliptic.summary_line(),
+                "Production generation boundary request corpus: ",
+            ),
+            strip_report_prefix(
+                &self.boundary_request_corpus_equatorial.summary_line(),
                 "Production generation boundary request corpus: ",
             ),
         )
@@ -3586,8 +3605,11 @@ impl ProductionGenerationCorpusShapeSummary {
         self.source_summary
             .validate()
             .map_err(ProductionGenerationCorpusShapeSummaryValidationError::Source)?;
-        self.boundary_request_corpus.validate().map_err(
-            ProductionGenerationCorpusShapeSummaryValidationError::BoundaryRequestCorpus,
+        self.boundary_request_corpus_ecliptic.validate().map_err(
+            ProductionGenerationCorpusShapeSummaryValidationError::BoundaryRequestCorpusEcliptic,
+        )?;
+        self.boundary_request_corpus_equatorial.validate().map_err(
+            ProductionGenerationCorpusShapeSummaryValidationError::BoundaryRequestCorpusEquatorial,
         )?;
 
         let expected_source_summary = production_generation_source_summary();
@@ -3599,17 +3621,32 @@ impl ProductionGenerationCorpusShapeSummary {
             );
         }
 
-        let expected_boundary_request_corpus =
+        let expected_boundary_request_corpus_ecliptic =
             production_generation_boundary_request_corpus_summary(CoordinateFrame::Ecliptic)
                 .ok_or(
                     ProductionGenerationCorpusShapeSummaryValidationError::FieldOutOfSync {
-                        field: "boundary request corpus",
+                        field: "boundary request corpus (ecliptic)",
                     },
                 )?;
-        if self.boundary_request_corpus != expected_boundary_request_corpus {
+        if self.boundary_request_corpus_ecliptic != expected_boundary_request_corpus_ecliptic {
             return Err(
                 ProductionGenerationCorpusShapeSummaryValidationError::FieldOutOfSync {
-                    field: "boundary request corpus",
+                    field: "boundary request corpus (ecliptic)",
+                },
+            );
+        }
+
+        let expected_boundary_request_corpus_equatorial =
+            production_generation_boundary_request_corpus_summary(CoordinateFrame::Equatorial)
+                .ok_or(
+                    ProductionGenerationCorpusShapeSummaryValidationError::FieldOutOfSync {
+                        field: "boundary request corpus (equatorial)",
+                    },
+                )?;
+        if self.boundary_request_corpus_equatorial != expected_boundary_request_corpus_equatorial {
+            return Err(
+                ProductionGenerationCorpusShapeSummaryValidationError::FieldOutOfSync {
+                    field: "boundary request corpus (equatorial)",
                 },
             );
         }
@@ -3637,8 +3674,11 @@ pub fn production_generation_corpus_shape_summary() -> Option<ProductionGenerati
 {
     Some(ProductionGenerationCorpusShapeSummary {
         source_summary: production_generation_source_summary(),
-        boundary_request_corpus: production_generation_boundary_request_corpus_summary(
+        boundary_request_corpus_ecliptic: production_generation_boundary_request_corpus_summary(
             CoordinateFrame::Ecliptic,
+        )?,
+        boundary_request_corpus_equatorial: production_generation_boundary_request_corpus_summary(
+            CoordinateFrame::Equatorial,
         )?,
     })
 }
@@ -31488,7 +31528,8 @@ mod tests {
 
         assert!(summary.validate().is_ok());
         assert!(report.contains("Production generation corpus shape: source="));
-        assert!(report.contains("boundary request corpus="));
+        assert!(report.contains("boundary request corpora: ecliptic="));
+        assert!(report.contains("equatorial="));
         assert!(report.contains(
             "validated fields=body order, epochs, frame, time scale, columns, apparentness, checksums"
         ));
@@ -31511,11 +31552,11 @@ mod tests {
     fn production_generation_corpus_shape_summary_validation_rejects_drift() {
         let mut summary = production_generation_corpus_shape_summary()
             .expect("production generation corpus shape summary should exist");
-        summary.boundary_request_corpus.apparentness = Apparentness::Apparent;
+        summary.boundary_request_corpus_equatorial.apparentness = Apparentness::Apparent;
 
         assert!(matches!(
             summary.validate(),
-            Err(ProductionGenerationCorpusShapeSummaryValidationError::BoundaryRequestCorpus(_))
+            Err(ProductionGenerationCorpusShapeSummaryValidationError::BoundaryRequestCorpusEquatorial(_))
         ));
     }
 

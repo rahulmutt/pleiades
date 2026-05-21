@@ -5,7 +5,7 @@ This file lists only active implementation slices. Completed report aliases, sum
 ## Phase 1 — Production reference/source corpus
 
 - Expand source coverage for all release-claimed major bodies, lunar channels, Pluto policy, and selected asteroids across 1500-2500 CE.
-- Keep corpus provenance surfaces aligned; JPL reference, hold-out, and boundary-overlay summaries now surface explicit evidence-class labels and explicit frame-treatment/time-scale posture alongside the existing source revision checksums, and the JPL source corpus contract now has a typed release-facing summary.
+- Keep corpus provenance surfaces aligned; JPL reference, hold-out, and boundary-overlay summaries now surface explicit evidence-class labels and explicit frame-treatment/time-scale posture alongside the existing source revision checksums, the production-generation corpus-shape summary now validates both ecliptic and equatorial boundary request corpora, and the JPL source corpus contract now has a typed release-facing summary.
 - The backend matrix summary now also pulls in validated production-generation coverage, body-class coverage, corpus shape, and source-corpus contract lines so release-facing matrix output exposes the current corpus claims directly.
 - The comparison snapshot manifest summary now fails closed on redistribution drift so provenance posture stays explicit in release-facing validation.
 - The release bundle now carries independent-holdout body-class coverage alongside the source-window evidence so hold-out coverage is explicit in staged artifacts.

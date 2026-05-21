@@ -35763,6 +35763,8 @@ version = "0.9.0"
             .expect("production generation corpus shape summary should render");
 
         assert!(rendered.contains("Production generation corpus shape:"));
+        assert!(rendered.contains("boundary request corpora: ecliptic="));
+        assert!(rendered.contains("equatorial="));
         assert!(rendered.contains("validated fields=body order, epochs, frame, time scale, columns, apparentness, checksums"));
         assert_eq!(
             rendered,
