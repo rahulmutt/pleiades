@@ -3358,6 +3358,7 @@ fn validate_production_generation_source_summary_text(
         ("columns", "columns=epoch_jd, body, x_km, y_km, z_km".to_string()),
         ("frame", "frame=geocentric ecliptic J2000".to_string()),
         ("time scale", "time scale=TDB".to_string()),
+        ("apparentness", "apparentness=Mean".to_string()),
         ("parser", "parser=pure-Rust and deterministic".to_string()),
         (
             "generation command",
@@ -3410,7 +3411,7 @@ impl ProductionGenerationSourceSummary {
             .unwrap_or_else(|error| format!("cadence unavailable ({error})"));
 
         format!(
-            "Production generation source: strategy=documented hybrid fixture corpus; {}; {}; source windows={}; evidence classes=reference, hold-out, boundary overlay, provenance-only; input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv; license posture=public-source provenance only; checked-in fixtures remain repository-local regression data; {}; generation command=generate-packaged-artifact --check (consuming the checked-in CSV fixtures); file format=comma-separated values; columns=epoch_jd, body, x_km, y_km, z_km; frame=geocentric ecliptic J2000; time scale=TDB; parser=pure-Rust and deterministic; checksum expectation=byte-identical fixture contents; {}; reference and hold-out rows remain separate; redistribution posture=repository-checked regression fixtures, not a broad public corpus",
+            "Production generation source: strategy=documented hybrid fixture corpus; {}; {}; source windows={}; evidence classes=reference, hold-out, boundary overlay, provenance-only; input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv; license posture=public-source provenance only; checked-in fixtures remain repository-local regression data; {}; generation command=generate-packaged-artifact --check (consuming the checked-in CSV fixtures); file format=comma-separated values; columns=epoch_jd, body, x_km, y_km, z_km; frame=geocentric ecliptic J2000; time scale=TDB; apparentness=Mean; parser=pure-Rust and deterministic; checksum expectation=byte-identical fixture contents; {}; reference and hold-out rows remain separate; redistribution posture=repository-checked regression fixtures, not a broad public corpus",
             self.reference_summary.summary_line(),
             format_production_generation_boundary_source_summary(&self.boundary_summary),
             strip_report_prefix(
@@ -31328,6 +31329,7 @@ mod tests {
         assert!(report.contains("file format=comma-separated values"));
         assert!(report.contains("frame=geocentric ecliptic J2000"));
         assert!(report.contains("time scale=TDB"));
+        assert!(report.contains("apparentness=Mean"));
         assert!(report.contains("parser=pure-Rust and deterministic"));
         assert!(report.contains("source revision=reference_snapshot.csv checksum=0x"));
         assert!(report.contains("evidence class=reference"));
@@ -31460,6 +31462,23 @@ mod tests {
             Err(
                 ProductionGenerationSourceSummaryValidationError::RenderedSummaryOutOfSync {
                     field: "source revision"
+                }
+            )
+        ));
+    }
+
+    #[test]
+    fn production_generation_source_summary_validation_rejects_apparentness_text_drift() {
+        let summary = production_generation_source_summary();
+        let drifted = summary
+            .summary_line()
+            .replace("apparentness=Mean", "apparentness=Apparent");
+
+        assert!(matches!(
+            validate_production_generation_source_summary_text(&summary, &drifted),
+            Err(
+                ProductionGenerationSourceSummaryValidationError::RenderedSummaryOutOfSync {
+                    field: "apparentness"
                 }
             )
         ));
