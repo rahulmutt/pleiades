@@ -9284,6 +9284,9 @@ fn render_release_summary_text() -> String {
             text.push_str("Release-grade body claims: ");
             text.push_str(&format_release_body_claims_summary_for_report());
             text.push('\n');
+            text.push_str("Body/date/channel claims: ");
+            text.push_str(&format_body_date_channel_claims_summary_for_report());
+            text.push('\n');
             text.push_str("Production generation body-class coverage: ");
             text.push_str(&validated_production_generation_body_class_coverage_summary_for_report());
             text.push('\n');
@@ -19719,6 +19722,19 @@ fn format_release_body_claims_summary_for_report() -> String {
     summary_line.to_string()
 }
 
+fn format_body_date_channel_claims_summary_for_report() -> String {
+    let body_claims = match validated_release_body_claims_summary_line_for_report() {
+        Ok(line) => line,
+        Err(error) => return format!("body/date/channel claims unavailable ({error})"),
+    };
+    let corpus_shape = match validated_production_generation_corpus_shape_summary_for_report() {
+        Ok(summary) => summary,
+        Err(error) => return format!("body/date/channel claims unavailable ({error})"),
+    };
+
+    format!("Body/date/channel claims: bodies={body_claims}; corpus shape={corpus_shape}")
+}
+
 fn render_release_body_claims_summary_text() -> String {
     format!(
         "Release-grade body claims summary\nRelease-grade body claims: {}\n",
@@ -21482,6 +21498,9 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str("Release-grade body claims: ");
     text.push_str(&format_release_body_claims_summary_for_report());
     text.push('\n');
+    text.push_str("Body/date/channel claims: ");
+    text.push_str(&format_body_date_channel_claims_summary_for_report());
+    text.push('\n');
     text.push_str("Source corpus: ");
     text.push_str(&source_corpus_summary_for_report());
     text.push('\n');
@@ -21834,6 +21853,20 @@ pub fn render_backend_matrix_report() -> Result<String, EphemerisError> {
     fmt::write(
         &mut rendered,
         format_args!("House code aliases: {}\n\n", house_code_aliases),
+    )
+    .map_err(|_| {
+        EphemerisError::new(
+            EphemerisErrorKind::NumericalFailure,
+            "failed to render backend capability matrix",
+        )
+    })?;
+
+    fmt::write(
+        &mut rendered,
+        format_args!(
+            "Body/date/channel claims: {}\n\n",
+            format_body_date_channel_claims_summary_for_report()
+        ),
     )
     .map_err(|_| {
         EphemerisError::new(
@@ -30717,6 +30750,7 @@ mod tests {
         assert!(rendered.contains("Lunar high-curvature continuity evidence"));
         assert!(rendered.contains("Lunar high-curvature equatorial continuity evidence"));
         assert!(rendered.contains("unsupported bodies: True Apogee, True Perigee"));
+        assert!(rendered.contains("Body/date/channel claims:"));
         assert!(rendered.contains("Packaged data backend"));
         assert!(rendered.contains("Composite routed backend"));
     }
@@ -31793,6 +31827,7 @@ version = "0.9.0"
             "Comparison corpus release-grade guard: Pluto excluded from tolerance evidence"
         ));
         assert!(release_summary.contains("Release-grade body claims: Sun through Neptune are release-grade major-body claims; Pluto remains an explicitly approximate fallback; selected asteroids (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) remain source-backed validation bodies"));
+        assert!(release_summary.contains("Body/date/channel claims:"));
         let comparison_report = compare_backends(
             &default_reference_backend(),
             &default_candidate_backend(),
