@@ -9560,7 +9560,6 @@ fn render_release_summary_text() -> String {
     text.push_str("Comparison snapshot source windows: ");
     text.push_str(&comparison_snapshot_source_window_summary_for_report());
     text.push('\n');
-    text.push_str("JPL source corpus contract: ");
     text.push_str(&jpl_source_corpus_contract_summary_for_report());
     text.push('\n');
     text.push_str("Source-backed backend evidence: ");
@@ -18923,10 +18922,13 @@ fn render_comparison_corpus_summary_text() -> String {
 
 fn validated_source_corpus_summary_for_report() -> Result<String, String> {
     let release_grade_guard = validated_comparison_corpus_release_guard_summary_for_report()?;
+    let jpl_source_corpus_contract = jpl_source_corpus_contract_summary_for_report();
+    let jpl_source_corpus_contract = jpl_source_corpus_contract
+        .strip_prefix("JPL source corpus contract: ")
+        .unwrap_or(jpl_source_corpus_contract.as_str());
 
     Ok(format!(
-        "comparison corpus release-grade guard: {release_grade_guard}; JPL source corpus contract: {}; phase-2 corpus alignment: {}",
-        jpl_source_corpus_contract_summary_for_report(),
+        "comparison corpus release-grade guard: {release_grade_guard}; JPL source corpus contract: {jpl_source_corpus_contract}; phase-2 corpus alignment: {}",
         validated_packaged_artifact_phase2_corpus_alignment_summary_for_report()
     ))
 }
@@ -21138,7 +21140,6 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str("JPL production-generation corpus shape: ");
     text.push_str(&production_generation_corpus_shape_summary_for_report());
     text.push('\n');
-    text.push_str("JPL source corpus contract: ");
     text.push_str(&jpl_source_corpus_contract_summary_for_report());
     text.push('\n');
     text.push_str(&comparison_snapshot_summary_for_report());
@@ -25871,6 +25872,7 @@ mod tests {
         assert!(report.contains("Comparison corpus"));
         assert!(report.contains("Source corpus: comparison corpus release-grade guard:"));
         assert!(report.contains("JPL source corpus contract:"));
+        assert!(!report.contains("JPL source corpus contract: JPL source corpus contract:"));
         assert!(report.contains("phase-2 corpus alignment:"));
         assert_eq!(
             validated_source_corpus_summary_for_report()
@@ -30143,6 +30145,7 @@ mod tests {
         assert!(rendered.contains("Implemented backend matrices"));
         assert!(rendered.contains("summary: id=jpl-snapshot; version="));
         assert!(rendered.contains("JPL snapshot reference backend"));
+        assert!(!rendered.contains("JPL source corpus contract: JPL source corpus contract:"));
         assert!(rendered.contains(
             "selected asteroid coverage: 6 bodies (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis)"
         ));
@@ -38798,6 +38801,7 @@ version = "0.9.0"
         let rendered =
             render_cli(&["source-corpus-summary"]).expect("source corpus summary should render");
         assert_eq!(rendered, source_corpus_summary_for_report());
+        assert!(!rendered.contains("JPL source corpus contract: JPL source corpus contract:"));
         assert_eq!(
             render_cli(&["source-corpus"]).expect("source corpus alias should render"),
             rendered
