@@ -235,6 +235,22 @@ impl CompatibilityProfile {
         Ok(format_canonical_name_summary(&labels))
     }
 
+    /// Returns the number of latitude-sensitive house-system descriptors.
+    pub fn constrained_house_system_count(&self) -> usize {
+        self.house_systems
+            .iter()
+            .filter(|entry| entry.latitude_sensitive)
+            .count()
+    }
+
+    /// Returns the number of ayanamsa descriptors that still lack sidereal metadata.
+    pub fn ayanamsa_descriptor_only_count(&self) -> usize {
+        self.ayanamsas
+            .iter()
+            .filter(|entry| !entry.has_sidereal_metadata())
+            .count()
+    }
+
     /// Returns a compact inventory line for the current compatibility catalog.
     pub fn catalog_inventory_summary_line(&self) -> String {
         fn alias_count<T>(entries: &[T], aliases: impl Fn(&T) -> &'static [&'static str]) -> usize {
@@ -253,6 +269,16 @@ impl CompatibilityProfile {
             .count();
         let ayanamsa_provenance = validated_provenance_summary_for_report()
             .unwrap_or_else(|error| format!("unavailable ({error})"));
+        let constrained_house_system_count = self.constrained_house_system_count();
+        let unconstrained_house_system_count = self
+            .house_systems
+            .len()
+            .saturating_sub(constrained_house_system_count);
+        let ayanamsa_descriptor_only_count = self.ayanamsa_descriptor_only_count();
+        let metadata_bearing_ayanamsa_count = self
+            .ayanamsas
+            .len()
+            .saturating_sub(ayanamsa_descriptor_only_count);
 
         let mut text = String::from("Compatibility catalog inventory: ");
         text.push_str("house systems=");
@@ -287,11 +313,27 @@ impl CompatibilityProfile {
         text.push_str(&ayanamsa_metadata_gap_count.to_string());
         text.push_str("; ayanamsa alias-bearing entries=");
         text.push_str(&ayanamsa_alias_bearing_entry_count.to_string());
+        text.push_str("; catalog posture=house systems=");
+        text.push_str(&self.house_systems.len().to_string());
+        text.push_str(" (");
+        text.push_str(&constrained_house_system_count.to_string());
+        text.push_str(" constrained, ");
+        text.push_str(&unconstrained_house_system_count.to_string());
+        text.push_str(" unconstrained); ayanamsas=");
+        text.push_str(&self.ayanamsas.len().to_string());
+        text.push_str(" (");
+        text.push_str(&ayanamsa_descriptor_only_count.to_string());
+        text.push_str(" descriptor-only, ");
+        text.push_str(&metadata_bearing_ayanamsa_count.to_string());
+        text.push_str(" metadata-bearing); custom-only labels=");
+        text.push_str(&self.custom_definition_labels.len().to_string());
+        text.push_str("; custom-only ayanamsa labels=");
+        text.push_str(&custom_definition_ayanamsa_labels.len().to_string());
         text.push_str("; ayanamsa provenance=");
         text.push_str(&ayanamsa_provenance);
         text.push_str("; known gaps=");
         text.push_str(&self.known_gaps.len().to_string());
-        text.push_str("; claim audit: baseline catalogs are the published guarantees; release-specific entries are shipped additions; custom-definition labels remain custom-definition territory; known gaps stay documented");
+        text.push_str("; claim audit: baseline catalogs are the published guarantees; release-specific entries are shipped additions; custom-definition labels remain custom-definition territory; descriptor-only ayanamsa entries remain catalog descriptors; constrained house systems stay explicitly flagged; known gaps stay documented");
         text
     }
 
@@ -3467,7 +3509,7 @@ mod tests {
         let ayanamsa_provenance = validated_provenance_summary_for_report()
             .expect("ayanamsa provenance summary should validate");
         assert!(rendered.contains(&format!(
-            "Compatibility catalog inventory: house systems={} ({} baseline, {} release-specific, {} aliases); house formula families={}; house latitude-sensitive constraints={}; house-code aliases={}; ayanamsas={} ({} baseline, {} release-specific, {} aliases); custom-definition labels={}; custom-definition ayanamsa labels={} (Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs)); ayanamsa metadata gaps={}; ayanamsa alias-bearing entries={}; ayanamsa provenance={}; known gaps={}; claim audit: baseline catalogs are the published guarantees; release-specific entries are shipped additions; custom-definition labels remain custom-definition territory; known gaps stay documented",
+            "Compatibility catalog inventory: house systems={} ({} baseline, {} release-specific, {} aliases); house formula families={}; house latitude-sensitive constraints={}; house-code aliases={}; ayanamsas={} ({} baseline, {} release-specific, {} aliases); custom-definition labels={}; custom-definition ayanamsa labels={} (Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs)); ayanamsa metadata gaps={}; ayanamsa alias-bearing entries={}; catalog posture=house systems={} ({} constrained, {} unconstrained); ayanamsas={} ({} descriptor-only, {} metadata-bearing); custom-only labels={}; custom-only ayanamsa labels={}; ayanamsa provenance={}; known gaps={}; claim audit: baseline catalogs are the published guarantees; release-specific entries are shipped additions; custom-definition labels remain custom-definition territory; descriptor-only ayanamsa entries remain catalog descriptors; constrained house systems stay explicitly flagged; known gaps stay documented",
             profile.house_systems.len(),
             profile.baseline_house_systems.len(),
             profile.release_house_systems.len(),
@@ -3483,6 +3525,20 @@ mod tests {
             profile.custom_definition_ayanamsa_labels().len(),
             metadata_coverage().without_sidereal_metadata.len(),
             ayanamsa_alias_bearing_entry_count,
+            profile.house_systems.len(),
+            profile.constrained_house_system_count(),
+            profile
+                .house_systems
+                .len()
+                .saturating_sub(profile.constrained_house_system_count()),
+            profile.ayanamsas.len(),
+            profile.ayanamsa_descriptor_only_count(),
+            profile
+                .ayanamsas
+                .len()
+                .saturating_sub(profile.ayanamsa_descriptor_only_count()),
+            profile.custom_definition_labels.len(),
+            profile.custom_definition_ayanamsa_labels().len(),
             ayanamsa_provenance,
             profile.known_gaps.len()
         )));
