@@ -9198,6 +9198,15 @@ fn render_release_summary_text() -> String {
             text.push_str("Release-grade body claims: ");
             text.push_str(&format_release_body_claims_summary_for_report());
             text.push('\n');
+            text.push_str("Production generation body-class coverage: ");
+            text.push_str(&validated_production_generation_body_class_coverage_summary_for_report());
+            text.push('\n');
+            text.push_str("Production generation corpus shape: ");
+            match validated_production_generation_corpus_shape_summary_for_report() {
+                Ok(summary) => text.push_str(&summary),
+                Err(error) => return format!("Release summary unavailable ({error})"),
+            }
+            text.push('\n');
             text.push_str("JPL interpolation posture: ");
             text.push_str(&jpl_interpolation_posture_summary_for_report());
             text.push('\n');
@@ -29513,6 +29522,8 @@ mod tests {
         assert!(rendered.contains("Comparison body-class tolerance: body-class tolerance posture:"));
         assert!(rendered.contains("Comparison body-class error envelopes:"));
         assert!(rendered.contains("Release summary line:"));
+        assert!(rendered.contains("Production generation body-class coverage:"));
+        assert!(rendered.contains("Production generation corpus shape:"));
         assert!(rendered.contains(&format!(
             "Packaged lookup epoch policy: {}",
             packaged_lookup_epoch_policy_summary_for_report()

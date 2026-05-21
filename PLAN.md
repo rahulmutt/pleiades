@@ -16,6 +16,7 @@ The workspace has completed the original foundation roadmap:
 - release bundles now carry independent-holdout body-class coverage alongside the existing independent-holdout source-window evidence so hold-out coverage stays explicit in staged artifacts;
 - the checked-in independent-hold-out fixture now includes selected-asteroid anchors at JD 2378498.5, JD 2451545, JD 2453000.5, and JD 2500000, and the production-generation boundary summaries now reflect the expanded 64-row, 16-body, 12-epoch boundary slice;
 - release bundles now also carry the production-generation corpus-shape summary alongside the source-window and manifest summaries, and bundle verification fails closed if the staged directory or manifest omits it;
+- the release summary now surfaces validated production-generation body-class coverage and corpus-shape lines alongside the release-grade body-claims line, keeping the top-level release overview tied to corpus evidence;
 - house and ayanamsa crates contain broad catalog descriptors plus baseline calculations/conversions, and the compatibility inventory now also surfaces ayanamsa alias-bearing entry counts to keep alias audits explicit;
 - VSOP87-style planetary, compact lunar/lunar-point, JPL snapshot, and packaged-data backend crates exist;
 - validation, CLI, release-bundle, audit, benchmark, and report-generation surfaces exist.
@@ -52,4 +53,4 @@ Start with **Phase 1**. A production compressed artifact cannot be promoted unti
 - When an implementation gap closes, remove it from phase/status files rather than moving it to a completed section.
 - Keep `README.md`, release profiles, generated reports, and this plan aligned when public behavior or release claims change.
 
-Status: refreshed 2026-05-20 after reviewing `SPEC.md`, `spec/*.md`, current workspace crates, README status, and CLI/report posture.
+Status: refreshed 2026-05-21 after reviewing `SPEC.md`, `spec/*.md`, current workspace crates, README status, and CLI/report posture.

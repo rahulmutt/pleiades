@@ -10,6 +10,7 @@ This file lists only active implementation slices. Completed report aliases, sum
 - The comparison snapshot manifest summary now fails closed on redistribution drift so provenance posture stays explicit in release-facing validation.
 - The release bundle now carries independent-holdout body-class coverage alongside the source-window evidence so hold-out coverage is explicit in staged artifacts.
 - Make backend matrices and release profiles derive body/date/channel claims from validated corpus evidence; the backend matrix summary now also carries the comparison corpus release-grade guard, reference/hold-out overlap, independent hold-out, release-grade body claims, and Pluto fallback posture.
+- The release summary now also mirrors validated production-generation body-class coverage and corpus-shape lines, so the condensed release overview stays anchored to current corpus evidence.
 - Keep the production-generation source summary explicit about both license and redistribution posture so the checked-in fixture corpus stays audit-friendly.
 - JPL provenance-only evidence now renders as its own report line so provenance-only rows stay separate from tolerance, hold-out, and fixture-exactness evidence.
 
