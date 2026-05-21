@@ -19285,6 +19285,7 @@ struct SourceCorpusSummary {
     shared_schema: String,
     generation_command: String,
     production_generation_coverage: String,
+    reference_snapshot_sparse_boundary: String,
     release_grade_body_claims: String,
     phase2_corpus_alignment: String,
 }
@@ -19310,7 +19311,7 @@ impl std::error::Error for SourceCorpusSummaryValidationError {}
 impl SourceCorpusSummary {
     fn summary_line(&self) -> String {
         format!(
-            "comparison corpus release-grade guard: {}; JPL source corpus contract: {}; evidence classification={}; provenance-only={}; shared schema={}; generation command={}; production generation coverage={}; release-grade body claims={}; phase-2 corpus alignment: {}",
+            "comparison corpus release-grade guard: {}; JPL source corpus contract: {}; evidence classification={}; provenance-only={}; shared schema={}; generation command={}; production generation coverage={}; reference snapshot sparse boundary={}; release-grade body claims={}; phase-2 corpus alignment: {}",
             self.comparison_corpus_release_grade_guard,
             self.jpl_source_corpus_contract,
             self.jpl_evidence_classification,
@@ -19318,6 +19319,7 @@ impl SourceCorpusSummary {
             self.shared_schema,
             self.generation_command,
             self.production_generation_coverage,
+            self.reference_snapshot_sparse_boundary,
             self.release_grade_body_claims,
             self.phase2_corpus_alignment,
         )
@@ -19367,6 +19369,11 @@ impl SourceCorpusSummary {
                 field: "production_generation_coverage",
             });
         }
+        if self.reference_snapshot_sparse_boundary != expected.reference_snapshot_sparse_boundary {
+            return Err(SourceCorpusSummaryValidationError::FieldOutOfSync {
+                field: "reference_snapshot_sparse_boundary",
+            });
+        }
         if self.release_grade_body_claims != expected.release_grade_body_claims {
             return Err(SourceCorpusSummaryValidationError::FieldOutOfSync {
                 field: "release_grade_body_claims",
@@ -19413,6 +19420,12 @@ fn source_corpus_summary_details() -> Option<SourceCorpusSummary> {
     let release_grade_body_claims = validated_release_body_claims_summary_line_for_report()
         .ok()?
         .to_string();
+    let reference_snapshot_sparse_boundary = required_summary_payload(
+        reference_snapshot_sparse_boundary_summary_for_report(),
+        "Reference snapshot boundary day: ",
+        "reference snapshot sparse boundary",
+    )
+    .ok()?;
     let phase2_corpus_alignment =
         validated_packaged_artifact_phase2_corpus_alignment_summary_for_report();
 
@@ -19429,6 +19442,7 @@ fn source_corpus_summary_details() -> Option<SourceCorpusSummary> {
             "production generation coverage",
         )
         .ok()?,
+        reference_snapshot_sparse_boundary,
         release_grade_body_claims,
         phase2_corpus_alignment,
     })
@@ -39635,6 +39649,9 @@ version = "0.9.0"
         assert_eq!(rendered, source_corpus_summary_for_report());
         assert!(rendered.contains("shared schema=epoch_jd, body, x_km, y_km, z_km"));
         assert!(rendered.contains("generation command=generate-packaged-artifact --check"));
+        assert!(rendered
+            .contains("reference snapshot sparse boundary=16 exact samples at JD 2451915.5 (TDB)"));
+        assert!(rendered.contains("Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis"));
         assert!(rendered.contains("evidence classification=release-tolerance=reference/comparison/production-generation validation summaries; hold-out=independent hold-out rows and interpolation-quality summaries; fixture exactness=reference snapshot exact J2000 evidence; provenance-only=source and manifest summaries"));
         assert!(rendered.contains("provenance-only=source and manifest summaries are provenance-only evidence; they validate corpus provenance and checksum posture but are excluded from tolerance, hold-out, and fixture-exactness claims"));
         assert!(rendered.contains("release-grade body claims=Moon and supported lunar points (Mean Node, True Node, Mean Apogee, Mean Perigee) remain source-backed validation bodies; True Apogee and True Perigee remain unsupported; Sun through Neptune are release-grade major-body claims; Pluto remains an explicitly approximate fallback; selected asteroids (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) remain source-backed validation bodies"));
@@ -39701,6 +39718,19 @@ version = "0.9.0"
         assert_eq!(
             error.to_string(),
             "the source corpus summary field `production_generation_coverage` is out of sync with the current posture"
+        );
+
+        let mut summary =
+            source_corpus_summary_details().expect("source corpus summary should exist");
+        summary.reference_snapshot_sparse_boundary =
+            "Reference snapshot boundary day: drifted".to_string();
+
+        let error = summary
+            .validated_summary_line()
+            .expect_err("reference snapshot sparse boundary drift should fail closed");
+        assert_eq!(
+            error.to_string(),
+            "the source corpus summary field `reference_snapshot_sparse_boundary` is out of sync with the current posture"
         );
     }
 }
