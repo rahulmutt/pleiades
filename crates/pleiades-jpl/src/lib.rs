@@ -20675,6 +20675,34 @@ pub fn independent_holdout_manifest_summary_for_report() -> String {
     }
 }
 
+const CHECKED_IN_SNAPSHOT_SCHEMA_COLUMNS: [&str; 5] = ["epoch_jd", "body", "x_km", "y_km", "z_km"];
+
+fn validated_checked_in_snapshot_schema_summary() -> Result<&'static str, String> {
+    reference_snapshot_manifest_summary()
+        .validate_with_expected_columns(&CHECKED_IN_SNAPSHOT_SCHEMA_COLUMNS)
+        .map_err(|error| format!("reference snapshot schema validation failed: {error}"))?;
+    independent_holdout_manifest_summary()
+        .validate_with_expected_columns(&CHECKED_IN_SNAPSHOT_SCHEMA_COLUMNS)
+        .map_err(|error| {
+            format!("independent hold-out snapshot schema validation failed: {error}")
+        })?;
+
+    Ok("epoch_jd, body, x_km, y_km, z_km")
+}
+
+/// Returns the schema shared by the checked-in snapshot fixtures after validating the manifests.
+pub fn checked_in_snapshot_schema_summary_for_report() -> String {
+    match validated_checked_in_snapshot_schema_summary() {
+        Ok(schema) => format!("Checked-in snapshot schema: {schema}"),
+        Err(error) => format!("Checked-in snapshot schema: unavailable ({error})"),
+    }
+}
+
+/// Returns the validated schema shared by the checked-in snapshot fixtures.
+pub fn validated_checked_in_snapshot_schema_summary_for_report() -> Result<String, String> {
+    validated_checked_in_snapshot_schema_summary().map(str::to_string)
+}
+
 const JPL_SNAPSHOT_EVIDENCE_CLASSIFICATION_SUMMARY: &str = "JPL evidence classification: release-tolerance=reference/comparison/production-generation validation summaries; hold-out=independent hold-out rows and interpolation-quality summaries; fixture exactness=reference snapshot exact J2000 evidence; provenance-only=source and manifest summaries";
 const JPL_SOURCE_POSTURE_SUMMARY: &str = "JPL source posture: documented hybrid snapshot/hold-out fixture backend with a separate generation-input path; pure-Rust include_str! ingestion; not a broad public reader/corpus provider";
 
@@ -31042,6 +31070,18 @@ mod tests {
             }
             .to_string(),
             "column schema mismatch: expected epoch_jd, body, x_km, y_km, z_km but found body, x_km, y_km, z_km"
+        );
+    }
+
+    #[test]
+    fn checked_in_snapshot_schema_summary_for_report_reports_the_shared_schema() {
+        assert_eq!(
+            checked_in_snapshot_schema_summary_for_report(),
+            "Checked-in snapshot schema: epoch_jd, body, x_km, y_km, z_km"
+        );
+        assert_eq!(
+            validated_checked_in_snapshot_schema_summary_for_report(),
+            Ok("epoch_jd, body, x_km, y_km, z_km".to_string())
         );
     }
 
