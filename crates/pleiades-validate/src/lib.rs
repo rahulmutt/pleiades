@@ -4187,6 +4187,11 @@ impl fmt::Display for ReleaseBundle {
         )?;
         writeln!(
             f,
+            "  zodiac policy summary: {}",
+            self.output_dir.join("zodiac-policy-summary.txt").display()
+        )?;
+        writeln!(
+            f,
             "  native sidereal policy summary: {}",
             self.output_dir
                 .join("native-sidereal-policy-summary.txt")
@@ -4731,6 +4736,11 @@ impl ReleaseBundle {
                 &self.api_stability_summary_path,
                 "api-stability-summary.txt",
                 "API stability summary",
+            ),
+            (
+                &self.output_dir.join("zodiac-policy-summary.txt"),
+                "zodiac-policy-summary.txt",
+                "zodiac policy summary",
             ),
             (
                 &self.output_dir.join("native-sidereal-policy-summary.txt"),
@@ -6196,6 +6206,14 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("native-sidereal-policy") => {
             ensure_no_extra_args(&args[1..], "native-sidereal-policy")?;
             Ok(render_native_sidereal_policy_summary_text())
+        }
+        Some("zodiac-policy-summary") => {
+            ensure_no_extra_args(&args[1..], "zodiac-policy-summary")?;
+            Ok(render_zodiac_policy_summary_text())
+        }
+        Some("zodiac-policy") => {
+            ensure_no_extra_args(&args[1..], "zodiac-policy")?;
+            Ok(render_zodiac_policy_summary_text())
         }
         Some("interpolation-posture-summary") => {
             ensure_no_extra_args(&args[1..], "interpolation-posture-summary")?;
@@ -10133,6 +10151,7 @@ pub fn render_release_bundle(
     let utc_convenience_policy_summary_text = render_utc_convenience_policy_summary_text();
     let delta_t_policy_summary_text = render_delta_t_policy_summary_text();
     let native_sidereal_policy_summary_text = render_native_sidereal_policy_summary_text();
+    let zodiac_policy_summary_text = render_zodiac_policy_summary_text();
     let lunar_theory_limitations_summary_text = lunar_theory_limitations_summary_for_report();
     let lunar_theory_source_selection_summary_text =
         pleiades_elp::lunar_theory_source_selection_summary_for_report();
@@ -10317,6 +10336,7 @@ pub fn render_release_bundle(
     let utc_convenience_policy_summary_path = output_dir.join("utc-convenience-policy-summary.txt");
     let delta_t_policy_summary_path = output_dir.join("delta-t-policy-summary.txt");
     let native_sidereal_policy_summary_path = output_dir.join("native-sidereal-policy-summary.txt");
+    let zodiac_policy_summary_path = output_dir.join("zodiac-policy-summary.txt");
     let lunar_theory_limitations_summary_path =
         output_dir.join("lunar-theory-limitations-summary.txt");
     let lunar_theory_source_selection_summary_path =
@@ -10559,6 +10579,7 @@ pub fn render_release_bundle(
     let utc_convenience_policy_summary_checksum = checksum64(&utc_convenience_policy_summary_text);
     let delta_t_policy_summary_checksum = checksum64(&delta_t_policy_summary_text);
     let native_sidereal_policy_summary_checksum = checksum64(&native_sidereal_policy_summary_text);
+    let zodiac_policy_summary_checksum = checksum64(&zodiac_policy_summary_text);
     let lunar_theory_limitations_summary_checksum =
         checksum64(&lunar_theory_limitations_summary_text);
     let lunar_theory_source_selection_summary_checksum =
@@ -10656,7 +10677,7 @@ pluto fallback summary: pluto-fallback-summary.txt
 pluto fallback summary checksum (fnv1a-64): 0x{pluto_fallback_summary_checksum:016x}
 request policy summary: request-policy-summary.txt
 request policy summary checksum (fnv1a-64): 0x{request_policy_summary_checksum:016x}
-request-semantics summary: request-semantics-summary.txt\nrequest-semantics summary checksum (fnv1a-64): 0x{request_semantics_summary_checksum:016x}\ntime-scale policy summary: time-scale-policy-summary.txt\ntime-scale policy summary checksum (fnv1a-64): 0x{time_scale_policy_summary_checksum:016x}\nutc-convenience policy summary: utc-convenience-policy-summary.txt\nutc-convenience policy summary checksum (fnv1a-64): 0x{utc_convenience_policy_summary_checksum:016x}\ndelta-t policy summary: delta-t-policy-summary.txt\ndelta-t policy summary checksum (fnv1a-64): 0x{delta_t_policy_summary_checksum:016x}\nnative sidereal policy summary: native-sidereal-policy-summary.txt\nnative sidereal policy summary checksum (fnv1a-64): 0x{native_sidereal_policy_summary_checksum:016x}\nlunar theory limitations summary: lunar-theory-limitations-summary.txt
+request-semantics summary: request-semantics-summary.txt\nrequest-semantics summary checksum (fnv1a-64): 0x{request_semantics_summary_checksum:016x}\ntime-scale policy summary: time-scale-policy-summary.txt\ntime-scale policy summary checksum (fnv1a-64): 0x{time_scale_policy_summary_checksum:016x}\nutc-convenience policy summary: utc-convenience-policy-summary.txt\nutc-convenience policy summary checksum (fnv1a-64): 0x{utc_convenience_policy_summary_checksum:016x}\ndelta-t policy summary: delta-t-policy-summary.txt\ndelta-t policy summary checksum (fnv1a-64): 0x{delta_t_policy_summary_checksum:016x}\nnative sidereal policy summary: native-sidereal-policy-summary.txt\nnative sidereal policy summary checksum (fnv1a-64): 0x{native_sidereal_policy_summary_checksum:016x}\nzodiac policy summary: zodiac-policy-summary.txt\nzodiac policy summary checksum (fnv1a-64): 0x{zodiac_policy_summary_checksum:016x}\nlunar theory limitations summary: lunar-theory-limitations-summary.txt
 lunar theory limitations summary checksum (fnv1a-64): 0x{lunar_theory_limitations_summary_checksum:016x}
 lunar theory source selection summary: lunar-theory-source-selection-summary.txt
 lunar theory source selection summary checksum (fnv1a-64): 0x{lunar_theory_source_selection_summary_checksum:016x}
@@ -10934,6 +10955,10 @@ benchmark-corpus summary: benchmark-corpus-summary.txt\nbenchmark-corpus summary
     fs::write(
         &native_sidereal_policy_summary_path,
         native_sidereal_policy_summary_text.as_bytes(),
+    )?;
+    fs::write(
+        &zodiac_policy_summary_path,
+        zodiac_policy_summary_text.as_bytes(),
     )?;
     fs::write(
         &lunar_theory_limitations_summary_path,
@@ -11244,6 +11269,8 @@ struct ParsedReleaseBundleManifest {
     delta_t_policy_summary_checksum: u64,
     native_sidereal_policy_summary_path: String,
     native_sidereal_policy_summary_checksum: u64,
+    zodiac_policy_summary_path: String,
+    zodiac_policy_summary_checksum: u64,
     lunar_theory_limitations_summary_path: String,
     lunar_theory_limitations_summary_checksum: u64,
     lunar_theory_source_selection_summary_path: String,
@@ -11795,6 +11822,14 @@ impl ParsedReleaseBundleManifest {
                 text,
                 "native sidereal policy summary checksum (fnv1a-64):",
             )?,
+            zodiac_policy_summary_path: parse_manifest_string(
+                text,
+                "zodiac policy summary:",
+            )?,
+            zodiac_policy_summary_checksum: parse_manifest_checksum(
+                text,
+                "zodiac policy summary checksum (fnv1a-64):",
+            )?,
             lunar_theory_limitations_summary_path: parse_manifest_string(
                 text,
                 "lunar theory limitations summary:",
@@ -12208,6 +12243,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
         "time-scale-policy-summary.txt",
         "utc-convenience-policy-summary.txt",
         "delta-t-policy-summary.txt",
+        "zodiac-policy-summary.txt",
         "native-sidereal-policy-summary.txt",
         "lunar-theory-limitations-summary.txt",
         "lunar-theory-source-selection-summary.txt",
@@ -12283,7 +12319,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
 fn ensure_release_bundle_manifest_is_canonical(
     manifest_text: &str,
 ) -> Result<(), ReleaseBundleError> {
-    const EXPECTED_MANIFEST_LINES: [&str; 224] = [
+    const EXPECTED_MANIFEST_LINES: [&str; 226] = [
         "Release bundle manifest",
         "profile:",
         "profile checksum (fnv1a-64):",
@@ -12409,6 +12445,8 @@ fn ensure_release_bundle_manifest_is_canonical(
         "delta-t policy summary checksum (fnv1a-64):",
         "native sidereal policy summary:",
         "native sidereal policy summary checksum (fnv1a-64):",
+        "zodiac policy summary:",
+        "zodiac policy summary checksum (fnv1a-64):",
         "lunar theory limitations summary:",
         "lunar theory limitations summary checksum (fnv1a-64):",
         "lunar theory source selection summary:",
@@ -13674,6 +13712,18 @@ fn ensure_request_semantics_summary_matches_current_rendering(
     }
 }
 
+fn ensure_zodiac_policy_summary_matches_current_rendering(
+    zodiac_policy_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if zodiac_policy_summary_text == render_zodiac_policy_summary_text() {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "zodiac policy summary no longer matches the current zodiac posture".to_string(),
+        ))
+    }
+}
+
 fn ensure_request_surface_summary_matches_current_rendering(
     request_surface_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -13949,6 +13999,7 @@ fn verify_release_bundle_internal(
     let utc_convenience_policy_summary_path = output_dir.join("utc-convenience-policy-summary.txt");
     let delta_t_policy_summary_path = output_dir.join("delta-t-policy-summary.txt");
     let native_sidereal_policy_summary_path = output_dir.join("native-sidereal-policy-summary.txt");
+    let zodiac_policy_summary_path = output_dir.join("zodiac-policy-summary.txt");
     let lunar_theory_limitations_summary_path =
         output_dir.join("lunar-theory-limitations-summary.txt");
     let lunar_theory_source_selection_summary_path =
@@ -14428,6 +14479,8 @@ fn verify_release_bundle_internal(
         &native_sidereal_policy_summary_path,
         "native sidereal policy summary",
     )?;
+    let zodiac_policy_summary_text =
+        read_required_bundle_text(&zodiac_policy_summary_path, "zodiac policy summary")?;
     let lunar_theory_limitations_summary_text = read_required_bundle_text(
         &lunar_theory_limitations_summary_path,
         "lunar theory limitations summary",
@@ -15021,6 +15074,12 @@ fn verify_release_bundle_internal(
             manifest.native_sidereal_policy_summary_path
         )));
     }
+    if manifest.zodiac_policy_summary_path != "zodiac-policy-summary.txt" {
+        return Err(ReleaseBundleError::Verification(format!(
+            "unexpected zodiac policy summary file entry: {}",
+            manifest.zodiac_policy_summary_path
+        )));
+    }
     if manifest.lunar_theory_limitations_summary_path != "lunar-theory-limitations-summary.txt" {
         return Err(ReleaseBundleError::Verification(format!(
             "unexpected lunar theory limitations summary file entry: {}",
@@ -15301,6 +15360,7 @@ fn verify_release_bundle_internal(
     let utc_convenience_policy_summary_checksum = checksum64(&utc_convenience_policy_summary_text);
     let delta_t_policy_summary_checksum = checksum64(&delta_t_policy_summary_text);
     let native_sidereal_policy_summary_checksum = checksum64(&native_sidereal_policy_summary_text);
+    let zodiac_policy_summary_checksum = checksum64(&zodiac_policy_summary_text);
     let lunar_theory_limitations_summary_checksum =
         checksum64(&lunar_theory_limitations_summary_text);
     let lunar_theory_catalog_validation_summary_checksum =
@@ -16146,9 +16206,16 @@ fn verify_release_bundle_internal(
             manifest.native_sidereal_policy_summary_checksum, native_sidereal_policy_summary_checksum
         )));
     }
+    if manifest.zodiac_policy_summary_checksum != zodiac_policy_summary_checksum {
+        return Err(ReleaseBundleError::Verification(format!(
+            "zodiac policy summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
+            manifest.zodiac_policy_summary_checksum, zodiac_policy_summary_checksum
+        )));
+    }
     ensure_native_sidereal_policy_summary_matches_current_rendering(
         &native_sidereal_policy_summary_text,
     )?;
+    ensure_zodiac_policy_summary_matches_current_rendering(&zodiac_policy_summary_text)?;
     if manifest.lunar_theory_limitations_summary_checksum
         != lunar_theory_limitations_summary_checksum
     {
@@ -19215,6 +19282,13 @@ fn render_delta_t_policy_summary_text() -> String {
     }
 }
 
+fn render_zodiac_policy_summary_text() -> String {
+    format!(
+        "Zodiac policy summary\nZodiac policy: {}\n",
+        pleiades_backend::validated_zodiac_policy_summary_for_report()
+    )
+}
+
 fn render_utc_convenience_policy_summary_text() -> String {
     format!(
         "UTC convenience policy summary\nUTC convenience policy: {}\n",
@@ -20208,7 +20282,7 @@ impl RequestSurfaceSummary {
                 "pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight)",
             house_request: "pleiades-houses::HouseRequest (house-only observer calculations)",
             request_policy:
-                "request-policy-summary / request-policy / request-semantics-summary / request-semantics / utc-convenience-policy-summary / utc-convenience-policy / delta-t-policy-summary / delta-t-policy (compact request-policy report entrypoints)",
+                "request-policy-summary / request-policy / request-semantics-summary / request-semantics / utc-convenience-policy-summary / utc-convenience-policy / delta-t-policy-summary / delta-t-policy / zodiac-policy-summary / zodiac-policy / native-sidereal-policy-summary / native-sidereal-policy (compact request-policy report entrypoints)",
             cli_chart: "pleiades-cli chart (explicit --tt|--tdb|--utc|--ut1 flags plus caller-supplied TT/TDB offset aliases: --tt-offset-seconds, --tt-from-utc-offset-seconds, --tt-from-ut1-offset-seconds, --tdb-offset-seconds, --tdb-from-utc-offset-seconds, --tdb-from-ut1-offset-seconds, --tdb-from-tt-offset-seconds, and --tt-from-tdb-offset-seconds; observer-bearing chart requests stay geocentric and use the observer only for houses)",
         }
     }
@@ -20224,7 +20298,7 @@ impl RequestSurfaceSummary {
         const EXPECTED_HOUSE_REQUEST: &str =
             "pleiades-houses::HouseRequest (house-only observer calculations)";
         const EXPECTED_REQUEST_POLICY: &str =
-            "request-policy-summary / request-policy / request-semantics-summary / request-semantics / utc-convenience-policy-summary / utc-convenience-policy / delta-t-policy-summary / delta-t-policy (compact request-policy report entrypoints)";
+            "request-policy-summary / request-policy / request-semantics-summary / request-semantics / utc-convenience-policy-summary / utc-convenience-policy / delta-t-policy-summary / delta-t-policy / zodiac-policy-summary / zodiac-policy / native-sidereal-policy-summary / native-sidereal-policy (compact request-policy report entrypoints)";
         const EXPECTED_CLI_CHART: &str = "pleiades-cli chart (explicit --tt|--tdb|--utc|--ut1 flags plus caller-supplied TT/TDB offset aliases: --tt-offset-seconds, --tt-from-utc-offset-seconds, --tt-from-ut1-offset-seconds, --tdb-offset-seconds, --tdb-from-utc-offset-seconds, --tdb-from-ut1-offset-seconds, --tdb-from-tt-offset-seconds, and --tt-from-tdb-offset-seconds; observer-bearing chart requests stay geocentric and use the observer only for houses)";
 
         validate_request_surface_label("instant", self.instant, EXPECTED_INSTANT)?;
@@ -24187,7 +24261,7 @@ fn help_text() -> String {
   2600000-major-body-boundary-summary  Alias for reference-snapshot-2600000-major-body-boundary-summary
   reference-snapshot-2451920-major-body-interior-summary  Print the compact reference 2451920 major-body interior evidence summary
   2451920-major-body-interior-summary  Alias for reference-snapshot-2451920-major-body-interior-summary
-  source-documentation-summary  Print the compact VSOP87 source-documentation summary\n  source-documentation         Alias for source-documentation-summary\n  source-documentation-health-summary  Print the compact VSOP87 source-documentation health summary\n  source-documentation-health  Alias for source-documentation-health-summary\n  source-audit-summary      Print the compact VSOP87 source audit summary\n  source-audit              Alias for source-audit-summary\n  generated-binary-audit-summary  Print the compact VSOP87 generated binary audit summary\n  generated-binary-audit    Alias for generated-binary-audit-summary\n  time-scale-policy-summary  Print the compact time-scale policy summary\n  time-scale-policy       Alias for time-scale-policy-summary\n  utc-convenience-policy-summary  Print the compact UTC convenience policy summary\n  utc-convenience-policy  Alias for utc-convenience-policy-summary\n  delta-t-policy-summary   Print the compact Delta T policy summary\n  delta-t-policy         Alias for delta-t-policy-summary\n  observer-policy-summary  Print the compact observer policy summary\n  observer-policy        Alias for observer-policy-summary\n  apparentness-policy-summary  Print the compact apparentness policy summary\n  apparentness-policy     Alias for apparentness-policy-summary\n  native-sidereal-policy-summary  Print the compact native sidereal policy summary\n  native-sidereal-policy   Alias for native-sidereal-policy-summary\n  interpolation-posture-summary  Print the compact JPL interpolation posture summary\n  interpolation-posture         Alias for interpolation-posture-summary\n  interpolation-quality-summary  Print the compact JPL interpolation quality summary\n  interpolation-quality-kind-coverage-summary  Print the compact JPL interpolation quality kind coverage summary\n  interpolation-quality-request-corpus-summary  Print the compact JPL interpolation-quality sample request corpus summary\n  interpolation-quality-request-corpus  Alias for interpolation-quality-request-corpus-summary\n  lunar-reference-error-envelope-summary  Print the compact lunar reference error envelope summary\n  lunar-equatorial-reference-error-envelope-summary  Print the compact lunar equatorial reference error envelope summary\n  lunar-apparent-comparison-summary  Print the compact lunar apparent comparison summary\n  lunar-source-window-summary  Print the compact lunar source windows summary\n  lunar-theory-request-policy-summary  Print the compact ELP lunar request policy summary\n  lunar-theory-request-policy  Alias for lunar-theory-request-policy-summary\n  lunar-theory-frame-treatment-summary  Print the compact ELP lunar frame treatment summary\n  lunar-theory-frame-treatment  Alias for lunar-theory-frame-treatment-summary\n  lunar-theory-limitations-summary  Print the compact ELP lunar limitations summary\n  lunar-theory-limitations   Alias for lunar-theory-limitations-summary\n  lunar-theory-summary      Print the compact ELP lunar theory specification\n  lunar-theory-capability-summary  Print the compact ELP lunar capability summary\n  lunar-theory-source-summary  Print the compact ELP lunar source summary\n  lunar-theory-source-selection-summary  Print the compact ELP lunar source selection summary\n  lunar-theory-source-selection  Alias for lunar-theory-source-selection-summary\n  lunar-theory-source-family-summary  Print the compact ELP lunar source family summary\n  lunar-theory-source-family  Alias for lunar-theory-source-family-summary\n  lunar-theory-catalog-summary  Print the compact ELP lunar theory catalog summary\n  lunar-theory-catalog-validation-summary  Print the compact ELP lunar theory catalog validation summary\n  lunar-theory-catalog      Alias for lunar-theory-catalog-summary\n  lunar-theory-catalog-validation  Alias for lunar-theory-catalog-validation-summary\n  selected-asteroid-boundary-summary  Print the compact selected-asteroid boundary evidence summary\n  reference-snapshot-selected-asteroid-bridge-summary  Print the compact selected-asteroid bridge evidence summary\n  selected-asteroid-bridge-summary  Alias for reference-snapshot-selected-asteroid-bridge-summary\n  reference-snapshot-selected-asteroid-dense-boundary-summary  Print the compact selected-asteroid dense boundary evidence summary\n  selected-asteroid-dense-boundary-summary  Alias for reference-snapshot-selected-asteroid-dense-boundary-summary\n  reference-snapshot-selected-asteroid-terminal-boundary-summary  Print the compact selected-asteroid terminal boundary evidence summary\n  selected-asteroid-terminal-boundary-summary  Alias for reference-snapshot-selected-asteroid-terminal-boundary-summary\n  selected-asteroid-source-evidence-summary  Print the compact selected-asteroid source evidence summary\n  reference-snapshot-selected-asteroid-source-summary  Print the compact selected-asteroid source evidence summary\n  selected-asteroid-source-summary  Alias for selected-asteroid-source-evidence-summary\n  selected-asteroid-source-request-corpus-summary  Print the compact selected-asteroid source request corpus summary\n  selected-asteroid-source-request-corpus  Alias for selected-asteroid-source-request-corpus-summary\n  selected-asteroid-source-request-corpus-equatorial-summary  Print the compact selected-asteroid source request corpus summary in the equatorial frame\n  selected-asteroid-source-request-corpus-equatorial  Alias for selected-asteroid-source-request-corpus-equatorial-summary\n  selected-asteroid-source-window-summary  Print the compact selected-asteroid source windows summary\n  reference-snapshot-selected-asteroid-source-window-summary  Print the compact selected-asteroid source windows summary\n  reference-snapshot-2453000-selected-asteroid-source-summary  Print the compact reference 2003-12-27 selected-asteroid source evidence summary\n  2453000-selected-asteroid-source-summary  Alias for reference-snapshot-2453000-selected-asteroid-source-summary\n  reference-snapshot-2500000-selected-asteroid-source-summary  Print the compact reference selected-asteroid 2500000 source evidence summary\n  2500000-selected-asteroid-source-summary  Alias for reference-snapshot-2500000-selected-asteroid-source-summary\n  selected-asteroid-source-window  Alias for selected-asteroid-source-window-summary\n  selected-asteroid-batch-parity-summary  Print the compact selected-asteroid batch-parity summary\n  reference-asteroid-evidence-summary  Print the compact reference asteroid evidence summary\n  reference-asteroid-equatorial-evidence-summary  Print the compact reference asteroid equatorial evidence summary\n  reference-asteroid-source-window-summary  Print the compact reference asteroid source windows summary\n  reference-asteroid-source-summary  Alias for reference-asteroid-source-window-summary\n  reference-holdout-overlap-summary  Print the compact reference/hold-out overlap summary\n  holdout-overlap-summary   Alias for reference-holdout-overlap-summary\n  independent-holdout-source-window-summary  Print the compact independent hold-out source windows summary\n  independent-holdout-summary  Print the compact independent hold-out summary\n  independent-holdout-source-summary  Print the compact independent hold-out source summary\n  independent-holdout-high-curvature-summary  Print the compact independent hold-out high-curvature evidence summary\n  holdout-high-curvature-summary  Alias for independent-holdout-high-curvature-summary\n  independent-holdout-body-class-coverage-summary  Print the compact independent hold-out body-class coverage summary\n  holdout-body-class-coverage-summary  Alias for independent-holdout-body-class-coverage-summary\n  independent-holdout-batch-parity-summary  Print the compact independent hold-out batch parity summary\n  independent-holdout-equatorial-parity-summary  Print the compact independent hold-out equatorial parity summary\n  house-validation-summary   Print the compact house-validation corpus summary\n  house-validation            Alias for house-validation-summary\n  release-house-validation-summary  Print the compact release house-validation corpus summary\n  release-house-validation  Alias for release-house-validation-summary\n  house-formula-families-summary  Print the compact house formula families summary\n  house-formula-families    Alias for house-formula-families-summary\n  house-latitude-sensitive-summary  Print the compact latitude-sensitive house systems summary\n  house-latitude-sensitive  Alias for house-latitude-sensitive-summary\n  house-code-aliases-summary  Print the compact house-code alias summary\n  house-code-alias-summary  Alias for house-code-aliases-summary\n  ayanamsa-catalog-validation-summary  Print the compact ayanamsa catalog validation summary\n  ayanamsa-catalog-validation  Alias for ayanamsa-catalog-validation-summary\n  ayanamsa-metadata-coverage-summary  Print the compact ayanamsa sidereal metadata coverage summary\n  ayanamsa-metadata-coverage  Alias for ayanamsa-metadata-coverage-summary\n  ayanamsa-reference-offsets-summary  Print the compact ayanamsa reference offsets summary\n  ayanamsa-reference-offsets  Alias for ayanamsa-reference-offsets-summary\n  ayanamsa-provenance-summary  Print the compact ayanamsa provenance summary\n  ayanamsa-provenance        Alias for ayanamsa-provenance-summary\n  frame-policy-summary      Print the compact frame-policy summary\n  frame-policy             Alias for frame-policy-summary\n  mean-obliquity-frame-round-trip-summary  Print the compact mean-obliquity frame round-trip summary\n  mean-obliquity-frame-round-trip  Alias for mean-obliquity-frame-round-trip-summary\n  release-profile-identifiers-summary  Print the compact release-profile identifiers summary\n  release-profile-identifiers  Alias for release-profile-identifiers-summary\n  request-surface-summary  Print the compact request-surface inventory summary\n  request-surface         Alias for request-surface-summary\n  request-policy-summary    Print the compact request-policy summary\n  request-policy           Alias for request-policy-summary\n  request-semantics-summary  Print the compact request-semantics summary\n  request-semantics        Alias for request-semantics-summary\n  comparison-tolerance-policy-summary  Print the compact comparison tolerance policy summary\n  comparison-tolerance-summary  Alias for comparison-tolerance-policy-summary\n  pluto-fallback-summary   Print the compact Pluto fallback summary\n  pluto-fallback           Alias for pluto-fallback-summary\n  bundle-release --out DIR  Write the release compatibility profile, profile summary, release notes, release notes summary, release summary, release-profile identifiers, release-profile identifiers summary, release-house-system-canonical-names summary, release-ayanamsa-canonical-names summary, release-house-validation summary, release checklist, release checklist summary, backend matrix, backend matrix summary, API posture, API stability summary, comparison-corpus summary, source-corpus summary, comparison-snapshot summary, comparison-snapshot source summary, comparison-snapshot body-class coverage summary, comparison-envelope summary, comparison-body-class-tolerance summary, comparison-body-class-error-envelope summary, comparison-corpus release-guard summary, comparison-corpus guard summary, request policy summary, request-semantics summary, time-scale policy summary, UTC convenience policy summary, delta-t policy summary, native sidereal policy summary, request surface summary, compatibility-caveats summary, workspace audit summary, native-dependency audit summary, reference-holdout overlap summary, reference snapshot bridge day summary, reference snapshot sparse boundary summary, reference snapshot summary, reference snapshot source window summary, reference snapshot equatorial parity summary, reference asteroid source window summary, production-generation summary, production-generation source summary, production-generation source revision summary, production-generation manifest summary, production-generation manifest checksum summary, catalog inventory summary, artifact summary, packaged-artifact binary, packaged-artifact checksum sidecar, packaged-artifact profile coverage summary, packaged-artifact access summary, packaged-artifact output support summary, packaged-artifact normalized intermediate summary, packaged-artifact speed policy summary, packaged-artifact storage summary, packaged-artifact production-profile summary, packaged-frame-treatment summary, packaged-artifact target-threshold summary, packaged-artifact target-threshold scope envelopes summary, packaged-artifact phase-2 corpus alignment summary, packaged-artifact source-fit and hold-out sync summary, packaged-artifact lookup-epoch policy summary, packaged-artifact generation policy summary, packaged-artifact generation manifest, packaged-artifact generation manifest summary, packaged-artifact generation manifest checksum summary, packaged-artifact generation manifest checksum sidecar, benchmark-corpus summary, chart-benchmark-corpus summary, selected asteroid source request corpus summary, interpolation-quality request corpus summary, benchmark report, validation report, release-body-claims summary, pluto fallback summary, manifest, and manifest checksum sidecar\n  bundle-release --output DIR  Alias for bundle-release --out DIR\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  verify-release-bundle --output DIR  Alias for verify-release-bundle --out DIR\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
+  source-documentation-summary  Print the compact VSOP87 source-documentation summary\n  source-documentation         Alias for source-documentation-summary\n  source-documentation-health-summary  Print the compact VSOP87 source-documentation health summary\n  source-documentation-health  Alias for source-documentation-health-summary\n  source-audit-summary      Print the compact VSOP87 source audit summary\n  source-audit              Alias for source-audit-summary\n  generated-binary-audit-summary  Print the compact VSOP87 generated binary audit summary\n  generated-binary-audit    Alias for generated-binary-audit-summary\n  time-scale-policy-summary  Print the compact time-scale policy summary\n  time-scale-policy       Alias for time-scale-policy-summary\n  utc-convenience-policy-summary  Print the compact UTC convenience policy summary\n  utc-convenience-policy  Alias for utc-convenience-policy-summary\n  delta-t-policy-summary   Print the compact Delta T policy summary\n  delta-t-policy         Alias for delta-t-policy-summary\n  zodiac-policy-summary  Print the compact zodiac policy summary\n  zodiac-policy         Alias for zodiac-policy-summary\n  observer-policy-summary  Print the compact observer policy summary\n  observer-policy        Alias for observer-policy-summary\n  apparentness-policy-summary  Print the compact apparentness policy summary\n  apparentness-policy     Alias for apparentness-policy-summary\n  native-sidereal-policy-summary  Print the compact native sidereal policy summary\n  native-sidereal-policy   Alias for native-sidereal-policy-summary\n  interpolation-posture-summary  Print the compact JPL interpolation posture summary\n  interpolation-posture         Alias for interpolation-posture-summary\n  interpolation-quality-summary  Print the compact JPL interpolation quality summary\n  interpolation-quality-kind-coverage-summary  Print the compact JPL interpolation quality kind coverage summary\n  interpolation-quality-request-corpus-summary  Print the compact JPL interpolation-quality sample request corpus summary\n  interpolation-quality-request-corpus  Alias for interpolation-quality-request-corpus-summary\n  lunar-reference-error-envelope-summary  Print the compact lunar reference error envelope summary\n  lunar-equatorial-reference-error-envelope-summary  Print the compact lunar equatorial reference error envelope summary\n  lunar-apparent-comparison-summary  Print the compact lunar apparent comparison summary\n  lunar-source-window-summary  Print the compact lunar source windows summary\n  lunar-theory-request-policy-summary  Print the compact ELP lunar request policy summary\n  lunar-theory-request-policy  Alias for lunar-theory-request-policy-summary\n  lunar-theory-frame-treatment-summary  Print the compact ELP lunar frame treatment summary\n  lunar-theory-frame-treatment  Alias for lunar-theory-frame-treatment-summary\n  lunar-theory-limitations-summary  Print the compact ELP lunar limitations summary\n  lunar-theory-limitations   Alias for lunar-theory-limitations-summary\n  lunar-theory-summary      Print the compact ELP lunar theory specification\n  lunar-theory-capability-summary  Print the compact ELP lunar capability summary\n  lunar-theory-source-summary  Print the compact ELP lunar source summary\n  lunar-theory-source-selection-summary  Print the compact ELP lunar source selection summary\n  lunar-theory-source-selection  Alias for lunar-theory-source-selection-summary\n  lunar-theory-source-family-summary  Print the compact ELP lunar source family summary\n  lunar-theory-source-family  Alias for lunar-theory-source-family-summary\n  lunar-theory-catalog-summary  Print the compact ELP lunar theory catalog summary\n  lunar-theory-catalog-validation-summary  Print the compact ELP lunar theory catalog validation summary\n  lunar-theory-catalog      Alias for lunar-theory-catalog-summary\n  lunar-theory-catalog-validation  Alias for lunar-theory-catalog-validation-summary\n  selected-asteroid-boundary-summary  Print the compact selected-asteroid boundary evidence summary\n  reference-snapshot-selected-asteroid-bridge-summary  Print the compact selected-asteroid bridge evidence summary\n  selected-asteroid-bridge-summary  Alias for reference-snapshot-selected-asteroid-bridge-summary\n  reference-snapshot-selected-asteroid-dense-boundary-summary  Print the compact selected-asteroid dense boundary evidence summary\n  selected-asteroid-dense-boundary-summary  Alias for reference-snapshot-selected-asteroid-dense-boundary-summary\n  reference-snapshot-selected-asteroid-terminal-boundary-summary  Print the compact selected-asteroid terminal boundary evidence summary\n  selected-asteroid-terminal-boundary-summary  Alias for reference-snapshot-selected-asteroid-terminal-boundary-summary\n  selected-asteroid-source-evidence-summary  Print the compact selected-asteroid source evidence summary\n  reference-snapshot-selected-asteroid-source-summary  Print the compact selected-asteroid source evidence summary\n  selected-asteroid-source-summary  Alias for selected-asteroid-source-evidence-summary\n  selected-asteroid-source-request-corpus-summary  Print the compact selected-asteroid source request corpus summary\n  selected-asteroid-source-request-corpus  Alias for selected-asteroid-source-request-corpus-summary\n  selected-asteroid-source-request-corpus-equatorial-summary  Print the compact selected-asteroid source request corpus summary in the equatorial frame\n  selected-asteroid-source-request-corpus-equatorial  Alias for selected-asteroid-source-request-corpus-equatorial-summary\n  selected-asteroid-source-window-summary  Print the compact selected-asteroid source windows summary\n  reference-snapshot-selected-asteroid-source-window-summary  Print the compact selected-asteroid source windows summary\n  reference-snapshot-2453000-selected-asteroid-source-summary  Print the compact reference 2003-12-27 selected-asteroid source evidence summary\n  2453000-selected-asteroid-source-summary  Alias for reference-snapshot-2453000-selected-asteroid-source-summary\n  reference-snapshot-2500000-selected-asteroid-source-summary  Print the compact reference selected-asteroid 2500000 source evidence summary\n  2500000-selected-asteroid-source-summary  Alias for reference-snapshot-2500000-selected-asteroid-source-summary\n  selected-asteroid-source-window  Alias for selected-asteroid-source-window-summary\n  selected-asteroid-batch-parity-summary  Print the compact selected-asteroid batch-parity summary\n  reference-asteroid-evidence-summary  Print the compact reference asteroid evidence summary\n  reference-asteroid-equatorial-evidence-summary  Print the compact reference asteroid equatorial evidence summary\n  reference-asteroid-source-window-summary  Print the compact reference asteroid source windows summary\n  reference-asteroid-source-summary  Alias for reference-asteroid-source-window-summary\n  reference-holdout-overlap-summary  Print the compact reference/hold-out overlap summary\n  holdout-overlap-summary   Alias for reference-holdout-overlap-summary\n  independent-holdout-source-window-summary  Print the compact independent hold-out source windows summary\n  independent-holdout-summary  Print the compact independent hold-out summary\n  independent-holdout-source-summary  Print the compact independent hold-out source summary\n  independent-holdout-high-curvature-summary  Print the compact independent hold-out high-curvature evidence summary\n  holdout-high-curvature-summary  Alias for independent-holdout-high-curvature-summary\n  independent-holdout-body-class-coverage-summary  Print the compact independent hold-out body-class coverage summary\n  holdout-body-class-coverage-summary  Alias for independent-holdout-body-class-coverage-summary\n  independent-holdout-batch-parity-summary  Print the compact independent hold-out batch parity summary\n  independent-holdout-equatorial-parity-summary  Print the compact independent hold-out equatorial parity summary\n  house-validation-summary   Print the compact house-validation corpus summary\n  house-validation            Alias for house-validation-summary\n  release-house-validation-summary  Print the compact release house-validation corpus summary\n  release-house-validation  Alias for release-house-validation-summary\n  house-formula-families-summary  Print the compact house formula families summary\n  house-formula-families    Alias for house-formula-families-summary\n  house-latitude-sensitive-summary  Print the compact latitude-sensitive house systems summary\n  house-latitude-sensitive  Alias for house-latitude-sensitive-summary\n  house-code-aliases-summary  Print the compact house-code alias summary\n  house-code-alias-summary  Alias for house-code-aliases-summary\n  ayanamsa-catalog-validation-summary  Print the compact ayanamsa catalog validation summary\n  ayanamsa-catalog-validation  Alias for ayanamsa-catalog-validation-summary\n  ayanamsa-metadata-coverage-summary  Print the compact ayanamsa sidereal metadata coverage summary\n  ayanamsa-metadata-coverage  Alias for ayanamsa-metadata-coverage-summary\n  ayanamsa-reference-offsets-summary  Print the compact ayanamsa reference offsets summary\n  ayanamsa-reference-offsets  Alias for ayanamsa-reference-offsets-summary\n  ayanamsa-provenance-summary  Print the compact ayanamsa provenance summary\n  ayanamsa-provenance        Alias for ayanamsa-provenance-summary\n  frame-policy-summary      Print the compact frame-policy summary\n  frame-policy             Alias for frame-policy-summary\n  mean-obliquity-frame-round-trip-summary  Print the compact mean-obliquity frame round-trip summary\n  mean-obliquity-frame-round-trip  Alias for mean-obliquity-frame-round-trip-summary\n  release-profile-identifiers-summary  Print the compact release-profile identifiers summary\n  release-profile-identifiers  Alias for release-profile-identifiers-summary\n  request-surface-summary  Print the compact request-surface inventory summary\n  request-surface         Alias for request-surface-summary\n  request-policy-summary    Print the compact request-policy summary\n  request-policy           Alias for request-policy-summary\n  request-semantics-summary  Print the compact request-semantics summary\n  request-semantics        Alias for request-semantics-summary\n  comparison-tolerance-policy-summary  Print the compact comparison tolerance policy summary\n  comparison-tolerance-summary  Alias for comparison-tolerance-policy-summary\n  pluto-fallback-summary   Print the compact Pluto fallback summary\n  pluto-fallback           Alias for pluto-fallback-summary\n  bundle-release --out DIR  Write the release compatibility profile, profile summary, release notes, release notes summary, release summary, release-profile identifiers, release-profile identifiers summary, release-house-system-canonical-names summary, release-ayanamsa-canonical-names summary, release-house-validation summary, release checklist, release checklist summary, backend matrix, backend matrix summary, API posture, API stability summary, comparison-corpus summary, source-corpus summary, comparison-snapshot summary, comparison-snapshot source summary, comparison-snapshot body-class coverage summary, comparison-envelope summary, comparison-body-class-tolerance summary, comparison-body-class-error-envelope summary, comparison-corpus release-guard summary, comparison-corpus guard summary, request policy summary, request-semantics summary, time-scale policy summary, UTC convenience policy summary, delta-t policy summary, zodiac policy summary, native sidereal policy summary, request surface summary, compatibility-caveats summary, workspace audit summary, native-dependency audit summary, reference-holdout overlap summary, reference snapshot bridge day summary, reference snapshot sparse boundary summary, reference snapshot summary, reference snapshot source window summary, reference snapshot equatorial parity summary, reference asteroid source window summary, production-generation summary, production-generation source summary, production-generation source revision summary, production-generation manifest summary, production-generation manifest checksum summary, catalog inventory summary, artifact summary, packaged-artifact binary, packaged-artifact checksum sidecar, packaged-artifact profile coverage summary, packaged-artifact access summary, packaged-artifact output support summary, packaged-artifact normalized intermediate summary, packaged-artifact speed policy summary, packaged-artifact storage summary, packaged-artifact production-profile summary, packaged-frame-treatment summary, packaged-artifact target-threshold summary, packaged-artifact target-threshold scope envelopes summary, packaged-artifact phase-2 corpus alignment summary, packaged-artifact source-fit and hold-out sync summary, packaged-artifact lookup-epoch policy summary, packaged-artifact generation policy summary, packaged-artifact generation manifest, packaged-artifact generation manifest summary, packaged-artifact generation manifest checksum summary, packaged-artifact generation manifest checksum sidecar, benchmark-corpus summary, chart-benchmark-corpus summary, selected asteroid source request corpus summary, interpolation-quality request corpus summary, benchmark report, validation report, release-body-claims summary, pluto fallback summary, manifest, and manifest checksum sidecar\n  bundle-release --output DIR  Alias for bundle-release --out DIR\n  verify-release-bundle     Read a staged release bundle back and verify its manifest checksums\n  verify-release-bundle --output DIR  Alias for verify-release-bundle --out DIR\n  help                      Show this help text\n\nDefault benchmark rounds: {DEFAULT_BENCHMARK_ROUNDS}\nDefault comparison corpus size: {corpus_size}",
         banner = banner(),
         corpus_size = corpus_size,
     )
@@ -24993,7 +25067,7 @@ mod tests {
         );
         assert_eq!(
             summary.summary_line(),
-            "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); request-policy-summary / request-policy / request-semantics-summary / request-semantics / utc-convenience-policy-summary / utc-convenience-policy / delta-t-policy-summary / delta-t-policy (compact request-policy report entrypoints); pleiades-cli chart (explicit --tt|--tdb|--utc|--ut1 flags plus caller-supplied TT/TDB offset aliases: --tt-offset-seconds, --tt-from-utc-offset-seconds, --tt-from-ut1-offset-seconds, --tdb-offset-seconds, --tdb-from-utc-offset-seconds, --tdb-from-ut1-offset-seconds, --tdb-from-tt-offset-seconds, and --tt-from-tdb-offset-seconds; observer-bearing chart requests stay geocentric and use the observer only for houses)"
+            "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); request-policy-summary / request-policy / request-semantics-summary / request-semantics / utc-convenience-policy-summary / utc-convenience-policy / delta-t-policy-summary / delta-t-policy / zodiac-policy-summary / zodiac-policy / native-sidereal-policy-summary / native-sidereal-policy (compact request-policy report entrypoints); pleiades-cli chart (explicit --tt|--tdb|--utc|--ut1 flags plus caller-supplied TT/TDB offset aliases: --tt-offset-seconds, --tt-from-utc-offset-seconds, --tt-from-ut1-offset-seconds, --tdb-offset-seconds, --tdb-from-utc-offset-seconds, --tdb-from-ut1-offset-seconds, --tdb-from-tt-offset-seconds, and --tt-from-tdb-offset-seconds; observer-bearing chart requests stay geocentric and use the observer only for houses)"
         );
         assert_eq!(summary.summary_line().lines().count(), 1);
     }
@@ -27677,6 +27751,8 @@ mod tests {
         );
         assert!(rendered.contains("delta-t-policy-summary"));
         assert!(rendered.contains("delta-t-policy         Alias for delta-t-policy-summary"));
+        assert!(rendered.contains("zodiac-policy-summary"));
+        assert!(rendered.contains("zodiac-policy         Alias for zodiac-policy-summary"));
         assert!(rendered.contains("observer-policy-summary"));
         assert!(rendered.contains("observer-policy        Alias for observer-policy-summary"));
         assert!(rendered.contains("apparentness-policy-summary"));
@@ -31319,10 +31395,10 @@ mod tests {
                 .expect("current request policy summary should render")
         );
         assert!(rendered.contains(
-            "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); request-policy-summary / request-policy / request-semantics-summary / request-semantics / utc-convenience-policy-summary / utc-convenience-policy / delta-t-policy-summary / delta-t-policy (compact request-policy report entrypoints); pleiades-cli chart (explicit --tt|--tdb|--utc|--ut1 flags plus caller-supplied TT/TDB offset aliases: --tt-offset-seconds, --tt-from-utc-offset-seconds, --tt-from-ut1-offset-seconds, --tdb-offset-seconds, --tdb-from-utc-offset-seconds, --tdb-from-ut1-offset-seconds, --tdb-from-tt-offset-seconds, and --tt-from-tdb-offset-seconds; observer-bearing chart requests stay geocentric and use the observer only for houses)"
+            "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); request-policy-summary / request-policy / request-semantics-summary / request-semantics / utc-convenience-policy-summary / utc-convenience-policy / delta-t-policy-summary / delta-t-policy / zodiac-policy-summary / zodiac-policy / native-sidereal-policy-summary / native-sidereal-policy (compact request-policy report entrypoints); pleiades-cli chart (explicit --tt|--tdb|--utc|--ut1 flags plus caller-supplied TT/TDB offset aliases: --tt-offset-seconds, --tt-from-utc-offset-seconds, --tt-from-ut1-offset-seconds, --tdb-offset-seconds, --tdb-from-utc-offset-seconds, --tdb-from-ut1-offset-seconds, --tdb-from-tt-offset-seconds, and --tt-from-tdb-offset-seconds; observer-bearing chart requests stay geocentric and use the observer only for houses)"
         ));
         assert!(rendered.lines().any(|line| {
-            line == "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); request-policy-summary / request-policy / request-semantics-summary / request-semantics / utc-convenience-policy-summary / utc-convenience-policy / delta-t-policy-summary / delta-t-policy (compact request-policy report entrypoints); pleiades-cli chart (explicit --tt|--tdb|--utc|--ut1 flags plus caller-supplied TT/TDB offset aliases: --tt-offset-seconds, --tt-from-utc-offset-seconds, --tt-from-ut1-offset-seconds, --tdb-offset-seconds, --tdb-from-utc-offset-seconds, --tdb-from-ut1-offset-seconds, --tdb-from-tt-offset-seconds, and --tt-from-tdb-offset-seconds; observer-bearing chart requests stay geocentric and use the observer only for houses)"
+            line == "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); request-policy-summary / request-policy / request-semantics-summary / request-semantics / utc-convenience-policy-summary / utc-convenience-policy / delta-t-policy-summary / delta-t-policy / zodiac-policy-summary / zodiac-policy / native-sidereal-policy-summary / native-sidereal-policy (compact request-policy report entrypoints); pleiades-cli chart (explicit --tt|--tdb|--utc|--ut1 flags plus caller-supplied TT/TDB offset aliases: --tt-offset-seconds, --tt-from-utc-offset-seconds, --tt-from-ut1-offset-seconds, --tdb-offset-seconds, --tdb-from-utc-offset-seconds, --tdb-from-ut1-offset-seconds, --tdb-from-tt-offset-seconds, and --tt-from-tdb-offset-seconds; observer-bearing chart requests stay geocentric and use the observer only for houses)"
         }));
         assert!(rendered.contains(
             "pleiades-core::ChartRequest (chart assembly plus house-observer preflight)"
@@ -31667,6 +31743,7 @@ version = "0.9.0"
             .join("utc-convenience-policy-summary.txt")
             .exists());
         assert!(bundle_dir.join("delta-t-policy-summary.txt").exists());
+        assert!(bundle_dir.join("zodiac-policy-summary.txt").exists());
         assert!(bundle_dir
             .join("native-sidereal-policy-summary.txt")
             .exists());
@@ -32030,10 +32107,10 @@ version = "0.9.0"
         assert!(release_summary
             .contains(&reference_snapshot_2451916_major_body_boundary_summary_for_report()));
         assert!(release_summary.contains(
-            "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); request-policy-summary / request-policy / request-semantics-summary / request-semantics / utc-convenience-policy-summary / utc-convenience-policy / delta-t-policy-summary / delta-t-policy (compact request-policy report entrypoints); pleiades-cli chart (explicit --tt|--tdb|--utc|--ut1 flags plus caller-supplied TT/TDB offset aliases: --tt-offset-seconds, --tt-from-utc-offset-seconds, --tt-from-ut1-offset-seconds, --tdb-offset-seconds, --tdb-from-utc-offset-seconds, --tdb-from-ut1-offset-seconds, --tdb-from-tt-offset-seconds, and --tt-from-tdb-offset-seconds; observer-bearing chart requests stay geocentric and use the observer only for houses)"
+            "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); request-policy-summary / request-policy / request-semantics-summary / request-semantics / utc-convenience-policy-summary / utc-convenience-policy / delta-t-policy-summary / delta-t-policy / zodiac-policy-summary / zodiac-policy / native-sidereal-policy-summary / native-sidereal-policy (compact request-policy report entrypoints); pleiades-cli chart (explicit --tt|--tdb|--utc|--ut1 flags plus caller-supplied TT/TDB offset aliases: --tt-offset-seconds, --tt-from-utc-offset-seconds, --tt-from-ut1-offset-seconds, --tdb-offset-seconds, --tdb-from-utc-offset-seconds, --tdb-from-ut1-offset-seconds, --tdb-from-tt-offset-seconds, and --tt-from-tdb-offset-seconds; observer-bearing chart requests stay geocentric and use the observer only for houses)"
         ));
         assert!(release_summary.lines().any(|line| {
-            line == "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); request-policy-summary / request-policy / request-semantics-summary / request-semantics / utc-convenience-policy-summary / utc-convenience-policy / delta-t-policy-summary / delta-t-policy (compact request-policy report entrypoints); pleiades-cli chart (explicit --tt|--tdb|--utc|--ut1 flags plus caller-supplied TT/TDB offset aliases: --tt-offset-seconds, --tt-from-utc-offset-seconds, --tt-from-ut1-offset-seconds, --tdb-offset-seconds, --tdb-from-utc-offset-seconds, --tdb-from-ut1-offset-seconds, --tdb-from-tt-offset-seconds, and --tt-from-tdb-offset-seconds; observer-bearing chart requests stay geocentric and use the observer only for houses)"
+            line == "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); request-policy-summary / request-policy / request-semantics-summary / request-semantics / utc-convenience-policy-summary / utc-convenience-policy / delta-t-policy-summary / delta-t-policy / zodiac-policy-summary / zodiac-policy / native-sidereal-policy-summary / native-sidereal-policy (compact request-policy report entrypoints); pleiades-cli chart (explicit --tt|--tdb|--utc|--ut1 flags plus caller-supplied TT/TDB offset aliases: --tt-offset-seconds, --tt-from-utc-offset-seconds, --tt-from-ut1-offset-seconds, --tdb-offset-seconds, --tdb-from-utc-offset-seconds, --tdb-from-ut1-offset-seconds, --tdb-from-tt-offset-seconds, and --tt-from-tdb-offset-seconds; observer-bearing chart requests stay geocentric and use the observer only for houses)"
         }));
         assert!(release_summary.contains(
             "Validation report summary: validation-report-summary / validation-summary / report-summary"
@@ -32447,11 +32524,11 @@ version = "0.9.0"
             compatibility_profile.house_code_aliases_summary_line()
         )));
         assert!(backend_matrix_summary.contains(
-            "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); request-policy-summary / request-policy / request-semantics-summary / request-semantics / utc-convenience-policy-summary / utc-convenience-policy / delta-t-policy-summary / delta-t-policy (compact request-policy report entrypoints); pleiades-cli chart (explicit --tt|--tdb|--utc|--ut1 flags plus caller-supplied TT/TDB offset aliases: --tt-offset-seconds, --tt-from-utc-offset-seconds, --tt-from-ut1-offset-seconds, --tdb-offset-seconds, --tdb-from-utc-offset-seconds, --tdb-from-ut1-offset-seconds, --tdb-from-tt-offset-seconds, and --tt-from-tdb-offset-seconds; observer-bearing chart requests stay geocentric and use the observer only for houses)"
+            "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); request-policy-summary / request-policy / request-semantics-summary / request-semantics / utc-convenience-policy-summary / utc-convenience-policy / delta-t-policy-summary / delta-t-policy / zodiac-policy-summary / zodiac-policy / native-sidereal-policy-summary / native-sidereal-policy (compact request-policy report entrypoints); pleiades-cli chart (explicit --tt|--tdb|--utc|--ut1 flags plus caller-supplied TT/TDB offset aliases: --tt-offset-seconds, --tt-from-utc-offset-seconds, --tt-from-ut1-offset-seconds, --tdb-offset-seconds, --tdb-from-utc-offset-seconds, --tdb-from-ut1-offset-seconds, --tdb-from-tt-offset-seconds, and --tt-from-tdb-offset-seconds; observer-bearing chart requests stay geocentric and use the observer only for houses)"
         ));
         assert!(
             backend_matrix_summary.lines().any(|line| {
-                line == "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); request-policy-summary / request-policy / request-semantics-summary / request-semantics / utc-convenience-policy-summary / utc-convenience-policy / delta-t-policy-summary / delta-t-policy (compact request-policy report entrypoints); pleiades-cli chart (explicit --tt|--tdb|--utc|--ut1 flags plus caller-supplied TT/TDB offset aliases: --tt-offset-seconds, --tt-from-utc-offset-seconds, --tt-from-ut1-offset-seconds, --tdb-offset-seconds, --tdb-from-utc-offset-seconds, --tdb-from-ut1-offset-seconds, --tdb-from-tt-offset-seconds, and --tt-from-tdb-offset-seconds; observer-bearing chart requests stay geocentric and use the observer only for houses)"
+                line == "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); request-policy-summary / request-policy / request-semantics-summary / request-semantics / utc-convenience-policy-summary / utc-convenience-policy / delta-t-policy-summary / delta-t-policy / zodiac-policy-summary / zodiac-policy / native-sidereal-policy-summary / native-sidereal-policy (compact request-policy report entrypoints); pleiades-cli chart (explicit --tt|--tdb|--utc|--ut1 flags plus caller-supplied TT/TDB offset aliases: --tt-offset-seconds, --tt-from-utc-offset-seconds, --tt-from-ut1-offset-seconds, --tdb-offset-seconds, --tdb-from-utc-offset-seconds, --tdb-from-ut1-offset-seconds, --tdb-from-tt-offset-seconds, and --tt-from-tdb-offset-seconds; observer-bearing chart requests stay geocentric and use the observer only for houses)"
             })
         );
         assert!(backend_matrix_summary.contains(&format!(
@@ -32730,6 +32807,7 @@ version = "0.9.0"
             .contains("production generation manifest checksum summary checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("time-scale-policy-summary.txt"));
         assert!(manifest.contains("delta-t-policy-summary.txt"));
+        assert!(manifest.contains("zodiac-policy-summary.txt"));
         assert!(manifest.contains("native-sidereal-policy-summary.txt"));
         assert!(manifest.contains("native sidereal policy summary checksum (fnv1a-64): 0x"));
         assert!(manifest
@@ -32908,6 +32986,7 @@ version = "0.9.0"
         assert!(verified.contains("request-semantics-summary.txt"));
         assert!(verified.contains("time-scale-policy-summary.txt"));
         assert!(verified.contains("delta-t-policy-summary.txt"));
+        assert!(verified.contains("zodiac-policy-summary.txt"));
         assert!(verified.contains("native-sidereal-policy-summary.txt"));
         assert!(verified.contains("reference-snapshot-summary.txt"));
         assert!(verified.contains("production-generation-summary.txt"));
@@ -37941,6 +38020,15 @@ version = "0.9.0"
             native_sidereal_policy
         );
 
+        let zodiac_policy =
+            render_cli(&["zodiac-policy-summary"]).expect("zodiac policy summary should render");
+        assert!(zodiac_policy.contains("Zodiac policy summary"));
+        assert!(zodiac_policy.contains("Zodiac policy: tropical only"));
+        assert_eq!(
+            render_cli(&["zodiac-policy"]).expect("zodiac policy alias should render"),
+            zodiac_policy
+        );
+
         let request_policy_summary_error = render_cli(&["request-policy-summary", "extra"])
             .expect_err("request policy summary should reject extra arguments");
         assert_eq!(
@@ -37975,6 +38063,20 @@ version = "0.9.0"
         assert_eq!(
             native_sidereal_policy_summary_error,
             "native-sidereal-policy-summary does not accept extra arguments"
+        );
+
+        let zodiac_policy_summary_error = render_cli(&["zodiac-policy-summary", "extra"])
+            .expect_err("zodiac policy summary should reject extra arguments");
+        assert_eq!(
+            zodiac_policy_summary_error,
+            "zodiac-policy-summary does not accept extra arguments"
+        );
+
+        let zodiac_policy_error = render_cli(&["zodiac-policy", "extra"])
+            .expect_err("zodiac policy alias should reject extra arguments");
+        assert_eq!(
+            zodiac_policy_error,
+            "zodiac-policy does not accept extra arguments"
         );
 
         let native_sidereal_policy_error = render_cli(&["native-sidereal-policy", "extra"])
