@@ -19288,6 +19288,7 @@ struct SourceCorpusSummary {
     reference_snapshot_sparse_boundary: String,
     reference_snapshot_equatorial_parity: String,
     release_grade_body_claims: String,
+    body_date_channel_claims: String,
     phase2_corpus_alignment: String,
 }
 
@@ -19312,7 +19313,7 @@ impl std::error::Error for SourceCorpusSummaryValidationError {}
 impl SourceCorpusSummary {
     fn summary_line(&self) -> String {
         format!(
-            "comparison corpus release-grade guard: {}; JPL source corpus contract: {}; evidence classification={}; provenance-only={}; shared schema={}; generation command={}; production generation coverage={}; reference snapshot sparse boundary={}; reference snapshot equatorial parity={}; release-grade body claims={}; phase-2 corpus alignment: {}",
+            "comparison corpus release-grade guard: {}; JPL source corpus contract: {}; evidence classification={}; provenance-only={}; shared schema={}; generation command={}; production generation coverage={}; reference snapshot sparse boundary={}; reference snapshot equatorial parity={}; release-grade body claims={}; body-date-channel claims={}; phase-2 corpus alignment: {}",
             self.comparison_corpus_release_grade_guard,
             self.jpl_source_corpus_contract,
             self.jpl_evidence_classification,
@@ -19323,6 +19324,7 @@ impl SourceCorpusSummary {
             self.reference_snapshot_sparse_boundary,
             self.reference_snapshot_equatorial_parity,
             self.release_grade_body_claims,
+            self.body_date_channel_claims,
             self.phase2_corpus_alignment,
         )
     }
@@ -19386,6 +19388,11 @@ impl SourceCorpusSummary {
         if self.release_grade_body_claims != expected.release_grade_body_claims {
             return Err(SourceCorpusSummaryValidationError::FieldOutOfSync {
                 field: "release_grade_body_claims",
+            });
+        }
+        if self.body_date_channel_claims != expected.body_date_channel_claims {
+            return Err(SourceCorpusSummaryValidationError::FieldOutOfSync {
+                field: "body_date_channel_claims",
             });
         }
         if self.phase2_corpus_alignment != expected.phase2_corpus_alignment {
@@ -19460,6 +19467,9 @@ fn source_corpus_summary_details() -> Option<SourceCorpusSummary> {
         reference_snapshot_sparse_boundary,
         reference_snapshot_equatorial_parity,
         release_grade_body_claims,
+        body_date_channel_claims: body_date_channel_claims_summary_details()?
+            .validated_summary_line()
+            .ok()?,
         phase2_corpus_alignment,
     })
 }
@@ -39672,6 +39682,7 @@ version = "0.9.0"
         assert!(rendered.contains("evidence classification=release-tolerance=reference/comparison/production-generation validation summaries; hold-out=independent hold-out rows and interpolation-quality summaries; fixture exactness=reference snapshot exact J2000 evidence; provenance-only=source and manifest summaries"));
         assert!(rendered.contains("provenance-only=source and manifest summaries are provenance-only evidence; they validate corpus provenance and checksum posture but are excluded from tolerance, hold-out, and fixture-exactness claims"));
         assert!(rendered.contains("release-grade body claims=Moon and supported lunar points (Mean Node, True Node, Mean Apogee, Mean Perigee) remain source-backed validation bodies; True Apogee and True Perigee remain unsupported; Sun through Neptune are release-grade major-body claims; Pluto remains an explicitly approximate fallback; selected asteroids (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) remain source-backed validation bodies"));
+        assert!(rendered.contains("body-date-channel claims=bodies=Moon and supported lunar points (Mean Node, True Node, Mean Apogee, Mean Perigee) remain source-backed validation bodies; True Apogee and True Perigee remain unsupported; Sun through Neptune are release-grade major-body claims; Pluto remains an explicitly approximate fallback; selected asteroids (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) remain source-backed validation bodies; corpus shape=Production generation corpus shape:"));
         assert!(!rendered.contains("JPL source corpus contract: JPL source corpus contract:"));
         assert_eq!(
             render_cli(&["source-corpus"]).expect("source corpus alias should render"),
