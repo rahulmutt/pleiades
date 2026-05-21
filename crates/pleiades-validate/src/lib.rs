@@ -10254,6 +10254,8 @@ pub fn render_release_bundle(
         output_dir.join("production-generation-boundary-source-summary.txt");
     let production_generation_boundary_request_corpus_summary_path =
         output_dir.join("production-generation-boundary-request-corpus-summary.txt");
+    let production_generation_boundary_request_corpus_equatorial_summary_path =
+        output_dir.join("production-generation-boundary-request-corpus-equatorial-summary.txt");
     let production_generation_summary_path = output_dir.join("production-generation-summary.txt");
     let production_generation_body_class_coverage_summary_path =
         output_dir.join("production-generation-body-class-coverage-summary.txt");
@@ -10460,8 +10462,12 @@ pub fn render_release_bundle(
         checksum64(&production_generation_boundary_source_summary_text);
     let production_generation_boundary_request_corpus_summary_text =
         production_generation_boundary_request_corpus_summary_for_report();
+    let production_generation_boundary_request_corpus_equatorial_summary_text =
+        production_generation_boundary_request_corpus_equatorial_summary_for_report();
     let production_generation_boundary_request_corpus_summary_checksum =
         checksum64(&production_generation_boundary_request_corpus_summary_text);
+    let production_generation_boundary_request_corpus_equatorial_summary_checksum =
+        checksum64(&production_generation_boundary_request_corpus_equatorial_summary_text);
     let reference_snapshot_summary_text = reference_snapshot_summary_for_report();
     let reference_snapshot_summary_checksum = checksum64(&reference_snapshot_summary_text);
     let production_generation_summary_text = production_generation_snapshot_summary_for_report();
@@ -10598,7 +10604,7 @@ pub fn render_release_bundle(
     let packaged_artifact_checksum_text = format!("0x{:016x}\n", packaged_artifact.checksum);
     let packaged_artifact_checksum_text_checksum = checksum64(&packaged_artifact_checksum_text);
     let manifest_text = format!(
-        "Release bundle manifest\nprofile: compatibility-profile.txt\nprofile checksum (fnv1a-64): 0x{compatibility_profile_checksum:016x}\nprofile summary: compatibility-profile-summary.txt\nprofile summary checksum (fnv1a-64): 0x{compatibility_profile_summary_checksum:016x}\nrelease notes: release-notes.txt\nrelease notes checksum (fnv1a-64): 0x{release_notes_checksum:016x}\nrelease notes summary: release-notes-summary.txt\nrelease notes summary checksum (fnv1a-64): 0x{release_notes_summary_checksum:016x}\nrelease summary: release-summary.txt\nrelease summary checksum (fnv1a-64): 0x{release_summary_checksum:016x}\nrelease-profile identifiers: release-profile-identifiers.txt\nrelease-profile identifiers checksum (fnv1a-64): 0x{release_profile_identifiers_checksum:016x}\nrelease-profile identifiers summary: release-profile-identifiers-summary.txt\nrelease-profile identifiers summary checksum (fnv1a-64): 0x{release_profile_identifiers_summary_checksum:016x}\nrelease-house-system-canonical-names summary: release-house-system-canonical-names-summary.txt\nrelease-house-system-canonical-names summary checksum (fnv1a-64): 0x{release_house_system_canonical_names_summary_checksum:016x}\nrelease-ayanamsa-canonical-names summary: release-ayanamsa-canonical-names-summary.txt\nrelease-ayanamsa-canonical-names summary checksum (fnv1a-64): 0x{release_ayanamsa_canonical_names_summary_checksum:016x}\nrelease-house-validation summary: release-house-validation-summary.txt\nrelease-house-validation summary checksum (fnv1a-64): 0x{release_house_validation_summary_checksum:016x}\nrelease checklist: release-checklist.txt\nrelease checklist checksum (fnv1a-64): 0x{release_checklist_checksum:016x}\nrelease checklist summary: release-checklist-summary.txt\nrelease checklist summary checksum (fnv1a-64): 0x{release_checklist_summary_checksum:016x}\nbackend matrix: backend-matrix.txt\nbackend matrix checksum (fnv1a-64): 0x{backend_matrix_checksum:016x}\nbackend matrix summary: backend-matrix-summary.txt\nbackend matrix summary checksum (fnv1a-64): 0x{backend_matrix_summary_checksum:016x}\napi stability posture: api-stability.txt\napi stability checksum (fnv1a-64): 0x{api_stability_checksum:016x}\napi stability summary: api-stability-summary.txt\napi stability summary checksum (fnv1a-64): 0x{api_stability_summary_checksum:016x}\ncomparison-corpus summary: comparison-corpus-summary.txt\ncomparison-corpus summary checksum (fnv1a-64): 0x{comparison_corpus_summary_checksum:016x}\nsource-corpus summary: source-corpus-summary.txt\nsource-corpus summary checksum (fnv1a-64): 0x{source_corpus_summary_checksum:016x}\ncomparison-snapshot summary: comparison-snapshot-summary.txt\ncomparison-snapshot summary checksum (fnv1a-64): 0x{comparison_snapshot_summary_checksum:016x}\ncomparison-snapshot source summary: comparison-snapshot-source-summary.txt\ncomparison-snapshot source summary checksum (fnv1a-64): 0x{comparison_snapshot_source_summary_checksum:016x}\ncomparison-snapshot source window summary: comparison-snapshot-source-window-summary.txt\ncomparison-snapshot source window summary checksum (fnv1a-64): 0x{comparison_snapshot_source_window_summary_checksum:016x}\ncomparison-snapshot body-class coverage summary: comparison-snapshot-body-class-coverage-summary.txt\ncomparison-snapshot body-class coverage summary checksum (fnv1a-64): 0x{comparison_snapshot_body_class_coverage_summary_checksum:016x}\ncomparison-envelope summary: comparison-envelope-summary.txt\ncomparison-envelope summary checksum (fnv1a-64): 0x{comparison_envelope_summary_checksum:016x}\ncomparison-body-class-tolerance summary: comparison-body-class-tolerance-summary.txt\ncomparison-body-class-tolerance summary checksum (fnv1a-64): 0x{comparison_body_class_tolerance_summary_checksum:016x}\ncomparison-body-class-error-envelope summary: comparison-body-class-error-envelope-summary.txt\ncomparison-body-class-error-envelope summary checksum (fnv1a-64): 0x{comparison_body_class_error_envelope_summary_checksum:016x}\ncomparison-corpus release-guard summary: comparison-corpus-release-guard-summary.txt\ncomparison-corpus release-guard summary checksum (fnv1a-64): 0x{comparison_corpus_release_guard_summary_checksum:016x}\nreference-holdout overlap summary: reference-holdout-overlap-summary.txt\nreference-holdout overlap summary checksum (fnv1a-64): 0x{reference_holdout_overlap_summary_checksum:016x}\nreference snapshot bridge day summary: reference-snapshot-bridge-day-summary.txt\nreference snapshot bridge day summary checksum (fnv1a-64): 0x{reference_snapshot_bridge_day_summary_checksum:016x}\nreference snapshot sparse boundary summary: reference-snapshot-sparse-boundary-summary.txt\nreference snapshot sparse boundary summary checksum (fnv1a-64): 0x{reference_snapshot_sparse_boundary_summary_checksum:016x}\nreference snapshot exact J2000 evidence summary: reference-snapshot-exact-j2000-evidence-summary.txt\nreference snapshot exact J2000 evidence summary checksum (fnv1a-64): 0x{reference_snapshot_exact_j2000_evidence_summary_checksum:016x}\nreference snapshot source summary: reference-snapshot-source-summary.txt\nreference snapshot source summary checksum (fnv1a-64): 0x{reference_snapshot_source_summary_checksum:016x}\nreference snapshot source window summary: reference-snapshot-source-window-summary.txt\nreference snapshot source window summary checksum (fnv1a-64): 0x{reference_snapshot_source_window_summary_checksum:016x}\nreference asteroid source window summary: reference-asteroid-source-window-summary.txt\nreference asteroid source window summary checksum (fnv1a-64): 0x{reference_asteroid_source_window_summary_checksum:016x}\nindependent-holdout source window summary: independent-holdout-source-window-summary.txt\nindependent-holdout source window summary checksum (fnv1a-64): 0x{independent_holdout_source_window_summary_checksum:016x}\nindependent-holdout body-class coverage summary: independent-holdout-body-class-coverage-summary.txt\nindependent-holdout body-class coverage summary checksum (fnv1a-64): 0x{independent_holdout_body_class_coverage_summary_checksum:016x}\nproduction generation boundary source summary: production-generation-boundary-source-summary.txt\nproduction generation boundary source summary checksum (fnv1a-64): 0x{production_generation_boundary_source_summary_checksum:016x}\nproduction generation boundary request corpus summary: production-generation-boundary-request-corpus-summary.txt\nproduction generation boundary request corpus summary checksum (fnv1a-64): 0x{production_generation_boundary_request_corpus_summary_checksum:016x}\nreference snapshot summary: reference-snapshot-summary.txt\nreference snapshot summary checksum (fnv1a-64): 0x{reference_snapshot_summary_checksum:016x}\nproduction generation summary: production-generation-summary.txt\nproduction generation summary checksum (fnv1a-64): 0x{production_generation_summary_checksum:016x}\nproduction generation body-class coverage summary: production-generation-body-class-coverage-summary.txt\nproduction generation body-class coverage summary checksum (fnv1a-64): 0x{production_generation_body_class_coverage_summary_checksum:016x}\nproduction generation source summary: production-generation-source-summary.txt\nproduction generation source summary checksum (fnv1a-64): 0x{production_generation_source_summary_checksum:016x}\nproduction generation source revision summary: production-generation-source-revision-summary.txt\nproduction generation source revision summary checksum (fnv1a-64): 0x{production_generation_source_revision_summary_checksum:016x}\nproduction generation source window summary: production-generation-source-window-summary.txt\nproduction generation source window summary checksum (fnv1a-64): 0x{production_generation_source_window_summary_checksum:016x}\nproduction generation corpus shape summary: production-generation-corpus-shape-summary.txt\nproduction generation corpus shape summary checksum (fnv1a-64): 0x{production_generation_corpus_shape_summary_checksum:016x}\nproduction generation manifest summary: production-generation-manifest-summary.txt\nproduction generation manifest summary checksum (fnv1a-64): 0x{production_generation_manifest_summary_checksum:016x}\nproduction generation manifest checksum summary: production-generation-manifest-checksum-summary.txt\nproduction generation manifest checksum summary checksum (fnv1a-64): 0x{production_generation_manifest_checksum_checksum:016x}\ncatalog inventory summary: catalog-inventory-summary.txt\ncatalog inventory summary checksum (fnv1a-64): 0x{catalog_inventory_summary_checksum:016x}\ncustom-definition ayanamsa labels summary: custom-definition-ayanamsa-labels-summary.txt\ncustom-definition ayanamsa labels summary checksum (fnv1a-64): 0x{custom_definition_ayanamsa_labels_summary_checksum:016x}\nvalidation report summary: validation-report-summary.txt\nvalidation report summary checksum (fnv1a-64): 0x{validation_report_summary_checksum:016x}\nrelease body claims summary: release-body-claims-summary.txt\nrelease body claims summary checksum (fnv1a-64): 0x{release_body_claims_summary_checksum:016x}\npluto fallback summary: pluto-fallback-summary.txt\npluto fallback summary checksum (fnv1a-64): 0x{pluto_fallback_summary_checksum:016x}\nrequest policy summary: request-policy-summary.txt\nrequest policy summary checksum (fnv1a-64): 0x{request_policy_summary_checksum:016x}\nrequest-semantics summary: request-semantics-summary.txt\nrequest-semantics summary checksum (fnv1a-64): 0x{request_semantics_summary_checksum:016x}\ntime-scale policy summary: time-scale-policy-summary.txt\ntime-scale policy summary checksum (fnv1a-64): 0x{time_scale_policy_summary_checksum:016x}\nutc-convenience policy summary: utc-convenience-policy-summary.txt\nutc-convenience policy summary checksum (fnv1a-64): 0x{utc_convenience_policy_summary_checksum:016x}\ndelta-t policy summary: delta-t-policy-summary.txt\ndelta-t policy summary checksum (fnv1a-64): 0x{delta_t_policy_summary_checksum:016x}\nnative sidereal policy summary: native-sidereal-policy-summary.txt\nnative sidereal policy summary checksum (fnv1a-64): 0x{native_sidereal_policy_summary_checksum:016x}\nlunar theory limitations summary: lunar-theory-limitations-summary.txt
+        "Release bundle manifest\nprofile: compatibility-profile.txt\nprofile checksum (fnv1a-64): 0x{compatibility_profile_checksum:016x}\nprofile summary: compatibility-profile-summary.txt\nprofile summary checksum (fnv1a-64): 0x{compatibility_profile_summary_checksum:016x}\nrelease notes: release-notes.txt\nrelease notes checksum (fnv1a-64): 0x{release_notes_checksum:016x}\nrelease notes summary: release-notes-summary.txt\nrelease notes summary checksum (fnv1a-64): 0x{release_notes_summary_checksum:016x}\nrelease summary: release-summary.txt\nrelease summary checksum (fnv1a-64): 0x{release_summary_checksum:016x}\nrelease-profile identifiers: release-profile-identifiers.txt\nrelease-profile identifiers checksum (fnv1a-64): 0x{release_profile_identifiers_checksum:016x}\nrelease-profile identifiers summary: release-profile-identifiers-summary.txt\nrelease-profile identifiers summary checksum (fnv1a-64): 0x{release_profile_identifiers_summary_checksum:016x}\nrelease-house-system-canonical-names summary: release-house-system-canonical-names-summary.txt\nrelease-house-system-canonical-names summary checksum (fnv1a-64): 0x{release_house_system_canonical_names_summary_checksum:016x}\nrelease-ayanamsa-canonical-names summary: release-ayanamsa-canonical-names-summary.txt\nrelease-ayanamsa-canonical-names summary checksum (fnv1a-64): 0x{release_ayanamsa_canonical_names_summary_checksum:016x}\nrelease-house-validation summary: release-house-validation-summary.txt\nrelease-house-validation summary checksum (fnv1a-64): 0x{release_house_validation_summary_checksum:016x}\nrelease checklist: release-checklist.txt\nrelease checklist checksum (fnv1a-64): 0x{release_checklist_checksum:016x}\nrelease checklist summary: release-checklist-summary.txt\nrelease checklist summary checksum (fnv1a-64): 0x{release_checklist_summary_checksum:016x}\nbackend matrix: backend-matrix.txt\nbackend matrix checksum (fnv1a-64): 0x{backend_matrix_checksum:016x}\nbackend matrix summary: backend-matrix-summary.txt\nbackend matrix summary checksum (fnv1a-64): 0x{backend_matrix_summary_checksum:016x}\napi stability posture: api-stability.txt\napi stability checksum (fnv1a-64): 0x{api_stability_checksum:016x}\napi stability summary: api-stability-summary.txt\napi stability summary checksum (fnv1a-64): 0x{api_stability_summary_checksum:016x}\ncomparison-corpus summary: comparison-corpus-summary.txt\ncomparison-corpus summary checksum (fnv1a-64): 0x{comparison_corpus_summary_checksum:016x}\nsource-corpus summary: source-corpus-summary.txt\nsource-corpus summary checksum (fnv1a-64): 0x{source_corpus_summary_checksum:016x}\ncomparison-snapshot summary: comparison-snapshot-summary.txt\ncomparison-snapshot summary checksum (fnv1a-64): 0x{comparison_snapshot_summary_checksum:016x}\ncomparison-snapshot source summary: comparison-snapshot-source-summary.txt\ncomparison-snapshot source summary checksum (fnv1a-64): 0x{comparison_snapshot_source_summary_checksum:016x}\ncomparison-snapshot source window summary: comparison-snapshot-source-window-summary.txt\ncomparison-snapshot source window summary checksum (fnv1a-64): 0x{comparison_snapshot_source_window_summary_checksum:016x}\ncomparison-snapshot body-class coverage summary: comparison-snapshot-body-class-coverage-summary.txt\ncomparison-snapshot body-class coverage summary checksum (fnv1a-64): 0x{comparison_snapshot_body_class_coverage_summary_checksum:016x}\ncomparison-envelope summary: comparison-envelope-summary.txt\ncomparison-envelope summary checksum (fnv1a-64): 0x{comparison_envelope_summary_checksum:016x}\ncomparison-body-class-tolerance summary: comparison-body-class-tolerance-summary.txt\ncomparison-body-class-tolerance summary checksum (fnv1a-64): 0x{comparison_body_class_tolerance_summary_checksum:016x}\ncomparison-body-class-error-envelope summary: comparison-body-class-error-envelope-summary.txt\ncomparison-body-class-error-envelope summary checksum (fnv1a-64): 0x{comparison_body_class_error_envelope_summary_checksum:016x}\ncomparison-corpus release-guard summary: comparison-corpus-release-guard-summary.txt\ncomparison-corpus release-guard summary checksum (fnv1a-64): 0x{comparison_corpus_release_guard_summary_checksum:016x}\nreference-holdout overlap summary: reference-holdout-overlap-summary.txt\nreference-holdout overlap summary checksum (fnv1a-64): 0x{reference_holdout_overlap_summary_checksum:016x}\nreference snapshot bridge day summary: reference-snapshot-bridge-day-summary.txt\nreference snapshot bridge day summary checksum (fnv1a-64): 0x{reference_snapshot_bridge_day_summary_checksum:016x}\nreference snapshot sparse boundary summary: reference-snapshot-sparse-boundary-summary.txt\nreference snapshot sparse boundary summary checksum (fnv1a-64): 0x{reference_snapshot_sparse_boundary_summary_checksum:016x}\nreference snapshot exact J2000 evidence summary: reference-snapshot-exact-j2000-evidence-summary.txt\nreference snapshot exact J2000 evidence summary checksum (fnv1a-64): 0x{reference_snapshot_exact_j2000_evidence_summary_checksum:016x}\nreference snapshot source summary: reference-snapshot-source-summary.txt\nreference snapshot source summary checksum (fnv1a-64): 0x{reference_snapshot_source_summary_checksum:016x}\nreference snapshot source window summary: reference-snapshot-source-window-summary.txt\nreference snapshot source window summary checksum (fnv1a-64): 0x{reference_snapshot_source_window_summary_checksum:016x}\nreference asteroid source window summary: reference-asteroid-source-window-summary.txt\nreference asteroid source window summary checksum (fnv1a-64): 0x{reference_asteroid_source_window_summary_checksum:016x}\nindependent-holdout source window summary: independent-holdout-source-window-summary.txt\nindependent-holdout source window summary checksum (fnv1a-64): 0x{independent_holdout_source_window_summary_checksum:016x}\nindependent-holdout body-class coverage summary: independent-holdout-body-class-coverage-summary.txt\nindependent-holdout body-class coverage summary checksum (fnv1a-64): 0x{independent_holdout_body_class_coverage_summary_checksum:016x}\nproduction generation boundary source summary: production-generation-boundary-source-summary.txt\nproduction generation boundary source summary checksum (fnv1a-64): 0x{production_generation_boundary_source_summary_checksum:016x}\nproduction generation boundary request corpus summary: production-generation-boundary-request-corpus-summary.txt\nproduction generation boundary request corpus summary checksum (fnv1a-64): 0x{production_generation_boundary_request_corpus_summary_checksum:016x}\nproduction generation boundary request corpus equatorial summary: production-generation-boundary-request-corpus-equatorial-summary.txt\nproduction generation boundary request corpus equatorial summary checksum (fnv1a-64): 0x{production_generation_boundary_request_corpus_equatorial_summary_checksum:016x}\nreference snapshot summary: reference-snapshot-summary.txt\nreference snapshot summary checksum (fnv1a-64): 0x{reference_snapshot_summary_checksum:016x}\nproduction generation summary: production-generation-summary.txt\nproduction generation summary checksum (fnv1a-64): 0x{production_generation_summary_checksum:016x}\nproduction generation body-class coverage summary: production-generation-body-class-coverage-summary.txt\nproduction generation body-class coverage summary checksum (fnv1a-64): 0x{production_generation_body_class_coverage_summary_checksum:016x}\nproduction generation source summary: production-generation-source-summary.txt\nproduction generation source summary checksum (fnv1a-64): 0x{production_generation_source_summary_checksum:016x}\nproduction generation source revision summary: production-generation-source-revision-summary.txt\nproduction generation source revision summary checksum (fnv1a-64): 0x{production_generation_source_revision_summary_checksum:016x}\nproduction generation source window summary: production-generation-source-window-summary.txt\nproduction generation source window summary checksum (fnv1a-64): 0x{production_generation_source_window_summary_checksum:016x}\nproduction generation corpus shape summary: production-generation-corpus-shape-summary.txt\nproduction generation corpus shape summary checksum (fnv1a-64): 0x{production_generation_corpus_shape_summary_checksum:016x}\nproduction generation manifest summary: production-generation-manifest-summary.txt\nproduction generation manifest summary checksum (fnv1a-64): 0x{production_generation_manifest_summary_checksum:016x}\nproduction generation manifest checksum summary: production-generation-manifest-checksum-summary.txt\nproduction generation manifest checksum summary checksum (fnv1a-64): 0x{production_generation_manifest_checksum_checksum:016x}\ncatalog inventory summary: catalog-inventory-summary.txt\ncatalog inventory summary checksum (fnv1a-64): 0x{catalog_inventory_summary_checksum:016x}\ncustom-definition ayanamsa labels summary: custom-definition-ayanamsa-labels-summary.txt\ncustom-definition ayanamsa labels summary checksum (fnv1a-64): 0x{custom_definition_ayanamsa_labels_summary_checksum:016x}\nvalidation report summary: validation-report-summary.txt\nvalidation report summary checksum (fnv1a-64): 0x{validation_report_summary_checksum:016x}\nrelease body claims summary: release-body-claims-summary.txt\nrelease body claims summary checksum (fnv1a-64): 0x{release_body_claims_summary_checksum:016x}\npluto fallback summary: pluto-fallback-summary.txt\npluto fallback summary checksum (fnv1a-64): 0x{pluto_fallback_summary_checksum:016x}\nrequest policy summary: request-policy-summary.txt\nrequest policy summary checksum (fnv1a-64): 0x{request_policy_summary_checksum:016x}\nrequest-semantics summary: request-semantics-summary.txt\nrequest-semantics summary checksum (fnv1a-64): 0x{request_semantics_summary_checksum:016x}\ntime-scale policy summary: time-scale-policy-summary.txt\ntime-scale policy summary checksum (fnv1a-64): 0x{time_scale_policy_summary_checksum:016x}\nutc-convenience policy summary: utc-convenience-policy-summary.txt\nutc-convenience policy summary checksum (fnv1a-64): 0x{utc_convenience_policy_summary_checksum:016x}\ndelta-t policy summary: delta-t-policy-summary.txt\ndelta-t policy summary checksum (fnv1a-64): 0x{delta_t_policy_summary_checksum:016x}\nnative sidereal policy summary: native-sidereal-policy-summary.txt\nnative sidereal policy summary checksum (fnv1a-64): 0x{native_sidereal_policy_summary_checksum:016x}\nlunar theory limitations summary: lunar-theory-limitations-summary.txt
 lunar theory limitations summary checksum (fnv1a-64): 0x{lunar_theory_limitations_summary_checksum:016x}
 lunar theory source selection summary: lunar-theory-source-selection-summary.txt
 lunar theory source selection summary checksum (fnv1a-64): 0x{lunar_theory_source_selection_summary_checksum:016x}
@@ -10774,6 +10780,10 @@ benchmark-corpus summary: benchmark-corpus-summary.txt\nbenchmark-corpus summary
     fs::write(
         &production_generation_boundary_request_corpus_summary_path,
         production_generation_boundary_request_corpus_summary_text.as_bytes(),
+    )?;
+    fs::write(
+        &production_generation_boundary_request_corpus_equatorial_summary_path,
+        production_generation_boundary_request_corpus_equatorial_summary_text.as_bytes(),
     )?;
     fs::write(
         &reference_snapshot_summary_path,
@@ -11114,6 +11124,8 @@ struct ParsedReleaseBundleManifest {
     production_generation_boundary_source_summary_checksum: u64,
     production_generation_boundary_request_corpus_summary_path: String,
     production_generation_boundary_request_corpus_summary_checksum: u64,
+    production_generation_boundary_request_corpus_equatorial_summary_path: String,
+    production_generation_boundary_request_corpus_equatorial_summary_checksum: u64,
     reference_snapshot_summary_path: String,
     reference_snapshot_summary_checksum: u64,
     production_generation_summary_path: String,
@@ -11512,6 +11524,16 @@ impl ParsedReleaseBundleManifest {
                 text,
                 "production generation boundary request corpus summary checksum (fnv1a-64):",
             )?,
+            production_generation_boundary_request_corpus_equatorial_summary_path:
+                parse_manifest_string(
+                    text,
+                    "production generation boundary request corpus equatorial summary:",
+                )?,
+            production_generation_boundary_request_corpus_equatorial_summary_checksum:
+                parse_manifest_checksum(
+                    text,
+                    "production generation boundary request corpus equatorial summary checksum (fnv1a-64):",
+                )?,
             reference_snapshot_summary_path: parse_manifest_string(
                 text,
                 "reference snapshot summary:",
@@ -12052,6 +12074,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
         "independent-holdout-body-class-coverage-summary.txt",
         "production-generation-boundary-source-summary.txt",
         "production-generation-boundary-request-corpus-summary.txt",
+        "production-generation-boundary-request-corpus-equatorial-summary.txt",
         "production-generation-summary.txt",
         "production-generation-body-class-coverage-summary.txt",
         "production-generation-source-summary.txt",
@@ -12146,7 +12169,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
 fn ensure_release_bundle_manifest_is_canonical(
     manifest_text: &str,
 ) -> Result<(), ReleaseBundleError> {
-    const EXPECTED_MANIFEST_LINES: [&str; 214] = [
+    const EXPECTED_MANIFEST_LINES: [&str; 216] = [
         "Release bundle manifest",
         "profile:",
         "profile checksum (fnv1a-64):",
@@ -12222,6 +12245,8 @@ fn ensure_release_bundle_manifest_is_canonical(
         "production generation boundary source summary checksum (fnv1a-64):",
         "production generation boundary request corpus summary:",
         "production generation boundary request corpus summary checksum (fnv1a-64):",
+        "production generation boundary request corpus equatorial summary:",
+        "production generation boundary request corpus equatorial summary checksum (fnv1a-64):",
         "reference snapshot summary:",
         "reference snapshot summary checksum (fnv1a-64):",
         "production generation summary:",
@@ -12727,6 +12752,21 @@ fn ensure_production_generation_boundary_request_corpus_summary_matches_current_
     } else {
         Err(ReleaseBundleError::Verification(
             "production generation boundary request corpus summary no longer matches the current production-generation boundary request corpus posture"
+                .to_string(),
+        ))
+    }
+}
+
+fn ensure_production_generation_boundary_request_corpus_equatorial_summary_matches_current_rendering(
+    production_generation_boundary_request_corpus_equatorial_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if production_generation_boundary_request_corpus_equatorial_summary_text
+        == production_generation_boundary_request_corpus_equatorial_summary_for_report()
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "production generation boundary request corpus equatorial summary no longer matches the current production-generation boundary request corpus equatorial posture"
                 .to_string(),
         ))
     }
@@ -13708,6 +13748,8 @@ fn verify_release_bundle(
         output_dir.join("production-generation-boundary-source-summary.txt");
     let production_generation_boundary_request_corpus_summary_path =
         output_dir.join("production-generation-boundary-request-corpus-summary.txt");
+    let production_generation_boundary_request_corpus_equatorial_summary_path =
+        output_dir.join("production-generation-boundary-request-corpus-equatorial-summary.txt");
     let production_generation_source_revision_summary_path =
         output_dir.join("production-generation-source-revision-summary.txt");
     let production_generation_source_window_summary_path =
@@ -14114,12 +14156,22 @@ fn verify_release_bundle(
         &production_generation_boundary_request_corpus_summary_path,
         "production generation boundary request corpus summary",
     )?;
+    let production_generation_boundary_request_corpus_equatorial_summary_text =
+        read_required_bundle_text(
+            &production_generation_boundary_request_corpus_equatorial_summary_path,
+            "production generation boundary request corpus equatorial summary",
+        )?;
     ensure_production_generation_boundary_source_summary_matches_current_rendering(
         &production_generation_boundary_source_summary_text,
     )?;
     ensure_production_generation_boundary_request_corpus_summary_matches_current_rendering(
         &production_generation_boundary_request_corpus_summary_text,
     )?;
+    ensure_production_generation_boundary_request_corpus_equatorial_summary_matches_current_rendering(
+        &production_generation_boundary_request_corpus_equatorial_summary_text,
+    )?;
+    let production_generation_boundary_request_corpus_equatorial_summary_checksum =
+        checksum64(&production_generation_boundary_request_corpus_equatorial_summary_text);
     let production_generation_manifest_summary_text = read_required_bundle_text(
         &production_generation_manifest_summary_path,
         "production generation manifest summary",
@@ -15562,6 +15614,23 @@ fn verify_release_bundle(
             "production generation boundary request corpus summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
             manifest.production_generation_boundary_request_corpus_summary_checksum,
             production_generation_boundary_request_corpus_summary_checksum
+        )));
+    }
+    if manifest.production_generation_boundary_request_corpus_equatorial_summary_path
+        != "production-generation-boundary-request-corpus-equatorial-summary.txt"
+    {
+        return Err(ReleaseBundleError::Verification(format!(
+            "unexpected production generation boundary request corpus equatorial summary file entry: {}",
+            manifest.production_generation_boundary_request_corpus_equatorial_summary_path
+        )));
+    }
+    if manifest.production_generation_boundary_request_corpus_equatorial_summary_checksum
+        != production_generation_boundary_request_corpus_equatorial_summary_checksum
+    {
+        return Err(ReleaseBundleError::Verification(format!(
+            "production generation boundary request corpus equatorial summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
+            manifest.production_generation_boundary_request_corpus_equatorial_summary_checksum,
+            production_generation_boundary_request_corpus_equatorial_summary_checksum
         )));
     }
     if manifest.reference_snapshot_summary_path != "reference-snapshot-summary.txt" {
@@ -30869,6 +30938,9 @@ version = "0.9.0"
             .join("chart-benchmark-corpus-summary.txt")
             .exists());
         assert!(bundle_dir.join("source-corpus-summary.txt").exists());
+        assert!(bundle_dir
+            .join("production-generation-boundary-request-corpus-equatorial-summary.txt")
+            .exists());
         assert!(rendered.contains("time-scale-policy-summary.txt"));
         assert!(rendered.contains("delta-t-policy-summary.txt"));
         assert!(rendered.contains("native-sidereal-policy-summary.txt"));
@@ -31942,8 +32014,13 @@ version = "0.9.0"
         assert!(manifest
             .contains("production generation boundary source summary checksum (fnv1a-64): 0x"));
         assert!(manifest.contains("production-generation-boundary-request-corpus-summary.txt"));
+        assert!(manifest
+            .contains("production-generation-boundary-request-corpus-equatorial-summary.txt"));
         assert!(manifest.contains(
             "production generation boundary request corpus summary checksum (fnv1a-64): 0x"
+        ));
+        assert!(manifest.contains(
+            "production generation boundary request corpus equatorial summary checksum (fnv1a-64): 0x"
         ));
         assert!(manifest.contains("reference-snapshot-summary.txt"));
         assert!(manifest.contains("reference snapshot summary checksum (fnv1a-64): 0x"));
@@ -32306,6 +32383,14 @@ version = "0.9.0"
             &[
                 "missing manifest entry: production generation boundary request corpus summary:",
                 "missing production generation boundary request corpus summary entry",
+            ],
+        );
+        assert_release_bundle_rejects_missing_manifest_entry(
+            "pleiades-release-bundle-missing-production-generation-boundary-request-corpus-equatorial-summary",
+            "production generation boundary request corpus equatorial summary:",
+            &[
+                "missing manifest entry: production generation boundary request corpus equatorial summary:",
+                "missing production generation boundary request corpus equatorial summary entry",
             ],
         );
         assert_release_bundle_rejects_missing_manifest_entry(
@@ -34238,6 +34323,19 @@ version = "0.9.0"
             "65 requests",
             "66 drifted requests",
             "production generation boundary request corpus summary no longer matches the current production-generation boundary request corpus posture",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_production_generation_boundary_request_corpus_equatorial_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-production-generation-boundary-request-corpus-equatorial-semantic",
+            "production-generation-boundary-request-corpus-equatorial-summary.txt",
+            "production generation boundary request corpus equatorial summary checksum (fnv1a-64):",
+            "65 requests",
+            "66 drifted requests",
+            "production generation boundary request corpus equatorial summary no longer matches the current production-generation boundary request corpus equatorial posture",
         );
     }
 
