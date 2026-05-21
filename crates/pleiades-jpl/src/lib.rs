@@ -3348,18 +3348,41 @@ pub struct ProductionGenerationSourceSummary {
     pub source_revision: ProductionGenerationSourceRevisionSummary,
 }
 
-fn production_generation_source_cadence_fragment(
-    summary: &ProductionGenerationSourceSummary,
+fn production_generation_source_cadence_fragment_from_counts(
+    source_window_epoch_count: usize,
+    boundary_epoch_count_ecliptic: usize,
+    boundary_epoch_count_equatorial: usize,
 ) -> Result<String, ProductionGenerationSourceSummaryValidationError> {
-    let boundary_epoch_count =
-        production_generation_boundary_request_corpus_summary(CoordinateFrame::Ecliptic)
-            .ok_or(ProductionGenerationSourceSummaryValidationError::SourceWindowsMismatch)?
-            .epoch_count;
+    if boundary_epoch_count_ecliptic != boundary_epoch_count_equatorial {
+        return Err(
+            ProductionGenerationSourceSummaryValidationError::BoundaryRequestCorpusEpochCountMismatch {
+                ecliptic_epoch_count: boundary_epoch_count_ecliptic,
+                equatorial_epoch_count: boundary_epoch_count_equatorial,
+            },
+        );
+    }
 
     Ok(format!(
         "cadence={} reference epochs and {} boundary epochs",
-        summary.source_windows.epoch_count, boundary_epoch_count
+        source_window_epoch_count, boundary_epoch_count_ecliptic
     ))
+}
+
+fn production_generation_source_cadence_fragment(
+    summary: &ProductionGenerationSourceSummary,
+) -> Result<String, ProductionGenerationSourceSummaryValidationError> {
+    let boundary_request_corpus_ecliptic =
+        production_generation_boundary_request_corpus_summary(CoordinateFrame::Ecliptic)
+            .ok_or(ProductionGenerationSourceSummaryValidationError::SourceWindowsMismatch)?;
+    let boundary_request_corpus_equatorial =
+        production_generation_boundary_request_corpus_summary(CoordinateFrame::Equatorial)
+            .ok_or(ProductionGenerationSourceSummaryValidationError::SourceWindowsMismatch)?;
+
+    production_generation_source_cadence_fragment_from_counts(
+        summary.source_windows.epoch_count,
+        boundary_request_corpus_ecliptic.epoch_count,
+        boundary_request_corpus_equatorial.epoch_count,
+    )
 }
 
 fn validate_production_generation_source_summary_text(
@@ -3501,6 +3524,11 @@ pub enum ProductionGenerationSourceSummaryValidationError {
     SourceWindows(ProductionGenerationSnapshotWindowSummaryValidationError),
     /// The source-window summary no longer matches the current derived corpus evidence.
     SourceWindowsMismatch,
+    /// The ecliptic and equatorial boundary-request corpora no longer share the same epoch count.
+    BoundaryRequestCorpusEpochCountMismatch {
+        ecliptic_epoch_count: usize,
+        equatorial_epoch_count: usize,
+    },
     /// The deterministic revision summary drifted from the checked-in fixture contents.
     SourceRevisionMismatch,
     /// The rendered summary text drifted from the expected release-facing provenance fragments.
@@ -3516,6 +3544,13 @@ impl fmt::Display for ProductionGenerationSourceSummaryValidationError {
                 write!(f, "source window summary validation failed: {error}")
             }
             Self::SourceWindowsMismatch => f.write_str("source windows mismatch"),
+            Self::BoundaryRequestCorpusEpochCountMismatch {
+                ecliptic_epoch_count,
+                equatorial_epoch_count,
+            } => write!(
+                f,
+                "boundary request corpus epoch counts differ: ecliptic={ecliptic_epoch_count}, equatorial={equatorial_epoch_count}"
+            ),
             Self::SourceRevisionMismatch => f.write_str("source revision mismatch"),
             Self::RenderedSummaryOutOfSync { field } => write!(
                 f,
@@ -31538,6 +31573,24 @@ mod tests {
             .expect("validated production generation source summary should exist");
 
         assert_eq!(validated, report);
+    }
+
+    #[test]
+    fn production_generation_source_cadence_fragment_rejects_boundary_epoch_count_drift() {
+        let error = production_generation_source_cadence_fragment_from_counts(31, 13, 12)
+            .expect_err("mismatched boundary epoch counts should be rejected");
+
+        assert!(matches!(
+            error,
+            ProductionGenerationSourceSummaryValidationError::BoundaryRequestCorpusEpochCountMismatch {
+                ecliptic_epoch_count: 13,
+                equatorial_epoch_count: 12,
+            }
+        ));
+        assert_eq!(
+            error.to_string(),
+            "boundary request corpus epoch counts differ: ecliptic=13, equatorial=12"
+        );
     }
 
     #[test]
