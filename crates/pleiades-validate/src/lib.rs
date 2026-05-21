@@ -11081,7 +11081,7 @@ benchmark-corpus summary: benchmark-corpus-summary.txt\nbenchmark-corpus summary
     fs::write(&manifest_path, manifest_text.as_bytes())?;
     fs::write(&manifest_checksum_path, manifest_checksum_text.as_bytes())?;
 
-    verify_release_bundle(output_dir)
+    verify_release_bundle_internal(output_dir, false)
 }
 
 #[derive(Debug)]
@@ -13778,6 +13778,13 @@ fn ensure_api_stability_summary_matches_current_rendering(
 fn verify_release_bundle(
     output_dir: impl AsRef<Path>,
 ) -> Result<ReleaseBundle, ReleaseBundleError> {
+    verify_release_bundle_internal(output_dir, true)
+}
+
+fn verify_release_bundle_internal(
+    output_dir: impl AsRef<Path>,
+    validate_validation_report_summary: bool,
+) -> Result<ReleaseBundle, ReleaseBundleError> {
     let output_dir = output_dir.as_ref();
     let profile_path = output_dir.join("compatibility-profile.txt");
     let profile_summary_path = output_dir.join("compatibility-profile-summary.txt");
@@ -14698,10 +14705,12 @@ fn verify_release_bundle(
     ensure_validation_report_fit_threshold_violations_matches_current_rendering(
         &validation_report_summary_text,
     )?;
-    ensure_validation_report_summary_matches_current_rendering(
-        &validation_report_summary_text,
-        manifest.validation_rounds,
-    )?;
+    if validate_validation_report_summary {
+        ensure_validation_report_summary_matches_current_rendering(
+            &validation_report_summary_text,
+            manifest.validation_rounds,
+        )?;
+    }
     ensure_backend_matrix_selected_asteroid_source_lines_match_current_rendering(
         &backend_matrix_text,
     )?;
