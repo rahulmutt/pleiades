@@ -161,6 +161,9 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("release-summary") => validate_render_cli(args),
         Some("jpl-batch-error-taxonomy-summary") => validate_render_cli(args),
         Some("jpl-snapshot-evidence-summary") => validate_render_cli(args),
+        Some("jpl-source-corpus-contract-summary") | Some("jpl-source-corpus-contract") => {
+            validate_render_cli(args)
+        }
         Some("production-generation-boundary-summary") => validate_render_cli(args),
         Some("production-generation-boundary-request-corpus-summary") => validate_render_cli(args),
         Some("production-generation-body-class-coverage-summary")
@@ -3184,6 +3187,33 @@ mod tests {
             jpl_snapshot_evidence_summary,
             super::validate_render_cli(&["jpl-snapshot-evidence-summary"])
                 .expect("validation JPL snapshot evidence summary should render")
+        );
+
+        let jpl_source_corpus_contract_summary =
+            render_cli(&["jpl-source-corpus-contract-summary"])
+                .expect("JPL source corpus contract summary should render");
+        assert!(jpl_source_corpus_contract_summary.contains("JPL source corpus contract:"));
+        assert!(jpl_source_corpus_contract_summary
+            .contains(&pleiades_jpl::jpl_source_corpus_contract_summary_for_report()));
+        assert_eq!(
+            jpl_source_corpus_contract_summary,
+            super::validate_render_cli(&["jpl-source-corpus-contract-summary"])
+                .expect("validation JPL source corpus contract summary should render")
+        );
+        assert_eq!(
+            jpl_source_corpus_contract_summary,
+            render_cli(&["jpl-source-corpus-contract"])
+                .expect("JPL source corpus contract alias should render")
+        );
+        assert_eq!(
+            jpl_source_corpus_contract_summary,
+            super::validate_render_cli(&["jpl-source-corpus-contract"])
+                .expect("validation JPL source corpus contract alias should render")
+        );
+        assert_eq!(
+            render_cli(&["jpl-source-corpus-contract", "extra"])
+                .expect_err("JPL source corpus contract alias should reject extra arguments"),
+            "jpl-source-corpus-contract does not accept extra arguments"
         );
 
         let packaged_lookup_epoch_policy_summary =
