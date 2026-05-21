@@ -3661,6 +3661,68 @@ impl fmt::Display for ProductionGenerationCorpusShapeSummaryValidationError {
 
 impl std::error::Error for ProductionGenerationCorpusShapeSummaryValidationError {}
 
+fn validate_production_generation_boundary_request_corpus_frame_parity(
+    boundary_request_corpus_ecliptic: &ProductionGenerationBoundaryRequestCorpusSummary,
+    boundary_request_corpus_equatorial: &ProductionGenerationBoundaryRequestCorpusSummary,
+) -> Result<(), ProductionGenerationCorpusShapeSummaryValidationError> {
+    let parity_fields = [
+        (
+            "boundary request corpus parity (request_count)",
+            boundary_request_corpus_ecliptic.request_count
+                == boundary_request_corpus_equatorial.request_count,
+        ),
+        (
+            "boundary request corpus parity (body_count)",
+            boundary_request_corpus_ecliptic.body_count
+                == boundary_request_corpus_equatorial.body_count,
+        ),
+        (
+            "boundary request corpus parity (bodies)",
+            boundary_request_corpus_ecliptic.bodies == boundary_request_corpus_equatorial.bodies,
+        ),
+        (
+            "boundary request corpus parity (epoch_count)",
+            boundary_request_corpus_ecliptic.epoch_count
+                == boundary_request_corpus_equatorial.epoch_count,
+        ),
+        (
+            "boundary request corpus parity (earliest_epoch)",
+            boundary_request_corpus_ecliptic.earliest_epoch
+                == boundary_request_corpus_equatorial.earliest_epoch,
+        ),
+        (
+            "boundary request corpus parity (latest_epoch)",
+            boundary_request_corpus_ecliptic.latest_epoch
+                == boundary_request_corpus_equatorial.latest_epoch,
+        ),
+        (
+            "boundary request corpus parity (time_scale)",
+            boundary_request_corpus_ecliptic.time_scale
+                == boundary_request_corpus_equatorial.time_scale,
+        ),
+        (
+            "boundary request corpus parity (zodiac_mode)",
+            boundary_request_corpus_ecliptic.zodiac_mode
+                == boundary_request_corpus_equatorial.zodiac_mode,
+        ),
+        (
+            "boundary request corpus parity (apparentness)",
+            boundary_request_corpus_ecliptic.apparentness
+                == boundary_request_corpus_equatorial.apparentness,
+        ),
+    ];
+
+    for (field, is_parity) in parity_fields {
+        if !is_parity {
+            return Err(
+                ProductionGenerationCorpusShapeSummaryValidationError::FieldOutOfSync { field },
+            );
+        }
+    }
+
+    Ok(())
+}
+
 impl ProductionGenerationCorpusShapeSummary {
     /// Returns a compact release-facing corpus-shape summary.
     pub fn summary_line(&self) -> String {
@@ -3731,6 +3793,11 @@ impl ProductionGenerationCorpusShapeSummary {
                 },
             );
         }
+
+        validate_production_generation_boundary_request_corpus_frame_parity(
+            &self.boundary_request_corpus_ecliptic,
+            &self.boundary_request_corpus_equatorial,
+        )?;
 
         Ok(())
     }
@@ -31825,6 +31892,29 @@ mod tests {
         assert!(matches!(
             summary.validate(),
             Err(ProductionGenerationCorpusShapeSummaryValidationError::BoundaryRequestCorpusEquatorial(_))
+        ));
+    }
+
+    #[test]
+    fn production_generation_boundary_request_corpus_frame_parity_validation_rejects_drift() {
+        let ecliptic =
+            production_generation_boundary_request_corpus_summary(CoordinateFrame::Ecliptic)
+                .expect("production generation boundary request corpus summary should exist");
+        let mut equatorial =
+            production_generation_boundary_request_corpus_summary(CoordinateFrame::Equatorial)
+                .expect("production generation boundary request corpus summary should exist");
+        equatorial.epoch_count += 1;
+
+        assert!(matches!(
+            validate_production_generation_boundary_request_corpus_frame_parity(
+                &ecliptic,
+                &equatorial,
+            ),
+            Err(
+                ProductionGenerationCorpusShapeSummaryValidationError::FieldOutOfSync {
+                    field: "boundary request corpus parity (epoch_count)"
+                }
+            )
         ));
     }
 
