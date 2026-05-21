@@ -13572,6 +13572,35 @@ fn ensure_request_surface_summary_matches_current_rendering(
     }
 }
 
+fn ensure_backend_matrix_report_matches_current_rendering(
+    backend_matrix_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    let expected = render_backend_matrix_report().map_err(|error| {
+        ReleaseBundleError::Verification(format!("backend matrix unavailable ({error})"))
+    })?;
+
+    if backend_matrix_text == expected {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "backend matrix no longer matches the current backend-matrix posture".to_string(),
+        ))
+    }
+}
+
+fn ensure_backend_matrix_summary_matches_current_rendering(
+    backend_matrix_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if backend_matrix_summary_text == render_backend_matrix_summary() {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "backend matrix summary no longer matches the current backend-matrix posture"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_compatibility_caveats_summary_matches_current_rendering(
     compatibility_caveats_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -14039,6 +14068,8 @@ fn verify_release_bundle(
     let backend_matrix_text = read_required_bundle_text(&backend_matrix_path, "backend matrix")?;
     let backend_matrix_summary_text =
         read_required_bundle_text(&backend_matrix_summary_path, "backend matrix summary")?;
+    ensure_backend_matrix_report_matches_current_rendering(&backend_matrix_text)?;
+    ensure_backend_matrix_summary_matches_current_rendering(&backend_matrix_summary_text)?;
     let api_stability_text = read_required_bundle_text(&api_stability_path, "API stability")?;
     let api_stability_summary_text =
         read_required_bundle_text(&api_stability_summary_path, "API stability summary")?;
@@ -24506,6 +24537,32 @@ mod tests {
         assert!(error
             .to_string()
             .contains("request surface summary no longer matches"));
+    }
+
+    #[test]
+    fn backend_matrix_report_semantic_check_rejects_stale_rendering() {
+        let mut stale = render_backend_matrix_report().expect("backend matrix should render");
+        stale.push_str(" stale");
+
+        let error = ensure_backend_matrix_report_matches_current_rendering(&stale).expect_err(
+            "stale backend matrix report should fail the release-bundle semantic check",
+        );
+        assert!(error
+            .to_string()
+            .contains("backend matrix no longer matches"));
+    }
+
+    #[test]
+    fn backend_matrix_summary_semantic_check_rejects_stale_rendering() {
+        let mut stale = render_backend_matrix_summary();
+        stale.push_str(" stale");
+
+        let error = ensure_backend_matrix_summary_matches_current_rendering(&stale).expect_err(
+            "stale backend matrix summary should fail the release-bundle semantic check",
+        );
+        assert!(error
+            .to_string()
+            .contains("backend matrix summary no longer matches"));
     }
 
     #[test]
