@@ -9209,6 +9209,12 @@ fn render_release_summary_text() -> String {
             text.push_str("Production generation body-class coverage: ");
             text.push_str(&validated_production_generation_body_class_coverage_summary_for_report());
             text.push('\n');
+            text.push_str("Production generation source revision: ");
+            match validated_production_generation_source_revision_summary_for_report() {
+                Ok(summary) => text.push_str(&summary),
+                Err(error) => return format!("Release summary unavailable ({error})"),
+            }
+            text.push('\n');
             text.push_str("Production generation corpus shape: ");
             match validated_production_generation_corpus_shape_summary_for_report() {
                 Ok(summary) => text.push_str(&summary),
@@ -20957,6 +20963,12 @@ fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str(&production_generation_manifest_summary_for_report());
     text.push('\n');
+    text.push_str("Production generation source revision: ");
+    match validated_production_generation_source_revision_summary_for_report() {
+        Ok(summary) => text.push_str(&summary),
+        Err(error) => return format!("Backend matrix summary unavailable ({error})"),
+    }
+    text.push('\n');
     text.push_str("JPL production-generation coverage: ");
     text.push_str(&production_generation_snapshot_summary_for_report());
     text.push('\n');
@@ -30948,6 +30960,7 @@ version = "0.9.0"
         )));
         assert!(release_summary.contains("Release summary"));
         assert!(release_summary.contains("API stability summary line: API stability posture:"));
+        assert!(release_summary.contains("Production generation source revision: source revision=reference_snapshot.csv checksum=0x"));
         assert!(release_summary.contains(
             "Latitude-sensitive house systems: 8 (Placidus, Koch, Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Topocentric, Sunshine, Gauquelin sectors)"
         ));
@@ -31401,6 +31414,7 @@ version = "0.9.0"
             "Profile: {}",
             release_profiles.compatibility_profile_id
         )));
+        assert!(backend_matrix_summary.contains("Production generation source revision: source revision=reference_snapshot.csv checksum=0x"));
         assert!(backend_matrix_summary.contains("Backends: 5"));
         assert!(backend_matrix_summary.contains("Algorithmic: 2"));
         assert!(backend_matrix_summary.contains("Composite: 1"));
