@@ -13945,6 +13945,7 @@ fn verify_release_bundle(
     ensure_api_stability_summary_matches_current_rendering(&api_stability_summary_text)?;
     let comparison_corpus_summary_text =
         read_required_bundle_text(&comparison_corpus_summary_path, "comparison corpus summary")?;
+    ensure_comparison_corpus_summary_matches_current_rendering(&comparison_corpus_summary_text)?;
     let source_corpus_summary_text =
         read_required_bundle_text(&source_corpus_summary_path, "source corpus summary")?;
     let comparison_snapshot_summary_text = read_required_bundle_text(
@@ -18918,6 +18919,19 @@ fn render_comparison_corpus_summary_text() -> String {
     let _ = writeln!(text, "  release-grade guard: {release_grade_guard}");
     text.push('\n');
     text
+}
+
+fn ensure_comparison_corpus_summary_matches_current_rendering(
+    comparison_corpus_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if comparison_corpus_summary_text != render_comparison_corpus_summary_text() {
+        return Err(ReleaseBundleError::Verification(
+            "comparison corpus summary no longer matches the current comparison-corpus posture"
+                .to_string(),
+        ));
+    }
+
+    Ok(())
 }
 
 fn validated_source_corpus_summary_for_report() -> Result<String, String> {
@@ -33960,6 +33974,19 @@ version = "0.9.0"
             "scope=luminaries; bodies=2 (Sun, Moon); fit envelope:",
             "scope=luminaries; bodies=2 (Sun, Moon); drifted fit envelope:",
             "packaged-artifact target-threshold scope envelopes summary no longer matches the current packaged-artifact target-threshold scope envelopes posture",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_comparison_corpus_summary_even_with_updated_checksum()
+    {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-comparison-corpus-semantic",
+            "comparison-corpus-summary.txt",
+            "comparison-corpus summary checksum (fnv1a-64):",
+            "Comparison corpus summary",
+            "Tampered comparison corpus summary",
+            "comparison corpus summary no longer matches the current comparison-corpus posture",
         );
     }
 
