@@ -40,6 +40,6 @@ This file lists only active implementation slices. Completed report aliases, sum
 ## Phase 5 — Compatibility and release readiness
 
 - Audit house formulas, aliases, and latitude/numerical failure constraints; the compatibility profile and report surfaces now expose explicit latitude-sensitive house-constraint summaries.
-- Audit ayanamsa offsets, epochs, formula/provenance notes, aliases, and near-equivalent variants.
+- Audit ayanamsa offsets, epochs, formula/provenance notes, aliases, and near-equivalent variants; the compatibility inventory now also surfaces representative ayanamsa provenance examples so those audits remain visible in release-facing summaries.
 - Keep compatibility profiles exact about shipped built-ins, descriptor-only entries, constraints, aliases, and gaps; the catalog inventory line now also surfaces the current ayanamsa metadata-gap count alongside custom-definition labels, and the release notes summary now carries the house-validation corpus plus the ayanamsa catalog validation and sidereal-metadata coverage lines.
 - Make release gates fail on stale generated artifacts, overbroad claims, missing evidence, native-dependency drift, and threshold failures.

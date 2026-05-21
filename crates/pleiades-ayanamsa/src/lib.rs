@@ -1331,6 +1331,114 @@ pub const fn provenance_sample_ayanamsas() -> &'static [Ayanamsa] {
     ]
 }
 
+/// A single provenance example surfaced in release-facing reports.
+#[derive(Clone, Debug, PartialEq)]
+pub struct AyanamsaProvenanceExample {
+    /// The canonical ayanamsa name.
+    pub canonical_name: &'static str,
+    /// The provenance note surfaced for the example.
+    pub provenance_note: &'static str,
+}
+
+/// A compact provenance summary for representative ayanamsa examples.
+#[derive(Clone, Debug, PartialEq)]
+pub struct AyanamsaProvenanceSummary {
+    /// Representative provenance examples.
+    pub examples: Vec<AyanamsaProvenanceExample>,
+}
+
+/// Validation errors for the representative ayanamsa provenance summary.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AyanamsaProvenanceSummaryValidationError {
+    /// A summary field drifted from the documented sample set.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for AyanamsaProvenanceSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the ayanamsa provenance summary field `{field}` is out of sync with the current posture"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for AyanamsaProvenanceSummaryValidationError {}
+
+impl Default for AyanamsaProvenanceSummary {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl AyanamsaProvenanceSummary {
+    /// Creates the representative provenance summary from the documented sample set.
+    pub fn new() -> Self {
+        let examples = provenance_sample_ayanamsas()
+            .iter()
+            .map(|ayanamsa| {
+                let descriptor = descriptor(ayanamsa)
+                    .expect("provenance sample ayanamsa should exist in the built-in catalog");
+                AyanamsaProvenanceExample {
+                    canonical_name: descriptor.canonical_name,
+                    provenance_note: descriptor.notes,
+                }
+            })
+            .collect();
+
+        Self { examples }
+    }
+
+    /// Validates that the provenance summary still matches the documented sample set.
+    pub fn validate(&self) -> Result<(), AyanamsaProvenanceSummaryValidationError> {
+        if self.examples != AyanamsaProvenanceSummary::new().examples {
+            return Err(AyanamsaProvenanceSummaryValidationError::FieldOutOfSync {
+                field: "examples",
+            });
+        }
+
+        Ok(())
+    }
+
+    /// Returns the compact provenance payload used in release-facing reports.
+    pub fn summary_line(&self) -> String {
+        let examples = self
+            .examples
+            .iter()
+            .map(|example| format!("{} — {}", example.canonical_name, example.provenance_note))
+            .collect::<Vec<_>>()
+            .join("; ");
+        format!("representative provenance examples: {examples}")
+    }
+
+    /// Returns the compact provenance payload after validation.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, AyanamsaProvenanceSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for AyanamsaProvenanceSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Returns a representative release-facing provenance summary.
+pub fn provenance_summary() -> AyanamsaProvenanceSummary {
+    AyanamsaProvenanceSummary::new()
+}
+
+/// Returns the release-facing provenance payload after validation.
+pub fn validated_provenance_summary_for_report(
+) -> Result<String, AyanamsaProvenanceSummaryValidationError> {
+    provenance_summary().validated_summary_line()
+}
+
 const CUSTOM_DEFINITION_ONLY_AYANAMSAS: &[&str] = &[
     "Babylonian (House)",
     "Babylonian (Sissy)",
@@ -2210,6 +2318,47 @@ mod tests {
                 Ayanamsa::ValensMoon,
             ]
         );
+    }
+
+    #[test]
+    fn provenance_summary_reports_the_documented_examples() {
+        let summary = provenance_summary();
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert!(summary
+            .summary_line()
+            .contains("representative provenance examples:"));
+        assert!(summary.summary_line().contains("True Citra —"));
+        assert!(summary.summary_line().contains("True Revati —"));
+        assert!(summary.summary_line().contains("True Mula —"));
+        assert!(summary.summary_line().contains("True Pushya —"));
+        assert!(summary.summary_line().contains("Udayagiri —"));
+        assert!(summary.summary_line().contains("True Sheoran —"));
+        assert!(summary.summary_line().contains("Babylonian (Britton) —"));
+        assert!(summary
+            .summary_line()
+            .contains("Galactic Center (Rgilbrand) —"));
+        assert!(summary.summary_line().contains("Babylonian (Kugler 1) —"));
+        assert!(summary.summary_line().contains("Galactic Equator —"));
+        assert!(summary
+            .summary_line()
+            .contains("Suryasiddhanta (Mean Sun) —"));
+        assert!(summary.summary_line().contains("Aryabhata (522 CE) —"));
+        assert!(summary.summary_line().contains("Valens Moon —"));
+    }
+
+    #[test]
+    fn provenance_summary_validation_rejects_example_drift() {
+        let summary = AyanamsaProvenanceSummary {
+            examples: vec![AyanamsaProvenanceExample {
+                canonical_name: "Example",
+                provenance_note: "drifted note",
+            }],
+        };
+
+        assert!(matches!(
+            summary.validate(),
+            Err(AyanamsaProvenanceSummaryValidationError::FieldOutOfSync { field: "examples" })
+        ));
     }
 
     #[test]
