@@ -19118,10 +19118,17 @@ fn render_request_policy_summary_text() -> String {
 }
 
 fn render_request_semantics_summary_text() -> String {
-    render_request_policy_like_summary_text(
+    use std::fmt::Write as _;
+
+    let mut text = render_request_policy_like_summary_text(
         "Request semantics summary\n",
         RequestPolicyReportKind::Semantics,
-    )
+    );
+    let _ = writeln!(
+        text,
+        "Unsupported modes: built-in UTC convenience remains out of scope; built-in Delta T remains out of scope; topocentric body positions remain unsupported; apparent-place corrections are rejected unless a backend explicitly advertises support; native sidereal backend output remains unsupported unless a backend explicitly advertises it"
+    );
+    text
 }
 
 fn render_request_surface_summary_text() -> String {
@@ -36972,22 +36979,20 @@ version = "0.9.0"
         let request_semantics = render_cli(&["request-semantics-summary"])
             .expect("request semantics summary should render");
         assert!(request_semantics.contains("Request semantics summary"));
+        assert!(request_semantics.contains("Unsupported modes:"));
         assert_eq!(
-            request_semantics.replacen("Request semantics summary", "Request policy summary", 1),
-            request_policy
+            request_semantics,
+            format!(
+                "{}Unsupported modes: built-in UTC convenience remains out of scope; built-in Delta T remains out of scope; topocentric body positions remain unsupported; apparent-place corrections are rejected unless a backend explicitly advertises support; native sidereal backend output remains unsupported unless a backend explicitly advertises it\n",
+                request_policy.replacen("Request policy summary", "Request semantics summary", 1)
+            )
         );
 
         let request_semantics_alias =
             render_cli(&["request-semantics"]).expect("request semantics alias should render");
         assert!(request_semantics_alias.contains("Request semantics summary"));
-        assert_eq!(
-            request_semantics_alias.replacen(
-                "Request semantics summary",
-                "Request policy summary",
-                1
-            ),
-            request_policy
-        );
+        assert!(request_semantics_alias.contains("Unsupported modes:"));
+        assert_eq!(request_semantics_alias, request_semantics);
 
         let native_sidereal_policy = render_cli(&["native-sidereal-policy-summary"])
             .expect("native sidereal policy summary should render");
