@@ -3357,6 +3357,7 @@ fn validate_production_generation_source_summary_text(
             "input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv".to_string(),
         ),
         ("file format", "file format=comma-separated values".to_string()),
+        ("schema", "schema=epoch_jd, body, x_km, y_km, z_km".to_string()),
         ("columns", "columns=epoch_jd, body, x_km, y_km, z_km".to_string()),
         ("frame", "frame=geocentric ecliptic J2000".to_string()),
         ("time scale", "time scale=TDB".to_string()),
@@ -3413,7 +3414,7 @@ impl ProductionGenerationSourceSummary {
             .unwrap_or_else(|error| format!("cadence unavailable ({error})"));
 
         format!(
-            "Production generation source: strategy=documented hybrid fixture corpus; {}; {}; source windows={}; evidence classes=reference, hold-out, boundary overlay, provenance-only; input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv; license posture=public-source provenance only; checked-in fixtures remain repository-local regression data; {}; generation command=generate-packaged-artifact --check (consuming the checked-in CSV fixtures); file format=comma-separated values; columns=epoch_jd, body, x_km, y_km, z_km; frame=geocentric ecliptic J2000; time scale=TDB; apparentness=Mean; parser=pure-Rust and deterministic; checksum expectation=byte-identical fixture contents; {}; reference and hold-out rows remain separate; redistribution posture=repository-checked regression fixtures, not a broad public corpus",
+            "Production generation source: strategy=documented hybrid fixture corpus; {}; {}; source windows={}; evidence classes=reference, hold-out, boundary overlay, provenance-only; input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv; license posture=public-source provenance only; checked-in fixtures remain repository-local regression data; {}; generation command=generate-packaged-artifact --check (consuming the checked-in CSV fixtures); file format=comma-separated values; schema=epoch_jd, body, x_km, y_km, z_km; columns=epoch_jd, body, x_km, y_km, z_km; frame=geocentric ecliptic J2000; time scale=TDB; apparentness=Mean; parser=pure-Rust and deterministic; checksum expectation=byte-identical fixture contents; {}; reference and hold-out rows remain separate; redistribution posture=repository-checked regression fixtures, not a broad public corpus",
             self.reference_summary.summary_line(),
             format_production_generation_boundary_source_summary(&self.boundary_summary),
             strip_report_prefix(
@@ -31478,6 +31479,7 @@ mod tests {
         );
         assert!(report.contains(&expected_cadence));
         assert!(report.contains("reference and hold-out rows remain separate"));
+        assert!(report.contains("schema=epoch_jd, body, x_km, y_km, z_km"));
         assert!(report.contains("columns=epoch_jd, body, x_km, y_km, z_km"));
         assert!(report.contains("redistribution posture=repository-checked regression fixtures, not a broad public corpus"));
     }
