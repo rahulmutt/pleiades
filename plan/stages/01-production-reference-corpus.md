@@ -16,6 +16,8 @@ The repository has checked-in JPL Horizons snapshots, comparison fixtures, selec
 - Keep boundary overlays, fixture-exactness samples, provenance-only rows, and validation rows separate in data and reports.
 - Make corpus expansion reproducible from public inputs without network access during normal tests.
 
+Progress update: the production-generation boundary-request corpus parity check now validates the ecliptic/equatorial request corpora field-by-field and fails closed on drift in request count, body count, bodies, epoch count, earliest/latest epoch, time scale, zodiac mode, or apparentness.
+
 ## Completion criteria
 
 - Validation commands can identify the corpus version and reproduce checksums from a clean checkout.

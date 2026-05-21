@@ -31919,6 +31919,30 @@ mod tests {
     }
 
     #[test]
+    fn production_generation_boundary_request_corpus_frame_parity_validation_rejects_apparentness_drift(
+    ) {
+        let ecliptic =
+            production_generation_boundary_request_corpus_summary(CoordinateFrame::Ecliptic)
+                .expect("production generation boundary request corpus summary should exist");
+        let mut equatorial =
+            production_generation_boundary_request_corpus_summary(CoordinateFrame::Equatorial)
+                .expect("production generation boundary request corpus summary should exist");
+        equatorial.apparentness = Apparentness::Apparent;
+
+        assert!(matches!(
+            validate_production_generation_boundary_request_corpus_frame_parity(
+                &ecliptic,
+                &equatorial,
+            ),
+            Err(
+                ProductionGenerationCorpusShapeSummaryValidationError::FieldOutOfSync {
+                    field: "boundary request corpus parity (apparentness)"
+                }
+            )
+        ));
+    }
+
+    #[test]
     fn production_generation_source_summary_validation_rejects_rendered_text_drift() {
         let summary = production_generation_source_summary();
         let drifted = summary.summary_line().replace(
