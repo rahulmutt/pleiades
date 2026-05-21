@@ -28428,6 +28428,7 @@ mod tests {
         let rendered = render_cli(&["release-house-validation-summary"])
             .expect("release house validation summary should render");
 
+        assert!(rendered.contains("House code aliases:"));
         assert_eq!(rendered, release_house_validation_summary_for_report());
         assert_eq!(
             render_cli(&["release-house-validation"])

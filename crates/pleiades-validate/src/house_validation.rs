@@ -598,12 +598,19 @@ pub fn release_house_validation_summary_for_report() -> String {
     static CACHE: OnceLock<String> = OnceLock::new();
 
     CACHE
-        .get_or_init(
-            || match validated_release_house_validation_summary_line_for_report() {
+        .get_or_init(|| {
+            let summary = match validated_release_house_validation_summary_line_for_report() {
                 Ok(summary) => summary,
-                Err(error) => format!("House validation corpus unavailable: {error}"),
-            },
-        )
+                Err(error) => return format!("House validation corpus unavailable: {error}"),
+            };
+            let house_code_aliases = match crate::validated_house_code_aliases_summary_for_report()
+            {
+                Ok(summary) => summary,
+                Err(error) => return format!("House validation corpus unavailable: {error}"),
+            };
+
+            format!("{summary}; House code aliases: {house_code_aliases}")
+        })
         .clone()
 }
 
@@ -683,10 +690,10 @@ mod tests {
             validated_house_validation_summary_line_for_report(&report),
             Ok(report.summary_line())
         );
-        assert_eq!(
-            release_house_validation_summary_for_report(),
-            house_validation_summary_line_for_report(&release_house_validation_report())
-        );
+        assert!(release_house_validation_summary_for_report().starts_with(
+            &house_validation_summary_line_for_report(&release_house_validation_report())
+        ));
+        assert!(release_house_validation_summary_for_report().contains("House code aliases:"));
         assert_eq!(
             validated_release_house_validation_summary_line_for_report(),
             Ok(release_house_validation_report().summary_line())

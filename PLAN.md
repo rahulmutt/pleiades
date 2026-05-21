@@ -24,7 +24,7 @@ The workspace has completed the original foundation roadmap:
 - release bundles now also carry the production-generation corpus-shape summary alongside the source-window and manifest summaries, and bundle verification fails closed if the staged directory or manifest omits it;
 - the release summary now surfaces validated production-generation body-class coverage and corpus-shape lines alongside the release-grade body-claims line, keeping the top-level release overview tied to corpus evidence;
 - the release notes summary now also surfaces the house-validation corpus plus the ayanamsa catalog validation and sidereal-metadata coverage lines, so the compact release notes view carries explicit compatibility-evidence checks alongside the catalog inventory;
-- house and ayanamsa crates contain broad catalog descriptors plus baseline calculations/conversions, and the compatibility inventory now also surfaces ayanamsa alias-bearing entry counts to keep alias audits explicit;
+- house and ayanamsa crates contain broad catalog descriptors plus baseline calculations/conversions, the compatibility inventory now also surfaces ayanamsa alias-bearing entry counts to keep alias audits explicit, and the release-house-validation summary now also surfaces house-code aliases alongside the baseline house corpus;
 - VSOP87-style planetary, compact lunar/lunar-point, JPL snapshot, and packaged-data backend crates exist;
 - validation, CLI, release-bundle, audit, benchmark, and report-generation surfaces exist.
 
