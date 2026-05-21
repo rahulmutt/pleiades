@@ -140,6 +140,7 @@ use pleiades_jpl::{
     jpl_snapshot_batch_error_taxonomy_summary_for_report, jpl_snapshot_evidence_summary_for_report,
     jpl_snapshot_request_policy_summary_for_report, jpl_source_corpus_contract_summary_for_report,
     production_generation_boundary_body_class_coverage_summary_for_report,
+    production_generation_boundary_request_corpus_equatorial_summary_for_report,
     production_generation_boundary_request_corpus_summary_for_report,
     production_generation_boundary_source_summary_for_report,
     production_generation_boundary_summary_for_report,
@@ -5466,6 +5467,14 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
                 "production-generation-boundary-request-corpus-summary",
             )?;
             Ok(production_generation_boundary_request_corpus_summary_for_report())
+        }
+        Some("production-generation-boundary-request-corpus-equatorial-summary")
+        | Some("production-generation-boundary-request-corpus-equatorial") => {
+            ensure_no_extra_args(
+                &args[1..],
+                "production-generation-boundary-request-corpus-equatorial-summary",
+            )?;
+            Ok(production_generation_boundary_request_corpus_equatorial_summary_for_report())
         }
         Some("production-generation-body-class-coverage-summary")
         | Some("production-body-class-coverage-summary") => {
@@ -23329,7 +23338,7 @@ fn help_text() -> String {
   release-ayanamsa-canonical-names-summary  Print the compact release-specific ayanamsa canonical names summary
   release-ayanamsa-canonical-names  Alias for release-ayanamsa-canonical-names-summary
   profile-summary           Alias for compatibility-profile-summary
-  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  release-notes             Print the release compatibility notes\n  release-notes-summary     Print the compact release notes summary\n  release-checklist         Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  release-smoke            Run the release smoke checks and render the short smoke report\n  release-gate              Run the release gate checks and render the release checklist\n  release-gate-summary      Run the release gate checks and render the compact release checklist summary\n  checklist-summary        Alias for release-checklist-summary\n  release-summary           Print the compact release summary\n  source-corpus-summary     Print the consolidated source corpus summary\n  source-corpus             Alias for source-corpus-summary\n  jpl-batch-error-taxonomy-summary  Print the compact JPL batch error taxonomy summary\n  jpl-snapshot-evidence-summary  Print the compact combined JPL evidence summary\n  jpl-source-corpus-contract-summary  Print the compact JPL source corpus contract summary\n  jpl-source-corpus-contract  Alias for jpl-source-corpus-contract-summary\n  production-generation-boundary-summary  Print the compact production-generation boundary overlay summary\n  production-generation-boundary-request-corpus-summary  Print the compact production-generation boundary request corpus summary\n  production-generation-boundary-request-corpus  Alias for production-generation-boundary-request-corpus-summary\n  production-generation-body-class-coverage-summary  Print the compact production-generation body-class coverage summary\n  production-body-class-coverage-summary  Alias for production-generation-body-class-coverage-summary\n  production-generation-source-window-summary  Print the compact production-generation source windows summary\n  production-generation-source-window  Alias for production-generation-source-window-summary\n  production-generation-corpus-shape-summary  Print the compact production-generation corpus shape summary\n  production-generation-corpus-shape  Alias for production-generation-corpus-shape-summary\n  production-generation-summary  Print the compact production-generation coverage summary
+  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  release-notes             Print the release compatibility notes\n  release-notes-summary     Print the compact release notes summary\n  release-checklist         Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  release-smoke            Run the release smoke checks and render the short smoke report\n  release-gate              Run the release gate checks and render the release checklist\n  release-gate-summary      Run the release gate checks and render the compact release checklist summary\n  checklist-summary        Alias for release-checklist-summary\n  release-summary           Print the compact release summary\n  source-corpus-summary     Print the consolidated source corpus summary\n  source-corpus             Alias for source-corpus-summary\n  jpl-batch-error-taxonomy-summary  Print the compact JPL batch error taxonomy summary\n  jpl-snapshot-evidence-summary  Print the compact combined JPL evidence summary\n  jpl-source-corpus-contract-summary  Print the compact JPL source corpus contract summary\n  jpl-source-corpus-contract  Alias for jpl-source-corpus-contract-summary\n  production-generation-boundary-summary  Print the compact production-generation boundary overlay summary\n  production-generation-boundary-request-corpus-summary  Print the compact production-generation boundary request corpus summary\n  production-generation-boundary-request-corpus  Alias for production-generation-boundary-request-corpus-summary\n  production-generation-boundary-request-corpus-equatorial-summary  Print the compact production-generation boundary request corpus summary in the equatorial frame\n  production-generation-boundary-request-corpus-equatorial  Alias for production-generation-boundary-request-corpus-equatorial-summary\n  production-generation-body-class-coverage-summary  Print the compact production-generation body-class coverage summary\n  production-body-class-coverage-summary  Alias for production-generation-body-class-coverage-summary\n  production-generation-source-window-summary  Print the compact production-generation source windows summary\n  production-generation-source-window  Alias for production-generation-source-window-summary\n  production-generation-corpus-shape-summary  Print the compact production-generation corpus shape summary\n  production-generation-corpus-shape  Alias for production-generation-corpus-shape-summary\n  production-generation-summary  Print the compact production-generation coverage summary
   production-generation           Alias for production-generation-summary
   production-generation-boundary-source-summary  Print the compact production-generation boundary source summary
   production-generation-boundary-source  Alias for production-generation-boundary-source-summary
@@ -26879,6 +26888,10 @@ mod tests {
         assert!(rendered.contains("production-generation-boundary-summary"));
         assert!(rendered.contains("production-generation-boundary-request-corpus-summary"));
         assert!(rendered.contains("production-generation-boundary-request-corpus  Alias for production-generation-boundary-request-corpus-summary"));
+        assert!(
+            rendered.contains("production-generation-boundary-request-corpus-equatorial-summary")
+        );
+        assert!(rendered.contains("production-generation-boundary-request-corpus-equatorial  Alias for production-generation-boundary-request-corpus-equatorial-summary"));
         assert!(rendered.contains("production-generation-body-class-coverage-summary"));
         assert!(rendered.contains("production-body-class-coverage-summary"));
         assert!(rendered.contains("production-generation-source-window-summary"));
@@ -35837,6 +35850,35 @@ version = "0.9.0"
         assert_eq!(
             rendered,
             production_generation_boundary_request_corpus_summary_for_report()
+        );
+    }
+
+    #[test]
+    fn production_generation_boundary_request_corpus_equatorial_command_renders_the_request_corpus_block(
+    ) {
+        let rendered =
+            render_cli(&["production-generation-boundary-request-corpus-equatorial-summary"])
+                .expect(
+                "production generation boundary request corpus equatorial summary should render",
+            );
+
+        assert!(rendered.contains("Production generation boundary request corpus:"));
+        assert!(rendered.contains("frame=Equatorial"));
+        assert_eq!(
+            rendered,
+            production_generation_boundary_request_corpus_equatorial_summary_for_report()
+        );
+    }
+
+    #[test]
+    fn production_generation_boundary_request_corpus_equatorial_alias_command_renders_the_request_corpus_block(
+    ) {
+        let rendered = render_cli(&["production-generation-boundary-request-corpus-equatorial"])
+            .expect("production generation boundary request corpus equatorial alias should render");
+
+        assert_eq!(
+            rendered,
+            production_generation_boundary_request_corpus_equatorial_summary_for_report()
         );
     }
 

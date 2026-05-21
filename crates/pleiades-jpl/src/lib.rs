@@ -1407,17 +1407,43 @@ pub fn format_production_generation_boundary_request_corpus_summary(
     summary.summary_line()
 }
 
+/// Returns the validated release-facing production-generation boundary request corpus summary string.
+fn validated_production_generation_boundary_request_corpus_summary_for_frame(
+    frame: CoordinateFrame,
+) -> Result<String, String> {
+    let summary = production_generation_boundary_request_corpus_summary(frame)
+        .ok_or_else(|| "production generation boundary request corpus unavailable".to_string())?;
+    summary
+        .validated_summary_line()
+        .map_err(|error| error.to_string())
+}
+
 /// Returns the release-facing production-generation boundary request corpus summary string.
 pub fn production_generation_boundary_request_corpus_summary_for_report() -> String {
-    match production_generation_boundary_request_corpus_summary(CoordinateFrame::Ecliptic) {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => {
-                format!("Production generation boundary request corpus: unavailable ({error})")
-            }
-        },
-        None => "Production generation boundary request corpus: unavailable".to_string(),
-    }
+    validated_production_generation_boundary_request_corpus_summary_for_frame(
+        CoordinateFrame::Ecliptic,
+    )
+    .unwrap_or_else(|error| {
+        format!("Production generation boundary request corpus: unavailable ({error})")
+    })
+}
+
+/// Returns the release-facing equatorial production-generation boundary request corpus summary string.
+pub fn production_generation_boundary_request_corpus_equatorial_summary_for_report() -> String {
+    validated_production_generation_boundary_request_corpus_summary_for_frame(
+        CoordinateFrame::Equatorial,
+    )
+    .unwrap_or_else(|error| {
+        format!("Production generation boundary request corpus: unavailable ({error})")
+    })
+}
+
+/// Returns the validated release-facing equatorial production-generation boundary request corpus summary string.
+pub fn validated_production_generation_boundary_request_corpus_equatorial_summary_for_report(
+) -> Result<String, String> {
+    validated_production_generation_boundary_request_corpus_summary_for_frame(
+        CoordinateFrame::Equatorial,
+    )
 }
 
 /// A compact coverage summary for the checked-in reference snapshot.
@@ -20955,6 +20981,7 @@ pub fn jpl_snapshot_evidence_summary_for_report() -> String {
         production_generation_boundary_window_summary_for_report(),
         production_generation_boundary_body_class_coverage_summary_for_report(),
         production_generation_boundary_request_corpus_summary_for_report(),
+        production_generation_boundary_request_corpus_equatorial_summary_for_report(),
         reference_asteroid_evidence_summary_for_report(),
         reference_asteroid_equatorial_evidence_summary_for_report(),
         reference_asteroid_source_window_summary_for_report(),
@@ -28936,6 +28963,22 @@ mod tests {
             production_generation_boundary_request_corpus_summary_for_report(),
             summary.summary_line()
         );
+        assert_eq!(
+            production_generation_boundary_request_corpus_equatorial_summary_for_report(),
+            production_generation_boundary_request_corpus_summary(CoordinateFrame::Equatorial)
+                .expect(
+                    "production generation boundary request corpus equatorial summary should exist"
+                )
+                .summary_line()
+        );
+        assert_eq!(
+            validated_production_generation_boundary_request_corpus_equatorial_summary_for_report(),
+            Ok(
+                production_generation_boundary_request_corpus_summary(CoordinateFrame::Equatorial)
+                    .expect("production generation boundary request corpus equatorial summary should exist")
+                    .summary_line()
+            )
+        );
         assert!(summary
             .summary_line()
             .contains("observerless) across 16 bodies and 13 epochs"));
@@ -32508,6 +32551,9 @@ mod tests {
         assert!(
             report.contains(&production_generation_boundary_request_corpus_summary_for_report())
         );
+        assert!(report.contains(
+            &production_generation_boundary_request_corpus_equatorial_summary_for_report()
+        ));
         assert!(report.contains(&reference_asteroid_evidence_summary_for_report()));
         assert!(report.contains(&reference_asteroid_equatorial_evidence_summary_for_report()));
         assert!(report.contains(&reference_asteroid_source_window_summary_for_report()));
