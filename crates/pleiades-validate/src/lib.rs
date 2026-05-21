@@ -33920,8 +33920,8 @@ version = "0.9.0"
             "pleiades-release-bundle-tampered-production-generation-boundary-request-corpus-semantic",
             "production-generation-boundary-request-corpus-summary.txt",
             "production generation boundary request corpus summary checksum (fnv1a-64):",
-            "64 requests",
-            "65 drifted requests",
+            "65 requests",
+            "66 drifted requests",
             "production generation boundary request corpus summary no longer matches the current production-generation boundary request corpus posture",
         );
     }
@@ -34427,7 +34427,7 @@ version = "0.9.0"
     fn production_generation_source_window_summary_validation_rejects_drift() {
         let summary = production_generation_snapshot_window_summary_for_report();
         let drifted_summary =
-            summary.replace("355 source-backed samples", "356 source-backed samples");
+            summary.replace("356 source-backed samples", "357 source-backed samples");
 
         let error = ensure_production_generation_source_window_summary_matches_current_rendering(
             &drifted_summary,
@@ -34530,7 +34530,7 @@ version = "0.9.0"
     fn production_generation_source_summary_source_window_payload_validation_rejects_drift() {
         let source_summary = production_generation_source_summary_for_report();
         let drifted_source_windows = production_generation_snapshot_window_summary_for_report()
-            .replace("355 source-backed samples", "356 source-backed samples");
+            .replace("356 source-backed samples", "357 source-backed samples");
 
         let error = ensure_production_generation_source_summary_matches_source_windows(
             &source_summary,
@@ -35670,7 +35670,7 @@ version = "0.9.0"
             .expect("production generation source window summary should render");
 
         assert!(rendered.contains("Production generation source windows:"));
-        assert!(rendered.contains("355 source-backed samples"));
+        assert!(rendered.contains("356 source-backed samples"));
         assert_eq!(
             rendered,
             production_generation_snapshot_window_summary_for_report()
@@ -35704,7 +35704,7 @@ version = "0.9.0"
             .expect("production generation summary should render");
 
         assert!(rendered.contains("Production generation coverage:"));
-        assert!(rendered.contains("355 rows across 16 bodies and 31 epochs"));
+        assert!(rendered.contains("356 rows across 16 bodies and 31 epochs"));
         assert_eq!(
             rendered,
             production_generation_snapshot_summary_for_report()
