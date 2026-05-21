@@ -345,6 +345,41 @@ impl CompatibilityProfile {
         Ok(self.catalog_inventory_summary_line())
     }
 
+    /// Returns the compact catalog-posture line for the current compatibility profile.
+    pub fn catalog_posture_summary_line(&self) -> String {
+        let constrained_house_system_count = self.constrained_house_system_count();
+        let unconstrained_house_system_count = self
+            .house_systems
+            .len()
+            .saturating_sub(constrained_house_system_count);
+        let ayanamsa_descriptor_only_count = self.ayanamsa_descriptor_only_count();
+        let metadata_bearing_ayanamsa_count = self
+            .ayanamsas
+            .len()
+            .saturating_sub(ayanamsa_descriptor_only_count);
+
+        format!(
+            "Catalog posture: house systems={} descriptors ({} constrained, {} unconstrained); ayanamsas={} descriptors ({} metadata-bearing, {} descriptor-only); custom-definition labels={}; custom-definition ayanamsa labels={}; known gaps={}",
+            self.house_systems.len(),
+            constrained_house_system_count,
+            unconstrained_house_system_count,
+            self.ayanamsas.len(),
+            metadata_bearing_ayanamsa_count,
+            ayanamsa_descriptor_only_count,
+            self.custom_definition_labels.len(),
+            self.custom_definition_ayanamsa_labels().len(),
+            self.known_gaps.len()
+        )
+    }
+
+    /// Returns the catalog-posture line after validating the profile.
+    pub fn validated_catalog_posture_summary_line(
+        &self,
+    ) -> Result<String, CompatibilityProfileValidationError> {
+        self.validate()?;
+        Ok(self.catalog_posture_summary_line())
+    }
+
     /// Returns the built-in house systems that are latitude-sensitive.
     pub fn latitude_sensitive_house_systems(&self) -> Vec<&'static str> {
         self.house_systems
@@ -1392,6 +1427,17 @@ pub fn validated_custom_definition_ayanamsa_labels_summary_for_report(
 /// Returns the compatibility-profile catalog inventory summary for report surfaces.
 pub fn catalog_inventory_summary_for_report() -> String {
     current_compatibility_profile().catalog_inventory_summary_line()
+}
+
+/// Returns the compatibility-profile catalog-posture summary for report surfaces.
+pub fn catalog_posture_summary_for_report() -> String {
+    current_compatibility_profile().catalog_posture_summary_line()
+}
+
+/// Returns the compatibility-profile catalog-posture summary after validating the profile.
+pub fn validated_catalog_posture_summary_for_report(
+) -> Result<String, CompatibilityProfileValidationError> {
+    current_compatibility_profile().validated_catalog_posture_summary_line()
 }
 
 /// Returns the compatibility-profile catalog inventory summary after validating the profile.
@@ -3545,6 +3591,16 @@ mod tests {
         assert!(rendered.contains("house systems: 25 total"));
         assert!(rendered.contains("ayanamsas: 59 total"));
         assert!(rendered.contains("ayanamsa metadata gaps=0"));
+        assert_eq!(
+            profile.catalog_posture_summary_line(),
+            catalog_posture_summary_for_report()
+        );
+        assert_eq!(
+            profile
+                .validated_catalog_posture_summary_line()
+                .expect("catalog posture summary should validate"),
+            catalog_posture_summary_for_report()
+        );
         assert!(rendered.contains("ayanamsa alias-bearing entries="));
     }
 

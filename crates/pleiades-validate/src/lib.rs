@@ -52,10 +52,12 @@ use pleiades_backend::{
     validated_zodiac_policy_summary_for_report,
 };
 use pleiades_core::{
+    catalog_posture_summary_for_report as core_catalog_posture_summary_for_report,
     compatibility_caveats_summary_for_report as core_compatibility_caveats_summary_for_report,
     current_api_stability_profile, current_compatibility_profile,
     current_release_profile_identifiers, default_chart_bodies, validate_custom_definition_labels,
     validated_catalog_inventory_summary_for_report as core_validated_catalog_inventory_summary_for_report,
+    validated_catalog_posture_summary_for_report as core_validated_catalog_posture_summary_for_report,
     validated_custom_definition_ayanamsa_labels_summary_for_report,
     validated_house_code_aliases_summary_for_report as core_validated_house_code_aliases_summary_for_report,
     validated_house_formula_families_summary_for_report,
@@ -5378,6 +5380,14 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "catalog-inventory")?;
             Ok(render_catalog_inventory_summary())
         }
+        Some("catalog-posture-summary") => {
+            ensure_no_extra_args(&args[1..], "catalog-posture-summary")?;
+            Ok(render_catalog_posture_summary())
+        }
+        Some("catalog-posture") => {
+            ensure_no_extra_args(&args[1..], "catalog-posture")?;
+            Ok(render_catalog_posture_summary())
+        }
         Some("custom-definition-ayanamsa-labels-summary")
         | Some("custom-definition-ayanamsa-labels") => {
             ensure_no_extra_args(&args[1..], "custom-definition-ayanamsa-labels-summary")?;
@@ -6832,6 +6842,23 @@ fn render_catalog_inventory_summary_text() -> String {
         .clone()
 }
 
+/// Renders the compact compatibility catalog posture summary used by release tooling.
+pub fn render_catalog_posture_summary() -> String {
+    render_catalog_posture_summary_text()
+}
+
+fn render_catalog_posture_summary_text() -> String {
+    static CACHE: OnceLock<String> = OnceLock::new();
+    CACHE
+        .get_or_init(
+            || match core_validated_catalog_posture_summary_for_report() {
+                Ok(summary) => summary,
+                Err(error) => format!("Compatibility catalog posture unavailable ({error})"),
+            },
+        )
+        .clone()
+}
+
 /// Renders the compact custom-definition ayanamsa label summary used by release tooling.
 pub fn render_custom_definition_ayanamsa_labels_summary() -> String {
     format_custom_definition_ayanamsa_labels_for_report()
@@ -7375,29 +7402,7 @@ impl CompatibilityProfileVerificationSummary {
         text.push_str(" descriptors with epoch/offset metadata, ");
         text.push_str(&self.ayanamsa_metadata_gap_count.to_string());
         text.push_str(" metadata gaps\n");
-        text.push_str("Catalog posture: house systems=");
-        text.push_str(&self.house_system_descriptor_count.to_string());
-        text.push_str(" descriptors (");
-        text.push_str(&self.latitude_sensitive_house_systems.len().to_string());
-        text.push_str(" constrained, ");
-        text.push_str(
-            &(self
-                .house_system_descriptor_count
-                .saturating_sub(self.latitude_sensitive_house_systems.len()))
-            .to_string(),
-        );
-        text.push_str(" unconstrained); ayanamsas=");
-        text.push_str(&self.ayanamsa_descriptor_count.to_string());
-        text.push_str(" descriptors (");
-        text.push_str(&self.ayanamsa_metadata_count.to_string());
-        text.push_str(" metadata-bearing, ");
-        text.push_str(&self.ayanamsa_metadata_gap_count.to_string());
-        text.push_str(" descriptor-only); custom-definition labels=");
-        text.push_str(&self.custom_definition_label_count.to_string());
-        text.push_str("; custom-definition ayanamsa labels=");
-        text.push_str(&self.custom_definition_ayanamsa_label_count.to_string());
-        text.push_str("; known gaps=");
-        text.push_str(&self.compatibility_caveat_count.to_string());
+        text.push_str(&core_catalog_posture_summary_for_report());
         text.push('\n');
         text.push_str("Release posture: baseline milestone preserved, release additions explicit, custom definitions tracked, caveats documented\n");
         text.push_str("Release notes documented: ");
@@ -23380,6 +23385,8 @@ fn help_text() -> String {
   compatibility-caveats    Alias for compatibility-caveats-summary
   catalog-inventory-summary  Print the compact compatibility catalog inventory summary
   catalog-inventory        Alias for catalog-inventory-summary
+  catalog-posture-summary   Print the compact compatibility catalog posture summary
+  catalog-posture         Alias for catalog-posture-summary
   custom-definition-ayanamsa-labels-summary  Print the compact custom-definition ayanamsa labels summary
   custom-definition-ayanamsa-labels  Alias for custom-definition-ayanamsa-labels-summary
   release-house-system-canonical-names-summary  Print the compact release-specific house-system canonical names summary
@@ -27851,6 +27858,33 @@ mod tests {
         assert_eq!(
             catalog_inventory_alias_error,
             "catalog-inventory does not accept extra arguments"
+        );
+        let catalog_posture_summary = render_cli(&["catalog-posture-summary"])
+            .expect("catalog posture summary should render");
+        assert_eq!(
+            catalog_posture_summary,
+            profile
+                .validated_catalog_posture_summary_line()
+                .expect("catalog posture summary should validate")
+        );
+        assert_eq!(
+            catalog_posture_summary,
+            core_validated_catalog_posture_summary_for_report()
+                .expect("catalog posture summary helper should validate")
+        );
+        assert_eq!(
+            render_cli(&["catalog-posture"]).expect("catalog posture alias should render"),
+            catalog_posture_summary
+        );
+        assert_eq!(
+            render_cli(&["catalog-posture-summary", "extra"])
+                .expect_err("catalog posture summary should reject extra arguments"),
+            "catalog-posture-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["catalog-posture", "extra"])
+                .expect_err("catalog posture alias should reject extra arguments"),
+            "catalog-posture does not accept extra arguments"
         );
         assert!(rendered
             .lines()
