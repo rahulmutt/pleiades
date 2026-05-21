@@ -19422,6 +19422,8 @@ struct SourceCorpusSummary {
     generation_command: String,
     production_generation_source_revision: String,
     production_generation_coverage: String,
+    production_generation_boundary_request_corpus: String,
+    production_generation_boundary_request_corpus_equatorial: String,
     reference_snapshot_sparse_boundary: String,
     reference_snapshot_equatorial_parity: String,
     reference_snapshot_body_class_coverage: String,
@@ -19452,7 +19454,7 @@ impl std::error::Error for SourceCorpusSummaryValidationError {}
 impl SourceCorpusSummary {
     fn summary_line(&self) -> String {
         format!(
-            "comparison corpus release-grade guard: {}; JPL source corpus contract: {}; evidence classification={}; provenance-only={}; shared schema={}; generation command={}; production generation source revision={}; production generation coverage={}; reference snapshot sparse boundary={}; reference snapshot equatorial parity={}; reference snapshot body-class coverage={}; independent-holdout body-class coverage={}; release-grade body claims={}; body-date-channel claims={}; phase-2 corpus alignment: {}",
+            "comparison corpus release-grade guard: {}; JPL source corpus contract: {}; evidence classification={}; provenance-only={}; shared schema={}; generation command={}; production generation source revision={}; production generation coverage={}; production generation boundary request corpus={}; production generation boundary request corpus equatorial={}; reference snapshot sparse boundary={}; reference snapshot equatorial parity={}; reference snapshot body-class coverage={}; independent-holdout body-class coverage={}; release-grade body claims={}; body-date-channel claims={}; phase-2 corpus alignment: {}",
             self.comparison_corpus_release_grade_guard,
             self.jpl_source_corpus_contract,
             self.jpl_evidence_classification,
@@ -19461,6 +19463,8 @@ impl SourceCorpusSummary {
             self.generation_command,
             self.production_generation_source_revision,
             self.production_generation_coverage,
+            self.production_generation_boundary_request_corpus,
+            self.production_generation_boundary_request_corpus_equatorial,
             self.reference_snapshot_sparse_boundary,
             self.reference_snapshot_equatorial_parity,
             self.reference_snapshot_body_class_coverage,
@@ -19520,6 +19524,20 @@ impl SourceCorpusSummary {
         if self.production_generation_coverage != expected.production_generation_coverage {
             return Err(SourceCorpusSummaryValidationError::FieldOutOfSync {
                 field: "production_generation_coverage",
+            });
+        }
+        if self.production_generation_boundary_request_corpus
+            != expected.production_generation_boundary_request_corpus
+        {
+            return Err(SourceCorpusSummaryValidationError::FieldOutOfSync {
+                field: "production_generation_boundary_request_corpus",
+            });
+        }
+        if self.production_generation_boundary_request_corpus_equatorial
+            != expected.production_generation_boundary_request_corpus_equatorial
+        {
+            return Err(SourceCorpusSummaryValidationError::FieldOutOfSync {
+                field: "production_generation_boundary_request_corpus_equatorial",
             });
         }
         if self.reference_snapshot_sparse_boundary != expected.reference_snapshot_sparse_boundary {
@@ -19639,6 +19657,18 @@ fn source_corpus_summary_details() -> Option<SourceCorpusSummary> {
             production_generation_snapshot_summary_for_report(),
             "Production generation coverage: ",
             "production generation coverage",
+        )
+        .ok()?,
+        production_generation_boundary_request_corpus: required_summary_payload(
+            production_generation_boundary_request_corpus_summary_for_report(),
+            "Production generation boundary request corpus: ",
+            "production generation boundary request corpus",
+        )
+        .ok()?,
+        production_generation_boundary_request_corpus_equatorial: required_summary_payload(
+            production_generation_boundary_request_corpus_equatorial_summary_for_report(),
+            "Production generation boundary request corpus: ",
+            "production generation boundary request corpus equatorial",
         )
         .ok()?,
         reference_snapshot_sparse_boundary,
@@ -39889,6 +39919,8 @@ version = "0.9.0"
         assert!(rendered.contains("shared schema=epoch_jd, body, x_km, y_km, z_km"));
         assert!(rendered.contains("generation command=generate-packaged-artifact --check"));
         assert!(rendered.contains("production generation source revision=source revision=reference_snapshot.csv checksum=0xcbb4d6a49df7e580; independent_holdout_snapshot.csv checksum=0x3a3e279293674110"));
+        assert!(rendered.contains("production generation boundary request corpus="));
+        assert!(rendered.contains("production generation boundary request corpus equatorial="));
         assert!(rendered
             .contains("reference snapshot sparse boundary=16 exact samples at JD 2451915.5 (TDB)"));
         assert!(rendered.contains("reference snapshot equatorial parity=348 rows across 16 bodies and 29 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB))"));
@@ -39976,6 +40008,32 @@ version = "0.9.0"
         assert_eq!(
             error.to_string(),
             "the source corpus summary field `production_generation_coverage` is out of sync with the current posture"
+        );
+
+        let mut summary =
+            source_corpus_summary_details().expect("source corpus summary should exist");
+        summary.production_generation_boundary_request_corpus =
+            "Production generation boundary request corpus: drifted".to_string();
+
+        let error = summary
+            .validated_summary_line()
+            .expect_err("production generation boundary request corpus drift should fail closed");
+        assert_eq!(
+            error.to_string(),
+            "the source corpus summary field `production_generation_boundary_request_corpus` is out of sync with the current posture"
+        );
+
+        let mut summary =
+            source_corpus_summary_details().expect("source corpus summary should exist");
+        summary.production_generation_boundary_request_corpus_equatorial =
+            "Production generation boundary request corpus: drifted".to_string();
+
+        let error = summary.validated_summary_line().expect_err(
+            "production generation boundary request corpus equatorial drift should fail closed",
+        );
+        assert_eq!(
+            error.to_string(),
+            "the source corpus summary field `production_generation_boundary_request_corpus_equatorial` is out of sync with the current posture"
         );
 
         let mut summary =
