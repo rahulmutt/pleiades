@@ -19081,20 +19081,36 @@ fn ensure_comparison_corpus_summary_matches_current_rendering(
     Ok(())
 }
 
+fn required_summary_payload(
+    summary: String,
+    prefix: &str,
+    field: &'static str,
+) -> Result<String, String> {
+    summary
+        .strip_prefix(prefix)
+        .map(str::to_string)
+        .ok_or_else(|| {
+            format!("source corpus summary field `{field}` is out of sync with the current posture")
+        })
+}
+
 fn validated_source_corpus_summary_for_report() -> Result<String, String> {
     let release_grade_guard = validated_comparison_corpus_release_guard_summary_for_report()?;
-    let jpl_source_corpus_contract = jpl_source_corpus_contract_summary_for_report();
-    let jpl_source_corpus_contract = jpl_source_corpus_contract
-        .strip_prefix("JPL source corpus contract: ")
-        .unwrap_or(jpl_source_corpus_contract.as_str());
-    let jpl_evidence_classification = jpl_snapshot_evidence_classification_summary_for_report();
-    let jpl_evidence_classification = jpl_evidence_classification
-        .strip_prefix("JPL evidence classification: ")
-        .unwrap_or(jpl_evidence_classification.as_str());
-    let jpl_provenance_only = jpl_provenance_only_summary_for_report();
-    let jpl_provenance_only = jpl_provenance_only
-        .strip_prefix("JPL provenance-only evidence: ")
-        .unwrap_or(jpl_provenance_only.as_str());
+    let jpl_source_corpus_contract = required_summary_payload(
+        jpl_source_corpus_contract_summary_for_report(),
+        "JPL source corpus contract: ",
+        "JPL source corpus contract",
+    )?;
+    let jpl_evidence_classification = required_summary_payload(
+        jpl_snapshot_evidence_classification_summary_for_report(),
+        "JPL evidence classification: ",
+        "JPL evidence classification",
+    )?;
+    let jpl_provenance_only = required_summary_payload(
+        jpl_provenance_only_summary_for_report(),
+        "JPL provenance-only evidence: ",
+        "JPL provenance-only evidence",
+    )?;
 
     Ok(format!(
         "comparison corpus release-grade guard: {release_grade_guard}; JPL source corpus contract: {jpl_source_corpus_contract}; evidence classification={jpl_evidence_classification}; provenance-only={jpl_provenance_only}; shared schema=epoch_jd, body, x_km, y_km, z_km; phase-2 corpus alignment: {}",
@@ -39098,6 +39114,20 @@ version = "0.9.0"
             render_cli(&["source-corpus", "extra"])
                 .expect_err("source corpus alias should reject extra arguments"),
             "source-corpus does not accept extra arguments"
+        );
+    }
+
+    #[test]
+    fn required_summary_payload_rejects_missing_prefixes() {
+        let error = required_summary_payload(
+            "drifted payload".to_string(),
+            "expected prefix: ",
+            "example field",
+        )
+        .expect_err("missing prefix should fail closed");
+        assert_eq!(
+            error,
+            "source corpus summary field `example field` is out of sync with the current posture"
         );
     }
 }
