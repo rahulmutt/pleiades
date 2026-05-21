@@ -1164,27 +1164,14 @@ pub struct ProductionGenerationBoundaryRequestCorpusSummary {
 /// Structured validation errors for the production-generation boundary request corpus summary.
 #[derive(Clone, Debug, PartialEq)]
 pub enum ProductionGenerationBoundaryRequestCorpusSummaryValidationError {
-    /// The summary did not expose any bodies.
-    MissingBodies,
-    /// The summary body count did not match the body list length.
-    BodyCountMismatch {
-        body_count: usize,
-        bodies_len: usize,
-    },
-    /// The summary reused a body after trimming its display form.
-    DuplicateBody {
-        first_index: usize,
-        second_index: usize,
-        body: String,
-    },
+    /// The summary reported a field that is out of sync with the checked-in boundary request corpus.
+    FieldOutOfSync { field: &'static str },
     /// The summary body order drifted from the checked-in boundary request corpus.
     BodyOrderMismatch {
         index: usize,
         expected: String,
         found: String,
     },
-    /// The summary did not expose any epochs.
-    MissingEpochs,
     /// The summary reported an invalid earliest/latest epoch range.
     InvalidEpochRange {
         earliest_epoch: Instant,
@@ -1198,11 +1185,8 @@ impl ProductionGenerationBoundaryRequestCorpusSummaryValidationError {
     /// Returns the compact label used in release-facing summaries and tests.
     pub const fn label(&self) -> &'static str {
         match self {
-            Self::MissingBodies => "missing bodies",
-            Self::BodyCountMismatch { .. } => "body count mismatch",
-            Self::DuplicateBody { .. } => "duplicate body",
+            Self::FieldOutOfSync { .. } => "field out of sync",
             Self::BodyOrderMismatch { .. } => "body order mismatch",
-            Self::MissingEpochs => "missing epochs",
             Self::InvalidEpochRange { .. } => "invalid epoch range",
             Self::DerivedSummaryMismatch => "derived summary mismatch",
         }
@@ -1212,15 +1196,10 @@ impl ProductionGenerationBoundaryRequestCorpusSummaryValidationError {
 impl fmt::Display for ProductionGenerationBoundaryRequestCorpusSummaryValidationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::BodyCountMismatch {
-                body_count,
-                bodies_len,
-            } => write!(f, "body count {body_count} does not match body list length {bodies_len}"),
-            Self::DuplicateBody {
-                first_index,
-                second_index,
-                body,
-            } => write!(f, "duplicate body '{body}' at index {second_index} (first seen at index {first_index})"),
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the production-generation boundary request corpus summary field `{field}` is out of sync with the current slice"
+            ),
             Self::BodyOrderMismatch {
                 index,
                 expected,
@@ -1235,7 +1214,7 @@ impl fmt::Display for ProductionGenerationBoundaryRequestCorpusSummaryValidation
                 format_instant(*earliest_epoch),
                 format_instant(*latest_epoch),
             ),
-            _ => f.write_str(self.label()),
+            Self::DerivedSummaryMismatch => f.write_str(self.label()),
         }
     }
 }
@@ -1271,13 +1250,18 @@ impl ProductionGenerationBoundaryRequestCorpusSummary {
         };
 
         if self.request_count != expected.request_count {
-            return Err(ProductionGenerationBoundaryRequestCorpusSummaryValidationError::DerivedSummaryMismatch);
+            return Err(
+                ProductionGenerationBoundaryRequestCorpusSummaryValidationError::FieldOutOfSync {
+                    field: "request_count",
+                },
+            );
         }
         if self.body_count != expected.body_count {
-            return Err(ProductionGenerationBoundaryRequestCorpusSummaryValidationError::BodyCountMismatch {
-                body_count: self.body_count,
-                bodies_len: self.bodies.len(),
-            });
+            return Err(
+                ProductionGenerationBoundaryRequestCorpusSummaryValidationError::FieldOutOfSync {
+                    field: "body_count",
+                },
+            );
         }
         if self.bodies.as_slice() != expected.bodies.as_slice() {
             for (index, (expected, found)) in
@@ -1291,27 +1275,53 @@ impl ProductionGenerationBoundaryRequestCorpusSummary {
                     });
                 }
             }
-            return Err(ProductionGenerationBoundaryRequestCorpusSummaryValidationError::BodyCountMismatch {
-                body_count: self.body_count,
-                bodies_len: self.bodies.len(),
-            });
+            return Err(
+                ProductionGenerationBoundaryRequestCorpusSummaryValidationError::FieldOutOfSync {
+                    field: "bodies",
+                },
+            );
         }
         if self.epoch_count != expected.epoch_count {
-            return Err(ProductionGenerationBoundaryRequestCorpusSummaryValidationError::DerivedSummaryMismatch);
+            return Err(
+                ProductionGenerationBoundaryRequestCorpusSummaryValidationError::FieldOutOfSync {
+                    field: "epoch_count",
+                },
+            );
         }
-        if self.earliest_epoch != expected.earliest_epoch
-            || self.latest_epoch != expected.latest_epoch
-        {
-            return Err(ProductionGenerationBoundaryRequestCorpusSummaryValidationError::InvalidEpochRange {
-                earliest_epoch: self.earliest_epoch,
-                latest_epoch: self.latest_epoch,
-            });
+        if self.earliest_epoch != expected.earliest_epoch {
+            return Err(
+                ProductionGenerationBoundaryRequestCorpusSummaryValidationError::FieldOutOfSync {
+                    field: "earliest_epoch",
+                },
+            );
         }
-        if self.time_scale != expected.time_scale
-            || self.zodiac_mode != expected.zodiac_mode
-            || self.apparentness != expected.apparentness
-        {
-            return Err(ProductionGenerationBoundaryRequestCorpusSummaryValidationError::DerivedSummaryMismatch);
+        if self.latest_epoch != expected.latest_epoch {
+            return Err(
+                ProductionGenerationBoundaryRequestCorpusSummaryValidationError::FieldOutOfSync {
+                    field: "latest_epoch",
+                },
+            );
+        }
+        if self.time_scale != expected.time_scale {
+            return Err(
+                ProductionGenerationBoundaryRequestCorpusSummaryValidationError::FieldOutOfSync {
+                    field: "time_scale",
+                },
+            );
+        }
+        if self.zodiac_mode != expected.zodiac_mode {
+            return Err(
+                ProductionGenerationBoundaryRequestCorpusSummaryValidationError::FieldOutOfSync {
+                    field: "zodiac_mode",
+                },
+            );
+        }
+        if self.apparentness != expected.apparentness {
+            return Err(
+                ProductionGenerationBoundaryRequestCorpusSummaryValidationError::FieldOutOfSync {
+                    field: "apparentness",
+                },
+            );
         }
 
         Ok(())
@@ -29029,6 +29039,37 @@ mod tests {
         assert!(summary
             .summary_line()
             .contains("observerless) across 16 bodies and 13 epochs"));
+    }
+
+    #[test]
+    fn production_generation_boundary_request_corpus_summary_validation_rejects_field_drift() {
+        let mut summary =
+            production_generation_boundary_request_corpus_summary(CoordinateFrame::Ecliptic)
+                .expect("production generation boundary request corpus summary should exist");
+
+        summary.apparentness = Apparentness::Apparent;
+        assert!(matches!(
+            summary.validate(),
+            Err(
+                ProductionGenerationBoundaryRequestCorpusSummaryValidationError::FieldOutOfSync {
+                    field: "apparentness"
+                }
+            )
+        ));
+
+        let mut summary =
+            production_generation_boundary_request_corpus_summary(CoordinateFrame::Ecliptic)
+                .expect("production generation boundary request corpus summary should exist");
+
+        summary.time_scale = TimeScale::Utc;
+        assert!(matches!(
+            summary.validate(),
+            Err(
+                ProductionGenerationBoundaryRequestCorpusSummaryValidationError::FieldOutOfSync {
+                    field: "time_scale"
+                }
+            )
+        ));
     }
 
     #[test]
