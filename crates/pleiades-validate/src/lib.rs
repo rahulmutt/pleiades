@@ -18804,13 +18804,10 @@ fn validated_source_corpus_summary_for_report() -> Result<String, String> {
 }
 
 fn source_corpus_summary_for_report() -> String {
-    static CACHE: OnceLock<String> = OnceLock::new();
-    CACHE
-        .get_or_init(|| match validated_source_corpus_summary_for_report() {
-            Ok(summary) => summary,
-            Err(error) => format!("Source corpus unavailable ({error})"),
-        })
-        .clone()
+    match validated_source_corpus_summary_for_report() {
+        Ok(summary) => summary,
+        Err(error) => format!("Source corpus unavailable ({error})"),
+    }
 }
 
 fn render_comparison_corpus_release_guard_summary_text() -> String {
