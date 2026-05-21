@@ -29419,12 +29419,13 @@ mod tests {
             "Ayanamsa reference metadata verified: 53 descriptors with epoch/offset metadata, 6 metadata gaps"
         ));
         assert!(rendered.contains(&format!(
-            "Catalog posture: house systems=25 descriptors (8 constrained, 17 unconstrained); ayanamsas=59 descriptors (53 metadata-bearing, 6 descriptor-only); ayanamsa alias-bearing entries={}; custom-definition labels=9; custom-definition ayanamsa labels=6; known gaps=2",
+            "Catalog posture: house systems=25 descriptors (8 constrained, 17 unconstrained); ayanamsas=59 descriptors (53 metadata-bearing, 6 descriptor-only); ayanamsa alias-bearing entries={}; custom-definition labels=9; custom-definition ayanamsa labels=6; known gaps={}",
             profile
                 .ayanamsas
                 .iter()
                 .filter(|entry| !entry.aliases.is_empty())
-                .count()
+                .count(),
+            profile.known_gaps_summary_line()
         )));
         assert!(rendered.contains(&format!(
             "Custom-definition labels verified: {} labels, all remain custom-definition territory",
@@ -29610,20 +29611,19 @@ mod tests {
                 .count()
         )));
         assert!(summary.summary_line().contains(&format!(
-            "Catalog posture: house systems=25 descriptors (8 constrained, 17 unconstrained); ayanamsas=59 descriptors (53 metadata-bearing, 6 descriptor-only); ayanamsa alias-bearing entries={}; custom-definition labels=9; custom-definition ayanamsa labels=6; known gaps=2",
+            "Catalog posture: house systems=25 descriptors (8 constrained, 17 unconstrained); ayanamsas=59 descriptors (53 metadata-bearing, 6 descriptor-only); ayanamsa alias-bearing entries={}; custom-definition labels=9; custom-definition ayanamsa labels=6; known gaps={}",
             profile
                 .ayanamsas
                 .iter()
                 .filter(|entry| !entry.aliases.is_empty())
-                .count()
+                .count(),
+            profile.known_gaps_summary_line()
         )));
-        assert!(summary.summary_line().contains(&format!(
-            "Custom-definition labels verified: {} labels, all remain custom-definition territory",
-            profile.custom_definition_labels.len()
-        )));
-        assert!(summary
-            .summary_line()
-            .contains("Release posture: baseline milestone preserved, release additions explicit, custom definitions tracked, caveats documented"));
+        assert!(
+            summary
+                .summary_line()
+                .contains("Release posture: baseline milestone preserved, release additions explicit, custom definitions tracked, caveats documented")
+        );
     }
 
     #[test]
@@ -35148,22 +35148,8 @@ version = "0.9.0"
             "pleiades-release-bundle-tampered-catalog-posture-semantic",
             "catalog-posture-summary.txt",
             "catalog posture summary checksum (fnv1a-64):",
-            &format!(
-                "Catalog posture: house systems=25 descriptors (8 constrained, 17 unconstrained); ayanamsas=59 descriptors (53 metadata-bearing, 6 descriptor-only); ayanamsa alias-bearing entries={}; custom-definition labels=9; custom-definition ayanamsa labels=6; known gaps=2",
-                current_compatibility_profile()
-                    .ayanamsas
-                    .iter()
-                    .filter(|entry| !entry.aliases.is_empty())
-                    .count()
-            ),
-            &format!(
-                "Catalog posture: house systems=25 descriptors (8 constrained, 17 unconstrained); ayanamsas=59 descriptors (53 metadata-bearing, 6 descriptor-only); ayanamsa alias-bearing entries={}; custom-definition labels=9; custom-definition ayanamsa labels=6; known gaps=3",
-                current_compatibility_profile()
-                    .ayanamsas
-                    .iter()
-                    .filter(|entry| !entry.aliases.is_empty())
-                    .count()
-            ),
+            current_compatibility_profile().known_gaps[0],
+            "Tampered compatibility caveat",
             "catalog posture summary no longer matches the current catalog posture",
         );
     }

@@ -348,6 +348,11 @@ impl CompatibilityProfile {
         Ok(self.catalog_inventory_summary_line())
     }
 
+    /// Returns the compact known-gaps line for the current compatibility profile.
+    pub fn known_gaps_summary_line(&self) -> String {
+        format_canonical_name_summary(self.known_gaps)
+    }
+
     /// Returns the compact catalog-posture line for the current compatibility profile.
     pub fn catalog_posture_summary_line(&self) -> String {
         let constrained_house_system_count = self.constrained_house_system_count();
@@ -372,7 +377,7 @@ impl CompatibilityProfile {
             self.ayanamsa_alias_bearing_entry_count(),
             self.custom_definition_labels.len(),
             self.custom_definition_ayanamsa_labels().len(),
-            self.known_gaps.len()
+            self.known_gaps_summary_line()
         )
     }
 
