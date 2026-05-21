@@ -3063,8 +3063,11 @@ pub struct PackagedArtifactPhase2CorpusAlignmentSummary {
     pub selected_asteroid_source: pleiades_jpl::SelectedAsteroidSourceSummary,
     /// Source-backed window evidence for the selected-asteroid validation corpus.
     pub selected_asteroid_source_windows: pleiades_jpl::SelectedAsteroidSourceWindowSummary,
-    /// Checked-in request-corpus evidence for the selected-asteroid validation corpus.
+    /// Checked-in request-corpus evidence for the selected-asteroid validation corpus in the ecliptic frame.
     pub selected_asteroid_source_request_corpus:
+        pleiades_jpl::SelectedAsteroidSourceRequestCorpusSummary,
+    /// Checked-in request-corpus evidence for the selected-asteroid validation corpus in the equatorial frame.
+    pub selected_asteroid_source_request_corpus_equatorial:
         pleiades_jpl::SelectedAsteroidSourceRequestCorpusSummary,
     /// Source-material evidence for the checked-in production-generation boundary overlay.
     pub production_generation_boundary_source: pleiades_jpl::IndependentHoldoutSourceSummary,
@@ -3110,6 +3113,9 @@ fn phase2_corpus_alignment_validation_field_path(field: &'static str) -> &'stati
         "selected_asteroid_source_request_corpus" => {
             "phase2_corpus_alignment.selected_asteroid_source_request_corpus"
         }
+        "selected_asteroid_source_request_corpus_equatorial" => {
+            "phase2_corpus_alignment.selected_asteroid_source_request_corpus_equatorial"
+        }
         "production_generation_boundary_source" => {
             "phase2_corpus_alignment.production_generation_boundary_source"
         }
@@ -3125,7 +3131,7 @@ impl PackagedArtifactPhase2CorpusAlignmentSummary {
     /// Returns the phase-2 corpus alignment posture as a compact human-readable line.
     pub fn summary_line(&self) -> String {
         format!(
-            "reference source={}; reference snapshot={}; comparison source={}; comparison snapshot={}; independent hold-out source={}; independent hold-out={}; selected asteroid source evidence={}; selected asteroid source windows={}; selected asteroid source request corpus={}; production generation boundary source={}; production generation body-class coverage={}; production generation source={}",
+            "reference source={}; reference snapshot={}; comparison source={}; comparison snapshot={}; independent hold-out source={}; independent hold-out={}; selected asteroid source evidence={}; selected asteroid source windows={}; selected asteroid source request corpus={}; selected asteroid source request corpus equatorial={}; production generation boundary source={}; production generation body-class coverage={}; production generation source={}",
             self.reference_snapshot_source.summary_line(),
             self.reference_snapshot.summary_line(),
             self.comparison_snapshot_source.summary_line(),
@@ -3135,6 +3141,7 @@ impl PackagedArtifactPhase2CorpusAlignmentSummary {
             self.selected_asteroid_source.summary_line(),
             self.selected_asteroid_source_windows.summary_line(),
             self.selected_asteroid_source_request_corpus.summary_line(),
+            self.selected_asteroid_source_request_corpus_equatorial.summary_line(),
             pleiades_jpl::format_production_generation_boundary_source_summary(
                 &self.production_generation_boundary_source,
             ),
@@ -3224,6 +3231,17 @@ impl PackagedArtifactPhase2CorpusAlignmentSummary {
             .validate()
             .map_err(|_| field_out_of_sync("selected_asteroid_source_request_corpus"))?;
 
+        if self.selected_asteroid_source_request_corpus_equatorial
+            != expected.selected_asteroid_source_request_corpus_equatorial
+        {
+            return Err(field_out_of_sync(
+                "selected_asteroid_source_request_corpus_equatorial",
+            ));
+        }
+        self.selected_asteroid_source_request_corpus_equatorial
+            .validate()
+            .map_err(|_| field_out_of_sync("selected_asteroid_source_request_corpus_equatorial"))?;
+
         if self.production_generation_boundary_source
             != expected.production_generation_boundary_source
         {
@@ -3284,6 +3302,8 @@ pub fn packaged_artifact_phase2_corpus_alignment_summary_details(
         selected_asteroid_source_request_corpus: selected_asteroid_source_request_corpus_summary(
             CoordinateFrame::Ecliptic,
         )?,
+        selected_asteroid_source_request_corpus_equatorial:
+            selected_asteroid_source_request_corpus_summary(CoordinateFrame::Equatorial)?,
         production_generation_boundary_source:
             pleiades_jpl::production_generation_boundary_source_summary(),
         production_generation_body_class_coverage:
@@ -13424,6 +13444,9 @@ mod tests {
             "selected asteroid source request corpus=Selected asteroid source request corpus:"
         ));
         assert!(rendered.contains(
+            "selected asteroid source request corpus equatorial=Selected asteroid source request corpus:"
+        ));
+        assert!(rendered.contains(
             "production generation boundary source=Production generation boundary overlay source:"
         ));
     }
@@ -13444,6 +13467,29 @@ mod tests {
             }
         );
         assert!(error.to_string().contains("reference_snapshot_source"));
+    }
+
+    #[test]
+    fn packaged_artifact_phase2_corpus_alignment_summary_validation_rejects_equatorial_request_corpus_drift(
+    ) {
+        let mut summary = packaged_artifact_phase2_corpus_alignment_summary_details()
+            .expect("phase-2 corpus evidence should be available");
+        summary
+            .selected_asteroid_source_request_corpus_equatorial
+            .request_count += 1;
+
+        let error = summary
+            .validate()
+            .expect_err("equatorial request corpus drift should be rejected");
+        assert_eq!(
+            error,
+            PackagedArtifactPhase2CorpusAlignmentSummaryValidationError::FieldOutOfSync {
+                field: "selected_asteroid_source_request_corpus_equatorial",
+            }
+        );
+        assert!(error
+            .to_string()
+            .contains("selected_asteroid_source_request_corpus_equatorial"));
     }
 
     #[test]
