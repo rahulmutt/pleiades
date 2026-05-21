@@ -4,7 +4,7 @@ Use this checklist for active implementation only. Completed historical work sho
 
 ## Phase 1: Production reference/source corpus
 
-- [ ] Production source strategy is documented and pure-Rust compatible.
+- [x] Production source strategy is documented and pure-Rust compatible.
 - [ ] Provenance, redistribution posture, frame, time scale, schema, source revision, generation command, and checksums are recorded.
 - [ ] Corpus covers every release-claimed body/channel/frame/date range.
 - [ ] Fitting/reference, independent hold-out, boundary overlay, fixture-exactness, and provenance-only evidence are separated.
