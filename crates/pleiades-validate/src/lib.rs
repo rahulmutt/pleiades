@@ -18928,7 +18928,7 @@ fn validated_source_corpus_summary_for_report() -> Result<String, String> {
         .unwrap_or(jpl_source_corpus_contract.as_str());
 
     Ok(format!(
-        "comparison corpus release-grade guard: {release_grade_guard}; JPL source corpus contract: {jpl_source_corpus_contract}; phase-2 corpus alignment: {}",
+        "comparison corpus release-grade guard: {release_grade_guard}; JPL source corpus contract: {jpl_source_corpus_contract}; shared schema=epoch_jd, body, x_km, y_km, z_km; phase-2 corpus alignment: {}",
         validated_packaged_artifact_phase2_corpus_alignment_summary_for_report()
     ))
 }
@@ -38806,6 +38806,7 @@ version = "0.9.0"
         let rendered =
             render_cli(&["source-corpus-summary"]).expect("source corpus summary should render");
         assert_eq!(rendered, source_corpus_summary_for_report());
+        assert!(rendered.contains("shared schema=epoch_jd, body, x_km, y_km, z_km"));
         assert!(!rendered.contains("JPL source corpus contract: JPL source corpus contract:"));
         assert_eq!(
             render_cli(&["source-corpus"]).expect("source corpus alias should render"),
