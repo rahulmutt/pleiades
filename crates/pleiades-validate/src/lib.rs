@@ -19196,6 +19196,7 @@ struct SourceCorpusSummary {
     jpl_provenance_only: String,
     shared_schema: String,
     generation_command: String,
+    production_generation_coverage: String,
     release_grade_body_claims: String,
     phase2_corpus_alignment: String,
 }
@@ -19221,13 +19222,14 @@ impl std::error::Error for SourceCorpusSummaryValidationError {}
 impl SourceCorpusSummary {
     fn summary_line(&self) -> String {
         format!(
-            "comparison corpus release-grade guard: {}; JPL source corpus contract: {}; evidence classification={}; provenance-only={}; shared schema={}; generation command={}; release-grade body claims={}; phase-2 corpus alignment: {}",
+            "comparison corpus release-grade guard: {}; JPL source corpus contract: {}; evidence classification={}; provenance-only={}; shared schema={}; generation command={}; production generation coverage={}; release-grade body claims={}; phase-2 corpus alignment: {}",
             self.comparison_corpus_release_grade_guard,
             self.jpl_source_corpus_contract,
             self.jpl_evidence_classification,
             self.jpl_provenance_only,
             self.shared_schema,
             self.generation_command,
+            self.production_generation_coverage,
             self.release_grade_body_claims,
             self.phase2_corpus_alignment,
         )
@@ -19270,6 +19272,11 @@ impl SourceCorpusSummary {
         if self.generation_command != expected.generation_command {
             return Err(SourceCorpusSummaryValidationError::FieldOutOfSync {
                 field: "generation_command",
+            });
+        }
+        if self.production_generation_coverage != expected.production_generation_coverage {
+            return Err(SourceCorpusSummaryValidationError::FieldOutOfSync {
+                field: "production_generation_coverage",
             });
         }
         if self.release_grade_body_claims != expected.release_grade_body_claims {
@@ -19328,6 +19335,12 @@ fn source_corpus_summary_details() -> Option<SourceCorpusSummary> {
         jpl_provenance_only,
         shared_schema: validated_checked_in_snapshot_schema_summary_for_report().ok()?,
         generation_command: "generate-packaged-artifact --check".to_string(),
+        production_generation_coverage: required_summary_payload(
+            production_generation_snapshot_summary_for_report(),
+            "Production generation coverage: ",
+            "production generation coverage",
+        )
+        .ok()?,
         release_grade_body_claims,
         phase2_corpus_alignment,
     })
@@ -39439,6 +39452,19 @@ version = "0.9.0"
         assert_eq!(
             error.to_string(),
             "the source corpus summary field `generation_command` is out of sync with the current posture"
+        );
+
+        let mut summary =
+            source_corpus_summary_details().expect("source corpus summary should exist");
+        summary.production_generation_coverage =
+            "Production generation coverage: drifted".to_string();
+
+        let error = summary
+            .validated_summary_line()
+            .expect_err("production generation coverage drift should fail closed");
+        assert_eq!(
+            error.to_string(),
+            "the source corpus summary field `production_generation_coverage` is out of sync with the current posture"
         );
     }
 }
