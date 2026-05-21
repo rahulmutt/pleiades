@@ -8593,6 +8593,13 @@ fn render_compatibility_profile_summary_text() -> String {
     text.push_str("Compatibility caveats: ");
     text.push_str(&profile.known_gaps.len().to_string());
     text.push('\n');
+    text.push_str("Compatibility caveats documented: ");
+    if profile.known_gaps.is_empty() {
+        text.push_str("none");
+    } else {
+        text.push_str(&profile.known_gaps.join("; "));
+    }
+    text.push('\n');
     text.push_str("Compatibility profile verification: verify-compatibility-profile\n");
     text.push_str("Compact summary views: backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary\n");
     text.push_str("Release notes summary: release-notes-summary\n");
@@ -28531,6 +28538,9 @@ mod tests {
             profile.house_code_aliases_summary_line()
         )));
         assert!(rendered.contains("Ayanamsas:"));
+        assert!(rendered.contains("Compatibility caveats documented:"));
+        assert!(rendered.contains(profile.known_gaps[0]));
+        assert!(rendered.contains(profile.known_gaps[1]));
         assert!(rendered.contains("ayanamsa sidereal metadata: 53/59 entries with both a reference epoch and offset; custom-definition-only=6 labels: Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs); missing-sidereal-metadata=none"));
         assert!(rendered.contains(&format!(
             "House formula families: {}",

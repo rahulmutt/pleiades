@@ -2463,6 +2463,9 @@ mod tests {
             "House code aliases: {}",
             profile.house_code_aliases_summary_line()
         )));
+        assert!(compatibility.contains("Compatibility caveats documented:"));
+        assert!(compatibility.contains(profile.known_gaps[0]));
+        assert!(compatibility.contains(profile.known_gaps[1]));
         assert!(compatibility
             .contains("Compatibility profile verification: verify-compatibility-profile"));
         assert!(compatibility.lines().any(|line| {
