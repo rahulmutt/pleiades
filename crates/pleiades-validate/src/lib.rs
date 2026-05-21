@@ -31841,7 +31841,7 @@ version = "0.9.0"
         assert!(release_summary.contains(
             "Comparison corpus release-grade guard: Pluto excluded from tolerance evidence"
         ));
-        assert!(release_summary.contains("Release-grade body claims: Sun through Neptune are release-grade major-body claims; Pluto remains an explicitly approximate fallback; selected asteroids (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) remain source-backed validation bodies"));
+        assert!(release_summary.contains("Release-grade body claims: Moon and supported lunar points (Mean Node, True Node, Mean Apogee, Mean Perigee) remain source-backed validation bodies; True Apogee and True Perigee remain unsupported; Sun through Neptune are release-grade major-body claims; Pluto remains an explicitly approximate fallback; selected asteroids (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) remain source-backed validation bodies"));
         assert!(release_summary.contains("Body/date/channel claims:"));
         let comparison_report = compare_backends(
             &default_reference_backend(),
@@ -38399,7 +38399,7 @@ version = "0.9.0"
             render_release_body_claims_summary_text()
         );
         assert!(release_body_claims_summary.contains(
-            "Release-grade body claims: Sun through Neptune are release-grade major-body claims; Pluto remains an explicitly approximate fallback; selected asteroids (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) remain source-backed validation bodies"
+            "Release-grade body claims: Moon and supported lunar points (Mean Node, True Node, Mean Apogee, Mean Perigee) remain source-backed validation bodies; True Apogee and True Perigee remain unsupported; Sun through Neptune are release-grade major-body claims; Pluto remains an explicitly approximate fallback; selected asteroids (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) remain source-backed validation bodies"
         ));
         assert_eq!(
             render_cli(&["body-claims-summary"]).expect("body claims alias should render"),
@@ -38433,7 +38433,7 @@ version = "0.9.0"
             render_cli(&["pluto-fallback-summary"]).expect("Pluto fallback summary should render");
         assert_eq!(pluto_fallback_summary, render_pluto_fallback_summary_text());
         assert!(pluto_fallback_summary.contains(
-            "Release-grade body claims: Sun through Neptune are release-grade major-body claims; Pluto remains an explicitly approximate fallback; selected asteroids (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) remain source-backed validation bodies"
+            "Release-grade body claims: Moon and supported lunar points (Mean Node, True Node, Mean Apogee, Mean Perigee) remain source-backed validation bodies; True Apogee and True Perigee remain unsupported; Sun through Neptune are release-grade major-body claims; Pluto remains an explicitly approximate fallback; selected asteroids (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) remain source-backed validation bodies"
         ));
         assert!(pluto_fallback_summary.contains(
             "Pluto fallback policy: Pluto remains an explicitly approximate fallback; release-grade major-body claims exclude Pluto"
@@ -39469,7 +39469,7 @@ version = "0.9.0"
         assert!(rendered.contains("generation command=generate-packaged-artifact --check"));
         assert!(rendered.contains("evidence classification=release-tolerance=reference/comparison/production-generation validation summaries; hold-out=independent hold-out rows and interpolation-quality summaries; fixture exactness=reference snapshot exact J2000 evidence; provenance-only=source and manifest summaries"));
         assert!(rendered.contains("provenance-only=source and manifest summaries are provenance-only evidence; they validate corpus provenance and checksum posture but are excluded from tolerance, hold-out, and fixture-exactness claims"));
-        assert!(rendered.contains("release-grade body claims=Sun through Neptune are release-grade major-body claims; Pluto remains an explicitly approximate fallback; selected asteroids (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) remain source-backed validation bodies"));
+        assert!(rendered.contains("release-grade body claims=Moon and supported lunar points (Mean Node, True Node, Mean Apogee, Mean Perigee) remain source-backed validation bodies; True Apogee and True Perigee remain unsupported; Sun through Neptune are release-grade major-body claims; Pluto remains an explicitly approximate fallback; selected asteroids (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) remain source-backed validation bodies"));
         assert!(!rendered.contains("JPL source corpus contract: JPL source corpus contract:"));
         assert_eq!(
             render_cli(&["source-corpus"]).expect("source corpus alias should render"),

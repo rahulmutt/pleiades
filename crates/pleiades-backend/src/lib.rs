@@ -2357,6 +2357,8 @@ pub enum ReleaseBodyClaimsPostureValidationError {
     PlutoFallbackSummary(PlutoFallbackSummaryValidationError),
     /// The release-grade body claims summary no longer mentions the current Pluto fallback phrase.
     MissingPlutoFallbackPhrase,
+    /// The release-grade body claims summary no longer keeps the lunar validation bodies explicit.
+    MissingLunarValidationPhrase,
     /// The release-grade body claims summary no longer keeps the selected asteroid validation bodies explicit.
     MissingSelectedAsteroidsPhrase,
     /// The Pluto fallback summary no longer states that Pluto is excluded from release-grade claims.
@@ -2374,6 +2376,9 @@ impl fmt::Display for ReleaseBodyClaimsPostureValidationError {
             }
             Self::MissingPlutoFallbackPhrase => f.write_str(
                 "release-grade body claims summary no longer references the current Pluto fallback phrase",
+            ),
+            Self::MissingLunarValidationPhrase => f.write_str(
+                "release-grade body claims summary no longer keeps the lunar validation bodies explicit",
             ),
             Self::MissingSelectedAsteroidsPhrase => f.write_str(
                 "release-grade body claims summary no longer keeps the selected asteroid validation bodies explicit",
@@ -2435,10 +2440,14 @@ pub fn validate_release_body_claims_posture(
         );
     }
 
+    const LUNAR_VALIDATION_PHRASE: &str = "Moon and supported lunar points (Mean Node, True Node, Mean Apogee, Mean Perigee) remain source-backed validation bodies; True Apogee and True Perigee remain unsupported";
     const PLUTO_FALLBACK_PHRASE: &str = "Pluto remains an explicitly approximate fallback";
     const PLUTO_EXCLUSION_PHRASE: &str = "release-grade major-body claims exclude Pluto";
     const SELECTED_ASTEROIDS_PHRASE: &str = "selected asteroids (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) remain source-backed validation bodies";
 
+    if !release_body_claims_summary.contains(LUNAR_VALIDATION_PHRASE) {
+        return Err(ReleaseBodyClaimsPostureValidationError::MissingLunarValidationPhrase);
+    }
     if !release_body_claims_summary.contains(PLUTO_FALLBACK_PHRASE) {
         return Err(ReleaseBodyClaimsPostureValidationError::MissingPlutoFallbackPhrase);
     }
@@ -2489,7 +2498,7 @@ pub const CURRENT_PLUTO_FALLBACK_POLICY_SUMMARY_TEXT: &str =
 
 /// Canonical current policy summary text for the release-grade body claims posture.
 pub const CURRENT_RELEASE_BODY_CLAIMS_SUMMARY_TEXT: &str =
-    "Sun through Neptune are release-grade major-body claims; Pluto remains an explicitly approximate fallback; selected asteroids (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) remain source-backed validation bodies";
+    "Moon and supported lunar points (Mean Node, True Node, Mean Apogee, Mean Perigee) remain source-backed validation bodies; True Apogee and True Perigee remain unsupported; Sun through Neptune are release-grade major-body claims; Pluto remains an explicitly approximate fallback; selected asteroids (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) remain source-backed validation bodies";
 
 /// Returns the current shared time-scale policy used by validation and reports.
 pub const fn current_time_scale_policy_summary() -> TimeScalePolicySummary {
@@ -4427,7 +4436,7 @@ mod tests {
         );
 
         let release_body_claims_summary =
-            "Sun through Neptune are release-grade major-body claims; Pluto remains an explicitly approximate fallback; selected asteroids (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) remain source-backed validation bodies";
+            "Moon and supported lunar points (Mean Node, True Node, Mean Apogee, Mean Perigee) remain source-backed validation bodies; True Apogee and True Perigee remain unsupported; Sun through Neptune are release-grade major-body claims; Pluto remains an explicitly approximate fallback; selected asteroids (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) remain source-backed validation bodies";
         let pluto_fallback_summary =
             "Pluto remains an explicitly approximate fallback; release-grade major-body claims include Pluto";
         assert_eq!(
@@ -4436,6 +4445,16 @@ mod tests {
                 pluto_fallback_summary
             ),
             Err(ReleaseBodyClaimsPostureValidationError::MissingPlutoExclusionPhrase)
+        );
+
+        let missing_lunar_summary =
+            "Sun through Neptune are release-grade major-body claims; Pluto remains an explicitly approximate fallback; selected asteroids (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) remain source-backed validation bodies";
+        assert_eq!(
+            validate_release_body_claims_posture(
+                missing_lunar_summary,
+                CURRENT_PLUTO_FALLBACK_POLICY_SUMMARY_TEXT,
+            ),
+            Err(ReleaseBodyClaimsPostureValidationError::MissingLunarValidationPhrase)
         );
     }
 

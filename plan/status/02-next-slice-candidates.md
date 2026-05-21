@@ -27,7 +27,7 @@ This file lists only active implementation slices. Completed report aliases, sum
 ## Phase 3 — Body and backend claim completion
 
 - Resolve Pluto status before any production compatibility claim.
-- Decide whether to implement fuller lunar theory or constrain lunar/lunar-point claims.
+- Decide whether to implement fuller lunar theory or constrain lunar/lunar-point claims; the release-grade body-claims surface now explicitly separates the supported lunar points from the unsupported true apogee/perigee boundary.
 - Promote Ceres, Pallas, Juno, Vesta, and any custom asteroid support only where evidence is broad enough.
 - Ensure backend capability metadata rejects unsupported request shapes before computation.
 
