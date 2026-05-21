@@ -251,6 +251,13 @@ impl CompatibilityProfile {
             .count()
     }
 
+    fn ayanamsa_alias_bearing_entry_count(&self) -> usize {
+        self.ayanamsas
+            .iter()
+            .filter(|entry| !entry.aliases.is_empty())
+            .count()
+    }
+
     /// Returns a compact inventory line for the current compatibility catalog.
     pub fn catalog_inventory_summary_line(&self) -> String {
         fn alias_count<T>(entries: &[T], aliases: impl Fn(&T) -> &'static [&'static str]) -> usize {
@@ -262,11 +269,7 @@ impl CompatibilityProfile {
         let ayanamsa_alias_count = alias_count(self.ayanamsas, |entry| entry.aliases);
         let custom_definition_ayanamsa_labels = self.custom_definition_ayanamsa_labels();
         let ayanamsa_metadata_gap_count = metadata_coverage().without_sidereal_metadata.len();
-        let ayanamsa_alias_bearing_entry_count = self
-            .ayanamsas
-            .iter()
-            .filter(|entry| !entry.aliases.is_empty())
-            .count();
+        let ayanamsa_alias_bearing_entry_count = self.ayanamsa_alias_bearing_entry_count();
         let ayanamsa_provenance = validated_provenance_summary_for_report()
             .unwrap_or_else(|error| format!("unavailable ({error})"));
         let constrained_house_system_count = self.constrained_house_system_count();
@@ -359,13 +362,14 @@ impl CompatibilityProfile {
             .saturating_sub(ayanamsa_descriptor_only_count);
 
         format!(
-            "Catalog posture: house systems={} descriptors ({} constrained, {} unconstrained); ayanamsas={} descriptors ({} metadata-bearing, {} descriptor-only); custom-definition labels={}; custom-definition ayanamsa labels={}; known gaps={}",
+            "Catalog posture: house systems={} descriptors ({} constrained, {} unconstrained); ayanamsas={} descriptors ({} metadata-bearing, {} descriptor-only); ayanamsa alias-bearing entries={}; custom-definition labels={}; custom-definition ayanamsa labels={}; known gaps={}",
             self.house_systems.len(),
             constrained_house_system_count,
             unconstrained_house_system_count,
             self.ayanamsas.len(),
             metadata_bearing_ayanamsa_count,
             ayanamsa_descriptor_only_count,
+            self.ayanamsa_alias_bearing_entry_count(),
             self.custom_definition_labels.len(),
             self.custom_definition_ayanamsa_labels().len(),
             self.known_gaps.len()

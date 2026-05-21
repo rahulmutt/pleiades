@@ -28702,7 +28702,14 @@ mod tests {
         assert!(rendered.contains(
             "Ayanamsa reference metadata verified: 53 descriptors with epoch/offset metadata, 6 metadata gaps"
         ));
-        assert!(rendered.contains("Catalog posture: house systems=25 descriptors (8 constrained, 17 unconstrained); ayanamsas=59 descriptors (53 metadata-bearing, 6 descriptor-only); custom-definition labels=9; custom-definition ayanamsa labels=6; known gaps=2"));
+        assert!(rendered.contains(&format!(
+            "Catalog posture: house systems=25 descriptors (8 constrained, 17 unconstrained); ayanamsas=59 descriptors (53 metadata-bearing, 6 descriptor-only); ayanamsa alias-bearing entries={}; custom-definition labels=9; custom-definition ayanamsa labels=6; known gaps=2",
+            profile
+                .ayanamsas
+                .iter()
+                .filter(|entry| !entry.aliases.is_empty())
+                .count()
+        )));
         assert!(rendered.contains(&format!(
             "Custom-definition labels verified: {} labels, all remain custom-definition territory",
             profile.custom_definition_labels.len()
@@ -28886,7 +28893,14 @@ mod tests {
                 .filter(|entry| entry.has_sidereal_metadata())
                 .count()
         )));
-        assert!(summary.summary_line().contains("Catalog posture: house systems=25 descriptors (8 constrained, 17 unconstrained); ayanamsas=59 descriptors (53 metadata-bearing, 6 descriptor-only); custom-definition labels=9; custom-definition ayanamsa labels=6; known gaps=2"));
+        assert!(summary.summary_line().contains(&format!(
+            "Catalog posture: house systems=25 descriptors (8 constrained, 17 unconstrained); ayanamsas=59 descriptors (53 metadata-bearing, 6 descriptor-only); ayanamsa alias-bearing entries={}; custom-definition labels=9; custom-definition ayanamsa labels=6; known gaps=2",
+            profile
+                .ayanamsas
+                .iter()
+                .filter(|entry| !entry.aliases.is_empty())
+                .count()
+        )));
         assert!(summary.summary_line().contains(&format!(
             "Custom-definition labels verified: {} labels, all remain custom-definition territory",
             profile.custom_definition_labels.len()
@@ -34401,8 +34415,22 @@ version = "0.9.0"
             "pleiades-release-bundle-tampered-catalog-posture-semantic",
             "catalog-posture-summary.txt",
             "catalog posture summary checksum (fnv1a-64):",
-            "Catalog posture: house systems=25 descriptors (8 constrained, 17 unconstrained); ayanamsas=59 descriptors (53 metadata-bearing, 6 descriptor-only); custom-definition labels=9; custom-definition ayanamsa labels=6; known gaps=2",
-            "Catalog posture: house systems=25 descriptors (8 constrained, 17 unconstrained); ayanamsas=59 descriptors (53 metadata-bearing, 6 descriptor-only); custom-definition labels=9; custom-definition ayanamsa labels=6; known gaps=3",
+            &format!(
+                "Catalog posture: house systems=25 descriptors (8 constrained, 17 unconstrained); ayanamsas=59 descriptors (53 metadata-bearing, 6 descriptor-only); ayanamsa alias-bearing entries={}; custom-definition labels=9; custom-definition ayanamsa labels=6; known gaps=2",
+                current_compatibility_profile()
+                    .ayanamsas
+                    .iter()
+                    .filter(|entry| !entry.aliases.is_empty())
+                    .count()
+            ),
+            &format!(
+                "Catalog posture: house systems=25 descriptors (8 constrained, 17 unconstrained); ayanamsas=59 descriptors (53 metadata-bearing, 6 descriptor-only); ayanamsa alias-bearing entries={}; custom-definition labels=9; custom-definition ayanamsa labels=6; known gaps=3",
+                current_compatibility_profile()
+                    .ayanamsas
+                    .iter()
+                    .filter(|entry| !entry.aliases.is_empty())
+                    .count()
+            ),
             "catalog posture summary no longer matches the current catalog posture",
         );
     }
