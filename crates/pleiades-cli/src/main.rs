@@ -4211,6 +4211,29 @@ mod tests {
             selected_asteroid_source_evidence_summary
         );
 
+        let selected_asteroid_2451917_source_summary =
+            render_cli(&["reference-snapshot-2451917-selected-asteroid-source-summary"]).expect(
+                "reference snapshot 2451917 selected asteroid source summary should render",
+            );
+        assert!(selected_asteroid_2451917_source_summary
+            .contains("Reference selected-asteroid 2001-01-08 source evidence:"));
+        assert!(selected_asteroid_2451917_source_summary.contains("JD 2451917.5 (TDB)"));
+        assert_eq!(
+            selected_asteroid_2451917_source_summary,
+            pleiades_jpl::selected_asteroid_source_2451917_summary_for_report()
+        );
+        assert_eq!(
+            render_cli(&["2451917-selected-asteroid-source-summary"])
+                .expect("2451917 selected asteroid source summary alias should render"),
+            selected_asteroid_2451917_source_summary
+        );
+        assert_eq!(
+            render_cli(&["2451917-selected-asteroid-source-summary", "extra"]).expect_err(
+                "2451917 selected asteroid source summary alias should reject extra arguments"
+            ),
+            "2451917-selected-asteroid-source-summary does not accept extra arguments"
+        );
+
         let selected_asteroid_source_request_corpus_summary =
             render_cli(&["selected-asteroid-source-request-corpus-summary"])
                 .expect("selected asteroid source request corpus summary should render");
