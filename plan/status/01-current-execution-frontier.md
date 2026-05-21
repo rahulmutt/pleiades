@@ -4,7 +4,7 @@
 
 The active frontier is **Phase 1: Production Reference/Source Corpus**. Production compressed-data work depends on a broader source and hold-out corpus, so artifact changes must not broaden release claims until Phase 1 is complete.
 
-Recent implementation note: the consolidated source-corpus posture now also has a standalone `source-corpus-summary` / `source-corpus` surface in the validation and CLI front-ends, so the release-grade guard, JPL source-corpus contract, and phase-2 corpus alignment can be inspected directly without going through the larger release summary.
+Recent implementation note: the consolidated source-corpus posture now also has a standalone `source-corpus-summary` / `source-corpus` surface in the validation and CLI front-ends, so the release-grade guard, JPL source-corpus contract, and phase-2 corpus alignment can be inspected directly without going through the larger release summary. The source provenance surfaces now also spell out the shared schema label explicitly, so frame/time-scale/column posture is paired with a visible schema contract in the release-facing corpus blocks.
 
 ## Why this frontier comes first
 
