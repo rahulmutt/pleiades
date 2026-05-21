@@ -28168,8 +28168,8 @@ mod tests {
         assert_eq!(summary.body_count, 16);
         assert_eq!(summary.bodies, reference_bodies());
         assert_eq!(summary.epoch_count, 31);
-        assert_eq!(summary.boundary_row_count, 42);
-        assert_eq!(summary.boundary_body_count, 10);
+        assert_eq!(summary.boundary_row_count, 54);
+        assert_eq!(summary.boundary_body_count, 16);
         assert_eq!(
             summary.boundary_bodies,
             &[
@@ -28183,6 +28183,12 @@ mod tests {
                 CelestialBody::Sun,
                 CelestialBody::Moon,
                 CelestialBody::Pluto,
+                CelestialBody::Ceres,
+                CelestialBody::Pallas,
+                CelestialBody::Juno,
+                CelestialBody::Vesta,
+                CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros")),
+                CelestialBody::Custom(CustomBodyId::new("asteroid", "99942-Apophis")),
             ]
         );
         assert_eq!(summary.boundary_epoch_count, 10);
@@ -28196,7 +28202,7 @@ mod tests {
         assert_eq!(
             summary.summary_line(),
             format!(
-                "Production generation coverage: 355 rows across 16 bodies and 31 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); bodies: {}; boundary overlay (Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Pluto at 2451545 and 2500000): 42 rows across 10 bodies and 10 epochs (JD 2400000.0 (TDB)..JD 2634167.0 (TDB)); boundary bodies: Mars, Jupiter, Mercury, Venus, Saturn, Uranus, Neptune, Sun, Moon, Pluto",
+                "Production generation coverage: 355 rows across 16 bodies and 31 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); bodies: {}; boundary overlay (Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Pluto at 2451545 and 2500000): 54 rows across 16 bodies and 10 epochs (JD 2400000.0 (TDB)..JD 2634167.0 (TDB)); boundary bodies: Mars, Jupiter, Mercury, Venus, Saturn, Uranus, Neptune, Sun, Moon, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis",
                 format_bodies(reference_bodies())
             )
         );
@@ -28315,15 +28321,15 @@ mod tests {
         summary
             .validate()
             .expect("production-generation boundary summary should validate");
-        assert_eq!(summary.row_count, 42);
-        assert_eq!(summary.body_count, 10);
+        assert_eq!(summary.row_count, 54);
+        assert_eq!(summary.body_count, 16);
         assert_eq!(summary.bodies, production_generation_boundary_body_list());
         assert_eq!(summary.epoch_count, 10);
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_400_000.0);
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
         assert_eq!(
             summary.summary_line(),
-            "Production generation boundary overlay: 42 rows across 10 bodies and 10 epochs (JD 2400000.0 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Jupiter, Mercury, Venus, Saturn, Uranus, Neptune, Sun, Moon, Pluto"
+            "Production generation boundary overlay: 54 rows across 16 bodies and 10 epochs (JD 2400000.0 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Jupiter, Mercury, Venus, Saturn, Uranus, Neptune, Sun, Moon, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis"
         );
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
@@ -28343,7 +28349,7 @@ mod tests {
         assert_eq!(boundary_summary, holdout_summary);
         assert_eq!(
             format_production_generation_boundary_source_summary(&boundary_summary),
-            "Production generation boundary overlay source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; evidence class=hold-out; coverage=Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Pluto at 2451545 and 2500000.; columns=epoch_jd, body, x_km, y_km, z_km; redistribution=repository-checked regression fixtures, not a broad public corpus.; checksum=0x2b2a38474384b973"
+            "Production generation boundary overlay source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; evidence class=hold-out; coverage=Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Pluto at 2451545 and 2500000, plus selected asteroids at 2451545 and 2500000.; columns=epoch_jd, body, x_km, y_km, z_km; redistribution=repository-checked regression fixtures, not a broad public corpus.; checksum=0xfdcbd06d1e1d6145"
         );
         assert_eq!(
             production_generation_boundary_source_summary_for_report(),
@@ -28355,8 +28361,8 @@ mod tests {
     fn production_generation_boundary_window_summary_reports_the_overlay_windows() {
         let summary = production_generation_boundary_window_summary()
             .expect("production-generation boundary window summary should exist");
-        assert_eq!(summary.sample_count, 42);
-        assert_eq!(summary.sample_bodies.len(), 10);
+        assert_eq!(summary.sample_count, 54);
+        assert_eq!(summary.sample_bodies.len(), 16);
         assert_eq!(
             summary.sample_bodies,
             production_generation_boundary_body_list().to_vec()
@@ -28375,7 +28381,7 @@ mod tests {
                 format_instant(summary.windows[0].latest_epoch)
             )
         );
-        assert!(summary.summary_line().starts_with("Production generation boundary windows: 42 source-backed samples across 10 bodies and 10 epochs (JD 2400000.0 (TDB)..JD 2634167.0 (TDB)); windows: "));
+        assert!(summary.summary_line().starts_with("Production generation boundary windows: 54 source-backed samples across 16 bodies and 10 epochs (JD 2400000.0 (TDB)..JD 2634167.0 (TDB)); windows: "));
         assert!(summary.summary_line().contains("Mars: 7 samples across 7 epochs at JD 2451545.0 (TDB)..JD 2634167.0 (TDB); Jupiter: 6 samples across 6 epochs at JD 2400000.0 (TDB)..JD 2500000.0 (TDB)"));
         assert_eq!(summary.summary_line(), summary.to_string());
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
@@ -28397,20 +28403,31 @@ mod tests {
         summary
             .validate()
             .expect("production-generation boundary body-class coverage summary should validate");
-        assert_eq!(summary.row_count, 42);
+        assert_eq!(summary.row_count, 54);
         assert_eq!(summary.major_body_row_count, 42);
         assert_eq!(summary.major_bodies.len(), 10);
         assert_eq!(
             summary.major_bodies,
-            production_generation_boundary_body_list().to_vec()
+            vec![
+                CelestialBody::Mars,
+                CelestialBody::Jupiter,
+                CelestialBody::Mercury,
+                CelestialBody::Venus,
+                CelestialBody::Saturn,
+                CelestialBody::Uranus,
+                CelestialBody::Neptune,
+                CelestialBody::Sun,
+                CelestialBody::Moon,
+                CelestialBody::Pluto,
+            ]
         );
         assert_eq!(summary.major_epoch_count, 10);
         assert_eq!(summary.major_windows.len(), 10);
         assert_eq!(summary.major_windows[0].body, CelestialBody::Mars);
-        assert_eq!(summary.asteroid_row_count, 0);
-        assert!(summary.asteroid_bodies.is_empty());
-        assert_eq!(summary.asteroid_epoch_count, 0);
-        assert!(summary.asteroid_windows.is_empty());
+        assert_eq!(summary.asteroid_row_count, 12);
+        assert_eq!(summary.asteroid_bodies.len(), 6);
+        assert_eq!(summary.asteroid_epoch_count, 2);
+        assert_eq!(summary.asteroid_windows.len(), 6);
         assert!(summary.summary_line().starts_with(
             "Production generation boundary body-class coverage: major bodies: 42 rows across 10 bodies and 10 epochs; major windows: "
         ));
@@ -28421,7 +28438,7 @@ mod tests {
             .summary_line()
             .contains(&summary.major_windows[2].summary_line()));
         assert!(summary.summary_line().contains(
-            "selected asteroids: 0 rows across 0 bodies and 0 epochs; asteroid windows: "
+            "selected asteroids: 12 rows across 6 bodies and 2 epochs; asteroid windows: "
         ));
         assert_eq!(summary.summary_line(), summary.to_string());
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
@@ -28751,8 +28768,8 @@ mod tests {
         assert_eq!(summary.row_count, 355);
         assert_eq!(summary.body_count, 16);
         assert_eq!(summary.epoch_count, 31);
-        assert_eq!(summary.boundary_row_count, 42);
-        assert_eq!(summary.boundary_body_count, 10);
+        assert_eq!(summary.boundary_row_count, 54);
+        assert_eq!(summary.boundary_body_count, 16);
         assert_eq!(summary.boundary_epoch_count, 10);
         assert_eq!(summary.validate(), Ok(()));
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
@@ -28761,7 +28778,7 @@ mod tests {
             production_generation_snapshot_summary_for_report(),
             summary.summary_line()
         );
-        assert!(summary.summary_line().contains("boundary overlay (Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Pluto at 2451545 and 2500000): 42 rows across 10 bodies and 10 epochs"));
+        assert!(summary.summary_line().contains("boundary overlay (Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Pluto at 2451545 and 2500000): 54 rows across 16 bodies and 10 epochs"));
     }
 
     #[test]
@@ -28769,8 +28786,8 @@ mod tests {
         let summary =
             production_generation_boundary_request_corpus_summary(CoordinateFrame::Ecliptic)
                 .expect("production generation boundary request corpus summary should exist");
-        assert_eq!(summary.request_count, 42);
-        assert_eq!(summary.body_count, 10);
+        assert_eq!(summary.request_count, 54);
+        assert_eq!(summary.body_count, 16);
         assert_eq!(summary.epoch_count, 10);
         assert_eq!(summary.frame, CoordinateFrame::Ecliptic);
         assert_eq!(summary.time_scale, TimeScale::Tdb);
@@ -28785,7 +28802,7 @@ mod tests {
         );
         assert!(summary
             .summary_line()
-            .contains("observerless) across 10 bodies and 10 epochs"));
+            .contains("observerless) across 16 bodies and 10 epochs"));
     }
 
     #[test]
