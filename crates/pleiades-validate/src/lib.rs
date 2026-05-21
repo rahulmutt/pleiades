@@ -19349,6 +19349,8 @@ struct SourceCorpusSummary {
     production_generation_coverage: String,
     reference_snapshot_sparse_boundary: String,
     reference_snapshot_equatorial_parity: String,
+    reference_snapshot_body_class_coverage: String,
+    independent_holdout_body_class_coverage: String,
     release_grade_body_claims: String,
     body_date_channel_claims: String,
     phase2_corpus_alignment: String,
@@ -19375,7 +19377,7 @@ impl std::error::Error for SourceCorpusSummaryValidationError {}
 impl SourceCorpusSummary {
     fn summary_line(&self) -> String {
         format!(
-            "comparison corpus release-grade guard: {}; JPL source corpus contract: {}; evidence classification={}; provenance-only={}; shared schema={}; generation command={}; production generation coverage={}; reference snapshot sparse boundary={}; reference snapshot equatorial parity={}; release-grade body claims={}; body-date-channel claims={}; phase-2 corpus alignment: {}",
+            "comparison corpus release-grade guard: {}; JPL source corpus contract: {}; evidence classification={}; provenance-only={}; shared schema={}; generation command={}; production generation coverage={}; reference snapshot sparse boundary={}; reference snapshot equatorial parity={}; reference snapshot body-class coverage={}; independent-holdout body-class coverage={}; release-grade body claims={}; body-date-channel claims={}; phase-2 corpus alignment: {}",
             self.comparison_corpus_release_grade_guard,
             self.jpl_source_corpus_contract,
             self.jpl_evidence_classification,
@@ -19385,6 +19387,8 @@ impl SourceCorpusSummary {
             self.production_generation_coverage,
             self.reference_snapshot_sparse_boundary,
             self.reference_snapshot_equatorial_parity,
+            self.reference_snapshot_body_class_coverage,
+            self.independent_holdout_body_class_coverage,
             self.release_grade_body_claims,
             self.body_date_channel_claims,
             self.phase2_corpus_alignment,
@@ -19445,6 +19449,20 @@ impl SourceCorpusSummary {
         {
             return Err(SourceCorpusSummaryValidationError::FieldOutOfSync {
                 field: "reference_snapshot_equatorial_parity",
+            });
+        }
+        if self.reference_snapshot_body_class_coverage
+            != expected.reference_snapshot_body_class_coverage
+        {
+            return Err(SourceCorpusSummaryValidationError::FieldOutOfSync {
+                field: "reference_snapshot_body_class_coverage",
+            });
+        }
+        if self.independent_holdout_body_class_coverage
+            != expected.independent_holdout_body_class_coverage
+        {
+            return Err(SourceCorpusSummaryValidationError::FieldOutOfSync {
+                field: "independent_holdout_body_class_coverage",
             });
         }
         if self.release_grade_body_claims != expected.release_grade_body_claims {
@@ -19510,6 +19528,18 @@ fn source_corpus_summary_details() -> Option<SourceCorpusSummary> {
         "reference snapshot equatorial parity",
     )
     .ok()?;
+    let reference_snapshot_body_class_coverage = required_summary_payload(
+        reference_snapshot_body_class_coverage_summary_for_report(),
+        "Reference snapshot body-class coverage: ",
+        "reference snapshot body-class coverage",
+    )
+    .ok()?;
+    let independent_holdout_body_class_coverage = required_summary_payload(
+        independent_holdout_snapshot_body_class_coverage_summary_for_report(),
+        "Independent hold-out body-class coverage: ",
+        "independent-holdout body-class coverage",
+    )
+    .ok()?;
     let phase2_corpus_alignment =
         validated_packaged_artifact_phase2_corpus_alignment_summary_for_report();
 
@@ -19528,6 +19558,8 @@ fn source_corpus_summary_details() -> Option<SourceCorpusSummary> {
         .ok()?,
         reference_snapshot_sparse_boundary,
         reference_snapshot_equatorial_parity,
+        reference_snapshot_body_class_coverage,
+        independent_holdout_body_class_coverage,
         release_grade_body_claims,
         body_date_channel_claims: body_date_channel_claims_summary_details()?
             .validated_summary_line()
@@ -39746,6 +39778,10 @@ version = "0.9.0"
         assert!(rendered
             .contains("reference snapshot sparse boundary=16 exact samples at JD 2451915.5 (TDB)"));
         assert!(rendered.contains("reference snapshot equatorial parity=348 rows across 16 bodies and 29 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB))"));
+        assert!(rendered.contains("reference snapshot body-class coverage=major bodies: 254 rows across 10 bodies and 29 epochs"));
+        assert!(rendered.contains(
+            "independent-holdout body-class coverage=80 rows across 16 bodies and 14 epochs"
+        ));
         assert!(rendered.contains("Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis"));
         assert!(rendered.contains("evidence classification=release-tolerance=reference/comparison/production-generation validation summaries; hold-out=independent hold-out rows and interpolation-quality summaries; fixture exactness=reference snapshot exact J2000 evidence; provenance-only=source and manifest summaries"));
         assert!(rendered.contains("provenance-only=source and manifest summaries are provenance-only evidence; they validate corpus provenance and checksum posture but are excluded from tolerance, hold-out, and fixture-exactness claims"));
@@ -39840,6 +39876,32 @@ version = "0.9.0"
         assert_eq!(
             error.to_string(),
             "the source corpus summary field `reference_snapshot_equatorial_parity` is out of sync with the current posture"
+        );
+
+        let mut summary =
+            source_corpus_summary_details().expect("source corpus summary should exist");
+        summary.reference_snapshot_body_class_coverage =
+            "Reference snapshot body-class coverage: drifted".to_string();
+
+        let error = summary
+            .validated_summary_line()
+            .expect_err("reference snapshot body-class coverage drift should fail closed");
+        assert_eq!(
+            error.to_string(),
+            "the source corpus summary field `reference_snapshot_body_class_coverage` is out of sync with the current posture"
+        );
+
+        let mut summary =
+            source_corpus_summary_details().expect("source corpus summary should exist");
+        summary.independent_holdout_body_class_coverage =
+            "Independent hold-out body-class coverage: drifted".to_string();
+
+        let error = summary
+            .validated_summary_line()
+            .expect_err("independent hold-out body-class coverage drift should fail closed");
+        assert_eq!(
+            error.to_string(),
+            "the source corpus summary field `independent_holdout_body_class_coverage` is out of sync with the current posture"
         );
     }
 }
