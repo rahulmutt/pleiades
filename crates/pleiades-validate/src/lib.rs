@@ -18793,17 +18793,24 @@ fn render_comparison_corpus_summary_text() -> String {
     text
 }
 
-fn source_corpus_summary_for_report() -> String {
-    let release_grade_guard = match validated_comparison_corpus_release_guard_summary_for_report() {
-        Ok(guard) => guard,
-        Err(error) => return format!("Source corpus unavailable ({error})"),
-    };
+fn validated_source_corpus_summary_for_report() -> Result<String, String> {
+    let release_grade_guard = validated_comparison_corpus_release_guard_summary_for_report()?;
 
-    format!(
+    Ok(format!(
         "comparison corpus release-grade guard: {release_grade_guard}; JPL source corpus contract: {}; phase-2 corpus alignment: {}",
         jpl_source_corpus_contract_summary_for_report(),
         validated_packaged_artifact_phase2_corpus_alignment_summary_for_report()
-    )
+    ))
+}
+
+fn source_corpus_summary_for_report() -> String {
+    static CACHE: OnceLock<String> = OnceLock::new();
+    CACHE
+        .get_or_init(|| match validated_source_corpus_summary_for_report() {
+            Ok(summary) => summary,
+            Err(error) => format!("Source corpus unavailable ({error})"),
+        })
+        .clone()
 }
 
 fn render_comparison_corpus_release_guard_summary_text() -> String {
@@ -25740,6 +25747,11 @@ mod tests {
         assert!(report.contains("Source corpus: comparison corpus release-grade guard:"));
         assert!(report.contains("JPL source corpus contract:"));
         assert!(report.contains("phase-2 corpus alignment:"));
+        assert_eq!(
+            validated_source_corpus_summary_for_report()
+                .expect("source corpus summary should validate"),
+            source_corpus_summary_for_report()
+        );
         assert!(validation_report
             .to_string()
             .contains("Source corpus: comparison corpus release-grade guard:"));
