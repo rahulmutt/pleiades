@@ -3749,6 +3749,7 @@ impl fmt::Display for ValidationReport {
             comparison_snapshot_body_class_coverage_summary_for_report()
         )?;
         writeln!(f, "  {}", comparison_snapshot_batch_parity_summary_text())?;
+        writeln!(f, "  Source corpus: {}", source_corpus_summary_for_report())?;
         writeln!(f)?;
         writeln!(f, "Benchmark corpus")?;
         write_corpus_summary(f, &self.benchmark_corpus)?;
@@ -9202,6 +9203,9 @@ fn render_release_summary_text() -> String {
             text.push('\n');
             text.push_str("Comparison body-class error envelopes: ");
             text.push_str(&comparison_body_class_error_envelope_summary_for_report());
+            text.push('\n');
+            text.push_str("Source corpus: ");
+            text.push_str(&source_corpus_summary_for_report());
             text.push('\n');
             text.push_str("Release-grade body claims: ");
             text.push_str(&format_release_body_claims_summary_for_report());
@@ -18789,6 +18793,19 @@ fn render_comparison_corpus_summary_text() -> String {
     text
 }
 
+fn source_corpus_summary_for_report() -> String {
+    let release_grade_guard = match validated_comparison_corpus_release_guard_summary_for_report() {
+        Ok(guard) => guard,
+        Err(error) => return format!("Source corpus unavailable ({error})"),
+    };
+
+    format!(
+        "comparison corpus release-grade guard: {release_grade_guard}; JPL source corpus contract: {}; phase-2 corpus alignment: {}",
+        jpl_source_corpus_contract_summary_for_report(),
+        validated_packaged_artifact_phase2_corpus_alignment_summary_for_report()
+    )
+}
+
 fn render_comparison_corpus_release_guard_summary_text() -> String {
     let release_grade_guard = match validated_comparison_corpus_release_guard_summary_for_report() {
         Ok(guard) => guard,
@@ -19745,6 +19762,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         Err(error) => return format!("Comparison corpus summary unavailable ({error})"),
     };
     let _ = writeln!(text, "  release-grade guard: {release_grade_guard}");
+    let _ = writeln!(
+        text,
+        "  Source corpus: {}",
+        source_corpus_summary_for_report()
+    );
     let _ = writeln!(text);
     let _ = writeln!(text, "Reference snapshot");
     let _ = writeln!(text, "  {}", reference_snapshot_summary_for_report());
@@ -25715,6 +25737,12 @@ mod tests {
             release_profiles.api_stability_profile_id
         )));
         assert!(report.contains("Comparison corpus"));
+        assert!(report.contains("Source corpus: comparison corpus release-grade guard:"));
+        assert!(report.contains("JPL source corpus contract:"));
+        assert!(report.contains("phase-2 corpus alignment:"));
+        assert!(validation_report
+            .to_string()
+            .contains("Source corpus: comparison corpus release-grade guard:"));
         assert!(report.contains(&request_surface_summary_for_report()));
         assert!(report.contains("Reference snapshot"));
         assert!(report.contains(&reference_snapshot_summary_for_report()));
@@ -29547,6 +29575,9 @@ mod tests {
         assert!(rendered.lines().any(|line| line == "Release summary"));
         assert!(rendered.contains("Comparison body-class tolerance: body-class tolerance posture:"));
         assert!(rendered.contains("Comparison body-class error envelopes:"));
+        assert!(rendered.contains("Source corpus: comparison corpus release-grade guard:"));
+        assert!(rendered.contains("JPL source corpus contract:"));
+        assert!(rendered.contains("phase-2 corpus alignment:"));
         assert!(rendered.contains("Release summary line:"));
         assert!(rendered.contains("Production generation body-class coverage:"));
         assert!(rendered.contains("Production generation corpus shape:"));
