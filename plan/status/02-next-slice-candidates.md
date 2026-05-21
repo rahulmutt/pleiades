@@ -8,7 +8,7 @@ This file lists only active implementation slices. Completed report aliases, sum
 - Keep corpus provenance surfaces aligned; JPL reference, hold-out, and boundary-overlay summaries now surface explicit evidence-class labels alongside the existing source revision checksums, and the JPL source corpus contract now has a typed release-facing summary.
 - The backend matrix summary now also pulls in validated production-generation coverage, body-class coverage, corpus shape, and source-corpus contract lines so release-facing matrix output exposes the current corpus claims directly.
 - The comparison snapshot manifest summary now fails closed on redistribution drift so provenance posture stays explicit in release-facing validation.
-- Create independent hold-out coverage that is not consumed by artifact fitting.
+- Expand independent hold-out coverage beyond the current selected-asteroid J2000/2500000 anchors without consuming those rows for artifact fitting.
 - The release bundle now carries independent-holdout body-class coverage alongside the source-window evidence so hold-out coverage is explicit in staged artifacts.
 - Make backend matrices and release profiles derive body/date/channel claims from validated corpus evidence; the backend matrix summary now also carries the comparison corpus release-grade guard, reference/hold-out overlap, independent hold-out, release-grade body claims, and Pluto fallback posture.
 - Keep the production-generation source summary explicit about both license and redistribution posture so the checked-in fixture corpus stays audit-friendly.
