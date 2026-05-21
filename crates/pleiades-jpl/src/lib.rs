@@ -29073,6 +29073,82 @@ mod tests {
     }
 
     #[test]
+    fn production_generation_boundary_request_corpus_summary_validation_rejects_body_epoch_and_order_drift(
+    ) {
+        let mut body_count_drift =
+            production_generation_boundary_request_corpus_summary(CoordinateFrame::Ecliptic)
+                .expect("production generation boundary request corpus summary should exist");
+        body_count_drift.body_count += 1;
+        assert!(matches!(
+            body_count_drift.validate(),
+            Err(
+                ProductionGenerationBoundaryRequestCorpusSummaryValidationError::FieldOutOfSync {
+                    field: "body_count"
+                }
+            )
+        ));
+
+        let mut body_order_drift =
+            production_generation_boundary_request_corpus_summary(CoordinateFrame::Ecliptic)
+                .expect("production generation boundary request corpus summary should exist");
+        body_order_drift.bodies.swap(0, 1);
+        assert!(matches!(
+            body_order_drift.validate(),
+            Err(
+                ProductionGenerationBoundaryRequestCorpusSummaryValidationError::BodyOrderMismatch {
+                    index: 0,
+                    ..
+                }
+            )
+        ));
+
+        let mut epoch_count_drift =
+            production_generation_boundary_request_corpus_summary(CoordinateFrame::Ecliptic)
+                .expect("production generation boundary request corpus summary should exist");
+        epoch_count_drift.epoch_count += 1;
+        assert!(matches!(
+            epoch_count_drift.validate(),
+            Err(
+                ProductionGenerationBoundaryRequestCorpusSummaryValidationError::FieldOutOfSync {
+                    field: "epoch_count"
+                }
+            )
+        ));
+    }
+
+    #[test]
+    fn production_generation_source_summary_validation_rejects_frame_and_time_scale_text_drift() {
+        let summary = production_generation_source_summary();
+        let frame_drift = summary.summary_line().replace(
+            "frame=geocentric ecliptic J2000",
+            "frame=geocentric equatorial J2000",
+        );
+
+        assert!(matches!(
+            validate_production_generation_source_summary_text(&summary, &frame_drift),
+            Err(
+                ProductionGenerationSourceSummaryValidationError::RenderedSummaryOutOfSync {
+                    field: "frame"
+                }
+            )
+        ));
+
+        let summary = production_generation_source_summary();
+        let time_scale_drift = summary
+            .summary_line()
+            .replace("time scale=TDB", "time scale=UTC");
+
+        assert!(matches!(
+            validate_production_generation_source_summary_text(&summary, &time_scale_drift),
+            Err(
+                ProductionGenerationSourceSummaryValidationError::RenderedSummaryOutOfSync {
+                    field: "time scale"
+                }
+            )
+        ));
+    }
+
+    #[test]
     fn comparison_snapshot_summary_reports_the_expected_coverage() {
         let summary =
             comparison_snapshot_summary().expect("comparison snapshot summary should exist");

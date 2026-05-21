@@ -8,7 +8,7 @@ Use this checklist for active implementation only. Completed historical work sho
 - [x] Provenance, redistribution posture, frame, time scale, schema, source revision, generation command, and checksums are recorded.
 - [ ] Corpus covers every release-claimed body/channel/frame/date range.
 - [ ] Fitting/reference, independent hold-out, boundary overlay, fixture-exactness, and provenance-only evidence are separated.
-- [ ] Corpus validation fails on body, epoch, channel, frame, apparentness, or checksum drift.
+- [x] Corpus validation fails on body, epoch, channel, frame, apparentness, or checksum drift.
 
 ## Phase 2: Production compressed ephemeris
 
