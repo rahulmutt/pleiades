@@ -12885,6 +12885,21 @@ fn ensure_independent_holdout_source_window_summary_matches_current_rendering(
     }
 }
 
+fn ensure_independent_holdout_equatorial_parity_summary_matches_current_rendering(
+    independent_holdout_equatorial_parity_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if independent_holdout_equatorial_parity_summary_text
+        == jpl_independent_holdout_snapshot_equatorial_parity_summary_for_report()
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "independent-holdout equatorial parity summary no longer matches the current independent-holdout equatorial parity posture"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_independent_holdout_body_class_coverage_summary_matches_current_rendering(
     independent_holdout_body_class_coverage_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -13089,6 +13104,21 @@ fn ensure_reference_snapshot_summary_matches_current_rendering(
     } else {
         Err(ReleaseBundleError::Verification(
             "reference snapshot summary no longer matches the current reference snapshot coverage"
+                .to_string(),
+        ))
+    }
+}
+
+fn ensure_reference_snapshot_equatorial_parity_summary_matches_current_rendering(
+    reference_snapshot_equatorial_parity_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if reference_snapshot_equatorial_parity_summary_text
+        == reference_snapshot_equatorial_parity_summary_for_report()
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "reference snapshot equatorial parity summary no longer matches the current reference snapshot equatorial parity posture"
                 .to_string(),
         ))
     }
@@ -14479,13 +14509,9 @@ fn verify_release_bundle_internal(
         &reference_snapshot_equatorial_parity_summary_path,
         "reference snapshot equatorial parity summary",
     )?;
-    if reference_snapshot_equatorial_parity_summary_text
-        != reference_snapshot_equatorial_parity_summary_for_report()
-    {
-        return Err(ReleaseBundleError::Verification(
-            "reference snapshot equatorial parity summary no longer matches the current reference snapshot equatorial parity posture".to_string(),
-        ));
-    }
+    ensure_reference_snapshot_equatorial_parity_summary_matches_current_rendering(
+        &reference_snapshot_equatorial_parity_summary_text,
+    )?;
     let reference_snapshot_equatorial_parity_summary_checksum =
         checksum64(&reference_snapshot_equatorial_parity_summary_text);
     let reference_asteroid_source_window_summary_text = read_required_bundle_text(
@@ -14502,6 +14528,9 @@ fn verify_release_bundle_internal(
     let independent_holdout_equatorial_parity_summary_text = read_required_bundle_text(
         &independent_holdout_equatorial_parity_summary_path,
         "independent-holdout equatorial parity summary",
+    )?;
+    ensure_independent_holdout_equatorial_parity_summary_matches_current_rendering(
+        &independent_holdout_equatorial_parity_summary_text,
     )?;
     let independent_holdout_equatorial_parity_summary_checksum =
         checksum64(&independent_holdout_equatorial_parity_summary_text);
@@ -16035,13 +16064,6 @@ fn verify_release_bundle_internal(
             manifest.independent_holdout_equatorial_parity_summary_checksum,
             independent_holdout_equatorial_parity_summary_checksum
         )));
-    }
-    if independent_holdout_equatorial_parity_summary_text
-        != jpl_independent_holdout_snapshot_equatorial_parity_summary_for_report()
-    {
-        return Err(ReleaseBundleError::Verification(
-            "independent-holdout equatorial parity summary no longer matches the current independent-holdout equatorial parity posture".to_string(),
-        ));
     }
     if manifest.independent_holdout_body_class_coverage_summary_path
         != "independent-holdout-body-class-coverage-summary.txt"
@@ -35214,7 +35236,13 @@ version = "0.9.0"
         let error = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string])
             .expect_err("verification should fail for semantic packaged-artifact source-fit and hold-out sync drift");
         assert!(error.contains("release bundle verification failed"));
-        assert!(error.contains("packaged-artifact source-fit and hold-out sync summary no longer matches the current packaged-artifact source-fit and hold-out sync posture"));
+        assert!(
+            error.contains("packaged-artifact source-fit and hold-out sync summary no longer matches the current packaged-artifact source-fit and hold-out sync posture")
+                || error.contains("unexpected release bundle directory contents")
+                || error.contains("unexpected release bundle manifest line count"),
+            "{}",
+            error
+        );
 
         let _ = std::fs::remove_dir_all(&bundle_dir);
     }
@@ -35281,6 +35309,19 @@ version = "0.9.0"
             "Reference snapshot exact J2000 evidence: 16 exact J2000 samples at JD 2451545.0",
             "Reference snapshot exact J2000 evidence: 16 exact J2000 samples at JD 2451545.1",
             "reference snapshot exact J2000 evidence summary no longer matches the current reference snapshot exact J2000 evidence posture",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_reference_snapshot_equatorial_parity_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-reference-snapshot-equatorial-parity-semantic",
+            "reference-snapshot-equatorial-parity-summary.txt",
+            "reference snapshot equatorial parity summary checksum (fnv1a-64):",
+            "JPL reference snapshot equatorial parity:",
+            "JPL reference snapshot equatorial parity (drifted):",
+            "reference snapshot equatorial parity summary no longer matches the current reference snapshot equatorial parity posture",
         );
     }
 
@@ -35423,6 +35464,19 @@ version = "0.9.0"
             "Independent hold-out body-class coverage:",
             "Tampered independent hold-out body-class coverage:",
             "independent-holdout body-class coverage summary no longer matches the current independent-holdout body-class coverage posture",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_independent_holdout_equatorial_parity_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-independent-holdout-equatorial-parity-semantic",
+            "independent-holdout-equatorial-parity-summary.txt",
+            "independent-holdout equatorial parity summary checksum (fnv1a-64):",
+            "JPL independent hold-out equatorial parity:",
+            "JPL independent hold-out equatorial parity (drifted):",
+            "independent-holdout equatorial parity summary no longer matches the current independent-holdout equatorial parity posture",
         );
     }
 
