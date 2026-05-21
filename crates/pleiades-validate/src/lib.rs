@@ -4296,6 +4296,13 @@ impl fmt::Display for ReleaseBundle {
         )?;
         writeln!(
             f,
+            "  selected asteroid source request corpus equatorial summary: {}",
+            self.output_dir
+                .join("selected-asteroid-source-request-corpus-equatorial-summary.txt")
+                .display()
+        )?;
+        writeln!(
+            f,
             "  selected asteroid source window summary: {}",
             self.output_dir
                 .join("selected-asteroid-source-window-summary.txt")
@@ -10086,6 +10093,11 @@ pub fn render_release_bundle(
             .map_err(|error| ReleaseBundleError::Verification(error.to_string()))?;
     let selected_asteroid_source_request_corpus_summary_checksum =
         checksum64(&selected_asteroid_source_request_corpus_summary_text);
+    let selected_asteroid_source_request_corpus_equatorial_summary_text =
+        validated_selected_asteroid_source_request_corpus_equatorial_summary_for_report()
+            .map_err(|error| ReleaseBundleError::Verification(error.to_string()))?;
+    let selected_asteroid_source_request_corpus_equatorial_summary_checksum =
+        checksum64(&selected_asteroid_source_request_corpus_equatorial_summary_text);
     let selected_asteroid_source_window_summary_text =
         validated_selected_asteroid_source_window_summary_for_report()
             .map_err(|error| ReleaseBundleError::Verification(error.to_string()))?;
@@ -10300,6 +10312,8 @@ pub fn render_release_bundle(
         output_dir.join("interpolation-quality-request-corpus-summary.txt");
     let selected_asteroid_source_request_corpus_summary_path =
         output_dir.join("selected-asteroid-source-request-corpus-summary.txt");
+    let selected_asteroid_source_request_corpus_equatorial_summary_path =
+        output_dir.join("selected-asteroid-source-request-corpus-equatorial-summary.txt");
     let selected_asteroid_source_window_summary_path =
         output_dir.join("selected-asteroid-source-window-summary.txt");
     let benchmark_report_path = output_dir.join("benchmark-report.txt");
@@ -10575,7 +10589,7 @@ packaged-artifact generation manifest summary: packaged-artifact-generation-mani
 packaged-artifact generation manifest summary checksum (fnv1a-64): 0x{packaged_artifact_generation_manifest_summary_checksum:016x}
 packaged-artifact generation manifest checksum summary: packaged-artifact-generation-manifest-checksum-summary.txt
 packaged-artifact generation manifest checksum summary checksum (fnv1a-64): 0x{packaged_artifact_generation_manifest_checksum_summary_checksum:016x}
-benchmark-corpus summary: benchmark-corpus-summary.txt\nbenchmark-corpus summary checksum (fnv1a-64): 0x{benchmark_corpus_summary_checksum:016x}\nchart-benchmark-corpus summary: chart-benchmark-corpus-summary.txt\nchart-benchmark-corpus summary checksum (fnv1a-64): 0x{chart_benchmark_corpus_summary_checksum:016x}\nselected asteroid source request corpus summary: selected-asteroid-source-request-corpus-summary.txt\nselected asteroid source request corpus summary checksum (fnv1a-64): 0x{selected_asteroid_source_request_corpus_summary_checksum:016x}\nselected asteroid source window summary: selected-asteroid-source-window-summary.txt\nselected asteroid source window summary checksum (fnv1a-64): 0x{selected_asteroid_source_window_summary_checksum:016x}\ninterpolation-quality sample request corpus summary: interpolation-quality-request-corpus-summary.txt\ninterpolation-quality sample request corpus summary checksum (fnv1a-64): 0x{interpolation_quality_request_corpus_summary_checksum:016x}\nbenchmark report: benchmark-report.txt\nbenchmark report checksum (fnv1a-64): 0x{benchmark_report_checksum:016x}\nvalidation report: validation-report.txt\nvalidation report checksum (fnv1a-64): 0x{validation_report_checksum:016x}\nsource revision: {}\nworkspace status: {}\nrustc version: {}\ncargo version: {}\nprofile id: {}\napi stability posture id: {}\nvalidation rounds: {}\n",
+benchmark-corpus summary: benchmark-corpus-summary.txt\nbenchmark-corpus summary checksum (fnv1a-64): 0x{benchmark_corpus_summary_checksum:016x}\nchart-benchmark-corpus summary: chart-benchmark-corpus-summary.txt\nchart-benchmark-corpus summary checksum (fnv1a-64): 0x{chart_benchmark_corpus_summary_checksum:016x}\nselected asteroid source request corpus summary: selected-asteroid-source-request-corpus-summary.txt\nselected asteroid source request corpus summary checksum (fnv1a-64): 0x{selected_asteroid_source_request_corpus_summary_checksum:016x}\nselected asteroid source request corpus equatorial summary: selected-asteroid-source-request-corpus-equatorial-summary.txt\nselected asteroid source request corpus equatorial summary checksum (fnv1a-64): 0x{selected_asteroid_source_request_corpus_equatorial_summary_checksum:016x}\nselected asteroid source window summary: selected-asteroid-source-window-summary.txt\nselected asteroid source window summary checksum (fnv1a-64): 0x{selected_asteroid_source_window_summary_checksum:016x}\ninterpolation-quality sample request corpus summary: interpolation-quality-request-corpus-summary.txt\ninterpolation-quality sample request corpus summary checksum (fnv1a-64): 0x{interpolation_quality_request_corpus_summary_checksum:016x}\nbenchmark report: benchmark-report.txt\nbenchmark report checksum (fnv1a-64): 0x{benchmark_report_checksum:016x}\nvalidation report: validation-report.txt\nvalidation report checksum (fnv1a-64): 0x{validation_report_checksum:016x}\nsource revision: {}\nworkspace status: {}\nrustc version: {}\ncargo version: {}\nprofile id: {}\napi stability posture id: {}\nvalidation rounds: {}\n",
         provenance.source_revision,
         provenance.workspace_status,
         provenance.rustc_version,
@@ -10964,6 +10978,10 @@ benchmark-corpus summary: benchmark-corpus-summary.txt\nbenchmark-corpus summary
         selected_asteroid_source_request_corpus_summary_text.as_bytes(),
     )?;
     fs::write(
+        &selected_asteroid_source_request_corpus_equatorial_summary_path,
+        selected_asteroid_source_request_corpus_equatorial_summary_text.as_bytes(),
+    )?;
+    fs::write(
         &selected_asteroid_source_window_summary_path,
         selected_asteroid_source_window_summary_text.as_bytes(),
     )?;
@@ -11167,6 +11185,8 @@ struct ParsedReleaseBundleManifest {
     chart_benchmark_corpus_summary_checksum: u64,
     selected_asteroid_source_request_corpus_summary_path: String,
     selected_asteroid_source_request_corpus_summary_checksum: u64,
+    selected_asteroid_source_request_corpus_equatorial_summary_path: String,
+    selected_asteroid_source_request_corpus_equatorial_summary_checksum: u64,
     selected_asteroid_source_window_summary_path: String,
     selected_asteroid_source_window_summary_checksum: u64,
     interpolation_quality_request_corpus_summary_path: String,
@@ -11890,6 +11910,16 @@ impl ParsedReleaseBundleManifest {
                 text,
                 "selected asteroid source request corpus summary checksum (fnv1a-64):",
             )?,
+            selected_asteroid_source_request_corpus_equatorial_summary_path:
+                parse_manifest_string(
+                    text,
+                    "selected asteroid source request corpus equatorial summary:",
+                )?,
+            selected_asteroid_source_request_corpus_equatorial_summary_checksum:
+                parse_manifest_checksum(
+                    text,
+                    "selected asteroid source request corpus equatorial summary checksum (fnv1a-64):",
+                )?,
             selected_asteroid_source_window_summary_path: parse_manifest_string(
                 text,
                 "selected asteroid source window summary:",
@@ -11961,6 +11991,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
         "benchmark-corpus-summary.txt",
         "chart-benchmark-corpus-summary.txt",
         "selected-asteroid-source-request-corpus-summary.txt",
+        "selected-asteroid-source-request-corpus-equatorial-summary.txt",
         "selected-asteroid-source-window-summary.txt",
         "interpolation-quality-request-corpus-summary.txt",
         "comparison-corpus-release-guard-summary.txt",
@@ -12070,7 +12101,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
 fn ensure_release_bundle_manifest_is_canonical(
     manifest_text: &str,
 ) -> Result<(), ReleaseBundleError> {
-    const EXPECTED_MANIFEST_LINES: [&str; 212] = [
+    const EXPECTED_MANIFEST_LINES: [&str; 214] = [
         "Release bundle manifest",
         "profile:",
         "profile checksum (fnv1a-64):",
@@ -12264,6 +12295,8 @@ fn ensure_release_bundle_manifest_is_canonical(
         "chart-benchmark-corpus summary checksum (fnv1a-64):",
         "selected asteroid source request corpus summary:",
         "selected asteroid source request corpus summary checksum (fnv1a-64):",
+        "selected asteroid source request corpus equatorial summary:",
+        "selected asteroid source request corpus equatorial summary checksum (fnv1a-64):",
         "selected asteroid source window summary:",
         "selected asteroid source window summary checksum (fnv1a-64):",
         "interpolation-quality sample request corpus summary:",
@@ -13726,6 +13759,8 @@ fn verify_release_bundle(
     let chart_benchmark_corpus_summary_path = output_dir.join("chart-benchmark-corpus-summary.txt");
     let selected_asteroid_source_request_corpus_summary_path =
         output_dir.join("selected-asteroid-source-request-corpus-summary.txt");
+    let selected_asteroid_source_request_corpus_equatorial_summary_path =
+        output_dir.join("selected-asteroid-source-request-corpus-equatorial-summary.txt");
     let selected_asteroid_source_window_summary_path =
         output_dir.join("selected-asteroid-source-window-summary.txt");
     let interpolation_quality_request_corpus_summary_path =
@@ -14378,6 +14413,21 @@ fn verify_release_bundle(
     )?;
     let selected_asteroid_source_request_corpus_summary_checksum =
         checksum64(&selected_asteroid_source_request_corpus_summary_text);
+    let selected_asteroid_source_request_corpus_equatorial_summary_text =
+        read_required_bundle_text(
+            &selected_asteroid_source_request_corpus_equatorial_summary_path,
+            "selected asteroid source request corpus equatorial summary",
+        )?;
+    if selected_asteroid_source_request_corpus_equatorial_summary_text
+        != validated_selected_asteroid_source_request_corpus_equatorial_summary_for_report()
+            .map_err(ReleaseBundleError::Verification)?
+    {
+        return Err(ReleaseBundleError::Verification(
+            "selected asteroid source request corpus equatorial summary no longer matches the current selected asteroid source request corpus equatorial posture".to_string(),
+        ));
+    }
+    let selected_asteroid_source_request_corpus_equatorial_summary_checksum =
+        checksum64(&selected_asteroid_source_request_corpus_equatorial_summary_text);
     let selected_asteroid_source_window_summary_text = read_required_bundle_text(
         &selected_asteroid_source_window_summary_path,
         "selected asteroid source window summary",
@@ -16144,6 +16194,23 @@ fn verify_release_bundle(
             "selected asteroid source request corpus summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
             manifest.selected_asteroid_source_request_corpus_summary_checksum,
             selected_asteroid_source_request_corpus_summary_checksum
+        )));
+    }
+    if manifest.selected_asteroid_source_request_corpus_equatorial_summary_path
+        != "selected-asteroid-source-request-corpus-equatorial-summary.txt"
+    {
+        return Err(ReleaseBundleError::Verification(format!(
+            "unexpected selected asteroid source request corpus equatorial summary file entry: {}",
+            manifest.selected_asteroid_source_request_corpus_equatorial_summary_path
+        )));
+    }
+    if manifest.selected_asteroid_source_request_corpus_equatorial_summary_checksum
+        != selected_asteroid_source_request_corpus_equatorial_summary_checksum
+    {
+        return Err(ReleaseBundleError::Verification(format!(
+            "selected asteroid source request corpus equatorial summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
+            manifest.selected_asteroid_source_request_corpus_equatorial_summary_checksum,
+            selected_asteroid_source_request_corpus_equatorial_summary_checksum
         )));
     }
     if manifest.selected_asteroid_source_window_summary_path
@@ -31869,6 +31936,7 @@ version = "0.9.0"
         assert!(manifest.contains("benchmark-corpus-summary.txt"));
         assert!(manifest.contains("chart-benchmark-corpus-summary.txt"));
         assert!(manifest.contains("selected-asteroid-source-request-corpus-summary.txt"));
+        assert!(manifest.contains("selected-asteroid-source-request-corpus-equatorial-summary.txt"));
         assert!(manifest.contains("selected-asteroid-source-window-summary.txt"));
         assert!(
             manifest.contains("selected asteroid source window summary checksum (fnv1a-64): 0x")
@@ -31965,6 +32033,7 @@ version = "0.9.0"
         assert!(verified.contains("artifact-summary.txt"));
         assert!(verified.contains("benchmark-corpus-summary.txt"));
         assert!(verified.contains("selected-asteroid-source-request-corpus-summary.txt"));
+        assert!(verified.contains("selected-asteroid-source-request-corpus-equatorial-summary.txt"));
         assert!(verified.contains("selected-asteroid-source-window-summary.txt"));
         assert!(verified.contains("interpolation-quality-request-corpus-summary.txt"));
         assert!(verified.contains("benchmark-report.txt"));
@@ -34055,6 +34124,19 @@ version = "0.9.0"
             "Selected asteroid source request corpus:",
             "Tampered selected asteroid source request corpus:",
             "selected asteroid source request corpus summary no longer matches the current selected asteroid source request corpus posture",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_selected_asteroid_source_request_corpus_equatorial_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-selected-asteroid-source-request-corpus-equatorial-semantic",
+            "selected-asteroid-source-request-corpus-equatorial-summary.txt",
+            "selected asteroid source request corpus equatorial summary checksum (fnv1a-64):",
+            "Selected asteroid source request corpus:",
+            "Tampered selected asteroid source request corpus:",
+            "selected asteroid source request corpus equatorial summary no longer matches the current selected asteroid source request corpus equatorial posture",
         );
     }
 

@@ -37,6 +37,7 @@ The repository is therefore no longer in a bootstrap phase. The remaining work i
 - `pleiades-elp` is a compact Meeus-style lunar baseline, not a full ELP coefficient implementation.
 - Selected asteroid evidence exists for bounded fixtures, but broad asteroid release claims are not yet supported.
 - selected-asteroid source evidence and source-window summaries now also surface explicit evidence-class, frame, and time-scale posture so the selected-asteroid corpus slice stays aligned with the broader provenance contract.
+- release bundles now also carry the selected-asteroid source request corpus equatorial summary, so the staged selected-asteroid slice surfaces both request-frame variants alongside the ecliptic request corpus.
 - First-party body-position requests are mean geometric and geocentric. Apparent-place corrections, topocentric body positions, native sidereal backend output, and built-in civil-time/Delta-T modeling remain unsupported unless explicitly supplied by the caller or a future backend.
 - Broad house and ayanamsa catalogs are present, but entries still need formula/provenance audits before compatibility claims can be widened.
 
