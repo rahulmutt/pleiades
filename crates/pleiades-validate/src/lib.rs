@@ -9265,6 +9265,12 @@ fn render_release_summary_text() -> String {
             text.push_str("Source corpus: ");
             text.push_str(&source_corpus_summary_for_report());
             text.push('\n');
+            text.push_str("Catalog posture: ");
+            match core_validated_catalog_posture_summary_for_report() {
+                Ok(summary) => text.push_str(&summary),
+                Err(error) => return format!("Release summary unavailable ({error})"),
+            }
+            text.push('\n');
             text.push_str("Release-grade body claims: ");
             text.push_str(&format_release_body_claims_summary_for_report());
             text.push('\n');
@@ -21107,6 +21113,12 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str("Source corpus: ");
     text.push_str(&source_corpus_summary_for_report());
     text.push('\n');
+    text.push_str("Catalog posture: ");
+    match core_validated_catalog_posture_summary_for_report() {
+        Ok(summary) => text.push_str(&summary),
+        Err(error) => return format!("Backend matrix summary unavailable ({error})"),
+    }
+    text.push('\n');
     text.push_str("Pluto fallback: ");
     match validated_pluto_fallback_summary_line_for_report() {
         Ok(summary) => text.push_str(summary),
@@ -29803,6 +29815,7 @@ mod tests {
         assert!(rendered.contains("Comparison body-class tolerance: body-class tolerance posture:"));
         assert!(rendered.contains("Comparison body-class error envelopes:"));
         assert!(rendered.contains("Source corpus: comparison corpus release-grade guard:"));
+        assert!(rendered.contains("Catalog posture: house systems="));
         assert!(rendered.contains("JPL source corpus contract:"));
         assert!(rendered.contains("phase-2 corpus alignment:"));
         assert!(rendered.contains("Release summary line:"));
@@ -30451,6 +30464,7 @@ mod tests {
         assert!(rendered.contains("JPL independent hold-out:"));
         assert!(rendered.contains("Release-grade body claims:"));
         assert!(rendered.contains("Source corpus: comparison corpus release-grade guard:"));
+        assert!(rendered.contains("Catalog posture: house systems="));
         assert!(
             rendered.contains("Pluto fallback: Pluto remains an explicitly approximate fallback")
         );
