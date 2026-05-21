@@ -3407,6 +3407,10 @@ fn validate_production_generation_source_summary_text(
             source_windows_fragment,
         ),
         (
+            "evidence classes",
+            "evidence classes=reference, hold-out, boundary overlay, provenance-only".to_string(),
+        ),
+        (
             "source revision",
             source_revision_fragment,
         ),
@@ -31653,6 +31657,24 @@ mod tests {
             Err(
                 ProductionGenerationSourceSummaryValidationError::RenderedSummaryOutOfSync {
                     field: "apparentness"
+                }
+            )
+        ));
+    }
+
+    #[test]
+    fn production_generation_source_summary_validation_rejects_evidence_class_text_drift() {
+        let summary = production_generation_source_summary();
+        let drifted = summary.summary_line().replace(
+            "evidence classes=reference, hold-out, boundary overlay, provenance-only",
+            "evidence classes=reference, hold-out, boundary overlay",
+        );
+
+        assert!(matches!(
+            validate_production_generation_source_summary_text(&summary, &drifted),
+            Err(
+                ProductionGenerationSourceSummaryValidationError::RenderedSummaryOutOfSync {
+                    field: "evidence classes"
                 }
             )
         ));
