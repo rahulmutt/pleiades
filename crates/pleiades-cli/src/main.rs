@@ -2947,17 +2947,14 @@ mod tests {
             render_cli(&["request-policy"]).expect("request policy alias should render");
         assert_eq!(request_policy_alias, request_policy_summary);
 
+        let request_semantics_summary = render_cli(&["request-semantics-summary"])
+            .expect("request semantics summary should render");
+        assert!(request_semantics_summary.contains("Request semantics summary"));
+
         let request_semantics_alias =
             render_cli(&["request-semantics"]).expect("request semantics alias should render");
         assert!(request_semantics_alias.contains("Request semantics summary"));
-        assert_eq!(
-            request_semantics_alias.replacen(
-                "Request semantics summary",
-                "Request policy summary",
-                1
-            ),
-            request_policy_summary
-        );
+        assert_eq!(request_semantics_alias, request_semantics_summary);
 
         let request_policy_error = render_cli(&["request-policy", "extra"])
             .expect_err("request policy alias should reject extra arguments");
@@ -2970,17 +2967,6 @@ mod tests {
         assert_eq!(
             request_policy_summary_error,
             "request-policy-summary does not accept extra arguments"
-        );
-        let request_semantics_summary = render_cli(&["request-semantics-summary"])
-            .expect("request semantics summary should render");
-        assert!(request_semantics_summary.contains("Request semantics summary"));
-        assert_eq!(
-            request_semantics_summary.replacen(
-                "Request semantics summary",
-                "Request policy summary",
-                1
-            ),
-            request_policy_summary
         );
         let request_semantics_error = render_cli(&["request-semantics-summary", "extra"])
             .expect_err("request semantics alias should reject extra arguments");
