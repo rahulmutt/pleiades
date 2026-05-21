@@ -1123,6 +1123,42 @@ impl fmt::Display for Apparentness {
     }
 }
 
+/// A coarse classification for a celestial body.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+#[non_exhaustive]
+pub enum CelestialBodyClass {
+    /// The Sun or Moon.
+    Luminary,
+    /// Mercury through Pluto.
+    MajorPlanet,
+    /// Lunar nodes and apsides.
+    LunarPoint,
+    /// Ceres, Pallas, Juno, and Vesta.
+    BuiltInAsteroid,
+    /// A structured custom body identifier.
+    Custom,
+}
+
+impl CelestialBodyClass {
+    /// Returns a stable human-readable label for the class.
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Luminary => "luminary",
+            Self::MajorPlanet => "major planet",
+            Self::LunarPoint => "lunar point",
+            Self::BuiltInAsteroid => "built-in asteroid",
+            Self::Custom => "custom body",
+        }
+    }
+}
+
+impl fmt::Display for CelestialBodyClass {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.label())
+    }
+}
+
 /// The built-in and custom body identifiers recognized by the shared API.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -1173,6 +1209,31 @@ pub enum CelestialBody {
 }
 
 impl CelestialBody {
+    /// Returns the coarse class for this body.
+    pub const fn class(&self) -> CelestialBodyClass {
+        match self {
+            Self::Sun | Self::Moon => CelestialBodyClass::Luminary,
+            Self::Mercury
+            | Self::Venus
+            | Self::Mars
+            | Self::Jupiter
+            | Self::Saturn
+            | Self::Uranus
+            | Self::Neptune
+            | Self::Pluto => CelestialBodyClass::MajorPlanet,
+            Self::MeanNode
+            | Self::TrueNode
+            | Self::MeanApogee
+            | Self::TrueApogee
+            | Self::MeanPerigee
+            | Self::TruePerigee => CelestialBodyClass::LunarPoint,
+            Self::Ceres | Self::Pallas | Self::Juno | Self::Vesta => {
+                CelestialBodyClass::BuiltInAsteroid
+            }
+            Self::Custom(_) => CelestialBodyClass::Custom,
+        }
+    }
+
     /// Returns a stable human-readable name for built-in bodies.
     pub const fn built_in_name(&self) -> Option<&'static str> {
         match self {
@@ -2538,6 +2599,41 @@ mod tests {
     fn longitude_is_always_normalized() {
         assert_eq!(Longitude::from_degrees(390.0).degrees(), 30.0);
         assert_eq!(Longitude::from(Angle::from_degrees(-30.0)).degrees(), 330.0);
+    }
+
+    #[test]
+    fn celestial_body_classes_cover_the_built_in_catalog() {
+        assert_eq!(CelestialBody::Sun.class(), CelestialBodyClass::Luminary);
+        assert_eq!(CelestialBody::Moon.class(), CelestialBodyClass::Luminary);
+        assert_eq!(
+            CelestialBody::Mercury.class(),
+            CelestialBodyClass::MajorPlanet
+        );
+        assert_eq!(
+            CelestialBody::Pluto.class(),
+            CelestialBodyClass::MajorPlanet
+        );
+        assert_eq!(
+            CelestialBody::MeanNode.class(),
+            CelestialBodyClass::LunarPoint
+        );
+        assert_eq!(
+            CelestialBody::TruePerigee.class(),
+            CelestialBodyClass::LunarPoint
+        );
+        assert_eq!(
+            CelestialBody::Ceres.class(),
+            CelestialBodyClass::BuiltInAsteroid
+        );
+        assert_eq!(
+            CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros")).class(),
+            CelestialBodyClass::Custom
+        );
+        assert_eq!(CelestialBodyClass::Luminary.label(), "luminary");
+        assert_eq!(
+            CelestialBodyClass::BuiltInAsteroid.to_string(),
+            "built-in asteroid"
+        );
     }
 
     #[test]

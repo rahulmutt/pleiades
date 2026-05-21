@@ -8,9 +8,9 @@ use crate::{
 };
 use pleiades_compression::{join_display, CompressedArtifact, CompressionError, EndianPolicy};
 use pleiades_core::{
-    Angle, Apparentness, BackendFamily, CelestialBody, CoordinateFrame, EclipticCoordinates,
-    EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest, Instant, JulianDay,
-    ZodiacMode,
+    Angle, Apparentness, BackendFamily, CelestialBody, CelestialBodyClass, CoordinateFrame,
+    EclipticCoordinates, EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest,
+    Instant, JulianDay, ZodiacMode,
 };
 use pleiades_data::{
     packaged_artifact, packaged_artifact_bytes, packaged_artifact_generation_manifest_for_report,
@@ -1667,27 +1667,12 @@ fn format_body_class_coverage(report: &ArtifactInspectionReport) -> String {
     let mut other_bodies = 0usize;
 
     for body in &report.bodies {
-        match body.body {
-            CelestialBody::Sun | CelestialBody::Moon => luminaries += 1,
-            CelestialBody::Mercury
-            | CelestialBody::Venus
-            | CelestialBody::Mars
-            | CelestialBody::Jupiter
-            | CelestialBody::Saturn
-            | CelestialBody::Uranus
-            | CelestialBody::Neptune
-            | CelestialBody::Pluto => major_planets += 1,
-            CelestialBody::MeanNode
-            | CelestialBody::TrueNode
-            | CelestialBody::MeanApogee
-            | CelestialBody::TrueApogee
-            | CelestialBody::MeanPerigee
-            | CelestialBody::TruePerigee => lunar_points += 1,
-            CelestialBody::Ceres
-            | CelestialBody::Pallas
-            | CelestialBody::Juno
-            | CelestialBody::Vesta => built_in_asteroids += 1,
-            CelestialBody::Custom(_) => custom_bodies += 1,
+        match body.body.class() {
+            CelestialBodyClass::Luminary => luminaries += 1,
+            CelestialBodyClass::MajorPlanet => major_planets += 1,
+            CelestialBodyClass::LunarPoint => lunar_points += 1,
+            CelestialBodyClass::BuiltInAsteroid => built_in_asteroids += 1,
+            CelestialBodyClass::Custom => custom_bodies += 1,
             _ => other_bodies += 1,
         }
     }

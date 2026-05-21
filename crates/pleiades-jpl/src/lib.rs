@@ -685,13 +685,15 @@ pub fn format_production_generation_boundary_source_summary(
     summary: &IndependentHoldoutSourceSummary,
 ) -> String {
     format!(
-        "Production generation boundary overlay source: {}; evidence class={}; coverage={}; columns={}; redistribution={}; checksum=0x{:016x}",
+        "Production generation boundary overlay source: {}; evidence class={}; coverage={}; columns={}; redistribution={}; checksum=0x{:016x}; {}; time scale={}",
         summary.source,
         summary.evidence_class,
         summary.coverage,
         summary.columns,
         summary.redistribution,
         independent_holdout_snapshot_checksum(),
+        summary.frame_treatment,
+        summary.time_scale,
     )
 }
 
@@ -19610,6 +19612,7 @@ const REFERENCE_SNAPSHOT_COVERAGE_FALLBACK: &str =
 const REFERENCE_SNAPSHOT_REDISTRIBUTION_FALLBACK: &str =
     "repository-checked regression fixtures, not a broad public corpus.";
 const REFERENCE_SNAPSHOT_FRAME_TREATMENT: &str = "geocentric ecliptic J2000";
+const REFERENCE_SNAPSHOT_TIME_SCALE: &str = "TDB";
 const REFERENCE_SNAPSHOT_COLUMNS: &str = "epoch_jd, body, x_km, y_km, z_km";
 const INDEPENDENT_HOLDOUT_EVIDENCE_CLASS: &str = "hold-out";
 const INDEPENDENT_HOLDOUT_SOURCE_EXPECTED: &str =
@@ -19620,6 +19623,8 @@ const INDEPENDENT_HOLDOUT_COVERAGE_FALLBACK: &str =
 const INDEPENDENT_HOLDOUT_COLUMNS: &str = "epoch_jd, body, x_km, y_km, z_km";
 const INDEPENDENT_HOLDOUT_REDISTRIBUTION_FALLBACK: &str =
     "repository-checked regression fixtures, not a broad public corpus.";
+const INDEPENDENT_HOLDOUT_FRAME_TREATMENT: &str = "geocentric ecliptic J2000";
+const INDEPENDENT_HOLDOUT_TIME_SCALE: &str = "TDB";
 
 fn reference_snapshot_source_checksum() -> u64 {
     static CHECKSUM: OnceLock<u64> = OnceLock::new();
@@ -19658,6 +19663,8 @@ pub struct ReferenceSnapshotSourceSummary {
     pub checksum: u64,
     /// Frame and coordinate posture described by the checked-in reference snapshot.
     pub frame_treatment: String,
+    /// Time-scale posture described by the checked-in reference snapshot.
+    pub time_scale: String,
     /// Reference epoch used by the checked-in snapshot.
     pub reference_epoch: Instant,
 }
@@ -19764,6 +19771,23 @@ impl ReferenceSnapshotSourceSummary {
                 },
             );
         }
+        if self.time_scale.trim().is_empty() {
+            return Err(ReferenceSnapshotSourceSummaryValidationError::BlankTimeScale);
+        }
+        if has_surrounding_whitespace(&self.time_scale) {
+            return Err(
+                ReferenceSnapshotSourceSummaryValidationError::SurroundedByWhitespace {
+                    field: "time_scale",
+                },
+            );
+        }
+        if self.time_scale != REFERENCE_SNAPSHOT_TIME_SCALE {
+            return Err(
+                ReferenceSnapshotSourceSummaryValidationError::FieldOutOfSync {
+                    field: "time_scale",
+                },
+            );
+        }
         if self.reference_epoch != reference_instant() {
             return Err(ReferenceSnapshotSourceSummaryValidationError::ReferenceEpochMismatch);
         }
@@ -19773,7 +19797,7 @@ impl ReferenceSnapshotSourceSummary {
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
         format!(
-            "Reference snapshot source: {}; evidence class={}; coverage={}; columns={}; redistribution={}; checksum=0x{:016x}; {}; TDB reference epoch {}",
+            "Reference snapshot source: {}; evidence class={}; coverage={}; columns={}; redistribution={}; checksum=0x{:016x}; {}; time scale={}; TDB reference epoch {}",
             self.source,
             self.evidence_class,
             self.coverage,
@@ -19781,6 +19805,7 @@ impl ReferenceSnapshotSourceSummary {
             self.redistribution,
             self.checksum,
             self.frame_treatment,
+            self.time_scale,
             format_instant(self.reference_epoch),
         )
     }
@@ -19805,6 +19830,8 @@ pub enum ReferenceSnapshotSourceSummaryValidationError {
     BlankCoverage,
     /// The summary did not include a non-empty frame-treatment label.
     BlankFrameTreatment,
+    /// The summary did not include a non-empty time-scale label.
+    BlankTimeScale,
     /// The summary did not include a non-empty redistribution label.
     BlankRedistribution,
     /// The summary did not include a non-empty columns label.
@@ -19827,6 +19854,7 @@ impl ReferenceSnapshotSourceSummaryValidationError {
             Self::BlankEvidenceClass => "blank evidence class",
             Self::BlankCoverage => "blank coverage",
             Self::BlankFrameTreatment => "blank frame treatment",
+            Self::BlankTimeScale => "blank time scale",
             Self::BlankColumns => "blank columns",
             Self::BlankRedistribution => "blank redistribution",
             Self::SurroundedByWhitespace { .. } => "surrounded by whitespace",
@@ -19877,7 +19905,8 @@ pub fn reference_snapshot_source_summary() -> ReferenceSnapshotSourceSummary {
                     .redistribution_or(REFERENCE_SNAPSHOT_REDISTRIBUTION_FALLBACK)
                     .to_string(),
                 checksum: reference_snapshot_source_checksum(),
-                frame_treatment: "geocentric ecliptic J2000".to_string(),
+                frame_treatment: REFERENCE_SNAPSHOT_FRAME_TREATMENT.to_string(),
+                time_scale: REFERENCE_SNAPSHOT_TIME_SCALE.to_string(),
                 reference_epoch: reference_instant(),
             }
         })
@@ -20235,6 +20264,10 @@ pub struct IndependentHoldoutSourceSummary {
     pub redistribution: String,
     /// Deterministic checksum of the checked-in hold-out snapshot source material.
     pub checksum: u64,
+    /// Frame and coordinate posture described by the checked-in hold-out snapshot.
+    pub frame_treatment: String,
+    /// Time-scale posture described by the checked-in hold-out snapshot.
+    pub time_scale: String,
 }
 
 impl IndependentHoldoutSourceSummary {
@@ -20324,14 +20357,48 @@ impl IndependentHoldoutSourceSummary {
         if self.checksum != independent_holdout_source_checksum() {
             return Err(IndependentHoldoutSourceSummaryValidationError::ChecksumMismatch);
         }
+        if self.frame_treatment.trim().is_empty() {
+            return Err(IndependentHoldoutSourceSummaryValidationError::BlankFrameTreatment);
+        }
+        if has_surrounding_whitespace(&self.frame_treatment) {
+            return Err(
+                IndependentHoldoutSourceSummaryValidationError::SurroundedByWhitespace {
+                    field: "frame_treatment",
+                },
+            );
+        }
+        if self.frame_treatment != INDEPENDENT_HOLDOUT_FRAME_TREATMENT {
+            return Err(
+                IndependentHoldoutSourceSummaryValidationError::FieldOutOfSync {
+                    field: "frame_treatment",
+                },
+            );
+        }
+        if self.time_scale.trim().is_empty() {
+            return Err(IndependentHoldoutSourceSummaryValidationError::BlankTimeScale);
+        }
+        if has_surrounding_whitespace(&self.time_scale) {
+            return Err(
+                IndependentHoldoutSourceSummaryValidationError::SurroundedByWhitespace {
+                    field: "time_scale",
+                },
+            );
+        }
+        if self.time_scale != INDEPENDENT_HOLDOUT_TIME_SCALE {
+            return Err(
+                IndependentHoldoutSourceSummaryValidationError::FieldOutOfSync {
+                    field: "time_scale",
+                },
+            );
+        }
         Ok(())
     }
 
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
         format!(
-            "Independent hold-out source: {}; evidence class={}; coverage={}; columns={}; redistribution={}; checksum=0x{:016x}",
-            self.source, self.evidence_class, self.coverage, self.columns, self.redistribution, self.checksum
+            "Independent hold-out source: {}; evidence class={}; coverage={}; columns={}; redistribution={}; checksum=0x{:016x}; {}; time scale={}",
+            self.source, self.evidence_class, self.coverage, self.columns, self.redistribution, self.checksum, self.frame_treatment, self.time_scale
         )
     }
 
@@ -20355,6 +20422,10 @@ pub enum IndependentHoldoutSourceSummaryValidationError {
     BlankCoverage,
     /// The summary did not include a non-empty columns label.
     BlankColumns,
+    /// The summary did not include a non-empty frame-treatment label.
+    BlankFrameTreatment,
+    /// The summary did not include a non-empty time-scale label.
+    BlankTimeScale,
     /// The summary carried surrounding whitespace in one of its labels.
     SurroundedByWhitespace { field: &'static str },
     /// One of the canonical summary fields drifted from the checked-in slice.
@@ -20373,6 +20444,8 @@ impl IndependentHoldoutSourceSummaryValidationError {
             Self::BlankEvidenceClass => "blank evidence class",
             Self::BlankCoverage => "blank coverage",
             Self::BlankColumns => "blank columns",
+            Self::BlankFrameTreatment => "blank frame treatment",
+            Self::BlankTimeScale => "blank time scale",
             Self::SurroundedByWhitespace { .. } => "surrounded by whitespace",
             Self::FieldOutOfSync { .. } => "field out of sync",
             Self::ChecksumMismatch => "checksum mismatch",
@@ -20421,6 +20494,8 @@ pub fn independent_holdout_source_summary() -> IndependentHoldoutSourceSummary {
                     .redistribution_or(INDEPENDENT_HOLDOUT_REDISTRIBUTION_FALLBACK)
                     .to_string(),
                 checksum: independent_holdout_source_checksum(),
+                frame_treatment: INDEPENDENT_HOLDOUT_FRAME_TREATMENT.to_string(),
+                time_scale: INDEPENDENT_HOLDOUT_TIME_SCALE.to_string(),
             }
         })
         .clone()
@@ -28369,7 +28444,7 @@ mod tests {
         assert_eq!(boundary_summary, holdout_summary);
         assert_eq!(
             format_production_generation_boundary_source_summary(&boundary_summary),
-            "Production generation boundary overlay source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; evidence class=hold-out; coverage=Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Pluto at 2451545 and 2500000, plus selected asteroids at 2378498.5, 2451545, 2451917.5, 2453000.5, and 2500000.; columns=epoch_jd, body, x_km, y_km, z_km; redistribution=repository-checked regression fixtures, not a broad public corpus.; checksum=0x7466d79f33473045"
+            "Production generation boundary overlay source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; evidence class=hold-out; coverage=Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Pluto at 2451545 and 2500000, plus selected asteroids at 2378498.5, 2451545, 2451917.5, 2453000.5, and 2500000.; columns=epoch_jd, body, x_km, y_km, z_km; redistribution=repository-checked regression fixtures, not a broad public corpus.; checksum=0x7466d79f33473045; geocentric ecliptic J2000; time scale=TDB"
         );
         assert_eq!(
             production_generation_boundary_source_summary_for_report(),
@@ -30906,7 +30981,9 @@ mod tests {
         assert!(summary.summary_line().contains(
             "redistribution=repository-checked regression fixtures, not a broad public corpus."
         ));
-        assert_eq!(summary.frame_treatment, "geocentric ecliptic J2000");
+        assert_eq!(summary.frame_treatment, REFERENCE_SNAPSHOT_FRAME_TREATMENT);
+        assert_eq!(summary.time_scale, REFERENCE_SNAPSHOT_TIME_SCALE);
+        assert!(summary.summary_line().contains("time scale=TDB"));
         assert!(summary.summary_line().contains("2132-08-31"));
         assert_eq!(summary.reference_epoch.julian_day.days(), 2_451_545.0);
         assert_eq!(summary.checksum, reference_snapshot_source_checksum());
@@ -30981,6 +31058,13 @@ mod tests {
                     field: "frame_treatment"
                 }
             )
+        );
+
+        let mut drifted_time_scale = summary.clone();
+        drifted_time_scale.time_scale = "TT".to_string();
+        assert_eq!(
+            drifted_time_scale.validate(),
+            Err(ReferenceSnapshotSourceSummaryValidationError::FieldOutOfSync { field: "time_scale" })
         );
         assert_eq!(
             reference_snapshot_source_summary_for_report(),
@@ -31541,6 +31625,7 @@ mod tests {
             redistribution: REFERENCE_SNAPSHOT_REDISTRIBUTION_FALLBACK.to_string(),
             checksum: reference_snapshot_source_checksum(),
             frame_treatment: "geocentric ecliptic J2000".to_string(),
+            time_scale: REFERENCE_SNAPSHOT_TIME_SCALE.to_string(),
             reference_epoch: reference_instant(),
         };
         assert_eq!(
@@ -31556,6 +31641,7 @@ mod tests {
             redistribution: REFERENCE_SNAPSHOT_REDISTRIBUTION_FALLBACK.to_string(),
             checksum: reference_snapshot_source_checksum(),
             frame_treatment: REFERENCE_SNAPSHOT_FRAME_TREATMENT.to_string(),
+            time_scale: REFERENCE_SNAPSHOT_TIME_SCALE.to_string(),
             reference_epoch: reference_instant(),
         };
         assert_eq!(
@@ -31571,6 +31657,7 @@ mod tests {
             redistribution: REFERENCE_SNAPSHOT_REDISTRIBUTION_FALLBACK.to_string(),
             checksum: reference_snapshot_source_checksum(),
             frame_treatment: REFERENCE_SNAPSHOT_FRAME_TREATMENT.to_string(),
+            time_scale: REFERENCE_SNAPSHOT_TIME_SCALE.to_string(),
             reference_epoch: reference_instant(),
         };
         assert_eq!(
@@ -31590,6 +31677,7 @@ mod tests {
             redistribution: REFERENCE_SNAPSHOT_REDISTRIBUTION_FALLBACK.to_string(),
             checksum: reference_snapshot_source_checksum(),
             frame_treatment: REFERENCE_SNAPSHOT_FRAME_TREATMENT.to_string(),
+            time_scale: REFERENCE_SNAPSHOT_TIME_SCALE.to_string(),
             reference_epoch: reference_instant(),
         };
         assert_eq!(
@@ -31609,6 +31697,7 @@ mod tests {
             redistribution: REFERENCE_SNAPSHOT_REDISTRIBUTION_FALLBACK.to_string(),
             checksum: reference_snapshot_source_checksum(),
             frame_treatment: REFERENCE_SNAPSHOT_FRAME_TREATMENT.to_string(),
+            time_scale: REFERENCE_SNAPSHOT_TIME_SCALE.to_string(),
             reference_epoch: reference_instant(),
         };
         assert_eq!(
@@ -31624,6 +31713,7 @@ mod tests {
             redistribution: "\n".to_string(),
             checksum: reference_snapshot_source_checksum(),
             frame_treatment: REFERENCE_SNAPSHOT_FRAME_TREATMENT.to_string(),
+            time_scale: REFERENCE_SNAPSHOT_TIME_SCALE.to_string(),
             reference_epoch: reference_instant(),
         };
         assert_eq!(
@@ -31639,6 +31729,7 @@ mod tests {
             redistribution: REFERENCE_SNAPSHOT_REDISTRIBUTION_FALLBACK.to_string(),
             checksum: reference_snapshot_source_checksum(),
             frame_treatment: "\n".to_string(),
+            time_scale: REFERENCE_SNAPSHOT_TIME_SCALE.to_string(),
             reference_epoch: reference_instant(),
         };
         assert_eq!(
@@ -31654,6 +31745,7 @@ mod tests {
             redistribution: REFERENCE_SNAPSHOT_REDISTRIBUTION_FALLBACK.to_string(),
             checksum: reference_snapshot_source_checksum(),
             frame_treatment: " geocentric ecliptic J2000 ".to_string(),
+            time_scale: REFERENCE_SNAPSHOT_TIME_SCALE.to_string(),
             reference_epoch: reference_instant(),
         };
         assert_eq!(
@@ -31680,6 +31772,9 @@ mod tests {
         );
         assert_eq!(summary.evidence_class, INDEPENDENT_HOLDOUT_EVIDENCE_CLASS);
         assert_eq!(summary.columns, "epoch_jd, body, x_km, y_km, z_km");
+        assert_eq!(summary.frame_treatment, INDEPENDENT_HOLDOUT_FRAME_TREATMENT);
+        assert_eq!(summary.time_scale, INDEPENDENT_HOLDOUT_TIME_SCALE);
+        assert!(summary.summary_line().contains("time scale=TDB"));
         assert_eq!(
             summary.redistribution,
             "repository-checked regression fixtures, not a broad public corpus."
@@ -31709,6 +31804,8 @@ mod tests {
             columns: "epoch_jd, body, x_km, y_km, z_km".to_string(),
             redistribution: INDEPENDENT_HOLDOUT_REDISTRIBUTION_FALLBACK.to_string(),
             checksum: independent_holdout_source_checksum(),
+            frame_treatment: INDEPENDENT_HOLDOUT_FRAME_TREATMENT.to_string(),
+            time_scale: INDEPENDENT_HOLDOUT_TIME_SCALE.to_string(),
         };
         assert_eq!(
             blank_source.validate(),
@@ -31722,6 +31819,8 @@ mod tests {
             columns: INDEPENDENT_HOLDOUT_COLUMNS.to_string(),
             redistribution: INDEPENDENT_HOLDOUT_REDISTRIBUTION_FALLBACK.to_string(),
             checksum: independent_holdout_source_checksum(),
+            frame_treatment: INDEPENDENT_HOLDOUT_FRAME_TREATMENT.to_string(),
+            time_scale: INDEPENDENT_HOLDOUT_TIME_SCALE.to_string(),
         };
         assert_eq!(
             blank_coverage.validate(),
@@ -31735,6 +31834,8 @@ mod tests {
             columns: "  ".to_string(),
             redistribution: INDEPENDENT_HOLDOUT_REDISTRIBUTION_FALLBACK.to_string(),
             checksum: independent_holdout_source_checksum(),
+            frame_treatment: INDEPENDENT_HOLDOUT_FRAME_TREATMENT.to_string(),
+            time_scale: INDEPENDENT_HOLDOUT_TIME_SCALE.to_string(),
         };
         assert_eq!(
             blank_columns.validate(),
@@ -31748,6 +31849,8 @@ mod tests {
             columns: INDEPENDENT_HOLDOUT_COLUMNS.to_string(),
             redistribution: " ".to_string(),
             checksum: independent_holdout_source_checksum(),
+            frame_treatment: INDEPENDENT_HOLDOUT_FRAME_TREATMENT.to_string(),
+            time_scale: INDEPENDENT_HOLDOUT_TIME_SCALE.to_string(),
         };
         assert_eq!(
             blank_redistribution.validate(),
@@ -31761,6 +31864,8 @@ mod tests {
             columns: " epoch_jd, body, x_km, y_km, z_km ".to_string(),
             redistribution: INDEPENDENT_HOLDOUT_REDISTRIBUTION_FALLBACK.to_string(),
             checksum: independent_holdout_source_checksum(),
+            frame_treatment: INDEPENDENT_HOLDOUT_FRAME_TREATMENT.to_string(),
+            time_scale: INDEPENDENT_HOLDOUT_TIME_SCALE.to_string(),
         };
         assert_eq!(
             padded_columns.validate(),
@@ -31778,6 +31883,8 @@ mod tests {
             columns: INDEPENDENT_HOLDOUT_COLUMNS.to_string(),
             redistribution: INDEPENDENT_HOLDOUT_REDISTRIBUTION_FALLBACK.to_string(),
             checksum: independent_holdout_source_checksum(),
+            frame_treatment: INDEPENDENT_HOLDOUT_FRAME_TREATMENT.to_string(),
+            time_scale: INDEPENDENT_HOLDOUT_TIME_SCALE.to_string(),
         };
         assert_eq!(
             multiline_coverage.validate(),
@@ -31837,6 +31944,24 @@ mod tests {
                     field: "redistribution"
                 }
             )
+        );
+
+        let mut drifted_frame_treatment = independent_holdout_source_summary();
+        drifted_frame_treatment.frame_treatment = "geocentric ecliptic J2000 drift".to_string();
+        assert_eq!(
+            drifted_frame_treatment.validate(),
+            Err(
+                IndependentHoldoutSourceSummaryValidationError::FieldOutOfSync {
+                    field: "frame_treatment"
+                }
+            )
+        );
+
+        let mut drifted_time_scale = independent_holdout_source_summary();
+        drifted_time_scale.time_scale = "TT".to_string();
+        assert_eq!(
+            drifted_time_scale.validate(),
+            Err(IndependentHoldoutSourceSummaryValidationError::FieldOutOfSync { field: "time_scale" })
         );
     }
 

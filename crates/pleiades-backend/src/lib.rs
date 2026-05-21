@@ -70,10 +70,10 @@ use std::borrow::Cow;
 use std::time::Duration;
 
 pub use pleiades_types::{
-    Angle, Apparentness, Ayanamsa, CelestialBody, CoordinateFrame, CoordinateValidationError,
-    CustomAyanamsa, CustomBodyId, CustomDefinitionValidationError, CustomHouseSystem,
-    EclipticCoordinates, EquatorialCoordinates, HouseSystem, Instant, JulianDay, Latitude,
-    Longitude, Motion, MotionValidationError, ObserverLocation, TimeRange,
+    Angle, Apparentness, Ayanamsa, CelestialBody, CelestialBodyClass, CoordinateFrame,
+    CoordinateValidationError, CustomAyanamsa, CustomBodyId, CustomDefinitionValidationError,
+    CustomHouseSystem, EclipticCoordinates, EquatorialCoordinates, HouseSystem, Instant, JulianDay,
+    Latitude, Longitude, Motion, MotionValidationError, ObserverLocation, TimeRange,
     TimeRangeValidationError, TimeScale, TimeScaleConversion, TimeScaleConversionError, ZodiacMode,
 };
 
