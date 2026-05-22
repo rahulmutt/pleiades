@@ -367,7 +367,7 @@ impl CompatibilityProfile {
             .saturating_sub(ayanamsa_descriptor_only_count);
 
         format!(
-            "Catalog posture: house systems={} descriptors ({} constrained, {} unconstrained); ayanamsas={} descriptors ({} metadata-bearing, {} descriptor-only); ayanamsa alias-bearing entries={}; custom-definition labels={}; custom-definition ayanamsa labels={}; known gaps={}",
+            "Catalog posture: house systems={} descriptors ({} constrained, {} unconstrained); ayanamsas={} descriptors ({} metadata-bearing, {} descriptor-only); ayanamsa alias-bearing entries={}; ayanamsa metadata gaps={}; custom-definition labels={}; custom-definition ayanamsa labels={}; known gaps={}",
             self.house_systems.len(),
             constrained_house_system_count,
             unconstrained_house_system_count,
@@ -375,6 +375,7 @@ impl CompatibilityProfile {
             metadata_bearing_ayanamsa_count,
             ayanamsa_descriptor_only_count,
             self.ayanamsa_alias_bearing_entry_count(),
+            ayanamsa_descriptor_only_count,
             self.custom_definition_labels.len(),
             self.custom_definition_ayanamsa_labels().len(),
             self.known_gaps_summary_line()

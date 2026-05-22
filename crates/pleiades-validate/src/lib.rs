@@ -29866,7 +29866,7 @@ mod tests {
             "Ayanamsa reference metadata verified: 53 descriptors with epoch/offset metadata, 6 metadata gaps"
         ));
         assert!(rendered.contains(&format!(
-            "Catalog posture: house systems=25 descriptors (8 constrained, 17 unconstrained); ayanamsas=59 descriptors (53 metadata-bearing, 6 descriptor-only); ayanamsa alias-bearing entries={}; custom-definition labels=9; custom-definition ayanamsa labels=6; known gaps={}",
+            "Catalog posture: house systems=25 descriptors (8 constrained, 17 unconstrained); ayanamsas=59 descriptors (53 metadata-bearing, 6 descriptor-only); ayanamsa alias-bearing entries={}; ayanamsa metadata gaps=6; custom-definition labels=9; custom-definition ayanamsa labels=6; known gaps={}",
             profile
                 .ayanamsas
                 .iter()
@@ -30058,7 +30058,7 @@ mod tests {
                 .count()
         )));
         assert!(summary.summary_line().contains(&format!(
-            "Catalog posture: house systems=25 descriptors (8 constrained, 17 unconstrained); ayanamsas=59 descriptors (53 metadata-bearing, 6 descriptor-only); ayanamsa alias-bearing entries={}; custom-definition labels=9; custom-definition ayanamsa labels=6; known gaps={}",
+            "Catalog posture: house systems=25 descriptors (8 constrained, 17 unconstrained); ayanamsas=59 descriptors (53 metadata-bearing, 6 descriptor-only); ayanamsa alias-bearing entries={}; ayanamsa metadata gaps=6; custom-definition labels=9; custom-definition ayanamsa labels=6; known gaps={}",
             profile
                 .ayanamsas
                 .iter()
