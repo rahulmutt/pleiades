@@ -15535,6 +15535,7 @@ fn verify_release_bundle_internal(
     ensure_reference_snapshot_summary_matches_current_rendering(&reference_snapshot_summary_text)?;
     let catalog_inventory_summary_text =
         read_required_bundle_text(&catalog_inventory_summary_path, "catalog inventory summary")?;
+    ensure_catalog_inventory_summary_matches_current_rendering(&catalog_inventory_summary_text)?;
     let catalog_posture_summary_text =
         read_required_bundle_text(&catalog_posture_summary_path, "catalog posture summary")?;
     let custom_definition_ayanamsa_labels_summary_text = read_required_bundle_text(
@@ -18552,6 +18553,19 @@ fn ensure_catalog_inventory_alignment(text: &str) -> Result<(), ReleaseBundleErr
     }
 
     Ok(())
+}
+
+fn ensure_catalog_inventory_summary_matches_current_rendering(
+    catalog_inventory_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if catalog_inventory_summary_text.trim_end() == render_catalog_inventory_summary().trim_end() {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "catalog inventory summary no longer matches the current catalog inventory posture"
+                .to_string(),
+        ))
+    }
 }
 
 fn ensure_custom_definition_ayanamsa_labels_alignment(
@@ -38161,6 +38175,19 @@ version = "0.9.0"
         );
 
         let _ = std::fs::remove_dir_all(&bundle_dir);
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_catalog_inventory_summary_even_with_updated_checksum()
+    {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-catalog-inventory-semantic",
+            "catalog-inventory-summary.txt",
+            "catalog inventory summary checksum (fnv1a-64):",
+            "Compatibility catalog inventory:",
+            "Tampered compatibility catalog inventory:",
+            "catalog inventory summary no longer matches the current catalog inventory posture",
+        );
     }
 
     #[test]
