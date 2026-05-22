@@ -10209,7 +10209,7 @@ pub fn benchmark_provenance_text() -> String {
 /// Writes a release bundle containing the compatibility profile, release-profile
 /// identifiers, release notes, release notes summary, release summary, release checklist,
 /// release checklist summary, backend matrix, API posture, API stability summary,
-/// comparison-corpus summary, source-corpus summary, comparison-envelope summary, comparison-corpus release-guard summary, validation report summary, artifact summary,
+/// comparison-corpus summary, source-corpus summary, JPL provenance-only evidence summary, comparison-envelope summary, comparison-corpus release-guard summary, validation report summary, artifact summary,
 /// packaged-artifact production-profile summary, packaged-artifact target-threshold summary,
 /// packaged-artifact target-threshold state summary, packaged-artifact target-threshold scope envelopes summary, packaged-artifact phase-2 corpus alignment summary, packaged-artifact lookup-epoch policy summary, packaged-artifact generation policy summary, packaged-artifact normalized intermediate summary, packaged-artifact speed policy summary, production-generation summary, production-generation body-class coverage summary, production-generation boundary request corpus summary, production-generation source summary, production-generation manifest summary, production-generation manifest checksum summary, selected-asteroid source request corpus summary, packaged-artifact generation manifest, packaged-artifact generation manifest summary, packaged-artifact generation manifest checksum summary, packaged-artifact generation manifest checksum sidecar, benchmark report, validation report, and a manifest.
 pub fn render_release_bundle(
@@ -10242,6 +10242,7 @@ pub fn render_release_bundle(
     let validation_report_text = validation_report.to_string();
     let comparison_corpus_summary_text = render_comparison_corpus_summary_text();
     let source_corpus_summary_text = source_corpus_summary_for_report();
+    let jpl_provenance_only_summary_text = jpl_provenance_only_summary_for_report();
     let comparison_envelope_summary_text = render_comparison_envelope_summary_text();
     let comparison_body_class_tolerance_summary_text =
         render_comparison_body_class_tolerance_summary_text();
@@ -10575,6 +10576,7 @@ pub fn render_release_bundle(
     let api_stability_summary_checksum = checksum64(&api_stability_summary_text);
     let comparison_corpus_summary_checksum = checksum64(&comparison_corpus_summary_text);
     let source_corpus_summary_checksum = checksum64(&source_corpus_summary_text);
+    let jpl_provenance_only_summary_checksum = checksum64(&jpl_provenance_only_summary_text);
     let comparison_snapshot_summary_text = comparison_snapshot_summary_for_report();
     let comparison_snapshot_summary_checksum = checksum64(&comparison_snapshot_summary_text);
     let comparison_snapshot_source_summary_text = comparison_snapshot_source_summary_for_report();
@@ -10796,7 +10798,7 @@ pub fn render_release_bundle(
     let packaged_artifact_checksum_text = format!("0x{:016x}\n", packaged_artifact.checksum);
     let packaged_artifact_checksum_text_checksum = checksum64(&packaged_artifact_checksum_text);
     let manifest_text = format!(
-        "Release bundle manifest\nprofile: compatibility-profile.txt\nprofile checksum (fnv1a-64): 0x{compatibility_profile_checksum:016x}\nprofile summary: compatibility-profile-summary.txt\nprofile summary checksum (fnv1a-64): 0x{compatibility_profile_summary_checksum:016x}\nrelease notes: release-notes.txt\nrelease notes checksum (fnv1a-64): 0x{release_notes_checksum:016x}\nrelease notes summary: release-notes-summary.txt\nrelease notes summary checksum (fnv1a-64): 0x{release_notes_summary_checksum:016x}\nrelease summary: release-summary.txt\nrelease summary checksum (fnv1a-64): 0x{release_summary_checksum:016x}\nrelease-profile identifiers: release-profile-identifiers.txt\nrelease-profile identifiers checksum (fnv1a-64): 0x{release_profile_identifiers_checksum:016x}\nrelease-profile identifiers summary: release-profile-identifiers-summary.txt\nrelease-profile identifiers summary checksum (fnv1a-64): 0x{release_profile_identifiers_summary_checksum:016x}\nrelease-house-system-canonical-names summary: release-house-system-canonical-names-summary.txt\nrelease-house-system-canonical-names summary checksum (fnv1a-64): 0x{release_house_system_canonical_names_summary_checksum:016x}\nrelease-ayanamsa-canonical-names summary: release-ayanamsa-canonical-names-summary.txt\nrelease-ayanamsa-canonical-names summary checksum (fnv1a-64): 0x{release_ayanamsa_canonical_names_summary_checksum:016x}\nrelease-house-validation summary: release-house-validation-summary.txt\nrelease-house-validation summary checksum (fnv1a-64): 0x{release_house_validation_summary_checksum:016x}\nhouse formula families summary: house-formula-families-summary.txt\nhouse formula families summary checksum (fnv1a-64): 0x{house_formula_families_summary_checksum:016x}\nhouse latitude-sensitive summary: house-latitude-sensitive-summary.txt\nhouse latitude-sensitive summary checksum (fnv1a-64): 0x{house_latitude_sensitive_summary_checksum:016x}\nrelease checklist: release-checklist.txt\nrelease checklist checksum (fnv1a-64): 0x{release_checklist_checksum:016x}\nrelease checklist summary: release-checklist-summary.txt\nrelease checklist summary checksum (fnv1a-64): 0x{release_checklist_summary_checksum:016x}\nbackend matrix: backend-matrix.txt\nbackend matrix checksum (fnv1a-64): 0x{backend_matrix_checksum:016x}\nbackend matrix summary: backend-matrix-summary.txt\nbackend matrix summary checksum (fnv1a-64): 0x{backend_matrix_summary_checksum:016x}\napi stability posture: api-stability.txt\napi stability checksum (fnv1a-64): 0x{api_stability_checksum:016x}\napi stability summary: api-stability-summary.txt\napi stability summary checksum (fnv1a-64): 0x{api_stability_summary_checksum:016x}\ncomparison-corpus summary: comparison-corpus-summary.txt\ncomparison-corpus summary checksum (fnv1a-64): 0x{comparison_corpus_summary_checksum:016x}\nsource-corpus summary: source-corpus-summary.txt\nsource-corpus summary checksum (fnv1a-64): 0x{source_corpus_summary_checksum:016x}\ncomparison-snapshot summary: comparison-snapshot-summary.txt\ncomparison-snapshot summary checksum (fnv1a-64): 0x{comparison_snapshot_summary_checksum:016x}\ncomparison-snapshot source summary: comparison-snapshot-source-summary.txt\ncomparison-snapshot source summary checksum (fnv1a-64): 0x{comparison_snapshot_source_summary_checksum:016x}\ncomparison-snapshot source window summary: comparison-snapshot-source-window-summary.txt\ncomparison-snapshot source window summary checksum (fnv1a-64): 0x{comparison_snapshot_source_window_summary_checksum:016x}\ncomparison-snapshot body-class coverage summary: comparison-snapshot-body-class-coverage-summary.txt\ncomparison-snapshot body-class coverage summary checksum (fnv1a-64): 0x{comparison_snapshot_body_class_coverage_summary_checksum:016x}\ncomparison-envelope summary: comparison-envelope-summary.txt\ncomparison-envelope summary checksum (fnv1a-64): 0x{comparison_envelope_summary_checksum:016x}\ncomparison-body-class-tolerance summary: comparison-body-class-tolerance-summary.txt\ncomparison-body-class-tolerance summary checksum (fnv1a-64): 0x{comparison_body_class_tolerance_summary_checksum:016x}\ncomparison-body-class-error-envelope summary: comparison-body-class-error-envelope-summary.txt\ncomparison-body-class-error-envelope summary checksum (fnv1a-64): 0x{comparison_body_class_error_envelope_summary_checksum:016x}\ncomparison-corpus release-guard summary: comparison-corpus-release-guard-summary.txt\ncomparison-corpus release-guard summary checksum (fnv1a-64): 0x{comparison_corpus_release_guard_summary_checksum:016x}\nreference-holdout overlap summary: reference-holdout-overlap-summary.txt\nreference-holdout overlap summary checksum (fnv1a-64): 0x{reference_holdout_overlap_summary_checksum:016x}\nreference snapshot bridge day summary: reference-snapshot-bridge-day-summary.txt\nreference snapshot bridge day summary checksum (fnv1a-64): 0x{reference_snapshot_bridge_day_summary_checksum:016x}\nreference snapshot sparse boundary summary: reference-snapshot-sparse-boundary-summary.txt\nreference snapshot sparse boundary summary checksum (fnv1a-64): 0x{reference_snapshot_sparse_boundary_summary_checksum:016x}\nreference snapshot exact J2000 evidence summary: reference-snapshot-exact-j2000-evidence-summary.txt\nreference snapshot exact J2000 evidence summary checksum (fnv1a-64): 0x{reference_snapshot_exact_j2000_evidence_summary_checksum:016x}\nreference snapshot source summary: reference-snapshot-source-summary.txt\nreference snapshot source summary checksum (fnv1a-64): 0x{reference_snapshot_source_summary_checksum:016x}\nreference snapshot source window summary: reference-snapshot-source-window-summary.txt\nreference snapshot source window summary checksum (fnv1a-64): 0x{reference_snapshot_source_window_summary_checksum:016x}\nreference snapshot equatorial parity summary: reference-snapshot-equatorial-parity-summary.txt\nreference snapshot equatorial parity summary checksum (fnv1a-64): 0x{reference_snapshot_equatorial_parity_summary_checksum:016x}\nreference asteroid source window summary: reference-asteroid-source-window-summary.txt\nreference asteroid source window summary checksum (fnv1a-64): 0x{reference_asteroid_source_window_summary_checksum:016x}\nindependent-holdout source window summary: independent-holdout-source-window-summary.txt\nindependent-holdout source window summary checksum (fnv1a-64): 0x{independent_holdout_source_window_summary_checksum:016x}\nindependent-holdout equatorial parity summary: independent-holdout-equatorial-parity-summary.txt\nindependent-holdout equatorial parity summary checksum (fnv1a-64): 0x{independent_holdout_equatorial_parity_summary_checksum:016x}\nindependent-holdout body-class coverage summary: independent-holdout-body-class-coverage-summary.txt\nindependent-holdout body-class coverage summary checksum (fnv1a-64): 0x{independent_holdout_body_class_coverage_summary_checksum:016x}\nproduction generation boundary source summary: production-generation-boundary-source-summary.txt\nproduction generation boundary source summary checksum (fnv1a-64): 0x{production_generation_boundary_source_summary_checksum:016x}\nproduction generation boundary request corpus summary: production-generation-boundary-request-corpus-summary.txt\nproduction generation boundary request corpus summary checksum (fnv1a-64): 0x{production_generation_boundary_request_corpus_summary_checksum:016x}\nproduction generation boundary request corpus equatorial summary: production-generation-boundary-request-corpus-equatorial-summary.txt\nproduction generation boundary request corpus equatorial summary checksum (fnv1a-64): 0x{production_generation_boundary_request_corpus_equatorial_summary_checksum:016x}\nreference snapshot summary: reference-snapshot-summary.txt\nreference snapshot summary checksum (fnv1a-64): 0x{reference_snapshot_summary_checksum:016x}\nproduction generation summary: production-generation-summary.txt\nproduction generation summary checksum (fnv1a-64): 0x{production_generation_summary_checksum:016x}\nproduction generation body-class coverage summary: production-generation-body-class-coverage-summary.txt\nproduction generation body-class coverage summary checksum (fnv1a-64): 0x{production_generation_body_class_coverage_summary_checksum:016x}\nproduction generation source summary: production-generation-source-summary.txt\nproduction generation source summary checksum (fnv1a-64): 0x{production_generation_source_summary_checksum:016x}\nproduction generation source revision summary: production-generation-source-revision-summary.txt\nproduction generation source revision summary checksum (fnv1a-64): 0x{production_generation_source_revision_summary_checksum:016x}\nproduction generation source window summary: production-generation-source-window-summary.txt\nproduction generation source window summary checksum (fnv1a-64): 0x{production_generation_source_window_summary_checksum:016x}\nproduction generation corpus shape summary: production-generation-corpus-shape-summary.txt\nproduction generation corpus shape summary checksum (fnv1a-64): 0x{production_generation_corpus_shape_summary_checksum:016x}\nproduction generation manifest summary: production-generation-manifest-summary.txt\nproduction generation manifest summary checksum (fnv1a-64): 0x{production_generation_manifest_summary_checksum:016x}\nproduction generation manifest checksum summary: production-generation-manifest-checksum-summary.txt\nproduction generation manifest checksum summary checksum (fnv1a-64): 0x{production_generation_manifest_checksum_checksum:016x}\ncatalog inventory summary: catalog-inventory-summary.txt\ncatalog inventory summary checksum (fnv1a-64): 0x{catalog_inventory_summary_checksum:016x}\ncatalog posture summary: catalog-posture-summary.txt\ncatalog posture summary checksum (fnv1a-64): 0x{catalog_posture_summary_checksum:016x}\ncustom-definition ayanamsa labels summary: custom-definition-ayanamsa-labels-summary.txt\ncustom-definition ayanamsa labels summary checksum (fnv1a-64): 0x{custom_definition_ayanamsa_labels_summary_checksum:016x}\nvalidation report summary: validation-report-summary.txt\nvalidation report summary checksum (fnv1a-64): 0x{validation_report_summary_checksum:016x}\nrelease body claims summary: release-body-claims-summary.txt
+        "Release bundle manifest\nprofile: compatibility-profile.txt\nprofile checksum (fnv1a-64): 0x{compatibility_profile_checksum:016x}\nprofile summary: compatibility-profile-summary.txt\nprofile summary checksum (fnv1a-64): 0x{compatibility_profile_summary_checksum:016x}\nrelease notes: release-notes.txt\nrelease notes checksum (fnv1a-64): 0x{release_notes_checksum:016x}\nrelease notes summary: release-notes-summary.txt\nrelease notes summary checksum (fnv1a-64): 0x{release_notes_summary_checksum:016x}\nrelease summary: release-summary.txt\nrelease summary checksum (fnv1a-64): 0x{release_summary_checksum:016x}\nrelease-profile identifiers: release-profile-identifiers.txt\nrelease-profile identifiers checksum (fnv1a-64): 0x{release_profile_identifiers_checksum:016x}\nrelease-profile identifiers summary: release-profile-identifiers-summary.txt\nrelease-profile identifiers summary checksum (fnv1a-64): 0x{release_profile_identifiers_summary_checksum:016x}\nrelease-house-system-canonical-names summary: release-house-system-canonical-names-summary.txt\nrelease-house-system-canonical-names summary checksum (fnv1a-64): 0x{release_house_system_canonical_names_summary_checksum:016x}\nrelease-ayanamsa-canonical-names summary: release-ayanamsa-canonical-names-summary.txt\nrelease-ayanamsa-canonical-names summary checksum (fnv1a-64): 0x{release_ayanamsa_canonical_names_summary_checksum:016x}\nrelease-house-validation summary: release-house-validation-summary.txt\nrelease-house-validation summary checksum (fnv1a-64): 0x{release_house_validation_summary_checksum:016x}\nhouse formula families summary: house-formula-families-summary.txt\nhouse formula families summary checksum (fnv1a-64): 0x{house_formula_families_summary_checksum:016x}\nhouse latitude-sensitive summary: house-latitude-sensitive-summary.txt\nhouse latitude-sensitive summary checksum (fnv1a-64): 0x{house_latitude_sensitive_summary_checksum:016x}\nrelease checklist: release-checklist.txt\nrelease checklist checksum (fnv1a-64): 0x{release_checklist_checksum:016x}\nrelease checklist summary: release-checklist-summary.txt\nrelease checklist summary checksum (fnv1a-64): 0x{release_checklist_summary_checksum:016x}\nbackend matrix: backend-matrix.txt\nbackend matrix checksum (fnv1a-64): 0x{backend_matrix_checksum:016x}\nbackend matrix summary: backend-matrix-summary.txt\nbackend matrix summary checksum (fnv1a-64): 0x{backend_matrix_summary_checksum:016x}\napi stability posture: api-stability.txt\napi stability checksum (fnv1a-64): 0x{api_stability_checksum:016x}\napi stability summary: api-stability-summary.txt\napi stability summary checksum (fnv1a-64): 0x{api_stability_summary_checksum:016x}\ncomparison-corpus summary: comparison-corpus-summary.txt\ncomparison-corpus summary checksum (fnv1a-64): 0x{comparison_corpus_summary_checksum:016x}\nsource-corpus summary: source-corpus-summary.txt\nsource-corpus summary checksum (fnv1a-64): 0x{source_corpus_summary_checksum:016x}\njpl provenance-only evidence summary: jpl-provenance-only-summary.txt\njpl provenance-only evidence summary checksum (fnv1a-64): 0x{jpl_provenance_only_summary_checksum:016x}\ncomparison-snapshot summary: comparison-snapshot-summary.txt\ncomparison-snapshot summary checksum (fnv1a-64): 0x{comparison_snapshot_summary_checksum:016x}\ncomparison-snapshot source summary: comparison-snapshot-source-summary.txt\ncomparison-snapshot source summary checksum (fnv1a-64): 0x{comparison_snapshot_source_summary_checksum:016x}\ncomparison-snapshot source window summary: comparison-snapshot-source-window-summary.txt\ncomparison-snapshot source window summary checksum (fnv1a-64): 0x{comparison_snapshot_source_window_summary_checksum:016x}\ncomparison-snapshot body-class coverage summary: comparison-snapshot-body-class-coverage-summary.txt\ncomparison-snapshot body-class coverage summary checksum (fnv1a-64): 0x{comparison_snapshot_body_class_coverage_summary_checksum:016x}\ncomparison-envelope summary: comparison-envelope-summary.txt\ncomparison-envelope summary checksum (fnv1a-64): 0x{comparison_envelope_summary_checksum:016x}\ncomparison-body-class-tolerance summary: comparison-body-class-tolerance-summary.txt\ncomparison-body-class-tolerance summary checksum (fnv1a-64): 0x{comparison_body_class_tolerance_summary_checksum:016x}\ncomparison-body-class-error-envelope summary: comparison-body-class-error-envelope-summary.txt\ncomparison-body-class-error-envelope summary checksum (fnv1a-64): 0x{comparison_body_class_error_envelope_summary_checksum:016x}\ncomparison-corpus release-guard summary: comparison-corpus-release-guard-summary.txt\ncomparison-corpus release-guard summary checksum (fnv1a-64): 0x{comparison_corpus_release_guard_summary_checksum:016x}\nreference-holdout overlap summary: reference-holdout-overlap-summary.txt\nreference-holdout overlap summary checksum (fnv1a-64): 0x{reference_holdout_overlap_summary_checksum:016x}\nreference snapshot bridge day summary: reference-snapshot-bridge-day-summary.txt\nreference snapshot bridge day summary checksum (fnv1a-64): 0x{reference_snapshot_bridge_day_summary_checksum:016x}\nreference snapshot sparse boundary summary: reference-snapshot-sparse-boundary-summary.txt\nreference snapshot sparse boundary summary checksum (fnv1a-64): 0x{reference_snapshot_sparse_boundary_summary_checksum:016x}\nreference snapshot exact J2000 evidence summary: reference-snapshot-exact-j2000-evidence-summary.txt\nreference snapshot exact J2000 evidence summary checksum (fnv1a-64): 0x{reference_snapshot_exact_j2000_evidence_summary_checksum:016x}\nreference snapshot source summary: reference-snapshot-source-summary.txt\nreference snapshot source summary checksum (fnv1a-64): 0x{reference_snapshot_source_summary_checksum:016x}\nreference snapshot source window summary: reference-snapshot-source-window-summary.txt\nreference snapshot source window summary checksum (fnv1a-64): 0x{reference_snapshot_source_window_summary_checksum:016x}\nreference snapshot equatorial parity summary: reference-snapshot-equatorial-parity-summary.txt\nreference snapshot equatorial parity summary checksum (fnv1a-64): 0x{reference_snapshot_equatorial_parity_summary_checksum:016x}\nreference asteroid source window summary: reference-asteroid-source-window-summary.txt\nreference asteroid source window summary checksum (fnv1a-64): 0x{reference_asteroid_source_window_summary_checksum:016x}\nindependent-holdout source window summary: independent-holdout-source-window-summary.txt\nindependent-holdout source window summary checksum (fnv1a-64): 0x{independent_holdout_source_window_summary_checksum:016x}\nindependent-holdout equatorial parity summary: independent-holdout-equatorial-parity-summary.txt\nindependent-holdout equatorial parity summary checksum (fnv1a-64): 0x{independent_holdout_equatorial_parity_summary_checksum:016x}\nindependent-holdout body-class coverage summary: independent-holdout-body-class-coverage-summary.txt\nindependent-holdout body-class coverage summary checksum (fnv1a-64): 0x{independent_holdout_body_class_coverage_summary_checksum:016x}\nproduction generation boundary source summary: production-generation-boundary-source-summary.txt\nproduction generation boundary source summary checksum (fnv1a-64): 0x{production_generation_boundary_source_summary_checksum:016x}\nproduction generation boundary request corpus summary: production-generation-boundary-request-corpus-summary.txt\nproduction generation boundary request corpus summary checksum (fnv1a-64): 0x{production_generation_boundary_request_corpus_summary_checksum:016x}\nproduction generation boundary request corpus equatorial summary: production-generation-boundary-request-corpus-equatorial-summary.txt\nproduction generation boundary request corpus equatorial summary checksum (fnv1a-64): 0x{production_generation_boundary_request_corpus_equatorial_summary_checksum:016x}\nreference snapshot summary: reference-snapshot-summary.txt\nreference snapshot summary checksum (fnv1a-64): 0x{reference_snapshot_summary_checksum:016x}\nproduction generation summary: production-generation-summary.txt\nproduction generation summary checksum (fnv1a-64): 0x{production_generation_summary_checksum:016x}\nproduction generation body-class coverage summary: production-generation-body-class-coverage-summary.txt\nproduction generation body-class coverage summary checksum (fnv1a-64): 0x{production_generation_body_class_coverage_summary_checksum:016x}\nproduction generation source summary: production-generation-source-summary.txt\nproduction generation source summary checksum (fnv1a-64): 0x{production_generation_source_summary_checksum:016x}\nproduction generation source revision summary: production-generation-source-revision-summary.txt\nproduction generation source revision summary checksum (fnv1a-64): 0x{production_generation_source_revision_summary_checksum:016x}\nproduction generation source window summary: production-generation-source-window-summary.txt\nproduction generation source window summary checksum (fnv1a-64): 0x{production_generation_source_window_summary_checksum:016x}\nproduction generation corpus shape summary: production-generation-corpus-shape-summary.txt\nproduction generation corpus shape summary checksum (fnv1a-64): 0x{production_generation_corpus_shape_summary_checksum:016x}\nproduction generation manifest summary: production-generation-manifest-summary.txt\nproduction generation manifest summary checksum (fnv1a-64): 0x{production_generation_manifest_summary_checksum:016x}\nproduction generation manifest checksum summary: production-generation-manifest-checksum-summary.txt\nproduction generation manifest checksum summary checksum (fnv1a-64): 0x{production_generation_manifest_checksum_checksum:016x}\ncatalog inventory summary: catalog-inventory-summary.txt\ncatalog inventory summary checksum (fnv1a-64): 0x{catalog_inventory_summary_checksum:016x}\ncatalog posture summary: catalog-posture-summary.txt\ncatalog posture summary checksum (fnv1a-64): 0x{catalog_posture_summary_checksum:016x}\ncustom-definition ayanamsa labels summary: custom-definition-ayanamsa-labels-summary.txt\ncustom-definition ayanamsa labels summary checksum (fnv1a-64): 0x{custom_definition_ayanamsa_labels_summary_checksum:016x}\nvalidation report summary: validation-report-summary.txt\nvalidation report summary checksum (fnv1a-64): 0x{validation_report_summary_checksum:016x}\nrelease body claims summary: release-body-claims-summary.txt
 release body claims summary checksum (fnv1a-64): 0x{release_body_claims_summary_checksum:016x}
 body/date/channel claims summary: body-date-channel-claims-summary.txt
 body/date/channel claims summary checksum (fnv1a-64): 0x{body_date_channel_claims_summary_checksum:016x}
@@ -10908,6 +10910,10 @@ benchmark-corpus summary: benchmark-corpus-summary.txt\nbenchmark-corpus summary
     fs::write(
         &source_corpus_summary_path,
         source_corpus_summary_text.as_bytes(),
+    )?;
+    fs::write(
+        output_dir.join("jpl-provenance-only-summary.txt"),
+        jpl_provenance_only_summary_text.as_bytes(),
     )?;
     fs::write(
         &comparison_snapshot_summary_path,
@@ -11320,6 +11326,8 @@ struct ParsedReleaseBundleManifest {
     comparison_corpus_summary_checksum: u64,
     source_corpus_summary_path: String,
     source_corpus_summary_checksum: u64,
+    jpl_provenance_only_summary_path: String,
+    jpl_provenance_only_summary_checksum: u64,
     comparison_snapshot_summary_path: String,
     comparison_snapshot_summary_checksum: u64,
     comparison_snapshot_source_summary_path: String,
@@ -11631,6 +11639,14 @@ impl ParsedReleaseBundleManifest {
             source_corpus_summary_checksum: parse_manifest_checksum(
                 text,
                 "source-corpus summary checksum (fnv1a-64):",
+            )?,
+            jpl_provenance_only_summary_path: parse_manifest_string(
+                text,
+                "jpl provenance-only evidence summary:",
+            )?,
+            jpl_provenance_only_summary_checksum: parse_manifest_checksum(
+                text,
+                "jpl provenance-only evidence summary checksum (fnv1a-64):",
             )?,
             comparison_snapshot_summary_path: parse_manifest_string(
                 text,
@@ -12350,6 +12366,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
         "api-stability-summary.txt",
         "comparison-corpus-summary.txt",
         "source-corpus-summary.txt",
+        "jpl-provenance-only-summary.txt",
         "comparison-snapshot-summary.txt",
         "comparison-snapshot-source-summary.txt",
         "comparison-snapshot-source-window-summary.txt",
@@ -12476,7 +12493,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
 fn ensure_release_bundle_manifest_is_canonical(
     manifest_text: &str,
 ) -> Result<(), ReleaseBundleError> {
-    const EXPECTED_MANIFEST_LINES: [&str; 230] = [
+    const EXPECTED_MANIFEST_LINES: [&str; 232] = [
         "Release bundle manifest",
         "profile:",
         "profile checksum (fnv1a-64):",
@@ -12518,6 +12535,8 @@ fn ensure_release_bundle_manifest_is_canonical(
         "comparison-corpus summary checksum (fnv1a-64):",
         "source-corpus summary:",
         "source-corpus summary checksum (fnv1a-64):",
+        "jpl provenance-only evidence summary:",
+        "jpl provenance-only evidence summary checksum (fnv1a-64):",
         "comparison-snapshot summary:",
         "comparison-snapshot summary checksum (fnv1a-64):",
         "comparison-snapshot source summary:",
@@ -14544,6 +14563,18 @@ fn verify_release_bundle_internal(
     ensure_comparison_corpus_summary_matches_current_rendering(&comparison_corpus_summary_text)?;
     let source_corpus_summary_text =
         read_required_bundle_text(&source_corpus_summary_path, "source corpus summary")?;
+    let jpl_provenance_only_summary_path = output_dir.join("jpl-provenance-only-summary.txt");
+    let jpl_provenance_only_summary_text = read_required_bundle_text(
+        &jpl_provenance_only_summary_path,
+        "JPL provenance-only evidence summary",
+    )?;
+    if jpl_provenance_only_summary_text != jpl_provenance_only_summary_for_report() {
+        return Err(ReleaseBundleError::Verification(
+            "JPL provenance-only evidence summary no longer matches the current JPL provenance-only posture"
+                .to_string(),
+        ));
+    }
+    let jpl_provenance_only_summary_checksum = checksum64(&jpl_provenance_only_summary_text);
     let comparison_snapshot_summary_text = read_required_bundle_text(
         &comparison_snapshot_summary_path,
         "comparison snapshot summary",
@@ -15885,6 +15916,12 @@ fn verify_release_bundle_internal(
             manifest.source_corpus_summary_checksum, source_corpus_summary_checksum
         )));
     }
+    if manifest.jpl_provenance_only_summary_checksum != jpl_provenance_only_summary_checksum {
+        return Err(ReleaseBundleError::Verification(format!(
+            "JPL provenance-only evidence summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
+            manifest.jpl_provenance_only_summary_checksum, jpl_provenance_only_summary_checksum
+        )));
+    }
     if manifest.comparison_snapshot_summary_checksum != comparison_snapshot_summary_checksum {
         return Err(ReleaseBundleError::Verification(format!(
             "comparison snapshot summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
@@ -15934,6 +15971,12 @@ fn verify_release_bundle_internal(
         return Err(ReleaseBundleError::Verification(format!(
             "unexpected source corpus summary file entry: {}",
             manifest.source_corpus_summary_path
+        )));
+    }
+    if manifest.jpl_provenance_only_summary_path != "jpl-provenance-only-summary.txt" {
+        return Err(ReleaseBundleError::Verification(format!(
+            "unexpected JPL provenance-only evidence summary file entry: {}",
+            manifest.jpl_provenance_only_summary_path
         )));
     }
     if manifest.comparison_snapshot_summary_path != "comparison-snapshot-summary.txt" {
@@ -32212,6 +32255,7 @@ version = "0.9.0"
             .join("chart-benchmark-corpus-summary.txt")
             .exists());
         assert!(bundle_dir.join("source-corpus-summary.txt").exists());
+        assert!(bundle_dir.join("jpl-provenance-only-summary.txt").exists());
         assert!(bundle_dir
             .join("production-generation-boundary-request-corpus-equatorial-summary.txt")
             .exists());
@@ -33257,6 +33301,7 @@ version = "0.9.0"
         assert!(manifest.contains("api-stability-summary.txt"));
         assert!(manifest.contains("comparison-corpus-summary.txt"));
         assert!(manifest.contains("source-corpus-summary.txt"));
+        assert!(manifest.contains("jpl-provenance-only-summary.txt"));
         assert!(manifest.contains("comparison-snapshot-summary.txt"));
         assert!(manifest.contains("comparison-snapshot-source-summary.txt"));
         assert!(manifest.contains("comparison-snapshot-source-window-summary.txt"));
@@ -35686,6 +35731,19 @@ version = "0.9.0"
             current_compatibility_profile().known_gaps[0],
             "Tampered compatibility caveat",
             "catalog posture summary no longer matches the current catalog posture",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_jpl_provenance_only_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-jpl-provenance-only-semantic",
+            "jpl-provenance-only-summary.txt",
+            "jpl provenance-only evidence summary checksum (fnv1a-64):",
+            "source and manifest summaries are provenance-only evidence",
+            "source and manifest summaries are provenance-only evidence (drifted)",
+            "JPL provenance-only evidence summary no longer matches the current JPL provenance-only posture",
         );
     }
 
