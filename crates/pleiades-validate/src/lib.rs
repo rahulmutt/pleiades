@@ -17493,11 +17493,13 @@ fn parse_manifest_usize(
 fn parse_manifest_checksum(text: &str, prefix: &str) -> Result<u64, ReleaseBundleError> {
     let value = extract_prefixed_value(text, prefix)?;
     let value = value.strip_prefix("0x").ok_or_else(|| {
-        ReleaseBundleError::Verification(format!("missing 0x prefix for {prefix}"))
+        ReleaseBundleError::Verification(format!(
+            "missing 0x prefix for {prefix} (found {value:?})"
+        ))
     })?;
     if value.len() != 16 || !value.chars().all(|ch| matches!(ch, '0'..='9' | 'a'..='f')) {
         return Err(ReleaseBundleError::Verification(format!(
-            "invalid {prefix} value: expected exactly 16 lowercase hex digits"
+            "invalid {prefix} value: expected exactly 16 lowercase hex digits (found {value:?})"
         )));
     }
     u64::from_str_radix(value, 16).map_err(|error| {
@@ -17519,16 +17521,16 @@ fn parse_checksum_value(text: &str, label: &str) -> Result<u64, ReleaseBundleErr
 
     if line != line.trim() {
         return Err(ReleaseBundleError::Verification(format!(
-            "invalid {label} value: unexpected leading or trailing whitespace"
+            "invalid {label} value: unexpected leading or trailing whitespace (found {line:?})"
         )));
     }
 
     let value = line.strip_prefix("0x").ok_or_else(|| {
-        ReleaseBundleError::Verification(format!("missing 0x prefix for {label}"))
+        ReleaseBundleError::Verification(format!("missing 0x prefix for {label} (found {line:?})"))
     })?;
     if value.len() != 16 || !value.chars().all(|ch| matches!(ch, '0'..='9' | 'a'..='f')) {
         return Err(ReleaseBundleError::Verification(format!(
-            "invalid {label} value: expected exactly 16 lowercase hex digits"
+            "invalid {label} value: expected exactly 16 lowercase hex digits (found {line:?})"
         )));
     }
     u64::from_str_radix(value, 16).map_err(|error| {
@@ -34755,6 +34757,7 @@ version = "0.9.0"
         assert!(error.contains("release bundle verification failed"));
         assert!(error.contains("invalid bundle manifest checksum sidecar value"));
         assert!(error.contains("expected exactly 16 lowercase hex digits"));
+        assert!(error.contains("found \"0x1\""));
 
         let _ = std::fs::remove_dir_all(&bundle_dir);
     }
