@@ -346,6 +346,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
             validate_render_cli(args)
         }
         Some("reference-snapshot-batch-parity-summary") => validate_render_cli(args),
+        Some("reference-snapshot-mixed-time-scale-batch-parity-summary")
+        | Some("reference-snapshot-mixed-tt-tdb-batch-parity-summary") => validate_render_cli(args),
         Some("reference-snapshot-equatorial-parity-summary") => validate_render_cli(args),
         Some("reference-high-curvature-summary")
         | Some("high-curvature-summary")
@@ -3841,6 +3843,25 @@ mod tests {
             super::validate_render_cli(&["reference-snapshot-batch-parity-summary"])
                 .expect("validation reference snapshot batch parity summary should render")
         );
+        let reference_snapshot_mixed_time_scale_batch_parity_summary =
+            render_cli(&["reference-snapshot-mixed-time-scale-batch-parity-summary"])
+                .expect("reference snapshot mixed TT/TDB batch parity summary should render");
+        assert_eq!(
+            reference_snapshot_mixed_time_scale_batch_parity_summary,
+            super::validate_render_cli(&[
+                "reference-snapshot-mixed-time-scale-batch-parity-summary"
+            ])
+            .expect(
+                "validation reference snapshot mixed TT/TDB batch parity summary should render"
+            )
+        );
+        let reference_snapshot_mixed_tt_tdb_batch_parity_summary =
+            render_cli(&["reference-snapshot-mixed-tt-tdb-batch-parity-summary"])
+                .expect("reference snapshot mixed TT/TDB batch parity alias should render");
+        assert_eq!(
+            reference_snapshot_mixed_tt_tdb_batch_parity_summary,
+            reference_snapshot_mixed_time_scale_batch_parity_summary
+        );
         let reference_snapshot_equatorial_parity_summary =
             render_cli(&["reference-snapshot-equatorial-parity-summary"])
                 .expect("reference snapshot equatorial parity summary should render");
@@ -6774,6 +6795,12 @@ mod tests {
             .contains("reference-snapshot-summary  Print the compact reference snapshot summary"));
         assert!(help.contains(
             "reference-snapshot-exact-j2000-evidence-summary  Print the compact reference snapshot exact J2000 evidence summary"
+        ));
+        assert!(help.contains(
+            "reference-snapshot-mixed-time-scale-batch-parity-summary  Print the compact reference snapshot mixed TT/TDB batch parity summary"
+        ));
+        assert!(help.contains(
+            "reference-snapshot-mixed-tt-tdb-batch-parity-summary  Alias for reference-snapshot-mixed-time-scale-batch-parity-summary"
         ));
         assert!(help.contains(
             "exact-j2000-evidence    Alias for reference-snapshot-exact-j2000-evidence-summary"
