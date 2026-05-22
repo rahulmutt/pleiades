@@ -83,6 +83,14 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "compare-backends-audit")?;
             validate_render_cli(args)
         }
+        Some("comparison-audit-summary") => {
+            ensure_no_extra_args(&args[1..], "comparison-audit-summary")?;
+            validate_render_cli(args)
+        }
+        Some("comparison-audit") => {
+            ensure_no_extra_args(&args[1..], "comparison-audit")?;
+            validate_render_cli(args)
+        }
         Some("benchmark") => {
             let rounds = parse_rounds(&args[1..], 10_000)?;
             render_benchmark_report(rounds).map_err(render_error)
@@ -1943,6 +1951,18 @@ mod tests {
         assert!(rendered.contains("result: clean"));
         assert!(rendered.contains("within tolerance bodies: 9"));
         assert!(rendered.contains("outside tolerance bodies: 0"));
+    }
+
+    #[test]
+    fn comparison_audit_summary_command_forwards_to_validate() {
+        let summary = render_cli(&["comparison-audit-summary"])
+            .expect("comparison audit summary should render");
+        assert!(summary.contains("status="));
+        assert!(summary.contains("bodies checked="));
+        assert_eq!(
+            summary,
+            render_cli(&["comparison-audit"]).expect("comparison audit alias should render")
+        );
     }
 
     #[test]
