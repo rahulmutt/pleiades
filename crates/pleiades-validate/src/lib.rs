@@ -13908,6 +13908,21 @@ fn ensure_body_date_channel_claims_summary_matches_current_rendering(
     }
 }
 
+fn ensure_release_body_claims_summary_matches_current_rendering(
+    release_body_claims_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    let current_summary = validated_release_body_claims_summary_line_for_report()
+        .map_err(|error| ReleaseBundleError::Verification(error.to_string()))?;
+    if release_body_claims_summary_text == current_summary {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "release body claims summary no longer matches the current release-grade body-claims posture"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_request_semantics_summary_matches_current_rendering(
     request_semantics_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -16428,6 +16443,9 @@ fn verify_release_bundle_internal(
             manifest.release_body_claims_summary_checksum, release_body_claims_summary_checksum
         )));
     }
+    ensure_release_body_claims_summary_matches_current_rendering(
+        &release_body_claims_summary_text,
+    )?;
     if manifest.body_date_channel_claims_summary_checksum
         != body_date_channel_claims_summary_checksum
     {
@@ -35309,6 +35327,19 @@ version = "0.9.0"
             "Release summary",
             "Tampered release summary",
             "release summary no longer matches the current release summary posture",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_semantically_tampered_release_body_claims_summary_file_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-semantic-release-body-claims-summary",
+            "release-body-claims-summary.txt",
+            "release body claims summary checksum (fnv1a-64):",
+            "release-grade major-body claims",
+            "release-grade major-body claims (validated)",
+            "release body claims summary no longer matches the current release-grade body-claims posture",
         );
     }
 
