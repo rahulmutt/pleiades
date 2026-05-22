@@ -590,6 +590,9 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("workspace-audit-summary") | Some("native-dependency-audit-summary") => {
             validate_render_cli(args)
         }
+        Some("workspace-provenance-summary") | Some("workspace-provenance") => {
+            validate_render_cli(args)
+        }
         Some("artifact-summary") | Some("artifact-posture-summary") => validate_render_cli(args),
         Some("artifact-boundary-envelope-summary") => validate_render_cli(args),
         Some("artifact-profile-coverage-summary") => validate_render_cli(args),
@@ -5841,6 +5844,30 @@ mod tests {
     }
 
     #[test]
+    fn workspace_provenance_summary_reports_workspace_tool_versions() {
+        let summary = render_cli(&["workspace-provenance-summary"])
+            .expect("workspace provenance summary should render through the CLI");
+        let alias = render_cli(&["workspace-provenance"])
+            .expect("workspace provenance alias should render through the CLI");
+        assert_eq!(summary, alias);
+        assert!(summary.contains("Workspace provenance"));
+        assert!(summary.contains("source revision:"));
+        assert!(summary.contains("workspace status:"));
+        assert!(summary.contains("rustc version:"));
+        assert!(summary.contains("cargo version:"));
+        assert!(summary.contains("rustfmt version:"));
+        assert!(summary.contains("clippy version:"));
+        assert_eq!(
+            render_cli(&["workspace-provenance-summary", "extra"]).unwrap_err(),
+            "workspace-provenance-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["workspace-provenance", "extra"]).unwrap_err(),
+            "workspace-provenance does not accept extra arguments"
+        );
+    }
+
+    #[test]
     fn regenerate_packaged_artifact_repeated_sidecar_writes_stay_stable() {
         let artifact_fixture_dir =
             unique_temp_dir("pleiades-packaged-artifact-regeneration-repeat");
@@ -6510,6 +6537,10 @@ mod tests {
             help.contains("workspace-audit-summary   Print the compact workspace audit summary")
         );
         assert!(help.contains("native-dependency-audit-summary  Alias for workspace-audit-summary"));
+        assert!(help.contains(
+            "workspace-provenance-summary  Print the compact workspace provenance summary"
+        ));
+        assert!(help.contains("workspace-provenance     Alias for workspace-provenance-summary"));
         assert!(help.contains(
             "catalog-inventory-summary  Print the compact compatibility catalog inventory summary"
         ));
