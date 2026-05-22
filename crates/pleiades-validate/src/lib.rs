@@ -10049,6 +10049,10 @@ pub struct WorkspaceProvenance {
     pub rustc_version: String,
     /// The current cargo version string.
     pub cargo_version: String,
+    /// The current rustfmt version string.
+    pub rustfmt_version: String,
+    /// The current clippy version string.
+    pub clippy_version: String,
 }
 
 /// Validation error for a workspace provenance record that drifted away from the compact report shape.
@@ -10075,8 +10079,13 @@ impl WorkspaceProvenance {
     /// Returns the compact release-facing benchmark provenance block.
     pub fn summary_line(&self) -> String {
         format!(
-            "Benchmark provenance\n  source revision: {}\n  workspace status: {}\n  rustc version: {}\n  cargo version: {}",
-            self.source_revision, self.workspace_status, self.rustc_version, self.cargo_version
+            "Benchmark provenance\n  source revision: {}\n  workspace status: {}\n  rustc version: {}\n  cargo version: {}\n  rustfmt version: {}\n  clippy version: {}",
+            self.source_revision,
+            self.workspace_status,
+            self.rustc_version,
+            self.cargo_version,
+            self.rustfmt_version,
+            self.clippy_version
         )
     }
 
@@ -10086,6 +10095,8 @@ impl WorkspaceProvenance {
         validate_workspace_provenance_field(&self.workspace_status, "workspace status")?;
         validate_workspace_provenance_field(&self.rustc_version, "rustc version")?;
         validate_workspace_provenance_field(&self.cargo_version, "cargo version")?;
+        validate_workspace_provenance_field(&self.rustfmt_version, "rustfmt version")?;
+        validate_workspace_provenance_field(&self.clippy_version, "clippy version")?;
         Ok(())
     }
 }
@@ -10150,11 +10161,31 @@ pub fn workspace_provenance() -> WorkspaceProvenance {
         .filter(|value| !value.is_empty())
         .unwrap_or_else(|| "unknown".to_string());
 
+    let rustfmt_version = Command::new("rustfmt")
+        .arg("--version")
+        .output()
+        .ok()
+        .filter(|output| output.status.success())
+        .map(|output| String::from_utf8_lossy(&output.stdout).trim().to_string())
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| "unknown".to_string());
+
+    let clippy_version = Command::new("cargo")
+        .args(["clippy", "--version"])
+        .output()
+        .ok()
+        .filter(|output| output.status.success())
+        .map(|output| String::from_utf8_lossy(&output.stdout).trim().to_string())
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| "unknown".to_string());
+
     WorkspaceProvenance {
         source_revision,
         workspace_status,
         rustc_version,
         cargo_version,
+        rustfmt_version,
+        clippy_version,
     }
 }
 
@@ -26774,11 +26805,13 @@ mod tests {
     fn benchmark_workspace_provenance_display_matches_the_summary_helper() {
         let provenance = workspace_provenance();
         let expected = format!(
-            "Benchmark provenance\n  source revision: {}\n  workspace status: {}\n  rustc version: {}\n  cargo version: {}",
+            "Benchmark provenance\n  source revision: {}\n  workspace status: {}\n  rustc version: {}\n  cargo version: {}\n  rustfmt version: {}\n  clippy version: {}",
             provenance.source_revision,
             provenance.workspace_status,
             provenance.rustc_version,
-            provenance.cargo_version
+            provenance.cargo_version,
+            provenance.rustfmt_version,
+            provenance.clippy_version
         );
 
         assert_eq!(provenance.validate(), Ok(()));
@@ -26793,6 +26826,8 @@ mod tests {
             workspace_status: "clean".to_string(),
             rustc_version: "rustc 1.0.0 (dummy)".to_string(),
             cargo_version: "cargo 1.0.0 (dummy)".to_string(),
+            rustfmt_version: "rustfmt 1.0.0 (dummy)".to_string(),
+            clippy_version: "clippy 1.0.0 (dummy)".to_string(),
         };
         assert_eq!(
             blank_source_revision.validate().unwrap_err(),
@@ -26806,6 +26841,8 @@ mod tests {
             workspace_status: "dirty".to_string(),
             rustc_version: "rustc 1.0.0\nextra".to_string(),
             cargo_version: "cargo 1.0.0 (dummy)".to_string(),
+            rustfmt_version: "rustfmt 1.0.0 (dummy)".to_string(),
+            clippy_version: "clippy 1.0.0 (dummy)".to_string(),
         };
         assert_eq!(
             multiline_rustc_version.validate().unwrap_err(),
@@ -26819,11 +26856,43 @@ mod tests {
             workspace_status: "dirty".to_string(),
             rustc_version: "rustc 1.0.0 (dummy)".to_string(),
             cargo_version: "cargo 1.0.0\nextra".to_string(),
+            rustfmt_version: "rustfmt 1.0.0 (dummy)".to_string(),
+            clippy_version: "clippy 1.0.0 (dummy)".to_string(),
         };
         assert_eq!(
             multiline_cargo_version.validate().unwrap_err(),
             WorkspaceProvenanceValidationError::FieldInvalid {
                 field: "cargo version"
+            }
+        );
+
+        let blank_rustfmt_version = WorkspaceProvenance {
+            source_revision: "abc123def456".to_string(),
+            workspace_status: "dirty".to_string(),
+            rustc_version: "rustc 1.0.0 (dummy)".to_string(),
+            cargo_version: "cargo 1.0.0 (dummy)".to_string(),
+            rustfmt_version: String::new(),
+            clippy_version: "clippy 1.0.0 (dummy)".to_string(),
+        };
+        assert_eq!(
+            blank_rustfmt_version.validate().unwrap_err(),
+            WorkspaceProvenanceValidationError::FieldInvalid {
+                field: "rustfmt version"
+            }
+        );
+
+        let multiline_clippy_version = WorkspaceProvenance {
+            source_revision: "abc123def456".to_string(),
+            workspace_status: "dirty".to_string(),
+            rustc_version: "rustc 1.0.0 (dummy)".to_string(),
+            cargo_version: "cargo 1.0.0 (dummy)".to_string(),
+            rustfmt_version: "rustfmt 1.0.0 (dummy)".to_string(),
+            clippy_version: "clippy 1.0.0\nextra".to_string(),
+        };
+        assert_eq!(
+            multiline_clippy_version.validate().unwrap_err(),
+            WorkspaceProvenanceValidationError::FieldInvalid {
+                field: "clippy version"
             }
         );
     }
