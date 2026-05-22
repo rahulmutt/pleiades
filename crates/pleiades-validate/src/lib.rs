@@ -6056,7 +6056,8 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "exact-j2000-evidence")?;
             Ok(render_reference_snapshot_exact_j2000_evidence_text())
         }
-        Some("reference-snapshot-batch-parity-summary") => {
+        Some("reference-snapshot-batch-parity-summary")
+        | Some("reference-snapshot-batch-parity") => {
             ensure_no_extra_args(&args[1..], "reference-snapshot-batch-parity-summary")?;
             Ok(reference_snapshot_batch_parity_summary_text())
         }
@@ -6068,7 +6069,8 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             )?;
             Ok(reference_snapshot_mixed_time_scale_batch_parity_summary_text())
         }
-        Some("reference-snapshot-equatorial-parity-summary") => {
+        Some("reference-snapshot-equatorial-parity-summary")
+        | Some("reference-snapshot-equatorial-parity") => {
             ensure_no_extra_args(&args[1..], "reference-snapshot-equatorial-parity-summary")?;
             Ok(reference_snapshot_equatorial_parity_summary_for_report())
         }
@@ -25403,9 +25405,10 @@ fn help_text() -> String {
   reference-snapshot-exact-j2000-evidence-summary  Print the compact reference snapshot exact J2000 evidence summary
   exact-j2000-evidence    Alias for reference-snapshot-exact-j2000-evidence-summary
   reference-snapshot-batch-parity-summary  Print the compact reference snapshot batch parity summary
+  reference-snapshot-batch-parity          Alias for reference-snapshot-batch-parity-summary
   reference-snapshot-mixed-time-scale-batch-parity-summary  Print the compact reference snapshot mixed TT/TDB batch parity summary
   reference-snapshot-mixed-tt-tdb-batch-parity-summary  Alias for reference-snapshot-mixed-time-scale-batch-parity-summary
-  reference-snapshot-equatorial-parity-summary  Print the compact reference snapshot equatorial parity summary\n  reference-snapshot-lunar-boundary-summary  Print the compact reference lunar boundary evidence summary\n  lunar-boundary-summary   Alias for reference-snapshot-lunar-boundary-summary\n  reference-snapshot-1500-selected-body-boundary-summary  Print the compact reference 1500 selected-body boundary evidence summary\n  1500-selected-body-boundary-summary  Alias for reference-snapshot-1500-selected-body-boundary-summary\n  reference-snapshot-2268932-selected-body-boundary-summary  Print the compact reference 2268932 selected-body boundary evidence summary\n  2268932-selected-body-boundary-summary  Alias for reference-snapshot-2268932-selected-body-boundary-summary\n  reference-snapshot-1600-selected-body-boundary-summary  Print the compact reference 1600 selected-body boundary evidence summary\n  1600-selected-body-boundary-summary  Alias for reference-snapshot-1600-selected-body-boundary-summary\n  reference-snapshot-2305457-selected-body-boundary-summary  Print the compact reference 2305457 selected-body boundary evidence summary\n  2305457-selected-body-boundary-summary  Alias for reference-snapshot-2305457-selected-body-boundary-summary\n  reference-snapshot-1750-selected-body-boundary-summary  Print the compact reference 1750 selected-body boundary evidence summary\n  1750-selected-body-boundary-summary  Alias for reference-snapshot-1750-selected-body-boundary-summary\n  reference-snapshot-1750-major-body-interior-summary  Print the compact reference 1750 major-body interior comparison evidence summary\n  1750-major-body-interior-summary  Alias for reference-snapshot-1750-major-body-interior-summary\n  reference-snapshot-2360234-major-body-interior-summary  Print the compact reference 2360234 major-body interior comparison evidence summary\n  2360234-major-body-interior-summary  Alias for reference-snapshot-2360234-major-body-interior-summary\n  reference-snapshot-2451916-major-body-interior-summary  Print the compact reference 2451916 major-body interior evidence summary\n  2451916-major-body-interior-summary  Alias for reference-snapshot-2451916-major-body-interior-summary
+  reference-snapshot-equatorial-parity-summary  Print the compact reference snapshot equatorial parity summary\n  reference-snapshot-equatorial-parity     Alias for reference-snapshot-equatorial-parity-summary\n  reference-snapshot-lunar-boundary-summary  Print the compact reference lunar boundary evidence summary\n  lunar-boundary-summary   Alias for reference-snapshot-lunar-boundary-summary\n  reference-snapshot-1500-selected-body-boundary-summary  Print the compact reference 1500 selected-body boundary evidence summary\n  1500-selected-body-boundary-summary  Alias for reference-snapshot-1500-selected-body-boundary-summary\n  reference-snapshot-2268932-selected-body-boundary-summary  Print the compact reference 2268932 selected-body boundary evidence summary\n  2268932-selected-body-boundary-summary  Alias for reference-snapshot-2268932-selected-body-boundary-summary\n  reference-snapshot-1600-selected-body-boundary-summary  Print the compact reference 1600 selected-body boundary evidence summary\n  1600-selected-body-boundary-summary  Alias for reference-snapshot-1600-selected-body-boundary-summary\n  reference-snapshot-2305457-selected-body-boundary-summary  Print the compact reference 2305457 selected-body boundary evidence summary\n  2305457-selected-body-boundary-summary  Alias for reference-snapshot-2305457-selected-body-boundary-summary\n  reference-snapshot-1750-selected-body-boundary-summary  Print the compact reference 1750 selected-body boundary evidence summary\n  1750-selected-body-boundary-summary  Alias for reference-snapshot-1750-selected-body-boundary-summary\n  reference-snapshot-1750-major-body-interior-summary  Print the compact reference 1750 major-body interior comparison evidence summary\n  1750-major-body-interior-summary  Alias for reference-snapshot-1750-major-body-interior-summary\n  reference-snapshot-2360234-major-body-interior-summary  Print the compact reference 2360234 major-body interior comparison evidence summary\n  2360234-major-body-interior-summary  Alias for reference-snapshot-2360234-major-body-interior-summary\n  reference-snapshot-2451916-major-body-interior-summary  Print the compact reference 2451916 major-body interior evidence summary\n  2451916-major-body-interior-summary  Alias for reference-snapshot-2451916-major-body-interior-summary
   reference-snapshot-2451916-major-body-boundary-summary  Print the compact reference 2451916 major-body boundary evidence summary
   2451916-major-body-boundary-summary  Alias for reference-snapshot-2451916-major-body-boundary-summary
   reference-snapshot-2451916-major-body-dense-boundary-summary  Print the compact reference 2451916 major-body dense boundary evidence summary
@@ -28880,6 +28883,10 @@ mod tests {
         assert!(rendered.contains("benchmark-corpus-summary"));
         assert!(rendered.contains("interpolation-quality-request-corpus-summary"));
         assert!(rendered.contains("lunar-reference-mixed-time-scale-batch-parity-summary"));
+        assert!(rendered.contains("reference-snapshot-batch-parity-summary"));
+        assert!(rendered.contains("reference-snapshot-batch-parity          Alias for reference-snapshot-batch-parity-summary"));
+        assert!(rendered.contains("reference-snapshot-equatorial-parity-summary"));
+        assert!(rendered.contains("reference-snapshot-equatorial-parity     Alias for reference-snapshot-equatorial-parity-summary"));
         assert!(rendered.contains(
             "lunar-reference-mixed-tt-tdb-batch-parity-summary  Alias for lunar-reference-mixed-time-scale-batch-parity-summary"
         ));
@@ -40697,6 +40704,31 @@ version = "0.9.0"
             render_cli(&["reference-snapshot-manifest", "extra"])
                 .expect_err("reference snapshot manifest alias should reject extra arguments"),
             "reference-snapshot-manifest does not accept extra arguments"
+        );
+    }
+
+    #[test]
+    fn reference_snapshot_batch_and_equatorial_parity_aliases_render_the_same_reports() {
+        let batch = render_cli(&["reference-snapshot-batch-parity"])
+            .expect("reference snapshot batch parity alias should render");
+        assert_eq!(batch, reference_snapshot_batch_parity_summary_text());
+        assert_eq!(
+            render_cli(&["reference-snapshot-batch-parity", "extra"])
+                .expect_err("reference snapshot batch parity alias should reject extra arguments"),
+            "reference-snapshot-batch-parity-summary does not accept extra arguments"
+        );
+
+        let equatorial = render_cli(&["reference-snapshot-equatorial-parity"])
+            .expect("reference snapshot equatorial parity alias should render");
+        assert_eq!(
+            equatorial,
+            reference_snapshot_equatorial_parity_summary_for_report()
+        );
+        assert_eq!(
+            render_cli(&["reference-snapshot-equatorial-parity", "extra"]).expect_err(
+                "reference snapshot equatorial parity alias should reject extra arguments"
+            ),
+            "reference-snapshot-equatorial-parity-summary does not accept extra arguments"
         );
     }
 
