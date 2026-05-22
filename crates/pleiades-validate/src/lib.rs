@@ -5724,6 +5724,10 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "comparison-snapshot-source-summary")?;
             validated_comparison_snapshot_source_summary_for_report()
         }
+        Some("comparison-snapshot-source") => {
+            ensure_no_extra_args(&args[1..], "comparison-snapshot-source")?;
+            validated_comparison_snapshot_source_summary_for_report()
+        }
         Some("comparison-snapshot-source-window-summary") => {
             ensure_no_extra_args(&args[1..], "comparison-snapshot-source-window-summary")?;
             validated_comparison_snapshot_source_window_summary_for_report()
@@ -5762,6 +5766,10 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("reference-snapshot-source-summary") => {
             ensure_no_extra_args(&args[1..], "reference-snapshot-source-summary")?;
+            Ok(reference_snapshot_source_summary_for_report())
+        }
+        Some("reference-snapshot-source") => {
+            ensure_no_extra_args(&args[1..], "reference-snapshot-source")?;
             Ok(reference_snapshot_source_summary_for_report())
         }
         Some("reference-snapshot-source-window-summary") => {
@@ -25601,8 +25609,7 @@ fn help_text() -> String {
   production-generation-boundary-source-summary  Print the compact production-generation boundary source summary
   production-generation-boundary-source  Alias for production-generation-boundary-source-summary
   production-generation-boundary-window-summary  Print the compact production-generation boundary windows summary
-  production-generation-boundary-window  Alias for production-generation-boundary-window-summary\n  production-generation-manifest-summary  Print the compact production-generation manifest summary\n  production-generation-manifest  Alias for production-generation-manifest-summary\n  production-generation-manifest-checksum-summary  Print the compact production-generation manifest checksum summary\n  production-generation-manifest-checksum  Alias for production-generation-manifest-checksum-summary\n  production-generation-source      Alias for production-generation-source-summary\n  production-generation-source-summary  Print the compact production-generation source summary\n  production-generation-source-revision-summary  Print the compact production-generation source revision summary\n  production-generation-source-revision  Alias for production-generation-source-revision-summary\n  comparison-snapshot-source-window-summary  Print the compact comparison snapshot source windows summary\n  comparison-snapshot-source-window  Alias for comparison-snapshot-source-window-summary\n  comparison-snapshot-source-summary  Print the compact comparison snapshot source summary\n  comparison-snapshot-body-class-coverage-summary  Print the compact comparison snapshot body-class coverage summary\n  comparison-body-class-coverage-summary  Alias for comparison-snapshot-body-class-coverage-summary\n  comparison-snapshot-manifest-summary  Print the compact comparison snapshot manifest summary\n  comparison-snapshot-manifest  Alias for comparison-snapshot-manifest-summary\n  comparison-snapshot-summary  Print the compact comparison snapshot summary\n  comparison-snapshot         Alias for comparison-snapshot-summary\n  comparison-snapshot-batch-parity-summary  Print the compact comparison snapshot batch parity summary\n  reference-snapshot-source-window-summary  Print the compact reference snapshot source windows summary\n  reference-snapshot-source-window  Alias for reference-snapshot-source-window-summary\n  reference-snapshot-source-summary  Print the compact reference snapshot source summary
-  reference-asteroid-source-window-summary  Print the compact reference asteroid source windows summary
+  production-generation-boundary-window  Alias for production-generation-boundary-window-summary\n  production-generation-manifest-summary  Print the compact production-generation manifest summary\n  production-generation-manifest  Alias for production-generation-manifest-summary\n  production-generation-manifest-checksum-summary  Print the compact production-generation manifest checksum summary\n  production-generation-manifest-checksum  Alias for production-generation-manifest-checksum-summary\n  production-generation-source      Alias for production-generation-source-summary\n  production-generation-source-summary  Print the compact production-generation source summary\n  production-generation-source-revision-summary  Print the compact production-generation source revision summary\n  production-generation-source-revision  Alias for production-generation-source-revision-summary\n  comparison-snapshot-source-window-summary  Print the compact comparison snapshot source windows summary\n  comparison-snapshot-source-window  Alias for comparison-snapshot-source-window-summary\n  comparison-snapshot-source-summary  Print the compact comparison snapshot source summary\n  comparison-snapshot-source        Alias for comparison-snapshot-source-summary\n  comparison-snapshot-body-class-coverage-summary  Print the compact comparison snapshot body-class coverage summary\n  comparison-body-class-coverage-summary  Alias for comparison-snapshot-body-class-coverage-summary\n  comparison-snapshot-manifest-summary  Print the compact comparison snapshot manifest summary\n  comparison-snapshot-manifest  Alias for comparison-snapshot-manifest-summary\n  comparison-snapshot-summary  Print the compact comparison snapshot summary\n  comparison-snapshot         Alias for comparison-snapshot-summary\n  comparison-snapshot-batch-parity-summary  Print the compact comparison snapshot batch parity summary\n  reference-snapshot-source-window-summary  Print the compact reference snapshot source windows summary\n  reference-snapshot-source-window  Alias for reference-snapshot-source-window-summary\n  reference-snapshot-source-summary  Print the compact reference snapshot source summary\n  reference-snapshot-source        Alias for reference-snapshot-source-summary\n  reference-asteroid-source-window-summary  Print the compact reference asteroid source windows summary
   reference-snapshot-manifest-summary  Print the compact reference snapshot manifest summary
   reference-snapshot-manifest  Alias for reference-snapshot-manifest-summary
   reference-snapshot-summary  Print the compact reference snapshot summary
@@ -29288,6 +29295,9 @@ mod tests {
             "comparison-snapshot-source-window  Alias for comparison-snapshot-source-window-summary"
         ));
         assert!(rendered.contains("comparison-snapshot-source-summary"));
+        assert!(rendered.contains(
+            "comparison-snapshot-source        Alias for comparison-snapshot-source-summary"
+        ));
         assert!(rendered.contains("comparison-snapshot-body-class-coverage-summary"));
         assert!(rendered.contains("comparison-body-class-coverage-summary"));
         assert!(rendered.contains("comparison-snapshot-manifest-summary"));
@@ -29301,6 +29311,9 @@ mod tests {
             "reference-snapshot-source-window  Alias for reference-snapshot-source-window-summary"
         ));
         assert!(rendered.contains("reference-snapshot-source-summary"));
+        assert!(rendered.contains(
+            "reference-snapshot-source        Alias for reference-snapshot-source-summary"
+        ));
         assert!(rendered.contains("reference-snapshot-lunar-boundary-summary"));
         assert!(rendered.contains(
             "lunar-boundary-summary   Alias for reference-snapshot-lunar-boundary-summary"
@@ -39266,6 +39279,20 @@ version = "0.9.0"
             .expect("reference snapshot source summary should render");
         assert!(reference.contains("Reference snapshot source:"));
         assert_eq!(reference, reference_snapshot_source_summary_for_report());
+
+        let comparison_alias = render_cli(&["comparison-snapshot-source"])
+            .expect("comparison snapshot source alias should render");
+        assert_eq!(
+            comparison_alias,
+            comparison_snapshot_source_summary_for_report()
+        );
+
+        let reference_alias = render_cli(&["reference-snapshot-source"])
+            .expect("reference snapshot source alias should render");
+        assert_eq!(
+            reference_alias,
+            reference_snapshot_source_summary_for_report()
+        );
     }
 
     #[test]
