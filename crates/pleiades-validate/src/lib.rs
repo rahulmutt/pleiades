@@ -42220,6 +42220,32 @@ version = "0.9.0"
 
         let mut summary =
             source_corpus_summary_details().expect("source corpus summary should exist");
+        summary.production_generation_source_windows =
+            "Production generation source windows: drifted".to_string();
+
+        let error = summary
+            .validated_summary_line()
+            .expect_err("production generation source windows drift should fail closed");
+        assert_eq!(
+            error.to_string(),
+            "the source corpus summary field `production_generation_source_windows` is out of sync with the current posture"
+        );
+
+        let mut summary =
+            source_corpus_summary_details().expect("source corpus summary should exist");
+        summary.production_generation_boundary_source =
+            "Production generation boundary overlay source: drifted".to_string();
+
+        let error = summary
+            .validated_summary_line()
+            .expect_err("production generation boundary source drift should fail closed");
+        assert_eq!(
+            error.to_string(),
+            "the source corpus summary field `production_generation_boundary_source` is out of sync with the current posture"
+        );
+
+        let mut summary =
+            source_corpus_summary_details().expect("source corpus summary should exist");
         summary.production_generation_boundary_request_corpus =
             "Production generation boundary request corpus: drifted".to_string();
 
