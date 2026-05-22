@@ -3451,7 +3451,7 @@ const RELEASE_CHECKLIST_MANUAL_BUNDLE_WORKFLOW: [&str; 4] = [
     "[x] docs/release-reproducibility.md (broader source-corpus provenance contract)",
 ];
 
-const RELEASE_CHECKLIST_BUNDLE_CONTENTS: [&str; 17] = [
+const RELEASE_CHECKLIST_BUNDLE_CONTENTS: [&str; 19] = [
     "[x] compatibility-profile.txt",
     "[x] compatibility-profile-summary.txt",
     "[x] release-notes.txt",
@@ -3459,6 +3459,8 @@ const RELEASE_CHECKLIST_BUNDLE_CONTENTS: [&str; 17] = [
     "[x] release-summary.txt",
     "[x] release-checklist.txt",
     "[x] release-checklist-summary.txt",
+    "[x] house-formula-families-summary.txt",
+    "[x] house-latitude-sensitive-summary.txt",
     "[x] backend-matrix.txt",
     "[x] backend-matrix-summary.txt",
     "[x] api-stability.txt",
@@ -30816,7 +30818,7 @@ mod tests {
         assert!(rendered.contains("Compact summary views: release-notes-summary, api-stability-summary, backend-matrix-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary"));
         assert!(rendered.contains("Repository-managed release gates: 10 items"));
         assert!(rendered.contains("Manual bundle workflow: 4 items"));
-        assert!(rendered.contains("Bundle contents: 17 items"));
+        assert!(rendered.contains("Bundle contents: 19 items"));
         assert!(rendered.contains("External publishing reminders: 3 items"));
         assert!(rendered.contains("See release-checklist for the full maintainer-facing artifact."));
         assert!(
@@ -32767,7 +32769,7 @@ version = "0.9.0"
         assert!(release_checklist_summary.contains("Workspace audit: workspace-audit / audit"));
         assert!(release_checklist_summary.contains("Repository-managed release gates: 10 items"));
         assert!(release_checklist_summary.contains("Manual bundle workflow: 4 items"));
-        assert!(release_checklist_summary.contains("Bundle contents: 17 items"));
+        assert!(release_checklist_summary.contains("Bundle contents: 19 items"));
         assert!(release_checklist_summary.contains("External publishing reminders: 3 items"));
         assert!(backend_matrix.contains("Implemented backend matrices"));
         assert!(backend_matrix.contains("JPL snapshot reference backend"));
