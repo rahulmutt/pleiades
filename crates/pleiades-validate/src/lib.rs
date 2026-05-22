@@ -41373,6 +41373,55 @@ version = "0.9.0"
 
         let mut summary =
             source_corpus_summary_details().expect("source corpus summary should exist");
+        summary.comparison_corpus_release_grade_guard =
+            "Comparison corpus release-grade guard: drifted".to_string();
+
+        let error = summary
+            .validated_summary_line()
+            .expect_err("comparison corpus release-grade guard drift should fail closed");
+        assert_eq!(
+            error.to_string(),
+            "the source corpus summary field `comparison_corpus_release_grade_guard` is out of sync with the current posture"
+        );
+
+        let mut summary =
+            source_corpus_summary_details().expect("source corpus summary should exist");
+        summary.jpl_source_corpus_contract = "JPL source corpus contract: drifted".to_string();
+
+        let error = summary
+            .validated_summary_line()
+            .expect_err("jpl source corpus contract drift should fail closed");
+        assert_eq!(
+            error.to_string(),
+            "the source corpus summary field `jpl_source_corpus_contract` is out of sync with the current posture"
+        );
+
+        let mut summary =
+            source_corpus_summary_details().expect("source corpus summary should exist");
+        summary.jpl_evidence_classification = "JPL evidence classification: drifted".to_string();
+
+        let error = summary
+            .validated_summary_line()
+            .expect_err("jpl evidence classification drift should fail closed");
+        assert_eq!(
+            error.to_string(),
+            "the source corpus summary field `jpl_evidence_classification` is out of sync with the current posture"
+        );
+
+        let mut summary =
+            source_corpus_summary_details().expect("source corpus summary should exist");
+        summary.jpl_provenance_only = "JPL provenance-only evidence: drifted".to_string();
+
+        let error = summary
+            .validated_summary_line()
+            .expect_err("jpl provenance-only drift should fail closed");
+        assert_eq!(
+            error.to_string(),
+            "the source corpus summary field `jpl_provenance_only` is out of sync with the current posture"
+        );
+
+        let mut summary =
+            source_corpus_summary_details().expect("source corpus summary should exist");
         summary.production_generation_source = "Production generation source: drifted".to_string();
 
         let error = summary
