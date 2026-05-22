@@ -19616,6 +19616,7 @@ struct SourceCorpusSummary {
     generation_command: String,
     production_generation_source_revision: String,
     production_generation_coverage: String,
+    production_generation_source_windows: String,
     production_generation_boundary_request_corpus: String,
     production_generation_boundary_request_corpus_equatorial: String,
     reference_snapshot_sparse_boundary: String,
@@ -19648,7 +19649,7 @@ impl std::error::Error for SourceCorpusSummaryValidationError {}
 impl SourceCorpusSummary {
     fn summary_line(&self) -> String {
         format!(
-            "comparison corpus release-grade guard: {}; JPL source corpus contract: {}; evidence classification={}; provenance-only={}; shared schema={}; generation command={}; production generation source revision={}; production generation coverage={}; production generation boundary request corpus={}; production generation boundary request corpus equatorial={}; reference snapshot sparse boundary={}; reference snapshot equatorial parity={}; reference snapshot body-class coverage={}; independent-holdout body-class coverage={}; release-grade body claims={}; body-date-channel claims={}; phase-2 corpus alignment: {}",
+            "comparison corpus release-grade guard: {}; JPL source corpus contract: {}; evidence classification={}; provenance-only={}; shared schema={}; generation command={}; production generation source revision={}; production generation coverage={}; production generation source windows={}; production generation boundary request corpus={}; production generation boundary request corpus equatorial={}; reference snapshot sparse boundary={}; reference snapshot equatorial parity={}; reference snapshot body-class coverage={}; independent-holdout body-class coverage={}; release-grade body claims={}; body-date-channel claims={}; phase-2 corpus alignment: {}",
             self.comparison_corpus_release_grade_guard,
             self.jpl_source_corpus_contract,
             self.jpl_evidence_classification,
@@ -19657,6 +19658,7 @@ impl SourceCorpusSummary {
             self.generation_command,
             self.production_generation_source_revision,
             self.production_generation_coverage,
+            self.production_generation_source_windows,
             self.production_generation_boundary_request_corpus,
             self.production_generation_boundary_request_corpus_equatorial,
             self.reference_snapshot_sparse_boundary,
@@ -19718,6 +19720,13 @@ impl SourceCorpusSummary {
         if self.production_generation_coverage != expected.production_generation_coverage {
             return Err(SourceCorpusSummaryValidationError::FieldOutOfSync {
                 field: "production_generation_coverage",
+            });
+        }
+        if self.production_generation_source_windows
+            != expected.production_generation_source_windows
+        {
+            return Err(SourceCorpusSummaryValidationError::FieldOutOfSync {
+                field: "production_generation_source_windows",
             });
         }
         if self.production_generation_boundary_request_corpus
@@ -19851,6 +19860,12 @@ fn source_corpus_summary_details() -> Option<SourceCorpusSummary> {
             production_generation_snapshot_summary_for_report(),
             "Production generation coverage: ",
             "production generation coverage",
+        )
+        .ok()?,
+        production_generation_source_windows: required_summary_payload(
+            production_generation_snapshot_window_summary_for_report(),
+            "Production generation source windows: ",
+            "production generation source windows",
         )
         .ok()?,
         production_generation_boundary_request_corpus: required_summary_payload(
@@ -40140,6 +40155,7 @@ version = "0.9.0"
         assert!(rendered.contains("shared schema=epoch_jd, body, x_km, y_km, z_km"));
         assert!(rendered.contains("generation command=generate-packaged-artifact --check"));
         assert!(rendered.contains("production generation source revision=source revision=reference_snapshot.csv checksum=0x34629f3b72439755; independent_holdout_snapshot.csv checksum=0xd2b5cf4278833070"));
+        assert!(rendered.contains("production generation source windows=357 source-backed samples across 16 bodies and 31 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB))"));
         assert!(rendered.contains("production generation boundary request corpus="));
         assert!(rendered.contains("production generation boundary request corpus equatorial="));
         assert!(rendered
