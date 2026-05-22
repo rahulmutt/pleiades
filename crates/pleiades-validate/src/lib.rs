@@ -35396,6 +35396,7 @@ version = "0.9.0"
         assert!(error.contains("release bundle verification failed"));
         assert!(
             error.contains("packaged-artifact source-fit and hold-out sync summary no longer matches the current packaged-artifact source-fit and hold-out sync posture")
+                || error.contains("validation report summary no longer matches the current validation report posture")
                 || error.contains("unexpected release bundle directory contents")
                 || error.contains("unexpected release bundle manifest line count"),
             "{}",
