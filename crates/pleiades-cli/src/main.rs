@@ -466,7 +466,9 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("lunar-reference-error-envelope-summary") => validate_render_cli(args),
         Some("lunar-equatorial-reference-error-envelope-summary") => validate_render_cli(args),
         Some("lunar-apparent-comparison-summary") => validate_render_cli(args),
-        Some("lunar-source-window-summary") => validate_render_cli(args),
+        Some("reference-snapshot-lunar-source-window-summary")
+        | Some("lunar-source-window-summary")
+        | Some("lunar-source-window") => validate_render_cli(args),
         Some("lunar-reference-mixed-time-scale-batch-parity-summary")
         | Some("lunar-reference-mixed-tt-tdb-batch-parity-summary") => validate_render_cli(args),
         Some("lunar-theory-request-policy-summary") => validate_render_cli(args),
@@ -4050,6 +4052,15 @@ mod tests {
             lunar_source_window_summary,
             pleiades_elp::lunar_source_window_summary_for_report()
         );
+        assert_eq!(
+            render_cli(&["reference-snapshot-lunar-source-window-summary"])
+                .expect("reference snapshot lunar source window summary should render"),
+            lunar_source_window_summary
+        );
+        assert_eq!(
+            render_cli(&["lunar-source-window"]).expect("lunar source window alias should render"),
+            lunar_source_window_summary
+        );
         let lunar_reference_mixed_time_scale_batch_parity_summary =
             render_cli(&["lunar-reference-mixed-time-scale-batch-parity-summary"])
                 .expect("lunar reference mixed TT/TDB batch parity summary should render");
@@ -6832,6 +6843,10 @@ mod tests {
         assert!(help.contains(
             "lunar-source-window-summary  Print the compact lunar source windows summary"
         ));
+        assert!(help.contains(
+            "reference-snapshot-lunar-source-window-summary  Alias for lunar-source-window-summary"
+        ));
+        assert!(help.contains("lunar-source-window  Alias for lunar-source-window-summary"));
         assert!(help.contains(
             "lunar-reference-mixed-time-scale-batch-parity-summary  Print the compact lunar reference mixed TT/TDB batch parity summary"
         ));
