@@ -35,8 +35,12 @@ use pleiades_types::{
 };
 
 mod selected_asteroid_2001;
+mod selected_asteroid_2378498;
 pub use selected_asteroid_2001::{
     selected_asteroid_source_2451917_summary, selected_asteroid_source_2451917_summary_for_report,
+};
+pub use selected_asteroid_2378498::{
+    selected_asteroid_source_2378498_summary, selected_asteroid_source_2378498_summary_for_report,
 };
 
 const REFERENCE_EPOCH_JD: f64 = 2_451_545.0;
