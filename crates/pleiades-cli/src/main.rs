@@ -6186,6 +6186,7 @@ mod tests {
         assert!(bundle_dir
             .join("custom-definition-ayanamsa-labels-summary.txt")
             .exists());
+        assert!(bundle_dir.join("ayanamsa-provenance-summary.txt").exists());
         assert!(bundle_dir
             .join("compatibility-caveats-summary.txt")
             .exists());
