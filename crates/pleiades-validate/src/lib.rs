@@ -40484,7 +40484,7 @@ version = "0.9.0"
         assert!(rendered.contains("license posture=public-source provenance only; checked-in fixtures remain repository-local regression data"));
         assert!(rendered.contains("redistribution posture=repository-checked regression fixtures, not a broad public corpus"));
         assert!(rendered.contains("schema=epoch_jd, body, x_km, y_km, z_km"));
-        assert!(rendered.contains("production generation source revision=source revision=reference_snapshot.csv checksum=0x34629f3b72439755; independent_holdout_snapshot.csv checksum=0x587d492fa2c43286"));
+        assert!(rendered.contains("production generation source revision=source revision=reference_snapshot.csv checksum=0x34629f3b72439755; independent_holdout_snapshot.csv checksum=0xafb0721385ab6757"));
         assert!(rendered.contains("production generation source windows=357 source-backed samples across 16 bodies and 31 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB))"));
         assert!(rendered.contains("production generation boundary source="));
         assert!(rendered.contains("production generation boundary request corpus="));
