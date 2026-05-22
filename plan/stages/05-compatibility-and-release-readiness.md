@@ -16,6 +16,8 @@ The workspace has broad house and ayanamsa descriptors, baseline calculations, c
 - Require release bundles to contain current profiles, validation reports, manifests, checksums, source revisions, tool versions, benchmark summaries, and release notes.
 - Gate releases on format, clippy, tests, native-dependency audit, artifact validation, compatibility-profile verification, benchmark/report generation, and bundle verification.
 
+Progress update: release-bundle verification now also re-checks the compact release checklist summary against the current renderer, so the release gate fails closed on stale checklist prose as well as checksum drift.
+
 ## Completion criteria
 
 - A clean checkout can produce and verify release artifacts without hidden tooling or network requirements.

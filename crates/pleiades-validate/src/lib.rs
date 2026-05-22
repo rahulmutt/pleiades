@@ -16685,6 +16685,7 @@ fn verify_release_bundle_internal(
             manifest.release_checklist_summary_checksum, release_checklist_summary_checksum
         )));
     }
+    ensure_release_checklist_summary_matches_current_rendering(&release_checklist_summary_text)?;
     if manifest.profile_id != profile_id {
         return Err(ReleaseBundleError::Verification(format!(
             "profile id mismatch: manifest has {}, file has {}",
@@ -18481,6 +18482,21 @@ fn ensure_release_notes_summary_matches_current_rendering(
     } else {
         Err(ReleaseBundleError::Verification(
             "release notes summary no longer matches the current release notes summary posture"
+                .to_string(),
+        ))
+    }
+}
+
+fn ensure_release_checklist_summary_matches_current_rendering(
+    release_checklist_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if release_checklist_summary_text.trim_end()
+        == render_release_checklist_summary_text().trim_end()
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "release checklist summary no longer matches the current release checklist summary posture"
                 .to_string(),
         ))
     }
@@ -36826,6 +36842,19 @@ version = "0.9.0"
             "Release notes",
             "Tampered release notes",
             "release notes no longer matches the current release notes posture",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_semantically_tampered_release_checklist_summary_file_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-semantic-release-checklist-summary",
+            "release-checklist-summary.txt",
+            "release checklist summary checksum (fnv1a-64):",
+            "Release checklist summary",
+            "Tampered release checklist summary",
+            "release checklist summary no longer matches the current release checklist summary posture",
         );
     }
 
