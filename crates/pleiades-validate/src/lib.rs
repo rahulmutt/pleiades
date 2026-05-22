@@ -20321,6 +20321,21 @@ fn required_summary_payload(
         })
 }
 
+fn required_labelled_summary_payload(
+    summary: String,
+    prefix: &str,
+    field: &'static str,
+) -> Result<String, String> {
+    let payload = required_summary_payload(summary, prefix, field)?;
+    if payload.starts_with(prefix) {
+        return Err(format!(
+            "source corpus summary field `{field}` is out of sync with the current posture"
+        ));
+    }
+
+    Ok(payload)
+}
+
 #[derive(Clone, Debug, PartialEq)]
 struct SourceCorpusSummary {
     comparison_corpus_release_grade_guard: String,
@@ -20546,19 +20561,19 @@ fn source_corpus_summary_details() -> Option<SourceCorpusSummary> {
         validated_comparison_corpus_release_guard_summary_for_report()
             .ok()?
             .to_string();
-    let jpl_source_corpus_contract = required_summary_payload(
+    let jpl_source_corpus_contract = required_labelled_summary_payload(
         jpl_source_corpus_contract_summary_for_report(),
         "JPL source corpus contract: ",
         "JPL source corpus contract",
     )
     .ok()?;
-    let jpl_evidence_classification = required_summary_payload(
+    let jpl_evidence_classification = required_labelled_summary_payload(
         jpl_snapshot_evidence_classification_summary_for_report(),
         "JPL evidence classification: ",
         "JPL evidence classification",
     )
     .ok()?;
-    let jpl_provenance_only = required_summary_payload(
+    let jpl_provenance_only = required_labelled_summary_payload(
         jpl_provenance_only_summary_for_report(),
         "JPL provenance-only evidence: ",
         "JPL provenance-only evidence",
@@ -41342,6 +41357,20 @@ version = "0.9.0"
         assert_eq!(
             error,
             "source corpus summary field `example field` is out of sync with the current posture"
+        );
+    }
+
+    #[test]
+    fn required_labelled_summary_payload_rejects_duplicate_prefixes() {
+        let error = required_labelled_summary_payload(
+            "JPL source corpus contract: JPL source corpus contract: nested drift".to_string(),
+            "JPL source corpus contract: ",
+            "JPL source corpus contract",
+        )
+        .expect_err("duplicate labelled prefixes should fail closed");
+        assert_eq!(
+            error,
+            "source corpus summary field `JPL source corpus contract` is out of sync with the current posture"
         );
     }
 
