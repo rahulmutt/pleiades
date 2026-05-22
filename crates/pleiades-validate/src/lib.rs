@@ -46,6 +46,7 @@ use pleiades_backend::{
     delta_t_policy_summary_for_report, frame_policy_summary_details,
     pluto_fallback_summary_for_report, release_body_claims_summary_for_report,
     request_policy_summary_for_report, time_scale_policy_summary_for_report,
+    unsupported_modes_summary_for_report,
     validate_release_body_claims_posture as validate_release_body_claims_posture_backend,
     validated_frame_policy_summary_for_report, validated_pluto_fallback_summary_line_for_report,
     validated_release_body_claims_summary_line_for_report,
@@ -8684,6 +8685,16 @@ fn validate_compatibility_profile_summary_text(
         ));
     }
 
+    let expected_unsupported_modes_line = format!(
+        "Unsupported modes: {}",
+        unsupported_modes_summary_for_report()
+    );
+    if !text.contains(&expected_unsupported_modes_line) {
+        return Err(format!(
+            "compatibility profile summary unsupported-modes mismatch: expected `{expected_unsupported_modes_line}`"
+        ));
+    }
+
     Ok(())
 }
 
@@ -8788,6 +8799,9 @@ fn render_compatibility_profile_summary_text() -> String {
     } else {
         text.push_str(&profile.known_gaps.join("; "));
     }
+    text.push('\n');
+    text.push_str("Unsupported modes: ");
+    text.push_str(unsupported_modes_summary_for_report());
     text.push('\n');
     text.push_str("Compatibility profile verification: verify-compatibility-profile\n");
     text.push_str("Compact summary views: backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary\n");
@@ -20957,7 +20971,8 @@ fn render_request_semantics_summary_text() -> String {
     );
     let _ = writeln!(
         text,
-        "Unsupported modes: built-in UTC convenience remains out of scope; built-in Delta T remains out of scope; topocentric body positions remain unsupported; apparent-place corrections are rejected unless a backend explicitly advertises support; native sidereal backend output remains unsupported unless a backend explicitly advertises it"
+        "Unsupported modes: {}",
+        unsupported_modes_summary_for_report()
     );
     text
 }
@@ -29513,6 +29528,10 @@ mod tests {
             release_profiles.compatibility_profile_id
         )));
         assert!(rendered.contains("Stage 6 release profile:"));
+        assert!(rendered.contains(&format!(
+            "Unsupported modes: {}",
+            unsupported_modes_summary_for_report()
+        )));
         assert!(rendered.contains("Target compatibility catalog:"));
         assert!(rendered.contains(
             "the full Swiss-Ephemeris-class house-system catalog remains the long-term compatibility goal."
@@ -29887,6 +29906,10 @@ mod tests {
         )));
         assert!(rendered.contains("Ayanamsas:"));
         assert!(rendered.contains("Compatibility caveats documented:"));
+        assert!(rendered.contains(&format!(
+            "Unsupported modes: {}",
+            unsupported_modes_summary_for_report()
+        )));
         assert!(rendered.contains(profile.known_gaps[0]));
         assert!(rendered.contains(profile.known_gaps[1]));
         assert!(rendered.contains("ayanamsa sidereal metadata: 53/59 entries with both a reference epoch and offset; custom-definition-only=6 labels: Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs); missing-sidereal-metadata=none"));

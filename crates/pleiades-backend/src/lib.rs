@@ -2489,6 +2489,15 @@ pub const CURRENT_FRAME_POLICY_SUMMARY_TEXT: &str =
 pub const CURRENT_NATIVE_SIDEREAL_POLICY_SUMMARY_TEXT: &str =
     "native sidereal backend output remains unsupported unless a backend explicitly advertises it";
 
+/// Canonical current unsupported-modes summary text used by release reporting.
+pub const CURRENT_UNSUPPORTED_MODES_SUMMARY_TEXT: &str =
+    "built-in UTC convenience remains out of scope; built-in Delta T remains out of scope; topocentric body positions remain unsupported; apparent-place corrections are rejected unless a backend explicitly advertises support; native sidereal backend output remains unsupported unless a backend explicitly advertises it";
+
+/// Returns the current unsupported-modes posture used by validation and release reporting.
+pub const fn unsupported_modes_summary_for_report() -> &'static str {
+    CURRENT_UNSUPPORTED_MODES_SUMMARY_TEXT
+}
+
 /// Canonical current policy summary text for the shared zodiac posture.
 pub const CURRENT_ZODIAC_POLICY_SUMMARY_TEXT: &str = "tropical only";
 
