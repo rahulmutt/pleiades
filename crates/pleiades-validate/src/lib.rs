@@ -19723,6 +19723,7 @@ struct SourceCorpusSummary {
     jpl_provenance_only: String,
     shared_schema: String,
     generation_command: String,
+    production_generation_source: String,
     production_generation_source_revision: String,
     production_generation_coverage: String,
     production_generation_source_windows: String,
@@ -19760,13 +19761,14 @@ impl std::error::Error for SourceCorpusSummaryValidationError {}
 impl SourceCorpusSummary {
     fn summary_line(&self) -> String {
         format!(
-            "comparison corpus release-grade guard: {}; JPL source corpus contract: {}; evidence classification={}; provenance-only={}; shared schema={}; generation command={}; production generation source revision={}; production generation coverage={}; production generation source windows={}; production generation boundary source={}; production generation boundary request corpus={}; production generation boundary request corpus equatorial={}; reference snapshot sparse boundary={}; reference snapshot exact J2000 evidence={}; reference snapshot equatorial parity={}; reference snapshot body-class coverage={}; independent-holdout body-class coverage={}; release-grade body claims={}; body-date-channel claims={}; phase-2 corpus alignment: {}",
+            "comparison corpus release-grade guard: {}; JPL source corpus contract: {}; evidence classification={}; provenance-only={}; shared schema={}; generation command={}; production generation source={}; production generation source revision={}; production generation coverage={}; production generation source windows={}; production generation boundary source={}; production generation boundary request corpus={}; production generation boundary request corpus equatorial={}; reference snapshot sparse boundary={}; reference snapshot exact J2000 evidence={}; reference snapshot equatorial parity={}; reference snapshot body-class coverage={}; independent-holdout body-class coverage={}; release-grade body claims={}; body-date-channel claims={}; phase-2 corpus alignment: {}",
             self.comparison_corpus_release_grade_guard,
             self.jpl_source_corpus_contract,
             self.jpl_evidence_classification,
             self.jpl_provenance_only,
             self.shared_schema,
             self.generation_command,
+            self.production_generation_source,
             self.production_generation_source_revision,
             self.production_generation_coverage,
             self.production_generation_source_windows,
@@ -19821,6 +19823,11 @@ impl SourceCorpusSummary {
         if self.generation_command != expected.generation_command {
             return Err(SourceCorpusSummaryValidationError::FieldOutOfSync {
                 field: "generation_command",
+            });
+        }
+        if self.production_generation_source != expected.production_generation_source {
+            return Err(SourceCorpusSummaryValidationError::FieldOutOfSync {
+                field: "production_generation_source",
             });
         }
         if self.production_generation_source_revision
@@ -19987,6 +19994,12 @@ fn source_corpus_summary_details() -> Option<SourceCorpusSummary> {
         jpl_provenance_only,
         shared_schema: validated_checked_in_snapshot_schema_summary_for_report().ok()?,
         generation_command: "generate-packaged-artifact --check".to_string(),
+        production_generation_source: required_summary_payload(
+            validated_production_generation_source_summary_for_report().ok()?,
+            "Production generation source: ",
+            "production generation source",
+        )
+        .ok()?,
         production_generation_source_revision:
             validated_production_generation_source_revision_summary_for_report().ok()?,
         production_generation_coverage: required_summary_payload(
@@ -40435,6 +40448,11 @@ version = "0.9.0"
         assert_eq!(rendered, source_corpus_summary_for_report());
         assert!(rendered.contains("shared schema=epoch_jd, body, x_km, y_km, z_km"));
         assert!(rendered.contains("generation command=generate-packaged-artifact --check"));
+        assert!(rendered
+            .contains("production generation source=strategy=documented hybrid fixture corpus"));
+        assert!(rendered.contains("license posture=public-source provenance only; checked-in fixtures remain repository-local regression data"));
+        assert!(rendered.contains("redistribution posture=repository-checked regression fixtures, not a broad public corpus"));
+        assert!(rendered.contains("schema=epoch_jd, body, x_km, y_km, z_km"));
         assert!(rendered.contains("production generation source revision=source revision=reference_snapshot.csv checksum=0x34629f3b72439755; independent_holdout_snapshot.csv checksum=0x587d492fa2c43286"));
         assert!(rendered.contains("production generation source windows=357 source-backed samples across 16 bodies and 31 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB))"));
         assert!(rendered.contains("production generation boundary source="));
@@ -40526,6 +40544,18 @@ version = "0.9.0"
         assert_eq!(
             error.to_string(),
             "the source corpus summary field `generation_command` is out of sync with the current posture"
+        );
+
+        let mut summary =
+            source_corpus_summary_details().expect("source corpus summary should exist");
+        summary.production_generation_source = "Production generation source: drifted".to_string();
+
+        let error = summary
+            .validated_summary_line()
+            .expect_err("production generation source drift should fail closed");
+        assert_eq!(
+            error.to_string(),
+            "the source corpus summary field `production_generation_source` is out of sync with the current posture"
         );
 
         let mut summary =
