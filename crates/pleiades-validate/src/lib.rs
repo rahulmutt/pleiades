@@ -35375,8 +35375,8 @@ version = "0.9.0"
             "pleiades-release-bundle-tampered-production-generation-boundary-request-corpus-semantic",
             "production-generation-boundary-request-corpus-summary.txt",
             "production generation boundary request corpus summary checksum (fnv1a-64):",
-            "80 requests",
-            "81 drifted requests",
+            "84 requests",
+            "85 drifted requests",
             "production generation boundary request corpus summary no longer matches the current production-generation boundary request corpus posture",
         );
     }
@@ -35400,8 +35400,8 @@ version = "0.9.0"
             "pleiades-release-bundle-tampered-production-generation-boundary-request-corpus-equatorial-semantic",
             "production-generation-boundary-request-corpus-equatorial-summary.txt",
             "production generation boundary request corpus equatorial summary checksum (fnv1a-64):",
-            "80 requests",
-            "81 drifted requests",
+            "84 requests",
+            "85 drifted requests",
             "production generation boundary request corpus equatorial summary no longer matches the current production-generation boundary request corpus equatorial posture",
         );
     }
@@ -40156,7 +40156,7 @@ version = "0.9.0"
         assert_eq!(rendered, source_corpus_summary_for_report());
         assert!(rendered.contains("shared schema=epoch_jd, body, x_km, y_km, z_km"));
         assert!(rendered.contains("generation command=generate-packaged-artifact --check"));
-        assert!(rendered.contains("production generation source revision=source revision=reference_snapshot.csv checksum=0x34629f3b72439755; independent_holdout_snapshot.csv checksum=0xd2b5cf4278833070"));
+        assert!(rendered.contains("production generation source revision=source revision=reference_snapshot.csv checksum=0x34629f3b72439755; independent_holdout_snapshot.csv checksum=0x587d492fa2c43286"));
         assert!(rendered.contains("production generation source windows=357 source-backed samples across 16 bodies and 31 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB))"));
         assert!(rendered.contains("production generation boundary request corpus="));
         assert!(rendered.contains("production generation boundary request corpus equatorial="));
@@ -40165,7 +40165,7 @@ version = "0.9.0"
         assert!(rendered.contains("reference snapshot equatorial parity=349 rows across 16 bodies and 29 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB))"));
         assert!(rendered.contains("reference snapshot body-class coverage=major bodies: 254 rows across 10 bodies and 29 epochs"));
         assert!(rendered.contains(
-            "independent-holdout body-class coverage=80 rows across 16 bodies and 14 epochs"
+            "independent-holdout body-class coverage=84 rows across 16 bodies and 14 epochs"
         ));
         assert!(rendered.contains("Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis"));
         assert!(rendered.contains("evidence classification=release-tolerance=reference/comparison/production-generation validation summaries; hold-out=independent hold-out rows and interpolation-quality summaries; fixture exactness=reference snapshot exact J2000 evidence; provenance-only=source and manifest summaries"));
