@@ -9409,6 +9409,9 @@ fn render_release_summary_text() -> String {
                 Err(error) => return format!("Release summary unavailable ({error})"),
             }
             text.push('\n');
+            text.push_str("Known gaps: ");
+            text.push_str(&profile.known_gaps_summary_line());
+            text.push('\n');
             text.push_str("Release-grade body claims: ");
             text.push_str(&format_release_body_claims_summary_for_report());
             text.push('\n');
@@ -31460,6 +31463,10 @@ mod tests {
         assert!(rendered.contains("Comparison body-class error envelopes:"));
         assert!(rendered.contains("Source corpus: comparison corpus release-grade guard:"));
         assert!(rendered.contains("Catalog posture: house systems="));
+        assert_report_contains_exact_line(
+            &rendered,
+            &format!("Known gaps: {}", profile.known_gaps_summary_line()),
+        );
         assert!(rendered.contains("JPL source corpus contract:"));
         assert!(rendered.contains("phase-2 corpus alignment:"));
         assert!(rendered.contains("Release summary line:"));
