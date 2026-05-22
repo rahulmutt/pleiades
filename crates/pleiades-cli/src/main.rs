@@ -182,6 +182,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("production-generation") | Some("production-generation-summary") => {
             validate_render_cli(args)
         }
+        Some("production-generation-quarter-day-boundary-summary")
+        | Some("production-generation-quarter-day-boundary") => validate_render_cli(args),
         Some("production-generation-boundary-source-summary") => validate_render_cli(args),
         Some("production-generation-boundary-window-summary") => validate_render_cli(args),
         Some("production-generation-boundary-window") => {
@@ -3347,6 +3349,22 @@ mod tests {
         assert_eq!(
             production_generation_summary,
             pleiades_jpl::production_generation_snapshot_summary_for_report()
+        );
+        let production_generation_quarter_day_boundary_summary =
+            render_cli(&["production-generation-quarter-day-boundary-summary"])
+                .expect("production generation quarter-day boundary summary should render");
+        assert!(production_generation_quarter_day_boundary_summary
+            .contains("Production generation quarter-day boundary samples:"));
+        assert_eq!(
+            production_generation_quarter_day_boundary_summary,
+            pleiades_jpl::production_generation_quarter_day_boundary_summary_for_report()
+        );
+        let production_generation_quarter_day_boundary_alias =
+            render_cli(&["production-generation-quarter-day-boundary"])
+                .expect("production generation quarter-day boundary alias should render");
+        assert_eq!(
+            production_generation_quarter_day_boundary_alias,
+            pleiades_jpl::production_generation_quarter_day_boundary_summary_for_report()
         );
         let production_generation_alias = render_cli(&["production-generation"])
             .expect("production generation alias should render");
@@ -6523,6 +6541,9 @@ mod tests {
         assert!(help.contains("Alias for packaged-artifact-lookup-epoch-policy-summary"));
         assert!(help.contains(
             "production-generation-summary  Print the compact production-generation coverage summary"
+        ));
+        assert!(help.contains(
+            "production-generation-quarter-day-boundary-summary  Print the compact production-generation quarter-day boundary samples summary"
         ));
         assert!(help.contains(
             "production-generation-boundary-request-corpus-summary  Print the compact production-generation boundary request corpus summary"

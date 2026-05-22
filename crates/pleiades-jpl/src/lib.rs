@@ -3331,6 +3331,25 @@ pub fn production_generation_snapshot_summary_for_report() -> String {
     }
 }
 
+/// Returns the compact quarter-day boundary sample summary for release-facing reporting.
+pub fn production_generation_quarter_day_boundary_summary_for_report() -> String {
+    match production_generation_snapshot_summary() {
+        Some(summary) => match summary.validate() {
+            Ok(()) => format!(
+                "Production generation quarter-day boundary samples: {} rows across {} bodies and {} epochs (JD 2451915.25 (TDB)..JD 2451915.75 (TDB)); bodies: {}",
+                summary.quarter_day_row_count,
+                summary.quarter_day_body_count,
+                summary.quarter_day_epoch_count,
+                format_bodies(summary.quarter_day_bodies),
+            ),
+            Err(error) => format!(
+                "Production generation quarter-day boundary samples: unavailable ({error})"
+            ),
+        },
+        None => "Production generation quarter-day boundary samples: unavailable".to_string(),
+    }
+}
+
 /// Deterministic revision metadata for the checked-in CSV fixtures.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ProductionGenerationSourceRevisionSummary {
@@ -28868,6 +28887,10 @@ mod tests {
         assert_eq!(
             production_generation_snapshot_summary_for_report(),
             summary.summary_line()
+        );
+        assert_eq!(
+            production_generation_quarter_day_boundary_summary_for_report(),
+            "Production generation quarter-day boundary samples: 8 rows across 4 bodies and 2 epochs (JD 2451915.25 (TDB)..JD 2451915.75 (TDB)); bodies: Sun, Moon, Mercury, Venus"
         );
         let production_generation_source_summary =
             production_generation_source_summary_for_report();

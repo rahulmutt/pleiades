@@ -5691,6 +5691,14 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "production-generation-summary")?;
             Ok(production_generation_snapshot_summary_for_report())
         }
+        Some("production-generation-quarter-day-boundary-summary")
+        | Some("production-generation-quarter-day-boundary") => {
+            ensure_no_extra_args(
+                &args[1..],
+                "production-generation-quarter-day-boundary-summary",
+            )?;
+            Ok(pleiades_jpl::production_generation_quarter_day_boundary_summary_for_report())
+        }
         Some("production-generation-boundary-source-summary")
         | Some("production-generation-boundary-source") => {
             ensure_no_extra_args(&args[1..], "production-generation-boundary-source-summary")?;
@@ -25838,6 +25846,8 @@ fn help_text() -> String {
   profile-summary           Alias for compatibility-profile-summary
   verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  release-notes             Print the release compatibility notes\n  release-notes-summary     Print the compact release notes summary\n  release-checklist         Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  release-smoke            Run the release smoke checks and render the short smoke report\n  release-gate              Run the release gate checks and render the release checklist\n  release-gate-summary      Run the release gate checks and render the compact release checklist summary\n  checklist-summary        Alias for release-checklist-summary\n  release-summary           Print the compact release summary\n  source-corpus-summary     Print the consolidated source corpus summary\n  source-corpus             Alias for source-corpus-summary\n  jpl-batch-error-taxonomy-summary  Print the compact JPL batch error taxonomy summary\n  jpl-snapshot-evidence-summary  Print the compact combined JPL evidence summary\n  jpl-source-corpus-contract-summary  Print the compact JPL source corpus contract summary\n  jpl-source-corpus-contract  Alias for jpl-source-corpus-contract-summary\n  jpl-provenance-only-summary  Print the compact JPL provenance-only evidence summary\n  jpl-provenance-only  Alias for jpl-provenance-only-summary\n  production-generation-boundary-summary  Print the compact production-generation boundary overlay summary\n  production-generation-boundary-request-corpus-summary  Print the compact production-generation boundary request corpus summary\n  production-generation-boundary-request-corpus  Alias for production-generation-boundary-request-corpus-summary\n  production-generation-boundary-request-corpus-equatorial-summary  Print the compact production-generation boundary request corpus summary in the equatorial frame\n  production-generation-boundary-request-corpus-equatorial  Alias for production-generation-boundary-request-corpus-equatorial-summary\n  production-generation-body-class-coverage-summary  Print the compact production-generation body-class coverage summary\n  production-body-class-coverage-summary  Alias for production-generation-body-class-coverage-summary\n  production-generation-source-window-summary  Print the compact production-generation source windows summary\n  production-generation-source-window  Alias for production-generation-source-window-summary\n  production-generation-corpus-shape-summary  Print the compact production-generation corpus shape summary\n  production-generation-corpus-shape  Alias for production-generation-corpus-shape-summary\n  production-generation-summary  Print the compact production-generation coverage summary
   production-generation           Alias for production-generation-summary
+  production-generation-quarter-day-boundary-summary  Print the compact production-generation quarter-day boundary samples summary
+  production-generation-quarter-day-boundary  Alias for production-generation-quarter-day-boundary-summary
   production-generation-boundary-source-summary  Print the compact production-generation boundary source summary
   production-generation-boundary-source  Alias for production-generation-boundary-source-summary
   production-generation-boundary-window-summary  Print the compact production-generation boundary windows summary
@@ -29505,6 +29515,8 @@ mod tests {
         assert!(rendered.contains("production-generation-summary"));
         assert!(rendered
             .contains("production-generation           Alias for production-generation-summary"));
+        assert!(rendered.contains("production-generation-quarter-day-boundary-summary"));
+        assert!(rendered.contains("production-generation-quarter-day-boundary  Alias for production-generation-quarter-day-boundary-summary"));
         assert!(rendered.contains("production-generation-boundary-source-summary"));
         assert!(rendered.contains("production-generation-boundary-source  Alias for production-generation-boundary-source-summary"));
         assert!(rendered.contains("production-generation-boundary-window-summary"));
@@ -39107,6 +39119,30 @@ version = "0.9.0"
         assert_eq!(
             rendered,
             production_generation_snapshot_summary_for_report()
+        );
+    }
+
+    #[test]
+    fn production_generation_quarter_day_boundary_summary_command_renders_the_quarter_day_block() {
+        let rendered = render_cli(&["production-generation-quarter-day-boundary-summary"])
+            .expect("production generation quarter-day boundary summary should render");
+
+        assert!(rendered.contains("Production generation quarter-day boundary samples:"));
+        assert!(rendered.contains("Sun, Moon, Mercury, Venus"));
+        assert_eq!(
+            rendered,
+            pleiades_jpl::production_generation_quarter_day_boundary_summary_for_report()
+        );
+    }
+
+    #[test]
+    fn production_generation_quarter_day_boundary_alias_command_renders_the_quarter_day_block() {
+        let rendered = render_cli(&["production-generation-quarter-day-boundary"])
+            .expect("production generation quarter-day boundary alias should render");
+
+        assert_eq!(
+            rendered,
+            pleiades_jpl::production_generation_quarter_day_boundary_summary_for_report()
         );
     }
 
