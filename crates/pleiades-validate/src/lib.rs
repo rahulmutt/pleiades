@@ -40832,5 +40832,41 @@ version = "0.9.0"
             error.to_string(),
             "the source corpus summary field `independent_holdout_body_class_coverage` is out of sync with the current posture"
         );
+
+        let mut summary =
+            source_corpus_summary_details().expect("source corpus summary should exist");
+        summary.release_grade_body_claims = "Release-grade body claims: drifted".to_string();
+
+        let error = summary
+            .validated_summary_line()
+            .expect_err("release-grade body claims drift should fail closed");
+        assert_eq!(
+            error.to_string(),
+            "the source corpus summary field `release_grade_body_claims` is out of sync with the current posture"
+        );
+
+        let mut summary =
+            source_corpus_summary_details().expect("source corpus summary should exist");
+        summary.body_date_channel_claims = "Body/date/channel claims: drifted".to_string();
+
+        let error = summary
+            .validated_summary_line()
+            .expect_err("body/date/channel claims drift should fail closed");
+        assert_eq!(
+            error.to_string(),
+            "the source corpus summary field `body_date_channel_claims` is out of sync with the current posture"
+        );
+
+        let mut summary =
+            source_corpus_summary_details().expect("source corpus summary should exist");
+        summary.phase2_corpus_alignment = "Phase-2 corpus alignment: drifted".to_string();
+
+        let error = summary
+            .validated_summary_line()
+            .expect_err("phase-2 corpus alignment drift should fail closed");
+        assert_eq!(
+            error.to_string(),
+            "the source corpus summary field `phase2_corpus_alignment` is out of sync with the current posture"
+        );
     }
 }
