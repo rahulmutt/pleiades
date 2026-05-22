@@ -4391,10 +4391,66 @@ impl ProductionGenerationSnapshotBodyClassCoverageSummary {
             );
         };
 
-        if self != &expected {
+        if self.row_count != expected.row_count {
             return Err(
                 ProductionGenerationSnapshotBodyClassCoverageSummaryValidationError::FieldOutOfSync {
                     field: "row_count",
+                },
+            );
+        }
+        if self.major_body_row_count != expected.major_body_row_count {
+            return Err(
+                ProductionGenerationSnapshotBodyClassCoverageSummaryValidationError::FieldOutOfSync {
+                    field: "major_body_row_count",
+                },
+            );
+        }
+        if self.major_bodies != expected.major_bodies {
+            return Err(
+                ProductionGenerationSnapshotBodyClassCoverageSummaryValidationError::FieldOutOfSync {
+                    field: "major_bodies",
+                },
+            );
+        }
+        if self.major_epoch_count != expected.major_epoch_count {
+            return Err(
+                ProductionGenerationSnapshotBodyClassCoverageSummaryValidationError::FieldOutOfSync {
+                    field: "major_epoch_count",
+                },
+            );
+        }
+        if self.major_windows != expected.major_windows {
+            return Err(
+                ProductionGenerationSnapshotBodyClassCoverageSummaryValidationError::FieldOutOfSync {
+                    field: "major_windows",
+                },
+            );
+        }
+        if self.asteroid_row_count != expected.asteroid_row_count {
+            return Err(
+                ProductionGenerationSnapshotBodyClassCoverageSummaryValidationError::FieldOutOfSync {
+                    field: "asteroid_row_count",
+                },
+            );
+        }
+        if self.asteroid_bodies != expected.asteroid_bodies {
+            return Err(
+                ProductionGenerationSnapshotBodyClassCoverageSummaryValidationError::FieldOutOfSync {
+                    field: "asteroid_bodies",
+                },
+            );
+        }
+        if self.asteroid_epoch_count != expected.asteroid_epoch_count {
+            return Err(
+                ProductionGenerationSnapshotBodyClassCoverageSummaryValidationError::FieldOutOfSync {
+                    field: "asteroid_epoch_count",
+                },
+            );
+        }
+        if self.asteroid_windows != expected.asteroid_windows {
+            return Err(
+                ProductionGenerationSnapshotBodyClassCoverageSummaryValidationError::FieldOutOfSync {
+                    field: "asteroid_windows",
                 },
             );
         }
@@ -28838,6 +28894,23 @@ mod tests {
         assert_eq!(
             validated_production_generation_snapshot_body_class_coverage_summary_for_report(),
             Ok(summary.summary_line())
+        );
+    }
+
+    #[test]
+    fn production_generation_snapshot_body_class_coverage_summary_validation_rejects_major_body_drift(
+    ) {
+        let mut summary = production_generation_snapshot_body_class_coverage_summary()
+            .expect("production-generation body-class coverage summary should exist");
+        summary.major_bodies.pop();
+
+        assert_eq!(
+            summary.validate(),
+            Err(
+                ProductionGenerationSnapshotBodyClassCoverageSummaryValidationError::FieldOutOfSync {
+                    field: "major_bodies",
+                }
+            )
         );
     }
 
