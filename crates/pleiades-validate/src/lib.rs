@@ -14244,6 +14244,44 @@ fn ensure_request_policy_summary_matches_current_rendering(
     }
 }
 
+fn ensure_time_scale_policy_summary_matches_current_rendering(
+    time_scale_policy_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if time_scale_policy_summary_text == render_time_scale_policy_summary_text() {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "time-scale policy summary no longer matches the current time-scale posture"
+                .to_string(),
+        ))
+    }
+}
+
+fn ensure_utc_convenience_policy_summary_matches_current_rendering(
+    utc_convenience_policy_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if utc_convenience_policy_summary_text == render_utc_convenience_policy_summary_text() {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "UTC convenience policy summary no longer matches the current UTC-convenience posture"
+                .to_string(),
+        ))
+    }
+}
+
+fn ensure_delta_t_policy_summary_matches_current_rendering(
+    delta_t_policy_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if delta_t_policy_summary_text == render_delta_t_policy_summary_text() {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "delta-t policy summary no longer matches the current delta-t posture".to_string(),
+        ))
+    }
+}
+
 fn ensure_observer_policy_summary_matches_current_rendering(
     observer_policy_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -17124,6 +17162,11 @@ fn verify_release_bundle_internal(
         &native_sidereal_policy_summary_text,
     )?;
     ensure_zodiac_policy_summary_matches_current_rendering(&zodiac_policy_summary_text)?;
+    ensure_time_scale_policy_summary_matches_current_rendering(&time_scale_policy_summary_text)?;
+    ensure_utc_convenience_policy_summary_matches_current_rendering(
+        &utc_convenience_policy_summary_text,
+    )?;
+    ensure_delta_t_policy_summary_matches_current_rendering(&delta_t_policy_summary_text)?;
     if manifest.lunar_theory_limitations_summary_checksum
         != lunar_theory_limitations_summary_checksum
     {
@@ -36884,6 +36927,44 @@ version = "0.9.0"
             "native sidereal backend output remains unsupported unless a backend explicitly advertises it",
             "native sidereal backend output is now advertised by default",
             "native sidereal policy summary no longer matches the current native-sidereal posture",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_time_scale_policy_summary_even_with_updated_checksum()
+    {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-time-scale-policy-semantic",
+            "time-scale-policy-summary.txt",
+            "time-scale policy summary checksum (fnv1a-64):",
+            "Time-scale policy: ",
+            "Time-scale policy: drifted ",
+            "time-scale policy summary no longer matches the current time-scale posture",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_utc_convenience_policy_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-utc-convenience-policy-semantic",
+            "utc-convenience-policy-summary.txt",
+            "utc-convenience policy summary checksum (fnv1a-64):",
+            "UTC convenience policy: ",
+            "UTC convenience policy: drifted ",
+            "UTC convenience policy summary no longer matches the current UTC-convenience posture",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_delta_t_policy_summary_even_with_updated_checksum() {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-delta-t-policy-semantic",
+            "delta-t-policy-summary.txt",
+            "delta-t policy summary checksum (fnv1a-64):",
+            "Delta T policy: ",
+            "Delta T policy: drifted ",
+            "delta-t policy summary no longer matches the current delta-t posture",
         );
     }
 

@@ -32,7 +32,7 @@ The workspace has completed the original foundation roadmap:
 - the release notes summary now also surfaces the house-validation corpus plus the ayanamsa catalog validation and sidereal-metadata coverage lines, so the compact release notes view carries explicit compatibility-evidence checks alongside the catalog inventory;
 - house and ayanamsa crates contain broad catalog descriptors plus baseline calculations/conversions, the compatibility inventory now also surfaces ayanamsa alias-bearing entry counts to keep alias audits explicit, and the release-house-validation summary now also surfaces house-code aliases alongside the baseline house corpus; the staged bundle now also carries the house-code-aliases summary alongside the house-formula-families and house-latitude-sensitive summaries;
 - VSOP87-style planetary, compact lunar/lunar-point, JPL snapshot, and packaged-data backend crates exist;
-- validation, CLI, release-bundle, audit, benchmark, and report-generation surfaces exist, and the request-mode policy surface now also exposes a dedicated zodiac-policy summary in staged bundles.
+- validation, CLI, release-bundle, audit, benchmark, and report-generation surfaces exist, and the request-mode policy surface now also exposes a dedicated zodiac-policy summary in staged bundles; release-bundle verification now also re-checks the time-scale, UTC convenience, and delta-T policy summaries against the current renderer so the remaining request-policy sidecar surfaces fail closed on semantic drift.
 
 The repository is therefore no longer in a bootstrap phase. The remaining work is productionization: source coverage, production compressed data, body-claim accuracy, optional request modes, catalog evidence, and release gates.
 
