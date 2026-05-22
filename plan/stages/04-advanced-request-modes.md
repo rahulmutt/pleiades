@@ -16,6 +16,8 @@ The type layer can represent UTC/UT1/TT/TDB and caller-supplied offsets. Current
 - Implement topocentric body positions only with observer validation, backend/domain capability metadata, and regression tests.
 - Keep sidereal conversion in the domain layer unless a backend explicitly advertises native sidereal output and documents equivalence.
 
+Progress update: observer and apparentness policy summaries now ship through the release bundle, manifest, and verification path, keeping the request-mode policy surfaces aligned with the CLI help text.
+
 ## Completion criteria
 
 - Every request mode is either implemented with evidence or consistently rejected with a structured error.
