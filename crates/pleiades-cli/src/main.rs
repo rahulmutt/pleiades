@@ -582,6 +582,9 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("release-body-claims-summary") | Some("body-claims-summary") => {
             validate_render_cli(args)
         }
+        Some("body-date-channel-claims-summary") | Some("body-date-channel-claims") => {
+            validate_render_cli(args)
+        }
         Some("pluto-fallback-summary") => validate_render_cli(args),
         Some("pluto-fallback") => validate_render_cli(args),
         Some("workspace-audit-summary") | Some("native-dependency-audit-summary") => {
@@ -3175,6 +3178,24 @@ mod tests {
             render_cli(&["body-claims-summary", "extra"])
                 .expect_err("body claims alias should reject extra arguments"),
             "body-claims-summary does not accept extra arguments"
+        );
+
+        let body_date_channel_claims_summary = render_cli(&["body-date-channel-claims-summary"])
+            .expect("body/date/channel claims summary should render");
+        assert_eq!(
+            body_date_channel_claims_summary,
+            super::validate_render_cli(&["body-date-channel-claims-summary"])
+                .expect("body/date/channel claims summary should match validate CLI")
+        );
+        assert_eq!(
+            render_cli(&["body-date-channel-claims"])
+                .expect("body/date/channel claims alias should render"),
+            body_date_channel_claims_summary
+        );
+        assert_eq!(
+            render_cli(&["body-date-channel-claims", "extra"])
+                .expect_err("body/date/channel claims alias should reject extra arguments"),
+            "body-date-channel-claims does not accept extra arguments"
         );
 
         let pluto_fallback_summary =
