@@ -19634,6 +19634,7 @@ struct SourceCorpusSummary {
     production_generation_boundary_request_corpus: String,
     production_generation_boundary_request_corpus_equatorial: String,
     reference_snapshot_sparse_boundary: String,
+    reference_snapshot_exact_j2000_evidence: String,
     reference_snapshot_equatorial_parity: String,
     reference_snapshot_body_class_coverage: String,
     independent_holdout_body_class_coverage: String,
@@ -19663,7 +19664,7 @@ impl std::error::Error for SourceCorpusSummaryValidationError {}
 impl SourceCorpusSummary {
     fn summary_line(&self) -> String {
         format!(
-            "comparison corpus release-grade guard: {}; JPL source corpus contract: {}; evidence classification={}; provenance-only={}; shared schema={}; generation command={}; production generation source revision={}; production generation coverage={}; production generation source windows={}; production generation boundary request corpus={}; production generation boundary request corpus equatorial={}; reference snapshot sparse boundary={}; reference snapshot equatorial parity={}; reference snapshot body-class coverage={}; independent-holdout body-class coverage={}; release-grade body claims={}; body-date-channel claims={}; phase-2 corpus alignment: {}",
+            "comparison corpus release-grade guard: {}; JPL source corpus contract: {}; evidence classification={}; provenance-only={}; shared schema={}; generation command={}; production generation source revision={}; production generation coverage={}; production generation source windows={}; production generation boundary request corpus={}; production generation boundary request corpus equatorial={}; reference snapshot sparse boundary={}; reference snapshot exact J2000 evidence={}; reference snapshot equatorial parity={}; reference snapshot body-class coverage={}; independent-holdout body-class coverage={}; release-grade body claims={}; body-date-channel claims={}; phase-2 corpus alignment: {}",
             self.comparison_corpus_release_grade_guard,
             self.jpl_source_corpus_contract,
             self.jpl_evidence_classification,
@@ -19676,6 +19677,7 @@ impl SourceCorpusSummary {
             self.production_generation_boundary_request_corpus,
             self.production_generation_boundary_request_corpus_equatorial,
             self.reference_snapshot_sparse_boundary,
+            self.reference_snapshot_exact_j2000_evidence,
             self.reference_snapshot_equatorial_parity,
             self.reference_snapshot_body_class_coverage,
             self.independent_holdout_body_class_coverage,
@@ -19762,6 +19764,13 @@ impl SourceCorpusSummary {
                 field: "reference_snapshot_sparse_boundary",
             });
         }
+        if self.reference_snapshot_exact_j2000_evidence
+            != expected.reference_snapshot_exact_j2000_evidence
+        {
+            return Err(SourceCorpusSummaryValidationError::FieldOutOfSync {
+                field: "reference_snapshot_exact_j2000_evidence",
+            });
+        }
         if self.reference_snapshot_equatorial_parity
             != expected.reference_snapshot_equatorial_parity
         {
@@ -19840,6 +19849,12 @@ fn source_corpus_summary_details() -> Option<SourceCorpusSummary> {
         "reference snapshot sparse boundary",
     )
     .ok()?;
+    let reference_snapshot_exact_j2000_evidence = required_summary_payload(
+        reference_snapshot_exact_j2000_evidence_summary_for_report(),
+        "Reference snapshot exact J2000 evidence: ",
+        "reference snapshot exact J2000 evidence",
+    )
+    .ok()?;
     let reference_snapshot_equatorial_parity = required_summary_payload(
         reference_snapshot_equatorial_parity_summary_for_report(),
         "JPL reference snapshot equatorial parity: ",
@@ -19895,6 +19910,7 @@ fn source_corpus_summary_details() -> Option<SourceCorpusSummary> {
         )
         .ok()?,
         reference_snapshot_sparse_boundary,
+        reference_snapshot_exact_j2000_evidence,
         reference_snapshot_equatorial_parity,
         reference_snapshot_body_class_coverage,
         independent_holdout_body_class_coverage,
@@ -40197,6 +40213,9 @@ version = "0.9.0"
         assert!(rendered.contains("production generation boundary request corpus equatorial="));
         assert!(rendered
             .contains("reference snapshot sparse boundary=16 exact samples at JD 2451915.5 (TDB)"));
+        assert!(rendered.contains(
+            "reference snapshot exact J2000 evidence=16 exact J2000 samples at JD 2451545.0 (TDB)"
+        ));
         assert!(rendered.contains("reference snapshot equatorial parity=349 rows across 16 bodies and 29 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB))"));
         assert!(rendered.contains("reference snapshot body-class coverage=major bodies: 254 rows across 10 bodies and 29 epochs"));
         assert!(rendered.contains(
@@ -40342,6 +40361,19 @@ version = "0.9.0"
         assert_eq!(
             error.to_string(),
             "the source corpus summary field `reference_snapshot_sparse_boundary` is out of sync with the current posture"
+        );
+
+        let mut summary =
+            source_corpus_summary_details().expect("source corpus summary should exist");
+        summary.reference_snapshot_exact_j2000_evidence =
+            "Reference snapshot exact J2000 evidence: drifted".to_string();
+
+        let error = summary
+            .validated_summary_line()
+            .expect_err("reference snapshot exact J2000 evidence drift should fail closed");
+        assert_eq!(
+            error.to_string(),
+            "the source corpus summary field `reference_snapshot_exact_j2000_evidence` is out of sync with the current posture"
         );
 
         let mut summary =
