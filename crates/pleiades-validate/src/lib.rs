@@ -20432,6 +20432,7 @@ struct SourceCorpusSummary {
     jpl_source_corpus_contract: String,
     jpl_evidence_classification: String,
     jpl_provenance_only: String,
+    lunar_source_window: String,
     shared_schema: String,
     generation_command: String,
     production_generation_source: String,
@@ -20473,11 +20474,12 @@ impl std::error::Error for SourceCorpusSummaryValidationError {}
 impl SourceCorpusSummary {
     fn summary_line(&self) -> String {
         format!(
-            "comparison corpus release-grade guard: {}; JPL source corpus contract: {}; evidence classification={}; provenance-only={}; shared schema={}; generation command={}; production generation source={}; production generation source revision={}; production generation coverage={}; production generation source windows={}; production generation date range={}; production generation boundary source={}; production generation boundary request corpus={}; production generation boundary request corpus equatorial={}; reference snapshot sparse boundary={}; reference snapshot exact J2000 evidence={}; reference snapshot equatorial parity={}; reference snapshot body-class coverage={}; independent-holdout body-class coverage={}; release-grade body claims={}; body-date-channel claims={}; phase-2 corpus alignment: {}",
+            "comparison corpus release-grade guard: {}; JPL source corpus contract: {}; evidence classification={}; provenance-only={}; lunar source windows={}; shared schema={}; generation command={}; production generation source={}; production generation source revision={}; production generation coverage={}; production generation source windows={}; production generation date range={}; production generation boundary source={}; production generation boundary request corpus={}; production generation boundary request corpus equatorial={}; reference snapshot sparse boundary={}; reference snapshot exact J2000 evidence={}; reference snapshot equatorial parity={}; reference snapshot body-class coverage={}; independent-holdout body-class coverage={}; release-grade body claims={}; body-date-channel claims={}; phase-2 corpus alignment: {}",
             self.comparison_corpus_release_grade_guard,
             self.jpl_source_corpus_contract,
             self.jpl_evidence_classification,
             self.jpl_provenance_only,
+            self.lunar_source_window,
             self.shared_schema,
             self.generation_command,
             self.production_generation_source,
@@ -20672,6 +20674,12 @@ fn source_corpus_summary_details() -> Option<SourceCorpusSummary> {
     let release_grade_body_claims = validated_release_body_claims_summary_line_for_report()
         .ok()?
         .to_string();
+    let lunar_source_window = required_summary_payload(
+        lunar_source_window_summary_for_report(),
+        "lunar source windows: ",
+        "lunar source window",
+    )
+    .ok()?;
     let reference_snapshot_sparse_boundary = required_summary_payload(
         reference_snapshot_sparse_boundary_summary_for_report(),
         "Reference snapshot boundary day: ",
@@ -20716,6 +20724,7 @@ fn source_corpus_summary_details() -> Option<SourceCorpusSummary> {
         jpl_source_corpus_contract,
         jpl_evidence_classification,
         jpl_provenance_only,
+        lunar_source_window,
         shared_schema: validated_checked_in_snapshot_schema_summary_for_report().ok()?,
         generation_command: "generate-packaged-artifact --check".to_string(),
         production_generation_source: required_summary_payload(
@@ -41537,6 +41546,9 @@ version = "0.9.0"
         assert!(rendered.contains("Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis"));
         assert!(rendered.contains("evidence classification=release-tolerance=reference/comparison/production-generation validation summaries; hold-out=independent hold-out rows and interpolation-quality summaries; fixture exactness=reference snapshot exact J2000 evidence; provenance-only=source and manifest summaries"));
         assert!(rendered.contains("provenance-only=source and manifest summaries are provenance-only evidence; they validate corpus provenance and checksum posture but are excluded from tolerance, hold-out, and fixture-exactness claims"));
+        assert!(rendered.contains(
+            "lunar source windows=7 exact Moon samples across 1 bodies in 2 exact windows"
+        ));
         assert!(rendered.contains("release-grade body claims=Moon and supported lunar points (Mean Node, True Node, Mean Apogee, Mean Perigee) remain source-backed validation bodies; True Apogee and True Perigee remain unsupported; Sun through Neptune are release-grade major-body claims; Pluto remains an explicitly approximate fallback; selected asteroids (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) remain source-backed validation bodies"));
         assert!(rendered.contains("production generation coverage=Production generation coverage:"));
         assert!(rendered.contains(
