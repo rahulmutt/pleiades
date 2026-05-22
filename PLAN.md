@@ -11,7 +11,7 @@ The workspace has completed the original foundation roadmap:
 - backend traits, metadata, batch helpers, and composite/routing helpers exist;
 - `pleiades-core` exposes chart façade APIs, sign/aspect/house summaries, release compatibility metadata, explicit latitude-sensitive house-constraint reporting, and API-stability reporting;
 - release-facing backend matrix summaries now also surface corpus-derived claim posture by folding in the comparison corpus release-grade guard, reference/hold-out overlap, independent hold-out, release-grade body claims, and Pluto fallback lines;
-- release bundle verification now also re-checks the comparison-corpus summary against the current renderer, so the release corpus posture fails closed on semantic drift; release bundle verification now also re-checks the release body-claims summary and release notes text against the current renderer, so staged claim and note artifacts fail closed on semantic drift;
+- release bundle verification now also re-checks the comparison-corpus summary against the current renderer, so the release corpus posture fails closed on semantic drift; release bundle verification now also re-checks the release body-claims summary, Pluto fallback summary, and release notes text against the current renderer, so staged claim and note artifacts fail closed on semantic drift;
 - release bundle generation and verification now also carry the body/date/channel claims summary and checksum, keeping the compact body-claim boundary visible in staged bundles;
 - release bundle verification now also re-checks the backend matrix report and summary against the current renderers, so staged backend-matrix artifacts fail closed on semantic drift;
 - release bundle verification now also semantically re-checks the reference snapshot equatorial parity summary and the independent-holdout equatorial parity summary, so staged frame-parity artifacts fail closed even if checksums are refreshed;
@@ -71,4 +71,4 @@ Start with **Phase 1**. A production compressed artifact cannot be promoted unti
 - When an implementation gap closes, remove it from phase/status files rather than moving it to a completed section.
 - Keep `README.md`, release profiles, generated reports, and this plan aligned when public behavior or release claims change.
 
-Status: refreshed 2026-05-21 after reviewing `SPEC.md`, `spec/*.md`, current workspace crates, README status, and CLI/report posture; updated 2026-05-21 after stabilizing release-bundle summary verification.
+Status: refreshed 2026-05-22 after reviewing `SPEC.md`, `spec/*.md`, current workspace crates, README status, and CLI/report posture; updated 2026-05-22 after tightening Pluto fallback summary verification.

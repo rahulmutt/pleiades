@@ -14076,6 +14076,21 @@ fn ensure_release_body_claims_summary_matches_current_rendering(
     }
 }
 
+fn ensure_pluto_fallback_summary_matches_current_rendering(
+    pluto_fallback_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    let current_summary = validated_pluto_fallback_summary_line_for_report()
+        .map_err(|error| ReleaseBundleError::Verification(error.to_string()))?;
+    if pluto_fallback_summary_text == current_summary {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "Pluto fallback summary no longer matches the current Pluto fallback posture"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_request_semantics_summary_matches_current_rendering(
     request_semantics_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -16733,6 +16748,7 @@ fn verify_release_bundle_internal(
             manifest.pluto_fallback_summary_checksum, pluto_fallback_summary_checksum
         )));
     }
+    ensure_pluto_fallback_summary_matches_current_rendering(&pluto_fallback_summary_text)?;
     if let Err(error) = validate_release_body_claims_posture(
         &release_body_claims_summary_text,
         &pluto_fallback_summary_text,
@@ -35736,6 +35752,19 @@ version = "0.9.0"
             "release-grade major-body claims",
             "release-grade major-body claims (validated)",
             "release body claims summary no longer matches the current release-grade body-claims posture",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_semantically_tampered_pluto_fallback_summary_file_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-semantic-pluto-fallback-summary",
+            "pluto-fallback-summary.txt",
+            "pluto fallback summary checksum (fnv1a-64):",
+            "Pluto remains an explicitly approximate fallback; release-grade major-body claims exclude Pluto",
+            "Pluto remains an explicitly approximate fallback (drifted); release-grade major-body claims exclude Pluto",
+            "Pluto fallback summary no longer matches the current Pluto fallback posture",
         );
     }
 
