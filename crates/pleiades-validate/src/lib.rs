@@ -9580,6 +9580,9 @@ fn render_release_summary_text() -> String {
             text.push_str("Body/date/channel claims: ");
             text.push_str(&format_body_date_channel_claims_summary_for_report());
             text.push('\n');
+            text.push_str("Production generation coverage: ");
+            text.push_str(&production_generation_snapshot_summary_for_report());
+            text.push('\n');
             text.push_str("Production generation body-class coverage: ");
             text.push_str(&validated_production_generation_body_class_coverage_summary_for_report());
             text.push('\n');
@@ -34169,6 +34172,7 @@ version = "0.9.0"
         assert!(release_summary.contains(
             "JPL reference snapshot batch parity: 349 rows across 16 bodies and 29 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
         ));
+        assert!(release_summary.contains("Production generation coverage:"));
         assert!(release_summary.contains("JPL production-generation coverage:"));
         assert!(release_summary.contains("JPL production-generation manifest:"));
         assert!(release_summary.contains("JPL production-generation manifest checksum:"));
