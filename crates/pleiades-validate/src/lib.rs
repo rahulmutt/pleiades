@@ -20820,6 +20820,11 @@ impl SourceCorpusSummary {
                 field: "jpl_provenance_only",
             });
         }
+        if self.lunar_source_window != expected.lunar_source_window {
+            return Err(SourceCorpusSummaryValidationError::FieldOutOfSync {
+                field: "lunar_source_window",
+            });
+        }
         if self.shared_schema != expected.shared_schema {
             return Err(SourceCorpusSummaryValidationError::FieldOutOfSync {
                 field: "shared_schema",
@@ -42162,6 +42167,18 @@ version = "0.9.0"
         assert_eq!(
             error.to_string(),
             "the source corpus summary field `jpl_provenance_only` is out of sync with the current posture"
+        );
+
+        let mut summary =
+            source_corpus_summary_details().expect("source corpus summary should exist");
+        summary.lunar_source_window = "lunar source windows=drifted".to_string();
+
+        let error = summary
+            .validated_summary_line()
+            .expect_err("lunar source window drift should fail closed");
+        assert_eq!(
+            error.to_string(),
+            "the source corpus summary field `lunar_source_window` is out of sync with the current posture"
         );
 
         let mut summary =
