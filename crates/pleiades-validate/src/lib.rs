@@ -20728,6 +20728,7 @@ struct SourceCorpusSummary {
     production_generation_coverage: String,
     production_generation_source_windows: String,
     production_generation_date_range: String,
+    coverage_posture: String,
     production_generation_boundary_source: String,
     production_generation_boundary_request_corpus: String,
     production_generation_boundary_request_corpus_equatorial: String,
@@ -20762,7 +20763,7 @@ impl std::error::Error for SourceCorpusSummaryValidationError {}
 impl SourceCorpusSummary {
     fn summary_line(&self) -> String {
         format!(
-            "comparison corpus release-grade guard: {}; JPL source corpus contract: {}; evidence classification={}; provenance-only={}; lunar source windows={}; shared schema={}; generation command={}; production generation source={}; production generation source revision={}; production generation coverage={}; production generation source windows={}; production generation date range={}; production generation boundary source={}; production generation boundary request corpus={}; production generation boundary request corpus equatorial={}; reference snapshot sparse boundary={}; reference snapshot exact J2000 evidence={}; reference snapshot equatorial parity={}; reference snapshot body-class coverage={}; independent-holdout body-class coverage={}; release-grade body claims={}; body-date-channel claims={}; phase-2 corpus alignment: {}",
+            "comparison corpus release-grade guard: {}; JPL source corpus contract: {}; evidence classification={}; provenance-only={}; lunar source windows={}; shared schema={}; generation command={}; production generation source={}; production generation source revision={}; production generation coverage={}; production generation source windows={}; production generation date range={}; coverage posture={}; production generation boundary source={}; production generation boundary request corpus={}; production generation boundary request corpus equatorial={}; reference snapshot sparse boundary={}; reference snapshot exact J2000 evidence={}; reference snapshot equatorial parity={}; reference snapshot body-class coverage={}; independent-holdout body-class coverage={}; release-grade body claims={}; body-date-channel claims={}; phase-2 corpus alignment: {}",
             self.comparison_corpus_release_grade_guard,
             self.jpl_source_corpus_contract,
             self.jpl_evidence_classification,
@@ -20775,6 +20776,7 @@ impl SourceCorpusSummary {
             self.production_generation_coverage,
             self.production_generation_source_windows,
             self.production_generation_date_range,
+            self.coverage_posture,
             self.production_generation_boundary_source,
             self.production_generation_boundary_request_corpus,
             self.production_generation_boundary_request_corpus_equatorial,
@@ -20855,6 +20857,11 @@ impl SourceCorpusSummary {
         if self.production_generation_date_range != expected.production_generation_date_range {
             return Err(SourceCorpusSummaryValidationError::FieldOutOfSync {
                 field: "production_generation_date_range",
+            });
+        }
+        if self.coverage_posture != expected.coverage_posture {
+            return Err(SourceCorpusSummaryValidationError::FieldOutOfSync {
+                field: "coverage_posture",
             });
         }
         if self.production_generation_boundary_source
@@ -21036,6 +21043,7 @@ fn source_corpus_summary_details() -> Option<SourceCorpusSummary> {
         )
         .ok()?,
         production_generation_date_range,
+        coverage_posture: "reference, hold-out, boundary-overlay, and lunar slices keep the advertised 1500-2500 CE window covered; both ecliptic and equatorial boundary request corpora remain aligned".to_string(),
         production_generation_boundary_source: required_summary_payload(
             production_generation_boundary_source_summary_for_report(),
             "Production generation boundary overlay source: ",
@@ -41991,6 +41999,7 @@ version = "0.9.0"
         assert!(rendered.contains("production generation source windows=357 source-backed samples across 16 bodies and 31 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB))"));
         assert!(rendered
             .contains("production generation date range=JD 2268932.5 (TDB)..JD 2634167.0 (TDB)"));
+        assert!(rendered.contains("coverage posture=reference, hold-out, boundary-overlay, and lunar slices keep the advertised 1500-2500 CE window covered; both ecliptic and equatorial boundary request corpora remain aligned"));
         assert!(rendered.contains("production generation boundary source="));
         assert!(rendered.contains("production generation boundary request corpus="));
         assert!(rendered.contains("production generation boundary request corpus equatorial="));
@@ -42329,6 +42338,18 @@ version = "0.9.0"
         assert_eq!(
             error.to_string(),
             "the body/date/channel claims summary field `coverage_posture` is out of sync with the current posture"
+        );
+
+        let mut summary =
+            source_corpus_summary_details().expect("source corpus summary should exist");
+        summary.coverage_posture = "coverage posture=drifted".to_string();
+
+        let error = summary
+            .validated_summary_line()
+            .expect_err("coverage posture drift should fail closed");
+        assert_eq!(
+            error.to_string(),
+            "the source corpus summary field `coverage_posture` is out of sync with the current posture"
         );
 
         let mut summary =
