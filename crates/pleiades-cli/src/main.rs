@@ -571,6 +571,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("request-policy") => validate_render_cli(args),
         Some("request-semantics-summary") => validate_render_cli(args),
         Some("request-semantics") => validate_render_cli(args),
+        Some("unsupported-modes-summary") | Some("unsupported-modes") => validate_render_cli(args),
         Some("comparison-tolerance-policy-summary") | Some("comparison-tolerance-summary") => {
             validate_render_cli(args)
         }
@@ -2804,7 +2805,7 @@ mod tests {
             release_profiles.compatibility_profile_id, release_profiles.api_stability_profile_id
         )));
         assert!(release_notes_summary.lines().any(|line| {
-            line == "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); request-policy-summary / request-policy / request-semantics-summary / request-semantics / utc-convenience-policy-summary / utc-convenience-policy / delta-t-policy-summary / delta-t-policy / zodiac-policy-summary / zodiac-policy / native-sidereal-policy-summary / native-sidereal-policy (compact request-policy report entrypoints); pleiades-cli chart (explicit --tt|--tdb|--utc|--ut1 flags plus caller-supplied TT/TDB offset aliases: --tt-offset-seconds, --tt-from-utc-offset-seconds, --tt-from-ut1-offset-seconds, --tdb-offset-seconds, --tdb-from-utc-offset-seconds, --tdb-from-ut1-offset-seconds, --tdb-from-tt-offset-seconds, and --tt-from-tdb-offset-seconds; observer-bearing chart requests stay geocentric and use the observer only for houses)"
+            line == "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); request-policy-summary / request-policy / request-semantics-summary / request-semantics / unsupported-modes-summary / unsupported-modes / utc-convenience-policy-summary / utc-convenience-policy / delta-t-policy-summary / delta-t-policy / zodiac-policy-summary / zodiac-policy / native-sidereal-policy-summary / native-sidereal-policy (compact request-policy report entrypoints); pleiades-cli chart (explicit --tt|--tdb|--utc|--ut1 flags plus caller-supplied TT/TDB offset aliases: --tt-offset-seconds, --tt-from-utc-offset-seconds, --tt-from-ut1-offset-seconds, --tdb-offset-seconds, --tdb-from-utc-offset-seconds, --tdb-from-ut1-offset-seconds, --tdb-from-tt-offset-seconds, and --tt-from-tdb-offset-seconds; observer-bearing chart requests stay geocentric and use the observer only for houses)"
         }));
         assert!(release_notes_summary.lines().any(|line| {
             line == "VSOP87 source documentation health: ok (8 source specs, 8 source files, 8 source-backed profiles, 9 body profiles; 8 generated binary profiles (Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune), 0 vendored full-file profiles (none), 0 truncated profiles (none), 1 approximate fallback profiles (Pluto); source files: VSOP87B.ear, VSOP87B.mer, VSOP87B.ven, VSOP87B.mar, VSOP87B.jup, VSOP87B.sat, VSOP87B.ura, VSOP87B.nep; source-backed order: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; source-backed partition order: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; fallback order: Pluto; documented fields: variant, coordinate family, frame, units, reduction, transform note, truncation policy, and date range)"
@@ -3005,6 +3006,15 @@ mod tests {
             render_cli(&["request-semantics"]).expect("request semantics alias should render");
         assert!(request_semantics_alias.contains("Request semantics summary"));
         assert_eq!(request_semantics_alias, request_semantics_summary);
+
+        let unsupported_modes_summary = render_cli(&["unsupported-modes-summary"])
+            .expect("unsupported-modes summary should render");
+        assert!(unsupported_modes_summary.contains("Unsupported modes summary"));
+        assert!(unsupported_modes_summary.contains("Unsupported modes:"));
+        assert_eq!(
+            render_cli(&["unsupported-modes"]).expect("unsupported-modes alias should render"),
+            unsupported_modes_summary
+        );
 
         let request_policy_error = render_cli(&["request-policy", "extra"])
             .expect_err("request policy alias should reject extra arguments");
@@ -5087,7 +5097,7 @@ mod tests {
             "generated-binary-audit does not accept extra arguments"
         );
         assert!(release_summary.lines().any(|line| {
-            line == "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); request-policy-summary / request-policy / request-semantics-summary / request-semantics / utc-convenience-policy-summary / utc-convenience-policy / delta-t-policy-summary / delta-t-policy / zodiac-policy-summary / zodiac-policy / native-sidereal-policy-summary / native-sidereal-policy (compact request-policy report entrypoints); pleiades-cli chart (explicit --tt|--tdb|--utc|--ut1 flags plus caller-supplied TT/TDB offset aliases: --tt-offset-seconds, --tt-from-utc-offset-seconds, --tt-from-ut1-offset-seconds, --tdb-offset-seconds, --tdb-from-utc-offset-seconds, --tdb-from-ut1-offset-seconds, --tdb-from-tt-offset-seconds, and --tt-from-tdb-offset-seconds; observer-bearing chart requests stay geocentric and use the observer only for houses)"
+            line == "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); request-policy-summary / request-policy / request-semantics-summary / request-semantics / unsupported-modes-summary / unsupported-modes / utc-convenience-policy-summary / utc-convenience-policy / delta-t-policy-summary / delta-t-policy / zodiac-policy-summary / zodiac-policy / native-sidereal-policy-summary / native-sidereal-policy (compact request-policy report entrypoints); pleiades-cli chart (explicit --tt|--tdb|--utc|--ut1 flags plus caller-supplied TT/TDB offset aliases: --tt-offset-seconds, --tt-from-utc-offset-seconds, --tt-from-ut1-offset-seconds, --tdb-offset-seconds, --tdb-from-utc-offset-seconds, --tdb-from-ut1-offset-seconds, --tdb-from-tt-offset-seconds, and --tt-from-tdb-offset-seconds; observer-bearing chart requests stay geocentric and use the observer only for houses)"
         }));
         assert!(release_summary
             .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
@@ -6181,6 +6191,7 @@ mod tests {
             .exists());
         assert!(bundle_dir.join("request-policy-summary.txt").exists());
         assert!(bundle_dir.join("request-semantics-summary.txt").exists());
+        assert!(bundle_dir.join("unsupported-modes-summary.txt").exists());
         assert!(bundle_dir.join("release-body-claims-summary.txt").exists());
         assert!(bundle_dir.join("pluto-fallback-summary.txt").exists());
         assert!(bundle_dir.join("time-scale-policy-summary.txt").exists());
@@ -6280,6 +6291,7 @@ mod tests {
         assert!(verified.contains("custom-definition-ayanamsa-labels-summary.txt"));
         assert!(verified.contains("workspace-audit-summary.txt"));
         assert!(verified.contains("request-semantics-summary.txt"));
+        assert!(verified.contains("unsupported-modes-summary.txt"));
         assert!(verified.contains("time-scale-policy-summary.txt"));
         assert!(verified.contains("delta-t-policy-summary.txt"));
         assert!(verified.contains("zodiac-policy-summary.txt"));
