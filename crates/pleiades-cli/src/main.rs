@@ -467,6 +467,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("lunar-equatorial-reference-error-envelope-summary") => validate_render_cli(args),
         Some("lunar-apparent-comparison-summary") => validate_render_cli(args),
         Some("lunar-source-window-summary") => validate_render_cli(args),
+        Some("lunar-reference-mixed-time-scale-batch-parity-summary")
+        | Some("lunar-reference-mixed-tt-tdb-batch-parity-summary") => validate_render_cli(args),
         Some("lunar-theory-request-policy-summary") => validate_render_cli(args),
         Some("lunar-theory-request-policy") => validate_render_cli(args),
         Some("lunar-theory-frame-treatment-summary") => validate_render_cli(args),
@@ -4023,6 +4025,30 @@ mod tests {
             lunar_source_window_summary,
             pleiades_elp::lunar_source_window_summary_for_report()
         );
+        let lunar_reference_mixed_time_scale_batch_parity_summary =
+            render_cli(&["lunar-reference-mixed-time-scale-batch-parity-summary"])
+                .expect("lunar reference mixed TT/TDB batch parity summary should render");
+        assert!(lunar_reference_mixed_time_scale_batch_parity_summary
+            .contains("lunar reference mixed TT/TDB batch parity"));
+        assert_eq!(
+            lunar_reference_mixed_time_scale_batch_parity_summary,
+            pleiades_elp::lunar_reference_batch_parity_summary_for_report()
+        );
+        assert_eq!(
+            render_cli(&["lunar-reference-mixed-tt-tdb-batch-parity-summary"])
+                .expect("lunar reference mixed TT/TDB batch parity alias should render"),
+            lunar_reference_mixed_time_scale_batch_parity_summary
+        );
+        assert_eq!(
+            render_cli(&[
+                "lunar-reference-mixed-time-scale-batch-parity-summary",
+                "extra"
+            ])
+            .expect_err(
+                "lunar reference mixed TT/TDB batch parity summary should reject extra arguments"
+            ),
+            "lunar-reference-mixed-time-scale-batch-parity-summary does not accept extra arguments"
+        );
         let lunar_theory_request_policy_summary =
             render_cli(&["lunar-theory-request-policy-summary"])
                 .expect("lunar theory request policy summary should render");
@@ -6752,6 +6778,12 @@ mod tests {
         ));
         assert!(help.contains(
             "lunar-source-window-summary  Print the compact lunar source windows summary"
+        ));
+        assert!(help.contains(
+            "lunar-reference-mixed-time-scale-batch-parity-summary  Print the compact lunar reference mixed TT/TDB batch parity summary"
+        ));
+        assert!(help.contains(
+            "lunar-reference-mixed-tt-tdb-batch-parity-summary  Alias for lunar-reference-mixed-time-scale-batch-parity-summary"
         ));
         assert!(help.contains(
             "comparison-snapshot-manifest-summary  Print the compact comparison snapshot manifest summary"
