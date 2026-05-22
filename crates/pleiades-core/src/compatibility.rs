@@ -353,6 +353,14 @@ impl CompatibilityProfile {
         format_canonical_name_summary(self.known_gaps)
     }
 
+    /// Returns the known-gaps line after validating the profile.
+    pub fn validated_known_gaps_summary_line(
+        &self,
+    ) -> Result<String, CompatibilityProfileValidationError> {
+        self.validate()?;
+        Ok(self.known_gaps_summary_line())
+    }
+
     /// Returns the compact catalog-posture line for the current compatibility profile.
     pub fn catalog_posture_summary_line(&self) -> String {
         let constrained_house_system_count = self.constrained_house_system_count();
@@ -1448,6 +1456,17 @@ pub fn catalog_posture_summary_for_report() -> String {
 pub fn validated_catalog_posture_summary_for_report(
 ) -> Result<String, CompatibilityProfileValidationError> {
     current_compatibility_profile().validated_catalog_posture_summary_line()
+}
+
+/// Returns the compatibility-profile known-gaps summary for report surfaces.
+pub fn known_gaps_summary_for_report() -> String {
+    current_compatibility_profile().known_gaps_summary_line()
+}
+
+/// Returns the compatibility-profile known-gaps summary after validating the profile.
+pub fn validated_known_gaps_summary_for_report(
+) -> Result<String, CompatibilityProfileValidationError> {
+    current_compatibility_profile().validated_known_gaps_summary_line()
 }
 
 /// Returns the compatibility-profile catalog inventory summary after validating the profile.
