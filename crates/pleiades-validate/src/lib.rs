@@ -29549,6 +29549,7 @@ mod tests {
             release_profiles.compatibility_profile_id
         )));
         assert!(caveats_summary.contains("Compatibility caveats: 2"));
+        assert!(caveats_summary.contains("House formula families: 7 (Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign)"));
         assert!(caveats_summary.contains("Latitude-sensitive house systems: 8 (Placidus, Koch, Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Topocentric, Sunshine, Gauquelin sectors)"));
         assert!(caveats_summary.contains("Latitude-sensitive house constraints: 8 ("));
         assert!(caveats_summary.contains("Placidus ["));

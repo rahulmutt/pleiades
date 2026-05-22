@@ -1470,6 +1470,9 @@ pub fn compatibility_caveats_summary_for_report(
     text.push_str("Compatibility caveats: ");
     text.push_str(&profile.known_gaps.len().to_string());
     text.push('\n');
+    text.push_str("House formula families: ");
+    text.push_str(&profile.house_formula_families_summary_line());
+    text.push('\n');
     text.push_str("Latitude-sensitive house systems: ");
     text.push_str(&profile.latitude_sensitive_house_systems_summary_line());
     text.push('\n');
@@ -3738,12 +3741,14 @@ mod tests {
 
         assert!(rendered.starts_with("Compatibility caveats summary\nProfile: "));
         assert!(rendered.contains(release_profiles.compatibility_profile_id));
+        assert!(rendered.contains("House formula families: "));
         assert!(rendered.contains("Latitude-sensitive house systems: "));
         assert!(rendered.contains("Descriptor-only ayanamsa labels: "));
         let expected_prefix = format!(
-            "Compatibility caveats summary\nProfile: {}\nCompatibility caveats: {}\nLatitude-sensitive house systems: {}\nLatitude-sensitive house constraints: {}\nDescriptor-only ayanamsa labels: {}\n",
+            "Compatibility caveats summary\nProfile: {}\nCompatibility caveats: {}\nHouse formula families: {}\nLatitude-sensitive house systems: {}\nLatitude-sensitive house constraints: {}\nDescriptor-only ayanamsa labels: {}\n",
             release_profiles.compatibility_profile_id,
             profile.known_gaps.len(),
+            profile.house_formula_families_summary_line(),
             profile.latitude_sensitive_house_systems_summary_line(),
             profile.latitude_sensitive_house_constraints_summary_line(),
             profile.custom_definition_ayanamsa_labels_summary_line()
