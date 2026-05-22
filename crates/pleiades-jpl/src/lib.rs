@@ -271,6 +271,8 @@ pub fn reference_snapshot_mixed_time_scale_request_corpus() -> Option<Vec<Epheme
 
 const PRODUCTION_GENERATION_BOUNDARY_COVERAGE: &str =
     "Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2451915.5, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2451915.5, 2500000, and 2634167, plus Mercury at 2451915.5, plus Venus at 2451915.5, plus Pluto at 2451545 and 2500000, plus major bodies at 2451915.5 for Sun through Pluto, plus selected asteroids at 2378498.5, 2451545, 2451915.5, 2451917.5, 2453000.5, 2500000, and 2634167; asteroid:99942-Apophis now also appears at 2378498.5 so the selected-asteroid hold-out bridge matches the reference slice; total slice size is 84 rows across 16 bodies and 14 epochs.";
+
+const PRODUCTION_GENERATION_QUARTER_DAY_EPOCHS: [f64; 2] = [2_451_915.25, 2_451_915.75];
 fn production_generation_boundary_entries() -> Option<&'static [SnapshotEntry]> {
     static ENTRIES: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
     let entries = ENTRIES
@@ -3016,6 +3018,18 @@ pub struct ProductionGenerationSnapshotSummary {
     pub boundary_earliest_epoch: Instant,
     /// Latest epoch represented in the boundary overlay.
     pub boundary_latest_epoch: Instant,
+    /// Number of rows contributed by the quarter-day selected-body boundary samples.
+    pub quarter_day_row_count: usize,
+    /// Number of distinct bodies contributed by the quarter-day selected-body boundary samples.
+    pub quarter_day_body_count: usize,
+    /// Bodies contributed by the quarter-day selected-body boundary samples in first-seen order.
+    pub quarter_day_bodies: &'static [pleiades_backend::CelestialBody],
+    /// Number of distinct epochs represented by the quarter-day selected-body boundary samples.
+    pub quarter_day_epoch_count: usize,
+    /// Earliest epoch represented in the quarter-day selected-body boundary samples.
+    pub quarter_day_earliest_epoch: Instant,
+    /// Latest epoch represented in the quarter-day selected-body boundary samples.
+    pub quarter_day_latest_epoch: Instant,
 }
 
 /// Structured validation errors for the production-generation coverage summary.
@@ -3178,7 +3192,7 @@ impl ProductionGenerationSnapshotSummary {
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
         format!(
-            "Production generation coverage: {} rows across {} bodies and {} epochs ({}..{}); bodies: {}; boundary overlay ({PRODUCTION_GENERATION_BOUNDARY_COVERAGE}): {} rows across {} bodies and {} epochs ({}..{}); boundary bodies: {}",
+            "Production generation coverage: {} rows across {} bodies and {} epochs ({}..{}); bodies: {}; boundary overlay ({PRODUCTION_GENERATION_BOUNDARY_COVERAGE}): {} rows across {} bodies and {} epochs ({}..{}); boundary bodies: {}; quarter-day boundary samples: {} rows across {} bodies and {} epochs (JD 2451915.25 (TDB)..JD 2451915.75 (TDB)); quarter-day bodies: {}",
             self.row_count,
             self.body_count,
             self.epoch_count,
@@ -3191,6 +3205,10 @@ impl ProductionGenerationSnapshotSummary {
             format_instant(self.boundary_earliest_epoch),
             format_instant(self.boundary_latest_epoch),
             format_bodies(self.boundary_bodies),
+            self.quarter_day_row_count,
+            self.quarter_day_body_count,
+            self.quarter_day_epoch_count,
+            format_bodies(self.quarter_day_bodies),
         )
     }
 
@@ -3218,8 +3236,8 @@ pub fn format_production_generation_snapshot_summary(
 
 /// Returns the production-generation coverage summary used in release-facing reporting.
 pub fn production_generation_snapshot_summary() -> Option<ProductionGenerationSnapshotSummary> {
-    static SUMMARY: OnceLock<ProductionGenerationSnapshotSummary> = OnceLock::new();
-    Some(*SUMMARY.get_or_init(|| {
+    static SUMMARY: OnceLock<Option<ProductionGenerationSnapshotSummary>> = OnceLock::new();
+    *SUMMARY.get_or_init(|| {
         let entries = production_generation_snapshot_entries()
             .expect("production generation snapshot entries should exist");
         let boundary_entries = production_generation_boundary_entries()
@@ -3251,7 +3269,35 @@ pub fn production_generation_snapshot_summary() -> Option<ProductionGenerationSn
             }
         }
 
-        ProductionGenerationSnapshotSummary {
+        let mut quarter_day_earliest_epoch = None;
+        let mut quarter_day_latest_epoch = None;
+        let mut quarter_day_epochs = BTreeSet::new();
+        let mut quarter_day_bodies = Vec::new();
+        let mut quarter_day_row_count = 0usize;
+        for entry in boundary_entries {
+            let epoch_days = entry.epoch.julian_day.days();
+            if PRODUCTION_GENERATION_QUARTER_DAY_EPOCHS.contains(&epoch_days) {
+                quarter_day_row_count += 1;
+                quarter_day_epochs.insert(epoch_days.to_bits());
+                quarter_day_earliest_epoch.get_or_insert(entry.epoch);
+                quarter_day_latest_epoch = Some(entry.epoch);
+                if !quarter_day_bodies.contains(&entry.body) {
+                    quarter_day_bodies.push(entry.body.clone());
+                }
+            }
+        }
+        if quarter_day_row_count == 0
+            || quarter_day_epochs.len() != 2
+            || quarter_day_bodies.is_empty()
+        {
+            return None;
+        }
+        let quarter_day_earliest_epoch = quarter_day_earliest_epoch?;
+        let quarter_day_latest_epoch = quarter_day_latest_epoch?;
+        let quarter_day_bodies: &'static [pleiades_backend::CelestialBody] =
+            Box::leak(quarter_day_bodies.into_boxed_slice());
+
+        Some(ProductionGenerationSnapshotSummary {
             row_count: entries.len(),
             body_count: production_generation_snapshot_body_list().len(),
             bodies: production_generation_snapshot_body_list(),
@@ -3264,8 +3310,14 @@ pub fn production_generation_snapshot_summary() -> Option<ProductionGenerationSn
             latest_epoch,
             boundary_earliest_epoch,
             boundary_latest_epoch,
-        }
-    }))
+            quarter_day_row_count,
+            quarter_day_body_count: quarter_day_bodies.len(),
+            quarter_day_bodies,
+            quarter_day_epoch_count: quarter_day_epochs.len(),
+            quarter_day_earliest_epoch,
+            quarter_day_latest_epoch,
+        })
+    })
 }
 
 /// Returns the release-facing production-generation coverage summary string.
@@ -28779,14 +28831,36 @@ mod tests {
             2_378_498.5
         );
         assert_eq!(summary.boundary_latest_epoch.julian_day.days(), 2_634_167.0);
+        assert_eq!(summary.quarter_day_row_count, 8);
+        assert_eq!(summary.quarter_day_body_count, 4);
+        assert_eq!(
+            summary.quarter_day_bodies,
+            &[
+                CelestialBody::Sun,
+                CelestialBody::Moon,
+                CelestialBody::Mercury,
+                CelestialBody::Venus
+            ]
+        );
+        assert_eq!(summary.quarter_day_epoch_count, 2);
+        assert_eq!(
+            summary.quarter_day_earliest_epoch.julian_day.days(),
+            2_451_915.25
+        );
+        assert_eq!(
+            summary.quarter_day_latest_epoch.julian_day.days(),
+            2_451_915.75
+        );
         let reference_bodies = format_bodies(reference_bodies());
         let boundary_bodies = format_bodies(summary.boundary_bodies);
+        let quarter_day_bodies = format_bodies(summary.quarter_day_bodies);
         assert_eq!(
             summary.summary_line(),
             format!(
-                "Production generation coverage: 357 rows across 16 bodies and 31 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); bodies: {}; boundary overlay (Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2451915.5, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2451915.5, 2500000, and 2634167, plus Mercury at 2451915.5, plus Venus at 2451915.5, plus Pluto at 2451545 and 2500000, plus major bodies at 2451915.5 for Sun through Pluto, plus selected asteroids at 2378498.5, 2451545, 2451915.5, 2451917.5, 2453000.5, 2500000, and 2634167; asteroid:99942-Apophis now also appears at 2378498.5 so the selected-asteroid hold-out bridge matches the reference slice; total slice size is 84 rows across 16 bodies and 14 epochs.): 84 rows across 16 bodies and 14 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); boundary bodies: {}",
+                "Production generation coverage: 357 rows across 16 bodies and 31 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); bodies: {}; boundary overlay (Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2451915.5, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2451915.5, 2500000, and 2634167, plus Mercury at 2451915.5, plus Venus at 2451915.5, plus Pluto at 2451545 and 2500000, plus major bodies at 2451915.5 for Sun through Pluto, plus selected asteroids at 2378498.5, 2451545, 2451915.5, 2451917.5, 2453000.5, 2500000, and 2634167; asteroid:99942-Apophis now also appears at 2378498.5 so the selected-asteroid hold-out bridge matches the reference slice; total slice size is 84 rows across 16 bodies and 14 epochs.): 84 rows across 16 bodies and 14 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); boundary bodies: {}; quarter-day boundary samples: 8 rows across 4 bodies and 2 epochs (JD 2451915.25 (TDB)..JD 2451915.75 (TDB)); quarter-day bodies: {}",
                 reference_bodies,
-                boundary_bodies
+                boundary_bodies,
+                quarter_day_bodies
             )
         );
         assert_eq!(summary.to_string(), summary.summary_line());
@@ -28811,6 +28885,22 @@ mod tests {
         assert!(production_generation_source_summary.contains("frame=geocentric ecliptic J2000"));
         assert!(production_generation_source_summary.contains("time scale=TDB"));
         assert!(production_generation_source_summary.contains("parser=pure-Rust and deterministic"));
+    }
+
+    #[test]
+    fn production_generation_snapshot_summary_validation_rejects_quarter_day_drift() {
+        let mut summary = production_generation_snapshot_summary()
+            .expect("production-generation snapshot summary should exist");
+        summary.quarter_day_row_count += 1;
+
+        let error = summary
+            .validate()
+            .expect_err("drifted quarter-day production-generation summary should fail validation");
+
+        assert!(matches!(
+            error,
+            ProductionGenerationSnapshotSummaryValidationError::DerivedSummaryMismatch
+        ));
     }
 
     #[test]
