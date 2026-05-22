@@ -10,7 +10,7 @@ The workspace has broad house and ayanamsa descriptors, baseline calculations, c
 
 ## Implementation goals
 
-- Audit house-system formulas, aliases, latitude/numerical constraints, and failure modes for entries promoted as implemented.
+- Audit house-system formulas, aliases, latitude/numerical constraints, and failure modes for entries promoted as implemented; the release bundle now also carries the house-code-aliases summary alongside the house-formula-families and house-latitude-sensitive audit summaries.
 - Audit ayanamsa epochs, offsets, formulas, aliases, and provenance for entries promoted as implemented.
 - Keep descriptor-only, constrained, approximate, custom-only, and unsupported entries distinct in compatibility profiles.
 - Require release bundles to contain current profiles, validation reports, manifests, checksums, source revisions, tool versions, benchmark summaries, and release notes.
