@@ -16561,6 +16561,9 @@ fn verify_release_bundle_internal(
             manifest.comparison_envelope_summary_checksum, comparison_envelope_summary_checksum
         )));
     }
+    ensure_comparison_envelope_summary_matches_current_rendering(
+        &comparison_envelope_summary_text,
+    )?;
     if manifest.comparison_body_class_tolerance_summary_checksum
         != comparison_body_class_tolerance_summary_checksum
     {
@@ -16569,6 +16572,9 @@ fn verify_release_bundle_internal(
             manifest.comparison_body_class_tolerance_summary_checksum, comparison_body_class_tolerance_summary_checksum
         )));
     }
+    ensure_comparison_body_class_tolerance_summary_matches_current_rendering(
+        &comparison_body_class_tolerance_summary_text,
+    )?;
     if manifest.comparison_body_class_error_envelope_summary_checksum
         != comparison_body_class_error_envelope_summary_checksum
     {
@@ -21125,6 +21131,34 @@ fn render_comparison_envelope_summary_text() -> String {
     format!(
         "Comparison envelope summary\nSummary line: {summary_line}\nPercentile line: {percentile_line}\n"
     )
+}
+
+fn ensure_comparison_envelope_summary_matches_current_rendering(
+    comparison_envelope_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if comparison_envelope_summary_text == render_comparison_envelope_summary_text() {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "comparison envelope summary no longer matches the current comparison envelope posture"
+                .to_string(),
+        ))
+    }
+}
+
+fn ensure_comparison_body_class_tolerance_summary_matches_current_rendering(
+    comparison_body_class_tolerance_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if comparison_body_class_tolerance_summary_text
+        == render_comparison_body_class_tolerance_summary_text()
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "comparison body-class tolerance summary no longer matches the current comparison body-class tolerance posture"
+                .to_string(),
+        ))
+    }
 }
 
 fn validate_release_body_claims_posture(
@@ -36347,6 +36381,32 @@ version = "0.9.0"
             "pleiades-release-bundle-tampered-release-notes-summary",
             "release-notes-summary.txt",
             "release notes summary checksum mismatch",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_semantically_tampered_comparison_envelope_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-semantic-comparison-envelope",
+            "comparison-envelope-summary.txt",
+            "comparison-envelope summary checksum (fnv1a-64):",
+            "Summary line:",
+            "Summary line (tampered):",
+            "comparison envelope summary no longer matches the current comparison envelope posture",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_semantically_tampered_comparison_body_class_tolerance_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-semantic-comparison-body-class-tolerance",
+            "comparison-body-class-tolerance-summary.txt",
+            "comparison-body-class-tolerance summary checksum (fnv1a-64):",
+            "Body-class tolerance posture:",
+            "Body-class tolerance posture (tampered):",
+            "comparison body-class tolerance summary no longer matches the current comparison body-class tolerance posture",
         );
     }
 
