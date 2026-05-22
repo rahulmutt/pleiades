@@ -21461,7 +21461,6 @@ impl BodyDateChannelClaimsSummary {
                 },
             );
         }
-
         Ok(())
     }
 
@@ -23373,6 +23372,8 @@ fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str("JPL production-generation coverage: ");
     text.push_str(&production_generation_snapshot_summary_for_report());
+    text.push('\n');
+    text.push_str(&production_generation_snapshot_window_summary_for_report());
     text.push('\n');
     text.push_str("JPL production-generation body-class coverage: ");
     text.push_str(&validated_production_generation_body_class_coverage_summary_for_report());
@@ -32862,6 +32863,7 @@ mod tests {
         assert!(rendered.contains("VSOP87 canonical mixed TT/TDB batch parity:"));
         assert!(rendered.contains("JPL batch error taxonomy: supported body Ceres; unsupported body Mean Node -> UnsupportedBody; out-of-range Ceres -> OutOfRangeInstant"));
         assert!(rendered.contains("JPL production-generation coverage:"));
+        assert!(rendered.contains("Production generation source windows:"));
         assert!(rendered.contains("JPL production-generation body-class coverage:"));
         assert!(rendered.contains("JPL production-generation corpus shape:"));
         assert!(rendered.contains("JPL source corpus contract:"));
