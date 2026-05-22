@@ -5518,6 +5518,14 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "jpl-source-corpus-contract")?;
             Ok(jpl_source_corpus_contract_summary_for_report())
         }
+        Some("jpl-provenance-only-summary") => {
+            ensure_no_extra_args(&args[1..], "jpl-provenance-only-summary")?;
+            Ok(jpl_provenance_only_summary_for_report())
+        }
+        Some("jpl-provenance-only") => {
+            ensure_no_extra_args(&args[1..], "jpl-provenance-only")?;
+            Ok(jpl_provenance_only_summary_for_report())
+        }
         Some("production-generation-boundary-summary") => {
             ensure_no_extra_args(&args[1..], "production-generation-boundary-summary")?;
             Ok(production_generation_boundary_summary_for_report())
@@ -24412,7 +24420,7 @@ fn help_text() -> String {
   release-ayanamsa-canonical-names-summary  Print the compact release-specific ayanamsa canonical names summary
   release-ayanamsa-canonical-names  Alias for release-ayanamsa-canonical-names-summary
   profile-summary           Alias for compatibility-profile-summary
-  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  release-notes             Print the release compatibility notes\n  release-notes-summary     Print the compact release notes summary\n  release-checklist         Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  release-smoke            Run the release smoke checks and render the short smoke report\n  release-gate              Run the release gate checks and render the release checklist\n  release-gate-summary      Run the release gate checks and render the compact release checklist summary\n  checklist-summary        Alias for release-checklist-summary\n  release-summary           Print the compact release summary\n  source-corpus-summary     Print the consolidated source corpus summary\n  source-corpus             Alias for source-corpus-summary\n  jpl-batch-error-taxonomy-summary  Print the compact JPL batch error taxonomy summary\n  jpl-snapshot-evidence-summary  Print the compact combined JPL evidence summary\n  jpl-source-corpus-contract-summary  Print the compact JPL source corpus contract summary\n  jpl-source-corpus-contract  Alias for jpl-source-corpus-contract-summary\n  production-generation-boundary-summary  Print the compact production-generation boundary overlay summary\n  production-generation-boundary-request-corpus-summary  Print the compact production-generation boundary request corpus summary\n  production-generation-boundary-request-corpus  Alias for production-generation-boundary-request-corpus-summary\n  production-generation-boundary-request-corpus-equatorial-summary  Print the compact production-generation boundary request corpus summary in the equatorial frame\n  production-generation-boundary-request-corpus-equatorial  Alias for production-generation-boundary-request-corpus-equatorial-summary\n  production-generation-body-class-coverage-summary  Print the compact production-generation body-class coverage summary\n  production-body-class-coverage-summary  Alias for production-generation-body-class-coverage-summary\n  production-generation-source-window-summary  Print the compact production-generation source windows summary\n  production-generation-source-window  Alias for production-generation-source-window-summary\n  production-generation-corpus-shape-summary  Print the compact production-generation corpus shape summary\n  production-generation-corpus-shape  Alias for production-generation-corpus-shape-summary\n  production-generation-summary  Print the compact production-generation coverage summary
+  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  release-notes             Print the release compatibility notes\n  release-notes-summary     Print the compact release notes summary\n  release-checklist         Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  release-smoke            Run the release smoke checks and render the short smoke report\n  release-gate              Run the release gate checks and render the release checklist\n  release-gate-summary      Run the release gate checks and render the compact release checklist summary\n  checklist-summary        Alias for release-checklist-summary\n  release-summary           Print the compact release summary\n  source-corpus-summary     Print the consolidated source corpus summary\n  source-corpus             Alias for source-corpus-summary\n  jpl-batch-error-taxonomy-summary  Print the compact JPL batch error taxonomy summary\n  jpl-snapshot-evidence-summary  Print the compact combined JPL evidence summary\n  jpl-source-corpus-contract-summary  Print the compact JPL source corpus contract summary\n  jpl-source-corpus-contract  Alias for jpl-source-corpus-contract-summary\n  jpl-provenance-only-summary  Print the compact JPL provenance-only evidence summary\n  jpl-provenance-only  Alias for jpl-provenance-only-summary\n  production-generation-boundary-summary  Print the compact production-generation boundary overlay summary\n  production-generation-boundary-request-corpus-summary  Print the compact production-generation boundary request corpus summary\n  production-generation-boundary-request-corpus  Alias for production-generation-boundary-request-corpus-summary\n  production-generation-boundary-request-corpus-equatorial-summary  Print the compact production-generation boundary request corpus summary in the equatorial frame\n  production-generation-boundary-request-corpus-equatorial  Alias for production-generation-boundary-request-corpus-equatorial-summary\n  production-generation-body-class-coverage-summary  Print the compact production-generation body-class coverage summary\n  production-body-class-coverage-summary  Alias for production-generation-body-class-coverage-summary\n  production-generation-source-window-summary  Print the compact production-generation source windows summary\n  production-generation-source-window  Alias for production-generation-source-window-summary\n  production-generation-corpus-shape-summary  Print the compact production-generation corpus shape summary\n  production-generation-corpus-shape  Alias for production-generation-corpus-shape-summary\n  production-generation-summary  Print the compact production-generation coverage summary
   production-generation           Alias for production-generation-summary
   production-generation-boundary-source-summary  Print the compact production-generation boundary source summary
   production-generation-boundary-source  Alias for production-generation-boundary-source-summary
@@ -24850,16 +24858,19 @@ mod tests {
     use super::*;
     use pleiades_jpl::comparison_bodies;
     use std::path::Path;
+    use std::sync::atomic::{AtomicU64, Ordering};
 
     fn unique_temp_dir(prefix: &str) -> std::path::PathBuf {
+        static NEXT_ID: AtomicU64 = AtomicU64::new(0);
         let unique = format!(
-            "{}-{}-{}",
+            "{}-{}-{}-{}",
             prefix,
             std::process::id(),
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .expect("system clock should be after UNIX_EPOCH")
-                .as_nanos()
+                .as_nanos(),
+            NEXT_ID.fetch_add(1, Ordering::Relaxed),
         );
         let path = std::env::temp_dir().join(unique);
         let _ = std::fs::remove_dir_all(&path);
@@ -27841,6 +27852,8 @@ mod tests {
         ));
         assert!(rendered.contains("benchmark-corpus-summary"));
         assert!(rendered.contains("interpolation-quality-request-corpus-summary"));
+        assert!(rendered.contains("jpl-provenance-only-summary"));
+        assert!(rendered.contains("jpl-provenance-only  Alias for jpl-provenance-only-summary"));
         assert!(rendered.contains("report [--rounds N]"));
         assert!(rendered.contains("generate-report"));
         assert!(rendered.contains("validation-report-summary [--rounds N]"));
@@ -40141,7 +40154,28 @@ version = "0.9.0"
         assert!(rendered.contains("provenance-only=source and manifest summaries are provenance-only evidence; they validate corpus provenance and checksum posture but are excluded from tolerance, hold-out, and fixture-exactness claims"));
         assert!(rendered.contains("release-grade body claims=Moon and supported lunar points (Mean Node, True Node, Mean Apogee, Mean Perigee) remain source-backed validation bodies; True Apogee and True Perigee remain unsupported; Sun through Neptune are release-grade major-body claims; Pluto remains an explicitly approximate fallback; selected asteroids (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) remain source-backed validation bodies"));
         assert!(rendered.contains("body-date-channel claims=bodies=Moon and supported lunar points (Mean Node, True Node, Mean Apogee, Mean Perigee) remain source-backed validation bodies; True Apogee and True Perigee remain unsupported; Sun through Neptune are release-grade major-body claims; Pluto remains an explicitly approximate fallback; selected asteroids (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) remain source-backed validation bodies; corpus shape=Production generation corpus shape:"));
-        assert!(!rendered.contains("JPL source corpus contract: JPL source corpus contract:"));
+        assert!(rendered.contains(
+            "provenance-only=source and manifest summaries are provenance-only evidence"
+        ));
+        assert_eq!(
+            render_cli(&["jpl-provenance-only-summary"])
+                .expect("JPL provenance-only summary should render"),
+            pleiades_jpl::jpl_provenance_only_summary_for_report()
+        );
+        assert_eq!(
+            render_cli(&["jpl-provenance-only"]).expect("JPL provenance-only alias should render"),
+            pleiades_jpl::jpl_provenance_only_summary_for_report()
+        );
+        assert_eq!(
+            render_cli(&["jpl-provenance-only-summary", "extra"])
+                .expect_err("JPL provenance-only summary should reject extra arguments"),
+            "jpl-provenance-only-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["jpl-provenance-only", "extra"])
+                .expect_err("JPL provenance-only alias should reject extra arguments"),
+            "jpl-provenance-only does not accept extra arguments"
+        );
         assert_eq!(
             render_cli(&["source-corpus"]).expect("source corpus alias should render"),
             rendered
