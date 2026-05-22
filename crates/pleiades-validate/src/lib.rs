@@ -21050,6 +21050,7 @@ fn validate_release_body_claims_posture(
 struct BodyDateChannelClaimsSummary {
     release_body_claims: String,
     frame_policy: String,
+    production_generation_coverage: String,
     corpus_shape: String,
 }
 
@@ -21074,8 +21075,11 @@ impl std::error::Error for BodyDateChannelClaimsSummaryValidationError {}
 impl BodyDateChannelClaimsSummary {
     fn summary_line(&self) -> String {
         format!(
-            "bodies={}; frame policy={}; corpus shape={}",
-            self.release_body_claims, self.frame_policy, self.corpus_shape
+            "bodies={}; frame policy={}; production generation coverage={}; corpus shape={}",
+            self.release_body_claims,
+            self.frame_policy,
+            self.production_generation_coverage,
+            self.corpus_shape
         )
     }
 
@@ -21097,6 +21101,13 @@ impl BodyDateChannelClaimsSummary {
             return Err(
                 BodyDateChannelClaimsSummaryValidationError::FieldOutOfSync {
                     field: "frame_policy",
+                },
+            );
+        }
+        if self.production_generation_coverage != expected.production_generation_coverage {
+            return Err(
+                BodyDateChannelClaimsSummaryValidationError::FieldOutOfSync {
+                    field: "production_generation_coverage",
                 },
             );
         }
@@ -21125,6 +21136,7 @@ fn body_date_channel_claims_summary_details() -> Option<BodyDateChannelClaimsSum
             .ok()?
             .to_string(),
         frame_policy: validated_frame_policy_summary_for_report(),
+        production_generation_coverage: production_generation_snapshot_summary_for_report(),
         corpus_shape: validated_production_generation_corpus_shape_summary_for_report().ok()?,
     })
 }
@@ -40251,6 +40263,8 @@ version = "0.9.0"
         assert!(body_date_channel_claims_summary.contains("Body/date/channel claims: bodies="));
         assert!(body_date_channel_claims_summary
             .contains("frame policy=ecliptic body positions are the default request shape"));
+        assert!(body_date_channel_claims_summary
+            .contains("production generation coverage=Production generation coverage:"));
         assert_eq!(
             render_cli(&["body-date-channel-claims"])
                 .expect("body/date/channel claims alias should render"),
@@ -40282,6 +40296,19 @@ version = "0.9.0"
         assert_eq!(
             error.to_string(),
             "the body/date/channel claims summary field `frame_policy` is out of sync with the current posture"
+        );
+
+        let mut body_date_channel_claims = body_date_channel_claims_summary_details()
+            .expect("body/date/channel claims should exist");
+        body_date_channel_claims
+            .production_generation_coverage
+            .push_str(" drifted");
+        let error = body_date_channel_claims
+            .validated_summary_line()
+            .expect_err("production generation coverage drift should fail closed");
+        assert_eq!(
+            error.to_string(),
+            "the body/date/channel claims summary field `production_generation_coverage` is out of sync with the current posture"
         );
 
         let pluto_fallback_summary =
@@ -41348,7 +41375,11 @@ version = "0.9.0"
         assert!(rendered.contains("evidence classification=release-tolerance=reference/comparison/production-generation validation summaries; hold-out=independent hold-out rows and interpolation-quality summaries; fixture exactness=reference snapshot exact J2000 evidence; provenance-only=source and manifest summaries"));
         assert!(rendered.contains("provenance-only=source and manifest summaries are provenance-only evidence; they validate corpus provenance and checksum posture but are excluded from tolerance, hold-out, and fixture-exactness claims"));
         assert!(rendered.contains("release-grade body claims=Moon and supported lunar points (Mean Node, True Node, Mean Apogee, Mean Perigee) remain source-backed validation bodies; True Apogee and True Perigee remain unsupported; Sun through Neptune are release-grade major-body claims; Pluto remains an explicitly approximate fallback; selected asteroids (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) remain source-backed validation bodies"));
-        assert!(rendered.contains("body-date-channel claims=bodies=Moon and supported lunar points (Mean Node, True Node, Mean Apogee, Mean Perigee) remain source-backed validation bodies; True Apogee and True Perigee remain unsupported; Sun through Neptune are release-grade major-body claims; Pluto remains an explicitly approximate fallback; selected asteroids (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) remain source-backed validation bodies; frame policy=ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported; supported equatorial precision is bounded by the shared mean-obliquity frame round-trip envelope; native sidereal backend output remains unsupported unless a backend explicitly advertises it; corpus shape=Production generation corpus shape:"));
+        assert!(rendered.contains("production generation coverage=Production generation coverage:"));
+        assert!(rendered.contains(
+            "equatorial output is backend-specific and derived via mean-obliquity transforms when supported"
+        ));
+        assert!(rendered.contains("corpus shape=Production generation corpus shape:"));
         assert!(rendered.contains(
             "provenance-only=source and manifest summaries are provenance-only evidence"
         ));
