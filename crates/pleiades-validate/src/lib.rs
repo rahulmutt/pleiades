@@ -15799,6 +15799,7 @@ fn verify_release_bundle_internal(
     }
 
     ensure_release_profile_line_alignment("release notes", &release_notes_text, profile_id)?;
+    ensure_release_notes_matches_current_rendering(&release_notes_text)?;
     ensure_release_profile_summary_alignment(
         "release notes summary",
         &release_notes_summary_text,
@@ -17293,6 +17294,18 @@ fn ensure_release_profile_identifiers_summary_matches_current_rendering(
         Err(ReleaseBundleError::Verification(
             "release-profile identifiers summary no longer matches the current release-profile identifiers posture"
                 .to_string(),
+        ))
+    }
+}
+
+fn ensure_release_notes_matches_current_rendering(
+    release_notes_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if release_notes_text.trim_end() == render_release_notes_text().trim_end() {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "release notes no longer matches the current release notes posture".to_string(),
         ))
     }
 }
@@ -35151,6 +35164,18 @@ version = "0.9.0"
             "Release summary",
             "Tampered release summary",
             "release summary no longer matches the current release summary posture",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_semantically_tampered_release_notes_file() {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-semantic-release-notes",
+            "release-notes.txt",
+            "release notes checksum (fnv1a-64):",
+            "Release notes",
+            "Tampered release notes",
+            "release notes no longer matches the current release notes posture",
         );
     }
 
