@@ -192,7 +192,14 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("production-generation-body-class-coverage-summary")
         | Some("production-body-class-coverage-summary") => validate_render_cli(args),
-        Some("production-generation-source-window-summary") => validate_render_cli(args),
+        Some("production-generation-source-window-summary") => {
+            ensure_no_extra_args(&args[1..], "production-generation-source-window-summary")?;
+            Ok(pleiades_jpl::production_generation_snapshot_window_summary_for_report())
+        }
+        Some("production-generation-source-window") => {
+            ensure_no_extra_args(&args[1..], "production-generation-source-window")?;
+            Ok(pleiades_jpl::production_generation_snapshot_window_summary_for_report())
+        }
         Some("production-generation") | Some("production-generation-summary") => {
             validate_render_cli(args)
         }
@@ -2969,7 +2976,7 @@ mod tests {
             "Manual bundle workflow: {} items",
             release_checklist_summary_details.manual_bundle_workflow_items
         )));
-        assert!(release_checklist_summary.contains("Bundle contents: 19 items"));
+        assert!(release_checklist_summary.contains("Bundle contents: 21 items"));
         assert!(release_checklist_summary.contains("External publishing reminders: 3 items"));
         assert!(release_checklist_summary
             .contains("See release-summary for the compact one-screen release overview."));
@@ -3543,6 +3550,22 @@ mod tests {
         assert_eq!(
             production_generation_source_window_summary,
             pleiades_jpl::production_generation_snapshot_window_summary_for_report()
+        );
+        assert_eq!(
+            production_generation_source_window_summary,
+            super::validate_render_cli(&["production-generation-source-window-summary"])
+                .expect("validation production generation source window summary should render")
+        );
+        assert_eq!(
+            render_cli(&["production-generation-source-window"])
+                .expect("production generation source window alias should render"),
+            production_generation_source_window_summary
+        );
+        assert_eq!(
+            render_cli(&["production-generation-source-window", "extra"]).expect_err(
+                "production generation source window alias should reject extra arguments"
+            ),
+            "production-generation-source-window does not accept extra arguments"
         );
         let production_generation_source_revision_summary =
             render_cli(&["production-generation-source-revision-summary"])
