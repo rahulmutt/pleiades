@@ -23,3 +23,5 @@ Progress update: the production-generation boundary-request corpus parity check 
 - Validation commands can identify the corpus version and reproduce checksums from a clean checkout.
 - Hold-out samples exercise the same release bodies and channels as the fitting corpus without being consumed by fitting.
 - Release profiles and backend matrices cannot claim broader body/date/channel support than the corpus validates.
+
+Progress update: the production-generation boundary overlay now also has a direct `production-generation-boundary` alias, and the boundary request-corpus command now also has a direct CLI alias, keeping the compact corpus shortcuts aligned across the validate and CLI front-ends.

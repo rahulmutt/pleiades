@@ -184,8 +184,11 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("jpl-provenance-only-summary") | Some("jpl-provenance-only") => {
             validate_render_cli(args)
         }
-        Some("production-generation-boundary-summary") => validate_render_cli(args),
-        Some("production-generation-boundary-request-corpus-summary") => validate_render_cli(args),
+        Some("production-generation-boundary-summary") | Some("production-generation-boundary") => {
+            validate_render_cli(args)
+        }
+        Some("production-generation-boundary-request-corpus-summary")
+        | Some("production-generation-boundary-request-corpus") => validate_render_cli(args),
         Some("production-generation-boundary-request-corpus-equatorial-summary")
         | Some("production-generation-boundary-request-corpus-equatorial") => {
             validate_render_cli(args)
@@ -3469,6 +3472,15 @@ mod tests {
             production_generation_boundary_summary,
             pleiades_jpl::production_generation_boundary_summary_for_report()
         );
+        assert_eq!(
+            render_cli(&["production-generation-boundary"])
+                .expect("production generation boundary alias should render"),
+            pleiades_jpl::production_generation_boundary_summary_for_report()
+        );
+        assert_eq!(
+            render_cli(&["production-generation-boundary", "extra"]).unwrap_err(),
+            "production-generation-boundary-summary does not accept extra arguments"
+        );
         let production_generation_summary = render_cli(&["production-generation-summary"])
             .expect("production generation summary should render");
         assert!(production_generation_summary.contains("Production generation coverage:"));
@@ -3521,6 +3533,15 @@ mod tests {
         assert_eq!(
             production_generation_boundary_request_corpus_summary,
             pleiades_jpl::production_generation_boundary_request_corpus_summary_for_report()
+        );
+        assert_eq!(
+            render_cli(&["production-generation-boundary-request-corpus"])
+                .expect("production generation boundary request corpus alias should render"),
+            pleiades_jpl::production_generation_boundary_request_corpus_summary_for_report()
+        );
+        assert_eq!(
+            render_cli(&["production-generation-boundary-request-corpus", "extra"]).unwrap_err(),
+            "production-generation-boundary-request-corpus-summary does not accept extra arguments"
         );
         let production_generation_boundary_request_corpus_equatorial_summary =
             render_cli(&["production-generation-boundary-request-corpus-equatorial-summary"])
@@ -6830,6 +6851,9 @@ mod tests {
         ));
         assert!(help.contains(
             "production-generation-boundary-summary  Print the compact production-generation boundary overlay summary"
+        ));
+        assert!(help.contains(
+            "production-generation-boundary         Alias for production-generation-boundary-summary"
         ));
         assert!(help.contains(
             "production-generation-quarter-day-boundary-summary  Print the compact production-generation quarter-day boundary samples summary"
