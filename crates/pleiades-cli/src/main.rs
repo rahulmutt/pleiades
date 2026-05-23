@@ -324,7 +324,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("reference-snapshot-2451915-major-body-boundary-summary")
         | Some("2451915-major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-2451917-major-body-bridge-summary")
-        | Some("2451917-major-body-bridge-summary") => validate_render_cli(args),
+        | Some("2451917-major-body-bridge-summary")
+        | Some("2451917-major-body-bridge") => validate_render_cli(args),
         Some("reference-snapshot-2451917-major-body-boundary-summary")
         | Some("2451917-major-body-boundary-summary") => validate_render_cli(args),
         Some("reference-snapshot-2451918-major-body-boundary-summary")
@@ -338,9 +339,11 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("reference-snapshot-2451914-bridge-day-summary")
         | Some("2451914-bridge-day-summary") => validate_render_cli(args),
         Some("reference-snapshot-2451914-major-body-bridge-summary")
-        | Some("2451914-major-body-bridge-summary") => validate_render_cli(args),
+        | Some("2451914-major-body-bridge-summary")
+        | Some("2451914-major-body-bridge") => validate_render_cli(args),
         Some("reference-snapshot-2451915-major-body-bridge-summary")
-        | Some("2451915-major-body-bridge-summary") => {
+        | Some("2451915-major-body-bridge-summary")
+        | Some("2451915-major-body-bridge") => {
             ensure_no_extra_args(
                 &args[1..],
                 "reference-snapshot-2451915-major-body-bridge-summary",
@@ -546,6 +549,14 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("reference-snapshot-selected-asteroid-terminal-boundary-summary")
         | Some("selected-asteroid-terminal-boundary-summary") => validate_render_cli(args),
         Some("selected-asteroid-source-evidence-summary") => validate_render_cli(args),
+        Some("reference-snapshot-2378498-selected-asteroid-source-summary")
+        | Some("2378498-selected-asteroid-source-summary") => {
+            ensure_no_extra_args(
+                &args[1..],
+                "reference-snapshot-2378498-selected-asteroid-source-summary",
+            )?;
+            Ok(pleiades_jpl::selected_asteroid_source_2378498_summary_for_report())
+        }
         Some("reference-snapshot-2451917-selected-asteroid-source-summary")
         | Some("2451917-selected-asteroid-source-summary") => validate_render_cli(args),
         Some("reference-snapshot-selected-asteroid-source-summary")
@@ -2383,6 +2394,11 @@ mod tests {
                 .expect("2451914 bridge-day alias should render"),
             bridge_day
         );
+        assert_eq!(
+            render_cli(&["2451914-major-body-bridge"])
+                .expect("2451914 concise bridge alias should render"),
+            bridge_day
+        );
 
         let bridge_2451915 = render_cli(&["reference-snapshot-2451915-major-body-bridge-summary"])
             .expect("2451915 bridge summary should render");
@@ -2392,6 +2408,11 @@ mod tests {
             render_cli(&["2451915-major-body-bridge-summary"])
                 .expect("2451915 bridge alias should render"),
             pleiades_jpl::reference_snapshot_2451915_major_body_bridge_summary_for_report()
+        );
+        assert_eq!(
+            render_cli(&["2451915-major-body-bridge"])
+                .expect("2451915 concise bridge alias should render"),
+            bridge_2451915
         );
         assert_eq!(
             render_cli(&["bridge-summary"]).expect("bridge alias should render"),
@@ -2444,6 +2465,11 @@ mod tests {
         assert_eq!(
             render_cli(&["2451917-major-body-bridge-summary"])
                 .expect("2451917 major-body bridge alias should render"),
+            bridge_2451917
+        );
+        assert_eq!(
+            render_cli(&["2451917-major-body-bridge"])
+                .expect("2451917 concise major-body bridge alias should render"),
             bridge_2451917
         );
     }
@@ -4695,6 +4721,27 @@ mod tests {
             render_cli(&["reference-snapshot-selected-asteroid-source-summary"])
                 .expect("reference snapshot selected asteroid source summary alias should render"),
             selected_asteroid_source_evidence_summary
+        );
+
+        let selected_asteroid_source_2378498_summary =
+            render_cli(&["reference-snapshot-2378498-selected-asteroid-source-summary"])
+                .expect("reference selected asteroid 2378498 source summary should render");
+        assert!(selected_asteroid_source_2378498_summary.contains("2378498.5"));
+        assert_eq!(
+            selected_asteroid_source_2378498_summary,
+            pleiades_jpl::selected_asteroid_source_2378498_summary_for_report()
+        );
+        assert_eq!(
+            render_cli(&["2378498-selected-asteroid-source-summary"])
+                .expect("selected asteroid 2378498 source summary alias should render"),
+            selected_asteroid_source_2378498_summary
+        );
+        assert_eq!(
+            render_cli(&["2378498-selected-asteroid-source-summary", "extra"])
+                .expect_err(
+                    "selected asteroid 2378498 source summary alias should reject extra arguments"
+                ),
+            "reference-snapshot-2378498-selected-asteroid-source-summary does not accept extra arguments"
         );
 
         let selected_asteroid_source_request_corpus_summary =
