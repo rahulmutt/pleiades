@@ -21250,6 +21250,7 @@ struct SourceCorpusSummary {
     reference_snapshot_exact_j2000_evidence: String,
     reference_snapshot_equatorial_parity: String,
     reference_snapshot_body_class_coverage: String,
+    reference_snapshot_manifest: String,
     independent_holdout_body_class_coverage: String,
     release_grade_body_claims: String,
     body_date_channel_claims: String,
@@ -21277,7 +21278,7 @@ impl std::error::Error for SourceCorpusSummaryValidationError {}
 impl SourceCorpusSummary {
     fn summary_line(&self) -> String {
         format!(
-            "comparison corpus release-grade guard: {}; JPL source corpus contract: {}; evidence classification={}; provenance-only={}; lunar source windows={}; shared schema={}; generation command={}; production generation source={}; production generation source revision={}; production generation coverage={}; production generation source windows={}; production generation date range={}; production generation quarter-day boundary samples={}; coverage posture={}; production generation boundary source={}; production generation boundary request corpus={}; production generation boundary request corpus equatorial={}; reference snapshot sparse boundary={}; reference snapshot exact J2000 evidence={}; reference snapshot equatorial parity={}; reference snapshot body-class coverage={}; independent-holdout body-class coverage={}; release-grade body claims={}; body-date-channel claims={}; phase-2 corpus alignment: {}",
+            "comparison corpus release-grade guard: {}; JPL source corpus contract: {}; evidence classification={}; provenance-only={}; lunar source windows={}; shared schema={}; generation command={}; production generation source={}; production generation source revision={}; production generation coverage={}; production generation source windows={}; production generation date range={}; production generation quarter-day boundary samples={}; coverage posture={}; production generation boundary source={}; production generation boundary request corpus={}; production generation boundary request corpus equatorial={}; reference snapshot sparse boundary={}; reference snapshot exact J2000 evidence={}; reference snapshot equatorial parity={}; reference snapshot body-class coverage={}; reference snapshot manifest={}; independent-holdout body-class coverage={}; release-grade body claims={}; body-date-channel claims={}; phase-2 corpus alignment: {}",
             self.comparison_corpus_release_grade_guard,
             self.jpl_source_corpus_contract,
             self.jpl_evidence_classification,
@@ -21299,6 +21300,7 @@ impl SourceCorpusSummary {
             self.reference_snapshot_exact_j2000_evidence,
             self.reference_snapshot_equatorial_parity,
             self.reference_snapshot_body_class_coverage,
+            self.reference_snapshot_manifest,
             self.independent_holdout_body_class_coverage,
             self.release_grade_body_claims,
             self.body_date_channel_claims,
@@ -21438,6 +21440,11 @@ impl SourceCorpusSummary {
                 field: "reference_snapshot_body_class_coverage",
             });
         }
+        if self.reference_snapshot_manifest != expected.reference_snapshot_manifest {
+            return Err(SourceCorpusSummaryValidationError::FieldOutOfSync {
+                field: "reference_snapshot_manifest",
+            });
+        }
         if self.independent_holdout_body_class_coverage
             != expected.independent_holdout_body_class_coverage
         {
@@ -21526,6 +21533,12 @@ fn source_corpus_summary_details() -> Option<SourceCorpusSummary> {
         "reference snapshot body-class coverage",
     )
     .ok()?;
+    let reference_snapshot_manifest = required_summary_payload(
+        reference_snapshot_manifest_summary_for_report(),
+        "Reference snapshot manifest: ",
+        "reference snapshot manifest",
+    )
+    .ok()?;
     let independent_holdout_body_class_coverage = required_summary_payload(
         independent_holdout_snapshot_body_class_coverage_summary_for_report(),
         "Independent hold-out body-class coverage: ",
@@ -21600,6 +21613,7 @@ fn source_corpus_summary_details() -> Option<SourceCorpusSummary> {
         reference_snapshot_exact_j2000_evidence,
         reference_snapshot_equatorial_parity,
         reference_snapshot_body_class_coverage,
+        reference_snapshot_manifest,
         independent_holdout_body_class_coverage,
         release_grade_body_claims,
         body_date_channel_claims: body_date_channel_claims_summary_details()?
@@ -42807,6 +42821,15 @@ version = "0.9.0"
         ));
         assert!(rendered.contains("reference snapshot equatorial parity=349 rows across 16 bodies and 29 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB))"));
         assert!(rendered.contains("reference snapshot body-class coverage=major bodies: 254 rows across 10 bodies and 29 epochs"));
+        let reference_snapshot_manifest = required_summary_payload(
+            reference_snapshot_manifest_summary_for_report(),
+            "Reference snapshot manifest: ",
+            "reference snapshot manifest",
+        )
+        .expect("reference snapshot manifest payload should be available");
+        assert!(rendered.contains(&format!(
+            "reference snapshot manifest={reference_snapshot_manifest}"
+        )));
         assert!(rendered.contains(
             "independent-holdout body-class coverage=84 rows across 16 bodies and 14 epochs"
         ));
@@ -43139,6 +43162,18 @@ version = "0.9.0"
         assert_eq!(
             error.to_string(),
             "the source corpus summary field `reference_snapshot_body_class_coverage` is out of sync with the current posture"
+        );
+
+        let mut summary =
+            source_corpus_summary_details().expect("source corpus summary should exist");
+        summary.reference_snapshot_manifest = "Reference snapshot manifest: drifted".to_string();
+
+        let error = summary
+            .validated_summary_line()
+            .expect_err("reference snapshot manifest drift should fail closed");
+        assert_eq!(
+            error.to_string(),
+            "the source corpus summary field `reference_snapshot_manifest` is out of sync with the current posture"
         );
 
         let mut summary =
