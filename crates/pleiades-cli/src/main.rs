@@ -181,6 +181,9 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("jpl-source-posture-summary") | Some("jpl-source-posture") => {
             validate_render_cli(args)
         }
+        Some("jpl-provenance-only-summary") | Some("jpl-provenance-only") => {
+            validate_render_cli(args)
+        }
         Some("production-generation-boundary-summary") => validate_render_cli(args),
         Some("production-generation-boundary-request-corpus-summary") => validate_render_cli(args),
         Some("production-generation-boundary-request-corpus-equatorial-summary")
@@ -3368,6 +3371,32 @@ mod tests {
             render_cli(&["jpl-source-posture", "extra"])
                 .expect_err("JPL source posture alias should reject extra arguments"),
             "jpl-source-posture-summary does not accept extra arguments"
+        );
+
+        let jpl_provenance_only_summary = render_cli(&["jpl-provenance-only-summary"])
+            .expect("JPL provenance-only summary should render");
+        assert_eq!(
+            jpl_provenance_only_summary,
+            pleiades_jpl::jpl_provenance_only_summary_for_report()
+        );
+        assert_eq!(
+            jpl_provenance_only_summary,
+            render_cli(&["jpl-provenance-only"]).expect("JPL provenance-only alias should render")
+        );
+        assert_eq!(
+            jpl_provenance_only_summary,
+            super::validate_render_cli(&["jpl-provenance-only-summary"])
+                .expect("validation JPL provenance-only summary should render")
+        );
+        assert_eq!(
+            render_cli(&["jpl-provenance-only-summary", "extra"])
+                .expect_err("JPL provenance-only summary should reject extra arguments"),
+            "jpl-provenance-only-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["jpl-provenance-only", "extra"])
+                .expect_err("JPL provenance-only alias should reject extra arguments"),
+            "jpl-provenance-only does not accept extra arguments"
         );
 
         let source_corpus_summary =
