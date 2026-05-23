@@ -866,6 +866,37 @@ impl ChartRequest {
     /// - the current zodiac mode, apparentness, body count, and house-system
     ///   selection stay visible in a single line.
     ///
+    /// # Example
+    ///
+    /// ```
+    /// use core::time::Duration;
+    /// use pleiades_core::ChartRequest;
+    /// use pleiades_types::{HouseSystem, Instant, JulianDay, Latitude, Longitude, ObserverLocation, TimeScale};
+    ///
+    /// let request = ChartRequest::new(Instant::new(
+    ///     JulianDay::from_days(2_451_545.0),
+    ///     TimeScale::Utc,
+    /// ))
+    /// .with_observer(ObserverLocation::new(
+    ///     Latitude::from_degrees(51.5),
+    ///     Longitude::from_degrees(-0.1),
+    ///     None,
+    /// ))
+    /// .with_body_observer(ObserverLocation::new(
+    ///     Latitude::from_degrees(-33.9),
+    ///     Longitude::from_degrees(151.2),
+    ///     None,
+    /// ))
+    /// .with_house_system(HouseSystem::WholeSign)
+    /// .with_tt_from_utc(Duration::from_secs_f64(64.184))
+    /// .expect("explicit UTC to TT conversion");
+    ///
+    /// let summary = request.summary_line();
+    /// assert!(summary.contains("observer=house-only"));
+    /// assert!(summary.contains("body observer=latitude=-33.9°"));
+    /// assert!(summary.contains("house system=Whole Sign"));
+    /// ```
+    ///
     /// [`fmt::Display`] renders the same text as this helper.
     pub fn summary_line(&self) -> String {
         let house_system = self
@@ -1231,6 +1262,33 @@ impl ChartSnapshot {
     /// body-position observer locations, when present, are rendered separately
     /// from the observer policy so the geocentric-versus-house-only split
     /// stays explicit.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use pleiades_core::{Apparentness, BackendId, ChartSnapshot};
+    /// use pleiades_types::{Instant, JulianDay, Latitude, Longitude, ObserverLocation, TimeScale, ZodiacMode};
+    ///
+    /// let snapshot = ChartSnapshot {
+    ///     backend_id: BackendId::new("demo"),
+    ///     instant: Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt),
+    ///     observer: None,
+    ///     body_observer: Some(ObserverLocation::new(
+    ///         Latitude::from_degrees(-33.9),
+    ///         Longitude::from_degrees(151.2),
+    ///         None,
+    ///     )),
+    ///     zodiac_mode: ZodiacMode::Tropical,
+    ///     apparentness: Apparentness::Mean,
+    ///     houses: None,
+    ///     placements: Vec::new(),
+    /// };
+    ///
+    /// let summary = snapshot.summary_line();
+    /// assert!(summary.contains("backend=demo"));
+    /// assert!(summary.contains("body observer=latitude=-33.9°"));
+    /// assert!(summary.contains("house system=none"));
+    /// ```
     pub fn summary_line(&self) -> String {
         let house_system = self.houses.as_ref().map_or_else(
             || "none".to_string(),
@@ -3757,6 +3815,7 @@ mod tests {
 
         assert_eq!(chart.body_observer, request.body_observer);
         assert_eq!(chart.observer, request.observer);
+        assert!(chart.summary_line().contains("observer=geocentric"));
         assert!(chart.summary_line().contains("body observer=latitude=35°"));
         let observers = observers.lock().expect("observer log should be lockable");
         assert_eq!(observers.as_slice(), &[Some(body_observer)]);
