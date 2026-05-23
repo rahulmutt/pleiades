@@ -531,7 +531,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("selected-asteroid-source-window") => validate_render_cli(args),
         Some("selected-asteroid-batch-parity-summary") => validate_render_cli(args),
         Some("reference-asteroid-evidence-summary") => validate_render_cli(args),
-        Some("reference-asteroid-equatorial-evidence-summary") => validate_render_cli(args),
+        Some("reference-asteroid-equatorial-evidence-summary")
+        | Some("reference-asteroid-equatorial-evidence") => validate_render_cli(args),
         Some("reference-asteroid-source-window-summary") => validate_render_cli(args),
         Some("reference-asteroid-source-summary") => validate_render_cli(args),
         Some("reference-holdout-overlap-summary") => validate_render_cli(args),
@@ -2608,7 +2609,7 @@ mod tests {
         assert!(backend_matrix.contains("Reference snapshot dense boundary day:"));
         assert!(backend_matrix.contains("Reference major-body bridge evidence:"));
         assert!(backend_matrix.contains("Selected asteroid bridge evidence:"));
-        assert!(backend_matrix.contains("JPL source corpus contract: JPL source corpus contract:"));
+        assert!(backend_matrix.contains("JPL source corpus contract: JPL evidence classification:"));
         assert!(backend_matrix.contains("Release notes summary: release-notes-summary"));
         assert!(backend_matrix
             .contains("Compatibility profile verification: verify-compatibility-profile"));
@@ -4573,6 +4574,11 @@ mod tests {
         assert_eq!(
             reference_asteroid_equatorial_evidence_summary,
             pleiades_jpl::reference_asteroid_equatorial_evidence_summary_for_report()
+        );
+        assert_eq!(
+            render_cli(&["reference-asteroid-equatorial-evidence"])
+                .expect("reference asteroid equatorial evidence alias should render"),
+            reference_asteroid_equatorial_evidence_summary
         );
         let reference_asteroid_source_window_summary =
             render_cli(&["reference-asteroid-source-window-summary"])
@@ -7043,6 +7049,7 @@ mod tests {
             "reference-asteroid-evidence-summary  Print the compact reference asteroid evidence summary"
         ));
         assert!(help.contains("reference-asteroid-equatorial-evidence-summary  Print the compact reference asteroid equatorial evidence summary"));
+        assert!(help.contains("reference-asteroid-equatorial-evidence  Alias for reference-asteroid-equatorial-evidence-summary"));
         assert!(help.contains("reference-asteroid-source-window-summary  Print the compact reference asteroid source windows summary"));
         assert!(help.contains(
             "reference-asteroid-source-summary  Alias for reference-asteroid-source-window-summary"
