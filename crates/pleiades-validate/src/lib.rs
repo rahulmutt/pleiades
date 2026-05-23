@@ -9625,6 +9625,12 @@ fn render_release_summary_text() -> String {
             text.push_str("Source corpus: ");
             text.push_str(&source_corpus_summary_for_report());
             text.push('\n');
+            text.push_str("Pluto fallback: ");
+            match validated_pluto_fallback_summary_line_for_report() {
+                Ok(summary) => text.push_str(summary),
+                Err(error) => return format!("Release summary unavailable ({error})"),
+            }
+            text.push('\n');
             text.push_str("Catalog posture: ");
             match core_validated_catalog_posture_summary_for_report() {
                 Ok(summary) => text.push_str(&summary),
@@ -32986,6 +32992,7 @@ mod tests {
             &rendered,
             &format!("Known gaps: {}", profile.known_gaps_summary_line()),
         );
+        assert!(rendered.contains("Pluto fallback: "));
         assert!(rendered.contains("JPL source corpus contract:"));
         assert!(rendered.contains("phase-2 corpus alignment:"));
         assert!(rendered.contains("Release summary line:"));

@@ -6,7 +6,7 @@ Make every public body and backend capability claim match implemented algorithms
 
 ## Starting point
 
-Sun through Neptune have VSOP87-style source-backed paths. The Moon and lunar points use a compact Meeus-style baseline. Pluto is approximate/fallback-backed. Ceres, Pallas, Juno, Vesta, and selected custom asteroids have bounded fixture evidence but not broad release-grade support.
+Sun through Neptune have VSOP87-style source-backed paths. The Moon and lunar points use a compact Meeus-style baseline. Pluto is approximate/fallback-backed. Ceres, Pallas, Juno, Vesta, and selected custom asteroids have bounded fixture evidence but not broad release-grade support. The release summary now also surfaces the Pluto fallback posture so that release-facing claim boundaries stay aligned with the backend matrix.
 
 ## Implementation goals
 
