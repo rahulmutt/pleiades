@@ -6204,7 +6204,8 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             Ok(pleiades_jpl::reference_snapshot_2451915_major_body_bridge_summary_for_report())
         }
         Some("reference-snapshot-2451917-major-body-bridge-summary")
-        | Some("2451917-major-body-bridge-summary") => {
+        | Some("2451917-major-body-bridge-summary")
+        | Some("2451917-major-body-bridge") => {
             ensure_no_extra_args(
                 &args[1..],
                 "reference-snapshot-2451917-major-body-bridge-summary",
@@ -6229,7 +6230,8 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             Ok(reference_snapshot_2451914_major_body_bridge_day_summary_for_report())
         }
         Some("reference-snapshot-2451914-major-body-bridge-summary")
-        | Some("2451914-major-body-bridge-summary") => {
+        | Some("2451914-major-body-bridge-summary")
+        | Some("2451914-major-body-bridge") => {
             ensure_no_extra_args(
                 &args[1..],
                 "reference-snapshot-2451914-major-body-bridge-summary",
@@ -26398,10 +26400,12 @@ fn help_text() -> String {
   2451914-major-body-bridge-day-summary  Alias for reference-snapshot-2451914-major-body-bridge-day-summary
   reference-snapshot-2451914-major-body-bridge-summary  Print the compact reference 2451914 major-body bridge evidence summary
   2451914-major-body-bridge-summary  Alias for reference-snapshot-2451914-major-body-bridge-summary
+  2451914-major-body-bridge  Alias for reference-snapshot-2451914-major-body-bridge-summary
   reference-snapshot-2451915-major-body-boundary-summary  Print the compact reference 2451915 major-body boundary evidence summary\n  2451915-major-body-boundary-summary  Alias for reference-snapshot-2451915-major-body-boundary-summary\n  reference-snapshot-2451915-major-body-bridge-summary  Print the compact reference 2451915 major-body bridge evidence summary\n  2451915-major-body-bridge-summary  Alias for reference-snapshot-2451915-major-body-bridge-summary\n  2451915-major-body-bridge  Alias for reference-snapshot-2451915-major-body-bridge-summary\n  reference-snapshot-2451917-major-body-boundary-summary  Print the compact reference 2451917 major-body boundary evidence summary
   2451917-major-body-boundary-summary  Alias for reference-snapshot-2451917-major-body-boundary-summary
   reference-snapshot-2451917-major-body-bridge-summary  Print the compact reference 2451917 major-body bridge evidence summary
   2451917-major-body-bridge-summary  Alias for reference-snapshot-2451917-major-body-bridge-summary
+  2451917-major-body-bridge  Alias for reference-snapshot-2451917-major-body-bridge-summary
   reference-snapshot-2451918-major-body-boundary-summary  Print the compact reference 2451918 major-body boundary evidence summary
   2451918-major-body-boundary-summary  Alias for reference-snapshot-2451918-major-body-boundary-summary
   reference-snapshot-2451919-major-body-boundary-summary  Print the compact reference 2451919 major-body boundary evidence summary
@@ -30110,6 +30114,9 @@ mod tests {
         assert!(rendered.contains("2451914-major-body-boundary-summary"));
         assert!(rendered.contains("reference-snapshot-2451914-major-body-bridge-day-summary"));
         assert!(rendered.contains("2451914-major-body-bridge-day-summary"));
+        assert!(rendered.contains("reference-snapshot-2451914-major-body-bridge-summary"));
+        assert!(rendered.contains("2451914-major-body-bridge-summary"));
+        assert!(rendered.contains("2451914-major-body-bridge  Alias for reference-snapshot-2451914-major-body-bridge-summary"));
         assert!(rendered.contains("reference-snapshot-2451915-major-body-boundary-summary"));
         assert!(rendered.contains("2451915-major-body-boundary-summary"));
         assert!(rendered.contains("reference-snapshot-2451915-major-body-bridge-summary"));
@@ -40326,6 +40333,9 @@ version = "0.9.0"
         let alias = render_cli(&["2451917-major-body-bridge-summary"])
             .expect("2451917 major body bridge alias should render");
         assert_eq!(alias, rendered);
+        let concise_alias = render_cli(&["2451917-major-body-bridge"])
+            .expect("2451917 major body bridge concise alias should render");
+        assert_eq!(concise_alias, rendered);
         assert_eq!(
             render_cli(&[
                 "reference-snapshot-2451917-major-body-bridge-summary",
@@ -40339,6 +40349,12 @@ version = "0.9.0"
         assert_eq!(
             render_cli(&["2451917-major-body-bridge-summary", "extra"])
                 .expect_err("2451917 major body bridge alias should reject extra arguments"),
+            "reference-snapshot-2451917-major-body-bridge-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["2451917-major-body-bridge", "extra"]).expect_err(
+                "2451917 major body bridge concise alias should reject extra arguments"
+            ),
             "reference-snapshot-2451917-major-body-bridge-summary does not accept extra arguments"
         );
     }
@@ -40381,9 +40397,18 @@ version = "0.9.0"
         let bridge_epoch_alias = render_cli(&["2451914-major-body-bridge-summary"])
             .expect("2451914 major body bridge alias should render");
         assert_eq!(bridge_epoch_alias, rendered);
+        let concise_bridge_epoch_alias = render_cli(&["2451914-major-body-bridge"])
+            .expect("2451914 major body bridge concise alias should render");
+        assert_eq!(concise_bridge_epoch_alias, rendered);
         assert_eq!(
             render_cli(&["2451914-major-body-bridge-summary", "extra"])
                 .expect_err("2451914 major body bridge alias should reject extra arguments"),
+            "reference-snapshot-2451914-major-body-bridge-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["2451914-major-body-bridge", "extra"]).expect_err(
+                "2451914 major body bridge concise alias should reject extra arguments"
+            ),
             "reference-snapshot-2451914-major-body-bridge-summary does not accept extra arguments"
         );
         let bridge_day_alias =
