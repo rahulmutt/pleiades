@@ -13890,6 +13890,21 @@ fn ensure_reference_snapshot_bridge_day_summary_matches_current_rendering(
     }
 }
 
+fn ensure_reference_snapshot_2451917_major_body_boundary_summary_matches_current_rendering(
+    reference_snapshot_2451917_major_body_boundary_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if reference_snapshot_2451917_major_body_boundary_summary_text
+        == reference_snapshot_2451917_major_body_boundary_summary_for_report()
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "reference snapshot 2451917 major-body boundary summary no longer matches the current reference snapshot 2451917 major-body boundary posture"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_reference_snapshot_major_body_boundary_window_summary_matches_current_rendering(
     reference_snapshot_major_body_boundary_window_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -15643,6 +15658,9 @@ fn verify_release_bundle_internal(
     let reference_snapshot_2451917_major_body_boundary_summary_text = read_required_bundle_text(
         &reference_snapshot_2451917_major_body_boundary_summary_path,
         "reference snapshot 2451917 major-body boundary summary",
+    )?;
+    ensure_reference_snapshot_2451917_major_body_boundary_summary_matches_current_rendering(
+        &reference_snapshot_2451917_major_body_boundary_summary_text,
     )?;
     let reference_snapshot_2451918_major_body_boundary_summary_text = read_required_bundle_text(
         &reference_snapshot_2451918_major_body_boundary_summary_path,
@@ -37714,6 +37732,19 @@ version = "0.9.0"
             "2451914.0",
             "2451914.1",
             "reference snapshot bridge day summary no longer matches the current reference snapshot bridge day posture",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_reference_snapshot_2451917_boundary_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-reference-snapshot-2451917-boundary-semantic",
+            "reference-snapshot-2451917-major-body-boundary-summary.txt",
+            "reference snapshot 2451917 major-body boundary summary checksum (fnv1a-64):",
+            "JD 2451917.5 (TDB)",
+            "JD 2451917.6 (TDB)",
+            "reference snapshot 2451917 major-body boundary summary no longer matches the current reference snapshot 2451917 major-body boundary posture",
         );
     }
 
