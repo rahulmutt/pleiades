@@ -5197,6 +5197,176 @@ pub fn independent_holdout_snapshot_source_window_summary_for_report() -> String
     }
 }
 
+const INDEPENDENT_HOLDOUT_QUARTER_DAY_EPOCHS: [f64; 2] = [2451915.25, 2451915.75];
+
+/// Compact release-facing summary for the independent hold-out quarter-day boundary samples.
+#[derive(Clone, Debug, PartialEq)]
+pub struct IndependentHoldoutQuarterDayBoundarySummary {
+    /// Number of samples in the quarter-day slice.
+    pub row_count: usize,
+    /// Number of distinct bodies covered by the quarter-day slice.
+    pub body_count: usize,
+    /// Bodies covered by the quarter-day slice in first-seen order.
+    pub bodies: Vec<pleiades_backend::CelestialBody>,
+    /// Number of distinct epochs represented by the quarter-day slice.
+    pub epoch_count: usize,
+    /// Earliest epoch represented in the quarter-day slice.
+    pub earliest_epoch: Instant,
+    /// Latest epoch represented in the quarter-day slice.
+    pub latest_epoch: Instant,
+}
+
+/// Validation error for an independent hold-out quarter-day boundary summary that drifted from the current slice.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum IndependentHoldoutQuarterDayBoundarySummaryValidationError {
+    /// A summary field is out of sync with the checked-in quarter-day slice.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for IndependentHoldoutQuarterDayBoundarySummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the independent hold-out quarter-day boundary summary field `{field}` is out of sync with the current slice"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for IndependentHoldoutQuarterDayBoundarySummaryValidationError {}
+
+impl IndependentHoldoutQuarterDayBoundarySummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "Independent hold-out quarter-day boundary samples: {} rows across {} bodies and {} epochs (JD 2451915.25 (TDB)..JD 2451915.75 (TDB)); bodies: {}",
+            self.row_count,
+            self.body_count,
+            self.epoch_count,
+            format_bodies(&self.bodies),
+        )
+    }
+
+    /// Returns `Ok(())` when the summary still matches the checked-in quarter-day slice.
+    pub fn validate(
+        &self,
+    ) -> Result<(), IndependentHoldoutQuarterDayBoundarySummaryValidationError> {
+        let Some(expected) = independent_holdout_quarter_day_boundary_summary_details() else {
+            return Err(
+                IndependentHoldoutQuarterDayBoundarySummaryValidationError::FieldOutOfSync {
+                    field: "row_count",
+                },
+            );
+        };
+
+        if self.row_count != expected.row_count {
+            return Err(
+                IndependentHoldoutQuarterDayBoundarySummaryValidationError::FieldOutOfSync {
+                    field: "row_count",
+                },
+            );
+        }
+        if self.body_count != expected.body_count {
+            return Err(
+                IndependentHoldoutQuarterDayBoundarySummaryValidationError::FieldOutOfSync {
+                    field: "body_count",
+                },
+            );
+        }
+        if self.bodies != expected.bodies {
+            return Err(
+                IndependentHoldoutQuarterDayBoundarySummaryValidationError::FieldOutOfSync {
+                    field: "bodies",
+                },
+            );
+        }
+        if self.epoch_count != expected.epoch_count {
+            return Err(
+                IndependentHoldoutQuarterDayBoundarySummaryValidationError::FieldOutOfSync {
+                    field: "epoch_count",
+                },
+            );
+        }
+        if self.earliest_epoch != expected.earliest_epoch {
+            return Err(
+                IndependentHoldoutQuarterDayBoundarySummaryValidationError::FieldOutOfSync {
+                    field: "earliest_epoch",
+                },
+            );
+        }
+        if self.latest_epoch != expected.latest_epoch {
+            return Err(
+                IndependentHoldoutQuarterDayBoundarySummaryValidationError::FieldOutOfSync {
+                    field: "latest_epoch",
+                },
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns the validated quarter-day summary line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, IndependentHoldoutQuarterDayBoundarySummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+fn independent_holdout_quarter_day_boundary_summary_details(
+) -> Option<IndependentHoldoutQuarterDayBoundarySummary> {
+    let entries = independent_holdout_snapshot_entries()?;
+    let mut bodies = Vec::new();
+    let mut epochs = BTreeSet::new();
+    let mut earliest_epoch = None;
+    let mut latest_epoch = None;
+    let mut row_count = 0usize;
+
+    for entry in entries {
+        let epoch_days = entry.epoch.julian_day.days();
+        if INDEPENDENT_HOLDOUT_QUARTER_DAY_EPOCHS
+            .iter()
+            .any(|candidate| candidate.to_bits() == epoch_days.to_bits())
+        {
+            row_count += 1;
+            epochs.insert(epoch_days.to_bits());
+            earliest_epoch.get_or_insert(entry.epoch);
+            latest_epoch = Some(entry.epoch);
+            if !bodies.contains(&entry.body) {
+                bodies.push(entry.body.clone());
+            }
+        }
+    }
+
+    if row_count == 0 || epochs.len() != 2 || bodies.is_empty() {
+        return None;
+    }
+
+    Some(IndependentHoldoutQuarterDayBoundarySummary {
+        row_count,
+        body_count: bodies.len(),
+        bodies,
+        epoch_count: epochs.len(),
+        earliest_epoch: earliest_epoch?,
+        latest_epoch: latest_epoch?,
+    })
+}
+
+/// Returns the compact quarter-day boundary sample summary for release-facing reporting.
+pub fn independent_holdout_snapshot_quarter_day_boundary_summary_for_report() -> String {
+    match independent_holdout_quarter_day_boundary_summary_details() {
+        Some(summary) => match summary.validated_summary_line() {
+            Ok(summary_line) => summary_line,
+            Err(error) => {
+                format!("Independent hold-out quarter-day boundary samples: unavailable ({error})")
+            }
+        },
+        None => "Independent hold-out quarter-day boundary samples: unavailable".to_string(),
+    }
+}
+
 /// Compact release-facing summary for the independent hold-out high-curvature window.
 #[derive(Clone, Debug, PartialEq)]
 pub struct IndependentHoldoutHighCurvatureSummary {
@@ -21486,6 +21656,7 @@ pub fn jpl_snapshot_evidence_summary_for_report() -> String {
         independent_holdout_snapshot_batch_parity_summary_for_report(),
         independent_holdout_source_summary_for_report(),
         independent_holdout_snapshot_source_window_summary_for_report(),
+        independent_holdout_snapshot_quarter_day_boundary_summary_for_report(),
         independent_holdout_manifest_summary_for_report(),
         jpl_independent_holdout_summary_for_report(),
     ]
@@ -32925,6 +33096,35 @@ mod tests {
     }
 
     #[test]
+    fn independent_holdout_quarter_day_boundary_summary_reports_the_expected_window() {
+        let summary = independent_holdout_quarter_day_boundary_summary_details()
+            .expect("independent hold-out quarter-day boundary summary should exist");
+        assert_eq!(summary.row_count, 8);
+        assert_eq!(summary.body_count, 4);
+        assert_eq!(
+            summary.bodies,
+            vec![
+                pleiades_backend::CelestialBody::Sun,
+                pleiades_backend::CelestialBody::Moon,
+                pleiades_backend::CelestialBody::Mercury,
+                pleiades_backend::CelestialBody::Venus,
+            ]
+        );
+        assert_eq!(summary.epoch_count, 2);
+        assert_eq!(summary.earliest_epoch.julian_day.days(), 2_451_915.25);
+        assert_eq!(summary.latest_epoch.julian_day.days(), 2_451_915.75);
+        assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(
+            independent_holdout_snapshot_quarter_day_boundary_summary_for_report(),
+            summary.summary_line()
+        );
+        assert!(summary.summary_line().contains(
+            "Independent hold-out quarter-day boundary samples: 8 rows across 4 bodies and 2 epochs"
+        ));
+    }
+
+    #[test]
     fn independent_holdout_high_curvature_summary_reports_the_expected_window() {
         let summary = independent_holdout_high_curvature_summary()
             .expect("independent hold-out high-curvature summary should exist");
@@ -33351,6 +33551,8 @@ mod tests {
         assert!(report.contains(&independent_holdout_snapshot_batch_parity_summary_for_report()));
         assert!(report.contains(&independent_holdout_source_summary_for_report()));
         assert!(report.contains(&independent_holdout_snapshot_source_window_summary_for_report()));
+        assert!(report
+            .contains(&independent_holdout_snapshot_quarter_day_boundary_summary_for_report()));
         assert!(report.contains(&independent_holdout_manifest_summary_for_report()));
         assert!(report.contains(&holdout_summary));
         assert!(report.contains(&holdout_high_curvature));

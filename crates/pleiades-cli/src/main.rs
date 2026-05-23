@@ -546,6 +546,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("reference-holdout-overlap-summary") => validate_render_cli(args),
         Some("holdout-overlap-summary") => validate_render_cli(args),
         Some("independent-holdout-source-window-summary") => validate_render_cli(args),
+        Some("independent-holdout-quarter-day-boundary-summary")
+        | Some("independent-holdout-quarter-day-boundary") => validate_render_cli(args),
         Some("independent-holdout-summary") => validate_render_cli(args),
         Some("independent-holdout-source-summary") => validate_render_cli(args),
         Some("independent-holdout-high-curvature-summary") => validate_render_cli(args),
@@ -7222,6 +7224,8 @@ mod tests {
             "selected-asteroid-source-window  Alias for selected-asteroid-source-window-summary"
         ));
         assert!(help.contains("independent-holdout-source-window-summary  Print the compact independent hold-out source windows summary"));
+        assert!(help.contains("independent-holdout-quarter-day-boundary-summary  Print the compact independent hold-out quarter-day boundary samples summary"));
+        assert!(help.contains("independent-holdout-quarter-day-boundary  Alias for independent-holdout-quarter-day-boundary-summary"));
         assert!(help.contains(
             "independent-holdout-summary  Print the compact independent hold-out summary"
         ));
