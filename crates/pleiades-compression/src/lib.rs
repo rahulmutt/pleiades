@@ -476,18 +476,39 @@ impl ArtifactProfile {
     ///
     /// The rendered line also makes the explicit `unlisted` bucket visible so
     /// release-facing summaries can fail closed if a built-in output stops being
-    /// classified. Approximated motion support is labeled separately from
-    /// deterministically derived outputs.
+    /// classified. It also reports how many outputs are stored, derived,
+    /// approximated, unsupported, or unlisted so the profile makes the support
+    /// buckets explicit without requiring the reader to count them manually.
     pub fn output_support_summary_line(&self) -> String {
-        let unlisted_outputs = ArtifactOutput::all()
-            .into_iter()
-            .filter(|output| self.output_support(*output) == ArtifactOutputSupport::Unlisted)
-            .collect::<Vec<_>>();
+        let mut stored_count = 0usize;
+        let mut derived_count = 0usize;
+        let mut approximated_count = 0usize;
+        let mut unsupported_count = 0usize;
+        let mut unlisted_count = 0usize;
+        let mut unlisted_outputs = Vec::new();
+
+        for output in ArtifactOutput::all() {
+            match self.output_support(output) {
+                ArtifactOutputSupport::Stored => stored_count += 1,
+                ArtifactOutputSupport::Derived => derived_count += 1,
+                ArtifactOutputSupport::Approximated => approximated_count += 1,
+                ArtifactOutputSupport::Unsupported => unsupported_count += 1,
+                ArtifactOutputSupport::Unlisted => {
+                    unlisted_count += 1;
+                    unlisted_outputs.push(output);
+                }
+            }
+        }
 
         format!(
-            "{}; unlisted outputs: {}",
+            "{}; unlisted outputs: {}; support counts: stored={}, derived={}, approximated={}, unsupported={}, unlisted={}",
             self.output_support_entries_summary_line(),
             format_bracketed_labels(&unlisted_outputs),
+            stored_count,
+            derived_count,
+            approximated_count,
+            unsupported_count,
+            unlisted_count,
         )
     }
 
@@ -3515,7 +3536,7 @@ mod tests {
         );
         assert_eq!(
             profile.output_support_summary_line(),
-            "EclipticCoordinates=derived, EquatorialCoordinates=derived, ApparentCorrections=unsupported, TopocentricCoordinates=unsupported, SiderealCoordinates=unsupported, Motion=unsupported; unlisted outputs: []"
+            "EclipticCoordinates=derived, EquatorialCoordinates=derived, ApparentCorrections=unsupported, TopocentricCoordinates=unsupported, SiderealCoordinates=unsupported, Motion=unsupported; unlisted outputs: []; support counts: stored=0, derived=2, approximated=0, unsupported=4, unlisted=0"
         );
         assert_eq!(
             profile

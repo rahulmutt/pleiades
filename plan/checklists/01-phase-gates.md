@@ -13,7 +13,7 @@ Use this checklist for active implementation only. Completed historical work sho
 ## Phase 2: Production compressed ephemeris
 
 - [ ] Artifact generation consumes only validated Phase 1 source inputs.
-- [ ] Stored, derived, approximated, and unsupported outputs are explicit in the profile.
+- [x] Stored, derived, approximated, and unsupported outputs are explicit in the profile; the packaged-artifact output-support summary now also reports counts for each bucket.
 - [ ] Body/channel errors pass published production thresholds against reference and hold-out corpora.
 - [ ] Lookup, batch, decode, size, and chart-style benchmarks are current.
 - [ ] Regeneration is deterministic and sidecars/manifests/checksums verify from a clean checkout.
