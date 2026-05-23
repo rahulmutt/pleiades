@@ -174,6 +174,9 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("jpl-source-corpus-contract-summary") | Some("jpl-source-corpus-contract") => {
             validate_render_cli(args)
         }
+        Some("jpl-source-posture-summary") | Some("jpl-source-posture") => {
+            validate_render_cli(args)
+        }
         Some("production-generation-boundary-summary") => validate_render_cli(args),
         Some("production-generation-boundary-request-corpus-summary") => validate_render_cli(args),
         Some("production-generation-body-class-coverage-summary")
@@ -3283,6 +3286,26 @@ mod tests {
             render_cli(&["jpl-source-corpus-contract", "extra"])
                 .expect_err("JPL source corpus contract alias should reject extra arguments"),
             "jpl-source-corpus-contract does not accept extra arguments"
+        );
+        let jpl_source_posture_summary = render_cli(&["jpl-source-posture-summary"])
+            .expect("JPL source posture summary should render");
+        assert_eq!(
+            jpl_source_posture_summary,
+            pleiades_jpl::jpl_source_posture_summary_for_report()
+        );
+        assert_eq!(
+            jpl_source_posture_summary,
+            render_cli(&["jpl-source-posture"]).expect("JPL source posture alias should render")
+        );
+        assert_eq!(
+            render_cli(&["jpl-source-posture-summary", "extra"])
+                .expect_err("JPL source posture summary should reject extra arguments"),
+            "jpl-source-posture-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["jpl-source-posture", "extra"])
+                .expect_err("JPL source posture alias should reject extra arguments"),
+            "jpl-source-posture-summary does not accept extra arguments"
         );
 
         let source_corpus_summary =
