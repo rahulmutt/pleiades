@@ -587,7 +587,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         | Some("holdout-body-class-coverage-summary") => validate_render_cli(args),
         Some("independent-holdout-batch-parity-summary")
         | Some("independent-holdout-batch-parity") => validate_render_cli(args),
-        Some("independent-holdout-equatorial-parity-summary") => validate_render_cli(args),
+        Some("independent-holdout-equatorial-parity-summary")
+        | Some("independent-holdout-equatorial-parity") => validate_render_cli(args),
         Some("house-validation-summary") | Some("house-validation") => validate_render_cli(args),
         Some("house-formula-families-summary") => validate_render_cli(args),
         Some("house-formula-families") => validate_render_cli(args),
@@ -4972,6 +4973,23 @@ mod tests {
             independent_holdout_equatorial_parity_summary,
             pleiades_jpl::independent_holdout_snapshot_equatorial_parity_summary_for_report()
         );
+        assert_eq!(
+            render_cli(&["independent-holdout-equatorial-parity"])
+                .expect("independent hold-out equatorial parity alias should render"),
+            independent_holdout_equatorial_parity_summary
+        );
+        assert_eq!(
+            render_cli(&["independent-holdout-equatorial-parity-summary", "extra"]).expect_err(
+                "independent hold-out equatorial parity summary should reject extra arguments"
+            ),
+            "independent-holdout-equatorial-parity-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["independent-holdout-equatorial-parity", "extra"]).expect_err(
+                "independent hold-out equatorial parity alias should reject extra arguments"
+            ),
+            "independent-holdout-equatorial-parity-summary does not accept extra arguments"
+        );
         let house_validation_summary = render_cli(&["house-validation-summary"])
             .expect("house validation summary should render");
         assert!(house_validation_summary.contains("House validation corpus: 9 scenarios"));
@@ -7374,6 +7392,9 @@ mod tests {
         ));
         assert!(help.contains(
             "independent-holdout-equatorial-parity-summary  Print the compact independent hold-out equatorial parity summary"
+        ));
+        assert!(help.contains(
+            "independent-holdout-equatorial-parity  Alias for independent-holdout-equatorial-parity-summary"
         ));
         assert!(help.contains(
             "comparison-snapshot-summary  Print the compact comparison snapshot summary"
