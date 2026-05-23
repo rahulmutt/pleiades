@@ -26627,6 +26627,10 @@ fn help_text() -> String {
   reference-snapshot-sparse-boundary-summary  Print the compact reference sparse boundary summary
   sparse-boundary-summary  Alias for reference-snapshot-sparse-boundary-summary
   boundary-day-summary     Alias for reference-snapshot-sparse-boundary-summary
+  reference-snapshot-bridge-day-summary  Print the compact reference snapshot bridge day summary
+  bridge-day-summary       Alias for reference-snapshot-bridge-day-summary
+  reference-snapshot-boundary-epoch-coverage-summary  Print the compact reference snapshot boundary epoch coverage summary
+  boundary-epoch-coverage-summary  Alias for reference-snapshot-boundary-epoch-coverage-summary
   reference-snapshot-pre-bridge-boundary-summary  Print the compact reference pre-bridge boundary summary
   pre-bridge-boundary-summary  Alias for reference-snapshot-pre-bridge-boundary-summary
   reference-snapshot-dense-boundary-summary  Print the compact reference dense boundary summary
@@ -40768,6 +40772,22 @@ version = "0.9.0"
                 .expect_err("bridge day alias should reject extra arguments"),
             "bridge-day-summary does not accept extra arguments"
         );
+    }
+
+    #[test]
+    fn help_text_lists_the_bridge_day_and_boundary_epoch_coverage_commands() {
+        let help = render_cli(&["help"]).expect("help text should render");
+        assert!(help.contains(
+            "reference-snapshot-bridge-day-summary  Print the compact reference snapshot bridge day summary"
+        ));
+        assert!(help
+            .contains("bridge-day-summary       Alias for reference-snapshot-bridge-day-summary"));
+        assert!(help.contains(
+            "reference-snapshot-boundary-epoch-coverage-summary  Print the compact reference snapshot boundary epoch coverage summary"
+        ));
+        assert!(help.contains(
+            "boundary-epoch-coverage-summary  Alias for reference-snapshot-boundary-epoch-coverage-summary"
+        ));
     }
 
     #[test]
