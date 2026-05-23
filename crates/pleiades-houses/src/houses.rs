@@ -145,10 +145,38 @@ impl HouseSnapshot {
         house_for_longitude(longitude, &self.cusps)
     }
 
+    /// Returns a compact one-line rendering of the calculated house snapshot.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "system={}; instant={}; observer={}; obliquity={}; angles=ASC {}, MC {}, IC {}, DSC {}; cusp-count={}",
+            self.system,
+            self.instant,
+            self.observer,
+            self.obliquity,
+            self.angles.ascendant,
+            self.angles.midheaven,
+            self.angles.imum_coeli,
+            self.angles.descendant,
+            self.cusps.len()
+        )
+    }
+
+    /// Returns the compact one-line rendering after validating the snapshot.
+    pub fn validated_summary_line(&self) -> Result<String, HouseError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+
     /// Ensures the snapshot contains only finite numeric values and consistent
     /// opposite angle pairs.
     pub fn validate(&self) -> Result<(), HouseError> {
         validate_house_snapshot(self)
+    }
+}
+
+impl fmt::Display for HouseSnapshot {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
     }
 }
 
@@ -1507,6 +1535,22 @@ mod tests {
     fn house_request_validate_accepts_the_baseline_request() {
         let request = sample_request(HouseSystem::WholeSign);
         assert!(request.validate().is_ok());
+    }
+
+    #[test]
+    fn house_snapshot_summary_line_reports_angles_and_cusp_count() {
+        let snapshot = calculate_houses(&sample_request(HouseSystem::Equal))
+            .expect("equal houses should work");
+        let summary = snapshot.summary_line();
+
+        assert!(summary.contains("system=Equal"));
+        assert!(summary.contains("angles=ASC "));
+        assert!(summary.contains("MC "));
+        assert!(summary.contains("IC "));
+        assert!(summary.contains("DSC "));
+        assert!(summary.contains("cusp-count=12"));
+        assert_eq!(snapshot.to_string(), summary);
+        assert_eq!(snapshot.validated_summary_line().unwrap(), summary);
     }
 
     #[test]
