@@ -7022,6 +7022,22 @@ mod tests {
     }
 
     #[test]
+    fn ayanamsa_audit_summary_command_renders_the_summary() {
+        let rendered = render_cli(&["ayanamsa-audit-summary"])
+            .expect("ayanamsa audit summary should render through the CLI");
+        assert_eq!(
+            rendered,
+            pleiades_validate::render_cli(&["ayanamsa-audit-summary"])
+                .expect("validation front end should render the ayanamsa audit summary")
+        );
+        assert_eq!(render_cli(&["ayanamsa-audit"]).unwrap(), rendered);
+        assert!(rendered.contains("Ayanamsa audit: ayanamsa catalog validation:"));
+        assert!(rendered.contains("ayanamsa sidereal metadata:"));
+        assert!(rendered.contains("Ayanamsa reference offsets:"));
+        assert!(rendered.contains("Ayanamsa provenance:"));
+    }
+
+    #[test]
     fn fallback_summary_commands_remain_reachable_from_the_cli() {
         for (cli_command, validation_command) in [
             ("catalog-posture", "catalog-posture-summary"),
@@ -7229,6 +7245,8 @@ mod tests {
             "ayanamsa-provenance-summary  Print the compact ayanamsa provenance summary"
         ));
         assert!(help.contains("ayanamsa-provenance        Alias for ayanamsa-provenance-summary"));
+        assert!(help.contains("ayanamsa-audit-summary    Print the compact ayanamsa audit summary"));
+        assert!(help.contains("ayanamsa-audit            Alias for ayanamsa-audit-summary"));
         assert!(help.contains(
             "release-house-system-canonical-names-summary  Print the compact release-specific house-system canonical names summary"
         ));
