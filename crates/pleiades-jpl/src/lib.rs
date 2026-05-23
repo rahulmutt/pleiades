@@ -20938,7 +20938,16 @@ pub fn reference_snapshot_manifest_summary_for_report() -> String {
         "selected bodies sampled at 1500-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 1600-01-11 for Sun, Moon, Mercury, Venus, Mars, Jupiter, Uranus, Neptune; major bodies sampled at 1749-12-31 for Sun through Neptune; selected bodies sampled at 1750-01-01 for Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; inner planets sampled across 1800-2500; major bodies sampled at 1800-01-03 for Sun through Pluto; selected bodies sampled at 1900-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 2200-01-01 for Sun, Moon, Mercury, Venus; major bodies sampled at 2400000, 2451545, 2451910.5, 2451911.5, 2451912.5, 2451913.5, 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451916.0, 2451916.5, 2451917.0, 2451917.5, 2451918.5, 2451919.5, 2451920.5, 2453000.5, and 2500000; major bodies sampled at 2451915.5 for Sun through Pluto; Mars sampled at 2600000 and 2634167 for outer boundary coverage; major bodies sampled at 2451913.5 through 2451917.5 for additional boundary coverage; selected asteroids sampled at J2000, 2378498.5, 2451910.5 through 2451919.5, with 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451917.5, 2451918.5, and 2451919.5 boundary coverage, 1800-01-03, 2003-12-27, 2132-08-31, 2500-01-01, and 2634167; asteroid:99942-Apophis is now also sampled at 2378498.5 and 2451917.5 to complete the selected-asteroid bridge.",
         &["epoch_jd", "body", "x_km", "y_km", "z_km"],
     ) {
-        Ok(()) => summary.summary_line(),
+        Ok(()) => match validate_snapshot_manifest_footprint(
+            "reference snapshot",
+            snapshot_entries(),
+            349,
+            16,
+            29,
+        ) {
+            Ok(()) => summary.summary_line(),
+            Err(error) => format!("Reference snapshot manifest: unavailable ({error})"),
+        },
         Err(error) => format!("Reference snapshot manifest: unavailable ({error})"),
     }
 }
@@ -21242,7 +21251,16 @@ pub fn independent_holdout_manifest_summary_for_report() -> String {
         "Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2451915.5, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2451915.5, 2500000, and 2634167, plus Mercury at 2451915.5, plus Venus at 2451915.5, plus Pluto at 2451545 and 2500000, plus major bodies at 2451915.5 for Sun through Pluto, plus selected asteroids at 2378498.5, 2451545, 2451915.5, 2451917.5, 2453000.5, 2500000, and 2634167; asteroid:99942-Apophis now also appears at 2378498.5 so the selected-asteroid hold-out bridge matches the reference slice.",
         &["epoch_jd", "body", "x_km", "y_km", "z_km"],
     ) {
-        Ok(()) => summary.summary_line(),
+        Ok(()) => match validate_snapshot_manifest_footprint(
+            "independent hold-out snapshot",
+            independent_holdout_snapshot_entries(),
+            84,
+            16,
+            14,
+        ) {
+            Ok(()) => summary.summary_line(),
+            Err(error) => format!("Independent hold-out manifest: unavailable ({error})"),
+        },
         Err(error) => format!("Independent hold-out manifest: unavailable ({error})"),
     }
 }
@@ -25066,6 +25084,117 @@ fn validate_snapshot_manifest_header_structure(
                 found: found.clone(),
             });
         }
+    }
+
+    Ok(())
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+enum SnapshotManifestFootprintValidationError {
+    MissingEntries {
+        label: &'static str,
+    },
+    RowCountMismatch {
+        label: &'static str,
+        expected: usize,
+        found: usize,
+    },
+    BodyCountMismatch {
+        label: &'static str,
+        expected: usize,
+        found: usize,
+    },
+    EpochCountMismatch {
+        label: &'static str,
+        expected: usize,
+        found: usize,
+    },
+}
+
+impl fmt::Display for SnapshotManifestFootprintValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::MissingEntries { label } => {
+                write!(f, "{label} entries are unavailable")
+            }
+            Self::RowCountMismatch {
+                label,
+                expected,
+                found,
+            } => write!(
+                f,
+                "{label} row count mismatch: expected {expected}, found {found}"
+            ),
+            Self::BodyCountMismatch {
+                label,
+                expected,
+                found,
+            } => write!(
+                f,
+                "{label} body count mismatch: expected {expected}, found {found}"
+            ),
+            Self::EpochCountMismatch {
+                label,
+                expected,
+                found,
+            } => write!(
+                f,
+                "{label} epoch count mismatch: expected {expected}, found {found}"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for SnapshotManifestFootprintValidationError {}
+
+fn validate_snapshot_manifest_footprint(
+    label: &'static str,
+    entries: Option<&[SnapshotEntry]>,
+    expected_row_count: usize,
+    expected_body_count: usize,
+    expected_epoch_count: usize,
+) -> Result<(), SnapshotManifestFootprintValidationError> {
+    let Some(entries) = entries else {
+        return Err(SnapshotManifestFootprintValidationError::MissingEntries { label });
+    };
+
+    let row_count = entries.len();
+    if row_count != expected_row_count {
+        return Err(SnapshotManifestFootprintValidationError::RowCountMismatch {
+            label,
+            expected: expected_row_count,
+            found: row_count,
+        });
+    }
+
+    let body_count = entries
+        .iter()
+        .map(|entry| entry.body.to_string())
+        .collect::<BTreeSet<_>>()
+        .len();
+    if body_count != expected_body_count {
+        return Err(
+            SnapshotManifestFootprintValidationError::BodyCountMismatch {
+                label,
+                expected: expected_body_count,
+                found: body_count,
+            },
+        );
+    }
+
+    let epoch_count = entries
+        .iter()
+        .map(|entry| entry.epoch.julian_day.days().to_bits())
+        .collect::<BTreeSet<_>>()
+        .len();
+    if epoch_count != expected_epoch_count {
+        return Err(
+            SnapshotManifestFootprintValidationError::EpochCountMismatch {
+                label,
+                expected: expected_epoch_count,
+                found: epoch_count,
+            },
+        );
     }
 
     Ok(())
@@ -33749,6 +33878,59 @@ mod tests {
             manifest.summary_line("Independent hold-out manifest"),
             "Independent hold-out manifest: Independent JPL Horizons hold-out snapshot used only for interpolation validation.; source=NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2451915.5, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2451915.5, 2500000, and 2634167, plus Mercury at 2451915.5, plus Venus at 2451915.5, plus Pluto at 2451545 and 2500000, plus major bodies at 2451915.5 for Sun through Pluto, plus selected asteroids at 2378498.5, 2451545, 2451915.5, 2451917.5, 2453000.5, 2500000, and 2634167; asteroid:99942-Apophis now also appears at 2378498.5 so the selected-asteroid hold-out bridge matches the reference slice; total slice size is 84 rows across 16 bodies and 14 epochs.; columns=epoch_jd, body, x_km, y_km, z_km; redistribution=repository-checked regression fixtures, not a broad public corpus."
         );
+    }
+
+    #[test]
+    fn snapshot_manifest_footprint_validation_matches_the_current_reference_and_holdout_corpora() {
+        assert_eq!(
+            validate_snapshot_manifest_footprint(
+                "reference snapshot",
+                snapshot_entries(),
+                349,
+                16,
+                29,
+            ),
+            Ok(())
+        );
+        assert_eq!(
+            validate_snapshot_manifest_footprint(
+                "independent hold-out snapshot",
+                independent_holdout_snapshot_entries(),
+                84,
+                16,
+                14,
+            ),
+            Ok(())
+        );
+    }
+
+    #[test]
+    fn snapshot_manifest_footprint_validation_rejects_count_drift() {
+        let entries = [
+            SnapshotEntry {
+                body: CelestialBody::Sun,
+                epoch: Instant::new(JulianDay::from_days(1.0), TimeScale::Tdb),
+                x_km: 1.0,
+                y_km: 2.0,
+                z_km: 3.0,
+            },
+            SnapshotEntry {
+                body: CelestialBody::Moon,
+                epoch: Instant::new(JulianDay::from_days(2.0), TimeScale::Tdb),
+                x_km: 4.0,
+                y_km: 5.0,
+                z_km: 6.0,
+            },
+        ];
+
+        assert!(matches!(
+            validate_snapshot_manifest_footprint("example snapshot", Some(&entries), 3, 2, 2),
+            Err(SnapshotManifestFootprintValidationError::RowCountMismatch {
+                label: "example snapshot",
+                expected: 3,
+                found: 2,
+            })
+        ));
     }
 
     #[test]
