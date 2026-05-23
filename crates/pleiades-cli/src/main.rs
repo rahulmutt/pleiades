@@ -173,6 +173,9 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("release-summary") => validate_render_cli(args),
         Some("source-corpus-summary") => validate_render_cli(args),
         Some("source-corpus") => validate_render_cli(args),
+        Some("source-corpus-posture-summary") | Some("source-corpus-posture") => {
+            validate_render_cli(args)
+        }
         Some("jpl-batch-error-taxonomy-summary") => validate_render_cli(args),
         Some("jpl-snapshot-evidence-summary") => validate_render_cli(args),
         Some("jpl-source-corpus-contract-summary") | Some("jpl-source-corpus-contract") => {
@@ -3518,9 +3521,39 @@ mod tests {
                 .expect("validation source corpus alias should render")
         );
         assert_eq!(
+            source_corpus_summary,
+            render_cli(&["source-corpus-posture-summary"])
+                .expect("source corpus posture summary should render")
+        );
+        assert_eq!(
+            source_corpus_summary,
+            render_cli(&["source-corpus-posture"])
+                .expect("source corpus posture alias should render")
+        );
+        assert_eq!(
+            source_corpus_summary,
+            super::validate_render_cli(&["source-corpus-posture-summary"])
+                .expect("validation source corpus posture summary should render")
+        );
+        assert_eq!(
+            source_corpus_summary,
+            super::validate_render_cli(&["source-corpus-posture"])
+                .expect("validation source corpus posture alias should render")
+        );
+        assert_eq!(
             render_cli(&["source-corpus", "extra"])
                 .expect_err("source corpus alias should reject extra arguments"),
             "source-corpus does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["source-corpus-posture-summary", "extra"])
+                .expect_err("source corpus posture summary should reject extra arguments"),
+            "source-corpus-posture-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["source-corpus-posture", "extra"])
+                .expect_err("source corpus posture alias should reject extra arguments"),
+            "source-corpus-posture does not accept extra arguments"
         );
 
         let packaged_lookup_epoch_policy_summary =
@@ -7098,6 +7131,8 @@ mod tests {
         assert!(help.contains(
             "production-generation-summary  Print the compact production-generation coverage summary"
         ));
+        assert!(help.contains("source-corpus-posture-summary  Alias for source-corpus-summary"));
+        assert!(help.contains("source-corpus-posture     Alias for source-corpus-posture-summary"));
         assert!(help.contains(
             "production-generation-boundary-summary  Print the compact production-generation boundary overlay summary"
         ));
