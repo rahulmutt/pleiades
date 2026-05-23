@@ -6195,7 +6195,8 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             Ok(reference_snapshot_major_body_bridge_summary_for_report())
         }
         Some("reference-snapshot-2451915-major-body-bridge-summary")
-        | Some("2451915-major-body-bridge-summary") => {
+        | Some("2451915-major-body-bridge-summary")
+        | Some("2451915-major-body-bridge") => {
             ensure_no_extra_args(
                 &args[1..],
                 "reference-snapshot-2451915-major-body-bridge-summary",
@@ -26397,7 +26398,7 @@ fn help_text() -> String {
   2451914-major-body-bridge-day-summary  Alias for reference-snapshot-2451914-major-body-bridge-day-summary
   reference-snapshot-2451914-major-body-bridge-summary  Print the compact reference 2451914 major-body bridge evidence summary
   2451914-major-body-bridge-summary  Alias for reference-snapshot-2451914-major-body-bridge-summary
-  reference-snapshot-2451915-major-body-boundary-summary  Print the compact reference 2451915 major-body boundary evidence summary\n  2451915-major-body-boundary-summary  Alias for reference-snapshot-2451915-major-body-boundary-summary\n  reference-snapshot-2451915-major-body-bridge-summary  Print the compact reference 2451915 major-body bridge evidence summary\n  2451915-major-body-bridge-summary  Alias for reference-snapshot-2451915-major-body-bridge-summary\n  reference-snapshot-2451917-major-body-boundary-summary  Print the compact reference 2451917 major-body boundary evidence summary
+  reference-snapshot-2451915-major-body-boundary-summary  Print the compact reference 2451915 major-body boundary evidence summary\n  2451915-major-body-boundary-summary  Alias for reference-snapshot-2451915-major-body-boundary-summary\n  reference-snapshot-2451915-major-body-bridge-summary  Print the compact reference 2451915 major-body bridge evidence summary\n  2451915-major-body-bridge-summary  Alias for reference-snapshot-2451915-major-body-bridge-summary\n  2451915-major-body-bridge  Alias for reference-snapshot-2451915-major-body-bridge-summary\n  reference-snapshot-2451917-major-body-boundary-summary  Print the compact reference 2451917 major-body boundary evidence summary
   2451917-major-body-boundary-summary  Alias for reference-snapshot-2451917-major-body-boundary-summary
   reference-snapshot-2451917-major-body-bridge-summary  Print the compact reference 2451917 major-body bridge evidence summary
   2451917-major-body-bridge-summary  Alias for reference-snapshot-2451917-major-body-bridge-summary
@@ -30113,6 +30114,7 @@ mod tests {
         assert!(rendered.contains("2451915-major-body-boundary-summary"));
         assert!(rendered.contains("reference-snapshot-2451915-major-body-bridge-summary"));
         assert!(rendered.contains("2451915-major-body-bridge-summary"));
+        assert!(rendered.contains("2451915-major-body-bridge  Alias for reference-snapshot-2451915-major-body-bridge-summary"));
         assert!(rendered.contains("reference-snapshot-2451916-major-body-interior-summary"));
         assert!(rendered.contains("2451916-major-body-interior-summary"));
     }
@@ -40280,6 +40282,9 @@ version = "0.9.0"
             epoch_alias,
             pleiades_jpl::reference_snapshot_2451915_major_body_bridge_summary_for_report()
         );
+        let concise_epoch_alias = render_cli(&["2451915-major-body-bridge"])
+            .expect("2451915 major body bridge concise alias should render");
+        assert_eq!(concise_epoch_alias, epoch_alias);
         assert_eq!(
             render_cli(&["major-body-bridge-summary", "extra"])
                 .expect_err("major body bridge alias should reject extra arguments"),
@@ -40293,6 +40298,12 @@ version = "0.9.0"
         assert_eq!(
             render_cli(&["2451915-major-body-bridge-summary", "extra"])
                 .expect_err("2451915 major body bridge alias should reject extra arguments"),
+            "reference-snapshot-2451915-major-body-bridge-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["2451915-major-body-bridge", "extra"]).expect_err(
+                "2451915 major body bridge concise alias should reject extra arguments"
+            ),
             "reference-snapshot-2451915-major-body-bridge-summary does not accept extra arguments"
         );
         assert_eq!(

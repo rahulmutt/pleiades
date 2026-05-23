@@ -74,4 +74,4 @@ Start with **Phase 1**. A production compressed artifact cannot be promoted unti
 - When an implementation gap closes, remove it from phase/status files rather than moving it to a completed section.
 - Keep `README.md`, release profiles, generated reports, and this plan aligned when public behavior or release claims change.
 
-Status: refreshed 2026-05-22 after reviewing `SPEC.md`, `spec/*.md`, current workspace crates, README status, and CLI/report posture; updated 2026-05-22 after tightening Pluto fallback summary verification; updated 2026-05-23 after wiring the comparison/reference snapshot source aliases through the CLI front-end.
+Status: refreshed 2026-05-22 after reviewing `SPEC.md`, `spec/*.md`, current workspace crates, README status, and CLI/report posture; updated 2026-05-22 after tightening Pluto fallback summary verification; updated 2026-05-23 after wiring the comparison/reference snapshot source aliases through the CLI front-end; updated 2026-05-23 after widening direct bridge-evidence CLI access.
