@@ -158,7 +158,6 @@ use pleiades_jpl::{
     production_generation_manifest_checksum_for_report,
     production_generation_manifest_summary_for_report,
     production_generation_snapshot_summary_for_report,
-    production_generation_snapshot_window_summary,
     production_generation_snapshot_window_summary_for_report,
     production_generation_source_revision_summary_for_report,
     production_generation_source_summary_for_report,
@@ -22140,12 +22139,7 @@ fn source_corpus_summary_details() -> Option<SourceCorpusSummary> {
         "pluto fallback",
     )
     .ok()?;
-    let production_generation_window = production_generation_snapshot_window_summary()?;
-    let production_generation_date_range = format!(
-        "{}..{}",
-        format_instant(production_generation_window.earliest_epoch),
-        format_instant(production_generation_window.latest_epoch),
-    );
+    let production_generation_date_range = production_generation_date_range_for_report()?;
     let production_generation_quarter_day_boundary_samples = required_summary_payload(
         pleiades_jpl::production_generation_quarter_day_boundary_summary_for_report(),
         "Production generation quarter-day boundary samples: ",
@@ -22728,20 +22722,25 @@ fn production_generation_coverage_posture_for_report() -> Option<String> {
     )
 }
 
-fn body_date_channel_claims_summary_details() -> Option<BodyDateChannelClaimsSummary> {
+fn production_generation_date_range_for_report() -> Option<String> {
     let production_generation_window =
         pleiades_jpl::production_generation_snapshot_window_summary()?;
+
+    Some(format!(
+        "{}..{}",
+        format_instant(production_generation_window.earliest_epoch),
+        format_instant(production_generation_window.latest_epoch)
+    ))
+}
+
+fn body_date_channel_claims_summary_details() -> Option<BodyDateChannelClaimsSummary> {
     let coverage_posture = production_generation_coverage_posture_for_report()?;
     Some(BodyDateChannelClaimsSummary {
         release_body_claims: validated_release_body_claims_summary_line_for_report()
             .ok()?
             .to_string(),
         frame_policy: validated_frame_policy_summary_for_report(),
-        production_generation_date_range: format!(
-            "{}..{}",
-            format_instant(production_generation_window.earliest_epoch),
-            format_instant(production_generation_window.latest_epoch)
-        ),
+        production_generation_date_range: production_generation_date_range_for_report()?,
         production_generation_coverage: production_generation_snapshot_summary_for_report(),
         corpus_shape: validated_production_generation_corpus_shape_summary_for_report().ok()?,
         coverage_posture,
@@ -42611,6 +42610,18 @@ version = "0.9.0"
         assert!(body_date_channel_claims_summary.contains(
             "coverage posture=production-generation coverage and corpus shape remain aligned across the advertised 1500-2500 CE window"
         ));
+        let source_corpus_summary =
+            source_corpus_summary_details().expect("source corpus summary should exist");
+        let body_date_channel_claims_details = body_date_channel_claims_summary_details()
+            .expect("body/date/channel claims should exist");
+        assert_eq!(
+            body_date_channel_claims_details.production_generation_date_range,
+            source_corpus_summary.production_generation_date_range
+        );
+        assert_eq!(
+            body_date_channel_claims_details.coverage_posture,
+            source_corpus_summary.coverage_posture
+        );
         assert_eq!(
             render_cli(&["body-date-channel-claims"])
                 .expect("body/date/channel claims alias should render"),
