@@ -6683,6 +6683,9 @@ mod tests {
             "production-generation-summary  Print the compact production-generation coverage summary"
         ));
         assert!(help.contains(
+            "production-generation-boundary-summary  Print the compact production-generation boundary overlay summary"
+        ));
+        assert!(help.contains(
             "production-generation-quarter-day-boundary-summary  Print the compact production-generation quarter-day boundary samples summary"
         ));
         assert!(help.contains(
