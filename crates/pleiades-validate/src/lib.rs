@@ -9664,6 +9664,9 @@ fn render_release_summary_text() -> String {
             text.push_str("Source corpus: ");
             text.push_str(&source_corpus_summary_for_report());
             text.push('\n');
+            text.push_str("Source corpus posture: ");
+            text.push_str(&source_corpus_summary_for_report());
+            text.push('\n');
             text.push_str("Pluto fallback: ");
             match validated_pluto_fallback_summary_line_for_report() {
                 Ok(summary) => text.push_str(summary),
@@ -23067,6 +23070,11 @@ fn render_validation_report_summary_text(report: &ValidationReport) -> String {
         "  Source corpus: {}",
         source_corpus_summary_for_report()
     );
+    let _ = writeln!(
+        text,
+        "  Source corpus posture: {}",
+        source_corpus_summary_for_report()
+    );
     let _ = writeln!(text);
     let _ = writeln!(text, "Reference snapshot");
     let _ = writeln!(text, "  {}", reference_snapshot_summary_for_report());
@@ -24224,6 +24232,9 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(&format_body_date_channel_claims_summary_for_report());
     text.push('\n');
     text.push_str("Source corpus: ");
+    text.push_str(&source_corpus_summary_for_report());
+    text.push('\n');
+    text.push_str("Source corpus posture: ");
     text.push_str(&source_corpus_summary_for_report());
     text.push('\n');
     text.push_str("JPL source corpus contract: ");
@@ -33248,6 +33259,7 @@ mod tests {
         assert!(rendered.contains("Comparison body-class tolerance: body-class tolerance posture:"));
         assert!(rendered.contains("Comparison body-class error envelopes:"));
         assert!(rendered.contains("Source corpus: comparison corpus release-grade guard:"));
+        assert!(rendered.contains("Source corpus posture: comparison corpus release-grade guard:"));
         assert!(rendered.contains("Catalog posture: house systems="));
         assert_report_contains_exact_line(
             &rendered,
@@ -33905,6 +33917,7 @@ mod tests {
         assert!(rendered.contains("JPL independent hold-out:"));
         assert!(rendered.contains("Release-grade body claims:"));
         assert!(rendered.contains("Source corpus: comparison corpus release-grade guard:"));
+        assert!(rendered.contains("Source corpus posture: comparison corpus release-grade guard:"));
         assert!(rendered.contains("Catalog posture: house systems="));
         assert!(
             rendered.contains("Pluto fallback: Pluto remains an explicitly approximate fallback")
@@ -34991,6 +35004,8 @@ version = "0.9.0"
         assert!(release_summary.contains("JPL production-generation boundary windows:"));
         assert!(release_summary.contains("JPL production-generation boundary request corpus:"));
         assert!(release_summary.contains("Production generation boundary overlay source:"));
+        assert!(release_summary
+            .contains("Source corpus posture: comparison corpus release-grade guard:"));
         assert!(release_summary.contains("JPL source corpus contract:"));
         assert!(release_summary.contains("Source-backed backend evidence:"));
         assert!(release_summary.contains(&pleiades_jpl::jpl_provenance_only_summary_for_report()));
