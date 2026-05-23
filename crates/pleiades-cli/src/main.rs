@@ -7276,6 +7276,12 @@ mod tests {
             "2451915-major-body-bridge-summary  Alias for reference-snapshot-2451915-major-body-bridge-summary"
         ));
         assert!(help.contains(
+            "reference-snapshot-2451916-major-body-dense-boundary-summary  Print the compact reference 2451916 major-body dense boundary evidence summary"
+        ));
+        assert!(help.contains(
+            "2451916-major-body-dense-boundary-summary  Alias for reference-snapshot-2451916-major-body-dense-boundary-summary"
+        ));
+        assert!(help.contains(
             "reference-snapshot-2451916-major-body-boundary-summary  Print the compact reference 2451916 major-body boundary evidence summary"
         ));
         assert!(help.contains(
