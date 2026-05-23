@@ -703,7 +703,13 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("chart") => render_chart(&args[1..]),
         Some("help") | Some("--help") | Some("-h") => Ok(help_text()),
         None => Ok(banner().to_string()),
-        Some(other) => Err(format!("unknown command: {other}\n\n{}", help_text())),
+        Some(other) => match validate_render_cli(args) {
+            Ok(rendered) => Ok(rendered),
+            Err(error) if error.starts_with("unknown command: ") => {
+                Err(format!("unknown command: {other}\n\n{}", help_text()))
+            }
+            Err(error) => Err(error),
+        },
     }
 }
 
