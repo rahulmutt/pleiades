@@ -644,6 +644,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("comparison-envelope-summary") | Some("comparison-envelope") => {
             validate_render_cli(args)
         }
+        Some("comparison-body-class-error-envelope-summary")
+        | Some("comparison-body-class-error-envelope") => validate_render_cli(args),
         Some("release-body-claims-summary") | Some("body-claims-summary") => {
             validate_render_cli(args)
         }
@@ -1934,6 +1936,10 @@ mod tests {
         ));
         assert!(rendered.contains(
             "comparison-body-class-tolerance  Alias for comparison-body-class-tolerance-summary"
+        ));
+        assert!(rendered.contains("comparison-body-class-error-envelope-summary"));
+        assert!(rendered.contains(
+            "comparison-body-class-error-envelope  Alias for comparison-body-class-error-envelope-summary"
         ));
         assert!(rendered.contains("comparison-body-class-tolerance-posture-summary"));
         assert!(rendered.contains(
@@ -3254,6 +3260,22 @@ mod tests {
         let comparison_envelope_alias =
             render_cli(&["comparison-envelope"]).expect("comparison envelope alias should render");
         assert_eq!(comparison_envelope_alias, comparison_envelope_summary);
+
+        let comparison_body_class_error_envelope_summary =
+            render_cli(&["comparison-body-class-error-envelope-summary"])
+                .expect("comparison body-class error envelope summary should render");
+        assert_eq!(
+            comparison_body_class_error_envelope_summary,
+            super::validate_render_cli(&["comparison-body-class-error-envelope-summary"])
+                .expect("comparison body-class error envelope summary should match validate CLI")
+        );
+        let comparison_body_class_error_envelope_alias =
+            render_cli(&["comparison-body-class-error-envelope"])
+                .expect("comparison body-class error envelope alias should render");
+        assert_eq!(
+            comparison_body_class_error_envelope_alias,
+            comparison_body_class_error_envelope_summary
+        );
 
         let comparison_tolerance_alias_error =
             render_cli(&["comparison-tolerance-summary", "extra"])
@@ -7126,6 +7148,12 @@ mod tests {
         ));
         assert!(help.contains(
             "comparison-envelope-summary  Print the compact comparison envelope summary"
+        ));
+        assert!(help.contains(
+            "comparison-body-class-error-envelope-summary  Print the compact comparison body-class error envelope summary"
+        ));
+        assert!(help.contains(
+            "comparison-body-class-error-envelope  Alias for comparison-body-class-error-envelope-summary"
         ));
         assert!(help.contains(
             "reference-snapshot-1749-major-body-boundary-summary  Print the compact reference 1749 major-body boundary evidence summary"
