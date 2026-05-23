@@ -17134,6 +17134,12 @@ fn verify_release_bundle_internal(
             release_ayanamsa_canonical_names_summary_checksum
         )));
     }
+    ensure_release_house_system_canonical_names_summary_matches_current_rendering(
+        &release_house_system_canonical_names_summary_text,
+    )?;
+    ensure_release_ayanamsa_canonical_names_summary_matches_current_rendering(
+        &release_ayanamsa_canonical_names_summary_text,
+    )?;
     if manifest.release_house_validation_summary_checksum
         != release_house_validation_summary_checksum
     {
@@ -19059,6 +19065,36 @@ fn ensure_release_profile_identifiers_summary_matches_current_rendering(
     } else {
         Err(ReleaseBundleError::Verification(
             "release-profile identifiers summary no longer matches the current release-profile identifiers posture"
+                .to_string(),
+        ))
+    }
+}
+
+fn ensure_release_house_system_canonical_names_summary_matches_current_rendering(
+    release_house_system_canonical_names_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if release_house_system_canonical_names_summary_text.trim_end()
+        == render_release_house_system_canonical_names_summary().trim_end()
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "release-house-system canonical names summary no longer matches the current release-house-system canonical names posture"
+                .to_string(),
+        ))
+    }
+}
+
+fn ensure_release_ayanamsa_canonical_names_summary_matches_current_rendering(
+    release_ayanamsa_canonical_names_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if release_ayanamsa_canonical_names_summary_text.trim_end()
+        == render_release_ayanamsa_canonical_names_summary().trim_end()
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "release-ayanamsa canonical names summary no longer matches the current release-ayanamsa canonical names posture"
                 .to_string(),
         ))
     }
@@ -38369,6 +38405,32 @@ version = "0.9.0"
             "Production generation manifest checksum:",
             "Tampered production generation manifest checksum:",
             "production generation manifest checksum summary no longer matches",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_release_house_system_canonical_names_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-release-house-system-canonical-names-semantic",
+            "release-house-system-canonical-names-summary.txt",
+            "release-house-system-canonical-names summary checksum (fnv1a-64):",
+            "Release-specific house-system canonical names: ",
+            "Release-specific house-system canonical names (drifted): ",
+            "release-house-system canonical names summary no longer matches",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_release_ayanamsa_canonical_names_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-release-ayanamsa-canonical-names-semantic",
+            "release-ayanamsa-canonical-names-summary.txt",
+            "release-ayanamsa-canonical-names summary checksum (fnv1a-64):",
+            "Release-specific ayanamsa canonical names: ",
+            "Release-specific ayanamsa canonical names (drifted): ",
+            "release-ayanamsa canonical names summary no longer matches",
         );
     }
 
