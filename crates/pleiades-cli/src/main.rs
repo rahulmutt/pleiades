@@ -249,7 +249,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "comparison-snapshot-summary")?;
             validate_render_cli(args)
         }
-        Some("comparison-snapshot-batch-parity-summary") => validate_render_cli(args),
+        Some("comparison-snapshot-batch-parity-summary")
+        | Some("comparison-snapshot-batch-parity") => validate_render_cli(args),
         Some("reference-snapshot-source-summary") => {
             ensure_no_extra_args(&args[1..], "reference-snapshot-source-summary")?;
             Ok(reference_snapshot_source_summary_for_report())
@@ -564,7 +565,9 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("reference-snapshot-2634167-selected-asteroid-source-summary")
         | Some("2634167-selected-asteroid-source-summary") => validate_render_cli(args),
         Some("selected-asteroid-source-window") => validate_render_cli(args),
-        Some("selected-asteroid-batch-parity-summary") => validate_render_cli(args),
+        Some("selected-asteroid-batch-parity-summary") | Some("selected-asteroid-batch-parity") => {
+            validate_render_cli(args)
+        }
         Some("reference-asteroid-evidence-summary") => validate_render_cli(args),
         Some("reference-asteroid-equatorial-evidence-summary")
         | Some("reference-asteroid-equatorial-evidence") => validate_render_cli(args),
@@ -582,7 +585,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("holdout-high-curvature-summary") => validate_render_cli(args),
         Some("independent-holdout-body-class-coverage-summary")
         | Some("holdout-body-class-coverage-summary") => validate_render_cli(args),
-        Some("independent-holdout-batch-parity-summary") => validate_render_cli(args),
+        Some("independent-holdout-batch-parity-summary")
+        | Some("independent-holdout-batch-parity") => validate_render_cli(args),
         Some("independent-holdout-equatorial-parity-summary") => validate_render_cli(args),
         Some("house-validation-summary") | Some("house-validation") => validate_render_cli(args),
         Some("house-formula-families-summary") => validate_render_cli(args),
@@ -1941,6 +1945,9 @@ mod tests {
         assert!(rendered.contains("benchmark-corpus-summary"));
         assert!(rendered.contains("comparison-snapshot-summary"));
         assert!(rendered.contains("comparison-snapshot-batch-parity-summary"));
+        assert!(rendered.contains(
+            "comparison-snapshot-batch-parity  Alias for comparison-snapshot-batch-parity-summary"
+        ));
         assert!(rendered.contains("reference-snapshot-body-class-coverage-summary"));
         assert!(rendered.contains("reference-body-class-coverage-summary"));
         assert!(rendered.contains("reference-snapshot-summary"));
@@ -4006,6 +4013,16 @@ mod tests {
             super::validate_render_cli(&["comparison-snapshot-batch-parity-summary"])
                 .expect("validation comparison snapshot batch parity summary should render")
         );
+        assert_eq!(
+            render_cli(&["comparison-snapshot-batch-parity"])
+                .expect("comparison snapshot batch parity alias should render"),
+            comparison_snapshot_batch_parity_summary
+        );
+        assert_eq!(
+            render_cli(&["comparison-snapshot-batch-parity", "extra"])
+                .expect_err("comparison snapshot batch parity alias should reject extra arguments"),
+            "comparison-snapshot-batch-parity-summary does not accept extra arguments"
+        );
         let reference_snapshot_manifest_summary =
             render_cli(&["reference-snapshot-manifest-summary"])
                 .expect("reference snapshot manifest summary should render");
@@ -4776,6 +4793,11 @@ mod tests {
             selected_asteroid_batch_parity_summary,
             pleiades_jpl::selected_asteroid_batch_parity_summary_for_report()
         );
+        assert_eq!(
+            render_cli(&["selected-asteroid-batch-parity"])
+                .expect("selected asteroid batch parity alias should render"),
+            selected_asteroid_batch_parity_summary
+        );
         let reference_asteroid_evidence_summary =
             render_cli(&["reference-asteroid-evidence-summary"])
                 .expect("reference asteroid evidence summary should render");
@@ -4895,6 +4917,11 @@ mod tests {
         assert_eq!(
             independent_holdout_batch_parity_summary,
             pleiades_jpl::independent_holdout_snapshot_batch_parity_summary_for_report()
+        );
+        assert_eq!(
+            render_cli(&["independent-holdout-batch-parity"])
+                .expect("independent hold-out batch parity alias should render"),
+            independent_holdout_batch_parity_summary
         );
         let independent_holdout_equatorial_parity_summary =
             render_cli(&["independent-holdout-equatorial-parity-summary"])
@@ -7255,6 +7282,9 @@ mod tests {
             "independent-holdout-batch-parity-summary  Print the compact independent hold-out batch parity summary"
         ));
         assert!(help.contains(
+            "independent-holdout-batch-parity  Alias for independent-holdout-batch-parity-summary"
+        ));
+        assert!(help.contains(
             "independent-holdout-equatorial-parity-summary  Print the compact independent hold-out equatorial parity summary"
         ));
         assert!(help.contains(
@@ -7359,6 +7389,9 @@ mod tests {
         ));
         assert!(help.contains(
             "selected-asteroid-batch-parity-summary  Print the compact selected-asteroid batch-parity summary"
+        ));
+        assert!(help.contains(
+            "selected-asteroid-batch-parity  Alias for selected-asteroid-batch-parity-summary"
         ));
         assert!(help.contains(
             "reference-asteroid-evidence-summary  Print the compact reference asteroid evidence summary"
