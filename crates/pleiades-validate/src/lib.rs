@@ -23815,6 +23815,9 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str("Production generation source: ");
     text.push_str(&production_generation_source_summary_for_report());
     text.push('\n');
+    text.push_str("Production generation coverage: ");
+    text.push_str(&production_generation_snapshot_summary_for_report());
+    text.push('\n');
     text.push_str("JPL production-generation coverage: ");
     text.push_str(&production_generation_snapshot_summary_for_report());
     text.push('\n');
@@ -34678,6 +34681,7 @@ version = "0.9.0"
         assert!(backend_matrix_summary
             .contains("Production generation source: strategy=documented hybrid fixture corpus"));
         assert!(backend_matrix_summary.contains("Production generation source revision: source revision=reference_snapshot.csv checksum=0x"));
+        assert!(backend_matrix_summary.contains("Production generation coverage:"));
         assert!(backend_matrix_summary.contains("Backends: 5"));
         assert!(backend_matrix_summary.contains("Algorithmic: 2"));
         assert!(backend_matrix_summary.contains("Composite: 1"));
