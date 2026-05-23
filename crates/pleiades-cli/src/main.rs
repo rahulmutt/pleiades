@@ -180,6 +180,10 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("production-generation-boundary-summary") => validate_render_cli(args),
         Some("production-generation-boundary-request-corpus-summary") => validate_render_cli(args),
+        Some("production-generation-boundary-request-corpus-equatorial-summary")
+        | Some("production-generation-boundary-request-corpus-equatorial") => {
+            validate_render_cli(args)
+        }
         Some("production-generation-body-class-coverage-summary")
         | Some("production-body-class-coverage-summary") => validate_render_cli(args),
         Some("production-generation-source-window-summary") => validate_render_cli(args),
@@ -3473,6 +3477,30 @@ mod tests {
             production_generation_boundary_request_corpus_summary,
             pleiades_jpl::production_generation_boundary_request_corpus_summary_for_report()
         );
+        let production_generation_boundary_request_corpus_equatorial_summary =
+            render_cli(&["production-generation-boundary-request-corpus-equatorial-summary"])
+                .expect(
+                "production generation boundary request corpus equatorial summary should render",
+            );
+        assert!(
+            production_generation_boundary_request_corpus_equatorial_summary
+                .contains("Production generation boundary request corpus:")
+        );
+        assert_eq!(
+            production_generation_boundary_request_corpus_equatorial_summary,
+            pleiades_jpl::production_generation_boundary_request_corpus_equatorial_summary_for_report()
+        );
+        assert_eq!(
+            render_cli(&["production-generation-boundary-request-corpus-equatorial"])
+                .expect("production generation boundary request corpus equatorial alias should render"),
+            pleiades_jpl::production_generation_boundary_request_corpus_equatorial_summary_for_report()
+        );
+        assert_eq!(
+            render_cli(&["production-generation-boundary-request-corpus-equatorial-summary", "extra"]).expect_err(
+                "production generation boundary request corpus equatorial summary should reject extra arguments"
+            ),
+            "production-generation-boundary-request-corpus-equatorial-summary does not accept extra arguments"
+        );
         let production_generation_source_window_summary =
             render_cli(&["production-generation-source-window-summary"])
                 .expect("production generation source window summary should render");
@@ -6723,6 +6751,12 @@ mod tests {
         ));
         assert!(help.contains(
             "production-generation-boundary-request-corpus-summary  Print the compact production-generation boundary request corpus summary"
+        ));
+        assert!(help.contains(
+            "production-generation-boundary-request-corpus-equatorial-summary  Print the compact production-generation boundary request corpus summary in the equatorial frame"
+        ));
+        assert!(help.contains(
+            "production-generation-boundary-request-corpus-equatorial  Alias for production-generation-boundary-request-corpus-equatorial-summary"
         ));
         assert!(help.contains(
             "production-generation-source-revision-summary  Print the compact production-generation source revision summary"
