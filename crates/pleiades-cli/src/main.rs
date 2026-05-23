@@ -7039,24 +7039,41 @@ mod tests {
 
     #[test]
     fn fallback_summary_commands_remain_reachable_from_the_cli() {
-        for (cli_command, validation_command) in [
-            ("catalog-posture", "catalog-posture-summary"),
-            ("known-gaps", "known-gaps-summary"),
-            ("jpl-provenance-only", "jpl-provenance-only-summary"),
+        for (cli_args, validation_args) in [
             (
-                "production-generation-source-revision",
-                "production-generation-source-revision-summary",
+                &["benchmark-matrix", "--rounds", "1"][..],
+                &["benchmark-matrix-summary", "--rounds", "1"][..],
+            ),
+            (&["catalog-posture"][..], &["catalog-posture-summary"][..]),
+            (&["known-gaps"][..], &["known-gaps-summary"][..]),
+            (
+                &["jpl-provenance-only"][..],
+                &["jpl-provenance-only-summary"][..],
+            ),
+            (
+                &["production-generation"][..],
+                &["production-generation-summary"][..],
+            ),
+            (
+                &["production-generation-manifest"][..],
+                &["production-generation-manifest-summary"][..],
+            ),
+            (
+                &["production-generation-manifest-checksum"][..],
+                &["production-generation-manifest-checksum-summary"][..],
+            ),
+            (
+                &["production-generation-source-revision"][..],
+                &["production-generation-source-revision-summary"][..],
             ),
         ] {
             assert_eq!(
-                render_cli(&[cli_command])
-                    .unwrap_or_else(|error| panic!("{cli_command} should render: {error}")),
-                pleiades_validate::render_cli(&[validation_command]).unwrap_or_else(
-                    |error| panic!(
-                        "validation command {validation_command} should render: {error}"
-                    )
-                ),
-                "CLI fallback should keep {cli_command} aligned with {validation_command}"
+                render_cli(cli_args)
+                    .unwrap_or_else(|error| panic!("{cli_args:?} should render: {error}")),
+                pleiades_validate::render_cli(validation_args).unwrap_or_else(|error| {
+                    panic!("validation command {validation_args:?} should render: {error}")
+                }),
+                "CLI fallback should keep {cli_args:?} aligned with {validation_args:?}"
             );
         }
     }
