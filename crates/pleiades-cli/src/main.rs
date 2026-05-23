@@ -211,7 +211,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("production-generation-quarter-day-boundary-summary")
         | Some("production-generation-quarter-day-boundary") => validate_render_cli(args),
-        Some("production-generation-boundary-source-summary") => validate_render_cli(args),
+        Some("production-generation-boundary-source-summary")
+        | Some("production-generation-boundary-source") => validate_render_cli(args),
         Some("production-generation-boundary-window-summary") => validate_render_cli(args),
         Some("production-generation-boundary-window") => {
             ensure_no_extra_args(&args[1..], "production-generation-boundary-window")?;
@@ -3915,6 +3916,11 @@ mod tests {
         assert_eq!(
             production_generation_boundary_source_summary,
             pleiades_jpl::production_generation_boundary_source_summary_for_report()
+        );
+        assert_eq!(
+            render_cli(&["production-generation-boundary-source"])
+                .expect("production generation boundary source alias should render"),
+            production_generation_boundary_source_summary,
         );
         let production_generation_boundary_window_summary =
             render_cli(&["production-generation-boundary-window-summary"])
