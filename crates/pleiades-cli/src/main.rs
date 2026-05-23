@@ -196,6 +196,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("production-generation-corpus-shape-summary")
         | Some("production-generation-corpus-shape") => validate_render_cli(args),
         Some("production-generation-source-summary") => validate_render_cli(args),
+        Some("production-generation-source-revision-summary") => validate_render_cli(args),
+        Some("production-generation-source-revision") => validate_render_cli(args),
         Some("production-generation-source") => {
             ensure_no_extra_args(&args[1..], "production-generation-source")?;
             validate_render_cli(args)
@@ -3479,6 +3481,33 @@ mod tests {
             production_generation_source_window_summary,
             pleiades_jpl::production_generation_snapshot_window_summary_for_report()
         );
+        let production_generation_source_revision_summary =
+            render_cli(&["production-generation-source-revision-summary"])
+                .expect("production generation source revision summary should render");
+        assert!(production_generation_source_revision_summary.contains("source revision="));
+        assert_eq!(
+            production_generation_source_revision_summary,
+            pleiades_jpl::production_generation_source_revision_summary_for_report()
+        );
+        let production_generation_source_revision_alias =
+            render_cli(&["production-generation-source-revision"])
+                .expect("production generation source revision alias should render");
+        assert_eq!(
+            production_generation_source_revision_alias,
+            pleiades_jpl::production_generation_source_revision_summary_for_report()
+        );
+        assert_eq!(
+            render_cli(&["production-generation-source-revision-summary", "extra"]).expect_err(
+                "production generation source revision summary should reject extra arguments"
+            ),
+            "production-generation-source-revision-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["production-generation-source-revision", "extra"]).expect_err(
+                "production generation source revision alias should reject extra arguments"
+            ),
+            "production-generation-source-revision-summary does not accept extra arguments"
+        );
         assert_eq!(
             render_cli(&["production-generation-source-window-summary", "extra"]).expect_err(
                 "production generation source window summary should reject extra arguments"
@@ -6658,6 +6687,12 @@ mod tests {
         ));
         assert!(help.contains(
             "production-generation-boundary-request-corpus-summary  Print the compact production-generation boundary request corpus summary"
+        ));
+        assert!(help.contains(
+            "production-generation-source-revision-summary  Print the compact production-generation source revision summary"
+        ));
+        assert!(help.contains(
+            "production-generation-source-revision  Alias for production-generation-source-revision-summary"
         ));
         assert!(help.contains(
             "production-generation-source-window-summary  Print the compact production-generation source windows summary"
