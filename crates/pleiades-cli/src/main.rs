@@ -219,6 +219,11 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("production-generation-source-summary") => validate_render_cli(args),
         Some("production-generation-source-revision-summary") => validate_render_cli(args),
         Some("production-generation-source-revision") => validate_render_cli(args),
+        Some("production-generation-manifest-summary") | Some("production-generation-manifest") => {
+            validate_render_cli(args)
+        }
+        Some("production-generation-manifest-checksum-summary")
+        | Some("production-generation-manifest-checksum") => validate_render_cli(args),
         Some("production-generation-source") => {
             ensure_no_extra_args(&args[1..], "production-generation-source")?;
             validate_render_cli(args)
@@ -3687,6 +3692,35 @@ mod tests {
             production_generation_source_revision_alias,
             pleiades_jpl::production_generation_source_revision_summary_for_report()
         );
+        let production_generation_manifest_summary =
+            render_cli(&["production-generation-manifest-summary"])
+                .expect("production generation manifest summary should render");
+        assert_eq!(
+            production_generation_manifest_summary,
+            super::validate_render_cli(&["production-generation-manifest-summary"])
+                .expect("validation production generation manifest summary should render")
+        );
+        let production_generation_manifest_alias = render_cli(&["production-generation-manifest"])
+            .expect("production generation manifest alias should render");
+        assert_eq!(
+            production_generation_manifest_alias,
+            production_generation_manifest_summary
+        );
+        let production_generation_manifest_checksum_summary =
+            render_cli(&["production-generation-manifest-checksum-summary"])
+                .expect("production generation manifest checksum summary should render");
+        assert_eq!(
+            production_generation_manifest_checksum_summary,
+            super::validate_render_cli(&["production-generation-manifest-checksum-summary"])
+                .expect("validation production generation manifest checksum summary should render")
+        );
+        let production_generation_manifest_checksum_alias =
+            render_cli(&["production-generation-manifest-checksum"])
+                .expect("production generation manifest checksum alias should render");
+        assert_eq!(
+            production_generation_manifest_checksum_alias,
+            production_generation_manifest_checksum_summary
+        );
         assert_eq!(
             render_cli(&["production-generation-source-revision-summary", "extra"]).expect_err(
                 "production generation source revision summary should reject extra arguments"
@@ -3698,6 +3732,28 @@ mod tests {
                 "production generation source revision alias should reject extra arguments"
             ),
             "production-generation-source-revision-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["production-generation-manifest-summary", "extra"])
+                .expect_err("production generation manifest summary should reject extra arguments"),
+            "production-generation-manifest-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["production-generation-manifest", "extra"])
+                .expect_err("production generation manifest alias should reject extra arguments"),
+            "production-generation-manifest-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["production-generation-manifest-checksum-summary", "extra"]).expect_err(
+                "production generation manifest checksum summary should reject extra arguments"
+            ),
+            "production-generation-manifest-checksum-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["production-generation-manifest-checksum", "extra"]).expect_err(
+                "production generation manifest checksum alias should reject extra arguments"
+            ),
+            "production-generation-manifest-checksum-summary does not accept extra arguments"
         );
         assert_eq!(
             render_cli(&["production-generation-source-window-summary", "extra"]).expect_err(
@@ -7065,6 +7121,18 @@ mod tests {
         ));
         assert!(help.contains(
             "production-generation-source-revision  Alias for production-generation-source-revision-summary"
+        ));
+        assert!(help.contains(
+            "production-generation-manifest-summary  Print the compact production-generation manifest summary"
+        ));
+        assert!(help.contains(
+            "production-generation-manifest  Alias for production-generation-manifest-summary"
+        ));
+        assert!(help.contains(
+            "production-generation-manifest-checksum-summary  Print the compact production-generation manifest checksum summary"
+        ));
+        assert!(help.contains(
+            "production-generation-manifest-checksum  Alias for production-generation-manifest-checksum-summary"
         ));
         assert!(help.contains(
             "production-generation-source-window-summary  Print the compact production-generation source windows summary"
