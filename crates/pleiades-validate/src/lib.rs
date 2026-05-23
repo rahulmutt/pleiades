@@ -24009,7 +24009,14 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(&source_corpus_summary_for_report());
     text.push('\n');
     text.push_str("JPL source corpus contract: ");
-    text.push_str(&jpl_source_corpus_contract_summary_for_report());
+    match required_labelled_summary_payload(
+        jpl_source_corpus_contract_summary_for_report(),
+        "JPL source corpus contract: ",
+        "JPL source corpus contract",
+    ) {
+        Ok(summary) => text.push_str(&summary),
+        Err(error) => return format!("Backend matrix summary unavailable ({error})"),
+    }
     text.push('\n');
     text.push_str("Catalog posture: ");
     match core_validated_catalog_posture_summary_for_report() {
@@ -33644,7 +33651,8 @@ mod tests {
         assert!(rendered.contains("Production generation source windows:"));
         assert!(rendered.contains("JPL production-generation body-class coverage:"));
         assert!(rendered.contains("JPL production-generation corpus shape:"));
-        assert!(rendered.contains("JPL source corpus contract: JPL source corpus contract:"));
+        assert!(rendered.contains("JPL source corpus contract: JPL evidence classification:"));
+        assert!(rendered.contains("JPL source posture: documented hybrid snapshot/hold-out fixture backend with a separate generation-input path"));
         assert!(rendered.contains(
             "Comparison corpus release-grade guard: Pluto excluded from tolerance evidence"
         ));
