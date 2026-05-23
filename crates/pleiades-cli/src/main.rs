@@ -159,6 +159,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("api-stability-summary") | Some("api-posture-summary") => validate_render_cli(args),
         Some("backend-matrix") | Some("capability-matrix") => validate_render_cli(args),
         Some("backend-matrix-summary") | Some("matrix-summary") => validate_render_cli(args),
+        Some("benchmark-matrix-summary") | Some("benchmark-matrix") => validate_render_cli(args),
         Some("release-notes") => validate_render_cli(args),
         Some("release-notes-summary") => validate_render_cli(args),
         Some("release-checklist") => validate_render_cli(args),
@@ -6707,6 +6708,10 @@ mod tests {
         ));
         assert!(help.contains("packaged-artifact-lookup-epoch-policy-summary"));
         assert!(help.contains("Alias for packaged-artifact-lookup-epoch-policy-summary"));
+        assert!(help.contains(
+            "benchmark-matrix-summary [--rounds N]  Print the compact benchmark matrix summary"
+        ));
+        assert!(help.contains("benchmark-matrix [--rounds N]  Alias for benchmark-matrix-summary"));
         assert!(help.contains(
             "production-generation-summary  Print the compact production-generation coverage summary"
         ));
