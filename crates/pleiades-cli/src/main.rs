@@ -204,6 +204,10 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "comparison-snapshot-source-summary")?;
             Ok(comparison_snapshot_source_summary_for_report())
         }
+        Some("comparison-snapshot-source") => {
+            ensure_no_extra_args(&args[1..], "comparison-snapshot-source")?;
+            Ok(comparison_snapshot_source_summary_for_report())
+        }
         Some("comparison-snapshot-source-window-summary") => validate_render_cli(args),
         Some("comparison-snapshot-source-window") => validate_render_cli(args),
         Some("comparison-snapshot-body-class-coverage-summary")
@@ -225,6 +229,10 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("comparison-snapshot-batch-parity-summary") => validate_render_cli(args),
         Some("reference-snapshot-source-summary") => {
             ensure_no_extra_args(&args[1..], "reference-snapshot-source-summary")?;
+            Ok(reference_snapshot_source_summary_for_report())
+        }
+        Some("reference-snapshot-source") => {
+            ensure_no_extra_args(&args[1..], "reference-snapshot-source")?;
             Ok(reference_snapshot_source_summary_for_report())
         }
         Some("reference-snapshot-source-window-summary") => validate_render_cli(args),
@@ -3515,6 +3523,16 @@ mod tests {
                 .expect_err("comparison snapshot source summary should reject extra arguments"),
             "comparison-snapshot-source-summary does not accept extra arguments"
         );
+        assert_eq!(
+            render_cli(&["comparison-snapshot-source"])
+                .expect("comparison snapshot source alias should render"),
+            comparison_snapshot_source_summary
+        );
+        assert_eq!(
+            render_cli(&["comparison-snapshot-source", "extra"])
+                .expect_err("comparison snapshot source alias should reject extra arguments"),
+            "comparison-snapshot-source does not accept extra arguments"
+        );
         let reference_snapshot_source_window_summary =
             render_cli(&["reference-snapshot-source-window-summary"])
                 .expect("reference snapshot source window summary should render");
@@ -3827,6 +3845,16 @@ mod tests {
             render_cli(&["reference-snapshot-source-summary", "extra"])
                 .expect_err("reference snapshot source summary should reject extra arguments"),
             "reference-snapshot-source-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["reference-snapshot-source"])
+                .expect("reference snapshot source alias should render"),
+            reference_snapshot_source_summary
+        );
+        assert_eq!(
+            render_cli(&["reference-snapshot-source", "extra"])
+                .expect_err("reference snapshot source alias should reject extra arguments"),
+            "reference-snapshot-source does not accept extra arguments"
         );
         let reference_snapshot_summary = render_cli(&["reference-snapshot-summary"])
             .expect("reference snapshot summary should render");
