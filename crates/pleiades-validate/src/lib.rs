@@ -23938,6 +23938,9 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str("Source corpus: ");
     text.push_str(&source_corpus_summary_for_report());
     text.push('\n');
+    text.push_str("JPL source corpus contract: ");
+    text.push_str(&jpl_source_corpus_contract_summary_for_report());
+    text.push('\n');
     text.push_str("Catalog posture: ");
     match core_validated_catalog_posture_summary_for_report() {
         Ok(summary) => text.push_str(&summary),
@@ -33560,7 +33563,7 @@ mod tests {
         assert!(rendered.contains("Production generation source windows:"));
         assert!(rendered.contains("JPL production-generation body-class coverage:"));
         assert!(rendered.contains("JPL production-generation corpus shape:"));
-        assert!(rendered.contains("JPL source corpus contract:"));
+        assert!(rendered.contains("JPL source corpus contract: JPL source corpus contract:"));
         assert!(rendered.contains(
             "Comparison corpus release-grade guard: Pluto excluded from tolerance evidence"
         ));
