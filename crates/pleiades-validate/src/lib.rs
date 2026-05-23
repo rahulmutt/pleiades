@@ -68,6 +68,8 @@ use pleiades_core::{
     validated_release_ayanamsa_canonical_names_summary_for_report as core_validated_release_ayanamsa_canonical_names_summary_for_report,
     validated_release_house_system_canonical_names_summary_for_report as core_validated_release_house_system_canonical_names_summary_for_report,
     validated_release_profile_identifiers_summary_for_report as core_validated_release_profile_identifiers_summary_for_report,
+    validated_target_ayanamsa_scope_summary_for_report as core_validated_target_ayanamsa_scope_summary_for_report,
+    validated_target_house_scope_summary_for_report as core_validated_target_house_scope_summary_for_report,
     AccuracyClass, Angle, Apparentness, BackendCapabilities, BackendFamily, BackendMetadata,
     CelestialBody, CompatibilityProfile, CompositeBackend, CoordinateFrame, EclipticCoordinates,
     EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult,
@@ -5603,6 +5605,22 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "release-ayanamsa-canonical-names-summary")?;
             Ok(render_release_ayanamsa_canonical_names_summary())
         }
+        Some("target-house-scope-summary") => {
+            ensure_no_extra_args(&args[1..], "target-house-scope-summary")?;
+            Ok(render_target_house_scope_summary())
+        }
+        Some("target-house-scope") => {
+            ensure_no_extra_args(&args[1..], "target-house-scope")?;
+            Ok(render_target_house_scope_summary())
+        }
+        Some("target-ayanamsa-scope-summary") => {
+            ensure_no_extra_args(&args[1..], "target-ayanamsa-scope-summary")?;
+            Ok(render_target_ayanamsa_scope_summary())
+        }
+        Some("target-ayanamsa-scope") => {
+            ensure_no_extra_args(&args[1..], "target-ayanamsa-scope")?;
+            Ok(render_target_ayanamsa_scope_summary())
+        }
         Some("verify-compatibility-profile") => {
             ensure_no_extra_args(&args[1..], "verify-compatibility-profile")?;
             verify_compatibility_profile().map_err(render_error)
@@ -7210,6 +7228,22 @@ pub fn render_release_house_system_canonical_names_summary() -> String {
 /// Renders the compact release-specific ayanamsa canonical-name summary used by release tooling.
 pub fn render_release_ayanamsa_canonical_names_summary() -> String {
     format_release_ayanamsa_canonical_names_for_report()
+}
+
+/// Renders the compact target house-system scope summary used by release tooling.
+pub fn render_target_house_scope_summary() -> String {
+    match core_validated_target_house_scope_summary_for_report() {
+        Ok(summary) => summary,
+        Err(error) => format!("Compatibility profile target house scope unavailable ({error})"),
+    }
+}
+
+/// Renders the compact target ayanamsa scope summary used by release tooling.
+pub fn render_target_ayanamsa_scope_summary() -> String {
+    match core_validated_target_ayanamsa_scope_summary_for_report() {
+        Ok(summary) => summary,
+        Err(error) => format!("Compatibility profile target ayanamsa scope unavailable ({error})"),
+    }
 }
 
 /// Renders the release notes used by release tooling.
@@ -26380,6 +26414,10 @@ fn help_text() -> String {
   release-house-system-canonical-names  Alias for release-house-system-canonical-names-summary
   release-ayanamsa-canonical-names-summary  Print the compact release-specific ayanamsa canonical names summary
   release-ayanamsa-canonical-names  Alias for release-ayanamsa-canonical-names-summary
+  target-house-scope-summary  Print the compact compatibility target house-system scope summary
+  target-house-scope         Alias for target-house-scope-summary
+  target-ayanamsa-scope-summary  Print the compact compatibility target ayanamsa scope summary
+  target-ayanamsa-scope      Alias for target-ayanamsa-scope-summary
   profile-summary           Alias for compatibility-profile-summary
   verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  release-notes             Print the release compatibility notes\n  release-notes-summary     Print the compact release notes summary\n  release-checklist         Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  release-smoke            Run the release smoke checks and render the short smoke report\n  release-gate              Run the release gate checks and render the release checklist\n  release-gate-summary      Run the release gate checks and render the compact release checklist summary\n  checklist-summary        Alias for release-checklist-summary\n  release-summary           Print the compact release summary\n  source-corpus-summary     Print the consolidated source corpus summary\n  source-corpus             Alias for source-corpus-summary\n  jpl-batch-error-taxonomy-summary  Print the compact JPL batch error taxonomy summary\n  jpl-snapshot-evidence-summary  Print the compact combined JPL evidence summary\n  jpl-source-corpus-contract-summary  Print the compact JPL source corpus contract summary\n  jpl-source-corpus-contract  Alias for jpl-source-corpus-contract-summary\n  jpl-source-posture-summary  Print the compact JPL source posture summary\n  jpl-source-posture         Alias for jpl-source-posture-summary\n  jpl-provenance-only-summary  Print the compact JPL provenance-only evidence summary\n  jpl-provenance-only  Alias for jpl-provenance-only-summary\n  production-generation-boundary-summary  Print the compact production-generation boundary overlay summary\n  production-generation-boundary-request-corpus-summary  Print the compact production-generation boundary request corpus summary\n  production-generation-boundary-request-corpus  Alias for production-generation-boundary-request-corpus-summary\n  production-generation-boundary-request-corpus-equatorial-summary  Print the compact production-generation boundary request corpus summary in the equatorial frame\n  production-generation-boundary-request-corpus-equatorial  Alias for production-generation-boundary-request-corpus-equatorial-summary\n  production-generation-body-class-coverage-summary  Print the compact production-generation body-class coverage summary\n  production-body-class-coverage-summary  Alias for production-generation-body-class-coverage-summary\n  production-generation-source-window-summary  Print the compact production-generation source windows summary\n  production-generation-source-window  Alias for production-generation-source-window-summary\n  production-generation-corpus-shape-summary  Print the compact production-generation corpus shape summary\n  production-generation-corpus-shape  Alias for production-generation-corpus-shape-summary\n  production-generation-summary  Print the compact production-generation coverage summary
   production-generation           Alias for production-generation-summary
@@ -31611,6 +31649,28 @@ mod tests {
         assert!(rendered.contains("T -> Topocentric"));
         assert!(rendered.contains("X -> Meridian"));
         assert_eq!(rendered, format_house_code_aliases_for_report());
+    }
+
+    #[test]
+    fn target_house_scope_summary_command_renders_the_scope() {
+        let rendered = render_cli(&["target-house-scope-summary"])
+            .expect("target house scope summary should render");
+
+        assert_eq!(rendered, render_target_house_scope_summary());
+        assert_eq!(render_cli(&["target-house-scope"]).unwrap(), rendered);
+        assert!(rendered.contains("Target house scope:"));
+        assert!(rendered.contains("Baseline milestone:"));
+    }
+
+    #[test]
+    fn target_ayanamsa_scope_summary_command_renders_the_scope() {
+        let rendered = render_cli(&["target-ayanamsa-scope-summary"])
+            .expect("target ayanamsa scope summary should render");
+
+        assert_eq!(rendered, render_target_ayanamsa_scope_summary());
+        assert_eq!(render_cli(&["target-ayanamsa-scope"]).unwrap(), rendered);
+        assert!(rendered.contains("Target ayanamsa scope:"));
+        assert!(rendered.contains("Baseline milestone:"));
     }
 
     #[test]
