@@ -3472,7 +3472,7 @@ const RELEASE_CHECKLIST_MANUAL_BUNDLE_WORKFLOW: [&str; 4] = [
     "[x] docs/release-reproducibility.md (broader source-corpus provenance contract)",
 ];
 
-const RELEASE_CHECKLIST_BUNDLE_CONTENTS: [&str; 22] = [
+const RELEASE_CHECKLIST_BUNDLE_CONTENTS: [&str; 25] = [
     "[x] compatibility-profile.txt",
     "[x] compatibility-profile-summary.txt",
     "[x] release-notes.txt",
@@ -3491,6 +3491,9 @@ const RELEASE_CHECKLIST_BUNDLE_CONTENTS: [&str; 22] = [
     "[x] validation-report-summary.txt",
     "[x] workspace-audit-summary.txt",
     "[x] validation-report.txt",
+    "[x] lunar-reference-error-envelope-summary.txt",
+    "[x] lunar-equatorial-reference-error-envelope-summary.txt",
+    "[x] lunar-apparent-comparison-summary.txt",
     "[x] production-generation-boundary-window-summary.txt",
     "[x] bundle-manifest.txt",
     "[x] bundle-manifest.checksum.txt",
@@ -10625,6 +10628,17 @@ pub fn render_release_bundle(
     let lunar_source_window_summary_text = validated_lunar_source_window_summary_for_report()
         .map_err(|error| ReleaseBundleError::Verification(error.to_string()))?;
     let lunar_source_window_summary_checksum = checksum64(&lunar_source_window_summary_text);
+    let lunar_reference_error_envelope_summary_text =
+        render_lunar_reference_error_envelope_summary_text();
+    let lunar_reference_error_envelope_summary_checksum =
+        checksum64(&lunar_reference_error_envelope_summary_text);
+    let lunar_equatorial_reference_error_envelope_summary_text =
+        render_lunar_equatorial_reference_error_envelope_summary_text();
+    let lunar_equatorial_reference_error_envelope_summary_checksum =
+        checksum64(&lunar_equatorial_reference_error_envelope_summary_text);
+    let lunar_apparent_comparison_summary_text = render_lunar_apparent_comparison_summary_text();
+    let lunar_apparent_comparison_summary_checksum =
+        checksum64(&lunar_apparent_comparison_summary_text);
     let lunar_theory_catalog_validation_summary =
         pleiades_elp::lunar_theory_catalog_validation_summary();
     lunar_theory_catalog_validation_summary
@@ -10852,6 +10866,12 @@ pub fn render_release_bundle(
     let lunar_theory_source_family_summary_path =
         output_dir.join("lunar-theory-source-family-summary.txt");
     let lunar_source_window_summary_path = output_dir.join("lunar-source-window-summary.txt");
+    let lunar_reference_error_envelope_summary_path =
+        output_dir.join("lunar-reference-error-envelope-summary.txt");
+    let lunar_equatorial_reference_error_envelope_summary_path =
+        output_dir.join("lunar-equatorial-reference-error-envelope-summary.txt");
+    let lunar_apparent_comparison_summary_path =
+        output_dir.join("lunar-apparent-comparison-summary.txt");
     let lunar_theory_catalog_validation_summary_path =
         output_dir.join("lunar-theory-catalog-validation-summary.txt");
     let request_surface_summary_path = output_dir.join("request-surface-summary.txt");
@@ -11281,6 +11301,12 @@ lunar theory source family summary: lunar-theory-source-family-summary.txt
 lunar theory source family summary checksum (fnv1a-64): 0x{lunar_theory_source_family_summary_checksum:016x}
 lunar theory source window summary: lunar-source-window-summary.txt
 lunar theory source window summary checksum (fnv1a-64): 0x{lunar_source_window_summary_checksum:016x}
+lunar reference error envelope summary: lunar-reference-error-envelope-summary.txt
+lunar reference error envelope summary checksum (fnv1a-64): 0x{lunar_reference_error_envelope_summary_checksum:016x}
+lunar equatorial reference error envelope summary: lunar-equatorial-reference-error-envelope-summary.txt
+lunar equatorial reference error envelope summary checksum (fnv1a-64): 0x{lunar_equatorial_reference_error_envelope_summary_checksum:016x}
+lunar apparent comparison summary: lunar-apparent-comparison-summary.txt
+lunar apparent comparison summary checksum (fnv1a-64): 0x{lunar_apparent_comparison_summary_checksum:016x}
 lunar theory catalog validation summary: lunar-theory-catalog-validation-summary.txt
 lunar theory catalog validation summary checksum (fnv1a-64): 0x{lunar_theory_catalog_validation_summary_checksum:016x}
 request surface summary: request-surface-summary.txt\nrequest surface summary checksum (fnv1a-64): 0x{request_surface_summary_checksum:016x}\ncompatibility caveats summary: compatibility-caveats-summary.txt\ncompatibility caveats summary checksum (fnv1a-64): 0x{compatibility_caveats_summary_checksum:016x}\nworkspace audit summary: workspace-audit-summary.txt\nworkspace audit summary checksum (fnv1a-64): 0x{workspace_audit_summary_checksum:016x}\nnative-dependency audit summary: native-dependency-audit-summary.txt\nnative-dependency audit summary checksum (fnv1a-64): 0x{native_dependency_audit_summary_checksum:016x}\nartifact summary: artifact-summary.txt\nartifact summary checksum (fnv1a-64): 0x{artifact_summary_checksum:016x}\npackaged-artifact: packaged-artifact.bin\npackaged-artifact checksum (fnv1a-64): 0x{packaged_artifact_bytes_checksum:016x}\npackaged-artifact checksum sidecar: packaged-artifact.checksum.txt\npackaged-artifact checksum sidecar checksum (fnv1a-64): 0x{packaged_artifact_checksum_text_checksum:016x}\npackaged-artifact profile coverage summary: packaged-artifact-profile-coverage-summary.txt\npackaged-artifact profile coverage summary checksum (fnv1a-64): 0x{packaged_artifact_profile_coverage_summary_checksum:016x}\npackaged-artifact access summary: packaged-artifact-access-summary.txt\npackaged-artifact access summary checksum (fnv1a-64): 0x{packaged_artifact_access_summary_checksum:016x}\npackaged-artifact output support summary: packaged-artifact-output-support-summary.txt\npackaged-artifact output support summary checksum (fnv1a-64): 0x{packaged_artifact_output_support_summary_checksum:016x}\npackaged-artifact fit sample classes summary: packaged-artifact-fit-sample-classes-summary.txt\npackaged-artifact fit sample classes summary checksum (fnv1a-64): 0x{packaged_artifact_fit_sample_classes_summary_checksum:016x}\npackaged-artifact fit threshold violation count summary: packaged-artifact-fit-threshold-violation-count-summary.txt\npackaged-artifact fit threshold violation count summary checksum (fnv1a-64): 0x{packaged_artifact_fit_threshold_violation_count_summary_checksum:016x}\npackaged-artifact fit threshold violations summary: packaged-artifact-fit-threshold-violations-summary.txt\npackaged-artifact fit threshold violations summary checksum (fnv1a-64): 0x{packaged_artifact_fit_threshold_violations_summary_checksum:016x}\npackaged-artifact normalized intermediate summary: packaged-artifact-normalized-intermediate-summary.txt\npackaged-artifact normalized intermediate summary checksum (fnv1a-64): 0x{packaged_artifact_normalized_intermediate_summary_checksum:016x}\npackaged-artifact speed policy summary: packaged-artifact-speed-policy-summary.txt\npackaged-artifact speed policy summary checksum (fnv1a-64): 0x{packaged_artifact_speed_policy_summary_checksum:016x}\npackaged-artifact storage summary: packaged-artifact-storage-summary.txt\npackaged-artifact storage summary checksum (fnv1a-64): 0x{packaged_artifact_storage_summary_checksum:016x}\npackaged-artifact production-profile summary: packaged-artifact-production-profile-summary.txt\npackaged-artifact production-profile summary checksum (fnv1a-64): 0x{packaged_artifact_production_profile_summary_checksum:016x}\npackaged-frame-treatment summary: packaged-frame-treatment-summary.txt\npackaged-frame-treatment summary checksum (fnv1a-64): 0x{packaged_frame_treatment_summary_checksum:016x}\npackaged-artifact target-threshold summary: packaged-artifact-target-threshold-summary.txt
@@ -11679,6 +11705,18 @@ benchmark-corpus summary: benchmark-corpus-summary.txt\nbenchmark-corpus summary
     fs::write(
         &lunar_source_window_summary_path,
         lunar_source_window_summary_text.as_bytes(),
+    )?;
+    fs::write(
+        &lunar_reference_error_envelope_summary_path,
+        lunar_reference_error_envelope_summary_text.as_bytes(),
+    )?;
+    fs::write(
+        &lunar_equatorial_reference_error_envelope_summary_path,
+        lunar_equatorial_reference_error_envelope_summary_text.as_bytes(),
+    )?;
+    fs::write(
+        &lunar_apparent_comparison_summary_path,
+        lunar_apparent_comparison_summary_text.as_bytes(),
     )?;
     fs::write(
         &lunar_theory_catalog_validation_summary_path,
@@ -13286,6 +13324,9 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
         "packaged-artifact-generation-manifest.checksum.txt",
         "benchmark-report.txt",
         "validation-report.txt",
+        "lunar-reference-error-envelope-summary.txt",
+        "lunar-equatorial-reference-error-envelope-summary.txt",
+        "lunar-apparent-comparison-summary.txt",
         "bundle-manifest.txt",
         "bundle-manifest.checksum.txt",
     ]
@@ -13320,7 +13361,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
 fn ensure_release_bundle_manifest_is_canonical(
     manifest_text: &str,
 ) -> Result<(), ReleaseBundleError> {
-    const EXPECTED_MANIFEST_LINES: [&str; 280] = [
+    const EXPECTED_MANIFEST_LINES: [&str; 286] = [
         "Release bundle manifest",
         "profile:",
         "profile checksum (fnv1a-64):",
@@ -13510,6 +13551,12 @@ fn ensure_release_bundle_manifest_is_canonical(
         "lunar theory source family summary checksum (fnv1a-64):",
         "lunar theory source window summary:",
         "lunar theory source window summary checksum (fnv1a-64):",
+        "lunar reference error envelope summary:",
+        "lunar reference error envelope summary checksum (fnv1a-64):",
+        "lunar equatorial reference error envelope summary:",
+        "lunar equatorial reference error envelope summary checksum (fnv1a-64):",
+        "lunar apparent comparison summary:",
+        "lunar apparent comparison summary checksum (fnv1a-64):",
         "lunar theory catalog validation summary:",
         "lunar theory catalog validation summary checksum (fnv1a-64):",
         "request surface summary:",
@@ -15528,6 +15575,12 @@ fn verify_release_bundle_internal(
     let lunar_theory_source_family_summary_path =
         output_dir.join("lunar-theory-source-family-summary.txt");
     let lunar_source_window_summary_path = output_dir.join("lunar-source-window-summary.txt");
+    let _lunar_reference_error_envelope_summary_path =
+        output_dir.join("lunar-reference-error-envelope-summary.txt");
+    let _lunar_equatorial_reference_error_envelope_summary_path =
+        output_dir.join("lunar-equatorial-reference-error-envelope-summary.txt");
+    let _lunar_apparent_comparison_summary_path =
+        output_dir.join("lunar-apparent-comparison-summary.txt");
     let lunar_theory_catalog_validation_summary_path =
         output_dir.join("lunar-theory-catalog-validation-summary.txt");
     let request_surface_summary_path = output_dir.join("request-surface-summary.txt");
@@ -33453,7 +33506,7 @@ mod tests {
         assert!(rendered.contains("Compact summary views: release-notes-summary, api-stability-summary, backend-matrix-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary"));
         assert!(rendered.contains("Repository-managed release gates: 10 items"));
         assert!(rendered.contains("Manual bundle workflow: 4 items"));
-        assert!(rendered.contains("Bundle contents: 22 items"));
+        assert!(rendered.contains("Bundle contents: 25 items"));
         assert!(rendered.contains("External publishing reminders: 3 items"));
         assert!(rendered.contains("See release-checklist for the full maintainer-facing artifact."));
         assert!(
@@ -35505,7 +35558,7 @@ version = "0.9.0"
         assert!(release_checklist_summary.contains("Workspace audit: workspace-audit / audit"));
         assert!(release_checklist_summary.contains("Repository-managed release gates: 10 items"));
         assert!(release_checklist_summary.contains("Manual bundle workflow: 4 items"));
-        assert!(release_checklist_summary.contains("Bundle contents: 22 items"));
+        assert!(release_checklist_summary.contains("Bundle contents: 25 items"));
         assert!(release_checklist_summary.contains("External publishing reminders: 3 items"));
         assert!(backend_matrix.contains("Implemented backend matrices"));
         assert!(backend_matrix.contains("JPL snapshot reference backend"));

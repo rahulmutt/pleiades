@@ -2980,7 +2980,7 @@ mod tests {
             "Manual bundle workflow: {} items",
             release_checklist_summary_details.manual_bundle_workflow_items
         )));
-        assert!(release_checklist_summary.contains("Bundle contents: 22 items"));
+        assert!(release_checklist_summary.contains("Bundle contents: 25 items"));
         assert!(release_checklist_summary.contains("External publishing reminders: 3 items"));
         assert!(release_checklist_summary
             .contains("See release-summary for the compact one-screen release overview."));
