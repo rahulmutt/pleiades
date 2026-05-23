@@ -1572,6 +1572,28 @@ pub fn validated_release_ayanamsa_canonical_names_summary_for_report(
     current_compatibility_profile().validated_release_ayanamsa_canonical_names_summary_line()
 }
 
+/// Returns the target house-system scope summary for report surfaces.
+pub fn target_house_scope_summary_for_report() -> String {
+    current_compatibility_profile().target_house_scope_summary_line()
+}
+
+/// Returns the target house-system scope summary after validating the profile.
+pub fn validated_target_house_scope_summary_for_report(
+) -> Result<String, CompatibilityProfileValidationError> {
+    current_compatibility_profile().validated_target_house_scope_summary_line()
+}
+
+/// Returns the target ayanamsa scope summary for report surfaces.
+pub fn target_ayanamsa_scope_summary_for_report() -> String {
+    current_compatibility_profile().target_ayanamsa_scope_summary_line()
+}
+
+/// Returns the target ayanamsa scope summary after validating the profile.
+pub fn validated_target_ayanamsa_scope_summary_for_report(
+) -> Result<String, CompatibilityProfileValidationError> {
+    current_compatibility_profile().validated_target_ayanamsa_scope_summary_line()
+}
+
 fn write_scope_section(
     f: &mut fmt::Formatter<'_>,
     title: &str,
@@ -2593,6 +2615,14 @@ mod tests {
             profile.target_house_scope.join("; ")
         );
         assert_eq!(
+            target_house_scope_summary_for_report(),
+            profile.target_house_scope_summary_line()
+        );
+        assert_eq!(
+            validated_target_house_scope_summary_for_report(),
+            Ok(profile.target_house_scope.join("; "))
+        );
+        assert_eq!(
             profile.target_ayanamsa_scope_summary_line(),
             profile.target_ayanamsa_scope.join("; ")
         );
@@ -2601,6 +2631,14 @@ mod tests {
                 .validated_target_ayanamsa_scope_summary_line()
                 .expect("target ayanamsa scope should validate"),
             profile.target_ayanamsa_scope.join("; ")
+        );
+        assert_eq!(
+            target_ayanamsa_scope_summary_for_report(),
+            profile.target_ayanamsa_scope_summary_line()
+        );
+        assert_eq!(
+            validated_target_ayanamsa_scope_summary_for_report(),
+            Ok(profile.target_ayanamsa_scope.join("; "))
         );
     }
 

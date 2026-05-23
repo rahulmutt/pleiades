@@ -106,8 +106,10 @@ pub use compatibility::{
     latitude_sensitive_house_failure_modes_summary_for_report,
     latitude_sensitive_house_systems_summary_for_report,
     release_ayanamsa_canonical_names_summary_for_report,
-    release_house_system_canonical_names_summary_for_report, validate_custom_definition_labels,
-    validated_catalog_inventory_summary_for_report, validated_catalog_posture_summary_for_report,
+    release_house_system_canonical_names_summary_for_report,
+    target_ayanamsa_scope_summary_for_report, target_house_scope_summary_for_report,
+    validate_custom_definition_labels, validated_catalog_inventory_summary_for_report,
+    validated_catalog_posture_summary_for_report,
     validated_custom_definition_ayanamsa_labels_summary_for_report,
     validated_house_code_aliases_summary_for_report,
     validated_house_formula_families_summary_for_report, validated_known_gaps_summary_for_report,
@@ -115,7 +117,9 @@ pub use compatibility::{
     validated_latitude_sensitive_house_failure_modes_summary_for_report,
     validated_latitude_sensitive_house_systems_summary_for_report,
     validated_release_ayanamsa_canonical_names_summary_for_report,
-    validated_release_house_system_canonical_names_summary_for_report, CompatibilityProfile,
+    validated_release_house_system_canonical_names_summary_for_report,
+    validated_target_ayanamsa_scope_summary_for_report,
+    validated_target_house_scope_summary_for_report, CompatibilityProfile,
     HouseCodeAliasInventorySummary, CURRENT_COMPATIBILITY_PROFILE_ID,
 };
 pub use pleiades_ayanamsa::{
