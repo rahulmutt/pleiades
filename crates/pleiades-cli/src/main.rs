@@ -136,6 +136,9 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         | Some("release-house-system-canonical-names") => validate_render_cli(args),
         Some("release-ayanamsa-canonical-names-summary")
         | Some("release-ayanamsa-canonical-names") => validate_render_cli(args),
+        Some("release-house-validation-summary") | Some("release-house-validation") => {
+            validate_render_cli(args)
+        }
         Some("verify-compatibility-profile") => {
             verify_compatibility_profile().map_err(render_error)
         }
@@ -6659,10 +6662,6 @@ mod tests {
             ("known-gaps", "known-gaps-summary"),
             ("jpl-provenance-only", "jpl-provenance-only-summary"),
             (
-                "release-house-validation",
-                "release-house-validation-summary",
-            ),
-            (
                 "production-generation-source-revision",
                 "production-generation-source-revision-summary",
             ),
@@ -6678,6 +6677,27 @@ mod tests {
                 "CLI fallback should keep {cli_command} aligned with {validation_command}"
             );
         }
+    }
+
+    #[test]
+    fn release_house_validation_summary_and_alias_render_directly_from_the_cli() {
+        let release_house_validation_summary = render_cli(&["release-house-validation-summary"])
+            .expect("release house validation summary should render");
+        assert_eq!(
+            release_house_validation_summary,
+            pleiades_validate::render_cli(&["release-house-validation-summary"])
+                .expect("validation front end should render the release house validation summary")
+        );
+        assert_eq!(
+            render_cli(&["release-house-validation"])
+                .expect("release house validation alias should render"),
+            release_house_validation_summary
+        );
+        assert_eq!(
+            render_cli(&["release-house-validation", "extra"])
+                .expect_err("release house validation alias should reject extra arguments"),
+            "release-house-validation does not accept extra arguments"
+        );
     }
 
     #[test]
