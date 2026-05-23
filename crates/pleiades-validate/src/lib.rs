@@ -21764,6 +21764,7 @@ fn validate_release_body_claims_posture(
 struct BodyDateChannelClaimsSummary {
     release_body_claims: String,
     frame_policy: String,
+    production_generation_date_range: String,
     production_generation_coverage: String,
     corpus_shape: String,
     coverage_posture: String,
@@ -21790,9 +21791,10 @@ impl std::error::Error for BodyDateChannelClaimsSummaryValidationError {}
 impl BodyDateChannelClaimsSummary {
     fn summary_line(&self) -> String {
         format!(
-            "bodies={}; frame policy={}; production generation coverage={}; corpus shape={}; coverage posture={}",
+            "bodies={}; frame policy={}; date range={}; production generation coverage={}; corpus shape={}; coverage posture={}",
             self.release_body_claims,
             self.frame_policy,
+            self.production_generation_date_range,
             self.production_generation_coverage,
             self.corpus_shape,
             self.coverage_posture
@@ -21817,6 +21819,13 @@ impl BodyDateChannelClaimsSummary {
             return Err(
                 BodyDateChannelClaimsSummaryValidationError::FieldOutOfSync {
                     field: "frame_policy",
+                },
+            );
+        }
+        if self.production_generation_date_range != expected.production_generation_date_range {
+            return Err(
+                BodyDateChannelClaimsSummaryValidationError::FieldOutOfSync {
+                    field: "production_generation_date_range",
                 },
             );
         }
@@ -21853,11 +21862,18 @@ impl BodyDateChannelClaimsSummary {
 }
 
 fn body_date_channel_claims_summary_details() -> Option<BodyDateChannelClaimsSummary> {
+    let production_generation_window =
+        pleiades_jpl::production_generation_snapshot_window_summary()?;
     Some(BodyDateChannelClaimsSummary {
         release_body_claims: validated_release_body_claims_summary_line_for_report()
             .ok()?
             .to_string(),
         frame_policy: validated_frame_policy_summary_for_report(),
+        production_generation_date_range: format!(
+            "{}..{}",
+            format_instant(production_generation_window.earliest_epoch),
+            format_instant(production_generation_window.latest_epoch)
+        ),
         production_generation_coverage: production_generation_snapshot_summary_for_report(),
         corpus_shape: validated_production_generation_corpus_shape_summary_for_report().ok()?,
         coverage_posture: "production-generation coverage and corpus shape remain aligned across the advertised 1500-2500 CE window".to_string(),
@@ -41273,6 +41289,8 @@ version = "0.9.0"
         assert!(body_date_channel_claims_summary
             .contains("frame policy=ecliptic body positions are the default request shape"));
         assert!(body_date_channel_claims_summary
+            .contains("date range=JD 2268932.5 (TDB)..JD 2634167.0 (TDB)"));
+        assert!(body_date_channel_claims_summary
             .contains("production generation coverage=Production generation coverage:"));
         assert!(body_date_channel_claims_summary.contains(
             "coverage posture=production-generation coverage and corpus shape remain aligned across the advertised 1500-2500 CE window"
@@ -41308,6 +41326,19 @@ version = "0.9.0"
         assert_eq!(
             error.to_string(),
             "the body/date/channel claims summary field `frame_policy` is out of sync with the current posture"
+        );
+
+        let mut body_date_channel_claims = body_date_channel_claims_summary_details()
+            .expect("body/date/channel claims should exist");
+        body_date_channel_claims
+            .production_generation_date_range
+            .push_str(" drifted");
+        let error = body_date_channel_claims
+            .validated_summary_line()
+            .expect_err("production generation date range drift should fail closed");
+        assert_eq!(
+            error.to_string(),
+            "the body/date/channel claims summary field `production_generation_date_range` is out of sync with the current posture"
         );
 
         let mut body_date_channel_claims = body_date_channel_claims_summary_details()
@@ -42416,6 +42447,7 @@ version = "0.9.0"
             "lunar source windows=7 exact Moon samples across 1 bodies in 2 exact windows"
         ));
         assert!(rendered.contains("release-grade body claims=Moon and supported lunar points (Mean Node, True Node, Mean Apogee, Mean Perigee) remain source-backed validation bodies; True Apogee and True Perigee remain unsupported; Sun through Neptune are release-grade major-body claims; Pluto remains an explicitly approximate fallback; selected asteroids (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) remain source-backed validation bodies"));
+        assert!(rendered.contains("date range=JD 2268932.5 (TDB)..JD 2634167.0 (TDB)"));
         assert!(rendered.contains("production generation coverage=Production generation coverage:"));
         assert!(rendered.contains(
             "coverage posture=production-generation coverage and corpus shape remain aligned across the advertised 1500-2500 CE window"
