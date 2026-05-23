@@ -38078,6 +38078,19 @@ version = "0.9.0"
     }
 
     #[test]
+    fn verify_release_bundle_rejects_semantically_tampered_comparison_snapshot_manifest_summary_file_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-semantic-comparison-snapshot-manifest",
+            "comparison-snapshot-manifest-summary.txt",
+            "comparison-snapshot manifest summary checksum (fnv1a-64):",
+            "redistribution=repository-checked regression fixtures, not a broad public corpus.",
+            "redistribution=drifted repository-checked regression fixtures, not a broad public corpus.",
+            "comparison snapshot manifest summary no longer matches the current comparison snapshot manifest posture",
+        );
+    }
+
+    #[test]
     fn verify_release_bundle_rejects_semantically_tampered_reference_snapshot_manifest_summary_file_even_with_updated_checksum(
     ) {
         assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
