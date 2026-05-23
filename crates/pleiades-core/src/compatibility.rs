@@ -215,6 +215,24 @@ impl CompatibilityProfile {
         Ok(format_canonical_name_summary(&names))
     }
 
+    /// Returns the representative ayanamsa provenance payload surfaced in the compatibility profile.
+    pub fn ayanamsa_provenance_summary_line(&self) -> String {
+        validated_provenance_summary_for_report()
+            .unwrap_or_else(|error| format!("unavailable ({error})"))
+    }
+
+    /// Returns the representative ayanamsa provenance payload after validating the profile.
+    pub fn validated_ayanamsa_provenance_summary_line(
+        &self,
+    ) -> Result<String, CompatibilityProfileValidationError> {
+        self.validate()?;
+        validated_provenance_summary_for_report().map_err(|error| {
+            CompatibilityProfileValidationError::AyanamsaProvenanceSummaryValidationFailed {
+                error: error.to_string(),
+            }
+        })
+    }
+
     /// Returns the custom-definition ayanamsa labels surfaced in the compatibility profile.
     pub fn custom_definition_ayanamsa_labels(&self) -> Vec<&'static str> {
         metadata_coverage().custom_definition_only
@@ -270,8 +288,7 @@ impl CompatibilityProfile {
         let custom_definition_ayanamsa_labels = self.custom_definition_ayanamsa_labels();
         let ayanamsa_metadata_gap_count = metadata_coverage().without_sidereal_metadata.len();
         let ayanamsa_alias_bearing_entry_count = self.ayanamsa_alias_bearing_entry_count();
-        let ayanamsa_provenance = validated_provenance_summary_for_report()
-            .unwrap_or_else(|error| format!("unavailable ({error})"));
+        let ayanamsa_provenance = self.ayanamsa_provenance_summary_line();
         let constrained_house_system_count = self.constrained_house_system_count();
         let unconstrained_house_system_count = self
             .house_systems
@@ -3662,6 +3679,16 @@ mod tests {
             .count();
         let ayanamsa_provenance = validated_provenance_summary_for_report()
             .expect("ayanamsa provenance summary should validate");
+        assert_eq!(
+            profile.ayanamsa_provenance_summary_line(),
+            ayanamsa_provenance
+        );
+        assert_eq!(
+            profile
+                .validated_ayanamsa_provenance_summary_line()
+                .expect("ayanamsa provenance summary should validate"),
+            ayanamsa_provenance
+        );
         assert!(rendered.contains(&format!(
             "Compatibility catalog inventory: house systems={} ({} baseline, {} release-specific, {} aliases); house formula families={}; house latitude-sensitive constraints={}; house-code aliases={}; ayanamsas={} ({} baseline, {} release-specific, {} aliases); custom-definition labels={}; custom-definition ayanamsa labels={} (Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs)); ayanamsa metadata gaps={}; ayanamsa alias-bearing entries={}; catalog posture=house systems={} ({} constrained, {} unconstrained); ayanamsas={} ({} descriptor-only, {} metadata-bearing); custom-only labels={}; custom-only ayanamsa labels={}; ayanamsa provenance={}; known gaps={}; claim audit: baseline catalogs are the published guarantees; release-specific entries are shipped additions; custom-definition labels remain custom-definition territory; descriptor-only ayanamsa entries remain catalog descriptors; constrained house systems stay explicitly flagged; known gaps stay documented",
             profile.house_systems.len(),
