@@ -13900,6 +13900,20 @@ fn ensure_reference_snapshot_exact_j2000_evidence_summary_matches_current_render
     }
 }
 
+fn ensure_reference_snapshot_manifest_summary_matches_current_rendering(
+    reference_snapshot_manifest_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if reference_snapshot_manifest_summary_text == reference_snapshot_manifest_summary_for_report()
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "reference snapshot manifest summary no longer matches the current reference snapshot manifest posture"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_reference_snapshot_source_summary_matches_current_rendering(
     reference_snapshot_source_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -15586,12 +15600,9 @@ fn verify_release_bundle_internal(
         &reference_snapshot_manifest_summary_path,
         "reference snapshot manifest summary",
     )?;
-    if reference_snapshot_manifest_summary_text != reference_snapshot_manifest_summary_for_report()
-    {
-        return Err(ReleaseBundleError::Verification(
-            "reference snapshot manifest summary no longer matches the current reference snapshot manifest posture".to_string(),
-        ));
-    }
+    ensure_reference_snapshot_manifest_summary_matches_current_rendering(
+        &reference_snapshot_manifest_summary_text,
+    )?;
     let reference_snapshot_manifest_summary_checksum =
         checksum64(&reference_snapshot_manifest_summary_text);
     let reference_snapshot_body_class_coverage_summary_text = read_required_bundle_text(
@@ -37216,6 +37227,19 @@ version = "0.9.0"
     }
 
     #[test]
+    fn verify_release_bundle_rejects_semantically_tampered_reference_snapshot_manifest_summary_file_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-semantic-reference-snapshot-manifest",
+            "reference-snapshot-manifest-summary.txt",
+            "reference snapshot manifest summary checksum (fnv1a-64):",
+            "source=NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.",
+            "source=drifted NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.",
+            "reference snapshot manifest summary no longer matches the current reference snapshot manifest posture",
+        );
+    }
+
+    #[test]
     fn verify_release_bundle_rejects_semantically_tampered_release_checklist_summary_file_even_with_updated_checksum(
     ) {
         assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
@@ -38239,6 +38263,22 @@ version = "0.9.0"
         assert!(error
             .to_string()
             .contains("no longer matches the current reference snapshot source posture"));
+    }
+
+    #[test]
+    fn reference_snapshot_manifest_summary_validation_rejects_drift() {
+        let summary = reference_snapshot_manifest_summary_for_report();
+        let drifted_summary = summary.replace(
+            "source=NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.",
+            "source=drifted NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.",
+        );
+
+        let error =
+            ensure_reference_snapshot_manifest_summary_matches_current_rendering(&drifted_summary)
+                .expect_err("drifted reference snapshot manifest summary should be rejected");
+        assert!(error
+            .to_string()
+            .contains("no longer matches the current reference snapshot manifest posture"));
     }
 
     #[test]
