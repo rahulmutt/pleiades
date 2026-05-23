@@ -21971,6 +21971,13 @@ impl SourceCorpusSummary {
                 field: "coverage_posture",
             });
         }
+        if self.production_generation_boundary_window
+            != expected.production_generation_boundary_window
+        {
+            return Err(SourceCorpusSummaryValidationError::FieldOutOfSync {
+                field: "production_generation_boundary_window",
+            });
+        }
         if self.production_generation_boundary_source
             != expected.production_generation_boundary_source
         {
@@ -44014,6 +44021,19 @@ version = "0.9.0"
         assert_eq!(
             error.to_string(),
             "the source corpus summary field `production_generation_source_windows` is out of sync with the current posture"
+        );
+
+        let mut summary =
+            source_corpus_summary_details().expect("source corpus summary should exist");
+        summary.production_generation_boundary_window =
+            "Production generation boundary windows: drifted".to_string();
+
+        let error = summary
+            .validated_summary_line()
+            .expect_err("production generation boundary window drift should fail closed");
+        assert_eq!(
+            error.to_string(),
+            "the source corpus summary field `production_generation_boundary_window` is out of sync with the current posture"
         );
 
         let mut summary =
