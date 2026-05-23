@@ -21371,7 +21371,7 @@ fn source_corpus_summary_details() -> Option<SourceCorpusSummary> {
         .ok()?,
         production_generation_date_range,
         production_generation_quarter_day_boundary_samples,
-        coverage_posture: "reference, hold-out, boundary-overlay, and lunar slices keep the advertised 1500-2500 CE window covered; both ecliptic and equatorial boundary request corpora remain aligned".to_string(),
+        coverage_posture: production_generation_coverage_posture_for_report()?,
         production_generation_boundary_source: required_summary_payload(
             production_generation_boundary_source_summary_for_report(),
             "Production generation boundary overlay source: ",
@@ -21898,9 +21898,20 @@ impl BodyDateChannelClaimsSummary {
     }
 }
 
+fn production_generation_coverage_posture_for_report() -> Option<String> {
+    let _ = pleiades_jpl::production_generation_snapshot_window_summary()?;
+    validated_production_generation_corpus_shape_summary_for_report().ok()?;
+
+    Some(
+        "production-generation coverage and corpus shape remain aligned across the advertised 1500-2500 CE window"
+            .to_string(),
+    )
+}
+
 fn body_date_channel_claims_summary_details() -> Option<BodyDateChannelClaimsSummary> {
     let production_generation_window =
         pleiades_jpl::production_generation_snapshot_window_summary()?;
+    let coverage_posture = production_generation_coverage_posture_for_report()?;
     Some(BodyDateChannelClaimsSummary {
         release_body_claims: validated_release_body_claims_summary_line_for_report()
             .ok()?
@@ -21913,7 +21924,7 @@ fn body_date_channel_claims_summary_details() -> Option<BodyDateChannelClaimsSum
         ),
         production_generation_coverage: production_generation_snapshot_summary_for_report(),
         corpus_shape: validated_production_generation_corpus_shape_summary_for_report().ok()?,
-        coverage_posture: "production-generation coverage and corpus shape remain aligned across the advertised 1500-2500 CE window".to_string(),
+        coverage_posture,
     })
 }
 
@@ -42500,7 +42511,7 @@ version = "0.9.0"
         assert!(rendered
             .contains("production generation date range=JD 2268932.5 (TDB)..JD 2634167.0 (TDB)"));
         assert!(rendered.contains("production generation quarter-day boundary samples=8 rows across 4 bodies and 2 epochs (JD 2451915.25 (TDB)..JD 2451915.75 (TDB))"));
-        assert!(rendered.contains("coverage posture=reference, hold-out, boundary-overlay, and lunar slices keep the advertised 1500-2500 CE window covered; both ecliptic and equatorial boundary request corpora remain aligned"));
+        assert!(rendered.contains("coverage posture=production-generation coverage and corpus shape remain aligned across the advertised 1500-2500 CE window"));
         assert!(rendered.contains("production generation boundary source="));
         assert!(rendered.contains("production generation boundary request corpus="));
         assert!(rendered.contains("production generation boundary request corpus equatorial="));
