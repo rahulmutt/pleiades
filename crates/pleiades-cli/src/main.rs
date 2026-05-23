@@ -533,7 +533,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("reference-asteroid-evidence-summary") => validate_render_cli(args),
         Some("reference-asteroid-equatorial-evidence-summary")
         | Some("reference-asteroid-equatorial-evidence") => validate_render_cli(args),
-        Some("reference-asteroid-source-window-summary") => validate_render_cli(args),
+        Some("reference-asteroid-source-window-summary")
+        | Some("reference-asteroid-source-window") => validate_render_cli(args),
         Some("reference-asteroid-source-summary") => validate_render_cli(args),
         Some("reference-holdout-overlap-summary") => validate_render_cli(args),
         Some("holdout-overlap-summary") => validate_render_cli(args),
@@ -4592,6 +4593,18 @@ mod tests {
             reference_asteroid_source_window_summary,
             pleiades_jpl::reference_asteroid_source_window_summary_for_report()
         );
+        let reference_asteroid_source_window_alias =
+            render_cli(&["reference-asteroid-source-window"])
+                .expect("reference asteroid source window alias should render");
+        assert_eq!(
+            reference_asteroid_source_window_alias,
+            reference_asteroid_source_window_summary
+        );
+        assert_eq!(
+            render_cli(&["reference-asteroid-source-window", "extra"])
+                .expect_err("reference asteroid source window alias should reject extra arguments"),
+            "reference-asteroid-source-window-summary does not accept extra arguments"
+        );
         let reference_asteroid_source_summary = render_cli(&["reference-asteroid-source-summary"])
             .expect("reference asteroid source summary should render");
         assert_eq!(
@@ -7051,6 +7064,9 @@ mod tests {
         assert!(help.contains("reference-asteroid-equatorial-evidence-summary  Print the compact reference asteroid equatorial evidence summary"));
         assert!(help.contains("reference-asteroid-equatorial-evidence  Alias for reference-asteroid-equatorial-evidence-summary"));
         assert!(help.contains("reference-asteroid-source-window-summary  Print the compact reference asteroid source windows summary"));
+        assert!(help.contains(
+            "reference-asteroid-source-window  Alias for reference-asteroid-source-window-summary"
+        ));
         assert!(help.contains(
             "reference-asteroid-source-summary  Alias for reference-asteroid-source-window-summary"
         ));

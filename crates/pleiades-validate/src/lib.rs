@@ -6690,7 +6690,8 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "reference-asteroid-equatorial-evidence-summary")?;
             Ok(reference_asteroid_equatorial_evidence_summary_for_report())
         }
-        Some("reference-asteroid-source-window-summary") => {
+        Some("reference-asteroid-source-window-summary")
+        | Some("reference-asteroid-source-window") => {
             ensure_no_extra_args(&args[1..], "reference-asteroid-source-window-summary")?;
             validated_reference_asteroid_source_window_summary_for_report()
         }
@@ -26388,6 +26389,7 @@ fn help_text() -> String {
   production-generation-boundary-source  Alias for production-generation-boundary-source-summary
   production-generation-boundary-window-summary  Print the compact production-generation boundary windows summary
   production-generation-boundary-window  Alias for production-generation-boundary-window-summary\n  production-generation-manifest-summary  Print the compact production-generation manifest summary\n  production-generation-manifest  Alias for production-generation-manifest-summary\n  production-generation-manifest-checksum-summary  Print the compact production-generation manifest checksum summary\n  production-generation-manifest-checksum  Alias for production-generation-manifest-checksum-summary\n  production-generation-source      Alias for production-generation-source-summary\n  production-generation-source-summary  Print the compact production-generation source summary\n  production-generation-source-revision-summary  Print the compact production-generation source revision summary\n  production-generation-source-revision  Alias for production-generation-source-revision-summary\n  comparison-snapshot-source-window-summary  Print the compact comparison snapshot source windows summary\n  comparison-snapshot-source-window  Alias for comparison-snapshot-source-window-summary\n  comparison-snapshot-source-summary  Print the compact comparison snapshot source summary\n  comparison-snapshot-source        Alias for comparison-snapshot-source-summary\n  comparison-snapshot-body-class-coverage-summary  Print the compact comparison snapshot body-class coverage summary\n  comparison-body-class-coverage-summary  Alias for comparison-snapshot-body-class-coverage-summary\n  comparison-snapshot-manifest-summary  Print the compact comparison snapshot manifest summary\n  comparison-snapshot-manifest  Alias for comparison-snapshot-manifest-summary\n  comparison-snapshot-summary  Print the compact comparison snapshot summary\n  comparison-snapshot         Alias for comparison-snapshot-summary\n  comparison-snapshot-batch-parity-summary  Print the compact comparison snapshot batch parity summary\n  reference-snapshot-source-window-summary  Print the compact reference snapshot source windows summary\n  reference-snapshot-source-window  Alias for reference-snapshot-source-window-summary\n  reference-snapshot-source-summary  Print the compact reference snapshot source summary\n  reference-snapshot-source        Alias for reference-snapshot-source-summary\n  reference-asteroid-source-window-summary  Print the compact reference asteroid source windows summary
+  reference-asteroid-source-window  Alias for reference-asteroid-source-window-summary
   reference-snapshot-manifest-summary  Print the compact reference snapshot manifest summary
   reference-snapshot-manifest  Alias for reference-snapshot-manifest-summary
   reference-snapshot-summary  Print the compact reference snapshot summary
@@ -40812,6 +40814,16 @@ version = "0.9.0"
                 .expect("reference asteroid source window summary should validate")
         );
 
+        assert_eq!(
+            render_cli(&["reference-asteroid-source-window"])
+                .expect("reference asteroid source window alias should render"),
+            rendered
+        );
+        assert_eq!(
+            render_cli(&["reference-asteroid-source-window", "extra"])
+                .expect_err("reference asteroid source window alias should reject extra arguments"),
+            "reference-asteroid-source-window-summary does not accept extra arguments"
+        );
         assert_eq!(
             render_cli(&["reference-asteroid-source-summary"])
                 .expect("reference asteroid source summary alias should render"),
