@@ -581,6 +581,12 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "release-profile-identifiers")?;
             validate_render_cli(args)
         }
+        Some("target-house-scope-summary") | Some("target-house-scope") => {
+            validate_render_cli(args)
+        }
+        Some("target-ayanamsa-scope-summary") | Some("target-ayanamsa-scope") => {
+            validate_render_cli(args)
+        }
         Some("request-surface-summary") | Some("request-surface") => validate_render_cli(args),
         Some("request-policy-summary") => validate_render_cli(args),
         Some("request-policy") => validate_render_cli(args),
@@ -1990,6 +1996,34 @@ mod tests {
         assert_eq!(
             summary,
             render_cli(&["comparison-audit"]).expect("comparison audit alias should render")
+        );
+    }
+
+    #[test]
+    fn target_scope_summary_commands_forward_to_validate() {
+        let house_scope = render_cli(&["target-house-scope-summary"])
+            .expect("target house scope summary should render");
+        assert_eq!(
+            house_scope,
+            render_cli(&["target-house-scope"]).expect("target house scope alias should render")
+        );
+        assert_eq!(
+            house_scope,
+            validate_render_cli(&["target-house-scope-summary"])
+                .expect("validation binary should render target house scope summary")
+        );
+
+        let ayanamsa_scope = render_cli(&["target-ayanamsa-scope-summary"])
+            .expect("target ayanamsa scope summary should render");
+        assert_eq!(
+            ayanamsa_scope,
+            render_cli(&["target-ayanamsa-scope"])
+                .expect("target ayanamsa scope alias should render")
+        );
+        assert_eq!(
+            ayanamsa_scope,
+            validate_render_cli(&["target-ayanamsa-scope-summary"])
+                .expect("validation binary should render target ayanamsa scope summary")
         );
     }
 
