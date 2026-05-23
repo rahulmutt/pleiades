@@ -21540,6 +21540,7 @@ struct SourceCorpusSummary {
     reference_snapshot_body_class_coverage: String,
     reference_snapshot_manifest: String,
     independent_holdout_body_class_coverage: String,
+    pluto_fallback: String,
     release_grade_body_claims: String,
     body_date_channel_claims: String,
     phase2_corpus_alignment: String,
@@ -21566,7 +21567,7 @@ impl std::error::Error for SourceCorpusSummaryValidationError {}
 impl SourceCorpusSummary {
     fn summary_line(&self) -> String {
         format!(
-            "comparison corpus release-grade guard: {}; JPL source corpus contract: {}; evidence classification={}; provenance-only={}; lunar source windows={}; shared schema={}; generation command={}; production generation source={}; production generation source revision={}; production generation coverage={}; production generation source windows={}; production generation date range={}; production generation quarter-day boundary samples={}; coverage posture={}; production generation boundary source={}; production generation boundary request corpus={}; production generation boundary request corpus equatorial={}; reference snapshot sparse boundary={}; reference snapshot exact J2000 evidence={}; reference snapshot equatorial parity={}; reference snapshot body-class coverage={}; reference snapshot manifest={}; independent-holdout body-class coverage={}; release-grade body claims={}; body-date-channel claims={}; phase-2 corpus alignment: {}",
+            "comparison corpus release-grade guard: {}; JPL source corpus contract: {}; evidence classification={}; provenance-only={}; lunar source windows={}; shared schema={}; generation command={}; production generation source={}; production generation source revision={}; production generation coverage={}; production generation source windows={}; production generation date range={}; production generation quarter-day boundary samples={}; coverage posture={}; production generation boundary source={}; production generation boundary request corpus={}; production generation boundary request corpus equatorial={}; reference snapshot sparse boundary={}; reference snapshot exact J2000 evidence={}; reference snapshot equatorial parity={}; reference snapshot body-class coverage={}; reference snapshot manifest={}; independent-holdout body-class coverage={}; pluto fallback={}; release-grade body claims={}; body-date-channel claims={}; phase-2 corpus alignment: {}",
             self.comparison_corpus_release_grade_guard,
             self.jpl_source_corpus_contract,
             self.jpl_evidence_classification,
@@ -21590,6 +21591,7 @@ impl SourceCorpusSummary {
             self.reference_snapshot_body_class_coverage,
             self.reference_snapshot_manifest,
             self.independent_holdout_body_class_coverage,
+            self.pluto_fallback,
             self.release_grade_body_claims,
             self.body_date_channel_claims,
             self.phase2_corpus_alignment,
@@ -21740,6 +21742,11 @@ impl SourceCorpusSummary {
                 field: "independent_holdout_body_class_coverage",
             });
         }
+        if self.pluto_fallback != expected.pluto_fallback {
+            return Err(SourceCorpusSummaryValidationError::FieldOutOfSync {
+                field: "pluto_fallback",
+            });
+        }
         if self.release_grade_body_claims != expected.release_grade_body_claims {
             return Err(SourceCorpusSummaryValidationError::FieldOutOfSync {
                 field: "release_grade_body_claims",
@@ -21835,6 +21842,15 @@ fn source_corpus_summary_details() -> Option<SourceCorpusSummary> {
     .ok()?;
     let phase2_corpus_alignment =
         validated_packaged_artifact_phase2_corpus_alignment_summary_for_report();
+    let pluto_fallback = required_summary_payload(
+        format!(
+            "Pluto fallback: {}",
+            validated_pluto_fallback_summary_line_for_report().ok()?
+        ),
+        "Pluto fallback: ",
+        "pluto fallback",
+    )
+    .ok()?;
     let production_generation_window = production_generation_snapshot_window_summary()?;
     let production_generation_date_range = format!(
         "{}..{}",
@@ -21903,6 +21919,7 @@ fn source_corpus_summary_details() -> Option<SourceCorpusSummary> {
         reference_snapshot_body_class_coverage,
         reference_snapshot_manifest,
         independent_holdout_body_class_coverage,
+        pluto_fallback,
         release_grade_body_claims,
         body_date_channel_claims: body_date_channel_claims_summary_details()?
             .validated_summary_line()
@@ -43750,6 +43767,18 @@ version = "0.9.0"
         assert_eq!(
             error.to_string(),
             "the source corpus summary field `independent_holdout_body_class_coverage` is out of sync with the current posture"
+        );
+
+        let mut summary =
+            source_corpus_summary_details().expect("source corpus summary should exist");
+        summary.pluto_fallback = "Pluto fallback: drifted".to_string();
+
+        let error = summary
+            .validated_summary_line()
+            .expect_err("pluto fallback drift should fail closed");
+        assert_eq!(
+            error.to_string(),
+            "the source corpus summary field `pluto_fallback` is out of sync with the current posture"
         );
 
         let mut summary =
