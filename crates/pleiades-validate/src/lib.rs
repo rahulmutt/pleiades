@@ -38078,6 +38078,19 @@ version = "0.9.0"
     }
 
     #[test]
+    fn verify_release_bundle_rejects_semantically_tampered_source_corpus_summary_file_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-semantic-source-corpus-summary",
+            "source-corpus-summary.txt",
+            "source-corpus summary checksum (fnv1a-64):",
+            "coverage posture=production-generation coverage and corpus shape remain aligned across the advertised 1500-2500 CE window",
+            "coverage posture=drifted production-generation coverage and corpus shape remain aligned across the advertised 1500-2500 CE window",
+            "source corpus summary no longer matches the current source-corpus posture",
+        );
+    }
+
+    #[test]
     fn verify_release_bundle_rejects_semantically_tampered_comparison_snapshot_manifest_summary_file_even_with_updated_checksum(
     ) {
         assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
