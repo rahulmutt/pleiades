@@ -21014,6 +21014,7 @@ struct SourceCorpusSummary {
     production_generation_coverage: String,
     production_generation_source_windows: String,
     production_generation_date_range: String,
+    production_generation_quarter_day_boundary_samples: String,
     coverage_posture: String,
     production_generation_boundary_source: String,
     production_generation_boundary_request_corpus: String,
@@ -21049,7 +21050,7 @@ impl std::error::Error for SourceCorpusSummaryValidationError {}
 impl SourceCorpusSummary {
     fn summary_line(&self) -> String {
         format!(
-            "comparison corpus release-grade guard: {}; JPL source corpus contract: {}; evidence classification={}; provenance-only={}; lunar source windows={}; shared schema={}; generation command={}; production generation source={}; production generation source revision={}; production generation coverage={}; production generation source windows={}; production generation date range={}; coverage posture={}; production generation boundary source={}; production generation boundary request corpus={}; production generation boundary request corpus equatorial={}; reference snapshot sparse boundary={}; reference snapshot exact J2000 evidence={}; reference snapshot equatorial parity={}; reference snapshot body-class coverage={}; independent-holdout body-class coverage={}; release-grade body claims={}; body-date-channel claims={}; phase-2 corpus alignment: {}",
+            "comparison corpus release-grade guard: {}; JPL source corpus contract: {}; evidence classification={}; provenance-only={}; lunar source windows={}; shared schema={}; generation command={}; production generation source={}; production generation source revision={}; production generation coverage={}; production generation source windows={}; production generation date range={}; production generation quarter-day boundary samples={}; coverage posture={}; production generation boundary source={}; production generation boundary request corpus={}; production generation boundary request corpus equatorial={}; reference snapshot sparse boundary={}; reference snapshot exact J2000 evidence={}; reference snapshot equatorial parity={}; reference snapshot body-class coverage={}; independent-holdout body-class coverage={}; release-grade body claims={}; body-date-channel claims={}; phase-2 corpus alignment: {}",
             self.comparison_corpus_release_grade_guard,
             self.jpl_source_corpus_contract,
             self.jpl_evidence_classification,
@@ -21062,6 +21063,7 @@ impl SourceCorpusSummary {
             self.production_generation_coverage,
             self.production_generation_source_windows,
             self.production_generation_date_range,
+            self.production_generation_quarter_day_boundary_samples,
             self.coverage_posture,
             self.production_generation_boundary_source,
             self.production_generation_boundary_request_corpus,
@@ -21148,6 +21150,13 @@ impl SourceCorpusSummary {
         if self.production_generation_date_range != expected.production_generation_date_range {
             return Err(SourceCorpusSummaryValidationError::FieldOutOfSync {
                 field: "production_generation_date_range",
+            });
+        }
+        if self.production_generation_quarter_day_boundary_samples
+            != expected.production_generation_quarter_day_boundary_samples
+        {
+            return Err(SourceCorpusSummaryValidationError::FieldOutOfSync {
+                field: "production_generation_quarter_day_boundary_samples",
             });
         }
         if self.coverage_posture != expected.coverage_posture {
@@ -21304,6 +21313,12 @@ fn source_corpus_summary_details() -> Option<SourceCorpusSummary> {
         format_instant(production_generation_window.earliest_epoch),
         format_instant(production_generation_window.latest_epoch),
     );
+    let production_generation_quarter_day_boundary_samples = required_summary_payload(
+        pleiades_jpl::production_generation_quarter_day_boundary_summary_for_report(),
+        "Production generation quarter-day boundary samples: ",
+        "production generation quarter-day boundary samples",
+    )
+    .ok()?;
 
     Some(SourceCorpusSummary {
         comparison_corpus_release_grade_guard,
@@ -21334,6 +21349,7 @@ fn source_corpus_summary_details() -> Option<SourceCorpusSummary> {
         )
         .ok()?,
         production_generation_date_range,
+        production_generation_quarter_day_boundary_samples,
         coverage_posture: "reference, hold-out, boundary-overlay, and lunar slices keep the advertised 1500-2500 CE window covered; both ecliptic and equatorial boundary request corpora remain aligned".to_string(),
         production_generation_boundary_source: required_summary_payload(
             production_generation_boundary_source_summary_for_report(),
@@ -42426,6 +42442,7 @@ version = "0.9.0"
         assert!(rendered.contains("production generation source windows=357 source-backed samples across 16 bodies and 31 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB))"));
         assert!(rendered
             .contains("production generation date range=JD 2268932.5 (TDB)..JD 2634167.0 (TDB)"));
+        assert!(rendered.contains("production generation quarter-day boundary samples=8 rows across 4 bodies and 2 epochs (JD 2451915.25 (TDB)..JD 2451915.75 (TDB))"));
         assert!(rendered.contains("coverage posture=reference, hold-out, boundary-overlay, and lunar slices keep the advertised 1500-2500 CE window covered; both ecliptic and equatorial boundary request corpora remain aligned"));
         assert!(rendered.contains("production generation boundary source="));
         assert!(rendered.contains("production generation boundary request corpus="));
@@ -42703,6 +42720,20 @@ version = "0.9.0"
         assert_eq!(
             error.to_string(),
             "the source corpus summary field `production_generation_date_range` is out of sync with the current posture"
+        );
+
+        let mut summary =
+            source_corpus_summary_details().expect("source corpus summary should exist");
+        summary.production_generation_quarter_day_boundary_samples =
+            "8 rows across 4 bodies and 2 epochs (JD 2451915.25 (TDB)..JD 2451915.75 (TDB))"
+                .to_string();
+
+        let error = summary.validated_summary_line().expect_err(
+            "production generation quarter-day boundary samples drift should fail closed",
+        );
+        assert_eq!(
+            error.to_string(),
+            "the source corpus summary field `production_generation_quarter_day_boundary_samples` is out of sync with the current posture"
         );
 
         let mut summary =
