@@ -615,6 +615,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("house-latitude-sensitive-summary") | Some("house-latitude-sensitive") => {
             validate_render_cli(args)
         }
+        Some("house-latitude-sensitive-failure-modes-summary")
+        | Some("house-latitude-sensitive-failure-modes") => validate_render_cli(args),
         Some("house-code-aliases-summary") => validate_render_cli(args),
         Some("house-code-alias-summary") => validate_render_cli(args),
         Some("catalog-posture-summary") => {
@@ -5192,6 +5194,26 @@ mod tests {
                 "latitude-sensitive house systems summary should reject extra arguments"
             ),
             "house-latitude-sensitive-summary does not accept extra arguments"
+        );
+        let house_latitude_sensitive_failure_modes_summary =
+            render_cli(&["house-latitude-sensitive-failure-modes-summary"])
+                .expect("latitude-sensitive house failure modes summary should render");
+        assert_eq!(
+            house_latitude_sensitive_failure_modes_summary,
+            validate_render_cli(&["house-latitude-sensitive-failure-modes-summary"]).expect(
+                "validate facade should render latitude-sensitive house failure modes summary"
+            )
+        );
+        assert_eq!(
+            render_cli(&["house-latitude-sensitive-failure-modes"])
+                .expect("latitude-sensitive house failure modes alias should render"),
+            house_latitude_sensitive_failure_modes_summary
+        );
+        assert_eq!(
+            render_cli(&["house-latitude-sensitive-failure-modes-summary", "extra"]).expect_err(
+                "latitude-sensitive house failure modes summary should reject extra arguments"
+            ),
+            "house-latitude-sensitive-failure-modes-summary does not accept extra arguments"
         );
         let house_code_aliases_summary = render_cli(&["house-code-aliases-summary"])
             .expect("house code aliases summary should render");

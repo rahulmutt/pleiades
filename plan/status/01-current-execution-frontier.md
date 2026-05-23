@@ -34,3 +34,5 @@ Broaden the production corpus around the new contract surface:
 - Audit house/ayanamsa entries whose release status is stronger than their evidence.
 - Keep unsupported request modes documented and structurally rejected.
 - Harden release gates where they check current evidence rather than expanding claims.
+
+Recent implementation note: the CLI front-end now also directly dispatches `house-latitude-sensitive-failure-modes` with parity coverage, keeping the latitude-sensitive house audit surface explicit from both binaries.
