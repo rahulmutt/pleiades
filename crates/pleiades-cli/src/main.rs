@@ -596,6 +596,22 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("house-code-aliases-summary") => validate_render_cli(args),
         Some("house-code-alias-summary") => validate_render_cli(args),
+        Some("catalog-posture-summary") => {
+            ensure_no_extra_args(&args[1..], "catalog-posture-summary")?;
+            validate_render_cli(args)
+        }
+        Some("catalog-posture") => {
+            ensure_no_extra_args(&args[1..], "catalog-posture")?;
+            validate_render_cli(args)
+        }
+        Some("known-gaps-summary") => {
+            ensure_no_extra_args(&args[1..], "known-gaps-summary")?;
+            validate_render_cli(args)
+        }
+        Some("known-gaps") => {
+            ensure_no_extra_args(&args[1..], "known-gaps")?;
+            validate_render_cli(args)
+        }
         Some("ayanamsa-catalog-validation-summary") => validate_render_cli(args),
         Some("ayanamsa-catalog-validation") => validate_render_cli(args),
         Some("ayanamsa-metadata-coverage-summary") => validate_render_cli(args),
@@ -5047,6 +5063,36 @@ mod tests {
             render_cli(&["catalog-inventory"]).expect("catalog inventory alias should render"),
             catalog_inventory_summary
         );
+        let catalog_posture_summary = render_cli(&["catalog-posture-summary"])
+            .expect("catalog posture summary should render");
+        assert_eq!(
+            catalog_posture_summary,
+            validate_render_cli(&["catalog-posture-summary"])
+                .expect("validate facade should render catalog posture summary")
+        );
+        assert_eq!(
+            render_cli(&["catalog-posture"]).expect("catalog posture alias should render"),
+            catalog_posture_summary
+        );
+        assert_eq!(
+            render_cli(&["catalog-posture-summary", "extra"]).unwrap_err(),
+            "catalog-posture-summary does not accept extra arguments"
+        );
+        let known_gaps_summary =
+            render_cli(&["known-gaps-summary"]).expect("known gaps summary should render");
+        assert_eq!(
+            known_gaps_summary,
+            validate_render_cli(&["known-gaps-summary"])
+                .expect("validate facade should render known gaps summary")
+        );
+        assert_eq!(
+            render_cli(&["known-gaps"]).expect("known gaps alias should render"),
+            known_gaps_summary
+        );
+        assert_eq!(
+            render_cli(&["known-gaps-summary", "extra"]).unwrap_err(),
+            "known-gaps-summary does not accept extra arguments"
+        );
         let ayanamsa_catalog_validation_summary_rendered =
             render_cli(&["ayanamsa-catalog-validation-summary"])
                 .expect("ayanamsa catalog validation summary should render");
@@ -6997,6 +7043,14 @@ mod tests {
             "catalog-inventory-summary  Print the compact compatibility catalog inventory summary"
         ));
         assert!(help.contains("catalog-inventory        Alias for catalog-inventory-summary"));
+        assert!(help.contains(
+            "catalog-posture-summary   Print the compact compatibility catalog posture summary"
+        ));
+        assert!(help.contains("catalog-posture         Alias for catalog-posture-summary"));
+        assert!(help.contains(
+            "known-gaps-summary      Print the compact compatibility known-gaps summary"
+        ));
+        assert!(help.contains("known-gaps              Alias for known-gaps-summary"));
         assert!(help.contains(
             "custom-definition-ayanamsa-labels-summary  Print the compact custom-definition ayanamsa labels summary"
         ));
