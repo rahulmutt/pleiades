@@ -248,6 +248,11 @@ impl HouseSystemDescriptor {
         text
     }
 
+    /// Returns the compact failure-mode note for the descriptor.
+    pub fn failure_mode_summary_line(&self) -> String {
+        format!("{}: {}", self.canonical_name, self.notes)
+    }
+
     /// Returns the descriptor summary after validating the entry first.
     pub fn validated_summary_line(&self) -> Result<String, HouseCatalogValidationError> {
         self.validate()?;
@@ -624,9 +629,11 @@ impl HouseCatalogValidationSummary {
             latitude_sensitive_labels.join(", ")
         };
 
+        let failure_modes = latitude_sensitive_house_failure_modes_summary_line();
+
         match &self.validation_result {
             Ok(()) => format!(
-                "house catalog validation: ok ({} entries, {} labels checked; baseline={}, release={}; formula families: {}; latitude-sensitive={}/{} entries; labels: {}; round-trip, alias uniqueness, and notes verified)",
+                "house catalog validation: ok ({} entries, {} labels checked; baseline={}, release={}; formula families: {}; latitude-sensitive={}/{} entries; failure modes: {}; labels: {}; round-trip, alias uniqueness, and notes verified)",
                 self.entry_count,
                 self.label_count,
                 self.baseline_entry_count,
@@ -634,6 +641,7 @@ impl HouseCatalogValidationSummary {
                 formula_families,
                 latitude_sensitive_count,
                 self.entry_count,
+                failure_modes,
                 latitude_sensitive_labels,
             ),
             Err(error) => format!(
@@ -759,6 +767,28 @@ pub fn house_formula_families_summary_line() -> String {
             .collect::<Vec<_>>()
             .join(", "),
     }
+}
+
+fn format_string_summary(items: &[String]) -> String {
+    match items {
+        [] => "none".to_string(),
+        [single] => single.clone(),
+        _ => items.join(", "),
+    }
+}
+
+/// Returns the release-facing failure-mode notes for the latitude-sensitive built-in house systems.
+pub fn latitude_sensitive_house_failure_modes() -> Vec<String> {
+    built_in_house_systems()
+        .iter()
+        .filter(|entry| entry.latitude_sensitive)
+        .map(HouseSystemDescriptor::failure_mode_summary_line)
+        .collect()
+}
+
+/// Returns a compact one-line rendering of the latitude-sensitive failure-mode notes.
+pub fn latitude_sensitive_house_failure_modes_summary_line() -> String {
+    format_string_summary(&latitude_sensitive_house_failure_modes())
 }
 
 /// Returns a compact validation summary for the built-in house-system catalog.
@@ -2205,6 +2235,7 @@ mod tests {
         assert!(summary.summary_line().contains("formula families:"));
         assert!(summary.summary_line().contains(&expected_formula_families));
         assert!(summary.summary_line().contains("latitude-sensitive="));
+        assert!(summary.summary_line().contains("failure modes:"));
         assert!(summary
             .summary_line()
             .contains(&expected_latitude_sensitive_labels));

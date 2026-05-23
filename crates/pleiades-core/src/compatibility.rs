@@ -442,6 +442,20 @@ impl CompatibilityProfile {
         Ok(self.latitude_sensitive_house_constraints_summary_line())
     }
 
+    /// Returns the release-facing failure-mode notes for latitude-sensitive house systems.
+    pub fn latitude_sensitive_house_failure_modes(&self) -> Vec<String> {
+        self.house_systems
+            .iter()
+            .filter(|entry| entry.latitude_sensitive)
+            .map(|entry| format!("{} [{}]", entry.canonical_name, entry.notes))
+            .collect()
+    }
+
+    /// Returns the latitude-sensitive house failure modes as a compact human-readable line.
+    pub fn latitude_sensitive_house_failure_modes_summary_line(&self) -> String {
+        format_string_summary(&self.latitude_sensitive_house_failure_modes())
+    }
+
     /// Returns the unique house formula families represented in the profile,
     /// sorted by their release-facing labels.
     pub fn house_formula_family_names(&self) -> Vec<String> {
@@ -1475,6 +1489,18 @@ pub fn validated_catalog_inventory_summary_for_report(
     current_compatibility_profile().validated_catalog_inventory_summary_line()
 }
 
+/// Returns the compatibility-profile latitude-sensitive house failure modes summary for report surfaces.
+pub fn latitude_sensitive_house_failure_modes_summary_for_report() -> String {
+    current_compatibility_profile().latitude_sensitive_house_failure_modes_summary_line()
+}
+
+/// Returns the compatibility-profile latitude-sensitive house failure modes summary after validating the profile.
+pub fn validated_latitude_sensitive_house_failure_modes_summary_for_report(
+) -> Result<String, CompatibilityProfileValidationError> {
+    current_compatibility_profile().validate()?;
+    Ok(current_compatibility_profile().latitude_sensitive_house_failure_modes_summary_line())
+}
+
 /// Returns the compatibility-caveats summary for report surfaces.
 pub fn compatibility_caveats_summary_for_report(
     profile: &CompatibilityProfile,
@@ -1497,6 +1523,9 @@ pub fn compatibility_caveats_summary_for_report(
     text.push('\n');
     text.push_str("Latitude-sensitive house constraints: ");
     text.push_str(&profile.latitude_sensitive_house_constraints_summary_line());
+    text.push('\n');
+    text.push_str("Latitude-sensitive house failure modes: ");
+    text.push_str(&profile.latitude_sensitive_house_failure_modes_summary_line());
     text.push('\n');
     text.push_str("Descriptor-only ayanamsa labels: ");
     text.push_str(&profile.custom_definition_ayanamsa_labels_summary_line());
@@ -3771,14 +3800,16 @@ mod tests {
         assert!(rendered.contains(release_profiles.compatibility_profile_id));
         assert!(rendered.contains("House formula families: "));
         assert!(rendered.contains("Latitude-sensitive house systems: "));
+        assert!(rendered.contains("Latitude-sensitive house failure modes: "));
         assert!(rendered.contains("Descriptor-only ayanamsa labels: "));
         let expected_prefix = format!(
-            "Compatibility caveats summary\nProfile: {}\nCompatibility caveats: {}\nHouse formula families: {}\nLatitude-sensitive house systems: {}\nLatitude-sensitive house constraints: {}\nDescriptor-only ayanamsa labels: {}\n",
+            "Compatibility caveats summary\nProfile: {}\nCompatibility caveats: {}\nHouse formula families: {}\nLatitude-sensitive house systems: {}\nLatitude-sensitive house constraints: {}\nLatitude-sensitive house failure modes: {}\nDescriptor-only ayanamsa labels: {}\n",
             release_profiles.compatibility_profile_id,
             profile.known_gaps.len(),
             profile.house_formula_families_summary_line(),
             profile.latitude_sensitive_house_systems_summary_line(),
             profile.latitude_sensitive_house_constraints_summary_line(),
+            profile.latitude_sensitive_house_failure_modes_summary_line(),
             profile.custom_definition_ayanamsa_labels_summary_line()
         );
         assert!(rendered.starts_with(&expected_prefix));
