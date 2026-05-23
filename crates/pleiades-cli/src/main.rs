@@ -374,6 +374,10 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
             )?;
             validate_render_cli(args)
         }
+        Some("reference-snapshot-exact-j2000-evidence") => {
+            ensure_no_extra_args(&args[1..], "reference-snapshot-exact-j2000-evidence")?;
+            validate_render_cli(args)
+        }
         Some("exact-j2000-evidence") => {
             ensure_no_extra_args(&args[1..], "exact-j2000-evidence")?;
             validate_render_cli(args)
@@ -2976,7 +2980,7 @@ mod tests {
             "Manual bundle workflow: {} items",
             release_checklist_summary_details.manual_bundle_workflow_items
         )));
-        assert!(release_checklist_summary.contains("Bundle contents: 21 items"));
+        assert!(release_checklist_summary.contains("Bundle contents: 22 items"));
         assert!(release_checklist_summary.contains("External publishing reminders: 3 items"));
         assert!(release_checklist_summary
             .contains("See release-summary for the compact one-screen release overview."));
@@ -4090,16 +4094,23 @@ mod tests {
         let exact_j2000_evidence = render_cli(&["exact-j2000-evidence"])
             .expect("exact J2000 evidence alias should render");
         assert_eq!(exact_j2000_evidence, reference_snapshot_exact_j2000);
+        let reference_snapshot_exact_j2000_alias =
+            render_cli(&["reference-snapshot-exact-j2000-evidence"])
+                .expect("reference snapshot exact J2000 evidence alias should render");
+        assert_eq!(
+            reference_snapshot_exact_j2000_alias,
+            reference_snapshot_exact_j2000
+        );
         assert_eq!(
             render_cli(&["exact-j2000-evidence", "extra"])
                 .expect_err("exact J2000 evidence alias should reject extra arguments"),
             "exact-j2000-evidence does not accept extra arguments"
         );
         assert_eq!(
-            render_cli(&["reference-snapshot-exact-j2000-evidence-summary", "extra"]).expect_err(
-                "reference snapshot exact J2000 evidence should reject extra arguments"
+            render_cli(&["reference-snapshot-exact-j2000-evidence", "extra"]).expect_err(
+                "reference snapshot exact J2000 evidence alias should reject extra arguments"
             ),
-            "reference-snapshot-exact-j2000-evidence-summary does not accept extra arguments"
+            "reference-snapshot-exact-j2000-evidence does not accept extra arguments"
         );
         let reference_snapshot_batch_parity_summary =
             render_cli(&["reference-snapshot-batch-parity-summary"])
@@ -7225,6 +7236,9 @@ mod tests {
         ));
         assert!(help.contains(
             "reference-snapshot-mixed-tt-tdb-batch-parity-summary  Alias for reference-snapshot-mixed-time-scale-batch-parity-summary"
+        ));
+        assert!(help.contains(
+            "reference-snapshot-exact-j2000-evidence  Alias for reference-snapshot-exact-j2000-evidence-summary"
         ));
         assert!(help.contains(
             "exact-j2000-evidence    Alias for reference-snapshot-exact-j2000-evidence-summary"
