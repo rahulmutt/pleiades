@@ -386,9 +386,17 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
             validate_render_cli(args)
         }
         Some("reference-snapshot-batch-parity-summary") => validate_render_cli(args),
+        Some("reference-snapshot-batch-parity") => {
+            ensure_no_extra_args(&args[1..], "reference-snapshot-batch-parity")?;
+            validate_render_cli(args)
+        }
         Some("reference-snapshot-mixed-time-scale-batch-parity-summary")
         | Some("reference-snapshot-mixed-tt-tdb-batch-parity-summary") => validate_render_cli(args),
         Some("reference-snapshot-equatorial-parity-summary") => validate_render_cli(args),
+        Some("reference-snapshot-equatorial-parity") => {
+            ensure_no_extra_args(&args[1..], "reference-snapshot-equatorial-parity")?;
+            validate_render_cli(args)
+        }
         Some("reference-high-curvature-summary")
         | Some("high-curvature-summary")
         | Some("reference-snapshot-major-body-high-curvature-summary")
@@ -4141,6 +4149,18 @@ mod tests {
             super::validate_render_cli(&["reference-snapshot-batch-parity-summary"])
                 .expect("validation reference snapshot batch parity summary should render")
         );
+        let reference_snapshot_batch_parity_alias =
+            render_cli(&["reference-snapshot-batch-parity"])
+                .expect("reference snapshot batch parity alias should render");
+        assert_eq!(
+            reference_snapshot_batch_parity_alias,
+            reference_snapshot_batch_parity_summary
+        );
+        assert_eq!(
+            render_cli(&["reference-snapshot-batch-parity", "extra"])
+                .expect_err("reference snapshot batch parity alias should reject extra arguments"),
+            "reference-snapshot-batch-parity does not accept extra arguments"
+        );
         let reference_snapshot_mixed_time_scale_batch_parity_summary =
             render_cli(&["reference-snapshot-mixed-time-scale-batch-parity-summary"])
                 .expect("reference snapshot mixed TT/TDB batch parity summary should render");
@@ -4167,6 +4187,19 @@ mod tests {
             reference_snapshot_equatorial_parity_summary,
             super::validate_render_cli(&["reference-snapshot-equatorial-parity-summary"])
                 .expect("validation reference snapshot equatorial parity summary should render")
+        );
+        let reference_snapshot_equatorial_parity_alias =
+            render_cli(&["reference-snapshot-equatorial-parity"])
+                .expect("reference snapshot equatorial parity alias should render");
+        assert_eq!(
+            reference_snapshot_equatorial_parity_alias,
+            reference_snapshot_equatorial_parity_summary
+        );
+        assert_eq!(
+            render_cli(&["reference-snapshot-equatorial-parity", "extra"]).expect_err(
+                "reference snapshot equatorial parity alias should reject extra arguments"
+            ),
+            "reference-snapshot-equatorial-parity does not accept extra arguments"
         );
         let time_scale_policy_summary = render_cli(&["time-scale-policy-summary"])
             .expect("time-scale policy summary should render");
@@ -7256,10 +7289,22 @@ mod tests {
             "reference-snapshot-exact-j2000-evidence-summary  Print the compact reference snapshot exact J2000 evidence summary"
         ));
         assert!(help.contains(
+            "reference-snapshot-batch-parity-summary  Print the compact reference snapshot batch parity summary"
+        ));
+        assert!(help.contains(
+            "reference-snapshot-batch-parity          Alias for reference-snapshot-batch-parity-summary"
+        ));
+        assert!(help.contains(
             "reference-snapshot-mixed-time-scale-batch-parity-summary  Print the compact reference snapshot mixed TT/TDB batch parity summary"
         ));
         assert!(help.contains(
             "reference-snapshot-mixed-tt-tdb-batch-parity-summary  Alias for reference-snapshot-mixed-time-scale-batch-parity-summary"
+        ));
+        assert!(help.contains(
+            "reference-snapshot-equatorial-parity-summary  Print the compact reference snapshot equatorial parity summary"
+        ));
+        assert!(help.contains(
+            "reference-snapshot-equatorial-parity     Alias for reference-snapshot-equatorial-parity-summary"
         ));
         assert!(help.contains(
             "reference-snapshot-exact-j2000-evidence  Alias for reference-snapshot-exact-j2000-evidence-summary"
