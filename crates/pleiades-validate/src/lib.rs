@@ -10084,6 +10084,9 @@ fn render_release_summary_text() -> String {
     text.push_str("JPL production-generation boundary request corpus: ");
     text.push_str(&production_generation_boundary_request_corpus_summary_for_report());
     text.push('\n');
+    text.push_str("JPL production-generation boundary request corpus equatorial: ");
+    text.push_str(&production_generation_boundary_request_corpus_equatorial_summary_for_report());
+    text.push('\n');
     text.push_str(&production_generation_boundary_source_summary_for_report());
     text.push('\n');
     text.push_str("Comparison snapshot source windows: ");
@@ -24709,6 +24712,9 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str("JPL production-generation corpus shape: ");
     text.push_str(&production_generation_corpus_shape_summary_for_report());
     text.push('\n');
+    text.push_str("JPL production-generation boundary request corpus equatorial: ");
+    text.push_str(&production_generation_boundary_request_corpus_equatorial_summary_for_report());
+    text.push('\n');
     text.push_str(&jpl_source_corpus_contract_summary_for_report());
     text.push('\n');
     text.push_str(&comparison_snapshot_summary_for_report());
@@ -34308,6 +34314,7 @@ mod tests {
         assert!(rendered.contains("Production generation source windows:"));
         assert!(rendered.contains("JPL production-generation body-class coverage:"));
         assert!(rendered.contains("JPL production-generation corpus shape:"));
+        assert!(rendered.contains("JPL production-generation boundary request corpus equatorial:"));
         assert!(rendered.contains("JPL source corpus contract: JPL evidence classification:"));
         assert!(rendered.contains("JPL source posture: documented hybrid snapshot/hold-out fixture backend with a separate generation-input path"));
         assert!(rendered.contains(
