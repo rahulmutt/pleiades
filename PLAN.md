@@ -37,6 +37,7 @@ The workspace has completed the original foundation roadmap:
 - validation, CLI, release-bundle, audit, benchmark, and report-generation surfaces exist, and the request-mode policy surface now also exposes dedicated zodiac-policy and unsupported-modes summaries in staged bundles; release-bundle verification now also re-checks the time-scale, UTC convenience, delta-T, and unsupported-modes policy summaries against the current renderer so the remaining request-policy sidecar surfaces fail closed on semantic drift. The release bundle now also carries the reference asteroid equatorial evidence summary sidecar, so that reference-asteroid evidence slice stays visible in staged bundles, and the reference-asteroid source-window summary now also has a direct `reference-asteroid-source-window` alias in the validation and CLI front-ends.
 
 The JPL source posture summary now also has a standalone CLI/report and release-bundle verification surface, keeping the provenance and redistribution posture inspectable without parsing the broader source-corpus contract block.
+- the lunar reference/equatorial error-envelope summaries and the lunar apparent-comparison summary now also expose direct CLI aliases, keeping the compact lunar evidence surfaces discoverable from both front ends.
 
 The repository is therefore no longer in a bootstrap phase. The remaining work is productionization: source coverage, production compressed data, body-claim accuracy, optional request modes, catalog evidence, and release gates.
 

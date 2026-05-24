@@ -529,9 +529,14 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("interpolation-quality-kind-coverage-summary") => validate_render_cli(args),
         Some("interpolation-quality-request-corpus-summary") => validate_render_cli(args),
         Some("interpolation-quality-request-corpus") => validate_render_cli(args),
-        Some("lunar-reference-error-envelope-summary") => validate_render_cli(args),
-        Some("lunar-equatorial-reference-error-envelope-summary") => validate_render_cli(args),
-        Some("lunar-apparent-comparison-summary") => validate_render_cli(args),
+        Some("lunar-reference-error-envelope-summary") | Some("lunar-reference-error-envelope") => {
+            validate_render_cli(args)
+        }
+        Some("lunar-equatorial-reference-error-envelope-summary")
+        | Some("lunar-equatorial-reference-error-envelope") => validate_render_cli(args),
+        Some("lunar-apparent-comparison-summary") | Some("lunar-apparent-comparison") => {
+            validate_render_cli(args)
+        }
         Some("reference-snapshot-lunar-source-window-summary")
         | Some("lunar-source-window-summary")
         | Some("lunar-source-window") => validate_render_cli(args),
@@ -4582,6 +4587,10 @@ mod tests {
                 pleiades_elp::lunar_reference_evidence_envelope_for_report()
             )
         );
+        assert_eq!(
+            render_cli(&["lunar-reference-error-envelope"]).unwrap(),
+            lunar_reference_error_envelope_summary
+        );
         let lunar_equatorial_reference_error_envelope_summary =
             render_cli(&["lunar-equatorial-reference-error-envelope-summary"])
                 .expect("lunar equatorial reference error envelope summary should render");
@@ -4594,6 +4603,10 @@ mod tests {
                 pleiades_elp::lunar_equatorial_reference_evidence_envelope_for_report()
             )
         );
+        assert_eq!(
+            render_cli(&["lunar-equatorial-reference-error-envelope"]).unwrap(),
+            lunar_equatorial_reference_error_envelope_summary
+        );
         let lunar_apparent_comparison_summary = render_cli(&["lunar-apparent-comparison-summary"])
             .expect("lunar apparent comparison summary should render");
         assert!(lunar_apparent_comparison_summary.contains("Lunar apparent comparison summary"));
@@ -4603,6 +4616,10 @@ mod tests {
                 "Lunar apparent comparison summary\n{}\n",
                 pleiades_elp::lunar_apparent_comparison_summary_for_report()
             )
+        );
+        assert_eq!(
+            render_cli(&["lunar-apparent-comparison"]).unwrap(),
+            lunar_apparent_comparison_summary
         );
         let lunar_source_window_summary = render_cli(&["lunar-source-window-summary"])
             .expect("lunar source window summary should render");
@@ -7769,11 +7786,20 @@ mod tests {
             "lunar-reference-error-envelope-summary  Print the compact lunar reference error envelope summary"
         ));
         assert!(help.contains(
+            "lunar-reference-error-envelope  Alias for lunar-reference-error-envelope-summary"
+        ));
+        assert!(help.contains(
             "lunar-equatorial-reference-error-envelope-summary  Print the compact lunar equatorial reference error envelope summary"
+        ));
+        assert!(help.contains(
+            "lunar-equatorial-reference-error-envelope  Alias for lunar-equatorial-reference-error-envelope-summary"
         ));
         assert!(help.contains(
             "lunar-apparent-comparison-summary  Print the compact lunar apparent comparison summary"
         ));
+        assert!(
+            help.contains("lunar-apparent-comparison  Alias for lunar-apparent-comparison-summary")
+        );
         assert!(help.contains(
             "lunar-source-window-summary  Print the compact lunar source windows summary"
         ));
