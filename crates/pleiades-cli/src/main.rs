@@ -3183,19 +3183,20 @@ mod tests {
         assert_eq!(release_gate, release_checklist);
         assert_eq!(release_gate_summary, release_checklist_summary);
 
+        let compatibility_profile = current_compatibility_profile();
         let release_summary =
             render_cli(&["release-summary"]).expect("release summary should render");
         assert!(release_summary.contains("Release summary"));
         assert!(release_summary.contains("House systems:"));
         assert!(release_summary.contains(&format!(
             "House-code aliases: {}",
-            current_compatibility_profile().house_code_alias_count()
+            compatibility_profile.house_code_alias_count()
         )));
         assert!(release_summary.contains(&format!(
             "House code aliases: {}",
-            current_compatibility_profile().house_code_aliases_summary_line()
+            compatibility_profile.house_code_aliases_summary_line()
         )));
-        assert!(release_summary.contains("Compatibility catalog inventory: house systems=25 (12 baseline, 13 release-specific, 156 aliases); house formula families=7 (Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign); house latitude-sensitive constraints=8 (Placidus [Quadrant system; can fail or become unstable at extreme latitudes.], Koch [Quadrant system with documented high-latitude pathologies.], Horizon/Azimuth [Azimuthal house system that anchors house 1 due East and house 10 at the MC.], APC [APC (Ram school) houses with non-opposite quadrant pairs and polar adjustments.], Krusinski-Pisa-Goelzer [Great-circle house system centered on the ascendant and zenith; latitude-sensitive near the poles.], Topocentric [Topocentric (Polich-Page) house system with geodetic-to-geocentric latitude correction.], Sunshine [Sunshine house system based on the Sun's diurnal and nocturnal arcs; the 1st house is the Ascendant and the 10th house is the MC.], Gauquelin sectors [Thirty-six sectors used by the Gauquelin-sector family.]); house-code aliases=22; ayanamsas=59 (5 baseline, 54 release-specific, 189 aliases); custom-definition labels=9; custom-definition ayanamsa labels=6 (Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs)); ayanamsa metadata gaps=0; ayanamsa alias-bearing entries=59; catalog posture=house systems=25 (8 constrained, 17 unconstrained); ayanamsas=59 (6 descriptor-only, 53 metadata-bearing); custom-only labels=9; custom-only ayanamsa labels=6; ayanamsa provenance=representative provenance examples:"));
+        assert!(release_summary.contains(&compatibility_profile.catalog_inventory_summary_line()));
         assert!(release_summary.contains(
             "Comparison corpus release-grade guard: Pluto excluded from tolerance evidence"
         ));
