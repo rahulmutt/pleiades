@@ -24834,6 +24834,18 @@ fn render_backend_matrix_summary_text() -> String {
         Err(error) => return format!("Backend matrix summary unavailable ({error})"),
     }
     text.push('\n');
+    text.push_str("Target house scope: ");
+    match core_validated_target_house_scope_summary_for_report() {
+        Ok(summary) => text.push_str(&summary),
+        Err(error) => return format!("Backend matrix summary unavailable ({error})"),
+    }
+    text.push('\n');
+    text.push_str("Target ayanamsa scope: ");
+    match core_validated_target_ayanamsa_scope_summary_for_report() {
+        Ok(summary) => text.push_str(&summary),
+        Err(error) => return format!("Backend matrix summary unavailable ({error})"),
+    }
+    text.push('\n');
     text.push_str("Pluto fallback: ");
     match validated_pluto_fallback_summary_line_for_report() {
         Ok(summary) => text.push_str(summary),
@@ -34623,6 +34635,8 @@ mod tests {
             )
         }));
         assert!(rendered.contains("Catalog posture: house systems="));
+        assert!(rendered.contains("Target house scope:"));
+        assert!(rendered.contains("Target ayanamsa scope:"));
         assert!(
             rendered.contains("Pluto fallback: Pluto remains an explicitly approximate fallback")
         );
