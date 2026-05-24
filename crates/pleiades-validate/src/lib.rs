@@ -6355,6 +6355,7 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             Ok(reference_snapshot_high_curvature_epoch_coverage_summary_for_report())
         }
         Some("reference-snapshot-boundary-epoch-coverage-summary")
+        | Some("reference-snapshot-boundary-epoch-coverage")
         | Some("boundary-epoch-coverage-summary") => {
             ensure_no_extra_args(
                 &args[1..],
@@ -6380,7 +6381,8 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "dense-boundary-summary")?;
             Ok(reference_snapshot_dense_boundary_summary_for_report())
         }
-        Some("reference-snapshot-pre-bridge-boundary-summary") => {
+        Some("reference-snapshot-pre-bridge-boundary-summary")
+        | Some("reference-snapshot-pre-bridge-boundary") => {
             ensure_no_extra_args(&args[1..], "reference-snapshot-pre-bridge-boundary-summary")?;
             Ok(reference_snapshot_pre_bridge_boundary_summary_for_report())
         }
@@ -27024,8 +27026,10 @@ fn help_text() -> String {
   reference-snapshot-bridge-day-summary  Print the compact reference snapshot bridge day summary
   bridge-day-summary       Alias for reference-snapshot-bridge-day-summary
   reference-snapshot-boundary-epoch-coverage-summary  Print the compact reference snapshot boundary epoch coverage summary
+  reference-snapshot-boundary-epoch-coverage  Alias for reference-snapshot-boundary-epoch-coverage-summary
   boundary-epoch-coverage-summary  Alias for reference-snapshot-boundary-epoch-coverage-summary
   reference-snapshot-pre-bridge-boundary-summary  Print the compact reference pre-bridge boundary summary
+  reference-snapshot-pre-bridge-boundary  Alias for reference-snapshot-pre-bridge-boundary-summary
   pre-bridge-boundary-summary  Alias for reference-snapshot-pre-bridge-boundary-summary
   reference-snapshot-dense-boundary-summary  Print the compact reference dense boundary summary
   dense-boundary-summary  Alias for reference-snapshot-dense-boundary-summary
@@ -41293,7 +41297,13 @@ version = "0.9.0"
             "reference-snapshot-boundary-epoch-coverage-summary  Print the compact reference snapshot boundary epoch coverage summary"
         ));
         assert!(help.contains(
+            "reference-snapshot-boundary-epoch-coverage  Alias for reference-snapshot-boundary-epoch-coverage-summary"
+        ));
+        assert!(help.contains(
             "boundary-epoch-coverage-summary  Alias for reference-snapshot-boundary-epoch-coverage-summary"
+        ));
+        assert!(help.contains(
+            "reference-snapshot-pre-bridge-boundary  Alias for reference-snapshot-pre-bridge-boundary-summary"
         ));
         assert!(help.contains(
             "production-generation-boundary         Alias for production-generation-boundary-summary"
@@ -41346,7 +41356,10 @@ version = "0.9.0"
         );
         let alias = render_cli(&["boundary-epoch-coverage-summary"])
             .expect("boundary epoch coverage alias should render");
+        let reference_alias = render_cli(&["reference-snapshot-boundary-epoch-coverage"])
+            .expect("reference snapshot boundary epoch coverage alias should render");
         assert_eq!(alias, rendered);
+        assert_eq!(reference_alias, rendered);
         assert_eq!(
             render_cli(&[
                 "reference-snapshot-boundary-epoch-coverage-summary",
@@ -41354,6 +41367,12 @@ version = "0.9.0"
             ])
             .expect_err(
                 "reference snapshot boundary epoch coverage summary should reject extra arguments"
+            ),
+            "reference-snapshot-boundary-epoch-coverage-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["reference-snapshot-boundary-epoch-coverage", "extra"]).expect_err(
+                "reference snapshot boundary epoch coverage alias should reject extra arguments"
             ),
             "reference-snapshot-boundary-epoch-coverage-summary does not accept extra arguments"
         );
@@ -41728,13 +41747,22 @@ version = "0.9.0"
 
         let pre_bridge_alias = render_cli(&["pre-bridge-boundary-summary"])
             .expect("pre-bridge boundary summary alias should render");
+        let pre_bridge_reference_alias = render_cli(&["reference-snapshot-pre-bridge-boundary"])
+            .expect("reference snapshot pre-bridge boundary alias should render");
         assert_eq!(pre_bridge_alias, rendered);
+        assert_eq!(pre_bridge_reference_alias, rendered);
         let pre_bridge_epoch_alias = render_cli(&["2451914-major-body-pre-bridge-summary"])
             .expect("2451914 major-body pre-bridge summary alias should render");
         assert_eq!(pre_bridge_epoch_alias, rendered);
         assert_eq!(
             render_cli(&["reference-snapshot-pre-bridge-boundary-summary", "extra"]).expect_err(
                 "reference snapshot pre-bridge boundary summary should reject extra arguments"
+            ),
+            "reference-snapshot-pre-bridge-boundary-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["reference-snapshot-pre-bridge-boundary", "extra"]).expect_err(
+                "reference snapshot pre-bridge boundary alias should reject extra arguments"
             ),
             "reference-snapshot-pre-bridge-boundary-summary does not accept extra arguments"
         );

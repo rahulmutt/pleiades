@@ -439,11 +439,13 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         | Some("reference-snapshot-major-body-high-curvature-epoch-coverage-summary")
         | Some("major-body-high-curvature-epoch-coverage-summary") => validate_render_cli(args),
         Some("reference-snapshot-boundary-epoch-coverage-summary")
+        | Some("reference-snapshot-boundary-epoch-coverage")
         | Some("boundary-epoch-coverage-summary") => validate_render_cli(args),
         Some("reference-snapshot-sparse-boundary-summary") | Some("sparse-boundary-summary") => {
             validate_render_cli(args)
         }
-        Some("reference-snapshot-pre-bridge-boundary-summary") => {
+        Some("reference-snapshot-pre-bridge-boundary-summary")
+        | Some("reference-snapshot-pre-bridge-boundary") => {
             ensure_no_extra_args(&args[1..], "reference-snapshot-pre-bridge-boundary-summary")?;
             validate_render_cli(args)
         }
@@ -1975,7 +1977,15 @@ mod tests {
         assert!(rendered.contains("major-body-high-curvature-epoch-coverage-summary"));
         assert!(rendered.contains("reference-snapshot-sparse-boundary-summary"));
         assert!(rendered.contains("sparse-boundary-summary"));
+        assert!(rendered.contains("reference-snapshot-boundary-epoch-coverage-summary"));
+        assert!(rendered.contains(
+            "reference-snapshot-boundary-epoch-coverage  Alias for reference-snapshot-boundary-epoch-coverage-summary"
+        ));
+        assert!(rendered.contains("boundary-epoch-coverage-summary"));
         assert!(rendered.contains("reference-snapshot-pre-bridge-boundary-summary"));
+        assert!(rendered.contains(
+            "reference-snapshot-pre-bridge-boundary  Alias for reference-snapshot-pre-bridge-boundary-summary"
+        ));
         assert!(rendered.contains("pre-bridge-boundary-summary"));
         assert!(rendered.contains("reference-snapshot-dense-boundary-summary"));
         assert!(rendered.contains("dense-boundary-summary"));
@@ -5662,6 +5672,9 @@ mod tests {
                 .expect("reference snapshot boundary epoch coverage summary should render");
         let boundary_epoch_coverage_alias = render_cli(&["boundary-epoch-coverage-summary"])
             .expect("boundary epoch coverage summary alias should render");
+        let boundary_epoch_coverage_reference_alias =
+            render_cli(&["reference-snapshot-boundary-epoch-coverage"])
+                .expect("reference snapshot boundary epoch coverage alias should render");
         assert!(
             boundary_epoch_coverage_summary.contains("Reference snapshot boundary epoch coverage:")
         );
@@ -5671,6 +5684,16 @@ mod tests {
         assert_eq!(
             boundary_epoch_coverage_alias,
             boundary_epoch_coverage_summary
+        );
+        assert_eq!(
+            boundary_epoch_coverage_reference_alias,
+            boundary_epoch_coverage_summary
+        );
+        assert_eq!(
+            render_cli(&["reference-snapshot-boundary-epoch-coverage", "extra"]).expect_err(
+                "reference snapshot boundary epoch coverage alias should reject extra arguments"
+            ),
+            "reference-snapshot-boundary-epoch-coverage-summary does not accept extra arguments"
         );
         assert_eq!(
             boundary_epoch_coverage_summary,
@@ -5742,11 +5765,24 @@ mod tests {
                 .expect("reference snapshot pre-bridge boundary summary should render");
         let pre_bridge_boundary_alias = render_cli(&["pre-bridge-boundary-summary"])
             .expect("pre-bridge boundary summary alias should render");
+        let pre_bridge_boundary_reference_alias =
+            render_cli(&["reference-snapshot-pre-bridge-boundary"])
+                .expect("reference snapshot pre-bridge boundary alias should render");
         assert!(pre_bridge_boundary_summary.contains("Reference snapshot pre-bridge boundary day:"));
         assert!(pre_bridge_boundary_summary.contains(
             "JD 2451914.5 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); pre-bridge boundary day"
         ));
         assert_eq!(pre_bridge_boundary_alias, pre_bridge_boundary_summary);
+        assert_eq!(
+            pre_bridge_boundary_reference_alias,
+            pre_bridge_boundary_summary
+        );
+        assert_eq!(
+            render_cli(&["reference-snapshot-pre-bridge-boundary", "extra"]).expect_err(
+                "reference snapshot pre-bridge boundary alias should reject extra arguments"
+            ),
+            "reference-snapshot-pre-bridge-boundary-summary does not accept extra arguments"
+        );
         assert_eq!(
             pre_bridge_boundary_summary,
             super::validate_render_cli(&["reference-snapshot-pre-bridge-boundary-summary"])
