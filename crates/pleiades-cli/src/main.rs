@@ -448,8 +448,10 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "pre-bridge-boundary-summary")?;
             validate_render_cli(args)
         }
-        Some("boundary-day-summary") => {
-            ensure_no_extra_args(&args[1..], "boundary-day-summary")?;
+        Some("reference-snapshot-boundary-day-summary")
+        | Some("reference-snapshot-boundary-day")
+        | Some("boundary-day-summary") => {
+            ensure_no_extra_args(&args[1..], "reference-snapshot-boundary-day-summary")?;
             validate_render_cli(args)
         }
         Some("reference-snapshot-dense-boundary-summary") => validate_render_cli(args),
@@ -5554,12 +5556,18 @@ mod tests {
             .expect("sparse boundary summary alias should render");
         let boundary_day_alias = render_cli(&["boundary-day-summary"])
             .expect("boundary day summary alias should render");
+        let boundary_day_reference_alias = render_cli(&["reference-snapshot-boundary-day-summary"])
+            .expect("reference snapshot boundary day summary should render");
+        let boundary_day_short_reference_alias = render_cli(&["reference-snapshot-boundary-day"])
+            .expect("reference snapshot boundary day alias should render");
         assert!(sparse_boundary_summary.contains("Reference snapshot boundary day:"));
         assert!(sparse_boundary_summary.contains(
             "JD 2451915.5 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis)"
         ));
         assert_eq!(sparse_boundary_alias, sparse_boundary_summary);
         assert_eq!(boundary_day_alias, sparse_boundary_summary);
+        assert_eq!(boundary_day_reference_alias, sparse_boundary_summary);
+        assert_eq!(boundary_day_short_reference_alias, sparse_boundary_summary);
         assert_eq!(
             sparse_boundary_summary,
             super::validate_render_cli(&["reference-snapshot-sparse-boundary-summary"])
@@ -5571,9 +5579,30 @@ mod tests {
                 .expect("validation boundary day summary should render")
         );
         assert_eq!(
+            boundary_day_reference_alias,
+            super::validate_render_cli(&["reference-snapshot-boundary-day-summary"])
+                .expect("validation reference snapshot boundary day summary should render")
+        );
+        assert_eq!(
+            boundary_day_short_reference_alias,
+            super::validate_render_cli(&["reference-snapshot-boundary-day"])
+                .expect("validation reference snapshot boundary day alias should render")
+        );
+        assert_eq!(
             render_cli(&["boundary-day-summary", "extra"])
                 .expect_err("boundary day summary alias should reject extra arguments"),
-            "boundary-day-summary does not accept extra arguments"
+            "reference-snapshot-boundary-day-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["reference-snapshot-boundary-day-summary", "extra"]).expect_err(
+                "reference snapshot boundary day summary should reject extra arguments"
+            ),
+            "reference-snapshot-boundary-day-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["reference-snapshot-boundary-day", "extra"])
+                .expect_err("reference snapshot boundary day alias should reject extra arguments"),
+            "reference-snapshot-boundary-day-summary does not accept extra arguments"
         );
         assert_eq!(
             render_cli(&["reference-snapshot-sparse-boundary-summary", "extra"]).expect_err(
@@ -7655,7 +7684,13 @@ mod tests {
             "reference-snapshot-source-summary  Print the compact reference snapshot source summary"
         ));
         assert!(help.contains(
-            "boundary-day-summary     Alias for reference-snapshot-sparse-boundary-summary"
+            "reference-snapshot-boundary-day-summary  Print the compact reference snapshot boundary day summary"
+        ));
+        assert!(help.contains(
+            "reference-snapshot-boundary-day  Alias for reference-snapshot-boundary-day-summary"
+        ));
+        assert!(help.contains(
+            "boundary-day-summary     Alias for reference-snapshot-boundary-day-summary"
         ));
         assert!(help
             .contains("reference-snapshot-summary  Print the compact reference snapshot summary"));

@@ -6362,9 +6362,19 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "reference-snapshot-sparse-boundary-summary")?;
             Ok(reference_snapshot_sparse_boundary_summary_for_report())
         }
-        Some("boundary-day-summary") => {
-            ensure_no_extra_args(&args[1..], "boundary-day-summary")?;
+        Some("reference-snapshot-boundary-day-summary")
+        | Some("reference-snapshot-boundary-day")
+        | Some("boundary-day-summary") => {
+            ensure_no_extra_args(&args[1..], "reference-snapshot-boundary-day-summary")?;
             Ok(reference_snapshot_sparse_boundary_summary_for_report())
+        }
+        Some("reference-snapshot-dense-boundary-summary") => {
+            ensure_no_extra_args(&args[1..], "reference-snapshot-dense-boundary-summary")?;
+            Ok(reference_snapshot_dense_boundary_summary_for_report())
+        }
+        Some("dense-boundary-summary") => {
+            ensure_no_extra_args(&args[1..], "dense-boundary-summary")?;
+            Ok(reference_snapshot_dense_boundary_summary_for_report())
         }
         Some("reference-snapshot-pre-bridge-boundary-summary") => {
             ensure_no_extra_args(&args[1..], "reference-snapshot-pre-bridge-boundary-summary")?;
@@ -6381,14 +6391,6 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
                 "reference-snapshot-2451914-major-body-pre-bridge-summary",
             )?;
             Ok(reference_snapshot_pre_bridge_boundary_summary_for_report())
-        }
-        Some("reference-snapshot-dense-boundary-summary") => {
-            ensure_no_extra_args(&args[1..], "reference-snapshot-dense-boundary-summary")?;
-            Ok(reference_snapshot_dense_boundary_summary_for_report())
-        }
-        Some("dense-boundary-summary") => {
-            ensure_no_extra_args(&args[1..], "dense-boundary-summary")?;
-            Ok(reference_snapshot_dense_boundary_summary_for_report())
         }
         Some("reference-snapshot-2451916-major-body-boundary-summary")
         | Some("2451916-major-body-boundary-summary") => {
@@ -26990,7 +26992,9 @@ fn help_text() -> String {
   major-body-high-curvature-epoch-coverage-summary  Alias for reference-snapshot-major-body-high-curvature-epoch-coverage-summary
   reference-snapshot-sparse-boundary-summary  Print the compact reference sparse boundary summary
   sparse-boundary-summary  Alias for reference-snapshot-sparse-boundary-summary
-  boundary-day-summary     Alias for reference-snapshot-sparse-boundary-summary
+  reference-snapshot-boundary-day-summary  Print the compact reference snapshot boundary day summary
+  reference-snapshot-boundary-day  Alias for reference-snapshot-boundary-day-summary
+  boundary-day-summary     Alias for reference-snapshot-boundary-day-summary
   reference-snapshot-bridge-day-summary  Print the compact reference snapshot bridge day summary
   bridge-day-summary       Alias for reference-snapshot-bridge-day-summary
   reference-snapshot-boundary-epoch-coverage-summary  Print the compact reference snapshot boundary epoch coverage summary
@@ -41632,19 +41636,39 @@ version = "0.9.0"
             reference_snapshot_sparse_boundary_summary_for_report()
         );
         assert_eq!(
+            render_cli(&["reference-snapshot-boundary-day-summary"])
+                .expect("reference snapshot boundary day summary should render"),
+            rendered
+        );
+        assert_eq!(
+            render_cli(&["reference-snapshot-boundary-day"])
+                .expect("reference snapshot boundary day alias should render"),
+            rendered
+        );
+        assert_eq!(
             render_cli(&["reference-snapshot-sparse-boundary-summary"])
                 .expect("reference snapshot sparse boundary summary should render"),
             rendered
         );
-
         assert_eq!(
             render_cli(&["boundary-day-summary", "extra"])
                 .expect_err("boundary day summary alias should reject extra arguments"),
-            "boundary-day-summary does not accept extra arguments"
+            "reference-snapshot-boundary-day-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["reference-snapshot-boundary-day-summary", "extra"]).expect_err(
+                "reference snapshot boundary day summary should reject extra arguments"
+            ),
+            "reference-snapshot-boundary-day-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["reference-snapshot-boundary-day", "extra"])
+                .expect_err("reference snapshot boundary day alias should reject extra arguments"),
+            "reference-snapshot-boundary-day-summary does not accept extra arguments"
         );
         assert_eq!(
             render_cli(&["reference-snapshot-sparse-boundary-summary", "extra"]).expect_err(
-                "reference snapshot sparse boundary summary should reject extra arguments",
+                "reference snapshot sparse boundary summary should reject extra arguments"
             ),
             "reference-snapshot-sparse-boundary-summary does not accept extra arguments"
         );
