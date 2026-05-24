@@ -1,24 +1,40 @@
-# Phase 5 — Compatibility and Release Readiness
+# Phase 5 — Compatibility and Release Gates
 
 ## Goal
 
-Make compatibility catalog claims and release artifacts trustworthy enough for production consumers.
+Finish compatibility evidence and release gates so a production release cannot
+ship stale artifacts, native-dependency drift, or overbroad claims.
 
-## Starting point
+## Current baseline
 
-The workspace has broad house and ayanamsa descriptors, baseline calculations, custom-definition support, release compatibility profiles, explicit latitude-sensitive house-constraint reporting, report helpers, audits, and release-bundle rehearsal. The remaining gap is evidence and gate strictness, not catalog scaffolding.
+- Baseline house and ayanamsa support is present.
+- Broader descriptor catalogs, aliases, compatibility-profile summaries,
+  known-gap reporting, house validation, ayanamsa catalog validation, and release
+  bundle rehearsal surfaces exist.
+- Release-bundle verification already rechecks many generated sidecars against
+  current renderers.
 
-## Implementation goals
+## Remaining implementation work
 
-- Audit house-system formulas, aliases, latitude/numerical constraints, and failure modes for entries promoted as implemented; the release bundle now also carries the house-code-aliases summary alongside the house-formula-families and house-latitude-sensitive audit summaries.
-- Audit ayanamsa epochs, offsets, formulas, aliases, and provenance for entries promoted as implemented.
-- Keep descriptor-only, constrained, approximate, custom-only, and unsupported entries distinct in compatibility profiles.
-- Require release bundles to contain current profiles, validation reports, manifests, checksums, source revisions, tool versions, benchmark summaries, and release notes.
-- Gate releases on format, clippy, tests, native-dependency audit, artifact validation, compatibility-profile verification, benchmark/report generation, and bundle verification.
+- Audit house formulas, aliases, source-label mappings, latitude constraints,
+  numerical failure modes, and Swiss-Ephemeris-style interoperability notes for
+  release-claimed entries.
+- Audit ayanamsa epochs, offsets, formulas, aliases, near-equivalent variants,
+  provenance, and descriptor-only/custom-only labels.
+- Keep compatibility profiles exact about shipped built-ins, aliases,
+  constraints, descriptor-only entries, custom-definition territory, and known
+  gaps.
+- Add release gates for any remaining generated artifacts whose stale output,
+  missing input, unsupported-mode claim drift, or threshold failure is not yet
+  checked.
+- Keep pure-Rust/native-dependency audits and workspace tool-version provenance
+  in the release process.
+- Document production-ready public workflows once claims and request modes are
+  settled.
 
-Progress update: release-bundle verification now also re-checks the compact release checklist summary and catalog inventory summary against the current renderer, so the release gate fails closed on stale checklist prose, compatibility-catalog drift, and checksum drift. The CLI release-summary regression now also derives its catalog-inventory expectation from the live compatibility profile helper instead of a stale hardcoded alias-count string, keeping the compatibility summary assertion aligned with current renderer output. The target house-system and target ayanamsa scope notes also now have direct report helpers, and release bundles now also carry those target-scope summaries with verification, so release tooling can inspect the long-term compatibility horizon without parsing the full profile summary. The core compatibility profile now also exposes a dedicated ayanamsa provenance summary helper, keeping the representative provenance payload reusable across report surfaces and downstream consumers. Release-bundle verification now also re-checks the release-specific house-system and ayanamsa canonical-name summaries against the current renderer, so those release-label sidecars fail closed on semantic drift too. The CLI front-end now also dispatches catalog-posture and known-gaps directly, keeping the compact compatibility posture and caveat summaries first-class alongside the existing validate fallback path. House-validation snapshots now also render compact one-line diagnostics for direct review alongside the existing request and validation summaries. The CLI front-end now also directly dispatches `house-latitude-sensitive-constraints` with parity coverage, keeping the latitude-sensitive house constraints audit surface explicit from both binaries. The ayanamsa audit has now also absorbed the spaced `Fagan / Bradley` alias spelling, and now also normalizes spaced `Usha / Shashi` and `Vedic / Sheoran` spellings, keeping the Western sidereal alias coverage aligned with the catalog audit. Release-bundle verification now also re-checks the full validation report text against the current renderer after normalization, so full validation-report sidecars fail closed on semantic drift as well.
+## Exit criteria
 
-## Completion criteria
-
-- A clean checkout can produce and verify release artifacts without hidden tooling or network requirements.
-- Release gates fail on stale generated outputs, unsupported-mode claim drift, native-dependency regressions, artifact threshold failures, and overbroad compatibility/backend claims.
+- A clean checkout can build, validate, benchmark, bundle, and verify a release.
+- Release gates fail on stale generated outputs, native-dependency drift,
+  artifact threshold failures, unsupported-mode claim drift, missing evidence, or
+  compatibility-profile overclaims.

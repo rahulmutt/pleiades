@@ -1,24 +1,37 @@
-# Phase 4 — Advanced Request Modes
+# Phase 4 — Request-Mode Semantics
 
 ## Goal
 
-Close the specification gap for request modes that astrology applications commonly need while preserving explicit semantics.
+Make all advanced request modes either implemented with documented assumptions
+and validation or consistently rejected with structured errors.
 
-## Starting point
+## Current baseline
 
-The type layer can represent UTC/UT1/TT/TDB and caller-supplied offsets. Current first-party backends support mean geometric geocentric tropical requests in TT/TDB where metadata permits. Apparent place, topocentric body positions, native sidereal backend output, and built-in civil-time/Delta-T modeling are not implemented as automatic backend behavior.
+- Backend request metadata records frame, time scale, observer, zodiac,
+  apparentness, and related policy.
+- First-party backend body positions are mean geometric and geocentric.
+- Chart-level sidereal conversion is handled above backends by the domain/catalog
+  layer.
+- Policy summaries document unsupported UTC convenience, Delta T, apparent-place,
+  topocentric body positions, and native sidereal backend output.
 
-## Implementation goals
+## Remaining implementation work
 
-- Decide whether built-in UTC/civil-time and Delta-T modeling belongs in the first production release.
-- If implemented, add explicit policies, tests, docs, and validation fixtures for UTC/UT1/TT/TDB conversions.
-- Implement apparent-place corrections only when light-time, aberration, nutation, and related assumptions are specified and validated.
-- Implement topocentric body positions only with observer validation, backend/domain capability metadata, and regression tests.
-- Keep sidereal conversion in the domain layer unless a backend explicitly advertises native sidereal output and documents equivalence.
+- Decide whether built-in UTC/UT1 convenience and Delta-T modeling are in scope
+  for the first production release.
+- If civil-time conversion is implemented, define inputs, time-scale outputs,
+  error handling, data/provenance requirements, and tests.
+- Implement apparent-place corrections only with documented astronomy formulas,
+  source references, and validation fixtures.
+- Implement topocentric body positions only with clear observer semantics,
+  coordinate-frame handling, and tests.
+- Keep native sidereal backend output unsupported unless a backend provides
+  validated native behavior distinct from chart-layer sidereal conversion.
+- Define speed, retrograde/stationary, and motion-output support consistently
+  across backend results, chart summaries, and artifact profiles.
 
-Progress update: observer and apparentness policy summaries now ship through the release bundle, manifest, and verification path, keeping the request-mode policy surfaces aligned with the CLI help text.
+## Exit criteria
 
-## Completion criteria
-
-- Every request mode is either implemented with evidence or consistently rejected with a structured error.
-- Direct backend APIs, chart façade APIs, CLI help, docs, tests, and release reports describe the same behavior.
+- Unsupported request modes produce structured, documented errors everywhere.
+- Implemented request modes have validation fixtures, rustdoc/API examples, CLI
+  coverage, backend metadata, and release-profile entries.

@@ -1,22 +1,36 @@
-# Phase 3 — Body and Backend Claim Completion
+# Phase 3 — Body and Backend Claim Closure
 
 ## Goal
 
-Make every public body and backend capability claim match implemented algorithms, source evidence, and validation results.
+Ensure every public body/backend claim is source-backed, artifact-backed,
+constrained, approximate, or unsupported with no ambiguous status.
 
-## Starting point
+## Current baseline
 
-Sun through Neptune have VSOP87-style source-backed paths. The Moon and lunar points use a compact Meeus-style baseline. Pluto is approximate/fallback-backed. Ceres, Pallas, Juno, Vesta, and selected custom asteroids have bounded fixture evidence but not broad release-grade support. The release summary now also surfaces the Pluto fallback posture so that release-facing claim boundaries stay aligned with the backend matrix.
+- First-party backend traits and capability metadata exist.
+- VSOP87-style major-planet paths, a compact lunar baseline, checked-in JPL
+  snapshots, and a draft packaged-data backend exist.
+- Current reports explicitly separate release-grade major-body claims from Pluto
+  fallback posture and selected-asteroid fixture evidence.
 
-## Implementation goals
+## Remaining implementation work
 
-- Decide Pluto status for the first production release: source-backed, artifact-backed, approximate with strict caveats, or excluded.
-- Decide whether full ELP-style lunar coefficients are required before production release, and align lunar node/apogee/perigee claims with implemented formulas.
-- Promote selected asteroids only where source coverage, backend support, and validation evidence justify release claims.
-- Keep extensible custom/numbered body identifiers without implying generic asteroid coverage.
-- Maintain backend capability matrices for supported bodies, ranges, frames, apparentness, observer support, accuracy class, and offline/data requirements.
+- Resolve Pluto status by either implementing a validated source-backed path,
+  keeping it explicitly approximate, or excluding it from release-grade claims.
+- Decide whether to implement a fuller lunar theory/ELP-backed path or constrain
+  lunar/lunar-point claims to the compact Meeus-style baseline.
+- Promote Ceres, Pallas, Juno, Vesta, and any custom/numbered asteroid support
+  only where source evidence and backend metadata are broad enough.
+- Keep extensible body identifiers without implying unsupported bodies are
+  available from all backends.
+- Audit backend capability metadata against actual supported bodies, dates,
+  frames, time scales, coordinate channels, observer policy, and apparentness.
+- Preserve metadata preflight so unsupported request shapes fail before backend
+  computation.
 
-## Completion criteria
+## Exit criteria
 
-- Backend metadata, CLI summaries, release profiles, and validation reports agree on body coverage and limitations.
-- Unsupported or approximate bodies fail or warn through structured, documented policy rather than silent overclaiming.
+- Backend matrices, compatibility profiles, release summaries, CLI output, and
+  rustdoc agree on body/backend support and limitations.
+- No release-facing surface advertises unsupported or approximate bodies as
+  production-grade.

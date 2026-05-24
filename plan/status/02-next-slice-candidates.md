@@ -1,48 +1,63 @@
 # Status 2 — Next Slice Candidates
 
-This file lists only active implementation slices. Completed report aliases, summary wrappers, cache optimizations, and bundle cross-check additions are intentionally omitted.
+This file lists active implementation slices only. Completed command aliases,
+summary wrappers, bundle sidecars, and report-cache changes are intentionally
+omitted.
 
-## Phase 1 — Production reference/source corpus
+## Phase 1 — Production reference backend and corpus
 
-- Expand source coverage for all release-claimed major bodies, lunar channels, Pluto policy, and selected asteroids across 1500-2500 CE; the selected-asteroid bridge at JD 2378498.5 now also includes asteroid:99942-Apophis in both the reference and hold-out slices, the consolidated source-corpus summary now also surfaces reference and independent-holdout body-class coverage, the production-generation source provenance line, the reference snapshot exact J2000 evidence line, the independent-holdout source-window evidence, the explicit production-generation date range, the lunar source windows evidence, and the reference snapshot manifest posture, and the latest validation pass now keeps that bridge aligned across the manifest and summary surfaces. The independent hold-out boundary corpus now also includes Sun, Moon, Mercury, and Venus at JD 2451915.5, bringing the hold-out boundary row count to 84 while preserving the existing frame and time-scale posture. The source-corpus summary validation now also checks the lunar source window payload explicitly, so the compact lunar posture cannot drift without tripping validation, and it now also checks the production-generation boundary window field explicitly so the staged boundary-overlay sidecar cannot drift without tripping validation. The selected-asteroid 2634167 outer-boundary source slice now also has dedicated validation and CLI entrypoints, and the reference-snapshot mixed TT/TDB batch parity summary now also has a user-facing CLI alias for direct inspection. The reference snapshot major-body boundary window, boundary epoch coverage, and pre-bridge boundary summaries are now also bundled and semantic-verified alongside the bridge-day and sparse-boundary evidence, so the remaining source-corpus work stays focused on broadening coverage rather than surfacing more boundary slices. The 2451916 dense boundary summary now also rides in the release bundle alongside the 2451917/2451918/2451919 major-body boundary summaries and verifies against the current renderer, and the 2451917 major-body boundary summary now also rechecks against the current renderer, tightening the mid-1992 slice without broadening claims. Release-bundle verification now also re-checks the reference snapshot and independent-holdout equatorial parity summaries against the current renderers, so staged frame-parity evidence fails closed even when checksums are refreshed. The CLI/report front-end also gained another direct bridge-evidence access path for the 2451914, 2451915, and 2451917 bridge aliases in this pass, and the CLI front-end now also exposes the 2378498 selected-asteroid source summary directly. The reference snapshot exact J2000 evidence summary now also has a direct `reference-snapshot-exact-j2000-evidence` alias in both front ends, the selected-asteroid source-window surface now also has a direct `reference-snapshot-selected-asteroid-source-window` alias in both front ends, the independent-holdout equatorial parity summary now also has a direct `independent-holdout-equatorial-parity` alias in both fronts, and staged release-bundle output now also includes the production-generation boundary-window summary sidecar, keeping that boundary overlay visible in the release checklist and bundle display.
-- Keep corpus provenance surfaces aligned; JPL reference, hold-out, and boundary-overlay summaries now surface explicit evidence-class labels and explicit frame-treatment/time-scale posture alongside the existing source revision checksums, the production-generation corpus-shape summary now validates both ecliptic and equatorial boundary request corpora and now also checks their cross-frame parity for request, body, epoch, time-scale, and apparentness coverage, the production-generation source summary now also validates its explicit evidence-class fragment, the source-corpus cadence now fails closed when ecliptic/equatorial boundary-request epoch counts diverge, the source-corpus summary now also carries the production-generation boundary-request corpus in both ecliptic and equatorial frames, the source-corpus summary now also explicitly carries the production-generation source-window summary and now also fails closed when the production-generation source-window and boundary-source fields drift, the selected-asteroid source evidence/window summaries now carry the same explicit posture, the packaged-artifact phase-2 corpus alignment summary now carries both selected-asteroid request-corpus frames, the JPL source corpus contract now has a typed release-facing summary, the consolidated source-corpus posture now also has its own standalone summary/alias surface with an explicit shared schema label and field-validated record, the consolidated source-corpus summary now also surfaces the generation-command fragment and the production-generation boundary source, the reference snapshot sparse-boundary, exact J2000 evidence, and equatorial-parity evidence lines, the source-corpus surface now also embeds the validated body/date/channel claims line, the catalog posture now has a dedicated summary/alias surface reusing the shared compatibility-profile helper and now also surfaces ayanamsa alias-bearing entry counts and explicit known-gap entries, release bundles now also carry the catalog posture summary and checksum, the reference snapshot equatorial parity summary is now bundled alongside the reference source-window artifact, the independent-holdout equatorial parity summary is now bundled alongside the hold-out source-window artifact, the comparison-corpus summary now re-validates against the current renderer during bundle verification, the independent hold-out slice now also extends the selected-asteroid outer boundary to JD 2634167 for asteroid:433-Eros and asteroid:99942-Apophis, and the consolidated source-corpus summary now fails closed if embedded JPL labels lose their required prefixes. The independent-holdout manifest and source-window coverage continue to validate the 2378498.5 Apophis bridge, the production-generation boundary body-class coverage now reflects the added asteroid row and the same 2378498.5 bridge, and the production-generation coverage summary now also surfaces the quarter-day selected-body boundary samples explicitly, making the 2451915.25/2451915.75 Sun/Moon/Mercury/Venus rows visible in the primary corpus posture. The release bundle now also carries the matching quarter-day boundary summary sidecar and checksum verification, so the compact slice stays visible in release artifacts too. The workspace provenance summary now also exposes the shared tool-version provenance block directly in validation and CLI front-ends, keeping rustc/cargo/rustfmt/clippy provenance inspectable without digging through the benchmark report, and release bundle rendering and verification now also carry the workspace provenance summary and checksum so staged bundles retain that provenance sidecar.
-- The backend matrix summary now also pulls in validated production-generation coverage, body-class coverage, corpus shape, source-corpus contract lines, and the consolidated source-corpus posture line so release-facing matrix output exposes the current corpus claims directly.
-- The comparison snapshot manifest summary now fails closed on redistribution drift so provenance posture stays explicit in release-facing validation, and the release bundle now also carries that manifest summary sidecar with checksum verification alongside the comparison snapshot source/body-class coverage evidence.
-- The release bundle now carries independent-holdout body-class coverage alongside the source-window evidence so hold-out coverage is explicit in staged artifacts.
-- Make backend matrices and release profiles derive body/date/channel claims from validated corpus evidence; the backend matrix summary now also carries the comparison corpus release-grade guard, reference/hold-out overlap, independent hold-out, release-grade body claims, and Pluto fallback posture, and the validated body/date/channel claims posture now also has its own standalone summary/alias surface that is now field-validated.
-- The standalone `body-date-channel-claims-summary` / `body-date-channel-claims` surface is now implemented, and release bundles now also carry that summary and checksum; the remaining Phase 1 work is broader source coverage and corpus alignment. The body/date/channel claims summary now also carries the production-generation coverage posture explicitly, now includes the production-generation date range alongside the frame-policy posture, and now includes a dedicated coverage-posture field derived from the current corpus shape; the release summary now also surfaces the overall production-generation coverage line alongside the body-class coverage and corpus-shape lines. Validation-report summary bundle verification now treats per-run benchmark timing lines as volatile so the staged summary stays comparable across generation and verification runs.
-- The release summary now also mirrors validated production-generation body-class coverage and corpus-shape lines, so the condensed release overview stays anchored to current corpus evidence.
-- The shared celestial-body class taxonomy now drives the release-facing body-class coverage summaries, reducing duplicated body-class matching across report families.
-- Keep the production-generation source summary explicit about both license, redistribution, and schema posture so the checked-in fixture corpus stays audit-friendly; its cadence fragment now derives from the checked-in source-window and boundary-request corpus counts instead of a hardcoded prose pair, the source summary now also records the apparentness posture alongside frame/time-scale/column provenance, and the production-generation source revision line now appears in the release summary and backend matrix as part of the same provenance block. The compatibility profile summary now also lists documented known-gap entries explicitly, and the catalog posture line now also surfaces ayanamsa metadata-gap counts alongside the alias-bearing-entry and known-gap fields, so the release profile's caveat set is visible in the compact profile view instead of only by count.
-- JPL provenance-only evidence now renders as its own report line so provenance-only rows stay separate from tolerance, hold-out, and fixture-exactness evidence, and release bundle generation/verification now carry that summary as a bundled provenance-only artifact. The release bundle now also carries an ayanamsa provenance summary sidecar, and bundle verification re-checks it against the current renderer. The CLI front-end now also has a direct `jpl-provenance-only` dispatch path, keeping that provenance-only audit surface first-class instead of only reachable through the generic fallback path. The release bundle now also re-checks the reference asteroid equatorial evidence summary against the current renderer, so the reference-asteroid evidence slice fails closed on semantic drift too.
+- Define the production source-corpus contract: bodies, channels, frames, epoch
+  cadence, evidence classes, source revisions, and hold-out partitions.
+- Implement the chosen pure-Rust source strategy, either as a public-data
+  reader/parser or a reproducible corpus-generation pipeline from public inputs.
+- Broaden reference and hold-out coverage for luminaries, major planets, Pluto
+  policy, lunar/lunar-point channels, baseline asteroids, and representative
+  custom/numbered bodies across 1500-2500 CE.
+- Store source evidence in a form that keeps reference, fitting, hold-out,
+  boundary, fixture-exactness, and provenance-only rows separable.
+- Derive body/date/channel/frame claims for backend matrices and release profiles
+  from validated corpus records.
 
-## Phase 2 — Production compressed ephemeris
+## Phase 2 — Release-grade compressed ephemeris
 
-- Rebase artifact generation on the Phase 1 corpus.
-- Replace draft tolerance posture with enforced production thresholds per body class and channel.
-- Continue fitting/reconstruction work only where it improves measured reference and hold-out errors.
-- Keep artifact size/decode/lookup/batch/chart benchmarks current.
-- Keep unsupported outputs explicit, especially apparent, topocentric, native sidereal, and motion policy.
+- Rebase artifact generation on Phase 1 validated inputs.
+- Replace draft tolerance posture with enforced production thresholds per body
+  class and channel.
+- Improve fitting/reconstruction where measured reference and hold-out errors
+  exceed thresholds.
+- Keep artifact size, checksum, decode, lookup, batch, and chart-workload
+  benchmarks current.
+- Keep unsupported outputs explicit, especially apparent, topocentric, native
+  sidereal, civil-time, and motion policies.
 
-## Phase 3 — Body and backend claim completion
+## Phase 3 — Body/backend claim closure
 
-- Resolve Pluto status before any production compatibility claim.
-- Decide whether to implement fuller lunar theory or constrain lunar/lunar-point claims; the release-grade body-claims surface now explicitly separates the supported lunar points from the unsupported true apogee/perigee boundary.
-- Promote Ceres, Pallas, Juno, Vesta, and any custom asteroid support only where evidence is broad enough.
-- Ensure backend capability metadata rejects unsupported request shapes before computation.
+- Resolve Pluto as validated, approximate, constrained, or excluded.
+- Decide whether to implement fuller lunar theory or constrain lunar/lunar-point
+  claims to the compact Meeus-style baseline.
+- Promote selected asteroid support only where source evidence and backend
+  metadata are broad enough.
+- Audit backend capability metadata against actual supported request shapes.
 
-## Phase 4 — Advanced request modes
+## Phase 4 — Request-mode semantics
 
-- Decide whether built-in UTC/Delta-T convenience is in scope for the first production release.
-- Implement apparent-place support only with documented corrections and validation fixtures.
-- Implement topocentric body positions only with clear observer semantics and tests.
-- Keep native sidereal backend output unsupported unless a backend provides validated native behavior.
+- Decide first-release scope for built-in UTC/UT1 and Delta-T behavior.
+- Implement apparent-place support only with documented corrections and fixtures.
+- Implement topocentric body positions only with explicit observer semantics and
+  tests.
+- Keep native sidereal backend output unsupported unless validated native backend
+  behavior exists.
+- Align motion/speed/retrograde output policy across backends, charts, CLI, and
+  artifact profiles.
 
-Progress update: `BackendMetadata::validate_request()` now centralizes the shared request-shape preflight, and the chart façade routes body requests through it so unsupported request shapes fail at the metadata boundary before backend computation.
+## Phase 5 — Compatibility and release gates
 
-## Phase 5 — Compatibility and release readiness
-
-- Audit house formulas, aliases, and latitude/numerical failure constraints; the compatibility profile and report surfaces now expose explicit latitude-sensitive house-constraint summaries, the compatibility-caveats summary now also calls out the house-formula-families posture directly, the compatibility-caveats and house-validation surfaces now also expose explicit latitude-sensitive house failure modes, and the staged bundle now also exposes the house-code-aliases, house-formula-families, and house-latitude-sensitive summaries so those audits stay visible in release artifacts. Release-bundle verification now also re-checks the release-specific house-system and ayanamsa canonical-name summaries against the current renderer.
-- Audit ayanamsa offsets, epochs, formula/provenance notes, aliases, and near-equivalent variants; the compatibility inventory now also surfaces representative ayanamsa provenance examples so those audits remain visible in release-facing summaries.
-- Keep compatibility profiles exact about shipped built-ins, descriptor-only entries, constraints, aliases, and gaps; the catalog inventory line now also surfaces the current ayanamsa metadata-gap count alongside custom-definition labels, and now also distinguishes constrained house systems from descriptor-only ayanamsa entries in the release-facing posture line, while the release notes summary continues to carry the house-validation corpus plus the ayanamsa catalog validation and sidereal-metadata coverage lines. The compatibility profile's known-gaps line now also has a dedicated `known-gaps-summary` / `known-gaps` inspection surface, keeping release caveats directly inspectable in the validation and CLI front-ends. Tool-version provenance in the bundled benchmark report now also carries rustfmt and clippy versions alongside rustc and cargo. The CLI front-end now also directly dispatches the remaining packaged-artifact body-cadence, fit-margins, generation-manifest-checksum, normalized-intermediate, phase-2-corpus-alignment, target-threshold-state, and ayanamsa-audit summaries, and the lunar-reference-evidence summary is now directly inspectable from the command line, closing the last validate-only CLI parity gap for those surfaces.
-- Make release gates fail on stale generated artifacts, overbroad claims, missing evidence, native-dependency drift, and threshold failures.
+- Audit house formulas, aliases, source-label mappings, and latitude/numerical
+  constraints for release-claimed entries.
+- Audit ayanamsa offsets, epochs, formulas, aliases, near-equivalent variants,
+  and provenance.
+- Ensure descriptor-only, custom-only, constrained, approximate, and unsupported
+  entries are not advertised as fully implemented.
+- Add any missing release gates for stale generated outputs, missing source
+  evidence, threshold failures, native-dependency drift, unsupported-mode claim
+  drift, and compatibility-profile overclaims.

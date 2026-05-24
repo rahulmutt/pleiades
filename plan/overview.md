@@ -1,22 +1,33 @@
 # Plan Overview
 
-`pleiades` has completed bootstrap and foundation work. The active plan tracks only remaining production gaps against the specification.
+`pleiades` has completed bootstrap and foundation work. The active plan tracks
+only remaining production work against the specification.
 
 ## Active phases
 
-1. **Production reference/source corpus** — build or ingest public, reproducible source inputs broad enough for validation and artifact generation.
-2. **Production compressed ephemeris** — replace the draft packaged-data fixture with a release-grade 1500-2500 CE artifact.
-3. **Body/backend claim completion** — settle accuracy and release status for Pluto, lunar theory/lunar points, selected asteroids, and backend capability matrices.
-4. **Advanced request modes** — implement or consistently reject UTC/Delta-T modeling, apparent-place corrections, topocentric body positions, and native sidereal output.
-5. **Compatibility and release readiness** — audit house/ayanamsa evidence and make release gates fail closed on stale or overstated claims.
+1. **Production reference backend and corpus** — provide broad, reproducible
+   public reference inputs for validation and artifact generation.
+2. **Release-grade compressed ephemeris** — replace the draft packaged-data
+   fixture with a 1500-2500 CE artifact that passes published thresholds.
+3. **Body/backend claim closure** — settle release claims for Pluto, lunar
+   theory/lunar points, selected asteroids, and backend capability metadata.
+4. **Request-mode semantics** — implement or consistently reject UTC/Delta-T,
+   apparent-place, topocentric, native-sidereal, and motion-output requests.
+5. **Compatibility and release gates** — audit house/ayanamsa evidence and make
+   release validation fail on stale or overstated claims.
 
 ## Current priority
 
-Phase 1 is the execution frontier. Phase 2 can improve generation algorithms in parallel, but the artifact must remain draft-grade until source coverage and hold-out validation are production-ready. The consolidated source-corpus posture now also has a standalone summary surface for release-facing inspection, and the backend matrix summary now mirrors that consolidated source-corpus posture line as well.
+Phase 1 remains the execution frontier. The repository has many release-facing
+summary and verification surfaces, but the underlying reference corpus is still a
+checked-in fixture set rather than a broad production source corpus or general
+JPL/public-data reader.
 
 ## Cross-cutting rules
 
 - Preserve pure-Rust, layered crate boundaries from `spec/architecture.md`.
 - Keep unsupported modes as structured errors until implemented and validated.
-- Keep release compatibility profiles truthful about exact built-ins, aliases, constraints, and known gaps.
-- Keep validation/report artifacts generated from current code and source inputs, not manually-maintained prose.
+- Keep release compatibility profiles truthful about exact built-ins, aliases,
+  constraints, and known gaps.
+- Generate validation/report artifacts from current code and source inputs, not
+  manually-maintained prose.

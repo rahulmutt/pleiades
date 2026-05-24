@@ -2,12 +2,13 @@
 
 ## Role
 
-Preserve the reproducible Rust workspace while active phases add source data, artifact generation, validation, and release gates.
+Preserve the reproducible Rust workspace while active phases add source data,
+artifact generation, validation, and release gates.
 
 ## Standards
 
 - Manage standard tools through `mise.toml`.
-- Keep the normal build/test workflow pure Rust with no mandatory C/C++ dependencies.
+- Keep normal build/test workflows pure Rust with no mandatory C/C++ dependency.
 - Preserve first-party `pleiades-*` crate naming and workspace membership.
 - Keep CI/local commands reproducible from a clean checkout.
 

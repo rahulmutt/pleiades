@@ -1,24 +1,39 @@
-# Phase 2 — Production Compressed Ephemeris
+# Phase 2 — Release-Grade Compressed Ephemeris
 
 ## Goal
 
-Ship a deterministic packaged-data backend for 1500-2500 CE whose measured errors, output classifications, random-access performance, and artifact provenance satisfy `spec/data-compression.md`.
+Promote `pleiades-data` from a draft reproducibility fixture to a release-grade
+1500-2500 CE packaged backend.
 
-## Starting point
+## Current baseline
 
-`pleiades-compression` and `pleiades-data` implement an artifact format, decoder, draft fixture, profile metadata, checksum verification, reports, and benchmarks. Current comparison envelopes still exceed production expectations, so the artifact remains draft-grade.
+- `pleiades-compression` defines artifact structures and codec helpers.
+- `pleiades-data` decodes a checked-in stage-5 draft artifact.
+- Artifact profile, output-support, checksum, boundary, benchmark, regeneration,
+  and request-policy summaries exist.
+- Current model-error envelopes still exceed production tolerance for many
+  body/channel combinations.
 
-## Implementation goals
+## Remaining implementation work
 
-- Generate from the Phase 1 production source corpus, not from ad hoc or under-covered fixtures.
-- Finalize body/channel-specific accuracy thresholds and enforce them in validation gates.
-- Improve fitting/reconstruction where needed: Chebyshev or other polynomial segments, residual tables, body-specific segmentation, speed derivation policy, and channel-specific handling.
-- Keep stored, derived, approximated, and unsupported output classifications explicit and fail-closed.
-- Measure artifact size, decode latency, random lookup latency, batch lookup throughput, and chart-style workloads.
-- Preserve deterministic regeneration, manifest, checksum, and source-provenance sidecars.
+- Rebase artifact generation on the Phase 1 production reference and hold-out
+  inputs.
+- Define published accuracy thresholds by body class and channel, including
+  longitude, latitude, distance, and supported speed/motion outputs.
+- Improve fitting, interpolation, residual, quantization, and reconstruction
+  logic until reference and hold-out errors pass thresholds.
+- Keep stored, derived, approximated, and unsupported output channels explicit in
+  the artifact profile.
+- Keep apparent, topocentric, native sidereal, civil-time, and unsupported motion
+  outputs rejected unless implemented and validated.
+- Track encoded size, decode latency, single lookup latency, batch throughput,
+  and chart-style workload performance.
+- Ensure deterministic regeneration and byte/checksum verification from a clean
+  checkout.
 
-## Completion criteria
+## Exit criteria
 
-- `pleiades-data` passes published thresholds for every advertised body/channel in 1500-2500 CE.
-- Release reports include measured error envelopes against reference and hold-out corpora.
-- Artifact regeneration is deterministic from documented public inputs.
+- The packaged artifact covers the advertised 1500-2500 CE body/channel profile.
+- Reference and hold-out comparisons pass the published thresholds.
+- Artifact manifests, checksums, generation provenance, output-support profile,
+  and benchmarks are current and release-bundle verified.

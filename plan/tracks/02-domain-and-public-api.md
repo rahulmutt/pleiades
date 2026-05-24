@@ -2,17 +2,23 @@
 
 ## Role
 
-Keep domain types and façade APIs stable while body coverage, request modes, and compatibility evidence mature.
+Keep domain types and facade APIs stable while body coverage, request modes, and
+compatibility evidence mature.
 
 ## Standards
 
-- Use strongly typed units, frames, time scales, observer data, bodies, houses, ayanamsas, and errors.
-- Keep sidereal conversion, house logic, and chart assembly outside source-specific backend crates.
+- Use strongly typed units, frames, time scales, observer data, bodies, houses,
+  ayanamsas, zodiac modes, and errors.
+- Keep sidereal conversion, house logic, and chart assembly outside
+  source-specific backend crates.
 - Keep unsupported modes explicit and structured.
 
 ## Remaining domain/API concerns
 
-- UTC/Delta-T convenience policy and any future built-in civil-time conversion.
+- UTC/UT1 and Delta-T convenience policy.
 - Apparent-place and topocentric body-position semantics.
-- House and ayanamsa entries whose implementation/evidence status is weaker than their descriptor presence.
-- Public docs and rustdoc examples for production-ready chart workflows once claims are settled.
+- Speed, retrograde/stationary, and motion-output policy.
+- House and ayanamsa entries whose evidence status is weaker than descriptor
+  presence.
+- Public docs and rustdoc examples for production-ready chart workflows once
+  claims are settled.
