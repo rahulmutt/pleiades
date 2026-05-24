@@ -82,6 +82,10 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "compare-backends")?;
             validate_render_cli(args)
         }
+        Some("comparison-report") => {
+            ensure_no_extra_args(&args[1..], "comparison-report")?;
+            validate_render_cli(args)
+        }
         Some("compare-backends-audit") => {
             ensure_no_extra_args(&args[1..], "compare-backends-audit")?;
             validate_render_cli(args)
@@ -2162,6 +2166,18 @@ mod tests {
         assert!(rendered.contains("Reference backend:"));
         assert!(rendered.contains("Candidate backend:"));
         assert!(rendered.contains("Samples"));
+    }
+
+    #[test]
+    fn comparison_report_alias_renders_the_comparison_report() {
+        let alias = render_cli(&["comparison-report"]).expect("comparison report should render");
+        let command = render_cli(&["compare-backends"]).expect("compare-backends should render");
+
+        assert_eq!(alias, command);
+        assert_eq!(
+            render_cli(&["comparison-report", "extra"]).unwrap_err(),
+            "comparison-report does not accept extra arguments"
+        );
     }
 
     #[test]
