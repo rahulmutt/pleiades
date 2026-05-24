@@ -617,6 +617,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("house-latitude-sensitive-failure-modes-summary")
         | Some("house-latitude-sensitive-failure-modes") => validate_render_cli(args),
+        Some("house-latitude-sensitive-constraints-summary")
+        | Some("house-latitude-sensitive-constraints") => validate_render_cli(args),
         Some("house-code-aliases-summary") => validate_render_cli(args),
         Some("house-code-alias-summary") => validate_render_cli(args),
         Some("catalog-posture-summary") => {
@@ -5214,6 +5216,26 @@ mod tests {
                 "latitude-sensitive house failure modes summary should reject extra arguments"
             ),
             "house-latitude-sensitive-failure-modes-summary does not accept extra arguments"
+        );
+        let house_latitude_sensitive_constraints_summary =
+            render_cli(&["house-latitude-sensitive-constraints-summary"])
+                .expect("latitude-sensitive house constraints summary should render");
+        assert_eq!(
+            house_latitude_sensitive_constraints_summary,
+            validate_render_cli(&["house-latitude-sensitive-constraints-summary"]).expect(
+                "validate facade should render latitude-sensitive house constraints summary"
+            )
+        );
+        assert_eq!(
+            render_cli(&["house-latitude-sensitive-constraints"])
+                .expect("latitude-sensitive house constraints alias should render"),
+            house_latitude_sensitive_constraints_summary
+        );
+        assert_eq!(
+            render_cli(&["house-latitude-sensitive-constraints-summary", "extra"]).expect_err(
+                "latitude-sensitive house constraints summary should reject extra arguments"
+            ),
+            "house-latitude-sensitive-constraints-summary does not accept extra arguments"
         );
         let house_code_aliases_summary = render_cli(&["house-code-aliases-summary"])
             .expect("house code aliases summary should render");
