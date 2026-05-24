@@ -24471,6 +24471,14 @@ pub fn render_backend_matrix_summary() -> String {
     render_backend_matrix_summary_text()
 }
 
+fn native_sidereal_posture_line(native_sidereal_count: usize) -> String {
+    match native_sidereal_count {
+        0 => "Native sidereal posture: unsupported across first-party backends".to_string(),
+        1 => "Native sidereal posture: supported natively by 1 backend".to_string(),
+        count => format!("Native sidereal posture: supported natively by {count} backends"),
+    }
+}
+
 fn render_backend_matrix_summary_text() -> String {
     let release_profiles = match validated_release_profile_identifiers_for_report() {
         Ok(release_profiles) => release_profiles,
@@ -24580,6 +24588,8 @@ fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str("Native sidereal backends: ");
     text.push_str(&native_sidereal_count.to_string());
+    text.push('\n');
+    text.push_str(&native_sidereal_posture_line(native_sidereal_count));
     text.push('\n');
     text.push_str("Nominal ranges: bounded: ");
     text.push_str(&bounded_nominal_range_count.to_string());
@@ -34344,6 +34354,9 @@ mod tests {
         assert!(rendered.contains("CompressedData: 1"));
         assert!(rendered.contains("Composite: 1"));
         assert!(rendered.contains("Implementation statuses:"));
+        assert!(
+            rendered.contains("Native sidereal posture: unsupported across first-party backends")
+        );
         assert!(rendered.contains("Nominal ranges: bounded: 2, open-ended: 3"));
         assert!(rendered.contains("fixture-reference: 1"));
         assert!(rendered.contains("partial-source-backed: 1"));
