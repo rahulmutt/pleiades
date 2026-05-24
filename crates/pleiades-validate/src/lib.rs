@@ -14478,6 +14478,21 @@ fn ensure_reference_asteroid_source_window_summary_matches_current_rendering(
     }
 }
 
+fn ensure_reference_asteroid_equatorial_evidence_summary_matches_current_rendering(
+    reference_asteroid_equatorial_evidence_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if reference_asteroid_equatorial_evidence_summary_text
+        == reference_asteroid_equatorial_evidence_summary_for_report()
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "reference asteroid equatorial evidence summary no longer matches the current reference asteroid equatorial evidence posture"
+                .to_string(),
+        ))
+    }
+}
+
 fn ensure_comparison_snapshot_source_summary_matches_current_rendering(
     comparison_snapshot_source_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -16310,14 +16325,9 @@ fn verify_release_bundle_internal(
         &reference_asteroid_equatorial_evidence_summary_path,
         "reference asteroid equatorial evidence summary",
     )?;
-    if reference_asteroid_equatorial_evidence_summary_text
-        != reference_asteroid_equatorial_evidence_summary_for_report()
-    {
-        return Err(ReleaseBundleError::Verification(
-            "reference asteroid equatorial evidence summary no longer matches the current reference asteroid equatorial evidence posture"
-                .to_string(),
-        ));
-    }
+    ensure_reference_asteroid_equatorial_evidence_summary_matches_current_rendering(
+        &reference_asteroid_equatorial_evidence_summary_text,
+    )?;
     let reference_asteroid_equatorial_evidence_summary_checksum =
         checksum64(&reference_asteroid_equatorial_evidence_summary_text);
     let independent_holdout_source_window_summary_text = read_required_bundle_text(
@@ -39044,6 +39054,19 @@ version = "0.9.0"
             "Reference asteroid source windows:",
             "Tampered reference asteroid source windows:",
             "reference asteroid source window summary no longer matches the current reference asteroid source-window posture",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_reference_asteroid_equatorial_evidence_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-reference-asteroid-equatorial-evidence-semantic",
+            "reference-asteroid-equatorial-evidence-summary.txt",
+            "reference asteroid equatorial evidence summary checksum (fnv1a-64):",
+            "Selected asteroid equatorial evidence:",
+            "Tampered selected asteroid equatorial evidence (drifted):",
+            "reference asteroid equatorial evidence summary no longer matches the current reference asteroid equatorial evidence posture",
         );
     }
 
