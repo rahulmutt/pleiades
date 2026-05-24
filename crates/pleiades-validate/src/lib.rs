@@ -4241,6 +4241,13 @@ impl fmt::Display for ReleaseBundle {
         )?;
         writeln!(
             f,
+            "  independent-holdout quarter-day boundary summary: {}",
+            self.output_dir
+                .join("independent-holdout-quarter-day-boundary-summary.txt")
+                .display()
+        )?;
+        writeln!(
+            f,
             "  production generation boundary request corpus summary: {}",
             self.output_dir
                 .join("production-generation-boundary-request-corpus-summary.txt")
@@ -10870,6 +10877,8 @@ pub fn render_release_bundle(
         output_dir.join("independent-holdout-equatorial-parity-summary.txt");
     let independent_holdout_body_class_coverage_summary_path =
         output_dir.join("independent-holdout-body-class-coverage-summary.txt");
+    let independent_holdout_quarter_day_boundary_summary_path =
+        output_dir.join("independent-holdout-quarter-day-boundary-summary.txt");
     let production_generation_boundary_source_summary_path =
         output_dir.join("production-generation-boundary-source-summary.txt");
     let production_generation_boundary_window_summary_path =
@@ -11169,6 +11178,10 @@ pub fn render_release_bundle(
         independent_holdout_snapshot_body_class_coverage_summary_for_report();
     let independent_holdout_body_class_coverage_summary_checksum =
         checksum64(&independent_holdout_body_class_coverage_summary_text);
+    let independent_holdout_quarter_day_boundary_summary_text =
+        independent_holdout_snapshot_quarter_day_boundary_summary_for_report();
+    let independent_holdout_quarter_day_boundary_summary_checksum =
+        checksum64(&independent_holdout_quarter_day_boundary_summary_text);
     let production_generation_boundary_source_summary_text =
         production_generation_boundary_source_summary_for_report();
     let production_generation_boundary_source_summary_checksum =
@@ -11333,7 +11346,7 @@ pub fn render_release_bundle(
     let packaged_artifact_checksum_text = format!("0x{:016x}\n", packaged_artifact.checksum);
     let packaged_artifact_checksum_text_checksum = checksum64(&packaged_artifact_checksum_text);
     let manifest_text = format!(
-        "Release bundle manifest\nprofile: compatibility-profile.txt\nprofile checksum (fnv1a-64): 0x{compatibility_profile_checksum:016x}\nprofile summary: compatibility-profile-summary.txt\nprofile summary checksum (fnv1a-64): 0x{compatibility_profile_summary_checksum:016x}\nrelease notes: release-notes.txt\nrelease notes checksum (fnv1a-64): 0x{release_notes_checksum:016x}\nrelease notes summary: release-notes-summary.txt\nrelease notes summary checksum (fnv1a-64): 0x{release_notes_summary_checksum:016x}\nrelease summary: release-summary.txt\nrelease summary checksum (fnv1a-64): 0x{release_summary_checksum:016x}\nrelease-profile identifiers: release-profile-identifiers.txt\nrelease-profile identifiers checksum (fnv1a-64): 0x{release_profile_identifiers_checksum:016x}\nrelease-profile identifiers summary: release-profile-identifiers-summary.txt\nrelease-profile identifiers summary checksum (fnv1a-64): 0x{release_profile_identifiers_summary_checksum:016x}\nrelease-house-system-canonical-names summary: release-house-system-canonical-names-summary.txt\nrelease-house-system-canonical-names summary checksum (fnv1a-64): 0x{release_house_system_canonical_names_summary_checksum:016x}\nrelease-ayanamsa-canonical-names summary: release-ayanamsa-canonical-names-summary.txt\nrelease-ayanamsa-canonical-names summary checksum (fnv1a-64): 0x{release_ayanamsa_canonical_names_summary_checksum:016x}\nrelease-house-validation summary: release-house-validation-summary.txt\nrelease-house-validation summary checksum (fnv1a-64): 0x{release_house_validation_summary_checksum:016x}\ntarget-house-scope summary: target-house-scope-summary.txt\ntarget-house-scope summary checksum (fnv1a-64): 0x{target_house_scope_summary_checksum:016x}\ntarget-ayanamsa-scope summary: target-ayanamsa-scope-summary.txt\ntarget-ayanamsa-scope summary checksum (fnv1a-64): 0x{target_ayanamsa_scope_summary_checksum:016x}\nhouse code aliases summary: house-code-aliases-summary.txt\nhouse code aliases summary checksum (fnv1a-64): 0x{house_code_aliases_summary_checksum:016x}\nhouse formula families summary: house-formula-families-summary.txt\nhouse formula families summary checksum (fnv1a-64): 0x{house_formula_families_summary_checksum:016x}\nhouse latitude-sensitive summary: house-latitude-sensitive-summary.txt\nhouse latitude-sensitive summary checksum (fnv1a-64): 0x{house_latitude_sensitive_summary_checksum:016x}\nhouse latitude-sensitive constraints summary: house-latitude-sensitive-constraints-summary.txt\nhouse latitude-sensitive constraints summary checksum (fnv1a-64): 0x{house_latitude_sensitive_constraints_summary_checksum:016x}\nhouse latitude-sensitive failure-modes summary: house-latitude-sensitive-failure-modes-summary.txt\nhouse latitude-sensitive failure-modes summary checksum (fnv1a-64): 0x{house_latitude_sensitive_failure_modes_summary_checksum:016x}\nrelease checklist: release-checklist.txt\nrelease checklist checksum (fnv1a-64): 0x{release_checklist_checksum:016x}\nrelease checklist summary: release-checklist-summary.txt\nrelease checklist summary checksum (fnv1a-64): 0x{release_checklist_summary_checksum:016x}\nbackend matrix: backend-matrix.txt\nbackend matrix checksum (fnv1a-64): 0x{backend_matrix_checksum:016x}\nbackend matrix summary: backend-matrix-summary.txt\nbackend matrix summary checksum (fnv1a-64): 0x{backend_matrix_summary_checksum:016x}\napi stability posture: api-stability.txt\napi stability checksum (fnv1a-64): 0x{api_stability_checksum:016x}\napi stability summary: api-stability-summary.txt\napi stability summary checksum (fnv1a-64): 0x{api_stability_summary_checksum:016x}\ncomparison-corpus summary: comparison-corpus-summary.txt\ncomparison-corpus summary checksum (fnv1a-64): 0x{comparison_corpus_summary_checksum:016x}\nsource-corpus summary: source-corpus-summary.txt\nsource-corpus summary checksum (fnv1a-64): 0x{source_corpus_summary_checksum:016x}\njpl source posture summary: jpl-source-posture-summary.txt\njpl source posture summary checksum (fnv1a-64): 0x{jpl_source_posture_summary_checksum:016x}\njpl provenance-only evidence summary: jpl-provenance-only-summary.txt\njpl provenance-only evidence summary checksum (fnv1a-64): 0x{jpl_provenance_only_summary_checksum:016x}\ncomparison-snapshot summary: comparison-snapshot-summary.txt\ncomparison-snapshot summary checksum (fnv1a-64): 0x{comparison_snapshot_summary_checksum:016x}\ncomparison-snapshot source summary: comparison-snapshot-source-summary.txt\ncomparison-snapshot source summary checksum (fnv1a-64): 0x{comparison_snapshot_source_summary_checksum:016x}\ncomparison-snapshot source window summary: comparison-snapshot-source-window-summary.txt\ncomparison-snapshot source window summary checksum (fnv1a-64): 0x{comparison_snapshot_source_window_summary_checksum:016x}\ncomparison-snapshot body-class coverage summary: comparison-snapshot-body-class-coverage-summary.txt\ncomparison-snapshot body-class coverage summary checksum (fnv1a-64): 0x{comparison_snapshot_body_class_coverage_summary_checksum:016x}\ncomparison-snapshot manifest summary: comparison-snapshot-manifest-summary.txt\ncomparison-snapshot manifest summary checksum (fnv1a-64): 0x{comparison_snapshot_manifest_summary_checksum:016x}\ncomparison-envelope summary: comparison-envelope-summary.txt\ncomparison-envelope summary checksum (fnv1a-64): 0x{comparison_envelope_summary_checksum:016x}\ncomparison-body-class-tolerance summary: comparison-body-class-tolerance-summary.txt\ncomparison-body-class-tolerance summary checksum (fnv1a-64): 0x{comparison_body_class_tolerance_summary_checksum:016x}\ncomparison-body-class-error-envelope summary: comparison-body-class-error-envelope-summary.txt\ncomparison-body-class-error-envelope summary checksum (fnv1a-64): 0x{comparison_body_class_error_envelope_summary_checksum:016x}\ncomparison-corpus release-guard summary: comparison-corpus-release-guard-summary.txt\ncomparison-corpus release-guard summary checksum (fnv1a-64): 0x{comparison_corpus_release_guard_summary_checksum:016x}\nreference-holdout overlap summary: reference-holdout-overlap-summary.txt\nreference-holdout overlap summary checksum (fnv1a-64): 0x{reference_holdout_overlap_summary_checksum:016x}\nreference snapshot bridge day summary: reference-snapshot-bridge-day-summary.txt\nreference snapshot bridge day summary checksum (fnv1a-64): 0x{reference_snapshot_bridge_day_summary_checksum:016x}\nreference snapshot major-body boundary window summary: reference-snapshot-major-body-boundary-window-summary.txt\nreference snapshot major-body boundary window summary checksum (fnv1a-64): 0x{reference_snapshot_major_body_boundary_window_summary_checksum:016x}\nreference snapshot boundary epoch coverage summary: reference-snapshot-boundary-epoch-coverage-summary.txt\nreference snapshot boundary epoch coverage summary checksum (fnv1a-64): 0x{reference_snapshot_boundary_epoch_coverage_summary_checksum:016x}\nreference snapshot pre-bridge boundary summary: reference-snapshot-pre-bridge-boundary-summary.txt\nreference snapshot pre-bridge boundary summary checksum (fnv1a-64): 0x{reference_snapshot_pre_bridge_boundary_summary_checksum:016x}\nreference snapshot 2451917 major-body boundary summary: reference-snapshot-2451917-major-body-boundary-summary.txt\nreference snapshot 2451917 major-body boundary summary checksum (fnv1a-64): 0x{reference_snapshot_2451917_major_body_boundary_summary_checksum:016x}\nreference snapshot 2451918 major-body boundary summary: reference-snapshot-2451918-major-body-boundary-summary.txt\nreference snapshot 2451918 major-body boundary summary checksum (fnv1a-64): 0x{reference_snapshot_2451918_major_body_boundary_summary_checksum:016x}\nreference snapshot 2451919 major-body boundary summary: reference-snapshot-2451919-major-body-boundary-summary.txt\nreference snapshot 2451919 major-body boundary summary checksum (fnv1a-64): 0x{reference_snapshot_2451919_major_body_boundary_summary_checksum:016x}\nreference snapshot 2451916 major-body dense boundary summary: reference-snapshot-2451916-major-body-dense-boundary-summary.txt\nreference snapshot 2451916 major-body dense boundary summary checksum (fnv1a-64): 0x{reference_snapshot_2451916_major_body_dense_boundary_summary_checksum:016x}\nreference snapshot sparse boundary summary: reference-snapshot-sparse-boundary-summary.txt\nreference snapshot sparse boundary summary checksum (fnv1a-64): 0x{reference_snapshot_sparse_boundary_summary_checksum:016x}\nreference snapshot exact J2000 evidence summary: reference-snapshot-exact-j2000-evidence-summary.txt\nreference snapshot exact J2000 evidence summary checksum (fnv1a-64): 0x{reference_snapshot_exact_j2000_evidence_summary_checksum:016x}\nreference snapshot source summary: reference-snapshot-source-summary.txt\nreference snapshot source summary checksum (fnv1a-64): 0x{reference_snapshot_source_summary_checksum:016x}\nreference snapshot source window summary: reference-snapshot-source-window-summary.txt\nreference snapshot source window summary checksum (fnv1a-64): 0x{reference_snapshot_source_window_summary_checksum:016x}\nreference snapshot manifest summary: reference-snapshot-manifest-summary.txt\nreference snapshot manifest summary checksum (fnv1a-64): 0x{reference_snapshot_manifest_summary_checksum:016x}\nreference snapshot body-class coverage summary: reference-snapshot-body-class-coverage-summary.txt\nreference snapshot body-class coverage summary checksum (fnv1a-64): 0x{reference_snapshot_body_class_coverage_summary_checksum:016x}\nreference snapshot equatorial parity summary: reference-snapshot-equatorial-parity-summary.txt\nreference snapshot equatorial parity summary checksum (fnv1a-64): 0x{reference_snapshot_equatorial_parity_summary_checksum:016x}\nreference asteroid source window summary: reference-asteroid-source-window-summary.txt\nreference asteroid source window summary checksum (fnv1a-64): 0x{reference_asteroid_source_window_summary_checksum:016x}\nreference asteroid equatorial evidence summary: reference-asteroid-equatorial-evidence-summary.txt\nreference asteroid equatorial evidence summary checksum (fnv1a-64): 0x{reference_asteroid_equatorial_evidence_summary_checksum:016x}\nindependent-holdout source window summary: independent-holdout-source-window-summary.txt\nindependent-holdout source window summary checksum (fnv1a-64): 0x{independent_holdout_source_window_summary_checksum:016x}\nindependent-holdout equatorial parity summary: independent-holdout-equatorial-parity-summary.txt\nindependent-holdout equatorial parity summary checksum (fnv1a-64): 0x{independent_holdout_equatorial_parity_summary_checksum:016x}\nindependent-holdout body-class coverage summary: independent-holdout-body-class-coverage-summary.txt\nindependent-holdout body-class coverage summary checksum (fnv1a-64): 0x{independent_holdout_body_class_coverage_summary_checksum:016x}\nproduction generation boundary source summary: production-generation-boundary-source-summary.txt\nproduction generation boundary source summary checksum (fnv1a-64): 0x{production_generation_boundary_source_summary_checksum:016x}\nproduction generation boundary window summary: production-generation-boundary-window-summary.txt\nproduction generation boundary window summary checksum (fnv1a-64): 0x{production_generation_boundary_window_summary_checksum:016x}\nproduction generation boundary request corpus summary: production-generation-boundary-request-corpus-summary.txt\nproduction generation boundary request corpus summary checksum (fnv1a-64): 0x{production_generation_boundary_request_corpus_summary_checksum:016x}\nproduction generation boundary request corpus equatorial summary: production-generation-boundary-request-corpus-equatorial-summary.txt\nproduction generation boundary request corpus equatorial summary checksum (fnv1a-64): 0x{production_generation_boundary_request_corpus_equatorial_summary_checksum:016x}\nreference snapshot summary: reference-snapshot-summary.txt\nreference snapshot summary checksum (fnv1a-64): 0x{reference_snapshot_summary_checksum:016x}\nproduction generation summary: production-generation-summary.txt\nproduction generation summary checksum (fnv1a-64): 0x{production_generation_summary_checksum:016x}\nproduction generation body-class coverage summary: production-generation-body-class-coverage-summary.txt\nproduction generation body-class coverage summary checksum (fnv1a-64): 0x{production_generation_body_class_coverage_summary_checksum:016x}\nproduction generation source summary: production-generation-source-summary.txt\nproduction generation source summary checksum (fnv1a-64): 0x{production_generation_source_summary_checksum:016x}\nproduction generation source revision summary: production-generation-source-revision-summary.txt\nproduction generation source revision summary checksum (fnv1a-64): 0x{production_generation_source_revision_summary_checksum:016x}\nproduction generation source window summary: production-generation-source-window-summary.txt
+        "Release bundle manifest\nprofile: compatibility-profile.txt\nprofile checksum (fnv1a-64): 0x{compatibility_profile_checksum:016x}\nprofile summary: compatibility-profile-summary.txt\nprofile summary checksum (fnv1a-64): 0x{compatibility_profile_summary_checksum:016x}\nrelease notes: release-notes.txt\nrelease notes checksum (fnv1a-64): 0x{release_notes_checksum:016x}\nrelease notes summary: release-notes-summary.txt\nrelease notes summary checksum (fnv1a-64): 0x{release_notes_summary_checksum:016x}\nrelease summary: release-summary.txt\nrelease summary checksum (fnv1a-64): 0x{release_summary_checksum:016x}\nrelease-profile identifiers: release-profile-identifiers.txt\nrelease-profile identifiers checksum (fnv1a-64): 0x{release_profile_identifiers_checksum:016x}\nrelease-profile identifiers summary: release-profile-identifiers-summary.txt\nrelease-profile identifiers summary checksum (fnv1a-64): 0x{release_profile_identifiers_summary_checksum:016x}\nrelease-house-system-canonical-names summary: release-house-system-canonical-names-summary.txt\nrelease-house-system-canonical-names summary checksum (fnv1a-64): 0x{release_house_system_canonical_names_summary_checksum:016x}\nrelease-ayanamsa-canonical-names summary: release-ayanamsa-canonical-names-summary.txt\nrelease-ayanamsa-canonical-names summary checksum (fnv1a-64): 0x{release_ayanamsa_canonical_names_summary_checksum:016x}\nrelease-house-validation summary: release-house-validation-summary.txt\nrelease-house-validation summary checksum (fnv1a-64): 0x{release_house_validation_summary_checksum:016x}\ntarget-house-scope summary: target-house-scope-summary.txt\ntarget-house-scope summary checksum (fnv1a-64): 0x{target_house_scope_summary_checksum:016x}\ntarget-ayanamsa-scope summary: target-ayanamsa-scope-summary.txt\ntarget-ayanamsa-scope summary checksum (fnv1a-64): 0x{target_ayanamsa_scope_summary_checksum:016x}\nhouse code aliases summary: house-code-aliases-summary.txt\nhouse code aliases summary checksum (fnv1a-64): 0x{house_code_aliases_summary_checksum:016x}\nhouse formula families summary: house-formula-families-summary.txt\nhouse formula families summary checksum (fnv1a-64): 0x{house_formula_families_summary_checksum:016x}\nhouse latitude-sensitive summary: house-latitude-sensitive-summary.txt\nhouse latitude-sensitive summary checksum (fnv1a-64): 0x{house_latitude_sensitive_summary_checksum:016x}\nhouse latitude-sensitive constraints summary: house-latitude-sensitive-constraints-summary.txt\nhouse latitude-sensitive constraints summary checksum (fnv1a-64): 0x{house_latitude_sensitive_constraints_summary_checksum:016x}\nhouse latitude-sensitive failure-modes summary: house-latitude-sensitive-failure-modes-summary.txt\nhouse latitude-sensitive failure-modes summary checksum (fnv1a-64): 0x{house_latitude_sensitive_failure_modes_summary_checksum:016x}\nrelease checklist: release-checklist.txt\nrelease checklist checksum (fnv1a-64): 0x{release_checklist_checksum:016x}\nrelease checklist summary: release-checklist-summary.txt\nrelease checklist summary checksum (fnv1a-64): 0x{release_checklist_summary_checksum:016x}\nbackend matrix: backend-matrix.txt\nbackend matrix checksum (fnv1a-64): 0x{backend_matrix_checksum:016x}\nbackend matrix summary: backend-matrix-summary.txt\nbackend matrix summary checksum (fnv1a-64): 0x{backend_matrix_summary_checksum:016x}\napi stability posture: api-stability.txt\napi stability checksum (fnv1a-64): 0x{api_stability_checksum:016x}\napi stability summary: api-stability-summary.txt\napi stability summary checksum (fnv1a-64): 0x{api_stability_summary_checksum:016x}\ncomparison-corpus summary: comparison-corpus-summary.txt\ncomparison-corpus summary checksum (fnv1a-64): 0x{comparison_corpus_summary_checksum:016x}\nsource-corpus summary: source-corpus-summary.txt\nsource-corpus summary checksum (fnv1a-64): 0x{source_corpus_summary_checksum:016x}\njpl source posture summary: jpl-source-posture-summary.txt\njpl source posture summary checksum (fnv1a-64): 0x{jpl_source_posture_summary_checksum:016x}\njpl provenance-only evidence summary: jpl-provenance-only-summary.txt\njpl provenance-only evidence summary checksum (fnv1a-64): 0x{jpl_provenance_only_summary_checksum:016x}\ncomparison-snapshot summary: comparison-snapshot-summary.txt\ncomparison-snapshot summary checksum (fnv1a-64): 0x{comparison_snapshot_summary_checksum:016x}\ncomparison-snapshot source summary: comparison-snapshot-source-summary.txt\ncomparison-snapshot source summary checksum (fnv1a-64): 0x{comparison_snapshot_source_summary_checksum:016x}\ncomparison-snapshot source window summary: comparison-snapshot-source-window-summary.txt\ncomparison-snapshot source window summary checksum (fnv1a-64): 0x{comparison_snapshot_source_window_summary_checksum:016x}\ncomparison-snapshot body-class coverage summary: comparison-snapshot-body-class-coverage-summary.txt\ncomparison-snapshot body-class coverage summary checksum (fnv1a-64): 0x{comparison_snapshot_body_class_coverage_summary_checksum:016x}\ncomparison-snapshot manifest summary: comparison-snapshot-manifest-summary.txt\ncomparison-snapshot manifest summary checksum (fnv1a-64): 0x{comparison_snapshot_manifest_summary_checksum:016x}\ncomparison-envelope summary: comparison-envelope-summary.txt\ncomparison-envelope summary checksum (fnv1a-64): 0x{comparison_envelope_summary_checksum:016x}\ncomparison-body-class-tolerance summary: comparison-body-class-tolerance-summary.txt\ncomparison-body-class-tolerance summary checksum (fnv1a-64): 0x{comparison_body_class_tolerance_summary_checksum:016x}\ncomparison-body-class-error-envelope summary: comparison-body-class-error-envelope-summary.txt\ncomparison-body-class-error-envelope summary checksum (fnv1a-64): 0x{comparison_body_class_error_envelope_summary_checksum:016x}\ncomparison-corpus release-guard summary: comparison-corpus-release-guard-summary.txt\ncomparison-corpus release-guard summary checksum (fnv1a-64): 0x{comparison_corpus_release_guard_summary_checksum:016x}\nreference-holdout overlap summary: reference-holdout-overlap-summary.txt\nreference-holdout overlap summary checksum (fnv1a-64): 0x{reference_holdout_overlap_summary_checksum:016x}\nreference snapshot bridge day summary: reference-snapshot-bridge-day-summary.txt\nreference snapshot bridge day summary checksum (fnv1a-64): 0x{reference_snapshot_bridge_day_summary_checksum:016x}\nreference snapshot major-body boundary window summary: reference-snapshot-major-body-boundary-window-summary.txt\nreference snapshot major-body boundary window summary checksum (fnv1a-64): 0x{reference_snapshot_major_body_boundary_window_summary_checksum:016x}\nreference snapshot boundary epoch coverage summary: reference-snapshot-boundary-epoch-coverage-summary.txt\nreference snapshot boundary epoch coverage summary checksum (fnv1a-64): 0x{reference_snapshot_boundary_epoch_coverage_summary_checksum:016x}\nreference snapshot pre-bridge boundary summary: reference-snapshot-pre-bridge-boundary-summary.txt\nreference snapshot pre-bridge boundary summary checksum (fnv1a-64): 0x{reference_snapshot_pre_bridge_boundary_summary_checksum:016x}\nreference snapshot 2451917 major-body boundary summary: reference-snapshot-2451917-major-body-boundary-summary.txt\nreference snapshot 2451917 major-body boundary summary checksum (fnv1a-64): 0x{reference_snapshot_2451917_major_body_boundary_summary_checksum:016x}\nreference snapshot 2451918 major-body boundary summary: reference-snapshot-2451918-major-body-boundary-summary.txt\nreference snapshot 2451918 major-body boundary summary checksum (fnv1a-64): 0x{reference_snapshot_2451918_major_body_boundary_summary_checksum:016x}\nreference snapshot 2451919 major-body boundary summary: reference-snapshot-2451919-major-body-boundary-summary.txt\nreference snapshot 2451919 major-body boundary summary checksum (fnv1a-64): 0x{reference_snapshot_2451919_major_body_boundary_summary_checksum:016x}\nreference snapshot 2451916 major-body dense boundary summary: reference-snapshot-2451916-major-body-dense-boundary-summary.txt\nreference snapshot 2451916 major-body dense boundary summary checksum (fnv1a-64): 0x{reference_snapshot_2451916_major_body_dense_boundary_summary_checksum:016x}\nreference snapshot sparse boundary summary: reference-snapshot-sparse-boundary-summary.txt\nreference snapshot sparse boundary summary checksum (fnv1a-64): 0x{reference_snapshot_sparse_boundary_summary_checksum:016x}\nreference snapshot exact J2000 evidence summary: reference-snapshot-exact-j2000-evidence-summary.txt\nreference snapshot exact J2000 evidence summary checksum (fnv1a-64): 0x{reference_snapshot_exact_j2000_evidence_summary_checksum:016x}\nreference snapshot source summary: reference-snapshot-source-summary.txt\nreference snapshot source summary checksum (fnv1a-64): 0x{reference_snapshot_source_summary_checksum:016x}\nreference snapshot source window summary: reference-snapshot-source-window-summary.txt\nreference snapshot source window summary checksum (fnv1a-64): 0x{reference_snapshot_source_window_summary_checksum:016x}\nreference snapshot manifest summary: reference-snapshot-manifest-summary.txt\nreference snapshot manifest summary checksum (fnv1a-64): 0x{reference_snapshot_manifest_summary_checksum:016x}\nreference snapshot body-class coverage summary: reference-snapshot-body-class-coverage-summary.txt\nreference snapshot body-class coverage summary checksum (fnv1a-64): 0x{reference_snapshot_body_class_coverage_summary_checksum:016x}\nreference snapshot equatorial parity summary: reference-snapshot-equatorial-parity-summary.txt\nreference snapshot equatorial parity summary checksum (fnv1a-64): 0x{reference_snapshot_equatorial_parity_summary_checksum:016x}\nreference asteroid source window summary: reference-asteroid-source-window-summary.txt\nreference asteroid source window summary checksum (fnv1a-64): 0x{reference_asteroid_source_window_summary_checksum:016x}\nreference asteroid equatorial evidence summary: reference-asteroid-equatorial-evidence-summary.txt\nreference asteroid equatorial evidence summary checksum (fnv1a-64): 0x{reference_asteroid_equatorial_evidence_summary_checksum:016x}\nindependent-holdout source window summary: independent-holdout-source-window-summary.txt\nindependent-holdout source window summary checksum (fnv1a-64): 0x{independent_holdout_source_window_summary_checksum:016x}\nindependent-holdout equatorial parity summary: independent-holdout-equatorial-parity-summary.txt\nindependent-holdout equatorial parity summary checksum (fnv1a-64): 0x{independent_holdout_equatorial_parity_summary_checksum:016x}\nindependent-holdout body-class coverage summary: independent-holdout-body-class-coverage-summary.txt\nindependent-holdout body-class coverage summary checksum (fnv1a-64): 0x{independent_holdout_body_class_coverage_summary_checksum:016x}\nindependent-holdout quarter-day boundary summary: independent-holdout-quarter-day-boundary-summary.txt\nindependent-holdout quarter-day boundary summary checksum (fnv1a-64): 0x{independent_holdout_quarter_day_boundary_summary_checksum:016x}\nproduction generation boundary source summary: production-generation-boundary-source-summary.txt\nproduction generation boundary source summary checksum (fnv1a-64): 0x{production_generation_boundary_source_summary_checksum:016x}\nproduction generation boundary window summary: production-generation-boundary-window-summary.txt\nproduction generation boundary window summary checksum (fnv1a-64): 0x{production_generation_boundary_window_summary_checksum:016x}\nproduction generation boundary request corpus summary: production-generation-boundary-request-corpus-summary.txt\nproduction generation boundary request corpus summary checksum (fnv1a-64): 0x{production_generation_boundary_request_corpus_summary_checksum:016x}\nproduction generation boundary request corpus equatorial summary: production-generation-boundary-request-corpus-equatorial-summary.txt\nproduction generation boundary request corpus equatorial summary checksum (fnv1a-64): 0x{production_generation_boundary_request_corpus_equatorial_summary_checksum:016x}\nreference snapshot summary: reference-snapshot-summary.txt\nreference snapshot summary checksum (fnv1a-64): 0x{reference_snapshot_summary_checksum:016x}\nproduction generation summary: production-generation-summary.txt\nproduction generation summary checksum (fnv1a-64): 0x{production_generation_summary_checksum:016x}\nproduction generation body-class coverage summary: production-generation-body-class-coverage-summary.txt\nproduction generation body-class coverage summary checksum (fnv1a-64): 0x{production_generation_body_class_coverage_summary_checksum:016x}\nproduction generation source summary: production-generation-source-summary.txt\nproduction generation source summary checksum (fnv1a-64): 0x{production_generation_source_summary_checksum:016x}\nproduction generation source revision summary: production-generation-source-revision-summary.txt\nproduction generation source revision summary checksum (fnv1a-64): 0x{production_generation_source_revision_summary_checksum:016x}\nproduction generation source window summary: production-generation-source-window-summary.txt
 production generation source window summary checksum (fnv1a-64): 0x{production_generation_source_window_summary_checksum:016x}
 production generation quarter-day boundary summary: production-generation-quarter-day-boundary-summary.txt
 production generation quarter-day boundary summary checksum (fnv1a-64): 0x{production_generation_quarter_day_boundary_summary_checksum:016x}
@@ -11611,6 +11624,10 @@ benchmark-corpus summary: benchmark-corpus-summary.txt\nbenchmark-corpus summary
     fs::write(
         &independent_holdout_body_class_coverage_summary_path,
         independent_holdout_body_class_coverage_summary_text.as_bytes(),
+    )?;
+    fs::write(
+        &independent_holdout_quarter_day_boundary_summary_path,
+        independent_holdout_quarter_day_boundary_summary_text.as_bytes(),
     )?;
     fs::write(
         &production_generation_boundary_source_summary_path,
@@ -12057,6 +12074,8 @@ struct ParsedReleaseBundleManifest {
     independent_holdout_equatorial_parity_summary_checksum: u64,
     independent_holdout_body_class_coverage_summary_path: String,
     independent_holdout_body_class_coverage_summary_checksum: u64,
+    independent_holdout_quarter_day_boundary_summary_path: String,
+    independent_holdout_quarter_day_boundary_summary_checksum: u64,
     production_generation_boundary_source_summary_path: String,
     production_generation_boundary_source_summary_checksum: u64,
     production_generation_boundary_window_summary_path: String,
@@ -12640,6 +12659,14 @@ impl ParsedReleaseBundleManifest {
             independent_holdout_body_class_coverage_summary_checksum: parse_manifest_checksum(
                 text,
                 "independent-holdout body-class coverage summary checksum (fnv1a-64):",
+            )?,
+            independent_holdout_quarter_day_boundary_summary_path: parse_manifest_string(
+                text,
+                "independent-holdout quarter-day boundary summary:",
+            )?,
+            independent_holdout_quarter_day_boundary_summary_checksum: parse_manifest_checksum(
+                text,
+                "independent-holdout quarter-day boundary summary checksum (fnv1a-64):",
             )?,
             production_generation_boundary_source_summary_path: parse_manifest_string(
                 text,
@@ -13307,6 +13334,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
         "independent-holdout-source-window-summary.txt",
         "independent-holdout-equatorial-parity-summary.txt",
         "independent-holdout-body-class-coverage-summary.txt",
+        "independent-holdout-quarter-day-boundary-summary.txt",
         "production-generation-boundary-source-summary.txt",
         "production-generation-boundary-window-summary.txt",
         "production-generation-boundary-request-corpus-summary.txt",
@@ -13417,7 +13445,7 @@ fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), Rel
 fn ensure_release_bundle_manifest_is_canonical(
     manifest_text: &str,
 ) -> Result<(), ReleaseBundleError> {
-    const EXPECTED_MANIFEST_LINES: [&str; 286] = [
+    const EXPECTED_MANIFEST_LINES: [&str; 288] = [
         "Release bundle manifest",
         "profile:",
         "profile checksum (fnv1a-64):",
@@ -13533,6 +13561,8 @@ fn ensure_release_bundle_manifest_is_canonical(
         "independent-holdout equatorial parity summary checksum (fnv1a-64):",
         "independent-holdout body-class coverage summary:",
         "independent-holdout body-class coverage summary checksum (fnv1a-64):",
+        "independent-holdout quarter-day boundary summary:",
+        "independent-holdout quarter-day boundary summary checksum (fnv1a-64):",
         "production generation boundary source summary:",
         "production generation boundary source summary checksum (fnv1a-64):",
         "production generation boundary window summary:",
@@ -13978,6 +14008,21 @@ fn ensure_independent_holdout_source_window_summary_matches_current_rendering(
     } else {
         Err(ReleaseBundleError::Verification(
             "independent-holdout source window summary no longer matches the current independent-holdout source-window posture"
+                .to_string(),
+        ))
+    }
+}
+
+fn ensure_independent_holdout_quarter_day_boundary_summary_matches_current_rendering(
+    independent_holdout_quarter_day_boundary_summary_text: &str,
+) -> Result<(), ReleaseBundleError> {
+    if independent_holdout_quarter_day_boundary_summary_text
+        == independent_holdout_snapshot_quarter_day_boundary_summary_for_report()
+    {
+        Ok(())
+    } else {
+        Err(ReleaseBundleError::Verification(
+            "independent-holdout quarter-day boundary summary no longer matches the current independent-holdout quarter-day boundary posture"
                 .to_string(),
         ))
     }
@@ -15584,6 +15629,8 @@ fn verify_release_bundle_internal(
         output_dir.join("independent-holdout-equatorial-parity-summary.txt");
     let independent_holdout_body_class_coverage_summary_path =
         output_dir.join("independent-holdout-body-class-coverage-summary.txt");
+    let independent_holdout_quarter_day_boundary_summary_path =
+        output_dir.join("independent-holdout-quarter-day-boundary-summary.txt");
     let production_generation_boundary_source_summary_path =
         output_dir.join("production-generation-boundary-source-summary.txt");
     let production_generation_boundary_window_summary_path =
@@ -15802,6 +15849,10 @@ fn verify_release_bundle_internal(
         (
             &independent_holdout_source_window_summary_path,
             "independent-holdout source window summary",
+        ),
+        (
+            &independent_holdout_quarter_day_boundary_summary_path,
+            "independent-holdout quarter-day boundary summary",
         ),
         (
             &production_generation_boundary_source_summary_path,
@@ -16229,6 +16280,15 @@ fn verify_release_bundle_internal(
     )?;
     let independent_holdout_body_class_coverage_summary_checksum =
         checksum64(&independent_holdout_body_class_coverage_summary_text);
+    let independent_holdout_quarter_day_boundary_summary_text = read_required_bundle_text(
+        &independent_holdout_quarter_day_boundary_summary_path,
+        "independent-holdout quarter-day boundary summary",
+    )?;
+    ensure_independent_holdout_quarter_day_boundary_summary_matches_current_rendering(
+        &independent_holdout_quarter_day_boundary_summary_text,
+    )?;
+    let independent_holdout_quarter_day_boundary_summary_checksum =
+        checksum64(&independent_holdout_quarter_day_boundary_summary_text);
     let production_generation_source_revision_summary_text = read_required_bundle_text(
         &production_generation_source_revision_summary_path,
         "production generation source revision summary",
@@ -18155,6 +18215,26 @@ fn verify_release_bundle_internal(
     }
     ensure_independent_holdout_body_class_coverage_summary_matches_current_rendering(
         &independent_holdout_body_class_coverage_summary_text,
+    )?;
+    if manifest.independent_holdout_quarter_day_boundary_summary_path
+        != "independent-holdout-quarter-day-boundary-summary.txt"
+    {
+        return Err(ReleaseBundleError::Verification(format!(
+            "unexpected independent-holdout quarter-day boundary summary file entry: {}",
+            manifest.independent_holdout_quarter_day_boundary_summary_path
+        )));
+    }
+    if manifest.independent_holdout_quarter_day_boundary_summary_checksum
+        != independent_holdout_quarter_day_boundary_summary_checksum
+    {
+        return Err(ReleaseBundleError::Verification(format!(
+            "independent-holdout quarter-day boundary summary checksum mismatch: manifest has 0x{:016x}, file has 0x{:016x}",
+            manifest.independent_holdout_quarter_day_boundary_summary_checksum,
+            independent_holdout_quarter_day_boundary_summary_checksum
+        )));
+    }
+    ensure_independent_holdout_quarter_day_boundary_summary_matches_current_rendering(
+        &independent_holdout_quarter_day_boundary_summary_text,
     )?;
     if manifest.production_generation_boundary_source_summary_path
         != "production-generation-boundary-source-summary.txt"
@@ -38548,6 +38628,19 @@ version = "0.9.0"
             "JD 2451917.5 (TDB)",
             "JD 2451917.6 (TDB)",
             "reference snapshot 2451917 major-body boundary summary no longer matches the current reference snapshot 2451917 major-body boundary posture",
+        );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_reference_snapshot_2451916_dense_boundary_summary_even_with_updated_checksum(
+    ) {
+        assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
+            "pleiades-release-bundle-tampered-reference-snapshot-2451916-dense-boundary-semantic",
+            "reference-snapshot-2451916-major-body-dense-boundary-summary.txt",
+            "reference snapshot 2451916 major-body dense boundary summary checksum (fnv1a-64):",
+            "JD 2451916.5 (TDB)",
+            "JD 2451916.6 (TDB)",
+            "reference snapshot 2451916 major-body dense boundary summary no longer matches the current reference snapshot 2451916 major-body dense boundary posture",
         );
     }
 
