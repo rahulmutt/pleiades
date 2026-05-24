@@ -730,6 +730,9 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         | Some("packaged-artifact-target-threshold-scope-envelopes") => validate_render_cli(args),
         Some("packaged-artifact-source-fit-holdout-sync-summary")
         | Some("packaged-artifact-source-fit-holdout-sync") => validate_render_cli(args),
+        Some("packaged-artifact-fit-envelope-summary") | Some("packaged-artifact-fit-envelope") => {
+            validate_render_cli(args)
+        }
         Some("packaged-artifact-fit-sample-classes-summary")
         | Some("packaged-artifact-fit-sample-classes") => validate_render_cli(args),
         Some("packaged-artifact-fit-outliers-summary") | Some("packaged-artifact-fit-outliers") => {
@@ -6022,6 +6025,33 @@ mod tests {
             packaged_artifact_generation_manifest
         );
 
+        let packaged_artifact_fit_envelope =
+            render_cli(&["packaged-artifact-fit-envelope-summary"])
+                .expect("packaged artifact fit envelope summary should render");
+        assert!(packaged_artifact_fit_envelope.contains("Packaged-artifact fit envelope: "));
+        assert_eq!(
+            render_cli(&["packaged-artifact-fit-envelope"])
+                .expect("packaged artifact fit envelope alias should render"),
+            packaged_artifact_fit_envelope
+        );
+        assert_eq!(
+            render_cli(&["packaged-artifact-fit-envelope-summary", "extra"])
+                .expect_err("packaged artifact fit envelope summary should reject extra arguments"),
+            "packaged-artifact-fit-envelope-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["packaged-artifact-fit-envelope", "extra"])
+                .expect_err("packaged artifact fit envelope alias should reject extra arguments"),
+            "packaged-artifact-fit-envelope-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            packaged_artifact_fit_envelope,
+            format!(
+                "Packaged-artifact fit envelope: {}",
+                pleiades_data::packaged_artifact_fit_envelope_summary_for_report()
+            )
+        );
+
         let packaged_artifact_fit_sample_classes =
             render_cli(&["packaged-artifact-fit-sample-classes-summary"])
                 .expect("packaged artifact fit sample classes summary should render");
@@ -7427,6 +7457,12 @@ mod tests {
         ));
         assert!(help.contains(
             "packaged-artifact-source-fit-holdout-sync  Alias for packaged-artifact-source-fit-holdout-sync-summary"
+        ));
+        assert!(help.contains(
+            "packaged-artifact-fit-envelope-summary  Print the packaged-artifact fit envelope summary"
+        ));
+        assert!(help.contains(
+            "packaged-artifact-fit-envelope  Alias for packaged-artifact-fit-envelope-summary"
         ));
         assert!(help.contains(
             "packaged-artifact-fit-sample-classes-summary  Print the packaged-artifact fit sample classes summary"
