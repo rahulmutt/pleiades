@@ -742,8 +742,26 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("body-date-channel-claims-summary") | Some("body-date-channel-claims") => {
             validate_render_cli(args)
         }
+        Some("lunar-reference-evidence-summary") | Some("lunar-reference-evidence") => {
+            validate_render_cli(args)
+        }
         Some("pluto-fallback-summary") => validate_render_cli(args),
         Some("pluto-fallback") => validate_render_cli(args),
+        Some("ayanamsa-audit-summary") | Some("ayanamsa-audit") => validate_render_cli(args),
+        Some("packaged-artifact-body-cadence-summary") | Some("packaged-artifact-body-cadence") => {
+            validate_render_cli(args)
+        }
+        Some("packaged-artifact-fit-margins-summary") | Some("packaged-artifact-fit-margins") => {
+            validate_render_cli(args)
+        }
+        Some("packaged-artifact-generation-manifest-checksum-summary")
+        | Some("packaged-artifact-generation-manifest-checksum") => validate_render_cli(args),
+        Some("packaged-artifact-normalized-intermediate-summary")
+        | Some("packaged-artifact-normalized-intermediate") => validate_render_cli(args),
+        Some("packaged-artifact-phase2-corpus-alignment-summary")
+        | Some("packaged-artifact-phase2-corpus-alignment") => validate_render_cli(args),
+        Some("packaged-artifact-target-threshold-state-summary")
+        | Some("packaged-artifact-target-threshold-state") => validate_render_cli(args),
         Some("workspace-audit-summary") | Some("native-dependency-audit-summary") => {
             validate_render_cli(args)
         }
@@ -4605,6 +4623,20 @@ mod tests {
             render_cli(&["lunar-reference-error-envelope"]).unwrap(),
             lunar_reference_error_envelope_summary
         );
+        let lunar_reference_evidence_summary = render_cli(&["lunar-reference-evidence-summary"])
+            .expect("lunar reference evidence summary should render");
+        assert!(lunar_reference_evidence_summary.contains("Lunar reference evidence summary"));
+        assert_eq!(
+            lunar_reference_evidence_summary,
+            format!(
+                "Lunar reference evidence summary\n{}\n",
+                pleiades_elp::lunar_reference_evidence_summary_for_report()
+            )
+        );
+        assert_eq!(
+            render_cli(&["lunar-reference-evidence"]).unwrap(),
+            lunar_reference_evidence_summary
+        );
         let lunar_equatorial_reference_error_envelope_summary =
             render_cli(&["lunar-equatorial-reference-error-envelope-summary"])
                 .expect("lunar equatorial reference error envelope summary should render");
@@ -7389,6 +7421,60 @@ mod tests {
     }
 
     #[test]
+    fn packaged_artifact_and_ayanamsa_audit_summary_commands_render_directly_from_the_cli() {
+        for (summary_args, alias_args) in [
+            (&["ayanamsa-audit-summary"][..], &["ayanamsa-audit"][..]),
+            (
+                &["lunar-reference-evidence-summary"][..],
+                &["lunar-reference-evidence"][..],
+            ),
+            (
+                &["packaged-artifact-body-cadence-summary"][..],
+                &["packaged-artifact-body-cadence"][..],
+            ),
+            (
+                &["packaged-artifact-fit-margins-summary"][..],
+                &["packaged-artifact-fit-margins"][..],
+            ),
+            (
+                &["packaged-artifact-generation-manifest-checksum-summary"][..],
+                &["packaged-artifact-generation-manifest-checksum"][..],
+            ),
+            (
+                &["packaged-artifact-normalized-intermediate-summary"][..],
+                &["packaged-artifact-normalized-intermediate"][..],
+            ),
+            (
+                &["packaged-artifact-phase2-corpus-alignment-summary"][..],
+                &["packaged-artifact-phase2-corpus-alignment"][..],
+            ),
+            (
+                &["packaged-artifact-target-threshold-state-summary"][..],
+                &["packaged-artifact-target-threshold-state"][..],
+            ),
+        ] {
+            let rendered = render_cli(summary_args)
+                .unwrap_or_else(|error| panic!("{summary_args:?} should render: {error}"));
+            assert_eq!(
+                rendered,
+                pleiades_validate::render_cli(summary_args).unwrap_or_else(|error| {
+                    panic!("validation command {summary_args:?} should render: {error}")
+                })
+            );
+            assert_eq!(
+                render_cli(alias_args)
+                    .unwrap_or_else(|error| panic!("{alias_args:?} should render: {error}")),
+                rendered,
+                "CLI alias should stay aligned with the summary command"
+            );
+            assert_eq!(
+                render_cli(&[summary_args[0], "extra"]).unwrap_err(),
+                format!("{} does not accept extra arguments", summary_args[0])
+            );
+        }
+    }
+
+    #[test]
     fn release_house_validation_summary_and_alias_render_directly_from_the_cli() {
         let release_house_validation_summary = render_cli(&["release-house-validation-summary"])
             .expect("release house validation summary should render");
@@ -7867,6 +7953,12 @@ mod tests {
         assert!(help.contains(
             "lunar-reference-error-envelope  Alias for lunar-reference-error-envelope-summary"
         ));
+        assert!(help.contains(
+            "lunar-reference-evidence-summary  Print the compact lunar reference evidence summary"
+        ));
+        assert!(
+            help.contains("lunar-reference-evidence  Alias for lunar-reference-evidence-summary")
+        );
         assert!(help.contains(
             "lunar-equatorial-reference-error-envelope-summary  Print the compact lunar equatorial reference error envelope summary"
         ));
