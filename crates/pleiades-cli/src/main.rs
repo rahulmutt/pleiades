@@ -28,7 +28,10 @@ use pleiades_data::{
 use pleiades_elp::ElpBackend;
 use pleiades_jpl::{
     comparison_snapshot_source_summary_for_report, reference_snapshot_source_summary_for_report,
-    JplSnapshotBackend,
+    selected_asteroid_source_2451917_summary_for_report,
+    selected_asteroid_source_2453000_summary_for_report,
+    selected_asteroid_source_2500000_summary_for_report,
+    selected_asteroid_source_2634167_summary_for_report, JplSnapshotBackend,
 };
 use pleiades_validate::{
     current_request_surface_summary, render_benchmark_report, render_cli as validate_render_cli,
@@ -569,7 +572,13 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
             Ok(pleiades_jpl::selected_asteroid_source_2378498_summary_for_report())
         }
         Some("reference-snapshot-2451917-selected-asteroid-source-summary")
-        | Some("2451917-selected-asteroid-source-summary") => validate_render_cli(args),
+        | Some("2451917-selected-asteroid-source-summary") => {
+            ensure_no_extra_args(
+                &args[1..],
+                "reference-snapshot-2451917-selected-asteroid-source-summary",
+            )?;
+            Ok(selected_asteroid_source_2451917_summary_for_report())
+        }
         Some("reference-snapshot-selected-asteroid-source-summary")
         | Some("selected-asteroid-source-summary") => validate_render_cli(args),
         Some("selected-asteroid-source-request-corpus-summary") => validate_render_cli(args),
@@ -582,11 +591,29 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         | Some("reference-snapshot-selected-asteroid-source-window")
         | Some("selected-asteroid-source-window-summary") => validate_render_cli(args),
         Some("reference-snapshot-2453000-selected-asteroid-source-summary")
-        | Some("2453000-selected-asteroid-source-summary") => validate_render_cli(args),
+        | Some("2453000-selected-asteroid-source-summary") => {
+            ensure_no_extra_args(
+                &args[1..],
+                "reference-snapshot-2453000-selected-asteroid-source-summary",
+            )?;
+            Ok(selected_asteroid_source_2453000_summary_for_report())
+        }
         Some("reference-snapshot-2500000-selected-asteroid-source-summary")
-        | Some("2500000-selected-asteroid-source-summary") => validate_render_cli(args),
+        | Some("2500000-selected-asteroid-source-summary") => {
+            ensure_no_extra_args(
+                &args[1..],
+                "reference-snapshot-2500000-selected-asteroid-source-summary",
+            )?;
+            Ok(selected_asteroid_source_2500000_summary_for_report())
+        }
         Some("reference-snapshot-2634167-selected-asteroid-source-summary")
-        | Some("2634167-selected-asteroid-source-summary") => validate_render_cli(args),
+        | Some("2634167-selected-asteroid-source-summary") => {
+            ensure_no_extra_args(
+                &args[1..],
+                "reference-snapshot-2634167-selected-asteroid-source-summary",
+            )?;
+            Ok(selected_asteroid_source_2634167_summary_for_report())
+        }
         Some("selected-asteroid-source-window") => validate_render_cli(args),
         Some("selected-asteroid-batch-parity-summary") | Some("selected-asteroid-batch-parity") => {
             validate_render_cli(args)
@@ -4974,7 +5001,7 @@ mod tests {
             render_cli(&["2451917-selected-asteroid-source-summary", "extra"]).expect_err(
                 "2451917 selected asteroid source summary alias should reject extra arguments"
             ),
-            "2451917-selected-asteroid-source-summary does not accept extra arguments"
+            "reference-snapshot-2451917-selected-asteroid-source-summary does not accept extra arguments"
         );
         assert_eq!(
             render_cli(&["reference-snapshot-2453000-selected-asteroid-source-summary"]).expect(
@@ -4991,7 +5018,7 @@ mod tests {
             render_cli(&["2453000-selected-asteroid-source-summary", "extra"]).expect_err(
                 "2453000 selected asteroid source summary alias should reject extra arguments"
             ),
-            "2453000-selected-asteroid-source-summary does not accept extra arguments"
+            "reference-snapshot-2453000-selected-asteroid-source-summary does not accept extra arguments"
         );
         assert_eq!(
             render_cli(&["reference-snapshot-2500000-selected-asteroid-source-summary"]).expect(
@@ -5008,7 +5035,7 @@ mod tests {
             render_cli(&["2500000-selected-asteroid-source-summary", "extra"]).expect_err(
                 "2500000 selected asteroid source summary alias should reject extra arguments"
             ),
-            "2500000-selected-asteroid-source-summary does not accept extra arguments"
+            "reference-snapshot-2500000-selected-asteroid-source-summary does not accept extra arguments"
         );
         assert_eq!(
             render_cli(&["reference-snapshot-2634167-selected-asteroid-source-summary"]).expect(
@@ -5025,7 +5052,7 @@ mod tests {
             render_cli(&["2634167-selected-asteroid-source-summary", "extra"]).expect_err(
                 "2634167 selected asteroid source summary alias should reject extra arguments"
             ),
-            "2634167-selected-asteroid-source-summary does not accept extra arguments"
+            "reference-snapshot-2634167-selected-asteroid-source-summary does not accept extra arguments"
         );
         assert_eq!(
             render_cli(&["selected-asteroid-source-window", "extra"])
