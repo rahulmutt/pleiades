@@ -1924,6 +1924,7 @@ fn ayanamsa_source_label_aliases(canonical_name: &str) -> &'static [&'static str
             "Fagan/Bradley Ayanamsha",
             "Fagan/Bradley",
             "Fagan Bradley",
+            "Fagan / Bradley",
             "Fagan-Bradley",
         ],
         "Lahiri" => &[
@@ -1953,6 +1954,7 @@ fn ayanamsa_source_label_aliases(canonical_name: &str) -> &'static [&'static str
             "Ushashashi",
             "Usha-Shashi",
             "Usha/Shashi",
+            "Usha / Shashi",
             "Usha Shashi ayanamsa",
             "Revati",
         ],
@@ -1973,6 +1975,7 @@ fn ayanamsa_source_label_aliases(canonical_name: &str) -> &'static [&'static str
         "Sheoran" => &[
             "Sunil Sheoran",
             "Vedic Sheoran",
+            "Vedic / Sheoran",
             "Sheoran ayanamsa",
             "Sheoran true",
             "True Sheoran ayanamsa",
@@ -3477,9 +3480,9 @@ mod tests {
             .contains("Y, APC, Ram school, Ram's school, Ramschool, WvA, Y APC houses, APC houses, APC, also known as “Ram school”, table of houses, APC house system, Ascendant Parallel Circle -> APC"));
         assert!(rendered
             .contains("Chitra Paksha, Chitrapaksha, Chitra-paksha, Lahiri Ayanamsha, Lahiri ayanamsa -> Lahiri"));
-        assert!(rendered.contains("Usha Shashi, Ushashashi, Usha-Shashi, Usha/Shashi, Usha Shashi ayanamsa, Revati -> Usha Shashi"));
+        assert!(rendered.contains("Usha Shashi, Ushashashi, Usha-Shashi, Usha/Shashi, Usha / Shashi, Usha Shashi ayanamsa, Revati -> Usha Shashi"));
         assert!(rendered.contains("Yukteswar, Sri Yukteswar, Sri Yukteshwar, Shri Yukteswar, Shri Yukteshwar, Yukteshwar ayanamsa -> Yukteshwar"));
-        assert!(rendered.contains("source-label appendix entries for Lahiri / Chitrapaksha / Chitra Paksha, True Chitra / Chitra, Krishnamurti Ayanamsha / Krishnamurti Ayanamsa / Krishnamurti ayanamsa / Krishnamurti (Swiss) / Krishnamurti Paddhati / KP ayanamsa, Fagan/Bradley Ayanamsha / Fagan/Bradley / Fagan Bradley / Fagan-Bradley, Usha Shashi, and the Yukteshwar / Sri Yukteshwar / Shri Yukteshwar transliterations"));
+        assert!(rendered.contains("source-label appendix entries for Lahiri / Chitrapaksha / Chitra Paksha, True Chitra / Chitra, Krishnamurti Ayanamsha / Krishnamurti Ayanamsa / Krishnamurti ayanamsa / Krishnamurti (Swiss) / Krishnamurti Paddhati / KP ayanamsa, Fagan/Bradley Ayanamsha / Fagan/Bradley / Fagan Bradley / Fagan / Bradley / Fagan-Bradley, Usha Shashi, and the Yukteshwar / Sri Yukteshwar / Shri Yukteshwar transliterations"));
         assert!(rendered.contains("source-label appendix entries for P.V.R. Narasimha Rao, Aries houses, and True Mula (Chandra Hari)"));
         assert!(rendered.contains(
             "B. V. Raman, B.V. Raman, B V Raman, Raman Ayanamsha, Raman ayanamsa -> Raman"
@@ -3489,7 +3492,7 @@ mod tests {
         ));
         assert!(rendered.contains("Krishnamurti (aliases: KP,"));
         assert!(rendered.contains(
-            "Fagan/Bradley Ayanamsha, Fagan/Bradley, Fagan Bradley, Fagan-Bradley -> Fagan/Bradley"
+            "Fagan/Bradley Ayanamsha, Fagan/Bradley, Fagan Bradley, Fagan / Bradley, Fagan-Bradley -> Fagan/Bradley"
         ));
         assert!(rendered.contains("Whole Sign (house 1 = Aries), Whole Sign (house 1 = Aries) table of houses, Equal (1=Aries) table of houses, Equal/1=Aries table of houses, Equal (1=Aries) house system, Equal/1=Aries house system, N whole sign houses, 1. house = Aries, Whole sign houses, 1. house = Aries, Equal/1=0 Aries, Equal (cusp 1 = 0° Aries) -> Equal (1=Aries)"));
         assert!(rendered.contains("Equal (1=Aries) table of houses"));
@@ -3617,7 +3620,7 @@ mod tests {
         assert!(rendered.contains("Yukteshwar"));
         assert!(rendered.contains("PVR Pushya-paksha"));
         assert!(rendered.contains(
-            "Sunil Sheoran, Vedic Sheoran, Sheoran ayanamsa, Sheoran true, True Sheoran ayanamsa, \"Vedic\"/Sheoran -> Sheoran"
+            "Sunil Sheoran, Vedic Sheoran, Vedic / Sheoran, Sheoran ayanamsa, Sheoran true, True Sheoran ayanamsa, \"Vedic\"/Sheoran -> Sheoran"
         ));
         assert!(rendered.contains("True Revati"));
         assert!(rendered.contains("True Mula"));
