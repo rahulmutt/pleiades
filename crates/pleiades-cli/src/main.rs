@@ -680,6 +680,14 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("comparison-tolerance-policy-summary") | Some("comparison-tolerance-summary") => {
             validate_render_cli(args)
         }
+        Some("comparison-tolerance-scope-coverage-summary") => {
+            ensure_no_extra_args(&args[1..], "comparison-tolerance-scope-coverage-summary")?;
+            validate_render_cli(args)
+        }
+        Some("comparison-tolerance-scope-coverage") => {
+            ensure_no_extra_args(&args[1..], "comparison-tolerance-scope-coverage")?;
+            validate_render_cli(args)
+        }
         Some("comparison-body-class-tolerance-summary")
         | Some("comparison-body-class-tolerance") => validate_render_cli(args),
         Some("comparison-body-class-tolerance-posture-summary")
@@ -1976,6 +1984,13 @@ mod tests {
         assert!(rendered.contains(
             "comparison-tolerance-summary  Alias for comparison-tolerance-policy-summary"
         ));
+        assert!(rendered.contains("comparison-tolerance-scope-coverage-summary"));
+        assert!(rendered.contains(
+            "comparison-tolerance-scope-coverage-summary  Print the compact comparison tolerance scope coverage summary"
+        ));
+        assert!(rendered.contains(
+            "comparison-tolerance-scope-coverage  Alias for comparison-tolerance-scope-coverage-summary"
+        ));
         assert!(rendered.contains("comparison-body-class-tolerance-summary"));
         assert!(rendered.contains(
             "comparison-body-class-tolerance-summary  Print the compact comparison body-class tolerance summary"
@@ -3271,6 +3286,33 @@ mod tests {
         assert_eq!(
             comparison_tolerance_summary, comparison_tolerance_policy_summary,
             "comparison tolerance summary alias should match the canonical command"
+        );
+
+        let comparison_tolerance_scope_coverage_summary =
+            render_cli(&["comparison-tolerance-scope-coverage-summary"])
+                .expect("comparison tolerance scope coverage summary should render");
+        assert_eq!(
+            comparison_tolerance_scope_coverage_summary,
+            super::validate_render_cli(&["comparison-tolerance-scope-coverage-summary"])
+                .expect("comparison tolerance scope coverage summary should match validate CLI")
+        );
+        assert_eq!(
+            render_cli(&["comparison-tolerance-scope-coverage"])
+                .expect("comparison tolerance scope coverage alias should render"),
+            comparison_tolerance_scope_coverage_summary,
+            "comparison tolerance scope coverage alias should match the canonical command"
+        );
+        assert_eq!(
+            render_cli(&["comparison-tolerance-scope-coverage-summary", "extra"]).expect_err(
+                "comparison tolerance scope coverage summary should reject extra arguments"
+            ),
+            "comparison-tolerance-scope-coverage-summary does not accept extra arguments"
+        );
+        assert_eq!(
+            render_cli(&["comparison-tolerance-scope-coverage", "extra"]).expect_err(
+                "comparison tolerance scope coverage alias should reject extra arguments"
+            ),
+            "comparison-tolerance-scope-coverage does not accept extra arguments"
         );
 
         let comparison_body_class_tolerance_summary =
