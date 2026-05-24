@@ -552,6 +552,10 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("lunar-theory-summary") => validate_render_cli(args),
         Some("lunar-theory-capability-summary") => validate_render_cli(args),
         Some("lunar-theory-source-summary") => validate_render_cli(args),
+        Some("lunar-theory-source-selection-summary") | Some("lunar-theory-source-selection") => {
+            ensure_no_extra_args(&args[1..], "lunar-theory-source-selection-summary")?;
+            Ok(pleiades_elp::lunar_theory_source_selection_summary_for_report())
+        }
         Some("lunar-theory-source-family-summary") | Some("lunar-theory-source-family") => {
             validate_render_cli(args)
         }
@@ -4726,6 +4730,23 @@ mod tests {
             lunar_theory_source_summary,
             pleiades_elp::lunar_theory_source_summary_for_report()
         );
+        let lunar_theory_source_selection_summary =
+            render_cli(&["lunar-theory-source-selection-summary"])
+                .expect("lunar theory source selection summary should render");
+        assert!(lunar_theory_source_selection_summary.contains("lunar source selection:"));
+        assert_eq!(
+            lunar_theory_source_selection_summary,
+            pleiades_elp::lunar_theory_source_selection_summary_for_report()
+        );
+        assert_eq!(
+            render_cli(&["lunar-theory-source-selection"]).unwrap(),
+            lunar_theory_source_selection_summary
+        );
+        assert_eq!(
+            render_cli(&["lunar-theory-source-selection", "extra"])
+                .expect_err("lunar theory source selection alias should reject extra arguments"),
+            "lunar-theory-source-selection-summary does not accept extra arguments"
+        );
         let lunar_theory_source_family_summary =
             render_cli(&["lunar-theory-source-family-summary"])
                 .expect("lunar theory source family summary should render");
@@ -7266,6 +7287,28 @@ mod tests {
         assert!(rendered.contains("ayanamsa sidereal metadata:"));
         assert!(rendered.contains("Ayanamsa reference offsets:"));
         assert!(rendered.contains("Ayanamsa provenance:"));
+    }
+
+    #[test]
+    fn lunar_theory_source_selection_summary_command_renders_the_summary() {
+        let rendered = render_cli(&["lunar-theory-source-selection-summary"])
+            .expect("lunar theory source selection summary should render through the CLI");
+        assert_eq!(
+            rendered,
+            pleiades_validate::render_cli(&["lunar-theory-source-selection-summary"]).expect(
+                "validation front end should render the lunar theory source selection summary"
+            )
+        );
+        assert_eq!(
+            render_cli(&["lunar-theory-source-selection"]).unwrap(),
+            rendered
+        );
+        assert_eq!(
+            render_cli(&["lunar-theory-source-selection", "extra"])
+                .expect_err("lunar theory source selection alias should reject extra arguments"),
+            "lunar-theory-source-selection-summary does not accept extra arguments"
+        );
+        assert!(rendered.contains("lunar source selection:"));
     }
 
     #[test]
