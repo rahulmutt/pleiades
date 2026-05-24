@@ -749,6 +749,7 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("packaged-artifact-speed-policy-summary") | Some("packaged-artifact-speed-policy") => {
             validate_render_cli(args)
         }
+        Some("motion-policy-summary") | Some("motion-policy") => validate_render_cli(args),
         Some("packaged-artifact-access-summary") | Some("packaged-artifact-access") => {
             validate_render_cli(args)
         }
@@ -6010,6 +6011,25 @@ mod tests {
             "packaged-artifact-speed-policy-summary does not accept extra arguments"
         );
 
+        let motion_policy =
+            render_cli(&["motion-policy-summary"]).expect("motion policy summary should render");
+        assert_eq!(
+            motion_policy,
+            format!(
+                "Motion policy: {}",
+                pleiades_data::packaged_artifact_speed_policy_summary_for_report()
+            )
+        );
+        assert_eq!(
+            render_cli(&["motion-policy"]).expect("motion policy alias should render"),
+            motion_policy
+        );
+        assert_eq!(
+            render_cli(&["motion-policy", "extra"])
+                .expect_err("motion policy alias should reject extra arguments"),
+            "motion-policy-summary does not accept extra arguments"
+        );
+
         let packaged_artifact_access = render_cli(&["packaged-artifact-access-summary"])
             .expect("packaged artifact access summary should render");
         assert!(packaged_artifact_access.contains("Packaged-artifact access: "));
@@ -7501,6 +7521,10 @@ mod tests {
         assert!(help.contains(
             "packaged-artifact-speed-policy       Alias for packaged-artifact-speed-policy-summary"
         ));
+        assert!(
+            help.contains("motion-policy-summary         Print the compact motion policy summary")
+        );
+        assert!(help.contains("motion-policy               Alias for motion-policy-summary"));
         assert!(help.contains(
             "packaged-artifact-access-summary  Print the packaged-artifact access summary"
         ));
