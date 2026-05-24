@@ -407,7 +407,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
             validate_render_cli(args)
         }
         Some("reference-snapshot-mixed-time-scale-batch-parity-summary")
-        | Some("reference-snapshot-mixed-tt-tdb-batch-parity-summary") => validate_render_cli(args),
+        | Some("reference-snapshot-mixed-tt-tdb-batch-parity-summary")
+        | Some("reference-snapshot-mixed-tt-tdb-batch-parity") => validate_render_cli(args),
         Some("reference-snapshot-equatorial-parity-summary") => validate_render_cli(args),
         Some("reference-snapshot-equatorial-parity") => {
             ensure_no_extra_args(&args[1..], "reference-snapshot-equatorial-parity")?;
@@ -543,7 +544,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         | Some("lunar-source-window-summary")
         | Some("lunar-source-window") => validate_render_cli(args),
         Some("lunar-reference-mixed-time-scale-batch-parity-summary")
-        | Some("lunar-reference-mixed-tt-tdb-batch-parity-summary") => validate_render_cli(args),
+        | Some("lunar-reference-mixed-tt-tdb-batch-parity-summary")
+        | Some("lunar-reference-mixed-tt-tdb-batch-parity") => validate_render_cli(args),
         Some("lunar-theory-request-policy-summary") => validate_render_cli(args),
         Some("lunar-theory-request-policy") => validate_render_cli(args),
         Some("lunar-theory-frame-treatment-summary") => validate_render_cli(args),
@@ -4476,6 +4478,11 @@ mod tests {
             reference_snapshot_mixed_tt_tdb_batch_parity_summary,
             reference_snapshot_mixed_time_scale_batch_parity_summary
         );
+        assert_eq!(
+            render_cli(&["reference-snapshot-mixed-tt-tdb-batch-parity"])
+                .expect("reference snapshot mixed TT/TDB batch parity short alias should render"),
+            reference_snapshot_mixed_time_scale_batch_parity_summary
+        );
         let reference_snapshot_equatorial_parity_summary =
             render_cli(&["reference-snapshot-equatorial-parity-summary"])
                 .expect("reference snapshot equatorial parity summary should render");
@@ -4697,6 +4704,11 @@ mod tests {
         assert_eq!(
             render_cli(&["lunar-reference-mixed-tt-tdb-batch-parity-summary"])
                 .expect("lunar reference mixed TT/TDB batch parity alias should render"),
+            lunar_reference_mixed_time_scale_batch_parity_summary
+        );
+        assert_eq!(
+            render_cli(&["lunar-reference-mixed-tt-tdb-batch-parity"])
+                .expect("lunar reference mixed TT/TDB batch parity short alias should render"),
             lunar_reference_mixed_time_scale_batch_parity_summary
         );
         assert_eq!(
@@ -8008,6 +8020,9 @@ mod tests {
             "lunar-reference-mixed-tt-tdb-batch-parity-summary  Alias for lunar-reference-mixed-time-scale-batch-parity-summary"
         ));
         assert!(help.contains(
+            "lunar-reference-mixed-tt-tdb-batch-parity  Alias for lunar-reference-mixed-time-scale-batch-parity-summary"
+        ));
+        assert!(help.contains(
             "comparison-snapshot-manifest-summary  Print the compact comparison snapshot manifest summary"
         ));
         assert!(help.contains(
@@ -8073,6 +8088,9 @@ mod tests {
         ));
         assert!(help.contains(
             "reference-snapshot-mixed-tt-tdb-batch-parity-summary  Alias for reference-snapshot-mixed-time-scale-batch-parity-summary"
+        ));
+        assert!(help.contains(
+            "reference-snapshot-mixed-tt-tdb-batch-parity  Alias for reference-snapshot-mixed-time-scale-batch-parity-summary"
         ));
         assert!(help.contains(
             "reference-snapshot-equatorial-parity-summary  Print the compact reference snapshot equatorial parity summary"
