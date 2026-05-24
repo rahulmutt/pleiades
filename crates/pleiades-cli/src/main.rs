@@ -829,7 +829,9 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("packaged-artifact-regeneration-summary") | Some("packaged-artifact-regeneration") => {
             validate_render_cli(args)
         }
-        Some("packaged-frame-parity-summary") => validate_render_cli(args),
+        Some("packaged-frame-parity-summary") | Some("packaged-frame-parity") => {
+            validate_render_cli(args)
+        }
         Some("packaged-frame-treatment-summary") => validate_render_cli(args),
         Some("packaged-lookup-epoch-policy-summary")
         | Some("packaged-lookup-epoch-policy")
@@ -3193,7 +3195,7 @@ mod tests {
             "House code aliases: {}",
             current_compatibility_profile().house_code_aliases_summary_line()
         )));
-        assert!(release_summary.contains("Compatibility catalog inventory: house systems=25 (12 baseline, 13 release-specific, 156 aliases); house formula families=7 (Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign); house latitude-sensitive constraints=8 (Placidus [Quadrant system; can fail or become unstable at extreme latitudes.], Koch [Quadrant system with documented high-latitude pathologies.], Horizon/Azimuth [Azimuthal house system that anchors house 1 due East and house 10 at the MC.], APC [APC (Ram school) houses with non-opposite quadrant pairs and polar adjustments.], Krusinski-Pisa-Goelzer [Great-circle house system centered on the ascendant and zenith; latitude-sensitive near the poles.], Topocentric [Topocentric (Polich-Page) house system with geodetic-to-geocentric latitude correction.], Sunshine [Sunshine house system based on the Sun's diurnal and nocturnal arcs; the 1st house is the Ascendant and the 10th house is the MC.], Gauquelin sectors [Thirty-six sectors used by the Gauquelin-sector family.]); house-code aliases=22; ayanamsas=59 (5 baseline, 54 release-specific, 183 aliases); custom-definition labels=9; custom-definition ayanamsa labels=6 (Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs)); ayanamsa metadata gaps=0; ayanamsa alias-bearing entries=59; catalog posture=house systems=25 (8 constrained, 17 unconstrained); ayanamsas=59 (6 descriptor-only, 53 metadata-bearing); custom-only labels=9; custom-only ayanamsa labels=6; ayanamsa provenance=representative provenance examples:"));
+        assert!(release_summary.contains("Compatibility catalog inventory: house systems=25 (12 baseline, 13 release-specific, 156 aliases); house formula families=7 (Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign); house latitude-sensitive constraints=8 (Placidus [Quadrant system; can fail or become unstable at extreme latitudes.], Koch [Quadrant system with documented high-latitude pathologies.], Horizon/Azimuth [Azimuthal house system that anchors house 1 due East and house 10 at the MC.], APC [APC (Ram school) houses with non-opposite quadrant pairs and polar adjustments.], Krusinski-Pisa-Goelzer [Great-circle house system centered on the ascendant and zenith; latitude-sensitive near the poles.], Topocentric [Topocentric (Polich-Page) house system with geodetic-to-geocentric latitude correction.], Sunshine [Sunshine house system based on the Sun's diurnal and nocturnal arcs; the 1st house is the Ascendant and the 10th house is the MC.], Gauquelin sectors [Thirty-six sectors used by the Gauquelin-sector family.]); house-code aliases=22; ayanamsas=59 (5 baseline, 54 release-specific, 184 aliases); custom-definition labels=9; custom-definition ayanamsa labels=6 (Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs)); ayanamsa metadata gaps=0; ayanamsa alias-bearing entries=59; catalog posture=house systems=25 (8 constrained, 17 unconstrained); ayanamsas=59 (6 descriptor-only, 53 metadata-bearing); custom-only labels=9; custom-only ayanamsa labels=6; ayanamsa provenance=representative provenance examples:"));
         assert!(release_summary.contains(
             "Comparison corpus release-grade guard: Pluto excluded from tolerance evidence"
         ));
@@ -6408,6 +6410,20 @@ mod tests {
                 pleiades_data::packaged_frame_parity_summary_for_report()
             )
         );
+        assert_eq!(
+            render_cli(&["packaged-frame-parity"]).expect("packaged-frame-parity should render"),
+            packaged_frame_parity
+        );
+        assert_eq!(
+            super::validate_render_cli(&["packaged-frame-parity"])
+                .expect("packaged-frame-parity should match validation output"),
+            packaged_frame_parity
+        );
+        assert_eq!(
+            render_cli(&["packaged-frame-parity", "extra"])
+                .expect_err("packaged-frame-parity should reject extra arguments"),
+            "packaged-frame-parity-summary does not accept extra arguments"
+        );
         let packaged_frame_treatment = render_cli(&["packaged-frame-treatment-summary"])
             .expect("packaged frame treatment summary should render");
         assert_eq!(
@@ -7869,6 +7885,9 @@ mod tests {
         ));
         assert!(
             help.contains("packaged-frame-parity-summary  Print the packaged frame parity summary")
+        );
+        assert!(
+            help.contains("packaged-frame-parity         Alias for packaged-frame-parity-summary")
         );
         assert!(help.contains(
             "packaged-frame-treatment-summary  Print the packaged frame treatment summary"
