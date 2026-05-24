@@ -15038,12 +15038,13 @@ fn ensure_validation_report_fit_threshold_violations_matches_current_rendering(
 }
 
 fn normalize_validation_report_summary_for_verification(text: &str) -> String {
-    const UNSTABLE_PREFIXES: [&str; 7] = [
+    const UNSTABLE_PREFIXES: [&str; 8] = [
         "  ns/request (single):",
         "  ns/request (batch):",
         "  batch throughput:",
         "  ns/decode:",
         "  decodes per second:",
+        "  decode elapsed:",
         "  ns/chart:",
         "  charts per second:",
     ];
@@ -15079,12 +15080,13 @@ fn ensure_validation_report_summary_matches_current_rendering(
 }
 
 fn normalize_validation_report_for_verification(text: &str) -> String {
-    const UNSTABLE_PREFIXES: [&str; 7] = [
+    const UNSTABLE_PREFIXES: [&str; 8] = [
         "  ns/request (single):",
         "  ns/request (batch):",
         "  batch throughput:",
         "  ns/decode:",
         "  decodes per second:",
+        "  decode elapsed:",
         "  ns/chart:",
         "  charts per second:",
     ];
