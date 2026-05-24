@@ -9758,7 +9758,7 @@ fn render_release_summary_text() -> String {
             text.push_str(&source_corpus_summary_for_report());
             text.push('\n');
             text.push_str("Source corpus posture: ");
-            text.push_str(&source_corpus_summary_for_report());
+            text.push_str(&source_corpus_posture_summary_for_report());
             text.push('\n');
             text.push_str("Pluto fallback: ");
             match validated_pluto_fallback_summary_line_for_report() {
@@ -22296,6 +22296,10 @@ fn source_corpus_summary_for_report() -> String {
     }
 }
 
+fn source_corpus_posture_summary_for_report() -> String {
+    source_corpus_summary_for_report()
+}
+
 fn render_comparison_corpus_release_guard_summary_text() -> String {
     let release_grade_guard = match validated_comparison_corpus_release_guard_summary_for_report() {
         Ok(guard) => guard,
@@ -24646,7 +24650,7 @@ fn render_backend_matrix_summary_text() -> String {
     text.push_str(&source_corpus_summary_for_report());
     text.push('\n');
     text.push_str("Source corpus posture: ");
-    text.push_str(&source_corpus_summary_for_report());
+    text.push_str(&source_corpus_posture_summary_for_report());
     text.push('\n');
     text.push_str("JPL source corpus contract: ");
     match required_labelled_summary_payload(
@@ -34393,8 +34397,9 @@ mod tests {
         assert!(rendered.contains("Reference/hold-out overlap:"));
         assert!(rendered.contains("JPL independent hold-out:"));
         assert!(rendered.contains("Release-grade body claims:"));
-        assert!(rendered.contains("Source corpus: comparison corpus release-grade guard:"));
-        assert!(rendered.contains("Source corpus posture: comparison corpus release-grade guard:"));
+        let source_corpus_summary = source_corpus_summary_for_report();
+        assert!(rendered.contains(&format!("Source corpus: {source_corpus_summary}")));
+        assert!(rendered.contains(&format!("Source corpus posture: {source_corpus_summary}")));
         assert!(rendered.contains("Catalog posture: house systems="));
         assert!(
             rendered.contains("Pluto fallback: Pluto remains an explicitly approximate fallback")
