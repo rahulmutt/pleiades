@@ -22006,6 +22006,7 @@ struct SourceCorpusSummary {
     reference_snapshot_equatorial_parity: String,
     reference_snapshot_body_class_coverage: String,
     reference_snapshot_manifest: String,
+    comparison_snapshot_manifest: String,
     independent_holdout_body_class_coverage: String,
     pluto_fallback: String,
     release_grade_body_claims: String,
@@ -22034,7 +22035,7 @@ impl std::error::Error for SourceCorpusSummaryValidationError {}
 impl SourceCorpusSummary {
     fn summary_line(&self) -> String {
         format!(
-            "comparison corpus release-grade guard: {}; JPL source corpus contract: {}; evidence classification={}; provenance-only={}; lunar source windows={}; shared schema={}; generation command={}; production generation source={}; production generation source revision={}; production generation coverage={}; production generation source windows={}; production generation date range={}; production generation quarter-day boundary samples={}; coverage posture={}; production generation boundary window={}; production generation boundary source={}; production generation boundary request corpus={}; production generation boundary request corpus equatorial={}; reference snapshot sparse boundary={}; reference snapshot exact J2000 evidence={}; reference snapshot equatorial parity={}; reference snapshot body-class coverage={}; reference snapshot manifest={}; independent-holdout body-class coverage={}; pluto fallback={}; release-grade body claims={}; body-date-channel claims={}; phase-2 corpus alignment: {}",
+            "comparison corpus release-grade guard: {}; JPL source corpus contract: {}; evidence classification={}; provenance-only={}; lunar source windows={}; shared schema={}; generation command={}; production generation source={}; production generation source revision={}; production generation coverage={}; production generation source windows={}; production generation date range={}; production generation quarter-day boundary samples={}; coverage posture={}; production generation boundary window={}; production generation boundary source={}; production generation boundary request corpus={}; production generation boundary request corpus equatorial={}; reference snapshot sparse boundary={}; reference snapshot exact J2000 evidence={}; reference snapshot equatorial parity={}; reference snapshot body-class coverage={}; reference snapshot manifest={}; comparison snapshot manifest={}; independent-holdout body-class coverage={}; pluto fallback={}; release-grade body claims={}; body-date-channel claims={}; phase-2 corpus alignment: {}",
             self.comparison_corpus_release_grade_guard,
             self.jpl_source_corpus_contract,
             self.jpl_evidence_classification,
@@ -22058,6 +22059,7 @@ impl SourceCorpusSummary {
             self.reference_snapshot_equatorial_parity,
             self.reference_snapshot_body_class_coverage,
             self.reference_snapshot_manifest,
+            self.comparison_snapshot_manifest,
             self.independent_holdout_body_class_coverage,
             self.pluto_fallback,
             self.release_grade_body_claims,
@@ -22309,6 +22311,12 @@ fn source_corpus_summary_details() -> Option<SourceCorpusSummary> {
         "reference snapshot manifest",
     )
     .ok()?;
+    let comparison_snapshot_manifest = required_summary_payload(
+        validated_comparison_snapshot_manifest_summary_for_report().ok()?,
+        "Comparison snapshot manifest: ",
+        "comparison snapshot manifest",
+    )
+    .ok()?;
     let independent_holdout_body_class_coverage = required_summary_payload(
         independent_holdout_snapshot_body_class_coverage_summary_for_report(),
         "Independent hold-out body-class coverage: ",
@@ -22394,6 +22402,7 @@ fn source_corpus_summary_details() -> Option<SourceCorpusSummary> {
         reference_snapshot_equatorial_parity,
         reference_snapshot_body_class_coverage,
         reference_snapshot_manifest,
+        comparison_snapshot_manifest,
         independent_holdout_body_class_coverage,
         pluto_fallback,
         release_grade_body_claims,
