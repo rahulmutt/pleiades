@@ -6253,6 +6253,35 @@ fn build_packaged_artifact() -> CompressedArtifact {
         .expect("checked-in packaged artifact fixture should decode and validate")
 }
 
+fn validate_packaged_artifact_phase1_source_inputs(
+) -> Result<(), pleiades_compression::CompressionError> {
+    production_generation_source_summary().validate().map_err(|error| {
+        pleiades_compression::CompressionError::new(
+            pleiades_compression::CompressionErrorKind::InvalidFormat,
+            format!(
+                "packaged artifact regeneration phase-1 source inputs production-generation source summary is invalid: {error}"
+            ),
+        )
+    })?;
+
+    let reference_snapshot_summary = reference_snapshot_summary().ok_or_else(|| {
+        pleiades_compression::CompressionError::new(
+            pleiades_compression::CompressionErrorKind::InvalidFormat,
+            "packaged artifact regeneration phase-1 source inputs are missing reference snapshot coverage",
+        )
+    })?;
+    reference_snapshot_summary.validate().map_err(|error| {
+        pleiades_compression::CompressionError::new(
+            pleiades_compression::CompressionErrorKind::InvalidFormat,
+            format!(
+                "packaged artifact regeneration phase-1 source inputs reference snapshot summary is invalid: {error}"
+            ),
+        )
+    })?;
+
+    Ok(())
+}
+
 fn validate_packaged_artifact_reference_snapshot_inputs(
     snapshot: &[SnapshotEntry],
 ) -> Result<(), pleiades_compression::CompressionError> {
@@ -6291,6 +6320,7 @@ fn validate_packaged_artifact_reference_snapshot_inputs(
 pub fn try_regenerate_packaged_artifact_from_snapshot(
     snapshot: &[SnapshotEntry],
 ) -> Result<CompressedArtifact, pleiades_compression::CompressionError> {
+    validate_packaged_artifact_phase1_source_inputs()?;
     validate_packaged_artifact_reference_snapshot_inputs(snapshot)?;
 
     let mut artifact = CompressedArtifact::new(
@@ -8652,6 +8682,12 @@ mod tests {
                 .contains("packaged artifact regeneration snapshot input at index 0 does not match the checked-in reference snapshot"),
             "unexpected validation error: {error}"
         );
+    }
+
+    #[test]
+    fn packaged_artifact_generation_validates_phase1_source_inputs() {
+        validate_packaged_artifact_phase1_source_inputs()
+            .expect("phase-1 source inputs should validate before regeneration");
     }
 
     #[test]
