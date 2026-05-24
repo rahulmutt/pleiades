@@ -15060,6 +15060,45 @@ fn ensure_validation_report_summary_matches_current_rendering(
     }
 }
 
+fn normalize_validation_report_for_verification(text: &str) -> String {
+    const UNSTABLE_PREFIXES: [&str; 7] = [
+        "  ns/request (single):",
+        "  ns/request (batch):",
+        "  batch throughput:",
+        "  ns/decode:",
+        "  decodes per second:",
+        "  ns/chart:",
+        "  charts per second:",
+    ];
+
+    text.lines()
+        .filter(|line| {
+            !UNSTABLE_PREFIXES
+                .iter()
+                .any(|prefix| line.starts_with(prefix))
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn ensure_validation_report_matches_current_rendering(
+    validation_report_text: &str,
+    rounds: usize,
+) -> Result<(), ReleaseBundleError> {
+    match render_validation_report(rounds) {
+        Ok(expected)
+            if normalize_validation_report_for_verification(validation_report_text)
+                == normalize_validation_report_for_verification(&expected) =>
+        {
+            Ok(())
+        }
+        Ok(_) => Err(ReleaseBundleError::Verification(
+            "validation report no longer matches the current validation report posture".to_string(),
+        )),
+        Err(error) => Err(ReleaseBundleError::Verification(error.to_string())),
+    }
+}
+
 fn ensure_backend_matrix_selected_asteroid_source_lines_match_current_rendering(
     backend_matrix_text: &str,
 ) -> Result<(), ReleaseBundleError> {
@@ -16770,6 +16809,10 @@ fn verify_release_bundle_internal(
     ensure_canonical_manifest_value(
         &manifest.api_stability_posture_id,
         "API stability posture id",
+    )?;
+    ensure_validation_report_matches_current_rendering(
+        &validation_report_text,
+        manifest.validation_rounds,
     )?;
     // The fit-envelope / fit-margin / fit-outlier posture lines are staged in
     // validation-report-summary.txt, not the full validation report body.
@@ -39859,6 +39902,58 @@ version = "0.9.0"
             "validation-report.txt",
             "validation report checksum mismatch",
         );
+    }
+
+    #[test]
+    fn verify_release_bundle_rejects_tampered_validation_report_file_even_with_updated_checksum() {
+        let bundle_dir =
+            unique_temp_dir("pleiades-release-bundle-tampered-validation-report-semantic");
+        let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
+        render_cli(&[
+            "bundle-release",
+            "--out",
+            &bundle_dir_string,
+            "--rounds",
+            "1",
+        ])
+        .expect("bundle release should render");
+
+        let report_path = bundle_dir.join("validation-report.txt");
+        let report = std::fs::read_to_string(&report_path).expect("validation report should exist");
+        let tampered_report = report.replace(
+            "Packaged artifact decode benchmark",
+            "Tampered packaged artifact decode benchmark",
+        );
+        std::fs::write(&report_path, &tampered_report)
+            .expect("validation report should be writable");
+
+        let manifest_path = bundle_dir.join("bundle-manifest.txt");
+        let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");
+        let old_checksum_line = manifest
+            .lines()
+            .find(|line| line.starts_with("validation report checksum (fnv1a-64):"))
+            .expect("manifest should contain the validation report checksum line");
+        let new_checksum_line = format!(
+            "validation report checksum (fnv1a-64): 0x{:016x}",
+            checksum64(&tampered_report)
+        );
+        let updated_manifest = manifest.replacen(old_checksum_line, &new_checksum_line, 1);
+        std::fs::write(&manifest_path, &updated_manifest).expect("manifest should be writable");
+
+        let checksum_path = bundle_dir.join("bundle-manifest.checksum.txt");
+        std::fs::write(
+            &checksum_path,
+            format!("0x{:016x}\n", checksum64(&updated_manifest)),
+        )
+        .expect("manifest checksum sidecar should be writable");
+
+        let error = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string])
+            .expect_err("verification should fail for semantic validation-report drift");
+        assert!(error.contains("release bundle verification failed"));
+        assert!(error
+            .contains("validation report no longer matches the current validation report posture"));
+
+        let _ = std::fs::remove_dir_all(&bundle_dir);
     }
 
     #[test]
