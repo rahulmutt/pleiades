@@ -761,7 +761,12 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
     AyanamsaDescriptor::new(
         Ayanamsa::FaganBradley,
         "Fagan/Bradley",
-        &["Fagan/Bradley Ayanamsha", "Fagan Bradley", "Fagan-Bradley"],
+        &[
+            "Fagan/Bradley Ayanamsha",
+            "Fagan Bradley",
+            "Fagan-Bradley",
+            "Fagan / Bradley",
+        ],
         "Western sidereal reference used by several astrology packages.",
         Some(JulianDay::from_days(2_433_282.423_46)),
         Some(Angle::from_degrees(24.042_044_444)),
@@ -2570,6 +2575,10 @@ mod tests {
         );
         assert_eq!(
             resolve_ayanamsa("fagan-bradley"),
+            Some(Ayanamsa::FaganBradley)
+        );
+        assert_eq!(
+            resolve_ayanamsa("Fagan / Bradley"),
             Some(Ayanamsa::FaganBradley)
         );
         assert_eq!(resolve_ayanamsa("Chitra Paksha"), Some(Ayanamsa::Lahiri));
