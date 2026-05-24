@@ -34522,7 +34522,15 @@ mod tests {
         assert!(rendered.contains("Release-grade body claims:"));
         let source_corpus_summary = source_corpus_summary_for_report();
         assert!(rendered.contains(&format!("Source corpus: {source_corpus_summary}")));
-        assert!(rendered.contains(&format!("Source corpus posture: {source_corpus_summary}")));
+        assert!(rendered
+            .lines()
+            .any(|line| line == format!("Source corpus posture: {source_corpus_summary}")));
+        assert!(rendered.lines().any(|line| {
+            line == format!(
+                "Body/date/channel claims: {}",
+                format_body_date_channel_claims_summary_for_report()
+            )
+        }));
         assert!(rendered.contains("Catalog posture: house systems="));
         assert!(
             rendered.contains("Pluto fallback: Pluto remains an explicitly approximate fallback")
