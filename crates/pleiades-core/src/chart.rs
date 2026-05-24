@@ -12,9 +12,9 @@ use core::{fmt, time::Duration};
 use pleiades_ayanamsa::{resolve_ayanamsa, sidereal_offset};
 use pleiades_backend::{
     request_policy_summary_for_report, time_scale_policy_summary_for_report,
-    validate_request_against_metadata, validated_frame_policy_summary_for_report, Apparentness,
-    BackendMetadata, EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest,
-    EphemerisResult, EphemerisResultValidationError,
+    validated_frame_policy_summary_for_report, Apparentness, BackendMetadata, EphemerisBackend,
+    EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult,
+    EphemerisResultValidationError,
 };
 use pleiades_houses::{
     calculate_houses, house_for_longitude, resolve_house_system, HouseError, HouseRequest,
@@ -589,7 +589,7 @@ impl ChartRequest {
                 zodiac_mode: backend_zodiac_mode.clone(),
                 apparent: self.apparentness,
             };
-            validate_request_against_metadata(&body_request, metadata)?;
+            metadata.validate_request(&body_request)?;
         }
 
         Ok(())

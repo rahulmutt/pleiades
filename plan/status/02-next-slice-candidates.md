@@ -38,6 +38,8 @@ This file lists only active implementation slices. Completed report aliases, sum
 - Implement topocentric body positions only with clear observer semantics and tests.
 - Keep native sidereal backend output unsupported unless a backend provides validated native behavior.
 
+Progress update: `BackendMetadata::validate_request()` now centralizes the shared request-shape preflight, and the chart façade routes body requests through it so unsupported request shapes fail at the metadata boundary before backend computation.
+
 ## Phase 5 — Compatibility and release readiness
 
 - Audit house formulas, aliases, and latitude/numerical failure constraints; the compatibility profile and report surfaces now expose explicit latitude-sensitive house-constraint summaries, the compatibility-caveats summary now also calls out the house-formula-families posture directly, the compatibility-caveats and house-validation surfaces now also expose explicit latitude-sensitive house failure modes, and the staged bundle now also exposes the house-code-aliases, house-formula-families, and house-latitude-sensitive summaries so those audits stay visible in release artifacts. Release-bundle verification now also re-checks the release-specific house-system and ayanamsa canonical-name summaries against the current renderer.

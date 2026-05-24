@@ -504,6 +504,45 @@ impl BackendMetadata {
         self.validate()?;
         Ok(self.summary_line())
     }
+
+    /// Validates a request shape against this metadata before backend computation.
+    ///
+    /// Routing backends still defer frame, time-scale, value-mode, and zodiac
+    /// checks to the selected provider, but they continue to validate the
+    /// request's custom definitions, observer syntax, and body coverage here so
+    /// unsupported shapes fail closed before execution.
+    pub fn validate_request(&self, req: &EphemerisRequest) -> Result<(), EphemerisError> {
+        req.validate_custom_definitions()?;
+
+        if !self.family.is_routing() {
+            validate_request_policy(
+                req,
+                self.id.as_str(),
+                &self.supported_time_scales,
+                &self.supported_frames,
+                self.capabilities.mean,
+                self.capabilities.apparent,
+            )?;
+
+            if !self.capabilities.native_sidereal {
+                validate_zodiac_policy(req, self.id.as_str(), &[ZodiacMode::Tropical])?;
+            }
+
+            validate_request_observer_location(req)?;
+            validate_observer_policy(req, self.id.as_str(), self.capabilities.topocentric)?;
+        } else {
+            validate_request_observer_location(req)?;
+        }
+
+        if !self.body_coverage.contains(&req.body) {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::UnsupportedBody,
+                format!("{} does not support {}", self.id, req.body),
+            ));
+        }
+
+        Ok(())
+    }
 }
 
 impl fmt::Display for BackendMetadata {
@@ -2770,36 +2809,7 @@ pub fn validate_request_against_metadata(
     req: &EphemerisRequest,
     metadata: &BackendMetadata,
 ) -> Result<(), EphemerisError> {
-    req.validate_custom_definitions()?;
-
-    if !metadata.family.is_routing() {
-        validate_request_policy(
-            req,
-            metadata.id.as_str(),
-            &metadata.supported_time_scales,
-            &metadata.supported_frames,
-            metadata.capabilities.mean,
-            metadata.capabilities.apparent,
-        )?;
-
-        if !metadata.capabilities.native_sidereal {
-            validate_zodiac_policy(req, metadata.id.as_str(), &[ZodiacMode::Tropical])?;
-        }
-
-        validate_request_observer_location(req)?;
-        validate_observer_policy(req, metadata.id.as_str(), metadata.capabilities.topocentric)?;
-    } else {
-        validate_request_observer_location(req)?;
-    }
-
-    if !metadata.body_coverage.contains(&req.body) {
-        return Err(EphemerisError::new(
-            EphemerisErrorKind::UnsupportedBody,
-            format!("{} does not support {}", metadata.id, req.body),
-        ));
-    }
-
-    Ok(())
+    metadata.validate_request(req)
 }
 
 /// Validates a batch of direct backend requests against backend metadata.
@@ -2911,7 +2921,7 @@ pub fn validate_requests_against_metadata(
     }
 
     for (index, req) in reqs.iter().enumerate() {
-        if let Err(error) = validate_request_against_metadata(req, metadata) {
+        if let Err(error) = metadata.validate_request(req) {
             return Err(EphemerisError::new(
                 error.kind,
                 format!("batch request {}: {}", index + 1, error.message),
@@ -4936,6 +4946,12 @@ mod tests {
             frame_error.message,
             "toy backend only returns [Ecliptic] coordinates"
         );
+
+        let metadata_frame_error = metadata
+            .validate_request(&frame_request)
+            .expect_err("metadata request validation should match the shared preflight");
+        assert_eq!(metadata_frame_error.kind, frame_error.kind);
+        assert_eq!(metadata_frame_error.message, frame_error.message);
 
         let topocentric_request = EphemerisRequest {
             observer: Some(ObserverLocation::new(
