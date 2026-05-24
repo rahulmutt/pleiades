@@ -638,6 +638,8 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("reference-holdout-overlap-summary") => validate_render_cli(args),
         Some("holdout-overlap-summary") => validate_render_cli(args),
         Some("independent-holdout-source-window-summary") => validate_render_cli(args),
+        Some("independent-holdout-manifest-summary") => validate_render_cli(args),
+        Some("independent-holdout-manifest") => validate_render_cli(args),
         Some("independent-holdout-quarter-day-boundary-summary")
         | Some("independent-holdout-quarter-day-boundary") => validate_render_cli(args),
         Some("independent-holdout-summary") => validate_render_cli(args),
@@ -5253,6 +5255,27 @@ mod tests {
             independent_holdout_source_summary,
             pleiades_jpl::independent_holdout_source_summary_for_report()
         );
+        let independent_holdout_manifest_summary =
+            render_cli(&["independent-holdout-manifest-summary"])
+                .expect("independent hold-out manifest summary should render");
+        assert!(independent_holdout_manifest_summary.contains("Independent hold-out manifest:"));
+        assert!(
+            independent_holdout_manifest_summary.contains("repository-checked regression fixtures")
+        );
+        assert_eq!(
+            independent_holdout_manifest_summary,
+            pleiades_jpl::independent_holdout_manifest_summary_for_report()
+        );
+        assert_eq!(
+            render_cli(&["independent-holdout-manifest"])
+                .expect("independent hold-out manifest alias should render"),
+            independent_holdout_manifest_summary
+        );
+        assert_eq!(
+            render_cli(&["independent-holdout-manifest", "extra"])
+                .expect_err("independent hold-out manifest alias should reject extra arguments"),
+            "independent-holdout-manifest does not accept extra arguments"
+        );
         let independent_holdout_high_curvature_summary =
             render_cli(&["independent-holdout-high-curvature-summary"])
                 .expect("independent hold-out high-curvature summary should render");
@@ -8136,6 +8159,8 @@ mod tests {
             "selected-asteroid-source-window  Alias for selected-asteroid-source-window-summary"
         ));
         assert!(help.contains("independent-holdout-source-window-summary  Print the compact independent hold-out source windows summary"));
+        assert!(help.contains("independent-holdout-manifest-summary  Print the compact independent hold-out manifest summary"));
+        assert!(help.contains("independent-holdout-manifest            Alias for independent-holdout-manifest-summary"));
         assert!(help.contains("independent-holdout-quarter-day-boundary-summary  Print the compact independent hold-out quarter-day boundary samples summary"));
         assert!(help.contains("independent-holdout-quarter-day-boundary  Alias for independent-holdout-quarter-day-boundary-summary"));
         assert!(help.contains(
