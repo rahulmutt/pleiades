@@ -5894,6 +5894,10 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "comparison-snapshot")?;
             Ok(render_comparison_snapshot_summary_text())
         }
+        Some("j2000-snapshot") => {
+            ensure_no_extra_args(&args[1..], "j2000-snapshot")?;
+            Ok(render_comparison_snapshot_summary_text())
+        }
         Some("comparison-snapshot-summary") => {
             ensure_no_extra_args(&args[1..], "comparison-snapshot-summary")?;
             Ok(render_comparison_snapshot_summary_text())
@@ -27143,7 +27147,7 @@ fn help_text() -> String {
   production-generation-boundary-source-summary  Print the compact production-generation boundary source summary
   production-generation-boundary-source  Alias for production-generation-boundary-source-summary
   production-generation-boundary-window-summary  Print the compact production-generation boundary windows summary
-  production-generation-boundary-window  Alias for production-generation-boundary-window-summary\n  production-generation-manifest-summary  Print the compact production-generation manifest summary\n  production-generation-manifest  Alias for production-generation-manifest-summary\n  production-generation-manifest-checksum-summary  Print the compact production-generation manifest checksum summary\n  production-generation-manifest-checksum  Alias for production-generation-manifest-checksum-summary\n  production-generation-source      Alias for production-generation-source-summary\n  production-generation-source-summary  Print the compact production-generation source summary\n  production-generation-source-revision-summary  Print the compact production-generation source revision summary\n  production-generation-source-revision  Alias for production-generation-source-revision-summary\n  comparison-snapshot-source-window-summary  Print the compact comparison snapshot source windows summary\n  comparison-snapshot-source-window  Alias for comparison-snapshot-source-window-summary\n  comparison-snapshot-source-summary  Print the compact comparison snapshot source summary\n  comparison-snapshot-source        Alias for comparison-snapshot-source-summary\n  comparison-snapshot-body-class-coverage-summary  Print the compact comparison snapshot body-class coverage summary\n  comparison-body-class-coverage-summary  Alias for comparison-snapshot-body-class-coverage-summary\n  comparison-snapshot-manifest-summary  Print the compact comparison snapshot manifest summary\n  comparison-snapshot-manifest  Alias for comparison-snapshot-manifest-summary\n  comparison-snapshot-summary  Print the compact comparison snapshot summary\n  comparison-snapshot         Alias for comparison-snapshot-summary\n  comparison-snapshot-batch-parity-summary  Print the compact comparison snapshot batch parity summary\n  comparison-snapshot-batch-parity  Alias for comparison-snapshot-batch-parity-summary\n  reference-snapshot-source-window-summary  Print the compact reference snapshot source windows summary\n  reference-snapshot-source-window  Alias for reference-snapshot-source-window-summary\n  reference-snapshot-source-summary  Print the compact reference snapshot source summary\n  reference-snapshot-source        Alias for reference-snapshot-source-summary\n  reference-asteroid-source-window-summary  Print the compact reference asteroid source windows summary
+  production-generation-boundary-window  Alias for production-generation-boundary-window-summary\n  production-generation-manifest-summary  Print the compact production-generation manifest summary\n  production-generation-manifest  Alias for production-generation-manifest-summary\n  production-generation-manifest-checksum-summary  Print the compact production-generation manifest checksum summary\n  production-generation-manifest-checksum  Alias for production-generation-manifest-checksum-summary\n  production-generation-source      Alias for production-generation-source-summary\n  production-generation-source-summary  Print the compact production-generation source summary\n  production-generation-source-revision-summary  Print the compact production-generation source revision summary\n  production-generation-source-revision  Alias for production-generation-source-revision-summary\n  comparison-snapshot-source-window-summary  Print the compact comparison snapshot source windows summary\n  comparison-snapshot-source-window  Alias for comparison-snapshot-source-window-summary\n  comparison-snapshot-source-summary  Print the compact comparison snapshot source summary\n  comparison-snapshot-source        Alias for comparison-snapshot-source-summary\n  comparison-snapshot-body-class-coverage-summary  Print the compact comparison snapshot body-class coverage summary\n  comparison-body-class-coverage-summary  Alias for comparison-snapshot-body-class-coverage-summary\n  comparison-snapshot-manifest-summary  Print the compact comparison snapshot manifest summary\n  comparison-snapshot-manifest  Alias for comparison-snapshot-manifest-summary\n  comparison-snapshot-summary  Print the compact comparison snapshot summary\n  j2000-snapshot           Alias for comparison-snapshot-summary\n  comparison-snapshot         Alias for comparison-snapshot-summary\n  comparison-snapshot-batch-parity-summary  Print the compact comparison snapshot batch parity summary\n  comparison-snapshot-batch-parity  Alias for comparison-snapshot-batch-parity-summary\n  reference-snapshot-source-window-summary  Print the compact reference snapshot source windows summary\n  reference-snapshot-source-window  Alias for reference-snapshot-source-window-summary\n  reference-snapshot-source-summary  Print the compact reference snapshot source summary\n  reference-snapshot-source        Alias for reference-snapshot-source-summary\n  reference-asteroid-source-window-summary  Print the compact reference asteroid source windows summary
   reference-asteroid-source-window  Alias for reference-asteroid-source-window-summary
   reference-snapshot-manifest-summary  Print the compact reference snapshot manifest summary
   reference-snapshot-manifest  Alias for reference-snapshot-manifest-summary
@@ -30884,6 +30888,7 @@ mod tests {
         assert!(rendered.contains("comparison-body-class-coverage-summary"));
         assert!(rendered.contains("comparison-snapshot-manifest-summary"));
         assert!(rendered.contains("comparison-snapshot-summary"));
+        assert!(rendered.contains("j2000-snapshot           Alias for comparison-snapshot-summary"));
         assert!(
             rendered.contains("comparison-snapshot         Alias for comparison-snapshot-summary")
         );
@@ -42881,8 +42886,17 @@ version = "0.9.0"
             )
         );
         assert_eq!(
+            render_cli(&["j2000-snapshot"]).expect("j2000 snapshot alias should render"),
+            comparison
+        );
+        assert_eq!(
             render_cli(&["comparison-snapshot"]).expect("comparison snapshot alias should render"),
             comparison
+        );
+        assert_eq!(
+            render_cli(&["j2000-snapshot", "extra"])
+                .expect_err("j2000 snapshot alias should reject extra arguments"),
+            "j2000-snapshot does not accept extra arguments"
         );
         assert_eq!(
             render_cli(&["comparison-snapshot-summary", "extra"])

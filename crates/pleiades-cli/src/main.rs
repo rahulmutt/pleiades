@@ -261,6 +261,10 @@ fn render_cli(args: &[&str]) -> Result<String, String> {
                 pleiades_jpl::comparison_snapshot_summary_for_report()
             ))
         }
+        Some("j2000-snapshot") => {
+            ensure_no_extra_args(&args[1..], "j2000-snapshot")?;
+            validate_render_cli(args)
+        }
         Some("comparison-snapshot-summary") => {
             ensure_no_extra_args(&args[1..], "comparison-snapshot-summary")?;
             validate_render_cli(args)
@@ -4289,8 +4293,17 @@ mod tests {
             )
         );
         assert_eq!(
+            render_cli(&["j2000-snapshot"]).expect("j2000 snapshot alias should render"),
+            comparison_snapshot_summary
+        );
+        assert_eq!(
             render_cli(&["comparison-snapshot"]).expect("comparison snapshot alias should render"),
             comparison_snapshot_summary
+        );
+        assert_eq!(
+            render_cli(&["j2000-snapshot", "extra"])
+                .expect_err("j2000 snapshot alias should reject extra arguments"),
+            "j2000-snapshot does not accept extra arguments"
         );
         assert_eq!(
             render_cli(&["comparison-snapshot-summary", "extra"])
@@ -8059,6 +8072,7 @@ mod tests {
         assert!(help.contains(
             "comparison-snapshot-summary  Print the compact comparison snapshot summary"
         ));
+        assert!(help.contains("j2000-snapshot           Alias for comparison-snapshot-summary"));
         assert!(help.contains("comparison-snapshot         Alias for comparison-snapshot-summary"));
         assert!(help.contains(
             "comparison-snapshot-source-summary  Print the compact comparison snapshot source summary"
