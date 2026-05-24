@@ -32703,7 +32703,7 @@ mod tests {
         assert!(rendered.contains(
             "Latitude-sensitive house systems verified: 8 descriptors, 8 labels (Placidus, Koch, Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Topocentric, Sunshine, Gauquelin sectors)"
         ));
-        assert!(rendered.contains("Ayanamsas verified: 59 descriptors, 243 labels"));
+        assert!(rendered.contains("Ayanamsas verified: 59 descriptors, 245 labels"));
         assert!(rendered.contains("House formula families verified: Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign"));
         assert!(rendered.contains(
             "Ayanamsa reference metadata verified: 53 descriptors with epoch/offset metadata, 6 metadata gaps"

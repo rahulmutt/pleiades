@@ -338,7 +338,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::UshaShashi,
         "Usha Shashi",
-        &["Ushashashi", "Usha-Shashi", "Usha/Shashi", "Usha Shashi ayanamsa", "Revati"],
+        &["Ushashashi", "Usha-Shashi", "Usha/Shashi", "Usha / Shashi", "Usha Shashi ayanamsa", "Revati"],
         "Revati-bound zero-point variant used in the Greek-Arabic-Hindu tradition.",
         Some(JulianDay::from_days(2_415_020.5)),
         Some(Angle::from_degrees(18.660_961_111_111_11)),
@@ -407,7 +407,7 @@ const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
     AyanamsaDescriptor::new(
         Ayanamsa::Sheoran,
         "Sheoran",
-        &["Sunil Sheoran", "Vedic Sheoran", "Sheoran ayanamsa", "\"Vedic\"/Sheoran"],
+        &["Sunil Sheoran", "Vedic Sheoran", "Vedic / Sheoran", "Sheoran ayanamsa", "\"Vedic\"/Sheoran"],
         "Sheoran's Vedic ayanamsa, anchored to the published zero point used by Swiss Ephemeris.",
         Some(JulianDay::from_days(1_789_947.090_881)),
         Some(Angle::from_degrees(0.0)),
@@ -867,7 +867,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
     AyanamsaDescriptor::new(
         Ayanamsa::UshaShashi,
         "Usha Shashi",
-        &["Ushashashi", "Usha-Shashi", "Usha/Shashi", "Usha Shashi ayanamsa", "Revati"],
+        &["Ushashashi", "Usha-Shashi", "Usha/Shashi", "Usha / Shashi", "Usha Shashi ayanamsa", "Revati"],
         "Revati-bound zero-point variant used in the Greek-Arabic-Hindu tradition.",
         Some(JulianDay::from_days(2_415_020.5)),
         Some(Angle::from_degrees(18.660_961_111_111_11)),
@@ -936,7 +936,7 @@ static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
     AyanamsaDescriptor::new(
         Ayanamsa::Sheoran,
         "Sheoran",
-        &["Sunil Sheoran", "Vedic Sheoran", "Sheoran ayanamsa", "\"Vedic\"/Sheoran"],
+        &["Sunil Sheoran", "Vedic Sheoran", "Vedic / Sheoran", "Sheoran ayanamsa", "\"Vedic\"/Sheoran"],
         "Sheoran's Vedic ayanamsa, anchored to the published zero point used by Swiss Ephemeris.",
         Some(JulianDay::from_days(1_789_947.090_881)),
         Some(Angle::from_degrees(0.0)),
@@ -2701,7 +2701,12 @@ mod tests {
             Some(Ayanamsa::PvrPushyaPaksha)
         );
         assert_eq!(resolve_ayanamsa("Usha/Shashi"), Some(Ayanamsa::UshaShashi));
+        assert_eq!(
+            resolve_ayanamsa("Usha / Shashi"),
+            Some(Ayanamsa::UshaShashi)
+        );
         assert_eq!(resolve_ayanamsa("Sunil Sheoran"), Some(Ayanamsa::Sheoran));
+        assert_eq!(resolve_ayanamsa("Vedic / Sheoran"), Some(Ayanamsa::Sheoran));
         assert_eq!(
             resolve_ayanamsa("\"Vedic\"/Sheoran"),
             Some(Ayanamsa::Sheoran)
