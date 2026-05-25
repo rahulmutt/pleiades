@@ -3960,34 +3960,244 @@ fn production_generation_source_revision_summary() -> ProductionGenerationSource
     }
 }
 
-/// Returns a compact production-generation manifest summary for release-facing reports.
+/// Compact release-facing summary for the production-generation manifest.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ProductionGenerationManifestSummary {
+    /// Source provenance summary for the merged production-generation corpus.
+    pub source_summary: ProductionGenerationSourceSummary,
+    /// Coverage summary for the merged production-generation corpus.
+    pub coverage_summary: ProductionGenerationSnapshotSummary,
+    /// Body-class coverage summary for the merged production-generation corpus.
+    pub body_class_coverage_summary: ProductionGenerationSnapshotBodyClassCoverageSummary,
+    /// Boundary-overlay summary for the merged production-generation corpus.
+    pub boundary_summary: ProductionGenerationBoundarySummary,
+    /// Boundary window summary for the merged production-generation corpus.
+    pub boundary_window_summary: ProductionGenerationBoundaryWindowSummary,
+    /// Boundary request corpus summary for the merged production-generation corpus.
+    pub boundary_request_corpus_summary: ProductionGenerationBoundaryRequestCorpusSummary,
+}
+
+/// Structured validation errors for a production-generation manifest summary.
+#[derive(Clone, Debug, PartialEq)]
+pub enum ProductionGenerationManifestSummaryValidationError {
+    /// The nested source summary drifted from the current corpus evidence.
+    Source(ProductionGenerationSourceSummaryValidationError),
+    /// The nested coverage summary drifted from the current corpus evidence.
+    Coverage(ProductionGenerationSnapshotSummaryValidationError),
+    /// The nested body-class coverage summary drifted from the current corpus evidence.
+    BodyClassCoverage(ProductionGenerationSnapshotBodyClassCoverageSummaryValidationError),
+    /// The nested boundary summary drifted from the current corpus evidence.
+    Boundary(ProductionGenerationBoundarySummaryValidationError),
+    /// The nested boundary-window summary drifted from the current corpus evidence.
+    BoundaryWindow(ProductionGenerationBoundaryWindowSummaryValidationError),
+    /// The nested boundary-request corpus summary drifted from the current corpus evidence.
+    BoundaryRequestCorpus(ProductionGenerationBoundaryRequestCorpusSummaryValidationError),
+    /// A rendered field drifted from the current corpus evidence.
+    FieldOutOfSync { field: &'static str },
+}
+
+impl fmt::Display for ProductionGenerationManifestSummaryValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Source(error) => write!(f, "source validation failed: {error}"),
+            Self::Coverage(error) => write!(f, "coverage validation failed: {error}"),
+            Self::BodyClassCoverage(error) => {
+                write!(f, "body-class coverage validation failed: {error}")
+            }
+            Self::Boundary(error) => write!(f, "boundary summary validation failed: {error}"),
+            Self::BoundaryWindow(error) => {
+                write!(f, "boundary-window summary validation failed: {error}")
+            }
+            Self::BoundaryRequestCorpus(error) => {
+                write!(f, "boundary-request corpus validation failed: {error}")
+            }
+            Self::FieldOutOfSync { field } => write!(
+                f,
+                "the production-generation manifest summary field `{field}` is out of sync with the current corpus evidence"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for ProductionGenerationManifestSummaryValidationError {}
+
+impl ProductionGenerationManifestSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "Production generation manifest: coverage={}; source={}; body-class coverage={}; boundary overlay={}; boundary windows={}; boundary request corpus={}",
+            strip_report_prefix(
+                &self.coverage_summary.summary_line(),
+                "Production generation coverage: ",
+            ),
+            strip_report_prefix(&self.source_summary.summary_line(), "Production generation source: "),
+            strip_report_prefix(
+                &self.body_class_coverage_summary.summary_line(),
+                "Production generation body-class coverage: ",
+            ),
+            strip_report_prefix(&self.boundary_summary.summary_line(), "Production generation boundary overlay: "),
+            strip_report_prefix(
+                &self.boundary_window_summary.summary_line(),
+                "Production generation boundary windows: ",
+            ),
+            strip_report_prefix(
+                &self.boundary_request_corpus_summary.summary_line(),
+                "Production generation boundary request corpus: ",
+            ),
+        )
+    }
+
+    /// Returns `Ok(())` when the manifest summary still matches the derived corpus evidence.
+    pub fn validate(&self) -> Result<(), ProductionGenerationManifestSummaryValidationError> {
+        self.source_summary
+            .validate()
+            .map_err(ProductionGenerationManifestSummaryValidationError::Source)?;
+        let expected_source_summary = production_generation_source_summary();
+        if self.source_summary != expected_source_summary {
+            return Err(
+                ProductionGenerationManifestSummaryValidationError::FieldOutOfSync {
+                    field: "source_summary",
+                },
+            );
+        }
+
+        self.coverage_summary
+            .validate()
+            .map_err(ProductionGenerationManifestSummaryValidationError::Coverage)?;
+        let expected_coverage_summary = production_generation_snapshot_summary().ok_or(
+            ProductionGenerationManifestSummaryValidationError::FieldOutOfSync {
+                field: "coverage_summary",
+            },
+        )?;
+        if self.coverage_summary != expected_coverage_summary {
+            return Err(
+                ProductionGenerationManifestSummaryValidationError::FieldOutOfSync {
+                    field: "coverage_summary",
+                },
+            );
+        }
+
+        self.body_class_coverage_summary
+            .validate()
+            .map_err(ProductionGenerationManifestSummaryValidationError::BodyClassCoverage)?;
+        let expected_body_class_coverage_summary =
+            production_generation_snapshot_body_class_coverage_summary().ok_or(
+                ProductionGenerationManifestSummaryValidationError::FieldOutOfSync {
+                    field: "body_class_coverage_summary",
+                },
+            )?;
+        if self.body_class_coverage_summary != expected_body_class_coverage_summary {
+            return Err(
+                ProductionGenerationManifestSummaryValidationError::FieldOutOfSync {
+                    field: "body_class_coverage_summary",
+                },
+            );
+        }
+
+        self.boundary_summary
+            .validate()
+            .map_err(ProductionGenerationManifestSummaryValidationError::Boundary)?;
+        let expected_boundary_summary = production_generation_boundary_summary().ok_or(
+            ProductionGenerationManifestSummaryValidationError::FieldOutOfSync {
+                field: "boundary_summary",
+            },
+        )?;
+        if self.boundary_summary != expected_boundary_summary {
+            return Err(
+                ProductionGenerationManifestSummaryValidationError::FieldOutOfSync {
+                    field: "boundary_summary",
+                },
+            );
+        }
+
+        self.boundary_window_summary
+            .validate()
+            .map_err(ProductionGenerationManifestSummaryValidationError::BoundaryWindow)?;
+        let expected_boundary_window_summary = production_generation_boundary_window_summary()
+            .ok_or(
+                ProductionGenerationManifestSummaryValidationError::FieldOutOfSync {
+                    field: "boundary_window_summary",
+                },
+            )?;
+        if self.boundary_window_summary != expected_boundary_window_summary {
+            return Err(
+                ProductionGenerationManifestSummaryValidationError::FieldOutOfSync {
+                    field: "boundary_window_summary",
+                },
+            );
+        }
+
+        self.boundary_request_corpus_summary
+            .validate()
+            .map_err(ProductionGenerationManifestSummaryValidationError::BoundaryRequestCorpus)?;
+        let expected_boundary_request_corpus_summary =
+            production_generation_boundary_request_corpus_summary(CoordinateFrame::Ecliptic)
+                .ok_or(
+                    ProductionGenerationManifestSummaryValidationError::FieldOutOfSync {
+                        field: "boundary_request_corpus_summary",
+                    },
+                )?;
+        if self.boundary_request_corpus_summary != expected_boundary_request_corpus_summary {
+            return Err(
+                ProductionGenerationManifestSummaryValidationError::FieldOutOfSync {
+                    field: "boundary_request_corpus_summary",
+                },
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Returns the validated compact summary line.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, ProductionGenerationManifestSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl fmt::Display for ProductionGenerationManifestSummary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+/// Returns the compact production-generation manifest summary for release-facing reports.
+pub fn production_generation_manifest_summary() -> Option<ProductionGenerationManifestSummary> {
+    Some(ProductionGenerationManifestSummary {
+        source_summary: production_generation_source_summary(),
+        coverage_summary: production_generation_snapshot_summary()?,
+        body_class_coverage_summary: production_generation_snapshot_body_class_coverage_summary()?,
+        boundary_summary: production_generation_boundary_summary()?,
+        boundary_window_summary: production_generation_boundary_window_summary()?,
+        boundary_request_corpus_summary: production_generation_boundary_request_corpus_summary(
+            CoordinateFrame::Ecliptic,
+        )?,
+    })
+}
+
+/// Returns the release-facing production-generation manifest summary string.
 pub fn production_generation_manifest_summary_for_report() -> String {
     static SUMMARY: OnceLock<String> = OnceLock::new();
     SUMMARY
-        .get_or_init(|| {
-            let coverage = production_generation_snapshot_summary_for_report();
-            let source = production_generation_source_summary_for_report();
-            let body_class_coverage =
-                production_generation_snapshot_body_class_coverage_summary_for_report();
-            let boundary = production_generation_boundary_summary_for_report();
-            let boundary_windows = production_generation_boundary_window_summary_for_report();
-            let boundary_request_corpus =
-                production_generation_boundary_request_corpus_summary_for_report();
-
-            format!(
-                "Production generation manifest: coverage={}; source={}; body-class coverage={}; boundary overlay={}; boundary windows={}; boundary request corpus={}",
-                strip_report_prefix(&coverage, "Production generation coverage: "),
-                strip_report_prefix(&source, "Production generation source: "),
-                strip_report_prefix(&body_class_coverage, "Production generation body-class coverage: "),
-                strip_report_prefix(&boundary, "Production generation boundary overlay: "),
-                strip_report_prefix(&boundary_windows, "Production generation boundary windows: "),
-                strip_report_prefix(
-                    &boundary_request_corpus,
-                    "Production generation boundary request corpus: ",
-                ),
-            )
+        .get_or_init(|| match production_generation_manifest_summary() {
+            Some(summary) => match summary.validated_summary_line() {
+                Ok(summary) => summary,
+                Err(error) => format!("Production generation manifest: unavailable ({error})"),
+            },
+            None => "Production generation manifest: unavailable".to_string(),
         })
         .clone()
+}
+
+/// Returns the validated release-facing production-generation manifest summary string.
+pub fn validated_production_generation_manifest_summary_for_report() -> Result<String, String> {
+    let summary = production_generation_manifest_summary()
+        .ok_or_else(|| "production generation manifest unavailable".to_string())?;
+    summary
+        .validated_summary_line()
+        .map_err(|error| error.to_string())
 }
 
 /// Returns the release-facing production-generation manifest checksum summary string.
@@ -32669,6 +32879,48 @@ mod tests {
                     field: "summary"
                 }
             )
+        ));
+        assert!(summary.validated_summary_line().is_err());
+    }
+
+    #[test]
+    fn production_generation_manifest_summary_documents_the_current_contract() {
+        let summary = production_generation_manifest_summary()
+            .expect("production generation manifest summary should exist");
+        let report = production_generation_manifest_summary_for_report();
+
+        assert!(summary.validate().is_ok());
+        assert_eq!(summary.validated_summary_line().unwrap(), report);
+        assert!(report.contains("Production generation manifest: coverage="));
+        assert!(report.contains("source="));
+        assert!(report.contains("body-class coverage="));
+        assert!(report.contains("boundary overlay="));
+        assert!(report.contains("boundary windows="));
+        assert!(report.contains("boundary request corpus="));
+    }
+
+    #[test]
+    fn production_generation_manifest_summary_validated_report_matches_current_rendering() {
+        assert_eq!(
+            validated_production_generation_manifest_summary_for_report()
+                .expect("validated production generation manifest summary should exist"),
+            production_generation_manifest_summary_for_report(),
+        );
+    }
+
+    #[test]
+    fn production_generation_manifest_summary_validation_rejects_drift() {
+        let mut summary = production_generation_manifest_summary()
+            .expect("production generation manifest summary should exist");
+        summary.boundary_request_corpus_summary.epoch_count += 1;
+
+        assert!(matches!(
+            summary.validate(),
+            Err(ProductionGenerationManifestSummaryValidationError::BoundaryRequestCorpus(
+                ProductionGenerationBoundaryRequestCorpusSummaryValidationError::FieldOutOfSync {
+                    field: "epoch_count"
+                }
+            ))
         ));
         assert!(summary.validated_summary_line().is_err());
     }

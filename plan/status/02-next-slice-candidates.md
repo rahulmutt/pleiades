@@ -8,6 +8,9 @@ omitted.
 
 - Implement the chosen pure-Rust source strategy, either as a public-data
   reader/parser or a reproducible corpus-generation pipeline from public inputs.
+  The production-generation manifest summary now validates the derived source
+  and boundary-request corpus records directly, but broader coverage and claim
+  derivation still need to land.
 - Broaden reference and hold-out coverage for luminaries, major planets, Pluto
   policy, lunar/lunar-point channels, baseline asteroids, and representative
   custom/numbered bodies across 1500-2500 CE.

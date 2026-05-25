@@ -124,7 +124,10 @@ use pleiades_houses::{
 };
 
 #[cfg(test)]
-use pleiades_jpl::production_generation_snapshot_body_class_coverage_summary_for_report;
+use pleiades_jpl::{
+    production_generation_manifest_summary_for_report,
+    production_generation_snapshot_body_class_coverage_summary_for_report,
+};
 
 use pleiades_jpl::{
     comparison_snapshot_body_class_coverage_summary_for_report, comparison_snapshot_requests,
@@ -156,7 +159,6 @@ use pleiades_jpl::{
     production_generation_boundary_window_summary_for_report,
     production_generation_corpus_shape_summary_for_report,
     production_generation_manifest_checksum_for_report,
-    production_generation_manifest_summary_for_report,
     production_generation_snapshot_summary_for_report,
     production_generation_snapshot_window_summary_for_report,
     production_generation_source_revision_summary_for_report,
@@ -248,6 +250,7 @@ use pleiades_jpl::{
     validated_comparison_snapshot_source_window_summary_for_report,
     validated_independent_holdout_snapshot_batch_parity_summary_for_report,
     validated_production_generation_corpus_shape_summary_for_report,
+    validated_production_generation_manifest_summary_for_report,
     validated_production_generation_snapshot_body_class_coverage_summary_for_report,
     validated_production_generation_source_revision_summary_for_report,
     validated_production_generation_source_summary_for_report,
@@ -293,6 +296,11 @@ fn reference_snapshot_mixed_time_scale_batch_parity_summary_text() -> String {
     validated_reference_snapshot_mixed_time_scale_batch_parity_summary_for_report().unwrap_or_else(
         |error| format!("JPL reference snapshot mixed TT/TDB batch parity: unavailable ({error})"),
     )
+}
+
+fn validated_production_generation_manifest_summary_text_for_report() -> String {
+    validated_production_generation_manifest_summary_for_report()
+        .unwrap_or_else(|error| format!("Production generation manifest: unavailable ({error})"))
 }
 
 fn independent_holdout_snapshot_batch_parity_summary_text() -> String {
@@ -5789,7 +5797,7 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("production-generation-manifest-summary") | Some("production-generation-manifest") => {
             ensure_no_extra_args(&args[1..], "production-generation-manifest-summary")?;
-            Ok(production_generation_manifest_summary_for_report())
+            Ok(validated_production_generation_manifest_summary_text_for_report())
         }
         Some("production-generation-manifest-checksum-summary")
         | Some("production-generation-manifest-checksum") => {
@@ -10101,7 +10109,7 @@ fn render_release_summary_text() -> String {
     text.push_str(&production_generation_snapshot_summary_for_report());
     text.push('\n');
     text.push_str("JPL production-generation manifest: ");
-    text.push_str(&production_generation_manifest_summary_for_report());
+    text.push_str(&validated_production_generation_manifest_summary_text_for_report());
     text.push('\n');
     text.push_str("JPL production-generation manifest checksum: ");
     text.push_str(&production_generation_manifest_checksum_for_report());
@@ -11248,7 +11256,7 @@ pub fn render_release_bundle(
     let production_generation_corpus_shape_summary_checksum =
         checksum64(&production_generation_corpus_shape_summary_text);
     let production_generation_manifest_summary_text =
-        production_generation_manifest_summary_for_report();
+        validated_production_generation_manifest_summary_text_for_report();
     let production_generation_manifest_summary_checksum =
         checksum64(&production_generation_manifest_summary_text);
     let production_generation_manifest_checksum_text =
@@ -14112,7 +14120,7 @@ fn ensure_production_generation_manifest_summary_matches_current_rendering(
     production_generation_manifest_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
     if production_generation_manifest_summary_text
-        == production_generation_manifest_summary_for_report()
+        == validated_production_generation_manifest_summary_text_for_report()
     {
         Ok(())
     } else {
@@ -24922,7 +24930,7 @@ fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str(&jpl_snapshot_batch_error_taxonomy_summary_for_report());
     text.push('\n');
-    text.push_str(&production_generation_manifest_summary_for_report());
+    text.push_str(&validated_production_generation_manifest_summary_text_for_report());
     text.push('\n');
     text.push_str("Production generation source revision: ");
     match validated_production_generation_source_revision_summary_for_report() {
