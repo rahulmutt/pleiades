@@ -16,9 +16,9 @@ omitted.
   custom/numbered bodies across 1500-2500 CE.
 - Store source evidence in a form that keeps reference, fitting, hold-out,
   boundary, fixture-exactness, and provenance-only rows separable; the
-  production-generation source summary now carries the exact-J2000 fixture
-  evidence payload directly, but the broader source-density work still needs to
-  land.
+  exact-J2000 reference slice now carries an explicit major-body/selected-
+  asteroid class split in the source-corpus report, but the broader
+  source-density work still needs to land.
 - Derive body/date/channel/frame claims for backend matrices and release profiles
   from validated corpus records.
 

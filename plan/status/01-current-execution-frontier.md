@@ -8,16 +8,17 @@ The repository has strong scaffolding around corpus summaries, backend matrices,
 comparison reports, release bundle rehearsal, and CLI/validation inspection.
 The JPL source-corpus contract is now explicit about reference/hold-out
 provenance, source windows, source revisions, exact J2000 fixture evidence, and
-boundary-request corpora, and the production-generation source summary now
-carries the exact J2000 fixture-evidence payload directly alongside the source
-window payload. The production-generation manifest summary continues to
-validate the derived source, coverage, and boundary request corpus records
-directly. The release-grade body-claims and body/date/channel posture now
-assembles from structured body lists instead of a single hand-written prose
-string. The remaining blocker is still the underlying production-grade
-reference input strategy: current JPL evidence is a checked-in snapshot/
-hold-out fixture set, not a broad public-data reader or production corpus
-provider.
+boundary-request corpora, and the exact J2000 slice now also exposes an
+explicit major-body/selected-asteroid class split in the source-corpus report.
+The production-generation source summary carries the exact J2000 fixture-evidence
+payload directly alongside the source window payload, and the
+production-generation manifest summary continues to validate the derived source,
+coverage, and boundary request corpus records directly. The release-grade
+body-claims and body/date/channel posture now assembles from structured body
+lists instead of a single hand-written prose string. The remaining blocker is
+still the underlying production-grade reference input strategy: current JPL
+evidence is a checked-in snapshot/hold-out fixture set, not a broad public-data
+reader or production corpus provider.
 
 ## Why this comes first
 
