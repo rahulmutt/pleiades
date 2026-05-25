@@ -13,16 +13,18 @@ artifact.
   exact J2000 fixture-exactness evidence are reported through CLI, validation,
   backend-matrix, and bundle surfaces; the release-facing body/date/channel
   posture now derives from validated corpus evidence rather than narrative
-  prose.
+  prose, and the checked-in JPL-style snapshots now have reusable pure-Rust CSV
+  parsing entry points for their manifest and row data.
 - The current corpus covers useful boundary, bridge, selected-asteroid, lunar,
   and comparison slices, but remains sparse and fixture-oriented.
 
 ## Remaining implementation work
 
-- Choose and implement the production source strategy:
-  - a pure-Rust reader/parser for public JPL-style data products, or
-  - a documented reproducible generation pipeline that produces a broad checked
-    reference corpus from public inputs.
+- Broaden the production source strategy on top of the exposed pure-Rust CSV
+  parsing path:
+  - ingest broader public JPL-style data products, or
+  - extend the documented reproducible generation pipeline to produce a broader
+    checked reference corpus from public inputs.
 - Broaden source coverage for all release-claimed bodies, channels, frames, and
   epoch classes across 1500-2500 CE.
 - Keep fitting/reference, independent hold-out, boundary-overlay,

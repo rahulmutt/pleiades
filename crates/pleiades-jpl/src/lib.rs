@@ -3826,6 +3826,7 @@ fn validate_production_generation_source_summary_text(
     let source_revision_fragment = summary.source_revision.summary_line();
     let cadence_fragment = production_generation_source_cadence_fragment(summary)?;
     let body_class_cadence_fragment = production_generation_source_body_class_cadence_fragment()?;
+    let source_density_fragment = production_generation_source_density_summary_for_report()?;
     let required_fragments = [
         ("strategy", "strategy=documented hybrid fixture corpus".to_string()),
         (
@@ -3849,6 +3850,7 @@ fn validate_production_generation_source_summary_text(
         ),
         ("cadence", cadence_fragment),
         ("body-class cadence", body_class_cadence_fragment),
+        ("source density floors", source_density_fragment),
         (
             "row separation",
             "reference and hold-out rows remain separate".to_string(),
@@ -3900,9 +3902,11 @@ impl ProductionGenerationSourceSummary {
         let body_class_cadence_fragment =
             production_generation_source_body_class_cadence_fragment()
                 .unwrap_or_else(|error| format!("body-class cadence unavailable ({error})"));
+        let source_density_fragment = production_generation_source_density_summary_for_report()
+            .unwrap_or_else(|error| format!("source density floors unavailable ({error})"));
 
         format!(
-            "Production generation source: strategy=documented hybrid fixture corpus; {}; {}; source windows={}; reference snapshot exact J2000 evidence={}; evidence classes=reference, hold-out, boundary overlay, provenance-only; input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv; license posture=public-source provenance only; checked-in fixtures remain repository-local regression data; {}; generation command=generate-packaged-artifact --check (consuming the checked-in CSV fixtures); file format=comma-separated values; schema=epoch_jd, body, x_km, y_km, z_km; columns=epoch_jd, body, x_km, y_km, z_km; frame=geocentric ecliptic J2000; time scale=TDB; apparentness=Mean; parser=pure-Rust and deterministic; checksum expectation=byte-identical fixture contents; {}; {}; reference and hold-out rows remain separate; redistribution posture=repository-checked regression fixtures, not a broad public corpus",
+            "Production generation source: strategy=documented hybrid fixture corpus; {}; {}; source windows={}; reference snapshot exact J2000 evidence={}; evidence classes=reference, hold-out, boundary overlay, provenance-only; input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv; license posture=public-source provenance only; checked-in fixtures remain repository-local regression data; {}; generation command=generate-packaged-artifact --check (consuming the checked-in CSV fixtures); file format=comma-separated values; schema=epoch_jd, body, x_km, y_km, z_km; columns=epoch_jd, body, x_km, y_km, z_km; frame=geocentric ecliptic J2000; time scale=TDB; apparentness=Mean; parser=pure-Rust and deterministic; checksum expectation=byte-identical fixture contents; {}; {}; {}; reference and hold-out rows remain separate; redistribution posture=repository-checked regression fixtures, not a broad public corpus",
             self.reference_summary.summary_line(),
             format_production_generation_boundary_source_summary(&self.boundary_summary),
             strip_report_prefix(
@@ -3916,6 +3920,7 @@ impl ProductionGenerationSourceSummary {
             self.source_revision.summary_line(),
             cadence_fragment,
             body_class_cadence_fragment,
+            source_density_fragment,
         )
     }
 
@@ -21867,7 +21872,7 @@ pub fn validated_checked_in_snapshot_schema_summary_for_report() -> Result<Strin
 }
 
 const JPL_SNAPSHOT_EVIDENCE_CLASSIFICATION_SUMMARY: &str = "JPL evidence classification: release-tolerance=reference/comparison/production-generation validation summaries; hold-out=independent hold-out rows and interpolation-quality summaries; fixture exactness=reference snapshot exact J2000 evidence; provenance-only=source and manifest summaries";
-const JPL_SOURCE_POSTURE_SUMMARY: &str = "JPL source posture: documented hybrid snapshot/hold-out fixture backend with a separate generation-input path; pure-Rust include_str! ingestion; not a broad public reader/corpus provider";
+const JPL_SOURCE_POSTURE_SUMMARY: &str = "JPL source posture: documented hybrid snapshot/hold-out fixture backend with a separate generation-input path; pure-Rust include_str! ingestion and reusable CSV parsing entry points; not a broad public reader/corpus provider";
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct JplSnapshotEvidenceClassificationSummary {
@@ -25642,7 +25647,11 @@ fn has_surrounding_whitespace(value: &str) -> bool {
     value.trim() != value || value.contains('\n') || value.contains('\r')
 }
 
-fn parse_snapshot_manifest(source: &str) -> SnapshotManifest {
+/// Parses the header block from a checked-in JPL-style snapshot source.
+///
+/// This is intentionally small and deterministic so public CSV fixtures or
+/// public-data derivatives can reuse the same pure-Rust header reader.
+pub fn parse_snapshot_manifest(source: &str) -> SnapshotManifest {
     let mut manifest = SnapshotManifest::default();
 
     for line in source.lines() {
@@ -25992,8 +26001,9 @@ impl SnapshotState {
     }
 }
 
+/// Structured parser error for checked-in JPL-style snapshot rows.
 #[derive(Clone, Debug, PartialEq)]
-struct SnapshotLoadError {
+pub struct SnapshotLoadError {
     line_number: usize,
     kind: SnapshotLoadErrorKind,
 }
@@ -26001,6 +26011,16 @@ struct SnapshotLoadError {
 impl SnapshotLoadError {
     fn new(line_number: usize, kind: SnapshotLoadErrorKind) -> Self {
         Self { line_number, kind }
+    }
+
+    /// Returns the 1-indexed line number that triggered the parse failure.
+    pub const fn line_number(&self) -> usize {
+        self.line_number
+    }
+
+    /// Returns the structured parse failure kind.
+    pub const fn kind(&self) -> &SnapshotLoadErrorKind {
+        &self.kind
     }
 }
 
@@ -26010,8 +26030,11 @@ impl fmt::Display for SnapshotLoadError {
     }
 }
 
+impl std::error::Error for SnapshotLoadError {}
+
+/// Error kinds produced while parsing checked-in JPL-style snapshot rows.
 #[derive(Clone, Debug, PartialEq)]
-enum SnapshotLoadErrorKind {
+pub enum SnapshotLoadErrorKind {
     MissingColumn {
         column: &'static str,
     },
@@ -26029,6 +26052,20 @@ enum SnapshotLoadErrorKind {
         epoch: Instant,
         first_line: usize,
     },
+}
+
+impl SnapshotLoadErrorKind {
+    /// Returns the compact label used in release-facing summaries and tests.
+    pub const fn label(&self) -> &'static str {
+        match self {
+            Self::MissingColumn { .. } => "missing column",
+            Self::UnexpectedExtraColumns => "unexpected extra columns",
+            Self::BlankBody => "blank body",
+            Self::UnsupportedBody { .. } => "unsupported body",
+            Self::InvalidNumber { .. } => "invalid number",
+            Self::DuplicateEntry { .. } => "duplicate entry",
+        }
+    }
 }
 
 impl fmt::Display for SnapshotLoadErrorKind {
@@ -26799,13 +26836,21 @@ fn resolve_fixture_state_from_entries(
 }
 
 fn load_snapshot() -> Result<Vec<SnapshotEntry>, SnapshotLoadError> {
-    load_snapshot_from_str(include_str!(concat!(
+    parse_snapshot_entries(include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/data/reference_snapshot.csv"
     )))
 }
 
 fn load_snapshot_from_str(source: &str) -> Result<Vec<SnapshotEntry>, SnapshotLoadError> {
+    parse_snapshot_entries(source)
+}
+
+/// Parses the row section of a checked-in JPL-style snapshot source.
+///
+/// The reader accepts the same CSV shape used by the bundled reference and
+/// hold-out fixtures, including custom `catalog:designation` asteroid labels.
+pub fn parse_snapshot_entries(source: &str) -> Result<Vec<SnapshotEntry>, SnapshotLoadError> {
     let mut seen_entries = BTreeMap::new();
 
     source
@@ -32544,6 +32589,36 @@ mod tests {
             manifest.validate(),
             Err(SnapshotManifestValidationError::SurroundedByWhitespace { field: "coverage" })
         );
+    }
+
+    #[test]
+    fn parse_snapshot_entries_and_manifest_round_trip_the_checked_in_reference_snapshot() {
+        let source = include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/data/reference_snapshot.csv"
+        ));
+
+        assert_eq!(
+            parse_snapshot_manifest(source),
+            reference_snapshot_manifest().clone()
+        );
+        assert_eq!(
+            parse_snapshot_entries(source).unwrap(),
+            reference_snapshot()
+        );
+    }
+
+    #[test]
+    fn parse_snapshot_entries_rejects_duplicate_rows() {
+        let source = "# Example snapshot.\n# Source: Example source\n# Coverage: Example coverage\n# Columns: epoch_jd,body,x_km,y_km,z_km\n2451545.0,Sun,1,2,3\n2451545.0,Sun,4,5,6\n";
+
+        let error = parse_snapshot_entries(source).unwrap_err();
+        assert_eq!(error.line_number(), 6);
+        assert!(matches!(
+            error.kind(),
+            SnapshotLoadErrorKind::DuplicateEntry { .. }
+        ));
+        assert_eq!(error.kind().label(), "duplicate entry");
     }
 
     #[test]

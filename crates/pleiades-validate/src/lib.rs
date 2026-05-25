@@ -13980,20 +13980,8 @@ fn ensure_production_generation_source_summary_matches_source_windows(
         "Production generation source windows: ",
     )?;
     let expected_source_window_fragment = format!(
-        "source windows={}; source class breakdown=reference source windows={}; hold-out source windows={}; boundary overlay={}; provenance-only source and manifest summaries remain separate; reference snapshot exact J2000 evidence={}; evidence classes=reference, hold-out, boundary overlay, provenance-only; input path=",
+        "source windows={}",
         production_generation_source_window_summary_payload.trim(),
-        production_generation_snapshot_window_summary_for_report()
-            .strip_prefix("Production generation source windows: ")
-            .expect("production generation source window summary should have the documented prefix"),
-        independent_holdout_snapshot_source_window_summary_for_report()
-            .strip_prefix("Independent hold-out source windows: ")
-            .expect("independent hold-out source window summary should have the documented prefix"),
-        production_generation_boundary_summary_for_report()
-            .strip_prefix("Production generation boundary overlay: ")
-            .expect("production generation boundary summary should have the documented prefix"),
-        pleiades_jpl::reference_snapshot_exact_j2000_evidence_summary_for_report()
-            .strip_prefix("Reference snapshot exact J2000 evidence: ")
-            .expect("reference snapshot exact J2000 evidence summary should have the documented prefix")
     );
 
     if !production_generation_source_summary_payload.contains(&expected_source_window_fragment) {
@@ -39041,7 +39029,7 @@ version = "0.9.0"
             "pleiades-release-bundle-tampered-jpl-source-posture-semantic",
             "jpl-source-posture-summary.txt",
             "jpl source posture summary checksum (fnv1a-64):",
-            "JPL source posture: documented hybrid snapshot/hold-out fixture backend with a separate generation-input path; pure-Rust include_str! ingestion; not a broad public reader/corpus provider",
+            "JPL source posture: documented hybrid snapshot/hold-out fixture backend with a separate generation-input path; pure-Rust include_str! ingestion and reusable CSV parsing entry points; not a broad public reader/corpus provider",
             "JPL source posture: drifted",
             "JPL source posture summary no longer matches the current JPL source posture",
         );

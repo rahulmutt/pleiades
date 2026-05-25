@@ -19,12 +19,13 @@ source-corpus cleanup also corrected the selected-asteroid Apophis rows at J2000
 and the early-2001 boundary samples, and regression tests now pin those Horizons
 values directly. The production-generation manifest summary continues to validate
 the derived source, coverage, and boundary request corpus records directly. The
-release-grade body-claims and body/date/channel posture now assemble from
-structured body lists and validated corpus evidence instead of a single
-hand-written prose string. The remaining blocker is still the underlying
-production-grade reference input strategy: current JPL evidence is a checked-in
-snapshot/hold-out fixture set, not a broad public-data reader or production
-corpus provider.
+checked-in JPL-style snapshots now also expose reusable pure-Rust CSV parsing
+entry points for their manifest and row data. The release-grade body-claims and
+body/date/channel posture now assemble from structured body lists and validated
+corpus evidence instead of a single hand-written prose string. The remaining
+blocker is still the underlying production-grade reference input strategy:
+current JPL evidence is a checked-in snapshot/hold-out fixture set, not a broad
+public-data reader or production corpus provider.
 
 ## Why this comes first
 
@@ -35,8 +36,9 @@ inputs are broad enough to support release claims.
 
 ## Current blockers
 
-1. **Production source strategy** — implement a pure-Rust public-data reader or a
-   documented reproducible corpus-generation pipeline.
+1. **Production source strategy** — broaden the exposed pure-Rust CSV reader
+   into broader public-data inputs or a documented reproducible corpus-generation
+   pipeline.
 2. **Corpus breadth** — cover all release-claimed bodies, channels, frames, and
    epoch classes with enough density for fitting and hold-out validation.
 3. **Artifact accuracy** — keep the packaged artifact draft-grade until Phase 1

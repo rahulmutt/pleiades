@@ -6,11 +6,13 @@ omitted.
 
 ## Phase 1 — Production reference backend and corpus
 
-- Implement the chosen pure-Rust source strategy, either as a public-data
-  reader/parser or a reproducible corpus-generation pipeline from public inputs.
-  The production-generation manifest summary now validates the derived source,
-  coverage, and boundary-request corpus records directly, and the release-facing
-  body/date/channel posture now derives from validated corpus evidence.
+- Broaden the exposed pure-Rust CSV reader/parser into broader public-data
+  inputs or a reproducible corpus-generation pipeline from public inputs. The
+  production-generation manifest summary now validates the derived source,
+  coverage, and boundary-request corpus records directly, the release-facing
+  body/date/channel posture now derives from validated corpus evidence, and the
+  JPL snapshot crate now exposes reusable parsing entry points for the checked-in
+  fixture manifests and rows.
 - Broaden reference and hold-out coverage for luminaries, major planets, Pluto
   policy, lunar/lunar-point channels, baseline asteroids, and representative
   custom/numbered bodies across 1500-2500 CE.

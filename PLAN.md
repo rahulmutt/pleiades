@@ -17,12 +17,13 @@ The workspace is past the original foundation roadmap:
   catalogs and compatibility-profile reporting;
 - VSOP87-style planetary, compact Meeus-style lunar/lunar-point, JPL snapshot,
   and packaged-data backend crates exist;
-- validation, CLI, audit, benchmark, report, and release-bundle rehearsal
-  surfaces exist and generally fail closed on stale rendered sidecars;
-  source-corpus summaries now carry the production-generation body-class
-  coverage and cadence payloads alongside the source-window evidence, and the
-  release-facing body/date/channel posture now derives from validated corpus
-  evidence;
+- the JPL snapshot crate now exposes reusable pure-Rust CSV parsing entry points
+  for the checked-in snapshot fixtures, while validation, CLI, audit, benchmark,
+  report, and release-bundle rehearsal surfaces continue to fail closed on stale
+  rendered sidecars; source-corpus summaries now carry the production-generation
+  body-class coverage and cadence payloads alongside the source-window evidence,
+  and the release-facing body/date/channel posture now derives from validated
+  corpus evidence;
 - unsupported advanced modes are represented in policy surfaces rather than
   silently accepted.
 
