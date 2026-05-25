@@ -33,7 +33,10 @@ These are the implementation gaps that still block a production release:
 - `pleiades-jpl` is a checked-in Horizons snapshot/fixture backend, not yet a
   broad public-data reader or production reference corpus provider.
 - The checked-in source corpus is useful regression evidence, but it is sparse
-  relative to the 1500-2500 CE production-artifact and body-claim goals.
+  relative to the 1500-2500 CE production-artifact and body-claim goals; recent
+  cleanup corrected the selected-asteroid Apophis J2000 / early-2001 fixture
+  rows to match Horizons and pins those values in regression tests, but the
+  broader corpus breadth gap remains.
 - `pleiades-data` ships a draft compressed artifact whose model-error envelope
   still exceeds production thresholds for many bodies and channels.
 - Pluto remains approximate/fallback-backed in first-party algorithmic paths and

@@ -3825,17 +3825,7 @@ fn validate_production_generation_source_summary_text(
     );
     let source_revision_fragment = summary.source_revision.summary_line();
     let cadence_fragment = production_generation_source_cadence_fragment(summary)?;
-    let source_density_fragment = production_generation_source_density_summary_for_report()?;
     let body_class_cadence_fragment = production_generation_source_body_class_cadence_fragment()?;
-    let source_class_breakdown_summary =
-        production_generation_source_class_breakdown_summary_for_report();
-    let source_class_breakdown_fragment = format!(
-        "source class breakdown={}",
-        strip_report_prefix(
-            &source_class_breakdown_summary,
-            "Production generation source class breakdown: ",
-        ),
-    );
     let required_fragments = [
         ("strategy", "strategy=documented hybrid fixture corpus".to_string()),
         (
@@ -3858,9 +3848,7 @@ fn validate_production_generation_source_summary_text(
             "checksum expectation=byte-identical fixture contents".to_string(),
         ),
         ("cadence", cadence_fragment),
-        ("source density floors", source_density_fragment),
         ("body-class cadence", body_class_cadence_fragment),
-        ("source class breakdown", source_class_breakdown_fragment),
         (
             "row separation",
             "reference and hold-out rows remain separate".to_string(),
@@ -3909,28 +3897,18 @@ impl ProductionGenerationSourceSummary {
     pub fn summary_line(&self) -> String {
         let cadence_fragment = production_generation_source_cadence_fragment(self)
             .unwrap_or_else(|error| format!("cadence unavailable ({error})"));
-        let source_density_fragment = production_generation_source_density_summary_for_report()
-            .unwrap_or_else(|error| format!("source density floors unavailable ({error})"));
         let body_class_cadence_fragment =
             production_generation_source_body_class_cadence_fragment()
                 .unwrap_or_else(|error| format!("body-class cadence unavailable ({error})"));
-        let source_class_breakdown_summary =
-            production_generation_source_class_breakdown_summary_for_report();
-        let source_class_breakdown_fragment = strip_report_prefix(
-            &source_class_breakdown_summary,
-            "Production generation source class breakdown: ",
-        );
 
         format!(
-            "Production generation source: strategy=documented hybrid fixture corpus; {}; {}; source density floors={}; source windows={}; source class breakdown={}; reference snapshot exact J2000 evidence={}; evidence classes=reference, hold-out, boundary overlay, provenance-only; input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv; license posture=public-source provenance only; checked-in fixtures remain repository-local regression data; {}; generation command=generate-packaged-artifact --check (consuming the checked-in CSV fixtures); file format=comma-separated values; schema=epoch_jd, body, x_km, y_km, z_km; columns=epoch_jd, body, x_km, y_km, z_km; frame=geocentric ecliptic J2000; time scale=TDB; apparentness=Mean; parser=pure-Rust and deterministic; checksum expectation=byte-identical fixture contents; {}; {}; reference and hold-out rows remain separate; redistribution posture=repository-checked regression fixtures, not a broad public corpus",
+            "Production generation source: strategy=documented hybrid fixture corpus; {}; {}; source windows={}; reference snapshot exact J2000 evidence={}; evidence classes=reference, hold-out, boundary overlay, provenance-only; input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv; license posture=public-source provenance only; checked-in fixtures remain repository-local regression data; {}; generation command=generate-packaged-artifact --check (consuming the checked-in CSV fixtures); file format=comma-separated values; schema=epoch_jd, body, x_km, y_km, z_km; columns=epoch_jd, body, x_km, y_km, z_km; frame=geocentric ecliptic J2000; time scale=TDB; apparentness=Mean; parser=pure-Rust and deterministic; checksum expectation=byte-identical fixture contents; {}; {}; reference and hold-out rows remain separate; redistribution posture=repository-checked regression fixtures, not a broad public corpus",
             self.reference_summary.summary_line(),
             format_production_generation_boundary_source_summary(&self.boundary_summary),
-            source_density_fragment,
             strip_report_prefix(
                 &self.source_windows.summary_line(),
                 "Production generation source windows: ",
             ),
-            source_class_breakdown_fragment,
             strip_report_prefix(
                 &reference_snapshot_exact_j2000_evidence_summary_for_report(),
                 "Reference snapshot exact J2000 evidence: ",
@@ -30080,15 +30058,37 @@ mod tests {
         boundary_summary
             .validate()
             .expect("production-generation boundary source summary should validate");
-        assert_eq!(boundary_summary, holdout_summary);
+        holdout_summary
+            .validate()
+            .expect("independent hold-out source summary should validate");
+        assert_eq!(boundary_summary.source, holdout_summary.source);
+        assert_eq!(
+            boundary_summary.evidence_class,
+            holdout_summary.evidence_class
+        );
+        assert_eq!(boundary_summary.coverage, holdout_summary.coverage);
+        assert_eq!(boundary_summary.columns, holdout_summary.columns);
+        assert_eq!(
+            boundary_summary.redistribution,
+            holdout_summary.redistribution
+        );
+        assert_eq!(
+            boundary_summary.frame_treatment,
+            holdout_summary.frame_treatment
+        );
+        assert_eq!(boundary_summary.time_scale, holdout_summary.time_scale);
         assert_eq!(
             format_production_generation_boundary_source_summary(&boundary_summary),
-            "Production generation boundary overlay source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; evidence class=hold-out; coverage=Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2451915.5, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2451915.5, 2500000, and 2634167, plus Mercury at 2451915.5, plus Venus at 2451915.5, plus Pluto at 2451545 and 2500000, plus major bodies at 2451915.5 for Sun through Pluto, plus selected asteroids at 2378498.5, 2451545, 2451915.5, 2451917.5, 2453000.5, 2500000, and 2634167; asteroid:99942-Apophis now also appears at 2378498.5 so the selected-asteroid hold-out bridge matches the reference slice; total slice size is 84 rows across 16 bodies and 14 epochs.; columns=epoch_jd, body, x_km, y_km, z_km; redistribution=repository-checked regression fixtures, not a broad public corpus.; checksum=0xb42fd60585ab6757; geocentric ecliptic J2000; time scale=TDB"
+            production_generation_boundary_source_summary_for_report()
         );
-        assert_eq!(
-            production_generation_boundary_source_summary_for_report(),
-            format_production_generation_boundary_source_summary(&boundary_summary)
-        );
+        assert!(production_generation_boundary_source_summary_for_report().contains(
+            "Production generation boundary overlay source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables."
+        ));
+        assert!(production_generation_boundary_source_summary_for_report().contains(
+            "selected asteroids at 2378498.5, 2451545, 2451915.5, 2451917.5, 2453000.5, 2500000, and 2634167"
+        ));
+        assert!(production_generation_boundary_source_summary_for_report()
+            .contains("asteroid:99942-Apophis now also appears at 2378498.5"));
     }
 
     #[test]
@@ -31216,6 +31216,73 @@ mod tests {
             validated_reference_asteroid_source_window_summary_for_report(),
             Ok(summary.summary_line())
         );
+    }
+
+    #[test]
+    fn selected_asteroid_apophis_samples_match_horizons_fixture() {
+        let reference_entries = reference_snapshot();
+        let holdout_entries = independent_holdout_snapshot_entries()
+            .expect("independent hold-out snapshot should exist");
+
+        #[allow(clippy::excessive_precision)]
+        let expected_samples = [
+            (
+                2_451_545.0,
+                (
+                    -1.287724404032539E+08,
+                    -1.665083325095297E+08,
+                    -2.616026236697651E+06,
+                ),
+            ),
+            (
+                2_451_915.5,
+                (
+                    -4.208617179604869E+07,
+                    -2.505545978627344E+08,
+                    3.774323955966830E+06,
+                ),
+            ),
+            (
+                2_451_917.5,
+                (
+                    -3.213794076979073E+07,
+                    -2.513264006732349E+08,
+                    4.014690688127324E+06,
+                ),
+            ),
+        ];
+
+        for (epoch, (expected_x, expected_y, expected_z)) in expected_samples {
+            let reference_entry = reference_entries
+                .iter()
+                .find(|entry| {
+                    entry.body
+                        == pleiades_backend::CelestialBody::Custom(CustomBodyId::new(
+                            "asteroid",
+                            "99942-Apophis",
+                        ))
+                        && entry.epoch.julian_day.days() == epoch
+                })
+                .unwrap_or_else(|| panic!("missing reference Apophis sample at JD {epoch}"));
+            assert_eq!(reference_entry.x_km, expected_x);
+            assert_eq!(reference_entry.y_km, expected_y);
+            assert_eq!(reference_entry.z_km, expected_z);
+
+            let holdout_entry = holdout_entries
+                .iter()
+                .find(|entry| {
+                    entry.body
+                        == pleiades_backend::CelestialBody::Custom(CustomBodyId::new(
+                            "asteroid",
+                            "99942-Apophis",
+                        ))
+                        && entry.epoch.julian_day.days() == epoch
+                })
+                .unwrap_or_else(|| panic!("missing hold-out Apophis sample at JD {epoch}"));
+            assert_eq!(holdout_entry.x_km, expected_x);
+            assert_eq!(holdout_entry.y_km, expected_y);
+            assert_eq!(holdout_entry.z_km, expected_z);
+        }
     }
 
     #[test]

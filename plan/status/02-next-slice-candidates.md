@@ -22,6 +22,10 @@ omitted.
   production-generation body-class coverage/cadence split is now surfaced too,
   but broader source breadth and the remaining public-input strategy work still
   need to land.
+- Keep cleaning up the checked-in Horizons fixtures as source-verified samples
+  are found; the selected-asteroid Apophis rows at J2000 and the early-2001
+  boundary epochs now match the live Horizons vectors and are pinned by
+  regression tests.
 
 ## Phase 2 — Release-grade compressed ephemeris
 

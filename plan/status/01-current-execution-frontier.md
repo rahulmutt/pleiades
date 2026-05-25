@@ -14,14 +14,17 @@ The source-corpus summary now also surfaces the merged production-generation
 body-class coverage and cadence split, and the production-generation source
 summary now carries explicit source-density floors alongside the exact J2000
 fixture-evidence payload, the source window payload, and an explicit source-class
-breakdown across reference, hold-out, boundary, and provenance-only rows. The
-production-generation manifest summary continues to validate the derived source,
-coverage, and boundary request corpus records directly. The release-grade
-body-claims and body/date/channel posture now assemble from structured body
-lists and validated corpus evidence instead of a single hand-written prose
-string. The remaining blocker is still the underlying production-grade reference
-input strategy: current JPL evidence is a checked-in snapshot/hold-out fixture
-set, not a broad public-data reader or production corpus provider.
+breakdown across reference, hold-out, boundary, and provenance-only rows. Recent
+source-corpus cleanup also corrected the selected-asteroid Apophis rows at J2000
+and the early-2001 boundary samples, and regression tests now pin those Horizons
+values directly. The production-generation manifest summary continues to validate
+the derived source, coverage, and boundary request corpus records directly. The
+release-grade body-claims and body/date/channel posture now assemble from
+structured body lists and validated corpus evidence instead of a single
+hand-written prose string. The remaining blocker is still the underlying
+production-grade reference input strategy: current JPL evidence is a checked-in
+snapshot/hold-out fixture set, not a broad public-data reader or production
+corpus provider.
 
 ## Why this comes first
 
