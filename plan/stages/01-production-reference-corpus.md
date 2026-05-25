@@ -27,9 +27,6 @@ artifact.
   epoch classes across 1500-2500 CE.
 - Keep fitting/reference, independent hold-out, boundary-overlay,
   fixture-exactness, and provenance-only evidence separate in data and reports.
-- Define minimum source density/cadence requirements per body class, including
-  luminaries, major planets, Pluto policy, lunar points, baseline asteroids, and
-  any custom/numbered body examples.
 
 ## Exit criteria
 

@@ -20,7 +20,8 @@ omitted.
   asteroid class split in the source-corpus report, the production-generation
   source summary now exposes an explicit source-class breakdown, and the merged
   production-generation body-class coverage/cadence split is now surfaced too,
-  but the broader source-density work still needs to land.
+  but broader source breadth and the remaining public-input strategy work still
+  need to land.
 
 ## Phase 2 — Release-grade compressed ephemeris
 

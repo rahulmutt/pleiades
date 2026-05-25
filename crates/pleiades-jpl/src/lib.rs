@@ -3770,13 +3770,28 @@ fn production_generation_source_body_class_cadence_fragment(
     ))
 }
 
-fn production_generation_source_class_breakdown_fragment(
-    summary: &ProductionGenerationSourceSummary,
+/// Returns a compact source-density summary for the production-generation corpus.
+pub fn production_generation_source_density_summary_for_report(
 ) -> Result<String, ProductionGenerationSourceSummaryValidationError> {
+    let snapshot = production_generation_snapshot_body_class_coverage_summary()
+        .ok_or(ProductionGenerationSourceSummaryValidationError::SourceDensityMismatch)?;
+    let boundary = production_generation_boundary_body_class_coverage_summary()
+        .ok_or(ProductionGenerationSourceSummaryValidationError::SourceDensityMismatch)?;
+
     Ok(format!(
-        "reference source windows={}; hold-out source windows={}; boundary overlay={}; provenance-only source and manifest summaries remain separate",
+        "source density floors=reference major bodies: {} epochs minimum; reference selected asteroids: {} epochs minimum; boundary major bodies: {} epochs minimum; boundary selected asteroids: {} epochs minimum",
+        snapshot.major_epoch_count,
+        snapshot.asteroid_epoch_count,
+        boundary.major_epoch_count,
+        boundary.asteroid_epoch_count,
+    ))
+}
+
+pub fn production_generation_source_class_breakdown_summary_for_report() -> String {
+    format!(
+        "Production generation source class breakdown: reference source windows={}; hold-out source windows={}; boundary overlay={}; provenance-only source and manifest summaries remain separate",
         strip_report_prefix(
-            &summary.source_windows.summary_line(),
+            &production_generation_snapshot_window_summary_for_report(),
             "Production generation source windows: ",
         ),
         strip_report_prefix(
@@ -3787,7 +3802,7 @@ fn production_generation_source_class_breakdown_fragment(
             &production_generation_boundary_summary_for_report(),
             "Production generation boundary overlay: ",
         ),
-    ))
+    )
 }
 
 fn validate_production_generation_source_summary_text(
@@ -3810,12 +3825,17 @@ fn validate_production_generation_source_summary_text(
     );
     let source_revision_fragment = summary.source_revision.summary_line();
     let cadence_fragment = production_generation_source_cadence_fragment(summary)?;
+    let source_density_fragment = production_generation_source_density_summary_for_report()?;
     let body_class_cadence_fragment = production_generation_source_body_class_cadence_fragment()?;
+    let source_class_breakdown_summary =
+        production_generation_source_class_breakdown_summary_for_report();
     let source_class_breakdown_fragment = format!(
         "source class breakdown={}",
-        production_generation_source_class_breakdown_fragment(summary)?,
+        strip_report_prefix(
+            &source_class_breakdown_summary,
+            "Production generation source class breakdown: ",
+        ),
     );
-
     let required_fragments = [
         ("strategy", "strategy=documented hybrid fixture corpus".to_string()),
         (
@@ -3838,12 +3858,13 @@ fn validate_production_generation_source_summary_text(
             "checksum expectation=byte-identical fixture contents".to_string(),
         ),
         ("cadence", cadence_fragment),
+        ("source density floors", source_density_fragment),
         ("body-class cadence", body_class_cadence_fragment),
+        ("source class breakdown", source_class_breakdown_fragment),
         (
             "row separation",
             "reference and hold-out rows remain separate".to_string(),
         ),
-        ("source class breakdown", source_class_breakdown_fragment),
         (
             "source windows",
             source_windows_fragment,
@@ -3888,17 +3909,23 @@ impl ProductionGenerationSourceSummary {
     pub fn summary_line(&self) -> String {
         let cadence_fragment = production_generation_source_cadence_fragment(self)
             .unwrap_or_else(|error| format!("cadence unavailable ({error})"));
+        let source_density_fragment = production_generation_source_density_summary_for_report()
+            .unwrap_or_else(|error| format!("source density floors unavailable ({error})"));
         let body_class_cadence_fragment =
             production_generation_source_body_class_cadence_fragment()
                 .unwrap_or_else(|error| format!("body-class cadence unavailable ({error})"));
-        let source_class_breakdown_fragment =
-            production_generation_source_class_breakdown_fragment(self)
-                .unwrap_or_else(|error| format!("source class breakdown unavailable ({error})"));
+        let source_class_breakdown_summary =
+            production_generation_source_class_breakdown_summary_for_report();
+        let source_class_breakdown_fragment = strip_report_prefix(
+            &source_class_breakdown_summary,
+            "Production generation source class breakdown: ",
+        );
 
         format!(
-            "Production generation source: strategy=documented hybrid fixture corpus; {}; {}; source windows={}; source class breakdown={}; reference snapshot exact J2000 evidence={}; evidence classes=reference, hold-out, boundary overlay, provenance-only; input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv; license posture=public-source provenance only; checked-in fixtures remain repository-local regression data; {}; generation command=generate-packaged-artifact --check (consuming the checked-in CSV fixtures); file format=comma-separated values; schema=epoch_jd, body, x_km, y_km, z_km; columns=epoch_jd, body, x_km, y_km, z_km; frame=geocentric ecliptic J2000; time scale=TDB; apparentness=Mean; parser=pure-Rust and deterministic; checksum expectation=byte-identical fixture contents; {}; {}; reference and hold-out rows remain separate; redistribution posture=repository-checked regression fixtures, not a broad public corpus",
+            "Production generation source: strategy=documented hybrid fixture corpus; {}; {}; source density floors={}; source windows={}; source class breakdown={}; reference snapshot exact J2000 evidence={}; evidence classes=reference, hold-out, boundary overlay, provenance-only; input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv; license posture=public-source provenance only; checked-in fixtures remain repository-local regression data; {}; generation command=generate-packaged-artifact --check (consuming the checked-in CSV fixtures); file format=comma-separated values; schema=epoch_jd, body, x_km, y_km, z_km; columns=epoch_jd, body, x_km, y_km, z_km; frame=geocentric ecliptic J2000; time scale=TDB; apparentness=Mean; parser=pure-Rust and deterministic; checksum expectation=byte-identical fixture contents; {}; {}; reference and hold-out rows remain separate; redistribution posture=repository-checked regression fixtures, not a broad public corpus",
             self.reference_summary.summary_line(),
             format_production_generation_boundary_source_summary(&self.boundary_summary),
+            source_density_fragment,
             strip_report_prefix(
                 &self.source_windows.summary_line(),
                 "Production generation source windows: ",
@@ -3962,6 +3989,8 @@ pub enum ProductionGenerationSourceSummaryValidationError {
     SourceWindows(ProductionGenerationSnapshotWindowSummaryValidationError),
     /// The source-window summary no longer matches the current derived corpus evidence.
     SourceWindowsMismatch,
+    /// The source-density floors summary no longer matches the current derived corpus evidence.
+    SourceDensityMismatch,
     /// The body-class cadence summary no longer matches the current derived corpus evidence.
     BodyClassCadenceMismatch,
     /// The ecliptic and equatorial boundary-request corpora no longer share the same epoch count.
@@ -3986,6 +4015,7 @@ impl fmt::Display for ProductionGenerationSourceSummaryValidationError {
                 write!(f, "source window summary validation failed: {error}")
             }
             Self::SourceWindowsMismatch => f.write_str("source windows mismatch"),
+            Self::SourceDensityMismatch => f.write_str("source density floors mismatch"),
             Self::BodyClassCadenceMismatch => f.write_str("body-class cadence mismatch"),
             Self::BoundaryRequestCorpusEpochCountMismatch {
                 ecliptic_epoch_count,
@@ -33191,7 +33221,6 @@ mod tests {
         assert!(report
             .contains("evidence classes=reference, hold-out, boundary overlay, provenance-only"));
         assert!(report.contains("independent_holdout_snapshot.csv checksum=0x"));
-        assert!(report.contains("source class breakdown=reference source windows="));
         assert!(report
             .contains("source windows=357 source-backed samples across 16 bodies and 31 epochs"));
         assert!(report.contains("license posture=public-source provenance only; checked-in fixtures remain repository-local regression data"));

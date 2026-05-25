@@ -13979,37 +13979,24 @@ fn ensure_production_generation_source_summary_matches_source_windows(
         production_generation_source_window_summary_text,
         "Production generation source windows: ",
     )?;
-    let source_class_breakdown_fragment = format!(
-        "source class breakdown=reference source windows={}; hold-out source windows={}; boundary overlay={}; provenance-only source and manifest summaries remain separate",
+    let expected_source_window_fragment = format!(
+        "source windows={}; source class breakdown=reference source windows={}; hold-out source windows={}; boundary overlay={}; provenance-only source and manifest summaries remain separate; reference snapshot exact J2000 evidence={}; evidence classes=reference, hold-out, boundary overlay, provenance-only; input path=",
         production_generation_source_window_summary_payload.trim(),
-        pleiades_jpl::independent_holdout_snapshot_source_window_summary_for_report()
+        production_generation_snapshot_window_summary_for_report()
+            .strip_prefix("Production generation source windows: ")
+            .expect("production generation source window summary should have the documented prefix"),
+        independent_holdout_snapshot_source_window_summary_for_report()
             .strip_prefix("Independent hold-out source windows: ")
             .expect("independent hold-out source window summary should have the documented prefix"),
-        pleiades_jpl::production_generation_boundary_summary_for_report()
+        production_generation_boundary_summary_for_report()
             .strip_prefix("Production generation boundary overlay: ")
             .expect("production generation boundary summary should have the documented prefix"),
-    );
-    let expected_source_windows_fragment = format!(
-        "source windows={};",
-        production_generation_source_window_summary_payload.trim(),
-    );
-    let expected_exact_j2000_fragment = format!(
-        "reference snapshot exact J2000 evidence={};",
         pleiades_jpl::reference_snapshot_exact_j2000_evidence_summary_for_report()
             .strip_prefix("Reference snapshot exact J2000 evidence: ")
-            .expect(
-                "reference snapshot exact J2000 evidence summary should have the documented prefix"
-            ),
+            .expect("reference snapshot exact J2000 evidence summary should have the documented prefix")
     );
-    let expected_evidence_classes_fragment =
-        "evidence classes=reference, hold-out, boundary overlay, provenance-only";
 
-    if !production_generation_source_summary_payload.contains(&expected_source_windows_fragment)
-        || !production_generation_source_summary_payload.contains(&source_class_breakdown_fragment)
-        || !production_generation_source_summary_payload.contains(&expected_exact_j2000_fragment)
-        || !production_generation_source_summary_payload
-            .contains(expected_evidence_classes_fragment)
-    {
+    if !production_generation_source_summary_payload.contains(&expected_source_window_fragment) {
         return Err(ReleaseBundleError::Verification(
             "production generation source summary source windows payload does not match the production generation source window summary".to_string(),
         ));
@@ -44436,7 +44423,7 @@ version = "0.9.0"
         assert!(rendered.contains("reference_snapshot.csv checksum=0x"));
         assert!(rendered.contains("independent_holdout_snapshot.csv checksum=0x"));
         assert!(rendered.contains("production generation source windows=357 source-backed samples across 16 bodies and 31 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB))"));
-        assert!(rendered.contains("source class breakdown=reference source windows="));
+        assert!(rendered.contains("source density floors=reference major bodies:"));
         assert!(rendered.contains("production generation body-class coverage=major bodies: 262 rows across 10 bodies and 31 epochs"));
         assert!(rendered
             .contains("production generation date range=JD 2268932.5 (TDB)..JD 2634167.0 (TDB)"));
