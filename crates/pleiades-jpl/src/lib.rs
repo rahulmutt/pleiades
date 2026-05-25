@@ -21520,12 +21520,24 @@ pub fn jpl_provenance_only_summary_for_report() -> String {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct JplSourceCorpusContractSummary {
     /// Evidence-classification line for the current corpus contract.
     pub evidence_classification: JplSnapshotEvidenceClassificationSummary,
     /// Source-posture line for the current corpus contract.
     pub source_posture: JplSourcePostureSummary,
+    /// Reference-snapshot provenance describing the release-claimed body/channel/frame posture.
+    pub reference_summary: ReferenceSnapshotSourceSummary,
+    /// Independent hold-out provenance describing the hold-out partition.
+    pub boundary_summary: IndependentHoldoutSourceSummary,
+    /// Source-window summary for the merged production-generation corpus.
+    pub source_windows: ProductionGenerationSnapshotWindowSummary,
+    /// Deterministic revision metadata for the checked-in CSV fixtures.
+    pub source_revision: ProductionGenerationSourceRevisionSummary,
+    /// Ecliptic boundary-request corpus used to keep request-frame posture explicit.
+    pub boundary_request_corpus_ecliptic: ProductionGenerationBoundaryRequestCorpusSummary,
+    /// Equatorial boundary-request corpus used to keep request-frame posture explicit.
+    pub boundary_request_corpus_equatorial: ProductionGenerationBoundaryRequestCorpusSummary,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -21551,9 +21563,24 @@ impl JplSourceCorpusContractSummary {
     /// Returns the source-corpus contract line used by validation and release reports.
     pub fn summary_line(&self) -> String {
         format!(
-            "JPL source corpus contract: {}; {}",
+            "JPL source corpus contract: {}; {}; reference={}; hold-out={}; source windows={}; source revision={}; boundary request corpora: ecliptic={}; equatorial={}",
             self.evidence_classification.summary_line(),
             self.source_posture.summary_line(),
+            self.reference_summary.summary_line(),
+            self.boundary_summary.summary_line(),
+            strip_report_prefix(
+                &self.source_windows.summary_line(),
+                "Production generation source windows: ",
+            ),
+            self.source_revision.summary_line(),
+            strip_report_prefix(
+                &self.boundary_request_corpus_ecliptic.summary_line(),
+                "Production generation boundary request corpus: ",
+            ),
+            strip_report_prefix(
+                &self.boundary_request_corpus_equatorial.summary_line(),
+                "Production generation boundary request corpus: ",
+            ),
         )
     }
 
@@ -21570,6 +21597,67 @@ impl JplSourceCorpusContractSummary {
             return Err(
                 JplSourceCorpusContractSummaryValidationError::FieldOutOfSync {
                     field: "source_posture",
+                },
+            );
+        }
+        if self.reference_summary != reference_snapshot_source_summary() {
+            return Err(
+                JplSourceCorpusContractSummaryValidationError::FieldOutOfSync {
+                    field: "reference_summary",
+                },
+            );
+        }
+        if self.boundary_summary != independent_holdout_source_summary() {
+            return Err(
+                JplSourceCorpusContractSummaryValidationError::FieldOutOfSync {
+                    field: "boundary_summary",
+                },
+            );
+        }
+        let expected_source_windows = production_generation_snapshot_window_summary().ok_or(
+            JplSourceCorpusContractSummaryValidationError::FieldOutOfSync {
+                field: "source_windows",
+            },
+        )?;
+        if self.source_windows != expected_source_windows {
+            return Err(
+                JplSourceCorpusContractSummaryValidationError::FieldOutOfSync {
+                    field: "source_windows",
+                },
+            );
+        }
+        if self.source_revision != production_generation_source_revision_summary() {
+            return Err(
+                JplSourceCorpusContractSummaryValidationError::FieldOutOfSync {
+                    field: "source_revision",
+                },
+            );
+        }
+        let expected_boundary_request_corpus_ecliptic =
+            production_generation_boundary_request_corpus_summary(CoordinateFrame::Ecliptic)
+                .ok_or(
+                    JplSourceCorpusContractSummaryValidationError::FieldOutOfSync {
+                        field: "boundary_request_corpus_ecliptic",
+                    },
+                )?;
+        if self.boundary_request_corpus_ecliptic != expected_boundary_request_corpus_ecliptic {
+            return Err(
+                JplSourceCorpusContractSummaryValidationError::FieldOutOfSync {
+                    field: "boundary_request_corpus_ecliptic",
+                },
+            );
+        }
+        let expected_boundary_request_corpus_equatorial =
+            production_generation_boundary_request_corpus_summary(CoordinateFrame::Equatorial)
+                .ok_or(
+                    JplSourceCorpusContractSummaryValidationError::FieldOutOfSync {
+                        field: "boundary_request_corpus_equatorial",
+                    },
+                )?;
+        if self.boundary_request_corpus_equatorial != expected_boundary_request_corpus_equatorial {
+            return Err(
+                JplSourceCorpusContractSummaryValidationError::FieldOutOfSync {
+                    field: "boundary_request_corpus_equatorial",
                 },
             );
         }
@@ -21597,6 +21685,19 @@ pub fn jpl_source_corpus_contract_summary_details() -> JplSourceCorpusContractSu
     let summary = JplSourceCorpusContractSummary {
         evidence_classification: jpl_snapshot_evidence_classification_summary_details(),
         source_posture: jpl_source_posture_summary_details(),
+        reference_summary: reference_snapshot_source_summary(),
+        boundary_summary: independent_holdout_source_summary(),
+        source_windows: production_generation_snapshot_window_summary()
+            .expect("production generation source windows should exist"),
+        source_revision: production_generation_source_revision_summary(),
+        boundary_request_corpus_ecliptic: production_generation_boundary_request_corpus_summary(
+            CoordinateFrame::Ecliptic,
+        )
+        .expect("production generation ecliptic boundary request corpus should exist"),
+        boundary_request_corpus_equatorial: production_generation_boundary_request_corpus_summary(
+            CoordinateFrame::Equatorial,
+        )
+        .expect("production generation equatorial boundary request corpus should exist"),
     };
     debug_assert!(summary.validate().is_ok());
     summary
@@ -33712,6 +33813,14 @@ mod tests {
             contract.summary_line(),
             jpl_source_corpus_contract_summary_for_report()
         );
+        assert!(contract.summary_line().contains("reference="));
+        assert!(contract.summary_line().contains("hold-out="));
+        assert!(contract.summary_line().contains("source windows="));
+        assert!(contract.summary_line().contains("source revision="));
+        assert!(contract
+            .summary_line()
+            .contains("boundary request corpora: ecliptic="));
+        assert!(contract.summary_line().contains("equatorial="));
         assert_eq!(classification.validate(), Ok(()));
         assert_eq!(posture.validate(), Ok(()));
         assert_eq!(provenance_only.validate(), Ok(()));
@@ -33726,10 +33835,8 @@ mod tests {
         let drifted_provenance_only = JplProvenanceOnlySummary {
             text: "JPL provenance-only evidence: drifted",
         };
-        let drifted_contract = JplSourceCorpusContractSummary {
-            evidence_classification: drifted_classification.clone(),
-            source_posture: drifted_posture.clone(),
-        };
+        let mut drifted_contract = jpl_source_corpus_contract_summary_details();
+        drifted_contract.source_posture = drifted_posture.clone();
 
         assert!(drifted_classification.validate().is_err());
         assert!(drifted_posture.validate().is_err());

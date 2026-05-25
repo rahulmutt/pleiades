@@ -6,8 +6,6 @@ omitted.
 
 ## Phase 1 — Production reference backend and corpus
 
-- Define the production source-corpus contract: bodies, channels, frames, epoch
-  cadence, evidence classes, source revisions, and hold-out partitions.
 - Implement the chosen pure-Rust source strategy, either as a public-data
   reader/parser or a reproducible corpus-generation pipeline from public inputs.
 - Broaden reference and hold-out coverage for luminaries, major planets, Pluto

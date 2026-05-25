@@ -5,10 +5,12 @@
 Phase 1, production reference backend and corpus, is the active frontier.
 
 The repository has strong scaffolding around corpus summaries, backend matrices,
-comparison reports, release bundle rehearsal, and CLI/validation inspection. The
-remaining blocker is the underlying production-grade reference input strategy:
-current JPL evidence is still a checked-in snapshot/hold-out fixture set, not a
-broad public-data reader or production corpus provider.
+comparison reports, release bundle rehearsal, and CLI/validation inspection.
+The JPL source-corpus contract is now explicit about reference/hold-out
+provenance, source windows, source revisions, and boundary-request corpora, but
+the remaining blocker is still the underlying production-grade reference input
+strategy: current JPL evidence is a checked-in snapshot/hold-out fixture set,
+not a broad public-data reader or production corpus provider.
 
 ## Why this comes first
 
@@ -32,11 +34,9 @@ inputs are broad enough to support release claims.
 
 ## Recommended next slice
 
-Implement the production source-corpus contract in data first:
+Continue broadening the production source-corpus evidence in data first:
 
-- define required body classes, channels, frames, epoch cadence, and hold-out
-  partitions;
-- add or generate representative source coverage to satisfy that contract;
+- add or generate representative source coverage to satisfy the contract;
 - validate corpus shape, checksums, source revisions, and provenance from the
   data itself;
 - update backend matrices and release profiles to consume the validated claim
