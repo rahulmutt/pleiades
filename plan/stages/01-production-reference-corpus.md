@@ -9,8 +9,9 @@ artifact.
 ## Current baseline
 
 - JPL/Horizons snapshot and hold-out CSV fixtures are checked in and validated.
-- Source, frame, time-scale, schema, checksum, and redistribution posture are
-  reported through CLI, validation, backend-matrix, and bundle surfaces.
+- Source, frame, time-scale, schema, checksum, redistribution posture, and
+  exact J2000 fixture-exactness evidence are reported through CLI, validation,
+  backend-matrix, and bundle surfaces.
 - The current corpus covers useful boundary, bridge, selected-asteroid, lunar,
   and comparison slices, but remains sparse and fixture-oriented.
 

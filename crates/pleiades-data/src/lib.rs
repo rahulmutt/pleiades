@@ -3044,13 +3044,15 @@ const PACKAGED_ARTIFACT_TARGET_THRESHOLD_SCOPES: &[&str] = &[
 ];
 
 /// Phase-2 corpus evidence used to keep the packaged-artifact threshold policy aligned
-/// with the current reference, comparison, hold-out, selected-asteroid, boundary-overlay, and production-generation corpora.
+/// with the current reference, fixture-exactness, comparison, hold-out, selected-asteroid, boundary-overlay, and production-generation corpora.
 #[derive(Clone, Debug, PartialEq)]
 pub struct PackagedArtifactPhase2CorpusAlignmentSummary {
     /// Source-material evidence from the checked-in reference snapshot.
     pub reference_snapshot_source: pleiades_jpl::ReferenceSnapshotSourceSummary,
     /// Body-class coverage evidence from the checked-in reference snapshot.
     pub reference_snapshot: pleiades_jpl::ReferenceSnapshotBodyClassCoverageSummary,
+    /// Exact J2000 fixture-exactness evidence from the checked-in reference snapshot.
+    pub reference_snapshot_exact_j2000: pleiades_jpl::ReferenceSnapshotExactJ2000EvidenceSummary,
     /// Source-material evidence from the checked-in comparison snapshot.
     pub comparison_snapshot_source: pleiades_jpl::ComparisonSnapshotSourceSummary,
     /// Body-class coverage evidence from the checked-in comparison snapshot.
@@ -3102,6 +3104,9 @@ fn phase2_corpus_alignment_validation_field_path(field: &'static str) -> &'stati
     match field {
         "reference_snapshot_source" => "phase2_corpus_alignment.reference_snapshot_source",
         "reference_snapshot" => "phase2_corpus_alignment.reference_snapshot",
+        "reference_snapshot_exact_j2000" => {
+            "phase2_corpus_alignment.reference_snapshot_exact_j2000"
+        }
         "comparison_snapshot_source" => "phase2_corpus_alignment.comparison_snapshot_source",
         "comparison_snapshot" => "phase2_corpus_alignment.comparison_snapshot",
         "independent_holdout_source" => "phase2_corpus_alignment.independent_holdout_source",
@@ -3131,9 +3136,10 @@ impl PackagedArtifactPhase2CorpusAlignmentSummary {
     /// Returns the phase-2 corpus alignment posture as a compact human-readable line.
     pub fn summary_line(&self) -> String {
         format!(
-            "reference source={}; reference snapshot={}; comparison source={}; comparison snapshot={}; independent hold-out source={}; independent hold-out={}; selected asteroid source evidence={}; selected asteroid source windows={}; selected asteroid source request corpus={}; selected asteroid source request corpus equatorial={}; production generation boundary source={}; production generation body-class coverage={}; production generation source={}",
+            "reference source={}; reference snapshot={}; reference exact J2000 evidence={}; comparison source={}; comparison snapshot={}; independent hold-out source={}; independent hold-out={}; selected asteroid source evidence={}; selected asteroid source windows={}; selected asteroid source request corpus={}; selected asteroid source request corpus equatorial={}; production generation boundary source={}; production generation body-class coverage={}; production generation source={}",
             self.reference_snapshot_source.summary_line(),
             self.reference_snapshot.summary_line(),
+            self.reference_snapshot_exact_j2000.summary_line(),
             self.comparison_snapshot_source.summary_line(),
             self.comparison_snapshot.summary_line(),
             self.independent_holdout_source.summary_line(),
@@ -3179,6 +3185,13 @@ impl PackagedArtifactPhase2CorpusAlignmentSummary {
         self.reference_snapshot
             .validate()
             .map_err(|_| field_out_of_sync("reference_snapshot"))?;
+
+        if self.reference_snapshot_exact_j2000 != expected.reference_snapshot_exact_j2000 {
+            return Err(field_out_of_sync("reference_snapshot_exact_j2000"));
+        }
+        self.reference_snapshot_exact_j2000
+            .validate()
+            .map_err(|_| field_out_of_sync("reference_snapshot_exact_j2000"))?;
 
         if self.comparison_snapshot_source != expected.comparison_snapshot_source {
             return Err(field_out_of_sync("comparison_snapshot_source"));
@@ -3293,6 +3306,8 @@ pub fn packaged_artifact_phase2_corpus_alignment_summary_details(
     Some(PackagedArtifactPhase2CorpusAlignmentSummary {
         reference_snapshot_source: pleiades_jpl::reference_snapshot_source_summary(),
         reference_snapshot: pleiades_jpl::reference_snapshot_body_class_coverage_summary()?,
+        reference_snapshot_exact_j2000:
+            pleiades_jpl::reference_snapshot_exact_j2000_evidence_summary()?,
         comparison_snapshot_source: pleiades_jpl::comparison_snapshot_source_summary(),
         comparison_snapshot: comparison_snapshot_body_class_coverage_summary()?,
         independent_holdout_source: pleiades_jpl::independent_holdout_source_summary(),
@@ -13310,6 +13325,10 @@ mod tests {
         assert!(summary
             .phase2_corpus_alignment
             .summary_line()
+            .contains("reference exact J2000 evidence=Reference snapshot exact J2000 evidence:"));
+        assert!(summary
+            .phase2_corpus_alignment
+            .summary_line()
             .contains("comparison source=Comparison snapshot source:"));
         assert!(summary
             .phase2_corpus_alignment
@@ -13468,6 +13487,7 @@ mod tests {
     fn packaged_artifact_phase2_corpus_alignment_summary_for_report_is_validated() {
         let rendered = packaged_artifact_phase2_corpus_alignment_summary_for_report();
         assert!(rendered.contains("reference snapshot="));
+        assert!(rendered.contains("reference exact J2000 evidence="));
         assert!(rendered.contains("comparison snapshot="));
         assert!(rendered.contains("independent hold-out="));
         assert!(rendered.contains(
@@ -13475,6 +13495,7 @@ mod tests {
         ));
         assert!(rendered.contains("production generation source=Production generation source:"));
         assert!(rendered.contains("Reference snapshot body-class coverage"));
+        assert!(rendered.contains("Reference snapshot exact J2000 evidence"));
         assert!(rendered.contains("Independent hold-out body-class coverage"));
         assert!(rendered.contains(
             "selected asteroid source request corpus=Selected asteroid source request corpus:"
@@ -13485,6 +13506,24 @@ mod tests {
         assert!(rendered.contains(
             "production generation boundary source=Production generation boundary overlay source:"
         ));
+    }
+
+    #[test]
+    fn packaged_artifact_phase2_corpus_alignment_summary_validation_rejects_exact_j2000_drift() {
+        let mut summary = packaged_artifact_phase2_corpus_alignment_summary_details()
+            .expect("phase-2 corpus evidence should be available");
+        summary.reference_snapshot_exact_j2000.sample_count += 1;
+
+        let error = summary
+            .validate()
+            .expect_err("exact J2000 drift should be rejected");
+        assert_eq!(
+            error,
+            PackagedArtifactPhase2CorpusAlignmentSummaryValidationError::FieldOutOfSync {
+                field: "reference_snapshot_exact_j2000",
+            }
+        );
+        assert!(error.to_string().contains("reference_snapshot_exact_j2000"));
     }
 
     #[test]
@@ -13561,6 +13600,9 @@ mod tests {
         assert!(summary
             .summary_line()
             .contains("phase 2 corpus alignment=reference source="));
+        assert!(summary
+            .summary_line()
+            .contains("reference exact J2000 evidence=Reference snapshot exact J2000 evidence:"));
         assert!(summary.summary_line().contains(
             "selected asteroid source request corpus=Selected asteroid source request corpus:"
         ));
