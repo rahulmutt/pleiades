@@ -13,7 +13,7 @@ should not be re-added.
 - [ ] Corpus coverage satisfies release-claimed body/channel/frame/date needs.
 - [ ] Corpus validation fails on body, epoch, channel, frame, apparentness,
       schema, source-revision, or checksum drift.
-- [ ] Backend matrices and release profiles derive body/date/channel claims from
+- [x] Backend matrices and release profiles derive body/date/channel claims from
       validated corpus evidence.
 
 ## Phase 2: Release-grade compressed ephemeris
