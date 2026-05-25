@@ -11,7 +11,9 @@ artifact.
 - JPL/Horizons snapshot and hold-out CSV fixtures are checked in and validated.
 - Source, frame, time-scale, schema, checksum, redistribution posture, and
   exact J2000 fixture-exactness evidence are reported through CLI, validation,
-  backend-matrix, and bundle surfaces.
+  backend-matrix, and bundle surfaces; the release-facing body/date/channel
+  posture now derives from validated corpus evidence rather than narrative
+  prose.
 - The current corpus covers useful boundary, bridge, selected-asteroid, lunar,
   and comparison slices, but remains sparse and fixture-oriented.
 
@@ -28,8 +30,6 @@ artifact.
 - Define minimum source density/cadence requirements per body class, including
   luminaries, major planets, Pluto policy, lunar points, baseline asteroids, and
   any custom/numbered body examples.
-- Make backend matrices and release profiles derive body/date/channel claims
-  from validated corpus evidence instead of maintained prose.
 
 ## Exit criteria
 

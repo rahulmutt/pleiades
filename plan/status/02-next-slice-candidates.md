@@ -8,9 +8,9 @@ omitted.
 
 - Implement the chosen pure-Rust source strategy, either as a public-data
   reader/parser or a reproducible corpus-generation pipeline from public inputs.
-  The production-generation manifest summary now validates the derived source
-  and boundary-request corpus records directly, but broader coverage and claim
-  derivation still need to land.
+  The production-generation manifest summary now validates the derived source,
+  coverage, and boundary-request corpus records directly, and the release-facing
+  body/date/channel posture now derives from validated corpus evidence.
 - Broaden reference and hold-out coverage for luminaries, major planets, Pluto
   policy, lunar/lunar-point channels, baseline asteroids, and representative
   custom/numbered bodies across 1500-2500 CE.
@@ -18,10 +18,8 @@ omitted.
   boundary, fixture-exactness, and provenance-only rows separable; the
   exact-J2000 reference slice now carries an explicit major-body/selected-
   asteroid class split in the source-corpus report, and the merged
-  production-generation body-class coverage split is now surfaced too, but the
-  broader source-density work still needs to land.
-- Derive body/date/channel/frame claims for backend matrices and release profiles
-  from validated corpus records.
+  production-generation body-class coverage/cadence split is now surfaced too,
+  but the broader source-density work still needs to land.
 
 ## Phase 2 — Release-grade compressed ephemeris
 

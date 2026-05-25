@@ -11,16 +11,17 @@ provenance, source windows, source revisions, exact J2000 fixture evidence, and
 boundary-request corpora, and the exact J2000 slice now also exposes an
 explicit major-body/selected-asteroid class split in the source-corpus report.
 The source-corpus summary now also surfaces the merged production-generation
-body-class coverage split, so the density posture is explicit in the release-
-facing report. The production-generation source summary carries the exact J2000
-fixture-evidence payload directly alongside the source window payload, and the
-production-generation manifest summary continues to validate the derived source,
-coverage, and boundary request corpus records directly. The release-grade
-body-claims and body/date/channel posture now assembles from structured body
-lists instead of a single hand-written prose string. The remaining blocker is
-still the underlying production-grade reference input strategy: current JPL
-evidence is a checked-in snapshot/hold-out fixture set, not a broad public-data
-reader or production corpus provider.
+body-class coverage and cadence split, so the density posture is explicit in the
+release-facing report. The production-generation source summary carries the
+exact J2000 fixture-evidence payload directly alongside the source window
+payload, and the production-generation manifest summary continues to validate
+the derived source, coverage, and boundary request corpus records directly. The
+release-grade body-claims and body/date/channel posture now assemble from
+structured body lists and validated corpus evidence instead of a single
+hand-written prose string. The remaining blocker is still the underlying
+production-grade reference input strategy: current JPL evidence is a
+checked-in snapshot/hold-out fixture set, not a broad public-data reader or
+production corpus provider.
 
 ## Why this comes first
 
@@ -35,11 +36,9 @@ inputs are broad enough to support release claims.
    documented reproducible corpus-generation pipeline.
 2. **Corpus breadth** — cover all release-claimed bodies, channels, frames, and
    epoch classes with enough density for fitting and hold-out validation.
-3. **Claim derivation** — derive body/date/channel release claims from validated
-   corpus evidence rather than narrative summaries.
-4. **Artifact accuracy** — keep the packaged artifact draft-grade until Phase 1
+3. **Artifact accuracy** — keep the packaged artifact draft-grade until Phase 1
    inputs exist and Phase 2 thresholds pass.
-5. **Compatibility evidence** — avoid widening house, ayanamsa, asteroid, Pluto,
+4. **Compatibility evidence** — avoid widening house, ayanamsa, asteroid, Pluto,
    or lunar claims before supporting audits and validation are complete.
 
 ## Recommended next slice

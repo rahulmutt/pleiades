@@ -23005,14 +23005,31 @@ impl BodyDateChannelClaimsSummary {
     }
 }
 
+#[allow(dead_code)]
+fn strip_report_prefix<'a>(text: &'a str, prefix: &str) -> &'a str {
+    text.strip_prefix(prefix).unwrap_or(text)
+}
+
 fn production_generation_coverage_posture_for_report() -> Option<String> {
-    let _ = pleiades_jpl::production_generation_snapshot_window_summary()?;
+    let production_generation_coverage = required_summary_payload(
+        pleiades_jpl::production_generation_snapshot_summary_for_report(),
+        "Production generation coverage: ",
+        "production generation coverage",
+    )
+    .ok()?;
+    let production_generation_body_class_coverage = required_summary_payload(
+        pleiades_jpl::production_generation_snapshot_body_class_coverage_summary_for_report(),
+        "Production generation body-class coverage: ",
+        "production generation body-class coverage",
+    )
+    .ok()?;
     validated_production_generation_corpus_shape_summary_for_report().ok()?;
 
-    Some(
-        "production-generation coverage and corpus shape remain aligned across the advertised 1500-2500 CE window; release-claimed body/channel/frame/date coverage is complete"
-            .to_string(),
-    )
+    Some(format!(
+        "production-generation coverage and corpus shape remain aligned across the advertised 1500-2500 CE window; coverage={}; body-class coverage={}",
+        production_generation_coverage,
+        production_generation_body_class_coverage,
+    ))
 }
 
 fn production_generation_date_range_for_report() -> Option<String> {
@@ -38537,8 +38554,8 @@ version = "0.9.0"
             "pleiades-release-bundle-semantic-source-corpus-summary",
             "source-corpus-summary.txt",
             "source-corpus summary checksum (fnv1a-64):",
-            "coverage posture=production-generation coverage and corpus shape remain aligned across the advertised 1500-2500 CE window; release-claimed body/channel/frame/date coverage is complete",
-            "coverage posture=drifted production-generation coverage and corpus shape remain aligned across the advertised 1500-2500 CE window; release-claimed body/channel/frame/date coverage is complete",
+            "coverage posture=production-generation coverage and corpus shape remain aligned across the advertised 1500-2500 CE window; coverage=",
+            "coverage posture=drifted production-generation coverage and corpus shape remain aligned across the advertised 1500-2500 CE window; coverage=",
             "source corpus summary no longer matches the current source-corpus posture",
         );
     }
@@ -43239,8 +43256,9 @@ version = "0.9.0"
         assert!(body_date_channel_claims_summary
             .contains("production generation coverage=Production generation coverage:"));
         assert!(body_date_channel_claims_summary.contains(
-            "coverage posture=production-generation coverage and corpus shape remain aligned across the advertised 1500-2500 CE window; release-claimed body/channel/frame/date coverage is complete"
+            "coverage posture=production-generation coverage and corpus shape remain aligned across the advertised 1500-2500 CE window; coverage="
         ));
+        assert!(body_date_channel_claims_summary.contains("body-class coverage=major bodies:"));
         let source_corpus_summary =
             source_corpus_summary_details().expect("source corpus summary should exist");
         let body_date_channel_claims_details = body_date_channel_claims_summary_details()
@@ -44400,7 +44418,8 @@ version = "0.9.0"
         assert!(rendered
             .contains("production generation date range=JD 2268932.5 (TDB)..JD 2634167.0 (TDB)"));
         assert!(rendered.contains("production generation quarter-day boundary samples=8 rows across 4 bodies and 2 epochs (JD 2451915.25 (TDB)..JD 2451915.75 (TDB))"));
-        assert!(rendered.contains("coverage posture=production-generation coverage and corpus shape remain aligned across the advertised 1500-2500 CE window; release-claimed body/channel/frame/date coverage is complete"));
+        assert!(rendered.contains("coverage posture=production-generation coverage and corpus shape remain aligned across the advertised 1500-2500 CE window; coverage="));
+        assert!(rendered.contains("body-class coverage=major bodies:"));
         assert!(rendered.contains("production generation boundary window="));
         assert!(rendered.contains("production generation boundary source="));
         assert!(rendered.contains("production generation boundary request corpus="));
@@ -44434,8 +44453,9 @@ version = "0.9.0"
         assert!(rendered.contains("date range=JD 2268932.5 (TDB)..JD 2634167.0 (TDB)"));
         assert!(rendered.contains("production generation coverage=Production generation coverage:"));
         assert!(rendered.contains(
-            "coverage posture=production-generation coverage and corpus shape remain aligned across the advertised 1500-2500 CE window; release-claimed body/channel/frame/date coverage is complete"
+            "coverage posture=production-generation coverage and corpus shape remain aligned across the advertised 1500-2500 CE window; coverage="
         ));
+        assert!(rendered.contains("body-class coverage=major bodies:"));
         assert!(rendered.contains(
             "equatorial output is backend-specific and derived via mean-obliquity transforms when supported"
         ));

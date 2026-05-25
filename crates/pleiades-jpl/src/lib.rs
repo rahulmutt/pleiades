@@ -3754,6 +3754,22 @@ fn production_generation_source_cadence_fragment(
     )
 }
 
+fn production_generation_source_body_class_cadence_fragment(
+) -> Result<String, ProductionGenerationSourceSummaryValidationError> {
+    let snapshot = production_generation_snapshot_body_class_coverage_summary()
+        .ok_or(ProductionGenerationSourceSummaryValidationError::BodyClassCadenceMismatch)?;
+    let boundary = production_generation_boundary_body_class_coverage_summary()
+        .ok_or(ProductionGenerationSourceSummaryValidationError::BodyClassCadenceMismatch)?;
+
+    Ok(format!(
+        "body-class cadence=reference major bodies: {} epochs; reference selected asteroids: {} epochs; boundary major bodies: {} epochs; boundary selected asteroids: {} epochs",
+        snapshot.major_epoch_count,
+        snapshot.asteroid_epoch_count,
+        boundary.major_epoch_count,
+        boundary.asteroid_epoch_count,
+    ))
+}
+
 fn validate_production_generation_source_summary_text(
     summary: &ProductionGenerationSourceSummary,
     text: &str,
@@ -3774,6 +3790,7 @@ fn validate_production_generation_source_summary_text(
     );
     let source_revision_fragment = summary.source_revision.summary_line();
     let cadence_fragment = production_generation_source_cadence_fragment(summary)?;
+    let body_class_cadence_fragment = production_generation_source_body_class_cadence_fragment()?;
 
     let required_fragments = [
         ("strategy", "strategy=documented hybrid fixture corpus".to_string()),
@@ -3797,6 +3814,7 @@ fn validate_production_generation_source_summary_text(
             "checksum expectation=byte-identical fixture contents".to_string(),
         ),
         ("cadence", cadence_fragment),
+        ("body-class cadence", body_class_cadence_fragment),
         (
             "row separation",
             "reference and hold-out rows remain separate".to_string(),
@@ -3845,9 +3863,12 @@ impl ProductionGenerationSourceSummary {
     pub fn summary_line(&self) -> String {
         let cadence_fragment = production_generation_source_cadence_fragment(self)
             .unwrap_or_else(|error| format!("cadence unavailable ({error})"));
+        let body_class_cadence_fragment =
+            production_generation_source_body_class_cadence_fragment()
+                .unwrap_or_else(|error| format!("body-class cadence unavailable ({error})"));
 
         format!(
-            "Production generation source: strategy=documented hybrid fixture corpus; {}; {}; source windows={}; reference snapshot exact J2000 evidence={}; evidence classes=reference, hold-out, boundary overlay, provenance-only; input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv; license posture=public-source provenance only; checked-in fixtures remain repository-local regression data; {}; generation command=generate-packaged-artifact --check (consuming the checked-in CSV fixtures); file format=comma-separated values; schema=epoch_jd, body, x_km, y_km, z_km; columns=epoch_jd, body, x_km, y_km, z_km; frame=geocentric ecliptic J2000; time scale=TDB; apparentness=Mean; parser=pure-Rust and deterministic; checksum expectation=byte-identical fixture contents; {}; reference and hold-out rows remain separate; redistribution posture=repository-checked regression fixtures, not a broad public corpus",
+            "Production generation source: strategy=documented hybrid fixture corpus; {}; {}; source windows={}; reference snapshot exact J2000 evidence={}; evidence classes=reference, hold-out, boundary overlay, provenance-only; input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv; license posture=public-source provenance only; checked-in fixtures remain repository-local regression data; {}; generation command=generate-packaged-artifact --check (consuming the checked-in CSV fixtures); file format=comma-separated values; schema=epoch_jd, body, x_km, y_km, z_km; columns=epoch_jd, body, x_km, y_km, z_km; frame=geocentric ecliptic J2000; time scale=TDB; apparentness=Mean; parser=pure-Rust and deterministic; checksum expectation=byte-identical fixture contents; {}; {}; reference and hold-out rows remain separate; redistribution posture=repository-checked regression fixtures, not a broad public corpus",
             self.reference_summary.summary_line(),
             format_production_generation_boundary_source_summary(&self.boundary_summary),
             strip_report_prefix(
@@ -3860,6 +3881,7 @@ impl ProductionGenerationSourceSummary {
             ),
             self.source_revision.summary_line(),
             cadence_fragment,
+            body_class_cadence_fragment,
         )
     }
 
@@ -3911,6 +3933,8 @@ pub enum ProductionGenerationSourceSummaryValidationError {
     SourceWindows(ProductionGenerationSnapshotWindowSummaryValidationError),
     /// The source-window summary no longer matches the current derived corpus evidence.
     SourceWindowsMismatch,
+    /// The body-class cadence summary no longer matches the current derived corpus evidence.
+    BodyClassCadenceMismatch,
     /// The ecliptic and equatorial boundary-request corpora no longer share the same epoch count.
     BoundaryRequestCorpusEpochCountMismatch {
         ecliptic_epoch_count: usize,
@@ -3933,6 +3957,7 @@ impl fmt::Display for ProductionGenerationSourceSummaryValidationError {
                 write!(f, "source window summary validation failed: {error}")
             }
             Self::SourceWindowsMismatch => f.write_str("source windows mismatch"),
+            Self::BodyClassCadenceMismatch => f.write_str("body-class cadence mismatch"),
             Self::BoundaryRequestCorpusEpochCountMismatch {
                 ecliptic_epoch_count,
                 equatorial_epoch_count,
@@ -33150,6 +33175,19 @@ mod tests {
                 .epoch_count,
         );
         assert!(report.contains(&expected_cadence));
+        let body_class_coverage = production_generation_snapshot_body_class_coverage_summary()
+            .expect("production generation body-class coverage should exist");
+        let boundary_body_class_coverage =
+            production_generation_boundary_body_class_coverage_summary()
+                .expect("production generation boundary body-class coverage should exist");
+        let expected_body_class_cadence = format!(
+            "body-class cadence=reference major bodies: {} epochs; reference selected asteroids: {} epochs; boundary major bodies: {} epochs; boundary selected asteroids: {} epochs",
+            body_class_coverage.major_epoch_count,
+            body_class_coverage.asteroid_epoch_count,
+            boundary_body_class_coverage.major_epoch_count,
+            boundary_body_class_coverage.asteroid_epoch_count,
+        );
+        assert!(report.contains(&expected_body_class_cadence));
         assert!(report.contains("reference and hold-out rows remain separate"));
         assert!(report.contains("schema=epoch_jd, body, x_km, y_km, z_km"));
         assert!(report.contains("columns=epoch_jd, body, x_km, y_km, z_km"));
@@ -33180,6 +33218,29 @@ mod tests {
         assert_eq!(
             error.to_string(),
             "boundary request corpus epoch counts differ: ecliptic=13, equatorial=12"
+        );
+    }
+
+    #[test]
+    fn production_generation_source_summary_validation_rejects_body_class_cadence_drift() {
+        let summary = production_generation_source_summary();
+        let rendered = summary.summary_line();
+        let tampered = rendered.replace(
+            "body-class cadence=reference major bodies: ",
+            "body-class cadence=drifted major bodies: ",
+        );
+
+        let error = validate_production_generation_source_summary_text(&summary, &tampered)
+            .expect_err("body-class cadence drift should fail closed");
+        assert!(matches!(
+            error,
+            ProductionGenerationSourceSummaryValidationError::RenderedSummaryOutOfSync {
+                field: "body-class cadence"
+            }
+        ));
+        assert_eq!(
+            error.to_string(),
+            "rendered production-generation source summary field `body-class cadence` is out of sync"
         );
     }
 
