@@ -8,8 +8,10 @@ The repository has strong scaffolding around corpus summaries, backend matrices,
 comparison reports, release bundle rehearsal, and CLI/validation inspection.
 The JPL source-corpus contract is now explicit about reference/hold-out
 provenance, source windows, source revisions, exact J2000 fixture evidence, and
-boundary-request corpora, and the production-generation manifest summary now
-validates the derived source, coverage, and boundary request corpus records
+boundary-request corpora, and the production-generation source summary now
+carries the exact J2000 fixture-evidence payload directly alongside the source
+window payload. The production-generation manifest summary continues to
+validate the derived source, coverage, and boundary request corpus records
 directly. The release-grade body-claims and body/date/channel posture now
 assembles from structured body lists instead of a single hand-written prose
 string. The remaining blocker is still the underlying production-grade

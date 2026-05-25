@@ -13980,8 +13980,11 @@ fn ensure_production_generation_source_summary_matches_source_windows(
         "Production generation source windows: ",
     )?;
     let expected_source_window_fragment = format!(
-        "source windows={}; evidence classes=reference, hold-out, boundary overlay, provenance-only; input path=",
-        production_generation_source_window_summary_payload.trim()
+        "source windows={}; reference snapshot exact J2000 evidence={}; evidence classes=reference, hold-out, boundary overlay, provenance-only; input path=",
+        production_generation_source_window_summary_payload.trim(),
+        pleiades_jpl::reference_snapshot_exact_j2000_evidence_summary_for_report()
+            .strip_prefix("Reference snapshot exact J2000 evidence: ")
+            .expect("reference snapshot exact J2000 evidence summary should have the documented prefix")
     );
 
     if !production_generation_source_summary_payload.contains(&expected_source_window_fragment) {

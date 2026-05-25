@@ -15,9 +15,10 @@ omitted.
   policy, lunar/lunar-point channels, baseline asteroids, and representative
   custom/numbered bodies across 1500-2500 CE.
 - Store source evidence in a form that keeps reference, fitting, hold-out,
-  boundary, fixture-exactness, and provenance-only rows separable; the phase-2
-  corpus alignment payload now carries explicit exact-J2000 fixture evidence,
-  but the broader source-density work still needs to land.
+  boundary, fixture-exactness, and provenance-only rows separable; the
+  production-generation source summary now carries the exact-J2000 fixture
+  evidence payload directly, but the broader source-density work still needs to
+  land.
 - Derive body/date/channel/frame claims for backend matrices and release profiles
   from validated corpus records.
 

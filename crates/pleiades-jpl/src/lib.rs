@@ -3487,6 +3487,13 @@ fn validate_production_generation_source_summary_text(
             "Production generation source windows: ",
         )
     );
+    let exact_j2000_fragment = format!(
+        "reference snapshot exact J2000 evidence={}",
+        strip_report_prefix(
+            &reference_snapshot_exact_j2000_evidence_summary_for_report(),
+            "Reference snapshot exact J2000 evidence: ",
+        )
+    );
     let source_revision_fragment = summary.source_revision.summary_line();
     let cadence_fragment = production_generation_source_cadence_fragment(summary)?;
 
@@ -3519,6 +3526,10 @@ fn validate_production_generation_source_summary_text(
         (
             "source windows",
             source_windows_fragment,
+        ),
+        (
+            "reference snapshot exact J2000 evidence",
+            exact_j2000_fragment,
         ),
         (
             "evidence classes",
@@ -3558,12 +3569,16 @@ impl ProductionGenerationSourceSummary {
             .unwrap_or_else(|error| format!("cadence unavailable ({error})"));
 
         format!(
-            "Production generation source: strategy=documented hybrid fixture corpus; {}; {}; source windows={}; evidence classes=reference, hold-out, boundary overlay, provenance-only; input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv; license posture=public-source provenance only; checked-in fixtures remain repository-local regression data; {}; generation command=generate-packaged-artifact --check (consuming the checked-in CSV fixtures); file format=comma-separated values; schema=epoch_jd, body, x_km, y_km, z_km; columns=epoch_jd, body, x_km, y_km, z_km; frame=geocentric ecliptic J2000; time scale=TDB; apparentness=Mean; parser=pure-Rust and deterministic; checksum expectation=byte-identical fixture contents; {}; reference and hold-out rows remain separate; redistribution posture=repository-checked regression fixtures, not a broad public corpus",
+            "Production generation source: strategy=documented hybrid fixture corpus; {}; {}; source windows={}; reference snapshot exact J2000 evidence={}; evidence classes=reference, hold-out, boundary overlay, provenance-only; input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv; license posture=public-source provenance only; checked-in fixtures remain repository-local regression data; {}; generation command=generate-packaged-artifact --check (consuming the checked-in CSV fixtures); file format=comma-separated values; schema=epoch_jd, body, x_km, y_km, z_km; columns=epoch_jd, body, x_km, y_km, z_km; frame=geocentric ecliptic J2000; time scale=TDB; apparentness=Mean; parser=pure-Rust and deterministic; checksum expectation=byte-identical fixture contents; {}; reference and hold-out rows remain separate; redistribution posture=repository-checked regression fixtures, not a broad public corpus",
             self.reference_summary.summary_line(),
             format_production_generation_boundary_source_summary(&self.boundary_summary),
             strip_report_prefix(
                 &self.source_windows.summary_line(),
                 "Production generation source windows: ",
+            ),
+            strip_report_prefix(
+                &reference_snapshot_exact_j2000_evidence_summary_for_report(),
+                "Reference snapshot exact J2000 evidence: ",
             ),
             self.source_revision.summary_line(),
             cadence_fragment,
@@ -3589,6 +3604,9 @@ impl ProductionGenerationSourceSummary {
         if self.source_revision != production_generation_source_revision_summary() {
             return Err(ProductionGenerationSourceSummaryValidationError::SourceRevisionMismatch);
         }
+        reference_snapshot_exact_j2000_evidence_summary().ok_or(
+            ProductionGenerationSourceSummaryValidationError::ReferenceExactJ2000EvidenceUnavailable,
+        )?;
 
         validate_production_generation_source_summary_text(self, &self.summary_line())?;
 
@@ -3622,6 +3640,8 @@ pub enum ProductionGenerationSourceSummaryValidationError {
     },
     /// The deterministic revision summary drifted from the checked-in fixture contents.
     SourceRevisionMismatch,
+    /// The reference snapshot exact J2000 evidence is unavailable.
+    ReferenceExactJ2000EvidenceUnavailable,
     /// The rendered summary text drifted from the expected release-facing provenance fragments.
     RenderedSummaryOutOfSync { field: &'static str },
 }
@@ -3643,6 +3663,9 @@ impl fmt::Display for ProductionGenerationSourceSummaryValidationError {
                 "boundary request corpus epoch counts differ: ecliptic={ecliptic_epoch_count}, equatorial={equatorial_epoch_count}"
             ),
             Self::SourceRevisionMismatch => f.write_str("source revision mismatch"),
+            Self::ReferenceExactJ2000EvidenceUnavailable => {
+                f.write_str("reference snapshot exact J2000 evidence unavailable")
+            }
             Self::RenderedSummaryOutOfSync { field } => write!(
                 f,
                 "rendered production-generation source summary field `{field}` is out of sync"
@@ -32805,6 +32828,9 @@ mod tests {
         assert!(report.contains("parser=pure-Rust and deterministic"));
         assert!(report.contains("source revision=reference_snapshot.csv checksum=0x"));
         assert!(report.contains("evidence class=reference"));
+        assert!(
+            report.contains("reference snapshot exact J2000 evidence=16 exact J2000 samples at")
+        );
         assert!(report
             .contains("evidence classes=reference, hold-out, boundary overlay, provenance-only"));
         assert!(report.contains("independent_holdout_snapshot.csv checksum=0x"));
@@ -33110,6 +33136,20 @@ mod tests {
             Err(ProductionGenerationSourceSummaryValidationError::SourceWindows(
                 ProductionGenerationSnapshotWindowSummaryValidationError::DerivedSummaryMismatch
             ))
+        ));
+
+        let exactness_drift = production_generation_source_summary();
+        let drifted = exactness_drift.summary_line().replace(
+            "reference snapshot exact J2000 evidence=16 exact J2000 samples at",
+            "reference snapshot exact J2000 evidence=drifted exactness evidence",
+        );
+        assert!(matches!(
+            validate_production_generation_source_summary_text(&exactness_drift, &drifted),
+            Err(
+                ProductionGenerationSourceSummaryValidationError::RenderedSummaryOutOfSync {
+                    field: "reference snapshot exact J2000 evidence"
+                }
+            )
         ));
     }
 
