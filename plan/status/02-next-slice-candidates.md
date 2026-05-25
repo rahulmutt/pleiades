@@ -17,8 +17,9 @@ omitted.
 - Store source evidence in a form that keeps reference, fitting, hold-out,
   boundary, fixture-exactness, and provenance-only rows separable; the
   exact-J2000 reference slice now carries an explicit major-body/selected-
-  asteroid class split in the source-corpus report, but the broader
-  source-density work still needs to land.
+  asteroid class split in the source-corpus report, and the merged
+  production-generation body-class coverage split is now surfaced too, but the
+  broader source-density work still needs to land.
 - Derive body/date/channel/frame claims for backend matrices and release profiles
   from validated corpus records.
 

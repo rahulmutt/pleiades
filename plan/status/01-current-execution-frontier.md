@@ -10,8 +10,10 @@ The JPL source-corpus contract is now explicit about reference/hold-out
 provenance, source windows, source revisions, exact J2000 fixture evidence, and
 boundary-request corpora, and the exact J2000 slice now also exposes an
 explicit major-body/selected-asteroid class split in the source-corpus report.
-The production-generation source summary carries the exact J2000 fixture-evidence
-payload directly alongside the source window payload, and the
+The source-corpus summary now also surfaces the merged production-generation
+body-class coverage split, so the density posture is explicit in the release-
+facing report. The production-generation source summary carries the exact J2000
+fixture-evidence payload directly alongside the source window payload, and the
 production-generation manifest summary continues to validate the derived source,
 coverage, and boundary request corpus records directly. The release-grade
 body-claims and body/date/channel posture now assembles from structured body

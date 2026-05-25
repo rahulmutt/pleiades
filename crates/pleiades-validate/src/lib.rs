@@ -22035,6 +22035,7 @@ struct SourceCorpusSummary {
     production_generation_source_revision: String,
     production_generation_coverage: String,
     production_generation_source_windows: String,
+    production_generation_body_class_coverage: String,
     production_generation_date_range: String,
     production_generation_quarter_day_boundary_samples: String,
     coverage_posture: String,
@@ -22078,7 +22079,7 @@ impl std::error::Error for SourceCorpusSummaryValidationError {}
 impl SourceCorpusSummary {
     fn summary_line(&self) -> String {
         format!(
-            "comparison corpus release-grade guard: {}; JPL source corpus contract: {}; evidence classification={}; provenance-only={}; lunar source windows={}; shared schema={}; generation command={}; production generation source={}; production generation source revision={}; production generation coverage={}; production generation source windows={}; production generation date range={}; production generation quarter-day boundary samples={}; coverage posture={}; production generation boundary window={}; production generation boundary source={}; production generation boundary request corpus={}; production generation boundary request corpus equatorial={}; reference snapshot sparse boundary={}; reference snapshot exact J2000 evidence={}; reference snapshot exact J2000 body-class coverage={}; reference snapshot equatorial parity={}; reference snapshot body-class coverage={}; reference snapshot manifest={}; comparison snapshot manifest={}; independent-holdout body-class coverage={}; independent-holdout source window={}; pluto fallback={}; release-grade body claims={}; body-date-channel claims={}; phase-2 corpus alignment: {}",
+            "comparison corpus release-grade guard: {}; JPL source corpus contract: {}; evidence classification={}; provenance-only={}; lunar source windows={}; shared schema={}; generation command={}; production generation source={}; production generation source revision={}; production generation coverage={}; production generation source windows={}; production generation body-class coverage={}; production generation date range={}; production generation quarter-day boundary samples={}; coverage posture={}; production generation boundary window={}; production generation boundary source={}; production generation boundary request corpus={}; production generation boundary request corpus equatorial={}; reference snapshot sparse boundary={}; reference snapshot exact J2000 evidence={}; reference snapshot exact J2000 body-class coverage={}; reference snapshot equatorial parity={}; reference snapshot body-class coverage={}; reference snapshot manifest={}; comparison snapshot manifest={}; independent-holdout body-class coverage={}; independent-holdout source window={}; pluto fallback={}; release-grade body claims={}; body-date-channel claims={}; phase-2 corpus alignment: {}",
             self.comparison_corpus_release_grade_guard,
             self.jpl_source_corpus_contract,
             self.jpl_evidence_classification,
@@ -22090,6 +22091,7 @@ impl SourceCorpusSummary {
             self.production_generation_source_revision,
             self.production_generation_coverage,
             self.production_generation_source_windows,
+            self.production_generation_body_class_coverage,
             self.production_generation_date_range,
             self.production_generation_quarter_day_boundary_samples,
             self.coverage_posture,
@@ -22179,6 +22181,13 @@ impl SourceCorpusSummary {
         {
             return Err(SourceCorpusSummaryValidationError::FieldOutOfSync {
                 field: "production_generation_source_windows",
+            });
+        }
+        if self.production_generation_body_class_coverage
+            != expected.production_generation_body_class_coverage
+        {
+            return Err(SourceCorpusSummaryValidationError::FieldOutOfSync {
+                field: "production_generation_body_class_coverage",
             });
         }
         if self.production_generation_date_range != expected.production_generation_date_range {
@@ -22437,6 +22446,12 @@ fn source_corpus_summary_details() -> Option<SourceCorpusSummary> {
             production_generation_snapshot_window_summary_for_report(),
             "Production generation source windows: ",
             "production generation source windows",
+        )
+        .ok()?,
+        production_generation_body_class_coverage: required_summary_payload(
+            pleiades_jpl::production_generation_snapshot_body_class_coverage_summary_for_report(),
+            "Production generation body-class coverage: ",
+            "production generation body-class coverage",
         )
         .ok()?,
         production_generation_date_range,
@@ -44381,6 +44396,7 @@ version = "0.9.0"
         assert!(rendered.contains("reference_snapshot.csv checksum=0x"));
         assert!(rendered.contains("independent_holdout_snapshot.csv checksum=0x"));
         assert!(rendered.contains("production generation source windows=357 source-backed samples across 16 bodies and 31 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB))"));
+        assert!(rendered.contains("production generation body-class coverage=major bodies: 262 rows across 10 bodies and 31 epochs"));
         assert!(rendered
             .contains("production generation date range=JD 2268932.5 (TDB)..JD 2634167.0 (TDB)"));
         assert!(rendered.contains("production generation quarter-day boundary samples=8 rows across 4 bodies and 2 epochs (JD 2451915.25 (TDB)..JD 2451915.75 (TDB))"));
@@ -44664,6 +44680,19 @@ version = "0.9.0"
         assert_eq!(
             error.to_string(),
             "the source corpus summary field `production_generation_source_windows` is out of sync with the current posture"
+        );
+
+        let mut summary =
+            source_corpus_summary_details().expect("source corpus summary should exist");
+        summary.production_generation_body_class_coverage =
+            "Production generation body-class coverage: drifted".to_string();
+
+        let error = summary
+            .validated_summary_line()
+            .expect_err("production generation body-class coverage drift should fail closed");
+        assert_eq!(
+            error.to_string(),
+            "the source corpus summary field `production_generation_body_class_coverage` is out of sync with the current posture"
         );
 
         let mut summary =
