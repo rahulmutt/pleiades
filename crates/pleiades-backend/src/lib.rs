@@ -67,6 +67,7 @@
 
 use core::fmt;
 use std::borrow::Cow;
+use std::sync::OnceLock;
 use std::time::Duration;
 
 pub use pleiades_types::{
@@ -2303,6 +2304,71 @@ impl fmt::Display for PlutoFallbackSummary {
     }
 }
 
+fn release_body_claims_lunar_validation_bodies() -> &'static [CelestialBody] {
+    &[
+        CelestialBody::MeanNode,
+        CelestialBody::TrueNode,
+        CelestialBody::MeanApogee,
+        CelestialBody::MeanPerigee,
+    ]
+}
+
+fn release_body_claims_major_bodies() -> &'static [CelestialBody] {
+    &[
+        CelestialBody::Sun,
+        CelestialBody::Mercury,
+        CelestialBody::Venus,
+        CelestialBody::Mars,
+        CelestialBody::Jupiter,
+        CelestialBody::Saturn,
+        CelestialBody::Uranus,
+        CelestialBody::Neptune,
+    ]
+}
+
+fn release_body_claims_selected_asteroids() -> &'static [CelestialBody] {
+    static BODIES: OnceLock<Vec<CelestialBody>> = OnceLock::new();
+    BODIES
+        .get_or_init(|| {
+            vec![
+                CelestialBody::Ceres,
+                CelestialBody::Pallas,
+                CelestialBody::Juno,
+                CelestialBody::Vesta,
+                CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros")),
+                CelestialBody::Custom(CustomBodyId::new("asteroid", "99942-Apophis")),
+            ]
+        })
+        .as_slice()
+}
+
+fn release_body_claims_summary_text() -> &'static str {
+    debug_assert_eq!(
+        release_body_claims_major_bodies(),
+        &[
+            CelestialBody::Sun,
+            CelestialBody::Mercury,
+            CelestialBody::Venus,
+            CelestialBody::Mars,
+            CelestialBody::Jupiter,
+            CelestialBody::Saturn,
+            CelestialBody::Uranus,
+            CelestialBody::Neptune,
+        ]
+    );
+
+    static SUMMARY: OnceLock<String> = OnceLock::new();
+    SUMMARY
+        .get_or_init(|| {
+            format!(
+                "Moon and supported lunar points ({}) remain source-backed validation bodies; True Apogee and True Perigee remain unsupported; Sun through Neptune are release-grade major-body claims; Pluto remains an explicitly approximate fallback; selected asteroids ({}) remain source-backed validation bodies",
+                format_display_list(release_body_claims_lunar_validation_bodies()),
+                format_display_list(release_body_claims_selected_asteroids()),
+            )
+        })
+        .as_str()
+}
+
 /// Compact summary of the current release-grade body claims.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct ReleaseBodyClaimsSummary {
@@ -2353,7 +2419,7 @@ impl ReleaseBodyClaimsSummary {
     }
 
     /// Returns the current release-grade body claims posture.
-    pub const fn current() -> Self {
+    pub fn current() -> Self {
         current_release_body_claims_summary()
     }
 
@@ -2365,7 +2431,7 @@ impl ReleaseBodyClaimsSummary {
             Err(ReleaseBodyClaimsSummaryValidationError::WhitespacePaddedSummary)
         } else if self.summary.contains('\n') || self.summary.contains('\r') {
             Err(ReleaseBodyClaimsSummaryValidationError::EmbeddedLineBreak)
-        } else if self.summary != current_release_body_claims_summary().summary_line() {
+        } else if self.summary != release_body_claims_summary_text() {
             Err(ReleaseBodyClaimsSummaryValidationError::CurrentPolicyOutOfSync)
         } else {
             Ok(())
@@ -2638,12 +2704,12 @@ pub const fn current_pluto_fallback_summary() -> PlutoFallbackSummary {
 }
 
 /// Returns the current release-grade body claims used by validation and reports.
-pub const fn current_release_body_claims_summary() -> ReleaseBodyClaimsSummary {
-    ReleaseBodyClaimsSummary::new(CURRENT_RELEASE_BODY_CLAIMS_SUMMARY_TEXT)
+pub fn current_release_body_claims_summary() -> ReleaseBodyClaimsSummary {
+    ReleaseBodyClaimsSummary::new(release_body_claims_summary_text())
 }
 
 /// Returns the release-grade body claims used by validation and release reporting.
-pub const fn release_body_claims_summary_for_report() -> ReleaseBodyClaimsSummary {
+pub fn release_body_claims_summary_for_report() -> ReleaseBodyClaimsSummary {
     current_release_body_claims_summary()
 }
 

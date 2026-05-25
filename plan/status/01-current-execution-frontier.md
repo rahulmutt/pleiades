@@ -9,7 +9,9 @@ comparison reports, release bundle rehearsal, and CLI/validation inspection.
 The JPL source-corpus contract is now explicit about reference/hold-out
 provenance, source windows, source revisions, and boundary-request corpora, and
 the production-generation manifest summary now validates the derived source,
-coverage, and boundary request corpus records directly. The remaining blocker is
+coverage, and boundary request corpus records directly. The release-grade
+body-claims and body/date/channel posture now assembles from structured body
+lists instead of a single hand-written prose string. The remaining blocker is
 still the underlying production-grade reference input strategy: current JPL
 evidence is a checked-in snapshot/hold-out fixture set, not a broad public-data
 reader or production corpus provider.
