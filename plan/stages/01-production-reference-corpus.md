@@ -14,7 +14,8 @@ artifact.
   backend-matrix, and bundle surfaces; the release-facing body/date/channel
   posture now derives from validated corpus evidence rather than narrative
   prose, and the checked-in JPL-style snapshots now have reusable pure-Rust CSV
-  parsing entry points for their manifest and row data.
+  parsing entry points for their manifest and row data plus a corpus loader for
+  arbitrary JPL-style CSV text.
 - The current corpus covers useful boundary, bridge, selected-asteroid, lunar,
   and comparison slices, but remains sparse and fixture-oriented.
 

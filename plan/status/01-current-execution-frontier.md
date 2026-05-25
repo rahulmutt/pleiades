@@ -20,7 +20,8 @@ and the early-2001 boundary samples, and regression tests now pin those Horizons
 values directly. The production-generation manifest summary continues to validate
 the derived source, coverage, and boundary request corpus records directly. The
 checked-in JPL-style snapshots now also expose reusable pure-Rust CSV parsing
-entry points for their manifest and row data. The release-grade body-claims and
+entry points for their manifest and row data, plus a broader manifest+row
+corpus loader for arbitrary JPL-style CSV text. The release-grade body-claims and
 body/date/channel posture now assemble from structured body lists and validated
 corpus evidence instead of a single hand-written prose string. The remaining
 blocker is still the underlying production-grade reference input strategy:

@@ -25643,6 +25643,25 @@ impl fmt::Display for SnapshotManifestSummary {
     }
 }
 
+/// Parsed manifest and row data for a JPL-style snapshot corpus.
+///
+/// This bundles the public header metadata with the CSV rows so callers can
+/// ingest or reproduce broader source corpora from arbitrary checked text.
+#[derive(Clone, Debug, PartialEq)]
+pub struct SnapshotCorpus {
+    /// Parsed header metadata from the snapshot source.
+    pub manifest: SnapshotManifest,
+    /// Parsed row data from the snapshot source.
+    pub entries: Vec<SnapshotEntry>,
+}
+
+impl SnapshotCorpus {
+    /// Returns the parsed manifest and row data as owned parts.
+    pub fn into_parts(self) -> (SnapshotManifest, Vec<SnapshotEntry>) {
+        (self.manifest, self.entries)
+    }
+}
+
 fn has_surrounding_whitespace(value: &str) -> bool {
     value.trim() != value || value.contains('\n') || value.contains('\r')
 }
@@ -26836,14 +26855,35 @@ fn resolve_fixture_state_from_entries(
 }
 
 fn load_snapshot() -> Result<Vec<SnapshotEntry>, SnapshotLoadError> {
-    parse_snapshot_entries(include_str!(concat!(
+    load_snapshot_from_csv(include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/data/reference_snapshot.csv"
     )))
 }
 
-fn load_snapshot_from_str(source: &str) -> Result<Vec<SnapshotEntry>, SnapshotLoadError> {
+/// Parses a JPL-style snapshot corpus from raw CSV text.
+///
+/// This is a reusable pure-Rust ingestion entry point for broader public-data
+/// derivatives and checked-in corpus fixtures.
+pub fn load_snapshot_from_csv(source: &str) -> Result<Vec<SnapshotEntry>, SnapshotLoadError> {
     parse_snapshot_entries(source)
+}
+
+/// Backward-compatible alias for [`load_snapshot_from_csv`].
+#[doc(alias = "load_snapshot_from_csv")]
+pub fn load_snapshot_from_str(source: &str) -> Result<Vec<SnapshotEntry>, SnapshotLoadError> {
+    load_snapshot_from_csv(source)
+}
+
+/// Parses a JPL-style snapshot corpus into its manifest and row data.
+///
+/// This combines the pure-Rust header parser with the row parser so callers can
+/// ingest a broader checked corpus without reconstructing the split manually.
+pub fn parse_snapshot_corpus(source: &str) -> Result<SnapshotCorpus, SnapshotLoadError> {
+    Ok(SnapshotCorpus {
+        manifest: parse_snapshot_manifest(source),
+        entries: parse_snapshot_entries(source)?,
+    })
 }
 
 /// Parses the row section of a checked-in JPL-style snapshot source.
@@ -32605,6 +32645,29 @@ mod tests {
         assert_eq!(
             parse_snapshot_entries(source).unwrap(),
             reference_snapshot()
+        );
+    }
+
+    #[test]
+    fn parse_snapshot_corpus_round_trips_the_checked_in_reference_snapshot() {
+        let source = include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/data/reference_snapshot.csv"
+        ));
+
+        let corpus = parse_snapshot_corpus(source).expect("reference snapshot corpus should parse");
+        assert_eq!(corpus.manifest, reference_snapshot_manifest().clone());
+        assert_eq!(corpus.entries, reference_snapshot());
+        assert_eq!(
+            load_snapshot_from_csv(source).unwrap(),
+            reference_snapshot()
+        );
+        assert_eq!(
+            corpus.into_parts(),
+            (
+                reference_snapshot_manifest().clone(),
+                reference_snapshot().to_vec()
+            )
         );
     }
 
