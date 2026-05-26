@@ -12,8 +12,8 @@ omitted.
   coverage, and boundary-request corpus records directly, the release-facing
   body/date/channel posture now derives from validated corpus evidence, and the
   JPL snapshot crate now exposes reusable parsing entry points for the checked-in
-  fixture manifests and rows plus a corpus loader for arbitrary JPL-style CSV
-  text.
+  fixture manifests and rows plus combined and split-source corpus loaders for
+  arbitrary JPL-style CSV text.
 - Broaden reference and hold-out coverage for luminaries, major planets, Pluto
   policy, lunar/lunar-point channels, baseline asteroids, and representative
   custom/numbered bodies across 1500-2500 CE.

@@ -25662,6 +25662,25 @@ impl SnapshotCorpus {
     }
 }
 
+/// Separate manifest and row inputs for a JPL-style snapshot corpus.
+///
+/// This helper lets callers keep public provenance metadata and row tables in
+/// distinct checked inputs while still using the same pure-Rust parser path.
+#[derive(Clone, Copy, Debug)]
+pub struct SnapshotCorpusSources<'a> {
+    /// Text containing the manifest/header comments.
+    pub manifest: &'a str,
+    /// Text containing the row CSV data.
+    pub entries: &'a str,
+}
+
+impl SnapshotCorpusSources<'_> {
+    /// Parses the split corpus inputs into a single typed corpus.
+    pub fn parse(self) -> Result<SnapshotCorpus, SnapshotLoadError> {
+        parse_snapshot_corpus_from_sources(self.manifest, self.entries)
+    }
+}
+
 fn has_surrounding_whitespace(value: &str) -> bool {
     value.trim() != value || value.contains('\n') || value.contains('\r')
 }
@@ -26883,6 +26902,21 @@ pub fn parse_snapshot_corpus(source: &str) -> Result<SnapshotCorpus, SnapshotLoa
     Ok(SnapshotCorpus {
         manifest: parse_snapshot_manifest(source),
         entries: parse_snapshot_entries(source)?,
+    })
+}
+
+/// Parses split manifest and row inputs into a single JPL-style snapshot corpus.
+///
+/// This is useful when public provenance metadata is stored separately from the
+/// row table or when a corpus-generation pipeline emits distinct manifest and
+/// data artifacts.
+pub fn parse_snapshot_corpus_from_sources(
+    manifest_source: &str,
+    entries_source: &str,
+) -> Result<SnapshotCorpus, SnapshotLoadError> {
+    Ok(SnapshotCorpus {
+        manifest: parse_snapshot_manifest(manifest_source),
+        entries: parse_snapshot_entries(entries_source)?,
     })
 }
 
@@ -32669,6 +32703,53 @@ mod tests {
                 reference_snapshot().to_vec()
             )
         );
+    }
+
+    #[test]
+    fn parse_snapshot_corpus_from_sources_round_trips_split_manifest_and_rows() {
+        let manifest_source = "\
+# Split JPL snapshot.
+# Source: Example source
+# Coverage: Example coverage
+# Redistribution: Example redistribution
+# Columns: epoch_jd,body,x_km,y_km,z_km
+";
+        let rows_source = "\
+2451545.0,Sun,1.0,2.0,3.0
+2451546.0,Moon,4.0,5.0,6.0
+";
+
+        let corpus = parse_snapshot_corpus_from_sources(manifest_source, rows_source)
+            .expect("split snapshot corpus should parse");
+        assert_eq!(
+            corpus.manifest.title.as_deref(),
+            Some("Split JPL snapshot.")
+        );
+        assert_eq!(corpus.manifest.source.as_deref(), Some("Example source"));
+        assert_eq!(
+            corpus.manifest.coverage.as_deref(),
+            Some("Example coverage")
+        );
+        assert_eq!(
+            corpus.manifest.redistribution.as_deref(),
+            Some("Example redistribution")
+        );
+        assert_eq!(
+            corpus.manifest.columns,
+            ["epoch_jd", "body", "x_km", "y_km", "z_km"]
+        );
+        assert_eq!(corpus.entries.len(), 2);
+        assert_eq!(corpus.entries[0].body, pleiades_backend::CelestialBody::Sun);
+        assert_eq!(
+            corpus.entries[1].body,
+            pleiades_backend::CelestialBody::Moon
+        );
+
+        let sources = SnapshotCorpusSources {
+            manifest: manifest_source,
+            entries: rows_source,
+        };
+        assert_eq!(sources.parse().expect("split sources should parse"), corpus);
     }
 
     #[test]

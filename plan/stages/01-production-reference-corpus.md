@@ -14,8 +14,8 @@ artifact.
   backend-matrix, and bundle surfaces; the release-facing body/date/channel
   posture now derives from validated corpus evidence rather than narrative
   prose, and the checked-in JPL-style snapshots now have reusable pure-Rust CSV
-  parsing entry points for their manifest and row data plus a corpus loader for
-  arbitrary JPL-style CSV text.
+  parsing entry points for their manifest and row data plus split-source and
+  combined corpus loaders for arbitrary JPL-style CSV text.
 - The current corpus covers useful boundary, bridge, selected-asteroid, lunar,
   and comparison slices, but remains sparse and fixture-oriented.
 
@@ -26,6 +26,8 @@ artifact.
   - ingest broader public JPL-style data products, or
   - extend the documented reproducible generation pipeline to produce a broader
     checked reference corpus from public inputs.
+  - keep separate manifest and row sources first-class so corpus-generation
+    tooling can work from split public inputs as well as combined fixture text.
 - Broaden source coverage for all release-claimed bodies, channels, frames, and
   epoch classes across 1500-2500 CE.
 - Keep fitting/reference, independent hold-out, boundary-overlay,
