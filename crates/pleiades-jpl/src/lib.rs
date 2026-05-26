@@ -14,13 +14,17 @@
 //! The checked-in fixture also includes a small set of named asteroids and a
 //! custom `catalog:designation` example so the shared body taxonomy can exercise
 //! source-backed asteroid support without changing the comparison corpus used by
-//! validation reports.
+//! validation reports. Split manifest/row corpus parsing is available both for
+//! in-memory text and for path-backed file inputs so corpus-generation tooling
+//! can keep provenance and rows in separate checked artifacts when needed.
 
 #![forbid(unsafe_code)]
 
 use core::fmt;
 use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet};
+use std::fs;
+use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
 use pleiades_backend::{
@@ -25681,6 +25685,110 @@ impl SnapshotCorpusSources<'_> {
     }
 }
 
+/// Separate manifest and row file inputs for a JPL-style snapshot corpus.
+#[derive(Clone, Debug)]
+pub struct SnapshotCorpusPathSources {
+    /// Path to the manifest/header comments.
+    pub manifest: PathBuf,
+    /// Path to the row CSV data.
+    pub entries: PathBuf,
+}
+
+impl SnapshotCorpusPathSources {
+    /// Loads and parses the split corpus inputs from disk into a single typed corpus.
+    pub fn load(self) -> Result<SnapshotCorpus, SnapshotCorpusLoadError> {
+        load_snapshot_corpus_from_paths(&self.manifest, &self.entries)
+    }
+}
+
+/// Errors that can occur while loading split corpus inputs from disk.
+#[derive(Debug)]
+pub enum SnapshotCorpusLoadError {
+    /// The manifest file could not be read.
+    ManifestIo {
+        /// Path that was attempted.
+        path: PathBuf,
+        /// The underlying I/O error.
+        error: std::io::Error,
+    },
+    /// The row file could not be read.
+    EntriesIo {
+        /// Path that was attempted.
+        path: PathBuf,
+        /// The underlying I/O error.
+        error: std::io::Error,
+    },
+    /// The row file parsed with a snapshot-row error.
+    EntriesParse {
+        /// Path that was attempted.
+        path: PathBuf,
+        /// The underlying parse error.
+        error: SnapshotLoadError,
+    },
+}
+
+impl fmt::Display for SnapshotCorpusLoadError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::ManifestIo { path, error } => write!(
+                f,
+                "failed to read snapshot manifest at {}: {}",
+                path.display(),
+                error
+            ),
+            Self::EntriesIo { path, error } => write!(
+                f,
+                "failed to read snapshot rows at {}: {}",
+                path.display(),
+                error
+            ),
+            Self::EntriesParse { path, error } => write!(
+                f,
+                "failed to parse snapshot rows at {}: {}",
+                path.display(),
+                error
+            ),
+        }
+    }
+}
+
+impl std::error::Error for SnapshotCorpusLoadError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::ManifestIo { error, .. } => Some(error),
+            Self::EntriesIo { error, .. } => Some(error),
+            Self::EntriesParse { error, .. } => Some(error),
+        }
+    }
+}
+
+/// Loads and parses a JPL-style snapshot corpus from split manifest and row files.
+pub fn load_snapshot_corpus_from_paths(
+    manifest_path: impl AsRef<Path>,
+    entries_path: impl AsRef<Path>,
+) -> Result<SnapshotCorpus, SnapshotCorpusLoadError> {
+    let manifest_path = manifest_path.as_ref();
+    let entries_path = entries_path.as_ref();
+
+    let manifest =
+        fs::read_to_string(manifest_path).map_err(|error| SnapshotCorpusLoadError::ManifestIo {
+            path: manifest_path.to_path_buf(),
+            error,
+        })?;
+    let entries =
+        fs::read_to_string(entries_path).map_err(|error| SnapshotCorpusLoadError::EntriesIo {
+            path: entries_path.to_path_buf(),
+            error,
+        })?;
+
+    parse_snapshot_corpus_from_sources(&manifest, &entries).map_err(|error| {
+        SnapshotCorpusLoadError::EntriesParse {
+            path: entries_path.to_path_buf(),
+            error,
+        }
+    })
+}
+
 fn has_surrounding_whitespace(value: &str) -> bool {
     value.trim() != value || value.contains('\n') || value.contains('\r')
 }
@@ -32750,6 +32858,81 @@ mod tests {
             entries: rows_source,
         };
         assert_eq!(sources.parse().expect("split sources should parse"), corpus);
+    }
+
+    #[test]
+    fn load_snapshot_corpus_from_paths_round_trips_split_manifest_and_rows() {
+        let temp_root = std::env::temp_dir().join(format!(
+            "pleiades-jpl-snapshot-corpus-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("system clock should be after UNIX epoch")
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(&temp_root).expect("temp dir should be created");
+
+        let manifest_path = temp_root.join("manifest.csv");
+        let rows_path = temp_root.join("rows.csv");
+        let manifest_source = "\
+# Split JPL snapshot.
+# Source: Example source
+# Coverage: Example coverage
+# Redistribution: Example redistribution
+# Columns: epoch_jd,body,x_km,y_km,z_km
+";
+        let rows_source = "\
+2451545.0,Sun,1.0,2.0,3.0
+2451546.0,Moon,4.0,5.0,6.0
+";
+
+        std::fs::write(&manifest_path, manifest_source).expect("manifest file should be written");
+        std::fs::write(&rows_path, rows_source).expect("rows file should be written");
+
+        let loaded = load_snapshot_corpus_from_paths(&manifest_path, &rows_path)
+            .expect("path-backed split snapshot corpus should load");
+        let parsed = parse_snapshot_corpus_from_sources(manifest_source, rows_source)
+            .expect("split snapshot corpus should parse");
+        assert_eq!(loaded, parsed);
+
+        let path_sources = SnapshotCorpusPathSources {
+            manifest: manifest_path.clone(),
+            entries: rows_path.clone(),
+        };
+        assert_eq!(
+            path_sources.load().expect("split sources should load"),
+            parsed
+        );
+
+        std::fs::remove_dir_all(&temp_root).expect("temp dir should be removed");
+    }
+
+    #[test]
+    fn load_snapshot_corpus_from_paths_reports_io_errors() {
+        let temp_root = std::env::temp_dir().join(format!(
+            "pleiades-jpl-snapshot-corpus-missing-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("system clock should be after UNIX epoch")
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(&temp_root).expect("temp dir should be created");
+
+        let manifest_path = temp_root.join("manifest.csv");
+        let rows_path = temp_root.join("rows.csv");
+        std::fs::write(
+            &manifest_path,
+            "# Split JPL snapshot.\n# Columns: epoch_jd,body,x_km,y_km,z_km\n",
+        )
+        .expect("manifest file should be written");
+
+        let error = load_snapshot_corpus_from_paths(&manifest_path, &rows_path)
+            .expect_err("missing rows file should fail to load");
+        assert!(matches!(error, SnapshotCorpusLoadError::EntriesIo { .. }));
+        assert!(format!("{error}").contains("failed to read snapshot rows"));
+
+        std::fs::remove_dir_all(&temp_root).expect("temp dir should be removed");
     }
 
     #[test]

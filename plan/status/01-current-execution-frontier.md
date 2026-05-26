@@ -20,8 +20,8 @@ and the early-2001 boundary samples, and regression tests now pin those Horizons
 values directly. The production-generation manifest summary continues to validate
 the derived source, coverage, and boundary request corpus records directly. The
 checked-in JPL-style snapshots now also expose reusable pure-Rust CSV parsing
-entry points for their manifest and row data, plus combined and split-source
-corpus loaders for arbitrary JPL-style CSV text. The release-grade body-claims and
+entry points for their manifest and row data, plus combined, split-source, and
+path-backed split-source corpus loaders for arbitrary JPL-style CSV text. The release-grade body-claims and
 body/date/channel posture now assemble from structured body lists and validated
 corpus evidence instead of a single hand-written prose string. The remaining
 blocker is still the underlying production-grade reference input strategy:
@@ -39,7 +39,8 @@ inputs are broad enough to support release claims.
 
 1. **Production source strategy** — broaden the exposed pure-Rust CSV reader
    into broader public-data inputs or a documented reproducible corpus-generation
-   pipeline; split manifest/row corpus ingestion now exists as a step toward that.
+   pipeline; split manifest/row corpus ingestion and path-backed split-source
+   loading now exist as steps toward that.
 2. **Corpus breadth** — cover all release-claimed bodies, channels, frames, and
    epoch classes with enough density for fitting and hold-out validation.
 3. **Artifact accuracy** — keep the packaged artifact draft-grade until Phase 1

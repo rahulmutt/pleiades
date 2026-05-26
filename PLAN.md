@@ -19,7 +19,8 @@ The workspace is past the original foundation roadmap:
   and packaged-data backend crates exist;
 - the JPL snapshot crate now exposes reusable pure-Rust CSV parsing entry points
   for the checked-in snapshot fixtures and a broader manifest+row corpus loader
-  for arbitrary JPL-style CSV text, while validation, CLI, audit, benchmark,
+  for arbitrary JPL-style CSV text, including path-backed split-source loading
+  for separate manifest/row files, while validation, CLI, audit, benchmark,
   report, and release-bundle rehearsal surfaces continue to fail closed on stale
   rendered sidecars; source-corpus summaries now carry the production-generation
   body-class coverage and cadence payloads alongside the source-window evidence,
