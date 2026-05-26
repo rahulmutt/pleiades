@@ -27,7 +27,10 @@ The workspace is past the original foundation roadmap:
   and the release-facing body/date/channel posture now derives from validated
   corpus evidence;
 - unsupported advanced modes are represented in policy surfaces rather than
-  silently accepted.
+  silently accepted;
+- the workspace audit now checks the pinned `mise.toml` rust toolchain against
+  the workspace `rust-version` and requires the `rustfmt` and `clippy`
+  components, so tool-version provenance is part of the release gate.
 
 ## Important current limits
 

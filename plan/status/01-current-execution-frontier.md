@@ -23,10 +23,13 @@ checked-in JPL-style snapshots now also expose reusable pure-Rust CSV parsing
 entry points for their manifest and row data, plus combined, split-source, and
 path-backed split-source corpus loaders for arbitrary JPL-style CSV text. The release-grade body-claims and
 body/date/channel posture now assemble from structured body lists and validated
-corpus evidence instead of a single hand-written prose string. The remaining
-blocker is still the underlying production-grade reference input strategy:
-current JPL evidence is a checked-in snapshot/hold-out fixture set, not a broad
-public-data reader or production corpus provider.
+corpus evidence instead of a single hand-written prose string. Separately, the
+workspace audit now checks the pinned `mise.toml` rust toolchain against the
+workspace `rust-version` and requires the `rustfmt` and `clippy` components, so
+tool-version provenance is now part of the release gate. The remaining blocker
+is still the underlying production-grade reference input strategy: current JPL
+evidence is a checked-in snapshot/hold-out fixture set, not a broad public-data
+reader or production corpus provider.
 
 ## Why this comes first
 

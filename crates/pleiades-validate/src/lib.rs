@@ -3303,13 +3303,15 @@ impl From<EphemerisError> for ReleaseBundleError {
 }
 
 /// A deterministic workspace audit that checks for mandatory native build hooks
-/// in the first-party crates and lockfile.
+/// in the first-party crates, lockfile, and pinned tooling manifest.
 #[derive(Clone, Debug)]
 pub struct WorkspaceAuditReport {
     /// Workspace root used for the scan.
     pub workspace_root: PathBuf,
     /// Workspace manifest files that were checked.
     pub manifest_paths: Vec<PathBuf>,
+    /// Workspace tool manifest path that was checked.
+    pub tool_manifest_path: PathBuf,
     /// Workspace lockfile path that was checked.
     pub lockfile_path: PathBuf,
     /// Detected policy violations.
@@ -3341,6 +3343,8 @@ pub struct WorkspaceAuditSummary {
     pub workspace_root: PathBuf,
     /// Number of manifests that were checked.
     pub manifest_count: usize,
+    /// Workspace tool manifest path that was checked.
+    pub tool_manifest_path: PathBuf,
     /// Workspace lockfile path that was checked.
     pub lockfile_path: PathBuf,
     /// Number of detected policy violations.
@@ -3421,9 +3425,10 @@ impl WorkspaceAuditSummary {
     /// Returns a compact summary line used in release-facing reporting.
     pub fn summary_line(&self) -> String {
         let mut text = format!(
-            "workspace root: {}; manifests checked: {}; lockfile: {}; violations: {}; result: {}",
+            "workspace root: {}; manifests checked: {}; tool manifest: {}; lockfile: {}; violations: {}; result: {}",
             self.workspace_root.display(),
             self.manifest_count,
+            self.tool_manifest_path.display(),
             self.lockfile_path.display(),
             self.violation_count,
             if self.clean {
@@ -3650,6 +3655,7 @@ pub fn workspace_audit_summary(report: &WorkspaceAuditReport) -> WorkspaceAuditS
     WorkspaceAuditSummary {
         workspace_root: report.workspace_root.clone(),
         manifest_count: report.manifest_paths.len(),
+        tool_manifest_path: report.tool_manifest_path.clone(),
         lockfile_path: report.lockfile_path.clone(),
         violation_count: report.violations.len(),
         rule_counts: workspace_audit_rule_counts(&report.violations)
@@ -3674,6 +3680,11 @@ impl fmt::Display for WorkspaceAuditReport {
         writeln!(f, "Workspace audit")?;
         writeln!(f, "Workspace root: {}", self.workspace_root.display())?;
         writeln!(f, "Checked manifests: {}", self.manifest_paths.len())?;
+        writeln!(
+            f,
+            "Checked tool manifest: {}",
+            self.tool_manifest_path.display()
+        )?;
         writeln!(f, "Checked lockfile: {}", self.lockfile_path.display())?;
         if self.violations.is_empty() {
             writeln!(f, "Result: no mandatory native build hooks detected")?;
@@ -3709,6 +3720,9 @@ fn render_workspace_audit_summary_text(report: &WorkspaceAuditReport) -> String 
             text.push('\n');
             text.push_str("Checked manifests: ");
             text.push_str(&summary.manifest_count.to_string());
+            text.push('\n');
+            text.push_str("Checked tool manifest: ");
+            text.push_str(&summary.tool_manifest_path.display().to_string());
             text.push('\n');
             text.push_str("Checked lockfile: ");
             text.push_str(&summary.lockfile_path.display().to_string());
@@ -19786,6 +19800,43 @@ fn manifest_dependency_package_name(line: &str) -> Option<&str> {
     }
 }
 
+fn workspace_rust_version(root: &Path) -> Option<String> {
+    let text = fs::read_to_string(root.join("Cargo.toml")).ok()?;
+    let mut in_workspace_package = false;
+
+    for line in text.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with('[') && trimmed.ends_with(']') {
+            in_workspace_package = trimmed == "[workspace.package]";
+            continue;
+        }
+
+        if in_workspace_package && trimmed.starts_with("rust-version") {
+            let (_, value) = trimmed.split_once('=')?;
+            let value = value.trim().trim_matches('"');
+            if value.is_empty() {
+                return None;
+            }
+            return Some(value.to_string());
+        }
+    }
+
+    None
+}
+
+fn extract_inline_table_string<'a>(text: &'a str, key: &str) -> Option<&'a str> {
+    let needle = format!("{key} = \"");
+    let start = text.find(&needle)? + needle.len();
+    let rest = &text[start..];
+    let end = rest.find('"')?;
+    let value = &rest[..end];
+    if value.is_empty() {
+        None
+    } else {
+        Some(value)
+    }
+}
+
 fn audit_manifest_text(path: &Path, text: &str) -> Vec<WorkspaceAuditViolation> {
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
     enum Section {
@@ -19868,6 +19919,127 @@ fn audit_manifest_text(path: &Path, text: &str) -> Vec<WorkspaceAuditViolation> 
     violations
 }
 
+fn audit_tool_manifest_text(
+    path: &Path,
+    text: &str,
+    workspace_rust_version: Option<String>,
+) -> Vec<WorkspaceAuditViolation> {
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum Section {
+        Other,
+        Tools,
+    }
+
+    let mut section = Section::Other;
+    let mut violations = Vec::new();
+    let mut saw_tools_section = false;
+    let mut saw_rust_entry = false;
+    let mut saw_rustfmt = false;
+    let mut saw_clippy = false;
+
+    for line in text.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with('[') && trimmed.ends_with(']') {
+            section = if trimmed == "[tools]" {
+                saw_tools_section = true;
+                Section::Tools
+            } else {
+                Section::Other
+            };
+            continue;
+        }
+
+        if section != Section::Tools {
+            continue;
+        }
+
+        if trimmed.starts_with("rust =") {
+            saw_rust_entry = true;
+            let Some((_, value)) = trimmed.split_once('=') else {
+                violations.push(WorkspaceAuditViolation {
+                    path: path.to_path_buf(),
+                    rule: "tool-manifest.rust-entry-invalid",
+                    detail: "mise.toml rust tool entry is malformed".to_string(),
+                });
+                continue;
+            };
+            let value = value.trim();
+            if !value.starts_with('{') || !value.ends_with('}') {
+                violations.push(WorkspaceAuditViolation {
+                    path: path.to_path_buf(),
+                    rule: "tool-manifest.rust-entry-invalid",
+                    detail: "mise.toml rust tool entry must use an inline table".to_string(),
+                });
+                continue;
+            }
+
+            let rust_version = extract_inline_table_string(value, "version");
+            let components = extract_inline_table_string(value, "components");
+
+            match rust_version {
+                Some(version) => match workspace_rust_version.as_deref() {
+                    Some(expected) if expected != version => violations.push(WorkspaceAuditViolation {
+                        path: path.to_path_buf(),
+                        rule: "tool-manifest.rust-version-mismatch",
+                        detail: format!(
+                            "mise.toml pins rust {version}, but workspace Cargo.toml declares rust-version {expected}"
+                        ),
+                    }),
+                    Some(_) => {}
+                    None => violations.push(WorkspaceAuditViolation {
+                        path: path.to_path_buf(),
+                        rule: "tool-manifest.workspace-rust-version-missing",
+                        detail: "workspace Cargo.toml does not declare a rust-version to compare against the pinned toolchain".to_string(),
+                    }),
+                },
+                None => violations.push(WorkspaceAuditViolation {
+                    path: path.to_path_buf(),
+                    rule: "tool-manifest.rust-version-missing",
+                    detail: "mise.toml rust tool entry does not declare a version".to_string(),
+                }),
+            }
+
+            if let Some(components) = components {
+                saw_rustfmt |= components
+                    .split(',')
+                    .map(|item| item.trim())
+                    .any(|item| item == "rustfmt");
+                saw_clippy |= components
+                    .split(',')
+                    .map(|item| item.trim())
+                    .any(|item| item == "clippy");
+            }
+        }
+    }
+
+    if !saw_tools_section {
+        violations.push(WorkspaceAuditViolation {
+            path: path.to_path_buf(),
+            rule: "tool-manifest.tools-section-missing",
+            detail: "mise.toml is missing a [tools] section".to_string(),
+        });
+    }
+
+    if saw_tools_section && !saw_rust_entry {
+        violations.push(WorkspaceAuditViolation {
+            path: path.to_path_buf(),
+            rule: "tool-manifest.rust-entry-missing",
+            detail: "mise.toml is missing a pinned rust tool entry".to_string(),
+        });
+    }
+
+    if saw_rust_entry && (!saw_rustfmt || !saw_clippy) {
+        violations.push(WorkspaceAuditViolation {
+            path: path.to_path_buf(),
+            rule: "tool-manifest.rust-components-missing",
+            detail: "mise.toml rust tool entry should include both rustfmt and clippy components"
+                .to_string(),
+        });
+    }
+
+    violations
+}
+
 fn audit_lockfile_text(path: &Path, text: &str) -> Vec<WorkspaceAuditViolation> {
     const FORBIDDEN_LOCKFILE_PACKAGES: [&str; 4] = ["cc", "bindgen", "cmake", "pkg-config"];
     let mut violations = Vec::new();
@@ -19925,6 +20097,7 @@ pub fn workspace_audit_report() -> Result<WorkspaceAuditReport, std::io::Error> 
 fn workspace_audit_report_uncached() -> Result<WorkspaceAuditReport, std::io::Error> {
     let workspace_root = fs::canonicalize(workspace_root())?;
     let manifest_paths = workspace_manifest_paths(&workspace_root)?;
+    let tool_manifest_path = workspace_root.join("mise.toml");
     let lockfile_path = workspace_root.join("Cargo.lock");
     let mut violations = Vec::new();
 
@@ -19934,6 +20107,21 @@ fn workspace_audit_report_uncached() -> Result<WorkspaceAuditReport, std::io::Er
         if let Some(violation) = audit_build_script_path(path) {
             violations.push(violation);
         }
+    }
+
+    if tool_manifest_path.is_file() {
+        let text = fs::read_to_string(&tool_manifest_path)?;
+        violations.extend(audit_tool_manifest_text(
+            &tool_manifest_path,
+            &text,
+            workspace_rust_version(&workspace_root),
+        ));
+    } else {
+        violations.push(WorkspaceAuditViolation {
+            path: tool_manifest_path.clone(),
+            rule: "tool-manifest.missing",
+            detail: "mise.toml is missing from the workspace root".to_string(),
+        });
     }
 
     if lockfile_path.is_file() {
@@ -19950,6 +20138,7 @@ fn workspace_audit_report_uncached() -> Result<WorkspaceAuditReport, std::io::Er
     Ok(WorkspaceAuditReport {
         workspace_root,
         manifest_paths,
+        tool_manifest_path,
         lockfile_path,
         violations,
     })
@@ -34888,6 +35077,7 @@ mod tests {
             .to_string()
             .contains("no mandatory native build hooks detected"));
         assert!(report.to_string().contains("Checked manifests:"));
+        assert!(report.to_string().contains("Checked tool manifest:"));
     }
 
     #[test]
@@ -34911,6 +35101,7 @@ mod tests {
         assert!(rendered.contains("Workspace audit summary"));
         assert!(rendered.contains("Summary: workspace root:"));
         assert!(rendered.contains("Checked manifests:"));
+        assert!(rendered.contains("Checked tool manifest:"));
         assert!(rendered.contains("Checked lockfile:"));
         assert!(rendered.contains("Result: no mandatory native build hooks detected"));
 
@@ -35025,10 +35216,30 @@ version = "0.9.0"
     }
 
     #[test]
+    fn workspace_audit_detects_tool_manifest_provenance_drift() {
+        let tool_manifest = r#"[tools]
+rust = { version = "1.96.0", components = "rustfmt" }
+"#;
+        let violations = audit_tool_manifest_text(
+            Path::new("/tmp/mise.toml"),
+            tool_manifest,
+            Some("1.95.0".to_string()),
+        );
+
+        assert!(violations
+            .iter()
+            .any(|violation| violation.rule == "tool-manifest.rust-version-mismatch"));
+        assert!(violations
+            .iter()
+            .any(|violation| violation.rule == "tool-manifest.rust-components-missing"));
+    }
+
+    #[test]
     fn workspace_audit_summary_groups_rule_counts_for_violations() {
         let report = WorkspaceAuditReport {
             workspace_root: PathBuf::from("/workspace"),
             manifest_paths: vec![PathBuf::from("/workspace/Cargo.toml")],
+            tool_manifest_path: PathBuf::from("/workspace/mise.toml"),
             lockfile_path: PathBuf::from("/workspace/Cargo.lock"),
             violations: vec![
                 WorkspaceAuditViolation {
@@ -35061,6 +35272,7 @@ version = "0.9.0"
 
         let rendered = render_workspace_audit_summary_text(&report);
         assert!(rendered.contains("Summary: workspace root:"));
+        assert!(rendered.contains("tool manifest:"));
         assert!(rendered.contains("Violations: 3"));
         assert!(rendered.contains("Rule counts:"));
         assert!(rendered.contains("package.build: 2"));
@@ -35078,6 +35290,7 @@ version = "0.9.0"
         let summary = WorkspaceAuditSummary {
             workspace_root: PathBuf::from("/workspace"),
             manifest_count: 1,
+            tool_manifest_path: PathBuf::from("/workspace/mise.toml"),
             lockfile_path: PathBuf::from("/workspace/Cargo.lock"),
             violation_count: 2,
             rule_counts: vec![("package.build", 1)],

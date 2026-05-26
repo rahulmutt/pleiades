@@ -28,7 +28,9 @@ ship stale artifacts, native-dependency drift, or overbroad claims.
   missing input, unsupported-mode claim drift, or threshold failure is not yet
   checked.
 - Keep pure-Rust/native-dependency audits and workspace tool-version provenance
-  in the release process.
+  in the release process; the workspace audit now also checks the pinned
+  `mise.toml` rust toolchain against the workspace `rust-version` and requires
+  the `rustfmt` and `clippy` components.
 - Document production-ready public workflows once claims and request modes are
   settled.
 
