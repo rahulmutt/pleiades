@@ -25,6 +25,14 @@ part of `ci` and `release-gate`.
    versions, commits `Release {version}`, publishes the crates in dependency
    order (waiting for the index between publishes), tags `v{version}`, and
    pushes.
+5. **First-release note:** crates.io rate-limits brand-new crate names (burst
+   of 5). Publishing all nine crates for the first time will trip it, and
+   cargo-release's preflight refuses to start while the plan exceeds the
+   limit. Either ask crates.io support (help@crates.io) to raise the limit
+   for the initial release, or publish in two batches a while apart —
+   re-running the same `cargo release ... --execute` skips crates already
+   published at that version. Subsequent releases update existing crates,
+   which have a much higher limit, and are unaffected.
 
 ## After publishing
 

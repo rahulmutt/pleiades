@@ -35819,6 +35819,7 @@ serde_json = "1"
             violations.is_empty(),
             "unexpected violations: {violations:?}"
         );
+        let _ = std::fs::remove_dir_all(&root);
     }
 
     #[test]

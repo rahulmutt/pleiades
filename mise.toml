@@ -23,6 +23,7 @@ run = '''
 set -euo pipefail
 crates="pleiades-types pleiades-backend pleiades-compression pleiades-houses pleiades-ayanamsa pleiades-vsop87 pleiades-elp pleiades-jpl pleiades-core"
 version=$(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -n 1)
+[ -n "$version" ] || { echo "package-check: could not extract workspace version from Cargo.toml" >&2; exit 1; }
 budget_bytes=$((9 * 1024 * 1024))
 # Package all publishable crates together so cargo can resolve intra-workspace
 # path dependencies without hitting crates.io (required before first publish).
