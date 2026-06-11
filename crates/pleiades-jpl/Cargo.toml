@@ -1,11 +1,16 @@
 [package]
 name = "pleiades-jpl"
+description = "Checked-in JPL Horizons reference snapshots and snapshot-backed validation helpers for the pleiades astrology workspace."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
-publish = false
+repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme = "README.md"
 
 [dependencies]
-pleiades-backend = { path = "../pleiades-backend" }
-pleiades-types = { path = "../pleiades-types" }
+pleiades-backend = { workspace = true }
+pleiades-types = { workspace = true }

@@ -1,14 +1,19 @@
 [package]
 name = "pleiades-core"
+description = "High-level chart facade, request validation, and compatibility profiles for the pleiades astrology workspace."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
-publish = false
+repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme = "README.md"
 
 [dependencies]
-pleiades-backend = { path = "../pleiades-backend" }
-pleiades-types = { path = "../pleiades-types" }
-pleiades-houses = { path = "../pleiades-houses" }
-pleiades-ayanamsa = { path = "../pleiades-ayanamsa" }
-pleiades-compression = { path = "../pleiades-compression" }
+pleiades-backend = { workspace = true }
+pleiades-types = { workspace = true }
+pleiades-houses = { workspace = true }
+pleiades-ayanamsa = { workspace = true }
+pleiades-compression = { workspace = true }

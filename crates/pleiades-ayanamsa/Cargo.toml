@@ -1,10 +1,15 @@
 [package]
 name = "pleiades-ayanamsa"
+description = "Ayanamsa catalog, aliases, reference offset metadata, and sidereal offset helpers for the pleiades astrology workspace."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
-publish = false
+repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme = "README.md"
 
 [dependencies]
-pleiades-types = { path = "../pleiades-types" }
+pleiades-types = { workspace = true }

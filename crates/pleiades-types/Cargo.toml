@@ -1,13 +1,21 @@
 [package]
 name = "pleiades-types"
+description = "Shared typed vocabulary for the pleiades astrology workspace: angles, bodies, time scales, observers, coordinates, zodiac modes, house systems, and ayanamsas."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
-publish = false
+repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme = "README.md"
 
 [features]
 serde = ["dep:serde"]
 
 [dependencies]
 serde = { workspace = true, optional = true }
+
+[package.metadata.docs.rs]
+all-features = true
