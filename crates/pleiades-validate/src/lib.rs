@@ -20211,6 +20211,168 @@ fn audit_workspace_manifest_publish_text(path: &Path, text: &str) -> Vec<Workspa
     violations
 }
 
+#[allow(dead_code)]
+fn manifest_is_package(text: &str) -> bool {
+    text.lines().any(|line| line.trim() == "[package]")
+}
+
+#[allow(dead_code)]
+fn manifest_declares_publish_false(text: &str) -> bool {
+    let mut in_package = false;
+    for raw_line in text.lines() {
+        let line = raw_line.trim();
+        if line.starts_with('[') && line.ends_with(']') {
+            in_package = line == "[package]";
+            continue;
+        }
+        if in_package
+            && manifest_has_assignment(line, "publish")
+            && manifest_assignment_value(line) == Some("false")
+        {
+            return true;
+        }
+    }
+    false
+}
+
+#[allow(dead_code)]
+fn manifest_package_name(text: &str) -> Option<String> {
+    let mut in_package = false;
+    for raw_line in text.lines() {
+        let line = raw_line.trim();
+        if line.starts_with('[') && line.ends_with(']') {
+            in_package = line == "[package]";
+            continue;
+        }
+        if in_package && manifest_has_assignment(line, "name") {
+            return manifest_assignment_value(line)
+                .map(|value| value.trim_matches('"').to_string());
+        }
+    }
+    None
+}
+
+#[allow(dead_code)]
+fn audit_publishable_manifest_text(
+    path: &Path,
+    text: &str,
+    publishable_names: &[String],
+) -> Vec<WorkspaceAuditViolation> {
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum Section {
+        Other,
+        Package,
+        RuntimeDependencies,
+        DevDependencies,
+    }
+
+    let mut section = Section::Other;
+    let mut violations = Vec::new();
+    let mut saw_description = false;
+    let mut saw_license_inheritance = false;
+    let mut saw_readme = false;
+    let mut inherited_fields: Vec<&str> = Vec::new();
+
+    for raw_line in text.lines() {
+        let line = raw_line.trim();
+        if line.starts_with('[') && line.ends_with(']') {
+            section = match line {
+                "[package]" => Section::Package,
+                "[dependencies]" => Section::RuntimeDependencies,
+                "[dev-dependencies]" => Section::DevDependencies,
+                _ => Section::Other,
+            };
+            continue;
+        }
+
+        match section {
+            Section::Package => {
+                if manifest_has_assignment(line, "description") {
+                    saw_description |= manifest_assignment_value(line)
+                        .is_some_and(|value| !value.trim_matches('"').trim().is_empty());
+                }
+                if line == "license.workspace = true" {
+                    saw_license_inheritance = true;
+                }
+                if line == "readme = \"README.md\"" {
+                    saw_readme = true;
+                }
+                for field in PUBLISH_WORKSPACE_INHERITED_FIELDS {
+                    let needle = format!("{field}.workspace = true");
+                    if line == needle.as_str() {
+                        inherited_fields.push(field);
+                    }
+                }
+            }
+            Section::RuntimeDependencies | Section::DevDependencies => {
+                let Some(name) = manifest_dependency_name(line) else {
+                    continue;
+                };
+                if !name.starts_with("pleiades-") {
+                    continue;
+                }
+                if !line.contains("workspace = true") {
+                    violations.push(WorkspaceAuditViolation {
+                        path: path.to_path_buf(),
+                        rule: "publish.internal-dependency-not-workspace",
+                        detail: format!(
+                            "internal dependency `{name}` must use `workspace = true` so it inherits the pinned path and version from the workspace manifest"
+                        ),
+                    });
+                }
+                if section == Section::RuntimeDependencies
+                    && !publishable_names
+                        .iter()
+                        .any(|publishable| publishable.as_str() == name)
+                {
+                    violations.push(WorkspaceAuditViolation {
+                        path: path.to_path_buf(),
+                        rule: "publish.internal-dependency-unpublishable",
+                        detail: format!(
+                            "internal dependency `{name}` is not publishable, so this crate cannot list it as a runtime dependency"
+                        ),
+                    });
+                }
+            }
+            Section::Other => {}
+        }
+    }
+
+    if !saw_description {
+        violations.push(WorkspaceAuditViolation {
+            path: path.to_path_buf(),
+            rule: "publish.description-missing",
+            detail: "publishable crate is missing a non-blank package description".to_string(),
+        });
+    }
+    if !saw_license_inheritance {
+        violations.push(WorkspaceAuditViolation {
+            path: path.to_path_buf(),
+            rule: "publish.license-not-inherited",
+            detail: "publishable crate must declare `license.workspace = true` so the dual license is inherited"
+                .to_string(),
+        });
+    }
+    if !saw_readme {
+        violations.push(WorkspaceAuditViolation {
+            path: path.to_path_buf(),
+            rule: "publish.readme-field-missing",
+            detail: "publishable crate must declare `readme = \"README.md\"`".to_string(),
+        });
+    }
+    for field in PUBLISH_WORKSPACE_INHERITED_FIELDS {
+        if !inherited_fields.contains(&field) {
+            violations.push(WorkspaceAuditViolation {
+                path: path.to_path_buf(),
+                rule: "publish.metadata-field-missing",
+                detail: format!("publishable crate must declare `{field}.workspace = true`"),
+            });
+        }
+    }
+
+    violations
+}
+
 /// Renders the workspace audit used by the CLI and release smoke checks.
 pub fn workspace_audit_report() -> Result<WorkspaceAuditReport, std::io::Error> {
     static CACHE: OnceLock<WorkspaceAuditReport> = OnceLock::new();
@@ -35414,6 +35576,91 @@ pleiades-types = { path = "crates/pleiades-types", version = "0.1.0" }
 "#;
         let violations =
             audit_workspace_manifest_publish_text(Path::new("/tmp/Cargo.toml"), manifest);
+        assert!(
+            violations.is_empty(),
+            "unexpected violations: {violations:?}"
+        );
+    }
+
+    #[test]
+    fn workspace_audit_identifies_publishable_packages() {
+        assert!(manifest_is_package("[package]\nname = \"a\"\n"));
+        assert!(!manifest_is_package("[workspace]\nmembers = []\n"));
+        assert!(manifest_declares_publish_false(
+            "[package]\nname = \"a\"\npublish = false\n"
+        ));
+        assert!(!manifest_declares_publish_false(
+            "[package]\nname = \"a\"\n"
+        ));
+        assert_eq!(
+            manifest_package_name("[package]\nname = \"pleiades-types\"\n"),
+            Some("pleiades-types".to_string())
+        );
+    }
+
+    #[test]
+    fn workspace_audit_detects_publishable_crate_manifest_gaps() {
+        let manifest = r#"[package]
+name = "pleiades-example"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+pleiades-types = { path = "../pleiades-types" }
+pleiades-data = { workspace = true }
+serde = { workspace = true, optional = true }
+"#;
+        let publishable = vec!["pleiades-example".to_string(), "pleiades-types".to_string()];
+        let violations =
+            audit_publishable_manifest_text(Path::new("/tmp/Cargo.toml"), manifest, &publishable);
+
+        assert!(violations
+            .iter()
+            .any(|violation| violation.rule == "publish.description-missing"));
+        assert!(violations
+            .iter()
+            .any(|violation| violation.rule == "publish.license-not-inherited"));
+        assert!(violations
+            .iter()
+            .any(|violation| violation.rule == "publish.readme-field-missing"));
+        assert!(violations.iter().any(|violation| violation.rule
+            == "publish.metadata-field-missing"
+            && violation.detail.contains("repository")));
+        assert!(violations.iter().any(|violation| violation.rule
+            == "publish.internal-dependency-not-workspace"
+            && violation.detail.contains("pleiades-types")));
+        assert!(violations.iter().any(|violation| violation.rule
+            == "publish.internal-dependency-unpublishable"
+            && violation.detail.contains("pleiades-data")));
+        assert!(!violations
+            .iter()
+            .any(|violation| violation.detail.contains("`serde`")));
+    }
+
+    #[test]
+    fn workspace_audit_accepts_publish_ready_crate_manifest() {
+        let manifest = r#"[package]
+name = "pleiades-example"
+description = "Example publishable crate."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme = "README.md"
+
+[dependencies]
+pleiades-types = { workspace = true }
+
+[dev-dependencies]
+serde_json = "1"
+"#;
+        let publishable = vec!["pleiades-example".to_string(), "pleiades-types".to_string()];
+        let violations =
+            audit_publishable_manifest_text(Path::new("/tmp/Cargo.toml"), manifest, &publishable);
         assert!(
             violations.is_empty(),
             "unexpected violations: {violations:?}"
