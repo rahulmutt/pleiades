@@ -4,6 +4,7 @@ consolidate-commits = true
 dependent-version = "fix"
 pre-release-commit-message = "Release {{version}}"
 tag-name = "v{{version}}"
+tag-message = "Release {{version}}"
 sign-commit = false
 sign-tag = false
 publish = true

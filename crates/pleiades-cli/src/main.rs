@@ -6795,11 +6795,11 @@ mod tests {
             .expect("native-dependency-audit should render through the CLI");
         assert_eq!(workspace_audit, native_dependency_audit);
         assert!(workspace_audit.contains("Workspace audit"));
-        assert!(workspace_audit.contains("no mandatory native build hooks detected"));
+        assert!(workspace_audit.contains("no workspace policy violations detected"));
 
         let audit = render_cli(&["audit"]).expect("audit alias should render through the CLI");
         assert!(audit.contains("Workspace audit"));
-        assert!(audit.contains("no mandatory native build hooks detected"));
+        assert!(audit.contains("no workspace policy violations detected"));
 
         assert_eq!(
             render_cli(&["workspace-audit", "extra"]).unwrap_err(),

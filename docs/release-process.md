@@ -1,7 +1,7 @@
 # Release process
 
 `pleiades` publishes nine library crates to crates.io with lockstep versions
-managed by `cargo-release` (pinned in `mise.toml`). `pleiades-cli`,
+managed by `cargo-release` (pinned exactly in `mise.toml`; the 0.25 line is the series this configuration was validated against — bump deliberately, rerun the dry-run rehearsal after upgrading). `pleiades-cli`,
 `pleiades-data`, and `pleiades-validate` are `publish = false` and are never
 published. Publish metadata is enforced by `mise run audit` (workspace audit
 `publish.*` rules) and `mise run package-check` (artifact size budget), both

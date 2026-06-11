@@ -3433,7 +3433,7 @@ impl WorkspaceAuditSummary {
             self.lockfile_path.display(),
             self.violation_count,
             if self.clean {
-                "no mandatory native build hooks detected"
+                "no workspace policy violations detected"
             } else {
                 "violations found"
             }
@@ -3688,7 +3688,7 @@ impl fmt::Display for WorkspaceAuditReport {
         )?;
         writeln!(f, "Checked lockfile: {}", self.lockfile_path.display())?;
         if self.violations.is_empty() {
-            writeln!(f, "Result: no mandatory native build hooks detected")?;
+            writeln!(f, "Result: no workspace policy violations detected")?;
             return Ok(());
         }
 
@@ -3746,7 +3746,7 @@ fn render_workspace_audit_summary_text(report: &WorkspaceAuditReport) -> String 
             }
             text.push_str("Result: ");
             text.push_str(if summary.clean {
-                "no mandatory native build hooks detected"
+                "no workspace policy violations detected"
             } else {
                 "violations found"
             });
@@ -35443,7 +35443,7 @@ mod tests {
         assert!(report.is_clean());
         assert!(report
             .to_string()
-            .contains("no mandatory native build hooks detected"));
+            .contains("no workspace policy violations detected"));
         assert!(report.to_string().contains("Checked manifests:"));
         assert!(report.to_string().contains("Checked tool manifest:"));
     }
@@ -35456,7 +35456,7 @@ mod tests {
         assert!(summary.summary_line().contains("violations: 0"));
         assert!(summary
             .summary_line()
-            .contains("no mandatory native build hooks detected"));
+            .contains("no workspace policy violations detected"));
 
         let rendered = render_cli(&["workspace-audit-summary"])
             .expect("workspace audit summary should render");
@@ -35471,7 +35471,7 @@ mod tests {
         assert!(rendered.contains("Checked manifests:"));
         assert!(rendered.contains("Checked tool manifest:"));
         assert!(rendered.contains("Checked lockfile:"));
-        assert!(rendered.contains("Result: no mandatory native build hooks detected"));
+        assert!(rendered.contains("Result: no workspace policy violations detected"));
 
         assert_eq!(
             render_cli(&["workspace-audit", "extra"]).unwrap_err(),
@@ -36907,9 +36907,7 @@ serde_json = "1"
         assert!(validation_report_summary
             .contains("VSOP87 canonical J2000 equatorial body-class envelopes:"));
         assert!(workspace_audit_summary.contains("Workspace audit summary"));
-        assert!(
-            workspace_audit_summary.contains("Result: no mandatory native build hooks detected")
-        );
+        assert!(workspace_audit_summary.contains("Result: no workspace policy violations detected"));
         assert!(validation_report_summary.contains("VSOP87 source documentation: 8 source specs, 8 source-backed body profiles, 1 approximate fallback mean-element body profile (Pluto); source-backed bodies: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; source files: VSOP87B.ear, VSOP87B.mer, VSOP87B.ven, VSOP87B.mar, VSOP87B.jup, VSOP87B.sat, VSOP87B.ura, VSOP87B.nep"));
         assert!(validation_report_summary.contains(
             "source-backed breakdown: 8 generated binary bodies (Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune), 0 vendored full-file bodies (none), 0 truncated slice bodies (none)"
@@ -40271,7 +40269,7 @@ serde_json = "1"
             "pleiades-release-bundle-tampered-native-dependency-audit-semantic",
             "native-dependency-audit-summary.txt",
             "native-dependency audit summary checksum (fnv1a-64):",
-            "Result: no mandatory native build hooks detected",
+            "Result: no workspace policy violations detected",
             "Result: drifted native build hooks detected",
             "native-dependency audit summary no longer matches the workspace audit summary",
         );
