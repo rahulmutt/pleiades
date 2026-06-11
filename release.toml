@@ -1,0 +1,11 @@
+allow-branch = ["main"]
+shared-version = true
+consolidate-commits = true
+dependent-version = "fix"
+pre-release-commit-message = "Release {{version}}"
+tag-name = "v{{version}}"
+sign-commit = false
+sign-tag = false
+publish = true
+push = true
+tag = true
