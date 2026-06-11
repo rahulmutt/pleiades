@@ -3303,7 +3303,8 @@ impl From<EphemerisError> for ReleaseBundleError {
 }
 
 /// A deterministic workspace audit that checks for mandatory native build hooks
-/// in the first-party crates, lockfile, and pinned tooling manifest.
+/// in the first-party crates, lockfile, and pinned tooling manifest, plus
+/// publish metadata for publishable crates.
 #[derive(Clone, Debug)]
 pub struct WorkspaceAuditReport {
     /// Workspace root used for the scan.
@@ -20081,20 +20082,16 @@ fn audit_build_script_path(manifest_path: &Path) -> Option<WorkspaceAuditViolati
     }
 }
 
-#[allow(dead_code)]
 const PUBLISH_WORKSPACE_INHERITED_FIELDS: [&str; 4] =
     ["repository", "homepage", "keywords", "categories"];
 
-#[allow(dead_code)]
 const PUBLISH_WORKSPACE_LICENSE: &str = "MIT OR Apache-2.0";
 
-#[allow(dead_code)]
 fn manifest_assignment_value(line: &str) -> Option<&str> {
     let (_, value) = line.split_once('=')?;
     Some(value.trim())
 }
 
-#[allow(dead_code)]
 fn audit_workspace_manifest_publish_text(path: &Path, text: &str) -> Vec<WorkspaceAuditViolation> {
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
     enum Section {
@@ -20170,6 +20167,15 @@ fn audit_workspace_manifest_publish_text(path: &Path, text: &str) -> Vec<Workspa
         }
     }
 
+    if workspace_version.is_none() && !internal_dependencies.is_empty() {
+        violations.push(WorkspaceAuditViolation {
+            path: path.to_path_buf(),
+            rule: "publish.workspace-version-missing",
+            detail: "workspace Cargo.toml does not declare a workspace package version to compare against pinned internal dependency versions"
+                .to_string(),
+        });
+    }
+
     for (name, line) in &internal_dependencies {
         let expected_path = format!("path = \"crates/{name}\"");
         if !line.contains(expected_path.as_str()) {
@@ -20182,22 +20188,19 @@ fn audit_workspace_manifest_publish_text(path: &Path, text: &str) -> Vec<Workspa
             });
         }
         match extract_inline_table_string(line, "version") {
-            Some(version) => match workspace_version.as_deref() {
-                Some(expected) if expected == version => {}
-                Some(expected) => violations.push(WorkspaceAuditViolation {
-                    path: path.to_path_buf(),
-                    rule: "publish.workspace-dependency-version",
-                    detail: format!(
-                        "workspace dependency `{name}` pins version {version}, but the workspace package version is {expected}"
-                    ),
-                }),
-                None => violations.push(WorkspaceAuditViolation {
-                    path: path.to_path_buf(),
-                    rule: "publish.workspace-version-missing",
-                    detail: "workspace Cargo.toml does not declare a workspace package version to compare against pinned internal dependency versions"
-                        .to_string(),
-                }),
-            },
+            Some(version) => {
+                if let Some(expected) = workspace_version.as_deref() {
+                    if expected != version {
+                        violations.push(WorkspaceAuditViolation {
+                            path: path.to_path_buf(),
+                            rule: "publish.workspace-dependency-version",
+                            detail: format!(
+                                "workspace dependency `{name}` pins version {version}, but the workspace package version is {expected}"
+                            ),
+                        });
+                    }
+                }
+            }
             None => violations.push(WorkspaceAuditViolation {
                 path: path.to_path_buf(),
                 rule: "publish.workspace-dependency-version",
@@ -20211,12 +20214,10 @@ fn audit_workspace_manifest_publish_text(path: &Path, text: &str) -> Vec<Workspa
     violations
 }
 
-#[allow(dead_code)]
 fn manifest_is_package(text: &str) -> bool {
     text.lines().any(|line| line.trim() == "[package]")
 }
 
-#[allow(dead_code)]
 fn manifest_declares_publish_false(text: &str) -> bool {
     let mut in_package = false;
     for raw_line in text.lines() {
@@ -20235,7 +20236,6 @@ fn manifest_declares_publish_false(text: &str) -> bool {
     false
 }
 
-#[allow(dead_code)]
 fn manifest_package_name(text: &str) -> Option<String> {
     let mut in_package = false;
     for raw_line in text.lines() {
@@ -20252,7 +20252,6 @@ fn manifest_package_name(text: &str) -> Option<String> {
     None
 }
 
-#[allow(dead_code)]
 fn audit_publishable_manifest_text(
     path: &Path,
     text: &str,
@@ -20374,7 +20373,6 @@ fn audit_publishable_manifest_text(
     violations
 }
 
-#[allow(dead_code)]
 fn audit_publishable_crate_files(
     manifest_path: &Path,
     workspace_root: &Path,
@@ -20449,11 +20447,33 @@ fn workspace_audit_report_uncached() -> Result<WorkspaceAuditReport, std::io::Er
     let lockfile_path = workspace_root.join("Cargo.lock");
     let mut violations = Vec::new();
 
+    let mut manifests = Vec::new();
     for path in &manifest_paths {
         let text = fs::read_to_string(path)?;
-        violations.extend(audit_manifest_text(path, &text));
+        manifests.push((path.clone(), text));
+    }
+
+    let publishable_names: Vec<String> = manifests
+        .iter()
+        .filter(|(_, text)| manifest_is_package(text) && !manifest_declares_publish_false(text))
+        .filter_map(|(_, text)| manifest_package_name(text))
+        .collect();
+
+    let root_manifest_path = workspace_root.join("Cargo.toml");
+    for (path, text) in &manifests {
+        violations.extend(audit_manifest_text(path, text));
         if let Some(violation) = audit_build_script_path(path) {
             violations.push(violation);
+        }
+        if *path == root_manifest_path {
+            violations.extend(audit_workspace_manifest_publish_text(path, text));
+        } else if manifest_is_package(text) && !manifest_declares_publish_false(text) {
+            violations.extend(audit_publishable_manifest_text(
+                path,
+                text,
+                &publishable_names,
+            ));
+            violations.extend(audit_publishable_crate_files(path, &workspace_root));
         }
     }
 
@@ -35636,6 +35656,28 @@ pleiades-types = { path = "crates/pleiades-types", version = "0.1.0" }
             violations.is_empty(),
             "unexpected violations: {violations:?}"
         );
+    }
+
+    #[test]
+    fn workspace_audit_reports_missing_workspace_version_once() {
+        let manifest = r#"[workspace.package]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/rahulmutt/pleiades"
+homepage = "https://github.com/rahulmutt/pleiades"
+keywords = ["astrology", "astronomy", "ephemeris"]
+categories = ["science"]
+
+[workspace.dependencies]
+pleiades-types = { path = "crates/pleiades-types", version = "0.1.0" }
+pleiades-backend = { path = "crates/pleiades-backend", version = "0.1.0" }
+"#;
+        let violations =
+            audit_workspace_manifest_publish_text(Path::new("/tmp/Cargo.toml"), manifest);
+        let count = violations
+            .iter()
+            .filter(|violation| violation.rule == "publish.workspace-version-missing")
+            .count();
+        assert_eq!(count, 1, "violations: {violations:?}");
     }
 
     #[test]
