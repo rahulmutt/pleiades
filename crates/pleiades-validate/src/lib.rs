@@ -20374,6 +20374,61 @@ fn audit_publishable_manifest_text(
     violations
 }
 
+#[allow(dead_code)]
+fn audit_publishable_crate_files(
+    manifest_path: &Path,
+    workspace_root: &Path,
+) -> Vec<WorkspaceAuditViolation> {
+    const PUBLISH_LICENSE_FILES: [&str; 2] = ["LICENSE-APACHE", "LICENSE-MIT"];
+
+    let mut violations = Vec::new();
+    let Some(crate_dir) = manifest_path.parent() else {
+        return violations;
+    };
+
+    let readme_path = crate_dir.join("README.md");
+    if !readme_path.is_file() {
+        violations.push(WorkspaceAuditViolation {
+            path: readme_path,
+            rule: "publish.readme-file-missing",
+            detail: "publishable crate is missing its README.md".to_string(),
+        });
+    }
+
+    for license_name in PUBLISH_LICENSE_FILES {
+        let crate_copy_path = crate_dir.join(license_name);
+        let root_copy_path = workspace_root.join(license_name);
+        let Ok(root_bytes) = fs::read(&root_copy_path) else {
+            violations.push(WorkspaceAuditViolation {
+                path: root_copy_path,
+                rule: "publish.license-file-missing",
+                detail: format!("workspace root is missing {license_name}"),
+            });
+            continue;
+        };
+        match fs::read(&crate_copy_path) {
+            Ok(crate_bytes) => {
+                if crate_bytes != root_bytes {
+                    violations.push(WorkspaceAuditViolation {
+                        path: crate_copy_path,
+                        rule: "publish.license-file-drift",
+                        detail: format!(
+                            "crate copy of {license_name} does not match the workspace root copy"
+                        ),
+                    });
+                }
+            }
+            Err(_) => violations.push(WorkspaceAuditViolation {
+                path: crate_copy_path,
+                rule: "publish.license-file-missing",
+                detail: format!("publishable crate is missing its {license_name} copy"),
+            }),
+        }
+    }
+
+    violations
+}
+
 /// Renders the workspace audit used by the CLI and release smoke checks.
 pub fn workspace_audit_report() -> Result<WorkspaceAuditReport, std::io::Error> {
     static CACHE: OnceLock<WorkspaceAuditReport> = OnceLock::new();
@@ -35681,6 +35736,43 @@ serde_json = "1"
         let publishable = vec!["pleiades-example".to_string(), "pleiades-types".to_string()];
         let violations =
             audit_publishable_manifest_text(Path::new("/tmp/Cargo.toml"), manifest, &publishable);
+        assert!(
+            violations.is_empty(),
+            "unexpected violations: {violations:?}"
+        );
+    }
+
+    #[test]
+    fn workspace_audit_detects_publish_file_gaps() {
+        let root = unique_temp_dir("pleiades-publish-file-audit");
+        let crate_dir = root.join("crates").join("pleiades-example");
+        std::fs::create_dir_all(&crate_dir).expect("crate dir should be creatable");
+        std::fs::write(root.join("LICENSE-APACHE"), "apache text")
+            .expect("root apache license should be writable");
+        std::fs::write(root.join("LICENSE-MIT"), "mit text")
+            .expect("root mit license should be writable");
+        std::fs::write(crate_dir.join("LICENSE-APACHE"), "apache text")
+            .expect("crate apache license should be writable");
+        std::fs::write(crate_dir.join("LICENSE-MIT"), "different text")
+            .expect("crate mit license should be writable");
+
+        let violations = audit_publishable_crate_files(&crate_dir.join("Cargo.toml"), &root);
+        assert!(violations
+            .iter()
+            .any(|violation| violation.rule == "publish.readme-file-missing"));
+        assert!(violations
+            .iter()
+            .any(|violation| violation.rule == "publish.license-file-drift"
+                && violation.detail.contains("LICENSE-MIT")));
+        assert!(!violations
+            .iter()
+            .any(|violation| violation.rule == "publish.license-file-missing"));
+
+        std::fs::write(crate_dir.join("README.md"), "# pleiades-example\n")
+            .expect("crate readme should be writable");
+        std::fs::write(crate_dir.join("LICENSE-MIT"), "mit text")
+            .expect("crate mit license should be writable");
+        let violations = audit_publishable_crate_files(&crate_dir.join("Cargo.toml"), &root);
         assert!(
             violations.is_empty(),
             "unexpected violations: {violations:?}"
