@@ -187,4 +187,4 @@ mise run release-gate
 
 ## Licensing
 
-Workspace manifests declare `MIT OR Apache-2.0`. The checked-in [LICENSE](LICENSE) file contains the Apache-2.0 text.
+Workspace manifests declare `MIT OR Apache-2.0`. The checked-in [`LICENSE-APACHE`](LICENSE-APACHE) and [`LICENSE-MIT`](LICENSE-MIT) files carry the full license texts.
