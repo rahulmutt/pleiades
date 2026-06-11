@@ -20,6 +20,19 @@ edition = "2021"
 license = "MIT OR Apache-2.0"
 version = "0.1.0"
 rust-version = "1.95.0"
+repository = "https://github.com/rahulmutt/pleiades"
+homepage = "https://github.com/rahulmutt/pleiades"
+keywords = ["astrology", "astronomy", "ephemeris"]
+categories = ["science"]
 
 [workspace.dependencies]
 serde = { version = "1", default-features = false, features = ["derive", "std"] }
+pleiades-ayanamsa = { path = "crates/pleiades-ayanamsa", version = "0.1.0" }
+pleiades-backend = { path = "crates/pleiades-backend", version = "0.1.0" }
+pleiades-compression = { path = "crates/pleiades-compression", version = "0.1.0" }
+pleiades-core = { path = "crates/pleiades-core", version = "0.1.0" }
+pleiades-elp = { path = "crates/pleiades-elp", version = "0.1.0" }
+pleiades-houses = { path = "crates/pleiades-houses", version = "0.1.0" }
+pleiades-jpl = { path = "crates/pleiades-jpl", version = "0.1.0" }
+pleiades-types = { path = "crates/pleiades-types", version = "0.1.0" }
+pleiades-vsop87 = { path = "crates/pleiades-vsop87", version = "0.1.0" }
