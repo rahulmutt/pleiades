@@ -27,6 +27,17 @@ Important current limits:
 - native sidereal backend output is not assumed; chart-level sidereal longitude is handled by the façade/catalog layer,
 - the packaged-data artifact is a draft reproducibility fixture and should not be treated as final production-accuracy compressed ephemeris data.
 
+## Published crates
+
+The nine library crates (`pleiades-types`, `pleiades-backend`, `pleiades-core`,
+`pleiades-houses`, `pleiades-ayanamsa`, `pleiades-vsop87`, `pleiades-elp`,
+`pleiades-jpl`, `pleiades-compression`) are published to crates.io as
+experimental `0.1.x` releases under `MIT OR Apache-2.0`. The limits above apply
+to the published crates as well; production-accuracy claims wait on the phases
+in [PLAN.md](PLAN.md). `pleiades-cli`, `pleiades-data`, and `pleiades-validate`
+are contributor tooling and stay unpublished. The release procedure is
+documented in [docs/release-process.md](docs/release-process.md).
+
 For the source-of-truth design and compatibility targets, read [SPEC.md](SPEC.md) and the documents in [`spec/`](spec/).
 
 ## Workspace layout
