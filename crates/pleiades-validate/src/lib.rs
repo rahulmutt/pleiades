@@ -20227,7 +20227,7 @@ fn manifest_declares_publish_false(text: &str) -> bool {
         }
         if in_package
             && manifest_has_assignment(line, "publish")
-            && manifest_assignment_value(line) == Some("false")
+            && matches!(manifest_assignment_value(line), Some("false") | Some("[]"))
         {
             return true;
         }
@@ -20278,7 +20278,7 @@ fn audit_publishable_manifest_text(
         if line.starts_with('[') && line.ends_with(']') {
             section = match line {
                 "[package]" => Section::Package,
-                "[dependencies]" => Section::RuntimeDependencies,
+                "[dependencies]" | "[build-dependencies]" => Section::RuntimeDependencies,
                 "[dev-dependencies]" => Section::DevDependencies,
                 _ => Section::Other,
             };
@@ -20308,7 +20308,8 @@ fn audit_publishable_manifest_text(
                 let Some(name) = manifest_dependency_name(line) else {
                     continue;
                 };
-                if !name.starts_with("pleiades-") {
+                let package_name = manifest_dependency_package_name(line).unwrap_or(name);
+                if !package_name.starts_with("pleiades-") {
                     continue;
                 }
                 if !line.contains("workspace = true") {
@@ -20316,20 +20317,20 @@ fn audit_publishable_manifest_text(
                         path: path.to_path_buf(),
                         rule: "publish.internal-dependency-not-workspace",
                         detail: format!(
-                            "internal dependency `{name}` must use `workspace = true` so it inherits the pinned path and version from the workspace manifest"
+                            "internal dependency `{package_name}` must use `workspace = true` so it inherits the pinned path and version from the workspace manifest"
                         ),
                     });
                 }
                 if section == Section::RuntimeDependencies
                     && !publishable_names
                         .iter()
-                        .any(|publishable| publishable.as_str() == name)
+                        .any(|publishable| publishable.as_str() == package_name)
                 {
                     violations.push(WorkspaceAuditViolation {
                         path: path.to_path_buf(),
                         rule: "publish.internal-dependency-unpublishable",
                         detail: format!(
-                            "internal dependency `{name}` is not publishable, so this crate cannot list it as a runtime dependency"
+                            "internal dependency `{package_name}` is not publishable, so this crate cannot list it as a runtime dependency"
                         ),
                     });
                 }
@@ -35589,6 +35590,9 @@ pleiades-types = { path = "crates/pleiades-types", version = "0.1.0" }
         assert!(manifest_declares_publish_false(
             "[package]\nname = \"a\"\npublish = false\n"
         ));
+        assert!(manifest_declares_publish_false(
+            "[package]\nname = \"a\"\npublish = []\n"
+        ));
         assert!(!manifest_declares_publish_false(
             "[package]\nname = \"a\"\n"
         ));
@@ -35609,6 +35613,13 @@ edition.workspace = true
 pleiades-types = { path = "../pleiades-types" }
 pleiades-data = { workspace = true }
 serde = { workspace = true, optional = true }
+renamed = { package = "pleiades-houses", path = "../pleiades-houses" }
+
+[build-dependencies]
+pleiades-elp = { path = "../pleiades-elp" }
+
+[dev-dependencies]
+pleiades-jpl = { workspace = true }
 "#;
         let publishable = vec!["pleiades-example".to_string(), "pleiades-types".to_string()];
         let violations =
@@ -35635,6 +35646,15 @@ serde = { workspace = true, optional = true }
         assert!(!violations
             .iter()
             .any(|violation| violation.detail.contains("`serde`")));
+        assert!(violations.iter().any(|violation| violation.rule
+            == "publish.internal-dependency-not-workspace"
+            && violation.detail.contains("pleiades-houses")));
+        assert!(violations.iter().any(|violation| violation.rule
+            == "publish.internal-dependency-unpublishable"
+            && violation.detail.contains("pleiades-elp")));
+        assert!(!violations.iter().any(|violation| violation.rule
+            == "publish.internal-dependency-unpublishable"
+            && violation.detail.contains("pleiades-jpl")));
     }
 
     #[test]
