@@ -20081,6 +20081,136 @@ fn audit_build_script_path(manifest_path: &Path) -> Option<WorkspaceAuditViolati
     }
 }
 
+#[allow(dead_code)]
+const PUBLISH_WORKSPACE_INHERITED_FIELDS: [&str; 4] =
+    ["repository", "homepage", "keywords", "categories"];
+
+#[allow(dead_code)]
+const PUBLISH_WORKSPACE_LICENSE: &str = "MIT OR Apache-2.0";
+
+#[allow(dead_code)]
+fn manifest_assignment_value(line: &str) -> Option<&str> {
+    let (_, value) = line.split_once('=')?;
+    Some(value.trim())
+}
+
+#[allow(dead_code)]
+fn audit_workspace_manifest_publish_text(path: &Path, text: &str) -> Vec<WorkspaceAuditViolation> {
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum Section {
+        Other,
+        WorkspacePackage,
+        WorkspaceDependencies,
+    }
+
+    let mut section = Section::Other;
+    let mut violations = Vec::new();
+    let mut workspace_version: Option<String> = None;
+    let mut saw_license = false;
+    let mut inherited_fields: Vec<&str> = Vec::new();
+    let mut internal_dependencies: Vec<(String, String)> = Vec::new();
+
+    for raw_line in text.lines() {
+        let line = raw_line.trim();
+        if line.starts_with('[') && line.ends_with(']') {
+            section = match line {
+                "[workspace.package]" => Section::WorkspacePackage,
+                "[workspace.dependencies]" => Section::WorkspaceDependencies,
+                _ => Section::Other,
+            };
+            continue;
+        }
+
+        match section {
+            Section::WorkspacePackage => {
+                if manifest_has_assignment(line, "version") {
+                    workspace_version = manifest_assignment_value(line)
+                        .map(|value| value.trim_matches('"').to_string());
+                }
+                if manifest_has_assignment(line, "license") {
+                    saw_license = manifest_assignment_value(line)
+                        .is_some_and(|value| value.trim_matches('"') == PUBLISH_WORKSPACE_LICENSE);
+                }
+                for field in PUBLISH_WORKSPACE_INHERITED_FIELDS {
+                    if manifest_has_assignment(line, field) {
+                        inherited_fields.push(field);
+                    }
+                }
+            }
+            Section::WorkspaceDependencies => {
+                if let Some(name) = manifest_dependency_name(line) {
+                    if name.starts_with("pleiades-") {
+                        internal_dependencies.push((name.to_string(), line.to_string()));
+                    }
+                }
+            }
+            Section::Other => {}
+        }
+    }
+
+    if !saw_license {
+        violations.push(WorkspaceAuditViolation {
+            path: path.to_path_buf(),
+            rule: "publish.workspace-license",
+            detail: format!(
+                "workspace package license must be `{PUBLISH_WORKSPACE_LICENSE}` so published crates inherit the dual license"
+            ),
+        });
+    }
+
+    for field in PUBLISH_WORKSPACE_INHERITED_FIELDS {
+        if !inherited_fields.contains(&field) {
+            violations.push(WorkspaceAuditViolation {
+                path: path.to_path_buf(),
+                rule: "publish.workspace-metadata-missing",
+                detail: format!(
+                    "workspace package is missing `{field}`, which publishable crates inherit"
+                ),
+            });
+        }
+    }
+
+    for (name, line) in &internal_dependencies {
+        let expected_path = format!("path = \"crates/{name}\"");
+        if !line.contains(expected_path.as_str()) {
+            violations.push(WorkspaceAuditViolation {
+                path: path.to_path_buf(),
+                rule: "publish.workspace-dependency-path",
+                detail: format!(
+                    "workspace dependency `{name}` must declare `{expected_path}` so workspace builds use the local crate"
+                ),
+            });
+        }
+        match extract_inline_table_string(line, "version") {
+            Some(version) => match workspace_version.as_deref() {
+                Some(expected) if expected == version => {}
+                Some(expected) => violations.push(WorkspaceAuditViolation {
+                    path: path.to_path_buf(),
+                    rule: "publish.workspace-dependency-version",
+                    detail: format!(
+                        "workspace dependency `{name}` pins version {version}, but the workspace package version is {expected}"
+                    ),
+                }),
+                None => violations.push(WorkspaceAuditViolation {
+                    path: path.to_path_buf(),
+                    rule: "publish.workspace-version-missing",
+                    detail: "workspace Cargo.toml does not declare a workspace package version to compare against pinned internal dependency versions"
+                        .to_string(),
+                }),
+            },
+            None => violations.push(WorkspaceAuditViolation {
+                path: path.to_path_buf(),
+                rule: "publish.workspace-dependency-version",
+                detail: format!(
+                    "workspace dependency `{name}` must pin a version equal to the workspace package version so published manifests carry a registry version"
+                ),
+            }),
+        }
+    }
+
+    violations
+}
+
 /// Renders the workspace audit used by the CLI and release smoke checks.
 pub fn workspace_audit_report() -> Result<WorkspaceAuditReport, std::io::Error> {
     static CACHE: OnceLock<WorkspaceAuditReport> = OnceLock::new();
@@ -35232,6 +35362,62 @@ rust = { version = "1.96.0", components = "rustfmt" }
         assert!(violations
             .iter()
             .any(|violation| violation.rule == "tool-manifest.rust-components-missing"));
+    }
+
+    #[test]
+    fn workspace_audit_detects_workspace_publish_metadata_drift() {
+        let manifest = r#"[workspace.package]
+version = "0.1.0"
+license = "MIT"
+
+[workspace.dependencies]
+pleiades-types = { path = "crates/pleiades-types", version = "0.2.0" }
+pleiades-backend = { version = "0.1.0" }
+serde = { version = "1" }
+"#;
+        let violations =
+            audit_workspace_manifest_publish_text(Path::new("/tmp/Cargo.toml"), manifest);
+
+        assert!(violations
+            .iter()
+            .any(|violation| violation.rule == "publish.workspace-license"));
+        assert!(violations.iter().any(|violation| violation.rule
+            == "publish.workspace-metadata-missing"
+            && violation.detail.contains("repository")));
+        assert!(violations.iter().any(|violation| violation.rule
+            == "publish.workspace-metadata-missing"
+            && violation.detail.contains("keywords")));
+        assert!(violations.iter().any(|violation| violation.rule
+            == "publish.workspace-dependency-version"
+            && violation.detail.contains("pleiades-types")));
+        assert!(violations.iter().any(|violation| violation.rule
+            == "publish.workspace-dependency-path"
+            && violation.detail.contains("pleiades-backend")));
+        assert!(!violations
+            .iter()
+            .any(|violation| violation.detail.contains("`serde`")));
+    }
+
+    #[test]
+    fn workspace_audit_accepts_publish_ready_workspace_manifest() {
+        let manifest = r#"[workspace.package]
+version = "0.1.0"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/rahulmutt/pleiades"
+homepage = "https://github.com/rahulmutt/pleiades"
+keywords = ["astrology", "astronomy", "ephemeris"]
+categories = ["science"]
+
+[workspace.dependencies]
+serde = { version = "1" }
+pleiades-types = { path = "crates/pleiades-types", version = "0.1.0" }
+"#;
+        let violations =
+            audit_workspace_manifest_publish_text(Path::new("/tmp/Cargo.toml"), manifest);
+        assert!(
+            violations.is_empty(),
+            "unexpected violations: {violations:?}"
+        );
     }
 
     #[test]
