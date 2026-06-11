@@ -16,6 +16,31 @@ run = "RUSTDOCFLAGS=\"-D warnings\" cargo doc --workspace --no-deps --all-featur
 [tasks.audit]
 run = "cargo run -q -p pleiades-validate -- workspace-audit"
 
+[tasks.package-check]
+shell = "bash -c"
+run = '''
+set -euo pipefail
+crates="pleiades-types pleiades-backend pleiades-compression pleiades-houses pleiades-ayanamsa pleiades-vsop87 pleiades-elp pleiades-jpl pleiades-core"
+version=$(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -n 1)
+budget_bytes=$((9 * 1024 * 1024))
+# Package all publishable crates together so cargo can resolve intra-workspace
+# path dependencies without hitting crates.io (required before first publish).
+pkg_args=""
+for crate in $crates; do
+  pkg_args="$pkg_args --package $crate"
+done
+cargo package --quiet --no-verify --allow-dirty $pkg_args
+for crate in $crates; do
+  artifact="target/package/${crate}-${version}.crate"
+  size=$(wc -c < "$artifact")
+  if [ "$size" -gt "$budget_bytes" ]; then
+    echo "package-check: $artifact is $size bytes, over the $budget_bytes-byte budget" >&2
+    exit 1
+  fi
+  echo "package-check: $artifact ok ($size bytes)"
+done
+'''
+
 [tasks.benchmark]
 run = "cargo run -q -p pleiades-validate -- benchmark --rounds 5"
 
@@ -23,8 +48,8 @@ run = "cargo run -q -p pleiades-validate -- benchmark --rounds 5"
 run = "cargo run -q -p pleiades-validate -- release-smoke"
 
 [tasks.release-gate]
-depends = ["fmt", "lint", "test", "benchmark", "audit", "release-smoke"]
+depends = ["fmt", "lint", "test", "benchmark", "audit", "package-check", "release-smoke"]
 run = "cargo run -q -p pleiades-validate -- release-gate"
 
 [tasks.ci]
-depends = ["fmt", "lint", "test", "docs", "audit", "release-smoke"]
+depends = ["fmt", "lint", "test", "docs", "audit", "package-check", "release-smoke"]
