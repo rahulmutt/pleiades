@@ -1936,3 +1936,6 @@ pub fn validated_production_generation_snapshot_body_class_coverage_summary_for_
         .validated_summary_line()
         .map_err(|error| error.to_string())
 }
+
+#[cfg(test)]
+mod tests;

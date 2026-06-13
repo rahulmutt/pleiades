@@ -2297,3 +2297,6 @@ fn parse_f64(
         )
     })
 }
+
+#[cfg(test)]
+mod tests;

@@ -1043,3 +1043,6 @@ pub fn reference_asteroid_source_window_summary_for_report() -> String {
         Err(error) => format!("Reference asteroid source windows: unavailable ({error})"),
     }
 }
+
+#[cfg(test)]
+mod tests;

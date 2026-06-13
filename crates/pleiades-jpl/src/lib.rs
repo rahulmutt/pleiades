@@ -52,37 +52,6 @@ pub use reference_summary::*;
 pub use requests::*;
 pub use snapshot::*;
 
-#[cfg(test)]
-use pleiades_backend::{CelestialBody, EphemerisBackend, QualityAnnotation};
-#[cfg(test)]
-use pleiades_types::CoordinateFrame;
-#[cfg(test)]
-use reference_summary::{
-    comparison_snapshot_source_checksum, format_manifest_summary_for_report,
-    format_validated_comparison_snapshot_source_summary_for_report,
-    format_validated_reference_snapshot_source_window_summary_for_report,
-    format_validated_source_summary_for_report,
-    independent_holdout_quarter_day_boundary_summary_details, independent_holdout_source_checksum,
-    production_generation_source_cadence_fragment_from_counts,
-    production_generation_source_revision_summary, reference_snapshot_source_checksum,
-    selected_asteroid_source_entries,
-    validate_production_generation_boundary_request_corpus_frame_parity,
-    validate_production_generation_source_summary_text,
-    validate_reference_asteroid_equatorial_evidence, validate_reference_asteroid_evidence,
-    ReferenceAsteroidEquatorialEvidenceValidationError, ReferenceAsteroidEvidenceValidationError,
-    COMPARISON_SNAPSHOT_COLUMNS, COMPARISON_SNAPSHOT_COVERAGE_EXPECTED,
-    COMPARISON_SNAPSHOT_REDISTRIBUTION_EXPECTED, COMPARISON_SNAPSHOT_SOURCE_EXPECTED,
-    INDEPENDENT_HOLDOUT_COLUMNS, INDEPENDENT_HOLDOUT_COVERAGE_FALLBACK,
-    INDEPENDENT_HOLDOUT_EVIDENCE_CLASS, INDEPENDENT_HOLDOUT_FRAME_TREATMENT,
-    INDEPENDENT_HOLDOUT_REDISTRIBUTION_FALLBACK, INDEPENDENT_HOLDOUT_SOURCE_EXPECTED,
-    INDEPENDENT_HOLDOUT_TIME_SCALE, JPL_INTERPOLATION_POSTURE_DETAIL,
-    JPL_INTERPOLATION_POSTURE_ENVELOPE, JPL_INTERPOLATION_POSTURE_SOURCE,
-    JPL_INTERPOLATION_QUALITY_DERIVATION, REFERENCE_SNAPSHOT_COLUMNS,
-    REFERENCE_SNAPSHOT_COVERAGE_FALLBACK, REFERENCE_SNAPSHOT_EVIDENCE_CLASS,
-    REFERENCE_SNAPSHOT_FRAME_TREATMENT, REFERENCE_SNAPSHOT_REDISTRIBUTION_FALLBACK,
-    REFERENCE_SNAPSHOT_SOURCE_EXPECTED, REFERENCE_SNAPSHOT_TIME_SCALE,
-};
-
 use reference_summary::format_bodies;
 
 fn format_instant(instant: Instant) -> String {
@@ -90,8 +59,6 @@ fn format_instant(instant: Instant) -> String {
 }
 
 mod backend;
-#[cfg(test)]
-use backend::interpolate_fixture_state;
 pub use backend::*;
 use backend::{
     angular_degrees_delta, comparison_body_list, comparison_snapshot_entries,
@@ -130,4 +97,4 @@ use backend::{
 };
 
 #[cfg(test)]
-mod tests;
+mod test_support;

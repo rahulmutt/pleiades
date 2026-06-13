@@ -2445,3 +2445,6 @@ pub fn jpl_interpolation_body_class_error_envelopes_for_report() -> String {
         None => "JPL interpolation body-class error envelopes: unavailable".to_string(),
     }
 }
+
+#[cfg(test)]
+mod tests;

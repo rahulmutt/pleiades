@@ -7,3 +7,6 @@ mod core;
 pub use boundaries::*;
 #[allow(unused_imports)]
 pub use core::*;
+
+#[cfg(test)]
+mod tests;

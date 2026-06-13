@@ -1471,3 +1471,6 @@ pub fn comparison_snapshot_manifest() -> &'static SnapshotManifest {
 pub fn comparison_bodies() -> &'static [pleiades_backend::CelestialBody] {
     comparison_body_list()
 }
+
+#[cfg(test)]
+mod tests;

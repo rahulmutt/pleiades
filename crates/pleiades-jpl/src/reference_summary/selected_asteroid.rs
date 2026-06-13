@@ -2536,3 +2536,6 @@ pub fn selected_asteroid_batch_parity_summary_for_report() -> String {
         None => "Selected asteroid batch parity: unavailable".to_string(),
     }
 }
+
+#[cfg(test)]
+mod tests;
