@@ -127,8 +127,9 @@ const GENERATED_EARTH_TABLE_MAGIC: &[u8; 8] = b"PVSBTAB1";
 const GENERATED_EARTH_TABLE_VERSION: u32 = 1;
 
 fn earth_tables() -> &'static Vsop87SeriesTables {
-    EARTH_TABLES
-        .get_or_init(|| parse_generated_vsop87b_tables(include_bytes!("../data/VSOP87B.ear.bin")))
+    EARTH_TABLES.get_or_init(|| {
+        parse_generated_vsop87b_tables(include_bytes!("../../data/VSOP87B.ear.bin"))
+    })
 }
 
 pub(crate) fn parse_generated_vsop87b_tables(bytes: &[u8]) -> Vsop87SeriesTables {
@@ -400,7 +401,7 @@ mod tests {
 
     #[test]
     fn parses_full_earth_tables_with_expected_series_counts() {
-        let tables = parse_vsop87b_tables(include_str!("../data/VSOP87B.ear"))
+        let tables = parse_vsop87b_tables(include_str!("../../data/VSOP87B.ear"))
             .expect("Earth source file should parse");
         assert_eq!(tables.longitude.len(), 6);
         assert_eq!(tables.latitude.len(), 6);
@@ -417,7 +418,7 @@ mod tests {
 
     #[test]
     fn parses_generated_earth_table_blob_with_expected_series_counts() {
-        let tables = parse_generated_vsop87b_tables(include_bytes!("../data/VSOP87B.ear.bin"));
+        let tables = parse_generated_vsop87b_tables(include_bytes!("../../data/VSOP87B.ear.bin"));
         assert_eq!(tables.longitude.len(), 6);
         assert_eq!(tables.latitude.len(), 6);
         assert_eq!(tables.radius.len(), 6);
