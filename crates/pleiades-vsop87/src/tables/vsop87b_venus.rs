@@ -26,8 +26,9 @@ pub(crate) fn venus_lbr(julian_day_tt: f64) -> SphericalLbr {
 }
 
 fn venus_tables() -> &'static Vsop87SeriesTables {
-    VENUS_TABLES
-        .get_or_init(|| parse_generated_vsop87b_tables(include_bytes!("../../data/VSOP87B.ven.bin")))
+    VENUS_TABLES.get_or_init(|| {
+        parse_generated_vsop87b_tables(include_bytes!("../../data/VSOP87B.ven.bin"))
+    })
 }
 
 #[cfg(test)]

@@ -26,8 +26,9 @@ pub(crate) fn saturn_lbr(julian_day_tt: f64) -> SphericalLbr {
 }
 
 fn saturn_tables() -> &'static Vsop87SeriesTables {
-    SATURN_TABLES
-        .get_or_init(|| parse_generated_vsop87b_tables(include_bytes!("../../data/VSOP87B.sat.bin")))
+    SATURN_TABLES.get_or_init(|| {
+        parse_generated_vsop87b_tables(include_bytes!("../../data/VSOP87B.sat.bin"))
+    })
 }
 
 #[cfg(test)]

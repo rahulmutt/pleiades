@@ -127,8 +127,9 @@ const GENERATED_EARTH_TABLE_MAGIC: &[u8; 8] = b"PVSBTAB1";
 const GENERATED_EARTH_TABLE_VERSION: u32 = 1;
 
 fn earth_tables() -> &'static Vsop87SeriesTables {
-    EARTH_TABLES
-        .get_or_init(|| parse_generated_vsop87b_tables(include_bytes!("../../data/VSOP87B.ear.bin")))
+    EARTH_TABLES.get_or_init(|| {
+        parse_generated_vsop87b_tables(include_bytes!("../../data/VSOP87B.ear.bin"))
+    })
 }
 
 pub(crate) fn parse_generated_vsop87b_tables(bytes: &[u8]) -> Vsop87SeriesTables {

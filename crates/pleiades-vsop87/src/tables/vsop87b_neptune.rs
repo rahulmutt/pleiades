@@ -26,8 +26,9 @@ pub(crate) fn neptune_lbr(julian_day_tt: f64) -> SphericalLbr {
 }
 
 fn neptune_tables() -> &'static Vsop87SeriesTables {
-    NEPTUNE_TABLES
-        .get_or_init(|| parse_generated_vsop87b_tables(include_bytes!("../../data/VSOP87B.nep.bin")))
+    NEPTUNE_TABLES.get_or_init(|| {
+        parse_generated_vsop87b_tables(include_bytes!("../../data/VSOP87B.nep.bin"))
+    })
 }
 
 #[cfg(test)]

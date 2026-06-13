@@ -26,8 +26,9 @@ pub(crate) fn jupiter_lbr(julian_day_tt: f64) -> SphericalLbr {
 }
 
 fn jupiter_tables() -> &'static Vsop87SeriesTables {
-    JUPITER_TABLES
-        .get_or_init(|| parse_generated_vsop87b_tables(include_bytes!("../../data/VSOP87B.jup.bin")))
+    JUPITER_TABLES.get_or_init(|| {
+        parse_generated_vsop87b_tables(include_bytes!("../../data/VSOP87B.jup.bin"))
+    })
 }
 
 #[cfg(test)]

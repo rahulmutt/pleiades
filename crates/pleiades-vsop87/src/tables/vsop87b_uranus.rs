@@ -26,8 +26,9 @@ pub(crate) fn uranus_lbr(julian_day_tt: f64) -> SphericalLbr {
 }
 
 fn uranus_tables() -> &'static Vsop87SeriesTables {
-    URANUS_TABLES
-        .get_or_init(|| parse_generated_vsop87b_tables(include_bytes!("../../data/VSOP87B.ura.bin")))
+    URANUS_TABLES.get_or_init(|| {
+        parse_generated_vsop87b_tables(include_bytes!("../../data/VSOP87B.ura.bin"))
+    })
 }
 
 #[cfg(test)]

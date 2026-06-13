@@ -26,8 +26,9 @@ pub(crate) fn mars_lbr(julian_day_tt: f64) -> SphericalLbr {
 }
 
 fn mars_tables() -> &'static Vsop87SeriesTables {
-    MARS_TABLES
-        .get_or_init(|| parse_generated_vsop87b_tables(include_bytes!("../../data/VSOP87B.mar.bin")))
+    MARS_TABLES.get_or_init(|| {
+        parse_generated_vsop87b_tables(include_bytes!("../../data/VSOP87B.mar.bin"))
+    })
 }
 
 #[cfg(test)]
