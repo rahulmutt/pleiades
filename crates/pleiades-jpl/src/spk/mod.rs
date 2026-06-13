@@ -6,6 +6,7 @@
 
 pub(crate) mod bytes;
 pub(crate) mod daf;
+pub(crate) mod pool;
 pub(crate) mod segment;
 
 #[cfg(test)]
