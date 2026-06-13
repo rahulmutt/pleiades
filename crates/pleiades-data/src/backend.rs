@@ -49,7 +49,7 @@ impl PackagedDataBackend {
 
     /// Creates a packaged-data backend from decoded artifact bytes.
     ///
-    /// See [`packaged_backend_from_bytes`] for an end-to-end example that
+    /// See [`crate::packaged_backend_from_bytes`] for an end-to-end example that
     /// encodes the checked-in artifact and reloads it through this constructor.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, PackagedArtifactLoadError> {
         Ok(Self::from_artifact(
@@ -60,7 +60,7 @@ impl PackagedDataBackend {
     #[cfg(feature = "packaged-artifact-path")]
     /// Creates a packaged-data backend from an artifact file.
     ///
-    /// See [`packaged_backend_from_path`] for an end-to-end example that writes
+    /// See [`crate::packaged_backend_from_path`] for an end-to-end example that writes
     /// the checked-in artifact to a temporary file and reloads it through this
     /// constructor.
     pub fn from_path(path: impl AsRef<Path>) -> Result<Self, PackagedArtifactLoadError> {
