@@ -11,10 +11,10 @@ use pleiades_types::{
     Longitude, Motion, TimeRange, TimeScale, ZodiacMode,
 };
 
+use crate::specification::{SUPPORTED_LUNAR_FRAMES, SUPPORTED_LUNAR_TIME_SCALES};
 use crate::{
     lunar_theory_source_family_summary_for_report, lunar_theory_specification,
-    lunar_theory_supported_bodies, series, PACKAGE_NAME, SUPPORTED_LUNAR_FRAMES,
-    SUPPORTED_LUNAR_TIME_SCALES,
+    lunar_theory_supported_bodies, series, PACKAGE_NAME,
 };
 
 /// A pure-Rust lunar backend.
