@@ -1,4 +1,3 @@
-
 use super::*;
 use pleiades_backend::{Apparentness, EphemerisErrorKind, EphemerisRequest};
 
