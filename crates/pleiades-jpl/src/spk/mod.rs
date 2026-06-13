@@ -5,6 +5,7 @@
 //! coordinates consistent with the rest of the workspace (mean geometric).
 
 pub(crate) mod bytes;
+pub(crate) mod daf;
 
 #[cfg(test)]
 pub(crate) mod test_support;
