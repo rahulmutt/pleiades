@@ -13,6 +13,18 @@ pub(crate) fn verify_release_bundle(
     verify_release_bundle_internal(output_dir, true)
 }
 
+// NOTE ON STRUCTURE: this function reads every release-bundle artifact into a
+// `*_text` local, computes a `*_checksum` for each, runs the rendering-alignment
+// and manifest-consistency checks, and finally assembles a single `ReleaseBundle`
+// from those locals. The per-artifact rendering-alignment logic already lives in
+// `bundle_verify_helpers`. The required-file existence sweep has been extracted to
+// `ensure_required_bundle_files_exist`. The remaining bulk is the read/checksum/
+// build flow plus long runs of manifest-checksum comparisons: those runs read no
+// new state but each references dozens of the `*_text`/`*_checksum` locals that
+// feed the final struct, so extracting them would require helpers with dozens of
+// by-reference parameters and would not isolate any self-contained sub-state.
+// They are intentionally left inline to preserve exact behavior and avoid a risky
+// mechanical parameter-threading refactor.
 pub(crate) fn verify_release_bundle_internal(
     output_dir: impl AsRef<Path>,
     validate_validation_report_summary: bool,
@@ -66,8 +78,6 @@ pub(crate) fn verify_release_bundle_internal(
         output_dir.join("comparison-body-class-error-envelope-summary.txt");
     let comparison_corpus_release_guard_summary_path =
         output_dir.join("comparison-corpus-release-guard-summary.txt");
-    let comparison_corpus_guard_summary_path =
-        output_dir.join("comparison-corpus-guard-summary.txt");
     let reference_holdout_overlap_summary_path =
         output_dir.join("reference-holdout-overlap-summary.txt");
     let reference_snapshot_bridge_day_summary_path =
@@ -242,175 +252,7 @@ pub(crate) fn verify_release_bundle_internal(
     let manifest_path = output_dir.join("bundle-manifest.txt");
     let manifest_checksum_path = output_dir.join("bundle-manifest.checksum.txt");
 
-    for (path, label) in [
-        (&profile_path, "compatibility profile"),
-        (&profile_summary_path, "compatibility profile summary"),
-        (&release_notes_path, "release notes"),
-        (&release_notes_summary_path, "release notes summary"),
-        (&release_summary_path, "release summary"),
-        (
-            &release_profile_identifiers_path,
-            "release-profile identifiers",
-        ),
-        (
-            &release_house_validation_summary_path,
-            "release house validation summary",
-        ),
-        (
-            &house_formula_families_summary_path,
-            "house formula families summary",
-        ),
-        (
-            &house_latitude_sensitive_summary_path,
-            "house latitude-sensitive summary",
-        ),
-        (
-            &house_latitude_sensitive_constraints_summary_path,
-            "house latitude-sensitive constraints summary",
-        ),
-        (
-            &house_latitude_sensitive_failure_modes_summary_path,
-            "house latitude-sensitive failure-modes summary",
-        ),
-        (&release_checklist_path, "release checklist"),
-        (&release_checklist_summary_path, "release checklist summary"),
-        (&backend_matrix_path, "backend matrix"),
-        (&backend_matrix_summary_path, "backend matrix summary"),
-        (&api_stability_path, "API stability"),
-        (&api_stability_summary_path, "API stability summary"),
-        (
-            &comparison_envelope_summary_path,
-            "comparison envelope summary",
-        ),
-        (
-            &comparison_corpus_release_guard_summary_path,
-            "comparison-corpus release-guard summary",
-        ),
-        (&source_corpus_summary_path, "source corpus summary"),
-        (
-            &comparison_corpus_guard_summary_path,
-            "comparison-corpus guard summary alias",
-        ),
-        (
-            &reference_holdout_overlap_summary_path,
-            "reference-holdout overlap summary",
-        ),
-        (
-            &reference_snapshot_bridge_day_summary_path,
-            "reference snapshot bridge day summary",
-        ),
-        (
-            &reference_snapshot_major_body_boundary_window_summary_path,
-            "reference snapshot major-body boundary window summary",
-        ),
-        (
-            &reference_snapshot_boundary_epoch_coverage_summary_path,
-            "reference snapshot boundary epoch coverage summary",
-        ),
-        (
-            &reference_snapshot_pre_bridge_boundary_summary_path,
-            "reference snapshot pre-bridge boundary summary",
-        ),
-        (
-            &reference_snapshot_2451918_major_body_boundary_summary_path,
-            "reference snapshot 2451918 major-body boundary summary",
-        ),
-        (
-            &reference_snapshot_2451919_major_body_boundary_summary_path,
-            "reference snapshot 2451919 major-body boundary summary",
-        ),
-        (
-            &reference_snapshot_source_summary_path,
-            "reference snapshot source summary",
-        ),
-        (
-            &reference_asteroid_source_window_summary_path,
-            "reference asteroid source window summary",
-        ),
-        (
-            &independent_holdout_source_window_summary_path,
-            "independent-holdout source window summary",
-        ),
-        (
-            &independent_holdout_quarter_day_boundary_summary_path,
-            "independent-holdout quarter-day boundary summary",
-        ),
-        (
-            &production_generation_boundary_source_summary_path,
-            "production generation boundary source summary",
-        ),
-        (
-            &production_generation_boundary_request_corpus_summary_path,
-            "production generation boundary request corpus summary",
-        ),
-        (&catalog_inventory_summary_path, "catalog inventory summary"),
-        (&validation_report_summary_path, "validation report summary"),
-        (&request_policy_summary_path, "request policy summary"),
-        (
-            &lunar_theory_limitations_summary_path,
-            "lunar-theory limitations summary",
-        ),
-        (
-            &lunar_theory_catalog_validation_summary_path,
-            "lunar-theory catalog validation summary",
-        ),
-        (
-            &compatibility_caveats_summary_path,
-            "compatibility caveats summary",
-        ),
-        (&workspace_audit_summary_path, "workspace audit summary"),
-        (
-            &native_dependency_audit_summary_path,
-            "native-dependency audit summary",
-        ),
-        (&artifact_summary_path, "artifact summary"),
-        (
-            &packaged_artifact_production_profile_summary_path,
-            "packaged-artifact production-profile summary",
-        ),
-        (
-            &packaged_frame_treatment_summary_path,
-            "packaged frame treatment summary",
-        ),
-        (
-            &packaged_artifact_target_threshold_summary_path,
-            "packaged-artifact target-threshold summary",
-        ),
-        (
-            &packaged_artifact_source_fit_holdout_sync_summary_path,
-            "packaged-artifact source-fit and hold-out sync summary",
-        ),
-        (
-            &packaged_artifact_target_threshold_scope_envelopes_summary_path,
-            "packaged-artifact target-threshold scope envelopes summary",
-        ),
-        (
-            &packaged_artifact_phase2_corpus_alignment_summary_path,
-            "packaged-artifact phase-2 corpus alignment summary",
-        ),
-        (
-            &packaged_artifact_regeneration_summary_path,
-            "packaged-artifact regeneration summary",
-        ),
-        (
-            &packaged_artifact_generation_manifest_path,
-            "packaged-artifact generation manifest",
-        ),
-        (
-            &packaged_artifact_generation_manifest_summary_path,
-            "packaged-artifact generation manifest summary",
-        ),
-        (
-            &packaged_artifact_generation_manifest_checksum_path,
-            "packaged-artifact generation manifest checksum sidecar",
-        ),
-        (&benchmark_report_path, "benchmark report"),
-        (&validation_report_path, "validation report"),
-        (&manifest_path, "bundle manifest"),
-        (&manifest_checksum_path, "bundle manifest checksum sidecar"),
-    ] {
-        ensure_release_bundle_regular_file(path, label)?;
-    }
+    ensure_required_bundle_files_exist(output_dir)?;
 
     let profile_text = read_required_bundle_text(&profile_path, "compatibility profile")?;
     let profile_summary_text =
