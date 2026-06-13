@@ -4,6 +4,7 @@ use std::fmt;
 use std::path::Path;
 
 use super::bundle_verify::*;
+use super::bundle_verify_helpers::*;
 use crate::*;
 
 /// A generated release bundle containing the compatibility profile, release-profile

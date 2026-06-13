@@ -3,7 +3,7 @@
 use std::path::Path;
 
 use super::bundle::*;
-use super::bundle_verify::*;
+use super::bundle_verify_helpers::*;
 use crate::*;
 
 #[derive(Debug)]

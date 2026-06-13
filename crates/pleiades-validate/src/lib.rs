@@ -65,7 +65,7 @@ pub use provenance::{
     WorkspaceProvenance, WorkspaceProvenanceValidationError,
 };
 #[cfg(test)]
-pub(crate) use release::bundle_verify::{
+pub(crate) use release::bundle_verify_helpers::{
     ensure_backend_matrix_report_matches_current_rendering,
     ensure_backend_matrix_summary_matches_current_rendering,
     ensure_benchmark_corpus_summary_matches_current_rendering, ensure_catalog_inventory_alignment,
