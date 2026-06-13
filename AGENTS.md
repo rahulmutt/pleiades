@@ -105,6 +105,24 @@ Agents must follow standard professional engineering practices.
 - Remove dead code, commented-out code, and unused abstractions.
 - Add comments only where intent is non-obvious; do not narrate trivial code.
 
+### Module structure and file size
+
+- Give each file/module one clear responsibility. Group related concerns into
+  module trees (a directory module with `mod.rs` plus focused submodules) rather
+  than accumulating unrelated items in one file.
+- Treat a file growing large as a signal that it is doing too much. Split it
+  before adding more, not after.
+- Keep large inline test suites out of the file under test: relocate a module's
+  `#[cfg(test)] mod tests` into a co-located test file (`<module>/tests.rs`).
+  Keep white-box unit tests as unit tests; do not convert them to black-box
+  integration tests just to move them.
+- Factor shared test setup (backend/fixture/corpus construction, expected-value
+  scaffolding) into helpers (`#[cfg(test)] mod test_support` or
+  `tests/support.rs`) rather than copy-pasting arrange blocks across tests.
+- Isolate generated or embedded data (series tables, fixtures, packaged
+  artifacts) into dedicated `data` modules, kept whole — never reformatted or
+  sub-divided, so regeneration tooling continues to round-trip.
+
 ### Testing
 
 Add or update tests for behavior changes.
@@ -115,6 +133,8 @@ Prefer:
 - integration tests for crate boundaries and user-visible behavior
 - regression tests for bugs
 - property tests for invariants and conversions where appropriate
+- Co-locate a module's tests in its own test file and share setup through test
+  helpers; see "Module structure and file size".
 
 Do not claim something is fixed without adding or updating validation when the repository supports it.
 
