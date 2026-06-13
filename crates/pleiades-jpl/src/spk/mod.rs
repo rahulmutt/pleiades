@@ -16,6 +16,9 @@ pub use backend::{SpkBackend, SpkBackendBuilder};
 #[cfg(test)]
 pub(crate) mod test_support;
 
+#[cfg(test)]
+mod cross_check_tests;
+
 /// Error kinds for SPK kernel reading.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SpkErrorKind {
