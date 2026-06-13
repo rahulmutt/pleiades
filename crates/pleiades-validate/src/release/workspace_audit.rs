@@ -372,7 +372,7 @@ fn extract_inline_table_string<'a>(text: &'a str, key: &str) -> Option<&'a str> 
     }
 }
 
-fn audit_manifest_text(path: &Path, text: &str) -> Vec<WorkspaceAuditViolation> {
+pub(crate) fn audit_manifest_text(path: &Path, text: &str) -> Vec<WorkspaceAuditViolation> {
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
     enum Section {
         Other,
@@ -454,7 +454,7 @@ fn audit_manifest_text(path: &Path, text: &str) -> Vec<WorkspaceAuditViolation> 
     violations
 }
 
-fn audit_tool_manifest_text(
+pub(crate) fn audit_tool_manifest_text(
     path: &Path,
     text: &str,
     workspace_rust_version: Option<String>,
@@ -575,7 +575,7 @@ fn audit_tool_manifest_text(
     violations
 }
 
-fn audit_lockfile_text(path: &Path, text: &str) -> Vec<WorkspaceAuditViolation> {
+pub(crate) fn audit_lockfile_text(path: &Path, text: &str) -> Vec<WorkspaceAuditViolation> {
     const FORBIDDEN_LOCKFILE_PACKAGES: [&str; 4] = ["cc", "bindgen", "cmake", "pkg-config"];
     let mut violations = Vec::new();
 
@@ -601,7 +601,7 @@ fn audit_lockfile_text(path: &Path, text: &str) -> Vec<WorkspaceAuditViolation> 
     violations
 }
 
-fn audit_build_script_path(manifest_path: &Path) -> Option<WorkspaceAuditViolation> {
+pub(crate) fn audit_build_script_path(manifest_path: &Path) -> Option<WorkspaceAuditViolation> {
     let build_script = manifest_path.parent()?.join("build.rs");
     if build_script.is_file() {
         Some(WorkspaceAuditViolation {
@@ -626,7 +626,7 @@ fn manifest_assignment_value(line: &str) -> Option<&str> {
     Some(value.trim())
 }
 
-fn audit_workspace_manifest_publish_text(path: &Path, text: &str) -> Vec<WorkspaceAuditViolation> {
+pub(crate) fn audit_workspace_manifest_publish_text(path: &Path, text: &str) -> Vec<WorkspaceAuditViolation> {
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
     enum Section {
         Other,
@@ -748,11 +748,11 @@ fn audit_workspace_manifest_publish_text(path: &Path, text: &str) -> Vec<Workspa
     violations
 }
 
-fn manifest_is_package(text: &str) -> bool {
+pub(crate) fn manifest_is_package(text: &str) -> bool {
     text.lines().any(|line| line.trim() == "[package]")
 }
 
-fn manifest_declares_publish_false(text: &str) -> bool {
+pub(crate) fn manifest_declares_publish_false(text: &str) -> bool {
     let mut in_package = false;
     for raw_line in text.lines() {
         let line = raw_line.trim();
@@ -770,7 +770,7 @@ fn manifest_declares_publish_false(text: &str) -> bool {
     false
 }
 
-fn manifest_package_name(text: &str) -> Option<String> {
+pub(crate) fn manifest_package_name(text: &str) -> Option<String> {
     let mut in_package = false;
     for raw_line in text.lines() {
         let line = raw_line.trim();
@@ -786,7 +786,7 @@ fn manifest_package_name(text: &str) -> Option<String> {
     None
 }
 
-fn audit_publishable_manifest_text(
+pub(crate) fn audit_publishable_manifest_text(
     path: &Path,
     text: &str,
     publishable_names: &[String],
@@ -907,7 +907,7 @@ fn audit_publishable_manifest_text(
     violations
 }
 
-fn audit_publishable_crate_files(
+pub(crate) fn audit_publishable_crate_files(
     manifest_path: &Path,
     workspace_root: &Path,
 ) -> Vec<WorkspaceAuditViolation> {

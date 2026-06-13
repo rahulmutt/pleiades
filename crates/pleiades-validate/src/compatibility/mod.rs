@@ -700,7 +700,7 @@ where
     Ok(())
 }
 
-fn verify_profile_catalog_partitions_are_disjoint<T>(
+pub(crate) fn verify_profile_catalog_partitions_are_disjoint<T>(
     catalog_label: &str,
     baseline_entries: &[T],
     release_entries: &[T],
@@ -733,7 +733,7 @@ fn verify_profile_catalog_partitions_are_disjoint<T>(
     Ok(())
 }
 
-fn verify_house_system_aliases(
+pub(crate) fn verify_house_system_aliases(
     entries: &[pleiades_houses::HouseSystemDescriptor],
 ) -> Result<usize, EphemerisError> {
     if let Err(error) = validate_house_catalog() {
@@ -813,7 +813,7 @@ fn format_ayanamsa_label(ayanamsa: &pleiades_core::Ayanamsa) -> String {
         .unwrap_or_else(|| ayanamsa.to_string())
 }
 
-fn verify_ayanamsa_aliases(
+pub(crate) fn verify_ayanamsa_aliases(
     entries: &[pleiades_ayanamsa::AyanamsaDescriptor],
 ) -> Result<usize, EphemerisError> {
     if let Err(error) = validate_ayanamsa_catalog() {
@@ -884,7 +884,7 @@ fn verify_ayanamsa_aliases(
 }
 
 #[cfg(test)]
-const INTENTIONAL_CUSTOM_DEFINITION_AYANAMSA_HOMOGRAPHS: &[&str] = &[
+pub(crate) const INTENTIONAL_CUSTOM_DEFINITION_AYANAMSA_HOMOGRAPHS: &[&str] = &[
     "Babylonian (House)",
     "Babylonian (Sissy)",
     "Babylonian (True Geoc)",
@@ -894,11 +894,11 @@ const INTENTIONAL_CUSTOM_DEFINITION_AYANAMSA_HOMOGRAPHS: &[&str] = &[
 ];
 
 #[cfg(test)]
-fn is_intentional_custom_definition_ayanamsa_homograph(label: &str) -> bool {
+pub(crate) fn is_intentional_custom_definition_ayanamsa_homograph(label: &str) -> bool {
     INTENTIONAL_CUSTOM_DEFINITION_AYANAMSA_HOMOGRAPHS.contains(&label)
 }
 
-fn verify_custom_definition_labels(labels: &[&'static str]) -> Result<usize, EphemerisError> {
+pub(crate) fn verify_custom_definition_labels(labels: &[&'static str]) -> Result<usize, EphemerisError> {
     validate_custom_definition_labels(labels)
         .map_err(|error| EphemerisError::new(EphemerisErrorKind::InvalidRequest, error.to_string()))
 }
@@ -907,7 +907,7 @@ pub(crate) fn has_surrounding_whitespace(value: &str) -> bool {
     !value.is_empty() && value.trim() != value
 }
 
-fn verify_profile_text_section(
+pub(crate) fn verify_profile_text_section(
     section_label: &str,
     entries: &[&str],
 ) -> Result<usize, EphemerisError> {
@@ -960,7 +960,7 @@ fn verify_profile_text_section(
     Ok(entries_checked)
 }
 
-fn verify_profile_text_sections_are_disjoint(
+pub(crate) fn verify_profile_text_sections_are_disjoint(
     sections: &[(&'static str, &'static [&'static str])],
 ) -> Result<(), EphemerisError> {
     let mut seen_entries = BTreeMap::<String, &'static str>::new();
@@ -1020,7 +1020,7 @@ fn verify_profile_text_sections_are_disjoint(
     Ok(())
 }
 
-fn ensure_profile_descriptor_metadata(
+pub(crate) fn ensure_profile_descriptor_metadata(
     catalog_label: &str,
     canonical_name: &str,
     notes: &str,
@@ -1064,7 +1064,7 @@ fn ensure_profile_descriptor_metadata(
     Ok(())
 }
 
-fn ensure_unique_profile_label(
+pub(crate) fn ensure_unique_profile_label(
     catalog_label: &str,
     label: &str,
     item_identity: &str,

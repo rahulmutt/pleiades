@@ -4,7 +4,7 @@ pub(crate) mod bundle;
 pub(crate) mod bundle_verify;
 mod checklist;
 pub(crate) mod notes;
-mod workspace_audit;
+pub(crate) mod workspace_audit;
 
 pub(crate) use notes::{
     render_release_checklist_summary_text, render_release_checklist_text,

@@ -51,7 +51,7 @@ fn validate_release_smoke() -> Result<(), String> {
     validate_release_smoke_at(output_dir)
 }
 
-fn validate_release_gate_at(output_dir: impl AsRef<Path>) -> Result<(), String> {
+pub(crate) fn validate_release_gate_at(output_dir: impl AsRef<Path>) -> Result<(), String> {
     validate_release_smoke_at(output_dir).map_err(|error| format!("release gate failed: {error}"))
 }
 

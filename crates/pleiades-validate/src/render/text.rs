@@ -494,29 +494,29 @@ pub fn render_request_surface_summary() -> String {
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct AyanamsaReferenceOffsetExample {
-    canonical_name: &'static str,
-    epoch: JulianDay,
-    offset_degrees: Angle,
+    pub(crate) canonical_name: &'static str,
+    pub(crate) epoch: JulianDay,
+    pub(crate) offset_degrees: Angle,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct AyanamsaReferenceOffsetsSummary {
-    examples: Vec<AyanamsaReferenceOffsetExample>,
+    pub(crate) examples: Vec<AyanamsaReferenceOffsetExample>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct AyanamsaProvenanceExample {
-    canonical_name: &'static str,
-    provenance_note: &'static str,
+    pub(crate) canonical_name: &'static str,
+    pub(crate) provenance_note: &'static str,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct AyanamsaProvenanceSummary {
-    examples: Vec<AyanamsaProvenanceExample>,
+    pub(crate) examples: Vec<AyanamsaProvenanceExample>,
 }
 
 impl AyanamsaReferenceOffsetsSummary {
-    fn validate(&self) -> Result<(), EphemerisError> {
+    pub(crate) fn validate(&self) -> Result<(), EphemerisError> {
         validate_name_sequence(
             "ayanamsa reference offsets",
             self.examples.iter().map(|example| example.canonical_name),
@@ -525,7 +525,7 @@ impl AyanamsaReferenceOffsetsSummary {
         Ok(())
     }
 
-    fn summary_line(&self) -> String {
+    pub(crate) fn summary_line(&self) -> String {
         match self.examples.as_slice() {
             [] => "representative zero-point examples: 0 (none)".to_string(),
             [single] => format!(
@@ -554,7 +554,7 @@ impl fmt::Display for AyanamsaReferenceOffsetsSummary {
 }
 
 impl AyanamsaProvenanceSummary {
-    fn validate(&self) -> Result<(), EphemerisError> {
+    pub(crate) fn validate(&self) -> Result<(), EphemerisError> {
         validate_name_sequence(
             "ayanamsa provenance examples",
             self.examples.iter().map(|example| example.canonical_name),
@@ -579,7 +579,7 @@ impl AyanamsaProvenanceSummary {
         Ok(())
     }
 
-    fn summary_line(&self) -> String {
+    pub(crate) fn summary_line(&self) -> String {
         match self.examples.as_slice() {
             [] => "representative provenance examples: 0 (none)".to_string(),
             [single] => format!(
@@ -600,7 +600,7 @@ impl AyanamsaProvenanceSummary {
         }
     }
 
-    fn validated_summary_line(&self) -> Result<String, EphemerisError> {
+    pub(crate) fn validated_summary_line(&self) -> Result<String, EphemerisError> {
         self.validate()?;
         Ok(self.summary_line())
     }
@@ -852,16 +852,16 @@ where
 #[cfg(test)]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct DescriptorNamesSummary {
-    names: Vec<&'static str>,
+    pub(crate) names: Vec<&'static str>,
 }
 
 #[cfg(test)]
 impl DescriptorNamesSummary {
-    fn validate(&self) -> Result<(), EphemerisError> {
+    pub(crate) fn validate(&self) -> Result<(), EphemerisError> {
         validate_name_sequence("descriptor-name summary", self.names.iter().copied())
     }
 
-    fn summary_line(&self) -> String {
+    pub(crate) fn summary_line(&self) -> String {
         match self.names.as_slice() {
             [] => "0 (none)".to_string(),
             [single] => format!("1 ({single})"),
@@ -1406,9 +1406,9 @@ pub fn comparison_tail_envelope(
 /// validated envelope that the report formatter renders.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ComparisonEnvelopeSummary {
-    summary: ComparisonSummary,
-    median: ComparisonMedianEnvelope,
-    percentile: ComparisonPercentileEnvelope,
+    pub(crate) summary: ComparisonSummary,
+    pub(crate) median: ComparisonMedianEnvelope,
+    pub(crate) percentile: ComparisonPercentileEnvelope,
 }
 
 impl ComparisonEnvelopeSummary {
@@ -2499,16 +2499,16 @@ pub(crate) fn format_jpl_frame_treatment_summary() -> String {
 /// Compact validation evidence for the shared mean-obliquity frame round-trip samples.
 #[derive(Clone, Debug, PartialEq)]
 pub struct MeanObliquityFrameRoundTripSummary {
-    sample_count: usize,
-    max_longitude_delta_deg: f64,
-    max_latitude_delta_deg: f64,
-    max_distance_delta_au: f64,
-    mean_longitude_delta_deg: f64,
-    mean_latitude_delta_deg: f64,
-    mean_distance_delta_au: f64,
-    percentile_longitude_delta_deg: f64,
-    percentile_latitude_delta_deg: f64,
-    percentile_distance_delta_au: f64,
+    pub(crate) sample_count: usize,
+    pub(crate) max_longitude_delta_deg: f64,
+    pub(crate) max_latitude_delta_deg: f64,
+    pub(crate) max_distance_delta_au: f64,
+    pub(crate) mean_longitude_delta_deg: f64,
+    pub(crate) mean_latitude_delta_deg: f64,
+    pub(crate) mean_distance_delta_au: f64,
+    pub(crate) percentile_longitude_delta_deg: f64,
+    pub(crate) percentile_latitude_delta_deg: f64,
+    pub(crate) percentile_distance_delta_au: f64,
 }
 
 impl MeanObliquityFrameRoundTripSummary {
@@ -2556,7 +2556,7 @@ impl MeanObliquityFrameRoundTripSummary {
         Ok(())
     }
 
-    fn summary_line(&self) -> String {
+    pub(crate) fn summary_line(&self) -> String {
         format!(
             "{} samples, max |Δlon|={:.12}°, mean |Δlon|={:.12}°, p95 |Δlon|={:.12}°, max |Δlat|={:.12}°, mean |Δlat|={:.12}°, p95 |Δlat|={:.12}°, max |Δdist|={:.12} AU, mean |Δdist|={:.12} AU, p95 |Δdist|={:.12} AU",
             self.sample_count,
@@ -3100,38 +3100,38 @@ pub(crate) fn required_labelled_summary_payload(
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct SourceCorpusSummary {
-    comparison_corpus_release_grade_guard: String,
-    jpl_source_corpus_contract: String,
-    jpl_evidence_classification: String,
-    jpl_provenance_only: String,
-    lunar_source_window: String,
-    shared_schema: String,
-    generation_command: String,
-    production_generation_source: String,
-    production_generation_source_revision: String,
-    production_generation_coverage: String,
-    production_generation_source_windows: String,
-    production_generation_body_class_coverage: String,
-    production_generation_date_range: String,
-    production_generation_quarter_day_boundary_samples: String,
-    coverage_posture: String,
-    production_generation_boundary_window: String,
-    production_generation_boundary_source: String,
-    production_generation_boundary_request_corpus: String,
-    production_generation_boundary_request_corpus_equatorial: String,
-    reference_snapshot_sparse_boundary: String,
-    reference_snapshot_exact_j2000_evidence: String,
-    reference_snapshot_exact_j2000_body_class_coverage: String,
-    reference_snapshot_equatorial_parity: String,
-    reference_snapshot_body_class_coverage: String,
-    reference_snapshot_manifest: String,
-    comparison_snapshot_manifest: String,
-    independent_holdout_body_class_coverage: String,
-    independent_holdout_source_window: String,
-    pluto_fallback: String,
-    release_grade_body_claims: String,
-    body_date_channel_claims: String,
-    phase2_corpus_alignment: String,
+    pub(crate) comparison_corpus_release_grade_guard: String,
+    pub(crate) jpl_source_corpus_contract: String,
+    pub(crate) jpl_evidence_classification: String,
+    pub(crate) jpl_provenance_only: String,
+    pub(crate) lunar_source_window: String,
+    pub(crate) shared_schema: String,
+    pub(crate) generation_command: String,
+    pub(crate) production_generation_source: String,
+    pub(crate) production_generation_source_revision: String,
+    pub(crate) production_generation_coverage: String,
+    pub(crate) production_generation_source_windows: String,
+    pub(crate) production_generation_body_class_coverage: String,
+    pub(crate) production_generation_date_range: String,
+    pub(crate) production_generation_quarter_day_boundary_samples: String,
+    pub(crate) coverage_posture: String,
+    pub(crate) production_generation_boundary_window: String,
+    pub(crate) production_generation_boundary_source: String,
+    pub(crate) production_generation_boundary_request_corpus: String,
+    pub(crate) production_generation_boundary_request_corpus_equatorial: String,
+    pub(crate) reference_snapshot_sparse_boundary: String,
+    pub(crate) reference_snapshot_exact_j2000_evidence: String,
+    pub(crate) reference_snapshot_exact_j2000_body_class_coverage: String,
+    pub(crate) reference_snapshot_equatorial_parity: String,
+    pub(crate) reference_snapshot_body_class_coverage: String,
+    pub(crate) reference_snapshot_manifest: String,
+    pub(crate) comparison_snapshot_manifest: String,
+    pub(crate) independent_holdout_body_class_coverage: String,
+    pub(crate) independent_holdout_source_window: String,
+    pub(crate) pluto_fallback: String,
+    pub(crate) release_grade_body_claims: String,
+    pub(crate) body_date_channel_claims: String,
+    pub(crate) phase2_corpus_alignment: String,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -3153,7 +3153,7 @@ impl fmt::Display for SourceCorpusSummaryValidationError {
 impl std::error::Error for SourceCorpusSummaryValidationError {}
 
 impl SourceCorpusSummary {
-    fn summary_line(&self) -> String {
+    pub(crate) fn summary_line(&self) -> String {
         format!(
             "comparison corpus release-grade guard: {}; JPL source corpus contract: {}; evidence classification={}; provenance-only={}; lunar source windows={}; shared schema={}; generation command={}; production generation source={}; production generation source revision={}; production generation coverage={}; production generation source windows={}; production generation body-class coverage={}; production generation date range={}; production generation quarter-day boundary samples={}; coverage posture={}; production generation boundary window={}; production generation boundary source={}; production generation boundary request corpus={}; production generation boundary request corpus equatorial={}; reference snapshot sparse boundary={}; reference snapshot exact J2000 evidence={}; reference snapshot exact J2000 body-class coverage={}; reference snapshot equatorial parity={}; reference snapshot body-class coverage={}; reference snapshot manifest={}; comparison snapshot manifest={}; independent-holdout body-class coverage={}; independent-holdout source window={}; pluto fallback={}; release-grade body claims={}; body-date-channel claims={}; phase-2 corpus alignment: {}",
             self.comparison_corpus_release_grade_guard,
@@ -3191,7 +3191,7 @@ impl SourceCorpusSummary {
         )
     }
 
-    fn validate(&self) -> Result<(), SourceCorpusSummaryValidationError> {
+    pub(crate) fn validate(&self) -> Result<(), SourceCorpusSummaryValidationError> {
         let expected = source_corpus_summary_details().ok_or(
             SourceCorpusSummaryValidationError::FieldOutOfSync {
                 field: "source_corpus_summary",
@@ -3385,7 +3385,7 @@ impl SourceCorpusSummary {
         Ok(())
     }
 
-    fn validated_summary_line(&self) -> Result<String, SourceCorpusSummaryValidationError> {
+    pub(crate) fn validated_summary_line(&self) -> Result<String, SourceCorpusSummaryValidationError> {
         self.validate()?;
         Ok(self.summary_line())
     }
@@ -3729,14 +3729,14 @@ pub(crate) enum RequestPolicyReportKind {
 }
 
 impl RequestPolicyReportKind {
-    const fn title(self) -> &'static str {
+    pub(crate) const fn title(self) -> &'static str {
         match self {
             Self::Policy => "Request policy summary\n",
             Self::Semantics => "Request semantics summary\n",
         }
     }
 
-    const fn unavailable_prefix(self) -> &'static str {
+    pub(crate) const fn unavailable_prefix(self) -> &'static str {
         match self {
             Self::Policy => "Request policy summary unavailable",
             Self::Semantics => "Request semantics summary unavailable",
@@ -3982,12 +3982,12 @@ pub(crate) fn validate_release_body_claims_posture(
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct BodyDateChannelClaimsSummary {
-    release_body_claims: String,
-    frame_policy: String,
-    production_generation_date_range: String,
-    production_generation_coverage: String,
-    corpus_shape: String,
-    coverage_posture: String,
+    pub(crate) release_body_claims: String,
+    pub(crate) frame_policy: String,
+    pub(crate) production_generation_date_range: String,
+    pub(crate) production_generation_coverage: String,
+    pub(crate) corpus_shape: String,
+    pub(crate) coverage_posture: String,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -4009,7 +4009,7 @@ impl fmt::Display for BodyDateChannelClaimsSummaryValidationError {
 impl std::error::Error for BodyDateChannelClaimsSummaryValidationError {}
 
 impl BodyDateChannelClaimsSummary {
-    fn summary_line(&self) -> String {
+    pub(crate) fn summary_line(&self) -> String {
         format!(
             "bodies={}; frame policy={}; date range={}; production generation coverage={}; corpus shape={}; coverage posture={}",
             self.release_body_claims,
@@ -4021,7 +4021,7 @@ impl BodyDateChannelClaimsSummary {
         )
     }
 
-    fn validate(&self) -> Result<(), BodyDateChannelClaimsSummaryValidationError> {
+    pub(crate) fn validate(&self) -> Result<(), BodyDateChannelClaimsSummaryValidationError> {
         let expected = body_date_channel_claims_summary_details().ok_or(
             BodyDateChannelClaimsSummaryValidationError::FieldOutOfSync {
                 field: "body_date_channel_claims_summary",
@@ -4073,7 +4073,7 @@ impl BodyDateChannelClaimsSummary {
         Ok(())
     }
 
-    fn validated_summary_line(
+    pub(crate) fn validated_summary_line(
         &self,
     ) -> Result<String, BodyDateChannelClaimsSummaryValidationError> {
         self.validate()?;
@@ -4323,12 +4323,12 @@ pub(crate) fn api_stability_summary_line_for_report() -> String {
 /// time-observer policy and release-facing validation summaries.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct RequestSurfaceSummary {
-    instant: &'static str,
-    chart_request: &'static str,
-    backend_request: &'static str,
-    house_request: &'static str,
-    request_policy: &'static str,
-    cli_chart: &'static str,
+    pub(crate) instant: &'static str,
+    pub(crate) chart_request: &'static str,
+    pub(crate) backend_request: &'static str,
+    pub(crate) house_request: &'static str,
+    pub(crate) request_policy: &'static str,
+    pub(crate) cli_chart: &'static str,
 }
 
 impl RequestSurfaceSummary {
@@ -7245,12 +7245,12 @@ pub(crate) fn implemented_backend_catalog() -> Vec<BackendMatrixEntry> {
 }
 
 pub(crate) struct BackendMatrixEntry {
-    label: &'static str,
-    metadata: BackendMetadata,
-    implementation_status: BackendImplementationStatus,
-    status_note: &'static str,
-    expected_error_kinds: &'static [EphemerisErrorKind],
-    required_data_files: &'static [&'static str],
+    pub(crate) label: &'static str,
+    pub(crate) metadata: BackendMetadata,
+    pub(crate) implementation_status: BackendImplementationStatus,
+    pub(crate) status_note: &'static str,
+    pub(crate) expected_error_kinds: &'static [EphemerisErrorKind],
+    pub(crate) required_data_files: &'static [&'static str],
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -7263,7 +7263,7 @@ pub(crate) enum BackendImplementationStatus {
 }
 
 impl BackendImplementationStatus {
-    const fn label(self) -> &'static str {
+    pub(crate) const fn label(self) -> &'static str {
         match self {
             Self::FixtureReference => "fixture-reference",
             Self::PartialSourceBacked => "partial-source-backed",
@@ -7312,8 +7312,8 @@ pub(crate) fn selected_asteroid_coverage(bodies: &[CelestialBody]) -> Option<Vec
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct SelectedAsteroidCoverageSummary {
-    body_count: usize,
-    bodies: Vec<CelestialBody>,
+    pub(crate) body_count: usize,
+    pub(crate) bodies: Vec<CelestialBody>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -7355,7 +7355,7 @@ impl fmt::Display for SelectedAsteroidCoverageSummaryValidationError {
 impl std::error::Error for SelectedAsteroidCoverageSummaryValidationError {}
 
 impl SelectedAsteroidCoverageSummary {
-    fn summary_line(&self) -> String {
+    pub(crate) fn summary_line(&self) -> String {
         format!(
             "selected asteroid coverage: {} bodies ({})",
             self.body_count,
@@ -7363,7 +7363,7 @@ impl SelectedAsteroidCoverageSummary {
         )
     }
 
-    fn validate(&self) -> Result<(), SelectedAsteroidCoverageSummaryValidationError> {
+    pub(crate) fn validate(&self) -> Result<(), SelectedAsteroidCoverageSummaryValidationError> {
         if self.body_count == 0 || self.bodies.is_empty() {
             return Err(SelectedAsteroidCoverageSummaryValidationError::MissingBodies);
         }
@@ -7401,7 +7401,7 @@ impl SelectedAsteroidCoverageSummary {
         Ok(())
     }
 
-    fn validated_summary_line(
+    pub(crate) fn validated_summary_line(
         &self,
     ) -> Result<String, SelectedAsteroidCoverageSummaryValidationError> {
         self.validate()?;
