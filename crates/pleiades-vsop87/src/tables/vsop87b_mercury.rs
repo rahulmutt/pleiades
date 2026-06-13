@@ -8,7 +8,7 @@
 
 use std::sync::OnceLock;
 
-use crate::vsop87b_earth::{
+use super::vsop87b_earth::{
     evaluate, parse_generated_vsop87b_tables, SphericalLbr, Vsop87SeriesTables,
 };
 
@@ -27,17 +27,17 @@ pub(crate) fn mercury_lbr(julian_day_tt: f64) -> SphericalLbr {
 
 fn mercury_tables() -> &'static Vsop87SeriesTables {
     MERCURY_TABLES
-        .get_or_init(|| parse_generated_vsop87b_tables(include_bytes!("../data/VSOP87B.mer.bin")))
+        .get_or_init(|| parse_generated_vsop87b_tables(include_bytes!("../../data/VSOP87B.mer.bin")))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::vsop87b_earth::parse_vsop87b_tables;
+    use crate::tables::vsop87b_earth::parse_vsop87b_tables;
 
     #[test]
     fn parses_full_mercury_tables_with_expected_series_counts() {
-        let tables = parse_vsop87b_tables(include_str!("../data/VSOP87B.mer"))
+        let tables = parse_vsop87b_tables(include_str!("../../data/VSOP87B.mer"))
             .expect("Mercury source file should parse");
         assert_eq!(tables.longitude.len(), 6);
         assert_eq!(tables.latitude.len(), 6);
@@ -54,7 +54,7 @@ mod tests {
 
     #[test]
     fn parses_generated_mercury_table_blob_with_expected_series_counts() {
-        let tables = parse_generated_vsop87b_tables(include_bytes!("../data/VSOP87B.mer.bin"));
+        let tables = parse_generated_vsop87b_tables(include_bytes!("../../data/VSOP87B.mer.bin"));
         assert_eq!(tables.longitude.len(), 6);
         assert_eq!(tables.latitude.len(), 6);
         assert_eq!(tables.radius.len(), 6);
