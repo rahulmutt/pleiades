@@ -39,11 +39,11 @@
 
 use core::fmt;
 
-pub mod artifact;
-pub mod channels;
-pub mod codec;
-pub mod error;
-pub mod format;
+pub(crate) mod artifact;
+pub(crate) mod channels;
+pub(crate) mod codec;
+pub(crate) mod error;
+pub(crate) mod format;
 
 // ── Public re-exports (preserve exact prior public surface) ───────────────────
 
