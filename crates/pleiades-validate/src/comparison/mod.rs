@@ -2,8 +2,18 @@
 
 pub(crate) mod audit;
 pub(crate) mod body_class;
+pub(crate) mod report;
 mod sample;
 mod tolerance;
+
+pub(crate) use report::{
+    body_class_summaries, body_class_tolerance_summaries, comparison_tolerance_for_body,
+    comparison_tolerance_policy_entries, comparison_tolerance_scope_for_body,
+};
+pub use report::{
+    comparison_tolerance_catalog_entries, compare_backends, default_candidate_backend,
+    default_reference_backend, ComparisonReport,
+};
 
 pub(crate) use audit::{
     comparison_audit_summary, comparison_audit_summary_for_report, comparison_audit_totals,
