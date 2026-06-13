@@ -118,13 +118,18 @@ pub use release::{
 };
 #[cfg(test)]
 pub(crate) use render::cli::validate_release_gate_at;
+pub(crate) use render::summary::*;
+pub use render::summary::{
+    current_request_surface_summary, render_api_stability_summary, render_backend_matrix_report,
+    render_backend_matrix_summary, render_release_profile_identifiers_summary,
+    RequestSurfaceSummary,
+};
 pub(crate) use render::text::*;
 pub use render::text::{
     benchmark_backend, comparison_envelope_summary, comparison_median_envelope,
-    comparison_tail_envelope, current_request_surface_summary,
-    mean_obliquity_frame_round_trip_sample_corpus, mean_obliquity_frame_round_trip_summary,
-    packaged_artifact_fit_sample_classes_summary_for_report, render_api_stability_summary,
-    render_ayanamsa_audit_summary, render_backend_matrix_report, render_backend_matrix_summary,
+    comparison_tail_envelope, mean_obliquity_frame_round_trip_sample_corpus,
+    mean_obliquity_frame_round_trip_summary,
+    packaged_artifact_fit_sample_classes_summary_for_report, render_ayanamsa_audit_summary,
     render_benchmark_matrix_summary, render_benchmark_report, render_catalog_inventory_summary,
     render_catalog_posture_summary, render_comparison_audit_report,
     render_comparison_audit_summary, render_comparison_report,
@@ -134,12 +139,11 @@ pub use render::text::{
     render_native_dependency_audit_summary, render_release_ayanamsa_canonical_names_summary,
     render_release_checklist, render_release_checklist_summary,
     render_release_house_system_canonical_names_summary, render_release_notes,
-    render_release_notes_summary, render_release_profile_identifiers_summary,
-    render_release_summary, render_request_policy_summary, render_request_surface_summary,
-    render_target_ayanamsa_scope_summary, render_target_house_scope_summary,
-    render_validation_report, render_validation_report_summary, render_workspace_audit_summary,
-    BodyToleranceSummary, ComparisonEnvelopeSummary, ComparisonMedianEnvelope,
-    ComparisonPercentileEnvelope, MeanObliquityFrameRoundTripSummary, RequestSurfaceSummary,
+    render_release_notes_summary, render_release_summary, render_request_policy_summary,
+    render_request_surface_summary, render_target_ayanamsa_scope_summary,
+    render_target_house_scope_summary, render_validation_report, render_validation_report_summary,
+    render_workspace_audit_summary, BodyToleranceSummary, ComparisonEnvelopeSummary,
+    ComparisonMedianEnvelope, ComparisonPercentileEnvelope, MeanObliquityFrameRoundTripSummary,
 };
 pub use report::{BenchmarkReport, ValidationReport};
 
