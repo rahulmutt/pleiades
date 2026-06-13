@@ -258,7 +258,7 @@ mod tests {
 
         let api_stability_padded = ReleaseProfileIdentifiers {
             compatibility_profile_id: current_compatibility_profile_id(),
-            api_stability_profile_id: " pleiades-api-stability/0.1.0 ",
+            api_stability_profile_id: " pleiades-api-stability/0.2.0 ",
         };
         assert_eq!(
             api_stability_padded.validate().unwrap_err(),
@@ -276,7 +276,7 @@ mod tests {
 
         let api_stability_multiline = ReleaseProfileIdentifiers {
             compatibility_profile_id: current_compatibility_profile_id(),
-            api_stability_profile_id: "pleiades-api-stability/0.1.0\r\nrelease",
+            api_stability_profile_id: "pleiades-api-stability/0.2.0\r\nrelease",
         };
         assert_eq!(
             api_stability_multiline.validate().unwrap_err(),

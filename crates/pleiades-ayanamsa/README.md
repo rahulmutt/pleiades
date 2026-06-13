@@ -10,7 +10,7 @@ Depends only on `pleiades-types`.
 
 ## Status
 
-Experimental `0.1.x`. Formula, provenance, and interoperability audits still gate stronger compatibility claims; see the [workspace README](https://github.com/rahulmutt/pleiades#readme) for the full maturity posture.
+Experimental `0.2.x`. Formula, provenance, and interoperability audits still gate stronger compatibility claims; see the [workspace README](https://github.com/rahulmutt/pleiades#readme) for the full maturity posture.
 
 ## License
 

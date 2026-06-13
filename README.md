@@ -15,8 +15,8 @@ As of the current workspace state, `pleiades` includes:
 - a backend-agnostic request/result contract with capability metadata,
 - a high-level chart façade with typed tropical/sidereal chart requests,
 - baseline chart body placement, zodiac-sign summaries, aspect summaries, and optional house summaries,
-- a release compatibility profile (`pleiades-compatibility-profile/0.6.123`),
-- an API stability profile (`pleiades-api-stability/0.1.0`),
+- a release compatibility profile (`pleiades-compatibility-profile/0.7.0`),
+- an API stability profile (`pleiades-api-stability/0.2.0`),
 - 25 catalogued house systems and 59 catalogued ayanamsas,
 - pure-Rust algorithmic backends for VSOP87-style planetary positions and a compact Meeus-style lunar baseline,
 - checked-in JPL Horizons reference snapshots used for comparison and validation,
@@ -36,7 +36,7 @@ Important current limits:
 The nine library crates (`pleiades-types`, `pleiades-backend`, `pleiades-core`,
 `pleiades-houses`, `pleiades-ayanamsa`, `pleiades-vsop87`, `pleiades-elp`,
 `pleiades-jpl`, `pleiades-compression`) are published to crates.io as
-experimental `0.1.x` releases under `MIT OR Apache-2.0`. The limits above apply
+experimental `0.2.x` releases under `MIT OR Apache-2.0`. The limits above apply
 to the published crates as well; production-accuracy claims wait on the phases
 in [PLAN.md](PLAN.md). `pleiades-cli`, `pleiades-data`, and `pleiades-validate`
 are contributor tooling and stay unpublished. The release procedure is

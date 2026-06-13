@@ -10,7 +10,7 @@ Depends on `pleiades-types` and `pleiades-backend`. This is a reference/validati
 
 ## Status
 
-Experimental `0.1.x`. The checked-in corpus is regression evidence, sparse relative to production-coverage goals; see the [workspace README](https://github.com/rahulmutt/pleiades#readme) for the full maturity posture.
+Experimental `0.2.x`. The checked-in corpus is regression evidence, sparse relative to production-coverage goals; see the [workspace README](https://github.com/rahulmutt/pleiades#readme) for the full maturity posture.
 
 ## License
 

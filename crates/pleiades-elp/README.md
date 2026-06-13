@@ -10,7 +10,7 @@ Depends on `pleiades-types` and `pleiades-backend`. This is a compact baseline, 
 
 ## Status
 
-Experimental `0.1.x`. Output is mean geometric coordinates; apparent-place corrections and topocentric requests are rejected. See the [workspace README](https://github.com/rahulmutt/pleiades#readme) for the full maturity posture.
+Experimental `0.2.x`. Output is mean geometric coordinates; apparent-place corrections and topocentric requests are rejected. See the [workspace README](https://github.com/rahulmutt/pleiades#readme) for the full maturity posture.
 
 ## License
 

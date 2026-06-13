@@ -10,7 +10,7 @@ Depends only on `pleiades-types`. Enable the `serde` feature for serialization s
 
 ## Status
 
-Experimental `0.1.x`. First-party backends expose mean geometric coordinates only, and broader accuracy claims are still gated; see the [workspace README](https://github.com/rahulmutt/pleiades#readme) for the full maturity posture.
+Experimental `0.2.x`. First-party backends expose mean geometric coordinates only, and broader accuracy claims are still gated; see the [workspace README](https://github.com/rahulmutt/pleiades#readme) for the full maturity posture.
 
 ## License
 

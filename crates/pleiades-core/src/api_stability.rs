@@ -10,7 +10,7 @@
 use core::fmt;
 
 /// The current API-stability posture identifier.
-pub const CURRENT_API_STABILITY_PROFILE_ID: &str = "pleiades-api-stability/0.1.0";
+pub const CURRENT_API_STABILITY_PROFILE_ID: &str = "pleiades-api-stability/0.2.0";
 
 /// Returns the current API-stability posture identifier.
 pub const fn current_api_stability_profile_id() -> &'static str {
@@ -325,7 +325,7 @@ mod tests {
     #[test]
     fn profile_validation_rejects_whitespace_padded_metadata() {
         let profile = ApiStabilityProfile {
-            profile_id: " pleiades-api-stability/0.1.0 ",
+            profile_id: " pleiades-api-stability/0.2.0 ",
             summary: "valid summary",
             stable_surfaces: &["stable surface"],
             experimental_surfaces: &["experimental surface"],

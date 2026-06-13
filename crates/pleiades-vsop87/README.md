@@ -10,7 +10,7 @@ Depends on `pleiades-types` and `pleiades-backend`. The crate ships its generate
 
 ## Status
 
-Experimental `0.1.x`. Output is mean geometric heliocentric-derived geocentric positions; apparent-place corrections and topocentric requests are rejected. Pluto is approximate and excluded from release-grade claims. See the [workspace README](https://github.com/rahulmutt/pleiades#readme) for the full maturity posture.
+Experimental `0.2.x`. Output is mean geometric heliocentric-derived geocentric positions; apparent-place corrections and topocentric requests are rejected. Pluto is approximate and excluded from release-grade claims. See the [workspace README](https://github.com/rahulmutt/pleiades#readme) for the full maturity posture.
 
 ## License
 

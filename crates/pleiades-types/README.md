@@ -10,7 +10,7 @@ This crate sits at the base of the `pleiades-*` layering and depends on no other
 
 ## Status
 
-Experimental `0.1.x`. First-party backends expose mean geometric coordinates only, and broader accuracy claims are still gated; see the [workspace README](https://github.com/rahulmutt/pleiades#readme) for the full maturity posture.
+Experimental `0.2.x`. First-party backends expose mean geometric coordinates only, and broader accuracy claims are still gated; see the [workspace README](https://github.com/rahulmutt/pleiades#readme) for the full maturity posture.
 
 ## License
 

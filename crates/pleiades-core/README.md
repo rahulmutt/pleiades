@@ -10,7 +10,7 @@ Sits at the top of the published `pleiades-*` library layering (types, backend, 
 
 ## Status
 
-Experimental `0.1.x`. First-party backends expose mean geometric coordinates; UTC/UT1 need caller-supplied conversion offsets, and apparent/topocentric requests are rejected. See the [workspace README](https://github.com/rahulmutt/pleiades#readme) for the full maturity posture.
+Experimental `0.2.x`. First-party backends expose mean geometric coordinates; UTC/UT1 need caller-supplied conversion offsets, and apparent/topocentric requests are rejected. See the [workspace README](https://github.com/rahulmutt/pleiades#readme) for the full maturity posture.
 
 ## License
 
