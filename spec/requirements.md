@@ -33,8 +33,11 @@ The public API must model at least:
 - the distinction between UT-based and dynamical-time-sensitive calculations where needed
 - a documented Delta T policy
 
+The operative Delta T, time-scale, and observer policy is maintained in
+[`docs/time-observer-policy.md`](../docs/time-observer-policy.md).
+
 ### FR-4 House Systems
-The system must provide a house computation module that is open to the full target compatibility catalog.
+The system must provide a house computation module that is open to the full target compatibility catalog. The enumerated end-state set is defined in [`compatibility-catalog.md`](compatibility-catalog.md).
 
 The baseline compatibility milestone is a minimum shipping floor, not an upper bound. The long-term built-in catalog must remain open to the complete Swiss-Ephemeris-class interoperability set targeted by the project, and adding remaining built-ins must not require public API redesign.
 
@@ -55,7 +58,7 @@ The baseline compatibility milestone must include at minimum:
 If a house system has latitude or numerical failure constraints, those constraints must be explicit in both the API and the release compatibility profile.
 
 ### FR-5 Ayanamsa Support
-The system must provide an extensible ayanamsa model that supports both built-in and user-defined variants.
+The system must provide an extensible ayanamsa model that supports both built-in and user-defined variants. The enumerated end-state built-in set is defined in [`compatibility-catalog.md`](compatibility-catalog.md).
 
 The baseline compatibility milestone is a minimum shipping floor, not an upper bound. The long-term built-in catalog must remain open to the complete project target catalog, and adding further built-ins or aliases must not require public API redesign.
 

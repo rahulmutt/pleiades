@@ -23,7 +23,7 @@ Sidereal conversion should normally be implemented in the domain layer rather th
 
 ## House Systems
 
-The house module must model the target compatibility catalog in a way that is complete in scope and extensible in implementation.
+The house module must model the target compatibility catalog (enumerated in [`compatibility-catalog.md`](compatibility-catalog.md)) in a way that is complete in scope and extensible in implementation.
 
 The baseline compatibility milestone is the minimum built-in set required for early releases. It must not be treated as the final catalog, and the representation of house systems, aliases, and failure constraints must remain open to the full intended interoperability set without enum churn or breaking redesign.
 
@@ -71,7 +71,7 @@ Ayanamsa support must include:
 
 The baseline compatibility milestone must include Lahiri, Raman, Krishnamurti, Fagan/Bradley, True Chitra, and any documented near-equivalent variants exposed either as distinct built-ins or explicit aliases.
 
-As with house systems, this baseline is a minimum shipping floor. The ayanamsa identifier model must remain open to the full target catalog plus user-defined definitions without requiring breaking redesign.
+As with house systems, this baseline is a minimum shipping floor. The ayanamsa identifier model must remain open to the full target catalog (enumerated in [`compatibility-catalog.md`](compatibility-catalog.md)) plus user-defined definitions without requiring breaking redesign.
 
 ## Derived Quantities
 
@@ -91,6 +91,10 @@ The system must clearly model at least:
 - Julian day or Julian ephemeris day style internal representations
 - Delta T handling policy
 - the distinction between UT-based and dynamical-time-sensitive calculations where needed
+
+The operative time-scale, Delta T, and observer policy is maintained in
+[`docs/time-observer-policy.md`](../docs/time-observer-policy.md). The lunar theory and node/apogee
+derivation policy is maintained in [`docs/lunar-theory-policy.md`](../docs/lunar-theory-policy.md).
 
 ## Catalog Management
 

@@ -32,6 +32,7 @@ Pleiades must:
 - [spec/architecture.md](spec/architecture.md) — workspace layout, crate boundaries, and dependency rules
 - [spec/backend-trait.md](spec/backend-trait.md) — backend contract and capability model
 - [spec/astrology-domain.md](spec/astrology-domain.md) — bodies, houses, ayanamsas, coordinate handling, and derived values
+- [spec/compatibility-catalog.md](spec/compatibility-catalog.md) — enumerated end-state house-system and ayanamsa target catalog
 - [spec/data-compression.md](spec/data-compression.md) — compressed artifact format and generation pipeline for 1500-2500 CE
 - [spec/backends.md](spec/backends.md) — backend families and required first-party backend crates
 - [spec/api-and-ergonomics.md](spec/api-and-ergonomics.md) — public Rust API shape, configuration, and errors
@@ -70,7 +71,7 @@ These decisions are binding unless a sub-spec explicitly refines them:
 
 The spec uses these terms consistently:
 
-- **Target compatibility catalog**: the full end-state built-in house-system and ayanamsa catalog Pleiades intends to ship for Swiss-Ephemeris-class interoperability.
+- **Target compatibility catalog**: the full end-state built-in house-system and ayanamsa catalog Pleiades intends to ship for Swiss-Ephemeris-class interoperability. Its concrete, enumerated contents are defined in [spec/compatibility-catalog.md](spec/compatibility-catalog.md).
 - **Baseline compatibility milestone**: the minimum built-in subset required before broader catalog completion.
 - **Release compatibility profile**: a versioned manifest published with each release that lists the exact built-ins, aliases, constraints, and known gaps shipped in that release.
 
@@ -119,6 +120,9 @@ The derived specification set satisfies the bootstrap prompt as follows:
 
 The current spec set adheres to the bootstrap requirements. The main refinements in this revision are:
 
+- enumerating the end-state target compatibility catalog explicitly in [spec/compatibility-catalog.md](spec/compatibility-catalog.md) so "all house systems" and "all ayanamsas" resolve to a concrete, bounded Swiss-Ephemeris-class set
+- cross-linking the operative policy documents in `docs/` (Delta-T/time-observer, lunar theory, release reproducibility) from the requirements that depend on them
+- adding an explicit data provenance and licensing policy so the "public data sources" requirement has binding redistribution rules
 - making the end-state catalog policy explicit so baseline milestones are not mistaken for final scope
 - tightening crate-layer rules so domain crates remain backend-agnostic and packaged-data backends are treated as backend implementations rather than domain layers
 - separating artifact/data responsibilities from astrology-domain responsibilities to reduce architectural ambiguity
@@ -127,6 +131,9 @@ The current spec set adheres to the bootstrap requirements. The main refinements
 
 ## Document Status
 
-Status: Draft 6
+Status: Draft 7
 Owner: Project maintainers
-Last updated: 2026-04-23
+Last updated: 2026-06-13
+
+The initial `pleiades-*` crate family is now realized in `crates/` and the project is on the
+0.2.0 release line; this revision aligns the specification with that state.

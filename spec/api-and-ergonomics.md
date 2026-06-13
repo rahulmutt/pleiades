@@ -1,5 +1,7 @@
 # API and Ergonomics
 
+Unless stated otherwise, the conformance terms defined in [`SPEC.md`](../SPEC.md) apply here.
+
 ## API Goals
 
 The public API should be easy for astrology applications to use while remaining explicit about astronomical assumptions.

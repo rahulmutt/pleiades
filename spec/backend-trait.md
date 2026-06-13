@@ -1,5 +1,7 @@
 # Backend Trait Specification
 
+Unless stated otherwise, the conformance terms defined in [`SPEC.md`](../SPEC.md) apply here.
+
 ## Purpose
 
 The backend contract defines how ephemeris engines provide positions and metadata to the rest of the system.

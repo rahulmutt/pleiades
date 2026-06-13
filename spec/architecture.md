@@ -126,4 +126,6 @@ The system must keep the following concerns separate:
 - normalized intermediate products
 - compressed distributable artifacts
 
-This separation preserves reproducibility, licensing clarity, and clean runtime boundaries.
+This separation preserves reproducibility, licensing clarity, and clean runtime boundaries. The
+binding data provenance and licensing rules are specified in
+[`backends.md`](backends.md#data-provenance-and-licensing).

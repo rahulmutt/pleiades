@@ -1,5 +1,7 @@
 # Validation and Testing
 
+Unless stated otherwise, the conformance terms defined in [`SPEC.md`](../SPEC.md) apply here.
+
 ## Validation Goals
 
 Validation must demonstrate that each backend and packaged artifact is suitable for astrology-oriented production use.
@@ -60,6 +62,7 @@ A release should not ship unless:
 - the release compatibility profile is updated and archived with the release artifacts
 - validation reports are generated and archived
 - compressed artifacts pass checksum and error-threshold checks
+- generated artifacts meet the reproducibility expectations in [`docs/release-reproducibility.md`](../docs/release-reproducibility.md)
 
 ## Validation Tooling
 

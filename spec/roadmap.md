@@ -1,5 +1,7 @@
 # Roadmap
 
+Unless stated otherwise, the conformance terms defined in [`SPEC.md`](../SPEC.md) apply here.
+
 ## Phase 1: Foundations
 
 - create the workspace and crate skeletons
@@ -40,7 +42,7 @@
 
 - add composite backend routing where useful
 - expand asteroid coverage
-- complete the remaining house-system and ayanamsa entries needed for the target compatibility catalog
+- complete the remaining house-system and ayanamsa entries needed for the target compatibility catalog (enumerated in [`compatibility-catalog.md`](compatibility-catalog.md))
 - maintain release compatibility profiles with aliases, constraints, and known gaps
 - refine topocentric support
 - add optional higher-level chart utilities

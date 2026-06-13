@@ -1,5 +1,7 @@
 # Backend Implementations
 
+Unless stated otherwise, the conformance terms defined in [`SPEC.md`](../SPEC.md) apply here.
+
 ## Backend Families
 
 Pleiades must support multiple backend families because no single approach optimizes accuracy, size, speed, and licensing equally.
@@ -84,3 +86,24 @@ Each backend crate must ship a documented capability matrix that states:
 ## Backend Independence Rule
 
 No astrology-domain crate may assume a specific backend implementation. Specialized behavior must be exposed through generic capabilities or optional extension traits.
+
+## Data Provenance and Licensing
+
+Because the bootstrap requires backends built on **public data sources**, provenance and
+redistribution terms are part of the backend contract, not an afterthought.
+
+- Each backend crate must document, in its capability matrix, the origin of any algorithm or
+  data it relies on (e.g. JPL DE series, VSOP87, an ELP-family lunar theory) and the license or
+  public-domain status under which that source is used.
+- No source that requires a proprietary, non-redistributable, or C/C++-linked dependency may be
+  a **required** dependency of a first-party crate. This is the backend-level expression of the
+  pure-Rust and no-mandatory-FFI rules in [`requirements.md`](requirements.md) NFR-1.
+- Any data file a backend ships or downloads must be redistributable under a documented license,
+  and that license must be recorded alongside the crate.
+- Bundled artifacts in `pleiades-data` must be regenerable from public inputs and must carry
+  source identity, version, and license/provenance in the artifact header defined by
+  [`data-compression.md`](data-compression.md). Reproducibility expectations are governed by
+  [`docs/release-reproducibility.md`](../docs/release-reproducibility.md).
+
+These rules keep redistribution auditable and ensure the "public data sources" requirement is
+verifiable per release rather than assumed.

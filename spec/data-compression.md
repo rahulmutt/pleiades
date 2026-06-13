@@ -1,5 +1,7 @@
 # Data Compression Specification
 
+Unless stated otherwise, the conformance terms defined in [`SPEC.md`](../SPEC.md) apply here.
+
 ## Objective
 
 Define a compressed ephemeris representation optimized for astrology software doing frequent lookups in the date range **1500-2500 CE**.
