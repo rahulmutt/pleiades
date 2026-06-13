@@ -16,14 +16,14 @@ checksum = "f8ca58f447f06ed17d5fc4043ce1b10dd205e060fb3ce5b979b8ed8e59ff3f79"
 
 [[package]]
 name = "pleiades-ayanamsa"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "pleiades-types",
 ]
 
 [[package]]
 name = "pleiades-backend"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "pleiades-types",
  "serde",
@@ -32,7 +32,7 @@ dependencies = [
 
 [[package]]
 name = "pleiades-cli"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "pleiades-core",
  "pleiades-data",
@@ -44,7 +44,7 @@ dependencies = [
 
 [[package]]
 name = "pleiades-compression"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "pleiades-types",
  "serde",
@@ -53,7 +53,7 @@ dependencies = [
 
 [[package]]
 name = "pleiades-core"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "pleiades-ayanamsa",
  "pleiades-backend",
@@ -64,7 +64,7 @@ dependencies = [
 
 [[package]]
 name = "pleiades-data"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "pleiades-backend",
  "pleiades-compression",
@@ -73,7 +73,7 @@ dependencies = [
 
 [[package]]
 name = "pleiades-elp"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "pleiades-backend",
  "pleiades-types",
@@ -81,14 +81,14 @@ dependencies = [
 
 [[package]]
 name = "pleiades-houses"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "pleiades-types",
 ]
 
 [[package]]
 name = "pleiades-jpl"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "pleiades-backend",
  "pleiades-types",
@@ -96,14 +96,14 @@ dependencies = [
 
 [[package]]
 name = "pleiades-types"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "pleiades-validate"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "pleiades-ayanamsa",
  "pleiades-backend",
@@ -118,7 +118,7 @@ dependencies = [
 
 [[package]]
 name = "pleiades-vsop87"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "pleiades-backend",
  "pleiades-types",
