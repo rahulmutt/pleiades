@@ -36,13 +36,13 @@ use crate::{
     ARTIFACT_LABEL, ARTIFACT_PROFILE_ID,
 };
 
-pub mod body;
-pub mod fit;
-pub mod generation;
-pub mod profile;
-pub mod regen;
-pub mod target;
-pub mod threshold;
+pub(crate) mod body;
+pub(crate) mod fit;
+pub(crate) mod generation;
+pub(crate) mod profile;
+pub(crate) mod regen;
+pub(crate) mod target;
+pub(crate) mod threshold;
 
 pub use body::*;
 pub use fit::*;
