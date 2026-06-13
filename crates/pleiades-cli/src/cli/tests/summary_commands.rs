@@ -1,836 +1,10 @@
-//! Command-output test suites for the CLI dispatch layer.
+//! Tests for the many compact summary commands.
 
-use pleiades_core::{
-    current_compatibility_profile, current_release_profile_identifiers, Angle, Ayanamsa,
-    CelestialBody, CustomAyanamsa, CustomBodyId, JulianDay,
-};
-use pleiades_data::{
-    packaged_artifact_generation_manifest_for_report,
-    packaged_artifact_normalized_intermediate_summary_for_report,
-};
+use pleiades_core::{current_compatibility_profile, current_release_profile_identifiers};
 use pleiades_validate::{house_validation_summary_for_report, render_cli as validate_render_cli};
 
-use super::test_support::{
-    help_command_names, packaged_artifact_access_report_line, unique_temp_dir,
-};
-use crate::cli::{banner, render_cli};
-use crate::commands::chart::render_chart;
-use crate::help::shared_request_policy_help_block;
-use crate::parse::{parse_ayanamsa, parse_body};
-
-#[test]
-fn banner_mentions_package() {
-    assert!(banner().contains("pleiades-cli"));
-}
-
-#[test]
-fn help_text_mentions_tdb_to_tt_retagging_flag() {
-    let rendered = render_cli(&["help"]).expect("help should render");
-    assert!(rendered.contains("--tt-from-utc-offset-seconds"));
-    assert!(rendered.contains("--tt-from-ut1-offset-seconds"));
-    assert!(rendered.contains("--tdb-from-utc-offset-seconds"));
-    assert!(rendered.contains("--tdb-from-ut1-offset-seconds"));
-    assert!(rendered.contains("--tdb-from-tt-offset-seconds"));
-    assert!(rendered.contains("--tt-from-tdb-offset-seconds"));
-    assert!(rendered.contains("UTC convenience policy: built-in UTC convenience conversion remains out of scope; callers must supply TT/TDB offsets explicitly"));
-    assert!(rendered.contains("reference-high-curvature-summary"));
-    assert!(rendered.contains("high-curvature-summary"));
-    assert!(rendered.contains("reference-snapshot-major-body-high-curvature-summary"));
-    assert!(rendered.contains("major-body-high-curvature-summary"));
-    assert!(rendered.contains("reference-snapshot-2500-major-body-boundary-summary"));
-    assert!(rendered.contains("2500-major-body-boundary-summary"));
-    assert!(rendered.contains("reference-snapshot-2500-selected-body-boundary-summary"));
-    assert!(rendered.contains("2500-selected-body-boundary-summary"));
-    assert!(rendered.contains("reference-snapshot-2453000-major-body-boundary-summary"));
-    assert!(rendered.contains("2453000-major-body-boundary-summary"));
-    assert!(rendered.contains("reference-snapshot-2500000-major-body-boundary-summary"));
-    assert!(rendered.contains("2500000-major-body-boundary-summary"));
-    assert!(rendered.contains("reference-snapshot-2451545-major-body-boundary-summary"));
-    assert!(rendered.contains("2451545-major-body-boundary-summary"));
-    assert!(rendered.contains("reference-snapshot-2451910-major-body-boundary-summary"));
-    assert!(rendered.contains("2451910-major-body-boundary-summary"));
-    assert!(rendered.contains("reference-snapshot-2451911-major-body-boundary-summary"));
-    assert!(rendered.contains("2451911-major-body-boundary-summary"));
-    assert!(rendered.contains("reference-snapshot-2451912-major-body-boundary-summary"));
-    assert!(rendered.contains("2451912-major-body-boundary-summary"));
-    assert!(rendered.contains("reference-snapshot-2451913-major-body-boundary-summary"));
-    assert!(rendered.contains("2451913-major-body-boundary-summary"));
-    assert!(rendered.contains("reference-snapshot-2451914-major-body-boundary-summary"));
-    assert!(rendered.contains("2451914-major-body-boundary-summary"));
-    assert!(rendered.contains("reference-snapshot-2451914-major-body-pre-bridge-summary"));
-    assert!(rendered.contains("2451914-major-body-pre-bridge-summary"));
-    assert!(rendered.contains("reference-snapshot-2451914-major-body-bridge-summary"));
-    assert!(rendered.contains("2451914-major-body-bridge-summary"));
-    assert!(rendered.contains("reference-snapshot-2451914-major-body-bridge-day-summary"));
-    assert!(rendered.contains("2451914-major-body-bridge-day-summary"));
-    assert!(rendered.contains("reference-snapshot-2451915-major-body-boundary-summary"));
-    assert!(rendered.contains("2451915-major-body-boundary-summary"));
-    assert!(rendered.contains("reference-snapshot-2451915-major-body-bridge-summary"));
-    assert!(rendered.contains("2451915-major-body-bridge-summary"));
-    assert!(rendered.contains("reference-snapshot-2451917-major-body-boundary-summary"));
-    assert!(rendered.contains("2451917-major-body-boundary-summary"));
-    assert!(rendered.contains("reference-snapshot-2451918-major-body-boundary-summary"));
-    assert!(rendered.contains("2451918-major-body-boundary-summary"));
-    assert!(rendered.contains("reference-snapshot-2451916-major-body-dense-boundary-summary"));
-    assert!(rendered.contains("2451916-major-body-dense-boundary-summary"));
-    assert!(rendered.contains("reference-snapshot-2451916-major-body-interior-summary"));
-    assert!(rendered.contains("2451916-major-body-interior-summary"));
-    assert!(rendered.contains("reference-snapshot-2451920-major-body-interior-summary"));
-    assert!(rendered.contains("2451920-major-body-interior-summary"));
-    assert!(rendered.contains("reference-snapshot-1749-major-body-boundary-summary"));
-    assert!(rendered.contains("1749-major-body-boundary-summary"));
-    assert!(rendered.contains("2360233-major-body-boundary-summary"));
-    assert!(rendered.contains("reference-snapshot-1800-major-body-boundary-summary"));
-    assert!(rendered.contains("1800-major-body-boundary-summary"));
-    assert!(rendered.contains("2378499-major-body-boundary-summary"));
-    assert!(rendered.contains("reference-snapshot-major-body-boundary-summary"));
-    assert!(rendered.contains("major-body-boundary-summary"));
-    assert!(rendered.contains("reference-snapshot-mars-jupiter-boundary-summary"));
-    assert!(rendered.contains("mars-jupiter-boundary-summary"));
-    assert!(rendered.contains("reference-snapshot-major-body-boundary-window-summary"));
-    assert!(rendered.contains("major-body-boundary-window-summary"));
-    assert!(rendered.contains("reference-high-curvature-window-summary"));
-    assert!(rendered.contains("high-curvature-window-summary"));
-    assert!(rendered.contains("reference-snapshot-major-body-high-curvature-window-summary"));
-    assert!(rendered.contains("major-body-high-curvature-window-summary"));
-    assert!(rendered.contains("reference-high-curvature-epoch-coverage-summary"));
-    assert!(rendered.contains("high-curvature-epoch-coverage-summary"));
-    assert!(
-        rendered.contains("reference-snapshot-major-body-high-curvature-epoch-coverage-summary")
-    );
-    assert!(rendered.contains("major-body-high-curvature-epoch-coverage-summary"));
-    assert!(rendered.contains("reference-snapshot-sparse-boundary-summary"));
-    assert!(rendered.contains("sparse-boundary-summary"));
-    assert!(rendered.contains("reference-snapshot-boundary-epoch-coverage-summary"));
-    assert!(rendered.contains(
-        "reference-snapshot-boundary-epoch-coverage  Alias for reference-snapshot-boundary-epoch-coverage-summary"
-    ));
-    assert!(rendered.contains("boundary-epoch-coverage-summary"));
-    assert!(rendered.contains("reference-snapshot-pre-bridge-boundary-summary"));
-    assert!(rendered.contains(
-        "reference-snapshot-pre-bridge-boundary  Alias for reference-snapshot-pre-bridge-boundary-summary"
-    ));
-    assert!(rendered.contains("pre-bridge-boundary-summary"));
-    assert!(rendered.contains("reference-snapshot-dense-boundary-summary"));
-    assert!(rendered.contains("dense-boundary-summary"));
-    assert!(rendered.contains("early-major-body-boundary-summary"));
-    assert!(rendered.contains("1800-major-body-boundary-summary"));
-    assert!(rendered.contains("source-documentation-summary"));
-    assert!(
-        rendered.contains("source-documentation         Alias for source-documentation-summary")
-    );
-    assert!(rendered.contains("source-documentation-health-summary"));
-    assert!(rendered
-        .contains("source-documentation-health  Alias for source-documentation-health-summary"));
-    assert!(rendered
-        .contains("source-audit-summary      Print the compact VSOP87 source audit summary"));
-    assert!(rendered.contains("source-audit              Alias for source-audit-summary"));
-    assert!(rendered.contains(
-        "generated-binary-audit-summary  Print the compact VSOP87 generated binary audit summary"
-    ));
-    assert!(rendered.contains("generated-binary-audit    Alias for generated-binary-audit-summary"));
-    assert!(rendered.contains("time-scale-policy-summary"));
-    assert!(rendered.contains("mean-obliquity-frame-round-trip-summary"));
-    assert!(rendered.contains(
-        "mean-obliquity-frame-round-trip  Alias for mean-obliquity-frame-round-trip-summary"
-    ));
-    assert!(rendered.contains("production-generation-body-class-coverage-summary"));
-    assert!(rendered.contains("production-body-class-coverage-summary"));
-    assert!(rendered.contains("production-generation-boundary-request-corpus-summary"));
-    assert!(rendered.contains("comparison-snapshot-body-class-coverage-summary"));
-    assert!(rendered.contains("comparison-body-class-coverage-summary"));
-    assert!(rendered.contains("comparison-corpus-summary"));
-    assert!(rendered.contains("comparison-corpus         Alias for comparison-corpus-summary"));
-    assert!(rendered.contains("comparison-corpus-release-guard-summary"));
-    assert!(rendered.contains(
-        "comparison-corpus-release-guard  Alias for comparison-corpus-release-guard-summary"
-    ));
-    assert!(rendered.contains("comparison-corpus-guard-summary"));
-    assert!(rendered.contains("comparison-envelope-summary"));
-    assert!(rendered.contains("comparison-envelope       Alias for comparison-envelope-summary"));
-    assert!(rendered.contains("comparison-tolerance-summary"));
-    assert!(rendered
-        .contains("comparison-tolerance-summary  Alias for comparison-tolerance-policy-summary"));
-    assert!(rendered.contains("comparison-tolerance-scope-coverage-summary"));
-    assert!(rendered.contains(
-        "comparison-tolerance-scope-coverage-summary  Print the compact comparison tolerance scope coverage summary"
-    ));
-    assert!(rendered.contains(
-        "comparison-tolerance-scope-coverage  Alias for comparison-tolerance-scope-coverage-summary"
-    ));
-    assert!(rendered.contains("comparison-body-class-tolerance-summary"));
-    assert!(rendered.contains(
-        "comparison-body-class-tolerance-summary  Print the compact comparison body-class tolerance summary"
-    ));
-    assert!(rendered.contains(
-        "comparison-body-class-tolerance  Alias for comparison-body-class-tolerance-summary"
-    ));
-    assert!(rendered.contains("comparison-body-class-error-envelope-summary"));
-    assert!(rendered.contains(
-        "comparison-body-class-error-envelope  Alias for comparison-body-class-error-envelope-summary"
-    ));
-    assert!(rendered.contains("comparison-body-class-tolerance-posture-summary"));
-    assert!(rendered.contains(
-        "comparison-body-class-tolerance-posture-summary  Print the compact comparison body-class tolerance posture summary"
-    ));
-    assert!(rendered.contains(
-        "comparison-body-class-tolerance-posture  Alias for comparison-body-class-tolerance-posture-summary"
-    ));
-    assert!(rendered.contains("benchmark-corpus-summary"));
-    assert!(rendered.contains("comparison-snapshot-summary"));
-    assert!(rendered.contains("comparison-snapshot-batch-parity-summary"));
-    assert!(rendered.contains(
-        "comparison-snapshot-batch-parity  Alias for comparison-snapshot-batch-parity-summary"
-    ));
-    assert!(rendered.contains("reference-snapshot-body-class-coverage-summary"));
-    assert!(rendered.contains("reference-body-class-coverage-summary"));
-    assert!(rendered.contains("reference-snapshot-summary"));
-    assert!(rendered.contains("reference-snapshot-batch-parity-summary"));
-    assert!(rendered.contains("reference-snapshot-equatorial-parity-summary"));
-    assert!(rendered.contains("workspace-audit-summary"));
-    assert!(rendered.contains("native-dependency-audit-summary"));
-    assert!(rendered.contains("independent-holdout-source-window-summary"));
-    assert!(rendered.contains("independent-holdout-body-class-coverage-summary"));
-    assert!(rendered.contains("holdout-body-class-coverage-summary"));
-    assert!(rendered.contains("independent-holdout-batch-parity-summary"));
-    assert!(rendered.contains("independent-holdout-equatorial-parity-summary"));
-    assert!(rendered.contains("lunar-theory-summary"));
-    assert!(rendered.contains("lunar-theory-request-policy-summary"));
-    assert!(rendered
-        .contains("lunar-theory-request-policy  Alias for lunar-theory-request-policy-summary"));
-    assert!(rendered.contains("request-policy-summary    Print the compact request-policy summary"));
-    assert!(rendered.contains("request-policy           Alias for request-policy-summary"));
-    assert!(
-        rendered.contains("request-semantics-summary  Print the compact request-semantics summary")
-    );
-    assert!(rendered.contains("request-semantics        Alias for request-semantics-summary"));
-    assert!(rendered.contains("lunar-theory-frame-treatment-summary"));
-    assert!(rendered
-        .contains("lunar-theory-frame-treatment  Alias for lunar-theory-frame-treatment-summary"));
-    assert!(rendered.contains("lunar-theory-limitations-summary"));
-    assert!(rendered.contains("lunar-theory-capability-summary"));
-    assert!(rendered.contains("lunar-theory-source-summary"));
-    assert!(rendered.contains("lunar-theory-source-family-summary"));
-    assert!(rendered
-        .contains("lunar-theory-source-family  Alias for lunar-theory-source-family-summary"));
-    assert!(rendered.contains("lunar-theory-catalog-summary"));
-    assert!(rendered.contains("lunar-theory-catalog-validation-summary"));
-    assert!(rendered.contains("lunar-theory-catalog      Alias for lunar-theory-catalog-summary"));
-    assert!(rendered.contains(
-        "lunar-theory-catalog-validation  Alias for lunar-theory-catalog-validation-summary"
-    ));
-    assert!(rendered.contains("zodiac-policy-summary"));
-    assert!(rendered.contains("zodiac-policy         Alias for zodiac-policy-summary"));
-    assert!(rendered.contains("observer-policy-summary"));
-    assert!(rendered.contains("apparentness-policy-summary"));
-    assert!(rendered.contains("compare-backends-audit"));
-    assert!(rendered.contains("Caller-supplied signed TDB-TT offset for TT-tagged instants"));
-    assert!(rendered.contains("Caller-supplied signed TT-TDB offset for TDB-tagged instants"));
-}
-
-#[test]
-fn shared_command_help_is_kept_in_sync_with_the_validation_binary() {
-    let cli_help = render_cli(&["help"]).expect("cli help should render");
-    let validation_help = validate_render_cli(&["help"]).expect("validation help should render");
-
-    let mut cli_commands = help_command_names(&cli_help);
-    let validation_commands = help_command_names(&validation_help);
-
-    assert!(
-        cli_commands.remove("chart"),
-        "cli should remain the only binary with the chart command"
-    );
-    assert_eq!(cli_commands, validation_commands);
-}
-
-#[test]
-fn compare_backends_command_renders_the_comparison_report() {
-    let rendered = render_cli(&["compare-backends"]).expect("compare-backends should render");
-    assert!(rendered.contains("Comparison report"));
-    assert!(rendered.contains("Comparison corpus"));
-    assert!(rendered.contains("release-grade guard: Pluto excluded from tolerance evidence"));
-    assert!(rendered.contains("epoch labels:"));
-    assert!(rendered.contains("Reference backend:"));
-    assert!(rendered.contains("Candidate backend:"));
-    assert!(rendered.contains("Samples"));
-}
-
-#[test]
-fn comparison_report_alias_renders_the_comparison_report() {
-    let alias = render_cli(&["comparison-report"]).expect("comparison report should render");
-    let command = render_cli(&["compare-backends"]).expect("compare-backends should render");
-
-    assert_eq!(alias, command);
-    assert_eq!(
-        render_cli(&["comparison-report", "extra"]).unwrap_err(),
-        "comparison-report does not accept extra arguments"
-    );
-}
-
-#[test]
-fn compare_backends_audit_command_renders_the_comparison_report() {
-    let rendered =
-        render_cli(&["compare-backends-audit"]).expect("compare-backends-audit should render");
-    assert!(rendered.contains("Comparison tolerance audit"));
-    assert!(rendered.contains("result: clean"));
-    assert!(rendered.contains("within tolerance bodies: 9"));
-    assert!(rendered.contains("outside tolerance bodies: 0"));
-}
-
-#[test]
-fn comparison_audit_summary_command_forwards_to_validate() {
-    let summary =
-        render_cli(&["comparison-audit-summary"]).expect("comparison audit summary should render");
-    assert!(summary.contains("status="));
-    assert!(summary.contains("bodies checked="));
-    assert_eq!(
-        summary,
-        render_cli(&["comparison-audit"]).expect("comparison audit alias should render")
-    );
-}
-
-#[test]
-fn target_scope_summary_commands_forward_to_validate() {
-    let house_scope = render_cli(&["target-house-scope-summary"])
-        .expect("target house scope summary should render");
-    assert_eq!(
-        house_scope,
-        render_cli(&["target-house-scope"]).expect("target house scope alias should render")
-    );
-    assert_eq!(
-        house_scope,
-        validate_render_cli(&["target-house-scope-summary"])
-            .expect("validation binary should render target house scope summary")
-    );
-
-    let ayanamsa_scope = render_cli(&["target-ayanamsa-scope-summary"])
-        .expect("target ayanamsa scope summary should render");
-    assert_eq!(
-        ayanamsa_scope,
-        render_cli(&["target-ayanamsa-scope"]).expect("target ayanamsa scope alias should render")
-    );
-    assert_eq!(
-        ayanamsa_scope,
-        validate_render_cli(&["target-ayanamsa-scope-summary"])
-            .expect("validation binary should render target ayanamsa scope summary")
-    );
-}
-
-#[test]
-fn compare_backends_command_rejects_extra_arguments() {
-    let error = render_cli(&["compare-backends", "extra"])
-        .expect_err("compare-backends should reject extra arguments");
-    assert_eq!(error, "compare-backends does not accept extra arguments");
-}
-
-#[test]
-fn compare_backends_audit_command_rejects_extra_arguments() {
-    let error = render_cli(&["compare-backends-audit", "extra"])
-        .expect_err("compare-backends-audit should reject extra arguments");
-    assert_eq!(
-        error,
-        "compare-backends-audit does not accept extra arguments"
-    );
-}
-
-#[test]
-fn reference_snapshot_1600_selected_body_boundary_aliases_render_the_same_reports() {
-    let boundary_1600 = render_cli(&["reference-snapshot-1600-selected-body-boundary-summary"])
-        .expect("1600 selected-body boundary summary should render");
-    assert!(boundary_1600.contains("Reference 1600 selected-body boundary evidence:"));
-    assert!(boundary_1600.contains("JD 2305457.5 (TDB)"));
-    let boundary_1600_alias = render_cli(&["1600-selected-body-boundary-summary"])
-        .expect("1600 selected-body boundary alias should render");
-    assert_eq!(boundary_1600_alias, boundary_1600);
-
-    let boundary_2305457 = render_cli(&["2305457-selected-body-boundary-summary"])
-        .expect("2305457 selected-body boundary summary should render");
-    assert_eq!(boundary_2305457, boundary_1600);
-}
-
-#[test]
-fn reference_snapshot_1750_selected_body_boundary_aliases_render_the_same_reports() {
-    let boundary_1750 = render_cli(&["reference-snapshot-1750-selected-body-boundary-summary"])
-        .expect("1750 selected-body boundary summary should render");
-    assert!(boundary_1750.contains("Reference 1750 selected-body boundary evidence:"));
-    assert!(boundary_1750.contains("JD 2360234.5 (TDB)"));
-    let boundary_1750_alias = render_cli(&["1750-selected-body-boundary-summary"])
-        .expect("1750 selected-body boundary alias should render");
-    assert_eq!(boundary_1750_alias, boundary_1750);
-}
-
-#[test]
-fn reference_snapshot_1749_major_body_boundary_aliases_render_the_same_reports() {
-    let boundary_1749 = render_cli(&["reference-snapshot-1749-major-body-boundary-summary"])
-        .expect("1749 major-body boundary summary should render");
-    assert!(boundary_1749.contains("Reference 1749 major-body boundary evidence:"));
-    assert!(boundary_1749.contains("JD 2360233.5 (TDB)"));
-    let boundary_1749_alias = render_cli(&["1749-major-body-boundary-summary"])
-        .expect("1749 major-body boundary alias should render");
-    assert_eq!(boundary_1749_alias, boundary_1749);
-    let boundary_2360233_alias = render_cli(&["2360233-major-body-boundary-summary"])
-        .expect("2360233 major-body boundary alias should render");
-    assert_eq!(boundary_2360233_alias, boundary_1749);
-}
-
-#[test]
-fn early_and_1800_major_body_boundary_aliases_render_the_same_reports() {
-    let early = render_cli(&["reference-snapshot-early-major-body-boundary-summary"])
-        .expect("early major-body boundary summary should render");
-    let early_alias = render_cli(&["early-major-body-boundary-summary"])
-        .expect("early major-body boundary alias should render");
-    assert_eq!(early_alias, early);
-
-    let boundary_1800 = render_cli(&["reference-snapshot-1800-major-body-boundary-summary"])
-        .expect("1800 major-body boundary summary should render");
-    let boundary_1800_alias = render_cli(&["1800-major-body-boundary-summary"])
-        .expect("1800 major-body boundary alias should render");
-    assert_eq!(boundary_1800_alias, boundary_1800);
-    let boundary_2378499_alias = render_cli(&["2378499-major-body-boundary-summary"])
-        .expect("2378499 major-body boundary alias should render");
-    assert_eq!(boundary_2378499_alias, boundary_1800);
-}
-
-#[test]
-fn reference_snapshot_2500_selected_body_boundary_aliases_render_the_same_reports() {
-    let boundary_2500 = render_cli(&["reference-snapshot-2500-selected-body-boundary-summary"])
-        .expect("2500 selected-body boundary summary should render");
-    assert!(boundary_2500.contains("Reference 2500 selected-body boundary evidence:"));
-    assert!(boundary_2500.contains("JD 2634167.0 (TDB)"));
-    let boundary_2500_alias = render_cli(&["2500-selected-body-boundary-summary"])
-        .expect("2500 selected-body boundary alias should render");
-    assert_eq!(boundary_2500_alias, boundary_2500);
-}
-
-#[test]
-fn reference_snapshot_2500_major_body_boundary_aliases_render_the_same_reports() {
-    let boundary_2500 = render_cli(&["reference-snapshot-2500-major-body-boundary-summary"])
-        .expect("2500 major-body boundary summary should render");
-    assert!(boundary_2500.contains("Reference 2500 major-body boundary evidence:"));
-    let boundary_2500_alias = render_cli(&["2500-major-body-boundary-summary"])
-        .expect("2500 major-body boundary alias should render");
-    assert_eq!(boundary_2500_alias, boundary_2500);
-}
-
-#[test]
-fn reference_snapshot_2400000_major_body_boundary_aliases_render_the_same_reports() {
-    let boundary_2400000 = render_cli(&["reference-snapshot-2400000-major-body-boundary-summary"])
-        .expect("2400000 major-body boundary summary should render");
-    assert!(boundary_2400000.contains("Reference 2400000 major-body boundary evidence:"));
-    assert!(boundary_2400000.contains("JD 2400000.0 (TDB)"));
-    let boundary_2400000_alias = render_cli(&["2400000-major-body-boundary-summary"])
-        .expect("2400000 major-body boundary alias should render");
-    assert_eq!(boundary_2400000_alias, boundary_2400000);
-}
-
-#[test]
-fn reference_snapshot_2451545_major_body_boundary_aliases_render_the_same_reports() {
-    let boundary_2451545 = render_cli(&["reference-snapshot-2451545-major-body-boundary-summary"])
-        .expect("2451545 major-body boundary summary should render");
-    assert!(boundary_2451545.contains("Reference 2451545 major-body boundary evidence:"));
-    assert!(boundary_2451545.contains("JD 2451545.0 (TDB)"));
-    let boundary_2451545_alias = render_cli(&["2451545-major-body-boundary-summary"])
-        .expect("2451545 major-body boundary alias should render");
-    assert_eq!(boundary_2451545_alias, boundary_2451545);
-}
-
-#[test]
-fn reference_snapshot_2453000_major_body_boundary_aliases_render_the_same_reports() {
-    let boundary_2453000 = render_cli(&["reference-snapshot-2453000-major-body-boundary-summary"])
-        .expect("2453000 major-body boundary summary should render");
-    assert!(boundary_2453000.contains("Reference 2453000 major-body boundary evidence:"));
-    let boundary_2453000_alias = render_cli(&["2453000-major-body-boundary-summary"])
-        .expect("2453000 major-body boundary alias should render");
-    assert_eq!(boundary_2453000_alias, boundary_2453000);
-}
-
-#[test]
-fn reference_snapshot_2500000_major_body_boundary_aliases_render_the_same_reports() {
-    let boundary_2500000 = render_cli(&["reference-snapshot-2500000-major-body-boundary-summary"])
-        .expect("2500000 major-body boundary summary should render");
-    assert!(boundary_2500000.contains("Reference 2500000 major-body boundary evidence:"));
-    let boundary_2500000_alias = render_cli(&["2500000-major-body-boundary-summary"])
-        .expect("2500000 major-body boundary alias should render");
-    assert_eq!(boundary_2500000_alias, boundary_2500000);
-}
-
-#[test]
-fn reference_snapshot_1500_1750_1900_and_2360234_aliases_render_the_same_reports() {
-    let boundary_1500 = render_cli(&["reference-snapshot-1500-selected-body-boundary-summary"])
-        .expect("1500 selected-body boundary summary should render");
-    assert!(boundary_1500.contains("Reference 1500 selected-body boundary evidence:"));
-    assert!(boundary_1500.contains("JD 2268932.5 (TDB)"));
-    assert_eq!(
-        render_cli(&["1500-selected-body-boundary-summary"])
-            .expect("1500 selected-body boundary alias should render"),
-        boundary_1500
-    );
-    let boundary_2268932 = render_cli(&["2268932-selected-body-boundary-summary"])
-        .expect("2268932 selected-body boundary summary should render");
-    assert_eq!(boundary_2268932, boundary_1500);
-
-    let interior_1750 = render_cli(&["reference-snapshot-1750-major-body-interior-summary"])
-        .expect("1750 major-body interior summary should render");
-    assert!(interior_1750.contains("Reference 1750 major-body interior comparison evidence:"));
-    assert!(interior_1750.contains("JD 2360234.5 (TDB)"));
-    assert_eq!(
-        render_cli(&["1750-major-body-interior-summary"])
-            .expect("1750 major-body interior alias should render"),
-        interior_1750
-    );
-
-    let boundary_1900 = render_cli(&["reference-snapshot-1900-selected-body-boundary-summary"])
-        .expect("1900 selected-body boundary summary should render");
-    assert!(boundary_1900.contains("Reference 1900 selected-body boundary evidence:"));
-    assert!(boundary_1900.contains("JD 2415020.5 (TDB)"));
-    assert_eq!(
-        render_cli(&["1900-selected-body-boundary-summary"])
-            .expect("1900 selected-body boundary alias should render"),
-        boundary_1900
-    );
-    assert_eq!(
-        render_cli(&["2415020-selected-body-boundary-summary"])
-            .expect("2415020 selected-body boundary alias should render"),
-        pleiades_jpl::reference_snapshot_2415020_selected_body_boundary_summary_for_report()
-    );
-
-    let interior_2360234 = render_cli(&["reference-snapshot-2360234-major-body-interior-summary"])
-        .expect("2360234 major-body interior summary should render");
-    assert!(interior_2360234.contains("Reference 2360234 major-body interior comparison evidence:"));
-    assert!(interior_2360234.contains("JD 2360234.5 (TDB)"));
-    assert_eq!(
-        render_cli(&["2360234-major-body-interior-summary"])
-            .expect("2360234 major-body interior alias should render"),
-        interior_2360234
-    );
-}
-
-#[test]
-fn reference_snapshot_2451916_major_body_interior_aliases_render_the_same_reports() {
-    let interior_2451916 = render_cli(&["reference-snapshot-2451916-major-body-interior-summary"])
-        .expect("2451916 major-body interior summary should render");
-    assert!(interior_2451916.contains("Reference 2451916 major-body interior evidence:"));
-    assert!(interior_2451916.contains("JD 2451916.0 (TDB)"));
-    let interior_2451916_alias = render_cli(&["2451916-major-body-interior-summary"])
-        .expect("2451916 major-body interior alias should render");
-    assert_eq!(interior_2451916_alias, interior_2451916);
-}
-
-#[test]
-fn reference_snapshot_2451912_2451913_2451914_and_2451918_major_body_boundary_aliases_render_the_same_reports(
-) {
-    let boundary_2451912 = render_cli(&["reference-snapshot-2451912-major-body-boundary-summary"])
-        .expect("2451912 major-body boundary summary should render");
-    assert!(boundary_2451912.contains("Reference 2451912 major-body boundary evidence:"));
-    assert!(boundary_2451912.contains("JD 2451912.5 (TDB)"));
-    assert_eq!(
-        render_cli(&["2451912-major-body-boundary-summary"])
-            .expect("2451912 major-body boundary alias should render"),
-        boundary_2451912
-    );
-
-    let boundary_2451913 = render_cli(&["reference-snapshot-2451913-major-body-boundary-summary"])
-        .expect("2451913 major-body boundary summary should render");
-    assert!(boundary_2451913.contains("Reference 2451913 major-body boundary evidence:"));
-    assert!(boundary_2451913.contains("JD 2451913.5 (TDB)"));
-    assert_eq!(
-        render_cli(&["2451913-major-body-boundary-summary"])
-            .expect("2451913 major-body boundary alias should render"),
-        boundary_2451913
-    );
-
-    let boundary_2451914 = render_cli(&["reference-snapshot-2451914-major-body-boundary-summary"])
-        .expect("2451914 major-body boundary summary should render");
-    assert!(boundary_2451914.contains("Reference 2451914 major-body boundary evidence:"));
-    assert!(boundary_2451914.contains("JD 2451914.5 (TDB)"));
-    assert_eq!(
-        render_cli(&["2451914-major-body-boundary-summary"])
-            .expect("2451914 major-body boundary alias should render"),
-        boundary_2451914
-    );
-
-    let boundary_2451918 = render_cli(&["reference-snapshot-2451918-major-body-boundary-summary"])
-        .expect("2451918 major-body boundary summary should render");
-    assert!(boundary_2451918.contains("Reference 2451918 major-body boundary evidence:"));
-    assert!(boundary_2451918.contains("JD 2451918.5 (TDB)"));
-    assert_eq!(
-        render_cli(&["2451918-major-body-boundary-summary"])
-            .expect("2451918 major-body boundary alias should render"),
-        boundary_2451918
-    );
-}
-
-#[test]
-fn reference_snapshot_2451914_pre_bridge_2451914_bridge_2451915_bridge_and_2451916_dense_boundary_aliases_render_the_same_reports(
-) {
-    let pre_bridge = render_cli(&["reference-snapshot-2451914-major-body-pre-bridge-summary"])
-        .expect("2451914 pre-bridge summary should render");
-    assert!(pre_bridge.contains("Reference snapshot pre-bridge boundary day:"));
-    assert!(pre_bridge.contains("JD 2451914.5 (TDB)"));
-    assert_eq!(
-        render_cli(&["2451914-major-body-pre-bridge-summary"])
-            .expect("2451914 pre-bridge alias should render"),
-        pre_bridge
-    );
-
-    let bridge_day = render_cli(&["reference-snapshot-2451914-major-body-bridge-summary"])
-        .expect("2451914 bridge summary should render");
-    assert!(bridge_day.contains("Reference snapshot bridge day:"));
-    assert!(bridge_day.contains("JD 2451914.0 (TDB)"));
-    assert_eq!(
-        render_cli(&["2451914-major-body-bridge-summary"])
-            .expect("2451914 bridge alias should render"),
-        bridge_day
-    );
-    assert_eq!(
-        render_cli(&["2451914-bridge-day-summary"])
-            .expect("2451914 bridge-day alias should render"),
-        bridge_day
-    );
-    assert_eq!(
-        render_cli(&["2451914-major-body-bridge"])
-            .expect("2451914 concise bridge alias should render"),
-        bridge_day
-    );
-
-    let bridge_2451915 = render_cli(&["reference-snapshot-2451915-major-body-bridge-summary"])
-        .expect("2451915 bridge summary should render");
-    assert!(bridge_2451915.contains("Reference 2451915 major-body bridge evidence:"));
-    assert!(bridge_2451915.contains("JD 2451915.0 (TDB)"));
-    assert_eq!(
-        render_cli(&["2451915-major-body-bridge-summary"])
-            .expect("2451915 bridge alias should render"),
-        pleiades_jpl::reference_snapshot_2451915_major_body_bridge_summary_for_report()
-    );
-    assert_eq!(
-        render_cli(&["2451915-major-body-bridge"])
-            .expect("2451915 concise bridge alias should render"),
-        bridge_2451915
-    );
-    assert_eq!(
-        render_cli(&["bridge-summary"]).expect("bridge alias should render"),
-        render_cli(&["major-body-bridge-summary"]).expect("major body bridge alias should render")
-    );
-    assert_eq!(
-        render_cli(&["bridge-summary", "extra"])
-            .expect_err("bridge alias should reject extra arguments"),
-        "bridge-summary does not accept extra arguments"
-    );
-
-    let dense_boundary =
-        render_cli(&["reference-snapshot-2451916-major-body-dense-boundary-summary"])
-            .expect("2451916 dense boundary summary should render");
-    assert!(dense_boundary.contains("Reference 2451916 major-body dense boundary evidence:"));
-    assert!(dense_boundary.contains("JD 2451916.5 (TDB)"));
-    assert_eq!(
-        render_cli(&["2451916-major-body-dense-boundary-summary"])
-            .expect("2451916 dense boundary alias should render"),
-        dense_boundary
-    );
-
-    let boundary = render_cli(&["reference-snapshot-2451916-major-body-boundary-summary"])
-        .expect("2451916 boundary alias should render");
-    assert!(boundary.contains("Reference 2451916 major-body boundary evidence:"));
-    assert!(boundary.contains("JD 2451916.5 (TDB)"));
-    assert_eq!(
-        render_cli(&["2451916-major-body-boundary-summary"])
-            .expect("2451916 boundary alias should render"),
-        boundary
-    );
-}
-
-#[test]
-fn reference_snapshot_2451917_major_body_boundary_aliases_render_the_same_reports() {
-    let boundary_2451917 = render_cli(&["reference-snapshot-2451917-major-body-boundary-summary"])
-        .expect("2451917 major-body boundary summary should render");
-    assert!(boundary_2451917.contains("Reference 2451917 major-body boundary evidence:"));
-    assert!(boundary_2451917.contains("JD 2451917.5 (TDB)"));
-    let boundary_2451917_alias = render_cli(&["2451917-major-body-boundary-summary"])
-        .expect("2451917 major-body boundary alias should render");
-    assert_eq!(boundary_2451917_alias, boundary_2451917);
-
-    let bridge_2451917 = render_cli(&["reference-snapshot-2451917-major-body-bridge-summary"])
-        .expect("2451917 major-body bridge summary should render");
-    assert!(bridge_2451917.contains("Reference 2451917 major-body bridge evidence:"));
-    assert!(bridge_2451917.contains("JD 2451917.0 (TDB)"));
-    assert_eq!(
-        render_cli(&["2451917-major-body-bridge-summary"])
-            .expect("2451917 major-body bridge alias should render"),
-        bridge_2451917
-    );
-    assert_eq!(
-        render_cli(&["2451917-major-body-bridge"])
-            .expect("2451917 concise major-body bridge alias should render"),
-        bridge_2451917
-    );
-}
-
-#[test]
-fn reference_snapshot_2451919_major_body_boundary_aliases_render_the_same_reports() {
-    let boundary_2451919 = render_cli(&["reference-snapshot-2451919-major-body-boundary-summary"])
-        .expect("2451919 major-body boundary summary should render");
-    assert!(boundary_2451919.contains("Reference 2451919 major-body boundary evidence:"));
-    assert!(boundary_2451919.contains("JD 2451919.5 (TDB)"));
-    let boundary_2451919_alias = render_cli(&["2451919-major-body-boundary-summary"])
-        .expect("2451919 major-body boundary alias should render");
-    assert_eq!(boundary_2451919_alias, boundary_2451919);
-    assert_eq!(
-        render_cli(&[
-            "reference-snapshot-2451919-major-body-boundary-summary",
-            "extra"
-        ])
-        .expect_err("2451919 major-body boundary summary should reject extra arguments"),
-        "reference-snapshot-2451919-major-body-boundary-summary does not accept extra arguments"
-    );
-    assert_eq!(
-        render_cli(&["2451919-major-body-boundary-summary", "extra"])
-            .expect_err("2451919 major-body boundary alias should reject extra arguments"),
-        "reference-snapshot-2451919-major-body-boundary-summary does not accept extra arguments"
-    );
-}
-
-#[test]
-fn reference_snapshot_2451920_major_body_interior_aliases_render_the_same_reports() {
-    let interior_2451920 = render_cli(&["reference-snapshot-2451920-major-body-interior-summary"])
-        .expect("2451920 major-body interior summary should render");
-    assert!(interior_2451920.contains("Reference 2451920 major-body interior evidence:"));
-    assert!(interior_2451920.contains("JD 2451920.5 (TDB)"));
-    let interior_2451920_alias = render_cli(&["2451920-major-body-interior-summary"])
-        .expect("2451920 major-body interior alias should render");
-    assert_eq!(interior_2451920_alias, interior_2451920);
-}
-
-#[test]
-fn profile_command_renders_catalogs() {
-    let rendered = render_cli(&["compatibility-profile"]).expect("profile should render");
-    let release_profiles = current_release_profile_identifiers();
-    assert!(rendered.contains(&format!(
-        "Compatibility profile: {}",
-        release_profiles.compatibility_profile_id
-    )));
-    assert!(rendered.contains("Target compatibility catalog:"));
-    assert!(rendered.contains("Baseline compatibility milestone:"));
-    assert!(rendered.contains("Release-specific coverage beyond baseline:"));
-    assert!(rendered.contains("Topocentric"));
-    assert!(rendered.contains("Meridian house system"));
-    assert!(rendered.contains("Horizon house system"));
-    assert!(rendered.contains("Horizontal house system"));
-    assert!(rendered.contains("Azimuth house system"));
-    assert!(rendered.contains("Azimuthal house system"));
-    assert!(rendered.contains("Whole Sign system"));
-    assert!(rendered.contains("Whole Sign house system"));
-    assert!(rendered.contains("Whole Sign (house 1 = Aries)"));
-    assert!(rendered.contains("Whole-sign"));
-    assert!(rendered.contains("Carter's poli-equatorial"));
-    assert!(rendered.contains("Poli-equatorial"));
-    assert!(rendered.contains("horizon/azimuth"));
-    assert!(rendered.contains("T Polich/Page (\"topocentric\")"));
-    assert!(rendered.contains("Zariel"));
-    assert!(rendered.contains("Krusinski/Pisa/Goelzer house system"));
-    assert!(rendered.contains("Equal (cusp 1 = Asc)"));
-    assert!(rendered.contains("Equal from MC"));
-    assert!(rendered.contains("Equal (1=Aries) table of houses"));
-    assert!(rendered.contains("Equal/MC = 10th"));
-    assert!(rendered.contains("Equal Midheaven table of houses"));
-    assert!(rendered.contains("Equal Midheaven house system"));
-    assert!(rendered.contains("Vehlow equal"));
-    assert!(rendered.contains("Equal/1=0 Aries"));
-    assert!(rendered.contains("Equal (cusp 1 = 0° Aries)"));
-    assert!(rendered.contains("WvA"));
-    assert!(rendered.contains("Gauquelin table of sectors"));
-    assert!(rendered.contains("Pullen SD (Neo-Porphyry) table of houses"));
-    assert!(rendered.contains("Pullen SD (Sinusoidal Delta)"));
-    assert!(rendered.contains("Makransky Sunshine"));
-    assert!(rendered.contains("Sunshine table of houses, by Bob Makransky"));
-    assert!(rendered.contains("Treindl Sunshine"));
-    assert!(rendered.contains("Y APC houses"));
-    assert!(rendered.contains("Wang"));
-    assert!(rendered.contains("Aries houses"));
-    assert!(rendered.contains("Fagan/Bradley"));
-    assert!(rendered.contains("Usha Shashi"));
-    assert!(rendered.contains("JN Bhasin"));
-    assert!(rendered.contains("X, Meridian houses, Meridian table of houses, Meridian house system, ARMC, Axial Rotation, Axial rotation system, Zariel, X axial rotation system/ Meridian houses -> Meridian"));
-    assert!(rendered.contains("Target ayanamsa catalog:"));
-    assert!(rendered.contains("Alias mappings for built-in house systems:"));
-    assert!(rendered.contains("Source-label aliases for built-in house systems:"));
-    assert!(rendered.contains("Alias mappings for built-in ayanamsas:"));
-    assert!(rendered.contains("Coverage summary:"));
-    assert!(rendered.contains("ayanamsa sidereal metadata:"));
-    assert!(rendered.contains("J2000"));
-    assert!(rendered.contains("True Pushya"));
-    assert!(rendered.contains("Djwhal Khul"));
-    assert!(rendered.contains("True Revati"));
-    assert!(rendered.contains("Babylonian (Eta Piscium)"));
-    assert!(rendered.contains(
-        "Babylonian/Kugler 2, Babylonian Kugler 2, Babylonian 2 -> Babylonian (Kugler 2)"
-    ));
-    assert!(rendered.contains(
-        "Babylonian/Kugler 3, Babylonian Kugler 3, Babylonian 3 -> Babylonian (Kugler 3)"
-    ));
-    assert!(rendered.contains("Galactic Equator (Mula)"));
-    assert!(rendered.contains("True Mula (Chandra Hari)"));
-    assert!(rendered.contains("Galactic Equator (Fiorenza)"));
-    assert!(rendered.contains("Galactic Equator (True)"));
-    assert!(rendered.contains("Galactic Equator mid-Mula, Mula galactic equator, Galactic equator Mula -> Galactic Equator (Mula)"));
-    assert!(rendered.contains("True galactic equator"));
-    assert!(rendered.contains("Galactic equator true"));
-    assert!(rendered.contains("Galactic Equator (IAU 1958)"));
-    assert!(rendered.contains("Dhruva Galactic Center (Middle Mula)"));
-    assert!(rendered.contains("Nick Anthony Fiorenza"));
-    assert!(rendered.contains("Galactic Center (Cochrane)"));
-    assert!(rendered.contains("Gal. Center = 0 Cap"));
-    assert!(rendered.contains("Cochrane (Gal.Center = 0 Cap)"));
-    assert!(rendered.contains("Galactic Center (Mardyks)"));
-    assert!(rendered.contains("Skydram (Mardyks)"));
-    assert!(rendered.contains("Mula Wilhelm"));
-    assert!(rendered.contains("Wilhelm"));
-    assert!(rendered.contains("Galactic Center (Mula/Wilhelm)"));
-    assert!(rendered.contains("Galactic Center (Rgilbrand)"));
-    assert!(rendered.contains("Galactic Center (Gil Brand)"));
-    assert!(rendered.contains("Gil Brand"));
-    assert!(rendered.contains("P.V.R. Narasimha Rao"));
-    assert!(rendered.contains("Pullen SR (Sinusoidal Ratio) table of houses"));
-    assert!(rendered.contains("True Citra Paksha"));
-    assert!(rendered.contains("True Chitra Paksha"));
-    assert!(rendered.contains("True Chitrapaksha"));
-    assert!(rendered.contains("Babylonian (True Geoc)"));
-    assert!(rendered.contains("Babylonian (True Topc)"));
-    assert!(rendered.contains("Babylonian (True Obs)"));
-    assert!(rendered.contains("Lahiri (VP285)"));
-    assert!(rendered.contains("Krishnamurti (VP291)"));
-    assert!(rendered.contains("Lahiri (ICRC)"));
-    assert!(rendered.contains("Lahiri (1940)"));
-    assert!(rendered.contains("Udayagiri"));
-    assert!(rendered.contains("Valens Moon"));
-    assert!(rendered.contains("Babylonian (House Obs)"));
-    assert!(rendered.contains("B. V. Raman"));
-    assert!(rendered.contains("Raman Ayanamsha"));
-}
-
-#[test]
-fn api_stability_command_renders_the_posture() {
-    let rendered = render_cli(&["api-stability"]).expect("api posture should render");
-    let release_profiles = current_release_profile_identifiers();
-    assert!(rendered.contains(&format!(
-        "API stability posture: {}",
-        release_profiles.api_stability_profile_id
-    )));
-    assert!(rendered.contains("Stable consumer surfaces:"));
-    assert!(rendered.contains("Experimental or operational surfaces:"));
-}
-
-#[test]
-fn backend_matrix_command_renders_the_implemented_catalog() {
-    let rendered = render_cli(&["backend-matrix"]).expect("backend matrix should render");
-    assert!(rendered.contains("Implemented backend matrices"));
-    assert!(rendered.contains("JPL snapshot reference backend"));
-    assert!(rendered.contains("expected error classes:"));
-    assert!(rendered.contains("required external data files:"));
-    assert!(rendered.contains("VSOP87 planetary backend"));
-    assert!(rendered.contains("ELP lunar backend"));
-    assert!(rendered.contains("Packaged data backend"));
-    assert!(rendered.contains("Composite routed backend"));
-}
+use super::super::test_support::packaged_artifact_access_report_line;
+use crate::cli::render_cli;
 
 #[test]
 fn summary_commands_render_compact_reports() {
@@ -1431,7 +605,7 @@ fn summary_commands_render_compact_reports() {
         .expect("comparison tolerance policy summary should render");
     assert_eq!(
         comparison_tolerance_policy_summary,
-        super::validate_render_cli(&["comparison-tolerance-policy-summary"])
+        validate_render_cli(&["comparison-tolerance-policy-summary"])
             .expect("comparison tolerance policy summary should match validate CLI")
     );
 
@@ -1447,7 +621,7 @@ fn summary_commands_render_compact_reports() {
             .expect("comparison tolerance scope coverage summary should render");
     assert_eq!(
         comparison_tolerance_scope_coverage_summary,
-        super::validate_render_cli(&["comparison-tolerance-scope-coverage-summary"])
+        validate_render_cli(&["comparison-tolerance-scope-coverage-summary"])
             .expect("comparison tolerance scope coverage summary should match validate CLI")
     );
     assert_eq!(
@@ -1473,7 +647,7 @@ fn summary_commands_render_compact_reports() {
             .expect("comparison body-class tolerance summary should render");
     assert_eq!(
         comparison_body_class_tolerance_summary,
-        super::validate_render_cli(&["comparison-body-class-tolerance-summary"])
+        validate_render_cli(&["comparison-body-class-tolerance-summary"])
             .expect("comparison body-class tolerance summary should match validate CLI")
     );
 
@@ -1489,7 +663,7 @@ fn summary_commands_render_compact_reports() {
             .expect("comparison body-class tolerance posture summary should render");
     assert_eq!(
         comparison_body_class_tolerance_posture_summary,
-        super::validate_render_cli(&["comparison-body-class-tolerance-posture-summary"])
+        validate_render_cli(&["comparison-body-class-tolerance-posture-summary"])
             .expect("comparison body-class tolerance posture summary should match validate CLI")
     );
 
@@ -1506,7 +680,7 @@ fn summary_commands_render_compact_reports() {
         .expect("comparison envelope summary should render");
     assert_eq!(
         comparison_envelope_summary,
-        super::validate_render_cli(&["comparison-envelope-summary"])
+        validate_render_cli(&["comparison-envelope-summary"])
             .expect("comparison envelope summary should match validate CLI")
     );
 
@@ -1519,7 +693,7 @@ fn summary_commands_render_compact_reports() {
             .expect("comparison body-class error envelope summary should render");
     assert_eq!(
         comparison_body_class_error_envelope_summary,
-        super::validate_render_cli(&["comparison-body-class-error-envelope-summary"])
+        validate_render_cli(&["comparison-body-class-error-envelope-summary"])
             .expect("comparison body-class error envelope summary should match validate CLI")
     );
     let comparison_body_class_error_envelope_alias =
@@ -1557,7 +731,7 @@ fn summary_commands_render_compact_reports() {
         .expect("release body claims summary should render");
     assert_eq!(
         release_body_claims_summary,
-        super::validate_render_cli(&["release-body-claims-summary"])
+        validate_render_cli(&["release-body-claims-summary"])
             .expect("release body claims summary should match validate CLI")
     );
     assert_eq!(
@@ -1574,7 +748,7 @@ fn summary_commands_render_compact_reports() {
         .expect("body/date/channel claims summary should render");
     assert_eq!(
         body_date_channel_claims_summary,
-        super::validate_render_cli(&["body-date-channel-claims-summary"])
+        validate_render_cli(&["body-date-channel-claims-summary"])
             .expect("body/date/channel claims summary should match validate CLI")
     );
     assert_eq!(
@@ -1592,7 +766,7 @@ fn summary_commands_render_compact_reports() {
         render_cli(&["pluto-fallback-summary"]).expect("Pluto fallback summary should render");
     assert_eq!(
         pluto_fallback_summary,
-        super::validate_render_cli(&["pluto-fallback-summary"])
+        validate_render_cli(&["pluto-fallback-summary"])
             .expect("Pluto fallback summary should match validate CLI")
     );
     assert_eq!(
@@ -1609,7 +783,7 @@ fn summary_commands_render_compact_reports() {
         .expect("JPL batch error taxonomy summary should render");
     assert_eq!(
         jpl_batch_error_taxonomy_summary,
-        super::validate_render_cli(&["jpl-batch-error-taxonomy-summary"])
+        validate_render_cli(&["jpl-batch-error-taxonomy-summary"])
             .expect("validation JPL batch error taxonomy summary should render")
     );
 
@@ -1624,7 +798,7 @@ fn summary_commands_render_compact_reports() {
         .contains(&pleiades_jpl::reference_snapshot_1750_major_body_interior_summary_for_report()));
     assert_eq!(
         jpl_snapshot_evidence_summary,
-        super::validate_render_cli(&["jpl-snapshot-evidence-summary"])
+        validate_render_cli(&["jpl-snapshot-evidence-summary"])
             .expect("validation JPL snapshot evidence summary should render")
     );
 
@@ -1635,7 +809,7 @@ fn summary_commands_render_compact_reports() {
         .contains(&pleiades_jpl::jpl_source_corpus_contract_summary_for_report()));
     assert_eq!(
         jpl_source_corpus_contract_summary,
-        super::validate_render_cli(&["jpl-source-corpus-contract-summary"])
+        validate_render_cli(&["jpl-source-corpus-contract-summary"])
             .expect("validation JPL source corpus contract summary should render")
     );
     assert_eq!(
@@ -1645,7 +819,7 @@ fn summary_commands_render_compact_reports() {
     );
     assert_eq!(
         jpl_source_corpus_contract_summary,
-        super::validate_render_cli(&["jpl-source-corpus-contract"])
+        validate_render_cli(&["jpl-source-corpus-contract"])
             .expect("validation JPL source corpus contract alias should render")
     );
     assert_eq!(
@@ -1686,7 +860,7 @@ fn summary_commands_render_compact_reports() {
     );
     assert_eq!(
         jpl_provenance_only_summary,
-        super::validate_render_cli(&["jpl-provenance-only-summary"])
+        validate_render_cli(&["jpl-provenance-only-summary"])
             .expect("validation JPL provenance-only summary should render")
     );
     assert_eq!(
@@ -1704,7 +878,7 @@ fn summary_commands_render_compact_reports() {
         render_cli(&["source-corpus-summary"]).expect("source corpus summary should render");
     assert_eq!(
         source_corpus_summary,
-        super::validate_render_cli(&["source-corpus-summary"])
+        validate_render_cli(&["source-corpus-summary"])
             .expect("validation source corpus summary should render")
     );
     assert!(source_corpus_summary.contains("comparison corpus release-grade guard:"));
@@ -1716,7 +890,7 @@ fn summary_commands_render_compact_reports() {
     );
     assert_eq!(
         source_corpus_summary,
-        super::validate_render_cli(&["source-corpus"])
+        validate_render_cli(&["source-corpus"])
             .expect("validation source corpus alias should render")
     );
     assert_eq!(
@@ -1730,12 +904,12 @@ fn summary_commands_render_compact_reports() {
     );
     assert_eq!(
         source_corpus_summary,
-        super::validate_render_cli(&["source-corpus-posture-summary"])
+        validate_render_cli(&["source-corpus-posture-summary"])
             .expect("validation source corpus posture summary should render")
     );
     assert_eq!(
         source_corpus_summary,
-        super::validate_render_cli(&["source-corpus-posture"])
+        validate_render_cli(&["source-corpus-posture"])
             .expect("validation source corpus posture alias should render")
     );
     assert_eq!(
@@ -1894,7 +1068,7 @@ fn summary_commands_render_compact_reports() {
     );
     assert_eq!(
         production_generation_source_window_summary,
-        super::validate_render_cli(&["production-generation-source-window-summary"])
+        validate_render_cli(&["production-generation-source-window-summary"])
             .expect("validation production generation source window summary should render")
     );
     assert_eq!(
@@ -1927,7 +1101,7 @@ fn summary_commands_render_compact_reports() {
             .expect("production generation manifest summary should render");
     assert_eq!(
         production_generation_manifest_summary,
-        super::validate_render_cli(&["production-generation-manifest-summary"])
+        validate_render_cli(&["production-generation-manifest-summary"])
             .expect("validation production generation manifest summary should render")
     );
     let production_generation_manifest_alias = render_cli(&["production-generation-manifest"])
@@ -1941,7 +1115,7 @@ fn summary_commands_render_compact_reports() {
             .expect("production generation manifest checksum summary should render");
     assert_eq!(
         production_generation_manifest_checksum_summary,
-        super::validate_render_cli(&["production-generation-manifest-checksum-summary"])
+        validate_render_cli(&["production-generation-manifest-checksum-summary"])
             .expect("validation production generation manifest checksum summary should render")
     );
     let production_generation_manifest_checksum_alias =
@@ -2005,7 +1179,7 @@ fn summary_commands_render_compact_reports() {
     );
     assert_eq!(
         production_generation_body_class_coverage_summary,
-        super::validate_render_cli(&["production-generation-body-class-coverage-summary"])
+        validate_render_cli(&["production-generation-body-class-coverage-summary"])
             .expect("validation production generation body-class coverage summary should render")
     );
     let comparison_body_class_coverage_summary =
@@ -2013,7 +1187,7 @@ fn summary_commands_render_compact_reports() {
             .expect("comparison body-class coverage summary alias should render");
     assert_eq!(
         comparison_body_class_coverage_summary,
-        super::validate_render_cli(&["comparison-snapshot-body-class-coverage-summary"])
+        validate_render_cli(&["comparison-snapshot-body-class-coverage-summary"])
             .expect("validation comparison snapshot body-class coverage summary should render")
     );
     let reference_body_class_coverage_summary =
@@ -2021,14 +1195,14 @@ fn summary_commands_render_compact_reports() {
             .expect("reference body-class coverage summary alias should render");
     assert_eq!(
         reference_body_class_coverage_summary,
-        super::validate_render_cli(&["reference-snapshot-body-class-coverage-summary"])
+        validate_render_cli(&["reference-snapshot-body-class-coverage-summary"])
             .expect("validation reference snapshot body-class coverage summary should render")
     );
     let holdout_body_class_coverage_summary = render_cli(&["holdout-body-class-coverage-summary"])
         .expect("holdout body-class coverage summary alias should render");
     assert_eq!(
         holdout_body_class_coverage_summary,
-        super::validate_render_cli(&["independent-holdout-body-class-coverage-summary"])
+        validate_render_cli(&["independent-holdout-body-class-coverage-summary"])
             .expect("validation independent hold-out body-class coverage summary should render")
     );
     let comparison_snapshot_source_window_summary =
@@ -2372,7 +1546,7 @@ fn summary_commands_render_compact_reports() {
             .expect("comparison snapshot batch parity summary should render");
     assert_eq!(
         comparison_snapshot_batch_parity_summary,
-        super::validate_render_cli(&["comparison-snapshot-batch-parity-summary"])
+        validate_render_cli(&["comparison-snapshot-batch-parity-summary"])
             .expect("validation comparison snapshot batch parity summary should render")
     );
     assert_eq!(
@@ -2524,7 +1698,7 @@ fn summary_commands_render_compact_reports() {
             .expect("reference snapshot batch parity summary should render");
     assert_eq!(
         reference_snapshot_batch_parity_summary,
-        super::validate_render_cli(&["reference-snapshot-batch-parity-summary"])
+        validate_render_cli(&["reference-snapshot-batch-parity-summary"])
             .expect("validation reference snapshot batch parity summary should render")
     );
     let reference_snapshot_batch_parity_alias = render_cli(&["reference-snapshot-batch-parity"])
@@ -2543,10 +1717,9 @@ fn summary_commands_render_compact_reports() {
             .expect("reference snapshot mixed TT/TDB batch parity summary should render");
     assert_eq!(
         reference_snapshot_mixed_time_scale_batch_parity_summary,
-        super::validate_render_cli(&["reference-snapshot-mixed-time-scale-batch-parity-summary"])
-            .expect(
-                "validation reference snapshot mixed TT/TDB batch parity summary should render"
-            )
+        validate_render_cli(&["reference-snapshot-mixed-time-scale-batch-parity-summary"]).expect(
+            "validation reference snapshot mixed TT/TDB batch parity summary should render"
+        )
     );
     let reference_snapshot_mixed_tt_tdb_batch_parity_summary =
         render_cli(&["reference-snapshot-mixed-tt-tdb-batch-parity-summary"])
@@ -2565,7 +1738,7 @@ fn summary_commands_render_compact_reports() {
             .expect("reference snapshot equatorial parity summary should render");
     assert_eq!(
         reference_snapshot_equatorial_parity_summary,
-        super::validate_render_cli(&["reference-snapshot-equatorial-parity-summary"])
+        validate_render_cli(&["reference-snapshot-equatorial-parity-summary"])
             .expect("validation reference snapshot equatorial parity summary should render")
     );
     let reference_snapshot_equatorial_parity_alias =
@@ -2642,7 +1815,7 @@ fn summary_commands_render_compact_reports() {
         .expect("interpolation posture summary should render");
     assert_eq!(
         interpolation_posture_summary,
-        super::validate_render_cli(&["interpolation-posture-summary"])
+        validate_render_cli(&["interpolation-posture-summary"])
             .expect("validation interpolation posture summary should render")
     );
     assert_eq!(
@@ -2659,7 +1832,7 @@ fn summary_commands_render_compact_reports() {
             .expect("mean-obliquity frame round-trip summary should render");
     assert_eq!(
         mean_obliquity_frame_round_trip_summary,
-        super::validate_render_cli(&["mean-obliquity-frame-round-trip-summary"])
+        validate_render_cli(&["mean-obliquity-frame-round-trip-summary"])
             .expect("validation mean-obliquity frame round-trip summary should render")
     );
     assert_eq!(
@@ -3577,7 +2750,7 @@ fn summary_commands_render_compact_reports() {
     assert!(ayanamsa_metadata_coverage_summary.contains("ayanamsa sidereal metadata:"));
     assert_eq!(
         ayanamsa_metadata_coverage_summary,
-        super::validate_render_cli(&["ayanamsa-metadata-coverage-summary"])
+        validate_render_cli(&["ayanamsa-metadata-coverage-summary"])
             .expect("validation ayanamsa metadata coverage summary should render")
     );
     assert_eq!(
@@ -3637,7 +2810,7 @@ fn summary_commands_render_compact_reports() {
         .contains("Babylonian (Aldebaran): epoch=JD 1801643.133503; offset=0°"));
     assert_eq!(
         ayanamsa_reference_offsets_summary,
-        super::validate_render_cli(&["ayanamsa-reference-offsets-summary"])
+        validate_render_cli(&["ayanamsa-reference-offsets-summary"])
             .expect("validation ayanamsa reference offsets summary should render")
     );
     let reference_high_curvature_summary = render_cli(&["reference-high-curvature-summary"])
@@ -3647,22 +2820,22 @@ fn summary_commands_render_compact_reports() {
     );
     assert_eq!(
         reference_high_curvature_summary,
-        super::validate_render_cli(&["reference-high-curvature-summary"])
+        validate_render_cli(&["reference-high-curvature-summary"])
             .expect("validation high-curvature summary should render")
     );
     assert_eq!(
         reference_high_curvature_summary,
-        super::validate_render_cli(&["high-curvature-summary"])
+        validate_render_cli(&["high-curvature-summary"])
             .expect("validation high-curvature summary alias should render")
     );
     assert_eq!(
         reference_high_curvature_summary,
-        super::validate_render_cli(&["reference-snapshot-major-body-high-curvature-summary",])
+        validate_render_cli(&["reference-snapshot-major-body-high-curvature-summary",])
             .expect("validation snapshot high-curvature summary alias should render")
     );
     assert_eq!(
         reference_high_curvature_summary,
-        super::validate_render_cli(&["major-body-high-curvature-summary"])
+        validate_render_cli(&["major-body-high-curvature-summary"])
             .expect("validation major-body high-curvature summary alias should render")
     );
     let reference_major_body_boundary_summary =
@@ -3673,7 +2846,7 @@ fn summary_commands_render_compact_reports() {
     );
     assert_eq!(
         reference_major_body_boundary_summary,
-        super::validate_render_cli(&["reference-snapshot-major-body-boundary-summary"])
+        validate_render_cli(&["reference-snapshot-major-body-boundary-summary"])
             .expect("validation major-body boundary summary should render")
     );
     let major_body_boundary_alias = render_cli(&["major-body-boundary-summary"])
@@ -3689,7 +2862,7 @@ fn summary_commands_render_compact_reports() {
         .contains("Reference Mars/Jupiter boundary evidence:"));
     assert_eq!(
         reference_mars_jupiter_boundary_summary,
-        super::validate_render_cli(&["reference-snapshot-mars-jupiter-boundary-summary"])
+        validate_render_cli(&["reference-snapshot-mars-jupiter-boundary-summary"])
             .expect("validation Mars/Jupiter boundary summary should render")
     );
     let mars_jupiter_boundary_alias = render_cli(&["mars-jupiter-boundary-summary"])
@@ -3706,7 +2879,7 @@ fn summary_commands_render_compact_reports() {
     );
     assert_eq!(
         reference_mars_outer_boundary_summary,
-        super::validate_render_cli(&["reference-snapshot-mars-outer-boundary-summary"])
+        validate_render_cli(&["reference-snapshot-mars-outer-boundary-summary"])
             .expect("validation Mars outer-boundary summary should render")
     );
     let mars_outer_boundary_alias = render_cli(&["mars-outer-boundary-summary"])
@@ -3722,7 +2895,7 @@ fn summary_commands_render_compact_reports() {
         .contains("Reference major-body boundary windows:"));
     assert_eq!(
         reference_major_body_boundary_window_summary,
-        super::validate_render_cli(&["reference-snapshot-major-body-boundary-window-summary"])
+        validate_render_cli(&["reference-snapshot-major-body-boundary-window-summary"])
             .expect("validation major-body boundary window summary should render")
     );
     let major_body_boundary_window_alias = render_cli(&["major-body-boundary-window-summary"])
@@ -3738,24 +2911,22 @@ fn summary_commands_render_compact_reports() {
         .contains("Reference major-body high-curvature windows:"));
     assert_eq!(
         reference_high_curvature_window_summary,
-        super::validate_render_cli(&["reference-high-curvature-window-summary"])
+        validate_render_cli(&["reference-high-curvature-window-summary"])
             .expect("validation high-curvature window summary should render")
     );
     assert_eq!(
         reference_high_curvature_window_summary,
-        super::validate_render_cli(&["high-curvature-window-summary"])
+        validate_render_cli(&["high-curvature-window-summary"])
             .expect("validation high-curvature window summary alias should render")
     );
     assert_eq!(
         reference_high_curvature_window_summary,
-        super::validate_render_cli(&[
-            "reference-snapshot-major-body-high-curvature-window-summary",
-        ])
-        .expect("validation snapshot high-curvature window summary alias should render")
+        validate_render_cli(&["reference-snapshot-major-body-high-curvature-window-summary",])
+            .expect("validation snapshot high-curvature window summary alias should render")
     );
     assert_eq!(
         reference_high_curvature_window_summary,
-        super::validate_render_cli(&["major-body-high-curvature-window-summary"])
+        validate_render_cli(&["major-body-high-curvature-window-summary"])
             .expect("validation major-body high-curvature window summary alias should render")
     );
     let reference_high_curvature_epoch_coverage_summary =
@@ -3765,24 +2936,24 @@ fn summary_commands_render_compact_reports() {
         .contains("Reference major-body high-curvature epoch coverage:"));
     assert_eq!(
         reference_high_curvature_epoch_coverage_summary,
-        super::validate_render_cli(&["reference-high-curvature-epoch-coverage-summary"])
+        validate_render_cli(&["reference-high-curvature-epoch-coverage-summary"])
             .expect("validation high-curvature epoch coverage summary should render")
     );
     assert_eq!(
         reference_high_curvature_epoch_coverage_summary,
-        super::validate_render_cli(&["high-curvature-epoch-coverage-summary"])
+        validate_render_cli(&["high-curvature-epoch-coverage-summary"])
             .expect("validation high-curvature epoch coverage summary alias should render")
     );
     assert_eq!(
         reference_high_curvature_epoch_coverage_summary,
-        super::validate_render_cli(&[
+        validate_render_cli(&[
             "reference-snapshot-major-body-high-curvature-epoch-coverage-summary",
         ])
         .expect("validation snapshot high-curvature epoch coverage summary alias should render")
     );
     assert_eq!(
         reference_high_curvature_epoch_coverage_summary,
-        super::validate_render_cli(&["major-body-high-curvature-epoch-coverage-summary"]).expect(
+        validate_render_cli(&["major-body-high-curvature-epoch-coverage-summary"]).expect(
             "validation major-body high-curvature epoch coverage summary alias should render"
         )
     );
@@ -3814,7 +2985,7 @@ fn summary_commands_render_compact_reports() {
     );
     assert_eq!(
         boundary_epoch_coverage_summary,
-        super::validate_render_cli(&["reference-snapshot-boundary-epoch-coverage-summary"])
+        validate_render_cli(&["reference-snapshot-boundary-epoch-coverage-summary"])
             .expect("validation boundary epoch coverage summary should render")
     );
     let sparse_boundary_summary = render_cli(&["reference-snapshot-sparse-boundary-summary"])
@@ -3837,22 +3008,22 @@ fn summary_commands_render_compact_reports() {
     assert_eq!(boundary_day_short_reference_alias, sparse_boundary_summary);
     assert_eq!(
         sparse_boundary_summary,
-        super::validate_render_cli(&["reference-snapshot-sparse-boundary-summary"])
+        validate_render_cli(&["reference-snapshot-sparse-boundary-summary"])
             .expect("validation sparse boundary summary should render")
     );
     assert_eq!(
         boundary_day_alias,
-        super::validate_render_cli(&["boundary-day-summary"])
+        validate_render_cli(&["boundary-day-summary"])
             .expect("validation boundary day summary should render")
     );
     assert_eq!(
         boundary_day_reference_alias,
-        super::validate_render_cli(&["reference-snapshot-boundary-day-summary"])
+        validate_render_cli(&["reference-snapshot-boundary-day-summary"])
             .expect("validation reference snapshot boundary day summary should render")
     );
     assert_eq!(
         boundary_day_short_reference_alias,
-        super::validate_render_cli(&["reference-snapshot-boundary-day"])
+        validate_render_cli(&["reference-snapshot-boundary-day"])
             .expect("validation reference snapshot boundary day alias should render")
     );
     assert_eq!(
@@ -3900,7 +3071,7 @@ fn summary_commands_render_compact_reports() {
     );
     assert_eq!(
         pre_bridge_boundary_summary,
-        super::validate_render_cli(&["reference-snapshot-pre-bridge-boundary-summary"])
+        validate_render_cli(&["reference-snapshot-pre-bridge-boundary-summary"])
             .expect("validation pre-bridge boundary summary should render")
     );
     assert_eq!(
@@ -3925,7 +3096,7 @@ fn summary_commands_render_compact_reports() {
     assert_eq!(dense_boundary_alias, dense_boundary_summary);
     assert_eq!(
         dense_boundary_summary,
-        super::validate_render_cli(&["reference-snapshot-dense-boundary-summary"])
+        validate_render_cli(&["reference-snapshot-dense-boundary-summary"])
             .expect("validation dense boundary summary should render")
     );
     assert_eq!(
@@ -3943,14 +3114,14 @@ fn summary_commands_render_compact_reports() {
     assert!(source_documentation_summary.contains("VSOP87 source documentation:"));
     assert_eq!(
         source_documentation_summary,
-        super::validate_render_cli(&["source-documentation-summary"])
+        validate_render_cli(&["source-documentation-summary"])
             .expect("validation source documentation summary should render")
     );
     let source_documentation_alias =
         render_cli(&["source-documentation"]).expect("source documentation alias should render");
     assert_eq!(
         source_documentation_alias,
-        super::validate_render_cli(&["source-documentation"])
+        validate_render_cli(&["source-documentation"])
             .expect("validation source documentation alias should render")
     );
     assert_eq!(
@@ -3963,7 +3134,7 @@ fn summary_commands_render_compact_reports() {
     assert!(source_documentation_health_summary.contains("VSOP87 source documentation health:"));
     assert_eq!(
         source_documentation_health_summary,
-        super::validate_render_cli(&["source-documentation-health-summary"])
+        validate_render_cli(&["source-documentation-health-summary"])
             .expect("validation source documentation health summary should render")
     );
     let source_documentation_health_alias = render_cli(&["source-documentation-health"])
@@ -3982,7 +3153,7 @@ fn summary_commands_render_compact_reports() {
     assert!(source_audit_summary.contains("VSOP87 source audit:"));
     assert_eq!(
         source_audit_summary,
-        super::validate_render_cli(&["source-audit-summary"])
+        validate_render_cli(&["source-audit-summary"])
             .expect("validation source audit summary should render")
     );
     let source_audit_alias =
@@ -3998,7 +3169,7 @@ fn summary_commands_render_compact_reports() {
     assert!(generated_binary_audit_summary.contains("VSOP87 generated binary audit:"));
     assert_eq!(
         generated_binary_audit_summary,
-        super::validate_render_cli(&["generated-binary-audit-summary"])
+        validate_render_cli(&["generated-binary-audit-summary"])
             .expect("validation generated binary audit summary should render")
     );
     let generated_binary_audit_alias = render_cli(&["generated-binary-audit"])
@@ -4084,2715 +3255,4 @@ fn summary_commands_render_compact_reports() {
     assert!(release_summary.contains("Release checklist summary: release-checklist-summary"));
     assert!(release_summary.contains("Custom-definition label names: Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs), True Balarama, Aphoric, Takra"));
     assert!(release_summary.contains("See release-notes and release-checklist"));
-}
-
-#[test]
-fn artifact_and_workspace_commands_render_compact_reports() {
-    let artifact_summary =
-        render_cli(&["artifact-summary"]).expect("artifact summary should render");
-    assert!(artifact_summary.contains("Artifact summary"));
-    assert!(artifact_summary.contains("Artifact output support:"));
-    assert!(artifact_summary.contains("Artifact boundary envelope"));
-    assert!(artifact_summary.contains("Artifact fit outliers by channel"));
-    assert!(artifact_summary.contains("Model error envelope"));
-    assert!(artifact_summary.lines().any(|line| {
-        line == format!(
-            "  Packaged frame treatment: {}",
-            pleiades_data::packaged_frame_treatment_summary_for_report()
-        )
-    }));
-    assert!(artifact_summary.contains("Release summary: release-summary"));
-    assert!(artifact_summary.contains("Release notes summary: release-notes-summary"));
-    assert!(artifact_summary
-        .contains("Compatibility profile verification: verify-compatibility-profile"));
-    assert!(artifact_summary.contains("Workspace audit: workspace-audit / audit"));
-
-    let artifact_boundary_envelope = render_cli(&["artifact-boundary-envelope-summary"])
-        .expect("artifact boundary envelope summary should render");
-    assert_eq!(
-        artifact_boundary_envelope,
-        pleiades_validate::artifact_boundary_envelope_summary_for_report()
-            .expect("boundary envelope summary should validate")
-            .summary_line()
-    );
-
-    let artifact_profile_coverage = render_cli(&["artifact-profile-coverage-summary"])
-        .expect("artifact profile coverage summary should render");
-    assert!(artifact_profile_coverage.contains("Artifact profile coverage: "));
-    assert!(artifact_profile_coverage.contains("asteroid:433-Eros"));
-    assert!(artifact_profile_coverage.contains("TopocentricCoordinates"));
-
-    let packaged_artifact_output_support =
-        render_cli(&["packaged-artifact-output-support-summary"])
-            .expect("packaged artifact output support summary should render");
-    assert!(packaged_artifact_output_support.contains("Packaged-artifact output support: "));
-    assert!(packaged_artifact_output_support.contains("ApparentCorrections=unsupported"));
-    assert_eq!(
-        packaged_artifact_output_support,
-        format!(
-            "Packaged-artifact output support: {}",
-            pleiades_data::packaged_artifact_output_support_summary_for_report()
-        )
-    );
-    assert_eq!(
-        render_cli(&["packaged-artifact-output-support"])
-            .expect("packaged artifact output support alias should render"),
-        packaged_artifact_output_support
-    );
-    assert_eq!(
-        render_cli(&["packaged-artifact-output-support", "extra"])
-            .expect_err("packaged artifact output support alias should reject extra arguments"),
-        "packaged-artifact-output-support does not accept extra arguments"
-    );
-
-    let packaged_artifact_body_class_span_caps =
-        render_cli(&["packaged-artifact-body-class-span-cap-summary"])
-            .expect("packaged artifact body-class span cap summary should render");
-    assert!(
-        packaged_artifact_body_class_span_caps.contains("Packaged-artifact body-class span caps: ")
-    );
-    assert_eq!(
-        packaged_artifact_body_class_span_caps,
-        format!(
-            "Packaged-artifact {}",
-            pleiades_data::packaged_artifact_body_class_span_cap_summary_for_report()
-        )
-    );
-    assert_eq!(
-        render_cli(&["packaged-artifact-body-class-span-cap"])
-            .expect("packaged artifact body-class span cap alias should render"),
-        packaged_artifact_body_class_span_caps
-    );
-    assert_eq!(
-        render_cli(&["packaged-artifact-body-class-span-cap-summary", "extra"]).expect_err(
-            "packaged artifact body-class span cap summary should reject extra arguments"
-        ),
-        "packaged-artifact-body-class-span-cap-summary does not accept extra arguments"
-    );
-    assert_eq!(
-        render_cli(&["packaged-artifact-body-class-span-cap", "extra"]).expect_err(
-            "packaged artifact body-class span cap alias should reject extra arguments"
-        ),
-        "packaged-artifact-body-class-span-cap-summary does not accept extra arguments"
-    );
-
-    let packaged_artifact_speed_policy = render_cli(&["packaged-artifact-speed-policy-summary"])
-        .expect("packaged artifact speed policy summary should render");
-    assert!(packaged_artifact_speed_policy.contains("Packaged-artifact speed policy: "));
-    assert!(
-        packaged_artifact_speed_policy.contains("Unsupported; motion output support=unsupported")
-    );
-    assert_eq!(
-        packaged_artifact_speed_policy,
-        format!(
-            "Packaged-artifact speed policy: {}",
-            pleiades_data::packaged_artifact_speed_policy_summary_for_report()
-        )
-    );
-    assert_eq!(
-        render_cli(&["packaged-artifact-speed-policy"])
-            .expect("packaged artifact speed policy alias should render"),
-        packaged_artifact_speed_policy
-    );
-    assert_eq!(
-        render_cli(&["packaged-artifact-speed-policy", "extra"])
-            .expect_err("packaged artifact speed policy alias should reject extra arguments"),
-        "packaged-artifact-speed-policy-summary does not accept extra arguments"
-    );
-
-    let motion_policy =
-        render_cli(&["motion-policy-summary"]).expect("motion policy summary should render");
-    assert_eq!(
-        motion_policy,
-        format!(
-            "Motion policy: {}",
-            pleiades_data::packaged_artifact_speed_policy_summary_for_report()
-        )
-    );
-    assert_eq!(
-        render_cli(&["motion-policy"]).expect("motion policy alias should render"),
-        motion_policy
-    );
-    assert_eq!(
-        render_cli(&["motion-policy", "extra"])
-            .expect_err("motion policy alias should reject extra arguments"),
-        "motion-policy-summary does not accept extra arguments"
-    );
-
-    let packaged_artifact_access = render_cli(&["packaged-artifact-access-summary"])
-        .expect("packaged artifact access summary should render");
-    assert!(packaged_artifact_access.contains("Packaged-artifact access: "));
-    assert_eq!(
-        packaged_artifact_access,
-        format!(
-            "Packaged-artifact access: {}",
-            pleiades_data::packaged_artifact_access_summary_for_report()
-        )
-    );
-    assert_eq!(
-        render_cli(&["packaged-artifact-access"])
-            .expect("packaged artifact access alias should render"),
-        packaged_artifact_access
-    );
-    assert_eq!(
-        render_cli(&["packaged-artifact-path-policy-summary"])
-            .expect("packaged artifact path policy summary should render"),
-        packaged_artifact_access
-    );
-    assert_eq!(
-        render_cli(&["packaged-artifact-path-policy"])
-            .expect("packaged artifact path policy alias should render"),
-        packaged_artifact_access
-    );
-    assert_eq!(
-        render_cli(&["packaged-artifact-path-policy-summary", "extra"])
-            .expect_err("packaged artifact path policy summary should reject extra arguments"),
-        "packaged-artifact-path-policy-summary does not accept extra arguments"
-    );
-    assert_eq!(
-        render_cli(&["packaged-artifact-path-policy", "extra"])
-            .expect_err("packaged artifact path policy alias should reject extra arguments"),
-        "packaged-artifact-path-policy does not accept extra arguments"
-    );
-    assert_eq!(
-        render_cli(&["packaged-artifact-access-summary", "extra"])
-            .expect_err("packaged artifact access summary should reject extra arguments"),
-        "packaged-artifact-access-summary does not accept extra arguments"
-    );
-    assert_eq!(
-        render_cli(&["packaged-artifact-access", "extra"])
-            .expect_err("packaged artifact access alias should reject extra arguments"),
-        "packaged-artifact-access does not accept extra arguments"
-    );
-
-    let packaged_artifact_storage = render_cli(&["packaged-artifact-storage-summary"])
-        .expect("packaged artifact storage summary should render");
-    assert!(packaged_artifact_storage.contains("Packaged-artifact storage/reconstruction: "));
-    assert!(packaged_artifact_storage.contains("equatorial coordinates are reconstructed"));
-    assert_eq!(
-        packaged_artifact_storage,
-        format!(
-            "Packaged-artifact storage/reconstruction: {}",
-            pleiades_data::packaged_artifact_storage_summary_for_report()
-        )
-    );
-    assert_eq!(
-        render_cli(&["packaged-artifact-storage"])
-            .expect("packaged artifact storage alias should render"),
-        packaged_artifact_storage
-    );
-    assert_eq!(
-        render_cli(&["packaged-artifact-storage", "extra"])
-            .expect_err("packaged artifact storage alias should reject extra arguments"),
-        "packaged-artifact-storage does not accept extra arguments"
-    );
-
-    let packaged_artifact_production_profile =
-        render_cli(&["packaged-artifact-production-profile-summary"])
-            .expect("packaged artifact production profile summary should render");
-    assert!(packaged_artifact_production_profile
-        .contains("Packaged artifact production profile draft:"));
-    assert!(packaged_artifact_production_profile
-        .contains("profile id=pleiades-packaged-artifact-profile/stage-5-draft"));
-    assert_eq!(
-        packaged_artifact_production_profile,
-        pleiades_data::packaged_artifact_production_profile_summary_for_report()
-    );
-    assert_eq!(
-        render_cli(&["packaged-artifact-production-profile"])
-            .expect("packaged artifact production profile alias should render"),
-        packaged_artifact_production_profile
-    );
-
-    let packaged_artifact_generation_manifest =
-        render_cli(&["packaged-artifact-generation-manifest-summary"])
-            .expect("packaged artifact generation manifest summary should render");
-    assert!(
-        packaged_artifact_generation_manifest.contains("Packaged artifact generation manifest:")
-    );
-    assert_eq!(
-        packaged_artifact_generation_manifest,
-        packaged_artifact_generation_manifest_for_report()
-    );
-    assert_eq!(
-        render_cli(&["packaged-artifact-generation-manifest"])
-            .expect("packaged artifact generation manifest alias should render"),
-        packaged_artifact_generation_manifest
-    );
-
-    let packaged_artifact_fit_envelope = render_cli(&["packaged-artifact-fit-envelope-summary"])
-        .expect("packaged artifact fit envelope summary should render");
-    assert!(packaged_artifact_fit_envelope.contains("Packaged-artifact fit envelope: "));
-    assert_eq!(
-        render_cli(&["packaged-artifact-fit-envelope"])
-            .expect("packaged artifact fit envelope alias should render"),
-        packaged_artifact_fit_envelope
-    );
-    assert_eq!(
-        render_cli(&["packaged-artifact-fit-envelope-summary", "extra"])
-            .expect_err("packaged artifact fit envelope summary should reject extra arguments"),
-        "packaged-artifact-fit-envelope-summary does not accept extra arguments"
-    );
-    assert_eq!(
-        render_cli(&["packaged-artifact-fit-envelope", "extra"])
-            .expect_err("packaged artifact fit envelope alias should reject extra arguments"),
-        "packaged-artifact-fit-envelope-summary does not accept extra arguments"
-    );
-    assert_eq!(
-        packaged_artifact_fit_envelope,
-        format!(
-            "Packaged-artifact fit envelope: {}",
-            pleiades_data::packaged_artifact_fit_envelope_summary_for_report()
-        )
-    );
-
-    let packaged_artifact_fit_sample_classes =
-        render_cli(&["packaged-artifact-fit-sample-classes-summary"])
-            .expect("packaged artifact fit sample classes summary should render");
-    assert!(packaged_artifact_fit_sample_classes.contains("Packaged-artifact fit sample classes: "));
-    assert_eq!(
-        packaged_artifact_fit_sample_classes,
-        format!(
-            "Packaged-artifact fit sample classes: {}",
-            pleiades_validate::packaged_artifact_fit_sample_classes_summary_for_report()
-        )
-    );
-    assert_eq!(
-        render_cli(&["packaged-artifact-fit-sample-classes"])
-            .expect("packaged artifact fit sample classes alias should render"),
-        packaged_artifact_fit_sample_classes
-    );
-
-    let packaged_artifact_fit_outliers = render_cli(&["packaged-artifact-fit-outliers-summary"])
-        .expect("packaged artifact fit outliers summary should render");
-    assert!(packaged_artifact_fit_outliers.contains("Packaged-artifact fit outliers: "));
-    assert_eq!(
-        packaged_artifact_fit_outliers,
-        format!(
-            "Packaged-artifact fit outliers: {}",
-            pleiades_data::packaged_artifact_fit_outlier_summary_for_report()
-        )
-    );
-    assert_eq!(
-        render_cli(&["packaged-artifact-fit-outliers"])
-            .expect("packaged artifact fit outliers alias should render"),
-        packaged_artifact_fit_outliers
-    );
-
-    let packaged_artifact_fit_threshold_violation_count =
-        render_cli(&["packaged-artifact-fit-threshold-violation-count-summary"])
-            .expect("packaged artifact fit threshold violation count summary should render");
-    assert!(packaged_artifact_fit_threshold_violation_count
-        .contains("Packaged-artifact fit threshold violation count: 0"));
-    assert_eq!(
-        render_cli(&["packaged-artifact-fit-threshold-violation-count"])
-            .expect("packaged artifact fit threshold violation count alias should render"),
-        packaged_artifact_fit_threshold_violation_count
-    );
-
-    let packaged_artifact_fit_threshold_violations =
-        render_cli(&["packaged-artifact-fit-threshold-violations-summary"])
-            .expect("packaged artifact fit threshold violations summary should render");
-    assert!(packaged_artifact_fit_threshold_violations
-        .contains("Packaged-artifact fit threshold violations: 0; details: none"));
-    assert_eq!(
-        render_cli(&["packaged-artifact-fit-threshold-violations"])
-            .expect("packaged artifact fit threshold violations alias should render"),
-        packaged_artifact_fit_threshold_violations
-    );
-
-    let packaged_artifact_regeneration = render_cli(&["packaged-artifact-regeneration-summary"])
-        .expect("packaged artifact regeneration summary should render");
-    assert!(packaged_artifact_regeneration.contains("Packaged-artifact regeneration: "));
-    assert!(packaged_artifact_regeneration.contains("profile id="));
-    assert!(packaged_artifact_regeneration
-        .contains("quantization scales: stored=Longitude=9, Latitude=9, DistanceAu=10"));
-    assert_eq!(
-        packaged_artifact_regeneration,
-        format!(
-            "Packaged-artifact regeneration: {}",
-            pleiades_data::packaged_artifact_regeneration_summary_for_report()
-        )
-    );
-    let packaged_frame_parity = render_cli(&["packaged-frame-parity-summary"])
-        .expect("packaged frame parity summary should render");
-    assert_eq!(
-        packaged_frame_parity,
-        format!(
-            "Packaged frame parity: {}",
-            pleiades_data::packaged_frame_parity_summary_for_report()
-        )
-    );
-    assert_eq!(
-        render_cli(&["packaged-frame-parity"]).expect("packaged-frame-parity should render"),
-        packaged_frame_parity
-    );
-    assert_eq!(
-        super::validate_render_cli(&["packaged-frame-parity"])
-            .expect("packaged-frame-parity should match validation output"),
-        packaged_frame_parity
-    );
-    assert_eq!(
-        render_cli(&["packaged-frame-parity", "extra"])
-            .expect_err("packaged-frame-parity should reject extra arguments"),
-        "packaged-frame-parity-summary does not accept extra arguments"
-    );
-    let packaged_frame_treatment = render_cli(&["packaged-frame-treatment-summary"])
-        .expect("packaged frame treatment summary should render");
-    assert_eq!(
-        packaged_frame_treatment,
-        format!(
-            "Packaged frame treatment: {}",
-            pleiades_data::packaged_frame_treatment_summary_for_report()
-        )
-    );
-
-    let packaged_artifact_target_threshold =
-        render_cli(&["packaged-artifact-target-threshold-summary"])
-            .expect("packaged artifact target threshold summary should render");
-    assert!(packaged_artifact_target_threshold.contains("Packaged-artifact target thresholds: "));
-    assert_eq!(
-        render_cli(&["packaged-artifact-target-threshold"])
-            .expect("packaged artifact target threshold alias should render"),
-        packaged_artifact_target_threshold
-    );
-    assert_eq!(
-        packaged_artifact_target_threshold,
-        format!(
-            "Packaged-artifact target thresholds: {}",
-            pleiades_data::packaged_artifact_target_threshold_summary_for_report()
-        )
-    );
-
-    let packaged_artifact_target_threshold_scope_envelopes =
-        render_cli(&["packaged-artifact-target-threshold-scope-envelopes-summary"])
-            .expect("packaged artifact target threshold scope envelopes summary should render");
-    assert!(packaged_artifact_target_threshold_scope_envelopes
-        .contains("Packaged-artifact target-threshold scope envelopes: "));
-    assert_eq!(
-        render_cli(&["packaged-artifact-target-threshold-scope-envelopes"])
-            .expect("packaged artifact target threshold scope envelopes alias should render"),
-        packaged_artifact_target_threshold_scope_envelopes
-    );
-    assert_eq!(
-        packaged_artifact_target_threshold_scope_envelopes,
-        format!(
-            "Packaged-artifact target-threshold scope envelopes: {}",
-            pleiades_data::packaged_artifact_target_threshold_scope_envelopes_for_report()
-        )
-    );
-
-    let packaged_artifact_generation_policy =
-        render_cli(&["packaged-artifact-generation-policy-summary"])
-            .expect("packaged artifact generation policy summary should render");
-    assert_eq!(
-        packaged_artifact_generation_policy,
-        pleiades_data::packaged_artifact_generation_policy_summary_for_report()
-    );
-    assert_eq!(
-        render_cli(&["packaged-artifact-generation-policy"])
-            .expect("packaged artifact generation policy alias should render"),
-        packaged_artifact_generation_policy
-    );
-
-    let packaged_artifact_regeneration = render_cli(&["packaged-artifact-regeneration-summary"])
-        .expect("packaged artifact regeneration summary should render");
-    assert!(packaged_artifact_regeneration.contains("Packaged-artifact regeneration: "));
-    assert!(packaged_artifact_regeneration.contains("profile id="));
-    assert!(packaged_artifact_regeneration
-        .contains("quantization scales: stored=Longitude=9, Latitude=9, DistanceAu=10"));
-    assert_eq!(
-        packaged_artifact_regeneration,
-        format!(
-            "Packaged-artifact regeneration: {}",
-            pleiades_data::packaged_artifact_regeneration_summary_for_report()
-        )
-    );
-    assert_eq!(
-        render_cli(&["packaged-artifact-regeneration"])
-            .expect("packaged artifact regeneration alias should render"),
-        packaged_artifact_regeneration
-    );
-
-    for (args, expected) in [
-        (
-            &["packaged-artifact-production-profile-summary", "extra"][..],
-            "packaged-artifact-production-profile-summary does not accept extra arguments",
-        ),
-        (
-            &["packaged-artifact-production-profile", "extra"][..],
-            "packaged-artifact-production-profile does not accept extra arguments",
-        ),
-        (
-            &["packaged-artifact-target-threshold-summary", "extra"][..],
-            "packaged-artifact-target-threshold-summary does not accept extra arguments",
-        ),
-        (
-            &["packaged-artifact-target-threshold", "extra"][..],
-            "packaged-artifact-target-threshold-summary does not accept extra arguments",
-        ),
-        (
-            &["packaged-artifact-target-threshold-scope-envelopes-summary", "extra"][..],
-            "packaged-artifact-target-threshold-scope-envelopes-summary does not accept extra arguments",
-        ),
-        (
-            &["packaged-artifact-target-threshold-scope-envelopes", "extra"][..],
-            "packaged-artifact-target-threshold-scope-envelopes-summary does not accept extra arguments",
-        ),
-        (
-            &["packaged-artifact-fit-sample-classes-summary", "extra"][..],
-            "packaged-artifact-fit-sample-classes-summary does not accept extra arguments",
-        ),
-        (
-            &["packaged-artifact-fit-sample-classes", "extra"][..],
-            "packaged-artifact-fit-sample-classes-summary does not accept extra arguments",
-        ),
-        (
-            &["packaged-artifact-fit-outliers-summary", "extra"][..],
-            "packaged-artifact-fit-outliers-summary does not accept extra arguments",
-        ),
-        (
-            &["packaged-artifact-fit-outliers", "extra"][..],
-            "packaged-artifact-fit-outliers-summary does not accept extra arguments",
-        ),
-        (
-            &["packaged-artifact-generation-manifest-summary", "extra"][..],
-            "packaged-artifact-generation-manifest-summary does not accept extra arguments",
-        ),
-        (
-            &["packaged-artifact-generation-manifest", "extra"][..],
-            "packaged-artifact-generation-manifest-summary does not accept extra arguments",
-        ),
-        (
-            &["packaged-artifact-generation-policy-summary", "extra"][..],
-            "packaged-artifact-generation-policy-summary does not accept extra arguments",
-        ),
-        (
-            &["packaged-artifact-generation-policy", "extra"][..],
-            "packaged-artifact-generation-policy-summary does not accept extra arguments",
-        ),
-        (
-            &["packaged-artifact-regeneration-summary", "extra"][..],
-            "packaged-artifact-regeneration-summary does not accept extra arguments",
-        ),
-        (
-            &["packaged-artifact-regeneration", "extra"][..],
-            "packaged-artifact-regeneration-summary does not accept extra arguments",
-        ),
-    ] {
-        assert_eq!(
-            render_cli(args).expect_err("packaged-artifact summary should reject extra arguments"),
-            expected
-        );
-    }
-
-    let packaged_artifact_generation_residual =
-        render_cli(&["packaged-artifact-generation-residual-summary"])
-            .expect("packaged artifact generation residual summary should render");
-    assert_eq!(
-        packaged_artifact_generation_residual,
-        format!(
-            "Packaged-artifact generation residual bodies: {}",
-            pleiades_data::packaged_artifact_generation_residual_bodies_summary_for_report()
-        )
-    );
-
-    let packaged_artifact_generation_residual_bodies =
-        render_cli(&["packaged-artifact-generation-residual-bodies-summary"])
-            .expect("packaged artifact generation residual bodies summary should render");
-    assert_eq!(
-        packaged_artifact_generation_residual_bodies,
-        format!(
-            "Packaged-artifact generation residual bodies: {}",
-            pleiades_data::packaged_artifact_generation_residual_bodies_summary_for_report()
-        )
-    );
-
-    let artifact_fixture_dir = unique_temp_dir("pleiades-cli-packaged-artifact");
-    let artifact_fixture_path = artifact_fixture_dir.join("packaged-artifact.bin");
-    let artifact_fixture_path_string = artifact_fixture_path.display().to_string();
-    let regenerated = render_cli(&[
-        "regenerate-packaged-artifact",
-        "--out",
-        &artifact_fixture_path_string,
-    ])
-    .expect("packaged artifact regeneration should render");
-    assert!(regenerated.contains("Packaged artifact regenerated"));
-    assert!(regenerated.contains("stage-5 packaged-data draft"));
-    assert!(regenerated.contains("checksum=0x"));
-    assert!(regenerated.contains("generation policy: adjacent same-body quadratic windows"));
-    assert!(regenerated.contains("11 bundled bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros)"));
-    assert!(regenerated.contains("Packaged artifact regeneration source:"));
-    assert!(regenerated.contains("Reference snapshot coverage:"));
-
-    let generated_alias = render_cli(&[
-        "generate-packaged-artifact",
-        "--out",
-        &artifact_fixture_path_string,
-    ])
-    .expect("packaged artifact generation alias should render");
-    assert_eq!(generated_alias, regenerated);
-    assert!(artifact_fixture_path.exists());
-
-    let manifest_fixture_path = artifact_fixture_dir.join("packaged-artifact.manifest.txt");
-    let manifest_fixture_path_string = manifest_fixture_path.display().to_string();
-    let regenerated_with_manifest = render_cli(&[
-        "regenerate-packaged-artifact",
-        "--out",
-        &artifact_fixture_path_string,
-        "--manifest-out",
-        &manifest_fixture_path_string,
-    ])
-    .expect("packaged artifact regeneration should write a manifest sidecar");
-    assert!(regenerated_with_manifest.contains("manifest:"));
-    assert!(regenerated_with_manifest.contains(&manifest_fixture_path_string));
-    assert_eq!(
-        std::fs::read_to_string(&manifest_fixture_path)
-            .expect("packaged artifact regeneration should write the manifest sidecar"),
-        pleiades_data::packaged_artifact_generation_manifest_for_report()
-    );
-
-    let manifest_summary_fixture_path =
-        artifact_fixture_dir.join("packaged-artifact.manifest.summary.txt");
-    let manifest_summary_fixture_path_string = manifest_summary_fixture_path.display().to_string();
-    let regenerated_with_manifest_summary = render_cli(&[
-        "generate-packaged-artifact",
-        "--out",
-        &artifact_fixture_path_string,
-        "--manifest-summary-out",
-        &manifest_summary_fixture_path_string,
-    ])
-    .expect("packaged artifact regeneration should write a manifest summary sidecar");
-    assert!(regenerated_with_manifest_summary.contains("manifest summary sidecar:"));
-    assert!(regenerated_with_manifest_summary.contains(&manifest_summary_fixture_path_string));
-    assert_eq!(
-        std::fs::read_to_string(&manifest_summary_fixture_path)
-            .expect("packaged artifact regeneration should write the manifest summary sidecar"),
-        pleiades_data::packaged_artifact_generation_manifest_for_report()
-    );
-
-    let manifest_checksum_fixture_path =
-        artifact_fixture_dir.join("packaged-artifact.manifest.checksum.txt");
-    let manifest_checksum_fixture_path_string =
-        manifest_checksum_fixture_path.display().to_string();
-    let regenerated_with_manifest_checksum = render_cli(&[
-        "regenerate-packaged-artifact",
-        "--out",
-        &artifact_fixture_path_string,
-        "--manifest-checksum-out",
-        &manifest_checksum_fixture_path_string,
-    ])
-    .expect("packaged artifact regeneration should write a manifest checksum sidecar");
-    assert!(regenerated_with_manifest_checksum.contains("manifest checksum sidecar:"));
-    assert!(regenerated_with_manifest_checksum.contains(&manifest_checksum_fixture_path_string));
-    assert_eq!(
-        std::fs::read_to_string(&manifest_checksum_fixture_path)
-            .expect("packaged artifact regeneration should write the manifest checksum sidecar"),
-        format!("0x{:016x}\n", {
-            let manifest = pleiades_data::packaged_artifact_generation_manifest_for_report();
-            let mut hash = 0xcbf2_9ce4_8422_2325u64;
-            for byte in manifest.as_bytes() {
-                hash ^= u64::from(*byte);
-                hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
-            }
-            hash
-        })
-    );
-
-    let artifact_checksum_fixture_path =
-        artifact_fixture_dir.join("packaged-artifact.checksum.txt");
-    let artifact_checksum_fixture_path_string =
-        artifact_checksum_fixture_path.display().to_string();
-    let regenerated_with_artifact_checksum = render_cli(&[
-        "regenerate-packaged-artifact",
-        "--out",
-        &artifact_fixture_path_string,
-        "--artifact-checksum-out",
-        &artifact_checksum_fixture_path_string,
-    ])
-    .expect("packaged artifact regeneration should write an artifact checksum sidecar");
-    assert!(regenerated_with_artifact_checksum.contains("artifact checksum sidecar:"));
-    assert!(regenerated_with_artifact_checksum.contains(&artifact_checksum_fixture_path_string));
-    let regenerated_artifact_checksum = regenerated_with_artifact_checksum
-        .lines()
-        .find_map(|line| line.trim().strip_prefix("checksum: "))
-        .expect("packaged artifact regeneration output should include a checksum");
-    assert_eq!(
-        std::fs::read_to_string(&artifact_checksum_fixture_path)
-            .expect("packaged artifact regeneration should write the artifact checksum sidecar"),
-        format!("{regenerated_artifact_checksum}\n")
-    );
-
-    let normalized_intermediate_fixture_path =
-        artifact_fixture_dir.join("packaged-artifact.normalized-intermediate-summary.txt");
-    let normalized_intermediate_fixture_path_string =
-        normalized_intermediate_fixture_path.display().to_string();
-    let regenerated_with_normalized_intermediate = render_cli(&[
-        "generate-packaged-artifact",
-        "--out",
-        &artifact_fixture_path_string,
-        "--normalized-intermediate-summary-out",
-        &normalized_intermediate_fixture_path_string,
-    ])
-    .expect("packaged artifact regeneration should write a normalized intermediate sidecar");
-    assert!(regenerated_with_normalized_intermediate.contains("normalized intermediate sidecar:"));
-    assert!(regenerated_with_normalized_intermediate
-        .contains(&normalized_intermediate_fixture_path_string));
-    assert_eq!(
-        std::fs::read_to_string(&normalized_intermediate_fixture_path).expect(
-            "packaged artifact regeneration should write the normalized intermediate sidecar"
-        ),
-        packaged_artifact_normalized_intermediate_summary_for_report()
-    );
-
-    let output_alias_fixture_path = artifact_fixture_dir.join("packaged-artifact-output-alias.bin");
-    let output_alias_fixture_path_string = output_alias_fixture_path.display().to_string();
-    let regenerated_output = render_cli(&[
-        "regenerate-packaged-artifact",
-        "--output",
-        &output_alias_fixture_path_string,
-    ])
-    .expect("packaged artifact regeneration should accept --output");
-    assert!(regenerated_output.contains("Packaged artifact regenerated"));
-    assert!(regenerated_output.contains("stage-5 packaged-data draft"));
-    assert!(output_alias_fixture_path.exists());
-    let expected = std::fs::read(&artifact_fixture_path)
-        .expect("packaged artifact regeneration should write bytes");
-    let output_written = std::fs::read(&output_alias_fixture_path)
-        .expect("packaged artifact regeneration should write the output alias path");
-    assert_eq!(output_written, expected);
-
-    let positional_fixture_path = artifact_fixture_dir.join("packaged-artifact-positional.bin");
-    let positional_fixture_path_string = positional_fixture_path.display().to_string();
-    let regenerated_positional = render_cli(&[
-        "regenerate-packaged-artifact",
-        &positional_fixture_path_string,
-    ])
-    .expect("packaged artifact regeneration should accept a positional output path");
-    assert!(regenerated_positional.contains("Packaged artifact regenerated"));
-    assert!(regenerated_positional.contains(&positional_fixture_path_string));
-    assert!(positional_fixture_path.exists());
-    let positional_written = std::fs::read(&positional_fixture_path)
-        .expect("packaged artifact regeneration should write the positional path");
-    assert_eq!(positional_written, expected);
-    let regeneration_check = render_cli(&["regenerate-packaged-artifact", "--check"])
-        .expect("packaged artifact check mode should render");
-    assert!(regeneration_check.contains("Packaged artifact regeneration check passed"));
-    assert!(regeneration_check.contains("checksum=0x"));
-    assert!(!regeneration_check.contains("path:"));
-    assert!(regeneration_check.contains(
-        "11 bundled bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros)"
-    ));
-
-    let artifact_report =
-        render_cli(&["validate-artifact"]).expect("validate-artifact should render");
-    assert!(artifact_report.contains("Artifact validation report"));
-    assert!(artifact_report.contains("Artifact output support:"));
-    assert!(artifact_report.contains("Bodies"));
-    assert!(artifact_report.contains("Artifact boundary envelope"));
-    assert!(artifact_report.contains("Model error envelope"));
-
-    let workspace_audit = render_cli(&["workspace-audit"])
-        .expect("workspace-audit should render through the primary CLI");
-    let native_dependency_audit = render_cli(&["native-dependency-audit"])
-        .expect("native-dependency-audit should render through the CLI");
-    assert_eq!(workspace_audit, native_dependency_audit);
-    assert!(workspace_audit.contains("Workspace audit"));
-    assert!(workspace_audit.contains("no workspace policy violations detected"));
-
-    let audit = render_cli(&["audit"]).expect("audit alias should render through the CLI");
-    assert!(audit.contains("Workspace audit"));
-    assert!(audit.contains("no workspace policy violations detected"));
-
-    assert_eq!(
-        render_cli(&["workspace-audit", "extra"]).unwrap_err(),
-        "workspace-audit does not accept extra arguments"
-    );
-    assert_eq!(
-        render_cli(&["audit", "extra"]).unwrap_err(),
-        "audit does not accept extra arguments"
-    );
-    assert_eq!(
-        render_cli(&["native-dependency-audit", "extra"]).unwrap_err(),
-        "native-dependency-audit does not accept extra arguments"
-    );
-    assert_eq!(
-        render_cli(&["workspace-audit-summary", "extra"]).unwrap_err(),
-        "workspace-audit-summary does not accept extra arguments"
-    );
-    assert_eq!(
-        render_cli(&["native-dependency-audit-summary", "extra"]).unwrap_err(),
-        "native-dependency-audit-summary does not accept extra arguments"
-    );
-}
-
-#[test]
-fn workspace_provenance_summary_reports_workspace_tool_versions() {
-    let summary = render_cli(&["workspace-provenance-summary"])
-        .expect("workspace provenance summary should render through the CLI");
-    let alias = render_cli(&["workspace-provenance"])
-        .expect("workspace provenance alias should render through the CLI");
-    assert_eq!(summary, alias);
-    assert!(summary.contains("Workspace provenance"));
-    assert!(summary.contains("source revision:"));
-    assert!(summary.contains("workspace status:"));
-    assert!(summary.contains("rustc version:"));
-    assert!(summary.contains("cargo version:"));
-    assert!(summary.contains("rustfmt version:"));
-    assert!(summary.contains("clippy version:"));
-    assert_eq!(
-        render_cli(&["workspace-provenance-summary", "extra"]).unwrap_err(),
-        "workspace-provenance-summary does not accept extra arguments"
-    );
-    assert_eq!(
-        render_cli(&["workspace-provenance", "extra"]).unwrap_err(),
-        "workspace-provenance does not accept extra arguments"
-    );
-}
-
-#[test]
-fn regenerate_packaged_artifact_repeated_sidecar_writes_stay_stable() {
-    let artifact_fixture_dir = unique_temp_dir("pleiades-packaged-artifact-regeneration-repeat");
-    let artifact_fixture_path = artifact_fixture_dir.join("packaged-artifact.bin");
-    let artifact_fixture_path_string = artifact_fixture_path.display().to_string();
-    let manifest_fixture_path = artifact_fixture_dir.join("packaged-artifact.manifest.txt");
-    let manifest_fixture_path_string = manifest_fixture_path.display().to_string();
-    let artifact_checksum_fixture_path =
-        artifact_fixture_dir.join("packaged-artifact.checksum.txt");
-    let artifact_checksum_fixture_path_string =
-        artifact_checksum_fixture_path.display().to_string();
-
-    let regenerated_first = render_cli(&[
-        "generate-packaged-artifact",
-        "--out",
-        &artifact_fixture_path_string,
-        "--manifest-out",
-        &manifest_fixture_path_string,
-        "--artifact-checksum-out",
-        &artifact_checksum_fixture_path_string,
-    ])
-    .expect("packaged artifact regeneration should render on the first pass");
-    let first_artifact_bytes =
-        std::fs::read(&artifact_fixture_path).expect("first regenerated artifact should exist");
-    let first_manifest = std::fs::read_to_string(&manifest_fixture_path)
-        .expect("first regenerated manifest should exist");
-    let first_artifact_checksum = std::fs::read_to_string(&artifact_checksum_fixture_path)
-        .expect("first regenerated artifact checksum should exist");
-
-    let regenerated_second = render_cli(&[
-        "generate-packaged-artifact",
-        "--out",
-        &artifact_fixture_path_string,
-        "--manifest-out",
-        &manifest_fixture_path_string,
-        "--artifact-checksum-out",
-        &artifact_checksum_fixture_path_string,
-    ])
-    .expect("packaged artifact regeneration should render on the second pass");
-    let second_artifact_bytes =
-        std::fs::read(&artifact_fixture_path).expect("second regenerated artifact should exist");
-    let second_manifest = std::fs::read_to_string(&manifest_fixture_path)
-        .expect("second regenerated manifest should exist");
-    let second_artifact_checksum = std::fs::read_to_string(&artifact_checksum_fixture_path)
-        .expect("second regenerated artifact checksum should exist");
-
-    assert_eq!(regenerated_first, regenerated_second);
-    assert_eq!(first_artifact_bytes, second_artifact_bytes);
-    assert_eq!(first_manifest, second_manifest);
-    assert_eq!(first_artifact_checksum, second_artifact_checksum);
-    assert_eq!(
-        first_artifact_bytes,
-        pleiades_data::regenerate_packaged_artifact_bytes()
-    );
-    assert_eq!(
-        first_manifest,
-        pleiades_data::packaged_artifact_generation_manifest_for_report()
-    );
-    let regenerated_checksum = regenerated_first
-        .lines()
-        .find_map(|line| line.trim().strip_prefix("checksum: "))
-        .expect("packaged artifact regeneration output should include a checksum");
-    assert_eq!(first_artifact_checksum, format!("{regenerated_checksum}\n"));
-}
-
-#[test]
-fn validation_report_commands_render_compact_reports() {
-    let release_profiles = current_release_profile_identifiers();
-
-    let report = render_cli(&["report", "--rounds", "1"])
-        .expect("report should render through the primary CLI");
-    assert!(report.contains("Validation report"));
-    assert!(report.contains("Comparison corpus"));
-    assert!(report.contains("release-grade guard: Pluto excluded from tolerance evidence"));
-    assert!(report.contains("Benchmark corpus"));
-    assert!(report.contains("Packaged-data benchmark corpus"));
-
-    let generate_report = render_cli(&["generate-report", "--rounds", "1"])
-        .expect("generate-report should render through the primary CLI");
-    assert!(generate_report.contains("Validation report"));
-    assert!(generate_report.contains("Comparison corpus"));
-
-    let validation_summary =
-        render_cli(&["validation-summary"]).expect("validation summary should render");
-    assert!(validation_summary.contains("Validation report summary"));
-    assert!(validation_summary.contains("Comparison corpus"));
-    assert!(
-        validation_summary.contains("release-grade guard: Pluto excluded from tolerance evidence")
-    );
-    assert!(validation_summary.contains("Release bundle verification: verify-release-bundle"));
-    assert!(
-        validation_summary.contains("Compatibility profile summary: compatibility-profile-summary")
-    );
-    assert!(validation_summary.contains("Release notes summary: release-notes-summary"));
-    assert!(validation_summary.contains("Release checklist summary: release-checklist-summary"));
-    assert!(validation_summary.contains("Release summary: release-summary"));
-    assert!(validation_summary.contains("House validation corpus"));
-    assert!(validation_summary.contains("Benchmark summaries"));
-    assert!(validation_summary.contains("Packaged-data benchmark"));
-
-    let validation_summary_rounds = render_cli(&["validation-summary", "--rounds", "1"])
-        .expect("validation summary should accept explicit rounds");
-    let strip_benchmark_timings = |text: &str| -> String {
-        text.lines()
-            .filter(|line| {
-                !line.contains("ns/")
-                    && !line.contains("throughput")
-                    && !line.contains("per second")
-            })
-            .collect::<Vec<_>>()
-            .join("\n")
-    };
-    let report_summary_rounds = render_cli(&["report-summary", "--rounds", "1"])
-        .expect("report summary should mirror the validation-summary rounds output");
-    let validation_report_summary_rounds =
-        render_cli(&["validation-report-summary", "--rounds", "1"])
-            .expect("validation-report-summary should mirror the validation-summary rounds output");
-    assert_eq!(
-        strip_benchmark_timings(&validation_summary_rounds),
-        strip_benchmark_timings(&report_summary_rounds)
-    );
-    assert_eq!(
-        strip_benchmark_timings(&validation_summary_rounds),
-        strip_benchmark_timings(&validation_report_summary_rounds)
-    );
-    assert_eq!(
-        render_cli(&["validation-summary", "extra"]).unwrap_err(),
-        "unknown argument: extra"
-    );
-
-    let validation_report_summary = render_cli(&["validation-report-summary"])
-        .expect("validation-report-summary should render");
-    assert!(validation_report_summary.contains("Validation report summary"));
-    assert!(validation_report_summary.contains("Comparison corpus"));
-    assert!(
-        validation_report_summary.contains("Release bundle verification: verify-release-bundle")
-    );
-    assert!(validation_report_summary
-        .contains("Compatibility profile summary: compatibility-profile-summary"));
-    assert!(validation_report_summary.contains("Release notes summary: release-notes-summary"));
-    assert!(
-        validation_report_summary.contains("Release checklist summary: release-checklist-summary")
-    );
-    assert!(validation_report_summary.contains("Release summary: release-summary"));
-    assert!(validation_report_summary.contains(
-        &pleiades_jpl::reference_snapshot_2451917_major_body_bridge_summary_for_report()
-    ));
-    assert!(validation_report_summary.contains(
-        &pleiades_jpl::reference_snapshot_2451917_major_body_boundary_summary_for_report()
-    ));
-    assert!(validation_report_summary.contains("Comparison tolerance policy: backend family=Composite; scopes=6 (Luminaries, Major planets, Lunar points, Asteroids, Custom bodies, Pluto fallback (approximate)); limits="));
-    assert!(validation_report_summary.lines().any(|line| {
-        line == format!(
-            "Release profile identifiers: v1 compatibility={}, api-stability={}",
-            release_profiles.compatibility_profile_id, release_profiles.api_stability_profile_id
-        )
-    }));
-    assert!(validation_report_summary.contains("Benchmark summaries"));
-}
-
-#[test]
-fn frame_policy_summary_command_renders_the_shared_frame_semantics_block() {
-    let rendered =
-        render_cli(&["frame-policy-summary"]).expect("frame policy summary should render");
-    assert!(rendered.contains("Frame policy summary"));
-    assert!(rendered.contains("Frame policy: ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported; supported equatorial precision is bounded by the shared mean-obliquity frame round-trip envelope; native sidereal backend output remains unsupported unless a backend explicitly advertises it"));
-    assert_eq!(
-        render_cli(&["frame-policy"]).expect("frame policy alias should render"),
-        rendered
-    );
-
-    for (args, expected) in [
-        (
-            ["time-scale-policy-summary", "extra"],
-            "time-scale-policy-summary does not accept extra arguments",
-        ),
-        (
-            ["time-scale-policy", "extra"],
-            "time-scale-policy does not accept extra arguments",
-        ),
-        (
-            ["utc-convenience-policy-summary", "extra"],
-            "utc-convenience-policy-summary does not accept extra arguments",
-        ),
-        (
-            ["utc-convenience-policy", "extra"],
-            "utc-convenience-policy does not accept extra arguments",
-        ),
-        (
-            ["delta-t-policy-summary", "extra"],
-            "delta-t-policy-summary does not accept extra arguments",
-        ),
-        (
-            ["delta-t-policy", "extra"],
-            "delta-t-policy does not accept extra arguments",
-        ),
-        (
-            ["zodiac-policy-summary", "extra"],
-            "zodiac-policy-summary does not accept extra arguments",
-        ),
-        (
-            ["zodiac-policy", "extra"],
-            "zodiac-policy does not accept extra arguments",
-        ),
-        (
-            ["observer-policy-summary", "extra"],
-            "observer-policy-summary does not accept extra arguments",
-        ),
-        (
-            ["observer-policy", "extra"],
-            "observer-policy does not accept extra arguments",
-        ),
-        (
-            ["apparentness-policy-summary", "extra"],
-            "apparentness-policy-summary does not accept extra arguments",
-        ),
-        (
-            ["apparentness-policy", "extra"],
-            "apparentness-policy does not accept extra arguments",
-        ),
-        (
-            ["native-sidereal-policy-summary", "extra"],
-            "native-sidereal-policy-summary does not accept extra arguments",
-        ),
-        (
-            ["native-sidereal-policy", "extra"],
-            "native-sidereal-policy does not accept extra arguments",
-        ),
-        (
-            ["frame-policy-summary", "extra"],
-            "frame-policy-summary does not accept extra arguments",
-        ),
-        (
-            ["frame-policy", "extra"],
-            "frame-policy does not accept extra arguments",
-        ),
-    ] {
-        assert_eq!(
-            render_cli(&args).expect_err("policy summary should reject extra arguments"),
-            expected
-        );
-    }
-}
-
-#[test]
-fn release_profile_identifiers_summary_command_renders_the_shared_release_profile_identifiers_block(
-) {
-    let rendered = render_cli(&["release-profile-identifiers-summary"])
-        .expect("release-profile identifiers summary should render");
-    assert!(rendered.contains("Release profile identifiers summary"));
-    assert!(rendered.contains("Summary line: v1 compatibility="));
-    assert!(rendered.contains("Compatibility profile: "));
-    assert!(rendered.contains("API stability posture: "));
-    assert_eq!(
-        rendered,
-        super::validate_render_cli(&["release-profile-identifiers-summary"]).unwrap()
-    );
-    assert_eq!(
-        render_cli(&["release-profile-identifiers"])
-            .expect("release-profile identifiers alias should render"),
-        rendered
-    );
-    assert_eq!(
-        render_cli(&["release-profile-identifiers-summary", "extra"])
-            .expect_err("release-profile identifiers summary should reject extra arguments"),
-        "release-profile-identifiers-summary does not accept extra arguments"
-    );
-    assert_eq!(
-        render_cli(&["release-profile-identifiers", "extra"])
-            .expect_err("release-profile identifiers alias should reject extra arguments"),
-        "release-profile-identifiers does not accept extra arguments"
-    );
-}
-
-#[test]
-fn bundle_release_command_writes_a_staged_bundle() {
-    let bundle_dir = unique_temp_dir("pleiades-cli-release-bundle");
-    let bundle_dir_string = bundle_dir.display().to_string();
-
-    let rendered = render_cli(&["bundle-release", "--out", &bundle_dir_string])
-        .expect("bundle generation should render");
-
-    assert!(rendered.contains("Release bundle"));
-    assert!(rendered.contains("compatibility-profile.txt"));
-    assert!(rendered.contains("bundle-manifest.checksum.txt"));
-    assert!(rendered.contains("native-sidereal-policy-summary.txt"));
-    assert!(rendered.contains("zodiac-policy-summary.txt"));
-    assert!(rendered.contains("packaged-artifact-profile-coverage-summary.txt"));
-    assert!(bundle_dir.join("bundle-manifest.txt").exists());
-    assert!(bundle_dir
-        .join("comparison-snapshot-body-class-coverage-summary.txt")
-        .exists());
-    assert!(bundle_dir
-        .join("reference-snapshot-bridge-day-summary.txt")
-        .exists());
-    assert!(bundle_dir.join("catalog-inventory-summary.txt").exists());
-    assert!(bundle_dir
-        .join("custom-definition-ayanamsa-labels-summary.txt")
-        .exists());
-    assert!(bundle_dir.join("ayanamsa-provenance-summary.txt").exists());
-    assert!(bundle_dir
-        .join("compatibility-caveats-summary.txt")
-        .exists());
-    assert!(bundle_dir.join("request-policy-summary.txt").exists());
-    assert!(bundle_dir.join("request-semantics-summary.txt").exists());
-    assert!(bundle_dir.join("unsupported-modes-summary.txt").exists());
-    assert!(bundle_dir.join("release-body-claims-summary.txt").exists());
-    assert!(bundle_dir.join("pluto-fallback-summary.txt").exists());
-    assert!(bundle_dir.join("time-scale-policy-summary.txt").exists());
-    assert!(bundle_dir
-        .join("utc-convenience-policy-summary.txt")
-        .exists());
-    assert!(bundle_dir.join("delta-t-policy-summary.txt").exists());
-    assert!(bundle_dir.join("zodiac-policy-summary.txt").exists());
-    assert!(bundle_dir
-        .join("native-sidereal-policy-summary.txt")
-        .exists());
-    assert!(bundle_dir
-        .join("lunar-theory-source-family-summary.txt")
-        .exists());
-    assert!(bundle_dir.join("request-surface-summary.txt").exists());
-    assert!(bundle_dir
-        .join("release-profile-identifiers-summary.txt")
-        .exists());
-    assert!(bundle_dir
-        .join("release-house-system-canonical-names-summary.txt")
-        .exists());
-    assert!(bundle_dir
-        .join("release-ayanamsa-canonical-names-summary.txt")
-        .exists());
-    assert!(bundle_dir.join("workspace-audit-summary.txt").exists());
-    assert!(bundle_dir
-        .join("native-dependency-audit-summary.txt")
-        .exists());
-    assert!(bundle_dir
-        .join("packaged-artifact-profile-coverage-summary.txt")
-        .exists());
-    assert!(bundle_dir
-        .join("packaged-artifact-access-summary.txt")
-        .exists());
-    assert!(bundle_dir
-        .join("packaged-artifact-fit-sample-classes-summary.txt")
-        .exists());
-    assert!(bundle_dir
-        .join("packaged-artifact-production-profile-summary.txt")
-        .exists());
-    assert!(bundle_dir
-        .join("packaged-frame-treatment-summary.txt")
-        .exists());
-    assert!(bundle_dir
-        .join("packaged-artifact-target-threshold-summary.txt")
-        .exists());
-    assert!(bundle_dir
-        .join("packaged-artifact-phase2-corpus-alignment-summary.txt")
-        .exists());
-    assert!(bundle_dir
-        .join("packaged-artifact-generation-manifest.txt")
-        .exists());
-    let manifest = std::fs::read_to_string(bundle_dir.join("bundle-manifest.txt"))
-        .expect("bundle manifest should be written");
-    assert!(manifest.contains("packaged-artifact-profile-coverage-summary.txt"));
-    assert!(manifest.contains("comparison-snapshot-body-class-coverage-summary.txt"));
-    assert!(manifest.contains("packaged-artifact-access-summary.txt"));
-    assert!(manifest.contains("packaged-artifact-fit-sample-classes-summary.txt"));
-    assert!(
-        manifest.contains("packaged-artifact fit sample classes summary checksum (fnv1a-64): 0x")
-    );
-    assert!(manifest.contains("release-body-claims-summary.txt"));
-    assert!(manifest.contains("pluto-fallback-summary.txt"));
-    assert!(manifest.contains("reference-snapshot-bridge-day-summary.txt"));
-    assert!(manifest.contains("reference snapshot bridge day summary checksum (fnv1a-64): 0x"));
-    assert!(manifest.contains("packaged-artifact profile coverage summary checksum (fnv1a-64): 0x"));
-    assert!(manifest.contains("packaged-artifact access summary checksum (fnv1a-64): 0x"));
-    assert!(manifest.contains("packaged-artifact-production-profile-summary.txt"));
-    assert!(manifest.contains("packaged-frame-treatment-summary.txt"));
-    assert!(manifest.contains("packaged-artifact-target-threshold-summary.txt"));
-    assert!(manifest.contains("packaged-artifact-phase2-corpus-alignment-summary.txt"));
-    assert!(manifest
-        .contains("packaged-artifact phase-2 corpus alignment summary checksum (fnv1a-64): 0x"));
-    assert!(manifest.contains("lunar-theory-source-family-summary.txt"));
-    assert!(manifest.contains("lunar theory source family summary checksum (fnv1a-64): 0x"));
-    assert!(manifest.contains("zodiac-policy-summary.txt"));
-    assert!(manifest.contains("workspace-audit-summary.txt"));
-}
-
-#[test]
-fn verify_release_bundle_command_verifies_a_staged_bundle() {
-    let bundle_dir = unique_temp_dir("pleiades-cli-release-bundle");
-    let bundle_dir_string = bundle_dir.display().to_string();
-
-    render_cli(&["bundle-release", "--out", &bundle_dir_string])
-        .expect("bundle generation should succeed");
-    let verified = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string])
-        .expect("bundle verification should render");
-
-    assert!(verified.contains("Release bundle"));
-    assert!(verified.contains("compatibility-profile.txt"));
-    assert!(verified.contains("comparison-snapshot-body-class-coverage-summary.txt"));
-    assert!(verified.contains("catalog-inventory-summary.txt"));
-    assert!(verified.contains("reference-snapshot-bridge-day-summary.txt"));
-    assert!(verified.contains("custom-definition-ayanamsa-labels-summary.txt"));
-    assert!(verified.contains("workspace-audit-summary.txt"));
-    assert!(verified.contains("request-semantics-summary.txt"));
-    assert!(verified.contains("unsupported-modes-summary.txt"));
-    assert!(verified.contains("time-scale-policy-summary.txt"));
-    assert!(verified.contains("delta-t-policy-summary.txt"));
-    assert!(verified.contains("zodiac-policy-summary.txt"));
-    assert!(verified.contains("native-sidereal-policy-summary.txt"));
-    assert!(verified.contains("packaged-artifact-phase2-corpus-alignment-summary.txt"));
-    assert!(verified.contains("lunar-theory-source-family-summary.txt"));
-    assert!(verified.contains("release-house-system-canonical-names-summary.txt"));
-    assert!(verified.contains("release-ayanamsa-canonical-names-summary.txt"));
-    assert!(verified.contains("bundle-manifest.checksum.txt"));
-}
-
-#[test]
-fn bundle_release_commands_reject_duplicate_output_arguments() {
-    let bundle_dir = unique_temp_dir("pleiades-cli-release-bundle-duplicate-out");
-    let bundle_dir_string = bundle_dir.display().to_string();
-
-    let bundle_error = render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--out",
-        &bundle_dir_string,
-    ])
-    .expect_err("bundle-release should reject duplicate output arguments");
-    assert!(bundle_error.contains("duplicate value for --out <dir> argument"));
-
-    let bundle_output_error = render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--output",
-        &bundle_dir_string,
-    ])
-    .expect_err("bundle-release should reject mixed output aliases");
-    assert!(bundle_output_error.contains("duplicate value for --out <dir> argument"));
-
-    let verify_error = render_cli(&[
-        "verify-release-bundle",
-        "--out",
-        &bundle_dir_string,
-        "--out",
-        &bundle_dir_string,
-    ])
-    .expect_err("verify-release-bundle should reject duplicate output arguments");
-    assert!(verify_error.contains("duplicate value for --out <dir> argument"));
-
-    let verify_output_error = render_cli(&[
-        "verify-release-bundle",
-        "--out",
-        &bundle_dir_string,
-        "--output",
-        &bundle_dir_string,
-    ])
-    .expect_err("verify-release-bundle should reject mixed output aliases");
-    assert!(verify_output_error.contains("duplicate value for --out <dir> argument"));
-
-    let _ = std::fs::remove_dir_all(&bundle_dir);
-}
-
-#[test]
-fn bundle_release_commands_accept_output_alias() {
-    let bundle_dir = unique_temp_dir("pleiades-cli-release-bundle-output-alias");
-    let bundle_dir_string = bundle_dir.display().to_string();
-
-    render_cli(&["bundle-release", "--output", &bundle_dir_string])
-        .expect("bundle-release should accept --output alias");
-    let verified = render_cli(&["verify-release-bundle", "--output", &bundle_dir_string])
-        .expect("verify-release-bundle should accept --output alias");
-
-    assert!(verified.contains("Release bundle"));
-    assert!(verified.contains("bundle-manifest.checksum.txt"));
-
-    let _ = std::fs::remove_dir_all(&bundle_dir);
-}
-
-#[test]
-fn unknown_command_is_rejected() {
-    let error =
-        render_cli(&["compatibility-profile-snapshot"]).expect_err("unknown commands should fail");
-
-    assert!(error.contains("unknown command: compatibility-profile-snapshot"));
-    for expected in [
-        "compare-backends",
-        "compare-backends-audit",
-        "compatibility-profile",
-        "compatibility-caveats-summary",
-        "verify-compatibility-profile",
-        "bundle-release",
-        "verify-release-bundle",
-        "release-notes",
-        "release-summary",
-        "packaged-lookup-epoch-policy-summary",
-        "validate-artifact",
-        "workspace-audit",
-        "report",
-        "chart",
-    ] {
-        assert!(error.contains(expected), "missing help text for {expected}");
-    }
-}
-
-#[test]
-fn custom_definition_ayanamsa_labels_summary_command_renders_the_labels() {
-    let rendered = render_cli(&["custom-definition-ayanamsa-labels-summary"])
-        .expect("custom-definition ayanamsa labels summary should render");
-
-    assert_eq!(
-        rendered,
-        pleiades_validate::render_cli(&["custom-definition-ayanamsa-labels-summary"]).expect(
-            "validation front end should render the custom-definition ayanamsa labels summary"
-        )
-    );
-    assert_eq!(
-        render_cli(&["custom-definition-ayanamsa-labels"])
-            .expect("custom-definition ayanamsa labels alias should render"),
-        rendered
-    );
-}
-
-#[test]
-fn release_specific_canonical_name_summary_commands_render_the_labels() {
-    let profile = pleiades_core::current_compatibility_profile();
-
-    let house_names = render_cli(&["release-house-system-canonical-names-summary"])
-        .expect("release-specific house-system canonical names summary should render");
-    assert_eq!(
-        house_names,
-        pleiades_validate::render_cli(&["release-house-system-canonical-names-summary"]).expect(
-            "validation front end should render the release-specific house-system canonical names summary"
-        )
-    );
-    assert_eq!(
-        render_cli(&["release-house-system-canonical-names"])
-            .expect("release-specific house-system canonical names alias should render"),
-        house_names
-    );
-    assert_eq!(
-        house_names,
-        format!(
-            "Release-specific house-system canonical names: {}",
-            profile
-                .validated_release_house_system_canonical_names_summary_line()
-                .expect("release-specific house-system canonical names should validate")
-        )
-    );
-
-    let ayanamsa_names = render_cli(&["release-ayanamsa-canonical-names-summary"])
-        .expect("release-specific ayanamsa canonical names summary should render");
-    assert_eq!(
-        ayanamsa_names,
-        pleiades_validate::render_cli(&["release-ayanamsa-canonical-names-summary"]).expect(
-            "validation front end should render the release-specific ayanamsa canonical names summary"
-        )
-    );
-    assert_eq!(
-        render_cli(&["release-ayanamsa-canonical-names"])
-            .expect("release-specific ayanamsa canonical names alias should render"),
-        ayanamsa_names
-    );
-    assert_eq!(
-        ayanamsa_names,
-        format!(
-            "Release-specific ayanamsa canonical names: {}",
-            profile
-                .validated_release_ayanamsa_canonical_names_summary_line()
-                .expect("release-specific ayanamsa canonical names should validate")
-        )
-    );
-}
-
-#[test]
-fn ayanamsa_audit_summary_command_renders_the_summary() {
-    let rendered = render_cli(&["ayanamsa-audit-summary"])
-        .expect("ayanamsa audit summary should render through the CLI");
-    assert_eq!(
-        rendered,
-        pleiades_validate::render_cli(&["ayanamsa-audit-summary"])
-            .expect("validation front end should render the ayanamsa audit summary")
-    );
-    assert_eq!(render_cli(&["ayanamsa-audit"]).unwrap(), rendered);
-    assert!(rendered.contains("Ayanamsa audit: ayanamsa catalog validation:"));
-    assert!(rendered.contains("ayanamsa sidereal metadata:"));
-    assert!(rendered.contains("Ayanamsa reference offsets:"));
-    assert!(rendered.contains("Ayanamsa provenance:"));
-}
-
-#[test]
-fn lunar_theory_source_selection_summary_command_renders_the_summary() {
-    let rendered = render_cli(&["lunar-theory-source-selection-summary"])
-        .expect("lunar theory source selection summary should render through the CLI");
-    assert_eq!(
-        rendered,
-        pleiades_validate::render_cli(&["lunar-theory-source-selection-summary"])
-            .expect("validation front end should render the lunar theory source selection summary")
-    );
-    assert_eq!(
-        render_cli(&["lunar-theory-source-selection"]).unwrap(),
-        rendered
-    );
-    assert_eq!(
-        render_cli(&["lunar-theory-source-selection", "extra"])
-            .expect_err("lunar theory source selection alias should reject extra arguments"),
-        "lunar-theory-source-selection-summary does not accept extra arguments"
-    );
-    assert!(rendered.contains("lunar source selection:"));
-}
-
-#[test]
-fn fallback_summary_commands_remain_reachable_from_the_cli() {
-    for (cli_args, validation_args) in [
-        (
-            &["benchmark-matrix", "--rounds", "1"][..],
-            &["benchmark-matrix-summary", "--rounds", "1"][..],
-        ),
-        (&["catalog-posture"][..], &["catalog-posture-summary"][..]),
-        (&["known-gaps"][..], &["known-gaps-summary"][..]),
-        (
-            &["jpl-provenance-only"][..],
-            &["jpl-provenance-only-summary"][..],
-        ),
-        (
-            &["production-generation"][..],
-            &["production-generation-summary"][..],
-        ),
-        (
-            &["production-generation-manifest"][..],
-            &["production-generation-manifest-summary"][..],
-        ),
-        (
-            &["production-generation-manifest-checksum"][..],
-            &["production-generation-manifest-checksum-summary"][..],
-        ),
-        (
-            &["production-generation-source-revision"][..],
-            &["production-generation-source-revision-summary"][..],
-        ),
-    ] {
-        assert_eq!(
-            render_cli(cli_args)
-                .unwrap_or_else(|error| panic!("{cli_args:?} should render: {error}")),
-            pleiades_validate::render_cli(validation_args).unwrap_or_else(|error| {
-                panic!("validation command {validation_args:?} should render: {error}")
-            }),
-            "CLI fallback should keep {cli_args:?} aligned with {validation_args:?}"
-        );
-    }
-}
-
-#[test]
-fn packaged_artifact_and_ayanamsa_audit_summary_commands_render_directly_from_the_cli() {
-    for (summary_args, alias_args) in [
-        (&["ayanamsa-audit-summary"][..], &["ayanamsa-audit"][..]),
-        (
-            &["lunar-reference-evidence-summary"][..],
-            &["lunar-reference-evidence"][..],
-        ),
-        (
-            &["packaged-artifact-body-cadence-summary"][..],
-            &["packaged-artifact-body-cadence"][..],
-        ),
-        (
-            &["packaged-artifact-fit-margins-summary"][..],
-            &["packaged-artifact-fit-margins"][..],
-        ),
-        (
-            &["packaged-artifact-generation-manifest-checksum-summary"][..],
-            &["packaged-artifact-generation-manifest-checksum"][..],
-        ),
-        (
-            &["packaged-artifact-normalized-intermediate-summary"][..],
-            &["packaged-artifact-normalized-intermediate"][..],
-        ),
-        (
-            &["packaged-artifact-phase2-corpus-alignment-summary"][..],
-            &["packaged-artifact-phase2-corpus-alignment"][..],
-        ),
-        (
-            &["packaged-artifact-target-threshold-state-summary"][..],
-            &["packaged-artifact-target-threshold-state"][..],
-        ),
-    ] {
-        let rendered = render_cli(summary_args)
-            .unwrap_or_else(|error| panic!("{summary_args:?} should render: {error}"));
-        assert_eq!(
-            rendered,
-            pleiades_validate::render_cli(summary_args).unwrap_or_else(|error| {
-                panic!("validation command {summary_args:?} should render: {error}")
-            })
-        );
-        assert_eq!(
-            render_cli(alias_args)
-                .unwrap_or_else(|error| panic!("{alias_args:?} should render: {error}")),
-            rendered,
-            "CLI alias should stay aligned with the summary command"
-        );
-        assert_eq!(
-            render_cli(&[summary_args[0], "extra"]).unwrap_err(),
-            format!("{} does not accept extra arguments", summary_args[0])
-        );
-    }
-}
-
-#[test]
-fn release_house_validation_summary_and_alias_render_directly_from_the_cli() {
-    let release_house_validation_summary = render_cli(&["release-house-validation-summary"])
-        .expect("release house validation summary should render");
-    assert_eq!(
-        release_house_validation_summary,
-        pleiades_validate::render_cli(&["release-house-validation-summary"])
-            .expect("validation front end should render the release house validation summary")
-    );
-    assert_eq!(
-        render_cli(&["release-house-validation"])
-            .expect("release house validation alias should render"),
-        release_house_validation_summary
-    );
-    assert_eq!(
-        render_cli(&["release-house-validation", "extra"])
-            .expect_err("release house validation alias should reject extra arguments"),
-        "release-house-validation does not accept extra arguments"
-    );
-}
-
-#[test]
-fn chart_help_text_spells_out_the_shared_request_policy() {
-    let help = render_chart(&["--help"]).expect("chart help should render");
-    let request_policy = pleiades_core::request_policy_summary_for_report()
-        .validated_summary_line()
-        .expect("request policy should validate");
-    assert!(help.contains(&shared_request_policy_help_block()));
-    assert!(help.contains(&format!("Request policy: {request_policy}")));
-    assert!(help.contains(&format!("Request semantics summary: {request_policy}")));
-    assert!(help.contains("Request semantics summary:"));
-    assert!(help.contains(
-        "observer-bearing chart requests stay geocentric and use the observer only for houses"
-    ));
-    assert!(help.contains(pleiades_validate::current_request_surface_summary().chart_help_clause()));
-}
-
-#[test]
-fn packaged_artifact_source_fit_holdout_sync_summary_and_alias_commands_render_the_summary() {
-    let sync = render_cli(&["packaged-artifact-source-fit-holdout-sync-summary"])
-        .expect("packaged artifact source-fit and hold-out sync summary should render");
-    assert!(sync.contains("Packaged-artifact source-fit and hold-out sync: "));
-    assert_eq!(
-        render_cli(&["packaged-artifact-source-fit-holdout-sync"])
-            .expect("packaged artifact source-fit and hold-out sync alias should render"),
-        sync
-    );
-    assert_eq!(
-        sync,
-        format!(
-            "Packaged-artifact source-fit and hold-out sync: {}",
-            pleiades_data::packaged_artifact_source_fit_holdout_sync_summary_for_report()
-        )
-    );
-    assert_eq!(
-        render_cli(&["packaged-artifact-source-fit-holdout-sync-summary", "extra"]).expect_err(
-            "packaged artifact source-fit and hold-out sync summary should reject extra arguments"
-        ),
-        "packaged-artifact-source-fit-holdout-sync-summary does not accept extra arguments"
-    );
-    assert_eq!(
-        render_cli(&["packaged-artifact-source-fit-holdout-sync", "extra"]).expect_err(
-            "packaged artifact source-fit and hold-out sync alias should reject extra arguments"
-        ),
-        "packaged-artifact-source-fit-holdout-sync-summary does not accept extra arguments"
-    );
-}
-
-#[test]
-fn help_text_lists_the_packaged_lookup_epoch_policy_summary_command() {
-    let help = render_cli(&["help"]).expect("help text should render");
-    assert!(help.contains(
-        "packaged-lookup-epoch-policy-summary  Print the packaged lookup epoch policy summary"
-    ));
-    assert!(help.contains(
-        "packaged-lookup-epoch-policy         Alias for packaged-lookup-epoch-policy-summary"
-    ));
-    assert!(help.contains("packaged-artifact-lookup-epoch-policy-summary"));
-    assert!(help.contains("Alias for packaged-artifact-lookup-epoch-policy-summary"));
-    assert!(help.contains(
-        "benchmark-matrix-summary [--rounds N]  Print the compact benchmark matrix summary"
-    ));
-    assert!(help.contains("benchmark-matrix [--rounds N]  Alias for benchmark-matrix-summary"));
-    assert!(help.contains(
-        "production-generation-summary  Print the compact production-generation coverage summary"
-    ));
-    assert!(help.contains("source-corpus-posture-summary  Alias for source-corpus-summary"));
-    assert!(help.contains("source-corpus-posture     Alias for source-corpus-posture-summary"));
-    assert!(help.contains(
-        "production-generation-boundary-summary  Print the compact production-generation boundary overlay summary"
-    ));
-    assert!(help.contains(
-        "production-generation-boundary         Alias for production-generation-boundary-summary"
-    ));
-    assert!(help.contains(
-        "production-generation-quarter-day-boundary-summary  Print the compact production-generation quarter-day boundary samples summary"
-    ));
-    assert!(help.contains(
-        "production-generation-boundary-request-corpus-summary  Print the compact production-generation boundary request corpus summary"
-    ));
-    assert!(help.contains(
-        "production-generation-boundary-request-corpus-equatorial-summary  Print the compact production-generation boundary request corpus summary in the equatorial frame"
-    ));
-    assert!(help.contains(
-        "production-generation-boundary-request-corpus-equatorial  Alias for production-generation-boundary-request-corpus-equatorial-summary"
-    ));
-    assert!(help.contains(
-        "production-generation-source-revision-summary  Print the compact production-generation source revision summary"
-    ));
-    assert!(help.contains(
-        "production-generation-source-revision  Alias for production-generation-source-revision-summary"
-    ));
-    assert!(help.contains(
-        "production-generation-manifest-summary  Print the compact production-generation manifest summary"
-    ));
-    assert!(help.contains(
-        "production-generation-manifest  Alias for production-generation-manifest-summary"
-    ));
-    assert!(help.contains(
-        "production-generation-manifest-checksum-summary  Print the compact production-generation manifest checksum summary"
-    ));
-    assert!(help.contains(
-        "production-generation-manifest-checksum  Alias for production-generation-manifest-checksum-summary"
-    ));
-    assert!(help.contains(
-        "production-generation-source-window-summary  Print the compact production-generation source windows summary"
-    ));
-    assert!(help.contains(
-        "production-generation-corpus-shape-summary  Print the compact production-generation corpus shape summary"
-    ));
-    assert!(help.contains(
-        "interpolation-quality-request-corpus-summary  Print the compact JPL interpolation-quality sample request corpus summary"
-    ));
-    assert!(help.contains(
-        "production-generation-boundary-source-summary  Print the compact production-generation boundary source summary"
-    ));
-    assert!(help.contains(
-        "production-generation-source-summary  Print the compact production-generation source summary"
-    ));
-    assert!(help.contains(
-        "production-generation-source      Alias for production-generation-source-summary"
-    ));
-    assert!(
-        help.contains("production-generation           Alias for production-generation-summary")
-    );
-    assert!(help.contains(
-        "production-generation-boundary-window-summary  Print the compact production-generation boundary windows summary"
-    ));
-    assert!(help.contains(
-        "production-generation-boundary-window  Alias for production-generation-boundary-window-summary"
-    ));
-    assert!(help.contains(
-        "compatibility-caveats-summary  Print the compact compatibility caveats summary"
-    ));
-    assert!(help.contains("compatibility-caveats    Alias for compatibility-caveats-summary"));
-    assert!(help.contains("workspace-audit-summary   Print the compact workspace audit summary"));
-    assert!(help.contains("native-dependency-audit-summary  Alias for workspace-audit-summary"));
-    assert!(help
-        .contains("workspace-provenance-summary  Print the compact workspace provenance summary"));
-    assert!(help.contains("workspace-provenance     Alias for workspace-provenance-summary"));
-    assert!(help.contains(
-        "catalog-inventory-summary  Print the compact compatibility catalog inventory summary"
-    ));
-    assert!(help.contains("catalog-inventory        Alias for catalog-inventory-summary"));
-    assert!(help.contains(
-        "catalog-posture-summary   Print the compact compatibility catalog posture summary"
-    ));
-    assert!(help.contains("catalog-posture         Alias for catalog-posture-summary"));
-    assert!(
-        help.contains("known-gaps-summary      Print the compact compatibility known-gaps summary")
-    );
-    assert!(help.contains("known-gaps              Alias for known-gaps-summary"));
-    assert!(help.contains(
-        "custom-definition-ayanamsa-labels-summary  Print the compact custom-definition ayanamsa labels summary"
-    ));
-    assert!(help.contains(
-        "custom-definition-ayanamsa-labels  Alias for custom-definition-ayanamsa-labels-summary"
-    ));
-    assert!(
-        help.contains("ayanamsa-provenance-summary  Print the compact ayanamsa provenance summary")
-    );
-    assert!(help.contains("ayanamsa-provenance        Alias for ayanamsa-provenance-summary"));
-    assert!(help.contains("ayanamsa-audit-summary    Print the compact ayanamsa audit summary"));
-    assert!(help.contains("ayanamsa-audit            Alias for ayanamsa-audit-summary"));
-    assert!(help.contains(
-        "release-house-system-canonical-names-summary  Print the compact release-specific house-system canonical names summary"
-    ));
-    assert!(help.contains(
-        "release-house-system-canonical-names  Alias for release-house-system-canonical-names-summary"
-    ));
-    assert!(help.contains(
-        "release-ayanamsa-canonical-names-summary  Print the compact release-specific ayanamsa canonical names summary"
-    ));
-    assert!(help.contains(
-        "release-ayanamsa-canonical-names  Alias for release-ayanamsa-canonical-names-summary"
-    ));
-    assert!(help.contains(
-        "house-latitude-sensitive-summary  Print the compact latitude-sensitive house systems summary"
-    ));
-    assert!(help.contains("house-latitude-sensitive  Alias for house-latitude-sensitive-summary"));
-    assert!(help.contains("profile-summary           Alias for compatibility-profile-summary"));
-    assert!(
-        help.contains("release-profile-identifiers  Alias for release-profile-identifiers-summary")
-    );
-    assert!(help.contains(
-        "artifact-profile-coverage-summary  Print the packaged-artifact profile coverage summary"
-    ));
-    assert!(help.contains(
-        "packaged-artifact-output-support-summary  Print the packaged-artifact output support summary"
-    ));
-    assert!(help.contains(
-        "packaged-artifact-output-support       Alias for packaged-artifact-output-support-summary"
-    ));
-    assert!(help.contains(
-        "packaged-artifact-body-class-span-cap-summary  Print the packaged-artifact body-class span caps summary"
-    ));
-    assert!(help.contains(
-        "packaged-artifact-body-class-span-cap  Alias for packaged-artifact-body-class-span-cap-summary"
-    ));
-    assert!(help.contains(
-        "packaged-artifact-speed-policy-summary  Print the packaged-artifact speed policy summary"
-    ));
-    assert!(help.contains(
-        "packaged-artifact-speed-policy       Alias for packaged-artifact-speed-policy-summary"
-    ));
-    assert!(help.contains("motion-policy-summary         Print the compact motion policy summary"));
-    assert!(help.contains("motion-policy               Alias for motion-policy-summary"));
-    assert!(help
-        .contains("packaged-artifact-access-summary  Print the packaged-artifact access summary"));
-    assert!(help.contains("packaged-artifact-access  Alias for packaged-artifact-access-summary"));
-    assert!(help.contains(
-        "packaged-artifact-path-policy-summary  Alias for packaged-artifact-access-summary"
-    ));
-    assert!(help.contains(
-        "packaged-artifact-path-policy  Alias for packaged-artifact-path-policy-summary"
-    ));
-    assert!(help.contains(
-        "packaged-artifact-storage-summary  Print the packaged-artifact storage/reconstruction summary"
-    ));
-    assert!(help.contains(
-        "packaged-artifact-storage           Alias for packaged-artifact-storage-summary"
-    ));
-    assert!(help.contains(
-        "packaged-artifact-production-profile-summary  Print the packaged-artifact production profile draft summary"
-    ));
-    assert!(help.contains(
-        "packaged-artifact-production-profile  Alias for packaged-artifact-production-profile-summary"
-    ));
-    assert!(help.contains(
-        "packaged-artifact-target-threshold-summary  Print the packaged-artifact target thresholds summary"
-    ));
-    assert!(help.contains(
-        "packaged-artifact-target-threshold  Alias for packaged-artifact-target-threshold-summary"
-    ));
-    assert!(help.contains(
-        "packaged-artifact-target-threshold-scope-envelopes-summary  Print the packaged-artifact target-threshold scope envelopes summary"
-    ));
-    assert!(help.contains(
-        "packaged-artifact-target-threshold-scope-envelopes  Alias for packaged-artifact-target-threshold-scope-envelopes-summary"
-    ));
-    assert!(help.contains(
-        "packaged-artifact-source-fit-holdout-sync-summary  Print the packaged-artifact source-fit and hold-out sync summary"
-    ));
-    assert!(help.contains(
-        "packaged-artifact-source-fit-holdout-sync  Alias for packaged-artifact-source-fit-holdout-sync-summary"
-    ));
-    assert!(help.contains(
-        "packaged-artifact-fit-envelope-summary  Print the packaged-artifact fit envelope summary"
-    ));
-    assert!(help.contains(
-        "packaged-artifact-fit-envelope  Alias for packaged-artifact-fit-envelope-summary"
-    ));
-    assert!(help.contains(
-        "packaged-artifact-fit-sample-classes-summary  Print the packaged-artifact fit sample classes summary"
-    ));
-    assert!(help.contains(
-        "packaged-artifact-fit-sample-classes  Alias for packaged-artifact-fit-sample-classes-summary"
-    ));
-    assert!(help.contains(
-        "packaged-artifact-fit-outliers-summary  Print the packaged-artifact body/channel fit outlier summary"
-    ));
-    assert!(help.contains(
-        "packaged-artifact-fit-outliers  Alias for packaged-artifact-fit-outliers-summary"
-    ));
-    assert!(help.contains(
-        "packaged-artifact-fit-threshold-violation-count-summary  Print the packaged-artifact fit threshold violation count summary"
-    ));
-    assert!(help.contains(
-        "packaged-artifact-fit-threshold-violation-count  Alias for packaged-artifact-fit-threshold-violation-count-summary"
-    ));
-    assert!(help.contains(
-        "packaged-artifact-fit-threshold-violations-summary  Print the packaged-artifact fit threshold violations summary"
-    ));
-    assert!(help.contains(
-        "packaged-artifact-fit-threshold-violations  Alias for packaged-artifact-fit-threshold-violations-summary"
-    ));
-    assert!(help.contains(
-        "packaged-artifact-generation-manifest-summary  Print the packaged-artifact generation manifest summary"
-    ));
-    assert!(help.contains(
-        "packaged-artifact-generation-manifest  Alias for packaged-artifact-generation-manifest-summary"
-    ));
-    assert!(help.contains(
-        "packaged-artifact-generation-policy-summary  Print the packaged-artifact generation policy summary"
-    ));
-    assert!(help.contains(
-        "packaged-artifact-generation-policy     Alias for packaged-artifact-generation-policy-summary"
-    ));
-    assert!(help.contains(
-        "packaged-artifact-generation-residual-summary  Alias for packaged-artifact-generation-residual-bodies-summary"
-    ));
-    assert!(help.contains(
-        "packaged-artifact-generation-residual-bodies-summary  Print the packaged-artifact generation residual bodies summary"
-    ));
-    assert!(help.contains(
-        "packaged-artifact-regeneration-summary  Print the packaged-artifact regeneration summary"
-    ));
-    assert!(help.contains(
-        "packaged-artifact-regeneration      Alias for packaged-artifact-regeneration-summary"
-    ));
-    assert!(help.contains("packaged-frame-parity-summary  Print the packaged frame parity summary"));
-    assert!(help.contains("packaged-frame-parity         Alias for packaged-frame-parity-summary"));
-    assert!(help
-        .contains("packaged-frame-treatment-summary  Print the packaged frame treatment summary"));
-    assert!(
-        help.contains("comparison-envelope-summary  Print the compact comparison envelope summary")
-    );
-    assert!(help.contains(
-        "comparison-body-class-error-envelope-summary  Print the compact comparison body-class error envelope summary"
-    ));
-    assert!(help.contains(
-        "comparison-body-class-error-envelope  Alias for comparison-body-class-error-envelope-summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-1749-major-body-boundary-summary  Print the compact reference 1749 major-body boundary evidence summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-2268932-selected-body-boundary-summary  Print the compact reference 2268932 selected-body boundary evidence summary"
-    ));
-    assert!(help.contains(
-        "2268932-selected-body-boundary-summary  Alias for reference-snapshot-2268932-selected-body-boundary-summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-1600-selected-body-boundary-summary  Print the compact reference 1600 selected-body boundary evidence summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-2305457-selected-body-boundary-summary  Print the compact reference 2305457 selected-body boundary evidence summary"
-    ));
-    assert!(help.contains(
-        "2305457-selected-body-boundary-summary  Alias for reference-snapshot-2305457-selected-body-boundary-summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-1750-selected-body-boundary-summary  Print the compact reference 1750 selected-body boundary evidence summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-2200-selected-body-boundary-summary  Print the compact reference 2200 selected-body boundary evidence summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-2524593-selected-body-boundary-summary  Print the compact reference 2524593 selected-body boundary evidence summary"
-    ));
-    assert!(help.contains(
-        "2524593-selected-body-boundary-summary  Alias for reference-snapshot-2524593-selected-body-boundary-summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-2634167-selected-body-boundary-summary  Print the compact reference 2634167 selected-body boundary evidence summary"
-    ));
-    assert!(help.contains(
-        "2634167-selected-body-boundary-summary  Alias for reference-snapshot-2634167-selected-body-boundary-summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-early-major-body-boundary-summary  Print the compact reference early major-body boundary evidence summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-2378498-major-body-boundary-summary  Print the compact reference 2378498 major-body boundary evidence summary"
-    ));
-    assert!(help.contains(
-        "2378498-major-body-boundary-summary  Alias for reference-snapshot-2378498-major-body-boundary-summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-1800-major-body-boundary-summary  Print the compact reference 1800 major-body boundary evidence summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-2500-major-body-boundary-summary  Print the compact reference 2500 major-body boundary evidence summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-2453000-major-body-boundary-summary  Print the compact reference 2453000 major-body boundary evidence summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-2451910-major-body-boundary-summary  Print the compact reference 2451910 major-body boundary evidence summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-2451911-major-body-boundary-summary  Print the compact reference 2451911 major-body boundary evidence summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-2451915-major-body-bridge-summary  Print the compact reference 2451915 major-body bridge evidence summary"
-    ));
-    assert!(help.contains(
-        "2451915-major-body-bridge-summary  Alias for reference-snapshot-2451915-major-body-bridge-summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-2451916-major-body-dense-boundary-summary  Print the compact reference 2451916 major-body dense boundary evidence summary"
-    ));
-    assert!(help.contains(
-        "2451916-major-body-dense-boundary-summary  Alias for reference-snapshot-2451916-major-body-dense-boundary-summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-2451916-major-body-boundary-summary  Print the compact reference 2451916 major-body boundary evidence summary"
-    ));
-    assert!(help.contains(
-        "2451916-major-body-boundary-summary  Alias for reference-snapshot-2451916-major-body-boundary-summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-2451917-major-body-boundary-summary  Print the compact reference 2451917 major-body boundary evidence summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-2451918-major-body-boundary-summary  Print the compact reference 2451918 major-body boundary evidence summary"
-    ));
-    assert!(help.contains(
-        "2451918-major-body-boundary-summary  Alias for reference-snapshot-2451918-major-body-boundary-summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-2451919-major-body-boundary-summary  Print the compact reference 2451919 major-body boundary evidence summary"
-    ));
-    assert!(help.contains(
-        "2451919-major-body-boundary-summary  Alias for reference-snapshot-2451919-major-body-boundary-summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-2451920-major-body-interior-summary  Print the compact reference 2451920 major-body interior evidence summary"
-    ));
-    assert!(help.contains(
-        "2451920-major-body-interior-summary  Alias for reference-snapshot-2451920-major-body-interior-summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-major-body-boundary-summary  Print the compact reference major-body boundary evidence summary"
-    ));
-    assert!(help.contains(
-        "major-body-boundary-summary  Alias for reference-snapshot-major-body-boundary-summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-major-body-bridge-summary  Print the compact reference major-body bridge evidence summary"
-    ));
-    assert!(help.contains("bridge-summary  Alias for reference-snapshot-major-body-bridge-summary"));
-    assert!(help.contains(
-        "reference-snapshot-major-body-boundary-window-summary  Print the compact reference major-body boundary windows summary"
-    ));
-    assert!(help.contains(
-        "major-body-boundary-window-summary  Alias for reference-snapshot-major-body-boundary-window-summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-mars-jupiter-boundary-summary  Print the compact reference Mars/Jupiter boundary evidence summary"
-    ));
-    assert!(help.contains(
-        "mars-jupiter-boundary-summary  Alias for reference-snapshot-mars-jupiter-boundary-summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-mars-outer-boundary-summary  Print the compact reference Mars outer-boundary evidence summary"
-    ));
-    assert!(help.contains(
-        "mars-outer-boundary-summary  Alias for reference-snapshot-mars-outer-boundary-summary"
-    ));
-    assert!(help.contains(
-        "lunar-reference-error-envelope-summary  Print the compact lunar reference error envelope summary"
-    ));
-    assert!(help.contains(
-        "lunar-reference-error-envelope  Alias for lunar-reference-error-envelope-summary"
-    ));
-    assert!(help.contains(
-        "lunar-reference-evidence-summary  Print the compact lunar reference evidence summary"
-    ));
-    assert!(help.contains("lunar-reference-evidence  Alias for lunar-reference-evidence-summary"));
-    assert!(help.contains(
-        "lunar-equatorial-reference-error-envelope-summary  Print the compact lunar equatorial reference error envelope summary"
-    ));
-    assert!(help.contains(
-        "lunar-equatorial-reference-error-envelope  Alias for lunar-equatorial-reference-error-envelope-summary"
-    ));
-    assert!(help.contains(
-        "lunar-apparent-comparison-summary  Print the compact lunar apparent comparison summary"
-    ));
-    assert!(help.contains("lunar-apparent-comparison  Alias for lunar-apparent-comparison-summary"));
-    assert!(help
-        .contains("lunar-source-window-summary  Print the compact lunar source windows summary"));
-    assert!(help.contains(
-        "reference-snapshot-lunar-source-window-summary  Alias for lunar-source-window-summary"
-    ));
-    assert!(help.contains("lunar-source-window  Alias for lunar-source-window-summary"));
-    assert!(help.contains(
-        "lunar-reference-mixed-time-scale-batch-parity-summary  Print the compact lunar reference mixed TT/TDB batch parity summary"
-    ));
-    assert!(help.contains(
-        "lunar-reference-mixed-tt-tdb-batch-parity-summary  Alias for lunar-reference-mixed-time-scale-batch-parity-summary"
-    ));
-    assert!(help.contains(
-        "lunar-reference-mixed-tt-tdb-batch-parity  Alias for lunar-reference-mixed-time-scale-batch-parity-summary"
-    ));
-    assert!(help.contains(
-        "comparison-snapshot-manifest-summary  Print the compact comparison snapshot manifest summary"
-    ));
-    assert!(help
-        .contains("comparison-snapshot-manifest  Alias for comparison-snapshot-manifest-summary"));
-    assert!(help.contains(
-        "independent-holdout-batch-parity-summary  Print the compact independent hold-out batch parity summary"
-    ));
-    assert!(help.contains(
-        "independent-holdout-batch-parity  Alias for independent-holdout-batch-parity-summary"
-    ));
-    assert!(help.contains(
-        "independent-holdout-equatorial-parity-summary  Print the compact independent hold-out equatorial parity summary"
-    ));
-    assert!(help.contains(
-        "independent-holdout-equatorial-parity  Alias for independent-holdout-equatorial-parity-summary"
-    ));
-    assert!(
-        help.contains("comparison-snapshot-summary  Print the compact comparison snapshot summary")
-    );
-    assert!(help.contains("j2000-snapshot           Alias for comparison-snapshot-summary"));
-    assert!(help.contains("comparison-snapshot         Alias for comparison-snapshot-summary"));
-    assert!(help.contains(
-        "comparison-snapshot-source-summary  Print the compact comparison snapshot source summary"
-    ));
-    assert!(help.contains(
-        "comparison-snapshot-source-window  Alias for comparison-snapshot-source-window-summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-manifest-summary  Print the compact reference snapshot manifest summary"
-    ));
-    assert!(
-        help.contains("reference-snapshot-manifest  Alias for reference-snapshot-manifest-summary")
-    );
-    assert!(help.contains("reference-snapshot         Alias for reference-snapshot-summary"));
-    assert!(help.contains(
-        "reference-snapshot-source-window  Alias for reference-snapshot-source-window-summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-source-summary  Print the compact reference snapshot source summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-boundary-day-summary  Print the compact reference snapshot boundary day summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-boundary-day  Alias for reference-snapshot-boundary-day-summary"
-    ));
-    assert!(
-        help.contains("boundary-day-summary     Alias for reference-snapshot-boundary-day-summary")
-    );
-    assert!(
-        help.contains("reference-snapshot-summary  Print the compact reference snapshot summary")
-    );
-    assert!(help.contains(
-        "reference-snapshot-exact-j2000-evidence-summary  Print the compact reference snapshot exact J2000 evidence summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-batch-parity-summary  Print the compact reference snapshot batch parity summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-batch-parity          Alias for reference-snapshot-batch-parity-summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-mixed-time-scale-batch-parity-summary  Print the compact reference snapshot mixed TT/TDB batch parity summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-mixed-tt-tdb-batch-parity-summary  Alias for reference-snapshot-mixed-time-scale-batch-parity-summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-mixed-tt-tdb-batch-parity  Alias for reference-snapshot-mixed-time-scale-batch-parity-summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-equatorial-parity-summary  Print the compact reference snapshot equatorial parity summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-equatorial-parity     Alias for reference-snapshot-equatorial-parity-summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-exact-j2000-evidence  Alias for reference-snapshot-exact-j2000-evidence-summary"
-    ));
-    assert!(help.contains(
-        "exact-j2000-evidence    Alias for reference-snapshot-exact-j2000-evidence-summary"
-    ));
-    assert!(help.contains(
-        "selected-asteroid-source-evidence-summary  Print the compact selected-asteroid source evidence summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-selected-asteroid-source-summary  Print the compact selected-asteroid source evidence summary"
-    ));
-    assert!(help.contains(
-        "selected-asteroid-source-request-corpus-summary  Print the compact selected-asteroid source request corpus summary"
-    ));
-    assert!(help.contains(
-        "selected-asteroid-source-request-corpus  Alias for selected-asteroid-source-request-corpus-summary"
-    ));
-    assert!(help.contains(
-        "selected-asteroid-source-request-corpus-equatorial-summary  Print the compact selected-asteroid source request corpus summary in the equatorial frame"
-    ));
-    assert!(help.contains(
-        "selected-asteroid-source-request-corpus-equatorial  Alias for selected-asteroid-source-request-corpus-equatorial-summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-selected-asteroid-source-window-summary  Print the compact selected-asteroid source windows summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-selected-asteroid-source-window  Alias for reference-snapshot-selected-asteroid-source-window-summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-2453000-selected-asteroid-source-summary  Print the compact reference 2003-12-27 selected-asteroid source evidence summary"
-    ));
-    assert!(help.contains(
-        "2453000-selected-asteroid-source-summary  Alias for reference-snapshot-2453000-selected-asteroid-source-summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-2500000-selected-asteroid-source-summary  Print the compact reference selected-asteroid 2500000 source evidence summary"
-    ));
-    assert!(help.contains(
-        "2500000-selected-asteroid-source-summary  Alias for reference-snapshot-2500000-selected-asteroid-source-summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-2634167-selected-asteroid-source-summary  Print the compact reference selected-asteroid 2634167 source evidence summary"
-    ));
-    assert!(help.contains(
-        "2634167-selected-asteroid-source-summary  Alias for reference-snapshot-2634167-selected-asteroid-source-summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-selected-asteroid-dense-boundary-summary  Print the compact selected-asteroid dense boundary evidence summary"
-    ));
-    assert!(help.contains(
-        "selected-asteroid-dense-boundary-summary  Alias for reference-snapshot-selected-asteroid-dense-boundary-summary"
-    ));
-    assert!(help.contains(
-        "selected-asteroid-batch-parity-summary  Print the compact selected-asteroid batch-parity summary"
-    ));
-    assert!(help.contains(
-        "selected-asteroid-batch-parity  Alias for selected-asteroid-batch-parity-summary"
-    ));
-    assert!(help.contains(
-        "reference-asteroid-evidence-summary  Print the compact reference asteroid evidence summary"
-    ));
-    assert!(help.contains("reference-asteroid-equatorial-evidence-summary  Print the compact reference asteroid equatorial evidence summary"));
-    assert!(help.contains("reference-asteroid-equatorial-evidence  Alias for reference-asteroid-equatorial-evidence-summary"));
-    assert!(help.contains("reference-asteroid-source-window-summary  Print the compact reference asteroid source windows summary"));
-    assert!(help.contains(
-        "reference-asteroid-source-window  Alias for reference-asteroid-source-window-summary"
-    ));
-    assert!(help.contains(
-        "reference-asteroid-source-summary  Alias for reference-asteroid-source-window-summary"
-    ));
-    assert!(help.contains("selected-asteroid-source-window-summary  Print the compact selected-asteroid source windows summary"));
-    assert!(help.contains("reference-snapshot-2451917-selected-asteroid-source-summary  Print the compact reference selected-asteroid 2001-01-08 source evidence summary"));
-    assert!(help.contains("2451917-selected-asteroid-source-summary  Alias for reference-snapshot-2451917-selected-asteroid-source-summary"));
-    assert!(help.contains(
-        "selected-asteroid-source-window  Alias for selected-asteroid-source-window-summary"
-    ));
-    assert!(help.contains("independent-holdout-source-window-summary  Print the compact independent hold-out source windows summary"));
-    assert!(help.contains("independent-holdout-manifest-summary  Print the compact independent hold-out manifest summary"));
-    assert!(help.contains(
-        "independent-holdout-manifest            Alias for independent-holdout-manifest-summary"
-    ));
-    assert!(help.contains("independent-holdout-quarter-day-boundary-summary  Print the compact independent hold-out quarter-day boundary samples summary"));
-    assert!(help.contains("independent-holdout-quarter-day-boundary  Alias for independent-holdout-quarter-day-boundary-summary"));
-    assert!(help
-        .contains("independent-holdout-summary  Print the compact independent hold-out summary"));
-    assert!(help.contains(
-        "independent-holdout-source-summary  Print the compact independent hold-out source summary"
-    ));
-    assert!(help.contains("independent-holdout-high-curvature-summary  Print the compact independent hold-out high-curvature evidence summary"));
-    assert!(help.contains(
-        "holdout-high-curvature-summary  Alias for independent-holdout-high-curvature-summary"
-    ));
-    assert!(
-        help.contains("source-audit-summary      Print the compact VSOP87 source audit summary")
-    );
-    assert!(help.contains(
-        "generated-binary-audit-summary  Print the compact VSOP87 generated binary audit summary"
-    ));
-    assert!(help.contains(
-        "benchmark [--rounds N]    Benchmark the candidate backend on the representative 1500-2500 window corpus and full chart assembly on representative house scenarios"
-    ));
-}
-
-#[test]
-fn benchmark_command_renders_a_report() {
-    let rendered = render_cli(&["benchmark", "--rounds", "1"]).expect("benchmark should render");
-    assert!(rendered.contains("Benchmark report"));
-    assert!(rendered.contains("Summary: backend="));
-}
-
-#[test]
-fn benchmark_command_rejects_duplicate_rounds_arguments() {
-    let error = render_cli(&["benchmark", "--rounds", "1", "--rounds", "2"])
-        .expect_err("benchmark should reject duplicate rounds arguments");
-    assert!(error.contains("duplicate value for --rounds argument"));
-}
-
-#[test]
-fn benchmark_command_rejects_extra_arguments() {
-    let error = render_cli(&["benchmark", "--rounds", "1", "extra"])
-        .expect_err("benchmark should reject extra arguments");
-    assert_eq!(error, "unknown argument: extra");
-}
-
-#[test]
-fn chart_command_renders_bodies() {
-    let rendered = render_chart(&["--jd", "2451545.0", "--body", "Sun", "--body", "Moon"])
-        .expect("chart should render");
-    assert!(rendered.contains("Backend:"));
-    assert!(rendered.contains("Sun"));
-    assert!(rendered.contains("Moon"));
-    assert!(rendered.contains("Apparentness: Mean"));
-    assert!(rendered.contains("Sign summary:"));
-}
-
-#[test]
-fn chart_command_rejects_apparent_positions_until_supported() {
-    let error = render_chart(&["--jd", "2451545.0", "--apparent", "--body", "Sun"])
-        .expect_err("current first-party backends should reject apparent requests");
-    assert!(error.contains("UnsupportedApparentness"));
-    assert!(error.contains("mean-state") || error.contains("mean geometric"));
-}
-
-#[test]
-fn chart_command_renders_aspect_information() {
-    let rendered = render_chart(&["--jd", "2451545.0", "--body", "Sun", "--body", "Moon"])
-        .expect("chart should render");
-    assert!(rendered.contains("Aspect summary: 1 Sextile"));
-    assert!(rendered.contains("Aspects:"));
-    assert!(rendered.contains("Sun Sextile Moon"));
-}
-
-#[test]
-fn chart_command_can_convert_utc_to_tt_with_caller_supplied_delta_t() {
-    let rendered = render_chart(&[
-        "--jd",
-        "2451545.0",
-        "--utc",
-        "--tt-offset-seconds",
-        "64.184",
-        "--body",
-        "Sun",
-    ])
-    .expect("UTC chart should convert to TT with an explicit offset");
-    assert!(rendered.contains("Instant: JD 2451545"));
-    assert!(rendered.contains("(TT)"));
-    assert!(rendered.contains("Sun"));
-}
-
-#[test]
-fn chart_command_can_convert_utc_to_tt_with_explicit_alias() {
-    let rendered = render_chart(&[
-        "--jd",
-        "2451545.0",
-        "--utc",
-        "--tt-from-utc-offset-seconds",
-        "64.184",
-        "--body",
-        "Sun",
-    ])
-    .expect("UTC chart should convert to TT with the explicit UTC alias");
-    assert!(rendered.contains("Instant: JD 2451545"));
-    assert!(rendered.contains("(TT)"));
-    assert!(rendered.contains("Sun"));
-}
-
-#[test]
-fn chart_command_can_convert_ut1_to_tt_with_explicit_alias() {
-    let rendered = render_chart(&[
-        "--jd",
-        "2451545.0",
-        "--ut1",
-        "--tt-from-ut1-offset-seconds",
-        "64.184",
-        "--body",
-        "Sun",
-    ])
-    .expect("UT1 chart should convert to TT with the explicit UT1 alias");
-    assert!(rendered.contains("Instant: JD 2451545"));
-    assert!(rendered.contains("(TT)"));
-    assert!(rendered.contains("Sun"));
-}
-
-#[test]
-fn chart_command_can_render_tdb_tagged_instant() {
-    let rendered = render_chart(&["--jd", "2451545.0", "--tdb", "--body", "Sun"])
-        .expect("chart should render with a TDB-tagged instant");
-    assert!(
-        rendered.contains("Instant: JD 2451545 (TDB)")
-            || rendered.contains("Instant: JD 2451545.0 (TDB)")
-    );
-    assert!(rendered.contains("Apparentness: Mean"));
-}
-
-#[test]
-fn chart_command_can_convert_tdb_to_tt_with_signed_offset() {
-    let rendered = render_chart(&[
-        "--jd",
-        "2451545.0",
-        "--tdb",
-        "--tt-from-tdb-offset-seconds",
-        "-0.001657",
-        "--body",
-        "Sun",
-    ])
-    .expect("TDB-tagged chart should accept a signed TT-TDB offset");
-    assert!(rendered.contains("Instant: JD"));
-    assert!(rendered.contains("(TT)"));
-}
-
-#[test]
-fn chart_command_can_convert_tt_to_tdb_with_explicit_tt_source_offset() {
-    let rendered = render_chart(&[
-        "--jd",
-        "2451545.0",
-        "--tt",
-        "--tdb-from-tt-offset-seconds",
-        "-0.001657",
-        "--body",
-        "Sun",
-    ])
-    .expect("TT-tagged chart should accept an explicit TT-to-TDB offset flag");
-    assert!(rendered.contains("Instant: JD"));
-    assert!(rendered.contains("(TDB)"));
-}
-
-#[test]
-fn chart_command_can_convert_utc_to_tdb_with_explicit_alias() {
-    let rendered = render_chart(&[
-        "--jd",
-        "2451545.0",
-        "--utc",
-        "--tt-offset-seconds",
-        "64.184",
-        "--tdb-from-utc-offset-seconds",
-        "-0.001657",
-        "--body",
-        "Sun",
-    ])
-    .expect("UTC-tagged chart should accept an explicit UTC-to-TDB alias");
-    assert!(rendered.contains("Instant: JD"));
-    assert!(rendered.contains("(TDB)"));
-}
-
-#[test]
-fn chart_command_can_convert_ut1_to_tdb_with_explicit_alias() {
-    let rendered = render_chart(&[
-        "--jd",
-        "2451545.0",
-        "--ut1",
-        "--tt-offset-seconds",
-        "64.184",
-        "--tdb-from-ut1-offset-seconds",
-        "-0.001657",
-        "--body",
-        "Sun",
-    ])
-    .expect("UT1-tagged chart should accept an explicit UT1-to-TDB alias");
-    assert!(rendered.contains("Instant: JD"));
-    assert!(rendered.contains("(TDB)"));
-}
-
-#[test]
-fn chart_command_rejects_conflicting_tdb_offset_aliases() {
-    let error = render_chart(&[
-        "--jd",
-        "2451545.0",
-        "--tt",
-        "--tdb-offset-seconds",
-        "-0.001657",
-        "--tdb-from-tt-offset-seconds",
-        "-0.001657",
-        "--body",
-        "Sun",
-    ])
-    .expect_err("TT-tagged chart requests should reject conflicting TDB-TT aliases");
-    assert!(error.contains("conflicting TDB-TT offset flags"));
-}
-
-#[test]
-fn chart_command_rejects_conflicting_tdb_offset_aliases_in_either_order() {
-    let error = render_chart(&[
-        "--jd",
-        "2451545.0",
-        "--tt",
-        "--tdb-from-tt-offset-seconds",
-        "-0.001657",
-        "--tdb-offset-seconds",
-        "-0.001657",
-        "--body",
-        "Sun",
-    ])
-    .expect_err(
-        "TT-tagged chart requests should reject conflicting TDB-TT aliases regardless of order",
-    );
-    assert!(error.contains("conflicting TDB-TT offset flags"));
-}
-
-#[test]
-fn chart_command_rejects_repeated_tt_offset_flags() {
-    let error = render_chart(&[
-        "--jd",
-        "2451545.0",
-        "--utc",
-        "--tt-offset-seconds",
-        "64.184",
-        "--tt-offset-seconds",
-        "65.0",
-        "--body",
-        "Sun",
-    ])
-    .expect_err("UTC-tagged chart requests should reject duplicate TT offset flags");
-    assert!(error.contains("conflicting TT offset flags"));
-}
-
-#[test]
-fn chart_command_rejects_repeated_tt_offset_aliases() {
-    let error = render_chart(&[
-        "--jd",
-        "2451545.0",
-        "--utc",
-        "--tt-offset-seconds",
-        "64.184",
-        "--tt-from-utc-offset-seconds",
-        "65.0",
-        "--body",
-        "Sun",
-    ])
-    .expect_err("UTC-tagged chart requests should reject duplicate TT offset aliases");
-    assert!(error.contains("conflicting TT offset flags"));
-}
-
-#[test]
-fn chart_command_rejects_repeated_tdb_offset_flags() {
-    let error = render_chart(&[
-        "--jd",
-        "2451545.0",
-        "--tt",
-        "--tdb-offset-seconds",
-        "-0.001657",
-        "--tdb-offset-seconds",
-        "-0.002",
-        "--body",
-        "Sun",
-    ])
-    .expect_err("TT-tagged chart requests should reject duplicate TDB-TT offset flags");
-    assert!(error.contains("conflicting TDB-TT offset flags"));
-}
-
-#[test]
-fn chart_command_rejects_repeated_time_scale_flags_even_when_the_same_scale_is_reused() {
-    let error = render_chart(&["--jd", "2451545.0", "--tt", "--tt", "--body", "Sun"])
-        .expect_err("chart requests should reject duplicate time-scale tags");
-    assert!(error.contains("conflicting time-scale flags"));
-}
-
-#[test]
-fn chart_command_rejects_repeated_apparentness_flags_even_when_the_same_mode_is_reused() {
-    let error = render_chart(&["--jd", "2451545.0", "--mean", "--mean", "--body", "Sun"])
-        .expect_err("chart requests should reject duplicate apparentness tags");
-    assert!(error.contains("conflicting apparentness flags"));
-}
-
-#[test]
-fn chart_command_rejects_tdb_offsets_for_tdb_tagged_instants() {
-    let error = render_chart(&[
-        "--jd",
-        "2451545.0",
-        "--tdb",
-        "--tdb-offset-seconds",
-        "-0.001657",
-        "--body",
-        "Sun",
-    ])
-    .expect_err("TDB-tagged chart requests should reject a caller-supplied TDB-TT offset");
-    assert!(error.contains("--tdb-offset-seconds"));
-}
-
-#[test]
-fn chart_command_rejects_tdb_from_tt_offsets_for_utc_tagged_instants() {
-    let error = render_chart(&[
-        "--jd",
-        "2451545.0",
-        "--utc",
-        "--tt-offset-seconds",
-        "64.184",
-        "--tdb-from-tt-offset-seconds",
-        "-0.001657",
-        "--body",
-        "Sun",
-    ])
-    .expect_err("UTC-tagged chart requests should reject the TT-only TDB offset alias");
-    assert!(error.contains("--tdb-from-tt-offset-seconds"));
-}
-
-#[test]
-fn chart_command_can_convert_tt_to_tdb_with_signed_offset() {
-    let rendered = render_chart(&[
-        "--jd",
-        "2451545.0",
-        "--tt",
-        "--tdb-offset-seconds",
-        "-0.001657",
-        "--body",
-        "Sun",
-    ])
-    .expect("TT-tagged chart should accept a signed TDB-TT offset");
-    assert!(rendered.contains("Instant: JD"));
-    assert!(rendered.contains("(TDB)"));
-}
-
-#[test]
-fn chart_command_can_convert_utc_to_tdb_with_signed_offset() {
-    let rendered = render_chart(&[
-        "--jd",
-        "2451545.0",
-        "--utc",
-        "--tt-offset-seconds",
-        "64.184",
-        "--tdb-offset-seconds",
-        "-0.001657",
-        "--body",
-        "Sun",
-    ])
-    .expect("UTC chart should accept a signed TDB-TT offset");
-    assert!(rendered.contains("Instant: JD 2451545"));
-    assert!(rendered.contains("(TDB)"));
-}
-
-#[test]
-fn chart_command_rejects_tt_offsets_for_tt_tagged_instants() {
-    let error = render_chart(&[
-        "--jd",
-        "2451545.0",
-        "--tt-offset-seconds",
-        "64.184",
-        "--body",
-        "Sun",
-    ])
-    .expect_err("TT-tagged chart requests should reject a caller-supplied TT offset");
-    assert!(error.contains("--tt-offset-seconds"));
-}
-
-#[test]
-fn chart_command_rejects_tt_offsets_for_tdb_tagged_instants() {
-    let error = render_chart(&[
-        "--jd",
-        "2451545.0",
-        "--tdb",
-        "--tt-offset-seconds",
-        "64.184",
-        "--body",
-        "Sun",
-    ])
-    .expect_err("TDB-tagged chart requests should reject a caller-supplied TT offset");
-    assert!(error.contains("--tt-offset-seconds"));
-}
-
-#[test]
-fn chart_command_rejects_tdb_retagging_offsets_for_utc_tagged_instants() {
-    let error = render_chart(&[
-        "--jd",
-        "2451545.0",
-        "--utc",
-        "--tt-offset-seconds",
-        "64.184",
-        "--tt-from-tdb-offset-seconds",
-        "-0.001657",
-        "--body",
-        "Sun",
-    ])
-    .expect_err("UTC-tagged chart requests should reject a TDB-to-TT retagging offset");
-    assert!(error.contains("--tt-from-tdb-offset-seconds"));
-}
-
-#[test]
-fn chart_command_can_convert_ut1_to_tdb_with_caller_supplied_offsets() {
-    let rendered = render_chart(&[
-        "--jd",
-        "2451545.0",
-        "--ut1",
-        "--tt-offset-seconds",
-        "64.184",
-        "--tdb-offset-seconds",
-        "0.001657",
-        "--body",
-        "Sun",
-    ])
-    .expect("UT1 chart should convert to TDB with explicit offsets");
-    assert!(rendered.contains("Instant: JD 2451545"));
-    assert!(rendered.contains("(TDB)"));
-    assert!(rendered.contains("Sun"));
-}
-
-#[test]
-fn chart_command_accepts_sidereal_ayanamsa() {
-    let rendered = render_chart(&["--jd", "2451545.0", "--ayanamsa", "Lahiri", "--body", "Sun"])
-        .expect("sidereal chart should render");
-    assert!(rendered.contains("Sidereal"));
-    assert!(rendered.contains("Lahiri"));
-}
-
-#[test]
-fn chart_command_can_render_house_information() {
-    let rendered = render_chart(&[
-        "--jd",
-        "2451545.0",
-        "--lat",
-        "0.0",
-        "--lon",
-        "0.0",
-        "--house-system",
-        "Whole Sign",
-        "--body",
-        "Sun",
-    ])
-    .expect("house-aware chart should render");
-    assert!(rendered.contains("House system:"));
-    assert!(rendered.contains("House cusps:"));
-    assert!(rendered.contains("Sun"));
-    assert!(rendered.contains(" 1:"));
-}
-
-#[test]
-fn chart_command_accepts_custom_ayanamsa_definitions() {
-    for (label, offset) in [
-        ("True Balarama", 12.5),
-        ("Aphoric", -3.25),
-        ("Takra", 0.125),
-    ] {
-        let ayanamsa = format!("custom:{label}|2451545.0|{offset}");
-        let rendered = render_chart(&[
-            "--jd",
-            "2451545.0",
-            "--ayanamsa",
-            &ayanamsa,
-            "--body",
-            "Sun",
-        ])
-        .expect("custom ayanamsa chart should render");
-
-        assert!(rendered.contains("Sidereal"));
-        assert!(rendered.contains(label));
-        assert!(rendered.contains(&offset.to_string()));
-        assert!(rendered.contains("Custom ayanamsa definition supplied via the CLI"));
-    }
-}
-
-#[test]
-fn parse_ayanamsa_accepts_custom_definition_labels() {
-    for (label, offset) in [
-        ("True Balarama", 12.5),
-        ("Aphoric", -3.25),
-        ("Takra", 0.125),
-    ] {
-        let definition = format!("custom-definition:{label}|2451545.0|{offset}");
-        let custom = parse_ayanamsa(&definition).expect("custom ayanamsa should parse");
-
-        assert_eq!(
-            custom,
-            Ayanamsa::Custom(CustomAyanamsa {
-                name: label.to_owned(),
-                description: Some("Custom ayanamsa definition supplied via the CLI".to_owned()),
-                epoch: Some(JulianDay::from_days(2_451_545.0)),
-                offset_degrees: Some(Angle::from_degrees(offset)),
-            })
-        );
-    }
-}
-
-#[test]
-fn parse_ayanamsa_rejects_padded_custom_definition_names() {
-    let error =
-        parse_ayanamsa("custom: True Balarama|2451545.0|12.5").expect_err("padding should fail");
-    assert_eq!(
-        error,
-        "custom ayanamsa name must not have leading or trailing whitespace"
-    );
-}
-
-#[test]
-fn chart_command_routes_selected_asteroids_via_jpl_fallback() {
-    let rendered = render_chart(&["--jd", "2451545.0", "--body", "Ceres"])
-        .expect("asteroid chart should render");
-    assert!(rendered.contains("Ceres"));
-    assert!(rendered.contains("Backend:"));
-}
-
-#[test]
-fn parse_body_accepts_lunar_apogee_and_perigee_labels() {
-    assert_eq!(
-        parse_body(Some("mean apogee")).unwrap(),
-        CelestialBody::MeanApogee
-    );
-    assert_eq!(
-        parse_body(Some("true apogee")).unwrap(),
-        CelestialBody::TrueApogee
-    );
-    assert_eq!(
-        parse_body(Some("mean perigee")).unwrap(),
-        CelestialBody::MeanPerigee
-    );
-    assert_eq!(
-        parse_body(Some("true perigee")).unwrap(),
-        CelestialBody::TruePerigee
-    );
-}
-
-#[test]
-fn parse_body_accepts_custom_catalog_designations() {
-    let body = parse_body(Some("asteroid:433-Eros")).expect("custom body should parse");
-    assert_eq!(
-        body,
-        CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros"))
-    );
-    assert_eq!(body.to_string(), "asteroid:433-Eros");
-}
-
-#[test]
-fn parse_body_rejects_padded_custom_catalog_designations() {
-    let error = parse_body(Some("asteroid: 433-Eros")).expect_err("padding should fail");
-    assert_eq!(
-        error,
-        "custom body id designation must not have leading or trailing whitespace"
-    );
-}
-
-#[test]
-fn parse_body_accepts_lunar_nodes() {
-    assert_eq!(
-        parse_body(Some("mean node")).unwrap(),
-        CelestialBody::MeanNode
-    );
-    assert_eq!(
-        parse_body(Some("mean lunar node")).unwrap(),
-        CelestialBody::MeanNode
-    );
-    assert_eq!(
-        parse_body(Some("true node")).unwrap(),
-        CelestialBody::TrueNode
-    );
-    assert_eq!(
-        parse_body(Some("true lunar node")).unwrap(),
-        CelestialBody::TrueNode
-    );
 }
