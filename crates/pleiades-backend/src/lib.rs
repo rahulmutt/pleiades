@@ -69,7 +69,7 @@ mod capabilities;
 mod errors;
 mod identity;
 mod metadata;
-pub mod policy;
+mod policy;
 mod release_body_claims;
 mod request;
 mod result;
