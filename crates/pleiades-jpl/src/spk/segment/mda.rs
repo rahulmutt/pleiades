@@ -158,7 +158,6 @@ fn decode<R: ReadAt + ?Sized>(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::spk::daf::DafFile;
     use crate::spk::segment::evaluate;
     use crate::spk::test_support::{
