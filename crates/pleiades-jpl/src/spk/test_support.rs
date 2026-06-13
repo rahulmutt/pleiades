@@ -124,6 +124,24 @@ pub fn type2_segment_data(init: f64, intlen: f64, rsize: usize, records: &[Vec<f
     data
 }
 
+/// Builds a Type 3 record: [MID, RADIUS, X.., Y.., Z.., dX.., dY.., dZ..].
+pub fn type3_record(
+    mid: f64,
+    radius: f64,
+    x: &[f64],
+    y: &[f64],
+    z: &[f64],
+    dx: &[f64],
+    dy: &[f64],
+    dz: &[f64],
+) -> Vec<f64> {
+    let mut r = vec![mid, radius];
+    for set in [x, y, z, dx, dy, dz] {
+        r.extend_from_slice(set);
+    }
+    r
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

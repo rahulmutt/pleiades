@@ -194,4 +194,36 @@ mod tests {
         assert!((st.position_km[0] - 1.0).abs() < 1e-9);
         assert!((st.velocity_km_s[0] - 0.5).abs() < 1e-9);
     }
+
+    #[test]
+    fn type3_reads_velocity_directly() {
+        use crate::spk::test_support::type3_record;
+        // Position X const 7; velocity X Chebyshev const 9 -> v = 9 (not differentiated).
+        let rec = type3_record(
+            0.0,
+            10.0,
+            &[7.0, 0.0],
+            &[0.0, 0.0],
+            &[0.0, 0.0],
+            &[9.0, 0.0],
+            &[0.0, 0.0],
+            &[0.0, 0.0],
+        );
+        let data = crate::spk::test_support::type2_segment_data(-10.0, 20.0, rec.len(), &[rec]);
+        let blob = crate::spk::test_support::build_daf(&[crate::spk::test_support::SegmentSpec {
+            start_et: -10.0,
+            stop_et: 10.0,
+            target: 499,
+            center: 0,
+            frame: 1,
+            data_type: 3,
+            data,
+            name: "T3".to_string(),
+        }]);
+        let src: &[u8] = &blob;
+        let daf = crate::spk::daf::DafFile::parse(src).unwrap();
+        let st = crate::spk::segment::evaluate(src, daf.endian, &daf.segments[0], 3.0).unwrap();
+        assert!((st.position_km[0] - 7.0).abs() < 1e-9);
+        assert!((st.velocity_km_s[0] - 9.0).abs() < 1e-9);
+    }
 }
