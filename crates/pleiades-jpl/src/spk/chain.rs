@@ -37,7 +37,11 @@ pub fn naif_ids(body: &CelestialBody) -> Vec<i32> {
 /// Accepts a leading integer in the designation as the IAU number and tries
 /// both the old (`2_000_000 + n`) and new (`20_000_000 + n`) schemas.
 fn parse_custom_naif(id: &pleiades_types::CustomBodyId) -> Vec<i32> {
-    let lead: String = id.designation.chars().take_while(|c| c.is_ascii_digit()).collect();
+    let lead: String = id
+        .designation
+        .chars()
+        .take_while(|c| c.is_ascii_digit())
+        .collect();
     match lead.parse::<i32>() {
         Ok(n) if n > 0 => vec![2_000_000 + n, 20_000_000 + n],
         _ => Vec::new(),
@@ -56,12 +60,15 @@ fn position_wrt_ssb(pool: &KernelPool, target: i32, et: f64) -> Result<[f64; 3],
         }
         // Try the segment whose target is `current` and whatever center exists.
         let (state, center) = pool.state_any_center(current, et)?;
-        for i in 0..3 {
-            acc[i] += state.position_km[i];
+        for (a, p) in acc.iter_mut().zip(state.position_km.iter()) {
+            *a += *p;
         }
         current = center;
     }
-    Err(SpkError::new(SpkErrorKind::NoChain, format!("chain from {target} did not reach SSB")))
+    Err(SpkError::new(
+        SpkErrorKind::NoChain,
+        format!("chain from {target} did not reach SSB"),
+    ))
 }
 
 /// Geocentric position (km, ICRF) of `target` = r(target wrt SSB) - r(Earth wrt SSB).
@@ -88,7 +95,9 @@ pub fn icrf_to_ecliptic(position_km: [f64; 3], instant: Instant) -> EclipticCoor
 
 /// Resolves the best NAIF id for `body` and returns geocentric ecliptic coords.
 pub fn ecliptic_for_body(
-    pool: &KernelPool, body: &CelestialBody, instant: Instant,
+    pool: &KernelPool,
+    body: &CelestialBody,
+    instant: Instant,
 ) -> Result<EclipticCoordinates, SpkError> {
     let et = et_seconds_from_instant(instant);
     let candidates = naif_ids(body);
@@ -114,16 +123,21 @@ pub fn et_seconds_from_instant(instant: Instant) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use pleiades_types::{JulianDay, TimeScale};
     use crate::spk::test_support::{build_daf, type2_record, type2_segment_data, SegmentSpec};
+    use pleiades_types::{JulianDay, TimeScale};
 
     fn const_pos_segment(target: i32, center: i32, pos: [f64; 3]) -> SegmentSpec {
-        let rec = type2_record(0.0, 1.0e12,
-            &[pos[0], 0.0], &[pos[1], 0.0], &[pos[2], 0.0]);
+        let rec = type2_record(0.0, 1.0e12, &[pos[0], 0.0], &[pos[1], 0.0], &[pos[2], 0.0]);
         let data = type2_segment_data(-1.0e12, 2.0e12, rec.len(), &[rec]);
         SegmentSpec {
-            start_et: -1.0e12, stop_et: 1.0e12, target, center,
-            frame: 1, data_type: 2, data, name: "C".to_string(),
+            start_et: -1.0e12,
+            stop_et: 1.0e12,
+            target,
+            center,
+            frame: 1,
+            data_type: 2,
+            data,
+            name: "C".to_string(),
         }
     }
 
@@ -131,9 +145,9 @@ mod tests {
     fn geocentric_difference_uses_earth_chain() {
         // body wrt SSB = (100,0,0); Earth wrt SSB = (399 wrt 3)+(3 wrt 0).
         let blob = build_daf(&[
-            const_pos_segment(10, 0, [100.0, 0.0, 0.0]),  // Sun wrt SSB
-            const_pos_segment(399, 3, [0.0, 10.0, 0.0]),  // Earth wrt EMB
-            const_pos_segment(3, 0, [0.0, 5.0, 0.0]),     // EMB wrt SSB
+            const_pos_segment(10, 0, [100.0, 0.0, 0.0]), // Sun wrt SSB
+            const_pos_segment(399, 3, [0.0, 10.0, 0.0]), // Earth wrt EMB
+            const_pos_segment(3, 0, [0.0, 5.0, 0.0]),    // EMB wrt SSB
         ]);
         let mut pool = KernelPool::new();
         pool.add_bytes(blob, "k").unwrap();

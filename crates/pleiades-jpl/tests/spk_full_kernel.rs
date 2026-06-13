@@ -16,13 +16,18 @@ fn de440_reports_coverage_and_resolves_sun() {
     };
     let backend = SpkBackend::builder().add_kernel(&path).unwrap().build();
     let meta = backend.metadata();
-    assert!(meta.nominal_range.start.is_some(), "kernel coverage detected");
+    assert!(
+        meta.nominal_range.start.is_some(),
+        "kernel coverage detected"
+    );
     assert!(backend.supports_body(CelestialBody::Sun));
     assert!(backend.supports_body(CelestialBody::Jupiter));
 
     // J2000.0: the Sun's geocentric ecliptic longitude is ~280.5 degrees.
     let inst = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
-    let res = backend.position(&EphemerisRequest::new(CelestialBody::Sun, inst)).unwrap();
+    let res = backend
+        .position(&EphemerisRequest::new(CelestialBody::Sun, inst))
+        .unwrap();
     let lon = res.ecliptic.unwrap().longitude.degrees();
     assert!((lon - 280.5).abs() < 1.0, "sun lon {lon} near 280.5");
 }

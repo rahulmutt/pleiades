@@ -73,6 +73,7 @@ Commands:
     --mean               Force mean positions for backend queries
     --apparent           Force apparent positions for backend queries
     --body <name>        Use a built-in body or a custom catalog:designation identifier
+  generate-spk-corpus <kernel.bsp> <jd...>  Sample a JPL DE SPK kernel into the corpus CSV
   {}
   help                   Show this help text",
         banner(),

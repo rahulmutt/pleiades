@@ -20,7 +20,10 @@ pub struct SpkBackendBuilder {
 impl SpkBackendBuilder {
     /// Starts an empty builder.
     pub fn new() -> Self {
-        Self { pool: KernelPool::new(), labels: Vec::new() }
+        Self {
+            pool: KernelPool::new(),
+            labels: Vec::new(),
+        }
     }
 
     /// Adds a kernel from a path.
@@ -45,7 +48,10 @@ impl SpkBackendBuilder {
 
     /// Finalises the backend.
     pub fn build(self) -> SpkBackend {
-        SpkBackend { pool: self.pool, labels: self.labels }
+        SpkBackend {
+            pool: self.pool,
+            labels: self.labels,
+        }
     }
 }
 
@@ -134,9 +140,8 @@ impl EphemerisBackend for SpkBackend {
             version: "0.1.0".to_string(),
             family: BackendFamily::ReferenceData,
             provenance: BackendProvenance {
-                summary:
-                    "Pure-Rust JPL DE SPK kernel reader (mean geometric, geocentric ecliptic)"
-                        .to_string(),
+                summary: "Pure-Rust JPL DE SPK kernel reader (mean geometric, geocentric ecliptic)"
+                    .to_string(),
                 data_sources: self.labels.clone(),
             },
             nominal_range: self.nominal_range(),

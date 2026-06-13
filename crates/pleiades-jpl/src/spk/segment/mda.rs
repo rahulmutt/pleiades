@@ -46,7 +46,10 @@ pub fn evaluate_type21<R: ReadAt + ?Sized>(
     let maxdim = tail[0] as usize;
     let numrec = tail[1] as usize;
     if maxdim == 0 || maxdim > 25 {
-        return Err(SpkError::new(SpkErrorKind::Truncated, format!("bad MAXDIM {maxdim}")));
+        return Err(SpkError::new(
+            SpkErrorKind::Truncated,
+            format!("bad MAXDIM {maxdim}"),
+        ));
     }
     decode(src, endian, d, et, maxdim, numrec)
 }
@@ -103,7 +106,10 @@ fn decode<R: ReadAt + ?Sized>(
     let mut tp = delta;
     for j in 0..(kqmax1.saturating_sub(2)) {
         if g[j] == 0.0 {
-            return Err(SpkError::new(SpkErrorKind::NumericalFailure, "zero stepsize"));
+            return Err(SpkError::new(
+                SpkErrorKind::NumericalFailure,
+                "zero stepsize",
+            ));
         }
         fc[j + 1] = tp / g[j];
         wc[j] = delta / g[j];
@@ -153,7 +159,10 @@ fn decode<R: ReadAt + ?Sized>(
         velocity_km_s[c] = refvel[c] + delta * sum;
     }
 
-    Ok(StateVector { position_km, velocity_km_s })
+    Ok(StateVector {
+        position_km,
+        velocity_km_s,
+    })
 }
 
 #[cfg(test)]
@@ -189,7 +198,8 @@ mod tests {
 
     #[test]
     fn type21_zero_differences_is_linear_state() {
-        let data = type21_single_record_segment(25, 100.0, [10.0, 20.0, 30.0], [1.0, 2.0, 3.0], 1000.0);
+        let data =
+            type21_single_record_segment(25, 100.0, [10.0, 20.0, 30.0], [1.0, 2.0, 3.0], 1000.0);
         let blob = build_daf(&[SegmentSpec {
             start_et: 0.0,
             stop_et: 1000.0,

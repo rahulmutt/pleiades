@@ -46,7 +46,7 @@ pub fn build_daf(segments: &[SegmentSpec]) -> Vec<u8> {
         // Pad this segment's data to a whole number of 128-double records.
         let mut block = seg.data.clone();
         let pad = (128 - (block.len() % 128)) % 128;
-        block.extend(std::iter::repeat(0.0).take(pad));
+        block.extend(std::iter::repeat_n(0.0, pad));
         let records_used = block.len() / 128;
         data_records.push(block);
         next_record += records_used;
@@ -125,6 +125,9 @@ pub fn type2_segment_data(init: f64, intlen: f64, rsize: usize, records: &[Vec<f
 }
 
 /// Builds a Type 3 record: [MID, RADIUS, X.., Y.., Z.., dX.., dY.., dZ..].
+// Six per-component coefficient slices plus MID/RADIUS map naturally to the
+// record layout; collapsing them into a struct would obscure the test fixtures.
+#[allow(clippy::too_many_arguments)]
 pub fn type3_record(
     mid: f64,
     radius: f64,
@@ -176,7 +179,7 @@ pub fn type21_single_record_segment(
 
     let mut data = rec;
     data.push(record_epoch); // epoch table (1 entry)
-    // epoch directory: floor(N/100) = 0 entries for N=1.
+                             // epoch directory: floor(N/100) = 0 entries for N=1.
     data.push(maxdim as f64); // MAXDIM (type 21 trailer)
     data.push(1.0); // NUMREC
     data

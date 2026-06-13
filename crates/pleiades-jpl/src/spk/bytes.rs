@@ -38,7 +38,11 @@ impl Endian {
 
     /// Reads the two `i32` integers packed into the 8 bytes at `offset`
     /// (low half first under little-endian, high half second).
-    pub fn packed_i32_pair_at<R: ReadAt + ?Sized>(self, src: &R, offset: usize) -> Result<(i32, i32), SpkError> {
+    pub fn packed_i32_pair_at<R: ReadAt + ?Sized>(
+        self,
+        src: &R,
+        offset: usize,
+    ) -> Result<(i32, i32), SpkError> {
         let first = self.i32_at(src, offset)?;
         let second = self.i32_at(src, offset + 4)?;
         Ok((first, second))

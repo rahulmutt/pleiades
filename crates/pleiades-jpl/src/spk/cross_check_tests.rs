@@ -32,10 +32,16 @@ fn spk_reduction_matches_snapshot_entry_ecliptic() {
         const_seg(399, 3, [0.0, 0.0, 0.0]),
         const_seg(3, 0, [0.0, 0.0, 0.0]),
     ]);
-    let backend = SpkBackend::builder().add_kernel_bytes(blob, "x").unwrap().build();
+    let backend = SpkBackend::builder()
+        .add_kernel_bytes(blob, "x")
+        .unwrap()
+        .build();
     let inst = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
     let res = backend
-        .position(&pleiades_backend::EphemerisRequest::new(CelestialBody::Sun, inst))
+        .position(&pleiades_backend::EphemerisRequest::new(
+            CelestialBody::Sun,
+            inst,
+        ))
         .unwrap();
     let ec = res.ecliptic.unwrap();
 

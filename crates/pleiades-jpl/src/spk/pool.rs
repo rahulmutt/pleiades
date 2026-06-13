@@ -12,6 +12,8 @@ pub struct LoadedKernel {
     pub source: Arc<Vec<u8>>,
     pub endian: Endian,
     pub segments: Vec<SegmentDescriptor>,
+    // Kept for provenance/error context; not read on the current hot path.
+    #[allow(dead_code)]
     pub label: String,
 }
 
@@ -30,7 +32,9 @@ pub struct Coverage {
 impl KernelPool {
     /// Creates an empty pool.
     pub fn new() -> Self {
-        Self { kernels: Vec::new() }
+        Self {
+            kernels: Vec::new(),
+        }
     }
 
     /// Parses and adds a kernel from raw bytes (label is for provenance/errors).
@@ -52,18 +56,28 @@ impl KernelPool {
     /// Loads a kernel from a filesystem path.
     pub fn add_path(&mut self, path: impl AsRef<std::path::Path>) -> Result<(), SpkError> {
         let path = path.as_ref();
-        let bytes = std::fs::read(path)
-            .map_err(|e| SpkError::new(SpkErrorKind::Io, format!("reading {}: {e}", path.display())))?;
+        let bytes = std::fs::read(path).map_err(|e| {
+            SpkError::new(SpkErrorKind::Io, format!("reading {}: {e}", path.display()))
+        })?;
         self.add_bytes(bytes, path.display().to_string())
     }
 
     /// Finds the segment covering `et` for `(target, center)`, if any.
-    fn find_segment(&self, target: i32, center: i32, et: f64)
-        -> Option<(&LoadedKernel, &SegmentDescriptor)> {
+    // Public-shaped reader helper backing `state`; exercised by unit tests.
+    #[allow(dead_code)]
+    fn find_segment(
+        &self,
+        target: i32,
+        center: i32,
+        et: f64,
+    ) -> Option<(&LoadedKernel, &SegmentDescriptor)> {
         for k in &self.kernels {
             for seg in &k.segments {
-                if seg.target == target && seg.center == center
-                    && et >= seg.start_et && et <= seg.stop_et {
+                if seg.target == target
+                    && seg.center == center
+                    && et >= seg.start_et
+                    && et <= seg.stop_et
+                {
                     return Some((k, seg));
                 }
             }
@@ -72,6 +86,9 @@ impl KernelPool {
     }
 
     /// Evaluates `(target, center)` at `et` directly (one segment, no chaining).
+    // Public-shaped direct (target, center) lookup kept for reader completeness;
+    // exercised by unit tests rather than the chaining backend path.
+    #[allow(dead_code)]
     pub fn state(&self, target: i32, center: i32, et: f64) -> Result<StateVector, SpkError> {
         let (k, seg) = self.find_segment(target, center, et).ok_or_else(|| {
             SpkError::new(
@@ -97,12 +114,17 @@ impl KernelPool {
                 }
             }
         }
-        found.then_some(Coverage { start_et: start, stop_et: stop })
+        found.then_some(Coverage {
+            start_et: start,
+            stop_et: stop,
+        })
     }
 
     /// All distinct target ids present across loaded kernels.
     pub fn targets(&self) -> Vec<i32> {
-        let mut ids: Vec<i32> = self.kernels.iter()
+        let mut ids: Vec<i32> = self
+            .kernels
+            .iter()
             .flat_map(|k| k.segments.iter().map(|s| s.target))
             .collect();
         ids.sort_unstable();
@@ -114,8 +136,7 @@ impl KernelPool {
 impl KernelPool {
     /// Finds any segment whose target is `target` and which covers `et`,
     /// returning its evaluated state and the segment's center id.
-    pub fn state_any_center(&self, target: i32, et: f64)
-        -> Result<(StateVector, i32), SpkError> {
+    pub fn state_any_center(&self, target: i32, et: f64) -> Result<(StateVector, i32), SpkError> {
         for k in &self.kernels {
             for seg in &k.segments {
                 if seg.target == target && et >= seg.start_et && et <= seg.stop_et {
@@ -143,25 +164,40 @@ mod tests {
     use crate::spk::test_support::{build_daf, type2_record, type2_segment_data, SegmentSpec};
 
     fn one_segment_kernel(target: i32, start: f64, stop: f64) -> Vec<u8> {
-        let rec = type2_record((start + stop) / 2.0, (stop - start) / 2.0,
-            &[5.0, 0.0], &[0.0, 0.0], &[0.0, 0.0]);
+        let rec = type2_record(
+            (start + stop) / 2.0,
+            (stop - start) / 2.0,
+            &[5.0, 0.0],
+            &[0.0, 0.0],
+            &[0.0, 0.0],
+        );
         let data = type2_segment_data(start, stop - start, rec.len(), &[rec]);
         build_daf(&[SegmentSpec {
-            start_et: start, stop_et: stop, target, center: 0,
-            frame: 1, data_type: 2, data, name: "SEG".to_string(),
+            start_et: start,
+            stop_et: stop,
+            target,
+            center: 0,
+            frame: 1,
+            data_type: 2,
+            data,
+            name: "SEG".to_string(),
         }])
     }
 
     #[test]
     fn pool_routes_state_and_reports_coverage() {
         let mut pool = KernelPool::new();
-        pool.add_bytes(one_segment_kernel(499, -100.0, 100.0), "k1").unwrap();
+        pool.add_bytes(one_segment_kernel(499, -100.0, 100.0), "k1")
+            .unwrap();
         let st = pool.state(499, 0, 0.0).unwrap();
         assert!((st.position_km[0] - 5.0).abs() < 1e-9);
         let cov = pool.coverage_for_target(499).unwrap();
         assert_eq!(cov.start_et, -100.0);
         assert_eq!(cov.stop_et, 100.0);
         assert_eq!(pool.targets(), vec![499]);
-        assert_eq!(pool.state(499, 0, 999.0).unwrap_err().kind, SpkErrorKind::OutOfCoverage);
+        assert_eq!(
+            pool.state(499, 0, 999.0).unwrap_err().kind,
+            SpkErrorKind::OutOfCoverage
+        );
     }
 }

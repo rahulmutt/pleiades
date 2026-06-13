@@ -42,11 +42,17 @@ impl DafFile {
     /// Parses the DAF file record and the full summary/name record chain.
     pub fn parse<R: ReadAt + ?Sized>(src: &R) -> Result<Self, SpkError> {
         if src.len() < RECORD_BYTES {
-            return Err(SpkError::new(SpkErrorKind::Truncated, "file shorter than one record"));
+            return Err(SpkError::new(
+                SpkErrorKind::Truncated,
+                "file shorter than one record",
+            ));
         }
         let idword = src.read_at(0, 8)?;
         if &idword[0..4] != b"DAF/" && idword != b"NAIF/DAF" {
-            return Err(SpkError::new(SpkErrorKind::BadHeader, "missing DAF identification word"));
+            return Err(SpkError::new(
+                SpkErrorKind::BadHeader,
+                "missing DAF identification word",
+            ));
         }
         let locfmt = src.read_at(88, 8)?;
         let endian = match locfmt {
@@ -83,8 +89,15 @@ impl DafFile {
                 let raw = src.read_at(name_base + k * nc, nc)?;
                 let name = String::from_utf8_lossy(raw).trim_end().to_string();
                 segments.push(SegmentDescriptor {
-                    start_et, stop_et, target, center, frame, data_type,
-                    init_addr, final_addr, name,
+                    start_et,
+                    stop_et,
+                    target,
+                    center,
+                    frame,
+                    data_type,
+                    init_addr,
+                    final_addr,
+                    name,
                 });
             }
             rec_no = next;

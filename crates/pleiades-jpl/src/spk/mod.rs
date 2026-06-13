@@ -55,7 +55,10 @@ pub struct SpkError {
 impl SpkError {
     /// Builds a new error.
     pub fn new(kind: SpkErrorKind, message: impl Into<String>) -> Self {
-        Self { kind, message: message.into() }
+        Self {
+            kind,
+            message: message.into(),
+        }
     }
 }
 
@@ -66,6 +69,9 @@ pub trait ReadAt {
     /// Returns `len` bytes starting at `offset`, or `Truncated` if out of range.
     fn read_at(&self, offset: usize, len: usize) -> Result<&[u8], SpkError>;
     /// Convenience: true when empty.
+    // Conventional companion to `len`; part of the trait's public shape even
+    // when no current caller needs it.
+    #[allow(dead_code)]
     fn is_empty(&self) -> bool {
         self.len() == 0
     }
@@ -79,7 +85,10 @@ impl ReadAt for [u8] {
         self.get(offset..offset + len).ok_or_else(|| {
             SpkError::new(
                 SpkErrorKind::Truncated,
-                format!("read of {len} bytes at {offset} exceeds slice length {}", self.len()),
+                format!(
+                    "read of {len} bytes at {offset} exceeds slice length {}",
+                    self.len()
+                ),
             )
         })
     }
@@ -93,6 +102,9 @@ mod tests {
     fn read_at_returns_subslice_and_truncation_error() {
         let data: &[u8] = &[1, 2, 3, 4];
         assert_eq!(data.read_at(1, 2).unwrap(), &[2, 3]);
-        assert_eq!(data.read_at(2, 5).unwrap_err().kind, SpkErrorKind::Truncated);
+        assert_eq!(
+            data.read_at(2, 5).unwrap_err().kind,
+            SpkErrorKind::Truncated
+        );
     }
 }

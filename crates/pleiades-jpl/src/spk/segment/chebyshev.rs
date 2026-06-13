@@ -40,11 +40,11 @@ fn cheb_eval(coeffs: &[f64], s: f64) -> (f64, f64) {
     let mut tkm1 = t[1];
     let mut dkm2 = dt[0];
     let mut dkm1 = dt[1];
-    for k in 2..n {
+    for &ck in coeffs.iter().take(n).skip(2) {
         let tk = 2.0 * s * tkm1 - tkm2;
         let dk = 2.0 * tkm1 + 2.0 * s * dkm1 - dkm2;
-        value += coeffs[k] * tk;
-        deriv += coeffs[k] * dk;
+        value += ck * tk;
+        deriv += ck * dk;
         tkm2 = tkm1;
         tkm1 = tk;
         dkm2 = dkm1;
@@ -67,7 +67,12 @@ fn read_trailer<R: ReadAt + ?Sized>(
 ) -> Result<Trailer, SpkError> {
     // Last 4 doubles: INIT, INTLEN, RSIZE, N at final_addr-3 .. final_addr.
     let t = read_doubles(src, endian, d.final_addr - 3, 4)?;
-    Ok(Trailer { init: t[0], intlen: t[1], rsize: t[2] as usize, n: t[3] as usize })
+    Ok(Trailer {
+        init: t[0],
+        intlen: t[1],
+        rsize: t[2] as usize,
+        n: t[3] as usize,
+    })
 }
 
 fn select_record(tr: &Trailer, et: f64) -> usize {
@@ -107,7 +112,10 @@ fn evaluate_chebyshev<R: ReadAt + ?Sized>(
 ) -> Result<StateVector, SpkError> {
     let tr = read_trailer(src, endian, d)?;
     if tr.n == 0 || tr.rsize < 2 {
-        return Err(SpkError::new(SpkErrorKind::Truncated, "empty chebyshev segment"));
+        return Err(SpkError::new(
+            SpkErrorKind::Truncated,
+            "empty chebyshev segment",
+        ));
     }
     let recno = select_record(&tr, et);
     let rec_addr = d.init_addr + (recno * tr.rsize) as i32;
@@ -132,12 +140,15 @@ fn evaluate_chebyshev<R: ReadAt + ?Sized>(
         }
     }
     if sets == 6 {
-        for axis in 0..3 {
+        for (axis, v_out) in velocity_km_s.iter_mut().enumerate() {
             let (v, _) = cheb_eval(coeff(3 + axis), s);
-            velocity_km_s[axis] = v;
+            *v_out = v;
         }
     }
-    Ok(StateVector { position_km, velocity_km_s })
+    Ok(StateVector {
+        position_km,
+        velocity_km_s,
+    })
 }
 
 #[cfg(test)]
