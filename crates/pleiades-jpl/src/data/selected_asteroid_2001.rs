@@ -1,7 +1,7 @@
 use std::fmt;
 use std::sync::OnceLock;
 
-use super::*;
+use crate::*;
 
 const SELECTED_ASTEROID_SOURCE_2451917_EPOCH: f64 = 2_451_917.5;
 
