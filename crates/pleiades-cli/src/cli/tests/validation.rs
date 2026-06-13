@@ -1,0 +1,215 @@
+//! Tests for validation-report commands and release-profile-identifiers.
+
+use pleiades_core::current_release_profile_identifiers;
+use pleiades_validate::render_cli as validate_render_cli;
+
+use crate::cli::render_cli;
+
+#[test]
+fn validation_report_commands_render_compact_reports() {
+    let release_profiles = current_release_profile_identifiers();
+
+    let report = render_cli(&["report", "--rounds", "1"])
+        .expect("report should render through the primary CLI");
+    assert!(report.contains("Validation report"));
+    assert!(report.contains("Comparison corpus"));
+    assert!(report.contains("release-grade guard: Pluto excluded from tolerance evidence"));
+    assert!(report.contains("Benchmark corpus"));
+    assert!(report.contains("Packaged-data benchmark corpus"));
+
+    let generate_report = render_cli(&["generate-report", "--rounds", "1"])
+        .expect("generate-report should render through the primary CLI");
+    assert!(generate_report.contains("Validation report"));
+    assert!(generate_report.contains("Comparison corpus"));
+
+    let validation_summary =
+        render_cli(&["validation-summary"]).expect("validation summary should render");
+    assert!(validation_summary.contains("Validation report summary"));
+    assert!(validation_summary.contains("Comparison corpus"));
+    assert!(
+        validation_summary.contains("release-grade guard: Pluto excluded from tolerance evidence")
+    );
+    assert!(validation_summary.contains("Release bundle verification: verify-release-bundle"));
+    assert!(
+        validation_summary.contains("Compatibility profile summary: compatibility-profile-summary")
+    );
+    assert!(validation_summary.contains("Release notes summary: release-notes-summary"));
+    assert!(validation_summary.contains("Release checklist summary: release-checklist-summary"));
+    assert!(validation_summary.contains("Release summary: release-summary"));
+    assert!(validation_summary.contains("House validation corpus"));
+    assert!(validation_summary.contains("Benchmark summaries"));
+    assert!(validation_summary.contains("Packaged-data benchmark"));
+
+    let validation_summary_rounds = render_cli(&["validation-summary", "--rounds", "1"])
+        .expect("validation summary should accept explicit rounds");
+    let strip_benchmark_timings = |text: &str| -> String {
+        text.lines()
+            .filter(|line| {
+                !line.contains("ns/")
+                    && !line.contains("throughput")
+                    && !line.contains("per second")
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
+    };
+    let report_summary_rounds = render_cli(&["report-summary", "--rounds", "1"])
+        .expect("report summary should mirror the validation-summary rounds output");
+    let validation_report_summary_rounds =
+        render_cli(&["validation-report-summary", "--rounds", "1"])
+            .expect("validation-report-summary should mirror the validation-summary rounds output");
+    assert_eq!(
+        strip_benchmark_timings(&validation_summary_rounds),
+        strip_benchmark_timings(&report_summary_rounds)
+    );
+    assert_eq!(
+        strip_benchmark_timings(&validation_summary_rounds),
+        strip_benchmark_timings(&validation_report_summary_rounds)
+    );
+    assert_eq!(
+        render_cli(&["validation-summary", "extra"]).unwrap_err(),
+        "unknown argument: extra"
+    );
+
+    let validation_report_summary = render_cli(&["validation-report-summary"])
+        .expect("validation-report-summary should render");
+    assert!(validation_report_summary.contains("Validation report summary"));
+    assert!(validation_report_summary.contains("Comparison corpus"));
+    assert!(
+        validation_report_summary.contains("Release bundle verification: verify-release-bundle")
+    );
+    assert!(validation_report_summary
+        .contains("Compatibility profile summary: compatibility-profile-summary"));
+    assert!(validation_report_summary.contains("Release notes summary: release-notes-summary"));
+    assert!(
+        validation_report_summary.contains("Release checklist summary: release-checklist-summary")
+    );
+    assert!(validation_report_summary.contains("Release summary: release-summary"));
+    assert!(validation_report_summary.contains(
+        &pleiades_jpl::reference_snapshot_2451917_major_body_bridge_summary_for_report()
+    ));
+    assert!(validation_report_summary.contains(
+        &pleiades_jpl::reference_snapshot_2451917_major_body_boundary_summary_for_report()
+    ));
+    assert!(validation_report_summary.contains("Comparison tolerance policy: backend family=Composite; scopes=6 (Luminaries, Major planets, Lunar points, Asteroids, Custom bodies, Pluto fallback (approximate)); limits="));
+    assert!(validation_report_summary.lines().any(|line| {
+        line == format!(
+            "Release profile identifiers: v1 compatibility={}, api-stability={}",
+            release_profiles.compatibility_profile_id, release_profiles.api_stability_profile_id
+        )
+    }));
+    assert!(validation_report_summary.contains("Benchmark summaries"));
+}
+
+#[test]
+fn frame_policy_summary_command_renders_the_shared_frame_semantics_block() {
+    let rendered =
+        render_cli(&["frame-policy-summary"]).expect("frame policy summary should render");
+    assert!(rendered.contains("Frame policy summary"));
+    assert!(rendered.contains("Frame policy: ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported; supported equatorial precision is bounded by the shared mean-obliquity frame round-trip envelope; native sidereal backend output remains unsupported unless a backend explicitly advertises it"));
+    assert_eq!(
+        render_cli(&["frame-policy"]).expect("frame policy alias should render"),
+        rendered
+    );
+
+    for (args, expected) in [
+        (
+            ["time-scale-policy-summary", "extra"],
+            "time-scale-policy-summary does not accept extra arguments",
+        ),
+        (
+            ["time-scale-policy", "extra"],
+            "time-scale-policy does not accept extra arguments",
+        ),
+        (
+            ["utc-convenience-policy-summary", "extra"],
+            "utc-convenience-policy-summary does not accept extra arguments",
+        ),
+        (
+            ["utc-convenience-policy", "extra"],
+            "utc-convenience-policy does not accept extra arguments",
+        ),
+        (
+            ["delta-t-policy-summary", "extra"],
+            "delta-t-policy-summary does not accept extra arguments",
+        ),
+        (
+            ["delta-t-policy", "extra"],
+            "delta-t-policy does not accept extra arguments",
+        ),
+        (
+            ["zodiac-policy-summary", "extra"],
+            "zodiac-policy-summary does not accept extra arguments",
+        ),
+        (
+            ["zodiac-policy", "extra"],
+            "zodiac-policy does not accept extra arguments",
+        ),
+        (
+            ["observer-policy-summary", "extra"],
+            "observer-policy-summary does not accept extra arguments",
+        ),
+        (
+            ["observer-policy", "extra"],
+            "observer-policy does not accept extra arguments",
+        ),
+        (
+            ["apparentness-policy-summary", "extra"],
+            "apparentness-policy-summary does not accept extra arguments",
+        ),
+        (
+            ["apparentness-policy", "extra"],
+            "apparentness-policy does not accept extra arguments",
+        ),
+        (
+            ["native-sidereal-policy-summary", "extra"],
+            "native-sidereal-policy-summary does not accept extra arguments",
+        ),
+        (
+            ["native-sidereal-policy", "extra"],
+            "native-sidereal-policy does not accept extra arguments",
+        ),
+        (
+            ["frame-policy-summary", "extra"],
+            "frame-policy-summary does not accept extra arguments",
+        ),
+        (
+            ["frame-policy", "extra"],
+            "frame-policy does not accept extra arguments",
+        ),
+    ] {
+        assert_eq!(
+            render_cli(&args).expect_err("policy summary should reject extra arguments"),
+            expected
+        );
+    }
+}
+
+#[test]
+fn release_profile_identifiers_summary_command_renders_the_shared_release_profile_identifiers_block(
+) {
+    let rendered = render_cli(&["release-profile-identifiers-summary"])
+        .expect("release-profile identifiers summary should render");
+    assert!(rendered.contains("Release profile identifiers summary"));
+    assert!(rendered.contains("Summary line: v1 compatibility="));
+    assert!(rendered.contains("Compatibility profile: "));
+    assert!(rendered.contains("API stability posture: "));
+    assert_eq!(
+        rendered,
+        validate_render_cli(&["release-profile-identifiers-summary"]).unwrap()
+    );
+    assert_eq!(
+        render_cli(&["release-profile-identifiers"])
+            .expect("release-profile identifiers alias should render"),
+        rendered
+    );
+    assert_eq!(
+        render_cli(&["release-profile-identifiers-summary", "extra"])
+            .expect_err("release-profile identifiers summary should reject extra arguments"),
+        "release-profile-identifiers-summary does not accept extra arguments"
+    );
+    assert_eq!(
+        render_cli(&["release-profile-identifiers", "extra"])
+            .expect_err("release-profile identifiers alias should reject extra arguments"),
+        "release-profile-identifiers does not accept extra arguments"
+    );
+}
