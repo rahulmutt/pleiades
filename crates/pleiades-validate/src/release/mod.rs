@@ -3,7 +3,14 @@
 pub(crate) mod bundle;
 pub(crate) mod bundle_verify;
 mod checklist;
+pub(crate) mod notes;
 mod workspace_audit;
+
+pub(crate) use notes::{
+    render_release_checklist_summary_text, render_release_checklist_text,
+    render_release_notes_summary_text, render_release_notes_text, render_release_smoke_text,
+    render_release_summary_text,
+};
 
 pub use bundle::{render_release_bundle, ReleaseBundle, ReleaseBundleError};
 pub(crate) use bundle_verify::{
