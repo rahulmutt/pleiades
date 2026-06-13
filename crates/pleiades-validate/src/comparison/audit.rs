@@ -116,7 +116,6 @@ impl RegressionArchive {
     }
 }
 
-
 pub(crate) fn comparison_audit_summary(report: &ComparisonReport) -> ComparisonAuditSummary {
     let tolerance_summaries = report.tolerance_summaries();
     let body_count = tolerance_summaries.len();

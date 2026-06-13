@@ -4,7 +4,6 @@ use std::fmt;
 
 use crate::*;
 
-
 /// A compact summary of the compatibility-profile verification posture.
 const RELEASE_POSTURE_SUMMARY: &str = "Release posture: baseline milestone preserved, release additions explicit, custom definitions tracked, caveats documented";
 
@@ -898,7 +897,9 @@ pub(crate) fn is_intentional_custom_definition_ayanamsa_homograph(label: &str) -
     INTENTIONAL_CUSTOM_DEFINITION_AYANAMSA_HOMOGRAPHS.contains(&label)
 }
 
-pub(crate) fn verify_custom_definition_labels(labels: &[&'static str]) -> Result<usize, EphemerisError> {
+pub(crate) fn verify_custom_definition_labels(
+    labels: &[&'static str],
+) -> Result<usize, EphemerisError> {
     validate_custom_definition_labels(labels)
         .map_err(|error| EphemerisError::new(EphemerisErrorKind::InvalidRequest, error.to_string()))
 }

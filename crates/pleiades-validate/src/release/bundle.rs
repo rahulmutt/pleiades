@@ -6,7 +6,6 @@ use std::path::Path;
 use super::bundle_verify::*;
 use crate::*;
 
-
 /// A generated release bundle containing the compatibility profile, release-profile
 /// identifiers, release notes, release checklist, backend matrix, API posture,
 /// API stability summary, comparison-corpus summary, comparison-envelope summary,
@@ -4009,7 +4008,9 @@ impl ParsedReleaseBundleManifest {
     }
 }
 
-pub(crate) fn ensure_release_bundle_directory_contents(output_dir: &Path) -> Result<(), ReleaseBundleError> {
+pub(crate) fn ensure_release_bundle_directory_contents(
+    output_dir: &Path,
+) -> Result<(), ReleaseBundleError> {
     let expected_entries: BTreeSet<String> = [
         "compatibility-profile.txt",
         "compatibility-profile-summary.txt",
@@ -4500,7 +4501,10 @@ pub(crate) fn ensure_release_bundle_manifest_is_canonical(
     Ok(())
 }
 
-pub(crate) fn ensure_release_bundle_regular_file(path: &Path, label: &str) -> Result<(), ReleaseBundleError> {
+pub(crate) fn ensure_release_bundle_regular_file(
+    path: &Path,
+    label: &str,
+) -> Result<(), ReleaseBundleError> {
     match fs::symlink_metadata(path) {
         Ok(metadata) if metadata.file_type().is_file() => Ok(()),
         Ok(_) => Err(ReleaseBundleError::Verification(format!(
@@ -4512,7 +4516,10 @@ pub(crate) fn ensure_release_bundle_regular_file(path: &Path, label: &str) -> Re
     }
 }
 
-pub(crate) fn read_required_bundle_text(path: &Path, label: &str) -> Result<String, ReleaseBundleError> {
+pub(crate) fn read_required_bundle_text(
+    path: &Path,
+    label: &str,
+) -> Result<String, ReleaseBundleError> {
     fs::read_to_string(path).map_err(|error| {
         if error.kind() == std::io::ErrorKind::NotFound {
             ReleaseBundleError::Verification(format!("missing {label} file: {}", path.display()))

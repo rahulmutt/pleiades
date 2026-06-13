@@ -626,7 +626,10 @@ fn manifest_assignment_value(line: &str) -> Option<&str> {
     Some(value.trim())
 }
 
-pub(crate) fn audit_workspace_manifest_publish_text(path: &Path, text: &str) -> Vec<WorkspaceAuditViolation> {
+pub(crate) fn audit_workspace_manifest_publish_text(
+    path: &Path,
+    text: &str,
+) -> Vec<WorkspaceAuditViolation> {
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
     enum Section {
         Other,

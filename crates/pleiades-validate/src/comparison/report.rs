@@ -170,7 +170,6 @@ impl fmt::Display for ComparisonReport {
     }
 }
 
-
 impl ComparisonReport {
     /// Returns the structured comparison-audit summary used by compact report surfaces.
     pub fn comparison_audit_summary(&self) -> ComparisonAuditSummary {
@@ -772,7 +771,9 @@ fn comparison_tolerance_scope_for_class(class: BodyClass) -> ComparisonTolerance
     }
 }
 
-pub(crate) fn comparison_tolerance_scope_for_body(body: &CelestialBody) -> ComparisonToleranceScope {
+pub(crate) fn comparison_tolerance_scope_for_body(
+    body: &CelestialBody,
+) -> ComparisonToleranceScope {
     if matches!(body, CelestialBody::Pluto) {
         return ComparisonToleranceScope::Pluto;
     }

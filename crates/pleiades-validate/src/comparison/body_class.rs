@@ -763,4 +763,3 @@ impl fmt::Display for BodyClassSummary {
         f.write_str(&self.summary_line())
     }
 }
-

@@ -5528,7 +5528,10 @@ pub(crate) fn verify_release_bundle_internal(
     Ok(bundle)
 }
 
-pub(crate) fn parse_manifest_string(text: &str, prefix: &str) -> Result<String, ReleaseBundleError> {
+pub(crate) fn parse_manifest_string(
+    text: &str,
+    prefix: &str,
+) -> Result<String, ReleaseBundleError> {
     extract_prefixed_value(text, prefix).map(|value| value.to_string())
 }
 
@@ -5622,7 +5625,10 @@ pub(crate) fn parse_checksum_value(text: &str, label: &str) -> Result<u64, Relea
     })
 }
 
-pub(crate) fn extract_prefixed_value<'a>(text: &'a str, prefix: &str) -> Result<&'a str, ReleaseBundleError> {
+pub(crate) fn extract_prefixed_value<'a>(
+    text: &'a str,
+    prefix: &str,
+) -> Result<&'a str, ReleaseBundleError> {
     let mut matches = text.lines().filter_map(|line| line.strip_prefix(prefix));
 
     let Some(value) = matches.next() else {

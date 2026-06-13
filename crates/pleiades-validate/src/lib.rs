@@ -27,43 +27,7 @@ mod report;
 pub use render::{banner, render_cli};
 
 #[cfg(test)]
-pub(crate) use comparison::body_class::{BodyClassSummaryValidationError};
-#[cfg(test)]
-pub(crate) use compatibility::{INTENTIONAL_CUSTOM_DEFINITION_AYANAMSA_HOMOGRAPHS, ensure_profile_descriptor_metadata, ensure_unique_profile_label, is_intentional_custom_definition_ayanamsa_homograph, verify_ayanamsa_aliases, verify_custom_definition_labels, verify_house_system_aliases, verify_profile_catalog_partitions_are_disjoint, verify_profile_text_section, verify_profile_text_sections_are_disjoint};
-#[cfg(test)]
-pub(crate) use release::bundle_verify::{ensure_backend_matrix_report_matches_current_rendering, ensure_backend_matrix_summary_matches_current_rendering, ensure_benchmark_corpus_summary_matches_current_rendering, ensure_catalog_inventory_alignment, ensure_chart_benchmark_corpus_summary_matches_current_rendering, ensure_comparison_snapshot_source_summary_matches_current_rendering, ensure_custom_definition_ayanamsa_labels_alignment, ensure_independent_holdout_source_window_summary_matches_current_rendering, ensure_lunar_theory_catalog_validation_summary_matches_current_rendering, ensure_packaged_artifact_generation_manifest_summary_matches_current_rendering, ensure_packaged_artifact_normalized_intermediate_summary_matches_current_rendering, ensure_packaged_artifact_phase2_alignment_matches_source_fit_holdout_sync, ensure_packaged_artifact_phase2_corpus_alignment_summary_matches_current_rendering, ensure_packaged_artifact_source_fit_holdout_sync_summary_matches_current_rendering, ensure_packaged_artifact_target_threshold_phase2_alignment_matches_source_fit_holdout_sync, ensure_packaged_artifact_target_threshold_summary_matches_current_rendering, ensure_production_generation_source_summary_matches_source_windows, ensure_production_generation_source_window_summary_matches_current_rendering, ensure_reference_snapshot_bridge_day_summary_matches_current_rendering, ensure_reference_snapshot_manifest_summary_matches_current_rendering, ensure_reference_snapshot_source_summary_matches_current_rendering, ensure_reference_snapshot_source_window_summary_matches_current_rendering, ensure_release_house_validation_summary_matches_current_rendering, ensure_release_notes_summary_matches_current_rendering, ensure_release_profile_identifiers_alignment, ensure_release_profile_identifiers_summary_matches_current_rendering, ensure_release_profile_line_alignment, ensure_release_profile_summary_alignment, ensure_request_policy_summary_matches_current_rendering, ensure_request_semantics_summary_matches_current_rendering, ensure_request_surface_summary_matches_current_rendering};
-#[cfg(test)]
-pub(crate) use release::workspace_audit::{audit_build_script_path, audit_lockfile_text, audit_manifest_text, audit_publishable_crate_files, audit_publishable_manifest_text, audit_tool_manifest_text, audit_workspace_manifest_publish_text, manifest_declares_publish_false, manifest_is_package, manifest_package_name};
-#[cfg(test)]
-pub(crate) use render::cli::{validate_release_gate_at};
-pub(crate) use render::text::*;
-pub use render::text::{
-    benchmark_backend, comparison_envelope_summary, comparison_median_envelope,
-    current_request_surface_summary,
-    comparison_tail_envelope, mean_obliquity_frame_round_trip_sample_corpus,
-    mean_obliquity_frame_round_trip_summary, packaged_artifact_fit_sample_classes_summary_for_report,
-    render_api_stability_summary, render_ayanamsa_audit_summary, render_backend_matrix_report,
-    render_backend_matrix_summary, render_benchmark_matrix_summary, render_benchmark_report,
-    render_catalog_inventory_summary, render_catalog_posture_summary, render_comparison_audit_report,
-    render_comparison_audit_summary, render_comparison_report, render_compatibility_caveats_summary,
-    render_compatibility_profile_summary, render_custom_definition_ayanamsa_labels_summary,
-    render_delta_t_policy_summary, render_house_latitude_sensitive_failure_modes_summary,
-    render_known_gaps_summary, render_native_dependency_audit_summary,
-    render_release_ayanamsa_canonical_names_summary, render_release_checklist,
-    render_release_checklist_summary, render_release_house_system_canonical_names_summary,
-    render_release_notes, render_release_notes_summary, render_release_profile_identifiers_summary,
-    render_release_summary, render_request_policy_summary, render_request_surface_summary,
-    render_target_ayanamsa_scope_summary, render_target_house_scope_summary, render_validation_report,
-    render_validation_report_summary, render_workspace_audit_summary, BodyToleranceSummary,
-    ComparisonEnvelopeSummary, ComparisonMedianEnvelope, ComparisonPercentileEnvelope,
-    MeanObliquityFrameRoundTripSummary, RequestSurfaceSummary,
-};
-pub use report::{BenchmarkReport, ValidationReport};
-use compatibility::{has_surrounding_whitespace, summarize_validation_reference_points};
-pub use compatibility::{
-    compatibility_profile_verification_summary, verify_compatibility_profile,
-    CompatibilityProfileVerificationSummary,
-};
+pub(crate) use comparison::body_class::BodyClassSummaryValidationError;
 use comparison::validate_comparison_tolerance;
 use comparison::{
     body_class, body_class_summaries, body_class_tolerance_summaries, comparison_audit_summary,
@@ -73,13 +37,25 @@ use comparison::{
     BodyClassToleranceSummary,
 };
 pub use comparison::{
-    comparison_tolerance_catalog_entries, compare_backends, default_candidate_backend,
-    default_reference_backend, BodyComparisonSummary,
-    ComparisonAuditSummary, ComparisonReport, ComparisonSample, ComparisonSummary,
-    ComparisonTolerance, ComparisonToleranceEntry, ComparisonTolerancePolicySummary,
-    ComparisonToleranceScope, ComparisonToleranceScopeCoverageSummary, RegressionArchive,
-    RegressionFinding,
+    compare_backends, comparison_tolerance_catalog_entries, default_candidate_backend,
+    default_reference_backend, BodyComparisonSummary, ComparisonAuditSummary, ComparisonReport,
+    ComparisonSample, ComparisonSummary, ComparisonTolerance, ComparisonToleranceEntry,
+    ComparisonTolerancePolicySummary, ComparisonToleranceScope,
+    ComparisonToleranceScopeCoverageSummary, RegressionArchive, RegressionFinding,
 };
+pub use compatibility::{
+    compatibility_profile_verification_summary, verify_compatibility_profile,
+    CompatibilityProfileVerificationSummary,
+};
+#[cfg(test)]
+pub(crate) use compatibility::{
+    ensure_profile_descriptor_metadata, ensure_unique_profile_label,
+    is_intentional_custom_definition_ayanamsa_homograph, verify_ayanamsa_aliases,
+    verify_custom_definition_labels, verify_house_system_aliases,
+    verify_profile_catalog_partitions_are_disjoint, verify_profile_text_section,
+    verify_profile_text_sections_are_disjoint, INTENTIONAL_CUSTOM_DEFINITION_AYANAMSA_HOMOGRAPHS,
+};
+use compatibility::{has_surrounding_whitespace, summarize_validation_reference_points};
 use corpus::benchmark_timing_corpus;
 pub use corpus::{
     benchmark_corpus, default_corpus, release_grade_corpus, CorpusSummary, ValidationCorpus,
@@ -87,6 +63,45 @@ pub use corpus::{
 pub use provenance::{
     benchmark_provenance_text, workspace_provenance, workspace_provenance_summary_for_report,
     WorkspaceProvenance, WorkspaceProvenanceValidationError,
+};
+#[cfg(test)]
+pub(crate) use release::bundle_verify::{
+    ensure_backend_matrix_report_matches_current_rendering,
+    ensure_backend_matrix_summary_matches_current_rendering,
+    ensure_benchmark_corpus_summary_matches_current_rendering, ensure_catalog_inventory_alignment,
+    ensure_chart_benchmark_corpus_summary_matches_current_rendering,
+    ensure_comparison_snapshot_source_summary_matches_current_rendering,
+    ensure_custom_definition_ayanamsa_labels_alignment,
+    ensure_independent_holdout_source_window_summary_matches_current_rendering,
+    ensure_lunar_theory_catalog_validation_summary_matches_current_rendering,
+    ensure_packaged_artifact_generation_manifest_summary_matches_current_rendering,
+    ensure_packaged_artifact_normalized_intermediate_summary_matches_current_rendering,
+    ensure_packaged_artifact_phase2_alignment_matches_source_fit_holdout_sync,
+    ensure_packaged_artifact_phase2_corpus_alignment_summary_matches_current_rendering,
+    ensure_packaged_artifact_source_fit_holdout_sync_summary_matches_current_rendering,
+    ensure_packaged_artifact_target_threshold_phase2_alignment_matches_source_fit_holdout_sync,
+    ensure_packaged_artifact_target_threshold_summary_matches_current_rendering,
+    ensure_production_generation_source_summary_matches_source_windows,
+    ensure_production_generation_source_window_summary_matches_current_rendering,
+    ensure_reference_snapshot_bridge_day_summary_matches_current_rendering,
+    ensure_reference_snapshot_manifest_summary_matches_current_rendering,
+    ensure_reference_snapshot_source_summary_matches_current_rendering,
+    ensure_reference_snapshot_source_window_summary_matches_current_rendering,
+    ensure_release_house_validation_summary_matches_current_rendering,
+    ensure_release_notes_summary_matches_current_rendering,
+    ensure_release_profile_identifiers_alignment,
+    ensure_release_profile_identifiers_summary_matches_current_rendering,
+    ensure_release_profile_line_alignment, ensure_release_profile_summary_alignment,
+    ensure_request_policy_summary_matches_current_rendering,
+    ensure_request_semantics_summary_matches_current_rendering,
+    ensure_request_surface_summary_matches_current_rendering,
+};
+#[cfg(test)]
+pub(crate) use release::workspace_audit::{
+    audit_build_script_path, audit_lockfile_text, audit_manifest_text,
+    audit_publishable_crate_files, audit_publishable_manifest_text, audit_tool_manifest_text,
+    audit_workspace_manifest_publish_text, manifest_declares_publish_false, manifest_is_package,
+    manifest_package_name,
 };
 use release::{
     release_checklist_bundle_contents, release_checklist_external_publishing_reminders,
@@ -101,6 +116,32 @@ pub use release::{
     workspace_audit_summary, ReleaseBundle, ReleaseBundleError, ReleaseChecklistSummary,
     WorkspaceAuditReport, WorkspaceAuditSummary, WorkspaceAuditViolation,
 };
+#[cfg(test)]
+pub(crate) use render::cli::validate_release_gate_at;
+pub(crate) use render::text::*;
+pub use render::text::{
+    benchmark_backend, comparison_envelope_summary, comparison_median_envelope,
+    comparison_tail_envelope, current_request_surface_summary,
+    mean_obliquity_frame_round_trip_sample_corpus, mean_obliquity_frame_round_trip_summary,
+    packaged_artifact_fit_sample_classes_summary_for_report, render_api_stability_summary,
+    render_ayanamsa_audit_summary, render_backend_matrix_report, render_backend_matrix_summary,
+    render_benchmark_matrix_summary, render_benchmark_report, render_catalog_inventory_summary,
+    render_catalog_posture_summary, render_comparison_audit_report,
+    render_comparison_audit_summary, render_comparison_report,
+    render_compatibility_caveats_summary, render_compatibility_profile_summary,
+    render_custom_definition_ayanamsa_labels_summary, render_delta_t_policy_summary,
+    render_house_latitude_sensitive_failure_modes_summary, render_known_gaps_summary,
+    render_native_dependency_audit_summary, render_release_ayanamsa_canonical_names_summary,
+    render_release_checklist, render_release_checklist_summary,
+    render_release_house_system_canonical_names_summary, render_release_notes,
+    render_release_notes_summary, render_release_profile_identifiers_summary,
+    render_release_summary, render_request_policy_summary, render_request_surface_summary,
+    render_target_ayanamsa_scope_summary, render_target_house_scope_summary,
+    render_validation_report, render_validation_report_summary, render_workspace_audit_summary,
+    BodyToleranceSummary, ComparisonEnvelopeSummary, ComparisonMedianEnvelope,
+    ComparisonPercentileEnvelope, MeanObliquityFrameRoundTripSummary, RequestSurfaceSummary,
+};
+pub use report::{BenchmarkReport, ValidationReport};
 
 use artifact::ArtifactBoundaryEnvelopeSummary;
 pub use artifact::{

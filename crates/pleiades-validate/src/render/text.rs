@@ -287,7 +287,6 @@ impl fmt::Display for BodyToleranceSummary {
     }
 }
 
-
 /// Renders a compact workspace audit summary used by the CLI and release bundle.
 pub fn render_workspace_audit_summary() -> Result<String, std::io::Error> {
     let report = workspace_audit_report()?;
@@ -612,8 +611,8 @@ impl fmt::Display for AyanamsaProvenanceSummary {
     }
 }
 
-pub(crate) fn summarize_ayanamsa_reference_offsets() -> Result<AyanamsaReferenceOffsetsSummary, EphemerisError>
-{
+pub(crate) fn summarize_ayanamsa_reference_offsets(
+) -> Result<AyanamsaReferenceOffsetsSummary, EphemerisError> {
     let samples = pleiades_ayanamsa::reference_offset_sample_ayanamsas();
 
     let mut examples = Vec::with_capacity(samples.len());
@@ -771,7 +770,8 @@ pub(crate) fn format_custom_definition_ayanamsa_labels_for_report() -> String {
     }
 }
 
-pub(crate) fn validated_release_house_system_canonical_names_for_report() -> Result<String, String> {
+pub(crate) fn validated_release_house_system_canonical_names_for_report() -> Result<String, String>
+{
     core_validated_release_house_system_canonical_names_summary_for_report()
         .map_err(|error| error.to_string())
 }
@@ -1089,8 +1089,6 @@ pub(crate) fn render_compatibility_caveats_summary_text() -> String {
         .clone()
 }
 
-
-
 pub(crate) fn validate_packaged_artifact_fit_posture() -> Result<(), EphemerisError> {
     let fit_envelope = packaged_artifact_fit_envelope_summary_details();
     let thresholds = packaged_artifact_fit_threshold_summary_details();
@@ -1149,7 +1147,9 @@ pub(crate) fn build_validation_report(rounds: usize) -> Result<ValidationReport,
     Ok(report)
 }
 
-pub(crate) fn build_validation_report_uncached(rounds: usize) -> Result<ValidationReport, EphemerisError> {
+pub(crate) fn build_validation_report_uncached(
+    rounds: usize,
+) -> Result<ValidationReport, EphemerisError> {
     validate_packaged_artifact_fit_posture()?;
     let comparison_corpus = release_grade_corpus();
     let benchmark_corpus = benchmark_timing_corpus();
@@ -1225,7 +1225,9 @@ pub fn render_validation_report_summary(rounds: usize) -> Result<String, Ephemer
     Ok(report)
 }
 
-pub(crate) fn render_validation_report_summary_uncached(rounds: usize) -> Result<String, EphemerisError> {
+pub(crate) fn render_validation_report_summary_uncached(
+    rounds: usize,
+) -> Result<String, EphemerisError> {
     let report = build_validation_report(rounds)?;
     Ok(render_validation_report_summary_text(&report))
 }
@@ -1620,7 +1622,9 @@ pub(crate) fn comparison_percentile_envelope(
     }
 }
 
-pub(crate) fn format_comparison_percentile_envelope_for_report(samples: &[ComparisonSample]) -> String {
+pub(crate) fn format_comparison_percentile_envelope_for_report(
+    samples: &[ComparisonSample],
+) -> String {
     match comparison_tail_envelope(samples) {
         Ok(envelope) => envelope.summary_line(),
         Err(error) => format!("comparison percentile envelope unavailable ({error})"),
@@ -1638,7 +1642,9 @@ pub(crate) fn format_comparison_envelope_for_report(
     }
 }
 
-pub(crate) fn format_body_class_comparison_envelope_for_report(summary: &BodyClassSummary) -> String {
+pub(crate) fn format_body_class_comparison_envelope_for_report(
+    summary: &BodyClassSummary,
+) -> String {
     match summary.validated_summary_line() {
         Ok(line) => line,
         Err(error) => format!("body-class error envelope unavailable ({error})"),
@@ -1713,7 +1719,9 @@ pub(crate) fn render_comparison_body_class_error_envelope_summary_text() -> Stri
     )
 }
 
-pub(crate) fn format_body_class_tolerance_envelope_for_report(summary: &BodyClassToleranceSummary) -> String {
+pub(crate) fn format_body_class_tolerance_envelope_for_report(
+    summary: &BodyClassToleranceSummary,
+) -> String {
     match summary.validate() {
         Ok(()) => summary.summary_line(),
         Err(error) => format!("body-class tolerance envelope unavailable ({error})"),
@@ -1765,7 +1773,8 @@ pub(crate) fn validated_comparison_body_class_tolerance_posture_line(
     Ok(text)
 }
 
-pub(crate) fn validated_comparison_body_class_tolerance_posture_for_report() -> Result<String, String> {
+pub(crate) fn validated_comparison_body_class_tolerance_posture_for_report(
+) -> Result<String, String> {
     let report = comparison_report_for_default_render()?;
     validated_comparison_body_class_tolerance_posture_line(&report)
 }
@@ -1873,7 +1882,9 @@ pub(crate) fn validated_comparison_tolerance_policy_summary_for_report(
     Ok(summary)
 }
 
-pub(crate) fn format_comparison_tolerance_policy_for_report(comparison: &ComparisonReport) -> String {
+pub(crate) fn format_comparison_tolerance_policy_for_report(
+    comparison: &ComparisonReport,
+) -> String {
     let summary = comparison_tolerance_policy_summary_details(comparison);
     match summary.validated_summary_line() {
         Ok(line) => line,
@@ -1891,7 +1902,9 @@ pub(crate) fn format_comparison_tolerance_limits_for_report(
         .join("; ")
 }
 
-pub(crate) fn format_comparison_tolerance_limit_for_report(entry: &ComparisonToleranceEntry) -> String {
+pub(crate) fn format_comparison_tolerance_limit_for_report(
+    entry: &ComparisonToleranceEntry,
+) -> String {
     match entry.validated_summary_line() {
         Ok(line) => line,
         Err(error) => format!("{} unavailable ({error})", entry.scope.label()),
@@ -2404,7 +2417,8 @@ pub(crate) fn render_benchmark_matrix_summary_text(report: &ValidationReport) ->
     text
 }
 
-pub(crate) fn vsop87_canonical_body_evidence() -> Option<Vec<pleiades_vsop87::Vsop87CanonicalBodyEvidence>> {
+pub(crate) fn vsop87_canonical_body_evidence(
+) -> Option<Vec<pleiades_vsop87::Vsop87CanonicalBodyEvidence>> {
     pleiades_vsop87::canonical_epoch_body_evidence()
 }
 
@@ -3028,7 +3042,8 @@ pub(crate) fn comparison_corpus_release_guard_summary() -> &'static str {
     "Pluto excluded from tolerance evidence"
 }
 
-pub(crate) fn validated_comparison_corpus_release_guard_summary_for_report() -> Result<&'static str, String> {
+pub(crate) fn validated_comparison_corpus_release_guard_summary_for_report(
+) -> Result<&'static str, String> {
     const EXPECTED: &str = "Pluto excluded from tolerance evidence";
     let summary = comparison_corpus_release_guard_summary();
 
@@ -3385,7 +3400,9 @@ impl SourceCorpusSummary {
         Ok(())
     }
 
-    pub(crate) fn validated_summary_line(&self) -> Result<String, SourceCorpusSummaryValidationError> {
+    pub(crate) fn validated_summary_line(
+        &self,
+    ) -> Result<String, SourceCorpusSummaryValidationError> {
         self.validate()?;
         Ok(self.summary_line())
     }
@@ -4225,8 +4242,8 @@ pub(crate) fn render_pluto_fallback_summary_text() -> String {
     render_pluto_fallback_summary_text_from_report(comparison_report_for_default_render())
 }
 
-pub(crate) fn validated_api_stability_profile_for_report() -> Result<pleiades_core::ApiStabilityProfile, String>
-{
+pub(crate) fn validated_api_stability_profile_for_report(
+) -> Result<pleiades_core::ApiStabilityProfile, String> {
     let profile = current_api_stability_profile();
     profile.validate().map_err(|error| error.to_string())?;
     Ok(profile)
@@ -4238,7 +4255,8 @@ pub(crate) fn validated_compatibility_profile_for_report() -> Result<Compatibili
     Ok(profile)
 }
 
-pub(crate) fn validated_release_profile_identifiers_for_report() -> Result<ReleaseProfileIdentifiers, String> {
+pub(crate) fn validated_release_profile_identifiers_for_report(
+) -> Result<ReleaseProfileIdentifiers, String> {
     let release_profiles = current_release_profile_identifiers();
     release_profiles
         .validate()
@@ -4586,7 +4604,8 @@ pub(crate) fn validated_packaged_artifact_target_threshold_summary_for_report() 
     }
 }
 
-pub(crate) fn validated_packaged_artifact_target_threshold_scope_envelopes_summary_for_report() -> String {
+pub(crate) fn validated_packaged_artifact_target_threshold_scope_envelopes_summary_for_report(
+) -> String {
     let summary =
         pleiades_data::packaged_artifact_target_threshold_scope_envelopes_summary_details();
     match summary.validated_summary_line() {
@@ -6387,7 +6406,9 @@ pub fn render_backend_matrix_report() -> Result<String, EphemerisError> {
     Ok(rendered)
 }
 
-pub(crate) fn validate_backend_matrix_entry(entry: &BackendMatrixEntry) -> Result<(), EphemerisError> {
+pub(crate) fn validate_backend_matrix_entry(
+    entry: &BackendMatrixEntry,
+) -> Result<(), EphemerisError> {
     entry.metadata.validate().map_err(|error| {
         EphemerisError::new(
             EphemerisErrorKind::InvalidRequest,
@@ -6407,7 +6428,10 @@ impl fmt::Display for BackendMatrixDisplay<'_> {
     }
 }
 
-pub(crate) fn write_corpus_summary(f: &mut fmt::Formatter<'_>, corpus: &CorpusSummary) -> fmt::Result {
+pub(crate) fn write_corpus_summary(
+    f: &mut fmt::Formatter<'_>,
+    corpus: &CorpusSummary,
+) -> fmt::Result {
     if let Err(error) = corpus.validate() {
         writeln!(f, "  corpus summary unavailable ({error})")?;
         return Ok(());
@@ -6453,7 +6477,10 @@ pub(crate) fn write_corpus_summary_text(text: &mut String, corpus: &CorpusSummar
     );
 }
 
-pub(crate) fn write_backend_matrix(f: &mut fmt::Formatter<'_>, backend: &BackendMetadata) -> fmt::Result {
+pub(crate) fn write_backend_matrix(
+    f: &mut fmt::Formatter<'_>,
+    backend: &BackendMetadata,
+) -> fmt::Result {
     writeln!(
         f,
         "  summary: {}",
@@ -6768,7 +6795,8 @@ pub(crate) fn write_jpl_interpolation_quality(f: &mut fmt::Formatter<'_>) -> fmt
     Ok(())
 }
 
-pub(crate) fn jpl_interpolation_quality_summary() -> Option<pleiades_jpl::JplInterpolationQualitySummary> {
+pub(crate) fn jpl_interpolation_quality_summary(
+) -> Option<pleiades_jpl::JplInterpolationQualitySummary> {
     pleiades_jpl::jpl_interpolation_quality_summary()
 }
 
@@ -6873,7 +6901,10 @@ pub(crate) fn write_lunar_high_curvature_equatorial_continuity_evidence(
     Ok(())
 }
 
-pub(crate) fn write_comparison_summary(f: &mut fmt::Formatter<'_>, report: &ComparisonReport) -> fmt::Result {
+pub(crate) fn write_comparison_summary(
+    f: &mut fmt::Formatter<'_>,
+    report: &ComparisonReport,
+) -> fmt::Result {
     let summary = &report.summary;
     let comparison_envelope = comparison_envelope_summary(summary, &report.samples);
     let median = comparison_envelope.median;

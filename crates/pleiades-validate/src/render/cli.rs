@@ -2019,7 +2019,6 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
     }
 }
 
-
 fn ensure_no_extra_args(args: &[&str], command: &str) -> Result<(), String> {
     if args.is_empty() {
         Ok(())

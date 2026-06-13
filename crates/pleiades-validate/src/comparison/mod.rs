@@ -11,7 +11,7 @@ pub(crate) use report::{
     comparison_tolerance_policy_entries, comparison_tolerance_scope_for_body,
 };
 pub use report::{
-    comparison_tolerance_catalog_entries, compare_backends, default_candidate_backend,
+    compare_backends, comparison_tolerance_catalog_entries, default_candidate_backend,
     default_reference_backend, ComparisonReport,
 };
 
@@ -20,9 +20,7 @@ pub(crate) use audit::{
     format_regression_bodies, format_summary_body,
 };
 pub use audit::{RegressionArchive, RegressionFinding};
-pub(crate) use body_class::{
-    body_class, BodyClass, BodyClassSummary, BodyClassToleranceSummary,
-};
+pub(crate) use body_class::{body_class, BodyClass, BodyClassSummary, BodyClassToleranceSummary};
 pub use sample::{
     BodyComparisonSummary, ComparisonAuditSummary, ComparisonSample, ComparisonSummary,
 };
