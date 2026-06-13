@@ -4,6 +4,11 @@
 //! target-relative ICRF states, and reduces them to geocentric ecliptic
 //! coordinates consistent with the rest of the workspace (mean geometric).
 
+pub(crate) mod bytes;
+
+#[cfg(test)]
+pub(crate) mod test_support;
+
 /// Error kinds for SPK kernel reading.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SpkErrorKind {
