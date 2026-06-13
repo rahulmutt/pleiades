@@ -142,7 +142,6 @@ fn evaluate_chebyshev<R: ReadAt + ?Sized>(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::spk::daf::DafFile;
     use crate::spk::segment::evaluate;
     use crate::spk::test_support::{build_daf, type2_record, type2_segment_data, SegmentSpec};
