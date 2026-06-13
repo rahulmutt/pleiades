@@ -1,5 +1,7 @@
 //! Release-bundle rendering-alignment helpers and manifest value parsing.
 
+use std::path::Path;
+
 use super::bundle::*;
 use super::bundle_manifest::*;
 use crate::*;
@@ -2122,6 +2124,228 @@ pub(crate) fn ensure_custom_definition_ayanamsa_labels_alignment(
         return Err(ReleaseBundleError::Verification(format!(
             "custom-definition ayanamsa labels summary mismatch: expected '{expected}', found '{found}'"
         )));
+    }
+
+    Ok(())
+}
+
+/// Verifies that every required release-bundle artifact exists as a regular file.
+///
+/// Extracted verbatim from `verify_release_bundle_internal`: the same file set is
+/// checked in the same order, returning the first failure unchanged.
+pub(crate) fn ensure_required_bundle_files_exist(
+    output_dir: &Path,
+) -> Result<(), ReleaseBundleError> {
+    for (path, label) in [
+        (
+            &output_dir.join("compatibility-profile.txt"),
+            "compatibility profile",
+        ),
+        (
+            &output_dir.join("compatibility-profile-summary.txt"),
+            "compatibility profile summary",
+        ),
+        (&output_dir.join("release-notes.txt"), "release notes"),
+        (
+            &output_dir.join("release-notes-summary.txt"),
+            "release notes summary",
+        ),
+        (&output_dir.join("release-summary.txt"), "release summary"),
+        (
+            &output_dir.join("release-profile-identifiers.txt"),
+            "release-profile identifiers",
+        ),
+        (
+            &output_dir.join("release-house-validation-summary.txt"),
+            "release house validation summary",
+        ),
+        (
+            &output_dir.join("house-formula-families-summary.txt"),
+            "house formula families summary",
+        ),
+        (
+            &output_dir.join("house-latitude-sensitive-summary.txt"),
+            "house latitude-sensitive summary",
+        ),
+        (
+            &output_dir.join("house-latitude-sensitive-constraints-summary.txt"),
+            "house latitude-sensitive constraints summary",
+        ),
+        (
+            &output_dir.join("house-latitude-sensitive-failure-modes-summary.txt"),
+            "house latitude-sensitive failure-modes summary",
+        ),
+        (
+            &output_dir.join("release-checklist.txt"),
+            "release checklist",
+        ),
+        (
+            &output_dir.join("release-checklist-summary.txt"),
+            "release checklist summary",
+        ),
+        (&output_dir.join("backend-matrix.txt"), "backend matrix"),
+        (
+            &output_dir.join("backend-matrix-summary.txt"),
+            "backend matrix summary",
+        ),
+        (&output_dir.join("api-stability.txt"), "API stability"),
+        (
+            &output_dir.join("api-stability-summary.txt"),
+            "API stability summary",
+        ),
+        (
+            &output_dir.join("comparison-envelope-summary.txt"),
+            "comparison envelope summary",
+        ),
+        (
+            &output_dir.join("comparison-corpus-release-guard-summary.txt"),
+            "comparison-corpus release-guard summary",
+        ),
+        (
+            &output_dir.join("source-corpus-summary.txt"),
+            "source corpus summary",
+        ),
+        (
+            &output_dir.join("comparison-corpus-guard-summary.txt"),
+            "comparison-corpus guard summary alias",
+        ),
+        (
+            &output_dir.join("reference-holdout-overlap-summary.txt"),
+            "reference-holdout overlap summary",
+        ),
+        (
+            &output_dir.join("reference-snapshot-bridge-day-summary.txt"),
+            "reference snapshot bridge day summary",
+        ),
+        (
+            &output_dir.join("reference-snapshot-major-body-boundary-window-summary.txt"),
+            "reference snapshot major-body boundary window summary",
+        ),
+        (
+            &output_dir.join("reference-snapshot-boundary-epoch-coverage-summary.txt"),
+            "reference snapshot boundary epoch coverage summary",
+        ),
+        (
+            &output_dir.join("reference-snapshot-pre-bridge-boundary-summary.txt"),
+            "reference snapshot pre-bridge boundary summary",
+        ),
+        (
+            &output_dir.join("reference-snapshot-2451918-major-body-boundary-summary.txt"),
+            "reference snapshot 2451918 major-body boundary summary",
+        ),
+        (
+            &output_dir.join("reference-snapshot-2451919-major-body-boundary-summary.txt"),
+            "reference snapshot 2451919 major-body boundary summary",
+        ),
+        (
+            &output_dir.join("reference-snapshot-source-summary.txt"),
+            "reference snapshot source summary",
+        ),
+        (
+            &output_dir.join("reference-asteroid-source-window-summary.txt"),
+            "reference asteroid source window summary",
+        ),
+        (
+            &output_dir.join("independent-holdout-source-window-summary.txt"),
+            "independent-holdout source window summary",
+        ),
+        (
+            &output_dir.join("independent-holdout-quarter-day-boundary-summary.txt"),
+            "independent-holdout quarter-day boundary summary",
+        ),
+        (
+            &output_dir.join("production-generation-boundary-source-summary.txt"),
+            "production generation boundary source summary",
+        ),
+        (
+            &output_dir.join("production-generation-boundary-request-corpus-summary.txt"),
+            "production generation boundary request corpus summary",
+        ),
+        (
+            &output_dir.join("catalog-inventory-summary.txt"),
+            "catalog inventory summary",
+        ),
+        (
+            &output_dir.join("validation-report-summary.txt"),
+            "validation report summary",
+        ),
+        (
+            &output_dir.join("request-policy-summary.txt"),
+            "request policy summary",
+        ),
+        (
+            &output_dir.join("lunar-theory-limitations-summary.txt"),
+            "lunar-theory limitations summary",
+        ),
+        (
+            &output_dir.join("lunar-theory-catalog-validation-summary.txt"),
+            "lunar-theory catalog validation summary",
+        ),
+        (
+            &output_dir.join("compatibility-caveats-summary.txt"),
+            "compatibility caveats summary",
+        ),
+        (
+            &output_dir.join("workspace-audit-summary.txt"),
+            "workspace audit summary",
+        ),
+        (
+            &output_dir.join("native-dependency-audit-summary.txt"),
+            "native-dependency audit summary",
+        ),
+        (&output_dir.join("artifact-summary.txt"), "artifact summary"),
+        (
+            &output_dir.join("packaged-artifact-production-profile-summary.txt"),
+            "packaged-artifact production-profile summary",
+        ),
+        (
+            &output_dir.join("packaged-frame-treatment-summary.txt"),
+            "packaged frame treatment summary",
+        ),
+        (
+            &output_dir.join("packaged-artifact-target-threshold-summary.txt"),
+            "packaged-artifact target-threshold summary",
+        ),
+        (
+            &output_dir.join("packaged-artifact-source-fit-holdout-sync-summary.txt"),
+            "packaged-artifact source-fit and hold-out sync summary",
+        ),
+        (
+            &output_dir.join("packaged-artifact-target-threshold-scope-envelopes-summary.txt"),
+            "packaged-artifact target-threshold scope envelopes summary",
+        ),
+        (
+            &output_dir.join("packaged-artifact-phase2-corpus-alignment-summary.txt"),
+            "packaged-artifact phase-2 corpus alignment summary",
+        ),
+        (
+            &output_dir.join("packaged-artifact-regeneration-summary.txt"),
+            "packaged-artifact regeneration summary",
+        ),
+        (
+            &output_dir.join("packaged-artifact-generation-manifest.txt"),
+            "packaged-artifact generation manifest",
+        ),
+        (
+            &output_dir.join("packaged-artifact-generation-manifest-summary.txt"),
+            "packaged-artifact generation manifest summary",
+        ),
+        (
+            &output_dir.join("packaged-artifact-generation-manifest.checksum.txt"),
+            "packaged-artifact generation manifest checksum sidecar",
+        ),
+        (&output_dir.join("benchmark-report.txt"), "benchmark report"),
+        (
+            &output_dir.join("validation-report.txt"),
+            "validation report",
+        ),
+        (&output_dir.join("bundle-manifest.txt"), "bundle manifest"),
+        (
+            &output_dir.join("bundle-manifest.checksum.txt"),
+            "bundle manifest checksum sidecar",
+        ),
+    ] {
+        ensure_release_bundle_regular_file(path, label)?;
     }
 
     Ok(())
