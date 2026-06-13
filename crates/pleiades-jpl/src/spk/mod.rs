@@ -26,6 +26,9 @@ pub enum SpkErrorKind {
     OutOfCoverage,
     /// No segment chain connects the body to the requested center.
     NoChain,
+    /// A numerical failure occurred during state evaluation (e.g. a zero
+    /// modified-difference stepsize in a Type 1 / Type 21 record).
+    NumericalFailure,
     /// Underlying I/O failed.
     Io,
 }

@@ -142,6 +142,62 @@ pub fn type3_record(
     r
 }
 
+/// Builds a single-record Type 21 segment with zero difference arrays.
+/// `maxdim` is the difference-table dimension (15 mimics Type 1).
+/// Reference state is interleaved x,vx,y,vy,z,vz. KQ orders are all 2.
+pub fn type21_single_record_segment(
+    maxdim: usize,
+    tl: f64,
+    refpos: [f64; 3],
+    refvel: [f64; 3],
+    record_epoch: f64,
+) -> Vec<f64> {
+    let dlsize = 4 * maxdim + 11;
+    let mut rec = vec![0.0f64; dlsize];
+    rec[0] = tl;
+    // G(maxdim) at [1..=maxdim]: use 1.0 so stepsize divisions are safe.
+    for g in rec.iter_mut().skip(1).take(maxdim) {
+        *g = 1.0;
+    }
+    // REFPOS/REFVEL interleaved at [maxdim+1 .. maxdim+6].
+    let r = maxdim + 1;
+    rec[r] = refpos[0];
+    rec[r + 1] = refvel[0];
+    rec[r + 2] = refpos[1];
+    rec[r + 3] = refvel[1];
+    rec[r + 4] = refpos[2];
+    rec[r + 5] = refvel[2];
+    // DT(maxdim,3) at [maxdim+7 ..] left zero.
+    // KQMAX1 at [4*maxdim+7]; KQ(3) at [4*maxdim+8..].
+    rec[4 * maxdim + 7] = 3.0; // KQMAX1
+    rec[4 * maxdim + 8] = 2.0; // KQ x
+    rec[4 * maxdim + 9] = 2.0; // KQ y
+    rec[4 * maxdim + 10] = 2.0; // KQ z
+
+    let mut data = rec;
+    data.push(record_epoch); // epoch table (1 entry)
+    // epoch directory: floor(N/100) = 0 entries for N=1.
+    data.push(maxdim as f64); // MAXDIM (type 21 trailer)
+    data.push(1.0); // NUMREC
+    data
+}
+
+/// Type 1 single-record builder (MAXDIM = 15, trailer omits the MAXDIM word).
+pub fn type1_single_record_segment(
+    tl: f64,
+    refpos: [f64; 3],
+    refvel: [f64; 3],
+    record_epoch: f64,
+) -> Vec<f64> {
+    let maxdim = 15usize;
+    let mut full = type21_single_record_segment(maxdim, tl, refpos, refvel, record_epoch);
+    // Remove the MAXDIM word that Type 1 does not store: it sits just before NUMREC.
+    let numrec = full.pop().unwrap();
+    let _maxdim_word = full.pop().unwrap();
+    full.push(numrec);
+    full
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
