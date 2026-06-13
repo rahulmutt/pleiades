@@ -1,5 +1,6 @@
 //! CLI command dispatch and argument parsing for the validation tool.
 
+use super::text::*;
 use crate::*;
 
 /// Returns the CLI banner.
