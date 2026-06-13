@@ -49,7 +49,9 @@ mod reference_summary;
 mod requests;
 mod snapshot;
 mod spk;
-pub use spk::{SpkBackend, SpkBackendBuilder, SpkError, SpkErrorKind};
+pub use spk::{
+    generate_corpus_csv, CorpusRequest, SpkBackend, SpkBackendBuilder, SpkError, SpkErrorKind,
+};
 pub use reference_summary::*;
 pub use requests::*;
 pub use snapshot::*;
