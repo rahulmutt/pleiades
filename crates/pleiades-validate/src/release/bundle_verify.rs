@@ -3,6 +3,7 @@
 use std::path::Path;
 
 use super::bundle::*;
+use super::bundle_manifest::*;
 use crate::*;
 
 pub(crate) fn ensure_packaged_artifact_phase2_alignment_matches_source_fit_holdout_sync(

@@ -1,6 +1,7 @@
 //! Release-facing summaries: checklist, bundle, workspace audit, and notes.
 
 pub(crate) mod bundle;
+pub(crate) mod bundle_manifest;
 pub(crate) mod bundle_verify;
 mod checklist;
 pub(crate) mod notes;
