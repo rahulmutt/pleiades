@@ -23,5 +23,6 @@ pub(crate) use checklist::{
 pub use checklist::{release_checklist_summary, ReleaseChecklistSummary};
 pub(crate) use workspace_audit::render_workspace_audit_summary_text;
 pub use workspace_audit::{
-    workspace_audit_summary, WorkspaceAuditReport, WorkspaceAuditSummary, WorkspaceAuditViolation,
+    workspace_audit_report, workspace_audit_summary, WorkspaceAuditReport, WorkspaceAuditSummary,
+    WorkspaceAuditViolation,
 };
