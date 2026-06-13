@@ -35,9 +35,9 @@
 
 #![forbid(unsafe_code)]
 
-pub mod catalog;
-pub mod error;
-pub mod systems;
+mod catalog;
+mod error;
+mod systems;
 
 // Re-export the public surface from the catalog module.
 pub use catalog::{
