@@ -1768,6 +1768,7 @@ fn map_spk_error(e: SpkError) -> EphemerisError {
         SpkErrorKind::NoChain | SpkErrorKind::UnsupportedSegmentType => {
             EphemerisErrorKind::UnsupportedBody
         }
+        SpkErrorKind::NumericalFailure => EphemerisErrorKind::NumericalFailure,
         SpkErrorKind::Io | SpkErrorKind::Truncated | SpkErrorKind::BadHeader
         | SpkErrorKind::UnknownEndianness => EphemerisErrorKind::MissingDataset,
     };
