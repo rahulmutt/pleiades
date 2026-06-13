@@ -111,6 +111,26 @@ impl KernelPool {
     }
 }
 
+impl KernelPool {
+    /// Finds any segment whose target is `target` and which covers `et`,
+    /// returning its evaluated state and the segment's center id.
+    pub fn state_any_center(&self, target: i32, et: f64)
+        -> Result<(StateVector, i32), SpkError> {
+        for k in &self.kernels {
+            for seg in &k.segments {
+                if seg.target == target && et >= seg.start_et && et <= seg.stop_et {
+                    let slice: &[u8] = k.source.as_ref();
+                    return Ok((evaluate(slice, k.endian, seg, et)?, seg.center));
+                }
+            }
+        }
+        Err(SpkError::new(
+            SpkErrorKind::OutOfCoverage,
+            format!("no segment for target {target} at et {et}"),
+        ))
+    }
+}
+
 impl Default for KernelPool {
     fn default() -> Self {
         Self::new()

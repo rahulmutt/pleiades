@@ -5,6 +5,7 @@
 //! coordinates consistent with the rest of the workspace (mean geometric).
 
 pub(crate) mod bytes;
+pub(crate) mod chain;
 pub(crate) mod daf;
 pub(crate) mod pool;
 pub(crate) mod segment;
