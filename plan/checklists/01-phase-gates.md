@@ -65,3 +65,19 @@ should not be re-added.
 - [ ] Gates fail on stale generated outputs, native-dependency drift, artifact
       threshold failures, unsupported-mode claim drift, missing evidence, or
       profile mismatches.
+- [ ] Build and test pass on supported platforms (Linux, macOS, Windows) per
+      `requirements.md` NFR-6.
+
+## Phase 6: Target catalog completion and expansion (end-state, post-first-release)
+
+- [ ] Remaining `compatibility-catalog.md` house systems are implemented with
+      formula, aliases, latitude/numerical constraints, and provenance, or listed
+      as known gaps in the release profile.
+- [ ] Ayanamsa catalog grows toward the full Swiss Ephemeris `SE_SIDM_*` set with
+      epoch/offset/formula, aliases, and provenance, or lists known gaps.
+- [ ] Selected-asteroid coverage expands only where source evidence and backend
+      metadata support release-grade claims.
+- [ ] Optional chart utilities (aspects/orb-ready separations, dignities) are
+      shipped with tests and rustdoc, or not advertised.
+- [ ] No expansion broadens public claims ahead of its supporting evidence, and
+      the public API/enums absorb new entries without breaking redesign.

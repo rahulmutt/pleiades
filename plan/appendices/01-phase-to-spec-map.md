@@ -7,9 +7,13 @@
 | Phase 3 — Body/backend claim closure | `requirements.md` FR-1/FR-2/FR-7/FR-8, `astrology-domain.md` body model, `backend-trait.md` metadata/errors |
 | Phase 4 — Request-mode semantics | `requirements.md` FR-2/FR-3/FR-7/FR-10, `api-and-ergonomics.md`, `backend-trait.md` request/result/error model |
 | Phase 5 — Compatibility and release gates | `requirements.md` FR-4/FR-5/FR-6/NFR-1/NFR-3/NFR-4, `astrology-domain.md` catalogs, `validation-and-testing.md` release gates |
+| Phase 6 — Target catalog completion and expansion | `requirements.md` FR-4/FR-5, `compatibility-catalog.md` full house/ayanamsa set, `astrology-domain.md` derived quantities, `roadmap.md` Phase 6 |
 
 ## Cross-phase coverage
 
-All phases must preserve `architecture.md` layering, the pure-Rust requirement,
-first-party `pleiades-*` crate naming, deterministic behavior, and explicit
-release compatibility profiles.
+All phases must preserve `architecture.md` layering, the pure-Rust requirement
+(`requirements.md` NFR-1), first-party `pleiades-*` crate naming, deterministic
+behavior, portability across supported platforms (`requirements.md` NFR-6:
+Linux/macOS/Windows), and explicit release compatibility profiles. The data
+provenance and licensing rules in `backends.md` apply to every backend or
+artifact crate.

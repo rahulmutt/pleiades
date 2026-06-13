@@ -73,3 +73,17 @@ omitted.
 - Add any missing release gates for stale generated outputs, missing source
   evidence, threshold failures, native-dependency drift, unsupported-mode claim
   drift, and compatibility-profile overclaims.
+
+## Phase 6 — Target catalog completion and expansion (deferred, post-first-release)
+
+These slices are end-state work and are not part of the active first-release
+frontier. They are listed so the full target catalog is not treated as complete
+once Phase 5 audits pass.
+
+- Implement remaining `compatibility-catalog.md` house systems beyond the
+  baseline 11, each with formula, aliases, constraints, and provenance.
+- Grow the ayanamsa catalog from the baseline 5 toward the full Swiss Ephemeris
+  `SE_SIDM_*` set.
+- Expand selected-asteroid coverage where source evidence supports it.
+- Add optional chart utilities: aspects/orb-ready angular separations and
+  dignities, built above the core domain layer.

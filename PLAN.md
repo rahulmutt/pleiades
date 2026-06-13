@@ -57,7 +57,10 @@ These are the implementation gaps that still block a production release:
   backend output remain unsupported unless future validated backends add them.
 - Broad house and ayanamsa descriptor catalogs are present, but formula,
   provenance, and interoperability audits still gate stronger compatibility
-  claims.
+  claims, and the full target catalog enumerated in
+  `spec/compatibility-catalog.md` (remaining house systems beyond the baseline 11
+  and the broader Swiss Ephemeris ayanamsa set) is not yet implemented to
+  release grade; that completion is deferred end-state work tracked in Phase 6.
 
 ## Active implementation phases
 
@@ -68,12 +71,20 @@ These are the implementation gaps that still block a production release:
 | 3 | Body/backend claim closure | Public body and backend claims are either validated, constrained, approximate, or unsupported with no ambiguous middle state. | [plan/stages/03-body-and-backend-claims.md](plan/stages/03-body-and-backend-claims.md) |
 | 4 | Request-mode semantics | UTC/Delta-T, apparent, topocentric, native sidereal, and motion-output requests are implemented with evidence or rejected consistently. | [plan/stages/04-advanced-request-modes.md](plan/stages/04-advanced-request-modes.md) |
 | 5 | Compatibility and release gates | House/ayanamsa compatibility evidence and release gates prevent stale artifacts, native-dependency drift, and overbroad claims. | [plan/stages/05-compatibility-and-release-readiness.md](plan/stages/05-compatibility-and-release-readiness.md) |
+| 6 | Target catalog completion and expansion (end-state, post-first-release) | The full `compatibility-catalog.md` house/ayanamsa set and optional chart utilities are reachable without API redesign; remaining target entries are shipped or reported as known gaps. | [plan/stages/06-catalog-completion-and-expansion.md](plan/stages/06-catalog-completion-and-expansion.md) |
+
+Phases 1-5 gate the first production release. **Phase 6** is end-state work the
+spec commits to (`requirements.md` FR-4/FR-5, `compatibility-catalog.md`,
+`roadmap.md` Phase 6) but does not require for the first release; it is tracked
+here so the full target catalog is not silently treated as complete once Phase 5
+audits pass.
 
 ## Current priority
 
 Start with **Phase 1**: production reference inputs. Phase 2 generator work can
 continue in parallel, but the compressed artifact must remain draft-grade until
-its source inputs and hold-out corpus are production-grade.
+its source inputs and hold-out corpus are production-grade. Phase 6 is deferred
+end-state work and must not broaden public claims before its own evidence exists.
 
 ## Plan maintenance rules
 
@@ -84,5 +95,9 @@ its source inputs and hold-out corpus are production-grade.
 - Keep `README.md`, release profiles, generated reports, and this plan aligned
   when public behavior or release claims change.
 
-Status: refreshed 2026-05-24 after reviewing `SPEC.md`, `spec/*.md`, README
-status, current crates, CLI/report posture, and checked-in plan files.
+Status: refreshed 2026-06-13 after the `spec/*.md` revision that enumerated the
+target compatibility catalog (`spec/compatibility-catalog.md`) and added the data
+provenance/licensing policy; this revision adds Phase 6 for deferred end-state
+catalog completion and aligns the phase-to-spec map. Prior refresh 2026-05-24
+reviewed `SPEC.md`, `spec/*.md`, README status, current crates, CLI/report
+posture, and checked-in plan files.

@@ -15,6 +15,9 @@ only remaining production work against the specification.
    apparent-place, topocentric, native-sidereal, and motion-output requests.
 5. **Compatibility and release gates** — audit house/ayanamsa evidence and make
    release validation fail on stale or overstated claims.
+6. **Target catalog completion and expansion** — end-state, post-first-release:
+   ship the remaining `compatibility-catalog.md` house systems and ayanamsas and
+   the optional chart utilities without API redesign.
 
 ## Current priority
 
