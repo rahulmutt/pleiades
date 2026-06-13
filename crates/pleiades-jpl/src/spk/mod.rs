@@ -4,11 +4,14 @@
 //! target-relative ICRF states, and reduces them to geocentric ecliptic
 //! coordinates consistent with the rest of the workspace (mean geometric).
 
+pub mod backend;
 pub(crate) mod bytes;
 pub(crate) mod chain;
 pub(crate) mod daf;
 pub(crate) mod pool;
 pub(crate) mod segment;
+
+pub use backend::{SpkBackend, SpkBackendBuilder};
 
 #[cfg(test)]
 pub(crate) mod test_support;
