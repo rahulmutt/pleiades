@@ -1,6 +1,6 @@
 [tools]
-rust = { version = "1.95.0", components = "rustfmt,clippy" }
-"cargo:cargo-release" = "0.25.22"
+rust = { version = "1.96.0", components = "rustfmt,clippy" }
+"cargo:cargo-release" = "1.1.2"
 
 [tasks.fmt]
 run = "cargo fmt --all --check"
