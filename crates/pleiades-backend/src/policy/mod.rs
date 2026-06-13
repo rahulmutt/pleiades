@@ -69,3 +69,7 @@ pub use request::{RequestPolicySummary, RequestPolicySummaryValidationError};
 pub use time_scale::{TimeScalePolicySummary, TimeScalePolicySummaryValidationError};
 pub use utc::{UtcConveniencePolicySummary, UtcConveniencePolicySummaryValidationError};
 pub use zodiac::{ZodiacPolicySummary, ZodiacPolicySummaryValidationError};
+
+#[cfg(test)]
+#[path = "../policy_tests.rs"]
+mod tests;

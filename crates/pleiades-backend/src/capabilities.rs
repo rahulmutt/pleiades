@@ -101,3 +101,7 @@ impl fmt::Display for BackendCapabilities {
         f.write_str(&self.summary_line())
     }
 }
+
+#[cfg(test)]
+#[path = "capabilities_tests.rs"]
+mod tests;

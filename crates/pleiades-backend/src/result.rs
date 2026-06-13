@@ -229,3 +229,7 @@ pub(crate) fn format_optional_motion(value: Option<&Motion>) -> String {
         })
         .unwrap_or_else(|| "absent".to_string())
 }
+
+#[cfg(test)]
+#[path = "result_tests.rs"]
+mod tests;

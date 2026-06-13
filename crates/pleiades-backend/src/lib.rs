@@ -77,7 +77,7 @@ mod traits;
 mod validation;
 
 #[cfg(test)]
-mod tests;
+pub(crate) mod test_support;
 
 pub use pleiades_types::{
     Angle, Apparentness, Ayanamsa, CelestialBody, CelestialBodyClass, CoordinateFrame,

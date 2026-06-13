@@ -354,3 +354,7 @@ impl BackendMetadata {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "metadata_tests.rs"]
+mod tests;

@@ -330,3 +330,7 @@ impl fmt::Display for EphemerisRequest {
         f.write_str(&self.summary_line())
     }
 }
+
+#[cfg(test)]
+#[path = "request_tests.rs"]
+mod tests;

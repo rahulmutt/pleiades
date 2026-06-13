@@ -390,3 +390,7 @@ fn should_fallback_to_secondary(kind: &EphemerisErrorKind) -> bool {
             | EphemerisErrorKind::InvalidRequest
     )
 }
+
+#[cfg(test)]
+#[path = "traits_tests.rs"]
+mod tests;
