@@ -38,3 +38,7 @@ pub(crate) fn validate_non_empty_unique<T: fmt::Display + PartialEq>(
 
     validate_unique_entries(field, values)
 }
+
+#[cfg(test)]
+#[path = "validation_tests.rs"]
+mod tests;

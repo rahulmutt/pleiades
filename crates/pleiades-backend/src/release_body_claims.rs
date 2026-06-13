@@ -265,3 +265,7 @@ pub fn validate_release_body_claims_posture(
 
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "release_body_claims_tests.rs"]
+mod tests;

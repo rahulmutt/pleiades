@@ -161,3 +161,7 @@ impl fmt::Display for AccuracyClass {
         f.write_str(self.label())
     }
 }
+
+#[cfg(test)]
+#[path = "identity_tests.rs"]
+mod tests;
