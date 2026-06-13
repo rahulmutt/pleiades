@@ -169,7 +169,6 @@ impl fmt::Display for WorkspaceAuditSummary {
     }
 }
 
-
 /// Returns the compact workspace-audit summary derived from the detailed report.
 pub fn workspace_audit_summary(report: &WorkspaceAuditReport) -> WorkspaceAuditSummary {
     WorkspaceAuditSummary {

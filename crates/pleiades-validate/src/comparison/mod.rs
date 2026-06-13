@@ -6,8 +6,8 @@ mod tolerance;
 pub use sample::{
     BodyComparisonSummary, ComparisonAuditSummary, ComparisonSample, ComparisonSummary,
 };
+pub(crate) use tolerance::validate_comparison_tolerance;
 pub use tolerance::{
     ComparisonTolerance, ComparisonToleranceEntry, ComparisonTolerancePolicySummary,
     ComparisonToleranceScope, ComparisonToleranceScopeCoverageSummary,
 };
-pub(crate) use tolerance::validate_comparison_tolerance;

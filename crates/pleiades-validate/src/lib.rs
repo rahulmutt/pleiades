@@ -21,28 +21,28 @@ mod house_validation;
 mod provenance;
 mod release;
 
-pub use corpus::{
-    benchmark_corpus, default_corpus, release_grade_corpus, CorpusSummary, ValidationCorpus,
-};
-use corpus::benchmark_timing_corpus;
+use comparison::validate_comparison_tolerance;
 pub use comparison::{
     BodyComparisonSummary, ComparisonAuditSummary, ComparisonSample, ComparisonSummary,
     ComparisonTolerance, ComparisonToleranceEntry, ComparisonTolerancePolicySummary,
     ComparisonToleranceScope, ComparisonToleranceScopeCoverageSummary,
 };
-use comparison::validate_comparison_tolerance;
-pub use release::{
-    release_checklist_summary, workspace_audit_summary, ReleaseChecklistSummary,
-    WorkspaceAuditReport, WorkspaceAuditSummary, WorkspaceAuditViolation,
+use corpus::benchmark_timing_corpus;
+pub use corpus::{
+    benchmark_corpus, default_corpus, release_grade_corpus, CorpusSummary, ValidationCorpus,
+};
+pub use provenance::{
+    benchmark_provenance_text, workspace_provenance, workspace_provenance_summary_for_report,
+    WorkspaceProvenance, WorkspaceProvenanceValidationError,
 };
 use release::{
     release_checklist_bundle_contents, release_checklist_external_publishing_reminders,
     release_checklist_manual_bundle_workflow, release_checklist_repository_managed_release_gates,
     render_workspace_audit_summary_text,
 };
-pub use provenance::{
-    benchmark_provenance_text, workspace_provenance, workspace_provenance_summary_for_report,
-    WorkspaceProvenance, WorkspaceProvenanceValidationError,
+pub use release::{
+    release_checklist_summary, workspace_audit_summary, ReleaseChecklistSummary,
+    WorkspaceAuditReport, WorkspaceAuditSummary, WorkspaceAuditViolation,
 };
 
 use artifact::ArtifactBoundaryEnvelopeSummary;
@@ -79,6 +79,8 @@ use pleiades_backend::{
     validated_release_body_claims_summary_line_for_report,
     validated_zodiac_policy_summary_for_report,
 };
+#[cfg(test)]
+use pleiades_core::default_chart_bodies;
 use pleiades_core::{
     catalog_posture_summary_for_report as core_catalog_posture_summary_for_report,
     compatibility_caveats_summary_for_report as core_compatibility_caveats_summary_for_report,
@@ -102,8 +104,6 @@ use pleiades_core::{
     EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisResult, Instant, JulianDay,
     Longitude, ReleaseProfileIdentifiers, TimeRange, TimeScale,
 };
-#[cfg(test)]
-use pleiades_core::default_chart_bodies;
 use pleiades_data::{
     packaged_artifact, packaged_artifact_access_summary_for_report,
     packaged_artifact_body_class_span_cap_entries_for_report, packaged_artifact_bytes,
@@ -359,9 +359,6 @@ const CUSTOM_DISTANCE_THRESHOLD_AU: f64 = 0.01;
 const PLUTO_LONGITUDE_THRESHOLD_DEG: f64 = 45.0;
 const PLUTO_LATITUDE_THRESHOLD_DEG: f64 = 1.0;
 const PLUTO_DISTANCE_THRESHOLD_AU: f64 = 0.25;
-
-
-
 
 fn comparison_tolerance_policy_coverage(
     comparison: &ComparisonReport,
@@ -2172,7 +2169,6 @@ impl From<EphemerisError> for ReleaseBundleError {
     }
 }
 
-
 /// Renders a compact workspace audit summary used by the CLI and release bundle.
 pub fn render_workspace_audit_summary() -> Result<String, std::io::Error> {
     let report = workspace_audit_report()?;
@@ -3473,12 +3469,10 @@ impl ReleaseBundle {
     }
 }
 
-
 /// Returns the CLI banner.
 pub fn banner() -> &'static str {
     BANNER
 }
-
 
 fn validate_release_smoke_at(output_dir: impl AsRef<Path>) -> Result<(), String> {
     struct Cleanup(PathBuf);
@@ -8845,7 +8839,6 @@ fn render_release_smoke_text() -> String {
         })
         .clone()
 }
-
 
 /// Writes a release bundle containing the compatibility profile, release-profile
 /// identifiers, release notes, release notes summary, release summary, release checklist,
@@ -19553,7 +19546,9 @@ fn format_comparison_tolerance_policy_for_report(comparison: &ComparisonReport) 
     }
 }
 
-pub(crate) fn format_comparison_tolerance_limits_for_report(entries: &[ComparisonToleranceEntry]) -> String {
+pub(crate) fn format_comparison_tolerance_limits_for_report(
+    entries: &[ComparisonToleranceEntry],
+) -> String {
     entries
         .iter()
         .map(format_comparison_tolerance_limit_for_report)
@@ -26427,7 +26422,6 @@ fn render_artifact_error(error: crate::artifact::ArtifactInspectionError) -> Str
 fn render_release_bundle_error(error: ReleaseBundleError) -> String {
     error.to_string()
 }
-
 
 #[cfg(test)]
 mod tests;

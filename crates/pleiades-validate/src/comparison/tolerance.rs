@@ -47,7 +47,9 @@ fn validate_comparison_tolerance_profile(profile: &str) -> Result<(), EphemerisE
     Ok(())
 }
 
-pub(crate) fn validate_comparison_tolerance(tolerance: &ComparisonTolerance) -> Result<(), EphemerisError> {
+pub(crate) fn validate_comparison_tolerance(
+    tolerance: &ComparisonTolerance,
+) -> Result<(), EphemerisError> {
     validate_comparison_tolerance_profile(tolerance.profile)?;
 
     for (label, value) in [
