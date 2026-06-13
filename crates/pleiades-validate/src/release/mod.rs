@@ -1,8 +1,14 @@
 //! Release-facing summaries: checklist, bundle, workspace audit, and notes.
 
+pub(crate) mod bundle;
+pub(crate) mod bundle_verify;
 mod checklist;
 mod workspace_audit;
 
+pub use bundle::{render_release_bundle, ReleaseBundle, ReleaseBundleError};
+pub(crate) use bundle_verify::{
+    validated_lunar_theory_catalog_validation_summary_for_report, verify_release_bundle,
+};
 pub(crate) use checklist::{
     release_checklist_bundle_contents, release_checklist_external_publishing_reminders,
     release_checklist_manual_bundle_workflow, release_checklist_repository_managed_release_gates,
