@@ -4,7 +4,6 @@ use super::bytes::Endian;
 use super::{ReadAt, SpkError, SpkErrorKind};
 
 const RECORD_BYTES: usize = 1024;
-const DOUBLES_PER_RECORD: usize = 128;
 
 /// One SPK segment descriptor decoded from a summary record.
 #[derive(Clone, Debug, PartialEq)]
