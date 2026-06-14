@@ -1,11 +1,12 @@
 //! `SpkBackend`: a runtime `EphemerisBackend` backed by SPK kernels.
 
 use pleiades_backend::{
-    validate_request_policy, AccuracyClass, BackendCapabilities, BackendFamily, BackendId,
-    BackendMetadata, BackendProvenance, CelestialBody, EphemerisBackend, EphemerisError,
-    EphemerisErrorKind, EphemerisRequest, EphemerisResult, QualityAnnotation,
+    validate_observer_policy, validate_request_policy, validate_zodiac_policy, AccuracyClass,
+    BackendCapabilities, BackendFamily, BackendId, BackendMetadata, BackendProvenance,
+    CelestialBody, EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest,
+    EphemerisResult, QualityAnnotation,
 };
-use pleiades_types::{CoordinateFrame, Motion, TimeRange, TimeScale};
+use pleiades_types::{CoordinateFrame, Motion, TimeRange, TimeScale, ZodiacMode};
 
 use super::chain::{ecliptic_for_body, naif_ids};
 use super::pool::KernelPool;
@@ -177,6 +178,9 @@ impl EphemerisBackend for SpkBackend {
             false, // topocentric not supported
         )?;
 
+        validate_zodiac_policy(req, "the JPL SPK backend", &[ZodiacMode::Tropical])?;
+        validate_observer_policy(req, "the JPL SPK backend", false)?;
+
         let ecliptic =
             ecliptic_for_body(&self.pool, &req.body, req.instant).map_err(map_spk_error)?;
 
@@ -201,7 +205,7 @@ mod tests {
     use super::*;
     use crate::spk::test_support::{build_daf, type2_record, type2_segment_data, SegmentSpec};
     use pleiades_backend::EphemerisRequest;
-    use pleiades_types::{Instant, JulianDay};
+    use pleiades_types::{Ayanamsa, Instant, JulianDay};
 
     fn const_seg(target: i32, center: i32, pos: [f64; 3]) -> SegmentSpec {
         let rec = type2_record(0.0, 1.0e12, &[pos[0], 0.0], &[pos[1], 0.0], &[pos[2], 0.0]);
@@ -237,5 +241,29 @@ mod tests {
         );
         let res = backend.position(&req).unwrap();
         assert!(res.ecliptic.is_some());
+    }
+
+    #[test]
+    fn backend_rejects_sidereal_zodiac_request() {
+        let blob = build_daf(&[
+            const_seg(10, 0, [1.0e8, 0.0, 0.0]),
+            const_seg(399, 3, [0.0, 0.0, 0.0]),
+            const_seg(3, 0, [0.0, 0.0, 0.0]),
+        ]);
+        let backend = SpkBackend::builder()
+            .add_kernel_bytes(blob, "synthetic")
+            .unwrap()
+            .build();
+        let mut req = EphemerisRequest::new(
+            CelestialBody::Sun,
+            Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt),
+        );
+        req.zodiac_mode = ZodiacMode::Sidereal {
+            ayanamsa: Ayanamsa::Lahiri,
+        };
+        let err = backend
+            .position(&req)
+            .expect_err("sidereal-zodiac requests must be rejected");
+        assert_eq!(err.kind, EphemerisErrorKind::UnsupportedZodiacMode);
     }
 }

@@ -16,6 +16,10 @@ fn shared_command_help_is_kept_in_sync_with_the_validation_binary() {
         cli_commands.remove("chart"),
         "cli should remain the only binary with the chart command"
     );
+    assert!(
+        cli_commands.remove("generate-spk-corpus"),
+        "cli should remain the only binary with the generate-spk-corpus command"
+    );
     assert_eq!(cli_commands, validation_commands);
 }
 

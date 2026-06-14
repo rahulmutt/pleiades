@@ -62,10 +62,21 @@ fn decode<R: ReadAt + ?Sized>(
     maxdim: usize,
     numrec: usize,
 ) -> Result<StateVector, SpkError> {
-    if numrec == 0 {
-        return Err(SpkError::new(SpkErrorKind::Truncated, "empty mda segment"));
-    }
     let dlsize = 4 * maxdim + 11;
+    // NUMREC is read from untrusted kernel bytes; reject a record count that does
+    // not fit within the segment's declared address range so a crafted value
+    // cannot drive a giant allocation or read past the segment.
+    let seg_doubles = (d.final_addr as i64 - d.init_addr as i64 + 1).max(0) as usize;
+    if numrec == 0
+        || numrec
+            .checked_mul(dlsize)
+            .is_none_or(|used| used > seg_doubles)
+    {
+        return Err(SpkError::new(
+            SpkErrorKind::Truncated,
+            format!("SPK MDA segment record count {numrec} inconsistent with segment size"),
+        ));
+    }
     // Epoch table begins right after the NUMREC records.
     let epoch_table_addr = d.init_addr + (numrec * dlsize) as i32;
     let epochs = read_doubles(src, endian, epoch_table_addr, numrec)?;
@@ -97,6 +108,23 @@ fn decode<R: ReadAt + ?Sized>(
         rec[4 * maxdim + 9] as usize,
         rec[4 * maxdim + 10] as usize,
     ];
+
+    // KQMAX1 and KQ are read from untrusted kernel bytes and used as loop bounds
+    // and indices into fixed-size buffers. Validate them before use.
+    if !(2..=maxdim + 1).contains(&kqmax1) {
+        return Err(SpkError::new(
+            SpkErrorKind::Truncated,
+            format!("SPK MDA record KQMAX1 {kqmax1} out of range for maxdim {maxdim}"),
+        ));
+    }
+    for (c, &order) in kq.iter().enumerate() {
+        if order > maxdim {
+            return Err(SpkError::new(
+                SpkErrorKind::Truncated,
+                format!("SPK MDA record KQ[{c}] {order} exceeds maxdim {maxdim}"),
+            ));
+        }
+    }
 
     // --- SPKE01/SPKE21 interpolation ---
     let delta = et - tl;
@@ -215,5 +243,36 @@ mod tests {
         let st = evaluate(src, daf.endian, &daf.segments[0], 110.0).unwrap();
         assert!((st.position_km[0] - (10.0 + 10.0 * 1.0)).abs() < 1e-7);
         assert!((st.velocity_km_s[1] - 2.0).abs() < 1e-7);
+    }
+
+    #[test]
+    fn type21_rejects_out_of_range_kqmax1() {
+        use crate::spk::SpkErrorKind;
+        let maxdim = 25usize;
+        let mut data = type21_single_record_segment(
+            maxdim,
+            100.0,
+            [10.0, 20.0, 30.0],
+            [1.0, 2.0, 3.0],
+            1000.0,
+        );
+        // Corrupt KQMAX1 (record word 4*maxdim+7) to an absurd value. A naive
+        // decoder would use this as a loop bound and panic; we must get an Err.
+        data[4 * maxdim + 7] = 999.0;
+        let blob = build_daf(&[SegmentSpec {
+            start_et: 0.0,
+            stop_et: 1000.0,
+            target: 20099942,
+            center: 10,
+            frame: 1,
+            data_type: 21,
+            data,
+            name: "AST21".to_string(),
+        }]);
+        let src: &[u8] = &blob;
+        let daf = DafFile::parse(src).unwrap();
+        let err = evaluate(src, daf.endian, &daf.segments[0], 110.0)
+            .expect_err("malformed KQMAX1 must return Err, not panic");
+        assert_eq!(err.kind, SpkErrorKind::Truncated);
     }
 }
