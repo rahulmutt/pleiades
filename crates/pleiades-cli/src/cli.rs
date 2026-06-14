@@ -17,6 +17,7 @@ use crate::commands::packaged_artifact::{
     parse_packaged_artifact_command, render_packaged_artifact_regeneration,
     render_packaged_artifact_regeneration_check, PackagedArtifactCommand,
 };
+use crate::commands::spk_corpus::render_spk_corpus;
 use crate::help::help_text;
 use crate::parse::{parse_release_bundle_output_dir, parse_rounds};
 use crate::render::render_error;
@@ -827,6 +828,7 @@ pub(crate) fn render_cli(args: &[&str]) -> Result<String, String> {
             render_validation_report_summary(rounds).map_err(render_error)
         }
         Some("chart") => render_chart(&args[1..]),
+        Some("generate-spk-corpus") => render_spk_corpus(&args[1..]),
         Some("help") | Some("--help") | Some("-h") => Ok(help_text()),
         None => Ok(banner().to_string()),
         Some(other) => match validate_render_cli(args) {

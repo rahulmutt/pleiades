@@ -19,6 +19,27 @@
 
 ---
 
+## Amendment A — `ReadAt` sources are passed by generic, not `&dyn`
+
+A `&[u8]` value cannot be coerced to `&dyn ReadAt`, because `[u8]` is unsized
+(the `&T -> &dyn Trait` unsizing coercion requires `T: Sized`). Therefore **every
+function in this plan shown with a parameter `src: &dyn ReadAt` must instead be
+written as a generic over a possibly-unsized `ReadAt`:**
+
+- `pub fn parse(src: &dyn ReadAt) -> ...` becomes
+  `pub fn parse<R: ReadAt + ?Sized>(src: &R) -> ...`.
+- `fn read_doubles(src: &dyn ReadAt, ...)` becomes
+  `fn read_doubles<R: ReadAt + ?Sized>(src: &R, ...)`. Likewise for
+  `Endian::f64_at` / `i32_at` / `packed_i32_pair_at`, `segment::evaluate`,
+  `evaluate_type2` / `evaluate_type3` / `evaluate_chebyshev`, `evaluate_mda` /
+  `evaluate_type21` / `decode`, and any other helper shown taking `&dyn ReadAt`.
+- Call sites stay exactly as written: `let src: &[u8] = &blob; DafFile::parse(src)`
+  and `let slice: &[u8] = k.source.as_ref(); evaluate(slice, ...)` both compile,
+  because `R` infers to `[u8]`.
+
+`impl ReadAt for [u8]` in Task 1 stays unchanged. This also makes the hot read
+path use static dispatch (no vtable), which is preferable for an ephemeris reader.
+
 ## File Structure
 
 New files under `crates/pleiades-jpl/src/spk/`:
@@ -1747,6 +1768,7 @@ fn map_spk_error(e: SpkError) -> EphemerisError {
         SpkErrorKind::NoChain | SpkErrorKind::UnsupportedSegmentType => {
             EphemerisErrorKind::UnsupportedBody
         }
+        SpkErrorKind::NumericalFailure => EphemerisErrorKind::NumericalFailure,
         SpkErrorKind::Io | SpkErrorKind::Truncated | SpkErrorKind::BadHeader
         | SpkErrorKind::UnknownEndianness => EphemerisErrorKind::MissingDataset,
     };
