@@ -11,14 +11,14 @@ JPL DE SPK kernel that is **not** committed to this repository (it is ~114 MB).
 - License: public domain (U.S. Government work).
 - SHA-256: `<fill in after downloading: shasum -a 256 de440.bsp>`
 
-## Coverage and the 1500 CE known gap
+## Coverage
 
 `de440.bsp` covers approximately **1550-01-01 to 2650-01-01**. The project's
-target packaged range is **1500-2500 CE**, so the **1500-1550 CE window is a
-known gap** in this slice. The backend advertises the kernel's *actual* coverage
-(read from its segment descriptors), and release profiles must record the gap
-rather than claim 1500. Closing it requires `de441` (full historic range,
-~3 GB) and is deferred to a later slice.
+target packaged range is **1600-2600 CE**, which sits entirely within de440's
+coverage, so there is no floor gap for the target range. The backend advertises
+the kernel's *actual* coverage (read from its segment descriptors), and release
+profiles record that advertised window. The full-historic `de441` kernel
+(~3 GB) is not required for the target range.
 
 ## Asteroid kernel (optional)
 
