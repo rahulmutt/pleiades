@@ -106,6 +106,65 @@ pub fn validate_drift(slices: &[LoadedSlice], manifest: &CorpusManifest) -> Resu
     Ok(())
 }
 
+/// Loads the checked-in corpus slices + manifest and runs every gate.
+/// Returns a one-line success summary or the first violation.
+pub fn run_corpus_gate() -> Result<String, String> {
+    let slices = embedded_slices();
+    let manifest = CorpusManifest::parse(EMBEDDED_MANIFEST)?;
+    validate_completeness(&slices)?;
+    validate_schema_and_provenance(&slices)?;
+    validate_drift(&slices, &manifest)?;
+    let rows: usize = slices
+        .iter()
+        .map(|s| {
+            s.csv
+                .lines()
+                .filter(|l| !l.starts_with('#') && !l.is_empty())
+                .count()
+        })
+        .sum();
+    Ok(format!(
+        "corpus gate ok: {} slices, {} data rows, kernel {}",
+        slices.len(),
+        rows,
+        manifest.kernel
+    ))
+}
+
+const EMBEDDED_MANIFEST: &str = include_str!("../../../pleiades-jpl/data/corpus/manifest.txt");
+
+fn embedded_slices() -> Vec<LoadedSlice> {
+    let files = [
+        (
+            "boundary",
+            include_str!("../../../pleiades-jpl/data/corpus/boundary.csv"),
+        ),
+        (
+            "interior",
+            include_str!("../../../pleiades-jpl/data/corpus/interior.csv"),
+        ),
+        (
+            "fast_cluster",
+            include_str!("../../../pleiades-jpl/data/corpus/fast_clusters.csv"),
+        ),
+        (
+            "holdout",
+            include_str!("../../../pleiades-jpl/data/corpus/holdout.csv"),
+        ),
+        (
+            "fixture_golden",
+            include_str!("../../../pleiades-jpl/data/corpus/fixture_golden.csv"),
+        ),
+    ];
+    files
+        .iter()
+        .map(|(role, csv)| LoadedSlice {
+            role: role.to_string(),
+            csv: csv.to_string(),
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod drift_tests {
     use super::*;
@@ -250,5 +309,11 @@ mod tests {
         let mut corpus = full_corpus();
         corpus[0].csv = header("boundary");
         assert!(validate_completeness(&corpus).is_err());
+    }
+
+    #[test]
+    #[ignore = "enabled after Task 11 regenerates real corpus data + checksums"]
+    fn embedded_corpus_gate_passes() {
+        run_corpus_gate().unwrap();
     }
 }

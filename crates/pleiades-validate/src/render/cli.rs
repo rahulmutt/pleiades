@@ -135,6 +135,10 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "comparison-corpus-guard")?;
             Ok(render_comparison_corpus_release_guard_summary_text())
         }
+        Some("validate-corpus") | Some("corpus-gate") => {
+            ensure_no_extra_args(&args[1..], "validate-corpus")?;
+            crate::corpus::production::run_corpus_gate()
+        }
         Some("benchmark-corpus-summary") => {
             ensure_no_extra_args(&args[1..], "benchmark-corpus-summary")?;
             Ok(render_benchmark_corpus_summary_text())
