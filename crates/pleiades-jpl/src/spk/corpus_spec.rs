@@ -88,7 +88,7 @@ pub fn interior_backbone_epochs(body: &CelestialBody) -> Vec<f64> {
     }
     if epochs
         .last()
-        .map_or(true, |&last| (RANGE_END_JD - last).abs() > 1e-6)
+        .is_none_or(|&last| (RANGE_END_JD - last).abs() > 1e-6)
     {
         epochs.push(RANGE_END_JD);
     }
@@ -222,7 +222,7 @@ mod tests {
 
     #[test]
     fn range_spans_target_window() {
-        assert!(RANGE_START_JD < RANGE_END_JD);
+        const { assert!(RANGE_START_JD < RANGE_END_JD) };
         // 1600-01-01 .. 2600-01-01 spans 365_243 days.
         assert!((RANGE_END_JD - RANGE_START_JD - 365_243.0).abs() < 2.0);
     }

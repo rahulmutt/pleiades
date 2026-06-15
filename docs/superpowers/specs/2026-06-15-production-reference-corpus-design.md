@@ -68,21 +68,32 @@ corpus those pieces produce and the validation that gates it.
 | Epoch strategy | Stratified by purpose, body-speed-scaled | A hold-out/regression corpus is most useful when it deliberately stresses boundaries and high-curvature bodies, not uniform sampling. |
 | Body/channel scope | All release-claimed bodies, position channels | Matches current backend output exactly; no second-consumer (motion) data stored ahead of need. |
 | Validation gate | Full completeness matrix + drift, fail-closed in CI | Satisfies the Phase 1 exit criterion and matches the repo's fail-closed posture. |
-| Source of truth | One `corpus-spec.toml` drives both generation and validation | Prevents drift between "what must exist" and "what was generated." |
+| Source of truth | One Rust spec module (`spk/corpus_spec.rs`) drives both generation and validation | Prevents drift between "what must exist" and "what was generated"; compile-checked, no config-parser dependency. |
 | Schema | Reuse existing `epoch_jd,body,x_km,y_km,z_km` CSV | Downstream report/backend-matrix/bundle machinery stays untouched; rows round-trip through `parse_snapshot_entries`. |
+
+> **Implementation note (codebase-native realization).** `pleiades-jpl` is
+> deliberately zero-dependency and already ships `checksum64` (FNV-1a) and a
+> `#`-comment manifest-text format with a parser. To avoid adding
+> `toml`/`serde`/`sha2`, the spec's "spec + manifest + content checksum" intent
+> is realized with a compile-checked Rust spec module (`spk/corpus_spec.rs`), a
+> `manifest.txt` in the existing manifest-text style, and FNV-1a content
+> checksums (`corpus_checksum64`). The **kernel** SHA-256 stays a documented
+> pinned constant (computed externally via `shasum -a 256`); kernel-identity
+> drift is caught by the gated regenerate-and-value-compare path, which is
+> stronger than a stored hash.
 
 ## Architecture
 
-### Single source of truth: `corpus-spec.toml`
+### Single source of truth: `spk/corpus_spec.rs`
 
-A checked-in config drives **both** generation and validation so the completeness
-matrix and the generated data cannot diverge. It declares:
+A checked-in Rust module drives **both** generation and validation so the
+completeness matrix and the generated data cannot diverge. It declares:
 
 - the **epoch grid** (slice definitions below) and the **per-body cadence**
   (max-gap) table;
 - the **release-claimed body × channel × frame** completeness matrix;
 - **per-body-class tolerances** for cross-checks;
-- kernel identity + pinned SHA-256(s), frame, time scale, and obliquity constant.
+- kernel identity + pinned SHA-256, frame, time scale, and obliquity constant.
 
 ### Stratified slices
 
@@ -107,11 +118,13 @@ regenerated on demand, never committed.
 ```
 crates/pleiades-jpl/data/corpus/
   boundary.csv  interior.csv  fast_clusters.csv  holdout.csv  fixture_golden.csv
-  manifest.toml      # per-file content checksum, row count, role, generation command/args
-  corpus-spec.toml   # the source-of-truth config above
+  manifest.txt       # per-file FNV content checksum, row count, role, generation command
 ```
 
-Provenance is stamped in both the CSV `#` header lines and `manifest.toml`:
+The source-of-truth config is the Rust module
+`crates/pleiades-jpl/src/spk/corpus_spec.rs` (not a checked-in data file).
+
+Provenance is stamped in both the CSV `#` header lines and `manifest.txt`:
 kernel identity (de440), **real pinned SHA-256** (computed from the kernel,
 replacing today's `<run shasum…>` placeholder), segment source revision,
 generation command + args, frame, time scale, obliquity constant, and the
