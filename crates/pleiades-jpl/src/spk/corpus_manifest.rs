@@ -145,4 +145,24 @@ mod manifest_tests {
     fn malformed_slice_line_errors() {
         assert!(CorpusManifest::parse("slice boundary file=b.csv\n").is_err());
     }
+
+    #[test]
+    fn parse_rejects_bad_numbers_and_unknown_keys() {
+        // missing file=
+        assert!(CorpusManifest::parse("slice boundary role=boundary rows=1 checksum=2\n").is_err());
+        // non-numeric rows=
+        assert!(CorpusManifest::parse(
+            "slice boundary file=b.csv role=boundary rows=x checksum=2\n"
+        )
+        .is_err());
+        // non-numeric checksum=
+        assert!(CorpusManifest::parse(
+            "slice boundary file=b.csv role=boundary rows=1 checksum=z\n"
+        )
+        .is_err());
+        // unknown key=
+        assert!(
+            CorpusManifest::parse("slice boundary file=b.csv role=boundary bogus=1\n").is_err()
+        );
+    }
 }
