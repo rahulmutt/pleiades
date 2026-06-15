@@ -7,13 +7,17 @@
 pub mod backend;
 pub(crate) mod bytes;
 pub(crate) mod chain;
+pub mod corpus_manifest;
+pub mod corpus_spec;
 pub(crate) mod daf;
 pub mod generate;
 pub(crate) mod pool;
 pub(crate) mod segment;
 
 pub use backend::{SpkBackend, SpkBackendBuilder};
-pub use generate::{generate_corpus_csv, CorpusRequest};
+pub use generate::{
+    build_manifest, generate_corpus_csv, generate_slice, CorpusRequest, GeneratedSlice,
+};
 
 #[cfg(test)]
 pub(crate) mod test_support;

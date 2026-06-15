@@ -1,0 +1,10 @@
+#Pleiades SPK Reference Corpus
+#Source: JPL DE SPK kernel: de440.bsp (scaffold — regenerated at full breadth in Task 11)
+#Kernel-SHA256: <pinned-after-download>
+#Coverage: geocentric ecliptic (mean geometric), TDB epochs
+#Redistribution: derived from public-domain JPL DE kernel; corpus is redistributable
+#Slice-Role: fixture_golden
+#Columns:epoch_jd,body,x_km,y_km,z_km
+2451545.000000000,Pluto,-1450831888.6293640137,-4327272164.3290452957,875216091.9444268942
+2451545.000000000,Moon,-291608.3841877129,-274979.7416731504,36271.1966269929
+2500000.000000000,Sun,-138643512.4798310100,59952914.6502153420,-18567.8707301021

@@ -74,6 +74,7 @@ Commands:
     --apparent           Force apparent positions for backend queries
     --body <name>        Use a built-in body or a custom catalog:designation identifier
   generate-spk-corpus <kernel.bsp> <jd...>  Sample a JPL DE SPK kernel into the corpus CSV
+  generate-spk-corpus <kernel.bsp> --emit-slices <out-dir>  Generate all four corpus slices (boundary, interior, fast_clusters, holdout) plus manifest.txt into <out-dir>
   {}
   help                   Show this help text",
         banner(),

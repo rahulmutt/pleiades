@@ -1,5 +1,7 @@
 //! Validation corpus definitions and their compact summaries.
 
+pub mod production;
+
 use std::fmt;
 use std::sync::OnceLock;
 
