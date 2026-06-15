@@ -66,7 +66,15 @@ pub fn validate_schema_and_provenance(slices: &[LoadedSlice]) -> Result<(), Stri
             .lines()
             .filter(|l| !l.starts_with('#') && !l.is_empty())
         {
-            for field in line.split(',').skip(2) {
+            let fields: Vec<&str> = line.split(',').collect();
+            if fields.len() != 5 {
+                return Err(format!(
+                    "malformed row in {} (expected 5 fields, found {}): {line}",
+                    s.role,
+                    fields.len()
+                ));
+            }
+            for field in &fields[2..] {
                 let v: f64 = field
                     .parse()
                     .map_err(|_| format!("non-numeric field in {}", s.role))?;
@@ -157,6 +165,33 @@ mod drift_tests {
             }],
         };
         assert!(validate_drift(&[s], &manifest).is_ok());
+    }
+
+    #[test]
+    fn malformed_short_row_fails() {
+        let s = vec![LoadedSlice {
+            role: "boundary".to_string(),
+            csv: "#Columns:epoch_jd,body,x_km,y_km,z_km\n2451545,Sun\n".to_string(),
+        }];
+        assert!(validate_schema_and_provenance(&s).is_err());
+    }
+
+    #[test]
+    fn non_numeric_coordinate_fails() {
+        let s = vec![LoadedSlice {
+            role: "boundary".to_string(),
+            csv: "#Columns:epoch_jd,body,x_km,y_km,z_km\n2451545,Sun,1.0,abc,3.0\n".to_string(),
+        }];
+        assert!(validate_schema_and_provenance(&s).is_err());
+    }
+
+    #[test]
+    fn run_shasum_placeholder_form_fails() {
+        let s = vec![LoadedSlice {
+            role: "boundary".to_string(),
+            csv: "#Kernel-SHA256: <run shasum -a 256 de440.bsp>\n#Columns:epoch_jd,body,x_km,y_km,z_km\n2451545,Sun,1.0,2.0,3.0\n".to_string(),
+        }];
+        assert!(validate_schema_and_provenance(&s).is_err());
     }
 }
 
