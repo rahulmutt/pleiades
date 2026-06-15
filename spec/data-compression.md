@@ -4,7 +4,7 @@ Unless stated otherwise, the conformance terms defined in [`SPEC.md`](../SPEC.md
 
 ## Objective
 
-Define a compressed ephemeris representation optimized for astrology software doing frequent lookups in the date range **1500-2500 CE**.
+Define a compressed ephemeris representation optimized for astrology software doing frequent lookups in the date range **1600-2600 CE**.
 
 ## Design Goals
 
@@ -104,7 +104,7 @@ For the Moon and some near-Earth-sensitive quantities, use shorter segments and/
 
 The compression spec must define body-class-specific target error envelopes, for example:
 
-- Sun/major planets: low arcsecond-class or better where feasible for 1500-2500 packaged mode
+- Sun/major planets: low arcsecond-class or better where feasible for 1600-2600 packaged mode
 - Moon: tighter practical astrology target, documented empirically
 - major asteroids: documented target by source availability and model quality
 

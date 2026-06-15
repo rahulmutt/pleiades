@@ -20,7 +20,7 @@ As of the current workspace state, `pleiades` includes:
 - 25 catalogued house systems and 59 catalogued ayanamsas,
 - pure-Rust algorithmic backends for VSOP87-style planetary positions and a compact Meeus-style lunar baseline,
 - checked-in JPL Horizons reference snapshots used for comparison and validation,
-- a stage-5 draft packaged-data artifact for the common 1500-2500 CE range,
+- a stage-5 draft packaged-data artifact for the common 1600-2600 CE range,
 - contributor CLI tools for chart inspection, validation reports, audits, artifact checks, and release-bundle rehearsal.
 
 Important current limits:

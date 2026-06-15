@@ -98,13 +98,13 @@ The workspace must include separate first-party crates for multiple backends, an
 - a JPL-based data backend
 - a formula-based planetary backend
 - a lunar algorithm backend
-- a compressed packaged-data backend optimized for 1500-2500 CE
+- a compressed packaged-data backend optimized for 1600-2600 CE
 
 ### FR-9 Compression and Distribution
 The system must define a compressed ephemeris representation that:
 
 - is optimized for repeated astrology lookups
-- covers 1500-2500 CE
+- covers 1600-2600 CE
 - is versioned and reproducible from public source data
 - supports efficient random access by body and date/time
 

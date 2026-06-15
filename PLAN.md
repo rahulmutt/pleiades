@@ -39,7 +39,7 @@ These are the implementation gaps that still block a production release:
 - `pleiades-jpl` is a checked-in Horizons snapshot/fixture backend, not yet a
   broad public-data reader or production reference corpus provider.
 - The checked-in source corpus is useful regression evidence, but it is sparse
-  relative to the 1500-2500 CE production-artifact and body-claim goals; recent
+  relative to the 1600-2600 CE production-artifact and body-claim goals; recent
   cleanup corrected the selected-asteroid Apophis J2000 / early-2001 fixture
   rows to match Horizons and pins those values in regression tests, but the
   broader corpus breadth gap remains.
@@ -67,7 +67,7 @@ These are the implementation gaps that still block a production release:
 | Phase | Focus | Workable-state promise | Details |
 | --- | --- | --- | --- |
 | 1 | Production reference backend and corpus | Maintainers can regenerate or ingest broad public reference inputs for every release-claimed body, frame, channel, and epoch class. | [plan/stages/01-production-reference-corpus.md](plan/stages/01-production-reference-corpus.md) |
-| 2 | Release-grade compressed ephemeris | The 1500-2500 CE packaged backend is generated from validated Phase 1 inputs and passes published accuracy, size, and speed thresholds. | [plan/stages/02-production-compressed-ephemeris.md](plan/stages/02-production-compressed-ephemeris.md) |
+| 2 | Release-grade compressed ephemeris | The 1600-2600 CE packaged backend is generated from validated Phase 1 inputs and passes published accuracy, size, and speed thresholds. | [plan/stages/02-production-compressed-ephemeris.md](plan/stages/02-production-compressed-ephemeris.md) |
 | 3 | Body/backend claim closure | Public body and backend claims are either validated, constrained, approximate, or unsupported with no ambiguous middle state. | [plan/stages/03-body-and-backend-claims.md](plan/stages/03-body-and-backend-claims.md) |
 | 4 | Request-mode semantics | UTC/Delta-T, apparent, topocentric, native sidereal, and motion-output requests are implemented with evidence or rejected consistently. | [plan/stages/04-advanced-request-modes.md](plan/stages/04-advanced-request-modes.md) |
 | 5 | Compatibility and release gates | House/ayanamsa compatibility evidence and release gates prevent stale artifacts, native-dependency drift, and overbroad claims. | [plan/stages/05-compatibility-and-release-readiness.md](plan/stages/05-compatibility-and-release-readiness.md) |

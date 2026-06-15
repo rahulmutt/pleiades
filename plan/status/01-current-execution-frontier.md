@@ -33,7 +33,7 @@ reader or production corpus provider.
 
 ## Why this comes first
 
-The specification requires the 1500-2500 CE compressed data product to be
+The specification requires the 1600-2600 CE compressed data product to be
 reproducible from public inputs and validated against measured error envelopes.
 The current compressed artifact cannot be promoted until its source and hold-out
 inputs are broad enough to support release claims.

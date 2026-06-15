@@ -16,7 +16,7 @@ omitted.
   split-source corpus loaders for arbitrary JPL-style CSV text.
 - Broaden reference and hold-out coverage for luminaries, major planets, Pluto
   policy, lunar/lunar-point channels, baseline asteroids, and representative
-  custom/numbered bodies across 1500-2500 CE.
+  custom/numbered bodies across 1600-2600 CE.
 - Store source evidence in a form that keeps reference, fitting, hold-out,
   boundary, fixture-exactness, and provenance-only rows separable; the
   exact-J2000 reference slice now carries an explicit major-body/selected-
