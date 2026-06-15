@@ -42,7 +42,7 @@ Responsibilities:
 - optional node/apogee derived support where mathematically justified
 
 ### `pleiades-data`
-A packaged compressed backend using artifacts generated for 1500-2500.
+A packaged compressed backend using artifacts generated for 1600-2600.
 
 Responsibilities:
 

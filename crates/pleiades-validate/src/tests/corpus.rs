@@ -89,7 +89,7 @@ fn corpus_summary_has_a_displayable_summary_line() {
     assert_eq!(summary.summary_line(), summary.to_string());
     assert!(summary
         .summary_line()
-        .contains("corpus name=Representative 1500-2500 window"));
+        .contains("corpus name=Representative 1600-2600 window"));
     assert!(summary.summary_line().contains("requests=110"));
     assert!(summary.summary_line().contains("epochs=11"));
     assert!(summary.summary_line().contains("bodies="));

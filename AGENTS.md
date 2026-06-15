@@ -338,7 +338,7 @@ The architecture and API must support:
 - a complete, extensible house-system catalog
 - a complete, extensible ayanamsa catalog
 - multiple backend families
-- compressed data products optimized for 1500-2500 CE
+- compressed data products optimized for 1600-2600 CE
 
 Do not design short-term code that makes the long-term compatibility target harder to achieve.
 

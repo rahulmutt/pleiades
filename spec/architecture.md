@@ -28,7 +28,7 @@ The project is a Rust workspace composed of small, focused crates with explicit 
 - `pleiades-jpl`: backend reading public JPL ephemeris sources or derivative public data products
 - `pleiades-vsop87`: planetary algorithm backend based on a pure-Rust VSOP87 implementation or data source
 - `pleiades-elp`: lunar backend based on a documented pure-Rust lunar theory implementation
-- `pleiades-data`: packaged compressed ephemeris backend for 1500-2500 CE
+- `pleiades-data`: packaged compressed ephemeris backend for 1600-2600 CE
 
 ### Tooling Crates
 

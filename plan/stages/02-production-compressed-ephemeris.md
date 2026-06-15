@@ -3,7 +3,7 @@
 ## Goal
 
 Promote `pleiades-data` from a draft reproducibility fixture to a release-grade
-1500-2500 CE packaged backend.
+1600-2600 CE packaged backend.
 
 ## Current baseline
 
@@ -33,7 +33,7 @@ Promote `pleiades-data` from a draft reproducibility fixture to a release-grade
 
 ## Exit criteria
 
-- The packaged artifact covers the advertised 1500-2500 CE body/channel profile.
+- The packaged artifact covers the advertised 1600-2600 CE body/channel profile.
 - Reference and hold-out comparisons pass the published thresholds.
 - Artifact manifests, checksums, generation provenance, output-support profile,
   and benchmarks are current and release-bundle verified.

@@ -3,7 +3,7 @@
 ## Goal
 
 Move from checked-in regression fixtures to production-grade public reference
-inputs that can validate release claims and generate the 1500-2500 CE compressed
+inputs that can validate release claims and generate the 1600-2600 CE compressed
 artifact.
 
 ## Current baseline
@@ -30,7 +30,7 @@ artifact.
   - keep separate manifest and row sources first-class so corpus-generation
     tooling can work from split public inputs as well as combined fixture text.
 - Broaden source coverage for all release-claimed bodies, channels, frames, and
-  epoch classes across 1500-2500 CE.
+  epoch classes across 1600-2600 CE.
 - Keep fitting/reference, independent hold-out, boundary-overlay,
   fixture-exactness, and provenance-only evidence separate in data and reports.
 

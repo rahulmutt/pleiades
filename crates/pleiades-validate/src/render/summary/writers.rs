@@ -836,7 +836,7 @@ pub(crate) fn implemented_backend_catalog() -> Vec<BackendMatrixEntry> {
             label: "Packaged data backend",
             metadata: PackagedDataBackend::new().metadata(),
             implementation_status: BackendImplementationStatus::DraftArtifact,
-            status_note: "sample packaged artifact exercises lookup and profile plumbing; generated 1500-2500 production artifacts are Phase 2 work",
+            status_note: "sample packaged artifact exercises lookup and profile plumbing; generated 1600-2600 production artifacts are Phase 2 work",
             expected_error_kinds: PACKAGED_EXPECTED_ERROR_KINDS,
             required_data_files: &[],
         },

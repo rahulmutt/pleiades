@@ -25,7 +25,7 @@ Unless stated otherwise, the conformance terms defined in [`SPEC.md`](../SPEC.md
 
 ## Phase 4: Compression and Distribution
 
-- build the fitting pipeline for 1500-2500 CE
+- build the fitting pipeline for 1600-2600 CE
 - implement the artifact format in `pleiades-compression`
 - ship `pleiades-data` as the packaged backend
 - benchmark artifact size and lookup speed

@@ -28,7 +28,7 @@ Pleiades is a pure-Rust ephemeris platform for astrology software developers who
 - a complete, extensible catalog of astrological house systems, with phased delivery allowed but no narrowing of the end-state requirement
 - a complete, extensible catalog of ayanamsas plus tropical/sidereal conversions
 - backend abstraction for JPL-style data-backed and formula-based approaches
-- compressed ephemeris products for the 1500-2500 range
+- compressed ephemeris products for the 1600-2600 range
 - release compatibility profiles that document what a given version actually ships
 - validation against public references and accepted astronomical standards
 

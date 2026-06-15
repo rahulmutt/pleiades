@@ -9,7 +9,7 @@ The specification must satisfy the bootstrap prompt in `prompts/bootstrap.md`:
 1. modular ephemeris software similar in scope to Swiss Ephemeris for astrology-oriented workflows
 2. pure Rust only, with no required C/C++ dependencies
 3. a modular backend trait with separate backend crates for different public data sources and algorithm families
-4. a compressed representation optimized for common use in **1500-2500 CE**
+4. a compressed representation optimized for common use in **1600-2600 CE**
 5. first-party crates named `pleiades-*`
 
 ## Goals
@@ -20,7 +20,7 @@ Pleiades must:
 - remain fully implemented in **pure Rust** with **no required C/C++ dependencies**
 - expose a modular backend abstraction so multiple data sources and algorithm families can coexist
 - support the bodies, house systems, ayanamsas, zodiac modes, and derived values needed by real astrology software
-- define a compressed data representation optimized for **1500-2500 CE**
+- define a compressed data representation optimized for **1600-2600 CE**
 - organize every first-party crate under the `pleiades-*` prefix
 
 ## Specification Index
@@ -33,7 +33,7 @@ Pleiades must:
 - [spec/backend-trait.md](spec/backend-trait.md) — backend contract and capability model
 - [spec/astrology-domain.md](spec/astrology-domain.md) — bodies, houses, ayanamsas, coordinate handling, and derived values
 - [spec/compatibility-catalog.md](spec/compatibility-catalog.md) — enumerated end-state house-system and ayanamsa target catalog
-- [spec/data-compression.md](spec/data-compression.md) — compressed artifact format and generation pipeline for 1500-2500 CE
+- [spec/data-compression.md](spec/data-compression.md) — compressed artifact format and generation pipeline for 1600-2600 CE
 - [spec/backends.md](spec/backends.md) — backend families and required first-party backend crates
 - [spec/api-and-ergonomics.md](spec/api-and-ergonomics.md) — public Rust API shape, configuration, and errors
 - [spec/validation-and-testing.md](spec/validation-and-testing.md) — correctness, benchmarking, and release gates
@@ -64,7 +64,7 @@ These decisions are binding unless a sub-spec explicitly refines them:
 5. **Separation of concerns**: astrology-domain logic must not be hardwired to one backend.
 6. **Compatibility scope**: Pleiades must define an end-state built-in catalog of house systems and ayanamsas sufficient for Swiss-Ephemeris-class interoperability.
 7. **Layering rule**: backends provide astronomical results and capability metadata; house, ayanamsa, and chart logic live in domain-layer crates unless a backend explicitly exposes equivalent native support.
-8. **Data-range optimization**: packaged compressed data is optimized for 1500-2500 CE, while some live or algorithmic backends may support broader ranges.
+8. **Data-range optimization**: packaged compressed data is optimized for 1600-2600 CE, while some live or algorithmic backends may support broader ranges.
 9. **Reproducibility**: generated artifacts must be versioned, documented, and reproducible from public inputs.
 
 ## Conformance Terms
@@ -103,7 +103,7 @@ The project is aligned with this specification when it can:
 - compute Sun, Moon, planetary, and baseline asteroid positions through a backend-agnostic API
 - compute the published house-system and ayanamsa catalogs for the release compatibility profile
 - switch among at least two backend families without changing the consumer-facing query model
-- distribute a compressed ephemeris dataset covering 1500-2500 CE
+- distribute a compressed ephemeris dataset covering 1600-2600 CE
 - build and test on supported targets using pure Rust dependencies only
 
 ## Bootstrap Verification
@@ -115,7 +115,7 @@ The derived specification set satisfies the bootstrap prompt as follows:
 | Modular astrology-oriented ephemeris platform comparable in scope to Swiss Ephemeris | [spec/vision-and-scope.md](spec/vision-and-scope.md), [spec/requirements.md](spec/requirements.md), [spec/astrology-domain.md](spec/astrology-domain.md) |
 | Pure Rust only, with no required C/C++ dependencies | [spec/requirements.md](spec/requirements.md), [spec/architecture.md](spec/architecture.md), [spec/validation-and-testing.md](spec/validation-and-testing.md) |
 | Modular backend trait with separate backend crates | [spec/backend-trait.md](spec/backend-trait.md), [spec/backends.md](spec/backends.md), [spec/architecture.md](spec/architecture.md) |
-| Compressed representation optimized for common use in 1500-2500 CE | [spec/data-compression.md](spec/data-compression.md), [spec/backends.md](spec/backends.md), [spec/architecture.md](spec/architecture.md) |
+| Compressed representation optimized for common use in 1600-2600 CE | [spec/data-compression.md](spec/data-compression.md), [spec/backends.md](spec/backends.md), [spec/architecture.md](spec/architecture.md) |
 | All first-party crates named `pleiades-*` | [spec/architecture.md](spec/architecture.md) |
 
 The current spec set adheres to the bootstrap requirements. The main refinements in this revision are:

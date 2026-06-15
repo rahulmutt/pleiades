@@ -185,7 +185,7 @@ impl ValidationCorpus {
         }
     }
 
-    /// Creates a representative benchmark corpus spanning the target 1500-2500 window.
+    /// Creates a representative benchmark corpus spanning the target 1600-2600 window.
     pub fn representative_window() -> Self {
         let bodies = default_chart_bodies();
         let instants = [
@@ -203,7 +203,7 @@ impl ValidationCorpus {
         ];
 
         Self::from_epochs(
-            "Representative 1500-2500 window",
+            "Representative 1600-2600 window",
             "Eleven-epoch benchmark corpus that broadens the representative sweep with explicit guard epochs just outside the target span and mid-window coverage.",
             Apparentness::Mean,
             &instants,
@@ -333,8 +333,8 @@ pub(crate) fn benchmark_timing_corpus() -> ValidationCorpus {
     CACHE
         .get_or_init(|| {
             ValidationCorpus::from_epochs(
-                "Representative 1500-2500 window",
-                "Reduced timing subset of the representative 1500-2500 benchmark corpus.",
+                "Representative 1600-2600 window",
+                "Reduced timing subset of the representative 1600-2600 benchmark corpus.",
                 Apparentness::Mean,
                 &[Instant::new(
                     JulianDay::from_days(2_451_545.0),

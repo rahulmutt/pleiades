@@ -3,5 +3,5 @@ Generate SPEC.md, a top-level specification file that links to logically decompo
 2. Must be implemented in pure Rust, no C / C++ dependencies.
 3. Must define a modular ephemeris backend trait with implementations using different public data sources and algorithms (some algorithms don't require data). Examples include JPL, etc. 
   3a. You may use any pure-Rust crates for various backend implementations. Each backend implementation should be a separate crate.
-4. Design a compressed representation for common use for data between 1500-2500.
+4. Design a compressed representation for common use for data between 1600-2600.
 5. All sub-crate names should have the form `pleiades-*` .

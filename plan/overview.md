@@ -8,7 +8,7 @@ only remaining production work against the specification.
 1. **Production reference backend and corpus** — provide broad, reproducible
    public reference inputs for validation and artifact generation.
 2. **Release-grade compressed ephemeris** — replace the draft packaged-data
-   fixture with a 1500-2500 CE artifact that passes published thresholds.
+   fixture with a 1600-2600 CE artifact that passes published thresholds.
 3. **Body/backend claim closure** — settle release claims for Pluto, lunar
    theory/lunar points, selected asteroids, and backend capability metadata.
 4. **Request-mode semantics** — implement or consistently reject UTC/Delta-T,
