@@ -11,7 +11,7 @@ fn benchmark_report_renders_a_time_summary() {
     assert!(report.contains(&provenance.summary_line()));
     assert!(report.contains("Benchmark report"));
     assert!(report.contains("Summary: backend="));
-    assert!(report.contains("Representative 1500-2500 window"));
+    assert!(report.contains("Representative 1600-2600 window"));
     assert!(report.contains("Apparentness: Mean"));
     assert!(report.contains("Methodology:"));
     assert!(report.contains("single-request and batch paths are measured separately"));
@@ -299,7 +299,7 @@ fn validation_report_includes_corpus_metadata() {
     );
     assert!(report.contains("Apparentness: Mean"));
     assert!(report.contains("Benchmark corpus"));
-    assert!(report.contains("Representative 1500-2500 window"));
+    assert!(report.contains("Representative 1600-2600 window"));
     assert!(report.contains("estimated corpus heap footprint:"));
     assert!(report.contains("Chart benchmark corpus"));
     assert!(report.contains("Representative chart validation scenarios"));

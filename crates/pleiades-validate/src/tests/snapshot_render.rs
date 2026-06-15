@@ -1261,7 +1261,7 @@ fn comparison_and_benchmark_corpus_summary_commands_render_the_corpus_blocks() {
     assert!(body_date_channel_claims_summary
         .contains("production generation coverage=Production generation coverage:"));
     assert!(body_date_channel_claims_summary.contains(
-            "coverage posture=production-generation coverage and corpus shape remain aligned across the advertised 1500-2500 CE window; coverage="
+            "coverage posture=production-generation coverage and corpus shape remain aligned across the advertised 1600-2600 CE window; coverage="
         ));
     assert!(body_date_channel_claims_summary.contains("body-class coverage=major bodies:"));
     let source_corpus_summary =
@@ -1400,7 +1400,7 @@ fn comparison_and_benchmark_corpus_summary_commands_render_the_corpus_blocks() {
     let benchmark =
         render_cli(&["benchmark-corpus-summary"]).expect("benchmark corpus summary should render");
     assert!(benchmark.contains("Benchmark corpus summary"));
-    assert!(benchmark.contains("name: Representative 1500-2500 window"));
+    assert!(benchmark.contains("name: Representative 1600-2600 window"));
     assert!(benchmark.contains("epoch labels: JD 2268559.0 (TT)"));
     assert!(benchmark.contains("JD 2451545.0 (TT)"));
     assert!(benchmark.contains("JD 2634532.0 (TT)"));
@@ -2459,7 +2459,7 @@ fn source_corpus_summary_aliases_render_the_same_report() {
     assert!(rendered
         .contains("production generation date range=JD 2268932.5 (TDB)..JD 2634167.0 (TDB)"));
     assert!(rendered.contains("production generation quarter-day boundary samples=8 rows across 4 bodies and 2 epochs (JD 2451915.25 (TDB)..JD 2451915.75 (TDB))"));
-    assert!(rendered.contains("coverage posture=production-generation coverage and corpus shape remain aligned across the advertised 1500-2500 CE window; coverage="));
+    assert!(rendered.contains("coverage posture=production-generation coverage and corpus shape remain aligned across the advertised 1600-2600 CE window; coverage="));
     assert!(rendered.contains("body-class coverage=major bodies:"));
     assert!(rendered.contains("production generation boundary window="));
     assert!(rendered.contains("production generation boundary source="));
@@ -2493,7 +2493,7 @@ fn source_corpus_summary_aliases_render_the_same_report() {
     assert!(rendered.contains("date range=JD 2268932.5 (TDB)..JD 2634167.0 (TDB)"));
     assert!(rendered.contains("production generation coverage=Production generation coverage:"));
     assert!(rendered.contains(
-            "coverage posture=production-generation coverage and corpus shape remain aligned across the advertised 1500-2500 CE window; coverage="
+            "coverage posture=production-generation coverage and corpus shape remain aligned across the advertised 1600-2600 CE window; coverage="
         ));
     assert!(rendered.contains("body-class coverage=major bodies:"));
     assert!(rendered.contains(
