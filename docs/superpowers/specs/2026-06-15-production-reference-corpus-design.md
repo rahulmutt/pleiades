@@ -132,10 +132,11 @@ asteroid kernel identity when used.
 
 ## Data flow — generation and verification
 
-- Extend `pleiades-jpl` with a higher-level `generate_corpus` over the existing
-  `CorpusRequest` / `generate_corpus_csv`, driven by `corpus-spec.toml`, that
-  emits **all slices + manifest** in one run and computes the real kernel
-  SHA-256.
+- Extend `pleiades-jpl` with `generate_slice` / `build_manifest` over the existing
+  `CorpusRequest` / `generate_corpus_csv`, driven by the `spk/corpus_spec.rs`
+  module, so the CLI emits **all slices + manifest** in one run. The kernel
+  SHA-256 is the pinned `corpus_spec::KERNEL_SHA256` constant (recorded after a
+  `shasum -a 256`), not computed in-process.
 - Promote the `generate-spk-corpus` CLI from "kernel + hand-typed Julian Days"
   to "kernel + spec file → full slice set + manifest."
 - Add a **gated verify path** (active when `PLEIADES_DE_KERNEL` is present):
@@ -163,7 +164,7 @@ flow above. Any gap is a hard error.
 
 ## Testing (TDD order)
 
-1. `corpus-spec.toml` parse + completeness-matrix derivation.
+1. `corpus_spec.rs` epoch-grid/body-set derivation + completeness-matrix checks.
 2. Validation gate fails on each gap class (missing body / epoch-class / channel
    / frame / checksum / placeholder SHA / schema drift) — table-driven.
 3. Generation emits spec-conformant slices + manifest from a synthetic DAF (as
@@ -188,7 +189,13 @@ flow above. Any gap is a hard error.
 
 - Concrete per-body cadence (max-gap) numbers and the resulting checked-in row
   count budget.
-- Exact `corpus-spec.toml` schema and the hold-out RNG seed/algorithm.
+- Hold-out RNG seed/algorithm tuning (implemented as a seeded LCG in `corpus_spec.rs`).
+- Fixture-golden epoch alignment: the cross-check only exercises epochs shared
+  between `fixture_golden` and a backend slice; on real data the generated grids
+  may not overlap the fixture epochs, so the gated regenerate-and-compare test is
+  the primary numerical check. Task 11 should align fixture-golden epochs with a
+  backbone/boundary epoch (or add them to the boundary slice) to give the
+  cross-check real teeth.
 - Per-body-class cross-check tolerance values.
 - Asteroid kernel choice and which selected asteroids it must cover to match
   current claims (carries over from the SPK backend design's open item).
