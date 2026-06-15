@@ -152,7 +152,11 @@ pub fn build_manifest(slices: &[GeneratedSlice]) -> CorpusManifest {
             name: s.role.token().to_string(),
             file: s.file.clone(),
             role: s.role.token().to_string(),
-            rows: s.csv.lines().filter(|l| !l.starts_with('#')).count(),
+            rows: s
+                .csv
+                .lines()
+                .filter(|l| !l.starts_with('#') && !l.is_empty())
+                .count(),
             checksum: corpus_checksum64(&s.csv),
         })
         .collect();
