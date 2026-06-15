@@ -68,8 +68,8 @@ pub fn max_gap_days(body: &CelestialBody) -> f64 {
         CelestialBody::Venus => 120.0,
         CelestialBody::Sun => 180.0,
         CelestialBody::Mars => 365.0,
-        CelestialBody::Jupiter => 1_825.0,   // ~5 yr
-        CelestialBody::Saturn => 3_650.0,    // ~10 yr
+        CelestialBody::Jupiter => 1_825.0, // ~5 yr
+        CelestialBody::Saturn => 3_650.0,  // ~10 yr
         CelestialBody::Uranus | CelestialBody::Neptune => 7_300.0, // ~20 yr
         CelestialBody::Pluto => 7_300.0,
         _ => 365.0,
@@ -86,10 +86,97 @@ pub fn interior_backbone_epochs(body: &CelestialBody) -> Vec<f64> {
         epochs.push(jd);
         jd += step;
     }
-    if epochs.last().map_or(true, |&last| (RANGE_END_JD - last).abs() > 1e-6) {
+    if epochs
+        .last()
+        .map_or(true, |&last| (RANGE_END_JD - last).abs() > 1e-6)
+    {
         epochs.push(RANGE_END_JD);
     }
     epochs
+}
+
+/// Guard epochs just inside and just outside each end of the target range.
+pub fn boundary_epochs() -> Vec<f64> {
+    vec![
+        RANGE_START_JD - 365.0,
+        RANGE_START_JD,
+        RANGE_START_JD + 365.0,
+        RANGE_END_JD - 365.0,
+        RANGE_END_JD,
+        RANGE_END_JD + 365.0,
+    ]
+}
+
+/// Fine-cadence windows for fast bodies. Each anchor expands to daily samples
+/// across `window_days`. Anchors are spread across the range.
+pub fn fast_cluster_epochs() -> Vec<f64> {
+    let anchors = [
+        RANGE_START_JD + 5_000.0,
+        (RANGE_START_JD + RANGE_END_JD) / 2.0,
+        RANGE_END_JD - 5_000.0,
+    ];
+    let window_days = 30;
+    let mut epochs = Vec::new();
+    for anchor in anchors {
+        for day in 0..window_days {
+            epochs.push(anchor + day as f64);
+        }
+    }
+    epochs
+}
+
+/// Deterministic pseudo-random hold-out epochs (seeded LCG), disjoint from the
+/// interior backbone of every body. Used for unbiased artifact error.
+pub fn holdout_epochs(count: usize) -> Vec<f64> {
+    // Numerical Recipes LCG constants; deterministic across runs.
+    let mut state: u64 = 0x5DEE_CE66_D000_1234;
+    let mut epochs = Vec::with_capacity(count);
+    let span = RANGE_END_JD - RANGE_START_JD;
+    while epochs.len() < count {
+        state = state
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
+        let frac = (state >> 11) as f64 / (1u64 << 53) as f64;
+        let jd = RANGE_START_JD + frac * span;
+        // Keep hold-out off the coarsest backbone grid lines.
+        let on_grid = release_bodies()
+            .iter()
+            .any(|b| ((jd - RANGE_START_JD) % max_gap_days(b)).abs() < 0.5);
+        if !on_grid {
+            epochs.push(jd);
+        }
+    }
+    epochs
+}
+
+#[cfg(test)]
+mod epoch_tests {
+    use super::*;
+
+    #[test]
+    fn boundary_brackets_both_ends() {
+        let e = boundary_epochs();
+        assert!(e.iter().any(|&j| j < RANGE_START_JD));
+        assert!(e.iter().any(|&j| j > RANGE_END_JD));
+    }
+
+    #[test]
+    fn fast_clusters_are_daily() {
+        let e = fast_cluster_epochs();
+        assert_eq!(e.len(), 90); // 3 anchors x 30 days
+        assert!((e[1] - e[0] - 1.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn holdout_is_deterministic_and_in_range() {
+        let a = holdout_epochs(50);
+        let b = holdout_epochs(50);
+        assert_eq!(a, b, "hold-out must be reproducible");
+        assert_eq!(a.len(), 50);
+        for jd in a {
+            assert!(jd > RANGE_START_JD && jd < RANGE_END_JD);
+        }
+    }
 }
 
 #[cfg(test)]
