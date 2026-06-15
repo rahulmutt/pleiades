@@ -117,7 +117,7 @@ use pleiades_backend::CelestialBody;
 
 /// Target packaged range, as TDB Julian Days (1600-01-01 .. 2600-01-01).
 pub const RANGE_START_JD: f64 = 2_305_447.5;
-pub const RANGE_END_JD: f64 = 2_670_589.5;
+pub const RANGE_END_JD: f64 = 2_670_690.5;
 
 /// Pinned identity of the reference kernel. SHA-256 is computed externally via
 /// `shasum -a 256 de440.bsp` and recorded here + in docs/spk-kernel-sourcing.md.
@@ -176,8 +176,8 @@ mod tests {
     #[test]
     fn range_spans_target_window() {
         assert!(RANGE_START_JD < RANGE_END_JD);
-        // ~1000 years in days.
-        assert!((RANGE_END_JD - RANGE_START_JD - 365_142.0).abs() < 2.0);
+        // 1600-01-01 .. 2600-01-01 spans 365_243 days.
+        assert!((RANGE_END_JD - RANGE_START_JD - 365_243.0).abs() < 2.0);
     }
 
     #[test]
