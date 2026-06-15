@@ -7,6 +7,7 @@
 pub mod backend;
 pub(crate) mod bytes;
 pub(crate) mod chain;
+pub mod corpus_spec;
 pub(crate) mod daf;
 pub mod generate;
 pub(crate) mod pool;
