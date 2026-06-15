@@ -32,3 +32,17 @@ SHA-256 here when adopted.
 PLEIADES_DE_KERNEL=/path/to/de440.bsp \
   cargo test -p pleiades-jpl --test spk_full_kernel -- --nocapture
 ```
+
+## Corpus reproduction check
+
+To verify that the checked-in reference corpus is reproducible from the real
+kernel, run the gated integration test:
+
+```bash
+PLEIADES_DE_KERNEL=/path/to/de440.bsp \
+  cargo test -p pleiades-jpl --test corpus_regen -- --nocapture
+```
+
+Without the env var the test compiles and passes immediately via early return
+(skip). With the kernel, it regenerates each boundary-slice row and asserts
+that values match the checked-in CSV within 1 km.
