@@ -818,4 +818,8 @@ fn help_text_lists_the_packaged_lookup_epoch_policy_summary_command() {
     assert!(help.contains(
         "benchmark [--rounds N]    Benchmark the candidate backend on the representative 1600-2600 window corpus and full chart assembly on representative house scenarios"
     ));
+    assert!(help.contains(
+        "validate-corpus           Run the fail-closed production reference corpus gate (completeness, schema/provenance, checksum-drift) over the checked-in corpus slices"
+    ));
+    assert!(help.contains("corpus-gate               Alias for validate-corpus"));
 }
