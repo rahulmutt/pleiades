@@ -1,4 +1,4 @@
-//! Packaged compressed ephemeris backend for the common 1500-2500 range.
+//! Packaged compressed ephemeris backend for the common 1600-2600 range.
 //!
 //! This crate now ships a small stage-5 draft artifact backed by the
 //! `pleiades-compression` codec. The bundled data is regenerated from the
