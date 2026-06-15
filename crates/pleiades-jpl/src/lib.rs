@@ -48,7 +48,7 @@ const AU_IN_KM: f64 = 149_597_870.7;
 mod reference_summary;
 mod requests;
 mod snapshot;
-mod spk;
+pub mod spk;
 pub use reference_summary::*;
 pub use requests::*;
 pub use snapshot::*;
