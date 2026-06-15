@@ -61,6 +61,172 @@ pub fn generate_corpus_csv(backend: &SpkBackend, req: &CorpusRequest) -> Result<
     Ok(out)
 }
 
+use crate::spk::corpus_manifest::{corpus_checksum64, CorpusManifest, SliceEntry};
+use crate::spk::corpus_spec::{self, SliceRole};
+
+/// One generated slice: its role, file name, and CSV text.
+pub struct GeneratedSlice {
+    pub role: SliceRole,
+    pub file: String,
+    pub csv: String,
+}
+
+/// Generates one slice's CSV by sampling the backend at the spec-defined epochs
+/// for that role, reusing the existing single-slice CSV emitter.
+///
+/// For production use this always requests `all_bodies()` (or the fast-cluster
+/// set). Tests that need a narrowed body set should call
+/// [`generate_slice_with_bodies`] directly.
+pub fn generate_slice(backend: &SpkBackend, role: SliceRole) -> Result<GeneratedSlice, String> {
+    match role {
+        SliceRole::FastCluster => generate_slice_with_bodies(
+            backend,
+            role,
+            vec![
+                CelestialBody::Moon,
+                CelestialBody::Mercury,
+                CelestialBody::Venus,
+            ],
+        ),
+        SliceRole::FixtureGolden => {
+            Err("fixture_golden is sourced from existing fixtures, not generated".into())
+        }
+        other => generate_slice_with_bodies(backend, other, all_bodies()),
+    }
+}
+
+/// Inner slice generator that accepts an explicit body list. Production code
+/// calls [`generate_slice`] which always uses the canonical body sets; test
+/// code may call this directly with a narrowed set so the synthetic backend
+/// does not need to cover every release body.
+pub(crate) fn generate_slice_with_bodies(
+    backend: &SpkBackend,
+    role: SliceRole,
+    bodies: Vec<CelestialBody>,
+) -> Result<GeneratedSlice, String> {
+    let (file, epochs) = match role {
+        SliceRole::Boundary => ("boundary.csv", corpus_spec::boundary_epochs()),
+        SliceRole::InteriorBackbone => (
+            "interior.csv",
+            // Union of per-body backbones; generate_corpus_csv samples every
+            // body at every listed epoch, so use the densest (Moon) backbone
+            // and let the validator enforce per-body gaps.
+            corpus_spec::interior_backbone_epochs(&CelestialBody::Moon),
+        ),
+        SliceRole::FastCluster => ("fast_clusters.csv", corpus_spec::fast_cluster_epochs()),
+        SliceRole::Holdout => ("holdout.csv", corpus_spec::holdout_epochs(50)),
+        SliceRole::FixtureGolden => {
+            return Err("fixture_golden is sourced from existing fixtures, not generated".into())
+        }
+    };
+    let req = CorpusRequest {
+        bodies,
+        epoch_jds: epochs,
+        source_label: corpus_spec::KERNEL_LABEL.to_string(),
+        kernel_sha256: corpus_spec::KERNEL_SHA256.to_string(),
+    };
+    let mut csv = generate_corpus_csv(backend, &req)?;
+    // Insert the slice-role header line after the redistribution line.
+    csv = csv.replace(
+        "#Columns:",
+        &format!("#Slice-Role: {}\n#Columns:", role.token()),
+    );
+    Ok(GeneratedSlice {
+        role,
+        file: file.to_string(),
+        csv,
+    })
+}
+
+fn all_bodies() -> Vec<CelestialBody> {
+    let mut bodies = corpus_spec::release_bodies();
+    bodies.extend(corpus_spec::constrained_bodies());
+    bodies
+}
+
+/// Builds the manifest for a set of generated slices.
+pub fn build_manifest(slices: &[GeneratedSlice]) -> CorpusManifest {
+    let entries = slices
+        .iter()
+        .map(|s| SliceEntry {
+            name: s.role.token().to_string(),
+            file: s.file.clone(),
+            role: s.role.token().to_string(),
+            rows: s.csv.lines().filter(|l| !l.starts_with('#')).count(),
+            checksum: corpus_checksum64(&s.csv),
+        })
+        .collect();
+    CorpusManifest {
+        kernel: "de440.bsp".to_string(),
+        kernel_sha256: corpus_spec::KERNEL_SHA256.to_string(),
+        slices: entries,
+    }
+}
+
+#[cfg(test)]
+mod slice_tests {
+    use super::*;
+    use crate::spk::test_support::{build_daf, type2_record, type2_segment_data, SegmentSpec};
+
+    fn const_seg(target: i32, center: i32, pos: [f64; 3]) -> SegmentSpec {
+        let rec = type2_record(0.0, 1.0e12, &[pos[0], 0.0], &[pos[1], 0.0], &[pos[2], 0.0]);
+        let data = type2_segment_data(-1.0e12, 2.0e12, rec.len(), &[rec]);
+        SegmentSpec {
+            start_et: -1.0e12,
+            stop_et: 1.0e12,
+            target,
+            center,
+            frame: 1,
+            data_type: 2,
+            data,
+            name: "C".to_string(),
+        }
+    }
+
+    fn backend() -> SpkBackend {
+        // Minimal chain so Sun resolves; other bodies share the const segment.
+        let blob = build_daf(&[
+            const_seg(10, 0, [1.0e8, 2.0e7, 0.0]),
+            const_seg(399, 3, [0.0, 0.0, 0.0]),
+            const_seg(3, 0, [0.0, 0.0, 0.0]),
+        ]);
+        SpkBackend::builder()
+            .add_kernel_bytes(blob, "syn")
+            .unwrap()
+            .build()
+    }
+
+    #[test]
+    fn boundary_slice_has_role_header_and_rows() {
+        // Use narrowed body list (Sun only) so the synthetic backend resolves.
+        let slice =
+            generate_slice_with_bodies(&backend(), SliceRole::Boundary, vec![CelestialBody::Sun])
+                .unwrap();
+        assert!(slice.csv.contains("#Slice-Role: boundary"));
+        assert!(slice.csv.contains("#Columns:epoch_jd,body,x_km,y_km,z_km"));
+        assert!(slice
+            .csv
+            .lines()
+            .any(|l| l.starts_with("23") && l.contains("Sun")));
+    }
+
+    #[test]
+    fn manifest_counts_data_rows_and_checksums() {
+        let slice =
+            generate_slice_with_bodies(&backend(), SliceRole::Boundary, vec![CelestialBody::Sun])
+                .unwrap();
+        let manifest = build_manifest(std::slice::from_ref(&slice));
+        assert_eq!(manifest.slices.len(), 1);
+        assert!(manifest.slices[0].rows > 0);
+        assert_ne!(manifest.slices[0].checksum, 0);
+    }
+
+    #[test]
+    fn fixture_golden_is_not_generated() {
+        assert!(generate_slice(&backend(), SliceRole::FixtureGolden).is_err());
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
