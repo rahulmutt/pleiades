@@ -91,7 +91,22 @@ pub fn validate_schema_and_provenance(slices: &[LoadedSlice]) -> Result<(), Stri
 fn tolerance_km(body: &CelestialBody) -> f64 {
     match body {
         CelestialBody::Moon => 5.0,
-        CelestialBody::Pluto => 5_000.0, // constrained/approximate
+        // de440 provides only system barycenters (NAIF 5/6/7/8) for the giant
+        // planets, not planet-center IDs (599/699/799/899), so the reader
+        // resolves them to the barycenter while the Horizons fixture_golden uses
+        // the planet center. The barycenter<->center offset is real and body-
+        // specific (Jupiter ~64 km, Saturn ~300 km, Uranus ~352 km, Neptune
+        // ~74 km at J2000; worst-case aligned-moon geometry is larger) but
+        // astrologically negligible (<0.1"). 600 km clears that offset with
+        // margin while still rejecting gross errors (wrong NAIF id, axis flip,
+        // 180-degree rotation). It does NOT catch subtle sub-600 km reader
+        // errors for these bodies; the tight inner-planet tolerances below do
+        // that for bodies whose center coincides with their barycenter.
+        CelestialBody::Jupiter
+        | CelestialBody::Saturn
+        | CelestialBody::Uranus
+        | CelestialBody::Neptune => 600.0,
+        CelestialBody::Pluto => 5_000.0, // constrained/approximate (Charon barycenter)
         _ => 50.0,
     }
 }
@@ -328,6 +343,27 @@ mod tolerance_tests {
     fn tolerance_is_looser_for_constrained_bodies() {
         assert!(tolerance_km(&CelestialBody::Pluto) > tolerance_km(&CelestialBody::Mars));
     }
+
+    #[test]
+    fn giant_planets_allow_barycenter_offset() {
+        // de440 exposes only giant-planet barycenters, so the cross-check vs
+        // planet-center Horizons must tolerate the (astrologically negligible)
+        // barycenter<->center offset — pinned at 600 km, looser than inner
+        // planets, tighter than the constrained Pluto allowance.
+        for b in [
+            CelestialBody::Jupiter,
+            CelestialBody::Saturn,
+            CelestialBody::Uranus,
+            CelestialBody::Neptune,
+        ] {
+            assert_eq!(tolerance_km(&b), 600.0, "{b:?} tolerance must be pinned");
+            assert!(tolerance_km(&b) > tolerance_km(&CelestialBody::Mars), "{b:?} > Mars");
+            assert!(tolerance_km(&b) < tolerance_km(&CelestialBody::Pluto), "{b:?} < Pluto");
+        }
+        assert_eq!(tolerance_km(&CelestialBody::Mars), 50.0);
+        assert_eq!(tolerance_km(&CelestialBody::Moon), 5.0);
+        assert_eq!(tolerance_km(&CelestialBody::Pluto), 5_000.0);
+    }
 }
 
 #[cfg(test)]
@@ -395,6 +431,26 @@ mod cross_check_tests {
         let slices = vec![
             make_slice("boundary", "2451545.0,Sun,1000.0,2000.0,3000.0\n"),
             make_slice("interior", "2451545.0,Mars,4000.0,5000.0,6000.0\n"),
+        ];
+        assert!(cross_check_fixture_golden(&slices).is_ok());
+    }
+
+    #[test]
+    fn giant_planet_over_tolerance_fails_for_release_body() {
+        // Jupiter offset of 700 km exceeds the 600 km giant-planet tolerance.
+        let slices = vec![
+            make_slice("fixture_golden", "2451545.0,Jupiter,0.0,0.0,0.0\n"),
+            make_slice("boundary", "2451545.0,Jupiter,700.0,0.0,0.0\n"),
+        ];
+        assert!(cross_check_fixture_golden(&slices).is_err());
+    }
+
+    #[test]
+    fn giant_planet_within_tolerance_passes() {
+        // 400 km < 600 km giant-planet tolerance => Ok.
+        let slices = vec![
+            make_slice("fixture_golden", "2451545.0,Jupiter,0.0,0.0,0.0\n"),
+            make_slice("boundary", "2451545.0,Jupiter,400.0,0.0,0.0\n"),
         ];
         assert!(cross_check_fixture_golden(&slices).is_ok());
     }
