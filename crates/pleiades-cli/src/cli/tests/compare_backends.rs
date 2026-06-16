@@ -20,6 +20,10 @@ fn shared_command_help_is_kept_in_sync_with_the_validation_binary() {
         cli_commands.remove("generate-spk-corpus"),
         "cli should remain the only binary with the generate-spk-corpus command"
     );
+    assert!(
+        cli_commands.remove("generate-fixture-golden"),
+        "cli should remain the only binary with the generate-fixture-golden command"
+    );
     assert_eq!(cli_commands, validation_commands);
 }
 

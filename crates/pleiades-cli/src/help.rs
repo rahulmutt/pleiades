@@ -75,6 +75,7 @@ Commands:
     --body <name>        Use a built-in body or a custom catalog:designation identifier
   generate-spk-corpus <kernel.bsp> <jd...>  Sample a JPL DE SPK kernel into the corpus CSV
   generate-spk-corpus <kernel.bsp> --emit-slices <out-dir>  Generate all four corpus slices (boundary, interior, fast_clusters, holdout) plus manifest.txt into <out-dir>
+  generate-fixture-golden <out-dir>  Derive the de440-independent fixture_golden.csv from the checked-in Horizons reference snapshot
   {}
   help                   Show this help text",
         banner(),
