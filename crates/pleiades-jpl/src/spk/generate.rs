@@ -29,33 +29,68 @@ pub struct CorpusRequest {
 /// `catalog:designation`) accepted by the snapshot corpus loader's `parse_body`,
 /// so the generated CSV round-trips through that loader.
 pub fn generate_corpus_csv(backend: &SpkBackend, req: &CorpusRequest) -> Result<String, String> {
-    const AU_IN_KM: f64 = 149_597_870.7;
+    let mut out = corpus_header(&req.source_label, &req.kernel_sha256);
+    for &jd in &req.epoch_jds {
+        for body in &req.bodies {
+            push_corpus_row(&mut out, backend, body, jd)?;
+        }
+    }
+    Ok(out)
+}
+
+const AU_IN_KM: f64 = 149_597_870.7;
+
+/// Standard provenance header for every corpus slice CSV.
+fn corpus_header(source_label: &str, kernel_sha256: &str) -> String {
     let mut out = String::new();
     out.push_str("#Pleiades SPK Reference Corpus\n");
-    out.push_str(&format!("#Source: {}\n", req.source_label));
-    out.push_str(&format!("#Kernel-SHA256: {}\n", req.kernel_sha256));
+    out.push_str(&format!("#Source: {source_label}\n"));
+    out.push_str(&format!("#Kernel-SHA256: {kernel_sha256}\n"));
     out.push_str("#Coverage: geocentric ecliptic (mean geometric), TDB epochs\n");
     out.push_str(
         "#Redistribution: derived from public-domain JPL DE kernel; corpus is redistributable\n",
     );
     out.push_str("#Columns:epoch_jd,body,x_km,y_km,z_km\n");
+    out
+}
 
-    for &jd in &req.epoch_jds {
-        let inst = Instant::new(JulianDay::from_days(jd), TimeScale::Tdb);
-        for body in &req.bodies {
-            let res = backend
-                .position(&EphemerisRequest::new(body.clone(), inst))
-                .map_err(|e| format!("body {body:?} at jd {jd}: {}", e.message))?;
-            let ec = res
-                .ecliptic
-                .ok_or_else(|| format!("no ecliptic for {body:?}"))?;
-            let r_km = ec.distance_au.unwrap_or(0.0) * AU_IN_KM;
-            let lon = ec.longitude.degrees().to_radians();
-            let lat = ec.latitude.degrees().to_radians();
-            let x = r_km * lat.cos() * lon.cos();
-            let y = r_km * lat.cos() * lon.sin();
-            let z = r_km * lat.sin();
-            out.push_str(&format!("{jd},{body},{x:.6},{y:.6},{z:.6}\n"));
+/// Samples one body at one epoch and appends its `epoch_jd,body,x,y,z` row.
+fn push_corpus_row(
+    out: &mut String,
+    backend: &SpkBackend,
+    body: &CelestialBody,
+    jd: f64,
+) -> Result<(), String> {
+    let inst = Instant::new(JulianDay::from_days(jd), TimeScale::Tdb);
+    let res = backend
+        .position(&EphemerisRequest::new(body.clone(), inst))
+        .map_err(|e| format!("body {body:?} at jd {jd}: {}", e.message))?;
+    let ec = res
+        .ecliptic
+        .ok_or_else(|| format!("no ecliptic for {body:?}"))?;
+    let r_km = ec.distance_au.unwrap_or(0.0) * AU_IN_KM;
+    let lon = ec.longitude.degrees().to_radians();
+    let lat = ec.latitude.degrees().to_radians();
+    let x = r_km * lat.cos() * lon.cos();
+    let y = r_km * lat.cos() * lon.sin();
+    let z = r_km * lat.sin();
+    out.push_str(&format!("{jd},{body},{x:.6},{y:.6},{z:.6}\n"));
+    Ok(())
+}
+
+/// Emits a corpus CSV where each body is sampled at its own epoch list.
+/// Bodies are emitted in the given order; epochs in the given (already sorted)
+/// order. Used by the interior backbone so slow bodies are not over-sampled.
+pub fn generate_corpus_csv_per_body(
+    backend: &SpkBackend,
+    per_body: &[(CelestialBody, Vec<f64>)],
+    source_label: &str,
+    kernel_sha256: &str,
+) -> Result<String, String> {
+    let mut out = corpus_header(source_label, kernel_sha256);
+    for (body, epochs) in per_body {
+        for &jd in epochs {
+            push_corpus_row(&mut out, backend, body, jd)?;
         }
     }
     Ok(out)
@@ -104,17 +139,33 @@ pub(crate) fn generate_slice_with_bodies(
     role: SliceRole,
     bodies: Vec<CelestialBody>,
 ) -> Result<GeneratedSlice, String> {
+    if role == SliceRole::InteriorBackbone {
+        let per_body: Vec<(CelestialBody, Vec<f64>)> = bodies
+            .iter()
+            .map(|b| (b.clone(), corpus_spec::interior_epochs_for(b)))
+            .collect();
+        let mut csv = generate_corpus_csv_per_body(
+            backend,
+            &per_body,
+            corpus_spec::KERNEL_LABEL,
+            corpus_spec::KERNEL_SHA256,
+        )?;
+        csv = csv.replace(
+            "#Columns:",
+            &format!("#Slice-Role: {}\n#Columns:", role.token()),
+        );
+        return Ok(GeneratedSlice {
+            role,
+            file: "interior.csv".to_string(),
+            csv,
+        });
+    }
+
     let (file, epochs) = match role {
         SliceRole::Boundary => ("boundary.csv", corpus_spec::boundary_epochs()),
-        SliceRole::InteriorBackbone => (
-            "interior.csv",
-            // Union of per-body backbones; generate_corpus_csv samples every
-            // body at every listed epoch, so use the densest (Moon) backbone
-            // and let the validator enforce per-body gaps.
-            corpus_spec::interior_backbone_epochs(&CelestialBody::Moon),
-        ),
         SliceRole::FastCluster => ("fast_clusters.csv", corpus_spec::fast_cluster_epochs()),
         SliceRole::Holdout => ("holdout.csv", corpus_spec::holdout_epochs(50)),
+        SliceRole::InteriorBackbone => unreachable!("interior handled above"),
         SliceRole::FixtureGolden => {
             return Err("fixture_golden is sourced from existing fixtures, not generated".into())
         }
@@ -212,6 +263,32 @@ mod slice_tests {
             .csv
             .lines()
             .any(|l| l.starts_with("23") && l.contains("Sun")));
+    }
+
+    #[test]
+    fn interior_uses_per_body_cadence_and_includes_anchor() {
+        // Synthetic backend resolves Sun via the const segment chain.
+        let slice = generate_slice_with_bodies(
+            &backend(),
+            SliceRole::InteriorBackbone,
+            vec![CelestialBody::Sun],
+        )
+        .unwrap();
+        assert!(slice.csv.contains("#Slice-Role: interior"));
+        // Anchor epoch J2000 must appear.
+        assert!(
+            slice.csv.lines().any(|l| l.starts_with("2451545") && l.contains("Sun")),
+            "interior must include the J2000 anchor"
+        );
+        // Body-outer ordering: all Sun rows are contiguous (only Sun here, so just
+        // assert rows exist and are sorted by epoch).
+        let epochs: Vec<f64> = slice
+            .csv
+            .lines()
+            .filter(|l| !l.starts_with('#') && !l.is_empty())
+            .map(|l| l.split(',').next().unwrap().parse().unwrap())
+            .collect();
+        assert!(epochs.windows(2).all(|w| w[1] >= w[0]), "epochs ascending per body");
     }
 
     #[test]
