@@ -1,12 +1,8 @@
 #Pleiades SPK Reference Corpus Manifest
 #Kernel: de440.bsp
-#Kernel-SHA256: <pinned-after-download>
-#Frame: geocentric ecliptic (mean geometric)
-#TimeScale: TDB
-#Obliquity-Source: shared backend obliquity constant
-#Generation-Command: generate-spk-corpus <kernel.bsp> --emit-slices
-slice boundary file=boundary.csv role=boundary rows=3 checksum=0
-slice interior file=interior.csv role=interior rows=3 checksum=0
-slice fast_clusters file=fast_clusters.csv role=fast_cluster rows=3 checksum=0
-slice holdout file=holdout.csv role=holdout rows=3 checksum=0
-slice fixture_golden file=fixture_golden.csv role=fixture_golden rows=3 checksum=0
+#Kernel-SHA256: a4ce9bf9b3282becc9f4b2ac3cebe03a2ae7599981aabd7265fd8482fff7c4b5
+slice boundary file=boundary.csv role=boundary rows=60 checksum=13662226065400974478
+slice interior file=interior.csv role=interior rows=24813 checksum=4646123209549936670
+slice fast_cluster file=fast_clusters.csv role=fast_cluster rows=270 checksum=1800088492454335092
+slice holdout file=holdout.csv role=holdout rows=500 checksum=9802123424579841530
+slice fixture_golden file=fixture_golden.csv role=fixture_golden rows=16 checksum=11655674412360454446
