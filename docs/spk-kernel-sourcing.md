@@ -9,7 +9,7 @@ JPL DE SPK kernel that is **not** committed to this repository (it is ~114 MB).
 - Source: NASA/JPL NAIF generic kernels —
   `https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de440.bsp`
 - License: public domain (U.S. Government work).
-- SHA-256: `<fill in after downloading: shasum -a 256 de440.bsp>`
+- SHA-256: `a4ce9bf9b3282becc9f4b2ac3cebe03a2ae7599981aabd7265fd8482fff7c4b5`
 
 ## Coverage
 

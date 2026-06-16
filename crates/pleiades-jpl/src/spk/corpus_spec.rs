@@ -12,7 +12,7 @@ pub const RANGE_END_JD: f64 = 2_670_690.5;
 /// Pinned identity of the reference kernel. SHA-256 is computed externally via
 /// `shasum -a 256 de440.bsp` and recorded here + in docs/spk-kernel-sourcing.md.
 pub const KERNEL_LABEL: &str = "JPL DE SPK kernel: de440.bsp";
-pub const KERNEL_SHA256: &str = "<pinned-after-download>";
+pub const KERNEL_SHA256: &str = "a4ce9bf9b3282becc9f4b2ac3cebe03a2ae7599981aabd7265fd8482fff7c4b5";
 
 /// Role of a corpus slice, preserving the reference/holdout/boundary/
 /// fixture-exactness separation.
