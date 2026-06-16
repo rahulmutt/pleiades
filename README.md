@@ -19,7 +19,7 @@ As of the current workspace state, `pleiades` includes:
 - an API stability profile (`pleiades-api-stability/0.2.0`),
 - 25 catalogued house systems and 59 catalogued ayanamsas,
 - pure-Rust algorithmic backends for VSOP87-style planetary positions and a compact Meeus-style lunar baseline,
-- checked-in JPL Horizons reference snapshots used for comparison and validation,
+- a reproducible, de440-sourced JPL reference corpus (checked-in, checksum-pinned, with the kernel SHA pinned but the kernel itself not committed) behind a live fail-closed corpus gate, used for comparison and validation,
 - a stage-5 draft packaged-data artifact for the common 1600-2600 CE range,
 - contributor CLI tools for chart inspection, validation reports, audits, artifact checks, and release-bundle rehearsal.
 
@@ -55,7 +55,7 @@ For the source-of-truth design and compatibility targets, read [SPEC.md](SPEC.md
 | `pleiades-ayanamsa` | Ayanamsa catalog, aliases, reference offset metadata, and sidereal offset helpers. |
 | `pleiades-vsop87` | Pure-Rust VSOP87B-backed planetary backend with generated binary coefficient tables and a Pluto fallback. |
 | `pleiades-elp` | Compact Meeus-style lunar/lunar-point backend for Moon, mean/true node, and mean apogee/perigee channels. |
-| `pleiades-jpl` | Checked-in JPL Horizons reference snapshots and snapshot-backed validation helpers. |
+| `pleiades-jpl` | Reproducible de440-sourced JPL reference corpus (checksum-pinned, kernel SHA pinned, kernel not committed) and corpus-backed validation helpers behind a fail-closed gate. |
 | `pleiades-compression` | Compressed artifact data structures and codec helpers. |
 | `pleiades-data` | Packaged compressed-data backend and checked-in draft artifact fixture. |
 | `pleiades-cli` | Contributor-facing inspection and chart CLI. |

@@ -6,29 +6,22 @@ omitted.
 
 ## Phase 1 — Production reference backend and corpus
 
-- Broaden the exposed pure-Rust CSV reader/parser into broader public-data
-  inputs or a reproducible corpus-generation pipeline from public inputs. The
-  production-generation manifest summary now validates the derived source,
-  coverage, and boundary-request corpus records directly, the release-facing
-  body/date/channel posture now derives from validated corpus evidence, and the
-  JPL snapshot crate now exposes reusable parsing entry points for the checked-in
-  fixture manifests and rows plus combined, split-source, and path-backed
-  split-source corpus loaders for arbitrary JPL-style CSV text.
-- Broaden reference and hold-out coverage for luminaries, major planets, Pluto
-  policy, lunar/lunar-point channels, baseline asteroids, and representative
-  custom/numbered bodies across 1600-2600 CE.
-- Store source evidence in a form that keeps reference, fitting, hold-out,
-  boundary, fixture-exactness, and provenance-only rows separable; the
-  exact-J2000 reference slice now carries an explicit major-body/selected-
-  asteroid class split in the source-corpus report, the production-generation
-  source summary now exposes an explicit source-class breakdown, and the merged
-  production-generation body-class coverage/cadence split is now surfaced too,
-  but broader source breadth and the remaining public-input strategy work still
-  need to land.
-- Keep cleaning up the checked-in Horizons fixtures as source-verified samples
-  are found; the selected-asteroid Apophis rows at J2000 and the early-2001
-  boundary epochs now match the live Horizons vectors and are pinned by
-  regression tests.
+The reproducible de440 generation pipeline now produces a real, broad corpus
+(~25,659 data rows across boundary, interior, fast-cluster, hold-out, and
+independent fixture-golden slices, sampled per-body at each body's own cadence)
+committed under `crates/pleiades-jpl/data/corpus/` with real non-zero checksums
+and a pinned kernel SHA-256. A clean checkout verifies kernel-free via
+`pleiades-validate validate-corpus` and reproduces all slices from de440 with
+`PLEIADES_DE_KERNEL` set; the live fail-closed gate covers missing bodies/roles,
+schema/checksum drift, malformed/non-finite rows, placeholder SHA, and an
+independent Horizons fixture-golden cross-check (600 km tolerance for giant
+planets, which resolve to de440 system barycenters). The remaining slices are:
+
+- Add a broad public-data reader for arbitrary external JPL-style data products,
+  beyond the pinned de440 kernel and checked-in fixtures, on top of the existing
+  combined, split-source, and path-backed split-source loaders.
+- Adopt a small-body asteroid SPK kernel for broader selected-asteroid source
+  coverage and record its provenance in `docs/spk-kernel-sourcing.md`.
 
 ## Phase 2 — Release-grade compressed ephemeris
 

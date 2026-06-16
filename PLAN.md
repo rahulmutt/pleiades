@@ -17,14 +17,15 @@ The workspace is past the original foundation roadmap:
   catalogs and compatibility-profile reporting;
 - VSOP87-style planetary, compact Meeus-style lunar/lunar-point, JPL snapshot,
   and packaged-data backend crates exist;
-- the JPL snapshot crate now exposes reusable pure-Rust CSV parsing entry points
-  for the checked-in snapshot fixtures and a broader manifest+row corpus loader
-  for arbitrary JPL-style CSV text, including path-backed split-source loading
-  for separate manifest/row files, while validation, CLI, audit, benchmark,
-  report, and release-bundle rehearsal surfaces continue to fail closed on stale
-  rendered sidecars; source-corpus summaries now carry the production-generation
+- the JPL crate ships a reproducible de440-sourced reference corpus committed
+  under `crates/pleiades-jpl/data/corpus/` behind a live fail-closed
+  `validate-corpus` gate, plus reusable pure-Rust CSV parsing entry points and
+  combined, split-source, and path-backed split-source corpus loaders for
+  arbitrary JPL-style CSV text, while validation, CLI, audit, benchmark, report,
+  and release-bundle rehearsal surfaces continue to fail closed on stale
+  rendered sidecars; source-corpus summaries carry the production-generation
   body-class coverage and cadence payloads alongside the source-window evidence,
-  and the release-facing body/date/channel posture now derives from validated
+  and the release-facing body/date/channel posture derives from validated
   corpus evidence;
 - unsupported advanced modes are represented in policy surfaces rather than
   silently accepted;
@@ -36,13 +37,14 @@ The workspace is past the original foundation roadmap:
 
 These are the implementation gaps that still block a production release:
 
-- `pleiades-jpl` is a checked-in Horizons snapshot/fixture backend, not yet a
-  broad public-data reader or production reference corpus provider.
-- The checked-in source corpus is useful regression evidence, but it is sparse
-  relative to the 1600-2600 CE production-artifact and body-claim goals; recent
-  cleanup corrected the selected-asteroid Apophis J2000 / early-2001 fixture
-  rows to match Horizons and pins those values in regression tests, but the
-  broader corpus breadth gap remains.
+- `pleiades-jpl` carries a reproducible generation pipeline that produces a
+  broad, de440-sourced reference corpus (~25,659 data rows across 1600-2600 CE,
+  per-body cadence) committed under `crates/pleiades-jpl/data/corpus/` with real
+  checksums and a pinned kernel SHA, behind a live fail-closed `validate-corpus`
+  gate; a clean checkout verifies it kernel-free and reproduces it from de440
+  with `PLEIADES_DE_KERNEL`. It is not yet a broad public-data reader for
+  arbitrary external JPL-style data products, and asteroid-kernel adoption for
+  broader selected-asteroid source coverage is still open.
 - `pleiades-data` ships a draft compressed artifact whose model-error envelope
   still exceeds production thresholds for many bodies and channels.
 - Pluto remains approximate/fallback-backed in first-party algorithmic paths and
@@ -95,9 +97,12 @@ end-state work and must not broaden public claims before its own evidence exists
 - Keep `README.md`, release profiles, generated reports, and this plan aligned
   when public behavior or release claims change.
 
-Status: refreshed 2026-06-13 after the `spec/*.md` revision that enumerated the
-target compatibility catalog (`spec/compatibility-catalog.md`) and added the data
-provenance/licensing policy; this revision adds Phase 6 for deferred end-state
-catalog completion and aligns the phase-to-spec map. Prior refresh 2026-05-24
+Status: refreshed 2026-06-16 after promoting the `pleiades-jpl` reference corpus
+to a real, broad, de440-sourced, checksum-pinned product behind a live
+fail-closed `validate-corpus` gate (clean-checkout verify kernel-free, reproduce
+from de440). Prior refresh 2026-06-13 followed the
+`spec/*.md` revision that enumerated the target compatibility catalog
+(`spec/compatibility-catalog.md`) and added the data provenance/licensing policy
+and Phase 6 for deferred end-state catalog completion. Prior refresh 2026-05-24
 reviewed `SPEC.md`, `spec/*.md`, README status, current crates, CLI/report
 posture, and checked-in plan files.
