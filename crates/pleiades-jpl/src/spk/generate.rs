@@ -81,7 +81,13 @@ fn push_corpus_row(
 /// Emits a corpus CSV where each body is sampled at its own epoch list.
 /// Bodies are emitted in the given order; epochs in the given (already sorted)
 /// order. Used by the interior backbone so slow bodies are not over-sampled.
-pub fn generate_corpus_csv_per_body(
+///
+/// Rows are therefore grouped by body (body-outer, epoch-inner) and are NOT
+/// globally sorted by epoch across bodies — this is intentional for the
+/// interior backbone, where each body has its own cadence. The
+/// verify-from-kernel test regenerates with this same function, so the
+/// ordering is stable and reproducible across runs.
+pub(crate) fn generate_corpus_csv_per_body(
     backend: &SpkBackend,
     per_body: &[(CelestialBody, Vec<f64>)],
     source_label: &str,
