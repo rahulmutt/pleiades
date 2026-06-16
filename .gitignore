@@ -21,3 +21,6 @@ target
 #.idea/
 
 .ralph
+
+# Local ephemeris kernels (not committed)
+.cache/
