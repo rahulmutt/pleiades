@@ -95,6 +95,25 @@ pub fn interior_backbone_epochs(body: &CelestialBody) -> Vec<f64> {
     epochs
 }
 
+/// Anchor epochs always included in the interior backbone for every body, so
+/// backend-generated slices overlap the independent `fixture_golden` slice at
+/// known (body, epoch) pairs. J2000 has trusted Horizons evidence in
+/// `reference_snapshot()`.
+pub fn anchor_epochs() -> Vec<f64> {
+    vec![2_451_545.0]
+}
+
+/// Interior epochs for one body: its per-body cadence backbone unioned with the
+/// shared anchor epochs, sorted and deduplicated. Deterministic and stable so
+/// checksums and verify-from-kernel reproduce.
+pub fn interior_epochs_for(body: &CelestialBody) -> Vec<f64> {
+    let mut epochs = interior_backbone_epochs(body);
+    epochs.extend(anchor_epochs());
+    epochs.sort_by(|a, b| a.partial_cmp(b).expect("epochs are finite"));
+    epochs.dedup_by(|a, b| (*a - *b).abs() < 1e-6);
+    epochs
+}
+
 /// Guard epochs just inside and just outside each end of the target range.
 pub fn boundary_epochs() -> Vec<f64> {
     vec![
@@ -213,6 +232,34 @@ mod backbone_tests {
         let moon = interior_backbone_epochs(&CelestialBody::Moon).len();
         let neptune = interior_backbone_epochs(&CelestialBody::Neptune).len();
         assert!(moon > neptune);
+    }
+}
+
+#[cfg(test)]
+mod anchor_tests {
+    use super::*;
+
+    #[test]
+    fn anchor_epochs_include_j2000() {
+        assert!(anchor_epochs().contains(&2_451_545.0));
+    }
+
+    #[test]
+    fn interior_epochs_for_include_anchors_sorted_unique() {
+        let epochs = interior_epochs_for(&CelestialBody::Neptune);
+        // anchor present
+        assert!(epochs.contains(&2_451_545.0));
+        // strictly increasing (sorted + deduped)
+        for pair in epochs.windows(2) {
+            assert!(pair[1] > pair[0], "epochs must strictly increase");
+        }
+    }
+
+    #[test]
+    fn interior_epochs_for_neptune_far_fewer_than_moon() {
+        let moon = interior_epochs_for(&CelestialBody::Moon).len();
+        let neptune = interior_epochs_for(&CelestialBody::Neptune).len();
+        assert!(neptune < moon / 10, "slow body must be far sparser");
     }
 }
 
