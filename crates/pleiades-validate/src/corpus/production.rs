@@ -524,7 +524,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "enabled after Task 11 regenerates real corpus data + checksums"]
     fn embedded_corpus_gate_passes() {
         run_corpus_gate().unwrap();
     }
