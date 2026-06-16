@@ -283,7 +283,10 @@ mod slice_tests {
         assert!(slice.csv.contains("#Slice-Role: interior"));
         // Anchor epoch J2000 must appear.
         assert!(
-            slice.csv.lines().any(|l| l.starts_with("2451545") && l.contains("Sun")),
+            slice
+                .csv
+                .lines()
+                .any(|l| l.starts_with("2451545") && l.contains("Sun")),
             "interior must include the J2000 anchor"
         );
         // Body-outer ordering: all Sun rows are contiguous (only Sun here, so just
@@ -294,7 +297,10 @@ mod slice_tests {
             .filter(|l| !l.starts_with('#') && !l.is_empty())
             .map(|l| l.split(',').next().unwrap().parse().unwrap())
             .collect();
-        assert!(epochs.windows(2).all(|w| w[1] >= w[0]), "epochs ascending per body");
+        assert!(
+            epochs.windows(2).all(|w| w[1] >= w[0]),
+            "epochs ascending per body"
+        );
     }
 
     #[test]

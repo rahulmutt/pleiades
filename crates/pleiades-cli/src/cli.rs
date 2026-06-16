@@ -13,11 +13,11 @@ use pleiades_validate::{
 };
 
 use crate::commands::chart::render_chart;
+use crate::commands::fixture_golden::render_fixture_golden;
 use crate::commands::packaged_artifact::{
     parse_packaged_artifact_command, render_packaged_artifact_regeneration,
     render_packaged_artifact_regeneration_check, PackagedArtifactCommand,
 };
-use crate::commands::fixture_golden::render_fixture_golden;
 use crate::commands::spk_corpus::render_spk_corpus;
 use crate::help::help_text;
 use crate::parse::{parse_release_bundle_output_dir, parse_rounds};

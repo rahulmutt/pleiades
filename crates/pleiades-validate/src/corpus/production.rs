@@ -357,8 +357,14 @@ mod tolerance_tests {
             CelestialBody::Neptune,
         ] {
             assert_eq!(tolerance_km(&b), 600.0, "{b:?} tolerance must be pinned");
-            assert!(tolerance_km(&b) > tolerance_km(&CelestialBody::Mars), "{b:?} > Mars");
-            assert!(tolerance_km(&b) < tolerance_km(&CelestialBody::Pluto), "{b:?} < Pluto");
+            assert!(
+                tolerance_km(&b) > tolerance_km(&CelestialBody::Mars),
+                "{b:?} > Mars"
+            );
+            assert!(
+                tolerance_km(&b) < tolerance_km(&CelestialBody::Pluto),
+                "{b:?} < Pluto"
+            );
         }
         assert_eq!(tolerance_km(&CelestialBody::Mars), 50.0);
         assert_eq!(tolerance_km(&CelestialBody::Moon), 5.0);

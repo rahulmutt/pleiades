@@ -15,7 +15,9 @@ pub fn render_fixture_golden(args: &[&str]) -> Result<String, String> {
     let anchors = corpus_spec::anchor_epochs();
     let mut csv = String::new();
     csv.push_str("#Pleiades SPK Reference Corpus\n");
-    csv.push_str("#Source: NASA/JPL Horizons reference snapshot (independent of the de440 corpus)\n");
+    csv.push_str(
+        "#Source: NASA/JPL Horizons reference snapshot (independent of the de440 corpus)\n",
+    );
     csv.push_str(&format!("#Kernel-SHA256: {}\n", corpus_spec::KERNEL_SHA256));
     csv.push_str("#Coverage: geocentric ecliptic (mean geometric), TDB epochs\n");
     csv.push_str("#Redistribution: derived from public-domain JPL Horizons fixture; corpus is redistributable\n");
@@ -39,7 +41,9 @@ pub fn render_fixture_golden(args: &[&str]) -> Result<String, String> {
 
     std::fs::write(format!("{out_dir}/fixture_golden.csv"), &csv)
         .map_err(|e| format!("write fixture_golden.csv: {e}"))?;
-    Ok(format!("wrote fixture_golden.csv ({rows} rows) to {out_dir}"))
+    Ok(format!(
+        "wrote fixture_golden.csv ({rows} rows) to {out_dir}"
+    ))
 }
 
 #[cfg(test)]
