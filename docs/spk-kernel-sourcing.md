@@ -20,11 +20,41 @@ the kernel's *actual* coverage (read from its segment descriptors), and release
 profiles record that advertised window. The full-historic `de441` kernel
 (~3 GB) is not required for the target range.
 
-## Asteroid kernel (optional)
+## Asteroid kernel (Tier A — pinned)
 
-Selected-asteroid coverage requires a small-body SPK kernel (e.g. an
-`astNNN_de440.bsp` distribution). Record its file name, source URL, license, and
-SHA-256 here when adopted.
+Selected-asteroid main-belt coverage reads a JPL small-body perturber kernel,
+**not** committed to this repository.
+
+- File: `sb441-n16.bsp`
+- Source: NASA/JPL SSD/NAIF small-body perturber set, fitted consistently with
+  DE441 (agrees with de440 over the overlap) —
+  `https://ssd.jpl.nasa.gov/ftp/eph/small_bodies/asteroids_de441/sb441-n16.bsp`
+- License: public domain (U.S. Government work).
+- SHA-256: `<pinned-in-Task-11>`
+- Bodies: the 16 most-massive perturbers (Ceres, Pallas, Juno, Vesta, Hygiea,
+  Psyche, Iris, …); the curated subset used here is the Tier A roster.
+- Default asteroid window: 1900–2100 CE (the corpus samples only this window;
+  the kernel itself covers the full DE441 interval).
+
+Usage / reproduction:
+
+```bash
+PLEIADES_DE_KERNEL=/path/to/de440.bsp \
+PLEIADES_AST_KERNEL=/path/to/sb441-n16.bsp \
+  cargo test -p pleiades-jpl --test corpus_regen -- --nocapture
+```
+
+## Asteroid slices (Tier B — Horizons-sourced, constrained)
+
+Centaurs, personal asteroids, and TNOs are **not** in any fixed perturber
+kernel. They are generated once via JPL Horizons over 1900–2100 using
+`pleiades_jpl::ingest` (see the `horizons-fetch` feature) and committed as the
+provenance-validated `asteroid_constrained` slice — never put behind the kernel
+regen gate.
+
+- Bodies: see `crates/pleiades-jpl/src/spk/asteroid_roster.rs` (Tier B entries).
+- Solution epoch / generation date: `<recorded-in-Task-11>`
+- Recipe: `<exact Horizons request recorded in Task 11>`
 
 ## Usage
 
