@@ -27,7 +27,14 @@ categories = ["science"]
 
 [workspace.dependencies]
 serde = { version = "1", default-features = false, features = ["derive", "std"] }
-ureq = { version = "2", default-features = false, features = ["tls"] }
+# Pure-Rust HTTPS for the optional, default-off `horizons-fetch` path: ureq over
+# rustls with the graviola crypto provider (no `ring`/`aws-lc-rs`, so no C
+# compiler or native build dependency is ever compiled). `rustls-no-provider`
+# deliberately omits ureq's bundled `ring` provider; `rustls-webpki-roots`
+# supplies Mozilla trust anchors (pure data).
+ureq = { version = "3", default-features = false, features = ["rustls-no-provider", "rustls-webpki-roots"] }
+rustls = { version = "0.23", default-features = false, features = ["std", "tls12"] }
+rustls-graviola = { version = "0.3", default-features = false }
 pleiades-ayanamsa = { path = "crates/pleiades-ayanamsa", version = "0.2.0" }
 pleiades-backend = { path = "crates/pleiades-backend", version = "0.2.0" }
 pleiades-compression = { path = "crates/pleiades-compression", version = "0.2.0" }

@@ -68,26 +68,41 @@ pub fn fetch_public_corpus<S: HorizonsSource>(
 }
 
 /// Live HTTP implementation of [`HorizonsSource`] over `ureq`.
+///
+/// TLS is pure Rust: `rustls` with the [`graviola`](https://crates.io/crates/graviola)
+/// crypto provider, so no `ring`/`aws-lc-rs` (and hence no C compiler or native
+/// build dependency) is ever compiled. Trust anchors come from ureq's bundled
+/// Mozilla `webpki-roots`.
 pub struct HttpHorizonsSource;
 
 impl HorizonsSource for HttpHorizonsSource {
     fn fetch(&self, query: &HorizonsQuery) -> Result<Vec<u8>, IngestError> {
+        use std::sync::Arc;
+
+        use ureq::tls::{TlsConfig, TlsProvider};
+
         let url = query.to_url();
-        let response = ureq::get(&url).call().map_err(|error| IngestError::Fetch {
+        let provider = Arc::new(rustls_graviola::default_provider());
+        let agent = ureq::Agent::config_builder()
+            .tls_config(
+                TlsConfig::builder()
+                    .provider(TlsProvider::Rustls)
+                    .unversioned_rustls_crypto_provider(provider)
+                    .build(),
+            )
+            .build()
+            .new_agent();
+        let mut response = agent.get(&url).call().map_err(|error| IngestError::Fetch {
             detail: error.to_string(),
         })?;
-        let mut buf = Vec::new();
         response
-            .into_reader()
-            .read_to_end(&mut buf)
+            .body_mut()
+            .read_to_vec()
             .map_err(|error| IngestError::Fetch {
                 detail: error.to_string(),
-            })?;
-        Ok(buf)
+            })
     }
 }
-
-use std::io::Read as _;
 
 #[cfg(test)]
 mod tests {
