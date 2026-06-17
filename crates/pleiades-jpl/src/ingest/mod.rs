@@ -4,6 +4,7 @@
 
 pub mod detect;
 pub mod error;
+pub mod format;
 pub mod ir;
 pub(crate) mod normalize;
 pub mod profile;
