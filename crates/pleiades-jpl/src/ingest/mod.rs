@@ -2,6 +2,9 @@
 //!
 //! See `docs/superpowers/specs/2026-06-16-public-data-reader-design.md`.
 
+pub mod detect;
+pub mod error;
 pub mod ir;
 
+pub use error::{Attribute, IngestError};
 pub use ir::{RawCorpus, RawEphemerisRecord, RawManifest};
