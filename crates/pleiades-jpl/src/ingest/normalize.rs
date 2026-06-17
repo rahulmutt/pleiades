@@ -1,12 +1,12 @@
 //! The single fail-closed normalizer: IR -> SnapshotCorpus + provenance.
-// Attribute resolution lands here in Task 5; its callers (row mapping and
-// corpus assembly) arrive in Task 6, so these items are not yet wired in.
-#![allow(dead_code)]
 
-use pleiades_types::{CoordinateFrame, TimeScale};
+use pleiades_backend::CelestialBody;
+use pleiades_types::{CoordinateFrame, Instant, JulianDay, TimeScale};
+
+use crate::backend::{SnapshotCorpus, SnapshotEntry, SnapshotManifest};
 
 use super::error::{Attribute, IngestError};
-use super::ir::RawManifest;
+use super::ir::{RawCorpus, RawManifest};
 use super::profile::{Center, ExpectedProfile, IngestProvenance, Provenance, Units};
 
 /// The four resolved header attributes plus their provenance.
@@ -158,6 +158,91 @@ pub(crate) fn resolve_attributes(
     })
 }
 
+/// Kilometers per astronomical unit (matches the crate-wide constant).
+const AU_IN_KM: f64 = 149_597_870.7;
+
+/// Maps a raw Horizons/CSV body label to a built-in body.
+///
+/// Accepts plain names ("Mars"), Horizons "Name (id)" forms ("Mars (499)"),
+/// and is case-insensitive. Unknown labels fail closed.
+fn body_from_label(label: &str) -> Option<CelestialBody> {
+    // Strip a trailing " (id)" suffix if present.
+    let name = label.split('(').next().unwrap_or(label).trim();
+    let lower = name.to_ascii_lowercase();
+    let body = match lower.as_str() {
+        "sun" => CelestialBody::Sun,
+        "moon" => CelestialBody::Moon,
+        "mercury" => CelestialBody::Mercury,
+        "venus" => CelestialBody::Venus,
+        // Earth has no built-in variant (the chart domain is geocentric) and is
+        // not a release-claimed corpus body; an Earth label fails closed here.
+        "mars" => CelestialBody::Mars,
+        "jupiter" => CelestialBody::Jupiter,
+        "saturn" => CelestialBody::Saturn,
+        "uranus" => CelestialBody::Uranus,
+        "neptune" => CelestialBody::Neptune,
+        "pluto" => CelestialBody::Pluto,
+        "ceres" => CelestialBody::Ceres,
+        "pallas" => CelestialBody::Pallas,
+        "juno" => CelestialBody::Juno,
+        "vesta" => CelestialBody::Vesta,
+        _ => return None,
+    };
+    Some(body)
+}
+
+/// Normalizes a raw external corpus into the typed `SnapshotCorpus`.
+// The in-crate caller (`read_public_corpus_as`) lands in Task 10; until then
+// this public entry point is unreachable from the lib's public surface because
+// `mod normalize` is `pub(crate)`. Marking only the entry point as allowed keeps
+// the resolver/mapping chain it drives reachable, so no blanket module allow is
+// needed.
+#[allow(dead_code)]
+pub fn normalize(
+    raw: RawCorpus,
+    expected: &ExpectedProfile,
+) -> Result<(SnapshotCorpus, IngestProvenance), IngestError> {
+    let resolved = resolve_attributes(&raw.declared, expected)?;
+    let km_per_unit = match resolved.units {
+        Units::Km => 1.0,
+        Units::Au => AU_IN_KM,
+    };
+
+    let mut entries = Vec::with_capacity(raw.records.len());
+    for record in &raw.records {
+        let body = body_from_label(&record.body_label).ok_or_else(|| IngestError::UnknownBody {
+            label: record.body_label.clone(),
+        })?;
+
+        if !record.epoch_jd.is_finite() || record.pos.iter().any(|c| !c.is_finite()) {
+            return Err(IngestError::MalformedRow {
+                epoch_jd: record.epoch_jd,
+                detail: "non-finite epoch or position component".to_string(),
+            });
+        }
+
+        entries.push(SnapshotEntry {
+            body,
+            epoch: Instant::new(JulianDay::from_days(record.epoch_jd), resolved.time_scale),
+            x_km: record.pos[0] * km_per_unit,
+            y_km: record.pos[1] * km_per_unit,
+            z_km: record.pos[2] * km_per_unit,
+        });
+    }
+
+    let manifest = SnapshotManifest {
+        title: raw.declared.source_label.clone(),
+        source: raw.declared.source_label.clone(),
+        coverage: None,
+        redistribution: None,
+        columns: raw.declared.columns.clone(),
+    };
+
+    // Frame is carried in provenance, not in SnapshotEntry (entries are frame-agnostic km).
+    let _ = (resolved.frame, resolved.center); // captured in provenance below
+    Ok((SnapshotCorpus { manifest, entries }, resolved.provenance))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -248,5 +333,71 @@ mod tests {
         let m = declared("Ecliptic", "TDB", "AU-D", "500@0");
         let r = resolve_attributes(&m, &ExpectedProfile::default()).unwrap();
         assert_eq!(r.units, Units::Au);
+    }
+
+    use crate::ingest::ir::{RawCorpus, RawEphemerisRecord};
+
+    fn one_record(body: &str, jd: f64, pos: [f64; 3]) -> RawCorpus {
+        RawCorpus {
+            declared: declared("Ecliptic", "TDB", "KM-S", "500@0"),
+            records: vec![RawEphemerisRecord {
+                body_label: body.to_string(),
+                epoch_jd: jd,
+                pos,
+                vel: None,
+            }],
+        }
+    }
+
+    #[test]
+    fn normalizes_km_record_into_entry() {
+        let raw = one_record("Mars", 2_451_545.0, [1.0, 2.0, 3.0]);
+        let (corpus, prov) = normalize(raw, &ExpectedProfile::default()).unwrap();
+        assert_eq!(corpus.entries.len(), 1);
+        let e = &corpus.entries[0];
+        assert_eq!(e.body, pleiades_backend::CelestialBody::Mars);
+        assert_eq!(e.epoch.julian_day.days(), 2_451_545.0);
+        assert_eq!(e.epoch.scale, TimeScale::Tdb);
+        assert_eq!((e.x_km, e.y_km, e.z_km), (1.0, 2.0, 3.0));
+        assert_eq!(prov.frame, Provenance::Read);
+    }
+
+    #[test]
+    fn converts_au_positions_to_km() {
+        let mut raw = one_record("Mercury", 2_451_545.0, [1.0, 0.0, 0.0]);
+        raw.declared.units = Some("AU-D".to_string());
+        let (corpus, _) = normalize(raw, &ExpectedProfile::default()).unwrap();
+        assert!((corpus.entries[0].x_km - 149_597_870.7).abs() < 1e-3);
+    }
+
+    #[test]
+    fn maps_horizons_numeric_id_body() {
+        let raw = one_record("Mars (499)", 2_451_545.0, [1.0, 2.0, 3.0]);
+        let (corpus, _) = normalize(raw, &ExpectedProfile::default()).unwrap();
+        assert_eq!(
+            corpus.entries[0].body,
+            pleiades_backend::CelestialBody::Mars
+        );
+    }
+
+    #[test]
+    fn rejects_unknown_body() {
+        let raw = one_record("Wormwood", 2_451_545.0, [1.0, 2.0, 3.0]);
+        let err = normalize(raw, &ExpectedProfile::default()).unwrap_err();
+        assert!(matches!(err, IngestError::UnknownBody { .. }));
+    }
+
+    #[test]
+    fn rejects_non_finite_row() {
+        let raw = one_record("Mars", 2_451_545.0, [f64::NAN, 0.0, 0.0]);
+        let err = normalize(raw, &ExpectedProfile::default()).unwrap_err();
+        assert!(matches!(err, IngestError::MalformedRow { .. }));
+    }
+
+    #[test]
+    fn carries_source_label_into_manifest() {
+        let raw = one_record("Mars", 2_451_545.0, [1.0, 2.0, 3.0]);
+        let (corpus, _) = normalize(raw, &ExpectedProfile::default()).unwrap();
+        assert_eq!(corpus.manifest.source.as_deref(), Some("JPL Horizons"));
     }
 }
