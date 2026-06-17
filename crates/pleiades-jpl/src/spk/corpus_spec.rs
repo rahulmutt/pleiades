@@ -109,6 +109,26 @@ pub fn interior_backbone_epochs(body: &CelestialBody) -> Vec<f64> {
     epochs
 }
 
+/// Strictly-increasing asteroid epochs for a dynamical class: from
+/// `AST_RANGE_START_JD` to `AST_RANGE_END_JD` inclusive, stepping by the
+/// class cadence. Deterministic so checksums and verify-from-kernel reproduce.
+pub fn asteroid_epochs_for(class: crate::spk::asteroid_roster::AsteroidClass) -> Vec<f64> {
+    let step = class.max_gap_days();
+    let mut epochs = Vec::new();
+    let mut jd = AST_RANGE_START_JD;
+    while jd < AST_RANGE_END_JD {
+        epochs.push(jd);
+        jd += step;
+    }
+    if epochs
+        .last()
+        .is_none_or(|&last| (AST_RANGE_END_JD - last).abs() > 1e-6)
+    {
+        epochs.push(AST_RANGE_END_JD);
+    }
+    epochs
+}
+
 /// Anchor epochs always included in the interior backbone for every body, so
 /// backend-generated slices overlap the independent `fixture_golden` slice at
 /// known (body, epoch) pairs. J2000 has trusted Horizons evidence in
@@ -324,5 +344,37 @@ mod tests {
     fn asteroid_kernel_sha_is_placeholder_until_pinned() {
         // Task 11 replaces this with the real 64-hex digest after download.
         assert_eq!(AST_KERNEL_SHA256.len(), "PLACEHOLDER-PIN-IN-TASK-11".len());
+    }
+
+    #[test]
+    fn asteroid_epochs_in_window_and_increasing() {
+        use crate::spk::asteroid_roster::AsteroidClass;
+        let epochs = asteroid_epochs_for(AsteroidClass::MainBelt);
+        assert!(epochs.len() >= 2);
+        assert_eq!(*epochs.first().unwrap(), AST_RANGE_START_JD);
+        assert_eq!(*epochs.last().unwrap(), AST_RANGE_END_JD);
+        for pair in epochs.windows(2) {
+            assert!(pair[1] > pair[0], "epochs must strictly increase");
+            assert!(pair[0] >= AST_RANGE_START_JD && pair[1] <= AST_RANGE_END_JD);
+        }
+    }
+
+    #[test]
+    fn tnos_sampled_sparser_than_main_belt() {
+        use crate::spk::asteroid_roster::AsteroidClass;
+        let belt = asteroid_epochs_for(AsteroidClass::MainBelt).len();
+        let tno = asteroid_epochs_for(AsteroidClass::Tno).len();
+        assert!(tno < belt, "slow TNOs must be sparser: belt={belt} tno={tno}");
+    }
+
+    #[test]
+    fn asteroid_corpus_stays_bounded() {
+        use crate::spk::asteroid_roster::{asteroid_core_roster};
+        let total: usize = asteroid_core_roster()
+            .iter()
+            .map(|e| asteroid_epochs_for(e.class).len())
+            .sum();
+        // Keep the whole asteroid corpus well under the major-body row count.
+        assert!(total < 20_000, "asteroid corpus too large: {total} rows");
     }
 }

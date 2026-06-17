@@ -25,6 +25,19 @@ pub enum AsteroidClass {
     Tno,
 }
 
+impl AsteroidClass {
+    /// Coarse, speed-appropriate sampling cadence (TDB days) over the asteroid
+    /// window. Asteroids and centaurs move slowly; TNOs barely move, so they
+    /// are sampled sparsely to keep the committed corpus bounded.
+    pub fn max_gap_days(self) -> f64 {
+        match self {
+            AsteroidClass::MainBelt => 180.0,
+            AsteroidClass::Centaur => 365.0,
+            AsteroidClass::Tno => 1_825.0, // ~5 yr
+        }
+    }
+}
+
 /// One curated-core minor planet.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct AsteroidEntry {
