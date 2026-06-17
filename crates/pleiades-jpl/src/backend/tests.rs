@@ -1532,3 +1532,39 @@ fn snapshot_backend_resolves_custom_asteroid_at_j2000() {
         (ecliptic.distance_au.expect("distance should exist") - 1.854402724550437).abs() < 1e-12
     );
 }
+
+#[test]
+fn snapshot_corpus_backend_resolves_exact_corpus_epoch() {
+    // Two adjacent Sun samples so exact lookup has a defined window.
+    let entries = vec![
+        SnapshotEntry {
+            body: pleiades_backend::CelestialBody::Sun,
+            epoch: Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tdb),
+            x_km: 1.0,
+            y_km: 2.0,
+            z_km: 3.0,
+        },
+        SnapshotEntry {
+            body: pleiades_backend::CelestialBody::Sun,
+            epoch: Instant::new(JulianDay::from_days(2_451_546.0), TimeScale::Tdb),
+            x_km: 4.0,
+            y_km: 5.0,
+            z_km: 6.0,
+        },
+    ];
+    let backend = SnapshotCorpusBackend::from_entries(entries);
+    let req = EphemerisRequest {
+        body: pleiades_backend::CelestialBody::Sun,
+        instant: Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tdb),
+        observer: None,
+        frame: CoordinateFrame::Ecliptic,
+        zodiac_mode: ZodiacMode::Tropical,
+        apparent: Apparentness::Mean,
+    };
+    let result = backend
+        .position(&req)
+        .expect("exact corpus epoch should resolve");
+    let ecliptic = result.ecliptic.expect("ecliptic output");
+    // Exact lookup returns the stored sample's ecliptic; assert it is finite and present.
+    assert!(ecliptic.longitude.degrees().is_finite());
+}

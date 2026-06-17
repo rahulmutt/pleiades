@@ -267,6 +267,73 @@ impl EphemerisBackend for JplSnapshotBackend {
     }
 }
 
+/// A reference backend backed by an explicit set of snapshot entries.
+///
+/// Unlike [`JplSnapshotBackend`], which reads the global narrow reference
+/// snapshot, this backend interpolates whatever corpus rows it is constructed
+/// over. It is used by the packaged-artifact generator to fit against the broad
+/// production reference corpus.
+#[derive(Clone, Debug)]
+pub struct SnapshotCorpusBackend {
+    entries: Vec<SnapshotEntry>,
+}
+
+impl SnapshotCorpusBackend {
+    /// Builds a corpus-backed backend over the given entries.
+    pub fn from_entries(entries: Vec<SnapshotEntry>) -> Self {
+        Self { entries }
+    }
+}
+
+impl EphemerisBackend for SnapshotCorpusBackend {
+    fn metadata(&self) -> BackendMetadata {
+        // Mirror JplSnapshotBackend's posture; coverage derives from the held entries.
+        JplSnapshotBackend.metadata()
+    }
+
+    fn supports_body(&self, body: pleiades_backend::CelestialBody) -> bool {
+        self.entries.iter().any(|entry| entry.body == body)
+    }
+
+    fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+        validate_request_policy(
+            req,
+            "the JPL snapshot corpus backend",
+            &[TimeScale::Tt, TimeScale::Tdb],
+            &[CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial],
+            true,
+            false,
+        )?;
+        validate_zodiac_policy(
+            req,
+            "the JPL snapshot corpus backend",
+            &[ZodiacMode::Tropical],
+        )?;
+        validate_observer_policy(req, "the JPL snapshot corpus backend", false)?;
+
+        let resolved = resolve_fixture_state_from_entries(
+            &self.entries,
+            req.body.clone(),
+            req.instant.julian_day.days(),
+        )?;
+
+        let mut result = EphemerisResult::new(
+            BackendId::new("jpl-snapshot"),
+            req.body.clone(),
+            req.instant,
+            req.frame,
+            req.zodiac_mode.clone(),
+            req.apparent,
+        );
+        let ecliptic = resolved.entry.ecliptic();
+        result.ecliptic = Some(ecliptic);
+        result.equatorial = Some(ecliptic.to_equatorial(req.instant.mean_obliquity()));
+        result.motion = None::<Motion>;
+        result.quality = resolved.quality;
+        Ok(result)
+    }
+}
+
 /// File-level metadata parsed from a checked-in JPL-style snapshot.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct SnapshotManifest {
