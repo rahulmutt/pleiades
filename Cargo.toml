@@ -27,6 +27,7 @@ categories = ["science"]
 
 [workspace.dependencies]
 serde = { version = "1", default-features = false, features = ["derive", "std"] }
+ureq = { version = "2", default-features = false, features = ["tls"] }
 pleiades-ayanamsa = { path = "crates/pleiades-ayanamsa", version = "0.2.0" }
 pleiades-backend = { path = "crates/pleiades-backend", version = "0.2.0" }
 pleiades-compression = { path = "crates/pleiades-compression", version = "0.2.0" }

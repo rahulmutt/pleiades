@@ -14,3 +14,7 @@ readme = "README.md"
 [dependencies]
 pleiades-backend = { workspace = true }
 pleiades-types = { workspace = true }
+ureq = { workspace = true, optional = true }
+
+[features]
+horizons-fetch = ["dep:ureq"]

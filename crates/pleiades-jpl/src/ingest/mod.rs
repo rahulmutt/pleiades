@@ -4,6 +4,8 @@
 
 pub mod detect;
 pub mod error;
+#[cfg(feature = "horizons-fetch")]
+pub mod fetch;
 pub mod format;
 pub mod ir;
 pub(crate) mod normalize;
@@ -13,6 +15,10 @@ use std::path::Path;
 
 pub use detect::{detect_format, InputFormat};
 pub use error::{Attribute, IngestError};
+#[cfg(feature = "horizons-fetch")]
+pub use fetch::{
+    fetch_public_corpus, HorizonsQuery, HorizonsSource, HorizonsWireFormat, HttpHorizonsSource,
+};
 pub use ir::{RawCorpus, RawEphemerisRecord, RawManifest};
 pub use profile::{Center, ExpectedProfile, IngestProvenance, Provenance, Units};
 
