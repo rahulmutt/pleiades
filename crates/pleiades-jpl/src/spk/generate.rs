@@ -213,9 +213,33 @@ fn all_bodies() -> Vec<CelestialBody> {
     bodies
 }
 
-/// Placeholder: full implementation lands in Task 5.
-fn generate_asteroid_reference_slice(_backend: &SpkBackend) -> Result<GeneratedSlice, String> {
-    Err("implemented in Task 5".into())
+/// Tier A: samples the pinned small-body kernel (loaded alongside de440 in
+/// `backend`) into the `asteroid_reference` slice. Each body is sampled at its
+/// dynamical-class cadence over the asteroid window. Bodies whose ids are not
+/// present in the loaded kernel are skipped (they are sourced as Tier B), so a
+/// synthetic test kernel covering one body still produces a valid slice.
+fn generate_asteroid_reference_slice(backend: &SpkBackend) -> Result<GeneratedSlice, String> {
+    use crate::spk::asteroid_roster::{asteroid_core_roster, AsteroidTier};
+    use crate::spk::corpus_spec::{self, AST_KERNEL_LABEL, AST_KERNEL_SHA256};
+
+    let per_body: Vec<(CelestialBody, Vec<f64>)> = asteroid_core_roster()
+        .iter()
+        .filter(|e| e.tier == AsteroidTier::PinnedKernel)
+        .filter(|e| backend.supports_body(e.body.clone()))
+        .map(|e| (e.body.clone(), corpus_spec::asteroid_epochs_for(e.class)))
+        .collect();
+
+    let mut csv =
+        generate_corpus_csv_per_body(backend, &per_body, AST_KERNEL_LABEL, AST_KERNEL_SHA256)?;
+    csv = csv.replace(
+        "#Columns:",
+        &format!("#Slice-Role: {}\n#Columns:", SliceRole::AsteroidReference.token()),
+    );
+    Ok(GeneratedSlice {
+        role: SliceRole::AsteroidReference,
+        file: "asteroid_reference.csv".to_string(),
+        csv,
+    })
 }
 
 /// Builds the manifest for a set of generated slices.
@@ -238,6 +262,58 @@ pub fn build_manifest(slices: &[GeneratedSlice]) -> CorpusManifest {
         kernel: "de440.bsp".to_string(),
         kernel_sha256: corpus_spec::KERNEL_SHA256.to_string(),
         slices: entries,
+    }
+}
+
+#[cfg(test)]
+mod asteroid_slice_tests {
+    use super::*;
+    use crate::spk::asteroid_roster::tier_a_bodies;
+    use crate::spk::test_support::{build_daf, type2_record, type2_segment_data, SegmentSpec};
+
+    /// Mirrors the `const_pos_segment` helper from chain.rs tests.
+    fn const_pos_segment(target: i32, center: i32, pos: [f64; 3]) -> SegmentSpec {
+        let rec = type2_record(0.0, 1.0e12, &[pos[0], 0.0], &[pos[1], 0.0], &[pos[2], 0.0]);
+        let data = type2_segment_data(-1.0e12, 2.0e12, rec.len(), &[rec]);
+        SegmentSpec {
+            start_et: -1.0e12,
+            stop_et: 1.0e12,
+            target,
+            center,
+            frame: 1,
+            data_type: 2,
+            data,
+            name: "C".to_string(),
+        }
+    }
+
+    #[test]
+    fn asteroid_reference_slice_has_role_and_tier_a_bodies() {
+        // Build a synthetic backend:
+        //  - Earth (399) wrt EMB (3), EMB (3) wrt SSB (0) — needed by geocentric_icrf
+        //  - Sun (10) wrt SSB (0) — needed so Ceres chain 2000001->10->0 resolves
+        //  - Ceres (2000001) wrt Sun (10) at a fixed offset
+        let blob = build_daf(&[
+            const_pos_segment(399, 3, [0.0, 0.0, 0.0]),
+            const_pos_segment(3, 0, [0.0, 0.0, 0.0]),
+            const_pos_segment(10, 0, [0.0, 0.0, 0.0]),
+            const_pos_segment(2_000_001, 10, [3.0e8, 0.0, 0.0]),
+        ]);
+        let backend = SpkBackend::builder()
+            .add_kernel_bytes(blob, "synthetic-ast")
+            .unwrap()
+            .build();
+
+        let slice = generate_asteroid_reference_slice(&backend).unwrap();
+        assert_eq!(slice.role, SliceRole::AsteroidReference);
+        assert_eq!(slice.file, "asteroid_reference.csv");
+        assert!(slice.csv.contains("#Slice-Role: asteroid_reference"));
+        assert!(slice.csv.contains(crate::spk::corpus_spec::AST_KERNEL_LABEL));
+        // Ceres rows present; no constrained (Tier B) bodies leaked in.
+        assert!(slice.csv.contains(",Ceres,"), "expected Ceres rows in csv");
+        assert!(!slice.csv.contains("asteroid:2060-Chiron"), "Tier B Chiron must not appear");
+        // Every Tier A body that the synthetic kernel covers appears.
+        assert!(tier_a_bodies().contains(&CelestialBody::Ceres));
     }
 }
 
