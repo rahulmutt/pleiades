@@ -1,0 +1,17 @@
+*******************************************************************************
+* Anchor fixture: faithful re-expression of one committed corpus row.
+* Source file : crates/pleiades-jpl/data/corpus/interior.csv
+* Source row  : epoch_jd=2305447.5, body=Mars,
+*               x_km=-89078264.814350, y_km=66972394.971609, z_km=7422033.407297
+* The X/Y/Z below carry those exact committed km values verbatim.
+*******************************************************************************
+Target body name: Mars (499)
+Center body name: Solar System Barycenter (0)             {source: DE440}
+Reference frame : Ecliptic of J2000.0
+Output units    : KM-S
+*******************************************************************************
+JDTDB, Calendar Date (TDB), X, Y, Z, VX, VY, VZ,
+$$SOE
+2305447.500000000, A.D. 1685-Jan-21 00:00:00.0000, -89078264.814350, 66972394.971609, 7422033.407297, 0.0, 0.0, 0.0,
+$$EOE
+*******************************************************************************
