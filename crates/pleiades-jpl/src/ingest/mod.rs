@@ -5,6 +5,8 @@
 pub mod detect;
 pub mod error;
 pub mod ir;
+pub mod profile;
 
 pub use error::{Attribute, IngestError};
 pub use ir::{RawCorpus, RawEphemerisRecord, RawManifest};
+pub use profile::{Center, ExpectedProfile, IngestProvenance, Provenance, Units};
