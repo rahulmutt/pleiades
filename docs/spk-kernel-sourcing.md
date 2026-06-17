@@ -56,9 +56,16 @@ kernel. They are generated once via JPL Horizons over 1900–2100 using
 provenance-validated `asteroid_constrained` slice — never put behind the kernel
 regen gate.
 
-- Bodies: see `crates/pleiades-jpl/src/spk/asteroid_roster.rs` (Tier B entries).
-- Solution epoch / generation date: `<recorded-in-Task-11>`
-- Recipe: `<exact Horizons request recorded in Task 11>`
+- Bodies: see `crates/pleiades-jpl/src/spk/asteroid_roster.rs` (Tier B entries) —
+  5 centaurs, 13 personal asteroids, 9 TNOs (6652 rows total over 1900–2100).
+- Generation date: 2026-06-17, from JPL Horizons (per-object JPL small-body
+  solutions; "Small perturbers: SB441-N16", consistent with Tier A).
+- Recipe: `cargo run -p pleiades-jpl --features horizons-fetch --bin regenerate-asteroid-constrained`.
+  Each body is fetched with `EPHEM_TYPE=VECTORS, VEC_TABLE=1, REF_PLANE=ECLIPTIC,
+  CENTER='500@399', OUT_UNITS=KM-S, COMMAND='<IAU-number>;'`, sampled at its
+  class cadence (main-belt 180 d, centaur 365 d, TNO 1825 d). Because Horizons
+  solutions update over time, this slice is **not** byte-reproducible and is
+  validated by window/schema/provenance, never the kernel regen gate.
 
 ## Usage
 
