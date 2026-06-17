@@ -42,9 +42,11 @@ These are the implementation gaps that still block a production release:
   per-body cadence) committed under `crates/pleiades-jpl/data/corpus/` with real
   checksums and a pinned kernel SHA, behind a live fail-closed `validate-corpus`
   gate; a clean checkout verifies it kernel-free and reproduces it from de440
-  with `PLEIADES_DE_KERNEL`. It is not yet a broad public-data reader for
-  arbitrary external JPL-style data products, and asteroid-kernel adoption for
-  broader selected-asteroid source coverage is still open.
+  with `PLEIADES_DE_KERNEL`. It now also ingests arbitrary external JPL-style
+  data products (Horizons vector-table text, Horizons API JSON, generic CSV)
+  into the corpus types via `pleiades-jpl::ingest`, with optional live Horizons
+  fetch behind the default-off `horizons-fetch` feature; asteroid-kernel
+  adoption for broader selected-asteroid source coverage is still open.
 - `pleiades-data` ships a draft compressed artifact whose model-error envelope
   still exceeds production thresholds for many bodies and channels.
 - Pluto remains approximate/fallback-backed in first-party algorithmic paths and
@@ -97,7 +99,10 @@ end-state work and must not broaden public claims before its own evidence exists
 - Keep `README.md`, release profiles, generated reports, and this plan aligned
   when public behavior or release claims change.
 
-Status: refreshed 2026-06-16 after promoting the `pleiades-jpl` reference corpus
+Status: refreshed 2026-06-17 after adding the broad public-data reader
+(`pleiades-jpl::ingest`: Horizons vector-table, API JSON, generic CSV; optional
+live fetch behind the `horizons-fetch` feature; offline `ingest-public` CLI).
+Prior refresh 2026-06-16 promoted the `pleiades-jpl` reference corpus
 to a real, broad, de440-sourced, checksum-pinned product behind a live
 fail-closed `validate-corpus` gate (clean-checkout verify kernel-free, reproduce
 from de440). Prior refresh 2026-06-13 followed the

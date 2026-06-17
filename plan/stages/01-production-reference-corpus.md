@@ -27,11 +27,12 @@ artifact.
 
 ## Remaining implementation work
 
-- Add a broad public-data reader for arbitrary external JPL-style data products,
-  beyond the pinned de440 kernel and checked-in fixtures, on top of the exposed
-  pure-Rust CSV parsing and split-source loading paths. Keep separate manifest
-  and row sources first-class so corpus-generation tooling can work from split
-  public inputs as well as combined fixture text.
+- **Met** — a broad public-data reader for arbitrary external JPL-style data
+  products now exists in `pleiades-jpl::ingest` (Horizons vector-table text,
+  Horizons API JSON, generic CSV with column aliasing) on top of the exposed
+  pure-Rust parsing paths, with a single fail-closed normalizer into the
+  existing corpus types and optional live Horizons fetch behind the default-off
+  `horizons-fetch` feature.
 - Adopt a small-body asteroid SPK kernel to broaden selected-asteroid source
   coverage (record its provenance in `docs/spk-kernel-sourcing.md` when added).
 - Keep fitting/reference, independent hold-out, boundary-overlay,
@@ -43,8 +44,9 @@ artifact.
   (`pleiades-validate validate-corpus`) and reproduce all backend slices from
   de440 with `PLEIADES_DE_KERNEL` set (the gated `corpus_regen` test
   reproduces every slice within 1 km). **Met** for the de440 kernel and
-  checked-in fixtures; a reader for arbitrary external public data products is
-  still open.
+  checked-in fixtures; a reader for arbitrary external public data products now
+  exists (`pleiades-jpl::ingest`: Horizons vector-table, API JSON, generic CSV;
+  optional live fetch behind the `horizons-fetch` feature).
 - Corpus validation fails closed on missing bodies, epochs, channels, roles,
   schema drift, checksum/source-revision drift, malformed/non-finite rows,
   placeholder kernel SHA, and fixture-golden cross-check breaches. **Met** — the
