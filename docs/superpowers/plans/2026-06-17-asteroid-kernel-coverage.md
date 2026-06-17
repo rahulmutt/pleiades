@@ -12,7 +12,7 @@
 
 - **Edition / toolchain:** match the workspace; do not bump `rust-version` or `mise.toml` pins.
 - **No committed kernels:** clean checkout stays kernel-free. `sb441-n16.bsp` is **not** committed — only its SHA-256, label, and provenance are recorded.
-- **Asteroid default window:** TDB Julian Days `2_415_020.5` (1900-01-01) .. `2_488_092.5` (2100-01-01). Requests/epochs outside it fail closed; no silent extrapolation.
+- **Asteroid default window:** TDB Julian Days `2_415_020.5` (1900-01-01) .. `2_488_069.5` (2100-01-01). Requests/epochs outside it fail closed; no silent extrapolation.
 - **Major-body window is unchanged:** `RANGE_START_JD = 2_305_447.5` .. `RANGE_END_JD = 2_670_690.5` (1600–2600) stays as-is for Sun..Pluto.
 - **Constrained class:** all asteroids are a constrained body class (never release-grade), consistent with the existing "Pluto stays constrained" posture.
 - **Tier separation:** Tier A (reproducible-from-kernel) and Tier B (provenance-only) evidence stay distinct in data, validation, and reports. Tier B is never put behind the kernel regen gate.
@@ -68,7 +68,7 @@ Add after line 15 of `corpus_spec.rs`:
 /// well-constrained. Beyond this window, callers supply their own data via
 /// `pleiades_jpl::ingest`.
 pub const AST_RANGE_START_JD: f64 = 2_415_020.5;
-pub const AST_RANGE_END_JD: f64 = 2_488_092.5;
+pub const AST_RANGE_END_JD: f64 = 2_488_069.5;
 
 /// Pinned identity of the Tier A small-body perturber kernel. SHA-256 is
 /// computed via `shasum -a 256 sb441-n16.bsp` and recorded here + in
