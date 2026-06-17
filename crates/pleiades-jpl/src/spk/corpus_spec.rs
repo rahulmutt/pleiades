@@ -37,6 +37,8 @@ pub enum SliceRole {
     FastCluster,
     Holdout,
     FixtureGolden,
+    AsteroidReference,
+    AsteroidConstrained,
 }
 
 impl SliceRole {
@@ -48,6 +50,8 @@ impl SliceRole {
             SliceRole::FastCluster => "fast_cluster",
             SliceRole::Holdout => "holdout",
             SliceRole::FixtureGolden => "fixture_golden",
+            SliceRole::AsteroidReference => "asteroid_reference",
+            SliceRole::AsteroidConstrained => "asteroid_constrained",
         }
     }
 }
@@ -323,11 +327,19 @@ mod tests {
             SliceRole::FastCluster,
             SliceRole::Holdout,
             SliceRole::FixtureGolden,
+            SliceRole::AsteroidReference,
+            SliceRole::AsteroidConstrained,
         ];
         let mut tokens: Vec<&str> = roles.iter().map(|r| r.token()).collect();
         tokens.sort_unstable();
         tokens.dedup();
         assert_eq!(tokens.len(), roles.len());
+    }
+
+    #[test]
+    fn asteroid_role_tokens_are_stable() {
+        assert_eq!(SliceRole::AsteroidReference.token(), "asteroid_reference");
+        assert_eq!(SliceRole::AsteroidConstrained.token(), "asteroid_constrained");
     }
 
     #[test]

@@ -132,6 +132,10 @@ pub fn generate_slice(backend: &SpkBackend, role: SliceRole) -> Result<Generated
         SliceRole::FixtureGolden => {
             Err("fixture_golden is sourced from existing fixtures, not generated".into())
         }
+        SliceRole::AsteroidConstrained => {
+            Err("asteroid_constrained is sourced from Horizons, not generated".into())
+        }
+        SliceRole::AsteroidReference => generate_asteroid_reference_slice(backend),
         other => generate_slice_with_bodies(backend, other, all_bodies()),
     }
 }
@@ -175,6 +179,14 @@ pub(crate) fn generate_slice_with_bodies(
         SliceRole::FixtureGolden => {
             return Err("fixture_golden is sourced from existing fixtures, not generated".into())
         }
+        SliceRole::AsteroidConstrained => {
+            return Err(
+                "asteroid_constrained is sourced from Horizons, not generated".into(),
+            )
+        }
+        SliceRole::AsteroidReference => {
+            return generate_asteroid_reference_slice(backend)
+        }
     };
     let req = CorpusRequest {
         bodies,
@@ -199,6 +211,11 @@ fn all_bodies() -> Vec<CelestialBody> {
     let mut bodies = corpus_spec::release_bodies();
     bodies.extend(corpus_spec::constrained_bodies());
     bodies
+}
+
+/// Placeholder: full implementation lands in Task 5.
+fn generate_asteroid_reference_slice(_backend: &SpkBackend) -> Result<GeneratedSlice, String> {
+    Err("implemented in Task 5".into())
 }
 
 /// Builds the manifest for a set of generated slices.
