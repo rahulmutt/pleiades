@@ -45,8 +45,12 @@ These are the implementation gaps that still block a production release:
   with `PLEIADES_DE_KERNEL`. It now also ingests arbitrary external JPL-style
   data products (Horizons vector-table text, Horizons API JSON, generic CSV)
   into the corpus types via `pleiades-jpl::ingest`, with optional live Horizons
-  fetch behind the default-off `horizons-fetch` feature; asteroid-kernel
-  adoption for broader selected-asteroid source coverage is still open.
+  fetch behind the default-off `horizons-fetch` feature. A curated asteroid
+  corpus is committed: a Tier A main-belt core (Ceres, Pallas, Juno, Vesta,
+  Hygiea, Psyche, Iris) reproducible from the pinned `sb441-n16` kernel, plus a
+  Tier B constrained set of 27 centaurs, personal asteroids, and TNOs sourced
+  from Horizons, advertised over 1900-2100 and held to the constrained body
+  class (not release-grade).
 - `pleiades-data` ships a draft compressed artifact whose model-error envelope
   still exceeds production thresholds for many bodies and channels.
 - Pluto remains approximate/fallback-backed in first-party algorithmic paths and
@@ -99,7 +103,11 @@ end-state work and must not broaden public claims before its own evidence exists
 - Keep `README.md`, release profiles, generated reports, and this plan aligned
   when public behavior or release claims change.
 
-Status: refreshed 2026-06-17 after adding the broad public-data reader
+Status: refreshed 2026-06-17 after committing the curated asteroid corpus —
+Tier A main-belt core reproducible from the pinned `sb441-n16` kernel plus a
+Tier B constrained set (27 centaurs/personal-asteroids/TNOs) sourced from
+Horizons over 1900-2100, both behind the fail-closed corpus gate. Prior refresh
+2026-06-17 added the broad public-data reader
 (`pleiades-jpl::ingest`: Horizons vector-table, API JSON, generic CSV; optional
 live fetch behind the `horizons-fetch` feature; offline `ingest-public` CLI).
 Prior refresh 2026-06-16 promoted the `pleiades-jpl` reference corpus

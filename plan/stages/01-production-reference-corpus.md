@@ -33,8 +33,11 @@ artifact.
   pure-Rust parsing paths, with a single fail-closed normalizer into the
   existing corpus types and optional live Horizons fetch behind the default-off
   `horizons-fetch` feature.
-- Adopt a small-body asteroid SPK kernel to broaden selected-asteroid source
-  coverage (record its provenance in `docs/spk-kernel-sourcing.md` when added).
+- **Met** — a curated asteroid corpus is committed: a Tier A main-belt core
+  reproducible from the pinned `sb441-n16` kernel (provenance in
+  `docs/spk-kernel-sourcing.md`, gated by `corpus_regen` via
+  `PLEIADES_AST_KERNEL`), plus a Tier B constrained set of centaurs, personal
+  asteroids, and TNOs sourced from Horizons over 1900-2100.
 - Keep fitting/reference, independent hold-out, boundary-overlay,
   fixture-exactness, and provenance-only evidence separate in data and reports.
 
