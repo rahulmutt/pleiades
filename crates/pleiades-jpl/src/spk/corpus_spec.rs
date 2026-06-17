@@ -26,7 +26,8 @@ pub const AST_RANGE_END_JD: f64 = 2_488_069.5;
 /// computed via `shasum -a 256 sb441-n16.bsp` and recorded here + in
 /// docs/spk-kernel-sourcing.md when the kernel is adopted (Task 11).
 pub const AST_KERNEL_LABEL: &str = "JPL DE small-body perturber kernel: sb441-n16.bsp";
-pub const AST_KERNEL_SHA256: &str = "PLACEHOLDER-PIN-IN-TASK-11";
+pub const AST_KERNEL_SHA256: &str =
+    "919d612ce3c72a78fc7158f9120156542d0f21e6b8b052e4c1339c759747fd90";
 
 /// Role of a corpus slice, preserving the reference/holdout/boundary/
 /// fixture-exactness separation.
@@ -381,9 +382,15 @@ mod tests {
     }
 
     #[test]
-    fn asteroid_kernel_sha_is_placeholder_until_pinned() {
-        // Task 11 replaces this with the real 64-hex digest after download.
-        assert_eq!(AST_KERNEL_SHA256.len(), "PLACEHOLDER-PIN-IN-TASK-11".len());
+    fn asteroid_kernel_sha_is_pinned_64_hex() {
+        // Pinned in Task 11 from `shasum -a 256 sb441-n16.bsp`.
+        assert_eq!(AST_KERNEL_SHA256.len(), 64);
+        assert!(
+            AST_KERNEL_SHA256
+                .chars()
+                .all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase()),
+            "kernel SHA must be lowercase hex"
+        );
     }
 
     #[test]

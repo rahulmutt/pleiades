@@ -6,5 +6,5 @@ slice interior file=interior.csv role=interior rows=24813 checksum=4646123209549
 slice fast_cluster file=fast_clusters.csv role=fast_cluster rows=270 checksum=1800088492454335092
 slice holdout file=holdout.csv role=holdout rows=500 checksum=9802123424579841530
 slice fixture_golden file=fixture_golden.csv role=fixture_golden rows=16 checksum=11655674412360454446
-slice asteroid_reference file=asteroid_reference.csv role=asteroid_reference rows=0 checksum=11323797939608680041
+slice asteroid_reference file=asteroid_reference.csv role=asteroid_reference rows=2849 checksum=3764151475794306169
 slice asteroid_constrained file=asteroid_constrained.csv role=asteroid_constrained rows=0 checksum=11875407950128567666

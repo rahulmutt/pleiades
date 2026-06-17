@@ -30,9 +30,13 @@ Selected-asteroid main-belt coverage reads a JPL small-body perturber kernel,
   DE441 (agrees with de440 over the overlap) —
   `https://ssd.jpl.nasa.gov/ftp/eph/small_bodies/asteroids_de441/sb441-n16.bsp`
 - License: public domain (U.S. Government work).
-- SHA-256: `<pinned-in-Task-11>`
+- SHA-256: `919d612ce3c72a78fc7158f9120156542d0f21e6b8b052e4c1339c759747fd90`
+- Size: 645,727,232 bytes (full DE441 interval).
 - Bodies: the 16 most-massive perturbers (Ceres, Pallas, Juno, Vesta, Hygiea,
-  Psyche, Iris, …); the curated subset used here is the Tier A roster.
+  Psyche, Iris, …); the curated subset used here is the Tier A roster (Ceres,
+  Pallas, Juno, Vesta, Hygiea, Psyche, Iris — all confirmed present).
+- Regenerate the committed slice with:
+  `PLEIADES_DE_KERNEL=… PLEIADES_AST_KERNEL=… cargo run -p pleiades-jpl --bin regenerate-asteroid-corpus`
 - Default asteroid window: 1900–2100 CE (the corpus samples only this window;
   the kernel itself covers the full DE441 interval).
 
