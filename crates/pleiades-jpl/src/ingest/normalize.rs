@@ -192,12 +192,6 @@ fn body_from_label(label: &str) -> Option<CelestialBody> {
 }
 
 /// Normalizes a raw external corpus into the typed `SnapshotCorpus`.
-// The in-crate caller (`read_public_corpus_as`) lands in Task 10; until then
-// this public entry point is unreachable from the lib's public surface because
-// `mod normalize` is `pub(crate)`. Marking only the entry point as allowed keeps
-// the resolver/mapping chain it drives reachable, so no blanket module allow is
-// needed.
-#[allow(dead_code)]
 pub fn normalize(
     raw: RawCorpus,
     expected: &ExpectedProfile,
