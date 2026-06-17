@@ -124,9 +124,9 @@ mod tests {
             !entries.is_empty(),
             "reference corpus should parse non-empty"
         );
-        let mut bodies: Vec<_> = entries.iter().map(|e| e.body.clone()).collect();
-        bodies.sort_by_key(|b| b.to_string());
-        bodies.dedup();
+        // Dedup by `CelestialBody` equality directly (order-independent) rather
+        // than sort-then-dedup, since `CelestialBody` has no `Ord` impl.
+        let bodies: std::collections::HashSet<_> = entries.iter().map(|e| &e.body).collect();
         for body in base_bodies() {
             assert!(bodies.contains(&body), "missing base body {body}");
         }
@@ -147,6 +147,22 @@ mod tests {
     #[test]
     fn holdout_corpus_is_separate_and_nonempty() {
         assert_eq!(production_holdout_corpus().len(), 500);
+    }
+
+    #[test]
+    fn single_file_corpora_parse_non_empty() {
+        assert!(
+            !fixture_golden_corpus().is_empty(),
+            "fixture_golden corpus should parse non-empty"
+        );
+        assert!(
+            !asteroid_reference_corpus().is_empty(),
+            "asteroid_reference corpus should parse non-empty"
+        );
+        assert!(
+            !asteroid_constrained_corpus().is_empty(),
+            "asteroid_constrained corpus should parse non-empty"
+        );
     }
 
     #[test]
