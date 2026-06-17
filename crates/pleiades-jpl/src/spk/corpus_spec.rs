@@ -14,6 +14,20 @@ pub const RANGE_END_JD: f64 = 2_670_690.5;
 pub const KERNEL_LABEL: &str = "JPL DE SPK kernel: de440.bsp";
 pub const KERNEL_SHA256: &str = "a4ce9bf9b3282becc9f4b2ac3cebe03a2ae7599981aabd7265fd8482fff7c4b5";
 
+/// Default asteroid window, as TDB Julian Days (1900-01-01 .. 2100-01-01).
+/// Narrower than the major-body range because small-body orbit uncertainty
+/// over a millennium far exceeds release tolerances; over 200 years it is
+/// well-constrained. Beyond this window, callers supply their own data via
+/// `pleiades_jpl::ingest`.
+pub const AST_RANGE_START_JD: f64 = 2_415_020.5;
+pub const AST_RANGE_END_JD: f64 = 2_488_069.5;
+
+/// Pinned identity of the Tier A small-body perturber kernel. SHA-256 is
+/// computed via `shasum -a 256 sb441-n16.bsp` and recorded here + in
+/// docs/spk-kernel-sourcing.md when the kernel is adopted (Task 11).
+pub const AST_KERNEL_LABEL: &str = "JPL DE small-body perturber kernel: sb441-n16.bsp";
+pub const AST_KERNEL_SHA256: &str = "PLACEHOLDER-PIN-IN-TASK-11";
+
 /// Role of a corpus slice, preserving the reference/holdout/boundary/
 /// fixture-exactness separation.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -294,5 +308,21 @@ mod tests {
         tokens.sort_unstable();
         tokens.dedup();
         assert_eq!(tokens.len(), roles.len());
+    }
+
+    #[test]
+    fn asteroid_range_spans_1900_2100() {
+        const { assert!(AST_RANGE_START_JD < AST_RANGE_END_JD) };
+        // 1900-01-01 .. 2100-01-01 spans 73_050 days (200 years).
+        assert!((AST_RANGE_END_JD - AST_RANGE_START_JD - 73_050.0).abs() < 2.0);
+        // The asteroid window sits inside the major-body window.
+        assert!(AST_RANGE_START_JD > RANGE_START_JD);
+        assert!(AST_RANGE_END_JD < RANGE_END_JD);
+    }
+
+    #[test]
+    fn asteroid_kernel_sha_is_placeholder_until_pinned() {
+        // Task 11 replaces this with the real 64-hex digest after download.
+        assert_eq!(AST_KERNEL_SHA256.len(), "PLACEHOLDER-PIN-IN-TASK-11".len());
     }
 }
