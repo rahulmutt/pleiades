@@ -45,6 +45,7 @@ use production_generation::{
 const REFERENCE_EPOCH_JD: f64 = 2_451_545.0;
 const AU_IN_KM: f64 = 149_597_870.7;
 
+pub mod ingest;
 mod reference_summary;
 mod requests;
 mod snapshot;
