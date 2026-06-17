@@ -377,8 +377,8 @@ mod tests {
         // 1900-01-01 .. 2100-01-01 spans 73_050 days (200 years).
         assert!((AST_RANGE_END_JD - AST_RANGE_START_JD - 73_050.0).abs() < 2.0);
         // The asteroid window sits inside the major-body window.
-        assert!(AST_RANGE_START_JD > RANGE_START_JD);
-        assert!(AST_RANGE_END_JD < RANGE_END_JD);
+        const { assert!(AST_RANGE_START_JD > RANGE_START_JD) };
+        const { assert!(AST_RANGE_END_JD < RANGE_END_JD) };
     }
 
     #[test]
