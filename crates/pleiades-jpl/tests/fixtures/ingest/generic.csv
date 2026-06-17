@@ -1,0 +1,8 @@
+# Source: Local export
+# Reference frame: Ecliptic of J2000.0
+# Time scale: TDB
+# Output units: KM
+# Center: 500@0
+body,JD,PX,PY,PZ
+Mars,2451545.0,1.0,2.0,3.0
+Venus,2451545.0,4.0,5.0,6.0
