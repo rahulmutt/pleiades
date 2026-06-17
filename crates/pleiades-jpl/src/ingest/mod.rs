@@ -5,6 +5,7 @@
 pub mod detect;
 pub mod error;
 pub mod ir;
+pub(crate) mod normalize;
 pub mod profile;
 
 pub use error::{Attribute, IngestError};
