@@ -195,6 +195,7 @@ pub fn run_corpus_gate() -> Result<String, String> {
     validate_schema_and_provenance(&slices)?;
     validate_drift(&slices, &manifest)?;
     cross_check_fixture_golden(&slices)?;
+    crate::corpus::asteroid::validate_asteroid_slices(&slices)?;
     let rows: usize = slices
         .iter()
         .map(|s| {
@@ -235,6 +236,14 @@ fn embedded_slices() -> Vec<LoadedSlice> {
         (
             "fixture_golden",
             include_str!("../../../pleiades-jpl/data/corpus/fixture_golden.csv"),
+        ),
+        (
+            "asteroid_reference",
+            include_str!("../../../pleiades-jpl/data/corpus/asteroid_reference.csv"),
+        ),
+        (
+            "asteroid_constrained",
+            include_str!("../../../pleiades-jpl/data/corpus/asteroid_constrained.csv"),
         ),
     ];
     files
@@ -532,5 +541,18 @@ mod tests {
     #[test]
     fn embedded_corpus_gate_passes() {
         run_corpus_gate().unwrap();
+    }
+
+    #[test]
+    fn corpus_gate_runs_asteroid_validation() {
+        // validate_asteroid_slices must surface asteroid-window breaches.
+        // Epoch 2200000.0 is well below AST_RANGE_START_JD (2_415_020.5, ~1900
+        // CE), so it falls outside the asteroid window and must be rejected.
+        let slices = vec![LoadedSlice {
+            role: "asteroid_reference".to_string(),
+            csv: "#Columns:epoch_jd,body,x_km,y_km,z_km\n2200000.0,Ceres,1.0,2.0,3.0\n"
+                .to_string(),
+        }];
+        assert!(crate::corpus::asteroid::validate_asteroid_slices(&slices).is_err());
     }
 }
