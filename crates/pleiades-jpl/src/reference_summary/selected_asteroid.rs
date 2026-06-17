@@ -2537,5 +2537,23 @@ pub fn selected_asteroid_batch_parity_summary_for_report() -> String {
     }
 }
 
+/// Release-facing posture line: the curated asteroids form a constrained body
+/// class advertised over the 1900–2100 asteroid window, split into a
+/// pinned-kernel (Tier A) reproducible core and a Horizons-sourced (Tier B)
+/// constrained set. Kept distinct from release-grade major-body claims.
+pub fn selected_asteroid_constrained_class_report() -> String {
+    use crate::spk::asteroid_roster::{tier_a_bodies, tier_b_bodies};
+    use crate::spk::corpus_spec::{AST_RANGE_END_JD, AST_RANGE_START_JD};
+    format!(
+        "Curated asteroids are a constrained class advertised over JD {:.1}\u{2013}{:.1} (1900\u{2013}2100 CE): \
+         {} Tier A pinned-kernel (reproducible) + {} Tier B Horizons-constrained bodies; \
+         excluded from release-grade major-body claims.",
+        AST_RANGE_START_JD,
+        AST_RANGE_END_JD,
+        tier_a_bodies().len(),
+        tier_b_bodies().len(),
+    )
+}
+
 #[cfg(test)]
 mod tests;

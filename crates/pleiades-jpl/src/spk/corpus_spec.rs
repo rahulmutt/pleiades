@@ -77,6 +77,17 @@ pub fn constrained_bodies() -> Vec<CelestialBody> {
     vec![CelestialBody::Pluto]
 }
 
+/// The curated asteroid core, treated as a constrained body class for claims
+/// and reporting. Kept SEPARATE from `constrained_bodies()` because that set
+/// feeds `all_bodies()` (major-body corpus generation from de440, which has no
+/// asteroid segments); asteroids are sourced into their own slices instead.
+pub fn constrained_asteroid_bodies() -> Vec<CelestialBody> {
+    crate::spk::asteroid_roster::asteroid_core_roster()
+        .iter()
+        .map(|e| e.body.clone())
+        .collect()
+}
+
 /// Maximum allowed epoch gap (TDB days) for a body in the interior backbone,
 /// scaled to body speed: fast bodies sampled densely, slow bodies sparsely.
 pub fn max_gap_days(body: &CelestialBody) -> f64 {
@@ -304,6 +315,23 @@ mod anchor_tests {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn curated_asteroids_are_constrained_class_not_release_and_not_in_generation_set() {
+        use crate::spk::asteroid_roster::asteroid_core_roster;
+        let ast = constrained_asteroid_bodies();
+        let gen_constrained = constrained_bodies();
+        for e in asteroid_core_roster() {
+            // recognized as a constrained CLASS body...
+            assert!(ast.contains(&e.body), "{:?} must be a constrained-class asteroid", e.body);
+            // ...never a release body...
+            assert!(!release_bodies().contains(&e.body));
+            // ...and NOT in the generation constrained set (which must stay Pluto-only
+            // so asteroids don't leak into the de440-sourced major-body slices).
+            assert!(!gen_constrained.contains(&e.body), "{:?} must not be in constrained_bodies()", e.body);
+        }
+        assert_eq!(gen_constrained, vec![CelestialBody::Pluto], "generation constrained set must remain Pluto-only");
+    }
 
     #[test]
     fn range_spans_target_window() {

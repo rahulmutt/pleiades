@@ -675,3 +675,12 @@ fn selected_asteroid_source_window_summary_validation_rejects_window_order_drift
     ));
     assert!(summary.validated_summary_line().is_err());
 }
+
+#[test]
+fn constrained_class_report_states_window_and_tiers() {
+    let r = selected_asteroid_constrained_class_report();
+    assert!(r.contains("1900\u{2013}2100"));
+    assert!(r.contains("constrained class"));
+    assert!(r.contains("Tier A"));
+    assert!(r.contains("Tier B"));
+}
