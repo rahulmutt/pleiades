@@ -151,6 +151,81 @@ version = "0.9.0"
 }
 
 #[test]
+fn workspace_audit_exempts_pure_rust_tls_phantom_lockfile_entries() {
+    // The optional, default-off `horizons-fetch` TLS stack (ureq + rustls +
+    // graviola) compiles no native crypto: `ring`/`aws-lc-rs` are never built
+    // (verified via `cargo tree -p pleiades-jpl --features horizons-fetch -i
+    // ring` -> "nothing to print"). But because `rustls-webpki` *declares*
+    // `ring` as an optional dependency, `ring` (and its build-dep `cc` and
+    // `windows-sys`) linger in Cargo.lock as never-compiled phantom entries.
+    // They are allowlisted by name; any other native package still fails.
+    let phantom = r#"[[package]]
+name = "cc"
+version = "1.2.0"
+
+[[package]]
+name = "ring"
+version = "0.17.0"
+
+[[package]]
+name = "windows-sys"
+version = "0.59.0"
+"#;
+    let phantom_violations = audit_lockfile_text(Path::new("/tmp/Cargo.lock"), phantom);
+    assert!(
+        phantom_violations.is_empty(),
+        "pure-Rust TLS phantom entries should be exempt, got: {phantom_violations:?}"
+    );
+
+    // A genuinely native package (not in the phantom allowlist) must still fail.
+    let real_native = r#"[[package]]
+name = "openssl-sys"
+version = "0.9.0"
+"#;
+    let real_violations = audit_lockfile_text(Path::new("/tmp/Cargo.lock"), real_native);
+    assert!(real_violations
+        .iter()
+        .any(|violation| violation.rule == "lockfile.native-package"));
+}
+
+#[test]
+fn workspace_tls_stack_stays_pure_rust() {
+    // Static backstop for the `audit_lockfile_text` phantom allowlist: the
+    // allowlist is only safe while the `horizons-fetch` TLS stack never
+    // *activates* a native crypto provider. ureq must use `rustls-no-provider`
+    // (not the `rustls` umbrella, which wires `_ring`), and `rustls` must not
+    // enable its `ring`/`aws-lc-rs` features. If a future edit flips any of
+    // these, `ring`/`cc` would actually compile and this test fails.
+    let workspace_manifest = concat!(env!("CARGO_MANIFEST_DIR"), "/../../Cargo.toml");
+    let text = std::fs::read_to_string(workspace_manifest)
+        .expect("workspace Cargo.toml should be readable");
+    let ureq_line = text
+        .lines()
+        .find(|line| line.trim_start().starts_with("ureq = "))
+        .expect("workspace should declare ureq");
+    assert!(
+        ureq_line.contains("rustls-no-provider"),
+        "ureq must use rustls-no-provider, got: {ureq_line}"
+    );
+    assert!(
+        !ureq_line.contains("\"rustls\""),
+        "ureq must not enable the ring-pulling `rustls` umbrella feature, got: {ureq_line}"
+    );
+    let rustls_line = text
+        .lines()
+        .find(|line| line.trim_start().starts_with("rustls = "))
+        .expect("workspace should declare rustls");
+    assert!(
+        rustls_line.contains("default-features = false"),
+        "rustls must disable default features (which pull aws-lc-rs), got: {rustls_line}"
+    );
+    assert!(
+        !rustls_line.contains("\"ring\"") && !rustls_line.contains("\"aws-lc-rs\""),
+        "rustls must not enable a native crypto provider, got: {rustls_line}"
+    );
+}
+
+#[test]
 fn workspace_audit_detects_tool_manifest_provenance_drift() {
     let tool_manifest = r#"[tools]
 rust = { version = "1.96.0", components = "rustfmt" }

@@ -577,6 +577,18 @@ pub(crate) fn audit_tool_manifest_text(
 
 pub(crate) fn audit_lockfile_text(path: &Path, text: &str) -> Vec<WorkspaceAuditViolation> {
     const FORBIDDEN_LOCKFILE_PACKAGES: [&str; 4] = ["cc", "bindgen", "cmake", "pkg-config"];
+    // Never-compiled phantom lockfile entries from the optional, default-off
+    // `horizons-fetch` TLS stack (ureq + rustls + the pure-Rust `graviola`
+    // crypto provider). `rustls-webpki` *declares* `ring` as an optional
+    // dependency, so `ring`, its build-dependency `cc`, and `windows-sys` are
+    // recorded in Cargo.lock even though no workspace build ever compiles them
+    // (the active provider is graviola; verified via
+    // `cargo tree -p pleiades-jpl --features horizons-fetch -i ring` ->
+    // "nothing to print"). These exact names are exempt; every other native
+    // package still fails, so genuinely-compiled native deps are still caught.
+    // The build-graph invariant is guarded statically by
+    // `workspace_tls_stack_stays_pure_rust` in the audit tests.
+    const PURE_RUST_TLS_PHANTOMS: [&str; 3] = ["cc", "ring", "windows-sys"];
     let mut violations = Vec::new();
 
     for raw_line in text.lines() {
@@ -587,6 +599,9 @@ pub(crate) fn audit_lockfile_text(path: &Path, text: &str) -> Vec<WorkspaceAudit
         let Some((package_name, _)) = name.split_once('"') else {
             continue;
         };
+        if PURE_RUST_TLS_PHANTOMS.contains(&package_name) {
+            continue;
+        }
         if package_name.ends_with("-sys") || FORBIDDEN_LOCKFILE_PACKAGES.contains(&package_name) {
             violations.push(WorkspaceAuditViolation {
                 path: path.to_path_buf(),
