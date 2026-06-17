@@ -1,5 +1,6 @@
 //! Validation corpus definitions and their compact summaries.
 
+pub mod asteroid;
 pub mod production;
 
 use std::fmt;
