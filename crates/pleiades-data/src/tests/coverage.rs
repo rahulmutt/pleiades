@@ -2716,7 +2716,8 @@ fn fit_segment_within_span_reproduces_a_smooth_synthetic_body() {
     let probe_fracs = [0.1, 0.3, 0.5, 0.7, 0.9];
     for frac in probe_fracs {
         let probe_jd = t0 + frac * (t1 - t0);
-        let probe_inst = Instant::new(JulianDay::from_days(probe_jd), TimeScale::Tdb);
+        // Segments are Tt-tagged (lookup convention); probe with Tt to match.
+        let probe_inst = Instant::new(JulianDay::from_days(probe_jd), TimeScale::Tt);
 
         // Ground-truth from the Synthetic backend.
         let gt_lon = (probe_jd * 1.0).rem_euclid(360.0);
@@ -2838,4 +2839,51 @@ fn build_from_reference_produces_all_bodies_with_spanning_segments() {
             }
         }
     }
+}
+
+/// Regression test for the TDB/TT timescale bug in `fit_segment_within_span`.
+///
+/// Before the fix, segment boundaries were tagged `Tdb`; `normalize_lookup_instant`
+/// re-tags every query to `Tt`; and `Segment::contains` requires
+/// `segment.start.scale == query.scale` — so Tt queries always missed Tdb-tagged
+/// segments, returning `OutOfRangeInstant` for every major-body packaged lookup.
+///
+/// This test exercises the exact lookup path the runtime uses: a `Tt`-tagged
+/// query through `normalize_lookup_instant` → `CompressedArtifact::lookup_ecliptic`.
+#[test]
+fn fit_segment_tt_lookup_succeeds_after_normalize() {
+    use pleiades_compression::{ArtifactHeader, BodyArtifact};
+
+    let body = CelestialBody::Sun;
+    let (t0, t1) = (2_451_545.0, 2_451_545.0 + 16.0);
+
+    let seg = crate::regenerate::fit_segment_within_span(&body, t0, t1, &Synthetic)
+        .expect("fit should succeed");
+
+    // Encode/decode round-trip to exercise the full quantized path.
+    let artifact = CompressedArtifact::new(
+        ArtifactHeader::new(
+            "tt-lookup-regression",
+            "fit_segment_tt_lookup_succeeds_after_normalize",
+        ),
+        vec![BodyArtifact::new(body.clone(), vec![seg])],
+    );
+    let bytes = artifact.encode().expect("artifact should encode");
+    let artifact =
+        pleiades_compression::CompressedArtifact::decode(&bytes).expect("artifact should decode");
+
+    // Simulate the runtime packaged-lookup path: query with Tt-tagged instant
+    // through normalize_lookup_instant (which is a no-op for Tt inputs, just
+    // as the packaged backend does).
+    let mid_jd = (t0 + t1) / 2.0;
+    let tt_instant = Instant::new(JulianDay::from_days(mid_jd), TimeScale::Tt);
+    let lookup_instant = crate::regenerate::normalize_lookup_instant(tt_instant);
+
+    // Before the fix (Tdb boundaries): this returns Err(OutOfRangeInstant).
+    // After the fix (Tt boundaries): this returns Ok.
+    artifact
+        .lookup_ecliptic(&body, lookup_instant)
+        .unwrap_or_else(|e| {
+            panic!("Tt-tagged lookup on a fit-produced segment failed (scale mismatch bug?): {e}")
+        });
 }

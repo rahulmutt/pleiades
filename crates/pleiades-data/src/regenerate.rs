@@ -2373,9 +2373,14 @@ pub(crate) fn fit_segment_within_span(
         channel.validate().ok()?;
     }
 
+    // Segment boundaries are tagged Tt to match the packaged-lookup convention:
+    // normalize_lookup_instant re-tags every query to Tt, and Segment::contains
+    // requires matching scales. The sampling instants above remain Tdb (the
+    // physical ephemeris query scale); the ~2 ms TT/TDB difference is immaterial
+    // because the stored artifact only carries the boundary tag, not a converted value.
     let seg = Segment::new(
-        Instant::new(JulianDay::from_days(t0_jd), TimeScale::Tdb),
-        Instant::new(JulianDay::from_days(t1_jd), TimeScale::Tdb),
+        Instant::new(JulianDay::from_days(t0_jd), TimeScale::Tt),
+        Instant::new(JulianDay::from_days(t1_jd), TimeScale::Tt),
         channels,
     );
     Some(seg)
