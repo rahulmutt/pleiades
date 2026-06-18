@@ -2698,6 +2698,16 @@ fn fit_segment_within_span_reproduces_a_smooth_synthetic_body() {
         ArtifactHeader::new("within-span probe", "fit_segment_within_span accuracy test"),
         vec![BodyArtifact::new(body.clone(), vec![seg])],
     );
+
+    // Route probes through a real binary encode/decode round-trip so that
+    // scale_exponent quantization is exercised (PolynomialChannel::evaluate
+    // ignores scale_exponent; quantization only happens during encode/decode).
+    let bytes = artifact
+        .encode()
+        .expect("within-span artifact should encode");
+    let artifact = pleiades_compression::CompressedArtifact::decode(&bytes)
+        .expect("round-tripped artifact should decode");
+
     let probe_fracs = [0.1, 0.3, 0.5, 0.7, 0.9];
     for frac in probe_fracs {
         let probe_jd = t0 + frac * (t1 - t0);
@@ -2708,7 +2718,7 @@ fn fit_segment_within_span_reproduces_a_smooth_synthetic_body() {
         let gt_lat = 0.1 * (probe_jd / 50.0).sin();
         let gt_dist = 1.0 + 0.01 * (probe_jd / 80.0).cos();
 
-        // Decoded from the fitted segment via the real decode path.
+        // Decoded from the fitted segment via the real encode/decode path.
         let decoded = artifact
             .lookup_ecliptic(&body, probe_inst)
             .unwrap_or_else(|e| panic!("lookup_ecliptic failed at frac={frac}: {e}"));
