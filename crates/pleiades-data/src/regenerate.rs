@@ -2383,16 +2383,30 @@ pub(crate) fn fit_segment_within_span(
 
 /// Window-parameterised core of [`build_packaged_artifact_from_reference`].
 ///
-/// Accepts explicit `base_window` (used for all non-asteroid packaged bodies)
-/// and `ast_window` (used for constrained-asteroid bodies). This separation
-/// lets the kernel-free unit test pass tiny synthetic windows so the test runs
-/// in milliseconds instead of the minutes a full 1600–2600 build would take.
+/// Accepts an explicit `base_window` used for all major bodies (planets, Sun,
+/// Moon). This separation lets the kernel-free unit test pass a tiny synthetic
+/// window so the test runs in milliseconds instead of the minutes a full
+/// 1600–2600 build would take.
+///
+/// Major bodies (all cadences except `SelectedAsteroids` / `CustomBodies`) are
+/// fit densely from `reference` (de440) over `base_window` using
+/// [`fitting_segment_boundaries`] + [`fit_segment_within_span`].
+///
+/// The constrained asteroid (Eros) is kernel-free: its curated 1900–2100 corpus
+/// data is not present in de440. Instead its segments are carried forward from
+/// the committed packaged artifact (decoded via [`build_packaged_artifact`]).
+/// This is faithful to the constraint "Eros coverage stays constrained to its
+/// 1900–2100 corpus window." Two regenerations are byte-deterministic: the
+/// major fits are deterministic, and Eros is cloned from the committed bytes
+/// embedded in the build.
 pub(crate) fn build_packaged_artifact_from_reference_over(
     reference: &dyn EphemerisBackend,
     base_window: (f64, f64),
-    ast_window: (f64, f64),
 ) -> CompressedArtifact {
     use crate::coverage::fitting_segment_boundaries;
+
+    // Decode the committed artifact once; Eros segments are cloned from it.
+    let committed = build_packaged_artifact();
 
     let mut body_artifacts: Vec<(usize, BodyArtifact)> = Vec::new();
 
@@ -2400,32 +2414,49 @@ pub(crate) fn build_packaged_artifact_from_reference_over(
         let mut handles = Vec::new();
 
         for (body_index, body) in packaged_bodies().iter().cloned().enumerate() {
-            // Determine per-body window: constrained-asteroid catalog bodies use
-            // the narrower asteroid window; every other body uses the base window.
-            // We detect this via `packaged_artifact_body_cadence`, which already
-            // classifies `Custom` bodies whose catalog is "asteroid" as
-            // `SelectedAsteroids` — the same path used by `body_segment_span_limit`.
-            let (start_jd, end_jd) = match packaged_artifact_body_cadence(&body) {
-                PackagedArtifactBodyCadence::SelectedAsteroids
-                | PackagedArtifactBodyCadence::CustomBodies => ast_window,
-                _ => base_window,
-            };
+            let cadence = packaged_artifact_body_cadence(&body);
 
-            handles.push(scope.spawn(move || {
-                let spans = fitting_segment_boundaries(&body, start_jd, end_jd);
-                let segments: Vec<Segment> = spans
-                    .into_iter()
-                    .map(|(t0, t1)| {
-                        fit_segment_within_span(&body, t0, t1, reference).unwrap_or_else(|| {
+            match cadence {
+                PackagedArtifactBodyCadence::SelectedAsteroids
+                | PackagedArtifactBodyCadence::CustomBodies => {
+                    // Constrained asteroid (Eros): carry segments forward from
+                    // the committed artifact. Eros is sourced from curated corpus
+                    // data and is absent from de440 — do NOT fit from `reference`.
+                    let segments = committed
+                        .bodies
+                        .iter()
+                        .find(|b| b.body == body)
+                        .unwrap_or_else(|| {
                             panic!(
-                                "fit_segment_within_span failed for body {body} over [{t0}, {t1}]"
+                                "committed packaged artifact is missing body {body}; \
+                                 the committed fixture must include all constrained-asteroid bodies"
                             )
                         })
-                    })
-                    .collect();
-
-                (body_index, BodyArtifact::new(body, segments))
-            }));
+                        .segments
+                        .clone();
+                    handles
+                        .push(scope.spawn(move || (body_index, BodyArtifact::new(body, segments))));
+                }
+                _ => {
+                    // Major body: fit densely from the reference (de440) backend.
+                    let (start_jd, end_jd) = base_window;
+                    handles.push(scope.spawn(move || {
+                        let spans = fitting_segment_boundaries(&body, start_jd, end_jd);
+                        let segments: Vec<Segment> = spans
+                            .into_iter()
+                            .map(|(t0, t1)| {
+                                fit_segment_within_span(&body, t0, t1, reference)
+                                    .unwrap_or_else(|| {
+                                        panic!(
+                                            "fit_segment_within_span failed for body {body} over [{t0}, {t1}]"
+                                        )
+                                    })
+                            })
+                            .collect();
+                        (body_index, BodyArtifact::new(body, segments))
+                    }));
+                }
+            }
         }
 
         for handle in handles {
@@ -2456,19 +2487,6 @@ pub(crate) fn build_packaged_artifact_from_reference_over(
     artifact
 }
 
-/// Builds a dense [`CompressedArtifact`] for all packaged bodies by tiling
-/// each body's window with [`fitting_segment_boundaries`] and fitting each
-/// span via [`fit_segment_within_span`].
-///
-/// Uses the canonical packaged windows (base bodies 1600–2600; constrained
-/// asteroid Eros 1900–2100) and a caller-supplied `reference` backend.
-/// The result is assembled exactly as in
-/// [`try_regenerate_packaged_artifact_from_snapshot`]: checksum set and
-/// validated before returning.
-///
-/// Called by the Task 4/6 dense-generation pipeline; not yet wired up in
-/// this task.
-#[allow(dead_code)]
 /// Regenerates the packaged artifact from a de440 SPK kernel.
 ///
 /// This is the kernel-gated generation entrypoint: it builds a
@@ -2476,6 +2494,7 @@ pub(crate) fn build_packaged_artifact_from_reference_over(
 /// reconstruction via [`build_packaged_artifact_from_reference`]. Kernel-free
 /// callers must instead decode the committed bytes via the runtime-decode path
 /// (see [`build_packaged_artifact`] / [`regenerate_packaged_artifact`]).
+#[allow(dead_code)]
 pub fn regenerate_packaged_artifact_from_kernel(
     kernel_path: &str,
 ) -> Result<CompressedArtifact, String> {
@@ -2486,16 +2505,22 @@ pub fn regenerate_packaged_artifact_from_kernel(
     Ok(build_packaged_artifact_from_reference(&backend))
 }
 
+/// Builds a [`CompressedArtifact`] for all packaged bodies using a hybrid
+/// sourcing strategy.
+///
+/// Major bodies (planets, Sun, Moon) are fit densely from `reference` (de440)
+/// over the canonical 1600–2600 base window. The constrained asteroid (Eros) is
+/// carried forward from the committed packaged artifact: Eros is sourced from
+/// curated 1900–2100 corpus data that is absent from de440, so regenerating it
+/// from the kernel would panic. Carrying its segments is byte-deterministic
+/// across runs because the committed bytes are embedded in the build.
+///
+/// The result is assembled identically to the snapshot-based path: checksum set
+/// and validated before returning.
 pub(crate) fn build_packaged_artifact_from_reference(
     reference: &dyn EphemerisBackend,
 ) -> CompressedArtifact {
-    use pleiades_jpl::spk::corpus_spec::{
-        AST_RANGE_END_JD, AST_RANGE_START_JD, RANGE_END_JD, RANGE_START_JD,
-    };
+    use pleiades_jpl::spk::corpus_spec::{RANGE_END_JD, RANGE_START_JD};
 
-    build_packaged_artifact_from_reference_over(
-        reference,
-        (RANGE_START_JD, RANGE_END_JD),
-        (AST_RANGE_START_JD, AST_RANGE_END_JD),
-    )
+    build_packaged_artifact_from_reference_over(reference, (RANGE_START_JD, RANGE_END_JD))
 }

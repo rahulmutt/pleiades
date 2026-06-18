@@ -2771,21 +2771,25 @@ fn fit_segment_within_span_reproduces_a_smooth_synthetic_body() {
 /// the complete assembly logic (body fan-out, span tiling, segment fitting,
 /// checksum, validate) with windows only a few hundred days wide — enough for
 /// several segments per body — while keeping runtime under a second.
+///
+/// For the constrained asteroid (Eros), segments are carried forward from the
+/// committed artifact rather than fit from the reference backend, so the test
+/// verifies carry-forward behaviour: Eros is present and its segment count
+/// matches the committed artifact exactly.
 #[test]
 fn build_from_reference_produces_all_bodies_with_spanning_segments() {
-    // Tiny windows: a few hundred days covers several segments for every body
-    // cadence class (Moon=4-day spans → ~50 segs; outer planets=512-day spans
-    // → ~1 seg) while running in milliseconds on the Synthetic backend.
+    // Tiny window: a few hundred days covers several segments for every
+    // non-asteroid cadence class (Moon=4-day spans → ~50 segs; outer
+    // planets=512-day spans → ~1 seg) while running in milliseconds on the
+    // Synthetic backend. The asteroid window argument is gone — Eros is now
+    // carried from the committed artifact.
     let base_window = (2_451_545.0, 2_451_545.0 + 200.0);
-    // Asteroid window must be within base (same requirement as production), use
-    // a 100-day sub-window to keep asteroid coverage meaningful but small.
-    let ast_window = (2_451_545.0, 2_451_545.0 + 100.0);
 
-    let artifact = crate::regenerate::build_packaged_artifact_from_reference_over(
-        &Synthetic,
-        base_window,
-        ast_window,
-    );
+    let artifact =
+        crate::regenerate::build_packaged_artifact_from_reference_over(&Synthetic, base_window);
+
+    // Decode the committed artifact once so we can compare Eros segment counts.
+    let committed = crate::regenerate::build_packaged_artifact();
 
     for body in crate::packaged_bodies() {
         let ba = artifact
@@ -2794,14 +2798,37 @@ fn build_from_reference_produces_all_bodies_with_spanning_segments() {
             .find(|b| &b.body == body)
             .unwrap_or_else(|| panic!("missing body {body}"));
         assert!(!ba.segments.is_empty(), "{body} has no segments");
-        // Segments must be contiguous and ascending.
-        for pair in ba.segments.windows(2) {
-            assert!(
-                pair[1].start.julian_day.days() >= pair[0].end.julian_day.days(),
-                "{body}: segments not contiguous/ascending at boundary between {} and {}",
-                pair[0].end.julian_day.days(),
-                pair[1].start.julian_day.days(),
-            );
+
+        let cadence = crate::coverage::packaged_artifact_body_cadence(body);
+        match cadence {
+            crate::coverage::PackagedArtifactBodyCadence::SelectedAsteroids
+            | crate::coverage::PackagedArtifactBodyCadence::CustomBodies => {
+                // Eros must have been carried from the committed artifact, not
+                // fit from the Synthetic backend. Verify segment count matches.
+                let committed_ba = committed
+                    .bodies
+                    .iter()
+                    .find(|b| &b.body == body)
+                    .unwrap_or_else(|| panic!("committed artifact missing body {body}"));
+                assert_eq!(
+                    ba.segments.len(),
+                    committed_ba.segments.len(),
+                    "{body}: carry-forward segment count {}, expected {} from committed artifact",
+                    ba.segments.len(),
+                    committed_ba.segments.len(),
+                );
+            }
+            _ => {
+                // Majors: segments must be contiguous and ascending.
+                for pair in ba.segments.windows(2) {
+                    assert!(
+                        pair[1].start.julian_day.days() >= pair[0].end.julian_day.days(),
+                        "{body}: segments not contiguous/ascending at boundary between {} and {}",
+                        pair[0].end.julian_day.days(),
+                        pair[1].start.julian_day.days(),
+                    );
+                }
+            }
         }
     }
 }
