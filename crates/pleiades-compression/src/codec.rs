@@ -470,7 +470,7 @@ pub(crate) fn encode_body(
     body: &crate::channels::BodyArtifact,
 ) -> Result<(), CompressionError> {
     encode_celestial_body(bytes, &body.body)?;
-    write_u16(bytes, body.segments.len() as u16);
+    write_u32(bytes, body.segments.len() as u32);
     for segment in &body.segments {
         encode_segment(bytes, segment)?;
     }
@@ -481,7 +481,7 @@ pub(crate) fn decode_body(
     cursor: &mut Cursor<'_>,
 ) -> Result<crate::channels::BodyArtifact, CompressionError> {
     let body = decode_celestial_body(cursor)?;
-    let segment_count = cursor.read_u16()? as usize;
+    let segment_count = cursor.read_u32()? as usize;
     let mut segments = Vec::with_capacity(segment_count);
     for _ in 0..segment_count {
         segments.push(decode_segment(cursor)?);

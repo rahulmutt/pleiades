@@ -3,7 +3,7 @@ use pleiades_types::{CelestialBody, Instant, JulianDay, TimeScale};
 
 use crate::codec::{
     encode_artifact_profile, encode_celestial_body, encode_endian_policy, fnv1a64, write_string,
-    write_u16, write_u64, write_u8, Cursor,
+    write_u16, write_u32, write_u64, write_u8, Cursor,
 };
 
 #[test]
@@ -790,9 +790,9 @@ fn artifact_decoding_rejects_duplicate_body_entries() {
     encode_artifact_profile(&mut payload, &profile).expect("profile should encode");
     write_u16(&mut payload, 2);
     encode_celestial_body(&mut payload, &CelestialBody::Sun).expect("Sun should encode");
-    write_u16(&mut payload, 0);
+    write_u32(&mut payload, 0);
     encode_celestial_body(&mut payload, &CelestialBody::Sun).expect("Sun should encode");
-    write_u16(&mut payload, 0);
+    write_u32(&mut payload, 0);
 
     let checksum = fnv1a64(&payload);
     let mut bytes = Vec::new();
@@ -1889,4 +1889,42 @@ fn lookup_equatorial_reconstructs_derived_coordinates() {
 
     assert_eq!(equatorial, ecliptic.to_equatorial(obliquity));
     assert_eq!(equatorial.distance_au, Some(0.625));
+}
+
+#[test]
+fn segment_count_exceeding_u16_max_round_trips_correctly() {
+    // Regression test: per-body segment count was encoded as u16 (max 65,535).
+    // The Moon in a dense de440 artifact can have ~91,311 segments, which
+    // truncated to a wrong value and corrupted the byte stream on decode.
+    // This test builds a body with 70,000 non-overlapping segments to prove
+    // the u32 fix works. Each segment spans 1 day; segments are consecutive.
+    const SEGMENT_COUNT: usize = 70_000;
+    let segments = (0..SEGMENT_COUNT)
+        .map(|i| {
+            let i = i as f64;
+            Segment::new(
+                Instant::new(JulianDay::from_days(i), TimeScale::Tt),
+                Instant::new(JulianDay::from_days(i + 1.0), TimeScale::Tt),
+                vec![
+                    PolynomialChannel::linear(ChannelKind::Longitude, 9, 0.0, 1.0),
+                    PolynomialChannel::linear(ChannelKind::Latitude, 9, 0.0, 1.0),
+                    PolynomialChannel::linear(ChannelKind::DistanceAu, 12, 1.0, 2.0),
+                ],
+            )
+        })
+        .collect::<Vec<_>>();
+    let artifact = CompressedArtifact::new(
+        ArtifactHeader::new("dense-regression", "u32 segment count regression"),
+        vec![BodyArtifact::new(CelestialBody::Moon, segments)],
+    );
+    let encoded = artifact
+        .encode()
+        .expect("artifact with >65,535 segments should encode");
+    let decoded = CompressedArtifact::decode(&encoded)
+        .expect("artifact with >65,535 segments should decode without stream misalignment");
+    assert_eq!(
+        decoded.bodies[0].segments.len(),
+        SEGMENT_COUNT,
+        "decoded segment count must equal original (u16 truncation would give a wrong value)"
+    );
 }

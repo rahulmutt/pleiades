@@ -58,7 +58,7 @@ pub use format::{
 // ── Crate-level constants ─────────────────────────────────────────────────────
 
 /// Current artifact format version.
-pub const ARTIFACT_VERSION: u16 = 4;
+pub const ARTIFACT_VERSION: u16 = 5;
 
 pub(crate) const ARTIFACT_MAGIC: [u8; 8] = *b"PLDEPHEM";
 
