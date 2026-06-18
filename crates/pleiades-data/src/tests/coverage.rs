@@ -2772,24 +2772,21 @@ fn fit_segment_within_span_reproduces_a_smooth_synthetic_body() {
 /// checksum, validate) with windows only a few hundred days wide — enough for
 /// several segments per body — while keeping runtime under a second.
 ///
-/// For the constrained asteroid (Eros), segments are carried forward from the
-/// committed artifact rather than fit from the reference backend, so the test
-/// verifies carry-forward behaviour: Eros is present and its segment count
-/// matches the committed artifact exactly.
+/// For the constrained asteroid (Eros), segments are re-derived from the
+/// reference snapshot (curated corpus data), not from the committed artifact.
+/// The test verifies snapshot-based sourcing: Eros is present with ≥1 segment
+/// and its count matches the expected snapshot-fit count exactly.
 #[test]
 fn build_from_reference_produces_all_bodies_with_spanning_segments() {
     // Tiny window: a few hundred days covers several segments for every
     // non-asteroid cadence class (Moon=4-day spans → ~50 segs; outer
     // planets=512-day spans → ~1 seg) while running in milliseconds on the
-    // Synthetic backend. The asteroid window argument is gone — Eros is now
-    // carried from the committed artifact.
+    // Synthetic backend. The asteroid is re-derived from the reference snapshot,
+    // not carried from the committed artifact, so no .bin decode is needed.
     let base_window = (2_451_545.0, 2_451_545.0 + 200.0);
 
     let artifact =
         crate::regenerate::build_packaged_artifact_from_reference_over(&Synthetic, base_window);
-
-    // Decode the committed artifact once so we can compare Eros segment counts.
-    let committed = crate::regenerate::build_packaged_artifact();
 
     for body in crate::packaged_bodies() {
         let ba = artifact
@@ -2803,19 +2800,29 @@ fn build_from_reference_produces_all_bodies_with_spanning_segments() {
         match cadence {
             crate::coverage::PackagedArtifactBodyCadence::SelectedAsteroids
             | crate::coverage::PackagedArtifactBodyCadence::CustomBodies => {
-                // Eros must have been carried from the committed artifact, not
-                // fit from the Synthetic backend. Verify segment count matches.
-                let committed_ba = committed
-                    .bodies
-                    .iter()
-                    .find(|b| &b.body == body)
-                    .unwrap_or_else(|| panic!("committed artifact missing body {body}"));
+                // Eros must have been re-derived from the reference snapshot,
+                // not fit from the Synthetic backend. Verify segment count
+                // matches the expected snapshot-fit count — this is
+                // format/version-independent and does not decode the committed
+                // .bin.
+                use pleiades_jpl::{reference_snapshot, JplSnapshotBackend, SnapshotEntry};
+                use std::cmp::Ordering;
+                let snap = reference_snapshot();
+                let mut e: Vec<&SnapshotEntry> = snap.iter().filter(|x| x.body == *body).collect();
+                e.sort_by(|left, right| {
+                    left.epoch
+                        .julian_day
+                        .days()
+                        .partial_cmp(&right.epoch.julian_day.days())
+                        .unwrap_or(Ordering::Equal)
+                });
+                let expected =
+                    crate::regenerate::body_segments_from_entries(&e, &JplSnapshotBackend).len();
                 assert_eq!(
                     ba.segments.len(),
-                    committed_ba.segments.len(),
-                    "{body}: carry-forward segment count {}, expected {} from committed artifact",
+                    expected,
+                    "{body}: snapshot-fit segment count {}, expected {expected} from reference snapshot",
                     ba.segments.len(),
-                    committed_ba.segments.len(),
                 );
             }
             _ => {

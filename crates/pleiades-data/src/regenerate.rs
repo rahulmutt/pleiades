@@ -194,7 +194,7 @@ fn packaged_body_artifacts_from_snapshot(snapshot: &[SnapshotEntry]) -> Vec<Body
         .collect()
 }
 
-fn body_segments_from_entries(
+pub(crate) fn body_segments_from_entries(
     entries: &[&SnapshotEntry],
     reference_backend: &JplSnapshotBackend,
 ) -> Vec<Segment> {
@@ -2393,20 +2393,18 @@ pub(crate) fn fit_segment_within_span(
 /// [`fitting_segment_boundaries`] + [`fit_segment_within_span`].
 ///
 /// The constrained asteroid (Eros) is kernel-free: its curated 1900–2100 corpus
-/// data is not present in de440. Instead its segments are carried forward from
-/// the committed packaged artifact (decoded via [`build_packaged_artifact`]).
-/// This is faithful to the constraint "Eros coverage stays constrained to its
-/// 1900–2100 corpus window." Two regenerations are byte-deterministic: the
-/// major fits are deterministic, and Eros is cloned from the committed bytes
-/// embedded in the build.
+/// data is not present in de440. Instead its segments are re-derived from the
+/// reference snapshot (curated Horizons 1900–2100 corpus data, the same source
+/// the committed artifact was originally built from). This approach is
+/// format/version-independent: it does not decode the committed `.bin` and is
+/// therefore safe across artifact-version bumps. Two regenerations are
+/// deterministic: the reference snapshot is static committed source data, so
+/// the same snapshot fit always yields identical segments.
 pub(crate) fn build_packaged_artifact_from_reference_over(
     reference: &dyn EphemerisBackend,
     base_window: (f64, f64),
 ) -> CompressedArtifact {
     use crate::coverage::fitting_segment_boundaries;
-
-    // Decode the committed artifact once; Eros segments are cloned from it.
-    let committed = build_packaged_artifact();
 
     let mut body_artifacts: Vec<(usize, BodyArtifact)> = Vec::new();
 
@@ -2419,21 +2417,28 @@ pub(crate) fn build_packaged_artifact_from_reference_over(
             match cadence {
                 PackagedArtifactBodyCadence::SelectedAsteroids
                 | PackagedArtifactBodyCadence::CustomBodies => {
-                    // Constrained asteroid (Eros): carry segments forward from
-                    // the committed artifact. Eros is sourced from curated corpus
-                    // data and is absent from de440 — do NOT fit from `reference`.
-                    let segments = committed
-                        .bodies
-                        .iter()
-                        .find(|b| b.body == body)
-                        .unwrap_or_else(|| {
-                            panic!(
-                                "committed packaged artifact is missing body {body}; \
-                                 the committed fixture must include all constrained-asteroid bodies"
-                            )
-                        })
-                        .segments
-                        .clone();
+                    // Constrained asteroid (Eros): re-derive segments from the
+                    // reference snapshot (curated corpus data), the same source
+                    // the committed artifact was originally built from. This is
+                    // format/version-independent — do NOT decode the committed
+                    // artifact or fit from `reference` (de440).
+                    let snapshot = reference_snapshot();
+                    let mut entries: Vec<&SnapshotEntry> =
+                        snapshot.iter().filter(|e| e.body == body).collect();
+                    if entries.is_empty() {
+                        panic!(
+                            "reference snapshot is missing body {body}; \
+                             the reference snapshot must contain all constrained-asteroid bodies"
+                        );
+                    }
+                    entries.sort_by(|left, right| {
+                        left.epoch
+                            .julian_day
+                            .days()
+                            .partial_cmp(&right.epoch.julian_day.days())
+                            .unwrap_or(Ordering::Equal)
+                    });
+                    let segments = body_segments_from_entries(&entries, &JplSnapshotBackend);
                     handles
                         .push(scope.spawn(move || (body_index, BodyArtifact::new(body, segments))));
                 }
