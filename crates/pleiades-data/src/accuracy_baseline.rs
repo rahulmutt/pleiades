@@ -7,11 +7,11 @@
 
 use std::collections::HashMap;
 
-use pleiades_backend::{Angle, CelestialBody, Instant};
+use pleiades_backend::{Angle, CelestialBody};
 use pleiades_compression::CompressedArtifact;
 use pleiades_jpl::{production_holdout_corpus, SnapshotEntry};
 
-use crate::regenerate::{build_packaged_artifact, coordinates};
+use crate::regenerate::{build_packaged_artifact, coordinates, normalize_lookup_instant};
 use crate::AU_IN_KM;
 
 /// Per-body accuracy summary comparing the artifact to an independent hold-out corpus.
@@ -19,6 +19,10 @@ use crate::AU_IN_KM;
 pub struct BodyChannelError {
     /// Body these errors apply to.
     pub body: CelestialBody,
+    /// Number of hold-out rows that were successfully compared for this body.
+    /// A value of zero would indicate a vacuous baseline (no rows matched), but
+    /// `accuracy_baseline_against` excludes bodies with zero comparisons entirely.
+    pub comparison_count: usize,
     /// Maximum absolute longitude error across all hold-out rows for this body (arcseconds).
     pub max_longitude_arcsec: f64,
     /// Root-mean-square longitude error across all hold-out rows for this body (arcseconds).
@@ -41,8 +45,9 @@ impl BodyChannelError {
     /// Returns a compact one-line summary for this body's errors.
     pub fn summary_line(&self) -> String {
         format!(
-            "{}: max_lon={:.4} arcsec  rms_lon={:.4} arcsec  max_lat={:.4} arcsec  rms_lat={:.4} arcsec  max_dist={:.3} km  rms_dist={:.3} km",
+            "{}: n={} max_lon={:.4} arcsec  rms_lon={:.4} arcsec  max_lat={:.4} arcsec  rms_lat={:.4} arcsec  max_dist={:.3} km  rms_dist={:.3} km",
             self.label(),
+            self.comparison_count,
             self.max_longitude_arcsec,
             self.rms_longitude_arcsec,
             self.max_latitude_arcsec,
@@ -93,6 +98,7 @@ impl BodyAccumulator {
         let rms = |sum_sq: f64| if n > 0.0 { (sum_sq / n).sqrt() } else { 0.0 };
         BodyChannelError {
             body: self.body,
+            comparison_count: self.count,
             max_longitude_arcsec: self.max_lon_arcsec,
             rms_longitude_arcsec: rms(self.sum_sq_lon_arcsec),
             max_latitude_arcsec: self.max_lat_arcsec,
@@ -107,13 +113,14 @@ impl BodyAccumulator {
 ///
 /// For each hold-out row the artifact is queried at the same epoch and body.
 /// Rows where the artifact lookup fails (body missing or out of range) are skipped
-/// silently.
+/// silently — but if ALL rows for a body are skipped, that body is excluded from the
+/// result rather than silently reporting zero error.  A caller asserting non-zero
+/// error on a specific body will detect a vacuous baseline.
 ///
-/// The hold-out epoch's time scale is preserved as-is when building the lookup
-/// instant.  The dense de440-backed artifact (v5+) stores segments tagged with
-/// `Tdb`; the `Segment::contains` check requires the scale to match, so passing
-/// the raw `Tdb`-tagged epoch is the correct path for the current committed
-/// artifact.
+/// The lookup instant is normalized to `TimeScale::Tt` (same julian_day, Tdb
+/// relabelled Tt) to match the committed artifact's segment tag convention.
+/// `normalize_lookup_instant` mirrors the runtime packaged-lookup path and
+/// `Segment::contains` requires scale equality.
 ///
 /// Longitude differences are wrapped to ±180° before conversion to arcseconds.
 /// Latitude differences are taken directly.  Distance differences are converted
@@ -130,10 +137,9 @@ pub fn accuracy_baseline_against(
             .entry(key)
             .or_insert_with(|| BodyAccumulator::new(entry.body.clone()));
 
-        // Preserve the entry's time scale exactly so that segment range checks
-        // pass.  The dense de440 artifact stores segments with Tdb-tagged instants;
-        // converting to Tt here would cause all lookups to fail.
-        let lookup_instant = Instant::new(entry.epoch.julian_day, entry.epoch.scale);
+        // Normalize to Tt (same julian_day) — the committed artifact's segment
+        // boundaries are Tt-tagged; Segment::contains requires scale equality.
+        let lookup_instant = normalize_lookup_instant(entry.epoch);
 
         let artifact_result = artifact.lookup_ecliptic(&entry.body, lookup_instant);
         let artifact_coords = match artifact_result {
@@ -164,9 +170,14 @@ pub fn accuracy_baseline_against(
         acc.accumulate(lon_arcsec, lat_arcsec, dist_km);
     }
 
-    // Emit results in a deterministic order (body debug-name alphabetical).
-    let mut results: Vec<BodyChannelError> =
-        accumulators.into_values().map(|acc| acc.finish()).collect();
+    // Vacuity guard: only emit bodies where at least one row was successfully compared.
+    // Bodies whose every lookup failed (e.g. due to a scale mismatch) are excluded rather
+    // than silently emitted as all-zero error — zero here means "not measured", not "perfect".
+    let mut results: Vec<BodyChannelError> = accumulators
+        .into_values()
+        .filter(|acc| acc.count > 0)
+        .map(|acc| acc.finish())
+        .collect();
     results.sort_by_key(|a| a.label());
     results
 }
@@ -250,6 +261,7 @@ mod tests {
             "expected exactly 1 body in synthetic baseline"
         );
         let sun = &errors[0];
+        assert_eq!(sun.comparison_count, 1, "Sun should have 1 comparison");
         assert!(
             sun.max_longitude_arcsec < 1e-3,
             "Sun max longitude error too large: {} arcsec",
@@ -264,6 +276,47 @@ mod tests {
             sun.max_distance_km < 1.0,
             "Sun max distance error too large: {} km",
             sun.max_distance_km
+        );
+    }
+
+    #[test]
+    fn baseline_excludes_body_when_all_lookups_fail() {
+        // Vacuity guard: if the artifact has NO segment for the holdout body, the body
+        // must be absent from results rather than silently appearing as zero error.
+        let holdout = synthetic_holdout(); // Sun at J2000.0
+                                           // Empty artifact — lookup_ecliptic will fail with MissingBody for Sun.
+        let empty_artifact = CompressedArtifact::new(
+            ArtifactHeader::new("empty-test", "empty test source"),
+            vec![],
+        );
+        let errors = accuracy_baseline_against(&holdout, &empty_artifact);
+        assert!(
+            errors.is_empty(),
+            "vacuity guard must exclude bodies with zero successful comparisons; got {} entries",
+            errors.len()
+        );
+    }
+
+    #[test]
+    #[ignore = "reads 47.5MB artifact + 500-row hold-out; run with -- --ignored"]
+    fn packaged_artifact_baseline_is_non_vacuous() {
+        // Regression guard against the Tdb/Tt scale-mismatch vacuity bug:
+        // the real packaged baseline must include Uranus with a measurable
+        // (non-zero) longitude error.  A vacuous baseline would return no Uranus
+        // entry (all lookups skipped) or a zero error.
+        let errors = packaged_artifact_accuracy_baseline();
+        let uranus = errors
+            .iter()
+            .find(|e| e.body == CelestialBody::Uranus)
+            .expect("Uranus must appear in the packaged baseline (hold-out covers 10 base bodies)");
+        assert!(
+            uranus.comparison_count > 0,
+            "Uranus must have at least one successful comparison (got 0 — vacuous baseline)"
+        );
+        assert!(
+            uranus.max_longitude_arcsec > 1.0,
+            "Uranus max longitude error must be >1 arcsec (expected ~156\" for SP1 draft; got {:.4}\" — baseline may be vacuous)",
+            uranus.max_longitude_arcsec
         );
     }
 }
