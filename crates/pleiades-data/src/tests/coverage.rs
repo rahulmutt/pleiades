@@ -2633,6 +2633,7 @@ fn fit_segment_within_span_reproduces_a_smooth_synthetic_body() {
         BackendId, BackendMetadata, CelestialBody, EclipticCoordinates, EphemerisBackend,
         EphemerisError, EphemerisRequest, EphemerisResult, Latitude, Longitude,
     };
+    use pleiades_compression::{ArtifactHeader, BodyArtifact};
 
     // Synthetic backend: longitude advances 1 deg/day, small latitude wobble,
     // distance ~1 AU — smooth over a 16-day span, so a degree-8 fit nails it.
@@ -2687,4 +2688,60 @@ fn fit_segment_within_span_reproduces_a_smooth_synthetic_body() {
         .any(|c| matches!(c.kind, pleiades_compression::ChannelKind::DistanceAu)));
     // Validate the segment (checks channel order, uniqueness, finite coefficients).
     seg.validate().expect("generated segment should validate");
+
+    // Accuracy probes: evaluate the fitted segment at 5 interior epochs via the
+    // real quantized decode path (CompressedArtifact::lookup_ecliptic) and compare
+    // against the Synthetic backend's ground-truth functions.  A degree-8 LSQ fit
+    // of these smooth functions over a 16-day span should be essentially exact, so
+    // we use a tight tolerance — a wrong x-domain or wrong scale_exponent would fail.
+    let artifact = CompressedArtifact::new(
+        ArtifactHeader::new("within-span probe", "fit_segment_within_span accuracy test"),
+        vec![BodyArtifact::new(body.clone(), vec![seg])],
+    );
+    let probe_fracs = [0.1, 0.3, 0.5, 0.7, 0.9];
+    for frac in probe_fracs {
+        let probe_jd = t0 + frac * (t1 - t0);
+        let probe_inst = Instant::new(JulianDay::from_days(probe_jd), TimeScale::Tdb);
+
+        // Ground-truth from the Synthetic backend.
+        let gt_lon = (probe_jd * 1.0).rem_euclid(360.0);
+        let gt_lat = 0.1 * (probe_jd / 50.0).sin();
+        let gt_dist = 1.0 + 0.01 * (probe_jd / 80.0).cos();
+
+        // Decoded from the fitted segment via the real decode path.
+        let decoded = artifact
+            .lookup_ecliptic(&body, probe_inst)
+            .unwrap_or_else(|e| panic!("lookup_ecliptic failed at frac={frac}: {e}"));
+
+        // Longitude comparison: use shortest angular distance to handle wrap.
+        let lon_err = {
+            let diff = decoded.longitude.degrees() - gt_lon;
+            let wrapped = diff - diff.div_euclid(360.0) * 360.0;
+            let signed = if wrapped > 180.0 {
+                wrapped - 360.0
+            } else if wrapped < -180.0 {
+                wrapped + 360.0
+            } else {
+                wrapped
+            };
+            signed.abs()
+        };
+        assert!(
+            lon_err < 1e-3,
+            "longitude error {lon_err} deg at frac={frac} (probe_jd={probe_jd})"
+        );
+
+        let lat_err = (decoded.latitude.degrees() - gt_lat).abs();
+        assert!(
+            lat_err < 1e-3,
+            "latitude error {lat_err} deg at frac={frac} (probe_jd={probe_jd})"
+        );
+
+        let dist_err =
+            (decoded.distance_au.expect("distance_au should be present") - gt_dist).abs();
+        assert!(
+            dist_err < 1e-6,
+            "distance error {dist_err} AU at frac={frac} (probe_jd={probe_jd})"
+        );
+    }
 }

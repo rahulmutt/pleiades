@@ -2339,6 +2339,9 @@ pub(crate) fn fit_segment_within_span(
     if span <= 0.0 {
         return None;
     }
+    if n < 2 {
+        return None;
+    }
 
     let mut xs = Vec::with_capacity(n);
     let mut lon_deg = Vec::with_capacity(n);
@@ -2355,7 +2358,7 @@ pub(crate) fn fit_segment_within_span(
         xs.push(frac);
         lon_deg.push(ec.longitude.degrees());
         lat.push(ec.latitude.degrees());
-        dist.push(ec.distance_au.unwrap_or_default());
+        dist.push(ec.distance_au?);
     }
 
     // Unwrap longitude to a continuous series before fitting (reuse existing helper).

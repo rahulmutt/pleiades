@@ -40,7 +40,7 @@ pub(crate) mod body;
 pub(crate) mod fit;
 pub(crate) mod generation;
 pub(crate) mod generation_spec;
-pub mod lsq;
+pub(crate) mod lsq;
 pub(crate) mod profile;
 pub(crate) mod regen;
 pub(crate) mod target;
