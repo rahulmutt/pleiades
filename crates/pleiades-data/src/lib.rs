@@ -40,12 +40,17 @@ use std::sync::OnceLock;
 use pleiades_backend::{CelestialBody, CustomBodyId};
 use pleiades_jpl::SnapshotEntry;
 
+mod accuracy_baseline;
 mod backend;
 mod coverage;
 mod data;
 mod lookup;
 mod regenerate;
 
+pub use accuracy_baseline::{
+    accuracy_baseline_against, packaged_artifact_accuracy_baseline,
+    packaged_artifact_accuracy_baseline_summary_for_report, BodyChannelError,
+};
 pub use backend::*;
 pub use coverage::*;
 pub use data::*;

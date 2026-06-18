@@ -2019,6 +2019,11 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
                 .map_err(render_release_bundle_error)
         }
         Some("ingest-public") => render_ingest_public(&args[1..]),
+        Some("packaged-artifact-accuracy-baseline-summary")
+        | Some("artifact-accuracy-baseline") => {
+            ensure_no_extra_args(&args[1..], "packaged-artifact-accuracy-baseline-summary")?;
+            Ok(packaged_artifact_accuracy_baseline_summary_for_report())
+        }
         Some("help") | Some("--help") | Some("-h") | None => Ok(help_text()),
         Some(other) => Err(format!("unknown command: {other}\n\n{}", help_text())),
     }

@@ -207,6 +207,7 @@ use pleiades_core::{
 };
 use pleiades_data::{
     packaged_artifact, packaged_artifact_access_summary_for_report,
+    packaged_artifact_accuracy_baseline_summary_for_report,
     packaged_artifact_body_class_span_cap_entries_for_report, packaged_artifact_bytes,
     packaged_artifact_fit_envelope_summary_details,
     packaged_artifact_fit_envelope_summary_for_report,
