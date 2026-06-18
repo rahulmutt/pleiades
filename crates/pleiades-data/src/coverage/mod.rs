@@ -39,6 +39,7 @@ use crate::{
 pub(crate) mod body;
 pub(crate) mod fit;
 pub(crate) mod generation;
+pub(crate) mod generation_spec;
 pub(crate) mod profile;
 pub(crate) mod regen;
 pub(crate) mod target;
@@ -47,6 +48,7 @@ pub(crate) mod threshold;
 pub use body::*;
 pub use fit::*;
 pub use generation::*;
+pub use generation_spec::*;
 pub use profile::*;
 pub use regen::*;
 pub use target::*;
