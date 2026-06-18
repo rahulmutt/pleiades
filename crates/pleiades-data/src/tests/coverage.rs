@@ -2626,3 +2626,65 @@ fn packaged_body_coverage_summary_report_marks_drift_as_unavailable() {
         "Packaged body set: unavailable (the packaged body coverage summary field `bodies` is out of sync with the current bundled body set)"
     );
 }
+
+#[test]
+fn fit_segment_within_span_reproduces_a_smooth_synthetic_body() {
+    use pleiades_backend::{
+        BackendId, BackendMetadata, CelestialBody, EclipticCoordinates, EphemerisBackend,
+        EphemerisError, EphemerisRequest, EphemerisResult, Latitude, Longitude,
+    };
+
+    // Synthetic backend: longitude advances 1 deg/day, small latitude wobble,
+    // distance ~1 AU — smooth over a 16-day span, so a degree-8 fit nails it.
+    struct Synthetic;
+    impl EphemerisBackend for Synthetic {
+        fn metadata(&self) -> BackendMetadata {
+            unimplemented!()
+        }
+        fn supports_body(&self, _body: CelestialBody) -> bool {
+            true
+        }
+        fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+            let jd = req.instant.julian_day.days();
+            let lon = (jd * 1.0).rem_euclid(360.0);
+            let lat = 0.1 * (jd / 50.0).sin();
+            let dist = 1.0 + 0.01 * (jd / 80.0).cos();
+            let mut r = EphemerisResult::new(
+                BackendId::new("synthetic"),
+                req.body.clone(),
+                req.instant,
+                req.frame,
+                req.zodiac_mode.clone(),
+                req.apparent,
+            );
+            r.ecliptic = Some(EclipticCoordinates::new(
+                Longitude::from_degrees(lon),
+                Latitude::from_degrees(lat),
+                Some(dist),
+            ));
+            Ok(r)
+        }
+    }
+
+    let body = CelestialBody::Sun;
+    let (t0, t1) = (2_451_545.0, 2_451_545.0 + 16.0);
+    let seg = crate::regenerate::fit_segment_within_span(&body, t0, t1, &Synthetic)
+        .expect("fit should succeed");
+    // The segment spans [t0, t1] and carries the three channels.
+    assert_eq!(seg.start.julian_day.days(), t0);
+    assert_eq!(seg.end.julian_day.days(), t1);
+    assert!(seg
+        .channels
+        .iter()
+        .any(|c| matches!(c.kind, pleiades_compression::ChannelKind::Longitude)));
+    assert!(seg
+        .channels
+        .iter()
+        .any(|c| matches!(c.kind, pleiades_compression::ChannelKind::Latitude)));
+    assert!(seg
+        .channels
+        .iter()
+        .any(|c| matches!(c.kind, pleiades_compression::ChannelKind::DistanceAu)));
+    // Validate the segment (checks channel order, uniqueness, finite coefficients).
+    seg.validate().expect("generated segment should validate");
+}

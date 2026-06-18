@@ -2315,3 +2315,77 @@ pub(crate) fn map_artifact_error(error: pleiades_compression::CompressionError) 
 
     EphemerisError::new(kind, error.message)
 }
+
+/// Fits one segment over `[t0_jd, t1_jd]` by sampling `reference` (de440 or a
+/// test backend) at the body's within-span sample count and least-squares
+/// fitting Longitude/Latitude/DistanceAu channels over the normalized interval.
+///
+/// The x-domain for the polynomial fit matches the decoder: `x = (t - t0) / span`
+/// in `[0, 1]`, consistent with `CompressedArtifact::lookup_ecliptic` (artifact.rs).
+///
+/// Scale exponents match the existing generation pipeline: Longitude=9, Latitude=9,
+/// DistanceAu=10 (see `regenerate.rs` segment_from_single_entry and threshold.rs).
+#[allow(dead_code)]
+pub(crate) fn fit_segment_within_span(
+    body: &CelestialBody,
+    t0_jd: f64,
+    t1_jd: f64,
+    reference: &dyn EphemerisBackend,
+) -> Option<Segment> {
+    use crate::coverage::{fit_polynomial_lsq, fitting_degree, fitting_within_span_sample_count};
+
+    let n = fitting_within_span_sample_count(body).max(fitting_degree(body) + 1);
+    let span = t1_jd - t0_jd;
+    if span <= 0.0 {
+        return None;
+    }
+
+    let mut xs = Vec::with_capacity(n);
+    let mut lon_deg = Vec::with_capacity(n);
+    let mut lat = Vec::with_capacity(n);
+    let mut dist = Vec::with_capacity(n);
+    for i in 0..n {
+        let frac = i as f64 / (n as f64 - 1.0);
+        let jd = t0_jd + frac * span;
+        let inst = Instant::new(JulianDay::from_days(jd), TimeScale::Tdb);
+        let res = reference
+            .position(&EphemerisRequest::new(body.clone(), inst))
+            .ok()?;
+        let ec = res.ecliptic?;
+        xs.push(frac);
+        lon_deg.push(ec.longitude.degrees());
+        lat.push(ec.latitude.degrees());
+        dist.push(ec.distance_au.unwrap_or_default());
+    }
+
+    // Unwrap longitude to a continuous series before fitting (reuse existing helper).
+    let lon_unwrapped = unwrap_longitude_samples(&lon_deg);
+
+    let degree = fitting_degree(body);
+    let to_samples =
+        |ys: &[f64]| -> Vec<(f64, f64)> { xs.iter().copied().zip(ys.iter().copied()).collect() };
+
+    let lon_coeffs = fit_polynomial_lsq(&to_samples(&lon_unwrapped), degree)?;
+    let lat_coeffs = fit_polynomial_lsq(&to_samples(&lat), degree)?;
+    let dist_coeffs = fit_polynomial_lsq(&to_samples(&dist), degree)?;
+
+    // Channels must be ordered by ChannelKind discriminant: Longitude=0, Latitude=1, DistanceAu=2.
+    // Scale exponents match the existing generation pipeline (Longitude=9, Latitude=9, DistanceAu=10).
+    let channels = vec![
+        PolynomialChannel::new(ChannelKind::Longitude, 9, lon_coeffs),
+        PolynomialChannel::new(ChannelKind::Latitude, 9, lat_coeffs),
+        PolynomialChannel::new(ChannelKind::DistanceAu, 10, dist_coeffs),
+    ];
+
+    // Validate each channel's coefficients are finite (fail-closed).
+    for channel in &channels {
+        channel.validate().ok()?;
+    }
+
+    let seg = Segment::new(
+        Instant::new(JulianDay::from_days(t0_jd), TimeScale::Tdb),
+        Instant::new(JulianDay::from_days(t1_jd), TimeScale::Tdb),
+        channels,
+    );
+    Some(seg)
+}
