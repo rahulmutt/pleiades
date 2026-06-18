@@ -131,7 +131,8 @@ pub(crate) use pleiades_compression::{
 };
 #[cfg(test)]
 pub(crate) use pleiades_jpl::{
-    production_generation_source_summary_for_report, reference_snapshot, JplSnapshotBackend,
+    production_generation_source_summary_for_report, production_holdout_corpus, reference_snapshot,
+    JplSnapshotBackend,
 };
 
 const PACKAGE_NAME: &str = "pleiades-data";
