@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::sync::OnceLock;
 use std::{cmp::Ordering, fmt};
 
 use pleiades_backend::{
@@ -126,33 +125,22 @@ pub fn regenerate_packaged_artifact_from_snapshot(
         .expect("checked-in reference snapshot inputs should validate")
 }
 
-/// Rebuilds the packaged artifact from the checked-in JPL reference snapshot.
+/// Returns the packaged artifact for kernel-free callers.
 ///
-/// The regenerated artifact is cached in-process so repeated validation and report paths
-/// can reuse the same deterministic reconstruction without paying the full rebuild cost
-/// on every call.
+/// Runtime decode of the committed bytes is the only kernel-free path: this
+/// decodes [`packaged_artifact_bytes()`] (via [`build_packaged_artifact`])
+/// rather than refitting from the in-process snapshot. Kernel-gated
+/// regeneration from de440 lives in [`regenerate_packaged_artifact_from_kernel`].
 pub fn regenerate_packaged_artifact() -> CompressedArtifact {
-    static ARTIFACT: OnceLock<CompressedArtifact> = OnceLock::new();
-
-    ARTIFACT
-        .get_or_init(|| regenerate_packaged_artifact_from_snapshot(reference_snapshot()))
-        .clone()
+    build_packaged_artifact()
 }
 
-/// Returns the encoded bytes for the regenerated packaged artifact.
+/// Returns the encoded bytes for the packaged artifact for kernel-free callers.
 ///
-/// This caches the encoded payload separately so regeneration commands can reuse the same
-/// deterministic bytes across repeated sidecar writes without re-encoding the artifact.
+/// This returns the committed bytes directly ([`packaged_artifact_bytes()`]) so
+/// kernel-free regeneration commands write the byte-identical committed payload.
 pub fn regenerate_packaged_artifact_bytes() -> &'static [u8] {
-    static BYTES: OnceLock<Vec<u8>> = OnceLock::new();
-
-    BYTES
-        .get_or_init(|| {
-            regenerate_packaged_artifact()
-                .encode()
-                .expect("packaged artifact should encode deterministically")
-        })
-        .as_slice()
+    packaged_artifact_bytes()
 }
 
 fn packaged_body_artifacts_from_snapshot(snapshot: &[SnapshotEntry]) -> Vec<BodyArtifact> {
@@ -2481,6 +2469,23 @@ pub(crate) fn build_packaged_artifact_from_reference_over(
 /// Called by the Task 4/6 dense-generation pipeline; not yet wired up in
 /// this task.
 #[allow(dead_code)]
+/// Regenerates the packaged artifact from a de440 SPK kernel.
+///
+/// This is the kernel-gated generation entrypoint: it builds a
+/// [`pleiades_jpl::SpkBackend`] over `kernel_path` and runs the full dense
+/// reconstruction via [`build_packaged_artifact_from_reference`]. Kernel-free
+/// callers must instead decode the committed bytes via the runtime-decode path
+/// (see [`build_packaged_artifact`] / [`regenerate_packaged_artifact`]).
+pub fn regenerate_packaged_artifact_from_kernel(
+    kernel_path: &str,
+) -> Result<CompressedArtifact, String> {
+    let backend = pleiades_jpl::SpkBackend::builder()
+        .add_kernel(kernel_path)
+        .map_err(|error| error.message)?
+        .build();
+    Ok(build_packaged_artifact_from_reference(&backend))
+}
+
 pub(crate) fn build_packaged_artifact_from_reference(
     reference: &dyn EphemerisBackend,
 ) -> CompressedArtifact {

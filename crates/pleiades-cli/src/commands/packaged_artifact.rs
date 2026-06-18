@@ -150,8 +150,19 @@ pub(crate) fn render_packaged_artifact_regeneration(
     artifact_checksum_path: Option<String>,
     normalized_intermediate_path: Option<String>,
 ) -> Result<String, String> {
-    let artifact = pleiades_data::regenerate_packaged_artifact();
-    let encoded = pleiades_data::regenerate_packaged_artifact_bytes();
+    // The WRITE path is kernel-gated: regenerating artifact bytes requires the
+    // de440 kernel. Kernel-free callers must use the committed artifact via the
+    // `packaged-artifact` decode path (and `--check`), not this write path.
+    let kernel_path = std::env::var("PLEIADES_DE_KERNEL").map_err(|_| {
+        "generate-packaged-artifact requires PLEIADES_DE_KERNEL (path to de440.bsp); \
+         kernel-free callers use the committed artifact via packaged-artifact decode"
+            .to_string()
+    })?;
+    let artifact = pleiades_data::regenerate_packaged_artifact_from_kernel(&kernel_path)?;
+    let encoded = artifact
+        .encode()
+        .map_err(|error| format!("failed to encode regenerated packaged artifact: {error}"))?;
+    let encoded = encoded.as_slice();
     if let Some(parent) = std::path::Path::new(&output_path).parent() {
         if !parent.as_os_str().is_empty() {
             std::fs::create_dir_all(parent)

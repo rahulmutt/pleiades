@@ -99,16 +99,30 @@ fn packaged_artifact_decode_rejects_checksum_corruption() {
 }
 
 #[test]
-#[ignore = "full packaged-artifact regeneration is a slow release-validation check"]
-fn packaged_artifact_fixture_matches_reference_snapshot_generation() {
+fn packaged_artifact_kernel_free_regeneration_decodes_the_committed_fixture() {
+    // Kernel-free regeneration now decodes the committed bytes (runtime decode is
+    // the only kernel-free path). The decoded artifact must validate and match
+    // the fixture's decoded structure, and the kernel-free bytes accessor must
+    // return the committed fixture byte-for-byte (these are exactly the bytes the
+    // gated WRITE path would emit).
     let generated = regenerate_packaged_artifact();
     generated
         .validate()
-        .expect("generated packaged artifact should validate");
-    let encoded = generated
-        .encode()
-        .expect("generated packaged artifact should encode");
-    assert_eq!(encoded, PACKAGED_ARTIFACT_FIXTURE);
+        .expect("decoded packaged artifact should validate");
+
+    // Kernel-free bytes are the committed fixture, byte-identical.
+    assert_eq!(
+        regenerate_packaged_artifact_bytes(),
+        PACKAGED_ARTIFACT_FIXTURE
+    );
+
+    // The decoded artifact matches the fixture's decoded structure.
+    let fixture = CompressedArtifact::decode(PACKAGED_ARTIFACT_FIXTURE)
+        .expect("committed packaged artifact fixture should decode");
+    assert_eq!(generated.header.generation_label, ARTIFACT_LABEL);
+    assert_eq!(generated.bodies, fixture.bodies);
+    assert_eq!(generated.checksum, fixture.checksum);
+    assert_eq!(generated.bodies.len(), packaged_bodies().len());
     assert_eq!(
         generated.residual_segment_count() > 0,
         !generated.residual_bodies().is_empty()
@@ -116,13 +130,14 @@ fn packaged_artifact_fixture_matches_reference_snapshot_generation() {
 }
 
 #[test]
-#[ignore = "full packaged-artifact regeneration is a slow release-validation check"]
+#[ignore = "full packaged-artifact regeneration from the reference snapshot is a slow release-validation check"]
 fn packaged_artifact_generation_from_supplied_snapshot_matches_the_default_fixture() {
+    // The snapshot-fit path remains a release-validation cross-check against the
+    // committed fixture; it is no longer compared to the kernel-free decode path
+    // (which now sources the committed bytes directly).
     let snapshot = reference_snapshot();
     let generated_from_snapshot = regenerate_packaged_artifact_from_snapshot(snapshot);
-    let generated_default = regenerate_packaged_artifact();
 
-    assert_eq!(generated_from_snapshot, generated_default);
     assert_eq!(
         generated_from_snapshot.encode().unwrap(),
         PACKAGED_ARTIFACT_FIXTURE

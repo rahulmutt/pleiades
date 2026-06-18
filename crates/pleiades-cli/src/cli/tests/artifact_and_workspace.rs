@@ -1,9 +1,6 @@
 //! Tests for artifact, workspace, and packaged-artifact commands.
 
-use pleiades_data::{
-    packaged_artifact_generation_manifest_for_report,
-    packaged_artifact_normalized_intermediate_summary_for_report,
-};
+use pleiades_data::packaged_artifact_generation_manifest_for_report;
 use pleiades_validate::render_cli as validate_render_cli;
 
 use super::super::test_support::unique_temp_dir;
@@ -534,170 +531,43 @@ fn artifact_and_workspace_commands_render_compact_reports() {
     let artifact_fixture_dir = unique_temp_dir("pleiades-cli-packaged-artifact");
     let artifact_fixture_path = artifact_fixture_dir.join("packaged-artifact.bin");
     let artifact_fixture_path_string = artifact_fixture_path.display().to_string();
-    let regenerated = render_cli(&[
-        "regenerate-packaged-artifact",
-        "--out",
-        &artifact_fixture_path_string,
-    ])
-    .expect("packaged artifact regeneration should render");
-    assert!(regenerated.contains("Packaged artifact regenerated"));
-    assert!(regenerated.contains("stage-5 packaged-data draft"));
-    assert!(regenerated.contains("checksum=0x"));
-    assert!(regenerated.contains("generation policy: adjacent same-body quadratic windows"));
-    assert!(regenerated.contains("11 bundled bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros)"));
-    assert!(regenerated.contains("Packaged artifact regeneration source:"));
-    assert!(regenerated.contains("Reference snapshot coverage:"));
-
-    let generated_alias = render_cli(&[
-        "generate-packaged-artifact",
-        "--out",
-        &artifact_fixture_path_string,
-    ])
-    .expect("packaged artifact generation alias should render");
-    assert_eq!(generated_alias, regenerated);
-    assert!(artifact_fixture_path.exists());
-
-    let manifest_fixture_path = artifact_fixture_dir.join("packaged-artifact.manifest.txt");
-    let manifest_fixture_path_string = manifest_fixture_path.display().to_string();
-    let regenerated_with_manifest = render_cli(&[
-        "regenerate-packaged-artifact",
-        "--out",
-        &artifact_fixture_path_string,
-        "--manifest-out",
-        &manifest_fixture_path_string,
-    ])
-    .expect("packaged artifact regeneration should write a manifest sidecar");
-    assert!(regenerated_with_manifest.contains("manifest:"));
-    assert!(regenerated_with_manifest.contains(&manifest_fixture_path_string));
-    assert_eq!(
-        std::fs::read_to_string(&manifest_fixture_path)
-            .expect("packaged artifact regeneration should write the manifest sidecar"),
-        pleiades_data::packaged_artifact_generation_manifest_for_report()
+    // The WRITE path is kernel-gated; without PLEIADES_DE_KERNEL every output
+    // form (positional, --out, --output, and sidecar combinations) fails closed
+    // and writes nothing. Kernel-free callers use the committed artifact (decode
+    // and --check) instead.
+    for args in [
+        vec![
+            "regenerate-packaged-artifact",
+            "--out",
+            &artifact_fixture_path_string,
+        ],
+        vec![
+            "generate-packaged-artifact",
+            "--out",
+            &artifact_fixture_path_string,
+        ],
+        vec![
+            "regenerate-packaged-artifact",
+            "--output",
+            &artifact_fixture_path_string,
+        ],
+        vec![
+            "regenerate-packaged-artifact",
+            &artifact_fixture_path_string,
+        ],
+    ] {
+        let error = render_cli(&args)
+            .expect_err("packaged artifact write path should fail closed without a kernel");
+        assert!(
+            error.contains("generate-packaged-artifact requires PLEIADES_DE_KERNEL"),
+            "unexpected error: {error}"
+        );
+    }
+    assert!(
+        !artifact_fixture_path.exists(),
+        "no artifact bytes should be written when the kernel is unset"
     );
 
-    let manifest_summary_fixture_path =
-        artifact_fixture_dir.join("packaged-artifact.manifest.summary.txt");
-    let manifest_summary_fixture_path_string = manifest_summary_fixture_path.display().to_string();
-    let regenerated_with_manifest_summary = render_cli(&[
-        "generate-packaged-artifact",
-        "--out",
-        &artifact_fixture_path_string,
-        "--manifest-summary-out",
-        &manifest_summary_fixture_path_string,
-    ])
-    .expect("packaged artifact regeneration should write a manifest summary sidecar");
-    assert!(regenerated_with_manifest_summary.contains("manifest summary sidecar:"));
-    assert!(regenerated_with_manifest_summary.contains(&manifest_summary_fixture_path_string));
-    assert_eq!(
-        std::fs::read_to_string(&manifest_summary_fixture_path)
-            .expect("packaged artifact regeneration should write the manifest summary sidecar"),
-        pleiades_data::packaged_artifact_generation_manifest_for_report()
-    );
-
-    let manifest_checksum_fixture_path =
-        artifact_fixture_dir.join("packaged-artifact.manifest.checksum.txt");
-    let manifest_checksum_fixture_path_string =
-        manifest_checksum_fixture_path.display().to_string();
-    let regenerated_with_manifest_checksum = render_cli(&[
-        "regenerate-packaged-artifact",
-        "--out",
-        &artifact_fixture_path_string,
-        "--manifest-checksum-out",
-        &manifest_checksum_fixture_path_string,
-    ])
-    .expect("packaged artifact regeneration should write a manifest checksum sidecar");
-    assert!(regenerated_with_manifest_checksum.contains("manifest checksum sidecar:"));
-    assert!(regenerated_with_manifest_checksum.contains(&manifest_checksum_fixture_path_string));
-    assert_eq!(
-        std::fs::read_to_string(&manifest_checksum_fixture_path)
-            .expect("packaged artifact regeneration should write the manifest checksum sidecar"),
-        format!("0x{:016x}\n", {
-            let manifest = pleiades_data::packaged_artifact_generation_manifest_for_report();
-            let mut hash = 0xcbf2_9ce4_8422_2325u64;
-            for byte in manifest.as_bytes() {
-                hash ^= u64::from(*byte);
-                hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
-            }
-            hash
-        })
-    );
-
-    let artifact_checksum_fixture_path =
-        artifact_fixture_dir.join("packaged-artifact.checksum.txt");
-    let artifact_checksum_fixture_path_string =
-        artifact_checksum_fixture_path.display().to_string();
-    let regenerated_with_artifact_checksum = render_cli(&[
-        "regenerate-packaged-artifact",
-        "--out",
-        &artifact_fixture_path_string,
-        "--artifact-checksum-out",
-        &artifact_checksum_fixture_path_string,
-    ])
-    .expect("packaged artifact regeneration should write an artifact checksum sidecar");
-    assert!(regenerated_with_artifact_checksum.contains("artifact checksum sidecar:"));
-    assert!(regenerated_with_artifact_checksum.contains(&artifact_checksum_fixture_path_string));
-    let regenerated_artifact_checksum = regenerated_with_artifact_checksum
-        .lines()
-        .find_map(|line| line.trim().strip_prefix("checksum: "))
-        .expect("packaged artifact regeneration output should include a checksum");
-    assert_eq!(
-        std::fs::read_to_string(&artifact_checksum_fixture_path)
-            .expect("packaged artifact regeneration should write the artifact checksum sidecar"),
-        format!("{regenerated_artifact_checksum}\n")
-    );
-
-    let normalized_intermediate_fixture_path =
-        artifact_fixture_dir.join("packaged-artifact.normalized-intermediate-summary.txt");
-    let normalized_intermediate_fixture_path_string =
-        normalized_intermediate_fixture_path.display().to_string();
-    let regenerated_with_normalized_intermediate = render_cli(&[
-        "generate-packaged-artifact",
-        "--out",
-        &artifact_fixture_path_string,
-        "--normalized-intermediate-summary-out",
-        &normalized_intermediate_fixture_path_string,
-    ])
-    .expect("packaged artifact regeneration should write a normalized intermediate sidecar");
-    assert!(regenerated_with_normalized_intermediate.contains("normalized intermediate sidecar:"));
-    assert!(regenerated_with_normalized_intermediate
-        .contains(&normalized_intermediate_fixture_path_string));
-    assert_eq!(
-        std::fs::read_to_string(&normalized_intermediate_fixture_path).expect(
-            "packaged artifact regeneration should write the normalized intermediate sidecar"
-        ),
-        packaged_artifact_normalized_intermediate_summary_for_report()
-    );
-
-    let output_alias_fixture_path = artifact_fixture_dir.join("packaged-artifact-output-alias.bin");
-    let output_alias_fixture_path_string = output_alias_fixture_path.display().to_string();
-    let regenerated_output = render_cli(&[
-        "regenerate-packaged-artifact",
-        "--output",
-        &output_alias_fixture_path_string,
-    ])
-    .expect("packaged artifact regeneration should accept --output");
-    assert!(regenerated_output.contains("Packaged artifact regenerated"));
-    assert!(regenerated_output.contains("stage-5 packaged-data draft"));
-    assert!(output_alias_fixture_path.exists());
-    let expected = std::fs::read(&artifact_fixture_path)
-        .expect("packaged artifact regeneration should write bytes");
-    let output_written = std::fs::read(&output_alias_fixture_path)
-        .expect("packaged artifact regeneration should write the output alias path");
-    assert_eq!(output_written, expected);
-
-    let positional_fixture_path = artifact_fixture_dir.join("packaged-artifact-positional.bin");
-    let positional_fixture_path_string = positional_fixture_path.display().to_string();
-    let regenerated_positional = render_cli(&[
-        "regenerate-packaged-artifact",
-        &positional_fixture_path_string,
-    ])
-    .expect("packaged artifact regeneration should accept a positional output path");
-    assert!(regenerated_positional.contains("Packaged artifact regenerated"));
-    assert!(regenerated_positional.contains(&positional_fixture_path_string));
-    assert!(positional_fixture_path.exists());
-    let positional_written = std::fs::read(&positional_fixture_path)
-        .expect("packaged artifact regeneration should write the positional path");
-    assert_eq!(positional_written, expected);
     let regeneration_check = render_cli(&["regenerate-packaged-artifact", "--check"])
         .expect("packaged artifact check mode should render");
     assert!(regeneration_check.contains("Packaged artifact regeneration check passed"));
@@ -774,7 +644,12 @@ fn workspace_provenance_summary_reports_workspace_tool_versions() {
 }
 
 #[test]
-fn regenerate_packaged_artifact_repeated_sidecar_writes_stay_stable() {
+fn regenerate_packaged_artifact_write_path_fails_closed_without_kernel() {
+    // The WRITE path (with sidecars) is kernel-gated. Without PLEIADES_DE_KERNEL
+    // it fails closed before writing any output, and the kernel-free committed
+    // bytes remain available via the library decode path. This replaces the
+    // former snapshot-regen stability test, which no longer exercises a
+    // kernel-free WRITE path.
     let artifact_fixture_dir = unique_temp_dir("pleiades-packaged-artifact-regeneration-repeat");
     let artifact_fixture_path = artifact_fixture_dir.join("packaged-artifact.bin");
     let artifact_fixture_path_string = artifact_fixture_path.display().to_string();
@@ -785,7 +660,7 @@ fn regenerate_packaged_artifact_repeated_sidecar_writes_stay_stable() {
     let artifact_checksum_fixture_path_string =
         artifact_checksum_fixture_path.display().to_string();
 
-    let regenerated_first = render_cli(&[
+    let error = render_cli(&[
         "generate-packaged-artifact",
         "--out",
         &artifact_fixture_path_string,
@@ -794,46 +669,23 @@ fn regenerate_packaged_artifact_repeated_sidecar_writes_stay_stable() {
         "--artifact-checksum-out",
         &artifact_checksum_fixture_path_string,
     ])
-    .expect("packaged artifact regeneration should render on the first pass");
-    let first_artifact_bytes =
-        std::fs::read(&artifact_fixture_path).expect("first regenerated artifact should exist");
-    let first_manifest = std::fs::read_to_string(&manifest_fixture_path)
-        .expect("first regenerated manifest should exist");
-    let first_artifact_checksum = std::fs::read_to_string(&artifact_checksum_fixture_path)
-        .expect("first regenerated artifact checksum should exist");
-
-    let regenerated_second = render_cli(&[
-        "generate-packaged-artifact",
-        "--out",
-        &artifact_fixture_path_string,
-        "--manifest-out",
-        &manifest_fixture_path_string,
-        "--artifact-checksum-out",
-        &artifact_checksum_fixture_path_string,
-    ])
-    .expect("packaged artifact regeneration should render on the second pass");
-    let second_artifact_bytes =
-        std::fs::read(&artifact_fixture_path).expect("second regenerated artifact should exist");
-    let second_manifest = std::fs::read_to_string(&manifest_fixture_path)
-        .expect("second regenerated manifest should exist");
-    let second_artifact_checksum = std::fs::read_to_string(&artifact_checksum_fixture_path)
-        .expect("second regenerated artifact checksum should exist");
-
-    assert_eq!(regenerated_first, regenerated_second);
-    assert_eq!(first_artifact_bytes, second_artifact_bytes);
-    assert_eq!(first_manifest, second_manifest);
-    assert_eq!(first_artifact_checksum, second_artifact_checksum);
-    assert_eq!(
-        first_artifact_bytes,
-        pleiades_data::regenerate_packaged_artifact_bytes()
+    .expect_err("packaged artifact write path should fail closed without a kernel");
+    assert!(
+        error.contains("generate-packaged-artifact requires PLEIADES_DE_KERNEL"),
+        "unexpected error: {error}"
     );
-    assert_eq!(
-        first_manifest,
-        pleiades_data::packaged_artifact_generation_manifest_for_report()
-    );
-    let regenerated_checksum = regenerated_first
-        .lines()
-        .find_map(|line| line.trim().strip_prefix("checksum: "))
-        .expect("packaged artifact regeneration output should include a checksum");
-    assert_eq!(first_artifact_checksum, format!("{regenerated_checksum}\n"));
+    for path in [
+        &artifact_fixture_path,
+        &manifest_fixture_path,
+        &artifact_checksum_fixture_path,
+    ] {
+        assert!(
+            !path.exists(),
+            "no output should be written when the kernel is unset: {}",
+            path.display()
+        );
+    }
+
+    // The committed bytes remain the kernel-free source of truth.
+    assert!(!pleiades_data::regenerate_packaged_artifact_bytes().is_empty());
 }

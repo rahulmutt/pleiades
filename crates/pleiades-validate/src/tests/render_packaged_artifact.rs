@@ -255,38 +255,50 @@ fn regenerate_packaged_artifact_check_command_reports_success() {
 }
 
 #[test]
-fn regenerate_packaged_artifact_out_command_writes_bytes() {
+fn regenerate_packaged_artifact_out_command_fails_closed_without_kernel() {
+    // The WRITE path is kernel-gated; without PLEIADES_DE_KERNEL it must fail
+    // closed (kernel-free callers use the committed artifact via decode), and
+    // must not write any bytes.
     let output_dir = unique_temp_dir("pleiades-packaged-artifact-regeneration");
     let output_path = output_dir.join("packaged-artifact.bin");
     let output_path_string = output_path.to_string_lossy().to_string();
-    let rendered = render_cli(&["regenerate-packaged-artifact", "--out", &output_path_string])
-        .expect("packaged artifact regeneration should write bytes");
-    assert!(rendered.contains("Packaged artifact regenerated"));
-    assert!(rendered.contains("checksum: 0x"));
-    let regenerated_bytes = std::fs::read(&output_path).expect("regenerated artifact should exist");
-    assert!(!regenerated_bytes.is_empty());
+    let error = render_cli(&["regenerate-packaged-artifact", "--out", &output_path_string])
+        .expect_err(
+            "packaged artifact regeneration write path should fail closed without a kernel",
+        );
+    assert!(
+        error.contains("generate-packaged-artifact requires PLEIADES_DE_KERNEL"),
+        "unexpected error: {error}"
+    );
+    assert!(
+        !output_path.exists(),
+        "no artifact bytes should be written when the kernel is unset"
+    );
 }
 
 #[test]
-fn regenerate_packaged_artifact_output_alias_writes_bytes() {
+fn regenerate_packaged_artifact_output_alias_fails_closed_without_kernel() {
     let output_alias_dir = unique_temp_dir("pleiades-packaged-artifact-regeneration-output");
     let output_alias_path = output_alias_dir.join("packaged-artifact.bin");
     let output_alias_path_string = output_alias_path.to_string_lossy().to_string();
-    let rendered_alias = render_cli(&[
+    let error = render_cli(&[
         "regenerate-packaged-artifact",
         "--output",
         &output_alias_path_string,
     ])
-    .expect("packaged artifact regeneration should accept --output");
-    assert!(rendered_alias.contains("Packaged artifact regenerated"));
-    assert!(rendered_alias.contains("checksum: 0x"));
-    let regenerated_alias_bytes =
-        std::fs::read(&output_alias_path).expect("regenerated artifact alias should exist");
-    assert!(!regenerated_alias_bytes.is_empty());
+    .expect_err("packaged artifact regeneration --output should fail closed without a kernel");
+    assert!(
+        error.contains("generate-packaged-artifact requires PLEIADES_DE_KERNEL"),
+        "unexpected error: {error}"
+    );
+    assert!(
+        !output_alias_path.exists(),
+        "no artifact bytes should be written when the kernel is unset"
+    );
 }
 
 #[test]
-fn regenerate_packaged_artifact_command_writes_all_sidecars() {
+fn regenerate_packaged_artifact_command_with_sidecars_fails_closed_without_kernel() {
     let output_alias_dir = unique_temp_dir("pleiades-packaged-artifact-regeneration-sidecars");
     let output_alias_path = output_alias_dir.join("packaged-artifact.bin");
     let output_alias_path_string = output_alias_path.to_string_lossy().to_string();
@@ -302,7 +314,7 @@ fn regenerate_packaged_artifact_command_writes_all_sidecars() {
         output_alias_dir.join("packaged-artifact.normalized-intermediate-summary.txt");
     let normalized_intermediate_path_string =
         normalized_intermediate_path.to_string_lossy().to_string();
-    let rendered_with_sidecars = render_cli(&[
+    let error = render_cli(&[
         "generate-packaged-artifact",
         "--out",
         &output_alias_path_string,
@@ -317,30 +329,23 @@ fn regenerate_packaged_artifact_command_writes_all_sidecars() {
         "--normalized-intermediate-summary-out",
         &normalized_intermediate_path_string,
     ])
-    .expect("packaged artifact regeneration should write all sidecars");
-    assert!(rendered_with_sidecars.contains("manifest:"));
-    assert!(rendered_with_sidecars.contains(&manifest_path_string));
-    assert!(rendered_with_sidecars.contains("manifest summary sidecar:"));
-    assert!(rendered_with_sidecars.contains(&manifest_summary_path_string));
-    assert!(rendered_with_sidecars.contains("manifest checksum sidecar:"));
-    assert!(rendered_with_sidecars.contains(&manifest_checksum_path_string));
-    assert!(rendered_with_sidecars.contains("artifact checksum sidecar:"));
-    assert!(rendered_with_sidecars.contains(&artifact_checksum_path_string));
-    assert!(rendered_with_sidecars.contains("normalized intermediate sidecar:"));
-    assert!(rendered_with_sidecars.contains(&normalized_intermediate_path_string));
+    .expect_err("packaged artifact regeneration write path should fail closed without a kernel");
+    assert!(
+        error.contains("generate-packaged-artifact requires PLEIADES_DE_KERNEL"),
+        "unexpected error: {error}"
+    );
+    // The gate fails before any bytes or sidecars are written.
     for path in [
+        &output_alias_path,
         &manifest_path,
         &manifest_summary_path,
         &manifest_checksum_path,
         &artifact_checksum_path,
         &normalized_intermediate_path,
     ] {
-        let metadata = std::fs::metadata(path).unwrap_or_else(|_| {
-            panic!("packaged artifact sidecar should exist: {}", path.display())
-        });
         assert!(
-            metadata.len() > 0,
-            "packaged artifact sidecar should not be empty: {}",
+            !path.exists(),
+            "no output should be written when the kernel is unset: {}",
             path.display()
         );
     }
