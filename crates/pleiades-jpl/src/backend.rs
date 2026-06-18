@@ -318,7 +318,7 @@ impl EphemerisBackend for SnapshotCorpusBackend {
         )?;
 
         let mut result = EphemerisResult::new(
-            BackendId::new("jpl-snapshot"),
+            BackendId::new("jpl-snapshot-corpus"),
             req.body.clone(),
             req.instant,
             req.frame,

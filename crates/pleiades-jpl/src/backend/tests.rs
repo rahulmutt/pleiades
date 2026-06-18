@@ -1536,25 +1536,27 @@ fn snapshot_backend_resolves_custom_asteroid_at_j2000() {
 #[test]
 fn snapshot_corpus_backend_resolves_exact_corpus_epoch() {
     // Two adjacent Sun samples so exact lookup has a defined window.
-    let entries = vec![
-        SnapshotEntry {
-            body: pleiades_backend::CelestialBody::Sun,
-            epoch: Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tdb),
-            x_km: 1.0,
-            y_km: 2.0,
-            z_km: 3.0,
-        },
-        SnapshotEntry {
-            body: pleiades_backend::CelestialBody::Sun,
-            epoch: Instant::new(JulianDay::from_days(2_451_546.0), TimeScale::Tdb),
-            x_km: 4.0,
-            y_km: 5.0,
-            z_km: 6.0,
-        },
-    ];
-    let backend = SnapshotCorpusBackend::from_entries(entries);
+    let target_entry = SnapshotEntry {
+        body: CelestialBody::Sun,
+        epoch: Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tdb),
+        x_km: 1.0,
+        y_km: 2.0,
+        z_km: 3.0,
+    };
+    let adjacent_entry = SnapshotEntry {
+        body: CelestialBody::Sun,
+        epoch: Instant::new(JulianDay::from_days(2_451_546.0), TimeScale::Tdb),
+        x_km: 4.0,
+        y_km: 5.0,
+        z_km: 6.0,
+    };
+    // Compute the expected ecliptic from the held entry directly — this is what
+    // the backend should return for an exact-epoch hit.
+    let expected_ecliptic = target_entry.ecliptic();
+
+    let backend = SnapshotCorpusBackend::from_entries(vec![target_entry, adjacent_entry]);
     let req = EphemerisRequest {
-        body: pleiades_backend::CelestialBody::Sun,
+        body: CelestialBody::Sun,
         instant: Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tdb),
         observer: None,
         frame: CoordinateFrame::Ecliptic,
@@ -1565,6 +1567,30 @@ fn snapshot_corpus_backend_resolves_exact_corpus_epoch() {
         .position(&req)
         .expect("exact corpus epoch should resolve");
     let ecliptic = result.ecliptic.expect("ecliptic output");
-    // Exact lookup returns the stored sample's ecliptic; assert it is finite and present.
-    assert!(ecliptic.longitude.degrees().is_finite());
+
+    // Exact-epoch lookup must return the stored entry's own ecliptic — proving
+    // the result comes from the held entries, not a global snapshot.
+    assert!(
+        (ecliptic.longitude.degrees() - expected_ecliptic.longitude.degrees()).abs() < 1e-9,
+        "longitude mismatch: got {} expected {}",
+        ecliptic.longitude.degrees(),
+        expected_ecliptic.longitude.degrees()
+    );
+    assert!(
+        (ecliptic.latitude.degrees() - expected_ecliptic.latitude.degrees()).abs() < 1e-9,
+        "latitude mismatch: got {} expected {}",
+        ecliptic.latitude.degrees(),
+        expected_ecliptic.latitude.degrees()
+    );
+
+    // A body not present in the held entries must return an error — proving the
+    // backend is bound to its held entries and does not fall through to a global source.
+    let mars_req = EphemerisRequest {
+        body: CelestialBody::Mars,
+        ..req
+    };
+    let err = backend
+        .position(&mars_req)
+        .expect_err("body absent from held entries should return an error");
+    assert_eq!(err.kind, EphemerisErrorKind::UnsupportedBody);
 }
