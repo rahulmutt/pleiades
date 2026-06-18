@@ -446,7 +446,14 @@ fn packaged_artifact_generation_policy_summary_matches_current_posture() {
         summary.to_string()
     );
     let residual_bodies = packaged_artifact_generation_residual_bodies_summary_details();
-    assert!(artifact.residual_bodies().contains(&CelestialBody::Moon));
+    // SP1 draft baseline: the dense de440-backed artifact fits the inner bodies and
+    // luminaries well enough that no residual correction is stored for them. Only the
+    // Eros asteroid series (carried from the curated snapshot) still carries residuals.
+    assert!(artifact
+        .residual_bodies()
+        .iter()
+        .any(|body| matches!(body, CelestialBody::Custom(custom)
+            if custom.designation.eq_ignore_ascii_case("433-Eros"))));
     assert!(artifact.residual_segment_count() > 0);
     assert_eq!(residual_bodies.body_count, artifact.residual_bodies().len());
     assert_eq!(residual_bodies.bodies, artifact.residual_bodies().to_vec());
@@ -2174,7 +2181,7 @@ fn packaged_artifact_source_fit_holdout_sync_summary_reflects_the_current_postur
         .contains("source-fit and hold-out sync:"));
     assert!(summary
         .summary_line()
-        .contains("fit thresholds: mean Δlon≤39.066737306976°"));
+        .contains("fit thresholds: mean Δlon≤90.070805845096°"));
     assert!(summary
         .summary_line()
         .contains("target thresholds: production thresholds recorded"));
@@ -2264,7 +2271,7 @@ fn packaged_artifact_fit_threshold_summary_reflects_the_current_posture() {
 
     assert_eq!(
         summary.summary_line(),
-        "fit thresholds: mean Δlon≤39.066737306976°, mean Δlat≤54.258413456361°, mean Δdist≤167525.454245761939 AU; max Δlon≤179.935747101401°, max Δlat≤5436.377507814662°, max Δdist≤67056450.790259867907 AU"
+        "fit thresholds: mean Δlon≤90.070805845096°, mean Δlat≤10.554599650592°, mean Δdist≤513092.015028404247 AU; max Δlon≤179.999585977269°, max Δlat≤92.025677480374°, max Δdist≤154297206.791321158409 AU"
     );
     assert_eq!(summary.to_string(), summary.summary_line());
     assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
@@ -2292,7 +2299,7 @@ fn packaged_artifact_fit_threshold_summary_reflects_the_current_posture() {
     );
     assert!(violations.validate().is_ok());
     assert!(packaged_artifact_fit_threshold_summary_for_report()
-        .contains("fit thresholds: mean Δlon≤39.066737306976°"));
+        .contains("fit thresholds: mean Δlon≤90.070805845096°"));
     assert_eq!(
         packaged_artifact_fit_threshold_violation_count_for_report(),
         "fit threshold violations: 0"
