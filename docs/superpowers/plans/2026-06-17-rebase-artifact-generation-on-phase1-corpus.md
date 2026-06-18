@@ -1,5 +1,13 @@
 # Rebase Artifact Generation on the Phase 1 Corpus — Implementation Plan
 
+> **STATUS — HALTED 2026-06-18.** Tasks 1–2 (corpus accessors, `SnapshotCorpusBackend`)
+> landed as useful infrastructure. Tasks 3–7 were reverted after implementation
+> revealed the slice's premise is invalid: the Phase 1 corpus samples ~2 points
+> per orbital period for every body (a *validation* corpus), so it cannot serve
+> as a *generation* source — fitting from it aliases fast bodies (e.g. the Moon).
+> See the design doc's "Halt note". The real prerequisite — a dense, fitting-grade
+> generation corpus — needs its own brainstorm/spec/plan and supersedes this plan.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Make the `pleiades-data` packaged-artifact generator fit from the broad Phase 1 corpus (committed under `crates/pleiades-jpl/data/corpus/`) instead of the narrow `reference_snapshot()` fixture, regenerate the committed draft artifact deterministically from it, and keep it draft-labeled.

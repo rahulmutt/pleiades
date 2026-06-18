@@ -1,8 +1,30 @@
 # Rebase Artifact Generation on the Phase 1 Corpus
 
 Date: 2026-06-17
-Status: Approved design (pre-implementation)
+Status: **HALTED 2026-06-18 — premise invalidated.** See "Halt note" below.
 Phase: 2 — Release-grade compressed ephemeris (first slice only)
+
+## Halt note (2026-06-18)
+
+This slice was halted during implementation. Its central premise — that the
+committed Phase 1 corpus under `crates/pleiades-jpl/data/corpus/` is a usable
+*generation* source — is false. The corpus samples roughly **two points per
+orbital period for every body** (e.g. Moon at 30-day cadence vs a 27-day period;
+Sun at 180-day; Mercury at 60-day), which is a *validation* sampling strategy
+(sparse spot-checks against an independently-generated artifact), far below the
+density required to *fit* a continuous polynomial artifact. Rebasing generation
+onto it produced an aliased, qualitatively-wrong artifact (e.g. the Moon),
+which the regeneration step could only "pass" by widening lookup tolerances.
+
+Outcome:
+- **Kept** (useful infrastructure, landed on branch `phase2-rebase-artifact-generation`):
+  Task 1 typed corpus accessors (`pleiades-jpl::corpus`) and Task 2
+  `SnapshotCorpusBackend`.
+- **Reverted:** Task 3 (generator rebase) and Task 4 (artifact regeneration),
+  plus their downstream tasks.
+- **Real prerequisite:** a dense, fitting-grade generation corpus
+  (body-appropriate cadence) must exist before generation can be rebased. That
+  is a separate design effort and supersedes this spec.
 
 ## Summary
 
