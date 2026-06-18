@@ -2392,3 +2392,105 @@ pub(crate) fn fit_segment_within_span(
     );
     Some(seg)
 }
+
+/// Window-parameterised core of [`build_packaged_artifact_from_reference`].
+///
+/// Accepts explicit `base_window` (used for all non-asteroid packaged bodies)
+/// and `ast_window` (used for constrained-asteroid bodies). This separation
+/// lets the kernel-free unit test pass tiny synthetic windows so the test runs
+/// in milliseconds instead of the minutes a full 1600–2600 build would take.
+pub(crate) fn build_packaged_artifact_from_reference_over(
+    reference: &dyn EphemerisBackend,
+    base_window: (f64, f64),
+    ast_window: (f64, f64),
+) -> CompressedArtifact {
+    use crate::coverage::fitting_segment_boundaries;
+
+    let mut body_artifacts: Vec<(usize, BodyArtifact)> = Vec::new();
+
+    std::thread::scope(|scope| {
+        let mut handles = Vec::new();
+
+        for (body_index, body) in packaged_bodies().iter().cloned().enumerate() {
+            // Determine per-body window: constrained-asteroid catalog bodies use
+            // the narrower asteroid window; every other body uses the base window.
+            // We detect this via `packaged_artifact_body_cadence`, which already
+            // classifies `Custom` bodies whose catalog is "asteroid" as
+            // `SelectedAsteroids` — the same path used by `body_segment_span_limit`.
+            let (start_jd, end_jd) = match packaged_artifact_body_cadence(&body) {
+                PackagedArtifactBodyCadence::SelectedAsteroids
+                | PackagedArtifactBodyCadence::CustomBodies => ast_window,
+                _ => base_window,
+            };
+
+            handles.push(scope.spawn(move || {
+                let spans = fitting_segment_boundaries(&body, start_jd, end_jd);
+                let segments: Vec<Segment> = spans
+                    .into_iter()
+                    .map(|(t0, t1)| {
+                        fit_segment_within_span(&body, t0, t1, reference).unwrap_or_else(|| {
+                            panic!(
+                                "fit_segment_within_span failed for body {body} over [{t0}, {t1}]"
+                            )
+                        })
+                    })
+                    .collect();
+
+                (body_index, BodyArtifact::new(body, segments))
+            }));
+        }
+
+        for handle in handles {
+            body_artifacts.push(
+                handle
+                    .join()
+                    .expect("packaged artifact body assembly should not panic"),
+            );
+        }
+    });
+
+    body_artifacts.sort_by_key(|(body_index, _)| *body_index);
+    let bodies: Vec<BodyArtifact> = body_artifacts
+        .into_iter()
+        .map(|(_, artifact)| artifact)
+        .collect();
+
+    let mut artifact = CompressedArtifact::new(
+        ArtifactHeader::new(ARTIFACT_LABEL, packaged_artifact_source_text()),
+        bodies,
+    );
+    artifact.checksum = artifact
+        .checksum()
+        .expect("packaged artifact checksum should be reproducible");
+    artifact
+        .validate()
+        .expect("packaged artifact should validate before encoding");
+    artifact
+}
+
+/// Builds a dense [`CompressedArtifact`] for all packaged bodies by tiling
+/// each body's window with [`fitting_segment_boundaries`] and fitting each
+/// span via [`fit_segment_within_span`].
+///
+/// Uses the canonical packaged windows (base bodies 1600–2600; constrained
+/// asteroid Eros 1900–2100) and a caller-supplied `reference` backend.
+/// The result is assembled exactly as in
+/// [`try_regenerate_packaged_artifact_from_snapshot`]: checksum set and
+/// validated before returning.
+///
+/// Called by the Task 4/6 dense-generation pipeline; not yet wired up in
+/// this task.
+#[allow(dead_code)]
+pub(crate) fn build_packaged_artifact_from_reference(
+    reference: &dyn EphemerisBackend,
+) -> CompressedArtifact {
+    use pleiades_jpl::spk::corpus_spec::{
+        AST_RANGE_END_JD, AST_RANGE_START_JD, RANGE_END_JD, RANGE_START_JD,
+    };
+
+    build_packaged_artifact_from_reference_over(
+        reference,
+        (RANGE_START_JD, RANGE_END_JD),
+        (AST_RANGE_START_JD, AST_RANGE_END_JD),
+    )
+}

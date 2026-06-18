@@ -2627,45 +2627,50 @@ fn packaged_body_coverage_summary_report_marks_drift_as_unavailable() {
     );
 }
 
+/// Shared synthetic ephemeris backend for kernel-free unit tests.
+///
+/// Longitude advances 1 deg/day, latitude has a small sinusoidal wobble, and
+/// distance stays near 1 AU. All values are smooth analytic functions, making
+/// them easy to fit exactly with a degree-8 polynomial over small spans.
+struct Synthetic;
+
+impl pleiades_backend::EphemerisBackend for Synthetic {
+    fn metadata(&self) -> pleiades_backend::BackendMetadata {
+        unimplemented!()
+    }
+
+    fn supports_body(&self, _body: pleiades_backend::CelestialBody) -> bool {
+        true
+    }
+
+    fn position(
+        &self,
+        req: &pleiades_backend::EphemerisRequest,
+    ) -> Result<pleiades_backend::EphemerisResult, pleiades_backend::EphemerisError> {
+        let jd = req.instant.julian_day.days();
+        let lon = (jd * 1.0).rem_euclid(360.0);
+        let lat = 0.1 * (jd / 50.0).sin();
+        let dist = 1.0 + 0.01 * (jd / 80.0).cos();
+        let mut r = pleiades_backend::EphemerisResult::new(
+            pleiades_backend::BackendId::new("synthetic"),
+            req.body.clone(),
+            req.instant,
+            req.frame,
+            req.zodiac_mode.clone(),
+            req.apparent,
+        );
+        r.ecliptic = Some(pleiades_backend::EclipticCoordinates::new(
+            pleiades_backend::Longitude::from_degrees(lon),
+            pleiades_backend::Latitude::from_degrees(lat),
+            Some(dist),
+        ));
+        Ok(r)
+    }
+}
+
 #[test]
 fn fit_segment_within_span_reproduces_a_smooth_synthetic_body() {
-    use pleiades_backend::{
-        BackendId, BackendMetadata, CelestialBody, EclipticCoordinates, EphemerisBackend,
-        EphemerisError, EphemerisRequest, EphemerisResult, Latitude, Longitude,
-    };
     use pleiades_compression::{ArtifactHeader, BodyArtifact};
-
-    // Synthetic backend: longitude advances 1 deg/day, small latitude wobble,
-    // distance ~1 AU — smooth over a 16-day span, so a degree-8 fit nails it.
-    struct Synthetic;
-    impl EphemerisBackend for Synthetic {
-        fn metadata(&self) -> BackendMetadata {
-            unimplemented!()
-        }
-        fn supports_body(&self, _body: CelestialBody) -> bool {
-            true
-        }
-        fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
-            let jd = req.instant.julian_day.days();
-            let lon = (jd * 1.0).rem_euclid(360.0);
-            let lat = 0.1 * (jd / 50.0).sin();
-            let dist = 1.0 + 0.01 * (jd / 80.0).cos();
-            let mut r = EphemerisResult::new(
-                BackendId::new("synthetic"),
-                req.body.clone(),
-                req.instant,
-                req.frame,
-                req.zodiac_mode.clone(),
-                req.apparent,
-            );
-            r.ecliptic = Some(EclipticCoordinates::new(
-                Longitude::from_degrees(lon),
-                Latitude::from_degrees(lat),
-                Some(dist),
-            ));
-            Ok(r)
-        }
-    }
 
     let body = CelestialBody::Sun;
     let (t0, t1) = (2_451_545.0, 2_451_545.0 + 16.0);
@@ -2753,5 +2758,50 @@ fn fit_segment_within_span_reproduces_a_smooth_synthetic_body() {
             dist_err < 1e-6,
             "distance error {dist_err} AU at frac={frac} (probe_jd={probe_jd})"
         );
+    }
+}
+
+/// Kernel-free assembly test: runs `build_packaged_artifact_from_reference_over`
+/// with tiny synthetic windows so the test finishes in milliseconds.
+///
+/// Rationale for window parameterisation: the full 1600–2600 build produces
+/// ~91 000 segments for the Moon alone; a synthetic-backend test over the full
+/// range would take minutes and violate the "no slow non-ignored tests" rule
+/// from the prior slice's review. By exposing the `_over` core we can exercise
+/// the complete assembly logic (body fan-out, span tiling, segment fitting,
+/// checksum, validate) with windows only a few hundred days wide — enough for
+/// several segments per body — while keeping runtime under a second.
+#[test]
+fn build_from_reference_produces_all_bodies_with_spanning_segments() {
+    // Tiny windows: a few hundred days covers several segments for every body
+    // cadence class (Moon=4-day spans → ~50 segs; outer planets=512-day spans
+    // → ~1 seg) while running in milliseconds on the Synthetic backend.
+    let base_window = (2_451_545.0, 2_451_545.0 + 200.0);
+    // Asteroid window must be within base (same requirement as production), use
+    // a 100-day sub-window to keep asteroid coverage meaningful but small.
+    let ast_window = (2_451_545.0, 2_451_545.0 + 100.0);
+
+    let artifact = crate::regenerate::build_packaged_artifact_from_reference_over(
+        &Synthetic,
+        base_window,
+        ast_window,
+    );
+
+    for body in crate::packaged_bodies() {
+        let ba = artifact
+            .bodies
+            .iter()
+            .find(|b| &b.body == body)
+            .unwrap_or_else(|| panic!("missing body {body}"));
+        assert!(!ba.segments.is_empty(), "{body} has no segments");
+        // Segments must be contiguous and ascending.
+        for pair in ba.segments.windows(2) {
+            assert!(
+                pair[1].start.julian_day.days() >= pair[0].end.julian_day.days(),
+                "{body}: segments not contiguous/ascending at boundary between {} and {}",
+                pair[0].end.julian_day.days(),
+                pair[1].start.julian_day.days(),
+            );
+        }
     }
 }
