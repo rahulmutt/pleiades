@@ -44,6 +44,7 @@ pub(crate) mod channels;
 pub(crate) mod codec;
 pub(crate) mod error;
 pub(crate) mod format;
+pub mod frame_recombine;
 
 // ── Public re-exports (preserve exact prior public surface) ───────────────────
 
@@ -53,6 +54,10 @@ pub use error::{CompressionError, CompressionErrorKind};
 pub use format::{
     ArtifactHeader, ArtifactOutput, ArtifactOutputSupport, ArtifactProfile,
     ArtifactProfileCoverageSummary, ArtifactResidualBodyCoverageSummary, EndianPolicy, SpeedPolicy,
+};
+pub use frame_recombine::{
+    cartesian_au_to_ecliptic, ecliptic_to_cartesian_au, geocentric_from_heliocentric,
+    heliocentric_from_geocentric,
 };
 
 // ── Crate-level constants ─────────────────────────────────────────────────────
