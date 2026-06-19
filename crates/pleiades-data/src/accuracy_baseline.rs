@@ -396,6 +396,47 @@ mod tests {
         );
     }
 
+    // Astrology-grade longitude envelope gate (SP2).
+    // Outer planets are allowed up to 5.0″; inner bodies/luminaries up to 1.0″.
+    // With the v6 heliocentric artifact all bodies are sub-arcsec, so this
+    // passes with large margin — the 5.0″ ceiling guards against a future
+    // regression, not against the current state.
+    // Note: (b2) in packaged_artifact_baseline_is_non_vacuous already asserts
+    // outer planets < 1.0″, which is STRICTER than this gate's 5.0″ ceiling.
+    // The two tests are complementary, not redundant: this test encodes the
+    // published astrology-grade specification, while (b2) is an operational
+    // regression guard at the tighter SP2-achieved level.
+    #[test]
+    fn outer_planet_longitude_meets_astrology_grade_envelope() {
+        let baseline = crate::accuracy_baseline::packaged_artifact_accuracy_baseline();
+        // Astrology-grade longitude ceilings (max abs error, arcsec).
+        let ceiling = |body: &CelestialBody| -> f64 {
+            match body {
+                CelestialBody::Sun
+                | CelestialBody::Moon
+                | CelestialBody::Mercury
+                | CelestialBody::Venus
+                | CelestialBody::Mars => 1.0,
+                CelestialBody::Jupiter
+                | CelestialBody::Saturn
+                | CelestialBody::Uranus
+                | CelestialBody::Neptune
+                | CelestialBody::Pluto => 5.0,
+                _ => f64::INFINITY,
+            }
+        };
+        for body_error in &baseline {
+            let c = ceiling(&body_error.body);
+            assert!(
+                body_error.max_longitude_arcsec <= c,
+                "{:?} longitude {:.3}\" exceeds ceiling {:.1}\"",
+                body_error.body,
+                body_error.max_longitude_arcsec,
+                c
+            );
+        }
+    }
+
     #[test]
     #[ignore = "maintainer helper: prints the accuracy baseline summary to regenerate the golden"]
     fn print_packaged_artifact_baseline_summary() {
