@@ -130,17 +130,18 @@ fn packaged_artifact_kernel_free_regeneration_decodes_the_committed_fixture() {
 }
 
 #[test]
-#[ignore = "full packaged-artifact regeneration from the reference snapshot is a slow release-validation check"]
-fn packaged_artifact_generation_from_supplied_snapshot_matches_the_default_fixture() {
-    // The snapshot-fit path remains a release-validation cross-check against the
-    // committed fixture; it is no longer compared to the kernel-free decode path
-    // (which now sources the committed bytes directly).
+fn snapshot_reconstruction_covers_only_constrained_asteroids() {
+    use pleiades_jpl::reference_snapshot;
     let snapshot = reference_snapshot();
-    let generated_from_snapshot = regenerate_packaged_artifact_from_snapshot(snapshot);
-
-    assert_eq!(
-        generated_from_snapshot.encode().unwrap(),
-        PACKAGED_ARTIFACT_FIXTURE
+    let artifact =
+        crate::regenerate::try_regenerate_packaged_artifact_from_snapshot(snapshot).unwrap();
+    // Major bodies are no longer reconstructed from the snapshot; only the
+    // constrained asteroid (Eros) is present.
+    let bodies: Vec<_> = artifact.bodies.iter().map(|b| b.body.clone()).collect();
+    assert!(bodies.iter().any(|b| matches!(b, pleiades_backend::CelestialBody::Custom(_))));
+    assert!(
+        !bodies.contains(&pleiades_backend::CelestialBody::Sun),
+        "major bodies must not come from the snapshot path"
     );
 }
 
