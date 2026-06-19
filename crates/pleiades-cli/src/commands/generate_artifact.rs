@@ -13,11 +13,10 @@ use pleiades_jpl::spk::corpus_spec::CoverageWindow;
 
 /// Parse a `--start`/`--end` token: a value containing '.' is a JD; otherwise a
 /// calendar year converted to Jan 1 00:00 TDB JD.
-fn parse_bound(token: &str) -> Result<Option<i32>, String> {
-    // Returns Ok(Some(year)) for a year token, Ok(None) handled by caller for JD.
+fn parse_bound(token: &str) -> Result<i32, String> {
+    // Parses a calendar-year token; JD tokens are handled by `parse_bound_jd`.
     token
         .parse::<i32>()
-        .map(Some)
         .map_err(|_| format!("bad year/JD bound: {token}"))
 }
 
@@ -74,7 +73,7 @@ fn parse_bound_jd(token: &str) -> Result<f64, String> {
     if token.contains('.') {
         token.parse::<f64>().map_err(|_| format!("bad JD: {token}"))
     } else {
-        let year = parse_bound(token)?.expect("year token");
+        let year = parse_bound(token)?;
         Ok(CoverageWindow::from_years(year, year + 1).start_jd)
     }
 }

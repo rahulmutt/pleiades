@@ -965,5 +965,3 @@ pub(crate) fn packaged_artifact_body_scope(body: &CelestialBody) -> &'static str
         _ => "custom bodies",
     }
 }
-
-

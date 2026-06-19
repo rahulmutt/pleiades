@@ -63,7 +63,7 @@ impl Default for CoverageWindow {
 /// Julian Day at Jan 1 00:00 of `year` (proleptic Gregorian). Standard algorithm
 /// (Fliegel–Van Flandern) specialised to month=1, day=1.
 fn jan1_midnight_jd(year: i32) -> f64 {
-    let a = (14 - 1) / 12; // = 0 for January
+    let a = (14 - 1) / 12; // = 1 for Jan/Feb in Fliegel–Van Flandern
     let y = year + 4800 - a;
     let m = 1 + 12 * a - 3;
     let jdn = 1 // day
