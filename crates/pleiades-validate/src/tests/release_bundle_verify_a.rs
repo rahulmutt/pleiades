@@ -913,7 +913,10 @@ fn release_bundle_writes_expected_artifacts() {
     assert!(artifact_summary.contains(
         &pleiades_data::packaged_artifact_regeneration_summary_details().generation_policy_line()
     ));
-    assert!(artifact_summary.contains("residual bodies: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros; applies to 11 bundled bodies"));
+    // Over the 1900–2100 window the major bodies fit within threshold and carry no
+    // residual channels; only the snapshot-sourced constrained asteroid (Eros) does.
+    // (Body SET remains all 11; this is the residual-bearing subset.)
+    assert!(artifact_summary.contains("residual bodies: asteroid:433-Eros; applies to 1 bundled body"));
     assert!(artifact_summary.contains(&format!(
         "artifact version={}",
         pleiades_data::packaged_artifact_regeneration_summary_details().artifact_version
