@@ -2385,7 +2385,7 @@ pub(crate) fn fit_segment_within_span(
     Some(seg)
 }
 
-/// Window-parameterised core of [`build_packaged_artifact_from_reference`].
+/// Core artifact builder parameterised by an explicit coverage window.
 ///
 /// Accepts an explicit `base_window` used for all major bodies (planets, Sun,
 /// Moon). This separation lets the kernel-free unit test pass a tiny synthetic
@@ -2496,39 +2496,28 @@ pub(crate) fn build_packaged_artifact_from_reference_over(
     artifact
 }
 
-/// Regenerates the packaged artifact from a de440 SPK kernel.
-///
-/// This is the kernel-gated generation entrypoint: it builds a
-/// [`pleiades_jpl::SpkBackend`] over `kernel_path` and runs the full dense
-/// reconstruction via [`build_packaged_artifact_from_reference`]. Kernel-free
-/// callers must instead decode the committed bytes via the runtime-decode path
-/// (see [`build_packaged_artifact`] / [`regenerate_packaged_artifact`]).
-pub fn regenerate_packaged_artifact_from_kernel(
+/// Regenerates the packaged artifact from a de440 SPK kernel over an explicit
+/// coverage window. Major bodies are fit densely from the kernel across `window`;
+/// the constrained asteroid (Eros) is always sourced from its fixed 1900–2100
+/// corpus data and is unaffected by `window`.
+pub fn regenerate_packaged_artifact_from_kernel_over(
     kernel_path: &str,
+    window: pleiades_jpl::spk::corpus_spec::CoverageWindow,
 ) -> Result<CompressedArtifact, String> {
     let backend = pleiades_jpl::SpkBackend::builder()
         .add_kernel(kernel_path)
         .map_err(|error| error.message)?
         .build();
-    Ok(build_packaged_artifact_from_reference(&backend))
+    Ok(build_packaged_artifact_from_reference_over(&backend, window.as_tuple()))
 }
 
-/// Builds a [`CompressedArtifact`] for all packaged bodies using a hybrid
-/// sourcing strategy.
-///
-/// Major bodies (planets, Sun, Moon) are fit densely from `reference` (de440)
-/// over the canonical 1600–2600 base window. The constrained asteroid (Eros) is
-/// carried forward from the committed packaged artifact: Eros is sourced from
-/// curated 1900–2100 corpus data that is absent from de440, so regenerating it
-/// from the kernel would panic. Carrying its segments is byte-deterministic
-/// across runs because the committed bytes are embedded in the build.
-///
-/// The result is assembled identically to the snapshot-based path: checksum set
-/// and validated before returning.
-pub(crate) fn build_packaged_artifact_from_reference(
-    reference: &dyn EphemerisBackend,
-) -> CompressedArtifact {
-    use pleiades_jpl::spk::corpus_spec::{RANGE_END_JD, RANGE_START_JD};
-
-    build_packaged_artifact_from_reference_over(reference, (RANGE_START_JD, RANGE_END_JD))
+/// Regenerates the packaged artifact from a de440 SPK kernel over the shipped
+/// default window (1900–2100).
+pub fn regenerate_packaged_artifact_from_kernel(
+    kernel_path: &str,
+) -> Result<CompressedArtifact, String> {
+    regenerate_packaged_artifact_from_kernel_over(
+        kernel_path,
+        pleiades_jpl::spk::corpus_spec::CoverageWindow::default(),
+    )
 }

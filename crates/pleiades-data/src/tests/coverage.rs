@@ -2848,6 +2848,26 @@ fn build_from_reference_produces_all_bodies_with_spanning_segments() {
     }
 }
 
+/// Guards that the public window-parameterized builder and the default builder
+/// produce identical results for the same window.
+#[test]
+fn default_window_artifact_matches_explicit_default_over() {
+    use pleiades_jpl::spk::corpus_spec::CoverageWindow;
+    // A tiny synthetic window keeps this in milliseconds; assert the public
+    // window-parameterized builder and the default builder agree for the same window.
+    let reference = Synthetic;
+    let window = CoverageWindow::new(2_451_545.0, 2_451_545.0 + 40.0);
+    let a = crate::regenerate::build_packaged_artifact_from_reference_over(
+        &reference,
+        window.as_tuple(),
+    );
+    let b = crate::regenerate::build_packaged_artifact_from_reference_over(
+        &reference,
+        (2_451_545.0, 2_451_545.0 + 40.0),
+    );
+    assert_eq!(a.encode().unwrap(), b.encode().unwrap());
+}
+
 /// Regression test for the TDB/TT timescale bug in `fit_segment_within_span`.
 ///
 /// Before the fix, segment boundaries were tagged `Tdb`; `normalize_lookup_instant`
