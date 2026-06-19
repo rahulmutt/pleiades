@@ -217,6 +217,23 @@ pub(crate) fn body_segments_from_entries(
     }
 }
 
+/// Bodies fit in the heliocentric frame and recombined with the geocentric Sun
+/// at lookup. Only the eight true planets; Sun, Moon, Eros, and lunar points
+/// stay geocentric.
+pub(crate) fn body_uses_heliocentric_frame(body: &CelestialBody) -> bool {
+    matches!(
+        body,
+        CelestialBody::Mercury
+            | CelestialBody::Venus
+            | CelestialBody::Mars
+            | CelestialBody::Jupiter
+            | CelestialBody::Saturn
+            | CelestialBody::Uranus
+            | CelestialBody::Neptune
+            | CelestialBody::Pluto
+    )
+}
+
 pub(crate) fn body_segment_span_limit(body: &CelestialBody) -> f64 {
     match packaged_artifact_body_cadence(body) {
         PackagedArtifactBodyCadence::Luminaries => 256.0,
@@ -2349,6 +2366,15 @@ pub(crate) fn fit_segment_within_span(
             .position(&EphemerisRequest::new(body.clone(), inst))
             .ok()?;
         let ec = res.ecliptic?;
+        let ec = if body_uses_heliocentric_frame(body) {
+            let sun = reference
+                .position(&EphemerisRequest::new(CelestialBody::Sun, inst))
+                .ok()?
+                .ecliptic?;
+            pleiades_compression::heliocentric_from_geocentric(&ec, &sun)?
+        } else {
+            ec
+        };
         xs.push(frac);
         lon_deg.push(ec.longitude.degrees());
         lat.push(ec.latitude.degrees());
@@ -2469,7 +2495,12 @@ pub(crate) fn build_packaged_artifact_from_reference_over(
                                     })
                             })
                             .collect();
-                        (body_index, BodyArtifact::new(body, segments))
+                        let frame = if body_uses_heliocentric_frame(&body) {
+                            pleiades_compression::StoredFrame::Heliocentric
+                        } else {
+                            pleiades_compression::StoredFrame::Geocentric
+                        };
+                        (body_index, BodyArtifact::with_frame(body, segments, frame))
                     }));
                 }
             }
