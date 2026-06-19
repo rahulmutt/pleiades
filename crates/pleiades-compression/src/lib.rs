@@ -49,7 +49,7 @@ mod frame_recombine;
 // ── Public re-exports (preserve exact prior public surface) ───────────────────
 
 pub use artifact::CompressedArtifact;
-pub use channels::{BodyArtifact, ChannelKind, PolynomialChannel, Segment};
+pub use channels::{BodyArtifact, ChannelKind, PolynomialChannel, Segment, StoredFrame};
 pub use error::{CompressionError, CompressionErrorKind};
 pub use format::{
     ArtifactHeader, ArtifactOutput, ArtifactOutputSupport, ArtifactProfile,

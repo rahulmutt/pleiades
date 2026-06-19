@@ -486,7 +486,11 @@ pub(crate) fn decode_body(
     for _ in 0..segment_count {
         segments.push(decode_segment(cursor)?);
     }
-    Ok(crate::channels::BodyArtifact { body, segments })
+    Ok(crate::channels::BodyArtifact {
+        body,
+        segments,
+        frame: crate::channels::StoredFrame::Geocentric,
+    })
 }
 
 // ── Validation helpers ────────────────────────────────────────────────────────

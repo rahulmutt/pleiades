@@ -240,6 +240,21 @@ impl fmt::Display for Segment {
     }
 }
 
+/// The coordinate frame a body's stored channels are expressed in.
+///
+/// `Geocentric` channels are returned directly at lookup. `Heliocentric` channels
+/// are recombined with the geocentric Sun (`P_geo = P_helio + S_geo`) before being
+/// returned, so the public lookup output is always geocentric ecliptic.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+#[non_exhaustive]
+pub enum StoredFrame {
+    /// Stored channels are geocentric ecliptic; returned as-is.
+    Geocentric,
+    /// Stored channels are heliocentric ecliptic; recombined with the Sun at lookup.
+    Heliocentric,
+}
+
 /// All segments for a single body.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
@@ -248,12 +263,19 @@ pub struct BodyArtifact {
     pub body: CelestialBody,
     /// Time segments for the body.
     pub segments: Vec<Segment>,
+    /// Frame the stored channels are expressed in.
+    pub frame: StoredFrame,
 }
 
 impl BodyArtifact {
-    /// Creates a new body artifact.
+    /// Creates a new geocentric body artifact (the default frame).
     pub fn new(body: CelestialBody, segments: Vec<Segment>) -> Self {
-        Self { body, segments }
+        Self { body, segments, frame: StoredFrame::Geocentric }
+    }
+
+    /// Creates a body artifact with an explicit stored frame.
+    pub fn with_frame(body: CelestialBody, segments: Vec<Segment>, frame: StoredFrame) -> Self {
+        Self { body, segments, frame }
     }
 
     /// Validates the body's segment metadata.
@@ -301,5 +323,23 @@ impl BodyArtifact {
 impl fmt::Display for BodyArtifact {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.summary_line())
+    }
+}
+
+#[cfg(test)]
+mod frame_field_tests {
+    use super::*;
+    use pleiades_types::CelestialBody;
+
+    #[test]
+    fn new_defaults_to_geocentric() {
+        let b = BodyArtifact::new(CelestialBody::Sun, vec![]);
+        assert_eq!(b.frame, StoredFrame::Geocentric);
+    }
+
+    #[test]
+    fn with_frame_sets_heliocentric() {
+        let b = BodyArtifact::with_frame(CelestialBody::Jupiter, vec![], StoredFrame::Heliocentric);
+        assert_eq!(b.frame, StoredFrame::Heliocentric);
     }
 }
