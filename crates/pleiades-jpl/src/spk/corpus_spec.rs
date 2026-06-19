@@ -22,6 +22,59 @@ pub const KERNEL_SHA256: &str = "a4ce9bf9b3282becc9f4b2ac3cebe03a2ae7599981aabd7
 pub const AST_RANGE_START_JD: f64 = 2_415_020.5;
 pub const AST_RANGE_END_JD: f64 = 2_488_069.5;
 
+/// A major-body coverage window in TDB Julian Days. The packaged artifact ships
+/// `CoverageWindow::default()` (1900–2100); the kernel generation API accepts any
+/// window so callers can build wider artifacts for themselves.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct CoverageWindow {
+    pub start_jd: f64,
+    pub end_jd: f64,
+}
+
+impl CoverageWindow {
+    pub fn new(start_jd: f64, end_jd: f64) -> Self {
+        Self { start_jd, end_jd }
+    }
+
+    /// Build from calendar years, each at Jan 1 00:00 TDB. Uses the standard
+    /// Gregorian JD-at-midnight formula; year is the proleptic Gregorian year.
+    pub fn from_years(start_year: i32, end_year: i32) -> Self {
+        Self {
+            start_jd: jan1_midnight_jd(start_year),
+            end_jd: jan1_midnight_jd(end_year),
+        }
+    }
+
+    pub fn as_tuple(self) -> (f64, f64) {
+        (self.start_jd, self.end_jd)
+    }
+}
+
+impl Default for CoverageWindow {
+    fn default() -> Self {
+        Self {
+            start_jd: RANGE_START_JD,
+            end_jd: RANGE_END_JD,
+        }
+    }
+}
+
+/// Julian Day at Jan 1 00:00 of `year` (proleptic Gregorian). Standard algorithm
+/// (Fliegel–Van Flandern) specialised to month=1, day=1.
+fn jan1_midnight_jd(year: i32) -> f64 {
+    let a = (14 - 1) / 12; // = 0 for January
+    let y = year + 4800 - a;
+    let m = 1 + 12 * a - 3;
+    let jdn = 1 // day
+        + (153 * m + 2) / 5
+        + 365 * y
+        + y / 4
+        - y / 100
+        + y / 400
+        - 32045;
+    jdn as f64 - 0.5
+}
+
 /// Pinned identity of the Tier A small-body perturber kernel. SHA-256 is
 /// computed via `shasum -a 256 sb441-n16.bsp` and recorded here + in
 /// docs/spk-kernel-sourcing.md when the kernel is adopted (Task 11).
@@ -310,6 +363,27 @@ mod anchor_tests {
         let moon = interior_epochs_for(&CelestialBody::Moon).len();
         let neptune = interior_epochs_for(&CelestialBody::Neptune).len();
         assert!(neptune < moon / 10, "slow body must be far sparser");
+    }
+}
+
+#[cfg(test)]
+mod coverage_window_tests {
+    use super::*;
+
+    #[test]
+    fn default_window_is_the_range_constants() {
+        let w = CoverageWindow::default();
+        assert_eq!(w.start_jd, RANGE_START_JD);
+        assert_eq!(w.end_jd, RANGE_END_JD);
+        assert_eq!(w.as_tuple(), (RANGE_START_JD, RANGE_END_JD));
+    }
+
+    #[test]
+    fn from_years_maps_to_jan_1_jd() {
+        // 2000-01-01 = JD 2_451_544.5 (midnight); J2000 epoch (noon) is 2_451_545.0.
+        let w = CoverageWindow::from_years(2000, 2001);
+        assert!((w.start_jd - 2_451_544.5).abs() < 1e-6);
+        assert!((w.end_jd - 2_451_910.5).abs() < 1e-6);
     }
 }
 
