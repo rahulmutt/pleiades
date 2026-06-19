@@ -54,6 +54,34 @@ impl CompressedArtifact {
             body.validate()?;
         }
 
+        // A heliocentric body is reconstructed against the geocentric Sun at lookup,
+        // so a Sun body must be present. Fail closed rather than mis-reconstruct.
+        let has_heliocentric = self
+            .bodies
+            .iter()
+            .any(|b| b.frame == crate::channels::StoredFrame::Heliocentric);
+        if has_heliocentric {
+            let sun = self
+                .bodies
+                .iter()
+                .find(|b| b.body == CelestialBody::Sun);
+            match sun {
+                Some(s) if s.frame == crate::channels::StoredFrame::Geocentric => {}
+                Some(_) => {
+                    return Err(CompressionError::new(
+                        CompressionErrorKind::InvalidFormat,
+                        "artifact has heliocentric bodies but the Sun is not stored geocentric",
+                    ));
+                }
+                None => {
+                    return Err(CompressionError::new(
+                        CompressionErrorKind::InvalidFormat,
+                        "artifact has heliocentric bodies but contains no Sun reference",
+                    ));
+                }
+            }
+        }
+
         Ok(())
     }
 
@@ -255,11 +283,31 @@ impl CompressedArtifact {
         let latitude = segment.evaluate_channel(ChannelKind::Latitude, x)?;
         let distance_au = segment.evaluate_channel(ChannelKind::DistanceAu, x)?;
 
-        Ok(EclipticCoordinates::new(
+        let stored = EclipticCoordinates::new(
             Longitude::from_degrees(longitude),
             Latitude::from_degrees(latitude),
             Some(distance_au),
-        ))
+        );
+
+        let frame = self
+            .body_artifact(body)
+            .map(|b| b.frame)
+            .unwrap_or(crate::channels::StoredFrame::Geocentric);
+
+        match frame {
+            crate::channels::StoredFrame::Geocentric => Ok(stored),
+            crate::channels::StoredFrame::Heliocentric => {
+                let sun_geo = self.lookup_ecliptic(&CelestialBody::Sun, instant)?;
+                crate::frame_recombine::geocentric_from_heliocentric(&stored, &sun_geo).ok_or_else(
+                    || {
+                        CompressionError::new(
+                            CompressionErrorKind::InvalidFormat,
+                            "heliocentric reconstruction requires finite distances on body and Sun",
+                        )
+                    },
+                )
+            }
+        }
     }
 
     /// Returns equatorial coordinates reconstructed from the stored ecliptic channels.
@@ -311,5 +359,98 @@ impl CompressedArtifact {
 impl fmt::Display for CompressedArtifact {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.summary_line())
+    }
+}
+
+#[cfg(test)]
+mod reframe_lookup_tests {
+    use super::*;
+    use crate::channels::{BodyArtifact, ChannelKind, PolynomialChannel, Segment, StoredFrame};
+    use crate::frame_recombine::heliocentric_from_geocentric;
+    use pleiades_types::{
+        CelestialBody, EclipticCoordinates, Instant, JulianDay, Latitude, Longitude, TimeScale,
+    };
+
+    // Builds a single-segment body whose three channels are constant (degree-0)
+    // equal to the given ecliptic coordinates across the whole span.
+    fn const_body(
+        body: CelestialBody,
+        frame: StoredFrame,
+        start: f64,
+        end: f64,
+        coords: &EclipticCoordinates,
+    ) -> BodyArtifact {
+        let channels = vec![
+            PolynomialChannel::new(ChannelKind::Longitude, 9, vec![coords.longitude.degrees()]),
+            PolynomialChannel::new(ChannelKind::Latitude, 9, vec![coords.latitude.degrees()]),
+            PolynomialChannel::new(ChannelKind::DistanceAu, 10, vec![coords.distance_au.unwrap()]),
+        ];
+        let seg = Segment::new(
+            Instant::new(JulianDay::from_days(start), TimeScale::Tt),
+            Instant::new(JulianDay::from_days(end), TimeScale::Tt),
+            channels,
+        );
+        BodyArtifact::with_frame(body, vec![seg], frame)
+    }
+
+    // Constructs a CompressedArtifact from the given bodies and validates it,
+    // panicking if validation fails.
+    fn build_test_artifact(bodies: Vec<BodyArtifact>) -> CompressedArtifact {
+        try_build_test_artifact(bodies).expect("test artifact should be valid")
+    }
+
+    // Constructs a CompressedArtifact from the given bodies and returns the
+    // validation Result so callers can assert on error cases.
+    fn try_build_test_artifact(
+        bodies: Vec<BodyArtifact>,
+    ) -> Result<CompressedArtifact, CompressionError> {
+        let artifact = CompressedArtifact::new(
+            ArtifactHeader::new("reframe-test", "synthetic test fixture"),
+            bodies,
+        );
+        artifact.validate().map(|_| artifact)
+    }
+
+    #[test]
+    fn heliocentric_body_reconstructs_geocentric() {
+        let sun_geo = EclipticCoordinates::new(
+            Longitude::from_degrees(95.0),
+            Latitude::from_degrees(0.0),
+            Some(1.0),
+        );
+        let jupiter_geo = EclipticCoordinates::new(
+            Longitude::from_degrees(200.0),
+            Latitude::from_degrees(1.2),
+            Some(5.4),
+        );
+        let jupiter_helio = heliocentric_from_geocentric(&jupiter_geo, &sun_geo).unwrap();
+
+        let artifact = build_test_artifact(vec![
+            const_body(CelestialBody::Sun, StoredFrame::Geocentric, 0.0, 100.0, &sun_geo),
+            const_body(CelestialBody::Jupiter, StoredFrame::Heliocentric, 0.0, 100.0, &jupiter_helio),
+        ]);
+
+        let at = Instant::new(JulianDay::from_days(50.0), TimeScale::Tt);
+        let out = artifact.lookup_ecliptic(&CelestialBody::Jupiter, at).unwrap();
+        assert!((out.longitude.degrees() - 200.0).abs() < 1e-6);
+        assert!((out.latitude.degrees() - 1.2).abs() < 1e-6);
+        assert!((out.distance_au.unwrap() - 5.4).abs() < 1e-6);
+    }
+
+    #[test]
+    fn heliocentric_body_without_sun_fails_validation() {
+        let jupiter_helio = EclipticCoordinates::new(
+            Longitude::from_degrees(120.0),
+            Latitude::from_degrees(0.5),
+            Some(5.0),
+        );
+        let result = try_build_test_artifact(vec![const_body(
+            CelestialBody::Jupiter,
+            StoredFrame::Heliocentric,
+            0.0,
+            100.0,
+            &jupiter_helio,
+        )]);
+        assert!(result.is_err(), "heliocentric body without a Sun must fail validation");
     }
 }
