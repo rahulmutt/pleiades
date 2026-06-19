@@ -16,13 +16,13 @@ fn comparison_report_uses_the_snapshot_backend() {
         }));
     assert!(report.lines().any(|line| line == "  Apparentness: Mean"));
     assert!(report.lines().any(|line| {
-        line.starts_with("  epoch labels: JD 2268932.5 (TT)")
+        line.starts_with("  epoch labels: JD 2415020.5 (TT)")
             && line.contains("JD 2451545.0 (TT)")
-            && line.contains("JD 2634167.0 (TT)")
+            && line.contains("JD 2453000.5 (TT)")
     }));
     assert!(report
         .lines()
-        .any(|line| line == "  julian day span: 2268932.5 → 2634167.0"));
+        .any(|line| line == "  julian day span: 2415020.5 → 2453000.5"));
     assert!(report
         .lines()
         .any(|line| line == "Reference backend: jpl-snapshot"));

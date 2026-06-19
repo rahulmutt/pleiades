@@ -516,7 +516,7 @@ fn production_generation_source_window_summary_matches_current_rendering() {
 #[test]
 fn production_generation_source_window_summary_validation_rejects_drift() {
     let summary = production_generation_snapshot_window_summary_for_report();
-    let drifted_summary = summary.replace("357 source-backed samples", "358 source-backed samples");
+    let drifted_summary = summary.replace("277 source-backed samples", "278 source-backed samples");
 
     let error = ensure_production_generation_source_window_summary_matches_current_rendering(
         &drifted_summary,
@@ -531,7 +531,7 @@ fn production_generation_source_window_summary_validation_rejects_drift() {
 fn production_generation_source_summary_source_window_payload_validation_rejects_drift() {
     let source_summary = production_generation_source_summary_for_report();
     let drifted_source_windows = production_generation_snapshot_window_summary_for_report()
-        .replace("357 source-backed samples", "358 source-backed samples");
+        .replace("277 source-backed samples", "278 source-backed samples");
 
     let error = ensure_production_generation_source_summary_matches_source_windows(
         &source_summary,
@@ -692,7 +692,7 @@ fn production_generation_source_window_summary_command_renders_the_source_window
         .expect("production generation source window summary should render");
 
     assert!(rendered.contains("Production generation source windows:"));
-    assert!(rendered.contains("357 source-backed samples"));
+    assert!(rendered.contains("277 source-backed samples"));
     assert_eq!(
         rendered,
         production_generation_snapshot_window_summary_for_report()
@@ -725,7 +725,7 @@ fn production_generation_summary_command_renders_the_overall_block() {
         .expect("production generation summary should render");
 
     assert!(rendered.contains("Production generation coverage:"));
-    assert!(rendered.contains("357 rows across 16 bodies and 31 epochs"));
+    assert!(rendered.contains("277 rows across 16 bodies and 23 epochs"));
     assert_eq!(
         rendered,
         production_generation_snapshot_summary_for_report()

@@ -2181,7 +2181,7 @@ fn packaged_artifact_source_fit_holdout_sync_summary_reflects_the_current_postur
         .contains("source-fit and hold-out sync:"));
     assert!(summary
         .summary_line()
-        .contains("fit thresholds: mean Δlon≤97.453385081945°"));
+        .contains("fit thresholds: mean Δlon≤79.299372815190°"));
     assert!(summary
         .summary_line()
         .contains("target thresholds: production thresholds recorded"));
@@ -2271,7 +2271,7 @@ fn packaged_artifact_fit_threshold_summary_reflects_the_current_posture() {
 
     assert_eq!(
         summary.summary_line(),
-        "fit thresholds: mean Δlon≤97.453385081945°, mean Δlat≤11.428117479693°, mean Δdist≤1385044.242391523207 AU; max Δlon≤179.999533720727°, max Δlat≤88.235666999578°, max Δdist≤132134698.060402140021 AU"
+        "fit thresholds: mean Δlon≤79.299372815190°, mean Δlat≤3.320597512371°, mean Δdist≤5240.247310255700 AU; max Δlon≤179.999798837311°, max Δlat≤69.957118473923°, max Δdist≤10227288.989857684821 AU"
     );
     assert_eq!(summary.to_string(), summary.summary_line());
     assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
@@ -2299,7 +2299,7 @@ fn packaged_artifact_fit_threshold_summary_reflects_the_current_posture() {
     );
     assert!(violations.validate().is_ok());
     assert!(packaged_artifact_fit_threshold_summary_for_report()
-        .contains("fit thresholds: mean Δlon≤97.453385081945°"));
+        .contains("fit thresholds: mean Δlon≤79.299372815190°"));
     assert_eq!(
         packaged_artifact_fit_threshold_violation_count_for_report(),
         "fit threshold violations: 0"

@@ -254,156 +254,6 @@ pub fn reference_snapshot_2451920_major_body_interior_summary_for_report() -> St
     }
 }
 
-pub(crate) fn reference_snapshot_mars_outer_boundary_entries() -> Option<&'static [SnapshotEntry]> {
-    static ENTRIES: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
-    let entries = ENTRIES
-        .get_or_init(|| {
-            snapshot_entries()
-                .into_iter()
-                .flatten()
-                .filter(|entry| {
-                    entry.body == pleiades_backend::CelestialBody::Mars
-                        && matches!(
-                            entry.epoch.julian_day.days(),
-                            value if value == 2_600_000.0 || value == 2_634_167.0
-                        )
-                })
-                .cloned()
-                .collect()
-        })
-        .as_slice();
-
-    if entries.is_empty() {
-        None
-    } else {
-        Some(entries)
-    }
-}
-
-pub(crate) fn reference_snapshot_mars_outer_boundary_summary_details(
-) -> Option<ReferenceMarsOuterBoundarySummary> {
-    let evidence = reference_snapshot_mars_outer_boundary_entries()?;
-    let mut sample_bodies = Vec::new();
-    for entry in evidence {
-        if !sample_bodies.contains(&entry.body) {
-            sample_bodies.push(entry.body.clone());
-        }
-    }
-
-    let epochs = evidence
-        .iter()
-        .map(|entry| entry.epoch.julian_day.days().to_bits())
-        .collect::<BTreeSet<_>>();
-    let earliest_epoch = evidence
-        .iter()
-        .min_by(|left, right| {
-            left.epoch
-                .julian_day
-                .days()
-                .total_cmp(&right.epoch.julian_day.days())
-        })
-        .expect("reference Mars outer-boundary evidence should not be empty after collection")
-        .epoch;
-    let latest_epoch = evidence
-        .iter()
-        .max_by(|left, right| {
-            left.epoch
-                .julian_day
-                .days()
-                .total_cmp(&right.epoch.julian_day.days())
-        })
-        .expect("reference Mars outer-boundary evidence should not be empty after collection")
-        .epoch;
-
-    Some(ReferenceMarsOuterBoundarySummary {
-        sample_count: evidence.len(),
-        sample_bodies,
-        epoch_count: epochs.len(),
-        earliest_epoch,
-        latest_epoch,
-    })
-}
-
-/// Returns the compact typed summary for the Mars outer-boundary reference evidence.
-pub fn reference_snapshot_mars_outer_boundary_summary() -> Option<ReferenceMarsOuterBoundarySummary>
-{
-    reference_snapshot_mars_outer_boundary_summary_details()
-}
-
-/// Returns the release-facing Mars outer-boundary summary string.
-pub fn reference_snapshot_mars_outer_boundary_summary_for_report() -> String {
-    match reference_snapshot_mars_outer_boundary_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => {
-                format!("Reference Mars outer-boundary evidence: unavailable ({error})")
-            }
-        },
-        None => "Reference Mars outer-boundary evidence: unavailable".to_string(),
-    }
-}
-
-pub(crate) fn reference_snapshot_2600000_major_body_boundary_entries(
-) -> Option<&'static [SnapshotEntry]> {
-    static ENTRIES: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
-    let entries = ENTRIES
-        .get_or_init(|| {
-            snapshot_entries()
-                .into_iter()
-                .flatten()
-                .filter(|entry| {
-                    entry.body == pleiades_backend::CelestialBody::Mars
-                        && entry.epoch.julian_day.days()
-                            == REFERENCE_SNAPSHOT_2600000_MAJOR_BODY_BOUNDARY_EPOCH_JD
-                })
-                .cloned()
-                .collect()
-        })
-        .as_slice();
-
-    if entries.is_empty() {
-        None
-    } else {
-        Some(entries)
-    }
-}
-
-pub(crate) fn reference_snapshot_2600000_major_body_boundary_summary_details(
-) -> Option<Reference2600000MajorBodyBoundarySummary> {
-    let evidence = reference_snapshot_2600000_major_body_boundary_entries()?;
-    let mut sample_bodies = Vec::new();
-    for entry in evidence {
-        if !sample_bodies.contains(&entry.body) {
-            sample_bodies.push(entry.body.clone());
-        }
-    }
-
-    Some(Reference2600000MajorBodyBoundarySummary {
-        sample_count: evidence.len(),
-        sample_bodies,
-        epoch: evidence[0].epoch,
-    })
-}
-
-/// Returns the compact typed summary for the 2600000 major-body boundary reference evidence.
-pub fn reference_snapshot_2600000_major_body_boundary_summary(
-) -> Option<Reference2600000MajorBodyBoundarySummary> {
-    reference_snapshot_2600000_major_body_boundary_summary_details()
-}
-
-/// Returns the release-facing 2600000 major-body boundary summary string.
-pub fn reference_snapshot_2600000_major_body_boundary_summary_for_report() -> String {
-    match reference_snapshot_2600000_major_body_boundary_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => {
-                format!("Reference 2600000 major-body boundary evidence: unavailable ({error})")
-            }
-        },
-        None => "Reference 2600000 major-body boundary evidence: unavailable".to_string(),
-    }
-}
-
 pub(crate) fn reference_snapshot_major_body_boundary_window_summary_details(
 ) -> Option<ReferenceMajorBodyBoundaryWindowSummary> {
     let entries = reference_snapshot_major_body_boundary_entries()?;
@@ -1536,7 +1386,7 @@ pub(crate) const REFERENCE_SNAPSHOT_SOURCE_FALLBACK: &str =
     "NASA/JPL Horizons API vector tables (DE441)";
 
 pub(crate) const REFERENCE_SNAPSHOT_COVERAGE_FALLBACK: &str =
-    "selected bodies sampled at 1500-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 1600-01-11 for Sun, Moon, Mercury, Venus, Mars, Jupiter, Uranus, Neptune; major bodies sampled at 1749-12-31 for Sun through Neptune; selected bodies sampled at 1750-01-01 for Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; inner planets sampled across 1800-2500; major bodies sampled at 1800-01-03 for Sun through Pluto; selected bodies sampled at 1900-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 2200-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 2451915.25 and 2451915.75 for Sun, Moon, Mercury, Venus; major bodies sampled at 2400000, 2451545, 2451910.5, 2451911.5, 2451912.5, 2451913.5, 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451916.0, 2451916.5, 2451917.0, 2451917.5, 2451918.5, 2451919.5, 2451920.5, 2453000.5, and 2500000; major bodies sampled at 2451915.5 for Sun through Pluto; Mars sampled at 2600000 and 2634167 for outer boundary coverage; major bodies sampled at 2451913.5 through 2451917.5 for additional boundary coverage; selected asteroids sampled at J2000, 2378498.5, 2451910.5 through 2451919.5, with 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451917.5, 2451918.5, and 2451919.5 boundary coverage, 1800-01-03, 2003-12-27, 2132-08-31, 2500-01-01, and 2634167; asteroid:99942-Apophis is now also sampled at 2378498.5 and 2451917.5 to complete the selected-asteroid bridge.";
+    "major-body samples are confined to the 1900-2100 window [JD 2415020.5, 2488069.5]; selected bodies sampled at 1900-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 2451915.25 and 2451915.75 for Sun, Moon, Mercury, Venus; major bodies sampled at 2451545, 2451910.5, 2451911.5, 2451912.5, 2451913.5, 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451916.0, 2451916.5, 2451917.0, 2451917.5, 2451918.5, 2451919.5, 2451920.5, and 2453000.5; major bodies sampled at 2451915.5 for Sun through Pluto; major bodies sampled at 2451913.5 through 2451917.5 for additional boundary coverage; selected asteroids sampled at J2000, 2378498.5, 2451910.5 through 2451919.5, with 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451917.5, 2451918.5, and 2451919.5 boundary coverage, 2003-12-27, 2132-08-31, 2500-01-01, and 2634167; asteroid:99942-Apophis is now also sampled at 2378498.5 and 2451917.5 to complete the selected-asteroid bridge.";
 
 pub(crate) const REFERENCE_SNAPSHOT_REDISTRIBUTION_FALLBACK: &str =
     "repository-checked regression fixtures, not a broad public corpus.";
@@ -1556,7 +1406,7 @@ pub(crate) const INDEPENDENT_HOLDOUT_SOURCE_FALLBACK: &str =
     "NASA/JPL Horizons API vector tables (DE441)";
 
 pub(crate) const INDEPENDENT_HOLDOUT_COVERAGE_FALLBACK: &str =
-    "Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2451915.5, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2451915.5, 2500000, and 2634167, plus Mercury at 2451915.5, plus Venus at 2451915.5, plus Pluto at 2451545 and 2500000, plus major bodies at 2451915.5 for Sun through Pluto, plus selected asteroids at 2378498.5, 2451545, 2451915.5, 2451917.5, 2453000.5, 2500000, and 2634167; asteroid:99942-Apophis now also appears at 2378498.5 so the selected-asteroid hold-out bridge matches the reference slice; total slice size is 84 rows across 16 bodies and 14 epochs.";
+    "major-body samples are confined to the 1900-2100 window [JD 2415020.5, 2488069.5]; Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Mercury and Venus at 2451545, 2451915.25, and 2451915.75, plus Jupiter, Saturn, Uranus, Neptune, and Pluto at 2451545, plus Mars at 2451545, plus Sun at 2451545, 2451915.25, 2451915.75, and 2451915.5, plus Moon at 2451545, 2451915.25, 2451915.75, and 2451915.5, plus Mercury at 2451915.5, plus Venus at 2451915.5, plus major bodies at 2451915.5 for Sun through Pluto, plus selected asteroids at 2378498.5, 2451545, 2451915.5, 2451917.5, 2453000.5, 2500000, and 2634167; asteroid:99942-Apophis now also appears at 2378498.5 so the selected-asteroid hold-out bridge matches the reference slice; total slice size is 66 rows across 16 bodies and 12 epochs.";
 
 pub(crate) const INDEPENDENT_HOLDOUT_COLUMNS: &str = "epoch_jd, body, x_km, y_km, z_km";
 
@@ -2161,7 +2011,7 @@ pub fn reference_snapshot_manifest_summary_for_report() -> String {
         manifest_text,
         "JPL Horizons reference snapshot.",
         "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.",
-        "selected bodies sampled at 1500-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 1600-01-11 for Sun, Moon, Mercury, Venus, Mars, Jupiter, Uranus, Neptune; major bodies sampled at 1749-12-31 for Sun through Neptune; selected bodies sampled at 1750-01-01 for Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; inner planets sampled across 1800-2500; major bodies sampled at 1800-01-03 for Sun through Pluto; selected bodies sampled at 1900-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 2200-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 2451915.25 and 2451915.75 for Sun, Moon, Mercury, Venus; major bodies sampled at 2400000, 2451545, 2451910.5, 2451911.5, 2451912.5, 2451913.5, 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451916.0, 2451916.5, 2451917.0, 2451917.5, 2451918.5, 2451919.5, 2451920.5, 2453000.5, and 2500000; major bodies sampled at 2451915.5 for Sun through Pluto; Mars sampled at 2600000 and 2634167 for outer boundary coverage; major bodies sampled at 2451913.5 through 2451917.5 for additional boundary coverage; selected asteroids sampled at J2000, 2378498.5, 2451910.5 through 2451919.5, with 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451917.5, 2451918.5, and 2451919.5 boundary coverage, 1800-01-03, 2003-12-27, 2132-08-31, 2500-01-01, and 2634167; asteroid:99942-Apophis is now also sampled at 2378498.5 and 2451917.5 to complete the selected-asteroid bridge.",
+        "major-body samples are confined to the 1900-2100 window [JD 2415020.5, 2488069.5]; selected bodies sampled at 1900-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 2451915.25 and 2451915.75 for Sun, Moon, Mercury, Venus; major bodies sampled at 2451545, 2451910.5, 2451911.5, 2451912.5, 2451913.5, 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451916.0, 2451916.5, 2451917.0, 2451917.5, 2451918.5, 2451919.5, 2451920.5, and 2453000.5; major bodies sampled at 2451915.5 for Sun through Pluto; major bodies sampled at 2451913.5 through 2451917.5 for additional boundary coverage; selected asteroids sampled at J2000, 2378498.5, 2451910.5 through 2451919.5, with 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451917.5, 2451918.5, and 2451919.5 boundary coverage, 2003-12-27, 2132-08-31, 2500-01-01, and 2634167; asteroid:99942-Apophis is now also sampled at 2378498.5 and 2451917.5 to complete the selected-asteroid bridge.",
         Some("repository-checked regression fixtures, not a broad public corpus."),
         &["epoch_jd", "body", "x_km", "y_km", "z_km"],
     ) {
@@ -2172,15 +2022,15 @@ pub fn reference_snapshot_manifest_summary_for_report() -> String {
     match summary.validate_with_expected_metadata(
         "JPL Horizons reference snapshot.",
         "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.",
-        "selected bodies sampled at 1500-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 1600-01-11 for Sun, Moon, Mercury, Venus, Mars, Jupiter, Uranus, Neptune; major bodies sampled at 1749-12-31 for Sun through Neptune; selected bodies sampled at 1750-01-01 for Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; inner planets sampled across 1800-2500; major bodies sampled at 1800-01-03 for Sun through Pluto; selected bodies sampled at 1900-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 2200-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 2451915.25 and 2451915.75 for Sun, Moon, Mercury, Venus; major bodies sampled at 2400000, 2451545, 2451910.5, 2451911.5, 2451912.5, 2451913.5, 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451916.0, 2451916.5, 2451917.0, 2451917.5, 2451918.5, 2451919.5, 2451920.5, 2453000.5, and 2500000; major bodies sampled at 2451915.5 for Sun through Pluto; Mars sampled at 2600000 and 2634167 for outer boundary coverage; major bodies sampled at 2451913.5 through 2451917.5 for additional boundary coverage; selected asteroids sampled at J2000, 2378498.5, 2451910.5 through 2451919.5, with 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451917.5, 2451918.5, and 2451919.5 boundary coverage, 1800-01-03, 2003-12-27, 2132-08-31, 2500-01-01, and 2634167; asteroid:99942-Apophis is now also sampled at 2378498.5 and 2451917.5 to complete the selected-asteroid bridge.",
+        "major-body samples are confined to the 1900-2100 window [JD 2415020.5, 2488069.5]; selected bodies sampled at 1900-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 2451915.25 and 2451915.75 for Sun, Moon, Mercury, Venus; major bodies sampled at 2451545, 2451910.5, 2451911.5, 2451912.5, 2451913.5, 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451916.0, 2451916.5, 2451917.0, 2451917.5, 2451918.5, 2451919.5, 2451920.5, and 2453000.5; major bodies sampled at 2451915.5 for Sun through Pluto; major bodies sampled at 2451913.5 through 2451917.5 for additional boundary coverage; selected asteroids sampled at J2000, 2378498.5, 2451910.5 through 2451919.5, with 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451917.5, 2451918.5, and 2451919.5 boundary coverage, 2003-12-27, 2132-08-31, 2500-01-01, and 2634167; asteroid:99942-Apophis is now also sampled at 2378498.5 and 2451917.5 to complete the selected-asteroid bridge.",
         &["epoch_jd", "body", "x_km", "y_km", "z_km"],
     ) {
         Ok(()) => match validate_snapshot_manifest_footprint(
             "reference snapshot",
             snapshot_entries(),
-            357,
+            277,
             16,
-            31,
+            23,
         ) {
             Ok(()) => summary.summary_line(),
             Err(error) => format!("Reference snapshot manifest: unavailable ({error})"),

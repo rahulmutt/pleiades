@@ -812,7 +812,7 @@ pub(crate) fn implemented_backend_catalog() -> Vec<BackendMatrixEntry> {
             label: "JPL snapshot reference backend",
             metadata: default_reference_backend().metadata(),
             implementation_status: BackendImplementationStatus::FixtureReference,
-            status_note: "checked-in public-input derivative fixture with exact lookup and cubic interpolation on four-sample windows when available, with quadratic and linear fallbacks for sparser bodies; reference corpus now spans 357 rows across 16 bodies and 31 epochs with expanded bridge and boundary coverage, while the broader production reader remains planned",
+            status_note: "checked-in public-input derivative fixture with exact lookup and cubic interpolation on four-sample windows when available, with quadratic and linear fallbacks for sparser bodies; reference corpus now spans 277 rows across 16 bodies and 23 epochs with expanded bridge and boundary coverage, while the broader production reader remains planned",
             expected_error_kinds: JPL_EXPECTED_ERROR_KINDS,
             required_data_files: JPL_REQUIRED_DATA_FILES,
         },

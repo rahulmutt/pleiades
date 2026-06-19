@@ -14,8 +14,8 @@ fn reference_holdout_overlap_summary_reports_the_current_overlap() {
     let summary = reference_holdout_overlap_summary()
         .expect("reference/hold-out overlap summary should exist");
 
-    assert_eq!(summary.shared_sample_count, 84);
-    assert_eq!(summary.shared_epoch_count, 14);
+    assert_eq!(summary.shared_sample_count, 66);
+    assert_eq!(summary.shared_epoch_count, 12);
     assert_eq!(summary.shared_bodies.len(), 16);
     assert_eq!(summary.validate(), Ok(()));
     assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
@@ -31,7 +31,7 @@ fn reference_holdout_overlap_summary_reports_the_current_overlap() {
     assert_eq!(
             summary.summary_line(),
             format!(
-                "Reference/hold-out overlap: 84 shared body-epoch pairs across 16 bodies and 14 epochs; bodies: {}",
+                "Reference/hold-out overlap: 66 shared body-epoch pairs across 16 bodies and 12 epochs; bodies: {}",
                 format_bodies(&summary.shared_bodies)
             )
         );
@@ -87,26 +87,26 @@ fn reference_snapshot_and_holdout_corpora_remain_anchored_to_the_checked_in_csvs
         "../../../data/independent_holdout_snapshot.csv"
     ));
 
-    assert_eq!(reference.row_count, 357);
+    assert_eq!(reference.row_count, 277);
     assert_eq!(reference.row_count, reference.pairs.len());
     assert_eq!(reference.bodies.len(), 16);
-    assert_eq!(reference.epochs.len(), 31);
-    assert_eq!(holdout.row_count, 84);
+    assert_eq!(reference.epochs.len(), 23);
+    assert_eq!(holdout.row_count, 66);
     assert_eq!(holdout.row_count, holdout.pairs.len());
     assert_eq!(holdout.bodies.len(), 16);
-    assert_eq!(holdout.epochs.len(), 14);
+    assert_eq!(holdout.epochs.len(), 12);
 
     assert_eq!(
         reference_holdout_overlap_summary().map(|summary| summary.shared_sample_count),
-        Some(84)
+        Some(66)
     );
     assert_eq!(
         reference.pairs.intersection(&holdout.pairs).count(),
-        84,
-        "reference and hold-out corpora should retain the documented 84 shared body-epoch pairs"
+        66,
+        "reference and hold-out corpora should retain the documented 66 shared body-epoch pairs"
     );
     assert_eq!(reference.bodies.intersection(&holdout.bodies).count(), 16);
-    assert_eq!(reference.epochs.intersection(&holdout.epochs).count(), 14);
+    assert_eq!(reference.epochs.intersection(&holdout.epochs).count(), 12);
 }
 
 #[test]
@@ -119,7 +119,7 @@ fn independent_holdout_source_summary_reports_the_expected_provenance() {
     );
     assert_eq!(
             summary.coverage,
-            "Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2451915.5, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2451915.5, 2500000, and 2634167, plus Mercury at 2451915.5, plus Venus at 2451915.5, plus Pluto at 2451545 and 2500000, plus major bodies at 2451915.5 for Sun through Pluto, plus selected asteroids at 2378498.5, 2451545, 2451915.5, 2451917.5, 2453000.5, 2500000, and 2634167; asteroid:99942-Apophis now also appears at 2378498.5 so the selected-asteroid hold-out bridge matches the reference slice; total slice size is 84 rows across 16 bodies and 14 epochs."
+            "major-body samples are confined to the 1900-2100 window [JD 2415020.5, 2488069.5]; Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Mercury and Venus at 2451545, 2451915.25, and 2451915.75, plus Jupiter, Saturn, Uranus, Neptune, and Pluto at 2451545, plus Mars at 2451545, plus Sun at 2451545, 2451915.25, 2451915.75, and 2451915.5, plus Moon at 2451545, 2451915.25, 2451915.75, and 2451915.5, plus Mercury at 2451915.5, plus Venus at 2451915.5, plus major bodies at 2451915.5 for Sun through Pluto, plus selected asteroids at 2378498.5, 2451545, 2451915.5, 2451917.5, 2453000.5, 2500000, and 2634167; asteroid:99942-Apophis now also appears at 2378498.5 so the selected-asteroid hold-out bridge matches the reference slice; total slice size is 66 rows across 16 bodies and 12 epochs."
         );
     assert_eq!(summary.evidence_class, INDEPENDENT_HOLDOUT_EVIDENCE_CLASS);
     assert_eq!(summary.columns, "epoch_jd, body, x_km, y_km, z_km");
@@ -318,7 +318,7 @@ fn independent_holdout_source_summary_validation_reports_blank_fields() {
 fn independent_holdout_snapshot_summary_reports_the_expected_coverage() {
     let summary =
         independent_holdout_snapshot_summary().expect("independent hold-out summary should exist");
-    assert_eq!(summary.row_count, 84);
+    assert_eq!(summary.row_count, 66);
     assert_eq!(summary.body_count, 16);
     assert_eq!(
         summary.bodies,
@@ -331,8 +331,8 @@ fn independent_holdout_snapshot_summary_reports_the_expected_coverage() {
             "Uranus",
             "Neptune",
             "Sun",
-            "Moon",
             "Pluto",
+            "Moon",
             "Ceres",
             "Pallas",
             "Juno",
@@ -341,13 +341,13 @@ fn independent_holdout_snapshot_summary_reports_the_expected_coverage() {
             "asteroid:99942-Apophis",
         ]
     );
-    assert_eq!(summary.epoch_count, 14);
+    assert_eq!(summary.epoch_count, 12);
     assert_eq!(summary.earliest_epoch.julian_day.days(), 2_378_498.5);
     assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
     assert_eq!(summary.validate(), Ok(()));
     assert_eq!(
             summary.summary_line(),
-            "Independent hold-out coverage: 84 rows across 16 bodies and 14 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Jupiter, Mercury, Venus, Saturn, Uranus, Neptune, Sun, Moon, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis"
+            "Independent hold-out coverage: 66 rows across 16 bodies and 12 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Jupiter, Mercury, Venus, Saturn, Uranus, Neptune, Sun, Pluto, Moon, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis"
         );
     assert_eq!(summary.to_string(), summary.summary_line());
     assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
@@ -361,10 +361,10 @@ fn independent_holdout_snapshot_summary_reports_the_expected_coverage() {
 fn independent_holdout_snapshot_source_window_summary_reports_the_expected_windows() {
     let summary = independent_holdout_snapshot_source_window_summary()
         .expect("independent hold-out source window summary should exist");
-    assert_eq!(summary.sample_count, 84);
+    assert_eq!(summary.sample_count, 66);
     assert_eq!(summary.sample_bodies.len(), 16);
     assert_eq!(summary.sample_bodies, independent_holdout_bodies().to_vec());
-    assert_eq!(summary.epoch_count, 14);
+    assert_eq!(summary.epoch_count, 12);
     assert_eq!(summary.earliest_epoch.julian_day.days(), 2_378_498.5);
     assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
     assert_eq!(summary.windows.len(), 16);
@@ -372,29 +372,29 @@ fn independent_holdout_snapshot_source_window_summary_reports_the_expected_windo
         summary.windows[0].body,
         pleiades_backend::CelestialBody::Mars
     );
-    assert_eq!(summary.windows[0].sample_count, 8);
-    assert_eq!(summary.windows[0].epoch_count, 8);
+    assert_eq!(summary.windows[0].sample_count, 5);
+    assert_eq!(summary.windows[0].epoch_count, 5);
     assert_eq!(
         summary.windows[0].earliest_epoch.julian_day.days(),
         2_451_545.0
     );
     assert_eq!(
         summary.windows[0].latest_epoch.julian_day.days(),
-        2_634_167.0
+        2_451_915.5
     );
     assert_eq!(
-        summary.windows[9].body,
+        summary.windows[8].body,
         pleiades_backend::CelestialBody::Pluto
     );
-    assert_eq!(summary.windows[9].sample_count, 3);
-    assert_eq!(summary.windows[9].epoch_count, 3);
+    assert_eq!(summary.windows[8].sample_count, 2);
+    assert_eq!(summary.windows[8].epoch_count, 2);
     assert_eq!(
-        summary.windows[9].earliest_epoch.julian_day.days(),
+        summary.windows[8].earliest_epoch.julian_day.days(),
         2_451_545.0
     );
     assert_eq!(
-        summary.windows[9].latest_epoch.julian_day.days(),
-        2_500_000.0
+        summary.windows[8].latest_epoch.julian_day.days(),
+        2_451_915.5
     );
     assert_eq!(summary.validate(), Ok(()));
     assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
@@ -403,7 +403,7 @@ fn independent_holdout_snapshot_source_window_summary_reports_the_expected_windo
         summary.summary_line()
     );
     assert!(summary.summary_line().contains(
-            "Independent hold-out source windows: 84 source-backed samples across 16 bodies and 14 epochs"
+            "Independent hold-out source windows: 66 source-backed samples across 16 bodies and 12 epochs"
         ));
 }
 
@@ -537,14 +537,14 @@ fn independent_holdout_snapshot_summary_validation_rejects_body_order_drift() {
 fn independent_holdout_snapshot_equatorial_parity_summary_reports_the_expected_coverage() {
     let summary = independent_holdout_snapshot_equatorial_parity_summary()
         .expect("independent hold-out equatorial parity summary should exist");
-    assert_eq!(summary.row_count, 84);
+    assert_eq!(summary.row_count, 66);
     assert_eq!(summary.body_count, 16);
-    assert_eq!(summary.epoch_count, 14);
+    assert_eq!(summary.epoch_count, 12);
     assert_eq!(summary.earliest_epoch.julian_day.days(), 2_378_498.5);
     assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
     assert_eq!(
             summary.summary_line(),
-            "JPL independent hold-out equatorial parity: 84 rows across 16 bodies and 14 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); mean-obliquity transform against the checked-in ecliptic fixture"
+            "JPL independent hold-out equatorial parity: 66 rows across 16 bodies and 12 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); mean-obliquity transform against the checked-in ecliptic fixture"
         );
     assert_eq!(summary.validate(), Ok(()));
     assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
@@ -577,7 +577,7 @@ fn independent_holdout_snapshot_equatorial_parity_summary_validation_rejects_row
 fn independent_holdout_summary_reports_the_expected_envelope() {
     let summary =
         jpl_independent_holdout_summary().expect("independent hold-out summary should exist");
-    assert_eq!(summary.sample_count, 84);
+    assert_eq!(summary.sample_count, 66);
     assert_eq!(summary.body_count, 16);
     assert_eq!(
         summary.bodies,
@@ -590,8 +590,8 @@ fn independent_holdout_summary_reports_the_expected_envelope() {
             "Uranus",
             "Neptune",
             "Sun",
-            "Moon",
             "Pluto",
+            "Moon",
             "Ceres",
             "Pallas",
             "Juno",
@@ -600,7 +600,7 @@ fn independent_holdout_summary_reports_the_expected_envelope() {
             "asteroid:99942-Apophis",
         ]
     );
-    assert_eq!(summary.epoch_count, 14);
+    assert_eq!(summary.epoch_count, 12);
     assert!(summary.earliest_epoch.julian_day.days() <= summary.latest_epoch.julian_day.days());
     assert!(summary.max_longitude_error_deg.is_finite());
     assert!(summary.mean_longitude_error_deg.is_finite());
@@ -626,7 +626,7 @@ fn independent_holdout_summary_reports_the_expected_envelope() {
     let rendered = format_jpl_independent_holdout_summary(&summary);
     assert!(rendered.contains("JPL independent hold-out:"));
     assert!(rendered.contains(
-            "84 exact rows across 16 bodies (Mars, Jupiter, Mercury, Venus, Saturn, Uranus, Neptune, Sun, Moon, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) and 14 epochs"
+            "66 exact rows across 16 bodies (Mars, Jupiter, Mercury, Venus, Saturn, Uranus, Neptune, Sun, Pluto, Moon, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) and 12 epochs"
         ));
     assert!(rendered.contains("p95 Δlon="));
     assert!(rendered.contains("p95 Δlat="));
@@ -740,10 +740,10 @@ fn batch_query_preserves_independent_holdout_mixed_scale_order_and_single_query_
     let summary = independent_holdout_snapshot_batch_parity_summary()
         .expect("independent hold-out batch parity summary should exist");
     assert_eq!(summary.to_string(), summary.summary_line());
-    assert_eq!(summary.snapshot.row_count, 84);
+    assert_eq!(summary.snapshot.row_count, 66);
     assert_eq!(summary.snapshot.body_count, 16);
-    assert_eq!(summary.tt_request_count, 42);
-    assert_eq!(summary.tdb_request_count, 42);
+    assert_eq!(summary.tt_request_count, 33);
+    assert_eq!(summary.tdb_request_count, 33);
     assert!(summary.parity_preserved);
     assert_eq!(
         summary.exact_count
@@ -762,9 +762,9 @@ fn batch_query_preserves_independent_holdout_mixed_scale_order_and_single_query_
     let rendered = format_independent_holdout_snapshot_batch_parity_summary(&summary);
     assert!(rendered.contains("JPL independent hold-out batch parity:"));
     assert!(rendered.contains(
-            "84 requests across 16 bodies (Mars, Jupiter, Mercury, Venus, Saturn, Uranus, Neptune, Sun, Moon, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) and 14 epochs"
+            "66 requests across 16 bodies (Mars, Jupiter, Mercury, Venus, Saturn, Uranus, Neptune, Sun, Pluto, Moon, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) and 12 epochs"
         ));
-    assert!(rendered.contains("TT requests=42, TDB requests=42"));
+    assert!(rendered.contains("TT requests=33, TDB requests=33"));
     assert!(rendered.contains("quality counts:"));
     assert!(rendered.contains("order=preserved, single-query parity=preserved"));
 }
@@ -811,7 +811,7 @@ fn independent_holdout_snapshot_manifest_parses_the_documented_header_comments()
     );
     assert_eq!(
             manifest.coverage.as_deref(),
-            Some("Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2451915.5, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2451915.5, 2500000, and 2634167, plus Mercury at 2451915.5, plus Venus at 2451915.5, plus Pluto at 2451545 and 2500000, plus major bodies at 2451915.5 for Sun through Pluto, plus selected asteroids at 2378498.5, 2451545, 2451915.5, 2451917.5, 2453000.5, 2500000, and 2634167; asteroid:99942-Apophis now also appears at 2378498.5 so the selected-asteroid hold-out bridge matches the reference slice; total slice size is 84 rows across 16 bodies and 14 epochs."),
+            Some("major-body samples are confined to the 1900-2100 window [JD 2415020.5, 2488069.5]; Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Mercury and Venus at 2451545, 2451915.25, and 2451915.75, plus Jupiter, Saturn, Uranus, Neptune, and Pluto at 2451545, plus Mars at 2451545, plus Sun at 2451545, 2451915.25, 2451915.75, and 2451915.5, plus Moon at 2451545, 2451915.25, 2451915.75, and 2451915.5, plus Mercury at 2451915.5, plus Venus at 2451915.5, plus major bodies at 2451915.5 for Sun through Pluto, plus selected asteroids at 2378498.5, 2451545, 2451915.5, 2451917.5, 2453000.5, 2500000, and 2634167; asteroid:99942-Apophis now also appears at 2378498.5 so the selected-asteroid hold-out bridge matches the reference slice; total slice size is 66 rows across 16 bodies and 12 epochs."),
         );
     assert_eq!(
         manifest.redistribution.as_deref(),
@@ -824,23 +824,23 @@ fn independent_holdout_snapshot_manifest_parses_the_documented_header_comments()
     assert_eq!(manifest.validate(), Ok(()));
     assert_eq!(
             manifest.summary_line("Independent hold-out manifest"),
-            "Independent hold-out manifest: Independent JPL Horizons hold-out snapshot used only for interpolation validation.; source=NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2451915.5, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2451915.5, 2500000, and 2634167, plus Mercury at 2451915.5, plus Venus at 2451915.5, plus Pluto at 2451545 and 2500000, plus major bodies at 2451915.5 for Sun through Pluto, plus selected asteroids at 2378498.5, 2451545, 2451915.5, 2451917.5, 2453000.5, 2500000, and 2634167; asteroid:99942-Apophis now also appears at 2378498.5 so the selected-asteroid hold-out bridge matches the reference slice; total slice size is 84 rows across 16 bodies and 14 epochs.; columns=epoch_jd, body, x_km, y_km, z_km; redistribution=repository-checked regression fixtures, not a broad public corpus."
+            "Independent hold-out manifest: Independent JPL Horizons hold-out snapshot used only for interpolation validation.; source=NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=major-body samples are confined to the 1900-2100 window [JD 2415020.5, 2488069.5]; Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Mercury and Venus at 2451545, 2451915.25, and 2451915.75, plus Jupiter, Saturn, Uranus, Neptune, and Pluto at 2451545, plus Mars at 2451545, plus Sun at 2451545, 2451915.25, 2451915.75, and 2451915.5, plus Moon at 2451545, 2451915.25, 2451915.75, and 2451915.5, plus Mercury at 2451915.5, plus Venus at 2451915.5, plus major bodies at 2451915.5 for Sun through Pluto, plus selected asteroids at 2378498.5, 2451545, 2451915.5, 2451917.5, 2453000.5, 2500000, and 2634167; asteroid:99942-Apophis now also appears at 2378498.5 so the selected-asteroid hold-out bridge matches the reference slice; total slice size is 66 rows across 16 bodies and 12 epochs.; columns=epoch_jd, body, x_km, y_km, z_km; redistribution=repository-checked regression fixtures, not a broad public corpus."
         );
 }
 
 #[test]
 fn snapshot_manifest_footprint_validation_matches_the_current_reference_and_holdout_corpora() {
     assert_eq!(
-        validate_snapshot_manifest_footprint("reference snapshot", snapshot_entries(), 357, 16, 31,),
+        validate_snapshot_manifest_footprint("reference snapshot", snapshot_entries(), 277, 16, 23,),
         Ok(())
     );
     assert_eq!(
         validate_snapshot_manifest_footprint(
             "independent hold-out snapshot",
             independent_holdout_snapshot_entries(),
-            84,
+            66,
             16,
-            14,
+            12,
         ),
         Ok(())
     );

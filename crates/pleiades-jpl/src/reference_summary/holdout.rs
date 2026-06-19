@@ -1917,7 +1917,7 @@ pub fn independent_holdout_manifest_summary_for_report() -> String {
         manifest_text,
         "Independent JPL Horizons hold-out snapshot used only for interpolation validation.",
         "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.",
-        "Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2451915.5, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2451915.5, 2500000, and 2634167, plus Mercury at 2451915.5, plus Venus at 2451915.5, plus Pluto at 2451545 and 2500000, plus major bodies at 2451915.5 for Sun through Pluto, plus selected asteroids at 2378498.5, 2451545, 2451915.5, 2451917.5, 2453000.5, 2500000, and 2634167; asteroid:99942-Apophis now also appears at 2378498.5 so the selected-asteroid hold-out bridge matches the reference slice; total slice size is 84 rows across 16 bodies and 14 epochs.",
+        "major-body samples are confined to the 1900-2100 window [JD 2415020.5, 2488069.5]; Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Mercury and Venus at 2451545, 2451915.25, and 2451915.75, plus Jupiter, Saturn, Uranus, Neptune, and Pluto at 2451545, plus Mars at 2451545, plus Sun at 2451545, 2451915.25, 2451915.75, and 2451915.5, plus Moon at 2451545, 2451915.25, 2451915.75, and 2451915.5, plus Mercury at 2451915.5, plus Venus at 2451915.5, plus major bodies at 2451915.5 for Sun through Pluto, plus selected asteroids at 2378498.5, 2451545, 2451915.5, 2451917.5, 2453000.5, 2500000, and 2634167; asteroid:99942-Apophis now also appears at 2378498.5 so the selected-asteroid hold-out bridge matches the reference slice; total slice size is 66 rows across 16 bodies and 12 epochs.",
         Some("repository-checked regression fixtures, not a broad public corpus."),
         &["epoch_jd", "body", "x_km", "y_km", "z_km"],
     ) {
@@ -1928,15 +1928,15 @@ pub fn independent_holdout_manifest_summary_for_report() -> String {
     match summary.validate_with_expected_metadata(
         "Independent JPL Horizons hold-out snapshot used only for interpolation validation.",
         "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.",
-        "Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Jupiter at 2400000, 2451545, and 2500000, plus Mercury and Venus at 2451545, 2451915.25, 2451915.75, 2500000, and 2634167, plus Saturn at 2400000, 2451545, and 2500000, plus Uranus and Neptune at 2451545 and 2500000, plus Mars at 2451545, 2500000, 2600000, and 2634167, plus Sun at 2451545, 2451915.25, 2451915.75, 2451915.5, 2500000, and 2634167, plus Moon at 2451545, 2451915.25, 2451915.75, 2451915.5, 2500000, and 2634167, plus Mercury at 2451915.5, plus Venus at 2451915.5, plus Pluto at 2451545 and 2500000, plus major bodies at 2451915.5 for Sun through Pluto, plus selected asteroids at 2378498.5, 2451545, 2451915.5, 2451917.5, 2453000.5, 2500000, and 2634167; asteroid:99942-Apophis now also appears at 2378498.5 so the selected-asteroid hold-out bridge matches the reference slice; total slice size is 84 rows across 16 bodies and 14 epochs.",
+        "major-body samples are confined to the 1900-2100 window [JD 2415020.5, 2488069.5]; Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Mercury and Venus at 2451545, 2451915.25, and 2451915.75, plus Jupiter, Saturn, Uranus, Neptune, and Pluto at 2451545, plus Mars at 2451545, plus Sun at 2451545, 2451915.25, 2451915.75, and 2451915.5, plus Moon at 2451545, 2451915.25, 2451915.75, and 2451915.5, plus Mercury at 2451915.5, plus Venus at 2451915.5, plus major bodies at 2451915.5 for Sun through Pluto, plus selected asteroids at 2378498.5, 2451545, 2451915.5, 2451917.5, 2453000.5, 2500000, and 2634167; asteroid:99942-Apophis now also appears at 2378498.5 so the selected-asteroid hold-out bridge matches the reference slice; total slice size is 66 rows across 16 bodies and 12 epochs.",
         &["epoch_jd", "body", "x_km", "y_km", "z_km"],
     ) {
         Ok(()) => match validate_snapshot_manifest_footprint(
             "independent hold-out snapshot",
             independent_holdout_snapshot_entries(),
-            84,
+            66,
             16,
-            14,
+            12,
         ) {
             Ok(()) => summary.summary_line(),
             Err(error) => format!("Independent hold-out manifest: unavailable ({error})"),

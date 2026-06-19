@@ -8,14 +8,14 @@ use pleiades_jpl::comparison_bodies;
 fn default_corpus_covers_the_comparison_snapshot() {
     let corpus = default_corpus();
     let summary = corpus.summary();
-    assert_eq!(corpus.requests.len(), 232);
-    assert_eq!(summary.epoch_count, 28);
-    assert_eq!(summary.epochs.len(), 28);
+    assert_eq!(corpus.requests.len(), 162);
+    assert_eq!(summary.epoch_count, 18);
+    assert_eq!(summary.epochs.len(), 18);
     assert!(summary
         .epochs
         .iter()
         .all(|epoch| epoch.scale == TimeScale::Tt));
-    assert_eq!(summary.epochs[0].julian_day.days(), 2_268_932.5);
+    assert_eq!(summary.epochs[0].julian_day.days(), 2_415_020.5);
     assert_eq!(summary.body_count, comparison_bodies().len());
     assert!(corpus
         .requests
@@ -37,7 +37,7 @@ fn default_corpus_covers_the_comparison_snapshot() {
     assert!(corpus
         .requests
         .iter()
-        .any(|request| request.instant.julian_day.days() == 2_360_233.5));
+        .any(|request| request.instant.julian_day.days() == 2_415_020.5));
     assert!(corpus
         .requests
         .iter()
@@ -45,7 +45,7 @@ fn default_corpus_covers_the_comparison_snapshot() {
     assert!(corpus
         .requests
         .iter()
-        .any(|request| request.instant.julian_day.days() == 2_634_167.0));
+        .any(|request| request.instant.julian_day.days() == 2_453_000.5));
     assert_eq!(corpus.requests[0].frame, CoordinateFrame::Ecliptic);
     assert_eq!(corpus.apparentness, Apparentness::Mean);
     assert_eq!(corpus.requests[0].apparent, Apparentness::Mean);

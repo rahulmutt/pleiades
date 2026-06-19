@@ -479,14 +479,6 @@ fn release_bundle_writes_expected_artifacts() {
         ));
     assert!(release_notes_summary.contains("Release-specific coverage:"));
     assert!(release_notes_summary
-        .contains(&reference_snapshot_2268932_selected_body_boundary_summary_for_report()));
-    assert!(release_notes_summary
-        .contains(&reference_snapshot_2305457_selected_body_boundary_summary_for_report()));
-    assert!(release_notes_summary
-        .contains(&reference_snapshot_2360233_major_body_boundary_summary_for_report()));
-    assert!(release_notes_summary
-        .contains(&reference_snapshot_2378499_major_body_boundary_summary_for_report()));
-    assert!(release_notes_summary
         .contains(&reference_snapshot_2451916_major_body_interior_summary_for_report()));
     assert!(release_notes_summary
         .contains(&reference_snapshot_2451916_major_body_boundary_summary_for_report()));
@@ -573,10 +565,6 @@ fn release_bundle_writes_expected_artifacts() {
     );
     assert!(release_summary.contains("Backend matrix summary: backend-matrix-summary"));
     assert!(release_summary.contains("JPL interpolation posture: source="));
-    assert!(release_summary
-        .contains(&reference_snapshot_2360233_major_body_boundary_summary_for_report()));
-    assert!(release_summary
-        .contains(&reference_snapshot_2378499_major_body_boundary_summary_for_report()));
     assert!(release_summary
         .contains(&reference_snapshot_2451920_major_body_interior_summary_for_report()));
     assert!(release_summary
@@ -757,10 +745,10 @@ fn release_bundle_writes_expected_artifacts() {
         }));
     assert!(release_summary.contains("JPL frame treatment: checked-in ecliptic snapshot; equatorial coordinates are derived with a mean-obliquity transform"));
     assert!(release_summary.contains(
-            "JPL reference snapshot equatorial parity: 357 rows across 16 bodies and 31 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
+            "JPL reference snapshot equatorial parity: 277 rows across 16 bodies and 23 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
         ));
     assert!(release_summary.contains(
-            "JPL reference snapshot batch parity: 357 rows across 16 bodies and 31 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
+            "JPL reference snapshot batch parity: 277 rows across 16 bodies and 23 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
         ));
     assert!(release_summary.contains("Production generation coverage:"));
     assert!(release_summary.contains("JPL production-generation coverage:"));
@@ -790,11 +778,10 @@ fn release_bundle_writes_expected_artifacts() {
     assert!(release_summary.contains("Selected asteroid batch parity:"));
     assert!(release_summary.contains("Selected asteroid source windows:"));
     assert!(release_summary.contains("Reference snapshot coverage:"));
-    assert!(release_summary.contains("Reference snapshot body-class coverage: major bodies: 262 rows across 10 bodies and 31 epochs; major windows: "));
+    assert!(release_summary.contains("Reference snapshot body-class coverage: major bodies: 182 rows across 10 bodies and 20 epochs; major windows: "));
     assert!(release_summary.contains(&reference_snapshot_high_curvature_summary_for_report()));
     assert!(release_summary
         .contains(&reference_snapshot_major_body_boundary_window_summary_for_report()));
-    assert!(release_summary.contains(&reference_snapshot_mars_outer_boundary_summary_for_report()));
     assert!(
         release_summary.contains(&reference_snapshot_high_curvature_window_summary_for_report())
     );
@@ -804,10 +791,6 @@ fn release_bundle_writes_expected_artifacts() {
     assert!(release_summary
         .contains("selected asteroids: 95 rows across 6 bodies and 17 epochs; asteroid windows: "));
     assert!(release_summary.contains(&reference_snapshot_lunar_boundary_summary_for_report()));
-    assert!(release_summary
-        .contains(&reference_snapshot_1500_selected_body_boundary_summary_for_report()));
-    assert!(release_summary
-        .contains(&reference_snapshot_1600_selected_body_boundary_summary_for_report()));
     assert!(release_summary.contains(&reference_snapshot_source_summary_for_report()));
     assert!(release_summary.contains(&reference_snapshot_source_window_summary_for_report()));
     assert!(release_summary
@@ -916,7 +899,9 @@ fn release_bundle_writes_expected_artifacts() {
     // Over the 1900–2100 window the major bodies fit within threshold and carry no
     // residual channels; only the snapshot-sourced constrained asteroid (Eros) does.
     // (Body SET remains all 11; this is the residual-bearing subset.)
-    assert!(artifact_summary.contains("residual bodies: asteroid:433-Eros; applies to 1 bundled body"));
+    assert!(
+        artifact_summary.contains("residual bodies: asteroid:433-Eros; applies to 1 bundled body")
+    );
     assert!(artifact_summary.contains(&format!(
         "artifact version={}",
         pleiades_data::packaged_artifact_regeneration_summary_details().artifact_version
@@ -1029,7 +1014,7 @@ fn release_bundle_writes_expected_artifacts() {
     assert!(backend_matrix_summary.contains("Algorithmic: 2"));
     assert!(backend_matrix_summary.contains("Composite: 1"));
     assert!(backend_matrix_summary.contains(
-            "JPL reference snapshot equatorial parity: 357 rows across 16 bodies and 31 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
+            "JPL reference snapshot equatorial parity: 277 rows across 16 bodies and 23 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
         ));
     assert!(
         backend_matrix_summary.contains(&reference_snapshot_major_body_bridge_summary_for_report())

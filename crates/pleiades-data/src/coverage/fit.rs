@@ -772,15 +772,19 @@ pub fn packaged_artifact_fit_channel_outlier_summary_for_report() -> String {
 
 // SP1 draft baseline: thresholds are pinned to the measured worst case (overall
 // envelope and the worst per-scope envelope) of the regenerated dense de440-backed
-// draft artifact so the posture reflects measured reality, not an enforced target.
-// These are sample-residual envelopes (not the per-body hold-out accuracy), so the
-// magnitudes are large by construction. SP2 tunes these toward real accuracy goals.
-pub(crate) const PACKAGED_ARTIFACT_FIT_MAX_MEAN_LONGITUDE_DELTA_DEGREES: f64 = 97.45338508194469;
-pub(crate) const PACKAGED_ARTIFACT_FIT_MAX_MEAN_LATITUDE_DELTA_DEGREES: f64 = 11.4281174796933;
-pub(crate) const PACKAGED_ARTIFACT_FIT_MAX_MEAN_DISTANCE_DELTA_AU: f64 = 1_385_044.242_391_523_2;
-pub(crate) const PACKAGED_ARTIFACT_FIT_MAX_LONGITUDE_DELTA_DEGREES: f64 = 179.999_533_720_727_02;
-pub(crate) const PACKAGED_ARTIFACT_FIT_MAX_LATITUDE_DELTA_DEGREES: f64 = 88.23566699957776;
-pub(crate) const PACKAGED_ARTIFACT_FIT_MAX_DISTANCE_DELTA_AU: f64 = 132_134_698.060_402_14;
+// draft artifact. Each body is measured against the SAME source it was fit from:
+// major bodies against the dense de440 production reference corpus (1900–2100, ≥3
+// entries/body, no extrapolation), selected-asteroid/custom bodies against the
+// JplSnapshotBackend reference snapshot they were fit against. So the posture
+// reflects measured reality, not an enforced target. These are sample-residual
+// envelopes (not the per-body hold-out accuracy); they are finite and bounded.
+// SP2 tunes these toward real accuracy goals.
+pub(crate) const PACKAGED_ARTIFACT_FIT_MAX_MEAN_LONGITUDE_DELTA_DEGREES: f64 = 79.29937281518961;
+pub(crate) const PACKAGED_ARTIFACT_FIT_MAX_MEAN_LATITUDE_DELTA_DEGREES: f64 = 3.3205975123714824;
+pub(crate) const PACKAGED_ARTIFACT_FIT_MAX_MEAN_DISTANCE_DELTA_AU: f64 = 5240.2473102557;
+pub(crate) const PACKAGED_ARTIFACT_FIT_MAX_LONGITUDE_DELTA_DEGREES: f64 = 179.999798837311;
+pub(crate) const PACKAGED_ARTIFACT_FIT_MAX_LATITUDE_DELTA_DEGREES: f64 = 69.9571184739231;
+pub(crate) const PACKAGED_ARTIFACT_FIT_MAX_DISTANCE_DELTA_AU: f64 = 10227288.989857685;
 
 pub(crate) const PACKAGED_ARTIFACT_FIT_THRESHOLD_SUMMARY: PackagedArtifactFitThresholdSummary =
     PackagedArtifactFitThresholdSummary {

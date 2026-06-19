@@ -146,12 +146,14 @@ impl PackagedArtifactFitEnvelopeSummary {
         let artifact = packaged_artifact();
         let expected = packaged_artifact_fit_envelope_summary_details();
         // NOTE: `expected_sample_count` is defined as the realized coverable count (planned
-        // fractions that fall inside the JplSnapshotBackend fixture window). The fixture window
-        // (~1500–2585) is narrower than the artifact's de440 window (1600–2600), so ~11% of
-        // planned fractions are legitimately un-coverable at the edges. Both `expected_sample_count`
-        // and `sample_count` are derived from the same realized sample set, so the two checks
-        // below are informational consistency guards (they confirm the live summary was built from
-        // the same realized set) rather than a strict planned-vs-realized invariant.
+        // fractions for which both the fit-truth backend and the packaged backend yield an
+        // ecliptic+distance state). The fit-truth backend (see `FitTruthBackend`) measures major
+        // bodies against the dense de440 production reference corpus (full 1900–2100 window, ≥3
+        // entries/body, brackets every sampled epoch) and asteroid/custom bodies against the
+        // JplSnapshotBackend they were fit from. Both `expected_sample_count` and `sample_count`
+        // are derived from the same realized sample set, so the two checks below are informational
+        // consistency guards (they confirm the live summary was built from the same realized set)
+        // rather than a strict planned-vs-realized invariant.
         // The meaningful drift gate is the value comparison via `self != &expected` below.
         let expected_sample_count = packaged_artifact_fit_expected_sample_count(artifact);
         let expected_body_count = artifact.bodies.len();
@@ -395,18 +397,15 @@ pub(crate) fn packaged_artifact_fit_expected_sample_count_with_filter<F>(
 where
     F: FnMut(&CelestialBody) -> bool,
 {
-    // ROOT-CAUSE FIX for the fit-envelope count drift. The envelope compares the
-    // de440-fit artifact against `JplSnapshotBackend` (the curated reference
-    // fixture). That fixture's window (~1500–2585 CE) is NARROWER than the
-    // artifact's de440 1600–2600 window, so ~11% of planned fit-sample fractions
-    // at the window edges fall outside the fixture and cannot be realized into a
-    // sample. Previously `expected_sample_count` counted ALL planned fractions
-    // while the realized `sample_count` skipped the un-coverable ones, so
-    // `expected != actual` and `validate()` failed.
+    // The envelope compares the de440-fit artifact against the kernel-free
+    // `FitTruthBackend`: major bodies against the dense de440 production reference
+    // corpus (interior ∪ boundary ∪ fast_clusters, full 1900–2100 window, ≥3
+    // entries/body so it brackets every sampled epoch and never extrapolates), and
+    // asteroid/custom bodies against the `JplSnapshotBackend` they were fit from.
     //
-    // The expected count is now DEFINED as the number of GENUINELY COVERABLE
-    // planned samples for the artifact's window — i.e. exactly the realized fit
-    // samples (each passed the reference + packaged ecliptic+distance gate in
+    // The expected count is DEFINED as the number of GENUINELY COVERABLE planned
+    // samples for the artifact's window — i.e. exactly the realized fit samples
+    // (each passed the reference + packaged ecliptic+distance gate in
     // `packaged_artifact_fit_samples_with_filter`). So `expected == actual` holds
     // by construction for a legitimate reason (it counts what is genuinely
     // coverable), not by loosening an equality. Counting the cached realized
@@ -421,6 +420,98 @@ fn packaged_artifact_fit_expected_sample_count(artifact: &CompressedArtifact) ->
     packaged_artifact_fit_expected_sample_count_with_filter(artifact, |_| true)
 }
 
+/// Fit-envelope truth backend that measures each bundled body against the SAME
+/// source the generator fit that body against, so the envelope deltas are a true
+/// generator-vs-source residual rather than a generator-vs-mismatched-source
+/// artifact.
+///
+/// The artifact generator (`regenerate.rs`) fits the ten major bodies from the
+/// de440 kernel and fits the selected-asteroid / custom bodies from the narrow
+/// `JplSnapshotBackend` reference snapshot (`regenerate.rs:162–182`,
+/// "major bodies are fit from the kernel, never from the snapshot"). This truth
+/// backend mirrors that split:
+/// - major bodies → the dense de440-derived production reference corpus
+///   (interior ∪ boundary ∪ fast_clusters), the kernel-free analogue of the de440
+///   kernel they were fit from. It spans the full 1900–2100 window with ≥3
+///   entries/body so Lagrange interpolation never extrapolates.
+/// - selected-asteroid / custom bodies → `JplSnapshotBackend`, the exact source
+///   they were fit against. Measuring asteroids against the corpus instead would
+///   compare them to a body they were never fit from, and the constrained asteroid
+///   corpus is too coarse for fast movers (Eros at ~180-day spacing) so cubic
+///   interpolation overshoots into non-physical multi-million-AU deltas — an
+///   interpolation artifact, not a real residual.
+///
+/// Kernel-free: the corpus and the snapshot both read committed CSVs via
+/// `include_str!`. This backend only *measures* the committed artifact and is
+/// never a generation input, so byte-identity is preserved.
+///
+/// Corpus de-duplication: the three major-body slices overlap at their shared
+/// anchor epochs (the boundary slice repeats interior/fast-cluster anchor rows),
+/// so the merged corpus holds a handful of EXACT-DUPLICATE `(body, epoch)` rows
+/// with identical coordinates. `SnapshotCorpusBackend`'s Lagrange interpolation
+/// ranks nearest nodes by `|epoch − target|` without de-duplicating, so a
+/// duplicated node yields two selected samples at the same epoch and a zero
+/// `(xi − xj)` denominator → `inf`/`NaN` deltas. We de-duplicate identical
+/// `(body, epoch)` rows here before building the corpus backend. This is lossless
+/// (the dropped rows are byte-identical to the kept ones — verified) and never
+/// touches the committed CSVs.
+struct FitTruthBackend {
+    corpus: SnapshotCorpusBackend,
+    snapshot: JplSnapshotBackend,
+}
+
+impl FitTruthBackend {
+    fn fits_from_snapshot(body: &CelestialBody) -> bool {
+        use crate::coverage::PackagedArtifactBodyCadence;
+        matches!(
+            crate::coverage::packaged_artifact_body_cadence(body),
+            PackagedArtifactBodyCadence::SelectedAsteroids
+                | PackagedArtifactBodyCadence::CustomBodies
+        )
+    }
+}
+
+impl EphemerisBackend for FitTruthBackend {
+    fn metadata(&self) -> pleiades_backend::BackendMetadata {
+        self.corpus.metadata()
+    }
+
+    fn supports_body(&self, body: CelestialBody) -> bool {
+        if Self::fits_from_snapshot(&body) {
+            self.snapshot.supports_body(body)
+        } else {
+            self.corpus.supports_body(body)
+        }
+    }
+
+    fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+        if Self::fits_from_snapshot(&req.body) {
+            self.snapshot.position(req)
+        } else {
+            self.corpus.position(req)
+        }
+    }
+}
+
+/// Returns the once-cached fit-truth backend (see [`FitTruthBackend`]).
+fn fit_truth_backend() -> &'static FitTruthBackend {
+    static BACKEND: OnceLock<FitTruthBackend> = OnceLock::new();
+    BACKEND.get_or_init(|| {
+        let mut seen = std::collections::HashSet::new();
+        let entries = production_reference_corpus()
+            .iter()
+            .filter(|entry| {
+                seen.insert((entry.body.clone(), entry.epoch.julian_day.days().to_bits()))
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        FitTruthBackend {
+            corpus: SnapshotCorpusBackend::from_entries(entries),
+            snapshot: JplSnapshotBackend,
+        }
+    })
+}
+
 fn packaged_artifact_fit_samples_with_filter<F>(
     artifact: &CompressedArtifact,
     mut include_body: F,
@@ -428,7 +519,7 @@ fn packaged_artifact_fit_samples_with_filter<F>(
 where
     F: FnMut(&CelestialBody) -> bool,
 {
-    let reference_backend = JplSnapshotBackend;
+    let reference_backend = fit_truth_backend();
     let packaged_backend = packaged_backend();
     let mut samples = Vec::new();
 
@@ -516,7 +607,7 @@ fn packaged_artifact_fit_outlier_samples_with_filter<F>(
 where
     F: FnMut(&CelestialBody) -> bool,
 {
-    let reference_backend = JplSnapshotBackend;
+    let reference_backend = fit_truth_backend();
     let packaged_backend = packaged_backend();
     let mut samples = Vec::new();
 
@@ -874,3 +965,5 @@ pub(crate) fn packaged_artifact_body_scope(body: &CelestialBody) -> &'static str
         _ => "custom bodies",
     }
 }
+
+

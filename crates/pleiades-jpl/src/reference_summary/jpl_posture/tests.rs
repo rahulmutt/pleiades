@@ -293,7 +293,7 @@ fn reference_snapshot_source_summary_reports_the_expected_provenance() {
     );
     assert_eq!(
             summary.coverage,
-            "selected bodies sampled at 1500-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 1600-01-11 for Sun, Moon, Mercury, Venus, Mars, Jupiter, Uranus, Neptune; major bodies sampled at 1749-12-31 for Sun through Neptune; selected bodies sampled at 1750-01-01 for Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; inner planets sampled across 1800-2500; major bodies sampled at 1800-01-03 for Sun through Pluto; selected bodies sampled at 1900-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 2200-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 2451915.25 and 2451915.75 for Sun, Moon, Mercury, Venus; major bodies sampled at 2400000, 2451545, 2451910.5, 2451911.5, 2451912.5, 2451913.5, 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451916.0, 2451916.5, 2451917.0, 2451917.5, 2451918.5, 2451919.5, 2451920.5, 2453000.5, and 2500000; major bodies sampled at 2451915.5 for Sun through Pluto; Mars sampled at 2600000 and 2634167 for outer boundary coverage; major bodies sampled at 2451913.5 through 2451917.5 for additional boundary coverage; selected asteroids sampled at J2000, 2378498.5, 2451910.5 through 2451919.5, with 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451917.5, 2451918.5, and 2451919.5 boundary coverage, 1800-01-03, 2003-12-27, 2132-08-31, 2500-01-01, and 2634167; asteroid:99942-Apophis is now also sampled at 2378498.5 and 2451917.5 to complete the selected-asteroid bridge."
+            "major-body samples are confined to the 1900-2100 window [JD 2415020.5, 2488069.5]; selected bodies sampled at 1900-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 2451915.25 and 2451915.75 for Sun, Moon, Mercury, Venus; major bodies sampled at 2451545, 2451910.5, 2451911.5, 2451912.5, 2451913.5, 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451916.0, 2451916.5, 2451917.0, 2451917.5, 2451918.5, 2451919.5, 2451920.5, and 2453000.5; major bodies sampled at 2451915.5 for Sun through Pluto; major bodies sampled at 2451913.5 through 2451917.5 for additional boundary coverage; selected asteroids sampled at J2000, 2378498.5, 2451910.5 through 2451919.5, with 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451917.5, 2451918.5, and 2451919.5 boundary coverage, 2003-12-27, 2132-08-31, 2500-01-01, and 2634167; asteroid:99942-Apophis is now also sampled at 2378498.5 and 2451917.5 to complete the selected-asteroid bridge."
         );
     assert_eq!(summary.evidence_class, REFERENCE_SNAPSHOT_EVIDENCE_CLASS);
     assert_eq!(summary.columns, REFERENCE_SNAPSHOT_COLUMNS);
@@ -399,9 +399,9 @@ fn reference_snapshot_source_summary_reports_the_expected_provenance() {
 
     let body_class_summary = reference_snapshot_body_class_coverage_summary()
         .expect("reference snapshot body-class coverage summary should exist");
-    assert_eq!(body_class_summary.major_body_row_count, 262);
+    assert_eq!(body_class_summary.major_body_row_count, 182);
     assert_eq!(body_class_summary.major_bodies.len(), 10);
-    assert_eq!(body_class_summary.major_epoch_count, 31);
+    assert_eq!(body_class_summary.major_epoch_count, 20);
     assert_eq!(body_class_summary.major_windows.len(), 10);
     assert_eq!(body_class_summary.asteroid_row_count, 95);
     assert_eq!(body_class_summary.asteroid_bodies.len(), 6);
@@ -418,7 +418,7 @@ fn reference_snapshot_source_summary_reports_the_expected_provenance() {
     );
     assert!(body_class_summary
             .summary_line()
-            .contains("Reference snapshot body-class coverage: major bodies: 262 rows across 10 bodies and 31 epochs; major windows: "));
+            .contains("Reference snapshot body-class coverage: major bodies: 182 rows across 10 bodies and 20 epochs; major windows: "));
     assert!(body_class_summary
         .summary_line()
         .contains("selected asteroids: 95 rows across 6 bodies and 17 epochs; asteroid windows: "));
@@ -457,31 +457,31 @@ fn reference_snapshot_source_summary_reports_the_expected_provenance() {
     assert!(window_summary.summary_line().contains("Moon:"));
     assert!(window_summary.summary_line().contains("Pluto:"));
 
-    let sun_window = &window_summary.windows[0];
+    let sun_window = &window_summary.windows[6];
     assert_eq!(sun_window.body, pleiades_backend::CelestialBody::Sun);
-    assert_eq!(sun_window.sample_count, 30);
-    assert_eq!(sun_window.epoch_count, 30);
-    assert_eq!(sun_window.earliest_epoch.julian_day.days(), 2_268_932.5);
-    assert_eq!(sun_window.latest_epoch.julian_day.days(), 2_634_167.0);
+    assert_eq!(sun_window.sample_count, 20);
+    assert_eq!(sun_window.epoch_count, 20);
+    assert_eq!(sun_window.earliest_epoch.julian_day.days(), 2_415_020.5);
+    assert_eq!(sun_window.latest_epoch.julian_day.days(), 2_453_000.5);
 
-    let jupiter_window = &window_summary.windows[5];
+    let jupiter_window = &window_summary.windows[10];
     assert_eq!(
         jupiter_window.body,
         pleiades_backend::CelestialBody::Jupiter
     );
-    assert_eq!(jupiter_window.sample_count, 24);
-    assert_eq!(jupiter_window.epoch_count, 24);
-    assert_eq!(jupiter_window.earliest_epoch.julian_day.days(), 2_305_457.5);
-    assert_eq!(jupiter_window.latest_epoch.julian_day.days(), 2_500_000.0);
+    assert_eq!(jupiter_window.sample_count, 17);
+    assert_eq!(jupiter_window.epoch_count, 17);
+    assert_eq!(jupiter_window.earliest_epoch.julian_day.days(), 2_451_545.0);
+    assert_eq!(jupiter_window.latest_epoch.julian_day.days(), 2_453_000.5);
 
-    let pluto_window = &window_summary.windows[9];
+    let pluto_window = &window_summary.windows[13];
     assert_eq!(pluto_window.body, pleiades_backend::CelestialBody::Pluto);
-    assert_eq!(pluto_window.sample_count, 21);
-    assert_eq!(pluto_window.epoch_count, 21);
-    assert_eq!(pluto_window.earliest_epoch.julian_day.days(), 2_378_498.5);
-    assert_eq!(pluto_window.latest_epoch.julian_day.days(), 2_500_000.0);
+    assert_eq!(pluto_window.sample_count, 17);
+    assert_eq!(pluto_window.epoch_count, 17);
+    assert_eq!(pluto_window.earliest_epoch.julian_day.days(), 2_451_545.0);
+    assert_eq!(pluto_window.latest_epoch.julian_day.days(), 2_453_000.5);
 
-    let asteroid_window = &window_summary.windows[14];
+    let asteroid_window = &window_summary.windows[4];
     assert_eq!(
         asteroid_window.body,
         pleiades_backend::CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros"))
@@ -638,7 +638,7 @@ fn jpl_snapshot_evidence_posture_summaries_validate_and_fail_closed() {
 #[test]
 fn interpolation_quality_samples_are_reportable() {
     let samples = interpolation_quality_samples();
-    assert_eq!(samples.len(), 293);
+    assert_eq!(samples.len(), 223);
     assert!(samples.iter().all(|sample| {
         let epoch = sample.epoch.julian_day.days();
         let summary_line = sample.summary_line();
@@ -694,7 +694,7 @@ fn interpolation_quality_samples_are_reportable() {
         .any(|sample| sample.interpolation_kind == InterpolationQualityKind::Linear));
     assert!(samples
         .iter()
-        .any(|sample| sample.epoch.julian_day.days() == 2_400_000.0));
+        .any(|sample| sample.epoch.julian_day.days() == 2_451_545.0));
     assert!(samples
         .iter()
         .any(|sample| sample.epoch.julian_day.days() == 2_451_910.5));
@@ -709,13 +709,13 @@ fn interpolation_quality_samples_are_reportable() {
         .any(|sample| sample.epoch.julian_day.days() == 2_451_920.5));
     assert!(samples
         .iter()
-        .any(|sample| sample.epoch.julian_day.days() == 2_524_593.5));
+        .any(|sample| sample.epoch.julian_day.days() == 2_453_000.5));
     assert!(samples
         .iter()
         .any(|sample| sample.epoch.julian_day.days() == 2_500_000.0));
     assert!(samples
         .iter()
-        .any(|sample| sample.epoch.julian_day.days() == 2_600_000.0));
+        .any(|sample| sample.epoch.julian_day.days() == 2_451_920.5));
     assert!(samples
         .iter()
         .any(|sample| sample.body == pleiades_backend::CelestialBody::Mars));
@@ -786,9 +786,9 @@ fn interpolation_quality_sample_request_corpus_remains_the_explicit_alias() {
 #[test]
 fn interpolation_quality_summary_reports_the_worst_case_labels() {
     let summary = jpl_interpolation_quality_summary().expect("summary should exist");
-    assert_eq!(summary.sample_count, 293);
+    assert_eq!(summary.sample_count, 223);
     assert_eq!(summary.body_count, 16);
-    assert_eq!(summary.epoch_count, 27);
+    assert_eq!(summary.epoch_count, 19);
     assert!(summary.earliest_epoch.julian_day.days() <= summary.latest_epoch.julian_day.days());
     assert_eq!(
         summary.cubic_sample_count + summary.quadratic_sample_count + summary.linear_sample_count,
@@ -823,7 +823,7 @@ fn interpolation_quality_summary_reports_the_worst_case_labels() {
     assert!(rendered.contains("cubic"));
     assert!(rendered.contains("quadratic"));
     assert!(rendered.contains("linear"));
-    assert!(rendered.contains("293 samples across 16 bodies and 27 epochs"));
+    assert!(rendered.contains("223 samples across 16 bodies and 19 epochs"));
     assert!(rendered.contains("epoch window"));
     assert!(rendered.contains("mean bracket span="));
     assert!(rendered.contains("median bracket span="));
@@ -866,7 +866,7 @@ fn interpolation_quality_summary_reports_the_worst_case_labels() {
 #[test]
 fn interpolation_quality_kind_coverage_reports_the_distinct_body_breakdown() {
     let coverage = jpl_interpolation_quality_kind_coverage().expect("coverage should exist");
-    assert_eq!(coverage.sample_count, 293);
+    assert_eq!(coverage.sample_count, 223);
     assert_eq!(coverage.body_count, 16);
     assert_eq!(coverage.bodies.len(), coverage.body_count);
     assert!(!coverage.bodies.is_empty());
@@ -882,7 +882,7 @@ fn interpolation_quality_kind_coverage_reports_the_distinct_body_breakdown() {
 
     let rendered = format_jpl_interpolation_quality_kind_coverage(&coverage);
     assert!(rendered.contains("JPL interpolation quality kind coverage:"));
-    assert!(rendered.contains("293 samples across 16 bodies ["));
+    assert!(rendered.contains("223 samples across 16 bodies ["));
     assert!(rendered.contains(&coverage.bodies[0]));
     assert!(rendered.contains("cubic bodies"));
     assert!(rendered.contains("quadratic bodies"));
@@ -897,7 +897,7 @@ fn interpolation_quality_kind_coverage_reports_the_distinct_body_breakdown() {
 fn interpolation_quality_sample_request_corpus_reports_the_explicit_request_slice() {
     let summary = interpolation_quality_sample_request_corpus_summary()
         .expect("sample request corpus should exist");
-    assert_eq!(summary.request_count, 293);
+    assert_eq!(summary.request_count, 223);
     assert_eq!(summary.body_count, 16);
     assert_eq!(summary.bodies.len(), summary.body_count);
     assert!(!summary.bodies.is_empty());
@@ -1027,9 +1027,9 @@ fn interpolation_quality_source_summary_reports_the_expected_provenance() {
 
     assert_eq!(summary.source, reference_snapshot_source_summary().source);
     assert_eq!(summary.derivation, JPL_INTERPOLATION_QUALITY_DERIVATION);
-    assert_eq!(summary.sample_count, 293);
+    assert_eq!(summary.sample_count, 223);
     assert_eq!(summary.body_count, 16);
-    assert_eq!(summary.epoch_count, 27);
+    assert_eq!(summary.epoch_count, 19);
     assert_eq!(summary.to_string(), summary.summary_line());
     assert_eq!(summary.validate(), Ok(()));
     assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));

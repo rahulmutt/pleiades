@@ -12,17 +12,17 @@ use pleiades_types::CoordinateFrame;
 #[test]
 fn comparison_snapshot_summary_reports_the_expected_coverage() {
     let summary = comparison_snapshot_summary().expect("comparison snapshot summary should exist");
-    assert_eq!(summary.row_count, 232);
+    assert_eq!(summary.row_count, 162);
     assert_eq!(summary.body_count, 10);
-    assert_eq!(summary.epoch_count, 28);
-    assert_eq!(summary.earliest_epoch.julian_day.days(), 2_268_932.5);
-    assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
+    assert_eq!(summary.epoch_count, 18);
+    assert_eq!(summary.earliest_epoch.julian_day.days(), 2_415_020.5);
+    assert_eq!(summary.latest_epoch.julian_day.days(), 2_453_000.5);
     assert_eq!(summary.bodies.as_slice(), comparison_bodies());
     assert_eq!(summary.validate(), Ok(()));
     assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
     assert_eq!(
             summary.summary_line(),
-            "Comparison snapshot coverage: 232 rows across 10 bodies and 28 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); bodies: Sun, Moon, Mercury, Venus, Mars, Jupiter, Uranus, Neptune, Saturn, Pluto"
+            "Comparison snapshot coverage: 162 rows across 10 bodies and 18 epochs (JD 2415020.5 (TDB)..JD 2453000.5 (TDB)); bodies: Sun, Moon, Mercury, Venus, Jupiter, Mars, Neptune, Pluto, Saturn, Uranus"
         );
     assert_eq!(summary.to_string(), summary.summary_line());
     assert_eq!(
@@ -36,9 +36,9 @@ fn comparison_snapshot_body_class_coverage_summary_reports_the_expected_windows(
     let summary = comparison_snapshot_body_class_coverage_summary()
         .expect("comparison snapshot body-class coverage summary should exist");
 
-    assert_eq!(summary.row_count, 232);
+    assert_eq!(summary.row_count, 162);
     assert_eq!(summary.bodies.as_slice(), comparison_bodies());
-    assert_eq!(summary.epoch_count, 28);
+    assert_eq!(summary.epoch_count, 18);
     assert_eq!(summary.windows.len(), summary.bodies.len());
     assert_eq!(summary.validate(), Ok(()));
     assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
@@ -53,7 +53,7 @@ fn comparison_snapshot_body_class_coverage_summary_reports_the_expected_windows(
     );
     assert!(summary
             .summary_line()
-            .starts_with("Comparison snapshot body-class coverage: 232 rows across 10 bodies and 28 epochs; bodies: "));
+            .starts_with("Comparison snapshot body-class coverage: 162 rows across 10 bodies and 18 epochs; bodies: "));
     assert!(summary.summary_line().contains("windows: Sun:"));
 }
 
@@ -102,23 +102,23 @@ fn comparison_snapshot_equatorial_parity_requests_remain_the_explicit_alias() {
 fn comparison_snapshot_batch_parity_summary_reports_the_expected_coverage() {
     let summary = comparison_snapshot_batch_parity_summary()
         .expect("comparison snapshot batch parity summary should exist");
-    assert_eq!(summary.snapshot.row_count, 232);
+    assert_eq!(summary.snapshot.row_count, 162);
     assert_eq!(summary.snapshot.body_count, 10);
-    assert_eq!(summary.snapshot.epoch_count, 28);
+    assert_eq!(summary.snapshot.epoch_count, 18);
     assert_eq!(
         summary.snapshot.earliest_epoch.julian_day.days(),
-        2_268_932.5
+        2_415_020.5
     );
-    assert_eq!(summary.snapshot.latest_epoch.julian_day.days(), 2_634_167.0);
+    assert_eq!(summary.snapshot.latest_epoch.julian_day.days(), 2_453_000.5);
     assert_eq!(summary.snapshot.bodies.as_slice(), comparison_bodies());
-    assert_eq!(summary.ecliptic_request_count, 116);
-    assert_eq!(summary.equatorial_request_count, 116);
+    assert_eq!(summary.ecliptic_request_count, 81);
+    assert_eq!(summary.equatorial_request_count, 81);
     assert_eq!(summary.validate(), Ok(()));
     assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
     assert_eq!(
             summary.summary_line(),
             format!(
-                "JPL comparison snapshot batch parity: 232 rows across 10 bodies and 28 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); bodies: {}; frame mix: 116 ecliptic, 116 equatorial; quality counts: Exact=232, Interpolated=0, Approximate=0, Unknown=0; batch/single parity preserved",
+                "JPL comparison snapshot batch parity: 162 rows across 10 bodies and 18 epochs (JD 2415020.5 (TDB)..JD 2453000.5 (TDB)); bodies: {}; frame mix: 81 ecliptic, 81 equatorial; quality counts: Exact=162, Interpolated=0, Approximate=0, Unknown=0; batch/single parity preserved",
                 format_bodies(comparison_bodies())
             )
         );
@@ -529,19 +529,19 @@ fn comparison_snapshot_source_summary_validation_reports_blank_fields() {
 fn comparison_snapshot_source_window_summary_reports_the_expected_body_windows() {
     let summary = comparison_snapshot_source_window_summary()
         .expect("comparison snapshot source window summary should exist");
-    assert_eq!(summary.sample_count, 232);
+    assert_eq!(summary.sample_count, 162);
     assert_eq!(summary.sample_bodies.len(), 10);
-    assert_eq!(summary.epoch_count, 28);
+    assert_eq!(summary.epoch_count, 18);
     assert_eq!(summary.windows.len(), 10);
     assert_eq!(summary.validate(), Ok(()));
     assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
-    assert!(summary.summary_line().contains("Comparison snapshot source windows: 232 source-backed samples across 10 bodies and 28 epochs"));
+    assert!(summary.summary_line().contains("Comparison snapshot source windows: 162 source-backed samples across 10 bodies and 18 epochs"));
     assert!(summary
         .summary_line()
-        .contains("Mars: 23 samples across 23 epochs at JD 2305457.5 (TDB)..JD 2634167.0 (TDB)"));
+        .contains("Mars: 15 samples across 15 epochs at JD 2451545.0 (TDB)..JD 2453000.5 (TDB)"));
     assert!(summary
         .summary_line()
-        .contains("Pluto: 18 samples across 18 epochs at JD 2378499.0 (TDB)..JD 2500000.0 (TDB)"));
+        .contains("Pluto: 15 samples across 15 epochs at JD 2451545.0 (TDB)..JD 2453000.5 (TDB)"));
     assert_eq!(
         comparison_snapshot_source_window_summary_for_report(),
         summary.summary_line()

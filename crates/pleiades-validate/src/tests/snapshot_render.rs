@@ -220,7 +220,7 @@ fn comparison_snapshot_source_window_summary_command_renders_the_source_windows_
         .expect("comparison snapshot source window summary should render");
 
     assert!(rendered.contains("Comparison snapshot source windows:"));
-    assert!(rendered.contains("232 source-backed samples"));
+    assert!(rendered.contains("162 source-backed samples"));
     assert_eq!(
         rendered,
         comparison_snapshot_source_window_summary_for_report()
@@ -1007,152 +1007,6 @@ fn selected_asteroid_terminal_boundary_summary_command_renders_the_terminal_day(
 }
 
 #[test]
-fn comparison_and_reference_snapshot_summary_commands_render_the_overall_blocks() {
-    let comparison = render_cli(&["comparison-snapshot-summary"])
-        .expect("comparison snapshot summary should render");
-    assert!(comparison.contains("Comparison snapshot summary"));
-    assert!(comparison.contains("Comparison snapshot coverage:"));
-    assert_eq!(
-        comparison,
-        format!(
-            "Comparison snapshot summary\n{}\n",
-            comparison_snapshot_summary_for_report()
-        )
-    );
-    assert_eq!(
-        render_cli(&["j2000-snapshot"]).expect("j2000 snapshot alias should render"),
-        comparison
-    );
-    assert_eq!(
-        render_cli(&["comparison-snapshot"]).expect("comparison snapshot alias should render"),
-        comparison
-    );
-    assert_eq!(
-        render_cli(&["j2000-snapshot", "extra"])
-            .expect_err("j2000 snapshot alias should reject extra arguments"),
-        "j2000-snapshot does not accept extra arguments"
-    );
-    assert_eq!(
-        render_cli(&["comparison-snapshot-summary", "extra"])
-            .expect_err("comparison snapshot summary should reject extra arguments"),
-        "comparison-snapshot-summary does not accept extra arguments"
-    );
-    assert_eq!(
-        render_cli(&["comparison-snapshot", "extra"])
-            .expect_err("comparison snapshot alias should reject extra arguments"),
-        "comparison-snapshot does not accept extra arguments"
-    );
-
-    let reference = render_cli(&["reference-snapshot-summary"])
-        .expect("reference snapshot summary should render");
-    assert!(reference.contains("Reference snapshot summary"));
-    assert!(reference.contains("Reference snapshot coverage:"));
-    assert!(reference.contains("Reference 2500 major-body boundary evidence:"));
-    assert!(reference
-        .contains(&reference_snapshot_2451916_major_body_dense_boundary_summary_for_report()));
-    assert!(
-        reference.contains(&reference_snapshot_2451916_major_body_boundary_summary_for_report())
-    );
-    assert!(
-        reference.contains(&reference_snapshot_2451918_major_body_boundary_summary_for_report())
-    );
-    assert!(
-        reference.contains(&reference_snapshot_2451919_major_body_boundary_summary_for_report())
-    );
-    assert!(reference.contains(&reference_snapshot_bridge_day_summary_for_report()));
-    assert!(
-        reference.contains(&reference_snapshot_2451914_major_body_bridge_day_summary_for_report())
-    );
-    assert!(
-        reference.contains(&reference_snapshot_2451915_major_body_boundary_summary_for_report())
-    );
-    assert!(reference.contains(&reference_snapshot_2451915_major_body_bridge_summary_for_report()));
-    assert!(reference.contains("Reference 2500 selected-body boundary evidence:"));
-    assert!(reference.contains("Reference 2200 selected-body boundary evidence:"));
-    assert!(reference.contains("Reference 2415020 selected-body boundary evidence:"));
-    assert!(
-        reference.contains(&reference_snapshot_2451910_major_body_boundary_summary_for_report())
-    );
-    assert!(reference.contains(&selected_asteroid_boundary_summary_for_report()));
-    assert!(reference.contains(&selected_asteroid_bridge_summary_for_report()));
-    assert!(reference.contains(&selected_asteroid_dense_boundary_summary_for_report()));
-    assert!(reference.contains(&selected_asteroid_terminal_boundary_summary_for_report()));
-    assert!(reference.contains(&selected_asteroid_source_evidence_summary_for_report()));
-    assert!(reference.contains(&selected_asteroid_source_window_summary_for_report()));
-    assert!(reference.contains("Reference 2453000 major-body boundary evidence:"));
-    assert!(reference.contains("Reference 2600000 major-body boundary evidence:"));
-    assert!(reference.contains("Reference 2400000 major-body boundary evidence:"));
-    assert!(reference.contains("Reference 2451545 major-body boundary evidence:"));
-    assert!(
-        reference.contains(&reference_snapshot_2451917_major_body_boundary_summary_for_report())
-    );
-    assert!(reference.contains(&reference_snapshot_2451917_major_body_bridge_summary_for_report()));
-    assert!(
-        reference.contains(&reference_snapshot_2360234_major_body_interior_summary_for_report())
-    );
-    assert!(
-        reference.contains(&reference_snapshot_2451920_major_body_interior_summary_for_report())
-    );
-    assert_eq!(
-        reference,
-        format!(
-            "Reference snapshot summary\n{}\n",
-            reference_snapshot_summary_for_report()
-        )
-    );
-    assert_eq!(
-        render_cli(&["reference-snapshot"]).expect("reference snapshot alias should render"),
-        reference
-    );
-    assert_eq!(
-        render_cli(&["reference-snapshot-summary", "extra"])
-            .expect_err("reference snapshot summary should reject extra arguments"),
-        "reference-snapshot-summary does not accept extra arguments"
-    );
-    assert_eq!(
-        render_cli(&["reference-snapshot", "extra"])
-            .expect_err("reference snapshot alias should reject extra arguments"),
-        "reference-snapshot does not accept extra arguments"
-    );
-
-    let reference_exact_j2000 = render_cli(&["reference-snapshot-exact-j2000-evidence-summary"])
-        .expect("reference snapshot exact J2000 evidence should render");
-    assert!(reference_exact_j2000.contains("Reference snapshot exact J2000 evidence summary"));
-    assert!(reference_exact_j2000.contains(
-        "Reference snapshot exact J2000 evidence: 16 exact J2000 samples at JD 2451545.0"
-    ));
-    assert_eq!(
-        reference_exact_j2000,
-        format!(
-            "Reference snapshot exact J2000 evidence summary\n{}\n",
-            reference_snapshot_exact_j2000_evidence_summary_for_report()
-        )
-    );
-    let exact_j2000_evidence =
-        render_cli(&["exact-j2000-evidence"]).expect("exact J2000 evidence alias should render");
-    assert_eq!(exact_j2000_evidence, reference_exact_j2000);
-    let reference_exact_j2000_alias = render_cli(&["reference-snapshot-exact-j2000-evidence"])
-        .expect("reference snapshot exact J2000 evidence alias should render");
-    assert_eq!(reference_exact_j2000_alias, reference_exact_j2000);
-    assert_eq!(
-        render_cli(&["exact-j2000-evidence", "extra"])
-            .expect_err("exact J2000 evidence alias should reject extra arguments"),
-        "exact-j2000-evidence does not accept extra arguments"
-    );
-    assert_eq!(
-        render_cli(&["reference-snapshot-exact-j2000-evidence", "extra"]).expect_err(
-            "reference snapshot exact J2000 evidence alias should reject extra arguments"
-        ),
-        "reference-snapshot-exact-j2000-evidence does not accept extra arguments"
-    );
-    assert_eq!(
-        render_cli(&["reference-snapshot-exact-j2000-evidence-summary", "extra"])
-            .expect_err("reference snapshot exact J2000 evidence should reject extra arguments"),
-        "reference-snapshot-exact-j2000-evidence-summary does not accept extra arguments"
-    );
-}
-
-#[test]
 fn comparison_and_benchmark_corpus_summary_commands_render_the_corpus_blocks() {
     assert_eq!(
         validated_comparison_corpus_release_guard_summary_for_report(),
@@ -1263,7 +1117,7 @@ fn comparison_and_benchmark_corpus_summary_commands_render_the_corpus_blocks() {
     assert!(body_date_channel_claims_summary
         .contains("frame policy=ecliptic body positions are the default request shape"));
     assert!(body_date_channel_claims_summary
-        .contains("date range=JD 2268932.5 (TDB)..JD 2634167.0 (TDB)"));
+        .contains("date range=JD 2378498.5 (TDB)..JD 2634167.0 (TDB)"));
     assert!(body_date_channel_claims_summary
         .contains("production generation coverage=Production generation coverage:"));
     assert!(body_date_channel_claims_summary.contains(
@@ -1566,149 +1420,6 @@ fn reference_snapshot_lunar_boundary_summary_command_renders_the_lunar_boundary_
 }
 
 #[test]
-fn reference_snapshot_1500_selected_body_boundary_summary_command_renders_the_early_selected_body_boundary_block(
-) {
-    let rendered = render_cli(&["reference-snapshot-1500-selected-body-boundary-summary"])
-        .expect("reference snapshot 1500 selected-body boundary summary should render");
-
-    assert!(rendered.contains("Reference 1500 selected-body boundary evidence:"));
-    assert!(rendered.contains("JD 2268932.5 (TDB)"));
-    assert!(rendered.contains("Sun, Moon, Mercury, Venus"));
-    assert_eq!(
-        rendered,
-        reference_snapshot_1500_selected_body_boundary_summary_for_report()
-    );
-
-    let alias = render_cli(&["1500-selected-body-boundary-summary"])
-        .expect("1500 selected-body boundary summary alias should render");
-    assert_eq!(
-        alias,
-        reference_snapshot_1500_selected_body_boundary_summary_for_report()
-    );
-
-    let epoch_alias = render_cli(&["2268932-selected-body-boundary-summary"])
-        .expect("2268932 selected-body boundary summary alias should render");
-    assert_eq!(
-        epoch_alias,
-        reference_snapshot_2268932_selected_body_boundary_summary_for_report()
-    );
-    assert_eq!(
-        reference_snapshot_2268932_selected_body_boundary_summary_for_report(),
-        reference_snapshot_1500_selected_body_boundary_summary_for_report()
-    );
-    assert_eq!(
-        render_cli(&["2268932-selected-body-boundary-summary", "extra"]).expect_err(
-            "2268932 selected-body boundary summary alias should reject extra arguments"
-        ),
-        "reference-snapshot-2268932-selected-body-boundary-summary does not accept extra arguments"
-    );
-}
-
-#[test]
-fn reference_snapshot_1600_selected_body_boundary_summary_command_renders_the_selected_body_boundary_block(
-) {
-    let rendered = render_cli(&["reference-snapshot-1600-selected-body-boundary-summary"])
-        .expect("reference snapshot 1600 selected-body boundary summary should render");
-
-    assert!(rendered.contains("Reference 1600 selected-body boundary evidence:"));
-    assert!(rendered.contains("JD 2305457.5 (TDB)"));
-    assert!(rendered.contains("Sun, Moon, Mercury, Venus, Mars, Jupiter, Uranus, Neptune"));
-    assert_eq!(
-        rendered,
-        reference_snapshot_1600_selected_body_boundary_summary_for_report()
-    );
-
-    let alias = render_cli(&["1600-selected-body-boundary-summary"])
-        .expect("1600 selected-body boundary summary alias should render");
-    assert_eq!(
-        alias,
-        reference_snapshot_1600_selected_body_boundary_summary_for_report()
-    );
-
-    let epoch_alias = render_cli(&["2305457-selected-body-boundary-summary"])
-        .expect("2305457 selected-body boundary summary alias should render");
-    assert_eq!(
-        epoch_alias,
-        reference_snapshot_2305457_selected_body_boundary_summary_for_report()
-    );
-    assert_eq!(
-        reference_snapshot_2305457_selected_body_boundary_summary_for_report(),
-        reference_snapshot_1600_selected_body_boundary_summary_for_report()
-    );
-    assert_eq!(
-        render_cli(&["2305457-selected-body-boundary-summary", "extra"]).expect_err(
-            "2305457 selected-body boundary summary alias should reject extra arguments"
-        ),
-        "reference-snapshot-2305457-selected-body-boundary-summary does not accept extra arguments"
-    );
-}
-
-#[test]
-fn reference_snapshot_1750_selected_body_boundary_summary_command_renders_the_selected_body_boundary_block(
-) {
-    let rendered = render_cli(&["reference-snapshot-1750-selected-body-boundary-summary"])
-        .expect("reference snapshot 1750 selected-body boundary summary should render");
-
-    assert!(rendered.contains("Reference 1750 selected-body boundary evidence:"));
-    assert!(rendered.contains("JD 2360234.5 (TDB)"));
-    assert!(rendered.contains("Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune"));
-    assert_eq!(
-        rendered,
-        reference_snapshot_1750_selected_body_boundary_summary_for_report()
-    );
-
-    let alias = render_cli(&["1750-selected-body-boundary-summary"])
-        .expect("1750 selected-body boundary summary alias should render");
-    assert_eq!(
-        alias,
-        reference_snapshot_1750_selected_body_boundary_summary_for_report()
-    );
-}
-
-#[test]
-fn reference_snapshot_1750_major_body_interior_summary_command_renders_the_interior_block() {
-    let rendered = render_cli(&["reference-snapshot-1750-major-body-interior-summary"])
-        .expect("reference snapshot 1750 major-body interior summary should render");
-
-    assert!(rendered.contains("Reference 1750 major-body interior comparison evidence:"));
-    assert!(rendered.contains("JD 2360234.5 (TDB)"));
-    assert!(rendered.contains("Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune"));
-    assert_eq!(
-        rendered,
-        reference_snapshot_1750_major_body_interior_summary_for_report()
-    );
-
-    let alias = render_cli(&["1750-major-body-interior-summary"])
-        .expect("1750 major-body interior summary alias should render");
-    assert_eq!(
-        alias,
-        reference_snapshot_1750_major_body_interior_summary_for_report()
-    );
-}
-
-#[test]
-fn reference_snapshot_2200_selected_body_boundary_summary_command_renders_the_selected_body_boundary_block(
-) {
-    let rendered = render_cli(&["reference-snapshot-2200-selected-body-boundary-summary"])
-        .expect("reference snapshot 2200 selected-body boundary summary should render");
-
-    assert!(rendered.contains("Reference 2200 selected-body boundary evidence:"));
-    assert!(rendered.contains("JD 2524593.5 (TDB)"));
-    assert!(rendered.contains("Sun, Moon, Mercury, Venus"));
-    assert_eq!(
-        rendered,
-        reference_snapshot_2200_selected_body_boundary_summary_for_report()
-    );
-
-    let alias = render_cli(&["2200-selected-body-boundary-summary"])
-        .expect("2200 selected-body boundary summary alias should render");
-    assert_eq!(
-        alias,
-        reference_snapshot_2200_selected_body_boundary_summary_for_report()
-    );
-}
-
-#[test]
 fn reference_snapshot_1900_selected_body_boundary_summary_command_renders_the_selected_body_boundary_block(
 ) {
     let rendered = render_cli(&["reference-snapshot-1900-selected-body-boundary-summary"])
@@ -1748,240 +1459,6 @@ fn reference_snapshot_1900_selected_body_boundary_summary_command_renders_the_se
             "2415020 selected-body boundary summary alias should reject extra arguments"
         ),
         "reference-snapshot-2415020-selected-body-boundary-summary does not accept extra arguments"
-    );
-}
-
-#[test]
-fn reference_snapshot_2500_selected_body_boundary_summary_command_renders_the_selected_body_boundary_block(
-) {
-    let rendered = render_cli(&["reference-snapshot-2500-selected-body-boundary-summary"])
-        .expect("reference snapshot 2500 selected-body boundary summary should render");
-
-    assert!(rendered.contains("Reference 2500 selected-body boundary evidence:"));
-    assert!(rendered.contains("JD 2634167.0 (TDB)"));
-    assert!(rendered.contains("Mars, Mercury, Moon, Sun, Venus"));
-    assert_eq!(
-        rendered,
-        reference_snapshot_2500_selected_body_boundary_summary_for_report()
-    );
-
-    let alias = render_cli(&["2500-selected-body-boundary-summary"])
-        .expect("2500 selected-body boundary summary alias should render");
-    assert_eq!(
-        alias,
-        reference_snapshot_2500_selected_body_boundary_summary_for_report()
-    );
-}
-
-#[test]
-fn reference_snapshot_2634167_selected_body_boundary_summary_command_renders_the_selected_body_boundary_block(
-) {
-    let rendered = render_cli(&["reference-snapshot-2634167-selected-body-boundary-summary"])
-        .expect("reference snapshot 2634167 selected-body boundary summary should render");
-
-    assert!(rendered.contains("Reference 2634167 selected-body boundary evidence:"));
-    assert!(rendered.contains("JD 2634167.0 (TDB)"));
-    assert!(rendered.contains("Mars, Mercury, Moon, Sun, Venus"));
-    assert_eq!(
-        rendered,
-        reference_snapshot_2634167_selected_body_boundary_summary_for_report()
-    );
-
-    let alias = render_cli(&["2634167-selected-body-boundary-summary"])
-        .expect("2634167 selected-body boundary summary alias should render");
-    assert_eq!(
-        alias,
-        reference_snapshot_2634167_selected_body_boundary_summary_for_report()
-    );
-}
-
-#[test]
-fn reference_snapshot_1749_major_body_boundary_summary_command_renders_the_1749_boundary_block() {
-    let rendered = render_cli(&["reference-snapshot-1749-major-body-boundary-summary"])
-        .expect("reference snapshot 1749 major-body boundary summary should render");
-
-    assert!(rendered.contains("Reference 1749 major-body boundary evidence:"));
-    assert!(rendered.contains("JD 2360233.5 (TDB)"));
-    assert_eq!(
-        rendered,
-        reference_snapshot_1749_major_body_boundary_summary_for_report()
-    );
-    let alias = render_cli(&["1749-major-body-boundary-summary"])
-        .expect("1749 major-body boundary alias should render");
-    assert_eq!(alias, rendered);
-    let epoch_alias = render_cli(&["2360233-major-body-boundary-summary"])
-        .expect("2360233 major-body boundary alias should render");
-    assert_eq!(epoch_alias, rendered);
-    assert_eq!(
-        render_cli(&[
-            "reference-snapshot-1749-major-body-boundary-summary",
-            "extra"
-        ])
-        .expect_err(
-            "reference snapshot 1749 major-body boundary summary should reject extra arguments"
-        ),
-        "reference-snapshot-1749-major-body-boundary-summary does not accept extra arguments"
-    );
-    assert_eq!(
-        render_cli(&["1749-major-body-boundary-summary", "extra"])
-            .expect_err("1749 major-body boundary alias should reject extra arguments"),
-        "reference-snapshot-1749-major-body-boundary-summary does not accept extra arguments"
-    );
-    assert_eq!(
-        render_cli(&["2360233-major-body-boundary-summary", "extra"])
-            .expect_err("2360233 major-body boundary alias should reject extra arguments"),
-        "reference-snapshot-1749-major-body-boundary-summary does not accept extra arguments"
-    );
-}
-
-#[test]
-fn reference_snapshot_early_major_body_boundary_summary_command_renders_the_early_boundary_block() {
-    let rendered = render_cli(&["reference-snapshot-early-major-body-boundary-summary"])
-        .expect("reference snapshot early major-body boundary summary should render");
-
-    assert!(rendered.contains("Reference early major-body boundary evidence:"));
-    assert_eq!(
-        rendered,
-        reference_snapshot_early_major_body_boundary_summary_for_report()
-    );
-    let exact_jd_alias = render_cli(&["2378498-major-body-boundary-summary"])
-        .expect("2378498 major-body boundary alias should render");
-    assert_eq!(
-        exact_jd_alias,
-        reference_snapshot_2378498_major_body_boundary_summary_for_report()
-    );
-    assert_eq!(
-        exact_jd_alias,
-        rendered.replace(
-            "Reference early major-body boundary evidence",
-            "Reference 2378498 major-body boundary evidence"
-        )
-    );
-    let alias = render_cli(&["early-major-body-boundary-summary"])
-        .expect("early major-body boundary alias should render");
-    assert_eq!(alias, rendered);
-    assert_eq!(
-        render_cli(&["2378498-major-body-boundary-summary", "extra"])
-            .expect_err("2378498 major-body boundary alias should reject extra arguments"),
-        "reference-snapshot-2378498-major-body-boundary-summary does not accept extra arguments"
-    );
-    assert_eq!(
-        render_cli(&[
-            "reference-snapshot-early-major-body-boundary-summary",
-            "extra"
-        ])
-        .expect_err(
-            "reference snapshot early major-body boundary summary should reject extra arguments"
-        ),
-        "reference-snapshot-early-major-body-boundary-summary does not accept extra arguments"
-    );
-    assert_eq!(
-        render_cli(&["early-major-body-boundary-summary", "extra"])
-            .expect_err("early major-body boundary alias should reject extra arguments"),
-        "reference-snapshot-early-major-body-boundary-summary does not accept extra arguments"
-    );
-
-    let reference_snapshot_1800_major_body_boundary_summary =
-        render_cli(&["reference-snapshot-1800-major-body-boundary-summary"])
-            .expect("reference snapshot 1800 major-body boundary summary should render");
-
-    assert!(reference_snapshot_1800_major_body_boundary_summary
-        .contains("Reference 1800 major-body boundary evidence:"));
-    assert_eq!(
-        reference_snapshot_1800_major_body_boundary_summary,
-        reference_snapshot_1800_major_body_boundary_summary_for_report()
-    );
-    let alias = render_cli(&["1800-major-body-boundary-summary"])
-        .expect("1800 major-body boundary alias should render");
-    assert_eq!(alias, reference_snapshot_1800_major_body_boundary_summary);
-    let epoch_alias = render_cli(&["2378499-major-body-boundary-summary"])
-        .expect("2378499 major-body boundary alias should render");
-    assert_eq!(
-        epoch_alias,
-        reference_snapshot_1800_major_body_boundary_summary
-    );
-    assert_eq!(
-        render_cli(&[
-            "reference-snapshot-1800-major-body-boundary-summary",
-            "extra"
-        ])
-        .expect_err(
-            "reference snapshot 1800 major-body boundary summary should reject extra arguments"
-        ),
-        "reference-snapshot-1800-major-body-boundary-summary does not accept extra arguments"
-    );
-    assert_eq!(
-        render_cli(&["1800-major-body-boundary-summary", "extra"])
-            .expect_err("1800 major-body boundary alias should reject extra arguments"),
-        "reference-snapshot-1800-major-body-boundary-summary does not accept extra arguments"
-    );
-    assert_eq!(
-        render_cli(&["2378499-major-body-boundary-summary", "extra"])
-            .expect_err("2378499 major-body boundary alias should reject extra arguments"),
-        "reference-snapshot-1800-major-body-boundary-summary does not accept extra arguments"
-    );
-}
-
-#[test]
-fn reference_snapshot_2500_major_body_boundary_summary_command_renders_the_terminal_boundary_block()
-{
-    let rendered = render_cli(&["reference-snapshot-2500-major-body-boundary-summary"])
-        .expect("reference snapshot 2500 major-body boundary summary should render");
-
-    assert!(rendered.contains("Reference 2500 major-body boundary evidence:"));
-    assert!(rendered.contains("JD 2500000.0 (TDB)"));
-    assert_eq!(
-        rendered,
-        reference_snapshot_2500_major_body_boundary_summary_for_report()
-    );
-    let alias = render_cli(&["2500-major-body-boundary-summary"])
-        .expect("2500 major-body boundary alias should render");
-    assert_eq!(alias, rendered);
-    assert_eq!(
-        render_cli(&[
-            "reference-snapshot-2500-major-body-boundary-summary",
-            "extra"
-        ])
-        .expect_err(
-            "reference snapshot 2500 major-body boundary summary should reject extra arguments"
-        ),
-        "reference-snapshot-2500-major-body-boundary-summary does not accept extra arguments"
-    );
-    assert_eq!(
-        render_cli(&["2500-major-body-boundary-summary", "extra"])
-            .expect_err("2500 major-body boundary alias should reject extra arguments"),
-        "reference-snapshot-2500-major-body-boundary-summary does not accept extra arguments"
-    );
-}
-
-#[test]
-fn reference_snapshot_2400000_major_body_boundary_summary_command_renders_the_boundary_block() {
-    let rendered = render_cli(&["reference-snapshot-2400000-major-body-boundary-summary"])
-        .expect("reference snapshot 2400000 major-body boundary summary should render");
-
-    assert!(rendered.contains("Reference 2400000 major-body boundary evidence:"));
-    assert!(rendered.contains("JD 2400000.0 (TDB)"));
-    assert_eq!(
-        rendered,
-        reference_snapshot_2400000_major_body_boundary_summary_for_report()
-    );
-    let alias = render_cli(&["2400000-major-body-boundary-summary"])
-        .expect("2400000 major-body boundary alias should render");
-    assert_eq!(alias, rendered);
-    assert_eq!(
-        render_cli(&[
-            "reference-snapshot-2400000-major-body-boundary-summary",
-            "extra"
-        ])
-        .expect_err(
-            "reference snapshot 2400000 major-body boundary summary should reject extra arguments"
-        ),
-        "reference-snapshot-2400000-major-body-boundary-summary does not accept extra arguments"
-    );
-    assert_eq!(
-        render_cli(&["2400000-major-body-boundary-summary", "extra"])
-            .expect_err("2400000 major-body boundary alias should reject extra arguments"),
-        "reference-snapshot-2400000-major-body-boundary-summary does not accept extra arguments"
     );
 }
 
@@ -2045,70 +1522,6 @@ fn reference_snapshot_2453000_major_body_boundary_summary_command_renders_the_la
         render_cli(&["2453000-major-body-boundary-summary", "extra"])
             .expect_err("2453000 major-body boundary alias should reject extra arguments"),
         "reference-snapshot-2453000-major-body-boundary-summary does not accept extra arguments"
-    );
-}
-
-#[test]
-fn reference_snapshot_2500000_major_body_boundary_summary_command_renders_the_terminal_boundary_block(
-) {
-    let rendered = render_cli(&["reference-snapshot-2500000-major-body-boundary-summary"])
-        .expect("reference snapshot 2500000 major-body boundary summary should render");
-
-    assert!(rendered.contains("Reference 2500000 major-body boundary evidence:"));
-    assert!(rendered.contains("JD 2500000.0 (TDB)"));
-    assert_eq!(
-        rendered,
-        reference_snapshot_2500000_major_body_boundary_summary_for_report()
-    );
-    let alias = render_cli(&["2500000-major-body-boundary-summary"])
-        .expect("2500000 major-body boundary alias should render");
-    assert_eq!(alias, rendered);
-    assert_eq!(
-        render_cli(&[
-            "reference-snapshot-2500000-major-body-boundary-summary",
-            "extra"
-        ])
-        .expect_err(
-            "reference snapshot 2500000 major-body boundary summary should reject extra arguments"
-        ),
-        "reference-snapshot-2500000-major-body-boundary-summary does not accept extra arguments"
-    );
-    assert_eq!(
-        render_cli(&["2500000-major-body-boundary-summary", "extra"])
-            .expect_err("2500000 major-body boundary alias should reject extra arguments"),
-        "reference-snapshot-2500000-major-body-boundary-summary does not accept extra arguments"
-    );
-}
-
-#[test]
-fn reference_snapshot_2600000_major_body_boundary_summary_command_renders_the_outer_boundary_block()
-{
-    let rendered = render_cli(&["reference-snapshot-2600000-major-body-boundary-summary"])
-        .expect("reference snapshot 2600000 major-body boundary summary should render");
-
-    assert!(rendered.contains("Reference 2600000 major-body boundary evidence:"));
-    assert!(rendered.contains("JD 2600000.0 (TDB)"));
-    assert_eq!(
-        rendered,
-        reference_snapshot_2600000_major_body_boundary_summary_for_report()
-    );
-    let alias = render_cli(&["2600000-major-body-boundary-summary"])
-        .expect("2600000 major-body boundary alias should render");
-    assert_eq!(alias, rendered);
-    assert_eq!(
-        render_cli(&[
-            "reference-snapshot-2600000-major-body-boundary-summary",
-            "extra"
-        ])
-        .expect_err(
-            "reference snapshot 2600000 major-body boundary summary should reject extra arguments"
-        ),
-        "reference-snapshot-2600000-major-body-boundary-summary does not accept extra arguments"
-    );
-    assert_eq!(
-        render_cli(&["2600000-major-body-boundary-summary", "extra"])
-            .expect_err("2600000 major-body boundary alias should reject extra arguments"),
-        "reference-snapshot-2600000-major-body-boundary-summary does not accept extra arguments"
     );
 }
 
@@ -2377,71 +1790,6 @@ fn reference_snapshot_2451920_major_body_interior_summary_aliases_render_the_sam
 }
 
 #[test]
-fn reference_snapshot_2360234_major_body_interior_summary_aliases_render_the_same_reports() {
-    let interior_2360234 = render_cli(&["reference-snapshot-2360234-major-body-interior-summary"])
-        .expect("2360234 major-body interior comparison summary should render");
-    assert!(interior_2360234.contains("Reference 2360234 major-body interior comparison evidence:"));
-    assert!(interior_2360234.contains("JD 2360234.5 (TDB)"));
-    let interior_2360234_alias = render_cli(&["2360234-major-body-interior-summary"])
-        .expect("2360234 major-body interior comparison alias should render");
-    assert_eq!(interior_2360234_alias, interior_2360234);
-    assert_eq!(
-            render_cli(&["reference-snapshot-2360234-major-body-interior-summary", "extra"])
-                .expect_err(
-                    "2360234 major-body interior comparison summary should reject extra arguments",
-                ),
-            "reference-snapshot-2360234-major-body-interior-summary does not accept extra arguments"
-        );
-    assert_eq!(
-        render_cli(&["2360234-major-body-interior-summary", "extra"]).expect_err(
-            "2360234 major-body interior comparison alias should reject extra arguments",
-        ),
-        "reference-snapshot-2360234-major-body-interior-summary does not accept extra arguments"
-    );
-}
-
-#[test]
-fn reference_snapshot_mars_outer_boundary_summary_command_renders_the_outer_boundary_block() {
-    let rendered = render_cli(&["reference-snapshot-mars-outer-boundary-summary"])
-        .expect("reference snapshot Mars outer-boundary summary should render");
-
-    assert!(rendered.contains("Reference Mars outer-boundary evidence:"));
-    assert!(rendered.contains("JD 2600000.0 (TDB)"));
-    assert!(rendered.contains("JD 2634167.0 (TDB)"));
-    assert_eq!(
-        rendered,
-        reference_snapshot_mars_outer_boundary_summary_for_report()
-    );
-    let alias = render_cli(&["mars-outer-boundary-summary"])
-        .expect("Mars outer-boundary alias should render");
-    assert_eq!(alias, rendered);
-}
-
-#[test]
-fn reference_snapshot_2600000_major_body_boundary_summary_aliases_render_the_same_reports() {
-    let boundary_2600000 = render_cli(&["reference-snapshot-2600000-major-body-boundary-summary"])
-        .expect("2600000 major-body boundary summary should render");
-    assert!(boundary_2600000.contains("Reference 2600000 major-body boundary evidence:"));
-    assert!(boundary_2600000.contains("JD 2600000.0 (TDB)"));
-    let boundary_2600000_alias = render_cli(&["2600000-major-body-boundary-summary"])
-        .expect("2600000 major-body boundary alias should render");
-    assert_eq!(boundary_2600000_alias, boundary_2600000);
-    assert_eq!(
-        render_cli(&[
-            "reference-snapshot-2600000-major-body-boundary-summary",
-            "extra"
-        ])
-        .expect_err("2600000 major-body boundary summary should reject extra arguments",),
-        "reference-snapshot-2600000-major-body-boundary-summary does not accept extra arguments"
-    );
-    assert_eq!(
-        render_cli(&["2600000-major-body-boundary-summary", "extra"])
-            .expect_err("2600000 major-body boundary alias should reject extra arguments"),
-        "reference-snapshot-2600000-major-body-boundary-summary does not accept extra arguments"
-    );
-}
-
-#[test]
 fn source_corpus_summary_aliases_render_the_same_report() {
     let rendered =
         render_cli(&["source-corpus-summary"]).expect("source corpus summary should render");
@@ -2459,11 +1807,11 @@ fn source_corpus_summary_aliases_render_the_same_report() {
     assert!(rendered.contains("production generation source revision=source revision="));
     assert!(rendered.contains("reference_snapshot.csv checksum=0x"));
     assert!(rendered.contains("independent_holdout_snapshot.csv checksum=0x"));
-    assert!(rendered.contains("production generation source windows=357 source-backed samples across 16 bodies and 31 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB))"));
+    assert!(rendered.contains("production generation source windows=277 source-backed samples across 16 bodies and 23 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB))"));
     assert!(rendered.contains("source density floors=reference major bodies:"));
-    assert!(rendered.contains("production generation body-class coverage=major bodies: 262 rows across 10 bodies and 31 epochs"));
+    assert!(rendered.contains("production generation body-class coverage=major bodies: 182 rows across 10 bodies and 20 epochs"));
     assert!(rendered
-        .contains("production generation date range=JD 2268932.5 (TDB)..JD 2634167.0 (TDB)"));
+        .contains("production generation date range=JD 2378498.5 (TDB)..JD 2634167.0 (TDB)"));
     assert!(rendered.contains("production generation quarter-day boundary samples=8 rows across 4 bodies and 2 epochs (JD 2451915.25 (TDB)..JD 2451915.75 (TDB))"));
     assert!(rendered.contains("coverage posture=production-generation coverage and corpus shape remain aligned across the advertised 1600-2600 CE window; coverage="));
     assert!(rendered.contains("body-class coverage=major bodies:"));
@@ -2476,8 +1824,8 @@ fn source_corpus_summary_aliases_render_the_same_report() {
     assert!(rendered.contains(
         "reference snapshot exact J2000 evidence=16 exact J2000 samples at JD 2451545.0 (TDB)"
     ));
-    assert!(rendered.contains("reference snapshot equatorial parity=357 rows across 16 bodies and 31 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB))"));
-    assert!(rendered.contains("reference snapshot body-class coverage=major bodies: 262 rows across 10 bodies and 31 epochs"));
+    assert!(rendered.contains("reference snapshot equatorial parity=277 rows across 16 bodies and 23 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB))"));
+    assert!(rendered.contains("reference snapshot body-class coverage=major bodies: 182 rows across 10 bodies and 20 epochs"));
     let reference_snapshot_manifest = required_summary_payload(
         reference_snapshot_manifest_summary_for_report(),
         "Reference snapshot manifest: ",
@@ -2488,7 +1836,7 @@ fn source_corpus_summary_aliases_render_the_same_report() {
         "reference snapshot manifest={reference_snapshot_manifest}"
     )));
     assert!(rendered.contains(
-        "independent-holdout body-class coverage=84 rows across 16 bodies and 14 epochs"
+        "independent-holdout body-class coverage=66 rows across 16 bodies and 12 epochs"
     ));
     assert!(rendered.contains("Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis"));
     assert!(rendered.contains("evidence classification=release-tolerance=reference/comparison/production-generation validation summaries; hold-out=independent hold-out rows and interpolation-quality summaries; fixture exactness=reference snapshot exact J2000 evidence; provenance-only=source and manifest summaries"));
@@ -2496,7 +1844,7 @@ fn source_corpus_summary_aliases_render_the_same_report() {
     assert!(rendered
         .contains("lunar source windows=7 exact Moon samples across 1 bodies in 2 exact windows"));
     assert!(rendered.contains("release-grade body claims=Moon and supported lunar points (Mean Node, True Node, Mean Apogee, Mean Perigee) remain source-backed validation bodies; True Apogee and True Perigee remain unsupported; Sun through Neptune are release-grade major-body claims; Pluto remains an explicitly approximate fallback; selected asteroids (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) remain source-backed validation bodies"));
-    assert!(rendered.contains("date range=JD 2268932.5 (TDB)..JD 2634167.0 (TDB)"));
+    assert!(rendered.contains("date range=JD 2378498.5 (TDB)..JD 2634167.0 (TDB)"));
     assert!(rendered.contains("production generation coverage=Production generation coverage:"));
     assert!(rendered.contains(
             "coverage posture=production-generation coverage and corpus shape remain aligned across the advertised 1600-2600 CE window; coverage="

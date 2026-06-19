@@ -284,11 +284,6 @@ pub(crate) fn render_validation_report_summary_text(report: &ValidationReport) -
     let _ = writeln!(
         text,
         "  {}",
-        reference_snapshot_mars_outer_boundary_summary_for_report()
-    );
-    let _ = writeln!(
-        text,
-        "  {}",
         reference_snapshot_major_body_boundary_window_summary_for_report()
     );
     let _ = writeln!(

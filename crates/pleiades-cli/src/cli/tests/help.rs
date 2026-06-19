@@ -20,14 +20,8 @@ fn help_text_mentions_tdb_to_tt_retagging_flag() {
     assert!(rendered.contains("high-curvature-summary"));
     assert!(rendered.contains("reference-snapshot-major-body-high-curvature-summary"));
     assert!(rendered.contains("major-body-high-curvature-summary"));
-    assert!(rendered.contains("reference-snapshot-2500-major-body-boundary-summary"));
-    assert!(rendered.contains("2500-major-body-boundary-summary"));
-    assert!(rendered.contains("reference-snapshot-2500-selected-body-boundary-summary"));
-    assert!(rendered.contains("2500-selected-body-boundary-summary"));
     assert!(rendered.contains("reference-snapshot-2453000-major-body-boundary-summary"));
     assert!(rendered.contains("2453000-major-body-boundary-summary"));
-    assert!(rendered.contains("reference-snapshot-2500000-major-body-boundary-summary"));
-    assert!(rendered.contains("2500000-major-body-boundary-summary"));
     assert!(rendered.contains("reference-snapshot-2451545-major-body-boundary-summary"));
     assert!(rendered.contains("2451545-major-body-boundary-summary"));
     assert!(rendered.contains("reference-snapshot-2451910-major-body-boundary-summary"));
@@ -60,12 +54,6 @@ fn help_text_mentions_tdb_to_tt_retagging_flag() {
     assert!(rendered.contains("2451916-major-body-interior-summary"));
     assert!(rendered.contains("reference-snapshot-2451920-major-body-interior-summary"));
     assert!(rendered.contains("2451920-major-body-interior-summary"));
-    assert!(rendered.contains("reference-snapshot-1749-major-body-boundary-summary"));
-    assert!(rendered.contains("1749-major-body-boundary-summary"));
-    assert!(rendered.contains("2360233-major-body-boundary-summary"));
-    assert!(rendered.contains("reference-snapshot-1800-major-body-boundary-summary"));
-    assert!(rendered.contains("1800-major-body-boundary-summary"));
-    assert!(rendered.contains("2378499-major-body-boundary-summary"));
     assert!(rendered.contains("reference-snapshot-major-body-boundary-summary"));
     assert!(rendered.contains("major-body-boundary-summary"));
     assert!(rendered.contains("reference-snapshot-mars-jupiter-boundary-summary"));
@@ -96,8 +84,6 @@ fn help_text_mentions_tdb_to_tt_retagging_flag() {
     assert!(rendered.contains("pre-bridge-boundary-summary"));
     assert!(rendered.contains("reference-snapshot-dense-boundary-summary"));
     assert!(rendered.contains("dense-boundary-summary"));
-    assert!(rendered.contains("early-major-body-boundary-summary"));
-    assert!(rendered.contains("1800-major-body-boundary-summary"));
     assert!(rendered.contains("source-documentation-summary"));
     assert!(
         rendered.contains("source-documentation         Alias for source-documentation-summary")
@@ -477,57 +463,6 @@ fn help_text_lists_the_packaged_lookup_epoch_policy_summary_command() {
         "comparison-body-class-error-envelope  Alias for comparison-body-class-error-envelope-summary"
     ));
     assert!(help.contains(
-        "reference-snapshot-1749-major-body-boundary-summary  Print the compact reference 1749 major-body boundary evidence summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-2268932-selected-body-boundary-summary  Print the compact reference 2268932 selected-body boundary evidence summary"
-    ));
-    assert!(help.contains(
-        "2268932-selected-body-boundary-summary  Alias for reference-snapshot-2268932-selected-body-boundary-summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-1600-selected-body-boundary-summary  Print the compact reference 1600 selected-body boundary evidence summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-2305457-selected-body-boundary-summary  Print the compact reference 2305457 selected-body boundary evidence summary"
-    ));
-    assert!(help.contains(
-        "2305457-selected-body-boundary-summary  Alias for reference-snapshot-2305457-selected-body-boundary-summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-1750-selected-body-boundary-summary  Print the compact reference 1750 selected-body boundary evidence summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-2200-selected-body-boundary-summary  Print the compact reference 2200 selected-body boundary evidence summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-2524593-selected-body-boundary-summary  Print the compact reference 2524593 selected-body boundary evidence summary"
-    ));
-    assert!(help.contains(
-        "2524593-selected-body-boundary-summary  Alias for reference-snapshot-2524593-selected-body-boundary-summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-2634167-selected-body-boundary-summary  Print the compact reference 2634167 selected-body boundary evidence summary"
-    ));
-    assert!(help.contains(
-        "2634167-selected-body-boundary-summary  Alias for reference-snapshot-2634167-selected-body-boundary-summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-early-major-body-boundary-summary  Print the compact reference early major-body boundary evidence summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-2378498-major-body-boundary-summary  Print the compact reference 2378498 major-body boundary evidence summary"
-    ));
-    assert!(help.contains(
-        "2378498-major-body-boundary-summary  Alias for reference-snapshot-2378498-major-body-boundary-summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-1800-major-body-boundary-summary  Print the compact reference 1800 major-body boundary evidence summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-2500-major-body-boundary-summary  Print the compact reference 2500 major-body boundary evidence summary"
-    ));
-    assert!(help.contains(
         "reference-snapshot-2453000-major-body-boundary-summary  Print the compact reference 2453000 major-body boundary evidence summary"
     ));
     assert!(help.contains(
@@ -596,12 +531,6 @@ fn help_text_lists_the_packaged_lookup_epoch_policy_summary_command() {
     ));
     assert!(help.contains(
         "mars-jupiter-boundary-summary  Alias for reference-snapshot-mars-jupiter-boundary-summary"
-    ));
-    assert!(help.contains(
-        "reference-snapshot-mars-outer-boundary-summary  Print the compact reference Mars outer-boundary evidence summary"
-    ));
-    assert!(help.contains(
-        "mars-outer-boundary-summary  Alias for reference-snapshot-mars-outer-boundary-summary"
     ));
     assert!(help.contains(
         "lunar-reference-error-envelope-summary  Print the compact lunar reference error envelope summary"

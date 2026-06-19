@@ -1335,8 +1335,8 @@ fn verify_release_bundle_rejects_tampered_production_generation_boundary_source_
             "pleiades-release-bundle-tampered-production-generation-boundary-source-semantic",
             "production-generation-boundary-source-summary.txt",
             "production generation boundary source summary checksum (fnv1a-64):",
-            "coverage=Mars and Jupiter",
-            "coverage=drifted Mars and Jupiter",
+            "Mars and Jupiter at 2001-01-01",
+            "drifted Mars and Jupiter at 2001-01-01",
             "production generation boundary source summary no longer matches the current production-generation boundary source posture",
         );
 }
@@ -1361,8 +1361,8 @@ fn verify_release_bundle_rejects_tampered_production_generation_boundary_request
             "pleiades-release-bundle-tampered-production-generation-boundary-request-corpus-semantic",
             "production-generation-boundary-request-corpus-summary.txt",
             "production generation boundary request corpus summary checksum (fnv1a-64):",
-            "84 requests",
-            "85 drifted requests",
+            "66 requests",
+            "67 drifted requests",
             "production generation boundary request corpus summary no longer matches the current production-generation boundary request corpus posture",
         );
 }
@@ -1410,8 +1410,8 @@ fn verify_release_bundle_rejects_tampered_production_generation_boundary_request
             "pleiades-release-bundle-tampered-production-generation-boundary-request-corpus-equatorial-semantic",
             "production-generation-boundary-request-corpus-equatorial-summary.txt",
             "production generation boundary request corpus equatorial summary checksum (fnv1a-64):",
-            "84 requests",
-            "85 drifted requests",
+            "66 requests",
+            "67 drifted requests",
             "production generation boundary request corpus equatorial summary no longer matches the current production-generation boundary request corpus equatorial posture",
         );
 }

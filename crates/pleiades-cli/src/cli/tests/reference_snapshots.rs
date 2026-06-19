@@ -2,96 +2,6 @@
 
 use crate::cli::render_cli;
 #[test]
-fn reference_snapshot_1600_selected_body_boundary_aliases_render_the_same_reports() {
-    let boundary_1600 = render_cli(&["reference-snapshot-1600-selected-body-boundary-summary"])
-        .expect("1600 selected-body boundary summary should render");
-    assert!(boundary_1600.contains("Reference 1600 selected-body boundary evidence:"));
-    assert!(boundary_1600.contains("JD 2305457.5 (TDB)"));
-    let boundary_1600_alias = render_cli(&["1600-selected-body-boundary-summary"])
-        .expect("1600 selected-body boundary alias should render");
-    assert_eq!(boundary_1600_alias, boundary_1600);
-
-    let boundary_2305457 = render_cli(&["2305457-selected-body-boundary-summary"])
-        .expect("2305457 selected-body boundary summary should render");
-    assert_eq!(boundary_2305457, boundary_1600);
-}
-
-#[test]
-fn reference_snapshot_1750_selected_body_boundary_aliases_render_the_same_reports() {
-    let boundary_1750 = render_cli(&["reference-snapshot-1750-selected-body-boundary-summary"])
-        .expect("1750 selected-body boundary summary should render");
-    assert!(boundary_1750.contains("Reference 1750 selected-body boundary evidence:"));
-    assert!(boundary_1750.contains("JD 2360234.5 (TDB)"));
-    let boundary_1750_alias = render_cli(&["1750-selected-body-boundary-summary"])
-        .expect("1750 selected-body boundary alias should render");
-    assert_eq!(boundary_1750_alias, boundary_1750);
-}
-
-#[test]
-fn reference_snapshot_1749_major_body_boundary_aliases_render_the_same_reports() {
-    let boundary_1749 = render_cli(&["reference-snapshot-1749-major-body-boundary-summary"])
-        .expect("1749 major-body boundary summary should render");
-    assert!(boundary_1749.contains("Reference 1749 major-body boundary evidence:"));
-    assert!(boundary_1749.contains("JD 2360233.5 (TDB)"));
-    let boundary_1749_alias = render_cli(&["1749-major-body-boundary-summary"])
-        .expect("1749 major-body boundary alias should render");
-    assert_eq!(boundary_1749_alias, boundary_1749);
-    let boundary_2360233_alias = render_cli(&["2360233-major-body-boundary-summary"])
-        .expect("2360233 major-body boundary alias should render");
-    assert_eq!(boundary_2360233_alias, boundary_1749);
-}
-
-#[test]
-fn early_and_1800_major_body_boundary_aliases_render_the_same_reports() {
-    let early = render_cli(&["reference-snapshot-early-major-body-boundary-summary"])
-        .expect("early major-body boundary summary should render");
-    let early_alias = render_cli(&["early-major-body-boundary-summary"])
-        .expect("early major-body boundary alias should render");
-    assert_eq!(early_alias, early);
-
-    let boundary_1800 = render_cli(&["reference-snapshot-1800-major-body-boundary-summary"])
-        .expect("1800 major-body boundary summary should render");
-    let boundary_1800_alias = render_cli(&["1800-major-body-boundary-summary"])
-        .expect("1800 major-body boundary alias should render");
-    assert_eq!(boundary_1800_alias, boundary_1800);
-    let boundary_2378499_alias = render_cli(&["2378499-major-body-boundary-summary"])
-        .expect("2378499 major-body boundary alias should render");
-    assert_eq!(boundary_2378499_alias, boundary_1800);
-}
-
-#[test]
-fn reference_snapshot_2500_selected_body_boundary_aliases_render_the_same_reports() {
-    let boundary_2500 = render_cli(&["reference-snapshot-2500-selected-body-boundary-summary"])
-        .expect("2500 selected-body boundary summary should render");
-    assert!(boundary_2500.contains("Reference 2500 selected-body boundary evidence:"));
-    assert!(boundary_2500.contains("JD 2634167.0 (TDB)"));
-    let boundary_2500_alias = render_cli(&["2500-selected-body-boundary-summary"])
-        .expect("2500 selected-body boundary alias should render");
-    assert_eq!(boundary_2500_alias, boundary_2500);
-}
-
-#[test]
-fn reference_snapshot_2500_major_body_boundary_aliases_render_the_same_reports() {
-    let boundary_2500 = render_cli(&["reference-snapshot-2500-major-body-boundary-summary"])
-        .expect("2500 major-body boundary summary should render");
-    assert!(boundary_2500.contains("Reference 2500 major-body boundary evidence:"));
-    let boundary_2500_alias = render_cli(&["2500-major-body-boundary-summary"])
-        .expect("2500 major-body boundary alias should render");
-    assert_eq!(boundary_2500_alias, boundary_2500);
-}
-
-#[test]
-fn reference_snapshot_2400000_major_body_boundary_aliases_render_the_same_reports() {
-    let boundary_2400000 = render_cli(&["reference-snapshot-2400000-major-body-boundary-summary"])
-        .expect("2400000 major-body boundary summary should render");
-    assert!(boundary_2400000.contains("Reference 2400000 major-body boundary evidence:"));
-    assert!(boundary_2400000.contains("JD 2400000.0 (TDB)"));
-    let boundary_2400000_alias = render_cli(&["2400000-major-body-boundary-summary"])
-        .expect("2400000 major-body boundary alias should render");
-    assert_eq!(boundary_2400000_alias, boundary_2400000);
-}
-
-#[test]
 fn reference_snapshot_2451545_major_body_boundary_aliases_render_the_same_reports() {
     let boundary_2451545 = render_cli(&["reference-snapshot-2451545-major-body-boundary-summary"])
         .expect("2451545 major-body boundary summary should render");
@@ -113,40 +23,7 @@ fn reference_snapshot_2453000_major_body_boundary_aliases_render_the_same_report
 }
 
 #[test]
-fn reference_snapshot_2500000_major_body_boundary_aliases_render_the_same_reports() {
-    let boundary_2500000 = render_cli(&["reference-snapshot-2500000-major-body-boundary-summary"])
-        .expect("2500000 major-body boundary summary should render");
-    assert!(boundary_2500000.contains("Reference 2500000 major-body boundary evidence:"));
-    let boundary_2500000_alias = render_cli(&["2500000-major-body-boundary-summary"])
-        .expect("2500000 major-body boundary alias should render");
-    assert_eq!(boundary_2500000_alias, boundary_2500000);
-}
-
-#[test]
-fn reference_snapshot_1500_1750_1900_and_2360234_aliases_render_the_same_reports() {
-    let boundary_1500 = render_cli(&["reference-snapshot-1500-selected-body-boundary-summary"])
-        .expect("1500 selected-body boundary summary should render");
-    assert!(boundary_1500.contains("Reference 1500 selected-body boundary evidence:"));
-    assert!(boundary_1500.contains("JD 2268932.5 (TDB)"));
-    assert_eq!(
-        render_cli(&["1500-selected-body-boundary-summary"])
-            .expect("1500 selected-body boundary alias should render"),
-        boundary_1500
-    );
-    let boundary_2268932 = render_cli(&["2268932-selected-body-boundary-summary"])
-        .expect("2268932 selected-body boundary summary should render");
-    assert_eq!(boundary_2268932, boundary_1500);
-
-    let interior_1750 = render_cli(&["reference-snapshot-1750-major-body-interior-summary"])
-        .expect("1750 major-body interior summary should render");
-    assert!(interior_1750.contains("Reference 1750 major-body interior comparison evidence:"));
-    assert!(interior_1750.contains("JD 2360234.5 (TDB)"));
-    assert_eq!(
-        render_cli(&["1750-major-body-interior-summary"])
-            .expect("1750 major-body interior alias should render"),
-        interior_1750
-    );
-
+fn reference_snapshot_1900_selected_body_boundary_aliases_render_the_same_reports() {
     let boundary_1900 = render_cli(&["reference-snapshot-1900-selected-body-boundary-summary"])
         .expect("1900 selected-body boundary summary should render");
     assert!(boundary_1900.contains("Reference 1900 selected-body boundary evidence:"));
@@ -160,16 +37,6 @@ fn reference_snapshot_1500_1750_1900_and_2360234_aliases_render_the_same_reports
         render_cli(&["2415020-selected-body-boundary-summary"])
             .expect("2415020 selected-body boundary alias should render"),
         pleiades_jpl::reference_snapshot_2415020_selected_body_boundary_summary_for_report()
-    );
-
-    let interior_2360234 = render_cli(&["reference-snapshot-2360234-major-body-interior-summary"])
-        .expect("2360234 major-body interior summary should render");
-    assert!(interior_2360234.contains("Reference 2360234 major-body interior comparison evidence:"));
-    assert!(interior_2360234.contains("JD 2360234.5 (TDB)"));
-    assert_eq!(
-        render_cli(&["2360234-major-body-interior-summary"])
-            .expect("2360234 major-body interior alias should render"),
-        interior_2360234
     );
 }
 

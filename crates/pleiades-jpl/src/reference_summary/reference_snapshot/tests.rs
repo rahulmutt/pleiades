@@ -58,27 +58,27 @@ fn reference_snapshot_covers_the_expected_bodies_and_epochs() {
         .expect("start epoch should exist");
     let end = metadata.nominal_range.end.expect("end epoch should exist");
     assert!(start.julian_day.days() < end.julian_day.days());
-    assert_eq!(reference_epochs().len(), 31);
+    assert_eq!(reference_epochs().len(), 23);
     assert_eq!(
         reference_snapshot()
             .iter()
             .filter(|entry| entry.epoch.julian_day.days() == 2_400_000.0)
             .count(),
-        10
+        0
     );
     assert_eq!(
         reference_snapshot()
             .iter()
             .filter(|entry| entry.epoch.julian_day.days() == 2_500_000.0)
             .count(),
-        16
+        6
     );
     assert_eq!(
         reference_snapshot()
             .iter()
             .filter(|entry| entry.epoch.julian_day.days() == 2_600_000.0)
             .count(),
-        1
+        0
     );
 }
 
@@ -88,17 +88,17 @@ fn reference_snapshot_summary_reports_the_expected_coverage() {
     summary
         .validate()
         .expect("reference snapshot summary should validate");
-    assert_eq!(summary.row_count, 357);
+    assert_eq!(summary.row_count, 277);
     assert_eq!(summary.body_count, 16);
     assert_eq!(summary.bodies, reference_bodies());
-    assert_eq!(summary.epoch_count, 31);
+    assert_eq!(summary.epoch_count, 23);
     assert_eq!(summary.asteroid_row_count, 95);
-    assert_eq!(summary.earliest_epoch.julian_day.days(), 2_268_932.5);
+    assert_eq!(summary.earliest_epoch.julian_day.days(), 2_378_498.5);
     assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
     assert_eq!(
             summary.summary_line(),
             format!(
-                "Reference snapshot coverage: 357 rows across 16 bodies and 31 epochs (95 asteroid rows; JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); bodies: {}",
+                "Reference snapshot coverage: 277 rows across 16 bodies and 23 epochs (95 asteroid rows; JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies: {}",
                 format_bodies(reference_bodies())
             )
         );
@@ -112,20 +112,12 @@ fn reference_snapshot_summary_reports_the_expected_coverage() {
     assert!(report.contains(&reference_asteroid_evidence_summary_for_report()));
     assert!(report.contains(&reference_asteroid_equatorial_evidence_summary_for_report()));
     assert!(report.contains(&reference_asteroid_source_window_summary_for_report()));
-    assert!(report.contains(&reference_snapshot_1749_major_body_boundary_summary_for_report()));
-    assert!(report.contains(&reference_snapshot_2360233_major_body_boundary_summary_for_report()));
-    assert!(report.contains(&reference_snapshot_early_major_body_boundary_summary_for_report()));
-    assert!(report.contains(&reference_snapshot_1750_selected_body_boundary_summary_for_report()));
-    assert!(report.contains(&reference_snapshot_1800_major_body_boundary_summary_for_report()));
-    assert!(report.contains(&reference_snapshot_2378499_major_body_boundary_summary_for_report()));
     assert!(report.contains(&reference_snapshot_lunar_boundary_summary_for_report()));
     assert!(report.contains(&reference_snapshot_high_curvature_summary_for_report()));
     assert!(report.contains(&reference_snapshot_high_curvature_window_summary_for_report()));
     assert!(report.contains(&reference_snapshot_high_curvature_epoch_coverage_summary_for_report()));
-    assert!(report.contains(&reference_snapshot_2400000_major_body_boundary_summary_for_report()));
     assert!(report.contains(&reference_snapshot_2451545_major_body_boundary_summary_for_report()));
     assert!(report.contains(&reference_snapshot_major_body_boundary_summary_for_report()));
-    assert!(report.contains(&reference_snapshot_2360234_major_body_interior_summary_for_report()));
     assert!(report.contains(&reference_snapshot_2451910_major_body_boundary_summary_for_report()));
     assert!(report.contains(&reference_snapshot_2451911_major_body_boundary_summary_for_report()));
     assert!(report.contains(&reference_snapshot_2451912_major_body_boundary_summary_for_report()));
@@ -147,19 +139,10 @@ fn reference_snapshot_summary_reports_the_expected_coverage() {
     assert!(report.contains(&reference_snapshot_2451919_major_body_boundary_summary_for_report()));
     assert!(report.contains(&reference_snapshot_2451920_major_body_interior_summary_for_report()));
     assert!(report.contains(&reference_snapshot_2453000_major_body_boundary_summary_for_report()));
-    assert!(report.contains(&reference_snapshot_2500_major_body_boundary_summary_for_report()));
     assert!(report.contains(&selected_asteroid_boundary_summary_for_report()));
     assert!(report.contains(&selected_asteroid_bridge_summary_for_report()));
     assert!(report.contains(&selected_asteroid_dense_boundary_summary_for_report()));
     assert!(report.contains(&selected_asteroid_terminal_boundary_summary_for_report()));
-    assert!(report.contains(&reference_snapshot_2200_selected_body_boundary_summary_for_report()));
-    assert!(
-        report.contains(&reference_snapshot_2524593_selected_body_boundary_summary_for_report())
-    );
-    assert!(report.contains(&reference_snapshot_2500_selected_body_boundary_summary_for_report()));
-    assert!(
-        report.contains(&reference_snapshot_2634167_selected_body_boundary_summary_for_report())
-    );
 }
 
 #[test]
@@ -193,7 +176,21 @@ fn reference_snapshot_exact_j2000_body_class_coverage_reports_the_expected_slice
         .validate()
         .expect("reference snapshot exact J2000 body-class coverage should validate");
     assert_eq!(summary.major_body_row_count, 10);
-    assert_eq!(summary.major_bodies, reference_bodies()[..10].to_vec());
+    assert_eq!(
+        summary.major_bodies,
+        vec![
+            pleiades_backend::CelestialBody::Sun,
+            pleiades_backend::CelestialBody::Moon,
+            pleiades_backend::CelestialBody::Mercury,
+            pleiades_backend::CelestialBody::Venus,
+            pleiades_backend::CelestialBody::Jupiter,
+            pleiades_backend::CelestialBody::Mars,
+            pleiades_backend::CelestialBody::Neptune,
+            pleiades_backend::CelestialBody::Pluto,
+            pleiades_backend::CelestialBody::Saturn,
+            pleiades_backend::CelestialBody::Uranus,
+        ]
+    );
     assert_eq!(summary.asteroid_row_count, 6);
     assert_eq!(summary.asteroid_bodies, reference_asteroids().to_vec());
     assert_eq!(summary.epoch.julian_day.days(), 2_451_545.0);
@@ -626,114 +623,6 @@ fn reference_snapshot_dense_boundary_summary_validation_rejects_drift() {
 }
 
 #[test]
-fn reference_snapshot_1500_selected_body_boundary_summary_reports_the_boundary_day() {
-    let summary = reference_snapshot_1500_selected_body_boundary_summary()
-        .expect("reference 1500 selected-body boundary summary should exist");
-    assert_eq!(summary.sample_count, 4);
-    assert_eq!(summary.sample_bodies.len(), 4);
-    assert_eq!(summary.epoch.julian_day.days(), 2_268_932.5);
-    assert_eq!(
-        summary.sample_bodies[0],
-        pleiades_backend::CelestialBody::Sun
-    );
-    assert_eq!(
-        summary.sample_bodies[1],
-        pleiades_backend::CelestialBody::Moon
-    );
-    assert_eq!(
-        summary.sample_bodies[2],
-        pleiades_backend::CelestialBody::Mercury
-    );
-    assert_eq!(
-        summary.sample_bodies[3],
-        pleiades_backend::CelestialBody::Venus
-    );
-    assert_eq!(summary.validate(), Ok(()));
-    assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
-    assert_eq!(
-            summary.summary_line(),
-            "Reference 1500 selected-body boundary evidence: 4 exact samples at JD 2268932.5 (TDB) (Sun, Moon, Mercury, Venus); 1500-01-01 selected-body boundary sample"
-        );
-    assert_eq!(summary.to_string(), summary.summary_line());
-    assert_eq!(
-        reference_snapshot_1500_selected_body_boundary_summary_for_report(),
-        summary.summary_line()
-    );
-    assert_eq!(
-        reference_snapshot_2268932_selected_body_boundary_summary()
-            .expect("reference 2268932 selected-body boundary summary should exist")
-            .summary_line(),
-        summary.summary_line()
-    );
-    assert_eq!(
-        reference_snapshot_2268932_selected_body_boundary_summary_for_report(),
-        summary.summary_line()
-    );
-}
-
-#[test]
-fn reference_snapshot_1600_selected_body_boundary_summary_reports_the_boundary_day() {
-    let summary = reference_snapshot_1600_selected_body_boundary_summary()
-        .expect("reference 1600 selected-body boundary summary should exist");
-    assert_eq!(summary.sample_count, 8);
-    assert_eq!(summary.sample_bodies.len(), 8);
-    assert_eq!(summary.epoch.julian_day.days(), 2_305_457.5);
-    assert_eq!(
-        summary.sample_bodies[0],
-        pleiades_backend::CelestialBody::Sun
-    );
-    assert_eq!(
-        summary.sample_bodies[1],
-        pleiades_backend::CelestialBody::Moon
-    );
-    assert_eq!(
-        summary.sample_bodies[2],
-        pleiades_backend::CelestialBody::Mercury
-    );
-    assert_eq!(
-        summary.sample_bodies[3],
-        pleiades_backend::CelestialBody::Venus
-    );
-    assert_eq!(
-        summary.sample_bodies[4],
-        pleiades_backend::CelestialBody::Mars
-    );
-    assert_eq!(
-        summary.sample_bodies[5],
-        pleiades_backend::CelestialBody::Jupiter
-    );
-    assert_eq!(
-        summary.sample_bodies[6],
-        pleiades_backend::CelestialBody::Uranus
-    );
-    assert_eq!(
-        summary.sample_bodies[7],
-        pleiades_backend::CelestialBody::Neptune
-    );
-    assert_eq!(summary.validate(), Ok(()));
-    assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
-    assert_eq!(
-            summary.summary_line(),
-            "Reference 1600 selected-body boundary evidence: 8 exact samples at JD 2305457.5 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Uranus, Neptune); 1600-01-11 selected-body boundary sample"
-        );
-    assert_eq!(summary.to_string(), summary.summary_line());
-    assert_eq!(
-        reference_snapshot_1600_selected_body_boundary_summary_for_report(),
-        summary.summary_line()
-    );
-    assert_eq!(
-        reference_snapshot_2305457_selected_body_boundary_summary()
-            .expect("reference 2305457 selected-body boundary summary should exist")
-            .summary_line(),
-        summary.summary_line()
-    );
-    assert_eq!(
-        reference_snapshot_2305457_selected_body_boundary_summary_for_report(),
-        summary.summary_line()
-    );
-}
-
-#[test]
 fn reference_snapshot_1900_selected_body_boundary_summary_reports_the_boundary_day() {
     let summary = reference_snapshot_1900_selected_body_boundary_summary()
         .expect("reference 1900 selected-body boundary summary should exist");
@@ -771,316 +660,6 @@ fn reference_snapshot_1900_selected_body_boundary_summary_reports_the_boundary_d
             reference_snapshot_2415020_selected_body_boundary_summary_for_report(),
             "Reference 2415020 selected-body boundary evidence: 4 exact samples at JD 2415020.5 (TDB) (Sun, Moon, Mercury, Venus); 1900-01-01 selected-body boundary sample"
         );
-}
-
-#[test]
-fn reference_snapshot_2360234_major_body_interior_summary_reports_the_interior_day() {
-    let summary = reference_snapshot_2360234_major_body_interior_summary()
-        .expect("reference 2360234 major-body interior comparison summary should exist");
-    assert_eq!(summary.sample_count, 9);
-    assert_eq!(summary.sample_bodies.len(), 9);
-    assert_eq!(summary.epoch.julian_day.days(), 2_360_234.5);
-    assert_eq!(
-        summary.sample_bodies[0],
-        pleiades_backend::CelestialBody::Sun
-    );
-    assert_eq!(
-        summary.sample_bodies[1],
-        pleiades_backend::CelestialBody::Moon
-    );
-    assert_eq!(
-        summary.sample_bodies[2],
-        pleiades_backend::CelestialBody::Mercury
-    );
-    assert_eq!(
-        summary.sample_bodies[3],
-        pleiades_backend::CelestialBody::Venus
-    );
-    assert_eq!(
-        summary.sample_bodies[4],
-        pleiades_backend::CelestialBody::Mars
-    );
-    assert_eq!(
-        summary.sample_bodies[5],
-        pleiades_backend::CelestialBody::Jupiter
-    );
-    assert_eq!(
-        summary.sample_bodies[6],
-        pleiades_backend::CelestialBody::Saturn
-    );
-    assert_eq!(
-        summary.sample_bodies[7],
-        pleiades_backend::CelestialBody::Uranus
-    );
-    assert_eq!(
-        summary.sample_bodies[8],
-        pleiades_backend::CelestialBody::Neptune
-    );
-    assert_eq!(summary.validate(), Ok(()));
-    assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
-    assert_eq!(
-            summary.summary_line(),
-            "Reference 2360234 major-body interior comparison evidence: 9 exact samples at JD 2360234.5 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune); 1750-01-01 interior comparison sample"
-        );
-    assert_eq!(summary.to_string(), summary.summary_line());
-    assert_eq!(
-        reference_snapshot_2360234_major_body_interior_summary_for_report(),
-        summary.summary_line()
-    );
-}
-
-#[test]
-fn reference_snapshot_1750_major_body_interior_summary_reports_the_interior_day() {
-    let summary = reference_snapshot_1750_major_body_interior_summary()
-        .expect("reference 1750 major-body interior summary should exist");
-    assert_eq!(summary.sample_count, 9);
-    assert_eq!(summary.sample_bodies.len(), 9);
-    assert_eq!(summary.epoch.julian_day.days(), 2_360_234.5);
-    assert_eq!(
-        summary.sample_bodies[0],
-        pleiades_backend::CelestialBody::Sun
-    );
-    assert_eq!(
-        summary.sample_bodies[1],
-        pleiades_backend::CelestialBody::Moon
-    );
-    assert_eq!(
-        summary.sample_bodies[2],
-        pleiades_backend::CelestialBody::Mercury
-    );
-    assert_eq!(
-        summary.sample_bodies[3],
-        pleiades_backend::CelestialBody::Venus
-    );
-    assert_eq!(
-        summary.sample_bodies[4],
-        pleiades_backend::CelestialBody::Mars
-    );
-    assert_eq!(
-        summary.sample_bodies[5],
-        pleiades_backend::CelestialBody::Jupiter
-    );
-    assert_eq!(
-        summary.sample_bodies[6],
-        pleiades_backend::CelestialBody::Saturn
-    );
-    assert_eq!(
-        summary.sample_bodies[7],
-        pleiades_backend::CelestialBody::Uranus
-    );
-    assert_eq!(
-        summary.sample_bodies[8],
-        pleiades_backend::CelestialBody::Neptune
-    );
-    assert_eq!(summary.validate(), Ok(()));
-    assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
-    assert_eq!(
-            summary.summary_line(),
-            "Reference 1750 major-body interior comparison evidence: 9 exact samples at JD 2360234.5 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune); 1750-01-01 interior comparison sample"
-        );
-    assert_eq!(summary.to_string(), summary.summary_line());
-    assert_eq!(
-        reference_snapshot_1750_major_body_interior_summary_for_report(),
-        summary.summary_line()
-    );
-}
-
-#[test]
-fn reference_snapshot_2200_selected_body_boundary_summary_reports_the_boundary_day() {
-    let summary = reference_snapshot_2200_selected_body_boundary_summary()
-        .expect("reference 2200 selected-body boundary summary should exist");
-    assert_eq!(summary.sample_count, 4);
-    assert_eq!(summary.sample_bodies.len(), 4);
-    assert_eq!(summary.epoch.julian_day.days(), 2_524_593.5);
-    assert_eq!(
-        summary.sample_bodies[0],
-        pleiades_backend::CelestialBody::Sun
-    );
-    assert_eq!(
-        summary.sample_bodies[1],
-        pleiades_backend::CelestialBody::Moon
-    );
-    assert_eq!(
-        summary.sample_bodies[2],
-        pleiades_backend::CelestialBody::Mercury
-    );
-    assert_eq!(
-        summary.sample_bodies[3],
-        pleiades_backend::CelestialBody::Venus
-    );
-    assert_eq!(summary.validate(), Ok(()));
-    assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
-    assert_eq!(
-            summary.summary_line(),
-            "Reference 2200 selected-body boundary evidence: 4 exact samples at JD 2524593.5 (TDB) (Sun, Moon, Mercury, Venus); 2200-01-01 selected-body boundary sample"
-        );
-    assert_eq!(summary.to_string(), summary.summary_line());
-    assert_eq!(
-        reference_snapshot_2200_selected_body_boundary_summary_for_report(),
-        summary.summary_line()
-    );
-}
-
-#[test]
-fn reference_snapshot_2500_selected_body_boundary_summary_reports_the_boundary_day() {
-    let summary = reference_snapshot_2500_selected_body_boundary_summary()
-        .expect("reference 2500 selected-body boundary summary should exist");
-    assert_eq!(summary.sample_count, 5);
-    assert_eq!(summary.sample_bodies.len(), 5);
-    assert_eq!(summary.epoch.julian_day.days(), 2_634_167.0);
-    assert_eq!(
-        summary.sample_bodies[0],
-        pleiades_backend::CelestialBody::Mars
-    );
-    assert_eq!(
-        summary.sample_bodies[1],
-        pleiades_backend::CelestialBody::Mercury
-    );
-    assert_eq!(
-        summary.sample_bodies[2],
-        pleiades_backend::CelestialBody::Moon
-    );
-    assert_eq!(
-        summary.sample_bodies[3],
-        pleiades_backend::CelestialBody::Sun
-    );
-    assert_eq!(
-        summary.sample_bodies[4],
-        pleiades_backend::CelestialBody::Venus
-    );
-    assert_eq!(summary.validate(), Ok(()));
-    assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
-    assert_eq!(
-            summary.summary_line(),
-            "Reference 2500 selected-body boundary evidence: 5 exact samples at JD 2634167.0 (TDB) (Mars, Mercury, Moon, Sun, Venus); 2500-01-01 selected-body boundary sample"
-        );
-    assert_eq!(summary.to_string(), summary.summary_line());
-    assert_eq!(
-        reference_snapshot_2500_selected_body_boundary_summary_for_report(),
-        summary.summary_line()
-    );
-}
-
-#[test]
-fn reference_snapshot_2634167_selected_body_boundary_summary_reports_the_boundary_day() {
-    let summary = reference_snapshot_2634167_selected_body_boundary_summary()
-        .expect("reference 2634167 selected-body boundary summary should exist");
-    assert_eq!(summary.sample_count, 5);
-    assert_eq!(summary.sample_bodies.len(), 5);
-    assert_eq!(summary.epoch.julian_day.days(), 2_634_167.0);
-    assert_eq!(
-        summary.sample_bodies[0],
-        pleiades_backend::CelestialBody::Mars
-    );
-    assert_eq!(
-        summary.sample_bodies[1],
-        pleiades_backend::CelestialBody::Mercury
-    );
-    assert_eq!(
-        summary.sample_bodies[2],
-        pleiades_backend::CelestialBody::Moon
-    );
-    assert_eq!(
-        summary.sample_bodies[3],
-        pleiades_backend::CelestialBody::Sun
-    );
-    assert_eq!(
-        summary.sample_bodies[4],
-        pleiades_backend::CelestialBody::Venus
-    );
-    assert_eq!(summary.validate(), Ok(()));
-    assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
-    assert_eq!(
-            summary.summary_line(),
-            "Reference 2500 selected-body boundary evidence: 5 exact samples at JD 2634167.0 (TDB) (Mars, Mercury, Moon, Sun, Venus); 2500-01-01 selected-body boundary sample"
-        );
-    assert_eq!(summary.to_string(), summary.summary_line());
-    assert_eq!(
-            reference_snapshot_2634167_selected_body_boundary_summary_for_report(),
-            "Reference 2634167 selected-body boundary evidence: 5 exact samples at JD 2634167.0 (TDB) (Mars, Mercury, Moon, Sun, Venus); 2500-01-01 selected-body boundary sample"
-        );
-}
-
-#[test]
-fn reference_snapshot_1749_major_body_boundary_summary_reports_the_boundary_day() {
-    let summary = reference_snapshot_1749_major_body_boundary_summary()
-        .expect("reference 1749 major-body boundary summary should exist");
-    assert_eq!(summary.sample_count, 9);
-    assert_eq!(summary.sample_bodies.len(), 9);
-    assert_eq!(summary.epoch.julian_day.days(), 2_360_233.5);
-    assert_eq!(
-        summary.sample_bodies[0],
-        pleiades_backend::CelestialBody::Sun
-    );
-    assert_eq!(
-        summary.sample_bodies[1],
-        pleiades_backend::CelestialBody::Moon
-    );
-    assert_eq!(
-        summary.sample_bodies[2],
-        pleiades_backend::CelestialBody::Mercury
-    );
-    assert_eq!(
-        summary.sample_bodies[3],
-        pleiades_backend::CelestialBody::Venus
-    );
-    assert_eq!(
-        summary.sample_bodies[4],
-        pleiades_backend::CelestialBody::Mars
-    );
-    assert_eq!(
-        summary.sample_bodies[5],
-        pleiades_backend::CelestialBody::Jupiter
-    );
-    assert_eq!(
-        summary.sample_bodies[6],
-        pleiades_backend::CelestialBody::Saturn
-    );
-    assert_eq!(
-        summary.sample_bodies[7],
-        pleiades_backend::CelestialBody::Uranus
-    );
-    assert_eq!(
-        summary.sample_bodies[8],
-        pleiades_backend::CelestialBody::Neptune
-    );
-    assert_eq!(summary.validate(), Ok(()));
-    assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
-    assert_eq!(
-            summary.summary_line(),
-            "Reference 1749 major-body boundary evidence: 9 exact samples at JD 2360233.5 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune); 1749-12-31 boundary sample"
-        );
-    assert_eq!(summary.to_string(), summary.summary_line());
-    assert_eq!(
-        reference_snapshot_1749_major_body_boundary_summary_for_report(),
-        summary.summary_line()
-    );
-}
-
-#[test]
-fn reference_snapshot_2360233_major_body_boundary_summary_alias_uses_explicit_2360233_wording() {
-    let boundary_2360233 = reference_snapshot_2360233_major_body_boundary_summary_for_report();
-    let boundary_generic = reference_snapshot_1749_major_body_boundary_summary_for_report();
-    let summary = reference_snapshot_2360233_major_body_boundary_summary()
-        .expect("reference 2360233 major-body boundary summary should exist");
-
-    assert!(boundary_2360233.contains("Reference 2360233 major-body boundary evidence:"));
-    assert!(boundary_2360233.contains("JD 2360233.5 (TDB)"));
-    assert_eq!(
-        boundary_2360233,
-        summary.summary_line().replacen(
-            "Reference 1749 major-body boundary evidence",
-            "Reference 2360233 major-body boundary evidence",
-            1
-        )
-    );
-    assert_eq!(
-        summary.summary_line(),
-        reference_snapshot_1749_major_body_boundary_summary()
-            .expect("reference 1749 major-body boundary summary should exist")
-            .summary_line()
-    );
-    assert_ne!(boundary_2360233, boundary_generic);
 }
 
 #[test]
@@ -1185,32 +764,6 @@ fn reference_snapshot_major_body_bridge_summary_validation_rejects_drift() {
         reference_snapshot_major_body_bridge_summary_for_report(),
         reference_snapshot_major_body_bridge_summary()
             .expect("reference major-body bridge summary should exist")
-            .summary_line()
-    );
-}
-
-#[test]
-fn reference_snapshot_1749_major_body_boundary_summary_validation_rejects_drift() {
-    let mut summary = reference_snapshot_1749_major_body_boundary_summary()
-        .expect("reference 1749 major-body boundary summary should exist");
-    summary.sample_count += 1;
-
-    let error = summary
-        .validate()
-        .expect_err("drifted 1749 major-body boundary summary should fail validation");
-
-    assert!(matches!(
-        error,
-        Reference1749MajorBodyBoundarySummaryValidationError::SampleCountMismatch {
-            sample_count: 10,
-            derived_sample_count: 9
-        }
-    ));
-    assert!(summary.validated_summary_line().is_err());
-    assert_eq!(
-        reference_snapshot_1749_major_body_boundary_summary_for_report(),
-        reference_snapshot_1749_major_body_boundary_summary()
-            .expect("reference 1749 major-body boundary summary should exist")
             .summary_line()
     );
 }
@@ -1442,231 +995,6 @@ fn reference_snapshot_2451918_major_body_boundary_summary_validation_rejects_dri
                 "Reference 2451918 major-body boundary evidence",
                 1
             )
-    );
-}
-
-#[test]
-fn reference_snapshot_early_major_body_boundary_summary_reports_the_early_boundary_day() {
-    let summary = reference_snapshot_early_major_body_boundary_summary()
-        .expect("reference early major-body boundary summary should exist");
-    assert_eq!(summary.sample_count, 10);
-    assert_eq!(summary.sample_bodies.len(), 10);
-    assert_eq!(summary.epoch.julian_day.days(), 2_378_498.5);
-    assert_eq!(
-        summary.sample_bodies[0],
-        pleiades_backend::CelestialBody::Sun
-    );
-    assert_eq!(
-        summary.sample_bodies[9],
-        pleiades_backend::CelestialBody::Pluto
-    );
-    assert_eq!(summary.validate(), Ok(()));
-    assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
-    assert_eq!(
-            summary.summary_line(),
-            "Reference early major-body boundary evidence: 10 exact samples at JD 2378498.5 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto)"
-        );
-    assert_eq!(summary.to_string(), summary.summary_line());
-    assert_eq!(
-        reference_snapshot_early_major_body_boundary_summary_for_report(),
-        summary.summary_line()
-    );
-}
-
-#[test]
-fn reference_snapshot_2378498_major_body_boundary_summary_alias_uses_explicit_2378498_wording() {
-    let boundary_2378498 = reference_snapshot_2378498_major_body_boundary_summary_for_report();
-    let boundary_generic = reference_snapshot_early_major_body_boundary_summary_for_report();
-    let summary = reference_snapshot_2378498_major_body_boundary_summary()
-        .expect("reference 2378498 major-body boundary summary should exist");
-
-    assert!(boundary_2378498.contains("Reference 2378498 major-body boundary evidence:"));
-    assert!(boundary_2378498.contains("JD 2378498.5 (TDB)"));
-    assert_eq!(
-        boundary_2378498,
-        summary.summary_line().replacen(
-            "Reference early major-body boundary evidence",
-            "Reference 2378498 major-body boundary evidence",
-            1
-        )
-    );
-    assert_eq!(
-        summary.summary_line(),
-        reference_snapshot_early_major_body_boundary_summary()
-            .expect("reference early major-body boundary summary should exist")
-            .summary_line()
-    );
-    assert_ne!(boundary_2378498, boundary_generic);
-}
-
-#[test]
-fn reference_snapshot_early_major_body_boundary_summary_validation_rejects_drift() {
-    let mut summary = reference_snapshot_early_major_body_boundary_summary()
-        .expect("reference early major-body boundary summary should exist");
-    summary.sample_bodies[0] = pleiades_backend::CelestialBody::Moon;
-
-    let error = summary
-        .validate()
-        .expect_err("drifted early major-body boundary summary should fail validation");
-
-    assert!(matches!(
-        error,
-        ReferenceEarlyMajorBodyBoundarySummaryValidationError::BodyOrderMismatch {
-            index: 0,
-            expected: pleiades_backend::CelestialBody::Sun,
-            found: pleiades_backend::CelestialBody::Moon
-        }
-    ));
-    assert!(summary.validated_summary_line().is_err());
-    assert_eq!(
-        reference_snapshot_early_major_body_boundary_summary_for_report(),
-        reference_snapshot_early_major_body_boundary_summary()
-            .expect("reference early major-body boundary summary should exist")
-            .summary_line()
-    );
-}
-
-#[test]
-fn reference_snapshot_1800_major_body_boundary_summary_reports_the_1800_boundary_day() {
-    let summary = reference_snapshot_1800_major_body_boundary_summary()
-        .expect("reference 1800 major-body boundary summary should exist");
-    assert_eq!(summary.sample_count, 10);
-    assert_eq!(summary.sample_bodies.len(), 10);
-    assert_eq!(summary.epoch.julian_day.days(), 2_378_499.0);
-    assert_eq!(
-        summary.sample_bodies[0],
-        pleiades_backend::CelestialBody::Mars
-    );
-    assert_eq!(
-        summary.sample_bodies[4],
-        pleiades_backend::CelestialBody::Venus
-    );
-    assert_eq!(
-        summary.sample_bodies[5],
-        pleiades_backend::CelestialBody::Jupiter
-    );
-    assert_eq!(
-        summary.sample_bodies[9],
-        pleiades_backend::CelestialBody::Pluto
-    );
-    assert_eq!(summary.validate(), Ok(()));
-    assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
-    assert_eq!(
-            summary.summary_line(),
-            "Reference 1800 major-body boundary evidence: 10 exact samples at JD 2378499.0 (TDB) (Mars, Mercury, Moon, Sun, Venus, Jupiter, Saturn, Uranus, Neptune, Pluto); 1800-01-03 boundary sample"
-        );
-    assert_eq!(summary.to_string(), summary.summary_line());
-    assert_eq!(
-        reference_snapshot_1800_major_body_boundary_summary_for_report(),
-        summary.summary_line()
-    );
-}
-
-#[test]
-fn reference_snapshot_2378499_major_body_boundary_summary_alias_uses_explicit_2378499_wording() {
-    let boundary_2378499 = reference_snapshot_2378499_major_body_boundary_summary_for_report();
-    let boundary_generic = reference_snapshot_1800_major_body_boundary_summary_for_report();
-    let summary = reference_snapshot_2378499_major_body_boundary_summary()
-        .expect("reference 2378499 major-body boundary summary should exist");
-
-    assert!(boundary_2378499.contains("Reference 2378499 major-body boundary evidence:"));
-    assert!(boundary_2378499.contains("JD 2378499.0 (TDB)"));
-    assert_eq!(
-        boundary_2378499,
-        summary.summary_line().replacen(
-            "Reference 1800 major-body boundary evidence",
-            "Reference 2378499 major-body boundary evidence",
-            1
-        )
-    );
-    assert_eq!(
-        summary.summary_line(),
-        reference_snapshot_1800_major_body_boundary_summary()
-            .expect("reference 1800 major-body boundary summary should exist")
-            .summary_line()
-    );
-    assert_ne!(boundary_2378499, boundary_generic);
-}
-
-#[test]
-fn reference_snapshot_1800_major_body_boundary_summary_validation_rejects_drift() {
-    let mut summary = reference_snapshot_1800_major_body_boundary_summary()
-        .expect("reference 1800 major-body boundary summary should exist");
-    summary.sample_bodies[0] = pleiades_backend::CelestialBody::Moon;
-
-    let error = summary
-        .validate()
-        .expect_err("drifted 1800 major-body boundary summary should fail validation");
-
-    assert!(matches!(
-        error,
-        Reference1800MajorBodyBoundarySummaryValidationError::BodyOrderMismatch {
-            index: 0,
-            expected: pleiades_backend::CelestialBody::Mars,
-            found: pleiades_backend::CelestialBody::Moon
-        }
-    ));
-    assert!(summary.validated_summary_line().is_err());
-    assert_eq!(
-        reference_snapshot_1800_major_body_boundary_summary_for_report(),
-        reference_snapshot_1800_major_body_boundary_summary()
-            .expect("reference 1800 major-body boundary summary should exist")
-            .summary_line()
-    );
-}
-
-#[test]
-fn reference_snapshot_2500_major_body_boundary_summary_reports_the_terminal_boundary_day() {
-    let summary = reference_snapshot_2500_major_body_boundary_summary()
-        .expect("reference 2500 major-body boundary summary should exist");
-    assert_eq!(summary.sample_count, 10);
-    assert_eq!(summary.sample_bodies.len(), 10);
-    assert_eq!(summary.epoch.julian_day.days(), 2_500_000.0);
-    assert_eq!(
-        summary.sample_bodies[0],
-        pleiades_backend::CelestialBody::Sun
-    );
-    assert_eq!(
-        summary.sample_bodies[9],
-        pleiades_backend::CelestialBody::Pluto
-    );
-    assert_eq!(summary.validate(), Ok(()));
-    assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
-    assert_eq!(
-            summary.summary_line(),
-            "Reference 2500 major-body boundary evidence: 10 exact samples at JD 2500000.0 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); 2500-01-01 boundary sample"
-        );
-    assert_eq!(summary.to_string(), summary.summary_line());
-    assert_eq!(
-        reference_snapshot_2500_major_body_boundary_summary_for_report(),
-        summary.summary_line()
-    );
-}
-
-#[test]
-fn reference_snapshot_2500_major_body_boundary_summary_validation_rejects_drift() {
-    let mut summary = reference_snapshot_2500_major_body_boundary_summary()
-        .expect("reference 2500 major-body boundary summary should exist");
-    summary.sample_bodies[0] = pleiades_backend::CelestialBody::Moon;
-
-    let error = summary
-        .validate()
-        .expect_err("drifted 2500 major-body boundary summary should fail validation");
-
-    assert!(matches!(
-        error,
-        Reference2500MajorBodyBoundarySummaryValidationError::BodyOrderMismatch {
-            index: 0,
-            expected: pleiades_backend::CelestialBody::Sun,
-            found: pleiades_backend::CelestialBody::Moon
-        }
-    ));
-    assert!(summary.validated_summary_line().is_err());
-    assert_eq!(
-        reference_snapshot_2500_major_body_boundary_summary_for_report(),
-        reference_snapshot_2500_major_body_boundary_summary()
-            .expect("reference 2500 major-body boundary summary should exist")
-            .summary_line()
     );
 }
 
@@ -2029,62 +1357,6 @@ fn reference_snapshot_2451915_major_body_boundary_summary_validation_rejects_dri
 }
 
 #[test]
-fn reference_snapshot_2400000_major_body_boundary_summary_reports_the_boundary_day() {
-    let summary = reference_snapshot_2400000_major_body_boundary_summary()
-        .expect("reference 2400000 major-body boundary summary should exist");
-    assert_eq!(summary.sample_count, 10);
-    assert_eq!(summary.sample_bodies.len(), 10);
-    assert_eq!(summary.epoch.julian_day.days(), 2_400_000.0);
-    assert_eq!(
-        summary.sample_bodies[0],
-        pleiades_backend::CelestialBody::Sun
-    );
-    assert_eq!(
-        summary.sample_bodies[9],
-        pleiades_backend::CelestialBody::Pluto
-    );
-    assert_eq!(summary.validate(), Ok(()));
-    assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
-    assert_eq!(
-            summary.summary_line(),
-            "Reference 2400000 major-body boundary evidence: 10 exact samples at JD 2400000.0 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); 2400000.0 boundary sample"
-        );
-    assert_eq!(summary.to_string(), summary.summary_line());
-    assert_eq!(
-        reference_snapshot_2400000_major_body_boundary_summary_for_report(),
-        summary.summary_line()
-    );
-    assert!(reference_snapshot_summary_for_report().contains(summary.summary_line().as_str()));
-}
-
-#[test]
-fn reference_snapshot_2400000_major_body_boundary_summary_validation_rejects_drift() {
-    let mut summary = reference_snapshot_2400000_major_body_boundary_summary()
-        .expect("reference 2400000 major-body boundary summary should exist");
-    summary.sample_bodies[0] = pleiades_backend::CelestialBody::Moon;
-
-    let error = summary
-        .validate()
-        .expect_err("drifted 2400000 major-body boundary summary should fail validation");
-
-    assert!(matches!(
-        error,
-        Reference2400000MajorBodyBoundarySummaryValidationError::BodyOrderMismatch {
-            index: 0,
-            expected: pleiades_backend::CelestialBody::Sun,
-            found: pleiades_backend::CelestialBody::Moon
-        }
-    ));
-    assert!(summary.validated_summary_line().is_err());
-    assert_eq!(
-        reference_snapshot_2400000_major_body_boundary_summary_for_report(),
-        reference_snapshot_2400000_major_body_boundary_summary()
-            .expect("reference 2400000 major-body boundary summary should exist")
-            .summary_line()
-    );
-}
-
-#[test]
 fn reference_snapshot_2451545_major_body_boundary_summary_reports_the_j2000_reference_day() {
     let summary = reference_snapshot_2451545_major_body_boundary_summary()
         .expect("reference 2451545 major-body boundary summary should exist");
@@ -2167,69 +1439,6 @@ fn reference_snapshot_2453000_major_body_boundary_summary_reports_the_late_bound
         summary.summary_line()
     );
     assert!(reference_snapshot_summary_for_report().contains(summary.summary_line().as_str()));
-}
-
-#[test]
-fn reference_snapshot_2500000_major_body_boundary_summary_reports_the_terminal_boundary_day() {
-    let summary = reference_snapshot_2500000_major_body_boundary_summary()
-        .expect("reference 2500000 major-body boundary summary should exist");
-    assert_eq!(summary.sample_count, 10);
-    assert_eq!(summary.sample_bodies.len(), 10);
-    assert_eq!(summary.epoch.julian_day.days(), 2_500_000.0);
-    assert_eq!(
-        summary.sample_bodies,
-        vec![
-            pleiades_backend::CelestialBody::Sun,
-            pleiades_backend::CelestialBody::Moon,
-            pleiades_backend::CelestialBody::Mercury,
-            pleiades_backend::CelestialBody::Venus,
-            pleiades_backend::CelestialBody::Mars,
-            pleiades_backend::CelestialBody::Jupiter,
-            pleiades_backend::CelestialBody::Saturn,
-            pleiades_backend::CelestialBody::Uranus,
-            pleiades_backend::CelestialBody::Neptune,
-            pleiades_backend::CelestialBody::Pluto,
-        ]
-    );
-    assert_eq!(summary.validate(), Ok(()));
-    assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
-    assert_eq!(
-            summary.summary_line(),
-            "Reference 2500000 major-body boundary evidence: 10 exact samples at JD 2500000.0 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); 2500000.0 boundary sample"
-        );
-    assert_eq!(summary.to_string(), summary.summary_line());
-    assert_eq!(
-        reference_snapshot_2500000_major_body_boundary_summary_for_report(),
-        summary.summary_line()
-    );
-    assert!(reference_snapshot_summary_for_report().contains(summary.summary_line().as_str()));
-}
-
-#[test]
-fn reference_snapshot_2500000_major_body_boundary_summary_validation_rejects_drift() {
-    let mut summary = reference_snapshot_2500000_major_body_boundary_summary()
-        .expect("reference 2500000 major-body boundary summary should exist");
-    summary.sample_bodies[0] = pleiades_backend::CelestialBody::Moon;
-
-    let error = summary
-        .validate()
-        .expect_err("drifted 2500000 major-body boundary summary should fail validation");
-
-    assert!(matches!(
-        error,
-        Reference2500000MajorBodyBoundarySummaryValidationError::BodyOrderMismatch {
-            index: 0,
-            expected: pleiades_backend::CelestialBody::Sun,
-            found: pleiades_backend::CelestialBody::Moon
-        }
-    ));
-    assert!(summary.validated_summary_line().is_err());
-    assert_eq!(
-        reference_snapshot_2500000_major_body_boundary_summary_for_report(),
-        reference_snapshot_2500000_major_body_boundary_summary()
-            .expect("reference 2500000 major-body boundary summary should exist")
-            .summary_line()
-    );
 }
 
 #[test]
@@ -2503,8 +1712,6 @@ fn reference_snapshot_2451920_major_body_interior_summary_validation_rejects_dri
 #[test]
 fn reference_snapshot_summary_for_report_highlights_recent_reference_slices() {
     let report = reference_snapshot_summary_for_report();
-    assert!(report.contains(&reference_snapshot_1500_selected_body_boundary_summary_for_report()));
-    assert!(report.contains(&reference_snapshot_1600_selected_body_boundary_summary_for_report()));
     assert!(report.contains(&reference_snapshot_source_summary_for_report()));
     assert!(report.contains(&reference_snapshot_source_window_summary_for_report()));
     assert!(report.contains(&selected_asteroid_source_2451917_summary_for_report()));
@@ -2514,12 +1721,6 @@ fn reference_snapshot_summary_for_report_highlights_recent_reference_slices() {
     assert!(report.contains(&reference_snapshot_major_body_bridge_summary_for_report()));
     assert!(report.contains(&reference_snapshot_equatorial_parity_summary_for_report()));
     assert!(report.contains(&reference_snapshot_batch_parity_summary_for_report()));
-    assert!(report.contains(&reference_snapshot_1749_major_body_boundary_summary_for_report()));
-    assert!(report.contains(&reference_snapshot_2360233_major_body_boundary_summary_for_report()));
-    assert!(report.contains(&reference_snapshot_early_major_body_boundary_summary_for_report()));
-    assert!(report.contains(&reference_snapshot_1750_selected_body_boundary_summary_for_report()));
-    assert!(report.contains(&reference_snapshot_1800_major_body_boundary_summary_for_report()));
-    assert!(report.contains(&reference_snapshot_2378499_major_body_boundary_summary_for_report()));
     assert!(report.contains(&reference_snapshot_1900_selected_body_boundary_summary_for_report()));
     assert!(
         report.contains(&reference_snapshot_2415020_selected_body_boundary_summary_for_report())
@@ -2529,7 +1730,6 @@ fn reference_snapshot_summary_for_report_highlights_recent_reference_slices() {
     assert!(report.contains(&reference_snapshot_high_curvature_window_summary_for_report()));
     assert!(report.contains(&reference_snapshot_high_curvature_epoch_coverage_summary_for_report()));
     assert!(report.contains(&reference_snapshot_exact_j2000_evidence_summary_for_report()));
-    assert!(report.contains(&reference_snapshot_2360234_major_body_interior_summary_for_report()));
     assert!(report.contains(&reference_snapshot_2451910_major_body_boundary_summary_for_report()));
     assert!(report.contains(&reference_snapshot_2451911_major_body_boundary_summary_for_report()));
     assert!(report.contains(&reference_snapshot_2451912_major_body_boundary_summary_for_report()));
@@ -2553,7 +1753,6 @@ fn reference_snapshot_summary_for_report_highlights_recent_reference_slices() {
     assert!(report.contains(&selected_asteroid_terminal_boundary_summary_for_report()));
     assert!(report.contains(&selected_asteroid_source_evidence_summary_for_report()));
     assert!(report.contains(&selected_asteroid_source_window_summary_for_report()));
-    assert!(report.contains(&reference_snapshot_2400000_major_body_boundary_summary_for_report()));
     assert!(report.contains(&reference_snapshot_2451545_major_body_boundary_summary_for_report()));
     assert!(
         report.contains(&reference_snapshot_2451916_major_body_dense_boundary_summary_for_report())
@@ -2565,8 +1764,6 @@ fn reference_snapshot_summary_for_report_highlights_recent_reference_slices() {
     assert!(report.contains(&reference_snapshot_major_body_boundary_window_summary_for_report()));
     assert!(report.contains(&reference_snapshot_2451919_major_body_boundary_summary_for_report()));
     assert!(report.contains(&reference_snapshot_2451920_major_body_interior_summary_for_report()));
-    assert!(report.contains(&reference_snapshot_2500000_major_body_boundary_summary_for_report()));
-    assert!(report.contains(&reference_snapshot_mars_outer_boundary_summary_for_report()));
     assert!(!report.contains("JPL independent hold-out:"));
     assert!(!report.contains("Reference/hold-out overlap:"));
 }
@@ -2787,8 +1984,8 @@ fn reference_snapshot_summary_validation_rejects_epoch_count_drift() {
         summary.validate(),
         Err(
             ReferenceSnapshotSummaryValidationError::EpochCountMismatch {
-                epoch_count: 32,
-                derived_epoch_count: 31,
+                epoch_count: 24,
+                derived_epoch_count: 23,
             }
         )
     ));
@@ -2815,16 +2012,16 @@ fn reference_snapshot_summary_validation_rejects_asteroid_row_count_drift() {
 fn reference_snapshot_equatorial_parity_summary_reports_the_expected_coverage() {
     let summary = reference_snapshot_equatorial_parity_summary()
         .expect("reference snapshot equatorial parity summary should exist");
-    assert_eq!(summary.row_count, 357);
+    assert_eq!(summary.row_count, 277);
     assert_eq!(summary.body_count, 16);
     assert_eq!(summary.bodies, reference_bodies());
-    assert_eq!(summary.epoch_count, 31);
-    assert_eq!(summary.earliest_epoch.julian_day.days(), 2_268_932.5);
+    assert_eq!(summary.epoch_count, 23);
+    assert_eq!(summary.earliest_epoch.julian_day.days(), 2_378_498.5);
     assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
     assert_eq!(
             summary.summary_line(),
             format!(
-                "JPL reference snapshot equatorial parity: 357 rows across 16 bodies and 31 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); bodies: {}; mean-obliquity transform against the checked-in ecliptic fixture",
+                "JPL reference snapshot equatorial parity: 277 rows across 16 bodies and 23 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies: {}; mean-obliquity transform against the checked-in ecliptic fixture",
                 format_bodies(reference_bodies())
             )
         );
@@ -2884,28 +2081,28 @@ fn reference_snapshot_batch_parity_summary_validation_rejects_derived_summary_dr
 fn reference_snapshot_batch_parity_summary_reports_the_expected_coverage() {
     let summary = reference_snapshot_batch_parity_summary()
         .expect("reference snapshot batch parity summary should exist");
-    assert_eq!(summary.snapshot.row_count, 357);
+    assert_eq!(summary.snapshot.row_count, 277);
     assert_eq!(summary.snapshot.body_count, 16);
     assert_eq!(summary.snapshot.bodies, reference_bodies());
-    assert_eq!(summary.snapshot.epoch_count, 31);
+    assert_eq!(summary.snapshot.epoch_count, 23);
     assert_eq!(
         summary.snapshot.earliest_epoch.julian_day.days(),
-        2_268_932.5
+        2_378_498.5
     );
     assert_eq!(summary.snapshot.latest_epoch.julian_day.days(), 2_634_167.0);
     assert!(summary.ecliptic_request_count > 0);
     assert!(summary.equatorial_request_count > 0);
-    assert_eq!(summary.exact_count, 357);
+    assert_eq!(summary.exact_count, 277);
     assert_eq!(summary.interpolated_count, 0);
     assert_eq!(summary.approximate_count, 0);
     assert_eq!(summary.unknown_count, 0);
     assert_eq!(summary.validate(), Ok(()));
     assert!(summary
             .summary_line()
-            .contains("JPL reference snapshot batch parity: 357 rows across 16 bodies and 31 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); bodies: "));
+            .contains("JPL reference snapshot batch parity: 277 rows across 16 bodies and 23 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies: "));
     assert!(summary
             .summary_line()
-            .contains("quality counts: Exact=357, Interpolated=0, Approximate=0, Unknown=0; batch/single parity preserved"));
+            .contains("quality counts: Exact=277, Interpolated=0, Approximate=0, Unknown=0; batch/single parity preserved"));
     assert_eq!(summary.to_string(), summary.summary_line());
     assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
     assert_eq!(
@@ -2917,10 +2114,8 @@ fn reference_snapshot_batch_parity_summary_reports_the_expected_coverage() {
         summary.summary_line()
     );
     assert!(jpl_snapshot_evidence_summary_for_report().contains(
-            "JPL reference snapshot batch parity: 357 rows across 16 bodies and 31 epochs (JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
+            "JPL reference snapshot batch parity: 277 rows across 16 bodies and 23 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
         ));
-    assert!(jpl_snapshot_evidence_summary_for_report()
-        .contains(&reference_snapshot_early_major_body_boundary_summary_for_report()));
     assert!(jpl_snapshot_evidence_summary_for_report()
         .contains(&reference_snapshot_2451910_major_body_boundary_summary_for_report()));
     assert!(jpl_snapshot_evidence_summary_for_report()
@@ -2939,8 +2134,6 @@ fn reference_snapshot_batch_parity_summary_reports_the_expected_coverage() {
         .contains(&reference_snapshot_2451914_major_body_bridge_day_summary_for_report()));
     assert!(jpl_snapshot_evidence_summary_for_report()
         .contains(&reference_snapshot_2451914_major_body_bridge_summary_for_report()));
-    assert!(jpl_snapshot_evidence_summary_for_report()
-        .contains(&reference_snapshot_1750_major_body_interior_summary_for_report()));
     assert!(jpl_snapshot_evidence_summary_for_report()
         .contains(&reference_snapshot_2451916_major_body_interior_summary_for_report()));
     assert!(jpl_snapshot_evidence_summary_for_report()
@@ -3036,7 +2229,7 @@ fn reference_snapshot_body_class_coverage_summary_reports_the_expected_body_clas
     let summary = reference_snapshot_body_class_coverage_summary()
         .expect("reference snapshot body-class coverage summary should exist");
 
-    assert_eq!(summary.major_body_row_count, 262);
+    assert_eq!(summary.major_body_row_count, 182);
     assert_eq!(summary.major_bodies.len(), 10);
     assert_eq!(
         summary.major_bodies[0],
@@ -3044,9 +2237,9 @@ fn reference_snapshot_body_class_coverage_summary_reports_the_expected_body_clas
     );
     assert_eq!(
         summary.major_bodies[9],
-        pleiades_backend::CelestialBody::Pluto
+        pleiades_backend::CelestialBody::Uranus
     );
-    assert_eq!(summary.major_epoch_count, 31);
+    assert_eq!(summary.major_epoch_count, 20);
     assert_eq!(summary.asteroid_row_count, 95);
     assert_eq!(summary.asteroid_bodies.len(), 6);
     assert_eq!(
@@ -3076,9 +2269,9 @@ fn reference_snapshot_source_window_summary_reports_the_current_boundary_windows
     let summary = reference_snapshot_source_window_summary()
         .expect("reference snapshot source window summary should exist");
 
-    assert_eq!(summary.sample_count, 357);
+    assert_eq!(summary.sample_count, 277);
     assert_eq!(summary.sample_bodies.len(), 16);
-    assert_eq!(summary.epoch_count, 31);
+    assert_eq!(summary.epoch_count, 23);
     assert_eq!(summary.validate(), Ok(()));
     assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
     assert_eq!(
@@ -3087,13 +2280,13 @@ fn reference_snapshot_source_window_summary_reports_the_current_boundary_windows
     );
     assert_eq!(
         summary.windows[0].body,
-        pleiades_backend::CelestialBody::Sun
+        pleiades_backend::CelestialBody::Ceres
     );
-    assert_eq!(summary.windows[0].sample_count, 30);
-    assert_eq!(summary.windows[0].epoch_count, 30);
+    assert_eq!(summary.windows[0].sample_count, 17);
+    assert_eq!(summary.windows[0].epoch_count, 17);
     assert_eq!(
         summary.windows[0].earliest_epoch.julian_day.days(),
-        2_268_932.5
+        2_378_498.5
     );
     assert_eq!(
         summary.windows[0].latest_epoch.julian_day.days(),
@@ -3101,45 +2294,45 @@ fn reference_snapshot_source_window_summary_reports_the_current_boundary_windows
     );
     assert_eq!(
         summary.windows[5].body,
-        pleiades_backend::CelestialBody::Jupiter
+        pleiades_backend::CelestialBody::Custom(CustomBodyId::new("asteroid", "99942-Apophis"))
     );
-    assert_eq!(summary.windows[5].sample_count, 24);
-    assert_eq!(summary.windows[5].epoch_count, 24);
+    assert_eq!(summary.windows[5].sample_count, 10);
+    assert_eq!(summary.windows[5].epoch_count, 10);
     assert_eq!(
         summary.windows[5].earliest_epoch.julian_day.days(),
-        2_305_457.5
+        2_378_498.5
     );
     assert_eq!(
         summary.windows[5].latest_epoch.julian_day.days(),
-        2_500_000.0
+        2_634_167.0
     );
     assert_eq!(
         summary.windows[9].body,
-        pleiades_backend::CelestialBody::Pluto
+        pleiades_backend::CelestialBody::Venus
     );
-    assert_eq!(summary.windows[9].sample_count, 21);
-    assert_eq!(summary.windows[9].epoch_count, 21);
+    assert_eq!(summary.windows[9].sample_count, 20);
+    assert_eq!(summary.windows[9].epoch_count, 20);
     assert_eq!(
         summary.windows[9].earliest_epoch.julian_day.days(),
-        2_378_498.5
+        2_415_020.5
     );
     assert_eq!(
         summary.windows[9].latest_epoch.julian_day.days(),
-        2_500_000.0
+        2_453_000.5
     );
     assert_eq!(
         summary.windows[15].body,
-        pleiades_backend::CelestialBody::Custom(CustomBodyId::new("asteroid", "99942-Apophis"))
+        pleiades_backend::CelestialBody::Uranus
     );
-    assert_eq!(summary.windows[15].sample_count, 10);
-    assert_eq!(summary.windows[15].epoch_count, 10);
+    assert_eq!(summary.windows[15].sample_count, 17);
+    assert_eq!(summary.windows[15].epoch_count, 17);
     assert_eq!(
         summary.windows[15].earliest_epoch.julian_day.days(),
-        2_378_498.5
+        2_451_545.0
     );
     assert_eq!(
         summary.windows[15].latest_epoch.julian_day.days(),
-        2_634_167.0
+        2_453_000.5
     );
     assert_eq!(summary.to_string(), summary.summary_line());
     assert_eq!(
@@ -3335,7 +2528,7 @@ fn reference_snapshot_manifest_parses_the_documented_header_comments() {
         manifest.source.as_deref(),
         Some("NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.")
     );
-    assert_eq!(manifest.coverage.as_deref(), Some("selected bodies sampled at 1500-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 1600-01-11 for Sun, Moon, Mercury, Venus, Mars, Jupiter, Uranus, Neptune; major bodies sampled at 1749-12-31 for Sun through Neptune; selected bodies sampled at 1750-01-01 for Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; inner planets sampled across 1800-2500; major bodies sampled at 1800-01-03 for Sun through Pluto; selected bodies sampled at 1900-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 2200-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 2451915.25 and 2451915.75 for Sun, Moon, Mercury, Venus; major bodies sampled at 2400000, 2451545, 2451910.5, 2451911.5, 2451912.5, 2451913.5, 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451916.0, 2451916.5, 2451917.0, 2451917.5, 2451918.5, 2451919.5, 2451920.5, 2453000.5, and 2500000; major bodies sampled at 2451915.5 for Sun through Pluto; Mars sampled at 2600000 and 2634167 for outer boundary coverage; major bodies sampled at 2451913.5 through 2451917.5 for additional boundary coverage; selected asteroids sampled at J2000, 2378498.5, 2451910.5 through 2451919.5, with 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451917.5, 2451918.5, and 2451919.5 boundary coverage, 1800-01-03, 2003-12-27, 2132-08-31, 2500-01-01, and 2634167; asteroid:99942-Apophis is now also sampled at 2378498.5 and 2451917.5 to complete the selected-asteroid bridge."));
+    assert_eq!(manifest.coverage.as_deref(), Some("major-body samples are confined to the 1900-2100 window [JD 2415020.5, 2488069.5]; selected bodies sampled at 1900-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 2451915.25 and 2451915.75 for Sun, Moon, Mercury, Venus; major bodies sampled at 2451545, 2451910.5, 2451911.5, 2451912.5, 2451913.5, 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451916.0, 2451916.5, 2451917.0, 2451917.5, 2451918.5, 2451919.5, 2451920.5, and 2453000.5; major bodies sampled at 2451915.5 for Sun through Pluto; major bodies sampled at 2451913.5 through 2451917.5 for additional boundary coverage; selected asteroids sampled at J2000, 2378498.5, 2451910.5 through 2451919.5, with 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451917.5, 2451918.5, and 2451919.5 boundary coverage, 2003-12-27, 2132-08-31, 2500-01-01, and 2634167; asteroid:99942-Apophis is now also sampled at 2378498.5 and 2451917.5 to complete the selected-asteroid bridge."));
     assert_eq!(
         manifest.redistribution.as_deref(),
         Some("repository-checked regression fixtures, not a broad public corpus.")
@@ -3347,7 +2540,7 @@ fn reference_snapshot_manifest_parses_the_documented_header_comments() {
     assert_eq!(manifest.validate(), Ok(()));
     assert_eq!(
             manifest.summary_line("Reference snapshot manifest"),
-            "Reference snapshot manifest: JPL Horizons reference snapshot.; source=NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=selected bodies sampled at 1500-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 1600-01-11 for Sun, Moon, Mercury, Venus, Mars, Jupiter, Uranus, Neptune; major bodies sampled at 1749-12-31 for Sun through Neptune; selected bodies sampled at 1750-01-01 for Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; inner planets sampled across 1800-2500; major bodies sampled at 1800-01-03 for Sun through Pluto; selected bodies sampled at 1900-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 2200-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 2451915.25 and 2451915.75 for Sun, Moon, Mercury, Venus; major bodies sampled at 2400000, 2451545, 2451910.5, 2451911.5, 2451912.5, 2451913.5, 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451916.0, 2451916.5, 2451917.0, 2451917.5, 2451918.5, 2451919.5, 2451920.5, 2453000.5, and 2500000; major bodies sampled at 2451915.5 for Sun through Pluto; Mars sampled at 2600000 and 2634167 for outer boundary coverage; major bodies sampled at 2451913.5 through 2451917.5 for additional boundary coverage; selected asteroids sampled at J2000, 2378498.5, 2451910.5 through 2451919.5, with 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451917.5, 2451918.5, and 2451919.5 boundary coverage, 1800-01-03, 2003-12-27, 2132-08-31, 2500-01-01, and 2634167; asteroid:99942-Apophis is now also sampled at 2378498.5 and 2451917.5 to complete the selected-asteroid bridge.; columns=epoch_jd, body, x_km, y_km, z_km; redistribution=repository-checked regression fixtures, not a broad public corpus."
+            "Reference snapshot manifest: JPL Horizons reference snapshot.; source=NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; coverage=major-body samples are confined to the 1900-2100 window [JD 2415020.5, 2488069.5]; selected bodies sampled at 1900-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 2451915.25 and 2451915.75 for Sun, Moon, Mercury, Venus; major bodies sampled at 2451545, 2451910.5, 2451911.5, 2451912.5, 2451913.5, 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451916.0, 2451916.5, 2451917.0, 2451917.5, 2451918.5, 2451919.5, 2451920.5, and 2453000.5; major bodies sampled at 2451915.5 for Sun through Pluto; major bodies sampled at 2451913.5 through 2451917.5 for additional boundary coverage; selected asteroids sampled at J2000, 2378498.5, 2451910.5 through 2451919.5, with 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451917.5, 2451918.5, and 2451919.5 boundary coverage, 2003-12-27, 2132-08-31, 2500-01-01, and 2634167; asteroid:99942-Apophis is now also sampled at 2378498.5 and 2451917.5 to complete the selected-asteroid bridge.; columns=epoch_jd, body, x_km, y_km, z_km; redistribution=repository-checked regression fixtures, not a broad public corpus."
         );
 }
 
@@ -3358,7 +2551,7 @@ fn reference_snapshot_manifest_summary_rejects_metadata_drift() {
             .validate_with_expected_metadata(
                 "wrong title",
                 "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.",
-                "selected bodies sampled at 1500-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 1600-01-11 for Sun, Moon, Mercury, Venus, Mars, Jupiter, Uranus, Neptune; major bodies sampled at 1749-12-31 for Sun through Neptune; selected bodies sampled at 1750-01-01 for Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; inner planets sampled across 1800-2500; major bodies sampled at 1800-01-03 for Sun through Pluto; selected bodies sampled at 1900-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 2200-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 2451915.25 and 2451915.75 for Sun, Moon, Mercury, Venus; major bodies sampled at 2400000, 2451545, 2451910.5, 2451911.5, 2451912.5, 2451913.5, 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451916.0, 2451916.5, 2451917.0, 2451917.5, 2451918.5, 2451919.5, 2451920.5, 2453000.5, and 2500000; major bodies sampled at 2451915.5 for Sun through Pluto; Mars sampled at 2600000 and 2634167 for outer boundary coverage; major bodies sampled at 2451913.5 through 2451917.5 for additional boundary coverage; selected asteroids sampled at J2000, 2378498.5, 2451910.5 through 2451919.5, with 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451917.5, 2451918.5, and 2451919.5 boundary coverage, 1800-01-03, 2003-12-27, 2132-08-31, 2500-01-01, and 2634167; asteroid:99942-Apophis is now also sampled at 2378498.5 and 2451917.5 to complete the selected-asteroid bridge.",
+                "major-body samples are confined to the 1900-2100 window [JD 2415020.5, 2488069.5]; selected bodies sampled at 1900-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 2451915.25 and 2451915.75 for Sun, Moon, Mercury, Venus; major bodies sampled at 2451545, 2451910.5, 2451911.5, 2451912.5, 2451913.5, 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451916.0, 2451916.5, 2451917.0, 2451917.5, 2451918.5, 2451919.5, 2451920.5, and 2453000.5; major bodies sampled at 2451915.5 for Sun through Pluto; major bodies sampled at 2451913.5 through 2451917.5 for additional boundary coverage; selected asteroids sampled at J2000, 2378498.5, 2451910.5 through 2451919.5, with 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451917.5, 2451918.5, and 2451919.5 boundary coverage, 2003-12-27, 2132-08-31, 2500-01-01, and 2634167; asteroid:99942-Apophis is now also sampled at 2378498.5 and 2451917.5 to complete the selected-asteroid bridge.",
                 &["epoch_jd", "body", "x_km", "y_km", "z_km"],
             )
             .expect_err("reference snapshot manifest summary should reject title drift");

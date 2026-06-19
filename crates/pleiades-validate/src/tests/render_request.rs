@@ -140,7 +140,7 @@ fn cli_report_summary_lists_the_summary_command() {
     assert!(rendered.contains(&reference_snapshot_source_window_summary_for_report()));
     assert!(rendered.contains(&reference_snapshot_body_class_coverage_summary_for_report()));
     assert!(
-        rendered.contains("Comparison snapshot coverage: 232 rows across 10 bodies and 28 epochs")
+        rendered.contains("Comparison snapshot coverage: 162 rows across 10 bodies and 18 epochs")
     );
     assert!(rendered.contains("Body comparison summaries"));
     assert!(rendered.contains("Release bundle verification: verify-release-bundle"));
@@ -296,8 +296,6 @@ fn cli_report_summary_lists_the_summary_command() {
         .contains(&reference_snapshot_mars_jupiter_boundary_summary_for_report()));
     assert!(validation_report_summary
         .contains(&reference_snapshot_major_body_boundary_window_summary_for_report()));
-    assert!(validation_report_summary
-        .contains(&reference_snapshot_mars_outer_boundary_summary_for_report()));
     assert_report_contains_exact_line(
             &validation_report_summary,
             "Packaged lookup epoch policy: TT-grid retag without relativistic correction; TDB lookup epochs are re-tagged onto the TT grid without applying a relativistic correction",
@@ -662,50 +660,14 @@ fn cli_help_lists_the_validation_commands() {
     assert!(rendered.contains("reference-snapshot-lunar-boundary-summary"));
     assert!(rendered
         .contains("lunar-boundary-summary   Alias for reference-snapshot-lunar-boundary-summary"));
-    assert!(rendered.contains("reference-snapshot-1600-selected-body-boundary-summary"));
-    assert!(rendered.contains("1600-selected-body-boundary-summary"));
-    assert!(rendered.contains("reference-snapshot-2268932-selected-body-boundary-summary"));
-    assert!(rendered.contains("2268932-selected-body-boundary-summary"));
-    assert!(rendered.contains("reference-snapshot-2305457-selected-body-boundary-summary"));
-    assert!(rendered.contains("2305457-selected-body-boundary-summary"));
-    assert!(rendered.contains("reference-snapshot-1750-selected-body-boundary-summary"));
-    assert!(rendered.contains("1750-selected-body-boundary-summary"));
-    assert!(rendered.contains("reference-snapshot-1750-major-body-interior-summary"));
-    assert!(rendered.contains("1750-major-body-interior-summary"));
-    assert!(rendered.contains("reference-snapshot-2360234-major-body-interior-summary"));
-    assert!(rendered.contains("2360234-major-body-interior-summary"));
     assert!(rendered.contains("reference-snapshot-2451912-major-body-boundary-summary"));
     assert!(rendered.contains("2451912-major-body-boundary-summary"));
-    assert!(rendered.contains("reference-snapshot-2200-selected-body-boundary-summary"));
-    assert!(rendered.contains("2200-selected-body-boundary-summary"));
-    assert!(rendered.contains("reference-snapshot-2524593-selected-body-boundary-summary"));
-    assert!(rendered.contains("2524593-selected-body-boundary-summary"));
     assert!(rendered.contains("reference-snapshot-2415020-selected-body-boundary-summary"));
     assert!(rendered.contains("2415020-selected-body-boundary-summary"));
-    assert!(rendered.contains("reference-snapshot-2634167-selected-body-boundary-summary"));
-    assert!(rendered.contains("2634167-selected-body-boundary-summary"));
-    assert!(rendered.contains("reference-snapshot-1749-major-body-boundary-summary"));
-    assert!(rendered.contains("1749-major-body-boundary-summary"));
-    assert!(rendered.contains("2360233-major-body-boundary-summary"));
-    assert!(rendered.contains("reference-snapshot-early-major-body-boundary-summary"));
-    assert!(rendered.contains("early-major-body-boundary-summary"));
-    assert!(rendered.contains("reference-snapshot-2378498-major-body-boundary-summary"));
-    assert!(rendered.contains("2378498-major-body-boundary-summary"));
-    assert!(rendered.contains("reference-snapshot-1800-major-body-boundary-summary"));
-    assert!(rendered.contains("1800-major-body-boundary-summary"));
-    assert!(rendered.contains("2378499-major-body-boundary-summary"));
-    assert!(rendered.contains("reference-snapshot-2400000-major-body-boundary-summary"));
-    assert!(rendered.contains("2400000-major-body-boundary-summary"));
     assert!(rendered.contains("reference-snapshot-2451545-major-body-boundary-summary"));
     assert!(rendered.contains("2451545-major-body-boundary-summary"));
-    assert!(rendered.contains("reference-snapshot-2500-major-body-boundary-summary"));
-    assert!(rendered.contains("2500-major-body-boundary-summary"));
     assert!(rendered.contains("reference-snapshot-2453000-major-body-boundary-summary"));
     assert!(rendered.contains("2453000-major-body-boundary-summary"));
-    assert!(rendered.contains("reference-snapshot-2500000-major-body-boundary-summary"));
-    assert!(rendered.contains("2500000-major-body-boundary-summary"));
-    assert!(rendered.contains("reference-snapshot-2600000-major-body-boundary-summary"));
-    assert!(rendered.contains("2600000-major-body-boundary-summary"));
     assert!(rendered.contains("reference-snapshot-2451910-major-body-boundary-summary"));
     assert!(rendered.contains("2451910-major-body-boundary-summary"));
     assert!(rendered.contains("reference-snapshot-2451911-major-body-boundary-summary"));
@@ -913,7 +875,7 @@ fn backend_matrix_summary_command_renders_the_summary() {
         .expect("JPL backend matrix entry should exist");
     assert!(jpl_entry
         .status_note
-        .contains("reference corpus now spans 357 rows across 16 bodies and 31 epochs"));
+        .contains("reference corpus now spans 277 rows across 16 bodies and 23 epochs"));
     assert!(rendered.contains("Families:"));
     assert!(rendered.contains("Algorithmic: 2"));
     assert!(rendered.contains("ReferenceData: 1"));
@@ -1089,12 +1051,9 @@ fn backend_matrix_summary_command_renders_the_summary() {
     assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
     assert!(rendered.contains("API stability summary: api-stability-summary"));
     assert!(rendered.contains("Release notes summary: release-notes-summary"));
-    assert!(rendered.contains("Reference snapshot coverage: 357 rows across 16 bodies and 31 epochs (95 asteroid rows; JD 2268932.5 (TDB)..JD 2634167.0 (TDB)); bodies:"));
+    assert!(rendered.contains("Reference snapshot coverage: 277 rows across 16 bodies and 23 epochs (95 asteroid rows; JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies:"));
     assert!(rendered.contains(&reference_snapshot_lunar_boundary_summary_for_report()));
-    assert!(rendered.contains(&reference_snapshot_1500_selected_body_boundary_summary_for_report()));
-    assert!(rendered.contains(&reference_snapshot_1600_selected_body_boundary_summary_for_report()));
     assert!(rendered.contains(&reference_snapshot_high_curvature_summary_for_report()));
-    assert!(rendered.contains(&reference_snapshot_2500_major_body_boundary_summary_for_report()));
     assert!(rendered.contains(&reference_snapshot_high_curvature_window_summary_for_report()));
     assert!(
         rendered.contains(&reference_snapshot_high_curvature_epoch_coverage_summary_for_report())

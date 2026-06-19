@@ -295,7 +295,7 @@ fn validation_report_includes_corpus_metadata() {
     assert!(report.contains("Comparison corpus"));
     assert!(report.contains("JPL Horizons release-grade comparison window"));
     assert!(
-        report.contains("Comparison snapshot coverage: 232 rows across 10 bodies and 28 epochs")
+        report.contains("Comparison snapshot coverage: 162 rows across 10 bodies and 18 epochs")
     );
     assert!(report.contains("Apparentness: Mean"));
     assert!(report.contains("Benchmark corpus"));
@@ -401,7 +401,7 @@ fn validation_report_includes_corpus_metadata() {
     assert!(report.contains("Luminaries"));
     assert!(report.contains("Major planets"));
     assert!(report.contains("interpolation quality checks:"));
-    assert!(report.contains("JPL interpolation quality: 293 samples across 16 bodies"));
+    assert!(report.contains("JPL interpolation quality: 223 samples across 16 bodies"));
     assert!(report.contains("JPL interpolation quality kind coverage:"));
     assert!(report.contains("JPL interpolation posture: source="));
     assert!(report.contains("JPL interpolation body-class error envelopes:"));
@@ -485,7 +485,7 @@ fn validation_report_summary_renders_a_compact_overview() {
     assert!(report.contains(&reference_snapshot_source_window_summary_for_report()));
     assert!(report.contains(&reference_snapshot_body_class_coverage_summary_for_report()));
     assert!(report.contains("release-grade guard: Pluto excluded from tolerance evidence"));
-    assert!(report.contains("epoch labels: JD 2268932.5 (TT)"));
+    assert!(report.contains("epoch labels: JD 2415020.5 (TT)"));
     assert!(report.contains("House validation corpus"));
     assert!(report.contains("House validation corpus: 9 scenarios"));
     assert!(report.contains("Comparison summary"));
@@ -553,7 +553,7 @@ fn validation_report_summary_renders_a_compact_overview() {
     assert!(body_class_tolerance_posture.contains("mean Δdist="));
     assert!(body_class_tolerance_posture.contains("rms Δdist="));
     assert!(report.contains("JPL interpolation quality"));
-    assert!(report.contains("JPL interpolation quality: 293 samples across 16 bodies"));
+    assert!(report.contains("JPL interpolation quality: 223 samples across 16 bodies"));
     assert!(report.contains("Reference/hold-out overlap:"));
     assert!(report.contains("JPL independent hold-out:"));
     assert!(report.contains("JPL independent hold-out equatorial parity:"));

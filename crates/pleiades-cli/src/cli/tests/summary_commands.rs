@@ -306,16 +306,6 @@ fn summary_commands_render_compact_reports() {
     assert!(release_notes_summary.contains(
         &pleiades_jpl::reference_snapshot_2451916_major_body_dense_boundary_summary_for_report()
     ));
-    assert!(release_notes_summary.contains(&format!(
-        "{}\n{}",
-        pleiades_jpl::reference_snapshot_1600_selected_body_boundary_summary_for_report(),
-        pleiades_jpl::reference_snapshot_1750_selected_body_boundary_summary_for_report()
-    )));
-    assert!(release_notes_summary.contains(&format!(
-        "{}\n{}",
-        pleiades_jpl::reference_snapshot_2268932_selected_body_boundary_summary_for_report(),
-        pleiades_jpl::reference_snapshot_2305457_selected_body_boundary_summary_for_report()
-    )));
     assert!(release_notes_summary.contains(profile.target_house_scope.join("; ").as_str()));
     assert!(release_notes_summary.contains(profile.target_ayanamsa_scope.join("; ").as_str()));
     assert!(release_notes_summary.contains(&format!(
@@ -794,8 +784,6 @@ fn summary_commands_render_compact_reports() {
     assert!(jpl_snapshot_evidence_summary.contains(
         &pleiades_jpl::reference_snapshot_2451914_major_body_bridge_day_summary_for_report()
     ));
-    assert!(jpl_snapshot_evidence_summary
-        .contains(&pleiades_jpl::reference_snapshot_1750_major_body_interior_summary_for_report()));
     assert_eq!(
         jpl_snapshot_evidence_summary,
         validate_render_cli(&["jpl-snapshot-evidence-summary"])
@@ -1364,99 +1352,6 @@ fn summary_commands_render_compact_reports() {
         lunar_boundary_summary,
         pleiades_jpl::reference_snapshot_lunar_boundary_summary_for_report()
     );
-    let reference_snapshot_1600_selected_body_boundary_summary =
-        render_cli(&["reference-snapshot-1600-selected-body-boundary-summary"])
-            .expect("reference snapshot 1600 selected-body boundary summary should render");
-    assert!(reference_snapshot_1600_selected_body_boundary_summary
-        .contains("Reference 1600 selected-body boundary evidence:"));
-    assert_eq!(
-        reference_snapshot_1600_selected_body_boundary_summary,
-        pleiades_jpl::reference_snapshot_1600_selected_body_boundary_summary_for_report()
-    );
-    let reference_snapshot_2200_selected_body_boundary_summary =
-        render_cli(&["reference-snapshot-2200-selected-body-boundary-summary"])
-            .expect("reference snapshot 2200 selected-body boundary summary should render");
-    assert!(reference_snapshot_2200_selected_body_boundary_summary
-        .contains("Reference 2200 selected-body boundary evidence:"));
-    assert_eq!(
-        reference_snapshot_2200_selected_body_boundary_summary,
-        pleiades_jpl::reference_snapshot_2200_selected_body_boundary_summary_for_report()
-    );
-    let reference_snapshot_2524593_selected_body_boundary_summary =
-        render_cli(&["reference-snapshot-2524593-selected-body-boundary-summary"])
-            .expect("reference snapshot 2524593 selected-body boundary summary should render");
-    assert!(reference_snapshot_2524593_selected_body_boundary_summary
-        .contains("Reference 2524593 selected-body boundary evidence:"));
-    assert_eq!(
-        reference_snapshot_2524593_selected_body_boundary_summary,
-        pleiades_jpl::reference_snapshot_2524593_selected_body_boundary_summary_for_report()
-    );
-    let reference_snapshot_2634167_selected_body_boundary_summary =
-        render_cli(&["reference-snapshot-2634167-selected-body-boundary-summary"])
-            .expect("reference snapshot 2634167 selected-body boundary summary should render");
-    assert!(reference_snapshot_2634167_selected_body_boundary_summary
-        .contains("Reference 2634167 selected-body boundary evidence:"));
-    assert_eq!(
-        reference_snapshot_2634167_selected_body_boundary_summary,
-        pleiades_jpl::reference_snapshot_2634167_selected_body_boundary_summary_for_report()
-    );
-    let selected_body_boundary_alias = render_cli(&["2634167-selected-body-boundary-summary"])
-        .expect("2634167 selected-body boundary summary alias should render");
-    assert_eq!(
-        selected_body_boundary_alias,
-        pleiades_jpl::reference_snapshot_2634167_selected_body_boundary_summary_for_report()
-    );
-    let reference_snapshot_1749_major_body_boundary_summary =
-        render_cli(&["reference-snapshot-1749-major-body-boundary-summary"])
-            .expect("reference snapshot 1749 major-body boundary summary should render");
-    assert!(reference_snapshot_1749_major_body_boundary_summary
-        .contains("Reference 1749 major-body boundary evidence:"));
-    assert_eq!(
-        reference_snapshot_1749_major_body_boundary_summary,
-        pleiades_jpl::reference_snapshot_1749_major_body_boundary_summary_for_report()
-    );
-    let reference_snapshot_early_major_body_boundary_summary =
-        render_cli(&["reference-snapshot-early-major-body-boundary-summary"])
-            .expect("reference snapshot early major-body boundary summary should render");
-    assert!(reference_snapshot_early_major_body_boundary_summary
-        .contains("Reference early major-body boundary evidence:"));
-    assert_eq!(
-        reference_snapshot_early_major_body_boundary_summary,
-        pleiades_jpl::reference_snapshot_early_major_body_boundary_summary_for_report()
-    );
-    let reference_snapshot_2378498_major_body_boundary_summary =
-        render_cli(&["reference-snapshot-2378498-major-body-boundary-summary"])
-            .expect("reference snapshot 2378498 major-body boundary summary should render");
-    assert!(reference_snapshot_2378498_major_body_boundary_summary
-        .contains("Reference 2378498 major-body boundary evidence:"));
-    assert_eq!(
-        reference_snapshot_2378498_major_body_boundary_summary,
-        pleiades_jpl::reference_snapshot_2378498_major_body_boundary_summary_for_report()
-    );
-    assert_eq!(
-        render_cli(&[
-            "reference-snapshot-2378498-major-body-boundary-summary",
-            "extra"
-        ])
-        .expect_err(
-            "reference snapshot 2378498 major-body boundary summary should reject extra arguments"
-        ),
-        "reference-snapshot-2378498-major-body-boundary-summary does not accept extra arguments"
-    );
-    assert_eq!(
-        render_cli(&["2378498-major-body-boundary-summary", "extra"])
-            .expect_err("2378498 major-body boundary alias should reject extra arguments"),
-        "reference-snapshot-2378498-major-body-boundary-summary does not accept extra arguments"
-    );
-    let reference_snapshot_1800_major_body_boundary_summary =
-        render_cli(&["reference-snapshot-1800-major-body-boundary-summary"])
-            .expect("reference snapshot 1800 major-body boundary summary should render");
-    assert!(reference_snapshot_1800_major_body_boundary_summary
-        .contains("Reference 1800 major-body boundary evidence:"));
-    assert_eq!(
-        reference_snapshot_1800_major_body_boundary_summary,
-        pleiades_jpl::reference_snapshot_1800_major_body_boundary_summary_for_report()
-    );
     let reference_snapshot_2451910_major_body_boundary_summary =
         render_cli(&["reference-snapshot-2451910-major-body-boundary-summary"])
             .expect("reference snapshot 2451910 major-body boundary summary should render");
@@ -1601,7 +1496,6 @@ fn summary_commands_render_compact_reports() {
     let reference_snapshot_summary = render_cli(&["reference-snapshot-summary"])
         .expect("reference snapshot summary should render");
     assert!(reference_snapshot_summary.contains("Reference snapshot summary"));
-    assert!(reference_snapshot_summary.contains("Reference 2500 major-body boundary evidence:"));
     assert!(reference_snapshot_summary.contains(
         &pleiades_jpl::reference_snapshot_2451916_major_body_dense_boundary_summary_for_report()
     ));
@@ -2870,23 +2764,6 @@ fn summary_commands_render_compact_reports() {
     assert_eq!(
         mars_jupiter_boundary_alias,
         reference_mars_jupiter_boundary_summary
-    );
-    let reference_mars_outer_boundary_summary =
-        render_cli(&["reference-snapshot-mars-outer-boundary-summary"])
-            .expect("reference Mars outer-boundary summary should render");
-    assert!(
-        reference_mars_outer_boundary_summary.contains("Reference Mars outer-boundary evidence:")
-    );
-    assert_eq!(
-        reference_mars_outer_boundary_summary,
-        validate_render_cli(&["reference-snapshot-mars-outer-boundary-summary"])
-            .expect("validation Mars outer-boundary summary should render")
-    );
-    let mars_outer_boundary_alias = render_cli(&["mars-outer-boundary-summary"])
-        .expect("Mars outer-boundary alias should render");
-    assert_eq!(
-        mars_outer_boundary_alias,
-        reference_mars_outer_boundary_summary
     );
     let reference_major_body_boundary_window_summary =
         render_cli(&["reference-snapshot-major-body-boundary-window-summary"])
