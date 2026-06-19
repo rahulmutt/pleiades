@@ -42,10 +42,46 @@ advertised window and channel profile, not merely "draft with measured error."
 
 ## Architecture
 
+### Integration with the existing target-threshold subsystem
+
+Discovery during planning: an elaborate target-threshold subsystem already
+exists in `crates/pleiades-data/src/coverage/target.rs` (745 lines) and
+`coverage/threshold.rs` (967 lines). It already provides:
+
+- `PackagedArtifactTargetThresholdState { Draft, ProductionReady }` with
+  `is_production_ready()` / `validate_production_ready()` — currently
+  `ProductionReady`.
+- Body-class **scopes** already named:
+  `PACKAGED_ARTIFACT_TARGET_THRESHOLD_SCOPES = ["luminaries", "major planets",
+  "pluto", "lunar points", "selected asteroids", "custom bodies"]`.
+- Per-scope **measured fit envelopes** (`PackagedArtifactFitEnvelopeSummary`,
+  mean/max Δlon/Δlat/Δdist in **degrees / AU**) — artifact vs the fit-truth
+  backend it was fit from.
+- CLI summaries (`packaged-artifact-target-threshold-summary`,
+  `-state`, `-scope-envelopes-summary`), golden/drift validation, and
+  release-bundle alignment checks (`bundle_verify_helpers.rs`).
+
+That subsystem is **fit-quality evidence + provenance + drift detection** ("did
+the measured numbers change?"). It is NOT a published-ceiling pass/fail gate
+("is measured under the promised bound?"), it has no speed channel, and it has
+no size/latency budgets. SP3 adds exactly those missing layers and **reuses the
+existing scope vocabulary, summary/golden conventions, and CLI/help-sync
+mechanics** rather than duplicating them. The separate per-body hold-out
+measurement in `accuracy_baseline.rs` (artifact vs independent hold-out, in
+**arcsec / km**) stays the home for the published accuracy ceilings + pass/fail,
+because the hold-out is the independent check.
+
+Extending the `target.rs` fit-envelope summaries themselves to carry a speed
+channel is **out of SP3 scope** (speed is gated via the accuracy-baseline +
+thresholds path); this keeps the heavy provenance/release-bundle surface
+untouched.
+
 ### Single source of truth: `crates/pleiades-data/src/thresholds.rs`
 
 A new module, sibling to `accuracy_baseline.rs`, is the one place published
-numbers live. It exports plain data/lookup functions, no I/O:
+**ceilings and budgets** live (the existing `target.rs` keeps owning fit-envelope
+evidence and the Draft/ProductionReady state). It exports plain data/lookup
+functions, no I/O:
 
 ```rust
 pub struct AccuracyCeiling {
@@ -54,7 +90,7 @@ pub struct AccuracyCeiling {
     pub dist_km: f64,
     pub lon_speed_arcsec_per_day: f64,
     pub lat_speed_arcsec_per_day: f64,
-    pub radial_speed_km_per_day: f64,
+    pub radial_speed_au_per_day: f64,
 }
 
 pub enum BodyClass { Luminary, InnerPlanet, OuterPlanet, Asteroid }
@@ -161,9 +197,11 @@ schema field plus the hold-out slice, rather than rewriting every slice.
 
 ### Units & capability claim
 
-- Public speed values: **°/day** (longitude/latitude), **km/day** (radial) —
-  astrology daily-motion convention.
-- Error thresholds: **arcsec/day** (lon/lat speed), **km/day** (radial speed),
+- Public speed values use the existing `pleiades_types::Motion` type:
+  `longitude_deg_per_day`, `latitude_deg_per_day`, `distance_au_per_day` — i.e.
+  **°/day** (lon/lat) and **AU/day** (radial). (My earlier km/day note is
+  superseded by the real type.)
+- Error thresholds: **arcsec/day** (lon/lat speed), **AU/day** (radial speed),
   per body class.
 - Coverage profile flips `Motion -> Derived`; the `speed_policy` summary becomes
   `FittedDerivative`; the "motion rejected" profile gate (`profile.rs:869`) and
@@ -192,9 +230,13 @@ implementation and bump only if bytes actually move.
 
 - **CLI:** a `packaged-artifact-thresholds-summary` command rendering the
   published contract + live measured + pass/margin across all four accuracy
-  channels and size; plus a tracked latency-budget summary. Reuses the existing
-  baseline/benchmark plumbing. The `help.rs` help-sync test is updated for the
-  new command(s).
+  channels and size; plus a tracked latency-budget summary. Dispatch is added in
+  `crates/pleiades-validate/src/render/cli.rs` (alongside the existing
+  `packaged-artifact-target-threshold-summary` arm), the help string in that
+  file's `help_text()` gets the new lines, and the help-sync assertions in
+  `crates/pleiades-cli/src/cli/tests/help.rs` are updated. Render functions
+  follow the existing `OnceLock` + `validate()` + `summary_line()` + committed-
+  golden pattern (see `accuracy_baseline.rs` and `coverage/threshold.rs`).
 - **Hard gates (tests):** accuracy-ceiling gate (10 majors × 4 channels),
   size-budget gate, Eros self-consistency check. The existing golden drift test
   is retained (approach A). The latency gate is the opt-in one.
