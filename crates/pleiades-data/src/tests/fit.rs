@@ -1322,4 +1322,8 @@ fn planet_segment_is_fit_in_heliocentric_frame() {
     .unwrap();
     assert!((stored_lon - expected.longitude.degrees()).abs() < 1e-6);
     assert!((stored_lon - 200.0).abs() > 1.0, "must not store geocentric longitude");
+
+    // Sun and Moon stay geocentric — the reframe predicate must exclude them.
+    assert!(!crate::regenerate::body_uses_heliocentric_frame(&CelestialBody::Sun));
+    assert!(!crate::regenerate::body_uses_heliocentric_frame(&CelestialBody::Moon));
 }

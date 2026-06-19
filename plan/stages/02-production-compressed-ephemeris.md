@@ -43,7 +43,7 @@ Promote `pleiades-data` from a draft reproducibility fixture to a release-grade
 ### SP2 — Accuracy tuning (done)
 
 - The heliocentric-planet reframe reduced outer-planet longitude errors from
-  draft-level (~156″ Uranus, ~90″ Neptune, ~62″ Pluto, ~11″ Saturn, ~1.7″ Jupiter)
+  the SP1 baseline (~192″ Uranus, ~109″ Neptune, ~62″ Pluto, ~9.5″ Saturn, ~1.5″ Jupiter)
   to sub-arcsec across all bodies. See accuracy numbers above.
 
 ### SP3 — Thresholds, size, and latency budgets
