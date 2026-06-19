@@ -161,12 +161,17 @@ window, flipped to 1900–2100. Wider-than-default generation requires the de440
 Recorded during implementation from `sp1_draft_size_perf_baseline` (and mirrored into
 `PLAN.md`):
 
-| Metric            | Before (1600–2600) | After (1900–2100) |
-| ----------------- | ------------------ | ----------------- |
-| Artifact size     | ~47.5 MB           | _(measured)_      |
-| Decode latency    | _(measured)_       | _(measured)_      |
-| Lookup latency    | _(measured)_       | _(measured)_      |
-| Baseline test     | ~1.7 s             | _(measured)_      |
+| Metric            | Before (1600–2600)   | After (1900–2100)    | Change      |
+| ----------------- | -------------------- | -------------------- | ----------- |
+| Artifact size     | 49,780,387 B (~47.5 MB) | 10,491,287 B (~10.0 MB) | 4.75× smaller |
+| Decode latency    | 1315.9 ms            | 259.7 ms             | 5.1× faster |
+| Lookup latency    | 16,691.4 µs          | 3,326.0 µs           | 5.0× faster |
+| Baseline test     | ~1.7 s               | ~0.35 s (decode-dominated) | ~5× faster |
+
+Numbers from `sp1_draft_size_perf_baseline` (unoptimized build, informational):
+decode = avg over 3 rounds; lookup = avg over 100 lookups of Sun@J2000, TT. The
+"After" artifact size is 10,491,287 B (the +80 B over the segment-only 10,491,207 B
+is the corrected provenance string in the artifact header, Task 7).
 
 ## Blast radius (reference)
 
