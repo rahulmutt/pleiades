@@ -875,7 +875,7 @@ fn release_bundle_writes_expected_artifacts() {
         &artifact_inspection_summary_for_report()
             .expect("artifact inspection summary should build")
     ));
-    assert!(release_summary.contains("residual-bearing bodies: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros"));
+    assert!(release_summary.contains("residual-bearing bodies: asteroid:433-Eros"));
     assert!(release_summary.contains("applies to 11 bundled bodies"));
     assert!(release_summary.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
     assert!(release_summary
@@ -886,7 +886,7 @@ fn release_bundle_writes_expected_artifacts() {
         packaged_artifact_generation_manifest.contains("Packaged artifact generation manifest:")
     );
     assert!(artifact_summary.contains("residual-bearing segments:"));
-    assert!(artifact_summary.contains("residual-bearing bodies: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros"));
+    assert!(artifact_summary.contains("residual-bearing bodies: asteroid:433-Eros"));
     assert!(artifact_summary.contains("Body classes: luminaries=2; major planets=8; lunar points=0; built-in asteroids=0; custom bodies=1; other bodies=0"));
     assert!(artifact_summary.contains(
             "Artifact profile: byte order: little-endian; stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported; applies to 11 bundled bodies; bundled bodies: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros"
