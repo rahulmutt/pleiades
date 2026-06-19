@@ -103,19 +103,21 @@ end-state work and must not broaden public claims before its own evidence exists
 - Keep `README.md`, release profiles, generated reports, and this plan aligned
   when public behavior or release claims change.
 
-Status: refreshed 2026-06-17 after committing the curated asteroid corpus —
-Tier A main-belt core reproducible from the pinned `sb441-n16` kernel plus a
-Tier B constrained set (27 centaurs/personal-asteroids/TNOs) sourced from
-Horizons over 1900-2100, both behind the fail-closed corpus gate. Prior refresh
-2026-06-17 added the broad public-data reader
-(`pleiades-jpl::ingest`: Horizons vector-table, API JSON, generic CSV; optional
-live fetch behind the `horizons-fetch` feature; offline `ingest-public` CLI).
-Prior refresh 2026-06-16 promoted the `pleiades-jpl` reference corpus
-to a real, broad, de440-sourced, checksum-pinned product behind a live
-fail-closed `validate-corpus` gate (clean-checkout verify kernel-free, reproduce
-from de440). Prior refresh 2026-06-13 followed the
-`spec/*.md` revision that enumerated the target compatibility catalog
-(`spec/compatibility-catalog.md`) and added the data provenance/licensing policy
-and Phase 6 for deferred end-state catalog completion. Prior refresh 2026-05-24
-reviewed `SPEC.md`, `spec/*.md`, README status, current crates, CLI/report
-posture, and checked-in plan files.
+Status: refreshed 2026-06-19 after landing SP1 — dense de440-backed generation
+source and per-body accuracy baseline. Artifact generation now fits against
+de440 within each per-body segment span (kernel-gated, same gate as
+corpus_regen); ARTIFACT_VERSION 5, ~201,873 segments / ~49.78 MB.
+Accuracy baseline committed in `crates/pleiades-data/src/accuracy_baseline.rs`:
+inner bodies + Sun + Moon sub-arcsec; outer planets draft-level (Uranus ~156″,
+Neptune ~90″, Pluto ~62″, Saturn ~11″, Jupiter ~1.7″). Phase 1 corpus is
+validation-only; de440 is the dense generation source. Artifact remains
+draft-grade; SP2 (accuracy tuning) and SP3 (thresholds/budgets) are next.
+Prior refresh 2026-06-17 committed the curated asteroid corpus (Tier A from
+`sb441-n16`, Tier B constrained from Horizons over 1900-2100). Prior refresh
+2026-06-17 added the broad public-data reader (`pleiades-jpl::ingest`). Prior
+refresh 2026-06-16 promoted the `pleiades-jpl` reference corpus to a real,
+broad, de440-sourced, checksum-pinned product behind a live fail-closed
+`validate-corpus` gate. Prior refresh 2026-06-13 added Phase 6 for deferred
+end-state catalog completion. Prior refresh 2026-05-24 reviewed `SPEC.md`,
+`spec/*.md`, README status, current crates, CLI/report posture, and checked-in
+plan files.

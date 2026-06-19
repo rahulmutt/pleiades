@@ -6,30 +6,40 @@ omitted.
 
 ## Phase 1 — Production reference backend and corpus
 
-The reproducible de440 generation pipeline now produces a real, broad corpus
-(~25,659 data rows across boundary, interior, fast-cluster, hold-out, and
-independent fixture-golden slices, sampled per-body at each body's own cadence)
-committed under `crates/pleiades-jpl/data/corpus/` with real non-zero checksums
-and a pinned kernel SHA-256. A clean checkout verifies kernel-free via
-`pleiades-validate validate-corpus` and reproduces all slices from de440 with
-`PLEIADES_DE_KERNEL` set; the live fail-closed gate covers missing bodies/roles,
-schema/checksum drift, malformed/non-finite rows, placeholder SHA, and an
-independent Horizons fixture-golden cross-check (600 km tolerance for giant
-planets, which resolve to de440 system barycenters). The remaining slices are:
-
-- Add a broad public-data reader for arbitrary external JPL-style data products,
-  beyond the pinned de440 kernel and checked-in fixtures, on top of the existing
-  combined, split-source, and path-backed split-source loaders.
-- Adopt a small-body asteroid SPK kernel for broader selected-asteroid source
-  coverage and record its provenance in `docs/spk-kernel-sourcing.md`.
+Phase 1 is complete. The reproducible de440 generation pipeline produces a
+real, broad corpus (~25,659 data rows across boundary, interior, fast-cluster,
+hold-out, and independent fixture-golden slices, sampled per-body at each
+body's own cadence) committed under `crates/pleiades-jpl/data/corpus/` with
+real non-zero checksums and a pinned kernel SHA-256. A clean checkout verifies
+kernel-free via `pleiades-validate validate-corpus` and reproduces all slices
+from de440 with `PLEIADES_DE_KERNEL` set; the live fail-closed gate covers
+missing bodies/roles, schema/checksum drift, malformed/non-finite rows,
+placeholder SHA, and an independent Horizons fixture-golden cross-check (600 km
+tolerance for giant planets, which resolve to de440 system barycenters). The
+broad public-data reader (`pleiades-jpl::ingest`) and the curated asteroid
+corpus (Tier A main-belt core from `sb441-n16`, Tier B constrained set from
+Horizons over 1900-2100) are also complete. No open Phase 1 slices remain.
 
 ## Phase 2 — Release-grade compressed ephemeris
 
-- Rebase artifact generation on Phase 1 validated inputs.
-- Replace draft tolerance posture with enforced production thresholds per body
-  class and channel.
-- Improve fitting/reconstruction where measured reference and hold-out errors
-  exceed thresholds.
+SP1 (dense de440-backed generation source + accuracy baseline) has landed:
+artifact generation now fits least-squares polynomials sampled densely from
+de440 within each per-body segment span, kernel-gated behind
+`PLEIADES_DE_KERNEL` (same gate as corpus_regen). ARTIFACT_VERSION is now 5;
+the regenerated artifact is ~201,873 segments / ~49.78 MB. A per-body accuracy
+baseline vs the committed de440-derived hold-out is in
+`crates/pleiades-data/src/accuracy_baseline.rs`; inner bodies + Sun + Moon are
+sub-arcsec; outer planets are draft-level (Uranus ~156″, Neptune ~90″,
+Pluto ~62″, Saturn ~11″, Jupiter ~1.7″). The constrained asteroid (433-Eros)
+is re-derived from the committed reference snapshot (absent from de440 and
+sb441-n16), constrained to 1900-2100. The artifact remains explicitly
+draft-grade. Remaining Phase 2 slices:
+
+- SP2: accuracy tuning — per-body span and degree tuning against the measured
+  baseline, especially outer planets.
+- SP3: enforce published accuracy thresholds per body class and channel; define
+  size and latency budgets.
+- Improve fitting/reconstruction where measured errors exceed thresholds.
 - Keep artifact size, checksum, decode, lookup, batch, and chart-workload
   benchmarks current.
 - Keep unsupported outputs explicit, especially apparent, topocentric, native
