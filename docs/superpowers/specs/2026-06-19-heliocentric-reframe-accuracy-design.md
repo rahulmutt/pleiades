@@ -64,7 +64,12 @@ Sun channel, which is already sub-arcsecond, so the geocentric error budget beco
 | Sun | geocentric (unchanged) | direct, as today |
 | Moon | geocentric (unchanged) | direct, as today |
 | Mercury–Pluto | heliocentric (new) | reconstruct `P_h + S_g` → ecliptic |
-| Eros (asteroid) | heliocentric (new) | same reconstruction |
+| Eros (asteroid) | geocentric (unchanged) | direct, as today |
+
+> **Eros stays geocentric** (refined during planning): it is sourced from the committed
+> reference snapshot at its own epochs (no co-epoch Sun samples to subtract), it is a fast
+> near-Earth asteroid that does **not** suffer the slow-body annual-signal problem the reframe
+> fixes, and it is explicitly non-release-grade. Only the eight true planets are reframed.
 
 The codec, channel structure (3 spherical `PolynomialChannel`s: lon/lat/r per segment),
 quantization (`scale_exponent`), residual-channel mechanism, span limits, and the Moon/Sun
@@ -80,7 +85,7 @@ reconstruction step at lookup.
    enum StoredFrame { Geocentric, Heliocentric }
    ```
 
-   Sun, Moon → `Geocentric`; Mercury–Pluto, Eros → `Heliocentric`. This keeps the artifact
+   Sun, Moon, Eros → `Geocentric`; Mercury–Pluto → `Heliocentric`. This keeps the artifact
    self-describing and makes the lookup branch on data, not a body-name allowlist. It also
    admits future bodies without code changes.
 
@@ -97,28 +102,33 @@ reconstruction step at lookup.
 
 ## Generation pipeline
 
-1. **New sampling primitive** (`pleiades-jpl/src/spk/chain.rs`). Mirror the existing
-   `geocentric_icrf` (which is `position_wrt_ssb(target) − position_wrt_ssb(399 = Earth)`):
+1. **Derive heliocentric samples by Sun-subtraction — no new kernel primitive** (refined during
+   planning). The heliocentric ecliptic position equals the geocentric ecliptic position minus
+   the geocentric Sun, as a Cartesian vector in the shared ecliptic-of-date frame:
 
    ```
-   heliocentric_icrf(pool, target, et) = position_wrt_ssb(target) − position_wrt_ssb(10 = Sun)
+   P_helio_ecliptic = cart(P_geo_ecliptic) − cart(S_geo_ecliptic)   // then back to spherical
    ```
 
-   then reuse `icrf_to_ecliptic` to produce heliocentric ecliptic lon/lat/r. This is the only
-   genuinely new astronomy code and it mirrors an existing function.
+   Both `P_geo` and `S_geo` come from the **existing, already-validated** geocentric ecliptic
+   sampler (`reference.position(...).ecliptic`). Because `P_geo_true = P_helio_true + S_geo_true`
+   by construction, this subtraction yields heliocentric values byte-identical to sampling a
+   Sun-centered chain directly — while reusing the validated geocentric path and adding no new
+   astronomy code. (A `heliocentric_icrf` chain primitive remains an option only if a future
+   need arises; it is not required here.)
 
-2. **Thread the frame choice up.** The dense-fit sampler in `pleiades-data/src/regenerate.rs`
-   (`sample_fraction` → `reference_backend.position(...).ecliptic`) requests heliocentric for
-   heliocentric-frame bodies by threading the body's `StoredFrame` into the sample request so
-   the SPK backend resolves the right center. Geocentric stays the default; Sun/Moon untouched.
+2. **Sample the Sun alongside each planet during fitting.** The dense-fit sampler in
+   `pleiades-data/src/regenerate.rs` (`sample_fraction`), for a heliocentric-frame body, also
+   samples the Sun's geocentric ecliptic at the same instant and applies the subtraction above
+   before fitting. Geocentric-frame bodies (Sun, Moon, Eros) are sampled exactly as today.
 
 3. **Fitting reuses everything.** Segment fitting, span limits, residual layering, and the
    error-driven acceptance ratio (`PACKAGED_ARTIFACT_SEGMENT_FIT_ACCEPTANCE_RATIO`) are
    unchanged; they operate on smooth heliocentric samples and naturally emit fewer outer-planet
    segments (artifact shrinks, not grows).
 
-4. **Eros.** Fit heliocentrically from its committed reference snapshot (absent from
-   de440/sb441), reconstructing heliocentric ecliptic from the snapshot vectors.
+4. **Eros stays geocentric.** Fit from its committed reference snapshot exactly as today; not
+   reframed (see the body-table note above).
 
 5. **Span limits unchanged in this change.** Keep current per-body span limits and rely on
    error-driven acceptance; defer any upward re-tuning (smaller artifact) to the SP3 size pass
@@ -132,7 +142,7 @@ reconstruction step at lookup.
 In `pleiades-compression`'s `lookup_ecliptic`, branch on the body's `StoredFrame`:
 
 - `Geocentric` (Sun, Moon): evaluate the 3 channels → `EclipticCoordinates`. Exactly today.
-- `Heliocentric` (planets, Eros): reconstruct.
+- `Heliocentric` (planets): reconstruct.
 
 Reconstruction for a heliocentric body at instant `t`:
 
@@ -196,8 +206,9 @@ Reconstruction for a heliocentric body at instant `t`:
 
 ## Exit criteria for this change
 
-- Planets and Eros stored heliocentric with an explicit per-body `StoredFrame`;
-  `ARTIFACT_VERSION` 6; deterministic kernel-gated regeneration verified.
+- The eight planets (Mercury–Pluto) stored heliocentric with an explicit per-body `StoredFrame`
+  (Sun, Moon, Eros geocentric); `ARTIFACT_VERSION` 6; deterministic kernel-gated regeneration
+  verified.
 - `lookup_ecliptic` reconstructs geocentric for heliocentric bodies via `P_h + S_g`, with the
   Sun-presence structural invariant enforced.
 - Per-body accuracy baseline re-measured and committed: outer planets ≤ ~5″ longitude, no
