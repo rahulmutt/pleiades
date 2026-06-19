@@ -361,7 +361,7 @@ mod slice_tests {
         assert!(slice
             .csv
             .lines()
-            .any(|l| l.starts_with("23") && l.contains("Sun")));
+            .any(|l| l.starts_with("24") && l.contains("Sun")));
     }
 
     #[test]

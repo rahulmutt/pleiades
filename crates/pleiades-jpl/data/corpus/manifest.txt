@@ -1,10 +1,10 @@
 #Pleiades SPK Reference Corpus Manifest
 #Kernel: de440.bsp
 #Kernel-SHA256: a4ce9bf9b3282becc9f4b2ac3cebe03a2ae7599981aabd7265fd8482fff7c4b5
-slice boundary file=boundary.csv role=boundary rows=60 checksum=13662226065400974478
-slice interior file=interior.csv role=interior rows=24813 checksum=4646123209549936670
-slice fast_cluster file=fast_clusters.csv role=fast_cluster rows=270 checksum=1800088492454335092
-slice holdout file=holdout.csv role=holdout rows=500 checksum=9802123424579841530
+slice boundary file=boundary.csv role=boundary rows=60 checksum=4919109330554894086
+slice interior file=interior.csv role=interior rows=4984 checksum=14771942347785333846
+slice fast_cluster file=fast_clusters.csv role=fast_cluster rows=270 checksum=4209599001743160734
+slice holdout file=holdout.csv role=holdout rows=500 checksum=6857423877723878245
 slice fixture_golden file=fixture_golden.csv role=fixture_golden rows=16 checksum=11655674412360454446
 slice asteroid_reference file=asteroid_reference.csv role=asteroid_reference rows=2849 checksum=3764151475794306169
 slice asteroid_constrained file=asteroid_constrained.csv role=asteroid_constrained rows=6652 checksum=1743170913221086087

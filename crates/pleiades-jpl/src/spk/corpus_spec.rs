@@ -5,9 +5,10 @@
 
 use pleiades_backend::CelestialBody;
 
-/// Target packaged range, as TDB Julian Days (1600-01-01 .. 2600-01-01).
-pub const RANGE_START_JD: f64 = 2_305_447.5;
-pub const RANGE_END_JD: f64 = 2_670_690.5;
+/// Target packaged range, as TDB Julian Days (1900-01-01 .. 2100-01-01). Matches
+/// the asteroid window; wider artifacts are user-generated via `generate-artifact`.
+pub const RANGE_START_JD: f64 = 2_415_020.5;
+pub const RANGE_END_JD: f64 = 2_488_069.5;
 
 /// Pinned identity of the reference kernel. SHA-256 is computed externally via
 /// `shasum -a 256 de440.bsp` and recorded here + in docs/spk-kernel-sourcing.md.
@@ -411,8 +412,8 @@ mod tests {
     #[test]
     fn range_spans_target_window() {
         const { assert!(RANGE_START_JD < RANGE_END_JD) };
-        // 1600-01-01 .. 2600-01-01 spans 365_243 days.
-        assert!((RANGE_END_JD - RANGE_START_JD - 365_243.0).abs() < 2.0);
+        // 1900-01-01 .. 2100-01-01 spans 73_050 days (200 years).
+        assert!((RANGE_END_JD - RANGE_START_JD - 73_050.0).abs() < 2.0);
     }
 
     #[test]
@@ -450,9 +451,10 @@ mod tests {
         const { assert!(AST_RANGE_START_JD < AST_RANGE_END_JD) };
         // 1900-01-01 .. 2100-01-01 spans 73_050 days (200 years).
         assert!((AST_RANGE_END_JD - AST_RANGE_START_JD - 73_050.0).abs() < 2.0);
-        // The asteroid window sits inside the major-body window.
-        const { assert!(AST_RANGE_START_JD > RANGE_START_JD) };
-        const { assert!(AST_RANGE_END_JD < RANGE_END_JD) };
+        // The asteroid window sits within the major-body window. As of the
+        // 1900-2100 default-coverage narrowing they coincide exactly.
+        const { assert!(AST_RANGE_START_JD >= RANGE_START_JD) };
+        const { assert!(AST_RANGE_END_JD <= RANGE_END_JD) };
     }
 
     #[test]

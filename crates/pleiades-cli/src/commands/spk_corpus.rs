@@ -71,15 +71,16 @@ pub fn render_spk_corpus(args: &[&str]) -> Result<String, String> {
 /// `out_dir`.
 ///
 /// Slices written:
-/// - `boundary.csv`      — guard epochs just inside/outside the target range
-/// - `interior.csv`      — per-body cadence backbone across 1600-2600 CE
-/// - `fast_clusters.csv` — fine-cadence windows for fast bodies
-/// - `holdout.csv`       — deterministic pseudo-random hold-out epochs
-/// - `manifest.txt`      — provenance manifest for all five slices (four
-///   backend-generated + `fixture_golden`)
+/// - `boundary.csv`           — guard epochs just inside/outside the target range
+/// - `interior.csv`           — per-body cadence backbone across 1600-2600 CE
+/// - `fast_clusters.csv`      — fine-cadence windows for fast bodies
+/// - `holdout.csv`            — deterministic pseudo-random hold-out epochs
+/// - `manifest.txt`           — provenance manifest for all seven slices (four
+///   backend-generated + `fixture_golden` + two asteroid slices)
 ///
-/// `fixture_golden.csv` must already exist in `out_dir` (hand-populated from
-/// trusted Horizons fixtures) before this command is run.
+/// `fixture_golden.csv`, `asteroid_reference.csv`, and
+/// `asteroid_constrained.csv` must already exist in `out_dir` before this
+/// command is run; they are committed inputs, not backend-generated.
 ///
 /// Full emit behavior (against a real de440 kernel) is covered by the
 /// `pleiades-jpl` slice tests (`generate_slice`/`build_manifest`) plus the
@@ -102,12 +103,59 @@ fn emit_slices(backend: &SpkBackend, out_dir: &str) -> Result<String, String> {
     let mut manifest = build_manifest(&generated);
     let fg_entry = fixture_golden_manifest_entry(out_dir)?;
     manifest.slices.push(fg_entry);
+    let ar_entry = corpus_csv_manifest_entry(
+        out_dir,
+        "asteroid_reference",
+        "asteroid_reference.csv",
+        "asteroid_reference",
+    )?;
+    manifest.slices.push(ar_entry);
+    let ac_entry = corpus_csv_manifest_entry(
+        out_dir,
+        "asteroid_constrained",
+        "asteroid_constrained.csv",
+        "asteroid_constrained",
+    )?;
+    manifest.slices.push(ac_entry);
     std::fs::write(format!("{out_dir}/manifest.txt"), manifest.render())
         .map_err(|e| format!("write manifest: {e}"))?;
     Ok(format!(
-        "wrote {} slices + manifest (incl. fixture_golden) to {out_dir}",
-        generated.len() + 1
+        "wrote {} slices + manifest (incl. fixture_golden, asteroid_reference, asteroid_constrained) to {out_dir}",
+        generated.len() + 3
     ))
+}
+
+/// Reads `{out_dir}/{file}`, counts its data rows (non-comment, non-empty
+/// lines), and computes its checksum, returning a [`SliceEntry`] ready to
+/// append to the manifest.
+///
+/// Returns an actionable error if the file is absent or unreadable, because
+/// committed-input slices (fixture_golden, asteroid_reference,
+/// asteroid_constrained) must be present before `--emit-slices` is run.
+fn corpus_csv_manifest_entry(
+    out_dir: &str,
+    name: &str,
+    file: &str,
+    role: &str,
+) -> Result<SliceEntry, String> {
+    let path = format!("{out_dir}/{file}");
+    let csv = std::fs::read_to_string(&path).map_err(|_| {
+        format!(
+            "--emit-slices requires {path} to exist; \
+             {name} is not backend-generated and must be present before regenerating"
+        )
+    })?;
+    let rows = csv
+        .lines()
+        .filter(|l| !l.starts_with('#') && !l.is_empty())
+        .count();
+    Ok(SliceEntry {
+        name: name.to_string(),
+        file: file.to_string(),
+        role: role.to_string(),
+        rows,
+        checksum: corpus_checksum64(&csv),
+    })
 }
 
 /// Reads `{out_dir}/fixture_golden.csv`, counts its data rows (non-comment,
@@ -118,24 +166,14 @@ fn emit_slices(backend: &SpkBackend, out_dir: &str) -> Result<String, String> {
 /// `fixture_golden` is hand-populated from trusted Horizons fixtures and must
 /// be present before `--emit-slices` is run.
 fn fixture_golden_manifest_entry(out_dir: &str) -> Result<SliceEntry, String> {
-    let fg_path = format!("{out_dir}/fixture_golden.csv");
-    let fg_csv = std::fs::read_to_string(&fg_path).map_err(|_| {
-        format!(
-            "--emit-slices requires {fg_path} to exist (populate it from the trusted \
-             Horizons fixtures before regenerating); fixture_golden is not backend-generated"
-        )
-    })?;
-    let rows = fg_csv
-        .lines()
-        .filter(|l| !l.starts_with('#') && !l.is_empty())
-        .count();
-    Ok(SliceEntry {
-        name: "fixture_golden".to_string(),
-        file: "fixture_golden.csv".to_string(),
-        role: "fixture_golden".to_string(),
-        rows,
-        checksum: corpus_checksum64(&fg_csv),
-    })
+    corpus_csv_manifest_entry(out_dir, "fixture_golden", "fixture_golden.csv", "fixture_golden")
+        .map_err(|_| {
+            let fg_path = format!("{out_dir}/fixture_golden.csv");
+            format!(
+                "--emit-slices requires {fg_path} to exist (populate it from the trusted \
+                 Horizons fixtures before regenerating); fixture_golden is not backend-generated"
+            )
+        })
 }
 
 #[cfg(test)]
@@ -241,6 +279,106 @@ mod tests {
         assert_eq!(entry.name, "fixture_golden");
         assert_eq!(entry.file, "fixture_golden.csv");
         assert_eq!(entry.role, "fixture_golden");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    // corpus_csv_manifest_entry tests — asteroid slices, no kernel required.
+
+    #[test]
+    fn corpus_csv_entry_missing_file_errors_with_actionable_message() {
+        // A tempdir with no asteroid CSV must yield an actionable Err naming
+        // the missing file and noting it is not backend-generated.
+        let dir = std::env::temp_dir().join(format!(
+            "pleiades_test_missing_ar_{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .subsec_nanos()
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        let dir_str = dir.to_string_lossy();
+        let err = corpus_csv_manifest_entry(
+            &dir_str,
+            "asteroid_reference",
+            "asteroid_reference.csv",
+            "asteroid_reference",
+        )
+        .unwrap_err();
+        assert!(
+            err.contains("asteroid_reference"),
+            "error should name the slice: {err}"
+        );
+        assert!(
+            err.contains("not backend-generated"),
+            "error should say not backend-generated: {err}"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn corpus_csv_entry_asteroid_slices_return_correct_rows_checksums_and_names() {
+        // A tempdir with both asteroid CSVs; verify row counts, checksums, and
+        // SliceEntry fields for both asteroid_reference and asteroid_constrained.
+        let dir = std::env::temp_dir().join(format!(
+            "pleiades_test_asteroid_slices_{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .subsec_nanos()
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+
+        // asteroid_reference: 3 data rows + 2 comment lines
+        let ar_path = dir.join("asteroid_reference.csv");
+        std::fs::write(
+            &ar_path,
+            "# comment one\n# comment two\n2451545.0,Ceres,1.0,2.0,3.0\n\
+             2451546.0,Vesta,4.0,5.0,6.0\n2451547.0,Pallas,7.0,8.0,9.0\n",
+        )
+        .unwrap();
+
+        // asteroid_constrained: 1 data row + 1 comment line
+        let ac_path = dir.join("asteroid_constrained.csv");
+        std::fs::write(
+            &ac_path,
+            "# header\n2451548.0,Hygiea,10.0,11.0,12.0\n",
+        )
+        .unwrap();
+
+        let dir_str = dir.to_string_lossy();
+
+        let ar_entry = corpus_csv_manifest_entry(
+            &dir_str,
+            "asteroid_reference",
+            "asteroid_reference.csv",
+            "asteroid_reference",
+        )
+        .unwrap();
+        assert_eq!(ar_entry.rows, 3, "should count 3 data rows");
+        assert_ne!(ar_entry.checksum, 0, "checksum should be non-zero");
+        assert_eq!(ar_entry.name, "asteroid_reference");
+        assert_eq!(ar_entry.file, "asteroid_reference.csv");
+        assert_eq!(ar_entry.role, "asteroid_reference");
+
+        let ac_entry = corpus_csv_manifest_entry(
+            &dir_str,
+            "asteroid_constrained",
+            "asteroid_constrained.csv",
+            "asteroid_constrained",
+        )
+        .unwrap();
+        assert_eq!(ac_entry.rows, 1, "should count 1 data row");
+        assert_ne!(ac_entry.checksum, 0, "checksum should be non-zero");
+        assert_eq!(ac_entry.name, "asteroid_constrained");
+        assert_eq!(ac_entry.file, "asteroid_constrained.csv");
+        assert_eq!(ac_entry.role, "asteroid_constrained");
+
+        // Checksums must differ between the two files.
+        assert_ne!(
+            ar_entry.checksum, ac_entry.checksum,
+            "distinct files must have distinct checksums"
+        );
+
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

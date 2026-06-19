@@ -140,8 +140,8 @@ mod tests {
 
     #[test]
     fn reference_corpus_row_count_matches_manifest_sum() {
-        // interior(24813) + boundary(60) + fast_cluster(270) = 25143
-        assert_eq!(production_reference_corpus().len(), 25_143);
+        // interior(4984) + boundary(60) + fast_cluster(270) = 5314
+        assert_eq!(production_reference_corpus().len(), 5_314);
     }
 
     #[test]

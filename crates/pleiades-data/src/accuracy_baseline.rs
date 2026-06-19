@@ -368,9 +368,15 @@ mod tests {
             .expect("Uranus must appear in the packaged baseline");
         assert!(
             uranus.max_longitude_arcsec > 1.0,
-            "Uranus max longitude error must be >1 arcsec (expected ~156\" for SP1; got {:.4}\" — baseline may be vacuous)",
+            "Uranus max longitude error must be >1 arcsec (expected ~192\" for SP1; got {:.4}\" — baseline may be vacuous)",
             uranus.max_longitude_arcsec
         );
+    }
+
+    #[test]
+    #[ignore = "maintainer helper: prints the accuracy baseline summary to regenerate the golden"]
+    fn print_packaged_artifact_baseline_summary() {
+        eprintln!("{}", packaged_artifact_accuracy_baseline_summary_for_report());
     }
 
     // Drift gate: the committed per-body summary must match the live baseline.
@@ -388,8 +394,8 @@ mod tests {
 
         // Inner bodies + luminaries: sub-arcsec — anchored to first 3 significant digits.
         assert!(
-            report.contains("Sun: n=50 max_lon=0.000"),
-            "Sun max_lon bucket drift (expected ~0.0005\"): {report}"
+            report.contains("Sun: n=50 max_lon=0.001"),
+            "Sun max_lon bucket drift (expected ~0.0010\"): {report}"
         );
         assert!(
             report.contains("Moon: n=50 max_lon=0.000"),
@@ -397,37 +403,37 @@ mod tests {
         );
         assert!(
             report.contains("Mercury: n=50 max_lon=0.000"),
-            "Mercury max_lon bucket drift (expected ~0.0002\"): {report}"
+            "Mercury max_lon bucket drift (expected ~0.0006\"): {report}"
         );
         assert!(
-            report.contains("Venus: n=50 max_lon=0.000"),
-            "Venus max_lon bucket drift (expected ~0.0009\"): {report}"
+            report.contains("Venus: n=50 max_lon=0.001"),
+            "Venus max_lon bucket drift (expected ~0.0013\"): {report}"
         );
         assert!(
             report.contains("Mars: n=50 max_lon=0.0"),
-            "Mars max_lon bucket drift (expected ~0.038\"): {report}"
+            "Mars max_lon bucket drift (expected ~0.0446\"): {report}"
         );
 
         // Outer planets: anchored to integer-arcsec prefix — detects all-zero regression.
         assert!(
             report.contains("Jupiter: n=50 max_lon=1."),
-            "Jupiter max_lon bucket drift (expected ~1.69\"): {report}"
+            "Jupiter max_lon bucket drift (expected ~1.4652\"): {report}"
         );
         assert!(
-            report.contains("Saturn: n=50 max_lon=11."),
-            "Saturn max_lon bucket drift (expected ~11.4\"): {report}"
+            report.contains("Saturn: n=50 max_lon=9."),
+            "Saturn max_lon bucket drift (expected ~9.5245\"): {report}"
         );
         assert!(
-            report.contains("Uranus: n=50 max_lon=155."),
-            "Uranus max_lon bucket drift (expected ~155.8\"): {report}"
+            report.contains("Uranus: n=50 max_lon=192."),
+            "Uranus max_lon bucket drift (expected ~192.3613\"): {report}"
         );
         assert!(
-            report.contains("Neptune: n=50 max_lon=90."),
-            "Neptune max_lon bucket drift (expected ~90.4\"): {report}"
+            report.contains("Neptune: n=50 max_lon=109."),
+            "Neptune max_lon bucket drift (expected ~109.3779\"): {report}"
         );
         assert!(
-            report.contains("Pluto: n=50 max_lon=62."),
-            "Pluto max_lon bucket drift (expected ~62.2\"): {report}"
+            report.contains("Pluto: n=50 max_lon=61."),
+            "Pluto max_lon bucket drift (expected ~61.6155\"): {report}"
         );
     }
 }
