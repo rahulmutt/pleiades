@@ -18,6 +18,7 @@ use crate::commands::packaged_artifact::{
     parse_packaged_artifact_command, render_packaged_artifact_regeneration,
     render_packaged_artifact_regeneration_check, PackagedArtifactCommand,
 };
+use crate::commands::generate_artifact::render_generate_artifact;
 use crate::commands::spk_corpus::render_spk_corpus;
 use crate::help::help_text;
 use crate::parse::{parse_release_bundle_output_dir, parse_rounds};
@@ -831,6 +832,7 @@ pub(crate) fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("chart") => render_chart(&args[1..]),
         Some("generate-spk-corpus") => render_spk_corpus(&args[1..]),
         Some("generate-fixture-golden") => render_fixture_golden(&args[1..]),
+        Some("generate-artifact") => render_generate_artifact(&args[1..]),
         Some("help") | Some("--help") | Some("-h") => Ok(help_text()),
         None => Ok(banner().to_string()),
         Some(other) => match validate_render_cli(args) {
