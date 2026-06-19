@@ -447,6 +447,12 @@ fn help_text_lists_the_bridge_day_and_boundary_epoch_coverage_commands() {
     assert!(help.contains("source-corpus-posture     Alias for source-corpus-posture-summary"));
     assert!(help.contains("ayanamsa-audit-summary    Print the compact ayanamsa audit summary"));
     assert!(help.contains("ayanamsa-audit            Alias for ayanamsa-audit-summary"));
+    assert!(help.contains(
+        "packaged-artifact-accuracy-baseline-summary  Print the SP1 per-body accuracy baseline (committed artifact vs hold-out corpus)"
+    ));
+    assert!(help.contains(
+        "artifact-accuracy-baseline  Alias for packaged-artifact-accuracy-baseline-summary"
+    ));
 }
 
 #[test]

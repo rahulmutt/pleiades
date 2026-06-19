@@ -145,6 +145,14 @@ impl PackagedArtifactFitEnvelopeSummary {
     pub fn validate(&self) -> Result<(), PackagedArtifactFitEnvelopeSummaryValidationError> {
         let artifact = packaged_artifact();
         let expected = packaged_artifact_fit_envelope_summary_details();
+        // NOTE: `expected_sample_count` is defined as the realized coverable count (planned
+        // fractions that fall inside the JplSnapshotBackend fixture window). The fixture window
+        // (~1500–2585) is narrower than the artifact's de440 window (1600–2600), so ~11% of
+        // planned fractions are legitimately un-coverable at the edges. Both `expected_sample_count`
+        // and `sample_count` are derived from the same realized sample set, so the two checks
+        // below are informational consistency guards (they confirm the live summary was built from
+        // the same realized set) rather than a strict planned-vs-realized invariant.
+        // The meaningful drift gate is the value comparison via `self != &expected` below.
         let expected_sample_count = packaged_artifact_fit_expected_sample_count(artifact);
         let expected_body_count = artifact.bodies.len();
 

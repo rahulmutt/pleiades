@@ -83,14 +83,16 @@ impl BodyAccumulator {
         }
     }
 
-    fn accumulate(&mut self, lon_arcsec: f64, lat_arcsec: f64, dist_km: f64) {
+    fn accumulate(&mut self, lon_arcsec: f64, lat_arcsec: f64, dist_km: Option<f64>) {
         self.count += 1;
         self.max_lon_arcsec = self.max_lon_arcsec.max(lon_arcsec);
         self.sum_sq_lon_arcsec += lon_arcsec * lon_arcsec;
         self.max_lat_arcsec = self.max_lat_arcsec.max(lat_arcsec);
         self.sum_sq_lat_arcsec += lat_arcsec * lat_arcsec;
-        self.max_dist_km = self.max_dist_km.max(dist_km);
-        self.sum_sq_dist_km += dist_km * dist_km;
+        if let Some(d) = dist_km {
+            self.max_dist_km = self.max_dist_km.max(d);
+            self.sum_sq_dist_km += d * d;
+        }
     }
 
     fn finish(self) -> BodyChannelError {
@@ -161,10 +163,12 @@ pub fn accuracy_baseline_against(
         let lat_arcsec =
             (artifact_coords.latitude.degrees() - holdout_coords.latitude.degrees()).abs() * 3600.0;
 
-        // Distance diff in km.
+        // Distance diff in km; None when either side has no distance.
+        // Skip the distance contribution for this row rather than silently
+        // accumulating 0.0 (which would mask a future regression).
         let dist_km = match (artifact_coords.distance_au, holdout_coords.distance_au) {
-            (Some(a), Some(h)) => (a - h).abs() * AU_IN_KM,
-            _ => 0.0,
+            (Some(a), Some(h)) => Some((a - h).abs() * AU_IN_KM),
+            _ => None,
         };
 
         acc.accumulate(lon_arcsec, lat_arcsec, dist_km);
@@ -297,26 +301,133 @@ mod tests {
         );
     }
 
+    // Runtime: ~1.7 s (decodes 47.5 MB artifact + 500-row hold-out). Not ignored.
     #[test]
-    #[ignore = "reads 47.5MB artifact + 500-row hold-out; run with -- --ignored"]
     fn packaged_artifact_baseline_is_non_vacuous() {
-        // Regression guard against the Tdb/Tt scale-mismatch vacuity bug:
-        // the real packaged baseline must include Uranus with a measurable
-        // (non-zero) longitude error.  A vacuous baseline would return no Uranus
-        // entry (all lookups skipped) or a zero error.
+        // Regression guard against the Tdb/Tt scale-mismatch vacuity bug.
+        // All 10 base bodies must be present with count>0; inner bodies and luminaries
+        // must be sub-arcsec; at least one outer planet must show a clearly non-zero
+        // longitude error (proving the baseline is not vacuous).
         let errors = packaged_artifact_accuracy_baseline();
+
+        // (a) All 10 base bodies present.
+        let expected_bodies = [
+            CelestialBody::Sun,
+            CelestialBody::Moon,
+            CelestialBody::Mercury,
+            CelestialBody::Venus,
+            CelestialBody::Mars,
+            CelestialBody::Jupiter,
+            CelestialBody::Saturn,
+            CelestialBody::Uranus,
+            CelestialBody::Neptune,
+            CelestialBody::Pluto,
+        ];
+        assert_eq!(
+            errors.len(),
+            10,
+            "expected 10 base bodies in packaged baseline; got {}: {:?}",
+            errors.len(),
+            errors
+                .iter()
+                .map(|e| format!("{:?}", e.body))
+                .collect::<Vec<_>>()
+        );
+        for body in &expected_bodies {
+            let entry = errors
+                .iter()
+                .find(|e| &e.body == body)
+                .unwrap_or_else(|| panic!("{body:?} must appear in the packaged baseline"));
+            assert!(
+                entry.comparison_count > 0,
+                "{body:?} must have at least one successful comparison (got 0 — vacuous baseline)"
+            );
+        }
+
+        // (b) Inner bodies + luminaries must be sub-arcsec in longitude.
+        let sub_arcsec_bodies = [
+            CelestialBody::Sun,
+            CelestialBody::Moon,
+            CelestialBody::Mercury,
+            CelestialBody::Venus,
+            CelestialBody::Mars,
+        ];
+        for body in &sub_arcsec_bodies {
+            let entry = errors.iter().find(|e| &e.body == body).unwrap();
+            assert!(
+                entry.max_longitude_arcsec < 1.0,
+                "{body:?} max longitude error must be <1 arcsec (got {:.6}\")",
+                entry.max_longitude_arcsec
+            );
+        }
+
+        // (c) Non-vacuity anchor: Uranus must have a clearly non-zero longitude error.
         let uranus = errors
             .iter()
             .find(|e| e.body == CelestialBody::Uranus)
-            .expect("Uranus must appear in the packaged baseline (hold-out covers 10 base bodies)");
-        assert!(
-            uranus.comparison_count > 0,
-            "Uranus must have at least one successful comparison (got 0 — vacuous baseline)"
-        );
+            .expect("Uranus must appear in the packaged baseline");
         assert!(
             uranus.max_longitude_arcsec > 1.0,
-            "Uranus max longitude error must be >1 arcsec (expected ~156\" for SP1 draft; got {:.4}\" — baseline may be vacuous)",
+            "Uranus max longitude error must be >1 arcsec (expected ~156\" for SP1; got {:.4}\" — baseline may be vacuous)",
             uranus.max_longitude_arcsec
+        );
+    }
+
+    // Drift gate: the committed per-body summary must match the live baseline.
+    // Generated from actual output (2026-06-19); fails if errors silently go all-zero
+    // or if artifact/hold-out changes shift any body's error bucket.
+    #[test]
+    fn packaged_artifact_baseline_summary_matches_committed_golden() {
+        let report = packaged_artifact_accuracy_baseline_summary_for_report();
+
+        // Header: 10 bodies
+        assert!(
+            report.contains("Packaged-artifact accuracy baseline (10 bodies)"),
+            "baseline report header drift: {report}"
+        );
+
+        // Inner bodies + luminaries: sub-arcsec — anchored to first 3 significant digits.
+        assert!(
+            report.contains("Sun: n=50 max_lon=0.000"),
+            "Sun max_lon bucket drift (expected ~0.0005\"): {report}"
+        );
+        assert!(
+            report.contains("Moon: n=50 max_lon=0.000"),
+            "Moon max_lon bucket drift (expected ~0.0001\"): {report}"
+        );
+        assert!(
+            report.contains("Mercury: n=50 max_lon=0.000"),
+            "Mercury max_lon bucket drift (expected ~0.0002\"): {report}"
+        );
+        assert!(
+            report.contains("Venus: n=50 max_lon=0.000"),
+            "Venus max_lon bucket drift (expected ~0.0009\"): {report}"
+        );
+        assert!(
+            report.contains("Mars: n=50 max_lon=0.0"),
+            "Mars max_lon bucket drift (expected ~0.038\"): {report}"
+        );
+
+        // Outer planets: anchored to integer-arcsec prefix — detects all-zero regression.
+        assert!(
+            report.contains("Jupiter: n=50 max_lon=1."),
+            "Jupiter max_lon bucket drift (expected ~1.69\"): {report}"
+        );
+        assert!(
+            report.contains("Saturn: n=50 max_lon=11."),
+            "Saturn max_lon bucket drift (expected ~11.4\"): {report}"
+        );
+        assert!(
+            report.contains("Uranus: n=50 max_lon=155."),
+            "Uranus max_lon bucket drift (expected ~155.8\"): {report}"
+        );
+        assert!(
+            report.contains("Neptune: n=50 max_lon=90."),
+            "Neptune max_lon bucket drift (expected ~90.4\"): {report}"
+        );
+        assert!(
+            report.contains("Pluto: n=50 max_lon=62."),
+            "Pluto max_lon bucket drift (expected ~62.2\"): {report}"
         );
     }
 }

@@ -550,8 +550,7 @@ mod tests {
         // CE), so it falls outside the asteroid window and must be rejected.
         let slices = vec![LoadedSlice {
             role: "asteroid_reference".to_string(),
-            csv: "#Columns:epoch_jd,body,x_km,y_km,z_km\n2200000.0,Ceres,1.0,2.0,3.0\n"
-                .to_string(),
+            csv: "#Columns:epoch_jd,body,x_km,y_km,z_km\n2200000.0,Ceres,1.0,2.0,3.0\n".to_string(),
         }];
         assert!(crate::corpus::asteroid::validate_asteroid_slices(&slices).is_err());
     }

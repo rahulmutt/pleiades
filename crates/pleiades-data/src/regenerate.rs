@@ -2313,7 +2313,6 @@ pub(crate) fn map_artifact_error(error: pleiades_compression::CompressionError) 
 ///
 /// Scale exponents match the existing generation pipeline: Longitude=9, Latitude=9,
 /// DistanceAu=10 (see `regenerate.rs` segment_from_single_entry and threshold.rs).
-#[allow(dead_code)]
 pub(crate) fn fit_segment_within_span(
     body: &CelestialBody,
     t0_jd: f64,
@@ -2504,7 +2503,6 @@ pub(crate) fn build_packaged_artifact_from_reference_over(
 /// reconstruction via [`build_packaged_artifact_from_reference`]. Kernel-free
 /// callers must instead decode the committed bytes via the runtime-decode path
 /// (see [`build_packaged_artifact`] / [`regenerate_packaged_artifact`]).
-#[allow(dead_code)]
 pub fn regenerate_packaged_artifact_from_kernel(
     kernel_path: &str,
 ) -> Result<CompressedArtifact, String> {
