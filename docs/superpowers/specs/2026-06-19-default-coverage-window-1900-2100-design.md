@@ -28,9 +28,38 @@ window to match collapses span by 5× for the bodies that dominate size.
 
 - Changing the asteroid window (already 1900–2100).
 - Changing the SP1 artifact format.
-- Wide **kernel-free** generation — the committed reference snapshot is bounded and
-  cannot synthesize coverage beyond what ships.
+- Wide **kernel-free** generation — major-body generation fits densely from the de440
+  kernel, so any window (default or wider) requires the kernel. The only kernel-free
+  path is runtime-decode of the committed bytes (window-agnostic, see Reproduction
+  paths below).
 - SP3 size/perf **budget** enforcement — still deferred. We measure, we don't gate.
+
+## Reproduction paths (corrected from investigation)
+
+The shipped artifact's **major bodies are fit densely from the de440 kernel**
+(`build_packaged_artifact_from_reference_over` → `fitting_segment_boundaries` +
+`fit_segment_within_span`, Moon every 4 days, degree-8 LSQ). The curated
+`reference_snapshot.csv` is used **only for the constrained asteroid (Eros)**, whose
+data is absent from de440.
+
+There are therefore three relevant paths:
+
+1. **Kernel path** (`regenerate_packaged_artifact_from_kernel`) — source of the shipped
+   bytes. Gated test `regenerated_artifact_matches_committed` pins it.
+2. **Runtime-decode path** (`regenerate_packaged_artifact`) — the real kernel-free
+   path; just decodes committed bytes. Works for any window for free.
+3. **Legacy snapshot reconstruction** (`regenerate_packaged_artifact_from_snapshot` →
+   `packaged_body_artifacts_from_snapshot`) — reconstructs **all** bodies from the
+   ~32-epoch `reference_snapshot.csv`. Its segmentation (between sparse snapshot
+   entries) is structurally different from the dense de440 fit, so it **cannot** be
+   byte-identical to the shipped artifact. Its `#[ignore]`d byte-identity test
+   (`tests/codec.rs`) predates the dense-generation switch (commit `aab351a5`) and is
+   dead. **Decision: retire the legacy major-body branch** — restrict snapshot
+   reconstruction to the asteroid (its live use) and delete the stale ignored test.
+
+The "fitted to JPL Horizons reference epochs (1800, 2000, 2500 CE)" text in
+`lib.rs` is **provenance prose only** — those epochs do not drive fitting or
+validation. The fit reads the window constants; nothing is anchored to 1800/2500.
 
 ## Approach
 
@@ -56,31 +85,51 @@ window, flipped to 1900–2100. Wider-than-default generation requires the de440
 
 ### 2. Generation API + CLI
 
-- **Core API:** promote the regeneration entry point in
-  `crates/pleiades-data/src/regenerate.rs` to a documented public function taking an
-  explicit `CoverageWindow` + kernel path, defaulting to the shipped window. Single
-  path for default and custom artifacts.
-- **Thin CLI** (`pleiades-gen`): parses `--start` / `--end` (accepting **either**
-  calendar **years** *or* JD — years primary, friendlier; JD for precision),
-  `--kernel`, and an output path. Builds a `CoverageWindow`, calls the core API,
-  writes the artifact. No logic beyond arg-parsing.
-- **Constraint:** wider-than-default generation requires the de440 kernel. The
-  kernel-free snapshot path stays pinned to reproducing the shipped 1900–2100 default.
-  The CLI errors clearly when asked for a window wider than the default without a
-  kernel.
+- **Core API:** add a public `regenerate_packaged_artifact_from_kernel_over(kernel,
+  window)` in `crates/pleiades-data/src/regenerate.rs` taking an explicit
+  `CoverageWindow`; the existing `regenerate_packaged_artifact_from_kernel` becomes a
+  thin wrapper passing `CoverageWindow::default()`. The window flows into the already
+  window-parameterized `build_packaged_artifact_from_reference_over(reference,
+  base_window)`. Single path for default and custom artifacts.
+- **Thin CLI:** a new `pleiades-cli` subcommand `generate-artifact` (matching the
+  existing `generate-spk-corpus` / `generate-fixture-golden` dispatch in
+  `crates/pleiades-cli/src/cli.rs`), parsing `<kernel.bsp> --start <S> --end <E>
+  --out <path>`. `--start`/`--end` accept **either** calendar **years** *or* JD —
+  years primary, JD for precision. Builds a `CoverageWindow`, calls the core API,
+  writes the encoded artifact. No logic beyond arg-parsing.
+- **Constraint:** all major-body generation requires the de440 kernel (dense fit), so
+  the CLI always needs a kernel — there is no kernel-free wide generation. Kernel-free
+  callers use runtime-decode of the committed default bytes.
 
-### 3. Fit anchors + committed data regeneration
+### 3. Retire legacy snapshot path + regenerate committed data
 
-- **Fit anchors** move inside the window: 1800/2000/2500 → **1900 / 2000 / 2100**.
-  Update `REFERENCE_SNAPSHOT_*_EPOCH_JD` in `crates/pleiades-jpl/src/backend.rs`
-  (1800 → 1900, 2500 → 2100; J2000 unchanged) and regenerate the affected rows of
-  `crates/pleiades-jpl/data/reference_snapshot.csv` from the kernel.
-- **Regenerate all committed corpus slices** at the new window — `holdout.csv`,
-  `interior.csv`, `boundary.csv`, and any other backbone data. All are currently
-  spread across 1600–2600 and become orphaned (outside coverage) when narrowed.
-- **Regenerate the packaged artifact** and update committed bytes.
+- **Retire the legacy snapshot major-body branch:** restrict
+  `packaged_body_artifacts_from_snapshot` (and `try_regenerate_packaged_artifact_from_snapshot`)
+  to the constrained asteroid, and delete the stale `#[ignore]`d byte-identity test
+  in `crates/pleiades-data/src/tests/codec.rs`
+  (`packaged_artifact_generation_from_supplied_snapshot_matches_the_default_fixture`).
+  See Reproduction paths above for why it can't hold.
+- **Regenerate all committed corpus slices** at the new window. These are produced by
+  `generate_slice` (driven by `corpus_spec` epoch functions, which read the window
+  constants) via the CLI:
+  `cargo run -p pleiades-cli -- generate-spk-corpus <kernel> --emit-slices
+  crates/pleiades-jpl/data/corpus` — rewrites `boundary.csv`, `interior.csv`,
+  `fast_clusters.csv`, `holdout.csv`, `manifest.txt`. All currently span 1600–2600 and
+  become orphaned when narrowed. The gated `regenerated_corpus_matches_checked_in` test
+  verifies the result.
+- **`fixture_golden.csv`** is hand-populated from trusted Horizons fixtures (not
+  backend-generated). If its epochs fall outside 1900–2100, repopulate it via
+  `generate-fixture-golden` before re-emitting the manifest.
+- **`reference_snapshot.csv` + summary:** the major-body rows at out-of-window epochs
+  (1500/1600/1749/1800/2500/2600/2634) are now used only for provenance summaries
+  (`reference_summary`), not artifact generation. Prune them to the new window and
+  update the `REFERENCE_SNAPSHOT_*_EPOCH_JD` summary constants in `backend.rs` +
+  `reference_snapshot_summary` validation so the summary stays consistent. The Eros /
+  asteroid rows (1900–2100) are unchanged.
+- **Regenerate the packaged artifact** from the kernel and update committed bytes.
 - **Recompute the golden accuracy baseline** in
-  `crates/pleiades-data/src/accuracy_baseline.rs` against the new artifact + holdout.
+  `crates/pleiades-data/src/accuracy_baseline.rs` against the new artifact + holdout
+  (golden is inline assertions; update the per-body buckets from the new run).
 
 ### 4. Documentation + terminology
 
