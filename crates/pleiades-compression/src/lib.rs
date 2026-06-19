@@ -44,7 +44,7 @@ pub(crate) mod channels;
 pub(crate) mod codec;
 pub(crate) mod error;
 pub(crate) mod format;
-pub mod frame_recombine;
+mod frame_recombine;
 
 // ── Public re-exports (preserve exact prior public surface) ───────────────────
 
