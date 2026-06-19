@@ -453,4 +453,29 @@ mod reframe_lookup_tests {
         )]);
         assert!(result.is_err(), "heliocentric body without a Sun must fail validation");
     }
+
+    #[test]
+    fn heliocentric_body_with_heliocentric_sun_fails_validation() {
+        // A Sun stored as Heliocentric would cause infinite recursion at lookup
+        // (lookup_ecliptic(Sun) → geocentric_from_heliocentric → lookup_ecliptic(Sun) → …).
+        // validate() must reject this configuration fail-closed.
+        let sun_coords = EclipticCoordinates::new(
+            Longitude::from_degrees(95.0),
+            Latitude::from_degrees(0.0),
+            Some(1.0),
+        );
+        let jupiter_helio = EclipticCoordinates::new(
+            Longitude::from_degrees(120.0),
+            Latitude::from_degrees(0.5),
+            Some(5.0),
+        );
+        let result = try_build_test_artifact(vec![
+            const_body(CelestialBody::Sun, StoredFrame::Heliocentric, 0.0, 100.0, &sun_coords),
+            const_body(CelestialBody::Jupiter, StoredFrame::Heliocentric, 0.0, 100.0, &jupiter_helio),
+        ]);
+        assert!(
+            result.is_err(),
+            "artifact with heliocentric Jupiter and heliocentric Sun must fail validation"
+        );
+    }
 }

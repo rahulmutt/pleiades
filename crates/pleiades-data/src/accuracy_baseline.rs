@@ -361,14 +361,37 @@ mod tests {
             );
         }
 
-        // (c) Non-vacuity anchor: Uranus must have a clearly non-zero longitude error.
+        // (b2) SP2: outer planets stored heliocentrically — all must also be sub-arcsec.
+        let outer_bodies = [
+            CelestialBody::Jupiter,
+            CelestialBody::Saturn,
+            CelestialBody::Uranus,
+            CelestialBody::Neptune,
+            CelestialBody::Pluto,
+        ];
+        for body in &outer_bodies {
+            let entry = errors.iter().find(|e| &e.body == body).unwrap();
+            assert!(
+                entry.max_longitude_arcsec < 1.0,
+                "{body:?} max longitude error must be <1 arcsec after SP2 heliocentric reframe (got {:.6}\")",
+                entry.max_longitude_arcsec
+            );
+        }
+
+        // (c) Non-vacuity anchor: Uranus must be non-zero (baseline is not vacuous)
+        // and sub-arcsec (heliocentric reframe is active).
         let uranus = errors
             .iter()
             .find(|e| e.body == CelestialBody::Uranus)
             .expect("Uranus must appear in the packaged baseline");
         assert!(
-            uranus.max_longitude_arcsec > 1.0,
-            "Uranus max longitude error must be >1 arcsec (expected ~192\" for SP1; got {:.4}\" — baseline may be vacuous)",
+            uranus.max_longitude_arcsec > 0.0001,
+            "Uranus max longitude error must be >0.0001\" (got {:.6}\" — baseline may be vacuous)",
+            uranus.max_longitude_arcsec
+        );
+        assert!(
+            uranus.max_longitude_arcsec < 1.0,
+            "Uranus max longitude error must be <1\" after SP2 heliocentric reframe (got {:.4}\" — reframe may be broken)",
             uranus.max_longitude_arcsec
         );
     }
@@ -380,8 +403,10 @@ mod tests {
     }
 
     // Drift gate: the committed per-body summary must match the live baseline.
-    // Generated from actual output (2026-06-19); fails if errors silently go all-zero
-    // or if artifact/hold-out changes shift any body's error bucket.
+    // Generated from actual output (2026-06-19, SP2 heliocentric-planet artifact);
+    // fails if errors silently go all-zero or if artifact/hold-out changes shift
+    // any body's error bucket. SP2 outer-planet errors are sub-arcsec after the
+    // heliocentric reframe; compare with SP1 (pre-reframe) goldens in git history.
     #[test]
     fn packaged_artifact_baseline_summary_matches_committed_golden() {
         let report = packaged_artifact_accuracy_baseline_summary_for_report();
@@ -392,7 +417,8 @@ mod tests {
             "baseline report header drift: {report}"
         );
 
-        // Inner bodies + luminaries: sub-arcsec — anchored to first 3 significant digits.
+        // All bodies: sub-arcsec — anchored to first 3 significant digits.
+        // SP2: outer planets now stored heliocentrically, so all errors are sub-arcsec.
         assert!(
             report.contains("Sun: n=50 max_lon=0.001"),
             "Sun max_lon bucket drift (expected ~0.0010\"): {report}"
@@ -403,37 +429,36 @@ mod tests {
         );
         assert!(
             report.contains("Mercury: n=50 max_lon=0.000"),
-            "Mercury max_lon bucket drift (expected ~0.0006\"): {report}"
+            "Mercury max_lon bucket drift (expected ~0.0009\"): {report}"
         );
         assert!(
             report.contains("Venus: n=50 max_lon=0.001"),
-            "Venus max_lon bucket drift (expected ~0.0013\"): {report}"
+            "Venus max_lon bucket drift (expected ~0.0011\"): {report}"
         );
         assert!(
-            report.contains("Mars: n=50 max_lon=0.0"),
-            "Mars max_lon bucket drift (expected ~0.0446\"): {report}"
+            report.contains("Mars: n=50 max_lon=0.000"),
+            "Mars max_lon bucket drift (expected ~0.0005\"): {report}"
         );
-
-        // Outer planets: anchored to integer-arcsec prefix — detects all-zero regression.
+        // Outer planets: SP2 heliocentric-reframe — all sub-arcsec, non-zero.
         assert!(
-            report.contains("Jupiter: n=50 max_lon=1."),
-            "Jupiter max_lon bucket drift (expected ~1.4652\"): {report}"
-        );
-        assert!(
-            report.contains("Saturn: n=50 max_lon=9."),
-            "Saturn max_lon bucket drift (expected ~9.5245\"): {report}"
+            report.contains("Jupiter: n=50 max_lon=0.000"),
+            "Jupiter max_lon bucket drift (expected ~0.0004\"): {report}"
         );
         assert!(
-            report.contains("Uranus: n=50 max_lon=192."),
-            "Uranus max_lon bucket drift (expected ~192.3613\"): {report}"
+            report.contains("Saturn: n=50 max_lon=0.000"),
+            "Saturn max_lon bucket drift (expected ~0.0009\"): {report}"
         );
         assert!(
-            report.contains("Neptune: n=50 max_lon=109."),
-            "Neptune max_lon bucket drift (expected ~109.3779\"): {report}"
+            report.contains("Uranus: n=50 max_lon=0.003"),
+            "Uranus max_lon bucket drift (expected ~0.0036\"): {report}"
         );
         assert!(
-            report.contains("Pluto: n=50 max_lon=61."),
-            "Pluto max_lon bucket drift (expected ~61.6155\"): {report}"
+            report.contains("Neptune: n=50 max_lon=0.002"),
+            "Neptune max_lon bucket drift (expected ~0.0020\"): {report}"
+        );
+        assert!(
+            report.contains("Pluto: n=50 max_lon=0.001"),
+            "Pluto max_lon bucket drift (expected ~0.0018\"): {report}"
         );
     }
 }

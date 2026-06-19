@@ -465,11 +465,30 @@ pub(crate) fn decode_segment(cursor: &mut Cursor<'_>) -> Result<Segment, Compres
     Ok(segment)
 }
 
+fn encode_stored_frame(frame: crate::channels::StoredFrame) -> u8 {
+    match frame {
+        crate::channels::StoredFrame::Geocentric => 0,
+        crate::channels::StoredFrame::Heliocentric => 1,
+    }
+}
+
+fn decode_stored_frame(value: u8) -> Result<crate::channels::StoredFrame, CompressionError> {
+    match value {
+        0 => Ok(crate::channels::StoredFrame::Geocentric),
+        1 => Ok(crate::channels::StoredFrame::Heliocentric),
+        other => Err(CompressionError::new(
+            CompressionErrorKind::InvalidFormat,
+            format!("unknown stored frame tag {other}"),
+        )),
+    }
+}
+
 pub(crate) fn encode_body(
     bytes: &mut Vec<u8>,
     body: &crate::channels::BodyArtifact,
 ) -> Result<(), CompressionError> {
     encode_celestial_body(bytes, &body.body)?;
+    write_u8(bytes, encode_stored_frame(body.frame));
     write_u32(bytes, body.segments.len() as u32);
     for segment in &body.segments {
         encode_segment(bytes, segment)?;
@@ -481,16 +500,13 @@ pub(crate) fn decode_body(
     cursor: &mut Cursor<'_>,
 ) -> Result<crate::channels::BodyArtifact, CompressionError> {
     let body = decode_celestial_body(cursor)?;
+    let frame = decode_stored_frame(cursor.read_u8()?)?;
     let segment_count = cursor.read_u32()? as usize;
     let mut segments = Vec::with_capacity(segment_count);
     for _ in 0..segment_count {
         segments.push(decode_segment(cursor)?);
     }
-    Ok(crate::channels::BodyArtifact {
-        body,
-        segments,
-        frame: crate::channels::StoredFrame::Geocentric,
-    })
+    Ok(crate::channels::BodyArtifact { body, segments, frame })
 }
 
 // ── Validation helpers ────────────────────────────────────────────────────────

@@ -790,8 +790,10 @@ fn artifact_decoding_rejects_duplicate_body_entries() {
     encode_artifact_profile(&mut payload, &profile).expect("profile should encode");
     write_u16(&mut payload, 2);
     encode_celestial_body(&mut payload, &CelestialBody::Sun).expect("Sun should encode");
+    write_u8(&mut payload, 0); // frame: Geocentric
     write_u32(&mut payload, 0);
     encode_celestial_body(&mut payload, &CelestialBody::Sun).expect("Sun should encode");
+    write_u8(&mut payload, 0); // frame: Geocentric
     write_u32(&mut payload, 0);
 
     let checksum = fnv1a64(&payload);
@@ -1927,4 +1929,18 @@ fn segment_count_exceeding_u16_max_round_trips_correctly() {
         SEGMENT_COUNT,
         "decoded segment count must equal original (u16 truncation would give a wrong value)"
     );
+}
+
+#[test]
+fn body_frame_round_trips_through_codec() {
+    use crate::channels::{BodyArtifact, StoredFrame};
+    use pleiades_types::CelestialBody;
+
+    let body = BodyArtifact::with_frame(CelestialBody::Jupiter, vec![], StoredFrame::Heliocentric);
+    let mut bytes = Vec::new();
+    crate::codec::encode_body(&mut bytes, &body).unwrap();
+    let mut cursor = crate::codec::Cursor::new(&bytes);
+    let decoded = crate::codec::decode_body(&mut cursor).unwrap();
+    assert_eq!(decoded.frame, StoredFrame::Heliocentric);
+    assert_eq!(decoded.body, CelestialBody::Jupiter);
 }
