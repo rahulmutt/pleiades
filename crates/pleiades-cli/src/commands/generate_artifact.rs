@@ -112,9 +112,7 @@ mod tests {
             "/no/such/kernel.bsp", "--out", "/tmp/x.bin", "--start", "2100", "--end", "1900",
         ])
         .unwrap_err();
-        // Either the inverted-window guard or the kernel-load failure is acceptable,
-        // but a real kernel would hit the guard; with a fake path the kernel load
-        // fails first. Assert non-empty to keep the test kernel-free.
-        assert!(!err.is_empty());
+        // The guard fires before the kernel is loaded, so the fake path is never reached.
+        assert!(err.contains("coverage window end must be after start"), "expected inverted-window guard, got: {err}");
     }
 }
