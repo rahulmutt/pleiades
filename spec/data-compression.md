@@ -90,6 +90,52 @@ If speed values are provided, the profile must state whether they are:
 
 This keeps the artifact format smaller while still making result semantics explicit.
 
+## Per-Body Storage Frame
+
+Each body in the artifact carries a `StoredFrame` tag that controls how its
+stored ecliptic coordinates are interpreted at lookup time.
+
+### Heliocentric storage (planets Mercury–Pluto)
+
+The eight major planets (Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune,
+Pluto) are stored **heliocentrically**: their ecliptic longitude, latitude, and
+distance channels represent the planet's position relative to the Sun, not the
+Earth.
+
+At lookup the runtime reconstructs geocentric ecliptic coordinates via Cartesian
+vector addition:
+
+```
+P_geo = P_helio + S_geo
+```
+
+where `P_helio` is the planet's heliocentric Cartesian position and `S_geo` is
+the geocentric Cartesian position of the Sun, both decoded from the artifact at
+the same epoch.
+
+**Co-frame invariant.** Both channels are stored in the same reference frame —
+ecliptic-of-date Cartesian — so their Cartesian sum is valid in-frame with no
+obliquity rotation at lookup.  The planet-heliocentric channel and the
+Sun-geocentric channel are co-frame by construction: de440 provides both in the
+same ecliptic-of-date frame, the artifact fits them in that frame, and the
+runtime adds them in that frame.
+
+### Geocentric storage (Sun, Moon, Eros)
+
+The Sun, Moon, and 433-Eros are stored **geocentrically**: their channels
+represent the body's position relative to the Earth directly.  No
+Sun-subtraction reconstruction is applied at lookup; the stored coordinates are
+returned as-is.
+
+### Sun-presence structural invariant
+
+An artifact that contains one or more heliocentric bodies **must** include the
+Sun stored geocentrically.  The codec enforces this as a fail-closed invariant
+at artifact-construction time: if any body carries `StoredFrame::Heliocentric`
+and the Sun is absent or is itself stored heliocentric, construction is rejected
+with an error.  This prevents a lookup-time reconstruction failure where a
+heliocentric body has no geocentric Sun reference to add to.
+
 ## Channel Recommendations
 
 ### Slow-Moving Bodies
