@@ -1,4 +1,8 @@
-//! Packaged compressed ephemeris backend for the common 1600-2600 range.
+//! Packaged compressed ephemeris backend for the default 1900-2100 range.
+//!
+//! Wider coverage is available as an opt-in: regenerate the artifact over a
+//! custom window with the `generate-artifact <kernel> --out <path>
+//! [--start --end]` CLI subcommand.
 //!
 //! This crate now ships a small stage-5 draft artifact backed by the
 //! `pleiades-compression` codec. The bundled data is regenerated from the
@@ -155,7 +159,7 @@ pub(crate) fn packaged_artifact_source_text() -> &'static str {
     static SOURCE: OnceLock<String> = OnceLock::new();
     SOURCE.get_or_init(|| {
         format!(
-            "Quantized adjacent same-body quadratic windows with longitude-unwrapped planetary fits fitted to JPL Horizons reference epochs (1800, 2000, 2500 CE) for the comparison-body planetary set plus asteroid:433-Eros, with point segments only for single-epoch bodies and recursively subdivided quadratic spans for multi-epoch bodies using body-class span caps and measured-fit comparison against the fallback, {}.",
+            "Quantized adjacent same-body quadratic windows with longitude-unwrapped planetary fits, with the comparison-body planetary set densely fit from the JPL de440 kernel over the default 1900-2100 coverage window and the constrained asteroid:433-Eros sourced from its committed reference corpus, with point segments only for single-epoch bodies and recursively subdivided quadratic spans for multi-epoch bodies using body-class span caps and measured-fit comparison against the fallback, {}.",
             PACKAGED_ARTIFACT_GENERATION_STRATEGY_TAIL
         )
     })

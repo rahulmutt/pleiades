@@ -923,8 +923,8 @@ fn verify_release_bundle_rejects_semantically_tampered_source_corpus_summary_fil
             "pleiades-release-bundle-semantic-source-corpus-summary",
             "source-corpus-summary.txt",
             "source-corpus summary checksum (fnv1a-64):",
-            "coverage posture=production-generation coverage and corpus shape remain aligned across the advertised 1600-2600 CE window; coverage=",
-            "coverage posture=drifted production-generation coverage and corpus shape remain aligned across the advertised 1600-2600 CE window; coverage=",
+            "coverage posture=production-generation coverage and corpus shape remain aligned across the advertised 1900-2100 CE window; coverage=",
+            "coverage posture=drifted production-generation coverage and corpus shape remain aligned across the advertised 1900-2100 CE window; coverage=",
             "source corpus summary no longer matches the current source-corpus posture",
         );
 }

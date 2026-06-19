@@ -72,7 +72,7 @@ pub fn render_spk_corpus(args: &[&str]) -> Result<String, String> {
 ///
 /// Slices written:
 /// - `boundary.csv`           — guard epochs just inside/outside the target range
-/// - `interior.csv`           — per-body cadence backbone across 1600-2600 CE
+/// - `interior.csv`           — per-body cadence backbone across 1900-2100 CE
 /// - `fast_clusters.csv`      — fine-cadence windows for fast bodies
 /// - `holdout.csv`            — deterministic pseudo-random hold-out epochs
 /// - `manifest.txt`           — provenance manifest for all seven slices (four

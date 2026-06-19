@@ -20,7 +20,7 @@ As of the current workspace state, `pleiades` includes:
 - 25 catalogued house systems and 59 catalogued ayanamsas,
 - pure-Rust algorithmic backends for VSOP87-style planetary positions and a compact Meeus-style lunar baseline,
 - a reproducible, de440-sourced JPL reference corpus (checked-in, checksum-pinned, with the kernel SHA pinned but the kernel itself not committed) behind a live fail-closed corpus gate, used for comparison and validation,
-- a stage-5 draft packaged-data artifact for the common 1600-2600 CE range,
+- a stage-5 draft packaged-data artifact for the common 1900-2100 CE range by default, with wider coverage available via the `generate-artifact <kernel> --out <path> [--start --end]` CLI subcommand,
 - contributor CLI tools for chart inspection, validation reports, audits, artifact checks, and release-bundle rehearsal.
 
 Important current limits:

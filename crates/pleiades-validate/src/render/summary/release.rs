@@ -127,7 +127,7 @@ pub(crate) fn production_generation_coverage_posture_for_report() -> Option<Stri
     validated_production_generation_corpus_shape_summary_for_report().ok()?;
 
     Some(format!(
-        "production-generation coverage and corpus shape remain aligned across the advertised 1600-2600 CE window; coverage={}; body-class coverage={}",
+        "production-generation coverage and corpus shape remain aligned across the advertised 1900-2100 CE window; coverage={}; body-class coverage={}",
         production_generation_coverage,
         production_generation_body_class_coverage,
     ))

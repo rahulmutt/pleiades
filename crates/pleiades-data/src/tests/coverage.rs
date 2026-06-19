@@ -2772,7 +2772,7 @@ fn fit_segment_within_span_reproduces_a_smooth_synthetic_body() {
 /// Kernel-free assembly test: runs `build_packaged_artifact_from_reference_over`
 /// with tiny synthetic windows so the test finishes in milliseconds.
 ///
-/// Rationale for window parameterisation: the full 1600–2600 build produces
+/// Rationale for window parameterisation: the full 1900–2100 default-window build produces
 /// ~91 000 segments for the Moon alone; a synthetic-backend test over the full
 /// range would take minutes and violate the "no slow non-ignored tests" rule
 /// from the prior slice's review. By exposing the `_over` core we can exercise

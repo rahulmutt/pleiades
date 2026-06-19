@@ -126,7 +126,7 @@ fn lookup_uses_packaged_moon_segments() {
 
     for reference in moon_entries {
         let epoch = reference.epoch.julian_day.days();
-        // All hold-out epochs fall inside the artifact's 1600–2600 window.
+        // All hold-out epochs fall inside the artifact's 1900–2100 window.
         let ecliptic = packaged_lookup(&body, reference.epoch).unwrap_or_else(|error| {
             panic!("packaged lookup should succeed for the Moon at JD {epoch}: {error:?}")
         });
@@ -731,10 +731,11 @@ fn lookup_uses_packaged_boundary_epochs_for_every_reference_body() {
     use std::collections::HashMap;
 
     // Re-pointed at the de440-derived hold-out corpus rather than the superseded
-    // curated `reference_snapshot()` fixture. The fixture's window (~1500–2585 CE)
-    // extends BELOW the artifact's de440 1600–2600 window, so its boundary epochs
-    // (e.g. Sun/Moon at JD 2268932.5 ≈ 1500 CE) are pre-1600 epochs the artifact
-    // intentionally does not cover — asserting coverage there was wrong by premise.
+    // curated `reference_snapshot()` fixture. The hold-out corpus epochs all lie
+    // within the artifact's de440 1900–2100 default window (~JD 2415518–2486585,
+    // ≈1901–2095 CE), so every boundary epoch resolves; the superseded curated
+    // fixture extended outside that window and asserting coverage there was wrong
+    // by premise.
     //
     // This test's contract (per its name) is COVERAGE: every bundled body's
     // de440 hold-out boundary epoch lies within the artifact window and resolves.

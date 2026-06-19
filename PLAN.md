@@ -38,7 +38,7 @@ The workspace is past the original foundation roadmap:
 These are the implementation gaps that still block a production release:
 
 - `pleiades-jpl` carries a reproducible generation pipeline that produces a
-  broad, de440-sourced reference corpus (~25,659 data rows across 1600-2600 CE,
+  broad, de440-sourced reference corpus (~15,331 data rows across 1900-2100 CE,
   per-body cadence) committed under `crates/pleiades-jpl/data/corpus/` with real
   checksums and a pinned kernel SHA, behind a live fail-closed `validate-corpus`
   gate; a clean checkout verifies it kernel-free and reproduces it from de440
@@ -75,7 +75,7 @@ These are the implementation gaps that still block a production release:
 | Phase | Focus | Workable-state promise | Details |
 | --- | --- | --- | --- |
 | 1 | Production reference backend and corpus | Maintainers can regenerate or ingest broad public reference inputs for every release-claimed body, frame, channel, and epoch class. | [plan/stages/01-production-reference-corpus.md](plan/stages/01-production-reference-corpus.md) |
-| 2 | Release-grade compressed ephemeris | The 1600-2600 CE packaged backend is generated from validated Phase 1 inputs and passes published accuracy, size, and speed thresholds. | [plan/stages/02-production-compressed-ephemeris.md](plan/stages/02-production-compressed-ephemeris.md) |
+| 2 | Release-grade compressed ephemeris | The packaged backend (1900-2100 by default, with the wider 1600-2600 CE window opt-in via `generate-artifact`) is generated from validated Phase 1 inputs and passes published accuracy, size, and speed thresholds. | [plan/stages/02-production-compressed-ephemeris.md](plan/stages/02-production-compressed-ephemeris.md) |
 | 3 | Body/backend claim closure | Public body and backend claims are either validated, constrained, approximate, or unsupported with no ambiguous middle state. | [plan/stages/03-body-and-backend-claims.md](plan/stages/03-body-and-backend-claims.md) |
 | 4 | Request-mode semantics | UTC/Delta-T, apparent, topocentric, native sidereal, and motion-output requests are implemented with evidence or rejected consistently. | [plan/stages/04-advanced-request-modes.md](plan/stages/04-advanced-request-modes.md) |
 | 5 | Compatibility and release gates | House/ayanamsa compatibility evidence and release gates prevent stale artifacts, native-dependency drift, and overbroad claims. | [plan/stages/05-compatibility-and-release-readiness.md](plan/stages/05-compatibility-and-release-readiness.md) |

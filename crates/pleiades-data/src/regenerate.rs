@@ -2397,7 +2397,7 @@ pub(crate) fn fit_segment_within_span(
 /// Accepts an explicit `base_window` used for all major bodies (planets, Sun,
 /// Moon). This separation lets the kernel-free unit test pass a tiny synthetic
 /// window so the test runs in milliseconds instead of the minutes a full
-/// 1600–2600 build would take.
+/// 1900–2100 default-window build would take.
 ///
 /// Major bodies (all cadences except `SelectedAsteroids` / `CustomBodies`) are
 /// fit densely from `reference` (de440) over `base_window` using
