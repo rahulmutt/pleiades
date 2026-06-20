@@ -565,7 +565,8 @@ mod tests {
     /// or if the finite-check rejected valid velocity values in the holdout slice.
     #[test]
     fn corpus_gate_accepts_eight_field_velocity_rows() {
-        let summary = run_corpus_gate().expect("corpus gate should pass with 8-field holdout slice");
+        let summary =
+            run_corpus_gate().expect("corpus gate should pass with 8-field holdout slice");
         assert!(
             summary.contains("corpus gate ok"),
             "unexpected success string: {summary}"

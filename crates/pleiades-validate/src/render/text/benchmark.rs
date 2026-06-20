@@ -98,9 +98,13 @@ pub fn render_packaged_artifact_latency_budget_summary() -> String {
     // --- batch throughput ---
     let batch_line = match artifact::benchmark_packaged_artifact_batch_lookup(ROUNDS) {
         Ok(report) => {
-            let per_lookup_s = report.elapsed.as_secs_f64()
-                / (report.rounds as f64 * report.batch_size as f64);
-            let throughput_per_s = if per_lookup_s > 0.0 { 1.0 / per_lookup_s } else { 0.0 };
+            let per_lookup_s =
+                report.elapsed.as_secs_f64() / (report.rounds as f64 * report.batch_size as f64);
+            let throughput_per_s = if per_lookup_s > 0.0 {
+                1.0 / per_lookup_s
+            } else {
+                0.0
+            };
             let target_per_s = budgets.batch_throughput_target_per_s;
             let margin = throughput_per_s - target_per_s;
             format!(

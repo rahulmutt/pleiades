@@ -101,11 +101,7 @@ pub fn geocentric_icrf(pool: &KernelPool, target: i32, et: f64) -> Result<[f64; 
 }
 
 /// Geocentric velocity (km/s, ICRF) of `target` = v(target wrt SSB) - v(Earth wrt SSB).
-fn geocentric_velocity_icrf(
-    pool: &KernelPool,
-    target: i32,
-    et: f64,
-) -> Result<[f64; 3], SpkError> {
+fn geocentric_velocity_icrf(pool: &KernelPool, target: i32, et: f64) -> Result<[f64; 3], SpkError> {
     let body = velocity_wrt_ssb(pool, target, et)?;
     let earth = velocity_wrt_ssb(pool, 399, et)?;
     Ok([body[0] - earth[0], body[1] - earth[1], body[2] - earth[2]])

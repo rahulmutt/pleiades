@@ -1514,7 +1514,10 @@ fn packaged_artifact_source_fit_holdout_sync_summary_and_alias_commands_render_t
 #[test]
 fn packaged_artifact_latency_budget_summary_returns_non_empty_string_with_expected_labels() {
     let summary = render_packaged_artifact_latency_budget_summary();
-    assert!(!summary.is_empty(), "latency budget summary should not be empty");
+    assert!(
+        !summary.is_empty(),
+        "latency budget summary should not be empty"
+    );
     assert!(
         summary.contains("decode"),
         "latency budget summary should mention 'decode'"
@@ -1535,14 +1538,32 @@ fn packaged_artifact_latency_budget_summary_returns_non_empty_string_with_expect
     // not equality — timing is non-deterministic so two runs produce different numbers).
     let cli_summary = render_cli(&["packaged-artifact-latency-budget-summary"])
         .expect("packaged-artifact-latency-budget-summary should render via CLI");
-    assert!(cli_summary.contains("decode"), "CLI summary should mention 'decode'");
-    assert!(cli_summary.contains("lookup"), "CLI summary should mention 'lookup'");
-    assert!(cli_summary.contains("batch"), "CLI summary should mention 'batch'");
-    let alias_summary = render_cli(&["artifact-latency"])
-        .expect("artifact-latency alias should render via CLI");
-    assert!(alias_summary.contains("decode"), "alias summary should mention 'decode'");
-    assert!(alias_summary.contains("lookup"), "alias summary should mention 'lookup'");
-    assert!(alias_summary.contains("batch"), "alias summary should mention 'batch'");
+    assert!(
+        cli_summary.contains("decode"),
+        "CLI summary should mention 'decode'"
+    );
+    assert!(
+        cli_summary.contains("lookup"),
+        "CLI summary should mention 'lookup'"
+    );
+    assert!(
+        cli_summary.contains("batch"),
+        "CLI summary should mention 'batch'"
+    );
+    let alias_summary =
+        render_cli(&["artifact-latency"]).expect("artifact-latency alias should render via CLI");
+    assert!(
+        alias_summary.contains("decode"),
+        "alias summary should mention 'decode'"
+    );
+    assert!(
+        alias_summary.contains("lookup"),
+        "alias summary should mention 'lookup'"
+    );
+    assert!(
+        alias_summary.contains("batch"),
+        "alias summary should mention 'batch'"
+    );
 }
 
 #[test]

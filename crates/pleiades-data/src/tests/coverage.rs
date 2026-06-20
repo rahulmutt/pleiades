@@ -1132,7 +1132,9 @@ fn packaged_artifact_production_profile_summary_reflects_the_current_posture() {
         .summary_line()
         .contains("source provenance=Production generation source:"));
     assert!(summary.summary_line().contains("output support="));
-    assert!(summary.summary_line().contains("speed policy=FittedDerivative"));
+    assert!(summary
+        .summary_line()
+        .contains("speed policy=FittedDerivative"));
     assert!(summary
         .summary_line()
         .contains("segment strategy=bodies with a single sampled epoch use point segments"));
@@ -1471,7 +1473,9 @@ fn packaged_artifact_generation_manifest_reflects_the_current_posture() {
         .contains("Packaged artifact generation manifest:"));
     assert!(manifest.summary_line().contains("output support="));
     assert!(manifest.summary_line().contains("checksum=0x"));
-    assert!(manifest.summary_line().contains("speed policy=FittedDerivative"));
+    assert!(manifest
+        .summary_line()
+        .contains("speed policy=FittedDerivative"));
     assert!(manifest.summary_line().contains("segment strategy="));
     assert!(manifest
         .summary_line()

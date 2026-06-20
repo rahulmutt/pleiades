@@ -93,9 +93,9 @@ pub struct ArtifactBudgets {
 }
 
 pub const PACKAGED_BUDGETS: ArtifactBudgets = ArtifactBudgets {
-    max_encoded_bytes: 12_000_000,    // ~10.0 MB measured + headroom
-    decode_latency_target_ms: 400.0,  // ~260 ms measured
-    single_lookup_target_ms: 6.0,     // ~3.3 ms measured
+    max_encoded_bytes: 12_000_000,   // ~10.0 MB measured + headroom
+    decode_latency_target_ms: 400.0, // ~260 ms measured
+    single_lookup_target_ms: 6.0,    // ~3.3 ms measured
     batch_throughput_target_per_s: 1_000.0,
     chart_workload_target_ms: 50.0,
 };
@@ -112,10 +112,26 @@ pub fn packaged_artifact_thresholds_summary_for_report() -> String {
     let mut lines = Vec::new();
     for e in &baseline {
         let c = accuracy_ceiling(&e.body);
-        let lon_status = if e.max_longitude_arcsec <= c.lon_arcsec { "PASS" } else { "FAIL" };
-        let lat_status = if e.max_latitude_arcsec <= c.lat_arcsec { "PASS" } else { "FAIL" };
-        let dist_status = if e.max_distance_km <= c.dist_km { "PASS" } else { "FAIL" };
-        let spd_status = if e.max_lon_speed_arcsec_per_day <= c.lon_speed_arcsec_per_day { "PASS" } else { "FAIL" };
+        let lon_status = if e.max_longitude_arcsec <= c.lon_arcsec {
+            "PASS"
+        } else {
+            "FAIL"
+        };
+        let lat_status = if e.max_latitude_arcsec <= c.lat_arcsec {
+            "PASS"
+        } else {
+            "FAIL"
+        };
+        let dist_status = if e.max_distance_km <= c.dist_km {
+            "PASS"
+        } else {
+            "FAIL"
+        };
+        let spd_status = if e.max_lon_speed_arcsec_per_day <= c.lon_speed_arcsec_per_day {
+            "PASS"
+        } else {
+            "FAIL"
+        };
         lines.push(format!(
             "{:?}: lon {:.4}\"/{}\"={} lat {:.4}\"/{}\"={} dist {:.1}/{} km={} lon_spd {:.4}/{} \"/d={}",
             e.body,
@@ -156,9 +172,12 @@ mod tests {
 
     #[test]
     fn size_budget_exceeds_current_artifact() {
-        // current ~10 MB; budget has headroom but is finite.
-        assert!(PACKAGED_BUDGETS.max_encoded_bytes >= 10_000_000);
-        assert!(PACKAGED_BUDGETS.max_encoded_bytes <= 16_000_000);
+        // current ~10 MB; budget has headroom but is finite. Bind to a local so
+        // the bounds check is a runtime assertion over the published budget
+        // rather than a const-folded tautology (clippy::assertions_on_constants).
+        let max_encoded_bytes = PACKAGED_BUDGETS.max_encoded_bytes;
+        assert!(max_encoded_bytes >= 10_000_000);
+        assert!(max_encoded_bytes <= 16_000_000);
     }
 
     #[test]
@@ -194,8 +213,10 @@ mod tests {
 
         // Size budget line is in the header (checked above).
         // Verify each body appears and shows PASS for longitude.
-        for body_name in &["Sun", "Moon", "Mercury", "Venus", "Mars",
-                           "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto"] {
+        for body_name in &[
+            "Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune",
+            "Pluto",
+        ] {
             assert!(
                 report.contains(body_name),
                 "{body_name} missing from thresholds report: {report}"
@@ -204,7 +225,8 @@ mod tests {
             assert!(
                 report.contains(&format!("{body_name}:")) && {
                     // find this body's line and check it has PASS
-                    report.lines()
+                    report
+                        .lines()
                         .find(|l| l.starts_with(body_name))
                         .map(|l| l.contains("PASS"))
                         .unwrap_or(false)
