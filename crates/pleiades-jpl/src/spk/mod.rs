@@ -17,7 +17,8 @@ pub(crate) mod segment;
 
 pub use backend::{SpkBackend, SpkBackendBuilder};
 pub use generate::{
-    build_manifest, generate_corpus_csv, generate_slice, CorpusRequest, GeneratedSlice,
+    build_manifest, generate_corpus_csv, generate_slice, regenerate_holdout_slice_csv,
+    CorpusRequest, GeneratedSlice,
 };
 
 #[cfg(test)]

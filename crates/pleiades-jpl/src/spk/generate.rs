@@ -54,6 +54,20 @@ fn corpus_header(source_label: &str, kernel_sha256: &str) -> String {
     out
 }
 
+/// Holdout-specific header: 8 columns (position + velocity truth).
+fn holdout_header(source_label: &str, kernel_sha256: &str) -> String {
+    let mut out = String::new();
+    out.push_str("#Pleiades SPK Reference Corpus\n");
+    out.push_str(&format!("#Source: {source_label}\n"));
+    out.push_str(&format!("#Kernel-SHA256: {kernel_sha256}\n"));
+    out.push_str("#Coverage: geocentric ecliptic (mean geometric), TDB epochs\n");
+    out.push_str(
+        "#Redistribution: derived from public-domain JPL DE kernel; corpus is redistributable\n",
+    );
+    out.push_str("#Columns:epoch_jd,body,x_km,y_km,z_km,vx_km_s,vy_km_s,vz_km_s\n");
+    out
+}
+
 /// Samples one body at one epoch and appends its `epoch_jd,body,x,y,z` row.
 fn push_corpus_row(
     out: &mut String,
@@ -75,6 +89,41 @@ fn push_corpus_row(
     let y = r_km * lat.cos() * lon.sin();
     let z = r_km * lat.sin();
     out.push_str(&format!("{jd},{body},{x:.6},{y:.6},{z:.6}\n"));
+    Ok(())
+}
+
+/// Samples one body at one epoch and appends an 8-column holdout row
+/// (`epoch_jd,body,x_km,y_km,z_km,vx_km_s,vy_km_s,vz_km_s`).
+/// Position is reconstructed from the backend ecliptic (identical to
+/// `push_corpus_row`); velocity is the geocentric ecliptic Cartesian vector
+/// (km/s) from the SPK `StateVector` rotated by the same obliquity.
+fn push_holdout_row(
+    out: &mut String,
+    backend: &SpkBackend,
+    body: &CelestialBody,
+    jd: f64,
+) -> Result<(), String> {
+    let inst = Instant::new(JulianDay::from_days(jd), TimeScale::Tdb);
+    // Position (same path as push_corpus_row).
+    let res = backend
+        .position(&EphemerisRequest::new(body.clone(), inst))
+        .map_err(|e| format!("body {body:?} at jd {jd}: {}", e.message))?;
+    let ec = res
+        .ecliptic
+        .ok_or_else(|| format!("no ecliptic for {body:?}"))?;
+    let r_km = ec.distance_au.unwrap_or(0.0) * AU_IN_KM;
+    let lon = ec.longitude.degrees().to_radians();
+    let lat = ec.latitude.degrees().to_radians();
+    let x = r_km * lat.cos() * lon.cos();
+    let y = r_km * lat.cos() * lon.sin();
+    let z = r_km * lat.sin();
+    // Velocity: same obliquity rotation as the position path.
+    let [vx, vy, vz] = backend
+        .ecliptic_velocity(body, inst)
+        .map_err(|e| format!("velocity body {body:?} at jd {jd}: {}", e.message))?;
+    out.push_str(&format!(
+        "{jd},{body},{x:.6},{y:.6},{z:.6},{vx:.6},{vy:.6},{vz:.6}\n"
+    ));
     Ok(())
 }
 
@@ -171,10 +220,15 @@ pub(crate) fn generate_slice_with_bodies(
         });
     }
 
+    // Holdout is the only slice that carries de440 velocity truth (8-col rows).
+    if role == SliceRole::Holdout {
+        return generate_holdout_slice_inner(backend, bodies);
+    }
+
     let (file, epochs) = match role {
         SliceRole::Boundary => ("boundary.csv", corpus_spec::boundary_epochs()),
         SliceRole::FastCluster => ("fast_clusters.csv", corpus_spec::fast_cluster_epochs()),
-        SliceRole::Holdout => ("holdout.csv", corpus_spec::holdout_epochs(50)),
+        SliceRole::Holdout => unreachable!("holdout handled above"),
         SliceRole::InteriorBackbone => unreachable!("interior handled above"),
         SliceRole::FixtureGolden => {
             return Err("fixture_golden is sourced from existing fixtures, not generated".into())
@@ -211,6 +265,47 @@ fn all_bodies() -> Vec<CelestialBody> {
     let mut bodies = corpus_spec::release_bodies();
     bodies.extend(corpus_spec::constrained_bodies());
     bodies
+}
+
+/// Generates the holdout slice with 8-column rows (position + velocity truth).
+/// Only the holdout slice uses this path; all other slices stay on the 5-column
+/// path via `generate_corpus_csv` / `push_corpus_row`.
+fn generate_holdout_slice_inner(
+    backend: &SpkBackend,
+    bodies: Vec<CelestialBody>,
+) -> Result<GeneratedSlice, String> {
+    let epochs = corpus_spec::holdout_epochs(50);
+    let mut out = holdout_header(corpus_spec::KERNEL_LABEL, corpus_spec::KERNEL_SHA256);
+    // Insert slice-role comment before the #Columns line (same convention as
+    // the 5-col slices, which replace "#Columns:" after the fact).
+    out = out.replace(
+        "#Columns:",
+        &format!("#Slice-Role: {}\n#Columns:", SliceRole::Holdout.token()),
+    );
+    for &jd in &epochs {
+        for body in &bodies {
+            push_holdout_row(&mut out, backend, body, jd)?;
+        }
+    }
+    Ok(GeneratedSlice {
+        role: SliceRole::Holdout,
+        file: "holdout.csv".to_string(),
+        csv: out,
+    })
+}
+
+/// Regenerates the holdout CSV from a kernel at `kernel_path` and returns the
+/// CSV text. This is the canonical re-generation entry point consumed by the
+/// kernel-gated regen test.
+pub fn regenerate_holdout_slice_csv(
+    kernel_path: impl AsRef<std::path::Path>,
+) -> Result<String, String> {
+    let backend = SpkBackend::builder()
+        .add_kernel(kernel_path)
+        .map_err(|e| format!("loading kernel: {}", e.message))?
+        .build();
+    let slice = generate_holdout_slice_inner(&backend, all_bodies())?;
+    Ok(slice.csv)
 }
 
 /// Tier A: samples the pinned small-body kernel (loaded alongside de440 in

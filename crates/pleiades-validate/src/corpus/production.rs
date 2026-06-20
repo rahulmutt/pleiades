@@ -67,9 +67,11 @@ pub fn validate_schema_and_provenance(slices: &[LoadedSlice]) -> Result<(), Stri
             .filter(|l| !l.starts_with('#') && !l.is_empty())
         {
             let fields: Vec<&str> = line.split(',').collect();
-            if fields.len() != 5 {
+            // Accept 5-column rows (position only) or 8-column rows (position +
+            // velocity), which the holdout slice carries as of Task 7.
+            if fields.len() != 5 && fields.len() != 8 {
                 return Err(format!(
-                    "malformed row in {} (expected 5 fields, found {}): {line}",
+                    "malformed row in {} (expected 5 or 8 fields, found {}): {line}",
                     s.role,
                     fields.len()
                 ));

@@ -8,7 +8,7 @@ use pleiades_backend::{
 };
 use pleiades_types::{CoordinateFrame, Motion, TimeRange, TimeScale, ZodiacMode};
 
-use super::chain::{ecliptic_for_body, naif_ids};
+use super::chain::{ecliptic_for_body, ecliptic_velocity_for_body, naif_ids};
 use super::pool::KernelPool;
 use super::{SpkError, SpkErrorKind};
 
@@ -72,6 +72,18 @@ impl SpkBackend {
     /// Starts a builder.
     pub fn builder() -> SpkBackendBuilder {
         SpkBackendBuilder::new()
+    }
+
+    /// Returns the geocentric ecliptic Cartesian velocity (km/s) for `body` at
+    /// `instant`, using the same ICRF→ecliptic obliquity rotation as `position`.
+    /// Used by the holdout-slice generator to record velocity truth alongside
+    /// the position that `position()` already provides.
+    pub(crate) fn ecliptic_velocity(
+        &self,
+        body: &CelestialBody,
+        instant: pleiades_types::Instant,
+    ) -> Result<[f64; 3], super::SpkError> {
+        ecliptic_velocity_for_body(&self.pool, body, instant)
     }
 
     /// The bodies in [`CelestialBody`] whose NAIF id is present in the pool.

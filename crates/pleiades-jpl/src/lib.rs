@@ -56,8 +56,8 @@ pub use reference_summary::*;
 pub use requests::*;
 pub use snapshot::*;
 pub use spk::{
-    build_manifest, generate_corpus_csv, generate_slice, CorpusRequest, GeneratedSlice, SpkBackend,
-    SpkBackendBuilder, SpkError, SpkErrorKind,
+    build_manifest, generate_corpus_csv, generate_slice, regenerate_holdout_slice_csv,
+    CorpusRequest, GeneratedSlice, SpkBackend, SpkBackendBuilder, SpkError, SpkErrorKind,
 };
 
 use reference_summary::format_bodies;

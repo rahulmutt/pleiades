@@ -71,11 +71,79 @@ fn position_wrt_ssb(pool: &KernelPool, target: i32, et: f64) -> Result<[f64; 3],
     ))
 }
 
+/// Velocity of `target` relative to the Solar System Barycenter (km/s, ICRF)
+/// by walking the segment chain and accumulating `velocity_km_s` vectors.
+/// Mirrors `position_wrt_ssb` exactly, but sums velocities instead of positions.
+fn velocity_wrt_ssb(pool: &KernelPool, target: i32, et: f64) -> Result<[f64; 3], SpkError> {
+    let mut acc = [0.0f64; 3];
+    let mut current = target;
+    for _ in 0..16 {
+        if current == 0 {
+            return Ok(acc);
+        }
+        let (state, center) = pool.state_any_center(current, et)?;
+        for (a, v) in acc.iter_mut().zip(state.velocity_km_s.iter()) {
+            *a += *v;
+        }
+        current = center;
+    }
+    Err(SpkError::new(
+        SpkErrorKind::NoChain,
+        format!("velocity chain from {target} did not reach SSB"),
+    ))
+}
+
 /// Geocentric position (km, ICRF) of `target` = r(target wrt SSB) - r(Earth wrt SSB).
 pub fn geocentric_icrf(pool: &KernelPool, target: i32, et: f64) -> Result<[f64; 3], SpkError> {
     let body = position_wrt_ssb(pool, target, et)?;
     let earth = position_wrt_ssb(pool, 399, et)?;
     Ok([body[0] - earth[0], body[1] - earth[1], body[2] - earth[2]])
+}
+
+/// Geocentric velocity (km/s, ICRF) of `target` = v(target wrt SSB) - v(Earth wrt SSB).
+fn geocentric_velocity_icrf(
+    pool: &KernelPool,
+    target: i32,
+    et: f64,
+) -> Result<[f64; 3], SpkError> {
+    let body = velocity_wrt_ssb(pool, target, et)?;
+    let earth = velocity_wrt_ssb(pool, 399, et)?;
+    Ok([body[0] - earth[0], body[1] - earth[1], body[2] - earth[2]])
+}
+
+/// Rotates an ICRF/J2000-equatorial velocity vector (km/s) into the ecliptic
+/// frame using the SAME obliquity rotation as `icrf_to_ecliptic`. Velocity is a
+/// free vector so the rotation is identical (no translation term).
+pub fn icrf_velocity_to_ecliptic(vel_km_s: [f64; 3], instant: Instant) -> [f64; 3] {
+    let eps = instant.mean_obliquity().radians();
+    let (vx, vy_eq, vz_eq) = (vel_km_s[0], vel_km_s[1], vel_km_s[2]);
+    // Rotate about X by +eps: equatorial -> ecliptic (same as position path).
+    let vy = vy_eq * eps.cos() + vz_eq * eps.sin();
+    let vz = -vy_eq * eps.sin() + vz_eq * eps.cos();
+    [vx, vy, vz]
+}
+
+/// Returns the geocentric ecliptic Cartesian velocity (km/s) for `body` at
+/// `instant`, rotating the ICRF velocity by the same obliquity used by the
+/// position path (`ecliptic_for_body` / `icrf_to_ecliptic`).
+pub fn ecliptic_velocity_for_body(
+    pool: &KernelPool,
+    body: &CelestialBody,
+    instant: Instant,
+) -> Result<[f64; 3], SpkError> {
+    let et = et_seconds_from_instant(instant);
+    let candidates = naif_ids(body);
+    if candidates.is_empty() {
+        return Err(SpkError::new(SpkErrorKind::NoChain, "body has no NAIF id"));
+    }
+    let mut last_err = None;
+    for id in candidates {
+        match geocentric_velocity_icrf(pool, id, et) {
+            Ok(vel) => return Ok(icrf_velocity_to_ecliptic(vel, instant)),
+            Err(e) => last_err = Some(e),
+        }
+    }
+    Err(last_err.unwrap())
 }
 
 /// Reduces an ICRF/J2000-equatorial geocentric position to ecliptic coords,
