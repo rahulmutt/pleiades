@@ -138,7 +138,9 @@ fn snapshot_reconstruction_covers_only_constrained_asteroids() {
     // Major bodies are no longer reconstructed from the snapshot; only the
     // constrained asteroid (Eros) is present.
     let bodies: Vec<_> = artifact.bodies.iter().map(|b| b.body.clone()).collect();
-    assert!(bodies.iter().any(|b| matches!(b, pleiades_backend::CelestialBody::Custom(_))));
+    assert!(bodies
+        .iter()
+        .any(|b| matches!(b, pleiades_backend::CelestialBody::Custom(_))));
     assert!(
         !bodies.contains(&pleiades_backend::CelestialBody::Sun),
         "major bodies must not come from the snapshot path"

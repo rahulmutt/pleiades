@@ -13,7 +13,9 @@ struct FixedEclipticBackend {
 
 impl FixedEclipticBackend {
     fn new() -> Self {
-        Self { coords: std::collections::HashMap::new() }
+        Self {
+            coords: std::collections::HashMap::new(),
+        }
     }
 
     fn with(mut self, body: CelestialBody, lon: f64, lat: f64, au: f64) -> Self {
@@ -36,7 +38,10 @@ impl pleiades_backend::EphemerisBackend for FixedEclipticBackend {
         req: &pleiades_backend::EphemerisRequest,
     ) -> Result<pleiades_backend::EphemerisResult, pleiades_backend::EphemerisError> {
         let (lon, lat, dist) = *self.coords.get(&req.body).unwrap_or_else(|| {
-            panic!("FixedEclipticBackend: no coordinates registered for body {:?}", req.body)
+            panic!(
+                "FixedEclipticBackend: no coordinates registered for body {:?}",
+                req.body
+            )
         });
         let mut r = pleiades_backend::EphemerisResult::new(
             pleiades_backend::BackendId::new("fixed"),
@@ -1295,7 +1300,12 @@ fn planet_segment_is_fit_in_heliocentric_frame() {
 
     // Synthetic backend: Jupiter at fixed geocentric ecliptic, Sun at fixed geocentric ecliptic.
     let backend = FixedEclipticBackend::new()
-        .with(CelestialBody::Jupiter, /*lon*/ 200.0, /*lat*/ 1.2, /*au*/ 5.4)
+        .with(
+            CelestialBody::Jupiter,
+            /*lon*/ 200.0,
+            /*lat*/ 1.2,
+            /*au*/ 5.4,
+        )
         .with(CelestialBody::Sun, 95.0, 0.0, 1.0);
 
     let seg = crate::regenerate::fit_segment_within_span(
@@ -1315,15 +1325,20 @@ fn planet_segment_is_fit_in_heliocentric_frame() {
         .unwrap()
         .coefficients[0];
 
-    let expected = heliocentric_from_geocentric(
-        &ecliptic(200.0, 1.2, 5.4),
-        &ecliptic(95.0, 0.0, 1.0),
-    )
-    .unwrap();
+    let expected =
+        heliocentric_from_geocentric(&ecliptic(200.0, 1.2, 5.4), &ecliptic(95.0, 0.0, 1.0))
+            .unwrap();
     assert!((stored_lon - expected.longitude.degrees()).abs() < 1e-6);
-    assert!((stored_lon - 200.0).abs() > 1.0, "must not store geocentric longitude");
+    assert!(
+        (stored_lon - 200.0).abs() > 1.0,
+        "must not store geocentric longitude"
+    );
 
     // Sun and Moon stay geocentric — the reframe predicate must exclude them.
-    assert!(!crate::regenerate::body_uses_heliocentric_frame(&CelestialBody::Sun));
-    assert!(!crate::regenerate::body_uses_heliocentric_frame(&CelestialBody::Moon));
+    assert!(!crate::regenerate::body_uses_heliocentric_frame(
+        &CelestialBody::Sun
+    ));
+    assert!(!crate::regenerate::body_uses_heliocentric_frame(
+        &CelestialBody::Moon
+    ));
 }

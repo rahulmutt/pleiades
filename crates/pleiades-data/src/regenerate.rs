@@ -161,7 +161,8 @@ fn packaged_body_artifacts_from_snapshot(snapshot: &[SnapshotEntry]) -> Vec<Body
             use crate::coverage::{packaged_artifact_body_cadence, PackagedArtifactBodyCadence};
             if !matches!(
                 packaged_artifact_body_cadence(&body),
-                PackagedArtifactBodyCadence::SelectedAsteroids | PackagedArtifactBodyCadence::CustomBodies
+                PackagedArtifactBodyCadence::SelectedAsteroids
+                    | PackagedArtifactBodyCadence::CustomBodies
             ) {
                 continue; // major bodies are fit from the kernel, never from the snapshot
             }
@@ -2549,7 +2550,10 @@ pub fn regenerate_packaged_artifact_from_kernel_over(
         .add_kernel(kernel_path)
         .map_err(|error| error.message)?
         .build();
-    Ok(build_packaged_artifact_from_reference_over(&backend, window.as_tuple()))
+    Ok(build_packaged_artifact_from_reference_over(
+        &backend,
+        window.as_tuple(),
+    ))
 }
 
 /// Regenerates the packaged artifact from a de440 SPK kernel over the shipped

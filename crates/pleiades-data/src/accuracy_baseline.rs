@@ -119,12 +119,15 @@ impl BodyAccumulator {
         lat_speed_arcsec_per_day: f64,
         radial_speed_au_per_day: f64,
     ) {
-        self.max_lon_speed_arcsec_per_day =
-            self.max_lon_speed_arcsec_per_day.max(lon_speed_arcsec_per_day);
-        self.max_lat_speed_arcsec_per_day =
-            self.max_lat_speed_arcsec_per_day.max(lat_speed_arcsec_per_day);
-        self.max_radial_speed_au_per_day =
-            self.max_radial_speed_au_per_day.max(radial_speed_au_per_day);
+        self.max_lon_speed_arcsec_per_day = self
+            .max_lon_speed_arcsec_per_day
+            .max(lon_speed_arcsec_per_day);
+        self.max_lat_speed_arcsec_per_day = self
+            .max_lat_speed_arcsec_per_day
+            .max(lat_speed_arcsec_per_day);
+        self.max_radial_speed_au_per_day = self
+            .max_radial_speed_au_per_day
+            .max(radial_speed_au_per_day);
     }
 
     fn finish(self) -> BodyChannelError {
@@ -221,8 +224,10 @@ pub fn accuracy_baseline_against(
                 vy * 86400.0 / AU_IN_KM,
                 vz * 86400.0 / AU_IN_KM,
             ];
-            let truth_spherical =
-                cartesian_state_to_spherical(CartesianState { pos_au, vel_au_per_day });
+            let truth_spherical = cartesian_state_to_spherical(CartesianState {
+                pos_au,
+                vel_au_per_day,
+            });
 
             // truth rates are in rad/day (lon/lat) and AU/day (radial) — convert lon/lat to deg/day.
             let truth_lon_deg_per_day = truth_spherical.lon_rate_rad_per_day.to_degrees();
@@ -383,7 +388,10 @@ mod tests {
             ],
         );
         CompressedArtifact::new(
-            ArtifactHeader::new("synthetic-linear-test", "synthetic linear velocity test source"),
+            ArtifactHeader::new(
+                "synthetic-linear-test",
+                "synthetic linear velocity test source",
+            ),
             vec![BodyArtifact::new(CelestialBody::Sun, vec![segment])],
         )
     }
@@ -426,9 +434,15 @@ mod tests {
 
     #[test]
     fn baseline_reports_speed_error_fields() {
-        let errors =
-            accuracy_baseline_against(&synthetic_holdout_with_velocity(), &synthetic_artifact_linear());
-        assert_eq!(errors.len(), 1, "expected exactly 1 body in synthetic speed baseline");
+        let errors = accuracy_baseline_against(
+            &synthetic_holdout_with_velocity(),
+            &synthetic_artifact_linear(),
+        );
+        assert_eq!(
+            errors.len(),
+            1,
+            "expected exactly 1 body in synthetic speed baseline"
+        );
         let sun = &errors[0];
         assert_eq!(sun.comparison_count, 1, "Sun should have 1 comparison");
         // Speed error must be near-zero (artifact derivative exactly matches truth velocity).
@@ -689,7 +703,10 @@ mod tests {
     #[test]
     #[ignore = "maintainer helper: prints the accuracy baseline summary to regenerate the golden"]
     fn print_packaged_artifact_baseline_summary() {
-        eprintln!("{}", packaged_artifact_accuracy_baseline_summary_for_report());
+        eprintln!(
+            "{}",
+            packaged_artifact_accuracy_baseline_summary_for_report()
+        );
     }
 
     // Drift gate: the committed per-body summary must match the live baseline.
@@ -805,8 +822,10 @@ mod tests {
             "Pluto max_lon_speed bucket drift (expected ~0.0005 arcsec/day): {report}"
         );
         // Radial speed: all bodies sub-1e-6 AU/day — anchor on "0.000000".
-        for body_name in &["Sun", "Moon", "Mercury", "Venus", "Mars",
-                           "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto"] {
+        for body_name in &[
+            "Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune",
+            "Pluto",
+        ] {
             assert!(
                 report.contains(&format!("{body_name}: n=50"))
                     && report.contains("max_radial_speed=0.000000"),
