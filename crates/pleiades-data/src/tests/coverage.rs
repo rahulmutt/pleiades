@@ -422,6 +422,7 @@ fn packaged_artifact_profile_summary_report_marks_drift_as_unavailable() {
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_generation_policy_summary_matches_current_posture() {
     let summary = packaged_artifact_generation_policy_summary_details();
@@ -471,6 +472,7 @@ fn packaged_artifact_generation_policy_summary_matches_current_posture() {
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_generation_policy_summary_rejects_residual_body_drift() {
     let error = validate_packaged_artifact_generation_policy_residual_bodies(
@@ -491,6 +493,7 @@ fn packaged_artifact_generation_policy_summary_rejects_residual_body_drift() {
     assert_eq!(error.to_string(), error.summary_line());
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_generation_policy_validation_error_has_summary_line() {
     let error = PackagedArtifactGenerationPolicyValidationError::FieldOutOfSync { field: "policy" };
@@ -501,6 +504,7 @@ fn packaged_artifact_generation_policy_validation_error_has_summary_line() {
     assert_eq!(error.to_string(), error.summary_line());
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_regeneration_summary_includes_reference_snapshot_coverage() {
     let summary = packaged_artifact_regeneration_summary_details();
@@ -615,6 +619,7 @@ fn packaged_artifact_regeneration_summary_includes_reference_snapshot_coverage()
     assert!(provenance.contains("asteroid rows"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_normalized_intermediate_summary_matches_current_posture() {
     let summary = packaged_artifact_normalized_intermediate_summary_details();
@@ -745,6 +750,7 @@ fn packaged_artifact_source_and_policy_prose_share_the_generation_tail() {
         .ends_with(&format!("{PACKAGED_ARTIFACT_GENERATION_STRATEGY_TAIL}.")));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_normalized_intermediate_summary_validation_rejects_checksum_drift() {
     let mut summary = packaged_artifact_normalized_intermediate_summary_details();
@@ -759,6 +765,7 @@ fn packaged_artifact_normalized_intermediate_summary_validation_rejects_checksum
         .contains("packaged artifact normalized intermediate summary checksum 0x"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_regeneration_summary_validation_rejects_profile_id_drift() {
     let mut summary = packaged_artifact_regeneration_summary_details();
@@ -773,6 +780,7 @@ fn packaged_artifact_regeneration_summary_validation_rejects_profile_id_drift() 
         .contains("packaged artifact regeneration summary profile id does not match the checked-in artifact profile id"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_regeneration_summary_validation_rejects_source_drift() {
     let mut summary = packaged_artifact_regeneration_summary_details();
@@ -787,6 +795,7 @@ fn packaged_artifact_regeneration_summary_validation_rejects_source_drift() {
         .contains("packaged artifact regeneration summary source does not match the checked-in artifact source"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_regeneration_summary_validation_rejects_source_revision_drift() {
     let mut summary = packaged_artifact_regeneration_summary_details();
@@ -801,6 +810,7 @@ fn packaged_artifact_regeneration_summary_validation_rejects_source_revision_dri
         .contains("packaged artifact regeneration summary source revision does not match the checked-in production-generation source summary"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_regeneration_summary_validation_rejects_checksum_drift() {
     let mut summary = packaged_artifact_regeneration_summary_details();
@@ -828,6 +838,7 @@ fn packaged_artifact_regeneration_summary_validation_rejects_checksum_drift() {
         .contains("packaged artifact regeneration summary quantization scales do not match the checked-in packaged artifact"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_regeneration_summary_validation_rejects_fit_envelope_drift() {
     let mut summary = packaged_artifact_regeneration_summary_details();
@@ -842,6 +853,7 @@ fn packaged_artifact_regeneration_summary_validation_rejects_fit_envelope_drift(
         .contains("packaged artifact regeneration fit envelope is invalid"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_regeneration_summary_validated_summary_line_rejects_metadata_drift() {
     let mut summary = packaged_artifact_regeneration_summary_details();
@@ -925,6 +937,7 @@ fn packaged_artifact_access_summary_rejects_blank_summary_text() {
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_regeneration_summary_validation_rejects_duplicate_bodies() {
     let mut summary = packaged_artifact_regeneration_summary_details();
@@ -942,6 +955,7 @@ fn packaged_artifact_regeneration_summary_validation_rejects_duplicate_bodies() 
         .contains("packaged artifact regeneration summary contains duplicate body entry"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_regeneration_summary_validation_rejects_body_list_drift() {
     let mut summary = packaged_artifact_regeneration_summary_details();
@@ -961,6 +975,7 @@ fn packaged_artifact_regeneration_summary_validation_rejects_body_list_drift() {
     assert!(error.message.contains("got [Moon, Sun"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_regeneration_summary_validation_rejects_residual_body_subset_drift() {
     let mut summary = packaged_artifact_regeneration_summary_details();
@@ -987,6 +1002,7 @@ fn packaged_artifact_regeneration_summary_validation_rejects_residual_body_subse
         .contains("packaged artifact regeneration summary residual body catalog:designation is not covered by the bundled body list"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_regeneration_summary_validation_rejects_metadata_drift() {
     let expected_artifact = packaged_artifact();
@@ -1050,6 +1066,7 @@ fn packaged_artifact_regeneration_summary_validation_rejects_metadata_drift() {
         .contains("does not match the checked-in packaged artifact checksum 0x"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_regeneration_summary_validation_rejects_missing_reference_snapshot() {
     let mut summary = packaged_artifact_regeneration_summary_details();
@@ -1067,6 +1084,7 @@ fn packaged_artifact_regeneration_summary_validation_rejects_missing_reference_s
         .contains("packaged artifact regeneration summary is missing reference snapshot coverage"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_production_profile_summary_reflects_the_current_posture() {
     let summary = packaged_artifact_production_profile_summary_details();
@@ -1191,6 +1209,7 @@ fn packaged_artifact_speed_policy_summary_reflects_the_current_posture() {
         .contains("speed-policy summary field `policy`"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_production_profile_summary_validation_rejects_time_range_drift() {
     let mut summary = packaged_artifact_production_profile_summary_details();
@@ -1207,6 +1226,7 @@ fn packaged_artifact_production_profile_summary_validation_rejects_time_range_dr
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_production_profile_summary_validation_rejects_source_provenance_drift() {
     let mut summary = packaged_artifact_production_profile_summary_details();
@@ -1224,6 +1244,7 @@ fn packaged_artifact_production_profile_summary_validation_rejects_source_proven
     assert!(error.to_string().contains("source_provenance"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_production_profile_summary_validation_rejects_request_policy_drift() {
     let mut summary = packaged_artifact_production_profile_summary_details();
@@ -1241,6 +1262,7 @@ fn packaged_artifact_production_profile_summary_validation_rejects_request_polic
     assert!(error.to_string().contains("request_policy"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_generator_parameters_validation_rejects_profile_id_drift() {
     let mut parameters = packaged_artifact_generator_parameters_details();
@@ -1258,6 +1280,7 @@ fn packaged_artifact_generator_parameters_validation_rejects_profile_id_drift() 
     ));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_generator_parameters_validation_rejects_label_drift() {
     let mut parameters = packaged_artifact_generator_parameters_details();
@@ -1275,6 +1298,7 @@ fn packaged_artifact_generator_parameters_validation_rejects_label_drift() {
     ));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_generator_parameters_validation_rejects_body_coverage_drift() {
     let mut parameters = packaged_artifact_generator_parameters_details();
@@ -1292,6 +1316,7 @@ fn packaged_artifact_generator_parameters_validation_rejects_body_coverage_drift
         .contains("packaged artifact generator parameters body coverage does not match the current production profile"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_generator_parameters_validation_rejects_time_range_drift() {
     let mut parameters = packaged_artifact_generator_parameters_details();
@@ -1309,6 +1334,7 @@ fn packaged_artifact_generator_parameters_validation_rejects_time_range_drift() 
         .contains("packaged artifact generator parameters time range does not match the current production profile"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_generator_parameters_validation_rejects_artifact_version_drift() {
     let mut parameters = packaged_artifact_generator_parameters_details();
@@ -1326,6 +1352,7 @@ fn packaged_artifact_generator_parameters_validation_rejects_artifact_version_dr
     ));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_generator_parameters_validation_rejects_source_provenance_drift() {
     let mut parameters = packaged_artifact_generator_parameters_details();
@@ -1343,6 +1370,7 @@ fn packaged_artifact_generator_parameters_validation_rejects_source_provenance_d
     ));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_generator_parameters_validation_rejects_checksum_drift() {
     let mut parameters = packaged_artifact_generator_parameters_details();
@@ -1360,6 +1388,7 @@ fn packaged_artifact_generator_parameters_validation_rejects_checksum_drift() {
         .contains("packaged artifact generator parameters checksum does not match the current packaged artifact"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_generator_parameters_validation_rejects_artifact_profile_drift() {
     let mut parameters = packaged_artifact_generator_parameters_details();
@@ -1377,6 +1406,7 @@ fn packaged_artifact_generator_parameters_validation_rejects_artifact_profile_dr
     ));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_generator_parameters_validation_rejects_speed_policy_drift() {
     let mut parameters = packaged_artifact_generator_parameters_details();
@@ -1394,6 +1424,7 @@ fn packaged_artifact_generator_parameters_validation_rejects_speed_policy_drift(
     ));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_generator_parameters_validation_rejects_request_policy_drift() {
     let mut parameters = packaged_artifact_generator_parameters_details();
@@ -1411,6 +1442,7 @@ fn packaged_artifact_generator_parameters_validation_rejects_request_policy_drif
     ));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_generator_parameters_validation_rejects_target_threshold_drift() {
     let mut parameters = packaged_artifact_generator_parameters_details();
@@ -1428,6 +1460,7 @@ fn packaged_artifact_generator_parameters_validation_rejects_target_threshold_dr
     ));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_generation_manifest_validation_rejects_request_policy_drift() {
     let mut manifest = packaged_artifact_generation_manifest_details();
@@ -1448,6 +1481,7 @@ fn packaged_artifact_generation_manifest_validation_rejects_request_policy_drift
     ));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_generation_manifest_reflects_the_current_posture() {
     let manifest = packaged_artifact_generation_manifest_details();
@@ -1489,6 +1523,7 @@ fn packaged_artifact_generation_manifest_reflects_the_current_posture() {
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_generation_artifacts_keep_lookup_epoch_and_segment_strategy_aligned() {
     let production_profile = packaged_artifact_production_profile_summary_details();
@@ -1529,6 +1564,7 @@ fn packaged_artifact_generation_artifacts_keep_lookup_epoch_and_segment_strategy
         .contains("segment strategy=bodies with a single sampled epoch use point segments"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_generation_manifest_validation_rejects_profile_id_drift() {
     let mut manifest = packaged_artifact_generation_manifest_details();
@@ -1546,6 +1582,7 @@ fn packaged_artifact_generation_manifest_validation_rejects_profile_id_drift() {
     ));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_generation_manifest_validation_rejects_label_drift() {
     let mut manifest = packaged_artifact_generation_manifest_details();
@@ -1563,6 +1600,7 @@ fn packaged_artifact_generation_manifest_validation_rejects_label_drift() {
     ));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_generation_manifest_validation_rejects_artifact_profile_drift() {
     let mut manifest = packaged_artifact_generation_manifest_details();
@@ -1580,6 +1618,7 @@ fn packaged_artifact_generation_manifest_validation_rejects_artifact_profile_dri
     ));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_generation_manifest_validation_rejects_checksum_drift() {
     let mut manifest = packaged_artifact_generation_manifest_details();
@@ -1600,6 +1639,7 @@ fn packaged_artifact_generation_manifest_validation_rejects_checksum_drift() {
         .contains("does not match the current packaged-artifact manifest checksum 0x"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_generation_manifest_validation_rejects_source_drift() {
     let mut manifest = packaged_artifact_generation_manifest_details();
@@ -1617,6 +1657,7 @@ fn packaged_artifact_generation_manifest_validation_rejects_source_drift() {
     ));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_generation_manifest_validation_rejects_artifact_version_drift() {
     let mut manifest = packaged_artifact_generation_manifest_details();
@@ -1637,6 +1678,7 @@ fn packaged_artifact_generation_manifest_validation_rejects_artifact_version_dri
         .contains("does not match the checked-in packaged artifact version"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_generation_manifest_validation_rejects_parameter_drift() {
     let mut manifest = packaged_artifact_generation_manifest_details();
@@ -1662,6 +1704,7 @@ fn packaged_artifact_generation_manifest_validation_rejects_parameter_drift() {
     ));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_generation_manifest_validation_rejects_regeneration_drift() {
     let mut manifest = packaged_artifact_generation_manifest_details();
@@ -1679,6 +1722,7 @@ fn packaged_artifact_generation_manifest_validation_rejects_regeneration_drift()
         .contains("packaged artifact regeneration fit envelope is invalid"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_production_profile_summary_validation_rejects_label_drift() {
     let mut summary = packaged_artifact_production_profile_summary_details();
@@ -1694,6 +1738,7 @@ fn packaged_artifact_production_profile_summary_validation_rejects_label_drift()
     assert!(error.to_string().contains("label"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_production_profile_summary_validation_rejects_artifact_version_drift() {
     let mut summary = packaged_artifact_production_profile_summary_details();
@@ -1711,6 +1756,7 @@ fn packaged_artifact_production_profile_summary_validation_rejects_artifact_vers
     assert!(error.to_string().contains("artifact_version"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_production_profile_summary_validation_rejects_artifact_profile_drift() {
     let mut summary = packaged_artifact_production_profile_summary_details();
@@ -1728,6 +1774,7 @@ fn packaged_artifact_production_profile_summary_validation_rejects_artifact_prof
     assert!(error.to_string().contains("artifact_profile"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_production_profile_summary_validation_rejects_speed_policy_drift() {
     let mut summary = packaged_artifact_production_profile_summary_details();
@@ -1745,6 +1792,7 @@ fn packaged_artifact_production_profile_summary_validation_rejects_speed_policy_
     assert!(error.to_string().contains("speed_policy"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_production_profile_summary_validation_rejects_stored_channel_drift() {
     let mut summary = packaged_artifact_production_profile_summary_details();
@@ -1765,6 +1813,7 @@ fn packaged_artifact_production_profile_summary_validation_rejects_stored_channe
     assert!(error.to_string().contains("artifact_profile"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_production_profile_summary_validation_rejects_body_coverage_drift() {
     let mut summary = packaged_artifact_production_profile_summary_details();
@@ -1782,6 +1831,7 @@ fn packaged_artifact_production_profile_summary_validation_rejects_body_coverage
     assert!(error.to_string().contains("body_coverage"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_production_profile_summary_validation_rejects_target_threshold_drift() {
     let mut summary = packaged_artifact_production_profile_summary_details();
@@ -1807,6 +1857,7 @@ fn packaged_artifact_production_profile_summary_validation_rejects_target_thresh
     assert!(error.to_string().contains("target_thresholds"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_target_threshold_scope_envelopes_summary_reflects_the_current_posture() {
     let summary = packaged_artifact_target_threshold_scope_envelopes_summary_details();
@@ -1825,6 +1876,7 @@ fn packaged_artifact_target_threshold_scope_envelopes_summary_reflects_the_curre
         .expect("target-threshold scope envelopes should validate");
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_target_threshold_scope_envelopes_summary_validation_rejects_drift() {
     let mut summary = packaged_artifact_target_threshold_scope_envelopes_summary_details();
@@ -1844,6 +1896,7 @@ fn packaged_artifact_target_threshold_scope_envelopes_summary_validation_rejects
     assert!(error.to_string().contains("scope_envelopes"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_target_threshold_summary_validation_rejects_scope_threshold_violation() {
     let mut summary = packaged_artifact_target_threshold_summary_details();
@@ -1892,6 +1945,7 @@ fn packaged_artifact_target_threshold_state_summary_rejects_draft_state() {
         .contains("production thresholds are not yet release-ready"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_target_threshold_summary_validation_rejects_draft_state() {
     let mut summary = packaged_artifact_target_threshold_summary_details();
@@ -1907,6 +1961,7 @@ fn packaged_artifact_target_threshold_summary_validation_rejects_draft_state() {
     assert!(error.to_string().contains("state"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_target_threshold_summary_includes_phase2_corpus_alignment() {
     let summary = packaged_artifact_target_threshold_summary_details();
@@ -1964,6 +2019,7 @@ fn packaged_artifact_target_threshold_summary_includes_phase2_corpus_alignment()
         .is_ok());
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_target_threshold_summary_validation_rejects_phase2_corpus_alignment_drift() {
     let mut summary = packaged_artifact_target_threshold_summary_details();
@@ -1986,6 +2042,7 @@ fn packaged_artifact_target_threshold_summary_validation_rejects_phase2_corpus_a
         .contains("phase2_corpus_alignment.independent_holdout"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_target_threshold_summary_validation_rejects_phase2_source_drift() {
     let mut summary = packaged_artifact_target_threshold_summary_details();
@@ -2008,6 +2065,7 @@ fn packaged_artifact_target_threshold_summary_validation_rejects_phase2_source_d
         .contains("phase2_corpus_alignment.reference_snapshot_source"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_target_threshold_summary_validation_rejects_phase2_boundary_source_drift() {
     let mut summary = packaged_artifact_target_threshold_summary_details();
@@ -2030,6 +2088,7 @@ fn packaged_artifact_target_threshold_summary_validation_rejects_phase2_boundary
         .contains("phase2_corpus_alignment.production_generation_boundary_source"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_target_threshold_summary_validation_rejects_phase2_generation_source_drift() {
     let mut summary = packaged_artifact_target_threshold_summary_details();
@@ -2053,6 +2112,7 @@ fn packaged_artifact_target_threshold_summary_validation_rejects_phase2_generati
         .contains("phase2_corpus_alignment.production_generation_source"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_target_threshold_summary_validation_rejects_phase2_request_corpus_drift() {
     let mut summary = packaged_artifact_target_threshold_summary_details();
@@ -2173,6 +2233,7 @@ fn packaged_artifact_phase2_corpus_alignment_summary_details_remain_publicly_reu
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_source_fit_holdout_sync_summary_reflects_the_current_posture() {
     let summary = packaged_artifact_source_fit_holdout_sync_summary_details();
@@ -2209,6 +2270,7 @@ fn packaged_artifact_source_fit_holdout_sync_summary_reflects_the_current_postur
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_source_fit_holdout_sync_summary_validation_rejects_fit_threshold_drift() {
     let mut summary = packaged_artifact_source_fit_holdout_sync_summary_details();
@@ -2226,6 +2288,7 @@ fn packaged_artifact_source_fit_holdout_sync_summary_validation_rejects_fit_thre
     assert!(error.to_string().contains("fit_thresholds"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_source_fit_holdout_sync_summary_validation_rejects_target_threshold_drift() {
     let mut summary = packaged_artifact_source_fit_holdout_sync_summary_details();
@@ -2243,6 +2306,7 @@ fn packaged_artifact_source_fit_holdout_sync_summary_validation_rejects_target_t
     assert!(error.to_string().contains("target_thresholds"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_source_fit_holdout_sync_summary_validation_rejects_phase2_drift() {
     let mut summary = packaged_artifact_source_fit_holdout_sync_summary_details();
@@ -2266,6 +2330,7 @@ fn packaged_artifact_source_fit_holdout_sync_summary_validation_rejects_phase2_d
         .contains("phase2_corpus_alignment.reference_snapshot_source"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_fit_threshold_summary_reflects_the_current_posture() {
     let summary = packaged_artifact_fit_threshold_summary_details();
@@ -2314,6 +2379,7 @@ fn packaged_artifact_fit_threshold_summary_reflects_the_current_posture() {
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_fit_threshold_violation_summary_validation_rejects_drift() {
     let mut summary = packaged_artifact_fit_threshold_violation_summary_details();
@@ -2338,6 +2404,7 @@ fn packaged_artifact_fit_threshold_violation_summary_validation_rejects_drift() 
     assert!(error.to_string().contains("violations"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_fit_margin_summary_reflects_the_current_posture() {
     let summary = packaged_artifact_fit_margin_summary_details();
@@ -2350,6 +2417,7 @@ fn packaged_artifact_fit_margin_summary_reflects_the_current_posture() {
     assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_fit_margin_summary_validation_rejects_envelope_drift() {
     let mut summary = packaged_artifact_fit_margin_summary_details();
@@ -2365,6 +2433,7 @@ fn packaged_artifact_fit_margin_summary_validation_rejects_envelope_drift() {
     assert!(error.to_string().contains("envelope"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_fit_margin_summary_validation_rejects_threshold_drift() {
     let mut summary = packaged_artifact_fit_margin_summary_details();
@@ -2382,6 +2451,7 @@ fn packaged_artifact_fit_margin_summary_validation_rejects_threshold_drift() {
     assert!(error.to_string().contains("thresholds"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_fit_outlier_summary_prioritizes_distance_channel_outliers() {
     let summary = packaged_artifact_fit_outlier_summary_details();
@@ -2425,6 +2495,7 @@ fn packaged_artifact_fit_outlier_summary_prioritizes_distance_channel_outliers()
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_fit_channel_outlier_summary_prefers_shorter_failing_family_on_equal_delta() {
     let body = CelestialBody::Moon;
@@ -2475,6 +2546,7 @@ fn packaged_artifact_fit_channel_outlier_summary_prefers_shorter_failing_family_
     assert!(!summary.contains("span=10.000000000000 d"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_fit_channel_outlier_summary_validation_rejects_drift() {
     let mut summary = packaged_artifact_fit_channel_outlier_summary_details();
@@ -2788,6 +2860,7 @@ fn fit_segment_within_span_reproduces_a_smooth_synthetic_body() {
 /// reference snapshot (curated corpus data), not from the committed artifact.
 /// The test verifies snapshot-based sourcing: Eros is present with ≥1 segment
 /// and its count matches the expected snapshot-fit count exactly.
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn build_from_reference_produces_all_bodies_with_spanning_segments() {
     // Tiny window: a few hundred days covers several segments for every
@@ -2854,6 +2927,7 @@ fn build_from_reference_produces_all_bodies_with_spanning_segments() {
 
 /// Guards that the public window-parameterized builder and the default builder
 /// produce identical results for the same window.
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn default_window_artifact_matches_explicit_default_over() {
     use pleiades_jpl::spk::corpus_spec::CoverageWindow;

@@ -833,6 +833,7 @@ fn lookup_uses_packaged_boundary_epochs_for_every_reference_body() {
     }
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_backend_rejects_requests_outside_its_time_range() {
     let backend = packaged_backend();
