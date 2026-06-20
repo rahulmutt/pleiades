@@ -232,6 +232,9 @@ mod tests {
             x_km: au,
             y_km: 0.0,
             z_km: 0.0,
+            vx_km_s: None,
+            vy_km_s: None,
+            vz_km_s: None,
         }]
     }
 

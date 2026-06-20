@@ -1220,6 +1220,9 @@ pub(crate) fn snapshot_entry_from_ecliptic_coordinates(
         x_km: radius_km * cos_latitude * longitude_radians.cos(),
         y_km: radius_km * cos_latitude * longitude_radians.sin(),
         z_km: radius_km * latitude_radians.sin(),
+        vx_km_s: None,
+        vy_km_s: None,
+        vz_km_s: None,
     }
 }
 

@@ -221,6 +221,9 @@ pub fn normalize(
             x_km: record.pos[0] * km_per_unit,
             y_km: record.pos[1] * km_per_unit,
             z_km: record.pos[2] * km_per_unit,
+            vx_km_s: None,
+            vy_km_s: None,
+            vz_km_s: None,
         });
     }
 

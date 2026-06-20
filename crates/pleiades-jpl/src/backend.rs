@@ -1222,6 +1222,12 @@ pub struct SnapshotEntry {
     pub y_km: f64,
     /// Cartesian Z position in kilometers.
     pub z_km: f64,
+    /// Cartesian X velocity in kilometers per second (optional; present in 8-field rows).
+    pub vx_km_s: Option<f64>,
+    /// Cartesian Y velocity in kilometers per second (optional; present in 8-field rows).
+    pub vy_km_s: Option<f64>,
+    /// Cartesian Z velocity in kilometers per second (optional; present in 8-field rows).
+    pub vz_km_s: Option<f64>,
 }
 
 impl SnapshotEntry {
@@ -1243,6 +1249,9 @@ impl SnapshotEntry {
             x_km: lerp(before.x_km, after.x_km, fraction),
             y_km: lerp(before.y_km, after.y_km, fraction),
             z_km: lerp(before.z_km, after.z_km, fraction),
+            vx_km_s: None,
+            vy_km_s: None,
+            vz_km_s: None,
         }
     }
 
@@ -1258,6 +1267,9 @@ impl SnapshotEntry {
             x_km: lagrange_interpolate_3(epoch_jd, xs, [a.x_km, b.x_km, c.x_km]),
             y_km: lagrange_interpolate_3(epoch_jd, xs, [a.y_km, b.y_km, c.y_km]),
             z_km: lagrange_interpolate_3(epoch_jd, xs, [a.z_km, b.z_km, c.z_km]),
+            vx_km_s: None,
+            vy_km_s: None,
+            vz_km_s: None,
         }
     }
 
@@ -1274,6 +1286,9 @@ impl SnapshotEntry {
             x_km: lagrange_interpolate_4(epoch_jd, xs, [a.x_km, b.x_km, c.x_km, d.x_km]),
             y_km: lagrange_interpolate_4(epoch_jd, xs, [a.y_km, b.y_km, c.y_km, d.y_km]),
             z_km: lagrange_interpolate_4(epoch_jd, xs, [a.z_km, b.z_km, c.z_km, d.z_km]),
+            vx_km_s: None,
+            vy_km_s: None,
+            vz_km_s: None,
         }
     }
 }
@@ -2221,19 +2236,43 @@ fn parse_snapshot_line(
         return Ok(None);
     }
 
-    let mut parts = trimmed.split(',').map(str::trim);
-    let epoch_jd = next_part(&mut parts, line_number, "epoch")?;
-    let body = next_part(&mut parts, line_number, "body")?;
-    let x_km = next_part(&mut parts, line_number, "x")?;
-    let y_km = next_part(&mut parts, line_number, "y")?;
-    let z_km = next_part(&mut parts, line_number, "z")?;
+    let parts: Vec<&str> = trimmed.split(',').map(str::trim).collect();
+    let arity = parts.len();
 
-    if parts.next().is_some() {
+    // Require exactly the required 5 position columns.
+    let required = ["epoch", "body", "x", "y", "z"];
+    for (i, column) in required.iter().enumerate() {
+        if i >= arity {
+            return Err(SnapshotLoadError::new(
+                line_number,
+                SnapshotLoadErrorKind::MissingColumn { column },
+            ));
+        }
+    }
+
+    // After the 5 required columns, accept exactly 3 velocity columns or none.
+    if arity != 5 && arity != 8 {
         return Err(SnapshotLoadError::new(
             line_number,
             SnapshotLoadErrorKind::UnexpectedExtraColumns,
         ));
     }
+
+    let epoch_jd = parts[0];
+    let body = parts[1];
+    let x_km = parts[2];
+    let y_km = parts[3];
+    let z_km = parts[4];
+
+    let (vx_km_s, vy_km_s, vz_km_s) = if arity == 8 {
+        (
+            Some(parse_f64(parts[5], line_number, "vx_km_s")?),
+            Some(parse_f64(parts[6], line_number, "vy_km_s")?),
+            Some(parse_f64(parts[7], line_number, "vz_km_s")?),
+        )
+    } else {
+        (None, None, None)
+    };
 
     Ok(Some(SnapshotEntry {
         body: parse_body(body, line_number)?,
@@ -2244,17 +2283,10 @@ fn parse_snapshot_line(
         x_km: parse_f64(x_km, line_number, "x_km")?,
         y_km: parse_f64(y_km, line_number, "y_km")?,
         z_km: parse_f64(z_km, line_number, "z_km")?,
+        vx_km_s,
+        vy_km_s,
+        vz_km_s,
     }))
-}
-
-fn next_part<'a>(
-    parts: &mut impl Iterator<Item = &'a str>,
-    line_number: usize,
-    column: &'static str,
-) -> Result<&'a str, SnapshotLoadError> {
-    parts.next().ok_or_else(|| {
-        SnapshotLoadError::new(line_number, SnapshotLoadErrorKind::MissingColumn { column })
-    })
 }
 
 fn parse_body(

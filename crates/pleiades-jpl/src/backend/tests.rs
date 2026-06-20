@@ -630,6 +630,9 @@ fn snapshot_manifest_footprint_validation_rejects_count_drift() {
             x_km: 1.0,
             y_km: 2.0,
             z_km: 3.0,
+            vx_km_s: None,
+            vy_km_s: None,
+            vz_km_s: None,
         },
         SnapshotEntry {
             body: CelestialBody::Moon,
@@ -637,6 +640,9 @@ fn snapshot_manifest_footprint_validation_rejects_count_drift() {
             x_km: 4.0,
             y_km: 5.0,
             z_km: 6.0,
+            vx_km_s: None,
+            vy_km_s: None,
+            vz_km_s: None,
         },
     ];
 
@@ -716,6 +722,9 @@ fn quadratic_interpolation_matches_a_known_parabola() {
         x_km: 0.0,
         y_km: 1.0,
         z_km: 2.0,
+        vx_km_s: None,
+        vy_km_s: None,
+        vz_km_s: None,
     };
     let b = SnapshotEntry {
         body: pleiades_backend::CelestialBody::Moon,
@@ -723,6 +732,9 @@ fn quadratic_interpolation_matches_a_known_parabola() {
         x_km: 1.0,
         y_km: 6.0,
         z_km: 5.0,
+        vx_km_s: None,
+        vy_km_s: None,
+        vz_km_s: None,
     };
     let c = SnapshotEntry {
         body: pleiades_backend::CelestialBody::Moon,
@@ -730,6 +742,9 @@ fn quadratic_interpolation_matches_a_known_parabola() {
         x_km: 4.0,
         y_km: 15.0,
         z_km: 10.0,
+        vx_km_s: None,
+        vy_km_s: None,
+        vz_km_s: None,
     };
 
     let interpolated = SnapshotEntry::interpolate_quadratic(&a, &b, &c, 1.5);
@@ -746,6 +761,9 @@ fn cubic_interpolation_matches_a_known_cubic() {
         x_km: 0.0,
         y_km: 1.0,
         z_km: 2.0,
+        vx_km_s: None,
+        vy_km_s: None,
+        vz_km_s: None,
     };
     let b = SnapshotEntry {
         body: pleiades_backend::CelestialBody::Moon,
@@ -753,6 +771,9 @@ fn cubic_interpolation_matches_a_known_cubic() {
         x_km: 1.0,
         y_km: 2.0,
         z_km: 3.0,
+        vx_km_s: None,
+        vy_km_s: None,
+        vz_km_s: None,
     };
     let c = SnapshotEntry {
         body: pleiades_backend::CelestialBody::Moon,
@@ -760,6 +781,9 @@ fn cubic_interpolation_matches_a_known_cubic() {
         x_km: 8.0,
         y_km: 9.0,
         z_km: 10.0,
+        vx_km_s: None,
+        vy_km_s: None,
+        vz_km_s: None,
     };
     let d = SnapshotEntry {
         body: pleiades_backend::CelestialBody::Moon,
@@ -767,6 +791,9 @@ fn cubic_interpolation_matches_a_known_cubic() {
         x_km: 27.0,
         y_km: 28.0,
         z_km: 29.0,
+        vx_km_s: None,
+        vy_km_s: None,
+        vz_km_s: None,
     };
 
     let interpolated = SnapshotEntry::interpolate_cubic(&a, &b, &c, &d, 1.5);
@@ -784,6 +811,9 @@ fn interpolation_uses_a_cubic_window_when_four_points_are_available() {
             x_km: 0.0,
             y_km: 1.0,
             z_km: 2.0,
+            vx_km_s: None,
+            vy_km_s: None,
+            vz_km_s: None,
         },
         SnapshotEntry {
             body: pleiades_backend::CelestialBody::Moon,
@@ -791,6 +821,9 @@ fn interpolation_uses_a_cubic_window_when_four_points_are_available() {
             x_km: 1.0,
             y_km: 2.0,
             z_km: 3.0,
+            vx_km_s: None,
+            vy_km_s: None,
+            vz_km_s: None,
         },
         SnapshotEntry {
             body: pleiades_backend::CelestialBody::Moon,
@@ -798,6 +831,9 @@ fn interpolation_uses_a_cubic_window_when_four_points_are_available() {
             x_km: 8.0,
             y_km: 9.0,
             z_km: 10.0,
+            vx_km_s: None,
+            vy_km_s: None,
+            vz_km_s: None,
         },
         SnapshotEntry {
             body: pleiades_backend::CelestialBody::Moon,
@@ -805,6 +841,9 @@ fn interpolation_uses_a_cubic_window_when_four_points_are_available() {
             x_km: 27.0,
             y_km: 28.0,
             z_km: 29.0,
+            vx_km_s: None,
+            vy_km_s: None,
+            vz_km_s: None,
         },
     ];
 
@@ -1299,6 +1338,9 @@ fn snapshot_corpus_backend_resolves_exact_corpus_epoch() {
         x_km: 1.0,
         y_km: 2.0,
         z_km: 3.0,
+        vx_km_s: None,
+        vy_km_s: None,
+        vz_km_s: None,
     };
     let adjacent_entry = SnapshotEntry {
         body: CelestialBody::Sun,
@@ -1306,6 +1348,9 @@ fn snapshot_corpus_backend_resolves_exact_corpus_epoch() {
         x_km: 4.0,
         y_km: 5.0,
         z_km: 6.0,
+        vx_km_s: None,
+        vy_km_s: None,
+        vz_km_s: None,
     };
     // Compute the expected ecliptic from the held entry directly — this is what
     // the backend should return for an exact-epoch hit.
@@ -1350,4 +1395,21 @@ fn snapshot_corpus_backend_resolves_exact_corpus_epoch() {
         .position(&mars_req)
         .expect_err("body absent from held entries should return an error");
     assert_eq!(err.kind, EphemerisErrorKind::UnsupportedBody);
+}
+
+#[test]
+fn parses_eight_field_row_with_velocity() {
+    let csv = "#Columns:epoch_jd,body,x_km,y_km,z_km,vx_km_s,vy_km_s,vz_km_s\n\
+               2451545.0,Mars,1.0,2.0,3.0,0.1,0.2,0.3\n";
+    let rows = parse_snapshot_entries(csv).unwrap();
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0].vx_km_s, Some(0.1));
+    assert_eq!(rows[0].vz_km_s, Some(0.3));
+}
+
+#[test]
+fn parses_five_field_row_without_velocity() {
+    let csv = "#Columns:epoch_jd,body,x_km,y_km,z_km\n2451545.0,Mars,1.0,2.0,3.0\n";
+    let rows = parse_snapshot_entries(csv).unwrap();
+    assert_eq!(rows[0].vx_km_s, None);
 }
