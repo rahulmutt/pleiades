@@ -42,7 +42,7 @@ pub fn geocentric_from_heliocentric(
 
 /// Spherical ecliptic state: position (lon, lat, dist) plus velocity rates (all in AU and rad/day).
 #[derive(Clone, Copy, Debug)]
-pub(crate) struct SphericalState {
+pub struct SphericalState {
     pub lon_rad: f64,
     pub lat_rad: f64,
     pub dist_au: f64,
@@ -53,7 +53,7 @@ pub(crate) struct SphericalState {
 
 /// Cartesian ecliptic state: position and velocity (all in AU and AU/day).
 #[derive(Clone, Copy, Debug)]
-pub(crate) struct CartesianState {
+pub struct CartesianState {
     pub pos_au: [f64; 3],
     pub vel_au_per_day: [f64; 3],
 }
@@ -76,7 +76,7 @@ pub(crate) fn spherical_state_to_cartesian(s: SphericalState) -> CartesianState 
 }
 
 /// Converts a Cartesian ecliptic state back to spherical using the inverse chain rule.
-pub(crate) fn cartesian_state_to_spherical(c: CartesianState) -> SphericalState {
+pub fn cartesian_state_to_spherical(c: CartesianState) -> SphericalState {
     let [x, y, z] = c.pos_au;
     let [vx, vy, vz] = c.vel_au_per_day;
     let rho2 = x * x + y * y;

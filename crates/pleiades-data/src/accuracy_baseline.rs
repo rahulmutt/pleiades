@@ -8,7 +8,7 @@
 use std::collections::HashMap;
 
 use pleiades_backend::{Angle, CelestialBody};
-use pleiades_compression::CompressedArtifact;
+use pleiades_compression::{cartesian_state_to_spherical, CartesianState, CompressedArtifact};
 use pleiades_jpl::{production_holdout_corpus, SnapshotEntry};
 
 use crate::regenerate::{build_packaged_artifact, coordinates, normalize_lookup_instant};
@@ -35,6 +35,15 @@ pub struct BodyChannelError {
     pub max_distance_km: f64,
     /// Root-mean-square distance error across all hold-out rows for this body (km).
     pub rms_distance_km: f64,
+    /// Maximum absolute longitude speed error across hold-out rows that have velocity truth (arcsec/day).
+    /// Zero when no velocity-bearing rows were compared for this body.
+    pub max_lon_speed_arcsec_per_day: f64,
+    /// Maximum absolute latitude speed error across hold-out rows that have velocity truth (arcsec/day).
+    /// Zero when no velocity-bearing rows were compared for this body.
+    pub max_lat_speed_arcsec_per_day: f64,
+    /// Maximum absolute radial speed error across hold-out rows that have velocity truth (AU/day).
+    /// Zero when no velocity-bearing rows were compared for this body.
+    pub max_radial_speed_au_per_day: f64,
 }
 
 impl BodyChannelError {
@@ -45,7 +54,7 @@ impl BodyChannelError {
     /// Returns a compact one-line summary for this body's errors.
     pub fn summary_line(&self) -> String {
         format!(
-            "{}: n={} max_lon={:.4} arcsec  rms_lon={:.4} arcsec  max_lat={:.4} arcsec  rms_lat={:.4} arcsec  max_dist={:.3} km  rms_dist={:.3} km",
+            "{}: n={} max_lon={:.4} arcsec  rms_lon={:.4} arcsec  max_lat={:.4} arcsec  rms_lat={:.4} arcsec  max_dist={:.3} km  rms_dist={:.3} km  max_lon_speed={:.4} arcsec/day  max_lat_speed={:.4} arcsec/day  max_radial_speed={:.6} AU/day",
             self.label(),
             self.comparison_count,
             self.max_longitude_arcsec,
@@ -54,6 +63,9 @@ impl BodyChannelError {
             self.rms_latitude_arcsec,
             self.max_distance_km,
             self.rms_distance_km,
+            self.max_lon_speed_arcsec_per_day,
+            self.max_lat_speed_arcsec_per_day,
+            self.max_radial_speed_au_per_day,
         )
     }
 }
@@ -67,6 +79,9 @@ struct BodyAccumulator {
     sum_sq_lat_arcsec: f64,
     max_dist_km: f64,
     sum_sq_dist_km: f64,
+    max_lon_speed_arcsec_per_day: f64,
+    max_lat_speed_arcsec_per_day: f64,
+    max_radial_speed_au_per_day: f64,
 }
 
 impl BodyAccumulator {
@@ -80,6 +95,9 @@ impl BodyAccumulator {
             sum_sq_lat_arcsec: 0.0,
             max_dist_km: 0.0,
             sum_sq_dist_km: 0.0,
+            max_lon_speed_arcsec_per_day: 0.0,
+            max_lat_speed_arcsec_per_day: 0.0,
+            max_radial_speed_au_per_day: 0.0,
         }
     }
 
@@ -95,6 +113,20 @@ impl BodyAccumulator {
         }
     }
 
+    fn accumulate_speed(
+        &mut self,
+        lon_speed_arcsec_per_day: f64,
+        lat_speed_arcsec_per_day: f64,
+        radial_speed_au_per_day: f64,
+    ) {
+        self.max_lon_speed_arcsec_per_day =
+            self.max_lon_speed_arcsec_per_day.max(lon_speed_arcsec_per_day);
+        self.max_lat_speed_arcsec_per_day =
+            self.max_lat_speed_arcsec_per_day.max(lat_speed_arcsec_per_day);
+        self.max_radial_speed_au_per_day =
+            self.max_radial_speed_au_per_day.max(radial_speed_au_per_day);
+    }
+
     fn finish(self) -> BodyChannelError {
         let n = self.count as f64;
         let rms = |sum_sq: f64| if n > 0.0 { (sum_sq / n).sqrt() } else { 0.0 };
@@ -107,6 +139,9 @@ impl BodyAccumulator {
             rms_latitude_arcsec: rms(self.sum_sq_lat_arcsec),
             max_distance_km: self.max_dist_km,
             rms_distance_km: rms(self.sum_sq_dist_km),
+            max_lon_speed_arcsec_per_day: self.max_lon_speed_arcsec_per_day,
+            max_lat_speed_arcsec_per_day: self.max_lat_speed_arcsec_per_day,
+            max_radial_speed_au_per_day: self.max_radial_speed_au_per_day,
         }
     }
 }
@@ -172,6 +207,40 @@ pub fn accuracy_baseline_against(
         };
 
         acc.accumulate(lon_arcsec, lat_arcsec, dist_km);
+
+        // Speed error: only for rows that carry velocity truth.
+        if let (Some(vx), Some(vy), Some(vz)) = (entry.vx_km_s, entry.vy_km_s, entry.vz_km_s) {
+            // Convert hold-out Cartesian position (km) + velocity (km/s) to AU and AU/day.
+            let pos_au = [
+                entry.x_km / AU_IN_KM,
+                entry.y_km / AU_IN_KM,
+                entry.z_km / AU_IN_KM,
+            ];
+            let vel_au_per_day = [
+                vx * 86400.0 / AU_IN_KM,
+                vy * 86400.0 / AU_IN_KM,
+                vz * 86400.0 / AU_IN_KM,
+            ];
+            let truth_spherical =
+                cartesian_state_to_spherical(CartesianState { pos_au, vel_au_per_day });
+
+            // truth rates are in rad/day (lon/lat) and AU/day (radial) — convert lon/lat to deg/day.
+            let truth_lon_deg_per_day = truth_spherical.lon_rate_rad_per_day.to_degrees();
+            let truth_lat_deg_per_day = truth_spherical.lat_rate_rad_per_day.to_degrees();
+            let truth_radial_au_per_day = truth_spherical.dist_rate_au_per_day;
+
+            if let Ok(motion) = artifact.lookup_motion(&entry.body, lookup_instant) {
+                let art_lon = motion.longitude_deg_per_day.unwrap_or(0.0);
+                let art_lat = motion.latitude_deg_per_day.unwrap_or(0.0);
+                let art_radial = motion.distance_au_per_day.unwrap_or(0.0);
+
+                let lon_speed_arcsec = (art_lon - truth_lon_deg_per_day).abs() * 3600.0;
+                let lat_speed_arcsec = (art_lat - truth_lat_deg_per_day).abs() * 3600.0;
+                let radial_speed_au = (art_radial - truth_radial_au_per_day).abs();
+
+                acc.accumulate_speed(lon_speed_arcsec, lat_speed_arcsec, radial_speed_au);
+            }
+        }
     }
 
     // Vacuity guard: only emit bodies where at least one row was successfully compared.
@@ -222,6 +291,62 @@ mod tests {
 
     use super::*;
 
+    /// Synthetic holdout with a known ecliptic velocity for the Sun at J2000.
+    ///
+    /// Position: Sun at (1 AU, 0, 0) → lon=0°, lat=0°, dist=1 AU.
+    /// Velocity: (0, vy_km_s, 0) in km/s where vy_km_s = 0.01 AU/day in km/s.
+    ///
+    /// At this position (x=1, y=0, z=0):
+    ///   dλ/dt = (x·vy − y·vx) / (x²+y²) = vy = 0.01 AU/day in rad/day
+    ///   dβ/dt = (ρ·vz − z·ρ̇) / r²       = 0 rad/day
+    ///   dr/dt = (x·vx + y·vy + z·vz) / r  = 0 AU/day
+    fn synthetic_holdout_with_velocity() -> Vec<SnapshotEntry> {
+        let au = AU_IN_KM;
+        // vy = 0.01 AU/day converted to km/s: 0.01 * AU_IN_KM / 86400
+        let vy_km_s = 0.01 * au / 86400.0;
+        vec![SnapshotEntry {
+            body: CelestialBody::Sun,
+            epoch: Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt),
+            x_km: au,
+            y_km: 0.0,
+            z_km: 0.0,
+            vx_km_s: Some(0.0),
+            vy_km_s: Some(vy_km_s),
+            vz_km_s: Some(0.0),
+        }]
+    }
+
+    /// Synthetic artifact with a linear longitude segment matching the known velocity.
+    ///
+    /// The Sun longitude increases linearly over 10 days from 0° to 0.01.to_degrees()*10°,
+    /// so the analytic derivative dλ/dt = 0.01.to_degrees() deg/day = 0.01 rad/day ✓.
+    /// Latitude and distance are constant, matching dβ/dt=0 and dr/dt=0.
+    fn synthetic_artifact_linear() -> CompressedArtifact {
+        let jd0 = 2_451_545.0_f64;
+        let span_days = 10.0_f64;
+        let start = Instant::new(JulianDay::from_days(jd0), TimeScale::Tt);
+        let end = Instant::new(JulianDay::from_days(jd0 + span_days), TimeScale::Tt);
+
+        // lon rate = 0.01 rad/day → deg/day = 0.01 * (180/π)
+        // over 10 days: lon goes from 0° to 0.01 * (180/π) * 10°
+        let lon_rate_deg_per_day = 0.01_f64.to_degrees();
+        let lon_end = lon_rate_deg_per_day * span_days;
+
+        let segment = Segment::new(
+            start,
+            end,
+            vec![
+                PolynomialChannel::linear(ChannelKind::Longitude, 9, 0.0, lon_end),
+                PolynomialChannel::linear(ChannelKind::Latitude, 9, 0.0, 0.0),
+                PolynomialChannel::linear(ChannelKind::DistanceAu, 10, 1.0, 1.0),
+            ],
+        );
+        CompressedArtifact::new(
+            ArtifactHeader::new("synthetic-linear-test", "synthetic linear velocity test source"),
+            vec![BodyArtifact::new(CelestialBody::Sun, vec![segment])],
+        )
+    }
+
     fn synthetic_holdout() -> Vec<SnapshotEntry> {
         // Single Sun entry at J2000.0 in ecliptic Cartesian: place Sun at 1 AU along x-axis,
         // giving lon=0°, lat=0°, dist=1 AU.
@@ -256,6 +381,31 @@ mod tests {
             ArtifactHeader::new("synthetic-test", "synthetic test source"),
             vec![BodyArtifact::new(CelestialBody::Sun, vec![segment])],
         )
+    }
+
+    #[test]
+    fn baseline_reports_speed_error_fields() {
+        let errors =
+            accuracy_baseline_against(&synthetic_holdout_with_velocity(), &synthetic_artifact_linear());
+        assert_eq!(errors.len(), 1, "expected exactly 1 body in synthetic speed baseline");
+        let sun = &errors[0];
+        assert_eq!(sun.comparison_count, 1, "Sun should have 1 comparison");
+        // Speed error must be near-zero (artifact derivative exactly matches truth velocity).
+        assert!(
+            sun.max_lon_speed_arcsec_per_day < 1e-3,
+            "Sun max longitude speed error too large: {} arcsec/day",
+            sun.max_lon_speed_arcsec_per_day
+        );
+        assert!(
+            sun.max_lat_speed_arcsec_per_day < 1e-3,
+            "Sun max latitude speed error too large: {} arcsec/day",
+            sun.max_lat_speed_arcsec_per_day
+        );
+        assert!(
+            sun.max_radial_speed_au_per_day < 1e-6,
+            "Sun max radial speed error too large: {} AU/day",
+            sun.max_radial_speed_au_per_day
+        );
     }
 
     #[test]

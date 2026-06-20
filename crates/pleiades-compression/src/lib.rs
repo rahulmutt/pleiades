@@ -56,8 +56,8 @@ pub use format::{
     ArtifactProfileCoverageSummary, ArtifactResidualBodyCoverageSummary, EndianPolicy, SpeedPolicy,
 };
 pub use frame_recombine::{
-    cartesian_au_to_ecliptic, ecliptic_to_cartesian_au, geocentric_from_heliocentric,
-    heliocentric_from_geocentric,
+    cartesian_au_to_ecliptic, cartesian_state_to_spherical, ecliptic_to_cartesian_au,
+    geocentric_from_heliocentric, heliocentric_from_geocentric, CartesianState, SphericalState,
 };
 
 // ── Crate-level constants ─────────────────────────────────────────────────────
