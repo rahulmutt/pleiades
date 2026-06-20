@@ -1119,3 +1119,16 @@ fn backend_metadata_exposes_packaged_scope() {
         Ok(())
     );
 }
+
+#[test]
+fn packaged_backend_returns_motion_for_a_major_body() {
+    let backend = packaged_backend();
+    let inst = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
+    let res = backend
+        .position(&EphemerisRequest::new(CelestialBody::Mars, inst))
+        .expect("mars position");
+    let motion = res.motion.expect("motion should be populated");
+    assert!(motion.longitude_deg_per_day.unwrap().is_finite());
+    // Mars mean motion is well under 1 deg/day in magnitude.
+    assert!(motion.longitude_deg_per_day.unwrap().abs() < 1.0);
+}

@@ -151,6 +151,10 @@ impl EphemerisBackend for PackagedDataBackend {
             .lookup_ecliptic(&req.body, lookup_instant)
             .map_err(map_artifact_error)?;
         let equatorial = ecliptic.to_equatorial(req.instant.mean_obliquity());
+        let motion = self
+            .artifact
+            .lookup_motion(&req.body, lookup_instant)
+            .map_err(map_artifact_error)?;
 
         let mut result = EphemerisResult::new(
             BackendId::new(PACKAGE_NAME),
@@ -162,6 +166,7 @@ impl EphemerisBackend for PackagedDataBackend {
         );
         result.ecliptic = Some(ecliptic);
         result.equatorial = Some(equatorial);
+        result.motion = Some(motion);
         result.quality = QualityAnnotation::Interpolated;
         Ok(result)
     }
