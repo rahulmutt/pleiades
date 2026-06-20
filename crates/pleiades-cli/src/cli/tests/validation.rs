@@ -5,6 +5,7 @@ use pleiades_validate::render_cli as validate_render_cli;
 
 use crate::cli::render_cli;
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn validation_report_commands_render_compact_reports() {
     let release_profiles = current_release_profile_identifiers();

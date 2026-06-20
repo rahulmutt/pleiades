@@ -3,6 +3,7 @@
 use super::super::test_support::unique_temp_dir;
 use crate::cli::render_cli;
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn bundle_release_command_writes_a_staged_bundle() {
     let bundle_dir = unique_temp_dir("pleiades-cli-release-bundle");
@@ -114,6 +115,7 @@ fn bundle_release_command_writes_a_staged_bundle() {
     assert!(manifest.contains("workspace-audit-summary.txt"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_command_verifies_a_staged_bundle() {
     let bundle_dir = unique_temp_dir("pleiades-cli-release-bundle");
@@ -192,6 +194,7 @@ fn bundle_release_commands_reject_duplicate_output_arguments() {
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn bundle_release_commands_accept_output_alias() {
     let bundle_dir = unique_temp_dir("pleiades-cli-release-bundle-output-alias");

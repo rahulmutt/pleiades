@@ -6,6 +6,7 @@ use pleiades_validate::render_cli as validate_render_cli;
 use super::super::test_support::unique_temp_dir;
 use crate::cli::render_cli;
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn artifact_and_workspace_commands_render_compact_reports() {
     let artifact_summary =

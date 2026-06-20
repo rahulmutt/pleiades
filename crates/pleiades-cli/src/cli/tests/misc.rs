@@ -137,6 +137,7 @@ fn lunar_theory_source_selection_summary_command_renders_the_summary() {
     assert!(rendered.contains("lunar source selection:"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn fallback_summary_commands_remain_reachable_from_the_cli() {
     for (cli_args, validation_args) in [
@@ -178,6 +179,7 @@ fn fallback_summary_commands_remain_reachable_from_the_cli() {
     }
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_and_ayanamsa_audit_summary_commands_render_directly_from_the_cli() {
     for (summary_args, alias_args) in [
@@ -269,6 +271,7 @@ fn chart_help_text_spells_out_the_shared_request_policy() {
     assert!(help.contains(pleiades_validate::current_request_surface_summary().chart_help_clause()));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_source_fit_holdout_sync_summary_and_alias_commands_render_the_summary() {
     let sync = render_cli(&["packaged-artifact-source-fit-holdout-sync-summary"])

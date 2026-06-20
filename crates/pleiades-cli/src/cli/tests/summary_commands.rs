@@ -6,6 +6,7 @@ use pleiades_validate::{house_validation_summary_for_report, render_cli as valid
 use super::super::test_support::packaged_artifact_access_report_line;
 use crate::cli::render_cli;
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn summary_commands_render_compact_reports() {
     let release_profiles = current_release_profile_identifiers();
