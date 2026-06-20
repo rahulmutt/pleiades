@@ -304,12 +304,20 @@ pub struct BodyArtifact {
 impl BodyArtifact {
     /// Creates a new geocentric body artifact (the default frame).
     pub fn new(body: CelestialBody, segments: Vec<Segment>) -> Self {
-        Self { body, segments, frame: StoredFrame::Geocentric }
+        Self {
+            body,
+            segments,
+            frame: StoredFrame::Geocentric,
+        }
     }
 
     /// Creates a body artifact with an explicit stored frame.
     pub fn with_frame(body: CelestialBody, segments: Vec<Segment>, frame: StoredFrame) -> Self {
-        Self { body, segments, frame }
+        Self {
+            body,
+            segments,
+            frame,
+        }
     }
 
     /// Validates the body's segment metadata.
@@ -399,7 +407,11 @@ mod derivative_tests {
         let seg = Segment::with_residual_channels(
             start,
             end,
-            vec![PolynomialChannel::new(ChannelKind::Longitude, 9, vec![0.0, 2.0])], // base' = 2
+            vec![PolynomialChannel::new(
+                ChannelKind::Longitude,
+                9,
+                vec![0.0, 2.0],
+            )], // base' = 2
             vec![PolynomialChannel::new(
                 ChannelKind::Longitude,
                 9,
@@ -407,7 +419,9 @@ mod derivative_tests {
             )],
         );
         // total derivative at x=1: 2 + 10 = 12
-        let d = seg.evaluate_channel_derivative(ChannelKind::Longitude, 1.0).unwrap();
+        let d = seg
+            .evaluate_channel_derivative(ChannelKind::Longitude, 1.0)
+            .unwrap();
         assert!((d - 12.0).abs() < 1e-12);
     }
 }

@@ -61,10 +61,7 @@ impl CompressedArtifact {
             .iter()
             .any(|b| b.frame == crate::channels::StoredFrame::Heliocentric);
         if has_heliocentric {
-            let sun = self
-                .bodies
-                .iter()
-                .find(|b| b.body == CelestialBody::Sun);
+            let sun = self.bodies.iter().find(|b| b.body == CelestialBody::Sun);
             match sun {
                 Some(s) if s.frame == crate::channels::StoredFrame::Geocentric => {}
                 Some(_) => {
@@ -384,17 +381,16 @@ impl CompressedArtifact {
                 let lon = segment.evaluate_channel(ChannelKind::Longitude, x)?;
                 let lat = segment.evaluate_channel(ChannelKind::Latitude, x)?;
                 let dist = segment.evaluate_channel(ChannelKind::DistanceAu, x)?;
-                let helio =
-                    crate::frame_recombine::spherical_state_to_cartesian(
-                        crate::frame_recombine::SphericalState {
-                            lon_rad: lon.to_radians(),
-                            lat_rad: lat.to_radians(),
-                            dist_au: dist,
-                            lon_rate_rad_per_day: dlon_dt.to_radians(),
-                            lat_rate_rad_per_day: dlat_dt.to_radians(),
-                            dist_rate_au_per_day: ddist_dt,
-                        },
-                    );
+                let helio = crate::frame_recombine::spherical_state_to_cartesian(
+                    crate::frame_recombine::SphericalState {
+                        lon_rad: lon.to_radians(),
+                        lat_rad: lat.to_radians(),
+                        dist_au: dist,
+                        lon_rate_rad_per_day: dlon_dt.to_radians(),
+                        lat_rate_rad_per_day: dlat_dt.to_radians(),
+                        dist_rate_au_per_day: ddist_dt,
+                    },
+                );
                 let sun = self.sun_cartesian_state(instant)?;
                 let geo = crate::frame_recombine::CartesianState {
                     pos_au: [
@@ -439,8 +435,7 @@ impl CompressedArtifact {
         let dist = sun_segment.evaluate_channel(ChannelKind::DistanceAu, x)?;
         let dlon_dt = sun_segment.evaluate_channel_derivative(ChannelKind::Longitude, x)? / span;
         let dlat_dt = sun_segment.evaluate_channel_derivative(ChannelKind::Latitude, x)? / span;
-        let ddist_dt =
-            sun_segment.evaluate_channel_derivative(ChannelKind::DistanceAu, x)? / span;
+        let ddist_dt = sun_segment.evaluate_channel_derivative(ChannelKind::DistanceAu, x)? / span;
         Ok(crate::frame_recombine::spherical_state_to_cartesian(
             crate::frame_recombine::SphericalState {
                 lon_rad: lon.to_radians(),
@@ -507,7 +502,11 @@ mod reframe_lookup_tests {
         let channels = vec![
             PolynomialChannel::new(ChannelKind::Longitude, 9, vec![coords.longitude.degrees()]),
             PolynomialChannel::new(ChannelKind::Latitude, 9, vec![coords.latitude.degrees()]),
-            PolynomialChannel::new(ChannelKind::DistanceAu, 10, vec![coords.distance_au.unwrap()]),
+            PolynomialChannel::new(
+                ChannelKind::DistanceAu,
+                10,
+                vec![coords.distance_au.unwrap()],
+            ),
         ];
         let seg = Segment::new(
             Instant::new(JulianDay::from_days(start), TimeScale::Tt),
@@ -550,12 +549,26 @@ mod reframe_lookup_tests {
         let jupiter_helio = heliocentric_from_geocentric(&jupiter_geo, &sun_geo).unwrap();
 
         let artifact = build_test_artifact(vec![
-            const_body(CelestialBody::Sun, StoredFrame::Geocentric, 0.0, 100.0, &sun_geo),
-            const_body(CelestialBody::Jupiter, StoredFrame::Heliocentric, 0.0, 100.0, &jupiter_helio),
+            const_body(
+                CelestialBody::Sun,
+                StoredFrame::Geocentric,
+                0.0,
+                100.0,
+                &sun_geo,
+            ),
+            const_body(
+                CelestialBody::Jupiter,
+                StoredFrame::Heliocentric,
+                0.0,
+                100.0,
+                &jupiter_helio,
+            ),
         ]);
 
         let at = Instant::new(JulianDay::from_days(50.0), TimeScale::Tt);
-        let out = artifact.lookup_ecliptic(&CelestialBody::Jupiter, at).unwrap();
+        let out = artifact
+            .lookup_ecliptic(&CelestialBody::Jupiter, at)
+            .unwrap();
         assert!((out.longitude.degrees() - 200.0).abs() < 1e-6);
         assert!((out.latitude.degrees() - 1.2).abs() < 1e-6);
         assert!((out.distance_au.unwrap() - 5.4).abs() < 1e-6);
@@ -575,7 +588,10 @@ mod reframe_lookup_tests {
             100.0,
             &jupiter_helio,
         )]);
-        assert!(result.is_err(), "heliocentric body without a Sun must fail validation");
+        assert!(
+            result.is_err(),
+            "heliocentric body without a Sun must fail validation"
+        );
     }
 
     #[test]
@@ -594,8 +610,20 @@ mod reframe_lookup_tests {
             Some(5.0),
         );
         let result = try_build_test_artifact(vec![
-            const_body(CelestialBody::Sun, StoredFrame::Heliocentric, 0.0, 100.0, &sun_coords),
-            const_body(CelestialBody::Jupiter, StoredFrame::Heliocentric, 0.0, 100.0, &jupiter_helio),
+            const_body(
+                CelestialBody::Sun,
+                StoredFrame::Heliocentric,
+                0.0,
+                100.0,
+                &sun_coords,
+            ),
+            const_body(
+                CelestialBody::Jupiter,
+                StoredFrame::Heliocentric,
+                0.0,
+                100.0,
+                &jupiter_helio,
+            ),
         ]);
         assert!(
             result.is_err(),
@@ -618,7 +646,11 @@ mod motion_lookup_tests {
             label,
             "motion test fixture",
             ArtifactProfile::new(
-                vec![ChannelKind::Longitude, ChannelKind::Latitude, ChannelKind::DistanceAu],
+                vec![
+                    ChannelKind::Longitude,
+                    ChannelKind::Latitude,
+                    ChannelKind::DistanceAu,
+                ],
                 vec![
                     ArtifactOutput::EclipticCoordinates,
                     ArtifactOutput::EquatorialCoordinates,
@@ -690,12 +722,7 @@ mod motion_lookup_tests {
                     // linear longitude: body_lon at x=0, body_lon+1 at x=1
                     PolynomialChannel::linear(ChannelKind::Longitude, 9, body_lon, body_lon + 1.0),
                     PolynomialChannel::linear(ChannelKind::Latitude, 9, body_lat, body_lat),
-                    PolynomialChannel::linear(
-                        ChannelKind::DistanceAu,
-                        10,
-                        body_dist,
-                        body_dist,
-                    ),
+                    PolynomialChannel::linear(ChannelKind::DistanceAu, 10, body_dist, body_dist),
                 ],
             )
         };
@@ -719,9 +746,18 @@ mod motion_lookup_tests {
 
         let at = Instant::new(JulianDay::from_days(mid), TimeScale::Tt);
         let m = artifact.lookup_motion(&CelestialBody::Jupiter, at).unwrap();
-        assert!(m.longitude_deg_per_day.is_some(), "longitude_deg_per_day must be Some");
-        assert!(m.latitude_deg_per_day.is_some(), "latitude_deg_per_day must be Some");
-        assert!(m.distance_au_per_day.is_some(), "distance_au_per_day must be Some");
+        assert!(
+            m.longitude_deg_per_day.is_some(),
+            "longitude_deg_per_day must be Some"
+        );
+        assert!(
+            m.latitude_deg_per_day.is_some(),
+            "latitude_deg_per_day must be Some"
+        );
+        assert!(
+            m.distance_au_per_day.is_some(),
+            "distance_au_per_day must be Some"
+        );
         assert!(
             m.longitude_deg_per_day.unwrap().is_finite(),
             "longitude_deg_per_day must be finite"

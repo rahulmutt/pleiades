@@ -8,7 +8,9 @@
 #[test]
 #[ignore]
 fn print_holdout_checksum() {
-    let Some(kernel) = std::env::var_os("PLEIADES_DE_KERNEL").map(|v| v.to_string_lossy().into_owned()) else {
+    let Some(kernel) =
+        std::env::var_os("PLEIADES_DE_KERNEL").map(|v| v.to_string_lossy().into_owned())
+    else {
         eprintln!("skipping: PLEIADES_DE_KERNEL not set");
         return;
     };

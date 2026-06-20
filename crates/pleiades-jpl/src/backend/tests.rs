@@ -1076,8 +1076,6 @@ fn snapshot_data_matches_the_known_j2000_sun_longitude() {
     assert!((longitude - 280.3778227681435).abs() < 1e-9);
 }
 
-
-
 #[test]
 fn snapshot_backend_distinguishes_unsupported_body_from_out_of_range() {
     let backend = JplSnapshotBackend;
@@ -1166,7 +1164,6 @@ fn snapshot_backend_resolves_ceres_at_j2000() {
         (ecliptic.distance_au.expect("distance should exist") - 2.2568850705531642).abs() < 1e-12
     );
 }
-
 
 #[test]
 fn snapshot_backend_resolves_named_asteroids_at_j2000() {

@@ -56,9 +56,9 @@ fn tno(designation: &str) -> CelestialBody {
 
 /// The committed curated core. Order is stable (checksums/reports depend on it).
 pub fn asteroid_core_roster() -> &'static [AsteroidEntry] {
+    use std::sync::OnceLock;
     use AsteroidClass::*;
     use AsteroidTier::*;
-    use std::sync::OnceLock;
     static ROSTER: OnceLock<Vec<AsteroidEntry>> = OnceLock::new();
     ROSTER
         .get_or_init(|| {
@@ -135,7 +135,11 @@ mod tests {
     fn roster_has_curated_core() {
         let roster = asteroid_core_roster();
         // ~35-body curated core: classical 4 + centaurs + personal + TNOs.
-        assert!(roster.len() >= 33 && roster.len() <= 38, "got {}", roster.len());
+        assert!(
+            roster.len() >= 33 && roster.len() <= 38,
+            "got {}",
+            roster.len()
+        );
     }
 
     #[test]

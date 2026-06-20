@@ -37,7 +37,11 @@ pub fn geocentric_from_heliocentric(
 ) -> Option<EclipticCoordinates> {
     let p = ecliptic_to_cartesian_au(planet_helio)?;
     let s = ecliptic_to_cartesian_au(sun_geo)?;
-    Some(cartesian_au_to_ecliptic([p[0] + s[0], p[1] + s[1], p[2] + s[2]]))
+    Some(cartesian_au_to_ecliptic([
+        p[0] + s[0],
+        p[1] + s[1],
+        p[2] + s[2],
+    ]))
 }
 
 /// Spherical ecliptic state: position (lon, lat, dist) plus velocity rates (all in AU and rad/day).
@@ -72,7 +76,10 @@ pub(crate) fn spherical_state_to_cartesian(s: SphericalState) -> CartesianState 
         dr * cb * sl - r * sb * sl * db + r * cb * cl * dl,
         dr * sb + r * cb * db,
     ];
-    CartesianState { pos_au: pos, vel_au_per_day: vel }
+    CartesianState {
+        pos_au: pos,
+        vel_au_per_day: vel,
+    }
 }
 
 /// Converts a Cartesian ecliptic state back to spherical using the inverse chain rule.
@@ -82,11 +89,27 @@ pub fn cartesian_state_to_spherical(c: CartesianState) -> SphericalState {
     let rho2 = x * x + y * y;
     let rho = rho2.sqrt();
     let r = (rho2 + z * z).sqrt();
-    let dr = if r == 0.0 { 0.0 } else { (x * vx + y * vy + z * vz) / r };
-    let dl = if rho2 == 0.0 { 0.0 } else { (x * vy - y * vx) / rho2 };
+    let dr = if r == 0.0 {
+        0.0
+    } else {
+        (x * vx + y * vy + z * vz) / r
+    };
+    let dl = if rho2 == 0.0 {
+        0.0
+    } else {
+        (x * vy - y * vx) / rho2
+    };
     // β = atan2(z, ρ); dβ/dt = (ρ·vz − z·ρ̇)/r², where ρ̇ = (x·vx + y·vy)/ρ
-    let drho = if rho == 0.0 { 0.0 } else { (x * vx + y * vy) / rho };
-    let db = if r == 0.0 { 0.0 } else { (rho * vz - z * drho) / (r * r) };
+    let drho = if rho == 0.0 {
+        0.0
+    } else {
+        (x * vx + y * vy) / rho
+    };
+    let db = if r == 0.0 {
+        0.0
+    } else {
+        (rho * vz - z * drho) / (r * r)
+    };
     SphericalState {
         lon_rad: y.atan2(x),
         lat_rad: z.atan2(rho),
@@ -105,7 +128,11 @@ pub fn heliocentric_from_geocentric(
 ) -> Option<EclipticCoordinates> {
     let p = ecliptic_to_cartesian_au(planet_geo)?;
     let s = ecliptic_to_cartesian_au(sun_geo)?;
-    Some(cartesian_au_to_ecliptic([p[0] - s[0], p[1] - s[1], p[2] - s[2]]))
+    Some(cartesian_au_to_ecliptic([
+        p[0] - s[0],
+        p[1] - s[1],
+        p[2] - s[2],
+    ]))
 }
 
 #[cfg(test)]
@@ -155,12 +182,21 @@ mod tests {
             dist_rate_au_per_day: 0.002,
         };
         let c = spherical_state_to_cartesian(s);
-        assert!((c.vel_au_per_day[0] - (-0.007_287_672_746_774_f64)).abs() < 1e-10,
-            "vx={} expected≈-0.007287672746774", c.vel_au_per_day[0]);
-        assert!((c.vel_au_per_day[1] - 0.013_082_634_760_084_f64).abs() < 1e-10,
-            "vy={} expected≈0.013082634760084", c.vel_au_per_day[1]);
-        assert!((c.vel_au_per_day[2] - (-0.004_012_960_938_695_f64)).abs() < 1e-10,
-            "vz={} expected≈-0.004012960938695", c.vel_au_per_day[2]);
+        assert!(
+            (c.vel_au_per_day[0] - (-0.007_287_672_746_774_f64)).abs() < 1e-10,
+            "vx={} expected≈-0.007287672746774",
+            c.vel_au_per_day[0]
+        );
+        assert!(
+            (c.vel_au_per_day[1] - 0.013_082_634_760_084_f64).abs() < 1e-10,
+            "vy={} expected≈0.013082634760084",
+            c.vel_au_per_day[1]
+        );
+        assert!(
+            (c.vel_au_per_day[2] - (-0.004_012_960_938_695_f64)).abs() < 1e-10,
+            "vz={} expected≈-0.004012960938695",
+            c.vel_au_per_day[2]
+        );
     }
 
     fn ec(lon: f64, lat: f64, r: f64) -> EclipticCoordinates {

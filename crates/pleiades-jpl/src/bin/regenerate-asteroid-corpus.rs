@@ -55,9 +55,11 @@ fn main() -> Result<(), String> {
         .filter(|l| !l.starts_with('#') && !l.is_empty())
         .count();
     if rows == 0 {
-        return Err("asteroid_reference slice is empty — no Tier A bodies resolved \
+        return Err(
+            "asteroid_reference slice is empty — no Tier A bodies resolved \
                     from the kernels; check NAIF ids / kernel coverage"
-            .to_string());
+                .to_string(),
+        );
     }
     let checksum = corpus_checksum64(&slice.csv);
 

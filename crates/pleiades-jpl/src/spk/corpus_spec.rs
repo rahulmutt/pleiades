@@ -399,14 +399,26 @@ mod tests {
         let gen_constrained = constrained_bodies();
         for e in asteroid_core_roster() {
             // recognized as a constrained CLASS body...
-            assert!(ast.contains(&e.body), "{:?} must be a constrained-class asteroid", e.body);
+            assert!(
+                ast.contains(&e.body),
+                "{:?} must be a constrained-class asteroid",
+                e.body
+            );
             // ...never a release body...
             assert!(!release_bodies().contains(&e.body));
             // ...and NOT in the generation constrained set (which must stay Pluto-only
             // so asteroids don't leak into the de440-sourced major-body slices).
-            assert!(!gen_constrained.contains(&e.body), "{:?} must not be in constrained_bodies()", e.body);
+            assert!(
+                !gen_constrained.contains(&e.body),
+                "{:?} must not be in constrained_bodies()",
+                e.body
+            );
         }
-        assert_eq!(gen_constrained, vec![CelestialBody::Pluto], "generation constrained set must remain Pluto-only");
+        assert_eq!(
+            gen_constrained,
+            vec![CelestialBody::Pluto],
+            "generation constrained set must remain Pluto-only"
+        );
     }
 
     #[test]
@@ -443,7 +455,10 @@ mod tests {
     #[test]
     fn asteroid_role_tokens_are_stable() {
         assert_eq!(SliceRole::AsteroidReference.token(), "asteroid_reference");
-        assert_eq!(SliceRole::AsteroidConstrained.token(), "asteroid_constrained");
+        assert_eq!(
+            SliceRole::AsteroidConstrained.token(),
+            "asteroid_constrained"
+        );
     }
 
     #[test]
@@ -487,12 +502,15 @@ mod tests {
         use crate::spk::asteroid_roster::AsteroidClass;
         let belt = asteroid_epochs_for(AsteroidClass::MainBelt).len();
         let tno = asteroid_epochs_for(AsteroidClass::Tno).len();
-        assert!(tno < belt, "slow TNOs must be sparser: belt={belt} tno={tno}");
+        assert!(
+            tno < belt,
+            "slow TNOs must be sparser: belt={belt} tno={tno}"
+        );
     }
 
     #[test]
     fn asteroid_corpus_stays_bounded() {
-        use crate::spk::asteroid_roster::{asteroid_core_roster};
+        use crate::spk::asteroid_roster::asteroid_core_roster;
         let total: usize = asteroid_core_roster()
             .iter()
             .map(|e| asteroid_epochs_for(e.class).len())

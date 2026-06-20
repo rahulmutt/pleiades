@@ -166,14 +166,19 @@ fn corpus_csv_manifest_entry(
 /// `fixture_golden` is hand-populated from trusted Horizons fixtures and must
 /// be present before `--emit-slices` is run.
 fn fixture_golden_manifest_entry(out_dir: &str) -> Result<SliceEntry, String> {
-    corpus_csv_manifest_entry(out_dir, "fixture_golden", "fixture_golden.csv", "fixture_golden")
-        .map_err(|_| {
-            let fg_path = format!("{out_dir}/fixture_golden.csv");
-            format!(
-                "--emit-slices requires {fg_path} to exist (populate it from the trusted \
+    corpus_csv_manifest_entry(
+        out_dir,
+        "fixture_golden",
+        "fixture_golden.csv",
+        "fixture_golden",
+    )
+    .map_err(|_| {
+        let fg_path = format!("{out_dir}/fixture_golden.csv");
+        format!(
+            "--emit-slices requires {fg_path} to exist (populate it from the trusted \
                  Horizons fixtures before regenerating); fixture_golden is not backend-generated"
-            )
-        })
+        )
+    })
 }
 
 #[cfg(test)]
@@ -339,11 +344,7 @@ mod tests {
 
         // asteroid_constrained: 1 data row + 1 comment line
         let ac_path = dir.join("asteroid_constrained.csv");
-        std::fs::write(
-            &ac_path,
-            "# header\n2451548.0,Hygiea,10.0,11.0,12.0\n",
-        )
-        .unwrap();
+        std::fs::write(&ac_path, "# header\n2451548.0,Hygiea,10.0,11.0,12.0\n").unwrap();
 
         let dir_str = dir.to_string_lossy();
 

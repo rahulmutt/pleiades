@@ -94,7 +94,14 @@ fn regenerated_asteroid_reference_matches_checked_in() {
             .filter(|l| !l.starts_with('#') && !l.is_empty())
             .map(|l| {
                 let f: Vec<&str> = l.split(',').collect();
-                (format!("{},{}", f[0], f[1]), [f[2].parse().unwrap(), f[3].parse().unwrap(), f[4].parse().unwrap()])
+                (
+                    format!("{},{}", f[0], f[1]),
+                    [
+                        f[2].parse().unwrap(),
+                        f[3].parse().unwrap(),
+                        f[4].parse().unwrap(),
+                    ],
+                )
             })
             .collect()
     };
@@ -104,7 +111,10 @@ fn regenerated_asteroid_reference_matches_checked_in() {
     for ((ka, va), (kb, vb)) in a.iter().zip(b.iter()) {
         assert_eq!(ka, kb, "asteroid_reference epoch/body ordering drift");
         for i in 0..3 {
-            assert!((va[i] - vb[i]).abs() < 1.0, "asteroid_reference {ka} coord {i} drift");
+            assert!(
+                (va[i] - vb[i]).abs() < 1.0,
+                "asteroid_reference {ka} coord {i} drift"
+            );
         }
     }
 }

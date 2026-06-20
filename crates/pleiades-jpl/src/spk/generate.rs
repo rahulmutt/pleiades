@@ -234,13 +234,9 @@ pub(crate) fn generate_slice_with_bodies(
             return Err("fixture_golden is sourced from existing fixtures, not generated".into())
         }
         SliceRole::AsteroidConstrained => {
-            return Err(
-                "asteroid_constrained is sourced from Horizons, not generated".into(),
-            )
+            return Err("asteroid_constrained is sourced from Horizons, not generated".into())
         }
-        SliceRole::AsteroidReference => {
-            return generate_asteroid_reference_slice(backend)
-        }
+        SliceRole::AsteroidReference => return generate_asteroid_reference_slice(backend),
     };
     let req = CorpusRequest {
         bodies,
@@ -328,7 +324,10 @@ fn generate_asteroid_reference_slice(backend: &SpkBackend) -> Result<GeneratedSl
         generate_corpus_csv_per_body(backend, &per_body, AST_KERNEL_LABEL, AST_KERNEL_SHA256)?;
     csv = csv.replace(
         "#Columns:",
-        &format!("#Slice-Role: {}\n#Columns:", SliceRole::AsteroidReference.token()),
+        &format!(
+            "#Slice-Role: {}\n#Columns:",
+            SliceRole::AsteroidReference.token()
+        ),
     );
     Ok(GeneratedSlice {
         role: SliceRole::AsteroidReference,
@@ -403,10 +402,15 @@ mod asteroid_slice_tests {
         assert_eq!(slice.role, SliceRole::AsteroidReference);
         assert_eq!(slice.file, "asteroid_reference.csv");
         assert!(slice.csv.contains("#Slice-Role: asteroid_reference"));
-        assert!(slice.csv.contains(crate::spk::corpus_spec::AST_KERNEL_LABEL));
+        assert!(slice
+            .csv
+            .contains(crate::spk::corpus_spec::AST_KERNEL_LABEL));
         // Ceres rows present; no constrained (Tier B) bodies leaked in.
         assert!(slice.csv.contains(",Ceres,"), "expected Ceres rows in csv");
-        assert!(!slice.csv.contains("asteroid:2060-Chiron"), "Tier B Chiron must not appear");
+        assert!(
+            !slice.csv.contains("asteroid:2060-Chiron"),
+            "Tier B Chiron must not appear"
+        );
         // Every Tier A body that the synthetic kernel covers appears.
         assert!(tier_a_bodies().contains(&CelestialBody::Ceres));
     }

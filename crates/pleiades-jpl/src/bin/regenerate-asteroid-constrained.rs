@@ -67,7 +67,10 @@ fn main() -> Result<(), String> {
             .take_while(|c| c.is_ascii_digit())
             .collect();
         if number.is_empty() {
-            return Err(format!("Tier B body {} has no leading IAU number", entry.body));
+            return Err(format!(
+                "Tier B body {} has no leading IAU number",
+                entry.body
+            ));
         }
         let step = match entry.class {
             AsteroidClass::MainBelt => "180d",
@@ -115,10 +118,18 @@ fn main() -> Result<(), String> {
             if f.len() < 5 {
                 return Err(format!("#{number}: short data row: {line}"));
             }
-            let jd: f64 = f[0].parse().map_err(|_| format!("#{number}: bad jd {}", f[0]))?;
-            let x: f64 = f[2].parse().map_err(|_| format!("#{number}: bad x {}", f[2]))?;
-            let y: f64 = f[3].parse().map_err(|_| format!("#{number}: bad y {}", f[3]))?;
-            let z: f64 = f[4].parse().map_err(|_| format!("#{number}: bad z {}", f[4]))?;
+            let jd: f64 = f[0]
+                .parse()
+                .map_err(|_| format!("#{number}: bad jd {}", f[0]))?;
+            let x: f64 = f[2]
+                .parse()
+                .map_err(|_| format!("#{number}: bad x {}", f[2]))?;
+            let y: f64 = f[3]
+                .parse()
+                .map_err(|_| format!("#{number}: bad y {}", f[3]))?;
+            let z: f64 = f[4]
+                .parse()
+                .map_err(|_| format!("#{number}: bad z {}", f[4]))?;
             if !(x.is_finite() && y.is_finite() && z.is_finite()) {
                 return Err(format!("#{number}: non-finite row: {line}"));
             }

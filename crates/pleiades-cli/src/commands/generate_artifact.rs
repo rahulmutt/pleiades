@@ -37,11 +37,15 @@ pub fn render_generate_artifact(args: &[&str]) -> Result<String, String> {
                 i += 2;
             }
             "--start" => {
-                start = Some(parse_bound_jd(args.get(i + 1).ok_or("--start requires a value")?)?);
+                start = Some(parse_bound_jd(
+                    args.get(i + 1).ok_or("--start requires a value")?,
+                )?);
                 i += 2;
             }
             "--end" => {
-                end = Some(parse_bound_jd(args.get(i + 1).ok_or("--end requires a value")?)?);
+                end = Some(parse_bound_jd(
+                    args.get(i + 1).ok_or("--end requires a value")?,
+                )?);
                 i += 2;
             }
             other => return Err(format!("unknown generate-artifact arg: {other}")),
@@ -108,10 +112,19 @@ mod tests {
     #[test]
     fn inverted_window_errors() {
         let err = render_generate_artifact(&[
-            "/no/such/kernel.bsp", "--out", "/tmp/x.bin", "--start", "2100", "--end", "1900",
+            "/no/such/kernel.bsp",
+            "--out",
+            "/tmp/x.bin",
+            "--start",
+            "2100",
+            "--end",
+            "1900",
         ])
         .unwrap_err();
         // The guard fires before the kernel is loaded, so the fake path is never reached.
-        assert!(err.contains("coverage window end must be after start"), "expected inverted-window guard, got: {err}");
+        assert!(
+            err.contains("coverage window end must be after start"),
+            "expected inverted-window guard, got: {err}"
+        );
     }
 }
