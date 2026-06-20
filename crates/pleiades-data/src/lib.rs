@@ -53,8 +53,9 @@ mod regenerate;
 pub mod thresholds;
 
 pub use accuracy_baseline::{
-    accuracy_baseline_against, packaged_artifact_accuracy_baseline,
-    packaged_artifact_accuracy_baseline_summary_for_report, BodyChannelError,
+    accuracy_baseline_against, eros_self_consistency_max_longitude_arcsec,
+    packaged_artifact_accuracy_baseline, packaged_artifact_accuracy_baseline_summary_for_report,
+    BodyChannelError,
 };
 pub use backend::*;
 pub use coverage::*;

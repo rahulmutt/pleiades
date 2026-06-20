@@ -7,9 +7,9 @@
 
 use std::collections::HashMap;
 
-use pleiades_backend::{Angle, CelestialBody};
+use pleiades_backend::{Angle, CelestialBody, CustomBodyId};
 use pleiades_compression::{cartesian_state_to_spherical, CartesianState, CompressedArtifact};
-use pleiades_jpl::{production_holdout_corpus, SnapshotEntry};
+use pleiades_jpl::{production_holdout_corpus, reference_snapshot, SnapshotEntry};
 
 use crate::regenerate::{build_packaged_artifact, coordinates, normalize_lookup_instant};
 use crate::AU_IN_KM;
@@ -280,6 +280,47 @@ pub fn packaged_artifact_accuracy_baseline_summary_for_report() -> String {
         errors.len(),
         lines.join("\n")
     )
+}
+
+/// Computes the maximum absolute longitude error (arcsec) between the committed
+/// packaged artifact and the Eros reference-snapshot rows it was fit from.
+///
+/// Eros has no independent hold-out truth (its curated 1900–2100 corpus is the
+/// only source — it is not in de440). This helper is therefore a SELF-CONSISTENCY
+/// check: it measures how faithfully the artifact reproduces the snapshot it was
+/// derived from. A large value here would indicate a fitting regression, not a
+/// mismatch against external truth.
+///
+/// The longitude difference is wrapped to ±180° before conversion to arcseconds,
+/// exactly as in [`accuracy_baseline_against`].
+pub fn eros_self_consistency_max_longitude_arcsec() -> f64 {
+    let eros_body = CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros"));
+    let artifact = build_packaged_artifact();
+    let mut max_lon_arcsec: f64 = 0.0;
+
+    for entry in reference_snapshot() {
+        if entry.body != eros_body {
+            continue;
+        }
+        let lookup_instant = normalize_lookup_instant(entry.epoch);
+        let artifact_coords = match artifact.lookup_ecliptic(&eros_body, lookup_instant) {
+            Ok(c) => c,
+            Err(_) => continue,
+        };
+        let snapshot_coords = coordinates(entry);
+
+        // Longitude diff wrapped to ±180°, then to arcseconds — reuses the same
+        // idiom as accuracy_baseline_against.
+        let lon_diff_deg = Angle::from_degrees(
+            artifact_coords.longitude.degrees() - snapshot_coords.longitude.degrees(),
+        )
+        .normalized_signed()
+        .degrees();
+        let lon_arcsec = lon_diff_deg.abs() * 3600.0;
+        max_lon_arcsec = max_lon_arcsec.max(lon_arcsec);
+    }
+
+    max_lon_arcsec
 }
 
 #[cfg(test)]
@@ -842,5 +883,45 @@ mod tests {
                 e.max_lon_speed_arcsec_per_day
             );
         }
+    }
+
+    #[test]
+    #[ignore = "maintainer helper: prints the Eros self-consistency max longitude error"]
+    fn print_eros_self_consistency_max_longitude_arcsec() {
+        let v = crate::accuracy_baseline::eros_self_consistency_max_longitude_arcsec();
+        eprintln!("EROS_SELF_CONSISTENCY_MAX_LON_ARCSEC = {v:.6}\"");
+    }
+
+    /// Eros self-consistency gate (SP3, Task 12).
+    ///
+    /// Eros is re-derived from the committed reference snapshot (no independent truth —
+    /// it is absent from de440). This is a SELF-CONSISTENCY check, NOT an independent-truth
+    /// gate. It verifies the artifact faithfully reproduces the snapshot it was fit from,
+    /// within the published Asteroid-class longitude ceiling (30″).
+    #[test]
+    fn eros_round_trips_against_its_reference_snapshot_within_documented_target() {
+        let eros_body = pleiades_backend::CelestialBody::Custom(
+            pleiades_backend::CustomBodyId::new("asteroid", "433-Eros"),
+        );
+        // Non-vacuity guard: the reference snapshot must actually contain Eros rows,
+        // otherwise the helper iterates zero rows and trivially returns 0.0 — a pass
+        // that reveals nothing. A missing Eros corpus is a configuration error, not
+        // "perfect accuracy".
+        let eros_row_count = pleiades_jpl::reference_snapshot()
+            .iter()
+            .filter(|e| e.body == eros_body)
+            .count();
+        assert!(
+            eros_row_count > 0,
+            "reference snapshot contains no Eros rows — self-consistency check would be vacuous (iterate zero rows → max=0.0 → trivially passes)"
+        );
+
+        let ceiling = crate::thresholds::accuracy_ceiling(&eros_body);
+        let max_lon_arcsec = crate::accuracy_baseline::eros_self_consistency_max_longitude_arcsec();
+        assert!(
+            max_lon_arcsec <= ceiling.lon_arcsec,
+            "Eros self-consistency {max_lon_arcsec:.4}\" > {:.1}\" (artifact does not reproduce the reference snapshot it was fit from within the Asteroid-class ceiling)",
+            ceiling.lon_arcsec
+        );
     }
 }
