@@ -4,6 +4,7 @@ use super::test_support::*;
 use super::*;
 use pleiades_core::current_release_profile_identifiers;
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn release_bundle_commands_accept_output_aliases_in_the_validation_front_end() {
     let bundle_dir = unique_temp_dir("pleiades-release-bundle-output-alias-validation");
@@ -50,6 +51,7 @@ fn release_bundle_commands_accept_output_aliases_in_the_validation_front_end() {
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_release_house_validation_summary_even_with_updated_checksum(
 ) {
@@ -63,6 +65,7 @@ fn verify_release_bundle_rejects_tampered_release_house_validation_summary_even_
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn release_bundle_writes_expected_artifacts() {
     let bundle_dir = unique_temp_dir("pleiades-release-bundle");
@@ -1556,6 +1559,7 @@ fn release_bundle_writes_expected_artifacts() {
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_missing_source_revision_entry() {
     assert_release_bundle_rejects_missing_manifest_entry(
@@ -1568,6 +1572,7 @@ fn verify_release_bundle_rejects_missing_source_revision_entry() {
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_missing_workspace_status_entry() {
     assert_release_bundle_rejects_missing_manifest_entry(
@@ -1580,6 +1585,7 @@ fn verify_release_bundle_rejects_missing_workspace_status_entry() {
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_missing_request_surface_summary_entry() {
     assert_release_bundle_rejects_missing_manifest_entry(
@@ -1648,6 +1654,7 @@ fn verify_release_bundle_rejects_missing_request_surface_summary_entry() {
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_missing_production_generation_summary_entries() {
     assert_release_bundle_rejects_missing_manifest_entry(
@@ -1740,6 +1747,7 @@ fn verify_release_bundle_rejects_missing_production_generation_summary_entries()
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_missing_release_catalog_summary_entries() {
     assert_release_bundle_rejects_missing_manifest_entry(
@@ -1768,6 +1776,7 @@ fn verify_release_bundle_rejects_missing_release_catalog_summary_entries() {
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_missing_reference_holdout_overlap_summary_entry() {
     assert_release_bundle_rejects_missing_manifest_entry(
@@ -1780,6 +1789,7 @@ fn verify_release_bundle_rejects_missing_reference_holdout_overlap_summary_entry
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_missing_reference_snapshot_source_window_summary_entry() {
     assert_release_bundle_rejects_missing_manifest_entry(
@@ -1792,6 +1802,7 @@ fn verify_release_bundle_rejects_missing_reference_snapshot_source_window_summar
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_missing_reference_snapshot_boundary_summary_entries() {
     assert_release_bundle_rejects_missing_manifest_entry(
@@ -1820,6 +1831,7 @@ fn verify_release_bundle_rejects_missing_reference_snapshot_boundary_summary_ent
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_missing_reference_asteroid_source_window_summary_entry() {
     assert_release_bundle_rejects_missing_manifest_entry(
@@ -1832,6 +1844,7 @@ fn verify_release_bundle_rejects_missing_reference_asteroid_source_window_summar
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_missing_packaged_artifact_normalized_intermediate_summary_entry() {
     assert_release_bundle_rejects_missing_manifest_entry(
@@ -1844,6 +1857,7 @@ fn verify_release_bundle_rejects_missing_packaged_artifact_normalized_intermedia
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_missing_packaged_artifact_phase2_corpus_alignment_summary_entry() {
     assert_release_bundle_rejects_missing_manifest_entry(
@@ -1856,6 +1870,7 @@ fn verify_release_bundle_rejects_missing_packaged_artifact_phase2_corpus_alignme
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_missing_packaged_artifact_source_fit_holdout_sync_summary_entry() {
     assert_release_bundle_rejects_missing_manifest_entry(
@@ -1868,6 +1883,7 @@ fn verify_release_bundle_rejects_missing_packaged_artifact_source_fit_holdout_sy
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_missing_packaged_artifact_target_threshold_summary_entries() {
     assert_release_bundle_rejects_missing_manifest_entry(
@@ -1896,6 +1912,7 @@ fn verify_release_bundle_rejects_missing_packaged_artifact_target_threshold_summ
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_missing_packaged_artifact_bundle_entries() {
     for (bundle_dir_prefix, manifest_line_prefix, expected_fragments) in [
@@ -1993,6 +2010,7 @@ fn verify_release_bundle_rejects_missing_packaged_artifact_bundle_entries() {
         }
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_missing_rustc_version_entry() {
     assert_release_bundle_rejects_missing_manifest_entry(
@@ -2005,6 +2023,7 @@ fn verify_release_bundle_rejects_missing_rustc_version_entry() {
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_missing_cargo_version_entry() {
     assert_release_bundle_rejects_missing_manifest_entry(
@@ -2017,6 +2036,7 @@ fn verify_release_bundle_rejects_missing_cargo_version_entry() {
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_blank_source_revision_entry() {
     assert_release_bundle_rejects_blank_manifest_value(
@@ -2026,6 +2046,7 @@ fn verify_release_bundle_rejects_blank_source_revision_entry() {
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_blank_workspace_status_entry() {
     assert_release_bundle_rejects_blank_manifest_value(
@@ -2035,6 +2056,7 @@ fn verify_release_bundle_rejects_blank_workspace_status_entry() {
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_blank_rustc_version_entry() {
     assert_release_bundle_rejects_blank_manifest_value(
@@ -2044,6 +2066,7 @@ fn verify_release_bundle_rejects_blank_rustc_version_entry() {
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_blank_cargo_version_entry() {
     assert_release_bundle_rejects_blank_manifest_value(
@@ -2053,6 +2076,7 @@ fn verify_release_bundle_rejects_blank_cargo_version_entry() {
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_duplicate_source_revision_entry() {
     assert_release_bundle_rejects_duplicate_manifest_entry(
@@ -2065,6 +2089,7 @@ fn verify_release_bundle_rejects_duplicate_source_revision_entry() {
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_duplicate_workspace_status_entry() {
     assert_release_bundle_rejects_duplicate_manifest_entry(
@@ -2077,6 +2102,7 @@ fn verify_release_bundle_rejects_duplicate_workspace_status_entry() {
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_duplicate_rustc_version_entry() {
     assert_release_bundle_rejects_duplicate_manifest_entry(
@@ -2089,6 +2115,7 @@ fn verify_release_bundle_rejects_duplicate_rustc_version_entry() {
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_duplicate_cargo_version_entry() {
     assert_release_bundle_rejects_duplicate_manifest_entry(
@@ -2101,6 +2128,7 @@ fn verify_release_bundle_rejects_duplicate_cargo_version_entry() {
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_blank_profile_id_entry() {
     assert_release_bundle_rejects_blank_manifest_value(
@@ -2110,6 +2138,7 @@ fn verify_release_bundle_rejects_blank_profile_id_entry() {
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_duplicate_profile_id_entry() {
     assert_release_bundle_rejects_duplicate_manifest_entry(
@@ -2122,6 +2151,7 @@ fn verify_release_bundle_rejects_duplicate_profile_id_entry() {
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_duplicate_api_stability_posture_id_entry() {
     assert_release_bundle_rejects_duplicate_manifest_entry(
@@ -2134,6 +2164,7 @@ fn verify_release_bundle_rejects_duplicate_api_stability_posture_id_entry() {
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_duplicate_validation_rounds_entry() {
     assert_release_bundle_rejects_duplicate_manifest_entry(
@@ -2146,6 +2177,7 @@ fn verify_release_bundle_rejects_duplicate_validation_rounds_entry() {
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_duplicate_release_summary_entry() {
     assert_release_bundle_rejects_duplicate_manifest_entry(
@@ -2158,6 +2190,7 @@ fn verify_release_bundle_rejects_duplicate_release_summary_entry() {
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_duplicate_release_notes_summary_entry() {
     assert_release_bundle_rejects_duplicate_manifest_entry(
@@ -2170,6 +2203,7 @@ fn verify_release_bundle_rejects_duplicate_release_notes_summary_entry() {
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_whitespace_source_revision_entry() {
     assert_release_bundle_rejects_whitespace_manifest_entry(
@@ -2182,6 +2216,7 @@ fn verify_release_bundle_rejects_whitespace_source_revision_entry() {
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_blank_api_stability_posture_id_entry() {
     assert_release_bundle_rejects_blank_manifest_value(
@@ -2191,6 +2226,7 @@ fn verify_release_bundle_rejects_blank_api_stability_posture_id_entry() {
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_checksum_mismatches() {
     let bundle_dir = unique_temp_dir("pleiades-release-bundle-corrupt");
@@ -2223,6 +2259,7 @@ fn verify_release_bundle_rejects_checksum_mismatches() {
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_manifest_file() {
     let bundle_dir = unique_temp_dir("pleiades-release-bundle-tampered-manifest");
@@ -2251,6 +2288,7 @@ fn verify_release_bundle_rejects_tampered_manifest_file() {
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_invalid_validation_rounds() {
     let bundle_dir = unique_temp_dir("pleiades-release-bundle-invalid-validation-rounds");
@@ -2284,6 +2322,7 @@ fn verify_release_bundle_rejects_invalid_validation_rounds() {
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn release_bundle_validate_accepts_rendered_bundle() {
     let bundle_dir = unique_temp_dir("pleiades-release-bundle-validate-accepts");
@@ -2295,6 +2334,7 @@ fn release_bundle_validate_accepts_rendered_bundle() {
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn release_bundle_validate_rejects_whitespace_padded_provenance() {
     let bundle_dir = unique_temp_dir("pleiades-release-bundle-provenance-padding");
@@ -2312,6 +2352,7 @@ fn release_bundle_validate_rejects_whitespace_padded_provenance() {
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn release_bundle_validate_rejects_placeholder_provenance() {
     let bundle_dir = unique_temp_dir("pleiades-release-bundle-provenance-placeholder");
@@ -2328,6 +2369,7 @@ fn release_bundle_validate_rejects_placeholder_provenance() {
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn release_bundle_validate_rejects_multiline_provenance() {
     let bundle_dir = unique_temp_dir("pleiades-release-bundle-provenance-multiline");
@@ -2344,6 +2386,7 @@ fn release_bundle_validate_rejects_multiline_provenance() {
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn release_bundle_validate_rejects_manifest_path_drift() {
     let bundle_dir = unique_temp_dir("pleiades-release-bundle-manifest-path-drift");
@@ -2360,6 +2403,7 @@ fn release_bundle_validate_rejects_manifest_path_drift() {
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_manifest_checksum_sidecar() {
     let bundle_dir = unique_temp_dir("pleiades-release-bundle-tampered-manifest-checksum");
@@ -2388,6 +2432,7 @@ fn verify_release_bundle_rejects_tampered_manifest_checksum_sidecar() {
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_missing_manifest_checksum_sidecar() {
     let bundle_dir = unique_temp_dir("pleiades-release-bundle-missing-manifest-checksum");
@@ -2412,6 +2457,7 @@ fn verify_release_bundle_rejects_missing_manifest_checksum_sidecar() {
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_malformed_manifest_checksum_sidecar() {
     let bundle_dir = unique_temp_dir("pleiades-release-bundle-malformed-manifest-checksum");
@@ -2438,6 +2484,7 @@ fn verify_release_bundle_rejects_malformed_manifest_checksum_sidecar() {
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_noncanonical_manifest_checksum_sidecar() {
     let bundle_dir = unique_temp_dir("pleiades-release-bundle-noncanonical-manifest-checksum");
@@ -2464,6 +2511,7 @@ fn verify_release_bundle_rejects_noncanonical_manifest_checksum_sidecar() {
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_noncanonical_manifest_checksum_entry() {
     let bundle_dir = unique_temp_dir("pleiades-release-bundle-noncanonical-manifest-entry");
@@ -2514,6 +2562,7 @@ fn verify_release_bundle_rejects_noncanonical_manifest_checksum_entry() {
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_unexpected_bundle_entries() {
     let bundle_dir = unique_temp_dir("pleiades-release-bundle-extra-entry");
@@ -2541,6 +2590,7 @@ fn verify_release_bundle_rejects_unexpected_bundle_entries() {
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 #[cfg(unix)]
 fn verify_release_bundle_rejects_symlinked_release_summary_file() {

@@ -4,6 +4,7 @@ use super::test_support::*;
 use super::*;
 use pleiades_core::current_release_profile_identifiers;
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_unexpected_manifest_lines() {
     let bundle_dir = unique_temp_dir("pleiades-release-bundle-unexpected-manifest-line");
@@ -33,6 +34,7 @@ fn verify_release_bundle_rejects_unexpected_manifest_lines() {
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_backend_matrix_checksum_mismatches() {
     let bundle_dir = unique_temp_dir("pleiades-release-bundle-corrupt-matrix");
@@ -65,6 +67,7 @@ fn verify_release_bundle_rejects_backend_matrix_checksum_mismatches() {
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_api_stability_summary_checksum_mismatches() {
     let bundle_dir = unique_temp_dir("pleiades-release-bundle-corrupt-api-summary");
@@ -97,6 +100,7 @@ fn verify_release_bundle_rejects_api_stability_summary_checksum_mismatches() {
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_api_stability_summary_even_with_updated_checksum() {
     let bundle_dir = unique_temp_dir("pleiades-release-bundle-tampered-api-summary-semantic");
@@ -146,6 +150,7 @@ fn verify_release_bundle_rejects_tampered_api_stability_summary_even_with_update
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_packaged_artifact_output_support_summary_even_with_updated_checksum(
 ) {
@@ -200,6 +205,7 @@ fn verify_release_bundle_rejects_tampered_packaged_artifact_output_support_summa
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_packaged_artifact_profile_coverage_summary_even_with_updated_checksum(
 ) {
@@ -255,6 +261,7 @@ fn verify_release_bundle_rejects_tampered_packaged_artifact_profile_coverage_sum
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_packaged_artifact_fit_sample_classes_summary_even_with_updated_checksum(
 ) {
@@ -307,6 +314,7 @@ fn verify_release_bundle_rejects_tampered_packaged_artifact_fit_sample_classes_s
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_packaged_artifact_fit_threshold_violation_count_summary_even_with_updated_checksum(
 ) {
@@ -320,6 +328,7 @@ fn verify_release_bundle_rejects_tampered_packaged_artifact_fit_threshold_violat
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_packaged_artifact_fit_threshold_violations_summary_even_with_updated_checksum(
 ) {
@@ -333,6 +342,7 @@ fn verify_release_bundle_rejects_tampered_packaged_artifact_fit_threshold_violat
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_packaged_artifact_storage_summary_even_with_updated_checksum(
 ) {
@@ -346,6 +356,7 @@ fn verify_release_bundle_rejects_tampered_packaged_artifact_storage_summary_even
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_packaged_frame_treatment_summary_even_with_updated_checksum(
 ) {
@@ -359,6 +370,7 @@ fn verify_release_bundle_rejects_tampered_packaged_frame_treatment_summary_even_
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_packaged_artifact_access_summary_even_with_updated_checksum(
 ) {
@@ -409,6 +421,7 @@ fn verify_release_bundle_rejects_tampered_packaged_artifact_access_summary_even_
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_packaged_artifact_speed_policy_summary_even_with_updated_checksum(
 ) {
@@ -461,6 +474,7 @@ fn verify_release_bundle_rejects_tampered_packaged_artifact_speed_policy_summary
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_packaged_artifact_regeneration_summary_even_with_updated_checksum(
 ) {
@@ -474,6 +488,7 @@ fn verify_release_bundle_rejects_tampered_packaged_artifact_regeneration_summary
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_packaged_artifact_generation_policy_summary_even_with_updated_checksum(
 ) {
@@ -529,6 +544,7 @@ fn verify_release_bundle_rejects_tampered_packaged_artifact_generation_policy_su
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_packaged_artifact_generation_residual_bodies_summary_even_with_updated_checksum(
 ) {
@@ -542,6 +558,7 @@ fn verify_release_bundle_rejects_tampered_packaged_artifact_generation_residual_
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_packaged_artifact_production_profile_summary_even_with_updated_checksum(
 ) {
@@ -604,6 +621,7 @@ fn verify_release_bundle_rejects_tampered_packaged_artifact_production_profile_s
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_packaged_artifact_lookup_epoch_policy_summary_even_with_updated_checksum(
 ) {
@@ -665,6 +683,7 @@ fn verify_release_bundle_rejects_tampered_packaged_artifact_lookup_epoch_policy_
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_release_notes_checksum_mismatches() {
     let bundle_dir = unique_temp_dir("pleiades-release-bundle-corrupt-notes");
@@ -697,6 +716,7 @@ fn verify_release_bundle_rejects_release_notes_checksum_mismatches() {
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_compatibility_profile_summary_file() {
     let bundle_dir = unique_temp_dir("pleiades-release-bundle-tampered-summary");
@@ -729,6 +749,7 @@ fn verify_release_bundle_rejects_tampered_compatibility_profile_summary_file() {
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_release_notes_file() {
     let bundle_dir = unique_temp_dir("pleiades-release-bundle-tampered-notes");
@@ -757,6 +778,7 @@ fn verify_release_bundle_rejects_tampered_release_notes_file() {
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_backend_matrix_summary_file() {
     let bundle_dir = unique_temp_dir("pleiades-release-bundle-tampered-matrix-summary");
@@ -786,6 +808,7 @@ fn verify_release_bundle_rejects_tampered_backend_matrix_summary_file() {
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_semantically_tampered_backend_matrix_file_even_with_updated_checksum(
 ) {
@@ -845,6 +868,7 @@ fn verify_release_bundle_rejects_semantically_tampered_backend_matrix_file_even_
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_release_summary_file() {
     assert_release_bundle_rejects_tampered_text_file(
@@ -854,6 +878,7 @@ fn verify_release_bundle_rejects_tampered_release_summary_file() {
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_semantically_tampered_compatibility_profile_summary_file() {
     assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
@@ -866,6 +891,7 @@ fn verify_release_bundle_rejects_semantically_tampered_compatibility_profile_sum
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_semantically_tampered_release_summary_file() {
     assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
@@ -878,6 +904,7 @@ fn verify_release_bundle_rejects_semantically_tampered_release_summary_file() {
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_semantically_tampered_release_body_claims_summary_file_even_with_updated_checksum(
 ) {
@@ -891,6 +918,7 @@ fn verify_release_bundle_rejects_semantically_tampered_release_body_claims_summa
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_semantically_tampered_pluto_fallback_summary_file_even_with_updated_checksum(
 ) {
@@ -904,6 +932,7 @@ fn verify_release_bundle_rejects_semantically_tampered_pluto_fallback_summary_fi
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_semantically_tampered_release_notes_file() {
     assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
@@ -916,6 +945,7 @@ fn verify_release_bundle_rejects_semantically_tampered_release_notes_file() {
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_semantically_tampered_source_corpus_summary_file_even_with_updated_checksum(
 ) {
@@ -929,6 +959,7 @@ fn verify_release_bundle_rejects_semantically_tampered_source_corpus_summary_fil
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_semantically_tampered_comparison_snapshot_manifest_summary_file_even_with_updated_checksum(
 ) {
@@ -942,6 +973,7 @@ fn verify_release_bundle_rejects_semantically_tampered_comparison_snapshot_manif
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_semantically_tampered_reference_snapshot_manifest_summary_file_even_with_updated_checksum(
 ) {
@@ -955,6 +987,7 @@ fn verify_release_bundle_rejects_semantically_tampered_reference_snapshot_manife
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_semantically_tampered_reference_snapshot_2451918_major_body_boundary_summary_file_even_with_updated_checksum(
 ) {
@@ -968,6 +1001,7 @@ fn verify_release_bundle_rejects_semantically_tampered_reference_snapshot_245191
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_semantically_tampered_reference_snapshot_2451919_major_body_boundary_summary_file_even_with_updated_checksum(
 ) {
@@ -981,6 +1015,7 @@ fn verify_release_bundle_rejects_semantically_tampered_reference_snapshot_245191
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_semantically_tampered_release_checklist_summary_file_even_with_updated_checksum(
 ) {
@@ -994,6 +1029,7 @@ fn verify_release_bundle_rejects_semantically_tampered_release_checklist_summary
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_semantically_tampered_compatibility_caveats_summary_file_even_with_updated_checksum(
 ) {
@@ -1007,6 +1043,7 @@ fn verify_release_bundle_rejects_semantically_tampered_compatibility_caveats_sum
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_semantically_tampered_release_profile_identifiers_summary_file_even_with_updated_checksum(
 ) {
@@ -1020,6 +1057,7 @@ fn verify_release_bundle_rejects_semantically_tampered_release_profile_identifie
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_semantically_tampered_custom_definition_ayanamsa_labels_summary_file_even_with_updated_checksum(
 ) {
@@ -1033,6 +1071,7 @@ fn verify_release_bundle_rejects_semantically_tampered_custom_definition_ayanams
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_semantically_tampered_ayanamsa_provenance_summary_file_even_with_updated_checksum(
 ) {
@@ -1046,6 +1085,7 @@ fn verify_release_bundle_rejects_semantically_tampered_ayanamsa_provenance_summa
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_release_notes_summary_file() {
     assert_release_bundle_rejects_tampered_text_file(
@@ -1055,6 +1095,7 @@ fn verify_release_bundle_rejects_tampered_release_notes_summary_file() {
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_semantically_tampered_comparison_envelope_summary_even_with_updated_checksum(
 ) {
@@ -1068,6 +1109,7 @@ fn verify_release_bundle_rejects_semantically_tampered_comparison_envelope_summa
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_semantically_tampered_comparison_body_class_tolerance_summary_even_with_updated_checksum(
 ) {
@@ -1081,6 +1123,7 @@ fn verify_release_bundle_rejects_semantically_tampered_comparison_body_class_tol
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_comparison_body_class_error_envelope_summary_even_with_updated_checksum(
 ) {
@@ -1094,6 +1137,7 @@ fn verify_release_bundle_rejects_tampered_comparison_body_class_error_envelope_s
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_packaged_artifact_target_threshold_scope_envelopes_summary_even_with_updated_checksum(
 ) {
@@ -1107,6 +1151,7 @@ fn verify_release_bundle_rejects_tampered_packaged_artifact_target_threshold_sco
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_comparison_corpus_summary_even_with_updated_checksum() {
     assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
@@ -1119,6 +1164,7 @@ fn verify_release_bundle_rejects_tampered_comparison_corpus_summary_even_with_up
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_comparison_corpus_release_guard_summary_even_with_updated_checksum(
 ) {
@@ -1132,6 +1178,7 @@ fn verify_release_bundle_rejects_tampered_comparison_corpus_release_guard_summar
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_packaged_artifact_source_fit_holdout_sync_summary_even_with_updated_checksum(
 ) {
@@ -1196,6 +1243,7 @@ fn verify_release_bundle_rejects_tampered_packaged_artifact_source_fit_holdout_s
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_reference_holdout_overlap_summary_even_with_updated_checksum(
 ) {
@@ -1209,6 +1257,7 @@ fn verify_release_bundle_rejects_tampered_reference_holdout_overlap_summary_even
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_reference_snapshot_bridge_day_summary_even_with_updated_checksum(
 ) {
@@ -1222,6 +1271,7 @@ fn verify_release_bundle_rejects_tampered_reference_snapshot_bridge_day_summary_
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_reference_snapshot_2451917_boundary_summary_even_with_updated_checksum(
 ) {
@@ -1235,6 +1285,7 @@ fn verify_release_bundle_rejects_tampered_reference_snapshot_2451917_boundary_su
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_reference_snapshot_2451916_dense_boundary_summary_even_with_updated_checksum(
 ) {
@@ -1248,6 +1299,7 @@ fn verify_release_bundle_rejects_tampered_reference_snapshot_2451916_dense_bound
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_reference_snapshot_boundary_summary_files_even_with_updated_checksum(
 ) {
@@ -1277,6 +1329,7 @@ fn verify_release_bundle_rejects_tampered_reference_snapshot_boundary_summary_fi
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_reference_snapshot_sparse_boundary_summary_even_with_updated_checksum(
 ) {
@@ -1290,6 +1343,7 @@ fn verify_release_bundle_rejects_tampered_reference_snapshot_sparse_boundary_sum
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_reference_snapshot_summary_even_with_updated_checksum() {
     assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
@@ -1302,6 +1356,7 @@ fn verify_release_bundle_rejects_tampered_reference_snapshot_summary_even_with_u
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_reference_snapshot_exact_j2000_evidence_summary_even_with_updated_checksum(
 ) {
@@ -1315,6 +1370,7 @@ fn verify_release_bundle_rejects_tampered_reference_snapshot_exact_j2000_evidenc
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_reference_snapshot_equatorial_parity_summary_even_with_updated_checksum(
 ) {
@@ -1328,6 +1384,7 @@ fn verify_release_bundle_rejects_tampered_reference_snapshot_equatorial_parity_s
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_production_generation_boundary_source_summary_even_with_updated_checksum(
 ) {
@@ -1341,6 +1398,7 @@ fn verify_release_bundle_rejects_tampered_production_generation_boundary_source_
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_production_generation_boundary_window_summary_even_with_updated_checksum(
 ) {
@@ -1354,6 +1412,7 @@ fn verify_release_bundle_rejects_tampered_production_generation_boundary_window_
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_production_generation_boundary_request_corpus_summary_even_with_updated_checksum(
 ) {
@@ -1367,6 +1426,7 @@ fn verify_release_bundle_rejects_tampered_production_generation_boundary_request
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_catalog_posture_summary_even_with_updated_checksum() {
     assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
@@ -1379,6 +1439,7 @@ fn verify_release_bundle_rejects_tampered_catalog_posture_summary_even_with_upda
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_jpl_provenance_only_summary_even_with_updated_checksum() {
     assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
@@ -1391,6 +1452,7 @@ fn verify_release_bundle_rejects_tampered_jpl_provenance_only_summary_even_with_
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_jpl_source_posture_summary_even_with_updated_checksum() {
     assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
@@ -1403,6 +1465,7 @@ fn verify_release_bundle_rejects_tampered_jpl_source_posture_summary_even_with_u
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_production_generation_boundary_request_corpus_equatorial_summary_even_with_updated_checksum(
 ) {
@@ -1416,6 +1479,7 @@ fn verify_release_bundle_rejects_tampered_production_generation_boundary_request
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_interpolation_quality_request_corpus_summary_even_with_updated_checksum(
 ) {
@@ -1429,6 +1493,7 @@ fn verify_release_bundle_rejects_tampered_interpolation_quality_request_corpus_s
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_selected_asteroid_source_request_corpus_summary_even_with_updated_checksum(
 ) {
@@ -1442,6 +1507,7 @@ fn verify_release_bundle_rejects_tampered_selected_asteroid_source_request_corpu
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_selected_asteroid_source_request_corpus_equatorial_summary_even_with_updated_checksum(
 ) {
@@ -1455,6 +1521,7 @@ fn verify_release_bundle_rejects_tampered_selected_asteroid_source_request_corpu
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_selected_asteroid_source_window_summary_even_with_updated_checksum(
 ) {
@@ -1468,6 +1535,7 @@ fn verify_release_bundle_rejects_tampered_selected_asteroid_source_window_summar
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_reference_asteroid_source_window_summary_even_with_updated_checksum(
 ) {
@@ -1481,6 +1549,7 @@ fn verify_release_bundle_rejects_tampered_reference_asteroid_source_window_summa
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_reference_asteroid_equatorial_evidence_summary_even_with_updated_checksum(
 ) {
@@ -1494,6 +1563,7 @@ fn verify_release_bundle_rejects_tampered_reference_asteroid_equatorial_evidence
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_independent_holdout_source_window_summary_even_with_updated_checksum(
 ) {
@@ -1507,6 +1577,7 @@ fn verify_release_bundle_rejects_tampered_independent_holdout_source_window_summ
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_independent_holdout_body_class_coverage_summary_even_with_updated_checksum(
 ) {
@@ -1520,6 +1591,7 @@ fn verify_release_bundle_rejects_tampered_independent_holdout_body_class_coverag
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_independent_holdout_equatorial_parity_summary_even_with_updated_checksum(
 ) {
@@ -1533,6 +1605,7 @@ fn verify_release_bundle_rejects_tampered_independent_holdout_equatorial_parity_
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_benchmark_corpus_summary_even_with_updated_checksum() {
     assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
@@ -1545,6 +1618,7 @@ fn verify_release_bundle_rejects_tampered_benchmark_corpus_summary_even_with_upd
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_chart_benchmark_corpus_summary_even_with_updated_checksum(
 ) {
@@ -1558,6 +1632,7 @@ fn verify_release_bundle_rejects_tampered_chart_benchmark_corpus_summary_even_wi
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_packaged_artifact_phase2_corpus_alignment_summary_even_with_updated_checksum(
 ) {
@@ -1571,6 +1646,7 @@ fn verify_release_bundle_rejects_tampered_packaged_artifact_phase2_corpus_alignm
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_production_generation_summary_even_with_updated_checksum()
 {
@@ -1584,6 +1660,7 @@ fn verify_release_bundle_rejects_tampered_production_generation_summary_even_wit
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_production_generation_body_class_coverage_summary_even_with_updated_checksum(
 ) {
@@ -1597,6 +1674,7 @@ fn verify_release_bundle_rejects_tampered_production_generation_body_class_cover
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_production_generation_source_summary_even_with_updated_checksum(
 ) {
@@ -1610,6 +1688,7 @@ fn verify_release_bundle_rejects_tampered_production_generation_source_summary_e
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_production_generation_source_window_summary_even_with_updated_checksum(
 ) {
@@ -1623,6 +1702,7 @@ fn verify_release_bundle_rejects_tampered_production_generation_source_window_su
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_production_generation_quarter_day_boundary_summary_even_with_updated_checksum(
 ) {
@@ -1636,6 +1716,7 @@ fn verify_release_bundle_rejects_tampered_production_generation_quarter_day_boun
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_production_generation_manifest_summary_even_with_updated_checksum(
 ) {
@@ -1649,6 +1730,7 @@ fn verify_release_bundle_rejects_tampered_production_generation_manifest_summary
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_production_generation_manifest_checksum_summary_even_with_updated_checksum(
 ) {
@@ -1662,6 +1744,7 @@ fn verify_release_bundle_rejects_tampered_production_generation_manifest_checksu
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_release_house_system_canonical_names_summary_even_with_updated_checksum(
 ) {
@@ -1675,6 +1758,7 @@ fn verify_release_bundle_rejects_tampered_release_house_system_canonical_names_s
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_release_ayanamsa_canonical_names_summary_even_with_updated_checksum(
 ) {
@@ -1688,6 +1772,7 @@ fn verify_release_bundle_rejects_tampered_release_ayanamsa_canonical_names_summa
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_packaged_artifact_body_cadence_summary_even_with_updated_checksum(
 ) {
@@ -1701,6 +1786,7 @@ fn verify_release_bundle_rejects_tampered_packaged_artifact_body_cadence_summary
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_packaged_artifact_body_class_span_cap_summary_even_with_updated_checksum(
 ) {
@@ -1714,6 +1800,7 @@ fn verify_release_bundle_rejects_tampered_packaged_artifact_body_class_span_cap_
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_lunar_theory_source_family_summary_even_with_updated_checksum(
 ) {
@@ -1727,6 +1814,7 @@ fn verify_release_bundle_rejects_tampered_lunar_theory_source_family_summary_eve
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_lunar_source_window_summary_even_with_updated_checksum() {
     assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
@@ -1739,6 +1827,7 @@ fn verify_release_bundle_rejects_tampered_lunar_source_window_summary_even_with_
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_lunar_theory_source_selection_summary_even_with_updated_checksum(
 ) {
@@ -1752,6 +1841,7 @@ fn verify_release_bundle_rejects_tampered_lunar_theory_source_selection_summary_
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_lunar_theory_limitations_summary_even_with_updated_checksum(
 ) {
@@ -1765,6 +1855,7 @@ fn verify_release_bundle_rejects_tampered_lunar_theory_limitations_summary_even_
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_lunar_theory_catalog_validation_summary_even_with_updated_checksum(
 ) {
@@ -1778,6 +1869,7 @@ fn verify_release_bundle_rejects_tampered_lunar_theory_catalog_validation_summar
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_native_sidereal_policy_summary_even_with_updated_checksum(
 ) {
@@ -1791,6 +1883,7 @@ fn verify_release_bundle_rejects_tampered_native_sidereal_policy_summary_even_wi
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_time_scale_policy_summary_even_with_updated_checksum() {
     assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
@@ -1803,6 +1896,7 @@ fn verify_release_bundle_rejects_tampered_time_scale_policy_summary_even_with_up
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_utc_convenience_policy_summary_even_with_updated_checksum(
 ) {
@@ -1816,6 +1910,7 @@ fn verify_release_bundle_rejects_tampered_utc_convenience_policy_summary_even_wi
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_delta_t_policy_summary_even_with_updated_checksum() {
     assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
@@ -1828,6 +1923,7 @@ fn verify_release_bundle_rejects_tampered_delta_t_policy_summary_even_with_updat
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_native_dependency_audit_summary_even_with_updated_checksum(
 ) {
@@ -1841,6 +1937,7 @@ fn verify_release_bundle_rejects_tampered_native_dependency_audit_summary_even_w
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_packaged_artifact_target_threshold_summary_even_with_updated_checksum(
 ) {
@@ -1854,6 +1951,7 @@ fn verify_release_bundle_rejects_tampered_packaged_artifact_target_threshold_sum
         );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_profile_alignment_helpers_accept_matching_release_text() {
     let release_profiles = current_release_profile_identifiers();
@@ -1923,6 +2021,7 @@ fn verify_release_bundle_profile_alignment_helpers_accept_matching_release_text(
         .expect("matching custom-definition labels should verify");
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_profile_alignment_helpers_reject_mismatched_release_text() {
     let release_profiles = current_release_profile_identifiers();
@@ -1984,6 +2083,7 @@ fn verify_release_bundle_profile_alignment_helpers_reject_mismatched_release_tex
         .contains("custom-definition ayanamsa labels summary mismatch"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_artifact_summary_file() {
     assert_release_bundle_rejects_tampered_text_file(
@@ -1993,6 +2093,7 @@ fn verify_release_bundle_rejects_tampered_artifact_summary_file() {
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_api_stability_summary_file() {
     let bundle_dir = unique_temp_dir("pleiades-release-bundle-tampered-api-summary");
@@ -2022,6 +2123,7 @@ fn verify_release_bundle_rejects_tampered_api_stability_summary_file() {
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_catalog_inventory_summary_even_with_updated_checksum() {
     assert_release_bundle_rejects_semantically_tampered_text_file_with_updated_checksum(
@@ -2034,6 +2136,7 @@ fn verify_release_bundle_rejects_tampered_catalog_inventory_summary_even_with_up
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_compatibility_profile_file() {
     assert_release_bundle_rejects_tampered_text_file(
@@ -2043,6 +2146,7 @@ fn verify_release_bundle_rejects_tampered_compatibility_profile_file() {
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_release_checklist_file() {
     assert_release_bundle_rejects_tampered_text_file(
@@ -2052,6 +2156,7 @@ fn verify_release_bundle_rejects_tampered_release_checklist_file() {
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_release_checklist_summary_file() {
     assert_release_bundle_rejects_tampered_text_file(
@@ -2061,6 +2166,7 @@ fn verify_release_bundle_rejects_tampered_release_checklist_summary_file() {
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_backend_matrix_file() {
     assert_release_bundle_rejects_tampered_text_file(
@@ -2070,6 +2176,7 @@ fn verify_release_bundle_rejects_tampered_backend_matrix_file() {
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_api_stability_file() {
     assert_release_bundle_rejects_tampered_text_file(
@@ -2079,6 +2186,7 @@ fn verify_release_bundle_rejects_tampered_api_stability_file() {
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_validation_report_summary_file() {
     assert_release_bundle_rejects_tampered_text_file(
@@ -2088,6 +2196,7 @@ fn verify_release_bundle_rejects_tampered_validation_report_summary_file() {
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_validation_report_file() {
     assert_release_bundle_rejects_tampered_text_file(
@@ -2097,6 +2206,7 @@ fn verify_release_bundle_rejects_tampered_validation_report_file() {
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_validation_report_file_even_with_updated_checksum() {
     let bundle_dir = unique_temp_dir("pleiades-release-bundle-tampered-validation-report-semantic");
@@ -2148,6 +2258,7 @@ fn verify_release_bundle_rejects_tampered_validation_report_file_even_with_updat
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_validation_report_summary_file_even_with_updated_checksum(
 ) {
@@ -2201,6 +2312,7 @@ fn verify_release_bundle_rejects_tampered_validation_report_summary_file_even_wi
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_validation_report_summary_header_even_with_updated_checksum(
 ) {
@@ -2214,6 +2326,7 @@ fn verify_release_bundle_rejects_tampered_validation_report_summary_header_even_
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_validation_report_fit_margin_summary_even_with_updated_checksum(
 ) {
@@ -2267,6 +2380,7 @@ fn verify_release_bundle_rejects_tampered_validation_report_fit_margin_summary_e
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_validation_report_fit_outlier_summary_even_with_updated_checksum(
 ) {
@@ -2320,6 +2434,7 @@ fn verify_release_bundle_rejects_tampered_validation_report_fit_outlier_summary_
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_validation_report_fit_sample_classes_summary_even_with_updated_checksum(
 ) {
@@ -2375,6 +2490,7 @@ fn verify_release_bundle_rejects_tampered_validation_report_fit_sample_classes_s
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_validation_report_fit_threshold_violation_count_summary_even_with_updated_checksum(
 ) {
@@ -2430,6 +2546,7 @@ fn verify_release_bundle_rejects_tampered_validation_report_fit_threshold_violat
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_validation_report_fit_threshold_violations_summary_even_with_updated_checksum(
 ) {
@@ -2485,6 +2602,7 @@ fn verify_release_bundle_rejects_tampered_validation_report_fit_threshold_violat
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_release_checklist_checksum_mismatches() {
     let bundle_dir = unique_temp_dir("pleiades-release-bundle-corrupt-checklist");
@@ -2517,6 +2635,7 @@ fn verify_release_bundle_rejects_release_checklist_checksum_mismatches() {
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_api_stability_checksum_mismatches() {
     let bundle_dir = unique_temp_dir("pleiades-release-bundle-corrupt-api-stability");
@@ -2549,6 +2668,7 @@ fn verify_release_bundle_rejects_api_stability_checksum_mismatches() {
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_validation_report_checksum_mismatches() {
     let bundle_dir = unique_temp_dir("pleiades-release-bundle-corrupt-validation-report");
@@ -2581,6 +2701,7 @@ fn verify_release_bundle_rejects_validation_report_checksum_mismatches() {
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_validation_report_summary_checksum_mismatches() {
     let bundle_dir = unique_temp_dir("pleiades-release-bundle-corrupt-validation-report-summary");
@@ -2613,6 +2734,7 @@ fn verify_release_bundle_rejects_validation_report_summary_checksum_mismatches()
     let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_packaged_artifact_generation_manifest_checksum_summary_even_with_updated_checksum(
 ) {

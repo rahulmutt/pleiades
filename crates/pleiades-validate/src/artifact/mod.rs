@@ -189,6 +189,7 @@ mod tests {
         ));
     }
 
+    #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
     #[test]
     fn render_artifact_summary_includes_span_caps() {
         let rendered = super::render_artifact_summary().expect("artifact summary should render");

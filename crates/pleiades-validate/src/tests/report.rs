@@ -3,6 +3,7 @@
 use super::*;
 use pleiades_core::{current_release_profile_identifiers, TimeScale};
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn benchmark_report_renders_a_time_summary() {
     let report = render_benchmark_report(10).expect("benchmark should render");
@@ -37,6 +38,7 @@ fn benchmark_report_renders_a_time_summary() {
     assert!(report.contains("Charts per second:"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn benchmark_report_summary_line_mentions_the_backend_and_throughput() {
     let corpus = benchmark_corpus();
@@ -55,6 +57,7 @@ fn benchmark_report_summary_line_mentions_the_backend_and_throughput() {
     assert!(summary.contains("estimated corpus heap footprint="));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn benchmark_matrix_summary_command_renders_the_matrix_block() {
     let rendered = render_cli(&["benchmark-matrix-summary", "--rounds", "1"])
@@ -229,6 +232,7 @@ fn benchmark_workspace_provenance_validation_rejects_blank_or_multiline_fields()
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn validation_report_validate_rejects_drifted_chart_benchmark_corpus() {
     let mut report = build_validation_report(10).expect("validation report should build");
@@ -246,6 +250,7 @@ fn validation_report_validate_rejects_drifted_chart_benchmark_corpus() {
         .contains("corpus summary name must not be blank"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn validation_report_display_rejects_drifted_regression_archive() {
     let mut report = build_validation_report(10).expect("validation report should build");
@@ -256,6 +261,7 @@ fn validation_report_display_rejects_drifted_regression_archive() {
     assert!(rendered.contains("regression archive corpus name must not be blank"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn validation_report_includes_corpus_metadata() {
     let report = render_validation_report(10).expect("validation report should render");
@@ -435,6 +441,7 @@ fn validation_report_includes_corpus_metadata() {
     assert!(report.contains("batch throughput:"));
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn validation_report_summary_renders_a_compact_overview() {
     let report = render_validation_report_summary(10).expect("validation summary should render");
@@ -672,6 +679,7 @@ fn interpolation_quality_request_corpus_summary_renders_the_explicit_slice() {
     );
 }
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn artifact_validation_report_mentions_boundary_checks() {
     let report = render_artifact_report().expect("artifact report should render");
