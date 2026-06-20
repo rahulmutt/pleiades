@@ -556,4 +556,49 @@ mod tests {
         }];
         assert!(crate::corpus::asteroid::validate_asteroid_slices(&slices).is_err());
     }
+
+    /// Regression test: the committed holdout slice now carries 8 fields (position +
+    /// velocity).  The full corpus gate must pass end-to-end, meaning
+    /// `run_corpus_gate()` must return Ok with the expected success-string prefix.
+    ///
+    /// This test would fail if the gate rejected 8-field rows (wrong-arity branch)
+    /// or if the finite-check rejected valid velocity values in the holdout slice.
+    #[test]
+    fn corpus_gate_accepts_eight_field_velocity_rows() {
+        let summary = run_corpus_gate().expect("corpus gate should pass with 8-field holdout slice");
+        assert!(
+            summary.contains("corpus gate ok"),
+            "unexpected success string: {summary}"
+        );
+    }
+
+    /// Regression test: an 8-field row whose velocity field contains a non-finite
+    /// value ("NaN") must be rejected by `validate_schema_and_provenance`.
+    ///
+    /// The crafted slice has:
+    ///  - a valid 8-field `#Columns` header (which contains the 5-field prefix so
+    ///    the header check passes),
+    ///  - a real kernel SHA so the provenance check passes,
+    ///  - one otherwise well-formed 8-field data row whose third velocity field is
+    ///    "NaN", triggering the finite-check at fields[2..] iteration.
+    ///
+    /// This test would fail if the finite-check were removed from the gate logic
+    /// (the row would then be accepted instead of rejected).
+    #[test]
+    fn corpus_gate_rejects_nonfinite_velocity() {
+        let slices = vec![LoadedSlice {
+            role: "holdout".to_string(),
+            csv: concat!(
+                "#Kernel-SHA256: deadbeef\n",
+                "#Columns:epoch_jd,body,x_km,y_km,z_km,vx_km_s,vy_km_s,vz_km_s\n",
+                // epoch_jd, body, x, y, z, vx, vy — all finite, but vz is NaN
+                "2451545.0,Sun,1.0,2.0,3.0,0.1,0.2,NaN\n",
+            )
+            .to_string(),
+        }];
+        assert!(
+            validate_schema_and_provenance(&slices).is_err(),
+            "gate must reject a row with a NaN velocity field"
+        );
+    }
 }
