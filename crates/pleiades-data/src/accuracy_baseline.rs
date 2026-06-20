@@ -398,7 +398,7 @@ mod tests {
 
     // Astrology-grade longitude envelope gate (SP2).
     // Outer planets are allowed up to 5.0″; inner bodies/luminaries up to 1.0″.
-    // With the v6 heliocentric artifact all bodies are sub-arcsec, so this
+    // With the v7 heliocentric artifact all bodies are sub-arcsec, so this
     // passes with large margin — the 5.0″ ceiling guards against a future
     // regression, not against the current state.
     // Note: (b2) in packaged_artifact_baseline_is_non_vacuous already asserts

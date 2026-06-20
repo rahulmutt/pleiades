@@ -63,7 +63,7 @@ pub use frame_recombine::{
 // ── Crate-level constants ─────────────────────────────────────────────────────
 
 /// Current artifact format version.
-pub const ARTIFACT_VERSION: u16 = 6;
+pub const ARTIFACT_VERSION: u16 = 7;
 
 pub(crate) const ARTIFACT_MAGIC: [u8; 8] = *b"PLDEPHEM";
 
