@@ -99,8 +99,9 @@ fn artifact_and_workspace_commands_render_compact_reports() {
     let packaged_artifact_speed_policy = render_cli(&["packaged-artifact-speed-policy-summary"])
         .expect("packaged artifact speed policy summary should render");
     assert!(packaged_artifact_speed_policy.contains("Packaged-artifact speed policy: "));
+    // SP3: motion output is now FittedDerivative (Derived), not Unsupported.
     assert!(
-        packaged_artifact_speed_policy.contains("Unsupported; motion output support=unsupported")
+        packaged_artifact_speed_policy.contains("FittedDerivative; motion output support=derived")
     );
     assert_eq!(
         packaged_artifact_speed_policy,
