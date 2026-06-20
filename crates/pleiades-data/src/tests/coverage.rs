@@ -493,7 +493,6 @@ fn packaged_artifact_generation_policy_summary_rejects_residual_body_drift() {
     assert_eq!(error.to_string(), error.summary_line());
 }
 
-#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_generation_policy_validation_error_has_summary_line() {
     let error = PackagedArtifactGenerationPolicyValidationError::FieldOutOfSync { field: "policy" };
@@ -2495,7 +2494,6 @@ fn packaged_artifact_fit_outlier_summary_prioritizes_distance_channel_outliers()
     );
 }
 
-#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn packaged_artifact_fit_channel_outlier_summary_prefers_shorter_failing_family_on_equal_delta() {
     let body = CelestialBody::Moon;
