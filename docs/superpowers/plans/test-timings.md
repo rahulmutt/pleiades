@@ -4,9 +4,13 @@ Measured on 2026-06-20 using `cargo nextest run --message-format libtest-json-pl
 per-crate runs (to avoid cross-binary interference). Build profile: `test` with `opt-level = 2`.
 Total workspace: 1995 tests across 23 binaries.
 
-**Coverage note:** `pleiades-cli` (98/98 tests) is fully measured. `pleiades-data` (120/186 partial),
-`pleiades-validate` (188/592 partial — only `release_bundle_verify_a` batch captured; `verify_b` batch
-still running at time of writing). All other crates are fast (< 3 s each) and fully measured.
+**Coverage note:** `pleiades-cli` (98/98 tests), `pleiades-data` (180/183 non-ignored), and
+`pleiades-validate` (full run, both `release_bundle_verify_a` and `release_bundle_verify_b` batches
+captured) are all fully measured. All other crates are fast (< 3 s each) and fully measured.
+
+**Validate update:** the `release_bundle_verify_b` batch (122 tests, 40–121 s each) was confirmed
+after the initial draft. Including it, `pleiades-validate` has **166 tests over 60 s** — 120 of them
+in `release_bundle_verify_b`. This makes the release-bundle family larger than first documented.
 
 ---
 
@@ -94,8 +98,9 @@ and then verifies the output. This pipeline takes 200–375 s per test process.
 **Crates and files:**
 - `pleiades-cli` — `src/tests/release.rs`, `src/tests/summary_commands.rs`,
   `src/tests/artifact_and_workspace.rs`, `src/tests/validation.rs`, `src/tests/misc.rs`
-- `pleiades-validate` — `src/tests/release_bundle_verify_a.rs`, `src/tests/release_bundle_verify_b.rs`
-  (verify_b still running at time of writing; expected to match verify_a timings)
+- `pleiades-validate` — `src/tests/release_bundle_verify_a.rs` (26 tests, 144–312 s each),
+  `src/tests/release_bundle_verify_b.rs` (122 tests, 40–121 s each — confirmed; these tamper a
+  rendered bundle then re-verify, so each re-runs the bundle pipeline)
 
 **Real test names from measurement (rank 1–23, plus further verify_b tests):**
 - `cli::tests::summary_commands::summary_commands_render_compact_reports` — 374 s
@@ -105,7 +110,8 @@ and then verifies the output. This pipeline takes 200–375 s per test process.
 - `cli::tests::release::verify_release_bundle_command_verifies_a_staged_bundle` — 309 s
 - `cli::tests::release::bundle_release_command_writes_a_staged_bundle` — 308 s
 - `tests::release_bundle_verify_a::release_bundle_validate_accepts_rendered_bundle` — 302 s
-- ... (16 more tests in the verify_a batch, 212–293 s each)
+- ... (rest of verify_a batch, 144–293 s each, 26 tests total)
+- `tests::release_bundle_verify_b::verify_release_bundle_rejects_tampered_reference_snapshot_boundary_summary_files_even_with_updated_checksum` — 121 s (representative of 122 verify_b tests, 40–121 s each)
 - `cli::tests::artifact_and_workspace::artifact_and_workspace_commands_render_compact_reports` — 256 s
 - `cli::tests::validation::validation_report_commands_render_compact_reports` — 240 s
 - `cli::tests::misc::fallback_summary_commands_remain_reachable_from_the_cli` — 225 s
@@ -190,7 +196,7 @@ goal is to pay the ~100 s build cost O(1) times per coverage test run rather tha
 | Expected family | Expected crate | Confirmed? | Notes |
 |-----------------|---------------|-----------|-------|
 | kernel-free regeneration | pleiades-data | Yes | `build_from_reference_*`, `default_window_artifact_*` at 31–34 s |
-| release-bundle | pleiades-validate + pleiades-cli | Yes | 200–374 s per test; all `release_bundle_verify_a::*` and `cli::tests::release::*` |
+| release-bundle | pleiades-validate + pleiades-cli | Yes | 40–374 s per test; 26 `verify_a` + 122 `verify_b` + `cli::tests::release::*` — 166 validate tests over 60 s |
 | dense numerical sweeps | pleiades-data coverage | Partial match | Not true sweeps — artifact-rebuild cost paid O(N) across ~100 validation tests |
 | pleiades-vsop87 sweeps | pleiades-vsop87 | No slow tests | All vsop87 tests < 0.3 s; evidence.rs and backend.rs are fast |
 | pleiades-data fit/lookup | pleiades-data | No slow tests | `src/tests/fit.rs` and `src/tests/lookup.rs` are fast (< 0.1 s) |
