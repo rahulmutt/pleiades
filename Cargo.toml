@@ -44,3 +44,13 @@ pleiades-houses = { path = "crates/pleiades-houses", version = "0.2.0" }
 pleiades-jpl = { path = "crates/pleiades-jpl", version = "0.2.0" }
 pleiades-types = { path = "crates/pleiades-types", version = "0.2.0" }
 pleiades-vsop87 = { path = "crates/pleiades-vsop87", version = "0.2.0" }
+
+# Optimize test and dev builds. The packaged-artifact fit/regeneration and
+# corpus comparison tests are numerically heavy; at opt-level = 0 they dominate
+# the suite (pleiades-data lib measured 214s debug vs 76s at opt-level = 2).
+# One-time cost: ~30s extra cold compile; incremental rebuilds slightly slower.
+[profile.test]
+opt-level = 2
+
+[profile.dev]
+opt-level = 2
