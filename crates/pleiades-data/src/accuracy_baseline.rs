@@ -578,6 +578,73 @@ mod tests {
         }
     }
 
+    // Hard accuracy-ceiling gate (SP3, Task 11): all 6 channels for every body in
+    // the baseline must be within their published ceilings from thresholds.rs.
+    // Currently passing with large margin (measured << ceiling), so this guards
+    // against future regressions rather than reflecting the current tight state.
+    #[test]
+    fn all_channels_within_published_ceilings_for_major_bodies() {
+        let baseline = packaged_artifact_accuracy_baseline();
+        for e in &baseline {
+            let c = crate::thresholds::accuracy_ceiling(&e.body);
+            assert!(
+                e.max_longitude_arcsec <= c.lon_arcsec,
+                "{:?} lon {:.4}\" exceeds ceiling {:.1}\"",
+                e.body,
+                e.max_longitude_arcsec,
+                c.lon_arcsec
+            );
+            assert!(
+                e.max_latitude_arcsec <= c.lat_arcsec,
+                "{:?} lat {:.4}\" exceeds ceiling {:.1}\"",
+                e.body,
+                e.max_latitude_arcsec,
+                c.lat_arcsec
+            );
+            assert!(
+                e.max_distance_km <= c.dist_km,
+                "{:?} dist {:.3} km exceeds ceiling {:.0} km",
+                e.body,
+                e.max_distance_km,
+                c.dist_km
+            );
+            assert!(
+                e.max_lon_speed_arcsec_per_day <= c.lon_speed_arcsec_per_day,
+                "{:?} lon speed {:.4} arcsec/day exceeds ceiling {:.2} arcsec/day",
+                e.body,
+                e.max_lon_speed_arcsec_per_day,
+                c.lon_speed_arcsec_per_day
+            );
+            assert!(
+                e.max_lat_speed_arcsec_per_day <= c.lat_speed_arcsec_per_day,
+                "{:?} lat speed {:.4} arcsec/day exceeds ceiling {:.2} arcsec/day",
+                e.body,
+                e.max_lat_speed_arcsec_per_day,
+                c.lat_speed_arcsec_per_day
+            );
+            assert!(
+                e.max_radial_speed_au_per_day <= c.radial_speed_au_per_day,
+                "{:?} radial speed {:.6} AU/day exceeds ceiling {:.2e} AU/day",
+                e.body,
+                e.max_radial_speed_au_per_day,
+                c.radial_speed_au_per_day
+            );
+        }
+    }
+
+    // Size-budget gate (SP3, Task 11): the committed packaged artifact must not exceed
+    // the published encoded-bytes budget from PACKAGED_BUDGETS.
+    #[test]
+    fn encoded_artifact_within_size_budget() {
+        let bytes_len = crate::data::packaged_artifact_bytes().len();
+        assert!(
+            bytes_len <= crate::thresholds::PACKAGED_BUDGETS.max_encoded_bytes,
+            "encoded artifact {} bytes exceeds budget {} bytes",
+            bytes_len,
+            crate::thresholds::PACKAGED_BUDGETS.max_encoded_bytes
+        );
+    }
+
     #[test]
     #[ignore = "maintainer helper: prints the accuracy baseline summary to regenerate the golden"]
     fn print_packaged_artifact_baseline_summary() {
@@ -585,10 +652,14 @@ mod tests {
     }
 
     // Drift gate: the committed per-body summary must match the live baseline.
-    // Generated from actual output (2026-06-19, SP2 heliocentric-planet artifact);
+    // Generated from actual output (2026-06-20, SP3 heliocentric-planet artifact);
     // fails if errors silently go all-zero or if artifact/hold-out changes shift
     // any body's error bucket. SP2 outer-planet errors are sub-arcsec after the
     // heliocentric reframe; compare with SP1 (pre-reframe) goldens in git history.
+    // SP3 (Task 11): golden now anchors speed channels (first 3 significant digits)
+    // in addition to the position channels. Speed vacuity: if a body's speed rows
+    // were all skipped, max_lon_speed stays 0.0000 and the non-vacuity check below
+    // catches it via the "strictly-positive lon-speed" guard.
     #[test]
     fn packaged_artifact_baseline_summary_matches_committed_golden() {
         let report = packaged_artifact_accuracy_baseline_summary_for_report();
@@ -642,5 +713,134 @@ mod tests {
             report.contains("Pluto: n=50 max_lon=0.001"),
             "Pluto max_lon bucket drift (expected ~0.0018\"): {report}"
         );
+
+        // SP3 Task 11: speed channel golden anchors (first 3 significant digits).
+        // Moon has the highest lon/lat speed error (~0.030/~0.023 arcsec/day) due to
+        // fast apparent motion; outer planets are an order of magnitude slower.
+        // Radial speed errors are sub-1e-6 AU/day for all bodies; anchored to "0.000000".
+        assert!(
+            report.contains("Moon: n=50") && report.contains("max_lon_speed=0.030"),
+            "Moon max_lon_speed bucket drift (expected ~0.0303 arcsec/day): {report}"
+        );
+        assert!(
+            report.contains("Moon: n=50") && report.contains("max_lat_speed=0.023"),
+            "Moon max_lat_speed bucket drift (expected ~0.0231 arcsec/day): {report}"
+        );
+        assert!(
+            report.contains("Sun: n=50") && report.contains("max_lon_speed=0.001"),
+            "Sun max_lon_speed bucket drift (expected ~0.0013 arcsec/day): {report}"
+        );
+        assert!(
+            report.contains("Mercury: n=50") && report.contains("max_lon_speed=0.001"),
+            "Mercury max_lon_speed bucket drift (expected ~0.0013 arcsec/day): {report}"
+        );
+        assert!(
+            report.contains("Venus: n=50") && report.contains("max_lon_speed=0.001"),
+            "Venus max_lon_speed bucket drift (expected ~0.0014 arcsec/day): {report}"
+        );
+        assert!(
+            report.contains("Mars: n=50") && report.contains("max_lon_speed=0.001"),
+            "Mars max_lon_speed bucket drift (expected ~0.0011 arcsec/day): {report}"
+        );
+        // Outer planets: lon_speed in the 0.000X range.
+        assert!(
+            report.contains("Jupiter: n=50") && report.contains("max_lon_speed=0.000"),
+            "Jupiter max_lon_speed bucket drift (expected ~0.0002 arcsec/day): {report}"
+        );
+        assert!(
+            report.contains("Saturn: n=50") && report.contains("max_lon_speed=0.000"),
+            "Saturn max_lon_speed bucket drift (expected ~0.0002 arcsec/day): {report}"
+        );
+        assert!(
+            report.contains("Uranus: n=50") && report.contains("max_lon_speed=0.000"),
+            "Uranus max_lon_speed bucket drift (expected ~0.0007 arcsec/day): {report}"
+        );
+        assert!(
+            report.contains("Neptune: n=50") && report.contains("max_lon_speed=0.000"),
+            "Neptune max_lon_speed bucket drift (expected ~0.0002 arcsec/day): {report}"
+        );
+        assert!(
+            report.contains("Pluto: n=50") && report.contains("max_lon_speed=0.000"),
+            "Pluto max_lon_speed bucket drift (expected ~0.0005 arcsec/day): {report}"
+        );
+        // Radial speed: all bodies sub-1e-6 AU/day — anchor on "0.000000".
+        for body_name in &["Sun", "Moon", "Mercury", "Venus", "Mars",
+                           "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto"] {
+            assert!(
+                report.contains(&format!("{body_name}: n=50"))
+                    && report.contains("max_radial_speed=0.000000"),
+                "{body_name} max_radial_speed not anchored at 0.000000 AU/day: {report}"
+            );
+        }
+    }
+
+    // Non-vacuity guard for speed channels (SP3, Task 11).
+    //
+    // The speed accumulator has no velocity-row counter.  A body whose velocity
+    // rows were all skipped (e.g. because lookup_motion returned Err or the corpus
+    // lacked velocity data) would keep max_*_speed = 0.0 and pass the ceiling
+    // gate VACUOUSLY.  This guard catches that: every major planet (excluding the
+    // Moon, whose min non-zero would be below our threshold on some corpora) must
+    // show a STRICTLY POSITIVE lon-speed error magnitude above a small but
+    // non-zero floor (0.0001 arcsec/day), well below the smallest observed real
+    // error (~0.0002 arcsec/day for Jupiter/Saturn/Neptune) but clearly above
+    // exact zero (which would only arise from a silently-all-skipped velocity
+    // channel).
+    //
+    // Moon is guarded separately with a higher floor (0.005 arcsec/day) because
+    // its faster apparent motion means any real measurement would be >>0.005.
+    #[test]
+    fn speed_channels_are_non_vacuous_for_major_bodies() {
+        let errors = packaged_artifact_accuracy_baseline();
+
+        // Inner planets + luminaries: lon-speed must be > 0.0001 arcsec/day.
+        let inner_bodies = [
+            CelestialBody::Sun,
+            CelestialBody::Mercury,
+            CelestialBody::Venus,
+            CelestialBody::Mars,
+        ];
+        for body in &inner_bodies {
+            let e = errors
+                .iter()
+                .find(|e| &e.body == body)
+                .unwrap_or_else(|| panic!("{body:?} must appear in the packaged baseline"));
+            assert!(
+                e.max_lon_speed_arcsec_per_day > 0.0001,
+                "{body:?} max_lon_speed {:.6} arcsec/day is not strictly positive (speed channel may be vacuous — all velocity rows skipped?)",
+                e.max_lon_speed_arcsec_per_day
+            );
+        }
+
+        // Moon: higher floor (real motion >> 0.005 arcsec/day).
+        let moon = errors
+            .iter()
+            .find(|e| e.body == CelestialBody::Moon)
+            .expect("Moon must appear in the packaged baseline");
+        assert!(
+            moon.max_lon_speed_arcsec_per_day > 0.005,
+            "Moon max_lon_speed {:.6} arcsec/day is not strictly positive (speed channel may be vacuous — all velocity rows skipped?)",
+            moon.max_lon_speed_arcsec_per_day
+        );
+
+        // Outer planets: lon-speed must be > 0.0001 arcsec/day.
+        let outer_bodies = [
+            CelestialBody::Jupiter,
+            CelestialBody::Saturn,
+            CelestialBody::Uranus,
+            CelestialBody::Neptune,
+            CelestialBody::Pluto,
+        ];
+        for body in &outer_bodies {
+            let e = errors
+                .iter()
+                .find(|e| &e.body == body)
+                .unwrap_or_else(|| panic!("{body:?} must appear in the packaged baseline"));
+            assert!(
+                e.max_lon_speed_arcsec_per_day > 0.0001,
+                "{body:?} max_lon_speed {:.6} arcsec/day is not strictly positive (speed channel may be vacuous — all velocity rows skipped?)",
+                e.max_lon_speed_arcsec_per_day
+            );
+        }
     }
 }

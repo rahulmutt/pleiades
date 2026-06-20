@@ -37,23 +37,40 @@ pub struct AccuracyCeiling {
     pub radial_speed_au_per_day: f64,
 }
 
+/// Finalized speed and distance ceilings (Task 11, 2026-06-20).
+///
+/// Speed ceilings are set to round numbers ≥ ~10× the measured maxima from the
+/// committed packaged artifact baseline:
+///
+/// | class           | measured lon_speed | measured lat_speed | measured dist_km |
+/// |-----------------|--------------------|--------------------|------------------|
+/// | Luminary/Inner  | 0.0303 arcsec/day  | 0.0231 arcsec/day  | 0.654 km (Venus) |
+/// | Outer           | 0.0013 arcsec/day  | 0.0013 arcsec/day  | 54.828 km (Uranus)|
+///
+/// Chosen ceilings:
+/// - Luminary/Inner: lon/lat speed → 0.5 arcsec/day (~16× headroom on Moon's 0.0303);
+///   dist_km → 50 km (~76× headroom on Venus's 0.654 km).
+/// - Outer: lon/lat speed → 0.05 arcsec/day (~38× headroom on worst 0.0013);
+///   dist_km → 1_000 km (~18× headroom on Uranus's 54.828 km).
+/// - Radial speed: all bodies show < 1e-7 AU/day measured; ceiling 1e-4 AU/day gives
+///   >1000× headroom; kept tighter than the original placeholder (1e-3) to signal intent.
 pub fn accuracy_ceiling(body: &CelestialBody) -> AccuracyCeiling {
     match body_class(body) {
         BodyClass::Luminary | BodyClass::InnerPlanet => AccuracyCeiling {
             lon_arcsec: 1.0,
             lat_arcsec: 1.0,
-            dist_km: 50_000.0,
-            lon_speed_arcsec_per_day: 60.0,
-            lat_speed_arcsec_per_day: 60.0,
-            radial_speed_au_per_day: 1.0e-3,
+            dist_km: 50.0,
+            lon_speed_arcsec_per_day: 0.5,
+            lat_speed_arcsec_per_day: 0.5,
+            radial_speed_au_per_day: 1.0e-4,
         },
         BodyClass::OuterPlanet => AccuracyCeiling {
             lon_arcsec: 5.0,
             lat_arcsec: 5.0,
-            dist_km: 5_000_000.0,
-            lon_speed_arcsec_per_day: 60.0,
-            lat_speed_arcsec_per_day: 60.0,
-            radial_speed_au_per_day: 1.0e-3,
+            dist_km: 1_000.0,
+            lon_speed_arcsec_per_day: 0.05,
+            lat_speed_arcsec_per_day: 0.05,
+            radial_speed_au_per_day: 1.0e-4,
         },
         BodyClass::Asteroid => AccuracyCeiling {
             lon_arcsec: 30.0,
