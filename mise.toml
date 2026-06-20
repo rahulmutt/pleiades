@@ -1,7 +1,6 @@
 [tools]
 rust = { version = "1.96.0", components = "rustfmt,clippy" }
 "cargo:cargo-release" = "1.1.2"
-"cargo:cargo-nextest" = "0.9"
 
 [tasks.fmt]
 run = "cargo fmt --all --check"
@@ -10,13 +9,7 @@ run = "cargo fmt --all --check"
 run = "cargo clippy --workspace --all-targets --all-features -- -D warnings"
 
 [tasks.test]
-depends = ["nextest", "doctest"]
-
-[tasks.nextest]
-run = "cargo nextest run --workspace"
-
-[tasks.doctest]
-run = "cargo test --workspace --doc"
+run = "cargo test --workspace"
 
 [tasks.docs]
 run = "RUSTDOCFLAGS=\"-D warnings\" cargo doc --workspace --no-deps --all-features"
