@@ -20,30 +20,22 @@ broad public-data reader (`pleiades-jpl::ingest`) and the curated asteroid
 corpus (Tier A main-belt core from `sb441-n16`, Tier B constrained set from
 Horizons over 1900-2100) are also complete. No open Phase 1 slices remain.
 
-## Phase 2 — Release-grade compressed ephemeris
+## Phase 2 — Release-grade compressed ephemeris (complete)
 
-SP1 (dense de440-backed generation source + accuracy baseline) has landed:
-artifact generation now fits least-squares polynomials sampled densely from
-de440 within each per-body segment span, kernel-gated behind
-`PLEIADES_DE_KERNEL` (same gate as corpus_regen). ARTIFACT_VERSION is now 5;
-the regenerated artifact is ~201,873 segments / ~49.78 MB. A per-body accuracy
-baseline vs the committed de440-derived hold-out is in
-`crates/pleiades-data/src/accuracy_baseline.rs`; inner bodies + Sun + Moon are
-sub-arcsec; outer planets are draft-level (Uranus ~156″, Neptune ~90″,
-Pluto ~62″, Saturn ~11″, Jupiter ~1.7″). The constrained asteroid (433-Eros)
-is re-derived from the committed reference snapshot (absent from de440 and
-sb441-n16), constrained to 1900-2100. The artifact remains explicitly
-draft-grade. Remaining Phase 2 slices:
+SP1, SP2, and SP3 have all landed. The packaged artifact (ARTIFACT_VERSION 7,
+1900–2100 CE, ~10.0 MB) passes per-body-class accuracy ceilings (defined in
+`crates/pleiades-data/src/thresholds.rs`), the hard size gate (≤ 12,000,000
+bytes), and speed ceilings. Latency targets are tracked in `PACKAGED_BUDGETS`
+(opt-in enforcement via `PLEIADES_ENFORCE_LATENCY`). Motion output is
+`Motion = Derived` (SpeedPolicy::FittedDerivative), measured and gated.
 
-- SP2: accuracy tuning — per-body span and degree tuning against the measured
-  baseline, especially outer planets.
-- SP3: enforce published accuracy thresholds per body class and channel; define
-  size and latency budgets.
-- Improve fitting/reconstruction where measured errors exceed thresholds.
-- Keep artifact size, checksum, decode, lookup, batch, and chart-workload
-  benchmarks current.
-- Keep unsupported outputs explicit, especially apparent, topocentric, native
-  sidereal, civil-time, and motion policies.
+Summary of completed SP2/SP3 outcomes:
+- SP2: heliocentric-planet reframe — all bodies sub-arcsec (Uranus ~0.0036″,
+  Neptune ~0.0020″, Pluto ~0.0018″, Saturn ~0.0009″, Jupiter ~0.0004″).
+- SP3: published per-body-class ceilings enforced; hard size gate active; latency
+  tracked; motion (FittedDerivative) gated against lon/lat/radial speed ceilings.
+
+No open Phase 2 slices remain.
 
 ## Phase 3 — Body/backend claim closure
 

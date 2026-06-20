@@ -20,7 +20,7 @@ As of the current workspace state, `pleiades` includes:
 - 25 catalogued house systems and 59 catalogued ayanamsas,
 - pure-Rust algorithmic backends for VSOP87-style planetary positions and a compact Meeus-style lunar baseline,
 - a reproducible, de440-sourced JPL reference corpus (checked-in, checksum-pinned, with the kernel SHA pinned but the kernel itself not committed) behind a live fail-closed corpus gate, used for comparison and validation,
-- an ARTIFACT_VERSION 6 packaged-data artifact for the common 1900-2100 CE range by default (planets Mercury–Pluto stored heliocentrically, geocentric ecliptic reconstructed at lookup via `P_geo = P_helio + S_geo`; all bodies sub-arcsec after the SP2 heliocentric-planet reframe), with wider coverage available via the `generate-artifact <kernel> --out <path> [--start --end]` CLI subcommand,
+- an ARTIFACT_VERSION 7 packaged-data artifact for the 1900–2100 CE window (planets Mercury–Pluto stored heliocentrically, geocentric ecliptic reconstructed at lookup via `P_geo = P_helio + S_geo`; all bodies sub-arcsec after the SP2 heliocentric-planet reframe; motion/speed output is `Motion = Derived` via `SpeedPolicy::FittedDerivative`; published per-body-class accuracy ceilings and hard size budget ≤ 12 MB enforced; wider coverage opt-in via `generate-artifact <kernel> --out <path> [--start --end]`),
 - contributor CLI tools for chart inspection, validation reports, audits, artifact checks, and release-bundle rehearsal.
 
 Important current limits:
@@ -29,7 +29,7 @@ Important current limits:
 - direct backend requests accept TT/TDB; UTC/UT1 require caller-supplied conversion offsets, and the dedicated `utc-convenience-policy-summary` keeps that deliberate non-goal explicit,
 - body-position observer/topocentric requests remain unsupported by current first-party backends,
 - native sidereal backend output is not assumed; chart-level sidereal longitude is handled by the façade/catalog layer,
-- the packaged-data artifact has sub-arcsec accuracy across all major bodies after the SP2 heliocentric-planet reframe, but SP3 (published thresholds/budgets) and the wider production release gate have not yet been completed.
+- the packaged-data artifact has sub-arcsec accuracy across all major bodies (SP2 heliocentric-planet reframe); published accuracy thresholds and hard size budget are enforced (SP3 complete, 1900–2100 CE window); motion/speed output is derived (`SpeedPolicy::FittedDerivative`); latency is tracked but not hard-gated by default.
 
 ## Published crates
 

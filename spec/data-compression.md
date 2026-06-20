@@ -120,9 +120,9 @@ Sun-geocentric channel are co-frame by construction: de440 provides both in the
 same ecliptic-of-date frame, the artifact fits them in that frame, and the
 runtime adds them in that frame.
 
-### Geocentric storage (Sun, Moon, Eros)
+### Geocentric storage (Sun, Moon, Eros) — `StoredFrame::Geocentric`
 
-The Sun, Moon, and 433-Eros are stored **geocentrically**: their channels
+The Sun, Moon, and 433-Eros carry `StoredFrame::Geocentric`: their channels
 represent the body's position relative to the Earth directly.  No
 Sun-subtraction reconstruction is applied at lookup; the stored coordinates are
 returned as-is.
@@ -148,13 +148,35 @@ For the Moon and some near-Earth-sensitive quantities, use shorter segments and/
 
 ## Accuracy Targets
 
-The compression spec must define body-class-specific target error envelopes, for example:
+The packaged artifact (first release: **1900–2100 CE**; documented future expansion to 1600–2600 CE
+is planned but not yet gated) publishes per-body-class accuracy ceilings enforced as a CI gate.
+These ceilings are the public contract, defined in `pleiades-data::thresholds::accuracy_ceiling`
+and measured against the de440-derived hold-out corpus.
 
-- Sun/major planets: low arcsecond-class or better where feasible for 1600-2600 packaged mode
-- Moon: tighter practical astrology target, documented empirically
-- major asteroids: documented target by source availability and model quality
+### Published ceilings (SSOT: `crates/pleiades-data/src/thresholds.rs`)
 
-Exact thresholds should be finalized through validation data, but every packaged artifact must publish measured error against its generation source.
+| Class | Bodies | lon ≤ | lat ≤ | dist ≤ | lon/lat speed ≤ | radial speed ≤ |
+|-------|--------|-------|-------|--------|-----------------|----------------|
+| Luminary | Sun, Moon | 1.0″ | 1.0″ | 50 km | 0.5 ″/day | 1×10⁻⁴ AU/day |
+| Inner planet | Mercury, Venus, Mars | 1.0″ | 1.0″ | 50 km | 0.5 ″/day | 1×10⁻⁴ AU/day |
+| Outer planet | Jupiter, Saturn, Uranus, Neptune, Pluto | 5.0″ | 5.0″ | 1,000 km | 0.05 ″/day | 1×10⁻⁴ AU/day |
+| Asteroid | Eros | 30″ | 30″ | 5,000,000 km | 120 ″/day | 1×10⁻² AU/day |
+
+**Asteroid note:** Eros ceilings are a self-consistency target only. Eros is absent from de440 so
+no independent-truth gate is applied; the ceiling documents the documented target derived from the
+committed Horizons reference snapshot.
+
+**Size budget:** Encoded artifact ≤ 12,000,000 bytes (measured ~10.0 MB); enforced as a hard CI
+gate via `PACKAGED_BUDGETS.max_encoded_bytes`.
+
+**Latency budget:** Decode/single-lookup/batch targets are tracked in `PACKAGED_BUDGETS`
+(decode ≤ 400 ms, single lookup ≤ 6 ms, batch ≥ 1,000 lookups/s, chart workload ≤ 50 ms).
+Latency is not a hard CI gate by default; opt-in enforcement via `PLEIADES_ENFORCE_LATENCY`.
+
+**Motion output:** Speed channels (lon/lat speed, radial speed) are classified as `Motion = Derived`
+in the artifact profile, computed via `SpeedPolicy::FittedDerivative`.
+
+Every packaged artifact must publish measured error against its generation source.
 
 ## Generation Pipeline
 

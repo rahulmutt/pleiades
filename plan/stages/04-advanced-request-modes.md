@@ -15,6 +15,16 @@ and validation or consistently rejected with structured errors.
 - Policy summaries document unsupported UTC convenience, Delta T, apparent-place,
   topocentric body positions, and native sidereal backend output.
 
+## Completed in SP3
+
+Motion/speed output (`SpeedPolicy::FittedDerivative`, `Motion = Derived`) was
+implemented and gated in SP3. The packaged artifact profile classifies longitude,
+latitude, and distance speed channels as `Motion = Derived`. Published per-body-class
+speed ceilings are enforced by the CI gate (lon/lat speed: 0.5 ″/day for
+luminaries/inner planets, 0.05 ″/day for outer planets, 120 ″/day for asteroids;
+radial speed: 1×10⁻⁴ AU/day for luminaries/inner/outer, 1×10⁻² AU/day for
+asteroids). See `crates/pleiades-data/src/thresholds.rs`.
+
 ## Remaining implementation work
 
 - Decide whether built-in UTC/UT1 convenience and Delta-T modeling are in scope
@@ -27,8 +37,9 @@ and validation or consistently rejected with structured errors.
   coordinate-frame handling, and tests.
 - Keep native sidereal backend output unsupported unless a backend provides
   validated native behavior distinct from chart-layer sidereal conversion.
-- Define speed, retrograde/stationary, and motion-output support consistently
-  across backend results, chart summaries, and artifact profiles.
+- The remaining motion scope for Phase 4 is **apparent, topocentric, native
+  sidereal, and civil-time motion output** only — derived geometric speed is
+  already implemented (SP3).
 
 ## Exit criteria
 

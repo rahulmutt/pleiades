@@ -3,12 +3,13 @@
 ## Goal
 
 Promote `pleiades-data` from a draft reproducibility fixture to a release-grade
-1600-2600 CE packaged backend.
+1900–2100 CE packaged backend (first release; 1600–2600 CE is documented as a
+future expansion, available opt-in via `generate-artifact`, not yet gated).
 
 ## Current baseline (after SP1 + SP2)
 
 - `pleiades-compression` defines artifact structures and codec helpers.
-- `pleiades-data` decodes a checked-in ARTIFACT_VERSION 6 artifact.
+- `pleiades-data` decodes a checked-in ARTIFACT_VERSION 7 artifact.
 - Generation is now rebased on a dense, de440-backed within-span fit: each of
   the 10 major bodies (Sun, Moon, Mercury-Pluto) is fit by least-squares
   polynomials sampled densely from de440 within each per-body segment span,
@@ -35,8 +36,13 @@ Promote `pleiades-data` from a draft reproducibility fixture to a release-grade
   accuracy; SP2 delivered the reframe.
 - Artifact profile, output-support, checksum, boundary, benchmark, regeneration,
   and request-policy summaries exist.
-- Size/perf baseline (measured, not budgeted): ~10.0 MB (1900–2100), decode ~260 ms,
-  single lookup ~3.3 ms.
+- Size/perf baseline (budgeted — size hard-gated ≤ 12 MB, latency tracked): ~10.0 MB
+  (1900–2100), decode ~260 ms, single lookup ~3.3 ms.
+- **SP3 (done): thresholds + budgets + motion-derived.** Published per-body-class accuracy
+  ceilings enforced as CI gates (see `crates/pleiades-data/src/thresholds.rs`). Hard size gate
+  (≤ 12,000,000 bytes). Latency targets tracked in `PACKAGED_BUDGETS`; opt-in enforcement via
+  `PLEIADES_ENFORCE_LATENCY`. Motion output (`SpeedPolicy::FittedDerivative`, `Motion = Derived`)
+  implemented and measured. ARTIFACT_VERSION is now 7.
 
 ## Remaining implementation work
 
@@ -46,12 +52,15 @@ Promote `pleiades-data` from a draft reproducibility fixture to a release-grade
   the SP1 baseline (~192″ Uranus, ~109″ Neptune, ~62″ Pluto, ~9.5″ Saturn, ~1.5″ Jupiter)
   to sub-arcsec across all bodies. See accuracy numbers above.
 
-### SP3 — Thresholds, size, and latency budgets
+### SP3 — Thresholds, size, and latency budgets (done)
 
-- Define and enforce published accuracy thresholds by body class and channel,
-  including longitude, latitude, distance, and supported speed/motion outputs.
-- Define and track size and latency budgets (encoded size, decode latency, single
-  lookup latency, batch throughput, chart-style workload performance).
+- Published accuracy thresholds by body class and channel (longitude, latitude,
+  distance, lon/lat speed, radial speed) defined and enforced as CI gate.
+- Size budget enforced (≤ 12,000,000 bytes, hard-gated). Latency budgets tracked
+  in `PACKAGED_BUDGETS` (not hard CI gate by default; opt-in via
+  `PLEIADES_ENFORCE_LATENCY`).
+- Motion output (`SpeedPolicy::FittedDerivative`, `Motion = Derived`) implemented,
+  measured, and gated against published speed ceilings.
 
 ### Ongoing
 
@@ -64,7 +73,15 @@ Promote `pleiades-data` from a draft reproducibility fixture to a release-grade
 
 ## Exit criteria
 
-- The packaged artifact covers the advertised 1600-2600 CE body/channel profile.
-- Reference and hold-out comparisons pass the published thresholds.
+- The packaged artifact covers the advertised 1900–2100 CE body/channel profile
+  (first release; 1600–2600 CE expansion is documented future work, opt-in via
+  `generate-artifact`, not gated for this phase).
+- Reference and hold-out comparisons pass the published per-body-class accuracy
+  ceilings from `thresholds.rs`.
+- Encoded artifact size is within the hard-gated budget (≤ 12,000,000 bytes).
+- Latency targets are tracked; hard enforcement is opt-in.
+- Motion output is `Motion = Derived` (FittedDerivative); speed ceilings are gated.
 - Artifact manifests, checksums, generation provenance, output-support profile,
   and benchmarks are current and release-bundle verified.
+
+**Phase 2 is complete** (SP1 + SP2 + SP3 all done).
