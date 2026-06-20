@@ -52,6 +52,16 @@ Benchmarks should measure:
 - compressed-data decode cost
 - memory footprint of common workloads
 
+### Fast default vs full test runs
+
+`cargo test` (and `mise test`) skip tests marked `#[ignore = "slow: ..."]` —
+the heavy release-bundle, benchmark/validation-report, and fit-analysis
+families — giving a fast local sanity run. `mise test-full`
+(`cargo test --workspace -- --include-ignored`) runs every test. CI and
+`release-gate` always run `test-full`, so the gate never reduces released
+coverage. The slow families are catalogued in
+`docs/superpowers/plans/test-timings.md`.
+
 ## Release Gates
 
 A release should not ship unless:

@@ -8,7 +8,10 @@
 #[test]
 #[ignore]
 fn print_holdout_checksum() {
-    let kernel = std::env::var("PLEIADES_DE_KERNEL").expect("set PLEIADES_DE_KERNEL");
+    let Some(kernel) = std::env::var_os("PLEIADES_DE_KERNEL").map(|v| v.to_string_lossy().into_owned()) else {
+        eprintln!("skipping: PLEIADES_DE_KERNEL not set");
+        return;
+    };
     let csv = pleiades_jpl::regenerate_holdout_slice_csv(&kernel).unwrap();
     use pleiades_jpl::spk::corpus_manifest::corpus_checksum64;
     let checksum = corpus_checksum64(&csv);

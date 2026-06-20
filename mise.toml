@@ -11,6 +11,9 @@ run = "cargo clippy --workspace --all-targets --all-features -- -D warnings"
 [tasks.test]
 run = "cargo test --workspace"
 
+[tasks.test-full]
+run = "cargo test --workspace -- --include-ignored"
+
 [tasks.docs]
 run = "RUSTDOCFLAGS=\"-D warnings\" cargo doc --workspace --no-deps --all-features"
 
@@ -50,8 +53,8 @@ run = "cargo run -q -p pleiades-validate -- benchmark --rounds 5"
 run = "cargo run -q -p pleiades-validate -- release-smoke"
 
 [tasks.release-gate]
-depends = ["fmt", "lint", "test", "benchmark", "audit", "package-check", "release-smoke"]
+depends = ["fmt", "lint", "test-full", "benchmark", "audit", "package-check", "release-smoke"]
 run = "cargo run -q -p pleiades-validate -- release-gate"
 
 [tasks.ci]
-depends = ["fmt", "lint", "test", "docs", "audit", "package-check", "release-smoke"]
+depends = ["fmt", "lint", "test-full", "docs", "audit", "package-check", "release-smoke"]
