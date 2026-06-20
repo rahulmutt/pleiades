@@ -866,7 +866,7 @@ fn validate_packaged_artifact_output_support_profile(
             ArtifactOutput::SiderealCoordinates,
             ArtifactOutputSupport::Unsupported,
         ),
-        (ArtifactOutput::Motion, ArtifactOutputSupport::Unsupported),
+        (ArtifactOutput::Motion, ArtifactOutputSupport::Derived),
     ];
 
     for (output, expected_support) in expected_states {
@@ -1003,7 +1003,7 @@ impl fmt::Display for PackagedArtifactSpeedPolicySummary {
 
 const PACKAGED_ARTIFACT_SPEED_POLICY_SUMMARY: PackagedArtifactSpeedPolicySummary =
     PackagedArtifactSpeedPolicySummary {
-        policy: SpeedPolicy::Unsupported,
+        policy: SpeedPolicy::FittedDerivative,
     };
 
 /// Returns the current packaged-artifact speed-policy summary record.

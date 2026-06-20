@@ -982,12 +982,12 @@ fn backend_metadata_exposes_packaged_scope() {
     );
     assert_eq!(
         packaged_artifact().header.profile.speed_policy,
-        pleiades_compression::SpeedPolicy::Unsupported
+        pleiades_compression::SpeedPolicy::FittedDerivative
     );
     assert!(packaged_artifact()
         .header
         .profile
-        .unsupported_outputs
+        .derived_outputs
         .contains(&pleiades_compression::ArtifactOutput::Motion));
     assert!(metadata.body_coverage.contains(&CelestialBody::Sun));
     assert!(metadata.body_coverage.contains(&CelestialBody::Moon));
@@ -1100,7 +1100,7 @@ fn backend_metadata_exposes_packaged_scope() {
     assert!(metadata.provenance.data_sources[3]
         .contains("ecliptic and equatorial coordinates are reconstructed at runtime"));
     assert!(metadata.provenance.data_sources[3]
-        .contains("apparent, topocentric, sidereal, and motion outputs remain unsupported"));
+        .contains("apparent, topocentric, and sidereal outputs remain unsupported; motion/speed is derived from fitted segment derivatives"));
     assert_eq!(
         packaged_artifact_storage_summary_details().validate(),
         Ok(())

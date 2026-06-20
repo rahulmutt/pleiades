@@ -36,7 +36,7 @@ fn packaged_artifact_profile_summary_details_match_the_bundled_header() {
     );
     assert_eq!(
         summary.profile.summary_line(),
-        "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported"
+        "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates, Motion]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates]; speed policy: FittedDerivative"
     );
     assert_eq!(summary.validate(), Ok(()));
     let coverage = summary.profile_coverage_summary();
@@ -329,7 +329,7 @@ fn packaged_artifact_storage_summary_validation_rejects_profile_drift() {
 
     let mut profile = packaged_artifact_profile_summary_details().profile.clone();
     profile
-        .unsupported_outputs
+        .derived_outputs
         .retain(|output| *output != pleiades_compression::ArtifactOutput::Motion);
 
     let error = validate_packaged_artifact_storage_profile(&profile)
@@ -337,7 +337,7 @@ fn packaged_artifact_storage_summary_validation_rejects_profile_drift() {
     assert_eq!(
         error,
         PackagedArtifactStorageSummaryValidationError::ProfileOutOfSync {
-            field: "unsupported_outputs"
+            field: "derived_outputs"
         }
     );
 }
@@ -1132,7 +1132,7 @@ fn packaged_artifact_production_profile_summary_reflects_the_current_posture() {
         .summary_line()
         .contains("source provenance=Production generation source:"));
     assert!(summary.summary_line().contains("output support="));
-    assert!(summary.summary_line().contains("speed policy=Unsupported"));
+    assert!(summary.summary_line().contains("speed policy=FittedDerivative"));
     assert!(summary
         .summary_line()
         .contains("segment strategy=bodies with a single sampled epoch use point segments"));
@@ -1160,12 +1160,12 @@ fn packaged_artifact_speed_policy_summary_reflects_the_current_posture() {
     let artifact = packaged_artifact();
 
     assert_eq!(summary.policy, artifact.header.profile.speed_policy);
-    assert_eq!(summary.policy, SpeedPolicy::Unsupported);
+    assert_eq!(summary.policy, SpeedPolicy::FittedDerivative);
     assert_eq!(summary.to_string(), summary.summary_line());
     assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
     assert_eq!(
         summary.summary_line(),
-        "Unsupported; motion output support=unsupported"
+        "FittedDerivative; motion output support=derived"
     );
     assert_eq!(
         packaged_artifact_speed_policy_summary_for_report(),
@@ -1471,7 +1471,7 @@ fn packaged_artifact_generation_manifest_reflects_the_current_posture() {
         .contains("Packaged artifact generation manifest:"));
     assert!(manifest.summary_line().contains("output support="));
     assert!(manifest.summary_line().contains("checksum=0x"));
-    assert!(manifest.summary_line().contains("speed policy=Unsupported"));
+    assert!(manifest.summary_line().contains("speed policy=FittedDerivative"));
     assert!(manifest.summary_line().contains("segment strategy="));
     assert!(manifest
         .summary_line()

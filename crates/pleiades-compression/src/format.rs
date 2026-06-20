@@ -374,14 +374,14 @@ impl ArtifactProfile {
             vec![
                 ArtifactOutput::EclipticCoordinates,
                 ArtifactOutput::EquatorialCoordinates,
+                ArtifactOutput::Motion,
             ],
             vec![
                 ArtifactOutput::ApparentCorrections,
                 ArtifactOutput::TopocentricCoordinates,
                 ArtifactOutput::SiderealCoordinates,
-                ArtifactOutput::Motion,
             ],
-            SpeedPolicy::Unsupported,
+            SpeedPolicy::FittedDerivative,
         )
     }
 

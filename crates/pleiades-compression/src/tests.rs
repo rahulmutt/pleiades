@@ -44,7 +44,7 @@ fn encode_decode_roundtrip_preserves_structure() {
     );
     assert_eq!(
         decoded.header.profile.speed_policy,
-        SpeedPolicy::Unsupported
+        SpeedPolicy::FittedDerivative
     );
     assert!(decoded
         .header
@@ -54,7 +54,7 @@ fn encode_decode_roundtrip_preserves_structure() {
     assert!(decoded
         .header
         .profile
-        .unsupported_outputs
+        .derived_outputs
         .contains(&ArtifactOutput::Motion));
     assert_eq!(decoded.bodies.len(), 1);
     assert_eq!(decoded.bodies[0].body, CelestialBody::Sun);
@@ -167,7 +167,7 @@ fn artifact_profile_reports_output_support_statuses() {
     );
     assert_eq!(
         profile.output_support(ArtifactOutput::Motion),
-        ArtifactOutputSupport::Unsupported
+        ArtifactOutputSupport::Derived
     );
     assert_eq!(
         profile.output_support(ArtifactOutput::SiderealCoordinates),
@@ -175,11 +175,11 @@ fn artifact_profile_reports_output_support_statuses() {
     );
     assert_eq!(
         profile.speed_policy.motion_output_support(),
-        ArtifactOutputSupport::Unsupported
+        ArtifactOutputSupport::Derived
     );
     assert_eq!(
         profile.motion_output_support(),
-        ArtifactOutputSupport::Unsupported
+        ArtifactOutputSupport::Derived
     );
     assert!(profile.supports_output(ArtifactOutput::EclipticCoordinates));
     assert!(profile.supports_output(ArtifactOutput::EquatorialCoordinates));
@@ -1397,15 +1397,15 @@ fn artifact_profile_coverage_summary_line_uses_bundled_body_list() {
 
     assert_eq!(
         coverage.summary_line(),
-        "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported; applies to 2 bundled bodies"
+        "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates, Motion]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates]; speed policy: FittedDerivative; applies to 2 bundled bodies"
     );
     assert_eq!(
         coverage.summary_line_with_bodies(),
-        "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported; applies to 2 bundled bodies; bundled bodies: Sun, Moon"
+        "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates, Motion]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates]; speed policy: FittedDerivative; applies to 2 bundled bodies; bundled bodies: Sun, Moon"
     );
     assert_eq!(
         coverage.to_string(),
-        "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported; applies to 2 bundled bodies"
+        "stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates, Motion]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates]; speed policy: FittedDerivative; applies to 2 bundled bodies"
     );
 }
 

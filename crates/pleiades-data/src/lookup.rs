@@ -499,15 +499,15 @@ pub(crate) fn validate_packaged_artifact_storage_profile(
         ChannelKind::Latitude,
         ChannelKind::DistanceAu,
     ];
-    const EXPECTED_DERIVED_OUTPUTS: [ArtifactOutput; 2] = [
+    const EXPECTED_DERIVED_OUTPUTS: [ArtifactOutput; 3] = [
         ArtifactOutput::EclipticCoordinates,
         ArtifactOutput::EquatorialCoordinates,
+        ArtifactOutput::Motion,
     ];
-    const EXPECTED_UNSUPPORTED_OUTPUTS: [ArtifactOutput; 4] = [
+    const EXPECTED_UNSUPPORTED_OUTPUTS: [ArtifactOutput; 3] = [
         ArtifactOutput::ApparentCorrections,
         ArtifactOutput::TopocentricCoordinates,
         ArtifactOutput::SiderealCoordinates,
-        ArtifactOutput::Motion,
     ];
 
     if profile.stored_channels != EXPECTED_STORED_CHANNELS {
@@ -540,7 +540,7 @@ pub(crate) fn validate_packaged_artifact_storage_profile(
 impl PackagedArtifactStorageSummary {
     /// Returns the storage and reconstruction posture as a compact human-readable line.
     pub const fn summary_line(self) -> &'static str {
-        "Quantized linear segments stored in pleiades-compression artifact format; body-indexed segment tables support random access by body and lookup time across the advertised range; ecliptic and equatorial coordinates are reconstructed at runtime from stored channels; apparent, topocentric, sidereal, and motion outputs remain unsupported"
+        "Quantized linear segments stored in pleiades-compression artifact format; body-indexed segment tables support random access by body and lookup time across the advertised range; ecliptic and equatorial coordinates are reconstructed at runtime from stored channels; apparent, topocentric, and sidereal outputs remain unsupported; motion/speed is derived from fitted segment derivatives"
     }
 
     /// Returns `Ok(())` when the summary still contains a compact canonical line.
