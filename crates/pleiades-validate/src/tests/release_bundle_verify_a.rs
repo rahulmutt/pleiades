@@ -512,7 +512,7 @@ fn release_bundle_writes_expected_artifacts() {
         .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
     assert!(release_notes_summary
         .contains("Artifact summary: artifact-summary / artifact-posture-summary"));
-    assert!(release_notes_summary.contains("Packaged-artifact storage/reconstruction: Quantized linear segments stored in pleiades-compression artifact format; body-indexed segment tables support random access by body and lookup time across the advertised range; ecliptic and equatorial coordinates are reconstructed at runtime from stored channels; apparent, topocentric, sidereal, and motion outputs remain unsupported"));
+    assert!(release_notes_summary.contains("Packaged-artifact storage/reconstruction: Quantized linear segments stored in pleiades-compression artifact format; body-indexed segment tables support random access by body and lookup time across the advertised range; ecliptic and equatorial coordinates are reconstructed at runtime from stored channels; apparent, topocentric, and sidereal outputs remain unsupported; motion/speed is derived from fitted segment derivatives"));
     assert_report_contains_exact_line(
         &release_notes_summary,
         &format!(
@@ -588,10 +588,10 @@ fn release_bundle_writes_expected_artifacts() {
             "Packaged-artifact profile: byte order: little-endian; stored channels: [Longitude, Latitude, DistanceAu]"
         ));
     assert!(release_summary.contains(
-            "Packaged-artifact output support: EclipticCoordinates=derived, EquatorialCoordinates=derived, ApparentCorrections=unsupported, TopocentricCoordinates=unsupported, SiderealCoordinates=unsupported, Motion=unsupported; unlisted outputs: []; support counts: stored=0, derived=2, approximated=0, unsupported=4, unlisted=0"
+            "Packaged-artifact output support: EclipticCoordinates=derived, EquatorialCoordinates=derived, ApparentCorrections=unsupported, TopocentricCoordinates=unsupported, SiderealCoordinates=unsupported, Motion=derived; unlisted outputs: []; support counts: stored=0, derived=3, approximated=0, unsupported=3, unlisted=0"
         ));
     assert!(release_summary.contains(
-            "Packaged-artifact storage/reconstruction: Quantized linear segments stored in pleiades-compression artifact format; body-indexed segment tables support random access by body and lookup time across the advertised range; ecliptic and equatorial coordinates are reconstructed at runtime from stored channels; apparent, topocentric, sidereal, and motion outputs remain unsupported"
+            "Packaged-artifact storage/reconstruction: Quantized linear segments stored in pleiades-compression artifact format; body-indexed segment tables support random access by body and lookup time across the advertised range; ecliptic and equatorial coordinates are reconstructed at runtime from stored channels; apparent, topocentric, and sidereal outputs remain unsupported; motion/speed is derived from fitted segment derivatives"
         ));
     assert!(release_summary.contains("Packaged-artifact target thresholds: profile id=pleiades-packaged-artifact-profile/stage-5-draft; target thresholds: production thresholds recorded; scopes=luminaries, major planets, pluto, lunar points, selected asteroids, custom bodies; fit envelope:"));
     assert!(release_summary.contains("Packaged-artifact fit margins: mean Δlon="));
@@ -608,7 +608,7 @@ fn release_bundle_writes_expected_artifacts() {
         .contains("Packaged-artifact generation manifest: Packaged artifact generation manifest:"));
     assert!(release_summary.contains("Packaged-artifact size: "));
     assert!(release_summary.contains(
-            "Artifact profile coverage: stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported; applies to 11 bundled bodies; bundled bodies: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros"
+            "Artifact profile coverage: stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates, Motion]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates]; speed policy: FittedDerivative; applies to 11 bundled bodies; bundled bodies: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros"
         ));
     assert!(release_summary.contains(&format!(
         "Packaged-artifact access: {}",
@@ -872,7 +872,7 @@ fn release_bundle_writes_expected_artifacts() {
     assert!(artifact_summary.contains("residual-bearing bodies: asteroid:433-Eros"));
     assert!(artifact_summary.contains("Body classes: luminaries=2; major planets=8; lunar points=0; built-in asteroids=0; custom bodies=1; other bodies=0"));
     assert!(artifact_summary.contains(
-            "Artifact profile: byte order: little-endian; stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates, Motion]; speed policy: Unsupported; applies to 11 bundled bodies; bundled bodies: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros"
+            "Artifact profile: byte order: little-endian; stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates, Motion]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates]; speed policy: FittedDerivative; applies to 11 bundled bodies; bundled bodies: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros"
         ));
     assert!(artifact_summary.contains("Generation manifest:"));
     assert!(artifact_summary.contains("Packaged-artifact phase-2 corpus alignment: "));
@@ -883,7 +883,7 @@ fn release_bundle_writes_expected_artifacts() {
     assert!(artifact_summary.contains("Packaged artifact generation manifest:"));
     assert!(artifact_summary.contains("Artifact request policy"));
     assert!(artifact_summary.contains(
-            "Artifact storage: Quantized linear segments stored in pleiades-compression artifact format; body-indexed segment tables support random access by body and lookup time across the advertised range; ecliptic and equatorial coordinates are reconstructed at runtime from stored channels; apparent, topocentric, sidereal, and motion outputs remain unsupported"
+            "Artifact storage: Quantized linear segments stored in pleiades-compression artifact format; body-indexed segment tables support random access by body and lookup time across the advertised range; ecliptic and equatorial coordinates are reconstructed at runtime from stored channels; apparent, topocentric, and sidereal outputs remain unsupported; motion/speed is derived from fitted segment derivatives"
         ));
     assert!(artifact_summary.contains(
             "regeneration provenance: Packaged artifact regeneration source: label=stage-5 packaged-data draft"

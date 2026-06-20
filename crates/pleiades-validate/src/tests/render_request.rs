@@ -146,7 +146,7 @@ fn cli_report_summary_lists_the_summary_command() {
     assert!(rendered.contains("Release bundle verification: verify-release-bundle"));
     assert!(rendered.contains("Packaged-artifact profile"));
     assert!(rendered.contains(
-            "Packaged-artifact output support: EclipticCoordinates=derived, EquatorialCoordinates=derived, ApparentCorrections=unsupported, TopocentricCoordinates=unsupported, SiderealCoordinates=unsupported, Motion=unsupported; unlisted outputs: []; support counts: stored=0, derived=2, approximated=0, unsupported=4, unlisted=0"
+            "Packaged-artifact output support: EclipticCoordinates=derived, EquatorialCoordinates=derived, ApparentCorrections=unsupported, TopocentricCoordinates=unsupported, SiderealCoordinates=unsupported, Motion=derived; unlisted outputs: []; support counts: stored=0, derived=3, approximated=0, unsupported=3, unlisted=0"
         ));
     assert!(rendered.contains("Packaged-artifact target thresholds: profile id=pleiades-packaged-artifact-profile/stage-5-draft; target thresholds: production thresholds recorded; scopes=luminaries, major planets, pluto, lunar points, selected asteroids, custom bodies; fit envelope:"));
     assert!(rendered.contains("Packaged-artifact target-threshold state: target-threshold state: production thresholds recorded"));
@@ -240,13 +240,13 @@ fn cli_report_summary_lists_the_summary_command() {
     assert!(validation_report_summary.contains("Release notes summary: release-notes-summary"));
     assert!(validation_report_summary.contains("Packaged-artifact profile"));
     assert!(validation_report_summary.contains(
-            "Packaged-artifact output support: EclipticCoordinates=derived, EquatorialCoordinates=derived, ApparentCorrections=unsupported, TopocentricCoordinates=unsupported, SiderealCoordinates=unsupported, Motion=unsupported; unlisted outputs: []; support counts: stored=0, derived=2, approximated=0, unsupported=4, unlisted=0"
+            "Packaged-artifact output support: EclipticCoordinates=derived, EquatorialCoordinates=derived, ApparentCorrections=unsupported, TopocentricCoordinates=unsupported, SiderealCoordinates=unsupported, Motion=derived; unlisted outputs: []; support counts: stored=0, derived=3, approximated=0, unsupported=3, unlisted=0"
         ));
     assert!(validation_report_summary.contains(
-        "Packaged-artifact speed policy: Unsupported; motion output support=unsupported"
+        "Packaged-artifact speed policy: FittedDerivative; motion output support=derived"
     ));
     assert!(validation_report_summary.contains(
-            "Packaged-artifact storage/reconstruction: Quantized linear segments stored in pleiades-compression artifact format; body-indexed segment tables support random access by body and lookup time across the advertised range; ecliptic and equatorial coordinates are reconstructed at runtime from stored channels; apparent, topocentric, sidereal, and motion outputs remain unsupported"
+            "Packaged-artifact storage/reconstruction: Quantized linear segments stored in pleiades-compression artifact format; body-indexed segment tables support random access by body and lookup time across the advertised range; ecliptic and equatorial coordinates are reconstructed at runtime from stored channels; apparent, topocentric, and sidereal outputs remain unsupported; motion/speed is derived from fitted segment derivatives"
         ));
     assert!(validation_report_summary.contains("Packaged-artifact target thresholds: profile id=pleiades-packaged-artifact-profile/stage-5-draft; target thresholds: production thresholds recorded; scopes=luminaries, major planets, pluto, lunar points, selected asteroids, custom bodies; fit envelope:"));
     assert!(validation_report_summary.contains("Packaged-artifact fit envelope: fit envelope:"));
