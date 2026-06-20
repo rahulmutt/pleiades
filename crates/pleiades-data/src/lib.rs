@@ -57,6 +57,7 @@ pub use accuracy_baseline::{
     packaged_artifact_accuracy_baseline, packaged_artifact_accuracy_baseline_summary_for_report,
     BodyChannelError,
 };
+pub use thresholds::packaged_artifact_thresholds_summary_for_report;
 pub use backend::*;
 pub use coverage::*;
 pub use data::*;
