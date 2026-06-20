@@ -117,6 +117,19 @@ impl PolynomialChannel {
         }
         result
     }
+
+    /// Derivative dP/dx of the monomial polynomial at normalized time `x`.
+    /// Coefficients are ascending power order, so d/dx(Σ c_i x^i) = Σ i·c_i·x^(i-1).
+    #[allow(dead_code)] // used by later tasks in this crate
+    pub(crate) fn evaluate_derivative(&self, x: f64) -> f64 {
+        let mut result = 0.0;
+        let mut power = 1.0; // x^(i-1), starting at i=1
+        for (i, coefficient) in self.coefficients.iter().enumerate().skip(1) {
+            result += (i as f64) * coefficient * power;
+            power *= x;
+        }
+        result
+    }
 }
 
 /// A single time segment for a specific body.
@@ -232,6 +245,29 @@ impl Segment {
 
         Ok(base + residual)
     }
+
+    /// (base + residual) derivative dP/dx at normalized time `x` for `kind`.
+    #[allow(dead_code)] // used by later tasks in this crate
+    pub(crate) fn evaluate_channel_derivative(
+        &self,
+        kind: ChannelKind,
+        x: f64,
+    ) -> Result<f64, CompressionError> {
+        let base = self
+            .channel(kind)
+            .map(|channel| channel.evaluate_derivative(x))
+            .ok_or_else(|| {
+                CompressionError::new(
+                    CompressionErrorKind::MissingChannel,
+                    format!("missing {kind:?} channel"),
+                )
+            })?;
+        let residual = self
+            .residual_channel(kind)
+            .map(|channel| channel.evaluate_derivative(x))
+            .unwrap_or(0.0);
+        Ok(base + residual)
+    }
 }
 
 impl fmt::Display for Segment {
@@ -341,5 +377,39 @@ mod frame_field_tests {
     fn with_frame_sets_heliocentric() {
         let b = BodyArtifact::with_frame(CelestialBody::Jupiter, vec![], StoredFrame::Heliocentric);
         assert_eq!(b.frame, StoredFrame::Heliocentric);
+    }
+}
+
+#[cfg(test)]
+mod derivative_tests {
+    use super::*;
+    use pleiades_types::{JulianDay, TimeScale};
+
+    #[test]
+    fn polynomial_derivative_matches_power_rule() {
+        // P(x) = 2 + 3x + 4x^2  ->  P'(x) = 3 + 8x
+        let ch = PolynomialChannel::new(ChannelKind::Longitude, 9, vec![2.0, 3.0, 4.0]);
+        assert!((ch.evaluate_derivative(0.0) - 3.0).abs() < 1e-12);
+        assert!((ch.evaluate_derivative(1.0) - 11.0).abs() < 1e-12);
+        assert!((ch.evaluate_derivative(0.5) - 7.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn segment_channel_derivative_includes_residual() {
+        let start = Instant::new(JulianDay::from_days(0.0), TimeScale::Tt);
+        let end = Instant::new(JulianDay::from_days(1.0), TimeScale::Tt);
+        let seg = Segment::with_residual_channels(
+            start,
+            end,
+            vec![PolynomialChannel::new(ChannelKind::Longitude, 9, vec![0.0, 2.0])], // base' = 2
+            vec![PolynomialChannel::new(
+                ChannelKind::Longitude,
+                9,
+                vec![0.0, 0.0, 5.0], // residual' = 10x
+            )],
+        );
+        // total derivative at x=1: 2 + 10 = 12
+        let d = seg.evaluate_channel_derivative(ChannelKind::Longitude, 1.0).unwrap();
+        assert!((d - 12.0).abs() < 1e-12);
     }
 }
