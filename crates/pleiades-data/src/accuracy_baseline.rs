@@ -412,24 +412,12 @@ mod tests {
     #[test]
     fn outer_planet_longitude_meets_astrology_grade_envelope() {
         let baseline = crate::accuracy_baseline::packaged_artifact_accuracy_baseline();
-        // Astrology-grade longitude ceilings (max abs error, arcsec).
-        let ceiling = |body: &CelestialBody| -> f64 {
-            match body {
-                CelestialBody::Sun
-                | CelestialBody::Moon
-                | CelestialBody::Mercury
-                | CelestialBody::Venus
-                | CelestialBody::Mars => 1.0,
-                CelestialBody::Jupiter
-                | CelestialBody::Saturn
-                | CelestialBody::Uranus
-                | CelestialBody::Neptune
-                | CelestialBody::Pluto => 5.0,
-                _ => f64::INFINITY,
-            }
-        };
+        // Astrology-grade longitude ceilings drawn from the published SSOT.
+        // accuracy_ceiling returns 1.0" for Luminary/InnerPlanet, 5.0" for
+        // OuterPlanet, and 30.0" for Asteroid — identical to the old inline
+        // match, so no threshold is loosened.
         for body_error in &baseline {
-            let c = ceiling(&body_error.body);
+            let c = crate::thresholds::accuracy_ceiling(&body_error.body).lon_arcsec;
             assert!(
                 body_error.max_longitude_arcsec <= c,
                 "{:?} longitude {:.3}\" exceeds ceiling {:.1}\"",

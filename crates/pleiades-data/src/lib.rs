@@ -50,6 +50,7 @@ mod coverage;
 mod data;
 mod lookup;
 mod regenerate;
+pub mod thresholds;
 
 pub use accuracy_baseline::{
     accuracy_baseline_against, packaged_artifact_accuracy_baseline,
