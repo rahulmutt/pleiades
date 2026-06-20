@@ -453,6 +453,10 @@ fn help_text_lists_the_packaged_lookup_epoch_policy_summary_command() {
         "packaged-artifact-thresholds-summary  Print published accuracy ceilings + size budget vs measured"
     ));
     assert!(help.contains("artifact-thresholds  Alias for packaged-artifact-thresholds-summary"));
+    assert!(help.contains(
+        "packaged-artifact-latency-budget-summary  Print measured decode/lookup/batch latency vs PACKAGED_BUDGETS targets (non-gating)"
+    ));
+    assert!(help.contains("artifact-latency  Alias for packaged-artifact-latency-budget-summary"));
     assert!(help.contains("packaged-frame-parity-summary  Print the packaged frame parity summary"));
     assert!(help.contains("packaged-frame-parity         Alias for packaged-frame-parity-summary"));
     assert!(help

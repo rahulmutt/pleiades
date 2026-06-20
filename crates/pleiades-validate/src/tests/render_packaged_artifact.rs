@@ -1510,3 +1510,80 @@ fn packaged_artifact_source_fit_holdout_sync_summary_and_alias_commands_render_t
         "packaged-artifact-source-fit-holdout-sync-summary does not accept extra arguments"
     );
 }
+
+#[test]
+fn packaged_artifact_latency_budget_summary_returns_non_empty_string_with_expected_labels() {
+    let summary = render_packaged_artifact_latency_budget_summary();
+    assert!(!summary.is_empty(), "latency budget summary should not be empty");
+    assert!(
+        summary.contains("decode"),
+        "latency budget summary should mention 'decode'"
+    );
+    assert!(
+        summary.contains("lookup"),
+        "latency budget summary should mention 'lookup'"
+    );
+    assert!(
+        summary.contains("batch"),
+        "latency budget summary should mention 'batch'"
+    );
+    assert!(
+        summary.contains("target"),
+        "latency budget summary should mention 'target'"
+    );
+    // CLI dispatch: verify the command and alias are wired up (structural check only,
+    // not equality — timing is non-deterministic so two runs produce different numbers).
+    let cli_summary = render_cli(&["packaged-artifact-latency-budget-summary"])
+        .expect("packaged-artifact-latency-budget-summary should render via CLI");
+    assert!(cli_summary.contains("decode"), "CLI summary should mention 'decode'");
+    assert!(cli_summary.contains("lookup"), "CLI summary should mention 'lookup'");
+    assert!(cli_summary.contains("batch"), "CLI summary should mention 'batch'");
+    let alias_summary = render_cli(&["artifact-latency"])
+        .expect("artifact-latency alias should render via CLI");
+    assert!(alias_summary.contains("decode"), "alias summary should mention 'decode'");
+    assert!(alias_summary.contains("lookup"), "alias summary should mention 'lookup'");
+    assert!(alias_summary.contains("batch"), "alias summary should mention 'batch'");
+}
+
+#[test]
+#[ignore = "latency is environment-sensitive; opt-in via PLEIADES_ENFORCE_LATENCY=1 (see SP2 SDD log: benchmark tests flake under concurrent load)"]
+fn latency_within_budget_when_enforced() {
+    if std::env::var("PLEIADES_ENFORCE_LATENCY").is_err() {
+        return;
+    }
+
+    const ROUNDS: usize = 16;
+    let budgets = &pleiades_data::thresholds::PACKAGED_BUDGETS;
+
+    // Decode
+    let decode_report = crate::artifact::benchmark_packaged_artifact_decode(ROUNDS)
+        .expect("decode benchmark should succeed");
+    let decode_ms = decode_report.elapsed.as_secs_f64() * 1_000.0 / decode_report.rounds as f64;
+    assert!(
+        decode_ms <= budgets.decode_latency_target_ms,
+        "decode latency {decode_ms:.1}ms exceeds budget {:.1}ms",
+        budgets.decode_latency_target_ms
+    );
+
+    // Single lookup
+    let lookup_report = crate::artifact::benchmark_packaged_artifact_lookup(ROUNDS)
+        .expect("lookup benchmark should succeed");
+    let lookup_ms = lookup_report.elapsed.as_secs_f64() * 1_000.0
+        / (lookup_report.rounds as f64 * lookup_report.sample_count as f64);
+    assert!(
+        lookup_ms <= budgets.single_lookup_target_ms,
+        "single-lookup latency {lookup_ms:.1}ms exceeds budget {:.1}ms",
+        budgets.single_lookup_target_ms
+    );
+
+    // Batch throughput
+    let batch_report = crate::artifact::benchmark_packaged_artifact_batch_lookup(ROUNDS)
+        .expect("batch benchmark should succeed");
+    let throughput_per_s = (batch_report.rounds as f64 * batch_report.batch_size as f64)
+        / batch_report.elapsed.as_secs_f64();
+    assert!(
+        throughput_per_s >= budgets.batch_throughput_target_per_s,
+        "batch throughput {throughput_per_s:.0}/s is below budget {:.0}/s",
+        budgets.batch_throughput_target_per_s
+    );
+}

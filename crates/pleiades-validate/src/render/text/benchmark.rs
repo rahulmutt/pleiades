@@ -58,6 +58,63 @@ pub(crate) fn report_summary_payload(summary: String, prefix: &str) -> String {
         .to_string()
 }
 
+/// Returns a non-gating latency budget summary string comparing measured artifact
+/// latency against the published `PACKAGED_BUDGETS` targets.
+///
+/// Non-gating: always returns a string, never panics or asserts on slow timing.
+/// The opt-in enforcement gate lives in the `tests` module under `#[ignore]`.
+pub fn render_packaged_artifact_latency_budget_summary() -> String {
+    const ROUNDS: usize = 16;
+
+    let budgets = &pleiades_data::thresholds::PACKAGED_BUDGETS;
+
+    // --- decode ---
+    let decode_line = match artifact::benchmark_packaged_artifact_decode(ROUNDS) {
+        Ok(report) => {
+            let measured_ms = report.elapsed.as_secs_f64() * 1_000.0 / report.rounds as f64;
+            let target_ms = budgets.decode_latency_target_ms;
+            let margin_ms = target_ms - measured_ms;
+            format!(
+                "decode {measured_ms:.1}ms / target {target_ms:.1}ms (margin {margin_ms:+.1}ms)"
+            )
+        }
+        Err(e) => format!("decode error: {e}"),
+    };
+
+    // --- single lookup ---
+    let lookup_line = match artifact::benchmark_packaged_artifact_lookup(ROUNDS) {
+        Ok(report) => {
+            let per_lookup_ms = report.elapsed.as_secs_f64() * 1_000.0
+                / (report.rounds as f64 * report.sample_count as f64);
+            let target_ms = budgets.single_lookup_target_ms;
+            let margin_ms = target_ms - per_lookup_ms;
+            format!(
+                "single-lookup {per_lookup_ms:.1}ms / target {target_ms:.1}ms (margin {margin_ms:+.1}ms)"
+            )
+        }
+        Err(e) => format!("single-lookup error: {e}"),
+    };
+
+    // --- batch throughput ---
+    let batch_line = match artifact::benchmark_packaged_artifact_batch_lookup(ROUNDS) {
+        Ok(report) => {
+            let per_lookup_s = report.elapsed.as_secs_f64()
+                / (report.rounds as f64 * report.batch_size as f64);
+            let throughput_per_s = if per_lookup_s > 0.0 { 1.0 / per_lookup_s } else { 0.0 };
+            let target_per_s = budgets.batch_throughput_target_per_s;
+            let margin = throughput_per_s - target_per_s;
+            format!(
+                "batch {throughput_per_s:.0}/s / target {target_per_s:.0}/s (margin {margin:+.0}/s)"
+            )
+        }
+        Err(e) => format!("batch error: {e}"),
+    };
+
+    format!(
+        "Packaged-artifact latency budget summary\n  {decode_line}\n  {lookup_line}\n  {batch_line}"
+    )
+}
+
 pub(crate) fn render_benchmark_matrix_summary_text(report: &ValidationReport) -> String {
     use std::fmt::Write as _;
 
