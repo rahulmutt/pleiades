@@ -120,7 +120,6 @@ impl PolynomialChannel {
 
     /// Derivative dP/dx of the monomial polynomial at normalized time `x`.
     /// Coefficients are ascending power order, so d/dx(Σ c_i x^i) = Σ i·c_i·x^(i-1).
-    #[allow(dead_code)] // used by later tasks in this crate
     pub(crate) fn evaluate_derivative(&self, x: f64) -> f64 {
         let mut result = 0.0;
         let mut power = 1.0; // x^(i-1), starting at i=1
@@ -247,7 +246,6 @@ impl Segment {
     }
 
     /// (base + residual) derivative dP/dx at normalized time `x` for `kind`.
-    #[allow(dead_code)] // used by later tasks in this crate
     pub(crate) fn evaluate_channel_derivative(
         &self,
         kind: ChannelKind,

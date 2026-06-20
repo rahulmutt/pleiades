@@ -3,7 +3,7 @@
 use core::fmt;
 
 use pleiades_types::{
-    Angle, CelestialBody, EclipticCoordinates, EquatorialCoordinates, Instant, TimeScale,
+    Angle, CelestialBody, EclipticCoordinates, EquatorialCoordinates, Instant, Motion, TimeScale,
 };
 
 use crate::channels::{BodyArtifact, ChannelKind};
@@ -329,6 +329,130 @@ impl CompressedArtifact {
             .to_equatorial(obliquity))
     }
 
+    /// Returns the angular and radial speeds for a body at a given instant.
+    ///
+    /// Speeds are computed analytically from the fitted polynomial segment derivatives.
+    /// For geocentric-stored bodies (Sun, Moon, Eros) the derivative of the stored
+    /// channel is returned directly. For heliocentric-stored planets the heliocentric
+    /// spherical state is converted to Cartesian, added to the Sun's geocentric
+    /// Cartesian state, and converted back to geocentric spherical rates.
+    ///
+    /// The artifact profile must advertise `Motion` as a supported output (via a
+    /// non-`Unsupported` `SpeedPolicy`) before this helper will serve the result.
+    pub fn lookup_motion(
+        &self,
+        body: &CelestialBody,
+        instant: Instant,
+    ) -> Result<Motion, CompressionError> {
+        self.require_output_support(ArtifactOutput::Motion)?;
+
+        if !matches!(instant.scale, TimeScale::Tt | TimeScale::Tdb) {
+            return Err(CompressionError::new(
+                CompressionErrorKind::UnsupportedTimeScale,
+                "packaged lookup only accepts TT or TDB instants",
+            ));
+        }
+
+        let segment = self.segment_for(body, instant)?;
+
+        let span = segment.span_days();
+        let x = if span == 0.0 {
+            0.0
+        } else {
+            (instant.julian_day.days() - segment.start.julian_day.days()) / span
+        };
+
+        // dP/dx × (1/span_days) converts normalized derivative to per-day rate.
+        let dlon_dt = segment.evaluate_channel_derivative(ChannelKind::Longitude, x)? / span;
+        let dlat_dt = segment.evaluate_channel_derivative(ChannelKind::Latitude, x)? / span;
+        let ddist_dt = segment.evaluate_channel_derivative(ChannelKind::DistanceAu, x)? / span;
+
+        let frame = self
+            .body_artifact(body)
+            .map(|b| b.frame)
+            .unwrap_or(crate::channels::StoredFrame::Geocentric);
+
+        match frame {
+            crate::channels::StoredFrame::Geocentric => Ok(Motion {
+                longitude_deg_per_day: Some(dlon_dt),
+                latitude_deg_per_day: Some(dlat_dt),
+                distance_au_per_day: Some(ddist_dt),
+            }),
+            crate::channels::StoredFrame::Heliocentric => {
+                // Build the heliocentric spherical state (channels are in degrees,
+                // recombination functions use radians).
+                let lon = segment.evaluate_channel(ChannelKind::Longitude, x)?;
+                let lat = segment.evaluate_channel(ChannelKind::Latitude, x)?;
+                let dist = segment.evaluate_channel(ChannelKind::DistanceAu, x)?;
+                let helio =
+                    crate::frame_recombine::spherical_state_to_cartesian(
+                        crate::frame_recombine::SphericalState {
+                            lon_rad: lon.to_radians(),
+                            lat_rad: lat.to_radians(),
+                            dist_au: dist,
+                            lon_rate_rad_per_day: dlon_dt.to_radians(),
+                            lat_rate_rad_per_day: dlat_dt.to_radians(),
+                            dist_rate_au_per_day: ddist_dt,
+                        },
+                    );
+                let sun = self.sun_cartesian_state(instant)?;
+                let geo = crate::frame_recombine::CartesianState {
+                    pos_au: [
+                        helio.pos_au[0] + sun.pos_au[0],
+                        helio.pos_au[1] + sun.pos_au[1],
+                        helio.pos_au[2] + sun.pos_au[2],
+                    ],
+                    vel_au_per_day: [
+                        helio.vel_au_per_day[0] + sun.vel_au_per_day[0],
+                        helio.vel_au_per_day[1] + sun.vel_au_per_day[1],
+                        helio.vel_au_per_day[2] + sun.vel_au_per_day[2],
+                    ],
+                };
+                let s = crate::frame_recombine::cartesian_state_to_spherical(geo);
+                Ok(Motion {
+                    longitude_deg_per_day: Some(s.lon_rate_rad_per_day.to_degrees()),
+                    latitude_deg_per_day: Some(s.lat_rate_rad_per_day.to_degrees()),
+                    distance_au_per_day: Some(s.dist_rate_au_per_day),
+                })
+            }
+        }
+    }
+
+    /// Returns the Sun's geocentric Cartesian position (AU) and velocity (AU/day)
+    /// at the given instant by evaluating the Sun's stored geocentric segment.
+    ///
+    /// The Sun is always stored geocentric per the SP2 Sun-presence invariant
+    /// enforced by `validate()`.
+    fn sun_cartesian_state(
+        &self,
+        instant: Instant,
+    ) -> Result<crate::frame_recombine::CartesianState, CompressionError> {
+        let sun_segment = self.segment_for(&CelestialBody::Sun, instant)?;
+        let span = sun_segment.span_days();
+        let x = if span == 0.0 {
+            0.0
+        } else {
+            (instant.julian_day.days() - sun_segment.start.julian_day.days()) / span
+        };
+        let lon = sun_segment.evaluate_channel(ChannelKind::Longitude, x)?;
+        let lat = sun_segment.evaluate_channel(ChannelKind::Latitude, x)?;
+        let dist = sun_segment.evaluate_channel(ChannelKind::DistanceAu, x)?;
+        let dlon_dt = sun_segment.evaluate_channel_derivative(ChannelKind::Longitude, x)? / span;
+        let dlat_dt = sun_segment.evaluate_channel_derivative(ChannelKind::Latitude, x)? / span;
+        let ddist_dt =
+            sun_segment.evaluate_channel_derivative(ChannelKind::DistanceAu, x)? / span;
+        Ok(crate::frame_recombine::spherical_state_to_cartesian(
+            crate::frame_recombine::SphericalState {
+                lon_rad: lon.to_radians(),
+                lat_rad: lat.to_radians(),
+                dist_au: dist,
+                lon_rate_rad_per_day: dlon_dt.to_radians(),
+                lat_rate_rad_per_day: dlat_dt.to_radians(),
+                dist_rate_au_per_day: ddist_dt,
+            },
+        ))
+    }
+
     fn require_output_support(&self, output: ArtifactOutput) -> Result<(), CompressionError> {
         if self.header.profile.supports_output(output) {
             Ok(())
@@ -476,6 +600,139 @@ mod reframe_lookup_tests {
         assert!(
             result.is_err(),
             "artifact with heliocentric Jupiter and heliocentric Sun must fail validation"
+        );
+    }
+}
+
+#[cfg(test)]
+mod motion_lookup_tests {
+    use super::*;
+    use crate::channels::{BodyArtifact, ChannelKind, PolynomialChannel, Segment, StoredFrame};
+    use crate::format::{ArtifactProfile, SpeedPolicy};
+    use pleiades_types::{CelestialBody, Instant, JulianDay, TimeScale};
+
+    /// Creates a header whose profile advertises Motion as a derived output
+    /// via FittedDerivative speed policy.
+    fn motion_header(label: &str) -> ArtifactHeader {
+        ArtifactHeader::with_profile(
+            label,
+            "motion test fixture",
+            ArtifactProfile::new(
+                vec![ChannelKind::Longitude, ChannelKind::Latitude, ChannelKind::DistanceAu],
+                vec![
+                    ArtifactOutput::EclipticCoordinates,
+                    ArtifactOutput::EquatorialCoordinates,
+                ],
+                vec![
+                    ArtifactOutput::ApparentCorrections,
+                    ArtifactOutput::TopocentricCoordinates,
+                    ArtifactOutput::SiderealCoordinates,
+                ],
+                SpeedPolicy::FittedDerivative,
+            ),
+        )
+    }
+
+    #[test]
+    fn lookup_motion_for_geocentric_body_is_direct_derivative() {
+        // Sun segment: longitude linear from 100 to 102 over a 10-day span (x ∈ [0,1]).
+        // dλ/dx = 2 deg; dλ/dt = 2 / 10 days = 0.2 deg/day.
+        // latitude and distance are constant, so their rates are 0.
+        let start = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
+        let end = Instant::new(JulianDay::from_days(2_451_555.0), TimeScale::Tt);
+        let segment = Segment::new(
+            start,
+            end,
+            vec![
+                PolynomialChannel::linear(ChannelKind::Longitude, 9, 100.0, 102.0),
+                PolynomialChannel::linear(ChannelKind::Latitude, 9, 5.0, 5.0),
+                PolynomialChannel::linear(ChannelKind::DistanceAu, 10, 1.0, 1.0),
+            ],
+        );
+        let artifact = CompressedArtifact::new(
+            motion_header("geocentric-derivative-test"),
+            vec![BodyArtifact::new(CelestialBody::Sun, vec![segment])],
+        );
+        let at = Instant::new(JulianDay::from_days(2_451_550.0), TimeScale::Tt);
+        let m = artifact.lookup_motion(&CelestialBody::Sun, at).unwrap();
+        assert!(
+            (m.longitude_deg_per_day.unwrap() - 0.2).abs() < 1e-9,
+            "longitude rate should be 0.2 deg/day, got {:?}",
+            m.longitude_deg_per_day
+        );
+        assert!(
+            m.latitude_deg_per_day.unwrap().abs() < 1e-9,
+            "latitude rate should be 0, got {:?}",
+            m.latitude_deg_per_day
+        );
+        assert!(
+            m.distance_au_per_day.unwrap().abs() < 1e-9,
+            "distance rate should be 0, got {:?}",
+            m.distance_au_per_day
+        );
+    }
+
+    #[test]
+    fn lookup_motion_heliocentric_body_returns_finite_geocentric_rates() {
+        // Two-body artifact: Sun geocentric with known motion, Jupiter heliocentric with known motion.
+        // We only assert that the returned motion components are all Some(_) and finite —
+        // correctness of the vector recombination is covered by the velocity round-trip test
+        // in frame_recombine.
+        let t0 = 2_451_545.0_f64;
+        let t1 = t0 + 100.0;
+        let mid = (t0 + t1) / 2.0;
+
+        let make_seg = |body_lon: f64, body_lat: f64, body_dist: f64| {
+            Segment::new(
+                Instant::new(JulianDay::from_days(t0), TimeScale::Tt),
+                Instant::new(JulianDay::from_days(t1), TimeScale::Tt),
+                vec![
+                    // linear longitude: body_lon at x=0, body_lon+1 at x=1
+                    PolynomialChannel::linear(ChannelKind::Longitude, 9, body_lon, body_lon + 1.0),
+                    PolynomialChannel::linear(ChannelKind::Latitude, 9, body_lat, body_lat),
+                    PolynomialChannel::linear(
+                        ChannelKind::DistanceAu,
+                        10,
+                        body_dist,
+                        body_dist,
+                    ),
+                ],
+            )
+        };
+
+        // Sun geocentric
+        let sun_seg = make_seg(95.0, 0.0, 1.0);
+        // Jupiter heliocentric (approximate heliocentric position)
+        let jup_seg = make_seg(120.0, 0.5, 5.2);
+
+        let artifact = CompressedArtifact::new(
+            motion_header("heliocentric-motion-smoke-test"),
+            vec![
+                BodyArtifact::new(CelestialBody::Sun, vec![sun_seg]),
+                BodyArtifact::with_frame(
+                    CelestialBody::Jupiter,
+                    vec![jup_seg],
+                    StoredFrame::Heliocentric,
+                ),
+            ],
+        );
+
+        let at = Instant::new(JulianDay::from_days(mid), TimeScale::Tt);
+        let m = artifact.lookup_motion(&CelestialBody::Jupiter, at).unwrap();
+        assert!(m.longitude_deg_per_day.is_some(), "longitude_deg_per_day must be Some");
+        assert!(m.latitude_deg_per_day.is_some(), "latitude_deg_per_day must be Some");
+        assert!(m.distance_au_per_day.is_some(), "distance_au_per_day must be Some");
+        assert!(
+            m.longitude_deg_per_day.unwrap().is_finite(),
+            "longitude_deg_per_day must be finite"
+        );
+        assert!(
+            m.latitude_deg_per_day.unwrap().is_finite(),
+            "latitude_deg_per_day must be finite"
+        );
+        assert!(
+            m.distance_au_per_day.unwrap().is_finite(),
+            "distance_au_per_day must be finite"
         );
     }
 }
