@@ -66,6 +66,7 @@
 #![forbid(unsafe_code)]
 
 mod capabilities;
+mod claims;
 mod errors;
 mod identity;
 mod metadata;
@@ -88,6 +89,7 @@ pub use pleiades_types::{
 };
 
 pub use capabilities::{BackendCapabilities, BackendCapabilitiesValidationError};
+pub use claims::{BodyClaim, BodyClaimTier, ClaimEvidence};
 pub use errors::{EphemerisError, EphemerisErrorKind};
 pub use identity::{AccuracyClass, BackendFamily, BackendFamilyPosture, BackendId};
 pub use metadata::{
