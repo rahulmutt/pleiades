@@ -2,7 +2,7 @@
 
 use pleiades_backend::{
     validate_observer_policy, validate_request_policy, validate_zodiac_policy, AccuracyClass,
-    BackendCapabilities, BackendFamily, BackendId, BackendMetadata, BackendProvenance, BodyClaim,
+    BackendCapabilities, BackendFamily, BackendId, BackendMetadata, BackendProvenance,
     CelestialBody, EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest,
     EphemerisResult, QualityAnnotation,
 };
@@ -159,12 +159,7 @@ impl EphemerisBackend for SpkBackend {
             },
             nominal_range: self.nominal_range(),
             supported_time_scales: vec![TimeScale::Tt, TimeScale::Tdb],
-            body_claims: self
-                .covered_bodies()
-                .iter()
-                .cloned()
-                .map(BodyClaim::from)
-                .collect(),
+            body_claims: crate::spk::asteroid_roster::spk_body_claims(&self.covered_bodies()),
             supported_frames: vec![CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial],
             capabilities: BackendCapabilities {
                 geocentric: true,
@@ -222,7 +217,11 @@ mod tests {
     use super::*;
     use crate::spk::test_support::{build_daf, type2_record, type2_segment_data, SegmentSpec};
     use pleiades_backend::EphemerisRequest;
-    use pleiades_types::{Ayanamsa, Instant, JulianDay};
+    use pleiades_types::{Ayanamsa, CustomBodyId, Instant, JulianDay};
+
+    fn ast_body(d: &str) -> CelestialBody {
+        CelestialBody::Custom(CustomBodyId::new("asteroid", d))
+    }
 
     fn const_seg(target: i32, center: i32, pos: [f64; 3]) -> SegmentSpec {
         let rec = type2_record(0.0, 1.0e12, &[pos[0], 0.0], &[pos[1], 0.0], &[pos[2], 0.0]);
@@ -282,5 +281,32 @@ mod tests {
             .position(&req)
             .expect_err("sidereal-zodiac requests must be rejected");
         assert_eq!(err.kind, EphemerisErrorKind::UnsupportedZodiacMode);
+    }
+
+    #[test]
+    fn spk_claims_tier_a_release_grade_tier_b_constrained() {
+        use crate::spk::asteroid_roster::spk_body_claims;
+        use pleiades_backend::BodyClaimTier;
+        let covered = vec![
+            CelestialBody::Ceres,    // Tier A
+            CelestialBody::Vesta,    // Tier A
+            ast_body("2060-Chiron"), // Tier B (Constrained centaur)
+            CelestialBody::Mars,     // planet → Constrained/High/de440
+        ];
+        let claims = spk_body_claims(&covered);
+        let tier = |b: &CelestialBody| claims.iter().find(|c| &c.body == b).map(|c| c.tier);
+        assert_eq!(
+            tier(&CelestialBody::Ceres),
+            Some(BodyClaimTier::ReleaseGrade)
+        );
+        assert_eq!(
+            tier(&CelestialBody::Vesta),
+            Some(BodyClaimTier::ReleaseGrade)
+        );
+        assert_eq!(
+            tier(&ast_body("2060-Chiron")),
+            Some(BodyClaimTier::Constrained)
+        );
+        assert_eq!(tier(&CelestialBody::Mars), Some(BodyClaimTier::Constrained));
     }
 }

@@ -126,6 +126,48 @@ pub fn tier_b_bodies() -> Vec<CelestialBody> {
         .collect()
 }
 
+/// Builds per-body claims for the SPK backend over the bodies it actually covers.
+///
+/// - Tier-A bodies (pinned sb441-n16 kernel) → `ReleaseGrade`/`High`/`CorpusValidated{"sb441-n16"}`
+/// - Tier-B bodies (Horizons-sourced) → `Constrained`/`Moderate`/`CorpusValidated{"horizons"}`
+/// - All other bodies (planets, Sun, Moon served by DE kernels) → `Constrained`/`High`/`CorpusValidated{"de440"}`
+pub fn spk_body_claims(covered: &[CelestialBody]) -> Vec<pleiades_backend::BodyClaim> {
+    use pleiades_backend::{AccuracyClass, BodyClaim, ClaimEvidence};
+    let tier_a = tier_a_bodies();
+    let tier_b = tier_b_bodies();
+    covered
+        .iter()
+        .cloned()
+        .map(|body| {
+            if tier_a.contains(&body) {
+                BodyClaim::release_grade(
+                    body,
+                    AccuracyClass::High,
+                    ClaimEvidence::CorpusValidated {
+                        source: "sb441-n16".to_string(),
+                    },
+                )
+            } else if tier_b.contains(&body) {
+                BodyClaim::constrained(
+                    body,
+                    AccuracyClass::Moderate,
+                    ClaimEvidence::CorpusValidated {
+                        source: "horizons".to_string(),
+                    },
+                )
+            } else {
+                BodyClaim::constrained(
+                    body,
+                    AccuracyClass::High,
+                    ClaimEvidence::CorpusValidated {
+                        source: "de440".to_string(),
+                    },
+                )
+            }
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
