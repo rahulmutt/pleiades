@@ -77,11 +77,17 @@ impl CivilDateTime {
         let day = day_frac.floor();
         let month = if e < 14.0 { e - 1.0 } else { e - 13.0 };
         let year = if month > 2.0 { c - 4716.0 } else { c - 4715.0 };
-        let mut rem_hours = (day_frac - day) * 24.0;
-        let hour = rem_hours.floor();
-        rem_hours = (rem_hours - hour) * 60.0;
-        let minute = rem_hours.round();
-        let second = (rem_hours - minute) * 60.0;
+        // Decompose the intra-day remainder via total seconds-of-day, rounding
+        // the whole quantity to the nearest millisecond (the inverse conversion
+        // carries ~0.1 ms of floating-point noise) BEFORE splitting into h/m/s.
+        // Rounding the aggregate, then flooring each component, reconstructs a
+        // round-tripped HH:MM:00 cleanly without the per-component-round bug
+        // that corrupted sub-minute times (e.g. 19:20:30 -> 19:21:-30).
+        let mut rem_seconds = ((day_frac - day) * 86_400.0 * 1_000.0).round() / 1_000.0;
+        let hour = (rem_seconds / 3_600.0).floor();
+        rem_seconds -= hour * 3_600.0;
+        let minute = (rem_seconds / 60.0).floor();
+        let second = rem_seconds - minute * 60.0;
         Self {
             year: year as i32,
             month: month as u8,
@@ -127,6 +133,16 @@ mod tests {
         assert_eq!(back.hour, 19);
         assert_eq!(back.minute, 21);
         assert!(back.second < 0.001 || back.second > 59.999);
+    }
+
+    #[test]
+    fn round_trips_nonzero_seconds_without_minute_corruption() {
+        let original = CivilDateTime::new(1987, 4, 10, 19, 20, 30.0);
+        let jd = original.to_julian_day().unwrap();
+        let back = CivilDateTime::from_julian_day(jd);
+        assert_eq!(back.hour, 19);
+        assert_eq!(back.minute, 20);
+        assert!((back.second - 30.0).abs() < 0.001, "second drifted: {}", back.second);
     }
 
     #[test]
