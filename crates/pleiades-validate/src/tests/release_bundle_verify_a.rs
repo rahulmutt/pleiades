@@ -680,7 +680,10 @@ fn release_bundle_writes_expected_artifacts() {
     assert!(release_summary.contains("Comparison envelope: samples:"));
     assert!(release_summary
         .contains("Comparison corpus release-grade guard: Pluto excluded from tolerance evidence"));
-    assert!(release_summary.contains("Release-grade body claims: Moon and supported lunar points (Mean Node, True Node, Mean Apogee, Mean Perigee) remain source-backed validation bodies; True Apogee and True Perigee remain unsupported; Sun through Neptune are release-grade major-body claims; Pluto remains an explicitly approximate fallback; selected asteroids (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) remain source-backed validation bodies"));
+    // Release-grade body claims are derived from the per-backend model (structural shape).
+    assert!(release_summary.contains("Release-grade body claims: ReleaseGrade: ["));
+    assert!(release_summary.contains("Pluto@pleiades-data"));
+    assert!(release_summary.contains("Pluto@pleiades-vsop87"));
     assert!(release_summary.contains("Body/date/channel claims:"));
     let comparison_report = compare_backends(
         &default_reference_backend(),

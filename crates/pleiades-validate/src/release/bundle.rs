@@ -1403,11 +1403,8 @@ pub fn render_release_bundle(
         render_custom_definition_ayanamsa_labels_summary();
     let ayanamsa_provenance_summary_text = format_ayanamsa_provenance_for_report();
     let validation_report_summary_text = render_validation_report_summary_text(&validation_report);
-    let release_body_claims_summary = release_body_claims_summary_for_report();
-    release_body_claims_summary
-        .validated_summary_line()
+    let release_body_claims_summary_text = validated_release_body_claims_summary_line_for_report()
         .map_err(|error| ReleaseBundleError::Verification(error.to_string()))?;
-    let release_body_claims_summary_text = release_body_claims_summary.summary_line();
     let body_date_channel_claims_summary_text = render_body_date_channel_claims_summary_text();
     let pluto_fallback_summary = pluto_fallback_summary_for_report();
     pluto_fallback_summary
@@ -1984,7 +1981,7 @@ pub fn render_release_bundle(
         checksum64(&custom_definition_ayanamsa_labels_summary_text);
     let ayanamsa_provenance_summary_checksum = checksum64(&ayanamsa_provenance_summary_text);
     let validation_report_summary_checksum = checksum64(&validation_report_summary_text);
-    let release_body_claims_summary_checksum = checksum64(release_body_claims_summary_text);
+    let release_body_claims_summary_checksum = checksum64(&release_body_claims_summary_text);
     let body_date_channel_claims_summary_checksum =
         checksum64(&body_date_channel_claims_summary_text);
     let pluto_fallback_summary_checksum = checksum64(pluto_fallback_summary_text);

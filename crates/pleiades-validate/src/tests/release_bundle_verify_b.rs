@@ -912,8 +912,8 @@ fn verify_release_bundle_rejects_semantically_tampered_release_body_claims_summa
             "pleiades-release-bundle-semantic-release-body-claims-summary",
             "release-body-claims-summary.txt",
             "release body claims summary checksum (fnv1a-64):",
-            "release-grade major-body claims",
-            "release-grade major-body claims (validated)",
+            "Pluto@pleiades-data",
+            "Pluto@pleiades-data (tampered)",
             "release body claims summary no longer matches the current release-grade body-claims posture",
         );
 }

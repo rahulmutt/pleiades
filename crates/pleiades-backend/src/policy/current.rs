@@ -17,10 +17,6 @@ use super::{
 };
 use crate::errors::{format_display_list, EphemerisError, EphemerisErrorKind};
 use crate::metadata::BackendMetadata;
-use crate::release_body_claims::{
-    release_body_claims_summary_text, ReleaseBodyClaimsSummary,
-    ReleaseBodyClaimsSummaryValidationError,
-};
 use crate::request::EphemerisRequest;
 use pleiades_types::{Apparentness, CoordinateFrame, TimeScale, ZodiacMode};
 
@@ -116,22 +112,6 @@ pub fn validated_zodiac_policy_summary_for_report() -> String {
 /// Returns the current Pluto fallback posture used by validation and reports.
 pub const fn current_pluto_fallback_summary() -> PlutoFallbackSummary {
     PlutoFallbackSummary::new(CURRENT_PLUTO_FALLBACK_POLICY_SUMMARY_TEXT)
-}
-
-/// Returns the current release-grade body claims used by validation and reports.
-pub fn current_release_body_claims_summary() -> ReleaseBodyClaimsSummary {
-    ReleaseBodyClaimsSummary::new(release_body_claims_summary_text())
-}
-
-/// Returns the release-grade body claims used by validation and release reporting.
-pub fn release_body_claims_summary_for_report() -> ReleaseBodyClaimsSummary {
-    current_release_body_claims_summary()
-}
-
-/// Returns the validated release-grade body-claims summary line used by validation and release reporting.
-pub fn validated_release_body_claims_summary_line_for_report(
-) -> Result<&'static str, ReleaseBodyClaimsSummaryValidationError> {
-    current_release_body_claims_summary().validated_summary_line()
 }
 
 /// Returns the Pluto fallback posture used by validation and release reporting.
