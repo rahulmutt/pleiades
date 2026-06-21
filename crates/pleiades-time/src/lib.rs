@@ -6,6 +6,7 @@ mod convert;
 mod error;
 pub mod deltat;
 pub mod leap;
+pub mod policy;
 pub mod tdb;
 
 pub use calendar::CivilDateTime;
@@ -16,6 +17,7 @@ pub use convert::{
 };
 pub use deltat::DeltaTQuality;
 pub use error::CivilTimeError;
+pub use policy::{CivilTimePolicyError, CivilTimePolicySummary};
 
 /// Deterministic 64-bit content checksum (FNV-1a), byte-identical to
 /// `pleiades_jpl::spk::corpus_manifest::corpus_checksum64`. Used to detect drift
