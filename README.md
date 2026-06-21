@@ -34,9 +34,9 @@ Important current limits:
 
 ## Published crates
 
-The nine library crates (`pleiades-types`, `pleiades-backend`, `pleiades-core`,
+The ten library crates (`pleiades-types`, `pleiades-backend`, `pleiades-core`,
 `pleiades-houses`, `pleiades-ayanamsa`, `pleiades-vsop87`, `pleiades-elp`,
-`pleiades-jpl`, `pleiades-compression`) are published to crates.io as
+`pleiades-jpl`, `pleiades-compression`, `pleiades-time`) are published to crates.io as
 experimental `0.2.x` releases under `MIT OR Apache-2.0`. The limits above apply
 to the published crates as well; production-accuracy claims wait on the phases
 in [PLAN.md](PLAN.md). `pleiades-cli`, `pleiades-data`, and `pleiades-validate`

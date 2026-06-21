@@ -12,8 +12,9 @@ and validation or consistently rejected with structured errors.
 - First-party backend body positions are mean geometric and geocentric.
 - Chart-level sidereal conversion is handled above backends by the domain/catalog
   layer.
-- Policy summaries document unsupported UTC convenience, Delta T, apparent-place,
-  topocentric body positions, and native sidereal backend output.
+- Policy summaries document unsupported apparent-place, topocentric body
+  positions, and native sidereal backend output (UTC convenience and Delta T
+  are now implemented via `pleiades-time`; see "Completed" section below).
 
 ## Completed in SP3
 
