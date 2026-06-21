@@ -39,11 +39,18 @@ already has validating evidence — not by writing new astronomy. Concretely:
    VSOP87's simplified-element Pluto stays approximate; `pleiades-elp`'s compact
    Meeus Moon stays constrained. The packaged-data and JPL/SPK backends carry the
    release-grade claims because they already validate against the corpus.
-4. **Tier-A asteroids are release-grade via JPL/SPK only.** Ceres/Pallas/Juno/
-   Vesta have release-quality evidence only through the `ReferenceData` JPL/SPK
-   backend (reproducible from the pinned `sb441-n16` kernel). They are *not* added
-   to the offline packaged artifact (preserves the hard ≤ 12 MB size budget). The
-   JPL/SPK backend is documented as corpus/kernel-dependent reference data.
+4. **Tier-A asteroids are release-grade via JPL/SPK only.** The release-grade
+   asteroid set is the `sb441-n16` `PinnedKernel` tier itself
+   (`crates/pleiades-jpl/src/spk/asteroid_roster.rs::tier_a_bodies()`) — **all 7
+   bodies**: Ceres, Pallas, Juno, Vesta, Hygiea, Psyche, Iris — not a hardcoded
+   four. Tying the claim to the kernel criterion is self-maintaining and matches
+   raise-where-feasible (same kernel evidence → same claim). They have
+   release-quality evidence only through the `ReferenceData` JPL/SPK backend and
+   are *not* added to the offline packaged artifact (preserves the hard ≤ 12 MB
+   size budget). The JPL/SPK backend is documented as corpus/kernel-dependent
+   reference data. Hygiea/Psyche/Iris are `Custom(asteroid:...)` ids; any
+   `PinnedKernel` body lacking accuracy-ceiling evidence is downgraded by the
+   audit (Section 3) rather than silently claimed.
 
 ### Validation bar for `ReleaseGrade`
 
@@ -83,14 +90,23 @@ gate proves each assignment against evidence.
 
 | Backend | ReleaseGrade | Constrained | Approximate | Unsupported |
 |---|---|---|---|---|
-| packaged-data | Sun, Moon, Mercury–Pluto, Eros | — | — | — |
-| JPL/SPK | Ceres, Pallas, Juno, Vesta | Apophis, Tier-B (centaurs/TNOs) | — | — |
-| ELP | — | Moon, Mean/True Node, Mean Apogee/Perigee | — | True Apogee/Perigee |
-| VSOP87 | — | Sun, Mercury–Neptune | Pluto | — |
+| packaged-data (`pleiades-data`) | Sun, Moon, Mercury–Pluto, Eros | — | — | — |
+| JPL/SPK (`jpl-spk`) | `sb441-n16` PinnedKernel set: Ceres, Pallas, Juno, Vesta, Hygiea, Psyche, Iris | Tier-B (centaurs/TNOs/personal asteroids incl. Eros, Apophis) + planets it also serves | — | — |
+| ELP (`pleiades-elp`) | — | Moon, Mean/True Node, Mean Apogee/Perigee | — | True Apogee/Perigee |
+| VSOP87 (`pleiades-vsop87`) | — | Sun, Mercury–Neptune | Pluto | — |
+| jpl-snapshot (`jpl-snapshot`) | — | DE441 fixture bodies (validation reference) | — | — |
 
 Pluto and Moon each appear under different tiers via different backends — the
 per-backend model resolving the global contradiction, rather than one global
 verdict.
+
+**Canonical release-posture set.** There are *five* first-party backends; all five
+get `body_claims` populated (the field change is universal). The derived
+`ReleasePosture` aggregates over an explicit **canonical set** of the
+release-facing backends — `pleiades-data`, `jpl-spk`, `pleiades-elp`,
+`pleiades-vsop87`. `jpl-snapshot` is a checked-in DE441 *validation* fixture, not a
+release-claimed runtime backend, so it carries claims for metadata consistency but
+is excluded from the aggregated release posture.
 
 ## Architecture
 
@@ -212,17 +228,21 @@ corpus math) runs in the default test pass.
 3. Rewrite `release_body_claims.rs` to derive `ReleasePosture`; make `policy/mod.rs`
    constants derived.
 4. Point render/CLI/rustdoc surfaces at the derived posture.
-5. **Regenerate committed sidecars** from the new renderers and re-checksum them in
-   `bundle_verify.rs` *in the same commit*, so the bundle gate flips red→green
-   atomically and never lands broken.
+5. Update the renderers in `pleiades-validate/src/render/summary/release.rs` to
+   consume the derived posture. **The policy sidecars are not committed files** —
+   they are generated during `bundle-release` and re-rendered + checksummed
+   in-process by `verify-release-bundle` (`bundle_verify.rs`). So there is no
+   committed-file regeneration: the renderers change and the bundle gate re-derives
+   in the same run. Any golden/snapshot *test* fixtures for the summary text are
+   updated in the same commit that changes the rendering.
 6. Add the audit + drift gate; wire into release-gate/CI.
 
 **Report-text stability:** the promotions change the claims, so summary text *will*
-change (Pluto/Moon/Eros release-grade via packaged-data; Tier-A via JPL/SPK). That
-is intended and visible. The commitment: the change is driven by the derived model,
-sidecar regeneration is part of the migration commit, and the drift gate keeps them
-in sync afterward. Old exact-phrase consts (`LUNAR_VALIDATION_PHRASE`, etc.) are
-deleted, not updated.
+change (Pluto/Moon/Eros release-grade via packaged-data; the 7-body Tier-A set via
+JPL/SPK). That is intended and visible. The commitment: the change is driven by the
+derived model, the bundle gate re-renders rather than trusting stored bytes, and
+the drift gate keeps every surface in sync. Old exact-phrase consts
+(`LUNAR_VALIDATION_PHRASE`, etc.) are deleted, not updated.
 
 **README / PLAN alignment** (the repo's maintenance rule): README "current limits"
 and `PLAN.md` Phase 3 status are updated in the same change — Pluto reframed from
