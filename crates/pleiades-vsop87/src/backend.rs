@@ -1,8 +1,8 @@
 use pleiades_backend::{
     validate_observer_policy, validate_request_policy, validate_zodiac_policy, AccuracyClass,
     BackendCapabilities, BackendFamily, BackendId, BackendMetadata, BackendProvenance, BodyClaim,
-    EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult,
-    QualityAnnotation,
+    ClaimEvidence, EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest,
+    EphemerisResult, QualityAnnotation,
 };
 use pleiades_types::{
     CelestialBody, CoordinateFrame, EclipticCoordinates, EquatorialCoordinates, Instant, Latitude,
@@ -47,6 +47,21 @@ impl Vsop87Backend {
             CelestialBody::Neptune,
             CelestialBody::Pluto,
         ]
+    }
+
+    pub(crate) fn vsop87_body_claims() -> Vec<BodyClaim> {
+        Self::supported_bodies()
+            .iter()
+            .cloned()
+            .map(|body| match body {
+                CelestialBody::Pluto => BodyClaim::approximate(body),
+                other => BodyClaim::constrained(
+                    other,
+                    AccuracyClass::Moderate,
+                    ClaimEvidence::AlgorithmicModel,
+                ),
+            })
+            .collect()
     }
 
     fn earth_elements(days: f64) -> OrbitalElements {
@@ -381,7 +396,7 @@ impl EphemerisBackend for Vsop87Backend {
             },
             nominal_range: TimeRange::new(None, None),
             supported_time_scales: vec![TimeScale::Tt, TimeScale::Tdb],
-            body_claims: Self::supported_bodies().iter().cloned().map(BodyClaim::from).collect(),
+            body_claims: Self::vsop87_body_claims(),
             supported_frames: vec![CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial],
             capabilities: BackendCapabilities {
                 geocentric: true,
