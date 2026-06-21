@@ -72,6 +72,7 @@ mod identity;
 mod metadata;
 mod policy;
 mod release_body_claims;
+mod release_posture;
 mod request;
 mod result;
 mod traits;
@@ -142,6 +143,7 @@ pub use release_body_claims::{
     validate_release_body_claims_posture, ReleaseBodyClaimsPostureValidationError,
     ReleaseBodyClaimsSummary, ReleaseBodyClaimsSummaryValidationError,
 };
+pub use release_posture::ReleasePosture;
 pub use request::EphemerisRequest;
 pub use result::{EphemerisResult, EphemerisResultValidationError, QualityAnnotation};
 pub use traits::{CompositeBackend, EphemerisBackend, RoutingBackend};

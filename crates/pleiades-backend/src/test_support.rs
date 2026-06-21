@@ -23,6 +23,27 @@ pub(crate) fn toy_metadata() -> BackendMetadata {
     }
 }
 
+/// Builds a minimal valid [`BackendMetadata`] with the given id and body claims.
+///
+/// The returned metadata passes [`BackendMetadata::validate()`]. Callers must
+/// supply at least one unique body claim (non-empty, no duplicate bodies).
+pub(crate) fn metadata_with_claims(id: &str, body_claims: Vec<BodyClaim>) -> BackendMetadata {
+    BackendMetadata {
+        id: BackendId::new(id),
+        version: "0.1.0".to_string(),
+        family: BackendFamily::Algorithmic,
+        provenance: BackendProvenance::new("test backend"),
+        nominal_range: TimeRange::new(None, None),
+        supported_time_scales: vec![TimeScale::Tt],
+        body_claims,
+        supported_frames: vec![CoordinateFrame::Ecliptic],
+        capabilities: BackendCapabilities::default(),
+        accuracy: AccuracyClass::Approximate,
+        deterministic: true,
+        offline: true,
+    }
+}
+
 pub(crate) fn tt_instant() -> Instant {
     Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt)
 }
