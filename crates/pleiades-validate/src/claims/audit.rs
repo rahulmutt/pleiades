@@ -10,8 +10,14 @@
 //!    be rejected by the backend's own `validate_request` preflight.
 
 use crate::claims::canonical_release_metadata;
-use pleiades_backend::{BodyClaim, BodyClaimTier, ClaimEvidence};
+use pleiades_backend::{BodyClaim, BodyClaimTier, CelestialBody, ClaimEvidence, EphemerisBackend};
+use pleiades_data::thresholds::accuracy_ceiling;
 use std::fmt;
+
+/// Degrees-to-arcseconds conversion factor.
+const DEG_TO_ARCSEC: f64 = 3600.0;
+/// Astronomical-unit-to-kilometre conversion factor.
+const AU_TO_KM: f64 = 149_597_870.7;
 
 /// Errors produced by the structural claim audit.
 // These items are `pub` for Task 11 (corpus audit) which will call
@@ -45,6 +51,17 @@ pub enum ClaimAuditError {
         /// The body whose claim fails the tier/evidence check.
         body: String,
     },
+    /// A `ReleaseGrade` body's measured corpus delta exceeds the SP3 accuracy
+    /// ceiling for that body on one of the comparison channels.
+    ReleaseGradeAboveCeiling {
+        /// The backend identifier.
+        backend: String,
+        /// The body whose measured delta exceeds its ceiling.
+        body: String,
+        /// The channel that exceeded its ceiling (`longitude`, `latitude`, or
+        /// `distance`).
+        channel: String,
+    },
 }
 
 impl fmt::Display for ClaimAuditError {
@@ -61,6 +78,14 @@ impl fmt::Display for ClaimAuditError {
             Self::TierEvidenceMismatch { backend, body } => write!(
                 f,
                 "backend `{backend}` claims `{body}` as ReleaseGrade but evidence is not artifact- or corpus-validated"
+            ),
+            Self::ReleaseGradeAboveCeiling {
+                backend,
+                body,
+                channel,
+            } => write!(
+                f,
+                "backend `{backend}` ReleaseGrade body `{body}` exceeds its accuracy ceiling on the `{channel}` channel"
             ),
         }
     }
@@ -131,6 +156,128 @@ pub fn audit_structural() -> Result<(), Vec<ClaimAuditError>> {
     }
 }
 
+/// Audits that every `ReleaseGrade` body actually meets its SP3 accuracy
+/// ceiling against the reference corpus.
+///
+/// Two backends are exercised:
+///
+/// - **packaged-data** (`pleiades-data`): the packaged artifact is compared
+///   against a hold-out-backed reference over [`crate::corpus::holdout_corpus`].
+///   The reference is a [`SnapshotCorpusBackend`] over the committed independent
+///   hold-out rows (`production_holdout_corpus`), and the corpus requests one
+///   sample per hold-out row, so both sides are evaluated at exactly matching
+///   epochs. This is the SP3-grade, apples-to-apples comparison that backs the
+///   published per-body accuracy ceilings (it mirrors the in-`pleiades-data`
+///   accuracy baseline). The coarse `default_corpus` + narrow `JplSnapshotBackend`
+///   reference is deliberately *not* used: that pairing extrapolates from a
+///   J2000-only snapshot and is tuned for the VSOP/ELP comparison, which inflates
+///   latitude/distance deltas by orders of magnitude and does not reflect the
+///   packaged artifact's true accuracy. This path runs with real teeth in the
+///   kernel-free environment. (The packaged Eros claim has no hold-out truth row
+///   and is therefore not exercised here; it remains covered by the broad
+///   production corpus inside `pleiades-data`.)
+/// - **jpl-spk** (`jpl-spk`): the sb441-n16 Tier-A asteroid reference (a
+///   [`SnapshotCorpusBackend`] over [`crate::corpus::asteroid_corpus`]) is
+///   compared against the SPK release backend. In the kernel-free environment
+///   the SPK candidate declares no release-grade bodies, so this path performs
+///   no checks; it activates only when a small-body kernel is provided.
+///
+/// Returns `Ok(())` when every checked body is within its ceiling on all
+/// channels; otherwise returns the full list of [`ClaimAuditError::ReleaseGradeAboveCeiling`]
+/// findings. This is a slow audit (it runs full corpus comparisons) and is
+/// gated behind an `#[ignore]`'d test.
+#[allow(dead_code)]
+pub fn audit_release_grade_accuracy() -> Result<(), Vec<ClaimAuditError>> {
+    let mut errors = Vec::new();
+
+    // packaged-data ReleaseGrade bodies vs the independent hold-out reference,
+    // sampled at matching epochs (SP3-grade, apples-to-apples with the published
+    // per-body accuracy ceilings).
+    {
+        let reference = pleiades_jpl::SnapshotCorpusBackend::from_entries(
+            pleiades_jpl::production_holdout_corpus().to_vec(),
+        );
+        let candidate = pleiades_data::PackagedDataBackend::default();
+        let corpus = crate::corpus::holdout_corpus();
+        if let Ok(report) = crate::comparison::compare_backends(&reference, &candidate, &corpus) {
+            check_report(
+                &report,
+                "pleiades-data",
+                &candidate.metadata().release_grade_bodies(),
+                &mut errors,
+            );
+        }
+    }
+
+    // jpl-spk Tier-A asteroids vs the sb441-n16 asteroid reference.
+    {
+        let reference = pleiades_jpl::SnapshotCorpusBackend::from_entries(
+            pleiades_jpl::asteroid_reference_corpus().to_vec(),
+        );
+        let candidate = crate::claims::spk_release_backend();
+        let corpus = crate::corpus::asteroid_corpus();
+        if let Ok(report) = crate::comparison::compare_backends(&reference, &candidate, &corpus) {
+            check_report(
+                &report,
+                "jpl-spk",
+                &candidate.metadata().release_grade_bodies(),
+                &mut errors,
+            );
+        }
+    }
+
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
+    }
+}
+
+/// Checks each release-grade body's measured deltas against its accuracy ceiling.
+///
+/// Bodies that are not in `release_bodies` are skipped. For each release-grade
+/// body, the per-channel maximum corpus delta is converted to the ceiling's
+/// units (arcseconds for longitude/latitude, kilometres for distance) and
+/// compared against the body's [`accuracy_ceiling`]; any breach is pushed as a
+/// [`ClaimAuditError::ReleaseGradeAboveCeiling`].
+#[allow(dead_code)]
+fn check_report(
+    report: &crate::comparison::ComparisonReport,
+    backend: &str,
+    release_bodies: &[CelestialBody],
+    errors: &mut Vec<ClaimAuditError>,
+) {
+    for summary in report.body_summaries() {
+        if !release_bodies.contains(&summary.body) {
+            continue;
+        }
+        let ceiling = accuracy_ceiling(&summary.body);
+        if summary.max_longitude_delta_deg * DEG_TO_ARCSEC > ceiling.lon_arcsec {
+            errors.push(ClaimAuditError::ReleaseGradeAboveCeiling {
+                backend: backend.to_string(),
+                body: summary.body.to_string(),
+                channel: "longitude".to_string(),
+            });
+        }
+        if summary.max_latitude_delta_deg * DEG_TO_ARCSEC > ceiling.lat_arcsec {
+            errors.push(ClaimAuditError::ReleaseGradeAboveCeiling {
+                backend: backend.to_string(),
+                body: summary.body.to_string(),
+                channel: "latitude".to_string(),
+            });
+        }
+        if let Some(delta_au) = summary.max_distance_delta_au {
+            if delta_au * AU_TO_KM > ceiling.dist_km {
+                errors.push(ClaimAuditError::ReleaseGradeAboveCeiling {
+                    backend: backend.to_string(),
+                    body: summary.body.to_string(),
+                    channel: "distance".to_string(),
+                });
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -138,6 +285,12 @@ mod tests {
     #[test]
     fn structural_audit_passes_for_canonical_backends() {
         assert!(audit_structural().is_ok());
+    }
+
+    #[test]
+    #[ignore = "slow: runs corpus comparison"]
+    fn release_grade_bodies_meet_accuracy_ceiling() {
+        assert!(super::audit_release_grade_accuracy().is_ok());
     }
 
     #[test]
