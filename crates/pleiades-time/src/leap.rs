@@ -50,7 +50,7 @@ fn table() -> Result<Vec<(f64, i32)>, CivilTimeError> {
 /// Returns `TAI − UTC` in whole seconds for a UTC instant, or `Ok(None)` if the
 /// instant is before 1972 or after the table's validated horizon.
 pub fn tai_minus_utc(jd_utc: f64) -> Result<Option<i32>, CivilTimeError> {
-    if jd_utc < LEAP_EPOCH_JD || jd_utc > VALID_THROUGH_JD {
+    if !(LEAP_EPOCH_JD..=VALID_THROUGH_JD).contains(&jd_utc) {
         return Ok(None);
     }
     let rows = table()?;

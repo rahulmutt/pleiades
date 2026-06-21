@@ -116,7 +116,7 @@ fn finite(jd: f64) -> Result<(), CivilTimeError> {
 
 /// Builds a TT instant (and provenance) from a civil Julian Day tagged UTC or UT1.
 fn to_tt(jd_civil: f64, source: TimeScale) -> Result<(f64, ConversionProvenance), CivilTimeError> {
-    if jd_civil < SUPPORT_START_JD || jd_civil > SUPPORT_END_JD {
+    if !(SUPPORT_START_JD..=SUPPORT_END_JD).contains(&jd_civil) {
         return Err(CivilTimeError::BeyondHorizon { jd: jd_civil });
     }
     match source {
