@@ -2,12 +2,18 @@
 //! TT/TDB output with typed provenance.
 
 mod calendar;
+mod convert;
 mod error;
 pub mod deltat;
 pub mod leap;
 pub mod tdb;
 
 pub use calendar::CivilDateTime;
+pub use convert::{
+    to_terrestrial, tdb_from_ut1_civil, tdb_from_utc_civil, tt_from_ut1_civil, tt_from_utc_civil,
+    CivilInstant, ConversionPath, ConversionProvenance, ConversionQuality, SUPPORT_END_JD,
+    SUPPORT_START_JD,
+};
 pub use deltat::DeltaTQuality;
 pub use error::CivilTimeError;
 
