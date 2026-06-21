@@ -2543,6 +2543,12 @@ mod claims_audit_tests {
         assert!(out.contains("claim audit"));
         assert!(out.contains("OK") || out.contains("ok"));
     }
+
+    #[test]
+    fn claims_audit_rejects_unknown_flag() {
+        let err = render_cli(&["claims-audit", "--bad"]).unwrap_err();
+        assert!(err.contains("claims-audit") && err.contains("does not accept extra arguments"));
+    }
 }
 
 #[cfg(test)]

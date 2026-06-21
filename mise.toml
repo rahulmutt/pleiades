@@ -47,6 +47,7 @@ done
 '''
 
 [tasks.claims-audit]
+description = "Run fast claim audit (drift + structural). Pass --full to also run the slow accuracy audit."
 run = "cargo run -q -p pleiades-validate -- claims-audit"
 
 [tasks.benchmark]
