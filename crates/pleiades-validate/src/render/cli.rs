@@ -1842,6 +1842,64 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "body-date-channel-claims")?;
             Ok(render_body_date_channel_claims_summary_text())
         }
+        Some("claims-audit") => {
+            // Accept zero extra args (fast: drift + structural) or exactly `--full`
+            // (fast + slow accuracy audit).  Reject anything else.
+            let full = match args.get(1).copied() {
+                None => false,
+                Some("--full") => {
+                    // Only `--full` is accepted; any further args are invalid.
+                    if args.len() > 2 {
+                        return Err(format!(
+                            "claims-audit accepts at most one flag (--full), got: {}",
+                            args[2..].join(" ")
+                        ));
+                    }
+                    true
+                }
+                Some(other) => {
+                    return Err(format!(
+                        "claims-audit does not accept extra arguments: {other}"
+                    ));
+                }
+            };
+            let mut lines = vec!["claim audit".to_string()];
+            let mut had_errors = false;
+            match crate::claims::check_claim_drift() {
+                Ok(()) => lines.push("drift: OK".to_string()),
+                Err(errs) => {
+                    had_errors = true;
+                    for e in errs {
+                        lines.push(format!("drift: {e}"));
+                    }
+                }
+            }
+            match crate::claims::audit::audit_structural() {
+                Ok(()) => lines.push("structural: OK".to_string()),
+                Err(errs) => {
+                    had_errors = true;
+                    for e in errs {
+                        lines.push(format!("structural: {e}"));
+                    }
+                }
+            }
+            if full {
+                match crate::claims::audit::audit_release_grade_accuracy() {
+                    Ok(()) => lines.push("accuracy: OK".to_string()),
+                    Err(errs) => {
+                        had_errors = true;
+                        for e in errs {
+                            lines.push(format!("accuracy: {e}"));
+                        }
+                    }
+                }
+            }
+            if had_errors {
+                Err(lines.join("\n"))
+            } else {
+                Ok(format!("{}\n", lines.join("\n")))
+            }
+        }
         Some("pluto-fallback-summary") => {
             ensure_no_extra_args(&args[1..], "pluto-fallback-summary")?;
             Ok(render_pluto_fallback_summary_text())
@@ -2473,6 +2531,18 @@ fn render_ingest_public(args: &[&str]) -> Result<String, String> {
         prov(out.provenance.units),
         prov(out.provenance.center),
     ))
+}
+
+#[cfg(test)]
+mod claims_audit_tests {
+    use super::render_cli;
+
+    #[test]
+    fn claims_audit_command_reports_ok() {
+        let out = render_cli(&["claims-audit"]).expect("claims-audit renders");
+        assert!(out.contains("claim audit"));
+        assert!(out.contains("OK") || out.contains("ok"));
+    }
 }
 
 #[cfg(test)]

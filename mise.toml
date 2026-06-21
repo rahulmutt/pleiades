@@ -46,6 +46,9 @@ for crate in $crates; do
 done
 '''
 
+[tasks.claims-audit]
+run = "cargo run -q -p pleiades-validate -- claims-audit"
+
 [tasks.benchmark]
 run = "cargo run -q -p pleiades-validate -- benchmark --rounds 5"
 
@@ -53,8 +56,8 @@ run = "cargo run -q -p pleiades-validate -- benchmark --rounds 5"
 run = "cargo run -q -p pleiades-validate -- release-smoke"
 
 [tasks.release-gate]
-depends = ["fmt", "lint", "test-full", "benchmark", "audit", "package-check", "release-smoke"]
+depends = ["fmt", "lint", "test-full", "benchmark", "audit", "package-check", "release-smoke", "claims-audit"]
 run = "cargo run -q -p pleiades-validate -- release-gate"
 
 [tasks.ci]
-depends = ["fmt", "lint", "test-full", "docs", "audit", "package-check", "release-smoke"]
+depends = ["fmt", "lint", "test-full", "docs", "audit", "package-check", "release-smoke", "claims-audit"]
