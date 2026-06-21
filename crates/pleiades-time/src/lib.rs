@@ -1,6 +1,10 @@
 //! Civil-time conversion: Gregorian calendar, leap seconds, Delta-T, and
 //! TT/TDB output with typed provenance.
 
+mod error;
+
+pub use error::CivilTimeError;
+
 /// Deterministic 64-bit content checksum (FNV-1a), byte-identical to
 /// `pleiades_jpl::spk::corpus_manifest::corpus_checksum64`. Used to detect drift
 /// between a checked-in data table and its pinned checksum. Not cryptographic.
