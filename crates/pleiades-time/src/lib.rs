@@ -3,6 +3,7 @@
 
 mod calendar;
 mod error;
+pub mod leap;
 
 pub use calendar::CivilDateTime;
 pub use error::CivilTimeError;
