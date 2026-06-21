@@ -25,6 +25,7 @@ As of the current workspace state, `pleiades` includes:
 
 Important current limits:
 
+- body/backend claims are now **per-backend**: Pluto, the Moon, and Eros are release-grade via the packaged-data artifact, while VSOP87's Pluto stays approximate and the compact ELP Moon stays constrained; the seven `sb441-n16` Tier-A asteroids (Ceres, Pallas, Juno, Vesta, Hygiea, Psyche, Iris) are release-grade via the corpus-dependent JPL/SPK backend; True Apogee/Perigee remain unsupported,
 - first-party backends currently expose **mean geometric** coordinates; apparent-place corrections are rejected unless a backend advertises support,
 - direct backend requests accept TT/TDB; UTC/UT1 require caller-supplied conversion offsets, and the dedicated `utc-convenience-policy-summary` keeps that deliberate non-goal explicit,
 - body-position observer/topocentric requests remain unsupported by current first-party backends,

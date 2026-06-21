@@ -57,12 +57,12 @@ These are the implementation gaps that still block a production release:
   active, latency tracked in `PACKAGED_BUDGETS`, motion output `Motion = Derived`
   via `SpeedPolicy::FittedDerivative` gated against speed ceilings, window
   1900–2100 CE).
-- Pluto remains approximate/fallback-backed in first-party algorithmic paths and
-  is excluded from release-grade major-body claims.
-- `pleiades-elp` is a compact Meeus-style lunar baseline, not a full ELP
-  coefficient implementation.
-- Baseline selected-asteroid evidence exists, but broad asteroid release claims
-  are not yet supported.
+- body/backend claims are now **per-backend**: Pluto, the Moon, and Eros are
+  release-grade via the packaged-data artifact, while VSOP87's Pluto stays
+  approximate and the compact ELP Moon stays constrained; the seven `sb441-n16`
+  Tier-A asteroids (Ceres, Pallas, Juno, Vesta, Hygiea, Psyche, Iris) are
+  release-grade via the corpus-dependent JPL/SPK backend; True Apogee/Perigee
+  remain unsupported.
 - First-party body-position requests remain mean, geometric, geocentric, and
   tropical at the backend boundary. Built-in UTC/Delta-T conversion,
   apparent-place corrections, topocentric body positions, and native sidereal
@@ -93,10 +93,11 @@ audits pass.
 
 ## Current priority
 
-Phases 1 and 2 are complete. The active frontier is **Phase 3**: body/backend
-claim closure — resolve Pluto, constrain lunar/lunar-point claims, and promote
-selected asteroid support where source evidence is sufficient. Phase 6 is deferred
-end-state work and must not broaden public claims before its own evidence exists.
+Phases 1, 2, and 3 are complete. Phase 3 closed body/backend claim closure via
+per-backend claim model enforced by the `claims-audit` gate. The active frontier
+is **Phase 4**: request-mode semantics — UTC/Delta-T, apparent, topocentric,
+native sidereal, and motion-output requests. Phase 6 is deferred end-state work
+and must not broaden public claims before its own evidence exists.
 
 ## Plan maintenance rules
 
