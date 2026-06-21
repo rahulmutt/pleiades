@@ -35,6 +35,10 @@ fn validate_release_smoke_at(output_dir: impl AsRef<Path>) -> Result<(), String>
     let _ = render_artifact_report().map_err(render_artifact_error)?;
     let _ = render_release_bundle(1, output_dir).map_err(render_release_bundle_error)?;
     let _ = verify_release_bundle(output_dir).map_err(render_release_bundle_error)?;
+    crate::claims::check_claim_drift().map_err(|errors| {
+        let messages: Vec<String> = errors.iter().map(|e| e.to_string()).collect();
+        format!("claim drift detected:\n{}", messages.join("\n"))
+    })?;
     Ok(())
 }
 

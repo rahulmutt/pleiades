@@ -6,12 +6,15 @@
 //! release bundle gate consume [`posture::derived_release_posture`] rather than
 //! hand-maintained prose.
 
+pub mod drift;
 pub(crate) mod posture;
 
 pub(crate) use posture::{
     derived_release_posture, validate_release_posture,
     validated_release_body_claims_summary_line_for_report,
 };
+
+pub(crate) use drift::check_claim_drift;
 
 /// Builds the JPL/SPK release backend from environment-provided kernels.
 ///
