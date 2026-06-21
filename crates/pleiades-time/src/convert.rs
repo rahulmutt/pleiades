@@ -180,6 +180,18 @@ fn to_tt(jd_civil: f64, source: TimeScale) -> Result<(f64, ConversionProvenance)
 }
 
 /// Converts a civil datetime tagged `source` (UTC or UT1) to `target` (TT or TDB).
+///
+/// # Examples
+///
+/// ```
+/// use pleiades_time::{to_terrestrial, CivilDateTime};
+/// use pleiades_types::TimeScale;
+///
+/// let civil = CivilDateTime::new(2017, 1, 1, 0, 0, 0.0);
+/// let out = to_terrestrial(civil, TimeScale::Utc, TimeScale::Tt).unwrap();
+/// assert_eq!(out.instant.scale, TimeScale::Tt);
+/// assert_eq!(out.provenance.tai_minus_utc, Some(37));
+/// ```
 pub fn to_terrestrial(
     civil: CivilDateTime,
     source: TimeScale,

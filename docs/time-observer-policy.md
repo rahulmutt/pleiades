@@ -8,8 +8,8 @@ Pleiades keeps time-scale conversion, observer semantics, and apparentness expli
 
 - Backend position requests carry a typed [`TimeScale`](../crates/pleiades-types/src/lib.rs) on the requested instant.
 - The current first-party ephemeris backends accept **TT** (Terrestrial Time) and **TDB** (Barycentric Dynamical Time) for position queries.
-- The library does **not** currently choose a UTC/UT1-to-TT/TDB model internally for backend position requests.
-- Callers that start from civil time or UT are responsible for applying an appropriate Delta T, leap-second, DUT1, and/or relativistic policy before querying a backend that requires TT or TDB; built-in Delta T or UTC convenience conversion remains out of scope for the current first release.
+- **Built-in civil UTC/UT1 → TT/TDB conversion is now provided by `pleiades-time`.** The `pleiades-time` crate converts civil calendar datetimes (UTC or UT1) to TT or TDB `Instant`s over the 1900–2100 window, with: leap-second-exact UTC conversion from 1972 (via IERS Bulletin C table); observed/extrapolated Delta-T for UT1; a TT↔TDB periodic relativistic correction; and a typed `ConversionProvenance` that carries an `exact` / `observed` / `predicted` quality marker on every result. The high-level entry point is `pleiades_core::ChartRequest::from_civil(...)`, which returns a `CivilChartRequest { request, provenance }`. The CLI exposes `chart --civil <YYYY-MM-DDTHH:MM:SS> [--civil-scale utc|ut1] [--civil-target tt|tdb]` and appends a provenance/quality line to chart output.
+- **The caller-supplied retagging path is still supported as the lower-level alternative.** Callers that want to supply their own Delta-T, leap-second, DUT1, or relativistic offset can use the explicit `with_time_scale_offset`, `tt_from_utc`, `tt_from_ut1`, `tdb_from_tt`, and related helpers on `Instant`, `ChartRequest`, and `EphemerisRequest`, together with the CLI `--tt-*` / `--tdb-*` offset flags. First-party backends always consume TT or TDB request instants regardless of which path produced them.
 
 ## Primary API entry points
 
@@ -94,7 +94,8 @@ The current contract is intentionally mechanical rather than modeled:
 
 Production accuracy work should add:
 
-1. a documented UTC/UT/TT/TDB conversion strategy if Pleiades adopts built-in Delta T/leap-second modeling beyond caller-supplied offsets;
-2. backend-specific apparent-place correction support or structured rejection tests;
-3. validation reports that label every reference epoch with its time scale;
-4. topocentric or native-sidereal position support only behind an explicit request/configuration surface.
+1. backend-specific apparent-place correction support or structured rejection tests;
+2. validation reports that label every reference epoch with its time scale;
+3. topocentric or native-sidereal position support only behind an explicit request/configuration surface.
+
+The built-in UTC/UT1 → TT/TDB civil-time conversion path (`pleiades-time`) is implemented; the caller-supplied retagging helpers remain for callers that want to supply their own offsets.

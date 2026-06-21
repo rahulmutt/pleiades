@@ -27,7 +27,7 @@ Important current limits:
 
 - body/backend claims are now **per-backend**: Pluto, the Moon, and Eros are release-grade via the packaged-data artifact, while VSOP87's Pluto stays approximate and the compact ELP Moon stays constrained; the seven `sb441-n16` Tier-A asteroids (Ceres, Pallas, Juno, Vesta, Hygiea, Psyche, Iris) are release-grade via the corpus-dependent JPL/SPK backend; True Apogee/Perigee remain unsupported.
 - first-party backends currently expose **mean geometric** coordinates; apparent-place corrections are rejected unless a backend advertises support,
-- direct backend requests accept TT/TDB; UTC/UT1 require caller-supplied conversion offsets, and the dedicated `utc-convenience-policy-summary` keeps that deliberate non-goal explicit,
+- `pleiades-time` now provides built-in civil UTC/UT1 → TT/TDB conversion (leap-second-exact UTC from 1972, observed/extrapolated Delta-T for UT1, TT↔TDB periodic term, 1900–2100 window, tiered `exact`/`observed`/`predicted` quality marker); direct backends still consume TT/TDB, and the caller-supplied `--tt-*`/`--tdb-*` offset flags remain the lower-level alternative,
 - body-position observer/topocentric requests remain unsupported by current first-party backends,
 - native sidereal backend output is not assumed; chart-level sidereal longitude is handled by the façade/catalog layer,
 - the packaged-data artifact has sub-arcsec accuracy across all major bodies (SP2 heliocentric-planet reframe); published accuracy thresholds and hard size budget are enforced (SP3 complete, 1900–2100 CE window); motion/speed output is derived (`SpeedPolicy::FittedDerivative`); latency is tracked but not hard-gated by default.
@@ -54,6 +54,7 @@ For the source-of-truth design and compatibility targets, read [SPEC.md](SPEC.md
 | `pleiades-core` | High-level chart façade, chart request validation, compatibility profile, API stability profile, and re-exports for common consumers. |
 | `pleiades-houses` | House-system catalog, aliases, formula-family metadata, and baseline house calculations. |
 | `pleiades-ayanamsa` | Ayanamsa catalog, aliases, reference offset metadata, and sidereal offset helpers. |
+| `pleiades-time` | Civil-time conversion: civil UTC/UT1 calendar datetimes → TT/TDB `Instant`s (1900–2100, leap-second-exact UTC, observed/extrapolated Delta-T, TT↔TDB periodic term, typed `ConversionProvenance` with `exact`/`observed`/`predicted` quality marker). |
 | `pleiades-vsop87` | Pure-Rust VSOP87B-backed planetary backend with generated binary coefficient tables and a Pluto approximate path. |
 | `pleiades-elp` | Compact Meeus-style lunar/lunar-point backend for Moon, mean/true node, and mean apogee/perigee channels. |
 | `pleiades-jpl` | Reproducible de440-sourced JPL reference corpus (checksum-pinned, kernel SHA pinned, kernel not committed) and corpus-backed validation helpers behind a fail-closed gate. Also ingests external JPL-style products (Horizons vector-table / API JSON / generic CSV) into the corpus types via `pleiades-jpl::ingest`, with optional live fetch behind the default-off `horizons-fetch` feature. |
@@ -122,7 +123,7 @@ Notes:
 - If no `--body` flags are given, the CLI uses the default chart body set from `pleiades-core`.
 - `--body` accepts built-in labels such as `Sun`, `Moon`, and `Ceres`, plus custom identifiers such as `asteroid:433-Eros` when supported by the selected path.
 - `--ayanamsa` accepts built-in names such as `Lahiri` and custom definitions such as `custom:True Balarama|2451545.0|12.5`.
-- UTC/UT1 convenience is explicit: use the `--tt-*` or `--tdb-*` offset flags when converting from UTC/UT1 at the CLI boundary. See [docs/time-observer-policy.md](docs/time-observer-policy.md).
+- Built-in civil-time conversion: use `--civil <YYYY-MM-DDTHH:MM:SS> [--civil-scale utc|ut1] [--civil-target tt|tdb]` to convert a calendar datetime to TT/TDB automatically (1900–2100, tiered quality). Alternatively, supply caller-chosen offsets via the `--tt-*` or `--tdb-*` flags. See [docs/time-observer-policy.md](docs/time-observer-policy.md).
 
 ## Validation and release tooling
 
