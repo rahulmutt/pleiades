@@ -543,6 +543,28 @@ fn parse_body_accepts_custom_catalog_designations() {
 }
 
 #[test]
+fn civil_flag_parses_and_reports_provenance() {
+    let out = render_chart(&[
+        "--civil",
+        "2017-01-01T00:00:00",
+        "--civil-scale",
+        "utc",
+        "--body",
+        "sun",
+    ])
+    .expect("chart renders");
+    assert!(out.contains("path=utc-leap-second"), "missing provenance: {out}");
+    assert!(out.contains("quality=exact"), "missing quality: {out}");
+}
+
+#[test]
+fn civil_flag_conflicts_with_jd() {
+    let err = render_chart(&["--civil", "2017-01-01T00:00:00", "--jd", "2451545.0"])
+        .expect_err("should reject mixing --civil with --jd");
+    assert!(err.contains("--civil"));
+}
+
+#[test]
 fn parse_body_rejects_padded_custom_catalog_designations() {
     let error = parse_body(Some("asteroid: 433-Eros")).expect_err("padding should fail");
     assert_eq!(
