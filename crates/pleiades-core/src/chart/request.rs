@@ -711,7 +711,10 @@ impl ChartRequest {
     ) -> Result<CivilChartRequest, pleiades_time::CivilTimeError> {
         let converted = pleiades_time::to_terrestrial(civil, source, target)?;
         let request = ChartRequest::new(converted.instant).with_bodies(bodies);
-        Ok(CivilChartRequest { request, provenance: converted.provenance })
+        Ok(CivilChartRequest {
+            request,
+            provenance: converted.provenance,
+        })
     }
 }
 

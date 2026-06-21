@@ -4,8 +4,10 @@
 use crate::error::CivilTimeError;
 use crate::fnv1a64;
 
-const DELTA_T_CSV: &str =
-    include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/data/delta-t-observed.csv"));
+const DELTA_T_CSV: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/data/delta-t-observed.csv"
+));
 
 /// FNV-1a checksum of `data/delta-t-observed.csv`; pinned in Step 4.
 const DELTA_T_CSV_CHECKSUM: u64 = 17446600357888055970; // pinned

@@ -17,7 +17,10 @@ mod tests {
     fn bounded_below_two_milliseconds() {
         for offset in [-36525.0, -18262.0, 0.0, 18262.0, 36525.0] {
             let v = tdb_minus_tt_seconds(2451545.0 + offset);
-            assert!(v.abs() < 0.002, "TDB-TT {v} out of bound at offset {offset}");
+            assert!(
+                v.abs() < 0.002,
+                "TDB-TT {v} out of bound at offset {offset}"
+            );
         }
     }
 }

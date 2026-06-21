@@ -14,7 +14,10 @@ pub enum CivilTimeError {
     /// The instant fell outside the documented support window (1900–2100).
     BeyondHorizon { jd: f64 },
     /// The requested source/target scale pair is not a civil conversion this crate performs.
-    UnsupportedScale { source: TimeScale, target: TimeScale },
+    UnsupportedScale {
+        source: TimeScale,
+        target: TimeScale,
+    },
     /// A pinned data table failed its checksum/freshness gate.
     StaleTimeData { kind: &'static str },
     /// A computed offset was not finite (defensive).
@@ -29,7 +32,8 @@ impl CivilTimeError {
                 format!("invalid civil date field: {field}")
             }
             Self::UtcBeforeLeapEpoch => {
-                "UTC civil input is undefined before 1972-01-01; tag pre-1972 input as UT1".to_string()
+                "UTC civil input is undefined before 1972-01-01; tag pre-1972 input as UT1"
+                    .to_string()
             }
             Self::BeyondHorizon { jd } => {
                 format!("civil instant JD {jd} is outside the supported 1900–2100 window")
@@ -63,8 +67,13 @@ mod tests {
             CivilTimeError::InvalidCivilDate { field: "month" },
             CivilTimeError::UtcBeforeLeapEpoch,
             CivilTimeError::BeyondHorizon { jd: 1.0 },
-            CivilTimeError::UnsupportedScale { source: TimeScale::Tt, target: TimeScale::Utc },
-            CivilTimeError::StaleTimeData { kind: "leap-second" },
+            CivilTimeError::UnsupportedScale {
+                source: TimeScale::Tt,
+                target: TimeScale::Utc,
+            },
+            CivilTimeError::StaleTimeData {
+                kind: "leap-second",
+            },
             CivilTimeError::NonFiniteOffset,
         ];
         for e in errors {

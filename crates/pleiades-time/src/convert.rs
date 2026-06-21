@@ -160,9 +160,10 @@ fn to_tt(jd_civil: f64, source: TimeScale) -> Result<(f64, ConversionProvenance)
             finite(jd_tt)?;
             let (path, quality) = match q {
                 DeltaTQuality::Observed => (ConversionPath::Ut1DeltaT, ConversionQuality::Observed),
-                DeltaTQuality::Predicted => {
-                    (ConversionPath::FutureExtrapolated, ConversionQuality::Predicted)
-                }
+                DeltaTQuality::Predicted => (
+                    ConversionPath::FutureExtrapolated,
+                    ConversionQuality::Predicted,
+                ),
             };
             Ok((
                 jd_tt,
@@ -175,7 +176,10 @@ fn to_tt(jd_civil: f64, source: TimeScale) -> Result<(f64, ConversionProvenance)
                 },
             ))
         }
-        other => Err(CivilTimeError::UnsupportedScale { source: other, target: TimeScale::Tt }),
+        other => Err(CivilTimeError::UnsupportedScale {
+            source: other,
+            target: TimeScale::Tt,
+        }),
     }
 }
 
@@ -272,7 +276,10 @@ mod tests {
     #[test]
     fn pre_1972_utc_is_rejected() {
         let civil = CivilDateTime::new(1965, 1, 1, 0, 0, 0.0);
-        assert_eq!(tt_from_utc_civil(civil), Err(CivilTimeError::UtcBeforeLeapEpoch));
+        assert_eq!(
+            tt_from_utc_civil(civil),
+            Err(CivilTimeError::UtcBeforeLeapEpoch)
+        );
     }
 
     #[test]
@@ -289,7 +296,10 @@ mod tests {
         let civil = CivilDateTime::new(2000, 1, 1, 0, 0, 0.0);
         assert_eq!(
             to_terrestrial(civil, TimeScale::Utc, TimeScale::Ut1),
-            Err(CivilTimeError::UnsupportedScale { source: TimeScale::Utc, target: TimeScale::Ut1 })
+            Err(CivilTimeError::UnsupportedScale {
+                source: TimeScale::Utc,
+                target: TimeScale::Ut1
+            })
         );
     }
 

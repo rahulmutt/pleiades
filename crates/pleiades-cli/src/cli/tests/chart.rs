@@ -553,7 +553,10 @@ fn civil_flag_parses_and_reports_provenance() {
         "sun",
     ])
     .expect("chart renders");
-    assert!(out.contains("path=utc-leap-second"), "missing provenance: {out}");
+    assert!(
+        out.contains("path=utc-leap-second"),
+        "missing provenance: {out}"
+    );
     assert!(out.contains("quality=exact"), "missing quality: {out}");
 }
 

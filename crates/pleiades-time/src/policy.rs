@@ -22,7 +22,9 @@ impl fmt::Display for CivilTimePolicyError {
             Self::BlankSummary => "civil-time policy summary is blank",
             Self::WhitespacePaddedSummary => "civil-time policy summary has surrounding whitespace",
             Self::EmbeddedLineBreak => "civil-time policy summary contains a line break",
-            Self::CurrentPolicyOutOfSync => "civil-time policy summary is out of sync with the current posture",
+            Self::CurrentPolicyOutOfSync => {
+                "civil-time policy summary is out of sync with the current posture"
+            }
         })
     }
 }

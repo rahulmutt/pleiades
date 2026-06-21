@@ -20,7 +20,14 @@ pub struct CivilDateTime {
 impl CivilDateTime {
     /// Creates a civil datetime without validation. Validation happens in `to_julian_day`.
     pub fn new(year: i32, month: u8, day: u8, hour: u8, minute: u8, second: f64) -> Self {
-        Self { year, month, day, hour, minute, second }
+        Self {
+            year,
+            month,
+            day,
+            hour,
+            minute,
+            second,
+        }
     }
 
     fn validate(&self) -> Result<(), CivilTimeError> {
@@ -105,7 +112,9 @@ mod tests {
 
     #[test]
     fn j2000_noon_is_jd_2451545() {
-        let jd = CivilDateTime::new(2000, 1, 1, 12, 0, 0.0).to_julian_day().unwrap();
+        let jd = CivilDateTime::new(2000, 1, 1, 12, 0, 0.0)
+            .to_julian_day()
+            .unwrap();
         assert!((jd.days() - 2451545.0).abs() < 1e-6, "got {}", jd.days());
     }
 
@@ -117,8 +126,14 @@ mod tests {
             (2100, 1, 1, 2488069.5),
         ];
         for (y, m, d, expected) in cases {
-            let jd = CivilDateTime::new(y, m, d, 0, 0, 0.0).to_julian_day().unwrap();
-            assert!((jd.days() - expected).abs() < 1e-6, "{y}-{m}-{d}: got {}", jd.days());
+            let jd = CivilDateTime::new(y, m, d, 0, 0, 0.0)
+                .to_julian_day()
+                .unwrap();
+            assert!(
+                (jd.days() - expected).abs() < 1e-6,
+                "{y}-{m}-{d}: got {}",
+                jd.days()
+            );
         }
     }
 
@@ -142,7 +157,11 @@ mod tests {
         let back = CivilDateTime::from_julian_day(jd);
         assert_eq!(back.hour, 19);
         assert_eq!(back.minute, 20);
-        assert!((back.second - 30.0).abs() < 0.001, "second drifted: {}", back.second);
+        assert!(
+            (back.second - 30.0).abs() < 0.001,
+            "second drifted: {}",
+            back.second
+        );
     }
 
     #[test]

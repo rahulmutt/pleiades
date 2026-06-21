@@ -3,7 +3,10 @@
 use crate::error::CivilTimeError;
 use crate::fnv1a64;
 
-const LEAP_CSV: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/data/leap-seconds.csv"));
+const LEAP_CSV: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/data/leap-seconds.csv"
+));
 
 /// FNV-1a checksum of `data/leap-seconds.csv`. Regenerate with the `pinned_checksum`
 /// test below if the table is updated, and bump `VALID_THROUGH_JD` accordingly.
@@ -18,7 +21,9 @@ pub const VALID_THROUGH_JD: f64 = 2461040.5;
 
 fn table() -> Result<Vec<(f64, i32)>, CivilTimeError> {
     if fnv1a64(LEAP_CSV) != LEAP_CSV_CHECKSUM {
-        return Err(CivilTimeError::StaleTimeData { kind: "leap-second" });
+        return Err(CivilTimeError::StaleTimeData {
+            kind: "leap-second",
+        });
     }
     let mut rows = Vec::new();
     for line in LEAP_CSV.lines().skip(1) {
@@ -27,14 +32,16 @@ fn table() -> Result<Vec<(f64, i32)>, CivilTimeError> {
             continue;
         }
         let mut parts = line.split(',');
-        let jd: f64 = parts
-            .next()
-            .and_then(|s| s.trim().parse().ok())
-            .ok_or(CivilTimeError::StaleTimeData { kind: "leap-second" })?;
-        let secs: i32 = parts
-            .next()
-            .and_then(|s| s.trim().parse().ok())
-            .ok_or(CivilTimeError::StaleTimeData { kind: "leap-second" })?;
+        let jd: f64 = parts.next().and_then(|s| s.trim().parse().ok()).ok_or(
+            CivilTimeError::StaleTimeData {
+                kind: "leap-second",
+            },
+        )?;
+        let secs: i32 = parts.next().and_then(|s| s.trim().parse().ok()).ok_or(
+            CivilTimeError::StaleTimeData {
+                kind: "leap-second",
+            },
+        )?;
         rows.push((jd, secs));
     }
     Ok(rows)
@@ -64,7 +71,12 @@ mod tests {
     fn pinned_checksum() {
         // If this fails after a deliberate table edit, copy the printed value into
         // LEAP_CSV_CHECKSUM and bump VALID_THROUGH_JD.
-        assert_eq!(fnv1a64(LEAP_CSV), LEAP_CSV_CHECKSUM, "checksum = {}", fnv1a64(LEAP_CSV));
+        assert_eq!(
+            fnv1a64(LEAP_CSV),
+            LEAP_CSV_CHECKSUM,
+            "checksum = {}",
+            fnv1a64(LEAP_CSV)
+        );
     }
 
     #[test]
