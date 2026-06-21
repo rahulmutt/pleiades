@@ -99,6 +99,24 @@ fn packaged_artifact_decode_rejects_checksum_corruption() {
 }
 
 #[test]
+fn packaged_metadata_claims_eleven_bodies_release_grade() {
+    use pleiades_backend::{BodyClaimTier, CelestialBody, CustomBodyId, EphemerisBackend};
+    let backend = crate::PackagedDataBackend::default();
+    let meta = backend.metadata();
+    assert_eq!(meta.release_grade_bodies().len(), 11);
+    for body in [
+        CelestialBody::Pluto,
+        CelestialBody::Moon,
+        CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros")),
+    ] {
+        assert_eq!(
+            meta.claim_for(&body).map(|c| c.tier),
+            Some(BodyClaimTier::ReleaseGrade)
+        );
+    }
+}
+
+#[test]
 fn packaged_artifact_kernel_free_regeneration_decodes_the_committed_fixture() {
     // Kernel-free regeneration now decodes the committed bytes (runtime decode is
     // the only kernel-free path). The decoded artifact must validate and match

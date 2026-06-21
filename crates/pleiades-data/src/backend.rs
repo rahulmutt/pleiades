@@ -5,7 +5,7 @@ use std::path::Path;
 
 use pleiades_backend::{
     validate_observer_policy, validate_request_policy, validate_zodiac_policy, AccuracyClass,
-    BackendCapabilities, BackendFamily, BackendId, BackendMetadata, BackendProvenance, BodyClaim,
+    BackendCapabilities, BackendFamily, BackendId, BackendMetadata, BackendProvenance,
     CelestialBody, CoordinateFrame, EphemerisBackend, EphemerisError, EphemerisErrorKind,
     EphemerisRequest, EphemerisResult, QualityAnnotation, TimeScale, ZodiacMode,
 };
@@ -101,7 +101,19 @@ impl EphemerisBackend for PackagedDataBackend {
             },
             nominal_range: range,
             supported_time_scales: vec![TimeScale::Tt, TimeScale::Tdb],
-            body_claims: bodies.iter().cloned().map(BodyClaim::from).collect(),
+            body_claims: {
+                let declared = crate::packaged_body_claims();
+                bodies
+                    .iter()
+                    .map(|body| {
+                        declared
+                            .iter()
+                            .find(|c| &c.body == body)
+                            .cloned()
+                            .unwrap_or_else(|| pleiades_backend::BodyClaim::from(body.clone()))
+                    })
+                    .collect()
+            },
             supported_frames: vec![CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial],
             capabilities: BackendCapabilities {
                 geocentric: true,
