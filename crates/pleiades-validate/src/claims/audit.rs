@@ -199,17 +199,58 @@ pub fn audit_release_grade_accuracy() -> Result<(), Vec<ClaimAuditError>> {
         );
         let candidate = pleiades_data::PackagedDataBackend::default();
         let corpus = crate::corpus::holdout_corpus();
-        if let Ok(report) = crate::comparison::compare_backends(&reference, &candidate, &corpus) {
-            check_report(
-                &report,
-                "pleiades-data",
-                &candidate.metadata().release_grade_bodies(),
-                &mut errors,
-            );
+
+        // Derive the set of release-grade bodies that have a hold-out truth row.
+        // asteroid:433-Eros is release-grade but has NO independent hold-out truth
+        // row (it is covered by pleiades-data's own self-consistency gate in
+        // accuracy_baseline.rs), so it is intentionally excluded here via the
+        // intersection below.
+        let holdout_bodies: std::collections::HashSet<CelestialBody> =
+            pleiades_jpl::production_holdout_corpus()
+                .iter()
+                .map(|entry| entry.body.clone())
+                .collect();
+        let expected_bodies: Vec<CelestialBody> = candidate
+            .metadata()
+            .release_grade_bodies()
+            .into_iter()
+            .filter(|b| holdout_bodies.contains(b))
+            .collect();
+
+        match crate::comparison::compare_backends(&reference, &candidate, &corpus) {
+            Ok(report) => {
+                // Guard against an empty/incomplete report: every release-grade body
+                // with a hold-out row must appear in the comparison summaries.
+                let summaries = report.body_summaries();
+                let summary_bodies: std::collections::HashSet<&CelestialBody> =
+                    summaries.iter().map(|s| &s.body).collect();
+                for body in &expected_bodies {
+                    if !summary_bodies.contains(body) {
+                        errors.push(ClaimAuditError::DeclaredBodyNotComputable {
+                            backend: "pleiades-data".into(),
+                            body: body.to_string(),
+                        });
+                    }
+                }
+                check_report(&report, "pleiades-data", &expected_bodies, &mut errors);
+            }
+            Err(_) => {
+                // compare_backends failed (fails fast on the first unservable
+                // request): this is a hard failure — we checked nothing.
+                errors.push(ClaimAuditError::DeclaredBodyNotComputable {
+                    backend: "pleiades-data".into(),
+                    body: "<all release-grade-with-holdout>".into(),
+                });
+            }
         }
     }
 
     // jpl-spk Tier-A asteroids vs the sb441-n16 asteroid reference.
+    // NOTE: in the kernel-free environment the SPK backend declares no
+    // release-grade bodies, so compare_backends returns Err and this block
+    // is skipped. The `if let Ok` skip is intentional here — the asteroid
+    // path is dormant until a small-body kernel (PLEIADES_AST_KERNEL) is
+    // provided.
     {
         let reference = pleiades_jpl::SnapshotCorpusBackend::from_entries(
             pleiades_jpl::asteroid_reference_corpus().to_vec(),
@@ -291,6 +332,31 @@ mod tests {
     #[ignore = "slow: runs corpus comparison"]
     fn release_grade_bodies_meet_accuracy_ceiling() {
         assert!(super::audit_release_grade_accuracy().is_ok());
+    }
+
+    /// Proves the expected-body guard in `audit_release_grade_accuracy` is not
+    /// itself vacuous: the intersection of release-grade bodies with holdout rows
+    /// must be non-empty, otherwise the packaged-data ceiling check would never
+    /// run even on a successful compare.
+    #[test]
+    fn packaged_data_expected_body_set_is_non_empty() {
+        use pleiades_backend::EphemerisBackend;
+        use std::collections::HashSet;
+        let holdout_bodies: HashSet<pleiades_backend::CelestialBody> =
+            pleiades_jpl::production_holdout_corpus()
+                .iter()
+                .map(|entry| entry.body.clone())
+                .collect();
+        let expected: Vec<_> = pleiades_data::PackagedDataBackend::default()
+            .metadata()
+            .release_grade_bodies()
+            .into_iter()
+            .filter(|b| holdout_bodies.contains(b))
+            .collect();
+        assert!(
+            !expected.is_empty(),
+            "expected-body set is empty — the packaged-data ceiling guard would never fire"
+        );
     }
 
     #[test]
