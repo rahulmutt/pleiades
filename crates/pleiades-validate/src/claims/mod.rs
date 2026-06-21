@@ -49,22 +49,31 @@ pub(crate) fn sample_request_for(
 /// the release-grade Pluto/Moon/Eros claims). Kernel-absence for a
 /// `ReleaseGrade`-intended body is reported by the claims audit, not here.
 pub(crate) fn spk_release_backend() -> pleiades_jpl::SpkBackend {
-    // Collect the kernel paths declared via the environment, then fold them into
-    // the builder. `add_kernel` consumes the builder by value, so any kernel that
-    // fails to load is simply skipped while the successfully-loaded ones are kept.
-    let paths: Vec<String> = ["PLEIADES_DE_KERNEL", "PLEIADES_AST_KERNEL"]
-        .into_iter()
-        .filter_map(|var| std::env::var(var).ok())
-        .collect();
+    // Probe each env var, collect paths that are (a) set and (b) loadable.
+    // `add_kernel` consumes the builder by value even on error, so we use a
+    // temporary single-kernel builder to validate each path and only add it to
+    // the accumulating `good_paths` list on success.  A failed kernel load
+    // therefore leaves previously-loaded kernels intact (e.g. DE loads fine but
+    // AST fails → the final backend still contains the DE kernel).
+    let mut good_paths: Vec<String> = Vec::new();
+    for var in ["PLEIADES_DE_KERNEL", "PLEIADES_AST_KERNEL"] {
+        if let Ok(path) = std::env::var(var) {
+            // Probe loadability with a throw-away builder.
+            if pleiades_jpl::SpkBackend::builder()
+                .add_kernel(&path)
+                .is_ok()
+            {
+                good_paths.push(path);
+            }
+        }
+    }
 
     let mut builder = pleiades_jpl::SpkBackend::builder();
-    for path in paths {
-        match builder.add_kernel(&path) {
-            Ok(updated) => builder = updated,
-            // `add_kernel` consumes the builder even on error; restart from an
-            // empty builder so an unreadable kernel cannot poison construction.
-            Err(_) => builder = pleiades_jpl::SpkBackend::builder(),
-        }
+    for path in good_paths {
+        // All paths in `good_paths` were verified above; unwrap is safe.
+        builder = builder
+            .add_kernel(&path)
+            .expect("kernel re-load must succeed");
     }
     builder.build()
 }

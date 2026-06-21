@@ -993,7 +993,7 @@ mod tests {
     }
 
     #[test]
-    fn validated_metadata_rejects_duplicate_body_coverage() {
+    fn validated_metadata_rejects_duplicate_body_claims() {
         struct InvalidMetadataBackend;
 
         impl EphemerisBackend for InvalidMetadataBackend {

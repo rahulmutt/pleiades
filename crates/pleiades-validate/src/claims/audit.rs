@@ -20,15 +20,11 @@ const DEG_TO_ARCSEC: f64 = 3600.0;
 const AU_TO_KM: f64 = 149_597_870.7;
 
 /// Errors produced by the structural claim audit.
-// These items are `pub` for Task 11 (corpus audit) which will call
-// `audit_structural` and pattern-match `ClaimAuditError`.  Until then the
-// items are only exercised by the in-module tests.
-#[allow(dead_code)]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ClaimAuditError {
-    /// A backend declares a body in its claim list but cannot actually compute
-    /// it. Reserved for Task 11; not produced by the structural audit here.
-    #[allow(dead_code)] // constructed in Task 11 / reserved
+    /// A release-grade body that should be computable and comparable against a
+    /// reference corpus was not found in the comparison report, or the entire
+    /// comparison failed so no body could be checked.
     DeclaredBodyNotComputable {
         /// The backend identifier.
         backend: String,

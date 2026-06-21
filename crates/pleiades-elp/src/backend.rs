@@ -27,7 +27,6 @@ pub struct ElpBackend;
 /// with Moderate accuracy and AlgorithmicModel evidence. True Apogee and True Perigee are explicitly
 /// listed as Unsupported.
 pub fn elp_body_claims() -> Vec<BodyClaim> {
-    use pleiades_types::CelestialBody;
     let mut claims: Vec<BodyClaim> = lunar_theory_supported_bodies()
         .iter()
         .cloned()
