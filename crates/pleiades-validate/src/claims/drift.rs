@@ -32,6 +32,15 @@ use crate::render::summary::{
 pub(crate) enum ClaimDriftError {
     /// The named surface does not contain the expected posture token.
     SurfaceDisagreesWithPosture { surface: String },
+    /// The named surface failed to render and returned an unavailability sentinel
+    /// rather than a real value.  This is a render/validation failure, not drift.
+    ///
+    /// NOTE: detection couples to the renderers' error-sentinel convention: both
+    /// `format_release_body_claims_summary_for_report()` (release path) and
+    /// `render_backend_matrix_summary_text()` (backend path) return strings
+    /// containing `" unavailable ("` when internal validation fails.  If that
+    /// convention changes, the detection substring below must change too.
+    SurfaceRenderFailed { surface: String, detail: String },
 }
 
 impl fmt::Display for ClaimDriftError {
@@ -39,6 +48,12 @@ impl fmt::Display for ClaimDriftError {
         match self {
             Self::SurfaceDisagreesWithPosture { surface } => {
                 write!(f, "surface {surface} disagrees with derived posture")
+            }
+            Self::SurfaceRenderFailed { surface, detail } => {
+                write!(
+                    f,
+                    "surface {surface} failed to render (render/validation error, not drift): {detail}"
+                )
             }
         }
     }
@@ -60,11 +75,60 @@ pub(crate) fn summary_matches_posture(
         let token = format!("{body}@{id}");
         if !rendered.contains(&token) {
             return Err(ClaimDriftError::SurfaceDisagreesWithPosture {
-                surface: format!("release-body-claims-summary (missing token `{token}`)"),
+                surface: format!("missing token `{token}`"),
             });
         }
     }
     Ok(())
+}
+
+/// Sentinel substring shared by both gated renderers' error paths.
+///
+/// NOTE: this couples to the renderers' error-sentinel convention.
+/// `format_release_body_claims_summary_for_report()` returns
+/// `"release-grade body claims unavailable (...)"` and
+/// `render_backend_matrix_summary_text()` returns
+/// `"Backend matrix summary unavailable (...)"` (plus other
+/// `"... unavailable (...)"` early returns).  If that convention changes,
+/// this substring and `ClaimDriftError::SurfaceRenderFailed`'s doc must
+/// change too.
+const RENDER_FAILED_SENTINEL: &str = " unavailable (";
+
+/// Classifies a single rendered surface against the derived posture.
+///
+/// Returns `None` if the surface is healthy, or `Some(ClaimDriftError)`
+/// describing the specific failure:
+/// - `SurfaceRenderFailed` when the rendered text contains an unavailability
+///   sentinel (the renderer itself failed, not a drift problem).
+/// - `SurfaceDisagreesWithPosture` when the render succeeded but a required
+///   posture token is absent.
+///
+/// The `name` parameter becomes the `surface` field of the returned error.
+pub(crate) fn classify_surface(
+    name: &str,
+    rendered: &str,
+    posture: &ReleasePosture,
+) -> Option<ClaimDriftError> {
+    if let Some(line) = rendered
+        .lines()
+        .find(|l| l.contains(RENDER_FAILED_SENTINEL))
+    {
+        // Capture only a short excerpt so the detail stays readable.
+        let detail: String = line.chars().take(120).collect();
+        return Some(ClaimDriftError::SurfaceRenderFailed {
+            surface: name.to_string(),
+            detail,
+        });
+    }
+    match summary_matches_posture(rendered, posture) {
+        Ok(()) => None,
+        Err(ClaimDriftError::SurfaceDisagreesWithPosture { surface }) => {
+            Some(ClaimDriftError::SurfaceDisagreesWithPosture {
+                surface: format!("{name}: {surface}"),
+            })
+        }
+        Err(other) => Some(other),
+    }
 }
 
 /// Checks every gated release-facing surface against the derived posture.
@@ -77,23 +141,15 @@ pub(crate) fn check_claim_drift() -> Result<(), Vec<ClaimDriftError>> {
 
     // Surface 1: release-body-claims-summary (primary — directly renders posture.summary_line())
     let release_summary = render_release_body_claims_summary_text();
-    if let Err(ClaimDriftError::SurfaceDisagreesWithPosture { surface }) =
-        summary_matches_posture(&release_summary, &posture)
-    {
-        errors.push(ClaimDriftError::SurfaceDisagreesWithPosture {
-            surface: format!("release-body-claims-summary: {surface}"),
-        });
+    if let Some(err) = classify_surface("release-body-claims-summary", &release_summary, &posture) {
+        errors.push(err);
     }
 
     // Surface 2: backend-matrix-summary (includes "Release-grade body claims:" line
     // which also renders posture.summary_line())
     let backend_matrix = render_backend_matrix_summary_text();
-    if let Err(ClaimDriftError::SurfaceDisagreesWithPosture { surface }) =
-        summary_matches_posture(&backend_matrix, &posture)
-    {
-        errors.push(ClaimDriftError::SurfaceDisagreesWithPosture {
-            surface: format!("backend-matrix-summary: {surface}"),
-        });
+    if let Some(err) = classify_surface("backend-matrix-summary", &backend_matrix, &posture) {
+        errors.push(err);
     }
 
     if errors.is_empty() {
@@ -154,5 +210,42 @@ mod tests {
             summary_matches_posture(&real_rendered, &posture).is_ok(),
             "summary_matches_posture should Ok for the real rendered summary"
         );
+    }
+
+    /// Fix-2 test: a render-failure sentinel is reported as `SurfaceRenderFailed`,
+    /// not as `SurfaceDisagreesWithPosture`.
+    ///
+    /// We feed a synthetic "unavailable" string (matching the sentinel substring
+    /// `" unavailable ("`) into `classify_surface` and assert it returns
+    /// `SurfaceRenderFailed`.  This proves the gate is HONEST: a render/validation
+    /// failure is never misreported as drift.
+    #[test]
+    fn render_failure_sentinel_reported_as_render_failed_not_drift() {
+        let posture = derived_release_posture();
+
+        // Synthetic sentinel strings that both renderers may produce on failure.
+        let release_sentinel =
+            "Release-grade body claims summary\nRelease-grade body claims: release-grade body claims unavailable (boom)\n";
+        let backend_sentinel = "Backend matrix summary unavailable (boom)";
+
+        for (name, sentinel) in [
+            ("release-body-claims-summary", release_sentinel),
+            ("backend-matrix-summary", backend_sentinel),
+        ] {
+            let result = classify_surface(name, sentinel, &posture);
+            match result {
+                Some(ClaimDriftError::SurfaceRenderFailed { surface, .. }) => {
+                    assert_eq!(surface, name, "surface name should match");
+                }
+                Some(ClaimDriftError::SurfaceDisagreesWithPosture { surface }) => {
+                    panic!(
+                        "Expected SurfaceRenderFailed for sentinel input on '{name}', got SurfaceDisagreesWithPosture {{ surface: {surface:?} }}"
+                    );
+                }
+                None => {
+                    panic!("Expected Some(SurfaceRenderFailed) for sentinel input on '{name}', got None");
+                }
+            }
+        }
     }
 }

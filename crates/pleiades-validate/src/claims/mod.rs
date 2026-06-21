@@ -6,7 +6,7 @@
 //! release bundle gate consume [`posture::derived_release_posture`] rather than
 //! hand-maintained prose.
 
-pub mod drift;
+pub(crate) mod drift;
 pub(crate) mod posture;
 
 pub(crate) use posture::{
