@@ -28,6 +28,10 @@ pub(crate) fn toy_metadata() -> BackendMetadata {
 /// The returned metadata passes [`BackendMetadata::validate()`]. Callers must
 /// supply at least one unique body claim (non-empty, no duplicate bodies).
 pub(crate) fn metadata_with_claims(id: &str, body_claims: Vec<BodyClaim>) -> BackendMetadata {
+    debug_assert!(
+        !body_claims.is_empty(),
+        "metadata_with_claims: body_claims must be non-empty"
+    );
     BackendMetadata {
         id: BackendId::new(id),
         version: "0.1.0".to_string(),

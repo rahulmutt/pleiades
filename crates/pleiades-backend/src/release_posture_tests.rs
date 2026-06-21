@@ -44,3 +44,30 @@ fn summary_line_is_deterministic() {
     assert!(p1.summary_line().contains("Moon"));
     assert!(p1.summary_line().contains("ReleaseGrade"));
 }
+
+#[test]
+fn summary_line_stable_across_input_orderings() {
+    let a = meta_with(
+        "backend-alpha",
+        vec![BodyClaim::release_grade(
+            CelestialBody::Moon,
+            AccuracyClass::High,
+            ClaimEvidence::ArtifactValidated,
+        )],
+    );
+    let b = meta_with(
+        "backend-beta",
+        vec![BodyClaim::release_grade(
+            CelestialBody::Sun,
+            AccuracyClass::High,
+            ClaimEvidence::ArtifactValidated,
+        )],
+    );
+    let p_ab = ReleasePosture::from_backends(&[&a, &b]);
+    let p_ba = ReleasePosture::from_backends(&[&b, &a]);
+    assert_eq!(
+        p_ab.summary_line(),
+        p_ba.summary_line(),
+        "summary_line() must be identical regardless of input ordering"
+    );
+}
