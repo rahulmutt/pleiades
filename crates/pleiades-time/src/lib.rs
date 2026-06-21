@@ -3,9 +3,11 @@
 
 mod calendar;
 mod error;
+pub mod deltat;
 pub mod leap;
 
 pub use calendar::CivilDateTime;
+pub use deltat::DeltaTQuality;
 pub use error::CivilTimeError;
 
 /// Deterministic 64-bit content checksum (FNV-1a), byte-identical to
