@@ -25,7 +25,7 @@ As of the current workspace state, `pleiades` includes:
 
 Important current limits:
 
-- body/backend claims are now **per-backend**: Pluto, the Moon, and Eros are release-grade via the packaged-data artifact, while VSOP87's Pluto stays approximate and the compact ELP Moon stays constrained; the seven `sb441-n16` Tier-A asteroids (Ceres, Pallas, Juno, Vesta, Hygiea, Psyche, Iris) are release-grade via the corpus-dependent JPL/SPK backend; True Apogee/Perigee remain unsupported,
+- body/backend claims are now **per-backend**: Pluto, the Moon, and Eros are release-grade via the packaged-data artifact, while VSOP87's Pluto stays approximate and the compact ELP Moon stays constrained; the seven `sb441-n16` Tier-A asteroids (Ceres, Pallas, Juno, Vesta, Hygiea, Psyche, Iris) are release-grade via the corpus-dependent JPL/SPK backend; True Apogee/Perigee remain unsupported.
 - first-party backends currently expose **mean geometric** coordinates; apparent-place corrections are rejected unless a backend advertises support,
 - direct backend requests accept TT/TDB; UTC/UT1 require caller-supplied conversion offsets, and the dedicated `utc-convenience-policy-summary` keeps that deliberate non-goal explicit,
 - body-position observer/topocentric requests remain unsupported by current first-party backends,
@@ -54,7 +54,7 @@ For the source-of-truth design and compatibility targets, read [SPEC.md](SPEC.md
 | `pleiades-core` | High-level chart façade, chart request validation, compatibility profile, API stability profile, and re-exports for common consumers. |
 | `pleiades-houses` | House-system catalog, aliases, formula-family metadata, and baseline house calculations. |
 | `pleiades-ayanamsa` | Ayanamsa catalog, aliases, reference offset metadata, and sidereal offset helpers. |
-| `pleiades-vsop87` | Pure-Rust VSOP87B-backed planetary backend with generated binary coefficient tables and a Pluto fallback. |
+| `pleiades-vsop87` | Pure-Rust VSOP87B-backed planetary backend with generated binary coefficient tables and a Pluto approximate path. |
 | `pleiades-elp` | Compact Meeus-style lunar/lunar-point backend for Moon, mean/true node, and mean apogee/perigee channels. |
 | `pleiades-jpl` | Reproducible de440-sourced JPL reference corpus (checksum-pinned, kernel SHA pinned, kernel not committed) and corpus-backed validation helpers behind a fail-closed gate. Also ingests external JPL-style products (Horizons vector-table / API JSON / generic CSV) into the corpus types via `pleiades-jpl::ingest`, with optional live fetch behind the default-off `horizons-fetch` feature. |
 | `pleiades-compression` | Compressed artifact data structures and codec helpers. |
