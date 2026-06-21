@@ -6,15 +6,38 @@
 //! release bundle gate consume [`posture::derived_release_posture`] rather than
 //! hand-maintained prose.
 
+pub(crate) mod audit;
 pub(crate) mod drift;
 pub(crate) mod posture;
 
 pub(crate) use posture::{
-    derived_release_posture, validate_release_posture,
+    canonical_release_metadata, derived_release_posture, validate_release_posture,
     validated_release_body_claims_summary_line_for_report,
 };
 
 pub(crate) use drift::check_claim_drift;
+
+/// Builds a minimal, structurally valid [`pleiades_backend::EphemerisRequest`]
+/// for the given body.
+///
+/// The request uses TT time scale, a J2000 instant (JD 2 451 545.0), and the
+/// default geocentric ecliptic tropical mean-geometric shape so that the only
+/// reason a backend would reject it is the body itself.  This is used by the
+/// structural claim audit to probe whether backends correctly reject bodies
+/// they declare as `Unsupported`.
+// Called by `audit::audit_structural`; exposed `pub(crate)` for Task 11.
+#[allow(dead_code)]
+pub(crate) fn sample_request_for(
+    body: &pleiades_backend::CelestialBody,
+) -> pleiades_backend::EphemerisRequest {
+    pleiades_backend::EphemerisRequest::new(
+        body.clone(),
+        pleiades_backend::Instant::new(
+            pleiades_backend::JulianDay::from_days(2_451_545.0),
+            pleiades_backend::TimeScale::Tt,
+        ),
+    )
+}
 
 /// Builds the JPL/SPK release backend from environment-provided kernels.
 ///
