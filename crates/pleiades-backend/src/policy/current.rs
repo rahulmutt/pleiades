@@ -17,10 +17,6 @@ use super::{
 };
 use crate::errors::{format_display_list, EphemerisError, EphemerisErrorKind};
 use crate::metadata::BackendMetadata;
-use crate::release_body_claims::{
-    release_body_claims_summary_text, ReleaseBodyClaimsSummary,
-    ReleaseBodyClaimsSummaryValidationError,
-};
 use crate::request::EphemerisRequest;
 use pleiades_types::{Apparentness, CoordinateFrame, TimeScale, ZodiacMode};
 
@@ -116,22 +112,6 @@ pub fn validated_zodiac_policy_summary_for_report() -> String {
 /// Returns the current Pluto fallback posture used by validation and reports.
 pub const fn current_pluto_fallback_summary() -> PlutoFallbackSummary {
     PlutoFallbackSummary::new(CURRENT_PLUTO_FALLBACK_POLICY_SUMMARY_TEXT)
-}
-
-/// Returns the current release-grade body claims used by validation and reports.
-pub fn current_release_body_claims_summary() -> ReleaseBodyClaimsSummary {
-    ReleaseBodyClaimsSummary::new(release_body_claims_summary_text())
-}
-
-/// Returns the release-grade body claims used by validation and release reporting.
-pub fn release_body_claims_summary_for_report() -> ReleaseBodyClaimsSummary {
-    current_release_body_claims_summary()
-}
-
-/// Returns the validated release-grade body-claims summary line used by validation and release reporting.
-pub fn validated_release_body_claims_summary_line_for_report(
-) -> Result<&'static str, ReleaseBodyClaimsSummaryValidationError> {
-    current_release_body_claims_summary().validated_summary_line()
 }
 
 /// Returns the Pluto fallback posture used by validation and release reporting.
@@ -314,7 +294,8 @@ pub fn validate_request_against_metadata(
 /// ```
 /// use pleiades_backend::{
 ///     validate_requests_against_metadata, AccuracyClass, BackendCapabilities, BackendFamily,
-///     BackendId, BackendMetadata, BackendProvenance, EphemerisErrorKind, EphemerisRequest,
+///     BackendId, BackendMetadata, BackendProvenance, BodyClaim, EphemerisErrorKind,
+///     EphemerisRequest,
 /// };
 /// use pleiades_types::{
 ///     CelestialBody, CoordinateFrame, Instant, JulianDay, Latitude, Longitude,
@@ -328,7 +309,7 @@ pub fn validate_request_against_metadata(
 ///     provenance: BackendProvenance::new("toy backend"),
 ///     nominal_range: TimeRange::new(None, None),
 ///     supported_time_scales: vec![TimeScale::Tt],
-///     body_coverage: vec![CelestialBody::Sun, CelestialBody::Moon],
+///     body_claims: vec![BodyClaim::from(CelestialBody::Sun), BodyClaim::from(CelestialBody::Moon)],
 ///     supported_frames: vec![CoordinateFrame::Ecliptic],
 ///     capabilities: BackendCapabilities::default(),
 ///     accuracy: AccuracyClass::Approximate,

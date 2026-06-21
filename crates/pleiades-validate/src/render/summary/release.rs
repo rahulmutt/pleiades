@@ -147,9 +147,7 @@ pub(crate) fn production_generation_date_range_for_report() -> Option<String> {
 pub(crate) fn body_date_channel_claims_summary_details() -> Option<BodyDateChannelClaimsSummary> {
     let coverage_posture = production_generation_coverage_posture_for_report()?;
     Some(BodyDateChannelClaimsSummary {
-        release_body_claims: validated_release_body_claims_summary_line_for_report()
-            .ok()?
-            .to_string(),
+        release_body_claims: validated_release_body_claims_summary_line_for_report().ok()?,
         frame_policy: validated_frame_policy_summary_for_report(),
         production_generation_date_range: production_generation_date_range_for_report()?,
         production_generation_coverage: production_generation_snapshot_summary_for_report(),
@@ -159,18 +157,11 @@ pub(crate) fn body_date_channel_claims_summary_details() -> Option<BodyDateChann
 }
 
 pub(crate) fn format_release_body_claims_summary_for_report() -> String {
-    let summary_line = match validated_release_body_claims_summary_line_for_report() {
-        Ok(line) => line,
-        Err(error) => return format!("release-grade body claims unavailable ({error})"),
-    };
-    let pluto_line = match validated_pluto_fallback_summary_line_for_report() {
-        Ok(line) => line,
-        Err(error) => return format!("release-grade body claims unavailable ({error})"),
-    };
-    if let Err(error) = validate_release_body_claims_posture(summary_line, pluto_line) {
+    let posture = derived_release_posture();
+    if let Err(error) = validate_release_posture(&posture) {
         return format!("release-grade body claims unavailable ({error})");
     }
-    summary_line.to_string()
+    posture.summary_line()
 }
 
 pub(crate) fn format_body_date_channel_claims_summary_for_report() -> String {
@@ -210,14 +201,7 @@ pub(crate) fn render_pluto_fallback_summary_text_from_report(
         }
     };
 
-    let release_body_claims_line = match validated_release_body_claims_summary_line_for_report() {
-        Ok(line) => line,
-        Err(error) => {
-            return format!("Pluto fallback summary\nPluto fallback unavailable ({error})\n");
-        }
-    };
-    if let Err(error) = validate_release_body_claims_posture(release_body_claims_line, policy_line)
-    {
+    if let Err(error) = validate_release_posture(&derived_release_posture()) {
         return format!("Pluto fallback summary\nPluto fallback unavailable ({error})\n");
     }
 

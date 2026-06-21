@@ -87,6 +87,10 @@ impl SpkBackend {
     }
 
     /// The bodies in [`CelestialBody`] whose NAIF id is present in the pool.
+    ///
+    /// Covers the 14 named built-in variants first, then any Custom asteroid/TNO
+    /// bodies from the curated roster (e.g. Hygiea, Psyche, Iris) that also
+    /// appear in the loaded kernel pool.
     fn covered_bodies(&self) -> Vec<CelestialBody> {
         let present = self.pool.targets();
         let all = [
@@ -105,7 +109,13 @@ impl SpkBackend {
             CelestialBody::Juno,
             CelestialBody::Vesta,
         ];
+        let custom_roster: Vec<CelestialBody> = crate::spk::asteroid_roster::asteroid_core_roster()
+            .iter()
+            .map(|e| e.body.clone())
+            .filter(|b| !all.contains(b))
+            .collect();
         all.into_iter()
+            .chain(custom_roster)
             .filter(|b| naif_ids(b).iter().any(|id| present.contains(id)))
             .collect()
     }
@@ -159,7 +169,7 @@ impl EphemerisBackend for SpkBackend {
             },
             nominal_range: self.nominal_range(),
             supported_time_scales: vec![TimeScale::Tt, TimeScale::Tdb],
-            body_coverage: self.covered_bodies(),
+            body_claims: crate::spk::asteroid_roster::spk_body_claims(&self.covered_bodies()),
             supported_frames: vec![CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial],
             capabilities: BackendCapabilities {
                 geocentric: true,
@@ -217,7 +227,11 @@ mod tests {
     use super::*;
     use crate::spk::test_support::{build_daf, type2_record, type2_segment_data, SegmentSpec};
     use pleiades_backend::EphemerisRequest;
-    use pleiades_types::{Ayanamsa, Instant, JulianDay};
+    use pleiades_types::{Ayanamsa, CustomBodyId, Instant, JulianDay};
+
+    fn ast_body(d: &str) -> CelestialBody {
+        CelestialBody::Custom(CustomBodyId::new("asteroid", d))
+    }
 
     fn const_seg(target: i32, center: i32, pos: [f64; 3]) -> SegmentSpec {
         let rec = type2_record(0.0, 1.0e12, &[pos[0], 0.0], &[pos[1], 0.0], &[pos[2], 0.0]);
@@ -277,5 +291,52 @@ mod tests {
             .position(&req)
             .expect_err("sidereal-zodiac requests must be rejected");
         assert_eq!(err.kind, EphemerisErrorKind::UnsupportedZodiacMode);
+    }
+
+    #[test]
+    fn metadata_declares_custom_tier_a_asteroid_release_grade() {
+        use pleiades_backend::BodyClaimTier;
+        let blob = build_daf(&[
+            const_seg(10, 0, [1.0e8, 0.0, 0.0]),        // Sun
+            const_seg(3, 0, [0.0, 0.0, 0.0]),           // EMB
+            const_seg(2_000_010, 0, [2.0e8, 0.0, 0.0]), // Hygiea (asteroid:10-Hygiea)
+        ]);
+        let backend = SpkBackend::builder()
+            .add_kernel_bytes(blob, "synthetic")
+            .unwrap()
+            .build();
+        let meta = backend.metadata();
+        let hygiea = ast_body("10-Hygiea");
+        assert_eq!(
+            meta.claim_for(&hygiea).map(|c| c.tier),
+            Some(BodyClaimTier::ReleaseGrade)
+        );
+    }
+
+    #[test]
+    fn spk_claims_tier_a_release_grade_tier_b_constrained() {
+        use crate::spk::asteroid_roster::spk_body_claims;
+        use pleiades_backend::BodyClaimTier;
+        let covered = vec![
+            CelestialBody::Ceres,    // Tier A
+            CelestialBody::Vesta,    // Tier A
+            ast_body("2060-Chiron"), // Tier B (Constrained centaur)
+            CelestialBody::Mars,     // planet → Constrained/High/de440
+        ];
+        let claims = spk_body_claims(&covered);
+        let tier = |b: &CelestialBody| claims.iter().find(|c| &c.body == b).map(|c| c.tier);
+        assert_eq!(
+            tier(&CelestialBody::Ceres),
+            Some(BodyClaimTier::ReleaseGrade)
+        );
+        assert_eq!(
+            tier(&CelestialBody::Vesta),
+            Some(BodyClaimTier::ReleaseGrade)
+        );
+        assert_eq!(
+            tier(&ast_body("2060-Chiron")),
+            Some(BodyClaimTier::Constrained)
+        );
+        assert_eq!(tier(&CelestialBody::Mars), Some(BodyClaimTier::Constrained));
     }
 }

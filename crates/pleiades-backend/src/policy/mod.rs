@@ -49,10 +49,6 @@ pub const CURRENT_ZODIAC_POLICY_SUMMARY_TEXT: &str = "tropical only";
 pub const CURRENT_PLUTO_FALLBACK_POLICY_SUMMARY_TEXT: &str =
     "Pluto remains an explicitly approximate fallback; release-grade major-body claims exclude Pluto";
 
-/// Canonical current policy summary text for the release-grade body claims posture.
-pub const CURRENT_RELEASE_BODY_CLAIMS_SUMMARY_TEXT: &str =
-    "Moon and supported lunar points (Mean Node, True Node, Mean Apogee, Mean Perigee) remain source-backed validation bodies; True Apogee and True Perigee remain unsupported; Sun through Neptune are release-grade major-body claims; Pluto remains an explicitly approximate fallback; selected asteroids (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) remain source-backed validation bodies";
-
 // Re-exports of all public types from submodules:
 pub use apparentness::{ApparentnessPolicySummary, ApparentnessPolicySummaryValidationError};
 pub use delta_t::{DeltaTPolicySummary, DeltaTPolicySummaryValidationError};

@@ -990,12 +990,14 @@ fn backend_metadata_exposes_packaged_scope() {
         .profile
         .derived_outputs
         .contains(&pleiades_compression::ArtifactOutput::Motion));
-    assert!(metadata.body_coverage.contains(&CelestialBody::Sun));
-    assert!(metadata.body_coverage.contains(&CelestialBody::Moon));
-    assert!(metadata.body_coverage.contains(&CelestialBody::Jupiter));
-    assert!(metadata.body_coverage.contains(&CelestialBody::Pluto));
+    assert!(metadata.supported_bodies().contains(&CelestialBody::Sun));
+    assert!(metadata.supported_bodies().contains(&CelestialBody::Moon));
     assert!(metadata
-        .body_coverage
+        .supported_bodies()
+        .contains(&CelestialBody::Jupiter));
+    assert!(metadata.supported_bodies().contains(&CelestialBody::Pluto));
+    assert!(metadata
+        .supported_bodies()
         .contains(&CelestialBody::Custom(CustomBodyId::new(
             "asteroid", "433-Eros",
         ))));

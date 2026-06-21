@@ -35,6 +35,10 @@ fn validate_release_smoke_at(output_dir: impl AsRef<Path>) -> Result<(), String>
     let _ = render_artifact_report().map_err(render_artifact_error)?;
     let _ = render_release_bundle(1, output_dir).map_err(render_release_bundle_error)?;
     let _ = verify_release_bundle(output_dir).map_err(render_release_bundle_error)?;
+    crate::claims::check_claim_drift().map_err(|errors| {
+        let messages: Vec<String> = errors.iter().map(|e| e.to_string()).collect();
+        format!("claim drift detected:\n{}", messages.join("\n"))
+    })?;
     Ok(())
 }
 
@@ -1838,6 +1842,64 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "body-date-channel-claims")?;
             Ok(render_body_date_channel_claims_summary_text())
         }
+        Some("claims-audit") => {
+            // Accept zero extra args (fast: drift + structural) or exactly `--full`
+            // (fast + slow accuracy audit).  Reject anything else.
+            let full = match args.get(1).copied() {
+                None => false,
+                Some("--full") => {
+                    // Only `--full` is accepted; any further args are invalid.
+                    if args.len() > 2 {
+                        return Err(format!(
+                            "claims-audit accepts at most one flag (--full), got: {}",
+                            args[2..].join(" ")
+                        ));
+                    }
+                    true
+                }
+                Some(other) => {
+                    return Err(format!(
+                        "claims-audit does not accept extra arguments: {other}"
+                    ));
+                }
+            };
+            let mut lines = vec!["claim audit".to_string()];
+            let mut had_errors = false;
+            match crate::claims::check_claim_drift() {
+                Ok(()) => lines.push("drift: OK".to_string()),
+                Err(errs) => {
+                    had_errors = true;
+                    for e in errs {
+                        lines.push(format!("drift: {e}"));
+                    }
+                }
+            }
+            match crate::claims::audit::audit_structural() {
+                Ok(()) => lines.push("structural: OK".to_string()),
+                Err(errs) => {
+                    had_errors = true;
+                    for e in errs {
+                        lines.push(format!("structural: {e}"));
+                    }
+                }
+            }
+            if full {
+                match crate::claims::audit::audit_release_grade_accuracy() {
+                    Ok(()) => lines.push("accuracy: OK".to_string()),
+                    Err(errs) => {
+                        had_errors = true;
+                        for e in errs {
+                            lines.push(format!("accuracy: {e}"));
+                        }
+                    }
+                }
+            }
+            if had_errors {
+                Err(lines.join("\n"))
+            } else {
+                Ok(format!("{}\n", lines.join("\n")))
+            }
+        }
         Some("pluto-fallback-summary") => {
             ensure_no_extra_args(&args[1..], "pluto-fallback-summary")?;
             Ok(render_pluto_fallback_summary_text())
@@ -1945,7 +2007,7 @@ fn help_text() -> String {
   target-ayanamsa-scope-summary  Print the compact compatibility target ayanamsa scope summary
   target-ayanamsa-scope      Alias for target-ayanamsa-scope-summary
   profile-summary           Alias for compatibility-profile-summary
-  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  release-notes             Print the release compatibility notes\n  release-notes-summary     Print the compact release notes summary\n  release-checklist         Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  release-smoke            Run the release smoke checks and render the short smoke report\n  release-gate              Run the release gate checks and render the release checklist\n  release-gate-summary      Run the release gate checks and render the compact release checklist summary\n  checklist-summary        Alias for release-checklist-summary\n  release-summary           Print the compact release summary\n  source-corpus-summary     Print the consolidated source corpus summary\n  source-corpus             Alias for source-corpus-summary\n  source-corpus-posture-summary  Alias for source-corpus-summary\n  source-corpus-posture     Alias for source-corpus-posture-summary\n  jpl-batch-error-taxonomy-summary  Print the compact JPL batch error taxonomy summary\n  jpl-snapshot-evidence-summary  Print the compact combined JPL evidence summary\n  jpl-source-corpus-contract-summary  Print the compact JPL source corpus contract summary\n  jpl-source-corpus-contract  Alias for jpl-source-corpus-contract-summary\n  jpl-source-posture-summary  Print the compact JPL source posture summary\n  jpl-source-posture         Alias for jpl-source-posture-summary\n  jpl-provenance-only-summary  Print the compact JPL provenance-only evidence summary\n  jpl-provenance-only  Alias for jpl-provenance-only-summary\n  production-generation-boundary-summary  Print the compact production-generation boundary overlay summary\n  production-generation-boundary         Alias for production-generation-boundary-summary\n  production-generation-boundary-request-corpus-summary  Print the compact production-generation boundary request corpus summary\n  production-generation-boundary-request-corpus  Alias for production-generation-boundary-request-corpus-summary\n  production-generation-boundary-request-corpus-equatorial-summary  Print the compact production-generation boundary request corpus summary in the equatorial frame\n  production-generation-boundary-request-corpus-equatorial  Alias for production-generation-boundary-request-corpus-equatorial-summary\n  production-generation-body-class-coverage-summary  Print the compact production-generation body-class coverage summary\n  production-body-class-coverage-summary  Alias for production-generation-body-class-coverage-summary\n  production-generation-source-window-summary  Print the compact production-generation source windows summary\n  production-generation-source-window  Alias for production-generation-source-window-summary\n  production-generation-corpus-shape-summary  Print the compact production-generation corpus shape summary\n  production-generation-corpus-shape  Alias for production-generation-corpus-shape-summary\n  production-generation-summary  Print the compact production-generation coverage summary
+  verify-compatibility-profile  Verify the release compatibility profile against the canonical catalogs\n  release-notes             Print the release compatibility notes\n  release-notes-summary     Print the compact release notes summary\n  release-checklist         Print the release maintainer checklist\n  release-checklist-summary Print the compact release checklist summary\n  release-smoke            Run the release smoke checks and render the short smoke report\n  release-gate              Run the release gate checks and render the release checklist\n  release-gate-summary      Run the release gate checks and render the compact release checklist summary\n  checklist-summary        Alias for release-checklist-summary\n  claims-audit [--full]     Run the structural claim audit; with --full also runs the slow accuracy audit\n  release-summary           Print the compact release summary\n  source-corpus-summary     Print the consolidated source corpus summary\n  source-corpus             Alias for source-corpus-summary\n  source-corpus-posture-summary  Alias for source-corpus-summary\n  source-corpus-posture     Alias for source-corpus-posture-summary\n  jpl-batch-error-taxonomy-summary  Print the compact JPL batch error taxonomy summary\n  jpl-snapshot-evidence-summary  Print the compact combined JPL evidence summary\n  jpl-source-corpus-contract-summary  Print the compact JPL source corpus contract summary\n  jpl-source-corpus-contract  Alias for jpl-source-corpus-contract-summary\n  jpl-source-posture-summary  Print the compact JPL source posture summary\n  jpl-source-posture         Alias for jpl-source-posture-summary\n  jpl-provenance-only-summary  Print the compact JPL provenance-only evidence summary\n  jpl-provenance-only  Alias for jpl-provenance-only-summary\n  production-generation-boundary-summary  Print the compact production-generation boundary overlay summary\n  production-generation-boundary         Alias for production-generation-boundary-summary\n  production-generation-boundary-request-corpus-summary  Print the compact production-generation boundary request corpus summary\n  production-generation-boundary-request-corpus  Alias for production-generation-boundary-request-corpus-summary\n  production-generation-boundary-request-corpus-equatorial-summary  Print the compact production-generation boundary request corpus summary in the equatorial frame\n  production-generation-boundary-request-corpus-equatorial  Alias for production-generation-boundary-request-corpus-equatorial-summary\n  production-generation-body-class-coverage-summary  Print the compact production-generation body-class coverage summary\n  production-body-class-coverage-summary  Alias for production-generation-body-class-coverage-summary\n  production-generation-source-window-summary  Print the compact production-generation source windows summary\n  production-generation-source-window  Alias for production-generation-source-window-summary\n  production-generation-corpus-shape-summary  Print the compact production-generation corpus shape summary\n  production-generation-corpus-shape  Alias for production-generation-corpus-shape-summary\n  production-generation-summary  Print the compact production-generation coverage summary
   production-generation           Alias for production-generation-summary
   production-generation-quarter-day-boundary-summary  Print the compact production-generation quarter-day boundary samples summary
   production-generation-quarter-day-boundary  Alias for production-generation-quarter-day-boundary-summary
@@ -2469,6 +2531,24 @@ fn render_ingest_public(args: &[&str]) -> Result<String, String> {
         prov(out.provenance.units),
         prov(out.provenance.center),
     ))
+}
+
+#[cfg(test)]
+mod claims_audit_tests {
+    use super::render_cli;
+
+    #[test]
+    fn claims_audit_command_reports_ok() {
+        let out = render_cli(&["claims-audit"]).expect("claims-audit renders");
+        assert!(out.contains("claim audit"));
+        assert!(out.contains("OK") || out.contains("ok"));
+    }
+
+    #[test]
+    fn claims_audit_rejects_unknown_flag() {
+        let err = render_cli(&["claims-audit", "--bad"]).unwrap_err();
+        assert!(err.contains("claims-audit") && err.contains("does not accept extra arguments"));
+    }
 }
 
 #[cfg(test)]

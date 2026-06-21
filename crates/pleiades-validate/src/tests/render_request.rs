@@ -799,7 +799,7 @@ fn backend_matrix_report_rejects_invalid_backend_metadata() {
             },
             nominal_range: TimeRange::new(None, None),
             supported_time_scales: vec![TimeScale::Tt],
-            body_coverage: vec![CelestialBody::Sun],
+            body_claims: vec![CelestialBody::Sun.into()],
             supported_frames: vec![CoordinateFrame::Ecliptic],
             capabilities: BackendCapabilities::default(),
             accuracy: AccuracyClass::Approximate,

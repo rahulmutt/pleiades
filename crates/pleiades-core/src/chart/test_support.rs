@@ -30,7 +30,7 @@ impl EphemerisBackend for ToyChartBackend {
             provenance: BackendProvenance::new("toy chart backend"),
             nominal_range: pleiades_types::TimeRange::new(None, None),
             supported_time_scales: vec![TimeScale::Tt],
-            body_coverage: vec![CelestialBody::Sun, CelestialBody::Moon],
+            body_claims: vec![CelestialBody::Sun.into(), CelestialBody::Moon.into()],
             supported_frames: vec![pleiades_types::CoordinateFrame::Ecliptic],
             capabilities: BackendCapabilities::default(),
             accuracy: AccuracyClass::Approximate,
@@ -88,7 +88,7 @@ impl EphemerisBackend for RecordingChartBackend {
             provenance: BackendProvenance::new("recording chart backend"),
             nominal_range: pleiades_types::TimeRange::new(None, None),
             supported_time_scales: vec![TimeScale::Tt],
-            body_coverage: vec![CelestialBody::Sun],
+            body_claims: vec![CelestialBody::Sun.into()],
             supported_frames: vec![pleiades_types::CoordinateFrame::Ecliptic],
             capabilities: BackendCapabilities {
                 topocentric: true,
@@ -135,7 +135,7 @@ impl EphemerisBackend for MeanOnlyRecordingChartBackend {
             provenance: BackendProvenance::new("mean-only recording chart backend"),
             nominal_range: pleiades_types::TimeRange::new(None, None),
             supported_time_scales: vec![TimeScale::Tt],
-            body_coverage: vec![CelestialBody::Sun],
+            body_claims: vec![CelestialBody::Sun.into()],
             supported_frames: vec![pleiades_types::CoordinateFrame::Ecliptic],
             capabilities: BackendCapabilities {
                 apparent: false,
@@ -188,7 +188,7 @@ impl EphemerisBackend for BatchRecordingChartBackend {
             provenance: BackendProvenance::new("batch recording chart backend"),
             nominal_range: pleiades_types::TimeRange::new(None, None),
             supported_time_scales: vec![TimeScale::Tt],
-            body_coverage: vec![CelestialBody::Sun, CelestialBody::Moon],
+            body_claims: vec![CelestialBody::Sun.into(), CelestialBody::Moon.into()],
             supported_frames: vec![pleiades_types::CoordinateFrame::Ecliptic],
             capabilities: BackendCapabilities {
                 batch: true,

@@ -1094,9 +1094,26 @@ fn comparison_and_benchmark_corpus_summary_commands_render_the_corpus_blocks() {
         release_body_claims_summary,
         render_release_body_claims_summary_text()
     );
-    assert!(release_body_claims_summary.contains(
-            "Release-grade body claims: Moon and supported lunar points (Mean Node, True Node, Mean Apogee, Mean Perigee) remain source-backed validation bodies; True Apogee and True Perigee remain unsupported; Sun through Neptune are release-grade major-body claims; Pluto remains an explicitly approximate fallback; selected asteroids (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) remain source-backed validation bodies"
-        ));
+    // The summary is now derived from the per-backend claim model. Assert
+    // structural facts rather than pinning prose: Pluto is release-grade via the
+    // packaged-data backend, approximate via VSOP87, and the Moon's true apsides
+    // remain unsupported via ELP.
+    assert!(release_body_claims_summary.contains("Release-grade body claims: ReleaseGrade: ["));
+    assert!(release_body_claims_summary.contains("Pluto@pleiades-data"));
+    assert!(release_body_claims_summary.contains("Moon@pleiades-data"));
+    assert!(release_body_claims_summary.contains("asteroid:433-Eros@pleiades-data"));
+    assert!(release_body_claims_summary.contains("Pluto@pleiades-vsop87"));
+    assert!(release_body_claims_summary.contains("True Apogee@pleiades-elp"));
+    {
+        let posture = crate::claims::derived_release_posture();
+        let release_grade = posture.release_grade();
+        assert!(release_grade
+            .iter()
+            .any(|(id, b)| id.as_str() == "pleiades-data" && b == &CelestialBody::Pluto));
+        assert!(!release_grade
+            .iter()
+            .any(|(id, b)| id.as_str() == "pleiades-vsop87" && b == &CelestialBody::Pluto));
+    }
     assert_eq!(
         render_cli(&["body-claims-summary"]).expect("body claims alias should render"),
         release_body_claims_summary
@@ -1198,27 +1215,17 @@ fn comparison_and_benchmark_corpus_summary_commands_render_the_corpus_blocks() {
     let pluto_fallback_summary =
         render_cli(&["pluto-fallback-summary"]).expect("Pluto fallback summary should render");
     assert_eq!(pluto_fallback_summary, render_pluto_fallback_summary_text());
+    // The Pluto-fallback render now embeds the derived release-body-claims line
+    // (structural shape) plus the still-owned Pluto fallback policy prose.
+    assert!(pluto_fallback_summary.contains("Release-grade body claims: ReleaseGrade: ["));
+    assert!(pluto_fallback_summary.contains("Pluto@pleiades-vsop87"));
     assert!(pluto_fallback_summary.contains(
-            "Release-grade body claims: Moon and supported lunar points (Mean Node, True Node, Mean Apogee, Mean Perigee) remain source-backed validation bodies; True Apogee and True Perigee remain unsupported; Sun through Neptune are release-grade major-body claims; Pluto remains an explicitly approximate fallback; selected asteroids (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) remain source-backed validation bodies"
-        ));
-    assert!(pluto_fallback_summary.contains(
-            "Pluto fallback policy: Pluto remains an explicitly approximate fallback; release-grade major-body claims exclude Pluto"
-        ));
-    let release_body_claims_line = release_body_claims_summary_for_report()
-        .validated_summary_line()
-        .expect("release body claims posture should validate");
-    let pluto_fallback_line = pluto_fallback_summary_for_report()
-        .validated_summary_line()
-        .expect("Pluto fallback posture should validate");
-    assert_eq!(
-        validate_release_body_claims_posture(release_body_claims_line, pluto_fallback_line,),
-        Ok(())
-    );
-    assert!(validate_release_body_claims_posture(
-            &release_body_claims_line.replace("Pluto remains an explicitly approximate fallback; ", ""),
-            "Pluto remains an explicitly approximate fallback; release-grade major-body claims include Pluto",
-        )
-        .is_err());
+        "Pluto fallback policy: Pluto remains an explicitly approximate fallback; release-grade major-body claims exclude Pluto"
+    ));
+    // The structural posture validator accepts the derived posture and rejects a
+    // tampered one (a single backend claiming a body at two tiers).
+    let posture = crate::claims::derived_release_posture();
+    assert_eq!(crate::claims::validate_release_posture(&posture), Ok(()));
     assert_eq!(
         render_cli(&["pluto-fallback"]).expect("Pluto fallback alias should render"),
         pluto_fallback_summary
@@ -1843,7 +1850,10 @@ fn source_corpus_summary_aliases_render_the_same_report() {
     assert!(rendered.contains("provenance-only=source and manifest summaries are provenance-only evidence; they validate corpus provenance and checksum posture but are excluded from tolerance, hold-out, and fixture-exactness claims"));
     assert!(rendered
         .contains("lunar source windows=7 exact Moon samples across 1 bodies in 2 exact windows"));
-    assert!(rendered.contains("release-grade body claims=Moon and supported lunar points (Mean Node, True Node, Mean Apogee, Mean Perigee) remain source-backed validation bodies; True Apogee and True Perigee remain unsupported; Sun through Neptune are release-grade major-body claims; Pluto remains an explicitly approximate fallback; selected asteroids (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) remain source-backed validation bodies"));
+    // Release-grade body claims are now derived (structural shape, grouped by tier).
+    assert!(rendered.contains("release-grade body claims=ReleaseGrade: ["));
+    assert!(rendered.contains("Pluto@pleiades-data"));
+    assert!(rendered.contains("Pluto@pleiades-vsop87"));
     assert!(rendered.contains("date range=JD 2378498.5 (TDB)..JD 2634167.0 (TDB)"));
     assert!(rendered.contains("production generation coverage=Production generation coverage:"));
     assert!(rendered.contains(

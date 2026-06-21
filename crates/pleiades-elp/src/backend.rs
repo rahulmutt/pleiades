@@ -2,9 +2,9 @@
 
 use pleiades_backend::{
     validate_observer_policy, validate_request_policy, validate_zodiac_policy, AccuracyClass,
-    BackendCapabilities, BackendFamily, BackendId, BackendMetadata, BackendProvenance,
-    EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult,
-    QualityAnnotation,
+    BackendCapabilities, BackendFamily, BackendId, BackendMetadata, BackendProvenance, BodyClaim,
+    ClaimEvidence, EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest,
+    EphemerisResult, QualityAnnotation,
 };
 use pleiades_types::{
     CelestialBody, CoordinateFrame, EclipticCoordinates, EquatorialCoordinates, Instant, Latitude,
@@ -20,6 +20,28 @@ use crate::{
 /// A pure-Rust lunar backend.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct ElpBackend;
+
+/// Returns the set of body claims for the ELP lunar backend.
+///
+/// Lunar bodies (Moon, Mean Node, True Node, Mean Apogee, Mean Perigee) are claimed as Constrained
+/// with Moderate accuracy and AlgorithmicModel evidence. True Apogee and True Perigee are explicitly
+/// listed as Unsupported.
+pub fn elp_body_claims() -> Vec<BodyClaim> {
+    let mut claims: Vec<BodyClaim> = lunar_theory_supported_bodies()
+        .iter()
+        .cloned()
+        .map(|body| {
+            BodyClaim::constrained(
+                body,
+                AccuracyClass::Moderate,
+                ClaimEvidence::AlgorithmicModel,
+            )
+        })
+        .collect();
+    claims.push(BodyClaim::unsupported(CelestialBody::TrueApogee));
+    claims.push(BodyClaim::unsupported(CelestialBody::TruePerigee));
+    claims
+}
 
 impl ElpBackend {
     /// Creates a new backend instance.
@@ -196,7 +218,7 @@ impl EphemerisBackend for ElpBackend {
             },
             nominal_range: TimeRange::new(None, None),
             supported_time_scales: vec![TimeScale::Tt, TimeScale::Tdb],
-            body_coverage: lunar_theory_supported_bodies().to_vec(),
+            body_claims: elp_body_claims(),
             supported_frames: vec![CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial],
             capabilities: BackendCapabilities {
                 geocentric: true,

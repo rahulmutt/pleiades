@@ -304,14 +304,3 @@ pub(crate) fn ensure_comparison_body_class_tolerance_summary_matches_current_ren
         ))
     }
 }
-
-pub(crate) fn validate_release_body_claims_posture(
-    release_body_claims_summary: &str,
-    pluto_fallback_summary: &str,
-) -> Result<(), String> {
-    validate_release_body_claims_posture_backend(
-        release_body_claims_summary,
-        pluto_fallback_summary,
-    )
-    .map_err(|error| error.to_string())
-}

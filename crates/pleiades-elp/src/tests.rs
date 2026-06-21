@@ -1928,7 +1928,7 @@ fn backend_supports_lunar_points() {
     assert!(!backend.supports_body(CelestialBody::TruePerigee));
     assert!(!backend.supports_body(CelestialBody::Sun));
     assert_eq!(
-        backend.metadata().body_coverage,
+        backend.metadata().supported_bodies(),
         lunar_theory_supported_bodies()
     );
 
@@ -2748,6 +2748,22 @@ fn batch_query_rejects_topocentric_requests_explicitly() {
         .positions(&[request])
         .expect_err("topocentric batch requests should be unsupported");
     assert_eq!(error.kind, EphemerisErrorKind::UnsupportedObserver);
+}
+
+#[test]
+fn elp_claims_lunar_constrained_true_apsides_unsupported() {
+    use pleiades_backend::{BodyClaimTier, CelestialBody, EphemerisBackend};
+    let meta = ElpBackend::new().metadata();
+    assert_eq!(
+        meta.claim_for(&CelestialBody::Moon).map(|c| c.tier),
+        Some(BodyClaimTier::Constrained)
+    );
+    assert_eq!(
+        meta.claim_for(&CelestialBody::TrueApogee).map(|c| c.tier),
+        Some(BodyClaimTier::Unsupported)
+    );
+    assert!(!meta.supported_bodies().contains(&CelestialBody::TrueApogee));
+    assert!(meta.release_grade_bodies().is_empty());
 }
 
 fn mean_request(body: CelestialBody) -> EphemerisRequest {

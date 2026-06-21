@@ -1240,3 +1240,18 @@ fn batch_query_preserves_mixed_time_scales_and_values() {
         );
     }
 }
+
+#[test]
+fn vsop87_claims_majors_constrained_pluto_approximate() {
+    use pleiades_backend::{BodyClaimTier, CelestialBody, EphemerisBackend};
+    let meta = Vsop87Backend::new().metadata();
+    assert_eq!(
+        meta.claim_for(&CelestialBody::Mars).map(|c| c.tier),
+        Some(BodyClaimTier::Constrained)
+    );
+    assert_eq!(
+        meta.claim_for(&CelestialBody::Pluto).map(|c| c.tier),
+        Some(BodyClaimTier::Approximate)
+    );
+    assert!(meta.release_grade_bodies().is_empty());
+}

@@ -195,6 +195,19 @@ pub(crate) fn packaged_bodies() -> &'static [CelestialBody] {
     })
 }
 
+/// Returns the per-body release claims for the packaged artifact: every shipped
+/// body is release-grade, validated inside the artifact build against the corpus.
+pub fn packaged_body_claims() -> Vec<pleiades_backend::BodyClaim> {
+    use pleiades_backend::{AccuracyClass, BodyClaim, ClaimEvidence};
+    packaged_bodies()
+        .iter()
+        .cloned()
+        .map(|body| {
+            BodyClaim::release_grade(body, AccuracyClass::High, ClaimEvidence::ArtifactValidated)
+        })
+        .collect()
+}
+
 pub(crate) fn packaged_reference_entry_for_body(
     snapshot: &[SnapshotEntry],
     body: &CelestialBody,

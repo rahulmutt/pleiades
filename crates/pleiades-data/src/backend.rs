@@ -101,7 +101,19 @@ impl EphemerisBackend for PackagedDataBackend {
             },
             nominal_range: range,
             supported_time_scales: vec![TimeScale::Tt, TimeScale::Tdb],
-            body_coverage: bodies,
+            body_claims: {
+                let declared = crate::packaged_body_claims();
+                bodies
+                    .iter()
+                    .map(|body| {
+                        declared
+                            .iter()
+                            .find(|c| &c.body == body)
+                            .cloned()
+                            .unwrap_or_else(|| pleiades_backend::BodyClaim::from(body.clone()))
+                    })
+                    .collect()
+            },
             supported_frames: vec![CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial],
             capabilities: BackendCapabilities {
                 geocentric: true,

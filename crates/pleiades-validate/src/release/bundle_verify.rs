@@ -2861,11 +2861,8 @@ pub(crate) fn verify_release_bundle_internal(
         )));
     }
     ensure_pluto_fallback_summary_matches_current_rendering(&pluto_fallback_summary_text)?;
-    if let Err(error) = validate_release_body_claims_posture(
-        &release_body_claims_summary_text,
-        &pluto_fallback_summary_text,
-    ) {
-        return Err(ReleaseBundleError::Verification(error));
+    if let Err(error) = validate_release_posture(&derived_release_posture()) {
+        return Err(ReleaseBundleError::Verification(error.to_string()));
     }
     ensure_body_date_channel_claims_summary_matches_current_rendering(
         &body_date_channel_claims_summary_text,

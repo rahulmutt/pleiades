@@ -26,7 +26,7 @@ fn packaged_backend_from_artifact_uses_supplied_metadata() {
     let metadata = backend.metadata();
 
     assert_eq!(metadata.provenance.summary, "external packaged artifact");
-    assert!(metadata.body_coverage.contains(&CelestialBody::Sun));
+    assert!(metadata.supported_bodies().contains(&CelestialBody::Sun));
     assert!(metadata
         .supported_frames
         .contains(&CoordinateFrame::Equatorial));
@@ -51,7 +51,7 @@ fn packaged_backend_from_path_loads_a_file_artifact() {
 
     assert_eq!(metadata.id.as_str(), PACKAGE_NAME);
     assert!(metadata.offline);
-    assert!(metadata.body_coverage.contains(&CelestialBody::Sun));
+    assert!(metadata.supported_bodies().contains(&CelestialBody::Sun));
 
     let _ = std::fs::remove_file(&path);
 }
@@ -96,6 +96,24 @@ fn packaged_artifact_decode_rejects_checksum_corruption() {
         error.kind,
         pleiades_compression::CompressionErrorKind::ChecksumMismatch
     );
+}
+
+#[test]
+fn packaged_metadata_claims_eleven_bodies_release_grade() {
+    use pleiades_backend::{BodyClaimTier, CelestialBody, CustomBodyId, EphemerisBackend};
+    let backend = crate::PackagedDataBackend::default();
+    let meta = backend.metadata();
+    assert_eq!(meta.release_grade_bodies().len(), 11);
+    for body in [
+        CelestialBody::Pluto,
+        CelestialBody::Moon,
+        CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros")),
+    ] {
+        assert_eq!(
+            meta.claim_for(&body).map(|c| c.tier),
+            Some(BodyClaimTier::ReleaseGrade)
+        );
+    }
 }
 
 #[test]

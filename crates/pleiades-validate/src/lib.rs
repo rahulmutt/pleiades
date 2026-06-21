@@ -14,6 +14,7 @@ use std::time::Instant as StdInstant;
 
 mod artifact;
 mod chart_benchmark;
+mod claims;
 mod comparison;
 mod compatibility;
 mod corpus;
@@ -166,18 +167,19 @@ pub use house_validation::{
     HouseValidationReportValidationError, HouseValidationSample, HouseValidationScenario,
 };
 
+use crate::claims::{
+    derived_release_posture, validate_release_posture,
+    validated_release_body_claims_summary_line_for_report,
+};
 use pleiades_ayanamsa::{
     ayanamsa_catalog_validation_summary, baseline_ayanamsas, built_in_ayanamsas, descriptor,
     metadata_coverage, release_ayanamsas, resolve_ayanamsa, validate_ayanamsa_catalog,
 };
 use pleiades_backend::{
     delta_t_policy_summary_for_report, frame_policy_summary_details,
-    pluto_fallback_summary_for_report, release_body_claims_summary_for_report,
-    request_policy_summary_for_report, time_scale_policy_summary_for_report,
-    unsupported_modes_summary_for_report,
-    validate_release_body_claims_posture as validate_release_body_claims_posture_backend,
+    pluto_fallback_summary_for_report, request_policy_summary_for_report,
+    time_scale_policy_summary_for_report, unsupported_modes_summary_for_report,
     validated_frame_policy_summary_for_report, validated_pluto_fallback_summary_line_for_report,
-    validated_release_body_claims_summary_line_for_report,
     validated_zodiac_policy_summary_for_report,
 };
 #[cfg(test)]

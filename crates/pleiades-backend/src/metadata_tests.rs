@@ -9,7 +9,7 @@ fn backend_metadata_has_a_compact_display() {
         provenance: BackendProvenance::new("example backend"),
         nominal_range: TimeRange::new(None, None),
         supported_time_scales: vec![TimeScale::Tt, TimeScale::Tdb],
-        body_coverage: vec![CelestialBody::Sun, CelestialBody::Moon],
+        body_claims: vec![CelestialBody::Sun.into(), CelestialBody::Moon.into()],
         supported_frames: vec![CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial],
         capabilities: BackendCapabilities::default(),
         accuracy: AccuracyClass::Approximate,
@@ -32,7 +32,9 @@ fn backend_metadata_has_a_compact_display() {
     assert!(metadata.summary_line().contains("deterministic=true"));
     assert!(metadata.summary_line().contains("offline=true"));
     assert!(metadata.summary_line().contains("time scales=[TT, TDB]"));
-    assert!(metadata.summary_line().contains("bodies=[Sun, Moon]"));
+    assert!(metadata
+        .summary_line()
+        .contains("bodies=[Sun [Constrained;"));
     assert!(metadata
         .summary_line()
         .contains("frames=[Ecliptic, Equatorial]"));
@@ -52,7 +54,7 @@ fn backend_metadata_validation_rejects_blank_and_duplicate_fields() {
         provenance: BackendProvenance::new("example backend"),
         nominal_range: TimeRange::new(None, None),
         supported_time_scales: vec![TimeScale::Tt, TimeScale::Tt],
-        body_coverage: vec![CelestialBody::Sun, CelestialBody::Sun],
+        body_claims: vec![CelestialBody::Sun.into(), CelestialBody::Sun.into()],
         supported_frames: vec![CoordinateFrame::Ecliptic],
         capabilities: BackendCapabilities::default(),
         accuracy: AccuracyClass::Approximate,
@@ -96,7 +98,7 @@ fn backend_metadata_validation_rejects_blank_and_duplicate_fields() {
 
     metadata.provenance.data_sources = vec!["source A".to_string()];
     metadata.supported_time_scales = vec![TimeScale::Tt];
-    metadata.body_coverage = vec![CelestialBody::Sun];
+    metadata.body_claims = vec![CelestialBody::Sun.into()];
     metadata.supported_frames = vec![CoordinateFrame::Ecliptic, CoordinateFrame::Ecliptic];
 
     let error = metadata
@@ -267,4 +269,61 @@ fn backend_provenance_validation_rejects_blank_summary_and_duplicate_sources() {
     );
     assert_eq!(error.to_string(), error.summary_line());
     assert!(provenance.validated_summary_line().is_err());
+}
+
+fn sample_metadata() -> BackendMetadata {
+    BackendMetadata {
+        id: BackendId::new("sample"),
+        version: "0.1.0".to_string(),
+        family: BackendFamily::Algorithmic,
+        provenance: BackendProvenance::new("sample backend"),
+        nominal_range: TimeRange::new(None, None),
+        supported_time_scales: vec![TimeScale::Tt],
+        body_claims: vec![CelestialBody::Sun.into()],
+        supported_frames: vec![CoordinateFrame::Ecliptic],
+        capabilities: BackendCapabilities::default(),
+        accuracy: AccuracyClass::Approximate,
+        deterministic: true,
+        offline: true,
+    }
+}
+
+#[test]
+fn supported_bodies_excludes_unsupported_tier() {
+    use crate::claims::{BodyClaim, BodyClaimTier};
+    let mut meta = sample_metadata();
+    meta.body_claims = vec![
+        BodyClaim::from(CelestialBody::Moon),
+        BodyClaim::unsupported(CelestialBody::TrueApogee),
+    ];
+    let bodies = meta.supported_bodies();
+    assert!(bodies.contains(&CelestialBody::Moon));
+    assert!(!bodies.contains(&CelestialBody::TrueApogee));
+    assert_eq!(
+        meta.claim_for(&CelestialBody::TrueApogee).map(|c| c.tier),
+        Some(BodyClaimTier::Unsupported)
+    );
+}
+
+#[test]
+fn validate_rejects_duplicate_body_claims() {
+    let mut meta = sample_metadata();
+    meta.body_claims = vec![CelestialBody::Sun.into(), CelestialBody::Sun.into()];
+    assert!(meta.validate().is_err());
+}
+
+#[test]
+fn merge_body_claims_keeps_stronger_tier() {
+    use crate::claims::{BodyClaim, BodyClaimTier, ClaimEvidence};
+    use crate::metadata::merge_body_claims;
+    use crate::AccuracyClass;
+    let a = vec![BodyClaim::approximate(CelestialBody::Pluto)];
+    let b = vec![BodyClaim::release_grade(
+        CelestialBody::Pluto,
+        AccuracyClass::High,
+        ClaimEvidence::ArtifactValidated,
+    )];
+    let merged = merge_body_claims(&a, &b);
+    assert_eq!(merged.len(), 1);
+    assert_eq!(merged[0].tier, BodyClaimTier::ReleaseGrade);
 }

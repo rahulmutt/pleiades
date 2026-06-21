@@ -321,6 +321,79 @@ pub fn release_grade_corpus() -> ValidationCorpus {
         .clone()
 }
 
+/// Builds a validation corpus from the committed independent hold-out rows.
+///
+/// One request is emitted per hold-out `SnapshotEntry`, reusing the entry's own
+/// body and epoch in a geocentric ecliptic, tropical, mean-geometric shape. Each
+/// request epoch coincides with a hold-out row, so a hold-out-backed reference
+/// snapshot serves it exactly. This is the SP3-grade corpus used by the
+/// release-grade accuracy audit for the packaged-data planetary bodies; it is
+/// the validation-crate counterpart to the in-`pleiades-data` accuracy baseline
+/// (artifact vs hold-out at matching epochs), so the audit's deltas are
+/// apples-to-apples with the published per-body accuracy ceilings rather than
+/// the coarse VSOP/ELP comparison snapshot.
+pub fn holdout_corpus() -> ValidationCorpus {
+    static CACHE: OnceLock<ValidationCorpus> = OnceLock::new();
+
+    CACHE
+        .get_or_init(|| {
+            let requests = pleiades_jpl::production_holdout_corpus()
+                .iter()
+                .map(|entry| EphemerisRequest {
+                    body: entry.body.clone(),
+                    instant: entry.epoch,
+                    observer: None,
+                    frame: CoordinateFrame::Ecliptic,
+                    zodiac_mode: ZodiacMode::Tropical,
+                    apparent: Apparentness::Mean,
+                })
+                .collect();
+
+            ValidationCorpus {
+                name: "Independent hold-out window".to_string(),
+                description: "SP3-grade accuracy-ceiling corpus built from the committed independent hold-out rows, used by the slow release-grade accuracy audit for packaged planetary bodies.",
+                apparentness: Apparentness::Mean,
+                requests,
+            }
+        })
+        .clone()
+}
+
+/// Builds a validation corpus from the committed Tier-A asteroid reference rows
+/// (`sb441-n16`).
+///
+/// One request is emitted per `SnapshotEntry`, reusing the entry's own body and
+/// epoch in a geocentric ecliptic, tropical, mean-geometric shape. Each request
+/// epoch coincides with a reference row, so the snapshot reference backend can
+/// serve it exactly without interpolation. This is the asteroid counterpart to
+/// [`default_corpus`] and is consumed by the slow accuracy-ceiling audit.
+pub fn asteroid_corpus() -> ValidationCorpus {
+    static CACHE: OnceLock<ValidationCorpus> = OnceLock::new();
+
+    CACHE
+        .get_or_init(|| {
+            let requests = pleiades_jpl::asteroid_reference_corpus()
+                .iter()
+                .map(|entry| EphemerisRequest {
+                    body: entry.body.clone(),
+                    instant: entry.epoch,
+                    observer: None,
+                    frame: CoordinateFrame::Ecliptic,
+                    zodiac_mode: ZodiacMode::Tropical,
+                    apparent: Apparentness::Mean,
+                })
+                .collect();
+
+            ValidationCorpus {
+                name: "Tier-A asteroid reference window (sb441-n16)".to_string(),
+                description: "Asteroid accuracy-ceiling corpus built from the committed sb441-n16 Tier-A reference rows, used by the slow release-grade accuracy audit for small bodies.",
+                apparentness: Apparentness::Mean,
+                requests,
+            }
+        })
+        .clone()
+}
+
 /// Creates the default benchmark corpus.
 pub fn benchmark_corpus() -> ValidationCorpus {
     static CACHE: OnceLock<ValidationCorpus> = OnceLock::new();

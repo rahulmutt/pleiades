@@ -73,13 +73,14 @@ pub(crate) fn render_backend_matrix_summary_text() -> String {
             AccuracyClass::Unknown => unknown_accuracy_count += 1,
             _ => unknown_accuracy_count += 1,
         }
-        if selected_asteroid_coverage(&entry.metadata.body_coverage).is_some() {
+        let entry_bodies = entry.metadata.supported_bodies();
+        if selected_asteroid_coverage(&entry_bodies).is_some() {
             selected_asteroid_count += 1;
         }
         if !entry.metadata.provenance.data_sources.is_empty() {
             data_source_count += 1;
         }
-        for body in &entry.metadata.body_coverage {
+        for body in &entry_bodies {
             push_unique(&mut bodies, body.to_string());
         }
         for frame in &entry.metadata.supported_frames {

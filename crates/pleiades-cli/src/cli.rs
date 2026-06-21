@@ -717,6 +717,7 @@ pub(crate) fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("lunar-reference-evidence-summary") | Some("lunar-reference-evidence") => {
             validate_render_cli(args)
         }
+        Some("claims-audit") => validate_render_cli(args),
         Some("pluto-fallback-summary") => validate_render_cli(args),
         Some("pluto-fallback") => validate_render_cli(args),
         Some("ayanamsa-audit-summary") | Some("ayanamsa-audit") => validate_render_cli(args),
