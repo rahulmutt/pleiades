@@ -18,7 +18,7 @@
 //! ```
 //! use pleiades_backend::{EphemerisBackend, EphemerisRequest, BackendMetadata, BackendId, BackendFamily,
 //!     BackendProvenance, BackendCapabilities, AccuracyClass, TimeRange, EphemerisResult, EphemerisError,
-//!     EphemerisErrorKind, Apparentness, QualityAnnotation};
+//!     EphemerisErrorKind, Apparentness, QualityAnnotation, BodyClaim};
 //! use pleiades_types::{CelestialBody, CoordinateFrame, Instant, JulianDay, Latitude,
 //!     Longitude, TimeScale, ZodiacMode};
 //!
@@ -33,7 +33,7 @@
 //!             provenance: BackendProvenance { summary: "example backend".to_string(), data_sources: vec![] },
 //!             nominal_range: TimeRange::new(None, None),
 //!             supported_time_scales: vec![TimeScale::Tt],
-//!             body_coverage: vec![CelestialBody::Sun],
+//!             body_claims: vec![BodyClaim::from(CelestialBody::Sun)],
 //!             supported_frames: vec![CoordinateFrame::Ecliptic],
 //!             capabilities: BackendCapabilities::default(),
 //!             accuracy: AccuracyClass::Approximate,
@@ -93,7 +93,7 @@ pub use claims::{BodyClaim, BodyClaimTier, ClaimEvidence};
 pub use errors::{EphemerisError, EphemerisErrorKind};
 pub use identity::{AccuracyClass, BackendFamily, BackendFamilyPosture, BackendId};
 pub use metadata::{
-    BackendMetadata, BackendMetadataValidationError, BackendProvenance,
+    merge_body_claims, BackendMetadata, BackendMetadataValidationError, BackendProvenance,
     BackendProvenanceValidationError,
 };
 pub use policy::current::{

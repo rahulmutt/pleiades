@@ -14,28 +14,28 @@ use pleiades_types::CoordinateFrame;
 fn reference_snapshot_covers_the_expected_bodies_and_epochs() {
     let metadata = backend().metadata();
     assert!(metadata
-        .body_coverage
+        .supported_bodies()
         .contains(&pleiades_backend::CelestialBody::Sun));
     assert!(metadata
-        .body_coverage
+        .supported_bodies()
         .contains(&pleiades_backend::CelestialBody::Moon));
     assert!(metadata
-        .body_coverage
+        .supported_bodies()
         .contains(&pleiades_backend::CelestialBody::Pluto));
     assert!(metadata
-        .body_coverage
+        .supported_bodies()
         .contains(&pleiades_backend::CelestialBody::Ceres));
     assert!(metadata
-        .body_coverage
+        .supported_bodies()
         .contains(&pleiades_backend::CelestialBody::Pallas));
     assert!(metadata
-        .body_coverage
+        .supported_bodies()
         .contains(&pleiades_backend::CelestialBody::Juno));
     assert!(metadata
-        .body_coverage
+        .supported_bodies()
         .contains(&pleiades_backend::CelestialBody::Vesta));
     assert!(metadata
-        .body_coverage
+        .supported_bodies()
         .contains(&pleiades_backend::CelestialBody::Custom(CustomBodyId::new(
             "asteroid", "433-Eros"
         ))));

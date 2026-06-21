@@ -12,7 +12,7 @@ impl EphemerisBackend for ToyBackend {
             provenance: BackendProvenance::new("toy backend for tests"),
             nominal_range: TimeRange::new(None, None),
             supported_time_scales: vec![TimeScale::Tt],
-            body_coverage: vec![CelestialBody::Sun],
+            body_claims: vec![CelestialBody::Sun.into()],
             supported_frames: vec![CoordinateFrame::Ecliptic],
             capabilities: BackendCapabilities::default(),
             accuracy: AccuracyClass::Approximate,
@@ -64,7 +64,7 @@ fn routing_metadata_defers_request_shape_checks_to_the_selected_provider() {
                 provenance: BackendProvenance::new("rejecting Sun backend"),
                 nominal_range: TimeRange::new(None, None),
                 supported_time_scales: vec![TimeScale::Tt],
-                body_coverage: vec![CelestialBody::Sun],
+                body_claims: vec![CelestialBody::Sun.into()],
                 supported_frames: vec![CoordinateFrame::Ecliptic],
                 capabilities: BackendCapabilities {
                     batch: false,
@@ -119,7 +119,7 @@ fn routing_metadata_defers_request_shape_checks_to_the_selected_provider() {
                 provenance: BackendProvenance::new("accepting Sun backend"),
                 nominal_range: TimeRange::new(None, None),
                 supported_time_scales: vec![TimeScale::Tt],
-                body_coverage: vec![CelestialBody::Sun],
+                body_claims: vec![CelestialBody::Sun.into()],
                 supported_frames: vec![CoordinateFrame::Ecliptic],
                 capabilities: BackendCapabilities {
                     batch: true,
@@ -192,7 +192,7 @@ fn routing_backend_batch_metadata_defers_observer_and_apparentness_checks_to_the
                 provenance: BackendProvenance::new("rejecting Sun batch backend"),
                 nominal_range: TimeRange::new(None, None),
                 supported_time_scales: vec![TimeScale::Tt, TimeScale::Tdb],
-                body_coverage: vec![CelestialBody::Sun],
+                body_claims: vec![CelestialBody::Sun.into()],
                 supported_frames: vec![CoordinateFrame::Ecliptic],
                 capabilities: BackendCapabilities {
                     batch: false,
@@ -247,7 +247,7 @@ fn routing_backend_batch_metadata_defers_observer_and_apparentness_checks_to_the
                 provenance: BackendProvenance::new("accepting Sun batch backend"),
                 nominal_range: TimeRange::new(None, None),
                 supported_time_scales: vec![TimeScale::Tt, TimeScale::Tdb],
-                body_coverage: vec![CelestialBody::Sun],
+                body_claims: vec![CelestialBody::Sun.into()],
                 supported_frames: vec![CoordinateFrame::Ecliptic],
                 capabilities: BackendCapabilities {
                     batch: true,
@@ -333,7 +333,7 @@ fn batch_query_preserves_apparent_request_rejection() {
                 provenance: BackendProvenance::new("mean-only test backend"),
                 nominal_range: TimeRange::new(None, None),
                 supported_time_scales: vec![TimeScale::Tt],
-                body_coverage: vec![CelestialBody::Sun],
+                body_claims: vec![CelestialBody::Sun.into()],
                 supported_frames: vec![CoordinateFrame::Ecliptic],
                 capabilities: BackendCapabilities::default(),
                 accuracy: AccuracyClass::Approximate,
@@ -403,7 +403,7 @@ fn batch_query_preserves_observer_request_rejection() {
                 provenance: BackendProvenance::new("geocentric-only test backend"),
                 nominal_range: TimeRange::new(None, None),
                 supported_time_scales: vec![TimeScale::Tt],
-                body_coverage: vec![CelestialBody::Sun],
+                body_claims: vec![CelestialBody::Sun.into()],
                 supported_frames: vec![CoordinateFrame::Ecliptic],
                 capabilities: BackendCapabilities::default(),
                 accuracy: AccuracyClass::Approximate,
@@ -470,7 +470,7 @@ fn batch_query_preserves_mixed_time_scales() {
                 provenance: BackendProvenance::new("mixed-scale test backend"),
                 nominal_range: TimeRange::new(None, None),
                 supported_time_scales: vec![TimeScale::Tt, TimeScale::Tdb],
-                body_coverage: vec![CelestialBody::Sun],
+                body_claims: vec![CelestialBody::Sun.into()],
                 supported_frames: vec![CoordinateFrame::Ecliptic],
                 capabilities: BackendCapabilities::default(),
                 accuracy: AccuracyClass::Approximate,
@@ -558,7 +558,7 @@ fn batch_query_short_circuits_on_the_first_error() {
                 provenance: BackendProvenance::new("counting test backend"),
                 nominal_range: TimeRange::new(None, None),
                 supported_time_scales: vec![TimeScale::Tt],
-                body_coverage: vec![CelestialBody::Sun, CelestialBody::Moon],
+                body_claims: vec![CelestialBody::Sun.into(), CelestialBody::Moon.into()],
                 supported_frames: vec![CoordinateFrame::Ecliptic],
                 capabilities: BackendCapabilities::default(),
                 accuracy: AccuracyClass::Approximate,
@@ -622,7 +622,7 @@ fn metadata_is_reported() {
     let backend = ToyBackend;
     let metadata = backend.metadata();
     assert_eq!(metadata.id.as_str(), "toy");
-    assert!(metadata.body_coverage.contains(&CelestialBody::Sun));
+    assert!(metadata.supported_bodies().contains(&CelestialBody::Sun));
 }
 
 #[test]
@@ -638,7 +638,7 @@ fn composite_backend_routes_by_body() {
                 provenance: BackendProvenance::new("moon backend"),
                 nominal_range: TimeRange::new(None, None),
                 supported_time_scales: vec![TimeScale::Tt],
-                body_coverage: vec![CelestialBody::Moon],
+                body_claims: vec![CelestialBody::Moon.into()],
                 supported_frames: vec![CoordinateFrame::Ecliptic],
                 capabilities: BackendCapabilities::default(),
                 accuracy: AccuracyClass::Approximate,
@@ -713,7 +713,7 @@ fn routing_backend_tries_later_providers_and_merges_metadata() {
                     )),
                 ),
                 supported_time_scales: vec![TimeScale::Tt],
-                body_coverage: vec![CelestialBody::Sun],
+                body_claims: vec![CelestialBody::Sun.into()],
                 supported_frames: vec![CoordinateFrame::Ecliptic],
                 capabilities: BackendCapabilities::default(),
                 accuracy: AccuracyClass::Approximate,
@@ -754,7 +754,7 @@ fn routing_backend_tries_later_providers_and_merges_metadata() {
                     )),
                 ),
                 supported_time_scales: vec![TimeScale::Tt],
-                body_coverage: vec![CelestialBody::Sun],
+                body_claims: vec![CelestialBody::Sun.into()],
                 supported_frames: vec![CoordinateFrame::Ecliptic],
                 capabilities: BackendCapabilities::default(),
                 accuracy: AccuracyClass::Approximate,
@@ -797,7 +797,7 @@ fn routing_backend_tries_later_providers_and_merges_metadata() {
                 provenance: BackendProvenance::new("moon backend"),
                 nominal_range: TimeRange::new(None, None),
                 supported_time_scales: vec![TimeScale::Tt],
-                body_coverage: vec![CelestialBody::Moon],
+                body_claims: vec![CelestialBody::Moon.into()],
                 supported_frames: vec![CoordinateFrame::Ecliptic],
                 capabilities: BackendCapabilities::default(),
                 accuracy: AccuracyClass::Approximate,
@@ -837,8 +837,8 @@ fn routing_backend_tries_later_providers_and_merges_metadata() {
     );
 
     let metadata = routing.metadata();
-    assert!(metadata.body_coverage.contains(&CelestialBody::Sun));
-    assert!(metadata.body_coverage.contains(&CelestialBody::Moon));
+    assert!(metadata.supported_bodies().contains(&CelestialBody::Sun));
+    assert!(metadata.supported_bodies().contains(&CelestialBody::Moon));
     assert!(metadata.provenance.summary.contains("3 provider(s)"));
     assert_eq!(metadata.nominal_range.validate(), Ok(()));
     assert_eq!(
@@ -886,7 +886,7 @@ fn routing_backend_batch_positions_preserve_mixed_time_scales_and_topocentric_ob
                 provenance: BackendProvenance::new("failing Sun batch backend"),
                 nominal_range: TimeRange::new(None, None),
                 supported_time_scales: vec![TimeScale::Tt, TimeScale::Tdb],
-                body_coverage: vec![CelestialBody::Sun],
+                body_claims: vec![CelestialBody::Sun.into()],
                 supported_frames: vec![CoordinateFrame::Ecliptic],
                 capabilities: BackendCapabilities::default(),
                 accuracy: AccuracyClass::Approximate,
@@ -931,7 +931,7 @@ fn routing_backend_batch_positions_preserve_mixed_time_scales_and_topocentric_ob
                 provenance: BackendProvenance::new("recovery Sun batch backend"),
                 nominal_range: TimeRange::new(None, None),
                 supported_time_scales: vec![TimeScale::Tt, TimeScale::Tdb],
-                body_coverage: vec![CelestialBody::Sun],
+                body_claims: vec![CelestialBody::Sun.into()],
                 supported_frames: vec![CoordinateFrame::Ecliptic],
                 capabilities: BackendCapabilities {
                     topocentric: true,

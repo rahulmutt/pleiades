@@ -2,7 +2,7 @@
 
 use pleiades_backend::{
     validate_observer_policy, validate_request_policy, validate_zodiac_policy, AccuracyClass,
-    BackendCapabilities, BackendFamily, BackendId, BackendMetadata, BackendProvenance,
+    BackendCapabilities, BackendFamily, BackendId, BackendMetadata, BackendProvenance, BodyClaim,
     CelestialBody, EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest,
     EphemerisResult, QualityAnnotation,
 };
@@ -159,7 +159,12 @@ impl EphemerisBackend for SpkBackend {
             },
             nominal_range: self.nominal_range(),
             supported_time_scales: vec![TimeScale::Tt, TimeScale::Tdb],
-            body_coverage: self.covered_bodies(),
+            body_claims: self
+                .covered_bodies()
+                .iter()
+                .cloned()
+                .map(BodyClaim::from)
+                .collect(),
             supported_frames: vec![CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial],
             capabilities: BackendCapabilities {
                 geocentric: true,

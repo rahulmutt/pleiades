@@ -87,7 +87,10 @@ impl<A: EphemerisBackend, B: EphemerisBackend> EphemerisBackend for CompositeBac
                 &primary.supported_time_scales,
                 &secondary.supported_time_scales,
             ),
-            body_coverage: combine_bodies(&primary.body_coverage, &secondary.body_coverage),
+            body_claims: crate::metadata::merge_body_claims(
+                &primary.body_claims,
+                &secondary.body_claims,
+            ),
             supported_frames: intersect_strings(
                 &primary.supported_frames,
                 &secondary.supported_frames,
@@ -180,7 +183,7 @@ impl EphemerisBackend for RoutingBackend {
                 provenance: BackendProvenance::new("Routing backend with no configured providers."),
                 nominal_range: TimeRange::new(None, None),
                 supported_time_scales: Vec::new(),
-                body_coverage: Vec::new(),
+                body_claims: Vec::new(),
                 supported_frames: Vec::new(),
                 capabilities: BackendCapabilities {
                     geocentric: false,
@@ -202,7 +205,7 @@ impl EphemerisBackend for RoutingBackend {
         let mut data_sources = Vec::new();
         let mut nominal_range = metadatas[0].nominal_range;
         let mut supported_time_scales = metadatas[0].supported_time_scales.clone();
-        let mut body_coverage = metadatas[0].body_coverage.clone();
+        let mut body_claims = metadatas[0].body_claims.clone();
         let mut supported_frames = metadatas[0].supported_frames.clone();
         let mut capabilities = metadatas[0].capabilities.clone();
         let mut accuracy = metadatas[0].accuracy;
@@ -217,7 +220,7 @@ impl EphemerisBackend for RoutingBackend {
             nominal_range = intersect_ranges(nominal_range, metadata.nominal_range);
             supported_time_scales =
                 intersect_strings(&supported_time_scales, &metadata.supported_time_scales);
-            body_coverage = combine_bodies(&body_coverage, &metadata.body_coverage);
+            body_claims = crate::metadata::merge_body_claims(&body_claims, &metadata.body_claims);
             supported_frames = intersect_strings(&supported_frames, &metadata.supported_frames);
             capabilities.geocentric &= metadata.capabilities.geocentric;
             capabilities.topocentric &= metadata.capabilities.topocentric;
@@ -244,7 +247,7 @@ impl EphemerisBackend for RoutingBackend {
             },
             nominal_range,
             supported_time_scales,
-            body_coverage,
+            body_claims,
             supported_frames,
             capabilities,
             accuracy,
@@ -299,16 +302,6 @@ fn combine_sources(primary: &[String], secondary: &[String]) -> Vec<String> {
     for source in secondary {
         if !combined.iter().any(|existing| existing == source) {
             combined.push(source.clone());
-        }
-    }
-    combined
-}
-
-fn combine_bodies(primary: &[CelestialBody], secondary: &[CelestialBody]) -> Vec<CelestialBody> {
-    let mut combined = primary.to_vec();
-    for body in secondary {
-        if !combined.contains(body) {
-            combined.push(body.clone());
         }
     }
     combined

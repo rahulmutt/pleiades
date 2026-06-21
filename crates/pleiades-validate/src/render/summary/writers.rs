@@ -77,8 +77,9 @@ pub(crate) fn write_backend_matrix(
         "  time scales: {}",
         format_time_scales(&backend.supported_time_scales)
     )?;
-    writeln!(f, "  bodies: {}", format_bodies(&backend.body_coverage))?;
-    if let Some(asteroids) = selected_asteroid_coverage(&backend.body_coverage) {
+    let bodies = backend.supported_bodies();
+    writeln!(f, "  bodies: {}", format_bodies(&bodies))?;
+    if let Some(asteroids) = selected_asteroid_coverage(&bodies) {
         writeln!(
             f,
             "  {}",

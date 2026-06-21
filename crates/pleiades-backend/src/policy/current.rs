@@ -314,7 +314,8 @@ pub fn validate_request_against_metadata(
 /// ```
 /// use pleiades_backend::{
 ///     validate_requests_against_metadata, AccuracyClass, BackendCapabilities, BackendFamily,
-///     BackendId, BackendMetadata, BackendProvenance, EphemerisErrorKind, EphemerisRequest,
+///     BackendId, BackendMetadata, BackendProvenance, BodyClaim, EphemerisErrorKind,
+///     EphemerisRequest,
 /// };
 /// use pleiades_types::{
 ///     CelestialBody, CoordinateFrame, Instant, JulianDay, Latitude, Longitude,
@@ -328,7 +329,7 @@ pub fn validate_request_against_metadata(
 ///     provenance: BackendProvenance::new("toy backend"),
 ///     nominal_range: TimeRange::new(None, None),
 ///     supported_time_scales: vec![TimeScale::Tt],
-///     body_coverage: vec![CelestialBody::Sun, CelestialBody::Moon],
+///     body_claims: vec![BodyClaim::from(CelestialBody::Sun), BodyClaim::from(CelestialBody::Moon)],
 ///     supported_frames: vec![CoordinateFrame::Ecliptic],
 ///     capabilities: BackendCapabilities::default(),
 ///     accuracy: AccuracyClass::Approximate,

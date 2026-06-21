@@ -348,7 +348,7 @@ fn request_policy_helpers_reject_unsupported_shapes() {
         provenance: BackendProvenance::new("toy backend"),
         nominal_range: TimeRange::new(None, None),
         supported_time_scales: vec![TimeScale::Tt],
-        body_coverage: vec![CelestialBody::Sun],
+        body_claims: vec![CelestialBody::Sun.into()],
         supported_frames: vec![CoordinateFrame::Ecliptic],
         capabilities: BackendCapabilities {
             geocentric: true,
@@ -417,7 +417,7 @@ fn request_policy_helpers_reject_unsupported_shapes() {
         provenance: BackendProvenance::new("toy backend"),
         nominal_range: TimeRange::new(None, None),
         supported_time_scales: vec![TimeScale::Tt],
-        body_coverage: vec![CelestialBody::Sun],
+        body_claims: vec![CelestialBody::Sun.into()],
         supported_frames: vec![CoordinateFrame::Ecliptic],
         capabilities: BackendCapabilities {
             geocentric: true,
@@ -741,10 +741,11 @@ fn request_policy_helpers_reject_unsupported_shapes() {
     let invalid_custom_body_error = validate_request_against_metadata(
         &invalid_custom_body_request,
         &BackendMetadata {
-            body_coverage: vec![CelestialBody::Custom(pleiades_types::CustomBodyId::new(
+            body_claims: vec![CelestialBody::Custom(pleiades_types::CustomBodyId::new(
                 "asteroid",
                 " 433-Eros ",
-            ))],
+            ))
+            .into()],
             ..metadata.clone()
         },
     )

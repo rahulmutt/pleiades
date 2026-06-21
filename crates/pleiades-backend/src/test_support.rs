@@ -2,7 +2,7 @@
 
 use crate::{
     AccuracyClass, Apparentness, BackendCapabilities, BackendFamily, BackendId, BackendMetadata,
-    BackendProvenance, EphemerisRequest, TimeRange,
+    BackendProvenance, BodyClaim, EphemerisRequest, TimeRange,
 };
 use pleiades_types::{CelestialBody, CoordinateFrame, Instant, JulianDay, TimeScale, ZodiacMode};
 
@@ -14,7 +14,7 @@ pub(crate) fn toy_metadata() -> BackendMetadata {
         provenance: BackendProvenance::new("toy backend for tests"),
         nominal_range: TimeRange::new(None, None),
         supported_time_scales: vec![TimeScale::Tt],
-        body_coverage: vec![CelestialBody::Sun],
+        body_claims: vec![BodyClaim::from(CelestialBody::Sun)],
         supported_frames: vec![CoordinateFrame::Ecliptic],
         capabilities: BackendCapabilities::default(),
         accuracy: AccuracyClass::Approximate,

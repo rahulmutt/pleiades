@@ -26,7 +26,7 @@ fn packaged_backend_from_artifact_uses_supplied_metadata() {
     let metadata = backend.metadata();
 
     assert_eq!(metadata.provenance.summary, "external packaged artifact");
-    assert!(metadata.body_coverage.contains(&CelestialBody::Sun));
+    assert!(metadata.supported_bodies().contains(&CelestialBody::Sun));
     assert!(metadata
         .supported_frames
         .contains(&CoordinateFrame::Equatorial));
@@ -51,7 +51,7 @@ fn packaged_backend_from_path_loads_a_file_artifact() {
 
     assert_eq!(metadata.id.as_str(), PACKAGE_NAME);
     assert!(metadata.offline);
-    assert!(metadata.body_coverage.contains(&CelestialBody::Sun));
+    assert!(metadata.supported_bodies().contains(&CelestialBody::Sun));
 
     let _ = std::fs::remove_file(&path);
 }

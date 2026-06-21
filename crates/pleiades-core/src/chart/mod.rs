@@ -52,8 +52,8 @@ impl<B: EphemerisBackend> ChartEngine<B> {
     /// ```
     /// use pleiades_backend::{
     ///     AccuracyClass, Apparentness, BackendCapabilities, BackendFamily, BackendId,
-    ///     BackendMetadata, BackendProvenance, EphemerisBackend, EphemerisError, EphemerisRequest,
-    ///     EphemerisResult, QualityAnnotation, TimeRange,
+    ///     BackendMetadata, BackendProvenance, BodyClaim, EphemerisBackend, EphemerisError,
+    ///     EphemerisRequest, EphemerisResult, QualityAnnotation, TimeRange,
     /// };
     /// use pleiades_core::{ChartEngine, ChartRequest};
     /// use pleiades_types::{
@@ -72,7 +72,7 @@ impl<B: EphemerisBackend> ChartEngine<B> {
     ///             provenance: BackendProvenance::new("demo chart backend"),
     ///             nominal_range: TimeRange::new(None, None),
     ///             supported_time_scales: vec![TimeScale::Tt],
-    ///             body_coverage: vec![CelestialBody::Sun],
+    ///             body_claims: vec![BodyClaim::from(CelestialBody::Sun)],
     ///             supported_frames: vec![CoordinateFrame::Ecliptic],
     ///             capabilities: BackendCapabilities::default(),
     ///             accuracy: AccuracyClass::Approximate,

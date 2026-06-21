@@ -1,4 +1,5 @@
 use crate::capabilities::{BackendCapabilities, BackendCapabilitiesValidationError};
+use crate::claims::{BodyClaim, BodyClaimTier};
 use crate::errors::{format_display_list, EphemerisError, EphemerisErrorKind};
 use crate::identity::{AccuracyClass, BackendFamily, BackendId};
 use crate::request::EphemerisRequest;
@@ -132,8 +133,8 @@ pub struct BackendMetadata {
     pub nominal_range: TimeRange,
     /// Time scales the backend can accept.
     pub supported_time_scales: Vec<TimeScale>,
-    /// Supported body coverage.
-    pub body_coverage: Vec<CelestialBody>,
+    /// Supported body coverage and per-body release claims.
+    pub body_claims: Vec<BodyClaim>,
     /// Supported coordinate frames.
     pub supported_frames: Vec<CoordinateFrame>,
     /// Declared capabilities.
@@ -147,6 +148,34 @@ pub struct BackendMetadata {
 }
 
 impl BackendMetadata {
+    /// Returns the bodies the backend serves (every tier except `Unsupported`).
+    pub fn supported_bodies(&self) -> Vec<CelestialBody> {
+        self.body_claims
+            .iter()
+            .filter(|c| c.tier != BodyClaimTier::Unsupported)
+            .map(|c| c.body.clone())
+            .collect()
+    }
+
+    /// Returns the claim for a body, if declared.
+    pub fn claim_for(&self, body: &CelestialBody) -> Option<&BodyClaim> {
+        self.body_claims.iter().find(|c| &c.body == body)
+    }
+
+    /// Returns the bodies claimed `ReleaseGrade`.
+    pub fn release_grade_bodies(&self) -> Vec<CelestialBody> {
+        self.body_claims
+            .iter()
+            .filter(|c| c.tier == BodyClaimTier::ReleaseGrade)
+            .map(|c| c.body.clone())
+            .collect()
+    }
+
+    /// Returns claims at a given tier.
+    pub fn claims_by_tier(&self, tier: BodyClaimTier) -> Vec<&BodyClaim> {
+        self.body_claims.iter().filter(|c| c.tier == tier).collect()
+    }
+
     /// Returns a compact one-line rendering of the backend metadata posture.
     pub fn summary_line(&self) -> String {
         format!(
@@ -160,7 +189,11 @@ impl BackendMetadata {
             self.offline,
             self.nominal_range,
             format_display_list(&self.supported_time_scales),
-            format_display_list(&self.body_coverage),
+            self.body_claims
+                .iter()
+                .map(BodyClaim::summary_line)
+                .collect::<Vec<_>>()
+                .join(", "),
             format_display_list(&self.supported_frames),
             self.capabilities.summary_line(),
             self.provenance.summary_line(),
@@ -210,7 +243,7 @@ impl BackendMetadata {
             crate::policy::current::validate_request_observer_location(req)?;
         }
 
-        if !self.body_coverage.contains(&req.body) {
+        if !self.supported_bodies().contains(&req.body) {
             return Err(EphemerisError::new(
                 EphemerisErrorKind::UnsupportedBody,
                 format!("{} does not support {}", self.id, req.body),
@@ -319,7 +352,21 @@ impl BackendMetadata {
             }
         })?;
         validate_non_empty_unique("supported time scales", &self.supported_time_scales)?;
-        validate_non_empty_unique("body coverage", &self.body_coverage)?;
+        if self.body_claims.is_empty() {
+            return Err(BackendMetadataValidationError::EmptyField {
+                field: "body claims",
+            });
+        }
+        let mut seen: Vec<CelestialBody> = Vec::new();
+        for claim in &self.body_claims {
+            if seen.contains(&claim.body) {
+                return Err(BackendMetadataValidationError::DuplicateEntry {
+                    field: "body claims",
+                    value: claim.body.to_string(),
+                });
+            }
+            seen.push(claim.body.clone());
+        }
         validate_non_empty_unique("supported frames", &self.supported_frames)?;
         self.capabilities.validate().map_err(|error| match error {
             BackendCapabilitiesValidationError::MissingPositionMode => {
@@ -353,6 +400,22 @@ impl BackendMetadata {
             }
         }
     }
+}
+
+/// Merges two claim lists, keeping the stronger-ranked tier on body collisions.
+pub fn merge_body_claims(a: &[BodyClaim], b: &[BodyClaim]) -> Vec<BodyClaim> {
+    let mut out: Vec<BodyClaim> = a.to_vec();
+    for claim in b {
+        match out.iter_mut().find(|c| c.body == claim.body) {
+            Some(existing) => {
+                if claim.tier.rank() > existing.tier.rank() {
+                    *existing = claim.clone();
+                }
+            }
+            None => out.push(claim.clone()),
+        }
+    }
+    out
 }
 
 #[cfg(test)]

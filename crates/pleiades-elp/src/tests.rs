@@ -1928,7 +1928,7 @@ fn backend_supports_lunar_points() {
     assert!(!backend.supports_body(CelestialBody::TruePerigee));
     assert!(!backend.supports_body(CelestialBody::Sun));
     assert_eq!(
-        backend.metadata().body_coverage,
+        backend.metadata().supported_bodies(),
         lunar_theory_supported_bodies()
     );
 

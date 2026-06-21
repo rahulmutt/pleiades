@@ -16,7 +16,7 @@
 //!     BackendId, BackendFamily, BackendProvenance, BackendCapabilities, AccuracyClass, TimeRange,
 //!     CelestialBody, CoordinateFrame, Instant, JulianDay, TimeScale, TimeScaleConversion,
 //!     EphemerisError, EphemerisErrorKind, current_api_stability_profile,
-//!     current_release_profile_identifiers};
+//!     current_release_profile_identifiers, BodyClaim};
 //!
 //! struct DemoBackend;
 //!
@@ -29,7 +29,7 @@
 //!             provenance: BackendProvenance::new("demo backend"),
 //!             nominal_range: TimeRange::new(None, None),
 //!             supported_time_scales: vec![TimeScale::Tt],
-//!             body_coverage: vec![CelestialBody::Sun],
+//!             body_claims: vec![BodyClaim::from(CelestialBody::Sun)],
 //!             supported_frames: vec![CoordinateFrame::Ecliptic],
 //!             capabilities: BackendCapabilities::default(),
 //!             accuracy: AccuracyClass::Approximate,
@@ -142,11 +142,11 @@ pub use pleiades_backend::{
     validated_request_semantics_summary_for_report, validated_time_scale_policy_summary_for_report,
     validated_utc_convenience_policy_summary_for_report, AccuracyClass, Apparentness,
     ApparentnessPolicySummary, BackendCapabilities, BackendFamily, BackendId, BackendMetadata,
-    BackendProvenance, CompositeBackend, DeltaTPolicySummary, EphemerisBackend, EphemerisError,
-    EphemerisErrorKind, EphemerisRequest, EphemerisResult, FramePolicySummary,
-    NativeSiderealPolicySummary, ObserverPolicySummary, PlutoFallbackSummary, QualityAnnotation,
-    ReleaseBodyClaimsPostureValidationError, ReleaseBodyClaimsSummary, RequestPolicySummary,
-    RoutingBackend, TimeScalePolicySummary, UtcConveniencePolicySummary,
+    BackendProvenance, BodyClaim, BodyClaimTier, CompositeBackend, DeltaTPolicySummary,
+    EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult,
+    FramePolicySummary, NativeSiderealPolicySummary, ObserverPolicySummary, PlutoFallbackSummary,
+    QualityAnnotation, ReleaseBodyClaimsPostureValidationError, ReleaseBodyClaimsSummary,
+    RequestPolicySummary, RoutingBackend, TimeScalePolicySummary, UtcConveniencePolicySummary,
 };
 pub use pleiades_houses::{
     baseline_house_systems, calculate_houses, descriptor as house_system_descriptor,
@@ -246,6 +246,7 @@ impl<B: EphemerisBackend> ChartEngine<B> {
     /// use pleiades_core::{ChartEngine, ChartRequest, EphemerisBackend};
     /// use pleiades_core::{AccuracyClass, BackendCapabilities, BackendFamily, BackendId};
     /// use pleiades_core::{BackendMetadata, BackendProvenance, EphemerisError, EphemerisErrorKind};
+    /// use pleiades_core::{BodyClaim};
     /// use pleiades_core::{
     ///     CelestialBody, CoordinateFrame, HouseSystem, Instant, JulianDay, Latitude,
     ///     Longitude, ObserverLocation, TimeRange, TimeScale,
@@ -262,7 +263,7 @@ impl<B: EphemerisBackend> ChartEngine<B> {
     ///             provenance: BackendProvenance::new("demo backend"),
     ///             nominal_range: TimeRange::new(None, None),
     ///             supported_time_scales: vec![TimeScale::Tt, TimeScale::Tdb],
-    ///             body_coverage: vec![CelestialBody::Sun],
+    ///             body_claims: vec![BodyClaim::from(CelestialBody::Sun)],
     ///             supported_frames: vec![CoordinateFrame::Ecliptic],
     ///             capabilities: BackendCapabilities {
     ///                 topocentric: true,
@@ -382,7 +383,7 @@ mod tests {
                 provenance: BackendProvenance::new("simple test backend"),
                 nominal_range: TimeRange::new(None, None),
                 supported_time_scales: vec![TimeScale::Tt],
-                body_coverage: vec![CelestialBody::Sun],
+                body_claims: vec![CelestialBody::Sun.into()],
                 supported_frames: vec![CoordinateFrame::Ecliptic],
                 capabilities: BackendCapabilities::default(),
                 accuracy: AccuracyClass::Approximate,
@@ -418,7 +419,7 @@ mod tests {
                 provenance: BackendProvenance::new("restricted policy test backend"),
                 nominal_range: TimeRange::new(None, None),
                 supported_time_scales: vec![TimeScale::Tt],
-                body_coverage: vec![CelestialBody::Sun],
+                body_claims: vec![CelestialBody::Sun.into()],
                 supported_frames: vec![CoordinateFrame::Ecliptic],
                 capabilities: BackendCapabilities {
                     apparent: false,
@@ -457,7 +458,7 @@ mod tests {
                 provenance: BackendProvenance::new("mixed-scale test backend"),
                 nominal_range: TimeRange::new(None, None),
                 supported_time_scales: vec![TimeScale::Tt, TimeScale::Tdb],
-                body_coverage: vec![CelestialBody::Sun, CelestialBody::Moon],
+                body_claims: vec![CelestialBody::Sun.into(), CelestialBody::Moon.into()],
                 supported_frames: vec![CoordinateFrame::Ecliptic],
                 capabilities: BackendCapabilities::default(),
                 accuracy: AccuracyClass::Approximate,
@@ -909,7 +910,7 @@ mod tests {
                     provenance: BackendProvenance::new("routing Sun test backend"),
                     nominal_range: TimeRange::new(None, None),
                     supported_time_scales: vec![TimeScale::Tt, TimeScale::Tdb],
-                    body_coverage: vec![CelestialBody::Sun],
+                    body_claims: vec![CelestialBody::Sun.into()],
                     supported_frames: vec![CoordinateFrame::Ecliptic],
                     capabilities: BackendCapabilities::default(),
                     accuracy: AccuracyClass::Approximate,
@@ -948,7 +949,7 @@ mod tests {
                     provenance: BackendProvenance::new("routing Moon test backend"),
                     nominal_range: TimeRange::new(None, None),
                     supported_time_scales: vec![TimeScale::Tt, TimeScale::Tdb],
-                    body_coverage: vec![CelestialBody::Moon],
+                    body_claims: vec![CelestialBody::Moon.into()],
                     supported_frames: vec![CoordinateFrame::Ecliptic],
                     capabilities: BackendCapabilities::default(),
                     accuracy: AccuracyClass::Approximate,
@@ -1024,7 +1025,7 @@ mod tests {
                     provenance: BackendProvenance::new("invalid metadata test backend"),
                     nominal_range: TimeRange::new(None, None),
                     supported_time_scales: vec![TimeScale::Tt],
-                    body_coverage: vec![CelestialBody::Sun, CelestialBody::Sun],
+                    body_claims: vec![CelestialBody::Sun.into(), CelestialBody::Sun.into()],
                     supported_frames: vec![CoordinateFrame::Ecliptic],
                     capabilities: BackendCapabilities::default(),
                     accuracy: AccuracyClass::Approximate,
@@ -1060,13 +1061,13 @@ mod tests {
         assert!(matches!(
             error,
             pleiades_backend::BackendMetadataValidationError::DuplicateEntry {
-                field: "body coverage",
+                field: "body claims",
                 ref value,
             } if value == "Sun"
         ));
         let error_text = error.to_string();
         assert!(error_text
-            .contains("backend metadata field `body coverage` contains duplicate entry `Sun`"));
+            .contains("backend metadata field `body claims` contains duplicate entry `Sun`"));
 
         let chart_request =
             ChartRequest::new(Instant::new(JulianDay::from_days(2451545.0), TimeScale::Tt))
@@ -1078,7 +1079,7 @@ mod tests {
         assert_eq!(validation_error.kind, EphemerisErrorKind::InvalidRequest);
         assert!(validation_error
             .message
-            .contains("backend metadata failed validation: backend metadata field `body coverage` contains duplicate entry `Sun`"));
+            .contains("backend metadata failed validation: backend metadata field `body claims` contains duplicate entry `Sun`"));
 
         let chart_error = engine
             .chart(&chart_request)
@@ -1086,7 +1087,7 @@ mod tests {
         assert_eq!(chart_error.kind, EphemerisErrorKind::InvalidRequest);
         assert!(chart_error
             .message
-            .contains("backend metadata failed validation: backend metadata field `body coverage` contains duplicate entry `Sun`"));
+            .contains("backend metadata failed validation: backend metadata field `body claims` contains duplicate entry `Sun`"));
     }
 
     #[test]

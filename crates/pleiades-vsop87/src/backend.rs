@@ -1,6 +1,6 @@
 use pleiades_backend::{
     validate_observer_policy, validate_request_policy, validate_zodiac_policy, AccuracyClass,
-    BackendCapabilities, BackendFamily, BackendId, BackendMetadata, BackendProvenance,
+    BackendCapabilities, BackendFamily, BackendId, BackendMetadata, BackendProvenance, BodyClaim,
     EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult,
     QualityAnnotation,
 };
@@ -381,7 +381,7 @@ impl EphemerisBackend for Vsop87Backend {
             },
             nominal_range: TimeRange::new(None, None),
             supported_time_scales: vec![TimeScale::Tt, TimeScale::Tdb],
-            body_coverage: Self::supported_bodies().to_vec(),
+            body_claims: Self::supported_bodies().iter().cloned().map(BodyClaim::from).collect(),
             supported_frames: vec![CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial],
             capabilities: BackendCapabilities {
                 geocentric: true,
