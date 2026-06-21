@@ -5,6 +5,7 @@ mod calendar;
 mod error;
 pub mod deltat;
 pub mod leap;
+pub mod tdb;
 
 pub use calendar::CivilDateTime;
 pub use deltat::DeltaTQuality;
