@@ -1,8 +1,10 @@
 //! Civil-time conversion: Gregorian calendar, leap seconds, Delta-T, and
 //! TT/TDB output with typed provenance.
 
+mod calendar;
 mod error;
 
+pub use calendar::CivilDateTime;
 pub use error::CivilTimeError;
 
 /// Deterministic 64-bit content checksum (FNV-1a), byte-identical to
