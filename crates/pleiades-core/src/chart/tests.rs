@@ -3167,6 +3167,133 @@ fn topocentric_moon_differs_from_geocentric() {
 }
 
 #[test]
+fn sidereal_topocentric_applies_ayanamsa_once() {
+    // Regression guard: in sidereal+topocentric mode the ayanamsa must be applied
+    // EXACTLY ONCE to the topocentric tropical apparent longitude. Before this fix
+    // the topocentric block received an already-sidereal longitude (wrong frame)
+    // and then applied the ayanamsa a SECOND time (double subtraction).
+    //
+    // Two properties are asserted:
+    //
+    //   (A) Topocentric effect is real: the sidereal+topocentric Moon longitude
+    //       differs from the sidereal+geocentric Moon longitude by > 0.1° (lunar
+    //       parallax is measurable).
+    //
+    //   (B) Ayanamsa is applied exactly once: the sidereal+topocentric longitude
+    //       equals (tropical+topocentric longitude − ayanamsa) to within 1 arcsec.
+    //       Double subtraction would produce a value off by ~23° (the full ayanamsa).
+    let instant = Instant::new(
+        pleiades_types::JulianDay::from_days(2_451_545.0),
+        TimeScale::Tt,
+    );
+    let observer = pleiades_types::ObserverLocation::new(
+        pleiades_types::Latitude::from_degrees(40.0),
+        pleiades_types::Longitude::from_degrees(-3.7),
+        Some(650.0),
+    );
+    let zodiac_mode = ZodiacMode::Sidereal {
+        ayanamsa: crate::Ayanamsa::Lahiri,
+    };
+
+    // --- (A) Topocentric parallax is applied in sidereal mode ------------------
+
+    // Sidereal geocentric apparent Moon.
+    let geo_sidereal = {
+        let engine = ChartEngine::new(ApparentMoonChartBackend);
+        let request = ChartRequest::new(instant)
+            .with_bodies(vec![CelestialBody::Moon])
+            .with_apparentness(Apparentness::Apparent)
+            .with_observer(observer.clone())
+            .with_zodiac_mode(zodiac_mode.clone());
+        engine
+            .chart(&request)
+            .expect("sidereal geocentric apparent Moon chart should succeed")
+    };
+
+    // Sidereal topocentric apparent Moon.
+    let topo_sidereal = {
+        let engine = ChartEngine::new(ApparentMoonChartBackend);
+        let request = ChartRequest::new(instant)
+            .with_bodies(vec![CelestialBody::Moon])
+            .with_apparentness(Apparentness::Apparent)
+            .with_observer(observer.clone())
+            .with_zodiac_mode(zodiac_mode.clone())
+            .with_topocentric(true);
+        engine
+            .chart(&request)
+            .expect("sidereal topocentric apparent Moon chart should succeed")
+    };
+
+    let geo_sid_lon = geo_sidereal.placements[0]
+        .position
+        .ecliptic
+        .as_ref()
+        .unwrap()
+        .longitude
+        .degrees();
+    let topo_sid_lon = topo_sidereal.placements[0]
+        .position
+        .ecliptic
+        .as_ref()
+        .unwrap()
+        .longitude
+        .degrees();
+
+    let mut sid_parallax = (topo_sid_lon - geo_sid_lon).abs();
+    if sid_parallax > 180.0 {
+        sid_parallax = 360.0 - sid_parallax;
+    }
+    assert!(
+        sid_parallax > 0.1,
+        "sidereal+topocentric Moon parallax {sid_parallax}° too small \
+         (geo_sid={geo_sid_lon:.4}°, topo_sid={topo_sid_lon:.4}°) — \
+         topocentric correction not applied in sidereal mode"
+    );
+
+    // --- (B) Ayanamsa is applied exactly once -----------------------------------
+
+    // Tropical topocentric apparent Moon (same observer/instant, no sidereal).
+    let topo_tropical = {
+        let engine = ChartEngine::new(ApparentMoonChartBackend);
+        let request = ChartRequest::new(instant)
+            .with_bodies(vec![CelestialBody::Moon])
+            .with_apparentness(Apparentness::Apparent)
+            .with_observer(observer.clone())
+            .with_topocentric(true);
+        engine
+            .chart(&request)
+            .expect("tropical topocentric apparent Moon chart should succeed")
+    };
+
+    let topo_trop_lon = topo_tropical.placements[0]
+        .position
+        .ecliptic
+        .as_ref()
+        .unwrap()
+        .longitude;
+
+    // The expected sidereal+topocentric longitude is: tropical+topocentric − ayanamsa (once).
+    let expected_sid_topo = sidereal_longitude(topo_trop_lon, instant, &zodiac_mode)
+        .expect("sidereal conversion of tropical topocentric longitude should succeed");
+
+    // Allow a generous 2 arcsec tolerance for floating-point rounding.
+    let tol_deg = 2.0 / 3600.0;
+    let err = (topo_sid_lon - expected_sid_topo.degrees())
+        .abs()
+        .min((topo_sid_lon - expected_sid_topo.degrees() + 360.0).abs())
+        .min((topo_sid_lon - expected_sid_topo.degrees() - 360.0).abs());
+    assert!(
+        err < tol_deg,
+        "sidereal+topocentric longitude {topo_sid_lon:.6}° must equal \
+         tropical+topocentric {:.6}° − ayanamsa = {:.6}° (err {:.4} arcsec); \
+         a large error (~23°) indicates double ayanamsa subtraction",
+        topo_trop_lon.degrees(),
+        expected_sid_topo.degrees(),
+        err * 3600.0,
+    );
+}
+
+#[test]
 fn release_grade_body_falls_back_to_mean_when_apparent_unavailable() {
     // Regression guard: when apparent_position() fails for a release-grade body
     // (here because the backend returns an absurd 50,000 AU distance that trips

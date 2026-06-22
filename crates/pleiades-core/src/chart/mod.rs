@@ -315,20 +315,12 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                         match outcome {
                             Ok(outcome) => {
                                 if let Some(ecliptic) = position.ecliptic.as_mut() {
+                                    // Store the tropical apparent ecliptic. The sidereal
+                                    // ayanamsa re-apply (for non-native sidereal charts) is
+                                    // deferred to after the topocentric block so it runs
+                                    // exactly once on the final tropical longitude — whether
+                                    // that is geocentric or topocentric apparent.
                                     *ecliptic = outcome.ecliptic;
-                                    // Apparent place is computed in the tropical frame; for
-                                    // non-native sidereal charts re-apply the ayanamsa so the
-                                    // stored longitude and the sign re-derived below are sidereal
-                                    // (mirrors the pre-apparent path above).
-                                    if matches!(request.zodiac_mode, ZodiacMode::Sidereal { .. })
-                                        && !native_sidereal
-                                    {
-                                        ecliptic.longitude = sidereal_longitude(
-                                            ecliptic.longitude,
-                                            request.instant,
-                                            &request.zodiac_mode,
-                                        )?;
-                                    }
                                 }
                                 position.apparent = Apparentness::Apparent;
                                 Some(outcome.provenance)
@@ -353,6 +345,8 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                     None
                 };
                 // Opt-in chart-layer topocentric correction (diurnal parallax + diurnal aberration).
+                // Operates on the tropical apparent ecliptic produced above; the sidereal
+                // ayanamsa re-apply (when requested) happens once below, after this block.
                 let topocentric_prov = if request.topocentric {
                     let observer = request.observer.as_ref().ok_or_else(|| {
                         EphemerisError::new(
@@ -380,11 +374,10 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                             true_obliquity,
                         )
                         .map_err(|e| map_apparent_error(pleiades_apparent::ApparentLightTimeError::Apparent(e)))?;
+                        // Store the topocentric tropical ecliptic; do NOT apply sidereal here —
+                        // the single unified re-apply below handles both the geocentric and
+                        // topocentric apparent paths identically (ayanamsa exactly once).
                         *ecliptic = topo.ecliptic;
-                        if matches!(request.zodiac_mode, ZodiacMode::Sidereal { .. }) && !native_sidereal {
-                            ecliptic.longitude =
-                                sidereal_longitude(ecliptic.longitude, request.instant, &request.zodiac_mode)?;
-                        }
                         Some(topo.provenance)
                     } else {
                         None
@@ -392,6 +385,24 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                 } else {
                     None
                 };
+                // For non-native sidereal charts, re-apply the ayanamsa to the final
+                // tropical apparent longitude exactly once.  This covers both paths:
+                //   • geocentric apparent (topocentric_prov is None)
+                //   • topocentric apparent (topocentric_prov is Some)
+                // The mean-fallback path already applied the ayanamsa in the pre-apparent
+                // block above and does not reach here (topocentric is rejected in mean mode).
+                if apparent.is_some()
+                    && matches!(request.zodiac_mode, ZodiacMode::Sidereal { .. })
+                    && !native_sidereal
+                {
+                    if let Some(ecliptic) = position.ecliptic.as_mut() {
+                        ecliptic.longitude = sidereal_longitude(
+                            ecliptic.longitude,
+                            request.instant,
+                            &request.zodiac_mode,
+                        )?;
+                    }
+                }
 
                 // Re-derive the sign from the final (possibly apparent) longitude.
                 let sign = position
