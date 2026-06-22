@@ -1325,8 +1325,10 @@ fn chart_request_validation_accepts_apparent_for_mean_only_backends() {
     // has Constrained-tier bodies so the placement falls back to Mean, but the
     // chart-level apparentness reflects the caller's Apparent request.
     let observers = Arc::new(Mutex::new(Vec::new()));
+    let apparent_calls = Arc::new(Mutex::new(Vec::new()));
     let engine = ChartEngine::new(MeanOnlyRecordingChartBackend {
         observers: Arc::clone(&observers),
+        apparent_calls: Arc::clone(&apparent_calls),
     });
     let request = ChartRequest::new(Instant::new(
         pleiades_types::JulianDay::from_days(2_451_545.0),
@@ -1349,6 +1351,20 @@ fn chart_request_validation_accepts_apparent_for_mean_only_backends() {
     // The backend always receives Mean requests regardless of the chart apparentness.
     let observed = observers.lock().expect("observer log should be lockable");
     assert!(!observed.is_empty(), "backend should have been called");
+
+    // Core invariant: every EphemerisRequest the engine sent to the backend must
+    // carry Apparentness::Mean — apparent corrections are composed in the engine
+    // layer, never delegated to the backend.
+    let recorded_apparent = apparent_calls
+        .lock()
+        .expect("apparent call log should be lockable");
+    assert!(
+        recorded_apparent
+            .iter()
+            .all(|a| *a == Apparentness::Mean),
+        "engine must send Apparentness::Mean to the backend; got: {:?}",
+        *recorded_apparent,
+    );
 }
 
 #[test]

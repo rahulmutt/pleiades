@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use pleiades_backend::{
-    AccuracyClass, BackendCapabilities, BackendFamily, BackendId, BackendMetadata,
+    AccuracyClass, Apparentness, BackendCapabilities, BackendFamily, BackendId, BackendMetadata,
     BackendProvenance, BodyClaim, ClaimEvidence, EphemerisBackend, EphemerisError,
     EphemerisErrorKind, EphemerisRequest, EphemerisResult, QualityAnnotation,
 };
@@ -19,6 +19,9 @@ pub(super) struct RecordingChartBackend {
 #[derive(Clone)]
 pub(super) struct MeanOnlyRecordingChartBackend {
     pub(super) observers: Arc<Mutex<Vec<Option<ObserverLocation>>>>,
+    /// Records the `apparent` field of every incoming `EphemerisRequest` so
+    /// tests can assert the engine always sends `Apparentness::Mean`.
+    pub(super) apparent_calls: Arc<Mutex<Vec<Apparentness>>>,
 }
 
 impl EphemerisBackend for ToyChartBackend {
@@ -156,6 +159,10 @@ impl EphemerisBackend for MeanOnlyRecordingChartBackend {
             .lock()
             .expect("observer log should be lockable")
             .push(request.observer.clone());
+        self.apparent_calls
+            .lock()
+            .expect("apparent call log should be lockable")
+            .push(request.apparent);
         let mut result = EphemerisResult::new(
             BackendId::new("mean-only-recording-chart"),
             request.body.clone(),
