@@ -12,7 +12,9 @@ use crate::tdb;
 
 /// Start of the supported civil window (1900-01-01 00:00).
 pub const SUPPORT_START_JD: f64 = 2415020.5;
-/// End of the supported civil window (2100-12-31 24:00 ~= 2101-01-01 00:00).
+/// End of the supported civil window: an exclusive upper bound at the start of
+/// 2101 (JD 2488434.5). The last accepted instant is 2100-12-31T23:59:59.x;
+/// 2101-01-01T00:00:00 is rejected as `BeyondHorizon`.
 pub const SUPPORT_END_JD: f64 = 2488434.5;
 
 /// TT − TAI, in seconds (fixed by definition).
