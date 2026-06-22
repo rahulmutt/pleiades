@@ -225,7 +225,7 @@ fn request_policy_summary_validate_rejects_blank_fields() {
 #[test]
 fn request_policy_summary_validate_rejects_whitespace_padded_fields() {
     let mut summary = RequestPolicySummary::current();
-    summary.observer = " chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests with UnsupportedObserver; malformed observer coordinates remain InvalidObserver; topocentric body positions remain unsupported ";
+    summary.observer = " chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests with UnsupportedObserver; malformed observer coordinates remain InvalidObserver; chart-layer topocentric body positions are supported as an opt-in correction (diurnal parallax + diurnal aberration); native-backend topocentric remains unsupported ";
 
     let error = summary
         .validate()

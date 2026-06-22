@@ -63,10 +63,12 @@ These are the implementation gaps that still block a production release:
   Tier-A asteroids (Ceres, Pallas, Juno, Vesta, Hygiea, Psyche, Iris) are
   release-grade via the corpus-dependent JPL/SPK backend; True Apogee/Perigee
   remain unsupported.
-- First-party body-position requests remain mean, geometric, geocentric, and
-  tropical at the backend boundary. Topocentric body positions and native
-  sidereal backend output remain unsupported unless future validated backends
-  add them. Apparent place of date is now the default chart-layer output
+- First-party body-position requests remain mean, geometric, and geocentric at
+  the backend boundary. Chart-layer topocentric body positions are now supported
+  as an opt-in correction (diurnal parallax + diurnal aberration, Phase 4
+  topocentric sub-task complete); native-backend topocentric remains unsupported.
+  Native sidereal backend output remains unsupported unless future validated
+  backends add it. Apparent place of date is now the default chart-layer output
   (light-time + precession-to-date + annual aberration + nutation-in-longitude,
   implemented in `pleiades-apparent`; Phase 4 apparent-place sub-task complete).
   Built-in civil UTC/UT1 → TT/TDB conversion is implemented in `pleiades-time`
@@ -85,7 +87,7 @@ These are the implementation gaps that still block a production release:
 | 1 | Production reference backend and corpus | Maintainers can regenerate or ingest broad public reference inputs for every release-claimed body, frame, channel, and epoch class. | [plan/stages/01-production-reference-corpus.md](plan/stages/01-production-reference-corpus.md) |
 | 2 | Release-grade compressed ephemeris **(done)** | The packaged backend (1900–2100 by default; 1600–2600 CE opt-in via `generate-artifact`) is generated from validated Phase 1 inputs and passes published accuracy ceilings, hard size gate (≤ 12 MB), and speed thresholds; latency tracked; motion derived (SP3 complete). | [plan/stages/02-production-compressed-ephemeris.md](plan/stages/02-production-compressed-ephemeris.md) |
 | 3 | Body/backend claim closure **(done)** | Public body and backend claims are either validated, constrained, approximate, or unsupported with no ambiguous middle state. | [plan/stages/03-body-and-backend-claims.md](plan/stages/03-body-and-backend-claims.md) |
-| 4 | Request-mode semantics | UTC/Delta-T, apparent, topocentric, native sidereal, and motion-output requests are implemented with evidence or rejected consistently. | [plan/stages/04-advanced-request-modes.md](plan/stages/04-advanced-request-modes.md) |
+| 4 | Request-mode semantics | UTC/Delta-T, apparent, topocentric (chart layer, opt-in), and motion-output requests are implemented with evidence or rejected consistently; native sidereal backend output remains the only remaining Phase 4 item (deliberate non-goal). | [plan/stages/04-advanced-request-modes.md](plan/stages/04-advanced-request-modes.md) |
 | 5 | Compatibility and release gates | House/ayanamsa compatibility evidence and release gates prevent stale artifacts, native-dependency drift, and overbroad claims. | [plan/stages/05-compatibility-and-release-readiness.md](plan/stages/05-compatibility-and-release-readiness.md) |
 | 6 | Target catalog completion and expansion (end-state, post-first-release) | The full `compatibility-catalog.md` house/ayanamsa set and optional chart utilities are reachable without API redesign; remaining target entries are shipped or reported as known gaps. | [plan/stages/06-catalog-completion-and-expansion.md](plan/stages/06-catalog-completion-and-expansion.md) |
 
@@ -102,9 +104,11 @@ per-backend claim model enforced by the `claims-audit` gate. The active frontier
 is **Phase 4**: request-mode semantics. Civil-time UTC/UT1 → TT/TDB conversion
 is **done** (implemented in `pleiades-time`). Apparent place of date is **done**
 (implemented in `pleiades-apparent` as the default chart-layer output).
-Remaining Phase 4 work: topocentric body positions and native sidereal backend
-output. Phase 6 is deferred end-state work and must not broaden public claims
-before its own evidence exists.
+Chart-layer topocentric body positions are **done** (opt-in, diurnal parallax +
+diurnal aberration, Phase 4 topocentric sub-task complete). Remaining Phase 4
+work: native sidereal backend output (deliberate non-goal; native-backend
+topocentric stays unsupported at the backend boundary). Phase 6 is deferred
+end-state work and must not broaden public claims before its own evidence exists.
 
 ## Plan maintenance rules
 
@@ -115,7 +119,7 @@ before its own evidence exists.
 - Keep `README.md`, release profiles, generated reports, and this plan aligned
   when public behavior or release claims change.
 
-Status: refreshed 2026-06-22 — **SP3 complete; Phases 1–3 done; per-backend claim model enforced by the claims-audit gate; Phase 4 active — civil-time conversion done, apparent-place done, topocentric/native-sidereal remaining**.
+Status: refreshed 2026-06-22 — **SP3 complete; Phases 1–3 done; per-backend claim model enforced by the claims-audit gate; Phase 4 active — civil-time conversion done, apparent-place done, topocentric (chart layer) done; only native sidereal backend output remains (deliberate non-goal)**.
 Published per-body-class accuracy ceilings enforced (1900–2100 CE), hard size gate
 active (≤ 12 MB), latency tracked, motion output `Motion = Derived`
 (SpeedPolicy::FittedDerivative) gated. ARTIFACT_VERSION 7.

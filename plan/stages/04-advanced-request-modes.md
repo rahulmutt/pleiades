@@ -12,9 +12,9 @@ and validation or consistently rejected with structured errors.
 - First-party backend body positions are mean geometric and geocentric.
 - Chart-level sidereal conversion is handled above backends by the domain/catalog
   layer.
-- Policy summaries document topocentric body positions and native sidereal
-  backend output as remaining unsupported modes (UTC convenience, Delta T, and
-  apparent-place are now implemented; see "Completed" sections below).
+- Policy summaries now reflect topocentric as a supported chart-layer opt-in
+  correction (see "Completed" section below); native sidereal backend output
+  remains the only unsupported Phase 4 mode.
 
 ## Completed in SP3
 
@@ -66,15 +66,25 @@ the `pleiades-apparent` crate:
   default; backends themselves remain mean-only and J2000 at the backend
   boundary.
 
+## Completed: topocentric body positions (chart layer)
+
+Chart-layer topocentric body positions are implemented as an opt-in correction
+in `pleiades-apparent`:
+
+- Diurnal parallax shifts the body's apparent direction based on the observer's
+  displacement from the Earth's center.
+- Diurnal aberration applies the observer's rotational velocity correction.
+- The correction is opt-in via the chart request; backends remain mean/geocentric
+  and the native-backend topocentric path (`EphemerisRequest.observer` /
+  `ChartRequest.body_observer`) is still rejected as unsupported.
+- Release-grade bodies are supported; the Horizons golden gate validates the
+  combined apparent + topocentric output against JPL Horizons reference data.
+
 ## Remaining implementation work
 
-- Implement topocentric body positions only with clear observer semantics,
-  coordinate-frame handling, and tests.
 - Keep native sidereal backend output unsupported unless a backend provides
-  validated native behavior distinct from chart-layer sidereal conversion.
-- The remaining motion scope for Phase 4 is **topocentric and native sidereal
-  motion output** only — derived geometric speed (SP3), civil-time conversion,
-  and apparent-place corrections are all implemented.
+  validated native behavior distinct from chart-layer sidereal conversion
+  (deliberate non-goal; this is the only remaining Phase 4 item).
 
 ## Exit criteria
 
