@@ -13,6 +13,10 @@ pub mod aberration;
 
 pub use aberration::AberrationOffset;
 
+pub mod lighttime;
+
+pub use lighttime::{LightTimePosition, LIGHT_TIME_DAYS_PER_AU};
+
 /// Deterministic 64-bit content checksum (FNV-1a), byte-identical to
 /// `pleiades_time::fnv1a64`. Detects drift between a checked-in data table and
 /// its pinned checksum. Not cryptographic.
