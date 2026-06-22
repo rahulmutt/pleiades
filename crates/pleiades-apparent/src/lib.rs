@@ -25,6 +25,10 @@ mod provenance;
 
 pub use provenance::{ApparentProvenance, CorrectionSet, MODEL_SOURCES};
 
+mod apparent;
+
+pub use apparent::{apparent_position, ApparentPosition, DEFAULT_MAX_ITERATIONS};
+
 /// Deterministic 64-bit content checksum (FNV-1a), byte-identical to
 /// `pleiades_time::fnv1a64`. Detects drift between a checked-in data table and
 /// its pinned checksum. Not cryptographic.
