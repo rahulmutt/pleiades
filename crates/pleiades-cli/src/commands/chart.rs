@@ -590,13 +590,19 @@ mod tests {
     fn default_chart_emits_apparent_provenance_line() {
         let out = render_chart(&["--jd", "2451545.0", "--body", "Sun"]).unwrap();
         // ApparentProvenance::summary_line() starts with "apparent-place light_time=..."
-        assert!(out.contains("apparent-place light_time"), "missing provenance line in:\n{out}");
+        assert!(
+            out.contains("apparent-place light_time"),
+            "missing provenance line in:\n{out}"
+        );
     }
 
     #[test]
     fn mean_flag_suppresses_apparent_provenance() {
         let out = render_chart(&["--jd", "2451545.0", "--body", "Sun", "--mean"]).unwrap();
         // With --mean, no per-body ApparentProvenance provenance line should appear
-        assert!(!out.contains("apparent-place light_time"), "mean output should have no provenance line:\n{out}");
+        assert!(
+            !out.contains("apparent-place light_time"),
+            "mean output should have no provenance line:\n{out}"
+        );
     }
 }

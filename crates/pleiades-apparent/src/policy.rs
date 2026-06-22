@@ -88,7 +88,9 @@ mod tests {
     #[test]
     fn current_summary_validates() {
         assert_eq!(
-            ApparentPlacePolicySummary::current().validated_summary_line().unwrap(),
+            ApparentPlacePolicySummary::current()
+                .validated_summary_line()
+                .unwrap(),
             CURRENT_APPARENT_PLACE_POLICY_SUMMARY_TEXT
         );
     }

@@ -35,16 +35,19 @@ fn chart_command_renders_bodies() {
     assert!(rendered.contains("Backend:"));
     assert!(rendered.contains("Sun"));
     assert!(rendered.contains("Moon"));
-    assert!(rendered.contains("Apparentness: Mean"));
+    // Default apparentness is Apparent since Tasks 10/11.
+    assert!(rendered.contains("Apparentness: Apparent"));
     assert!(rendered.contains("Sign summary:"));
 }
 
 #[test]
-fn chart_command_rejects_apparent_positions_until_supported() {
-    let error = render_chart(&["--jd", "2451545.0", "--apparent", "--body", "Sun"])
-        .expect_err("current first-party backends should reject apparent requests");
-    assert!(error.contains("UnsupportedApparentness"));
-    assert!(error.contains("mean-state") || error.contains("mean geometric"));
+fn chart_command_accepts_explicit_apparent_flag() {
+    // Apparent is now the default and explicit --apparent is supported; the
+    // old "reject apparent until supported" contract is gone.
+    let rendered = render_chart(&["--jd", "2451545.0", "--apparent", "--body", "Sun"])
+        .expect("explicit --apparent should succeed now that apparent-place is supported");
+    assert!(rendered.contains("Apparentness: Apparent"));
+    assert!(rendered.contains("Sun"));
 }
 
 #[test]
@@ -115,7 +118,8 @@ fn chart_command_can_render_tdb_tagged_instant() {
         rendered.contains("Instant: JD 2451545 (TDB)")
             || rendered.contains("Instant: JD 2451545.0 (TDB)")
     );
-    assert!(rendered.contains("Apparentness: Mean"));
+    // Default apparentness is Apparent since Tasks 10/11; use --mean to suppress.
+    assert!(rendered.contains("Apparentness: Apparent"));
 }
 
 #[test]

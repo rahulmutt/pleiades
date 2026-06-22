@@ -728,7 +728,10 @@ mod tests {
     }
 
     #[test]
-    fn validate_chart_requests_prefixes_apparentness_failures() {
+    fn validate_chart_requests_accepts_apparent_for_mean_only_backends() {
+        // Apparent-place corrections are handled in the engine layer: the engine
+        // always sends Mean to the backend. Validation no longer rejects Apparent
+        // for backends that declare `apparent: false` in their capabilities.
         let engine = ChartEngine::new(RestrictedPolicyBackend);
         let instant = Instant::new(JulianDay::from_days(2451545.0), TimeScale::Tt);
         let requests = [
@@ -738,14 +741,10 @@ mod tests {
                 .with_apparentness(Apparentness::Apparent),
         ];
 
-        let error = engine
+        // Both requests should pass validation now.
+        engine
             .validate_chart_requests(&requests)
-            .expect_err("batch chart validation should reject unsupported apparentness");
-        assert_eq!(error.kind, EphemerisErrorKind::UnsupportedApparentness);
-        assert_eq!(
-            error.message,
-            "chart request #2 failed validation: restricted currently returns mean geometric coordinates only; apparent corrections are not implemented"
-        );
+            .expect("apparent chart requests should pass batch validation for mean-only backends");
     }
 
     #[test]

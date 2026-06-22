@@ -287,7 +287,11 @@ fn chart_snapshot_supports_sidereal_signs() {
 
 #[test]
 fn chart_snapshot_preserves_apparentness_choice() {
-    let engine = ChartEngine::new(ToyChartBackend);
+    // Use ApparentChartBackend which declares Sun as ReleaseGrade, so the
+    // engine applies actual apparent-place corrections and the placement
+    // reflects Apparentness::Apparent. ToyChartBackend has Constrained bodies
+    // only and would fall back to Mean (tested by non_release_grade_body_falls_back_to_mean).
+    let engine = ChartEngine::new(ApparentChartBackend);
     let request = ChartRequest::new(Instant::new(
         pleiades_types::JulianDay::from_days(2451545.0),
         TimeScale::Tt,
@@ -1312,7 +1316,14 @@ fn chart_request_validation_rejects_custom_definitions_that_collide_with_builtin
 }
 
 #[test]
-fn chart_request_validation_rejects_apparent_requests_before_backend_dispatch() {
+fn chart_request_validation_accepts_apparent_for_mean_only_backends() {
+    // Apparent-place corrections are now applied in the engine layer, not the
+    // backend. Validation no longer rejects Apparent for backends that declare
+    // `apparent: false` — the engine always sends Mean to the backend and
+    // applies corrections itself (for ReleaseGrade bodies) or falls back
+    // gracefully to Mean (for Constrained bodies). MeanOnlyRecordingChartBackend
+    // has Constrained-tier bodies so the placement falls back to Mean, but the
+    // chart-level apparentness reflects the caller's Apparent request.
     let observers = Arc::new(Mutex::new(Vec::new()));
     let engine = ChartEngine::new(MeanOnlyRecordingChartBackend {
         observers: Arc::clone(&observers),
@@ -1324,31 +1335,20 @@ fn chart_request_validation_rejects_apparent_requests_before_backend_dispatch() 
     .with_bodies(vec![CelestialBody::Sun])
     .with_apparentness(Apparentness::Apparent);
 
-    let validation_error = engine
+    // Validation now succeeds — the engine handles apparent internally.
+    engine
         .validate_chart_request(&request)
-        .expect_err("apparent chart requests should be rejected before backend dispatch");
-    assert_eq!(
-        validation_error.kind,
-        EphemerisErrorKind::UnsupportedApparentness
-    );
-    assert!(validation_error
-        .message
-        .contains("currently returns mean geometric coordinates only; apparent corrections are not implemented"));
+        .expect("apparent chart requests should pass validation for mean-only backends");
 
-    let chart_error = engine
+    // The chart assembles successfully; chart-level apparentness is Apparent.
+    let snapshot = engine
         .chart(&request)
-        .expect_err("apparent chart requests should be rejected before backend dispatch");
-    assert_eq!(
-        chart_error.kind,
-        EphemerisErrorKind::UnsupportedApparentness
-    );
-    assert!(chart_error
-        .message
-        .contains("currently returns mean geometric coordinates only; apparent corrections are not implemented"));
-    assert!(observers
-        .lock()
-        .expect("observer log should be lockable")
-        .is_empty());
+        .expect("apparent chart should succeed for mean-only backends");
+    assert_eq!(snapshot.apparentness, Apparentness::Apparent);
+
+    // The backend always receives Mean requests regardless of the chart apparentness.
+    let observed = observers.lock().expect("observer log should be lockable");
+    assert!(!observed.is_empty(), "backend should have been called");
 }
 
 #[test]
@@ -2946,10 +2946,15 @@ fn default_chart_applies_apparent_for_release_grade_body() {
         TimeScale::Tt,
     ))
     .with_bodies(vec![CelestialBody::Sun]);
-    let snapshot = engine.chart(&request).expect("default apparent chart should succeed");
+    let snapshot = engine
+        .chart(&request)
+        .expect("default apparent chart should succeed");
     let placement = snapshot.placement_for(&CelestialBody::Sun).unwrap();
     assert_eq!(placement.position.apparent, Apparentness::Apparent);
-    assert!(placement.apparent.is_some(), "apparent provenance should be attached");
+    assert!(
+        placement.apparent.is_some(),
+        "apparent provenance should be attached"
+    );
 }
 
 #[test]
@@ -2960,10 +2965,15 @@ fn non_release_grade_body_falls_back_to_mean() {
         TimeScale::Tt,
     ))
     .with_bodies(vec![CelestialBody::Moon]);
-    let snapshot = engine.chart(&request).expect("non-release-grade falls back, not errors");
+    let snapshot = engine
+        .chart(&request)
+        .expect("non-release-grade falls back, not errors");
     let placement = snapshot.placement_for(&CelestialBody::Moon).unwrap();
     assert_eq!(placement.position.apparent, Apparentness::Mean);
-    assert!(placement.apparent.is_none(), "no apparent provenance on fallback");
+    assert!(
+        placement.apparent.is_none(),
+        "no apparent provenance on fallback"
+    );
 }
 
 #[test]
@@ -3006,7 +3016,9 @@ fn sidereal_apparent_chart_applies_ayanamsa_to_apparent_longitude() {
     let request = ChartRequest::new(instant)
         .with_bodies(vec![CelestialBody::Sun])
         .with_zodiac_mode(zodiac_mode.clone());
-    let snapshot = engine.chart(&request).expect("sidereal apparent chart should succeed");
+    let snapshot = engine
+        .chart(&request)
+        .expect("sidereal apparent chart should succeed");
     let placement = snapshot.placement_for(&CelestialBody::Sun).unwrap();
 
     // The placement must have been corrected to apparent.
@@ -3053,7 +3065,8 @@ fn sidereal_apparent_chart_applies_ayanamsa_to_apparent_longitude() {
 
     // The offset between tropical apparent and sidereal apparent must be
     // approximately the Lahiri ayanamsa (~20-25° at J2000).
-    let offset = (tropical_apparent_lon.degrees() - sidereal_apparent_lon.degrees()).rem_euclid(360.0);
+    let offset =
+        (tropical_apparent_lon.degrees() - sidereal_apparent_lon.degrees()).rem_euclid(360.0);
     assert!(
         offset > 20.0 && offset < 30.0,
         "ayanamsa offset should be ~20-25° at J2000, got {offset:.4}°"
@@ -3062,7 +3075,10 @@ fn sidereal_apparent_chart_applies_ayanamsa_to_apparent_longitude() {
     // The derived sign must be sidereal (Pisces for ~256° sidereal, not tropical Capricorn near 280°).
     assert_ne!(
         placement.sign,
-        tropical_snapshot.placement_for(&CelestialBody::Sun).unwrap().sign,
+        tropical_snapshot
+            .placement_for(&CelestialBody::Sun)
+            .unwrap()
+            .sign,
         "sidereal and tropical apparent charts must produce different signs"
     );
 }
