@@ -15,7 +15,7 @@ fn help_text_mentions_tdb_to_tt_retagging_flag() {
     assert!(rendered.contains("--tdb-from-ut1-offset-seconds"));
     assert!(rendered.contains("--tdb-from-tt-offset-seconds"));
     assert!(rendered.contains("--tt-from-tdb-offset-seconds"));
-    assert!(rendered.contains("UTC convenience policy: built-in UTC convenience conversion remains out of scope; callers must supply TT/TDB offsets explicitly"));
+    assert!(rendered.contains("UTC convenience policy: built-in UTC convenience conversion is now provided by the pleiades-time crate (civil UTC/UT1 to TT/TDB, leap-second-exact UTC, tiered exact/observed/predicted, 1900-2100); direct backends still consume TT/TDB"));
     assert!(rendered.contains("reference-high-curvature-summary"));
     assert!(rendered.contains("high-curvature-summary"));
     assert!(rendered.contains("reference-snapshot-major-body-high-curvature-summary"));

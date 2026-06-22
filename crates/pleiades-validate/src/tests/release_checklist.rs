@@ -442,7 +442,7 @@ fn release_summary_command_renders_the_quick_overview() {
     );
     assert!(rendered.contains("Workspace audit: workspace-audit / audit"));
     assert!(rendered.contains("Time-scale policy: direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T or UTC convenience model"));
-    assert!(rendered.contains("Delta T policy: built-in Delta T modeling remains out of scope; UTC/UT1 inputs require caller-supplied conversion helpers"));
+    assert!(rendered.contains("Delta T policy: built-in Delta T modeling is now provided by the pleiades-time crate for civil UTC/UT1 inputs over 1900-2100, tagged observed/predicted; direct backend requests still accept TT/TDB"));
     assert!(rendered.contains("Observer policy: chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests with UnsupportedObserver; malformed observer coordinates remain InvalidObserver; topocentric body positions remain unsupported"));
     assert!(rendered.contains("Apparentness policy: current first-party backends accept mean geometric output only; apparent-place corrections are rejected unless a backend explicitly advertises support"));
     assert!(rendered.contains("Native sidereal policy: native sidereal backend output remains unsupported unless a backend explicitly advertises it"));
