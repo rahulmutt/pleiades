@@ -29,6 +29,13 @@ mod apparent;
 
 pub use apparent::{apparent_position, ApparentPosition, DEFAULT_MAX_ITERATIONS};
 
+pub mod policy;
+
+pub use policy::{
+    ApparentPlacePolicySummary, ApparentPlacePolicySummaryValidationError,
+    CURRENT_APPARENT_PLACE_POLICY_SUMMARY_TEXT,
+};
+
 /// Deterministic 64-bit content checksum (FNV-1a), byte-identical to
 /// `pleiades_time::fnv1a64`. Detects drift between a checked-in data table and
 /// its pinned checksum. Not cryptographic.
