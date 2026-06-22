@@ -7,17 +7,19 @@ pub mod deltat;
 mod error;
 pub mod leap;
 pub mod policy;
+pub mod sidereal;
 pub mod tdb;
 
 pub use calendar::CivilDateTime;
 pub use convert::{
     tdb_from_ut1_civil, tdb_from_utc_civil, to_terrestrial, tt_from_ut1_civil, tt_from_utc_civil,
-    CivilInstant, ConversionPath, ConversionProvenance, ConversionQuality, SUPPORT_END_JD,
-    SUPPORT_START_JD,
+    ut1_jd_from_tt, CivilInstant, ConversionPath, ConversionProvenance, ConversionQuality,
+    SUPPORT_END_JD, SUPPORT_START_JD,
 };
 pub use deltat::DeltaTQuality;
 pub use error::CivilTimeError;
 pub use policy::{CivilTimePolicyError, CivilTimePolicySummary};
+pub use sidereal::gmst_degrees;
 
 /// Deterministic 64-bit content checksum (FNV-1a), byte-identical to
 /// `pleiades_jpl::spk::corpus_manifest::corpus_checksum64`. Used to detect drift
