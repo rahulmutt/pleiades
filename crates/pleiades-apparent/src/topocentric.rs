@@ -94,7 +94,7 @@ pub fn topocentric_position(
         provenance: TopocentricProvenance {
             parallax_longitude_arcsec: d_lon * 3600.0,
             parallax_latitude_arcsec: d_lat * 3600.0,
-            diurnal_aberration_arcsec: aberr_ra_arcsec.hypot(aberr_dec_arcsec),
+            diurnal_aberration_arcsec: (aberr_ra_arcsec * dec_topo.cos()).hypot(aberr_dec_arcsec),
             distance_au_used: distance_au,
         },
     })
