@@ -5,8 +5,10 @@
 use crate::error::ApparentPlaceError;
 use crate::fnv1a64;
 
-const NUTATION_CSV: &str =
-    include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/data/nutation-iau1980.csv"));
+const NUTATION_CSV: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/data/nutation-iau1980.csv"
+));
 
 /// FNV-1a checksum of `data/nutation-iau1980.csv`; pinned in Step 4.
 const NUTATION_CSV_CHECKSUM: u64 = 13689944370085337276;
@@ -101,7 +103,10 @@ pub fn nutation(jd_tt: f64) -> Result<Nutation, ApparentPlaceError> {
     if !delta_psi_arcsec.is_finite() || !delta_eps_arcsec.is_finite() {
         return Err(ApparentPlaceError::NonFiniteCorrection { stage: "nutation" });
     }
-    Ok(Nutation { delta_psi_arcsec, delta_eps_arcsec })
+    Ok(Nutation {
+        delta_psi_arcsec,
+        delta_eps_arcsec,
+    })
 }
 
 #[cfg(test)]
@@ -123,8 +128,16 @@ mod tests {
         // Meeus Example 22.a: 1987 April 10, 0h TD -> JDE 2446895.5.
         // Δψ = -3.788", Δε = +9.443", ε0 = 23°26'27.407" = 23.4409463°.
         let n = nutation(2_446_895.5).unwrap();
-        assert!((n.delta_psi_arcsec - (-3.788)).abs() < 0.03, "Δψ = {}", n.delta_psi_arcsec);
-        assert!((n.delta_eps_arcsec - 9.443).abs() < 0.03, "Δε = {}", n.delta_eps_arcsec);
+        assert!(
+            (n.delta_psi_arcsec - (-3.788)).abs() < 0.03,
+            "Δψ = {}",
+            n.delta_psi_arcsec
+        );
+        assert!(
+            (n.delta_eps_arcsec - 9.443).abs() < 0.03,
+            "Δε = {}",
+            n.delta_eps_arcsec
+        );
         let eps0 = mean_obliquity_degrees(2_446_895.5);
         assert!((eps0 - 23.440946).abs() < 1e-5, "ε0 = {eps0}");
     }

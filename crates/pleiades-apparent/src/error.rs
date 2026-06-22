@@ -74,14 +74,20 @@ mod tests {
         let errors = [
             ApparentPlaceError::NonConvergentLightTime { iterations: 5 },
             ApparentPlaceError::MissingDistance,
-            ApparentPlaceError::NonFiniteCorrection { stage: "aberration" },
+            ApparentPlaceError::NonFiniteCorrection {
+                stage: "aberration",
+            },
             ApparentPlaceError::StaleModelData { kind: "nutation" },
         ];
         let mut seen = std::collections::HashSet::new();
         for e in errors {
             assert!(!e.summary_line().is_empty());
             assert_eq!(e.to_string(), e.summary_line());
-            assert!(seen.insert(e.summary_line()), "duplicate summary: {}", e.summary_line());
+            assert!(
+                seen.insert(e.summary_line()),
+                "duplicate summary: {}",
+                e.summary_line()
+            );
         }
     }
 

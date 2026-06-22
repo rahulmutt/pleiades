@@ -36,13 +36,15 @@ where
     let mut tau = 0.0_f64;
     let mut last = query(instant).map_err(ApparentLightTimeError::Query)?;
     for step in 1..=max_iterations {
-        let distance = last
-            .distance_au
-            .ok_or(ApparentLightTimeError::Apparent(ApparentPlaceError::MissingDistance))?;
+        let distance = last.distance_au.ok_or(ApparentLightTimeError::Apparent(
+            ApparentPlaceError::MissingDistance,
+        ))?;
         let new_tau = distance * LIGHT_TIME_DAYS_PER_AU;
         if !new_tau.is_finite() {
             return Err(ApparentLightTimeError::Apparent(
-                ApparentPlaceError::NonFiniteCorrection { stage: "light-time" },
+                ApparentPlaceError::NonFiniteCorrection {
+                    stage: "light-time",
+                },
             ));
         }
         if (new_tau - tau).abs() < CONVERGENCE_DAYS {
@@ -57,7 +59,9 @@ where
         last = query(retarded).map_err(ApparentLightTimeError::Query)?;
     }
     Err(ApparentLightTimeError::Apparent(
-        ApparentPlaceError::NonConvergentLightTime { iterations: max_iterations },
+        ApparentPlaceError::NonConvergentLightTime {
+            iterations: max_iterations,
+        },
     ))
 }
 
@@ -107,7 +111,8 @@ mod tests {
     #[test]
     fn query_error_is_propagated() {
         let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
-        let err = apparent_via_light_time::<_, &str>(instant, 8, |_| Err("backend down")).unwrap_err();
+        let err =
+            apparent_via_light_time::<_, &str>(instant, 8, |_| Err("backend down")).unwrap_err();
         assert!(matches!(err, ApparentLightTimeError::Query("backend down")));
     }
 }

@@ -71,9 +71,14 @@ pub fn precess_ecliptic_j2000_to_date(
     let longitude_deg = lon.to_degrees().rem_euclid(360.0);
     let latitude_deg = lat.to_degrees();
     if !longitude_deg.is_finite() || !latitude_deg.is_finite() {
-        return Err(ApparentPlaceError::NonFiniteCorrection { stage: "precession" });
+        return Err(ApparentPlaceError::NonFiniteCorrection {
+            stage: "precession",
+        });
     }
-    Ok(PrecessedEcliptic { longitude_deg, latitude_deg })
+    Ok(PrecessedEcliptic {
+        longitude_deg,
+        latitude_deg,
+    })
 }
 
 #[cfg(test)]
@@ -85,8 +90,16 @@ mod tests {
         // At J2000 the precession angles are zero and the inbound/outbound
         // obliquities are equal, so the transform is the identity.
         let out = precess_ecliptic_j2000_to_date(123.456, 4.5, 2_451_545.0).unwrap();
-        assert!((out.longitude_deg - 123.456).abs() < 1e-6, "λ = {}", out.longitude_deg);
-        assert!((out.latitude_deg - 4.5).abs() < 1e-6, "β = {}", out.latitude_deg);
+        assert!(
+            (out.longitude_deg - 123.456).abs() < 1e-6,
+            "λ = {}",
+            out.longitude_deg
+        );
+        assert!(
+            (out.latitude_deg - 4.5).abs() < 1e-6,
+            "β = {}",
+            out.latitude_deg
+        );
     }
 
     #[test]
@@ -102,7 +115,11 @@ mod tests {
         // gross errors (a transcription bug would produce degrees, not arcsec).
         let jd = 2_451_545.0 + 36_525.0;
         let out = precess_ecliptic_j2000_to_date(0.0, 0.0, jd).unwrap();
-        assert!((out.longitude_deg - 1.39697).abs() < 5e-3, "λ' = {}", out.longitude_deg);
+        assert!(
+            (out.longitude_deg - 1.39697).abs() < 5e-3,
+            "λ' = {}",
+            out.longitude_deg
+        );
         assert!(out.latitude_deg.abs() < 2e-3, "β' = {}", out.latitude_deg);
     }
 
@@ -114,6 +131,10 @@ mod tests {
         let out = precess_ecliptic_j2000_to_date(80.0, 30.0, jd).unwrap();
         let dlon = out.longitude_deg - 80.0;
         assert!((dlon - 1.397).abs() < 0.05, "Δλ = {dlon}");
-        assert!((out.latitude_deg - 30.0).abs() < 0.05, "β' = {}", out.latitude_deg);
+        assert!(
+            (out.latitude_deg - 30.0).abs() < 0.05,
+            "β' = {}",
+            out.latitude_deg
+        );
     }
 }
