@@ -34,7 +34,7 @@ pub fn annual_aberration(
 ) -> AberrationOffset {
     let t = julian_centuries(jd_tt);
     let e = 0.016_708_634 - 0.000_042_037 * t - 0.000_000_126_7 * t * t;
-    let pi_deg = 102.937_35 + 1.719_46 * t - 0.000_46 * t * t;
+    let pi_deg = 102.937_35 + 1.719_46 * t + 0.000_46 * t * t;
 
     let lambda = lambda_deg.to_radians();
     let beta = beta_deg.to_radians();
