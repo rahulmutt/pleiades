@@ -77,6 +77,19 @@ pub enum ApparentValidationError {
         /// Error message from the engine.
         message: String,
     },
+    /// A body was requested in apparent mode but silently fell back to mean place.
+    ///
+    /// This indicates the engine did not produce genuine apparent output for the body,
+    /// so comparing its longitude against a Horizons apparent golden would be meaningless.
+    /// The gate fails closed rather than masking a silent regression.
+    UnexpectedMeanFallback {
+        /// One-based data row number.
+        row: usize,
+        /// Body label from the CSV.
+        body: String,
+        /// Julian day (TT) from the CSV.
+        jd_tt: f64,
+    },
     /// A chart longitude exceeded its per-row tolerance.
     ToleranceExceeded {
         /// One-based data row number.
@@ -115,6 +128,14 @@ impl fmt::Display for ApparentValidationError {
                 write!(
                     f,
                     "apparent goldens row {row}: unknown body label {label:?}"
+                )
+            }
+            Self::UnexpectedMeanFallback { row, body, jd_tt } => {
+                write!(
+                    f,
+                    "apparent goldens row {row} ({body} @ JD {jd_tt}): \
+                     body fell back to mean place — apparent provenance is absent; \
+                     cannot validate a genuine apparent longitude against Horizons"
                 )
             }
             Self::ChartError {
@@ -298,6 +319,18 @@ pub fn validate_apparent_goldens() -> Result<ApparentValidationReport, ApparentV
                 message: "body not found in chart snapshot".to_string(),
             }
         })?;
+
+        // Fail closed if the body silently fell back to mean place: `apparent` is `None`
+        // when the engine did not produce genuine apparent-mode output.  Comparing a mean
+        // longitude against a Horizons apparent golden would either pass or fail for the
+        // wrong reason, masking a regression.
+        if placement.apparent.is_none() {
+            return Err(ApparentValidationError::UnexpectedMeanFallback {
+                row: data_row,
+                body: row.body_label.clone(),
+                jd_tt: row.jd_tt,
+            });
+        }
 
         let ecliptic = placement.position.ecliptic.as_ref().ok_or_else(|| {
             ApparentValidationError::ChartError {
