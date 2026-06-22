@@ -12,7 +12,9 @@ use crate::tdb;
 
 /// Start of the supported civil window (1900-01-01 00:00).
 pub const SUPPORT_START_JD: f64 = 2415020.5;
-/// End of the supported civil window (2100-12-31 24:00 ~= 2101-01-01 00:00).
+/// End of the supported civil window: an exclusive upper bound at the start of
+/// 2101 (JD 2488434.5). The last accepted instant is 2100-12-31T23:59:59.x;
+/// 2101-01-01T00:00:00 is rejected as `BeyondHorizon`.
 pub const SUPPORT_END_JD: f64 = 2488434.5;
 
 /// TT − TAI, in seconds (fixed by definition).
@@ -115,8 +117,12 @@ fn finite(jd: f64) -> Result<(), CivilTimeError> {
 }
 
 /// Builds a TT instant (and provenance) from a civil Julian Day tagged UTC or UT1.
-fn to_tt(jd_civil: f64, source: TimeScale) -> Result<(f64, ConversionProvenance), CivilTimeError> {
-    if !(SUPPORT_START_JD..=SUPPORT_END_JD).contains(&jd_civil) {
+fn to_tt(
+    jd_civil: f64,
+    source: TimeScale,
+    target: TimeScale,
+) -> Result<(f64, ConversionProvenance), CivilTimeError> {
+    if !(SUPPORT_START_JD..SUPPORT_END_JD).contains(&jd_civil) {
         return Err(CivilTimeError::BeyondHorizon { jd: jd_civil });
     }
     match source {
@@ -178,7 +184,7 @@ fn to_tt(jd_civil: f64, source: TimeScale) -> Result<(f64, ConversionProvenance)
         }
         other => Err(CivilTimeError::UnsupportedScale {
             source: other,
-            target: TimeScale::Tt,
+            target,
         }),
     }
 }
@@ -208,7 +214,7 @@ pub fn to_terrestrial(
         return Err(CivilTimeError::UnsupportedScale { source, target });
     }
     let jd_civil = civil.to_julian_day()?.days();
-    let (jd_tt, provenance) = to_tt(jd_civil, source)?;
+    let (jd_tt, provenance) = to_tt(jd_civil, source, target)?;
     let (jd_out, scale) = match target {
         TimeScale::Tt => (jd_tt, TimeScale::Tt),
         TimeScale::Tdb => {
@@ -301,6 +307,30 @@ mod tests {
                 target: TimeScale::Ut1
             })
         );
+    }
+
+    #[test]
+    fn end_of_2100_is_accepted() {
+        let civil = CivilDateTime::new(2100, 12, 31, 23, 59, 59.0);
+        assert!(tt_from_ut1_civil(civil).is_ok());
+    }
+
+    #[test]
+    fn start_of_2101_ut1_is_rejected() {
+        let civil = CivilDateTime::new(2101, 1, 1, 0, 0, 0.0);
+        assert!(matches!(
+            tt_from_ut1_civil(civil),
+            Err(CivilTimeError::BeyondHorizon { .. })
+        ));
+    }
+
+    #[test]
+    fn start_of_2101_utc_is_rejected() {
+        let civil = CivilDateTime::new(2101, 1, 1, 0, 0, 0.0);
+        assert!(matches!(
+            tt_from_utc_civil(civil),
+            Err(CivilTimeError::BeyondHorizon { .. })
+        ));
     }
 
     #[test]

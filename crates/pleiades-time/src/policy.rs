@@ -5,7 +5,7 @@ use core::fmt;
 /// The canonical one-line civil-time posture. Update with the implementation if
 /// the supported window or tier model changes; the validator fails closed on drift.
 pub const CURRENT_CIVIL_TIME_POLICY_SUMMARY_TEXT: &str =
-    "Civil UTC/UT1 input converts to TT/TDB over 1900–2100: leap-second-exact UTC, observed/extrapolated Delta-T elsewhere, each result tagged exact/observed/predicted.";
+    "Civil UTC/UT1 input converts to TT/TDB over 1900-2100: leap-second-exact UTC, observed/extrapolated Delta-T elsewhere, each result tagged exact/observed/predicted";
 
 /// Validation error for the civil-time policy summary.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]

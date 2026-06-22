@@ -91,6 +91,9 @@ impl CivilDateTime {
         // round-tripped HH:MM:00 cleanly without the per-component-round bug
         // that corrupted sub-minute times (e.g. 19:20:30 -> 19:21:-30).
         let mut rem_seconds = ((day_frac - day) * 86_400.0 * 1_000.0).round() / 1_000.0;
+        if rem_seconds >= 86_400.0 {
+            rem_seconds = 86_399.999; // absorb the sub-ms round-up into the last representable second
+        }
         let hour = (rem_seconds / 3_600.0).floor();
         rem_seconds -= hour * 3_600.0;
         let minute = (rem_seconds / 60.0).floor();
@@ -147,7 +150,7 @@ mod tests {
         assert_eq!(back.day, 10);
         assert_eq!(back.hour, 19);
         assert_eq!(back.minute, 21);
-        assert!(back.second < 0.001 || back.second > 59.999);
+        assert!(back.second < 0.001, "second: {}", back.second);
     }
 
     #[test]
@@ -174,5 +177,26 @@ mod tests {
             CivilDateTime::new(2000, 1, 1, 0, 0, f64::NAN).to_julian_day(),
             Err(CivilTimeError::InvalidCivilDate { field: "second" })
         );
+        assert_eq!(
+            CivilDateTime::new(2000, 1, 0, 0, 0, 0.0).to_julian_day(),
+            Err(CivilTimeError::InvalidCivilDate { field: "day" })
+        );
+        assert_eq!(
+            CivilDateTime::new(2000, 1, 1, 24, 0, 0.0).to_julian_day(),
+            Err(CivilTimeError::InvalidCivilDate { field: "hour" })
+        );
+        assert_eq!(
+            CivilDateTime::new(2000, 1, 1, 0, 60, 0.0).to_julian_day(),
+            Err(CivilTimeError::InvalidCivilDate { field: "minute" })
+        );
+    }
+
+    #[test]
+    fn near_midnight_does_not_overflow_hour() {
+        let jd = CivilDateTime::new(2000, 1, 1, 23, 59, 59.9996)
+            .to_julian_day()
+            .unwrap();
+        let back = CivilDateTime::from_julian_day(jd);
+        assert!(back.hour <= 23, "hour overflowed: {}", back.hour);
     }
 }
