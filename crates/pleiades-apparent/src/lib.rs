@@ -1,6 +1,10 @@
 //! Apparent-place corrections: light-time, precession-to-date, annual
 //! aberration, and nutation-in-longitude, with typed provenance.
 
+mod error;
+
+pub use error::{ApparentLightTimeError, ApparentPlaceError};
+
 /// Deterministic 64-bit content checksum (FNV-1a), byte-identical to
 /// `pleiades_time::fnv1a64`. Detects drift between a checked-in data table and
 /// its pinned checksum. Not cryptographic.
