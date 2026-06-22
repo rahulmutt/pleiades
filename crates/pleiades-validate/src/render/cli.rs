@@ -143,6 +143,12 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "validate-corpus")?;
             crate::corpus::production::run_corpus_gate()
         }
+        Some("validate-apparent") | Some("apparent-gate") => {
+            ensure_no_extra_args(&args[1..], "validate-apparent")?;
+            crate::validate_apparent_goldens()
+                .map(|report| report.summary_line().to_string())
+                .map_err(|e| e.to_string())
+        }
         Some("benchmark-corpus-summary") => {
             ensure_no_extra_args(&args[1..], "benchmark-corpus-summary")?;
             Ok(render_benchmark_corpus_summary_text())

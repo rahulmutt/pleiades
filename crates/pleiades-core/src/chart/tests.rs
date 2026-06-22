@@ -1359,9 +1359,7 @@ fn chart_request_validation_accepts_apparent_for_mean_only_backends() {
         .lock()
         .expect("apparent call log should be lockable");
     assert!(
-        recorded_apparent
-            .iter()
-            .all(|a| *a == Apparentness::Mean),
+        recorded_apparent.iter().all(|a| *a == Apparentness::Mean),
         "engine must send Apparentness::Mean to the backend; got: {:?}",
         *recorded_apparent,
     );
