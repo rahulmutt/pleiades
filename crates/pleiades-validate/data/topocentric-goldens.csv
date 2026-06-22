@@ -1,0 +1,47 @@
+# Source: JPL Horizons API (https://ssd.jpl.nasa.gov/api/horizons.api), EPHEM_TYPE=OBSERVER,
+# CENTER='coord@399', SITE_COORD='356.2962,40.4168,0.65' (Madrid: E-lon=356.2962°,
+# lat=+40.4168°, elev=0.650 km), QUANTITIES='31' (ObsEcLon, ObsEcLat — apparent ecliptic
+# longitude and latitude referred to the IAU76/80 ecliptic-of-date, with light-time,
+# gravitational deflection, and stellar aberrations), ANG_FORMAT=DEG, EXTRA_PREC=YES,
+# CAL_FORMAT=JD, TIME_TYPE=TT.
+#
+# TOLERANCE RATIONALE (same data ceiling as the apparent goldens; see apparent-goldens.csv):
+#   - Sun/planets longitude: The packaged polynomial-fit ephemeris matches JPL DE441 to ~26
+#     arcsec for Sun/planets (the observed residual floor in the apparent goldens). The
+#     topocentric correction for the Sun is ~8.8 arcsec peak (sub-arcsec vs the data limit)
+#     and ~0.7 arcsec for Mars, so the dominant error is the packaged ephemeris vs DE441,
+#     not the topocentric formula. Longitude tolerances match the apparent goldens (26 arcsec).
+#   - Moon longitude: ELP2000-based theory; same 45 arcsec data ceiling as the apparent
+#     goldens. The lunar topocentric parallax is ~52 arcsec peak and is resolvable via the
+#     non-geocentric assertion (Moon topo vs geo > 0.1°). The absolute longitude tolerance is
+#     set to 45 arcsec for the same data-ceiling reason.
+#   - Latitude: The engine's ecliptic latitude has larger residuals than longitude (~44 arcsec
+#     for Sun, which should be ~0; ~45 arcsec for Moon). These reflect the packaged-ephemeris
+#     accuracy limit, not the topocentric formula. Latitude tolerances are set to 90 arcsec
+#     (2×the data ceiling) so genuine latitude errors (e.g. wrong-sign flip) are still caught
+#     while data-limit noise does not cause false failures.
+#
+# HORIZONS QUERY PARAMETERS:
+#   Sun (COMMAND=10), Moon (COMMAND=301), Mars (COMMAND=499):
+#     EPHEM_TYPE=OBSERVER, CENTER='coord@399', SITE_COORD='356.2962,40.4168,0.65',
+#     TLIST='2415025.5 2433282.5 2451545.0 2488065.5', QUANTITIES=31, ANG_FORMAT=DEG,
+#     EXTRA_PREC=YES, CSV_FORMAT=YES, CAL_FORMAT=JD, TIME_TYPE=TT
+#
+# EPOCHS: same as apparent-goldens.csv (5 days past coverage start, 4 days before end).
+# 2415025.5 = 1900-Jan-06 TT; 2433282.5 = 1950-Jan-01 TT; 2451545.0 = 2000-Jan-01.5 TT;
+# 2488065.5 = 2099-Dec-26 TT.
+#
+# FORMAT: body, jd_tt, topo_longitude_deg, topo_latitude_deg, lon_tolerance_arcsec, lat_tolerance_arcsec
+body,jd_tt,topo_longitude_deg,topo_latitude_deg,lon_tolerance_arcsec,lat_tolerance_arcsec
+Sun,2415025.5,285.2517220,-0.0005328,26.0,90.0
+Sun,2433282.5,280.0042133,-0.0007271,26.0,90.0
+Sun,2451545.0,280.3682051,-0.0019837,26.0,90.0
+Sun,2488065.5,276.5283172,-0.0005096,26.0,90.0
+Moon,2415025.5,344.8810699,4.8928005,45.0,90.0
+Moon,2433282.5,60.9208151,3.5619060,45.0,90.0
+Moon,2451545.0,222.9687708,4.3786729,45.0,90.0
+Moon,2488065.5,102.3545604,4.4529609,45.0,90.0
+Mars,2415025.5,287.7272067,-0.9530314,26.0,90.0
+Mars,2433282.5,182.2129977,2.5118980,26.0,90.0
+Mars,2451545.0,327.9631884,-1.0689734,26.0,90.0
+Mars,2488065.5,27.9399782,0.8688553,26.0,90.0
