@@ -21,6 +21,10 @@ pub mod precession;
 
 pub use precession::{precess_ecliptic_j2000_to_date, PrecessedEcliptic};
 
+mod provenance;
+
+pub use provenance::{ApparentProvenance, CorrectionSet, MODEL_SOURCES};
+
 /// Deterministic 64-bit content checksum (FNV-1a), byte-identical to
 /// `pleiades_time::fnv1a64`. Detects drift between a checked-in data table and
 /// its pinned checksum. Not cryptographic.
