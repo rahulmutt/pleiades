@@ -1,5 +1,6 @@
 use core::fmt;
 
+use pleiades_apparent::ApparentProvenance;
 use pleiades_backend::{EphemerisResult, EphemerisResultValidationError};
 use pleiades_types::{CelestialBody, Motion, MotionDirection, ZodiacSign};
 
@@ -14,6 +15,8 @@ pub struct BodyPlacement {
     pub sign: Option<ZodiacSign>,
     /// The one-based house number, when house placement was requested.
     pub house: Option<usize>,
+    /// Apparent-place provenance, when this placement was computed in apparent mode.
+    pub apparent: Option<ApparentProvenance>,
 }
 
 /// Errors returned when a body placement no longer matches its stored result.

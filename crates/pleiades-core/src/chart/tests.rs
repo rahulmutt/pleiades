@@ -158,6 +158,7 @@ fn chart_snapshot_exposes_dominant_sign_and_house_summaries() {
                 ),
                 sign: Some(ZodiacSign::Aries),
                 house: Some(1),
+                apparent: None,
             },
             BodyPlacement {
                 body: CelestialBody::Moon,
@@ -171,6 +172,7 @@ fn chart_snapshot_exposes_dominant_sign_and_house_summaries() {
                 ),
                 sign: Some(ZodiacSign::Aries),
                 house: Some(1),
+                apparent: None,
             },
             BodyPlacement {
                 body: CelestialBody::Mars,
@@ -184,6 +186,7 @@ fn chart_snapshot_exposes_dominant_sign_and_house_summaries() {
                 ),
                 sign: Some(ZodiacSign::Taurus),
                 house: Some(2),
+                apparent: None,
             },
             BodyPlacement {
                 body: CelestialBody::Mercury,
@@ -197,6 +200,7 @@ fn chart_snapshot_exposes_dominant_sign_and_house_summaries() {
                 ),
                 sign: Some(ZodiacSign::Taurus),
                 house: Some(2),
+                apparent: None,
             },
             BodyPlacement {
                 body: CelestialBody::Jupiter,
@@ -210,6 +214,7 @@ fn chart_snapshot_exposes_dominant_sign_and_house_summaries() {
                 ),
                 sign: Some(ZodiacSign::Gemini),
                 house: Some(8),
+                apparent: None,
             },
         ],
     };
@@ -282,7 +287,11 @@ fn chart_snapshot_supports_sidereal_signs() {
 
 #[test]
 fn chart_snapshot_preserves_apparentness_choice() {
-    let engine = ChartEngine::new(ToyChartBackend);
+    // Use ApparentChartBackend which declares Sun as ReleaseGrade, so the
+    // engine applies actual apparent-place corrections and the placement
+    // reflects Apparentness::Apparent. ToyChartBackend has Constrained bodies
+    // only and would fall back to Mean (tested by non_release_grade_body_falls_back_to_mean).
+    let engine = ChartEngine::new(ApparentChartBackend);
     let request = ChartRequest::new(Instant::new(
         pleiades_types::JulianDay::from_days(2451545.0),
         TimeScale::Tt,
@@ -338,7 +347,7 @@ fn chart_snapshot_supports_house_placement() {
     assert_eq!(chart.observer_policy(), ObserverPolicy::HouseOnly);
     assert_eq!(
         chart.summary_line(),
-        "backend=toy-chart; instant=JD 2451545 (TT); placements=2; zodiac=Tropical; apparentness=Mean; observer=house-only; observer location=latitude=0°, longitude=0°, elevation=n/a; body observer=none; house system=Whole Sign; house cusps=12"
+        "backend=toy-chart; instant=JD 2451545 (TT); placements=2; zodiac=Tropical; apparentness=Apparent; observer=house-only; observer location=latitude=0°, longitude=0°, elevation=n/a; body observer=none; house system=Whole Sign; house cusps=12"
     );
     assert!(rendered.contains("House system: Whole Sign"));
     assert!(rendered
@@ -496,7 +505,7 @@ fn chart_snapshot_with_observer_but_without_houses_stays_geocentric() {
     assert_eq!(chart.observer_policy(), ObserverPolicy::Geocentric);
     assert_eq!(
         chart.summary_line(),
-        "backend=recording-chart; instant=JD 2451545 (TT); placements=1; zodiac=Tropical; apparentness=Mean; observer=geocentric; observer location=latitude=51.5°, longitude=359.9°, elevation=n/a; body observer=none; house system=none; house cusps=0"
+        "backend=recording-chart; instant=JD 2451545 (TT); placements=1; zodiac=Tropical; apparentness=Apparent; observer=geocentric; observer location=latitude=51.5°, longitude=359.9°, elevation=n/a; body observer=none; house system=none; house cusps=0"
     );
     assert!(chart
         .to_string()
@@ -604,7 +613,7 @@ fn chart_request_summary_line_reflects_the_default_request_shape() {
     assert_eq!(request.observer_policy(), ObserverPolicy::Geocentric);
     assert_eq!(
         request.summary_line(),
-        "instant=JD 2451545 (TT); bodies=10; zodiac=Tropical; apparentness=Mean; observer=geocentric; observer location=none; body observer=none; house system=none"
+        "instant=JD 2451545 (TT); bodies=10; zodiac=Tropical; apparentness=Apparent; observer=geocentric; observer location=none; body observer=none; house system=none"
     );
     assert_eq!(request.to_string(), request.summary_line());
 }
@@ -909,6 +918,7 @@ fn chart_snapshot_validate_rejects_house_assignments_without_house_snapshot() {
             ),
             sign: Some(ZodiacSign::Aries),
             house: Some(1),
+            apparent: None,
         }],
     };
 
@@ -967,6 +977,7 @@ fn chart_snapshot_validate_rejects_out_of_range_house_assignments() {
             ),
             sign: Some(ZodiacSign::Aries),
             house: Some(13),
+            apparent: None,
         }],
     };
 
@@ -1046,6 +1057,7 @@ fn body_placement_validate_rejects_zero_house_numbers() {
         ),
         sign: Some(ZodiacSign::Aries),
         house: Some(0),
+        apparent: None,
     };
 
     let error = placement
@@ -1091,6 +1103,7 @@ fn chart_snapshot_validate_rejects_invalid_body_placements() {
             ),
             sign: Some(ZodiacSign::Aries),
             house: None,
+            apparent: None,
         }],
     };
     let mut invalid_snapshot = snapshot.clone();
@@ -1190,7 +1203,7 @@ fn chart_request_summary_line_stays_geocentric_without_a_house_system() {
     assert_eq!(request.observer_policy(), ObserverPolicy::Geocentric);
     assert_eq!(
         request.summary_line(),
-        "instant=JD 2451545 (TT); bodies=2; zodiac=Tropical; apparentness=Mean; observer=geocentric; observer location=latitude=12.5°, longitude=45°, elevation=100.000 m; body observer=none; house system=none"
+        "instant=JD 2451545 (TT); bodies=2; zodiac=Tropical; apparentness=Apparent; observer=geocentric; observer location=latitude=12.5°, longitude=45°, elevation=100.000 m; body observer=none; house system=none"
     );
 }
 
@@ -1208,7 +1221,7 @@ fn chart_request_summary_line_preserves_custom_house_system_details() {
 
     assert_eq!(
         request.summary_line(),
-        "instant=JD 2451545 (TT); bodies=10; zodiac=Tropical; apparentness=Mean; observer=geocentric; observer location=none; body observer=none; house system=My Custom Houses [aliases: My Alias] (uses a local calibration)"
+        "instant=JD 2451545 (TT); bodies=10; zodiac=Tropical; apparentness=Apparent; observer=geocentric; observer location=none; body observer=none; house system=My Custom Houses [aliases: My Alias] (uses a local calibration)"
     );
 }
 
@@ -1303,10 +1316,19 @@ fn chart_request_validation_rejects_custom_definitions_that_collide_with_builtin
 }
 
 #[test]
-fn chart_request_validation_rejects_apparent_requests_before_backend_dispatch() {
+fn chart_request_validation_accepts_apparent_for_mean_only_backends() {
+    // Apparent-place corrections are now applied in the engine layer, not the
+    // backend. Validation no longer rejects Apparent for backends that declare
+    // `apparent: false` — the engine always sends Mean to the backend and
+    // applies corrections itself (for ReleaseGrade bodies) or falls back
+    // gracefully to Mean (for Constrained bodies). MeanOnlyRecordingChartBackend
+    // has Constrained-tier bodies so the placement falls back to Mean, but the
+    // chart-level apparentness reflects the caller's Apparent request.
     let observers = Arc::new(Mutex::new(Vec::new()));
+    let apparent_calls = Arc::new(Mutex::new(Vec::new()));
     let engine = ChartEngine::new(MeanOnlyRecordingChartBackend {
         observers: Arc::clone(&observers),
+        apparent_calls: Arc::clone(&apparent_calls),
     });
     let request = ChartRequest::new(Instant::new(
         pleiades_types::JulianDay::from_days(2_451_545.0),
@@ -1315,31 +1337,32 @@ fn chart_request_validation_rejects_apparent_requests_before_backend_dispatch() 
     .with_bodies(vec![CelestialBody::Sun])
     .with_apparentness(Apparentness::Apparent);
 
-    let validation_error = engine
+    // Validation now succeeds — the engine handles apparent internally.
+    engine
         .validate_chart_request(&request)
-        .expect_err("apparent chart requests should be rejected before backend dispatch");
-    assert_eq!(
-        validation_error.kind,
-        EphemerisErrorKind::UnsupportedApparentness
-    );
-    assert!(validation_error
-        .message
-        .contains("currently returns mean geometric coordinates only; apparent corrections are not implemented"));
+        .expect("apparent chart requests should pass validation for mean-only backends");
 
-    let chart_error = engine
+    // The chart assembles successfully; chart-level apparentness is Apparent.
+    let snapshot = engine
         .chart(&request)
-        .expect_err("apparent chart requests should be rejected before backend dispatch");
-    assert_eq!(
-        chart_error.kind,
-        EphemerisErrorKind::UnsupportedApparentness
-    );
-    assert!(chart_error
-        .message
-        .contains("currently returns mean geometric coordinates only; apparent corrections are not implemented"));
-    assert!(observers
+        .expect("apparent chart should succeed for mean-only backends");
+    assert_eq!(snapshot.apparentness, Apparentness::Apparent);
+
+    // The backend always receives Mean requests regardless of the chart apparentness.
+    let observed = observers.lock().expect("observer log should be lockable");
+    assert!(!observed.is_empty(), "backend should have been called");
+
+    // Core invariant: every EphemerisRequest the engine sent to the backend must
+    // carry Apparentness::Mean — apparent corrections are composed in the engine
+    // layer, never delegated to the backend.
+    let recorded_apparent = apparent_calls
         .lock()
-        .expect("observer log should be lockable")
-        .is_empty());
+        .expect("apparent call log should be lockable");
+    assert!(
+        recorded_apparent.iter().all(|a| *a == Apparentness::Mean),
+        "engine must send Apparentness::Mean to the backend; got: {:?}",
+        *recorded_apparent,
+    );
 }
 
 #[test]
@@ -2284,6 +2307,7 @@ fn body_placement_exposes_motion_direction() {
         position: result,
         sign: None,
         house: None,
+        apparent: None,
     };
 
     assert_eq!(
@@ -2325,6 +2349,7 @@ fn body_placement_treats_non_finite_motion_as_unknown() {
         position: result,
         sign: None,
         house: None,
+        apparent: None,
     };
 
     assert_eq!(placement.motion_direction(), None);
@@ -2392,6 +2417,7 @@ fn body_placement_summary_line_matches_display() {
         position: result,
         sign: Some(ZodiacSign::Leo),
         house: Some(7),
+        apparent: None,
     };
 
     let summary = placement.summary_line();
@@ -2483,24 +2509,28 @@ fn chart_snapshot_supports_body_lookup_and_retrograde_summary() {
                 position: direct,
                 sign: Some(ZodiacSign::Aries),
                 house: Some(1),
+                apparent: None,
             },
             BodyPlacement {
                 body: CelestialBody::Mercury,
                 position: stationary,
                 sign: Some(ZodiacSign::Taurus),
                 house: Some(2),
+                apparent: None,
             },
             BodyPlacement {
                 body: CelestialBody::Mars,
                 position: retrograde,
                 sign: Some(ZodiacSign::Cancer),
                 house: Some(8),
+                apparent: None,
             },
             BodyPlacement {
                 body: CelestialBody::Jupiter,
                 position: unknown,
                 sign: Some(ZodiacSign::Leo),
                 house: Some(9),
+                apparent: None,
             },
         ],
     };
@@ -2790,12 +2820,14 @@ fn chart_snapshot_exposes_major_aspects_and_angular_separation() {
                 position: sun,
                 sign: Some(ZodiacSign::Aries),
                 house: Some(1),
+                apparent: None,
             },
             BodyPlacement {
                 body: CelestialBody::Moon,
                 position: moon,
                 sign: Some(ZodiacSign::Taurus),
                 house: Some(2),
+                apparent: None,
             },
         ],
     };
@@ -2863,6 +2895,7 @@ fn chart_snapshot_renders_custom_body_identifiers() {
             position: result,
             sign: None,
             house: None,
+            apparent: None,
         }],
     };
 
@@ -2917,4 +2950,187 @@ fn aspect_definition_validation_rejects_non_finite_and_out_of_range_values() {
         AspectDefinition::new(AspectKind::Opposition, 180.0, 8.0),
     ])
     .is_ok());
+}
+
+#[test]
+fn default_chart_applies_apparent_for_release_grade_body() {
+    let engine = ChartEngine::new(ApparentChartBackend);
+    let request = ChartRequest::new(Instant::new(
+        pleiades_types::JulianDay::from_days(2_451_545.0),
+        TimeScale::Tt,
+    ))
+    .with_bodies(vec![CelestialBody::Sun]);
+    let snapshot = engine
+        .chart(&request)
+        .expect("default apparent chart should succeed");
+    let placement = snapshot.placement_for(&CelestialBody::Sun).unwrap();
+    assert_eq!(placement.position.apparent, Apparentness::Apparent);
+    assert!(
+        placement.apparent.is_some(),
+        "apparent provenance should be attached"
+    );
+}
+
+#[test]
+fn non_release_grade_body_falls_back_to_mean() {
+    let engine = ChartEngine::new(ConstrainedOnlyChartBackend);
+    let request = ChartRequest::new(Instant::new(
+        pleiades_types::JulianDay::from_days(2_451_545.0),
+        TimeScale::Tt,
+    ))
+    .with_bodies(vec![CelestialBody::Moon]);
+    let snapshot = engine
+        .chart(&request)
+        .expect("non-release-grade falls back, not errors");
+    let placement = snapshot.placement_for(&CelestialBody::Moon).unwrap();
+    assert_eq!(placement.position.apparent, Apparentness::Mean);
+    assert!(
+        placement.apparent.is_none(),
+        "no apparent provenance on fallback"
+    );
+}
+
+#[test]
+fn explicit_mean_mode_returns_raw_j2000() {
+    let engine = ChartEngine::new(ApparentChartBackend);
+    let request = ChartRequest::new(Instant::new(
+        pleiades_types::JulianDay::from_days(2_451_545.0),
+        TimeScale::Tt,
+    ))
+    .with_bodies(vec![CelestialBody::Sun])
+    .with_apparentness(Apparentness::Mean);
+    let snapshot = engine.chart(&request).unwrap();
+    let placement = snapshot.placement_for(&CelestialBody::Sun).unwrap();
+    assert_eq!(placement.position.apparent, Apparentness::Mean);
+    assert!(placement.apparent.is_none());
+}
+
+#[test]
+fn sidereal_apparent_chart_applies_ayanamsa_to_apparent_longitude() {
+    // Regression guard for C1: sidereal charts with a release-grade body must
+    // store the sidereal (ayanamsa-adjusted) apparent longitude, not the raw
+    // tropical apparent longitude.
+    //
+    // ApparentChartBackend returns Sun at tropical 280° with distance_au=1.0
+    // (release-grade claim). After the apparent-place correction the tropical
+    // apparent longitude will be shifted slightly but will remain close to 280°.
+    // After re-applying the Lahiri ayanamsa (~23.85° at J2000) the sidereal
+    // apparent longitude must differ from the tropical apparent longitude by
+    // approximately that ayanamsa offset.
+    let instant = Instant::new(
+        pleiades_types::JulianDay::from_days(2_451_545.0),
+        TimeScale::Tt,
+    );
+    let zodiac_mode = ZodiacMode::Sidereal {
+        ayanamsa: crate::Ayanamsa::Lahiri,
+    };
+
+    // Build the apparent sidereal chart.
+    let engine = ChartEngine::new(ApparentChartBackend);
+    let request = ChartRequest::new(instant)
+        .with_bodies(vec![CelestialBody::Sun])
+        .with_zodiac_mode(zodiac_mode.clone());
+    let snapshot = engine
+        .chart(&request)
+        .expect("sidereal apparent chart should succeed");
+    let placement = snapshot.placement_for(&CelestialBody::Sun).unwrap();
+
+    // The placement must have been corrected to apparent.
+    assert_eq!(placement.position.apparent, Apparentness::Apparent);
+
+    // Retrieve the stored longitude.
+    let sidereal_apparent_lon = placement
+        .position
+        .ecliptic
+        .expect("placement must have ecliptic coordinates")
+        .longitude;
+
+    // Build a mean (no apparent correction) tropical chart to get the raw
+    // tropical longitude the backend serves, then derive what the expected
+    // sidereal apparent longitude should be.
+    let tropical_engine = ChartEngine::new(ApparentChartBackend);
+    let tropical_request = ChartRequest::new(instant)
+        .with_bodies(vec![CelestialBody::Sun])
+        .with_apparentness(Apparentness::Apparent); // tropical, apparent
+    let tropical_snapshot = tropical_engine
+        .chart(&tropical_request)
+        .expect("tropical apparent chart should succeed");
+    let tropical_apparent_lon = tropical_snapshot
+        .placement_for(&CelestialBody::Sun)
+        .unwrap()
+        .position
+        .ecliptic
+        .unwrap()
+        .longitude;
+
+    // The expected sidereal apparent longitude is the tropical apparent longitude
+    // with the ayanamsa applied.
+    let expected_sidereal = sidereal_longitude(tropical_apparent_lon, instant, &zodiac_mode)
+        .expect("sidereal conversion of apparent longitude should succeed");
+
+    // The stored longitude must match the ayanamsa-adjusted apparent longitude.
+    assert!(
+        (sidereal_apparent_lon.degrees() - expected_sidereal.degrees()).abs() < 1e-9,
+        "sidereal apparent longitude {:.6}° must equal tropical apparent {:.6}° minus ayanamsa = {:.6}°",
+        sidereal_apparent_lon.degrees(),
+        tropical_apparent_lon.degrees(),
+        expected_sidereal.degrees(),
+    );
+
+    // The offset between tropical apparent and sidereal apparent must be
+    // approximately the Lahiri ayanamsa (~20-25° at J2000).
+    let offset =
+        (tropical_apparent_lon.degrees() - sidereal_apparent_lon.degrees()).rem_euclid(360.0);
+    assert!(
+        offset > 20.0 && offset < 30.0,
+        "ayanamsa offset should be ~20-25° at J2000, got {offset:.4}°"
+    );
+
+    // The derived sign must be sidereal (Pisces for ~256° sidereal, not tropical Capricorn near 280°).
+    assert_ne!(
+        placement.sign,
+        tropical_snapshot
+            .placement_for(&CelestialBody::Sun)
+            .unwrap()
+            .sign,
+        "sidereal and tropical apparent charts must produce different signs"
+    );
+}
+
+#[test]
+fn release_grade_body_falls_back_to_mean_when_apparent_unavailable() {
+    // Regression guard: when apparent_position() fails for a release-grade body
+    // (here because the backend returns an absurd 50,000 AU distance that trips
+    // the light-time sanity cap), the engine must fall back gracefully to the
+    // mean position rather than propagating the error. The chart must succeed,
+    // and the placement must carry Apparentness::Mean with no apparent provenance.
+    //
+    // This covers the 433-Eros scenario where the packaged distance channel is
+    // unreliable and the light-time iterator would otherwise diverge or converge
+    // to a physically implausible value.
+    let engine = ChartEngine::new(AbsurdDistanceReleaseGradeBackend);
+    let request = ChartRequest::new(Instant::new(
+        pleiades_types::JulianDay::from_days(2_451_545.0),
+        TimeScale::Tt,
+    ))
+    .with_bodies(vec![CelestialBody::Mars])
+    .with_apparentness(Apparentness::Apparent);
+
+    let snapshot = engine.chart(&request).expect(
+        "chart must succeed even when apparent-place computation fails for a release-grade body",
+    );
+
+    let placement = snapshot
+        .placement_for(&CelestialBody::Mars)
+        .expect("Mars must be present in the chart");
+
+    assert_eq!(
+        placement.position.apparent,
+        Apparentness::Mean,
+        "release-grade body with unavailable apparent must fall back to Mean"
+    );
+    assert!(
+        placement.apparent.is_none(),
+        "no apparent provenance must be attached on mean fallback"
+    );
 }

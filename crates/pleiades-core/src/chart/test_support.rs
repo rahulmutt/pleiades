@@ -1,9 +1,9 @@
 use std::sync::{Arc, Mutex};
 
 use pleiades_backend::{
-    AccuracyClass, BackendCapabilities, BackendFamily, BackendId, BackendMetadata,
-    BackendProvenance, EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest,
-    EphemerisResult, QualityAnnotation,
+    AccuracyClass, Apparentness, BackendCapabilities, BackendFamily, BackendId, BackendMetadata,
+    BackendProvenance, BodyClaim, ClaimEvidence, EphemerisBackend, EphemerisError,
+    EphemerisErrorKind, EphemerisRequest, EphemerisResult, QualityAnnotation,
 };
 use pleiades_types::{
     CelestialBody, EclipticCoordinates, Latitude, Longitude, ObserverLocation, TimeScale,
@@ -19,6 +19,9 @@ pub(super) struct RecordingChartBackend {
 #[derive(Clone)]
 pub(super) struct MeanOnlyRecordingChartBackend {
     pub(super) observers: Arc<Mutex<Vec<Option<ObserverLocation>>>>,
+    /// Records the `apparent` field of every incoming `EphemerisRequest` so
+    /// tests can assert the engine always sends `Apparentness::Mean`.
+    pub(super) apparent_calls: Arc<Mutex<Vec<Apparentness>>>,
 }
 
 impl EphemerisBackend for ToyChartBackend {
@@ -156,6 +159,10 @@ impl EphemerisBackend for MeanOnlyRecordingChartBackend {
             .lock()
             .expect("observer log should be lockable")
             .push(request.observer.clone());
+        self.apparent_calls
+            .lock()
+            .expect("apparent call log should be lockable")
+            .push(request.apparent);
         let mut result = EphemerisResult::new(
             BackendId::new("mean-only-recording-chart"),
             request.body.clone(),
@@ -242,5 +249,197 @@ impl EphemerisBackend for BatchRecordingChartBackend {
             .lock()
             .expect("batch call log should be lockable") += 1;
         reqs.iter().map(|req| self.position(req)).collect()
+    }
+}
+
+/// A backend that marks the Sun as ReleaseGrade (for apparent-place tests).
+/// It returns a fixed ecliptic position with distance_au for light-time computation.
+pub(super) struct ApparentChartBackend;
+
+impl EphemerisBackend for ApparentChartBackend {
+    fn metadata(&self) -> BackendMetadata {
+        BackendMetadata {
+            id: BackendId::new("apparent-chart"),
+            version: "0.1.0".to_string(),
+            family: BackendFamily::Algorithmic,
+            provenance: BackendProvenance::new("apparent chart backend"),
+            nominal_range: pleiades_types::TimeRange::new(None, None),
+            supported_time_scales: vec![TimeScale::Tt],
+            body_claims: vec![BodyClaim::release_grade(
+                CelestialBody::Sun,
+                AccuracyClass::Approximate,
+                ClaimEvidence::AlgorithmicModel,
+            )],
+            supported_frames: vec![pleiades_types::CoordinateFrame::Ecliptic],
+            capabilities: BackendCapabilities::default(),
+            accuracy: AccuracyClass::Approximate,
+            deterministic: true,
+            offline: true,
+        }
+    }
+
+    fn supports_body(&self, body: CelestialBody) -> bool {
+        matches!(body, CelestialBody::Sun)
+    }
+
+    fn position(&self, request: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+        let longitude = match request.body {
+            CelestialBody::Sun => Longitude::from_degrees(280.0),
+            _ => {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::UnsupportedBody,
+                    "unsupported",
+                ))
+            }
+        };
+        let mut result = EphemerisResult::new(
+            BackendId::new("apparent-chart"),
+            request.body.clone(),
+            request.instant,
+            request.frame,
+            request.zodiac_mode.clone(),
+            request.apparent,
+        );
+        result.quality = QualityAnnotation::Approximate;
+        result.ecliptic = Some(EclipticCoordinates::new(
+            longitude,
+            Latitude::from_degrees(0.0),
+            Some(1.0),
+        ));
+        Ok(result)
+    }
+}
+
+/// A backend that marks a custom body as ReleaseGrade but returns an absurd
+/// distance (50,000 AU) so the light-time sanity cap fires, causing apparent
+/// computation to fail. Tests that the chart engine falls back gracefully to
+/// the mean position rather than erroring.
+pub(super) struct AbsurdDistanceReleaseGradeBackend;
+
+impl EphemerisBackend for AbsurdDistanceReleaseGradeBackend {
+    fn metadata(&self) -> BackendMetadata {
+        BackendMetadata {
+            id: BackendId::new("absurd-distance-release-grade"),
+            version: "0.1.0".to_string(),
+            family: BackendFamily::Algorithmic,
+            provenance: BackendProvenance::new("absurd-distance release-grade backend"),
+            nominal_range: pleiades_types::TimeRange::new(None, None),
+            supported_time_scales: vec![TimeScale::Tt],
+            body_claims: vec![
+                // Sun must also be release-grade so the engine performs the Sun query.
+                BodyClaim::release_grade(
+                    CelestialBody::Sun,
+                    AccuracyClass::Approximate,
+                    ClaimEvidence::AlgorithmicModel,
+                ),
+                // Mars is the "broken" release-grade body: distance will be absurd.
+                BodyClaim::release_grade(
+                    CelestialBody::Mars,
+                    AccuracyClass::Approximate,
+                    ClaimEvidence::AlgorithmicModel,
+                ),
+            ],
+            supported_frames: vec![pleiades_types::CoordinateFrame::Ecliptic],
+            capabilities: BackendCapabilities::default(),
+            accuracy: AccuracyClass::Approximate,
+            deterministic: true,
+            offline: true,
+        }
+    }
+
+    fn supports_body(&self, body: CelestialBody) -> bool {
+        matches!(body, CelestialBody::Sun | CelestialBody::Mars)
+    }
+
+    fn position(&self, request: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+        let (longitude, distance_au) = match request.body {
+            // Sun returns a plausible distance so the Sun aberration term works.
+            CelestialBody::Sun => (Longitude::from_degrees(280.0), 1.0_f64),
+            // Mars returns an absurd distance to trigger the sanity cap.
+            CelestialBody::Mars => (Longitude::from_degrees(120.0), 50_000.0_f64),
+            _ => {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::UnsupportedBody,
+                    "unsupported",
+                ))
+            }
+        };
+        let mut result = EphemerisResult::new(
+            BackendId::new("absurd-distance-release-grade"),
+            request.body.clone(),
+            request.instant,
+            request.frame,
+            request.zodiac_mode.clone(),
+            request.apparent,
+        );
+        result.quality = QualityAnnotation::Approximate;
+        result.ecliptic = Some(EclipticCoordinates::new(
+            longitude,
+            Latitude::from_degrees(0.0),
+            Some(distance_au),
+        ));
+        Ok(result)
+    }
+}
+
+/// A backend where only Moon is available (at Constrained tier). Sun is served
+/// in `position()` for the apparent-place aberration term but is NOT declared
+/// in `body_claims`. Tests the graceful mean fallback for non-release-grade bodies.
+pub(super) struct ConstrainedOnlyChartBackend;
+
+impl EphemerisBackend for ConstrainedOnlyChartBackend {
+    fn metadata(&self) -> BackendMetadata {
+        BackendMetadata {
+            id: BackendId::new("constrained-only-chart"),
+            version: "0.1.0".to_string(),
+            family: BackendFamily::Algorithmic,
+            provenance: BackendProvenance::new("constrained-only chart backend"),
+            nominal_range: pleiades_types::TimeRange::new(None, None),
+            supported_time_scales: vec![TimeScale::Tt],
+            body_claims: vec![BodyClaim::constrained(
+                CelestialBody::Moon,
+                AccuracyClass::Approximate,
+                ClaimEvidence::AlgorithmicModel,
+            )],
+            supported_frames: vec![pleiades_types::CoordinateFrame::Ecliptic],
+            capabilities: BackendCapabilities::default(),
+            accuracy: AccuracyClass::Approximate,
+            deterministic: true,
+            offline: true,
+        }
+    }
+
+    fn supports_body(&self, body: CelestialBody) -> bool {
+        matches!(body, CelestialBody::Moon)
+    }
+
+    fn position(&self, request: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+        // Sun is served for the apparent-place aberration term even though it is
+        // not declared in body_claims — the Sun query bypasses metadata validation.
+        let longitude = match request.body {
+            CelestialBody::Sun => Longitude::from_degrees(280.0),
+            CelestialBody::Moon => Longitude::from_degrees(45.0),
+            _ => {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::UnsupportedBody,
+                    "unsupported",
+                ))
+            }
+        };
+        let mut result = EphemerisResult::new(
+            BackendId::new("constrained-only-chart"),
+            request.body.clone(),
+            request.instant,
+            request.frame,
+            request.zodiac_mode.clone(),
+            request.apparent,
+        );
+        result.quality = QualityAnnotation::Approximate;
+        result.ecliptic = Some(EclipticCoordinates::new(
+            longitude,
+            Latitude::from_degrees(0.0),
+            Some(1.0),
+        ));
+        Ok(result)
     }
 }

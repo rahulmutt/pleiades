@@ -28,7 +28,7 @@ pub const CURRENT_OBSERVER_POLICY_SUMMARY_TEXT: &str =
 
 /// Canonical current policy summary text for the shared apparentness posture.
 pub const CURRENT_APPARENTNESS_POLICY_SUMMARY_TEXT: &str =
-    "current first-party backends accept mean geometric output only; apparent-place corrections are rejected unless a backend explicitly advertises support";
+    "backends remain mean-only and J2000 at the backend boundary; apparent place of date (chart layer, default): light-time + precession-to-date + annual aberration + nutation-in-longitude, release-grade bodies; gravitational light-deflection omitted";
 
 /// Canonical current policy summary text for the shared frame posture.
 pub const CURRENT_FRAME_POLICY_SUMMARY_TEXT: &str =
@@ -40,7 +40,7 @@ pub const CURRENT_NATIVE_SIDEREAL_POLICY_SUMMARY_TEXT: &str =
 
 /// Canonical current unsupported-modes summary text used by release reporting.
 pub const CURRENT_UNSUPPORTED_MODES_SUMMARY_TEXT: &str =
-    "built-in UTC convenience remains out of scope; built-in Delta T remains out of scope; topocentric body positions remain unsupported; apparent-place corrections are rejected unless a backend explicitly advertises support; native sidereal backend output remains unsupported unless a backend explicitly advertises it";
+    "built-in UTC convenience remains out of scope; built-in Delta T remains out of scope; topocentric body positions remain unsupported; native sidereal backend output remains unsupported unless a backend explicitly advertises it";
 
 /// Canonical current policy summary text for the shared zodiac posture.
 pub const CURRENT_ZODIAC_POLICY_SUMMARY_TEXT: &str = "tropical only";

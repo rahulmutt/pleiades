@@ -18,3 +18,4 @@ pleiades-houses = { workspace = true }
 pleiades-ayanamsa = { workspace = true }
 pleiades-compression = { workspace = true }
 pleiades-time = { workspace = true }
+pleiades-apparent = { workspace = true }

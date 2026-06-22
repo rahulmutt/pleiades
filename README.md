@@ -26,7 +26,7 @@ As of the current workspace state, `pleiades` includes:
 Important current limits:
 
 - body/backend claims are now **per-backend**: Pluto, the Moon, and Eros are release-grade via the packaged-data artifact, while VSOP87's Pluto stays approximate and the compact ELP Moon stays constrained; the seven `sb441-n16` Tier-A asteroids (Ceres, Pallas, Juno, Vesta, Hygiea, Psyche, Iris) are release-grade via the corpus-dependent JPL/SPK backend; True Apogee/Perigee remain unsupported.
-- first-party backends currently expose **mean geometric** coordinates; apparent-place corrections are rejected unless a backend advertises support,
+- apparent place of date is the **default chart-layer output** for release-grade bodies (light-time + precession-to-date + annual aberration + nutation-in-longitude; gravitational light-deflection omitted); first-party backends remain mean-only and J2000 at the backend boundary,
 - `pleiades-time` now provides built-in civil UTC/UT1 → TT/TDB conversion (leap-second-exact UTC from 1972, observed/extrapolated Delta-T for UT1, TT↔TDB periodic term, 1900–2100 window, tiered `exact`/`observed`/`predicted` quality marker); direct backends still consume TT/TDB, and the caller-supplied `--tt-*`/`--tdb-*` offset flags remain the lower-level alternative,
 - body-position observer/topocentric requests remain unsupported by current first-party backends,
 - native sidereal backend output is not assumed; chart-level sidereal longitude is handled by the façade/catalog layer,
@@ -34,9 +34,9 @@ Important current limits:
 
 ## Published crates
 
-The ten library crates (`pleiades-types`, `pleiades-backend`, `pleiades-core`,
+The eleven library crates (`pleiades-types`, `pleiades-backend`, `pleiades-core`,
 `pleiades-houses`, `pleiades-ayanamsa`, `pleiades-vsop87`, `pleiades-elp`,
-`pleiades-jpl`, `pleiades-compression`, `pleiades-time`) are published to crates.io as
+`pleiades-jpl`, `pleiades-compression`, `pleiades-time`, `pleiades-apparent`) are published to crates.io as
 experimental `0.2.x` releases under `MIT OR Apache-2.0`. The limits above apply
 to the published crates as well; production-accuracy claims wait on the phases
 in [PLAN.md](PLAN.md). `pleiades-cli`, `pleiades-data`, and `pleiades-validate`
@@ -55,6 +55,7 @@ For the source-of-truth design and compatibility targets, read [SPEC.md](SPEC.md
 | `pleiades-houses` | House-system catalog, aliases, formula-family metadata, and baseline house calculations. |
 | `pleiades-ayanamsa` | Ayanamsa catalog, aliases, reference offset metadata, and sidereal offset helpers. |
 | `pleiades-time` | Civil-time conversion: civil UTC/UT1 calendar datetimes → TT/TDB `Instant`s (1900–2100, leap-second-exact UTC, observed/extrapolated Delta-T, TT↔TDB periodic term, typed `ConversionProvenance` with `exact`/`observed`/`predicted` quality marker). |
+| `pleiades-apparent` | Apparent-place chart layer: applies light-time, precession-to-date, annual aberration, and nutation-in-longitude to mean J2000 backend positions to produce true equinox-of-date coordinates for release-grade bodies (gravitational light-deflection omitted). |
 | `pleiades-vsop87` | Pure-Rust VSOP87B-backed planetary backend with generated binary coefficient tables and a Pluto approximate path. |
 | `pleiades-elp` | Compact Meeus-style lunar/lunar-point backend for Moon, mean/true node, and mean apogee/perigee channels. |
 | `pleiades-jpl` | Reproducible de440-sourced JPL reference corpus (checksum-pinned, kernel SHA pinned, kernel not committed) and corpus-backed validation helpers behind a fail-closed gate. Also ingests external JPL-style products (Horizons vector-table / API JSON / generic CSV) into the corpus types via `pleiades-jpl::ingest`, with optional live fetch behind the default-off `horizons-fetch` feature. |

@@ -462,6 +462,7 @@ impl ChartSnapshot {
     ///         position,
     ///         sign: Some(ZodiacSign::Aries),
     ///         house: Some(1),
+    ///         apparent: None,
     ///     }],
     /// };
     ///

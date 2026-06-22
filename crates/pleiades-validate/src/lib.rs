@@ -12,6 +12,7 @@ use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 use std::time::Instant as StdInstant;
 
+mod apparent_validation;
 mod artifact;
 mod chart_benchmark;
 mod claims;
@@ -24,6 +25,9 @@ mod release;
 mod render;
 mod report;
 
+pub use apparent_validation::{
+    validate_apparent_goldens, ApparentValidationError, ApparentValidationReport,
+};
 pub use render::{banner, render_cli};
 
 #[cfg(test)]
