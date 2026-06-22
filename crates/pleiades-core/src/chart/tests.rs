@@ -159,6 +159,7 @@ fn chart_snapshot_exposes_dominant_sign_and_house_summaries() {
                 sign: Some(ZodiacSign::Aries),
                 house: Some(1),
                 apparent: None,
+                topocentric: None,
             },
             BodyPlacement {
                 body: CelestialBody::Moon,
@@ -173,6 +174,7 @@ fn chart_snapshot_exposes_dominant_sign_and_house_summaries() {
                 sign: Some(ZodiacSign::Aries),
                 house: Some(1),
                 apparent: None,
+                topocentric: None,
             },
             BodyPlacement {
                 body: CelestialBody::Mars,
@@ -187,6 +189,7 @@ fn chart_snapshot_exposes_dominant_sign_and_house_summaries() {
                 sign: Some(ZodiacSign::Taurus),
                 house: Some(2),
                 apparent: None,
+                topocentric: None,
             },
             BodyPlacement {
                 body: CelestialBody::Mercury,
@@ -201,6 +204,7 @@ fn chart_snapshot_exposes_dominant_sign_and_house_summaries() {
                 sign: Some(ZodiacSign::Taurus),
                 house: Some(2),
                 apparent: None,
+                topocentric: None,
             },
             BodyPlacement {
                 body: CelestialBody::Jupiter,
@@ -215,6 +219,7 @@ fn chart_snapshot_exposes_dominant_sign_and_house_summaries() {
                 sign: Some(ZodiacSign::Gemini),
                 house: Some(8),
                 apparent: None,
+                topocentric: None,
             },
         ],
     };
@@ -919,6 +924,7 @@ fn chart_snapshot_validate_rejects_house_assignments_without_house_snapshot() {
             sign: Some(ZodiacSign::Aries),
             house: Some(1),
             apparent: None,
+            topocentric: None,
         }],
     };
 
@@ -978,6 +984,7 @@ fn chart_snapshot_validate_rejects_out_of_range_house_assignments() {
             sign: Some(ZodiacSign::Aries),
             house: Some(13),
             apparent: None,
+            topocentric: None,
         }],
     };
 
@@ -1058,6 +1065,7 @@ fn body_placement_validate_rejects_zero_house_numbers() {
         sign: Some(ZodiacSign::Aries),
         house: Some(0),
         apparent: None,
+        topocentric: None,
     };
 
     let error = placement
@@ -1104,6 +1112,7 @@ fn chart_snapshot_validate_rejects_invalid_body_placements() {
             sign: Some(ZodiacSign::Aries),
             house: None,
             apparent: None,
+            topocentric: None,
         }],
     };
     let mut invalid_snapshot = snapshot.clone();
@@ -2308,6 +2317,7 @@ fn body_placement_exposes_motion_direction() {
         sign: None,
         house: None,
         apparent: None,
+        topocentric: None,
     };
 
     assert_eq!(
@@ -2350,6 +2360,7 @@ fn body_placement_treats_non_finite_motion_as_unknown() {
         sign: None,
         house: None,
         apparent: None,
+        topocentric: None,
     };
 
     assert_eq!(placement.motion_direction(), None);
@@ -2418,6 +2429,7 @@ fn body_placement_summary_line_matches_display() {
         sign: Some(ZodiacSign::Leo),
         house: Some(7),
         apparent: None,
+        topocentric: None,
     };
 
     let summary = placement.summary_line();
@@ -2510,6 +2522,7 @@ fn chart_snapshot_supports_body_lookup_and_retrograde_summary() {
                 sign: Some(ZodiacSign::Aries),
                 house: Some(1),
                 apparent: None,
+                topocentric: None,
             },
             BodyPlacement {
                 body: CelestialBody::Mercury,
@@ -2517,6 +2530,7 @@ fn chart_snapshot_supports_body_lookup_and_retrograde_summary() {
                 sign: Some(ZodiacSign::Taurus),
                 house: Some(2),
                 apparent: None,
+                topocentric: None,
             },
             BodyPlacement {
                 body: CelestialBody::Mars,
@@ -2524,6 +2538,7 @@ fn chart_snapshot_supports_body_lookup_and_retrograde_summary() {
                 sign: Some(ZodiacSign::Cancer),
                 house: Some(8),
                 apparent: None,
+                topocentric: None,
             },
             BodyPlacement {
                 body: CelestialBody::Jupiter,
@@ -2531,6 +2546,7 @@ fn chart_snapshot_supports_body_lookup_and_retrograde_summary() {
                 sign: Some(ZodiacSign::Leo),
                 house: Some(9),
                 apparent: None,
+                topocentric: None,
             },
         ],
     };
@@ -2821,6 +2837,7 @@ fn chart_snapshot_exposes_major_aspects_and_angular_separation() {
                 sign: Some(ZodiacSign::Aries),
                 house: Some(1),
                 apparent: None,
+                topocentric: None,
             },
             BodyPlacement {
                 body: CelestialBody::Moon,
@@ -2828,6 +2845,7 @@ fn chart_snapshot_exposes_major_aspects_and_angular_separation() {
                 sign: Some(ZodiacSign::Taurus),
                 house: Some(2),
                 apparent: None,
+                topocentric: None,
             },
         ],
     };
@@ -2896,6 +2914,7 @@ fn chart_snapshot_renders_custom_body_identifiers() {
             sign: None,
             house: None,
             apparent: None,
+            topocentric: None,
         }],
     };
 
@@ -3095,6 +3114,56 @@ fn sidereal_apparent_chart_applies_ayanamsa_to_apparent_longitude() {
             .sign,
         "sidereal and tropical apparent charts must produce different signs"
     );
+}
+
+fn sample_apparent_moon_chart(
+    observer: pleiades_types::ObserverLocation,
+    topocentric: bool,
+) -> ChartSnapshot {
+    let engine = ChartEngine::new(ApparentMoonChartBackend);
+    let request = ChartRequest::new(Instant::new(
+        pleiades_types::JulianDay::from_days(2_451_545.0),
+        TimeScale::Tt,
+    ))
+    .with_bodies(vec![CelestialBody::Moon])
+    .with_apparentness(Apparentness::Apparent)
+    .with_observer(observer)
+    .with_topocentric(topocentric);
+    engine
+        .chart(&request)
+        .expect("apparent moon chart should succeed")
+}
+
+#[test]
+fn topocentric_moon_differs_from_geocentric() {
+    // Build a geocentric apparent Moon chart and a topocentric one for the same
+    // instant/observer; the longitudes must differ by the lunar parallax (>0.1°).
+    let observer = pleiades_types::ObserverLocation::new(
+        pleiades_types::Latitude::from_degrees(40.0),
+        pleiades_types::Longitude::from_degrees(-3.7),
+        Some(650.0),
+    );
+    let geocentric = sample_apparent_moon_chart(observer.clone(), false);
+    let topocentric = sample_apparent_moon_chart(observer, true);
+    let geo_lon = geocentric.placements[0]
+        .position
+        .ecliptic
+        .as_ref()
+        .unwrap()
+        .longitude
+        .degrees();
+    let topo_lon = topocentric.placements[0]
+        .position
+        .ecliptic
+        .as_ref()
+        .unwrap()
+        .longitude
+        .degrees();
+    let mut diff = (topo_lon - geo_lon).abs();
+    if diff > 180.0 {
+        diff = 360.0 - diff;
+    }
+    assert!(diff > 0.1, "lunar parallax {diff}° too small (geo {geo_lon}, topo {topo_lon})");
 }
 
 #[test]

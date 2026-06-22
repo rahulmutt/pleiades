@@ -240,6 +240,21 @@ impl<B: EphemerisBackend> ChartEngine<B> {
             ));
         }
 
+        if request.topocentric {
+            if matches!(request.apparentness, Apparentness::Mean) {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    "topocentric positions require apparent place; remove --mean",
+                ));
+            }
+            if request.observer.is_none() {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    "topocentric positions require an observer location",
+                ));
+            }
+        }
+
         let apparent_requested = matches!(request.apparentness, Apparentness::Apparent);
         let release_grade = metadata.release_grade_bodies();
         // Only query the Sun's longitude when there is at least one release-grade body
@@ -337,6 +352,47 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                     position.apparent = Apparentness::Mean;
                     None
                 };
+                // Opt-in chart-layer topocentric correction (diurnal parallax + diurnal aberration).
+                let topocentric_prov = if request.topocentric {
+                    let observer = request.observer.as_ref().ok_or_else(|| {
+                        EphemerisError::new(
+                            EphemerisErrorKind::InvalidRequest,
+                            "topocentric chart requires an observer location",
+                        )
+                    })?;
+                    let jd_tt = request.instant.julian_day.days();
+                    let jd_ut1 = pleiades_time::ut1_jd_from_tt(jd_tt).map_err(|e| {
+                        EphemerisError::new(EphemerisErrorKind::InvalidRequest, e.to_string())
+                    })?;
+                    let gmst = pleiades_time::gmst_degrees(jd_ut1);
+                    let nut = pleiades_apparent::nutation::nutation(jd_tt)
+                        .map_err(|e| map_apparent_error(pleiades_apparent::ApparentLightTimeError::Apparent(e)))?;
+                    let mean_obliquity = pleiades_apparent::nutation::mean_obliquity_degrees(jd_tt);
+                    let true_obliquity = mean_obliquity + nut.delta_eps_arcsec / 3600.0;
+                    // Apparent sidereal time = GMST + equation of the equinoxes + east longitude.
+                    let eq_equinoxes = (nut.delta_psi_arcsec / 3600.0) * true_obliquity.to_radians().cos();
+                    let last = (gmst + eq_equinoxes + observer.longitude.degrees()).rem_euclid(360.0);
+                    if let Some(ecliptic) = position.ecliptic.as_mut() {
+                        let topo = pleiades_apparent::topocentric_position(
+                            *ecliptic,
+                            observer,
+                            last,
+                            true_obliquity,
+                        )
+                        .map_err(|e| map_apparent_error(pleiades_apparent::ApparentLightTimeError::Apparent(e)))?;
+                        *ecliptic = topo.ecliptic;
+                        if matches!(request.zodiac_mode, ZodiacMode::Sidereal { .. }) && !native_sidereal {
+                            ecliptic.longitude =
+                                sidereal_longitude(ecliptic.longitude, request.instant, &request.zodiac_mode)?;
+                        }
+                        Some(topo.provenance)
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                };
+
                 // Re-derive the sign from the final (possibly apparent) longitude.
                 let sign = position
                     .ecliptic
@@ -349,6 +405,7 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                     sign,
                     house,
                     apparent,
+                    topocentric: topocentric_prov,
                 })
             })
             .collect::<Result<Vec<_>, EphemerisError>>()?;

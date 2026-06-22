@@ -66,6 +66,10 @@ pub struct ChartRequest {
     pub zodiac_mode: ZodiacMode,
     /// Preferred apparentness for backend position queries.
     pub apparentness: Apparentness,
+    /// When true, apply the opt-in chart-layer topocentric correction (diurnal
+    /// parallax + diurnal aberration) using `observer`. Requires `observer` to be
+    /// set, apparent mode, and bodies with a known geocentric distance.
+    pub topocentric: bool,
     /// Optional house-system request.
     pub house_system: Option<HouseSystem>,
 }
@@ -80,6 +84,7 @@ impl ChartRequest {
             bodies: default_chart_bodies().to_vec(),
             zodiac_mode: ZodiacMode::Tropical,
             apparentness: Apparentness::Apparent,
+            topocentric: false,
             house_system: None,
         }
     }
@@ -93,6 +98,12 @@ impl ChartRequest {
     /// Sets the observer location used for topocentric body-position requests.
     pub fn with_body_observer(mut self, body_observer: ObserverLocation) -> Self {
         self.body_observer = Some(body_observer);
+        self
+    }
+
+    /// Enables the opt-in chart-layer topocentric correction.
+    pub fn with_topocentric(mut self, topocentric: bool) -> Self {
+        self.topocentric = topocentric;
         self
     }
 

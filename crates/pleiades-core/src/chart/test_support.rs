@@ -382,6 +382,77 @@ impl EphemerisBackend for AbsurdDistanceReleaseGradeBackend {
     }
 }
 
+/// A backend that marks both Moon and Sun as ReleaseGrade so the engine
+/// applies apparent-place corrections and can then apply topocentric corrections.
+/// Moon is returned with a realistic lunar distance (~0.00257 AU).
+pub(super) struct ApparentMoonChartBackend;
+
+impl EphemerisBackend for ApparentMoonChartBackend {
+    fn metadata(&self) -> BackendMetadata {
+        BackendMetadata {
+            id: BackendId::new("apparent-moon-chart"),
+            version: "0.1.0".to_string(),
+            family: BackendFamily::Algorithmic,
+            provenance: BackendProvenance::new("apparent moon chart backend"),
+            nominal_range: pleiades_types::TimeRange::new(None, None),
+            supported_time_scales: vec![TimeScale::Tt],
+            body_claims: vec![
+                BodyClaim::release_grade(
+                    CelestialBody::Sun,
+                    AccuracyClass::Approximate,
+                    ClaimEvidence::AlgorithmicModel,
+                ),
+                BodyClaim::release_grade(
+                    CelestialBody::Moon,
+                    AccuracyClass::Approximate,
+                    ClaimEvidence::AlgorithmicModel,
+                ),
+            ],
+            supported_frames: vec![pleiades_types::CoordinateFrame::Ecliptic],
+            capabilities: BackendCapabilities::default(),
+            accuracy: AccuracyClass::Approximate,
+            deterministic: true,
+            offline: true,
+        }
+    }
+
+    fn supports_body(&self, body: CelestialBody) -> bool {
+        matches!(body, CelestialBody::Sun | CelestialBody::Moon)
+    }
+
+    fn position(&self, request: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+        let (longitude, distance_au) = match request.body {
+            CelestialBody::Sun => (Longitude::from_degrees(280.0), 1.0_f64),
+            // Moon at a realistic geocentric distance (~0.00257 AU = ~60.3 Earth radii).
+            // Longitude ~190° places the Moon near the observer's 6-hour hour angle
+            // (LAST ≈ 277° at J2000 for the test observer) for a large ecliptic-longitude
+            // parallax (> 0.5°).
+            CelestialBody::Moon => (Longitude::from_degrees(190.0), 0.002_57_f64),
+            _ => {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::UnsupportedBody,
+                    "unsupported",
+                ))
+            }
+        };
+        let mut result = EphemerisResult::new(
+            BackendId::new("apparent-moon-chart"),
+            request.body.clone(),
+            request.instant,
+            request.frame,
+            request.zodiac_mode.clone(),
+            request.apparent,
+        );
+        result.quality = QualityAnnotation::Approximate;
+        result.ecliptic = Some(EclipticCoordinates::new(
+            longitude,
+            Latitude::from_degrees(0.0),
+            Some(distance_au),
+        ));
+        Ok(result)
+    }
+}
+
 /// A backend where only Moon is available (at Constrained tier). Sun is served
 /// in `position()` for the apparent-place aberration term but is NOT declared
 /// in `body_claims`. Tests the graceful mean fallback for non-release-grade bodies.

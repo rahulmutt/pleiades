@@ -463,6 +463,7 @@ impl ChartSnapshot {
     ///         sign: Some(ZodiacSign::Aries),
     ///         house: Some(1),
     ///         apparent: None,
+    ///         topocentric: None,
     ///     }],
     /// };
     ///

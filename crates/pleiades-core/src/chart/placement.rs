@@ -1,6 +1,6 @@
 use core::fmt;
 
-use pleiades_apparent::ApparentProvenance;
+use pleiades_apparent::{ApparentProvenance, TopocentricProvenance};
 use pleiades_backend::{EphemerisResult, EphemerisResultValidationError};
 use pleiades_types::{CelestialBody, Motion, MotionDirection, ZodiacSign};
 
@@ -17,6 +17,8 @@ pub struct BodyPlacement {
     pub house: Option<usize>,
     /// Apparent-place provenance, when this placement was computed in apparent mode.
     pub apparent: Option<ApparentProvenance>,
+    /// Topocentric-correction provenance, when the chart-layer topocentric correction was applied.
+    pub topocentric: Option<TopocentricProvenance>,
 }
 
 /// Errors returned when a body placement no longer matches its stored result.
