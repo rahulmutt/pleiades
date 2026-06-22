@@ -12,7 +12,7 @@ pub(crate) mod zodiac;
 
 /// Canonical current policy summary text for direct backend time-scale requests.
 pub const CURRENT_TIME_SCALE_POLICY_SUMMARY_TEXT: &str =
-    "direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T or UTC convenience model";
+    "direct backend requests accept TT/TDB; civil UTC/UT1 inputs convert via the pleiades-time crate or caller-supplied offsets; the ephemeris backends carry no internal Delta T or UTC convenience model";
 
 /// Canonical current policy summary text for the shared Delta T posture.
 pub const CURRENT_DELTA_T_POLICY_SUMMARY_TEXT: &str =

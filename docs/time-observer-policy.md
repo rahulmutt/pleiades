@@ -63,7 +63,7 @@ The current contract is intentionally mechanical rather than modeled:
 - The default batch adapter preserves those same structured failures request-by-request, so a batch that includes an unsupported apparentness or observer shape still fails with the backend's explicit error kind rather than a generic batch wrapper error.
 - The default batch adapter also preserves each request's own time-scale label, so mixed TT/TDB batches remain mixed in the results instead of being normalized to a hidden batch-wide scale.
 - Validation, release, and backend-matrix summaries now include a short observer policy line alongside the time-scale policy line so the geocentric-only posture remains visible without opening the full policy document.
-- Until a project-level Delta T model is implemented, validation fixtures and reports should state the time scale of each epoch explicitly and should not imply automatic UTC-to-TT or UTC-to-TDB conversion support.
+- The built-in civil-time conversion path (`pleiades-time`) now provides UTC/UT1 → TT/TDB conversion; validation fixtures and reports should still state the time scale of each epoch explicitly so that the conversion path used (built-in or caller-supplied) is unambiguous.
 
 ## Apparent versus mean coordinates
 

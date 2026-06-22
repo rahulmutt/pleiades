@@ -787,7 +787,7 @@ fn request_policy_helpers_reject_unsupported_shapes() {
     let request_policy = current_request_policy_summary();
     assert_eq!(
             request_policy.time_scale,
-            "direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T or UTC convenience model"
+            "direct backend requests accept TT/TDB; civil UTC/UT1 inputs convert via the pleiades-time crate or caller-supplied offsets; the ephemeris backends carry no internal Delta T or UTC convenience model"
         );
     assert_eq!(
             request_policy.observer,
