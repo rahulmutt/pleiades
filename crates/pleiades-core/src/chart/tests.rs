@@ -2980,3 +2980,89 @@ fn explicit_mean_mode_returns_raw_j2000() {
     assert_eq!(placement.position.apparent, Apparentness::Mean);
     assert!(placement.apparent.is_none());
 }
+
+#[test]
+fn sidereal_apparent_chart_applies_ayanamsa_to_apparent_longitude() {
+    // Regression guard for C1: sidereal charts with a release-grade body must
+    // store the sidereal (ayanamsa-adjusted) apparent longitude, not the raw
+    // tropical apparent longitude.
+    //
+    // ApparentChartBackend returns Sun at tropical 280° with distance_au=1.0
+    // (release-grade claim). After the apparent-place correction the tropical
+    // apparent longitude will be shifted slightly but will remain close to 280°.
+    // After re-applying the Lahiri ayanamsa (~23.85° at J2000) the sidereal
+    // apparent longitude must differ from the tropical apparent longitude by
+    // approximately that ayanamsa offset.
+    let instant = Instant::new(
+        pleiades_types::JulianDay::from_days(2_451_545.0),
+        TimeScale::Tt,
+    );
+    let zodiac_mode = ZodiacMode::Sidereal {
+        ayanamsa: crate::Ayanamsa::Lahiri,
+    };
+
+    // Build the apparent sidereal chart.
+    let engine = ChartEngine::new(ApparentChartBackend);
+    let request = ChartRequest::new(instant)
+        .with_bodies(vec![CelestialBody::Sun])
+        .with_zodiac_mode(zodiac_mode.clone());
+    let snapshot = engine.chart(&request).expect("sidereal apparent chart should succeed");
+    let placement = snapshot.placement_for(&CelestialBody::Sun).unwrap();
+
+    // The placement must have been corrected to apparent.
+    assert_eq!(placement.position.apparent, Apparentness::Apparent);
+
+    // Retrieve the stored longitude.
+    let sidereal_apparent_lon = placement
+        .position
+        .ecliptic
+        .expect("placement must have ecliptic coordinates")
+        .longitude;
+
+    // Build a mean (no apparent correction) tropical chart to get the raw
+    // tropical longitude the backend serves, then derive what the expected
+    // sidereal apparent longitude should be.
+    let tropical_engine = ChartEngine::new(ApparentChartBackend);
+    let tropical_request = ChartRequest::new(instant)
+        .with_bodies(vec![CelestialBody::Sun])
+        .with_apparentness(Apparentness::Apparent); // tropical, apparent
+    let tropical_snapshot = tropical_engine
+        .chart(&tropical_request)
+        .expect("tropical apparent chart should succeed");
+    let tropical_apparent_lon = tropical_snapshot
+        .placement_for(&CelestialBody::Sun)
+        .unwrap()
+        .position
+        .ecliptic
+        .unwrap()
+        .longitude;
+
+    // The expected sidereal apparent longitude is the tropical apparent longitude
+    // with the ayanamsa applied.
+    let expected_sidereal = sidereal_longitude(tropical_apparent_lon, instant, &zodiac_mode)
+        .expect("sidereal conversion of apparent longitude should succeed");
+
+    // The stored longitude must match the ayanamsa-adjusted apparent longitude.
+    assert!(
+        (sidereal_apparent_lon.degrees() - expected_sidereal.degrees()).abs() < 1e-9,
+        "sidereal apparent longitude {:.6}° must equal tropical apparent {:.6}° minus ayanamsa = {:.6}°",
+        sidereal_apparent_lon.degrees(),
+        tropical_apparent_lon.degrees(),
+        expected_sidereal.degrees(),
+    );
+
+    // The offset between tropical apparent and sidereal apparent must be
+    // approximately the Lahiri ayanamsa (~20-25° at J2000).
+    let offset = (tropical_apparent_lon.degrees() - sidereal_apparent_lon.degrees()).rem_euclid(360.0);
+    assert!(
+        offset > 20.0 && offset < 30.0,
+        "ayanamsa offset should be ~20-25° at J2000, got {offset:.4}°"
+    );
+
+    // The derived sign must be sidereal (Pisces for ~256° sidereal, not tropical Capricorn near 280°).
+    assert_ne!(
+        placement.sign,
+        tropical_snapshot.placement_for(&CelestialBody::Sun).unwrap().sign,
+        "sidereal and tropical apparent charts must produce different signs"
+    );
+}

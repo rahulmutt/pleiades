@@ -284,15 +284,29 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                 let apparent = if let Some(sun_lon) = sun_true_longitude_of_date {
                     if release_grade.contains(&body) {
                         let body_for_query = body.clone();
+                        let body_observer_for_query = request.body_observer.clone();
                         let outcome = apparent_position::<_, EphemerisError>(
                             request.instant,
                             sun_lon,
                             DEFAULT_MAX_ITERATIONS,
-                            |instant| self.query_mean_ecliptic(&body_for_query, instant, &backend_zodiac_mode),
+                            |instant| self.query_mean_ecliptic(&body_for_query, instant, &backend_zodiac_mode, body_observer_for_query.clone()),
                         )
                         .map_err(map_apparent_error)?;
                         if let Some(ecliptic) = position.ecliptic.as_mut() {
                             *ecliptic = outcome.ecliptic;
+                            // Apparent place is computed in the tropical frame; for
+                            // non-native sidereal charts re-apply the ayanamsa so the
+                            // stored longitude and the sign re-derived below are sidereal
+                            // (mirrors the pre-apparent path above).
+                            if matches!(request.zodiac_mode, ZodiacMode::Sidereal { .. })
+                                && !native_sidereal
+                            {
+                                ecliptic.longitude = sidereal_longitude(
+                                    ecliptic.longitude,
+                                    request.instant,
+                                    &request.zodiac_mode,
+                                )?;
+                            }
                         }
                         position.apparent = Apparentness::Apparent;
                         Some(outcome.provenance)
@@ -338,11 +352,12 @@ impl<B: EphemerisBackend> ChartEngine<B> {
         body: &pleiades_types::CelestialBody,
         instant: pleiades_types::Instant,
         zodiac_mode: &ZodiacMode,
+        observer: Option<pleiades_types::ObserverLocation>,
     ) -> Result<pleiades_types::EclipticCoordinates, EphemerisError> {
         let req = EphemerisRequest {
             body: body.clone(),
             instant,
-            observer: None,
+            observer,
             frame: CoordinateFrame::Ecliptic,
             zodiac_mode: zodiac_mode.clone(),
             apparent: Apparentness::Mean,
@@ -361,10 +376,12 @@ impl<B: EphemerisBackend> ChartEngine<B> {
         request: &ChartRequest,
         zodiac_mode: &ZodiacMode,
     ) -> Result<f64, EphemerisError> {
+        // The Sun longitude for the aberration term must remain geocentric — pass None.
         let ecliptic = self.query_mean_ecliptic(
             &pleiades_types::CelestialBody::Sun,
             request.instant,
             zodiac_mode,
+            None,
         )?;
         // Precess the Sun's J2000 longitude to of-date so the aberration term is consistent.
         let precessed = precess_ecliptic_j2000_to_date(
