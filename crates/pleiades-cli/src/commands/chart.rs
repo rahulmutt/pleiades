@@ -271,7 +271,7 @@ pub(crate) fn render_chart(args: &[&str]) -> Result<String, String> {
     let mut tdb_from_utc_offset_seconds: Option<f64> = None;
     let mut tdb_from_ut1_offset_seconds: Option<f64> = None;
     let mut tdb_from_tt_offset_seconds: Option<f64> = None;
-    let mut apparentness = Apparentness::Mean;
+    let mut apparentness = Apparentness::Apparent;
     let mut apparentness_explicit = false;
     let mut house_system: Option<HouseSystem> = None;
     let mut tt_from_tdb_offset_seconds: Option<f64> = None;
@@ -482,7 +482,7 @@ pub(crate) fn render_chart(args: &[&str]) -> Result<String, String> {
                     .validated_chart_help_clause()
                     .map_err(render_error)?;
                 return Ok(format!(
-                    "{}\n\nUsage:\n  chart [--jd <julian-day>] [--lat <deg> --lon <deg>] [--tt|--tdb|--utc|--ut1] [--tt-offset-seconds <seconds>|--tt-from-utc-offset-seconds <seconds>|--tt-from-ut1-offset-seconds <seconds>] [--tdb-offset-seconds <seconds>|--tdb-from-utc-offset-seconds <seconds>|--tdb-from-ut1-offset-seconds <seconds>] [--tdb-from-tt-offset-seconds <seconds>] [--tt-from-tdb-offset-seconds <seconds>] [--civil <YYYY-MM-DDTHH:MM:SS>] [--civil-scale utc|ut1] [--civil-target tt|tdb] [--mean|--apparent] [--ayanamsa <name>] [--house-system <name>] [--body <name> ...]\n\nAyanamsa names may be built-in entries or custom definitions in the form custom:<name>|<epoch-jd>|<offset-degrees> (or custom-definition:<name>|<epoch-jd>|<offset-degrees>). Body names may be built-in bodies such as Sun or Moon, or custom identifiers in the form catalog:designation. {}\n\n{}\n",
+                    "{}\n\nUsage:\n  chart [--jd <julian-day>] [--lat <deg> --lon <deg>] [--tt|--tdb|--utc|--ut1] [--tt-offset-seconds <seconds>|--tt-from-utc-offset-seconds <seconds>|--tt-from-ut1-offset-seconds <seconds>] [--tdb-offset-seconds <seconds>|--tdb-from-utc-offset-seconds <seconds>|--tdb-from-ut1-offset-seconds <seconds>] [--tdb-from-tt-offset-seconds <seconds>] [--tt-from-tdb-offset-seconds <seconds>] [--civil <YYYY-MM-DDTHH:MM:SS>] [--civil-scale utc|ut1] [--civil-target tt|tdb] [--mean (diagnostic: raw J2000)|--apparent (default for release-grade bodies)] [--ayanamsa <name>] [--house-system <name>] [--body <name> ...]\n\nApparent place of date is the default for release-grade bodies (Sun and others with a known distance); per-body provenance lines are appended to the output. Use --mean for raw J2000 diagnostic output. Ayanamsa names may be built-in entries or custom definitions in the form custom:<name>|<epoch-jd>|<offset-degrees> (or custom-definition:<name>|<epoch-jd>|<offset-degrees>). Body names may be built-in bodies such as Sun or Moon, or custom identifiers in the form catalog:designation. {}\n\n{}\n",
                     crate::cli::banner(),
                     chart_help_clause,
                     shared_request_policy_help_block()
@@ -565,12 +565,38 @@ pub(crate) fn render_chart(args: &[&str]) -> Result<String, String> {
         request = request.with_house_system(house_system);
     }
 
-    let output = engine
-        .chart(&request)
-        .map(|chart| chart.to_string())
-        .map_err(render_error)?;
+    let snapshot = engine.chart(&request).map_err(render_error)?;
+    let mut output = snapshot.to_string();
+    for placement in &snapshot.placements {
+        if let Some(provenance) = &placement.apparent {
+            output.push_str(&format!(
+                "  {} apparent: {}\n",
+                placement.body,
+                provenance.summary_line()
+            ));
+        }
+    }
     match civil_provenance {
         Some(p) => Ok(format!("{output}\n{}", p.summary_line())),
         None => Ok(output),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_chart_emits_apparent_provenance_line() {
+        let out = render_chart(&["--jd", "2451545.0", "--body", "Sun"]).unwrap();
+        // ApparentProvenance::summary_line() starts with "apparent-place light_time=..."
+        assert!(out.contains("apparent-place light_time"), "missing provenance line in:\n{out}");
+    }
+
+    #[test]
+    fn mean_flag_suppresses_apparent_provenance() {
+        let out = render_chart(&["--jd", "2451545.0", "--body", "Sun", "--mean"]).unwrap();
+        // With --mean, no per-body ApparentProvenance provenance line should appear
+        assert!(!out.contains("apparent-place light_time"), "mean output should have no provenance line:\n{out}");
     }
 }
