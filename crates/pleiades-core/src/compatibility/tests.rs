@@ -1047,7 +1047,7 @@ fn display_lists_release_sections() {
     assert!(rendered.contains("Source-label aliases for built-in ayanamsas:"));
     assert!(rendered.contains("Alias mappings for built-in ayanamsas:"));
     assert!(rendered.contains("Coverage summary:"));
-    assert!(rendered.contains("Unsupported modes: built-in UTC convenience remains out of scope; built-in Delta T remains out of scope; topocentric body positions remain unsupported; apparent-place corrections are rejected unless a backend explicitly advertises support; native sidereal backend output remains unsupported unless a backend explicitly advertises it"));
+    assert!(rendered.contains("Unsupported modes: built-in UTC convenience remains out of scope; built-in Delta T remains out of scope; topocentric body positions remain unsupported; native sidereal backend output remains unsupported unless a backend explicitly advertises it"));
     assert!(rendered.contains("house systems:"));
     assert!(rendered.contains("ayanamsas:"));
     assert!(rendered.contains(&format!(

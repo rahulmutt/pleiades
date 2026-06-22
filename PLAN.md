@@ -64,10 +64,13 @@ These are the implementation gaps that still block a production release:
   release-grade via the corpus-dependent JPL/SPK backend; True Apogee/Perigee
   remain unsupported.
 - First-party body-position requests remain mean, geometric, geocentric, and
-  tropical at the backend boundary. Apparent-place corrections, topocentric body
-  positions, and native sidereal backend output remain unsupported unless future
-  validated backends add them. Built-in civil UTC/UT1 → TT/TDB conversion is
-  now implemented in `pleiades-time` (Phase 4 civil-time sub-task complete).
+  tropical at the backend boundary. Topocentric body positions and native
+  sidereal backend output remain unsupported unless future validated backends
+  add them. Apparent place of date is now the default chart-layer output
+  (light-time + precession-to-date + annual aberration + nutation-in-longitude,
+  implemented in `pleiades-apparent`; Phase 4 apparent-place sub-task complete).
+  Built-in civil UTC/UT1 → TT/TDB conversion is implemented in `pleiades-time`
+  (Phase 4 civil-time sub-task complete).
 - Broad house and ayanamsa descriptor catalogs are present, but formula,
   provenance, and interoperability audits still gate stronger compatibility
   claims, and the full target catalog enumerated in
@@ -97,10 +100,11 @@ audits pass.
 Phases 1, 2, and 3 are complete. Phase 3 closed body/backend claim closure via
 per-backend claim model enforced by the `claims-audit` gate. The active frontier
 is **Phase 4**: request-mode semantics. Civil-time UTC/UT1 → TT/TDB conversion
-is **done** (implemented in `pleiades-time`). Remaining Phase 4 work: apparent-place
-corrections, topocentric body positions, and native sidereal backend output.
-Phase 6 is deferred end-state work and must not broaden public claims before its
-own evidence exists.
+is **done** (implemented in `pleiades-time`). Apparent place of date is **done**
+(implemented in `pleiades-apparent` as the default chart-layer output).
+Remaining Phase 4 work: topocentric body positions and native sidereal backend
+output. Phase 6 is deferred end-state work and must not broaden public claims
+before its own evidence exists.
 
 ## Plan maintenance rules
 
@@ -111,7 +115,7 @@ own evidence exists.
 - Keep `README.md`, release profiles, generated reports, and this plan aligned
   when public behavior or release claims change.
 
-Status: refreshed 2026-06-21 — **SP3 complete; Phases 1–3 done; per-backend claim model enforced by the claims-audit gate; Phase 4 active — civil-time conversion done, apparent/topocentric/native-sidereal remaining**.
+Status: refreshed 2026-06-22 — **SP3 complete; Phases 1–3 done; per-backend claim model enforced by the claims-audit gate; Phase 4 active — civil-time conversion done, apparent-place done, topocentric/native-sidereal remaining**.
 Published per-body-class accuracy ceilings enforced (1900–2100 CE), hard size gate
 active (≤ 12 MB), latency tracked, motion output `Motion = Derived`
 (SpeedPolicy::FittedDerivative) gated. ARTIFACT_VERSION 7.

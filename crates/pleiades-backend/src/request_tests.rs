@@ -795,7 +795,7 @@ fn request_policy_helpers_reject_unsupported_shapes() {
         );
     assert_eq!(
             request_policy.apparentness,
-            "current first-party backends accept mean geometric output only; apparent-place corrections are rejected unless a backend explicitly advertises support"
+            "backends remain mean-only and J2000 at the backend boundary; apparent place of date (chart layer, default): light-time + precession-to-date + annual aberration + nutation-in-longitude, release-grade bodies; gravitational light-deflection omitted"
         );
     assert_eq!(
             request_policy.frame,

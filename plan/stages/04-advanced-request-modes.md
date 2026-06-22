@@ -12,9 +12,9 @@ and validation or consistently rejected with structured errors.
 - First-party backend body positions are mean geometric and geocentric.
 - Chart-level sidereal conversion is handled above backends by the domain/catalog
   layer.
-- Policy summaries document unsupported apparent-place, topocentric body
-  positions, and native sidereal backend output (UTC convenience and Delta T
-  are now implemented via `pleiades-time`; see "Completed" section below).
+- Policy summaries document topocentric body positions and native sidereal
+  backend output as remaining unsupported modes (UTC convenience, Delta T, and
+  apparent-place are now implemented; see "Completed" sections below).
 
 ## Completed in SP3
 
@@ -48,17 +48,33 @@ Built-in civil-time conversion is implemented in the `pleiades-time` crate:
 - The caller-supplied retagging path (`--tt-*`/`--tdb-*` offset flags, direct
   `Instant` helpers) remains unchanged as the lower-level alternative.
 
+## Completed: apparent place of date (chart layer)
+
+Apparent-place corrections are implemented as the default chart-layer output in
+the `pleiades-apparent` crate:
+
+- Light-time iteration brings the source body back to its retarded position.
+- Precession-to-date applies the J2000→equinox-of-date rotation (IAU 1976/1980
+  luni-solar precession).
+- Annual aberration applies the velocity-of-Earth correction in the ecliptic plane.
+- Nutation-in-longitude (Δψ) shifts the ecliptic longitude to the true equinox
+  of date.
+- Gravitational light-deflection is omitted (documented).
+- Release-grade bodies are supported; the existing J2000 corpus remains the
+  geometric-core gate.
+- The `pleiades-backend` apparentness policy summary reflects the chart-layer
+  default; backends themselves remain mean-only and J2000 at the backend
+  boundary.
+
 ## Remaining implementation work
 
-- Implement apparent-place corrections only with documented astronomy formulas,
-  source references, and validation fixtures.
 - Implement topocentric body positions only with clear observer semantics,
   coordinate-frame handling, and tests.
 - Keep native sidereal backend output unsupported unless a backend provides
   validated native behavior distinct from chart-layer sidereal conversion.
-- The remaining motion scope for Phase 4 is **apparent, topocentric, and native
-  sidereal motion output** only — derived geometric speed (SP3) and civil-time
-  conversion are both implemented.
+- The remaining motion scope for Phase 4 is **topocentric and native sidereal
+  motion output** only — derived geometric speed (SP3), civil-time conversion,
+  and apparent-place corrections are all implemented.
 
 ## Exit criteria
 

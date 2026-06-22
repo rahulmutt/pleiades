@@ -67,12 +67,14 @@ The current contract is intentionally mechanical rather than modeled:
 
 ## Apparent versus mean coordinates
 
-- Current first-party source/data backends report **mean geometric** coordinates only.
+- Apparent place of date is the **default chart-layer output** for release-grade bodies, implemented in `pleiades-apparent`: light-time + precession-to-date + annual aberration + nutation-in-longitude, true equinox of date; gravitational light-deflection omitted.
+- First-party backends remain **mean-only and J2000 at the backend boundary**; the `pleiades-apparent` chart layer applies the corrections after backend lookup.
+- The existing J2000 corpus is retained as the geometric-core gate; apparent-place output is validated against that corpus by applying the corrections at report time.
 - Backends whose metadata has `capabilities.apparent = false` must reject `Apparentness::Apparent` requests with `UnsupportedApparentness` instead of silently returning mean coordinates.
 - The current first-party backends are tropical-only at the backend layer; sidereal requests are handled by the chart façade when supported or rejected explicitly when a backend is queried directly.
-- `pleiades-backend::EphemerisRequest::new` defaults to `Apparentness::Mean` so bare requests line up with the current mean-only first-party backends.
-- `pleiades-core::ChartSnapshot` now renders an explicit apparentness policy line so chart output states whether the snapshot was built from a mean or apparent request before backend-specific accuracy details are consulted.
-- Light-time, aberration, deflection, nutation, and related apparent-place corrections are planned production work and must be documented per backend when implemented; native sidereal backend output remains out of scope unless a backend explicitly advertises it.
+- `pleiades-backend::EphemerisRequest::new` defaults to `Apparentness::Mean` so bare backend requests line up with the current mean-only first-party backends; the chart layer applies the apparent-place correction above the backend.
+- `pleiades-core::ChartSnapshot` renders an explicit apparentness policy line so chart output states whether the snapshot was built from a mean or apparent request before backend-specific accuracy details are consulted.
+- Native sidereal backend output remains out of scope unless a backend explicitly advertises it.
 
 ## Observer and topocentric behavior
 
@@ -94,8 +96,7 @@ The current contract is intentionally mechanical rather than modeled:
 
 Production accuracy work should add:
 
-1. backend-specific apparent-place correction support or structured rejection tests;
-2. validation reports that label every reference epoch with its time scale;
-3. topocentric or native-sidereal position support only behind an explicit request/configuration surface.
+1. validation reports that label every reference epoch with its time scale;
+2. topocentric or native-sidereal position support only behind an explicit request/configuration surface.
 
 The built-in UTC/UT1 → TT/TDB civil-time conversion path (`pleiades-time`) is implemented; the caller-supplied retagging helpers remain for callers that want to supply their own offsets.
