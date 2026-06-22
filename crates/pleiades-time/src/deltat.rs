@@ -1,6 +1,8 @@
 //! Delta-T (`ΔT = TT − UT1`): checksum-pinned observed table with linear
 //! interpolation, plus a documented polynomial extrapolation beyond it.
 
+use std::sync::OnceLock;
+
 use crate::error::CivilTimeError;
 use crate::fnv1a64;
 
@@ -25,7 +27,9 @@ pub enum DeltaTQuality {
     Predicted,
 }
 
-fn table() -> Result<Vec<(f64, f64)>, CivilTimeError> {
+static DELTA_T_ROWS: OnceLock<Result<Vec<(f64, f64)>, CivilTimeError>> = OnceLock::new();
+
+fn parse_table() -> Result<Vec<(f64, f64)>, CivilTimeError> {
     if fnv1a64(DELTA_T_CSV) != DELTA_T_CSV_CHECKSUM {
         return Err(CivilTimeError::StaleTimeData { kind: "delta-t" });
     }
@@ -49,6 +53,13 @@ fn table() -> Result<Vec<(f64, f64)>, CivilTimeError> {
     Ok(rows)
 }
 
+fn table() -> Result<&'static [(f64, f64)], CivilTimeError> {
+    DELTA_T_ROWS
+        .get_or_init(parse_table)
+        .as_deref()
+        .map_err(|e| *e)
+}
+
 /// Approximate decimal year from a Julian Day (good enough for ΔT, which varies slowly).
 fn decimal_year(jd: f64) -> f64 {
     2000.0 + (jd - 2451545.0) / 365.25
@@ -68,11 +79,10 @@ pub fn delta_t(jd: f64) -> Result<(f64, DeltaTQuality), CivilTimeError> {
     let year = decimal_year(jd);
     let rows = table()?;
     let first = rows[0];
-    let last = rows[rows.len() - 1];
     if year <= first.0 {
         return Ok((first.1, DeltaTQuality::Observed));
     }
-    if year >= last.0 {
+    if jd >= OBSERVED_THROUGH_JD {
         // Past the observed table -> predicted extrapolation.
         return Ok((extrapolate(year), DeltaTQuality::Predicted));
     }
@@ -111,6 +121,18 @@ mod tests {
         // 1900 node -> -2.8
         let (dt, _) = delta_t(2415020.5).unwrap();
         assert!((dt - (-2.8)).abs() < 0.5, "got {dt}");
+    }
+
+    #[test]
+    fn boundary_at_observed_through_jd() {
+        assert_eq!(
+            delta_t(OBSERVED_THROUGH_JD).unwrap().1,
+            DeltaTQuality::Predicted
+        );
+        assert_eq!(
+            delta_t(OBSERVED_THROUGH_JD - 1.0).unwrap().1,
+            DeltaTQuality::Observed
+        );
     }
 
     #[test]

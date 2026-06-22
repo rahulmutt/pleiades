@@ -115,8 +115,12 @@ fn finite(jd: f64) -> Result<(), CivilTimeError> {
 }
 
 /// Builds a TT instant (and provenance) from a civil Julian Day tagged UTC or UT1.
-fn to_tt(jd_civil: f64, source: TimeScale) -> Result<(f64, ConversionProvenance), CivilTimeError> {
-    if !(SUPPORT_START_JD..=SUPPORT_END_JD).contains(&jd_civil) {
+fn to_tt(
+    jd_civil: f64,
+    source: TimeScale,
+    target: TimeScale,
+) -> Result<(f64, ConversionProvenance), CivilTimeError> {
+    if !(SUPPORT_START_JD..SUPPORT_END_JD).contains(&jd_civil) {
         return Err(CivilTimeError::BeyondHorizon { jd: jd_civil });
     }
     match source {
@@ -178,7 +182,7 @@ fn to_tt(jd_civil: f64, source: TimeScale) -> Result<(f64, ConversionProvenance)
         }
         other => Err(CivilTimeError::UnsupportedScale {
             source: other,
-            target: TimeScale::Tt,
+            target,
         }),
     }
 }
@@ -208,7 +212,7 @@ pub fn to_terrestrial(
         return Err(CivilTimeError::UnsupportedScale { source, target });
     }
     let jd_civil = civil.to_julian_day()?.days();
-    let (jd_tt, provenance) = to_tt(jd_civil, source)?;
+    let (jd_tt, provenance) = to_tt(jd_civil, source, target)?;
     let (jd_out, scale) = match target {
         TimeScale::Tt => (jd_tt, TimeScale::Tt),
         TimeScale::Tdb => {
@@ -301,6 +305,30 @@ mod tests {
                 target: TimeScale::Ut1
             })
         );
+    }
+
+    #[test]
+    fn end_of_2100_is_accepted() {
+        let civil = CivilDateTime::new(2100, 12, 31, 23, 59, 59.0);
+        assert!(tt_from_ut1_civil(civil).is_ok());
+    }
+
+    #[test]
+    fn start_of_2101_ut1_is_rejected() {
+        let civil = CivilDateTime::new(2101, 1, 1, 0, 0, 0.0);
+        assert!(matches!(
+            tt_from_ut1_civil(civil),
+            Err(CivilTimeError::BeyondHorizon { .. })
+        ));
+    }
+
+    #[test]
+    fn start_of_2101_utc_is_rejected() {
+        let civil = CivilDateTime::new(2101, 1, 1, 0, 0, 0.0);
+        assert!(matches!(
+            tt_from_utc_civil(civil),
+            Err(CivilTimeError::BeyondHorizon { .. })
+        ));
     }
 
     #[test]

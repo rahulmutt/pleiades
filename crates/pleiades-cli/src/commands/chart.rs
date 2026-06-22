@@ -219,20 +219,42 @@ fn parse_civil(value: Option<&str>) -> Result<CivilDateTime, String> {
     if d.len() != 3 || t.len() != 3 {
         return Err(format!("--civil value '{raw}' must be YYYY-MM-DDTHH:MM:SS"));
     }
-    let year = d[0]
-        .parse::<i32>()
-        .map_err(|_| "--civil year".to_string())?;
-    let month = d[1]
-        .parse::<u8>()
-        .map_err(|_| "--civil month".to_string())?;
-    let day = d[2].parse::<u8>().map_err(|_| "--civil day".to_string())?;
-    let hour = t[0].parse::<u8>().map_err(|_| "--civil hour".to_string())?;
-    let minute = t[1]
-        .parse::<u8>()
-        .map_err(|_| "--civil minute".to_string())?;
-    let second = t[2]
-        .parse::<f64>()
-        .map_err(|_| "--civil second".to_string())?;
+    let year = d[0].parse::<i32>().map_err(|_| {
+        format!(
+            "--civil: invalid year '{}' (expected YYYY-MM-DDTHH:MM:SS)",
+            d[0]
+        )
+    })?;
+    let month = d[1].parse::<u8>().map_err(|_| {
+        format!(
+            "--civil: invalid month '{}' (expected YYYY-MM-DDTHH:MM:SS)",
+            d[1]
+        )
+    })?;
+    let day = d[2].parse::<u8>().map_err(|_| {
+        format!(
+            "--civil: invalid day '{}' (expected YYYY-MM-DDTHH:MM:SS)",
+            d[2]
+        )
+    })?;
+    let hour = t[0].parse::<u8>().map_err(|_| {
+        format!(
+            "--civil: invalid hour '{}' (expected YYYY-MM-DDTHH:MM:SS)",
+            t[0]
+        )
+    })?;
+    let minute = t[1].parse::<u8>().map_err(|_| {
+        format!(
+            "--civil: invalid minute '{}' (expected YYYY-MM-DDTHH:MM:SS)",
+            t[1]
+        )
+    })?;
+    let second = t[2].parse::<f64>().map_err(|_| {
+        format!(
+            "--civil: invalid second '{}' (expected YYYY-MM-DDTHH:MM:SS)",
+            t[2]
+        )
+    })?;
     Ok(CivilDateTime::new(year, month, day, hour, minute, second))
 }
 

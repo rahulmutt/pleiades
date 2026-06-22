@@ -76,9 +76,13 @@ mod tests {
             },
             CivilTimeError::NonFiniteOffset,
         ];
-        for e in errors {
+        for e in &errors {
             assert!(!e.summary_line().is_empty());
             assert_eq!(e.to_string(), e.summary_line());
         }
+        use std::collections::HashSet;
+        let lines: Vec<String> = errors.iter().map(|e| e.summary_line()).collect();
+        let unique: HashSet<&String> = lines.iter().collect();
+        assert_eq!(unique.len(), lines.len(), "summary_lines must be distinct");
     }
 }

@@ -1,5 +1,7 @@
 //! Leap-second table (`TAI − UTC`) and lookup, checksum-pinned and fail-closed.
 
+use std::sync::OnceLock;
+
 use crate::error::CivilTimeError;
 use crate::fnv1a64;
 
@@ -19,7 +21,9 @@ pub const LEAP_EPOCH_JD: f64 = 2441317.5;
 /// announced through 2025 per IERS Bulletin C, as-of 2026-06).
 pub const VALID_THROUGH_JD: f64 = 2461040.5;
 
-fn table() -> Result<Vec<(f64, i32)>, CivilTimeError> {
+static LEAP_ROWS: OnceLock<Result<Vec<(f64, i32)>, CivilTimeError>> = OnceLock::new();
+
+fn parse_table() -> Result<Vec<(f64, i32)>, CivilTimeError> {
     if fnv1a64(LEAP_CSV) != LEAP_CSV_CHECKSUM {
         return Err(CivilTimeError::StaleTimeData {
             kind: "leap-second",
@@ -47,6 +51,13 @@ fn table() -> Result<Vec<(f64, i32)>, CivilTimeError> {
     Ok(rows)
 }
 
+fn table() -> Result<&'static [(f64, i32)], CivilTimeError> {
+    LEAP_ROWS
+        .get_or_init(parse_table)
+        .as_deref()
+        .map_err(|e| *e)
+}
+
 /// Returns `TAI − UTC` in whole seconds for a UTC instant, or `Ok(None)` if the
 /// instant is before 1972 or after the table's validated horizon.
 pub fn tai_minus_utc(jd_utc: f64) -> Result<Option<i32>, CivilTimeError> {
@@ -55,7 +66,7 @@ pub fn tai_minus_utc(jd_utc: f64) -> Result<Option<i32>, CivilTimeError> {
     }
     let rows = table()?;
     let mut current = None;
-    for (effective, secs) in rows {
+    for &(effective, secs) in rows {
         if jd_utc >= effective {
             current = Some(secs);
         }
