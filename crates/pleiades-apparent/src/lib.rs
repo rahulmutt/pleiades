@@ -21,6 +21,10 @@ pub mod precession;
 
 pub use precession::{precess_ecliptic_j2000_to_date, PrecessedEcliptic};
 
+pub mod parallax;
+
+pub use parallax::{ObserverGeocentric, AU_IN_EARTH_RADII};
+
 mod provenance;
 
 pub use provenance::{ApparentProvenance, CorrectionSet, MODEL_SOURCES};
