@@ -9,6 +9,10 @@ pub mod nutation;
 
 pub use nutation::Nutation;
 
+pub mod aberration;
+
+pub use aberration::AberrationOffset;
+
 /// Deterministic 64-bit content checksum (FNV-1a), byte-identical to
 /// `pleiades_time::fnv1a64`. Detects drift between a checked-in data table and
 /// its pinned checksum. Not cryptographic.
