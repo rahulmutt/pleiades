@@ -3096,3 +3096,41 @@ fn sidereal_apparent_chart_applies_ayanamsa_to_apparent_longitude() {
         "sidereal and tropical apparent charts must produce different signs"
     );
 }
+
+#[test]
+fn release_grade_body_falls_back_to_mean_when_apparent_unavailable() {
+    // Regression guard: when apparent_position() fails for a release-grade body
+    // (here because the backend returns an absurd 50,000 AU distance that trips
+    // the light-time sanity cap), the engine must fall back gracefully to the
+    // mean position rather than propagating the error. The chart must succeed,
+    // and the placement must carry Apparentness::Mean with no apparent provenance.
+    //
+    // This covers the 433-Eros scenario where the packaged distance channel is
+    // unreliable and the light-time iterator would otherwise diverge or converge
+    // to a physically implausible value.
+    let engine = ChartEngine::new(AbsurdDistanceReleaseGradeBackend);
+    let request = ChartRequest::new(Instant::new(
+        pleiades_types::JulianDay::from_days(2_451_545.0),
+        TimeScale::Tt,
+    ))
+    .with_bodies(vec![CelestialBody::Mars])
+    .with_apparentness(Apparentness::Apparent);
+
+    let snapshot = engine.chart(&request).expect(
+        "chart must succeed even when apparent-place computation fails for a release-grade body",
+    );
+
+    let placement = snapshot
+        .placement_for(&CelestialBody::Mars)
+        .expect("Mars must be present in the chart");
+
+    assert_eq!(
+        placement.position.apparent,
+        Apparentness::Mean,
+        "release-grade body with unavailable apparent must fall back to Mean"
+    );
+    assert!(
+        placement.apparent.is_none(),
+        "no apparent provenance must be attached on mean fallback"
+    );
+}

@@ -11,6 +11,15 @@ pub const LIGHT_TIME_DAYS_PER_AU: f64 = 0.005_775_518_3;
 /// Convergence threshold on the retardation, in days (≈ 0.04 s).
 const CONVERGENCE_DAYS: f64 = 5e-7;
 
+/// Maximum plausible light-time retardation, in days.
+///
+/// Pluto at aphelion is ~49 AU → light-time ≈ 0.28 days. This cap of 10 days
+/// (≈ 1730 AU) is far above any real solar-system body handled by the engine
+/// and far below the ~167-day garbage value emitted for 433-Eros at 1900 when
+/// the packaged distance channel is unreliable. Exceeding this cap is treated
+/// as a non-convergent result (fail-closed).
+const MAX_PLAUSIBLE_LIGHT_TIME_DAYS: f64 = 10.0;
+
 /// A light-time-corrected geocentric position and the retardation used.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct LightTimePosition {
@@ -45,6 +54,11 @@ where
                 ApparentPlaceError::NonFiniteCorrection {
                     stage: "light-time",
                 },
+            ));
+        }
+        if new_tau > MAX_PLAUSIBLE_LIGHT_TIME_DAYS {
+            return Err(ApparentLightTimeError::Apparent(
+                ApparentPlaceError::NonConvergentLightTime { iterations: step },
             ));
         }
         if (new_tau - tau).abs() < CONVERGENCE_DAYS {
@@ -106,6 +120,25 @@ mod tests {
             err,
             ApparentLightTimeError::Apparent(ApparentPlaceError::MissingDistance)
         ));
+    }
+
+    #[test]
+    fn absurd_distance_is_rejected_as_non_convergent() {
+        // A body returning 50,000 AU (light-time ≈ 289 days) must be rejected
+        // by the sanity cap (MAX_PLAUSIBLE_LIGHT_TIME_DAYS = 10 days), not
+        // silently returned as a huge retardation.
+        let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
+        let err = apparent_via_light_time::<_, ApparentPlaceError>(instant, 8, |_| {
+            Ok(at(0.0, 90.0, 50_000.0))
+        })
+        .unwrap_err();
+        assert!(
+            matches!(
+                err,
+                ApparentLightTimeError::Apparent(ApparentPlaceError::NonConvergentLightTime { .. })
+            ),
+            "expected NonConvergentLightTime for absurd distance, got: {err:?}"
+        );
     }
 
     #[test]

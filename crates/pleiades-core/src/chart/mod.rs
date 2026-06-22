@@ -296,25 +296,38 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                             DEFAULT_MAX_ITERATIONS,
                             |instant| self.query_mean_ecliptic(&body_for_query, instant, &backend_zodiac_mode, body_observer_for_query.clone()),
                         )
-                        .map_err(map_apparent_error)?;
-                        if let Some(ecliptic) = position.ecliptic.as_mut() {
-                            *ecliptic = outcome.ecliptic;
-                            // Apparent place is computed in the tropical frame; for
-                            // non-native sidereal charts re-apply the ayanamsa so the
-                            // stored longitude and the sign re-derived below are sidereal
-                            // (mirrors the pre-apparent path above).
-                            if matches!(request.zodiac_mode, ZodiacMode::Sidereal { .. })
-                                && !native_sidereal
-                            {
-                                ecliptic.longitude = sidereal_longitude(
-                                    ecliptic.longitude,
-                                    request.instant,
-                                    &request.zodiac_mode,
-                                )?;
+                        .map_err(map_apparent_error);
+                        match outcome {
+                            Ok(outcome) => {
+                                if let Some(ecliptic) = position.ecliptic.as_mut() {
+                                    *ecliptic = outcome.ecliptic;
+                                    // Apparent place is computed in the tropical frame; for
+                                    // non-native sidereal charts re-apply the ayanamsa so the
+                                    // stored longitude and the sign re-derived below are sidereal
+                                    // (mirrors the pre-apparent path above).
+                                    if matches!(request.zodiac_mode, ZodiacMode::Sidereal { .. })
+                                        && !native_sidereal
+                                    {
+                                        ecliptic.longitude = sidereal_longitude(
+                                            ecliptic.longitude,
+                                            request.instant,
+                                            &request.zodiac_mode,
+                                        )?;
+                                    }
+                                }
+                                position.apparent = Apparentness::Apparent;
+                                Some(outcome.provenance)
+                            }
+                            Err(_) => {
+                                // Apparent place unavailable for this release-grade body
+                                // (e.g. unreliable distance channel, out-of-range retarded
+                                // epoch). Gracefully fall back to the mean position already
+                                // stored in `position.ecliptic`; leave it and the sign
+                                // unchanged so the chart succeeds.
+                                position.apparent = Apparentness::Mean;
+                                None
                             }
                         }
-                        position.apparent = Apparentness::Apparent;
-                        Some(outcome.provenance)
                     } else {
                         // Non-release-grade: graceful mean fallback, not an error.
                         position.apparent = Apparentness::Mean;

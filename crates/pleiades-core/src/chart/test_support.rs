@@ -310,6 +310,78 @@ impl EphemerisBackend for ApparentChartBackend {
     }
 }
 
+/// A backend that marks a custom body as ReleaseGrade but returns an absurd
+/// distance (50,000 AU) so the light-time sanity cap fires, causing apparent
+/// computation to fail. Tests that the chart engine falls back gracefully to
+/// the mean position rather than erroring.
+pub(super) struct AbsurdDistanceReleaseGradeBackend;
+
+impl EphemerisBackend for AbsurdDistanceReleaseGradeBackend {
+    fn metadata(&self) -> BackendMetadata {
+        BackendMetadata {
+            id: BackendId::new("absurd-distance-release-grade"),
+            version: "0.1.0".to_string(),
+            family: BackendFamily::Algorithmic,
+            provenance: BackendProvenance::new("absurd-distance release-grade backend"),
+            nominal_range: pleiades_types::TimeRange::new(None, None),
+            supported_time_scales: vec![TimeScale::Tt],
+            body_claims: vec![
+                // Sun must also be release-grade so the engine performs the Sun query.
+                BodyClaim::release_grade(
+                    CelestialBody::Sun,
+                    AccuracyClass::Approximate,
+                    ClaimEvidence::AlgorithmicModel,
+                ),
+                // Mars is the "broken" release-grade body: distance will be absurd.
+                BodyClaim::release_grade(
+                    CelestialBody::Mars,
+                    AccuracyClass::Approximate,
+                    ClaimEvidence::AlgorithmicModel,
+                ),
+            ],
+            supported_frames: vec![pleiades_types::CoordinateFrame::Ecliptic],
+            capabilities: BackendCapabilities::default(),
+            accuracy: AccuracyClass::Approximate,
+            deterministic: true,
+            offline: true,
+        }
+    }
+
+    fn supports_body(&self, body: CelestialBody) -> bool {
+        matches!(body, CelestialBody::Sun | CelestialBody::Mars)
+    }
+
+    fn position(&self, request: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+        let (longitude, distance_au) = match request.body {
+            // Sun returns a plausible distance so the Sun aberration term works.
+            CelestialBody::Sun => (Longitude::from_degrees(280.0), 1.0_f64),
+            // Mars returns an absurd distance to trigger the sanity cap.
+            CelestialBody::Mars => (Longitude::from_degrees(120.0), 50_000.0_f64),
+            _ => {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::UnsupportedBody,
+                    "unsupported",
+                ))
+            }
+        };
+        let mut result = EphemerisResult::new(
+            BackendId::new("absurd-distance-release-grade"),
+            request.body.clone(),
+            request.instant,
+            request.frame,
+            request.zodiac_mode.clone(),
+            request.apparent,
+        );
+        result.quality = QualityAnnotation::Approximate;
+        result.ecliptic = Some(EclipticCoordinates::new(
+            longitude,
+            Latitude::from_degrees(0.0),
+            Some(distance_au),
+        ));
+        Ok(result)
+    }
+}
+
 /// A backend where only Moon is available (at Constrained tier). Sun is served
 /// in `position()` for the apparent-place aberration term but is NOT declared
 /// in `body_claims`. Tests the graceful mean fallback for non-release-grade bodies.

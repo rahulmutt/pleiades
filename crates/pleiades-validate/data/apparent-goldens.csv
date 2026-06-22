@@ -14,10 +14,14 @@
 #   - Moon: ELP2000-based theory; aberration formula is the planetary formula applied to a body
 #     sharing Earth's orbit, causing a systematic error. Max observed residual 44 arcsec; tolerance
 #     set to 45 arcsec.
-#   - 433-Eros: EXCLUDED. The light-time iteration diverges or goes out of range at 4 of 5 epochs
-#     because Eros's packaged data covers a limited span and the apparent-mode iteration steps outside
-#     it. Apparent-mode validation of Eros is not supported with the current packaged backend.
-#     (At J2000 the residual was 68 arcsec, also exceeding any reasonable tolerance.)
+#   - 433-Eros: EXCLUDED from apparent goldens. The packaged distance channel for Eros is
+#     unreliable: the light-time iterator diverges (NonConvergentLightTime), goes out of range
+#     (OutOfRangeInstant), or silently converges to a physically implausible retardation (~167 days
+#     at JD 2415020.5) due to a corrupt distance value. The engine GRACEFULLY FALLS BACK TO MEAN
+#     for Eros when apparent-place computation fails (covered by the
+#     `release_grade_body_falls_back_to_mean_when_apparent_unavailable` test in pleiades-core).
+#     No Eros rows appear here because there is no reliable Horizons-comparable apparent longitude
+#     to validate against.
 #
 # EPOCHS: 2415025.5 = 1900-Jan-06 TT (5 days past coverage start to avoid light-time stepping
 # before data start); 2488065.5 = 2099-Dec-26 TT (4 days before coverage end for same reason).

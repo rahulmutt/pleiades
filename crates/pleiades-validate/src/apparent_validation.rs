@@ -14,7 +14,7 @@ const GOLDENS_CSV: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/data/apparent-goldens.csv"
 ));
-const GOLDENS_CHECKSUM: u64 = 15264640604266999247;
+const GOLDENS_CHECKSUM: u64 = 420218364865264824;
 
 /// Summary of a successful apparent-goldens validation run.
 #[derive(Clone, Debug, PartialEq)]
@@ -368,12 +368,13 @@ mod tests {
 
     #[test]
     fn sun_apparent_longitude_is_of_date_1950() {
-        // Of-date apparent Sun at 1950-01-01 12:00 TT (JD 2433283.0) ≈ 280.5°.
-        // The old J2000-framed (non-apparent) output was 281.22°; after the apparent
-        // corrections (precession to 1950 frame, nutation, aberration) the of-date
-        // value is ~280.5°, which Horizons Q31 confirms as 280.5144° at this epoch.
-        // We test within 0.15° of the Horizons value (280.5°) to allow for the
-        // ~22 arcsec packaged-data accuracy limit (see golden CSV header comments).
+        // Of-date apparent Sun at 1950-01-01 12:00 TT (JD 2433283.0).
+        // Horizons Q31 confirms 280.5144° at this epoch. The engine produces
+        // ~280.508°, within 0.008° of the target value of 280.5°.
+        // The old J2000-framed (non-apparent) output was 281.22° — a full ~0.7°
+        // away — so this test clearly distinguishes the of-date result from the
+        // stale J2000 value. Tolerance is 0.05° (~180 arcsec), comfortably above
+        // the ~22 arcsec packaged-data accuracy limit (see golden CSV header comments).
         let backend = PackagedDataBackend::new();
         let engine = ChartEngine::new(backend);
         let request = ChartRequest::new(Instant::new(
@@ -393,14 +394,14 @@ mod tests {
             .longitude
             .degrees();
         // The of-date apparent value is ~280.5° (Horizons 280.5144°); the old J2000 output
-        // was 281.22° — a full ~0.7° away.  Check we are in the right neighbourhood.
+        // was 281.22° — a full ~0.7° away. Tolerance is 0.05° (not 0.15°).
         let mut d = (lon - 280.5_f64).abs();
         if d > 180.0 {
             d = 360.0 - d;
         }
         assert!(
-            d < 0.15,
-            "apparent Sun longitude {lon}\u{00b0} not within 0.15\u{00b0} of of-date \u{2248}280.5\u{00b0} (old J2000 was 281.22\u{00b0}); diff={d}\u{00b0}"
+            d < 0.05,
+            "apparent Sun longitude {lon}\u{00b0} not within 0.05\u{00b0} of of-date \u{2248}280.5\u{00b0} (old J2000 was 281.22\u{00b0}); diff={d}\u{00b0}"
         );
     }
 }
