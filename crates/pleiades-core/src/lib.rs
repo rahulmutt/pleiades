@@ -94,8 +94,9 @@ pub use api_stability::{
 pub use chart::{
     default_chart_bodies, sidereal_longitude, validate_aspect_definitions, AspectDefinition,
     AspectDefinitionValidationError, AspectKind, AspectMatch, AspectSummary,
-    AspectSummaryValidationError, BodyPlacement, ChartRequest, ChartSnapshot, HouseSummary,
-    MotionSummary, MotionSummaryValidationError, ObserverPolicy, ObserverSummary, SignSummary,
+    AspectSummaryValidationError, BodyPlacement, ChartRequest, ChartSnapshot, CivilChartRequest,
+    HouseSummary, MotionSummary, MotionSummaryValidationError, ObserverPolicy, ObserverSummary,
+    SignSummary,
 };
 pub use compatibility::{
     catalog_inventory_summary_for_report, catalog_posture_summary_for_report,
@@ -152,6 +153,7 @@ pub use pleiades_houses::{
     house_for_longitude, resolve_house_system, HouseAngles, HouseError, HouseErrorKind,
     HouseRequest, HouseSnapshot, HouseSystemDescriptor,
 };
+pub use pleiades_time::{CivilDateTime, CivilInstant, CivilTimeError, ConversionProvenance};
 pub use pleiades_types::{
     Angle, Ayanamsa, CelestialBody, CelestialBodyClass, CoordinateFrame, CustomAyanamsa,
     CustomBodyId, CustomHouseSystem, EclipticCoordinates, EquatorialCoordinates, HouseSystem,

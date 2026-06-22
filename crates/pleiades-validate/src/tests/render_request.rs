@@ -228,7 +228,7 @@ fn cli_report_summary_lists_the_summary_command() {
     assert!(validation_report_summary.contains("margin Δdist="));
     assert!(validation_report_summary.contains("Chart benchmark"));
     assert!(validation_report_summary.contains("Comparison tolerance policy: backend family=Composite; scopes=6 (Luminaries, Major planets, Lunar points, Asteroids, Custom bodies, Pluto fallback (approximate)); limits="));
-    assert!(validation_report_summary.contains("UTC convenience policy: built-in UTC convenience conversion remains out of scope; callers must supply TT/TDB offsets explicitly"));
+    assert!(validation_report_summary.contains("UTC convenience policy: built-in UTC convenience conversion is now provided by the pleiades-time crate (civil UTC/UT1 to TT/TDB, leap-second-exact UTC, tiered exact/observed/predicted, 1900-2100); direct backends still consume TT/TDB"));
     assert!(validation_report_summary.contains("Comparison tolerance audit"));
     assert!(validation_report_summary.contains("command: compare-backends-audit"));
     assert!(validation_report_summary.contains("status: clean"));
@@ -308,10 +308,10 @@ fn cli_report_summary_lists_the_summary_command() {
         )
     }));
     assert!(validation_report_summary.lines().any(|line| {
-            line == "Time-scale policy: direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T or UTC convenience model"
+            line == "Time-scale policy: direct backend requests accept TT/TDB; civil UTC/UT1 inputs convert via the pleiades-time crate or caller-supplied offsets; the ephemeris backends carry no internal Delta T or UTC convenience model"
         }));
     assert!(validation_report_summary.lines().any(|line| {
-            line == "Delta T policy: built-in Delta T modeling remains out of scope; UTC/UT1 inputs require caller-supplied conversion helpers"
+            line == "Delta T policy: built-in Delta T modeling is now provided by the pleiades-time crate for civil UTC/UT1 inputs over 1900-2100, tagged observed/predicted; direct backend requests still accept TT/TDB"
         }));
     assert!(validation_report_summary.lines().any(|line| {
             line == "Observer policy: chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests with UnsupportedObserver; malformed observer coordinates remain InvalidObserver; topocentric body positions remain unsupported"
@@ -1007,10 +1007,10 @@ fn backend_matrix_summary_command_renders_the_summary() {
     assert!(rendered.contains("Distinct coordinate frames: 2 (Ecliptic, Equatorial)"));
     assert!(rendered.contains("Distinct time scales: 2 (TT, TDB)"));
     assert!(rendered.lines().any(|line| {
-            line == "Time-scale policy: direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T or UTC convenience model"
+            line == "Time-scale policy: direct backend requests accept TT/TDB; civil UTC/UT1 inputs convert via the pleiades-time crate or caller-supplied offsets; the ephemeris backends carry no internal Delta T or UTC convenience model"
         }));
     assert!(rendered.lines().any(|line| {
-            line == "Delta T policy: built-in Delta T modeling remains out of scope; UTC/UT1 inputs require caller-supplied conversion helpers"
+            line == "Delta T policy: built-in Delta T modeling is now provided by the pleiades-time crate for civil UTC/UT1 inputs over 1900-2100, tagged observed/predicted; direct backend requests still accept TT/TDB"
         }));
     assert!(rendered.lines().any(|line| {
             line == "Observer policy: chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests with UnsupportedObserver; malformed observer coordinates remain InvalidObserver; topocentric body positions remain unsupported"
@@ -1019,7 +1019,7 @@ fn backend_matrix_summary_command_renders_the_summary() {
             line == "Apparentness policy: current first-party backends accept mean geometric output only; apparent-place corrections are rejected unless a backend explicitly advertises support"
         }));
     assert!(rendered.lines().any(|line| {
-            line == "Request policy: time-scale=direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T or UTC convenience model; observer=chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests with UnsupportedObserver; malformed observer coordinates remain InvalidObserver; topocentric body positions remain unsupported; apparentness=current first-party backends accept mean geometric output only; apparent-place corrections are rejected unless a backend explicitly advertises support; frame=ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported; supported equatorial precision is bounded by the shared mean-obliquity frame round-trip envelope; native sidereal backend output remains unsupported unless a backend explicitly advertises it"
+            line == "Request policy: time-scale=direct backend requests accept TT/TDB; civil UTC/UT1 inputs convert via the pleiades-time crate or caller-supplied offsets; the ephemeris backends carry no internal Delta T or UTC convenience model; observer=chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests with UnsupportedObserver; malformed observer coordinates remain InvalidObserver; topocentric body positions remain unsupported; apparentness=current first-party backends accept mean geometric output only; apparent-place corrections are rejected unless a backend explicitly advertises support; frame=ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported; supported equatorial precision is bounded by the shared mean-obliquity frame round-trip envelope; native sidereal backend output remains unsupported unless a backend explicitly advertises it"
         }));
     assert_eq!(
         validated_request_policy_summary_for_report()
@@ -1134,7 +1134,7 @@ fn request_policy_summary_and_alias_commands_render_the_policy_block() {
     let utc_convenience_policy = render_cli(&["utc-convenience-policy-summary"])
         .expect("UTC convenience policy summary should render");
     assert!(utc_convenience_policy.contains("UTC convenience policy summary"));
-    assert!(utc_convenience_policy.contains("UTC convenience policy: built-in UTC convenience conversion remains out of scope; callers must supply TT/TDB offsets explicitly"));
+    assert!(utc_convenience_policy.contains("UTC convenience policy: built-in UTC convenience conversion is now provided by the pleiades-time crate (civil UTC/UT1 to TT/TDB, leap-second-exact UTC, tiered exact/observed/predicted, 1900-2100); direct backends still consume TT/TDB"));
     assert_eq!(
         render_cli(&["utc-convenience-policy"])
             .expect("UTC convenience policy alias should render"),

@@ -31,7 +31,7 @@ pub use houses::HouseSummary;
 pub use motion::{MotionSummary, MotionSummaryValidationError};
 pub use observer::{default_chart_bodies, ObserverPolicy, ObserverSummary};
 pub use placement::BodyPlacement;
-pub use request::ChartRequest;
+pub use request::{ChartRequest, CivilChartRequest};
 pub use sidereal::sidereal_longitude;
 pub use signs::SignSummary;
 pub use snapshot::ChartSnapshot;

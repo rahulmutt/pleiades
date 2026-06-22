@@ -70,6 +70,9 @@ Commands:
     --tdb-from-ut1-offset-seconds <seconds> Explicit UT1-tagged alias for the signed TDB-TT offset
     --tdb-from-tt-offset-seconds <seconds> Caller-supplied signed TDB-TT offset for TT-tagged instants
     --tt-from-tdb-offset-seconds <seconds> Caller-supplied signed TT-TDB offset for TDB-tagged instants
+    --civil <YYYY-MM-DDTHH:MM:SS>  Convert a civil datetime to TT/TDB and chart it (cannot combine with --jd, manual time-scale flags, or offset flags)
+    --civil-scale utc|ut1  The time scale of the civil input (default: utc)
+    --civil-target tt|tdb  The target terrestrial time scale (default: tt); output reports conversion provenance and quality
     --mean               Force mean positions for backend queries
     --apparent           Force apparent positions for backend queries
     --body <name>        Use a built-in body or a custom catalog:designation identifier

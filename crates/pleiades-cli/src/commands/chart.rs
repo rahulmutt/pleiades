@@ -3,9 +3,9 @@
 use core::time::Duration;
 
 use pleiades_core::{
-    default_chart_bodies, Apparentness, CelestialBody, ChartEngine, ChartRequest, CompositeBackend,
-    HouseSystem, Instant, JulianDay, Latitude, Longitude, ObserverLocation, RoutingBackend,
-    TimeScale, ZodiacMode,
+    default_chart_bodies, Apparentness, CelestialBody, ChartEngine, ChartRequest, CivilDateTime,
+    CompositeBackend, HouseSystem, Instant, JulianDay, Latitude, Longitude, ObserverLocation,
+    RoutingBackend, TimeScale, ZodiacMode,
 };
 use pleiades_data::PackagedDataBackend;
 use pleiades_elp::ElpBackend;
@@ -209,6 +209,33 @@ pub(crate) fn build_chart_instant(
     }
 }
 
+fn parse_civil(value: Option<&str>) -> Result<CivilDateTime, String> {
+    let raw = value.ok_or_else(|| "--civil requires a YYYY-MM-DDTHH:MM:SS value".to_string())?;
+    let (date, time) = raw
+        .split_once('T')
+        .ok_or_else(|| format!("--civil value '{raw}' must be YYYY-MM-DDTHH:MM:SS"))?;
+    let d: Vec<&str> = date.split('-').collect();
+    let t: Vec<&str> = time.split(':').collect();
+    if d.len() != 3 || t.len() != 3 {
+        return Err(format!("--civil value '{raw}' must be YYYY-MM-DDTHH:MM:SS"));
+    }
+    let year = d[0]
+        .parse::<i32>()
+        .map_err(|_| "--civil year".to_string())?;
+    let month = d[1]
+        .parse::<u8>()
+        .map_err(|_| "--civil month".to_string())?;
+    let day = d[2].parse::<u8>().map_err(|_| "--civil day".to_string())?;
+    let hour = t[0].parse::<u8>().map_err(|_| "--civil hour".to_string())?;
+    let minute = t[1]
+        .parse::<u8>()
+        .map_err(|_| "--civil minute".to_string())?;
+    let second = t[2]
+        .parse::<f64>()
+        .map_err(|_| "--civil second".to_string())?;
+    Ok(CivilDateTime::new(year, month, day, hour, minute, second))
+}
+
 pub(crate) fn render_chart(args: &[&str]) -> Result<String, String> {
     let mut jd: Option<f64> = None;
     let mut lat: Option<f64> = None;
@@ -226,6 +253,9 @@ pub(crate) fn render_chart(args: &[&str]) -> Result<String, String> {
     let mut apparentness_explicit = false;
     let mut house_system: Option<HouseSystem> = None;
     let mut tt_from_tdb_offset_seconds: Option<f64> = None;
+    let mut civil: Option<CivilDateTime> = None;
+    let mut civil_scale = TimeScale::Utc;
+    let mut civil_target = TimeScale::Tt;
 
     let mut iter = args.iter().copied();
     while let Some(arg) = iter.next() {
@@ -409,13 +439,28 @@ pub(crate) fn render_chart(args: &[&str]) -> Result<String, String> {
                     .ok_or_else(|| "missing value for --house-system".to_string())?;
                 house_system = Some(parse_house_system(label)?);
             }
+            "--civil" => civil = Some(parse_civil(iter.next())?),
+            "--civil-scale" => {
+                civil_scale = match iter.next() {
+                    Some("utc") => TimeScale::Utc,
+                    Some("ut1") => TimeScale::Ut1,
+                    other => return Err(format!("--civil-scale must be utc|ut1, got {other:?}")),
+                };
+            }
+            "--civil-target" => {
+                civil_target = match iter.next() {
+                    Some("tt") => TimeScale::Tt,
+                    Some("tdb") => TimeScale::Tdb,
+                    other => return Err(format!("--civil-target must be tt|tdb, got {other:?}")),
+                };
+            }
             "--help" | "-h" => {
                 let chart_request_surface = current_request_surface_summary();
                 let chart_help_clause = chart_request_surface
                     .validated_chart_help_clause()
                     .map_err(render_error)?;
                 return Ok(format!(
-                    "{}\n\nUsage:\n  chart [--jd <julian-day>] [--lat <deg> --lon <deg>] [--tt|--tdb|--utc|--ut1] [--tt-offset-seconds <seconds>|--tt-from-utc-offset-seconds <seconds>|--tt-from-ut1-offset-seconds <seconds>] [--tdb-offset-seconds <seconds>|--tdb-from-utc-offset-seconds <seconds>|--tdb-from-ut1-offset-seconds <seconds>] [--tdb-from-tt-offset-seconds <seconds>] [--tt-from-tdb-offset-seconds <seconds>] [--mean|--apparent] [--ayanamsa <name>] [--house-system <name>] [--body <name> ...]\n\nAyanamsa names may be built-in entries or custom definitions in the form custom:<name>|<epoch-jd>|<offset-degrees> (or custom-definition:<name>|<epoch-jd>|<offset-degrees>). Body names may be built-in bodies such as Sun or Moon, or custom identifiers in the form catalog:designation. {}\n\n{}\n",
+                    "{}\n\nUsage:\n  chart [--jd <julian-day>] [--lat <deg> --lon <deg>] [--tt|--tdb|--utc|--ut1] [--tt-offset-seconds <seconds>|--tt-from-utc-offset-seconds <seconds>|--tt-from-ut1-offset-seconds <seconds>] [--tdb-offset-seconds <seconds>|--tdb-from-utc-offset-seconds <seconds>|--tdb-from-ut1-offset-seconds <seconds>] [--tdb-from-tt-offset-seconds <seconds>] [--tt-from-tdb-offset-seconds <seconds>] [--civil <YYYY-MM-DDTHH:MM:SS>] [--civil-scale utc|ut1] [--civil-target tt|tdb] [--mean|--apparent] [--ayanamsa <name>] [--house-system <name>] [--body <name> ...]\n\nAyanamsa names may be built-in entries or custom definitions in the form custom:<name>|<epoch-jd>|<offset-degrees> (or custom-definition:<name>|<epoch-jd>|<offset-degrees>). Body names may be built-in bodies such as Sun or Moon, or custom identifiers in the form catalog:designation. {}\n\n{}\n",
                     crate::cli::banner(),
                     chart_help_clause,
                     shared_request_policy_help_block()
@@ -425,19 +470,45 @@ pub(crate) fn render_chart(args: &[&str]) -> Result<String, String> {
         }
     }
 
-    let jd = jd.unwrap_or(2_451_545.0);
-    let instant = build_chart_instant(
-        jd,
-        time_scale,
-        ChartInstantConversionFlags {
-            tt_offset_seconds,
-            tdb_offset_seconds,
-            tdb_from_utc_offset_seconds,
-            tdb_from_ut1_offset_seconds,
-            tdb_from_tt_offset_seconds,
-            tt_from_tdb_offset_seconds,
-        },
-    )?;
+    if civil.is_some()
+        && (jd.is_some()
+            || time_scale_explicit
+            || tt_offset_seconds.is_some()
+            || tdb_offset_seconds.is_some()
+            || tdb_from_utc_offset_seconds.is_some()
+            || tdb_from_ut1_offset_seconds.is_some()
+            || tdb_from_tt_offset_seconds.is_some()
+            || tt_from_tdb_offset_seconds.is_some())
+    {
+        return Err(
+            "--civil cannot be combined with --jd, manual time-scale flags, or offset flags"
+                .to_string(),
+        );
+    }
+
+    let (instant, civil_provenance) = match civil {
+        Some(c) => {
+            let built = ChartRequest::from_civil(c, civil_scale, civil_target, Vec::new())
+                .map_err(|e| e.summary_line())?;
+            (built.request.instant, Some(built.provenance))
+        }
+        None => {
+            let jd = jd.unwrap_or(2_451_545.0);
+            let instant = build_chart_instant(
+                jd,
+                time_scale,
+                ChartInstantConversionFlags {
+                    tt_offset_seconds,
+                    tdb_offset_seconds,
+                    tdb_from_utc_offset_seconds,
+                    tdb_from_ut1_offset_seconds,
+                    tdb_from_tt_offset_seconds,
+                    tt_from_tdb_offset_seconds,
+                },
+            )?;
+            (instant, None)
+        }
+    };
     let observer = match (lat, lon) {
         (Some(lat), Some(lon)) => Some(ObserverLocation::new(
             Latitude::from_degrees(lat),
@@ -472,8 +543,12 @@ pub(crate) fn render_chart(args: &[&str]) -> Result<String, String> {
         request = request.with_house_system(house_system);
     }
 
-    engine
+    let output = engine
         .chart(&request)
         .map(|chart| chart.to_string())
-        .map_err(render_error)
+        .map_err(render_error)?;
+    match civil_provenance {
+        Some(p) => Ok(format!("{output}\n{}", p.summary_line())),
+        None => Ok(output),
+    }
 }

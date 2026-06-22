@@ -12,15 +12,15 @@ pub(crate) mod zodiac;
 
 /// Canonical current policy summary text for direct backend time-scale requests.
 pub const CURRENT_TIME_SCALE_POLICY_SUMMARY_TEXT: &str =
-    "direct backend requests accept TT/TDB; UTC/UT1 inputs require caller-supplied conversion helpers; no built-in Delta T or UTC convenience model";
+    "direct backend requests accept TT/TDB; civil UTC/UT1 inputs convert via the pleiades-time crate or caller-supplied offsets; the ephemeris backends carry no internal Delta T or UTC convenience model";
 
 /// Canonical current policy summary text for the shared Delta T posture.
 pub const CURRENT_DELTA_T_POLICY_SUMMARY_TEXT: &str =
-    "built-in Delta T modeling remains out of scope; UTC/UT1 inputs require caller-supplied conversion helpers";
+    "built-in Delta T modeling is now provided by the pleiades-time crate for civil UTC/UT1 inputs over 1900-2100, tagged observed/predicted; direct backend requests still accept TT/TDB";
 
 /// Canonical current policy summary text for the shared UTC-convenience posture.
 pub const CURRENT_UTC_CONVENIENCE_POLICY_SUMMARY_TEXT: &str =
-    "built-in UTC convenience conversion remains out of scope; callers must supply TT/TDB offsets explicitly";
+    "built-in UTC convenience conversion is now provided by the pleiades-time crate (civil UTC/UT1 to TT/TDB, leap-second-exact UTC, tiered exact/observed/predicted, 1900-2100); direct backends still consume TT/TDB";
 
 /// Canonical current policy summary text for the shared observer posture.
 pub const CURRENT_OBSERVER_POLICY_SUMMARY_TEXT: &str =

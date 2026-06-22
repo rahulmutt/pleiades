@@ -690,3 +690,53 @@ impl fmt::Display for ChartRequest {
         f.write_str(&self.summary_line())
     }
 }
+
+/// A chart request built from a civil datetime, paired with the time-conversion
+/// provenance produced by `pleiades-time`.
+#[derive(Clone, Debug, PartialEq)]
+pub struct CivilChartRequest {
+    pub request: ChartRequest,
+    pub provenance: pleiades_time::ConversionProvenance,
+}
+
+impl ChartRequest {
+    /// Builds a chart request from a civil datetime, converting to TT/TDB through
+    /// `pleiades-time`. Additive: the caller-supplied retagging builders are
+    /// unaffected. The returned wrapper carries the conversion provenance.
+    pub fn from_civil(
+        civil: pleiades_time::CivilDateTime,
+        source: pleiades_types::TimeScale,
+        target: pleiades_types::TimeScale,
+        bodies: Vec<CelestialBody>,
+    ) -> Result<CivilChartRequest, pleiades_time::CivilTimeError> {
+        let converted = pleiades_time::to_terrestrial(civil, source, target)?;
+        let request = ChartRequest::new(converted.instant).with_bodies(bodies);
+        Ok(CivilChartRequest {
+            request,
+            provenance: converted.provenance,
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::chart::default_chart_bodies;
+
+    #[test]
+    fn from_civil_builds_tt_request_with_provenance() {
+        use pleiades_time::CivilDateTime;
+        use pleiades_types::TimeScale;
+
+        let civil = CivilDateTime::new(2017, 1, 1, 0, 0, 0.0);
+        let built = ChartRequest::from_civil(
+            civil,
+            TimeScale::Utc,
+            TimeScale::Tt,
+            default_chart_bodies().to_vec(),
+        )
+        .unwrap();
+        assert_eq!(built.provenance.tai_minus_utc, Some(37));
+        assert_eq!(built.request.instant.scale, TimeScale::Tt);
+    }
+}

@@ -9,6 +9,7 @@ members = [
     "crates/pleiades-elp",
     "crates/pleiades-houses",
     "crates/pleiades-jpl",
+    "crates/pleiades-time",
     "crates/pleiades-types",
     "crates/pleiades-validate",
     "crates/pleiades-vsop87",
@@ -42,6 +43,7 @@ pleiades-core = { path = "crates/pleiades-core", version = "0.2.0" }
 pleiades-elp = { path = "crates/pleiades-elp", version = "0.2.0" }
 pleiades-houses = { path = "crates/pleiades-houses", version = "0.2.0" }
 pleiades-jpl = { path = "crates/pleiades-jpl", version = "0.2.0" }
+pleiades-time = { path = "crates/pleiades-time", version = "0.2.0" }
 pleiades-types = { path = "crates/pleiades-types", version = "0.2.0" }
 pleiades-vsop87 = { path = "crates/pleiades-vsop87", version = "0.2.0" }
 

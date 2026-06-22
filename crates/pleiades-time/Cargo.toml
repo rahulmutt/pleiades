@@ -1,0 +1,22 @@
+[package]
+name = "pleiades-time"
+description = "Civil-time conversion for the pleiades astrology workspace: Gregorian calendar, leap seconds, Delta-T, and TT/TDB with typed provenance."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme = "README.md"
+
+[features]
+serde = ["dep:serde", "pleiades-types/serde"]
+
+[dependencies]
+pleiades-types = { workspace = true }
+serde = { workspace = true, optional = true }
+
+[package.metadata.docs.rs]
+all-features = true
