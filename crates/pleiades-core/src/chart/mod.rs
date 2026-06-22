@@ -36,11 +36,22 @@ pub use sidereal::sidereal_longitude;
 pub use signs::SignSummary;
 pub use snapshot::ChartSnapshot;
 
-use pleiades_backend::{EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest};
+use pleiades_apparent::{apparent_position, precess_ecliptic_j2000_to_date, ApparentLightTimeError, DEFAULT_MAX_ITERATIONS};
+use pleiades_backend::{Apparentness, EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest};
 use pleiades_houses::{calculate_houses, house_for_longitude, HouseRequest};
 use pleiades_types::{CoordinateFrame, ZodiacMode};
 
 use errors::map_house_error;
+
+fn map_apparent_error(error: ApparentLightTimeError<EphemerisError>) -> EphemerisError {
+    match error {
+        ApparentLightTimeError::Query(inner) => inner,
+        ApparentLightTimeError::Apparent(inner) => EphemerisError::new(
+            EphemerisErrorKind::InvalidRequest,
+            format!("apparent-place computation failed: {inner}"),
+        ),
+    }
+}
 
 use crate::ChartEngine;
 
@@ -127,7 +138,7 @@ impl<B: EphemerisBackend> ChartEngine<B> {
     ///
     /// assert_eq!(snapshot.backend_id.as_str(), "demo");
     /// assert_eq!(snapshot.zodiac_mode, pleiades_types::ZodiacMode::Tropical);
-    /// assert_eq!(snapshot.apparentness, Apparentness::Mean);
+    /// assert_eq!(snapshot.apparentness, Apparentness::Apparent);
     /// assert_eq!(snapshot.sign_for_body(&CelestialBody::Sun), Some(ZodiacSign::Aries));
     /// assert!(snapshot.houses.is_some());
     /// assert_eq!(snapshot.placements.len(), 1);
@@ -208,7 +219,7 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                 observer: request.body_observer.clone(),
                 frame: CoordinateFrame::Ecliptic,
                 zodiac_mode: backend_zodiac_mode.clone(),
-                apparent: request.apparentness,
+                apparent: Apparentness::Mean,
             })
             .collect();
         let positions = self.backend.positions(&body_requests)?;
@@ -223,6 +234,18 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                 ),
             ));
         }
+
+        let apparent_requested = matches!(request.apparentness, Apparentness::Apparent);
+        let release_grade = metadata.release_grade_bodies();
+        // Only query the Sun's longitude when there is at least one release-grade body
+        // in the request. Non-release-grade bodies fall back to mean, so the Sun query
+        // is unnecessary (and costly) when no body in the batch can be corrected.
+        let has_release_grade_body = request.bodies.iter().any(|b| release_grade.contains(b));
+        let sun_true_longitude_of_date = if apparent_requested && has_release_grade_body {
+            Some(self.query_sun_longitude_of_date(request, &backend_zodiac_mode)?)
+        } else {
+            None
+        };
 
         let placements = request
             .bodies
@@ -258,11 +281,42 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                         .as_ref()
                         .map(|coords| house_for_longitude(coords.longitude, &snapshot.cusps))
                 });
+                let apparent = if let Some(sun_lon) = sun_true_longitude_of_date {
+                    if release_grade.contains(&body) {
+                        let body_for_query = body.clone();
+                        let outcome = apparent_position::<_, EphemerisError>(
+                            request.instant,
+                            sun_lon,
+                            DEFAULT_MAX_ITERATIONS,
+                            |instant| self.query_mean_ecliptic(&body_for_query, instant, &backend_zodiac_mode),
+                        )
+                        .map_err(map_apparent_error)?;
+                        if let Some(ecliptic) = position.ecliptic.as_mut() {
+                            *ecliptic = outcome.ecliptic;
+                        }
+                        position.apparent = Apparentness::Apparent;
+                        Some(outcome.provenance)
+                    } else {
+                        // Non-release-grade: graceful mean fallback, not an error.
+                        position.apparent = Apparentness::Mean;
+                        None
+                    }
+                } else {
+                    position.apparent = Apparentness::Mean;
+                    None
+                };
+                // Re-derive the sign from the final (possibly apparent) longitude.
+                let sign = position
+                    .ecliptic
+                    .as_ref()
+                    .map(|coords| pleiades_types::ZodiacSign::from_longitude(coords.longitude))
+                    .or(sign);
                 Ok(BodyPlacement {
                     body,
                     position,
                     sign,
                     house,
+                    apparent,
                 })
             })
             .collect::<Result<Vec<_>, EphemerisError>>()?;
@@ -277,5 +331,53 @@ impl<B: EphemerisBackend> ChartEngine<B> {
             houses,
             placements,
         })
+    }
+
+    fn query_mean_ecliptic(
+        &self,
+        body: &pleiades_types::CelestialBody,
+        instant: pleiades_types::Instant,
+        zodiac_mode: &ZodiacMode,
+    ) -> Result<pleiades_types::EclipticCoordinates, EphemerisError> {
+        let req = EphemerisRequest {
+            body: body.clone(),
+            instant,
+            observer: None,
+            frame: CoordinateFrame::Ecliptic,
+            zodiac_mode: zodiac_mode.clone(),
+            apparent: Apparentness::Mean,
+        };
+        let result = self.backend.position(&req)?;
+        result.ecliptic.ok_or_else(|| {
+            EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!("apparent place requires ecliptic coordinates for {body}"),
+            )
+        })
+    }
+
+    fn query_sun_longitude_of_date(
+        &self,
+        request: &ChartRequest,
+        zodiac_mode: &ZodiacMode,
+    ) -> Result<f64, EphemerisError> {
+        let ecliptic = self.query_mean_ecliptic(
+            &pleiades_types::CelestialBody::Sun,
+            request.instant,
+            zodiac_mode,
+        )?;
+        // Precess the Sun's J2000 longitude to of-date so the aberration term is consistent.
+        let precessed = precess_ecliptic_j2000_to_date(
+            ecliptic.longitude.degrees(),
+            ecliptic.latitude.degrees(),
+            request.instant.julian_day.days(),
+        )
+        .map_err(|e| {
+            EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                format!("apparent-place Sun precession failed: {e}"),
+            )
+        })?;
+        Ok(precessed.longitude_deg)
     }
 }

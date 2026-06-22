@@ -79,7 +79,7 @@ impl ChartRequest {
             body_observer: None,
             bodies: default_chart_bodies().to_vec(),
             zodiac_mode: ZodiacMode::Tropical,
-            apparentness: Apparentness::Mean,
+            apparentness: Apparentness::Apparent,
             house_system: None,
         }
     }
@@ -349,7 +349,7 @@ impl ChartRequest {
                 observer: self.body_observer.clone(),
                 frame: CoordinateFrame::Ecliptic,
                 zodiac_mode: backend_zodiac_mode.clone(),
-                apparent: self.apparentness,
+                apparent: Apparentness::Mean,
             };
             metadata.validate_request(&body_request)?;
         }

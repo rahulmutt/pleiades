@@ -123,6 +123,7 @@ pub use compatibility::{
     validated_target_house_scope_summary_for_report, CompatibilityProfile,
     HouseCodeAliasInventorySummary, CURRENT_COMPATIBILITY_PROFILE_ID,
 };
+pub use pleiades_apparent::{ApparentProvenance, CorrectionSet};
 pub use pleiades_ayanamsa::{
     baseline_ayanamsas, built_in_ayanamsas, descriptor as ayanamsa_descriptor, release_ayanamsas,
     resolve_ayanamsa, AyanamsaDescriptor,

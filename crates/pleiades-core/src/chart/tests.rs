@@ -158,6 +158,7 @@ fn chart_snapshot_exposes_dominant_sign_and_house_summaries() {
                 ),
                 sign: Some(ZodiacSign::Aries),
                 house: Some(1),
+                apparent: None,
             },
             BodyPlacement {
                 body: CelestialBody::Moon,
@@ -171,6 +172,7 @@ fn chart_snapshot_exposes_dominant_sign_and_house_summaries() {
                 ),
                 sign: Some(ZodiacSign::Aries),
                 house: Some(1),
+                apparent: None,
             },
             BodyPlacement {
                 body: CelestialBody::Mars,
@@ -184,6 +186,7 @@ fn chart_snapshot_exposes_dominant_sign_and_house_summaries() {
                 ),
                 sign: Some(ZodiacSign::Taurus),
                 house: Some(2),
+                apparent: None,
             },
             BodyPlacement {
                 body: CelestialBody::Mercury,
@@ -197,6 +200,7 @@ fn chart_snapshot_exposes_dominant_sign_and_house_summaries() {
                 ),
                 sign: Some(ZodiacSign::Taurus),
                 house: Some(2),
+                apparent: None,
             },
             BodyPlacement {
                 body: CelestialBody::Jupiter,
@@ -210,6 +214,7 @@ fn chart_snapshot_exposes_dominant_sign_and_house_summaries() {
                 ),
                 sign: Some(ZodiacSign::Gemini),
                 house: Some(8),
+                apparent: None,
             },
         ],
     };
@@ -338,7 +343,7 @@ fn chart_snapshot_supports_house_placement() {
     assert_eq!(chart.observer_policy(), ObserverPolicy::HouseOnly);
     assert_eq!(
         chart.summary_line(),
-        "backend=toy-chart; instant=JD 2451545 (TT); placements=2; zodiac=Tropical; apparentness=Mean; observer=house-only; observer location=latitude=0°, longitude=0°, elevation=n/a; body observer=none; house system=Whole Sign; house cusps=12"
+        "backend=toy-chart; instant=JD 2451545 (TT); placements=2; zodiac=Tropical; apparentness=Apparent; observer=house-only; observer location=latitude=0°, longitude=0°, elevation=n/a; body observer=none; house system=Whole Sign; house cusps=12"
     );
     assert!(rendered.contains("House system: Whole Sign"));
     assert!(rendered
@@ -496,7 +501,7 @@ fn chart_snapshot_with_observer_but_without_houses_stays_geocentric() {
     assert_eq!(chart.observer_policy(), ObserverPolicy::Geocentric);
     assert_eq!(
         chart.summary_line(),
-        "backend=recording-chart; instant=JD 2451545 (TT); placements=1; zodiac=Tropical; apparentness=Mean; observer=geocentric; observer location=latitude=51.5°, longitude=359.9°, elevation=n/a; body observer=none; house system=none; house cusps=0"
+        "backend=recording-chart; instant=JD 2451545 (TT); placements=1; zodiac=Tropical; apparentness=Apparent; observer=geocentric; observer location=latitude=51.5°, longitude=359.9°, elevation=n/a; body observer=none; house system=none; house cusps=0"
     );
     assert!(chart
         .to_string()
@@ -604,7 +609,7 @@ fn chart_request_summary_line_reflects_the_default_request_shape() {
     assert_eq!(request.observer_policy(), ObserverPolicy::Geocentric);
     assert_eq!(
         request.summary_line(),
-        "instant=JD 2451545 (TT); bodies=10; zodiac=Tropical; apparentness=Mean; observer=geocentric; observer location=none; body observer=none; house system=none"
+        "instant=JD 2451545 (TT); bodies=10; zodiac=Tropical; apparentness=Apparent; observer=geocentric; observer location=none; body observer=none; house system=none"
     );
     assert_eq!(request.to_string(), request.summary_line());
 }
@@ -909,6 +914,7 @@ fn chart_snapshot_validate_rejects_house_assignments_without_house_snapshot() {
             ),
             sign: Some(ZodiacSign::Aries),
             house: Some(1),
+            apparent: None,
         }],
     };
 
@@ -967,6 +973,7 @@ fn chart_snapshot_validate_rejects_out_of_range_house_assignments() {
             ),
             sign: Some(ZodiacSign::Aries),
             house: Some(13),
+            apparent: None,
         }],
     };
 
@@ -1046,6 +1053,7 @@ fn body_placement_validate_rejects_zero_house_numbers() {
         ),
         sign: Some(ZodiacSign::Aries),
         house: Some(0),
+        apparent: None,
     };
 
     let error = placement
@@ -1091,6 +1099,7 @@ fn chart_snapshot_validate_rejects_invalid_body_placements() {
             ),
             sign: Some(ZodiacSign::Aries),
             house: None,
+            apparent: None,
         }],
     };
     let mut invalid_snapshot = snapshot.clone();
@@ -1190,7 +1199,7 @@ fn chart_request_summary_line_stays_geocentric_without_a_house_system() {
     assert_eq!(request.observer_policy(), ObserverPolicy::Geocentric);
     assert_eq!(
         request.summary_line(),
-        "instant=JD 2451545 (TT); bodies=2; zodiac=Tropical; apparentness=Mean; observer=geocentric; observer location=latitude=12.5°, longitude=45°, elevation=100.000 m; body observer=none; house system=none"
+        "instant=JD 2451545 (TT); bodies=2; zodiac=Tropical; apparentness=Apparent; observer=geocentric; observer location=latitude=12.5°, longitude=45°, elevation=100.000 m; body observer=none; house system=none"
     );
 }
 
@@ -1208,7 +1217,7 @@ fn chart_request_summary_line_preserves_custom_house_system_details() {
 
     assert_eq!(
         request.summary_line(),
-        "instant=JD 2451545 (TT); bodies=10; zodiac=Tropical; apparentness=Mean; observer=geocentric; observer location=none; body observer=none; house system=My Custom Houses [aliases: My Alias] (uses a local calibration)"
+        "instant=JD 2451545 (TT); bodies=10; zodiac=Tropical; apparentness=Apparent; observer=geocentric; observer location=none; body observer=none; house system=My Custom Houses [aliases: My Alias] (uses a local calibration)"
     );
 }
 
@@ -2284,6 +2293,7 @@ fn body_placement_exposes_motion_direction() {
         position: result,
         sign: None,
         house: None,
+        apparent: None,
     };
 
     assert_eq!(
@@ -2325,6 +2335,7 @@ fn body_placement_treats_non_finite_motion_as_unknown() {
         position: result,
         sign: None,
         house: None,
+        apparent: None,
     };
 
     assert_eq!(placement.motion_direction(), None);
@@ -2392,6 +2403,7 @@ fn body_placement_summary_line_matches_display() {
         position: result,
         sign: Some(ZodiacSign::Leo),
         house: Some(7),
+        apparent: None,
     };
 
     let summary = placement.summary_line();
@@ -2483,24 +2495,28 @@ fn chart_snapshot_supports_body_lookup_and_retrograde_summary() {
                 position: direct,
                 sign: Some(ZodiacSign::Aries),
                 house: Some(1),
+                apparent: None,
             },
             BodyPlacement {
                 body: CelestialBody::Mercury,
                 position: stationary,
                 sign: Some(ZodiacSign::Taurus),
                 house: Some(2),
+                apparent: None,
             },
             BodyPlacement {
                 body: CelestialBody::Mars,
                 position: retrograde,
                 sign: Some(ZodiacSign::Cancer),
                 house: Some(8),
+                apparent: None,
             },
             BodyPlacement {
                 body: CelestialBody::Jupiter,
                 position: unknown,
                 sign: Some(ZodiacSign::Leo),
                 house: Some(9),
+                apparent: None,
             },
         ],
     };
@@ -2790,12 +2806,14 @@ fn chart_snapshot_exposes_major_aspects_and_angular_separation() {
                 position: sun,
                 sign: Some(ZodiacSign::Aries),
                 house: Some(1),
+                apparent: None,
             },
             BodyPlacement {
                 body: CelestialBody::Moon,
                 position: moon,
                 sign: Some(ZodiacSign::Taurus),
                 house: Some(2),
+                apparent: None,
             },
         ],
     };
@@ -2863,6 +2881,7 @@ fn chart_snapshot_renders_custom_body_identifiers() {
             position: result,
             sign: None,
             house: None,
+            apparent: None,
         }],
     };
 
@@ -2917,4 +2936,47 @@ fn aspect_definition_validation_rejects_non_finite_and_out_of_range_values() {
         AspectDefinition::new(AspectKind::Opposition, 180.0, 8.0),
     ])
     .is_ok());
+}
+
+#[test]
+fn default_chart_applies_apparent_for_release_grade_body() {
+    let engine = ChartEngine::new(ApparentChartBackend);
+    let request = ChartRequest::new(Instant::new(
+        pleiades_types::JulianDay::from_days(2_451_545.0),
+        TimeScale::Tt,
+    ))
+    .with_bodies(vec![CelestialBody::Sun]);
+    let snapshot = engine.chart(&request).expect("default apparent chart should succeed");
+    let placement = snapshot.placement_for(&CelestialBody::Sun).unwrap();
+    assert_eq!(placement.position.apparent, Apparentness::Apparent);
+    assert!(placement.apparent.is_some(), "apparent provenance should be attached");
+}
+
+#[test]
+fn non_release_grade_body_falls_back_to_mean() {
+    let engine = ChartEngine::new(ConstrainedOnlyChartBackend);
+    let request = ChartRequest::new(Instant::new(
+        pleiades_types::JulianDay::from_days(2_451_545.0),
+        TimeScale::Tt,
+    ))
+    .with_bodies(vec![CelestialBody::Moon]);
+    let snapshot = engine.chart(&request).expect("non-release-grade falls back, not errors");
+    let placement = snapshot.placement_for(&CelestialBody::Moon).unwrap();
+    assert_eq!(placement.position.apparent, Apparentness::Mean);
+    assert!(placement.apparent.is_none(), "no apparent provenance on fallback");
+}
+
+#[test]
+fn explicit_mean_mode_returns_raw_j2000() {
+    let engine = ChartEngine::new(ApparentChartBackend);
+    let request = ChartRequest::new(Instant::new(
+        pleiades_types::JulianDay::from_days(2_451_545.0),
+        TimeScale::Tt,
+    ))
+    .with_bodies(vec![CelestialBody::Sun])
+    .with_apparentness(Apparentness::Mean);
+    let snapshot = engine.chart(&request).unwrap();
+    let placement = snapshot.placement_for(&CelestialBody::Sun).unwrap();
+    assert_eq!(placement.position.apparent, Apparentness::Mean);
+    assert!(placement.apparent.is_none());
 }
