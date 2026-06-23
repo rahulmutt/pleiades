@@ -38,6 +38,7 @@
 mod catalog;
 mod error;
 mod systems;
+pub mod thresholds;
 
 // Re-export the public surface from the catalog module.
 pub use catalog::{
