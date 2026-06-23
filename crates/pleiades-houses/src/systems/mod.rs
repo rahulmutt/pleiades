@@ -17,6 +17,18 @@ use pleiades_types::{
 
 use crate::error::{HouseError, HouseErrorKind};
 
+/// Behaviour when a latitude-sensitive system is requested beyond its
+/// documented latitude bound.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+pub enum HighLatitudePolicy {
+    /// Reject with `InvalidLatitude` (the safe default).
+    #[default]
+    Strict,
+    /// Reproduce Swiss Ephemeris's documented substitution (Porphyry) instead
+    /// of erroring, recording the substitution in the snapshot provenance.
+    SwissEphemerisFallback,
+}
+
 /// A request for house calculation.
 #[derive(Clone, Debug, PartialEq)]
 pub struct HouseRequest {
@@ -28,6 +40,8 @@ pub struct HouseRequest {
     pub system: HouseSystem,
     /// Optional obliquity override in degrees.
     pub obliquity: Option<Angle>,
+    /// Behaviour when latitude exceeds the system's documented bound.
+    pub high_latitude_policy: HighLatitudePolicy,
 }
 
 impl HouseRequest {
@@ -38,12 +52,19 @@ impl HouseRequest {
             observer,
             system,
             obliquity: None,
+            high_latitude_policy: HighLatitudePolicy::Strict,
         }
     }
 
     /// Overrides the obliquity used for angle derivation.
     pub fn with_obliquity(mut self, obliquity: Angle) -> Self {
         self.obliquity = Some(obliquity);
+        self
+    }
+
+    /// Selects the high-latitude behaviour (default: `Strict`).
+    pub fn with_high_latitude_policy(mut self, policy: HighLatitudePolicy) -> Self {
+        self.high_latitude_policy = policy;
         self
     }
 
@@ -181,20 +202,35 @@ impl fmt::Display for HouseSnapshot {
 pub fn calculate_houses(request: &HouseRequest) -> Result<HouseSnapshot, HouseError> {
     let obliquity = validated_obliquity(request)?;
 
-    // Strict-default high-latitude policy: reject beyond a latitude-sensitive
-    // system's documented bound rather than emitting garbage cusps. The opt-in
-    // SE-compat fallback (Task 3) intercepts before this point.
+    // High-latitude policy: reject or substitute depending on the request setting.
     if let Some(descriptor) = crate::catalog::descriptor(&request.system) {
         if let Some(bound) = descriptor.max_abs_latitude_deg {
             let lat = request.observer.latitude.degrees();
             if lat.abs() > bound {
-                return Err(HouseError::new(
-                    HouseErrorKind::InvalidLatitude,
-                    format!(
-                        "{} is undefined beyond |latitude| {bound}\u{00b0} (got {lat:.4}\u{00b0})",
-                        request.system
-                    ),
-                ));
+                match request.high_latitude_policy {
+                    HighLatitudePolicy::Strict => {
+                        return Err(HouseError::new(
+                            HouseErrorKind::InvalidLatitude,
+                            format!(
+                                "{} is undefined beyond |latitude| {bound}\u{00b0} (got {lat:.4}\u{00b0})",
+                                request.system
+                            ),
+                        ));
+                    }
+                    HighLatitudePolicy::SwissEphemerisFallback => {
+                        let angles = derive_angles(request.instant, &request.observer, obliquity);
+                        let snapshot = HouseSnapshot {
+                            system: request.system.clone(),
+                            instant: request.instant,
+                            observer: request.observer.clone(),
+                            obliquity,
+                            angles,
+                            cusps: porphyry_houses(angles).into(),
+                        };
+                        snapshot.validate()?;
+                        return Ok(snapshot);
+                    }
+                }
             }
         }
     }

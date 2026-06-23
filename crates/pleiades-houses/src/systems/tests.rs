@@ -781,3 +781,44 @@ fn house_assignment_respects_wraparound() {
         3
     );
 }
+
+#[test]
+fn strict_policy_is_the_default() {
+    assert_eq!(HighLatitudePolicy::default(), HighLatitudePolicy::Strict);
+}
+
+#[test]
+fn se_compat_fallback_substitutes_porphyry_beyond_bound() {
+    let observer = ObserverLocation::new(
+        Latitude::from_degrees(80.0),
+        Longitude::from_degrees(0.0),
+        None,
+    );
+    let request = HouseRequest::new(
+        Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            pleiades_types::TimeScale::Tt,
+        ),
+        observer.clone(),
+        HouseSystem::Placidus,
+    )
+    .with_high_latitude_policy(HighLatitudePolicy::SwissEphemerisFallback);
+    let snapshot = calculate_houses(&request)
+        .expect("SE-compat fallback must succeed beyond bound");
+
+    // Same instant/observer under Porphyry directly:
+    let porphyry = calculate_houses(&HouseRequest::new(
+        Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            pleiades_types::TimeScale::Tt,
+        ),
+        observer,
+        HouseSystem::Porphyry,
+    ))
+    .expect("porphyry is defined at all latitudes");
+
+    assert_eq!(
+        snapshot.cusps, porphyry.cusps,
+        "fallback cusps must equal Porphyry cusps"
+    );
+}
