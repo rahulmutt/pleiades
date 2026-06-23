@@ -234,15 +234,17 @@ fn equal_aries_houses_start_at_zero_aries() {
 }
 
 #[test]
-fn placidian_houses_report_numerical_failure_at_the_pole() {
+fn placidian_houses_report_invalid_latitude_at_the_pole() {
+    // 90°N exceeds the Placidus 66° bound, so the strict check fires before
+    // the iterative cusp solver can produce a zero-derivative failure.
     let mut request =
         sample_request(HouseSystem::Placidus).with_obliquity(Angle::from_degrees(0.0));
     request.observer.latitude = Latitude::from_degrees(90.0);
     request.observer.longitude = Longitude::from_degrees(0.0);
 
-    let error = calculate_houses(&request).expect_err("polar Placidus iteration should fail");
-    assert_eq!(error.kind, crate::error::HouseErrorKind::NumericalFailure);
-    assert!(error.message.contains("zero derivative"));
+    let error = calculate_houses(&request).expect_err("polar Placidus should be rejected");
+    assert_eq!(error.kind, crate::error::HouseErrorKind::InvalidLatitude);
+    assert!(error.message.contains("Placidus is undefined beyond |latitude| 66"));
 }
 
 #[test]
@@ -686,6 +688,45 @@ fn house_snapshots_reject_inconsistent_angle_pairs() {
     assert!(ic_error.message.contains(
         "house calculation for Equal produced an imum coeli that is not opposite the midheaven"
     ));
+}
+
+#[test]
+fn placidus_beyond_bound_is_rejected_strictly() {
+    // 80°N is above the polar circle; Placidus carries a 66° bound.
+    let observer = ObserverLocation::new(
+        Latitude::from_degrees(80.0),
+        Longitude::from_degrees(0.0),
+        None,
+    );
+    let request = HouseRequest::new(
+        Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            pleiades_types::TimeScale::Tt,
+        ),
+        observer,
+        HouseSystem::Placidus,
+    );
+    let err = calculate_houses(&request).expect_err("must reject beyond-bound latitude");
+    assert_eq!(err.kind, crate::error::HouseErrorKind::InvalidLatitude);
+}
+
+#[test]
+fn placidus_within_bound_is_accepted() {
+    // 55°N is well within the 66° Placidus bound.
+    let observer = ObserverLocation::new(
+        Latitude::from_degrees(55.0),
+        Longitude::from_degrees(0.0),
+        None,
+    );
+    let request = HouseRequest::new(
+        Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            pleiades_types::TimeScale::Tt,
+        ),
+        observer,
+        HouseSystem::Placidus,
+    );
+    calculate_houses(&request).expect("in-band latitude must succeed");
 }
 
 #[test]

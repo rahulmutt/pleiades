@@ -180,6 +180,25 @@ impl fmt::Display for HouseSnapshot {
 /// Computes the house cusps and derived angles for a request.
 pub fn calculate_houses(request: &HouseRequest) -> Result<HouseSnapshot, HouseError> {
     let obliquity = validated_obliquity(request)?;
+
+    // Strict-default high-latitude policy: reject beyond a latitude-sensitive
+    // system's documented bound rather than emitting garbage cusps. The opt-in
+    // SE-compat fallback (Task 3) intercepts before this point.
+    if let Some(descriptor) = crate::catalog::descriptor(&request.system) {
+        if let Some(bound) = descriptor.max_abs_latitude_deg {
+            let lat = request.observer.latitude.degrees();
+            if lat.abs() > bound {
+                return Err(HouseError::new(
+                    HouseErrorKind::InvalidLatitude,
+                    format!(
+                        "{} is undefined beyond |latitude| {bound}\u{00b0} (got {lat:.4}\u{00b0})",
+                        request.system
+                    ),
+                ));
+            }
+        }
+    }
+
     let angles = derive_angles(request.instant, &request.observer, obliquity);
     let cusps = match &request.system {
         HouseSystem::Equal => equal_houses(angles.ascendant).into(),
