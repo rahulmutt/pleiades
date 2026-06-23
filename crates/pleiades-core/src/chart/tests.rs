@@ -3333,3 +3333,74 @@ fn release_grade_body_falls_back_to_mean_when_apparent_unavailable() {
         "no apparent provenance must be attached on mean fallback"
     );
 }
+
+#[test]
+fn topocentric_chart_sets_diurnal_parallax_and_aberration_flags_in_apparent_provenance() {
+    // When the chart-layer topocentric correction runs successfully the apparent
+    // provenance corrections.diurnal_parallax and corrections.diurnal_aberration
+    // must both be true — they were previously left at their default false.
+    let observer = pleiades_types::ObserverLocation::new(
+        pleiades_types::Latitude::from_degrees(40.0),
+        pleiades_types::Longitude::from_degrees(-3.7),
+        Some(650.0),
+    );
+    let snapshot = sample_apparent_moon_chart(observer, true);
+
+    let placement = snapshot
+        .placement_for(&CelestialBody::Moon)
+        .expect("Moon must be present in the topocentric chart");
+
+    let apparent_prov = placement
+        .apparent
+        .as_ref()
+        .expect("Moon must have apparent provenance in a topocentric chart");
+
+    assert!(
+        apparent_prov.corrections.diurnal_parallax,
+        "diurnal_parallax must be true when topocentric correction ran"
+    );
+    assert!(
+        apparent_prov.corrections.diurnal_aberration,
+        "diurnal_aberration must be true when topocentric correction ran"
+    );
+    // Topocentric provenance must also be present as the companion record.
+    assert!(
+        placement.topocentric.is_some(),
+        "topocentric provenance must be present in a topocentric chart"
+    );
+}
+
+#[test]
+fn non_topocentric_apparent_chart_leaves_diurnal_flags_false() {
+    // For a plain geocentric apparent chart the diurnal flags must stay false —
+    // only the topocentric correction path may set them.
+    let observer = pleiades_types::ObserverLocation::new(
+        pleiades_types::Latitude::from_degrees(40.0),
+        pleiades_types::Longitude::from_degrees(-3.7),
+        Some(650.0),
+    );
+    let snapshot = sample_apparent_moon_chart(observer, false);
+
+    let placement = snapshot
+        .placement_for(&CelestialBody::Moon)
+        .expect("Moon must be present in the geocentric chart");
+
+    let apparent_prov = placement
+        .apparent
+        .as_ref()
+        .expect("Moon must have apparent provenance in an apparent chart");
+
+    assert!(
+        !apparent_prov.corrections.diurnal_parallax,
+        "diurnal_parallax must be false for a non-topocentric apparent chart"
+    );
+    assert!(
+        !apparent_prov.corrections.diurnal_aberration,
+        "diurnal_aberration must be false for a non-topocentric apparent chart"
+    );
+    // Topocentric provenance must be absent.
+    assert!(
+        placement.topocentric.is_none(),
+        "topocentric provenance must be absent for a non-topocentric chart"
+    );
+}

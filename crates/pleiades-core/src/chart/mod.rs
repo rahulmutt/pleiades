@@ -347,6 +347,7 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                 // Opt-in chart-layer topocentric correction (diurnal parallax + diurnal aberration).
                 // Operates on the tropical apparent ecliptic produced above; the sidereal
                 // ayanamsa re-apply (when requested) happens once below, after this block.
+                let mut apparent = apparent;
                 let topocentric_prov = if request.topocentric {
                     let observer = request.observer.as_ref().ok_or_else(|| {
                         EphemerisError::new(
@@ -378,6 +379,12 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                         // the single unified re-apply below handles both the geocentric and
                         // topocentric apparent paths identically (ayanamsa exactly once).
                         *ecliptic = topo.ecliptic;
+                        // Record that diurnal parallax and diurnal aberration were applied
+                        // in the apparent-provenance correction flags.
+                        if let Some(ref mut prov) = apparent {
+                            prov.corrections.diurnal_parallax = true;
+                            prov.corrections.diurnal_aberration = true;
+                        }
                         Some(topo.provenance)
                     } else {
                         None
