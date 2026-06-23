@@ -6,10 +6,9 @@
 /// *Astronomical Algorithms*, eq. 12.4.
 pub fn gmst_degrees(jd_ut1: f64) -> f64 {
     let t = (jd_ut1 - 2_451_545.0) / 36_525.0;
-    let theta = 280.460_618_37
-        + 360.985_647_366_29 * (jd_ut1 - 2_451_545.0)
-        + 0.000_387_933 * t * t
-        - (t * t * t) / 38_710_000.0;
+    let theta =
+        280.460_618_37 + 360.985_647_366_29 * (jd_ut1 - 2_451_545.0) + 0.000_387_933 * t * t
+            - (t * t * t) / 38_710_000.0;
     theta.rem_euclid(360.0)
 }
 
@@ -29,7 +28,10 @@ mod tests {
     fn gmst_is_normalized() {
         for jd in [2_415_020.5_f64, 2_451_545.0, 2_488_069.5] {
             let g = gmst_degrees(jd);
-            assert!((0.0..360.0).contains(&g), "gmst {g} out of range at jd {jd}");
+            assert!(
+                (0.0..360.0).contains(&g),
+                "gmst {g} out of range at jd {jd}"
+            );
         }
     }
 }

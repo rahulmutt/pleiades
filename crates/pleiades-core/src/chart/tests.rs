@@ -3163,7 +3163,10 @@ fn topocentric_moon_differs_from_geocentric() {
     if diff > 180.0 {
         diff = 360.0 - diff;
     }
-    assert!(diff > 0.1, "lunar parallax {diff}° too small (geo {geo_lon}, topo {topo_lon})");
+    assert!(
+        diff > 0.1,
+        "lunar parallax {diff}° too small (geo {geo_lon}, topo {topo_lon})"
+    );
 }
 
 #[test]

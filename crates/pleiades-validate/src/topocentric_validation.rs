@@ -58,10 +58,7 @@ impl fmt::Display for TopocentricValidationReport {
 #[derive(Clone, Debug, PartialEq)]
 pub enum TopocentricValidationError {
     /// The goldens CSV checksum does not match the pinned value.
-    ChecksumMismatch {
-        expected: u64,
-        actual: u64,
-    },
+    ChecksumMismatch { expected: u64, actual: u64 },
     /// A CSV data row could not be parsed.
     MalformedRow {
         row: usize,
@@ -69,10 +66,7 @@ pub enum TopocentricValidationError {
         reason: String,
     },
     /// A body label in the CSV could not be resolved to a `CelestialBody`.
-    UnknownBody {
-        row: usize,
-        label: String,
-    },
+    UnknownBody { row: usize, label: String },
     /// The chart engine returned an error for a row.
     ChartError {
         row: usize,
@@ -166,14 +160,25 @@ impl fmt::Display for TopocentricValidationError {
                      was silently skipped; the longitude is still geocentric"
                 )
             }
-            Self::ChartError { row, body, jd, message } => {
+            Self::ChartError {
+                row,
+                body,
+                jd,
+                message,
+            } => {
                 write!(
                     f,
                     "topocentric goldens row {row} ({body} @ JD {jd}): chart error: {message}"
                 )
             }
             Self::LongitudeToleranceExceeded {
-                row, body, jd, got, want, residual_arcsec, tolerance_arcsec,
+                row,
+                body,
+                jd,
+                got,
+                want,
+                residual_arcsec,
+                tolerance_arcsec,
             } => {
                 write!(
                     f,
@@ -183,7 +188,13 @@ impl fmt::Display for TopocentricValidationError {
                 )
             }
             Self::LatitudeToleranceExceeded {
-                row, body, jd, got, want, residual_arcsec, tolerance_arcsec,
+                row,
+                body,
+                jd,
+                got,
+                want,
+                residual_arcsec,
+                tolerance_arcsec,
             } => {
                 write!(
                     f,
@@ -192,7 +203,13 @@ impl fmt::Display for TopocentricValidationError {
                      residual {residual_arcsec:.2}\u{2033} > tolerance {tolerance_arcsec:.1}\u{2033}"
                 )
             }
-            Self::MoonNotTopocentric { row, jd, topo_lon, geo_lon, diff_deg } => {
+            Self::MoonNotTopocentric {
+                row,
+                jd,
+                topo_lon,
+                geo_lon,
+                diff_deg,
+            } => {
                 write!(
                     f,
                     "topocentric goldens row {row} (Moon @ JD {jd}): \
@@ -261,36 +278,57 @@ fn parse_goldens() -> Result<Vec<GoldenRow>, TopocentricValidationError> {
         }
 
         let body_label = parts[0].trim().to_string();
-        let jd_tt: f64 = parts[1].trim().parse().map_err(|_| TopocentricValidationError::MalformedRow {
-            row: data_row,
-            line: line.to_string(),
-            reason: format!("jd_tt {:?} is not a valid float", parts[1]),
-        })?;
-        let topo_longitude_deg: f64 = parts[2].trim().parse().map_err(|_| TopocentricValidationError::MalformedRow {
-            row: data_row,
-            line: line.to_string(),
-            reason: format!("topo_longitude_deg {:?} is not a valid float", parts[2]),
-        })?;
-        let topo_latitude_deg: f64 = parts[3].trim().parse().map_err(|_| TopocentricValidationError::MalformedRow {
-            row: data_row,
-            line: line.to_string(),
-            reason: format!("topo_latitude_deg {:?} is not a valid float", parts[3]),
-        })?;
-        let lon_tolerance_arcsec: f64 = parts[4].trim().parse().map_err(|_| TopocentricValidationError::MalformedRow {
-            row: data_row,
-            line: line.to_string(),
-            reason: format!("lon_tolerance_arcsec {:?} is not a valid float", parts[4]),
-        })?;
-        let lat_tolerance_arcsec: f64 = parts[5].trim().parse().map_err(|_| TopocentricValidationError::MalformedRow {
-            row: data_row,
-            line: line.to_string(),
-            reason: format!("lat_tolerance_arcsec {:?} is not a valid float", parts[5]),
-        })?;
+        let jd_tt: f64 =
+            parts[1]
+                .trim()
+                .parse()
+                .map_err(|_| TopocentricValidationError::MalformedRow {
+                    row: data_row,
+                    line: line.to_string(),
+                    reason: format!("jd_tt {:?} is not a valid float", parts[1]),
+                })?;
+        let topo_longitude_deg: f64 =
+            parts[2]
+                .trim()
+                .parse()
+                .map_err(|_| TopocentricValidationError::MalformedRow {
+                    row: data_row,
+                    line: line.to_string(),
+                    reason: format!("topo_longitude_deg {:?} is not a valid float", parts[2]),
+                })?;
+        let topo_latitude_deg: f64 =
+            parts[3]
+                .trim()
+                .parse()
+                .map_err(|_| TopocentricValidationError::MalformedRow {
+                    row: data_row,
+                    line: line.to_string(),
+                    reason: format!("topo_latitude_deg {:?} is not a valid float", parts[3]),
+                })?;
+        let lon_tolerance_arcsec: f64 =
+            parts[4]
+                .trim()
+                .parse()
+                .map_err(|_| TopocentricValidationError::MalformedRow {
+                    row: data_row,
+                    line: line.to_string(),
+                    reason: format!("lon_tolerance_arcsec {:?} is not a valid float", parts[4]),
+                })?;
+        let lat_tolerance_arcsec: f64 =
+            parts[5]
+                .trim()
+                .parse()
+                .map_err(|_| TopocentricValidationError::MalformedRow {
+                    row: data_row,
+                    line: line.to_string(),
+                    reason: format!("lat_tolerance_arcsec {:?} is not a valid float", parts[5]),
+                })?;
 
-        let body = resolve_body(&body_label).ok_or_else(|| TopocentricValidationError::UnknownBody {
-            row: data_row,
-            label: body_label.clone(),
-        })?;
+        let body =
+            resolve_body(&body_label).ok_or_else(|| TopocentricValidationError::UnknownBody {
+                row: data_row,
+                label: body_label.clone(),
+            })?;
 
         rows.push(GoldenRow {
             body_label,
@@ -344,14 +382,15 @@ pub fn validate_topocentric_goldens(
             .with_observer(madrid_observer())
             .with_topocentric(true);
 
-        let snapshot = engine
-            .chart(&topo_request)
-            .map_err(|e| TopocentricValidationError::ChartError {
-                row: data_row,
-                body: row.body_label.clone(),
-                jd: row.jd_tt,
-                message: e.to_string(),
-            })?;
+        let snapshot =
+            engine
+                .chart(&topo_request)
+                .map_err(|e| TopocentricValidationError::ChartError {
+                    row: data_row,
+                    body: row.body_label.clone(),
+                    jd: row.jd_tt,
+                    message: e.to_string(),
+                })?;
 
         let placement = snapshot.placement_for(&row.body).ok_or_else(|| {
             TopocentricValidationError::ChartError {
@@ -401,14 +440,15 @@ pub fn validate_topocentric_goldens(
                 .with_observer(madrid_observer())
                 .with_topocentric(false);
 
-            let geo_snapshot = engine
-                .chart(&geo_request)
-                .map_err(|e| TopocentricValidationError::ChartError {
-                    row: data_row,
-                    body: row.body_label.clone(),
-                    jd: row.jd_tt,
-                    message: format!("geocentric chart error: {e}"),
-                })?;
+            let geo_snapshot =
+                engine
+                    .chart(&geo_request)
+                    .map_err(|e| TopocentricValidationError::ChartError {
+                        row: data_row,
+                        body: row.body_label.clone(),
+                        jd: row.jd_tt,
+                        message: format!("geocentric chart error: {e}"),
+                    })?;
 
             let geo_lon = geo_snapshot
                 .placement_for(&CelestialBody::Moon)

@@ -30,7 +30,9 @@ pub fn topocentric_position(
     local_sidereal_time_deg: f64,
     obliquity_deg: f64,
 ) -> Result<TopocentricPosition, ApparentPlaceError> {
-    let distance_au = apparent.distance_au.ok_or(ApparentPlaceError::MissingDistance)?;
+    let distance_au = apparent
+        .distance_au
+        .ok_or(ApparentPlaceError::MissingDistance)?;
 
     let obliquity = Angle::from_degrees(obliquity_deg);
     let equatorial = apparent.to_equatorial(obliquity);
@@ -51,13 +53,16 @@ pub fn topocentric_position(
     let tz = bz - oz;
     let topo_distance = (tx * tx + ty * ty + tz * tz).sqrt();
     if !topo_distance.is_finite() || topo_distance <= 0.0 {
-        return Err(ApparentPlaceError::NonFiniteCorrection { stage: "topocentric" });
+        return Err(ApparentPlaceError::NonFiniteCorrection {
+            stage: "topocentric",
+        });
     }
     let mut ra_topo = ty.atan2(tx);
     let dec_topo = (tz / topo_distance).asin();
 
     // Diurnal aberration: observer moves east at ω·ρcosφ′. Hour angle H = LAST - RA.
-    let hour_angle = (local_sidereal_time_deg.to_radians() - ra_topo).rem_euclid(std::f64::consts::TAU);
+    let hour_angle =
+        (local_sidereal_time_deg.to_radians() - ra_topo).rem_euclid(std::f64::consts::TAU);
     let aberr_ra_arcsec =
         DIURNAL_ABERRATION_ARCSEC * geo.rho_cos_phi_prime * hour_angle.cos() / dec_topo.cos();
     let aberr_dec_arcsec =
@@ -86,7 +91,9 @@ pub fn topocentric_position(
         ecliptic_topo.distance_au,
     );
     if !ecliptic.longitude.degrees().is_finite() || !ecliptic.latitude.degrees().is_finite() {
-        return Err(ApparentPlaceError::NonFiniteCorrection { stage: "topocentric" });
+        return Err(ApparentPlaceError::NonFiniteCorrection {
+            stage: "topocentric",
+        });
     }
 
     Ok(TopocentricPosition {
@@ -124,22 +131,24 @@ mod tests {
     fn moon_parallax_is_about_one_degree() {
         // Moon at ~0.00257 AU (60.3 Earth radii). For an observer with the Moon
         // near the horizon the parallax approaches ~0.95°. Assert it is large.
-        let out = topocentric_position(ecl(100.0, 0.0, 0.002_57), &observer(0.0), 100.0, 23.4)
-            .unwrap();
-        let shift = out.provenance.parallax_longitude_arcsec.hypot(
-            out.provenance.parallax_latitude_arcsec,
-        ) / 3600.0;
+        let out =
+            topocentric_position(ecl(100.0, 0.0, 0.002_57), &observer(0.0), 100.0, 23.4).unwrap();
+        let shift = out
+            .provenance
+            .parallax_longitude_arcsec
+            .hypot(out.provenance.parallax_latitude_arcsec)
+            / 3600.0;
         assert!(shift > 0.3, "moon parallax {shift}° too small");
     }
 
     #[test]
     fn distant_body_parallax_is_negligible() {
         // A body at 30 AU: parallax < 1".
-        let out = topocentric_position(ecl(100.0, 0.0, 30.0), &observer(0.0), 100.0, 23.4)
-            .unwrap();
-        let shift = out.provenance.parallax_longitude_arcsec.hypot(
-            out.provenance.parallax_latitude_arcsec,
-        );
+        let out = topocentric_position(ecl(100.0, 0.0, 30.0), &observer(0.0), 100.0, 23.4).unwrap();
+        let shift = out
+            .provenance
+            .parallax_longitude_arcsec
+            .hypot(out.provenance.parallax_latitude_arcsec);
         assert!(shift < 1.0, "distant parallax {shift}\" too large");
     }
 
@@ -156,8 +165,7 @@ mod tests {
 
     #[test]
     fn diurnal_aberration_is_sub_arcsec() {
-        let out = topocentric_position(ecl(100.0, 0.0, 1.0), &observer(0.0), 100.0, 23.4)
-            .unwrap();
+        let out = topocentric_position(ecl(100.0, 0.0, 1.0), &observer(0.0), 100.0, 23.4).unwrap();
         assert!(
             out.provenance.diurnal_aberration_arcsec < 0.36,
             "diurnal aberration {}\"",

@@ -625,27 +625,54 @@ mod tests {
 
     #[test]
     fn topocentric_requires_observer() {
-        let err = render_chart(&["--jd", "2451545.0", "--body", "Moon", "--topocentric"]).unwrap_err();
-        assert!(err.contains("observer") || err.contains("--lat"), "got: {err}");
+        let err =
+            render_chart(&["--jd", "2451545.0", "--body", "Moon", "--topocentric"]).unwrap_err();
+        assert!(
+            err.contains("observer") || err.contains("--lat"),
+            "got: {err}"
+        );
     }
 
     #[test]
     fn topocentric_conflicts_with_mean() {
         let err = render_chart(&[
-            "--jd", "2451545.0", "--body", "Moon", "--lat", "40", "--lon", "-3.7",
-            "--topocentric", "--mean",
+            "--jd",
+            "2451545.0",
+            "--body",
+            "Moon",
+            "--lat",
+            "40",
+            "--lon",
+            "-3.7",
+            "--topocentric",
+            "--mean",
         ])
         .unwrap_err();
-        assert!(err.contains("apparent") || err.contains("--mean"), "got: {err}");
+        assert!(
+            err.contains("apparent") || err.contains("--mean"),
+            "got: {err}"
+        );
     }
 
     #[test]
     fn topocentric_moon_emits_provenance_line() {
         let out = render_chart(&[
-            "--jd", "2451545.0", "--body", "Moon", "--lat", "40", "--lon", "-3.7",
-            "--elevation", "650", "--topocentric",
+            "--jd",
+            "2451545.0",
+            "--body",
+            "Moon",
+            "--lat",
+            "40",
+            "--lon",
+            "-3.7",
+            "--elevation",
+            "650",
+            "--topocentric",
         ])
         .unwrap();
-        assert!(out.contains("topocentric"), "missing topocentric provenance: {out}");
+        assert!(
+            out.contains("topocentric"),
+            "missing topocentric provenance: {out}"
+        );
     }
 }
