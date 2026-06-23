@@ -621,6 +621,275 @@ pub fn validated_house_validation_summary_line_for_report(
     report.validated_summary_line()
 }
 
+// ── Task 7: house corpus + manifest parsers ───────────────────────────────────
+
+const CORPUS_CSV: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/data/houses-corpus/cusps.csv"
+));
+
+const CORPUS_MANIFEST: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/data/houses-corpus/manifest.txt"
+));
+
+/// A single parsed row from the house-corpus CSV.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct HouseCorpusRow {
+    /// Unique chart identifier.
+    pub(crate) chart_id: String,
+    /// Julian Day (UT) for the chart.
+    pub(crate) jd_ut: f64,
+    /// Observer geodetic latitude, degrees.
+    pub(crate) lat_deg: f64,
+    /// Observer geodetic longitude, degrees (east-positive).
+    pub(crate) lon_deg: f64,
+    /// Observer elevation above sea level, metres.
+    pub(crate) elev_m: f64,
+    /// Pleiades `HouseSystem` variant name (e.g. `"Placidus"`).
+    pub(crate) system_code: String,
+    /// Twelve house cusps, degrees [0..12].
+    pub(crate) cusps: [f64; 12],
+    /// Ascendant, degrees.
+    pub(crate) asc: f64,
+    /// Midheaven (MC), degrees.
+    pub(crate) mc: f64,
+}
+
+/// Errors produced while parsing the house-corpus CSV or manifest.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) enum HouseCorpusError {
+    /// A CSV data row could not be parsed.
+    MalformedRow {
+        /// One-based data-row number (skipping header/comment lines).
+        row: usize,
+        /// The raw CSV line.
+        line: String,
+        /// Description of what was malformed.
+        reason: String,
+    },
+    /// The manifest text could not be parsed.
+    MalformedManifest {
+        /// Description of what was malformed.
+        reason: String,
+    },
+}
+
+impl fmt::Display for HouseCorpusError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::MalformedRow { row, line, reason } => {
+                write!(
+                    f,
+                    "house corpus row {row} is malformed ({reason}): {line:?}"
+                )
+            }
+            Self::MalformedManifest { reason } => {
+                write!(f, "house corpus manifest is malformed: {reason}")
+            }
+        }
+    }
+}
+
+impl std::error::Error for HouseCorpusError {}
+
+/// Parse the house-corpus CSV, skipping comment (`#`) and blank lines and the
+/// header row (the line beginning with `chart_id,`).
+///
+/// Fails closed: any malformed or unparseable data row returns `Err(MalformedRow)`.
+pub(crate) fn parse_house_corpus(csv: &str) -> Result<Vec<HouseCorpusRow>, HouseCorpusError> {
+    let mut rows = Vec::new();
+    let mut data_row = 0usize;
+
+    for line in csv.lines() {
+        let trimmed = line.trim();
+        // Skip comment lines and blank lines.
+        if trimmed.starts_with('#') || trimmed.is_empty() {
+            continue;
+        }
+        // Skip the header row.
+        if trimmed.starts_with("chart_id,") {
+            continue;
+        }
+
+        data_row += 1;
+        let parts: Vec<&str> = trimmed.split(',').collect();
+        if parts.len() != 20 {
+            return Err(HouseCorpusError::MalformedRow {
+                row: data_row,
+                line: line.to_string(),
+                reason: format!("expected 20 comma-separated fields, got {}", parts.len()),
+            });
+        }
+
+        let chart_id = parts[0].trim().to_string();
+
+        let jd_ut: f64 = parts[1].trim().parse().map_err(|_| HouseCorpusError::MalformedRow {
+            row: data_row,
+            line: line.to_string(),
+            reason: format!("jd_ut {:?} is not a valid float", parts[1]),
+        })?;
+
+        let lat_deg: f64 = parts[2].trim().parse().map_err(|_| HouseCorpusError::MalformedRow {
+            row: data_row,
+            line: line.to_string(),
+            reason: format!("lat_deg {:?} is not a valid float", parts[2]),
+        })?;
+
+        let lon_deg: f64 = parts[3].trim().parse().map_err(|_| HouseCorpusError::MalformedRow {
+            row: data_row,
+            line: line.to_string(),
+            reason: format!("lon_deg {:?} is not a valid float", parts[3]),
+        })?;
+
+        let elev_m: f64 = parts[4].trim().parse().map_err(|_| HouseCorpusError::MalformedRow {
+            row: data_row,
+            line: line.to_string(),
+            reason: format!("elev_m {:?} is not a valid float", parts[4]),
+        })?;
+
+        let system_code = parts[5].trim().to_string();
+
+        let mut cusps = [0.0f64; 12];
+        for (i, cusp) in cusps.iter_mut().enumerate() {
+            let field = parts[6 + i];
+            *cusp = field.trim().parse().map_err(|_| HouseCorpusError::MalformedRow {
+                row: data_row,
+                line: line.to_string(),
+                reason: format!("cusp field[{}] {:?} is not a valid float", 6 + i, field),
+            })?;
+        }
+
+        let asc: f64 = parts[18].trim().parse().map_err(|_| HouseCorpusError::MalformedRow {
+            row: data_row,
+            line: line.to_string(),
+            reason: format!("asc {:?} is not a valid float", parts[18]),
+        })?;
+
+        let mc: f64 = parts[19].trim().parse().map_err(|_| HouseCorpusError::MalformedRow {
+            row: data_row,
+            line: line.to_string(),
+            reason: format!("mc {:?} is not a valid float", parts[19]),
+        })?;
+
+        rows.push(HouseCorpusRow {
+            chart_id,
+            jd_ut,
+            lat_deg,
+            lon_deg,
+            elev_m,
+            system_code,
+            cusps,
+            asc,
+            mc,
+        });
+    }
+
+    Ok(rows)
+}
+
+/// Parsed metadata from the house-corpus manifest.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct HouseManifest {
+    /// The reference engine used to generate the corpus (e.g. `"SwissEphemeris 2.10.03"`).
+    pub(crate) reference_engine: String,
+    /// The cross-check engine used (e.g. `"not-run"`).
+    pub(crate) crosscheck: String,
+    /// Number of data rows recorded in the manifest.
+    pub(crate) rows: usize,
+    /// FNV-1a-64 checksum of the corpus CSV.
+    pub(crate) checksum: u64,
+}
+
+/// Parse the house-corpus manifest text.
+///
+/// Reads `#Reference-Engine:` and `#CrossCheck-Engine:` comment values, and the
+/// `slice cusps file=cusps.csv role=cusps rows=<n> checksum=<u64>` line.
+///
+/// Fails closed on any missing or malformed field.
+pub(crate) fn parse_house_manifest(text: &str) -> Result<HouseManifest, HouseCorpusError> {
+    let mut reference_engine: Option<String> = None;
+    let mut crosscheck: Option<String> = None;
+    let mut rows: Option<usize> = None;
+    let mut checksum: Option<u64> = None;
+
+    for line in text.lines() {
+        let trimmed = line.trim();
+
+        if let Some(rest) = trimmed.strip_prefix("#Reference-Engine:") {
+            reference_engine = Some(rest.trim().to_string());
+            continue;
+        }
+        if let Some(rest) = trimmed.strip_prefix("#CrossCheck-Engine:") {
+            crosscheck = Some(rest.trim().to_string());
+            continue;
+        }
+        // Parse the `slice cusps file=cusps.csv role=cusps rows=<n> checksum=<u64>` line.
+        if trimmed.starts_with("slice ") {
+            for token in trimmed.split_whitespace() {
+                if let Some(val) = token.strip_prefix("rows=") {
+                    rows = Some(val.parse::<usize>().map_err(|_| {
+                        HouseCorpusError::MalformedManifest {
+                            reason: format!("rows value {val:?} is not a valid usize"),
+                        }
+                    })?);
+                } else if let Some(val) = token.strip_prefix("checksum=") {
+                    checksum = Some(val.parse::<u64>().map_err(|_| {
+                        HouseCorpusError::MalformedManifest {
+                            reason: format!("checksum value {val:?} is not a valid u64"),
+                        }
+                    })?);
+                }
+            }
+        }
+    }
+
+    let reference_engine = reference_engine.ok_or_else(|| HouseCorpusError::MalformedManifest {
+        reason: "#Reference-Engine comment not found".to_string(),
+    })?;
+    let crosscheck = crosscheck.ok_or_else(|| HouseCorpusError::MalformedManifest {
+        reason: "#CrossCheck-Engine comment not found".to_string(),
+    })?;
+    let rows = rows.ok_or_else(|| HouseCorpusError::MalformedManifest {
+        reason: "rows= key not found in slice line".to_string(),
+    })?;
+    let checksum = checksum.ok_or_else(|| HouseCorpusError::MalformedManifest {
+        reason: "checksum= key not found in slice line".to_string(),
+    })?;
+
+    Ok(HouseManifest {
+        reference_engine,
+        crosscheck,
+        rows,
+        checksum,
+    })
+}
+
+/// Returns the parsed house-corpus rows from the committed CSV.
+///
+/// Panics at startup if the CSV is malformed — fail-closed design.
+#[allow(dead_code)]
+pub(crate) fn house_corpus_rows() -> &'static [HouseCorpusRow] {
+    use std::sync::OnceLock;
+    static CACHE: OnceLock<Vec<HouseCorpusRow>> = OnceLock::new();
+    CACHE.get_or_init(|| {
+        parse_house_corpus(CORPUS_CSV).expect("built-in house corpus CSV must be well-formed")
+    })
+}
+
+/// Returns the parsed house-corpus manifest.
+///
+/// Panics at startup if the manifest is malformed — fail-closed design.
+#[allow(dead_code)]
+pub(crate) fn house_corpus_manifest() -> &'static HouseManifest {
+    use std::sync::OnceLock;
+    static CACHE: OnceLock<HouseManifest> = OnceLock::new();
+    CACHE.get_or_init(|| {
+        parse_house_manifest(CORPUS_MANIFEST)
+            .expect("built-in house corpus manifest must be well-formed")
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -793,5 +1062,38 @@ mod tests {
             house_validation_summary_line_for_report(&report),
             "House validation corpus unavailable: house validation scenario #1 has a blank label"
         );
+    }
+
+    // ── Task 7 tests: corpus parser + manifest parser ─────────────────────────
+
+    const SAMPLE: &str = "chart_id,jd_ut,lat_deg,lon_deg,elev_m,system_code,c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,asc,mc\n\
+c0,2451545,0,0,0,Placidus,1,2,3,4,5,6,7,8,9,10,11,12,1.5,10.5\n";
+
+    #[test]
+    fn parses_a_well_formed_row() {
+        let rows = parse_house_corpus(SAMPLE).expect("valid");
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].system_code, "Placidus");
+        assert_eq!(rows[0].cusps[0], 1.0);
+        assert_eq!(rows[0].cusps[11], 12.0);
+        assert_eq!(rows[0].asc, 1.5);
+    }
+
+    #[test]
+    fn rejects_short_row() {
+        let bad = "chart_id,jd_ut,lat_deg,lon_deg,elev_m,system_code,c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,asc,mc\nc0,1,2,3\n";
+        assert!(matches!(
+            parse_house_corpus(bad),
+            Err(HouseCorpusError::MalformedRow { .. })
+        ));
+    }
+
+    #[test]
+    fn parses_manifest_fields() {
+        let m = "#Pleiades House Reference Corpus Manifest\n#Reference-Engine: SwissEphemeris 2.10.03\n#CrossCheck-Engine: not-run\nslice cusps file=cusps.csv role=cusps rows=55 checksum=12345\n";
+        let parsed = parse_house_manifest(m).expect("valid manifest");
+        assert_eq!(parsed.rows, 55);
+        assert_eq!(parsed.checksum, 12345);
+        assert_eq!(parsed.crosscheck, "not-run");
     }
 }
