@@ -622,18 +622,26 @@ pub fn validated_house_validation_summary_line_for_report(
 }
 
 // ── Task 7: house corpus + manifest parsers ───────────────────────────────────
+//
+// The parsers and their committed-data consts are exercised only by the in-module
+// tests for now; the first non-test caller (`validate_house_corpus`) lands in
+// Task 8, which will lift the `#[cfg(test)]` gating to crate-wide visibility.
+// Gating keeps a plain `cargo build` warning-free (no premature dead_code).
 
+#[cfg(test)]
 const CORPUS_CSV: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/data/houses-corpus/cusps.csv"
 ));
 
+#[cfg(test)]
 const CORPUS_MANIFEST: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/data/houses-corpus/manifest.txt"
 ));
 
 /// A single parsed row from the house-corpus CSV.
+#[cfg(test)]
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct HouseCorpusRow {
     /// Unique chart identifier.
@@ -657,6 +665,7 @@ pub(crate) struct HouseCorpusRow {
 }
 
 /// Errors produced while parsing the house-corpus CSV or manifest.
+#[cfg(test)]
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum HouseCorpusError {
     /// A CSV data row could not be parsed.
@@ -675,6 +684,7 @@ pub(crate) enum HouseCorpusError {
     },
 }
 
+#[cfg(test)]
 impl fmt::Display for HouseCorpusError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -691,12 +701,14 @@ impl fmt::Display for HouseCorpusError {
     }
 }
 
+#[cfg(test)]
 impl std::error::Error for HouseCorpusError {}
 
 /// Parse the house-corpus CSV, skipping comment (`#`) and blank lines and the
 /// header row (the line beginning with `chart_id,`).
 ///
 /// Fails closed: any malformed or unparseable data row returns `Err(MalformedRow)`.
+#[cfg(test)]
 pub(crate) fn parse_house_corpus(csv: &str) -> Result<Vec<HouseCorpusRow>, HouseCorpusError> {
     let mut rows = Vec::new();
     let mut data_row = 0usize;
@@ -789,6 +801,7 @@ pub(crate) fn parse_house_corpus(csv: &str) -> Result<Vec<HouseCorpusRow>, House
 }
 
 /// Parsed metadata from the house-corpus manifest.
+#[cfg(test)]
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct HouseManifest {
     /// The reference engine used to generate the corpus (e.g. `"SwissEphemeris 2.10.03"`).
@@ -807,6 +820,7 @@ pub(crate) struct HouseManifest {
 /// `slice cusps file=cusps.csv role=cusps rows=<n> checksum=<u64>` line.
 ///
 /// Fails closed on any missing or malformed field.
+#[cfg(test)]
 pub(crate) fn parse_house_manifest(text: &str) -> Result<HouseManifest, HouseCorpusError> {
     let mut reference_engine: Option<String> = None;
     let mut crosscheck: Option<String> = None;
@@ -862,31 +876,6 @@ pub(crate) fn parse_house_manifest(text: &str) -> Result<HouseManifest, HouseCor
         crosscheck,
         rows,
         checksum,
-    })
-}
-
-/// Returns the parsed house-corpus rows from the committed CSV.
-///
-/// Panics at startup if the CSV is malformed — fail-closed design.
-#[allow(dead_code)]
-pub(crate) fn house_corpus_rows() -> &'static [HouseCorpusRow] {
-    use std::sync::OnceLock;
-    static CACHE: OnceLock<Vec<HouseCorpusRow>> = OnceLock::new();
-    CACHE.get_or_init(|| {
-        parse_house_corpus(CORPUS_CSV).expect("built-in house corpus CSV must be well-formed")
-    })
-}
-
-/// Returns the parsed house-corpus manifest.
-///
-/// Panics at startup if the manifest is malformed — fail-closed design.
-#[allow(dead_code)]
-pub(crate) fn house_corpus_manifest() -> &'static HouseManifest {
-    use std::sync::OnceLock;
-    static CACHE: OnceLock<HouseManifest> = OnceLock::new();
-    CACHE.get_or_init(|| {
-        parse_house_manifest(CORPUS_MANIFEST)
-            .expect("built-in house corpus manifest must be well-formed")
     })
 }
 
@@ -1095,5 +1084,21 @@ c0,2451545,0,0,0,Placidus,1,2,3,4,5,6,7,8,9,10,11,12,1.5,10.5\n";
         assert_eq!(parsed.rows, 55);
         assert_eq!(parsed.checksum, 12345);
         assert_eq!(parsed.crosscheck, "not-run");
+    }
+
+    #[test]
+    fn committed_corpus_parses_and_matches_manifest_row_count() {
+        let rows = parse_house_corpus(CORPUS_CSV).expect("committed corpus CSV must be well-formed");
+        let manifest =
+            parse_house_manifest(CORPUS_MANIFEST).expect("committed manifest must be well-formed");
+
+        assert!(!rows.is_empty(), "committed corpus must contain data rows");
+        assert_eq!(
+            rows.len(),
+            manifest.rows,
+            "manifest row count must match parsed corpus row count"
+        );
+        assert_eq!(manifest.reference_engine, "SwissEphemeris 2.10.03");
+        assert_eq!(manifest.crosscheck, "not-run");
     }
 }
