@@ -1,9 +1,34 @@
 # House-System Numeric Gate (Phase 5, Sub-cycle A) — Design
 
-Status: **draft — saved mid-brainstorm 2026-06-23**. Core design approved by the
-user; provisioning details (SE Rust binding, Astrolog via Nix) captured from the
-latest direction but carry open items to confirm at implementation time. Not yet
-handed to writing-plans.
+Status: **final — 2026-06-23**. Core design approved by the user. The two
+network-blocked provisioning open items were resolved against a live Nix/devenv
+environment (devenv 2.1.2): the SE Rust binding options and Astrolog's nixpkgs
+status are now confirmed (see "Provisioning findings" and the resolved open
+items). Ready to hand to writing-plans.
+
+## Provisioning findings (2026-06-23, verified against live Nix)
+
+- **SE Rust binding.** Two viable crates exist on crates.io: high-level
+  `swisseph` 0.1.1 (depends on `libswisseph-sys`, `links = libswisseph`) and
+  lower-level `libswe-sys` 0.2.7 (`links = libswe`). Both pull a `links`/`-sys`
+  package into `Cargo.lock`, which **confirms Constraint C1**: the SE harness
+  must live outside the published-workspace lockfile. Neither crate declares a
+  license in its index metadata, and Swiss Ephemeris itself is dual-licensed
+  AGPL-3.0 / commercial — a manual license check is required before adoption
+  (verification-only, non-shipping use mitigates but does not eliminate this).
+- **Astrolog.** Packaged in nixpkgs as `astrolog` 7.70 (GPL-2.0-or-later), but
+  the **stock binary crashes on every invocation** in the current gcc-15 /
+  glibc-2.42 environment — even `-v`: default build aborts with a fortify
+  *buffer overflow*; with fortify disabled it aborts with a *stack smashing*
+  detection; with all hardening disabled it segfaults silently. Astrolog 7.70
+  has genuine out-of-bounds writes that modern hardening catches. A headless
+  cusp-emitter therefore requires a **patched derivation** (hardening overrides
+  and/or source patches), and even then must be verified to emit cusps. "Add
+  `pkgs.astrolog` to `devenv.nix`" is **not** turn-key.
+
+These findings drive the resolved decisions below: SE remains the sole canonical
+gate, and the Astrolog cross-check is **best-effort / optional** so the gate
+never depends on a fragile second engine.
 
 ## Context
 
@@ -32,11 +57,11 @@ The audit was scoped as **two sub-cycles**:
 | Topic | Decision |
 | --- | --- |
 | Deliverable for the full item | Both numeric gate + metadata audit (B deferred to its own cycle) |
-| Reference source | Multiple engines cross-check: **Swiss Ephemeris canonical**, **Astrolog** independent cross-check |
-| Disagreement handling | Astrolog **flags** disagreements (recorded, investigated per-system); it does **not** auto-fail the gate. SE is canonical reference. |
+| Reference source | **Swiss Ephemeris is the sole canonical gate.** **Astrolog** is a **best-effort / optional** independent cross-check (records agreement when a working astrolog is available; the gate never depends on it). |
+| Disagreement handling | Astrolog **flags** disagreements (recorded, investigated per-system); it does **not** auto-fail the gate. When no working astrolog is provisioned, the corpus records cross-check = **"not run"** and the gate still passes on SE alone. |
 | High-latitude failure modes | **Strict by default** (structured `InvalidLatitude` error beyond a documented bound); **SE-compat fallback opt-in** behind a request flag |
-| SE provisioning | Use a **Rust Swiss Ephemeris binding** for verification only — **never** a dependency of any shipping crate (see Constraint C1) |
-| Astrolog provisioning | Provide via **`devenv.nix`** (Nix) for reproducible local builds |
+| SE provisioning | Use a **Rust Swiss Ephemeris binding** (`swisseph` 0.1.1 high-level, preferred, or `libswe-sys` 0.2.7) for verification only — **never** a dependency of any shipping crate (see Constraint C1). License check required before adoption. |
+| Astrolog provisioning | Provide via **`devenv.nix`** (Nix). Stock `pkgs.astrolog` 7.70 crashes under modern hardening, so a **patched derivation** is required (verified to emit cusps). Because the cross-check is best-effort, a failed/absent astrolog never blocks the gate. |
 
 ## Scope & boundaries
 
@@ -57,14 +82,17 @@ M Morinus), plus the strict-default / SE-compat-opt-in high-latitude behavior.
 
 New `crates/pleiades-houses/data/corpus/` (location TBD vs. `pleiades-validate/`;
 see open items) with CSV fixture slices + a `manifest.txt` carrying per-slice
-checksums **and** source-engine provenance: Swiss Ephemeris version and Astrolog
-version + pinned git SHA — exactly as the JPL manifest records the de440 kernel
-SHA.
+checksums **and** source-engine provenance: Swiss Ephemeris version (always) and,
+when a working astrolog was used, its version + pinned git SHA — exactly as the
+JPL manifest records the de440 kernel SHA. If astrolog was not run, the manifest
+records the cross-check as `not-run`.
 
 - **Swiss Ephemeris values are the canonical reference** stored in the corpus.
-- A **cross-check record** documents Astrolog agreement per system: agree-within-
-  cross-tolerance, or a flagged exception carrying the measured delta and a note.
-  Per the disagreement decision, Astrolog flags but does not gate.
+- A **best-effort cross-check record** documents Astrolog agreement per system:
+  `agree` (within cross-tolerance), `flagged` (measured delta + note), or
+  `not-run` (no working astrolog was provisioned at generation time). Per the
+  disagreement decision, Astrolog flags but does not gate, and `not-run` is a
+  valid, non-failing state.
 - Each row: chart id, instant, observer (lat/lon/elev), house-system code,
   12 cusps + Ascendant + Midheaven.
 - Reproducible from the engines when present; a clean checkout stays tool-free
@@ -113,12 +141,20 @@ aggregate, mirroring `validate-apparent` / `validate-topocentric`. Checks:
 ### 6. Reproduction tooling & engine provisioning
 
 - **Swiss Ephemeris (canonical):** a Rust Swiss Ephemeris binding used **only**
-  in an isolated verification harness — see Constraint C1. Produces SE cusps via
-  `swe_houses`-equivalent calls.
-- **Astrolog (cross-check):** provided via **`devenv.nix`**. Astrolog ships no
-  Linux release binary (only Windows assets + `astXXcli.zip` source on
-  `CruiserOne/Astrolog`), so Nix builds it reproducibly from a pinned version.
-  Version + pinned revision recorded in the corpus manifest.
+  in an isolated verification harness — see Constraint C1. Preferred crate is
+  high-level `swisseph` 0.1.1 (exposes house computation; pulls `libswisseph-sys`
+  with `links = libswisseph`); `libswe-sys` 0.2.7 (`links = libswe`) is the
+  lower-level fallback. Either confirms the C1 isolation requirement. Produces SE
+  cusps via `swe_houses`-equivalent calls.
+- **Astrolog (best-effort cross-check):** provided via **`devenv.nix`**.
+  `astrolog` 7.70 is in nixpkgs (GPL-2.0-or-later) but the stock build crashes on
+  every invocation under modern hardening (verified: fortify buffer-overflow →
+  stack-smashing → segfault), so `devenv.nix` must supply a **patched
+  derivation** (e.g. `hardeningDisable` plus any source fixes) verified to emit
+  machine-readable cusps for all 11 systems. Version + pinned revision recorded
+  in the corpus manifest. Because the cross-check is best-effort, if a working
+  astrolog cannot be built the generator proceeds SE-only and marks the
+  cross-check `not-run`.
 - Generation is a maintainer-only, regeneration-time step. Like the de440 kernel
   (`PLEIADES_DE_KERNEL`) and the `horizons-fetch` feature, the engines are **not**
   runtime or shipping-crate dependencies; the committed corpus is the source of
@@ -128,8 +164,9 @@ aggregate, mirroring `validate-apparent` / `validate-topocentric`. Checks:
 
 ```
 fixtures
-  └─(offline, engines present)─> generate SE cusps + Astrolog cusps
-        ├─ cross-check SE vs Astrolog (flag exceptions, never gate)
+  └─(offline, engines present)─> generate SE cusps [+ Astrolog cusps if available]
+        ├─ cross-check SE vs Astrolog when present (flag exceptions, never gate;
+        │   mark cross-check `not-run` if no working astrolog)
         └─ write corpus CSV + manifest (checksums + engine versions/SHAs)
                 └─> committed corpus (source of truth)
                         └─(runtime gate: validate-houses)─>
@@ -144,8 +181,11 @@ fixtures
 
 - **Gate fails** on: missing slice, checksum/schema/provenance drift, residual
   over ceiling, missing strict rejection, or SE-fallback mismatch.
-- **Generation fails** if SE and Astrolog disagree beyond cross-tolerance on a
-  non-exempted system (forces a documented exception decision).
+- **Generation fails** only on SE-side problems. When Astrolog is present and
+  disagrees beyond cross-tolerance on a non-exempted system, generation records a
+  flagged exception (forces a documented exception decision) but does not fail on
+  the cross-check alone. When no working astrolog is provisioned, generation
+  proceeds SE-only with cross-check `not-run` — never a failure.
 
 ## Constraints
 
@@ -161,6 +201,13 @@ fixtures
   out-of-band verification script invoked only during regeneration. The shipping
   crates and their lockfile stay pure-Rust.
 
+- **C2 — SE binding license (verify before adoption).** Neither `swisseph` nor
+  `libswe-sys` declares a license in its crates.io index metadata, and Swiss
+  Ephemeris itself is dual-licensed AGPL-3.0 / commercial. Because the binding is
+  verification-only and never shipped or distributed, AGPL obligations are
+  unlikely to attach — but the chosen crate's actual license (and SE's data-file
+  license) must be confirmed and recorded before the harness is committed.
+
 ## Testing
 
 - Per-system unit tests vs. a few inline goldens.
@@ -169,19 +216,29 @@ fixtures
 - SE-fallback path tests.
 - Manifest checksum-drift test.
 
+## Resolved open items (2026-06-23)
+
+1. **SE Rust binding — RESOLVED to options + a license action.** `swisseph`
+   0.1.1 (high-level, preferred) and `libswe-sys` 0.2.7 both exist; both pull a
+   `links`/`-sys` package and so confirm C1. Remaining action is the **license
+   verification in C2** and confirming the chosen crate's SE data-file
+   loading/bundling, then isolating it per C1.
+2. **Astrolog in nixpkgs — RESOLVED with a caveat.** `astrolog` 7.70 is packaged
+   (GPL-2.0-or-later) but crashes on every invocation under modern hardening, so
+   `devenv.nix` must supply a **patched derivation** verified to emit
+   machine-readable cusps for all 11 systems. Because the cross-check is now
+   best-effort, this is no longer a blocker for the gate.
+
 ## Open items (confirm during planning/implementation)
 
-1. **Exact SE Rust binding.** crates.io probes for `swisseph` / `libswe-sys`
-   were inconclusive in the brainstorm environment (no network metadata
-   returned). Confirm the specific crate, its license, that it exposes house
-   computation, and how it bundles/loads SE data files — then isolate it per C1.
-2. **Astrolog in nixpkgs.** Confirm `astrolog` is packaged (or pin a source
-   build in `devenv.nix`) and capture the exact version/revision for the
-   manifest. Confirm its CLI emits machine-readable cusps for all 11 systems.
-3. **SE high-latitude fallback semantics.** Verify what Swiss Ephemeris actually
+1. **Patched-astrolog derivation.** Produce a working `devenv.nix` astrolog
+   (hardening overrides and/or source patches), and confirm its CLI emits
+   machine-readable cusps for all 11 systems. If infeasible, ship the corpus
+   SE-only with cross-check `not-run` (the design already permits this).
+2. **SE high-latitude fallback semantics.** Verify what Swiss Ephemeris actually
    substitutes above the polar circle (Porphyry assumed) before encoding the
    SE-compat path.
-4. **Corpus location.** `pleiades-houses/data/` vs. `pleiades-validate/` — pick
+3. **Corpus location.** `pleiades-houses/data/` vs. `pleiades-validate/` — pick
    to match where the gate and fixtures most naturally live.
-5. **Per-family arcsecond ceilings.** Concrete numeric ceilings per formula
+4. **Per-family arcsecond ceilings.** Concrete numeric ceilings per formula
    family, set from observed SE-vs-pleiades residuals.
