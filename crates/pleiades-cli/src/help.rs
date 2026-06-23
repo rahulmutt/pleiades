@@ -73,6 +73,8 @@ Commands:
     --civil <YYYY-MM-DDTHH:MM:SS>  Convert a civil datetime to TT/TDB and chart it (cannot combine with --jd, manual time-scale flags, or offset flags)
     --civil-scale utc|ut1  The time scale of the civil input (default: utc)
     --civil-target tt|tdb  The target terrestrial time scale (default: tt); output reports conversion provenance and quality
+    --elevation <m>      Observer elevation above sea level in metres (used with --lat/--lon)
+    --topocentric        Apply diurnal parallax + diurnal aberration for the --lat/--lon/--elevation observer; requires apparent mode
     --mean               Force mean positions for backend queries
     --apparent           Force apparent positions for backend queries
     --body <name>        Use a built-in body or a custom catalog:designation identifier

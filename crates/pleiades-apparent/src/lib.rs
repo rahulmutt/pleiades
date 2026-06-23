@@ -21,13 +21,21 @@ pub mod precession;
 
 pub use precession::{precess_ecliptic_j2000_to_date, PrecessedEcliptic};
 
+pub mod parallax;
+
+pub use parallax::{ObserverGeocentric, AU_IN_EARTH_RADII};
+
 mod provenance;
 
-pub use provenance::{ApparentProvenance, CorrectionSet, MODEL_SOURCES};
+pub use provenance::{ApparentProvenance, CorrectionSet, TopocentricProvenance, MODEL_SOURCES};
 
 mod apparent;
 
 pub use apparent::{apparent_position, ApparentPosition, DEFAULT_MAX_ITERATIONS};
+
+mod topocentric;
+
+pub use topocentric::{topocentric_position, TopocentricPosition, DIURNAL_ABERRATION_ARCSEC};
 
 pub mod policy;
 

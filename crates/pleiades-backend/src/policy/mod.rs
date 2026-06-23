@@ -24,7 +24,7 @@ pub const CURRENT_UTC_CONVENIENCE_POLICY_SUMMARY_TEXT: &str =
 
 /// Canonical current policy summary text for the shared observer posture.
 pub const CURRENT_OBSERVER_POLICY_SUMMARY_TEXT: &str =
-    "chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests with UnsupportedObserver; malformed observer coordinates remain InvalidObserver; topocentric body positions remain unsupported";
+    "chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests with UnsupportedObserver; malformed observer coordinates remain InvalidObserver; chart-layer topocentric body positions are supported as an opt-in correction (diurnal parallax + diurnal aberration); native-backend topocentric remains unsupported";
 
 /// Canonical current policy summary text for the shared apparentness posture.
 pub const CURRENT_APPARENTNESS_POLICY_SUMMARY_TEXT: &str =
@@ -40,7 +40,7 @@ pub const CURRENT_NATIVE_SIDEREAL_POLICY_SUMMARY_TEXT: &str =
 
 /// Canonical current unsupported-modes summary text used by release reporting.
 pub const CURRENT_UNSUPPORTED_MODES_SUMMARY_TEXT: &str =
-    "built-in UTC convenience remains out of scope; built-in Delta T remains out of scope; topocentric body positions remain unsupported; native sidereal backend output remains unsupported unless a backend explicitly advertises it";
+    "built-in UTC convenience remains out of scope; built-in Delta T remains out of scope; native sidereal backend output remains unsupported unless a backend explicitly advertises it";
 
 /// Canonical current policy summary text for the shared zodiac posture.
 pub const CURRENT_ZODIAC_POLICY_SUMMARY_TEXT: &str = "tropical only";

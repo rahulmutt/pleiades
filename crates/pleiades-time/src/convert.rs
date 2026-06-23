@@ -247,6 +247,15 @@ pub fn tdb_from_ut1_civil(civil: CivilDateTime) -> Result<CivilInstant, CivilTim
     to_terrestrial(civil, TimeScale::Ut1, TimeScale::Tdb)
 }
 
+/// Returns the UT1 Julian day for a Terrestrial Time Julian day, using the
+/// Delta-T table (`UT1 = TT - ΔT`). The Julian-day argument is interpreted in
+/// the TT scale; the ΔT lookup uses it directly (the sub-second feedback of ΔT
+/// on its own lookup epoch is negligible for sidereal time).
+pub fn ut1_jd_from_tt(jd_tt: f64) -> Result<f64, crate::error::CivilTimeError> {
+    let (delta_t_seconds, _quality) = crate::deltat::delta_t(jd_tt)?;
+    Ok(jd_tt - delta_t_seconds / 86_400.0)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -340,5 +349,14 @@ mod tests {
         let tdb = tdb_from_utc_civil(civil).unwrap().instant.julian_day.days();
         let diff_s = (tdb - tt).abs() * SECONDS_PER_DAY;
         assert!(diff_s < 0.002 && diff_s > 0.0, "diff {diff_s}s");
+    }
+
+    #[test]
+    fn ut1_is_earlier_than_tt_by_delta_t() {
+        // J2000.0: ΔT ≈ 63.8 s, so UT1 JD < TT JD by ~63.8/86400 days.
+        let jd_tt = 2_451_545.0;
+        let jd_ut1 = ut1_jd_from_tt(jd_tt).unwrap();
+        let diff_seconds = (jd_tt - jd_ut1) * 86_400.0;
+        assert!((50.0..80.0).contains(&diff_seconds), "ΔT {diff_seconds}s");
     }
 }

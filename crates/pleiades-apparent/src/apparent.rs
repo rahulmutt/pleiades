@@ -85,6 +85,8 @@ where
             precession: true,
             annual_aberration: true,
             nutation_longitude: true,
+            diurnal_parallax: false,
+            diurnal_aberration: false,
         },
         model_sources: MODEL_SOURCES,
     };

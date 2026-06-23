@@ -24,11 +24,15 @@ mod provenance;
 mod release;
 mod render;
 mod report;
+mod topocentric_validation;
 
 pub use apparent_validation::{
     validate_apparent_goldens, ApparentValidationError, ApparentValidationReport,
 };
 pub use render::{banner, render_cli};
+pub use topocentric_validation::{
+    validate_topocentric_goldens, TopocentricValidationError, TopocentricValidationReport,
+};
 
 #[cfg(test)]
 pub(crate) use comparison::body_class::BodyClassSummaryValidationError;

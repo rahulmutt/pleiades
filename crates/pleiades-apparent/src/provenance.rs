@@ -15,11 +15,15 @@ pub struct CorrectionSet {
     pub annual_aberration: bool,
     /// Nutation in longitude (Δψ) was applied.
     pub nutation_longitude: bool,
+    /// Diurnal (geocentric) parallax was applied (topocentric place).
+    pub diurnal_parallax: bool,
+    /// Diurnal aberration was applied (topocentric place).
+    pub diurnal_aberration: bool,
 }
 
 /// Data/model sources behind the apparent-place corrections.
 pub const MODEL_SOURCES: &str =
-    "precession (IAU-1976, Meeus 20.3/21.4); nutation-iau1980.csv (IAU-1980 truncated, Meeus Table 22.A); annual aberration (Meeus 23.2); light-time iteration; light-deflection omitted";
+    "precession (IAU-1976, Meeus 20.3/21.4); nutation-iau1980.csv (IAU-1980 truncated, Meeus Table 22.A); annual aberration (Meeus 23.2); light-time iteration; light-deflection omitted; diurnal parallax (Meeus 11/40, WGS84 ellipsoid); diurnal aberration (0.319\"·ρcosφ′); atmospheric refraction omitted";
 
 /// Provenance describing how an apparent position was produced.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -54,6 +58,39 @@ impl fmt::Display for ApparentProvenance {
     }
 }
 
+/// Provenance for the topocentric (observer-centric) correction stage.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct TopocentricProvenance {
+    /// Parallax shift applied to ecliptic longitude, arcseconds.
+    pub parallax_longitude_arcsec: f64,
+    /// Parallax shift applied to ecliptic latitude, arcseconds.
+    pub parallax_latitude_arcsec: f64,
+    /// Diurnal aberration magnitude applied, arcseconds.
+    pub diurnal_aberration_arcsec: f64,
+    /// Geocentric distance used for the parallax, AU.
+    pub distance_au_used: f64,
+}
+
+impl TopocentricProvenance {
+    /// Compact one-line rendering for diagnostics and release-facing summaries.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "topocentric parallax_lon={:.3}\" parallax_lat={:.3}\" diurnal_aberration={:.4}\" distance_au={:.6}",
+            self.parallax_longitude_arcsec,
+            self.parallax_latitude_arcsec,
+            self.diurnal_aberration_arcsec,
+            self.distance_au_used,
+        )
+    }
+}
+
+impl fmt::Display for TopocentricProvenance {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -71,6 +108,8 @@ mod tests {
                 precession: true,
                 annual_aberration: true,
                 nutation_longitude: true,
+                diurnal_parallax: false,
+                diurnal_aberration: false,
             },
             model_sources: MODEL_SOURCES,
         };

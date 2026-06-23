@@ -83,7 +83,7 @@ The current contract is intentionally mechanical rather than modeled:
 - Geocentric-only backends must reject direct backend requests that include an observer location with a structured `UnsupportedObserver` error, while malformed observer coordinates still use `InvalidObserver`.
 - Shared observer-location validation rejects non-finite latitude, longitude, and elevation before house calculations or chart-request preflight uses the value, and the chart request helper now validates observer coordinates even when no house system is requested.
 - House calculations validate obliquity overrides up front; non-finite overrides are rejected with a structured invalid-obliquity house error instead of flowing into the quadrant formulas.
-- This separation prevents an observer used for houses from being mistaken for topocentric planetary or lunar coordinates; topocentric body positions remain unsupported until a dedicated request surface exists.
+- This separation prevents an observer used for houses from being mistaken for topocentric planetary or lunar coordinates; chart-layer topocentric body positions are now supported as an opt-in correction (diurnal parallax + diurnal aberration), while native-backend topocentric remains unsupported.
 
 ## Frame behavior
 

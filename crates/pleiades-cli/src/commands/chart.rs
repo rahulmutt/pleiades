@@ -262,6 +262,8 @@ pub(crate) fn render_chart(args: &[&str]) -> Result<String, String> {
     let mut jd: Option<f64> = None;
     let mut lat: Option<f64> = None;
     let mut lon: Option<f64> = None;
+    let mut elevation: Option<f64> = None;
+    let mut topocentric = false;
     let mut bodies: Vec<CelestialBody> = Vec::new();
     let mut zodiac_mode = ZodiacMode::Tropical;
     let mut time_scale = TimeScale::Tt;
@@ -285,6 +287,8 @@ pub(crate) fn render_chart(args: &[&str]) -> Result<String, String> {
             "--jd" => jd = Some(parse_f64(iter.next(), "--jd")?),
             "--lat" => lat = Some(parse_f64(iter.next(), "--lat")?),
             "--lon" => lon = Some(parse_f64(iter.next(), "--lon")?),
+            "--elevation" => elevation = Some(parse_f64(iter.next(), "--elevation")?),
+            "--topocentric" => topocentric = true,
             "--body" => bodies.push(parse_body(iter.next())?),
             "--tt" => {
                 if time_scale_explicit {
@@ -482,7 +486,7 @@ pub(crate) fn render_chart(args: &[&str]) -> Result<String, String> {
                     .validated_chart_help_clause()
                     .map_err(render_error)?;
                 return Ok(format!(
-                    "{}\n\nUsage:\n  chart [--jd <julian-day>] [--lat <deg> --lon <deg>] [--tt|--tdb|--utc|--ut1] [--tt-offset-seconds <seconds>|--tt-from-utc-offset-seconds <seconds>|--tt-from-ut1-offset-seconds <seconds>] [--tdb-offset-seconds <seconds>|--tdb-from-utc-offset-seconds <seconds>|--tdb-from-ut1-offset-seconds <seconds>] [--tdb-from-tt-offset-seconds <seconds>] [--tt-from-tdb-offset-seconds <seconds>] [--civil <YYYY-MM-DDTHH:MM:SS>] [--civil-scale utc|ut1] [--civil-target tt|tdb] [--mean (diagnostic: raw J2000)|--apparent (default for release-grade bodies)] [--ayanamsa <name>] [--house-system <name>] [--body <name> ...]\n\nApparent place of date is the default for release-grade bodies (Sun and others with a known distance); per-body provenance lines are appended to the output. Use --mean for raw J2000 diagnostic output. Ayanamsa names may be built-in entries or custom definitions in the form custom:<name>|<epoch-jd>|<offset-degrees> (or custom-definition:<name>|<epoch-jd>|<offset-degrees>). Body names may be built-in bodies such as Sun or Moon, or custom identifiers in the form catalog:designation. {}\n\n{}\n",
+                    "{}\n\nUsage:\n  chart [--jd <julian-day>] [--lat <deg> --lon <deg> [--elevation <m>]] [--tt|--tdb|--utc|--ut1] [--tt-offset-seconds <seconds>|--tt-from-utc-offset-seconds <seconds>|--tt-from-ut1-offset-seconds <seconds>] [--tdb-offset-seconds <seconds>|--tdb-from-utc-offset-seconds <seconds>|--tdb-from-ut1-offset-seconds <seconds>] [--tdb-from-tt-offset-seconds <seconds>] [--tt-from-tdb-offset-seconds <seconds>] [--civil <YYYY-MM-DDTHH:MM:SS>] [--civil-scale utc|ut1] [--civil-target tt|tdb] [--mean (diagnostic: raw J2000)|--apparent (default for release-grade bodies)] [--topocentric] [--ayanamsa <name>] [--house-system <name>] [--body <name> ...]\n\nApparent place of date is the default for release-grade bodies (Sun and others with a known distance); per-body provenance lines are appended to the output. Use --mean for raw J2000 diagnostic output. --topocentric applies diurnal parallax + diurnal aberration for the --lat/--lon/--elevation observer; requires apparent mode. Ayanamsa names may be built-in entries or custom definitions in the form custom:<name>|<epoch-jd>|<offset-degrees> (or custom-definition:<name>|<epoch-jd>|<offset-degrees>). Body names may be built-in bodies such as Sun or Moon, or custom identifiers in the form catalog:designation. {}\n\n{}\n",
                     crate::cli::banner(),
                     chart_help_clause,
                     shared_request_policy_help_block()
@@ -506,6 +510,13 @@ pub(crate) fn render_chart(args: &[&str]) -> Result<String, String> {
             "--civil cannot be combined with --jd, manual time-scale flags, or offset flags"
                 .to_string(),
         );
+    }
+
+    if topocentric && apparentness == Apparentness::Mean {
+        return Err("topocentric positions require apparent place; remove --mean".to_string());
+    }
+    if topocentric && (lat.is_none() || lon.is_none()) {
+        return Err("topocentric positions require both --lat and --lon".to_string());
     }
 
     let (instant, civil_provenance) = match civil {
@@ -535,7 +546,7 @@ pub(crate) fn render_chart(args: &[&str]) -> Result<String, String> {
         (Some(lat), Some(lon)) => Some(ObserverLocation::new(
             Latitude::from_degrees(lat),
             Longitude::from_degrees(lon),
-            None,
+            elevation,
         )),
         (None, None) => None,
         _ => return Err("both --lat and --lon must be provided together".to_string()),
@@ -561,6 +572,9 @@ pub(crate) fn render_chart(args: &[&str]) -> Result<String, String> {
     if let Some(observer) = observer {
         request = request.with_observer(observer);
     }
+    if topocentric {
+        request = request.with_topocentric(true);
+    }
     if let Some(house_system) = house_system {
         request = request.with_house_system(house_system);
     }
@@ -574,6 +588,9 @@ pub(crate) fn render_chart(args: &[&str]) -> Result<String, String> {
                 placement.body,
                 provenance.summary_line()
             ));
+        }
+        if let Some(topo_prov) = &placement.topocentric {
+            output.push_str(&format!("  {}\n", topo_prov.summary_line()));
         }
     }
     match civil_provenance {
@@ -603,6 +620,59 @@ mod tests {
         assert!(
             !out.contains("apparent-place light_time"),
             "mean output should have no provenance line:\n{out}"
+        );
+    }
+
+    #[test]
+    fn topocentric_requires_observer() {
+        let err =
+            render_chart(&["--jd", "2451545.0", "--body", "Moon", "--topocentric"]).unwrap_err();
+        assert!(
+            err.contains("observer") || err.contains("--lat"),
+            "got: {err}"
+        );
+    }
+
+    #[test]
+    fn topocentric_conflicts_with_mean() {
+        let err = render_chart(&[
+            "--jd",
+            "2451545.0",
+            "--body",
+            "Moon",
+            "--lat",
+            "40",
+            "--lon",
+            "-3.7",
+            "--topocentric",
+            "--mean",
+        ])
+        .unwrap_err();
+        assert!(
+            err.contains("apparent") || err.contains("--mean"),
+            "got: {err}"
+        );
+    }
+
+    #[test]
+    fn topocentric_moon_emits_provenance_line() {
+        let out = render_chart(&[
+            "--jd",
+            "2451545.0",
+            "--body",
+            "Moon",
+            "--lat",
+            "40",
+            "--lon",
+            "-3.7",
+            "--elevation",
+            "650",
+            "--topocentric",
+        ])
+        .unwrap();
+        assert!(
+            out.contains("topocentric"),
+            "missing topocentric provenance: {out}"
         );
     }
 }

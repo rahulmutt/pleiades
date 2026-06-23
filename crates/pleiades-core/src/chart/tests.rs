@@ -159,6 +159,7 @@ fn chart_snapshot_exposes_dominant_sign_and_house_summaries() {
                 sign: Some(ZodiacSign::Aries),
                 house: Some(1),
                 apparent: None,
+                topocentric: None,
             },
             BodyPlacement {
                 body: CelestialBody::Moon,
@@ -173,6 +174,7 @@ fn chart_snapshot_exposes_dominant_sign_and_house_summaries() {
                 sign: Some(ZodiacSign::Aries),
                 house: Some(1),
                 apparent: None,
+                topocentric: None,
             },
             BodyPlacement {
                 body: CelestialBody::Mars,
@@ -187,6 +189,7 @@ fn chart_snapshot_exposes_dominant_sign_and_house_summaries() {
                 sign: Some(ZodiacSign::Taurus),
                 house: Some(2),
                 apparent: None,
+                topocentric: None,
             },
             BodyPlacement {
                 body: CelestialBody::Mercury,
@@ -201,6 +204,7 @@ fn chart_snapshot_exposes_dominant_sign_and_house_summaries() {
                 sign: Some(ZodiacSign::Taurus),
                 house: Some(2),
                 apparent: None,
+                topocentric: None,
             },
             BodyPlacement {
                 body: CelestialBody::Jupiter,
@@ -215,6 +219,7 @@ fn chart_snapshot_exposes_dominant_sign_and_house_summaries() {
                 sign: Some(ZodiacSign::Gemini),
                 house: Some(8),
                 apparent: None,
+                topocentric: None,
             },
         ],
     };
@@ -919,6 +924,7 @@ fn chart_snapshot_validate_rejects_house_assignments_without_house_snapshot() {
             sign: Some(ZodiacSign::Aries),
             house: Some(1),
             apparent: None,
+            topocentric: None,
         }],
     };
 
@@ -978,6 +984,7 @@ fn chart_snapshot_validate_rejects_out_of_range_house_assignments() {
             sign: Some(ZodiacSign::Aries),
             house: Some(13),
             apparent: None,
+            topocentric: None,
         }],
     };
 
@@ -1058,6 +1065,7 @@ fn body_placement_validate_rejects_zero_house_numbers() {
         sign: Some(ZodiacSign::Aries),
         house: Some(0),
         apparent: None,
+        topocentric: None,
     };
 
     let error = placement
@@ -1104,6 +1112,7 @@ fn chart_snapshot_validate_rejects_invalid_body_placements() {
             sign: Some(ZodiacSign::Aries),
             house: None,
             apparent: None,
+            topocentric: None,
         }],
     };
     let mut invalid_snapshot = snapshot.clone();
@@ -2308,6 +2317,7 @@ fn body_placement_exposes_motion_direction() {
         sign: None,
         house: None,
         apparent: None,
+        topocentric: None,
     };
 
     assert_eq!(
@@ -2350,6 +2360,7 @@ fn body_placement_treats_non_finite_motion_as_unknown() {
         sign: None,
         house: None,
         apparent: None,
+        topocentric: None,
     };
 
     assert_eq!(placement.motion_direction(), None);
@@ -2418,6 +2429,7 @@ fn body_placement_summary_line_matches_display() {
         sign: Some(ZodiacSign::Leo),
         house: Some(7),
         apparent: None,
+        topocentric: None,
     };
 
     let summary = placement.summary_line();
@@ -2510,6 +2522,7 @@ fn chart_snapshot_supports_body_lookup_and_retrograde_summary() {
                 sign: Some(ZodiacSign::Aries),
                 house: Some(1),
                 apparent: None,
+                topocentric: None,
             },
             BodyPlacement {
                 body: CelestialBody::Mercury,
@@ -2517,6 +2530,7 @@ fn chart_snapshot_supports_body_lookup_and_retrograde_summary() {
                 sign: Some(ZodiacSign::Taurus),
                 house: Some(2),
                 apparent: None,
+                topocentric: None,
             },
             BodyPlacement {
                 body: CelestialBody::Mars,
@@ -2524,6 +2538,7 @@ fn chart_snapshot_supports_body_lookup_and_retrograde_summary() {
                 sign: Some(ZodiacSign::Cancer),
                 house: Some(8),
                 apparent: None,
+                topocentric: None,
             },
             BodyPlacement {
                 body: CelestialBody::Jupiter,
@@ -2531,6 +2546,7 @@ fn chart_snapshot_supports_body_lookup_and_retrograde_summary() {
                 sign: Some(ZodiacSign::Leo),
                 house: Some(9),
                 apparent: None,
+                topocentric: None,
             },
         ],
     };
@@ -2821,6 +2837,7 @@ fn chart_snapshot_exposes_major_aspects_and_angular_separation() {
                 sign: Some(ZodiacSign::Aries),
                 house: Some(1),
                 apparent: None,
+                topocentric: None,
             },
             BodyPlacement {
                 body: CelestialBody::Moon,
@@ -2828,6 +2845,7 @@ fn chart_snapshot_exposes_major_aspects_and_angular_separation() {
                 sign: Some(ZodiacSign::Taurus),
                 house: Some(2),
                 apparent: None,
+                topocentric: None,
             },
         ],
     };
@@ -2896,6 +2914,7 @@ fn chart_snapshot_renders_custom_body_identifiers() {
             sign: None,
             house: None,
             apparent: None,
+            topocentric: None,
         }],
     };
 
@@ -3097,6 +3116,186 @@ fn sidereal_apparent_chart_applies_ayanamsa_to_apparent_longitude() {
     );
 }
 
+fn sample_apparent_moon_chart(
+    observer: pleiades_types::ObserverLocation,
+    topocentric: bool,
+) -> ChartSnapshot {
+    let engine = ChartEngine::new(ApparentMoonChartBackend);
+    let request = ChartRequest::new(Instant::new(
+        pleiades_types::JulianDay::from_days(2_451_545.0),
+        TimeScale::Tt,
+    ))
+    .with_bodies(vec![CelestialBody::Moon])
+    .with_apparentness(Apparentness::Apparent)
+    .with_observer(observer)
+    .with_topocentric(topocentric);
+    engine
+        .chart(&request)
+        .expect("apparent moon chart should succeed")
+}
+
+#[test]
+fn topocentric_moon_differs_from_geocentric() {
+    // Build a geocentric apparent Moon chart and a topocentric one for the same
+    // instant/observer; the longitudes must differ by the lunar parallax (>0.1°).
+    let observer = pleiades_types::ObserverLocation::new(
+        pleiades_types::Latitude::from_degrees(40.0),
+        pleiades_types::Longitude::from_degrees(-3.7),
+        Some(650.0),
+    );
+    let geocentric = sample_apparent_moon_chart(observer.clone(), false);
+    let topocentric = sample_apparent_moon_chart(observer, true);
+    let geo_lon = geocentric.placements[0]
+        .position
+        .ecliptic
+        .as_ref()
+        .unwrap()
+        .longitude
+        .degrees();
+    let topo_lon = topocentric.placements[0]
+        .position
+        .ecliptic
+        .as_ref()
+        .unwrap()
+        .longitude
+        .degrees();
+    let mut diff = (topo_lon - geo_lon).abs();
+    if diff > 180.0 {
+        diff = 360.0 - diff;
+    }
+    assert!(
+        diff > 0.1,
+        "lunar parallax {diff}° too small (geo {geo_lon}, topo {topo_lon})"
+    );
+}
+
+#[test]
+fn sidereal_topocentric_applies_ayanamsa_once() {
+    // Regression guard: in sidereal+topocentric mode the ayanamsa must be applied
+    // EXACTLY ONCE to the topocentric tropical apparent longitude. Before this fix
+    // the topocentric block received an already-sidereal longitude (wrong frame)
+    // and then applied the ayanamsa a SECOND time (double subtraction).
+    //
+    // Two properties are asserted:
+    //
+    //   (A) Topocentric effect is real: the sidereal+topocentric Moon longitude
+    //       differs from the sidereal+geocentric Moon longitude by > 0.1° (lunar
+    //       parallax is measurable).
+    //
+    //   (B) Ayanamsa is applied exactly once: the sidereal+topocentric longitude
+    //       equals (tropical+topocentric longitude − ayanamsa) to within 1 arcsec.
+    //       Double subtraction would produce a value off by ~23° (the full ayanamsa).
+    let instant = Instant::new(
+        pleiades_types::JulianDay::from_days(2_451_545.0),
+        TimeScale::Tt,
+    );
+    let observer = pleiades_types::ObserverLocation::new(
+        pleiades_types::Latitude::from_degrees(40.0),
+        pleiades_types::Longitude::from_degrees(-3.7),
+        Some(650.0),
+    );
+    let zodiac_mode = ZodiacMode::Sidereal {
+        ayanamsa: crate::Ayanamsa::Lahiri,
+    };
+
+    // --- (A) Topocentric parallax is applied in sidereal mode ------------------
+
+    // Sidereal geocentric apparent Moon.
+    let geo_sidereal = {
+        let engine = ChartEngine::new(ApparentMoonChartBackend);
+        let request = ChartRequest::new(instant)
+            .with_bodies(vec![CelestialBody::Moon])
+            .with_apparentness(Apparentness::Apparent)
+            .with_observer(observer.clone())
+            .with_zodiac_mode(zodiac_mode.clone());
+        engine
+            .chart(&request)
+            .expect("sidereal geocentric apparent Moon chart should succeed")
+    };
+
+    // Sidereal topocentric apparent Moon.
+    let topo_sidereal = {
+        let engine = ChartEngine::new(ApparentMoonChartBackend);
+        let request = ChartRequest::new(instant)
+            .with_bodies(vec![CelestialBody::Moon])
+            .with_apparentness(Apparentness::Apparent)
+            .with_observer(observer.clone())
+            .with_zodiac_mode(zodiac_mode.clone())
+            .with_topocentric(true);
+        engine
+            .chart(&request)
+            .expect("sidereal topocentric apparent Moon chart should succeed")
+    };
+
+    let geo_sid_lon = geo_sidereal.placements[0]
+        .position
+        .ecliptic
+        .as_ref()
+        .unwrap()
+        .longitude
+        .degrees();
+    let topo_sid_lon = topo_sidereal.placements[0]
+        .position
+        .ecliptic
+        .as_ref()
+        .unwrap()
+        .longitude
+        .degrees();
+
+    let mut sid_parallax = (topo_sid_lon - geo_sid_lon).abs();
+    if sid_parallax > 180.0 {
+        sid_parallax = 360.0 - sid_parallax;
+    }
+    assert!(
+        sid_parallax > 0.1,
+        "sidereal+topocentric Moon parallax {sid_parallax}° too small \
+         (geo_sid={geo_sid_lon:.4}°, topo_sid={topo_sid_lon:.4}°) — \
+         topocentric correction not applied in sidereal mode"
+    );
+
+    // --- (B) Ayanamsa is applied exactly once -----------------------------------
+
+    // Tropical topocentric apparent Moon (same observer/instant, no sidereal).
+    let topo_tropical = {
+        let engine = ChartEngine::new(ApparentMoonChartBackend);
+        let request = ChartRequest::new(instant)
+            .with_bodies(vec![CelestialBody::Moon])
+            .with_apparentness(Apparentness::Apparent)
+            .with_observer(observer.clone())
+            .with_topocentric(true);
+        engine
+            .chart(&request)
+            .expect("tropical topocentric apparent Moon chart should succeed")
+    };
+
+    let topo_trop_lon = topo_tropical.placements[0]
+        .position
+        .ecliptic
+        .as_ref()
+        .unwrap()
+        .longitude;
+
+    // The expected sidereal+topocentric longitude is: tropical+topocentric − ayanamsa (once).
+    let expected_sid_topo = sidereal_longitude(topo_trop_lon, instant, &zodiac_mode)
+        .expect("sidereal conversion of tropical topocentric longitude should succeed");
+
+    // Allow a generous 2 arcsec tolerance for floating-point rounding.
+    let tol_deg = 2.0 / 3600.0;
+    let err = (topo_sid_lon - expected_sid_topo.degrees())
+        .abs()
+        .min((topo_sid_lon - expected_sid_topo.degrees() + 360.0).abs())
+        .min((topo_sid_lon - expected_sid_topo.degrees() - 360.0).abs());
+    assert!(
+        err < tol_deg,
+        "sidereal+topocentric longitude {topo_sid_lon:.6}° must equal \
+         tropical+topocentric {:.6}° − ayanamsa = {:.6}° (err {:.4} arcsec); \
+         a large error (~23°) indicates double ayanamsa subtraction",
+        topo_trop_lon.degrees(),
+        expected_sid_topo.degrees(),
+        err * 3600.0,
+    );
+}
+
 #[test]
 fn release_grade_body_falls_back_to_mean_when_apparent_unavailable() {
     // Regression guard: when apparent_position() fails for a release-grade body
@@ -3132,5 +3331,76 @@ fn release_grade_body_falls_back_to_mean_when_apparent_unavailable() {
     assert!(
         placement.apparent.is_none(),
         "no apparent provenance must be attached on mean fallback"
+    );
+}
+
+#[test]
+fn topocentric_chart_sets_diurnal_parallax_and_aberration_flags_in_apparent_provenance() {
+    // When the chart-layer topocentric correction runs successfully the apparent
+    // provenance corrections.diurnal_parallax and corrections.diurnal_aberration
+    // must both be true — they were previously left at their default false.
+    let observer = pleiades_types::ObserverLocation::new(
+        pleiades_types::Latitude::from_degrees(40.0),
+        pleiades_types::Longitude::from_degrees(-3.7),
+        Some(650.0),
+    );
+    let snapshot = sample_apparent_moon_chart(observer, true);
+
+    let placement = snapshot
+        .placement_for(&CelestialBody::Moon)
+        .expect("Moon must be present in the topocentric chart");
+
+    let apparent_prov = placement
+        .apparent
+        .as_ref()
+        .expect("Moon must have apparent provenance in a topocentric chart");
+
+    assert!(
+        apparent_prov.corrections.diurnal_parallax,
+        "diurnal_parallax must be true when topocentric correction ran"
+    );
+    assert!(
+        apparent_prov.corrections.diurnal_aberration,
+        "diurnal_aberration must be true when topocentric correction ran"
+    );
+    // Topocentric provenance must also be present as the companion record.
+    assert!(
+        placement.topocentric.is_some(),
+        "topocentric provenance must be present in a topocentric chart"
+    );
+}
+
+#[test]
+fn non_topocentric_apparent_chart_leaves_diurnal_flags_false() {
+    // For a plain geocentric apparent chart the diurnal flags must stay false —
+    // only the topocentric correction path may set them.
+    let observer = pleiades_types::ObserverLocation::new(
+        pleiades_types::Latitude::from_degrees(40.0),
+        pleiades_types::Longitude::from_degrees(-3.7),
+        Some(650.0),
+    );
+    let snapshot = sample_apparent_moon_chart(observer, false);
+
+    let placement = snapshot
+        .placement_for(&CelestialBody::Moon)
+        .expect("Moon must be present in the geocentric chart");
+
+    let apparent_prov = placement
+        .apparent
+        .as_ref()
+        .expect("Moon must have apparent provenance in an apparent chart");
+
+    assert!(
+        !apparent_prov.corrections.diurnal_parallax,
+        "diurnal_parallax must be false for a non-topocentric apparent chart"
+    );
+    assert!(
+        !apparent_prov.corrections.diurnal_aberration,
+        "diurnal_aberration must be false for a non-topocentric apparent chart"
+    );
+    // Topocentric provenance must be absent.
+    assert!(
+        placement.topocentric.is_none(),
+        "topocentric provenance must be absent for a non-topocentric chart"
     );
 }
