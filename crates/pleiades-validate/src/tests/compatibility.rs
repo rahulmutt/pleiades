@@ -1080,6 +1080,7 @@ fn compatibility_profile_partition_checks_reject_overlapping_labels() {
         &["Placidus house system"],
         "Quadrant system used for partition-overlap coverage.",
         true,
+        Some(66.0),
     )];
     let house_release = [pleiades_houses::HouseSystemDescriptor::new(
         HouseSystem::Koch,
@@ -1087,6 +1088,7 @@ fn compatibility_profile_partition_checks_reject_overlapping_labels() {
         &["Placidus"],
         "Quadrant system used for partition-overlap coverage.",
         true,
+        Some(66.0),
     )];
 
     let error = verify_profile_catalog_partitions_are_disjoint(
@@ -1190,6 +1192,7 @@ fn compatibility_profile_verification_rejects_duplicate_house_labels() {
         &["Placidus"],
         "Quadrant system used for duplicate-label verification coverage.",
         true,
+        Some(66.0),
     )];
 
     let error = verify_house_system_aliases(&descriptors)
@@ -1207,6 +1210,7 @@ fn compatibility_profile_verification_rejects_case_insensitive_duplicate_house_l
             &[],
             "Quadrant system used for case-insensitive duplicate-label coverage.",
             true,
+            Some(66.0),
         ),
         pleiades_houses::HouseSystemDescriptor::new(
             HouseSystem::Koch,
@@ -1214,6 +1218,7 @@ fn compatibility_profile_verification_rejects_case_insensitive_duplicate_house_l
             &[],
             "Quadrant system used for case-insensitive duplicate-label coverage.",
             true,
+            Some(66.0),
         ),
     ];
 
@@ -1234,6 +1239,7 @@ fn compatibility_profile_verification_allows_case_insensitive_duplicate_house_al
         &["placidus"],
         "Quadrant system used for intra-entry duplicate-label coverage.",
         true,
+        Some(66.0),
     )];
 
     let checked = verify_house_system_aliases(&descriptors)
@@ -1249,6 +1255,7 @@ fn compatibility_profile_verification_uses_display_labels_for_alias_mismatches()
         &[],
         "Quadrant system used for display-label mismatch coverage.",
         false,
+        None,
     )];
 
     let error = verify_house_system_aliases(&house_descriptors)
@@ -1334,6 +1341,7 @@ fn compatibility_profile_verification_rejects_whitespace_padded_house_aliases() 
         &[" Placidus alias "],
         "Quadrant system used for whitespace-padded alias coverage.",
         true,
+        Some(66.0),
     )];
 
     let error = verify_house_system_aliases(&descriptors)

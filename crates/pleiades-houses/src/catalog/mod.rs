@@ -9,7 +9,7 @@ use std::collections::BTreeSet;
 use pleiades_types::HouseSystem;
 
 /// A catalog entry for a built-in house system.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct HouseSystemDescriptor {
     /// The strongly typed system identifier.
     pub system: HouseSystem,
@@ -21,6 +21,11 @@ pub struct HouseSystemDescriptor {
     pub notes: &'static str,
     /// Whether the system is known to have latitude-sensitive failure modes.
     pub latitude_sensitive: bool,
+    /// Maximum |geographic latitude| (degrees) at which this system yields a
+    /// well-defined cusp set. `Some(bound)` only for latitude-sensitive systems;
+    /// beyond it `calculate_houses` returns `InvalidLatitude` under the strict
+    /// default. `None` for systems that are defined at every latitude.
+    pub max_abs_latitude_deg: Option<f64>,
 }
 
 /// Coarse formula-family tags for the built-in house catalog.
@@ -71,6 +76,7 @@ impl HouseSystemDescriptor {
         aliases: &'static [&'static str],
         notes: &'static str,
         latitude_sensitive: bool,
+        max_abs_latitude_deg: Option<f64>,
     ) -> Self {
         Self {
             system,
@@ -78,6 +84,7 @@ impl HouseSystemDescriptor {
             aliases,
             notes,
             latitude_sensitive,
+            max_abs_latitude_deg,
         }
     }
 
@@ -779,6 +786,7 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         &["Placidus house system", "Placidus table of houses"],
         "Quadrant system; can fail or become unstable at extreme latitudes.",
         true,
+        Some(66.0),
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Koch,
@@ -786,6 +794,7 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         &["Koch houses", "Koch house system", "house system of the birth place", "Koch table of houses", "W. Koch", "W Koch"],
         "Quadrant system with documented high-latitude pathologies.",
         true,
+        Some(66.0),
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Porphyry,
@@ -797,6 +806,7 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         ],
         "Simple quadrant division used as a robust fallback.",
         false,
+        None,
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Regiomontanus,
@@ -808,6 +818,7 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         ],
         "Classical quadrant system with historical interoperability value.",
         false,
+        None,
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Campanus,
@@ -819,6 +830,7 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         ],
         "Great-circle division system.",
         false,
+        None,
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Equal,
@@ -835,6 +847,7 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         ],
         "Equal-house system anchored on the ascendant; Wang and the Swiss Ephemeris \"Equal (cusp 1 = Asc)\" label are treated as interoperability aliases for the equal-house-from-Ascendant convention.",
         false,
+        None,
     ),
     HouseSystemDescriptor::new(
         HouseSystem::WholeSign,
@@ -849,6 +862,7 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         ],
         "Whole-sign system anchored on the rising sign.",
         false,
+        None,
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Alcabitius,
@@ -860,6 +874,7 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         ],
         "Classical semi-arc family system.",
         false,
+        None,
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Meridian,
@@ -876,6 +891,7 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         ],
         "Meridian-style systems and documented axial variants.",
         false,
+        None,
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Axial,
@@ -883,6 +899,7 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         &["Axial variants", "A"],
         "Documented axial variants used by some astrology packages.",
         false,
+        None,
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Topocentric,
@@ -899,6 +916,7 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         ],
         "Topocentric (Polich-Page) house system with geodetic-to-geocentric latitude correction.",
         true,
+        Some(66.0),
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Morinus,
@@ -906,6 +924,7 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         &["Morinus houses", "Morinus house system"],
         "Morinus house system with historical interoperability value.",
         false,
+        None,
     ),
 ];
 
@@ -931,6 +950,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         ],
         "Equal houses anchored at the Midheaven instead of the Ascendant.",
         false,
+        None,
     ),
     HouseSystemDescriptor::new(
         HouseSystem::EqualAries,
@@ -953,6 +973,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         ],
         "Fixed zodiac-sign houses anchored at 0° Aries.",
         false,
+        None,
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Vehlow,
@@ -969,6 +990,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         ],
         "Equal-house variant with the Ascendant centered in house 1.",
         false,
+        None,
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Sripati,
@@ -976,6 +998,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         &["S sripati", "Śrīpati", "Sripati house system", "Sripati table of houses"],
         "Midpoint variant of the Porphyry quadrants used in Jyotiṣa.",
         false,
+        None,
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Carter,
@@ -988,6 +1011,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         ],
         "Equal right-ascension segments anchored on the Ascendant's meridian.",
         false,
+        None,
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Horizon,
@@ -1010,6 +1034,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         ],
         "Azimuthal house system that anchors house 1 due East and house 10 at the MC.",
         true,
+        Some(66.0),
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Apc,
@@ -1027,6 +1052,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         ],
         "APC (Ram school) houses with non-opposite quadrant pairs and polar adjustments.",
         true,
+        Some(66.0),
     ),
     HouseSystemDescriptor::new(
         HouseSystem::KrusinskiPisaGoelzer,
@@ -1043,6 +1069,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         ],
         "Great-circle house system centered on the ascendant and zenith; latitude-sensitive near the poles.",
         true,
+        Some(66.0),
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Albategnius,
@@ -1050,6 +1077,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         &["Savard-A", "Savard A", "Savard's Albategnius"],
         "Quartered latitude-circle variant associated with Savard's Albategnius proposal.",
         false,
+        None,
     ),
     HouseSystemDescriptor::new(
         HouseSystem::PullenSd,
@@ -1065,6 +1093,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         ],
         "Sinusoidal-delta variant that smooths quadrant spacing toward the angles.",
         false,
+        None,
     ),
     HouseSystemDescriptor::new(
         HouseSystem::PullenSr,
@@ -1078,6 +1107,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         ],
         "Sinusoidal-ratio variant with ratio-derived house spacing.",
         false,
+        None,
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Sunshine,
@@ -1094,6 +1124,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         ],
         "Sunshine house system based on the Sun's diurnal and nocturnal arcs; the 1st house is the Ascendant and the 10th house is the MC.",
         true,
+        Some(66.0),
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Gauquelin,
@@ -1101,6 +1132,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         &["G", "Gauquelin", "Gauquelin sector", "Gauquelin table of sectors"],
         "Thirty-six sectors used by the Gauquelin-sector family.",
         true,
+        Some(66.0),
     ),
 ];
 
@@ -1111,6 +1143,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         &["Placidus house system", "Placidus table of houses"],
         "Quadrant system; can fail or become unstable at extreme latitudes.",
         true,
+        Some(66.0),
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Koch,
@@ -1118,6 +1151,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         &["Koch houses", "Koch house system", "house system of the birth place", "Koch table of houses", "W. Koch", "W Koch"],
         "Quadrant system with documented high-latitude pathologies.",
         true,
+        Some(66.0),
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Porphyry,
@@ -1129,6 +1163,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         ],
         "Simple quadrant division used as a robust fallback.",
         false,
+        None,
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Regiomontanus,
@@ -1140,6 +1175,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         ],
         "Classical quadrant system with historical interoperability value.",
         false,
+        None,
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Campanus,
@@ -1151,6 +1187,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         ],
         "Great-circle division system.",
         false,
+        None,
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Carter,
@@ -1163,6 +1200,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         ],
         "Equal right-ascension segments anchored on the Ascendant's meridian.",
         false,
+        None,
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Horizon,
@@ -1185,6 +1223,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         ],
         "Azimuthal house system that anchors house 1 due East and house 10 at the MC.",
         true,
+        Some(66.0),
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Apc,
@@ -1202,6 +1241,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         ],
         "APC (Ram school) houses with non-opposite quadrant pairs and polar adjustments.",
         true,
+        Some(66.0),
     ),
     HouseSystemDescriptor::new(
         HouseSystem::KrusinskiPisaGoelzer,
@@ -1218,6 +1258,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         ],
         "Great-circle house system centered on the ascendant and zenith; latitude-sensitive near the poles.",
         true,
+        Some(66.0),
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Albategnius,
@@ -1225,6 +1266,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         &["Savard-A", "Savard A", "Savard's Albategnius"],
         "Quartered latitude-circle variant associated with Savard's Albategnius proposal.",
         false,
+        None,
     ),
     HouseSystemDescriptor::new(
         HouseSystem::PullenSd,
@@ -1240,6 +1282,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         ],
         "Sinusoidal-delta variant that smooths quadrant spacing toward the angles.",
         false,
+        None,
     ),
     HouseSystemDescriptor::new(
         HouseSystem::PullenSr,
@@ -1253,6 +1296,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         ],
         "Sinusoidal-ratio variant with ratio-derived house spacing.",
         false,
+        None,
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Equal,
@@ -1269,6 +1313,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         ],
         "Equal-house system anchored on the ascendant; Wang and the Swiss Ephemeris \"Equal (cusp 1 = Asc)\" label are treated as interoperability aliases for the equal-house-from-Ascendant convention.",
         false,
+        None,
     ),
     HouseSystemDescriptor::new(
         HouseSystem::WholeSign,
@@ -1283,6 +1328,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         ],
         "Whole-sign system anchored on the rising sign.",
         false,
+        None,
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Alcabitius,
@@ -1294,6 +1340,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         ],
         "Classical semi-arc family system.",
         false,
+        None,
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Meridian,
@@ -1310,6 +1357,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         ],
         "Meridian-style systems and documented axial variants.",
         false,
+        None,
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Axial,
@@ -1317,6 +1365,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         &["Axial variants", "A"],
         "Documented axial variants used by some astrology packages.",
         false,
+        None,
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Topocentric,
@@ -1333,6 +1382,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         ],
         "Topocentric (Polich-Page) house system with geodetic-to-geocentric latitude correction.",
         true,
+        Some(66.0),
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Morinus,
@@ -1340,6 +1390,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         &["Morinus houses", "Morinus house system"],
         "Morinus house system with historical interoperability value.",
         false,
+        None,
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Sunshine,
@@ -1356,6 +1407,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         ],
         "Sunshine house system based on the Sun's diurnal and nocturnal arcs; the 1st house is the Ascendant and the 10th house is the MC.",
         true,
+        Some(66.0),
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Gauquelin,
@@ -1363,6 +1415,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         &["G", "Gauquelin", "Gauquelin sector", "Gauquelin table of sectors"],
         "Thirty-six sectors used by the Gauquelin-sector family.",
         true,
+        Some(66.0),
     ),
     HouseSystemDescriptor::new(
         HouseSystem::EqualMidheaven,
@@ -1385,6 +1438,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         ],
         "Equal houses anchored at the Midheaven instead of the Ascendant.",
         false,
+        None,
     ),
     HouseSystemDescriptor::new(
         HouseSystem::EqualAries,
@@ -1407,6 +1461,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         ],
         "Fixed zodiac-sign houses anchored at 0° Aries.",
         false,
+        None,
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Vehlow,
@@ -1423,6 +1478,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         ],
         "Equal-house variant with the Ascendant centered in house 1.",
         false,
+        None,
     ),
     HouseSystemDescriptor::new(
         HouseSystem::Sripati,
@@ -1430,6 +1486,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         &["S sripati", "Śrīpati", "Sripati house system", "Sripati table of houses"],
         "Midpoint variant of the Porphyry quadrants used in Jyotiṣa.",
         false,
+        None,
     ),
 ];
 
