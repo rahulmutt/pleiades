@@ -21,3 +21,4 @@ mod render_packaged_artifact;
 mod render_request;
 mod report;
 mod snapshot_render;
+mod validate_gates;
