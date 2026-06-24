@@ -981,6 +981,18 @@ fn true_chitra_tracks_a_star_not_a_fixed_offset_from_lahiri() {
     assert!(tc_late > tc_early && tc_early > 22.0 && tc_late < 26.0, "tc {tc_early}..{tc_late}");
     // True Chitra and Lahiri are close but NOT identical (true-star vs offset model).
     assert!((tc_early - lah_early).abs() < 0.1 && (tc_late - lah_late).abs() < 0.1);
+    // Strict check: they must genuinely differ, not be identical.
+    assert!(
+        (tc_early - lah_early).abs() > 1.0e-6 || (tc_late - lah_late).abs() > 1.0e-6,
+        "TrueChitra and Lahiri must differ after correction, got tc_early={tc_early} lah_early={lah_early} tc_late={tc_late} lah_late={lah_late}"
+    );
+    // Different model shape: true-star cubic drift differs from offset-defined linear-ish drift.
+    let tc_diff = tc_late - tc_early;
+    let lah_diff = lah_late - lah_early;
+    assert!(
+        (tc_diff - lah_diff).abs() > 1.0e-4,
+        "TrueChitra and Lahiri should accumulate differently, got tc_diff={tc_diff} lah_diff={lah_diff}"
+    );
 }
 
 #[test]
