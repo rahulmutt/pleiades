@@ -36,6 +36,9 @@ mod tests {
         // The quadratic term makes a +1 century delta differ from a -1 century delta.
         let fwd = precession_delta_degrees(2_451_545.0 + 36_525.0, 2_451_545.0);
         let bwd = precession_delta_degrees(2_451_545.0, 2_451_545.0 - 36_525.0);
-        assert!((fwd - bwd).abs() > 1.0e-5, "expected nonlinearity, fwd={fwd} bwd={bwd}");
+        assert!(
+            (fwd - bwd).abs() > 1.0e-5,
+            "expected nonlinearity, fwd={fwd} bwd={bwd}"
+        );
     }
 }

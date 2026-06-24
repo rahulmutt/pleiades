@@ -5,7 +5,7 @@
 use core::fmt;
 
 use pleiades_ayanamsa::sidereal_offset;
-use pleiades_ayanamsa::thresholds::{ayanamsa_mode_class, ayanamsa_mode_ceiling};
+use pleiades_ayanamsa::thresholds::{ayanamsa_mode_ceiling, ayanamsa_mode_class};
 use pleiades_types::{Ayanamsa, Instant, JulianDay, TimeScale};
 
 const CORPUS_CSV: &str = include_str!(concat!(
@@ -26,15 +26,38 @@ pub(crate) struct AyanamsaCorpusRow {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum AyanamsaCorpusError {
-    MalformedRow { row: usize, line: String, reason: String },
-    MalformedManifest { reason: String },
-    ChecksumMismatch { expected: u64, actual: u64 },
-    ManifestDrift { field: String, expected: String, actual: String },
-    UnknownModeCode { row: usize, code: String },
-    CalculationFailed { row: usize, mode: String },
+    MalformedRow {
+        row: usize,
+        line: String,
+        reason: String,
+    },
+    MalformedManifest {
+        reason: String,
+    },
+    ChecksumMismatch {
+        expected: u64,
+        actual: u64,
+    },
+    ManifestDrift {
+        field: String,
+        expected: String,
+        actual: String,
+    },
+    UnknownModeCode {
+        row: usize,
+        code: String,
+    },
+    CalculationFailed {
+        row: usize,
+        mode: String,
+    },
     CeilingExceeded {
-        row: usize, mode: String, got: f64, want: f64,
-        residual_arcsec: f64, ceiling_arcsec: f64,
+        row: usize,
+        mode: String,
+        got: f64,
+        want: f64,
+        residual_arcsec: f64,
+        ceiling_arcsec: f64,
     },
 }
 
@@ -68,10 +91,14 @@ pub struct AyanamsaCorpusReport {
     pub summary_line: String,
 }
 impl AyanamsaCorpusReport {
-    pub fn summary_line(&self) -> &str { &self.summary_line }
+    pub fn summary_line(&self) -> &str {
+        &self.summary_line
+    }
 }
 impl fmt::Display for AyanamsaCorpusReport {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { f.write_str(&self.summary_line) }
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line)
+    }
 }
 
 pub(crate) fn parse_corpus(csv: &str) -> Result<Vec<AyanamsaCorpusRow>, AyanamsaCorpusError> {
@@ -79,30 +106,49 @@ pub(crate) fn parse_corpus(csv: &str) -> Result<Vec<AyanamsaCorpusRow>, Ayanamsa
     let mut data_row = 0usize;
     for line in csv.lines() {
         let t = line.trim();
-        if t.is_empty() || t.starts_with('#') || t.starts_with("mode_code,") { continue; }
+        if t.is_empty() || t.starts_with('#') || t.starts_with("mode_code,") {
+            continue;
+        }
         data_row += 1;
         let parts: Vec<&str> = t.split(',').collect();
         if parts.len() != 3 {
             return Err(AyanamsaCorpusError::MalformedRow {
-                row: data_row, line: line.to_string(),
+                row: data_row,
+                line: line.to_string(),
                 reason: format!("expected 3 fields, got {}", parts.len()),
             });
         }
-        let jd_tt = parts[1].trim().parse().map_err(|_| AyanamsaCorpusError::MalformedRow {
-            row: data_row, line: line.to_string(),
-            reason: format!("jd_tt {:?} is not a valid float", parts[1]),
-        })?;
-        let se_ayanamsa_deg = parts[2].trim().parse().map_err(|_| AyanamsaCorpusError::MalformedRow {
-            row: data_row, line: line.to_string(),
-            reason: format!("se_ayanamsa_deg {:?} is not a valid float", parts[2]),
-        })?;
-        rows.push(AyanamsaCorpusRow { mode_code: parts[0].trim().to_string(), jd_tt, se_ayanamsa_deg });
+        let jd_tt = parts[1]
+            .trim()
+            .parse()
+            .map_err(|_| AyanamsaCorpusError::MalformedRow {
+                row: data_row,
+                line: line.to_string(),
+                reason: format!("jd_tt {:?} is not a valid float", parts[1]),
+            })?;
+        let se_ayanamsa_deg =
+            parts[2]
+                .trim()
+                .parse()
+                .map_err(|_| AyanamsaCorpusError::MalformedRow {
+                    row: data_row,
+                    line: line.to_string(),
+                    reason: format!("se_ayanamsa_deg {:?} is not a valid float", parts[2]),
+                })?;
+        rows.push(AyanamsaCorpusRow {
+            mode_code: parts[0].trim().to_string(),
+            jd_tt,
+            se_ayanamsa_deg,
+        });
     }
     Ok(rows)
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) struct AyanamsaManifest { pub(crate) rows: usize, pub(crate) checksum: u64 }
+pub(crate) struct AyanamsaManifest {
+    pub(crate) rows: usize,
+    pub(crate) checksum: u64,
+}
 
 pub(crate) fn parse_manifest(text: &str) -> Result<AyanamsaManifest, AyanamsaCorpusError> {
     let mut rows = None;
@@ -112,20 +158,31 @@ pub(crate) fn parse_manifest(text: &str) -> Result<AyanamsaManifest, AyanamsaCor
         if t.starts_with("slice ") {
             for tok in t.split_whitespace() {
                 if let Some(v) = tok.strip_prefix("rows=") {
-                    rows = Some(v.parse().map_err(|_| AyanamsaCorpusError::MalformedManifest {
-                        reason: format!("rows value {v:?} is not a valid usize"),
-                    })?);
+                    rows = Some(
+                        v.parse()
+                            .map_err(|_| AyanamsaCorpusError::MalformedManifest {
+                                reason: format!("rows value {v:?} is not a valid usize"),
+                            })?,
+                    );
                 } else if let Some(v) = tok.strip_prefix("checksum=") {
-                    checksum = Some(v.parse().map_err(|_| AyanamsaCorpusError::MalformedManifest {
-                        reason: format!("checksum value {v:?} is not a valid u64"),
-                    })?);
+                    checksum =
+                        Some(
+                            v.parse()
+                                .map_err(|_| AyanamsaCorpusError::MalformedManifest {
+                                    reason: format!("checksum value {v:?} is not a valid u64"),
+                                })?,
+                        );
                 }
             }
         }
     }
     Ok(AyanamsaManifest {
-        rows: rows.ok_or(AyanamsaCorpusError::MalformedManifest { reason: "rows= not found".into() })?,
-        checksum: checksum.ok_or(AyanamsaCorpusError::MalformedManifest { reason: "checksum= not found".into() })?,
+        rows: rows.ok_or(AyanamsaCorpusError::MalformedManifest {
+            reason: "rows= not found".into(),
+        })?,
+        checksum: checksum.ok_or(AyanamsaCorpusError::MalformedManifest {
+            reason: "checksum= not found".into(),
+        })?,
     })
 }
 
@@ -143,7 +200,9 @@ fn mode_for_code(code: &str) -> Option<Ayanamsa> {
 
 fn wrap_arcsec(got: f64, want: f64) -> f64 {
     let mut d = (got - want).abs();
-    if d > 180.0 { d = 360.0 - d; }
+    if d > 180.0 {
+        d = 360.0 - d;
+    }
     d * 3600.0
 }
 
@@ -152,19 +211,33 @@ pub fn validate_ayanamsa_corpus() -> Result<AyanamsaCorpusReport, AyanamsaCorpus
     let actual = pleiades_apparent::fnv1a64(CORPUS_CSV);
     let manifest = parse_manifest(CORPUS_MANIFEST)?;
     if actual != manifest.checksum {
-        return Err(AyanamsaCorpusError::ChecksumMismatch { expected: manifest.checksum, actual });
+        return Err(AyanamsaCorpusError::ChecksumMismatch {
+            expected: manifest.checksum,
+            actual,
+        });
     }
     let rows = parse_corpus(CORPUS_CSV)?;
     if rows.len() != manifest.rows {
         return Err(AyanamsaCorpusError::ManifestDrift {
-            field: "rows".into(), expected: manifest.rows.to_string(), actual: rows.len().to_string(),
+            field: "rows".into(),
+            expected: manifest.rows.to_string(),
+            actual: rows.len().to_string(),
         });
     }
     // Completeness: all six gated modes present.
-    for code in ["Lahiri", "Raman", "Krishnamurti", "FaganBradley", "TrueChitra", "TrueCitra"] {
+    for code in [
+        "Lahiri",
+        "Raman",
+        "Krishnamurti",
+        "FaganBradley",
+        "TrueChitra",
+        "TrueCitra",
+    ] {
         if !rows.iter().any(|r| r.mode_code == code) {
             return Err(AyanamsaCorpusError::ManifestDrift {
-                field: "completeness".into(), expected: format!("rows for {code}"), actual: "missing".into(),
+                field: "completeness".into(),
+                expected: format!("rows for {code}"),
+                actual: "missing".into(),
             });
         }
     }
@@ -172,33 +245,50 @@ pub fn validate_ayanamsa_corpus() -> Result<AyanamsaCorpusReport, AyanamsaCorpus
     let mut modes = std::collections::BTreeSet::new();
     for (idx, row) in rows.iter().enumerate() {
         let data_row = idx + 1;
-        let mode = mode_for_code(&row.mode_code).ok_or_else(|| AyanamsaCorpusError::UnknownModeCode {
-            row: data_row, code: row.mode_code.clone(),
-        })?;
+        let mode =
+            mode_for_code(&row.mode_code).ok_or_else(|| AyanamsaCorpusError::UnknownModeCode {
+                row: data_row,
+                code: row.mode_code.clone(),
+            })?;
         modes.insert(row.mode_code.clone());
-        let class = ayanamsa_mode_class(&mode).ok_or_else(|| AyanamsaCorpusError::UnknownModeCode {
-            row: data_row, code: row.mode_code.clone(),
-        })?;
+        let class =
+            ayanamsa_mode_class(&mode).ok_or_else(|| AyanamsaCorpusError::UnknownModeCode {
+                row: data_row,
+                code: row.mode_code.clone(),
+            })?;
         let ceiling = ayanamsa_mode_ceiling(class);
         let instant = Instant::new(JulianDay::from_days(row.jd_tt), TimeScale::Tt);
         let got = sidereal_offset(&mode, instant)
-            .ok_or_else(|| AyanamsaCorpusError::CalculationFailed { row: data_row, mode: row.mode_code.clone() })?
+            .ok_or_else(|| AyanamsaCorpusError::CalculationFailed {
+                row: data_row,
+                mode: row.mode_code.clone(),
+            })?
             .degrees();
         let resid = wrap_arcsec(got, row.se_ayanamsa_deg);
-        if resid > max_residual_arcsec { max_residual_arcsec = resid; }
+        if resid > max_residual_arcsec {
+            max_residual_arcsec = resid;
+        }
         if resid > ceiling.offset_arcsec {
             return Err(AyanamsaCorpusError::CeilingExceeded {
-                row: data_row, mode: row.mode_code.clone(), got, want: row.se_ayanamsa_deg,
-                residual_arcsec: resid, ceiling_arcsec: ceiling.offset_arcsec,
+                row: data_row,
+                mode: row.mode_code.clone(),
+                got,
+                want: row.se_ayanamsa_deg,
+                residual_arcsec: resid,
+                ceiling_arcsec: ceiling.offset_arcsec,
             });
         }
     }
-    let summary_line = format!(
+    let summary_line =
+        format!(
         "Ayanamsa gate: {} rows, {} modes validated vs Swiss Ephemeris, max residual {:.3}\u{2033}",
         rows.len(), modes.len(), max_residual_arcsec
     );
     Ok(AyanamsaCorpusReport {
-        rows_validated: rows.len(), modes_checked: modes.len(), max_residual_arcsec, summary_line,
+        rows_validated: rows.len(),
+        modes_checked: modes.len(),
+        max_residual_arcsec,
+        summary_line,
     })
 }
 
@@ -222,7 +312,8 @@ mod tests {
 
     #[test]
     fn malformed_row_fails_closed() {
-        let err = parse_corpus("mode_code,jd_tt,se_ayanamsa_deg\nLahiri,not_a_float,23.0\n").unwrap_err();
+        let err =
+            parse_corpus("mode_code,jd_tt,se_ayanamsa_deg\nLahiri,not_a_float,23.0\n").unwrap_err();
         assert!(matches!(err, AyanamsaCorpusError::MalformedRow { .. }));
     }
 

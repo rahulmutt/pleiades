@@ -165,6 +165,9 @@ pub use artifact::{
     ArtifactInspectionReport, ArtifactLookupBenchmarkReport,
     ArtifactLookupBenchmarkReportValidationError,
 };
+pub use ayanamsa_validation::{
+    validate_ayanamsa_corpus, AyanamsaCorpusError, AyanamsaCorpusReport,
+};
 pub use chart_benchmark::{
     benchmark_chart_backend, chart_benchmark_corpus_summary, ChartBenchmarkReport,
 };
@@ -175,8 +178,7 @@ pub use house_validation::{
     validated_house_validation_summary_line_for_report, HouseValidationReport,
     HouseValidationReportValidationError, HouseValidationSample, HouseValidationScenario,
 };
-pub use house_validation::{validate_house_corpus, HouseCorpusReport, HouseCorpusError};
-pub use ayanamsa_validation::{validate_ayanamsa_corpus, AyanamsaCorpusError, AyanamsaCorpusReport};
+pub use house_validation::{validate_house_corpus, HouseCorpusError, HouseCorpusReport};
 
 use crate::claims::{
     derived_release_posture, validate_release_posture,

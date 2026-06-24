@@ -63,7 +63,10 @@ mod tests {
 
     #[test]
     fn every_class_has_finite_positive_ceiling() {
-        for class in [AyanamsaModeClass::OffsetDefined, AyanamsaModeClass::TrueStar] {
+        for class in [
+            AyanamsaModeClass::OffsetDefined,
+            AyanamsaModeClass::TrueStar,
+        ] {
             let c = ayanamsa_mode_ceiling(class);
             assert!(c.offset_arcsec.is_finite() && c.offset_arcsec > 0.0);
         }
@@ -71,14 +74,23 @@ mod tests {
 
     #[test]
     fn only_the_six_release_modes_are_gated() {
-        assert_eq!(ayanamsa_mode_class(&Ayanamsa::Lahiri), Some(AyanamsaModeClass::OffsetDefined));
-        assert_eq!(ayanamsa_mode_class(&Ayanamsa::TrueChitra), Some(AyanamsaModeClass::TrueStar));
+        assert_eq!(
+            ayanamsa_mode_class(&Ayanamsa::Lahiri),
+            Some(AyanamsaModeClass::OffsetDefined)
+        );
+        assert_eq!(
+            ayanamsa_mode_class(&Ayanamsa::TrueChitra),
+            Some(AyanamsaModeClass::TrueStar)
+        );
         assert_eq!(ayanamsa_mode_class(&Ayanamsa::J2000), None);
     }
 
     #[test]
     fn summary_line_mentions_both_classes() {
         let s = ayanamsa_thresholds_summary_for_report();
-        assert!(s.contains("offset-defined") && s.contains("true-star"), "{s}");
+        assert!(
+            s.contains("offset-defined") && s.contains("true-star"),
+            "{s}"
+        );
     }
 }

@@ -973,12 +973,19 @@ fn true_chitra_tracks_a_star_not_a_fixed_offset_from_lahiri() {
     // After it, the two differ and True Chitra is non-linear vs a Lahiri-style linear offset.
     let early = Instant::new(JulianDay::from_days(2_415_020.5), TimeScale::Tt);
     let late = Instant::new(JulianDay::from_days(2_488_070.0), TimeScale::Tt);
-    let tc_early = sidereal_offset(&Ayanamsa::TrueChitra, early).unwrap().degrees();
-    let tc_late = sidereal_offset(&Ayanamsa::TrueChitra, late).unwrap().degrees();
+    let tc_early = sidereal_offset(&Ayanamsa::TrueChitra, early)
+        .unwrap()
+        .degrees();
+    let tc_late = sidereal_offset(&Ayanamsa::TrueChitra, late)
+        .unwrap()
+        .degrees();
     let lah_early = sidereal_offset(&Ayanamsa::Lahiri, early).unwrap().degrees();
     let lah_late = sidereal_offset(&Ayanamsa::Lahiri, late).unwrap().degrees();
     // Both increase with time (precession), staying in a sane sidereal range.
-    assert!(tc_late > tc_early && tc_early > 22.0 && tc_late < 26.0, "tc {tc_early}..{tc_late}");
+    assert!(
+        tc_late > tc_early && tc_early > 22.0 && tc_late < 26.0,
+        "tc {tc_early}..{tc_late}"
+    );
     // True Chitra and Lahiri are close but NOT identical (true-star vs offset model).
     assert!((tc_early - lah_early).abs() < 0.1 && (tc_late - lah_late).abs() < 0.1);
     // Strict check: they must genuinely differ, not be identical.
@@ -1001,9 +1008,14 @@ fn lahiri_drift_is_nonlinear_after_correction() {
     // (general precession is non-linear); the old constant-rate model gave equal.
     let epoch = 2_435_553.5;
     let step = 36_525.0;
-    let at = |jd: f64| sidereal_offset(
-        &Ayanamsa::Lahiri, Instant::new(JulianDay::from_days(jd), TimeScale::Tt)
-    ).unwrap().degrees();
+    let at = |jd: f64| {
+        sidereal_offset(
+            &Ayanamsa::Lahiri,
+            Instant::new(JulianDay::from_days(jd), TimeScale::Tt),
+        )
+        .unwrap()
+        .degrees()
+    };
     let fwd = at(epoch + step) - at(epoch);
     let bwd = at(epoch) - at(epoch - step);
     assert!((fwd - bwd).abs() > 1.0e-5, "fwd={fwd} bwd={bwd}");

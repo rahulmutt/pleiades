@@ -244,7 +244,9 @@ fn placidian_houses_report_invalid_latitude_at_the_pole() {
 
     let error = calculate_houses(&request).expect_err("polar Placidus should be rejected");
     assert_eq!(error.kind, crate::error::HouseErrorKind::InvalidLatitude);
-    assert!(error.message.contains("Placidus is undefined beyond |latitude| 66"));
+    assert!(error
+        .message
+        .contains("Placidus is undefined beyond |latitude| 66"));
 }
 
 #[test]
@@ -541,8 +543,18 @@ fn morinus_cusps_match_swiss_ephemeris_corpus_within_120_arcsec() {
 
     // c1_lat40 SE corpus Morinus row, cusps c1..c12.
     let se_morinus: [f64; 12] = [
-        9.611_088, 38.040_522, 68.849_424, 101.373_900, 132.906_648, 161.960_854,
-        189.611_088, 218.040_522, 248.849_424, 281.373_900, 312.906_648, 341.960_854,
+        9.611_088,
+        38.040_522,
+        68.849_424,
+        101.373_900,
+        132.906_648,
+        161.960_854,
+        189.611_088,
+        218.040_522,
+        248.849_424,
+        281.373_900,
+        312.906_648,
+        341.960_854,
     ];
 
     let request = HouseRequest::new(
@@ -599,7 +611,8 @@ fn morinus_cusps_are_latitude_invariant() {
     // All snapshots must produce bit-identical cusp sets.
     for (i, snapshot) in snapshots[1..].iter().enumerate() {
         assert_eq!(
-            snapshot.cusps, snapshots[0].cusps,
+            snapshot.cusps,
+            snapshots[0].cusps,
             "Morinus cusps at lat={} must be identical to cusps at lat=0 (same RAMC and obliquity)",
             latitudes[i + 1],
         );
@@ -926,8 +939,8 @@ fn se_compat_fallback_substitutes_porphyry_beyond_bound() {
         HouseSystem::Placidus,
     )
     .with_high_latitude_policy(HighLatitudePolicy::SwissEphemerisFallback);
-    let snapshot = calculate_houses(&request)
-        .expect("SE-compat fallback must succeed beyond bound");
+    let snapshot =
+        calculate_houses(&request).expect("SE-compat fallback must succeed beyond bound");
 
     // Same instant/observer under Porphyry directly:
     let porphyry = calculate_houses(&HouseRequest::new(
@@ -1012,12 +1025,32 @@ fn placidus_and_topocentric_cusps_match_swiss_ephemeris_corpus_within_120_arcsec
 
     // c1_lat40 SE corpus rows, cusps c1..c12.
     let se_placidus: [f64; 12] = [
-        17.706_103, 53.858_979, 78.399_152, 99.611_088, 122.382_578, 152.464_496, 197.706_103,
-        233.858_979, 258.399_152, 279.611_088, 302.382_578, 332.464_496,
+        17.706_103,
+        53.858_979,
+        78.399_152,
+        99.611_088,
+        122.382_578,
+        152.464_496,
+        197.706_103,
+        233.858_979,
+        258.399_152,
+        279.611_088,
+        302.382_578,
+        332.464_496,
     ];
     let se_topocentric: [f64; 12] = [
-        17.706_103, 53.759_507, 78.270_701, 99.611_088, 122.465_089, 152.483_265, 197.706_103,
-        233.759_507, 258.270_701, 279.611_088, 302.465_089, 332.483_265,
+        17.706_103,
+        53.759_507,
+        78.270_701,
+        99.611_088,
+        122.465_089,
+        152.483_265,
+        197.706_103,
+        233.759_507,
+        258.270_701,
+        279.611_088,
+        302.465_089,
+        332.483_265,
     ];
 
     for (system, se) in [
@@ -1068,8 +1101,18 @@ fn koch_cusps_match_swiss_ephemeris_corpus_within_120_arcsec() {
 
     // c1_lat40 SE corpus Koch row, cusps c1..c12.
     let se_koch: [f64; 12] = [
-        17.706_103, 51.954_052, 78.286_109, 99.611_088, 125.345_306, 158.845_358, 197.706_103,
-        231.954_052, 258.286_109, 279.611_088, 305.345_306, 338.845_358,
+        17.706_103,
+        51.954_052,
+        78.286_109,
+        99.611_088,
+        125.345_306,
+        158.845_358,
+        197.706_103,
+        231.954_052,
+        258.286_109,
+        279.611_088,
+        305.345_306,
+        338.845_358,
     ];
 
     let request = HouseRequest::new(
@@ -1115,8 +1158,18 @@ fn campanus_cusps_match_swiss_ephemeris_corpus_within_120_arcsec() {
 
     // c1_lat40 SE corpus Campanus row, cusps c1..c12.
     let se_campanus: [f64; 12] = [
-        17.706_103, 64.352_912, 85.435_838, 99.611_088, 114.834_455, 141.116_623,
-        197.706_103, 244.352_912, 265.435_838, 279.611_088, 294.834_455, 321.116_623,
+        17.706_103,
+        64.352_912,
+        85.435_838,
+        99.611_088,
+        114.834_455,
+        141.116_623,
+        197.706_103,
+        244.352_912,
+        265.435_838,
+        279.611_088,
+        294.834_455,
+        321.116_623,
     ];
 
     let request = HouseRequest::new(
@@ -1162,8 +1215,18 @@ fn alcabitius_cusps_match_swiss_ephemeris_corpus_within_120_arcsec() {
 
     // c1_lat40 SE corpus Alcabitius row, cusps c1..c12.
     let se_alcabitius: [f64; 12] = [
-        17.706_103, 46.835_395, 73.785_097, 99.611_088, 129.969_119, 163.041_881,
-        197.706_103, 226.835_395, 253.785_097, 279.611_088, 309.969_119, 343.041_881,
+        17.706_103,
+        46.835_395,
+        73.785_097,
+        99.611_088,
+        129.969_119,
+        163.041_881,
+        197.706_103,
+        226.835_395,
+        253.785_097,
+        279.611_088,
+        309.969_119,
+        343.041_881,
     ];
 
     let request = HouseRequest::new(
@@ -1209,8 +1272,18 @@ fn alcabitius_cusps_c2_lat55_match_swiss_ephemeris_corpus_within_1_arcsec() {
 
     // c2_lat55 SE corpus Alcabitius row, cusps c1..c12.
     let se_alcabitius: [f64; 12] = [
-        28.505_186, 53.528_350, 76.929_561, 99.611_088, 133.334_056, 170.360_534,
-        208.505_186, 233.528_350, 256.929_561, 279.611_088, 313.334_056, 350.360_534,
+        28.505_186,
+        53.528_350,
+        76.929_561,
+        99.611_088,
+        133.334_056,
+        170.360_534,
+        208.505_186,
+        233.528_350,
+        256.929_561,
+        279.611_088,
+        313.334_056,
+        350.360_534,
     ];
 
     let request = HouseRequest::new(

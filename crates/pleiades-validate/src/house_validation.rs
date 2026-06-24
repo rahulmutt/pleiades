@@ -14,7 +14,7 @@ use pleiades_core::{
     baseline_house_systems, calculate_houses, HouseError, HouseRequest, HouseSnapshot,
     HouseSystemDescriptor, Instant, JulianDay, Latitude, Longitude, ObserverLocation, TimeScale,
 };
-use pleiades_houses::{built_in_house_systems, HouseFormulaFamily, HighLatitudePolicy};
+use pleiades_houses::{built_in_house_systems, HighLatitudePolicy, HouseFormulaFamily};
 
 /// A house-validation sample for one system in one chart scenario.
 #[derive(Clone, Debug, PartialEq)]
@@ -762,19 +762,28 @@ impl fmt::Display for HouseCorpusError {
                     "house corpus checksum mismatch: expected {expected}, got {actual}"
                 )
             }
-            Self::ManifestDrift { field, expected, actual } => {
+            Self::ManifestDrift {
+                field,
+                expected,
+                actual,
+            } => {
                 write!(
                     f,
                     "house corpus manifest drift on field '{field}': expected {expected:?}, got {actual:?}"
                 )
             }
             Self::UnknownSystemCode { row, code } => {
-                write!(
-                    f,
-                    "house corpus row {row}: unknown system code {code:?}"
-                )
+                write!(f, "house corpus row {row}: unknown system code {code:?}")
             }
-            Self::CeilingExceeded { row, system, cusp, got, want, residual_arcsec, ceiling_arcsec } => {
+            Self::CeilingExceeded {
+                row,
+                system,
+                cusp,
+                got,
+                want,
+                residual_arcsec,
+                ceiling_arcsec,
+            } => {
                 let slot_label = match *cusp {
                     0 => "Ascendant".to_string(),
                     13 => "Midheaven".to_string(),
@@ -785,7 +794,11 @@ impl fmt::Display for HouseCorpusError {
                     "house corpus row {row} ({system} {slot_label}): residual {residual_arcsec:.3}\u{2033} > ceiling {ceiling_arcsec:.1}\u{2033} (got={got:.6}\u{00b0}, want={want:.6}\u{00b0})"
                 )
             }
-            Self::CalculationFailed { row, system, reason } => {
+            Self::CalculationFailed {
+                row,
+                system,
+                reason,
+            } => {
                 write!(
                     f,
                     "house corpus row {row} ({system}): calculate_houses failed: {reason}"
@@ -797,7 +810,11 @@ impl fmt::Display for HouseCorpusError {
                     "house gate: {system} at lat={lat}\u{00b0} should be rejected by the strict high-latitude policy but was not"
                 )
             }
-            Self::FallbackMismatch { system, lat, reason } => {
+            Self::FallbackMismatch {
+                system,
+                lat,
+                reason,
+            } => {
                 write!(
                     f,
                     "house gate: {system} SE-compat fallback at lat={lat}\u{00b0} mismatch: {reason}"
@@ -840,53 +857,74 @@ pub(crate) fn parse_house_corpus(csv: &str) -> Result<Vec<HouseCorpusRow>, House
 
         let chart_id = parts[0].trim().to_string();
 
-        let jd_ut: f64 = parts[1].trim().parse().map_err(|_| HouseCorpusError::MalformedRow {
-            row: data_row,
-            line: line.to_string(),
-            reason: format!("jd_ut {:?} is not a valid float", parts[1]),
-        })?;
+        let jd_ut: f64 = parts[1]
+            .trim()
+            .parse()
+            .map_err(|_| HouseCorpusError::MalformedRow {
+                row: data_row,
+                line: line.to_string(),
+                reason: format!("jd_ut {:?} is not a valid float", parts[1]),
+            })?;
 
-        let lat_deg: f64 = parts[2].trim().parse().map_err(|_| HouseCorpusError::MalformedRow {
-            row: data_row,
-            line: line.to_string(),
-            reason: format!("lat_deg {:?} is not a valid float", parts[2]),
-        })?;
+        let lat_deg: f64 = parts[2]
+            .trim()
+            .parse()
+            .map_err(|_| HouseCorpusError::MalformedRow {
+                row: data_row,
+                line: line.to_string(),
+                reason: format!("lat_deg {:?} is not a valid float", parts[2]),
+            })?;
 
-        let lon_deg: f64 = parts[3].trim().parse().map_err(|_| HouseCorpusError::MalformedRow {
-            row: data_row,
-            line: line.to_string(),
-            reason: format!("lon_deg {:?} is not a valid float", parts[3]),
-        })?;
+        let lon_deg: f64 = parts[3]
+            .trim()
+            .parse()
+            .map_err(|_| HouseCorpusError::MalformedRow {
+                row: data_row,
+                line: line.to_string(),
+                reason: format!("lon_deg {:?} is not a valid float", parts[3]),
+            })?;
 
-        let elev_m: f64 = parts[4].trim().parse().map_err(|_| HouseCorpusError::MalformedRow {
-            row: data_row,
-            line: line.to_string(),
-            reason: format!("elev_m {:?} is not a valid float", parts[4]),
-        })?;
+        let elev_m: f64 = parts[4]
+            .trim()
+            .parse()
+            .map_err(|_| HouseCorpusError::MalformedRow {
+                row: data_row,
+                line: line.to_string(),
+                reason: format!("elev_m {:?} is not a valid float", parts[4]),
+            })?;
 
         let system_code = parts[5].trim().to_string();
 
         let mut cusps = [0.0f64; 12];
         for (i, cusp) in cusps.iter_mut().enumerate() {
             let field = parts[6 + i];
-            *cusp = field.trim().parse().map_err(|_| HouseCorpusError::MalformedRow {
-                row: data_row,
-                line: line.to_string(),
-                reason: format!("cusp field[{}] {:?} is not a valid float", 6 + i, field),
-            })?;
+            *cusp = field
+                .trim()
+                .parse()
+                .map_err(|_| HouseCorpusError::MalformedRow {
+                    row: data_row,
+                    line: line.to_string(),
+                    reason: format!("cusp field[{}] {:?} is not a valid float", 6 + i, field),
+                })?;
         }
 
-        let asc: f64 = parts[18].trim().parse().map_err(|_| HouseCorpusError::MalformedRow {
-            row: data_row,
-            line: line.to_string(),
-            reason: format!("asc {:?} is not a valid float", parts[18]),
-        })?;
+        let asc: f64 = parts[18]
+            .trim()
+            .parse()
+            .map_err(|_| HouseCorpusError::MalformedRow {
+                row: data_row,
+                line: line.to_string(),
+                reason: format!("asc {:?} is not a valid float", parts[18]),
+            })?;
 
-        let mc: f64 = parts[19].trim().parse().map_err(|_| HouseCorpusError::MalformedRow {
-            row: data_row,
-            line: line.to_string(),
-            reason: format!("mc {:?} is not a valid float", parts[19]),
-        })?;
+        let mc: f64 = parts[19]
+            .trim()
+            .parse()
+            .map_err(|_| HouseCorpusError::MalformedRow {
+                row: data_row,
+                line: line.to_string(),
+                reason: format!("mc {:?} is not a valid float", parts[19]),
+            })?;
 
         rows.push(HouseCorpusRow {
             chart_id,
@@ -1019,18 +1057,18 @@ impl fmt::Display for HouseCorpusReport {
 fn system_for_code(code: &str) -> Option<pleiades_core::HouseSystem> {
     use pleiades_core::HouseSystem;
     match code {
-        "Placidus"      => Some(HouseSystem::Placidus),
-        "Koch"          => Some(HouseSystem::Koch),
-        "Porphyry"      => Some(HouseSystem::Porphyry),
+        "Placidus" => Some(HouseSystem::Placidus),
+        "Koch" => Some(HouseSystem::Koch),
+        "Porphyry" => Some(HouseSystem::Porphyry),
         "Regiomontanus" => Some(HouseSystem::Regiomontanus),
-        "Campanus"      => Some(HouseSystem::Campanus),
-        "Equal"         => Some(HouseSystem::Equal),
-        "WholeSign"     => Some(HouseSystem::WholeSign),
-        "Alcabitius"    => Some(HouseSystem::Alcabitius),
-        "Meridian"      => Some(HouseSystem::Meridian),
-        "Axial"         => Some(HouseSystem::Axial),
-        "Topocentric"   => Some(HouseSystem::Topocentric),
-        "Morinus"       => Some(HouseSystem::Morinus),
+        "Campanus" => Some(HouseSystem::Campanus),
+        "Equal" => Some(HouseSystem::Equal),
+        "WholeSign" => Some(HouseSystem::WholeSign),
+        "Alcabitius" => Some(HouseSystem::Alcabitius),
+        "Meridian" => Some(HouseSystem::Meridian),
+        "Axial" => Some(HouseSystem::Axial),
+        "Topocentric" => Some(HouseSystem::Topocentric),
+        "Morinus" => Some(HouseSystem::Morinus),
         _ => None,
     }
 }
@@ -1039,18 +1077,18 @@ fn system_for_code(code: &str) -> Option<pleiades_core::HouseSystem> {
 fn code_for_system(system: &pleiades_core::HouseSystem) -> &'static str {
     use pleiades_core::HouseSystem;
     match system {
-        HouseSystem::Placidus      => "Placidus",
-        HouseSystem::Koch          => "Koch",
-        HouseSystem::Porphyry      => "Porphyry",
+        HouseSystem::Placidus => "Placidus",
+        HouseSystem::Koch => "Koch",
+        HouseSystem::Porphyry => "Porphyry",
         HouseSystem::Regiomontanus => "Regiomontanus",
-        HouseSystem::Campanus      => "Campanus",
-        HouseSystem::Equal         => "Equal",
-        HouseSystem::WholeSign     => "WholeSign",
-        HouseSystem::Alcabitius    => "Alcabitius",
-        HouseSystem::Meridian      => "Meridian",
-        HouseSystem::Axial         => "Axial",
-        HouseSystem::Topocentric   => "Topocentric",
-        HouseSystem::Morinus       => "Morinus",
+        HouseSystem::Campanus => "Campanus",
+        HouseSystem::Equal => "Equal",
+        HouseSystem::WholeSign => "WholeSign",
+        HouseSystem::Alcabitius => "Alcabitius",
+        HouseSystem::Meridian => "Meridian",
+        HouseSystem::Axial => "Axial",
+        HouseSystem::Topocentric => "Topocentric",
+        HouseSystem::Morinus => "Morinus",
         // Non-baseline systems: return empty string (no corpus rows expected).
         _ => "",
     }
@@ -1081,10 +1119,7 @@ fn recompute_pleiades(
     // calculation; for house cusps, which are analytic (no nutation table),
     // TT ≈ UT at this precision. This matches how all prior phase-5 tests
     // set up their instants (J2000 TT = JD 2451545.0).
-    let instant = Instant::new(
-        JulianDay::from_days(row.jd_ut),
-        TimeScale::Tt,
-    );
+    let instant = Instant::new(JulianDay::from_days(row.jd_ut), TimeScale::Tt);
     let request = HouseRequest::new(instant, observer, system.clone());
     calculate_houses(&request).map_err(|e| HouseCorpusError::CalculationFailed {
         row: row_num,
@@ -1154,11 +1189,12 @@ pub fn validate_house_corpus() -> Result<HouseCorpusReport, HouseCorpusError> {
     let mut max_cusp_residual_arcsec = 0.0_f64;
     for (idx, row) in rows.iter().enumerate() {
         let data_row = idx + 1;
-        let system =
-            system_for_code(&row.system_code).ok_or_else(|| HouseCorpusError::UnknownSystemCode {
+        let system = system_for_code(&row.system_code).ok_or_else(|| {
+            HouseCorpusError::UnknownSystemCode {
                 row: data_row,
                 code: row.system_code.clone(),
-            })?;
+            }
+        })?;
 
         let family = pleiades_houses::descriptor(&system)
             .map(|d| d.formula_family())
@@ -1240,7 +1276,8 @@ pub fn validate_house_corpus() -> Result<HouseCorpusReport, HouseCorpusError> {
                 Longitude::from_degrees(0.0),
                 Some(0.0),
             );
-            let req = HouseRequest::new(gate_instant(), observer.clone(), descriptor.system.clone());
+            let req =
+                HouseRequest::new(gate_instant(), observer.clone(), descriptor.system.clone());
             // Strict (default) policy must reject.
             if calculate_houses(&req).is_ok() {
                 return Err(HouseCorpusError::MissingStrictRejection {
@@ -1249,7 +1286,9 @@ pub fn validate_house_corpus() -> Result<HouseCorpusReport, HouseCorpusError> {
                 });
             }
             // SE-compat fallback must succeed and equal Porphyry.
-            let fb_req = req.clone().with_high_latitude_policy(HighLatitudePolicy::SwissEphemerisFallback);
+            let fb_req = req
+                .clone()
+                .with_high_latitude_policy(HighLatitudePolicy::SwissEphemerisFallback);
             let fb = calculate_houses(&fb_req).map_err(|e| HouseCorpusError::FallbackMismatch {
                 system: format!("{:?}", descriptor.system),
                 lat,
@@ -1502,7 +1541,8 @@ c0,2451545,0,0,0,Placidus,1,2,3,4,5,6,7,8,9,10,11,12,1.5,10.5\n";
 
     #[test]
     fn committed_corpus_parses_and_matches_manifest_row_count() {
-        let rows = parse_house_corpus(CORPUS_CSV).expect("committed corpus CSV must be well-formed");
+        let rows =
+            parse_house_corpus(CORPUS_CSV).expect("committed corpus CSV must be well-formed");
         let manifest =
             parse_house_manifest(CORPUS_MANIFEST).expect("committed manifest must be well-formed");
 
@@ -1515,7 +1555,10 @@ c0,2451545,0,0,0,Placidus,1,2,3,4,5,6,7,8,9,10,11,12,1.5,10.5\n";
         assert_eq!(manifest.reference_engine, "SwissEphemeris 2.10.03");
         // CrossCheck-Engine is opaque provenance text; the gate never fails on its value.
         // Updated from "not-run" when Astrolog 7.70 cross-check was run (Task 12).
-        assert_eq!(manifest.crosscheck, "Astrolog 7.70 (patched, hardeningDisable=all)");
+        assert_eq!(
+            manifest.crosscheck,
+            "Astrolog 7.70 (patched, hardeningDisable=all)"
+        );
     }
 
     // ── Task 8 tests: numeric-residual gate ───────────────────────────────────
@@ -1524,7 +1567,10 @@ c0,2451545,0,0,0,Placidus,1,2,3,4,5,6,7,8,9,10,11,12,1.5,10.5\n";
     fn gate_passes_over_committed_corpus() {
         let report =
             validate_house_corpus().expect("committed house corpus must validate within ceilings");
-        assert_eq!(report.rows_validated, 60, "corpus must have exactly 60 rows");
+        assert_eq!(
+            report.rows_validated, 60,
+            "corpus must have exactly 60 rows"
+        );
         assert!(
             report.max_cusp_residual_arcsec.is_finite(),
             "max cusp residual must be finite"
@@ -1576,8 +1622,11 @@ c0,2451545,0,0,0,Placidus,1,2,3,4,5,6,7,8,9,10,11,12,1.5,10.5\n";
 
     #[test]
     fn fallback_equals_porphyry_in_gate_helper() {
-        use pleiades_houses::{calculate_houses as ph_calculate_houses, HouseRequest as PhHouseRequest, HighLatitudePolicy};
         use pleiades_core::HouseSystem;
+        use pleiades_houses::{
+            calculate_houses as ph_calculate_houses, HighLatitudePolicy,
+            HouseRequest as PhHouseRequest,
+        };
         let obs = ObserverLocation::new(
             Latitude::from_degrees(80.0),
             Longitude::from_degrees(0.0),
@@ -1588,9 +1637,12 @@ c0,2451545,0,0,0,Placidus,1,2,3,4,5,6,7,8,9,10,11,12,1.5,10.5\n";
                 .with_high_latitude_policy(HighLatitudePolicy::SwissEphemerisFallback),
         )
         .expect("SE-compat fallback must succeed beyond bound");
-        let po = ph_calculate_houses(&PhHouseRequest::new(gate_instant(), obs, HouseSystem::Porphyry))
-            .expect("Porphyry is defined at all latitudes");
+        let po = ph_calculate_houses(&PhHouseRequest::new(
+            gate_instant(),
+            obs,
+            HouseSystem::Porphyry,
+        ))
+        .expect("Porphyry is defined at all latitudes");
         assert_eq!(fb.cusps, po.cusps);
     }
-
 }
