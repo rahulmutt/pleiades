@@ -63,13 +63,28 @@ pub enum CompatibilityClaimTier {
 ```
 
 **Two tiers, no ambiguous middle state** — matching the principle Phase 3
-enforced for body/backend claims. Consequence: a house family carrying a
-generous, explicitly **NOT corpus-validated** ceiling (`GreatCircle`,
-`SolarArc`, `Sector`, `Custom`, `Unknown`) is `DescriptorOnly`, because holding a
-generous placeholder ceiling is not evidence. Only the four corpus-validated
-families' 12 systems (`Equal`, `WholeSign`, `Quadrant`, `EquatorialProjection`)
-and the 6 gated ayanamsas (`Lahiri`, `Raman`, `Krishnamurti`, `FaganBradley`,
-`TrueChitra`, `TrueCitra`) are `ReleaseGradeNumeric`.
+enforced for body/backend claims.
+
+**Evidence is per-entry, not per-family/class.** "Has numeric evidence" means
+the entry itself appears in the SE corpus *and* its measured residual passes the
+ceiling — not merely that it belongs to a family/class some other entry
+validated. This distinction matters: the house ceiling is keyed by formula
+family, but only some members of a corpus-validated family have actual corpus
+rows. The `ReleaseGradeNumeric` set is therefore exactly:
+
+- **House systems (12)** — the distinct `system_code`s present in
+  `crates/pleiades-validate/data/houses-corpus/cusps.csv`: `Placidus`, `Koch`,
+  `Porphyry`, `Regiomontanus`, `Campanus`, `Equal`, `WholeSign`, `Alcabitius`,
+  `Meridian`, `Axial`, `Topocentric`, `Morinus`. Family-mates with no corpus row
+  (e.g. `Vehlow`, `EqualMidheaven`, `EqualAries`, `Sripati`, `Carter`) are
+  `DescriptorOnly` even though their family carries a corpus-validated ceiling.
+- **Ayanamsas (6)** — the modes present in
+  `crates/pleiades-validate/data/ayanamsa-corpus/ayanamsa.csv`: `Lahiri`,
+  `Raman`, `Krishnamurti`, `FaganBradley`, `TrueChitra`, `TrueCitra`.
+
+A house family carrying a generous, explicitly **NOT corpus-validated** ceiling
+(`GreatCircle`, `SolarArc`, `Sector`, `Custom`, `Unknown`) is `DescriptorOnly`
+for the same reason: holding a placeholder ceiling is not evidence.
 
 ### Descriptor change (breaking — accepted)
 
@@ -92,14 +107,23 @@ and an aggregate entry point returning `Result<(), Vec<CompatClaimAuditError>>`.
 
 For every descriptor marked `ReleaseGradeNumeric`:
 
-1. it must be in the numeric gate's covered set (houses: family is one of the
-   four corpus-validated families; ayanamsa: `ayanamsa_mode_class()` is `Some`),
-2. its ceiling must be **corpus-validated** (not a generous placeholder), and
-3. the numeric gate must actually pass for it (measured residual ≤ ceiling),
-   reusing the existing gate *report* rather than recomputing residuals.
+1. it must be in the gate's **validated-entry set** (the distinct systems/modes
+   actually present in the corpus, exposed by the gate report — see below), and
+2. the numeric gate must pass overall (it already enforces residual ≤ ceiling
+   per row), reusing the existing gate *report* rather than recomputing
+   residuals.
 
-For every descriptor marked `DescriptorOnly`: it must **not** be in the
-corpus-validated gate set.
+For every descriptor marked `DescriptorOnly`: it must **not** be in the gate's
+validated-entry set.
+
+To make the validated-entry set available, `HouseCorpusReport` and
+`AyanamsaCorpusReport` each gain an accessor returning the distinct typed
+entries they validated (`validated_systems() -> Vec<HouseSystem>`,
+`validated_modes() -> Vec<Ayanamsa>`). `Vec` + `PartialEq` membership is used
+(not `BTreeSet`/`HashSet`) because `Ayanamsa` derives only `PartialEq` and
+`HouseSystem` lacks `Ord`; this avoids adding derives to the published types.
+The reports already track `systems_checked` / `modes_checked` counts; the new
+accessors expose the membership Check A compares against.
 
 Bidirectionality makes the `ReleaseGradeNumeric` descriptor set and the
 corpus-validated gate set provably equal, so both overclaim (claim without
