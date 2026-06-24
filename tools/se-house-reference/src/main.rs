@@ -17,10 +17,21 @@ const HSYS: &[(&str, HouseSystemKind)] = &[
     ("Axial",         HouseSystemKind::AxialRotationSystemMeridianSystemZariel),
     ("Topocentric",   HouseSystemKind::PolichPageTopocentricSystem),
     ("Morinus",       HouseSystemKind::Morinus),
+    ("EqualMidheaven", HouseSystemKind::EqualMc),
+    ("EqualAries",     HouseSystemKind::Equal1Aries),
+    ("Vehlow",         HouseSystemKind::VehlowEqual),
+    ("Sripati",        HouseSystemKind::Sripati),
+    ("Carter",         HouseSystemKind::CarterPoliEquatorial),
+    ("Horizon",        HouseSystemKind::AzimuthalHorizontalSystem),
+    ("Apc",            HouseSystemKind::ApcHouses),
+    ("KrusinskiPisaGoelzer", HouseSystemKind::KrusinskiPisaGoelzer),
+    ("Sunshine",       HouseSystemKind::SunshineMakranskySolutionTreindl),
+    ("PullenSd",       HouseSystemKind::PullenSdSinusoidalDeltaExNeoPorphyry),
+    ("PullenSr",       HouseSystemKind::PullenSrSinusoidalRatio),
 ];
 
 fn main() {
-    // 5 fixtures × 12 systems = 60 data rows.
+    // 5 fixtures × 23 systems = 115 data rows.
     // In-band latitudes only (0, 40, 55, 66). Strict-rejection latitudes (70, 80)
     // are NOT included here — they are asserted by the gate (Tasks 8/9).
     let fixtures: &[(&str, f64, f64, f64, f64)] = &[
