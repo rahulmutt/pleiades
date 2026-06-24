@@ -295,7 +295,7 @@ pub fn validate_ayanamsa_corpus() -> Result<AyanamsaCorpusReport, AyanamsaCorpus
     let mut validated_modes: Vec<Ayanamsa> = Vec::new();
     for row in &rows {
         if let Some(mode) = mode_for_code(&row.mode_code) {
-            if !validated_modes.iter().any(|m| *m == mode) {
+            if !validated_modes.contains(&mode) {
                 validated_modes.push(mode);
             }
         }
@@ -347,8 +347,7 @@ mod tests {
         assert_eq!(report.validated_modes().len(), 6);
         assert!(report
             .validated_modes()
-            .iter()
-            .any(|m| *m == pleiades_types::Ayanamsa::Lahiri));
+            .contains(&pleiades_types::Ayanamsa::Lahiri));
     }
 
     /// Prove the gate fails closed on a residual that exceeds the mode-class ceiling.

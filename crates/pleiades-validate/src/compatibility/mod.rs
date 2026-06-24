@@ -678,7 +678,10 @@ pub fn verify_compatibility_profile() -> Result<String, EphemerisError> {
         let messages: Vec<String> = violations.iter().map(|v| v.to_string()).collect();
         return Err(EphemerisError::new(
             EphemerisErrorKind::InvalidRequest,
-            format!("compatibility overclaim audit failed:\n{}", messages.join("\n")),
+            format!(
+                "compatibility overclaim audit failed:\n{}",
+                messages.join("\n")
+            ),
         ));
     }
     compatibility_profile_verification_summary()?.validated_summary_line()

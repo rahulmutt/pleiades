@@ -1333,7 +1333,7 @@ pub fn validate_house_corpus() -> Result<HouseCorpusReport, HouseCorpusError> {
     let mut validated_systems: Vec<pleiades_core::HouseSystem> = Vec::new();
     for row in &rows {
         if let Some(sys) = system_for_code(&row.system_code) {
-            if !validated_systems.iter().any(|s| *s == sys) {
+            if !validated_systems.contains(&sys) {
                 validated_systems.push(sys);
             }
         }
@@ -1669,7 +1669,6 @@ c0,2451545,0,0,0,Placidus,1,2,3,4,5,6,7,8,9,10,11,12,1.5,10.5\n";
         assert_eq!(report.validated_systems().len(), 12);
         assert!(report
             .validated_systems()
-            .iter()
-            .any(|s| *s == pleiades_core::HouseSystem::Placidus));
+            .contains(&pleiades_core::HouseSystem::Placidus));
     }
 }

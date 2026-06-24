@@ -19,10 +19,15 @@ fn run_all_numeric_gates() -> Result<(), String> {
 
 fn render_compat_claims_audit() -> Result<String, String> {
     match crate::claims::audit_compat_claims() {
-        Ok(()) => Ok("compatibility overclaim audit: OK (claims match numeric evidence)".to_string()),
+        Ok(()) => {
+            Ok("compatibility overclaim audit: OK (claims match numeric evidence)".to_string())
+        }
         Err(violations) => {
             let messages: Vec<String> = violations.iter().map(|v| v.to_string()).collect();
-            Err(format!("compatibility overclaim audit failed:\n{}", messages.join("\n")))
+            Err(format!(
+                "compatibility overclaim audit failed:\n{}",
+                messages.join("\n")
+            ))
         }
     }
 }

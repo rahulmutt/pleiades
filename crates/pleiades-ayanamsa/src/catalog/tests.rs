@@ -445,12 +445,16 @@ fn release_grade_numeric_ayanamsa_set_is_exactly_the_six_gated_modes() {
         .collect();
 
     let expected = [
-        Ayanamsa::Lahiri, Ayanamsa::Raman, Ayanamsa::Krishnamurti,
-        Ayanamsa::FaganBradley, Ayanamsa::TrueChitra, Ayanamsa::TrueCitra,
+        Ayanamsa::Lahiri,
+        Ayanamsa::Raman,
+        Ayanamsa::Krishnamurti,
+        Ayanamsa::FaganBradley,
+        Ayanamsa::TrueChitra,
+        Ayanamsa::TrueCitra,
     ];
 
     assert_eq!(release_grade.len(), expected.len());
     for mode in expected {
-        assert!(release_grade.iter().any(|m| *m == mode), "missing {mode:?}");
+        assert!(release_grade.contains(&mode), "missing {mode:?}");
     }
 }

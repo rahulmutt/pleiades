@@ -1103,10 +1103,18 @@ fn release_grade_numeric_house_set_is_exactly_the_twelve_corpus_systems() {
         .collect();
 
     let expected = [
-        HouseSystem::Placidus, HouseSystem::Koch, HouseSystem::Porphyry,
-        HouseSystem::Regiomontanus, HouseSystem::Campanus, HouseSystem::Equal,
-        HouseSystem::WholeSign, HouseSystem::Alcabitius, HouseSystem::Meridian,
-        HouseSystem::Axial, HouseSystem::Topocentric, HouseSystem::Morinus,
+        HouseSystem::Placidus,
+        HouseSystem::Koch,
+        HouseSystem::Porphyry,
+        HouseSystem::Regiomontanus,
+        HouseSystem::Campanus,
+        HouseSystem::Equal,
+        HouseSystem::WholeSign,
+        HouseSystem::Alcabitius,
+        HouseSystem::Meridian,
+        HouseSystem::Axial,
+        HouseSystem::Topocentric,
+        HouseSystem::Morinus,
     ];
 
     assert_eq!(release_grade.len(), expected.len());

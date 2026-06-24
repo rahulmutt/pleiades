@@ -14,12 +14,22 @@ use crate::{validate_ayanamsa_corpus, validate_house_corpus};
 pub(crate) enum CompatClaimAuditError {
     /// An entry is marked `ReleaseGradeNumeric` but the SE corpus does not
     /// validate it.
-    ReleaseGradeWithoutCorpusEvidence { catalog: &'static str, entry: String },
+    ReleaseGradeWithoutCorpusEvidence {
+        catalog: &'static str,
+        entry: String,
+    },
     /// An entry is marked `DescriptorOnly` but the SE corpus validates it.
-    DescriptorOnlyHasEvidence { catalog: &'static str, entry: String },
+    DescriptorOnlyHasEvidence {
+        catalog: &'static str,
+        entry: String,
+    },
     /// The compatibility profile's release-grade-numeric count disagrees with
     /// the descriptor-derived count.
-    ProfileCountMismatch { catalog: &'static str, profile: usize, descriptors: usize },
+    ProfileCountMismatch {
+        catalog: &'static str,
+        profile: usize,
+        descriptors: usize,
+    },
     /// A prose/CLI surface disagrees with the descriptor-derived counts.
     SurfaceDisagrees { surface: &'static str },
 }
@@ -28,16 +38,26 @@ impl fmt::Display for CompatClaimAuditError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::ReleaseGradeWithoutCorpusEvidence { catalog, entry } => write!(
-                f, "{catalog} entry `{entry}` is ReleaseGradeNumeric but has no corpus evidence"
+                f,
+                "{catalog} entry `{entry}` is ReleaseGradeNumeric but has no corpus evidence"
             ),
             Self::DescriptorOnlyHasEvidence { catalog, entry } => write!(
-                f, "{catalog} entry `{entry}` is DescriptorOnly but the corpus validates it"
+                f,
+                "{catalog} entry `{entry}` is DescriptorOnly but the corpus validates it"
             ),
-            Self::ProfileCountMismatch { catalog, profile, descriptors } => write!(
-                f, "{catalog} profile release-grade count {profile} != descriptor count {descriptors}"
+            Self::ProfileCountMismatch {
+                catalog,
+                profile,
+                descriptors,
+            } => write!(
+                f,
+                "{catalog} profile release-grade count {profile} != descriptor count {descriptors}"
             ),
             Self::SurfaceDisagrees { surface } => {
-                write!(f, "surface `{surface}` disagrees with descriptor-derived counts")
+                write!(
+                    f,
+                    "surface `{surface}` disagrees with descriptor-derived counts"
+                )
             }
         }
     }
@@ -82,11 +102,10 @@ fn check_tier_evidence(errors: &mut Vec<CompatClaimAuditError>) {
         }
     };
     for d in built_in_house_systems() {
-        let has_evidence = house_report
-            .validated_systems()
-            .iter()
-            .any(|s| *s == d.system);
-        if let Some(e) = classify_tier_evidence("house", d.canonical_name, d.claim_tier, has_evidence) {
+        let has_evidence = house_report.validated_systems().contains(&d.system);
+        if let Some(e) =
+            classify_tier_evidence("house", d.canonical_name, d.claim_tier, has_evidence)
+        {
             errors.push(e);
         }
     }
@@ -101,8 +120,10 @@ fn check_tier_evidence(errors: &mut Vec<CompatClaimAuditError>) {
         }
     };
     for d in built_in_ayanamsas() {
-        let has_evidence = aya_report.validated_modes().iter().any(|m| *m == d.ayanamsa);
-        if let Some(e) = classify_tier_evidence("ayanamsa", d.canonical_name, d.claim_tier, has_evidence) {
+        let has_evidence = aya_report.validated_modes().contains(&d.ayanamsa);
+        if let Some(e) =
+            classify_tier_evidence("ayanamsa", d.canonical_name, d.claim_tier, has_evidence)
+        {
             errors.push(e);
         }
     }
@@ -166,10 +187,14 @@ fn check_surfaces(errors: &mut Vec<CompatClaimAuditError>) {
     let house_token = format!("{house_count} house systems pass");
     let aya_token = format!("{aya_count} release-claimed");
     if !README.contains(&house_token) {
-        errors.push(CompatClaimAuditError::SurfaceDisagrees { surface: "README:houses" });
+        errors.push(CompatClaimAuditError::SurfaceDisagrees {
+            surface: "README:houses",
+        });
     }
     if !README.contains(&aya_token) {
-        errors.push(CompatClaimAuditError::SurfaceDisagrees { surface: "README:ayanamsa" });
+        errors.push(CompatClaimAuditError::SurfaceDisagrees {
+            surface: "README:ayanamsa",
+        });
     }
 }
 
@@ -179,7 +204,11 @@ pub(crate) fn audit_compat_claims() -> Result<(), Vec<CompatClaimAuditError>> {
     check_tier_evidence(&mut errors);
     check_profile(&mut errors);
     check_surfaces(&mut errors);
-    if errors.is_empty() { Ok(()) } else { Err(errors) }
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
+    }
 }
 
 #[cfg(test)]
@@ -192,7 +221,10 @@ mod tests {
             .iter()
             .filter(|d| d.claim_tier == CompatibilityClaimTier::ReleaseGradeNumeric)
             .count();
-        assert!(n > 0, "release-grade-numeric house set is empty — audit would be vacuous");
+        assert!(
+            n > 0,
+            "release-grade-numeric house set is empty — audit would be vacuous"
+        );
     }
 
     #[test]
@@ -210,7 +242,7 @@ mod tests {
         assert!(!validated.is_empty());
         let any_release = built_in_house_systems().iter().any(|d| {
             d.claim_tier == CompatibilityClaimTier::ReleaseGradeNumeric
-                && validated.iter().any(|s| *s == d.system)
+                && validated.contains(&d.system)
         });
         assert!(any_release);
     }
@@ -233,16 +265,38 @@ mod tests {
     fn descriptor_only_entry_with_corpus_evidence_is_flagged() {
         // DescriptorOnly + has evidence -> DescriptorOnlyHasEvidence
         assert!(matches!(
-            classify_tier_evidence("house", "Synthetic", CompatibilityClaimTier::DescriptorOnly, true),
+            classify_tier_evidence(
+                "house",
+                "Synthetic",
+                CompatibilityClaimTier::DescriptorOnly,
+                true
+            ),
             Some(CompatClaimAuditError::DescriptorOnlyHasEvidence { .. })
         ));
         // ReleaseGradeNumeric + no evidence -> ReleaseGradeWithoutCorpusEvidence
         assert!(matches!(
-            classify_tier_evidence("ayanamsa", "Synthetic", CompatibilityClaimTier::ReleaseGradeNumeric, false),
+            classify_tier_evidence(
+                "ayanamsa",
+                "Synthetic",
+                CompatibilityClaimTier::ReleaseGradeNumeric,
+                false
+            ),
             Some(CompatClaimAuditError::ReleaseGradeWithoutCorpusEvidence { .. })
         ));
         // the two consistent cases -> None
-        assert!(classify_tier_evidence("house", "X", CompatibilityClaimTier::ReleaseGradeNumeric, true).is_none());
-        assert!(classify_tier_evidence("house", "X", CompatibilityClaimTier::DescriptorOnly, false).is_none());
+        assert!(classify_tier_evidence(
+            "house",
+            "X",
+            CompatibilityClaimTier::ReleaseGradeNumeric,
+            true
+        )
+        .is_none());
+        assert!(classify_tier_evidence(
+            "house",
+            "X",
+            CompatibilityClaimTier::DescriptorOnly,
+            false
+        )
+        .is_none());
     }
 }
