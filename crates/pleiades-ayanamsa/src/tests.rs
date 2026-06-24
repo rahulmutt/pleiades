@@ -794,7 +794,14 @@ fn sidereal_offset_is_available_for_baseline_ayanamsas() {
 
     let instant = Instant::new(JulianDay::from_days(2_435_553.5), TimeScale::Tt);
     let offset = sidereal_offset(&Ayanamsa::Lahiri, instant).expect("offset should exist");
-    assert_eq!(offset, Angle::from_degrees(23.245_524_743));
+    // At its reference epoch the corrected (precession-drift) value equals the
+    // documented anchor to within the gate ceiling; tight residual is checked by
+    // validate-ayanamsa against the SE corpus.
+    assert!(
+        (offset.degrees() - 23.245_524_743).abs() < 0.01,
+        "Lahiri at epoch should be ~23.2455°, got {}",
+        offset.degrees()
+    );
 }
 
 #[test]
@@ -958,4 +965,34 @@ fn custom_ayanamsa_uses_explicit_epoch_and_offset_metadata() {
         let offset = sidereal_offset(&custom, instant).expect("custom offset should exist");
         assert_eq!(offset, Angle::from_degrees(offset_degrees));
     }
+}
+
+#[test]
+fn true_chitra_tracks_a_star_not_a_fixed_offset_from_lahiri() {
+    // Before the correction, True Chitra == Lahiri at every instant (same epoch/offset).
+    // After it, the two differ and True Chitra is non-linear vs a Lahiri-style linear offset.
+    let early = Instant::new(JulianDay::from_days(2_415_020.5), TimeScale::Tt);
+    let late = Instant::new(JulianDay::from_days(2_488_070.0), TimeScale::Tt);
+    let tc_early = sidereal_offset(&Ayanamsa::TrueChitra, early).unwrap().degrees();
+    let tc_late = sidereal_offset(&Ayanamsa::TrueChitra, late).unwrap().degrees();
+    let lah_early = sidereal_offset(&Ayanamsa::Lahiri, early).unwrap().degrees();
+    let lah_late = sidereal_offset(&Ayanamsa::Lahiri, late).unwrap().degrees();
+    // Both increase with time (precession), staying in a sane sidereal range.
+    assert!(tc_late > tc_early && tc_early > 22.0 && tc_late < 26.0, "tc {tc_early}..{tc_late}");
+    // True Chitra and Lahiri are close but NOT identical (true-star vs offset model).
+    assert!((tc_early - lah_early).abs() < 0.1 && (tc_late - lah_late).abs() < 0.1);
+}
+
+#[test]
+fn lahiri_drift_is_nonlinear_after_correction() {
+    // Equal time steps forward and backward from epoch give unequal deltas
+    // (general precession is non-linear); the old constant-rate model gave equal.
+    let epoch = 2_435_553.5;
+    let step = 36_525.0;
+    let at = |jd: f64| sidereal_offset(
+        &Ayanamsa::Lahiri, Instant::new(JulianDay::from_days(jd), TimeScale::Tt)
+    ).unwrap().degrees();
+    let fwd = at(epoch + step) - at(epoch);
+    let bwd = at(epoch) - at(epoch - step);
+    assert!((fwd - bwd).abs() > 1.0e-5, "fwd={fwd} bwd={bwd}");
 }

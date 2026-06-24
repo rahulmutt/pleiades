@@ -307,11 +307,28 @@ pub fn resolve_ayanamsa(label: &str) -> Option<Ayanamsa> {
 /// assert!(offset.degrees() > 20.0);
 /// ```
 pub fn sidereal_offset(ayanamsa: &Ayanamsa, instant: Instant) -> Option<Angle> {
-    match ayanamsa {
-        Ayanamsa::Custom(custom) => {
-            offset_from_components(custom.epoch, custom.offset_degrees, instant)
+    use crate::thresholds::{ayanamsa_mode_class, AyanamsaModeClass};
+
+    if let Ayanamsa::Custom(custom) = ayanamsa {
+        return offset_from_components(custom.epoch, custom.offset_degrees, instant);
+    }
+
+    let jd_tt = instant.julian_day.days();
+    match ayanamsa_mode_class(ayanamsa) {
+        // Offset-defined: documented epoch anchor + IAU-2006 precession drift.
+        Some(AyanamsaModeClass::OffsetDefined) => {
+            let entry = descriptor(ayanamsa)?;
+            let epoch = entry.epoch?;
+            let offset = entry.offset_degrees?;
+            let drift = crate::precession::precession_delta_degrees(jd_tt, epoch.days());
+            Some(Angle::from_degrees(offset.degrees() + drift))
         }
-        other => descriptor(other).and_then(|entry| entry.offset_at(instant)),
+        // True-star: committed cubic fit to Swiss Ephemeris.
+        Some(AyanamsaModeClass::TrueStar) => {
+            crate::truestar::true_star_offset_degrees(ayanamsa, jd_tt).map(Angle::from_degrees)
+        }
+        // Not gated: unchanged legacy linear-rate path.
+        None => descriptor(ayanamsa).and_then(|entry| entry.offset_at(instant)),
     }
 }
 
