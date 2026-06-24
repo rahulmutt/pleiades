@@ -5,7 +5,7 @@ use pleiades_types::{Angle, Ayanamsa, JulianDay};
 use crate::model::AyanamsaDescriptor;
 
 pub(crate) const BASELINE_AYANAMSAS: &[AyanamsaDescriptor] = &[
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::Lahiri,
         "Lahiri",
         &[
@@ -19,7 +19,7 @@ pub(crate) const BASELINE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Some(JulianDay::from_days(2_435_553.5)),
         Some(Angle::from_degrees(23.245_524_743)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::Raman,
         "Raman",
         &[
@@ -33,7 +33,7 @@ pub(crate) const BASELINE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Some(JulianDay::from_days(2_415_020.0)),
         Some(Angle::from_degrees(21.014_44)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::Krishnamurti,
         "Krishnamurti",
         &[
@@ -49,7 +49,7 @@ pub(crate) const BASELINE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Some(JulianDay::from_days(2_415_020.0)),
         Some(Angle::from_degrees(22.363_889)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::FaganBradley,
         "Fagan/Bradley",
         &["Fagan/Bradley Ayanamsha", "Fagan Bradley", "Fagan-Bradley"],
@@ -57,7 +57,7 @@ pub(crate) const BASELINE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Some(JulianDay::from_days(2_433_282.423_46)),
         Some(Angle::from_degrees(24.042_044_444)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::TrueChitra,
         "True Chitra",
         &["Chitra", "True Chitra ayanamsa"],
@@ -68,7 +68,7 @@ pub(crate) const BASELINE_AYANAMSAS: &[AyanamsaDescriptor] = &[
 ];
 
 pub(crate) const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::TrueCitra,
         "True Citra",
         &["True Citra ayanamsa"],
@@ -528,7 +528,7 @@ pub(crate) const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
 ];
 
 pub(crate) static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::Lahiri,
         "Lahiri",
         &[
@@ -542,7 +542,7 @@ pub(crate) static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
         Some(JulianDay::from_days(2_435_553.5)),
         Some(Angle::from_degrees(23.245_524_743)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::Raman,
         "Raman",
         &[
@@ -556,7 +556,7 @@ pub(crate) static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
         Some(JulianDay::from_days(2_415_020.0)),
         Some(Angle::from_degrees(21.014_44)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::Krishnamurti,
         "Krishnamurti",
         &[
@@ -571,7 +571,7 @@ pub(crate) static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
         Some(JulianDay::from_days(2_415_020.0)),
         Some(Angle::from_degrees(22.363_889)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::FaganBradley,
         "Fagan/Bradley",
         &[
@@ -584,7 +584,7 @@ pub(crate) static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
         Some(JulianDay::from_days(2_433_282.423_46)),
         Some(Angle::from_degrees(24.042_044_444)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::TrueChitra,
         "True Chitra",
         &["Chitra", "True Chitra ayanamsa"],
@@ -592,7 +592,7 @@ pub(crate) static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
         Some(JulianDay::from_days(2_435_553.5)),
         Some(Angle::from_degrees(23.245_524_743)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::TrueCitra,
         "True Citra",
         &[

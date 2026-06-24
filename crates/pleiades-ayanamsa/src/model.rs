@@ -25,10 +25,12 @@ pub struct AyanamsaDescriptor {
     pub epoch: Option<JulianDay>,
     /// Reference sidereal offset in degrees at the reference epoch, when available.
     pub offset_degrees: Option<Angle>,
+    /// The compatibility claim tier for this built-in entry.
+    pub claim_tier: pleiades_types::CompatibilityClaimTier,
 }
 
 impl AyanamsaDescriptor {
-    /// Creates a new descriptor.
+    /// Creates a descriptor that makes no numeric compatibility claim.
     pub const fn new(
         ayanamsa: Ayanamsa,
         canonical_name: &'static str,
@@ -44,6 +46,28 @@ impl AyanamsaDescriptor {
             notes,
             epoch,
             offset_degrees,
+            claim_tier: pleiades_types::CompatibilityClaimTier::DescriptorOnly,
+        }
+    }
+
+    /// Creates a descriptor that asserts release-grade numeric compatibility.
+    /// Use only for entries with passing SE numeric-gate evidence.
+    pub const fn new_release_grade(
+        ayanamsa: Ayanamsa,
+        canonical_name: &'static str,
+        aliases: &'static [&'static str],
+        notes: &'static str,
+        epoch: Option<JulianDay>,
+        offset_degrees: Option<Angle>,
+    ) -> Self {
+        Self {
+            ayanamsa,
+            canonical_name,
+            aliases,
+            notes,
+            epoch,
+            offset_degrees,
+            claim_tier: pleiades_types::CompatibilityClaimTier::ReleaseGradeNumeric,
         }
     }
 
