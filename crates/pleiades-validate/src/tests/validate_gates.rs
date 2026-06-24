@@ -98,3 +98,55 @@ fn help_text_mentions_validate_topocentric_and_validate_apparent() {
         "help text should mention apparent-gate alias"
     );
 }
+
+#[test]
+fn validate_houses_command_dispatches_and_reports_pass() {
+    let result = render_cli(&["validate-houses"])
+        .expect("validate-houses should succeed on committed house corpus");
+    assert!(
+        result.contains("House gate"),
+        "validate-houses output should contain 'House gate': {result}"
+    );
+}
+
+#[test]
+fn houses_gate_alias_matches_validate_houses() {
+    let via_primary =
+        render_cli(&["validate-houses"]).expect("validate-houses should succeed");
+    let via_alias =
+        render_cli(&["houses-gate"]).expect("houses-gate alias should succeed");
+    assert_eq!(via_primary, via_alias);
+}
+
+#[test]
+fn validate_houses_rejects_extra_args() {
+    let error = render_cli(&["validate-houses", "extra"])
+        .expect_err("validate-houses should reject extra arguments");
+    assert!(
+        error.contains("validate-houses does not accept extra arguments"),
+        "unexpected error: {error}"
+    );
+}
+
+#[test]
+fn houses_gate_rejects_extra_args() {
+    let error = render_cli(&["houses-gate", "extra"])
+        .expect_err("houses-gate should reject extra arguments");
+    assert!(
+        error.contains("validate-houses does not accept extra arguments"),
+        "unexpected error: {error}"
+    );
+}
+
+#[test]
+fn help_text_mentions_validate_houses_and_houses_gate() {
+    let help = render_cli(&["help"]).expect("help command should render");
+    assert!(
+        help.contains("validate-houses"),
+        "help text should mention validate-houses"
+    );
+    assert!(
+        help.contains("houses-gate"),
+        "help text should mention houses-gate alias"
+    );
+}
