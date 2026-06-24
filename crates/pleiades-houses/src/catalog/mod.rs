@@ -26,6 +26,8 @@ pub struct HouseSystemDescriptor {
     /// beyond it `calculate_houses` returns `InvalidLatitude` under the strict
     /// default. `None` for systems that are defined at every latitude.
     pub max_abs_latitude_deg: Option<f64>,
+    /// The compatibility claim tier for this built-in entry.
+    pub claim_tier: pleiades_types::CompatibilityClaimTier,
 }
 
 /// Coarse formula-family tags for the built-in house catalog.
@@ -69,7 +71,7 @@ impl fmt::Display for HouseFormulaFamily {
 }
 
 impl HouseSystemDescriptor {
-    /// Creates a new descriptor.
+    /// Creates a descriptor that makes no numeric compatibility claim.
     pub const fn new(
         system: HouseSystem,
         canonical_name: &'static str,
@@ -85,6 +87,28 @@ impl HouseSystemDescriptor {
             notes,
             latitude_sensitive,
             max_abs_latitude_deg,
+            claim_tier: pleiades_types::CompatibilityClaimTier::DescriptorOnly,
+        }
+    }
+
+    /// Creates a descriptor that asserts release-grade numeric compatibility.
+    /// Use only for entries with passing SE numeric-gate evidence.
+    pub const fn new_release_grade(
+        system: HouseSystem,
+        canonical_name: &'static str,
+        aliases: &'static [&'static str],
+        notes: &'static str,
+        latitude_sensitive: bool,
+        max_abs_latitude_deg: Option<f64>,
+    ) -> Self {
+        Self {
+            system,
+            canonical_name,
+            aliases,
+            notes,
+            latitude_sensitive,
+            max_abs_latitude_deg,
+            claim_tier: pleiades_types::CompatibilityClaimTier::ReleaseGradeNumeric,
         }
     }
 
@@ -780,7 +804,7 @@ pub fn house_catalog_validation_summary() -> HouseCatalogValidationSummary {
 }
 
 const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::Placidus,
         "Placidus",
         &["Placidus house system", "Placidus table of houses"],
@@ -788,7 +812,7 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         true,
         Some(66.0),
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::Koch,
         "Koch",
         &["Koch houses", "Koch house system", "house system of the birth place", "Koch table of houses", "W. Koch", "W Koch"],
@@ -796,7 +820,7 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         true,
         Some(66.0),
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::Porphyry,
         "Porphyry",
         &[
@@ -808,7 +832,7 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         false,
         None,
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::Regiomontanus,
         "Regiomontanus",
         &[
@@ -820,7 +844,7 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         false,
         None,
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::Campanus,
         "Campanus",
         &[
@@ -832,7 +856,7 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         false,
         None,
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::Equal,
         "Equal",
         &[
@@ -849,7 +873,7 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         false,
         None,
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::WholeSign,
         "Whole Sign",
         &[
@@ -864,7 +888,7 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         false,
         None,
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::Alcabitius,
         "Alcabitius",
         &[
@@ -876,7 +900,7 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         false,
         None,
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::Meridian,
         "Meridian",
         &[
@@ -893,7 +917,7 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         false,
         None,
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::Axial,
         "Axial",
         &["Axial variants", "A"],
@@ -901,7 +925,7 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         false,
         None,
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::Topocentric,
         "Topocentric",
         &[
@@ -918,7 +942,7 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         true,
         Some(66.0),
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::Morinus,
         "Morinus",
         &["Morinus houses", "Morinus house system"],
@@ -1137,7 +1161,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
 ];
 
 static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::Placidus,
         "Placidus",
         &["Placidus house system", "Placidus table of houses"],
@@ -1145,7 +1169,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         true,
         Some(66.0),
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::Koch,
         "Koch",
         &["Koch houses", "Koch house system", "house system of the birth place", "Koch table of houses", "W. Koch", "W Koch"],
@@ -1153,7 +1177,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         true,
         Some(66.0),
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::Porphyry,
         "Porphyry",
         &[
@@ -1165,7 +1189,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         false,
         None,
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::Regiomontanus,
         "Regiomontanus",
         &[
@@ -1177,7 +1201,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         false,
         None,
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::Campanus,
         "Campanus",
         &[
@@ -1298,7 +1322,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         false,
         None,
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::Equal,
         "Equal",
         &[
@@ -1315,7 +1339,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         false,
         None,
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::WholeSign,
         "Whole Sign",
         &[
@@ -1330,7 +1354,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         false,
         None,
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::Alcabitius,
         "Alcabitius",
         &[
@@ -1342,7 +1366,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         false,
         None,
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::Meridian,
         "Meridian",
         &[
@@ -1359,7 +1383,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         false,
         None,
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::Axial,
         "Axial",
         &["Axial variants", "A"],
@@ -1367,7 +1391,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         false,
         None,
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::Topocentric,
         "Topocentric",
         &[
@@ -1384,7 +1408,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         true,
         Some(66.0),
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::Morinus,
         "Morinus",
         &["Morinus houses", "Morinus house system"],
