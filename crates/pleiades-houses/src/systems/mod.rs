@@ -693,19 +693,15 @@ fn alcabitius_houses(
     let diurnal = 90.0 + ascensional_difference;
     let nocturnal = 90.0 - ascensional_difference;
 
-    let above = [10usize, 11, 12];
-    for (index, house) in above.iter().enumerate() {
-        let offset = diurnal * (index as f64) / 3.0;
-        let ra = st + offset;
-        cusps[*house - 1] = ecliptic_longitude_from_ra(ra, obliquity);
-    }
+    // Trisect the diurnal semi-arc (RAMC → Ascendant) to place houses 11, 12.
+    // House 10 (MC) is already set from `angles.midheaven`; start at k=1.
+    cusps[10] = ecliptic_longitude_from_ra(st + diurnal / 3.0, obliquity);
+    cusps[11] = ecliptic_longitude_from_ra(st + 2.0 * diurnal / 3.0, obliquity);
 
-    let below = [1usize, 2, 3];
-    for (index, house) in below.iter().enumerate() {
-        let offset = diurnal + nocturnal * ((index as f64) + 1.0) / 3.0;
-        let ra = st + offset;
-        cusps[*house - 1] = ecliptic_longitude_from_ra(ra, obliquity);
-    }
+    // Trisect the nocturnal semi-arc (Ascendant → Descendant, via IC) to
+    // place houses 2, 3.  House 1 (Ascendant) is already set; skip k=0.
+    cusps[1] = ecliptic_longitude_from_ra(st + diurnal + nocturnal / 3.0, obliquity);
+    cusps[2] = ecliptic_longitude_from_ra(st + diurnal + 2.0 * nocturnal / 3.0, obliquity);
 
     cusps[4] = longitude_opposite(cusps[10]);
     cusps[5] = longitude_opposite(cusps[11]);

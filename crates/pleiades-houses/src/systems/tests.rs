@@ -1041,3 +1041,51 @@ fn campanus_cusps_match_swiss_ephemeris_corpus_within_120_arcsec() {
     }
 }
 
+/// Swiss Ephemeris external-reference anchor for the Alcabitius intermediate
+/// cusps.
+///
+/// Fixture c1_lat40: JD=2451545.0 (J2000.0), lat=40°N, lon=0°E.
+/// SE reference cusps come straight from the houses-corpus
+/// (`pleiades-validate/data/houses-corpus/cusps.csv`). Tolerance 120 arcsec is
+/// the mean-vs-apparent sidereal floor; Alcabitius sits well inside it at
+/// lat 40° (max residual < 5 arcsec after the loop-offset fix).
+#[test]
+fn alcabitius_cusps_match_swiss_ephemeris_corpus_within_120_arcsec() {
+    let circ_diff_arcsec = |a: f64, b: f64| -> f64 {
+        let diff = (a - b).rem_euclid(360.0);
+        let signed = if diff > 180.0 { diff - 360.0 } else { diff };
+        signed.abs() * 3600.0
+    };
+    let tolerance_arcsec = 120.0_f64;
+
+    // c1_lat40 SE corpus Alcabitius row, cusps c1..c12.
+    let se_alcabitius: [f64; 12] = [
+        17.706_103, 46.835_395, 73.785_097, 99.611_088, 129.969_119, 163.041_881,
+        197.706_103, 226.835_395, 253.785_097, 279.611_088, 309.969_119, 343.041_881,
+    ];
+
+    let request = HouseRequest::new(
+        Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            pleiades_types::TimeScale::Tt,
+        ),
+        ObserverLocation::new(
+            Latitude::from_degrees(40.0),
+            Longitude::from_degrees(0.0),
+            None,
+        ),
+        HouseSystem::Alcabitius,
+    );
+    let snapshot = calculate_houses(&request).expect("Alcabitius houses should compute");
+
+    for (index, &expected) in se_alcabitius.iter().enumerate() {
+        let diff = circ_diff_arcsec(snapshot.cusps[index].degrees(), expected);
+        assert!(
+            diff < tolerance_arcsec,
+            "Alcabitius cusp {} = {:.6}° differs from SE {expected:.6}° by {diff:.1} arcsec (limit {tolerance_arcsec})",
+            index + 1,
+            snapshot.cusps[index].degrees(),
+        );
+    }
+}
+
