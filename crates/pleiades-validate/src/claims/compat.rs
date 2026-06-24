@@ -10,9 +10,6 @@ use pleiades_types::CompatibilityClaimTier;
 use crate::{validate_ayanamsa_corpus, validate_house_corpus};
 
 /// A violation found by the compatibility overclaim audit.
-// `ProfileCountMismatch` is constructed in Task 6; `SurfaceDisagrees` variants
-// added in Tasks 6–7. Allow dead_code until all variants are wired.
-#[allow(dead_code)]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum CompatClaimAuditError {
     /// An entry is marked `ReleaseGradeNumeric` but the SE corpus does not
@@ -74,8 +71,6 @@ fn classify_tier_evidence(
 }
 
 /// Check A: bidirectional tier ↔ corpus-evidence agreement for both catalogs.
-// Called by `audit_compat_claims` and by tests; not yet called from Task 6–7 callers.
-#[allow(dead_code)]
 fn check_tier_evidence(errors: &mut Vec<CompatClaimAuditError>) {
     let house_report = match validate_house_corpus() {
         Ok(r) => r,
@@ -113,13 +108,53 @@ fn check_tier_evidence(errors: &mut Vec<CompatClaimAuditError>) {
     }
 }
 
+/// Check B: profile release-grade-numeric count must equal the descriptor-derived count.
+fn check_profile(errors: &mut Vec<CompatClaimAuditError>) {
+    let profile = pleiades_core::current_compatibility_profile();
+
+    let house_profile = profile
+        .baseline_house_systems
+        .iter()
+        .chain(profile.release_house_systems.iter())
+        .filter(|d| d.claim_tier == CompatibilityClaimTier::ReleaseGradeNumeric)
+        .count();
+    let house_descriptors = built_in_house_systems()
+        .iter()
+        .filter(|d| d.claim_tier == CompatibilityClaimTier::ReleaseGradeNumeric)
+        .count();
+    if house_profile != house_descriptors {
+        errors.push(CompatClaimAuditError::ProfileCountMismatch {
+            catalog: "house",
+            profile: house_profile,
+            descriptors: house_descriptors,
+        });
+    }
+
+    let aya_profile = profile
+        .baseline_ayanamsas
+        .iter()
+        .chain(profile.release_ayanamsas.iter())
+        .filter(|d| d.claim_tier == CompatibilityClaimTier::ReleaseGradeNumeric)
+        .count();
+    let aya_descriptors = built_in_ayanamsas()
+        .iter()
+        .filter(|d| d.claim_tier == CompatibilityClaimTier::ReleaseGradeNumeric)
+        .count();
+    if aya_profile != aya_descriptors {
+        errors.push(CompatClaimAuditError::ProfileCountMismatch {
+            catalog: "ayanamsa",
+            profile: aya_profile,
+            descriptors: aya_descriptors,
+        });
+    }
+}
+
 /// Runs the full compatibility overclaim audit (Checks A–C).
-// Called by the gate runner (Tasks 6–7); not yet wired to an external caller.
-#[allow(dead_code)]
 pub(crate) fn audit_compat_claims() -> Result<(), Vec<CompatClaimAuditError>> {
     let mut errors = Vec::new();
     check_tier_evidence(&mut errors);
-    // Check B (Task 6) and Check C (Task 7) append here.
+    check_profile(&mut errors);
+    // Check C (Task 7) appends here.
     if errors.is_empty() { Ok(()) } else { Err(errors) }
 }
 
@@ -154,6 +189,13 @@ mod tests {
                 && validated.iter().any(|s| *s == d.system)
         });
         assert!(any_release);
+    }
+
+    #[test]
+    fn profile_release_grade_counts_match_descriptors() {
+        let mut errors = Vec::new();
+        super::check_profile(&mut errors);
+        assert!(errors.is_empty(), "profile disagreement: {errors:?}");
     }
 
     #[test]

@@ -16,9 +16,7 @@ pub(crate) use posture::{
     validated_release_body_claims_summary_line_for_report,
 };
 
-// Consumed by Tasks 6–7 gate runner; not yet called by any in-crate path.
-#[allow(unused_imports)]
-pub(crate) use compat::{audit_compat_claims, CompatClaimAuditError};
+pub(crate) use compat::audit_compat_claims;
 
 pub(crate) use drift::check_claim_drift;
 
