@@ -24,11 +24,15 @@ pub struct AyanamsaCeiling {
 }
 
 /// Returns the measured-derived ceiling for a mode class.
+///
+/// Ceilings are `ceil(measured_max × 2)` over the committed SE **mean**-ayanamsa
+/// corpus (60 rows, 1900–2100), with a 1.0″ floor. Measured maxima:
+/// - OffsetDefined: max residual 0.828″ → ceil(2 × 0.828) = ceil(1.656) = 2.0″.
+/// - TrueStar: max residual 0.011″ → ceil(2 × 0.011) = ceil(0.021) = 1.0″ (floor).
 pub fn ayanamsa_mode_ceiling(class: AyanamsaModeClass) -> AyanamsaCeiling {
     match class {
-        // Replaced with ceil(measured_max × 2) in Task 5 Step 6.
-        AyanamsaModeClass::OffsetDefined => AyanamsaCeiling { offset_arcsec: 5.0 },
-        AyanamsaModeClass::TrueStar => AyanamsaCeiling { offset_arcsec: 5.0 },
+        AyanamsaModeClass::OffsetDefined => AyanamsaCeiling { offset_arcsec: 2.0 },
+        AyanamsaModeClass::TrueStar => AyanamsaCeiling { offset_arcsec: 1.0 },
     }
 }
 

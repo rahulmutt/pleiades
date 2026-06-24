@@ -14,6 +14,7 @@ use std::time::Instant as StdInstant;
 
 mod apparent_validation;
 mod artifact;
+mod ayanamsa_validation;
 mod chart_benchmark;
 mod claims;
 mod comparison;
@@ -175,6 +176,7 @@ pub use house_validation::{
     HouseValidationReportValidationError, HouseValidationSample, HouseValidationScenario,
 };
 pub use house_validation::{validate_house_corpus, HouseCorpusReport, HouseCorpusError};
+pub use ayanamsa_validation::{validate_ayanamsa_corpus, AyanamsaCorpusError, AyanamsaCorpusReport};
 
 use crate::claims::{
     derived_release_posture, validate_release_posture,
