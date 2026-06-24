@@ -944,7 +944,7 @@ pub(crate) fn parse_house_corpus(csv: &str) -> Result<Vec<HouseCorpusRow>, House
 
 /// A single parsed row from the variable-length house-sector corpus CSV.
 #[derive(Clone, Debug, PartialEq)]
-#[allow(dead_code)] // consumed by Task 5 (sector gate)
+#[allow(dead_code)] // consumed by Task 5 sector-gate wiring (Gauquelin dropped — known gap, Task 7)
 pub(crate) struct HouseSectorRow {
     pub(crate) chart_id: String,
     pub(crate) jd_ut: f64,
@@ -959,7 +959,7 @@ pub(crate) struct HouseSectorRow {
 /// Parse the variable-length house-sector corpus CSV. Schema:
 /// `chart_id,jd_ut,lat_deg,lon_deg,elev_m,system_code,n_sectors,s1..sN`.
 /// Fails closed: malformed, short, or count-mismatched rows return MalformedRow.
-#[allow(dead_code)] // consumed by Task 5 (sector gate)
+#[allow(dead_code)] // consumed by Task 5 sector-gate wiring (Gauquelin dropped — known gap, Task 7)
 pub(crate) fn parse_house_sectors(csv: &str) -> Result<Vec<HouseSectorRow>, HouseCorpusError> {
     let mut rows = Vec::new();
     let mut data_row = 0usize;
