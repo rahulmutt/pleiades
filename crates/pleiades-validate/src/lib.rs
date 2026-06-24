@@ -174,6 +174,7 @@ pub use house_validation::{
     validated_house_validation_summary_line_for_report, HouseValidationReport,
     HouseValidationReportValidationError, HouseValidationSample, HouseValidationScenario,
 };
+pub use house_validation::{validate_house_corpus, HouseCorpusReport, HouseCorpusError};
 
 use crate::claims::{
     derived_release_posture, validate_release_posture,

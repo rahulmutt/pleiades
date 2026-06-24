@@ -622,26 +622,19 @@ pub fn validated_house_validation_summary_line_for_report(
 }
 
 // ── Task 7: house corpus + manifest parsers ───────────────────────────────────
-//
-// The parsers and their committed-data consts are exercised only by the in-module
-// tests for now; the first non-test caller (`validate_house_corpus`) lands in
-// Task 8, which will lift the `#[cfg(test)]` gating to crate-wide visibility.
-// Gating keeps a plain `cargo build` warning-free (no premature dead_code).
+// Task 8 lifts the #[cfg(test)] gating so validate_house_corpus() can use them.
 
-#[cfg(test)]
 const CORPUS_CSV: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/data/houses-corpus/cusps.csv"
 ));
 
-#[cfg(test)]
 const CORPUS_MANIFEST: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/data/houses-corpus/manifest.txt"
 ));
 
 /// A single parsed row from the house-corpus CSV.
-#[cfg(test)]
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct HouseCorpusRow {
     /// Unique chart identifier.
@@ -664,10 +657,10 @@ pub(crate) struct HouseCorpusRow {
     pub(crate) mc: f64,
 }
 
-/// Errors produced while parsing the house-corpus CSV or manifest.
-#[cfg(test)]
+/// Errors produced while parsing the house-corpus CSV or manifest, or while
+/// running the numeric-residual gate.
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) enum HouseCorpusError {
+pub enum HouseCorpusError {
     /// A CSV data row could not be parsed.
     MalformedRow {
         /// One-based data-row number (skipping header/comment lines).
@@ -682,9 +675,48 @@ pub(crate) enum HouseCorpusError {
         /// Description of what was malformed.
         reason: String,
     },
+    /// The corpus CSV checksum does not match the manifest pin.
+    ChecksumMismatch {
+        /// Pinned checksum from the manifest.
+        expected: u64,
+        /// Recomputed checksum of the embedded CSV.
+        actual: u64,
+    },
+    /// A manifest field does not match the corpus shape.
+    ManifestDrift {
+        /// The field that drifted (e.g. "rows", "completeness").
+        field: String,
+        /// Expected value.
+        expected: String,
+        /// Actual value.
+        actual: String,
+    },
+    /// A corpus row references a system code that cannot be resolved to a HouseSystem.
+    UnknownSystemCode {
+        /// One-based data-row number.
+        row: usize,
+        /// Unrecognised system code string.
+        code: String,
+    },
+    /// A cusp residual exceeded the per-family ceiling.
+    CeilingExceeded {
+        /// One-based data-row number.
+        row: usize,
+        /// System name (e.g. "Placidus").
+        system: String,
+        /// One-based cusp number (1..=12).
+        cusp: usize,
+        /// Recomputed pleiades value, degrees.
+        got: f64,
+        /// SE reference value, degrees.
+        want: f64,
+        /// Circular residual, arcseconds.
+        residual_arcsec: f64,
+        /// Ceiling that was exceeded, arcseconds.
+        ceiling_arcsec: f64,
+    },
 }
 
-#[cfg(test)]
 impl fmt::Display for HouseCorpusError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -697,18 +729,40 @@ impl fmt::Display for HouseCorpusError {
             Self::MalformedManifest { reason } => {
                 write!(f, "house corpus manifest is malformed: {reason}")
             }
+            Self::ChecksumMismatch { expected, actual } => {
+                write!(
+                    f,
+                    "house corpus checksum mismatch: expected {expected}, got {actual}"
+                )
+            }
+            Self::ManifestDrift { field, expected, actual } => {
+                write!(
+                    f,
+                    "house corpus manifest drift on field '{field}': expected {expected:?}, got {actual:?}"
+                )
+            }
+            Self::UnknownSystemCode { row, code } => {
+                write!(
+                    f,
+                    "house corpus row {row}: unknown system code {code:?}"
+                )
+            }
+            Self::CeilingExceeded { row, system, cusp, got, want, residual_arcsec, ceiling_arcsec } => {
+                write!(
+                    f,
+                    "house corpus row {row} ({system} cusp {cusp}): residual {residual_arcsec:.3}\u{2033} > ceiling {ceiling_arcsec:.1}\u{2033} (got={got:.6}\u{00b0}, want={want:.6}\u{00b0})"
+                )
+            }
         }
     }
 }
 
-#[cfg(test)]
 impl std::error::Error for HouseCorpusError {}
 
 /// Parse the house-corpus CSV, skipping comment (`#`) and blank lines and the
 /// header row (the line beginning with `chart_id,`).
 ///
 /// Fails closed: any malformed or unparseable data row returns `Err(MalformedRow)`.
-#[cfg(test)]
 pub(crate) fn parse_house_corpus(csv: &str) -> Result<Vec<HouseCorpusRow>, HouseCorpusError> {
     let mut rows = Vec::new();
     let mut data_row = 0usize;
@@ -801,7 +855,6 @@ pub(crate) fn parse_house_corpus(csv: &str) -> Result<Vec<HouseCorpusRow>, House
 }
 
 /// Parsed metadata from the house-corpus manifest.
-#[cfg(test)]
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct HouseManifest {
     /// The reference engine used to generate the corpus (e.g. `"SwissEphemeris 2.10.03"`).
@@ -820,7 +873,6 @@ pub(crate) struct HouseManifest {
 /// `slice cusps file=cusps.csv role=cusps rows=<n> checksum=<u64>` line.
 ///
 /// Fails closed on any missing or malformed field.
-#[cfg(test)]
 pub(crate) fn parse_house_manifest(text: &str) -> Result<HouseManifest, HouseCorpusError> {
     let mut reference_engine: Option<String> = None;
     let mut crosscheck: Option<String> = None;
@@ -876,6 +928,248 @@ pub(crate) fn parse_house_manifest(text: &str) -> Result<HouseManifest, HouseCor
         crosscheck,
         rows,
         checksum,
+    })
+}
+
+// ── Task 8: numeric-residual gate ─────────────────────────────────────────────
+
+/// Summary report produced by [`validate_house_corpus`].
+#[derive(Clone, Debug, PartialEq)]
+pub struct HouseCorpusReport {
+    /// Number of corpus rows validated.
+    pub rows_validated: usize,
+    /// Number of distinct house systems checked.
+    pub systems_checked: usize,
+    /// Maximum circular cusp residual (arcseconds) across all rows and cusps.
+    pub max_cusp_residual_arcsec: f64,
+    /// Cross-check engine field from the manifest.
+    pub crosscheck: String,
+    /// Compact one-line summary.
+    pub summary_line: String,
+}
+
+impl HouseCorpusReport {
+    /// Returns the compact one-line summary.
+    pub fn summary_line(&self) -> &str {
+        &self.summary_line
+    }
+}
+
+impl fmt::Display for HouseCorpusReport {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line)
+    }
+}
+
+/// Maps the corpus `system_code` string (the pleiades `HouseSystem` variant name)
+/// to the corresponding typed `HouseSystem`.
+///
+/// Uses the exact variant names emitted by the SE harness (Task 6 schema decision:
+/// strings, not chars, to disambiguate Meridian vs Axial which both map to SE 'X').
+fn system_for_code(code: &str) -> Option<pleiades_core::HouseSystem> {
+    use pleiades_core::HouseSystem;
+    match code {
+        "Placidus"      => Some(HouseSystem::Placidus),
+        "Koch"          => Some(HouseSystem::Koch),
+        "Porphyry"      => Some(HouseSystem::Porphyry),
+        "Regiomontanus" => Some(HouseSystem::Regiomontanus),
+        "Campanus"      => Some(HouseSystem::Campanus),
+        "Equal"         => Some(HouseSystem::Equal),
+        "WholeSign"     => Some(HouseSystem::WholeSign),
+        "Alcabitius"    => Some(HouseSystem::Alcabitius),
+        "Meridian"      => Some(HouseSystem::Meridian),
+        "Axial"         => Some(HouseSystem::Axial),
+        "Topocentric"   => Some(HouseSystem::Topocentric),
+        "Morinus"       => Some(HouseSystem::Morinus),
+        _ => None,
+    }
+}
+
+/// Returns the corpus string key for a `HouseSystem` (inverse of `system_for_code`).
+fn code_for_system(system: &pleiades_core::HouseSystem) -> &'static str {
+    use pleiades_core::HouseSystem;
+    match system {
+        HouseSystem::Placidus      => "Placidus",
+        HouseSystem::Koch          => "Koch",
+        HouseSystem::Porphyry      => "Porphyry",
+        HouseSystem::Regiomontanus => "Regiomontanus",
+        HouseSystem::Campanus      => "Campanus",
+        HouseSystem::Equal         => "Equal",
+        HouseSystem::WholeSign     => "WholeSign",
+        HouseSystem::Alcabitius    => "Alcabitius",
+        HouseSystem::Meridian      => "Meridian",
+        HouseSystem::Axial         => "Axial",
+        HouseSystem::Topocentric   => "Topocentric",
+        HouseSystem::Morinus       => "Morinus",
+        // Non-baseline systems: return empty string (no corpus rows expected).
+        _ => "",
+    }
+}
+
+/// Circular absolute residual in arcseconds between two ecliptic degree values.
+fn wrap_arcsec(got: f64, want: f64) -> f64 {
+    let mut d = (got - want).abs();
+    if d > 180.0 {
+        d = 360.0 - d;
+    }
+    d * 3600.0
+}
+
+/// Recomputes pleiades house cusps for a corpus row and returns the snapshot.
+fn recompute_pleiades(
+    row: &HouseCorpusRow,
+    system: &pleiades_core::HouseSystem,
+) -> Result<pleiades_core::HouseSnapshot, HouseCorpusError> {
+    let observer = ObserverLocation::new(
+        Latitude::from_degrees(row.lat_deg),
+        Longitude::from_degrees(row.lon_deg),
+        Some(row.elev_m),
+    );
+    // The corpus JD is recorded as UT (from the SE harness).
+    // The pleiades engine accepts JD via TimeScale::Tt for the obliquity
+    // calculation; for house cusps, which are analytic (no nutation table),
+    // TT ≈ UT at this precision. This matches how all prior phase-5 tests
+    // set up their instants (J2000 TT = JD 2451545.0).
+    let instant = Instant::new(
+        JulianDay::from_days(row.jd_ut),
+        TimeScale::Tt,
+    );
+    let request = HouseRequest::new(instant, observer, system.clone());
+    calculate_houses(&request).map_err(|e| HouseCorpusError::MalformedManifest {
+        reason: format!("calculate_houses failed: {e}"),
+    })
+}
+
+/// Runs the house-corpus numeric-residual gate.
+///
+/// Steps:
+/// 1. Verify the embedded corpus CSV checksum against the manifest pin.
+/// 2. Verify the row count matches the manifest.
+/// 3. Verify completeness: every baseline system has ≥1 corpus row.
+/// 4. For each row, recompute pleiades cusps and check every cusp residual
+///    against the per-formula-family ceiling.
+///
+/// Returns a [`HouseCorpusReport`] on success, or the first [`HouseCorpusError`]
+/// encountered on failure.
+pub fn validate_house_corpus() -> Result<HouseCorpusReport, HouseCorpusError> {
+    // 1. Checksum gate.
+    let actual_checksum = pleiades_apparent::fnv1a64(CORPUS_CSV);
+    let manifest = parse_house_manifest(CORPUS_MANIFEST)?;
+    if manifest.checksum != 0 && actual_checksum != manifest.checksum {
+        return Err(HouseCorpusError::ChecksumMismatch {
+            expected: manifest.checksum,
+            actual: actual_checksum,
+        });
+    }
+
+    // 2. Row count gate.
+    let rows = parse_house_corpus(CORPUS_CSV)?;
+    if rows.len() != manifest.rows {
+        return Err(HouseCorpusError::ManifestDrift {
+            field: "rows".into(),
+            expected: manifest.rows.to_string(),
+            actual: rows.len().to_string(),
+        });
+    }
+
+    // 3. Completeness: every baseline system must appear at least once.
+    let baseline = pleiades_houses::baseline_house_systems();
+    for descriptor in baseline {
+        let code = code_for_system(&descriptor.system);
+        if code.is_empty() {
+            // System has no corpus code mapping — skip (not a baseline corpus system).
+            continue;
+        }
+        if !rows.iter().any(|r| r.system_code == code) {
+            return Err(HouseCorpusError::ManifestDrift {
+                field: "completeness".into(),
+                expected: format!("rows for {code}"),
+                actual: "missing".into(),
+            });
+        }
+    }
+
+    // 4. Numeric residual loop.
+    let mut max_cusp_residual_arcsec = 0.0_f64;
+    for (idx, row) in rows.iter().enumerate() {
+        let data_row = idx + 1;
+        let system =
+            system_for_code(&row.system_code).ok_or_else(|| HouseCorpusError::UnknownSystemCode {
+                row: data_row,
+                code: row.system_code.clone(),
+            })?;
+
+        let family = pleiades_houses::descriptor(&system)
+            .map(|d| d.formula_family())
+            .unwrap_or(pleiades_houses::HouseFormulaFamily::Unknown);
+        let ceiling = pleiades_houses::thresholds::house_family_ceiling(family);
+
+        let snapshot = recompute_pleiades(row, &system)?;
+
+        // Check the 12 house cusps.
+        for (i, &want) in row.cusps.iter().enumerate() {
+            let got = snapshot.cusps[i].degrees();
+            let resid = wrap_arcsec(got, want);
+            if resid > max_cusp_residual_arcsec {
+                max_cusp_residual_arcsec = resid;
+            }
+            if resid > ceiling.cusp_arcsec {
+                return Err(HouseCorpusError::CeilingExceeded {
+                    row: data_row,
+                    system: row.system_code.clone(),
+                    cusp: i + 1,
+                    got,
+                    want,
+                    residual_arcsec: resid,
+                    ceiling_arcsec: ceiling.cusp_arcsec,
+                });
+            }
+        }
+
+        // Check Ascendant and Midheaven against the angle ceiling.
+        let asc_got = snapshot.angles.ascendant.degrees();
+        let asc_resid = wrap_arcsec(asc_got, row.asc);
+        if asc_resid > ceiling.angle_arcsec {
+            return Err(HouseCorpusError::CeilingExceeded {
+                row: data_row,
+                system: row.system_code.clone(),
+                cusp: 0, // 0 = ascendant
+                got: asc_got,
+                want: row.asc,
+                residual_arcsec: asc_resid,
+                ceiling_arcsec: ceiling.angle_arcsec,
+            });
+        }
+        let mc_got = snapshot.angles.midheaven.degrees();
+        let mc_resid = wrap_arcsec(mc_got, row.mc);
+        if mc_resid > ceiling.angle_arcsec {
+            return Err(HouseCorpusError::CeilingExceeded {
+                row: data_row,
+                system: row.system_code.clone(),
+                cusp: 0, // 0 = midheaven
+                got: mc_got,
+                want: row.mc,
+                residual_arcsec: mc_resid,
+                ceiling_arcsec: ceiling.angle_arcsec,
+            });
+        }
+    }
+
+    let systems_checked = baseline.len();
+    let summary_line = format!(
+        "House gate: {} rows / {} systems, max cusp residual {:.3}\u{2033}, cross-check {}",
+        rows.len(),
+        systems_checked,
+        max_cusp_residual_arcsec,
+        manifest.crosscheck,
+    );
+
+    Ok(HouseCorpusReport {
+        rows_validated: rows.len(),
+        systems_checked,
+        max_cusp_residual_arcsec,
+        crosscheck: manifest.crosscheck,
+        summary_line,
     })
 }
 
@@ -1100,5 +1394,51 @@ c0,2451545,0,0,0,Placidus,1,2,3,4,5,6,7,8,9,10,11,12,1.5,10.5\n";
         );
         assert_eq!(manifest.reference_engine, "SwissEphemeris 2.10.03");
         assert_eq!(manifest.crosscheck, "not-run");
+    }
+
+    // ── Task 8 tests: numeric-residual gate ───────────────────────────────────
+
+    #[test]
+    fn gate_passes_over_committed_corpus() {
+        let report =
+            validate_house_corpus().expect("committed house corpus must validate within ceilings");
+        assert_eq!(report.rows_validated, 60, "corpus must have exactly 60 rows");
+        assert!(
+            report.max_cusp_residual_arcsec.is_finite(),
+            "max cusp residual must be finite"
+        );
+        assert!(
+            report.max_cusp_residual_arcsec < 30.0,
+            "max cusp residual {:.3}\" must be below the 30\" sanity bound",
+            report.max_cusp_residual_arcsec
+        );
+    }
+
+    #[test]
+    fn checksum_drift_fails_closed() {
+        let actual = pleiades_apparent::fnv1a64(CORPUS_CSV);
+        let manifest = parse_house_manifest(CORPUS_MANIFEST).unwrap();
+        assert_eq!(
+            actual, manifest.checksum,
+            "corpus checksum drifted from manifest pin"
+        );
+    }
+
+    #[test]
+    fn strict_rejection_fires_above_polar_circle() {
+        use pleiades_core::{calculate_houses, HouseRequest, HouseSystem};
+        for lat in [70.0_f64, 80.0] {
+            let observer = ObserverLocation::new(
+                Latitude::from_degrees(lat),
+                Longitude::from_degrees(0.0),
+                None,
+            );
+            let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
+            let req = HouseRequest::new(instant, observer, HouseSystem::Placidus);
+            assert!(
+                calculate_houses(&req).is_err(),
+                "Placidus at {lat}\u{00b0} must be rejected (strict high-latitude policy)"
+            );
+        }
     }
 }
