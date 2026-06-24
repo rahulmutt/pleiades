@@ -14,7 +14,7 @@ use pleiades_core::{
     baseline_house_systems, calculate_houses, HouseError, HouseRequest, HouseSnapshot,
     HouseSystemDescriptor, Instant, JulianDay, Latitude, Longitude, ObserverLocation, TimeScale,
 };
-use pleiades_houses::{built_in_house_systems, HouseFormulaFamily};
+use pleiades_houses::{built_in_house_systems, HouseFormulaFamily, HighLatitudePolicy};
 
 /// A house-validation sample for one system in one chart scenario.
 #[derive(Clone, Debug, PartialEq)]
@@ -699,12 +699,14 @@ pub enum HouseCorpusError {
         code: String,
     },
     /// A cusp residual exceeded the per-family ceiling.
+    ///
+    /// `cusp` encoding: 1–12 = house cusp number; 0 = Ascendant; 13 = Midheaven.
     CeilingExceeded {
         /// One-based data-row number.
         row: usize,
         /// System name (e.g. "Placidus").
         system: String,
-        /// One-based cusp number (1..=12).
+        /// Angle slot: 1–12 = house cusp; 0 = Ascendant; 13 = Midheaven.
         cusp: usize,
         /// Recomputed pleiades value, degrees.
         got: f64,
@@ -714,6 +716,31 @@ pub enum HouseCorpusError {
         residual_arcsec: f64,
         /// Ceiling that was exceeded, arcseconds.
         ceiling_arcsec: f64,
+    },
+    /// A corpus row's `calculate_houses` call returned an error.
+    CalculationFailed {
+        /// One-based data-row number.
+        row: usize,
+        /// System name (e.g. "Placidus").
+        system: String,
+        /// Description of the calculation failure.
+        reason: String,
+    },
+    /// A latitude-sensitive system did not reject a strictly-out-of-bounds latitude.
+    MissingStrictRejection {
+        /// System name (e.g. "Placidus").
+        system: String,
+        /// Observer latitude that should have triggered rejection (degrees).
+        lat: f64,
+    },
+    /// The SE-compat fallback produced cusps that differ from a direct Porphyry calculation.
+    FallbackMismatch {
+        /// System name (e.g. "Koch").
+        system: String,
+        /// Observer latitude at which the fallback was exercised (degrees).
+        lat: f64,
+        /// Human-readable explanation of the mismatch.
+        reason: String,
     },
 }
 
@@ -748,9 +775,32 @@ impl fmt::Display for HouseCorpusError {
                 )
             }
             Self::CeilingExceeded { row, system, cusp, got, want, residual_arcsec, ceiling_arcsec } => {
+                let slot_label = match *cusp {
+                    0 => "Ascendant".to_string(),
+                    13 => "Midheaven".to_string(),
+                    n => format!("cusp {n}"),
+                };
                 write!(
                     f,
-                    "house corpus row {row} ({system} cusp {cusp}): residual {residual_arcsec:.3}\u{2033} > ceiling {ceiling_arcsec:.1}\u{2033} (got={got:.6}\u{00b0}, want={want:.6}\u{00b0})"
+                    "house corpus row {row} ({system} {slot_label}): residual {residual_arcsec:.3}\u{2033} > ceiling {ceiling_arcsec:.1}\u{2033} (got={got:.6}\u{00b0}, want={want:.6}\u{00b0})"
+                )
+            }
+            Self::CalculationFailed { row, system, reason } => {
+                write!(
+                    f,
+                    "house corpus row {row} ({system}): calculate_houses failed: {reason}"
+                )
+            }
+            Self::MissingStrictRejection { system, lat } => {
+                write!(
+                    f,
+                    "house gate: {system} at lat={lat}\u{00b0} should be rejected by the strict high-latitude policy but was not"
+                )
+            }
+            Self::FallbackMismatch { system, lat, reason } => {
+                write!(
+                    f,
+                    "house gate: {system} SE-compat fallback at lat={lat}\u{00b0} mismatch: {reason}"
                 )
             }
         }
@@ -1017,6 +1067,7 @@ fn wrap_arcsec(got: f64, want: f64) -> f64 {
 
 /// Recomputes pleiades house cusps for a corpus row and returns the snapshot.
 fn recompute_pleiades(
+    row_num: usize,
     row: &HouseCorpusRow,
     system: &pleiades_core::HouseSystem,
 ) -> Result<pleiades_core::HouseSnapshot, HouseCorpusError> {
@@ -1035,9 +1086,19 @@ fn recompute_pleiades(
         TimeScale::Tt,
     );
     let request = HouseRequest::new(instant, observer, system.clone());
-    calculate_houses(&request).map_err(|e| HouseCorpusError::MalformedManifest {
-        reason: format!("calculate_houses failed: {e}"),
+    calculate_houses(&request).map_err(|e| HouseCorpusError::CalculationFailed {
+        row: row_num,
+        system: row.system_code.clone(),
+        reason: e.to_string(),
     })
+}
+
+/// Returns the fixed gate instant (J2000.0 TT = JD 2451545.0).
+///
+/// Used for strict-rejection and SE-compat fallback assertions inside
+/// [`validate_house_corpus`].
+fn gate_instant() -> Instant {
+    Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt)
 }
 
 /// Runs the house-corpus numeric-residual gate.
@@ -1055,7 +1116,7 @@ pub fn validate_house_corpus() -> Result<HouseCorpusReport, HouseCorpusError> {
     // 1. Checksum gate.
     let actual_checksum = pleiades_apparent::fnv1a64(CORPUS_CSV);
     let manifest = parse_house_manifest(CORPUS_MANIFEST)?;
-    if manifest.checksum != 0 && actual_checksum != manifest.checksum {
+    if actual_checksum != manifest.checksum {
         return Err(HouseCorpusError::ChecksumMismatch {
             expected: manifest.checksum,
             actual: actual_checksum,
@@ -1104,7 +1165,7 @@ pub fn validate_house_corpus() -> Result<HouseCorpusReport, HouseCorpusError> {
             .unwrap_or(pleiades_houses::HouseFormulaFamily::Unknown);
         let ceiling = pleiades_houses::thresholds::house_family_ceiling(family);
 
-        let snapshot = recompute_pleiades(row, &system)?;
+        let snapshot = recompute_pleiades(data_row, row, &system)?;
 
         // Check the 12 house cusps.
         for (i, &want) in row.cusps.iter().enumerate() {
@@ -1126,32 +1187,91 @@ pub fn validate_house_corpus() -> Result<HouseCorpusReport, HouseCorpusError> {
             }
         }
 
-        // Check Ascendant and Midheaven against the angle ceiling.
+        // Check Ascendant against the angle ceiling.
+        // cusp encoding: 0 = Ascendant (see CeilingExceeded doc comment).
         let asc_got = snapshot.angles.ascendant.degrees();
         let asc_resid = wrap_arcsec(asc_got, row.asc);
+        if asc_resid > max_cusp_residual_arcsec {
+            max_cusp_residual_arcsec = asc_resid;
+        }
         if asc_resid > ceiling.angle_arcsec {
             return Err(HouseCorpusError::CeilingExceeded {
                 row: data_row,
                 system: row.system_code.clone(),
-                cusp: 0, // 0 = ascendant
+                cusp: 0, // 0 = Ascendant
                 got: asc_got,
                 want: row.asc,
                 residual_arcsec: asc_resid,
                 ceiling_arcsec: ceiling.angle_arcsec,
             });
         }
+        // Check Midheaven against the angle ceiling.
+        // cusp encoding: 13 = Midheaven (see CeilingExceeded doc comment).
         let mc_got = snapshot.angles.midheaven.degrees();
         let mc_resid = wrap_arcsec(mc_got, row.mc);
+        if mc_resid > max_cusp_residual_arcsec {
+            max_cusp_residual_arcsec = mc_resid;
+        }
         if mc_resid > ceiling.angle_arcsec {
             return Err(HouseCorpusError::CeilingExceeded {
                 row: data_row,
                 system: row.system_code.clone(),
-                cusp: 0, // 0 = midheaven
+                cusp: 13, // 13 = Midheaven
                 got: mc_got,
                 want: row.mc,
                 residual_arcsec: mc_resid,
                 ceiling_arcsec: ceiling.angle_arcsec,
             });
+        }
+    }
+
+    // 5. Strict-rejection assertions: every latitude-sensitive baseline system
+    //    must reject beyond its bound under the default Strict policy.
+    //
+    // 6. SE-compat fallback assertions: the SwissEphemerisFallback policy must
+    //    succeed and produce cusps equal to a direct Porphyry calculation.
+    for descriptor in baseline_house_systems() {
+        if descriptor.max_abs_latitude_deg.is_none() {
+            continue;
+        }
+        for lat in [70.0_f64, 80.0] {
+            let observer = ObserverLocation::new(
+                Latitude::from_degrees(lat),
+                Longitude::from_degrees(0.0),
+                Some(0.0),
+            );
+            let req = HouseRequest::new(gate_instant(), observer.clone(), descriptor.system.clone());
+            // Strict (default) policy must reject.
+            if calculate_houses(&req).is_ok() {
+                return Err(HouseCorpusError::MissingStrictRejection {
+                    system: format!("{:?}", descriptor.system),
+                    lat,
+                });
+            }
+            // SE-compat fallback must succeed and equal Porphyry.
+            let fb_req = req.clone().with_high_latitude_policy(HighLatitudePolicy::SwissEphemerisFallback);
+            let fb = calculate_houses(&fb_req).map_err(|e| HouseCorpusError::FallbackMismatch {
+                system: format!("{:?}", descriptor.system),
+                lat,
+                reason: format!("fallback calculate_houses failed: {e}"),
+            })?;
+            let po = calculate_houses(&HouseRequest::new(
+                gate_instant(),
+                observer.clone(),
+                pleiades_core::HouseSystem::Porphyry,
+            ))
+            .map_err(|e| HouseCorpusError::FallbackMismatch {
+                system: "Porphyry".into(),
+                lat,
+                reason: format!("porphyry calculate_houses failed: {e}"),
+            })?;
+            if fb.cusps != po.cusps {
+                return Err(HouseCorpusError::FallbackMismatch {
+                    system: format!("{:?}", descriptor.system),
+                    lat,
+                    reason: "fallback cusps differ from Porphyry".into(),
+                });
+            }
         }
     }
 
@@ -1440,5 +1560,34 @@ c0,2451545,0,0,0,Placidus,1,2,3,4,5,6,7,8,9,10,11,12,1.5,10.5\n";
                 "Placidus at {lat}\u{00b0} must be rejected (strict high-latitude policy)"
             );
         }
+    }
+
+    // ── Task 9 tests: strict-rejection + SE-compat fallback in the gate ───────
+
+    #[test]
+    fn gate_asserts_strict_and_fallback_paths() {
+        // The full gate must internally exercise strict rejection + fallback;
+        // a regression in either must fail the gate.
+        let report = validate_house_corpus().expect("gate passes");
+        assert!(report.rows_validated > 0);
+    }
+
+    #[test]
+    fn fallback_equals_porphyry_in_gate_helper() {
+        use pleiades_houses::{calculate_houses as ph_calculate_houses, HouseRequest as PhHouseRequest, HighLatitudePolicy};
+        use pleiades_core::HouseSystem;
+        let obs = ObserverLocation::new(
+            Latitude::from_degrees(80.0),
+            Longitude::from_degrees(0.0),
+            Some(0.0),
+        );
+        let fb = ph_calculate_houses(
+            &PhHouseRequest::new(gate_instant(), obs.clone(), HouseSystem::Koch)
+                .with_high_latitude_policy(HighLatitudePolicy::SwissEphemerisFallback),
+        )
+        .expect("SE-compat fallback must succeed beyond bound");
+        let po = ph_calculate_houses(&PhHouseRequest::new(gate_instant(), obs, HouseSystem::Porphyry))
+            .expect("Porphyry is defined at all latitudes");
+        assert_eq!(fb.cusps, po.cusps);
     }
 }
