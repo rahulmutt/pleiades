@@ -771,11 +771,23 @@ fn campanus_houses(
             continue;
         }
 
-        let z = house_phase(house).to_radians();
-        let p = (z.sin() * latitude.cos()).atan2(z.cos());
-        let v = p.sin() * latitude.sin() * obliquity.sin();
-        let x = (st + z).cos() * latitude.cos() * obliquity.cos() - v;
-        let y = (st + z).sin();
+        // Campanus divides the prime vertical into 30° arcs. For each division point
+        // at angle d along the prime vertical (d=0 ≡ MC/zenith direction, d=90° ≡ East/ASC),
+        // the prime-vertical altitude h_pv satisfies sin(h_pv)=cos(d) and cos(h_pv)=sin(d).
+        //
+        // The Campanus position circle (through the North and South horizon points and the
+        // prime-vertical division point) intersects the ecliptic at longitude λ:
+        //
+        //   y =  cos(d)·sin(θ) + sin(d)·cos(φ)·cos(θ)
+        //   x =  cos(d)·cos(θ)·cos(ε) − sin(d)·cos(φ)·sin(θ)·cos(ε) − sin(d)·sin(φ)·sin(ε)
+        //   λ = atan2(y, x)
+        //
+        // where θ = RAMC (local sidereal time), φ = geographic latitude, ε = obliquity.
+        let d = house_phase(house).to_radians();
+        let y = d.cos() * st.sin() + d.sin() * latitude.cos() * st.cos();
+        let x = d.cos() * st.cos() * obliquity.cos()
+            - d.sin() * latitude.cos() * st.sin() * obliquity.cos()
+            - d.sin() * latitude.sin() * obliquity.sin();
         cusps[house - 1] = Longitude::from_degrees(y.atan2(x).to_degrees());
     }
 

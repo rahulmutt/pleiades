@@ -435,7 +435,20 @@ fn regiomontanus_campanus_and_koch_reduce_to_sidereal_phase_spacing_on_the_equat
     assert_eq!(regiomontanus.cusps[3], regiomontanus.angles.imum_coeli);
     assert_eq!(regiomontanus.cusps[6], regiomontanus.angles.descendant);
     assert_eq!(regiomontanus.cusps[9], regiomontanus.angles.midheaven);
-    assert_eq!(regiomontanus.cusps, campanus.cusps);
+    // At the equator with zero obliquity Campanus and Regiomontanus are algebraically
+    // equivalent (both reduce to sidereal-phase spacing). They may differ at the level of
+    // floating-point rounding order (~1e-13°), so compare with a tight numeric tolerance
+    // rather than exact bit equality.
+    for i in 0..12 {
+        assert!(
+            (regiomontanus.cusps[i].degrees() - campanus.cusps[i].degrees()).abs() < 1.0e-10,
+            "regiomontanus cusp {} ({}) and campanus cusp {} ({}) should agree at equator+zero obliquity",
+            i + 1,
+            regiomontanus.cusps[i].degrees(),
+            i + 1,
+            campanus.cusps[i].degrees(),
+        );
+    }
 
     let sidereal_time = local_sidereal_time(request.instant, request.observer.longitude).degrees();
     for house in [2usize, 3, 5, 6, 8, 9, 11, 12] {
@@ -974,6 +987,54 @@ fn koch_cusps_match_swiss_ephemeris_corpus_within_120_arcsec() {
         assert!(
             diff < tolerance_arcsec,
             "Koch cusp {} = {:.6}° differs from SE {expected:.6}° by {diff:.1} arcsec (limit {tolerance_arcsec})",
+            index + 1,
+            snapshot.cusps[index].degrees(),
+        );
+    }
+}
+
+/// Swiss Ephemeris external-reference anchor for the Campanus (prime-vertical)
+/// intermediate cusps.
+///
+/// Fixture c1_lat40: JD=2451545.0 (J2000.0), lat=40°N, lon=0°E.
+/// SE reference cusps come straight from the houses-corpus
+/// (`pleiades-validate/data/houses-corpus/cusps.csv`). Tolerance 120 arcsec is
+/// the mean-vs-apparent sidereal floor; Campanus sits well inside it at this
+/// latitude (max residual ≈ 20 arcsec).
+#[test]
+fn campanus_cusps_match_swiss_ephemeris_corpus_within_120_arcsec() {
+    let circ_diff_arcsec = |a: f64, b: f64| -> f64 {
+        let diff = (a - b).rem_euclid(360.0);
+        let signed = if diff > 180.0 { diff - 360.0 } else { diff };
+        signed.abs() * 3600.0
+    };
+    let tolerance_arcsec = 120.0_f64;
+
+    // c1_lat40 SE corpus Campanus row, cusps c1..c12.
+    let se_campanus: [f64; 12] = [
+        17.706_103, 64.352_912, 85.435_838, 99.611_088, 114.834_455, 141.116_623,
+        197.706_103, 244.352_912, 265.435_838, 279.611_088, 294.834_455, 321.116_623,
+    ];
+
+    let request = HouseRequest::new(
+        Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            pleiades_types::TimeScale::Tt,
+        ),
+        ObserverLocation::new(
+            Latitude::from_degrees(40.0),
+            Longitude::from_degrees(0.0),
+            None,
+        ),
+        HouseSystem::Campanus,
+    );
+    let snapshot = calculate_houses(&request).expect("Campanus houses should compute");
+
+    for (index, &expected) in se_campanus.iter().enumerate() {
+        let diff = circ_diff_arcsec(snapshot.cusps[index].degrees(), expected);
+        assert!(
+            diff < tolerance_arcsec,
+            "Campanus cusp {} = {:.6}° differs from SE {expected:.6}° by {diff:.1} arcsec (limit {tolerance_arcsec})",
             index + 1,
             snapshot.cusps[index].degrees(),
         );
