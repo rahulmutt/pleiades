@@ -15,6 +15,7 @@ use pleiades_core::{
     HouseSystemDescriptor, Instant, JulianDay, Latitude, Longitude, ObserverLocation, TimeScale,
 };
 use pleiades_houses::{built_in_house_systems, HighLatitudePolicy, HouseFormulaFamily};
+use pleiades_types::CompatibilityClaimTier;
 
 /// A house-validation sample for one system in one chart scenario.
 #[derive(Clone, Debug, PartialEq)]
@@ -629,6 +630,11 @@ const CORPUS_CSV: &str = include_str!(concat!(
     "/data/houses-corpus/cusps.csv"
 ));
 
+const CORPUS_SECTORS_CSV: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/data/houses-corpus/sectors.csv"
+));
+
 const CORPUS_MANIFEST: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/data/houses-corpus/manifest.txt"
@@ -942,6 +948,99 @@ pub(crate) fn parse_house_corpus(csv: &str) -> Result<Vec<HouseCorpusRow>, House
     Ok(rows)
 }
 
+/// A single parsed row from the variable-length house-sector corpus CSV.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct HouseSectorRow {
+    pub(crate) chart_id: String,
+    pub(crate) jd_ut: f64,
+    pub(crate) lat_deg: f64,
+    pub(crate) lon_deg: f64,
+    pub(crate) elev_m: f64,
+    pub(crate) system_code: String,
+    /// Variable-length sector cusps, degrees (e.g. 36 for Gauquelin).
+    pub(crate) sectors: Vec<f64>,
+}
+
+/// Parse the variable-length house-sector corpus CSV. Schema:
+/// `chart_id,jd_ut,lat_deg,lon_deg,elev_m,system_code,n_sectors,s1..sN`.
+/// Fails closed: malformed, short, or count-mismatched rows return MalformedRow.
+pub(crate) fn parse_house_sectors(csv: &str) -> Result<Vec<HouseSectorRow>, HouseCorpusError> {
+    let mut rows = Vec::new();
+    let mut data_row = 0usize;
+    for line in csv.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with('#') || trimmed.is_empty() || trimmed.starts_with("chart_id,") {
+            continue;
+        }
+        data_row += 1;
+        let parts: Vec<&str> = trimmed.split(',').collect();
+        if parts.len() < 7 {
+            return Err(HouseCorpusError::MalformedRow {
+                row: data_row,
+                line: line.to_string(),
+                reason: format!("expected at least 7 fields, got {}", parts.len()),
+            });
+        }
+        let parse_f64 = |idx: usize, name: &str| -> Result<f64, HouseCorpusError> {
+            parts[idx]
+                .trim()
+                .parse()
+                .map_err(|_| HouseCorpusError::MalformedRow {
+                    row: data_row,
+                    line: line.to_string(),
+                    reason: format!("{name} {:?} is not a valid float", parts[idx]),
+                })
+        };
+        let jd_ut = parse_f64(1, "jd_ut")?;
+        let lat_deg = parse_f64(2, "lat_deg")?;
+        let lon_deg = parse_f64(3, "lon_deg")?;
+        let elev_m = parse_f64(4, "elev_m")?;
+        let n_sectors: usize =
+            parts[6]
+                .trim()
+                .parse()
+                .map_err(|_| HouseCorpusError::MalformedRow {
+                    row: data_row,
+                    line: line.to_string(),
+                    reason: format!("n_sectors {:?} is not a valid usize", parts[6]),
+                })?;
+        if parts.len() != 7 + n_sectors {
+            return Err(HouseCorpusError::MalformedRow {
+                row: data_row,
+                line: line.to_string(),
+                reason: format!(
+                    "n_sectors={n_sectors} implies {} fields, got {}",
+                    7 + n_sectors,
+                    parts.len()
+                ),
+            });
+        }
+        let mut sectors = Vec::with_capacity(n_sectors);
+        for (i, field) in parts[7..].iter().enumerate() {
+            sectors.push(
+                field
+                    .trim()
+                    .parse()
+                    .map_err(|_| HouseCorpusError::MalformedRow {
+                        row: data_row,
+                        line: line.to_string(),
+                        reason: format!("sector field[{}] {:?} is not a valid float", 7 + i, field),
+                    })?,
+            );
+        }
+        rows.push(HouseSectorRow {
+            chart_id: parts[0].trim().to_string(),
+            jd_ut,
+            lat_deg,
+            lon_deg,
+            elev_m,
+            system_code: parts[5].trim().to_string(),
+            sectors,
+        });
+    }
+    Ok(rows)
+}
+
 /// Parsed metadata from the house-corpus manifest.
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct HouseManifest {
@@ -953,6 +1052,10 @@ pub(crate) struct HouseManifest {
     pub(crate) rows: usize,
     /// FNV-1a-64 checksum of the corpus CSV.
     pub(crate) checksum: u64,
+    /// Number of data rows in the sectors slice, if present.
+    pub(crate) sector_rows: Option<usize>,
+    /// FNV-1a-64 checksum of the sectors CSV, if present.
+    pub(crate) sector_checksum: Option<u64>,
 }
 
 /// Parse the house-corpus manifest text.
@@ -966,6 +1069,8 @@ pub(crate) fn parse_house_manifest(text: &str) -> Result<HouseManifest, HouseCor
     let mut crosscheck: Option<String> = None;
     let mut rows: Option<usize> = None;
     let mut checksum: Option<u64> = None;
+    let mut sector_rows: Option<usize> = None;
+    let mut sector_checksum: Option<u64> = None;
 
     for line in text.lines() {
         let trimmed = line.trim();
@@ -978,21 +1083,32 @@ pub(crate) fn parse_house_manifest(text: &str) -> Result<HouseManifest, HouseCor
             crosscheck = Some(rest.trim().to_string());
             continue;
         }
-        // Parse the `slice cusps file=cusps.csv role=cusps rows=<n> checksum=<u64>` line.
+        // Parse `slice <kind> file=… role=… rows=<n> checksum=<u64>` lines.
         if trimmed.starts_with("slice ") {
+            let is_sectors = trimmed.contains("role=sectors");
             for token in trimmed.split_whitespace() {
                 if let Some(val) = token.strip_prefix("rows=") {
-                    rows = Some(val.parse::<usize>().map_err(|_| {
-                        HouseCorpusError::MalformedManifest {
-                            reason: format!("rows value {val:?} is not a valid usize"),
-                        }
-                    })?);
+                    let parsed =
+                        val.parse::<usize>()
+                            .map_err(|_| HouseCorpusError::MalformedManifest {
+                                reason: format!("rows value {val:?} is not a valid usize"),
+                            })?;
+                    if is_sectors {
+                        sector_rows = Some(parsed);
+                    } else {
+                        rows = Some(parsed);
+                    }
                 } else if let Some(val) = token.strip_prefix("checksum=") {
-                    checksum = Some(val.parse::<u64>().map_err(|_| {
-                        HouseCorpusError::MalformedManifest {
-                            reason: format!("checksum value {val:?} is not a valid u64"),
-                        }
-                    })?);
+                    let parsed =
+                        val.parse::<u64>()
+                            .map_err(|_| HouseCorpusError::MalformedManifest {
+                                reason: format!("checksum value {val:?} is not a valid u64"),
+                            })?;
+                    if is_sectors {
+                        sector_checksum = Some(parsed);
+                    } else {
+                        checksum = Some(parsed);
+                    }
                 }
             }
         }
@@ -1016,6 +1132,8 @@ pub(crate) fn parse_house_manifest(text: &str) -> Result<HouseManifest, HouseCor
         crosscheck,
         rows,
         checksum,
+        sector_rows,
+        sector_checksum,
     })
 }
 
@@ -1076,6 +1194,18 @@ fn system_for_code(code: &str) -> Option<pleiades_core::HouseSystem> {
         "Axial" => Some(HouseSystem::Axial),
         "Topocentric" => Some(HouseSystem::Topocentric),
         "Morinus" => Some(HouseSystem::Morinus),
+        "EqualMidheaven" => Some(HouseSystem::EqualMidheaven),
+        "EqualAries" => Some(HouseSystem::EqualAries),
+        "Vehlow" => Some(HouseSystem::Vehlow),
+        "Sripati" => Some(HouseSystem::Sripati),
+        "Carter" => Some(HouseSystem::Carter),
+        "Apc" => Some(HouseSystem::Apc),
+        "KrusinskiPisaGoelzer" => Some(HouseSystem::KrusinskiPisaGoelzer),
+        "Sunshine" => Some(HouseSystem::Sunshine),
+        "PullenSd" => Some(HouseSystem::PullenSd),
+        "PullenSr" => Some(HouseSystem::PullenSr),
+        "Gauquelin" => Some(HouseSystem::Gauquelin),
+        "Horizon" => Some(HouseSystem::Horizon),
         _ => None,
     }
 }
@@ -1096,6 +1226,18 @@ fn code_for_system(system: &pleiades_core::HouseSystem) -> &'static str {
         HouseSystem::Axial => "Axial",
         HouseSystem::Topocentric => "Topocentric",
         HouseSystem::Morinus => "Morinus",
+        HouseSystem::EqualMidheaven => "EqualMidheaven",
+        HouseSystem::EqualAries => "EqualAries",
+        HouseSystem::Vehlow => "Vehlow",
+        HouseSystem::Sripati => "Sripati",
+        HouseSystem::Carter => "Carter",
+        HouseSystem::Apc => "Apc",
+        HouseSystem::KrusinskiPisaGoelzer => "KrusinskiPisaGoelzer",
+        HouseSystem::Sunshine => "Sunshine",
+        HouseSystem::PullenSd => "PullenSd",
+        HouseSystem::PullenSr => "PullenSr",
+        HouseSystem::Gauquelin => "Gauquelin",
+        HouseSystem::Horizon => "Horizon",
         // Non-baseline systems: return empty string (no corpus rows expected).
         _ => "",
     }
@@ -1268,15 +1410,99 @@ pub fn validate_house_corpus() -> Result<HouseCorpusReport, HouseCorpusError> {
         }
     }
 
-    // 5. Strict-rejection assertions: every latitude-sensitive baseline system
-    //    must reject beyond its bound under the default Strict policy.
+    // 4b. Sectors slice: checksum + row count + per-sector residuals (Gauquelin).
+    //     Variable-length house systems (36-sector Gauquelin) live in their own
+    //     CSV/manifest slice; each sector is checked against its formula-family
+    //     ceiling exactly like the 12-cusp corpus rows above.
+    let sector_checksum = pleiades_apparent::fnv1a64(CORPUS_SECTORS_CSV);
+    let manifest_sector_checksum =
+        manifest
+            .sector_checksum
+            .ok_or_else(|| HouseCorpusError::ManifestDrift {
+                field: "sector_checksum".into(),
+                expected: "present".into(),
+                actual: "missing".into(),
+            })?;
+    if sector_checksum != manifest_sector_checksum {
+        return Err(HouseCorpusError::ChecksumMismatch {
+            expected: manifest_sector_checksum,
+            actual: sector_checksum,
+        });
+    }
+    let sector_rows = parse_house_sectors(CORPUS_SECTORS_CSV)?;
+    if Some(sector_rows.len()) != manifest.sector_rows {
+        return Err(HouseCorpusError::ManifestDrift {
+            field: "sector_rows".into(),
+            expected: manifest
+                .sector_rows
+                .map(|n| n.to_string())
+                .unwrap_or_default(),
+            actual: sector_rows.len().to_string(),
+        });
+    }
+    for (idx, row) in sector_rows.iter().enumerate() {
+        let data_row = idx + 1;
+        let system = system_for_code(&row.system_code).ok_or_else(|| {
+            HouseCorpusError::UnknownSystemCode {
+                row: data_row,
+                code: row.system_code.clone(),
+            }
+        })?;
+        let family = pleiades_houses::descriptor(&system)
+            .map(|d| d.formula_family())
+            .unwrap_or(pleiades_houses::HouseFormulaFamily::Unknown);
+        let ceiling = pleiades_houses::thresholds::house_family_ceiling(family);
+        let snapshot = recompute_pleiades(
+            data_row,
+            &HouseCorpusRow {
+                chart_id: row.chart_id.clone(),
+                jd_ut: row.jd_ut,
+                lat_deg: row.lat_deg,
+                lon_deg: row.lon_deg,
+                elev_m: row.elev_m,
+                system_code: row.system_code.clone(),
+                cusps: [0.0; 12],
+                asc: 0.0,
+                mc: 0.0,
+            },
+            &system,
+        )?;
+        for (i, &want) in row.sectors.iter().enumerate() {
+            let got = snapshot.cusps[i].degrees();
+            let resid = wrap_arcsec(got, want);
+            if resid > max_cusp_residual_arcsec {
+                max_cusp_residual_arcsec = resid;
+            }
+            if resid > ceiling.cusp_arcsec {
+                return Err(HouseCorpusError::CeilingExceeded {
+                    row: data_row,
+                    system: row.system_code.clone(),
+                    cusp: i + 1,
+                    got,
+                    want,
+                    residual_arcsec: resid,
+                    ceiling_arcsec: ceiling.cusp_arcsec,
+                });
+            }
+        }
+    }
+
+    // 5. Strict-rejection assertions: every release-grade latitude-sensitive
+    //    system must reject beyond its bound under the default Strict policy.
+    //    Covers baseline quadrant systems AND the promoted latitude-sensitive
+    //    systems (Horizon, APC, KrusinskiPisaGoelzer, Sunshine).
     //
     // 6. SE-compat fallback assertions: the SwissEphemerisFallback policy must
-    //    succeed and produce cusps equal to a direct Porphyry calculation.
-    for descriptor in baseline_house_systems() {
-        if descriptor.max_abs_latitude_deg.is_none() {
-            continue;
-        }
+    //    succeed. Fallback target varies by formula family:
+    //    - Quadrant (Placidus, Koch, Topocentric): assert cusps == Porphyry.
+    //    - GreatCircle / SolarArc (Horizon, APC, KrusinskiPisaGoelzer, Sunshine):
+    //      assert Ok only — their documented fallback target is not Porphyry.
+    //    - Sector (Gauquelin): strict-rejection only — the SE-compat fallback returns
+    //      12 cusps (not 36), so no fallback assertion is made for this family.
+    for descriptor in built_in_house_systems().iter().filter(|d| {
+        d.claim_tier == CompatibilityClaimTier::ReleaseGradeNumeric
+            && d.max_abs_latitude_deg.is_some()
+    }) {
         for lat in [70.0_f64, 80.0] {
             let observer = ObserverLocation::new(
                 Latitude::from_degrees(lat),
@@ -1292,7 +1518,12 @@ pub fn validate_house_corpus() -> Result<HouseCorpusReport, HouseCorpusError> {
                     lat,
                 });
             }
-            // SE-compat fallback must succeed and equal Porphyry.
+            // Sector family (Gauquelin): strict-rejection only; SE-compat fallback
+            // returns 12 cusps instead of 36, so no fallback assertion for this family.
+            if descriptor.formula_family() == HouseFormulaFamily::Sector {
+                continue;
+            }
+            // SE-compat fallback must succeed.
             let fb_req = req
                 .clone()
                 .with_high_latitude_policy(HighLatitudePolicy::SwissEphemerisFallback);
@@ -1301,34 +1532,29 @@ pub fn validate_house_corpus() -> Result<HouseCorpusReport, HouseCorpusError> {
                 lat,
                 reason: format!("fallback calculate_houses failed: {e}"),
             })?;
-            let po = calculate_houses(&HouseRequest::new(
-                gate_instant(),
-                observer.clone(),
-                pleiades_core::HouseSystem::Porphyry,
-            ))
-            .map_err(|e| HouseCorpusError::FallbackMismatch {
-                system: "Porphyry".into(),
-                lat,
-                reason: format!("porphyry calculate_houses failed: {e}"),
-            })?;
-            if fb.cusps != po.cusps {
-                return Err(HouseCorpusError::FallbackMismatch {
-                    system: format!("{:?}", descriptor.system),
+            // Quadrant systems fall back to Porphyry — assert equality.
+            // GreatCircle / SolarArc systems have their own fallback target — assert Ok only.
+            if descriptor.formula_family() == HouseFormulaFamily::Quadrant {
+                let po = calculate_houses(&HouseRequest::new(
+                    gate_instant(),
+                    observer.clone(),
+                    pleiades_core::HouseSystem::Porphyry,
+                ))
+                .map_err(|e| HouseCorpusError::FallbackMismatch {
+                    system: "Porphyry".into(),
                     lat,
-                    reason: "fallback cusps differ from Porphyry".into(),
-                });
+                    reason: format!("porphyry calculate_houses failed: {e}"),
+                })?;
+                if fb.cusps != po.cusps {
+                    return Err(HouseCorpusError::FallbackMismatch {
+                        system: format!("{:?}", descriptor.system),
+                        lat,
+                        reason: "fallback cusps differ from Porphyry".into(),
+                    });
+                }
             }
         }
     }
-
-    let systems_checked = baseline.len();
-    let summary_line = format!(
-        "House gate: {} rows / {} systems, max cusp residual {:.3}\u{2033}, cross-check {}",
-        rows.len(),
-        systems_checked,
-        max_cusp_residual_arcsec,
-        manifest.crosscheck,
-    );
 
     let mut validated_systems: Vec<pleiades_core::HouseSystem> = Vec::new();
     for row in &rows {
@@ -1338,6 +1564,22 @@ pub fn validate_house_corpus() -> Result<HouseCorpusReport, HouseCorpusError> {
             }
         }
     }
+    for row in &sector_rows {
+        if let Some(sys) = system_for_code(&row.system_code) {
+            if !validated_systems.contains(&sys) {
+                validated_systems.push(sys);
+            }
+        }
+    }
+
+    let systems_checked = validated_systems.len();
+    let summary_line = format!(
+        "House gate: {} rows / {} systems, max cusp residual {:.3}\u{2033}, cross-check {}",
+        rows.len(),
+        systems_checked,
+        max_cusp_residual_arcsec,
+        manifest.crosscheck,
+    );
 
     Ok(HouseCorpusReport {
         rows_validated: rows.len(),
@@ -1556,6 +1798,41 @@ c0,2451545,0,0,0,Placidus,1,2,3,4,5,6,7,8,9,10,11,12,1.5,10.5\n";
         assert_eq!(parsed.crosscheck, "not-run");
     }
 
+    const SECTOR_SAMPLE: &str =
+        "chart_id,jd_ut,lat_deg,lon_deg,elev_m,system_code,n_sectors,s1,s2,s3\n\
+c0,2451545,0,0,0,Gauquelin,3,10.0,20.0,30.0\n";
+
+    #[test]
+    fn parses_a_well_formed_sector_row() {
+        let rows = parse_house_sectors(SECTOR_SAMPLE).expect("valid");
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].system_code, "Gauquelin");
+        assert_eq!(rows[0].sectors, vec![10.0, 20.0, 30.0]);
+    }
+
+    #[test]
+    fn rejects_sector_count_mismatch() {
+        // n_sectors=3 but only two sector fields present.
+        let bad = "chart_id,jd_ut,lat_deg,lon_deg,elev_m,system_code,n_sectors,s1,s2,s3\n\
+c0,2451545,0,0,0,Gauquelin,3,10.0,20.0\n";
+        assert!(matches!(
+            parse_house_sectors(bad),
+            Err(HouseCorpusError::MalformedRow { .. })
+        ));
+    }
+
+    #[test]
+    fn parses_two_slice_manifest() {
+        let m = "#Reference-Engine: SwissEphemeris 2.10.03\n#CrossCheck-Engine: not-run\n\
+slice cusps file=cusps.csv role=cusps rows=115 checksum=111\n\
+slice sectors file=sectors.csv role=sectors rows=5 checksum=222\n";
+        let parsed = parse_house_manifest(m).expect("valid");
+        assert_eq!(parsed.rows, 115);
+        assert_eq!(parsed.checksum, 111);
+        assert_eq!(parsed.sector_rows, Some(5));
+        assert_eq!(parsed.sector_checksum, Some(222));
+    }
+
     #[test]
     fn committed_corpus_parses_and_matches_manifest_row_count() {
         let rows =
@@ -1585,16 +1862,19 @@ c0,2451545,0,0,0,Placidus,1,2,3,4,5,6,7,8,9,10,11,12,1.5,10.5\n";
         let report =
             validate_house_corpus().expect("committed house corpus must validate within ceilings");
         assert_eq!(
-            report.rows_validated, 60,
-            "corpus must have exactly 60 rows"
+            report.rows_validated, 115,
+            "corpus must have exactly 115 rows"
         );
         assert!(
             report.max_cusp_residual_arcsec.is_finite(),
             "max cusp residual must be finite"
         );
+        // The overall maximum is Sunshine's 32.881″ at its documented lat=66°
+        // high-latitude bound (sub-arcsecond at mid/equatorial latitudes); it sits
+        // under the SolarArc family ceiling of 66″.
         assert!(
-            report.max_cusp_residual_arcsec < 30.0,
-            "max cusp residual {:.3}\" must be below the 30\" sanity bound",
+            report.max_cusp_residual_arcsec < 33.0,
+            "max cusp residual {:.3}\" must be below the 33\" documented-bound sanity limit",
             report.max_cusp_residual_arcsec
         );
     }
@@ -1664,11 +1944,45 @@ c0,2451545,0,0,0,Placidus,1,2,3,4,5,6,7,8,9,10,11,12,1.5,10.5\n";
     }
 
     #[test]
-    fn corpus_report_exposes_twelve_validated_systems() {
+    fn corpus_report_exposes_twenty_four_validated_systems() {
         let report = validate_house_corpus().expect("house corpus gate passes");
-        assert_eq!(report.validated_systems().len(), 12);
+        assert_eq!(report.validated_systems().len(), 24);
         assert!(report
             .validated_systems()
             .contains(&pleiades_core::HouseSystem::Placidus));
+        // Gauquelin is corpus-backed via the variable-length sectors slice.
+        assert!(report
+            .validated_systems()
+            .contains(&pleiades_core::HouseSystem::Gauquelin));
+        // Horizon (Azimuth) promoted to release-grade with corrected SE 'H' convention.
+        assert!(report
+            .validated_systems()
+            .contains(&pleiades_core::HouseSystem::Horizon));
+    }
+
+    // ── Task 6: confirmation guard for promoted latitude-sensitive systems ─────
+
+    #[test]
+    fn promoted_latitude_sensitive_systems_reject_above_bound() {
+        use pleiades_core::{calculate_houses, HouseRequest, HouseSystem};
+        for system in [
+            HouseSystem::Horizon,
+            HouseSystem::Apc,
+            HouseSystem::KrusinskiPisaGoelzer,
+            HouseSystem::Sunshine,
+        ] {
+            for lat in [70.0_f64, 80.0] {
+                let observer = ObserverLocation::new(
+                    Latitude::from_degrees(lat),
+                    Longitude::from_degrees(0.0),
+                    Some(0.0),
+                );
+                let req = HouseRequest::new(gate_instant(), observer, system.clone());
+                assert!(
+                    calculate_houses(&req).is_err(),
+                    "{system:?} at {lat}\u{00b0} must be rejected by the strict high-latitude policy"
+                );
+            }
+        }
     }
 }

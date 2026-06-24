@@ -953,7 +953,7 @@ const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
 ];
 
 const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::EqualMidheaven,
         "Equal (MC)",
         &[
@@ -976,7 +976,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         false,
         None,
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::EqualAries,
         "Equal (1=Aries)",
         &[
@@ -999,7 +999,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         false,
         None,
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::Vehlow,
         "Vehlow Equal",
         &[
@@ -1016,7 +1016,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         false,
         None,
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::Sripati,
         "Sripati",
         &["S sripati", "Śrīpati", "Sripati house system", "Sripati table of houses"],
@@ -1024,7 +1024,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         false,
         None,
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::Carter,
         "Carter (poli-equatorial)",
         &[
@@ -1037,7 +1037,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         false,
         None,
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::Horizon,
         "Horizon/Azimuth",
         &[
@@ -1060,7 +1060,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         true,
         Some(66.0),
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::Apc,
         "APC",
         &[
@@ -1078,7 +1078,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         true,
         Some(66.0),
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::KrusinskiPisaGoelzer,
         "Krusinski-Pisa-Goelzer",
         &[
@@ -1103,7 +1103,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         false,
         None,
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::PullenSd,
         "Pullen SD",
         &[
@@ -1119,7 +1119,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         false,
         None,
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::PullenSr,
         "Pullen SR",
         &[
@@ -1133,7 +1133,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         false,
         None,
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::Sunshine,
         "Sunshine",
         &[
@@ -1150,7 +1150,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         true,
         Some(66.0),
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::Gauquelin,
         "Gauquelin sectors",
         &["G", "Gauquelin", "Gauquelin sector", "Gauquelin table of sectors"],
@@ -1213,7 +1213,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         false,
         None,
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::Carter,
         "Carter (poli-equatorial)",
         &[
@@ -1226,7 +1226,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         false,
         None,
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::Horizon,
         "Horizon/Azimuth",
         &[
@@ -1249,7 +1249,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         true,
         Some(66.0),
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::Apc,
         "APC",
         &[
@@ -1267,7 +1267,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         true,
         Some(66.0),
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::KrusinskiPisaGoelzer,
         "Krusinski-Pisa-Goelzer",
         &[
@@ -1292,7 +1292,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         false,
         None,
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::PullenSd,
         "Pullen SD",
         &[
@@ -1308,7 +1308,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         false,
         None,
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::PullenSr,
         "Pullen SR",
         &[
@@ -1416,7 +1416,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         false,
         None,
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::Sunshine,
         "Sunshine",
         &[
@@ -1433,7 +1433,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         true,
         Some(66.0),
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::Gauquelin,
         "Gauquelin sectors",
         &["G", "Gauquelin", "Gauquelin sector", "Gauquelin table of sectors"],
@@ -1441,7 +1441,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         true,
         Some(66.0),
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::EqualMidheaven,
         "Equal (MC)",
         &[
@@ -1464,7 +1464,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         false,
         None,
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::EqualAries,
         "Equal (1=Aries)",
         &[
@@ -1487,7 +1487,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         false,
         None,
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::Vehlow,
         "Vehlow Equal",
         &[
@@ -1504,7 +1504,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         false,
         None,
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::Sripati,
         "Sripati",
         &["S sripati", "Śrīpati", "Sripati house system", "Sripati table of houses"],

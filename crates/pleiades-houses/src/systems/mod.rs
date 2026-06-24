@@ -889,47 +889,75 @@ fn horizon_houses(
     obliquity: Angle,
     angles: HouseAngles,
 ) -> [Longitude; 12] {
+    // Swiss-Ephemeris 'H' (Horizon/Azimuth) — faithful port of CalcH's case 'H'.
+    //
+    // SE divides the horizon (azimuth circle) into twelve 30° sectors whose
+    // boundaries are projected onto the ecliptic via the ascendant of a
+    // fictitious tilted horizon. Three details govern the convention and are the
+    // historical source of pleiades' ~100° offset:
+    //
+    //   1. The azimuth origin is `Asc1(th + 90, …)`, where `th = ARMC + 180`.
+    //      pleiades' `ascendant_for(s, f)` is exactly `Asc1(s + 90, f)`, so the
+    //      SE call `Asc1(th + 90, f)` must be made as `ascendant_for(th, f)` —
+    //      passing `th + 90` double-counts the 90° azimuth quarter-turn.
+    //   2. SE rotates the five computed cusps (1,2,3,11,12) by +180° afterwards
+    //      (`cusp[i] = degnorm(cusp[i] + 180)`); omitting this rotation was the
+    //      dominant error.
+    //   3. The geographic-latitude → pole-height transform uses a STRICT `> 0`
+    //      branch: at the equator SE takes `fi = -90 - lat` (= -90), not
+    //      `90 - lat`. A `>= 0` branch flips cusp 1 by 180° at lat 0.
     let sidereal_time =
         (local_sidereal_time(instant, observer.longitude).degrees() + 180.0).rem_euclid(360.0);
     let obliquity = obliquity.degrees().to_radians();
     let latitude = observer.latitude.degrees();
-    let transformed_latitude = if latitude >= 0.0 {
+    // SE strict-sign hemisphere branch (note: lat == 0 takes the `else` arm).
+    let mut transformed_latitude = if latitude > 0.0 {
         90.0 - latitude
     } else {
         -90.0 - latitude
     };
+    // Clamp away from the ±90° pole singularity (SE's VERY_SMALL guard) so the
+    // cos(fi) == 0 azimuth branch is unreachable in practice.
+    const VERY_SMALL: f64 = 1e-10;
+    if (transformed_latitude.abs() - 90.0).abs() < VERY_SMALL {
+        transformed_latitude = if transformed_latitude < 0.0 {
+            -90.0 + VERY_SMALL
+        } else {
+            90.0 - VERY_SMALL
+        };
+    }
     let transformed_latitude_rad = transformed_latitude.to_radians();
     let fh1 = (transformed_latitude_rad.sin() / 2.0).asin().to_degrees();
     let fh2 = ((3.0_f64).sqrt() / 2.0 * transformed_latitude_rad.sin())
         .asin()
         .to_degrees();
     let cosfi = transformed_latitude_rad.cos();
-    let xh1 = if cosfi.abs() < f64::EPSILON {
-        if transformed_latitude >= 0.0 {
-            90.0
+    let (xh1, xh2) = if cosfi == 0.0 {
+        if transformed_latitude > 0.0 {
+            (90.0, 90.0)
         } else {
-            270.0
+            (270.0, 270.0)
         }
     } else {
-        (3.0_f64.sqrt() / cosfi).atan().to_degrees()
-    };
-    let xh2 = if cosfi.abs() < f64::EPSILON {
-        if transformed_latitude >= 0.0 {
-            90.0
-        } else {
-            270.0
-        }
-    } else {
-        (1.0 / 3.0_f64.sqrt() / cosfi).atan().to_degrees()
+        (
+            (3.0_f64.sqrt() / cosfi).atan().to_degrees(),
+            (1.0 / 3.0_f64.sqrt() / cosfi).atan().to_degrees(),
+        )
     };
 
+    // `ascendant_for(s, f) == Asc1(s + 90, f)`; `longitude_opposite` applies the
+    // SE +180° post-rotation. MC (cusp 10) is the true meridian, untouched.
     let mut cusps = [Longitude::from_degrees(0.0); 12];
-    cusps[0] = ascendant_for(sidereal_time + 90.0, transformed_latitude, obliquity);
+    cusps[0] = longitude_opposite(ascendant_for(
+        sidereal_time,
+        transformed_latitude,
+        obliquity,
+    ));
     cusps[9] = angles.midheaven;
-    cusps[10] = ascendant_for(sidereal_time + 90.0 - xh1, fh1, obliquity);
-    cusps[11] = ascendant_for(sidereal_time + 90.0 - xh2, fh2, obliquity);
-    cusps[1] = ascendant_for(sidereal_time + 90.0 + xh2, fh2, obliquity);
-    cusps[2] = ascendant_for(sidereal_time + 90.0 + xh1, fh1, obliquity);
+    cusps[10] = longitude_opposite(ascendant_for(sidereal_time - xh1, fh1, obliquity));
+    cusps[11] = longitude_opposite(ascendant_for(sidereal_time - xh2, fh2, obliquity));
+    cusps[1] = longitude_opposite(ascendant_for(sidereal_time + xh2, fh2, obliquity));
+    cusps[2] = longitude_opposite(ascendant_for(sidereal_time + xh1, fh1, obliquity));
     cusps[3] = longitude_opposite(cusps[9]);
     cusps[4] = longitude_opposite(cusps[10]);
     cusps[5] = longitude_opposite(cusps[11]);
@@ -1041,44 +1069,111 @@ fn complete_opposite_houses(cusps: &mut [Longitude; 12]) {
 }
 
 fn gauquelin_houses(
-    _instant: Instant,
-    _observer: &ObserverLocation,
-    _obliquity: Angle,
+    instant: Instant,
+    observer: &ObserverLocation,
+    obliquity: Angle,
     angles: HouseAngles,
 ) -> Result<[Longitude; 36], HouseError> {
+    // Swiss-Ephemeris computes the 36 Gauquelin sectors as a Placidus-family
+    // semi-arc division: each diurnal quadrant of the day's apparent motion is
+    // split into ninths of the relevant semi-arc (in hour angle), then each
+    // boundary is projected back to ecliptic longitude — NOT a longitude lerp.
+    //
+    // Convention verified against the SE reference (sectors.csv, equator → 66°):
+    //   * Anchors are the four chart angles directly:
+    //       s1  = Ascendant, s10 = Midheaven, s19 = Descendant, s28 = Imum Coeli.
+    //   * The upper hemisphere (s1..s18) is solved via the diurnal semi-arc:
+    //       - s2..s9  lie between the ASC and MC, east of the upper meridian
+    //         (positive hour angle), at fractions f = (10 − k)/9 of each point's
+    //         own semi-diurnal arc.
+    //       - s11..s18 lie between the MC and DSC, west of the upper meridian
+    //         (negative hour angle), at fractions f = (k − 10)/9.
+    //   * The lower hemisphere is the exact antipode of the upper one:
+    //       s(k + 18) = opposite(s(k)). The SE reference confirms this to 0″,
+    //       so the nocturnal quadrants need no separate solve.
+    //
+    // The semi-arc solve mirrors `solve_placidian_cusp` (cos(q/f) =
+    // −tan φ·tan δ with α = RAMC + q, tan δ = sin α·tan ε), generalized from
+    // thirds to an arbitrary fraction so the same Newton iteration places every
+    // intermediate sector boundary.
     let mut cusps = [Longitude::from_degrees(0.0); 36];
-    let ascendant = angles.ascendant;
-    let midheaven = angles.midheaven;
-    let descendant = longitude_opposite(ascendant);
-    let ic = longitude_opposite(midheaven);
 
-    let lerp = |start: Longitude, end: Longitude, fraction: f64| {
-        Longitude::from_degrees(normalize_degrees(
-            start.degrees()
-                + signed_longitude_difference(start.degrees(), end.degrees()) * fraction,
-        ))
-    };
+    let ramc = local_sidereal_time(instant, observer.longitude).degrees();
+    let latitude = observer.latitude.degrees();
+    let obliquity_deg = obliquity.degrees();
 
-    for (index, cusp) in cusps.iter_mut().take(9).enumerate() {
-        *cusp = lerp(ascendant, midheaven, index as f64 / 9.0);
+    // Anchors come straight from the derived angles.
+    cusps[0] = angles.ascendant; // s1  = ASC
+    cusps[9] = angles.midheaven; // s10 = MC
+
+    // Intermediate sectors of the upper hemisphere, by ninths of the semi-arc.
+    for k in 2..=9 {
+        let fraction = (10 - k) as f64 / 9.0;
+        cusps[k - 1] = solve_gauquelin_sector(ramc, latitude, obliquity_deg, fraction, 1.0)?;
     }
-    cusps[9] = midheaven;
-
-    for (index, cusp) in cusps[10..18].iter_mut().enumerate() {
-        *cusp = lerp(midheaven, descendant, (index + 1) as f64 / 9.0);
+    for k in 11..=18 {
+        let fraction = (k - 10) as f64 / 9.0;
+        cusps[k - 1] = solve_gauquelin_sector(ramc, latitude, obliquity_deg, fraction, -1.0)?;
     }
-    cusps[18] = descendant;
 
-    for (index, cusp) in cusps[19..27].iter_mut().enumerate() {
-        *cusp = lerp(descendant, ic, (index + 1) as f64 / 9.0);
-    }
-    cusps[27] = ic;
-
-    for (index, cusp) in cusps[28..36].iter_mut().enumerate() {
-        *cusp = lerp(ic, ascendant, (index + 1) as f64 / 9.0);
+    // Lower hemisphere is the exact antipode of the upper hemisphere.
+    for k in 1..=18 {
+        cusps[k + 18 - 1] = longitude_opposite(cusps[k - 1]);
     }
 
     Ok(cusps)
+}
+
+/// Solves one Gauquelin sector boundary as a fraction `f` of an ecliptic
+/// point's semi-diurnal arc, `sign` selecting the side of the upper meridian
+/// (`+1` east, `−1` west). This is `solve_placidian_cusp`'s semi-arc condition
+/// `cos(q/f) = −tan φ·tan δ` (with `α = RAMC + q`, `tan δ = sin α·tan ε`)
+/// generalized from fixed thirds to an arbitrary fraction.
+fn solve_gauquelin_sector(
+    ramc_deg: f64,
+    latitude_deg: f64,
+    obliquity_deg: f64,
+    fraction: f64,
+    sign: f64,
+) -> Result<Longitude, HouseError> {
+    let latitude = latitude_deg.to_radians();
+    let obliquity = obliquity_deg.to_radians();
+    let tan_lat = latitude.tan();
+    let tan_obliquity = obliquity.tan();
+    let deg_per_rad = 180.0 / core::f64::consts::PI;
+
+    let mut q = sign * fraction * 90.0;
+    let mut converged = false;
+    for _ in 0..64 {
+        let alpha = ramc_deg + q;
+        let alpha_rad = alpha.to_radians();
+        let tan_delta = alpha_rad.sin() * tan_obliquity;
+        let arg = (q / fraction).to_radians();
+        let g = arg.cos() + tan_lat * tan_delta;
+        let gp = (-(1.0 / fraction) * arg.sin() + tan_lat * tan_obliquity * alpha_rad.cos())
+            / deg_per_rad;
+        if gp.abs() < 1.0e-12 {
+            return Err(HouseError::new(
+                HouseErrorKind::NumericalFailure,
+                "gauquelin sector iteration encountered a zero derivative",
+            ));
+        }
+        let delta = -g / gp;
+        q += delta;
+        if delta.abs() < 1.0e-9 {
+            converged = true;
+            break;
+        }
+    }
+
+    if !converged || !q.is_finite() {
+        return Err(HouseError::new(
+            HouseErrorKind::NumericalFailure,
+            "gauquelin sector iteration failed to converge",
+        ));
+    }
+
+    Ok(ecliptic_longitude_from_ra(ramc_deg + q, obliquity))
 }
 
 fn albategnius_houses(angles: HouseAngles) -> [Longitude; 12] {

@@ -23,19 +23,24 @@ pub struct HouseFamilyCeiling {
 /// is applied so families whose measured residual is exactly 0 still carry a
 /// finite positive ceiling.
 ///
-/// Measured maxima (corpus, 60 rows, 4 corpus-validated families):
+/// Measured maxima (corpus, 110 rows, 7 corpus-validated families):
 ///
 /// | Family               | max cusp  | max angle |
 /// |----------------------|-----------|-----------|
 /// | Equal                | 0.4921″   | 0.4921″   |
 /// | WholeSign            | 0.0000″   | 0.4921″   |
 /// | Quadrant             | 5.7145″   | 0.4921″   |
-/// | EquatorialProjection | 0.4921″   | 0.4921″   |
+/// | EquatorialProjection | 0.5833″   | 0.4921″   |
+/// | GreatCircle          | 2.0686″   | 0.4921″   |
+/// | SolarArc             | 32.8810″  | 0.4921″   |
+/// | Sector               | 0.7117″   | 0.4921″   | (Pullen SD/SR + Gauquelin)
 ///
-/// Families not exercised by the committed corpus (GreatCircle, SolarArc,
-/// Sector, Custom, Unknown) have no SE-vs-pleiades baseline; their ceilings are
-/// kept at generous conservative values and are NOT corpus-validated.  They will
-/// be tightened once corpus rows are added for those families.
+/// The SolarArc maximum (Sunshine, 32.8810″) is reached only at the system's
+/// documented `Some(66.0)` high-latitude bound (sub-arcsecond at mid/equatorial
+/// latitudes), so its ceiling reflects a documented latitude pathology rather
+/// than a structural disagreement.  The Custom and Unknown families carry no
+/// corpus rows; their ceilings are kept at conservative values until baseline
+/// rows exist for them.
 pub fn house_family_ceiling(family: HouseFormulaFamily) -> HouseFamilyCeiling {
     match family {
         // Equal: measured max cusp 0.4921″ → ceil(0.9842) = 1 → 1.0″ (floor).
@@ -46,32 +51,49 @@ pub fn house_family_ceiling(family: HouseFormulaFamily) -> HouseFamilyCeiling {
             angle_arcsec: 1.0,
         },
 
-        // Quadrant (Placidus/Koch/Porphyry/Alcabitius/Topocentric):
+        // Quadrant (Placidus/Koch/Porphyry/Sripati/Alcabitius/Topocentric):
         // measured max cusp 5.7145″ (Koch at lat 66°) → ceil(11.429) = 12.0″.
-        // Angle measured max 0.4921″ → ceil(0.9842) = 1 → 2.0″ (small extra margin for angles).
+        // Angle measured max 0.4921″ → ceil(0.9842) = 1 → 1.0″ (floor).
         HouseFormulaFamily::Quadrant => HouseFamilyCeiling {
             cusp_arcsec: 12.0,
-            angle_arcsec: 2.0,
-        },
-
-        // EquatorialProjection (Regiomontanus/Campanus/Meridian/Axial/Morinus):
-        // measured max cusp 0.4921″ → ceil(0.9842) = 1 → 1.0″ (floor).
-        // Angle measured max 0.4921″ → 1.0″ (floor).
-        HouseFormulaFamily::EquatorialProjection => HouseFamilyCeiling {
-            cusp_arcsec: 1.0,
             angle_arcsec: 1.0,
         },
 
-        // NOT corpus-validated — generous conservative values retained until
-        // SE baseline rows are added for these families.
-        HouseFormulaFamily::GreatCircle => HouseFamilyCeiling {
-            cusp_arcsec: 15.0,
-            angle_arcsec: 5.0,
+        // EquatorialProjection (Regiomontanus/Campanus/Carter/Meridian/Axial/Morinus):
+        // measured max cusp 0.5833″ (Carter) → ceil(1.1666) = 2.0″.
+        // Angle measured max 0.4921″ → 1.0″ (floor).
+        HouseFormulaFamily::EquatorialProjection => HouseFamilyCeiling {
+            cusp_arcsec: 2.0,
+            angle_arcsec: 1.0,
         },
-        HouseFormulaFamily::SolarArc
-        | HouseFormulaFamily::Sector
-        | HouseFormulaFamily::Custom
-        | HouseFormulaFamily::Unknown => HouseFamilyCeiling {
+
+        // GreatCircle (APC/Krusinski-Pisa-Goelzer/Horizon):
+        // measured family max cusp 2.0686″ (APC; Krusinski ≤ APC; Horizon 0.1704″
+        // at the lat-40 elevated epoch, ≤ 0.0554″ at J2000) → ceil(4.1372) = 5.0″.
+        // Angle measured max 0.4921″ → 1.0″ (floor).
+        HouseFormulaFamily::GreatCircle => HouseFamilyCeiling {
+            cusp_arcsec: 5.0,
+            angle_arcsec: 1.0,
+        },
+
+        // SolarArc (Sunshine): measured max cusp 32.8810″ at the documented
+        // lat=66° bound → ceil(65.762) = 66.0″.  Angle 0.4921″ → 1.0″ (floor).
+        HouseFormulaFamily::SolarArc => HouseFamilyCeiling {
+            cusp_arcsec: 66.0,
+            angle_arcsec: 1.0,
+        },
+
+        // Sector (Pullen SD/Pullen SR + Gauquelin; Albategnius not yet corpus-backed):
+        // measured family max cusp 0.7117″ (Pullen SR; Gauquelin 0.4921″) →
+        // ceil(1.4234) = 2.0″.  Angle measured max 0.4921″ → 1.0″ (floor).
+        HouseFormulaFamily::Sector => HouseFamilyCeiling {
+            cusp_arcsec: 2.0,
+            angle_arcsec: 1.0,
+        },
+
+        // NOT corpus-validated — conservative values retained until SE baseline
+        // rows are added for these families.
+        HouseFormulaFamily::Custom | HouseFormulaFamily::Unknown => HouseFamilyCeiling {
             cusp_arcsec: 60.0,
             angle_arcsec: 10.0,
         },
