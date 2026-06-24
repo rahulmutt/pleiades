@@ -1093,7 +1093,7 @@ fn house_system_code_alias_validate_rejects_normalization_and_round_trip_drift()
 }
 
 #[test]
-fn release_grade_numeric_house_set_is_exactly_the_twelve_corpus_systems() {
+fn release_grade_numeric_house_set_is_exactly_the_twenty_two_corpus_systems() {
     use pleiades_types::{CompatibilityClaimTier, HouseSystem};
 
     let release_grade: Vec<HouseSystem> = crate::built_in_house_systems()
@@ -1103,6 +1103,7 @@ fn release_grade_numeric_house_set_is_exactly_the_twelve_corpus_systems() {
         .collect();
 
     let expected = [
+        // Twelve baseline corpus systems.
         HouseSystem::Placidus,
         HouseSystem::Koch,
         HouseSystem::Porphyry,
@@ -1115,6 +1116,19 @@ fn release_grade_numeric_house_set_is_exactly_the_twelve_corpus_systems() {
         HouseSystem::Axial,
         HouseSystem::Topocentric,
         HouseSystem::Morinus,
+        // Ten standard systems promoted in Phase 6.  Horizon is a known gap:
+        // its pleiades formula disagrees with SE by hundreds of degrees at every
+        // latitude, so it is left DescriptorOnly rather than promoted.
+        HouseSystem::EqualMidheaven,
+        HouseSystem::EqualAries,
+        HouseSystem::Vehlow,
+        HouseSystem::Sripati,
+        HouseSystem::Carter,
+        HouseSystem::Apc,
+        HouseSystem::KrusinskiPisaGoelzer,
+        HouseSystem::Sunshine,
+        HouseSystem::PullenSd,
+        HouseSystem::PullenSr,
     ];
 
     assert_eq!(release_grade.len(), expected.len());

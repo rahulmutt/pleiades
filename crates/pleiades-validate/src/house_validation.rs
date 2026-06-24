@@ -1190,6 +1190,16 @@ fn system_for_code(code: &str) -> Option<pleiades_core::HouseSystem> {
         "Axial" => Some(HouseSystem::Axial),
         "Topocentric" => Some(HouseSystem::Topocentric),
         "Morinus" => Some(HouseSystem::Morinus),
+        "EqualMidheaven" => Some(HouseSystem::EqualMidheaven),
+        "EqualAries" => Some(HouseSystem::EqualAries),
+        "Vehlow" => Some(HouseSystem::Vehlow),
+        "Sripati" => Some(HouseSystem::Sripati),
+        "Carter" => Some(HouseSystem::Carter),
+        "Apc" => Some(HouseSystem::Apc),
+        "KrusinskiPisaGoelzer" => Some(HouseSystem::KrusinskiPisaGoelzer),
+        "Sunshine" => Some(HouseSystem::Sunshine),
+        "PullenSd" => Some(HouseSystem::PullenSd),
+        "PullenSr" => Some(HouseSystem::PullenSr),
         _ => None,
     }
 }
@@ -1210,6 +1220,16 @@ fn code_for_system(system: &pleiades_core::HouseSystem) -> &'static str {
         HouseSystem::Axial => "Axial",
         HouseSystem::Topocentric => "Topocentric",
         HouseSystem::Morinus => "Morinus",
+        HouseSystem::EqualMidheaven => "EqualMidheaven",
+        HouseSystem::EqualAries => "EqualAries",
+        HouseSystem::Vehlow => "Vehlow",
+        HouseSystem::Sripati => "Sripati",
+        HouseSystem::Carter => "Carter",
+        HouseSystem::Apc => "Apc",
+        HouseSystem::KrusinskiPisaGoelzer => "KrusinskiPisaGoelzer",
+        HouseSystem::Sunshine => "Sunshine",
+        HouseSystem::PullenSd => "PullenSd",
+        HouseSystem::PullenSr => "PullenSr",
         // Non-baseline systems: return empty string (no corpus rows expected).
         _ => "",
     }
@@ -1734,16 +1754,19 @@ slice sectors file=sectors.csv role=sectors rows=5 checksum=222\n";
         let report =
             validate_house_corpus().expect("committed house corpus must validate within ceilings");
         assert_eq!(
-            report.rows_validated, 60,
-            "corpus must have exactly 60 rows"
+            report.rows_validated, 110,
+            "corpus must have exactly 110 rows"
         );
         assert!(
             report.max_cusp_residual_arcsec.is_finite(),
             "max cusp residual must be finite"
         );
+        // The overall maximum is Sunshine's 32.881″ at its documented lat=66°
+        // high-latitude bound (sub-arcsecond at mid/equatorial latitudes); it sits
+        // under the SolarArc family ceiling of 66″.
         assert!(
-            report.max_cusp_residual_arcsec < 30.0,
-            "max cusp residual {:.3}\" must be below the 30\" sanity bound",
+            report.max_cusp_residual_arcsec < 33.0,
+            "max cusp residual {:.3}\" must be below the 33\" documented-bound sanity limit",
             report.max_cusp_residual_arcsec
         );
     }
@@ -1813,9 +1836,9 @@ slice sectors file=sectors.csv role=sectors rows=5 checksum=222\n";
     }
 
     #[test]
-    fn corpus_report_exposes_twelve_validated_systems() {
+    fn corpus_report_exposes_twenty_two_validated_systems() {
         let report = validate_house_corpus().expect("house corpus gate passes");
-        assert_eq!(report.validated_systems().len(), 12);
+        assert_eq!(report.validated_systems().len(), 22);
         assert!(report
             .validated_systems()
             .contains(&pleiades_core::HouseSystem::Placidus));

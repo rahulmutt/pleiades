@@ -17,7 +17,7 @@ As of the current workspace state, `pleiades` includes:
 - baseline chart body placement, zodiac-sign summaries, aspect summaries, and optional house summaries,
 - a release compatibility profile (`pleiades-compatibility-profile/0.7.0`),
 - an API stability profile (`pleiades-api-stability/0.2.0`),
-- 25 catalogued house systems and 59 catalogued ayanamsas; of the 25 catalogued house systems, 12 house systems pass the SE numeric gate; of the 59 catalogued ayanamsas, 6 release-claimed ayanamsa modes pass theirs (the rest are catalogued with metadata only),
+- 25 catalogued house systems and 59 catalogued ayanamsas; of the 25 catalogued house systems, 22 house systems pass the SE numeric gate; of the 59 catalogued ayanamsas, 6 release-claimed ayanamsa modes pass theirs (the rest are catalogued with metadata only),
 - pure-Rust algorithmic backends for VSOP87-style planetary positions and a compact Meeus-style lunar baseline,
 - a reproducible, de440-sourced JPL reference corpus (checked-in, checksum-pinned, with the kernel SHA pinned but the kernel itself not committed) behind a live fail-closed corpus gate, used for comparison and validation,
 - an ARTIFACT_VERSION 7 packaged-data artifact for the 1900–2100 CE window (planets Mercury–Pluto stored heliocentrically, geocentric ecliptic reconstructed at lookup via `P_geo = P_helio + S_geo`; all bodies sub-arcsec after the SP2 heliocentric-planet reframe; motion/speed output is `Motion = Derived` via `SpeedPolicy::FittedDerivative`; published per-body-class accuracy ceilings and hard size budget ≤ 12 MB enforced; wider coverage opt-in via `generate-artifact <kernel> --out <path> [--start --end]`),
