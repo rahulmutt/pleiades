@@ -283,7 +283,7 @@ pub fn calculate_houses(request: &HouseRequest) -> Result<HouseSnapshot, HouseEr
             equatorial_projection_houses(request.instant, &request.observer, obliquity).into()
         }
         HouseSystem::Topocentric => {
-            topocentric_houses(request.instant, &request.observer, obliquity)?.into()
+            topocentric_houses(request.instant, &request.observer, obliquity, angles)?.into()
         }
         HouseSystem::Custom(custom) => {
             return Err(HouseError::new(
@@ -1104,16 +1104,59 @@ fn topocentric_houses(
     instant: Instant,
     observer: &ObserverLocation,
     obliquity: Angle,
+    angles: HouseAngles,
 ) -> Result<[Longitude; 12], HouseError> {
-    let corrected_latitude =
-        topocentric_latitude(observer.latitude.degrees(), observer.elevation_m)?;
-    let corrected_observer = ObserverLocation::new(
-        corrected_latitude.into(),
-        observer.longitude,
-        observer.elevation_m,
-    );
-    let corrected_angles = derive_angles(instant, &corrected_observer, obliquity);
-    placidus_houses(instant, &corrected_observer, obliquity, corrected_angles)
+    // Topocentric (Polich-Page) houses. The angles (cusps 1/4/7/10) are the
+    // already-validated Ascendant/MC pair; only the intermediate cusps differ
+    // from Placidus. Each intermediate cusp is projected with `asc1` using a
+    // "house pole" whose tangent is a third (or two thirds) of tan(latitude):
+    //
+    //   tan(pole_n) = (n / 3) * tan(latitude)
+    //
+    // and an equatorial offset from the RAMC of 30 degrees per third. This is
+    // the Polich-Page trisection that Swiss Ephemeris implements for the
+    // Topocentric ('T') system. It is independent of the geodetic-to-geocentric
+    // latitude correction used elsewhere for diurnal parallax.
+    let mut cusps = [Longitude::from_degrees(0.0); 12];
+    cusps[0] = angles.ascendant;
+    cusps[3] = angles.imum_coeli;
+    cusps[6] = angles.descendant;
+    cusps[9] = angles.midheaven;
+
+    let st = local_sidereal_time(instant, observer.longitude).degrees();
+    let tan_latitude = observer.latitude.degrees().to_radians().tan();
+    let obliquity = obliquity.degrees().to_radians();
+    let sine = obliquity.sin();
+    let cose = obliquity.cos();
+
+    // (house index, RAMC offset in degrees, fraction of tan(latitude)).
+    // Only the four cusps adjacent to the meridian are solved directly; cusps
+    // 5/6/8/9 are their ecliptic antipodes.
+    const SPEC: [(usize, f64, f64); 4] = [
+        (11, 30.0, 1.0 / 3.0),
+        (12, 60.0, 2.0 / 3.0),
+        (2, 120.0, 2.0 / 3.0),
+        (3, 150.0, 1.0 / 3.0),
+    ];
+
+    for (house, offset, fraction) in SPEC {
+        let pole = (fraction * tan_latitude).atan().to_degrees();
+        let cusp = asc1(st + offset, pole, sine, cose);
+        if !cusp.degrees().is_finite() {
+            return Err(HouseError::new(
+                HouseErrorKind::NumericalFailure,
+                "topocentric cusp projection produced a non-finite longitude",
+            ));
+        }
+        cusps[house - 1] = cusp;
+    }
+
+    cusps[4] = longitude_opposite(cusps[10]);
+    cusps[5] = longitude_opposite(cusps[11]);
+    cusps[7] = longitude_opposite(cusps[1]);
+    cusps[8] = longitude_opposite(cusps[2]);
+
+    Ok(cusps)
 }
 
 fn sunshine_houses(
@@ -1275,11 +1318,26 @@ fn solve_placidian_cusp(
     obliquity_deg: f64,
     house: usize,
 ) -> Result<Longitude, HouseError> {
-    let k = match house {
-        11 => 1.0 / 3.0,
-        12 => 2.0 / 3.0,
-        2 => -2.0 / 3.0,
-        3 => -1.0 / 3.0,
+    // Placidus divides each ecliptic point's diurnal/nocturnal semi-arc into
+    // thirds by hour-angle. A cusp lies where the point's meridian distance `q`
+    // (the hour angle from the meridian, in degrees) equals a fraction `f` of
+    // its own semi-arc. The semi-diurnal arc satisfies
+    //   cos(semi_arc) = -tan(phi) * tan(delta),
+    // and the cusp condition `q = f * semi_arc` therefore reduces to
+    //   cos(q / f) = -tan(phi) * tan(delta).
+    // For an ecliptic point of right ascension `alpha = RAMC + q`, the
+    // declination follows from the obliquity via tan(delta) = sin(alpha)*tan(eps).
+    //
+    // Houses 11 and 12 sit east of the upper meridian (positive q) using
+    // fractions 1/3 and 2/3 of the semi-diurnal arc. Houses 2 and 3 are the
+    // antipodes of the symmetric west-of-meridian points (negative q) using
+    // fractions 2/3 and 1/3, so they share the same solver and are reflected
+    // through the opposite ecliptic longitude.
+    let (fraction, sign, opposite) = match house {
+        11 => (1.0 / 3.0, 1.0, false),
+        12 => (2.0 / 3.0, 1.0, false),
+        2 => (2.0 / 3.0, -1.0, true),
+        3 => (1.0 / 3.0, -1.0, true),
         _ => {
             return Err(HouseError::new(
                 HouseErrorKind::UnsupportedHouseSystem,
@@ -1290,36 +1348,53 @@ fn solve_placidian_cusp(
 
     let latitude = latitude_deg.to_radians();
     let obliquity = obliquity_deg.to_radians();
-    let c = latitude.cos();
-    let s = latitude.sin() * obliquity.tan();
-    let mut q = 90.0;
+    let tan_lat = latitude.tan();
+    let tan_obliquity = obliquity.tan();
+    let deg_per_rad = 180.0 / core::f64::consts::PI;
 
-    for _ in 0..32 {
-        let ra = st_deg + q;
-        let q_rad = q.to_radians();
-        let ra_rad = ra.to_radians();
-        let f = c * q_rad.cos() + k * s * ra_rad.sin();
-        let fp = (-c * q_rad.sin() + k * s * ra_rad.cos()) * core::f64::consts::PI / 180.0;
-        if fp.abs() < 1.0e-12 {
+    // Residual g(q) = cos(q/f) + tan(phi)*tan(delta(alpha)), with alpha = st + q.
+    // Solve g(q) = 0 with Newton iteration, seeded toward the correct quadrant.
+    let mut q = sign * fraction * 90.0;
+
+    let mut converged = false;
+    for _ in 0..64 {
+        let alpha = st_deg + q;
+        let alpha_rad = alpha.to_radians();
+        let tan_delta = alpha_rad.sin() * tan_obliquity;
+        let arg = (q / fraction).to_radians();
+        let g = arg.cos() + tan_lat * tan_delta;
+        // dg/dq (per degree): derivative of cos(q/f) is -(1/f)*sin(q/f)*(pi/180);
+        // derivative of tan(delta) term is tan(phi)*tan(eps)*cos(alpha)*(pi/180).
+        let gp = (-(1.0 / fraction) * arg.sin() + tan_lat * tan_obliquity * alpha_rad.cos())
+            / deg_per_rad;
+        if gp.abs() < 1.0e-12 {
             return Err(HouseError::new(
                 HouseErrorKind::NumericalFailure,
                 "placidian cusp iteration encountered a zero derivative",
             ));
         }
 
-        let delta = -f / fp;
+        let delta = -g / gp;
         q += delta;
-        if delta.abs() < 1.0e-8 {
+        if delta.abs() < 1.0e-9 {
+            converged = true;
             break;
         }
     }
 
+    if !converged || !q.is_finite() {
+        return Err(HouseError::new(
+            HouseErrorKind::NumericalFailure,
+            "placidian cusp iteration failed to converge",
+        ));
+    }
+
     let ra = st_deg + q;
     let lon = ecliptic_longitude_from_ra(ra, obliquity);
-    Ok(match house {
-        11 | 12 => lon,
-        2 | 3 => longitude_opposite(lon),
-        _ => unreachable!(),
+    Ok(if opposite {
+        longitude_opposite(lon)
+    } else {
+        lon
     })
 }
 

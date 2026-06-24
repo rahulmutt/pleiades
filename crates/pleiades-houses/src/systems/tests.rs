@@ -267,8 +267,10 @@ fn topocentric_latitude_rejects_non_finite_elevation() {
 }
 
 #[test]
-#[ignore = "TODO(phase5): re-pin after Topocentric cusp algorithm corrected vs SE"]
 fn topocentric_house_snapshot_matches_a_frozen_reference_point() {
+    // Re-pinned after the Topocentric (Polich-Page) algorithm was corrected to
+    // agree with Swiss Ephemeris (within the mean-vs-apparent sidereal floor).
+    // Cusp 1 now equals the Ascendant and cusp 10 the Midheaven, as required.
     let mut request = sample_request(HouseSystem::Topocentric);
     request.observer.latitude = Latitude::from_degrees(45.0);
     request.observer.longitude = Longitude::from_degrees(10.0);
@@ -278,17 +280,23 @@ fn topocentric_house_snapshot_matches_a_frozen_reference_point() {
     let snapshot = calculate_houses(&request).expect("topocentric houses should work");
 
     assert_eq!(snapshot.cusps.len(), 12);
-    assert_close_degrees(snapshot.angles.ascendant.degrees(), 217.122_815_618_733_26);
-    assert_close_degrees(snapshot.angles.descendant.degrees(), 37.122_815_618_733_284);
-    assert_close_degrees(snapshot.angles.midheaven.degrees(), 292.129_512_677_589_9);
-    assert_close_degrees(snapshot.angles.imum_coeli.degrees(), 112.129_512_677_589_9);
-    assert_close_degrees(snapshot.cusps[0].degrees(), 216.964_467_676_271_37);
-    assert_close_degrees(snapshot.cusps[1].degrees(), 197.289_982_488_456_3);
-    assert_close_degrees(snapshot.cusps[9].degrees(), 292.129_512_677_589_9);
+    assert_close_degrees(snapshot.angles.ascendant.degrees(), 37.122_815_618_733_284);
+    assert_close_degrees(snapshot.angles.descendant.degrees(), 217.122_815_618_733_284);
+    assert_close_degrees(snapshot.angles.midheaven.degrees(), 288.896_788_004_295_672);
+    assert_close_degrees(snapshot.angles.imum_coeli.degrees(), 108.896_788_004_295_672);
+    assert_close_degrees(snapshot.cusps[0].degrees(), 37.122_815_618_733_284);
+    assert_close_degrees(snapshot.cusps[1].degrees(), 67.534_515_714_748_451);
+    assert_close_degrees(snapshot.cusps[9].degrees(), 288.896_788_004_295_672);
 }
 
 #[test]
-fn topocentric_houses_follow_the_geocentric_latitude_correction() {
+fn topocentric_houses_share_placidus_angles_but_diverge_on_intermediate_cusps() {
+    // The Topocentric (Polich-Page) system shares the Ascendant/Midheaven pair
+    // with Placidus (cusps 1/4/7/10 are identical), but trisects the diurnal
+    // arc with its own house-pole projection, so the intermediate cusps differ
+    // from Placidus. This replaces the former (incorrect) invariant that
+    // Topocentric equalled Placidus evaluated at the geocentric latitude; that
+    // model disagreed with Swiss Ephemeris by thousands of arcseconds.
     let mut topocentric_request = sample_request(HouseSystem::Topocentric);
     topocentric_request.observer.latitude = Latitude::from_degrees(45.0);
     topocentric_request.observer.longitude = Longitude::from_degrees(10.0);
@@ -298,23 +306,17 @@ fn topocentric_houses_follow_the_geocentric_latitude_correction() {
         calculate_houses(&topocentric_request).expect("topocentric houses should work");
     assert_eq!(topocentric.cusps.len(), 12);
 
-    let corrected_latitude =
-        topocentric_latitude(45.0, Some(2_000.0)).expect("topocentric latitude should convert");
     let mut placidus_request = topocentric_request.clone();
     placidus_request.system = HouseSystem::Placidus;
-    placidus_request.observer.latitude = Latitude::from_degrees(corrected_latitude.degrees());
+    let placidus = calculate_houses(&placidus_request).expect("placidus houses should work");
 
-    let placidus = calculate_houses(&placidus_request)
-        .expect("placidus houses should match the corrected latitude");
-
-    let mut geodetic_placidus_request = topocentric_request.clone();
-    geodetic_placidus_request.system = HouseSystem::Placidus;
-    let geodetic_placidus =
-        calculate_houses(&geodetic_placidus_request).expect("placidus houses should work");
-
-    assert_ne!(topocentric.cusps[1], geodetic_placidus.cusps[1]);
-    assert_eq!(topocentric.angles, geodetic_placidus.angles);
-    assert_eq!(topocentric.cusps, placidus.cusps);
+    // Same angles (1/4/7/10), different intermediate cusps.
+    assert_eq!(topocentric.angles, placidus.angles);
+    for angle_cusp in [0usize, 3, 6, 9] {
+        assert_eq!(topocentric.cusps[angle_cusp], placidus.cusps[angle_cusp]);
+    }
+    assert_ne!(topocentric.cusps[1], placidus.cusps[1]);
+    assert_ne!(topocentric.cusps[10], placidus.cusps[10]);
 }
 
 #[test]
@@ -871,4 +873,60 @@ fn equal_house_angles_match_swiss_ephemeris_corpus_within_120_arcsec() {
         "MC {:.6}° differs from SE {se_mc:.6}° by {mc_diff:.1} arcsec (limit {tolerance_arcsec})",
         snapshot.angles.midheaven.degrees(),
     );
+}
+
+/// Swiss Ephemeris external-reference anchor for the Placidus and Topocentric
+/// intermediate cusps.
+///
+/// Fixture c1_lat40: JD=2451545.0 (J2000.0), lat=40°N, lon=0°E.
+/// SE reference cusps come straight from the houses-corpus
+/// (`pleiades-validate/data/houses-corpus/cusps.csv`). Tolerance 120 arcsec is
+/// the mean-vs-apparent sidereal floor the already-correct systems achieve.
+#[test]
+fn placidus_and_topocentric_cusps_match_swiss_ephemeris_corpus_within_120_arcsec() {
+    let circ_diff_arcsec = |a: f64, b: f64| -> f64 {
+        let diff = (a - b).rem_euclid(360.0);
+        let signed = if diff > 180.0 { diff - 360.0 } else { diff };
+        signed.abs() * 3600.0
+    };
+    let tolerance_arcsec = 120.0_f64;
+
+    // c1_lat40 SE corpus rows, cusps c1..c12.
+    let se_placidus: [f64; 12] = [
+        17.706_103, 53.858_979, 78.399_152, 99.611_088, 122.382_578, 152.464_496, 197.706_103,
+        233.858_979, 258.399_152, 279.611_088, 302.382_578, 332.464_496,
+    ];
+    let se_topocentric: [f64; 12] = [
+        17.706_103, 53.759_507, 78.270_701, 99.611_088, 122.465_089, 152.483_265, 197.706_103,
+        233.759_507, 258.270_701, 279.611_088, 302.465_089, 332.483_265,
+    ];
+
+    for (system, se) in [
+        (HouseSystem::Placidus, se_placidus),
+        (HouseSystem::Topocentric, se_topocentric),
+    ] {
+        let request = HouseRequest::new(
+            Instant::new(
+                pleiades_types::JulianDay::from_days(2_451_545.0),
+                pleiades_types::TimeScale::Tt,
+            ),
+            ObserverLocation::new(
+                Latitude::from_degrees(40.0),
+                Longitude::from_degrees(0.0),
+                None,
+            ),
+            system.clone(),
+        );
+        let snapshot = calculate_houses(&request).expect("houses should compute");
+
+        for (index, &expected) in se.iter().enumerate() {
+            let diff = circ_diff_arcsec(snapshot.cusps[index].degrees(), expected);
+            assert!(
+                diff < tolerance_arcsec,
+                "{system:?} cusp {} = {:.6}° differs from SE {expected:.6}° by {diff:.1} arcsec (limit {tolerance_arcsec})",
+                index + 1,
+                snapshot.cusps[index].degrees(),
+            );
+        }
+    }
 }
