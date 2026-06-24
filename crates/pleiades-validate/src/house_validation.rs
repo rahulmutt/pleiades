@@ -942,6 +942,101 @@ pub(crate) fn parse_house_corpus(csv: &str) -> Result<Vec<HouseCorpusRow>, House
     Ok(rows)
 }
 
+/// A single parsed row from the variable-length house-sector corpus CSV.
+#[derive(Clone, Debug, PartialEq)]
+#[allow(dead_code)] // consumed by Task 5 (sector gate)
+pub(crate) struct HouseSectorRow {
+    pub(crate) chart_id: String,
+    pub(crate) jd_ut: f64,
+    pub(crate) lat_deg: f64,
+    pub(crate) lon_deg: f64,
+    pub(crate) elev_m: f64,
+    pub(crate) system_code: String,
+    /// Variable-length sector cusps, degrees (e.g. 36 for Gauquelin).
+    pub(crate) sectors: Vec<f64>,
+}
+
+/// Parse the variable-length house-sector corpus CSV. Schema:
+/// `chart_id,jd_ut,lat_deg,lon_deg,elev_m,system_code,n_sectors,s1..sN`.
+/// Fails closed: malformed, short, or count-mismatched rows return MalformedRow.
+#[allow(dead_code)] // consumed by Task 5 (sector gate)
+pub(crate) fn parse_house_sectors(csv: &str) -> Result<Vec<HouseSectorRow>, HouseCorpusError> {
+    let mut rows = Vec::new();
+    let mut data_row = 0usize;
+    for line in csv.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with('#') || trimmed.is_empty() || trimmed.starts_with("chart_id,") {
+            continue;
+        }
+        data_row += 1;
+        let parts: Vec<&str> = trimmed.split(',').collect();
+        if parts.len() < 7 {
+            return Err(HouseCorpusError::MalformedRow {
+                row: data_row,
+                line: line.to_string(),
+                reason: format!("expected at least 7 fields, got {}", parts.len()),
+            });
+        }
+        let parse_f64 = |idx: usize, name: &str| -> Result<f64, HouseCorpusError> {
+            parts[idx]
+                .trim()
+                .parse()
+                .map_err(|_| HouseCorpusError::MalformedRow {
+                    row: data_row,
+                    line: line.to_string(),
+                    reason: format!("{name} {:?} is not a valid float", parts[idx]),
+                })
+        };
+        let jd_ut = parse_f64(1, "jd_ut")?;
+        let lat_deg = parse_f64(2, "lat_deg")?;
+        let lon_deg = parse_f64(3, "lon_deg")?;
+        let elev_m = parse_f64(4, "elev_m")?;
+        let n_sectors: usize =
+            parts[6]
+                .trim()
+                .parse()
+                .map_err(|_| HouseCorpusError::MalformedRow {
+                    row: data_row,
+                    line: line.to_string(),
+                    reason: format!("n_sectors {:?} is not a valid usize", parts[6]),
+                })?;
+        if parts.len() != 7 + n_sectors {
+            return Err(HouseCorpusError::MalformedRow {
+                row: data_row,
+                line: line.to_string(),
+                reason: format!(
+                    "n_sectors={n_sectors} implies {} fields, got {}",
+                    7 + n_sectors,
+                    parts.len()
+                ),
+            });
+        }
+        let mut sectors = Vec::with_capacity(n_sectors);
+        for (i, field) in parts[7..].iter().enumerate() {
+            sectors.push(
+                field
+                    .trim()
+                    .parse()
+                    .map_err(|_| HouseCorpusError::MalformedRow {
+                        row: data_row,
+                        line: line.to_string(),
+                        reason: format!("sector field[{}] {:?} is not a valid float", 7 + i, field),
+                    })?,
+            );
+        }
+        rows.push(HouseSectorRow {
+            chart_id: parts[0].trim().to_string(),
+            jd_ut,
+            lat_deg,
+            lon_deg,
+            elev_m,
+            system_code: parts[5].trim().to_string(),
+            sectors,
+        });
+    }
+    Ok(rows)
+}
+
 /// Parsed metadata from the house-corpus manifest.
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct HouseManifest {
@@ -953,6 +1048,10 @@ pub(crate) struct HouseManifest {
     pub(crate) rows: usize,
     /// FNV-1a-64 checksum of the corpus CSV.
     pub(crate) checksum: u64,
+    /// Number of data rows in the sectors slice, if present.
+    pub(crate) sector_rows: Option<usize>,
+    /// FNV-1a-64 checksum of the sectors CSV, if present.
+    pub(crate) sector_checksum: Option<u64>,
 }
 
 /// Parse the house-corpus manifest text.
@@ -966,6 +1065,8 @@ pub(crate) fn parse_house_manifest(text: &str) -> Result<HouseManifest, HouseCor
     let mut crosscheck: Option<String> = None;
     let mut rows: Option<usize> = None;
     let mut checksum: Option<u64> = None;
+    let mut sector_rows: Option<usize> = None;
+    let mut sector_checksum: Option<u64> = None;
 
     for line in text.lines() {
         let trimmed = line.trim();
@@ -978,21 +1079,32 @@ pub(crate) fn parse_house_manifest(text: &str) -> Result<HouseManifest, HouseCor
             crosscheck = Some(rest.trim().to_string());
             continue;
         }
-        // Parse the `slice cusps file=cusps.csv role=cusps rows=<n> checksum=<u64>` line.
+        // Parse `slice <kind> file=… role=… rows=<n> checksum=<u64>` lines.
         if trimmed.starts_with("slice ") {
+            let is_sectors = trimmed.contains("role=sectors");
             for token in trimmed.split_whitespace() {
                 if let Some(val) = token.strip_prefix("rows=") {
-                    rows = Some(val.parse::<usize>().map_err(|_| {
-                        HouseCorpusError::MalformedManifest {
-                            reason: format!("rows value {val:?} is not a valid usize"),
-                        }
-                    })?);
+                    let parsed =
+                        val.parse::<usize>()
+                            .map_err(|_| HouseCorpusError::MalformedManifest {
+                                reason: format!("rows value {val:?} is not a valid usize"),
+                            })?;
+                    if is_sectors {
+                        sector_rows = Some(parsed);
+                    } else {
+                        rows = Some(parsed);
+                    }
                 } else if let Some(val) = token.strip_prefix("checksum=") {
-                    checksum = Some(val.parse::<u64>().map_err(|_| {
-                        HouseCorpusError::MalformedManifest {
-                            reason: format!("checksum value {val:?} is not a valid u64"),
-                        }
-                    })?);
+                    let parsed =
+                        val.parse::<u64>()
+                            .map_err(|_| HouseCorpusError::MalformedManifest {
+                                reason: format!("checksum value {val:?} is not a valid u64"),
+                            })?;
+                    if is_sectors {
+                        sector_checksum = Some(parsed);
+                    } else {
+                        checksum = Some(parsed);
+                    }
                 }
             }
         }
@@ -1016,6 +1128,8 @@ pub(crate) fn parse_house_manifest(text: &str) -> Result<HouseManifest, HouseCor
         crosscheck,
         rows,
         checksum,
+        sector_rows,
+        sector_checksum,
     })
 }
 
@@ -1554,6 +1668,41 @@ c0,2451545,0,0,0,Placidus,1,2,3,4,5,6,7,8,9,10,11,12,1.5,10.5\n";
         assert_eq!(parsed.rows, 55);
         assert_eq!(parsed.checksum, 12345);
         assert_eq!(parsed.crosscheck, "not-run");
+    }
+
+    const SECTOR_SAMPLE: &str =
+        "chart_id,jd_ut,lat_deg,lon_deg,elev_m,system_code,n_sectors,s1,s2,s3\n\
+c0,2451545,0,0,0,Gauquelin,3,10.0,20.0,30.0\n";
+
+    #[test]
+    fn parses_a_well_formed_sector_row() {
+        let rows = parse_house_sectors(SECTOR_SAMPLE).expect("valid");
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].system_code, "Gauquelin");
+        assert_eq!(rows[0].sectors, vec![10.0, 20.0, 30.0]);
+    }
+
+    #[test]
+    fn rejects_sector_count_mismatch() {
+        // n_sectors=3 but only two sector fields present.
+        let bad = "chart_id,jd_ut,lat_deg,lon_deg,elev_m,system_code,n_sectors,s1,s2,s3\n\
+c0,2451545,0,0,0,Gauquelin,3,10.0,20.0\n";
+        assert!(matches!(
+            parse_house_sectors(bad),
+            Err(HouseCorpusError::MalformedRow { .. })
+        ));
+    }
+
+    #[test]
+    fn parses_two_slice_manifest() {
+        let m = "#Reference-Engine: SwissEphemeris 2.10.03\n#CrossCheck-Engine: not-run\n\
+slice cusps file=cusps.csv role=cusps rows=115 checksum=111\n\
+slice sectors file=sectors.csv role=sectors rows=5 checksum=222\n";
+        let parsed = parse_house_manifest(m).expect("valid");
+        assert_eq!(parsed.rows, 115);
+        assert_eq!(parsed.checksum, 111);
+        assert_eq!(parsed.sector_rows, Some(5));
+        assert_eq!(parsed.sector_checksum, Some(222));
     }
 
     #[test]
