@@ -15,6 +15,7 @@ use pleiades_core::{
     HouseSystemDescriptor, Instant, JulianDay, Latitude, Longitude, ObserverLocation, TimeScale,
 };
 use pleiades_houses::{built_in_house_systems, HighLatitudePolicy, HouseFormulaFamily};
+use pleiades_types::CompatibilityClaimTier;
 
 /// A house-validation sample for one system in one chart scenario.
 #[derive(Clone, Debug, PartialEq)]
@@ -1486,15 +1487,22 @@ pub fn validate_house_corpus() -> Result<HouseCorpusReport, HouseCorpusError> {
         }
     }
 
-    // 5. Strict-rejection assertions: every latitude-sensitive baseline system
-    //    must reject beyond its bound under the default Strict policy.
+    // 5. Strict-rejection assertions: every release-grade latitude-sensitive
+    //    system must reject beyond its bound under the default Strict policy.
+    //    Covers baseline quadrant systems AND the promoted latitude-sensitive
+    //    systems (Horizon, APC, KrusinskiPisaGoelzer, Sunshine).
     //
     // 6. SE-compat fallback assertions: the SwissEphemerisFallback policy must
-    //    succeed and produce cusps equal to a direct Porphyry calculation.
-    for descriptor in baseline_house_systems() {
-        if descriptor.max_abs_latitude_deg.is_none() {
-            continue;
-        }
+    //    succeed. Fallback target varies by formula family:
+    //    - Quadrant (Placidus, Koch, Regiomontanus, Campanus): assert cusps == Porphyry.
+    //    - GreatCircle / SolarArc (Horizon, APC, KrusinskiPisaGoelzer, Sunshine):
+    //      assert Ok only — their documented fallback target is not Porphyry.
+    //    - Sector (Gauquelin): strict-rejection only — the SE-compat fallback returns
+    //      12 cusps (not 36), so no fallback assertion is made for this family.
+    for descriptor in built_in_house_systems().iter().filter(|d| {
+        d.claim_tier == CompatibilityClaimTier::ReleaseGradeNumeric
+            && d.max_abs_latitude_deg.is_some()
+    }) {
         for lat in [70.0_f64, 80.0] {
             let observer = ObserverLocation::new(
                 Latitude::from_degrees(lat),
@@ -1510,7 +1518,12 @@ pub fn validate_house_corpus() -> Result<HouseCorpusReport, HouseCorpusError> {
                     lat,
                 });
             }
-            // SE-compat fallback must succeed and equal Porphyry.
+            // Sector family (Gauquelin): strict-rejection only; SE-compat fallback
+            // returns 12 cusps instead of 36, so no fallback assertion for this family.
+            if descriptor.formula_family() == HouseFormulaFamily::Sector {
+                continue;
+            }
+            // SE-compat fallback must succeed.
             let fb_req = req
                 .clone()
                 .with_high_latitude_policy(HighLatitudePolicy::SwissEphemerisFallback);
@@ -1519,22 +1532,26 @@ pub fn validate_house_corpus() -> Result<HouseCorpusReport, HouseCorpusError> {
                 lat,
                 reason: format!("fallback calculate_houses failed: {e}"),
             })?;
-            let po = calculate_houses(&HouseRequest::new(
-                gate_instant(),
-                observer.clone(),
-                pleiades_core::HouseSystem::Porphyry,
-            ))
-            .map_err(|e| HouseCorpusError::FallbackMismatch {
-                system: "Porphyry".into(),
-                lat,
-                reason: format!("porphyry calculate_houses failed: {e}"),
-            })?;
-            if fb.cusps != po.cusps {
-                return Err(HouseCorpusError::FallbackMismatch {
-                    system: format!("{:?}", descriptor.system),
+            // Quadrant systems fall back to Porphyry — assert equality.
+            // GreatCircle / SolarArc systems have their own fallback target — assert Ok only.
+            if descriptor.formula_family() == HouseFormulaFamily::Quadrant {
+                let po = calculate_houses(&HouseRequest::new(
+                    gate_instant(),
+                    observer.clone(),
+                    pleiades_core::HouseSystem::Porphyry,
+                ))
+                .map_err(|e| HouseCorpusError::FallbackMismatch {
+                    system: "Porphyry".into(),
                     lat,
-                    reason: "fallback cusps differ from Porphyry".into(),
-                });
+                    reason: format!("porphyry calculate_houses failed: {e}"),
+                })?;
+                if fb.cusps != po.cusps {
+                    return Err(HouseCorpusError::FallbackMismatch {
+                        system: format!("{:?}", descriptor.system),
+                        lat,
+                        reason: "fallback cusps differ from Porphyry".into(),
+                    });
+                }
             }
         }
     }
@@ -1941,5 +1958,31 @@ slice sectors file=sectors.csv role=sectors rows=5 checksum=222\n";
         assert!(report
             .validated_systems()
             .contains(&pleiades_core::HouseSystem::Horizon));
+    }
+
+    // ── Task 6: confirmation guard for promoted latitude-sensitive systems ─────
+
+    #[test]
+    fn promoted_latitude_sensitive_systems_reject_above_bound() {
+        use pleiades_core::{calculate_houses, HouseRequest, HouseSystem};
+        for system in [
+            HouseSystem::Horizon,
+            HouseSystem::Apc,
+            HouseSystem::KrusinskiPisaGoelzer,
+            HouseSystem::Sunshine,
+        ] {
+            for lat in [70.0_f64, 80.0] {
+                let observer = ObserverLocation::new(
+                    Latitude::from_degrees(lat),
+                    Longitude::from_degrees(0.0),
+                    Some(0.0),
+                );
+                let req = HouseRequest::new(gate_instant(), observer, system.clone());
+                assert!(
+                    calculate_houses(&req).is_err(),
+                    "{system:?} at {lat}\u{00b0} must be rejected by the strict high-latitude policy"
+                );
+            }
+        }
     }
 }
