@@ -109,6 +109,16 @@ different shape from the existing convention, verbose); widening `cusps.csv` to
   count, completeness, residuals for both `cusps.csv` and `sectors.csv`).
 - Extend the completeness check to require ≥1 corpus row for every promoted
   system (those that pass — see §5 fail-safe).
+- **Strict high-latitude rejection (folded in):** the gate's existing
+  strict-rejection block iterates latitude-sensitive baseline systems and asserts
+  that each rejects beyond its bound (at lats 70°/80°) under the default Strict
+  policy, and that the `SwissEphemerisFallback` policy then succeeds. Extend this
+  to the four promoted latitude-sensitive systems — Horizon, APC, Krusinski,
+  Sunshine — each of which declares `max_abs_latitude_deg = Some(66.0)`. For each:
+  assert Strict rejection at 70°/80°, and assert the `SwissEphemerisFallback`
+  policy produces a defined chart. The exact fallback target (the baseline systems
+  fall back to Porphyry; confirm whether the new systems do the same or use a
+  system-specific fallback) is pinned during TDD rather than assumed here.
 
 ### 4. Thresholds — `crates/pleiades-houses/src/thresholds.rs`
 
@@ -140,6 +150,9 @@ Vehlow/Equal-MC/Equal-Aries; Quadrant: Sripati; EquatorialProjection: Carter).
 - Gate tests: regenerated `cusps.csv` row count (115), `sectors.csv` row count,
   Gauquelin sector residuals within the `Sector` ceiling, and
   `validated_systems()` containing the promoted set.
+- Strict-rejection tests: Horizon, APC, Krusinski, and Sunshine reject at
+  70°/80° under the default Strict policy and succeed under
+  `SwissEphemerisFallback`.
 - Re-run `compat-claims-audit` plus the full numeric-gate set (house, ayanamsa,
   apparent, topocentric, corpus) under `release-smoke`.
 - `cargo fmt` + `cargo clippy` clean; existing house-gate tests updated for the
@@ -152,9 +165,9 @@ Vehlow/Equal-MC/Equal-Aries; Quadrant: Sripati; EquatorialProjection: Carter).
   as an explicit known gap in the compatibility profile — never promoted with a
   loosened ceiling. The catalog must not be narrowed and claims must not be
   broadened beyond evidence.
-- **Latitude-sensitive systems** (APC, Horizon, Krusinski, Sunshine) are gated
-  only at the in-band corpus latitudes (0/40/55/66°). Extending strict
-  high-latitude-rejection assertions to them is a follow-up, not this batch.
+- **Latitude-sensitive systems** (APC, Horizon, Krusinski, Sunshine) carry both
+  in-band residual evidence (0/40/55/66°) and strict high-latitude-rejection
+  assertions at 70°/80° (see §3) in this batch.
 - `Albategnius` is an extra built-in outside the target catalog; it stays
   `DescriptorOnly`.
 
