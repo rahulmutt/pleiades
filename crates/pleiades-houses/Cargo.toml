@@ -12,4 +12,5 @@ categories.workspace = true
 readme = "README.md"
 
 [dependencies]
+pleiades-apparent = { workspace = true }
 pleiades-types = { workspace = true }

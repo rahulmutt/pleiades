@@ -268,9 +268,11 @@ fn topocentric_latitude_rejects_non_finite_elevation() {
 
 #[test]
 fn topocentric_house_snapshot_matches_a_frozen_reference_point() {
-    // Re-pinned after the Topocentric (Polich-Page) algorithm was corrected to
-    // agree with Swiss Ephemeris (within the mean-vs-apparent sidereal floor).
-    // Cusp 1 now equals the Ascendant and cusp 10 the Midheaven, as required.
+    // Re-pinned after switching from GMST+mean-obliquity to GAST+true-obliquity
+    // (equation of equinoxes applied to local sidereal time). The explicit
+    // obliquity override is still honoured (true obliquity is only used for the
+    // auto-computed default), so only GAST changes the values here.
+    // Cusp 1 equals the Ascendant and cusp 10 the Midheaven, as required.
     let mut request = sample_request(HouseSystem::Topocentric);
     request.observer.latitude = Latitude::from_degrees(45.0);
     request.observer.longitude = Longitude::from_degrees(10.0);
@@ -280,13 +282,13 @@ fn topocentric_house_snapshot_matches_a_frozen_reference_point() {
     let snapshot = calculate_houses(&request).expect("topocentric houses should work");
 
     assert_eq!(snapshot.cusps.len(), 12);
-    assert_close_degrees(snapshot.angles.ascendant.degrees(), 37.122_815_618_733_284);
-    assert_close_degrees(snapshot.angles.descendant.degrees(), 217.122_815_618_733_284);
-    assert_close_degrees(snapshot.angles.midheaven.degrees(), 288.896_788_004_295_672);
-    assert_close_degrees(snapshot.angles.imum_coeli.degrees(), 108.896_788_004_295_672);
-    assert_close_degrees(snapshot.cusps[0].degrees(), 37.122_815_618_733_284);
-    assert_close_degrees(snapshot.cusps[1].degrees(), 67.534_515_714_748_451);
-    assert_close_degrees(snapshot.cusps[9].degrees(), 288.896_788_004_295_672);
+    assert_close_degrees(snapshot.angles.ascendant.degrees(), 37.117_052_460_292_804);
+    assert_close_degrees(snapshot.angles.descendant.degrees(), 217.117_052_460_292_8);
+    assert_close_degrees(snapshot.angles.midheaven.degrees(), 288.893_467_921_746_2);
+    assert_close_degrees(snapshot.angles.imum_coeli.degrees(), 108.893_467_921_746_21);
+    assert_close_degrees(snapshot.cusps[0].degrees(), 37.117_052_460_292_804);
+    assert_close_degrees(snapshot.cusps[1].degrees(), 67.530_700_716_702_61);
+    assert_close_degrees(snapshot.cusps[9].degrees(), 288.893_467_921_746_2);
 }
 
 #[test]
@@ -526,7 +528,8 @@ fn morinus_is_distinct_from_meridian_and_produces_12_cusps() {
 /// Fixture c1_lat40: JD=2451545.0 (J2000.0), lat=40°N, lon=0°E.
 /// SE reference cusps come straight from the houses-corpus
 /// (`pleiades-validate/data/houses-corpus/cusps.csv`, system_code=Morinus).
-/// Tolerance is 120 arcsec; actual residuals are ~15 arcsec.
+/// Tolerance is 1 arcsec; actual residuals are ~0.02 arcsec after switching
+/// to GAST + true obliquity.
 #[test]
 fn morinus_cusps_match_swiss_ephemeris_corpus_within_120_arcsec() {
     let circ_diff_arcsec = |a: f64, b: f64| -> f64 {
@@ -534,7 +537,7 @@ fn morinus_cusps_match_swiss_ephemeris_corpus_within_120_arcsec() {
         let signed = if diff > 180.0 { diff - 360.0 } else { diff };
         signed.abs() * 3600.0
     };
-    let tolerance_arcsec = 120.0_f64;
+    let tolerance_arcsec = 1.0_f64;
 
     // c1_lat40 SE corpus Morinus row, cusps c1..c12.
     let se_morinus: [f64; 12] = [
@@ -661,10 +664,13 @@ fn krusinski_pisa_goelzer_release_system_preserves_the_documented_opposite_pairs
     assert!(snapshot.cusps.iter().all(|cusp| cusp.degrees().is_finite()));
 
     for index in 0..6 {
-        assert_eq!(
-            (snapshot.cusps[index + 6].degrees() - snapshot.cusps[index].degrees())
-                .rem_euclid(360.0),
-            180.0
+        let diff = (snapshot.cusps[index + 6].degrees() - snapshot.cusps[index].degrees())
+            .rem_euclid(360.0);
+        assert!(
+            (diff - 180.0).abs() < 1.0e-10,
+            "krusinski cusp {} and cusp {} should be opposite (diff {diff:.15} should be ~180°)",
+            index + 1,
+            index + 7,
         );
     }
 }
@@ -944,7 +950,8 @@ fn se_compat_fallback_substitutes_porphyry_beyond_bound() {
 ///
 /// Fixture: JD=2451545.0 (J2000.0), lat=40°N, lon=0°E (Equal house system).
 /// SE reference values: ASC=17.706103°, MC=279.611088°.
-/// Tolerance: 120 arcsec (residual is mean-vs-apparent sidereal time, addressed separately).
+/// Tolerance: 1 arcsec; actual residuals are ~0.04 arcsec after switching to
+/// GAST + true obliquity (equation of equinoxes applied).
 #[test]
 fn equal_house_angles_match_swiss_ephemeris_corpus_within_120_arcsec() {
     let observer = ObserverLocation::new(
@@ -964,7 +971,7 @@ fn equal_house_angles_match_swiss_ephemeris_corpus_within_120_arcsec() {
 
     let se_asc = 17.706_103_f64;
     let se_mc = 279.611_088_f64;
-    let tolerance_arcsec = 120.0_f64;
+    let tolerance_arcsec = 1.0_f64;
 
     let circ_diff_arcsec = |a: f64, b: f64| -> f64 {
         let diff = (a - b).rem_euclid(360.0);
@@ -992,8 +999,8 @@ fn equal_house_angles_match_swiss_ephemeris_corpus_within_120_arcsec() {
 ///
 /// Fixture c1_lat40: JD=2451545.0 (J2000.0), lat=40°N, lon=0°E.
 /// SE reference cusps come straight from the houses-corpus
-/// (`pleiades-validate/data/houses-corpus/cusps.csv`). Tolerance 120 arcsec is
-/// the mean-vs-apparent sidereal floor the already-correct systems achieve.
+/// (`pleiades-validate/data/houses-corpus/cusps.csv`). Tolerance 1 arcsec;
+/// actual residuals are ~0.04 arcsec after switching to GAST + true obliquity.
 #[test]
 fn placidus_and_topocentric_cusps_match_swiss_ephemeris_corpus_within_120_arcsec() {
     let circ_diff_arcsec = |a: f64, b: f64| -> f64 {
@@ -1001,7 +1008,7 @@ fn placidus_and_topocentric_cusps_match_swiss_ephemeris_corpus_within_120_arcsec
         let signed = if diff > 180.0 { diff - 360.0 } else { diff };
         signed.abs() * 3600.0
     };
-    let tolerance_arcsec = 120.0_f64;
+    let tolerance_arcsec = 1.0_f64;
 
     // c1_lat40 SE corpus rows, cusps c1..c12.
     let se_placidus: [f64; 12] = [
@@ -1048,10 +1055,8 @@ fn placidus_and_topocentric_cusps_match_swiss_ephemeris_corpus_within_120_arcsec
 ///
 /// Fixture c1_lat40: JD=2451545.0 (J2000.0), lat=40°N, lon=0°E.
 /// SE reference cusps come straight from the houses-corpus
-/// (`pleiades-validate/data/houses-corpus/cusps.csv`). Tolerance 120 arcsec is
-/// the mean-vs-apparent sidereal floor the already-correct systems achieve;
-/// Koch (which reuses the same `Asc1` projection as Placidus) sits well inside
-/// it at this latitude.
+/// (`pleiades-validate/data/houses-corpus/cusps.csv`). Tolerance 1 arcsec;
+/// actual residuals are ~0.03 arcsec after switching to GAST + true obliquity.
 #[test]
 fn koch_cusps_match_swiss_ephemeris_corpus_within_120_arcsec() {
     let circ_diff_arcsec = |a: f64, b: f64| -> f64 {
@@ -1059,7 +1064,7 @@ fn koch_cusps_match_swiss_ephemeris_corpus_within_120_arcsec() {
         let signed = if diff > 180.0 { diff - 360.0 } else { diff };
         signed.abs() * 3600.0
     };
-    let tolerance_arcsec = 120.0_f64;
+    let tolerance_arcsec = 1.0_f64;
 
     // c1_lat40 SE corpus Koch row, cusps c1..c12.
     let se_koch: [f64; 12] = [
@@ -1097,9 +1102,8 @@ fn koch_cusps_match_swiss_ephemeris_corpus_within_120_arcsec() {
 ///
 /// Fixture c1_lat40: JD=2451545.0 (J2000.0), lat=40°N, lon=0°E.
 /// SE reference cusps come straight from the houses-corpus
-/// (`pleiades-validate/data/houses-corpus/cusps.csv`). Tolerance 120 arcsec is
-/// the mean-vs-apparent sidereal floor; Campanus sits well inside it at this
-/// latitude (max residual ≈ 20 arcsec).
+/// (`pleiades-validate/data/houses-corpus/cusps.csv`). Tolerance 1 arcsec;
+/// actual residuals are ~0.04 arcsec after switching to GAST + true obliquity.
 #[test]
 fn campanus_cusps_match_swiss_ephemeris_corpus_within_120_arcsec() {
     let circ_diff_arcsec = |a: f64, b: f64| -> f64 {
@@ -1107,7 +1111,7 @@ fn campanus_cusps_match_swiss_ephemeris_corpus_within_120_arcsec() {
         let signed = if diff > 180.0 { diff - 360.0 } else { diff };
         signed.abs() * 3600.0
     };
-    let tolerance_arcsec = 120.0_f64;
+    let tolerance_arcsec = 1.0_f64;
 
     // c1_lat40 SE corpus Campanus row, cusps c1..c12.
     let se_campanus: [f64; 12] = [
@@ -1145,9 +1149,8 @@ fn campanus_cusps_match_swiss_ephemeris_corpus_within_120_arcsec() {
 ///
 /// Fixture c1_lat40: JD=2451545.0 (J2000.0), lat=40°N, lon=0°E.
 /// SE reference cusps come straight from the houses-corpus
-/// (`pleiades-validate/data/houses-corpus/cusps.csv`). Tolerance 120 arcsec is
-/// the mean-vs-apparent sidereal floor; Alcabitius sits well inside it at
-/// lat 40° (max residual < 5 arcsec after the loop-offset fix).
+/// (`pleiades-validate/data/houses-corpus/cusps.csv`). Tolerance 1 arcsec;
+/// actual residuals are ~0.01 arcsec after switching to GAST + true obliquity.
 #[test]
 fn alcabitius_cusps_match_swiss_ephemeris_corpus_within_120_arcsec() {
     let circ_diff_arcsec = |a: f64, b: f64| -> f64 {
@@ -1155,7 +1158,7 @@ fn alcabitius_cusps_match_swiss_ephemeris_corpus_within_120_arcsec() {
         let signed = if diff > 180.0 { diff - 360.0 } else { diff };
         signed.abs() * 3600.0
     };
-    let tolerance_arcsec = 120.0_f64;
+    let tolerance_arcsec = 1.0_f64;
 
     // c1_lat40 SE corpus Alcabitius row, cusps c1..c12.
     let se_alcabitius: [f64; 12] = [
@@ -1188,3 +1191,49 @@ fn alcabitius_cusps_match_swiss_ephemeris_corpus_within_120_arcsec() {
     }
 }
 
+/// Swiss Ephemeris external-reference anchor for the Alcabitius intermediate
+/// cusps at a higher latitude.
+///
+/// Fixture c2_lat55: JD=2451545.0 (J2000.0), lat=55°N, lon=0°E.
+/// SE reference cusps come straight from the houses-corpus
+/// (`pleiades-validate/data/houses-corpus/cusps.csv`). Tolerance 1 arcsec;
+/// actual residuals are ~0.06 arcsec after switching to GAST + true obliquity.
+#[test]
+fn alcabitius_cusps_c2_lat55_match_swiss_ephemeris_corpus_within_1_arcsec() {
+    let circ_diff_arcsec = |a: f64, b: f64| -> f64 {
+        let diff = (a - b).rem_euclid(360.0);
+        let signed = if diff > 180.0 { diff - 360.0 } else { diff };
+        signed.abs() * 3600.0
+    };
+    let tolerance_arcsec = 1.0_f64;
+
+    // c2_lat55 SE corpus Alcabitius row, cusps c1..c12.
+    let se_alcabitius: [f64; 12] = [
+        28.505_186, 53.528_350, 76.929_561, 99.611_088, 133.334_056, 170.360_534,
+        208.505_186, 233.528_350, 256.929_561, 279.611_088, 313.334_056, 350.360_534,
+    ];
+
+    let request = HouseRequest::new(
+        Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            pleiades_types::TimeScale::Tt,
+        ),
+        ObserverLocation::new(
+            Latitude::from_degrees(55.0),
+            Longitude::from_degrees(0.0),
+            None,
+        ),
+        HouseSystem::Alcabitius,
+    );
+    let snapshot = calculate_houses(&request).expect("Alcabitius houses should compute");
+
+    for (index, &expected) in se_alcabitius.iter().enumerate() {
+        let diff = circ_diff_arcsec(snapshot.cusps[index].degrees(), expected);
+        assert!(
+            diff < tolerance_arcsec,
+            "Alcabitius (c2_lat55) cusp {} = {:.6}° differs from SE {expected:.6}° by {diff:.1} arcsec (limit {tolerance_arcsec})",
+            index + 1,
+            snapshot.cusps[index].degrees(),
+        );
+    }
+}

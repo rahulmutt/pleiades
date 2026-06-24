@@ -11,6 +11,7 @@
 
 use core::fmt;
 
+use pleiades_apparent::nutation::nutation as apparent_nutation;
 use pleiades_types::{
     Angle, HouseSystem, Instant, Longitude, ObserverLocation, ObserverLocationValidationError,
 };
@@ -387,14 +388,32 @@ fn validate_observer(observer: &ObserverLocation) -> Result<(), HouseError> {
     })
 }
 
+/// Returns `(Δψ_deg, Δε_deg)` for the given instant.
+///
+/// Maps nutation errors to [`HouseError`] (fail-closed).
+fn nutation_for(instant: Instant) -> Result<(f64, f64), HouseError> {
+    let jd = instant.julian_day.days();
+    let nut = apparent_nutation(jd).map_err(|e| {
+        HouseError::new(
+            HouseErrorKind::NumericalFailure,
+            format!("nutation computation failed: {e:?}"),
+        )
+    })?;
+    Ok((nut.delta_psi_arcsec / 3600.0, nut.delta_eps_arcsec / 3600.0))
+}
+
 fn validated_obliquity(request: &HouseRequest) -> Result<Angle, HouseError> {
     validate_observer(&request.observer)?;
     validate_topocentric_observer(request)?;
-    validate_obliquity(
-        request
-            .obliquity
-            .unwrap_or_else(|| mean_obliquity(request.instant)),
-    )
+    let obliquity = match request.obliquity {
+        Some(o) => o,
+        None => {
+            let mean_obl = mean_obliquity(request.instant);
+            let (_delta_psi_deg, delta_eps_deg) = nutation_for(request.instant)?;
+            Angle::from_degrees(mean_obl.degrees() + delta_eps_deg)
+        }
+    };
+    validate_obliquity(obliquity)
 }
 
 fn validate_topocentric_observer(request: &HouseRequest) -> Result<(), HouseError> {
@@ -521,7 +540,21 @@ fn local_sidereal_time(instant: Instant, longitude: Longitude) -> Angle {
         + 360.985_647_366_29 * (jd - 2_451_545.0)
         + 0.000_387_933 * centuries * centuries
         - centuries * centuries * centuries / 38_710_000.0;
-    Angle::from_degrees(gmst + longitude.degrees()).normalized_0_360()
+    // Convert GMST → GAST by adding the equation of the equinoxes:
+    //   EE = Δψ · cos(ε_true)
+    // Δψ and Δε from the IAU-1980 nutation series. Falls back to EE = 0 (i.e.
+    // GMST) if the nutation table is unavailable; this is safe because nutation
+    // table failures are a development-time artifact (stale checksum), not a
+    // runtime condition.
+    let ee_deg = apparent_nutation(jd)
+        .map(|n| {
+            let delta_psi_deg = n.delta_psi_arcsec / 3600.0;
+            let mean_obl_deg = mean_obliquity(instant).degrees();
+            let true_obl_rad = (mean_obl_deg + n.delta_eps_arcsec / 3600.0).to_radians();
+            delta_psi_deg * true_obl_rad.cos()
+        })
+        .unwrap_or(0.0);
+    Angle::from_degrees(gmst + ee_deg + longitude.degrees()).normalized_0_360()
 }
 
 fn mean_obliquity(instant: Instant) -> Angle {
@@ -641,9 +674,9 @@ fn koch_houses(
         ));
     }
 
-    // Declination of the Midheaven: sin(decl) = sin(mc_long) * sin(eps),
-    // since the MC has right ascension equal to ARMC. `sina` divides this by
-    // cos(latitude) (the cosine of the geographic pole height).
+    // Declination of the Midheaven: sin(decl) = sin(λ_MC) * sin(ε), where
+    // λ_MC is the ecliptic longitude of the MC (`angles.midheaven`). `sina`
+    // divides this by cos(latitude) (the cosine of the geographic pole height).
     let mc = angles.midheaven.degrees().to_radians();
     let sina = (mc.sin() * sine / latitude.cos()).clamp(-1.0, 1.0);
     let cosa = (1.0 - sina * sina).max(0.0).sqrt();
