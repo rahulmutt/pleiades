@@ -1,5 +1,12 @@
-use libswisseph_sys::raw::swe_set_sid_mode;
-use swisseph::swe::get_ayanamsa;
+use std::os::raw::c_char;
+
+use libswisseph_sys::raw::{swe_get_ayanamsa_ex, swe_set_sid_mode};
+
+// SE ephemeris/computation flag bits (see swephexp.h).
+const SEFLG_NONUT: i32 = 64; // no nutation (mean obliquity / mean equinox)
+const SEFLG_NOABERR: i32 = 1024; // no annual aberration
+// Mean ayanamsa: nutation- and aberration-free, hence smooth and cubic-fittable.
+const MEAN_IFLAG: i32 = SEFLG_NONUT | SEFLG_NOABERR; // = 1088
 
 /// (pleiades mode_code, SE sidereal-mode integer)
 const MODES: &[(&str, i32)] = &[
@@ -27,10 +34,18 @@ const HOLDOUT_JD_TT: &[f64] = &[
 ];
 
 fn ayanamsa(code: i32, jd_tt: f64) -> f64 {
-    unsafe { swe_set_sid_mode(code, 0.0, 0.0); }
-    let v = get_ayanamsa(jd_tt);
-    assert!(v.is_finite(), "SE returned non-finite ayanamsa for code {code} at jd {jd_tt}");
-    v
+    let mut daya = 0.0_f64;
+    let mut serr = [0 as c_char; 256];
+    let ret = unsafe {
+        swe_set_sid_mode(code, 0.0, 0.0);
+        swe_get_ayanamsa_ex(jd_tt, MEAN_IFLAG, &mut daya, serr.as_mut_ptr())
+    };
+    if ret < 0 {
+        let msg = unsafe { std::ffi::CStr::from_ptr(serr.as_ptr()) }.to_string_lossy();
+        panic!("swe_get_ayanamsa_ex failed for code {code} at jd {jd_tt}: {msg}");
+    }
+    assert!(daya.is_finite(), "SE returned non-finite ayanamsa for code {code} at jd {jd_tt}");
+    daya
 }
 
 fn emit_corpus() {
@@ -88,9 +103,52 @@ fn emit_fit() {
     }
 }
 
+/// Evaluate a degree-3 polynomial in T = (jd-2451545)/36525.
+fn eval_cubic(c: &[f64; 4], jd: f64) -> f64 {
+    let t = (jd - 2_451_545.0) / 36_525.0;
+    c[0] + c[1] * t + c[2] * t * t + c[3] * t * t * t
+}
+
+/// Refit the true-star cubic and report the worst residual at the holdout
+/// instants (arcseconds) — the Step-2 success criterion (< 1.0").
+fn emit_holdout_check() {
+    let dense: Vec<f64> = (1900..=2100)
+        .step_by(2)
+        .map(|y| 2_451_545.0 + (y as f64 - 2000.0) * 365.25)
+        .collect();
+    let code = 27; // True Chitra / True Citra
+    let mut ata = vec![vec![0.0f64; 4]; 4];
+    let mut atb = vec![0.0f64; 4];
+    for &jd in &dense {
+        let t = (jd - 2_451_545.0) / 36_525.0;
+        let powers = [1.0, t, t * t, t * t * t];
+        let y = ayanamsa(code, jd);
+        for i in 0..4 {
+            atb[i] += powers[i] * y;
+            for j in 0..4 {
+                ata[i][j] += powers[i] * powers[j];
+            }
+        }
+    }
+    let c4: Vec<f64> = solve(ata, atb);
+    let c = [c4[0], c4[1], c4[2], c4[3]];
+    let mut worst = 0.0f64;
+    for &jd in HOLDOUT_JD_TT {
+        let se = ayanamsa(code, jd);
+        let fitv = eval_cubic(&c, jd);
+        let resid = (se - fitv).abs() * 3600.0;
+        println!("holdout jd={jd} se={se:.9} fit={fitv:.9} resid={resid:.4}\"");
+        if resid > worst {
+            worst = resid;
+        }
+    }
+    println!("WORST_TRUESTAR_HOLDOUT_ARCSEC={worst:.4}");
+}
+
 fn main() {
     match std::env::args().nth(1).as_deref() {
         Some("fit") => emit_fit(),
+        Some("holdout") => emit_holdout_check(),
         _ => emit_corpus(),
     }
 }

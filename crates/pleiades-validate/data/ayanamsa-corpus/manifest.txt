@@ -1,4 +1,5 @@
 #Pleiades Ayanamsa Reference Corpus Manifest
 #Reference-Engine: SwissEphemeris 2.10.03
+#Reference: SwissEphemeris 2.10.03 mean ayanamsa (iflag=SEFLG_NONUT|SEFLG_NOABERR), nutation- and aberration-free
 #CrossCheck-Engine: not-run
-slice ayanamsa file=ayanamsa.csv role=ayanamsa rows=60 checksum=16722316028609519219
+slice ayanamsa file=ayanamsa.csv role=ayanamsa rows=60 checksum=8858641012577117031
