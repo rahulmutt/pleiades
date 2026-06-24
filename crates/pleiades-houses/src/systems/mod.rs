@@ -1041,44 +1041,111 @@ fn complete_opposite_houses(cusps: &mut [Longitude; 12]) {
 }
 
 fn gauquelin_houses(
-    _instant: Instant,
-    _observer: &ObserverLocation,
-    _obliquity: Angle,
+    instant: Instant,
+    observer: &ObserverLocation,
+    obliquity: Angle,
     angles: HouseAngles,
 ) -> Result<[Longitude; 36], HouseError> {
+    // Swiss-Ephemeris computes the 36 Gauquelin sectors as a Placidus-family
+    // semi-arc division: each diurnal quadrant of the day's apparent motion is
+    // split into ninths of the relevant semi-arc (in hour angle), then each
+    // boundary is projected back to ecliptic longitude — NOT a longitude lerp.
+    //
+    // Convention verified against the SE reference (sectors.csv, equator → 66°):
+    //   * Anchors are the four chart angles directly:
+    //       s1  = Ascendant, s10 = Midheaven, s19 = Descendant, s28 = Imum Coeli.
+    //   * The upper hemisphere (s1..s18) is solved via the diurnal semi-arc:
+    //       - s2..s9  lie between the ASC and MC, east of the upper meridian
+    //         (positive hour angle), at fractions f = (10 − k)/9 of each point's
+    //         own semi-diurnal arc.
+    //       - s11..s18 lie between the MC and DSC, west of the upper meridian
+    //         (negative hour angle), at fractions f = (k − 10)/9.
+    //   * The lower hemisphere is the exact antipode of the upper one:
+    //       s(k + 18) = opposite(s(k)). The SE reference confirms this to 0″,
+    //       so the nocturnal quadrants need no separate solve.
+    //
+    // The semi-arc solve mirrors `solve_placidian_cusp` (cos(q/f) =
+    // −tan φ·tan δ with α = RAMC + q, tan δ = sin α·tan ε), generalized from
+    // thirds to an arbitrary fraction so the same Newton iteration places every
+    // intermediate sector boundary.
     let mut cusps = [Longitude::from_degrees(0.0); 36];
-    let ascendant = angles.ascendant;
-    let midheaven = angles.midheaven;
-    let descendant = longitude_opposite(ascendant);
-    let ic = longitude_opposite(midheaven);
 
-    let lerp = |start: Longitude, end: Longitude, fraction: f64| {
-        Longitude::from_degrees(normalize_degrees(
-            start.degrees()
-                + signed_longitude_difference(start.degrees(), end.degrees()) * fraction,
-        ))
-    };
+    let ramc = local_sidereal_time(instant, observer.longitude).degrees();
+    let latitude = observer.latitude.degrees();
+    let obliquity_deg = obliquity.degrees();
 
-    for (index, cusp) in cusps.iter_mut().take(9).enumerate() {
-        *cusp = lerp(ascendant, midheaven, index as f64 / 9.0);
+    // Anchors come straight from the derived angles.
+    cusps[0] = angles.ascendant; // s1  = ASC
+    cusps[9] = angles.midheaven; // s10 = MC
+
+    // Intermediate sectors of the upper hemisphere, by ninths of the semi-arc.
+    for k in 2..=9 {
+        let fraction = (10 - k) as f64 / 9.0;
+        cusps[k - 1] = solve_gauquelin_sector(ramc, latitude, obliquity_deg, fraction, 1.0)?;
     }
-    cusps[9] = midheaven;
-
-    for (index, cusp) in cusps[10..18].iter_mut().enumerate() {
-        *cusp = lerp(midheaven, descendant, (index + 1) as f64 / 9.0);
+    for k in 11..=18 {
+        let fraction = (k - 10) as f64 / 9.0;
+        cusps[k - 1] = solve_gauquelin_sector(ramc, latitude, obliquity_deg, fraction, -1.0)?;
     }
-    cusps[18] = descendant;
 
-    for (index, cusp) in cusps[19..27].iter_mut().enumerate() {
-        *cusp = lerp(descendant, ic, (index + 1) as f64 / 9.0);
-    }
-    cusps[27] = ic;
-
-    for (index, cusp) in cusps[28..36].iter_mut().enumerate() {
-        *cusp = lerp(ic, ascendant, (index + 1) as f64 / 9.0);
+    // Lower hemisphere is the exact antipode of the upper hemisphere.
+    for k in 1..=18 {
+        cusps[k + 18 - 1] = longitude_opposite(cusps[k - 1]);
     }
 
     Ok(cusps)
+}
+
+/// Solves one Gauquelin sector boundary as a fraction `f` of an ecliptic
+/// point's semi-diurnal arc, `sign` selecting the side of the upper meridian
+/// (`+1` east, `−1` west). This is `solve_placidian_cusp`'s semi-arc condition
+/// `cos(q/f) = −tan φ·tan δ` (with `α = RAMC + q`, `tan δ = sin α·tan ε`)
+/// generalized from fixed thirds to an arbitrary fraction.
+fn solve_gauquelin_sector(
+    ramc_deg: f64,
+    latitude_deg: f64,
+    obliquity_deg: f64,
+    fraction: f64,
+    sign: f64,
+) -> Result<Longitude, HouseError> {
+    let latitude = latitude_deg.to_radians();
+    let obliquity = obliquity_deg.to_radians();
+    let tan_lat = latitude.tan();
+    let tan_obliquity = obliquity.tan();
+    let deg_per_rad = 180.0 / core::f64::consts::PI;
+
+    let mut q = sign * fraction * 90.0;
+    let mut converged = false;
+    for _ in 0..64 {
+        let alpha = ramc_deg + q;
+        let alpha_rad = alpha.to_radians();
+        let tan_delta = alpha_rad.sin() * tan_obliquity;
+        let arg = (q / fraction).to_radians();
+        let g = arg.cos() + tan_lat * tan_delta;
+        let gp = (-(1.0 / fraction) * arg.sin() + tan_lat * tan_obliquity * alpha_rad.cos())
+            / deg_per_rad;
+        if gp.abs() < 1.0e-12 {
+            return Err(HouseError::new(
+                HouseErrorKind::NumericalFailure,
+                "gauquelin sector iteration encountered a zero derivative",
+            ));
+        }
+        let delta = -g / gp;
+        q += delta;
+        if delta.abs() < 1.0e-9 {
+            converged = true;
+            break;
+        }
+    }
+
+    if !converged || !q.is_finite() {
+        return Err(HouseError::new(
+            HouseErrorKind::NumericalFailure,
+            "gauquelin sector iteration failed to converge",
+        ));
+    }
+
+    Ok(ecliptic_longitude_from_ra(ramc_deg + q, obliquity))
 }
 
 fn albategnius_houses(angles: HouseAngles) -> [Longitude; 12] {

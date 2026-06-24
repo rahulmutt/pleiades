@@ -1150,7 +1150,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         true,
         Some(66.0),
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::Gauquelin,
         "Gauquelin sectors",
         &["G", "Gauquelin", "Gauquelin sector", "Gauquelin table of sectors"],
@@ -1433,7 +1433,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         true,
         Some(66.0),
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::Gauquelin,
         "Gauquelin sectors",
         &["G", "Gauquelin", "Gauquelin sector", "Gauquelin table of sectors"],

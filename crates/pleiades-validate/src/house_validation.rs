@@ -629,6 +629,11 @@ const CORPUS_CSV: &str = include_str!(concat!(
     "/data/houses-corpus/cusps.csv"
 ));
 
+const CORPUS_SECTORS_CSV: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/data/houses-corpus/sectors.csv"
+));
+
 const CORPUS_MANIFEST: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/data/houses-corpus/manifest.txt"
@@ -944,7 +949,6 @@ pub(crate) fn parse_house_corpus(csv: &str) -> Result<Vec<HouseCorpusRow>, House
 
 /// A single parsed row from the variable-length house-sector corpus CSV.
 #[derive(Clone, Debug, PartialEq)]
-#[allow(dead_code)] // consumed by Task 5 sector-gate wiring (Gauquelin dropped — known gap, Task 7)
 pub(crate) struct HouseSectorRow {
     pub(crate) chart_id: String,
     pub(crate) jd_ut: f64,
@@ -959,7 +963,6 @@ pub(crate) struct HouseSectorRow {
 /// Parse the variable-length house-sector corpus CSV. Schema:
 /// `chart_id,jd_ut,lat_deg,lon_deg,elev_m,system_code,n_sectors,s1..sN`.
 /// Fails closed: malformed, short, or count-mismatched rows return MalformedRow.
-#[allow(dead_code)] // consumed by Task 5 sector-gate wiring (Gauquelin dropped — known gap, Task 7)
 pub(crate) fn parse_house_sectors(csv: &str) -> Result<Vec<HouseSectorRow>, HouseCorpusError> {
     let mut rows = Vec::new();
     let mut data_row = 0usize;
@@ -1200,6 +1203,7 @@ fn system_for_code(code: &str) -> Option<pleiades_core::HouseSystem> {
         "Sunshine" => Some(HouseSystem::Sunshine),
         "PullenSd" => Some(HouseSystem::PullenSd),
         "PullenSr" => Some(HouseSystem::PullenSr),
+        "Gauquelin" => Some(HouseSystem::Gauquelin),
         _ => None,
     }
 }
@@ -1230,6 +1234,7 @@ fn code_for_system(system: &pleiades_core::HouseSystem) -> &'static str {
         HouseSystem::Sunshine => "Sunshine",
         HouseSystem::PullenSd => "PullenSd",
         HouseSystem::PullenSr => "PullenSr",
+        HouseSystem::Gauquelin => "Gauquelin",
         // Non-baseline systems: return empty string (no corpus rows expected).
         _ => "",
     }
@@ -1402,6 +1407,83 @@ pub fn validate_house_corpus() -> Result<HouseCorpusReport, HouseCorpusError> {
         }
     }
 
+    // 4b. Sectors slice: checksum + row count + per-sector residuals (Gauquelin).
+    //     Variable-length house systems (36-sector Gauquelin) live in their own
+    //     CSV/manifest slice; each sector is checked against its formula-family
+    //     ceiling exactly like the 12-cusp corpus rows above.
+    let sector_checksum = pleiades_apparent::fnv1a64(CORPUS_SECTORS_CSV);
+    let manifest_sector_checksum =
+        manifest
+            .sector_checksum
+            .ok_or_else(|| HouseCorpusError::ManifestDrift {
+                field: "sector_checksum".into(),
+                expected: "present".into(),
+                actual: "missing".into(),
+            })?;
+    if sector_checksum != manifest_sector_checksum {
+        return Err(HouseCorpusError::ChecksumMismatch {
+            expected: manifest_sector_checksum,
+            actual: sector_checksum,
+        });
+    }
+    let sector_rows = parse_house_sectors(CORPUS_SECTORS_CSV)?;
+    if Some(sector_rows.len()) != manifest.sector_rows {
+        return Err(HouseCorpusError::ManifestDrift {
+            field: "sector_rows".into(),
+            expected: manifest
+                .sector_rows
+                .map(|n| n.to_string())
+                .unwrap_or_default(),
+            actual: sector_rows.len().to_string(),
+        });
+    }
+    for (idx, row) in sector_rows.iter().enumerate() {
+        let data_row = idx + 1;
+        let system = system_for_code(&row.system_code).ok_or_else(|| {
+            HouseCorpusError::UnknownSystemCode {
+                row: data_row,
+                code: row.system_code.clone(),
+            }
+        })?;
+        let family = pleiades_houses::descriptor(&system)
+            .map(|d| d.formula_family())
+            .unwrap_or(pleiades_houses::HouseFormulaFamily::Unknown);
+        let ceiling = pleiades_houses::thresholds::house_family_ceiling(family);
+        let snapshot = recompute_pleiades(
+            data_row,
+            &HouseCorpusRow {
+                chart_id: row.chart_id.clone(),
+                jd_ut: row.jd_ut,
+                lat_deg: row.lat_deg,
+                lon_deg: row.lon_deg,
+                elev_m: row.elev_m,
+                system_code: row.system_code.clone(),
+                cusps: [0.0; 12],
+                asc: 0.0,
+                mc: 0.0,
+            },
+            &system,
+        )?;
+        for (i, &want) in row.sectors.iter().enumerate() {
+            let got = snapshot.cusps[i].degrees();
+            let resid = wrap_arcsec(got, want);
+            if resid > max_cusp_residual_arcsec {
+                max_cusp_residual_arcsec = resid;
+            }
+            if resid > ceiling.cusp_arcsec {
+                return Err(HouseCorpusError::CeilingExceeded {
+                    row: data_row,
+                    system: row.system_code.clone(),
+                    cusp: i + 1,
+                    got,
+                    want,
+                    residual_arcsec: resid,
+                    ceiling_arcsec: ceiling.cusp_arcsec,
+                });
+            }
+        }
+    }
+
     // 5. Strict-rejection assertions: every latitude-sensitive baseline system
     //    must reject beyond its bound under the default Strict policy.
     //
@@ -1466,6 +1548,13 @@ pub fn validate_house_corpus() -> Result<HouseCorpusReport, HouseCorpusError> {
 
     let mut validated_systems: Vec<pleiades_core::HouseSystem> = Vec::new();
     for row in &rows {
+        if let Some(sys) = system_for_code(&row.system_code) {
+            if !validated_systems.contains(&sys) {
+                validated_systems.push(sys);
+            }
+        }
+    }
+    for row in &sector_rows {
         if let Some(sys) = system_for_code(&row.system_code) {
             if !validated_systems.contains(&sys) {
                 validated_systems.push(sys);
@@ -1836,11 +1925,15 @@ slice sectors file=sectors.csv role=sectors rows=5 checksum=222\n";
     }
 
     #[test]
-    fn corpus_report_exposes_twenty_two_validated_systems() {
+    fn corpus_report_exposes_twenty_three_validated_systems() {
         let report = validate_house_corpus().expect("house corpus gate passes");
-        assert_eq!(report.validated_systems().len(), 22);
+        assert_eq!(report.validated_systems().len(), 23);
         assert!(report
             .validated_systems()
             .contains(&pleiades_core::HouseSystem::Placidus));
+        // Gauquelin is corpus-backed via the variable-length sectors slice.
+        assert!(report
+            .validated_systems()
+            .contains(&pleiades_core::HouseSystem::Gauquelin));
     }
 }

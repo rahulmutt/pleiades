@@ -704,20 +704,142 @@ fn gauquelin_release_system_exposes_thirty_six_sectors() {
         longitude_opposite(snapshot.angles.midheaven)
     );
     assert_eq!(snapshot.cusp(36), Some(snapshot.cusps[35]));
-    // Each of the 4 arcs (ASC→MC, MC→DSC, DSC→IC, IC→ASC) is divided into 9 equal steps.
-    // Verify uniform spacing within the first arc (ASC to MC).
-    let step_01 = (snapshot.cusps[1].degrees() - snapshot.cusps[0].degrees()).rem_euclid(360.0);
-    let step_12 = (snapshot.cusps[2].degrees() - snapshot.cusps[1].degrees()).rem_euclid(360.0);
-    assert!(
-        (step_01 - step_12).abs() < 1.0e-10,
-        "Gauquelin sectors should be uniformly spaced within each arc"
-    );
-    // Each step is ~10° (either clockwise or counter-clockwise depending on ASC/MC geometry).
-    let step_deg = step_01.min(360.0 - step_01);
-    assert!(
-        (step_deg - 10.0).abs() < 1.5,
-        "Gauquelin sector angular width should be ~10°, got {step_deg}°"
-    );
+    // Gauquelin sectors are a Placidus-family semi-arc division, so the lower
+    // hemisphere is the exact antipode of the upper hemisphere:
+    // s(k + 18) = opposite(s(k)). (Numeric SE agreement is asserted separately
+    // in `gauquelin_sectors_match_swiss_ephemeris_reference`.)
+    for k in 0..18 {
+        let upper = snapshot.cusps[k].degrees();
+        let lower = snapshot.cusps[k + 18].degrees();
+        let diff = (((upper + 180.0) - lower + 180.0).rem_euclid(360.0)) - 180.0;
+        assert!(
+            diff.abs() < 1.0e-9,
+            "Gauquelin sector {} should be the antipode of sector {}",
+            k + 19,
+            k + 1
+        );
+    }
+}
+
+#[test]
+fn gauquelin_sectors_match_swiss_ephemeris_reference() {
+    // Ground-truth Swiss-Ephemeris 36-sector values (sectors.csv fixtures):
+    // (jd_ut, lat_deg, lon_deg, [s1..s36]).
+    // Gauquelin sectors are a Placidus-family semi-arc division (each diurnal/
+    // nocturnal quadrant split into ninths), NOT a longitude lerp. These values
+    // exercise the equator, mid-latitudes, and the near-polar (66°) regime.
+    struct Fixture {
+        id: &'static str,
+        jd: f64,
+        lat: f64,
+        lon: f64,
+        sectors: [f64; 36],
+    }
+    let fixtures = [
+        Fixture {
+            id: "c0_lat00",
+            jd: 2451545.0,
+            lat: 0.0,
+            lon: 0.0,
+            sectors: [
+                11.373900, 0.498173, 349.616833, 338.849424, 328.295170, 318.017909, 308.040522,
+                298.347719, 288.893685, 279.611088, 270.419362, 261.231657, 251.960854, 242.525543,
+                232.856860, 222.906648, 212.656467, 202.125490, 191.373900, 180.498173, 169.616833,
+                158.849424, 148.295170, 138.017909, 128.040522, 118.347719, 108.893685, 99.611088,
+                90.419362, 81.231657, 71.960854, 62.525543, 52.856860, 42.906648, 32.656467,
+                22.125490,
+            ],
+        },
+        Fixture {
+            id: "c1_lat40",
+            jd: 2451545.0,
+            lat: 40.0,
+            lon: 0.0,
+            sectors: [
+                17.706103, 0.736222, 345.587073, 332.464496, 321.131729, 311.221449, 302.382578,
+                294.320768, 286.796477, 279.611088, 272.591552, 265.575907, 258.399152, 250.877889,
+                242.791680, 233.858979, 223.707487, 211.848972, 197.706103, 180.736222, 165.587073,
+                152.464496, 141.131729, 131.221449, 122.382578, 114.320768, 106.796477, 99.611088,
+                92.591552, 85.575907, 78.399152, 70.877889, 62.791680, 53.858979, 43.707487,
+                31.848972,
+            ],
+        },
+        Fixture {
+            id: "c2_lat55",
+            jd: 2451545.0,
+            lat: 55.0,
+            lon: 0.0,
+            sectors: [
+                28.505186, 1.107822, 340.254713, 325.231349, 313.955164, 305.003978, 297.529337,
+                291.013310, 285.119432, 279.611088, 274.305089, 269.042114, 263.663645, 257.987911,
+                251.775970, 244.671608, 236.075863, 224.846914, 208.505186, 181.107822, 160.254713,
+                145.231349, 133.955164, 125.003978, 117.529337, 111.013310, 105.119432, 99.611088,
+                94.305089, 89.042114, 83.663645, 77.987911, 71.775970, 64.671608, 56.075863,
+                44.846914,
+            ],
+        },
+        Fixture {
+            id: "c3_lat66",
+            jd: 2451545.0,
+            lat: 66.0,
+            lon: 0.0,
+            sectors: [
+                87.195607, 3.702693, 318.826001, 303.196619, 295.102092, 290.005092, 286.407601,
+                283.668075, 281.463357, 279.611088, 277.998875, 276.551926, 275.216522, 273.950574,
+                272.717332, 271.480026, 270.195365, 268.802302, 267.195607, 183.702693, 138.826001,
+                123.196619, 115.102092, 110.005092, 106.407601, 103.668075, 101.463357, 99.611088,
+                97.998875, 96.551926, 95.216522, 93.950574, 92.717332, 91.480026, 90.195365,
+                88.802302,
+            ],
+        },
+        Fixture {
+            id: "c4_lat40_e2",
+            jd: 2433283.0,
+            lat: 40.0,
+            lon: 30.0,
+            sectors: [
+                60.830331, 45.921003, 30.402853, 15.112631, 0.775651, 347.777129, 336.178607,
+                325.848219, 316.577373, 308.147116, 300.355307, 293.022440, 285.987810, 279.101589,
+                272.214688, 265.166046, 257.765393, 249.767458, 240.830331, 225.921003, 210.402853,
+                195.112631, 180.775651, 167.777129, 156.178607, 145.848219, 136.577373, 128.147116,
+                120.355307, 113.022440, 105.987810, 99.101589, 92.214688, 85.166046, 77.765393,
+                69.767458,
+            ],
+        },
+    ];
+
+    // Sector-family ceiling is 2.0″ (see thresholds.rs); the test tolerance is
+    // the same so the gate and this unit test agree (measured max is ~0.49″).
+    let tolerance_arcsec = 2.0;
+    let mut overall_max = 0.0_f64;
+    for fx in &fixtures {
+        let request = HouseRequest::new(
+            Instant::new(
+                pleiades_types::JulianDay::from_days(fx.jd),
+                pleiades_types::TimeScale::Tt,
+            ),
+            ObserverLocation::new(
+                Latitude::from_degrees(fx.lat),
+                Longitude::from_degrees(fx.lon),
+                None,
+            ),
+            HouseSystem::Gauquelin,
+        );
+        let snapshot = calculate_houses(&request).expect("gauquelin sectors should compute");
+        assert_eq!(snapshot.cusps.len(), 36);
+        for (i, &want) in fx.sectors.iter().enumerate() {
+            let got = snapshot.cusps[i].degrees();
+            let resid = (((got - want + 180.0).rem_euclid(360.0)) - 180.0).abs() * 3600.0;
+            overall_max = overall_max.max(resid);
+            assert!(
+                resid <= tolerance_arcsec,
+                "{}: sector {} got {got:.6} want {want:.6} resid {resid:.3}\"",
+                fx.id,
+                i + 1
+            );
+        }
+    }
+    eprintln!("gauquelin max residual vs SE = {overall_max:.4} arcsec");
 }
 
 #[test]

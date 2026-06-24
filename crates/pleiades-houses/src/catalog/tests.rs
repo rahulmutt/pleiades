@@ -1093,7 +1093,7 @@ fn house_system_code_alias_validate_rejects_normalization_and_round_trip_drift()
 }
 
 #[test]
-fn release_grade_numeric_house_set_is_exactly_the_twenty_two_corpus_systems() {
+fn release_grade_numeric_house_set_is_exactly_the_twenty_three_corpus_systems() {
     use pleiades_types::{CompatibilityClaimTier, HouseSystem};
 
     let release_grade: Vec<HouseSystem> = crate::built_in_house_systems()
@@ -1129,6 +1129,9 @@ fn release_grade_numeric_house_set_is_exactly_the_twenty_two_corpus_systems() {
         HouseSystem::Sunshine,
         HouseSystem::PullenSd,
         HouseSystem::PullenSr,
+        // Gauquelin promoted in Phase 6 Task 5a: its 36 sectors now match SE
+        // via the Placidus semi-arc division (corpus-backed by the sectors slice).
+        HouseSystem::Gauquelin,
     ];
 
     assert_eq!(release_grade.len(), expected.len());

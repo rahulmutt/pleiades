@@ -33,7 +33,7 @@ pub struct HouseFamilyCeiling {
 /// | EquatorialProjection | 0.5833″   | 0.4921″   |
 /// | GreatCircle          | 2.0686″   | 0.4921″   |
 /// | SolarArc             | 32.8810″  | 0.4921″   |
-/// | Sector               | 0.7117″   | 0.4921″   |
+/// | Sector               | 0.7117″   | 0.4921″   | (Pullen SD/SR + Gauquelin)
 ///
 /// The SolarArc maximum (Sunshine, 32.8810″) is reached only at the system's
 /// documented `Some(66.0)` high-latitude bound (sub-arcsecond at mid/equatorial
@@ -82,9 +82,9 @@ pub fn house_family_ceiling(family: HouseFormulaFamily) -> HouseFamilyCeiling {
             angle_arcsec: 1.0,
         },
 
-        // Sector (Pullen SD/Pullen SR; Albategnius/Gauquelin not yet corpus-backed):
-        // measured max cusp 0.7117″ (Pullen SR) → ceil(1.4234) = 2.0″.
-        // Angle measured max 0.4921″ → 1.0″ (floor).
+        // Sector (Pullen SD/Pullen SR + Gauquelin; Albategnius not yet corpus-backed):
+        // measured family max cusp 0.7117″ (Pullen SR; Gauquelin 0.4921″) →
+        // ceil(1.4234) = 2.0″.  Angle measured max 0.4921″ → 1.0″ (floor).
         HouseFormulaFamily::Sector => HouseFamilyCeiling {
             cusp_arcsec: 2.0,
             angle_arcsec: 1.0,
