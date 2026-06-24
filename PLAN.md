@@ -110,6 +110,16 @@ work: native sidereal backend output (deliberate non-goal; native-backend
 topocentric stays unsupported at the backend boundary). Phase 6 is deferred
 end-state work and must not broaden public claims before its own evidence exists.
 
+**Phase 5 progress:** The compatibility-audit pair for the Phase 5 release gate
+is now both done. House-system numeric gate is **done** (`validate-houses`,
+60-row SE corpus, per-formula-family ceilings set from measured residuals; all 12
+baseline house systems pass). Ayanamsa numeric gate is **done** (`validate-ayanamsa`,
+60-row SE mean corpus, per-mode-class ceilings set from measured residuals; 6
+release-claimed modes pass — Lahiri, Raman, Krishnamurti, Fagan/Bradley ≤ 2.0″;
+True Chitra, True Citra ≤ 1.0″). Remaining ~48 built-in ayanamsa variants are
+not-yet-gated (kept on descriptor tests; no claim broadening). Remaining Phase 5
+work: release-gate hardening and compatibility-profile overclaim checks.
+
 ## Plan maintenance rules
 
 - Keep this plan limited to remaining implementation work.
@@ -119,7 +129,7 @@ end-state work and must not broaden public claims before its own evidence exists
 - Keep `README.md`, release profiles, generated reports, and this plan aligned
   when public behavior or release claims change.
 
-Status: refreshed 2026-06-22 — **SP3 complete; Phases 1–3 done; per-backend claim model enforced by the claims-audit gate; Phase 4 active — civil-time conversion done, apparent-place done, topocentric (chart layer) done; only native sidereal backend output remains (deliberate non-goal)**.
+Status: refreshed 2026-06-24 — **SP3 complete; Phases 1–3 done; per-backend claim model enforced by the claims-audit gate; Phase 4 active — civil-time conversion done, apparent-place done, topocentric (chart layer) done; only native sidereal backend output remains (deliberate non-goal); Phase 5 house gate done + ayanamsa gate done (compatibility-audit pair complete)**.
 Published per-body-class accuracy ceilings enforced (1900–2100 CE), hard size gate
 active (≤ 12 MB), latency tracked, motion output `Motion = Derived`
 (SpeedPolicy::FittedDerivative) gated. ARTIFACT_VERSION 7.
