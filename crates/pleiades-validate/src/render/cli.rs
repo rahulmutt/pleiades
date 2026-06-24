@@ -8,6 +8,25 @@ pub fn banner() -> &'static str {
     BANNER
 }
 
+fn run_all_numeric_gates() -> Result<(), String> {
+    crate::validate_house_corpus().map_err(|e| format!("house gate failed: {e}"))?;
+    crate::validate_ayanamsa_corpus().map_err(|e| format!("ayanamsa gate failed: {e}"))?;
+    crate::validate_apparent_goldens().map_err(|e| format!("apparent gate failed: {e}"))?;
+    crate::validate_topocentric_goldens().map_err(|e| format!("topocentric gate failed: {e}"))?;
+    crate::corpus::production::run_corpus_gate().map_err(|e| format!("corpus gate failed: {e}"))?;
+    Ok(())
+}
+
+fn render_compat_claims_audit() -> Result<String, String> {
+    match crate::claims::audit_compat_claims() {
+        Ok(()) => Ok("compatibility overclaim audit: OK (claims match numeric evidence)".to_string()),
+        Err(violations) => {
+            let messages: Vec<String> = violations.iter().map(|v| v.to_string()).collect();
+            Err(format!("compatibility overclaim audit failed:\n{}", messages.join("\n")))
+        }
+    }
+}
+
 fn validate_release_smoke_at(output_dir: impl AsRef<Path>) -> Result<(), String> {
     struct Cleanup(PathBuf);
 
@@ -31,6 +50,7 @@ fn validate_release_smoke_at(output_dir: impl AsRef<Path>) -> Result<(), String>
         return Err(format!("release smoke failed:\n{report}"));
     }
 
+    run_all_numeric_gates()?;
     verify_compatibility_profile().map_err(render_error)?;
     let _ = render_artifact_report().map_err(render_artifact_error)?;
     let _ = render_release_bundle(1, output_dir).map_err(render_release_bundle_error)?;
@@ -603,6 +623,10 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("ayanamsa-audit") => {
             ensure_no_extra_args(&args[1..], "ayanamsa-audit")?;
             Ok(render_ayanamsa_audit_summary())
+        }
+        Some("compat-claims-audit") | Some("compat-claims-audit-summary") => {
+            ensure_no_extra_args(&args[1..], "compat-claims-audit")?;
+            render_compat_claims_audit()
         }
         Some("target-house-scope-summary") => {
             ensure_no_extra_args(&args[1..], "target-house-scope-summary")?;

@@ -62,3 +62,21 @@ run = "cargo run -q -p pleiades-validate -- release-gate"
 
 [tasks.ci]
 depends = ["fmt", "lint", "test-full", "docs", "audit", "package-check", "release-smoke", "claims-audit"]
+
+[tasks.gate-houses]
+run = "cargo run -q -p pleiades-validate -- validate-houses"
+
+[tasks.gate-ayanamsa]
+run = "cargo run -q -p pleiades-validate -- validate-ayanamsa"
+
+[tasks.gate-apparent]
+run = "cargo run -q -p pleiades-validate -- validate-apparent"
+
+[tasks.gate-topocentric]
+run = "cargo run -q -p pleiades-validate -- validate-topocentric"
+
+[tasks.gate-corpus]
+run = "cargo run -q -p pleiades-validate -- validate-corpus"
+
+[tasks.compat-claims-audit]
+run = "cargo run -q -p pleiades-validate -- compat-claims-audit"
