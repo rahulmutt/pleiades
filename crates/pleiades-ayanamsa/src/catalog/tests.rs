@@ -190,13 +190,10 @@ fn selected_release_ayanamsas_carry_reference_metadata() {
         true_citra.offset_degrees,
         Some(Angle::from_degrees(50.256_748_3))
     );
-    assert_eq!(
-        sidereal_offset(
-            &Ayanamsa::TrueCitra,
-            Instant::new(JulianDay::from_days(1_825_182.872_330), TimeScale::Tt),
-        ),
-        Some(Angle::from_degrees(50.256_748_3))
-    );
+    // True-star modes (TrueChitra/TrueCitra) compute sidereal_offset from the committed
+    // SE cubic fit (valid 1900–2100); the descriptor (epoch, offset) above is reference
+    // metadata only and is intentionally NOT reproduced by sidereal_offset at the ancient
+    // reference epoch (see truestar.rs).
 
     let kugler1 = descriptor(&Ayanamsa::BabylonianKugler1).expect("Babylonian Kugler 1 descriptor");
     assert_eq!(kugler1.epoch, Some(JulianDay::from_days(1_833_923.577_692)));

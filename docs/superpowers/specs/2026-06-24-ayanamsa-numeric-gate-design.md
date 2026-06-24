@@ -237,3 +237,75 @@ ungated mode as fully validated.
    choice in the CSV column name (`jd_tt` vs `jd_ut`).
 4. **Concrete per-mode-class ceilings** — set from observed residuals after the
    correction step.
+
+## Audit findings (2026-06-24)
+
+Implementation complete. All six release-claimed modes are numerically gated.
+Findings recorded here; the gate passes on a clean checkout with no SE dependency.
+
+### Gate corpus provenance
+
+- Reference engine: Swiss Ephemeris 2.10.03, `swe_get_ayanamsa_ex` with
+  `iflag = SEFLG_NONUT | SEFLG_NOABERR` (TT/ET, mean ayanamsa), via
+  `tools/se-ayanamsa-reference` (excluded from the published workspace; C1 satisfied).
+- Time scale: TT throughout (`jd_tt` column, matching `pleiades_types::Instant::Tt`).
+- True-star corpus: regenerated as SE **mean** ayanamsa (`iflag = SEFLG_NONUT | SEFLG_NOABERR`)
+  so the true-star signal is smooth and cubic-fittable. Gate semantics are
+  apples-to-apples: pleiades' `sidereal_offset` for true-star modes returns a mean
+  quantity (the committed cubic fit excludes nutation and aberration); the corpus
+  reference is SE mean. SE's apparent signal (±17″ nutation / 18.6-year period;
+  ±20″ annual aberration) is deliberately excluded from the reference.
+  The corpus manifest records `#CrossCheck-Engine: not-run`.
+- Corpus: 60 rows, 6 modes. fnv1a64 checksum (non-canonical prime, per project convention):
+  `8858641012577117031`.
+
+### Mode class: OffsetDefined (Lahiri, Raman, Krishnamurti, Fagan/Bradley)
+
+- **Numerically gated:** yes.
+- **Computation used:** descriptor epoch anchor + IAU-2006 general precession in
+  longitude (quadratic + cubic terms; non-linear drift over the 1900–2100 window).
+  Replaces the prior single global linear rate (`offset_from_components`) which
+  drifted unacceptably over the window.
+- **SE reference:** each mode uses SE's `(t0, ayan_t0)` as its anchor; Lahiri =
+  SE_SIDM_LAHIRI (code 1), Raman = SE_SIDM_RAMAN (code 3), Krishnamurti =
+  SE_SIDM_KRISHNAMURTI (code 5), Fagan/Bradley = SE_SIDM_FAGAN_BRADLEY (code 0).
+  The IAU-2006 precession in longitude matches SE's non-linear drift over the window.
+- **Measured max residual vs SE mean:** 0.828″ (over 1900–2100, across all four modes).
+- **Mode-class ceiling:** 2.0″ (= ceil(2 × 0.828″), 1.0″ floor applied, result ≥ floor).
+
+### Mode class: TrueStar (True Chitra, True Citra)
+
+- **Numerically gated:** yes.
+- **Computation used:** committed cubic polynomial fit to SE mean ayanamsa
+  (NONUT | NOABERR) over 1900–2100. Coefficients committed in
+  `crates/pleiades-ayanamsa/src/truestar.rs`. Not a linear offset; not a
+  Lahiri/Spica-pinning approximation — a direct SE mean fit.
+- **SE reference:** both modes map to SE TRUE_CITRA (code 27). True Chitra
+  (`TrueChitra`) and True Citra (`TrueCitra`) are near-equivalents: identical corpus
+  values, identical polynomial coefficients. The catalog entries differ only in
+  display name and alias metadata; the gate validates both against code 27.
+- **Measured max residual vs SE mean:** 0.0105″ (over 1900–2100, across both modes).
+- **Mode-class ceiling:** 1.0″ (= 1.0″ floor, since ceil(2 × 0.0105″) < 1.0″).
+- **Known validity limitation:** the cubic is fit over 1900–2100; outside this
+  window the polynomial extrapolates and `sidereal_offset` should not be relied
+  upon for true-star modes. The gate validates corpus rows only within the fit window.
+
+### Open items resolved
+
+1. **SE_SIDM code for True Chitra / True Citra:** both map to `SE_SIDM_TRUE_CITRA`
+   (code 27). Confirmed against SE headers; reconciled above.
+2. **SE `(t0, ayan_t0)` per mode:** offset-defined modes use SE's internal anchor
+   directly (IAU-2006 precession propagates from it); the audit found no descriptor
+   mismatch requiring a catalog update for the gated set.
+3. **Time scale:** resolved as TT via `swe_get_ayanamsa` (ET/TT path, not `_ut`);
+   corpus column is `jd_tt`; gate uses `Instant::Tt`.
+4. **Concrete ceilings:** set from measurement — 2.0″ (OffsetDefined), 1.0″ (TrueStar).
+
+### Not-yet-gated modes
+
+The remaining ~48 metadata-carrying built-in ayanamsa variants in the pleiades
+catalog are **not numerically gated**. They carry descriptor / round-trip /
+metadata-coverage tests (`pleiades-ayanamsa/src/{model,lookup,catalog}.rs`) but no
+Swiss Ephemeris residual check. No claim has been broadened: only the six
+release-claimed modes listed above are attested to SE-class accuracy. Expanding
+numerical gating to additional modes is Phase 6 work.

@@ -243,6 +243,7 @@ dependencies = [
  "pleiades-elp",
  "pleiades-houses",
  "pleiades-jpl",
+ "pleiades-types",
  "pleiades-vsop87",
 ]
 

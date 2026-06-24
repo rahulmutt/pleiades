@@ -68,8 +68,15 @@ Phase 3 — body/backend claim closure: resolve Pluto, constrain lunar/lunar-poi
 claims to the compact baseline, and promote selected asteroid support where source
 evidence is sufficient.
 
+## Phase 5 note
+
+The Phase 5 compatibility-audit pair has landed: house-system numeric gate
+(`validate-houses`, all 12 baseline systems ≤ 5.71″) and ayanamsa numeric gate
+(`validate-ayanamsa`, 6 release-claimed modes — OffsetDefined ≤ 2.0″, TrueStar
+≤ 1.0″) are both done. Remaining Phase 5 work: release-gate hardening and
+compatibility-profile overclaim checks.
+
 ## Parallel-safe work
 
 - Audit Pluto, lunar theory, and selected-asteroid body-claim boundaries (Phase 3).
-- Audit house and ayanamsa descriptor entries against source/provenance evidence.
 - Harden release gates that check existing evidence without broadening claims.

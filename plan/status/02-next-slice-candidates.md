@@ -59,15 +59,26 @@ No open Phase 2 slices remain.
 
 ## Phase 5 — Compatibility and release gates
 
-- Audit house formulas, aliases, source-label mappings, and latitude/numerical
-  constraints for release-claimed entries.
-- Audit ayanamsa offsets, epochs, formulas, aliases, near-equivalent variants,
-  and provenance.
-- Ensure descriptor-only, custom-only, constrained, approximate, and unsupported
-  entries are not advertised as fully implemented.
-- Add any missing release gates for stale generated outputs, missing source
-  evidence, threshold failures, native-dependency drift, unsupported-mode claim
-  drift, and compatibility-profile overclaims.
+Phase 5 compatibility-audit pair is complete:
+
+- House-system numeric gate **done** (`validate-houses`, 60-row SE corpus,
+  per-formula-family arcsecond ceilings set from measured residuals; all 12
+  baseline house systems validated). Audit: house formulas, aliases, source-label
+  mappings, latitude/numerical constraints for release-claimed entries — complete.
+- Ayanamsa epoch/offset/formula/alias/provenance audit **done** via the numeric gate
+  (`validate-ayanamsa`, 60-row SE mean corpus, per-mode-class ceilings set from
+  measured residuals; 6 release-claimed modes — Lahiri, Raman, Krishnamurti,
+  Fagan/Bradley ≤ 2.0″; True Chitra, True Citra ≤ 1.0″). Remaining ~48 built-in
+  ayanamsa variants are not-yet-gated (descriptor tests only; no claim broadening).
+
+Remaining Phase 5 candidates:
+
+- Release-gate hardening: audit any remaining generated artifacts whose stale
+  output, missing input, unsupported-mode claim drift, or threshold failure is not
+  yet checked by a release gate.
+- Compatibility-profile overclaim checks: ensure no descriptor-only, custom-only,
+  constrained, approximate, or unsupported entry is advertised as fully implemented
+  in compatibility profiles or public surfaces.
 
 ## Phase 6 — Target catalog completion and expansion (deferred, post-first-release)
 

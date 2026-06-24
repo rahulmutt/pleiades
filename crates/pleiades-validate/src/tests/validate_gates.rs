@@ -111,10 +111,8 @@ fn validate_houses_command_dispatches_and_reports_pass() {
 
 #[test]
 fn houses_gate_alias_matches_validate_houses() {
-    let via_primary =
-        render_cli(&["validate-houses"]).expect("validate-houses should succeed");
-    let via_alias =
-        render_cli(&["houses-gate"]).expect("houses-gate alias should succeed");
+    let via_primary = render_cli(&["validate-houses"]).expect("validate-houses should succeed");
+    let via_alias = render_cli(&["houses-gate"]).expect("houses-gate alias should succeed");
     assert_eq!(via_primary, via_alias);
 }
 
@@ -148,5 +146,45 @@ fn help_text_mentions_validate_houses_and_houses_gate() {
     assert!(
         help.contains("houses-gate"),
         "help text should mention houses-gate alias"
+    );
+}
+
+#[test]
+fn validate_ayanamsa_command_dispatches_and_reports_pass() {
+    let result = render_cli(&["validate-ayanamsa"])
+        .expect("validate-ayanamsa should succeed on committed ayanamsa corpus");
+    assert!(
+        result.contains("Ayanamsa gate"),
+        "validate-ayanamsa output should contain 'Ayanamsa gate': {result}"
+    );
+}
+
+#[test]
+fn ayanamsa_gate_alias_matches_validate_ayanamsa() {
+    let via_primary = render_cli(&["validate-ayanamsa"]).expect("validate-ayanamsa should succeed");
+    let via_alias = render_cli(&["ayanamsa-gate"]).expect("ayanamsa-gate alias should succeed");
+    assert_eq!(via_primary, via_alias);
+}
+
+#[test]
+fn validate_ayanamsa_rejects_extra_args() {
+    let error = render_cli(&["validate-ayanamsa", "extra"])
+        .expect_err("validate-ayanamsa should reject extra arguments");
+    assert!(
+        error.contains("validate-ayanamsa does not accept extra arguments"),
+        "unexpected error: {error}"
+    );
+}
+
+#[test]
+fn help_text_mentions_validate_ayanamsa() {
+    let help = render_cli(&["help"]).expect("help command should render");
+    assert!(
+        help.contains("validate-ayanamsa"),
+        "help should mention validate-ayanamsa"
+    );
+    assert!(
+        help.contains("ayanamsa-gate"),
+        "help should mention ayanamsa-gate alias"
     );
 }

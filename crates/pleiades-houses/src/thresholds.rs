@@ -41,26 +41,40 @@ pub fn house_family_ceiling(family: HouseFormulaFamily) -> HouseFamilyCeiling {
         // Equal: measured max cusp 0.4921″ → ceil(0.9842) = 1 → 1.0″ (floor).
         // WholeSign: measured max cusp 0.0000″ → floor → 1.0″.
         // Angle: measured max 0.4921″ → ceil(0.9842) = 1 → 1.0″ (floor).
-        HouseFormulaFamily::Equal
-        | HouseFormulaFamily::WholeSign => HouseFamilyCeiling { cusp_arcsec: 1.0, angle_arcsec: 1.0 },
+        HouseFormulaFamily::Equal | HouseFormulaFamily::WholeSign => HouseFamilyCeiling {
+            cusp_arcsec: 1.0,
+            angle_arcsec: 1.0,
+        },
 
         // Quadrant (Placidus/Koch/Porphyry/Alcabitius/Topocentric):
         // measured max cusp 5.7145″ (Koch at lat 66°) → ceil(11.429) = 12.0″.
         // Angle measured max 0.4921″ → ceil(0.9842) = 1 → 2.0″ (small extra margin for angles).
-        HouseFormulaFamily::Quadrant => HouseFamilyCeiling { cusp_arcsec: 12.0, angle_arcsec: 2.0 },
+        HouseFormulaFamily::Quadrant => HouseFamilyCeiling {
+            cusp_arcsec: 12.0,
+            angle_arcsec: 2.0,
+        },
 
         // EquatorialProjection (Regiomontanus/Campanus/Meridian/Axial/Morinus):
         // measured max cusp 0.4921″ → ceil(0.9842) = 1 → 1.0″ (floor).
         // Angle measured max 0.4921″ → 1.0″ (floor).
-        HouseFormulaFamily::EquatorialProjection => HouseFamilyCeiling { cusp_arcsec: 1.0, angle_arcsec: 1.0 },
+        HouseFormulaFamily::EquatorialProjection => HouseFamilyCeiling {
+            cusp_arcsec: 1.0,
+            angle_arcsec: 1.0,
+        },
 
         // NOT corpus-validated — generous conservative values retained until
         // SE baseline rows are added for these families.
-        HouseFormulaFamily::GreatCircle => HouseFamilyCeiling { cusp_arcsec: 15.0, angle_arcsec: 5.0 },
+        HouseFormulaFamily::GreatCircle => HouseFamilyCeiling {
+            cusp_arcsec: 15.0,
+            angle_arcsec: 5.0,
+        },
         HouseFormulaFamily::SolarArc
         | HouseFormulaFamily::Sector
         | HouseFormulaFamily::Custom
-        | HouseFormulaFamily::Unknown => HouseFamilyCeiling { cusp_arcsec: 60.0, angle_arcsec: 10.0 },
+        | HouseFormulaFamily::Unknown => HouseFamilyCeiling {
+            cusp_arcsec: 60.0,
+            angle_arcsec: 10.0,
+        },
     }
 }
 
