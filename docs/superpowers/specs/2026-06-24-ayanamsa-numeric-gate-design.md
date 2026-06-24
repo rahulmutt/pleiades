@@ -245,7 +245,8 @@ Findings recorded here; the gate passes on a clean checkout with no SE dependenc
 
 ### Gate corpus provenance
 
-- Reference engine: Swiss Ephemeris 2.10.03, `swe_get_ayanamsa` (TT/ET), via
+- Reference engine: Swiss Ephemeris 2.10.03, `swe_get_ayanamsa_ex` with
+  `iflag = SEFLG_NONUT | SEFLG_NOABERR` (TT/ET, mean ayanamsa), via
   `tools/se-ayanamsa-reference` (excluded from the published workspace; C1 satisfied).
 - Time scale: TT throughout (`jd_tt` column, matching `pleiades_types::Instant::Tt`).
 - True-star corpus: regenerated as SE **mean** ayanamsa (`iflag = SEFLG_NONUT | SEFLG_NOABERR`)
