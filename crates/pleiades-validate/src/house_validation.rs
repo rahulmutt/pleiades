@@ -1034,12 +1034,19 @@ pub struct HouseCorpusReport {
     pub crosscheck: String,
     /// Compact one-line summary.
     pub summary_line: String,
+    /// The distinct typed house systems the corpus validated.
+    pub validated_systems: Vec<pleiades_core::HouseSystem>,
 }
 
 impl HouseCorpusReport {
     /// Returns the compact one-line summary.
     pub fn summary_line(&self) -> &str {
         &self.summary_line
+    }
+
+    /// Returns the distinct house systems validated by the corpus.
+    pub fn validated_systems(&self) -> &[pleiades_core::HouseSystem] {
+        &self.validated_systems
     }
 }
 
@@ -1323,12 +1330,22 @@ pub fn validate_house_corpus() -> Result<HouseCorpusReport, HouseCorpusError> {
         manifest.crosscheck,
     );
 
+    let mut validated_systems: Vec<pleiades_core::HouseSystem> = Vec::new();
+    for row in &rows {
+        if let Some(sys) = system_for_code(&row.system_code) {
+            if !validated_systems.iter().any(|s| *s == sys) {
+                validated_systems.push(sys);
+            }
+        }
+    }
+
     Ok(HouseCorpusReport {
         rows_validated: rows.len(),
         systems_checked,
         max_cusp_residual_arcsec,
         crosscheck: manifest.crosscheck,
         summary_line,
+        validated_systems,
     })
 }
 
@@ -1644,5 +1661,15 @@ c0,2451545,0,0,0,Placidus,1,2,3,4,5,6,7,8,9,10,11,12,1.5,10.5\n";
         ))
         .expect("Porphyry is defined at all latitudes");
         assert_eq!(fb.cusps, po.cusps);
+    }
+
+    #[test]
+    fn corpus_report_exposes_twelve_validated_systems() {
+        let report = validate_house_corpus().expect("house corpus gate passes");
+        assert_eq!(report.validated_systems().len(), 12);
+        assert!(report
+            .validated_systems()
+            .iter()
+            .any(|s| *s == pleiades_core::HouseSystem::Placidus));
     }
 }
