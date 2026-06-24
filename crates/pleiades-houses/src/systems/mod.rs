@@ -25,8 +25,9 @@ pub enum HighLatitudePolicy {
     /// Reject with `InvalidLatitude` (the safe default).
     #[default]
     Strict,
-    /// Reproduce Swiss Ephemeris's documented substitution (Porphyry) instead
-    /// of erroring, recording the substitution in the snapshot provenance.
+    /// Reproduce Swiss Ephemeris's documented substitution: silently compute
+    /// Porphyry cusps instead of returning an error when the observer latitude
+    /// exceeds the system's documented bound.
     SwissEphemerisFallback,
 }
 

@@ -1094,7 +1094,7 @@ fn house_system_code_alias_validate_rejects_normalization_and_round_trip_drift()
 
 #[test]
 fn latitude_sensitive_systems_carry_a_latitude_bound() {
-    for descriptor in baseline_house_systems() {
+    for descriptor in built_in_house_systems() {
         if descriptor.latitude_sensitive {
             assert!(
                 descriptor.max_abs_latitude_deg.is_some(),
