@@ -25,6 +25,7 @@
 mod angles;
 mod ayanamsa;
 mod bodies;
+mod compatibility_claim;
 mod coordinates;
 mod custom_bodies;
 mod frames;
@@ -38,6 +39,7 @@ mod zodiac;
 pub use angles::{Angle, Latitude, Longitude};
 pub use ayanamsa::{Ayanamsa, CustomAyanamsa};
 pub use bodies::{CelestialBody, CelestialBodyClass};
+pub use compatibility_claim::CompatibilityClaimTier;
 pub use coordinates::{CoordinateValidationError, EclipticCoordinates, EquatorialCoordinates};
 pub use custom_bodies::{CustomBodyId, CustomDefinitionValidationError};
 pub use frames::{Apparentness, CoordinateFrame};
