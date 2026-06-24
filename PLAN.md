@@ -75,8 +75,9 @@ These are the implementation gaps that still block a production release:
   (Phase 4 civil-time sub-task complete).
 - House systems: 24 of 25 catalogued built-in house systems are release-grade
   (Phase 6 house-catalog promotion done as of 2026-06-24; all 12 target systems
-  promoted via SE numeric gate; Albategnius is the sole out-of-catalog
-  descriptor-only built-in; no house-system known gaps remain). Ayanamsa:
+  promoted via SE numeric gate; Albategnius is the sole built-in not in the
+  Phase-6 target catalog, kept descriptor-only; no house-system known gaps
+  remain). Ayanamsa:
   6 release-claimed modes pass the SE numeric gate; the remaining ~48 built-in
   ayanamsa variants are not-yet-gated (kept on descriptor tests; no claim
   broadening); that completion is deferred end-state work tracked in Phase 6.
@@ -131,9 +132,11 @@ Phase 6 is **done** as of 2026-06-24. All 12 target house systems were promoted
 to release-grade via SE numeric gate (`validate-houses`, 115-row corpus including
 variable-length Gauquelin sector rows; per-formula-family ceilings). Horizon and
 Gauquelin were promoted via algorithm corrections (Horizon: corrected SE `H`
-azimuth convention; Gauquelin: corrected 36-sector cusp indexing), not left as
-known gaps. **24 of 25 built-in house systems are release-grade; the sole
-out-of-catalog built-in is Albategnius (descriptor-only).** There are no
+azimuth convention; Gauquelin: rewrote the 36-sector computation as a
+Placidus-family semi-arc division, replacing a linear longitude lerp), not left
+as known gaps. **24 of 25 built-in house systems are release-grade; the sole
+built-in not in the Phase-6 target catalog is Albategnius (descriptor-only).**
+There are no
 house-system known gaps to record. Known limitation (orthogonal, pre-existing):
 Gauquelin's high-latitude SwissEphemerisFallback path returns 12 cusps rather
 than 36 sectors (a separate pre-existing degradation-path issue; does not affect
@@ -149,7 +152,7 @@ the release-grade numeric evidence, which validates Gauquelin's primary
 - Keep `README.md`, release profiles, generated reports, and this plan aligned
   when public behavior or release claims change.
 
-Status: refreshed 2026-06-24 — **SP3 complete; Phases 1–3 done; per-backend claim model enforced by the claims-audit gate; Phase 4 active — civil-time conversion done, apparent-place done, topocentric (chart layer) done; only native sidereal backend output remains (deliberate non-goal); Phase 5 complete — house gate done + ayanamsa gate done + overclaim gate done; release-gate now runs the full numeric-gate set (house, ayanamsa, apparent, topocentric, corpus) plus the overclaim audit; Phase 6 house-catalog release-grade promotion done — 24 of 25 built-in house systems release-grade (Albategnius sole descriptor-only out-of-catalog built-in); all 12 target systems promoted; no house-system known gaps**.
+Status: refreshed 2026-06-24 — **SP3 complete; Phases 1–3 done; per-backend claim model enforced by the claims-audit gate; Phase 4 active — civil-time conversion done, apparent-place done, topocentric (chart layer) done; only native sidereal backend output remains (deliberate non-goal); Phase 5 complete — house gate done + ayanamsa gate done + overclaim gate done; release-gate now runs the full numeric-gate set (house, ayanamsa, apparent, topocentric, corpus) plus the overclaim audit; Phase 6 house-catalog release-grade promotion done — 24 of 25 built-in house systems release-grade (Albategnius the sole built-in not in the Phase-6 target catalog, kept descriptor-only); all 12 target systems promoted; no house-system known gaps**.
 Published per-body-class accuracy ceilings enforced (1900–2100 CE), hard size gate
 active (≤ 12 MB), latency tracked, motion output `Motion = Derived`
 (SpeedPolicy::FittedDerivative) gated. ARTIFACT_VERSION 7.
