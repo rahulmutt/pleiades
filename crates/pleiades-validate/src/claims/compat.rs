@@ -48,17 +48,41 @@ impl fmt::Display for CompatClaimAuditError {
 
 impl std::error::Error for CompatClaimAuditError {}
 
+/// Classifies one entry's tier against whether the corpus validated it.
+/// Returns the violation, if any. Pure: enables exhaustive testing of both directions.
+fn classify_tier_evidence(
+    catalog: &'static str,
+    entry: &str,
+    tier: CompatibilityClaimTier,
+    has_evidence: bool,
+) -> Option<CompatClaimAuditError> {
+    match tier {
+        CompatibilityClaimTier::ReleaseGradeNumeric if !has_evidence => {
+            Some(CompatClaimAuditError::ReleaseGradeWithoutCorpusEvidence {
+                catalog,
+                entry: entry.to_string(),
+            })
+        }
+        CompatibilityClaimTier::DescriptorOnly if has_evidence => {
+            Some(CompatClaimAuditError::DescriptorOnlyHasEvidence {
+                catalog,
+                entry: entry.to_string(),
+            })
+        }
+        _ => None,
+    }
+}
+
 /// Check A: bidirectional tier ↔ corpus-evidence agreement for both catalogs.
 // Called by `audit_compat_claims` and by tests; not yet called from Task 6–7 callers.
 #[allow(dead_code)]
 fn check_tier_evidence(errors: &mut Vec<CompatClaimAuditError>) {
     let house_report = match validate_house_corpus() {
         Ok(r) => r,
-        Err(e) => {
+        Err(_) => {
             errors.push(CompatClaimAuditError::SurfaceDisagrees {
                 surface: "house-corpus-gate",
             });
-            let _ = e;
             return;
         }
     };
@@ -67,20 +91,8 @@ fn check_tier_evidence(errors: &mut Vec<CompatClaimAuditError>) {
             .validated_systems()
             .iter()
             .any(|s| *s == d.system);
-        match d.claim_tier {
-            CompatibilityClaimTier::ReleaseGradeNumeric if !has_evidence => {
-                errors.push(CompatClaimAuditError::ReleaseGradeWithoutCorpusEvidence {
-                    catalog: "house",
-                    entry: d.canonical_name.to_string(),
-                });
-            }
-            CompatibilityClaimTier::DescriptorOnly if has_evidence => {
-                errors.push(CompatClaimAuditError::DescriptorOnlyHasEvidence {
-                    catalog: "house",
-                    entry: d.canonical_name.to_string(),
-                });
-            }
-            _ => {}
+        if let Some(e) = classify_tier_evidence("house", d.canonical_name, d.claim_tier, has_evidence) {
+            errors.push(e);
         }
     }
 
@@ -95,20 +107,8 @@ fn check_tier_evidence(errors: &mut Vec<CompatClaimAuditError>) {
     };
     for d in built_in_ayanamsas() {
         let has_evidence = aya_report.validated_modes().iter().any(|m| *m == d.ayanamsa);
-        match d.claim_tier {
-            CompatibilityClaimTier::ReleaseGradeNumeric if !has_evidence => {
-                errors.push(CompatClaimAuditError::ReleaseGradeWithoutCorpusEvidence {
-                    catalog: "ayanamsa",
-                    entry: d.canonical_name.to_string(),
-                });
-            }
-            CompatibilityClaimTier::DescriptorOnly if has_evidence => {
-                errors.push(CompatClaimAuditError::DescriptorOnlyHasEvidence {
-                    catalog: "ayanamsa",
-                    entry: d.canonical_name.to_string(),
-                });
-            }
-            _ => {}
+        if let Some(e) = classify_tier_evidence("ayanamsa", d.canonical_name, d.claim_tier, has_evidence) {
+            errors.push(e);
         }
     }
 }
@@ -144,16 +144,32 @@ mod tests {
     }
 
     #[test]
-    fn descriptor_only_with_evidence_is_detected() {
-        // Synthetic: a house validated by the corpus but treated as DescriptorOnly.
+    fn release_grade_membership_operator_fires() {
+        // Prove the membership test that Check A relies on actually fires.
         let report = validate_house_corpus().expect("gate passes");
         let validated = report.validated_systems();
         assert!(!validated.is_empty());
-        // Prove the membership test that Check A relies on actually fires.
         let any_release = built_in_house_systems().iter().any(|d| {
             d.claim_tier == CompatibilityClaimTier::ReleaseGradeNumeric
                 && validated.iter().any(|s| *s == d.system)
         });
         assert!(any_release);
+    }
+
+    #[test]
+    fn descriptor_only_entry_with_corpus_evidence_is_flagged() {
+        // DescriptorOnly + has evidence -> DescriptorOnlyHasEvidence
+        assert!(matches!(
+            classify_tier_evidence("house", "Synthetic", CompatibilityClaimTier::DescriptorOnly, true),
+            Some(CompatClaimAuditError::DescriptorOnlyHasEvidence { .. })
+        ));
+        // ReleaseGradeNumeric + no evidence -> ReleaseGradeWithoutCorpusEvidence
+        assert!(matches!(
+            classify_tier_evidence("ayanamsa", "Synthetic", CompatibilityClaimTier::ReleaseGradeNumeric, false),
+            Some(CompatClaimAuditError::ReleaseGradeWithoutCorpusEvidence { .. })
+        ));
+        // the two consistent cases -> None
+        assert!(classify_tier_evidence("house", "X", CompatibilityClaimTier::ReleaseGradeNumeric, true).is_none());
+        assert!(classify_tier_evidence("house", "X", CompatibilityClaimTier::DescriptorOnly, false).is_none());
     }
 }
