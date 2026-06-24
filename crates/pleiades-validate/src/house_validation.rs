@@ -1513,7 +1513,9 @@ c0,2451545,0,0,0,Placidus,1,2,3,4,5,6,7,8,9,10,11,12,1.5,10.5\n";
             "manifest row count must match parsed corpus row count"
         );
         assert_eq!(manifest.reference_engine, "SwissEphemeris 2.10.03");
-        assert_eq!(manifest.crosscheck, "not-run");
+        // CrossCheck-Engine is opaque provenance text; the gate never fails on its value.
+        // Updated from "not-run" when Astrolog 7.70 cross-check was run (Task 12).
+        assert_eq!(manifest.crosscheck, "Astrolog 7.70 (patched, hardeningDisable=all)");
     }
 
     // ── Task 8 tests: numeric-residual gate ───────────────────────────────────
@@ -1590,4 +1592,5 @@ c0,2451545,0,0,0,Placidus,1,2,3,4,5,6,7,8,9,10,11,12,1.5,10.5\n";
             .expect("Porphyry is defined at all latitudes");
         assert_eq!(fb.cusps, po.cusps);
     }
+
 }
