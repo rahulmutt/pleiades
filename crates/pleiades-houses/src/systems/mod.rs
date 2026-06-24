@@ -486,13 +486,15 @@ fn derive_angles(instant: Instant, observer: &ObserverLocation, obliquity: Angle
     let theta = sidereal_time.degrees().to_radians();
 
     let ascendant = Longitude::from_degrees(
-        (-theta.cos())
-            .atan2(theta.sin() * obliquity.cos() + latitude.tan() * obliquity.sin())
+        theta
+            .cos()
+            .atan2(-(theta.sin() * obliquity.cos() + latitude.tan() * obliquity.sin()))
             .to_degrees(),
     );
     let midheaven = Longitude::from_degrees(
-        (theta.sin() * obliquity.cos())
-            .atan2(theta.cos())
+        theta
+            .sin()
+            .atan2(theta.cos() * obliquity.cos())
             .to_degrees(),
     );
     HouseAngles::new(ascendant, midheaven)
@@ -502,8 +504,9 @@ fn ascendant_for(sidereal_time_deg: f64, latitude_deg: f64, obliquity_rad: f64) 
     let theta = sidereal_time_deg.to_radians();
     let latitude = latitude_deg.to_radians();
     Longitude::from_degrees(
-        (-theta.cos())
-            .atan2(theta.sin() * obliquity_rad.cos() + latitude.tan() * obliquity_rad.sin())
+        theta
+            .cos()
+            .atan2(-(theta.sin() * obliquity_rad.cos() + latitude.tan() * obliquity_rad.sin()))
             .to_degrees(),
     )
 }
