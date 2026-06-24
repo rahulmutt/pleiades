@@ -15,6 +15,7 @@ members = [
     "crates/pleiades-validate",
     "crates/pleiades-vsop87",
 ]
+exclude = ["tools/se-house-reference"]
 resolver = "2"
 
 [workspace.package]

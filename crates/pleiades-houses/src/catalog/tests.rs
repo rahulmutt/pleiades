@@ -33,6 +33,7 @@ fn descriptor_summary_line_includes_aliases_formula_family_latitude_and_notes() 
         &["Alias One", "Alias Two"],
         "Summary note",
         true,
+        None,
     );
 
     let expected =
@@ -53,6 +54,7 @@ fn validated_summary_line_rejects_descriptor_drift() {
         &["Alias One"],
         " Summary note",
         true,
+        None,
     );
 
     assert_eq!(
@@ -850,6 +852,7 @@ fn house_catalog_validation_rejects_duplicate_labels_and_round_trip_mismatches()
         &["Wang", "wang"],
         "notes",
         false,
+        None,
     )];
 
     assert!(matches!(
@@ -866,6 +869,7 @@ fn house_catalog_validation_rejects_duplicate_labels_and_round_trip_mismatches()
         &[],
         "notes",
         false,
+        None,
     )];
 
     assert!(matches!(
@@ -882,6 +886,7 @@ fn house_catalog_validation_rejects_duplicate_labels_and_round_trip_mismatches()
         &[],
         "notes",
         false,
+        None,
     );
     assert!(matches!(
         blank_name_descriptor.validate(),
@@ -897,6 +902,7 @@ fn house_catalog_validation_rejects_duplicate_labels_and_round_trip_mismatches()
         &[" Alias "],
         "notes",
         false,
+        None,
     );
     assert!(matches!(
         padded_alias_descriptor.validate(),
@@ -912,6 +918,7 @@ fn house_catalog_validation_rejects_duplicate_labels_and_round_trip_mismatches()
         &[],
         "   ",
         false,
+        None,
     );
     assert!(matches!(
         blank_notes_descriptor.validate(),
@@ -924,6 +931,7 @@ fn house_catalog_validation_rejects_duplicate_labels_and_round_trip_mismatches()
         &[],
         "notes",
         false,
+        None,
     );
     assert!(matches!(
         line_break_name_descriptor.validate(),
@@ -939,6 +947,7 @@ fn house_catalog_validation_rejects_duplicate_labels_and_round_trip_mismatches()
         &["Al\nial"],
         "notes",
         false,
+        None,
     );
     assert!(matches!(
         line_break_alias_descriptor.validate(),
@@ -954,6 +963,7 @@ fn house_catalog_validation_rejects_duplicate_labels_and_round_trip_mismatches()
         &[],
         "notes\nline two",
         false,
+        None,
     );
     assert!(matches!(
         line_break_notes_descriptor.validate(),
@@ -966,6 +976,7 @@ fn house_catalog_validation_rejects_duplicate_labels_and_round_trip_mismatches()
         &["Wang", "wang"],
         "notes",
         false,
+        None,
     );
     assert!(matches!(
         duplicate_alias_descriptor.validate(),
@@ -1079,4 +1090,29 @@ fn house_system_code_alias_validate_rejects_normalization_and_round_trip_drift()
         error,
         HouseSystemCodeAliasValidationError::LabelNotNormalized { label: "P\n" }
     ));
+}
+
+#[test]
+fn latitude_sensitive_systems_carry_a_latitude_bound() {
+    for descriptor in built_in_house_systems() {
+        if descriptor.latitude_sensitive {
+            assert!(
+                descriptor.max_abs_latitude_deg.is_some(),
+                "latitude-sensitive system {:?} must declare max_abs_latitude_deg",
+                descriptor.system
+            );
+            let bound = descriptor.max_abs_latitude_deg.unwrap();
+            assert!(
+                (60.0..=89.0).contains(&bound),
+                "{:?} bound {bound} out of expected polar range",
+                descriptor.system
+            );
+        } else {
+            assert!(
+                descriptor.max_abs_latitude_deg.is_none(),
+                "non-latitude-sensitive system {:?} must not declare a bound",
+                descriptor.system
+            );
+        }
+    }
 }

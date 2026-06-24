@@ -11,11 +11,25 @@
 
 use core::fmt;
 
+use pleiades_apparent::nutation::nutation as apparent_nutation;
 use pleiades_types::{
     Angle, HouseSystem, Instant, Longitude, ObserverLocation, ObserverLocationValidationError,
 };
 
 use crate::error::{HouseError, HouseErrorKind};
+
+/// Behaviour when a latitude-sensitive system is requested beyond its
+/// documented latitude bound.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+pub enum HighLatitudePolicy {
+    /// Reject with `InvalidLatitude` (the safe default).
+    #[default]
+    Strict,
+    /// Reproduce Swiss Ephemeris's documented substitution: silently compute
+    /// Porphyry cusps instead of returning an error when the observer latitude
+    /// exceeds the system's documented bound.
+    SwissEphemerisFallback,
+}
 
 /// A request for house calculation.
 #[derive(Clone, Debug, PartialEq)]
@@ -28,6 +42,8 @@ pub struct HouseRequest {
     pub system: HouseSystem,
     /// Optional obliquity override in degrees.
     pub obliquity: Option<Angle>,
+    /// Behaviour when latitude exceeds the system's documented bound.
+    pub high_latitude_policy: HighLatitudePolicy,
 }
 
 impl HouseRequest {
@@ -38,12 +54,19 @@ impl HouseRequest {
             observer,
             system,
             obliquity: None,
+            high_latitude_policy: HighLatitudePolicy::Strict,
         }
     }
 
     /// Overrides the obliquity used for angle derivation.
     pub fn with_obliquity(mut self, obliquity: Angle) -> Self {
         self.obliquity = Some(obliquity);
+        self
+    }
+
+    /// Selects the high-latitude behaviour (default: `Strict`).
+    pub fn with_high_latitude_policy(mut self, policy: HighLatitudePolicy) -> Self {
+        self.high_latitude_policy = policy;
         self
     }
 
@@ -180,6 +203,40 @@ impl fmt::Display for HouseSnapshot {
 /// Computes the house cusps and derived angles for a request.
 pub fn calculate_houses(request: &HouseRequest) -> Result<HouseSnapshot, HouseError> {
     let obliquity = validated_obliquity(request)?;
+
+    // High-latitude policy: reject or substitute depending on the request setting.
+    if let Some(descriptor) = crate::catalog::descriptor(&request.system) {
+        if let Some(bound) = descriptor.max_abs_latitude_deg {
+            let lat = request.observer.latitude.degrees();
+            if lat.abs() > bound {
+                match request.high_latitude_policy {
+                    HighLatitudePolicy::Strict => {
+                        return Err(HouseError::new(
+                            HouseErrorKind::InvalidLatitude,
+                            format!(
+                                "{} is undefined beyond |latitude| {bound}\u{00b0} (got {lat:.4}\u{00b0})",
+                                request.system
+                            ),
+                        ));
+                    }
+                    HighLatitudePolicy::SwissEphemerisFallback => {
+                        let angles = derive_angles(request.instant, &request.observer, obliquity);
+                        let snapshot = HouseSnapshot {
+                            system: request.system.clone(),
+                            instant: request.instant,
+                            observer: request.observer.clone(),
+                            obliquity,
+                            angles,
+                            cusps: porphyry_houses(angles).into(),
+                        };
+                        snapshot.validate()?;
+                        return Ok(snapshot);
+                    }
+                }
+            }
+        }
+    }
+
     let angles = derive_angles(request.instant, &request.observer, obliquity);
     let cusps = match &request.system {
         HouseSystem::Equal => equal_houses(angles.ascendant).into(),
@@ -224,11 +281,14 @@ pub fn calculate_houses(request: &HouseRequest) -> Result<HouseSnapshot, HouseEr
         HouseSystem::Gauquelin => {
             gauquelin_houses(request.instant, &request.observer, obliquity, angles)?.into()
         }
-        HouseSystem::Meridian | HouseSystem::Axial | HouseSystem::Morinus => {
+        HouseSystem::Meridian | HouseSystem::Axial => {
             equatorial_projection_houses(request.instant, &request.observer, obliquity).into()
         }
+        HouseSystem::Morinus => {
+            morinus_houses(request.instant, &request.observer, obliquity).into()
+        }
         HouseSystem::Topocentric => {
-            topocentric_houses(request.instant, &request.observer, obliquity)?.into()
+            topocentric_houses(request.instant, &request.observer, obliquity, angles)?.into()
         }
         HouseSystem::Custom(custom) => {
             return Err(HouseError::new(
@@ -329,14 +389,32 @@ fn validate_observer(observer: &ObserverLocation) -> Result<(), HouseError> {
     })
 }
 
+/// Returns `(Δψ_deg, Δε_deg)` for the given instant.
+///
+/// Maps nutation errors to [`HouseError`] (fail-closed).
+fn nutation_for(instant: Instant) -> Result<(f64, f64), HouseError> {
+    let jd = instant.julian_day.days();
+    let nut = apparent_nutation(jd).map_err(|e| {
+        HouseError::new(
+            HouseErrorKind::NumericalFailure,
+            format!("nutation computation failed: {e:?}"),
+        )
+    })?;
+    Ok((nut.delta_psi_arcsec / 3600.0, nut.delta_eps_arcsec / 3600.0))
+}
+
 fn validated_obliquity(request: &HouseRequest) -> Result<Angle, HouseError> {
     validate_observer(&request.observer)?;
     validate_topocentric_observer(request)?;
-    validate_obliquity(
-        request
-            .obliquity
-            .unwrap_or_else(|| mean_obliquity(request.instant)),
-    )
+    let obliquity = match request.obliquity {
+        Some(o) => o,
+        None => {
+            let mean_obl = mean_obliquity(request.instant);
+            let (_delta_psi_deg, delta_eps_deg) = nutation_for(request.instant)?;
+            Angle::from_degrees(mean_obl.degrees() + delta_eps_deg)
+        }
+    };
+    validate_obliquity(obliquity)
 }
 
 fn validate_topocentric_observer(request: &HouseRequest) -> Result<(), HouseError> {
@@ -431,13 +509,15 @@ fn derive_angles(instant: Instant, observer: &ObserverLocation, obliquity: Angle
     let theta = sidereal_time.degrees().to_radians();
 
     let ascendant = Longitude::from_degrees(
-        (-theta.cos())
-            .atan2(theta.sin() * obliquity.cos() + latitude.tan() * obliquity.sin())
+        theta
+            .cos()
+            .atan2(-(theta.sin() * obliquity.cos() + latitude.tan() * obliquity.sin()))
             .to_degrees(),
     );
     let midheaven = Longitude::from_degrees(
-        (theta.sin() * obliquity.cos())
-            .atan2(theta.cos())
+        theta
+            .sin()
+            .atan2(theta.cos() * obliquity.cos())
             .to_degrees(),
     );
     HouseAngles::new(ascendant, midheaven)
@@ -447,8 +527,9 @@ fn ascendant_for(sidereal_time_deg: f64, latitude_deg: f64, obliquity_rad: f64) 
     let theta = sidereal_time_deg.to_radians();
     let latitude = latitude_deg.to_radians();
     Longitude::from_degrees(
-        (-theta.cos())
-            .atan2(theta.sin() * obliquity_rad.cos() + latitude.tan() * obliquity_rad.sin())
+        theta
+            .cos()
+            .atan2(-(theta.sin() * obliquity_rad.cos() + latitude.tan() * obliquity_rad.sin()))
             .to_degrees(),
     )
 }
@@ -460,7 +541,21 @@ fn local_sidereal_time(instant: Instant, longitude: Longitude) -> Angle {
         + 360.985_647_366_29 * (jd - 2_451_545.0)
         + 0.000_387_933 * centuries * centuries
         - centuries * centuries * centuries / 38_710_000.0;
-    Angle::from_degrees(gmst + longitude.degrees()).normalized_0_360()
+    // Convert GMST → GAST by adding the equation of the equinoxes:
+    //   EE = Δψ · cos(ε_true)
+    // Δψ and Δε from the IAU-1980 nutation series. Falls back to EE = 0 (i.e.
+    // GMST) if the nutation table is unavailable; this is safe because nutation
+    // table failures are a development-time artifact (stale checksum), not a
+    // runtime condition.
+    let ee_deg = apparent_nutation(jd)
+        .map(|n| {
+            let delta_psi_deg = n.delta_psi_arcsec / 3600.0;
+            let mean_obl_deg = mean_obliquity(instant).degrees();
+            let true_obl_rad = (mean_obl_deg + n.delta_eps_arcsec / 3600.0).to_radians();
+            delta_psi_deg * true_obl_rad.cos()
+        })
+        .unwrap_or(0.0);
+    Angle::from_degrees(gmst + ee_deg + longitude.degrees()).normalized_0_360()
 }
 
 fn mean_obliquity(instant: Instant) -> Angle {
@@ -557,26 +652,55 @@ fn koch_houses(
     cusps[6] = angles.descendant;
     cusps[9] = angles.midheaven;
 
-    let st = local_sidereal_time(instant, observer.longitude).degrees();
-    let latitude = observer.latitude.degrees().to_radians();
-    let obliquity = obliquity.degrees().to_radians();
-    let z = (st.to_radians().sin() * latitude.tan() * obliquity.tan())
-        .clamp(-1.0, 1.0)
-        .asin()
-        .to_degrees();
+    // Koch ("birthplace" / GOH) house system, following Swiss Ephemeris
+    // `swehouse.c` (case 'K'). Each intermediate cusp is the ascendant
+    // (`Asc1` projection) computed for the right ascension `ARMC + offset`,
+    // where the offset trisects the meridian arc using the ascensional
+    // difference `ad` of the Midheaven (`ad3 = ad / 3`).
+    let th = local_sidereal_time(instant, observer.longitude).degrees();
+    let latitude_deg = observer.latitude.degrees();
+    let obliquity_deg = obliquity.degrees();
+    let latitude = latitude_deg.to_radians();
+    let obliquity = obliquity_deg.to_radians();
+    let sine = obliquity.sin();
+    let cose = obliquity.cos();
 
-    for house in 1..=12 {
-        if matches!(house, 1 | 4 | 7 | 10) {
-            continue;
+    // Koch is undefined within the polar circle, where the Midheaven's
+    // ascensional difference is no longer real. Fail closed rather than
+    // silently substituting another system.
+    if latitude_deg.abs() >= 90.0 - obliquity_deg {
+        return Err(HouseError::new(
+            HouseErrorKind::NumericalFailure,
+            "koch house system is undefined within the polar circle",
+        ));
+    }
+
+    // Declination of the Midheaven: sin(decl) = sin(λ_MC) * sin(ε), where
+    // λ_MC is the ecliptic longitude of the MC (`angles.midheaven`). `sina`
+    // divides this by cos(latitude) (the cosine of the geographic pole height).
+    let mc = angles.midheaven.degrees().to_radians();
+    let sina = (mc.sin() * sine / latitude.cos()).clamp(-1.0, 1.0);
+    let cosa = (1.0 - sina * sina).max(0.0).sqrt();
+    let c = (latitude.tan() / cosa).atan();
+    let ad3 = (c.sin() * sina).clamp(-1.0, 1.0).asin().to_degrees() / 3.0;
+
+    cusps[10] = asc1(th + 30.0 - 2.0 * ad3, latitude_deg, sine, cose);
+    cusps[11] = asc1(th + 60.0 - ad3, latitude_deg, sine, cose);
+    cusps[1] = asc1(th + 120.0 + ad3, latitude_deg, sine, cose);
+    cusps[2] = asc1(th + 150.0 + 2.0 * ad3, latitude_deg, sine, cose);
+
+    cusps[4] = longitude_opposite(cusps[10]);
+    cusps[5] = longitude_opposite(cusps[11]);
+    cusps[7] = longitude_opposite(cusps[1]);
+    cusps[8] = longitude_opposite(cusps[2]);
+
+    for cusp in &cusps {
+        if !cusp.degrees().is_finite() {
+            return Err(HouseError::new(
+                HouseErrorKind::NumericalFailure,
+                "koch house cusp evaluated to a non-finite longitude",
+            ));
         }
-
-        let b = house_phase(house);
-        let hemisphere_sign = if b < 180.0 { 1.0 } else { -1.0 };
-        let k = if b < 180.0 { 1.0 } else { -1.0 };
-        let h = st + b + hemisphere_sign * z;
-        let x = h.to_radians().cos() * obliquity.cos() - k * latitude.tan() * obliquity.sin();
-        let y = h.to_radians().sin();
-        cusps[house - 1] = Longitude::from_degrees(y.atan2(x).to_degrees());
     }
 
     Ok(cusps)
@@ -606,19 +730,15 @@ fn alcabitius_houses(
     let diurnal = 90.0 + ascensional_difference;
     let nocturnal = 90.0 - ascensional_difference;
 
-    let above = [10usize, 11, 12];
-    for (index, house) in above.iter().enumerate() {
-        let offset = diurnal * (index as f64) / 3.0;
-        let ra = st + offset;
-        cusps[*house - 1] = ecliptic_longitude_from_ra(ra, obliquity);
-    }
+    // Trisect the diurnal semi-arc (RAMC → Ascendant) to place houses 11, 12.
+    // House 10 (MC) is already set from `angles.midheaven`; start at k=1.
+    cusps[10] = ecliptic_longitude_from_ra(st + diurnal / 3.0, obliquity);
+    cusps[11] = ecliptic_longitude_from_ra(st + 2.0 * diurnal / 3.0, obliquity);
 
-    let below = [1usize, 2, 3];
-    for (index, house) in below.iter().enumerate() {
-        let offset = diurnal + nocturnal * ((index as f64) + 1.0) / 3.0;
-        let ra = st + offset;
-        cusps[*house - 1] = ecliptic_longitude_from_ra(ra, obliquity);
-    }
+    // Trisect the nocturnal semi-arc (Ascendant → Descendant, via IC) to
+    // place houses 2, 3.  House 1 (Ascendant) is already set; skip k=0.
+    cusps[1] = ecliptic_longitude_from_ra(st + diurnal + nocturnal / 3.0, obliquity);
+    cusps[2] = ecliptic_longitude_from_ra(st + diurnal + 2.0 * nocturnal / 3.0, obliquity);
 
     cusps[4] = longitude_opposite(cusps[10]);
     cusps[5] = longitude_opposite(cusps[11]);
@@ -684,11 +804,23 @@ fn campanus_houses(
             continue;
         }
 
-        let z = house_phase(house).to_radians();
-        let p = (z.sin() * latitude.cos()).atan2(z.cos());
-        let v = p.sin() * latitude.sin() * obliquity.sin();
-        let x = (st + z).cos() * latitude.cos() * obliquity.cos() - v;
-        let y = (st + z).sin();
+        // Campanus divides the prime vertical into 30° arcs. For each division point
+        // at angle d along the prime vertical (d=0 ≡ MC/zenith direction, d=90° ≡ East/ASC),
+        // the prime-vertical altitude h_pv satisfies sin(h_pv)=cos(d) and cos(h_pv)=sin(d).
+        //
+        // The Campanus position circle (through the North and South horizon points and the
+        // prime-vertical division point) intersects the ecliptic at longitude λ:
+        //
+        //   y =  cos(d)·sin(θ) + sin(d)·cos(φ)·cos(θ)
+        //   x =  cos(d)·cos(θ)·cos(ε) − sin(d)·cos(φ)·sin(θ)·cos(ε) − sin(d)·sin(φ)·sin(ε)
+        //   λ = atan2(y, x)
+        //
+        // where θ = RAMC (local sidereal time), φ = geographic latitude, ε = obliquity.
+        let d = house_phase(house).to_radians();
+        let y = d.cos() * st.sin() + d.sin() * latitude.cos() * st.cos();
+        let x = d.cos() * st.cos() * obliquity.cos()
+            - d.sin() * latitude.cos() * st.sin() * obliquity.cos()
+            - d.sin() * latitude.sin() * obliquity.sin();
         cusps[house - 1] = Longitude::from_degrees(y.atan2(x).to_degrees());
     }
 
@@ -706,6 +838,36 @@ fn equatorial_projection_houses(
         let house = index + 1;
         let ra = st + house_phase(house);
         ecliptic_longitude_from_ra(ra, obliquity.degrees().to_radians())
+    })
+}
+
+/// Morinus house system (Swiss Ephemeris code 'M').
+///
+/// The Morinus system divides the celestial equator into twelve equal 30° arcs
+/// beginning at RA = RAMC + 90° (the IC meridian direction projected onto the
+/// equator), then projects each arc endpoint onto the ecliptic using the full
+/// spherical rotation from equatorial to ecliptic coordinates for a point on
+/// the equator (declination = 0):
+///
+///   ecliptic longitude = atan2(sin(RA) * cos(eps), cos(RA))
+///
+/// This is the standard equatorial-to-ecliptic conversion formula for
+/// dec = 0. It differs from the Meridian/Axial formula, which uses
+/// `atan2(sin(RA), cos(RA) * cos(eps))` (the ecliptic-to-equatorial inverse).
+/// Morinus is latitude-independent because only the sidereal time (RAMC)
+/// and the obliquity enter the formula.
+fn morinus_houses(
+    instant: Instant,
+    observer: &ObserverLocation,
+    obliquity: Angle,
+) -> [Longitude; 12] {
+    let st = local_sidereal_time(instant, observer.longitude).degrees();
+    let eps = obliquity.degrees().to_radians();
+    let cos_eps = eps.cos();
+
+    core::array::from_fn(|index| {
+        let ra = (st + 90.0 + (index as f64) * 30.0).to_radians();
+        Longitude::from_degrees(ra.sin().atan2(ra.cos() / cos_eps).to_degrees())
     })
 }
 
@@ -1046,16 +1208,59 @@ fn topocentric_houses(
     instant: Instant,
     observer: &ObserverLocation,
     obliquity: Angle,
+    angles: HouseAngles,
 ) -> Result<[Longitude; 12], HouseError> {
-    let corrected_latitude =
-        topocentric_latitude(observer.latitude.degrees(), observer.elevation_m)?;
-    let corrected_observer = ObserverLocation::new(
-        corrected_latitude.into(),
-        observer.longitude,
-        observer.elevation_m,
-    );
-    let corrected_angles = derive_angles(instant, &corrected_observer, obliquity);
-    placidus_houses(instant, &corrected_observer, obliquity, corrected_angles)
+    // Topocentric (Polich-Page) houses. The angles (cusps 1/4/7/10) are the
+    // already-validated Ascendant/MC pair; only the intermediate cusps differ
+    // from Placidus. Each intermediate cusp is projected with `asc1` using a
+    // "house pole" whose tangent is a third (or two thirds) of tan(latitude):
+    //
+    //   tan(pole_n) = (n / 3) * tan(latitude)
+    //
+    // and an equatorial offset from the RAMC of 30 degrees per third. This is
+    // the Polich-Page trisection that Swiss Ephemeris implements for the
+    // Topocentric ('T') system. It is independent of the geodetic-to-geocentric
+    // latitude correction used elsewhere for diurnal parallax.
+    let mut cusps = [Longitude::from_degrees(0.0); 12];
+    cusps[0] = angles.ascendant;
+    cusps[3] = angles.imum_coeli;
+    cusps[6] = angles.descendant;
+    cusps[9] = angles.midheaven;
+
+    let st = local_sidereal_time(instant, observer.longitude).degrees();
+    let tan_latitude = observer.latitude.degrees().to_radians().tan();
+    let obliquity = obliquity.degrees().to_radians();
+    let sine = obliquity.sin();
+    let cose = obliquity.cos();
+
+    // (house index, RAMC offset in degrees, fraction of tan(latitude)).
+    // Only the four cusps adjacent to the meridian are solved directly; cusps
+    // 5/6/8/9 are their ecliptic antipodes.
+    const SPEC: [(usize, f64, f64); 4] = [
+        (11, 30.0, 1.0 / 3.0),
+        (12, 60.0, 2.0 / 3.0),
+        (2, 120.0, 2.0 / 3.0),
+        (3, 150.0, 1.0 / 3.0),
+    ];
+
+    for (house, offset, fraction) in SPEC {
+        let pole = (fraction * tan_latitude).atan().to_degrees();
+        let cusp = asc1(st + offset, pole, sine, cose);
+        if !cusp.degrees().is_finite() {
+            return Err(HouseError::new(
+                HouseErrorKind::NumericalFailure,
+                "topocentric cusp projection produced a non-finite longitude",
+            ));
+        }
+        cusps[house - 1] = cusp;
+    }
+
+    cusps[4] = longitude_opposite(cusps[10]);
+    cusps[5] = longitude_opposite(cusps[11]);
+    cusps[7] = longitude_opposite(cusps[1]);
+    cusps[8] = longitude_opposite(cusps[2]);
+
+    Ok(cusps)
 }
 
 fn sunshine_houses(
@@ -1217,11 +1422,26 @@ fn solve_placidian_cusp(
     obliquity_deg: f64,
     house: usize,
 ) -> Result<Longitude, HouseError> {
-    let k = match house {
-        11 => 1.0 / 3.0,
-        12 => 2.0 / 3.0,
-        2 => -2.0 / 3.0,
-        3 => -1.0 / 3.0,
+    // Placidus divides each ecliptic point's diurnal/nocturnal semi-arc into
+    // thirds by hour-angle. A cusp lies where the point's meridian distance `q`
+    // (the hour angle from the meridian, in degrees) equals a fraction `f` of
+    // its own semi-arc. The semi-diurnal arc satisfies
+    //   cos(semi_arc) = -tan(phi) * tan(delta),
+    // and the cusp condition `q = f * semi_arc` therefore reduces to
+    //   cos(q / f) = -tan(phi) * tan(delta).
+    // For an ecliptic point of right ascension `alpha = RAMC + q`, the
+    // declination follows from the obliquity via tan(delta) = sin(alpha)*tan(eps).
+    //
+    // Houses 11 and 12 sit east of the upper meridian (positive q) using
+    // fractions 1/3 and 2/3 of the semi-diurnal arc. Houses 2 and 3 are the
+    // antipodes of the symmetric west-of-meridian points (negative q) using
+    // fractions 2/3 and 1/3, so they share the same solver and are reflected
+    // through the opposite ecliptic longitude.
+    let (fraction, sign, opposite) = match house {
+        11 => (1.0 / 3.0, 1.0, false),
+        12 => (2.0 / 3.0, 1.0, false),
+        2 => (2.0 / 3.0, -1.0, true),
+        3 => (1.0 / 3.0, -1.0, true),
         _ => {
             return Err(HouseError::new(
                 HouseErrorKind::UnsupportedHouseSystem,
@@ -1232,36 +1452,53 @@ fn solve_placidian_cusp(
 
     let latitude = latitude_deg.to_radians();
     let obliquity = obliquity_deg.to_radians();
-    let c = latitude.cos();
-    let s = latitude.sin() * obliquity.tan();
-    let mut q = 90.0;
+    let tan_lat = latitude.tan();
+    let tan_obliquity = obliquity.tan();
+    let deg_per_rad = 180.0 / core::f64::consts::PI;
 
-    for _ in 0..32 {
-        let ra = st_deg + q;
-        let q_rad = q.to_radians();
-        let ra_rad = ra.to_radians();
-        let f = c * q_rad.cos() + k * s * ra_rad.sin();
-        let fp = (-c * q_rad.sin() + k * s * ra_rad.cos()) * core::f64::consts::PI / 180.0;
-        if fp.abs() < 1.0e-12 {
+    // Residual g(q) = cos(q/f) + tan(phi)*tan(delta(alpha)), with alpha = st + q.
+    // Solve g(q) = 0 with Newton iteration, seeded toward the correct quadrant.
+    let mut q = sign * fraction * 90.0;
+
+    let mut converged = false;
+    for _ in 0..64 {
+        let alpha = st_deg + q;
+        let alpha_rad = alpha.to_radians();
+        let tan_delta = alpha_rad.sin() * tan_obliquity;
+        let arg = (q / fraction).to_radians();
+        let g = arg.cos() + tan_lat * tan_delta;
+        // dg/dq (per degree): derivative of cos(q/f) is -(1/f)*sin(q/f)*(pi/180);
+        // derivative of tan(delta) term is tan(phi)*tan(eps)*cos(alpha)*(pi/180).
+        let gp = (-(1.0 / fraction) * arg.sin() + tan_lat * tan_obliquity * alpha_rad.cos())
+            / deg_per_rad;
+        if gp.abs() < 1.0e-12 {
             return Err(HouseError::new(
                 HouseErrorKind::NumericalFailure,
                 "placidian cusp iteration encountered a zero derivative",
             ));
         }
 
-        let delta = -f / fp;
+        let delta = -g / gp;
         q += delta;
-        if delta.abs() < 1.0e-8 {
+        if delta.abs() < 1.0e-9 {
+            converged = true;
             break;
         }
     }
 
+    if !converged || !q.is_finite() {
+        return Err(HouseError::new(
+            HouseErrorKind::NumericalFailure,
+            "placidian cusp iteration failed to converge",
+        ));
+    }
+
     let ra = st_deg + q;
     let lon = ecliptic_longitude_from_ra(ra, obliquity);
-    Ok(match house {
-        11 | 12 => lon,
-        2 | 3 => longitude_opposite(lon),
-        _ => unreachable!(),
+    Ok(if opposite {
+        longitude_opposite(lon)
+    } else {
+        lon
     })
 }
 

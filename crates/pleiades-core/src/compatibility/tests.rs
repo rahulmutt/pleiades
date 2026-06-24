@@ -549,6 +549,7 @@ fn compatibility_profile_validate_rejects_house_descriptor_metadata_drift() {
         &[],
         "Release note with trailing whitespace ",
         false,
+        None,
     )];
     profile.house_systems = HOUSE_SYSTEMS;
     profile.baseline_house_systems = HOUSE_SYSTEMS;
@@ -648,6 +649,7 @@ fn compatibility_profile_validate_rejects_case_insensitive_duplicate_house_label
             &["Total Placidus alias"],
             "Total house coverage",
             false,
+            None,
         ),
         HouseSystemDescriptor::new(
             HouseSystem::Equal,
@@ -655,6 +657,7 @@ fn compatibility_profile_validate_rejects_case_insensitive_duplicate_house_label
             &["Total Placidus alias"],
             "Total house coverage",
             false,
+            None,
         ),
     ];
     const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[HouseSystemDescriptor::new(
@@ -663,6 +666,7 @@ fn compatibility_profile_validate_rejects_case_insensitive_duplicate_house_label
         &["Total Placidus alias"],
         "Baseline house coverage",
         false,
+        None,
     )];
     const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[HouseSystemDescriptor::new(
         HouseSystem::Equal,
@@ -670,6 +674,7 @@ fn compatibility_profile_validate_rejects_case_insensitive_duplicate_house_label
         &["Total Equal alias"],
         "Release house coverage",
         false,
+        None,
     )];
     profile.house_systems = TOTAL_HOUSE_SYSTEMS;
     profile.baseline_house_systems = BASELINE_HOUSE_SYSTEMS;
@@ -894,6 +899,7 @@ fn compatibility_profile_validate_rejects_inexact_house_catalog_coverage() {
             &["Total Placidus alias"],
             "Total house coverage",
             false,
+            None,
         ),
         HouseSystemDescriptor::new(
             HouseSystem::Equal,
@@ -901,6 +907,7 @@ fn compatibility_profile_validate_rejects_inexact_house_catalog_coverage() {
             &[],
             "Total house coverage",
             false,
+            None,
         ),
     ];
     const BASELINE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[HouseSystemDescriptor::new(
@@ -909,6 +916,7 @@ fn compatibility_profile_validate_rejects_inexact_house_catalog_coverage() {
         &["Baseline Placidus alias"],
         "Baseline house coverage",
         false,
+        None,
     )];
     const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[HouseSystemDescriptor::new(
         HouseSystem::Equal,
@@ -916,6 +924,7 @@ fn compatibility_profile_validate_rejects_inexact_house_catalog_coverage() {
         &["Release Equal alias"],
         "Release house coverage",
         false,
+        None,
     )];
     profile.house_systems = TOTAL_HOUSE_SYSTEMS;
     profile.baseline_house_systems = BASELINE_HOUSE_SYSTEMS;
