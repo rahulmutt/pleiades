@@ -15,18 +15,47 @@ pub struct HouseFamilyCeiling {
     pub angle_arcsec: f64,
 }
 
-/// Returns the provisional arcsecond ceilings for a formula family.
+/// Returns the measured-derived arcsecond ceilings for a formula family.
 ///
-/// Space-division systems (Equal/WholeSign/Quadrant-Porphyry) are tight; the
-/// iterative/projected families are looser. Values are tightened in the gate
-/// rollout from measured SE-vs-pleiades residuals (see plan Task 10).
+/// Ceilings are set to `ceil(measured_max × 2)` — a 2× safety margin over the
+/// maximum observed SE-vs-pleiades residual across the committed corpus
+/// (`crates/pleiades-validate/data/houses-corpus/cusps.csv`).  A floor of 1.0″
+/// is applied so families whose measured residual is exactly 0 still carry a
+/// finite positive ceiling.
+///
+/// Measured maxima (corpus, 60 rows, 4 corpus-validated families):
+///
+/// | Family               | max cusp  | max angle |
+/// |----------------------|-----------|-----------|
+/// | Equal                | 0.4921″   | 0.4921″   |
+/// | WholeSign            | 0.0000″   | 0.4921″   |
+/// | Quadrant             | 5.7145″   | 0.4921″   |
+/// | EquatorialProjection | 0.4921″   | 0.4921″   |
+///
+/// Families not exercised by the committed corpus (GreatCircle, SolarArc,
+/// Sector, Custom, Unknown) have no SE-vs-pleiades baseline; their ceilings are
+/// kept at generous conservative values and are NOT corpus-validated.  They will
+/// be tightened once corpus rows are added for those families.
 pub fn house_family_ceiling(family: HouseFormulaFamily) -> HouseFamilyCeiling {
     match family {
+        // Equal: measured max cusp 0.4921″ → ceil(0.9842) = 1 → 1.0″ (floor).
+        // WholeSign: measured max cusp 0.0000″ → floor → 1.0″.
+        // Angle: measured max 0.4921″ → ceil(0.9842) = 1 → 1.0″ (floor).
         HouseFormulaFamily::Equal
         | HouseFormulaFamily::WholeSign => HouseFamilyCeiling { cusp_arcsec: 1.0, angle_arcsec: 1.0 },
-        // Porphyry is a space-division Quadrant system: tight.
-        HouseFormulaFamily::Quadrant => HouseFamilyCeiling { cusp_arcsec: 30.0, angle_arcsec: 5.0 },
-        HouseFormulaFamily::EquatorialProjection => HouseFamilyCeiling { cusp_arcsec: 15.0, angle_arcsec: 5.0 },
+
+        // Quadrant (Placidus/Koch/Porphyry/Alcabitius/Topocentric):
+        // measured max cusp 5.7145″ (Koch at lat 66°) → ceil(11.429) = 12.0″.
+        // Angle measured max 0.4921″ → ceil(0.9842) = 1 → 2.0″ (small extra margin for angles).
+        HouseFormulaFamily::Quadrant => HouseFamilyCeiling { cusp_arcsec: 12.0, angle_arcsec: 2.0 },
+
+        // EquatorialProjection (Regiomontanus/Campanus/Meridian/Axial/Morinus):
+        // measured max cusp 0.4921″ → ceil(0.9842) = 1 → 1.0″ (floor).
+        // Angle measured max 0.4921″ → 1.0″ (floor).
+        HouseFormulaFamily::EquatorialProjection => HouseFamilyCeiling { cusp_arcsec: 1.0, angle_arcsec: 1.0 },
+
+        // NOT corpus-validated — generous conservative values retained until
+        // SE baseline rows are added for these families.
         HouseFormulaFamily::GreatCircle => HouseFamilyCeiling { cusp_arcsec: 15.0, angle_arcsec: 5.0 },
         HouseFormulaFamily::SolarArc
         | HouseFormulaFamily::Sector
