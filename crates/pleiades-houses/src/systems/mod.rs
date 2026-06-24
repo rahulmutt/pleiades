@@ -615,26 +615,55 @@ fn koch_houses(
     cusps[6] = angles.descendant;
     cusps[9] = angles.midheaven;
 
-    let st = local_sidereal_time(instant, observer.longitude).degrees();
-    let latitude = observer.latitude.degrees().to_radians();
-    let obliquity = obliquity.degrees().to_radians();
-    let z = (st.to_radians().sin() * latitude.tan() * obliquity.tan())
-        .clamp(-1.0, 1.0)
-        .asin()
-        .to_degrees();
+    // Koch ("birthplace" / GOH) house system, following Swiss Ephemeris
+    // `swehouse.c` (case 'K'). Each intermediate cusp is the ascendant
+    // (`Asc1` projection) computed for the right ascension `ARMC + offset`,
+    // where the offset trisects the meridian arc using the ascensional
+    // difference `ad` of the Midheaven (`ad3 = ad / 3`).
+    let th = local_sidereal_time(instant, observer.longitude).degrees();
+    let latitude_deg = observer.latitude.degrees();
+    let obliquity_deg = obliquity.degrees();
+    let latitude = latitude_deg.to_radians();
+    let obliquity = obliquity_deg.to_radians();
+    let sine = obliquity.sin();
+    let cose = obliquity.cos();
 
-    for house in 1..=12 {
-        if matches!(house, 1 | 4 | 7 | 10) {
-            continue;
+    // Koch is undefined within the polar circle, where the Midheaven's
+    // ascensional difference is no longer real. Fail closed rather than
+    // silently substituting another system.
+    if latitude_deg.abs() >= 90.0 - obliquity_deg {
+        return Err(HouseError::new(
+            HouseErrorKind::NumericalFailure,
+            "koch house system is undefined within the polar circle",
+        ));
+    }
+
+    // Declination of the Midheaven: sin(decl) = sin(mc_long) * sin(eps),
+    // since the MC has right ascension equal to ARMC. `sina` divides this by
+    // cos(latitude) (the cosine of the geographic pole height).
+    let mc = angles.midheaven.degrees().to_radians();
+    let sina = (mc.sin() * sine / latitude.cos()).clamp(-1.0, 1.0);
+    let cosa = (1.0 - sina * sina).max(0.0).sqrt();
+    let c = (latitude.tan() / cosa).atan();
+    let ad3 = (c.sin() * sina).clamp(-1.0, 1.0).asin().to_degrees() / 3.0;
+
+    cusps[10] = asc1(th + 30.0 - 2.0 * ad3, latitude_deg, sine, cose);
+    cusps[11] = asc1(th + 60.0 - ad3, latitude_deg, sine, cose);
+    cusps[1] = asc1(th + 120.0 + ad3, latitude_deg, sine, cose);
+    cusps[2] = asc1(th + 150.0 + 2.0 * ad3, latitude_deg, sine, cose);
+
+    cusps[4] = longitude_opposite(cusps[10]);
+    cusps[5] = longitude_opposite(cusps[11]);
+    cusps[7] = longitude_opposite(cusps[1]);
+    cusps[8] = longitude_opposite(cusps[2]);
+
+    for cusp in &cusps {
+        if !cusp.degrees().is_finite() {
+            return Err(HouseError::new(
+                HouseErrorKind::NumericalFailure,
+                "koch house cusp evaluated to a non-finite longitude",
+            ));
         }
-
-        let b = house_phase(house);
-        let hemisphere_sign = if b < 180.0 { 1.0 } else { -1.0 };
-        let k = if b < 180.0 { 1.0 } else { -1.0 };
-        let h = st + b + hemisphere_sign * z;
-        let x = h.to_radians().cos() * obliquity.cos() - k * latitude.tan() * obliquity.sin();
-        let y = h.to_radians().sin();
-        cusps[house - 1] = Longitude::from_degrees(y.atan2(x).to_degrees());
     }
 
     Ok(cusps)
