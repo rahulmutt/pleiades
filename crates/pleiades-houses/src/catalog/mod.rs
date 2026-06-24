@@ -1037,7 +1037,7 @@ const RELEASE_HOUSE_SYSTEMS: &[HouseSystemDescriptor] = &[
         false,
         None,
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::Horizon,
         "Horizon/Azimuth",
         &[
@@ -1226,7 +1226,7 @@ static BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25] = [
         false,
         None,
     ),
-    HouseSystemDescriptor::new(
+    HouseSystemDescriptor::new_release_grade(
         HouseSystem::Horizon,
         "Horizon/Azimuth",
         &[

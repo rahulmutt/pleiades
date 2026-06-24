@@ -1093,7 +1093,7 @@ fn house_system_code_alias_validate_rejects_normalization_and_round_trip_drift()
 }
 
 #[test]
-fn release_grade_numeric_house_set_is_exactly_the_twenty_three_corpus_systems() {
+fn release_grade_numeric_house_set_is_exactly_the_twenty_four_corpus_systems() {
     use pleiades_types::{CompatibilityClaimTier, HouseSystem};
 
     let release_grade: Vec<HouseSystem> = crate::built_in_house_systems()
@@ -1116,9 +1116,7 @@ fn release_grade_numeric_house_set_is_exactly_the_twenty_three_corpus_systems() 
         HouseSystem::Axial,
         HouseSystem::Topocentric,
         HouseSystem::Morinus,
-        // Ten standard systems promoted in Phase 6.  Horizon is a known gap:
-        // its pleiades formula disagrees with SE by hundreds of degrees at every
-        // latitude, so it is left DescriptorOnly rather than promoted.
+        // Ten standard systems promoted in Phase 6.
         HouseSystem::EqualMidheaven,
         HouseSystem::EqualAries,
         HouseSystem::Vehlow,
@@ -1132,6 +1130,10 @@ fn release_grade_numeric_house_set_is_exactly_the_twenty_three_corpus_systems() 
         // Gauquelin promoted in Phase 6 Task 5a: its 36 sectors now match SE
         // via the Placidus semi-arc division (corpus-backed by the sectors slice).
         HouseSystem::Gauquelin,
+        // Horizon promoted in Phase 6 Task 5b: the SE 'H' azimuth convention was
+        // corrected (+180° post-rotation, single 90° quarter-turn, strict-sign
+        // latitude branch); now matches SE within the GreatCircle ceiling.
+        HouseSystem::Horizon,
     ];
 
     assert_eq!(release_grade.len(), expected.len());

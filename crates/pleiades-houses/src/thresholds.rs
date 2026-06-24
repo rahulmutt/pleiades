@@ -67,8 +67,9 @@ pub fn house_family_ceiling(family: HouseFormulaFamily) -> HouseFamilyCeiling {
             angle_arcsec: 1.0,
         },
 
-        // GreatCircle (APC/Krusinski-Pisa-Goelzer; Horizon dropped as a known gap):
-        // measured max cusp 2.0686″ (APC) → ceil(4.1372) = 5.0″.
+        // GreatCircle (APC/Krusinski-Pisa-Goelzer/Horizon):
+        // measured family max cusp 2.0686″ (APC; Krusinski ≤ APC; Horizon 0.1704″
+        // at the lat-40 elevated epoch, ≤ 0.0554″ at J2000) → ceil(4.1372) = 5.0″.
         // Angle measured max 0.4921″ → 1.0″ (floor).
         HouseFormulaFamily::GreatCircle => HouseFamilyCeiling {
             cusp_arcsec: 5.0,

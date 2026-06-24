@@ -1,5 +1,5 @@
 use super::*;
-use pleiades_types::{Angle, CustomHouseSystem, Latitude};
+use pleiades_types::{Angle, CustomHouseSystem, JulianDay, Latitude, TimeScale};
 
 // --- shared test setup helpers ---
 
@@ -652,6 +652,103 @@ fn sunshine_release_system_anchors_the_documented_axes() {
     );
     assert_eq!(snapshot.cusps[3], longitude_opposite(snapshot.cusps[9]));
     assert_eq!(snapshot.cusps[6], longitude_opposite(snapshot.cusps[0]));
+}
+
+/// SE-anchored regression for the Horizon ('H') azimuth convention fix.
+///
+/// Before the fix `horizon_houses` disagreed with Swiss-Ephemeris by ~55–115°
+/// per cusp (missing the +180° post-rotation, an extra +90° azimuth quarter-turn
+/// via `ascendant_for`, and a `>= 0` latitude branch that flipped cusp 1 at the
+/// equator). The fixtures below are the exact SE 2.10.03 'H' reference rows from
+/// the house corpus (grep ',Horizon,' cusps.csv), covering the equator, mid-
+/// latitudes, the lat-66° support bound, and an elevated off-J2000 epoch.
+#[test]
+fn horizon_houses_match_swiss_ephemeris_reference() {
+    // (lat, lon, jd, [c1..c12])
+    let fixtures: [(f64, f64, f64, [f64; 12]); 5] = [
+        (
+            0.0,
+            0.0,
+            2451545.0,
+            [
+                180.0, 131.019922, 111.942372, 99.611088, 86.327570, 62.021662, 0.0, 311.019922,
+                291.942372, 279.611088, 266.327570, 242.021662,
+            ],
+        ),
+        (
+            40.0,
+            0.0,
+            2451545.0,
+            [
+                7.512627, 40.957940, 71.860911, 99.611088, 126.477720, 155.300954, 187.512627,
+                220.957940, 251.860911, 279.611088, 306.477720, 335.300954,
+            ],
+        ),
+        (
+            55.0,
+            0.0,
+            2451545.0,
+            [
+                8.738716, 39.436172, 69.870644, 99.611088, 128.927706, 158.489993, 188.738716,
+                219.436172, 249.870644, 279.611088, 308.927706, 338.489993,
+            ],
+        ),
+        (
+            66.0,
+            0.0,
+            2451545.0,
+            [
+                9.545351, 39.500052, 69.532860, 99.611088, 129.656324, 159.623396, 189.545351,
+                219.500052, 249.532860, 279.611088, 309.656324, 339.623396,
+            ],
+        ),
+        (
+            40.0,
+            30.0,
+            2433283.0,
+            [
+                29.044129, 64.514574, 99.194140, 128.147116, 153.317114, 178.927456, 209.044129,
+                244.514574, 279.194140, 308.147116, 333.317114, 358.927456,
+            ],
+        ),
+    ];
+    let mut worst = 0.0f64;
+    for (lat, lon, jd, want) in fixtures {
+        let req = HouseRequest::new(
+            Instant::new(JulianDay::from_days(jd), TimeScale::Tt),
+            ObserverLocation::new(
+                Latitude::from_degrees(lat),
+                Longitude::from_degrees(lon),
+                None,
+            ),
+            HouseSystem::Horizon,
+        );
+        let snap = calculate_houses(&req).expect("horizon houses should compute");
+        // MC must be the true meridian; cusp 10 is anchored to it directly.
+        assert_eq!(snap.cusps[9], snap.angles.midheaven);
+        for (i, (cusp, expected)) in snap.cusps.iter().zip(want.iter()).enumerate() {
+            let got = cusp.degrees();
+            let mut diff = (got - expected).rem_euclid(360.0);
+            if diff > 180.0 {
+                diff -= 360.0;
+            }
+            let arcsec = diff.abs() * 3600.0;
+            if arcsec > worst {
+                worst = arcsec;
+            }
+            // Tight per-cusp tolerance well inside the GreatCircle 5.0″ ceiling.
+            assert!(
+                arcsec < 1.0,
+                "Horizon lat={lat} cusp {} = {got:.6}° differs from SE {expected:.6}° by {arcsec:.4}\u{2033}",
+                i + 1,
+            );
+        }
+    }
+    // Whole-corpus Horizon worst residual stays far below the GreatCircle ceiling.
+    assert!(
+        worst < 1.0,
+        "worst Horizon residual {worst:.4}\u{2033} exceeded 1\u{2033}"
+    );
 }
 
 #[test]

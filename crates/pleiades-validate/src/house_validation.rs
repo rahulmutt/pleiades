@@ -1204,6 +1204,7 @@ fn system_for_code(code: &str) -> Option<pleiades_core::HouseSystem> {
         "PullenSd" => Some(HouseSystem::PullenSd),
         "PullenSr" => Some(HouseSystem::PullenSr),
         "Gauquelin" => Some(HouseSystem::Gauquelin),
+        "Horizon" => Some(HouseSystem::Horizon),
         _ => None,
     }
 }
@@ -1235,6 +1236,7 @@ fn code_for_system(system: &pleiades_core::HouseSystem) -> &'static str {
         HouseSystem::PullenSd => "PullenSd",
         HouseSystem::PullenSr => "PullenSr",
         HouseSystem::Gauquelin => "Gauquelin",
+        HouseSystem::Horizon => "Horizon",
         // Non-baseline systems: return empty string (no corpus rows expected).
         _ => "",
     }
@@ -1843,8 +1845,8 @@ slice sectors file=sectors.csv role=sectors rows=5 checksum=222\n";
         let report =
             validate_house_corpus().expect("committed house corpus must validate within ceilings");
         assert_eq!(
-            report.rows_validated, 110,
-            "corpus must have exactly 110 rows"
+            report.rows_validated, 115,
+            "corpus must have exactly 115 rows"
         );
         assert!(
             report.max_cusp_residual_arcsec.is_finite(),
@@ -1925,9 +1927,9 @@ slice sectors file=sectors.csv role=sectors rows=5 checksum=222\n";
     }
 
     #[test]
-    fn corpus_report_exposes_twenty_three_validated_systems() {
+    fn corpus_report_exposes_twenty_four_validated_systems() {
         let report = validate_house_corpus().expect("house corpus gate passes");
-        assert_eq!(report.validated_systems().len(), 23);
+        assert_eq!(report.validated_systems().len(), 24);
         assert!(report
             .validated_systems()
             .contains(&pleiades_core::HouseSystem::Placidus));
@@ -1935,5 +1937,9 @@ slice sectors file=sectors.csv role=sectors rows=5 checksum=222\n";
         assert!(report
             .validated_systems()
             .contains(&pleiades_core::HouseSystem::Gauquelin));
+        // Horizon (Azimuth) promoted to release-grade with corrected SE 'H' convention.
+        assert!(report
+            .validated_systems()
+            .contains(&pleiades_core::HouseSystem::Horizon));
     }
 }

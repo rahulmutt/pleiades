@@ -889,47 +889,75 @@ fn horizon_houses(
     obliquity: Angle,
     angles: HouseAngles,
 ) -> [Longitude; 12] {
+    // Swiss-Ephemeris 'H' (Horizon/Azimuth) — faithful port of CalcH's case 'H'.
+    //
+    // SE divides the horizon (azimuth circle) into twelve 30° sectors whose
+    // boundaries are projected onto the ecliptic via the ascendant of a
+    // fictitious tilted horizon. Three details govern the convention and are the
+    // historical source of pleiades' ~100° offset:
+    //
+    //   1. The azimuth origin is `Asc1(th + 90, …)`, where `th = ARMC + 180`.
+    //      pleiades' `ascendant_for(s, f)` is exactly `Asc1(s + 90, f)`, so the
+    //      SE call `Asc1(th + 90, f)` must be made as `ascendant_for(th, f)` —
+    //      passing `th + 90` double-counts the 90° azimuth quarter-turn.
+    //   2. SE rotates the five computed cusps (1,2,3,11,12) by +180° afterwards
+    //      (`cusp[i] = degnorm(cusp[i] + 180)`); omitting this rotation was the
+    //      dominant error.
+    //   3. The geographic-latitude → pole-height transform uses a STRICT `> 0`
+    //      branch: at the equator SE takes `fi = -90 - lat` (= -90), not
+    //      `90 - lat`. A `>= 0` branch flips cusp 1 by 180° at lat 0.
     let sidereal_time =
         (local_sidereal_time(instant, observer.longitude).degrees() + 180.0).rem_euclid(360.0);
     let obliquity = obliquity.degrees().to_radians();
     let latitude = observer.latitude.degrees();
-    let transformed_latitude = if latitude >= 0.0 {
+    // SE strict-sign hemisphere branch (note: lat == 0 takes the `else` arm).
+    let mut transformed_latitude = if latitude > 0.0 {
         90.0 - latitude
     } else {
         -90.0 - latitude
     };
+    // Clamp away from the ±90° pole singularity (SE's VERY_SMALL guard) so the
+    // cos(fi) == 0 azimuth branch is unreachable in practice.
+    const VERY_SMALL: f64 = 1e-10;
+    if (transformed_latitude.abs() - 90.0).abs() < VERY_SMALL {
+        transformed_latitude = if transformed_latitude < 0.0 {
+            -90.0 + VERY_SMALL
+        } else {
+            90.0 - VERY_SMALL
+        };
+    }
     let transformed_latitude_rad = transformed_latitude.to_radians();
     let fh1 = (transformed_latitude_rad.sin() / 2.0).asin().to_degrees();
     let fh2 = ((3.0_f64).sqrt() / 2.0 * transformed_latitude_rad.sin())
         .asin()
         .to_degrees();
     let cosfi = transformed_latitude_rad.cos();
-    let xh1 = if cosfi.abs() < f64::EPSILON {
-        if transformed_latitude >= 0.0 {
-            90.0
+    let (xh1, xh2) = if cosfi == 0.0 {
+        if transformed_latitude > 0.0 {
+            (90.0, 90.0)
         } else {
-            270.0
+            (270.0, 270.0)
         }
     } else {
-        (3.0_f64.sqrt() / cosfi).atan().to_degrees()
-    };
-    let xh2 = if cosfi.abs() < f64::EPSILON {
-        if transformed_latitude >= 0.0 {
-            90.0
-        } else {
-            270.0
-        }
-    } else {
-        (1.0 / 3.0_f64.sqrt() / cosfi).atan().to_degrees()
+        (
+            (3.0_f64.sqrt() / cosfi).atan().to_degrees(),
+            (1.0 / 3.0_f64.sqrt() / cosfi).atan().to_degrees(),
+        )
     };
 
+    // `ascendant_for(s, f) == Asc1(s + 90, f)`; `longitude_opposite` applies the
+    // SE +180° post-rotation. MC (cusp 10) is the true meridian, untouched.
     let mut cusps = [Longitude::from_degrees(0.0); 12];
-    cusps[0] = ascendant_for(sidereal_time + 90.0, transformed_latitude, obliquity);
+    cusps[0] = longitude_opposite(ascendant_for(
+        sidereal_time,
+        transformed_latitude,
+        obliquity,
+    ));
     cusps[9] = angles.midheaven;
-    cusps[10] = ascendant_for(sidereal_time + 90.0 - xh1, fh1, obliquity);
-    cusps[11] = ascendant_for(sidereal_time + 90.0 - xh2, fh2, obliquity);
-    cusps[1] = ascendant_for(sidereal_time + 90.0 + xh2, fh2, obliquity);
-    cusps[2] = ascendant_for(sidereal_time + 90.0 + xh1, fh1, obliquity);
+    cusps[10] = longitude_opposite(ascendant_for(sidereal_time - xh1, fh1, obliquity));
+    cusps[11] = longitude_opposite(ascendant_for(sidereal_time - xh2, fh2, obliquity));
+    cusps[1] = longitude_opposite(ascendant_for(sidereal_time + xh2, fh2, obliquity));
+    cusps[2] = longitude_opposite(ascendant_for(sidereal_time + xh1, fh1, obliquity));
     cusps[3] = longitude_opposite(cusps[9]);
     cusps[4] = longitude_opposite(cusps[10]);
     cusps[5] = longitude_opposite(cusps[11]);
