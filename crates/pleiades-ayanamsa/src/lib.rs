@@ -26,6 +26,7 @@ mod catalog;
 mod lookup;
 mod model;
 mod precession;
+pub mod thresholds;
 
 // Re-export model types at the crate root to preserve the public API surface.
 pub use model::{
