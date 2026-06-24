@@ -279,8 +279,11 @@ pub fn calculate_houses(request: &HouseRequest) -> Result<HouseSnapshot, HouseEr
         HouseSystem::Gauquelin => {
             gauquelin_houses(request.instant, &request.observer, obliquity, angles)?.into()
         }
-        HouseSystem::Meridian | HouseSystem::Axial | HouseSystem::Morinus => {
+        HouseSystem::Meridian | HouseSystem::Axial => {
             equatorial_projection_houses(request.instant, &request.observer, obliquity).into()
+        }
+        HouseSystem::Morinus => {
+            morinus_houses(request.instant, &request.observer, obliquity).into()
         }
         HouseSystem::Topocentric => {
             topocentric_houses(request.instant, &request.observer, obliquity, angles)?.into()
@@ -801,6 +804,36 @@ fn equatorial_projection_houses(
         let house = index + 1;
         let ra = st + house_phase(house);
         ecliptic_longitude_from_ra(ra, obliquity.degrees().to_radians())
+    })
+}
+
+/// Morinus house system (Swiss Ephemeris code 'M').
+///
+/// The Morinus system divides the celestial equator into twelve equal 30° arcs
+/// beginning at RA = RAMC + 90° (the IC meridian direction projected onto the
+/// equator), then projects each arc endpoint onto the ecliptic using the full
+/// spherical rotation from equatorial to ecliptic coordinates for a point on
+/// the equator (declination = 0):
+///
+///   ecliptic longitude = atan2(sin(RA) * cos(eps), cos(RA))
+///
+/// This is the standard equatorial-to-ecliptic conversion formula for
+/// dec = 0. It differs from the Meridian/Axial formula, which uses
+/// `atan2(sin(RA), cos(RA) * cos(eps))` (the ecliptic-to-equatorial inverse).
+/// Morinus is latitude-independent because only the sidereal time (RAMC)
+/// and the obliquity enter the formula.
+fn morinus_houses(
+    instant: Instant,
+    observer: &ObserverLocation,
+    obliquity: Angle,
+) -> [Longitude; 12] {
+    let st = local_sidereal_time(instant, observer.longitude).degrees();
+    let eps = obliquity.degrees().to_radians();
+    let cos_eps = eps.cos();
+
+    core::array::from_fn(|index| {
+        let ra = (st + 90.0 + (index as f64) * 30.0).to_radians();
+        Longitude::from_degrees(ra.sin().atan2(ra.cos() / cos_eps).to_degrees())
     })
 }
 

@@ -478,19 +478,15 @@ fn carter_houses_follow_ascendant_centered_equatorial_spacing() {
 }
 
 #[test]
-fn meridian_axial_and_morinus_share_the_documented_equatorial_projection_layout() {
+fn meridian_and_axial_share_the_documented_equatorial_projection_layout() {
     let request = sample_request(HouseSystem::Meridian);
     let meridian = calculate_houses(&request).expect("meridian houses should work");
     let axial =
         calculate_houses(&sample_request(HouseSystem::Axial)).expect("axial houses should work");
-    let morinus = calculate_houses(&sample_request(HouseSystem::Morinus))
-        .expect("morinus houses should work");
 
     assert_eq!(meridian.cusps.len(), 12);
     assert_eq!(meridian.cusps, axial.cusps);
-    assert_eq!(meridian.cusps, morinus.cusps);
     assert_eq!(meridian.angles, axial.angles);
-    assert_eq!(meridian.angles, morinus.angles);
 
     let obliquity = meridian.obliquity.degrees().to_radians();
     let sidereal_time = local_sidereal_time(request.instant, request.observer.longitude);
@@ -502,6 +498,109 @@ fn meridian_axial_and_morinus_share_the_documented_equatorial_projection_layout(
         meridian.cusps[0],
         ecliptic_longitude_from_ra(sidereal_time.degrees() + 90.0, obliquity)
     );
+}
+
+/// Morinus is a distinct system from Meridian/Axial.  It projects equatorial
+/// arc endpoints (at RA = RAMC + 90 + n*30°) onto the ecliptic using the
+/// full spherical rotation formula for dec = 0, whereas Meridian/Axial use the
+/// inverse ecliptic-to-equatorial formula.  The two systems therefore produce
+/// different cusp sets.
+#[test]
+fn morinus_is_distinct_from_meridian_and_produces_12_cusps() {
+    let meridian = calculate_houses(&sample_request(HouseSystem::Meridian))
+        .expect("meridian houses should work");
+    let morinus = calculate_houses(&sample_request(HouseSystem::Morinus))
+        .expect("morinus houses should work");
+
+    assert_eq!(morinus.cusps.len(), 12);
+    // Morinus and Meridian must NOT be identical (they use different ecliptic
+    // projection formulas and would only agree at zero obliquity).
+    assert_ne!(
+        morinus.cusps, meridian.cusps,
+        "Morinus and Meridian should produce different cusp sets at non-zero obliquity"
+    );
+}
+
+/// Swiss Ephemeris external-reference anchor for the Morinus house system.
+///
+/// Fixture c1_lat40: JD=2451545.0 (J2000.0), lat=40°N, lon=0°E.
+/// SE reference cusps come straight from the houses-corpus
+/// (`pleiades-validate/data/houses-corpus/cusps.csv`, system_code=Morinus).
+/// Tolerance is 120 arcsec; actual residuals are ~15 arcsec.
+#[test]
+fn morinus_cusps_match_swiss_ephemeris_corpus_within_120_arcsec() {
+    let circ_diff_arcsec = |a: f64, b: f64| -> f64 {
+        let diff = (a - b).rem_euclid(360.0);
+        let signed = if diff > 180.0 { diff - 360.0 } else { diff };
+        signed.abs() * 3600.0
+    };
+    let tolerance_arcsec = 120.0_f64;
+
+    // c1_lat40 SE corpus Morinus row, cusps c1..c12.
+    let se_morinus: [f64; 12] = [
+        9.611_088, 38.040_522, 68.849_424, 101.373_900, 132.906_648, 161.960_854,
+        189.611_088, 218.040_522, 248.849_424, 281.373_900, 312.906_648, 341.960_854,
+    ];
+
+    let request = HouseRequest::new(
+        Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            pleiades_types::TimeScale::Tt,
+        ),
+        ObserverLocation::new(
+            Latitude::from_degrees(40.0),
+            Longitude::from_degrees(0.0),
+            None,
+        ),
+        HouseSystem::Morinus,
+    );
+    let snapshot = calculate_houses(&request).expect("Morinus houses should compute");
+
+    for (index, &expected) in se_morinus.iter().enumerate() {
+        let diff = circ_diff_arcsec(snapshot.cusps[index].degrees(), expected);
+        assert!(
+            diff < tolerance_arcsec,
+            "Morinus cusp {} = {:.6}° differs from SE {expected:.6}° by {diff:.1} arcsec (limit {tolerance_arcsec})",
+            index + 1,
+            snapshot.cusps[index].degrees(),
+        );
+    }
+}
+
+/// Morinus is latitude-independent: the same RAMC and obliquity produce
+/// identical cusp sets regardless of geographic latitude.
+///
+/// Verified against the SE corpus rows c0_lat00, c1_lat40, c2_lat55, c3_lat66
+/// for JD=2451545 (J2000.0), lon=0°E, which all carry identical Morinus cusps.
+#[test]
+fn morinus_cusps_are_latitude_invariant() {
+    let instant = Instant::new(
+        pleiades_types::JulianDay::from_days(2_451_545.0),
+        pleiades_types::TimeScale::Tt,
+    );
+    let lon = Longitude::from_degrees(0.0);
+
+    let latitudes = [0.0_f64, 40.0, 55.0, 66.0];
+    let snapshots: Vec<_> = latitudes
+        .iter()
+        .map(|&lat| {
+            calculate_houses(&HouseRequest::new(
+                instant,
+                ObserverLocation::new(Latitude::from_degrees(lat), lon, None),
+                HouseSystem::Morinus,
+            ))
+            .expect("Morinus houses should compute at any latitude")
+        })
+        .collect();
+
+    // All snapshots must produce bit-identical cusp sets.
+    for (i, snapshot) in snapshots[1..].iter().enumerate() {
+        assert_eq!(
+            snapshot.cusps, snapshots[0].cusps,
+            "Morinus cusps at lat={} must be identical to cusps at lat=0 (same RAMC and obliquity)",
+            latitudes[i + 1],
+        );
+    }
 }
 
 #[test]
