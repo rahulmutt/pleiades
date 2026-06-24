@@ -42,7 +42,7 @@ fn eval(coeffs: &[f64; 4], jd_tt: f64) -> f64 {
 pub(crate) fn true_star_offset_degrees(ayanamsa: &Ayanamsa, jd_tt: f64) -> Option<f64> {
     match ayanamsa {
         Ayanamsa::TrueChitra | Ayanamsa::TrueCitra => {
-            if jd_tt < TRUE_STAR_FIT_JD_MIN || jd_tt > TRUE_STAR_FIT_JD_MAX {
+            if !(TRUE_STAR_FIT_JD_MIN..=TRUE_STAR_FIT_JD_MAX).contains(&jd_tt) {
                 return None;
             }
             let coeffs = match ayanamsa {

@@ -433,3 +433,28 @@ fn scheduled_historical_reference_modes_use_the_published_zero_points() {
         Some(Angle::from_degrees(0.0))
     );
 }
+
+#[test]
+fn release_grade_numeric_ayanamsa_set_is_exactly_the_six_gated_modes() {
+    use pleiades_types::{Ayanamsa, CompatibilityClaimTier};
+
+    let release_grade: Vec<Ayanamsa> = crate::built_in_ayanamsas()
+        .iter()
+        .filter(|d| d.claim_tier == CompatibilityClaimTier::ReleaseGradeNumeric)
+        .map(|d| d.ayanamsa.clone())
+        .collect();
+
+    let expected = [
+        Ayanamsa::Lahiri,
+        Ayanamsa::Raman,
+        Ayanamsa::Krishnamurti,
+        Ayanamsa::FaganBradley,
+        Ayanamsa::TrueChitra,
+        Ayanamsa::TrueCitra,
+    ];
+
+    assert_eq!(release_grade.len(), expected.len());
+    for mode in expected {
+        assert!(release_grade.contains(&mode), "missing {mode:?}");
+    }
+}

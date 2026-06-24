@@ -117,8 +117,13 @@ baseline house systems pass). Ayanamsa numeric gate is **done** (`validate-ayana
 60-row SE mean corpus, per-mode-class ceilings set from measured residuals; 6
 release-claimed modes pass — Lahiri, Raman, Krishnamurti, Fagan/Bradley ≤ 2.0″;
 True Chitra, True Citra ≤ 1.0″). Remaining ~48 built-in ayanamsa variants are
-not-yet-gated (kept on descriptor tests; no claim broadening). Remaining Phase 5
-work: release-gate hardening and compatibility-profile overclaim checks.
+not-yet-gated (kept on descriptor tests; no claim broadening). Compatibility
+overclaim gate is **done**: claim tiers now live on catalog descriptors
+(per-entry `claim_tier`); `compat-claims-audit` enforces tier↔evidence↔profile↔prose
+agreement bidirectionally (catalog tiers must match SE numeric-gate evidence,
+the compatibility profile, and README prose); `release-smoke`/`release-gate` now
+run the full numeric-gate set (house, ayanamsa, apparent, topocentric, corpus)
+plus the overclaim audit. Phase 5 is complete.
 
 ## Plan maintenance rules
 
@@ -129,7 +134,7 @@ work: release-gate hardening and compatibility-profile overclaim checks.
 - Keep `README.md`, release profiles, generated reports, and this plan aligned
   when public behavior or release claims change.
 
-Status: refreshed 2026-06-24 — **SP3 complete; Phases 1–3 done; per-backend claim model enforced by the claims-audit gate; Phase 4 active — civil-time conversion done, apparent-place done, topocentric (chart layer) done; only native sidereal backend output remains (deliberate non-goal); Phase 5 house gate done + ayanamsa gate done (compatibility-audit pair complete)**.
+Status: refreshed 2026-06-24 — **SP3 complete; Phases 1–3 done; per-backend claim model enforced by the claims-audit gate; Phase 4 active — civil-time conversion done, apparent-place done, topocentric (chart layer) done; only native sidereal backend output remains (deliberate non-goal); Phase 5 complete — house gate done + ayanamsa gate done + overclaim gate done; release-gate now runs the full numeric-gate set (house, ayanamsa, apparent, topocentric, corpus) plus the overclaim audit**.
 Published per-body-class accuracy ceilings enforced (1900–2100 CE), hard size gate
 active (≤ 12 MB), latency tracked, motion output `Motion = Derived`
 (SpeedPolicy::FittedDerivative) gated. ARTIFACT_VERSION 7.

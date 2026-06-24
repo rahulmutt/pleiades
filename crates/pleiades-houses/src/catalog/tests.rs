@@ -1093,6 +1093,37 @@ fn house_system_code_alias_validate_rejects_normalization_and_round_trip_drift()
 }
 
 #[test]
+fn release_grade_numeric_house_set_is_exactly_the_twelve_corpus_systems() {
+    use pleiades_types::{CompatibilityClaimTier, HouseSystem};
+
+    let release_grade: Vec<HouseSystem> = crate::built_in_house_systems()
+        .iter()
+        .filter(|d| d.claim_tier == CompatibilityClaimTier::ReleaseGradeNumeric)
+        .map(|d| d.system.clone())
+        .collect();
+
+    let expected = [
+        HouseSystem::Placidus,
+        HouseSystem::Koch,
+        HouseSystem::Porphyry,
+        HouseSystem::Regiomontanus,
+        HouseSystem::Campanus,
+        HouseSystem::Equal,
+        HouseSystem::WholeSign,
+        HouseSystem::Alcabitius,
+        HouseSystem::Meridian,
+        HouseSystem::Axial,
+        HouseSystem::Topocentric,
+        HouseSystem::Morinus,
+    ];
+
+    assert_eq!(release_grade.len(), expected.len());
+    for sys in expected {
+        assert!(release_grade.contains(&sys), "missing {sys:?}");
+    }
+}
+
+#[test]
 fn latitude_sensitive_systems_carry_a_latitude_bound() {
     for descriptor in built_in_house_systems() {
         if descriptor.latitude_sensitive {

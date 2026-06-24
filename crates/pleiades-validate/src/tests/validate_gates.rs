@@ -188,3 +188,9 @@ fn help_text_mentions_validate_ayanamsa() {
         "help should mention ayanamsa-gate alias"
     );
 }
+
+#[test]
+fn compat_claims_audit_passes_on_real_catalogs() {
+    let out = render_cli(&["compat-claims-audit"]).expect("audit passes");
+    assert!(out.contains("OK"));
+}

@@ -7,6 +7,7 @@
 //! hand-maintained prose.
 
 pub(crate) mod audit;
+pub(crate) mod compat;
 pub(crate) mod drift;
 pub(crate) mod posture;
 
@@ -14,6 +15,8 @@ pub(crate) use posture::{
     canonical_release_metadata, derived_release_posture, validate_release_posture,
     validated_release_body_claims_summary_line_for_report,
 };
+
+pub(crate) use compat::audit_compat_claims;
 
 pub(crate) use drift::check_claim_drift;
 

@@ -89,10 +89,17 @@ pub struct AyanamsaCorpusReport {
     pub modes_checked: usize,
     pub max_residual_arcsec: f64,
     pub summary_line: String,
+    /// The distinct typed ayanamsa modes the corpus validated.
+    pub validated_modes: Vec<Ayanamsa>,
 }
 impl AyanamsaCorpusReport {
     pub fn summary_line(&self) -> &str {
         &self.summary_line
+    }
+
+    /// Returns the distinct ayanamsa modes validated by the corpus.
+    pub fn validated_modes(&self) -> &[Ayanamsa] {
+        &self.validated_modes
     }
 }
 impl fmt::Display for AyanamsaCorpusReport {
@@ -284,11 +291,22 @@ pub fn validate_ayanamsa_corpus() -> Result<AyanamsaCorpusReport, AyanamsaCorpus
         "Ayanamsa gate: {} rows, {} modes validated vs Swiss Ephemeris, max residual {:.3}\u{2033}",
         rows.len(), modes.len(), max_residual_arcsec
     );
+
+    let mut validated_modes: Vec<Ayanamsa> = Vec::new();
+    for row in &rows {
+        if let Some(mode) = mode_for_code(&row.mode_code) {
+            if !validated_modes.contains(&mode) {
+                validated_modes.push(mode);
+            }
+        }
+    }
+
     Ok(AyanamsaCorpusReport {
         rows_validated: rows.len(),
         modes_checked: modes.len(),
         max_residual_arcsec,
         summary_line,
+        validated_modes,
     })
 }
 
@@ -321,6 +339,15 @@ mod tests {
     #[test]
     fn unknown_mode_code_fails_closed() {
         assert!(mode_for_code("Bogus").is_none());
+    }
+
+    #[test]
+    fn corpus_report_exposes_six_validated_modes() {
+        let report = validate_ayanamsa_corpus().expect("ayanamsa gate passes");
+        assert_eq!(report.validated_modes().len(), 6);
+        assert!(report
+            .validated_modes()
+            .contains(&pleiades_types::Ayanamsa::Lahiri));
     }
 
     /// Prove the gate fails closed on a residual that exceeds the mode-class ceiling.

@@ -674,6 +674,16 @@ pub fn compatibility_profile_verification_summary(
 /// Verifies that the release compatibility profile stays synchronized with the
 /// canonical house-system and ayanamsa catalogs.
 pub fn verify_compatibility_profile() -> Result<String, EphemerisError> {
+    if let Err(violations) = crate::claims::audit_compat_claims() {
+        let messages: Vec<String> = violations.iter().map(|v| v.to_string()).collect();
+        return Err(EphemerisError::new(
+            EphemerisErrorKind::InvalidRequest,
+            format!(
+                "compatibility overclaim audit failed:\n{}",
+                messages.join("\n")
+            ),
+        ));
+    }
     compatibility_profile_verification_summary()?.validated_summary_line()
 }
 
