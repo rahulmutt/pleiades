@@ -1494,7 +1494,7 @@ pub fn validate_house_corpus() -> Result<HouseCorpusReport, HouseCorpusError> {
     //
     // 6. SE-compat fallback assertions: the SwissEphemerisFallback policy must
     //    succeed. Fallback target varies by formula family:
-    //    - Quadrant (Placidus, Koch, Regiomontanus, Campanus): assert cusps == Porphyry.
+    //    - Quadrant (Placidus, Koch, Topocentric): assert cusps == Porphyry.
     //    - GreatCircle / SolarArc (Horizon, APC, KrusinskiPisaGoelzer, Sunshine):
     //      assert Ok only — their documented fallback target is not Porphyry.
     //    - Sector (Gauquelin): strict-rejection only — the SE-compat fallback returns
@@ -1556,15 +1556,6 @@ pub fn validate_house_corpus() -> Result<HouseCorpusReport, HouseCorpusError> {
         }
     }
 
-    let systems_checked = baseline.len();
-    let summary_line = format!(
-        "House gate: {} rows / {} systems, max cusp residual {:.3}\u{2033}, cross-check {}",
-        rows.len(),
-        systems_checked,
-        max_cusp_residual_arcsec,
-        manifest.crosscheck,
-    );
-
     let mut validated_systems: Vec<pleiades_core::HouseSystem> = Vec::new();
     for row in &rows {
         if let Some(sys) = system_for_code(&row.system_code) {
@@ -1580,6 +1571,15 @@ pub fn validate_house_corpus() -> Result<HouseCorpusReport, HouseCorpusError> {
             }
         }
     }
+
+    let systems_checked = validated_systems.len();
+    let summary_line = format!(
+        "House gate: {} rows / {} systems, max cusp residual {:.3}\u{2033}, cross-check {}",
+        rows.len(),
+        systems_checked,
+        max_cusp_residual_arcsec,
+        manifest.crosscheck,
+    );
 
     Ok(HouseCorpusReport {
         rows_validated: rows.len(),
