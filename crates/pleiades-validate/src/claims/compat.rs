@@ -183,9 +183,13 @@ fn check_surfaces(errors: &mut Vec<CompatClaimAuditError>) {
         .filter(|d| d.claim_tier == CompatibilityClaimTier::ReleaseGradeNumeric)
         .count();
 
-    // The README must state the release-grade-numeric counts verbatim.
-    let house_token = format!("{house_count} house systems pass");
-    let aya_token = format!("{aya_count} release-claimed");
+    // Forward drift-guard: if a future commit increments a descriptor count
+    // (e.g. 12→13) without updating the README, the new token won't be found
+    // and the check fires.  It cannot catch a same-commit mistake where both
+    // the README and the descriptor count are wrong together — Checks A and B
+    // backstop that case.
+    let house_token = format!(" {house_count} house systems pass");
+    let aya_token = format!(" {aya_count} release-claimed");
     if !README.contains(&house_token) {
         errors.push(CompatClaimAuditError::SurfaceDisagrees {
             surface: "README:houses",
