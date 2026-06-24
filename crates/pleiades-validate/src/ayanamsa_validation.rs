@@ -295,6 +295,7 @@ pub fn validate_ayanamsa_corpus() -> Result<AyanamsaCorpusReport, AyanamsaCorpus
 #[cfg(test)]
 mod tests {
     use super::*;
+    use pleiades_ayanamsa::thresholds::AyanamsaModeClass;
 
     #[test]
     fn gate_passes_over_committed_corpus() {
@@ -320,5 +321,46 @@ mod tests {
     #[test]
     fn unknown_mode_code_fails_closed() {
         assert!(mode_for_code("Bogus").is_none());
+    }
+
+    /// Prove the gate fails closed on a residual that exceeds the mode-class ceiling.
+    ///
+    /// This tests the ceiling-comparison logic directly using the in-module helpers,
+    /// without injecting rows into the committed corpus. A synthetic pair where
+    /// `got` is 10° off from `want` produces a 36000″ residual, which clearly
+    /// exceeds the 2.0″ OffsetDefined ceiling and the 1.0″ TrueStar ceiling.
+    ///
+    /// This exercises the same `wrap_arcsec(got, want) > ceiling.offset_arcsec`
+    /// condition that `validate_ayanamsa_corpus()` evaluates per-row, proving
+    /// the gate would produce `CeilingExceeded` on a corrupted reference value.
+    #[test]
+    fn ceiling_exceeded_logic_fails_closed_on_large_residual() {
+        // A synthetic 10° error produces 36 000″ — far above any mode-class ceiling.
+        let got = 23.0_f64;
+        let want = 33.0_f64; // 10° off
+        let residual = wrap_arcsec(got, want);
+        assert_eq!(residual, 36_000.0, "10° difference should be 36 000″");
+
+        // Verify the residual exceeds both mode-class ceilings.
+        let offset_ceiling = ayanamsa_mode_ceiling(AyanamsaModeClass::OffsetDefined);
+        let truestar_ceiling = ayanamsa_mode_ceiling(AyanamsaModeClass::TrueStar);
+        assert!(
+            residual > offset_ceiling.offset_arcsec,
+            "36 000″ should exceed OffsetDefined ceiling {:.1}″",
+            offset_ceiling.offset_arcsec
+        );
+        assert!(
+            residual > truestar_ceiling.offset_arcsec,
+            "36 000″ should exceed TrueStar ceiling {:.1}″",
+            truestar_ceiling.offset_arcsec
+        );
+
+        // Confirm a small residual (well within tolerance) does NOT exceed the ceiling,
+        // so the test is non-vacuous in both directions.
+        let small_residual = wrap_arcsec(23.0, 23.0 + 0.0001); // ~0.36″
+        assert!(
+            small_residual < offset_ceiling.offset_arcsec,
+            "0.36″ should be within OffsetDefined ceiling"
+        );
     }
 }
