@@ -149,12 +149,36 @@ fn check_profile(errors: &mut Vec<CompatClaimAuditError>) {
     }
 }
 
+/// Check C: README prose must state the release-grade-numeric counts verbatim.
+fn check_surfaces(errors: &mut Vec<CompatClaimAuditError>) {
+    const README: &str = include_str!("../../../../README.md");
+
+    let house_count = built_in_house_systems()
+        .iter()
+        .filter(|d| d.claim_tier == CompatibilityClaimTier::ReleaseGradeNumeric)
+        .count();
+    let aya_count = built_in_ayanamsas()
+        .iter()
+        .filter(|d| d.claim_tier == CompatibilityClaimTier::ReleaseGradeNumeric)
+        .count();
+
+    // The README must state the release-grade-numeric counts verbatim.
+    let house_token = format!("{house_count} house systems pass");
+    let aya_token = format!("{aya_count} release-claimed");
+    if !README.contains(&house_token) {
+        errors.push(CompatClaimAuditError::SurfaceDisagrees { surface: "README:houses" });
+    }
+    if !README.contains(&aya_token) {
+        errors.push(CompatClaimAuditError::SurfaceDisagrees { surface: "README:ayanamsa" });
+    }
+}
+
 /// Runs the full compatibility overclaim audit (Checks A–C).
 pub(crate) fn audit_compat_claims() -> Result<(), Vec<CompatClaimAuditError>> {
     let mut errors = Vec::new();
     check_tier_evidence(&mut errors);
     check_profile(&mut errors);
-    // Check C (Task 7) appends here.
+    check_surfaces(&mut errors);
     if errors.is_empty() { Ok(()) } else { Err(errors) }
 }
 
@@ -196,6 +220,13 @@ mod tests {
         let mut errors = Vec::new();
         super::check_profile(&mut errors);
         assert!(errors.is_empty(), "profile disagreement: {errors:?}");
+    }
+
+    #[test]
+    fn readme_counts_match_descriptors() {
+        let mut errors = Vec::new();
+        super::check_surfaces(&mut errors);
+        assert!(errors.is_empty(), "surface drift: {errors:?}");
     }
 
     #[test]
