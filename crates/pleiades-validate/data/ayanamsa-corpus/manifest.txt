@@ -1,0 +1,4 @@
+#Pleiades Ayanamsa Reference Corpus Manifest
+#Reference-Engine: SwissEphemeris 2.10.03
+#CrossCheck-Engine: not-run
+slice ayanamsa file=ayanamsa.csv role=ayanamsa rows=60 checksum=16722316028609519219
