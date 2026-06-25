@@ -30,6 +30,11 @@ mod se_anchors;
 pub mod thresholds;
 mod truestar;
 
+// Shared with the `se-ayanamsa-reference` tool so it reproduces the gate's
+// offset model from a single source (no duplicated precession/anchor data).
+pub use precession::{general_precession_longitude_arcsec, precession_delta_degrees};
+pub use se_anchors::{se_anchor, SeAnchor, IN_SCOPE_ANCHORS};
+
 // Re-export model types at the crate root to preserve the public API surface.
 pub use model::{
     AyanamsaCatalogValidationError, AyanamsaCatalogValidationSummary,

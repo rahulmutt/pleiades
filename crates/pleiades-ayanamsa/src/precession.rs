@@ -4,12 +4,18 @@
 
 /// Accumulated general precession in longitude pA(T) from J2000.0, in arcseconds.
 /// T is Julian centuries of TT from J2000.0. IAU 2006 (Capitaine et al. 2003).
-pub(crate) fn general_precession_longitude_arcsec(t: f64) -> f64 {
+///
+/// `pub` so the `se-ayanamsa-reference` tool shares this exact formula (no
+/// duplicated constants) when measuring offset-mode residuals against SE.
+pub fn general_precession_longitude_arcsec(t: f64) -> f64 {
     5028.796195 * t + 1.1054348 * t * t + 0.000_079_64 * t * t * t
 }
 
 /// Precession accumulated between two instants, expressed in degrees of longitude.
-pub(crate) fn precession_delta_degrees(jd_tt: f64, epoch_jd_tt: f64) -> f64 {
+///
+/// `pub` so the `se-ayanamsa-reference` tool reproduces the gate's offset model
+/// exactly from this single source of truth.
+pub fn precession_delta_degrees(jd_tt: f64, epoch_jd_tt: f64) -> f64 {
     let t = (jd_tt - 2_451_545.0) / 36_525.0;
     let t0 = (epoch_jd_tt - 2_451_545.0) / 36_525.0;
     (general_precession_longitude_arcsec(t) - general_precession_longitude_arcsec(t0)) / 3600.0

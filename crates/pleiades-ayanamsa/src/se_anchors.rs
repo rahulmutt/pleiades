@@ -5,21 +5,17 @@
 //! per `swephexp.h`. Do not edit values without re-checking the SE source row
 //! named in the trailing comment.
 
-// Consumed by later cycle tasks (residual measurement / claim-tier flips); the
-// table and lookup are exercised by this module's tests in the meantime.
-#![allow(dead_code)]
-
 use pleiades_types::Ayanamsa;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub(crate) struct SeAnchor {
+pub struct SeAnchor {
     pub se_sidm: i32,
     pub t0: f64,
     pub ayan_t0: f64,
     pub t0_is_ut: bool,
 }
 
-pub(crate) const IN_SCOPE_ANCHORS: &[(Ayanamsa, SeAnchor)] = &[
+pub const IN_SCOPE_ANCHORS: &[(Ayanamsa, SeAnchor)] = &[
     // sweph.h ayanamsa[2]: {1721057.5, 0, TRUE, 0} — DeLuce
     (
         Ayanamsa::DeLuce,
@@ -312,7 +308,7 @@ pub(crate) const IN_SCOPE_ANCHORS: &[(Ayanamsa, SeAnchor)] = &[
     ),
 ];
 
-pub(crate) fn se_anchor(a: &Ayanamsa) -> Option<SeAnchor> {
+pub fn se_anchor(a: &Ayanamsa) -> Option<SeAnchor> {
     IN_SCOPE_ANCHORS
         .iter()
         .find(|(m, _)| m == a)
