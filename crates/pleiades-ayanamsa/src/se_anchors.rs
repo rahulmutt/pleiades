@@ -12,6 +12,11 @@ pub struct SeAnchor {
     pub se_sidm: i32,
     pub t0: f64,
     pub ayan_t0: f64,
+    /// SE's `t0_is_UT` flag, recorded for provenance only. The OffsetDefined
+    /// gate model (and the matching SE reference measurement) treat `t0` as TT
+    /// and do NOT apply a UT->TT shift; the residual that absorbs that ~70 ms
+    /// offset still passes the offset ceiling. Applying the shift is a slice-2
+    /// fidelity item (it would change measured residuals and re-open P/D).
     pub t0_is_ut: bool,
 }
 
