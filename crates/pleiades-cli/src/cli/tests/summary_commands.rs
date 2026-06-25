@@ -2662,13 +2662,13 @@ fn summary_commands_render_compact_reports() {
     assert!(ayanamsa_reference_offsets_summary
         .contains("Ayanamsa reference offsets: representative zero-point examples:"));
     assert!(ayanamsa_reference_offsets_summary
-        .contains("Lahiri (ICRC): epoch=JD 2435553.5; offset=23.25°"));
+        .contains("Lahiri (ICRC): epoch=JD 2435553.5; offset=23.24535793°"));
     assert!(ayanamsa_reference_offsets_summary
-        .contains("Lahiri (1940): epoch=JD 2415020; offset=22.445972222222224°"));
+        .contains("Lahiri (1940): epoch=JD 2415020; offset=22.44597222°"));
     assert!(ayanamsa_reference_offsets_summary
         .contains("DeLuce: epoch=JD 2451545; offset=23.245522556°"));
     assert!(ayanamsa_reference_offsets_summary
-        .contains("Yukteshwar: epoch=JD 2451545; offset=22.6288889°"));
+        .contains("Yukteshwar: epoch=JD 2415020; offset=21.082222°"));
     assert!(ayanamsa_reference_offsets_summary
         .contains("PVR Pushya-paksha: epoch=JD 2451545; offset=23°"));
     assert!(ayanamsa_reference_offsets_summary
@@ -2684,15 +2684,15 @@ fn summary_commands_render_compact_reports() {
     assert!(ayanamsa_reference_offsets_summary
         .contains("Hipparchus: epoch=JD 1674484; offset=-9.333333333333334°"));
     assert!(ayanamsa_reference_offsets_summary
-        .contains("Djwhal Khul: epoch=JD 1706703.948006; offset=0°"));
+        .contains("Djwhal Khul: epoch=JD 2415020; offset=26.963097600000026°"));
     assert!(ayanamsa_reference_offsets_summary
         .contains("Galactic Equator (Fiorenza): epoch=JD 2451544.5; offset=25°"));
     assert!(ayanamsa_reference_offsets_summary
         .contains("Valens Moon: epoch=JD 1775845.5; offset=-2.9422°"));
     assert!(ayanamsa_reference_offsets_summary
-        .contains("Suryasiddhanta (Mean Sun): epoch=JD 1909045.584433; offset=0°"));
+        .contains("Suryasiddhanta (Mean Sun): epoch=JD 1903396.8128654; offset=-0.21463395°"));
     assert!(ayanamsa_reference_offsets_summary
-        .contains("Aryabhata (Mean Sun): epoch=JD 1909650.815331; offset=0°"));
+        .contains("Aryabhata (Mean Sun): epoch=JD 1903396.7895321; offset=-0.23763238°"));
     assert!(ayanamsa_reference_offsets_summary
         .contains("Babylonian (Kugler 2): epoch=JD 1797039.20682; offset=0°"));
     assert!(ayanamsa_reference_offsets_summary
