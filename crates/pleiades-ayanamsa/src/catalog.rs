@@ -76,15 +76,15 @@ pub(crate) const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Some(JulianDay::from_days(1_825_182.872_330)),
         Some(Angle::from_degrees(50.256_748_3)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::J2000,
         "J2000",
         &["J2000.0"],
         "Swiss Ephemeris J2000 sidereal frame anchored to the standard J2000.0 epoch.",
         Some(JulianDay::from_days(2_451_545.0)),
-        Some(Angle::from_degrees(23.853_177_78)),
+        Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::J1900,
         "J1900",
         &["J1900.0"],
@@ -92,12 +92,12 @@ pub(crate) const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Some(JulianDay::from_days(2_415_020.0)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::B1950,
         "B1950",
         &["B1950.0"],
         "Swiss Ephemeris B1950 sidereal frame anchored to the FK4 B1950.0 epoch.",
-        Some(JulianDay::from_days(2_433_281.5)),
+        Some(JulianDay::from_days(2_433_282.423_459_05)),
         Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
@@ -116,55 +116,55 @@ pub(crate) const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Some(JulianDay::from_days(1_805_889.671_313)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::SuryasiddhantaRevati,
         "Suryasiddhanta (Revati)",
         &["SS Revati", "Suryasiddhanta Revati", "Surya Siddhanta Revati"],
         "Swiss Ephemeris SS Revati mode, anchored to the published Revati zero point used by the Surya Siddhanta family.",
-        Some(JulianDay::from_days(1_924_230.267_296)),
-        Some(Angle::from_degrees(0.0)),
+        Some(JulianDay::from_days(1_903_396.8128654)),
+        Some(Angle::from_degrees(-0.79167046)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::SuryasiddhantaCitra,
         "Suryasiddhanta (Citra)",
         &["SS Citra", "Suryasiddhanta Citra", "Surya Siddhanta Citra"],
         "Swiss Ephemeris SS Citra mode, anchored to the published Citra zero point used by the Surya Siddhanta family.",
-        Some(JulianDay::from_days(1_903_396.812_865_4)),
-        Some(Angle::from_degrees(0.0)),
+        Some(JulianDay::from_days(1_903_396.8128654)),
+        Some(Angle::from_degrees(2.11070444)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::LahiriIcrc,
         "Lahiri (ICRC)",
         &["ICRC Lahiri", "Lahiri ICRC"],
         "The 1956 Indian Calendar Reform Committee standard with a round 23°15′ reference value.",
         Some(JulianDay::from_days(2_435_553.5)),
-        Some(Angle::from_degrees(23.25)),
+        Some(Angle::from_degrees(23.25 - 0.00464207)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::Lahiri1940,
         "Lahiri (1940)",
         &["Lahiri original", "Panchanga Darpan Lahiri"],
         "Lahiri's earlier zero-date variant published in Panchanga Darpan.",
         Some(JulianDay::from_days(2_415_020.0)),
-        Some(Angle::from_degrees(22.445_972_222_222_223)),
+        Some(Angle::from_degrees(22.44597222)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::UshaShashi,
         "Usha Shashi",
         &["Ushashashi", "Usha-Shashi", "Usha/Shashi", "Usha / Shashi", "Usha Shashi ayanamsa", "Revati"],
         "Revati-bound zero-point variant used in the Greek-Arabic-Hindu tradition.",
-        Some(JulianDay::from_days(2_415_020.5)),
-        Some(Angle::from_degrees(18.660_961_111_111_11)),
+        Some(JulianDay::from_days(2_415_020.0)),
+        Some(Angle::from_degrees(360.0 - 341.33904)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::Suryasiddhanta499,
         "Suryasiddhanta (499 CE)",
         &["Suryasiddhanta 499", "Surya Siddhanta 499", "Suryasiddhanta 499 CE", "Surya Siddhanta 499 CE", "Surya Siddhanta", "Suryasiddhanta"],
         "Suryasiddhanta zero-point variant anchored to the 499 CE equinox.",
-        Some(JulianDay::from_days(1_903_396.812_865_393_5)),
+        Some(JulianDay::from_days(1_903_396.8128654)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::Aryabhata499,
         "Aryabhata (499 CE)",
         &[
@@ -175,15 +175,15 @@ pub(crate) const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
             "Aryabhata Kaliyuga",
         ],
         "Aryabhata zero-point variant anchored to the 499 CE dawn tradition.",
-        Some(JulianDay::from_days(1_903_396.789_532_060_3)),
+        Some(JulianDay::from_days(1_903_396.7895321)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::Sassanian,
         "Sassanian",
         &["Zij al-Shah", "Sasanian"],
         "Sassanian zero-point variant anchored to the 564 CE table-reform epoch.",
-        Some(JulianDay::from_days(1_927_135.874_779_3)),
+        Some(JulianDay::from_days(1_927_135.8747793)),
         Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
@@ -194,13 +194,13 @@ pub(crate) const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Some(JulianDay::from_days(2_451_545.0)),
         Some(Angle::from_degrees(23.245_522_556)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::Yukteshwar,
         "Yukteshwar",
         &["Yukteswar", "Sri Yukteswar", "Sri Yukteshwar", "Shri Yukteswar", "Shri Yukteshwar", "Yukteshwar ayanamsa"],
         "Swiss Ephemeris Yukteshwar sidereal mode, documented as a built-in ayanamsa option with a Sri Yukteswar-compatible naming family.",
-        Some(JulianDay::from_days(2_451_545.0)),
-        Some(Angle::from_degrees(22.628_888_9)),
+        Some(JulianDay::from_days(2_415_020.0)),
+        Some(Angle::from_degrees(360.0 - 338.917778)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::PvrPushyaPaksha,
@@ -361,23 +361,23 @@ pub(crate) const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Some(JulianDay::from_days(1_825_235.164_583)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::DjwhalKhul,
         "Djwhal Khul",
         &["Djwhal", "Djwhal Khul ayanamsa"],
         "Djwhal Khul sidereal mode, anchored to the published zero date used by the Swiss Ephemeris family.",
-        Some(JulianDay::from_days(1_706_703.948_006)),
-        Some(Angle::from_degrees(0.0)),
+        Some(JulianDay::from_days(2_415_020.0)),
+        Some(Angle::from_degrees(360.0 - 333.0369024)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::JnBhasin,
         "JN Bhasin",
         &["J. N. Bhasin", "J.N. Bhasin", "Bhasin"],
         "J. N. Bhasin sidereal mode.",
-        Some(JulianDay::from_days(2_454_239.282_537)),
-        Some(Angle::from_degrees(0.013_968_911_416_666_667)),
+        Some(JulianDay::from_days(2_415_020.0)),
+        Some(Angle::from_degrees(360.0 - 338.634444)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::Suryasiddhanta499MeanSun,
         "Suryasiddhanta (Mean Sun)",
         &[
@@ -389,16 +389,16 @@ pub(crate) const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
             "Surya Siddhanta MSUN",
         ],
         "Suryasiddhanta mean-sun variant anchored to the published 514 CE zero point used by Swiss Ephemeris.",
-        Some(JulianDay::from_days(1_909_045.584_433)),
-        Some(Angle::from_degrees(0.0)),
+        Some(JulianDay::from_days(1_903_396.8128654)),
+        Some(Angle::from_degrees(-0.21463395)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::Aryabhata499MeanSun,
         "Aryabhata (Mean Sun)",
         &["Aryabhata, mean Sun", "Aryabhata mean sun", "Aryabhata MSUN"],
         "Aryabhata mean-sun variant anchored to the published 516 CE zero point used by Swiss Ephemeris.",
-        Some(JulianDay::from_days(1_909_650.815_331)),
-        Some(Angle::from_degrees(0.0)),
+        Some(JulianDay::from_days(1_903_396.7895321)),
+        Some(Angle::from_degrees(-0.23763238)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianBritton,
@@ -408,12 +408,12 @@ pub(crate) const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Some(JulianDay::from_days(1_805_415.712_776)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::Aryabhata522,
         "Aryabhata (522 CE)",
         &["Aryabhata 522", "Aryabhata 522 CE"],
         "Aryabhata zero-point variant anchored to the published 522 CE reference date.",
-        Some(JulianDay::from_days(1_911_797.740_782)),
+        Some(JulianDay::from_days(1_911_797.740782065)),
         Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
@@ -605,15 +605,15 @@ pub(crate) static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
         Some(JulianDay::from_days(1_825_182.872_330)),
         Some(Angle::from_degrees(50.256_748_3)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::J2000,
         "J2000",
         &["J2000.0"],
         "Swiss Ephemeris J2000 sidereal frame anchored to the standard J2000.0 epoch.",
         Some(JulianDay::from_days(2_451_545.0)),
-        Some(Angle::from_degrees(23.853_177_78)),
+        Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::J1900,
         "J1900",
         &["J1900.0"],
@@ -621,12 +621,12 @@ pub(crate) static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
         Some(JulianDay::from_days(2_415_020.0)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::B1950,
         "B1950",
         &["B1950.0"],
         "Swiss Ephemeris B1950 sidereal frame anchored to the FK4 B1950.0 epoch.",
-        Some(JulianDay::from_days(2_433_281.5)),
+        Some(JulianDay::from_days(2_433_282.423_459_05)),
         Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
@@ -645,55 +645,55 @@ pub(crate) static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
         Some(JulianDay::from_days(1_805_889.671_313)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::SuryasiddhantaRevati,
         "Suryasiddhanta (Revati)",
         &["SS Revati", "Suryasiddhanta Revati", "Surya Siddhanta Revati"],
         "Swiss Ephemeris SS Revati mode, anchored to the published Revati zero point used by the Surya Siddhanta family.",
-        Some(JulianDay::from_days(1_924_230.267_296)),
-        Some(Angle::from_degrees(0.0)),
+        Some(JulianDay::from_days(1_903_396.8128654)),
+        Some(Angle::from_degrees(-0.79167046)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::SuryasiddhantaCitra,
         "Suryasiddhanta (Citra)",
         &["SS Citra", "Suryasiddhanta Citra", "Surya Siddhanta Citra"],
         "Swiss Ephemeris SS Citra mode, anchored to the published Citra zero point used by the Surya Siddhanta family.",
-        Some(JulianDay::from_days(1_903_396.812_865_4)),
-        Some(Angle::from_degrees(0.0)),
+        Some(JulianDay::from_days(1_903_396.8128654)),
+        Some(Angle::from_degrees(2.11070444)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::LahiriIcrc,
         "Lahiri (ICRC)",
         &["ICRC Lahiri", "Lahiri ICRC"],
         "The 1956 Indian Calendar Reform Committee standard with a round 23°15′ reference value.",
         Some(JulianDay::from_days(2_435_553.5)),
-        Some(Angle::from_degrees(23.25)),
+        Some(Angle::from_degrees(23.25 - 0.00464207)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::Lahiri1940,
         "Lahiri (1940)",
         &["Lahiri original", "Panchanga Darpan Lahiri"],
         "Lahiri's earlier zero-date variant published in Panchanga Darpan.",
         Some(JulianDay::from_days(2_415_020.0)),
-        Some(Angle::from_degrees(22.445_972_222_222_223)),
+        Some(Angle::from_degrees(22.44597222)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::UshaShashi,
         "Usha Shashi",
         &["Ushashashi", "Usha-Shashi", "Usha/Shashi", "Usha / Shashi", "Usha Shashi ayanamsa", "Revati"],
         "Revati-bound zero-point variant used in the Greek-Arabic-Hindu tradition.",
-        Some(JulianDay::from_days(2_415_020.5)),
-        Some(Angle::from_degrees(18.660_961_111_111_11)),
+        Some(JulianDay::from_days(2_415_020.0)),
+        Some(Angle::from_degrees(360.0 - 341.33904)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::Suryasiddhanta499,
         "Suryasiddhanta (499 CE)",
         &["Suryasiddhanta 499", "Surya Siddhanta 499", "Suryasiddhanta 499 CE", "Surya Siddhanta 499 CE", "Surya Siddhanta", "Suryasiddhanta"],
         "Suryasiddhanta zero-point variant anchored to the 499 CE equinox.",
-        Some(JulianDay::from_days(1_903_396.812_865_393_5)),
+        Some(JulianDay::from_days(1_903_396.8128654)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::Aryabhata499,
         "Aryabhata (499 CE)",
         &[
@@ -704,15 +704,15 @@ pub(crate) static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
             "Aryabhata Kaliyuga",
         ],
         "Aryabhata zero-point variant anchored to the 499 CE dawn tradition.",
-        Some(JulianDay::from_days(1_903_396.789_532_060_3)),
+        Some(JulianDay::from_days(1_903_396.7895321)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::Sassanian,
         "Sassanian",
         &["Zij al-Shah", "Sasanian"],
         "Sassanian zero-point variant anchored to the 564 CE table-reform epoch.",
-        Some(JulianDay::from_days(1_927_135.874_779_3)),
+        Some(JulianDay::from_days(1_927_135.8747793)),
         Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(
@@ -723,13 +723,13 @@ pub(crate) static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
         Some(JulianDay::from_days(2_451_545.0)),
         Some(Angle::from_degrees(23.245_522_556)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::Yukteshwar,
         "Yukteshwar",
         &["Yukteswar", "Sri Yukteswar", "Sri Yukteshwar", "Shri Yukteswar", "Shri Yukteshwar", "Yukteshwar ayanamsa"],
         "Swiss Ephemeris Yukteshwar sidereal mode, documented as a built-in ayanamsa option with a Sri Yukteswar-compatible naming family.",
-        Some(JulianDay::from_days(2_451_545.0)),
-        Some(Angle::from_degrees(22.628_888_9)),
+        Some(JulianDay::from_days(2_415_020.0)),
+        Some(Angle::from_degrees(360.0 - 338.917778)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::PvrPushyaPaksha,
@@ -890,23 +890,23 @@ pub(crate) static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
         Some(JulianDay::from_days(1_825_235.164_583)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::DjwhalKhul,
         "Djwhal Khul",
         &["Djwhal", "Djwhal Khul ayanamsa"],
         "Djwhal Khul sidereal mode, anchored to the published zero date used by the Swiss Ephemeris family.",
-        Some(JulianDay::from_days(1_706_703.948_006)),
-        Some(Angle::from_degrees(0.0)),
+        Some(JulianDay::from_days(2_415_020.0)),
+        Some(Angle::from_degrees(360.0 - 333.0369024)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::JnBhasin,
         "JN Bhasin",
         &["J. N. Bhasin", "J.N. Bhasin", "Bhasin"],
         "J. N. Bhasin sidereal mode.",
-        Some(JulianDay::from_days(2_454_239.282_537)),
-        Some(Angle::from_degrees(0.013_968_911_416_666_667)),
+        Some(JulianDay::from_days(2_415_020.0)),
+        Some(Angle::from_degrees(360.0 - 338.634444)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::Suryasiddhanta499MeanSun,
         "Suryasiddhanta (Mean Sun)",
         &[
@@ -918,16 +918,16 @@ pub(crate) static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
             "Surya Siddhanta MSUN",
         ],
         "Suryasiddhanta mean-sun variant anchored to the published 514 CE zero point used by Swiss Ephemeris.",
-        Some(JulianDay::from_days(1_909_045.584_433)),
-        Some(Angle::from_degrees(0.0)),
+        Some(JulianDay::from_days(1_903_396.8128654)),
+        Some(Angle::from_degrees(-0.21463395)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::Aryabhata499MeanSun,
         "Aryabhata (Mean Sun)",
         &["Aryabhata, mean Sun", "Aryabhata mean sun", "Aryabhata MSUN"],
         "Aryabhata mean-sun variant anchored to the published 516 CE zero point used by Swiss Ephemeris.",
-        Some(JulianDay::from_days(1_909_650.815_331)),
-        Some(Angle::from_degrees(0.0)),
+        Some(JulianDay::from_days(1_903_396.7895321)),
+        Some(Angle::from_degrees(-0.23763238)),
     ),
     AyanamsaDescriptor::new(
         Ayanamsa::BabylonianBritton,
@@ -937,12 +937,12 @@ pub(crate) static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
         Some(JulianDay::from_days(1_805_415.712_776)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::Aryabhata522,
         "Aryabhata (522 CE)",
         &["Aryabhata 522", "Aryabhata 522 CE"],
         "Aryabhata zero-point variant anchored to the published 522 CE reference date.",
-        Some(JulianDay::from_days(1_911_797.740_782)),
+        Some(JulianDay::from_days(1_911_797.740782065)),
         Some(Angle::from_degrees(0.0)),
     ),
     AyanamsaDescriptor::new(

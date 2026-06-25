@@ -7,3 +7,5 @@ publish = false
 [dependencies]
 swisseph = "0.1.1"
 libswisseph-sys = "0.1.2"
+pleiades-ayanamsa = { path = "../../crates/pleiades-ayanamsa" }
+pleiades-types = { path = "../../crates/pleiades-types" }

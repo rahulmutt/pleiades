@@ -172,13 +172,10 @@ fn selected_release_ayanamsas_carry_reference_metadata() {
     );
 
     let jn_bhasin = descriptor(&Ayanamsa::JnBhasin).expect("JN Bhasin descriptor");
-    assert_eq!(
-        jn_bhasin.epoch,
-        Some(JulianDay::from_days(2_454_239.282_537))
-    );
+    assert_eq!(jn_bhasin.epoch, Some(JulianDay::from_days(2_415_020.0)));
     assert_eq!(
         jn_bhasin.offset_degrees,
-        Some(Angle::from_degrees(0.013_968_911_416_666_667))
+        Some(Angle::from_degrees(360.0 - 338.634444))
     );
 
     let true_citra = descriptor(&Ayanamsa::TrueCitra).expect("True Citra descriptor");
@@ -310,21 +307,30 @@ fn selected_release_ayanamsas_carry_reference_metadata() {
         descriptor(&Ayanamsa::SuryasiddhantaRevati).expect("Suryasiddhanta Revati descriptor");
     assert_eq!(
         ss_revati.epoch,
-        Some(JulianDay::from_days(1_924_230.267_296))
+        Some(JulianDay::from_days(1_903_396.8128654))
     );
-    assert_eq!(ss_revati.offset_degrees, Some(Angle::from_degrees(0.0)));
+    assert_eq!(
+        ss_revati.offset_degrees,
+        Some(Angle::from_degrees(-0.79167046))
+    );
 
     let ss_citra =
         descriptor(&Ayanamsa::SuryasiddhantaCitra).expect("Suryasiddhanta Citra descriptor");
     assert_eq!(
         ss_citra.epoch,
-        Some(JulianDay::from_days(1_903_396.812_865_4))
+        Some(JulianDay::from_days(1_903_396.8128654))
     );
-    assert_eq!(ss_citra.offset_degrees, Some(Angle::from_degrees(0.0)));
+    assert_eq!(
+        ss_citra.offset_degrees,
+        Some(Angle::from_degrees(2.11070444))
+    );
 
     let djwhal = descriptor(&Ayanamsa::DjwhalKhul).expect("Djwhal Khul descriptor");
-    assert_eq!(djwhal.epoch, Some(JulianDay::from_days(1_706_703.948_006)));
-    assert_eq!(djwhal.offset_degrees, Some(Angle::from_degrees(0.0)));
+    assert_eq!(djwhal.epoch, Some(JulianDay::from_days(2_415_020.0)));
+    assert_eq!(
+        djwhal.offset_degrees,
+        Some(Angle::from_degrees(360.0 - 333.0369024))
+    );
 
     let sheoran = descriptor(&Ayanamsa::Sheoran).expect("Sheoran descriptor");
     assert_eq!(sheoran.epoch, Some(JulianDay::from_days(1_789_947.090_881)));
@@ -349,9 +355,9 @@ fn selected_release_ayanamsas_carry_reference_metadata() {
     assert_eq!(
         sidereal_offset(
             &Ayanamsa::DjwhalKhul,
-            Instant::new(JulianDay::from_days(1_706_703.948_006), TimeScale::Tt),
+            Instant::new(JulianDay::from_days(2_415_020.0), TimeScale::Tt),
         ),
-        Some(Angle::from_degrees(0.0))
+        Some(Angle::from_degrees(360.0 - 333.0369024))
     );
     assert_eq!(
         sidereal_offset(
@@ -435,7 +441,53 @@ fn scheduled_historical_reference_modes_use_the_published_zero_points() {
 }
 
 #[test]
-fn release_grade_numeric_ayanamsa_set_is_exactly_the_six_gated_modes() {
+fn deferred_modes_stay_descriptor_only() {
+    use pleiades_types::{Ayanamsa, CompatibilityClaimTier};
+
+    // In-scope-but-deferred: large-residual modes that were promotion candidates
+    // but did not meet the numeric-grade bar in Task 4.
+    let deferred = [
+        Ayanamsa::KrishnamurtiVP291,
+        Ayanamsa::LahiriVP285,
+        Ayanamsa::ValensMoon,
+        Ayanamsa::DeLuce,
+        Ayanamsa::BabylonianBritton,
+        Ayanamsa::BabylonianKugler1,
+        Ayanamsa::BabylonianKugler2,
+        Ayanamsa::BabylonianKugler3,
+        Ayanamsa::BabylonianHuber,
+        Ayanamsa::BabylonianAldebaran,
+        Ayanamsa::Hipparchus,
+        Ayanamsa::BabylonianEtaPiscium,
+        // No-SE_SIDM modes — also deferred.
+        Ayanamsa::Udayagiri,
+        Ayanamsa::PvrPushyaPaksha,
+        Ayanamsa::Sheoran,
+        // Slice-2 fitted/star-pinned representatives.
+        Ayanamsa::GalacticCenter,
+        Ayanamsa::TrueRevati,
+        Ayanamsa::TrueMula,
+        Ayanamsa::TruePushya,
+        Ayanamsa::TrueSheoran,
+        Ayanamsa::BabylonianTrueGeoc,
+    ];
+
+    let built_ins = crate::built_in_ayanamsas();
+    for m in deferred {
+        let d = built_ins
+            .iter()
+            .find(|d| d.ayanamsa == m)
+            .unwrap_or_else(|| panic!("{m:?} not found in built_in_ayanamsas()"));
+        assert_eq!(
+            d.claim_tier,
+            CompatibilityClaimTier::DescriptorOnly,
+            "{m:?} must stay descriptor-only"
+        );
+    }
+}
+
+#[test]
+fn release_grade_numeric_ayanamsa_set_is_exactly_the_gated_modes() {
     use pleiades_types::{Ayanamsa, CompatibilityClaimTier};
 
     let release_grade: Vec<Ayanamsa> = crate::built_in_ayanamsas()
@@ -451,6 +503,23 @@ fn release_grade_numeric_ayanamsa_set_is_exactly_the_six_gated_modes() {
         Ayanamsa::FaganBradley,
         Ayanamsa::TrueChitra,
         Ayanamsa::TrueCitra,
+        Ayanamsa::J2000,
+        Ayanamsa::J1900,
+        Ayanamsa::B1950,
+        Ayanamsa::UshaShashi,
+        Ayanamsa::DjwhalKhul,
+        Ayanamsa::Yukteshwar,
+        Ayanamsa::JnBhasin,
+        Ayanamsa::Sassanian,
+        Ayanamsa::LahiriIcrc,
+        Ayanamsa::Lahiri1940,
+        Ayanamsa::Aryabhata522,
+        Ayanamsa::Suryasiddhanta499,
+        Ayanamsa::Suryasiddhanta499MeanSun,
+        Ayanamsa::Aryabhata499,
+        Ayanamsa::Aryabhata499MeanSun,
+        Ayanamsa::SuryasiddhantaRevati,
+        Ayanamsa::SuryasiddhantaCitra,
     ];
 
     assert_eq!(release_grade.len(), expected.len());

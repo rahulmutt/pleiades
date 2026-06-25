@@ -1,4 +1,4 @@
-//! Fail-closed numeric-residual gate for the six release-claimed ayanamsa modes
+//! Fail-closed numeric-residual gate for the release-claimed ayanamsa modes
 //! against the committed Swiss Ephemeris reference corpus. Mirrors
 //! `house_validation.rs`: parse → checksum → manifest drift → per-row residual
 //! vs the per-mode-class ceiling. Pure-Rust; no SE or network dependency.
@@ -195,12 +195,31 @@ pub(crate) fn parse_manifest(text: &str) -> Result<AyanamsaManifest, AyanamsaCor
 
 fn mode_for_code(code: &str) -> Option<Ayanamsa> {
     match code {
+        // Original 6 gated modes
         "Lahiri" => Some(Ayanamsa::Lahiri),
         "Raman" => Some(Ayanamsa::Raman),
         "Krishnamurti" => Some(Ayanamsa::Krishnamurti),
         "FaganBradley" => Some(Ayanamsa::FaganBradley),
         "TrueChitra" => Some(Ayanamsa::TrueChitra),
         "TrueCitra" => Some(Ayanamsa::TrueCitra),
+        // Promoted offset-defined modes (P)
+        "J2000" => Some(Ayanamsa::J2000),
+        "J1900" => Some(Ayanamsa::J1900),
+        "B1950" => Some(Ayanamsa::B1950),
+        "UshaShashi" => Some(Ayanamsa::UshaShashi),
+        "DjwhalKhul" => Some(Ayanamsa::DjwhalKhul),
+        "Yukteshwar" => Some(Ayanamsa::Yukteshwar),
+        "JnBhasin" => Some(Ayanamsa::JnBhasin),
+        "Sassanian" => Some(Ayanamsa::Sassanian),
+        "LahiriIcrc" => Some(Ayanamsa::LahiriIcrc),
+        "Lahiri1940" => Some(Ayanamsa::Lahiri1940),
+        "Aryabhata522" => Some(Ayanamsa::Aryabhata522),
+        "Suryasiddhanta499" => Some(Ayanamsa::Suryasiddhanta499),
+        "Suryasiddhanta499MeanSun" => Some(Ayanamsa::Suryasiddhanta499MeanSun),
+        "Aryabhata499" => Some(Ayanamsa::Aryabhata499),
+        "Aryabhata499MeanSun" => Some(Ayanamsa::Aryabhata499MeanSun),
+        "SuryasiddhantaRevati" => Some(Ayanamsa::SuryasiddhantaRevati),
+        "SuryasiddhantaCitra" => Some(Ayanamsa::SuryasiddhantaCitra),
         _ => None,
     }
 }
@@ -231,7 +250,7 @@ pub fn validate_ayanamsa_corpus() -> Result<AyanamsaCorpusReport, AyanamsaCorpus
             actual: rows.len().to_string(),
         });
     }
-    // Completeness: all six gated modes present.
+    // Completeness: all 23 gated modes present.
     for code in [
         "Lahiri",
         "Raman",
@@ -239,6 +258,23 @@ pub fn validate_ayanamsa_corpus() -> Result<AyanamsaCorpusReport, AyanamsaCorpus
         "FaganBradley",
         "TrueChitra",
         "TrueCitra",
+        "J2000",
+        "J1900",
+        "B1950",
+        "UshaShashi",
+        "DjwhalKhul",
+        "Yukteshwar",
+        "JnBhasin",
+        "Sassanian",
+        "LahiriIcrc",
+        "Lahiri1940",
+        "Aryabhata522",
+        "Suryasiddhanta499",
+        "Suryasiddhanta499MeanSun",
+        "Aryabhata499",
+        "Aryabhata499MeanSun",
+        "SuryasiddhantaRevati",
+        "SuryasiddhantaCitra",
     ] {
         if !rows.iter().any(|r| r.mode_code == code) {
             return Err(AyanamsaCorpusError::ManifestDrift {
@@ -318,7 +354,7 @@ mod tests {
     #[test]
     fn gate_passes_over_committed_corpus() {
         let report = validate_ayanamsa_corpus().expect("ayanamsa gate should pass");
-        assert_eq!(report.modes_checked, 6);
+        assert_eq!(report.modes_checked, 23);
         assert!(report.summary_line().starts_with("Ayanamsa gate"));
     }
 
@@ -342,9 +378,9 @@ mod tests {
     }
 
     #[test]
-    fn corpus_report_exposes_six_validated_modes() {
+    fn corpus_report_exposes_all_validated_modes() {
         let report = validate_ayanamsa_corpus().expect("ayanamsa gate passes");
-        assert_eq!(report.validated_modes().len(), 6);
+        assert_eq!(report.validated_modes().len(), 23);
         assert!(report
             .validated_modes()
             .contains(&pleiades_types::Ayanamsa::Lahiri));

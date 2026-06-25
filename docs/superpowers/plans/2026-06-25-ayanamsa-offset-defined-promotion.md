@@ -201,15 +201,61 @@ If `cargo build` fails with `libswisseph-sys` build-script error and `CC = None`
 Paste the measured table into the block below. **Promoted set P** = modes with `worst ≤ ceiling`; **Deferred set D** = the rest (with reason). Modes with no upstream SE_SIDM (`PvrPushyaPaksha`, `Udayagiri`, `Sheoran` — confirm against `swephexp.h`) go to D with reason "no SE reference mode". Set the **ceiling** = `ceil(max(worst over P) × 2)`, 1.0″ floor; if a sub-group (e.g. mean-Sun) is bounded but distinctly higher, give it its own class/ceiling, else defer it.
 
 ```
-<!-- TASK 2 RESULTS — fill after running measure-offset
-PROMOTED (P): mode  worst_arcsec
-  J2000        <...>
-  ...
-OFFSET CEILING (recomputed): <...>"  (ceil(max*2), floor 1.0)
-SUB-CLASS (if any): <name> ceiling <...>"
-DEFERRED (D): mode  reason  worst_arcsec
-  PvrPushyaPaksha  no SE reference mode  n/a
-  ...
+<!-- TASK 2 RESULTS — measured via `cargo run -q -- measure-offset`
+(SE 2.10.03, MEAN_IFLAG=1088; model = ayan_t0 + IAU-2006 precession_delta from t0;
+worst = max |wrap_to_pm180(SE - model)| * 3600 over the 10 HOLDOUT_JD_TT)
+
+PROMOTED (P): mode  worst_arcsec        (17 modes — the tight cluster, worst <= 1.370402")
+  J2000                       0.000280
+  B1950                       0.000642
+  UshaShashi                  0.001493
+  DjwhalKhul                  0.001493
+  Yukteshwar                  0.001493
+  JnBhasin                    0.001493
+  J1900                       0.001493
+  LahiriIcrc                  0.361195
+  Lahiri1940                  0.827955
+  Sassanian                   1.162552
+  Aryabhata522                1.293850
+  Suryasiddhanta499           1.370402
+  Suryasiddhanta499MeanSun    1.370402
+  Aryabhata499                1.370402
+  Aryabhata499MeanSun         1.370402
+  SuryasiddhantaRevati        1.370402
+  SuryasiddhantaCitra         1.370402
+
+OFFSET CEILING (recomputed): 3.0"  (ceil(max(worst over P) * 2) = ceil(1.370402 * 2) = ceil(2.740804), floor 1.0)
+
+SUB-CLASS (if any): NONE.
+  The two mean-Sun modes (Suryasiddhanta499MeanSun, Aryabhata499MeanSun) do NOT cluster
+  higher — their worst (1.370402") is identical to their non-mean-Sun siblings, so they
+  fold into the shared OffsetDefined class with no separate ceiling.
+
+DEFERRED (D): mode  reason  worst_arcsec        (15 modes)
+  LahiriVP285        residual exceeds ceiling  2.272315   (large-residual)
+  KrishnamurtiVP291  residual exceeds ceiling  2.242511   (large-residual)
+  ValensMoon         residual exceeds ceiling  3.014063   (large-residual)
+  DeLuce             residual exceeds ceiling  4.058897   (large-residual)
+  BabylonianBritton  residual exceeds ceiling  4.058897   (large-residual)
+  BabylonianKugler1  residual exceeds ceiling  4.894246   (large-residual)
+  BabylonianKugler2  residual exceeds ceiling  4.894246   (large-residual)
+  BabylonianKugler3  residual exceeds ceiling  4.894246   (large-residual)
+  BabylonianHuber    residual exceeds ceiling  4.894246   (large-residual)
+  BabylonianAldebaran residual exceeds ceiling 4.894246   (large-residual)
+  Hipparchus         residual exceeds ceiling  5.145347   (large-residual)
+  BabylonianEtaPiscium residual exceeds ceiling 5.159189  (large-residual)
+  PvrPushyaPaksha    no SE reference mode      n/a        (no-SE_SIDM; absent from IN_SCOPE_ANCHORS)
+  Udayagiri          no SE reference mode      n/a        (no-SE_SIDM; absent from IN_SCOPE_ANCHORS)
+  Sheoran            no SE reference mode      n/a        (no-SE_SIDM; absent from IN_SCOPE_ANCHORS)
+
+FAIL-SAFE NOTE: LahiriVP285 (2.272") and KrishnamurtiVP291 (2.243") fall numerically below
+the 3.0" formula ceiling but sit in the doubling-headroom GAP (0.87" above the cluster top of
+1.370402", and below the next residuals at 3.01"+), NOT in the cluster itself. Promoting them
+would re-seed P with max=2.272" -> ceiling=ceil(4.545)=5.0", which then admits ValensMoon/DeLuce/
+Britton/Kugler/Aldebaran (3.0-4.9") -> runaway ceiling that force-promotes the whole table. Per
+resolution E ("NEVER loosen/inflate the ceiling to force-promote"), P is fixed to the defensible
+empirical cluster and these two defer. The tool's printed PASS/DEFER uses a cutoff in the
+unambiguous gap (1.5") so its verdict matches this record.
 -->
 ```
 

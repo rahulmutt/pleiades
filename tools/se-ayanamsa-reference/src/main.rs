@@ -9,6 +9,10 @@ const SEFLG_NOABERR: i32 = 1024; // no annual aberration
 const MEAN_IFLAG: i32 = SEFLG_NONUT | SEFLG_NOABERR; // = 1088
 
 /// (pleiades mode_code, SE sidereal-mode integer)
+///
+/// The SE_SIDM integers below are the one plan-mandated place these literals
+/// appear in the tool (for the corpus path). The `measure-offset` path reads
+/// each mode's SE_SIDM from `pleiades_ayanamsa::IN_SCOPE_ANCHORS` instead.
 const MODES: &[(&str, i32)] = &[
     ("FaganBradley",  0),
     ("Lahiri",        1),
@@ -16,6 +20,28 @@ const MODES: &[(&str, i32)] = &[
     ("Krishnamurti",  5),
     ("TrueChitra",   27),
     ("TrueCitra",    27),
+    // offset-defined family — promoted (P) modes only:
+    ("J2000",                    18),
+    ("J1900",                    19),
+    ("B1950",                    20),
+    ("UshaShashi",                4),
+    ("DjwhalKhul",                6),
+    ("Yukteshwar",                7),
+    ("JnBhasin",                  8),
+    ("Sassanian",                16),
+    ("LahiriIcrc",               46),
+    ("Lahiri1940",               43),
+    ("Aryabhata522",             37),
+    ("Suryasiddhanta499",        21),
+    ("Suryasiddhanta499MeanSun", 22),
+    ("Aryabhata499",             23),
+    ("Aryabhata499MeanSun",      24),
+    ("SuryasiddhantaRevati",     25),
+    ("SuryasiddhantaCitra",      26),
+    // Deferred: DeLuce, BabylonianKugler1-3, BabylonianHuber, BabylonianEtaPiscium,
+    // BabylonianAldebaran, Hipparchus, BabylonianBritton, ValensMoon, LahiriVP285,
+    // KrishnamurtiVP291 — not yet promoted.
+    // PvrPushyaPaksha, Udayagiri, Sheoran have no upstream SE_SIDM — see Task 2 P/D.
 ];
 
 /// Hold-out validation instants (jd_tt). Deliberately NOT on the dense fit grid
@@ -145,10 +171,61 @@ fn emit_holdout_check() {
     println!("WORST_TRUESTAR_HOLDOUT_ARCSEC={worst:.4}");
 }
 
+/// Wrap an angle (degrees) into (-180, 180], defending the residual against a
+/// 360° rollover when SE and the model straddle the 0/360 boundary.
+fn wrap_to_pm180(mut deg: f64) -> f64 {
+    deg %= 360.0;
+    if deg > 180.0 {
+        deg -= 360.0;
+    } else if deg <= -180.0 {
+        deg += 360.0;
+    }
+    deg
+}
+
+/// Cluster cutoff used for the tool's printed PASS/DEFER verdict.
+///
+/// Empirically (Task 2) the in-scope offset modes split into a tight cluster
+/// whose worst residual is <= 1.370402" (anchor + IAU-2006 precession reproduces
+/// SE), a gap, then modes at >= 2.24". The recorded OffsetDefined ceiling is the
+/// formula value `ceil(max(worst over P) * 2)` = ceil(1.370402 * 2) = 3.0", but
+/// promoting the 2.24"/2.27" headroom-only modes would re-derive a runaway
+/// ceiling and force-promote the whole table — the fail-safe forbids that. So P
+/// is the cluster, and this cutoff sits in the unambiguous gap so the printed
+/// verdict matches the recorded P/D. See plan Task 2 results block.
+const OFFSET_DEFINED_CLUSTER_CUTOFF_ARCSEC: f64 = 1.5;
+
+/// Measure each in-scope offset mode's worst residual against the gate's exact
+/// OffsetDefined model: `ayan_t0 + precession_delta_degrees(jd, t0)` (degrees),
+/// reading `(se_sidm, t0, ayan_t0)` from the crate's single anchor source.
+///
+/// Prints one line per mode: `<name> worst=<arcsec> verdict=<PASS|DEFER>`.
+fn emit_offset_measure() {
+    for (mode, anchor) in pleiades_ayanamsa::IN_SCOPE_ANCHORS {
+        let mut worst = 0.0f64;
+        for &jd in HOLDOUT_JD_TT {
+            let model_deg =
+                anchor.ayan_t0 + pleiades_ayanamsa::precession_delta_degrees(jd, anchor.t0);
+            let se_deg = ayanamsa(anchor.se_sidm, jd);
+            let resid_arcsec = wrap_to_pm180(se_deg - model_deg).abs() * 3600.0;
+            if resid_arcsec > worst {
+                worst = resid_arcsec;
+            }
+        }
+        let verdict = if worst <= OFFSET_DEFINED_CLUSTER_CUTOFF_ARCSEC {
+            "PASS"
+        } else {
+            "DEFER"
+        };
+        println!("{mode:?} worst={worst:.6} verdict={verdict}");
+    }
+}
+
 fn main() {
     match std::env::args().nth(1).as_deref() {
         Some("fit") => emit_fit(),
         Some("holdout") => emit_holdout_check(),
+        Some("measure-offset") => emit_offset_measure(),
         _ => emit_corpus(),
     }
 }
