@@ -331,6 +331,10 @@ pub fn sidereal_offset(ayanamsa: &Ayanamsa, instant: Instant) -> Option<Angle> {
         Some(AyanamsaModeClass::Galactic) => {
             crate::galactic::galactic_offset_degrees(ayanamsa, jd_tt).map(Angle::from_degrees)
         }
+        // FittedOffset: cubic-fit evaluator wired in a later task; fall through to legacy path.
+        Some(AyanamsaModeClass::FittedOffset) => {
+            descriptor(ayanamsa).and_then(|entry| entry.offset_at(instant))
+        }
         // Not gated: unchanged legacy linear-rate path.
         None => descriptor(ayanamsa).and_then(|entry| entry.offset_at(instant)),
     }
