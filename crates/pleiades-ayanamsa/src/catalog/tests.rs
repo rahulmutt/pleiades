@@ -345,12 +345,16 @@ fn selected_release_ayanamsas_carry_reference_metadata() {
         .expect("Galactic Equator offset should exist")
         .degrees()
         .is_finite());
+    // TruePushya is now a TrueStar mode (Task 2). The cubic fit window is 1900-2100
+    // (JD ≥ 2_415_020.0); the reference epoch JD 1_855_769 is outside the window,
+    // so sidereal_offset correctly returns None. Descriptor metadata is still present
+    // (verified above at lines 299-304).
     assert_eq!(
         sidereal_offset(
             &Ayanamsa::TruePushya,
             Instant::new(JulianDay::from_days(1_855_769.248_315), TimeScale::Tt),
         ),
-        Some(Angle::from_degrees(0.0))
+        None
     );
     assert_eq!(
         sidereal_offset(
