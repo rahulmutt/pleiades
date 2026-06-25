@@ -159,7 +159,7 @@ mod tests {
     }
 
     #[test]
-    fn summary_line_mentions_both_classes() {
+    fn summary_line_mentions_all_classes() {
         let s = ayanamsa_thresholds_summary_for_report();
         assert!(
             s.contains("offset-defined") && s.contains("true-star") && s.contains("galactic"),

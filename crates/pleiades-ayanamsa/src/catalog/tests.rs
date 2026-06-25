@@ -268,7 +268,7 @@ fn selected_release_ayanamsas_carry_reference_metadata() {
         "GalacticEquatorFiorenza at epoch should return Some"
     );
     assert!(
-        (fiorenza_offset.unwrap().degrees() - 25.0).abs() < 1e-4,
+        (fiorenza_offset.unwrap().degrees() - 25.0).abs() < 1e-6,
         "GalacticEquatorFiorenza at epoch should be ~25.0 degrees (polynomial); got {:?}",
         fiorenza_offset
     );
@@ -482,6 +482,9 @@ fn deferred_modes_stay_descriptor_only() {
         Ayanamsa::Sheoran,
         // Slice-2: remaining non-promoted candidates.
         Ayanamsa::BabylonianTrueGeoc,
+        // Slice-2: no-SE_SIDM deferrals (no distinct SE code, must stay DescriptorOnly).
+        Ayanamsa::DhruvaGalacticCenterMula,
+        Ayanamsa::GalacticEquator,
     ];
 
     let built_ins = crate::built_in_ayanamsas();

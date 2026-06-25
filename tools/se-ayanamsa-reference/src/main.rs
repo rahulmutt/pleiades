@@ -225,6 +225,8 @@ fn emit_measure_fitted() {
         .step_by(2)
         .map(|y| 2_451_545.0 + (y as f64 - 2000.0) * 365.25)
         .collect();
+    // Intentionally lists only the 13 NEW fitted candidates; the fit-emit list (emit_fit)
+    // additionally includes the already-gated TrueChitra/TrueCitra.
     const FIT_MODES: &[(&str, i32)] = &[
         ("TrueRevati", 28), ("TruePushya", 29), ("TrueMula", 35), ("TrueSheoran", 39),
         ("GalacticCenter", 17), ("GalacticCenterRgilbrand", 30),
