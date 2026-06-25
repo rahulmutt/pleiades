@@ -256,12 +256,21 @@ fn selected_release_ayanamsas_carry_reference_metadata() {
         .expect("Galactic Equator (Fiorenza) descriptor");
     assert_eq!(fiorenza.epoch, Some(JulianDay::from_days(2_451_544.5)));
     assert_eq!(fiorenza.offset_degrees, Some(Angle::from_degrees(25.0)));
-    assert_eq!(
-        sidereal_offset(
-            &Ayanamsa::GalacticEquatorFiorenza,
-            Instant::new(JulianDay::from_days(2_451_544.5), TimeScale::Tt),
-        ),
-        Some(Angle::from_degrees(25.0))
+    // GalacticEquatorFiorenza is now routed through the committed cubic polynomial.
+    // The polynomial value at the epoch JD differs from 25.0 by < 1e-7 degrees
+    // (sub-arcsecond), which is well within the gate ceiling.
+    let fiorenza_offset = sidereal_offset(
+        &Ayanamsa::GalacticEquatorFiorenza,
+        Instant::new(JulianDay::from_days(2_451_544.5), TimeScale::Tt),
+    );
+    assert!(
+        fiorenza_offset.is_some(),
+        "GalacticEquatorFiorenza at epoch should return Some"
+    );
+    assert!(
+        (fiorenza_offset.unwrap().degrees() - 25.0).abs() < 1e-6,
+        "GalacticEquatorFiorenza at epoch should be ~25.0 degrees (polynomial); got {:?}",
+        fiorenza_offset
     );
 
     let udayagiri = descriptor(&Ayanamsa::Udayagiri).expect("Udayagiri descriptor");
@@ -345,12 +354,16 @@ fn selected_release_ayanamsas_carry_reference_metadata() {
         .expect("Galactic Equator offset should exist")
         .degrees()
         .is_finite());
+    // TruePushya is now a TrueStar mode (Task 2). The cubic fit window is 1900-2100
+    // (JD ≥ 2_415_020.0); the reference epoch JD 1_855_769 is outside the window,
+    // so sidereal_offset correctly returns None. Descriptor metadata is still present
+    // (verified above at lines 299-304).
     assert_eq!(
         sidereal_offset(
             &Ayanamsa::TruePushya,
             Instant::new(JulianDay::from_days(1_855_769.248_315), TimeScale::Tt),
         ),
-        Some(Angle::from_degrees(0.0))
+        None
     );
     assert_eq!(
         sidereal_offset(
@@ -370,12 +383,16 @@ fn selected_release_ayanamsas_carry_reference_metadata() {
         .expect("Valens Moon offset should exist")
         .degrees()
         .is_finite());
+    // GalacticCenterCochrane is now a Galactic mode routed via the committed cubic
+    // polynomial (fit window: JD 2_415_020–2_488_070). The reference epoch JD
+    // 1_662_951 is outside the window, so sidereal_offset correctly returns None.
+    // Descriptor metadata is still present (verified above at lines 286-292).
     assert_eq!(
         sidereal_offset(
             &Ayanamsa::GalacticCenterCochrane,
             Instant::new(JulianDay::from_days(1_662_951.794_251), TimeScale::Tt),
         ),
-        Some(Angle::from_degrees(0.0))
+        None
     );
 }
 
@@ -463,13 +480,11 @@ fn deferred_modes_stay_descriptor_only() {
         Ayanamsa::Udayagiri,
         Ayanamsa::PvrPushyaPaksha,
         Ayanamsa::Sheoran,
-        // Slice-2 fitted/star-pinned representatives.
-        Ayanamsa::GalacticCenter,
-        Ayanamsa::TrueRevati,
-        Ayanamsa::TrueMula,
-        Ayanamsa::TruePushya,
-        Ayanamsa::TrueSheoran,
+        // Slice-2: remaining non-promoted candidates.
         Ayanamsa::BabylonianTrueGeoc,
+        // Slice-2: no-SE_SIDM deferrals (no distinct SE code, must stay DescriptorOnly).
+        Ayanamsa::DhruvaGalacticCenterMula,
+        Ayanamsa::GalacticEquator,
     ];
 
     let built_ins = crate::built_in_ayanamsas();
@@ -520,10 +535,56 @@ fn release_grade_numeric_ayanamsa_set_is_exactly_the_gated_modes() {
         Ayanamsa::Aryabhata499MeanSun,
         Ayanamsa::SuryasiddhantaRevati,
         Ayanamsa::SuryasiddhantaCitra,
+        // Fitted family promoted in Phase 6 slice 2 (Task 5)
+        Ayanamsa::TrueRevati,
+        Ayanamsa::TruePushya,
+        Ayanamsa::TrueMula,
+        Ayanamsa::TrueSheoran,
+        Ayanamsa::GalacticCenter,
+        Ayanamsa::GalacticCenterRgilbrand,
+        Ayanamsa::GalacticEquatorIau1958,
+        Ayanamsa::GalacticEquatorTrue,
+        Ayanamsa::GalacticEquatorMula,
+        Ayanamsa::GalacticCenterMardyks,
+        Ayanamsa::GalacticCenterMulaWilhelm,
+        Ayanamsa::GalacticCenterCochrane,
+        Ayanamsa::GalacticEquatorFiorenza,
     ];
 
     assert_eq!(release_grade.len(), expected.len());
     for mode in expected {
         assert!(release_grade.contains(&mode), "missing {mode:?}");
     }
+}
+
+#[test]
+fn promoted_fitted_modes_are_release_grade() {
+    use crate::descriptor;
+    use pleiades_types::CompatibilityClaimTier::ReleaseGradeNumeric;
+    use pleiades_types::{Ayanamsa, CompatibilityClaimTier};
+    for m in [
+        Ayanamsa::TrueRevati,
+        Ayanamsa::TruePushya,
+        Ayanamsa::TrueMula,
+        Ayanamsa::TrueSheoran,
+        Ayanamsa::GalacticCenter,
+        Ayanamsa::GalacticCenterRgilbrand,
+        Ayanamsa::GalacticEquatorIau1958,
+        Ayanamsa::GalacticEquatorTrue,
+        Ayanamsa::GalacticEquatorMula,
+        Ayanamsa::GalacticCenterMardyks,
+        Ayanamsa::GalacticCenterMulaWilhelm,
+        Ayanamsa::GalacticCenterCochrane,
+        Ayanamsa::GalacticEquatorFiorenza,
+    ] {
+        let d = descriptor(&m).expect("descriptor exists");
+        assert_eq!(d.claim_tier, ReleaseGradeNumeric, "{m:?}");
+    }
+    // Deferred: stay descriptor-only.
+    assert_eq!(
+        descriptor(&Ayanamsa::DhruvaGalacticCenterMula)
+            .unwrap()
+            .claim_tier,
+        CompatibilityClaimTier::DescriptorOnly
+    );
 }

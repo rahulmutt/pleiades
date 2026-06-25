@@ -78,15 +78,16 @@ These are the implementation gaps that still block a production release:
   promoted via SE numeric gate; Albategnius is the sole built-in not in the
   Phase-6 target catalog, kept descriptor-only; no house-system known gaps
   remain). Ayanamsa:
-  23 release-claimed modes pass the SE numeric gate (the 6 original modes plus
-  the 17 promoted offset-defined modes; the `OffsetDefined` mode-class ceiling is
-  now 3.0″, up from 2.0″). The remaining deferred set is the offset modes that
-  exceeded the 3.0″ ceiling (Krishnamurti VP291, Lahiri VP285, Valens Moon,
-  DeLuce, Babylonian Britton, Babylonian Kugler 1/2/3, Babylonian Huber,
-  Babylonian Aldebaran, Hipparchus, Babylonian Eta Piscium), the 3 modes with no
-  SE anchor (Udayagiri, PVR Pushya-paksha, Sheoran), and the fitted/star-pinned
-  family (True*/Galactic*/observational Babylonians) → deferred to Phase 6
-  slice 2; no claim broadening for those.
+  36 release-claimed modes pass the SE numeric gate (6 original + 17
+  offset-defined (slice 1) + 13 fitted (slice 2, done 2026-06-25); the fitted
+  family comprises 4 true-star modes and 9 galactic modes). The remaining
+  deferred set is: 12 failed-offset modes (Krishnamurti VP291, Lahiri VP285,
+  Valens Moon, DeLuce, Babylonian Britton, Babylonian Kugler 1/2/3, Babylonian
+  Huber, Babylonian Aldebaran, Hipparchus, Babylonian Eta Piscium), the 3
+  anchorless modes (Udayagiri, PVR Pushya-paksha, Sheoran),
+  observational/topocentric/house Babylonians (Babylonian True Geoc, True Topc,
+  True Obs, House, House Obs, Sissy), DhruvaGalacticCenterMula, and legacy
+  GalacticEquator (no distinct SE code).
 
 ## Active implementation phases
 
@@ -122,27 +123,29 @@ end-state work and must not broaden public claims before its own evidence exists
 is now both done. House-system numeric gate is **done** (`validate-houses`,
 60-row SE corpus, per-formula-family ceilings set from measured residuals; all 12
 baseline house systems pass). Ayanamsa numeric gate is **done** (`validate-ayanamsa`,
-60-row SE mean corpus, per-mode-class ceilings set from measured residuals; 23
+60-row SE mean corpus, per-mode-class ceilings set from measured residuals; 36
 release-claimed modes pass — the 6 original modes (Lahiri, Raman, Krishnamurti,
 Fagan/Bradley; True Chitra, True Citra ≤ 1.0″) plus the 17 promoted
-offset-defined modes (J2000, J1900, B1950, Usha Shashi, Djwhal Khul, Yukteshwar,
-JN Bhasin, Sassanian, Lahiri ICRC, Lahiri 1940, Aryabhata 522 CE,
+offset-defined modes (slice 1: J2000, J1900, B1950, Usha Shashi, Djwhal Khul,
+Yukteshwar, JN Bhasin, Sassanian, Lahiri ICRC, Lahiri 1940, Aryabhata 522 CE,
 Suryasiddhanta 499 CE, Suryasiddhanta 499 CE Mean Sun, Aryabhata 499 CE,
 Aryabhata 499 CE Mean Sun, Suryasiddhanta Revati, Suryasiddhanta Citra) under
-the `OffsetDefined` mode-class ceiling now raised to 3.0″ (was 2.0″)). The
-remaining deferred set — the offset modes that exceeded the 3.0″ ceiling
-(Krishnamurti VP291, Lahiri VP285, Valens Moon, DeLuce, Babylonian Britton,
-Babylonian Kugler 1/2/3, Babylonian Huber, Babylonian Aldebaran, Hipparchus,
-Babylonian Eta Piscium), the 3 modes with no SE anchor (Udayagiri,
-PVR Pushya-paksha, Sheoran), and the fitted/star-pinned family
-(True*/Galactic*/observational Babylonians) — is deferred to Phase 6 slice 2
-(kept on descriptor tests; no claim broadening). Compatibility
-overclaim gate is **done**: claim tiers now live on catalog descriptors
-(per-entry `claim_tier`); `compat-claims-audit` enforces tier↔evidence↔profile↔prose
-agreement bidirectionally (catalog tiers must match SE numeric-gate evidence,
-the compatibility profile, and README prose); `release-smoke`/`release-gate` now
-run the full numeric-gate set (house, ayanamsa, apparent, topocentric, corpus)
-plus the overclaim audit. Phase 5 is complete.
+the `OffsetDefined` mode-class ceiling now raised to 3.0″ (was 2.0″), plus the
+13 promoted fitted modes (slice 2, done 2026-06-25: 4 true-star + 9 galactic).
+The remaining deferred set — 12 failed-offset modes (Krishnamurti VP291,
+Lahiri VP285, Valens Moon, DeLuce, Babylonian Britton, Babylonian Kugler 1/2/3,
+Babylonian Huber, Babylonian Aldebaran, Hipparchus, Babylonian Eta Piscium),
+the 3 anchorless modes (Udayagiri, PVR Pushya-paksha, Sheoran), the
+observational/topocentric/house Babylonians (Babylonian True Geoc, True Topc,
+True Obs, House, House Obs, Sissy), DhruvaGalacticCenterMula, and legacy
+GalacticEquator (no distinct SE code) — are kept descriptor-only with no claim
+broadening. Compatibility overclaim gate is **done**: claim tiers now live on
+catalog descriptors (per-entry `claim_tier`); `compat-claims-audit` enforces
+tier↔evidence↔profile↔prose agreement bidirectionally (catalog tiers must match
+SE numeric-gate evidence, the compatibility profile, and README prose);
+`release-smoke`/`release-gate` now run the full numeric-gate set (house,
+ayanamsa, apparent, topocentric, corpus) plus the overclaim audit. Phase 5 is
+complete.
 
 **Phase 6 progress (house-catalog release-grade promotion):** The house half of
 Phase 6 is **done** as of 2026-06-24. All 12 target house systems were promoted
@@ -153,12 +156,16 @@ azimuth convention; Gauquelin: rewrote the 36-sector computation as a
 Placidus-family semi-arc division, replacing a linear longitude lerp), not left
 as known gaps. **24 of 25 built-in house systems are release-grade; the sole
 built-in not in the Phase-6 target catalog is Albategnius (descriptor-only).**
-There are no
-house-system known gaps to record. The high-latitude `SwissEphemerisFallback`
-policy substitutes Porphyry's 12 quadrant cusps, a valid substitute only for
-12-cusp systems; for the 36-sector Gauquelin system (which has no validated
-high-latitude reference) the fallback now rejects cleanly with `InvalidLatitude`
-rather than emitting a dimensionally-invalid snapshot.
+There are no house-system known gaps to record. The high-latitude
+`SwissEphemerisFallback` policy substitutes Porphyry's 12 quadrant cusps, a
+valid substitute only for 12-cusp systems; for the 36-sector Gauquelin system
+(which has no validated high-latitude reference) the fallback now rejects cleanly
+with `InvalidLatitude` rather than emitting a dimensionally-invalid snapshot.
+**Phase 6 ayanamsa fitted-family promotion (slice 2) is done** as of 2026-06-25.
+13 fitted modes (4 true-star + 9 galactic) were promoted to release-grade,
+bringing the total release-claimed ayanamsa count to 36 (6 original + 17
+offset-defined + 13 fitted). The still-deferred set is listed in "Important
+current limits" above.
 
 ## Plan maintenance rules
 
@@ -169,7 +176,7 @@ rather than emitting a dimensionally-invalid snapshot.
 - Keep `README.md`, release profiles, generated reports, and this plan aligned
   when public behavior or release claims change.
 
-Status: refreshed 2026-06-25 — **SP3 complete; Phases 1–3 done; per-backend claim model enforced by the claims-audit gate; Phase 4 active — civil-time conversion done, apparent-place done, topocentric (chart layer) done; only native sidereal backend output remains (deliberate non-goal); Phase 5 complete — house gate done + ayanamsa gate done + overclaim gate done; release-gate now runs the full numeric-gate set (house, ayanamsa, apparent, topocentric, corpus) plus the overclaim audit; Phase 6 house-catalog release-grade promotion done — 24 of 25 built-in house systems release-grade (Albategnius the sole built-in not in the Phase-6 target catalog, kept descriptor-only); all 12 target systems promoted; no house-system known gaps; Phase 6 ayanamsa offset-defined promotion (slice 1) done — 23 release-claimed ayanamsa modes (6 original + 17 promoted offset-defined), OffsetDefined ceiling raised to 3.0″; ceiling-exceeding offset modes, the 3 anchorless modes, and the fitted/star-pinned family deferred to slice 2**.
+Status: refreshed 2026-06-25 — **SP3 complete; Phases 1–3 done; per-backend claim model enforced by the claims-audit gate; Phase 4 active — civil-time conversion done, apparent-place done, topocentric (chart layer) done; only native sidereal backend output remains (deliberate non-goal); Phase 5 complete — house gate done + ayanamsa gate done + overclaim gate done; release-gate now runs the full numeric-gate set (house, ayanamsa, apparent, topocentric, corpus) plus the overclaim audit; Phase 6 house-catalog release-grade promotion done — 24 of 25 built-in house systems release-grade (Albategnius the sole built-in not in the Phase-6 target catalog, kept descriptor-only); all 12 target systems promoted; no house-system known gaps; Phase 6 ayanamsa offset-defined promotion (slice 1) done — 23 release-claimed ayanamsa modes (6 original + 17 promoted offset-defined), OffsetDefined ceiling raised to 3.0″; Phase 6 ayanamsa fitted-family promotion (slice 2) done — 36 release-claimed ayanamsa modes total (6 original + 17 offset-defined + 13 fitted); still-deferred: 12 failed-offset modes, 3 anchorless modes, observational/topocentric/house Babylonians, DhruvaGalacticCenterMula, legacy GalacticEquator**.
 Published per-body-class accuracy ceilings enforced (1900–2100 CE), hard size gate
 active (≤ 12 MB), latency tracked, motion output `Motion = Derived`
 (SpeedPolicy::FittedDerivative) gated. ARTIFACT_VERSION 7.

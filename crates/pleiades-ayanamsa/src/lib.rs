@@ -23,6 +23,7 @@
 #![forbid(unsafe_code)]
 
 mod catalog;
+mod galactic;
 mod lookup;
 mod model;
 mod precession;

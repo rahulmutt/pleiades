@@ -100,7 +100,7 @@ pub(crate) const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Some(JulianDay::from_days(2_433_282.423_459_05)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::TrueRevati,
         "True Revati",
         &["True Revati ayanamsa"],
@@ -108,7 +108,7 @@ pub(crate) const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Some(JulianDay::from_days(1_926_902.658_267)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::TrueMula,
         "True Mula",
         &["True Mula (Chandra Hari)", "True Mula ayanamsa", "Chandra Hari"],
@@ -329,7 +329,7 @@ pub(crate) const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         None,
         None,
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::GalacticCenter,
         "Galactic Center",
         &["Galact. Center = 0 Sag", "Gal. Center = 0 Sag", "0 Sag", "Galactic center"],
@@ -345,7 +345,7 @@ pub(crate) const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Some(JulianDay::from_days(1_665_728.603_158)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::TruePushya,
         "True Pushya",
         &["Pushya", "True Pushya ayanamsa"],
@@ -432,7 +432,7 @@ pub(crate) const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Some(JulianDay::from_days(1_827_424.663_554)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::TrueSheoran,
         "True Sheoran",
         &["Sheoran true", "True Sheoran ayanamsa"],
@@ -440,7 +440,7 @@ pub(crate) const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Some(JulianDay::from_days(1_789_947.090_881)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::GalacticCenterRgilbrand,
         "Galactic Center (Rgilbrand)",
         &["Galactic Center (Gil Brand)", "Gil Brand", "Rgilbrand", "Galactic center Rgilbrand"],
@@ -448,7 +448,7 @@ pub(crate) const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Some(JulianDay::from_days(1_861_740.329_525)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::GalacticCenterMardyks,
         "Galactic Center (Mardyks)",
         &["Skydram", "Skydram/Galactic Alignment", "Skydram (Mardyks)", "Mardyks", "Galactic center Mardyks"],
@@ -456,7 +456,7 @@ pub(crate) const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Some(JulianDay::from_days(1_662_951.794_251)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::GalacticCenterMulaWilhelm,
         "Galactic Center (Mula/Wilhelm)",
         &["Dhruva/Gal.Center/Mula (Wilhelm)", "Mula Wilhelm", "Wilhelm", "Galactic center Mula/Wilhelm"],
@@ -477,7 +477,7 @@ pub(crate) const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Some(JulianDay::from_days(1_946_834.818_321)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::GalacticCenterCochrane,
         "Galactic Center (Cochrane)",
         &["Cochrane (Gal.Center = 0 Cap)", "Gal. Center = 0 Cap", "Cochrane", "Galactic center Cochrane", "David Cochrane"],
@@ -485,7 +485,7 @@ pub(crate) const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Some(JulianDay::from_days(1_662_951.794_251)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::GalacticEquatorIau1958,
         "Galactic Equator (IAU 1958)",
         &["Galactic Equator (IAU1958)", "IAU 1958", "Galactic equator IAU 1958"],
@@ -493,7 +493,7 @@ pub(crate) const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Some(JulianDay::from_days(1_667_118.376_332)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::GalacticEquatorTrue,
         "Galactic Equator (True)",
         &["True galactic equator", "Galactic equator true"],
@@ -501,7 +501,7 @@ pub(crate) const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Some(JulianDay::from_days(1_665_728.603_158)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::GalacticEquatorMula,
         "Galactic Equator (Mula)",
         &["Galactic Equator mid-Mula", "Mula galactic equator", "Galactic equator Mula"],
@@ -509,7 +509,7 @@ pub(crate) const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Some(JulianDay::from_days(1_840_527.426_262)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::GalacticEquatorFiorenza,
         "Galactic Equator (Fiorenza)",
         &["Fiorenza", "Galactic equator Fiorenza", "Nick Anthony Fiorenza"],
@@ -629,7 +629,7 @@ pub(crate) static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
         Some(JulianDay::from_days(2_433_282.423_459_05)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::TrueRevati,
         "True Revati",
         &["True Revati ayanamsa"],
@@ -637,7 +637,7 @@ pub(crate) static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
         Some(JulianDay::from_days(1_926_902.658_267)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::TrueMula,
         "True Mula",
         &["True Mula (Chandra Hari)", "True Mula ayanamsa", "Chandra Hari"],
@@ -858,7 +858,7 @@ pub(crate) static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
         None,
         None,
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::GalacticCenter,
         "Galactic Center",
         &["Galact. Center = 0 Sag", "Gal. Center = 0 Sag", "0 Sag", "Galactic center"],
@@ -874,7 +874,7 @@ pub(crate) static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
         Some(JulianDay::from_days(1_665_728.603_158)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::TruePushya,
         "True Pushya",
         &["Pushya", "True Pushya ayanamsa"],
@@ -961,7 +961,7 @@ pub(crate) static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
         Some(JulianDay::from_days(1_827_424.663_554)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::TrueSheoran,
         "True Sheoran",
         &["Sheoran true", "True Sheoran ayanamsa"],
@@ -969,7 +969,7 @@ pub(crate) static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
         Some(JulianDay::from_days(1_789_947.090_881)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::GalacticCenterRgilbrand,
         "Galactic Center (Rgilbrand)",
         &["Galactic Center (Gil Brand)", "Gil Brand", "Rgilbrand", "Galactic center Rgilbrand"],
@@ -977,7 +977,7 @@ pub(crate) static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
         Some(JulianDay::from_days(1_861_740.329_525)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::GalacticCenterMardyks,
         "Galactic Center (Mardyks)",
         &["Skydram", "Skydram/Galactic Alignment", "Skydram (Mardyks)", "Mardyks", "Galactic center Mardyks"],
@@ -985,7 +985,7 @@ pub(crate) static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
         Some(JulianDay::from_days(1_662_951.794_251)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::GalacticCenterMulaWilhelm,
         "Galactic Center (Mula/Wilhelm)",
         &["Dhruva/Gal.Center/Mula (Wilhelm)", "Mula Wilhelm", "Wilhelm", "Galactic center Mula/Wilhelm"],
@@ -1006,7 +1006,7 @@ pub(crate) static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
         Some(JulianDay::from_days(1_946_834.818_321)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::GalacticCenterCochrane,
         "Galactic Center (Cochrane)",
         &["Cochrane (Gal.Center = 0 Cap)", "Gal. Center = 0 Cap", "Cochrane", "Galactic center Cochrane", "David Cochrane"],
@@ -1014,7 +1014,7 @@ pub(crate) static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
         Some(JulianDay::from_days(1_662_951.794_251)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::GalacticEquatorIau1958,
         "Galactic Equator (IAU 1958)",
         &["Galactic Equator (IAU1958)", "IAU 1958", "Galactic equator IAU 1958"],
@@ -1022,7 +1022,7 @@ pub(crate) static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
         Some(JulianDay::from_days(1_667_118.376_332)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::GalacticEquatorTrue,
         "Galactic Equator (True)",
         &["True galactic equator", "Galactic equator true"],
@@ -1030,7 +1030,7 @@ pub(crate) static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
         Some(JulianDay::from_days(1_665_728.603_158)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::GalacticEquatorMula,
         "Galactic Equator (Mula)",
         &["Galactic Equator mid-Mula", "Mula galactic equator", "Galactic equator Mula"],
@@ -1038,7 +1038,7 @@ pub(crate) static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
         Some(JulianDay::from_days(1_840_527.426_262)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::GalacticEquatorFiorenza,
         "Galactic Equator (Fiorenza)",
         &["Fiorenza", "Galactic equator Fiorenza", "Nick Anthony Fiorenza"],

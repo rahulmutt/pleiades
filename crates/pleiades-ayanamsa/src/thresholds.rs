@@ -12,8 +12,11 @@ pub enum AyanamsaModeClass {
     /// Krishnamurti, Fagan/Bradley).
     OffsetDefined,
     /// Sidereal point pinned to a fixed star, fit to Swiss Ephemeris
-    /// (True Chitra, True Citra).
+    /// (True Chitra, True Citra, True Revati, True Pushya, True Mula, True Sheoran).
     TrueStar,
+    /// Sidereal point pinned to a galactic reference (center / equator), fit to
+    /// Swiss Ephemeris mean ayanamsa.
+    Galactic,
 }
 
 /// Arcsecond ceiling for one mode class.
@@ -26,13 +29,15 @@ pub struct AyanamsaCeiling {
 /// Returns the measured-derived ceiling for a mode class.
 ///
 /// Ceilings are `ceil(measured_max × 2)` over the committed SE **mean**-ayanamsa
-/// corpus (230 rows, 1900–2100), with a 1.0″ floor. Measured maxima:
+/// corpus (230 rows, 1900–2100), with a 1.0″ floor. Measured maxima (Task 1 residuals):
 /// - OffsetDefined: max residual 1.370402″ → ceil(2 × 1.370402) = ceil(2.740804) = 3.0″.
-/// - TrueStar: max residual 0.011″ → ceil(2 × 0.011) = ceil(0.021) = 1.0″ (floor).
+/// - TrueStar (6 modes): max residual ≈ 0.175″ (TrueRevati) → ceil(2 × 0.175) = ceil(0.350) = 1.0″ (floor).
+/// - Galactic (9 modes): max residual ≈ 0.057″ (GalacticCenterMulaWilhelm) → ceil(2 × 0.057) = ceil(0.114) = 1.0″ (floor).
 pub fn ayanamsa_mode_ceiling(class: AyanamsaModeClass) -> AyanamsaCeiling {
     match class {
         AyanamsaModeClass::OffsetDefined => AyanamsaCeiling { offset_arcsec: 3.0 },
         AyanamsaModeClass::TrueStar => AyanamsaCeiling { offset_arcsec: 1.0 },
+        AyanamsaModeClass::Galactic => AyanamsaCeiling { offset_arcsec: 1.0 },
     }
 }
 
@@ -62,7 +67,18 @@ pub fn ayanamsa_mode_class(ayanamsa: &Ayanamsa) -> Option<AyanamsaModeClass> {
         | Ayanamsa::Aryabhata499MeanSun
         | Ayanamsa::SuryasiddhantaRevati
         | Ayanamsa::SuryasiddhantaCitra => Some(AyanamsaModeClass::OffsetDefined),
-        Ayanamsa::TrueChitra | Ayanamsa::TrueCitra => Some(AyanamsaModeClass::TrueStar),
+        Ayanamsa::TrueChitra | Ayanamsa::TrueCitra
+        | Ayanamsa::TrueRevati | Ayanamsa::TruePushya
+        | Ayanamsa::TrueMula | Ayanamsa::TrueSheoran => Some(AyanamsaModeClass::TrueStar),
+        Ayanamsa::GalacticCenter
+        | Ayanamsa::GalacticCenterRgilbrand
+        | Ayanamsa::GalacticEquatorIau1958
+        | Ayanamsa::GalacticEquatorTrue
+        | Ayanamsa::GalacticEquatorMula
+        | Ayanamsa::GalacticCenterMardyks
+        | Ayanamsa::GalacticCenterMulaWilhelm
+        | Ayanamsa::GalacticCenterCochrane
+        | Ayanamsa::GalacticEquatorFiorenza => Some(AyanamsaModeClass::Galactic),
         _ => None,
     }
 }
@@ -71,9 +87,10 @@ pub fn ayanamsa_mode_class(ayanamsa: &Ayanamsa) -> Option<AyanamsaModeClass> {
 pub fn ayanamsa_thresholds_summary_for_report() -> String {
     let off = ayanamsa_mode_ceiling(AyanamsaModeClass::OffsetDefined);
     let star = ayanamsa_mode_ceiling(AyanamsaModeClass::TrueStar);
+    let gal = ayanamsa_mode_ceiling(AyanamsaModeClass::Galactic);
     format!(
-        "Ayanamsa ceilings: offset-defined {:.1}\u{2033}, true-star {:.1}\u{2033}",
-        off.offset_arcsec, star.offset_arcsec
+        "Ayanamsa ceilings: offset-defined {:.1}\u{2033}, true-star {:.1}\u{2033}, galactic {:.1}\u{2033}",
+        off.offset_arcsec, star.offset_arcsec, gal.offset_arcsec
     )
 }
 
@@ -86,6 +103,7 @@ mod tests {
         for class in [
             AyanamsaModeClass::OffsetDefined,
             AyanamsaModeClass::TrueStar,
+            AyanamsaModeClass::Galactic,
         ] {
             let c = ayanamsa_mode_ceiling(class);
             assert!(c.offset_arcsec.is_finite() && c.offset_arcsec > 0.0);
@@ -133,16 +151,58 @@ mod tests {
         // Deferred gap modes must NOT be gated.
         assert_eq!(ayanamsa_mode_class(&Ayanamsa::KrishnamurtiVP291), None);
         assert_eq!(ayanamsa_mode_class(&Ayanamsa::LahiriVP285), None);
-        // Ungated control.
-        assert_eq!(ayanamsa_mode_class(&Ayanamsa::GalacticCenter), None);
+        // Galactic-class control (now gated as Galactic, not OffsetDefined).
+        assert_eq!(
+            ayanamsa_mode_class(&Ayanamsa::GalacticCenter),
+            Some(AyanamsaModeClass::Galactic)
+        );
     }
 
     #[test]
-    fn summary_line_mentions_both_classes() {
+    fn summary_line_mentions_all_classes() {
         let s = ayanamsa_thresholds_summary_for_report();
         assert!(
-            s.contains("offset-defined") && s.contains("true-star"),
+            s.contains("offset-defined") && s.contains("true-star") && s.contains("galactic"),
             "{s}"
         );
+    }
+
+    #[test]
+    fn promoted_fitted_modes_map_to_their_class() {
+        for m in [
+            Ayanamsa::TrueRevati,
+            Ayanamsa::TruePushya,
+            Ayanamsa::TrueMula,
+            Ayanamsa::TrueSheoran,
+        ] {
+            assert_eq!(
+                ayanamsa_mode_class(&m),
+                Some(AyanamsaModeClass::TrueStar),
+                "{m:?}"
+            );
+        }
+        for m in [
+            Ayanamsa::GalacticCenter,
+            Ayanamsa::GalacticCenterRgilbrand,
+            Ayanamsa::GalacticEquatorIau1958,
+            Ayanamsa::GalacticEquatorTrue,
+            Ayanamsa::GalacticEquatorMula,
+            Ayanamsa::GalacticCenterMardyks,
+            Ayanamsa::GalacticCenterMulaWilhelm,
+            Ayanamsa::GalacticCenterCochrane,
+            Ayanamsa::GalacticEquatorFiorenza,
+        ] {
+            assert_eq!(
+                ayanamsa_mode_class(&m),
+                Some(AyanamsaModeClass::Galactic),
+                "{m:?}"
+            );
+        }
+        // Expected-deferred: no distinct SE code -> stay ungated.
+        assert_eq!(
+            ayanamsa_mode_class(&Ayanamsa::DhruvaGalacticCenterMula),
+            None
+        );
+        assert_eq!(ayanamsa_mode_class(&Ayanamsa::GalacticEquator), None);
     }
 }

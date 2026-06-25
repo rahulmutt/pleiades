@@ -330,6 +330,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "19f132c84eca552bf34cab8ec81f1c1dcc229b811638f9d283dceabe58c5569e"
 
 [[package]]
+name = "pleiades-ayanamsa"
+version = "0.2.0"
+dependencies = [
+ "pleiades-types",
+]
+
+[[package]]
+name = "pleiades-types"
+version = "0.2.0"
+
+[[package]]
 name = "prettyplease"
 version = "0.2.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -422,6 +433,8 @@ name = "se-ayanamsa-reference"
 version = "0.0.0"
 dependencies = [
  "libswisseph-sys",
+ "pleiades-ayanamsa",
+ "pleiades-types",
  "swisseph",
 ]
 
