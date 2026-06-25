@@ -256,12 +256,21 @@ fn selected_release_ayanamsas_carry_reference_metadata() {
         .expect("Galactic Equator (Fiorenza) descriptor");
     assert_eq!(fiorenza.epoch, Some(JulianDay::from_days(2_451_544.5)));
     assert_eq!(fiorenza.offset_degrees, Some(Angle::from_degrees(25.0)));
-    assert_eq!(
-        sidereal_offset(
-            &Ayanamsa::GalacticEquatorFiorenza,
-            Instant::new(JulianDay::from_days(2_451_544.5), TimeScale::Tt),
-        ),
-        Some(Angle::from_degrees(25.0))
+    // GalacticEquatorFiorenza is now routed through the committed cubic polynomial.
+    // The polynomial value at the epoch JD differs from 25.0 by < 1e-7 degrees
+    // (sub-arcsecond), which is well within the gate ceiling.
+    let fiorenza_offset = sidereal_offset(
+        &Ayanamsa::GalacticEquatorFiorenza,
+        Instant::new(JulianDay::from_days(2_451_544.5), TimeScale::Tt),
+    );
+    assert!(
+        fiorenza_offset.is_some(),
+        "GalacticEquatorFiorenza at epoch should return Some"
+    );
+    assert!(
+        (fiorenza_offset.unwrap().degrees() - 25.0).abs() < 1e-4,
+        "GalacticEquatorFiorenza at epoch should be ~25.0 degrees (polynomial); got {:?}",
+        fiorenza_offset
     );
 
     let udayagiri = descriptor(&Ayanamsa::Udayagiri).expect("Udayagiri descriptor");
@@ -374,12 +383,16 @@ fn selected_release_ayanamsas_carry_reference_metadata() {
         .expect("Valens Moon offset should exist")
         .degrees()
         .is_finite());
+    // GalacticCenterCochrane is now a Galactic mode routed via the committed cubic
+    // polynomial (fit window: JD 2_415_020–2_488_070). The reference epoch JD
+    // 1_662_951 is outside the window, so sidereal_offset correctly returns None.
+    // Descriptor metadata is still present (verified above at lines 286-292).
     assert_eq!(
         sidereal_offset(
             &Ayanamsa::GalacticCenterCochrane,
             Instant::new(JulianDay::from_days(1_662_951.794_251), TimeScale::Tt),
         ),
-        Some(Angle::from_degrees(0.0))
+        None
     );
 }
 

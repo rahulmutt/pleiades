@@ -327,10 +327,9 @@ pub fn sidereal_offset(ayanamsa: &Ayanamsa, instant: Instant) -> Option<Angle> {
         Some(AyanamsaModeClass::TrueStar) => {
             crate::truestar::true_star_offset_degrees(ayanamsa, jd_tt).map(Angle::from_degrees)
         }
-        // Galactic: cubic fit to Swiss Ephemeris (routing added in Task 3).
-        // TODO(Task 3): route to galactic::galactic_offset_degrees once coefficients land.
+        // Galactic: committed cubic fit to Swiss Ephemeris.
         Some(AyanamsaModeClass::Galactic) => {
-            descriptor(ayanamsa).and_then(|entry| entry.offset_at(instant))
+            crate::galactic::galactic_offset_degrees(ayanamsa, jd_tt).map(Angle::from_degrees)
         }
         // Not gated: unchanged legacy linear-rate path.
         None => descriptor(ayanamsa).and_then(|entry| entry.offset_at(instant)),
