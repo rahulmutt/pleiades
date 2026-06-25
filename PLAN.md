@@ -137,11 +137,11 @@ Placidus-family semi-arc division, replacing a linear longitude lerp), not left
 as known gaps. **24 of 25 built-in house systems are release-grade; the sole
 built-in not in the Phase-6 target catalog is Albategnius (descriptor-only).**
 There are no
-house-system known gaps to record. Known limitation (orthogonal, pre-existing):
-Gauquelin's high-latitude SwissEphemerisFallback path returns 12 cusps rather
-than 36 sectors (a separate pre-existing degradation-path issue; does not affect
-the release-grade numeric evidence, which validates Gauquelin's primary
-36-sector path).
+house-system known gaps to record. The high-latitude `SwissEphemerisFallback`
+policy substitutes Porphyry's 12 quadrant cusps, a valid substitute only for
+12-cusp systems; for the 36-sector Gauquelin system (which has no validated
+high-latitude reference) the fallback now rejects cleanly with `InvalidLatitude`
+rather than emitting a dimensionally-invalid snapshot.
 
 ## Plan maintenance rules
 
