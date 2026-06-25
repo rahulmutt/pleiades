@@ -441,6 +441,52 @@ fn scheduled_historical_reference_modes_use_the_published_zero_points() {
 }
 
 #[test]
+fn deferred_modes_stay_descriptor_only() {
+    use pleiades_types::{Ayanamsa, CompatibilityClaimTier};
+
+    // In-scope-but-deferred: large-residual modes that were promotion candidates
+    // but did not meet the numeric-grade bar in Task 4.
+    let deferred = [
+        Ayanamsa::KrishnamurtiVP291,
+        Ayanamsa::LahiriVP285,
+        Ayanamsa::ValensMoon,
+        Ayanamsa::DeLuce,
+        Ayanamsa::BabylonianBritton,
+        Ayanamsa::BabylonianKugler1,
+        Ayanamsa::BabylonianKugler2,
+        Ayanamsa::BabylonianKugler3,
+        Ayanamsa::BabylonianHuber,
+        Ayanamsa::BabylonianAldebaran,
+        Ayanamsa::Hipparchus,
+        Ayanamsa::BabylonianEtaPiscium,
+        // No-SE_SIDM modes — also deferred.
+        Ayanamsa::Udayagiri,
+        Ayanamsa::PvrPushyaPaksha,
+        Ayanamsa::Sheoran,
+        // Slice-2 fitted/star-pinned representatives.
+        Ayanamsa::GalacticCenter,
+        Ayanamsa::TrueRevati,
+        Ayanamsa::TrueMula,
+        Ayanamsa::TruePushya,
+        Ayanamsa::TrueSheoran,
+        Ayanamsa::BabylonianTrueGeoc,
+    ];
+
+    let built_ins = crate::built_in_ayanamsas();
+    for m in deferred {
+        let d = built_ins
+            .iter()
+            .find(|d| d.ayanamsa == m)
+            .unwrap_or_else(|| panic!("{m:?} not found in built_in_ayanamsas()"));
+        assert_eq!(
+            d.claim_tier,
+            CompatibilityClaimTier::DescriptorOnly,
+            "{m:?} must stay descriptor-only"
+        );
+    }
+}
+
+#[test]
 fn release_grade_numeric_ayanamsa_set_is_exactly_the_gated_modes() {
     use pleiades_types::{Ayanamsa, CompatibilityClaimTier};
 
