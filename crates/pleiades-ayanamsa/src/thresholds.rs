@@ -152,7 +152,10 @@ mod tests {
         assert_eq!(ayanamsa_mode_class(&Ayanamsa::KrishnamurtiVP291), None);
         assert_eq!(ayanamsa_mode_class(&Ayanamsa::LahiriVP285), None);
         // Galactic-class control (now gated as Galactic, not OffsetDefined).
-        assert_eq!(ayanamsa_mode_class(&Ayanamsa::GalacticCenter), Some(AyanamsaModeClass::Galactic));
+        assert_eq!(
+            ayanamsa_mode_class(&Ayanamsa::GalacticCenter),
+            Some(AyanamsaModeClass::Galactic)
+        );
     }
 
     #[test]
@@ -167,22 +170,39 @@ mod tests {
     #[test]
     fn promoted_fitted_modes_map_to_their_class() {
         for m in [
-            Ayanamsa::TrueRevati, Ayanamsa::TruePushya,
-            Ayanamsa::TrueMula, Ayanamsa::TrueSheoran,
+            Ayanamsa::TrueRevati,
+            Ayanamsa::TruePushya,
+            Ayanamsa::TrueMula,
+            Ayanamsa::TrueSheoran,
         ] {
-            assert_eq!(ayanamsa_mode_class(&m), Some(AyanamsaModeClass::TrueStar), "{m:?}");
+            assert_eq!(
+                ayanamsa_mode_class(&m),
+                Some(AyanamsaModeClass::TrueStar),
+                "{m:?}"
+            );
         }
         for m in [
-            Ayanamsa::GalacticCenter, Ayanamsa::GalacticCenterRgilbrand,
-            Ayanamsa::GalacticEquatorIau1958, Ayanamsa::GalacticEquatorTrue,
-            Ayanamsa::GalacticEquatorMula, Ayanamsa::GalacticCenterMardyks,
-            Ayanamsa::GalacticCenterMulaWilhelm, Ayanamsa::GalacticCenterCochrane,
+            Ayanamsa::GalacticCenter,
+            Ayanamsa::GalacticCenterRgilbrand,
+            Ayanamsa::GalacticEquatorIau1958,
+            Ayanamsa::GalacticEquatorTrue,
+            Ayanamsa::GalacticEquatorMula,
+            Ayanamsa::GalacticCenterMardyks,
+            Ayanamsa::GalacticCenterMulaWilhelm,
+            Ayanamsa::GalacticCenterCochrane,
             Ayanamsa::GalacticEquatorFiorenza,
         ] {
-            assert_eq!(ayanamsa_mode_class(&m), Some(AyanamsaModeClass::Galactic), "{m:?}");
+            assert_eq!(
+                ayanamsa_mode_class(&m),
+                Some(AyanamsaModeClass::Galactic),
+                "{m:?}"
+            );
         }
         // Expected-deferred: no distinct SE code -> stay ungated.
-        assert_eq!(ayanamsa_mode_class(&Ayanamsa::DhruvaGalacticCenterMula), None);
+        assert_eq!(
+            ayanamsa_mode_class(&Ayanamsa::DhruvaGalacticCenterMula),
+            None
+        );
         assert_eq!(ayanamsa_mode_class(&Ayanamsa::GalacticEquator), None);
     }
 }
