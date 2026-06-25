@@ -200,6 +200,15 @@ impl fmt::Display for HouseSnapshot {
     }
 }
 
+/// The number of cusps a house system produces: Gauquelin yields 36 sectors,
+/// every other built-in yields the standard 12 cusps.
+fn expected_cusp_count(system: &HouseSystem) -> usize {
+    match system {
+        HouseSystem::Gauquelin => 36,
+        _ => 12,
+    }
+}
+
 /// Computes the house cusps and derived angles for a request.
 pub fn calculate_houses(request: &HouseRequest) -> Result<HouseSnapshot, HouseError> {
     let obliquity = validated_obliquity(request)?;
@@ -220,6 +229,20 @@ pub fn calculate_houses(request: &HouseRequest) -> Result<HouseSnapshot, HouseEr
                         ));
                     }
                     HighLatitudePolicy::SwissEphemerisFallback => {
+                        // Porphyry yields 12 quadrant cusps — a valid substitute
+                        // only for 12-cusp systems. It cannot represent a
+                        // 36-sector system (Gauquelin), and no validated
+                        // high-latitude reference exists for one, so reject
+                        // rather than emit a dimensionally-invalid snapshot.
+                        if expected_cusp_count(&request.system) != 12 {
+                            return Err(HouseError::new(
+                                HouseErrorKind::InvalidLatitude,
+                                format!(
+                                    "{} has no Porphyry high-latitude fallback and is undefined beyond |latitude| {bound}\u{00b0} (got {lat:.4}\u{00b0})",
+                                    request.system
+                                ),
+                            ));
+                        }
                         let angles = derive_angles(request.instant, &request.observer, obliquity);
                         let snapshot = HouseSnapshot {
                             system: request.system.clone(),
@@ -448,10 +471,7 @@ fn validate_house_snapshot(snapshot: &HouseSnapshot) -> Result<(), HouseError> {
     check_finite("midheaven", snapshot.angles.midheaven.degrees())?;
     check_finite("imum coeli", snapshot.angles.imum_coeli.degrees())?;
 
-    let expected_cusp_count = match snapshot.system {
-        HouseSystem::Gauquelin => 36,
-        _ => 12,
-    };
+    let expected_cusp_count = expected_cusp_count(&snapshot.system);
     if snapshot.cusps.len() != expected_cusp_count {
         return Err(HouseError::new(
             HouseErrorKind::NumericalFailure,

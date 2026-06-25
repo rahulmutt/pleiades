@@ -1178,6 +1178,33 @@ fn se_compat_fallback_substitutes_porphyry_beyond_bound() {
     );
 }
 
+#[test]
+fn se_compat_fallback_rejects_gauquelin_beyond_bound() {
+    // Porphyry yields 12 quadrant cusps — a valid high-latitude substitute only
+    // for 12-cusp systems. It cannot represent the 36-sector Gauquelin system,
+    // and no validated high-latitude Gauquelin reference exists, so the SE-compat
+    // fallback must reject cleanly with InvalidLatitude rather than emit a
+    // dimensionally-invalid snapshot (which previously failed validation with a
+    // confusing NumericalFailure "produced 12 cusps (expected 36)" error).
+    let observer = ObserverLocation::new(
+        Latitude::from_degrees(80.0),
+        Longitude::from_degrees(0.0),
+        None,
+    );
+    let request = HouseRequest::new(
+        Instant::new(
+            pleiades_types::JulianDay::from_days(2_451_545.0),
+            pleiades_types::TimeScale::Tt,
+        ),
+        observer,
+        HouseSystem::Gauquelin,
+    )
+    .with_high_latitude_policy(HighLatitudePolicy::SwissEphemerisFallback);
+    let error = calculate_houses(&request)
+        .expect_err("Gauquelin has no Porphyry-style high-latitude fallback");
+    assert_eq!(error.kind, crate::error::HouseErrorKind::InvalidLatitude);
+}
+
 /// Swiss Ephemeris external-reference anchor test.
 ///
 /// Fixture: JD=2451545.0 (J2000.0), lat=40°N, lon=0°E (Equal house system).

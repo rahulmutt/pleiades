@@ -1497,8 +1497,9 @@ pub fn validate_house_corpus() -> Result<HouseCorpusReport, HouseCorpusError> {
     //    - Quadrant (Placidus, Koch, Topocentric): assert cusps == Porphyry.
     //    - GreatCircle / SolarArc (Horizon, APC, KrusinskiPisaGoelzer, Sunshine):
     //      assert Ok only — their documented fallback target is not Porphyry.
-    //    - Sector (Gauquelin): strict-rejection only — the SE-compat fallback returns
-    //      12 cusps (not 36), so no fallback assertion is made for this family.
+    //    - Sector (Gauquelin): assert the SE-compat fallback also REJECTS — Porphyry's
+    //      12 cusps cannot represent a 36-sector system, and no validated
+    //      high-latitude Gauquelin reference exists.
     for descriptor in built_in_house_systems().iter().filter(|d| {
         d.claim_tier == CompatibilityClaimTier::ReleaseGradeNumeric
             && d.max_abs_latitude_deg.is_some()
@@ -1518,9 +1519,19 @@ pub fn validate_house_corpus() -> Result<HouseCorpusReport, HouseCorpusError> {
                     lat,
                 });
             }
-            // Sector family (Gauquelin): strict-rejection only; SE-compat fallback
-            // returns 12 cusps instead of 36, so no fallback assertion for this family.
+            // Sector family (Gauquelin): the SE-compat fallback must also REJECT —
+            // Porphyry's 12 cusps cannot represent a 36-sector system.
             if descriptor.formula_family() == HouseFormulaFamily::Sector {
+                let fb_req = req
+                    .clone()
+                    .with_high_latitude_policy(HighLatitudePolicy::SwissEphemerisFallback);
+                if calculate_houses(&fb_req).is_ok() {
+                    return Err(HouseCorpusError::FallbackMismatch {
+                        system: format!("{:?}", descriptor.system),
+                        lat,
+                        reason: "Sector-family SE-compat fallback must reject (Porphyry cannot represent 36 sectors) but returned Ok".into(),
+                    });
+                }
                 continue;
             }
             // SE-compat fallback must succeed.
