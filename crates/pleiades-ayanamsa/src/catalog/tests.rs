@@ -480,12 +480,7 @@ fn deferred_modes_stay_descriptor_only() {
         Ayanamsa::Udayagiri,
         Ayanamsa::PvrPushyaPaksha,
         Ayanamsa::Sheoran,
-        // Slice-2 fitted/star-pinned representatives.
-        Ayanamsa::GalacticCenter,
-        Ayanamsa::TrueRevati,
-        Ayanamsa::TrueMula,
-        Ayanamsa::TruePushya,
-        Ayanamsa::TrueSheoran,
+        // Slice-2: remaining non-promoted candidates.
         Ayanamsa::BabylonianTrueGeoc,
     ];
 
@@ -537,10 +532,56 @@ fn release_grade_numeric_ayanamsa_set_is_exactly_the_gated_modes() {
         Ayanamsa::Aryabhata499MeanSun,
         Ayanamsa::SuryasiddhantaRevati,
         Ayanamsa::SuryasiddhantaCitra,
+        // Fitted family promoted in Phase 6 slice 2 (Task 5)
+        Ayanamsa::TrueRevati,
+        Ayanamsa::TruePushya,
+        Ayanamsa::TrueMula,
+        Ayanamsa::TrueSheoran,
+        Ayanamsa::GalacticCenter,
+        Ayanamsa::GalacticCenterRgilbrand,
+        Ayanamsa::GalacticEquatorIau1958,
+        Ayanamsa::GalacticEquatorTrue,
+        Ayanamsa::GalacticEquatorMula,
+        Ayanamsa::GalacticCenterMardyks,
+        Ayanamsa::GalacticCenterMulaWilhelm,
+        Ayanamsa::GalacticCenterCochrane,
+        Ayanamsa::GalacticEquatorFiorenza,
     ];
 
     assert_eq!(release_grade.len(), expected.len());
     for mode in expected {
         assert!(release_grade.contains(&mode), "missing {mode:?}");
     }
+}
+
+#[test]
+fn promoted_fitted_modes_are_release_grade() {
+    use crate::descriptor;
+    use pleiades_types::CompatibilityClaimTier::ReleaseGradeNumeric;
+    use pleiades_types::{Ayanamsa, CompatibilityClaimTier};
+    for m in [
+        Ayanamsa::TrueRevati,
+        Ayanamsa::TruePushya,
+        Ayanamsa::TrueMula,
+        Ayanamsa::TrueSheoran,
+        Ayanamsa::GalacticCenter,
+        Ayanamsa::GalacticCenterRgilbrand,
+        Ayanamsa::GalacticEquatorIau1958,
+        Ayanamsa::GalacticEquatorTrue,
+        Ayanamsa::GalacticEquatorMula,
+        Ayanamsa::GalacticCenterMardyks,
+        Ayanamsa::GalacticCenterMulaWilhelm,
+        Ayanamsa::GalacticCenterCochrane,
+        Ayanamsa::GalacticEquatorFiorenza,
+    ] {
+        let d = descriptor(&m).expect("descriptor exists");
+        assert_eq!(d.claim_tier, ReleaseGradeNumeric, "{m:?}");
+    }
+    // Deferred: stay descriptor-only.
+    assert_eq!(
+        descriptor(&Ayanamsa::DhruvaGalacticCenterMula)
+            .unwrap()
+            .claim_tier,
+        CompatibilityClaimTier::DescriptorOnly
+    );
 }
