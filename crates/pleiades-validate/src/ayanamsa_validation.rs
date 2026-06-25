@@ -220,6 +220,20 @@ fn mode_for_code(code: &str) -> Option<Ayanamsa> {
         "Aryabhata499MeanSun" => Some(Ayanamsa::Aryabhata499MeanSun),
         "SuryasiddhantaRevati" => Some(Ayanamsa::SuryasiddhantaRevati),
         "SuryasiddhantaCitra" => Some(Ayanamsa::SuryasiddhantaCitra),
+        // Promoted fitted modes (true-star + galactic cubic fits)
+        "TrueRevati" => Some(Ayanamsa::TrueRevati),
+        "TruePushya" => Some(Ayanamsa::TruePushya),
+        "TrueMula" => Some(Ayanamsa::TrueMula),
+        "TrueSheoran" => Some(Ayanamsa::TrueSheoran),
+        "GalacticCenter" => Some(Ayanamsa::GalacticCenter),
+        "GalacticCenterRgilbrand" => Some(Ayanamsa::GalacticCenterRgilbrand),
+        "GalacticEquatorIau1958" => Some(Ayanamsa::GalacticEquatorIau1958),
+        "GalacticEquatorTrue" => Some(Ayanamsa::GalacticEquatorTrue),
+        "GalacticEquatorMula" => Some(Ayanamsa::GalacticEquatorMula),
+        "GalacticCenterMardyks" => Some(Ayanamsa::GalacticCenterMardyks),
+        "GalacticCenterMulaWilhelm" => Some(Ayanamsa::GalacticCenterMulaWilhelm),
+        "GalacticCenterCochrane" => Some(Ayanamsa::GalacticCenterCochrane),
+        "GalacticEquatorFiorenza" => Some(Ayanamsa::GalacticEquatorFiorenza),
         _ => None,
     }
 }
@@ -250,7 +264,7 @@ pub fn validate_ayanamsa_corpus() -> Result<AyanamsaCorpusReport, AyanamsaCorpus
             actual: rows.len().to_string(),
         });
     }
-    // Completeness: all 23 gated modes present.
+    // Completeness: all 36 gated modes present.
     for code in [
         "Lahiri",
         "Raman",
@@ -275,6 +289,19 @@ pub fn validate_ayanamsa_corpus() -> Result<AyanamsaCorpusReport, AyanamsaCorpus
         "Aryabhata499MeanSun",
         "SuryasiddhantaRevati",
         "SuryasiddhantaCitra",
+        "TrueRevati",
+        "TruePushya",
+        "TrueMula",
+        "TrueSheoran",
+        "GalacticCenter",
+        "GalacticCenterRgilbrand",
+        "GalacticEquatorIau1958",
+        "GalacticEquatorTrue",
+        "GalacticEquatorMula",
+        "GalacticCenterMardyks",
+        "GalacticCenterMulaWilhelm",
+        "GalacticCenterCochrane",
+        "GalacticEquatorFiorenza",
     ] {
         if !rows.iter().any(|r| r.mode_code == code) {
             return Err(AyanamsaCorpusError::ManifestDrift {
@@ -354,7 +381,7 @@ mod tests {
     #[test]
     fn gate_passes_over_committed_corpus() {
         let report = validate_ayanamsa_corpus().expect("ayanamsa gate should pass");
-        assert_eq!(report.modes_checked, 23);
+        assert_eq!(report.modes_checked, 36);
         assert!(report.summary_line().starts_with("Ayanamsa gate"));
     }
 
@@ -380,7 +407,7 @@ mod tests {
     #[test]
     fn corpus_report_exposes_all_validated_modes() {
         let report = validate_ayanamsa_corpus().expect("ayanamsa gate passes");
-        assert_eq!(report.validated_modes().len(), 23);
+        assert_eq!(report.validated_modes().len(), 36);
         assert!(report
             .validated_modes()
             .contains(&pleiades_types::Ayanamsa::Lahiri));
