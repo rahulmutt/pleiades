@@ -26,12 +26,12 @@ pub struct AyanamsaCeiling {
 /// Returns the measured-derived ceiling for a mode class.
 ///
 /// Ceilings are `ceil(measured_max × 2)` over the committed SE **mean**-ayanamsa
-/// corpus (60 rows, 1900–2100), with a 1.0″ floor. Measured maxima:
-/// - OffsetDefined: max residual 0.828″ → ceil(2 × 0.828) = ceil(1.656) = 2.0″.
+/// corpus (230 rows, 1900–2100), with a 1.0″ floor. Measured maxima:
+/// - OffsetDefined: max residual 1.370402″ → ceil(2 × 1.370402) = ceil(2.740804) = 3.0″.
 /// - TrueStar: max residual 0.011″ → ceil(2 × 0.011) = ceil(0.021) = 1.0″ (floor).
 pub fn ayanamsa_mode_ceiling(class: AyanamsaModeClass) -> AyanamsaCeiling {
     match class {
-        AyanamsaModeClass::OffsetDefined => AyanamsaCeiling { offset_arcsec: 2.0 },
+        AyanamsaModeClass::OffsetDefined => AyanamsaCeiling { offset_arcsec: 3.0 },
         AyanamsaModeClass::TrueStar => AyanamsaCeiling { offset_arcsec: 1.0 },
     }
 }
@@ -39,9 +39,29 @@ pub fn ayanamsa_mode_ceiling(class: AyanamsaModeClass) -> AyanamsaCeiling {
 /// Maps a typed ayanamsa to its gated mode class, or `None` if it is not gated.
 pub fn ayanamsa_mode_class(ayanamsa: &Ayanamsa) -> Option<AyanamsaModeClass> {
     match ayanamsa {
-        Ayanamsa::Lahiri | Ayanamsa::Raman | Ayanamsa::Krishnamurti | Ayanamsa::FaganBradley => {
-            Some(AyanamsaModeClass::OffsetDefined)
-        }
+        // Original 4 offset-defined modes.
+        Ayanamsa::Lahiri
+        | Ayanamsa::Raman
+        | Ayanamsa::Krishnamurti
+        | Ayanamsa::FaganBradley
+        // Promoted P set (17 modes, empirically validated in Task 2).
+        | Ayanamsa::J2000
+        | Ayanamsa::J1900
+        | Ayanamsa::B1950
+        | Ayanamsa::UshaShashi
+        | Ayanamsa::DjwhalKhul
+        | Ayanamsa::Yukteshwar
+        | Ayanamsa::JnBhasin
+        | Ayanamsa::Sassanian
+        | Ayanamsa::LahiriIcrc
+        | Ayanamsa::Lahiri1940
+        | Ayanamsa::Aryabhata522
+        | Ayanamsa::Suryasiddhanta499
+        | Ayanamsa::Suryasiddhanta499MeanSun
+        | Ayanamsa::Aryabhata499
+        | Ayanamsa::Aryabhata499MeanSun
+        | Ayanamsa::SuryasiddhantaRevati
+        | Ayanamsa::SuryasiddhantaCitra => Some(AyanamsaModeClass::OffsetDefined),
         Ayanamsa::TrueChitra | Ayanamsa::TrueCitra => Some(AyanamsaModeClass::TrueStar),
         _ => None,
     }
@@ -73,16 +93,48 @@ mod tests {
     }
 
     #[test]
-    fn only_the_six_release_modes_are_gated() {
+    fn promoted_offset_modes_are_gated_as_offset_defined() {
+        // All 17 promoted P modes must map to OffsetDefined.
+        for m in [
+            Ayanamsa::J2000,
+            Ayanamsa::J1900,
+            Ayanamsa::B1950,
+            Ayanamsa::UshaShashi,
+            Ayanamsa::DjwhalKhul,
+            Ayanamsa::Yukteshwar,
+            Ayanamsa::JnBhasin,
+            Ayanamsa::Sassanian,
+            Ayanamsa::LahiriIcrc,
+            Ayanamsa::Lahiri1940,
+            Ayanamsa::Aryabhata522,
+            Ayanamsa::Suryasiddhanta499,
+            Ayanamsa::Suryasiddhanta499MeanSun,
+            Ayanamsa::Aryabhata499,
+            Ayanamsa::Aryabhata499MeanSun,
+            Ayanamsa::SuryasiddhantaRevati,
+            Ayanamsa::SuryasiddhantaCitra,
+        ] {
+            assert_eq!(
+                ayanamsa_mode_class(&m),
+                Some(AyanamsaModeClass::OffsetDefined),
+                "{m:?} should be OffsetDefined"
+            );
+        }
+        // Original 4 offset modes still gated.
         assert_eq!(
             ayanamsa_mode_class(&Ayanamsa::Lahiri),
             Some(AyanamsaModeClass::OffsetDefined)
         );
+        // TrueStar sanity check.
         assert_eq!(
             ayanamsa_mode_class(&Ayanamsa::TrueChitra),
             Some(AyanamsaModeClass::TrueStar)
         );
-        assert_eq!(ayanamsa_mode_class(&Ayanamsa::J2000), None);
+        // Deferred gap modes must NOT be gated.
+        assert_eq!(ayanamsa_mode_class(&Ayanamsa::KrishnamurtiVP291), None);
+        assert_eq!(ayanamsa_mode_class(&Ayanamsa::LahiriVP285), None);
+        // Ungated control.
+        assert_eq!(ayanamsa_mode_class(&Ayanamsa::GalacticCenter), None);
     }
 
     #[test]
