@@ -468,6 +468,11 @@ fn deferred_modes_stay_descriptor_only() {
         Ayanamsa::Sheoran,
         // Slice-2: remaining non-promoted candidates.
         Ayanamsa::BabylonianTrueGeoc,
+        Ayanamsa::BabylonianTrueTopc,
+        Ayanamsa::BabylonianTrueObs,
+        Ayanamsa::BabylonianHouse,
+        Ayanamsa::BabylonianHouseObs,
+        Ayanamsa::BabylonianSissy,
         // Slice-2: no-SE_SIDM deferrals (no distinct SE code, must stay DescriptorOnly).
         Ayanamsa::DhruvaGalacticCenterMula,
         Ayanamsa::GalacticEquator,
@@ -557,7 +562,7 @@ fn release_grade_numeric_ayanamsa_set_is_exactly_the_gated_modes() {
 }
 
 #[test]
-fn promoted_fitted_modes_are_release_grade() {
+fn promoted_fitted_and_fitted_offset_modes_are_release_grade() {
     use crate::descriptor;
     use pleiades_types::CompatibilityClaimTier::ReleaseGradeNumeric;
     use pleiades_types::{Ayanamsa, CompatibilityClaimTier};
