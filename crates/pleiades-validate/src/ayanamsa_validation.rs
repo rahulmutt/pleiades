@@ -234,6 +234,19 @@ fn mode_for_code(code: &str) -> Option<Ayanamsa> {
         "GalacticCenterMulaWilhelm" => Some(Ayanamsa::GalacticCenterMulaWilhelm),
         "GalacticCenterCochrane" => Some(Ayanamsa::GalacticCenterCochrane),
         "GalacticEquatorFiorenza" => Some(Ayanamsa::GalacticEquatorFiorenza),
+        // Promoted fitted-offset modes (slice 3)
+        "DeLuce" => Some(Ayanamsa::DeLuce),
+        "BabylonianKugler1" => Some(Ayanamsa::BabylonianKugler1),
+        "BabylonianKugler2" => Some(Ayanamsa::BabylonianKugler2),
+        "BabylonianKugler3" => Some(Ayanamsa::BabylonianKugler3),
+        "BabylonianHuber" => Some(Ayanamsa::BabylonianHuber),
+        "BabylonianEtaPiscium" => Some(Ayanamsa::BabylonianEtaPiscium),
+        "BabylonianAldebaran" => Some(Ayanamsa::BabylonianAldebaran),
+        "Hipparchus" => Some(Ayanamsa::Hipparchus),
+        "BabylonianBritton" => Some(Ayanamsa::BabylonianBritton),
+        "ValensMoon" => Some(Ayanamsa::ValensMoon),
+        "LahiriVP285" => Some(Ayanamsa::LahiriVP285),
+        "KrishnamurtiVP291" => Some(Ayanamsa::KrishnamurtiVP291),
         _ => None,
     }
 }
@@ -264,7 +277,7 @@ pub fn validate_ayanamsa_corpus() -> Result<AyanamsaCorpusReport, AyanamsaCorpus
             actual: rows.len().to_string(),
         });
     }
-    // Completeness: all 36 gated modes present.
+    // Completeness: all 48 gated modes present.
     for code in [
         "Lahiri",
         "Raman",
@@ -302,6 +315,18 @@ pub fn validate_ayanamsa_corpus() -> Result<AyanamsaCorpusReport, AyanamsaCorpus
         "GalacticCenterMulaWilhelm",
         "GalacticCenterCochrane",
         "GalacticEquatorFiorenza",
+        "DeLuce",
+        "BabylonianKugler1",
+        "BabylonianKugler2",
+        "BabylonianKugler3",
+        "BabylonianHuber",
+        "BabylonianEtaPiscium",
+        "BabylonianAldebaran",
+        "Hipparchus",
+        "BabylonianBritton",
+        "ValensMoon",
+        "LahiriVP285",
+        "KrishnamurtiVP291",
     ] {
         if !rows.iter().any(|r| r.mode_code == code) {
             return Err(AyanamsaCorpusError::ManifestDrift {
@@ -381,7 +406,7 @@ mod tests {
     #[test]
     fn gate_passes_over_committed_corpus() {
         let report = validate_ayanamsa_corpus().expect("ayanamsa gate should pass");
-        assert_eq!(report.modes_checked, 36);
+        assert_eq!(report.modes_checked, 48);
         assert!(report.summary_line().starts_with("Ayanamsa gate"));
     }
 
@@ -407,7 +432,7 @@ mod tests {
     #[test]
     fn corpus_report_exposes_all_validated_modes() {
         let report = validate_ayanamsa_corpus().expect("ayanamsa gate passes");
-        assert_eq!(report.validated_modes().len(), 36);
+        assert_eq!(report.validated_modes().len(), 48);
         assert!(report
             .validated_modes()
             .contains(&pleiades_types::Ayanamsa::Lahiri));

@@ -186,7 +186,7 @@ pub(crate) const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Some(JulianDay::from_days(1_927_135.8747793)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::DeLuce,
         "DeLuce",
         &["De Luce", "DeLuce ayanamsa"],
@@ -225,7 +225,7 @@ pub(crate) const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Some(JulianDay::from_days(1_789_947.090_881)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::Hipparchus,
         "Hipparchus",
         &["Hipparchos"],
@@ -233,7 +233,7 @@ pub(crate) const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Some(JulianDay::from_days(1_674_484.0)),
         Some(Angle::from_degrees(-9.333_333_333_333_334)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::BabylonianKugler1,
         "Babylonian (Kugler 1)",
         &["Babylonian/Kugler 1", "Babylonian Kugler 1", "Babylonian 1"],
@@ -241,7 +241,7 @@ pub(crate) const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Some(JulianDay::from_days(1_833_923.577_692)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::BabylonianKugler2,
         "Babylonian (Kugler 2)",
         &["Babylonian/Kugler 2", "Babylonian Kugler 2", "Babylonian 2"],
@@ -249,7 +249,7 @@ pub(crate) const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Some(JulianDay::from_days(1_797_039.206_820)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::BabylonianKugler3,
         "Babylonian (Kugler 3)",
         &["Babylonian/Kugler 3", "Babylonian Kugler 3", "Babylonian 3"],
@@ -257,7 +257,7 @@ pub(crate) const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Some(JulianDay::from_days(1_774_637.420_172)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::BabylonianHuber,
         "Babylonian (Huber)",
         &["Babylonian/Huber", "Babylonian Huber"],
@@ -265,7 +265,7 @@ pub(crate) const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Some(JulianDay::from_days(1_721_171.5)),
         Some(Angle::from_degrees(-0.120_555_555_555_555_55)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::BabylonianEtaPiscium,
         "Babylonian (Eta Piscium)",
         &["Babylonian/Eta Piscium", "Babylonian Eta Piscium", "Eta Piscium"],
@@ -273,7 +273,7 @@ pub(crate) const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Some(JulianDay::from_days(1_807_871.964_797)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::BabylonianAldebaran,
         "Babylonian (Aldebaran)",
         &["Babylonian/Aldebaran = 15 Tau", "Babylonian Aldebaran", "Babylonian 15 Tau", "15 Tau"],
@@ -400,7 +400,7 @@ pub(crate) const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Some(JulianDay::from_days(1_903_396.7895321)),
         Some(Angle::from_degrees(-0.23763238)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::BabylonianBritton,
         "Babylonian (Britton)",
         &["Babylonian/Britton", "Babylonian Britton"],
@@ -416,7 +416,7 @@ pub(crate) const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Some(JulianDay::from_days(1_911_797.740782065)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::LahiriVP285,
         "Lahiri (VP285)",
         &["Lahiri VP285", "VP285"],
@@ -424,7 +424,7 @@ pub(crate) const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Some(JulianDay::from_days(1_825_235.164_583)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::KrishnamurtiVP291,
         "Krishnamurti (VP291)",
         &["KP VP291", "Krishnamurti VP291", "Krishnamurti-Senthilathiban", "VP291"],
@@ -517,7 +517,7 @@ pub(crate) const RELEASE_AYANAMSAS: &[AyanamsaDescriptor] = &[
         Some(JulianDay::from_days(2_451_544.5)),
         Some(Angle::from_degrees(25.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::ValensMoon,
         "Valens Moon",
         &["Vettius Valens", "Valens", "Moon", "Moon sign", "Moon sign ayanamsa", "Valens Moon ayanamsa"],
@@ -715,7 +715,7 @@ pub(crate) static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
         Some(JulianDay::from_days(1_927_135.8747793)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::DeLuce,
         "DeLuce",
         &["De Luce", "DeLuce ayanamsa"],
@@ -754,7 +754,7 @@ pub(crate) static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
         Some(JulianDay::from_days(1_789_947.090_881)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::Hipparchus,
         "Hipparchus",
         &["Hipparchos"],
@@ -762,7 +762,7 @@ pub(crate) static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
         Some(JulianDay::from_days(1_674_484.0)),
         Some(Angle::from_degrees(-9.333_333_333_333_334)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::BabylonianKugler1,
         "Babylonian (Kugler 1)",
         &["Babylonian/Kugler 1", "Babylonian Kugler 1", "Babylonian 1"],
@@ -770,7 +770,7 @@ pub(crate) static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
         Some(JulianDay::from_days(1_833_923.577_692)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::BabylonianKugler2,
         "Babylonian (Kugler 2)",
         &["Babylonian/Kugler 2", "Babylonian Kugler 2", "Babylonian 2"],
@@ -778,7 +778,7 @@ pub(crate) static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
         Some(JulianDay::from_days(1_797_039.206_820)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::BabylonianKugler3,
         "Babylonian (Kugler 3)",
         &["Babylonian/Kugler 3", "Babylonian Kugler 3", "Babylonian 3"],
@@ -786,7 +786,7 @@ pub(crate) static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
         Some(JulianDay::from_days(1_774_637.420_172)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::BabylonianHuber,
         "Babylonian (Huber)",
         &["Babylonian/Huber", "Babylonian Huber"],
@@ -794,7 +794,7 @@ pub(crate) static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
         Some(JulianDay::from_days(1_721_171.5)),
         Some(Angle::from_degrees(-0.120_555_555_555_555_55)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::BabylonianEtaPiscium,
         "Babylonian (Eta Piscium)",
         &["Babylonian/Eta Piscium", "Babylonian Eta Piscium", "Eta Piscium"],
@@ -802,7 +802,7 @@ pub(crate) static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
         Some(JulianDay::from_days(1_807_871.964_797)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::BabylonianAldebaran,
         "Babylonian (Aldebaran)",
         &["Babylonian/Aldebaran = 15 Tau", "Babylonian Aldebaran", "Babylonian 15 Tau", "15 Tau"],
@@ -929,7 +929,7 @@ pub(crate) static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
         Some(JulianDay::from_days(1_903_396.7895321)),
         Some(Angle::from_degrees(-0.23763238)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::BabylonianBritton,
         "Babylonian (Britton)",
         &["Babylonian/Britton", "Babylonian Britton"],
@@ -945,7 +945,7 @@ pub(crate) static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
         Some(JulianDay::from_days(1_911_797.740782065)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::LahiriVP285,
         "Lahiri (VP285)",
         &["Lahiri VP285", "VP285"],
@@ -953,7 +953,7 @@ pub(crate) static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
         Some(JulianDay::from_days(1_825_235.164_583)),
         Some(Angle::from_degrees(0.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::KrishnamurtiVP291,
         "Krishnamurti (VP291)",
         &["KP VP291", "Krishnamurti VP291", "Krishnamurti-Senthilathiban", "VP291"],
@@ -1046,7 +1046,7 @@ pub(crate) static BUILT_IN_AYANAMSAS: [AyanamsaDescriptor; 59] = [
         Some(JulianDay::from_days(2_451_544.5)),
         Some(Angle::from_degrees(25.0)),
     ),
-    AyanamsaDescriptor::new(
+    AyanamsaDescriptor::new_release_grade(
         Ayanamsa::ValensMoon,
         "Valens Moon",
         &["Vettius Valens", "Valens", "Moon", "Moon sign", "Moon sign ayanamsa", "Valens Moon ayanamsa"],
