@@ -1,0 +1,37 @@
+TrueRevati worst=0.175188 verdict=PASS
+TruePushya worst=0.031458 verdict=PASS
+TrueMula worst=0.032425 verdict=PASS
+TrueSheoran worst=0.031458 verdict=PASS
+GalacticCenter worst=0.054737 verdict=PASS
+GalacticCenterRgilbrand worst=0.054737 verdict=PASS
+GalacticEquatorIau1958 worst=0.000355 verdict=PASS
+GalacticEquatorTrue worst=0.000355 verdict=PASS
+GalacticEquatorMula worst=0.000355 verdict=PASS
+GalacticCenterMardyks worst=0.000005 verdict=PASS
+GalacticCenterMulaWilhelm worst=0.057280 verdict=PASS
+GalacticCenterCochrane worst=0.054737 verdict=PASS
+GalacticEquatorFiorenza worst=0.000005 verdict=PASS
+
+---
+PASS set (13 modes, all <= 1.0"):
+  TrueRevati (0.175188"), TruePushya (0.031458"), TrueMula (0.032425"),
+  TrueSheoran (0.031458"), GalacticCenter (0.054737"),
+  GalacticCenterRgilbrand (0.054737"), GalacticEquatorIau1958 (0.000355"),
+  GalacticEquatorTrue (0.000355"), GalacticEquatorMula (0.000355"),
+  GalacticCenterMardyks (0.000005"), GalacticCenterMulaWilhelm (0.057280"),
+  GalacticCenterCochrane (0.054737"), GalacticEquatorFiorenza (0.000005")
+
+DEFER set (0 modes by residual): none
+
+Deferred by lack of distinct SE code (absent from MODES / FIT_MODES):
+  DhruvaGalacticCenterMula — no distinct SE_SIDM; cannot be measured.
+  GalacticEquator (legacy alias) — no distinct SE_SIDM; cannot be measured.
+  These two remain DescriptorOnly in the crate (handled by later tasks).
+
+Notes:
+  - Verdict cutoff used by the tool is 1.0" (floor). Per-family ceiling for the
+    crate gate will be recomputed from max(worst over PASS) = 0.175188" (TrueRevati).
+  - GalacticCenterRgilbrand and GalacticCenterCochrane share residual 0.054737"
+    with GalacticCenter — consistent with SE using the same base computation.
+  - GalacticCenterMardyks and GalacticEquatorFiorenza achieve sub-microarcsecond
+    residuals (0.000005"), indicating near-exact cubic representability.
