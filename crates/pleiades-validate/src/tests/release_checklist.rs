@@ -546,8 +546,8 @@ fn release_summary_command_renders_the_quick_overview() {
     assert!(rendered.contains("Aries houses"));
     assert!(rendered.contains("Ayanamsa reference offsets: representative zero-point examples:"));
     assert!(rendered.contains("Lahiri: epoch=JD 2435553.5; offset=23.245524743°"));
-    assert!(rendered.contains("Lahiri (ICRC): epoch=JD 2435553.5; offset=23.25°"));
-    assert!(rendered.contains("Lahiri (1940): epoch=JD 2415020; offset=22.445972222222224°"));
+    assert!(rendered.contains("Lahiri (ICRC): epoch=JD 2435553.5; offset=23.24535793°"));
+    assert!(rendered.contains("Lahiri (1940): epoch=JD 2415020; offset=22.44597222°"));
     assert!(rendered.contains("Raman: epoch=JD 2415020; offset=21.01444°"));
     assert!(rendered.contains("Krishnamurti: epoch=JD 2415020; offset=22.363889°"));
     assert!(rendered.contains("Fagan/Bradley: epoch=JD 2433282.42346; offset=24.042044444°"));
@@ -556,21 +556,21 @@ fn release_summary_command_renders_the_quick_overview() {
     assert!(rendered.contains("True Mula: epoch=JD 1805889.671313; offset=0°"));
     assert!(rendered.contains("True Citra: epoch=JD 1825182.87233; offset=50.2567483°"));
     assert!(rendered.contains("DeLuce: epoch=JD 2451545; offset=23.245522556°"));
-    assert!(rendered.contains("Yukteshwar: epoch=JD 2451545; offset=22.6288889°"));
+    assert!(rendered.contains("Yukteshwar: epoch=JD 2415020; offset=21.082222°"));
     assert!(rendered.contains("PVR Pushya-paksha: epoch=JD 2451545; offset=23°"));
     assert!(rendered.contains("Babylonian (Britton): epoch=JD 1805415.712776; offset=0°"));
     assert!(rendered.contains("Babylonian (Kugler 2): epoch=JD 1797039.20682; offset=0°"));
     assert!(rendered.contains("Babylonian (Kugler 3): epoch=JD 1774637.420172; offset=0°"));
     assert!(rendered.contains("Babylonian (Eta Piscium): epoch=JD 1807871.964797; offset=0°"));
     assert!(rendered.contains("Babylonian (Aldebaran): epoch=JD 1801643.133503; offset=0°"));
-    assert!(rendered.contains("Aryabhata (499 CE): epoch=JD 1903396.7895320603; offset=0°"));
+    assert!(rendered.contains("Aryabhata (499 CE): epoch=JD 1903396.7895321; offset=0°"));
     assert!(rendered.contains("Sassanian: epoch=JD 1927135.8747793; offset=0°"));
     assert!(rendered.contains("Lahiri (VP285): epoch=JD 1825235.164583; offset=0°"));
     assert!(rendered.contains("Krishnamurti (VP291): epoch=JD 1827424.663554; offset=0°"));
     assert!(rendered.contains("Sheoran: epoch=JD 1789947.090881; offset=0°"));
     assert!(rendered.contains("True Sheoran: epoch="));
     assert!(rendered.contains("Hipparchus: epoch=JD 1674484; offset=-9.333333333333334°"));
-    assert!(rendered.contains("Djwhal Khul: epoch=JD 1706703.948006; offset=0°"));
+    assert!(rendered.contains("Djwhal Khul: epoch=JD 2415020; offset=26.963097600000026°"));
     assert!(rendered.contains("Galactic Center: epoch="));
     assert!(rendered.contains("Galactic Center (Rgilbrand): epoch="));
     assert!(rendered.contains("Galactic Center (Mardyks): epoch="));
@@ -582,8 +582,11 @@ fn release_summary_command_renders_the_quick_overview() {
     assert!(rendered.contains("Galactic Equator (Mula): epoch=JD 1840527.426262; offset=0°"));
     assert!(rendered.contains("Galactic Equator (Fiorenza): epoch=JD 2451544.5; offset=25°"));
     assert!(rendered.contains("Valens Moon: epoch=JD 1775845.5; offset=-2.9422°"));
-    assert!(rendered.contains("Suryasiddhanta (Mean Sun): epoch=JD 1909045.584433; offset=0°"));
-    assert!(rendered.contains("Aryabhata (Mean Sun): epoch=JD 1909650.815331; offset=0°"));
+    assert!(rendered
+        .contains("Suryasiddhanta (Mean Sun): epoch=JD 1903396.8128654; offset=-0.21463395°"));
+    assert!(
+        rendered.contains("Aryabhata (Mean Sun): epoch=JD 1903396.7895321; offset=-0.23763238°")
+    );
     assert!(rendered.contains("Release-specific ayanamsa canonical names: 54 (True Citra, J2000, J1900, B1950, True Revati, True Mula, Suryasiddhanta (Revati), Suryasiddhanta (Citra), Lahiri (ICRC), Lahiri (1940), Usha Shashi, Suryasiddhanta (499 CE), Aryabhata (499 CE), Sassanian, DeLuce, Yukteshwar, PVR Pushya-paksha, Sheoran, Hipparchus, Babylonian (Kugler 1), Babylonian (Kugler 2), Babylonian (Kugler 3), Babylonian (Huber), Babylonian (Eta Piscium), Babylonian (Aldebaran), Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs), Galactic Center, Galactic Equator, True Pushya, Udayagiri, Djwhal Khul, JN Bhasin, Suryasiddhanta (Mean Sun), Aryabhata (Mean Sun), Babylonian (Britton), Aryabhata (522 CE), Lahiri (VP285), Krishnamurti (VP291), True Sheoran, Galactic Center (Rgilbrand), Galactic Center (Mardyks), Galactic Center (Mula/Wilhelm), Dhruva Galactic Center (Middle Mula), Galactic Center (Cochrane), Galactic Equator (IAU 1958), Galactic Equator (True), Galactic Equator (Mula), Galactic Equator (Fiorenza), Valens Moon)"));
     assert!(rendered.contains("Ayanamsa reference offsets: representative zero-point examples:"));
     assert!(rendered.contains("Lahiri: epoch=JD 2435553.5; offset=23.245524743°"));

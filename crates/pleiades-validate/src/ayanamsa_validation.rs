@@ -1,4 +1,4 @@
-//! Fail-closed numeric-residual gate for the six release-claimed ayanamsa modes
+//! Fail-closed numeric-residual gate for the release-claimed ayanamsa modes
 //! against the committed Swiss Ephemeris reference corpus. Mirrors
 //! `house_validation.rs`: parse → checksum → manifest drift → per-row residual
 //! vs the per-mode-class ceiling. Pure-Rust; no SE or network dependency.

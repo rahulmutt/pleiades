@@ -489,9 +489,9 @@ fn compatibility_profile_summary_command_renders_the_summary() {
     );
     assert!(rendered.contains("Ayanamsa reference offsets: representative zero-point examples:"));
     assert!(rendered.contains("Lahiri: epoch=JD 2435553.5; offset=23.245524743°"));
-    assert!(rendered.contains("Lahiri (ICRC): epoch=JD 2435553.5; offset=23.25°"));
-    assert!(rendered.contains("Lahiri (1940): epoch=JD 2415020; offset=22.445972222222224°"));
-    assert!(rendered.contains("Usha Shashi: epoch=JD 2415020.5; offset=18.66096111111111°"));
+    assert!(rendered.contains("Lahiri (ICRC): epoch=JD 2435553.5; offset=23.24535793°"));
+    assert!(rendered.contains("Lahiri (1940): epoch=JD 2415020; offset=22.44597222°"));
+    assert!(rendered.contains("Usha Shashi: epoch=JD 2415020; offset=18.66095999999999°"));
     assert!(rendered.contains("Raman: epoch=JD 2415020; offset=21.01444°"));
     assert!(rendered.contains("Krishnamurti: epoch=JD 2415020; offset=22.363889°"));
     assert!(rendered.contains("Fagan/Bradley: epoch=JD 2433282.42346; offset=24.042044444°"));
@@ -500,11 +500,11 @@ fn compatibility_profile_summary_command_renders_the_summary() {
     assert!(rendered.contains("True Mula: epoch=JD 1805889.671313; offset=0°"));
     assert!(rendered.contains("True Citra: epoch=JD 1825182.87233; offset=50.2567483°"));
     assert!(rendered.contains("DeLuce: epoch=JD 2451545; offset=23.245522556°"));
-    assert!(rendered.contains("Yukteshwar: epoch=JD 2451545; offset=22.6288889°"));
+    assert!(rendered.contains("Yukteshwar: epoch=JD 2415020; offset=21.082222°"));
     assert!(rendered.contains("PVR Pushya-paksha: epoch=JD 2451545; offset=23°"));
-    assert!(rendered.contains("J2000: epoch=JD 2451545; offset=23.85317778°"));
+    assert!(rendered.contains("J2000: epoch=JD 2451545; offset=0°"));
     assert!(rendered.contains("J1900: epoch=JD 2415020; offset=0°"));
-    assert!(rendered.contains("B1950: epoch=JD 2433281.5; offset=0°"));
+    assert!(rendered.contains("B1950: epoch=JD 2433282.42345905; offset=0°"));
     assert!(rendered.contains("Babylonian (Kugler 2): epoch=JD 1797039.20682; offset=0°"));
     assert!(rendered.contains("Babylonian (Kugler 3): epoch=JD 1774637.420172; offset=0°"));
     assert!(
@@ -517,7 +517,7 @@ fn compatibility_profile_summary_command_renders_the_summary() {
     assert!(rendered.contains("Sheoran: epoch=JD 1789947.090881; offset=0°"));
     assert!(rendered.contains("True Sheoran: epoch="));
     assert!(rendered.contains("Hipparchus: epoch=JD 1674484; offset=-9.333333333333334°"));
-    assert!(rendered.contains("Djwhal Khul: epoch=JD 1706703.948006; offset=0°"));
+    assert!(rendered.contains("Djwhal Khul: epoch=JD 2415020; offset=26.963097600000026°"));
     assert!(rendered.contains("Galactic Center: epoch="));
     assert!(rendered.contains("Galactic Center (Rgilbrand): epoch="));
     assert!(rendered.contains("Galactic Center (Mardyks): epoch="));
@@ -529,10 +529,13 @@ fn compatibility_profile_summary_command_renders_the_summary() {
     assert!(rendered.contains("Galactic Equator (Mula): epoch=JD 1840527.426262; offset=0°"));
     assert!(rendered.contains("Galactic Equator (Fiorenza): epoch=JD 2451544.5; offset=25°"));
     assert!(rendered.contains("Valens Moon: epoch=JD 1775845.5; offset=-2.9422°"));
-    assert!(rendered.contains("Suryasiddhanta (499 CE): epoch=JD 1903396.8128653935; offset=0°"));
-    assert!(rendered.contains("Suryasiddhanta (Mean Sun): epoch=JD 1909045.584433; offset=0°"));
-    assert!(rendered.contains("Aryabhata (Mean Sun): epoch=JD 1909650.815331; offset=0°"));
-    assert!(rendered.contains("Aryabhata (522 CE): epoch=JD 1911797.740782; offset=0°"));
+    assert!(rendered.contains("Suryasiddhanta (499 CE): epoch=JD 1903396.8128654; offset=0°"));
+    assert!(rendered
+        .contains("Suryasiddhanta (Mean Sun): epoch=JD 1903396.8128654; offset=-0.21463395°"));
+    assert!(
+        rendered.contains("Aryabhata (Mean Sun): epoch=JD 1903396.7895321; offset=-0.23763238°")
+    );
+    assert!(rendered.contains("Aryabhata (522 CE): epoch=JD 1911797.740782065; offset=0°"));
     assert!(rendered.contains("Release-specific house-system canonical names: 13 (Equal (MC), Equal (1=Aries), Vehlow Equal, Sripati, Carter (poli-equatorial), Horizon/Azimuth, APC, Krusinski-Pisa-Goelzer, Albategnius, Pullen SD, Pullen SR, Sunshine, Gauquelin sectors)"));
     assert!(rendered.contains(&format!(
         "House code aliases: {}",
