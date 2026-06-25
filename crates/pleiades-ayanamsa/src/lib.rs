@@ -26,6 +26,7 @@ mod catalog;
 mod lookup;
 mod model;
 mod precession;
+mod se_anchors;
 pub mod thresholds;
 mod truestar;
 
