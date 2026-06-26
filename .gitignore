@@ -24,6 +24,7 @@ target
 
 # Local ephemeris kernels (not committed)
 .cache/
+.kernels/
 
 # devenv (Nix) local build cache — never commit; devenv.lock IS committed for reproducibility
 .devenv*
