@@ -220,7 +220,7 @@ mod tests {
             let e = asteroid_core_roster()
                 .iter()
                 .find(|e| matches!(&e.body, CelestialBody::Custom(c) if c.designation == designation))
-                .unwrap_or_else(|| panic!("{designation} present"));
+                .unwrap_or_else(|| panic!("{designation} missing from roster"));
             assert_eq!(e.tier, AsteroidTier::PinnedKernel, "{designation} tier");
             assert_eq!(e.class, AsteroidClass::MainBelt, "{designation} class");
         }

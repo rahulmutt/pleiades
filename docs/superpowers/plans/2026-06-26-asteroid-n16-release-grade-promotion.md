@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **Outcome deviation (recorded post-implementation):** Task 1's kernel-membership probe found that **6-Hebe is NOT in `sb441-n16.bsp`** (the kernel holds exactly the 16 most-massive perturbers; Hebe is not among them). Per the two-gate policy below, Hebe was therefore **dropped** (it stays Tier-B/constrained), and Task 4 (remove Hebe from the constrained slice) was a no-op. The bodies actually promoted to Tier-A were **15-Eunomia and 65-Cybele** (both kernel-confirmed and cited). The Hebe-centric phrasing in the Goal and Tasks 2–4 below is the pre-probe expectation; the shipped outcome and the design spec reflect the corrected set.
+
 **Goal:** Promote a small, astrologically-relevant set of `sb441-n16` perturber-kernel asteroids (reclassify Hebe; add Cybele and any other confirmed n16 goddess) from constrained to release-grade, reusing the existing Tier-A pinned-kernel machinery.
 
 **Architecture:** The per-backend public claim tier is driven entirely by `AsteroidTier` in the curated roster (`asteroid_roster.rs`); flipping a roster entry to `PinnedKernel` makes `spk_body_claims` emit `ReleaseGrade/High/CorpusValidated{"sb441-n16"}` automatically. Promotion therefore means: (1) confirm a candidate is in the pinned kernel, (2) retag it in the roster, (3) regenerate its committed reference rows from the kernel, (4) realign every count/claim surface. No new accuracy ceiling, no new gate, no public enum change.
