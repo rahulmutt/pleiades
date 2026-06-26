@@ -73,6 +73,8 @@ pub fn asteroid_core_roster() -> &'static [AsteroidEntry] {
                 e(ast("10-Hygiea"), PinnedKernel, MainBelt),
                 e(ast("16-Psyche"), PinnedKernel, MainBelt),
                 e(ast("7-Iris"), PinnedKernel, MainBelt),
+                e(ast("15-Eunomia"), PinnedKernel, MainBelt),
+                e(ast("65-Cybele"), PinnedKernel, MainBelt),
                 // Centaurs — Tier B (not in sb441-n16).
                 e(ast("2060-Chiron"), Constrained, Centaur),
                 e(ast("5145-Pholus"), Constrained, Centaur),
@@ -208,6 +210,19 @@ mod tests {
                 .expect("classical asteroid present");
             assert_eq!(e.tier, AsteroidTier::PinnedKernel);
             assert_eq!(e.class, AsteroidClass::MainBelt);
+        }
+    }
+
+    #[test]
+    fn promoted_goddesses_are_tier_a_main_belt() {
+        let confirmed = ["15-Eunomia", "65-Cybele"];
+        for designation in confirmed {
+            let e = asteroid_core_roster()
+                .iter()
+                .find(|e| matches!(&e.body, CelestialBody::Custom(c) if c.designation == designation))
+                .unwrap_or_else(|| panic!("{designation} missing from roster"));
+            assert_eq!(e.tier, AsteroidTier::PinnedKernel, "{designation} tier");
+            assert_eq!(e.class, AsteroidClass::MainBelt, "{designation} class");
         }
     }
 
