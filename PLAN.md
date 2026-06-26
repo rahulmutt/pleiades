@@ -172,6 +172,12 @@ were promoted to release-grade; all 12 candidates passed the SE numeric gate
 with no deferrals by residual. Total release-claimed ayanamsa count is now 48
 (6 original + 17 offset-defined + 13 fitted + 12 fitted-offset). The
 still-deferred set (11 modes) is listed in "Important current limits" above.
+**Phase 6 ayanamsa slice 4 (descriptor accuracy) is done** as of 2026-06-26.
+The six custom-definition-only Babylonian descriptors (House, Sissy, True Geoc,
+True Topc, True Obs, House Obs) no longer falsely claim a Swiss Ephemeris label;
+compatibility profile bumped to 0.7.1. Catalogued counts unchanged (59
+catalogued / 48 release-grade / 11 deferred); the six remain the validated
+custom-definition-only category, not release-claimed.
 
 ## Plan maintenance rules
 
@@ -182,7 +188,7 @@ still-deferred set (11 modes) is listed in "Important current limits" above.
 - Keep `README.md`, release profiles, generated reports, and this plan aligned
   when public behavior or release claims change.
 
-Status: refreshed 2026-06-25 — **SP3 complete; Phases 1–3 done; per-backend claim model enforced by the claims-audit gate; Phase 4 active — civil-time conversion done, apparent-place done, topocentric (chart layer) done; only native sidereal backend output remains (deliberate non-goal); Phase 5 complete — house gate done + ayanamsa gate done + overclaim gate done; release-gate now runs the full numeric-gate set (house, ayanamsa, apparent, topocentric, corpus) plus the overclaim audit; Phase 6 house-catalog release-grade promotion done — 24 of 25 built-in house systems release-grade (Albategnius the sole built-in not in the Phase-6 target catalog, kept descriptor-only); all 12 target systems promoted; no house-system known gaps; Phase 6 ayanamsa offset-defined promotion (slice 1) done — 23 release-claimed ayanamsa modes (6 original + 17 promoted offset-defined), OffsetDefined ceiling raised to 3.0″; Phase 6 ayanamsa fitted-family promotion (slice 2) done — 36 release-claimed ayanamsa modes total (6 original + 17 offset-defined + 13 fitted); Phase 6 ayanamsa fitted-offset promotion (slice 3) done — 48 release-claimed ayanamsa modes total (6 original + 17 offset-defined + 13 fitted + 12 fitted-offset); still-deferred (11 modes): 3 anchorless modes, observational/topocentric/house Babylonians, DhruvaGalacticCenterMula, legacy GalacticEquator**.
+Status: refreshed 2026-06-26 — **SP3 complete; Phases 1–3 done; per-backend claim model enforced by the claims-audit gate; Phase 4 active — civil-time conversion done, apparent-place done, topocentric (chart layer) done; only native sidereal backend output remains (deliberate non-goal); Phase 5 complete — house gate done + ayanamsa gate done + overclaim gate done; release-gate now runs the full numeric-gate set (house, ayanamsa, apparent, topocentric, corpus) plus the overclaim audit; Phase 6 house-catalog release-grade promotion done — 24 of 25 built-in house systems release-grade (Albategnius the sole built-in not in the Phase-6 target catalog, kept descriptor-only); all 12 target systems promoted; no house-system known gaps; Phase 6 ayanamsa offset-defined promotion (slice 1) done — 23 release-claimed ayanamsa modes (6 original + 17 promoted offset-defined), OffsetDefined ceiling raised to 3.0″; Phase 6 ayanamsa fitted-family promotion (slice 2) done — 36 release-claimed ayanamsa modes total (6 original + 17 offset-defined + 13 fitted); Phase 6 ayanamsa fitted-offset promotion (slice 3) done — 48 release-claimed ayanamsa modes total (6 original + 17 offset-defined + 13 fitted + 12 fitted-offset); still-deferred (11 modes): 3 anchorless modes, observational/topocentric/house Babylonians, DhruvaGalacticCenterMula, legacy GalacticEquator; Phase 6 ayanamsa slice 4 (descriptor accuracy) done — six custom-definition-only Babylonian descriptors corrected, compatibility profile bumped to 0.7.1, counts unchanged (59 catalogued / 48 release-grade / 11 deferred)**.
 Published per-body-class accuracy ceilings enforced (1900–2100 CE), hard size gate
 active (≤ 12 MB), latency tracked, motion output `Motion = Derived`
 (SpeedPolicy::FittedDerivative) gated. ARTIFACT_VERSION 7.
