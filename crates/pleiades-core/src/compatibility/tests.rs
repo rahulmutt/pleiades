@@ -1789,3 +1789,15 @@ fn house_code_alias_validation_rejects_duplicates_and_round_trip_drift() {
         )
     ));
 }
+
+#[test]
+fn rendered_profile_matches_pinned_content_checksum() {
+    let rendered = current_compatibility_profile().to_string();
+    let actual = pleiades_time::fnv1a64(&rendered);
+    assert_eq!(
+        actual, CURRENT_COMPATIBILITY_PROFILE_CONTENT_CHECKSUM,
+        "rendered compatibility profile changed (checksum {actual:#018x}); bump \
+         CURRENT_COMPATIBILITY_PROFILE_ID and update \
+         CURRENT_COMPATIBILITY_PROFILE_CONTENT_CHECKSUM in the same commit"
+    );
+}
