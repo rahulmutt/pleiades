@@ -1108,10 +1108,12 @@ fn display_lists_release_sections() {
     assert!(rendered.contains("Babylonian/Aldebaran = 15 Tau"));
     assert!(rendered
         .contains("Babylonian (House Obs) (aliases: Babylonian House Obs, BABYL_HOUSE_OBS)"));
-    assert!(rendered.contains("Babylonian sidereal mode labeled BABYL_HOUSE in Swiss Ephemeris."));
-    assert!(
-        rendered.contains("Babylonian sidereal mode labeled BABYL_HOUSE_OBS in Swiss Ephemeris.")
-    );
+    assert!(rendered.contains(
+        "Custom-definition-only Babylonian sidereal label (alias BABYL_HOUSE); not a Swiss Ephemeris sidereal mode. Swiss Ephemeris defines no SE_SIDM code for it."
+    ));
+    assert!(rendered.contains(
+        "Custom-definition-only Babylonian sidereal label (alias BABYL_HOUSE_OBS); not a Swiss Ephemeris sidereal mode. Swiss Ephemeris defines no SE_SIDM code for it."
+    ));
     assert!(rendered.contains(
         "Babylonian/Kugler 1, Babylonian Kugler 1, Babylonian 1 -> Babylonian (Kugler 1)"
     ));
