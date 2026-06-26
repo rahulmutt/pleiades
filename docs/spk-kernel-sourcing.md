@@ -32,9 +32,24 @@ Selected-asteroid main-belt coverage reads a JPL small-body perturber kernel,
 - License: public domain (U.S. Government work).
 - SHA-256: `919d612ce3c72a78fc7158f9120156542d0f21e6b8b052e4c1339c759747fd90`
 - Size: 645,727,232 bytes (full DE441 interval).
-- Bodies: the 16 most-massive perturbers (Ceres, Pallas, Juno, Vesta, Hygiea,
-  Psyche, Iris, …); the curated subset used here is the Tier A roster (Ceres,
-  Pallas, Juno, Vesta, Hygiea, Psyche, Iris — all confirmed present).
+- Bodies: the 16 most-massive perturbers (Ceres, Pallas, Juno, Vesta, Iris,
+  Hygiea, Eunomia, Psyche, Euphrosyne, Europa, Cybele, Sylvia, Thisbe, Camilla,
+  Davida, Interamnia); the curated subset used here is the Tier A roster (Ceres,
+  Pallas, Juno, Vesta, Hygiea, Psyche, Iris, Eunomia, Cybele — all confirmed
+  present).
+- Astrological usage (gate 2 — newly promoted bodies):
+  - 15 Eunomia: one of the Horae, goddess of good order and lawful conduct;
+    listed by number and name in the Swiss Ephemeris asteroid name catalog
+    (`seasnam.txt`, published by Astrodienst/astro.com, which includes every
+    numbered named asteroid); present in the asteroid-astrology interpretive
+    tradition (cf. Martha Lang-Wescott, *Mechanics of the Future: Asteroids*).
+  - 65 Cybele: Phrygian Great Mother / Magna Mater goddess; well-attested in
+    asteroid astrology; listed by number and name in the Swiss Ephemeris asteroid
+    name catalog (`seasnam.txt`, Astrodienst/astro.com) and in the interpretive
+    tradition (cf. Martha Lang-Wescott, *Mechanics of the Future: Asteroids*).
+- Regen coverage: the regeneration recipe filters the corpus by the Tier A
+  roster, so the promoted bodies (Eunomia, Cybele) are automatically included
+  in subsequent regeneration runs — no recipe edit is required.
 - Regenerate the committed slice with:
   `PLEIADES_DE_KERNEL=… PLEIADES_AST_KERNEL=… cargo run -p pleiades-jpl --bin regenerate-asteroid-corpus`
 - Default asteroid window: 1900–2100 CE (the corpus samples only this window;
