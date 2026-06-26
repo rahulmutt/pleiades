@@ -52,9 +52,23 @@ const MODES: &[(&str, i32)] = &[
     ("GalacticCenterMulaWilhelm", 36),
     ("GalacticCenterCochrane",    40),
     ("GalacticEquatorFiorenza",   41),
-    // Still deferred (offset family that exceeded the 3.0" linear ceiling,
-    // anchorless modes, observational Babylonians). No SE_SIDM emitted here for
-    // DhruvaGalacticCenterMula / legacy GalacticEquator: no distinct SE code.
+    // fitted-offset family — slice 3: failed-offset modes re-fit with cubics.
+    ("DeLuce",                2),
+    ("BabylonianKugler1",     9),
+    ("BabylonianKugler2",    10),
+    ("BabylonianKugler3",    11),
+    ("BabylonianHuber",      12),
+    ("BabylonianEtaPiscium", 13),
+    ("BabylonianAldebaran",  14),
+    ("Hipparchus",           15),
+    ("BabylonianBritton",    38),
+    ("ValensMoon",           42),
+    ("LahiriVP285",          44),
+    ("KrishnamurtiVP291",    45),
+    // Still deferred: anchorless modes (Udayagiri, PvrPushyaPaksha, Sheoran —
+    // no distinct SE_SIDM code), observational/topocentric/house Babylonians
+    // (TrueGeoc/TrueTopc/TrueObs/House/HouseObs/Sissy — not smooth in time), and
+    // DhruvaGalacticCenterMula / legacy GalacticEquator (no distinct SE code).
 ];
 
 /// Hold-out validation instants (jd_tt). Deliberately NOT on the dense fit grid
@@ -129,6 +143,11 @@ fn emit_fit() {
         ("GalacticEquatorMula", 33), ("GalacticCenterMardyks", 34),
         ("GalacticCenterMulaWilhelm", 36), ("GalacticCenterCochrane", 40),
         ("GalacticEquatorFiorenza", 41),
+        // slice 3 — fitted-offset family:
+        ("DeLuce", 2), ("BabylonianKugler1", 9), ("BabylonianKugler2", 10),
+        ("BabylonianKugler3", 11), ("BabylonianHuber", 12), ("BabylonianEtaPiscium", 13),
+        ("BabylonianAldebaran", 14), ("Hipparchus", 15), ("BabylonianBritton", 38),
+        ("ValensMoon", 42), ("LahiriVP285", 44), ("KrishnamurtiVP291", 45),
     ];
     for &(name, code) in FIT_MODES {
         // Normal equations for a degree-3 polynomial.
@@ -259,6 +278,45 @@ fn emit_measure_fitted() {
     }
 }
 
+/// Fit each slice-3 failed-offset candidate over the dense even-year grid, then
+/// report the worst holdout residual (arcsec) and a PASS/DEFER verdict at the
+/// 1.0" floor (the FittedOffset ceiling is recomputed in the crate from the
+/// measured maxima).
+fn emit_measure_fitted_offset() {
+    let dense: Vec<f64> = (1900..=2100)
+        .step_by(2)
+        .map(|y| 2_451_545.0 + (y as f64 - 2000.0) * 365.25)
+        .collect();
+    const FIT_MODES: &[(&str, i32)] = &[
+        ("DeLuce", 2), ("BabylonianKugler1", 9), ("BabylonianKugler2", 10),
+        ("BabylonianKugler3", 11), ("BabylonianHuber", 12), ("BabylonianEtaPiscium", 13),
+        ("BabylonianAldebaran", 14), ("Hipparchus", 15), ("BabylonianBritton", 38),
+        ("ValensMoon", 42), ("LahiriVP285", 44), ("KrishnamurtiVP291", 45),
+    ];
+    for &(name, code) in FIT_MODES {
+        let mut ata = vec![vec![0.0f64; 4]; 4];
+        let mut atb = vec![0.0f64; 4];
+        for &jd in &dense {
+            let t = (jd - 2_451_545.0) / 36_525.0;
+            let powers = [1.0, t, t * t, t * t * t];
+            let y = ayanamsa(code, jd);
+            for i in 0..4 {
+                atb[i] += powers[i] * y;
+                for j in 0..4 { ata[i][j] += powers[i] * powers[j]; }
+            }
+        }
+        let c4 = solve(ata, atb);
+        let c = [c4[0], c4[1], c4[2], c4[3]];
+        let mut worst = 0.0f64;
+        for &jd in HOLDOUT_JD_TT {
+            let resid = (ayanamsa(code, jd) - eval_cubic(&c, jd)).abs() * 3600.0;
+            if resid > worst { worst = resid; }
+        }
+        let verdict = if worst <= 1.0 { "PASS" } else { "DEFER" };
+        println!("{name} worst={worst:.6} verdict={verdict}");
+    }
+}
+
 /// Measure each in-scope offset mode's worst residual against the gate's exact
 /// OffsetDefined model: `ayan_t0 + precession_delta_degrees(jd, t0)` (degrees),
 /// reading `(se_sidm, t0, ayan_t0)` from the crate's single anchor source.
@@ -291,6 +349,7 @@ fn main() {
         Some("holdout") => emit_holdout_check(),
         Some("measure-offset") => emit_offset_measure(),
         Some("measure-fitted") => emit_measure_fitted(),
+        Some("measure-fitted-offset") => emit_measure_fitted_offset(),
         _ => emit_corpus(),
     }
 }

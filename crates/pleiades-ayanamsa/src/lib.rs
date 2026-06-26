@@ -23,6 +23,7 @@
 #![forbid(unsafe_code)]
 
 mod catalog;
+mod fitted_offset;
 mod galactic;
 mod lookup;
 mod model;

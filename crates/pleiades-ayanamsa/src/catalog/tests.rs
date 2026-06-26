@@ -461,27 +461,18 @@ fn scheduled_historical_reference_modes_use_the_published_zero_points() {
 fn deferred_modes_stay_descriptor_only() {
     use pleiades_types::{Ayanamsa, CompatibilityClaimTier};
 
-    // In-scope-but-deferred: large-residual modes that were promotion candidates
-    // but did not meet the numeric-grade bar in Task 4.
+    // No-SE_SIDM modes — deferred (no distinct SE code, must stay DescriptorOnly).
     let deferred = [
-        Ayanamsa::KrishnamurtiVP291,
-        Ayanamsa::LahiriVP285,
-        Ayanamsa::ValensMoon,
-        Ayanamsa::DeLuce,
-        Ayanamsa::BabylonianBritton,
-        Ayanamsa::BabylonianKugler1,
-        Ayanamsa::BabylonianKugler2,
-        Ayanamsa::BabylonianKugler3,
-        Ayanamsa::BabylonianHuber,
-        Ayanamsa::BabylonianAldebaran,
-        Ayanamsa::Hipparchus,
-        Ayanamsa::BabylonianEtaPiscium,
-        // No-SE_SIDM modes — also deferred.
         Ayanamsa::Udayagiri,
         Ayanamsa::PvrPushyaPaksha,
         Ayanamsa::Sheoran,
         // Slice-2: remaining non-promoted candidates.
         Ayanamsa::BabylonianTrueGeoc,
+        Ayanamsa::BabylonianTrueTopc,
+        Ayanamsa::BabylonianTrueObs,
+        Ayanamsa::BabylonianHouse,
+        Ayanamsa::BabylonianHouseObs,
+        Ayanamsa::BabylonianSissy,
         // Slice-2: no-SE_SIDM deferrals (no distinct SE code, must stay DescriptorOnly).
         Ayanamsa::DhruvaGalacticCenterMula,
         Ayanamsa::GalacticEquator,
@@ -549,6 +540,19 @@ fn release_grade_numeric_ayanamsa_set_is_exactly_the_gated_modes() {
         Ayanamsa::GalacticCenterMulaWilhelm,
         Ayanamsa::GalacticCenterCochrane,
         Ayanamsa::GalacticEquatorFiorenza,
+        // Fitted-offset family promoted in Phase 6 slice 3 (Task 4)
+        Ayanamsa::DeLuce,
+        Ayanamsa::BabylonianKugler1,
+        Ayanamsa::BabylonianKugler2,
+        Ayanamsa::BabylonianKugler3,
+        Ayanamsa::BabylonianHuber,
+        Ayanamsa::BabylonianEtaPiscium,
+        Ayanamsa::BabylonianAldebaran,
+        Ayanamsa::Hipparchus,
+        Ayanamsa::BabylonianBritton,
+        Ayanamsa::ValensMoon,
+        Ayanamsa::LahiriVP285,
+        Ayanamsa::KrishnamurtiVP291,
     ];
 
     assert_eq!(release_grade.len(), expected.len());
@@ -558,7 +562,7 @@ fn release_grade_numeric_ayanamsa_set_is_exactly_the_gated_modes() {
 }
 
 #[test]
-fn promoted_fitted_modes_are_release_grade() {
+fn promoted_fitted_and_fitted_offset_modes_are_release_grade() {
     use crate::descriptor;
     use pleiades_types::CompatibilityClaimTier::ReleaseGradeNumeric;
     use pleiades_types::{Ayanamsa, CompatibilityClaimTier};
@@ -576,6 +580,19 @@ fn promoted_fitted_modes_are_release_grade() {
         Ayanamsa::GalacticCenterMulaWilhelm,
         Ayanamsa::GalacticCenterCochrane,
         Ayanamsa::GalacticEquatorFiorenza,
+        // Fitted-offset family promoted in Phase 6 slice 3
+        Ayanamsa::DeLuce,
+        Ayanamsa::BabylonianKugler1,
+        Ayanamsa::BabylonianKugler2,
+        Ayanamsa::BabylonianKugler3,
+        Ayanamsa::BabylonianHuber,
+        Ayanamsa::BabylonianEtaPiscium,
+        Ayanamsa::BabylonianAldebaran,
+        Ayanamsa::Hipparchus,
+        Ayanamsa::BabylonianBritton,
+        Ayanamsa::ValensMoon,
+        Ayanamsa::LahiriVP285,
+        Ayanamsa::KrishnamurtiVP291,
     ] {
         let d = descriptor(&m).expect("descriptor exists");
         assert_eq!(d.claim_tier, ReleaseGradeNumeric, "{m:?}");

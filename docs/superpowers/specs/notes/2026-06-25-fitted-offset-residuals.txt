@@ -1,0 +1,12 @@
+DeLuce worst=0.000005 verdict=PASS
+BabylonianKugler1 worst=0.000004 verdict=PASS
+BabylonianKugler2 worst=0.000004 verdict=PASS
+BabylonianKugler3 worst=0.000004 verdict=PASS
+BabylonianHuber worst=0.000004 verdict=PASS
+BabylonianEtaPiscium worst=0.000004 verdict=PASS
+BabylonianAldebaran worst=0.000004 verdict=PASS
+Hipparchus worst=0.000004 verdict=PASS
+BabylonianBritton worst=0.000005 verdict=PASS
+ValensMoon worst=0.000005 verdict=PASS
+LahiriVP285 worst=0.000005 verdict=PASS
+KrishnamurtiVP291 worst=0.000005 verdict=PASS

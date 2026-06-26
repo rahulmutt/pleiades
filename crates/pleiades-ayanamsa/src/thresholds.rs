@@ -17,6 +17,10 @@ pub enum AyanamsaModeClass {
     /// Sidereal point pinned to a galactic reference (center / equator), fit to
     /// Swiss Ephemeris mean ayanamsa.
     Galactic,
+    /// Offset/historical sidereal mode whose linear anchor+precession model
+    /// missed the OffsetDefined ceiling, promoted instead by a committed cubic
+    /// fit to Swiss Ephemeris mean ayanamsa (same mechanism as TrueStar/Galactic).
+    FittedOffset,
 }
 
 /// Arcsecond ceiling for one mode class.
@@ -33,11 +37,13 @@ pub struct AyanamsaCeiling {
 /// - OffsetDefined: max residual 1.370402″ → ceil(2 × 1.370402) = ceil(2.740804) = 3.0″.
 /// - TrueStar (6 modes): max residual ≈ 0.175″ (TrueRevati) → ceil(2 × 0.175) = ceil(0.350) = 1.0″ (floor).
 /// - Galactic (9 modes): max residual ≈ 0.057″ (GalacticCenterMulaWilhelm) → ceil(2 × 0.057) = ceil(0.114) = 1.0″ (floor).
+/// - FittedOffset (12 modes): max residual ≈ 0.000005″ (5e-6″) → ceil(2 × 0.000005) = ceil(0.00001) = 1.0″ (floor).
 pub fn ayanamsa_mode_ceiling(class: AyanamsaModeClass) -> AyanamsaCeiling {
     match class {
         AyanamsaModeClass::OffsetDefined => AyanamsaCeiling { offset_arcsec: 3.0 },
         AyanamsaModeClass::TrueStar => AyanamsaCeiling { offset_arcsec: 1.0 },
         AyanamsaModeClass::Galactic => AyanamsaCeiling { offset_arcsec: 1.0 },
+        AyanamsaModeClass::FittedOffset => AyanamsaCeiling { offset_arcsec: 1.0 },
     }
 }
 
@@ -79,6 +85,18 @@ pub fn ayanamsa_mode_class(ayanamsa: &Ayanamsa) -> Option<AyanamsaModeClass> {
         | Ayanamsa::GalacticCenterMulaWilhelm
         | Ayanamsa::GalacticCenterCochrane
         | Ayanamsa::GalacticEquatorFiorenza => Some(AyanamsaModeClass::Galactic),
+        Ayanamsa::DeLuce
+        | Ayanamsa::BabylonianKugler1
+        | Ayanamsa::BabylonianKugler2
+        | Ayanamsa::BabylonianKugler3
+        | Ayanamsa::BabylonianHuber
+        | Ayanamsa::BabylonianEtaPiscium
+        | Ayanamsa::BabylonianAldebaran
+        | Ayanamsa::Hipparchus
+        | Ayanamsa::BabylonianBritton
+        | Ayanamsa::ValensMoon
+        | Ayanamsa::LahiriVP285
+        | Ayanamsa::KrishnamurtiVP291 => Some(AyanamsaModeClass::FittedOffset),
         _ => None,
     }
 }
@@ -88,9 +106,10 @@ pub fn ayanamsa_thresholds_summary_for_report() -> String {
     let off = ayanamsa_mode_ceiling(AyanamsaModeClass::OffsetDefined);
     let star = ayanamsa_mode_ceiling(AyanamsaModeClass::TrueStar);
     let gal = ayanamsa_mode_ceiling(AyanamsaModeClass::Galactic);
+    let fit = ayanamsa_mode_ceiling(AyanamsaModeClass::FittedOffset);
     format!(
-        "Ayanamsa ceilings: offset-defined {:.1}\u{2033}, true-star {:.1}\u{2033}, galactic {:.1}\u{2033}",
-        off.offset_arcsec, star.offset_arcsec, gal.offset_arcsec
+        "Ayanamsa ceilings: offset-defined {:.1}\u{2033}, true-star {:.1}\u{2033}, galactic {:.1}\u{2033}, fitted-offset {:.1}\u{2033}",
+        off.offset_arcsec, star.offset_arcsec, gal.offset_arcsec, fit.offset_arcsec
     )
 }
 
@@ -104,6 +123,7 @@ mod tests {
             AyanamsaModeClass::OffsetDefined,
             AyanamsaModeClass::TrueStar,
             AyanamsaModeClass::Galactic,
+            AyanamsaModeClass::FittedOffset,
         ] {
             let c = ayanamsa_mode_ceiling(class);
             assert!(c.offset_arcsec.is_finite() && c.offset_arcsec > 0.0);
@@ -148,9 +168,15 @@ mod tests {
             ayanamsa_mode_class(&Ayanamsa::TrueChitra),
             Some(AyanamsaModeClass::TrueStar)
         );
-        // Deferred gap modes must NOT be gated.
-        assert_eq!(ayanamsa_mode_class(&Ayanamsa::KrishnamurtiVP291), None);
-        assert_eq!(ayanamsa_mode_class(&Ayanamsa::LahiriVP285), None);
+        // Promoted to FittedOffset (not OffsetDefined, not None).
+        assert_eq!(
+            ayanamsa_mode_class(&Ayanamsa::KrishnamurtiVP291),
+            Some(AyanamsaModeClass::FittedOffset)
+        );
+        assert_eq!(
+            ayanamsa_mode_class(&Ayanamsa::LahiriVP285),
+            Some(AyanamsaModeClass::FittedOffset)
+        );
         // Galactic-class control (now gated as Galactic, not OffsetDefined).
         assert_eq!(
             ayanamsa_mode_class(&Ayanamsa::GalacticCenter),
@@ -162,7 +188,10 @@ mod tests {
     fn summary_line_mentions_all_classes() {
         let s = ayanamsa_thresholds_summary_for_report();
         assert!(
-            s.contains("offset-defined") && s.contains("true-star") && s.contains("galactic"),
+            s.contains("offset-defined")
+                && s.contains("true-star")
+                && s.contains("galactic")
+                && s.contains("fitted-offset"),
             "{s}"
         );
     }
@@ -204,5 +233,33 @@ mod tests {
             None
         );
         assert_eq!(ayanamsa_mode_class(&Ayanamsa::GalacticEquator), None);
+    }
+
+    #[test]
+    fn promoted_fitted_offset_modes_map_to_their_class() {
+        for m in [
+            Ayanamsa::DeLuce,
+            Ayanamsa::BabylonianKugler1,
+            Ayanamsa::BabylonianKugler2,
+            Ayanamsa::BabylonianKugler3,
+            Ayanamsa::BabylonianHuber,
+            Ayanamsa::BabylonianEtaPiscium,
+            Ayanamsa::BabylonianAldebaran,
+            Ayanamsa::Hipparchus,
+            Ayanamsa::BabylonianBritton,
+            Ayanamsa::ValensMoon,
+            Ayanamsa::LahiriVP285,
+            Ayanamsa::KrishnamurtiVP291,
+        ] {
+            assert_eq!(
+                ayanamsa_mode_class(&m),
+                Some(AyanamsaModeClass::FittedOffset),
+                "{m:?}"
+            );
+        }
+        // No-SE_SIDM anchorless modes stay ungated.
+        assert_eq!(ayanamsa_mode_class(&Ayanamsa::Udayagiri), None);
+        assert_eq!(ayanamsa_mode_class(&Ayanamsa::PvrPushyaPaksha), None);
+        assert_eq!(ayanamsa_mode_class(&Ayanamsa::Sheoran), None);
     }
 }
