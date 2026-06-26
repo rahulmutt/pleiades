@@ -15,7 +15,7 @@ As of the current workspace state, `pleiades` includes:
 - a backend-agnostic request/result contract with capability metadata,
 - a high-level chart façade with typed tropical/sidereal chart requests,
 - baseline chart body placement, zodiac-sign summaries, aspect summaries, and optional house summaries,
-- a release compatibility profile (`pleiades-compatibility-profile/0.7.0`),
+- a release compatibility profile (`pleiades-compatibility-profile/0.7.1`),
 - an API stability profile (`pleiades-api-stability/0.2.0`),
 - 25 catalogued house systems and 59 catalogued ayanamsas; of the 25 catalogued house systems, 24 house systems pass the SE numeric gate; of the 59 catalogued ayanamsas, 48 release-claimed ayanamsa modes pass theirs (the remaining 11 are catalogued with metadata only),
 - pure-Rust algorithmic backends for VSOP87-style planetary positions and a compact Meeus-style lunar baseline,
