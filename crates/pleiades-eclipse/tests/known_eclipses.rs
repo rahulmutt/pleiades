@@ -1,3 +1,6 @@
+use pleiades_backend::{
+    Apparentness, CelestialBody, CoordinateFrame, EphemerisBackend, EphemerisRequest,
+};
 use pleiades_data::packaged_backend;
 use pleiades_eclipse::{EclipseEngine, EclipseFilter, EclipseKind, EclipseType, SolarEclipseType};
 use pleiades_types::{Instant, JulianDay, TimeScale};
@@ -31,5 +34,47 @@ fn finds_the_1999_august_11_total_solar_eclipse() {
     assert!(
         delta_s < 60.0,
         "jd was {jd}, delta {delta_s:.1}s exceeds 60s limit"
+    );
+}
+
+/// Evidence test: print mean vs apparent eclipsed_longitude delta.
+#[test]
+fn apparent_vs_mean_eclipsed_longitude_delta() {
+    let backend = packaged_backend();
+    let engine = EclipseEngine::new(backend.clone());
+
+    let eclipses = engine
+        .eclipses_in_range(at(2_451_400.0), at(2_451_410.0), EclipseFilter::SolarOnly)
+        .unwrap();
+    let e = eclipses
+        .iter()
+        .find(|e| e.kind == EclipseKind::Solar)
+        .unwrap();
+
+    let jd = e.greatest_eclipse.julian_day.days();
+    let apparent_lon = e.eclipsed_longitude.degrees();
+
+    // Compute mean Sun longitude directly from the backend (before apparent correction).
+    let req = EphemerisRequest {
+        body: CelestialBody::Sun,
+        instant: Instant::new(JulianDay::from_days(jd), TimeScale::Tdb),
+        observer: None,
+        frame: CoordinateFrame::Ecliptic,
+        zodiac_mode: pleiades_types::ZodiacMode::Tropical,
+        apparent: Apparentness::Mean,
+    };
+    let result = backend.position(&req).unwrap();
+    let mean_lon = result.ecliptic.unwrap().longitude.degrees();
+
+    let delta_arcsec = (apparent_lon - mean_lon) * 3600.0;
+    eprintln!(
+        "1999 eclipse mean_lon={mean_lon:.6}°  apparent_lon={apparent_lon:.6}°  \
+         delta={delta_arcsec:+.1}\"  (expect ~20-25\" for aberration+nutation)"
+    );
+    // The delta should be in the ~20–25″ range (aberration ~20.5″ + nutation ±17″ net ~20–25″).
+    // We just assert the sign/magnitude is non-trivial to confirm the correction is active.
+    assert!(
+        delta_arcsec.abs() > 5.0 && delta_arcsec.abs() < 100.0,
+        "unexpected delta {delta_arcsec:.1}\" — correction may be inactive or wrong"
     );
 }

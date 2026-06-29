@@ -1,9 +1,5 @@
 //! Geocentric eclipse shadow-cone geometry and type classification.
 
-// Items here are pub(crate) for upcoming eclipse-engine tasks; silence
-// dead_code lint until those consumers land.
-#![allow(dead_code)]
-
 use crate::ephemeris::SunMoonSample;
 use crate::syzygy::Syzygy;
 use crate::types::{LunarEclipseType, SolarEclipseType};

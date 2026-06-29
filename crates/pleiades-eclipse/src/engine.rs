@@ -1,11 +1,11 @@
 //! The public eclipse search engine.
 
-use crate::ephemeris::sample_sun_moon;
+use crate::ephemeris::{apparent_sun_longitude_deg, sample_sun_moon};
 use crate::error::{EclipseError, WINDOW_END_JD, WINDOW_START_JD};
-use crate::geometry::{classify_lunar, classify_solar};
+use crate::geometry::{classify_lunar, classify_solar, sub_shadow_point};
 use crate::saros::saros_series;
 use crate::syzygy::{find_syzygies, Syzygy};
-use crate::types::{Eclipse, EclipseFilter, EclipseKind, EclipseType, GeoLocation, Node};
+use crate::types::{Eclipse, EclipseFilter, EclipseKind, EclipseType, Node};
 use pleiades_backend::EphemerisBackend;
 use pleiades_types::{Instant, JulianDay, Longitude, TimeScale};
 
@@ -79,9 +79,16 @@ impl<B: EphemerisBackend> EclipseEngine<B> {
         let greatest_jd = self.refine_greatest(syzygy, syzygy_jd)?;
         let sample = sample_sun_moon(&self.backend, greatest_jd)?;
         let greatest_eclipse = Instant::new(JulianDay::from_days(greatest_jd), TimeScale::Tdb);
+        // Compute the apparent geocentric solar longitude of date for eclipsed_longitude.
+        // Geometric sampling (separation, classification) uses the Mean frame — that is
+        // correct and unchanged. But eclipsed_longitude must be apparent-of-date per the
+        // spec (Task 10 gate: ≤1 arcsecond); mean would be ~20–25″ off.
+        let apparent_sun_lon = apparent_sun_longitude_deg(&self.backend, greatest_jd)?;
         let eclipsed_longitude = match syzygy {
-            Syzygy::NewMoon => Longitude::from_degrees(sample.sun_longitude_deg),
-            Syzygy::FullMoon => Longitude::from_degrees(sample.sun_longitude_deg + 180.0),
+            Syzygy::NewMoon => Longitude::from_degrees(apparent_sun_lon),
+            // For lunar eclipses the eclipsed body is the Moon, which is opposite the Sun;
+            // eclipsed_longitude is the apparent solar longitude + 180° (corpus MANIFEST).
+            Syzygy::FullMoon => Longitude::from_degrees(apparent_sun_lon + 180.0),
         };
         // Node: ascending (North) if the Moon's latitude is increasing through 0.
         let later = sample_sun_moon(&self.backend, greatest_jd + 0.01)?;
@@ -105,7 +112,7 @@ impl<B: EphemerisBackend> EclipseEngine<B> {
                     saros_series: saros_series(EclipseKind::Solar, greatest_jd),
                     eclipsed_longitude,
                     near_node,
-                    greatest_eclipse_location: Some(self.sub_shadow_point(&sample, greatest_jd)),
+                    greatest_eclipse_location: Some(sub_shadow_point(&sample, greatest_jd)),
                 }
             }
             Syzygy::FullMoon => {
@@ -154,17 +161,6 @@ impl<B: EphemerisBackend> EclipseEngine<B> {
             }
         }
         Ok(0.5 * (a + b))
-    }
-
-    /// Sub-shadow geographic point at greatest eclipse (solar). Geocentric:
-    /// latitude ≈ Moon declination, longitude from GMST and the Moon's RA.
-    fn sub_shadow_point(
-        &self,
-        sample: &crate::ephemeris::SunMoonSample,
-        greatest_jd: f64,
-    ) -> GeoLocation {
-        use crate::geometry::sub_shadow_point;
-        sub_shadow_point(sample, greatest_jd)
     }
 }
 
