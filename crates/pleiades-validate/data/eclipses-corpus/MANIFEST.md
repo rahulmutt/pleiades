@@ -60,9 +60,12 @@ for both solar and lunar), discards rows with jd_tt < 2_415_020.5 (pre-1900),
 and processes the remainder identically.  The net result covers 1900-01-01 …
 2100-12-31 exhaustively, including all four year-1900 eclipses.
 
-Requirements: Python 3.10+, `requests` (or the stdlib `urllib.request` already
-used), `skyfield >= 1.54`, and `/workspace/.kernels/de440.bsp` (already
-committed as a workspace artifact).
+Requirements: Python 3.10+, `skyfield >= 1.54` (the HTML fetch + parsing use
+only the stdlib `urllib.request` + `re` — no `requests`/`beautifulsoup4`), and
+`/workspace/.kernels/de440.bsp`. The kernel is **not committed** (the `.kernels/`
+directory is gitignored); obtain it separately by downloading
+`https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de440.bsp`
+and placing it at `/workspace/.kernels/de440.bsp`.
 
 ### JD(TT) conversion
 

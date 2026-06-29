@@ -17,10 +17,13 @@ Outputs (in the same directory as this script):
 
 Reproduction:
   cd <repo>/crates/pleiades-validate/data/eclipses-corpus/
-  pip install skyfield requests beautifulsoup4
+  pip install skyfield
   python3 gen_eclipse_corpus.py
 
-Dependencies: requests, beautifulsoup4, skyfield >= 1.54, /workspace/.kernels/de440.bsp
+Dependencies: skyfield >= 1.54 (the HTML fetch + parsing use only the stdlib
+urllib.request + re — no requests/beautifulsoup4), and /workspace/.kernels/de440.bsp
+(NOT committed: the .kernels/ dir is gitignored; download de440.bsp from
+https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de440.bsp).
 """
 
 import re
@@ -34,6 +37,7 @@ from pathlib import Path
 # Supported JD window  (1900-01-01 TT … 2101-01-01 TT)
 # ---------------------------------------------------------------------------
 JD_WINDOW_START = 2_415_020.5   # 1900-01-01 00:00:00 TT
+JD_WINDOW_END = 2_488_434.5     # 2101-01-01 00:00:00 TT (covers through 2100-12-31)
 
 # ---------------------------------------------------------------------------
 # NASA source URLs  (1801-1900 pages first, to cover all year-1900 eclipses)
@@ -103,8 +107,8 @@ def map_lunar_type(code: str) -> str:
         return "total"
     if c == "P":
         return "partial"
-    # N, Nx, Nb, Ne, etc. are penumbral
-    if c.startswith("N") or c.startswith("P") is False:
+    # N, Nx, Nb, Ne, etc. are penumbral; any non-T, non-"P" code is penumbral too.
+    if c.startswith("N") or not c.startswith("P"):
         return "penumbral"
     return "partial"
 
@@ -386,12 +390,17 @@ def main():
         print(f"    Lunar rows parsed: {len(rows)}")
         all_rows.extend(rows)
 
-    # Filter to the supported window (discard pre-1900 rows from 1801-1900 pages)
+    # Filter to the supported window [JD_WINDOW_START, JD_WINDOW_END): discard
+    # pre-1900 rows from the 1801-1900 pages and guard the upper bound so a
+    # future re-run of a reformatted/extended NASA page cannot leak rows past
+    # the engine window (which would break the gate's bounds).
     before = len(all_rows)
-    all_rows = [r for r in all_rows if r["jd_tt"] >= JD_WINDOW_START]
+    all_rows = [
+        r for r in all_rows if JD_WINDOW_START <= r["jd_tt"] < JD_WINDOW_END
+    ]
     discarded = before - len(all_rows)
     if discarded:
-        print(f"  Discarded {discarded} rows with jd_tt < {JD_WINDOW_START} (pre-1900)")
+        print(f"  Discarded {discarded} rows outside [{JD_WINDOW_START}, {JD_WINDOW_END})")
 
     solar_count = sum(1 for r in all_rows if r["kind"] == "solar")
     lunar_count = sum(1 for r in all_rows if r["kind"] == "lunar")
