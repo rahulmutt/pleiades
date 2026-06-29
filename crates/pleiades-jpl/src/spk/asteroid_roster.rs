@@ -44,6 +44,9 @@ pub struct AsteroidEntry {
     pub body: CelestialBody,
     pub tier: AsteroidTier,
     pub class: AsteroidClass,
+    /// Evidence source string used in `spk_body_claims` (e.g. `"sb441-n373s"`,
+    /// `"jpl-sbdb-spk:2060"`, `"horizons"`).
+    pub source: &'static str,
 }
 
 fn ast(designation: &str) -> CelestialBody {
@@ -62,50 +65,55 @@ pub fn asteroid_core_roster() -> &'static [AsteroidEntry] {
     static ROSTER: OnceLock<Vec<AsteroidEntry>> = OnceLock::new();
     ROSTER
         .get_or_init(|| {
-            let e = |body, tier, class| AsteroidEntry { body, tier, class };
+            let e = |body, tier, class, source| AsteroidEntry {
+                body,
+                tier,
+                class,
+                source,
+            };
             vec![
                 // Classical four — in sb441-n373s, Tier A.
-                e(CelestialBody::Ceres, PinnedKernel, MainBelt),
-                e(CelestialBody::Pallas, PinnedKernel, MainBelt),
-                e(CelestialBody::Juno, PinnedKernel, MainBelt),
-                e(CelestialBody::Vesta, PinnedKernel, MainBelt),
+                e(CelestialBody::Ceres, PinnedKernel, MainBelt, "sb441-n373s"),
+                e(CelestialBody::Pallas, PinnedKernel, MainBelt, "sb441-n373s"),
+                e(CelestialBody::Juno, PinnedKernel, MainBelt, "sb441-n373s"),
+                e(CelestialBody::Vesta, PinnedKernel, MainBelt, "sb441-n373s"),
                 // Other massive main-belt members of sb441-n373s used in astrology.
-                e(ast("10-Hygiea"), PinnedKernel, MainBelt),
-                e(ast("16-Psyche"), PinnedKernel, MainBelt),
-                e(ast("7-Iris"), PinnedKernel, MainBelt),
-                e(ast("15-Eunomia"), PinnedKernel, MainBelt),
-                e(ast("65-Cybele"), PinnedKernel, MainBelt),
+                e(ast("10-Hygiea"), PinnedKernel, MainBelt, "sb441-n373s"),
+                e(ast("16-Psyche"), PinnedKernel, MainBelt, "sb441-n373s"),
+                e(ast("7-Iris"), PinnedKernel, MainBelt, "sb441-n373s"),
+                e(ast("15-Eunomia"), PinnedKernel, MainBelt, "sb441-n373s"),
+                e(ast("65-Cybele"), PinnedKernel, MainBelt, "sb441-n373s"),
                 // Centaurs — Tier B (not in sb441-n373s).
-                e(ast("2060-Chiron"), Constrained, Centaur),
-                e(ast("5145-Pholus"), Constrained, Centaur),
-                e(ast("7066-Nessus"), Constrained, Centaur),
-                e(ast("10199-Chariklo"), Constrained, Centaur),
-                e(ast("8405-Asbolus"), Constrained, Centaur),
+                e(ast("2060-Chiron"), Constrained, Centaur, "horizons"),
+                e(ast("5145-Pholus"), Constrained, Centaur, "horizons"),
+                e(ast("7066-Nessus"), Constrained, Centaur, "horizons"),
+                e(ast("10199-Chariklo"), Constrained, Centaur, "horizons"),
+                e(ast("8405-Asbolus"), Constrained, Centaur, "horizons"),
                 // Personal / "goddess" asteroids — kernel-confirmed members promoted to Tier A;
                 // Amor, Lilith, Hidalgo, Icarus, Toro, Apollo absent from sb441-n373s, stay Tier B.
-                e(ast("433-Eros"), PinnedKernel, MainBelt),
-                e(ast("80-Sappho"), PinnedKernel, MainBelt),
-                e(ast("1221-Amor"), Constrained, MainBelt),
-                e(ast("1181-Lilith"), Constrained, MainBelt),
-                e(ast("5-Astraea"), PinnedKernel, MainBelt),
-                e(ast("6-Hebe"), PinnedKernel, MainBelt),
-                e(ast("8-Flora"), PinnedKernel, MainBelt),
-                e(ast("9-Metis"), PinnedKernel, MainBelt),
-                e(ast("19-Fortuna"), PinnedKernel, MainBelt),
-                e(ast("944-Hidalgo"), Constrained, MainBelt),
-                e(ast("1566-Icarus"), Constrained, MainBelt),
-                e(ast("1685-Toro"), Constrained, MainBelt),
-                e(ast("1862-Apollo"), Constrained, MainBelt),
+                e(ast("433-Eros"), PinnedKernel, MainBelt, "sb441-n373s"),
+                e(ast("80-Sappho"), PinnedKernel, MainBelt, "sb441-n373s"),
+                e(ast("1221-Amor"), Constrained, MainBelt, "horizons"),
+                e(ast("1181-Lilith"), Constrained, MainBelt, "horizons"),
+                e(ast("5-Astraea"), PinnedKernel, MainBelt, "sb441-n373s"),
+                e(ast("6-Hebe"), PinnedKernel, MainBelt, "sb441-n373s"),
+                e(ast("8-Flora"), PinnedKernel, MainBelt, "sb441-n373s"),
+                e(ast("9-Metis"), PinnedKernel, MainBelt, "sb441-n373s"),
+                e(ast("19-Fortuna"), PinnedKernel, MainBelt, "sb441-n373s"),
+                e(ast("944-Hidalgo"), Constrained, MainBelt, "horizons"),
+                e(ast("1566-Icarus"), Constrained, MainBelt, "horizons"),
+                e(ast("1685-Toro"), Constrained, MainBelt, "horizons"),
+                e(ast("1862-Apollo"), Constrained, MainBelt, "horizons"),
                 // TNOs / dwarf planets — all nine confirmed in sb441-n373s, Tier A.
-                e(tno("136199-Eris"), PinnedKernel, Tno),
-                e(tno("90377-Sedna"), PinnedKernel, Tno),
-                e(tno("136108-Haumea"), PinnedKernel, Tno),
-                e(tno("136472-Makemake"), PinnedKernel, Tno),
-                e(tno("50000-Quaoar"), PinnedKernel, Tno),
-                e(tno("90482-Orcus"), PinnedKernel, Tno),
-                e(tno("28978-Ixion"), PinnedKernel, Tno),
-                e(tno("20000-Varuna"), PinnedKernel, Tno),
-                e(tno("225088-Gonggong"), PinnedKernel, Tno),
+                e(tno("136199-Eris"), PinnedKernel, Tno, "sb441-n373s"),
+                e(tno("90377-Sedna"), PinnedKernel, Tno, "sb441-n373s"),
+                e(tno("136108-Haumea"), PinnedKernel, Tno, "sb441-n373s"),
+                e(tno("136472-Makemake"), PinnedKernel, Tno, "sb441-n373s"),
+                e(tno("50000-Quaoar"), PinnedKernel, Tno, "sb441-n373s"),
+                e(tno("90482-Orcus"), PinnedKernel, Tno, "sb441-n373s"),
+                e(tno("28978-Ixion"), PinnedKernel, Tno, "sb441-n373s"),
+                e(tno("20000-Varuna"), PinnedKernel, Tno, "sb441-n373s"),
+                e(tno("225088-Gonggong"), PinnedKernel, Tno, "sb441-n373s"),
             ]
         })
         .as_slice()
@@ -131,41 +139,38 @@ pub fn tier_b_bodies() -> Vec<CelestialBody> {
 
 /// Builds per-body claims for the SPK backend over the bodies it actually covers.
 ///
-/// - Tier-A bodies (pinned sb441-n373s kernel) → `ReleaseGrade`/`High`/`CorpusValidated{"sb441-n373s"}`
-/// - Tier-B bodies (Horizons-sourced) → `Constrained`/`Moderate`/`CorpusValidated{"horizons"}`
+/// - `PinnedKernel` roster entries → `ReleaseGrade`/`High`/`CorpusValidated{entry.source}`
+/// - Other roster entries → `Constrained`/`Moderate`/`CorpusValidated{entry.source}`
 /// - All other bodies (planets, Sun, Moon served by DE kernels) → `Constrained`/`High`/`CorpusValidated{"de440"}`
 pub fn spk_body_claims(covered: &[CelestialBody]) -> Vec<pleiades_backend::BodyClaim> {
     use pleiades_backend::{AccuracyClass, BodyClaim, ClaimEvidence};
-    let tier_a = tier_a_bodies();
-    let tier_b = tier_b_bodies();
+    let roster = asteroid_core_roster();
     covered
         .iter()
         .cloned()
         .map(|body| {
-            if tier_a.contains(&body) {
-                BodyClaim::release_grade(
+            match roster.iter().find(|e| e.body == body) {
+                Some(e) if e.tier == AsteroidTier::PinnedKernel => BodyClaim::release_grade(
                     body,
                     AccuracyClass::High,
                     ClaimEvidence::CorpusValidated {
-                        source: "sb441-n373s".to_string(),
+                        source: e.source.to_string(),
                     },
-                )
-            } else if tier_b.contains(&body) {
-                BodyClaim::constrained(
+                ),
+                Some(e) => BodyClaim::constrained(
                     body,
                     AccuracyClass::Moderate,
                     ClaimEvidence::CorpusValidated {
-                        source: "horizons".to_string(),
+                        source: e.source.to_string(),
                     },
-                )
-            } else {
-                BodyClaim::constrained(
+                ),
+                None => BodyClaim::constrained(
                     body,
                     AccuracyClass::High,
                     ClaimEvidence::CorpusValidated {
                         source: "de440".to_string(),
                     },
-                )
+                ),
             }
         })
         .collect()
@@ -244,18 +249,27 @@ mod tests {
     }
 
     #[test]
-    fn tier_a_claims_cite_n373s() {
+    fn tier_a_claims_cite_their_declared_source() {
         use pleiades_backend::ClaimEvidence;
         let claims = spk_body_claims(&tier_a_bodies());
         assert!(!claims.is_empty());
         for c in &claims {
+            let entry = asteroid_core_roster()
+                .iter()
+                .find(|e| e.body == c.body)
+                .expect("claim body is in roster");
             match &c.evidence {
                 ClaimEvidence::CorpusValidated { source } => {
-                    assert_eq!(source, "sb441-n373s", "{:?} cites wrong source", c)
+                    assert_eq!(source, entry.source, "{:?} cites wrong source", c.body)
                 }
                 other => panic!("unexpected evidence {other:?}"),
             }
         }
+        // Until promotion, every Tier-A body is still kernel-sourced.
+        assert!(claims.iter().all(|c| matches!(
+            &c.evidence,
+            ClaimEvidence::CorpusValidated { source } if source == "sb441-n373s"
+        )));
     }
 
     #[test]
