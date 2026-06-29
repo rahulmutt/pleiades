@@ -77,11 +77,12 @@ fn jan1_midnight_jd(year: i32) -> f64 {
 }
 
 /// Pinned identity of the Tier A small-body perturber kernel. SHA-256 is
-/// computed via `shasum -a 256 sb441-n16.bsp` and recorded here + in
-/// docs/spk-kernel-sourcing.md when the kernel is adopted (Task 11).
-pub const AST_KERNEL_LABEL: &str = "JPL DE small-body perturber kernel: sb441-n16.bsp";
+/// computed via `shasum -a 256 sb441-n373s.bsp` and recorded here +
+/// docs/spk-kernel-sourcing.md. `sb441-n373s` (343 main-belt perturbers + 30
+/// KBOs, DE441-consistent) supersedes the retired 16-body `sb441-n16`.
+pub const AST_KERNEL_LABEL: &str = "JPL DE small-body perturber kernel: sb441-n373s.bsp";
 pub const AST_KERNEL_SHA256: &str =
-    "919d612ce3c72a78fc7158f9120156542d0f21e6b8b052e4c1339c759747fd90";
+    "2143113282bfc2b2a0b0b4626125d4f84362339b5a8ae7eea40f4120ca8da10b";
 
 /// Role of a corpus slice, preserving the reference/holdout/boundary/
 /// fixture-exactness separation.
@@ -474,13 +475,21 @@ mod tests {
 
     #[test]
     fn asteroid_kernel_sha_is_pinned_64_hex() {
-        // Pinned in Task 11 from `shasum -a 256 sb441-n16.bsp`.
+        // Pinned from `shasum -a 256 sb441-n373s.bsp`.
         assert_eq!(AST_KERNEL_SHA256.len(), 64);
         assert!(
             AST_KERNEL_SHA256
                 .chars()
                 .all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase()),
             "kernel SHA must be lowercase hex"
+        );
+        assert!(
+            AST_KERNEL_LABEL.contains("sb441-n373s"),
+            "asteroid kernel label must name the n373s kernel"
+        );
+        assert!(
+            !AST_KERNEL_LABEL.contains("sb441-n16"),
+            "sb441-n16 must be fully retired"
         );
     }
 

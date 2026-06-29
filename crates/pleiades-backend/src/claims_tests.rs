@@ -41,11 +41,11 @@ fn summary_line_mentions_body_tier_and_evidence() {
         CelestialBody::Ceres,
         AccuracyClass::High,
         ClaimEvidence::CorpusValidated {
-            source: "sb441-n16".to_string(),
+            source: "sb441-n373s".to_string(),
         },
     );
     let line = claim.summary_line();
     assert!(line.contains("Ceres"));
     assert!(line.contains("ReleaseGrade"));
-    assert!(line.contains("sb441-n16"));
+    assert!(line.contains("sb441-n373s"));
 }

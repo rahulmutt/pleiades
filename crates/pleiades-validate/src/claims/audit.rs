@@ -172,7 +172,7 @@ pub fn audit_structural() -> Result<(), Vec<ClaimAuditError>> {
 ///   kernel-free environment. (The packaged Eros claim has no hold-out truth row
 ///   and is therefore not exercised here; it remains covered by the broad
 ///   production corpus inside `pleiades-data`.)
-/// - **jpl-spk** (`jpl-spk`): the sb441-n16 Tier-A asteroid reference (a
+/// - **jpl-spk** (`jpl-spk`): the sb441-n373s Tier-A asteroid reference (a
 ///   [`SnapshotCorpusBackend`] over [`crate::corpus::asteroid_corpus`]) is
 ///   compared against the SPK release backend. In the kernel-free environment
 ///   the SPK candidate declares no release-grade bodies, so this path performs
@@ -241,7 +241,7 @@ pub fn audit_release_grade_accuracy() -> Result<(), Vec<ClaimAuditError>> {
         }
     }
 
-    // jpl-spk Tier-A asteroids vs the sb441-n16 asteroid reference.
+    // jpl-spk Tier-A asteroids vs the sb441-n373s asteroid reference.
     // NOTE: in the kernel-free environment the SPK backend declares no
     // release-grade bodies, so compare_backends returns Err and this block
     // is skipped. The `if let Ok` skip is intentional here — the asteroid
