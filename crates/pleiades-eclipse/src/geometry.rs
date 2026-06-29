@@ -5,6 +5,7 @@
 #![allow(dead_code)]
 
 use crate::ephemeris::SunMoonSample;
+use crate::syzygy::Syzygy;
 use crate::types::{LunarEclipseType, SolarEclipseType};
 
 pub(crate) mod constants {
@@ -128,6 +129,45 @@ pub(crate) fn classify_lunar(sample: &SunMoonSample) -> Option<LunarCircumstance
         magnitude,
         gamma,
     })
+}
+
+/// Separation (radians) that greatest eclipse minimizes, per syzygy type.
+pub(crate) fn separation_for(syzygy: Syzygy, sample: &SunMoonSample) -> f64 {
+    match syzygy {
+        Syzygy::NewMoon => separation_rad(sample),
+        Syzygy::FullMoon => shadow_axis_separation_rad(sample),
+    }
+}
+
+/// Geocentric sub-shadow point: latitude = Moon's equatorial declination,
+/// longitude = Moon RA − GMST (east-positive), both from the mean obliquity.
+pub(crate) fn sub_shadow_point(
+    sample: &SunMoonSample,
+    greatest_jd: f64,
+) -> crate::types::GeoLocation {
+    use pleiades_types::{Angle, EclipticCoordinates, Latitude, Longitude};
+    let coords = EclipticCoordinates::new(
+        Longitude::from_degrees(sample.moon_longitude_deg),
+        Latitude::from_degrees(sample.moon_latitude_deg),
+        Some(sample.moon_distance_au),
+    );
+    // Mean obliquity of date (degrees) via the standard IAU polynomial.
+    let t = (greatest_jd - 2_451_545.0) / 36_525.0;
+    let eps_deg = 23.439_291 - 0.013_004_2 * t;
+    let equatorial = coords.to_equatorial(Angle::from_degrees(eps_deg));
+    let declination = equatorial.declination.degrees();
+    let ra_deg = equatorial.right_ascension.degrees();
+    // GMST in degrees (IAU 1982), then geographic longitude = RA − GMST.
+    let gmst_deg =
+        (280.460_618_37 + 360.985_647_366_29 * (greatest_jd - 2_451_545.0)).rem_euclid(360.0);
+    let mut lon = (ra_deg - gmst_deg + 180.0).rem_euclid(360.0) - 180.0;
+    if lon <= -180.0 {
+        lon += 360.0;
+    }
+    crate::types::GeoLocation {
+        latitude_degrees: declination,
+        longitude_degrees: lon,
+    }
 }
 
 #[cfg(test)]

@@ -27,7 +27,7 @@ fn request(body: CelestialBody, julian_day: f64) -> EphemerisRequest {
         observer: None,
         frame: CoordinateFrame::Ecliptic,
         zodiac_mode: ZodiacMode::Tropical,
-        apparent: Apparentness::Apparent,
+        apparent: Apparentness::Mean,
     }
 }
 

@@ -3,6 +3,7 @@
 //! circumstances only (no per-observer local circumstances).
 #![forbid(unsafe_code)]
 
+mod engine;
 mod ephemeris;
 mod error;
 mod geometry;
@@ -10,6 +11,7 @@ mod saros;
 mod syzygy;
 mod types;
 
+pub use engine::EclipseEngine;
 pub use error::{EclipseError, WINDOW_END_JD, WINDOW_START_JD};
 pub use types::{
     Eclipse, EclipseFilter, EclipseKind, EclipseType, GeoLocation, LunarEclipseType, Node,

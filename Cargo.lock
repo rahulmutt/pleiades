@@ -194,6 +194,7 @@ version = "0.2.0"
 dependencies = [
  "pleiades-apparent",
  "pleiades-backend",
+ "pleiades-data",
  "pleiades-time",
  "pleiades-types",
  "serde",
