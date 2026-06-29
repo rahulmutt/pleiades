@@ -79,12 +79,21 @@ fn regenerated_asteroid_reference_matches_checked_in() {
     use pleiades_jpl::spk::corpus_spec::SliceRole;
     use pleiades_jpl::{generate_slice, SpkBackend};
 
-    let backend = SpkBackend::builder()
+    let mut builder = SpkBackend::builder()
         .add_kernel(&de)
         .unwrap()
         .add_kernel(&ast)
-        .unwrap()
-        .build();
+        .unwrap();
+    if let Ok(dir) = std::env::var("PLEIADES_OBJECT_SPK_DIR") {
+        use pleiades_jpl::spk::object_spk::object_spk_manifest;
+        for o in object_spk_manifest() {
+            let path = format!("{dir}/{}.bsp", o.naif_id);
+            if std::path::Path::new(&path).exists() {
+                builder = builder.add_kernel(&path).unwrap();
+            }
+        }
+    }
+    let backend = builder.build();
 
     let regenerated = generate_slice(&backend, SliceRole::AsteroidReference).unwrap();
     let checked_in = include_str!("../data/corpus/asteroid_reference.csv");
