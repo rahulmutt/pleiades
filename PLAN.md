@@ -46,13 +46,14 @@ These are the implementation gaps that still block a production release:
   data products (Horizons vector-table text, Horizons API JSON, generic CSV)
   into the corpus types via `pleiades-jpl::ingest`, with optional live Horizons
   fetch behind the default-off `horizons-fetch` feature. A curated asteroid
-  corpus is committed: a Tier-A set of 25 bodies (Ceres, Pallas, Juno, Vesta,
+  corpus is committed: a Tier-A set of 36 bodies (Ceres, Pallas, Juno, Vesta,
   Hygiea, Psyche, Iris, Eunomia, Cybele, Astraea, Hebe, Flora, Metis, Fortuna,
   Sappho, Eros, plus TNOs Eris, Sedna, Haumea, Makemake, Quaoar, Orcus,
-  Gonggong, Varuna, Ixion) reproducible from the pinned `sb441-n373s` kernel,
-  plus a Tier-B constrained set of 11 centaurs and personal/minor main-belt
-  bodies sourced from Horizons, advertised over 1900-2100 and held to the
-  constrained body class (not release-grade).
+  Gonggong, Varuna, Ixion, plus centaurs Chiron, Pholus, Nessus, Chariklo,
+  Asbolus, and personal/NEA asteroids Amor, Lilith, Hidalgo, Icarus, Toro,
+  Apollo) reproducible from the pinned `sb441-n373s` kernel plus per-object JPL
+  SPKs; Tier-B constrained set is now empty (all 11 former Tier-B bodies promoted
+  via per-object SPK in slice 3).
 - `pleiades-data` ships an ARTIFACT_VERSION 7 compressed artifact (SP2
   heliocentric-planet reframe complete, all bodies sub-arcsec; SP3 complete —
   published per-body-class accuracy ceilings enforced, hard size gate ≤ 12 MB
@@ -61,12 +62,14 @@ These are the implementation gaps that still block a production release:
   1900–2100 CE).
 - body/backend claims are now **per-backend**: Pluto, the Moon, and Eros are
   release-grade via the packaged-data artifact, while VSOP87's Pluto stays
-  approximate and the compact ELP Moon stays constrained; the twenty-five
-  `sb441-n373s` Tier-A asteroids/TNOs (Ceres, Pallas, Juno, Vesta, Hygiea,
-  Psyche, Iris, Eunomia, Cybele, Astraea, Hebe, Flora, Metis, Fortuna, Sappho,
-  Eros, plus TNOs Eris, Sedna, Haumea, Makemake, Quaoar, Orcus, Gonggong,
-  Varuna, Ixion) are release-grade via the corpus-dependent JPL/SPK backend;
-  True Apogee/Perigee remain unsupported.
+  approximate and the compact ELP Moon stays constrained; the thirty-six
+  Tier-A asteroids/TNOs (Ceres, Pallas, Juno, Vesta, Hygiea, Psyche, Iris,
+  Eunomia, Cybele, Astraea, Hebe, Flora, Metis, Fortuna, Sappho, Eros, plus
+  TNOs Eris, Sedna, Haumea, Makemake, Quaoar, Orcus, Gonggong, Varuna, Ixion,
+  plus centaurs Chiron, Pholus, Nessus, Chariklo, Asbolus, and personal/NEA
+  asteroids Amor, Lilith, Hidalgo, Icarus, Toro, Apollo) are release-grade via
+  the corpus-dependent JPL/SPK backend (source: sb441-n373s perturber kernel +
+  per-object JPL SPKs for centaurs/NEA); True Apogee/Perigee remain unsupported.
 - First-party body-position requests remain mean, geometric, and geocentric at
   the backend boundary. Chart-layer topocentric body positions are now supported
   as an opt-in correction (diurnal parallax + diurnal aberration, Phase 4
@@ -182,6 +185,12 @@ True Topc, True Obs, House Obs) no longer falsely claim a Swiss Ephemeris label;
 compatibility profile bumped to 0.7.1. Catalogued counts unchanged (59
 catalogued / 48 release-grade / 11 deferred); the six remain the validated
 custom-definition-only category, not release-claimed.
+**Phase 6 asteroid slice 3 (per-object pinned SPK promotion) is done** as of
+2026-06-29. All 11 former Tier-B kernel-absent bodies were promoted to Tier A
+via per-object pinned JPL Horizons SPKs (EPHEM_TYPE=SPK, verified over
+JD 2415020.5–2488069.5): centaurs Chiron, Pholus, Nessus, Chariklo, Asbolus;
+personal/NEA asteroids Amor, Lilith, Hidalgo, Icarus, Toro, Apollo. Tier-A
+count is now 36 (was 25); Tier-B count is now 0 (constrained slice empty).
 
 ## Plan maintenance rules
 
@@ -192,7 +201,7 @@ custom-definition-only category, not release-claimed.
 - Keep `README.md`, release profiles, generated reports, and this plan aligned
   when public behavior or release claims change.
 
-Status: refreshed 2026-06-29 — **SP3 complete; Phases 1–3 done; per-backend claim model enforced by the claims-audit gate; Phase 4 active — civil-time conversion done, apparent-place done, topocentric (chart layer) done; only native sidereal backend output remains (deliberate non-goal); Phase 5 complete — house gate done + ayanamsa gate done + overclaim gate done; release-gate now runs the full numeric-gate set (house, ayanamsa, apparent, topocentric, corpus) plus the overclaim audit; Phase 6 house-catalog release-grade promotion done — 24 of 25 built-in house systems release-grade (Albategnius the sole built-in not in the Phase-6 target catalog, kept descriptor-only); all 12 target systems promoted; no house-system known gaps; Phase 6 ayanamsa offset-defined promotion (slice 1) done — 23 release-claimed ayanamsa modes (6 original + 17 promoted offset-defined), OffsetDefined ceiling raised to 3.0″; Phase 6 ayanamsa fitted-family promotion (slice 2) done — 36 release-claimed ayanamsa modes total (6 original + 17 offset-defined + 13 fitted); Phase 6 ayanamsa fitted-offset promotion (slice 3) done — 48 release-claimed ayanamsa modes total (6 original + 17 offset-defined + 13 fitted + 12 fitted-offset); still-deferred (11 modes): 3 anchorless modes, observational/topocentric/house Babylonians, DhruvaGalacticCenterMula, legacy GalacticEquator; Phase 6 ayanamsa slice 4 (descriptor accuracy) done — six custom-definition-only Babylonian descriptors corrected, compatibility profile bumped to 0.7.1, counts unchanged (59 catalogued / 48 release-grade / 11 deferred); Phase 6 asteroid sb441-n16 Tier-A promotion (slice 1) done — Tier-A release-grade asteroid set grew from 7 to 9 by adding 15 Eunomia and 65 Cybele (both kernel-confirmed present in sb441-n16; astrological usage cited via Swiss Ephemeris asteroid name catalog and Martha Lang-Wescott, *Mechanics of the Future: Asteroids*); Hebe was evaluated but is absent from sb441-n16 and stays Tier-B/constrained; non-kernel Tier-B bodies (Chiron, Eros, …) remain constrained and are deferred to a follow-up slice; Tier-B count unchanged (27 bodies); Phase 6 asteroid slice 2 done — retired sb441-n16, pinned sb441-n373s; 16 bodies promoted to Tier-A (Astraea, Hebe, Flora, Metis, Fortuna, Sappho, Eros plus TNOs Eris, Sedna, Haumea, Makemake, Quaoar, Orcus, Gonggong, Varuna, Ixion); Tier-A count now 25 (original 9 + 16 promoted); Tier-B count now 11 (5 centaurs + 6 personal/minor main-belt; all 9 TNOs promoted)**.
+Status: refreshed 2026-06-29 — **SP3 complete; Phases 1–3 done; per-backend claim model enforced by the claims-audit gate; Phase 4 active — civil-time conversion done, apparent-place done, topocentric (chart layer) done; only native sidereal backend output remains (deliberate non-goal); Phase 5 complete — house gate done + ayanamsa gate done + overclaim gate done; release-gate now runs the full numeric-gate set (house, ayanamsa, apparent, topocentric, corpus) plus the overclaim audit; Phase 6 house-catalog release-grade promotion done — 24 of 25 built-in house systems release-grade (Albategnius the sole built-in not in the Phase-6 target catalog, kept descriptor-only); all 12 target systems promoted; no house-system known gaps; Phase 6 ayanamsa offset-defined promotion (slice 1) done — 23 release-claimed ayanamsa modes (6 original + 17 promoted offset-defined), OffsetDefined ceiling raised to 3.0″; Phase 6 ayanamsa fitted-family promotion (slice 2) done — 36 release-claimed ayanamsa modes total (6 original + 17 offset-defined + 13 fitted); Phase 6 ayanamsa fitted-offset promotion (slice 3) done — 48 release-claimed ayanamsa modes total (6 original + 17 offset-defined + 13 fitted + 12 fitted-offset); still-deferred (11 modes): 3 anchorless modes, observational/topocentric/house Babylonians, DhruvaGalacticCenterMula, legacy GalacticEquator; Phase 6 ayanamsa slice 4 (descriptor accuracy) done — six custom-definition-only Babylonian descriptors corrected, compatibility profile bumped to 0.7.1, counts unchanged (59 catalogued / 48 release-grade / 11 deferred); Phase 6 asteroid sb441-n16 Tier-A promotion (slice 1) done — Tier-A release-grade asteroid set grew from 7 to 9 by adding 15 Eunomia and 65 Cybele (both kernel-confirmed present in sb441-n16; astrological usage cited via Swiss Ephemeris asteroid name catalog and Martha Lang-Wescott, *Mechanics of the Future: Asteroids*); Hebe was evaluated but is absent from sb441-n16 and stays Tier-B/constrained; non-kernel Tier-B bodies (Chiron, Eros, …) remain constrained and are deferred to a follow-up slice; Tier-B count unchanged (27 bodies); Phase 6 asteroid slice 2 done — retired sb441-n16, pinned sb441-n373s; 16 bodies promoted to Tier-A (Astraea, Hebe, Flora, Metis, Fortuna, Sappho, Eros plus TNOs Eris, Sedna, Haumea, Makemake, Quaoar, Orcus, Gonggong, Varuna, Ixion); Tier-A count now 25 (original 9 + 16 promoted); Tier-B count now 11 (5 centaurs + 6 personal/minor main-belt; all 9 TNOs promoted); Phase 6 asteroid slice 3 done (per-object pinned SPK) — 11 kernel-absent bodies promoted to Tier-A (centaurs: Chiron, Pholus, Nessus, Chariklo, Asbolus; personal/NEA: Amor, Lilith, Hidalgo, Icarus, Toro, Apollo); Tier-A count now 36, Tier-B count now 0 (constrained slice empty)**.
 Published per-body-class accuracy ceilings enforced (1900–2100 CE), hard size gate
 active (≤ 12 MB), latency tracked, motion output `Motion = Derived`
 (SpeedPolicy::FittedDerivative) gated. ARTIFACT_VERSION 7.

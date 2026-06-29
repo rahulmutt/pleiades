@@ -33,10 +33,12 @@ Selected-asteroid coverage reads a JPL small-body perturber kernel,
 - SHA-256: `2143113282bfc2b2a0b0b4626125d4f84362339b5a8ae7eea40f4120ca8da10b`
 - Size: ~937 MB (982,106,112 bytes).
 - Bodies: 343 main-belt perturbers + 30 KBOs, DE441-consistent. Supersedes the
-  retired 16-body `sb441-n16`. The curated Tier-A subset used here is 25 bodies:
-  the original 9 (Ceres, Pallas, Juno, Vesta, Hygiea, Psyche, Iris, Eunomia,
-  Cybele) plus 16 newly promoted bodies (see astrological usage below).
-- Verified coverage window: 1900–2100 CE (confirmed for all 25 Tier-A bodies).
+  retired 16-body `sb441-n16`. The curated Tier-A subset sourced from this kernel
+  is 25 bodies: the original 9 (Ceres, Pallas, Juno, Vesta, Hygiea, Psyche, Iris,
+  Eunomia, Cybele) plus 16 promoted bodies (see astrological usage below). An
+  additional 11 bodies absent from sb441-n373s are covered by per-object SPKs
+  (see section below), bringing total Tier-A to 36.
+- Verified coverage window: 1900–2100 CE (confirmed for all 25 kernel-sourced Tier-A bodies).
 - Astrological usage (gate 2 — promoted bodies):
   - 5 Astraea: Greek goddess of justice/innocence (Astraea/Dike); listed by
     number and name in the Swiss Ephemeris asteroid name catalog (`seasnam.txt`,
@@ -64,10 +66,10 @@ Selected-asteroid coverage reads a JPL small-body perturber kernel,
     (`seasnam.txt`, Astrodienst/astro.com) and used in modern TNO/outer-body
     astrology.
 - Regen coverage: the regeneration recipe filters the corpus by the Tier-A
-  roster, so all 25 Tier-A bodies are automatically included in subsequent
+  roster, so all 36 Tier-A bodies are automatically included in subsequent
   regeneration runs — no recipe edit is required.
 - Regenerate the committed slice with:
-  `PLEIADES_DE_KERNEL=… PLEIADES_AST_KERNEL=… cargo run -p pleiades-jpl --bin regenerate-asteroid-corpus`
+  `PLEIADES_DE_KERNEL=.kernels/de440.bsp PLEIADES_AST_KERNEL=.kernels/sb441-n373s.bsp PLEIADES_OBJECT_SPK_DIR=.kernels/objects cargo run -p pleiades-jpl --bin regenerate-asteroid-corpus`
 - Default asteroid window: 1900–2100 CE (the corpus samples only this window;
   the kernel covers the full DE441 interval).
 
@@ -79,25 +81,54 @@ PLEIADES_AST_KERNEL=/path/to/sb441-n373s.bsp \
   cargo test -p pleiades-jpl --test corpus_regen -- --nocapture
 ```
 
+## Asteroid per-object SPKs (Tier A — pinned, kernel-absent bodies)
+
+The 11 bodies absent from `sb441-n373s` were promoted to Tier A in slice 3
+(2026-06-29) by sourcing each from its own pinned JPL Horizons SPK file
+(`EPHEM_TYPE=SPK, COMMAND='DES=<7-digit-naif>;', START_TIME=1899-12-01,
+STOP_TIME=2100-02-01`). Each file is pinned by SHA-256 and committed provenance
+is in `crates/pleiades-jpl/src/spk/object_spk.rs` (`object_spk_manifest`).
+
+Verified coverage window for all 11: JD 2415020.5–2488069.5
+(actual segment span 2414989.5–2488100.5, 0 gaps).
+
+| Body | NAIF (7-digit) | SHA-256 | Class | Astrological usage |
+| --- | --- | --- | --- | --- |
+| 2060 Chiron | 2002060 | `8ee059d7ae4a63e4d568843f320034e8681236b07dd04bb8fe6a3d0a10c847e3` | Centaur | centaur astrology (Reinhart; von Heeren/Koch) — the wounded healer |
+| 5145 Pholus | 2005145 | `d746b35eac636c827466c4a6ddba0495f2fbc93fb43cc1e1c769ab0e24d51468` | Centaur | centaur astrology (Reinhart; von Heeren/Koch) |
+| 7066 Nessus | 2007066 | `6819f13ee0ebd1df54f1acfe1780d7a2c72cce53bfa1c6704f1b967160c9b0ae` | Centaur | centaur astrology (Reinhart; von Heeren/Koch) |
+| 10199 Chariklo | 2010199 | `3ed8a859848728446649e579aad6a54fddac0a6d4402008c24afc70d508841a1` | Centaur | centaur astrology (Reinhart; von Heeren/Koch) |
+| 8405 Asbolus | 2008405 | `3a751a602acf4fbc8ad07133008a4bac6afc6645a83a253ba54650fedce8c7e7` | Centaur | centaur astrology (Reinhart; von Heeren/Koch) |
+| 1221 Amor | 2001221 | `a54eabd556edb738661cf2763502123ad92dc45c8acd81cbc5ade8a9ddf17fff` | MainBelt/NEA | asteroid astrology (Lang-Wescott; Demetra George) — love/compassion |
+| 1181 Lilith | 2001181 | `ca1fb954a11320721ac0491bca3e786bfc56e37f180ab35a1bab48f94ce05c2c` | MainBelt | Lang-Wescott — the catalogued numbered asteroid 1181, distinct from Black Moon Lilith |
+| 944 Hidalgo | 2000944 | `df68b48935a98b8505e9f6da2609a218043f8082a3933c13113b9692424d4150` | MainBelt | Lang-Wescott; Demetra George — advocacy/authority |
+| 1566 Icarus | 2001566 | `6b0cc6f7411d09919629847183893ad170300721b3aae18711f3158b1850ef69` | MainBelt/NEA | Lang-Wescott — recklessness/risk |
+| 1685 Toro | 2001685 | `492ad8aec40e908be8b0c8d5b04c2010aa3bc5bd2ccbafce1e2b2c554683edc8` | MainBelt/NEA | Lang-Wescott — force/power |
+| 1862 Apollo | 2001862 | `8d4fd8c093c5638538b78d7b8b8e3b22674cf72a413d7301dffaa0be0d7602dc` | MainBelt/NEA | asteroid astrology (Lang-Wescott; Demetra George) — ambition |
+
+Regen recipe (all 36 Tier-A bodies, kernel + per-object SPKs):
+```bash
+PLEIADES_DE_KERNEL=.kernels/de440.bsp \
+PLEIADES_AST_KERNEL=.kernels/sb441-n373s.bsp \
+PLEIADES_OBJECT_SPK_DIR=.kernels/objects \
+  cargo run -p pleiades-jpl --bin regenerate-asteroid-corpus
+```
+The `.bsp` files stay uncommitted; committed provenance is the SHA-256 table above
+and `crates/pleiades-jpl/src/spk/object_spk.rs`.
+
 ## Asteroid slices (Tier B — Horizons-sourced, constrained)
 
-Centaurs, personal asteroids, and TNOs are **not** in any fixed perturber
-kernel. They are generated once via JPL Horizons over 1900–2100 using
-`pleiades_jpl::ingest` (see the `horizons-fetch` feature) and committed as the
-provenance-validated `asteroid_constrained` slice — never put behind the kernel
-regen gate.
+The Horizons-sourced constrained asteroid slice (`asteroid_constrained.csv`) is
+**now empty** (header-only). All 11 former Tier-B bodies (5 centaurs: Chiron,
+Pholus, Nessus, Chariklo, Asbolus; 6 personal/minor/NEA: Amor, Lilith, Hidalgo,
+Icarus, Toro, Apollo) were promoted to Tier A in slice 3 via per-object pinned
+SPKs (see section above). All 9 TNOs were already promoted to Tier A in slice 2.
 
-- Bodies: see `crates/pleiades-jpl/src/spk/asteroid_roster.rs` (Tier B entries) —
-  5 centaurs, 6 personal/minor main-belt bodies (Amor, Lilith, Hidalgo, Icarus,
-  Toro, Apollo); 11 bodies total. All 9 TNOs promoted to Tier A in slice 2.
-- Generation date: 2026-06-17, from JPL Horizons (per-object JPL small-body
-  solutions, consistent with the DE441 small-body framework).
-- Recipe: `cargo run -p pleiades-jpl --features horizons-fetch --bin regenerate-asteroid-constrained`.
-  Each body is fetched with `EPHEM_TYPE=VECTORS, VEC_TABLE=1, REF_PLANE=ECLIPTIC,
-  CENTER='500@399', OUT_UNITS=KM-S, COMMAND='<IAU-number>;'`, sampled at its
-  class cadence (main-belt 180 d, centaur 365 d, TNO 1825 d). Because Horizons
-  solutions update over time, this slice is **not** byte-reproducible and is
-  validated by window/schema/provenance, never the kernel regen gate.
+Historical note: bodies were originally generated once via JPL Horizons over
+1900–2100 using `pleiades_jpl::ingest` (see the `horizons-fetch` feature) and
+committed as the provenance-validated `asteroid_constrained` slice. The recipe
+(`cargo run -p pleiades-jpl --features horizons-fetch --bin regenerate-asteroid-constrained`)
+remains available but the slice no longer contains any bodies.
 
 ## Usage
 
