@@ -225,6 +225,44 @@ Test-driven throughout:
   (global/geocentric, 1900–2100, NASA-canon-validated), with no overclaim of
   local circumstances.
 
+## As-built notes (maintainer-ratified deviations from the design)
+
+The implementation was reviewed and merged with the following ratified deviations
+from the original design wording. These notes are recorded here so the design
+doc is not contradicted by the code.
+
+**(a) Window data-bound to 2100-01-01, not "all of 2100 CE."**
+The packaged Sun/Moon ephemeris has no segments beyond JD 2 488 069.5
+(2100-01-01 TDB). Four NASA-canon eclipses falling in mid/late 2100 are
+therefore uncomputable with the packaged data and were trimmed from the corpus
+fixture. Any public documentation must state the window as
+"1900-01-01 … 2100-01-01", not "through 2100 CE" or "all of 2100".
+
+**(b) Lunar shadow enlargement ratified at factor 1.01 on (π_moon + π_sun),
+not "1.02 on Earth's radius."**
+The design prose loosely described a "1% enlargement on Earth's shadow radius"
+following Danjon. The shipped code applies 1.01 × (lunar horizontal parallax +
+solar horizontal parallax) to the penumbral/umbral cone half-angles — i.e. the
+factor is applied to the angular sum, not to Earth's physical radius. This is
+the standard Danjon convention and is what the validate-eclipses gate enforces.
+
+**(c) Apparent eclipsed longitude via single light-time and aberration
+application.**
+`eclipsed_longitude` is the apparent solar longitude of date at greatest
+eclipse, computed by a single light-time + annual aberration application in
+`pleiades-apparent`. This matches the `≤ 1.0″` gate tolerance on the
+independently-sourced (Skyfield/DE440) reference; no further iteration is
+needed.
+
+**(d) One allowlisted knife-edge eclipse.**
+1948-05-09, Saros 137 (NASA: annular, magnitude 0.9999; engine: hybrid,
+magnitude 1.0004). The geocentric shadow-cone model cannot resolve this at
+better than ≈ 0.0005 magnitude without topocentric limb profiles. It is
+allowlisted for the exact-type check only; time, magnitude, Saros, and
+eclipsed-longitude tolerances are still enforced for this row.
+
+---
+
 ## Follow-up sub-projects (out of scope here, recorded for sequencing)
 
 - **Equatorial / declination output** — populate the existing `equatorial`

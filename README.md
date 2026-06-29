@@ -21,7 +21,8 @@ As of the current workspace state, `pleiades` includes:
 - pure-Rust algorithmic backends for VSOP87-style planetary positions and a compact Meeus-style lunar baseline,
 - a reproducible, de440-sourced JPL reference corpus (checked-in, checksum-pinned, with the kernel SHA pinned but the kernel itself not committed) behind a live fail-closed corpus gate, used for comparison and validation,
 - an ARTIFACT_VERSION 7 packaged-data artifact for the 1900–2100 CE window (planets Mercury–Pluto stored heliocentrically, geocentric ecliptic reconstructed at lookup via `P_geo = P_helio + S_geo`; all bodies sub-arcsec after the SP2 heliocentric-planet reframe; motion/speed output is `Motion = Derived` via `SpeedPolicy::FittedDerivative`; published per-body-class accuracy ceilings and hard size budget ≤ 12 MB enforced; wider coverage opt-in via `generate-artifact <kernel> --out <path> [--start --end]`),
-- contributor CLI tools for chart inspection, validation reports, audits, artifact checks, and release-bundle rehearsal.
+- contributor CLI tools for chart inspection, validation reports, audits, artifact checks, and release-bundle rehearsal,
+- global/geocentric solar and lunar eclipse data (type, greatest-eclipse time, magnitude, gamma, Saros series, eclipsed longitude, and solar greatest-eclipse location) for 1900-01-01 … 2100-01-01 via `pleiades-eclipse`, validated exhaustively against NASA's Five Millennium Canon by the fail-closed `validate-eclipses` gate; local (per-observer) circumstances are not provided.
 
 Important current limits:
 

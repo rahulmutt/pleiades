@@ -46,7 +46,10 @@ impl<B: EphemerisBackend> EclipseEngine<B> {
         filter: EclipseFilter,
     ) -> Result<Option<Eclipse>, EclipseError> {
         let after_jd = after.julian_day.days();
-        let end = Instant::new(JulianDay::from_days(WINDOW_END_JD), TimeScale::Tdb);
+        // Subtract 0.5 d (one syzygy-scanner step) from WINDOW_END_JD so that
+        // `find_syzygies`, which probes one extra step past its requested end for
+        // sign-change detection, does not query the backend past its coverage.
+        let end = Instant::new(JulianDay::from_days(WINDOW_END_JD - 0.5), TimeScale::Tdb);
         Ok(self
             .eclipses_in_range(after, end, filter)?
             .into_iter()
