@@ -159,9 +159,11 @@ mod tests {
             !asteroid_reference_corpus().is_empty(),
             "asteroid_reference corpus should parse non-empty"
         );
+        // asteroid_constrained is header-only (empty) after slice-3 promoted all
+        // former Tier-B bodies to Tier-A via per-object SPKs.
         assert!(
-            !asteroid_constrained_corpus().is_empty(),
-            "asteroid_constrained corpus should parse non-empty"
+            asteroid_constrained_corpus().is_empty(),
+            "asteroid_constrained corpus should be empty after slice-3 promotion"
         );
     }
 
