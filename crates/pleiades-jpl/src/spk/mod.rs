@@ -6,6 +6,7 @@
 
 pub mod asteroid_roster;
 pub mod backend;
+pub mod object_spk;
 pub(crate) mod bytes;
 pub(crate) mod chain;
 pub mod corpus_manifest;
