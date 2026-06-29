@@ -20,6 +20,7 @@ mod claims;
 mod comparison;
 mod compatibility;
 mod corpus;
+pub mod eclipse_validation;
 mod house_validation;
 mod provenance;
 mod release;

@@ -252,6 +252,7 @@ dependencies = [
  "pleiades-compression",
  "pleiades-core",
  "pleiades-data",
+ "pleiades-eclipse",
  "pleiades-elp",
  "pleiades-houses",
  "pleiades-jpl",
