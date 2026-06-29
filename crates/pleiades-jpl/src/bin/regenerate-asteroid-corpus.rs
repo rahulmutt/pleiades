@@ -13,8 +13,9 @@
 //!     cargo run -p pleiades-jpl --bin regenerate-asteroid-corpus
 //!
 //! It writes `crates/pleiades-jpl/data/corpus/asteroid_reference.csv` (relative
-//! to the workspace root) and prints the `slice asteroid_reference …` manifest
-//! line (rows + checksum) to paste into `data/corpus/manifest.txt`.
+//! to the workspace root) and prints the `slice asteroid_reference …` and
+//! `slice asteroid_constrained …` manifest lines (rows + checksum) to paste into
+//! `data/corpus/manifest.txt`.
 
 use pleiades_backend::EphemerisBackend;
 use pleiades_jpl::spk::asteroid_roster::{asteroid_core_roster, tier_b_bodies, AsteroidTier};
@@ -29,7 +30,7 @@ fn main() -> Result<(), String> {
     let de = std::env::var("PLEIADES_DE_KERNEL")
         .map_err(|_| "set PLEIADES_DE_KERNEL to the de440.bsp path".to_string())?;
     let ast = std::env::var("PLEIADES_AST_KERNEL")
-        .map_err(|_| "set PLEIADES_AST_KERNEL to the sb441-n16.bsp path".to_string())?;
+        .map_err(|_| "set PLEIADES_AST_KERNEL to the sb441-n373s.bsp path".to_string())?;
 
     let backend = SpkBackend::builder()
         .add_kernel(&de)
