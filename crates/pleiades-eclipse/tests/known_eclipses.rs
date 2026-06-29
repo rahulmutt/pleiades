@@ -120,12 +120,15 @@ fn apparent_vs_mean_eclipsed_longitude_delta() {
     let delta_arcsec = (apparent_lon - mean_lon) * 3600.0;
     eprintln!(
         "1999 eclipse mean_lon={mean_lon:.6}°  apparent_lon={apparent_lon:.6}°  \
-         delta={delta_arcsec:+.1}\"  (expect ~20-25\" for aberration+nutation)"
+         delta={delta_arcsec:+.1}\"  (expect ~-50\": precession + aberration + nutation)"
     );
-    // The delta should be in the ~20–25″ range (aberration ~20.5″ + nutation ±17″ net ~20–25″).
-    // We just assert the sign/magnitude is non-trivial to confirm the correction is active.
+    // mean_lon is the backend's mean J2000 longitude; apparent_lon is apparent-of-date.
+    // The delta is therefore precession(J2000->date) + annual aberration + nutation in
+    // longitude, which for 1999 sums to ~-51″. (Aberration is applied ONCE — the earlier
+    // ~-71″ reflected a since-removed light-time/aberration double-count.) Assert a loose
+    // band to confirm the correction is active and of the right magnitude.
     assert!(
-        delta_arcsec.abs() > 5.0 && delta_arcsec.abs() < 100.0,
+        delta_arcsec.abs() > 30.0 && delta_arcsec.abs() < 90.0,
         "unexpected delta {delta_arcsec:.1}\" — correction may be inactive or wrong"
     );
 }
