@@ -110,8 +110,7 @@ fn main() -> Result<(), String> {
             kept_rows += 1;
         }
     }
-    std::fs::write(CONSTRAINED_PATH, &out)
-        .map_err(|e| format!("write {CONSTRAINED_PATH}: {e}"))?;
+    std::fs::write(CONSTRAINED_PATH, &out).map_err(|e| format!("write {CONSTRAINED_PATH}: {e}"))?;
     let c_checksum = corpus_checksum64(&out);
     eprintln!("\nfiltered {CONSTRAINED_PATH}: {kept_rows} rows, checksum={c_checksum}");
     println!(

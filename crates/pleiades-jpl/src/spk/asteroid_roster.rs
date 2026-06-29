@@ -84,26 +84,81 @@ pub fn asteroid_core_roster() -> &'static [AsteroidEntry] {
                 e(ast("15-Eunomia"), PinnedKernel, MainBelt, "sb441-n373s"),
                 e(ast("65-Cybele"), PinnedKernel, MainBelt, "sb441-n373s"),
                 // Centaurs — promoted to Tier A via per-object SPKs (slice 3).
-                e(ast("2060-Chiron"),    PinnedKernel, Centaur,  "jpl-sbdb-spk:2060"),
-                e(ast("5145-Pholus"),    PinnedKernel, Centaur,  "jpl-sbdb-spk:5145"),
-                e(ast("7066-Nessus"),    PinnedKernel, Centaur,  "jpl-sbdb-spk:7066"),
-                e(ast("10199-Chariklo"), PinnedKernel, Centaur,  "jpl-sbdb-spk:10199"),
-                e(ast("8405-Asbolus"),   PinnedKernel, Centaur,  "jpl-sbdb-spk:8405"),
+                e(
+                    ast("2060-Chiron"),
+                    PinnedKernel,
+                    Centaur,
+                    "jpl-sbdb-spk:2060",
+                ),
+                e(
+                    ast("5145-Pholus"),
+                    PinnedKernel,
+                    Centaur,
+                    "jpl-sbdb-spk:5145",
+                ),
+                e(
+                    ast("7066-Nessus"),
+                    PinnedKernel,
+                    Centaur,
+                    "jpl-sbdb-spk:7066",
+                ),
+                e(
+                    ast("10199-Chariklo"),
+                    PinnedKernel,
+                    Centaur,
+                    "jpl-sbdb-spk:10199",
+                ),
+                e(
+                    ast("8405-Asbolus"),
+                    PinnedKernel,
+                    Centaur,
+                    "jpl-sbdb-spk:8405",
+                ),
                 // Personal / "goddess" asteroids — kernel-confirmed members in sb441-n373s, Tier A;
                 // Amor, Lilith, Hidalgo, Icarus, Toro, Apollo promoted to Tier A via per-object SPKs (slice 3).
                 e(ast("433-Eros"), PinnedKernel, MainBelt, "sb441-n373s"),
                 e(ast("80-Sappho"), PinnedKernel, MainBelt, "sb441-n373s"),
-                e(ast("1221-Amor"),  PinnedKernel, MainBelt, "jpl-sbdb-spk:1221"),
-                e(ast("1181-Lilith"), PinnedKernel, MainBelt, "jpl-sbdb-spk:1181"),
+                e(
+                    ast("1221-Amor"),
+                    PinnedKernel,
+                    MainBelt,
+                    "jpl-sbdb-spk:1221",
+                ),
+                e(
+                    ast("1181-Lilith"),
+                    PinnedKernel,
+                    MainBelt,
+                    "jpl-sbdb-spk:1181",
+                ),
                 e(ast("5-Astraea"), PinnedKernel, MainBelt, "sb441-n373s"),
                 e(ast("6-Hebe"), PinnedKernel, MainBelt, "sb441-n373s"),
                 e(ast("8-Flora"), PinnedKernel, MainBelt, "sb441-n373s"),
                 e(ast("9-Metis"), PinnedKernel, MainBelt, "sb441-n373s"),
                 e(ast("19-Fortuna"), PinnedKernel, MainBelt, "sb441-n373s"),
-                e(ast("944-Hidalgo"),  PinnedKernel, MainBelt, "jpl-sbdb-spk:944"),
-                e(ast("1566-Icarus"),  PinnedKernel, MainBelt, "jpl-sbdb-spk:1566"),
-                e(ast("1685-Toro"),    PinnedKernel, MainBelt, "jpl-sbdb-spk:1685"),
-                e(ast("1862-Apollo"),  PinnedKernel, MainBelt, "jpl-sbdb-spk:1862"),
+                e(
+                    ast("944-Hidalgo"),
+                    PinnedKernel,
+                    MainBelt,
+                    "jpl-sbdb-spk:944",
+                ),
+                e(
+                    ast("1566-Icarus"),
+                    PinnedKernel,
+                    MainBelt,
+                    "jpl-sbdb-spk:1566",
+                ),
+                e(
+                    ast("1685-Toro"),
+                    PinnedKernel,
+                    MainBelt,
+                    "jpl-sbdb-spk:1685",
+                ),
+                e(
+                    ast("1862-Apollo"),
+                    PinnedKernel,
+                    MainBelt,
+                    "jpl-sbdb-spk:1862",
+                ),
                 // TNOs / dwarf planets — all nine confirmed in sb441-n373s, Tier A.
                 e(tno("136199-Eris"), PinnedKernel, Tno, "sb441-n373s"),
                 e(tno("90377-Sedna"), PinnedKernel, Tno, "sb441-n373s"),
@@ -148,30 +203,28 @@ pub fn spk_body_claims(covered: &[CelestialBody]) -> Vec<pleiades_backend::BodyC
     covered
         .iter()
         .cloned()
-        .map(|body| {
-            match roster.iter().find(|e| e.body == body) {
-                Some(e) if e.tier == AsteroidTier::PinnedKernel => BodyClaim::release_grade(
-                    body,
-                    AccuracyClass::High,
-                    ClaimEvidence::CorpusValidated {
-                        source: e.source.to_string(),
-                    },
-                ),
-                Some(e) => BodyClaim::constrained(
-                    body,
-                    AccuracyClass::Moderate,
-                    ClaimEvidence::CorpusValidated {
-                        source: e.source.to_string(),
-                    },
-                ),
-                None => BodyClaim::constrained(
-                    body,
-                    AccuracyClass::High,
-                    ClaimEvidence::CorpusValidated {
-                        source: "de440".to_string(),
-                    },
-                ),
-            }
+        .map(|body| match roster.iter().find(|e| e.body == body) {
+            Some(e) if e.tier == AsteroidTier::PinnedKernel => BodyClaim::release_grade(
+                body,
+                AccuracyClass::High,
+                ClaimEvidence::CorpusValidated {
+                    source: e.source.to_string(),
+                },
+            ),
+            Some(e) => BodyClaim::constrained(
+                body,
+                AccuracyClass::Moderate,
+                ClaimEvidence::CorpusValidated {
+                    source: e.source.to_string(),
+                },
+            ),
+            None => BodyClaim::constrained(
+                body,
+                AccuracyClass::High,
+                ClaimEvidence::CorpusValidated {
+                    source: "de440".to_string(),
+                },
+            ),
         })
         .collect()
 }
@@ -221,11 +274,23 @@ mod tests {
 
     #[test]
     fn promoted_goddesses_are_tier_a_main_belt() {
-        let confirmed = ["15-Eunomia", "65-Cybele", "5-Astraea", "6-Hebe", "8-Flora", "9-Metis", "19-Fortuna", "80-Sappho", "433-Eros"];
+        let confirmed = [
+            "15-Eunomia",
+            "65-Cybele",
+            "5-Astraea",
+            "6-Hebe",
+            "8-Flora",
+            "9-Metis",
+            "19-Fortuna",
+            "80-Sappho",
+            "433-Eros",
+        ];
         for designation in confirmed {
             let e = asteroid_core_roster()
                 .iter()
-                .find(|e| matches!(&e.body, CelestialBody::Custom(c) if c.designation == designation))
+                .find(
+                    |e| matches!(&e.body, CelestialBody::Custom(c) if c.designation == designation),
+                )
                 .unwrap_or_else(|| panic!("{designation} missing from roster"));
             assert_eq!(e.tier, AsteroidTier::PinnedKernel, "{designation} tier");
             assert_eq!(e.class, AsteroidClass::MainBelt, "{designation} class");
@@ -235,13 +300,22 @@ mod tests {
     #[test]
     fn promoted_tnos_are_tier_a_tno() {
         let confirmed = [
-            "136199-Eris", "90377-Sedna", "136108-Haumea", "136472-Makemake",
-            "50000-Quaoar", "90482-Orcus", "225088-Gonggong", "20000-Varuna", "28978-Ixion",
+            "136199-Eris",
+            "90377-Sedna",
+            "136108-Haumea",
+            "136472-Makemake",
+            "50000-Quaoar",
+            "90482-Orcus",
+            "225088-Gonggong",
+            "20000-Varuna",
+            "28978-Ixion",
         ];
         for designation in confirmed {
             let e = asteroid_core_roster()
                 .iter()
-                .find(|e| matches!(&e.body, CelestialBody::Custom(c) if c.designation == designation))
+                .find(
+                    |e| matches!(&e.body, CelestialBody::Custom(c) if c.designation == designation),
+                )
                 .unwrap_or_else(|| panic!("{designation} missing from roster"));
             assert_eq!(e.tier, AsteroidTier::PinnedKernel, "{designation} tier");
             assert_eq!(e.class, AsteroidClass::Tno, "{designation} class");
@@ -276,16 +350,30 @@ mod tests {
     #[test]
     fn slice3_confirmed_bodies_are_tier_a_object_spk() {
         let confirmed = [
-            "2060-Chiron", "5145-Pholus", "7066-Nessus", "10199-Chariklo", "8405-Asbolus",
-            "1221-Amor", "1181-Lilith", "944-Hidalgo", "1566-Icarus", "1685-Toro", "1862-Apollo",
+            "2060-Chiron",
+            "5145-Pholus",
+            "7066-Nessus",
+            "10199-Chariklo",
+            "8405-Asbolus",
+            "1221-Amor",
+            "1181-Lilith",
+            "944-Hidalgo",
+            "1566-Icarus",
+            "1685-Toro",
+            "1862-Apollo",
         ];
         for designation in confirmed {
             let e = asteroid_core_roster()
                 .iter()
-                .find(|e| matches!(&e.body, CelestialBody::Custom(c) if c.designation == designation))
+                .find(
+                    |e| matches!(&e.body, CelestialBody::Custom(c) if c.designation == designation),
+                )
                 .unwrap_or_else(|| panic!("{designation} missing"));
             assert_eq!(e.tier, AsteroidTier::PinnedKernel, "{designation} tier");
-            assert!(e.source.starts_with("jpl-sbdb-spk:"), "{designation} source");
+            assert!(
+                e.source.starts_with("jpl-sbdb-spk:"),
+                "{designation} source"
+            );
         }
     }
 
