@@ -3,6 +3,7 @@
 //! circumstances only (no per-observer local circumstances).
 #![forbid(unsafe_code)]
 
+mod ephemeris;
 mod error;
 mod types;
 

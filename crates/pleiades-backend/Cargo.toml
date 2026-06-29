@@ -13,6 +13,7 @@ readme = "README.md"
 
 [features]
 serde = ["dep:serde", "pleiades-types/serde"]
+test-backend = []
 
 [dependencies]
 pleiades-types = { workspace = true }
