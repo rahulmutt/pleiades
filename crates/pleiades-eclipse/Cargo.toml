@@ -1,0 +1,25 @@
+[package]
+name = "pleiades-eclipse"
+description = "Global geocentric solar and lunar eclipse computation for the pleiades astrology workspace: type, greatest-eclipse time, magnitude, gamma, Saros series, eclipsed longitude, and greatest-eclipse location."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme = "README.md"
+
+[features]
+serde = ["dep:serde", "pleiades-types/serde"]
+
+[dependencies]
+pleiades-types = { workspace = true }
+pleiades-backend = { workspace = true }
+pleiades-apparent = { workspace = true }
+pleiades-time = { workspace = true }
+serde = { workspace = true, optional = true }
+
+[package.metadata.docs.rs]
+all-features = true
