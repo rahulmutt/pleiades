@@ -5,13 +5,12 @@
 #![allow(dead_code)]
 
 use crate::error::EclipseError;
-use pleiades_apparent::{
-    apparent_position, precess_ecliptic_j2000_to_date, DEFAULT_MAX_ITERATIONS,
-};
+use pleiades_apparent::aberration::annual_aberration;
+use pleiades_apparent::nutation::nutation;
+use pleiades_apparent::{precess_ecliptic_j2000_to_date, LIGHT_TIME_DAYS_PER_AU};
 use pleiades_backend::{EphemerisBackend, EphemerisRequest};
 use pleiades_types::{
-    Apparentness, CelestialBody, CoordinateFrame, EclipticCoordinates, Instant, JulianDay,
-    Latitude, Longitude, TimeScale, ZodiacMode,
+    Apparentness, CelestialBody, CoordinateFrame, Instant, JulianDay, TimeScale, ZodiacMode,
 };
 
 #[derive(Clone, Copy, Debug)]
@@ -75,14 +74,40 @@ fn read<B: EphemerisBackend>(
     ))
 }
 
+/// Reads a body's *apparent geometric* (light-time-retarded) geocentric ecliptic
+/// position: the direction the body is actually seen, i.e. where it was one
+/// light-time ago. NASA computes eclipse circumstances (and the greatest-eclipse
+/// instant) from these retarded positions. Because the Sun's light-time (~499 s)
+/// is ~390× the Moon's (~1.3 s), the retarded Sun lags its instantaneous place by
+/// ~20.5″ while the Moon lags only ~0.7″; the net shifts the apparent conjunction
+/// ~39 s earlier than the purely geometric one. Sampling positions this way is
+/// what makes the engine's greatest-eclipse instant agree with NASA's to well
+/// under the 60 s gate (and keeps `eclipsed_longitude` within 1″). One iteration
+/// suffices: a body's distance is essentially constant across its own light-time.
+///
+/// Note: this is distinct from, and must not be combined with, the annual
+/// aberration applied in [`apparent_sun_longitude_deg`] — for the Sun those are
+/// the same physical effect, so `eclipsed_longitude` applies it exactly once and
+/// uses the *un*-retarded [`read`].
+fn read_retarded<B: EphemerisBackend>(
+    backend: &B,
+    body: CelestialBody,
+    body_label: &'static str,
+    julian_day: f64,
+) -> Result<(f64, f64, f64), EclipseError> {
+    let (_, _, dist) = read(backend, body.clone(), body_label, julian_day)?;
+    let light_time_days = dist * LIGHT_TIME_DAYS_PER_AU;
+    read(backend, body, body_label, julian_day - light_time_days)
+}
+
 pub(crate) fn sample_sun_moon<B: EphemerisBackend>(
     backend: &B,
     julian_day: f64,
 ) -> Result<SunMoonSample, EclipseError> {
     let (sun_longitude_deg, sun_latitude_deg, sun_distance_au) =
-        read(backend, CelestialBody::Sun, "Sun", julian_day)?;
+        read_retarded(backend, CelestialBody::Sun, "Sun", julian_day)?;
     let (moon_longitude_deg, moon_latitude_deg, moon_distance_au) =
-        read(backend, CelestialBody::Moon, "Moon", julian_day)?;
+        read_retarded(backend, CelestialBody::Moon, "Moon", julian_day)?;
     Ok(SunMoonSample {
         sun_longitude_deg,
         sun_latitude_deg,
@@ -102,19 +127,33 @@ pub(crate) fn elongation_deg(sample: &SunMoonSample) -> f64 {
 
 /// Computes the apparent geocentric solar ecliptic longitude of date (degrees).
 ///
-/// Mirrors the validated apparent-place path in `pleiades-core` (see
-/// `ChartEngine::query_sun_longitude_of_date` + `apparent_position` call):
+/// The Sun's apparent ecliptic longitude of date is built directly from the
+/// lower-level corrections, applying aberration exactly once:
 ///
 /// 1. Query the Sun's Mean/J2000 geocentric ecliptic from the backend.
-/// 2. Precess the J2000 longitude to of-date (→ Sun's true longitude of date)
-///    for the annual aberration term.
-/// 3. Run `apparent_position` (light-time, J2000→of-date precession, aberration,
-///    nutation Δψ) with a query closure that hits the backend for the Sun's
-///    Mean/J2000 position at each light-time-retarded epoch.
+/// 2. Precess J2000 → mean equinox/ecliptic of date (the Sun's *true* longitude
+///    of date, `λ`).
+/// 3. Add nutation in longitude Δψ (→ true equinox of date).
+/// 4. Add annual aberration ONCE.
 ///
-/// The result is the apparent ecliptic-of-date solar longitude, correcting for
-/// ~20.5″ aberration, ~±17″ nutation, and sub-arcsecond light-time, so that
-/// `Eclipse::eclipsed_longitude` meets the ≤1″ gate checked in Task 10.
+/// # Why aberration is applied only once
+///
+/// For a planet, light-time retardation (re-querying the body at the epoch the
+/// light left it) and annual aberration are two physically independent effects.
+/// For the **Sun**, they are the *same* effect: the ~20.5″ displacement caused
+/// by Earth's orbital velocity. Light-time retardation moves the Sun's geometric
+/// place backward along its apparent path by exactly the annual-aberration amount,
+/// so an apparent-place routine that applies a light-time re-query *and* a
+/// separate annual-aberration term double-counts ~20.5″. (That was the historical
+/// bug here: `eclipsed_longitude` came out ~19–20″ too low on every row.) Because
+/// for the Sun planetary aberration ≡ annual aberration, we apply the annual
+/// aberration term directly to the instantaneous geometric direction and perform
+/// no light-time re-query. The Sun's own true longitude of date supplies the
+/// `⊙` argument of the aberration formula (here `⊙ = λ`).
+///
+/// The result is the apparent ecliptic-of-date solar longitude (Meeus §25's
+/// "apparent longitude": true longitude + nutation + aberration), so that
+/// `Eclipse::eclipsed_longitude` meets the ≤1″ gate.
 ///
 /// **Assumption**: the backend returns Mean/J2000 geocentric coordinates
 /// (as `packaged_backend()` does). A backend that already applies apparent
@@ -123,38 +162,26 @@ pub(crate) fn apparent_sun_longitude_deg<B: EphemerisBackend>(
     backend: &B,
     julian_day: f64,
 ) -> Result<f64, EclipseError> {
-    let instant = Instant::new(JulianDay::from_days(julian_day), TimeScale::Tdb);
-
-    // Step 1+2: get Sun's J2000 mean ecliptic and precess to of-date for the aberration term.
+    // Step 1: Sun's J2000 mean geocentric ecliptic at the true (un-retarded) epoch.
     let (sun_lon_j2000, sun_lat_j2000, _) = read(backend, CelestialBody::Sun, "Sun", julian_day)?;
+
+    // Step 2: precess J2000 → mean equinox/ecliptic of date (Sun's true longitude of date).
     let precessed = precess_ecliptic_j2000_to_date(sun_lon_j2000, sun_lat_j2000, julian_day)
         .map_err(|e| EclipseError::Backend(format!("Sun precession failed: {e}")))?;
-    let sun_true_longitude_of_date_deg = precessed.longitude_deg;
+    let lambda = precessed.longitude_deg;
+    let beta = precessed.latitude_deg;
 
-    // Step 3: compute full apparent place via pleiades-apparent (light-time, precession,
-    // aberration, nutation). The query closure supplies the Sun's Mean/J2000 ecliptic at
-    // each retarded epoch — exactly what packaged_backend() provides.
-    let apparent = apparent_position::<_, EclipseError>(
-        instant,
-        sun_true_longitude_of_date_deg,
-        DEFAULT_MAX_ITERATIONS,
-        |instant_q| {
-            let (lon, lat, dist) = read(
-                backend,
-                CelestialBody::Sun,
-                "Sun",
-                instant_q.julian_day.days(),
-            )?;
-            Ok(EclipticCoordinates::new(
-                Longitude::from_degrees(lon),
-                Latitude::from_degrees(lat),
-                Some(dist),
-            ))
-        },
-    )
-    .map_err(|e| EclipseError::Backend(format!("apparent Sun position failed: {e}")))?;
+    // Step 3: nutation in longitude Δψ.
+    let nut = nutation(julian_day)
+        .map_err(|e| EclipseError::Backend(format!("Sun nutation failed: {e}")))?;
 
-    Ok(apparent.ecliptic.longitude.degrees())
+    // Step 4: annual aberration applied ONCE (no light-time re-query). For the Sun,
+    // ⊙ = λ, so the dominant term is -κ + e·κ·cos(ϖ-λ) ≈ -20.2″.
+    let aberration = annual_aberration(lambda, beta, lambda, julian_day);
+
+    let apparent_lon =
+        (lambda + (aberration.d_lambda_arcsec + nut.delta_psi_arcsec) / 3600.0).rem_euclid(360.0);
+    Ok(apparent_lon)
 }
 
 #[cfg(test)]
@@ -164,11 +191,18 @@ mod tests {
     use pleiades_backend::test_backend::LinearSunMoon;
 
     #[test]
-    fn elongation_is_zero_at_new_moon_epoch() {
-        // LinearSunMoon places Sun and Moon at equal longitude at jd0.
+    fn elongation_reflects_light_time_at_geometric_new_moon() {
+        // LinearSunMoon places Sun and Moon at equal *geometric* longitude at jd0.
+        // `sample_sun_moon` now returns light-time-retarded (apparent) positions:
+        // the Sun is retarded ~499 s (sun_rate·1 AU·LT ≈ 0.005694°) and the Moon
+        // ~1.3 s (moon_rate·0.00257 AU·LT ≈ 0.000196°). The apparent elongation at
+        // the geometric new moon is therefore the differential light-time offset
+        // ≈ +0.005498°, not zero. (The apparent new moon itself lands ~39 s earlier
+        // — see `syzygy::finds_the_new_moon_near_the_reference_epoch`.)
         let backend = LinearSunMoon::new_moon_at(2_451_550.0);
         let sample = sample_sun_moon(&backend, 2_451_550.0).unwrap();
-        assert!(elongation_deg(&sample).abs() < 1e-6);
+        let e = elongation_deg(&sample);
+        assert!((e - 0.005_498).abs() < 1e-4, "apparent elongation {e}");
     }
 
     #[test]

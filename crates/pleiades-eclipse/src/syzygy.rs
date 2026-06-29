@@ -111,11 +111,20 @@ mod tests {
     use pleiades_backend::test_backend::LinearSunMoon;
 
     #[test]
-    fn finds_the_new_moon_at_the_reference_epoch() {
+    fn finds_the_new_moon_near_the_reference_epoch() {
+        // The mock places the *geometric* new moon exactly at jd0. Syzygy search
+        // runs on light-time-retarded (apparent) positions, so the apparent new
+        // moon — where the apparent elongation crosses zero — lands ~39 s earlier:
+        // (sun_rate·LT − moon_rate·0.00257·LT)/(moon_rate − sun_rate) ≈ 0.000451 d.
         let backend = LinearSunMoon::new_moon_at(2_451_550.0);
         let events = find_syzygies(&backend, 2_451_549.0, 2_451_551.0).unwrap();
         let new_moon = events.iter().find(|e| e.syzygy == Syzygy::NewMoon).unwrap();
-        assert!((new_moon.julian_day - 2_451_550.0).abs() < 1.0 / 86_400.0);
+        let expected = 2_451_550.0 - 0.000_451;
+        assert!(
+            (new_moon.julian_day - expected).abs() < 1.0 / 86_400.0,
+            "apparent new moon {}",
+            new_moon.julian_day
+        );
     }
 
     #[test]
