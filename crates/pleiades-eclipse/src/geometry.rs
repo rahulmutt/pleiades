@@ -9,9 +9,24 @@ pub(crate) mod constants {
     pub const R_MOON_KM: f64 = 1_737.4;
     pub const R_EARTH_KM: f64 = 6_378.137;
     pub const AU_KM: f64 = 149_597_870.7;
-    /// Geometric enlargement of Earth's umbral/penumbral shadow (atmospheric
-    /// extinction) used by the NASA canon, applied to Earth's angular size
-    /// (π_moon + π_sun). Empirically matched to the canon's lunar magnitudes.
+    /// Enlargement factor for Earth's umbral/penumbral shadow cone, modelling
+    /// atmospheric extinction in the same way the NASA lunar canon does.
+    ///
+    /// Applied **only** to Earth's angular size (π_moon + π_sun); NOT to the
+    /// Sun's semidiameter `s`, which sets the spread of the umbra/penumbra:
+    ///   `earth_shadow = SHADOW_INFLATION · (π_moon + π_sun)`
+    ///   `u = earth_shadow − s`  (umbral radius)
+    ///   `p = earth_shadow + s`  (penumbral radius)
+    ///
+    /// The value 1.01 was empirically matched to the NASA Five Millennium Lunar
+    /// Eclipse Canon (Espenak & Meeus).  A back-solve across the canon's
+    /// penumbral magnitudes gives an implied factor of 1.00992–1.01013 (mean
+    /// ≈ 1.010), confirming 1.01 as the correct value.
+    ///
+    /// **Do not change this to 1.02.**  Using 1.02 (or applying the factor to
+    /// `(π+π±s)` rather than just `(π+π)`) biases the penumbral magnitude
+    /// ~+0.028 high across the full canon and mis-classifies several near-
+    /// boundary penumbrals as partials.
     pub const SHADOW_INFLATION: f64 = 1.01;
 }
 

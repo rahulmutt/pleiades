@@ -4,7 +4,7 @@ gen_eclipse_corpus.py — one-off generator for the NASA-canon eclipse fixture.
 
 Fetches six NASA HTML eclipse catalog pages (1801-1900 + 1901-2100), parses
 every solar and lunar eclipse row within the supported JD window
-[2_415_020.5, 2_488_434.5] (1900-01-01 … 2101-01-01), computes
+[2_415_020.5, 2_488_069.5] (1900-01-01 … 2100-01-01), computes
 greatest_eclipse_jd_tt from the NASA TD time (TD ≈ TT), and derives
 eclipsed_longitude_deg using Skyfield 1.54 + DE440.
 
@@ -12,8 +12,14 @@ The 1801-1900 pages supply the year-1900 eclipses that the 1901-2000 pages
 omit.  Rows with jd_tt < JD_WINDOW_START (pre-1900) are discarded.
 
 Outputs (in the same directory as this script):
-  eclipses.csv        — the committed fixture (~913 rows)
+  eclipses.csv        — the committed fixture (909 rows)
   saros_anchors.txt   — one anchor per active Saros series for saros.rs
+
+NOTE: JD_WINDOW_END = 2_488_069.5 is the packaged ephemeris's last Sun/Moon
+segment (2100-01-01 TT).  The NASA canon contains 4 additional eclipses in
+mid/late 2100 (JD 2_488_124 … 2_488_315) that are intentionally excluded here
+because the backend has no ephemeris data beyond JD_WINDOW_END and cannot
+recompute them.
 
 Reproduction:
   cd <repo>/crates/pleiades-validate/data/eclipses-corpus/
@@ -34,10 +40,13 @@ import urllib.request
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
-# Supported JD window  (1900-01-01 TT … 2101-01-01 TT)
+# Supported JD window  (1900-01-01 TT … 2100-01-01 TT)
 # ---------------------------------------------------------------------------
 JD_WINDOW_START = 2_415_020.5   # 1900-01-01 00:00:00 TT
-JD_WINDOW_END = 2_488_434.5     # 2101-01-01 00:00:00 TT (covers through 2100-12-31)
+# Upper bound is the packaged ephemeris's last Sun/Moon segment (2100-01-01 TT).
+# The NASA canon's mid/late-2100 eclipses (JD > 2_488_069.5) are intentionally
+# excluded: the backend has no data beyond this instant, so they are uncomputable.
+JD_WINDOW_END = 2_488_069.5     # 2100-01-01 00:00:00 TT (packaged ephemeris last segment)
 
 # ---------------------------------------------------------------------------
 # NASA source URLs  (1801-1900 pages first, to cover all year-1900 eclipses)
@@ -428,7 +437,7 @@ def main():
 
     # Final summary
     print(f"\n=== Done ===")
-    print(f"  eclipses.csv:      {len(all_rows)} data rows ({solar_count} solar, {lunar_count} lunar) — window 1900-01-01…2100-12-31")
+    print(f"  eclipses.csv:      {len(all_rows)} data rows ({solar_count} solar, {lunar_count} lunar) — window 1900-01-01…2100-01-01")
     print(f"  saros_anchors.txt: {len(anchors)} series anchors")
     print(f"  Longitude method:  Skyfield 1.54 + DE440, independent of pleiades")
     if len(all_rows) >= 900:
