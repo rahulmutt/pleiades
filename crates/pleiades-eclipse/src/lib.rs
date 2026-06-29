@@ -2,3 +2,10 @@
 //! pleiades' validated Sun and Moon positions. Scope: 1900–2100 CE, geocentric
 //! circumstances only (no per-observer local circumstances).
 #![forbid(unsafe_code)]
+
+mod types;
+
+pub use types::{
+    Eclipse, EclipseFilter, EclipseKind, EclipseType, GeoLocation, LunarEclipseType, Node,
+    SolarEclipseType,
+};
