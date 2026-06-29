@@ -385,8 +385,8 @@ pub fn asteroid_corpus() -> ValidationCorpus {
                 .collect();
 
             ValidationCorpus {
-                name: "Tier-A asteroid reference window (sb441-n373s)".to_string(),
-                description: "Asteroid accuracy-ceiling corpus built from the committed sb441-n373s Tier-A reference rows, used by the slow release-grade accuracy audit for small bodies.",
+                name: "Tier-A asteroid reference window (sb441-n373s + per-object SPK)".to_string(),
+                description: "Asteroid accuracy-ceiling corpus built from the committed Tier-A reference rows (sb441-n373s perturber kernel plus per-object JPL SPKs for centaurs/NEA), used by the slow release-grade accuracy audit for small bodies.",
                 apparentness: Apparentness::Mean,
                 requests,
             }

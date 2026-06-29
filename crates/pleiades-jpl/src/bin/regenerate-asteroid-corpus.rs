@@ -32,12 +32,27 @@ fn main() -> Result<(), String> {
     let ast = std::env::var("PLEIADES_AST_KERNEL")
         .map_err(|_| "set PLEIADES_AST_KERNEL to the sb441-n373s.bsp path".to_string())?;
 
-    let backend = SpkBackend::builder()
+    let mut builder = SpkBackend::builder()
         .add_kernel(&de)
         .map_err(|e| e.message)?
         .add_kernel(&ast)
-        .map_err(|e| e.message)?
-        .build();
+        .map_err(|e| e.message)?;
+
+    // Per-object SPKs for kernel-absent Tier-A bodies (centaurs/NEA). Env-gated:
+    // without the dir, none load and only n373s/de440 bodies are covered.
+    if let Ok(dir) = std::env::var("PLEIADES_OBJECT_SPK_DIR") {
+        use pleiades_jpl::spk::object_spk::object_spk_manifest;
+        for o in object_spk_manifest() {
+            let path = format!("{dir}/{}.bsp", o.naif_id);
+            if std::path::Path::new(&path).exists() {
+                builder = builder.add_kernel(&path).map_err(|e| e.message)?;
+            } else {
+                eprintln!("per-object SPK missing (body stays uncovered): {path}");
+            }
+        }
+    }
+
+    let backend = builder.build();
 
     // Report Tier A coverage so missing kernel ids are visible, not silent.
     for entry in asteroid_core_roster()
@@ -95,8 +110,7 @@ fn main() -> Result<(), String> {
             kept_rows += 1;
         }
     }
-    std::fs::write(CONSTRAINED_PATH, &out)
-        .map_err(|e| format!("write {CONSTRAINED_PATH}: {e}"))?;
+    std::fs::write(CONSTRAINED_PATH, &out).map_err(|e| format!("write {CONSTRAINED_PATH}: {e}"))?;
     let c_checksum = corpus_checksum64(&out);
     eprintln!("\nfiltered {CONSTRAINED_PATH}: {kept_rows} rows, checksum={c_checksum}");
     println!(

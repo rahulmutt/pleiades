@@ -313,14 +313,16 @@ mod tests {
         );
     }
 
+    // Tier-B (Constrained) roster is empty post-slice-3; Constrained tier is
+    // still exercised via the de440/planet path (Mars).
     #[test]
-    fn spk_claims_tier_a_release_grade_tier_b_constrained() {
+    fn spk_claims_tier_a_release_grade_planets_constrained() {
         use crate::spk::asteroid_roster::spk_body_claims;
         use pleiades_backend::BodyClaimTier;
         let covered = vec![
             CelestialBody::Ceres,    // Tier A
             CelestialBody::Vesta,    // Tier A
-            ast_body("2060-Chiron"), // Tier B (Constrained centaur)
+            ast_body("2060-Chiron"), // Tier A (promoted to ReleaseGrade via per-object SPK in slice-3)
             CelestialBody::Mars,     // planet → Constrained/High/de440
         ];
         let claims = spk_body_claims(&covered);
@@ -335,7 +337,7 @@ mod tests {
         );
         assert_eq!(
             tier(&ast_body("2060-Chiron")),
-            Some(BodyClaimTier::Constrained)
+            Some(BodyClaimTier::ReleaseGrade)
         );
         assert_eq!(tier(&CelestialBody::Mars), Some(BodyClaimTier::Constrained));
     }
