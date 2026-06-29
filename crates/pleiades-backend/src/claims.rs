@@ -55,7 +55,7 @@ impl fmt::Display for BodyClaimTier {
 pub enum ClaimEvidence {
     /// Validated inside the packaged artifact build against the reference corpus.
     ArtifactValidated,
-    /// Validated against a named reference corpus (e.g. `de440`, `sb441-n16`).
+    /// Validated against a named reference corpus (e.g. `de440`, `sb441-n373s`).
     CorpusValidated {
         /// The reference source identifier.
         source: String,
