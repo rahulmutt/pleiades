@@ -5,6 +5,7 @@
 
 mod ephemeris;
 mod error;
+mod geometry;
 mod syzygy;
 mod types;
 
