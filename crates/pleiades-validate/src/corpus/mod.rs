@@ -360,7 +360,7 @@ pub fn holdout_corpus() -> ValidationCorpus {
 }
 
 /// Builds a validation corpus from the committed Tier-A asteroid reference rows
-/// (`sb441-n16`).
+/// (`sb441-n373s`).
 ///
 /// One request is emitted per `SnapshotEntry`, reusing the entry's own body and
 /// epoch in a geocentric ecliptic, tropical, mean-geometric shape. Each request

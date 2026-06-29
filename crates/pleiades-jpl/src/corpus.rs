@@ -72,7 +72,7 @@ pub fn fixture_golden_corpus() -> &'static [SnapshotEntry] {
         .as_slice()
 }
 
-/// Tier A asteroid reference rows (sb441-n16).
+/// Tier A asteroid reference rows (sb441-n373s).
 pub fn asteroid_reference_corpus() -> &'static [SnapshotEntry] {
     static ENTRIES: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
     ENTRIES
@@ -166,12 +166,17 @@ mod tests {
     }
 
     #[test]
-    fn asteroid_constrained_includes_eros() {
+    fn asteroid_reference_includes_eros() {
+        // 433-Eros was promoted from Tier-B/constrained to Tier-A/PinnedKernel
+        // in asteroid slice 2 (sb441-n373s). It must appear in the reference corpus.
         let eros = CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros"));
-        let rows = asteroid_constrained_entries_for(&eros);
+        let rows: Vec<_> = asteroid_reference_corpus()
+            .iter()
+            .filter(|e| e.body == eros)
+            .collect();
         assert!(
             !rows.is_empty(),
-            "asteroid_constrained should contain Eros rows"
+            "asteroid_reference should contain Eros rows (promoted to Tier-A in slice 2)"
         );
         assert!(rows.iter().all(|e| e.body == eros));
     }
