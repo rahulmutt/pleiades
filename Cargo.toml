@@ -7,6 +7,7 @@ members = [
     "crates/pleiades-compression",
     "crates/pleiades-core",
     "crates/pleiades-data",
+    "crates/pleiades-eclipse",
     "crates/pleiades-elp",
     "crates/pleiades-houses",
     "crates/pleiades-jpl",
@@ -43,6 +44,8 @@ pleiades-ayanamsa = { path = "crates/pleiades-ayanamsa", version = "0.2.0" }
 pleiades-backend = { path = "crates/pleiades-backend", version = "0.2.0" }
 pleiades-compression = { path = "crates/pleiades-compression", version = "0.2.0" }
 pleiades-core = { path = "crates/pleiades-core", version = "0.2.0" }
+pleiades-data = { path = "crates/pleiades-data", version = "0.2.0" }
+pleiades-eclipse = { path = "crates/pleiades-eclipse", version = "0.2.0" }
 pleiades-elp = { path = "crates/pleiades-elp", version = "0.2.0" }
 pleiades-houses = { path = "crates/pleiades-houses", version = "0.2.0" }
 pleiades-jpl = { path = "crates/pleiades-jpl", version = "0.2.0" }

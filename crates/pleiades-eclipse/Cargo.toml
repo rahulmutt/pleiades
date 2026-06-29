@@ -1,6 +1,6 @@
 [package]
-name = "pleiades-backend"
-description = "Backend traits, request/result contracts, capability metadata, policy summaries, and routing helpers for pleiades ephemeris backends."
+name = "pleiades-eclipse"
+description = "Global geocentric solar and lunar eclipse computation for the pleiades astrology workspace: type, greatest-eclipse time, magnitude, gamma, Saros series, eclipsed longitude, and greatest-eclipse location."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -13,14 +13,17 @@ readme = "README.md"
 
 [features]
 serde = ["dep:serde", "pleiades-types/serde"]
-test-backend = []
 
 [dependencies]
 pleiades-types = { workspace = true }
+pleiades-backend = { workspace = true }
+pleiades-apparent = { workspace = true }
+pleiades-time = { workspace = true }
 serde = { workspace = true, optional = true }
 
 [dev-dependencies]
-serde_json = "1"
+pleiades-backend = { workspace = true, features = ["test-backend"] }
+pleiades-data = { workspace = true }
 
 [package.metadata.docs.rs]
 all-features = true

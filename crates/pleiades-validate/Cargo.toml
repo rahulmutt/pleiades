@@ -7,6 +7,7 @@ rust-version.workspace = true
 publish = false
 
 [dependencies]
+pleiades-eclipse = { workspace = true }
 pleiades-apparent = { workspace = true }
 pleiades-ayanamsa = { path = "../pleiades-ayanamsa" }
 pleiades-backend = { path = "../pleiades-backend" }

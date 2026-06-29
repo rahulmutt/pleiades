@@ -189,6 +189,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "pleiades-eclipse"
+version = "0.2.0"
+dependencies = [
+ "pleiades-apparent",
+ "pleiades-backend",
+ "pleiades-data",
+ "pleiades-time",
+ "pleiades-types",
+ "serde",
+]
+
+[[package]]
 name = "pleiades-elp"
 version = "0.2.0"
 dependencies = [
@@ -240,6 +252,7 @@ dependencies = [
  "pleiades-compression",
  "pleiades-core",
  "pleiades-data",
+ "pleiades-eclipse",
  "pleiades-elp",
  "pleiades-houses",
  "pleiades-jpl",

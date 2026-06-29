@@ -20,6 +20,7 @@ mod claims;
 mod comparison;
 mod compatibility;
 mod corpus;
+pub mod eclipse_validation;
 mod house_validation;
 mod provenance;
 mod release;
@@ -171,6 +172,7 @@ pub use ayanamsa_validation::{
 pub use chart_benchmark::{
     benchmark_chart_backend, chart_benchmark_corpus_summary, ChartBenchmarkReport,
 };
+pub use eclipse_validation::{validate_eclipse_corpus, EclipseCorpusError, EclipseCorpusReport};
 pub use house_validation::{
     house_validation_report, house_validation_summary_for_report,
     house_validation_summary_line_for_report, release_house_validation_report,

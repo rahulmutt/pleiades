@@ -214,3 +214,20 @@ fn release_profile_identifiers_summary_command_renders_the_shared_release_profil
         "release-profile-identifiers does not accept extra arguments"
     );
 }
+
+#[test]
+fn validate_eclipses_command_forwards_to_validate_crate() {
+    let out = render_cli(&["validate-eclipses"])
+        .expect("validate-eclipses should succeed through the pleiades-cli layer");
+    assert!(
+        out.contains("validate-eclipses"),
+        "output should contain 'validate-eclipses': {out}"
+    );
+    assert!(
+        out.contains("NASA-canon"),
+        "output should contain 'NASA-canon': {out}"
+    );
+    // Alias should produce identical output.
+    let via_alias = render_cli(&["eclipses-gate"]).expect("eclipses-gate alias should succeed");
+    assert_eq!(out, via_alias);
+}

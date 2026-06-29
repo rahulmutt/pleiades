@@ -194,3 +194,63 @@ fn compat_claims_audit_passes_on_real_catalogs() {
     let out = render_cli(&["compat-claims-audit"]).expect("audit passes");
     assert!(out.contains("OK"));
 }
+
+#[test]
+fn validate_eclipses_command_reports_a_summary() {
+    let out = render_cli(&["validate-eclipses"]).expect("gate passes");
+    assert!(
+        out.contains("validate-eclipses"),
+        "output should contain 'validate-eclipses': {out}"
+    );
+    assert!(
+        out.contains("NASA-canon"),
+        "output should contain 'NASA-canon': {out}"
+    );
+}
+
+#[test]
+fn eclipses_gate_alias_matches_validate_eclipses() {
+    let via_primary = render_cli(&["validate-eclipses"]).expect("validate-eclipses should succeed");
+    let via_alias = render_cli(&["eclipses-gate"]).expect("eclipses-gate alias should succeed");
+    assert_eq!(via_primary, via_alias);
+}
+
+#[test]
+fn validate_eclipses_rejects_extra_args() {
+    let error = render_cli(&["validate-eclipses", "extra"])
+        .expect_err("validate-eclipses should reject extra arguments");
+    assert!(
+        error.contains("validate-eclipses does not accept extra arguments"),
+        "unexpected error: {error}"
+    );
+}
+
+#[test]
+fn eclipses_listing_returns_lines_for_narrow_window() {
+    // The allowlisted eclipse JD 2432680.601 (1948-05-09 solar, Saros 137) is
+    // guaranteed to be in the corpus window and returns exactly one eclipse.
+    let out = render_cli(&["eclipses", "--start", "2432679.0", "--end", "2432682.0"])
+        .expect("eclipses listing should succeed for a narrow window");
+    // There should be at least one line.
+    assert!(!out.is_empty(), "eclipses listing should not be empty");
+    // The eclipse kind and type are in the output.
+    assert!(
+        out.contains("solar"),
+        "output should mention solar eclipse: {out}"
+    );
+}
+
+#[test]
+fn eclipses_listing_with_end_at_window_boundary_does_not_error() {
+    // `render_eclipses_listing` with no --end defaults to WINDOW_END_JD.
+    // Before the `eclipses_in_range` scan-end clamp, this triggered a backend
+    // OutOfRange error because the syzygy scanner probed one STEP_DAYS past the
+    // data bound. This test exercises that exact path via the CLI surface.
+    let out = render_cli(&["eclipses", "--start", "2488000.0"])
+        .expect("eclipses listing with default end (WINDOW_END_JD) must not error");
+    // The window has eclipses in this region.
+    assert!(
+        !out.is_empty(),
+        "eclipses listing near window end should not be empty"
+    );
+}

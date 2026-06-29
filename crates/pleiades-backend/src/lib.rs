@@ -80,6 +80,9 @@ mod validation;
 #[cfg(test)]
 pub(crate) mod test_support;
 
+#[cfg(any(test, feature = "test-backend"))]
+pub mod test_backend;
+
 pub use pleiades_types::{
     Angle, Apparentness, Ayanamsa, CelestialBody, CelestialBodyClass, CoordinateFrame,
     CoordinateValidationError, CustomAyanamsa, CustomBodyId, CustomDefinitionValidationError,
