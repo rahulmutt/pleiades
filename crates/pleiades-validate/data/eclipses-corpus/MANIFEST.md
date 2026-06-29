@@ -7,13 +7,19 @@ Lunar Eclipses (Espenak & Meeus), restricted to 1900-01-01 ... 2100-12-31.
 Exhaustive: every solar and lunar eclipse in the window.
 
 **NASA source URLs (all fetched 2026-06-29):**
+- https://eclipse.gsfc.nasa.gov/SEcat5/SE1801-1900.html — 242 solar eclipses (1801-1900), year-1900 rows only kept
 - https://eclipse.gsfc.nasa.gov/SEcat5/SE1901-2000.html — 228 solar eclipses (1901-2000)
 - https://eclipse.gsfc.nasa.gov/SEcat5/SE2001-2100.html — 224 solar eclipses (2001-2100)
+- https://eclipse.gsfc.nasa.gov/LEcat5/LE1801-1900.html — 249 lunar eclipses (1801-1900), year-1900 rows only kept
 - https://eclipse.gsfc.nasa.gov/LEcat5/LE1901-2000.html — 229 lunar eclipses (1901-2000)
 - https://eclipse.gsfc.nasa.gov/LEcat5/LE2001-2100.html — 228 lunar eclipses (2001-2100)
 
-**Total: 909 eclipses (452 solar, 457 lunar)** across 95 active Saros series
-(48 solar, 47 lunar).
+The 1801-1900 pages are needed because the 1901-2000 pages start with 1901; the
+four year-1900 eclipses (2 solar, 2 lunar) are present only on the 1801-1900 pages.
+Pre-1900 rows from those pages are discarded (jd_tt < 2_415_020.5).
+
+**Total: 913 eclipses (454 solar, 459 lunar)** across 95 active Saros series
+(48 solar, 47 lunar).  Coverage: **1900-01-01 … 2100-12-31** (complete).
 
 ## Columns (eclipses.csv)
 
@@ -48,6 +54,11 @@ To regenerate `eclipses.csv` and `saros_anchors.txt` from scratch:
 cd crates/pleiades-validate/data/eclipses-corpus/
 python3 gen_eclipse_corpus.py
 ```
+
+The script fetches 6 NASA HTML catalog pages (1801-1900 + 1901-2000 + 2001-2100
+for both solar and lunar), discards rows with jd_tt < 2_415_020.5 (pre-1900),
+and processes the remainder identically.  The net result covers 1900-01-01 …
+2100-12-31 exhaustively, including all four year-1900 eclipses.
 
 Requirements: Python 3.10+, `requests` (or the stdlib `urllib.request` already
 used), `skyfield >= 1.54`, and `/workspace/.kernels/de440.bsp` (already

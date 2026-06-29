@@ -1,4 +1,8 @@
 kind,type,greatest_eclipse_jd_tt,magnitude,saros,eclipsed_longitude_deg
+solar,total,2415168.12079,1.0249,126,66.78735
+lunar,penumbral,2415183.64418,1.0010,138,261.64190
+solar,annular,2415345.80536,0.9421,131,239.55883
+lunar,penumbral,2415359.93506,0.8183,143,73.87919
 lunar,penumbral,2415508.27127,1.0431,110,222.60718
 solar,total,2415522.73181,1.0680,136,56.57100
 lunar,partial,2415685.13563,0.2208,115,33.51066

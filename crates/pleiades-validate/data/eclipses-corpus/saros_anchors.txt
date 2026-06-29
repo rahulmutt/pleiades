@@ -20,12 +20,12 @@ pub(crate) const SAROS_ANCHORS: &[(EclipseKind, f64, u32)] = &[
     (EclipseKind::Solar, 2416378.69435_f64, 123),  // total
     (EclipseKind::Solar, 2420366.02392_f64, 124),  // total
     (EclipseKind::Solar, 2417767.14204_f64, 125),  // annular
-    (EclipseKind::Solar, 2421753.42203_f64, 126),  // total
+    (EclipseKind::Solar, 2415168.12079_f64, 126),  // total
     (EclipseKind::Solar, 2419155.43567_f64, 127),  // total
     (EclipseKind::Solar, 2416556.73662_f64, 128),  // annular
     (EclipseKind::Solar, 2420542.68981_f64, 129),  // annular
     (EclipseKind::Solar, 2417944.40650_f64, 130),  // total
-    (EclipseKind::Solar, 2421931.14030_f64, 131),  // annular
+    (EclipseKind::Solar, 2415345.80536_f64, 131),  // annular
     (EclipseKind::Solar, 2419331.67572_f64, 132),  // annular
     (EclipseKind::Solar, 2416733.36413_f64, 133),  // total
     (EclipseKind::Solar, 2420720.45307_f64, 134),  // annular
@@ -87,12 +87,12 @@ pub(crate) const SAROS_ANCHORS: &[(EclipseKind, f64, u32)] = &[
     (EclipseKind::Lunar, 2416394.13719_f64, 135),  // partial
     (EclipseKind::Lunar, 2420380.07983_f64, 136),  // partial
     (EclipseKind::Lunar, 2417781.68226_f64, 137),  // partial
-    (EclipseKind::Lunar, 2421768.93615_f64, 138),  // partial
+    (EclipseKind::Lunar, 2415183.64418_f64, 138),  // penumbral
     (EclipseKind::Lunar, 2419169.74750_f64, 139),  // penumbral
     (EclipseKind::Lunar, 2416571.02255_f64, 140),  // penumbral
     (EclipseKind::Lunar, 2420558.26356_f64, 141),  // penumbral
     (EclipseKind::Lunar, 2417959.05667_f64, 142),  // penumbral
-    (EclipseKind::Lunar, 2421945.29584_f64, 143),  // penumbral
+    (EclipseKind::Lunar, 2415359.93506_f64, 143),  // penumbral
     (EclipseKind::Lunar, 2419347.15052_f64, 144),  // penumbral
     (EclipseKind::Lunar, 2416748.23245_f64, 145),  // penumbral
     (EclipseKind::Lunar, 2420734.39395_f64, 146),  // penumbral
@@ -122,12 +122,12 @@ solar       122  2418977.58926 partial
 solar       123  2416378.69435 total     
 solar       124  2420366.02392 total     
 solar       125  2417767.14204 annular   
-solar       126  2421753.42203 total     
+solar       126  2415168.12079 total     
 solar       127  2419155.43567 total     
 solar       128  2416556.73662 annular   
 solar       129  2420542.68981 annular   
 solar       130  2417944.40650 total     
-solar       131  2421931.14030 annular   
+solar       131  2415345.80536 annular   
 solar       132  2419331.67572 annular   
 solar       133  2416733.36413 total     
 solar       134  2420720.45307 annular   
@@ -188,12 +188,12 @@ lunar       134  2418992.51449 total
 lunar       135  2416394.13719 partial   
 lunar       136  2420380.07983 partial   
 lunar       137  2417781.68226 partial   
-lunar       138  2421768.93615 partial   
+lunar       138  2415183.64418 penumbral 
 lunar       139  2419169.74750 penumbral 
 lunar       140  2416571.02255 penumbral 
 lunar       141  2420558.26356 penumbral 
 lunar       142  2417959.05667 penumbral 
-lunar       143  2421945.29584 penumbral 
+lunar       143  2415359.93506 penumbral 
 lunar       144  2419347.15052 penumbral 
 lunar       145  2416748.23245 penumbral 
 lunar       146  2420734.39395 penumbral 

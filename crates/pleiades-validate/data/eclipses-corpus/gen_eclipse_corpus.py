@@ -2,12 +2,17 @@
 """
 gen_eclipse_corpus.py — one-off generator for the NASA-canon eclipse fixture.
 
-Fetches four NASA HTML eclipse catalog pages (1901-2100), parses every solar
-and lunar eclipse row, computes greatest_eclipse_jd_tt from the NASA TD time
-(TD ≈ TT), and derives eclipsed_longitude_deg using Skyfield 1.54 + DE440.
+Fetches six NASA HTML eclipse catalog pages (1801-1900 + 1901-2100), parses
+every solar and lunar eclipse row within the supported JD window
+[2_415_020.5, 2_488_434.5] (1900-01-01 … 2101-01-01), computes
+greatest_eclipse_jd_tt from the NASA TD time (TD ≈ TT), and derives
+eclipsed_longitude_deg using Skyfield 1.54 + DE440.
+
+The 1801-1900 pages supply the year-1900 eclipses that the 1901-2000 pages
+omit.  Rows with jd_tt < JD_WINDOW_START (pre-1900) are discarded.
 
 Outputs (in the same directory as this script):
-  eclipses.csv        — the committed fixture (~920 rows)
+  eclipses.csv        — the committed fixture (~913 rows)
   saros_anchors.txt   — one anchor per active Saros series for saros.rs
 
 Reproduction:
@@ -26,13 +31,20 @@ import urllib.request
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
-# NASA source URLs
+# Supported JD window  (1900-01-01 TT … 2101-01-01 TT)
+# ---------------------------------------------------------------------------
+JD_WINDOW_START = 2_415_020.5   # 1900-01-01 00:00:00 TT
+
+# ---------------------------------------------------------------------------
+# NASA source URLs  (1801-1900 pages first, to cover all year-1900 eclipses)
 # ---------------------------------------------------------------------------
 SOLAR_URLS = [
+    "https://eclipse.gsfc.nasa.gov/SEcat5/SE1801-1900.html",
     "https://eclipse.gsfc.nasa.gov/SEcat5/SE1901-2000.html",
     "https://eclipse.gsfc.nasa.gov/SEcat5/SE2001-2100.html",
 ]
 LUNAR_URLS = [
+    "https://eclipse.gsfc.nasa.gov/LEcat5/LE1801-1900.html",
     "https://eclipse.gsfc.nasa.gov/LEcat5/LE1901-2000.html",
     "https://eclipse.gsfc.nasa.gov/LEcat5/LE2001-2100.html",
 ]
@@ -374,9 +386,16 @@ def main():
         print(f"    Lunar rows parsed: {len(rows)}")
         all_rows.extend(rows)
 
+    # Filter to the supported window (discard pre-1900 rows from 1801-1900 pages)
+    before = len(all_rows)
+    all_rows = [r for r in all_rows if r["jd_tt"] >= JD_WINDOW_START]
+    discarded = before - len(all_rows)
+    if discarded:
+        print(f"  Discarded {discarded} rows with jd_tt < {JD_WINDOW_START} (pre-1900)")
+
     solar_count = sum(1 for r in all_rows if r["kind"] == "solar")
     lunar_count = sum(1 for r in all_rows if r["kind"] == "lunar")
-    print(f"\n  Total parsed: {len(all_rows)} ({solar_count} solar, {lunar_count} lunar)")
+    print(f"\n  Total in window: {len(all_rows)} ({solar_count} solar, {lunar_count} lunar)")
 
     if len(all_rows) < 900:
         print("ERROR: fewer than 900 rows parsed — check NASA page format", file=sys.stderr)
@@ -400,7 +419,7 @@ def main():
 
     # Final summary
     print(f"\n=== Done ===")
-    print(f"  eclipses.csv:      {len(all_rows)} data rows ({solar_count} solar, {lunar_count} lunar)")
+    print(f"  eclipses.csv:      {len(all_rows)} data rows ({solar_count} solar, {lunar_count} lunar) — window 1900-01-01…2100-12-31")
     print(f"  saros_anchors.txt: {len(anchors)} series anchors")
     print(f"  Longitude method:  Skyfield 1.54 + DE440, independent of pleiades")
     if len(all_rows) >= 900:
