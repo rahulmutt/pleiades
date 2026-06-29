@@ -78,6 +78,7 @@ Usage / reproduction:
 ```bash
 PLEIADES_DE_KERNEL=/path/to/de440.bsp \
 PLEIADES_AST_KERNEL=/path/to/sb441-n373s.bsp \
+PLEIADES_OBJECT_SPK_DIR=/path/to/objects \
   cargo test -p pleiades-jpl --test corpus_regen -- --nocapture
 ```
 
