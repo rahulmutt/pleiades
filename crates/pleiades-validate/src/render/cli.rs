@@ -14,6 +14,7 @@ fn run_all_numeric_gates() -> Result<(), String> {
     crate::validate_apparent_goldens().map_err(|e| format!("apparent gate failed: {e}"))?;
     crate::validate_topocentric_goldens().map_err(|e| format!("topocentric gate failed: {e}"))?;
     crate::corpus::production::run_corpus_gate().map_err(|e| format!("corpus gate failed: {e}"))?;
+    crate::validate_eclipse_corpus().map_err(|e| format!("eclipse gate failed: {e}"))?;
     Ok(())
 }
 
@@ -192,6 +193,13 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
                 .map(|report| report.summary_line().to_string())
                 .map_err(|e| e.to_string())
         }
+        Some("validate-eclipses") | Some("eclipses-gate") => {
+            ensure_no_extra_args(&args[1..], "validate-eclipses")?;
+            crate::validate_eclipse_corpus()
+                .map(|r| r.summary_line())
+                .map_err(|e| e.to_string())
+        }
+        Some("eclipses") => crate::eclipse_validation::render_eclipses_listing(&args[1..]),
         Some("benchmark-corpus-summary") => {
             ensure_no_extra_args(&args[1..], "benchmark-corpus-summary")?;
             Ok(render_benchmark_corpus_summary_text())

@@ -8,7 +8,8 @@
 
 use pleiades_data::packaged_backend;
 use pleiades_eclipse::{
-    EclipseEngine, EclipseFilter, EclipseType, LunarEclipseType, SolarEclipseType,
+    EclipseEngine, EclipseFilter, EclipseType, LunarEclipseType, SolarEclipseType, WINDOW_END_JD,
+    WINDOW_START_JD,
 };
 use pleiades_types::{Instant, JulianDay, TimeScale};
 
@@ -235,6 +236,88 @@ pub fn validate_eclipse_corpus() -> Result<EclipseCorpusReport, EclipseCorpusErr
         checked,
         allowlist_hits,
     })
+}
+
+/// Lists eclipses in a JD range, one line per eclipse.
+///
+/// Usage: `eclipses [--start <jd>] [--end <jd>] [--solar|--lunar]`
+///
+/// JD floats are the only accepted format for `--start`/`--end`; ISO dates are
+/// not supported (the error text says so if the user supplies a non-numeric value).
+/// Defaults to `WINDOW_START_JD`..`WINDOW_END_JD` when omitted.
+pub(crate) fn render_eclipses_listing(args: &[&str]) -> Result<String, String> {
+    let mut start_jd = WINDOW_START_JD;
+    let mut end_jd = WINDOW_END_JD;
+    let mut filter = EclipseFilter::All;
+
+    let mut i = 0;
+    while i < args.len() {
+        match args[i] {
+            "--start" => {
+                i += 1;
+                let val = args.get(i).ok_or("eclipses: --start requires a JD value")?;
+                start_jd = val.parse::<f64>().map_err(|_| {
+                    format!(
+                        "eclipses: --start: invalid JD float '{val}' \
+                         (only JD floats are accepted, e.g. --start 2451545.0)"
+                    )
+                })?;
+            }
+            "--end" => {
+                i += 1;
+                let val = args.get(i).ok_or("eclipses: --end requires a JD value")?;
+                end_jd = val.parse::<f64>().map_err(|_| {
+                    format!(
+                        "eclipses: --end: invalid JD float '{val}' \
+                         (only JD floats are accepted, e.g. --end 2488069.5)"
+                    )
+                })?;
+            }
+            "--solar" => filter = EclipseFilter::SolarOnly,
+            "--lunar" => filter = EclipseFilter::LunarOnly,
+            other => {
+                return Err(format!(
+                    "eclipses: unknown argument '{other}' \
+                     (usage: eclipses [--start <jd>] [--end <jd>] [--solar|--lunar])"
+                ));
+            }
+        }
+        i += 1;
+    }
+
+    if start_jd > end_jd {
+        return Err(format!("eclipses: --start {start_jd} > --end {end_jd}"));
+    }
+
+    let engine = EclipseEngine::new(packaged_backend());
+    let start = Instant::new(JulianDay::from_days(start_jd), TimeScale::Tdb);
+    let end = Instant::new(JulianDay::from_days(end_jd), TimeScale::Tdb);
+
+    let eclipses = engine
+        .eclipses_in_range(start, end, filter)
+        .map_err(|e| format!("eclipses: engine error: {e}"))?;
+
+    if eclipses.is_empty() {
+        return Ok("eclipses: no eclipses found in range".to_string());
+    }
+
+    let lines: Vec<String> = eclipses
+        .iter()
+        .map(|e| {
+            let jd = e.greatest_eclipse.julian_day.days();
+            let kind = match e.eclipse_type {
+                EclipseType::Solar(_) => "solar",
+                EclipseType::Lunar(_) => "lunar",
+            };
+            let typ = type_label(e.eclipse_type);
+            let mag = e.magnitude;
+            let saros = e.saros_series;
+            let lon = e.eclipsed_longitude.degrees();
+            format!("{jd:.5} {kind} {typ} mag={mag:.4} saros={saros} lon={lon:.4}")
+        })
+        .collect();
+
+    Ok(lines.join("\n"))
 }
 
 #[cfg(test)]
