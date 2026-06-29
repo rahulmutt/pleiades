@@ -3,8 +3,10 @@
 //! circumstances only (no per-observer local circumstances).
 #![forbid(unsafe_code)]
 
+mod error;
 mod types;
 
+pub use error::{EclipseError, WINDOW_END_JD, WINDOW_START_JD};
 pub use types::{
     Eclipse, EclipseFilter, EclipseKind, EclipseType, GeoLocation, LunarEclipseType, Node,
     SolarEclipseType,
