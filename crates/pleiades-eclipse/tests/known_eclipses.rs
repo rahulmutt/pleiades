@@ -2,7 +2,9 @@ use pleiades_backend::{
     Apparentness, CelestialBody, CoordinateFrame, EphemerisBackend, EphemerisRequest,
 };
 use pleiades_data::packaged_backend;
-use pleiades_eclipse::{EclipseEngine, EclipseFilter, EclipseKind, EclipseType, SolarEclipseType};
+use pleiades_eclipse::{
+    EclipseEngine, EclipseFilter, EclipseKind, EclipseType, SolarEclipseType, WINDOW_END_JD,
+};
 use pleiades_types::{Instant, JulianDay, TimeScale};
 
 fn at(jd: f64) -> Instant {
@@ -34,6 +36,55 @@ fn finds_the_1999_august_11_total_solar_eclipse() {
     assert!(
         delta_s < 60.0,
         "jd was {jd}, delta {delta_s:.1}s exceeds 60s limit"
+    );
+}
+
+/// Boundary tests: calling `next_eclipse`, `previous_eclipse`, and
+/// `eclipses_in_range` with end = WINDOW_END_JD must return Ok, not a backend
+/// OutOfRange error. (The syzygy scanner probes one STEP_DAYS past its end;
+/// without the clamp in `eclipses_in_range` this would query past the data bound.)
+#[test]
+fn next_eclipse_near_window_end_does_not_error() {
+    let engine = EclipseEngine::new(packaged_backend());
+    // Start ~1 year before the end so at least a few syzygies are scanned.
+    let start = at(WINDOW_END_JD - 365.0);
+    let result = engine.next_eclipse(start, EclipseFilter::All);
+    assert!(
+        result.is_ok(),
+        "next_eclipse near WINDOW_END_JD should not error: {:?}",
+        result
+    );
+}
+
+#[test]
+fn previous_eclipse_at_window_end_does_not_error() {
+    let engine = EclipseEngine::new(packaged_backend());
+    // before = WINDOW_END_JD is the exact failing case before the fix.
+    let before = at(WINDOW_END_JD);
+    let result = engine.previous_eclipse(before, EclipseFilter::All);
+    assert!(
+        result.is_ok(),
+        "previous_eclipse(WINDOW_END_JD) should not error: {:?}",
+        result
+    );
+    // There must be at least one eclipse before the window end.
+    assert!(
+        result.unwrap().is_some(),
+        "previous_eclipse(WINDOW_END_JD) should find at least one eclipse"
+    );
+}
+
+#[test]
+fn eclipses_in_range_ending_at_window_end_does_not_error() {
+    let engine = EclipseEngine::new(packaged_backend());
+    // Narrow window ending exactly at WINDOW_END_JD — the other broken path.
+    let start = at(WINDOW_END_JD - 365.0);
+    let end = at(WINDOW_END_JD);
+    let result = engine.eclipses_in_range(start, end, EclipseFilter::All);
+    assert!(
+        result.is_ok(),
+        "eclipses_in_range ending at WINDOW_END_JD should not error: {:?}",
+        result
     );
 }
 

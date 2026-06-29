@@ -117,3 +117,80 @@ cargo clippy --workspace --all-targets: CLEAN (no warnings)
 - `README.md` — eclipse "Current state" bullet
 - `crates/pleiades-validate/src/render/cli.rs` — `validate-eclipses`/`eclipses-gate` in help text
 - `docs/superpowers/specs/2026-06-29-eclipse-subsystem-design.md` — "As-built notes" subsection
+
+## FIX (centralize boundary clamp)
+
+### Change
+
+**`crates/pleiades-eclipse/src/syzygy.rs`**: Made `STEP_DAYS` `pub(crate)` so
+`engine.rs` can reference it directly instead of hardcoding `0.5`.
+
+**`crates/pleiades-eclipse/src/engine.rs`** (`EclipseEngine::eclipses_in_range`):
+After the existing `check_window` guards (kept as-is — caller bounds must still be
+in-window), two clamps are applied before calling `find_syzygies`:
+
+```rust
+let scan_start = start_jd.max(WINDOW_START_JD + STEP_DAYS);
+let scan_end   = end_jd.min(WINDOW_END_JD   - STEP_DAYS);
+```
+
+`next_eclipse` was simplified: it now passes `WINDOW_END_JD` as its `end`
+argument (the old manual `- 0.5` was removed) because `eclipses_in_range`
+applies the clamp centrally for all callers.
+
+### Why it protects all callers
+
+Two independent backend-overstep hazards existed at the window boundaries:
+
+1. **END**: `find_one` loops `while jd <= end_jd + STEP_DAYS`, so the last
+   sample is at `end_jd + 0.5`. Passing `WINDOW_END_JD` without clamping caused
+   a query at `WINDOW_END_JD + 0.5 = 2488070.0`, past the packaged backend's
+   coverage. Fix: `scan_end = end_jd.min(WINDOW_END_JD - STEP_DAYS)`.
+
+2. **START**: `sample_sun_moon` uses light-time-retarded positions. For the Sun
+   (~1 AU), the retarded epoch is ~499 s = 0.006 d before the nominal JD. When
+   `scan_start = WINDOW_START_JD`, the retarded query fell before the backend's
+   first segment. Fix: `scan_start = start_jd.max(WINDOW_START_JD + STEP_DAYS)`
+   (STEP_DAYS = 0.5 d >> 0.006 d light-time).
+
+Both clamps are safe: no corpus eclipse falls within 0.5 d of either window
+boundary (earliest corpus eclipse is at JD 2415168, ~147 days after WINDOW_START_JD;
+latest is ~93 days before WINDOW_END_JD).
+
+### New tests
+
+**`crates/pleiades-eclipse/tests/known_eclipses.rs`** (3 new tests):
+- `next_eclipse_near_window_end_does_not_error`: starts 365 d before WINDOW_END_JD
+- `previous_eclipse_at_window_end_does_not_error`: `before = WINDOW_END_JD` (scans
+  full window; also exercises start-boundary clamp)
+- `eclipses_in_range_ending_at_window_end_does_not_error`: start 365 d before,
+  `end = WINDOW_END_JD` (direct end-boundary path)
+
+**`crates/pleiades-validate/src/tests/validate_gates.rs`** (1 new test):
+- `eclipses_listing_with_end_at_window_boundary_does_not_error`: calls
+  `render_cli(&["eclipses", "--start", "2488000.0"])` (no `--end`, defaults to
+  WINDOW_END_JD) and asserts `Ok` — exercises the `render_eclipses_listing`
+  default-end path.
+
+### Test commands and pass output
+
+```
+cargo test -p pleiades-eclipse
+# result: 5/5 known_eclipses tests ok, 16/16 unit tests ok, 1/1 doctest ok
+
+cargo test -p pleiades-validate eclipses_listing_with_end_at_window_boundary
+# result: 1 passed; 0 failed
+
+cargo test -p pleiades-validate
+# result: 476 passed; 0 failed; 183 ignored
+
+cargo fmt -p pleiades-eclipse -p pleiades-validate -- --check  # CLEAN
+cargo clippy -p pleiades-eclipse -p pleiades-validate --all-targets  # CLEAN (no warnings)
+```
+
+### Gate and doctest unaffected
+
+`validate_eclipse_corpus` uses `eclipses_in_range(exp_jd - 1.0, exp_jd + 1.0)` for
+each corpus row (narrow windows well within the window); the clamps have no effect
+on these calls. The `lib.rs` doctest (`next_eclipse` from JD 2451545.0) is equally
+unaffected. Both continue to pass.

@@ -4,7 +4,7 @@ use crate::ephemeris::{apparent_sun_longitude_deg, sample_sun_moon};
 use crate::error::{EclipseError, WINDOW_END_JD, WINDOW_START_JD};
 use crate::geometry::{classify_lunar, classify_solar, sub_shadow_point};
 use crate::saros::saros_series;
-use crate::syzygy::{find_syzygies, Syzygy};
+use crate::syzygy::{find_syzygies, Syzygy, STEP_DAYS};
 use crate::types::{Eclipse, EclipseFilter, EclipseKind, EclipseType, Node};
 use pleiades_backend::EphemerisBackend;
 use pleiades_types::{Instant, JulianDay, Longitude, TimeScale};
@@ -29,8 +29,22 @@ impl<B: EphemerisBackend> EclipseEngine<B> {
         self.check_window(start_jd)?;
         self.check_window(end_jd)?;
 
+        // The syzygy scanner (`find_one`) probes one STEP_DAYS past its
+        // requested end for sign-change detection, and `sample_sun_moon` issues a
+        // light-time-retarded Sun query ~0.006 days before the nominal epoch.
+        // Together these mean:
+        //   - At the END: the scanner queries up to `scan_end + STEP_DAYS`; the
+        //     packaged backend has no data beyond WINDOW_END_JD, so we clamp
+        //     `scan_end` to `WINDOW_END_JD - STEP_DAYS`.
+        //   - At the START: the retarded query falls `~light_time` before the
+        //     first sample; clamping `scan_start` to `WINDOW_START_JD + STEP_DAYS`
+        //     (> max light time ~0.006 d) keeps every retarded lookup within coverage.
+        // Both clamps are safe: no corpus eclipse falls within 0.5 d of either bound.
+        let scan_start = start_jd.max(WINDOW_START_JD + STEP_DAYS);
+        let scan_end = end_jd.min(WINDOW_END_JD - STEP_DAYS);
+
         let mut out = Vec::new();
-        for event in find_syzygies(&self.backend, start_jd, end_jd)? {
+        for event in find_syzygies(&self.backend, scan_start, scan_end)? {
             if let Some(eclipse) = self.build(event.syzygy, event.julian_day)? {
                 if filter.admits(eclipse.kind) {
                     out.push(eclipse);
@@ -46,10 +60,9 @@ impl<B: EphemerisBackend> EclipseEngine<B> {
         filter: EclipseFilter,
     ) -> Result<Option<Eclipse>, EclipseError> {
         let after_jd = after.julian_day.days();
-        // Subtract 0.5 d (one syzygy-scanner step) from WINDOW_END_JD so that
-        // `find_syzygies`, which probes one extra step past its requested end for
-        // sign-change detection, does not query the backend past its coverage.
-        let end = Instant::new(JulianDay::from_days(WINDOW_END_JD - 0.5), TimeScale::Tdb);
+        // `eclipses_in_range` clamps the scan end to WINDOW_END_JD - STEP_DAYS,
+        // so passing WINDOW_END_JD directly is safe and correct.
+        let end = Instant::new(JulianDay::from_days(WINDOW_END_JD), TimeScale::Tdb);
         Ok(self
             .eclipses_in_range(after, end, filter)?
             .into_iter()

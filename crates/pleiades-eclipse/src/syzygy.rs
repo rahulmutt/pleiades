@@ -21,7 +21,7 @@ pub(crate) struct SyzygyEvent {
     pub julian_day: f64,
 }
 
-const STEP_DAYS: f64 = 0.5;
+pub(crate) const STEP_DAYS: f64 = 0.5;
 const REFINE_TOLERANCE_DAYS: f64 = 0.5 / 86_400.0; // 0.5 s
 
 /// Target function whose zero marks the syzygy: elongation for a new moon, and

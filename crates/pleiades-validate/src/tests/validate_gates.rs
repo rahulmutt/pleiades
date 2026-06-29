@@ -239,3 +239,18 @@ fn eclipses_listing_returns_lines_for_narrow_window() {
         "output should mention solar eclipse: {out}"
     );
 }
+
+#[test]
+fn eclipses_listing_with_end_at_window_boundary_does_not_error() {
+    // `render_eclipses_listing` with no --end defaults to WINDOW_END_JD.
+    // Before the `eclipses_in_range` scan-end clamp, this triggered a backend
+    // OutOfRange error because the syzygy scanner probed one STEP_DAYS past the
+    // data bound. This test exercises that exact path via the CLI surface.
+    let out = render_cli(&["eclipses", "--start", "2488000.0"])
+        .expect("eclipses listing with default end (WINDOW_END_JD) must not error");
+    // The window has eclipses in this region.
+    assert!(
+        !out.is_empty(),
+        "eclipses listing near window end should not be empty"
+    );
+}
