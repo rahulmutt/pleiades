@@ -83,27 +83,27 @@ pub fn asteroid_core_roster() -> &'static [AsteroidEntry] {
                 e(ast("7-Iris"), PinnedKernel, MainBelt, "sb441-n373s"),
                 e(ast("15-Eunomia"), PinnedKernel, MainBelt, "sb441-n373s"),
                 e(ast("65-Cybele"), PinnedKernel, MainBelt, "sb441-n373s"),
-                // Centaurs — Tier B (not in sb441-n373s).
-                e(ast("2060-Chiron"), Constrained, Centaur, "horizons"),
-                e(ast("5145-Pholus"), Constrained, Centaur, "horizons"),
-                e(ast("7066-Nessus"), Constrained, Centaur, "horizons"),
-                e(ast("10199-Chariklo"), Constrained, Centaur, "horizons"),
-                e(ast("8405-Asbolus"), Constrained, Centaur, "horizons"),
-                // Personal / "goddess" asteroids — kernel-confirmed members promoted to Tier A;
-                // Amor, Lilith, Hidalgo, Icarus, Toro, Apollo absent from sb441-n373s, stay Tier B.
+                // Centaurs — promoted to Tier A via per-object SPKs (slice 3).
+                e(ast("2060-Chiron"),    PinnedKernel, Centaur,  "jpl-sbdb-spk:2060"),
+                e(ast("5145-Pholus"),    PinnedKernel, Centaur,  "jpl-sbdb-spk:5145"),
+                e(ast("7066-Nessus"),    PinnedKernel, Centaur,  "jpl-sbdb-spk:7066"),
+                e(ast("10199-Chariklo"), PinnedKernel, Centaur,  "jpl-sbdb-spk:10199"),
+                e(ast("8405-Asbolus"),   PinnedKernel, Centaur,  "jpl-sbdb-spk:8405"),
+                // Personal / "goddess" asteroids — kernel-confirmed members in sb441-n373s, Tier A;
+                // Amor, Lilith, Hidalgo, Icarus, Toro, Apollo promoted to Tier A via per-object SPKs (slice 3).
                 e(ast("433-Eros"), PinnedKernel, MainBelt, "sb441-n373s"),
                 e(ast("80-Sappho"), PinnedKernel, MainBelt, "sb441-n373s"),
-                e(ast("1221-Amor"), Constrained, MainBelt, "horizons"),
-                e(ast("1181-Lilith"), Constrained, MainBelt, "horizons"),
+                e(ast("1221-Amor"),  PinnedKernel, MainBelt, "jpl-sbdb-spk:1221"),
+                e(ast("1181-Lilith"), PinnedKernel, MainBelt, "jpl-sbdb-spk:1181"),
                 e(ast("5-Astraea"), PinnedKernel, MainBelt, "sb441-n373s"),
                 e(ast("6-Hebe"), PinnedKernel, MainBelt, "sb441-n373s"),
                 e(ast("8-Flora"), PinnedKernel, MainBelt, "sb441-n373s"),
                 e(ast("9-Metis"), PinnedKernel, MainBelt, "sb441-n373s"),
                 e(ast("19-Fortuna"), PinnedKernel, MainBelt, "sb441-n373s"),
-                e(ast("944-Hidalgo"), Constrained, MainBelt, "horizons"),
-                e(ast("1566-Icarus"), Constrained, MainBelt, "horizons"),
-                e(ast("1685-Toro"), Constrained, MainBelt, "horizons"),
-                e(ast("1862-Apollo"), Constrained, MainBelt, "horizons"),
+                e(ast("944-Hidalgo"),  PinnedKernel, MainBelt, "jpl-sbdb-spk:944"),
+                e(ast("1566-Icarus"),  PinnedKernel, MainBelt, "jpl-sbdb-spk:1566"),
+                e(ast("1685-Toro"),    PinnedKernel, MainBelt, "jpl-sbdb-spk:1685"),
+                e(ast("1862-Apollo"),  PinnedKernel, MainBelt, "jpl-sbdb-spk:1862"),
                 // TNOs / dwarf planets — all nine confirmed in sb441-n373s, Tier A.
                 e(tno("136199-Eris"), PinnedKernel, Tno, "sb441-n373s"),
                 e(tno("90377-Sedna"), PinnedKernel, Tno, "sb441-n373s"),
@@ -265,21 +265,39 @@ mod tests {
                 other => panic!("unexpected evidence {other:?}"),
             }
         }
-        // Until promotion, every Tier-A body is still kernel-sourced.
+        // Every Tier-A source is either the main kernel or a per-object SPK label.
         assert!(claims.iter().all(|c| matches!(
             &c.evidence,
-            ClaimEvidence::CorpusValidated { source } if source == "sb441-n373s"
+            ClaimEvidence::CorpusValidated { source }
+                if source == "sb441-n373s" || source.starts_with("jpl-sbdb-spk:")
         )));
     }
 
     #[test]
-    fn chiron_is_constrained_centaur() {
+    fn slice3_confirmed_bodies_are_tier_a_object_spk() {
+        let confirmed = [
+            "2060-Chiron", "5145-Pholus", "7066-Nessus", "10199-Chariklo", "8405-Asbolus",
+            "1221-Amor", "1181-Lilith", "944-Hidalgo", "1566-Icarus", "1685-Toro", "1862-Apollo",
+        ];
+        for designation in confirmed {
+            let e = asteroid_core_roster()
+                .iter()
+                .find(|e| matches!(&e.body, CelestialBody::Custom(c) if c.designation == designation))
+                .unwrap_or_else(|| panic!("{designation} missing"));
+            assert_eq!(e.tier, AsteroidTier::PinnedKernel, "{designation} tier");
+            assert!(e.source.starts_with("jpl-sbdb-spk:"), "{designation} source");
+        }
+    }
+
+    #[test]
+    fn chiron_is_tier_a_centaur() {
         let e = asteroid_core_roster()
             .iter()
             .find(|e| matches!(&e.body, CelestialBody::Custom(c) if c.designation == "2060-Chiron"))
             .expect("Chiron present");
-        assert_eq!(e.tier, AsteroidTier::Constrained);
+        assert_eq!(e.tier, AsteroidTier::PinnedKernel);
         assert_eq!(e.class, AsteroidClass::Centaur);
+        assert!(e.source.starts_with("jpl-sbdb-spk:"));
     }
 
     #[test]
