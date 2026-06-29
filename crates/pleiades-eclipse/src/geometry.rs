@@ -5,7 +5,7 @@
 #![allow(dead_code)]
 
 use crate::ephemeris::SunMoonSample;
-use crate::types::SolarEclipseType;
+use crate::types::{LunarEclipseType, SolarEclipseType};
 
 pub(crate) mod constants {
     pub const R_SUN_KM: f64 = 696_000.0;
@@ -23,6 +23,13 @@ const HYBRID_BAND_RAD: f64 = 0.000_03;
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct SolarCircumstances {
     pub eclipse_type: SolarEclipseType,
+    pub magnitude: f64,
+    pub gamma: f64,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct LunarCircumstances {
+    pub eclipse_type: LunarEclipseType,
     pub magnitude: f64,
     pub gamma: f64,
 }
@@ -72,6 +79,57 @@ pub(crate) fn classify_solar(sample: &SunMoonSample) -> Option<SolarCircumstance
     })
 }
 
+/// Separation (radians) of the Moon from the antisolar (shadow-axis) point.
+fn shadow_axis_separation_rad(sample: &SunMoonSample) -> f64 {
+    let anti_lon = (sample.sun_longitude_deg + 180.0).rem_euclid(360.0);
+    let anti = SunMoonSample {
+        sun_longitude_deg: anti_lon,
+        sun_latitude_deg: -sample.sun_latitude_deg,
+        ..*sample
+    };
+    // Reuse the Sun↔Moon separation routine against the antisolar point.
+    separation_rad(&anti)
+}
+
+pub(crate) fn classify_lunar(sample: &SunMoonSample) -> Option<LunarCircumstances> {
+    let s = (R_SUN_KM / (sample.sun_distance_au * AU_KM)).asin();
+    let m_moon = (R_MOON_KM / (sample.moon_distance_au * AU_KM)).asin();
+    let pi_moon = (R_EARTH_KM / (sample.moon_distance_au * AU_KM)).asin();
+    let pi_sun = (R_EARTH_KM / (sample.sun_distance_au * AU_KM)).asin();
+
+    let u = SHADOW_INFLATION * (pi_moon + pi_sun - s);
+    let p = SHADOW_INFLATION * (pi_moon + pi_sun + s);
+    let sigma = shadow_axis_separation_rad(sample);
+
+    if sigma >= p + m_moon {
+        return None;
+    }
+
+    let gamma = (sigma / pi_moon) * sample.moon_latitude_deg.signum();
+    let (eclipse_type, magnitude) = if sigma + m_moon <= u {
+        (
+            LunarEclipseType::Total,
+            (u + m_moon - sigma) / (2.0 * m_moon),
+        )
+    } else if sigma - m_moon < u {
+        (
+            LunarEclipseType::Partial,
+            (u + m_moon - sigma) / (2.0 * m_moon),
+        )
+    } else {
+        (
+            LunarEclipseType::Penumbral,
+            (p + m_moon - sigma) / (2.0 * m_moon),
+        )
+    };
+
+    Some(LunarCircumstances {
+        eclipse_type,
+        magnitude,
+        gamma,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -108,5 +166,29 @@ mod tests {
     #[test]
     fn far_from_node_is_no_eclipse() {
         assert!(classify_solar(&sample(1.5, 0.00257, 1.000)).is_none());
+    }
+
+    fn full_moon_sample(moon_lat_deg: f64, moon_dist_au: f64) -> SunMoonSample {
+        // Full moon: Moon opposite the Sun in longitude.
+        SunMoonSample {
+            sun_longitude_deg: 100.0,
+            sun_latitude_deg: 0.0,
+            sun_distance_au: 1.000,
+            moon_longitude_deg: 280.0,
+            moon_latitude_deg: moon_lat_deg,
+            moon_distance_au: moon_dist_au,
+        }
+    }
+
+    #[test]
+    fn central_full_moon_is_total_lunar() {
+        let c = classify_lunar(&full_moon_sample(0.0, 0.00257)).unwrap();
+        assert_eq!(c.eclipse_type, LunarEclipseType::Total);
+        assert!(c.magnitude >= 1.0);
+    }
+
+    #[test]
+    fn distant_latitude_full_moon_is_no_eclipse() {
+        assert!(classify_lunar(&full_moon_sample(1.6, 0.00257)).is_none());
     }
 }
