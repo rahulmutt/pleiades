@@ -5,6 +5,7 @@
 
 mod ephemeris;
 mod error;
+mod syzygy;
 mod types;
 
 pub use error::{EclipseError, WINDOW_END_JD, WINDOW_START_JD};
