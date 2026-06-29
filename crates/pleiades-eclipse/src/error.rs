@@ -4,8 +4,9 @@ use core::fmt;
 
 /// First instant of the supported window (1900-01-01 TT), Julian Day.
 pub const WINDOW_START_JD: f64 = 2_415_020.5;
-/// Last instant of the supported window (2100-01-01 TT), Julian Day.
-pub const WINDOW_END_JD: f64 = 2_488_069.5;
+/// End of the supported window (2101-01-01 TT), Julian Day. The window covers
+/// all of 1900–2100 CE inclusive, i.e. every eclipse through 2100-12-31.
+pub const WINDOW_END_JD: f64 = 2_488_434.5;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum EclipseError {
@@ -58,6 +59,6 @@ mod tests {
     #[test]
     fn window_constants_match_1900_2100() {
         assert_eq!(WINDOW_START_JD, 2_415_020.5);
-        assert_eq!(WINDOW_END_JD, 2_488_069.5);
+        assert_eq!(WINDOW_END_JD, 2_488_434.5);
     }
 }
