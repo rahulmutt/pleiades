@@ -8,11 +8,7 @@
 
 use crate::error::ApparentPlaceError;
 use crate::nutation::mean_obliquity_degrees;
-
-/// J2000 mean obliquity of the ecliptic, degrees. Matches `Instant::mean_obliquity`
-/// and the value the backend used to produce its J2000 ecliptic coordinates, so
-/// the inbound conversion is exactly the inverse of the backend's rotation.
-const OBLIQUITY_J2000_DEG: f64 = 23.439_291_111_111_11;
+use pleiades_types::OBLIQUITY_J2000_DEG;
 
 fn julian_centuries(jd_tt: f64) -> f64 {
     (jd_tt - 2_451_545.0) / 36_525.0

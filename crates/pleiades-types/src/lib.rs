@@ -47,7 +47,8 @@ pub use house_systems::{CustomHouseSystem, HouseSystem};
 pub use motion::{Motion, MotionDirection, MotionValidationError};
 pub use observer::{ObserverLocation, ObserverLocationValidationError};
 pub use time::{
-    Instant, JulianDay, TimeScale, TimeScaleConversion, TimeScaleConversionError, SECONDS_PER_DAY,
+    Instant, JulianDay, TimeScale, TimeScaleConversion, TimeScaleConversionError,
+    OBLIQUITY_J2000_DEG, SECONDS_PER_DAY,
 };
 pub use time_range::{TimeRange, TimeRangeValidationError};
 pub use zodiac::{ZodiacMode, ZodiacSign};

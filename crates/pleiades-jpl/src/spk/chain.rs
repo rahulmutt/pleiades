@@ -107,13 +107,13 @@ fn geocentric_velocity_icrf(pool: &KernelPool, target: i32, et: f64) -> Result<[
     Ok([body[0] - earth[0], body[1] - earth[1], body[2] - earth[2]])
 }
 
-/// Rotates an ICRF/J2000-equatorial velocity vector (km/s) into the ecliptic
-/// frame using the SAME obliquity rotation as `icrf_to_ecliptic`. Velocity is a
-/// free vector so the rotation is identical (no translation term).
-pub fn icrf_velocity_to_ecliptic(vel_km_s: [f64; 3], instant: Instant) -> [f64; 3] {
-    let eps = instant.mean_obliquity().radians();
+/// Rotates an ICRF/J2000-equatorial velocity vector (km/s) into the **J2000**
+/// ecliptic frame using the same fixed ε₀ rotation as `icrf_to_ecliptic`.
+/// Velocity is a free vector, so the rotation is identical (no translation term).
+pub fn icrf_velocity_to_ecliptic(vel_km_s: [f64; 3], _instant: Instant) -> [f64; 3] {
+    let eps = pleiades_types::OBLIQUITY_J2000_DEG.to_radians();
     let (vx, vy_eq, vz_eq) = (vel_km_s[0], vel_km_s[1], vel_km_s[2]);
-    // Rotate about X by +eps: equatorial -> ecliptic (same as position path).
+    // Rotate about X by +ε₀: J2000-equatorial -> J2000-ecliptic (same as position path).
     let vy = vy_eq * eps.cos() + vz_eq * eps.sin();
     let vz = -vy_eq * eps.sin() + vz_eq * eps.cos();
     [vx, vy, vz]
@@ -142,13 +142,14 @@ pub fn ecliptic_velocity_for_body(
     Err(last_err.unwrap())
 }
 
-/// Reduces an ICRF/J2000-equatorial geocentric position to ecliptic coords,
-/// rotating by the mean obliquity at `instant` (the same value the existing
-/// backend uses via `Instant::mean_obliquity`).
-pub fn icrf_to_ecliptic(position_km: [f64; 3], instant: Instant) -> EclipticCoordinates {
-    let eps = instant.mean_obliquity().radians();
+/// Reduces an ICRF/J2000-equatorial geocentric position to **J2000** ecliptic
+/// coords, rotating about X by the fixed J2000 mean obliquity ε₀
+/// (`pleiades_types::OBLIQUITY_J2000_DEG`). The result is frame-consistent J2000
+/// in both longitude and latitude (independent of the epoch).
+pub fn icrf_to_ecliptic(position_km: [f64; 3], _instant: Instant) -> EclipticCoordinates {
+    let eps = pleiades_types::OBLIQUITY_J2000_DEG.to_radians();
     let (x, y_eq, z_eq) = (position_km[0], position_km[1], position_km[2]);
-    // Rotate about X by +eps: equatorial -> ecliptic.
+    // Rotate about X by +ε₀: J2000-equatorial -> J2000-ecliptic.
     let y = y_eq * eps.cos() + z_eq * eps.sin();
     let z = -y_eq * eps.sin() + z_eq * eps.cos();
     let radius = (x * x + y * y + z * z).sqrt();
@@ -230,5 +231,27 @@ mod tests {
         assert!((ec.longitude.degrees() - 0.0).abs() < 1e-9);
         assert!((ec.latitude.degrees()).abs() < 1e-9);
         assert!((ec.distance_au.unwrap() - 1.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn icrf_to_ecliptic_uses_fixed_j2000_obliquity() {
+        // At a far-from-J2000 epoch the of-date mean obliquity differs from
+        // ε₀ by ~0.013° (~46″). Feed a pure +Z equatorial vector (the north
+        // celestial pole direction): rotating about X by ε gives latitude
+        // 90° − ε. With the J2000 fix this is 90 − 23.439291111 = 66.560708889°
+        // for ANY epoch; the of-date bug would yield ~66.5479° at 1900.
+        let inst_1900 = Instant::new(JulianDay::from_days(2_415_025.5), TimeScale::Tt);
+        let ec = icrf_to_ecliptic([0.0, 0.0, AU_IN_KM], inst_1900);
+        let expected = 90.0 - pleiades_types::OBLIQUITY_J2000_DEG;
+        assert!(
+            (ec.latitude.degrees() - expected).abs() < 1e-7,
+            "lat {} should equal 90 − ε₀ = {} (epoch-independent), not the of-date value",
+            ec.latitude.degrees(),
+            expected
+        );
+        // Epoch independence: same vector at 2100 gives the same latitude.
+        let inst_2100 = Instant::new(JulianDay::from_days(2_488_065.5), TimeScale::Tt);
+        let ec2 = icrf_to_ecliptic([0.0, 0.0, AU_IN_KM], inst_2100);
+        assert!((ec.latitude.degrees() - ec2.latitude.degrees()).abs() < 1e-12);
     }
 }

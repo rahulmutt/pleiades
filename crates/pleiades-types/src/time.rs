@@ -67,6 +67,12 @@ impl fmt::Display for TimeScale {
 /// Number of SI seconds in one Julian day.
 pub const SECONDS_PER_DAY: f64 = 86_400.0;
 
+/// J2000.0 mean obliquity of the ecliptic, degrees (IAU 1976 constant term).
+/// Single source of truth shared by the SPK ICRF→ecliptic reduction
+/// (`pleiades-jpl`), the J2000→date precession (`pleiades-apparent`), and the
+/// constant term of [`Instant::mean_obliquity`].
+pub const OBLIQUITY_J2000_DEG: f64 = 23.439_291_111_111_11;
+
 /// Error returned when a caller-provided time-scale conversion fails.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum TimeScaleConversionError {
@@ -340,7 +346,7 @@ impl Instant {
     pub fn mean_obliquity(self) -> Angle {
         let t = (self.julian_day.days() - 2_451_545.0) / 36_525.0;
         Angle::from_degrees(
-            23.439_291_111_111_11
+            OBLIQUITY_J2000_DEG
                 - 0.013_004_166_666_666_667 * t
                 - 0.000_000_163_888_888_888_888_88 * t * t
                 + 0.000_000_503_611_111_111_111_1 * t * t * t,
