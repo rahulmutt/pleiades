@@ -57,7 +57,8 @@ pub use format::{
 };
 pub use frame_recombine::{
     cartesian_au_to_ecliptic, cartesian_state_to_spherical, ecliptic_to_cartesian_au,
-    geocentric_from_heliocentric, heliocentric_from_geocentric, CartesianState, SphericalState,
+    geocentric_from_heliocentric, heliocentric_from_geocentric, spherical_state_to_cartesian,
+    CartesianState, SphericalState,
 };
 
 // ── Crate-level constants ─────────────────────────────────────────────────────

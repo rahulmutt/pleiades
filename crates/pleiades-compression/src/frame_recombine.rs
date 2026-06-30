@@ -63,7 +63,7 @@ pub struct CartesianState {
 }
 
 /// Converts a spherical ecliptic state to Cartesian using the chain rule.
-pub(crate) fn spherical_state_to_cartesian(s: SphericalState) -> CartesianState {
+pub fn spherical_state_to_cartesian(s: SphericalState) -> CartesianState {
     let (sl, cl) = s.lon_rad.sin_cos();
     let (sb, cb) = s.lat_rad.sin_cos();
     let r = s.dist_au;
@@ -238,5 +238,22 @@ mod tests {
             None,
         );
         assert!(ecliptic_to_cartesian_au(&no_dist).is_none());
+    }
+
+    #[test]
+    fn spherical_to_cartesian_is_publicly_reachable_and_round_trips() {
+        // Reach it through the crate root to prove the re-export exists.
+        let s = crate::SphericalState {
+            lon_rad: 1.0,
+            lat_rad: 0.1,
+            dist_au: 0.0025,
+            lon_rate_rad_per_day: 0.2,
+            lat_rate_rad_per_day: -0.01,
+            dist_rate_au_per_day: 1e-6,
+        };
+        let c = crate::spherical_state_to_cartesian(s);
+        let back = crate::cartesian_state_to_spherical(c);
+        assert!((back.lon_rad - s.lon_rad).abs() < 1e-12);
+        assert!((back.dist_au - s.dist_au).abs() < 1e-15);
     }
 }
