@@ -799,6 +799,7 @@ pub(crate) fn render_cli(args: &[&str]) -> Result<String, String> {
         | Some("packaged-artifact-lookup-epoch-policy-summary")
         | Some("packaged-artifact-lookup-epoch-policy") => validate_render_cli(args),
         Some("validate-eclipses") | Some("eclipses-gate") => validate_render_cli(args),
+        Some("validate-lilith") | Some("lilith-gate") => validate_render_cli(args),
         Some("eclipses") => validate_render_cli(args),
         Some("validate-artifact") => validate_render_cli(args),
         Some("generate-packaged-artifact") | Some("regenerate-packaged-artifact") => {

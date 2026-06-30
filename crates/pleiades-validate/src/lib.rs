@@ -22,6 +22,7 @@ mod compatibility;
 mod corpus;
 pub mod eclipse_validation;
 mod house_validation;
+mod lilith_validation;
 mod provenance;
 mod release;
 mod render;
@@ -181,6 +182,7 @@ pub use house_validation::{
     HouseValidationReportValidationError, HouseValidationSample, HouseValidationScenario,
 };
 pub use house_validation::{validate_house_corpus, HouseCorpusError, HouseCorpusReport};
+pub use lilith_validation::{validate_lilith_corpus, LilithCorpusError, LilithCorpusReport};
 
 use crate::claims::{
     derived_release_posture, validate_release_posture,

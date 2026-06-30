@@ -1,1 +1,1 @@
-slice lilith file=lilith.csv role=lilith rows=PENDING checksum=PENDING
+slice lilith file=lilith.csv role=lilith rows=3177 checksum=3786116694714551079
