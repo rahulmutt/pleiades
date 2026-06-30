@@ -23,6 +23,7 @@ mod corpus;
 pub mod eclipse_validation;
 mod house_validation;
 mod equatorial_validation;
+mod frame_consistency_validation;
 mod lilith_validation;
 mod provenance;
 mod release;
@@ -185,6 +186,9 @@ pub use house_validation::{
 pub use house_validation::{validate_house_corpus, HouseCorpusError, HouseCorpusReport};
 pub use equatorial_validation::{
     validate_equatorial_goldens, EquatorialValidationError, EquatorialValidationReport,
+};
+pub use frame_consistency_validation::{
+    validate_frame_consistency, FrameConsistencyError, FrameConsistencyReport,
 };
 pub use lilith_validation::{validate_lilith_corpus, LilithCorpusError, LilithCorpusReport};
 
