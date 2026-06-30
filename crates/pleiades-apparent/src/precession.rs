@@ -64,20 +64,8 @@ pub fn precess_ecliptic_j2000_to_date(
         .clamp(-1.0, 1.0)
         .asin();
 
-    // First-order correction for the spurious ecliptic latitude introduced by
-    // routing through two different obliquities (ε₀ inbound, ε_date outbound).
-    // When ε_date ≠ ε₀, a body on the ecliptic acquires a spurious latitude
-    //   Δβ_spurious ≈ −sin(λ_date) · (ε_date − ε₀)
-    // which at T = ±1 century amounts to ≈ ±46 sin(λ) arcsec for all bodies —
-    // exceeding the equatorial-gate Dec tolerance. Subtracting this term brings
-    // the latitude back to the physically-meaningful ecliptic-of-date latitude
-    // (as computed directly by, e.g., JPL Horizons via VSOP87/DE441).
-    let eps0 = OBLIQUITY_J2000_DEG.to_radians();
-    let d_eps = eps - eps0; // ε_date − ε₀, radians (positive going back in time)
-    let lat_corrected = lat + lon.sin() * d_eps;
-
     let longitude_deg = lon.to_degrees().rem_euclid(360.0);
-    let latitude_deg = lat_corrected.to_degrees();
+    let latitude_deg = lat.to_degrees();
     if !longitude_deg.is_finite() || !latitude_deg.is_finite() {
         return Err(ApparentPlaceError::NonFiniteCorrection {
             stage: "precession",
