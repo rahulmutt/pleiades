@@ -15,7 +15,9 @@
 //! notes without changing the public API shape. Note: the osculating true
 //! apogee/perigee (True Lilith) are now served release-grade by
 //! `PackagedDataBackend` ahead of this backend in the routing chain, so the
-//! ELP-local `Unsupported` claim for those bodies is no longer a global gap. The current catalog also has
+//! ELP-local `Unsupported` claim for those bodies is no longer a global gap.
+//!
+//! The current catalog also has
 //! typed lookup helpers by source identifier, model name, structured source
 //! family, and family label so future source-backed lunar variants can slot
 //! into the same resolution path.

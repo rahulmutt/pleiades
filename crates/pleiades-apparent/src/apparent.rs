@@ -358,6 +358,17 @@ mod tests {
             dlon_arcsec.abs() < 20.0,
             "lon shift {dlon_arcsec}\" must be precession+nutation only"
         );
+        // Lower bound: nutation Δψ at J2000 ≈ -17"; a no-Δψ regression (precession ≈ 0 here)
+        // would leave dlon ≈ 0 and pass the upper bound silently.
+        assert!(
+            dlon_arcsec.abs() > 1.0,
+            "nutation Δψ not applied: lon shift only {dlon_arcsec}\""
+        );
+        assert!(
+            out.provenance.nutation_longitude_arcsec.abs() > 1.0,
+            "provenance nutation arcsec implausibly small: {}",
+            out.provenance.nutation_longitude_arcsec
+        );
         assert!(
             (out.ecliptic.latitude.degrees() - 5.0).abs() < 1e-6,
             "latitude must be unchanged by aberration"
