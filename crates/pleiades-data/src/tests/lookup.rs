@@ -1135,3 +1135,53 @@ fn packaged_backend_returns_motion_for_a_major_body() {
     // Mars mean motion is well under 1 deg/day in magnitude.
     assert!(motion.longitude_deg_per_day.unwrap().abs() < 1.0);
 }
+
+#[test]
+fn packaged_backend_serves_osculating_true_apsides() {
+    use pleiades_backend::{Apparentness, EphemerisBackend, EphemerisRequest};
+
+    let backend = PackagedDataBackend::new();
+    assert!(backend.supports_body(CelestialBody::TrueApogee));
+    assert!(backend.supports_body(CelestialBody::TruePerigee));
+
+    let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
+    let apo = backend
+        .position(&EphemerisRequest::new(CelestialBody::TrueApogee, instant))
+        .unwrap();
+    let apo_ecl = apo.ecliptic.unwrap();
+
+    // Mean-J2000 geometric direction at the backend boundary.
+    assert_eq!(apo.apparent, Apparentness::Mean);
+    // Apse line lies in the inclined lunar orbit → |β| up to ~6°.
+    assert!(
+        apo_ecl.latitude.degrees().abs() <= 6.5,
+        "β {}",
+        apo_ecl.latitude.degrees()
+    );
+    // Distance is a Moon-scale apogee (~0.0027 AU).
+    let d = apo_ecl.distance_au.unwrap();
+    assert!((0.0023..0.0030).contains(&d), "apogee distance {d} AU");
+    // Derived motion present.
+    assert!(apo.motion.unwrap().longitude_deg_per_day.is_some());
+
+    // Perigee is the opposite apse (~180° away).
+    let peri = backend
+        .position(&EphemerisRequest::new(CelestialBody::TruePerigee, instant))
+        .unwrap()
+        .ecliptic
+        .unwrap();
+    let sep = (apo_ecl.longitude.degrees() - peri.longitude.degrees()).rem_euclid(360.0);
+    assert!(
+        (sep - 180.0).abs() < 1.0,
+        "apogee/perigee separation {sep}°"
+    );
+
+    // The body appears as ReleaseGrade in metadata.
+    let claim = backend
+        .metadata()
+        .body_claims
+        .into_iter()
+        .find(|c| c.body == CelestialBody::TrueApogee)
+        .expect("TrueApogee claim present");
+    assert_eq!(claim.tier, pleiades_backend::BodyClaimTier::ReleaseGrade);
+}

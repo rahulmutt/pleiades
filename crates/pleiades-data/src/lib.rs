@@ -208,6 +208,29 @@ pub fn packaged_body_claims() -> Vec<pleiades_backend::BodyClaim> {
         .collect()
 }
 
+/// Release claims for the derived osculating lunar apsides (True Apogee /
+/// Perigee). These are computed from the packaged Moon state at lookup and
+/// validated against the Swiss Ephemeris `SE_OSCU_APOG` corpus by the
+/// `validate-lilith` gate, so their evidence is `CorpusValidated`.
+pub fn apsis_body_claims() -> Vec<pleiades_backend::BodyClaim> {
+    use pleiades_backend::{AccuracyClass, BodyClaim, ClaimEvidence};
+    let source = "Swiss Ephemeris 2.10.03 SE_OSCU_APOG (validate-lilith)".to_string();
+    vec![
+        BodyClaim::release_grade(
+            CelestialBody::TrueApogee,
+            AccuracyClass::High,
+            ClaimEvidence::CorpusValidated {
+                source: source.clone(),
+            },
+        ),
+        BodyClaim::release_grade(
+            CelestialBody::TruePerigee,
+            AccuracyClass::High,
+            ClaimEvidence::CorpusValidated { source },
+        ),
+    ]
+}
+
 pub(crate) fn packaged_reference_entry_for_body(
     snapshot: &[SnapshotEntry],
     body: &CelestialBody,
