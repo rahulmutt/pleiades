@@ -185,7 +185,8 @@ pub use house_validation::{
 };
 pub use house_validation::{validate_house_corpus, HouseCorpusError, HouseCorpusReport};
 pub use equatorial_validation::{
-    validate_equatorial_goldens, EquatorialValidationError, EquatorialValidationReport,
+    validate_equatorial_goldens, validate_equatorial_se_corpus, EquatorialSeError,
+    EquatorialSeReport, EquatorialValidationError, EquatorialValidationReport,
 };
 pub use frame_consistency_validation::{
     validate_frame_consistency, FrameConsistencyError, FrameConsistencyReport,
