@@ -16,6 +16,8 @@ fn run_all_numeric_gates() -> Result<(), String> {
     crate::corpus::production::run_corpus_gate().map_err(|e| format!("corpus gate failed: {e}"))?;
     crate::validate_eclipse_corpus().map_err(|e| format!("eclipse gate failed: {e}"))?;
     crate::validate_lilith_corpus().map_err(|e| format!("lilith gate failed: {e}"))?;
+    crate::validate_frame_consistency()
+        .map_err(|e| format!("frame-consistency gate failed: {e}"))?;
     Ok(())
 }
 

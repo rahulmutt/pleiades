@@ -364,8 +364,8 @@ fn verify_release_bundle_rejects_tampered_packaged_frame_treatment_summary_even_
             "pleiades-release-bundle-tampered-frame-treatment-semantic",
             "packaged-frame-treatment-summary.txt",
             "packaged-frame-treatment summary checksum (fnv1a-64):",
-            "stores ecliptic coordinates directly",
-            "stores ecliptic coordinates explicitly",
+            "stores J2000 ecliptic coordinates directly",
+            "stores J2000 ecliptic coordinates explicitly",
             "packaged frame treatment summary no longer matches the current packaged frame treatment posture",
         );
 }

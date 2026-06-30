@@ -10,7 +10,7 @@
 //! binary fixture that covers the comparison-body planetary set plus the
 //! source-backed custom asteroid `asteroid:433-Eros`, and the backend falls
 //! back to other providers when callers request bodies outside that packaged
-//! slice. The packaged artifact stores ecliptic coordinates directly,
+//! slice. The packaged artifact stores J2000 ecliptic coordinates directly,
 //! reconstructs equatorial coordinates from the stored channels and
 //! mean-obliquity transform when requested, and adds residual correction
 //! channels on high-curvature spans when they improve the fit. A

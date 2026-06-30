@@ -402,7 +402,7 @@ pub(crate) fn validate_packaged_frame_treatment_summary_line(
 impl PackagedFrameTreatmentSummary {
     /// Returns the frame-treatment posture as a compact human-readable line.
     pub const fn summary_line(self) -> &'static str {
-        "checked-in compressed artifact stores ecliptic coordinates directly; equatorial coordinates are reconstructed from the stored channels and mean-obliquity transform"
+        "checked-in compressed artifact stores J2000 ecliptic coordinates directly; equatorial coordinates are reconstructed from the stored channels and mean-obliquity transform"
     }
 
     /// Returns `Ok(())` when the summary still contains a compact canonical line.

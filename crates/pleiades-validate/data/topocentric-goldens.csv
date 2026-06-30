@@ -5,7 +5,7 @@
 # gravitational deflection, and stellar aberrations), ANG_FORMAT=DEG, EXTRA_PREC=YES,
 # CAL_FORMAT=JD, TIME_TYPE=TT.
 #
-# TOLERANCE RATIONALE (same data ceiling as the apparent goldens; see apparent-goldens.csv):
+# TOLERANCE RATIONALE:
 #   - Sun/planets longitude: The packaged polynomial-fit ephemeris matches JPL DE441 to ~26
 #     arcsec for Sun/planets (the observed residual floor in the apparent goldens). The
 #     topocentric correction for the Sun is ~8.8 arcsec peak (sub-arcsec vs the data limit)
@@ -15,11 +15,13 @@
 #     goldens. The lunar topocentric parallax is ~52 arcsec peak and is resolvable via the
 #     non-geocentric assertion (Moon topo vs geo > 0.1°). The absolute longitude tolerance is
 #     set to 45 arcsec for the same data-ceiling reason.
-#   - Latitude: The engine's ecliptic latitude has larger residuals than longitude (~44 arcsec
-#     for Sun, which should be ~0; ~45 arcsec for Moon). These reflect the packaged-ephemeris
-#     accuracy limit, not the topocentric formula. Latitude tolerances are set to 90 arcsec
-#     (2×the data ceiling) so genuine latitude errors (e.g. wrong-sign flip) are still caught
-#     while data-limit noise does not cause false failures.
+#   - Latitude: Post-J2000-frame-fix (B1–B7), the engine's ecliptic latitude residuals are
+#     dominated by the DE440-vs-Horizons model difference and interpolation noise, NOT by a
+#     frame offset. Measured max latitude residual across all rows (B7, 2026-06-30):
+#     Sun ≈ 0.001″, Moon ≈ 1.60″, Mars ≈ 0.91″ — maximum 1.60″. Tolerance set to 20.0″
+#     (~12× headroom over the measured max), far below the former 90″ "data ceiling" that
+#     was absorbing the ~44″ J2000-frame bug. A genuine frame reversion or wrong-sign flip
+#     would produce residuals of ~44″ or more and is still caught.
 #
 # HORIZONS QUERY PARAMETERS:
 #   Sun (COMMAND=10), Moon (COMMAND=301), Mars (COMMAND=499):
@@ -33,15 +35,15 @@
 #
 # FORMAT: body, jd_tt, topo_longitude_deg, topo_latitude_deg, lon_tolerance_arcsec, lat_tolerance_arcsec
 body,jd_tt,topo_longitude_deg,topo_latitude_deg,lon_tolerance_arcsec,lat_tolerance_arcsec
-Sun,2415025.5,285.2517220,-0.0005328,26.0,90.0
-Sun,2433282.5,280.0042133,-0.0007271,26.0,90.0
-Sun,2451545.0,280.3682051,-0.0019837,26.0,90.0
-Sun,2488065.5,276.5283172,-0.0005096,26.0,90.0
-Moon,2415025.5,344.8810699,4.8928005,45.0,90.0
-Moon,2433282.5,60.9208151,3.5619060,45.0,90.0
-Moon,2451545.0,222.9687708,4.3786729,45.0,90.0
-Moon,2488065.5,102.3545604,4.4529609,45.0,90.0
-Mars,2415025.5,287.7272067,-0.9530314,26.0,90.0
-Mars,2433282.5,182.2129977,2.5118980,26.0,90.0
-Mars,2451545.0,327.9631884,-1.0689734,26.0,90.0
-Mars,2488065.5,27.9399782,0.8688553,26.0,90.0
+Sun,2415025.5,285.2517220,-0.0005328,26.0,20.0
+Sun,2433282.5,280.0042133,-0.0007271,26.0,20.0
+Sun,2451545.0,280.3682051,-0.0019837,26.0,20.0
+Sun,2488065.5,276.5283172,-0.0005096,26.0,20.0
+Moon,2415025.5,344.8810699,4.8928005,45.0,20.0
+Moon,2433282.5,60.9208151,3.5619060,45.0,20.0
+Moon,2451545.0,222.9687708,4.3786729,45.0,20.0
+Moon,2488065.5,102.3545604,4.4529609,45.0,20.0
+Mars,2415025.5,287.7272067,-0.9530314,26.0,20.0
+Mars,2433282.5,182.2129977,2.5118980,26.0,20.0
+Mars,2451545.0,327.9631884,-1.0689734,26.0,20.0
+Mars,2488065.5,27.9399782,0.8688553,26.0,20.0
