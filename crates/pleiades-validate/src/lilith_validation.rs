@@ -289,6 +289,20 @@ mod tests {
     fn lilith_gate_passes_within_ceilings() {
         let report = validate_lilith_corpus().expect("lilith gate passes");
         assert!(report.rows_validated > 0);
+        // Fail-closed floor: the OOR-skip is a single-boundary-row accommodation, not
+        // a license to silently validate almost nothing. Cap the skipped rows and
+        // require the corpus is overwhelmingly validated, so a future regression that
+        // mass-skips rows fails the gate instead of passing vacuously.
+        assert!(
+            report.rows_skipped_oor <= 5,
+            "too many oor-skipped rows: {} (expected the boundary handful); check coverage/probe logic",
+            report.rows_skipped_oor
+        );
+        assert!(
+            report.rows_validated >= 3170,
+            "too few rows validated: {} (corpus is 3177 rows)",
+            report.rows_validated
+        );
         // Print measured maxima so the ceilings can be tightened.
         eprintln!("{}", report.summary_line());
     }
