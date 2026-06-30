@@ -174,6 +174,69 @@ pub fn apparent_sun_position(
     })
 }
 
+/// Computes the of-date ecliptic position of a **derived lunar apsis** (the
+/// osculating True Apogee / True Perigee).
+///
+/// The apse line is a geometric direction, not a body: Swiss Ephemeris applies
+/// neither light-time nor annual aberration to `SE_OSCU_APOG`. This routine
+/// therefore rotates the J2000 mean direction to the **true ecliptic of date**
+/// with precession + nutation in longitude ONLY. Distance passes through
+/// unchanged.
+pub fn apparent_apsis_position(
+    instant: Instant,
+    apsis_geocentric_j2000: EclipticCoordinates,
+) -> Result<ApparentPosition, ApparentPlaceError> {
+    let jd_tt = instant.julian_day.days();
+    let lambda_j2000 = apsis_geocentric_j2000.longitude.degrees();
+    let beta_j2000 = apsis_geocentric_j2000.latitude.degrees();
+
+    let precessed = precess_ecliptic_j2000_to_date(lambda_j2000, beta_j2000, jd_tt)?;
+    let lambda = precessed.longitude_deg;
+    let beta = precessed.latitude_deg;
+    let nut = nutation(jd_tt)?;
+
+    let apparent_lon = (lambda + nut.delta_psi_arcsec / 3600.0).rem_euclid(360.0);
+    let apparent_lat = beta;
+    if !apparent_lon.is_finite() || !apparent_lat.is_finite() {
+        return Err(ApparentPlaceError::NonFiniteCorrection {
+            stage: "apparent-apsis-combine",
+        });
+    }
+
+    let mut precession_shift = lambda - lambda_j2000;
+    if precession_shift > 180.0 {
+        precession_shift -= 360.0;
+    } else if precession_shift < -180.0 {
+        precession_shift += 360.0;
+    }
+
+    let ecliptic = EclipticCoordinates::new(
+        Longitude::from_degrees(apparent_lon),
+        Latitude::from_degrees(apparent_lat),
+        apsis_geocentric_j2000.distance_au,
+    );
+    let provenance = ApparentProvenance {
+        light_time_days: 0.0,
+        iterations: 0,
+        precession_longitude_arcsec: precession_shift * 3600.0,
+        nutation_longitude_arcsec: nut.delta_psi_arcsec,
+        aberration_longitude_arcsec: 0.0,
+        corrections: CorrectionSet {
+            light_time: false,
+            precession: true,
+            annual_aberration: false,
+            nutation_longitude: true,
+            diurnal_parallax: false,
+            diurnal_aberration: false,
+        },
+        model_sources: MODEL_SOURCES,
+    };
+    Ok(ApparentPosition {
+        ecliptic,
+        provenance,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -259,13 +322,19 @@ mod tests {
             (lambda + (ab.d_lambda_arcsec + nut.delta_psi_arcsec) / 3600.0).rem_euclid(360.0);
 
         let diff_arcsec = (out.ecliptic.longitude.degrees() - expected_lon) * 3600.0;
-        assert!(diff_arcsec.abs() < 1e-6, "Sun apparent lon off by {diff_arcsec}\"");
+        assert!(
+            diff_arcsec.abs() < 1e-6,
+            "Sun apparent lon off by {diff_arcsec}\""
+        );
 
         // Distance is passed through unchanged (no re-query).
         assert_eq!(out.ecliptic.distance_au, Some(0.983));
 
         // Provenance: aberration once, no light-time iteration.
-        assert!(!out.provenance.corrections.light_time, "light_time must be false for Sun");
+        assert!(
+            !out.provenance.corrections.light_time,
+            "light_time must be false for Sun"
+        );
         assert!(out.provenance.corrections.annual_aberration);
         assert!(out.provenance.corrections.precession);
         assert!(out.provenance.corrections.nutation_longitude);
@@ -273,5 +342,31 @@ mod tests {
         assert_eq!(out.provenance.iterations, 0);
         // The single applied aberration term, recorded (≈ -20" for the Sun).
         assert!((out.provenance.aberration_longitude_arcsec - ab.d_lambda_arcsec).abs() < 1e-9);
+    }
+
+    #[test]
+    fn apsis_position_is_precession_and_nutation_only_no_aberration() {
+        // At J2000 precession ≈ identity, so the only shift is Δψ/3600 (a few
+        // arcsec). There must be NO ~20" annual-aberration term and NO change to
+        // latitude (aberration is what would move β; precession at J2000 does not).
+        let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
+        let j2000 = fixed(100.0, 5.0, 0.0025);
+        let out = apparent_apsis_position(instant, j2000).unwrap();
+
+        let dlon_arcsec = (out.ecliptic.longitude.degrees() - 100.0) * 3600.0;
+        assert!(
+            dlon_arcsec.abs() < 20.0,
+            "lon shift {dlon_arcsec}\" must be precession+nutation only"
+        );
+        assert!(
+            (out.ecliptic.latitude.degrees() - 5.0).abs() < 1e-6,
+            "latitude must be unchanged by aberration"
+        );
+        assert_eq!(out.provenance.aberration_longitude_arcsec, 0.0);
+        assert!(!out.provenance.corrections.annual_aberration);
+        assert!(!out.provenance.corrections.light_time);
+        assert!(out.provenance.corrections.precession);
+        assert!(out.provenance.corrections.nutation_longitude);
+        assert_eq!(out.provenance.iterations, 0);
     }
 }

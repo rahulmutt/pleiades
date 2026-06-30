@@ -31,7 +31,10 @@ pub use provenance::{ApparentProvenance, CorrectionSet, TopocentricProvenance, M
 
 mod apparent;
 
-pub use apparent::{apparent_position, apparent_sun_position, ApparentPosition, DEFAULT_MAX_ITERATIONS};
+pub use apparent::{
+    apparent_apsis_position, apparent_position, apparent_sun_position, ApparentPosition,
+    DEFAULT_MAX_ITERATIONS,
+};
 
 mod topocentric;
 
