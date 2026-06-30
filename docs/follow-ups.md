@@ -89,6 +89,10 @@ These are cosmetic or non-blocking issues discovered during the B-series (frame 
 
 - **Task 4 — SE gate report epoch-range typo:** The SE equatorial gate report includes a minor epoch-range wording typo. Cosmetic only.
 
-- **Task 4 — SE per-body ceiling asymmetry (Moon Moshier outlier):** The per-body SE equatorial ceiling for the Moon uses `600→4000/1810` (tightened vs. the default) due to Moshier ELP residual behaviour at century edges. This is documented in the gate but asymmetric vs. other bodies. A future ELP accuracy improvement could let it tighten to the standard ceiling.
+- **Task 4 — SE ceiling raised for the Moon Moshier outlier:** The SE equatorial gate ceilings were raised from `600″` to `4000″` (RA) / `1810″` (Dec) because the Moon's Moshier-vs-DE440 residual peaks at ~2643″/1203″ at century edges (all other bodies stay <100″). A future ELP/Moshier accuracy improvement could let them tighten. Note the ceilings are **global** (apply to every body), not per-body — gross-error detection (sign/units flips, ~57× the ceiling) is preserved; sub-arcsec per-body accuracy is the Horizons gate's job, not this parity gate's.
+
+- **Whole-branch review — pre-existing duplicate ε₀ literals (opportunistic unification):** The shared `pleiades_types::OBLIQUITY_J2000_DEG` unifies the three consumers it documents (SPK reduction, precession, `Instant::mean_obliquity`), but bare `23.439_291_111_111_11` / obliquity literals still exist outside that scope in `pleiades-houses/src/systems/mod.rs:584` and `pleiades-eclipse/src/geometry.rs:323,399`. Not touched by this branch and not overclaimed by the docstring; a future pass could fold them into the shared constant.
+
+- **Whole-branch review — ELP raw backend equatorial is intentionally of-date:** The ELP backend emits a J2000 `ecliptic` but derives its `equatorial` from the raw of-date lon/lat (preserving prior mean-mode values), so a direct ELP consumer who self-converts the J2000 ecliptic with mean obliquity will not reproduce the provided equatorial. Coherent and test-asserted (`assert_ne!`), and overridden by the chart layer for apparent bodies; documented here for any future direct-backend consumer.
 
 **Severity:** cosmetic / defensive hardening · **Opened:** 2026-06-30
