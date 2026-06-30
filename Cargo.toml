@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "crates/pleiades-apparent",
+    "crates/pleiades-apsides",
     "crates/pleiades-ayanamsa",
     "crates/pleiades-backend",
     "crates/pleiades-cli",
@@ -40,6 +41,7 @@ ureq = { version = "3", default-features = false, features = ["rustls-no-provide
 rustls = { version = "0.23", default-features = false, features = ["std", "tls12"] }
 rustls-graviola = { version = "0.3", default-features = false }
 pleiades-apparent = { path = "crates/pleiades-apparent", version = "0.2.0" }
+pleiades-apsides = { path = "crates/pleiades-apsides", version = "0.2.0" }
 pleiades-ayanamsa = { path = "crates/pleiades-ayanamsa", version = "0.2.0" }
 pleiades-backend = { path = "crates/pleiades-backend", version = "0.2.0" }
 pleiades-compression = { path = "crates/pleiades-compression", version = "0.2.0" }

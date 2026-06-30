@@ -1,0 +1,9 @@
+[package]
+name = "pleiades-apsides"
+version = "0.2.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Osculating lunar apsides (true apogee/perigee) for the pleiades astrology workspace"
+repository = "https://github.com/rahulmutt/pleiades"
+
+[dependencies]
