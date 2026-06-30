@@ -3475,3 +3475,150 @@ fn chart_serves_apparent_true_apsides_precession_nutation_only() {
         "TrueApogee aberration offset must be zero"
     );
 }
+
+#[test]
+fn apparent_chart_populates_equatorial_of_date() {
+    use pleiades_apparent::{apparent_equatorial_of_date, true_obliquity_degrees};
+    use pleiades_data::PackagedDataBackend;
+    let engine = ChartEngine::new(PackagedDataBackend::new());
+    let jd = 2_451_545.0;
+    let req = ChartRequest::new(Instant::new(
+        pleiades_types::JulianDay::from_days(jd),
+        TimeScale::Tt,
+    ))
+    .with_bodies(vec![CelestialBody::Sun])
+    .with_apparentness(Apparentness::Apparent);
+    let snap = engine.chart(&req).unwrap();
+    let p = snap.placement_for(&CelestialBody::Sun).unwrap();
+    assert!(p.apparent.is_some(), "Sun should be apparent");
+    let ecl = p.position.ecliptic.as_ref().unwrap();
+    let eq = p.position.equatorial.expect("equatorial populated");
+    // Locks the wiring to the true-obliquity-of-date helper on the FINAL ecliptic.
+    let expected = apparent_equatorial_of_date(*ecl, jd).unwrap();
+    assert!((eq.right_ascension.degrees() - expected.right_ascension.degrees()).abs() < 1e-9);
+    assert!((eq.declination.degrees() - expected.declination.degrees()).abs() < 1e-9);
+    // Locks "of date": differs from the mean-obliquity transform by the nutation Δε.
+    let mean_eps = pleiades_apparent::nutation::mean_obliquity_degrees(jd);
+    let mean_eq = ecl.to_equatorial(Angle::from_degrees(mean_eps));
+    let d = (eq.declination.degrees() - mean_eq.declination.degrees()).abs() * 3600.0;
+    assert!(d > 0.0 && d < 60.0, "of-date vs mean Dec delta {d}\" (expected small, nonzero)");
+    let _ = true_obliquity_degrees(jd).unwrap();
+}
+
+#[test]
+fn equatorial_is_identical_tropical_vs_sidereal() {
+    use pleiades_data::PackagedDataBackend;
+    let engine = ChartEngine::new(PackagedDataBackend::new());
+    let inst = Instant::new(pleiades_types::JulianDay::from_days(2_451_545.0), TimeScale::Tt);
+    let tropical = engine
+        .chart(
+            &ChartRequest::new(inst)
+                .with_bodies(vec![CelestialBody::Sun])
+                .with_apparentness(Apparentness::Apparent),
+        )
+        .unwrap();
+    let sidereal = engine
+        .chart(
+            &ChartRequest::new(inst)
+                .with_bodies(vec![CelestialBody::Sun])
+                .with_apparentness(Apparentness::Apparent)
+                .with_zodiac_mode(ZodiacMode::Sidereal {
+                    ayanamsa: crate::Ayanamsa::Lahiri,
+                }),
+        )
+        .unwrap();
+    let a = tropical
+        .placement_for(&CelestialBody::Sun)
+        .unwrap()
+        .position
+        .equatorial
+        .unwrap();
+    let b = sidereal
+        .placement_for(&CelestialBody::Sun)
+        .unwrap()
+        .position
+        .equatorial
+        .unwrap();
+    assert!(
+        (a.right_ascension.degrees() - b.right_ascension.degrees()).abs() < 1e-9,
+        "RA must be ayanamsa-independent"
+    );
+    assert!(
+        (a.declination.degrees() - b.declination.degrees()).abs() < 1e-9,
+        "Dec must be ayanamsa-independent"
+    );
+}
+
+#[test]
+fn mean_fallback_keeps_backend_equatorial() {
+    // A mean-mode chart does not run the apparent path; equatorial stays the
+    // backend's mean-obliquity transform (Some, but NOT of-date-recomputed).
+    use pleiades_backend::EphemerisRequest;
+    use pleiades_data::PackagedDataBackend;
+    let backend = PackagedDataBackend::new();
+    let inst = Instant::new(pleiades_types::JulianDay::from_days(2_451_545.0), TimeScale::Tt);
+    let direct = backend
+        .position(&EphemerisRequest::new(CelestialBody::Sun, inst))
+        .unwrap();
+    let engine = ChartEngine::new(PackagedDataBackend::new());
+    let snap = engine
+        .chart(
+            &ChartRequest::new(inst)
+                .with_bodies(vec![CelestialBody::Sun])
+                .with_apparentness(Apparentness::Mean),
+        )
+        .unwrap();
+    let p = snap.placement_for(&CelestialBody::Sun).unwrap();
+    assert!(p.apparent.is_none(), "mean mode → no apparent provenance");
+    let eq = p.position.equatorial.unwrap();
+    let backend_eq = direct.equatorial.unwrap();
+    assert!((eq.right_ascension.degrees() - backend_eq.right_ascension.degrees()).abs() < 1e-9);
+    assert!((eq.declination.degrees() - backend_eq.declination.degrees()).abs() < 1e-9);
+}
+
+#[test]
+fn topocentric_equatorial_reflects_topocentric_ecliptic() {
+    // The Moon's topocentric equatorial differs from its geocentric equatorial.
+    use pleiades_data::PackagedDataBackend;
+    let engine = ChartEngine::new(PackagedDataBackend::new());
+    let inst = Instant::new(pleiades_types::JulianDay::from_days(2_451_545.0), TimeScale::Tt);
+    let observer = ObserverLocation::new(
+        Latitude::from_degrees(40.0),
+        Longitude::from_degrees(-74.0),
+        Some(0.0),
+    );
+    let geo = engine
+        .chart(
+            &ChartRequest::new(inst)
+                .with_bodies(vec![CelestialBody::Moon])
+                .with_apparentness(Apparentness::Apparent),
+        )
+        .unwrap();
+    let topo = engine
+        .chart(
+            &ChartRequest::new(inst)
+                .with_bodies(vec![CelestialBody::Moon])
+                .with_apparentness(Apparentness::Apparent)
+                .with_observer(observer)
+                .with_topocentric(true),
+        )
+        .unwrap();
+    let g = geo
+        .placement_for(&CelestialBody::Moon)
+        .unwrap()
+        .position
+        .equatorial
+        .unwrap();
+    let t = topo
+        .placement_for(&CelestialBody::Moon)
+        .unwrap()
+        .position
+        .equatorial
+        .unwrap();
+    let dra = (g.right_ascension.degrees() - t.right_ascension.degrees()).abs() * 3600.0;
+    let ddec = (g.declination.degrees() - t.declination.degrees()).abs() * 3600.0;
+    assert!(
+        dra + ddec > 1.0,
+        "topocentric Moon equatorial should differ measurably from geocentric"
+    );
+}

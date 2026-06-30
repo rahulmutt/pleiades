@@ -37,7 +37,7 @@ pub use signs::SignSummary;
 pub use snapshot::ChartSnapshot;
 
 use pleiades_apparent::{
-    apparent_apsis_position, apparent_position, apparent_sun_position,
+    apparent_apsis_position, apparent_equatorial_of_date, apparent_position, apparent_sun_position,
     precess_ecliptic_j2000_to_date, ApparentLightTimeError, ApparentPlaceError,
     DEFAULT_MAX_ITERATIONS,
 };
@@ -435,6 +435,20 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                 } else {
                     None
                 };
+                // Derive the apparent equatorial of date from the final tropical
+                // apparent ecliptic (geocentric or topocentric), BEFORE the
+                // sidereal longitude shift so RA/Dec stay ayanamsa-independent.
+                // Mean-fallback rows (apparent.is_none()) keep the backend's
+                // mean-obliquity equatorial. Degrade gracefully if nutation is
+                // unavailable for this instant.
+                if apparent.is_some() {
+                    if let Some(ecliptic) = position.ecliptic.as_ref() {
+                        let jd_tt = request.instant.julian_day.days();
+                        if let Ok(eq) = apparent_equatorial_of_date(*ecliptic, jd_tt) {
+                            position.equatorial = Some(eq);
+                        }
+                    }
+                }
                 // For non-native sidereal charts, re-apply the ayanamsa to the final
                 // tropical apparent longitude exactly once.  This covers both paths:
                 //   • geocentric apparent (topocentric_prov is None)
