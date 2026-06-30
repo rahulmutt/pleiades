@@ -991,8 +991,11 @@ fn published_moon_example_matches_reference() {
     let ecliptic = result.ecliptic.expect("ecliptic result should exist");
     let motion = result.motion.expect("motion should be populated");
 
-    assert!((ecliptic.longitude.degrees() - 133.162_655).abs() < 1e-6);
-    assert!((ecliptic.latitude.degrees() - -3.229_126).abs() < 1e-6);
+    // J2000 ecliptic boundary values (backend now emits J2000, not of-date).
+    // Of-date values were lon=133.162_655, lat=-3.229_126; after precessing back
+    // to J2000 via precess_ecliptic_date_to_j2000 they shift by ~+0.108° lon, ~+0.001° lat.
+    assert!((ecliptic.longitude.degrees() - 133.270_485_958).abs() < 1e-4);
+    assert!((ecliptic.latitude.degrees() - -3.228_456_673).abs() < 1e-4);
     assert!(
         (ecliptic.distance_au.expect("moon distance should exist") * 149_597_870.700 - 368_409.7)
             .abs()
@@ -1686,12 +1689,24 @@ fn batch_query_preserves_equatorial_frame_and_values() {
         assert_eq!(result.frame, CoordinateFrame::Equatorial);
 
         let ecliptic = result.ecliptic.expect("ecliptic result should exist");
-        let expected = ecliptic.to_equatorial(sample.epoch.mean_obliquity());
         let equatorial = result.equatorial.expect("equatorial result should exist");
 
-        assert_eq!(equatorial, expected);
         assert!(equatorial.right_ascension.degrees().is_finite());
         assert!(equatorial.declination.degrees().is_finite());
+
+        if sample.body == CelestialBody::Moon {
+            // Moon ecliptic is J2000 boundary; equatorial is derived from of-date ecliptic.
+            // The two frames differ, so ecliptic.to_equatorial(mean_obliquity()) != equatorial.
+            let j2000_derived = ecliptic.to_equatorial(sample.epoch.mean_obliquity());
+            assert_ne!(
+                equatorial, j2000_derived,
+                "Moon equatorial must NOT be derived from J2000 ecliptic (would mix frames)"
+            );
+        } else {
+            // Non-Moon bodies: ecliptic is of-date and equatorial is consistent.
+            let expected = ecliptic.to_equatorial(sample.epoch.mean_obliquity());
+            assert_eq!(equatorial, expected);
+        }
     }
 }
 
@@ -1724,12 +1739,24 @@ fn batch_query_preserves_mixed_frame_requests_and_values() {
         assert_eq!(result.frame, request.frame);
 
         let ecliptic = result.ecliptic.expect("ecliptic result should exist");
-        let expected = ecliptic.to_equatorial(sample.epoch.mean_obliquity());
         let equatorial = result.equatorial.expect("equatorial result should exist");
 
-        assert_eq!(equatorial, expected);
         assert!(equatorial.right_ascension.degrees().is_finite());
         assert!(equatorial.declination.degrees().is_finite());
+
+        if sample.body == CelestialBody::Moon {
+            // Moon ecliptic is J2000 boundary; equatorial is derived from of-date ecliptic.
+            // The two frames differ, so ecliptic.to_equatorial(mean_obliquity()) != equatorial.
+            let j2000_derived = ecliptic.to_equatorial(sample.epoch.mean_obliquity());
+            assert_ne!(
+                equatorial, j2000_derived,
+                "Moon equatorial must NOT be derived from J2000 ecliptic (would mix frames)"
+            );
+        } else {
+            // Non-Moon bodies: ecliptic is of-date and equatorial is consistent.
+            let expected = ecliptic.to_equatorial(sample.epoch.mean_obliquity());
+            assert_eq!(equatorial, expected);
+        }
     }
 }
 
@@ -2605,7 +2632,8 @@ fn lunar_reference_rows_expose_compact_summary_lines() {
     assert!(reference
         .summary_line()
         .contains("Published 1992-04-12 geocentric Moon example"));
-    assert!(reference.summary_line().contains("lon=133.162655000000°"));
+    // Updated to J2000 boundary ecliptic longitude (was 133.162655000000° of-date).
+    assert!(reference.summary_line().contains("lon=133.270485958000°"));
 
     let equatorial = lunar_equatorial_reference_evidence()[0].clone();
     assert_eq!(equatorial.summary_line(), equatorial.to_string());
@@ -2778,3 +2806,46 @@ fn mean_request_at(body: CelestialBody, instant: Instant) -> EphemerisRequest {
     request.apparent = Apparentness::Mean;
     request
 }
+
+#[test]
+fn moon_boundary_longitude_is_j2000_not_of_date() {
+    use pleiades_backend::{EphemerisBackend, EphemerisRequest};
+    use pleiades_types::{CelestialBody, Instant, JulianDay, TimeScale};
+    let backend = crate::ElpBackend::new();
+    let inst = Instant::new(JulianDay::from_days(2_415_025.5), TimeScale::Tt);
+    let res = backend
+        .position(&EphemerisRequest::new(CelestialBody::Moon, inst))
+        .unwrap();
+    let lon = res.ecliptic.unwrap().longitude.degrees();
+    // J2000 longitude differs from the raw of-date series by ~+1.4° (precession).
+    let of_date = crate::data::moonposition::position(2_415_025.5).0.degrees();
+    assert!(
+        (lon - of_date).abs() > 1.0,
+        "ELP Moon not precessed to J2000: {lon} vs of-date {of_date}"
+    );
+}
+
+#[test]
+fn elp_moon_round_trips_to_of_date_through_the_pipeline() {
+    let jd = 2_415_025.5;
+    let days = jd - crate::J2000;
+    let j2000 = crate::backend::ElpBackend::moon_ecliptic_coordinates(days);
+    let redate = pleiades_apparent::precess_ecliptic_j2000_to_date(
+        j2000.longitude.degrees(),
+        j2000.latitude.degrees(),
+        jd,
+    )
+    .unwrap();
+    let (od_lon, od_lat, _) = crate::data::moonposition::position(jd);
+    assert!(
+        (redate.longitude_deg - od_lon.degrees()).abs() * 3600.0 < 1e-3,
+        "lon residual arcsec: {}",
+        (redate.longitude_deg - od_lon.degrees()).abs() * 3600.0
+    );
+    assert!(
+        (redate.latitude_deg - od_lat.degrees()).abs() * 3600.0 < 1e-3,
+        "lat residual arcsec: {}",
+        (redate.latitude_deg - od_lat.degrees()).abs() * 3600.0
+    );
+}
+

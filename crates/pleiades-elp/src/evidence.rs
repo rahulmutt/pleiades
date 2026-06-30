@@ -102,8 +102,11 @@ pub fn lunar_reference_evidence() -> &'static [LunarReferenceSample] {
         LunarReferenceSample {
             body: CelestialBody::Moon,
             epoch: Instant::new(pleiades_types::JulianDay::from_days(2_448_724.5), TimeScale::Tt),
-            longitude_deg: 133.162_655,
-            latitude_deg: -3.229_126,
+            // J2000 ecliptic boundary: the Meeus of-date values (lon=133.162_655, lat=-3.229_126)
+            // precessed back to J2000 via precess_ecliptic_date_to_j2000. The backend now emits
+            // J2000 ecliptic; the equatorial output is still derived from the of-date lon/lat.
+            longitude_deg: 133.270_485_958,
+            latitude_deg: -3.228_456_673,
             distance_au: Some(368_409.7 / 149_597_870.700),
             note: "Published 1992-04-12 geocentric Moon example used as the compact lunar baseline regression sample",
         },

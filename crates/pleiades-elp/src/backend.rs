@@ -55,7 +55,27 @@ impl ElpBackend {
         instant.julian_day.days() - crate::J2000
     }
 
-    fn moon_ecliptic_coordinates(days: f64) -> EclipticCoordinates {
+    pub(crate) fn moon_ecliptic_coordinates(days: f64) -> EclipticCoordinates {
+        let jd_tt = crate::J2000 + days;
+        let (longitude, latitude, distance_au) = crate::data::moonposition::position(jd_tt);
+        // The Meeus Ch.47 series is referred to the mean equinox/ecliptic OF DATE.
+        // Precess it back to J2000 so the backend emits a J2000 boundary frame,
+        // consistent with every other first-party backend; the apparent pipeline
+        // re-applies the forward J2000->date precession (no double-precession).
+        let precessed = pleiades_apparent::precess_ecliptic_date_to_j2000(
+            longitude.degrees(),
+            latitude.degrees(),
+            jd_tt,
+        )
+        .expect("ELP lunar lon/lat precess cleanly to J2000");
+        EclipticCoordinates::new(
+            Longitude::from_degrees(precessed.longitude_deg),
+            Latitude::from_degrees(precessed.latitude_deg),
+            Some(distance_au),
+        )
+    }
+
+    fn moon_ecliptic_of_date(days: f64) -> EclipticCoordinates {
         let (longitude, latitude, distance_au) =
             crate::data::moonposition::position(crate::J2000 + days);
         EclipticCoordinates::new(longitude, latitude, Some(distance_au))
@@ -274,13 +294,14 @@ impl EphemerisBackend for ElpBackend {
         result.quality = QualityAnnotation::Approximate;
         match body {
             CelestialBody::Moon => {
-                let coords = Self::moon_ecliptic_coordinates(days);
+                let coords = Self::moon_ecliptic_coordinates(days); // J2000 boundary
                 result.ecliptic = Some(coords);
+                let of_date = Self::moon_ecliptic_of_date(days); // for mean-obliquity equatorial
                 result.equatorial = Some(Self::ecliptic_point_to_equatorial(
-                    coords.longitude,
-                    coords.latitude,
+                    of_date.longitude,
+                    of_date.latitude,
                     req.instant,
-                    coords.distance_au,
+                    of_date.distance_au,
                 ));
             }
             CelestialBody::MeanNode => {

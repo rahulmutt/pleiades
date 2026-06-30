@@ -23,7 +23,7 @@ pub use lighttime::{LightTimePosition, LIGHT_TIME_DAYS_PER_AU};
 
 pub mod precession;
 
-pub use precession::{precess_ecliptic_j2000_to_date, PrecessedEcliptic};
+pub use precession::{precess_ecliptic_date_to_j2000, precess_ecliptic_j2000_to_date, PrecessedEcliptic};
 
 pub mod parallax;
 

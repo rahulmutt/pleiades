@@ -23,6 +23,58 @@ pub struct PrecessedEcliptic {
     pub latitude_deg: f64,
 }
 
+/// Precesses geocentric ecliptic coordinates from the mean equinox/ecliptic of
+/// date `jd_tt` back to the J2000 mean equinox/ecliptic. Algebraic inverse of
+/// [`precess_ecliptic_j2000_to_date`] (round-trips to < 1e-6° over ±1 century).
+pub fn precess_ecliptic_date_to_j2000(
+    lambda_deg: f64,
+    beta_deg: f64,
+    jd_tt: f64,
+) -> Result<PrecessedEcliptic, ApparentPlaceError> {
+    let t = julian_centuries(jd_tt);
+    let zeta = (2306.2181 * t + 0.30188 * t * t + 0.017998 * t * t * t) / 3600.0;
+    let z = (2306.2181 * t + 1.09468 * t * t + 0.018203 * t * t * t) / 3600.0;
+    let theta = (2004.3109 * t - 0.42665 * t * t - 0.041833 * t * t * t) / 3600.0;
+
+    // ecliptic (of date) -> equatorial (of date), Meeus 13.3/13.4, ε_date.
+    let eps = mean_obliquity_degrees(jd_tt).to_radians();
+    let lambda = lambda_deg.to_radians();
+    let beta = beta_deg.to_radians();
+    let alpha_d = (lambda.sin() * eps.cos() - beta.tan() * eps.sin()).atan2(lambda.cos());
+    let delta_d = (beta.sin() * eps.cos() + beta.cos() * eps.sin() * lambda.sin())
+        .clamp(-1.0, 1.0)
+        .asin();
+
+    // precess equatorial (of date) -> equatorial (J2000): inverse rotation,
+    // ζ→−z, z→−ζ, θ→−θ (Meeus 21.4 reduction-to-J2000 form).
+    let zeta_r = zeta.to_radians();
+    let z_r = z.to_radians();
+    let theta_r = theta.to_radians();
+    let a = delta_d.cos() * (alpha_d - z_r).sin();
+    let b = theta_r.cos() * delta_d.cos() * (alpha_d - z_r).cos() + theta_r.sin() * delta_d.sin();
+    let c =
+        -theta_r.sin() * delta_d.cos() * (alpha_d - z_r).cos() + theta_r.cos() * delta_d.sin();
+    let alpha0 = a.atan2(b) - zeta_r;
+    let delta0 = c.clamp(-1.0, 1.0).asin();
+
+    // equatorial (J2000) -> ecliptic (J2000), Meeus 13.1/13.2, ε₀.
+    let eps0 = OBLIQUITY_J2000_DEG.to_radians();
+    let lon = (alpha0.sin() * eps0.cos() + delta0.tan() * eps0.sin()).atan2(alpha0.cos());
+    let lat = (delta0.sin() * eps0.cos() - delta0.cos() * eps0.sin() * alpha0.sin())
+        .clamp(-1.0, 1.0)
+        .asin();
+
+    let longitude_deg = lon.to_degrees().rem_euclid(360.0);
+    let latitude_deg = lat.to_degrees();
+    if !longitude_deg.is_finite() || !latitude_deg.is_finite() {
+        return Err(ApparentPlaceError::NonFiniteCorrection { stage: "precession" });
+    }
+    Ok(PrecessedEcliptic {
+        longitude_deg,
+        latitude_deg,
+    })
+}
+
 /// Precesses geocentric ecliptic coordinates from the J2000 mean equinox/ecliptic
 /// to the mean equinox/ecliptic of date `jd_tt`.
 pub fn precess_ecliptic_j2000_to_date(
@@ -80,6 +132,25 @@ pub fn precess_ecliptic_j2000_to_date(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn date_to_j2000_is_the_inverse_of_j2000_to_date() {
+        // Round-trip a non-trivial point at a far epoch: J2000 -> date -> J2000.
+        let jd = 2_415_025.5; // 1900
+        let to_date = precess_ecliptic_j2000_to_date(123.456, 4.5, jd).unwrap();
+        let back = precess_ecliptic_date_to_j2000(to_date.longitude_deg, to_date.latitude_deg, jd)
+            .unwrap();
+        assert!(
+            (back.longitude_deg - 123.456).abs() < 1e-6,
+            "λ round-trip {}",
+            back.longitude_deg
+        );
+        assert!(
+            (back.latitude_deg - 4.5).abs() < 1e-6,
+            "β round-trip {}",
+            back.latitude_deg
+        );
+    }
 
     #[test]
     fn identity_at_j2000() {
