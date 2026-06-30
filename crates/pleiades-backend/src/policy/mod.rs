@@ -32,7 +32,7 @@ pub const CURRENT_APPARENTNESS_POLICY_SUMMARY_TEXT: &str =
 
 /// Canonical current policy summary text for the shared frame posture.
 pub const CURRENT_FRAME_POLICY_SUMMARY_TEXT: &str =
-    "ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported; supported equatorial precision is bounded by the shared mean-obliquity frame round-trip envelope; native sidereal backend output remains unsupported unless a backend explicitly advertises it";
+    "ecliptic body positions are the default request shape; at the backend boundary equatorial output is derived via mean-obliquity transforms when supported, while the chart layer reports apparent equatorial of date (true obliquity = mean obliquity + nutation-in-obliquity) for release-grade bodies; supported equatorial precision is bounded by the shared mean-obliquity frame round-trip envelope; native sidereal backend output remains unsupported unless a backend explicitly advertises it";
 
 /// Canonical current policy summary text for the shared native sidereal posture.
 pub const CURRENT_NATIVE_SIDEREAL_POLICY_SUMMARY_TEXT: &str =

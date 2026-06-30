@@ -106,7 +106,7 @@ fn frame_policy_summary_command_renders_the_shared_frame_semantics_block() {
     let rendered =
         render_cli(&["frame-policy-summary"]).expect("frame policy summary should render");
     assert!(rendered.contains("Frame policy summary"));
-    assert!(rendered.contains("Frame policy: ecliptic body positions are the default request shape; equatorial output is backend-specific and derived via mean-obliquity transforms when supported; supported equatorial precision is bounded by the shared mean-obliquity frame round-trip envelope; native sidereal backend output remains unsupported unless a backend explicitly advertises it"));
+    assert!(rendered.contains("Frame policy: ecliptic body positions are the default request shape; at the backend boundary equatorial output is derived via mean-obliquity transforms when supported, while the chart layer reports apparent equatorial of date (true obliquity = mean obliquity + nutation-in-obliquity) for release-grade bodies; supported equatorial precision is bounded by the shared mean-obliquity frame round-trip envelope; native sidereal backend output remains unsupported unless a backend explicitly advertises it"));
     assert_eq!(
         render_cli(&["frame-policy"]).expect("frame policy alias should render"),
         rendered
