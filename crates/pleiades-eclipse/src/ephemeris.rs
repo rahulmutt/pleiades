@@ -5,12 +5,11 @@
 #![allow(dead_code)]
 
 use crate::error::EclipseError;
-use pleiades_apparent::aberration::annual_aberration;
-use pleiades_apparent::nutation::nutation;
-use pleiades_apparent::{precess_ecliptic_j2000_to_date, LIGHT_TIME_DAYS_PER_AU};
+use pleiades_apparent::{apparent_sun_position, LIGHT_TIME_DAYS_PER_AU};
 use pleiades_backend::{EphemerisBackend, EphemerisRequest};
 use pleiades_types::{
-    Apparentness, CelestialBody, CoordinateFrame, Instant, JulianDay, TimeScale, ZodiacMode,
+    Apparentness, CelestialBody, CoordinateFrame, EclipticCoordinates, Instant, JulianDay,
+    Latitude, Longitude, TimeScale, ZodiacMode,
 };
 
 #[derive(Clone, Copy, Debug)]
@@ -125,16 +124,10 @@ pub(crate) fn elongation_deg(sample: &SunMoonSample) -> f64 {
     d
 }
 
-/// Computes the apparent geocentric solar ecliptic longitude of date (degrees).
-///
-/// The Sun's apparent ecliptic longitude of date is built directly from the
-/// lower-level corrections, applying aberration exactly once:
-///
-/// 1. Query the Sun's Mean/J2000 geocentric ecliptic from the backend.
-/// 2. Precess J2000 → mean equinox/ecliptic of date (the Sun's *true* longitude
-///    of date, `λ`).
-/// 3. Add nutation in longitude Δψ (→ true equinox of date).
-/// 4. Add annual aberration ONCE.
+/// Computes the apparent geocentric solar ecliptic longitude of date (degrees)
+/// by delegating to [`pleiades_apparent::apparent_sun_position`], which applies
+/// annual aberration exactly once (no light-time re-query) — see that function
+/// for why light-time and aberration are the same effect for the geocentric Sun.
 ///
 /// # Why aberration is applied only once
 ///
@@ -144,16 +137,7 @@ pub(crate) fn elongation_deg(sample: &SunMoonSample) -> f64 {
 /// by Earth's orbital velocity. Light-time retardation moves the Sun's geometric
 /// place backward along its apparent path by exactly the annual-aberration amount,
 /// so an apparent-place routine that applies a light-time re-query *and* a
-/// separate annual-aberration term double-counts ~20.5″. (That was the historical
-/// bug here: `eclipsed_longitude` came out ~19–20″ too low on every row.) Because
-/// for the Sun planetary aberration ≡ annual aberration, we apply the annual
-/// aberration term directly to the instantaneous geometric direction and perform
-/// no light-time re-query. The Sun's own true longitude of date supplies the
-/// `⊙` argument of the aberration formula (here `⊙ = λ`).
-///
-/// The result is the apparent ecliptic-of-date solar longitude (Meeus §25's
-/// "apparent longitude": true longitude + nutation + aberration), so that
-/// `Eclipse::eclipsed_longitude` meets the ≤1″ gate.
+/// separate annual-aberration term double-counts ~20.5″.
 ///
 /// **Assumption**: the backend returns Mean/J2000 geocentric coordinates
 /// (as `packaged_backend()` does). A backend that already applies apparent
@@ -163,25 +147,21 @@ pub(crate) fn apparent_sun_longitude_deg<B: EphemerisBackend>(
     julian_day: f64,
 ) -> Result<f64, EclipseError> {
     // Step 1: Sun's J2000 mean geocentric ecliptic at the true (un-retarded) epoch.
-    let (sun_lon_j2000, sun_lat_j2000, _) = read(backend, CelestialBody::Sun, "Sun", julian_day)?;
+    let (sun_lon_j2000, sun_lat_j2000, sun_dist_au) =
+        read(backend, CelestialBody::Sun, "Sun", julian_day)?;
 
-    // Step 2: precess J2000 → mean equinox/ecliptic of date (Sun's true longitude of date).
-    let precessed = precess_ecliptic_j2000_to_date(sun_lon_j2000, sun_lat_j2000, julian_day)
-        .map_err(|e| EclipseError::Backend(format!("Sun precession failed: {e}")))?;
-    let lambda = precessed.longitude_deg;
-    let beta = precessed.latitude_deg;
-
-    // Step 3: nutation in longitude Δψ.
-    let nut = nutation(julian_day)
-        .map_err(|e| EclipseError::Backend(format!("Sun nutation failed: {e}")))?;
-
-    // Step 4: annual aberration applied ONCE (no light-time re-query). For the Sun,
-    // ⊙ = λ, so the dominant term is -κ + e·κ·cos(ϖ-λ) ≈ -20.2″.
-    let aberration = annual_aberration(lambda, beta, lambda, julian_day);
-
-    let apparent_lon =
-        (lambda + (aberration.d_lambda_arcsec + nut.delta_psi_arcsec) / 3600.0).rem_euclid(360.0);
-    Ok(apparent_lon)
+    // Steps 2–4: precess → nutation → aberration ONCE, via the shared routine.
+    // For the geocentric Sun, light-time retardation and annual aberration are
+    // the same effect, so `apparent_sun_position` performs no light-time re-query.
+    let sun_j2000 = EclipticCoordinates::new(
+        Longitude::from_degrees(sun_lon_j2000),
+        Latitude::from_degrees(sun_lat_j2000),
+        Some(sun_dist_au),
+    );
+    let instant = Instant::new(JulianDay::from_days(julian_day), TimeScale::Tdb);
+    let apparent = apparent_sun_position(instant, sun_j2000)
+        .map_err(|e| EclipseError::Backend(format!("Sun apparent place failed: {e}")))?;
+    Ok(apparent.ecliptic.longitude.degrees())
 }
 
 #[cfg(test)]
