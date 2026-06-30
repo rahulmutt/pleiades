@@ -19,3 +19,6 @@ pleiades-ayanamsa = { workspace = true }
 pleiades-compression = { workspace = true }
 pleiades-time = { workspace = true }
 pleiades-apparent = { workspace = true }
+
+[dev-dependencies]
+pleiades-data = { workspace = true }

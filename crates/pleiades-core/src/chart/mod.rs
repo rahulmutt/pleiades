@@ -37,8 +37,9 @@ pub use signs::SignSummary;
 pub use snapshot::ChartSnapshot;
 
 use pleiades_apparent::{
-    apparent_position, apparent_sun_position, precess_ecliptic_j2000_to_date,
-    ApparentLightTimeError, ApparentPlaceError, DEFAULT_MAX_ITERATIONS,
+    apparent_apsis_position, apparent_position, apparent_sun_position,
+    precess_ecliptic_j2000_to_date, ApparentLightTimeError, ApparentPlaceError,
+    DEFAULT_MAX_ITERATIONS,
 };
 use pleiades_backend::{
     Apparentness, EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest,
@@ -323,6 +324,24 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                             )
                             .and_then(|sun_j2000| {
                                 apparent_sun_position(request.instant, sun_j2000)
+                                    .map_err(map_apparent_place_error)
+                            })
+                        } else if matches!(
+                            body,
+                            pleiades_types::CelestialBody::TrueApogee
+                                | pleiades_types::CelestialBody::TruePerigee
+                        ) {
+                            // Osculating apsis: a geometric direction. Apply precession +
+                            // nutation only (no light-time re-query, no annual aberration).
+                            // observer = None keeps it geocentric.
+                            self.query_mean_ecliptic(
+                                &body,
+                                request.instant,
+                                &backend_zodiac_mode,
+                                None,
+                            )
+                            .and_then(|apsis_j2000| {
+                                apparent_apsis_position(request.instant, apsis_j2000)
                                     .map_err(map_apparent_place_error)
                             })
                         } else {

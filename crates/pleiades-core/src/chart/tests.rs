@@ -3404,3 +3404,74 @@ fn non_topocentric_apparent_chart_leaves_diurnal_flags_false() {
         "topocentric provenance must be absent for a non-topocentric chart"
     );
 }
+
+#[test]
+fn chart_serves_apparent_true_apsides_precession_nutation_only() {
+    use pleiades_backend::Apparentness;
+    use pleiades_data::PackagedDataBackend;
+    use pleiades_types::CelestialBody;
+
+    let request = ChartRequest::new(Instant::new(
+        pleiades_types::JulianDay::from_days(2_451_545.0),
+        TimeScale::Tt,
+    ))
+    .with_bodies(vec![CelestialBody::TrueApogee, CelestialBody::TruePerigee])
+    .with_apparentness(Apparentness::Apparent);
+
+    let snapshot = ChartEngine::new(PackagedDataBackend::new())
+        .chart(&request)
+        .expect("apparent true-apsides chart should succeed");
+
+    let apo = snapshot
+        .placement_for(&CelestialBody::TrueApogee)
+        .expect("TrueApogee placement must be present");
+    let peri = snapshot
+        .placement_for(&CelestialBody::TruePerigee)
+        .expect("TruePerigee placement must be present");
+
+    // Apse line is inclined — real ecliptic latitude.
+    let apo_lat = apo.position.ecliptic.unwrap().latitude.degrees();
+    assert!(
+        apo_lat.abs() <= 6.5,
+        "apogee latitude {apo_lat}° should be within Moon's orbital inclination"
+    );
+
+    // Apogee and perigee stay opposite after the of-date rotation.
+    let apo_lon = apo.position.ecliptic.unwrap().longitude.degrees();
+    let peri_lon = peri.position.ecliptic.unwrap().longitude.degrees();
+    let sep = (apo_lon - peri_lon).rem_euclid(360.0);
+    assert!(
+        (sep - 180.0).abs() < 1.0,
+        "apo/peri separation {sep}° should be ~180°"
+    );
+
+    // Both apsides must be marked Apparent (release-grade, of-date).
+    assert_eq!(
+        apo.position.apparent,
+        pleiades_types::Apparentness::Apparent,
+        "TrueApogee should be Apparent"
+    );
+    assert_eq!(
+        peri.position.apparent,
+        pleiades_types::Apparentness::Apparent,
+        "TruePerigee should be Apparent"
+    );
+
+    // Apsides are geometric directions: no light-time, no annual aberration.
+    let apo_prov = apo
+        .apparent
+        .as_ref()
+        .expect("TrueApogee must carry apparent provenance");
+    assert!(
+        !apo_prov.corrections.light_time,
+        "TrueApogee must not have light-time correction (geometric direction)"
+    );
+    assert!(
+        !apo_prov.corrections.annual_aberration,
+        "TrueApogee must not have annual aberration (geometric direction)"
+    );
+    assert_eq!(
+        apo_prov.aberration_longitude_arcsec, 0.0,
+        "TrueApogee aberration offset must be zero"
+    );
+}
