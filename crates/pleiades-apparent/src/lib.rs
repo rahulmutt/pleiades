@@ -9,6 +9,10 @@ pub mod nutation;
 
 pub use nutation::Nutation;
 
+pub mod equatorial;
+
+pub use equatorial::{apparent_equatorial_of_date, true_obliquity_degrees};
+
 pub mod aberration;
 
 pub use aberration::AberrationOffset;
