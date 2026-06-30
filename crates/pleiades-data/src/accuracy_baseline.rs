@@ -731,8 +731,8 @@ mod tests {
         // All bodies: sub-arcsec — anchored to first 3 significant digits.
         // SP2: outer planets now stored heliocentrically, so all errors are sub-arcsec.
         assert!(
-            report.contains("Sun: n=50 max_lon=0.001"),
-            "Sun max_lon bucket drift (expected ~0.0010\"): {report}"
+            report.contains("Sun: n=50 max_lon=0.000"),
+            "Sun max_lon bucket drift (expected ~0.0009\"): {report}"
         );
         assert!(
             report.contains("Moon: n=50 max_lon=0.000"),
@@ -777,12 +777,12 @@ mod tests {
         // fast apparent motion; outer planets are an order of magnitude slower.
         // Radial speed errors are sub-1e-6 AU/day for all bodies; anchored to "0.000000".
         assert!(
-            report.contains("Moon: n=50") && report.contains("max_lon_speed=0.030"),
-            "Moon max_lon_speed bucket drift (expected ~0.0303 arcsec/day): {report}"
+            report.contains("Moon: n=50") && report.contains("max_lon_speed=0.023"),
+            "Moon max_lon_speed bucket drift (expected ~0.0230 arcsec/day): {report}"
         );
         assert!(
-            report.contains("Moon: n=50") && report.contains("max_lat_speed=0.023"),
-            "Moon max_lat_speed bucket drift (expected ~0.0231 arcsec/day): {report}"
+            report.contains("Moon: n=50") && report.contains("max_lat_speed=0.025"),
+            "Moon max_lat_speed bucket drift (expected ~0.0253 arcsec/day): {report}"
         );
         assert!(
             report.contains("Sun: n=50") && report.contains("max_lon_speed=0.001"),
