@@ -37,8 +37,8 @@ pub use signs::SignSummary;
 pub use snapshot::ChartSnapshot;
 
 use pleiades_apparent::{
-    apparent_position, precess_ecliptic_j2000_to_date, ApparentLightTimeError,
-    DEFAULT_MAX_ITERATIONS,
+    apparent_position, apparent_sun_position, precess_ecliptic_j2000_to_date,
+    ApparentLightTimeError, ApparentPlaceError, DEFAULT_MAX_ITERATIONS,
 };
 use pleiades_backend::{
     Apparentness, EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest,
@@ -56,6 +56,13 @@ fn map_apparent_error(error: ApparentLightTimeError<EphemerisError>) -> Ephemeri
             format!("apparent-place computation failed: {inner}"),
         ),
     }
+}
+
+fn map_apparent_place_error(error: ApparentPlaceError) -> EphemerisError {
+    EphemerisError::new(
+        EphemerisErrorKind::InvalidRequest,
+        format!("apparent-place computation failed: {error}"),
+    )
 }
 
 use crate::ChartEngine;
@@ -303,15 +310,32 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                 });
                 let apparent = if let Some(sun_lon) = sun_true_longitude_of_date {
                     if release_grade.contains(&body) {
-                        let body_for_query = body.clone();
-                        let body_observer_for_query = request.body_observer.clone();
-                        let outcome = apparent_position::<_, EphemerisError>(
-                            request.instant,
-                            sun_lon,
-                            DEFAULT_MAX_ITERATIONS,
-                            |instant| self.query_mean_ecliptic(&body_for_query, instant, &backend_zodiac_mode, body_observer_for_query.clone()),
-                        )
-                        .map_err(map_apparent_error);
+                        let outcome = if matches!(body, pleiades_types::CelestialBody::Sun) {
+                            // Sun: aberration and light-time are the same effect, so
+                            // apply aberration ONCE via apparent_sun_position with the
+                            // instantaneous (un-retarded) geocentric Sun. observer = None
+                            // keeps the aberration argument geocentric.
+                            self.query_mean_ecliptic(
+                                &body,
+                                request.instant,
+                                &backend_zodiac_mode,
+                                None,
+                            )
+                            .and_then(|sun_j2000| {
+                                apparent_sun_position(request.instant, sun_j2000)
+                                    .map_err(map_apparent_place_error)
+                            })
+                        } else {
+                            let body_for_query = body.clone();
+                            let body_observer_for_query = request.body_observer.clone();
+                            apparent_position::<_, EphemerisError>(
+                                request.instant,
+                                sun_lon,
+                                DEFAULT_MAX_ITERATIONS,
+                                |instant| self.query_mean_ecliptic(&body_for_query, instant, &backend_zodiac_mode, body_observer_for_query.clone()),
+                            )
+                            .map_err(map_apparent_error)
+                        };
                         match outcome {
                             Ok(outcome) => {
                                 if let Some(ecliptic) = position.ecliptic.as_mut() {

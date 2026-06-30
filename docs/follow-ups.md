@@ -7,7 +7,7 @@ entry: what, where, evidence, impact, suggested fix, and origin.
 
 ## FU-1: Latent geocentric-Sun aberration double-count in `pleiades-core` apparent path
 
-**Status:** open · **Severity:** important (accuracy) · **Opened:** 2026-06-29
+**Status:** resolved (2026-06-30) · Fixed by `apparent_sun_position` in pleiades-apparent (cc575c04); chart Sun path applies aberration once (a6113705); eclipse delegates to the shared routine (70a2adf2); Sun golden tolerance tightened 26″ → 5.0″, measured residual max 2.83″ (eb4339f2). · **Severity:** important (accuracy) · **Opened:** 2026-06-29
 
 **Where:** `crates/pleiades-core/src/chart/mod.rs` (~lines 304–313, the
 `apparent_position::<_, EphemerisError>(instant, sun_lon, max_iter, query)`
