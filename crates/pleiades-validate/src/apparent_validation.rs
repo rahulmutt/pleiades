@@ -14,7 +14,7 @@ const GOLDENS_CSV: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/data/apparent-goldens.csv"
 ));
-const GOLDENS_CHECKSUM: u64 = 420218364865264824;
+const GOLDENS_CHECKSUM: u64 = 2837317093320463005;
 
 /// Summary of a successful apparent-goldens validation run.
 #[derive(Clone, Debug, PartialEq)]
