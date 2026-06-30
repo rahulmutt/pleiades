@@ -1185,3 +1185,38 @@ fn packaged_backend_serves_osculating_true_apsides() {
         .expect("TrueApogee claim present");
     assert_eq!(claim.tier, pleiades_backend::BodyClaimTier::ReleaseGrade);
 }
+
+#[test]
+fn osculating_apsis_motion_degrades_gracefully_at_coverage_boundary() {
+    // At the coverage START boundary (JD 2415020.5 ≈ 1900-01-01), the −0.5 day motion
+    // probe (JD 2415020.0) falls outside the packaged artifact's range. position()
+    // must still return Ok with a valid ecliptic; motion components must all be None.
+    use pleiades_backend::{Apparentness, EphemerisBackend, EphemerisRequest};
+
+    let backend = PackagedDataBackend::new();
+    let boundary = Instant::new(JulianDay::from_days(2_415_020.5), TimeScale::Tt);
+    let result = backend
+        .position(&EphemerisRequest::new(CelestialBody::TrueApogee, boundary))
+        .expect("position at coverage boundary must succeed (not hard-fail)");
+
+    let ecl = result.ecliptic.expect("ecliptic must be present");
+    assert!(
+        ecl.longitude.degrees().is_finite(),
+        "ecliptic longitude must be finite"
+    );
+
+    let motion = result.motion.expect("motion field must be present");
+    assert!(
+        motion.longitude_deg_per_day.is_none(),
+        "longitude motion must degrade to None at coverage boundary"
+    );
+    assert!(
+        motion.latitude_deg_per_day.is_none(),
+        "latitude motion must degrade to None at coverage boundary"
+    );
+    assert!(
+        motion.distance_au_per_day.is_none(),
+        "distance motion must degrade to None at coverage boundary"
+    );
+    assert_eq!(result.apparent, Apparentness::Mean);
+}

@@ -162,8 +162,20 @@ impl PackagedDataBackend {
                 instant.scale,
             )
         };
-        let before = self.osculating_apsis_ecliptic(body, shift(-HALF_SPAN_DAYS))?;
-        let after = self.osculating_apsis_ecliptic(body, shift(HALF_SPAN_DAYS))?;
+        let before = match self.osculating_apsis_ecliptic(body, shift(-HALF_SPAN_DAYS)) {
+            Ok(e) => e,
+            Err(ref e) if e.kind == EphemerisErrorKind::OutOfRangeInstant => {
+                return Ok(Motion::new(None, None, None));
+            }
+            Err(e) => return Err(e),
+        };
+        let after = match self.osculating_apsis_ecliptic(body, shift(HALF_SPAN_DAYS)) {
+            Ok(e) => e,
+            Err(ref e) if e.kind == EphemerisErrorKind::OutOfRangeInstant => {
+                return Ok(Motion::new(None, None, None));
+            }
+            Err(e) => return Err(e),
+        };
         let span = 2.0 * HALF_SPAN_DAYS;
 
         let mut dlon = after.longitude.degrees() - before.longitude.degrees();
