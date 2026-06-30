@@ -25,7 +25,9 @@ pub struct ElpBackend;
 ///
 /// Lunar bodies (Moon, Mean Node, True Node, Mean Apogee, Mean Perigee) are claimed as Constrained
 /// with Moderate accuracy and AlgorithmicModel evidence. True Apogee and True Perigee are explicitly
-/// listed as Unsupported.
+/// listed as Unsupported by this backend. Note: the osculating true apogee/perigee (True Lilith)
+/// are served release-grade by `PackagedDataBackend` ahead of this backend in the composite routing
+/// chain, so the ELP-local `Unsupported` claim is no longer a global gap.
 pub fn elp_body_claims() -> Vec<BodyClaim> {
     let mut claims: Vec<BodyClaim> = lunar_theory_supported_bodies()
         .iter()

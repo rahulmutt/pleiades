@@ -18,10 +18,12 @@ The backend currently covers:
 - mean apogee
 - mean perigee
 
+**Note:** the osculating true apogee and true perigee (True Lilith) are now served release-grade by `PackagedDataBackend` (`crates/pleiades-data` osculating path + `crates/pleiades-apsides`), computed from the packaged Moon state rather than the compact ELP theory. They are not served by this ELP backend. They are gated against the Swiss Ephemeris `SE_OSCU_APOG` corpus by `validate-lilith` and their coordinate frame is true ecliptic of date via precession + nutation-in-longitude only (no light-time, no aberration — geometric direction).
+
 The backend currently rejects:
 
-- true apogee
-- true perigee
+- true apogee (served release-grade by `PackagedDataBackend`; unsupported in this ELP backend)
+- true perigee (served release-grade by `PackagedDataBackend`; unsupported in this ELP backend)
 - apparent requests beyond mean geometric output
 - topocentric observer requests
 - non-TT/TDB input time scales

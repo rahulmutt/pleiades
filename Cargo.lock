@@ -130,6 +130,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "pleiades-apsides"
+version = "0.2.0"
+
+[[package]]
 name = "pleiades-ayanamsa"
 version = "0.2.0"
 dependencies = [
@@ -174,6 +178,7 @@ dependencies = [
  "pleiades-ayanamsa",
  "pleiades-backend",
  "pleiades-compression",
+ "pleiades-data",
  "pleiades-houses",
  "pleiades-time",
  "pleiades-types",
@@ -183,6 +188,7 @@ dependencies = [
 name = "pleiades-data"
 version = "0.2.0"
 dependencies = [
+ "pleiades-apsides",
  "pleiades-backend",
  "pleiades-compression",
  "pleiades-jpl",
