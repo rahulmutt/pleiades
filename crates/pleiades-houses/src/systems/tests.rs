@@ -1556,3 +1556,74 @@ fn alcabitius_cusps_c2_lat55_match_swiss_ephemeris_corpus_within_1_arcsec() {
         );
     }
 }
+
+#[test]
+fn chart_points_from_armc_mc_is_analytic_at_cardinal_armc() {
+    use pleiades_types::{Angle, Latitude, Longitude};
+    // With obliquity ε, MC longitude satisfies tan(λ_MC)=tan(ARMC)/cos(ε);
+    // at ARMC = 0/90/180/270 the MC equals the ARMC exactly.
+    let obl = Angle::from_degrees(23.4392911);
+    for armc in [0.0_f64, 90.0, 180.0, 270.0] {
+        let pts = chart_points_from_armc(
+            Longitude::from_degrees(armc),
+            Latitude::from_degrees(40.0),
+            obl,
+        )
+        .expect("defined at 40N");
+        let diff = (pts.midheaven.degrees() - armc).rem_euclid(360.0);
+        let diff = diff.min(360.0 - diff);
+        assert!(diff < 1e-6, "ARMC {armc}: MC {}", pts.midheaven.degrees());
+    }
+}
+
+#[test]
+fn chart_points_invariants_hold() {
+    use pleiades_types::{Angle, Latitude, Longitude};
+    let pts = chart_points_from_armc(
+        Longitude::from_degrees(123.4),
+        Latitude::from_degrees(51.5),
+        Angle::from_degrees(23.4392911),
+    )
+    .expect("defined at 51.5N");
+    let opp = |a: f64, b: f64| {
+        let d = (a - b).rem_euclid(360.0);
+        (d - 180.0).abs() < 1e-6
+    };
+    assert!(opp(pts.ascendant.degrees(), pts.descendant.degrees()));
+    assert!(opp(pts.midheaven.degrees(), pts.imum_coeli.degrees()));
+    assert!(opp(pts.vertex.degrees(), pts.antivertex.degrees()));
+    for p in [
+        pts.armc,
+        pts.vertex,
+        pts.equatorial_ascendant,
+        pts.coascendant_koch,
+        pts.coascendant_munkasey,
+        pts.polar_ascendant,
+    ] {
+        assert!(
+            (0.0..360.0).contains(&p.degrees()),
+            "unnormalized {}",
+            p.degrees()
+        );
+    }
+    // ARMC round-trips the input.
+    let d = (pts.armc.degrees() - 123.4).rem_euclid(360.0);
+    assert!(d.min(360.0 - d) < 1e-9);
+}
+
+#[test]
+fn chart_points_uses_true_obliquity_by_default() {
+    use pleiades_types::{Instant, JulianDay, Latitude, Longitude, ObserverLocation, TimeScale};
+    let observer = ObserverLocation::new(
+        Latitude::from_degrees(40.0),
+        Longitude::from_degrees(-74.0),
+        None,
+    );
+    let inst = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
+    let pts = chart_points(inst, &observer, None).expect("defined");
+    // Ascendant matches the value derive_angles produces for the same inputs.
+    let req = HouseRequest::new(inst, observer.clone(), HouseSystem::Placidus);
+    let snap = calculate_houses(&req).expect("houses");
+    assert!((pts.ascendant.degrees() - snap.angles.ascendant.degrees()).abs() < 1e-9);
+    assert!((pts.midheaven.degrees() - snap.angles.midheaven.degrees()).abs() < 1e-9);
+}

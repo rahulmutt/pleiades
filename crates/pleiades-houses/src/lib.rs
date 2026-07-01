@@ -57,6 +57,6 @@ pub use error::{HouseError, HouseErrorKind};
 
 // Re-export the public surface from the systems module.
 pub use systems::{
-    calculate_houses, house_for_longitude, HighLatitudePolicy, HouseAngles, HouseRequest,
-    HouseSnapshot,
+    calculate_houses, chart_points, chart_points_from_armc, house_for_longitude, AscMc,
+    HighLatitudePolicy, HouseAngles, HouseRequest, HouseSnapshot,
 };

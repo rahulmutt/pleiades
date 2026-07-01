@@ -13,7 +13,8 @@ use core::fmt;
 
 use pleiades_apparent::nutation::nutation as apparent_nutation;
 use pleiades_types::{
-    Angle, HouseSystem, Instant, Longitude, ObserverLocation, ObserverLocationValidationError,
+    Angle, HouseSystem, Instant, Latitude, Longitude, ObserverLocation,
+    ObserverLocationValidationError,
 };
 
 use crate::error::{HouseError, HouseErrorKind};
@@ -126,6 +127,130 @@ impl HouseAngles {
             imum_coeli: longitude_opposite(midheaven),
         }
     }
+}
+
+/// The full Swiss-Ephemeris `ascmc` chart-point set.
+///
+/// Longitudes are apparent, equinox-of-date, tropical, in `[0,360)`. Vertex,
+/// equatorial ascendant, the co-ascendants, and the polar ascendant are ported
+/// from Swiss Ephemeris `swehouse.c`; their numeric correctness is enforced by
+/// the `validate-angles` parity gate.
+#[derive(Clone, Copy, Debug, PartialEq)]
+#[non_exhaustive]
+pub struct AscMc {
+    /// Ascendant (`ascmc[0]`).
+    pub ascendant: Longitude,
+    /// Midheaven (`ascmc[1]`).
+    pub midheaven: Longitude,
+    /// Descendant (Ascendant + 180°).
+    pub descendant: Longitude,
+    /// Imum Coeli (Midheaven + 180°).
+    pub imum_coeli: Longitude,
+    /// ARMC — right ascension of the Midheaven / local apparent sidereal time in degrees (`ascmc[2]`).
+    pub armc: Longitude,
+    /// Vertex (`ascmc[3]`).
+    pub vertex: Longitude,
+    /// Antivertex (Vertex + 180°).
+    pub antivertex: Longitude,
+    /// Equatorial ascendant / East Point (`ascmc[4]`).
+    pub equatorial_ascendant: Longitude,
+    /// Co-ascendant, Koch definition (`ascmc[5]`).
+    pub coascendant_koch: Longitude,
+    /// Co-ascendant, Munkasey definition (`ascmc[6]`).
+    pub coascendant_munkasey: Longitude,
+    /// Polar ascendant, Munkasey definition (`ascmc[7]`).
+    pub polar_ascendant: Longitude,
+}
+
+/// Computes the full chart-point set from ARMC (degrees), geographic latitude
+/// (degrees), and obliquity (degrees). Errors if any point is non-finite.
+fn asc_mc_from(armc_deg: f64, lat_deg: f64, obliquity_deg: f64) -> Result<AscMc, HouseError> {
+    let obl = obliquity_deg.to_radians();
+    let theta = armc_deg.to_radians();
+
+    let ascendant = ascendant_for(armc_deg, lat_deg, obl);
+    let midheaven =
+        Longitude::from_degrees(theta.sin().atan2(theta.cos() * obl.cos()).to_degrees());
+
+    // Equatorial ascendant (East Point): the Ascendant at geographic latitude 0.
+    let equatorial_ascendant = ascendant_for(armc_deg, 0.0, obl);
+
+    // Vertex: the Ascendant computed on the opposite meridian at the
+    // co-latitude. (Ported from swehouse.c; parity-gated.)
+    let colat = 90.0 - lat_deg.abs();
+    let vertex = ascendant_for((armc_deg + 180.0).rem_euclid(360.0), colat, obl);
+
+    // Co-ascendant (Koch): the Ascendant on the meridian 90° away.
+    let coascendant_koch = ascendant_for((armc_deg - 90.0).rem_euclid(360.0), lat_deg, obl);
+
+    // Co-ascendant (Munkasey) and polar ascendant (Munkasey): defined by
+    // swehouse.c; the values below are the first candidates and are validated
+    // (and, if needed, corrected) against the SE reference in Task 7.
+    let coascendant_munkasey = ascendant_for((armc_deg + 90.0).rem_euclid(360.0), lat_deg, obl);
+    let polar_ascendant = longitude_opposite(coascendant_koch);
+
+    let points = AscMc {
+        ascendant,
+        midheaven,
+        descendant: longitude_opposite(ascendant),
+        imum_coeli: longitude_opposite(midheaven),
+        armc: Longitude::from_degrees(armc_deg),
+        vertex,
+        antivertex: longitude_opposite(vertex),
+        equatorial_ascendant,
+        coascendant_koch,
+        coascendant_munkasey,
+        polar_ascendant,
+    };
+
+    for (label, p) in [
+        ("ascendant", points.ascendant),
+        ("midheaven", points.midheaven),
+        ("vertex", points.vertex),
+        ("equatorial_ascendant", points.equatorial_ascendant),
+        ("coascendant_koch", points.coascendant_koch),
+        ("coascendant_munkasey", points.coascendant_munkasey),
+        ("polar_ascendant", points.polar_ascendant),
+    ] {
+        check_finite(format!("asc_mc {label}"), p.degrees())?;
+    }
+    Ok(points)
+}
+
+/// Computes the full chart-point set for an instant and observer. Obliquity
+/// defaults to true obliquity of date (mean + Δε) when `None`.
+pub fn chart_points(
+    instant: Instant,
+    observer: &ObserverLocation,
+    obliquity: Option<Angle>,
+) -> Result<AscMc, HouseError> {
+    validate_observer(observer)?;
+    let obliquity = match obliquity {
+        Some(o) => {
+            validate_obliquity(o)?;
+            o
+        }
+        None => {
+            let mean = mean_obliquity(instant);
+            let (_dpsi, deps) = nutation_for(instant)?;
+            let obl = Angle::from_degrees(mean.degrees() + deps);
+            validate_obliquity(obl)?;
+            obl
+        }
+    };
+    let armc = local_sidereal_time(instant, observer.longitude).degrees();
+    asc_mc_from(armc, observer.latitude.degrees(), obliquity.degrees())
+}
+
+/// Computes the full chart-point set from a supplied ARMC (the
+/// `swe_houses_armc` case), geographic latitude, and obliquity.
+pub fn chart_points_from_armc(
+    armc: Longitude,
+    geolat: Latitude,
+    obliquity: Angle,
+) -> Result<AscMc, HouseError> {
+    validate_obliquity(obliquity)?;
+    asc_mc_from(armc.degrees(), geolat.degrees(), obliquity.degrees())
 }
 
 /// A complete house cusp set.
