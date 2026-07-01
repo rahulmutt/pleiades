@@ -128,7 +128,8 @@ pub fn regenerate_packaged_artifact_from_snapshot(
 /// Returns the packaged artifact for kernel-free callers.
 ///
 /// Runtime decode of the committed bytes is the only kernel-free path: this
-/// decodes [`packaged_artifact_bytes()`] (via [`build_packaged_artifact`])
+/// decodes [`packaged_artifact_bytes()`] (via the crate-internal
+/// `build_packaged_artifact` helper)
 /// rather than refitting from the in-process snapshot. Kernel-gated
 /// regeneration from de440 lives in [`regenerate_packaged_artifact_from_kernel`].
 pub fn regenerate_packaged_artifact() -> CompressedArtifact {

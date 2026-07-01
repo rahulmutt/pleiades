@@ -2,7 +2,7 @@
 //! kernel over a chosen coverage window and write the encoded bytes to a file.
 //!
 //! Usage:
-//!   generate-artifact <kernel.bsp> --out <path> [--start <year|JD>] [--end <year|JD>]
+//!   `generate-artifact <kernel.bsp> --out <path> [--start <year|JD>] [--end <year|JD>]`
 //!
 //! `--start`/`--end` accept a calendar year (e.g. 1850) or a Julian Day (a value
 //! with a decimal point, e.g. 2451545.0). Omitted bounds default to the shipped

@@ -272,8 +272,9 @@ pub fn packaged_artifact_accuracy_baseline() -> Vec<BodyChannelError> {
 
 /// Returns a deterministic one-line-per-body summary of the packaged-artifact accuracy baseline.
 ///
-/// The string is recomputed on every call and compared to the committed baseline when
-/// [`validate_packaged_artifact_accuracy_baseline_summary`] is used.
+/// The string is recomputed on every call; the drift-gate test
+/// `packaged_artifact_baseline_summary_matches_committed_golden` compares it
+/// against the committed golden buckets.
 pub fn packaged_artifact_accuracy_baseline_summary_for_report() -> String {
     let errors = packaged_artifact_accuracy_baseline();
     if errors.is_empty() {
