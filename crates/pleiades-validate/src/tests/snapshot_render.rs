@@ -1220,7 +1220,7 @@ fn comparison_and_benchmark_corpus_summary_commands_render_the_corpus_blocks() {
     assert!(pluto_fallback_summary.contains("Release-grade body claims: ReleaseGrade: ["));
     assert!(pluto_fallback_summary.contains("Pluto@pleiades-vsop87"));
     assert!(pluto_fallback_summary.contains(
-        "Pluto fallback policy: Pluto remains an explicitly approximate fallback; release-grade major-body claims exclude Pluto"
+        "Pluto fallback policy: Pluto remains an explicitly approximate fallback on the algorithmic (VSOP87) path; the packaged-data artifact ships Pluto as release-grade"
     ));
     // The structural posture validator accepts the derived posture and rejects a
     // tampered one (a single backend claiming a body at two tiers).

@@ -47,14 +47,15 @@ pub const CURRENT_ZODIAC_POLICY_SUMMARY_TEXT: &str = "tropical only";
 
 /// Canonical current policy summary text for the Pluto fallback posture.
 ///
-/// Scope note: this line describes only the algorithmic (VSOP87) path, where
-/// Pluto remains an explicitly approximate fallback and is excluded from
-/// release-grade. It does not describe the packaged-data artifact, which ships
-/// Pluto as release-grade ([`ClaimEvidence::ArtifactValidated`]).
+/// This line is per-backend: the algorithmic (VSOP87) path treats Pluto as an
+/// explicitly approximate fallback, while the packaged-data artifact ships
+/// Pluto as release-grade ([`ClaimEvidence::ArtifactValidated`]). The prose is
+/// scoped to the fallback path so it cannot be read as a global posture that
+/// excludes Pluto from every backend's release-grade claims.
 ///
 /// [`ClaimEvidence::ArtifactValidated`]: crate::ClaimEvidence::ArtifactValidated
 pub const CURRENT_PLUTO_FALLBACK_POLICY_SUMMARY_TEXT: &str =
-    "Pluto remains an explicitly approximate fallback; release-grade major-body claims exclude Pluto";
+    "Pluto remains an explicitly approximate fallback on the algorithmic (VSOP87) path; the packaged-data artifact ships Pluto as release-grade";
 
 // Re-exports of all public types from submodules:
 pub use apparentness::{ApparentnessPolicySummary, ApparentnessPolicySummaryValidationError};

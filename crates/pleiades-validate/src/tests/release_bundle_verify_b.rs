@@ -926,8 +926,8 @@ fn verify_release_bundle_rejects_semantically_tampered_pluto_fallback_summary_fi
             "pleiades-release-bundle-semantic-pluto-fallback-summary",
             "pluto-fallback-summary.txt",
             "pluto fallback summary checksum (fnv1a-64):",
-            "Pluto remains an explicitly approximate fallback; release-grade major-body claims exclude Pluto",
-            "Pluto remains an explicitly approximate fallback (drifted); release-grade major-body claims exclude Pluto",
+            "Pluto remains an explicitly approximate fallback on the algorithmic (VSOP87) path; the packaged-data artifact ships Pluto as release-grade",
+            "Pluto remains an explicitly approximate fallback (drifted) on the algorithmic (VSOP87) path; the packaged-data artifact ships Pluto as release-grade",
             "Pluto fallback summary no longer matches the current Pluto fallback posture",
         );
 }
