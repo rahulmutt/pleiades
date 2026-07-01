@@ -1084,8 +1084,16 @@ pub(crate) fn parse_house_manifest(text: &str) -> Result<HouseManifest, HouseCor
             continue;
         }
         // Parse `slice <kind> file=… role=… rows=<n> checksum=<u64>` lines.
+        //
+        // Only the `role=cusps` and `role=sectors` slices are consumed here;
+        // other roles (e.g. the `role=angles` slice used by the angles gate)
+        // are ignored so they cannot clobber the cusps rows/checksum.
         if trimmed.starts_with("slice ") {
             let is_sectors = trimmed.contains("role=sectors");
+            let is_cusps = trimmed.contains("role=cusps");
+            if !is_sectors && !is_cusps {
+                continue;
+            }
             for token in trimmed.split_whitespace() {
                 if let Some(val) = token.strip_prefix("rows=") {
                     let parsed =

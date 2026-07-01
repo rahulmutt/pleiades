@@ -98,3 +98,45 @@ These were cosmetic or non-blocking issues discovered during the B-series (frame
 - **Whole-branch review — ELP raw backend equatorial is intentionally of-date:** The ELP backend emits a J2000 `ecliptic` but derives its `equatorial` from the raw of-date lon/lat (preserving prior mean-mode values), so a direct ELP consumer who self-converts the J2000 ecliptic with mean obliquity will not reproduce the provided equatorial. Coherent and test-asserted (`assert_ne!`), and overridden by the chart layer for apparent bodies. **Remains open** (documented for any future direct-backend consumer).
 
 **Severity:** cosmetic / defensive hardening · **Opened:** 2026-06-30 · **Largely resolved:** 2026-07-01
+
+---
+
+## FU-5: SP-1 angles & sidereal-time deferred items
+
+Opened by the `feat/sp1-angles-sidereal` whole-branch review (2026-07-01). SP-1
+shipped public sidereal time + the Swiss-Ephemeris `ascmc` chart points
+(`AscMc`, `chart_points`/`chart_points_from_armc`, `HouseSnapshot::asc_mc`),
+gated by `validate-angles` (armc/gast ~0.16″; geometry points <0.05″ vs SE,
+`swehouse.c` ports verified line-by-line). All items below are non-blocking.
+
+- **GMST/equation-of-equinoxes math is duplicated across crates (single-source seam):**
+  `pleiades-apparent/src/sidereal.rs` `greenwich_mean_sidereal_time_degrees` is
+  byte-identical to the pre-existing `pleiades-time/src/sidereal.rs` `gmst_degrees`,
+  and the equation of equinoxes is implemented both in `sidereal.rs` and inline at
+  `pleiades-core/src/chart/mod.rs:411`. The crates share no dependency and there is
+  no cross-crate test asserting the formulas agree, so a future coefficient edit to
+  one could silently diverge. Values are identical today and each is individually
+  tested — no current numeric divergence. **Suggested fix:** have `pleiades-apparent`
+  delegate to `pleiades-time::gmst_degrees` (or add a cross-crate agreement test over
+  a JD sweep), and migrate the `chart/mod.rs` topocentric-LAST path onto the public
+  `sidereal_time` during SP-2 (already earmarked as the consolidation point).
+  **Related (not a defect):** the public `sidereal_time` consumes the `Instant` JD
+  as-supplied (UT1-based, honoring the existing house-layer time policy — a Global
+  Constraint), whereas the topocentric path converts TT→UT1 first; a caller passing a
+  TT instant sees a ΔT≈69 s ≈ 0.29° offset. Documented in the module header and
+  `docs/time-observer-policy.md`. **Remains open.**
+
+- **Southern-hemisphere `asc_mc_from` branch is transcribed but unexercised:** the
+  `f_pole = -90 - lat` pole-height branch and the vertex western-hemisphere flip in
+  `crates/pleiades-houses/src/systems/mod.rs` are exact `swehouse.c` ports but the
+  committed angles corpus is northern-only (lat 0/40/55/66), so the strictly-southern
+  path has no gate row. **Suggested fix:** add one southern-latitude row to the
+  `validate-angles` corpus. Low risk (transcription verified). **Remains open.**
+
+- **`asc_mc` consistency test covers only one production site:** the
+  `HouseSnapshot`-carries-`AscMc` test exercises the main construction site; the
+  high-latitude Porphyry-fallback site is structurally identical and verified by
+  inspection but not by an assertion. **Suggested fix:** add a high-latitude test
+  hitting the fallback `HouseSnapshot` construction. Trivial. **Remains open.**
+
+**Severity:** maintainability / test-coverage hardening · **Opened:** 2026-07-01

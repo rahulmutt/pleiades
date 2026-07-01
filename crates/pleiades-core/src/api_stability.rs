@@ -10,7 +10,7 @@
 use core::fmt;
 
 /// The current API-stability posture identifier.
-pub const CURRENT_API_STABILITY_PROFILE_ID: &str = "pleiades-api-stability/0.2.0";
+pub const CURRENT_API_STABILITY_PROFILE_ID: &str = "pleiades-api-stability/0.2.1";
 
 /// Returns the current API-stability posture identifier.
 pub const fn current_api_stability_profile_id() -> &'static str {
@@ -170,7 +170,7 @@ fn validate_text_section(
 pub const fn current_api_stability_profile() -> ApiStabilityProfile {
     ApiStabilityProfile {
         profile_id: CURRENT_API_STABILITY_PROFILE_ID,
-        summary: "The stable consumer surface is the shared domain model, backend contract, and chart/compatibility façade; validation and release-tooling formats are documented but still allowed to evolve as hardening continues. ChartSnapshot's summary_line helper, apparentness, direct, stationary, unknown-motion, retrograde, sign summary, dominant sign summary, house summary, dominant house summary, motion summary, and aspect summary helpers, plus the generic motion-direction placement filter, are part of that stable chart surface.",
+        summary: "The stable consumer surface is the shared domain model, backend contract, and chart/compatibility façade; validation and release-tooling formats are documented but still allowed to evolve as hardening continues. ChartSnapshot's summary_line helper, apparentness, direct, stationary, unknown-motion, retrograde, sign summary, dominant sign summary, house summary, dominant house summary, motion summary, and aspect summary helpers, plus the generic motion-direction placement filter, are part of that stable chart surface. SP-1 (angles and sidereal time) adds sidereal time (SiderealTime, GMST/GAST/local) and AscMc chart points (ARMC, Vertex, antivertex, equatorial ascendant, co-ascendants, polar ascendant) to that stable chart surface; HouseSnapshot::asc_mc carries AscMc on every house snapshot; HouseSnapshot is now #[non_exhaustive] as a deliberate one-time 0.2.x breaking change.",
         stable_surfaces: &[
             "pleiades-types defines the stable units, identifiers, and request/response primitives.",
             "pleiades-backend's EphemerisBackend trait and metadata model are the primary backend-facing contract.",
@@ -178,6 +178,8 @@ pub const fn current_api_stability_profile() -> ApiStabilityProfile {
             "ChartSnapshot exposes the apparentness used for backend position queries so mean/apparent chart mode stays explicit in reports and downstream consumers.",
             "ChartSnapshot body-placement helpers include direct lookup, sign lookup, house lookup, sign-scoped iteration, house-scoped iteration, motion-direction classification, direct, stationary, unknown-motion, and retrograde placement helpers, the placements_with_motion_direction filter, sign summaries, dominant sign summaries, house summaries, dominant house summaries, motion summaries, aspect summaries, retrograde summaries, and aspect helpers for backend motion data when present.",
             "House-system and ayanamsa resolution helpers are stable lookup surfaces for built-ins and custom entries.",
+            "pleiades-apparent's sidereal_time function and SiderealTime type (Greenwich Mean Sidereal Time, Greenwich Apparent Sidereal Time, local sidereal time) are stable façade helpers for Earth-rotation-based time; greenwich_mean_sidereal_time_degrees and equation_of_equinoxes_degrees are stable degree-valued conveniences. Sidereal time is UT1-based (Earth rotation); the Instant JD is consumed as supplied.",
+            "pleiades-houses's AscMc type and chart_points/chart_points_from_armc functions expose ARMC, Vertex, antivertex, equatorial ascendant, co-ascendants, and polar ascendant as stable chart-point surfaces; HouseSnapshot::asc_mc carries AscMc on every house snapshot. HouseSnapshot is now #[non_exhaustive] as a deliberate one-time 0.2.x breaking change; ChartSnapshot::asc_mc() re-exposes AscMc at the façade layer.",
         ],
         experimental_surfaces: &[
             "pleiades-validate report text, release bundle layout, and validation-corpus composition remain operational tooling rather than a public interchange format.",

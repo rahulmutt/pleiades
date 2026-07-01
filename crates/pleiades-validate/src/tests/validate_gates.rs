@@ -100,6 +100,39 @@ fn help_text_mentions_validate_topocentric_and_validate_apparent() {
 }
 
 #[test]
+fn validate_angles_passes_over_committed_corpus() {
+    let report = crate::angles_validation::run_angles_gate();
+    assert!(report.passed(), "validate-angles failed: {report:?}");
+}
+
+#[test]
+fn validate_angles_command_dispatches_and_reports_pass() {
+    let result = render_cli(&["validate-angles"])
+        .expect("validate-angles should succeed on committed angles corpus");
+    assert!(
+        result.contains("Angles gate"),
+        "validate-angles output should contain 'Angles gate': {result}"
+    );
+}
+
+#[test]
+fn angles_gate_alias_matches_validate_angles() {
+    let via_primary = render_cli(&["validate-angles"]).expect("validate-angles should succeed");
+    let via_alias = render_cli(&["angles-gate"]).expect("angles-gate alias should succeed");
+    assert_eq!(via_primary, via_alias);
+}
+
+#[test]
+fn validate_angles_rejects_extra_args() {
+    let error = render_cli(&["validate-angles", "extra"])
+        .expect_err("validate-angles should reject extra arguments");
+    assert!(
+        error.contains("validate-angles does not accept extra arguments"),
+        "unexpected error: {error}"
+    );
+}
+
+#[test]
 fn validate_houses_command_dispatches_and_reports_pass() {
     let result = render_cli(&["validate-houses"])
         .expect("validate-houses should succeed on committed house corpus");
@@ -259,8 +292,10 @@ fn eclipses_listing_with_end_at_window_boundary_does_not_error() {
 fn validate_equatorial_command_dispatches_and_reports_pass() {
     let result = render_cli(&["validate-equatorial"])
         .expect("validate-equatorial should succeed on committed goldens");
-    assert!(result.contains("Equatorial goldens"),
-        "validate-equatorial output should contain 'Equatorial goldens': {result}");
+    assert!(
+        result.contains("Equatorial goldens"),
+        "validate-equatorial output should contain 'Equatorial goldens': {result}"
+    );
 }
 
 #[test]
@@ -274,20 +309,31 @@ fn equatorial_gate_alias_matches_validate_equatorial() {
 fn validate_equatorial_rejects_extra_args() {
     let error = render_cli(&["validate-equatorial", "extra"])
         .expect_err("validate-equatorial should reject extra arguments");
-    assert!(error.contains("validate-equatorial does not accept extra arguments"), "{error}");
+    assert!(
+        error.contains("validate-equatorial does not accept extra arguments"),
+        "{error}"
+    );
 }
 
 #[test]
 fn validate_equatorial_se_command_dispatches_and_reports_pass() {
     let result = render_cli(&["validate-equatorial-se"])
         .expect("validate-equatorial-se should succeed on committed corpus");
-    assert!(result.contains("Equatorial-SE parity"),
-        "validate-equatorial-se output should contain 'Equatorial-SE parity': {result}");
+    assert!(
+        result.contains("Equatorial-SE parity"),
+        "validate-equatorial-se output should contain 'Equatorial-SE parity': {result}"
+    );
 }
 
 #[test]
 fn help_text_mentions_validate_equatorial() {
     let help = render_cli(&["help"]).expect("help should render");
-    assert!(help.contains("validate-equatorial"), "help should mention validate-equatorial");
-    assert!(help.contains("validate-equatorial-se"), "help should mention validate-equatorial-se");
+    assert!(
+        help.contains("validate-equatorial"),
+        "help should mention validate-equatorial"
+    );
+    assert!(
+        help.contains("validate-equatorial-se"),
+        "help should mention validate-equatorial-se"
+    );
 }

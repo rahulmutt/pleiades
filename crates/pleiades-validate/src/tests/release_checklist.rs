@@ -161,7 +161,7 @@ fn release_notes_summary_command_renders_the_summary() {
     assert!(rendered
         .lines()
         .any(|line| line == profile.target_ayanamsa_scope.join("; ")));
-    assert!(rendered.contains("API stability summary line: API stability posture: pleiades-api-stability/0.2.0; stable surfaces: 6; experimental surfaces: 3; deprecation policy items: 4; intentional limits: 3"));
+    assert!(rendered.contains("API stability summary line: API stability posture: pleiades-api-stability/0.2.1; stable surfaces: 8; experimental surfaces: 3; deprecation policy items: 4; intentional limits: 3"));
     assert!(rendered.contains(&reference_snapshot_source_summary_for_report()));
     assert!(rendered.contains(&reference_snapshot_boundary_epoch_coverage_summary_for_report()));
     assert!(rendered.contains(&reference_snapshot_major_body_boundary_window_summary_for_report()));

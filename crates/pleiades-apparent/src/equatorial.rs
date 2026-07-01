@@ -75,7 +75,11 @@ mod tests {
             got.declination.degrees(),
             EXPECTED_DEC_DEG
         );
-        assert_eq!(got.distance_au, Some(0.987), "distance must be preserved exactly");
+        assert_eq!(
+            got.distance_au,
+            Some(0.987),
+            "distance must be preserved exactly"
+        );
     }
 
     #[test]
@@ -84,8 +88,16 @@ mod tests {
         let jd = 2_451_545.0;
         let eps = true_obliquity_degrees(jd).unwrap();
         let got = apparent_equatorial_of_date(ecl(90.0, 0.0, None), jd).unwrap();
-        assert!((got.right_ascension.degrees() - 90.0).abs() < 1e-6, "ra {}", got.right_ascension.degrees());
-        assert!((got.declination.degrees() - eps).abs() < 1e-6, "dec {}", got.declination.degrees());
+        assert!(
+            (got.right_ascension.degrees() - 90.0).abs() < 1e-6,
+            "ra {}",
+            got.right_ascension.degrees()
+        );
+        assert!(
+            (got.declination.degrees() - eps).abs() < 1e-6,
+            "dec {}",
+            got.declination.degrees()
+        );
     }
 
     #[test]

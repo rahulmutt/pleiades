@@ -430,9 +430,9 @@ fn summary_commands_render_compact_reports() {
         .contains("Comparison corpus release-grade guard: Pluto excluded from tolerance evidence"));
     assert!(release_summary.contains("House formula families: 7 (Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign)"));
     assert!(release_summary.lines().any(|line| {
-        line == "Release profile identifiers: v1 compatibility=pleiades-compatibility-profile/0.7.1, api-stability=pleiades-api-stability/0.2.0"
+        line == "Release profile identifiers: v1 compatibility=pleiades-compatibility-profile/0.7.2, api-stability=pleiades-api-stability/0.2.1"
     }));
-    assert!(release_summary.contains("API stability summary line: API stability posture: pleiades-api-stability/0.2.0; stable surfaces: 6; experimental surfaces: 3; deprecation policy items: 4; intentional limits: 3"));
+    assert!(release_summary.contains("API stability summary line: API stability posture: pleiades-api-stability/0.2.1; stable surfaces: 8; experimental surfaces: 3; deprecation policy items: 4; intentional limits: 3"));
     assert!(release_summary.lines().any(|line| {
         line == "Time-scale policy: direct backend requests accept TT/TDB; civil UTC/UT1 inputs convert via the pleiades-time crate or caller-supplied offsets; the ephemeris backends carry no internal Delta T or UTC convenience model"
     }));

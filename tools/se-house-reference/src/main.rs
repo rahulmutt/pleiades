@@ -117,4 +117,39 @@ fn main() {
         sectors_out.push('\n');
     }
     std::fs::write(format!("{out_dir}/sectors.csv"), sectors_out).expect("write sectors.csv");
+
+    // Write angles.csv — one row per fixture (house-system-independent values).
+    //
+    // API choice: swisseph::AscMc (returned by the safe `houses2` wrapper) cleanly
+    // exposes all 8 fields including armc, vertex, equatorial_ascendant,
+    // co_ascendant_wk (Koch), co_ascendant_mm (Munkasey), and polar_ascendant.
+    // We call houses2 once per fixture with Placidus (ascmc extras are house-system-
+    // independent); we use libswisseph_sys::safe::swe_sidtime (safe wrapper, no
+    // unsafe needed) for GAST in hours.
+    let mut angles_out = String::new();
+    angles_out.push_str(
+        "chart_id,jd_ut,lat_deg,lon_deg,\
+         armc,vertex,equatorial_ascendant,coasc_koch,coasc_munkasey,polar_asc,\
+         sidtime_gast_hours\n",
+    );
+    for &(id, jd, lat, lon, _elev) in fixtures {
+        let (_cusp, ascmc): (Cusp, AscMc) =
+            houses2(jd, lat, lon, HouseSystemKind::Placidus);
+        let sidtime = libswisseph_sys::safe::swe_sidtime(jd);
+        angles_out.push_str(&format!(
+            "{},{},{},{},{:.6},{:.6},{:.6},{:.6},{:.6},{:.6},{:.9}\n",
+            id,
+            jd,
+            lat,
+            lon,
+            ascmc.armc,
+            ascmc.vertex,
+            ascmc.equatorial_ascendant,
+            ascmc.co_ascendant_wk,
+            ascmc.co_ascendant_mm,
+            ascmc.polar_ascendant,
+            sidtime,
+        ));
+    }
+    std::fs::write(format!("{out_dir}/angles.csv"), angles_out).expect("write angles.csv");
 }

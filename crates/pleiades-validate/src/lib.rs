@@ -12,6 +12,7 @@ use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 use std::time::Instant as StdInstant;
 
+pub mod angles_validation;
 mod apparent_validation;
 mod artifact;
 mod ayanamsa_validation;
@@ -21,9 +22,9 @@ mod comparison;
 mod compatibility;
 mod corpus;
 pub mod eclipse_validation;
-mod house_validation;
 mod equatorial_validation;
 mod frame_consistency_validation;
+mod house_validation;
 mod lilith_validation;
 mod provenance;
 mod release;
@@ -31,6 +32,7 @@ mod render;
 mod report;
 mod topocentric_validation;
 
+pub use angles_validation::{validate_angles_corpus, AnglesCorpusError, AnglesCorpusReport};
 pub use apparent_validation::{
     validate_apparent_goldens, ApparentValidationError, ApparentValidationReport,
 };
@@ -176,6 +178,13 @@ pub use chart_benchmark::{
     benchmark_chart_backend, chart_benchmark_corpus_summary, ChartBenchmarkReport,
 };
 pub use eclipse_validation::{validate_eclipse_corpus, EclipseCorpusError, EclipseCorpusReport};
+pub use equatorial_validation::{
+    validate_equatorial_goldens, validate_equatorial_se_corpus, EquatorialSeError,
+    EquatorialSeReport, EquatorialValidationError, EquatorialValidationReport,
+};
+pub use frame_consistency_validation::{
+    validate_frame_consistency, FrameConsistencyError, FrameConsistencyReport,
+};
 pub use house_validation::{
     house_validation_report, house_validation_summary_for_report,
     house_validation_summary_line_for_report, release_house_validation_report,
@@ -184,13 +193,6 @@ pub use house_validation::{
     HouseValidationReportValidationError, HouseValidationSample, HouseValidationScenario,
 };
 pub use house_validation::{validate_house_corpus, HouseCorpusError, HouseCorpusReport};
-pub use equatorial_validation::{
-    validate_equatorial_goldens, validate_equatorial_se_corpus, EquatorialSeError,
-    EquatorialSeReport, EquatorialValidationError, EquatorialValidationReport,
-};
-pub use frame_consistency_validation::{
-    validate_frame_consistency, FrameConsistencyError, FrameConsistencyReport,
-};
 pub use lilith_validation::{validate_lilith_corpus, LilithCorpusError, LilithCorpusReport};
 
 use crate::claims::{
