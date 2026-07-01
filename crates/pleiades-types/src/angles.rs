@@ -93,10 +93,12 @@ impl fmt::Display for Longitude {
     }
 }
 
-/// A signed latitude-like angle measured in degrees.
+/// A signed latitude-like angle measured in degrees, north-positive.
 ///
-/// Latitude values are not automatically clamped; the caller is expected to
-/// provide values consistent with the relevant coordinate system.
+/// Positive values lie north of the equator (or the relevant reference plane)
+/// and negative values lie south. Latitude values are not automatically
+/// clamped; the caller is expected to provide values consistent with the
+/// relevant coordinate system.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct Latitude(Angle);

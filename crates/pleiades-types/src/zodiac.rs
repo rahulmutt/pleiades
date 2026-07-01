@@ -13,7 +13,11 @@ pub enum ZodiacMode {
     /// Tropical zodiac.
     Tropical,
     /// Sidereal zodiac using the selected ayanamsa definition.
-    Sidereal { ayanamsa: Ayanamsa },
+    Sidereal {
+        /// The ayanamsa (precession offset) applied to shift tropical
+        /// longitudes into the sidereal frame.
+        ayanamsa: Ayanamsa,
+    },
 }
 
 impl fmt::Display for ZodiacMode {

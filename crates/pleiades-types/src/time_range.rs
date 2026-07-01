@@ -21,6 +21,11 @@ impl TimeRange {
     }
 
     /// Returns `true` if the given instant is inside the range.
+    ///
+    /// Containment requires the instant to share each present bound's
+    /// [`TimeScale`](crate::TimeScale): an instant tagged with a different time
+    /// scale than a present bound, or one carrying a non-finite Julian day, is
+    /// treated as not contained. An unbounded side imposes no constraint.
     pub fn contains(&self, instant: Instant) -> bool {
         let after_start = self.start.is_none_or(|start| {
             same_scale_and_jd(instant, start)

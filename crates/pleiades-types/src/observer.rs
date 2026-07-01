@@ -8,7 +8,7 @@ use crate::angles::{Latitude, Longitude};
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct ObserverLocation {
-    /// Geographic latitude.
+    /// Geographic latitude, north of the equator positive (degrees).
     pub latitude: Latitude,
     /// Geographic longitude, expressed in degrees east of Greenwich.
     pub longitude: Longitude,

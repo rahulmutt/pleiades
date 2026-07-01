@@ -78,7 +78,9 @@ pub const OBLIQUITY_J2000_DEG: f64 = 23.439_291_111_111_11;
 pub enum TimeScaleConversionError {
     /// Time scale required by the conversion helper.
     Expected {
+        /// The time scale the conversion helper required.
         expected: TimeScale,
+        /// The time scale actually supplied by the caller.
         actual: TimeScale,
     },
     /// The supplied offset was not a finite number of seconds.
