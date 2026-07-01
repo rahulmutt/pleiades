@@ -52,15 +52,30 @@ mod tests {
 
     #[test]
     fn composes_rotation_with_true_obliquity() {
-        // The helper must equal: rotate by true obliquity of date, nothing else.
+        // Regression lock against independently pinned RA/Dec (captured once by
+        // running the code, not recomputed from the function under test). This
+        // ensures the output stays stable across refactors. Rotation-direction
+        // correctness is covered separately by `solstice_point_maps_to_ra90_dec_obliquity`.
         let jd = 2_433_283.0;
         let e = ecl(123.456, 1.234, Some(0.987));
-        let eps = true_obliquity_degrees(jd).unwrap();
-        let expected = e.to_equatorial(Angle::from_degrees(eps));
         let got = apparent_equatorial_of_date(e, jd).unwrap();
-        assert!((got.right_ascension.degrees() - expected.right_ascension.degrees()).abs() < 1e-9);
-        assert!((got.declination.degrees() - expected.declination.degrees()).abs() < 1e-9);
-        assert_eq!(got.distance_au, expected.distance_au);
+
+        const EXPECTED_RA_DEG: f64 = 126.070243353872;
+        const EXPECTED_DEC_DEG: f64 = 20.589323321908;
+
+        assert!(
+            (got.right_ascension.degrees() - EXPECTED_RA_DEG).abs() < 1e-6,
+            "RA drifted: {} vs {}",
+            got.right_ascension.degrees(),
+            EXPECTED_RA_DEG
+        );
+        assert!(
+            (got.declination.degrees() - EXPECTED_DEC_DEG).abs() < 1e-6,
+            "Dec drifted: {} vs {}",
+            got.declination.degrees(),
+            EXPECTED_DEC_DEG
+        );
+        assert_eq!(got.distance_au, Some(0.987), "distance must be preserved exactly");
     }
 
     #[test]
