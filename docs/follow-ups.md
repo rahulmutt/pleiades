@@ -103,6 +103,8 @@ These were cosmetic or non-blocking issues discovered during the B-series (frame
 
 ## FU-5: SP-1 angles & sidereal-time deferred items
 
+**Status:** resolved (2026-07-01) · GMST + equation-of-equinoxes duplicates single-sourced, a southern-hemisphere `validate-angles` gate row added, and a Porphyry high-latitude fallback `asc_mc` consistency test added.
+
 Opened by the `feat/sp1-angles-sidereal` whole-branch review (2026-07-01). SP-1
 shipped public sidereal time + the Swiss-Ephemeris `ascmc` chart points
 (`AscMc`, `chart_points`/`chart_points_from_armc`, `HouseSnapshot::asc_mc`),
@@ -124,19 +126,38 @@ gated by `validate-angles` (armc/gast ~0.16″; geometry points <0.05″ vs SE,
   as-supplied (UT1-based, honoring the existing house-layer time policy — a Global
   Constraint), whereas the topocentric path converts TT→UT1 first; a caller passing a
   TT instant sees a ΔT≈69 s ≈ 0.29° offset. Documented in the module header and
-  `docs/time-observer-policy.md`. **Remains open.**
+  `docs/time-observer-policy.md`. → **Resolved 2026-07-01 (`4c79c6c2`, `bd0da1bc`):**
+  the GMST polynomial is now single-sourced into `pleiades-time::gmst_degrees_raw`
+  (unnormalized), with `pleiades-apparent`'s `greenwich_mean_sidereal_time_degrees`
+  delegating to it instead of carrying its own byte-identical copy; a cross-crate
+  GMST agreement test guards against re-divergence. The equation of equinoxes is
+  now a shared `equation_of_equinoxes(delta_psi_deg, true_obliquity_deg)` helper,
+  called by both `pleiades-apparent`'s wrapper and `pleiades-core`'s chart
+  topocentric-LAST path, replacing the hand-inlined `cos(ε)` term at
+  `chart/mod.rs:411`. Scope note: this closes only the apparent/time GMST duplicate
+  and the apparent/core equation-of-equinoxes duplicate that this item targeted — a
+  separate, truncated (linear-only) copy of the leading GMST coefficients still
+  exists in `crates/pleiades-eclipse/src/geometry.rs` (`sub_shadow_point`); that copy
+  was out of this item's scope by design and is left untouched.
 
 - **Southern-hemisphere `asc_mc_from` branch is transcribed but unexercised:** the
   `f_pole = -90 - lat` pole-height branch and the vertex western-hemisphere flip in
   `crates/pleiades-houses/src/systems/mod.rs` are exact `swehouse.c` ports but the
   committed angles corpus is northern-only (lat 0/40/55/66), so the strictly-southern
   path has no gate row. **Suggested fix:** add one southern-latitude row to the
-  `validate-angles` corpus. Low risk (transcription verified). **Remains open.**
+  `validate-angles` corpus. Low risk (transcription verified). → **Resolved
+  2026-07-01 (`10d71ec7`):** added a lat −33° / lon 20° fixture (`c5_lat33s`) to
+  `se-house-reference` and regenerated the houses corpus (cusps/sectors/angles);
+  manifest bumped to cusps=138/sectors=6/angles=6. This row exercises the
+  `asc_mc_from` `f_pole = -90 - lat` branch under `validate-angles`.
 
 - **`asc_mc` consistency test covers only one production site:** the
   `HouseSnapshot`-carries-`AscMc` test exercises the main construction site; the
   high-latitude Porphyry-fallback site is structurally identical and verified by
   inspection but not by an assertion. **Suggested fix:** add a high-latitude test
-  hitting the fallback `HouseSnapshot` construction. Trivial. **Remains open.**
+  hitting the fallback `HouseSnapshot` construction. Trivial. → **Resolved 2026-07-01
+  (`5836ea13`):** added a characterization test that forces the Placidus-at-lat-75°
+  `SwissEphemerisFallback` early-return branch and asserts the fallback snapshot's
+  `asc_mc` equals an independent `asc_mc_from` recomputation.
 
-**Severity:** maintainability / test-coverage hardening · **Opened:** 2026-07-01
+**Severity:** maintainability / test-coverage hardening (now closed) · **Opened:** 2026-07-01
