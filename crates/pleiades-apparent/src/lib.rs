@@ -1,5 +1,70 @@
 //! Apparent-place corrections: light-time, precession-to-date, annual
 //! aberration, and nutation-in-longitude, with typed provenance.
+//! Gravitational light-deflection and atmospheric refraction are omitted.
+//!
+//! # Examples
+//!
+//! Turn a mean J2000 ecliptic position into an apparent place of date with
+//! [`apparent_position`]. The `query` closure returns the body's mean/J2000
+//! geocentric position at a (light-time-retarded) instant; the routine applies
+//! light-time, precession to the equinox of date, annual aberration, and
+//! nutation-in-longitude. Gravitational light-deflection and atmospheric
+//! refraction are **not** applied. One century after J2000 precession alone
+//! shifts ecliptic longitude by roughly 1.4°:
+//!
+//! ```
+//! use pleiades_apparent::{apparent_position, ApparentPlaceError, DEFAULT_MAX_ITERATIONS};
+//! use pleiades_types::{EclipticCoordinates, Instant, JulianDay, Latitude, Longitude, TimeScale};
+//!
+//! let instant = Instant::new(JulianDay::from_days(2_451_545.0 + 36_525.0), TimeScale::Tt);
+//! let mean_lon = 100.0;
+//! let out = apparent_position::<_, ApparentPlaceError>(
+//!     instant,
+//!     280.0, // Sun's true longitude of date, of-date, for the aberration term
+//!     DEFAULT_MAX_ITERATIONS,
+//!     |_| {
+//!         Ok(EclipticCoordinates::new(
+//!             Longitude::from_degrees(mean_lon),
+//!             Latitude::from_degrees(0.0),
+//!             Some(1.0),
+//!         ))
+//!     },
+//! )
+//! .expect("apparent place");
+//! let shift_deg = out.ecliptic.longitude.degrees() - mean_lon;
+//! assert!((shift_deg - 1.397).abs() < 0.05, "apparent-vs-mean shift {shift_deg} deg");
+//! assert!(out.provenance.corrections.nutation_longitude);
+//! ```
+//!
+//! Apply the topocentric correction (diurnal parallax + diurnal aberration) to a
+//! geocentric apparent place with [`topocentric_position`]. For the Moon the
+//! diurnal parallax is large (of order 1°):
+//!
+//! ```
+//! use pleiades_apparent::topocentric_position;
+//! use pleiades_types::{EclipticCoordinates, Latitude, Longitude, ObserverLocation};
+//!
+//! let geocentric = EclipticCoordinates::new(
+//!     Longitude::from_degrees(100.0),
+//!     Latitude::from_degrees(0.0),
+//!     Some(0.002_57), // Moon distance, in AU
+//! );
+//! let observer = ObserverLocation::new(
+//!     Latitude::from_degrees(0.0),
+//!     Longitude::from_degrees(0.0),
+//!     Some(0.0),
+//! );
+//! // local apparent sidereal time = 100°, true obliquity of date ≈ 23.4°.
+//! let topo = topocentric_position(geocentric, &observer, 100.0, 23.4).expect("topocentric");
+//! let shift_deg = topo
+//!     .provenance
+//!     .parallax_longitude_arcsec
+//!     .hypot(topo.provenance.parallax_latitude_arcsec)
+//!     / 3600.0;
+//! assert!(shift_deg > 0.3, "Moon parallax {shift_deg} deg too small");
+//! ```
+
+#![deny(missing_docs)]
 
 mod error;
 

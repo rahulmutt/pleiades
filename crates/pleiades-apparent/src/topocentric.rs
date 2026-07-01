@@ -14,7 +14,9 @@ pub const DIURNAL_ABERRATION_ARCSEC: f64 = 0.319_2;
 /// A topocentric ecliptic-of-date position and its provenance.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct TopocentricPosition {
+    /// Topocentric (observer-centric) ecliptic-of-date coordinates.
     pub ecliptic: EclipticCoordinates,
+    /// Provenance recording the parallax and diurnal-aberration shifts applied.
     pub provenance: TopocentricProvenance,
 }
 

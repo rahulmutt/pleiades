@@ -1,7 +1,8 @@
 //! Orchestrator: light-time-corrected J2000 position + Sun's longitude of date +
 //! instant -> apparent ecliptic-of-date position with provenance. Applies, in
 //! order: light-time, precession (J2000 -> mean equinox of date), nutation Δψ
-//! (-> true equinox of date), then annual aberration.
+//! (-> true equinox of date), then annual aberration. Gravitational
+//! light-deflection is not applied (sub-arcsec except near the solar limb).
 
 use pleiades_types::{EclipticCoordinates, Instant, Latitude, Longitude};
 
@@ -18,7 +19,9 @@ pub const DEFAULT_MAX_ITERATIONS: u8 = 8;
 /// An apparent ecliptic-of-date position and its provenance.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ApparentPosition {
+    /// Apparent geocentric ecliptic coordinates, true equinox of date.
     pub ecliptic: EclipticCoordinates,
+    /// Provenance recording which corrections were applied and their magnitudes.
     pub provenance: ApparentProvenance,
 }
 

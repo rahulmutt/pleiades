@@ -27,7 +27,8 @@ pub struct PrecessedEcliptic {
 
 /// Precesses geocentric ecliptic coordinates from the mean equinox/ecliptic of
 /// date `jd_tt` back to the J2000 mean equinox/ecliptic. Algebraic inverse of
-/// [`precess_ecliptic_j2000_to_date`] (round-trips to < 1e-6° over ±1 century).
+/// [`precess_ecliptic_j2000_to_date`] (round-trips to < 1e-6° at ~1 century
+/// from J2000; verified at 1900).
 pub fn precess_ecliptic_date_to_j2000(
     lambda_deg: f64,
     beta_deg: f64,

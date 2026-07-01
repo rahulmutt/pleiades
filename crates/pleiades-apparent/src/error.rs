@@ -6,13 +6,22 @@ use core::fmt;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum ApparentPlaceError {
     /// The light-time iteration did not converge within the iteration cap.
-    NonConvergentLightTime { iterations: u8 },
+    NonConvergentLightTime {
+        /// Number of iteration steps taken before giving up.
+        iterations: u8,
+    },
     /// A position lacked the geocentric distance light-time needs.
     MissingDistance,
     /// A computed correction was not finite (defensive).
-    NonFiniteCorrection { stage: &'static str },
+    NonFiniteCorrection {
+        /// Correction stage that produced the non-finite value (e.g. `"nutation"`).
+        stage: &'static str,
+    },
     /// A pinned model table failed its checksum/freshness gate.
-    StaleModelData { kind: &'static str },
+    StaleModelData {
+        /// Model table that failed the gate (e.g. `"nutation"`).
+        kind: &'static str,
+    },
 }
 
 impl ApparentPlaceError {

@@ -29,12 +29,23 @@ pub const MODEL_SOURCES: &str =
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ApparentProvenance {
+    /// Light-time retardation applied, in days (0.0 when no light-time iteration
+    /// was performed, e.g. the Sun and lunar-apsis paths).
     pub light_time_days: f64,
+    /// Light-time iterations taken (0 when no iteration was performed).
     pub iterations: u8,
+    /// Longitude shift from J2000->of-date precession, arcseconds (wrapped to
+    /// (-180deg, 180deg] before scaling).
     pub precession_longitude_arcsec: f64,
+    /// Nutation-in-longitude (Delta-psi) applied to longitude, arcseconds.
     pub nutation_longitude_arcsec: f64,
+    /// Annual-aberration shift applied to longitude, arcseconds (0.0 on the
+    /// aberration-free lunar-apsis path).
     pub aberration_longitude_arcsec: f64,
+    /// Flags recording which corrections were applied.
     pub corrections: CorrectionSet,
+    /// Human-readable list of the data/model sources behind the corrections
+    /// (see [`MODEL_SOURCES`]).
     pub model_sources: &'static str,
 }
 

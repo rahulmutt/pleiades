@@ -15,9 +15,13 @@ pub struct ApparentPlacePolicySummary {
 /// Validation error for the apparent-place policy summary.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum ApparentPlacePolicySummaryValidationError {
+    /// The summary is empty or all whitespace.
     BlankSummary,
+    /// The summary has leading or trailing whitespace.
     WhitespacePaddedSummary,
+    /// The summary contains a `\n` or `\r` line break.
     EmbeddedLineBreak,
+    /// The summary does not match [`CURRENT_APPARENT_PLACE_POLICY_SUMMARY_TEXT`].
     CurrentPolicyOutOfSync,
 }
 
@@ -41,18 +45,23 @@ impl fmt::Display for ApparentPlacePolicySummaryValidationError {
 impl std::error::Error for ApparentPlacePolicySummaryValidationError {}
 
 impl ApparentPlacePolicySummary {
+    /// Wraps an arbitrary summary string (not validated until [`validate`](Self::validate)).
     pub const fn new(summary: &'static str) -> Self {
         Self { summary }
     }
 
+    /// The current canonical summary ([`CURRENT_APPARENT_PLACE_POLICY_SUMMARY_TEXT`]).
     pub const fn current() -> Self {
         Self::new(CURRENT_APPARENT_PLACE_POLICY_SUMMARY_TEXT)
     }
 
+    /// Borrows the wrapped summary string verbatim (unvalidated).
     pub const fn summary_line(self) -> &'static str {
         self.summary
     }
 
+    /// Checks the summary is non-blank, un-padded, single-line, and in sync with
+    /// the current canonical text; returns the first failing condition otherwise.
     pub fn validate(&self) -> Result<(), ApparentPlacePolicySummaryValidationError> {
         if self.summary.trim().is_empty() {
             Err(ApparentPlacePolicySummaryValidationError::BlankSummary)
@@ -67,6 +76,7 @@ impl ApparentPlacePolicySummary {
         }
     }
 
+    /// Returns the summary string only if [`validate`](Self::validate) passes.
     pub fn validated_summary_line(
         &self,
     ) -> Result<&'static str, ApparentPlacePolicySummaryValidationError> {
