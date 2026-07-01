@@ -23,7 +23,7 @@ const BODIES: &[(&str, c_int)] = &[
 ];
 
 const JD_START_TT: f64 = 2_415_025.5; // 1900-01-06 (inside coverage; see apparent gate)
-const JD_END_TT: f64 = 2_488_065.5;   // 2099-12-26
+const JD_END_TT: f64 = 2_488_065.5;   // 2099-12-28
 const STEP_DAYS: f64 = 365.25 * 5.0;  // ~5-year cadence → ~40 epochs × 10 bodies
 
 fn se_radec(jd_tt: f64, body: c_int) -> (f64, f64) {

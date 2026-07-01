@@ -3,8 +3,9 @@
 //! (Meeus 20.3 / 21.4) are bridged through the ecliptic↔equatorial rotation
 //! (Meeus 13.x): convert ecliptic-J2000 -> equatorial-J2000 with the J2000
 //! obliquity, precess the equatorial coordinates, then convert back to ecliptic
-//! using the mean obliquity OF DATE. The result is referred to the mean
-//! equinox and ecliptic of date.
+//! using the mean obliquity of date. The forward transform's result is
+//! referred to the mean equinox and ecliptic of date; the inverse
+//! (`precess_ecliptic_date_to_j2000`) returns J2000 coordinates.
 
 use crate::error::ApparentPlaceError;
 use crate::nutation::mean_obliquity_degrees;
@@ -14,12 +15,13 @@ fn julian_centuries(jd_tt: f64) -> f64 {
     (jd_tt - 2_451_545.0) / 36_525.0
 }
 
-/// Ecliptic longitude and latitude of date, degrees (longitude normalized to 0–360).
+/// Ecliptic longitude and latitude in the caller-selected frame (mean equinox
+/// of date or J2000), degrees (longitude normalized to 0–360).
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct PrecessedEcliptic {
-    /// Ecliptic longitude referred to the mean equinox of date, degrees [0, 360).
+    /// Ecliptic longitude in the caller-selected frame (mean equinox of date or J2000), degrees [0, 360).
     pub longitude_deg: f64,
-    /// Ecliptic latitude referred to the mean ecliptic of date, degrees.
+    /// Ecliptic latitude in the caller-selected frame (mean ecliptic of date or J2000), degrees.
     pub latitude_deg: f64,
 }
 
