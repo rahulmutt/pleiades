@@ -1,0 +1,63 @@
+[workspace]
+# Reuse the same changelog format as the 0.3.0 bootstrap.
+changelog_config = "cliff.toml"
+# Create GitHub Releases for each tag.
+git_release_enable = true
+# Don't churn Cargo.lock as part of the release commit.
+dependencies_update = false
+
+# Unified versioning: every publishable crate shares one version_group, so the
+# whole workspace bumps lock-step (matching version.workspace inheritance and the
+# retired release.toml shared-version behavior). The 3 publish=false crates are
+# skipped automatically and need no entry.
+[[package]]
+name = "pleiades-types"
+version_group = "pleiades"
+
+[[package]]
+name = "pleiades-apparent"
+version_group = "pleiades"
+
+[[package]]
+name = "pleiades-apsides"
+version_group = "pleiades"
+
+[[package]]
+name = "pleiades-time"
+version_group = "pleiades"
+
+[[package]]
+name = "pleiades-backend"
+version_group = "pleiades"
+
+[[package]]
+name = "pleiades-compression"
+version_group = "pleiades"
+
+[[package]]
+name = "pleiades-houses"
+version_group = "pleiades"
+
+[[package]]
+name = "pleiades-ayanamsa"
+version_group = "pleiades"
+
+[[package]]
+name = "pleiades-vsop87"
+version_group = "pleiades"
+
+[[package]]
+name = "pleiades-elp"
+version_group = "pleiades"
+
+[[package]]
+name = "pleiades-jpl"
+version_group = "pleiades"
+
+[[package]]
+name = "pleiades-eclipse"
+version_group = "pleiades"
+
+[[package]]
+name = "pleiades-core"
+version_group = "pleiades"
