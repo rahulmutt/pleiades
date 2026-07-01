@@ -8,10 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Highlights
 
-This release first-publishes four new crates — `pleiades-apparent`
+This release first-publishes five new crates — `pleiades-apparent`
 (apparent-place corrections), `pleiades-apsides` (apsides/nodes),
-`pleiades-eclipse` (eclipse computation), and `pleiades-time` (civil/dynamical
-time conversion) — and bumps the existing nine crates to 0.3.0. See **Breaking
+`pleiades-eclipse` (eclipse computation), `pleiades-time` (civil/dynamical
+time conversion), and `pleiades-data` (packaged offline ephemeris data and
+backend) — and bumps the existing nine crates to 0.3.0. See **Breaking
 Changes** below before upgrading.
 
 ### Breaking Changes

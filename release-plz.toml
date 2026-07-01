@@ -58,6 +58,10 @@ name = "pleiades-jpl"
 version_group = "pleiades"
 
 [[package]]
+name = "pleiades-data"
+version_group = "pleiades"
+
+[[package]]
 name = "pleiades-eclipse"
 version_group = "pleiades"
 
