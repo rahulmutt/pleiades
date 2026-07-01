@@ -123,7 +123,7 @@ pub use compatibility::{
     validated_target_house_scope_summary_for_report, CompatibilityProfile,
     HouseCodeAliasInventorySummary, CURRENT_COMPATIBILITY_PROFILE_ID,
 };
-pub use pleiades_apparent::{ApparentProvenance, CorrectionSet};
+pub use pleiades_apparent::{sidereal_time, ApparentProvenance, CorrectionSet, SiderealTime};
 pub use pleiades_ayanamsa::{
     baseline_ayanamsas, built_in_ayanamsas, descriptor as ayanamsa_descriptor, release_ayanamsas,
     resolve_ayanamsa, AyanamsaDescriptor,
@@ -150,9 +150,9 @@ pub use pleiades_backend::{
     UtcConveniencePolicySummary,
 };
 pub use pleiades_houses::{
-    baseline_house_systems, calculate_houses, descriptor as house_system_descriptor,
-    house_for_longitude, resolve_house_system, HouseAngles, HouseError, HouseErrorKind,
-    HouseRequest, HouseSnapshot, HouseSystemDescriptor,
+    baseline_house_systems, calculate_houses, chart_points, chart_points_from_armc,
+    descriptor as house_system_descriptor, house_for_longitude, resolve_house_system, AscMc,
+    HouseAngles, HouseError, HouseErrorKind, HouseRequest, HouseSnapshot, HouseSystemDescriptor,
 };
 pub use pleiades_time::{CivilDateTime, CivilInstant, CivilTimeError, ConversionProvenance};
 pub use pleiades_types::{

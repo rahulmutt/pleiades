@@ -3501,7 +3501,10 @@ fn apparent_chart_populates_equatorial_of_date() {
     let mean_eps = pleiades_apparent::nutation::mean_obliquity_degrees(jd);
     let mean_eq = ecl.to_equatorial(Angle::from_degrees(mean_eps));
     let d = (eq.declination.degrees() - mean_eq.declination.degrees()).abs() * 3600.0;
-    assert!(d > 0.0 && d < 60.0, "of-date vs mean Dec delta {d}\" (expected small, nonzero)");
+    assert!(
+        d > 0.0 && d < 60.0,
+        "of-date vs mean Dec delta {d}\" (expected small, nonzero)"
+    );
     let _ = true_obliquity_degrees(jd).unwrap();
 }
 
@@ -3509,7 +3512,10 @@ fn apparent_chart_populates_equatorial_of_date() {
 fn equatorial_is_identical_tropical_vs_sidereal() {
     use pleiades_data::PackagedDataBackend;
     let engine = ChartEngine::new(PackagedDataBackend::new());
-    let inst = Instant::new(pleiades_types::JulianDay::from_days(2_451_545.0), TimeScale::Tt);
+    let inst = Instant::new(
+        pleiades_types::JulianDay::from_days(2_451_545.0),
+        TimeScale::Tt,
+    );
     let tropical = engine
         .chart(
             &ChartRequest::new(inst)
@@ -3556,7 +3562,10 @@ fn mean_fallback_keeps_backend_equatorial() {
     use pleiades_backend::EphemerisRequest;
     use pleiades_data::PackagedDataBackend;
     let backend = PackagedDataBackend::new();
-    let inst = Instant::new(pleiades_types::JulianDay::from_days(2_451_545.0), TimeScale::Tt);
+    let inst = Instant::new(
+        pleiades_types::JulianDay::from_days(2_451_545.0),
+        TimeScale::Tt,
+    );
     let direct = backend
         .position(&EphemerisRequest::new(CelestialBody::Sun, inst))
         .unwrap();
@@ -3581,7 +3590,10 @@ fn topocentric_equatorial_reflects_topocentric_ecliptic() {
     // The Moon's topocentric equatorial differs from its geocentric equatorial.
     use pleiades_data::PackagedDataBackend;
     let engine = ChartEngine::new(PackagedDataBackend::new());
-    let inst = Instant::new(pleiades_types::JulianDay::from_days(2_451_545.0), TimeScale::Tt);
+    let inst = Instant::new(
+        pleiades_types::JulianDay::from_days(2_451_545.0),
+        TimeScale::Tt,
+    );
     let observer = ObserverLocation::new(
         Latitude::from_degrees(40.0),
         Longitude::from_degrees(-74.0),
@@ -3620,5 +3632,30 @@ fn topocentric_equatorial_reflects_topocentric_ecliptic() {
     assert!(
         dra + ddec > 1.0,
         "topocentric Moon equatorial should differ measurably from geocentric"
+    );
+}
+
+#[test]
+fn chart_snapshot_exposes_asc_mc_when_houses_present() {
+    let engine = ChartEngine::new(ToyChartBackend);
+    let request = ChartRequest::new(Instant::new(
+        pleiades_types::JulianDay::from_days(2451545.0),
+        TimeScale::Tt,
+    ))
+    .with_observer(pleiades_types::ObserverLocation::new(
+        Latitude::from_degrees(0.0),
+        Longitude::from_degrees(0.0),
+        None,
+    ))
+    .with_house_system(crate::HouseSystem::WholeSign)
+    .with_bodies(vec![CelestialBody::Sun]);
+
+    let snapshot = engine.chart(&request).expect("chart should render");
+    let asc_mc = snapshot
+        .asc_mc()
+        .expect("asc_mc present when houses computed");
+    assert_eq!(
+        asc_mc.ascendant,
+        snapshot.houses.as_ref().unwrap().angles.ascendant
     );
 }

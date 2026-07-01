@@ -593,6 +593,14 @@ pub(crate) fn render_chart(args: &[&str]) -> Result<String, String> {
             output.push_str(&format!("  {}\n", topo_prov.summary_line()));
         }
     }
+    if let Some(asc_mc) = snapshot.asc_mc() {
+        output.push_str(&format!("ARMC: {}\n", asc_mc.armc));
+        output.push_str(&format!("Vertex: {}\n", asc_mc.vertex));
+        output.push_str(&format!(
+            "Equatorial Ascendant: {}\n",
+            asc_mc.equatorial_ascendant
+        ));
+    }
     match civil_provenance {
         Some(p) => Ok(format!("{output}\n{}", p.summary_line())),
         None => Ok(output),

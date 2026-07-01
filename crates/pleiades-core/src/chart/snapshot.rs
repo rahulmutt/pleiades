@@ -393,6 +393,12 @@ impl ChartSnapshot {
         Ok(self.summary_line())
     }
 
+    /// The full Swiss-Ephemeris `ascmc` chart points, present only when the
+    /// snapshot carries computed houses.
+    pub fn asc_mc(&self) -> Option<&pleiades_houses::AscMc> {
+        self.houses.as_ref().map(|h| &h.asc_mc)
+    }
+
     /// Returns the first placement for a requested body, if present.
     pub fn placement_for(&self, body: &CelestialBody) -> Option<&BodyPlacement> {
         self.placements
