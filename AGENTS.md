@@ -96,6 +96,7 @@ Agents must follow standard professional engineering practices.
 - Avoid opportunistic refactors unless they are necessary for correctness or maintainability.
 - If a refactor is necessary, separate it logically from behavioral changes when possible.
 - Preserve backwards compatibility unless the task explicitly allows breaking changes.
+- **Releasing:** automated via release-plz (see the "Releasing" section in `README.md`). Do not bump versions or publish by hand except via the documented `release.toml` fallback.
 
 ### Readability and maintainability
 

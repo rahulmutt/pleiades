@@ -194,6 +194,29 @@ mise run release-gate
 - [docs/lunar-theory-policy.md](docs/lunar-theory-policy.md) — current lunar theory selection and limitations.
 - [docs/release-reproducibility.md](docs/release-reproducibility.md) — release bundle and artifact reproducibility workflow.
 
+## Releasing
+
+Releases are automated with [release-plz](https://release-plz.dev). On every
+push to `main`, release-plz maintains a **Release** pull request that bumps all
+crates to the next unified version and updates `CHANGELOG.md` from Conventional
+Commits (`feat`/`fix`/`perf`/breaking). Merge that PR to tag the version,
+publish all publishable crates to crates.io, and create the GitHub Release.
+
+### Required repository secrets
+
+- `CARGO_REGISTRY_TOKEN` — a crates.io API token (Settings → API Tokens) with
+  publish scope for the `pleiades-*` crates.
+- `RELEASE_PLZ_TOKEN` — a GitHub token used by the workflow so its PRs and tags
+  trigger CI. Prefer a **GitHub App** installation token (scoped, rotating);
+  a fine-grained PAT with `contents: write` + `pull-requests: write` also works.
+  The default `GITHUB_TOKEN` cannot trigger downstream workflows, so it is not
+  sufficient here.
+
+### Manual fallback
+
+To cut a release by hand (e.g. if crates.io automation is unavailable), use the
+retained `release.toml` config: `cargo release <version> --execute`.
+
 ## Licensing
 
 Workspace manifests declare `MIT OR Apache-2.0`. The checked-in [`LICENSE-APACHE`](LICENSE-APACHE) and [`LICENSE-MIT`](LICENSE-MIT) files carry the full license texts.
