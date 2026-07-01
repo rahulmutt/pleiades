@@ -255,6 +255,7 @@ pub fn chart_points_from_armc(
 
 /// A complete house cusp set.
 #[derive(Clone, Debug, PartialEq)]
+#[non_exhaustive]
 pub struct HouseSnapshot {
     /// House system used for the calculation.
     pub system: HouseSystem,
@@ -264,8 +265,10 @@ pub struct HouseSnapshot {
     pub observer: ObserverLocation,
     /// Obliquity used to derive the angles.
     pub obliquity: Angle,
-    /// Derived angles.
+    /// Derived angles (four classic angles).
     pub angles: HouseAngles,
+    /// Full Swiss-Ephemeris `ascmc` chart points.
+    pub asc_mc: AscMc,
     /// House cusps in house-number order.
     ///
     /// Most systems expose 12 cusps, while Gauquelin sectors expose 36.
@@ -369,12 +372,19 @@ pub fn calculate_houses(request: &HouseRequest) -> Result<HouseSnapshot, HouseEr
                             ));
                         }
                         let angles = derive_angles(request.instant, &request.observer, obliquity);
+                        let asc_mc = asc_mc_from(
+                            local_sidereal_time(request.instant, request.observer.longitude)
+                                .degrees(),
+                            request.observer.latitude.degrees(),
+                            obliquity.degrees(),
+                        )?;
                         let snapshot = HouseSnapshot {
                             system: request.system.clone(),
                             instant: request.instant,
                             observer: request.observer.clone(),
                             obliquity,
                             angles,
+                            asc_mc,
                             cusps: porphyry_houses(angles).into(),
                         };
                         snapshot.validate()?;
@@ -455,12 +465,18 @@ pub fn calculate_houses(request: &HouseRequest) -> Result<HouseSnapshot, HouseEr
         }
     };
 
+    let asc_mc = asc_mc_from(
+        local_sidereal_time(request.instant, request.observer.longitude).degrees(),
+        request.observer.latitude.degrees(),
+        obliquity.degrees(),
+    )?;
     let snapshot = HouseSnapshot {
         system: request.system.clone(),
         instant: request.instant,
         observer: request.observer.clone(),
         obliquity,
         angles,
+        asc_mc,
         cusps,
     };
     snapshot.validate()?;

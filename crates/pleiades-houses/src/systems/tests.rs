@@ -29,6 +29,22 @@ fn assert_close_degrees(actual: f64, expected: f64) {
     );
 }
 
+fn test_asc_mc(angles: HouseAngles) -> AscMc {
+    AscMc {
+        ascendant: angles.ascendant,
+        midheaven: angles.midheaven,
+        descendant: angles.descendant,
+        imum_coeli: angles.imum_coeli,
+        armc: angles.midheaven,
+        vertex: angles.ascendant,
+        antivertex: angles.descendant,
+        equatorial_ascendant: angles.ascendant,
+        coascendant_koch: angles.ascendant,
+        coascendant_munkasey: angles.ascendant,
+        polar_ascendant: angles.descendant,
+    }
+}
+
 // --- tests ---
 
 #[test]
@@ -358,17 +374,19 @@ fn house_snapshots_reject_non_finite_derived_values() {
     let mut cusps = vec![Longitude::from_degrees(0.0); 12];
     cusps[4] = Longitude::from_degrees(f64::NAN);
 
+    let angles = HouseAngles {
+        ascendant: Longitude::from_degrees(15.0),
+        descendant: Longitude::from_degrees(195.0),
+        midheaven: Longitude::from_degrees(45.0),
+        imum_coeli: Longitude::from_degrees(225.0),
+    };
     let snapshot = HouseSnapshot {
         system: HouseSystem::Equal,
         instant: sample_request(HouseSystem::Equal).instant,
         observer: sample_request(HouseSystem::Equal).observer,
         obliquity: Angle::from_degrees(23.4),
-        angles: HouseAngles {
-            ascendant: Longitude::from_degrees(15.0),
-            descendant: Longitude::from_degrees(195.0),
-            midheaven: Longitude::from_degrees(45.0),
-            imum_coeli: Longitude::from_degrees(225.0),
-        },
+        angles,
+        asc_mc: test_asc_mc(angles),
         cusps,
     };
 
@@ -941,17 +959,19 @@ fn gauquelin_sectors_match_swiss_ephemeris_reference() {
 
 #[test]
 fn house_snapshots_reject_wrong_cusp_counts() {
+    let angles = HouseAngles {
+        ascendant: Longitude::from_degrees(15.0),
+        descendant: Longitude::from_degrees(195.0),
+        midheaven: Longitude::from_degrees(45.0),
+        imum_coeli: Longitude::from_degrees(225.0),
+    };
     let equal_snapshot = HouseSnapshot {
         system: HouseSystem::Equal,
         instant: sample_request(HouseSystem::Equal).instant,
         observer: observer(),
         obliquity: Angle::from_degrees(23.4),
-        angles: HouseAngles {
-            ascendant: Longitude::from_degrees(15.0),
-            descendant: Longitude::from_degrees(195.0),
-            midheaven: Longitude::from_degrees(45.0),
-            imum_coeli: Longitude::from_degrees(225.0),
-        },
+        angles,
+        asc_mc: test_asc_mc(angles),
         cusps: vec![Longitude::from_degrees(0.0); 36],
     };
 
@@ -966,17 +986,19 @@ fn house_snapshots_reject_wrong_cusp_counts() {
         .message
         .contains("house calculation for Equal produced 36 cusps (expected 12)"));
 
+    let gauquelin_angles = HouseAngles {
+        ascendant: Longitude::from_degrees(15.0),
+        descendant: Longitude::from_degrees(195.0),
+        midheaven: Longitude::from_degrees(45.0),
+        imum_coeli: Longitude::from_degrees(225.0),
+    };
     let gauquelin_snapshot = HouseSnapshot {
         system: HouseSystem::Gauquelin,
         instant: sample_request(HouseSystem::Gauquelin).instant,
         observer: observer(),
         obliquity: Angle::from_degrees(23.4),
-        angles: HouseAngles {
-            ascendant: Longitude::from_degrees(15.0),
-            descendant: Longitude::from_degrees(195.0),
-            midheaven: Longitude::from_degrees(45.0),
-            imum_coeli: Longitude::from_degrees(225.0),
-        },
+        angles: gauquelin_angles,
+        asc_mc: test_asc_mc(gauquelin_angles),
         cusps: vec![Longitude::from_degrees(0.0); 12],
     };
 
@@ -994,17 +1016,19 @@ fn house_snapshots_reject_wrong_cusp_counts() {
 
 #[test]
 fn house_snapshots_reject_inconsistent_angle_pairs() {
+    let broken_descendant_angles = HouseAngles {
+        ascendant: Longitude::from_degrees(15.0),
+        descendant: Longitude::from_degrees(200.0),
+        midheaven: Longitude::from_degrees(45.0),
+        imum_coeli: longitude_opposite(Longitude::from_degrees(45.0)),
+    };
     let broken_descendant_snapshot = HouseSnapshot {
         system: HouseSystem::Equal,
         instant: sample_request(HouseSystem::Equal).instant,
         observer: observer(),
         obliquity: Angle::from_degrees(23.4),
-        angles: HouseAngles {
-            ascendant: Longitude::from_degrees(15.0),
-            descendant: Longitude::from_degrees(200.0),
-            midheaven: Longitude::from_degrees(45.0),
-            imum_coeli: longitude_opposite(Longitude::from_degrees(45.0)),
-        },
+        angles: broken_descendant_angles,
+        asc_mc: test_asc_mc(broken_descendant_angles),
         cusps: vec![Longitude::from_degrees(0.0); 12],
     };
 
@@ -1019,17 +1043,19 @@ fn house_snapshots_reject_inconsistent_angle_pairs() {
         "house calculation for Equal produced a descendant that is not opposite the ascendant"
     ));
 
+    let broken_ic_angles = HouseAngles {
+        ascendant: Longitude::from_degrees(15.0),
+        descendant: longitude_opposite(Longitude::from_degrees(15.0)),
+        midheaven: Longitude::from_degrees(45.0),
+        imum_coeli: Longitude::from_degrees(250.0),
+    };
     let broken_ic_snapshot = HouseSnapshot {
         system: HouseSystem::Equal,
         instant: sample_request(HouseSystem::Equal).instant,
         observer: observer(),
         obliquity: Angle::from_degrees(23.4),
-        angles: HouseAngles {
-            ascendant: Longitude::from_degrees(15.0),
-            descendant: longitude_opposite(Longitude::from_degrees(15.0)),
-            midheaven: Longitude::from_degrees(45.0),
-            imum_coeli: Longitude::from_degrees(250.0),
-        },
+        angles: broken_ic_angles,
+        asc_mc: test_asc_mc(broken_ic_angles),
         cusps: vec![Longitude::from_degrees(0.0); 12],
     };
 
@@ -1100,17 +1126,19 @@ fn house_assignment_respects_wraparound() {
         Longitude::from_degrees(270.0),
         Longitude::from_degrees(300.0),
     ];
+    let snapshot_angles = HouseAngles {
+        ascendant: Longitude::from_degrees(15.0),
+        descendant: Longitude::from_degrees(195.0),
+        midheaven: Longitude::from_degrees(75.0),
+        imum_coeli: Longitude::from_degrees(255.0),
+    };
     let snapshot = HouseSnapshot {
         system: HouseSystem::Equal,
         instant: sample_request(HouseSystem::Equal).instant,
         observer: observer(),
         obliquity: Angle::from_degrees(23.4),
-        angles: HouseAngles {
-            ascendant: Longitude::from_degrees(15.0),
-            descendant: Longitude::from_degrees(195.0),
-            midheaven: Longitude::from_degrees(75.0),
-            imum_coeli: Longitude::from_degrees(255.0),
-        },
+        angles: snapshot_angles,
+        asc_mc: test_asc_mc(snapshot_angles),
         cusps: cusps.to_vec(),
     };
 
@@ -1650,4 +1678,23 @@ fn chart_points_uses_true_obliquity_by_default() {
     let snap = calculate_houses(&req).expect("houses");
     assert!((pts.ascendant.degrees() - snap.angles.ascendant.degrees()).abs() < 1e-9);
     assert!((pts.midheaven.degrees() - snap.angles.midheaven.degrees()).abs() < 1e-9);
+}
+
+#[test]
+fn house_snapshot_carries_asc_mc_consistent_with_angles() {
+    use pleiades_types::{Instant, JulianDay, Latitude, Longitude, ObserverLocation, TimeScale};
+    let observer = ObserverLocation::new(
+        Latitude::from_degrees(48.85),
+        Longitude::from_degrees(2.35),
+        None,
+    );
+    let req = HouseRequest::new(
+        Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt),
+        observer,
+        HouseSystem::Placidus,
+    );
+    let snap = calculate_houses(&req).expect("houses");
+    assert_eq!(snap.asc_mc.ascendant, snap.angles.ascendant);
+    assert_eq!(snap.asc_mc.midheaven, snap.angles.midheaven);
+    assert!((0.0..360.0).contains(&snap.asc_mc.vertex.degrees()));
 }
