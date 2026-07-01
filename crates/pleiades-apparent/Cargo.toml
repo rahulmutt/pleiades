@@ -16,6 +16,7 @@ serde = ["dep:serde", "pleiades-types/serde"]
 
 [dependencies]
 pleiades-types = { workspace = true }
+pleiades-time = { workspace = true }
 serde = { workspace = true, optional = true }
 
 [package.metadata.docs.rs]

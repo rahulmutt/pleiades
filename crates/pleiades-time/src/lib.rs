@@ -19,7 +19,7 @@ pub use convert::{
 pub use deltat::DeltaTQuality;
 pub use error::CivilTimeError;
 pub use policy::{CivilTimePolicyError, CivilTimePolicySummary};
-pub use sidereal::gmst_degrees;
+pub use sidereal::{gmst_degrees, gmst_degrees_raw};
 
 /// Deterministic 64-bit content checksum (FNV-1a), byte-identical to
 /// `pleiades_jpl::spk::corpus_manifest::corpus_checksum64`. Used to detect drift

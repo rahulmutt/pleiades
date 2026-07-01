@@ -9,10 +9,12 @@ use pleiades_types::{Angle, Instant, Longitude};
 use crate::nutation::{mean_obliquity_degrees, nutation};
 
 /// Greenwich Mean Sidereal Time in degrees (unnormalized).
+///
+/// Delegates to `pleiades_time::gmst_degrees_raw` — the single source of the
+/// GMST polynomial — so the coefficients live in exactly one crate. Still
+/// returns the unnormalized value; `sidereal_time` normalizes downstream.
 pub fn greenwich_mean_sidereal_time_degrees(jd: f64) -> f64 {
-    let centuries = (jd - 2_451_545.0) / 36_525.0;
-    280.460_618_37 + 360.985_647_366_29 * (jd - 2_451_545.0) + 0.000_387_933 * centuries * centuries
-        - centuries * centuries * centuries / 38_710_000.0
+    pleiades_time::gmst_degrees_raw(jd)
 }
 
 /// Equation of the equinoxes in degrees: `Δψ · cos(ε_true)`.
@@ -123,5 +125,25 @@ mod tests {
     fn equation_of_equinoxes_is_small() {
         // EE is at most a couple of arcseconds ≈ a few×1e-4 degrees.
         assert!(equation_of_equinoxes_degrees(2_451_545.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn apparent_gmst_matches_pleiades_time_source() {
+        for jd in [
+            2_415_020.5_f64,
+            2_433_283.0,
+            2_451_545.0,
+            2_469_807.0,
+            2_488_069.5,
+        ] {
+            let apparent = greenwich_mean_sidereal_time_degrees(jd);
+            // Un-normalized apparent value must equal the pleiades-time source exactly.
+            assert_eq!(apparent, pleiades_time::gmst_degrees_raw(jd), "raw jd {jd}");
+            // Reducing to [0,360) must match the normalized public fn.
+            assert!(
+                (apparent.rem_euclid(360.0) - pleiades_time::gmst_degrees(jd)).abs() < 1e-9,
+                "normalized jd {jd}"
+            );
+        }
     }
 }
