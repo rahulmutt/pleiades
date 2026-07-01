@@ -1,6 +1,6 @@
 #Pleiades House Reference Corpus Manifest
 #Reference-Engine: SwissEphemeris 2.10.03
 #CrossCheck-Engine: Astrolog 7.70 (patched, hardeningDisable=all)
-slice cusps file=cusps.csv role=cusps rows=115 checksum=15949952015512930118
-slice sectors file=sectors.csv role=sectors rows=5 checksum=5632779971220850170
-slice angles file=angles.csv role=angles rows=5 checksum=13559938701429285750
+slice cusps file=cusps.csv role=cusps rows=138 checksum=11054617243622689996
+slice sectors file=sectors.csv role=sectors rows=6 checksum=13394711785583933119
+slice angles file=angles.csv role=angles rows=6 checksum=7875207104291959642

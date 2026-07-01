@@ -69,15 +69,17 @@ fn gauquelin_sectors(jd: f64, lat: f64, lon: f64) -> ([f64; 36], f64, f64) {
 fn main() {
     let out_dir = std::env::args().nth(1).unwrap_or_else(|| ".".to_string());
 
-    // 5 fixtures × 23 systems = 115 data rows.
-    // In-band latitudes only (0, 40, 55, 66). Strict-rejection latitudes (70, 80)
-    // are NOT included here — they are asserted by the gate (Tasks 8/9).
+    // 6 fixtures × 23 systems = 138 data rows.
+    // In-band latitudes only (northern 0, 40, 55, 66 and southern -33).
+    // Strict-rejection latitudes (70, 80) are NOT included here — they are
+    // asserted by the gate (Tasks 8/9).
     let fixtures: &[(&str, f64, f64, f64, f64)] = &[
         ("c0_lat00", 2_451_545.0, 0.0, 0.0, 0.0),
         ("c1_lat40", 2_451_545.0, 40.0, 0.0, 0.0),
         ("c2_lat55", 2_451_545.0, 55.0, 0.0, 0.0),
         ("c3_lat66", 2_451_545.0, 66.0, 0.0, 0.0),
         ("c4_lat40_e2", 2_433_283.0, 40.0, 30.0, 0.0),
+        ("c5_lat33s", 2_451_545.0, -33.0, 20.0, 0.0),
     ];
 
     // Write cusps.csv

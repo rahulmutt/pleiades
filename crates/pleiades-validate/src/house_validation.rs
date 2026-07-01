@@ -1881,8 +1881,8 @@ slice sectors file=sectors.csv role=sectors rows=5 checksum=222\n";
         let report =
             validate_house_corpus().expect("committed house corpus must validate within ceilings");
         assert_eq!(
-            report.rows_validated, 115,
-            "corpus must have exactly 115 rows"
+            report.rows_validated, 138,
+            "corpus must have exactly 138 rows"
         );
         assert!(
             report.max_cusp_residual_arcsec.is_finite(),
