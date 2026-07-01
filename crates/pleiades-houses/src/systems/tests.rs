@@ -1577,6 +1577,30 @@ fn chart_points_from_armc_mc_is_analytic_at_cardinal_armc() {
 }
 
 #[test]
+fn chart_points_from_armc_mc_obliquity_coefficient_is_pinned() {
+    use pleiades_types::{Angle, Latitude, Longitude};
+    // Independent check of the MC's obliquity dependence at a NON-cardinal ARMC,
+    // where the cardinal-value test cannot distinguish cos(ε) from any other
+    // coefficient. The MC satisfies tan(λ_MC)·cos(ε) = tan(ARMC); a regression
+    // swapping cos(ε) for sin(ε) (or any wrong coefficient) breaks this identity.
+    let eps = Angle::from_degrees(23.4392911);
+    for armc in [37.0_f64, 123.4, 210.0, 316.7] {
+        let pts = chart_points_from_armc(
+            Longitude::from_degrees(armc),
+            Latitude::from_degrees(40.0),
+            eps,
+        )
+        .expect("defined at 40N");
+        let lhs = pts.midheaven.degrees().to_radians().tan() * eps.degrees().to_radians().cos();
+        let rhs = armc.to_radians().tan();
+        assert!(
+            (lhs - rhs).abs() < 1e-9,
+            "ARMC {armc}: tan(MC)·cos(ε)={lhs} vs tan(ARMC)={rhs}"
+        );
+    }
+}
+
+#[test]
 fn chart_points_invariants_hold() {
     use pleiades_types::{Angle, Latitude, Longitude};
     let pts = chart_points_from_armc(
