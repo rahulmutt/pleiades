@@ -243,16 +243,24 @@ pub enum ReferenceSnapshotBatchParitySummaryValidationError {
     Snapshot(ReferenceSnapshotSummaryValidationError),
     /// The number of mixed-frame requests does not match the row count.
     RequestCountMismatch {
+        /// Number of ecliptic-frame requests carried by the summary.
         ecliptic_request_count: usize,
+        /// Number of equatorial-frame requests carried by the summary.
         equatorial_request_count: usize,
+        /// Row count carried by the summary under validation.
         row_count: usize,
     },
     /// The quality counts do not match the row count.
     QualityCountMismatch {
+        /// Number of samples classified as exact (fixture-served).
         exact_count: usize,
+        /// Number of samples classified as interpolated.
         interpolated_count: usize,
+        /// Number of samples classified as approximate.
         approximate_count: usize,
+        /// Number of samples with an unknown classification.
         unknown_count: usize,
+        /// Row count carried by the summary under validation.
         row_count: usize,
     },
     /// The summary drifted away from the checked-in derived evidence.
@@ -423,16 +431,24 @@ pub enum ReferenceSnapshotMixedTimeScaleBatchParitySummaryValidationError {
     Snapshot(ReferenceSnapshotSummaryValidationError),
     /// The number of mixed-scale requests does not match the row count.
     RequestCountMismatch {
+        /// Number of requests issued on the TT time scale.
         tt_request_count: usize,
+        /// Number of requests issued on the TDB time scale.
         tdb_request_count: usize,
+        /// Row count carried by the summary under validation.
         row_count: usize,
     },
     /// The quality counts do not match the row count.
     QualityCountMismatch {
+        /// Number of samples classified as exact (fixture-served).
         exact_count: usize,
+        /// Number of samples classified as interpolated.
         interpolated_count: usize,
+        /// Number of samples classified as approximate.
         approximate_count: usize,
+        /// Number of samples with an unknown classification.
         unknown_count: usize,
+        /// Row count carried by the summary under validation.
         row_count: usize,
     },
     /// The summary drifted away from the checked-in derived evidence.

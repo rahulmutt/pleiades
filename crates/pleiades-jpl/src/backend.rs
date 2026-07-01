@@ -363,13 +363,22 @@ pub enum SnapshotManifestValidationError {
     /// The manifest included a blank redistribution comment after trimming.
     BlankRedistribution,
     /// The manifest carried surrounding whitespace in a provenance field.
-    SurroundedByWhitespace { field: &'static str },
+    SurroundedByWhitespace {
+        /// Name of the summary field that drifted out of sync.
+        field: &'static str,
+    },
     /// A parsed column name was blank after trimming.
-    BlankColumn { index: usize },
+    BlankColumn {
+        /// Zero-based position in the compared list where the drift was detected.
+        index: usize,
+    },
     /// The manifest reused a column name after trimming.
     DuplicateColumn {
+        /// Index of the first occurrence in the compared pair.
         first_index: usize,
+        /// Index of the second (duplicate) occurrence in the compared pair.
         second_index: usize,
+        /// Slice name (roster label, e.g. `boundary`).
         name: String,
     },
 }
@@ -592,17 +601,28 @@ pub enum SnapshotManifestSummaryValidationError {
     /// The summary label was blank after trimming.
     BlankLabel,
     /// The summary label carried surrounding whitespace.
-    SurroundedByWhitespace { field: &'static str },
+    SurroundedByWhitespace {
+        /// Name of the summary field that drifted out of sync.
+        field: &'static str,
+    },
     /// The nested manifest failed validation.
     Manifest(SnapshotManifestValidationError),
     /// The parsed provenance field does not match the expected release-facing value.
     MetadataMismatch {
+        /// Name of the summary field that drifted out of sync.
         field: &'static str,
+        /// Value expected from the current evidence slice.
         expected: String,
+        /// Value recorded in the summary under validation.
         found: String,
     },
     /// The parsed column schema does not match the expected release-facing layout.
-    ColumnsMismatch { expected: String, found: String },
+    ColumnsMismatch {
+        /// Value expected from the current evidence slice.
+        expected: String,
+        /// Value recorded in the summary under validation.
+        found: String,
+    },
 }
 
 impl fmt::Display for SnapshotManifestSummaryValidationError {
@@ -1354,21 +1374,34 @@ impl std::error::Error for SnapshotLoadError {}
 /// Error kinds produced while parsing checked-in JPL-style snapshot rows.
 #[derive(Clone, Debug, PartialEq)]
 pub enum SnapshotLoadErrorKind {
+    /// A required column was absent from the row header.
     MissingColumn {
+        /// Name of the CSV column involved in the mismatch.
         column: &'static str,
     },
+    /// The row carried more columns than the schema defines.
     UnexpectedExtraColumns,
+    /// The body cell was empty.
     BlankBody,
+    /// The body cell named a body the backend does not recognize.
     UnsupportedBody {
+        /// Body designation involved in the mismatch.
         body: String,
     },
+    /// A numeric cell failed to parse as a coordinate.
     InvalidNumber {
+        /// Name of the CSV column involved in the mismatch.
         column: &'static str,
+        /// Offending raw cell text that failed to parse.
         value: String,
     },
+    /// The same (body, epoch) pair appeared on more than one row.
     DuplicateEntry {
+        /// Body designation involved in the mismatch.
         body: String,
+        /// Epoch of the affected row.
         epoch: Instant,
+        /// Line number where this (body, epoch) pair was first seen.
         first_line: usize,
     },
 }

@@ -194,26 +194,36 @@ pub enum ProductionGenerationBoundarySummaryValidationError {
     MissingBodies,
     /// The summary body count did not match the body list length.
     BodyCountMismatch {
+        /// Distinct-body count carried by the summary.
         body_count: usize,
+        /// Number of bodies actually listed in the summary.
         bodies_len: usize,
     },
     /// The summary reused a body after trimming its display form.
     DuplicateBody {
+        /// Index of the first occurrence in the compared pair.
         first_index: usize,
+        /// Index of the second (duplicate) occurrence in the compared pair.
         second_index: usize,
+        /// Body designation involved in the mismatch.
         body: String,
     },
     /// The summary body order drifted from the checked-in boundary overlay.
     BodyOrderMismatch {
+        /// Zero-based position in the compared list where the drift was detected.
         index: usize,
+        /// Value expected from the current evidence slice.
         expected: String,
+        /// Value recorded in the summary under validation.
         found: String,
     },
     /// The summary did not expose any epochs.
     MissingEpochs,
     /// The summary reported an invalid earliest/latest epoch range.
     InvalidEpochRange {
+        /// Earliest epoch carried by the summary.
         earliest_epoch: Instant,
+        /// Latest epoch carried by the summary.
         latest_epoch: Instant,
     },
     /// The summary drifted away from the checked-in derived evidence.
@@ -719,7 +729,10 @@ pub struct ProductionGenerationBoundaryBodyClassCoverageSummary {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ProductionGenerationBoundaryBodyClassCoverageSummaryValidationError {
     /// A summary field is out of sync with the checked-in boundary body-class coverage.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted out of sync.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for ProductionGenerationBoundaryBodyClassCoverageSummaryValidationError {
@@ -907,16 +920,24 @@ pub struct ProductionGenerationBoundaryRequestCorpusSummary {
 #[derive(Clone, Debug, PartialEq)]
 pub enum ProductionGenerationBoundaryRequestCorpusSummaryValidationError {
     /// The summary reported a field that is out of sync with the checked-in boundary request corpus.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted out of sync.
+        field: &'static str,
+    },
     /// The summary body order drifted from the checked-in boundary request corpus.
     BodyOrderMismatch {
+        /// Zero-based position in the compared list where the drift was detected.
         index: usize,
+        /// Value expected from the current evidence slice.
         expected: String,
+        /// Value recorded in the summary under validation.
         found: String,
     },
     /// The summary reported an invalid earliest/latest epoch range.
     InvalidEpochRange {
+        /// Earliest epoch carried by the summary.
         earliest_epoch: Instant,
+        /// Latest epoch carried by the summary.
         latest_epoch: Instant,
     },
     /// The summary drifted away from the checked-in derived evidence.

@@ -110,17 +110,27 @@ pub enum Reference2451919MajorBodyBoundarySummaryValidationError {
     Empty,
     /// The summary sample count drifted from the current evidence slice.
     SampleCountMismatch {
+        /// Sample count carried by the summary under validation.
         sample_count: usize,
+        /// Sample count recomputed from the current evidence slice.
         derived_sample_count: usize,
     },
     /// The summary body list drifted from the current evidence slice.
     BodyOrderMismatch {
+        /// Zero-based position in the compared list where the drift was detected.
         index: usize,
+        /// Body expected at this position from the current evidence slice.
         expected: pleiades_backend::CelestialBody,
+        /// Body recorded in the summary at this position.
         found: pleiades_backend::CelestialBody,
     },
     /// The summary epoch drifted from the current evidence slice.
-    EpochMismatch { expected: Instant, found: Instant },
+    EpochMismatch {
+        /// Epoch derived from the current evidence slice.
+        expected: Instant,
+        /// Epoch recorded in the summary under validation.
+        found: Instant,
+    },
 }
 
 impl fmt::Display for Reference2451919MajorBodyBoundarySummaryValidationError {
@@ -254,17 +264,27 @@ pub enum Reference2451916MajorBodyInteriorSummaryValidationError {
     Empty,
     /// The summary sample count drifted from the current evidence slice.
     SampleCountMismatch {
+        /// Sample count carried by the summary under validation.
         sample_count: usize,
+        /// Sample count recomputed from the current evidence slice.
         derived_sample_count: usize,
     },
     /// The summary body list drifted from the current evidence slice.
     BodyOrderMismatch {
+        /// Zero-based position in the compared list where the drift was detected.
         index: usize,
+        /// Body expected at this position from the current evidence slice.
         expected: pleiades_backend::CelestialBody,
+        /// Body recorded in the summary at this position.
         found: pleiades_backend::CelestialBody,
     },
     /// The summary epoch drifted from the current evidence slice.
-    EpochMismatch { expected: Instant, found: Instant },
+    EpochMismatch {
+        /// Epoch derived from the current evidence slice.
+        expected: Instant,
+        /// Epoch recorded in the summary under validation.
+        found: Instant,
+    },
 }
 
 impl fmt::Display for Reference2451916MajorBodyInteriorSummaryValidationError {
@@ -398,17 +418,27 @@ pub enum Reference2451920MajorBodyInteriorSummaryValidationError {
     Empty,
     /// The summary sample count drifted from the current evidence slice.
     SampleCountMismatch {
+        /// Sample count carried by the summary under validation.
         sample_count: usize,
+        /// Sample count recomputed from the current evidence slice.
         derived_sample_count: usize,
     },
     /// The summary body list drifted from the current evidence slice.
     BodyOrderMismatch {
+        /// Zero-based position in the compared list where the drift was detected.
         index: usize,
+        /// Body expected at this position from the current evidence slice.
         expected: pleiades_backend::CelestialBody,
+        /// Body recorded in the summary at this position.
         found: pleiades_backend::CelestialBody,
     },
     /// The summary epoch drifted from the current evidence slice.
-    EpochMismatch { expected: Instant, found: Instant },
+    EpochMismatch {
+        /// Epoch derived from the current evidence slice.
+        expected: Instant,
+        /// Epoch recorded in the summary under validation.
+        found: Instant,
+    },
 }
 
 impl fmt::Display for Reference2451920MajorBodyInteriorSummaryValidationError {
@@ -905,7 +935,10 @@ impl fmt::Display for ReferenceHighCurvatureWindowSummary {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ReferenceHighCurvatureWindowSummaryValidationError {
     /// A summary field is out of sync with the checked-in high-curvature windows.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted out of sync.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for ReferenceHighCurvatureWindowSummaryValidationError {
@@ -1055,7 +1088,10 @@ impl fmt::Display for ReferenceHighCurvatureEpochCoverageSummary {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ReferenceHighCurvatureEpochCoverageSummaryValidationError {
     /// A summary field is out of sync with the checked-in epoch coverage.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted out of sync.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for ReferenceHighCurvatureEpochCoverageSummaryValidationError {

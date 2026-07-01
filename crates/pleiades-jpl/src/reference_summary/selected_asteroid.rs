@@ -242,7 +242,10 @@ impl SelectedAsteroidSourceSummary {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum SelectedAsteroidSourceSummaryValidationError {
     /// A summary field is out of sync with the checked-in selected-asteroid evidence.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted out of sync.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for SelectedAsteroidSourceSummaryValidationError {
@@ -364,7 +367,10 @@ impl SelectedAsteroidSourceWindowSummary {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum SelectedAsteroidSourceWindowSummaryValidationError {
     /// A summary field is out of sync with the checked-in selected-asteroid windows.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted out of sync.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for SelectedAsteroidSourceWindowSummaryValidationError {
@@ -560,7 +566,10 @@ pub struct SelectedAsteroidSourceRequestCorpusSummary {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum SelectedAsteroidSourceRequestCorpusSummaryValidationError {
     /// A summary field is out of sync with the checked-in request corpus.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted out of sync.
+        field: &'static str,
+    },
 }
 
 impl SelectedAsteroidSourceRequestCorpusSummaryValidationError {
@@ -859,17 +868,27 @@ pub enum SelectedAsteroidSource2453000SummaryValidationError {
     Empty,
     /// The summary sample count drifted from the current evidence slice.
     SampleCountMismatch {
+        /// Sample count carried by the summary under validation.
         sample_count: usize,
+        /// Sample count recomputed from the current evidence slice.
         derived_sample_count: usize,
     },
     /// The summary body list drifted from the current evidence slice.
     BodyOrderMismatch {
+        /// Zero-based position in the compared list where the drift was detected.
         index: usize,
+        /// Body expected at this position from the current evidence slice.
         expected: pleiades_backend::CelestialBody,
+        /// Body recorded in the summary at this position.
         found: pleiades_backend::CelestialBody,
     },
     /// The summary epoch drifted from the current evidence slice.
-    EpochMismatch { expected: Instant, found: Instant },
+    EpochMismatch {
+        /// Epoch derived from the current evidence slice.
+        expected: Instant,
+        /// Epoch recorded in the summary under validation.
+        found: Instant,
+    },
 }
 
 impl fmt::Display for SelectedAsteroidSource2453000SummaryValidationError {
@@ -1061,17 +1080,27 @@ pub enum SelectedAsteroidSource2500000SummaryValidationError {
     Empty,
     /// The summary sample count drifted from the current evidence slice.
     SampleCountMismatch {
+        /// Sample count carried by the summary under validation.
         sample_count: usize,
+        /// Sample count recomputed from the current evidence slice.
         derived_sample_count: usize,
     },
     /// The summary body list drifted from the current evidence slice.
     BodyOrderMismatch {
+        /// Zero-based position in the compared list where the drift was detected.
         index: usize,
+        /// Body expected at this position from the current evidence slice.
         expected: pleiades_backend::CelestialBody,
+        /// Body recorded in the summary at this position.
         found: pleiades_backend::CelestialBody,
     },
     /// The summary epoch drifted from the current evidence slice.
-    EpochMismatch { expected: Instant, found: Instant },
+    EpochMismatch {
+        /// Epoch derived from the current evidence slice.
+        expected: Instant,
+        /// Epoch recorded in the summary under validation.
+        found: Instant,
+    },
 }
 
 impl fmt::Display for SelectedAsteroidSource2500000SummaryValidationError {
@@ -1263,17 +1292,27 @@ pub enum SelectedAsteroidSource2634167SummaryValidationError {
     Empty,
     /// The summary sample count drifted from the current evidence slice.
     SampleCountMismatch {
+        /// Sample count carried by the summary under validation.
         sample_count: usize,
+        /// Sample count recomputed from the current evidence slice.
         derived_sample_count: usize,
     },
     /// The summary body list drifted from the current evidence slice.
     BodyOrderMismatch {
+        /// Zero-based position in the compared list where the drift was detected.
         index: usize,
+        /// Body expected at this position from the current evidence slice.
         expected: pleiades_backend::CelestialBody,
+        /// Body recorded in the summary at this position.
         found: pleiades_backend::CelestialBody,
     },
     /// The summary epoch drifted from the current evidence slice.
-    EpochMismatch { expected: Instant, found: Instant },
+    EpochMismatch {
+        /// Epoch derived from the current evidence slice.
+        expected: Instant,
+        /// Epoch recorded in the summary under validation.
+        found: Instant,
+    },
 }
 
 impl fmt::Display for SelectedAsteroidSource2634167SummaryValidationError {
@@ -1465,17 +1504,27 @@ pub enum SelectedAsteroidBridgeSummaryValidationError {
     Empty,
     /// The summary sample count drifted from the current evidence slice.
     SampleCountMismatch {
+        /// Sample count carried by the summary under validation.
         sample_count: usize,
+        /// Sample count recomputed from the current evidence slice.
         derived_sample_count: usize,
     },
     /// The summary body list drifted from the current evidence slice.
     BodyOrderMismatch {
+        /// Zero-based position in the compared list where the drift was detected.
         index: usize,
+        /// Body expected at this position from the current evidence slice.
         expected: pleiades_backend::CelestialBody,
+        /// Body recorded in the summary at this position.
         found: pleiades_backend::CelestialBody,
     },
     /// The summary epoch drifted from the current evidence slice.
-    EpochMismatch { expected: Instant, found: Instant },
+    EpochMismatch {
+        /// Epoch derived from the current evidence slice.
+        expected: Instant,
+        /// Epoch recorded in the summary under validation.
+        found: Instant,
+    },
 }
 
 impl fmt::Display for SelectedAsteroidBridgeSummaryValidationError {
@@ -1650,17 +1699,27 @@ pub enum SelectedAsteroidDenseBoundarySummaryValidationError {
     Empty,
     /// The summary sample count drifted from the current evidence slice.
     SampleCountMismatch {
+        /// Sample count carried by the summary under validation.
         sample_count: usize,
+        /// Sample count recomputed from the current evidence slice.
         derived_sample_count: usize,
     },
     /// The summary body list drifted from the current evidence slice.
     BodyOrderMismatch {
+        /// Zero-based position in the compared list where the drift was detected.
         index: usize,
+        /// Body expected at this position from the current evidence slice.
         expected: pleiades_backend::CelestialBody,
+        /// Body recorded in the summary at this position.
         found: pleiades_backend::CelestialBody,
     },
     /// The summary epoch drifted from the current evidence slice.
-    EpochMismatch { expected: Instant, found: Instant },
+    EpochMismatch {
+        /// Epoch derived from the current evidence slice.
+        expected: Instant,
+        /// Epoch recorded in the summary under validation.
+        found: Instant,
+    },
 }
 
 impl fmt::Display for SelectedAsteroidDenseBoundarySummaryValidationError {
@@ -1839,19 +1898,27 @@ pub enum SelectedAsteroidBoundarySummaryValidationError {
     Empty,
     /// The summary sample count drifted from the current evidence slice.
     SampleCountMismatch {
+        /// Sample count carried by the summary under validation.
         sample_count: usize,
+        /// Sample count recomputed from the current evidence slice.
         derived_sample_count: usize,
     },
     /// The summary body list drifted from the current evidence slice.
     BodyOrderMismatch {
+        /// Zero-based position in the compared list where the drift was detected.
         index: usize,
+        /// Body expected at this position from the current evidence slice.
         expected: pleiades_backend::CelestialBody,
+        /// Body recorded in the summary at this position.
         found: pleiades_backend::CelestialBody,
     },
     /// The summary epoch list drifted from the current evidence slice.
     EpochOrderMismatch {
+        /// Zero-based position in the compared list where the drift was detected.
         index: usize,
+        /// Epoch derived from the current evidence slice.
         expected: Instant,
+        /// Epoch recorded in the summary under validation.
         found: Instant,
     },
 }
@@ -2063,17 +2130,27 @@ pub enum SelectedAsteroidTerminalBoundarySummaryValidationError {
     Empty,
     /// The summary sample count drifted from the current evidence slice.
     SampleCountMismatch {
+        /// Sample count carried by the summary under validation.
         sample_count: usize,
+        /// Sample count recomputed from the current evidence slice.
         derived_sample_count: usize,
     },
     /// The summary body list drifted from the current evidence slice.
     BodyOrderMismatch {
+        /// Zero-based position in the compared list where the drift was detected.
         index: usize,
+        /// Body expected at this position from the current evidence slice.
         expected: pleiades_backend::CelestialBody,
+        /// Body recorded in the summary at this position.
         found: pleiades_backend::CelestialBody,
     },
     /// The summary epoch drifted from the current evidence slice.
-    EpochMismatch { expected: Instant, found: Instant },
+    EpochMismatch {
+        /// Epoch derived from the current evidence slice.
+        expected: Instant,
+        /// Epoch recorded in the summary under validation.
+        found: Instant,
+    },
 }
 
 impl fmt::Display for SelectedAsteroidTerminalBoundarySummaryValidationError {
@@ -2249,26 +2326,45 @@ pub enum SelectedAsteroidBatchParitySummaryValidationError {
     Empty,
     /// The summary request count drifted from the current evidence slice.
     RequestCountMismatch {
+        /// Request count carried by the summary under validation.
         request_count: usize,
+        /// Request count recomputed from the current evidence slice.
         derived_request_count: usize,
     },
     /// The summary body list drifted from the current evidence slice.
     BodyOrderMismatch {
+        /// Zero-based position in the compared list where the drift was detected.
         index: usize,
+        /// Body expected at this position from the current evidence slice.
         expected: pleiades_backend::CelestialBody,
+        /// Body recorded in the summary at this position.
         found: pleiades_backend::CelestialBody,
     },
     /// The summary epoch drifted from the current evidence slice.
-    EpochMismatch { expected: Instant, found: Instant },
+    EpochMismatch {
+        /// Epoch derived from the current evidence slice.
+        expected: Instant,
+        /// Epoch recorded in the summary under validation.
+        found: Instant,
+    },
     /// The summary frame mix drifted from the current evidence slice.
     FrameMixMismatch {
+        /// Number of ecliptic-frame entries carried by the summary.
         ecliptic_count: usize,
+        /// Number of equatorial-frame entries carried by the summary.
         equatorial_count: usize,
+        /// Ecliptic-frame count recomputed from the current evidence slice.
         derived_ecliptic_count: usize,
+        /// Equatorial-frame count recomputed from the current evidence slice.
         derived_equatorial_count: usize,
     },
     /// The batch/single parity posture drifted from the current evidence slice.
-    ParityPreservedMismatch { expected: bool, found: bool },
+    ParityPreservedMismatch {
+        /// Flag value derived from the current evidence slice.
+        expected: bool,
+        /// Flag value recorded in the summary under validation.
+        found: bool,
+    },
 }
 
 impl fmt::Display for SelectedAsteroidBatchParitySummaryValidationError {

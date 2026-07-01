@@ -409,28 +409,43 @@ pub enum ReferenceSnapshotSparseBoundarySummaryValidationError {
     Empty,
     /// The summary sample count drifted from the current evidence slice.
     SampleCountMismatch {
+        /// Sample count carried by the summary under validation.
         sample_count: usize,
+        /// Sample count recomputed from the current evidence slice.
         derived_sample_count: usize,
     },
     /// The summary body list drifted from the current evidence slice.
     BodyOrderMismatch {
+        /// Zero-based position in the compared list where the drift was detected.
         index: usize,
+        /// Body expected at this position from the current evidence slice.
         expected: pleiades_backend::CelestialBody,
+        /// Body recorded in the summary at this position.
         found: pleiades_backend::CelestialBody,
     },
     /// The summary missing-body list drifted from the current evidence slice.
     MissingBodiesMismatch {
+        /// Zero-based position in the compared list where the drift was detected.
         index: usize,
+        /// Body expected at this position from the current evidence slice.
         expected: pleiades_backend::CelestialBody,
+        /// Body recorded in the summary at this position.
         found: pleiades_backend::CelestialBody,
     },
     /// The summary missing-body count drifted from the current evidence slice.
     MissingBodiesCountMismatch {
+        /// Count of missing bodies carried by the summary.
         missing_body_count: usize,
+        /// Missing-body count recomputed from the current evidence slice.
         derived_missing_body_count: usize,
     },
     /// The summary epoch drifted from the current evidence slice.
-    EpochMismatch { expected: Instant, found: Instant },
+    EpochMismatch {
+        /// Epoch derived from the current evidence slice.
+        expected: Instant,
+        /// Epoch recorded in the summary under validation.
+        found: Instant,
+    },
 }
 
 impl fmt::Display for ReferenceSnapshotSparseBoundarySummaryValidationError {
@@ -661,17 +676,27 @@ pub enum ReferenceSnapshotPreBridgeBoundarySummaryValidationError {
     Empty,
     /// The summary sample count drifted from the current evidence slice.
     SampleCountMismatch {
+        /// Sample count carried by the summary under validation.
         sample_count: usize,
+        /// Sample count recomputed from the current evidence slice.
         derived_sample_count: usize,
     },
     /// The summary body list drifted from the current evidence slice.
     BodyOrderMismatch {
+        /// Zero-based position in the compared list where the drift was detected.
         index: usize,
+        /// Body expected at this position from the current evidence slice.
         expected: pleiades_backend::CelestialBody,
+        /// Body recorded in the summary at this position.
         found: pleiades_backend::CelestialBody,
     },
     /// The summary epoch drifted from the current evidence slice.
-    EpochMismatch { expected: Instant, found: Instant },
+    EpochMismatch {
+        /// Epoch derived from the current evidence slice.
+        expected: Instant,
+        /// Epoch recorded in the summary under validation.
+        found: Instant,
+    },
 }
 
 impl fmt::Display for ReferenceSnapshotPreBridgeBoundarySummaryValidationError {
@@ -876,17 +901,27 @@ pub enum ReferenceSnapshotBridgeDaySummaryValidationError {
     Empty,
     /// The summary sample count drifted from the current evidence slice.
     SampleCountMismatch {
+        /// Sample count carried by the summary under validation.
         sample_count: usize,
+        /// Sample count recomputed from the current evidence slice.
         derived_sample_count: usize,
     },
     /// The summary body list drifted from the current evidence slice.
     BodyOrderMismatch {
+        /// Zero-based position in the compared list where the drift was detected.
         index: usize,
+        /// Body expected at this position from the current evidence slice.
         expected: pleiades_backend::CelestialBody,
+        /// Body recorded in the summary at this position.
         found: pleiades_backend::CelestialBody,
     },
     /// The summary epoch drifted from the current evidence slice.
-    EpochMismatch { expected: Instant, found: Instant },
+    EpochMismatch {
+        /// Epoch derived from the current evidence slice.
+        expected: Instant,
+        /// Epoch recorded in the summary under validation.
+        found: Instant,
+    },
 }
 
 impl fmt::Display for ReferenceSnapshotBridgeDaySummaryValidationError {
@@ -1055,17 +1090,27 @@ pub enum ReferenceSnapshotDenseBoundarySummaryValidationError {
     Empty,
     /// The summary sample count drifted from the current evidence slice.
     SampleCountMismatch {
+        /// Sample count carried by the summary under validation.
         sample_count: usize,
+        /// Sample count recomputed from the current evidence slice.
         derived_sample_count: usize,
     },
     /// The summary body list drifted from the current evidence slice.
     BodyOrderMismatch {
+        /// Zero-based position in the compared list where the drift was detected.
         index: usize,
+        /// Body expected at this position from the current evidence slice.
         expected: pleiades_backend::CelestialBody,
+        /// Body recorded in the summary at this position.
         found: pleiades_backend::CelestialBody,
     },
     /// The summary epoch drifted from the current evidence slice.
-    EpochMismatch { expected: Instant, found: Instant },
+    EpochMismatch {
+        /// Epoch derived from the current evidence slice.
+        expected: Instant,
+        /// Epoch recorded in the summary under validation.
+        found: Instant,
+    },
 }
 
 impl fmt::Display for ReferenceSnapshotDenseBoundarySummaryValidationError {
@@ -1618,9 +1663,15 @@ pub enum ReferenceSnapshotSourceSummaryValidationError {
     /// The summary did not include a non-empty columns label.
     BlankColumns,
     /// The summary carried surrounding whitespace in one of its labels.
-    SurroundedByWhitespace { field: &'static str },
+    SurroundedByWhitespace {
+        /// Name of the summary field that drifted out of sync.
+        field: &'static str,
+    },
     /// One of the canonical summary fields drifted from the checked-in slice.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted out of sync.
+        field: &'static str,
+    },
     /// The summary checksum drifted from the checked-in source material.
     ChecksumMismatch,
     /// The summary carried an unexpected reference epoch.
@@ -1860,7 +1911,10 @@ impl fmt::Display for ReferenceSnapshotSourceWindowSummary {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ReferenceSnapshotSourceWindowSummaryValidationError {
     /// A summary field is out of sync with the checked-in reference snapshot source windows.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted out of sync.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for ReferenceSnapshotSourceWindowSummaryValidationError {

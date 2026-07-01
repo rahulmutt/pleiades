@@ -12,6 +12,7 @@ use crate::reference_summary::*;
 use crate::*;
 
 #[derive(Clone, Debug, PartialEq)]
+/// Release-facing summary of the checked-in comparison snapshot corpus (rows, bodies, epoch span).
 pub struct ComparisonSnapshotSummary {
     /// Total number of parsed snapshot rows.
     pub row_count: usize,
@@ -36,26 +37,36 @@ pub enum ComparisonSnapshotSummaryValidationError {
     MissingBodies,
     /// The declared body count did not match the number of listed bodies.
     BodyCountMismatch {
+        /// Distinct-body count carried by the summary.
         body_count: usize,
+        /// Number of bodies actually listed in the summary.
         bodies_len: usize,
     },
     /// The summary reused a body after trimming its display form.
     DuplicateBody {
+        /// Index of the first occurrence in the compared pair.
         first_index: usize,
+        /// Index of the second (duplicate) occurrence in the compared pair.
         second_index: usize,
+        /// Body designation involved in the mismatch.
         body: String,
     },
     /// The summary body order diverged from the checked-in comparison corpus.
     BodyOrderMismatch {
+        /// Zero-based position in the compared list where the drift was detected.
         index: usize,
+        /// Value expected from the current evidence slice.
         expected: String,
+        /// Value recorded in the summary under validation.
         found: String,
     },
     /// The summary did not include any epochs.
     MissingEpochs,
     /// The summary reported an invalid epoch range.
     InvalidEpochRange {
+        /// Earliest epoch carried by the summary.
         earliest_epoch: Instant,
+        /// Latest epoch carried by the summary.
         latest_epoch: Instant,
     },
 }
@@ -166,7 +177,10 @@ pub enum ComparisonSnapshotBodyClassCoverageSummaryValidationError {
     /// The comparison snapshot body-class coverage summary is unavailable.
     Unavailable,
     /// A summary field is out of sync with the checked-in body-class coverage.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted out of sync.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for ComparisonSnapshotBodyClassCoverageSummaryValidationError {
@@ -344,9 +358,15 @@ pub enum ComparisonSnapshotSourceSummaryValidationError {
     /// The summary did not include a non-empty columns label.
     BlankColumns,
     /// The summary carried surrounding whitespace in one of its labels.
-    SurroundedByWhitespace { field: &'static str },
+    SurroundedByWhitespace {
+        /// Name of the summary field that drifted out of sync.
+        field: &'static str,
+    },
     /// One of the canonical summary fields drifted from the checked-in slice.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted out of sync.
+        field: &'static str,
+    },
     /// The summary checksum drifted from the checked-in source material.
     ChecksumMismatch,
 }
@@ -701,7 +721,10 @@ impl fmt::Display for ComparisonSnapshotSourceWindowSummary {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ComparisonSnapshotSourceWindowSummaryValidationError {
     /// A summary field is out of sync with the checked-in comparison snapshot source windows.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted out of sync.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for ComparisonSnapshotSourceWindowSummaryValidationError {
@@ -1080,16 +1103,24 @@ pub enum ComparisonSnapshotBatchParitySummaryValidationError {
     Snapshot(ComparisonSnapshotSummaryValidationError),
     /// The number of mixed-frame requests does not match the row count.
     RequestCountMismatch {
+        /// Number of ecliptic-frame requests carried by the summary.
         ecliptic_request_count: usize,
+        /// Number of equatorial-frame requests carried by the summary.
         equatorial_request_count: usize,
+        /// Row count carried by the summary under validation.
         row_count: usize,
     },
     /// The quality counts do not match the row count.
     QualityCountMismatch {
+        /// Number of samples classified as exact (fixture-served).
         exact_count: usize,
+        /// Number of samples classified as interpolated.
         interpolated_count: usize,
+        /// Number of samples classified as approximate.
         approximate_count: usize,
+        /// Number of samples with an unknown classification.
         unknown_count: usize,
+        /// Row count carried by the summary under validation.
         row_count: usize,
     },
     /// The summary drifted away from the checked-in derived evidence.

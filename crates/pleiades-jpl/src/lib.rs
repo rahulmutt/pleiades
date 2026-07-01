@@ -19,6 +19,7 @@
 //! can keep provenance and rows in separate checked artifacts when needed.
 
 #![forbid(unsafe_code)]
+#![deny(missing_docs)]
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;

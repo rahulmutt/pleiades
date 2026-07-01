@@ -53,17 +53,27 @@ pub enum Reference1900SelectedBodyBoundarySummaryValidationError {
     Empty,
     /// The summary sample count drifted from the current evidence slice.
     SampleCountMismatch {
+        /// Sample count carried by the summary under validation.
         sample_count: usize,
+        /// Sample count recomputed from the current evidence slice.
         derived_sample_count: usize,
     },
     /// The summary body list drifted from the current evidence slice.
     BodyOrderMismatch {
+        /// Zero-based position in the compared list where the drift was detected.
         index: usize,
+        /// Body expected at this position from the current evidence slice.
         expected: pleiades_backend::CelestialBody,
+        /// Body recorded in the summary at this position.
         found: pleiades_backend::CelestialBody,
     },
     /// The summary epoch drifted from the current evidence slice.
-    EpochMismatch { expected: Instant, found: Instant },
+    EpochMismatch {
+        /// Epoch derived from the current evidence slice.
+        expected: Instant,
+        /// Epoch recorded in the summary under validation.
+        found: Instant,
+    },
 }
 
 impl fmt::Display for Reference1900SelectedBodyBoundarySummaryValidationError {

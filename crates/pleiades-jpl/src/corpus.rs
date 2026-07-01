@@ -72,7 +72,9 @@ pub fn fixture_golden_corpus() -> &'static [SnapshotEntry] {
         .as_slice()
 }
 
-/// Tier A asteroid reference rows (sb441-n373s).
+/// Tier A asteroid/TNO/centaur reference rows: sb441-n373s perturber kernel
+/// plus per-object pinned JPL SPKs for the centaurs and NEA/personal bodies
+/// promoted in slice 3.
 pub fn asteroid_reference_corpus() -> &'static [SnapshotEntry] {
     static ENTRIES: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
     ENTRIES
@@ -80,7 +82,9 @@ pub fn asteroid_reference_corpus() -> &'static [SnapshotEntry] {
         .as_slice()
 }
 
-/// Tier B constrained asteroid rows (Horizons, 1900–2100).
+/// Tier B constrained asteroid rows (Horizons, 1900–2100). Empty (header-only)
+/// after slice-3 promoted every former Tier-B body to Tier-A via per-object
+/// SPKs; retained as a stable accessor.
 pub fn asteroid_constrained_corpus() -> &'static [SnapshotEntry] {
     static ENTRIES: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
     ENTRIES

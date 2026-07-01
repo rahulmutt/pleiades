@@ -94,7 +94,10 @@ impl fmt::Display for ReferenceLunarBoundarySummary {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ReferenceLunarBoundarySummaryValidationError {
     /// A summary field is out of sync with the checked-in lunar boundary evidence.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted out of sync.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for ReferenceLunarBoundarySummaryValidationError {
@@ -214,7 +217,10 @@ impl fmt::Display for ReferenceHighCurvatureSummary {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ReferenceHighCurvatureSummaryValidationError {
     /// A summary field is out of sync with the checked-in high-curvature evidence.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted out of sync.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for ReferenceHighCurvatureSummaryValidationError {
@@ -248,17 +254,27 @@ pub enum ReferenceMajorBodyBoundarySummaryValidationError {
     Empty,
     /// The summary sample count drifted from the current evidence slice.
     SampleCountMismatch {
+        /// Sample count carried by the summary under validation.
         sample_count: usize,
+        /// Sample count recomputed from the current evidence slice.
         derived_sample_count: usize,
     },
     /// The summary body list drifted from the current evidence slice.
     BodyOrderMismatch {
+        /// Zero-based position in the compared list where the drift was detected.
         index: usize,
+        /// Body expected at this position from the current evidence slice.
         expected: pleiades_backend::CelestialBody,
+        /// Body recorded in the summary at this position.
         found: pleiades_backend::CelestialBody,
     },
     /// The summary epoch drifted from the current evidence slice.
-    EpochMismatch { expected: Instant, found: Instant },
+    EpochMismatch {
+        /// Epoch derived from the current evidence slice.
+        expected: Instant,
+        /// Epoch recorded in the summary under validation.
+        found: Instant,
+    },
 }
 
 impl fmt::Display for ReferenceMajorBodyBoundarySummaryValidationError {
@@ -392,17 +408,27 @@ pub enum ReferenceMajorBodyBridgeSummaryValidationError {
     Empty,
     /// The summary sample count drifted from the current evidence slice.
     SampleCountMismatch {
+        /// Sample count carried by the summary under validation.
         sample_count: usize,
+        /// Sample count recomputed from the current evidence slice.
         derived_sample_count: usize,
     },
     /// The summary body list drifted from the current evidence slice.
     BodyOrderMismatch {
+        /// Zero-based position in the compared list where the drift was detected.
         index: usize,
+        /// Body expected at this position from the current evidence slice.
         expected: pleiades_backend::CelestialBody,
+        /// Body recorded in the summary at this position.
         found: pleiades_backend::CelestialBody,
     },
     /// The summary epoch drifted from the current evidence slice.
-    EpochMismatch { expected: Instant, found: Instant },
+    EpochMismatch {
+        /// Epoch derived from the current evidence slice.
+        expected: Instant,
+        /// Epoch recorded in the summary under validation.
+        found: Instant,
+    },
 }
 
 impl fmt::Display for ReferenceMajorBodyBridgeSummaryValidationError {
@@ -536,17 +562,27 @@ pub enum ReferenceMarsJupiterBoundarySummaryValidationError {
     Empty,
     /// The summary sample count drifted from the current evidence slice.
     SampleCountMismatch {
+        /// Sample count carried by the summary under validation.
         sample_count: usize,
+        /// Sample count recomputed from the current evidence slice.
         derived_sample_count: usize,
     },
     /// The summary body list drifted from the current evidence slice.
     BodyOrderMismatch {
+        /// Zero-based position in the compared list where the drift was detected.
         index: usize,
+        /// Body expected at this position from the current evidence slice.
         expected: pleiades_backend::CelestialBody,
+        /// Body recorded in the summary at this position.
         found: pleiades_backend::CelestialBody,
     },
     /// The summary epoch drifted from the current evidence slice.
-    EpochMismatch { expected: Instant, found: Instant },
+    EpochMismatch {
+        /// Epoch derived from the current evidence slice.
+        expected: Instant,
+        /// Epoch recorded in the summary under validation.
+        found: Instant,
+    },
 }
 
 impl fmt::Display for ReferenceMarsJupiterBoundarySummaryValidationError {

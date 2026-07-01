@@ -34,7 +34,10 @@ pub struct ReferenceSnapshotBodyClassCoverageSummary {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ReferenceSnapshotBodyClassCoverageSummaryValidationError {
     /// A summary field is out of sync with the checked-in body-class coverage.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted out of sync.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for ReferenceSnapshotBodyClassCoverageSummaryValidationError {
@@ -305,7 +308,10 @@ pub struct ReferenceSnapshotBoundaryEpochCoverageSummary {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ReferenceSnapshotBoundaryEpochCoverageSummaryValidationError {
     /// A summary field is out of sync with the checked-in epoch coverage.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted out of sync.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for ReferenceSnapshotBoundaryEpochCoverageSummaryValidationError {

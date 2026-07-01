@@ -8,11 +8,13 @@ use pleiades_backend::CelestialBody;
 /// Target packaged range, as TDB Julian Days (1900-01-01 .. 2100-01-01). Matches
 /// the asteroid window; wider artifacts are user-generated via `generate-artifact`.
 pub const RANGE_START_JD: f64 = 2_415_020.5;
+/// Inclusive end of the packaged major-body range, as a TDB Julian Day (2100-01-01).
 pub const RANGE_END_JD: f64 = 2_488_069.5;
 
 /// Pinned identity of the reference kernel. SHA-256 is computed externally via
 /// `shasum -a 256 de440.bsp` and recorded here + in docs/spk-kernel-sourcing.md.
 pub const KERNEL_LABEL: &str = "JPL DE SPK kernel: de440.bsp";
+/// Pinned SHA-256 of `de440.bsp`, matched by the fail-closed corpus gate.
 pub const KERNEL_SHA256: &str = "a4ce9bf9b3282becc9f4b2ac3cebe03a2ae7599981aabd7265fd8482fff7c4b5";
 
 /// Default asteroid window, as TDB Julian Days (1900-01-01 .. 2100-01-01).
@@ -21,6 +23,7 @@ pub const KERNEL_SHA256: &str = "a4ce9bf9b3282becc9f4b2ac3cebe03a2ae7599981aabd7
 /// well-constrained. Beyond this window, callers supply their own data via
 /// `pleiades_jpl::ingest`.
 pub const AST_RANGE_START_JD: f64 = 2_415_020.5;
+/// Inclusive end of the default asteroid window, as a TDB Julian Day (2100-01-01).
 pub const AST_RANGE_END_JD: f64 = 2_488_069.5;
 
 /// A major-body coverage window in TDB Julian Days. The packaged artifact ships
@@ -28,11 +31,14 @@ pub const AST_RANGE_END_JD: f64 = 2_488_069.5;
 /// window so callers can build wider artifacts for themselves.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct CoverageWindow {
+    /// Inclusive window start, as a TDB Julian Day.
     pub start_jd: f64,
+    /// Inclusive window end, as a TDB Julian Day.
     pub end_jd: f64,
 }
 
 impl CoverageWindow {
+    /// Builds a coverage window from raw inclusive TDB Julian Day bounds.
     pub fn new(start_jd: f64, end_jd: f64) -> Self {
         Self { start_jd, end_jd }
     }
@@ -46,6 +52,7 @@ impl CoverageWindow {
         }
     }
 
+    /// Returns the window as a `(start_jd, end_jd)` TDB Julian Day pair.
     pub fn as_tuple(self) -> (f64, f64) {
         (self.start_jd, self.end_jd)
     }
@@ -81,6 +88,7 @@ fn jan1_midnight_jd(year: i32) -> f64 {
 /// docs/spk-kernel-sourcing.md. `sb441-n373s` (343 main-belt perturbers + 30
 /// KBOs, DE441-consistent) supersedes the retired 16-body `sb441-n16`.
 pub const AST_KERNEL_LABEL: &str = "JPL DE small-body perturber kernel: sb441-n373s.bsp";
+/// Pinned SHA-256 of the Tier A small-body perturber kernel `sb441-n373s.bsp`.
 pub const AST_KERNEL_SHA256: &str =
     "2143113282bfc2b2a0b0b4626125d4f84362339b5a8ae7eea40f4120ca8da10b";
 
@@ -88,12 +96,19 @@ pub const AST_KERNEL_SHA256: &str =
 /// fixture-exactness separation.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SliceRole {
+    /// Guard slice bracketing each end of the target range.
     Boundary,
+    /// Per-body cadence backbone spanning the full range.
     InteriorBackbone,
+    /// Fine (daily) cadence windows for fast-moving bodies.
     FastCluster,
+    /// Independent hold-out rows excluded from fitting.
     Holdout,
+    /// Fixture-exactness cross-check rows.
     FixtureGolden,
+    /// Tier A asteroid/TNO/centaur reference rows.
     AsteroidReference,
+    /// Tier B constrained asteroid rows (now empty after slice-3 promotion).
     AsteroidConstrained,
 }
 

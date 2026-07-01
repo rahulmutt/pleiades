@@ -156,8 +156,11 @@ use crate::spk::corpus_spec::{self, SliceRole};
 
 /// One generated slice: its role, file name, and CSV text.
 pub struct GeneratedSlice {
+    /// Role of this slice within the corpus.
     pub role: SliceRole,
+    /// CSV file name holding this slice's rows.
     pub file: String,
+    /// Generated CSV text (data rows) for this slice.
     pub csv: String,
 }
 
@@ -166,7 +169,7 @@ pub struct GeneratedSlice {
 ///
 /// For production use this always requests `all_bodies()` (or the fast-cluster
 /// set). Tests that need a narrowed body set should call
-/// [`generate_slice_with_bodies`] directly.
+/// `generate_slice_with_bodies` directly.
 pub fn generate_slice(backend: &SpkBackend, role: SliceRole) -> Result<GeneratedSlice, String> {
     match role {
         SliceRole::FastCluster => generate_slice_with_bodies(

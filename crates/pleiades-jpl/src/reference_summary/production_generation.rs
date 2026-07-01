@@ -58,26 +58,36 @@ pub enum ProductionGenerationSnapshotSummaryValidationError {
     MissingBodies,
     /// The summary body count did not match the body list length.
     BodyCountMismatch {
+        /// Distinct-body count carried by the summary.
         body_count: usize,
+        /// Number of bodies actually listed in the summary.
         bodies_len: usize,
     },
     /// The summary reused a body after trimming its display form.
     DuplicateBody {
+        /// Index of the first occurrence in the compared pair.
         first_index: usize,
+        /// Index of the second (duplicate) occurrence in the compared pair.
         second_index: usize,
+        /// Body designation involved in the mismatch.
         body: String,
     },
     /// The summary body order drifted from the checked-in production corpus.
     BodyOrderMismatch {
+        /// Zero-based position in the compared list where the drift was detected.
         index: usize,
+        /// Value expected from the current evidence slice.
         expected: String,
+        /// Value recorded in the summary under validation.
         found: String,
     },
     /// The summary did not expose any epochs.
     MissingEpochs,
     /// The summary reported an invalid earliest/latest epoch range.
     InvalidEpochRange {
+        /// Earliest epoch carried by the summary.
         earliest_epoch: Instant,
+        /// Latest epoch carried by the summary.
         latest_epoch: Instant,
     },
     /// The summary drifted away from the checked-in derived evidence.
@@ -379,9 +389,13 @@ pub struct ProductionGenerationSourceRevisionSummary {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+/// Validation errors for a production-generation source-revision summary that drifted from the current evidence.
 pub enum ProductionGenerationSourceRevisionSummaryValidationError {
     /// The revision summary no longer matches the current fixture checksums.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted out of sync.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for ProductionGenerationSourceRevisionSummaryValidationError {
@@ -528,6 +542,7 @@ pub fn production_generation_source_density_summary_for_report(
     ))
 }
 
+/// Returns the validated production-generation source-class breakdown line for release reports.
 pub fn production_generation_source_class_breakdown_summary_for_report() -> String {
     format!(
         "Production generation source class breakdown: reference source windows={}; hold-out source windows={}; boundary overlay={}; provenance-only source and manifest summaries remain separate",
@@ -719,7 +734,9 @@ pub enum ProductionGenerationSourceSummaryValidationError {
     BodyClassCadenceMismatch,
     /// The ecliptic and equatorial boundary-request corpora no longer share the same epoch count.
     BoundaryRequestCorpusEpochCountMismatch {
+        /// Number of distinct ecliptic-frame epochs carried by the summary.
         ecliptic_epoch_count: usize,
+        /// Number of distinct equatorial-frame epochs carried by the summary.
         equatorial_epoch_count: usize,
     },
     /// The deterministic revision summary drifted from the checked-in fixture contents.
@@ -727,7 +744,10 @@ pub enum ProductionGenerationSourceSummaryValidationError {
     /// The reference snapshot exact J2000 evidence is unavailable.
     ReferenceExactJ2000EvidenceUnavailable,
     /// The rendered summary text drifted from the expected release-facing provenance fragments.
-    RenderedSummaryOutOfSync { field: &'static str },
+    RenderedSummaryOutOfSync {
+        /// Name of the summary field that drifted out of sync.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for ProductionGenerationSourceSummaryValidationError {
@@ -817,7 +837,10 @@ pub enum ProductionGenerationCorpusShapeSummaryValidationError {
         ProductionGenerationBoundaryRequestCorpusSummaryValidationError,
     ),
     /// A derived field drifted from the current checked-in corpus posture.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted out of sync.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for ProductionGenerationCorpusShapeSummaryValidationError {
@@ -1086,7 +1109,10 @@ pub enum ProductionGenerationManifestSummaryValidationError {
     /// The nested boundary-request corpus summary drifted from the current corpus evidence.
     BoundaryRequestCorpus(ProductionGenerationBoundaryRequestCorpusSummaryValidationError),
     /// A rendered field drifted from the current corpus evidence.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted out of sync.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for ProductionGenerationManifestSummaryValidationError {
@@ -1368,28 +1394,41 @@ pub enum ProductionGenerationSnapshotWindowSummaryValidationError {
     MissingBodies,
     /// The declared body count did not match the number of listed bodies.
     BodyCountMismatch {
+        /// Distinct-body count carried by the summary.
         body_count: usize,
+        /// Number of bodies actually listed in the summary.
         bodies_len: usize,
     },
     /// The summary reused a body after trimming its display form.
     DuplicateBody {
+        /// Index of the first occurrence in the compared pair.
         first_index: usize,
+        /// Index of the second (duplicate) occurrence in the compared pair.
         second_index: usize,
+        /// Body designation involved in the mismatch.
         body: String,
     },
     /// The summary included a blank body label.
-    BlankBody { index: usize },
+    BlankBody {
+        /// Zero-based position in the compared list where the drift was detected.
+        index: usize,
+    },
     /// The summary body order diverged from the checked-in merged corpus.
     BodyOrderMismatch {
+        /// Zero-based position in the compared list where the drift was detected.
         index: usize,
+        /// Value expected from the current evidence slice.
         expected: String,
+        /// Value recorded in the summary under validation.
         found: String,
     },
     /// The summary did not include any epochs.
     MissingEpochs,
     /// The summary reported an invalid epoch range.
     InvalidEpochRange {
+        /// Earliest epoch carried by the summary.
         earliest_epoch: Instant,
+        /// Latest epoch carried by the summary.
         latest_epoch: Instant,
     },
     /// The summary diverged from the derived merged-corpus windows.
@@ -1707,7 +1746,10 @@ pub struct ProductionGenerationSnapshotBodyClassCoverageSummary {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ProductionGenerationSnapshotBodyClassCoverageSummaryValidationError {
     /// A summary field is out of sync with the current slice.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted out of sync.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for ProductionGenerationSnapshotBodyClassCoverageSummaryValidationError {

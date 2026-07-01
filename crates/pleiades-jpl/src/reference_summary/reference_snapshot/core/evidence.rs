@@ -34,17 +34,27 @@ pub enum ReferenceSnapshotExactJ2000EvidenceSummaryValidationError {
     Empty,
     /// The summary sample count drifted from the current evidence slice.
     SampleCountMismatch {
+        /// Sample count carried by the summary under validation.
         sample_count: usize,
+        /// Sample count recomputed from the current evidence slice.
         derived_sample_count: usize,
     },
     /// The summary body order drifted from the current evidence slice.
     BodyOrderMismatch {
+        /// Zero-based position in the compared list where the drift was detected.
         index: usize,
+        /// Body expected at this position from the current evidence slice.
         expected: pleiades_backend::CelestialBody,
+        /// Body recorded in the summary at this position.
         found: pleiades_backend::CelestialBody,
     },
     /// The summary epoch drifted from the current evidence slice.
-    EpochMismatch { expected: Instant, found: Instant },
+    EpochMismatch {
+        /// Epoch derived from the current evidence slice.
+        expected: Instant,
+        /// Epoch recorded in the summary under validation.
+        found: Instant,
+    },
 }
 
 impl fmt::Display for ReferenceSnapshotExactJ2000EvidenceSummaryValidationError {
@@ -225,28 +235,43 @@ pub enum ReferenceSnapshotExactJ2000BodyClassCoverageSummaryValidationError {
     Empty,
     /// The summary major-body count drifted from the current evidence slice.
     MajorBodyCountMismatch {
+        /// Major-body row count carried by the summary.
         major_body_row_count: usize,
+        /// Major-body row count recomputed from the current evidence slice.
         derived_major_body_row_count: usize,
     },
     /// The summary major-body order drifted from the current evidence slice.
     MajorBodyOrderMismatch {
+        /// Zero-based position in the compared list where the drift was detected.
         index: usize,
+        /// Body expected at this position from the current evidence slice.
         expected: pleiades_backend::CelestialBody,
+        /// Body recorded in the summary at this position.
         found: pleiades_backend::CelestialBody,
     },
     /// The summary asteroid count drifted from the current evidence slice.
     AsteroidCountMismatch {
+        /// Asteroid row count carried by the summary.
         asteroid_row_count: usize,
+        /// Asteroid row count recomputed from the current evidence slice.
         derived_asteroid_row_count: usize,
     },
     /// The summary asteroid order drifted from the current evidence slice.
     AsteroidOrderMismatch {
+        /// Zero-based position in the compared list where the drift was detected.
         index: usize,
+        /// Body expected at this position from the current evidence slice.
         expected: pleiades_backend::CelestialBody,
+        /// Body recorded in the summary at this position.
         found: pleiades_backend::CelestialBody,
     },
     /// The summary epoch drifted from the current evidence slice.
-    EpochMismatch { expected: Instant, found: Instant },
+    EpochMismatch {
+        /// Epoch derived from the current evidence slice.
+        expected: Instant,
+        /// Epoch recorded in the summary under validation.
+        found: Instant,
+    },
 }
 
 impl fmt::Display for ReferenceSnapshotExactJ2000BodyClassCoverageSummaryValidationError {

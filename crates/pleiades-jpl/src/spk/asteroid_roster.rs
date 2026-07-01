@@ -20,8 +20,11 @@ pub enum AsteroidTier {
 /// Dynamical class, used to keep evidence separated in reports.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum AsteroidClass {
+    /// Main-belt asteroid (moderate apparent speed).
     MainBelt,
+    /// Centaur (slow-moving, giant-planet-crossing orbit).
     Centaur,
+    /// Trans-Neptunian object (very slow apparent motion).
     Tno,
 }
 
@@ -41,8 +44,11 @@ impl AsteroidClass {
 /// One curated-core minor planet.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct AsteroidEntry {
+    /// The minor planet, as a named `CelestialBody` or `Custom` catalog id.
     pub body: CelestialBody,
+    /// How this body's reference positions are sourced (kernel vs. constrained).
     pub tier: AsteroidTier,
+    /// Dynamical class, used to keep report evidence separated.
     pub class: AsteroidClass,
     /// Evidence source string used in `spk_body_claims` (e.g. `"sb441-n373s"`,
     /// `"jpl-sbdb-spk:2060"`, `"horizons"`).
@@ -183,7 +189,9 @@ pub fn tier_a_bodies() -> Vec<CelestialBody> {
         .collect()
 }
 
-/// Horizons-sourced constrained bodies (Tier B), in roster order.
+/// Horizons-sourced constrained bodies (Tier B), in roster order. Currently
+/// empty: all former Tier-B bodies were promoted to Tier-A (PinnedKernel) via
+/// per-object SPKs.
 pub fn tier_b_bodies() -> Vec<CelestialBody> {
     asteroid_core_roster()
         .iter()

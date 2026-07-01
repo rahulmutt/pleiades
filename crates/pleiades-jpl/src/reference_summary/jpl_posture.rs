@@ -39,15 +39,20 @@ pub fn validated_checked_in_snapshot_schema_summary_for_report() -> Result<Strin
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// Release-facing summary of how JPL snapshot rows are classified as evidence (reference-only, not a runtime backend).
 pub struct JplSnapshotEvidenceClassificationSummary {
     /// Evidence-classification line used by validation and release reports.
     pub text: &'static str,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+/// Validation errors for a JPL snapshot evidence-classification summary that drifted from the current posture.
 pub enum JplSnapshotEvidenceClassificationSummaryValidationError {
     /// A summary field is out of sync with the current posture.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted out of sync.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for JplSnapshotEvidenceClassificationSummaryValidationError {
@@ -117,15 +122,20 @@ pub fn jpl_snapshot_evidence_classification_summary_for_report() -> String {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// Release-facing summary of the JPL source posture (checked-in reference/validation evidence, not a runtime backend).
 pub struct JplSourcePostureSummary {
     /// Source-posture line used by validation and release reports.
     pub text: &'static str,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+/// Validation errors for a JPL source-posture summary that drifted from the current posture.
 pub enum JplSourcePostureSummaryValidationError {
     /// A summary field is out of sync with the current posture.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted out of sync.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for JplSourcePostureSummaryValidationError {
@@ -188,15 +198,20 @@ pub fn jpl_source_posture_summary_for_report() -> String {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// Release-facing summary asserting the JPL corpus is provenance-only evidence.
 pub struct JplProvenanceOnlySummary {
     /// Provenance-only line used by validation and release reports.
     pub text: &'static str,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+/// Validation errors for a JPL provenance-only summary that drifted from the current posture.
 pub enum JplProvenanceOnlySummaryValidationError {
     /// A summary field is out of sync with the current posture.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted out of sync.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for JplProvenanceOnlySummaryValidationError {
@@ -261,6 +276,7 @@ pub fn jpl_provenance_only_summary_for_report() -> String {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+/// Combined summary of the JPL source corpus contract (evidence classification plus source and provenance posture).
 pub struct JplSourceCorpusContractSummary {
     /// Evidence-classification line for the current corpus contract.
     pub evidence_classification: JplSnapshotEvidenceClassificationSummary,
@@ -281,9 +297,13 @@ pub struct JplSourceCorpusContractSummary {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+/// Validation errors for a JPL source corpus contract summary that drifted from the current posture.
 pub enum JplSourceCorpusContractSummaryValidationError {
     /// A field is out of sync with the current corpus contract posture.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted out of sync.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for JplSourceCorpusContractSummaryValidationError {
@@ -539,7 +559,10 @@ pub struct JplSnapshotRequestPolicy {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum JplSnapshotRequestPolicyValidationError {
     /// One of the request-policy fields differs from the current backend posture.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted out of sync.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for JplSnapshotRequestPolicyValidationError {
@@ -648,7 +671,10 @@ pub struct JplSnapshotBatchErrorTaxonomySummary {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum JplSnapshotBatchErrorTaxonomySummaryValidationError {
     /// A summary field is out of sync with the current backend posture.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted out of sync.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for JplSnapshotBatchErrorTaxonomySummaryValidationError {
@@ -935,7 +961,10 @@ pub struct InterpolationQualitySampleRequestCorpusSummary {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum InterpolationQualitySampleRequestCorpusSummaryValidationError {
     /// A summary field is out of sync with the checked-in request corpus.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted out of sync.
+        field: &'static str,
+    },
 }
 
 impl InterpolationQualitySampleRequestCorpusSummaryValidationError {
@@ -1358,27 +1387,45 @@ pub enum JplInterpolationQualitySummaryValidationError {
     MissingBodies,
     /// The summary body count did not match the body list length.
     BodyCountMismatch {
+        /// Distinct-body count carried by the summary.
         body_count: usize,
+        /// Number of bodies actually listed in the summary.
         bodies_len: usize,
     },
     /// The summary body list contained a duplicate body label.
-    DuplicateBody { body: String },
+    DuplicateBody {
+        /// Body designation involved in the mismatch.
+        body: String,
+    },
     /// The summary body list contained a blank entry.
-    BlankBody { index: usize },
+    BlankBody {
+        /// Zero-based position in the compared list where the drift was detected.
+        index: usize,
+    },
     /// The summary did not expose any epochs.
     MissingEpochs,
     /// The summary reported an invalid earliest/latest epoch range.
     InvalidEpochRange {
+        /// Earliest epoch carried by the summary.
         earliest_epoch: Instant,
+        /// Latest epoch carried by the summary.
         latest_epoch: Instant,
     },
     /// A summary metric was not finite and non-negative.
-    MetricOutOfRange { field: &'static str },
+    MetricOutOfRange {
+        /// Name of the summary field that drifted out of sync.
+        field: &'static str,
+    },
     /// A peak-body label was blank despite the corresponding metric being populated.
-    BlankPeakBody { field: &'static str },
+    BlankPeakBody {
+        /// Name of the summary field that drifted out of sync.
+        field: &'static str,
+    },
     /// The interpolation-kind counts did not add up to the total sample count.
     InterpolationKindCountMismatch {
+        /// Sample count carried by the summary under validation.
         sample_count: usize,
+        /// Number of distinct classification kinds carried by the summary.
         kind_count: usize,
     },
     /// The summary no longer matches the derived interpolation evidence.
@@ -1459,7 +1506,10 @@ impl std::error::Error for JplInterpolationQualitySummaryValidationError {}
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum JplInterpolationPostureSummaryValidationError {
     /// A summary field is out of sync with the checked-in evidence posture.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted out of sync.
+        field: &'static str,
+    },
 }
 
 impl JplInterpolationPostureSummaryValidationError {
@@ -1938,7 +1988,10 @@ pub enum JplInterpolationQualitySourceSummaryValidationError {
     /// The summary did not include a non-empty derivation note.
     BlankDerivation,
     /// The summary drifted away from the current derived evidence.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted out of sync.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for JplInterpolationQualitySourceSummaryValidationError {
@@ -2089,6 +2142,7 @@ pub fn format_jpl_interpolation_quality_summary_for_report() -> String {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+/// Per-body-class envelope of interpolation-quality error statistics.
 pub struct JplInterpolationBodyClassErrorEnvelopeSummary {
     /// Body class represented by this envelope.
     pub class: &'static str,
@@ -2137,11 +2191,15 @@ pub struct JplInterpolationBodyClassErrorEnvelopeSummary {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// Validation errors for a JPL interpolation body-class error-envelope summary that drifted from the current evidence.
 pub enum JplInterpolationBodyClassErrorEnvelopeSummaryValidationError {
     /// No interpolation-quality samples were available.
     MissingSamples,
     /// A rendered summary line drifted from the current evidence.
-    FieldOutOfSync { class: &'static str },
+    FieldOutOfSync {
+        /// Name of the body class whose rendered line drifted.
+        class: &'static str,
+    },
 }
 
 impl fmt::Display for JplInterpolationBodyClassErrorEnvelopeSummaryValidationError {

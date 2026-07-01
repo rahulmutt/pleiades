@@ -36,48 +36,68 @@ pub enum ReferenceSnapshotSummaryValidationError {
     MissingBodies,
     /// The summary body count did not match the body list length.
     BodyCountMismatch {
+        /// Distinct-body count carried by the summary.
         body_count: usize,
+        /// Number of bodies actually listed in the summary.
         bodies_len: usize,
     },
     /// The summary reused a body after trimming its display form.
     DuplicateBody {
+        /// Index of the first occurrence in the compared pair.
         first_index: usize,
+        /// Index of the second (duplicate) occurrence in the compared pair.
         second_index: usize,
+        /// Body designation involved in the mismatch.
         body: String,
     },
     /// The summary body order drifted from the checked-in reference snapshot.
     BodyOrderMismatch {
+        /// Zero-based position in the compared list where the drift was detected.
         index: usize,
+        /// Value expected from the current evidence slice.
         expected: String,
+        /// Value recorded in the summary under validation.
         found: String,
     },
     /// The summary did not expose any epochs.
     MissingEpochs,
     /// The summary reported an invalid earliest/latest epoch range.
     InvalidEpochRange {
+        /// Earliest epoch carried by the summary.
         earliest_epoch: Instant,
+        /// Latest epoch carried by the summary.
         latest_epoch: Instant,
     },
     /// The asteroid row count exceeded the total row count.
     AsteroidRowCountExceedsRowCount {
+        /// Asteroid row count carried by the summary.
         asteroid_row_count: usize,
+        /// Row count carried by the summary under validation.
         row_count: usize,
     },
     /// The summary's epoch count drifted away from the checked-in derived evidence.
     EpochCountMismatch {
+        /// Distinct-epoch count carried by the summary.
         epoch_count: usize,
+        /// Epoch count recomputed from the current evidence slice.
         derived_epoch_count: usize,
     },
     /// The summary's asteroid row count drifted away from the checked-in derived evidence.
     AsteroidRowCountMismatch {
+        /// Asteroid row count carried by the summary.
         asteroid_row_count: usize,
+        /// Asteroid row count recomputed from the current evidence slice.
         derived_asteroid_row_count: usize,
     },
     /// The summary's epoch range drifted away from the checked-in derived evidence.
     EpochRangeMismatch {
+        /// Earliest epoch carried by the summary.
         earliest_epoch: Instant,
+        /// Latest epoch carried by the summary.
         latest_epoch: Instant,
+        /// Earliest epoch recomputed from the current evidence slice.
         derived_earliest_epoch: Instant,
+        /// Latest epoch recomputed from the current evidence slice.
         derived_latest_epoch: Instant,
     },
     /// The summary drifted away from the checked-in derived evidence.

@@ -20,20 +20,27 @@ pub enum IndependentHoldoutSnapshotSummaryValidationError {
     MissingBodies,
     /// The declared body count did not match the number of listed bodies.
     BodyCountMismatch {
+        /// Distinct-body count carried by the summary.
         body_count: usize,
+        /// Number of bodies actually listed in the summary.
         bodies_len: usize,
     },
     /// The summary reused a body after trimming its display form.
     DuplicateBody {
+        /// Index of the first occurrence in the compared pair.
         first_index: usize,
+        /// Index of the second (duplicate) occurrence in the compared pair.
         second_index: usize,
+        /// Body designation involved in the mismatch.
         body: String,
     },
     /// The summary did not include any epochs.
     MissingEpochs,
     /// The summary reported an invalid epoch range.
     InvalidEpochRange {
+        /// Earliest epoch carried by the summary.
         earliest_epoch: Instant,
+        /// Latest epoch carried by the summary.
         latest_epoch: Instant,
     },
     /// The summary drifted away from the checked-in derived evidence.
@@ -367,7 +374,10 @@ impl IndependentHoldoutSnapshotSourceWindowSummary {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum IndependentHoldoutSnapshotSourceWindowSummaryValidationError {
     /// A summary field is out of sync with the checked-in hold-out source windows.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted out of sync.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for IndependentHoldoutSnapshotSourceWindowSummaryValidationError {
@@ -492,7 +502,10 @@ pub struct IndependentHoldoutQuarterDayBoundarySummary {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum IndependentHoldoutQuarterDayBoundarySummaryValidationError {
     /// A summary field is out of sync with the checked-in quarter-day slice.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted out of sync.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for IndependentHoldoutQuarterDayBoundarySummaryValidationError {
@@ -658,7 +671,10 @@ pub struct IndependentHoldoutHighCurvatureSummary {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum IndependentHoldoutHighCurvatureSummaryValidationError {
     /// A summary field is out of sync with the checked-in high-curvature slice.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted out of sync.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for IndependentHoldoutHighCurvatureSummaryValidationError {
@@ -860,7 +876,10 @@ pub struct ReferenceHoldoutOverlapSummary {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ReferenceHoldoutOverlapSummaryValidationError {
     /// A summary field is out of sync with the current overlap posture.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted out of sync.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for ReferenceHoldoutOverlapSummaryValidationError {
@@ -1059,7 +1078,10 @@ pub struct IndependentHoldoutSnapshotBodyClassCoverageSummary {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum IndependentHoldoutSnapshotBodyClassCoverageSummaryValidationError {
     /// A summary field is out of sync with the checked-in hold-out body-class coverage.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted out of sync.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for IndependentHoldoutSnapshotBodyClassCoverageSummaryValidationError {
@@ -1275,21 +1297,31 @@ pub enum IndependentHoldoutSnapshotBatchParitySummaryValidationError {
     Snapshot(IndependentHoldoutSnapshotSummaryValidationError),
     /// The number of mixed-scale requests does not match the row count.
     RequestCountMismatch {
+        /// Number of requests issued on the TT time scale.
         tt_request_count: usize,
+        /// Number of requests issued on the TDB time scale.
         tdb_request_count: usize,
+        /// Row count carried by the summary under validation.
         row_count: usize,
     },
     /// The mixed-scale batch parity slice collapsed to a single time scale.
     TimeScaleMixMissing {
+        /// Number of requests issued on the TT time scale.
         tt_request_count: usize,
+        /// Number of requests issued on the TDB time scale.
         tdb_request_count: usize,
     },
     /// The quality counts do not match the row count.
     QualityCountMismatch {
+        /// Number of samples classified as exact (fixture-served).
         exact_count: usize,
+        /// Number of samples classified as interpolated.
         interpolated_count: usize,
+        /// Number of samples classified as approximate.
         approximate_count: usize,
+        /// Number of samples with an unknown classification.
         unknown_count: usize,
+        /// Row count carried by the summary under validation.
         row_count: usize,
     },
     /// The batch regression did not preserve request order and single-query parity.
@@ -1519,12 +1551,19 @@ pub enum IndependentHoldoutSnapshotEquatorialParitySummaryValidationError {
     /// The summary did not include any bodies.
     MissingBodies,
     /// The body count exceeds the row count.
-    BodyCountExceedsRowCount { body_count: usize, row_count: usize },
+    BodyCountExceedsRowCount {
+        /// Distinct-body count carried by the summary.
+        body_count: usize,
+        /// Row count carried by the summary under validation.
+        row_count: usize,
+    },
     /// The summary did not include any epochs.
     MissingEpochs,
     /// The summary reported an invalid epoch range.
     InvalidEpochRange {
+        /// Earliest epoch carried by the summary.
         earliest_epoch: Instant,
+        /// Latest epoch carried by the summary.
         latest_epoch: Instant,
     },
 }
@@ -1810,9 +1849,15 @@ pub enum IndependentHoldoutSourceSummaryValidationError {
     /// The summary did not include a non-empty time-scale label.
     BlankTimeScale,
     /// The summary carried surrounding whitespace in one of its labels.
-    SurroundedByWhitespace { field: &'static str },
+    SurroundedByWhitespace {
+        /// Name of the summary field that drifted out of sync.
+        field: &'static str,
+    },
     /// One of the canonical summary fields drifted from the checked-in slice.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted out of sync.
+        field: &'static str,
+    },
     /// The summary checksum drifted from the checked-in source material.
     ChecksumMismatch,
     /// The summary did not include a non-empty redistribution label.

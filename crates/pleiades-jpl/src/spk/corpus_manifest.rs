@@ -32,18 +32,26 @@ mod tests {
 /// One slice row in the manifest.
 #[derive(Clone, Debug, PartialEq)]
 pub struct SliceEntry {
+    /// Slice name (roster label, e.g. `boundary`).
     pub name: String,
+    /// CSV file name holding this slice's rows.
     pub file: String,
+    /// Slice role token (see `SliceRole::token`).
     pub role: String,
+    /// Number of data rows in the slice file.
     pub rows: usize,
+    /// FNV-1a content checksum of the slice file, for drift detection.
     pub checksum: u64,
 }
 
 /// Parsed corpus manifest.
 #[derive(Clone, Debug, PartialEq)]
 pub struct CorpusManifest {
+    /// Source-kernel provenance label.
     pub kernel: String,
+    /// Pinned SHA-256 of the source kernel.
     pub kernel_sha256: String,
+    /// Per-slice provenance and checksum rows.
     pub slices: Vec<SliceEntry>,
 }
 
