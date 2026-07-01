@@ -28,3 +28,6 @@ target
 
 # devenv (Nix) local build cache — never commit; devenv.lock IS committed for reproducibility
 .devenv*
+
+# git worktrees for isolated feature work — never commit
+.worktrees/
