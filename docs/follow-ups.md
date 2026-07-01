@@ -73,26 +73,28 @@ explicitly out of scope for the eclipse branch.
 
 ---
 
-## Open: Deferred minor findings from feat/equatorial-declination-output tasks
+## Deferred minor findings from feat/equatorial-declination-output tasks
 
-**Status:** open (recorded 2026-06-30 for post-branch triage) · Source branch: `feat/equatorial-declination-output`
+**Status:** mostly resolved (2026-07-01) — two items remain open by design. · Source branch: `feat/equatorial-declination-output` · Resolution: closing-follow-ups plan (`docs/superpowers/plans/2026-07-01-equatorial-branch-followups.md`)
 
-These are cosmetic or non-blocking issues discovered during the B-series (frame correction) and equatorial tasks. Each was explicitly deferred out of scope — do not conflate with bugs.
+These were cosmetic or non-blocking issues discovered during the B-series (frame correction) and equatorial tasks. Each was explicitly deferred out of scope — do not conflate with bugs.
 
-- **B3 — frame-consistency gate assertion strength:** `rows_validated >= 17` in `validate_frame_consistency` could be tightened to `== 17` once the exact expected sample count is stable. The GREEN (pass) branch could also add a positive assertion `|Sun-1900 ecliptic latitude| > 40″` to prove the latitude component is genuinely non-trivial. Purely defensive hardening.
+- **B3 — frame-consistency gate assertion strength:** → **Resolved 2026-07-01:** the test now asserts `rows_validated == 17` exactly (`validate_frame_consistency`). The proposed extra `|Sun-1900 ecliptic latitude| > 40″` GREEN assertion was intentionally NOT added — the Sun@1900 latitude sentinel already runs inside the gate loop and proves the latitude component is genuinely non-trivial, so re-asserting it in the test would be redundant (documented in a comment there).
 
-- **B5 — `PrecessedEcliptic` rustdoc drift:** The field-level rustdoc on `PrecessedEcliptic` still says "of date" in one place, but the struct is now also used for J2000 output after the frame correction. Cosmetic only — no semantic change required.
+- **B5 — `PrecessedEcliptic` rustdoc drift:** → **Resolved 2026-07-01:** the module, struct, and field rustdoc were reworded to "caller-selected frame (mean equinox/ecliptic of date or J2000)", no longer unconditionally "of date".
 
-- **Task 1 — `composes_rotation_with_true_obliquity` test tautology:** The test for the equatorial helper is partly tautological (rotates with the same value it checks against). Not wrong, but could be strengthened with an independent expected value. Low priority.
+- **Task 1 — `composes_rotation_with_true_obliquity` test tautology:** → **Resolved 2026-07-01:** the test now asserts against independently pinned RA/Dec literals (captured once, hard-coded) instead of recomputing the expected value from the function under test; rotation-direction correctness remains owned by the sibling `solstice_point_maps_to_ra90_dec_obliquity` test.
 
-- **Task 2 — discarded `true_obliquity_degrees` smoke call:** A smoke-call to `true_obliquity_degrees` was removed during Task 2 implementation. If a regression surface is desired, a dedicated smoke test could be added.
+- **Task 2 — discarded `true_obliquity_degrees` smoke call:** → **Resolved 2026-07-01 (by existing coverage):** `true_obliquity_degrees` is already exercised directly by `true_obliquity_is_mean_plus_delta_eps` and transitively by the equatorial composition / solstice / roundtrip tests, so a dedicated smoke test adds no regression surface.
 
-- **Task 4 — SE gate report epoch-range typo:** The SE equatorial gate report includes a minor epoch-range wording typo. Cosmetic only.
+- **Task 4 — SE gate report epoch-range typo:** → **Resolved 2026-07-01:** the `se-equatorial-reference` end-epoch comment was corrected — `JD_END_TT = 2_488_065.5` is `2099-12-28` (was mislabelled `2099-12-26`); the JD value itself was already correct.
 
-- **Task 4 — SE ceiling raised for the Moon Moshier outlier:** The SE equatorial gate ceilings were raised from `600″` to `4000″` (RA) / `1810″` (Dec) because the Moon's Moshier-vs-DE440 residual peaks at ~2643″/1203″ at century edges (all other bodies stay <100″). A future ELP/Moshier accuracy improvement could let them tighten. Note the ceilings are **global** (apply to every body), not per-body — gross-error detection (sign/units flips, ~57× the ceiling) is preserved; sub-arcsec per-body accuracy is the Horizons gate's job, not this parity gate's.
+- **Whole-branch review — duplicate ε₀ literals (opportunistic unification):** → **Resolved 2026-07-01 (partial, by design):** the bare `23.439_291_111_111_11` in `pleiades-houses/src/systems/mod.rs` (mean-obliquity lead term) and the `OBLIQUITY_RAD` cache in `pleiades-eclipse/src/geometry.rs` now derive from `pleiades_types::OBLIQUITY_J2000_DEG`. The of-date polynomial at `pleiades-eclipse/src/geometry.rs:399` (`23.439_291 - 0.013_004_2 * t`) was **left untouched by design** — it is a distinct of-date IAU coefficient series, not the J2000 constant, so folding it into `OBLIQUITY_J2000_DEG` would be incorrect.
 
-- **Whole-branch review — pre-existing duplicate ε₀ literals (opportunistic unification):** The shared `pleiades_types::OBLIQUITY_J2000_DEG` unifies the three consumers it documents (SPK reduction, precession, `Instant::mean_obliquity`), but bare `23.439_291_111_111_11` / obliquity literals still exist outside that scope in `pleiades-houses/src/systems/mod.rs:584` and `pleiades-eclipse/src/geometry.rs:323,399`. Not touched by this branch and not overclaimed by the docstring; a future pass could fold them into the shared constant.
+### Still open (by design)
 
-- **Whole-branch review — ELP raw backend equatorial is intentionally of-date:** The ELP backend emits a J2000 `ecliptic` but derives its `equatorial` from the raw of-date lon/lat (preserving prior mean-mode values), so a direct ELP consumer who self-converts the J2000 ecliptic with mean obliquity will not reproduce the provided equatorial. Coherent and test-asserted (`assert_ne!`), and overridden by the chart layer for apparent bodies; documented here for any future direct-backend consumer.
+- **Task 4 — SE ceiling raised for the Moon Moshier outlier:** The SE equatorial gate ceilings remain `4000″` (RA) / `1810″` (Dec) because the Moon's Moshier-vs-DE440 residual peaks ~2643″/1203″ at century edges (all other bodies stay <100″). The ceilings are **global** (apply to every body), not per-body — gross-error detection (~57× the ceiling) is preserved, and sub-arcsec per-body accuracy is the Horizons gate's job. A future ELP/Moshier accuracy improvement could let them tighten. **Remains open.**
 
-**Severity:** cosmetic / defensive hardening · **Opened:** 2026-06-30
+- **Whole-branch review — ELP raw backend equatorial is intentionally of-date:** The ELP backend emits a J2000 `ecliptic` but derives its `equatorial` from the raw of-date lon/lat (preserving prior mean-mode values), so a direct ELP consumer who self-converts the J2000 ecliptic with mean obliquity will not reproduce the provided equatorial. Coherent and test-asserted (`assert_ne!`), and overridden by the chart layer for apparent bodies. **Remains open** (documented for any future direct-backend consumer).
+
+**Severity:** cosmetic / defensive hardening · **Opened:** 2026-06-30 · **Largely resolved:** 2026-07-01
