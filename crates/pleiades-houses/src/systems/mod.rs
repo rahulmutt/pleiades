@@ -581,7 +581,7 @@ fn local_sidereal_time(instant: Instant, longitude: Longitude) -> Angle {
 fn mean_obliquity(instant: Instant) -> Angle {
     let centuries = (instant.julian_day.days() - 2_451_545.0) / 36_525.0;
     Angle::from_degrees(
-        23.439_291_111_111_11
+        pleiades_types::OBLIQUITY_J2000_DEG
             - 0.013_004_166_666_666_667 * centuries
             - 0.000_000_163_888_888_888_888_88 * centuries * centuries
             + 0.000_000_503_611_111_111_111_1 * centuries * centuries * centuries,

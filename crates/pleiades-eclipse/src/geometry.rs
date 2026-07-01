@@ -3,6 +3,7 @@
 use crate::ephemeris::SunMoonSample;
 use crate::syzygy::Syzygy;
 use crate::types::{LunarEclipseType, SolarEclipseType};
+use pleiades_types::OBLIQUITY_J2000_DEG;
 
 pub(crate) mod constants {
     pub const R_SUN_KM: f64 = 696_000.0;
@@ -320,7 +321,8 @@ fn scale(a: [f64; 3], k: f64) -> [f64; 3] {
 const EARTH_FLATTENING: f64 = 1.0 / 298.257_223_563;
 /// Mean obliquity of the ecliptic (J2000), radians. Its ~0.013°/century drift is
 /// negligible for orienting the flattening (a ~0.3% geometric correction).
-const OBLIQUITY_RAD: f64 = 0.409_092_804_222_329; // 23.439291°
+// J2000 mean obliquity in radians, single-sourced from pleiades_types::OBLIQUITY_J2000_DEG.
+const OBLIQUITY_RAD: f64 = OBLIQUITY_J2000_DEG * core::f64::consts::PI / 180.0;
 
 /// Rotate an ecliptic vector to the equatorial frame (about the +x/equinox axis).
 fn ecliptic_to_equatorial(v: [f64; 3]) -> [f64; 3] {
