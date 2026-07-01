@@ -129,7 +129,7 @@ impl ChartRequest {
     /// This is the checked counterpart to [`ChartRequest::with_instant_time_scale_offset`].
     /// It validates the source scale and rejects non-finite offsets before the
     /// instant is retagged, which makes the raw offset convenience available in
-    /// a release-grade form when the caller wants to stay at the chart façade.
+    /// a validated form when the caller wants to stay at the chart façade.
     ///
     /// # Example
     ///
@@ -706,7 +706,9 @@ impl fmt::Display for ChartRequest {
 /// provenance produced by `pleiades-time`.
 #[derive(Clone, Debug, PartialEq)]
 pub struct CivilChartRequest {
+    /// The chart request whose instant carries the converted TT/TDB time scale.
     pub request: ChartRequest,
+    /// Provenance of the civil-to-uniform time conversion performed by `pleiades-time`.
     pub provenance: pleiades_time::ConversionProvenance,
 }
 

@@ -81,6 +81,7 @@
 //! ```
 
 #![forbid(unsafe_code)]
+#![deny(missing_docs)]
 
 mod api_stability;
 mod chart;

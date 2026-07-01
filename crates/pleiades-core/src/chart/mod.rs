@@ -2,8 +2,10 @@
 //!
 //! The current chart façade keeps the workflow intentionally small: callers
 //! provide a set of bodies, the façade queries the backend, and the result
-//! captures the body placements plus their zodiac signs and the apparentness
-//! mode used for the backend queries. House placement can be requested
+//! captures the body placements plus their zodiac signs and the chart-level
+//! apparentness requested for the snapshot. Apparent-place corrections are
+//! applied in the engine layer; first-party backends are always queried in
+//! `Mean` mode. House placement can be requested
 //! explicitly for chart-aware consumers, which keeps the workflow practical
 //! without hardwiring more chart logic than the façade needs.
 
@@ -155,6 +157,76 @@ impl<B: EphemerisBackend> ChartEngine<B> {
     /// assert_eq!(snapshot.sign_for_body(&CelestialBody::Sun), Some(ZodiacSign::Aries));
     /// assert!(snapshot.houses.is_some());
     /// assert_eq!(snapshot.placements.len(), 1);
+    /// ```
+    ///
+    /// # Examples
+    ///
+    /// Tropical natal chart computed from a real offline backend —
+    /// `pleiades-data`'s packaged artifact (a dev-dependency here). The Sun and
+    /// Moon are release-grade via the packaged-data artifact, so the chart both
+    /// resolves a sign for the Sun and exposes the Ascendant/Midheaven.
+    ///
+    /// ```
+    /// use pleiades_core::{ChartEngine, ChartRequest};
+    /// use pleiades_data::packaged_backend;
+    /// use pleiades_types::{
+    ///     CelestialBody, HouseSystem, Instant, JulianDay, Latitude, Longitude, ObserverLocation,
+    ///     TimeScale,
+    /// };
+    ///
+    /// // 2000-01-01 12:00 TT; observer ~51.5°N, 0.1°W (London), elevation unspecified.
+    /// let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
+    /// let observer = ObserverLocation::new(
+    ///     Latitude::from_degrees(51.5),
+    ///     Longitude::from_degrees(-0.1),
+    ///     None,
+    /// );
+    ///
+    /// let request = ChartRequest::new(instant)
+    ///     .with_observer(observer)
+    ///     .with_house_system(HouseSystem::Placidus)
+    ///     .with_bodies(vec![CelestialBody::Sun, CelestialBody::Moon]);
+    ///
+    /// let engine = ChartEngine::new(packaged_backend());
+    /// let chart = engine.chart(&request).expect("packaged artifact covers Sun & Moon");
+    ///
+    /// assert!(chart.sign_for_body(&CelestialBody::Sun).is_some());
+    /// assert!(chart.asc_mc().is_some());
+    /// ```
+    ///
+    /// Sidereal chart with an explicit Lahiri ayanamsa. First-party and packaged
+    /// backends are always queried tropically; for a non-native-sidereal backend
+    /// the chart layer subtracts the resolved Lahiri offset itself, so the
+    /// snapshot carries the requested sidereal `zodiac_mode` and still resolves a
+    /// sign for the Sun.
+    ///
+    /// ```
+    /// use pleiades_core::{ChartEngine, ChartRequest};
+    /// use pleiades_data::packaged_backend;
+    /// use pleiades_types::{
+    ///     Ayanamsa, CelestialBody, Instant, JulianDay, Latitude, Longitude, ObserverLocation,
+    ///     TimeScale, ZodiacMode,
+    /// };
+    ///
+    /// let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
+    /// let request = ChartRequest::new(instant)
+    ///     .with_observer(ObserverLocation::new(
+    ///         Latitude::from_degrees(51.5),
+    ///         Longitude::from_degrees(-0.1),
+    ///         None,
+    ///     ))
+    ///     .with_zodiac_mode(ZodiacMode::Sidereal { ayanamsa: Ayanamsa::Lahiri })
+    ///     .with_bodies(vec![CelestialBody::Sun]);
+    ///
+    /// let chart = ChartEngine::new(packaged_backend())
+    ///     .chart(&request)
+    ///     .expect("packaged artifact covers the Sun");
+    ///
+    /// assert!(chart.sign_for_body(&CelestialBody::Sun).is_some());
+    /// assert_eq!(
+    ///     chart.zodiac_mode,
+    ///     ZodiacMode::Sidereal { ayanamsa: Ayanamsa::Lahiri },
+    /// );
     /// ```
     ///
     /// The engine validates the backend metadata first so malformed backend

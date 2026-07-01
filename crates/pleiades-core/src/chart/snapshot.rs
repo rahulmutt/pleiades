@@ -69,7 +69,9 @@ pub struct ChartSnapshot {
     pub body_observer: Option<ObserverLocation>,
     /// Zodiac mode used for the chart.
     pub zodiac_mode: ZodiacMode,
-    /// Apparentness used for the backend position queries.
+    /// Chart-level apparentness requested for this snapshot. Apparent-place
+    /// corrections are applied in the engine layer; first-party backends are
+    /// always queried in `Mean` mode.
     pub apparentness: Apparentness,
     /// Optional house snapshot.
     pub houses: Option<HouseSnapshot>,

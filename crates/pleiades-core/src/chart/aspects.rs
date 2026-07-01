@@ -173,9 +173,15 @@ impl fmt::Display for AspectKind {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum AspectDefinitionValidationError {
     /// The exact aspect angle was not finite or fell outside the supported half-circle range.
-    ExactDegreesOutOfRange { exact_degrees: f64 },
+    ExactDegreesOutOfRange {
+        /// The rejected exact aspect angle, in degrees.
+        exact_degrees: f64,
+    },
     /// The orb was not finite or fell outside the supported half-circle range.
-    OrbDegreesOutOfRange { orb_degrees: f64 },
+    OrbDegreesOutOfRange {
+        /// The rejected orb half-width, in degrees.
+        orb_degrees: f64,
+    },
 }
 
 impl AspectDefinitionValidationError {

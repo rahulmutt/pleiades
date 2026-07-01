@@ -353,6 +353,12 @@ fn is_intentional_custom_definition_ayanamsa_homograph(label: &str) -> bool {
     INTENTIONAL_CUSTOM_DEFINITION_AYANAMSA_HOMOGRAPHS.contains(&label)
 }
 
+/// Validates the custom-definition labels of a compatibility profile.
+///
+/// Each label must be non-empty, free of surrounding whitespace, unique under
+/// the profile's text-normalization rules, and must not collide with a built-in
+/// house-system or ayanamsa name (except for the intentionally reserved
+/// homographs). Returns the number of labels checked on success.
 pub fn validate_custom_definition_labels(
     labels: &[&'static str],
 ) -> Result<usize, CompatibilityProfileValidationError> {
