@@ -17,6 +17,16 @@ pub fn greenwich_mean_sidereal_time_degrees(jd: f64) -> f64 {
     pleiades_time::gmst_degrees_raw(jd)
 }
 
+/// Equation of the equinoxes in degrees from its two inputs: `Δψ · cos(ε_true)`.
+///
+/// `delta_psi_deg` is nutation-in-longitude and `true_obliquity_deg` the true
+/// obliquity, both in degrees. Single source of the equation-of-equinoxes
+/// formula, shared by `equation_of_equinoxes_degrees` and the chart layer's
+/// topocentric-LAST path (`pleiades-core`).
+pub fn equation_of_equinoxes(delta_psi_deg: f64, true_obliquity_deg: f64) -> f64 {
+    delta_psi_deg * true_obliquity_deg.to_radians().cos()
+}
+
 /// Equation of the equinoxes in degrees: `Δψ · cos(ε_true)`.
 ///
 /// Falls back to `0.0` if the nutation table is unavailable (a development-time
@@ -26,9 +36,8 @@ pub fn equation_of_equinoxes_degrees(jd: f64) -> f64 {
     nutation(jd)
         .map(|n| {
             let delta_psi_deg = n.delta_psi_arcsec / 3600.0;
-            let true_obl_rad =
-                (mean_obliquity_degrees(jd) + n.delta_eps_arcsec / 3600.0).to_radians();
-            delta_psi_deg * true_obl_rad.cos()
+            let true_obl_deg = mean_obliquity_degrees(jd) + n.delta_eps_arcsec / 3600.0;
+            equation_of_equinoxes(delta_psi_deg, true_obl_deg)
         })
         .unwrap_or(0.0)
 }
@@ -125,6 +134,32 @@ mod tests {
     fn equation_of_equinoxes_is_small() {
         // EE is at most a couple of arcseconds ≈ a few×1e-4 degrees.
         assert!(equation_of_equinoxes_degrees(2_451_545.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn equation_of_equinoxes_helper_matches_formula() {
+        let delta_psi_deg: f64 = 0.001_234;
+        let true_obliquity_deg: f64 = 23.44;
+        let expected = delta_psi_deg * true_obliquity_deg.to_radians().cos();
+        assert!(
+            (equation_of_equinoxes(delta_psi_deg, true_obliquity_deg) - expected).abs() < 1e-15
+        );
+    }
+
+    #[test]
+    fn equation_of_equinoxes_degrees_uses_shared_helper() {
+        // The jd-driven wrapper must equal the helper fed the same nutation inputs.
+        let jd = 2_451_545.0;
+        let n = crate::nutation::nutation(jd).expect("nutation table available in tests");
+        let delta_psi_deg = n.delta_psi_arcsec / 3600.0;
+        let true_obl_deg =
+            crate::nutation::mean_obliquity_degrees(jd) + n.delta_eps_arcsec / 3600.0;
+        assert!(
+            (equation_of_equinoxes_degrees(jd)
+                - equation_of_equinoxes(delta_psi_deg, true_obl_deg))
+            .abs()
+                < 1e-15
+        );
     }
 
     #[test]

@@ -408,7 +408,10 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                     let mean_obliquity = pleiades_apparent::nutation::mean_obliquity_degrees(jd_tt);
                     let true_obliquity = mean_obliquity + nut.delta_eps_arcsec / 3600.0;
                     // Apparent sidereal time = GMST + equation of the equinoxes + east longitude.
-                    let eq_equinoxes = (nut.delta_psi_arcsec / 3600.0) * true_obliquity.to_radians().cos();
+                    let eq_equinoxes = pleiades_apparent::sidereal::equation_of_equinoxes(
+                        nut.delta_psi_arcsec / 3600.0,
+                        true_obliquity,
+                    );
                     let last = (gmst + eq_equinoxes + observer.longitude.degrees()).rem_euclid(360.0);
                     if let Some(ecliptic) = position.ecliptic.as_mut() {
                         let topo = pleiades_apparent::topocentric_position(

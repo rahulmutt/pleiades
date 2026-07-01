@@ -16,8 +16,8 @@ pub use equatorial::{apparent_equatorial_of_date, true_obliquity_degrees};
 pub mod sidereal;
 
 pub use sidereal::{
-    equation_of_equinoxes_degrees, greenwich_mean_sidereal_time_degrees, sidereal_time,
-    SiderealTime,
+    equation_of_equinoxes, equation_of_equinoxes_degrees, greenwich_mean_sidereal_time_degrees,
+    sidereal_time, SiderealTime,
 };
 
 pub mod aberration;
