@@ -38,26 +38,38 @@ pub struct Vsop87SourceAudit {
 pub enum Vsop87SourceAuditValidationError {
     /// The audit record does not name a source file.
     BlankSourceFile {
+        /// Zero-based position of the record in the audit manifest.
         position: usize,
+        /// Body named by the record with the blank source file.
         body: CelestialBody,
     },
     /// The audit record references a source file that does not exist in the current source catalog.
     UnknownSourceFile {
+        /// Zero-based position of the record in the audit manifest.
         position: usize,
+        /// Source-file label absent from the current source catalog.
         source_file: &'static str,
     },
     /// The audit record body/source pairing does not match the current source catalog.
     BodySourceMismatch {
+        /// Zero-based position of the record in the audit manifest.
         position: usize,
+        /// Body named by the drifted record.
         body: CelestialBody,
+        /// Source file named by the drifted record.
         source_file: &'static str,
+        /// Body the catalog associates with that source file.
         expected_body: CelestialBody,
     },
     /// A rendered audit field no longer matches the current source text.
     FieldOutOfSync {
+        /// Zero-based position of the record in the audit manifest.
         position: usize,
+        /// Body named by the record with the drifted field.
         body: CelestialBody,
+        /// Source file named by the record with the drifted field.
         source_file: &'static str,
+        /// Name of the field that drifted from the source text.
         field: &'static str,
     },
 }
@@ -222,7 +234,10 @@ pub struct Vsop87SourceAuditSummary {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Vsop87SourceAuditSummaryValidationError {
     /// A rendered summary field no longer matches the current source-audit manifest.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted from the manifest.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for Vsop87SourceAuditSummaryValidationError {
@@ -448,30 +463,43 @@ pub struct Vsop87GeneratedBlobAudit {
 pub enum Vsop87GeneratedBlobAuditValidationError {
     /// The audit record does not name a source file.
     BlankSourceFile {
+        /// Zero-based position of the record in the blob-audit manifest.
         position: usize,
+        /// Body named by the record with the blank source file.
         body: CelestialBody,
     },
     /// The audit record points at an empty generated blob.
     EmptyBlob {
+        /// Zero-based position of the record in the blob-audit manifest.
         position: usize,
+        /// Source file whose generated blob is empty.
         source_file: &'static str,
     },
     /// The audit record references a source file that does not exist in the current source catalog.
     UnknownSourceFile {
+        /// Zero-based position of the record in the blob-audit manifest.
         position: usize,
+        /// Source-file label absent from the current source catalog.
         source_file: &'static str,
     },
     /// The audit record references a checked-in blob that is missing from the current source catalog.
     MissingGeneratedBlob {
+        /// Zero-based position of the record in the blob-audit manifest.
         position: usize,
+        /// Body whose checked-in generated blob is missing.
         body: CelestialBody,
+        /// Source file whose checked-in generated blob is missing.
         source_file: &'static str,
     },
     /// The audit record body/source pairing does not match the current source catalog.
     BodySourceMismatch {
+        /// Zero-based position of the record in the blob-audit manifest.
         position: usize,
+        /// Body named by the drifted record.
         body: CelestialBody,
+        /// Source file named by the drifted record.
         source_file: &'static str,
+        /// Body the catalog associates with that source file.
         expected_body: CelestialBody,
     },
 }
@@ -614,7 +642,10 @@ pub struct Vsop87GeneratedBlobAuditSummary {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Vsop87GeneratedBlobAuditSummaryValidationError {
     /// A rendered summary field no longer matches the current generated-blob manifest.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted from the manifest.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for Vsop87GeneratedBlobAuditSummaryValidationError {

@@ -241,39 +241,61 @@ impl fmt::Display for Vsop87CanonicalBodyEvidence {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Vsop87CanonicalBodyEvidenceValidationError {
     /// The catalog no longer contains the body.
-    UnknownBody { body: CelestialBody },
+    UnknownBody {
+        /// Body absent from the current catalog.
+        body: CelestialBody,
+    },
     /// The declared source family drifted out of sync with the current catalog.
     SourceKindMismatch {
+        /// Body whose source kind drifted from the catalog.
         body: CelestialBody,
+        /// Source kind the catalog expects for the body.
         expected: Vsop87BodySourceKind,
+        /// Source kind found on the drifted evidence row.
         found: Vsop87BodySourceKind,
     },
     /// The catalog no longer exposes a source specification for the body.
-    MissingSourceSpecification { body: CelestialBody },
+    MissingSourceSpecification {
+        /// Body that lacks a source specification in the catalog.
+        body: CelestialBody,
+    },
     /// The public source file drifted out of sync with the current catalog.
     SourceFileMismatch {
+        /// Body whose source file drifted from the catalog.
         body: CelestialBody,
+        /// Source file the catalog expects for the body.
         expected: &'static str,
+        /// Source file found on the drifted evidence row.
         found: &'static str,
     },
     /// The provenance text drifted out of sync with the current catalog.
     ProvenanceMismatch {
+        /// Body whose provenance text drifted from the catalog.
         body: CelestialBody,
+        /// Provenance text the catalog expects for the body.
         expected: &'static str,
+        /// Provenance text found on the drifted evidence row.
         found: &'static str,
     },
     /// A numeric field is not finite.
     NonFiniteMetric {
+        /// Body whose metric is non-finite.
         body: CelestialBody,
+        /// Name of the non-finite metric field.
         field: &'static str,
     },
     /// A numeric field is negative.
     NegativeMetric {
+        /// Body whose metric is negative.
         body: CelestialBody,
+        /// Name of the negative metric field.
         field: &'static str,
     },
     /// The derived interim-limit status drifted away from the current metrics.
-    InterimLimitStatusMismatch { body: CelestialBody },
+    InterimLimitStatusMismatch {
+        /// Body whose interim-limit status drifted from its metrics.
+        body: CelestialBody,
+    },
 }
 
 impl fmt::Display for Vsop87CanonicalBodyEvidenceValidationError {
@@ -830,27 +852,38 @@ pub(crate) const CANONICAL_EQUATORIAL_EVIDENCE_SUMMARY_LABEL: &str =
 const CANONICAL_EQUATORIAL_BODY_CLASS_EVIDENCE_SUMMARY_LABEL: &str =
     "VSOP87 canonical J2000 equatorial body-class evidence";
 
+/// Validation error for a canonical VSOP87 evidence summary that drifted from
+/// the current derived evidence.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Vsop87CanonicalEvidenceSummaryValidationError {
     /// A rendered summary field no longer matches the current derived evidence.
     FieldOutOfSync {
+        /// Label of the summary that carries the drifted field.
         summary: &'static str,
+        /// Name of the field that drifted from the derived evidence.
         field: &'static str,
     },
     /// The sample body list now contains a duplicate entry.
     DuplicateBody {
+        /// Label of the summary whose sample list has the duplicate.
         summary: &'static str,
+        /// Body that appears more than once in the sample list.
         body: CelestialBody,
     },
     /// A reported peak body is absent from the sample body list.
     PeakBodyNotInSamples {
+        /// Label of the summary whose peak body is missing.
         summary: &'static str,
+        /// Name of the peak-metric field naming the absent body.
         field: &'static str,
+        /// Peak body that is absent from the sample list.
         body: CelestialBody,
     },
     /// A reported source file is blank or whitespace only.
     BlankSourceFile {
+        /// Label of the summary that carries the blank source file.
         summary: &'static str,
+        /// Name of the field whose source file is blank.
         field: &'static str,
     },
 }
@@ -1056,6 +1089,11 @@ fn validate_canonical_evidence_summary_peak_source_metadata(
     Ok(())
 }
 
+/// Aggregate evidence summary across the source-backed canonical samples.
+///
+/// Rolls up per-body residuals (longitude, latitude, distance) against the
+/// interim limits for the mean, J2000 ecliptic source-backed paths, excluding
+/// the mean-element Pluto fallback.
 pub struct Vsop87SourceBodyEvidenceSummary {
     /// Number of canonical samples measured.
     pub sample_count: usize,
@@ -1189,7 +1227,10 @@ impl Vsop87SourceBodyEvidenceSummary {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Vsop87SourceBodyEvidenceSummaryValidationError {
     /// A rendered summary field no longer matches the current derived evidence.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted from the derived evidence.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for Vsop87SourceBodyEvidenceSummaryValidationError {
@@ -1320,7 +1361,10 @@ pub struct Vsop87CanonicalOutlierSummary {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Vsop87CanonicalOutlierSummaryValidationError {
     /// The summary drifted away from the current derived evidence.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted from the derived evidence.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for Vsop87CanonicalOutlierSummaryValidationError {
@@ -1410,6 +1454,12 @@ pub fn canonical_epoch_outlier_note_for_report() -> String {
     }
 }
 
+/// Builds the per-body canonical-epoch evidence rows by evaluating the backend
+/// at the J2000 reference sample and comparing each body's mean, J2000 ecliptic
+/// result against its expected longitude/latitude/distance and interim limits.
+///
+/// Returns `None` if the backend output cannot be matched to the sample set or a
+/// profile fails validation.
 pub fn canonical_epoch_body_evidence() -> Option<Vec<Vsop87CanonicalBodyEvidence>> {
     let backend = Vsop87Backend::new();
     let profiles = body_source_profiles();

@@ -53,7 +53,13 @@ pub struct Vsop87BodySource {
     pub kind: Vsop87BodySourceKind,
     /// Human-readable provenance detail for this body's calculation path.
     pub provenance: &'static str,
-    /// Current published accuracy class for this body path.
+    /// Series-fidelity class of this body's checked-in path: `Exact` means the
+    /// generated table reproduces the full, untruncated VSOP87B series for the
+    /// body, while `Approximate` marks the mean-element Pluto fallback. This
+    /// describes source-reproduction fidelity, not observational position
+    /// accuracy: the backend's chart-facing `BodyClaim` for these source-backed
+    /// planets is still `Moderate`/constrained (see
+    /// [`crate::Vsop87Backend`]), and results remain mean, J2000 ecliptic.
     pub accuracy: AccuracyClass,
 }
 
@@ -62,15 +68,27 @@ pub struct Vsop87BodySource {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Vsop87BodySourceValidationError {
     /// The catalog no longer contains the body.
-    UnknownBody { body: CelestialBody },
+    UnknownBody {
+        /// Body that is absent from the current catalog.
+        body: CelestialBody,
+    },
     /// The provenance text is blank.
-    BlankProvenance { body: CelestialBody },
+    BlankProvenance {
+        /// Body whose profile carries empty provenance text.
+        body: CelestialBody,
+    },
     /// The provenance text carries surrounding whitespace.
-    WhitespacePaddedProvenance { body: CelestialBody },
+    WhitespacePaddedProvenance {
+        /// Body whose provenance text has leading or trailing whitespace.
+        body: CelestialBody,
+    },
     /// The declared source family no longer matches the catalog.
     SourceKindMismatch {
+        /// Body whose source-kind declaration drifted from the catalog.
         body: CelestialBody,
+        /// Source kind the current catalog expects for the body.
         expected: Vsop87BodySourceKind,
+        /// Source kind found on the drifted profile.
         found: Vsop87BodySourceKind,
     },
 }

@@ -97,7 +97,10 @@ fn canonical_j1900_batch_parity_expected_bodies() -> Vec<CelestialBody> {
 
 pub enum Vsop87CanonicalBatchParitySummaryValidationError {
     /// A rendered summary field no longer matches the current derived evidence.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted from the derived evidence.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for Vsop87CanonicalBatchParitySummaryValidationError {
@@ -1304,7 +1307,10 @@ pub struct Vsop87SupportedBodyCanonicalBatchParitySummary {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Vsop87SupportedBodyCanonicalBatchParitySummaryValidationError {
     /// A rendered summary field no longer matches the current derived evidence.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted from the derived evidence.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for Vsop87SupportedBodyCanonicalBatchParitySummaryValidationError {
@@ -1822,7 +1828,10 @@ impl Vsop87SourceBodyClassEvidenceSummary {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Vsop87SourceBodyClassEvidenceSummaryValidationError {
     /// A rendered summary field no longer matches the current derived evidence.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted from the derived evidence.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for Vsop87SourceBodyClassEvidenceSummaryValidationError {

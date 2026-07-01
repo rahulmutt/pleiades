@@ -47,6 +47,7 @@
 //! specific source selection is added incrementally.
 
 #![forbid(unsafe_code)]
+#![deny(missing_docs)]
 
 mod backend;
 mod elements;

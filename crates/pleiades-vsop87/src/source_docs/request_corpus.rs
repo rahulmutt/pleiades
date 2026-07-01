@@ -22,12 +22,19 @@ pub enum Vsop87TableGenerationError {
     /// The requested file name does not match one of the vendored public source
     /// files that this crate knows how to regenerate.
     UnknownSourceFile {
+        /// File name that did not match a vendored source file.
         source_file: String,
+        /// Vendored source files this crate can regenerate.
         supported_source_files: Vec<&'static str>,
     },
     /// The vendored source text could be parsed, but the regeneration step
     /// failed while rebuilding the binary coefficient table.
-    Parse { source_file: String, error: String },
+    Parse {
+        /// Source file whose regeneration failed.
+        source_file: String,
+        /// Human-readable parse/regeneration error detail.
+        error: String,
+    },
 }
 
 impl core::fmt::Display for Vsop87TableGenerationError {
@@ -131,17 +138,26 @@ pub fn source_manifest_summary_for_report() -> String {
 pub enum Vsop87SourceManifestValidationError {
     /// The manifest length differs from the current source-specification list.
     LengthMismatch {
+        /// Number of entries the current source catalog expects.
         expected: usize,
+        /// Number of entries the supplied manifest actually has.
         actual: usize,
+        /// Body/source-file pairs the current catalog expects.
         expected_manifest: Vec<(CelestialBody, &'static str)>,
+        /// Body/source-file pairs found in the supplied manifest.
         actual_manifest: Vec<(CelestialBody, &'static str)>,
     },
     /// One manifest entry differs from the current source-specification catalog.
     EntryMismatch {
+        /// Index of the drifted manifest entry.
         index: usize,
+        /// Body the catalog expects at this index.
         expected_body: Box<CelestialBody>,
+        /// Body found at this index in the supplied manifest.
         actual_body: Box<CelestialBody>,
+        /// Source file the catalog expects at this index.
         expected_source_file: &'static str,
+        /// Source file found at this index in the supplied manifest.
         actual_source_file: &'static str,
     },
 }
@@ -254,6 +270,12 @@ pub fn try_generated_vsop87b_table_bytes_for_source_file(
     })
 }
 
+/// Regenerates the binary VSOP87B blob for a vendored source file, returning
+/// `None` instead of an error when the file is unknown or fails to regenerate.
+///
+/// This is the infallible convenience wrapper over
+/// [`try_generated_vsop87b_table_bytes_for_source_file`] for maintainer tooling
+/// that only needs the bytes-or-nothing outcome.
 pub fn generated_vsop87b_table_bytes_for_source_file(source_file: &str) -> Option<Vec<u8>> {
     try_generated_vsop87b_table_bytes_for_source_file(source_file).ok()
 }

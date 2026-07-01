@@ -9,6 +9,12 @@ use crate::profiles::{
     source_text_for_file,
 };
 
+/// Provenance metadata for one source-backed VSOP87B body path.
+///
+/// Captures the public coefficient file, frame, units, and reduction/transform
+/// notes for a single body so the mixed generated-binary and mean-element
+/// provenance stays auditable. Frame is J2000 ecliptic/equinox at the backend
+/// boundary; this describes the mean, first-party path (not an apparent place).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Vsop87SourceSpecification {
     /// Body covered by the source-backed slice.
@@ -72,25 +78,39 @@ impl fmt::Display for Vsop87SourceSpecification {
 pub enum Vsop87SourceSpecificationValidationError {
     /// The rendered field is blank or whitespace-only for the named body.
     BlankField {
+        /// Body whose specification carries the blank field.
         body: CelestialBody,
+        /// Name of the field that is blank.
         field: &'static str,
     },
     /// The specification names a body that is not backed by the current source catalog.
-    UnknownBody { body: CelestialBody },
+    UnknownBody {
+        /// Body absent from the current source catalog.
+        body: CelestialBody,
+    },
     /// The specification names a public source file that is not part of the current source catalog.
     UnknownSourceFile {
+        /// Body whose specification references the unknown file.
         body: CelestialBody,
+        /// Public source-file label that is not part of the catalog.
         source_file: &'static str,
     },
     /// The rendered field no longer matches the current canonical catalog value.
     FieldOutOfSync {
+        /// Body whose specification field drifted from the catalog.
         body: CelestialBody,
+        /// Name of the drifted field.
         field: &'static str,
+        /// Canonical value expected by the current catalog.
         expected: &'static str,
+        /// Value found on the drifted specification.
         found: &'static str,
     },
     /// The public source file label appears more than once in the catalog.
-    DuplicateSourceFile { source_file: &'static str },
+    DuplicateSourceFile {
+        /// Public source-file label that is duplicated in the catalog.
+        source_file: &'static str,
+    },
 }
 
 impl fmt::Display for Vsop87SourceSpecificationValidationError {
@@ -213,6 +233,9 @@ impl Vsop87SourceSpecification {
     }
 }
 
+/// Returns the source-backed VSOP87B specifications, one per body with a public
+/// coefficient file (Sun through Neptune); the mean-element Pluto fallback has
+/// no source specification and is excluded.
 pub fn source_specifications() -> Vec<Vsop87SourceSpecification> {
     body_catalog_entries()
         .iter()
@@ -311,7 +334,10 @@ pub struct Vsop87RequestPolicy {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Vsop87RequestPolicyValidationError {
     /// One of the request-policy fields differs from the current backend posture.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the request-policy field that drifted from the posture.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for Vsop87RequestPolicyValidationError {

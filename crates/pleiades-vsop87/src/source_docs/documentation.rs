@@ -73,7 +73,10 @@ impl fmt::Display for Vsop87SourceDocumentationSummary {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Vsop87SourceDocumentationSummaryValidationError {
     /// A rendered summary field no longer matches the current source-documentation catalog.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted from the catalog.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for Vsop87SourceDocumentationSummaryValidationError {
@@ -551,6 +554,9 @@ fn source_documentation_fields_are_consistent(source_specs: &[Vsop87SourceSpecif
     source_specs.iter().all(|spec| spec.validate().is_ok())
 }
 
+/// Returns the health summary for the current VSOP87 source-documentation
+/// catalog, cross-checking the documented counts and metadata against the
+/// internal body catalog and flagging any drift as issues.
 pub fn source_documentation_health_summary() -> Vsop87SourceDocumentationHealthSummary {
     let summary = source_documentation_summary();
     let source_specs = source_specifications();
