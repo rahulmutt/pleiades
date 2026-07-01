@@ -47,18 +47,26 @@ pub fn geocentric_from_heliocentric(
 /// Spherical ecliptic state: position (lon, lat, dist) plus velocity rates (all in AU and rad/day).
 #[derive(Clone, Copy, Debug)]
 pub struct SphericalState {
+    /// Ecliptic longitude, in radians.
     pub lon_rad: f64,
+    /// Ecliptic latitude, in radians.
     pub lat_rad: f64,
+    /// Radial distance, in astronomical units.
     pub dist_au: f64,
+    /// Rate of change of ecliptic longitude, in radians per day.
     pub lon_rate_rad_per_day: f64,
+    /// Rate of change of ecliptic latitude, in radians per day.
     pub lat_rate_rad_per_day: f64,
+    /// Rate of change of distance, in astronomical units per day.
     pub dist_rate_au_per_day: f64,
 }
 
 /// Cartesian ecliptic state: position and velocity (all in AU and AU/day).
 #[derive(Clone, Copy, Debug)]
 pub struct CartesianState {
+    /// Position vector `[x, y, z]` in the ecliptic frame, in astronomical units.
     pub pos_au: [f64; 3],
+    /// Velocity vector `[vx, vy, vz]` in the ecliptic frame, in astronomical units per day.
     pub vel_au_per_day: [f64; 3],
 }
 

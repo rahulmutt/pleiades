@@ -602,7 +602,10 @@ pub struct ArtifactHeader {
 
 impl ArtifactHeader {
     /// Creates a new header using the current artifact version, an explicit
-    /// little-endian byte-order policy, and a conservative ecliptic-only profile.
+    /// little-endian byte-order policy, and a conservative profile that stores
+    /// only ecliptic longitude/latitude/distance channels (with equatorial
+    /// coordinates and motion derived, and apparent/topocentric/sidereal outputs
+    /// unsupported).
     pub fn new(generation_label: impl Into<String>, source: impl Into<String>) -> Self {
         Self::with_profile(
             generation_label,
