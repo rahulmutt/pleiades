@@ -103,10 +103,7 @@ fn spk_reduction_is_j2000_frame_at_non_j2000_epoch() {
     let eps_d = inst_1900.mean_obliquity().radians();
     let z_d = -ye * eps_d.sin() + ze * eps_d.cos();
     let of_date_lat = (z_d
-        / (x * x
-            + (ye * eps_d.cos() + ze * eps_d.sin()).powi(2)
-            + z_d * z_d)
-            .sqrt())
+        / (x * x + (ye * eps_d.cos() + ze * eps_d.sin()).powi(2) + z_d * z_d).sqrt())
     .asin()
     .to_degrees();
     assert!(

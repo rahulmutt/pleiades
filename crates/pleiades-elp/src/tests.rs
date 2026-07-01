@@ -2848,4 +2848,3 @@ fn elp_moon_round_trips_to_of_date_through_the_pipeline() {
         (redate.latitude_deg - od_lat.degrees()).abs() * 3600.0
     );
 }
-

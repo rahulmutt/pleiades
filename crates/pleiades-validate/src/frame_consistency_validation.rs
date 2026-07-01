@@ -71,10 +71,27 @@ impl fmt::Display for FrameConsistencyReport {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum FrameConsistencyError {
-    PackagedUnavailable { body: String, jd_tt: f64, message: String },
-    ReferenceUnavailable { body: String, jd_tt: f64, source: &'static str, message: String },
-    MissingEcliptic { body: String, jd_tt: f64, which: &'static str },
-    SentinelTooSmall { jd_tt: f64, got_arcsec: f64, floor_arcsec: f64 },
+    PackagedUnavailable {
+        body: String,
+        jd_tt: f64,
+        message: String,
+    },
+    ReferenceUnavailable {
+        body: String,
+        jd_tt: f64,
+        source: &'static str,
+        message: String,
+    },
+    MissingEcliptic {
+        body: String,
+        jd_tt: f64,
+        which: &'static str,
+    },
+    SentinelTooSmall {
+        jd_tt: f64,
+        got_arcsec: f64,
+        floor_arcsec: f64,
+    },
     ToleranceExceeded {
         body: String,
         jd_tt: f64,
@@ -190,25 +207,25 @@ pub fn validate_frame_consistency() -> Result<FrameConsistencyReport, FrameConsi
     // Total: (Sun + 7 planets) × 2 epochs + Moon × 1 epoch = 8 × 2 + 1 = 17 rows.
     let checks: &[(CelestialBody, Reference, f64)] = &[
         // 1900 epoch — VSOP87 bodies
-        (CelestialBody::Sun,     Reference::Vsop87,   EPOCH_1900_JD_TT),
-        (CelestialBody::Mercury, Reference::Vsop87,   EPOCH_1900_JD_TT),
-        (CelestialBody::Venus,   Reference::Vsop87,   EPOCH_1900_JD_TT),
-        (CelestialBody::Mars,    Reference::Vsop87,   EPOCH_1900_JD_TT),
-        (CelestialBody::Jupiter, Reference::Vsop87,   EPOCH_1900_JD_TT),
-        (CelestialBody::Saturn,  Reference::Vsop87,   EPOCH_1900_JD_TT),
-        (CelestialBody::Uranus,  Reference::Vsop87,   EPOCH_1900_JD_TT),
-        (CelestialBody::Neptune, Reference::Vsop87,   EPOCH_1900_JD_TT),
+        (CelestialBody::Sun, Reference::Vsop87, EPOCH_1900_JD_TT),
+        (CelestialBody::Mercury, Reference::Vsop87, EPOCH_1900_JD_TT),
+        (CelestialBody::Venus, Reference::Vsop87, EPOCH_1900_JD_TT),
+        (CelestialBody::Mars, Reference::Vsop87, EPOCH_1900_JD_TT),
+        (CelestialBody::Jupiter, Reference::Vsop87, EPOCH_1900_JD_TT),
+        (CelestialBody::Saturn, Reference::Vsop87, EPOCH_1900_JD_TT),
+        (CelestialBody::Uranus, Reference::Vsop87, EPOCH_1900_JD_TT),
+        (CelestialBody::Neptune, Reference::Vsop87, EPOCH_1900_JD_TT),
         // 1900 epoch — Moon via snapshot (exact row at JD 2415020.5)
-        (CelestialBody::Moon,    Reference::Snapshot, EPOCH_1900_JD_TT),
+        (CelestialBody::Moon, Reference::Snapshot, EPOCH_1900_JD_TT),
         // 2100 epoch — VSOP87 bodies (Moon excluded: no snapshot 2100 data)
-        (CelestialBody::Sun,     Reference::Vsop87,   EPOCH_2100_JD_TT),
-        (CelestialBody::Mercury, Reference::Vsop87,   EPOCH_2100_JD_TT),
-        (CelestialBody::Venus,   Reference::Vsop87,   EPOCH_2100_JD_TT),
-        (CelestialBody::Mars,    Reference::Vsop87,   EPOCH_2100_JD_TT),
-        (CelestialBody::Jupiter, Reference::Vsop87,   EPOCH_2100_JD_TT),
-        (CelestialBody::Saturn,  Reference::Vsop87,   EPOCH_2100_JD_TT),
-        (CelestialBody::Uranus,  Reference::Vsop87,   EPOCH_2100_JD_TT),
-        (CelestialBody::Neptune, Reference::Vsop87,   EPOCH_2100_JD_TT),
+        (CelestialBody::Sun, Reference::Vsop87, EPOCH_2100_JD_TT),
+        (CelestialBody::Mercury, Reference::Vsop87, EPOCH_2100_JD_TT),
+        (CelestialBody::Venus, Reference::Vsop87, EPOCH_2100_JD_TT),
+        (CelestialBody::Mars, Reference::Vsop87, EPOCH_2100_JD_TT),
+        (CelestialBody::Jupiter, Reference::Vsop87, EPOCH_2100_JD_TT),
+        (CelestialBody::Saturn, Reference::Vsop87, EPOCH_2100_JD_TT),
+        (CelestialBody::Uranus, Reference::Vsop87, EPOCH_2100_JD_TT),
+        (CelestialBody::Neptune, Reference::Vsop87, EPOCH_2100_JD_TT),
     ];
 
     let mut rows_validated = 0usize;
@@ -219,19 +236,18 @@ pub fn validate_frame_consistency() -> Result<FrameConsistencyReport, FrameConsi
         let instant = Instant::new(JulianDay::from_days(jd_tt), TimeScale::Tt);
         let body_label = format!("{body:?}");
 
-        let packaged_lat =
-            raw_lat_deg(&packaged, body, instant).map_err(|err| match err {
-                RawLatError::Backend(message) => FrameConsistencyError::PackagedUnavailable {
-                    body: body_label.clone(),
-                    jd_tt,
-                    message,
-                },
-                RawLatError::MissingEcliptic => FrameConsistencyError::MissingEcliptic {
-                    body: body_label.clone(),
-                    jd_tt,
-                    which: "packaged",
-                },
-            })?;
+        let packaged_lat = raw_lat_deg(&packaged, body, instant).map_err(|err| match err {
+            RawLatError::Backend(message) => FrameConsistencyError::PackagedUnavailable {
+                body: body_label.clone(),
+                jd_tt,
+                message,
+            },
+            RawLatError::MissingEcliptic => FrameConsistencyError::MissingEcliptic {
+                body: body_label.clone(),
+                jd_tt,
+                which: "packaged",
+            },
+        })?;
 
         // Sentinel: the Sun's J2000 latitude at 1900 must be genuinely non-zero
         // (~−45″). A silent revert to of-date obliquity would make it ~0 and fail.
@@ -239,11 +255,11 @@ pub fn validate_frame_consistency() -> Result<FrameConsistencyReport, FrameConsi
             check_sun_1900_sentinel(packaged_lat)?;
         }
 
-        let (source_name, reference_backend): (&'static str, &dyn EphemerisBackend) = match reference
-        {
-            Reference::Vsop87 => ("vsop87", &vsop),
-            Reference::Snapshot => ("jpl-snapshot", &snapshot),
-        };
+        let (source_name, reference_backend): (&'static str, &dyn EphemerisBackend) =
+            match reference {
+                Reference::Vsop87 => ("vsop87", &vsop),
+                Reference::Snapshot => ("jpl-snapshot", &snapshot),
+            };
         let reference_lat =
             raw_lat_deg(reference_backend, body, instant).map_err(|err| match err {
                 RawLatError::Backend(message) => FrameConsistencyError::ReferenceUnavailable {
@@ -279,7 +295,11 @@ pub fn validate_frame_consistency() -> Result<FrameConsistencyReport, FrameConsi
          (packaged raw J2000 latitude vs VSOP87/snapshot at 1900/2100), \
          max lat residual {max_residual_lat_arcsec:.2}\u{2033}"
     );
-    Ok(FrameConsistencyReport { rows_validated, max_residual_lat_arcsec, summary_line })
+    Ok(FrameConsistencyReport {
+        rows_validated,
+        max_residual_lat_arcsec,
+        summary_line,
+    })
 }
 
 #[cfg(test)]
@@ -324,9 +344,8 @@ mod tests {
         let packaged = PackagedDataBackend::new();
         let instant_1900 = Instant::new(JulianDay::from_days(EPOCH_1900_JD_TT), TimeScale::Tt);
 
-        let sun_lat_deg =
-            raw_lat_deg(&packaged, &CelestialBody::Sun, instant_1900)
-                .unwrap_or_else(|_| panic!("packaged Sun at 1900 should succeed"));
+        let sun_lat_deg = raw_lat_deg(&packaged, &CelestialBody::Sun, instant_1900)
+            .unwrap_or_else(|_| panic!("packaged Sun at 1900 should succeed"));
         let sun_lat_arcsec = sun_lat_deg * 3600.0;
 
         // GREEN: drive the REAL artifact's Sun-1900 latitude through the ACTUAL

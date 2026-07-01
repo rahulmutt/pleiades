@@ -54,8 +54,7 @@ pub fn precess_ecliptic_date_to_j2000(
     let theta_r = theta.to_radians();
     let a = delta_d.cos() * (alpha_d - z_r).sin();
     let b = theta_r.cos() * delta_d.cos() * (alpha_d - z_r).cos() + theta_r.sin() * delta_d.sin();
-    let c =
-        -theta_r.sin() * delta_d.cos() * (alpha_d - z_r).cos() + theta_r.cos() * delta_d.sin();
+    let c = -theta_r.sin() * delta_d.cos() * (alpha_d - z_r).cos() + theta_r.cos() * delta_d.sin();
     let alpha0 = a.atan2(b) - zeta_r;
     let delta0 = c.clamp(-1.0, 1.0).asin();
 
@@ -69,7 +68,9 @@ pub fn precess_ecliptic_date_to_j2000(
     let longitude_deg = lon.to_degrees().rem_euclid(360.0);
     let latitude_deg = lat.to_degrees();
     if !longitude_deg.is_finite() || !latitude_deg.is_finite() {
-        return Err(ApparentPlaceError::NonFiniteCorrection { stage: "precession" });
+        return Err(ApparentPlaceError::NonFiniteCorrection {
+            stage: "precession",
+        });
     }
     Ok(PrecessedEcliptic {
         longitude_deg,
