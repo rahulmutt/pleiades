@@ -1,3 +1,6 @@
+# Manual-release fallback (cargo-release). The default release path is now
+# release-plz (see .github/workflows/release-plz.yml and release-plz.toml).
+# Use this only to cut a release by hand, e.g. `cargo release <version> --execute`.
 allow-branch = ["main"]
 shared-version = true
 consolidate-commits = true

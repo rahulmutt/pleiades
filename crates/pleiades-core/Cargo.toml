@@ -21,4 +21,4 @@ pleiades-time = { workspace = true }
 pleiades-apparent = { workspace = true }
 
 [dev-dependencies]
-pleiades-data = { workspace = true }
+pleiades-data = { path = "../pleiades-data" }

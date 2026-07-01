@@ -1,0 +1,42 @@
+# Changelog config shared by the 0.3.0 bootstrap (git-cliff CLI) and all future
+# releases (release-plz). Scope: feat / fix / perf / breaking only.
+[changelog]
+header = """
+# Changelog
+
+All notable changes to this project are documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+"""
+body = """
+{% if version %}\
+## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
+{% else %}\
+## [Unreleased]
+{% endif %}\
+{% for group, commits in commits | group_by(attribute="group") %}
+### {{ group | striptags | trim | upper_first }}
+{% for commit in commits %}
+- {{ commit.message | split(pat="\\n") | first | upper_first }} \
+([{{ commit.id | truncate(length=7, end="") }}](https://github.com/rahulmutt/pleiades/commit/{{ commit.id }}))\
+{% endfor %}
+{% endfor %}
+"""
+trim = true
+
+[git]
+conventional_commits = true
+filter_unconventional = true
+protect_breaking_commits = true
+filter_commits = true
+tag_pattern = "v[0-9]*"
+# `<!-- N -->` prefixes force section ordering; the template strips them via `striptags`.
+commit_parsers = [
+  { message = "^[a-z]+(\\(.+\\))?!:", group = "<!-- 0 -->Breaking Changes" },
+  { body = ".*BREAKING CHANGE", group = "<!-- 0 -->Breaking Changes" },
+  { message = "^feat", group = "<!-- 1 -->Added" },
+  { message = "^fix", group = "<!-- 2 -->Fixed" },
+  { message = "^perf", group = "<!-- 3 -->Performance" },
+  { message = ".*", skip = true },
+]

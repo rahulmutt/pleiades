@@ -1,6 +1,8 @@
 [tools]
 rust = { version = "1.96.0", components = "rustfmt,clippy" }
 "cargo:cargo-release" = "1.1.2"
+"cargo:git-cliff" = "2.13.1"
+"cargo:release-plz" = "0.3.159"
 
 [tasks.fmt]
 run = "cargo fmt --all --check"
@@ -24,7 +26,7 @@ run = "cargo run -q -p pleiades-validate -- workspace-audit"
 shell = "bash -c"
 run = '''
 set -euo pipefail
-crates="pleiades-types pleiades-apparent pleiades-time pleiades-backend pleiades-compression pleiades-houses pleiades-ayanamsa pleiades-vsop87 pleiades-elp pleiades-jpl pleiades-core"
+crates="pleiades-types pleiades-apparent pleiades-eclipse pleiades-time pleiades-backend pleiades-apsides pleiades-compression pleiades-houses pleiades-ayanamsa pleiades-vsop87 pleiades-elp pleiades-jpl pleiades-core"
 version=$(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -n 1)
 [ -n "$version" ] || { echo "package-check: could not extract workspace version from Cargo.toml" >&2; exit 1; }
 budget_bytes=$((9 * 1024 * 1024))
