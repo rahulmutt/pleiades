@@ -216,7 +216,10 @@ impl fmt::Display for LunarTheorySourceSelection {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum LunarTheorySourceSelectionValidationError {
     /// A rendered source-selection field no longer matches the current lunar-theory selection.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the rendered field that drifted from its current backend-owned value.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for LunarTheorySourceSelectionValidationError {
@@ -265,7 +268,10 @@ pub struct LunarTheorySourceSummary {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum LunarTheorySourceSummaryValidationError {
     /// A rendered summary field no longer matches the current lunar-theory selection.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the rendered field that drifted from its current backend-owned value.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for LunarTheorySourceSummaryValidationError {
@@ -351,6 +357,12 @@ impl LunarTheorySourceSummary {
         Ok(())
     }
 
+    /// Validates this summary against the current backend-owned source and, on
+    /// success, returns its compact release-facing summary line.
+    ///
+    /// Returns [`LunarTheorySourceSummaryValidationError`] if any rendered field
+    /// has drifted, so callers surface an unavailable report line instead of a
+    /// silently stale summary.
     pub fn validated_summary_line(
         &self,
     ) -> Result<String, LunarTheorySourceSummaryValidationError> {
@@ -411,7 +423,10 @@ pub struct LunarTheorySourceFamilySummary {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum LunarTheorySourceFamilySummaryValidationError {
     /// A rendered summary field no longer matches the current lunar-theory family.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the rendered field that drifted from its current backend-owned value.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for LunarTheorySourceFamilySummaryValidationError {

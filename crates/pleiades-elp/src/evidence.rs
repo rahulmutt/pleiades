@@ -413,7 +413,10 @@ pub struct LunarEquatorialReferenceBatchParitySummary {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum LunarEquatorialReferenceBatchParitySummaryValidationError {
     /// A rendered summary field no longer matches the current evidence slice.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the rendered field that drifted from its current backend-owned value.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for LunarEquatorialReferenceBatchParitySummaryValidationError {
@@ -717,7 +720,10 @@ pub enum LunarSourceWindowSummaryValidationError {
     /// The summary no longer matches the current lunar source-window evidence.
     Unavailable,
     /// A rendered summary field no longer matches the current lunar source-window evidence.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the rendered field that drifted from its current backend-owned value.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for LunarSourceWindowSummaryValidationError {
@@ -916,7 +922,10 @@ pub struct LunarReferenceBatchParitySummary {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum LunarReferenceBatchParitySummaryValidationError {
     /// A rendered summary field no longer matches the current evidence slice.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the rendered field that drifted from its current backend-owned value.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for LunarReferenceBatchParitySummaryValidationError {

@@ -26,6 +26,7 @@
 //! scope, and source/provenance posture.
 
 #![forbid(unsafe_code)]
+#![deny(missing_docs)]
 
 use core::fmt;
 

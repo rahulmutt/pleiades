@@ -637,7 +637,10 @@ pub struct LunarTheoryCatalogSummary {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum LunarTheoryCatalogSummaryValidationError {
     /// A rendered summary field no longer matches the current lunar-theory catalog.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the rendered field that drifted from its current backend-owned value.
+        field: &'static str,
+    },
     /// The current catalog no longer contains a selected entry.
     MissingSelectedEntry,
 }
@@ -861,7 +864,10 @@ pub struct LunarTheoryCapabilitySummary {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum LunarTheoryCapabilitySummaryValidationError {
     /// A rendered summary field no longer matches the current lunar-theory selection.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the rendered field that drifted from its current backend-owned value.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for LunarTheoryCapabilitySummaryValidationError {
@@ -1092,7 +1098,10 @@ pub struct LunarTheoryLimitationsSummary {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum LunarTheoryLimitationsSummaryValidationError {
     /// A rendered limitations field no longer matches the current baseline.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the rendered field that drifted from its current backend-owned value.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for LunarTheoryLimitationsSummaryValidationError {
