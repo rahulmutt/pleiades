@@ -289,8 +289,15 @@ mod tests {
     #[test]
     fn frame_consistency_gate_passes() {
         let report = validate_frame_consistency().expect("frame-consistency gate passes");
-        // 8 VSOP87 bodies × 2 epochs + Moon × 1 epoch (snapshot, 1900 only) = 17.
-        assert!(report.rows_validated >= 17, "too few rows: {}", report.rows_validated);
+        // Exact expected count: 8 VSOP87 bodies x 2 epochs + Moon x 1 epoch = 17.
+        // A positive, non-trivial latitude is already proven inside the gate loop by
+        // the Sun@1900 sentinel (this file, ~lines 236-240: |ecliptic latitude| ~= 45"),
+        // so it is not re-asserted here.
+        assert_eq!(
+            report.rows_validated, 17,
+            "unexpected row count: {}",
+            report.rows_validated
+        );
         // Print the measured maximum so FRAME_LAT_TOLERANCE_ARCSEC can be tightened.
         eprintln!("{}", report.summary_line());
     }
