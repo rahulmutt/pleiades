@@ -15,7 +15,7 @@ As of the current workspace state, `pleiades` includes:
 - a backend-agnostic request/result contract with capability metadata,
 - a high-level chart façade with typed tropical/sidereal chart requests,
 - baseline chart body placement, zodiac-sign summaries, aspect summaries, and optional house summaries,
-- a release compatibility profile (`pleiades-compatibility-profile/0.7.2`),
+- a release compatibility profile (`pleiades-compatibility-profile/0.7.3`),
 - an API stability profile (`pleiades-api-stability/0.2.1`),
 - public sidereal-time helpers (GMST, GAST, local sidereal time via `pleiades_apparent::sidereal_time` and `SiderealTime`) and `AscMc` chart-point extras (ARMC, Vertex, antivertex, equatorial ascendant, co-ascendants, polar ascendant via `pleiades_houses::{AscMc, chart_points, chart_points_from_armc}`); `HouseSnapshot::asc_mc` carries `AscMc` on every house snapshot; `HouseSnapshot` is now `#[non_exhaustive]`; `ChartSnapshot::asc_mc()` re-exposes `AscMc` at the façade layer; the `validate-angles` gate is wired into `run_all_numeric_gates`,
 - 25 catalogued house systems and 59 catalogued ayanamsas; of the 25 catalogued house systems, 24 house systems pass the SE numeric gate; of the 59 catalogued ayanamsas, 48 release-claimed ayanamsa modes pass theirs (the remaining 11 are catalogued with metadata only),

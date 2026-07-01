@@ -138,7 +138,11 @@ gated by `validate-angles` (armc/gast ~0.16″; geometry points <0.05″ vs SE,
   and the apparent/core equation-of-equinoxes duplicate that this item targeted — a
   separate, truncated (linear-only) copy of the leading GMST coefficients still
   exists in `crates/pleiades-eclipse/src/geometry.rs` (`sub_shadow_point`); that copy
-  was out of this item's scope by design and is left untouched.
+  was out of this item's scope by design and is left untouched. It is intentionally
+  *not* a single-source candidate: it is a deliberately truncated constant+linear
+  approximation (it drops the quadratic/cubic terms) paired with a mean-obliquity
+  approximation, so delegating it to `gmst_degrees_raw` would change its output —
+  it must stay independent.
 
 - **Southern-hemisphere `asc_mc_from` branch is transcribed but unexercised:** the
   `f_pole = -90 - lat` pole-height branch and the vertex western-hemisphere flip in
@@ -149,7 +153,14 @@ gated by `validate-angles` (armc/gast ~0.16″; geometry points <0.05″ vs SE,
   2026-07-01 (`10d71ec7`):** added a lat −33° / lon 20° fixture (`c5_lat33s`) to
   `se-house-reference` and regenerated the houses corpus (cusps/sectors/angles);
   manifest bumped to cusps=138/sectors=6/angles=6. This row exercises the
-  `asc_mc_from` `f_pole = -90 - lat` branch under `validate-angles`.
+  `asc_mc_from` `f_pole = -90 - lat` branch under `validate-angles`. Corpus note:
+  regeneration also canonicalized the row order of five pre-existing `Horizon` cusp
+  rows (identical values, previously appended out-of-band) alongside adding the
+  southern rows — no existing row value changed. Build-env note: `tools/se-house-reference`
+  needs `LIBCLANG_PATH=/lib/x86_64-linux-gnu` to build and, from a nested git worktree,
+  must be built from outside the worktree (cargo resolves the parent workspace root,
+  which excludes the tool); the gates never rebuild it — they read the committed CSVs
+  via `include_str!`.
 
 - **`asc_mc` consistency test covers only one production site:** the
   `HouseSnapshot`-carries-`AscMc` test exercises the main construction site; the
