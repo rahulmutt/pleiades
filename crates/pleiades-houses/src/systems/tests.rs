@@ -1698,3 +1698,32 @@ fn house_snapshot_carries_asc_mc_consistent_with_angles() {
     assert_eq!(snap.asc_mc.midheaven, snap.angles.midheaven);
     assert!((0.0..360.0).contains(&snap.asc_mc.vertex.degrees()));
 }
+
+#[test]
+fn porphyry_fallback_snapshot_carries_consistent_asc_mc() {
+    use pleiades_types::{Instant, JulianDay, Latitude, Longitude, ObserverLocation, TimeScale};
+    // Latitude 75° is beyond Placidus's polar bound, so with the SE fallback
+    // policy calculate_houses takes the early-return Porphyry-fallback branch.
+    let observer = ObserverLocation::new(
+        Latitude::from_degrees(75.0),
+        Longitude::from_degrees(10.0),
+        None,
+    );
+    let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
+    let req = HouseRequest::new(instant, observer.clone(), HouseSystem::Placidus)
+        .with_high_latitude_policy(HighLatitudePolicy::SwissEphemerisFallback);
+
+    let snap = calculate_houses(&req).expect("Porphyry fallback should produce a snapshot");
+
+    // It really took the fallback: Porphyry yields 12 quadrant cusps.
+    assert_eq!(snap.cusps.len(), 12);
+
+    // The fallback site's asc_mc must equal an independent recomputation.
+    let expected = asc_mc_from(
+        local_sidereal_time(instant, observer.longitude).degrees(),
+        observer.latitude.degrees(),
+        snap.obliquity.degrees(),
+    )
+    .expect("asc_mc_from");
+    assert_eq!(snap.asc_mc, expected);
+}
