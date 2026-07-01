@@ -241,7 +241,7 @@ fn summary_commands_render_compact_reports() {
         render_cli(&["api-stability-summary"]).expect("api stability summary should render");
     assert!(api_stability.contains("API stability summary"));
     assert!(api_stability.contains("Summary line: API stability posture:"));
-    assert!(api_stability.contains("Stable surfaces: 6"));
+    assert!(api_stability.contains("Stable surfaces: 8"));
     assert!(api_stability.contains(&format!(
         "Compatibility profile: {}",
         release_profiles.compatibility_profile_id
