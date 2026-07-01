@@ -76,6 +76,10 @@ The current contract is intentionally mechanical rather than modeled:
 - `pleiades-core::ChartSnapshot` renders an explicit apparentness policy line so chart output states whether the snapshot was built from a mean or apparent request before backend-specific accuracy details are consulted.
 - Native sidereal backend output remains out of scope unless a backend explicitly advertises it.
 
+## Sidereal time
+
+Sidereal time in Pleiades is Earth-rotation-based (UT1), not a dynamical time-scale quantity. The `pleiades_apparent::sidereal_time` function and the `SiderealTime` type compute Greenwich Mean Sidereal Time (GMST), Greenwich Apparent Sidereal Time (GAST), and local sidereal time (LST) from the Julian Day of the supplied `Instant`; the JD value is consumed as supplied — no Delta-T or leap-second correction is applied by the sidereal-time layer itself. Callers that need UT1-tagged instants should apply the appropriate Delta-T offset before calling `sidereal_time`; callers that already have a UT1 Julian Day can pass it directly. The `greenwich_mean_sidereal_time_degrees` and `equation_of_equinoxes_degrees` convenience functions surface the same UT1-based model in degree units for callers that only need those scalar quantities. The `validate-angles` gate exercises the full sidereal-time → ARMC → house-cusp pipeline against the Swiss Ephemeris reference to confirm numeric agreement.
+
 ## Observer and topocentric behavior
 
 - Chart-level observer locations are currently used for house calculations.
