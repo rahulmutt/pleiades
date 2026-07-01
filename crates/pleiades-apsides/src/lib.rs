@@ -1,9 +1,17 @@
 //! Osculating lunar apsides — the true (osculating) apogee and perigee of the
 //! Moon's instantaneous Kepler ellipse, derived from its geocentric position and
-//! velocity. This is Swiss Ephemeris `SE_OSCU_APOG` ("True Black Moon Lilith"),
-//! distinct from the smooth mean apogee. Pure two-body geometry; frame-agnostic
-//! (output ecliptic longitude/latitude are in the same frame as the input
-//! Cartesian state — here, geocentric J2000 mean ecliptic).
+//! velocity. Computes the same osculating-apogee/perigee quantity Swiss
+//! Ephemeris exposes as `SE_OSCU_APOG` ("True Black Moon Lilith"), distinct from
+//! the smooth mean apogee. This crate is pure two-body geometry; its parity with
+//! Swiss Ephemeris depends on the input state's accuracy. End-to-end, when fed
+//! the packaged-Moon-derived state via `pleiades-data`, parity with SE is
+//! validated to a max longitude residual of ~306″ by the `validate-lilith` gate
+//! (3177 samples, 1900–2100).
+//!
+//! Frame-agnostic: the output ecliptic longitude/latitude are in the same frame
+//! as the input Cartesian state — here, geocentric J2000 mean ecliptic.
+
+#![deny(missing_docs)]
 
 /// `G(M⊕ + M☾)` in AU³/day². Derived from GM⊕ = 398600.4418 km³/s² and
 /// GM☾ = 4902.800 km³/s² (sum 403503.2418) with 1 AU = 149597870.7 km and
@@ -15,17 +23,28 @@ pub const MU_EARTH_MOON_AU3_PER_DAY2: f64 = 8.997_14e-10;
 /// and geocentric distance (AU).
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ApsisPoint {
+    /// Ecliptic longitude of the apsis, degrees in `[0, 360)`, in the input
+    /// state's frame (geocentric J2000 mean ecliptic for the packaged path).
     pub longitude_deg: f64,
+    /// Ecliptic latitude of the apsis, degrees in `[-90, 90]`, in the same frame
+    /// as [`ApsisPoint::longitude_deg`].
     pub latitude_deg: f64,
+    /// Geocentric distance from Earth to the apsis point, in AU.
     pub distance_au: f64,
 }
 
 /// The osculating apogee and perigee plus the shape of the osculating ellipse.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Apsides {
+    /// Far apsis of the osculating ellipse (True Black Moon Lilith / `SE_OSCU_APOG`).
     pub apogee: ApsisPoint,
+    /// Near apsis of the osculating ellipse, 180° opposite the apogee in the
+    /// orbital plane.
     pub perigee: ApsisPoint,
+    /// Eccentricity of the osculating ellipse (dimensionless, `0 < e < 1` for a
+    /// bound orbit).
     pub eccentricity: f64,
+    /// Semi-major axis of the osculating ellipse, in AU.
     pub semi_major_au: f64,
 }
 
