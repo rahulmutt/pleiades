@@ -32,8 +32,41 @@
 //! let houses = calculate_houses(&request).expect("house calculation should work");
 //! assert_eq!(houses.cusps.len(), 12);
 //! ```
+//!
+//! House-system selection: pick a system (here Placidus), compute cusps from an
+//! [`Instant`](pleiades_types::Instant) plus
+//! [`ObserverLocation`](pleiades_types::ObserverLocation), and read the exposed
+//! AscMc chart points.
+//!
+//! ```
+//! use pleiades_houses::{calculate_houses, HouseRequest};
+//! use pleiades_types::{HouseSystem, Instant, JulianDay, Latitude, Longitude, ObserverLocation, TimeScale};
+//!
+//! // London, mid-latitude, at J2000.0 (TT).
+//! let request = HouseRequest::new(
+//!     Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt),
+//!     ObserverLocation::new(
+//!         Latitude::from_degrees(51.4769),
+//!         Longitude::from_degrees(-0.0005),
+//!         None,
+//!     ),
+//!     HouseSystem::Placidus,
+//! );
+//! let houses = calculate_houses(&request).expect("house calculation should work");
+//!
+//! // Every house system yields the full ring of twelve cusps.
+//! assert_eq!(houses.cusps.len(), 12);
+//!
+//! // The AscMc chart points are exposed alongside the cusps. The descendant and
+//! // imum coeli sit opposite the ascendant and midheaven, respectively.
+//! let asc_mc = houses.asc_mc;
+//! let opposite = |deg: f64| (deg + 180.0) % 360.0;
+//! assert!((asc_mc.descendant.degrees() - opposite(asc_mc.ascendant.degrees())).abs() < 1e-6);
+//! assert!((asc_mc.imum_coeli.degrees() - opposite(asc_mc.midheaven.degrees())).abs() < 1e-6);
+//! ```
 
 #![forbid(unsafe_code)]
+#![deny(missing_docs)]
 
 mod catalog;
 mod error;

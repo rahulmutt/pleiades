@@ -26,9 +26,11 @@ pub enum HighLatitudePolicy {
     /// Reject with `InvalidLatitude` (the safe default).
     #[default]
     Strict,
-    /// Reproduce Swiss Ephemeris's documented substitution: silently compute
-    /// Porphyry cusps instead of returning an error when the observer latitude
-    /// exceeds the system's documented bound.
+    /// Reproduce Swiss Ephemeris's documented substitution: for 12-cusp
+    /// systems, silently compute Porphyry cusps instead of returning an error
+    /// when the observer latitude exceeds the system's documented bound. The
+    /// 36-sector Gauquelin system has no Porphyry substitute and still returns
+    /// `InvalidLatitude` beyond its bound.
     SwissEphemerisFallback,
 }
 
@@ -131,10 +133,12 @@ impl HouseAngles {
 
 /// The full Swiss-Ephemeris `ascmc` chart-point set.
 ///
-/// Longitudes are apparent, equinox-of-date, tropical, in `[0,360)`. Vertex,
-/// equatorial ascendant, the co-ascendants, and the polar ascendant are ported
-/// from Swiss Ephemeris `swehouse.c`; their numeric correctness is enforced by
-/// the `validate-angles` parity gate.
+/// For the instant/observer path ([`chart_points`]) longitudes are apparent,
+/// equinox-of-date, tropical, in `[0,360)`; for [`chart_points_from_armc`] the
+/// frame follows the caller-supplied ARMC and obliquity. Vertex, equatorial
+/// ascendant, the co-ascendants, and the polar ascendant are ported from Swiss
+/// Ephemeris `swehouse.c`; their numeric correctness is enforced by the
+/// `validate-angles` parity gate.
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[non_exhaustive]
 pub struct AscMc {
