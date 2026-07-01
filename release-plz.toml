@@ -1,6 +1,9 @@
 [workspace]
 # Reuse the same changelog format as the 0.3.0 bootstrap.
 changelog_config = "cliff.toml"
+# Funnel all unified-version crates into the single curated root changelog
+# instead of release-plz's default per-crate CHANGELOG.md files.
+changelog_path = "CHANGELOG.md"
 # Create GitHub Releases for each tag.
 git_release_enable = true
 # Don't churn Cargo.lock as part of the release commit.
