@@ -1,6 +1,10 @@
-//! Deterministic TT <-> TDB periodic term (USNO approximation, sub-millisecond).
+//! Deterministic TT <-> TDB periodic term (USNO low-precision approximation,
+//! magnitude bounded below ~2 ms; peak ~1.7 ms).
 
-/// `TDB − TT` in seconds for a TT Julian Day. Standard low-precision model:
+/// `TDB − TT` in seconds for a TT Julian Day. Standard USNO low-precision model,
+/// which captures only the dominant annual/semi-annual terms (peak amplitude
+/// ~1.7 ms, always bounded below ~2 ms) and omits the smaller planetary and
+/// lunar terms of the full Fairhead–Bretagnon series:
 /// `g = 357.53° + 0.9856003° * (JD_TT − 2451545.0)`,
 /// `TDB − TT = 0.001658 sin g + 0.000014 sin 2g`.
 pub fn tdb_minus_tt_seconds(jd_tt: f64) -> f64 {

@@ -10,9 +10,13 @@ pub const CURRENT_CIVIL_TIME_POLICY_SUMMARY_TEXT: &str =
 /// Validation error for the civil-time policy summary.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum CivilTimePolicyError {
+    /// The summary text is empty or whitespace-only.
     BlankSummary,
+    /// The summary text has leading or trailing whitespace.
     WhitespacePaddedSummary,
+    /// The summary text contains an embedded `\n` or `\r`.
     EmbeddedLineBreak,
+    /// The summary text does not match the current canonical posture (drift).
     CurrentPolicyOutOfSync,
 }
 
@@ -38,15 +42,20 @@ pub struct CivilTimePolicySummary {
 }
 
 impl CivilTimePolicySummary {
+    /// Wraps an arbitrary summary string (unvalidated) for later checking.
     pub const fn new(summary: &'static str) -> Self {
         Self { summary }
     }
+    /// The canonical current posture summary (`CURRENT_CIVIL_TIME_POLICY_SUMMARY_TEXT`).
     pub const fn current() -> Self {
         Self::new(CURRENT_CIVIL_TIME_POLICY_SUMMARY_TEXT)
     }
+    /// The wrapped summary string, without validating it.
     pub const fn summary_line(self) -> &'static str {
         self.summary
     }
+    /// Fails closed if the summary is blank, whitespace-padded, contains a line
+    /// break, or has drifted from the canonical current posture.
     pub fn validate(&self) -> Result<(), CivilTimePolicyError> {
         if self.summary.trim().is_empty() {
             Err(CivilTimePolicyError::BlankSummary)
@@ -60,6 +69,7 @@ impl CivilTimePolicySummary {
             Ok(())
         }
     }
+    /// Returns the summary string only after `validate` succeeds.
     pub fn validated_summary_line(&self) -> Result<&'static str, CivilTimePolicyError> {
         self.validate()?;
         Ok(self.summary_line())

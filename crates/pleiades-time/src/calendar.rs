@@ -9,11 +9,17 @@ use crate::error::CivilTimeError;
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct CivilDateTime {
+    /// Proleptic-Gregorian calendar year (astronomical numbering; may be negative).
     pub year: i32,
+    /// Calendar month, 1–12 (validated in `to_julian_day`).
     pub month: u8,
+    /// Day of month, 1–31 (validated in `to_julian_day`).
     pub day: u8,
+    /// Hour of day, 0–23.
     pub hour: u8,
+    /// Minute of hour, 0–59.
     pub minute: u8,
+    /// Second of minute, in `[0.0, 61.0)` (the upper bound admits leap seconds).
     pub second: f64,
 }
 

@@ -8,18 +8,29 @@ use pleiades_types::TimeScale;
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum CivilTimeError {
     /// A calendar field (month/day/hour/minute/second) was out of range or non-finite.
-    InvalidCivilDate { field: &'static str },
+    InvalidCivilDate {
+        /// Name of the offending calendar field (e.g. `"month"`, `"second"`).
+        field: &'static str,
+    },
     /// A UTC-tagged instant fell before the 1972 leap-second epoch.
     UtcBeforeLeapEpoch,
     /// The instant fell outside the documented support window (1900–2100).
-    BeyondHorizon { jd: f64 },
+    BeyondHorizon {
+        /// The rejected instant's Julian Day.
+        jd: f64,
+    },
     /// The requested source/target scale pair is not a civil conversion this crate performs.
     UnsupportedScale {
+        /// The requested source time scale.
         source: TimeScale,
+        /// The requested target time scale.
         target: TimeScale,
     },
     /// A pinned data table failed its checksum/freshness gate.
-    StaleTimeData { kind: &'static str },
+    StaleTimeData {
+        /// Which table failed (e.g. `"leap-second"`, `"delta-t"`).
+        kind: &'static str,
+    },
     /// A computed offset was not finite (defensive).
     NonFiniteOffset,
 }

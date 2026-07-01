@@ -71,10 +71,17 @@ impl fmt::Display for ConversionQuality {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ConversionProvenance {
+    /// Which orchestrator path produced the result.
     pub path: ConversionPath,
+    /// Truthful accuracy tier of the result (`exact`/`observed`/`predicted`).
     pub quality: ConversionQuality,
+    /// `ΔT = TT − UT1` in seconds when a Delta-T model was used; `None` on the
+    /// leap-second-exact UTC path.
     pub delta_t_seconds: Option<f64>,
+    /// `TAI − UTC` in whole seconds when the leap-second table was used; `None`
+    /// on the UT1/Delta-T and extrapolated paths.
     pub tai_minus_utc: Option<i32>,
+    /// Human-readable identification of the underlying data tables and as-of date.
     pub sources: &'static str,
 }
 
@@ -104,7 +111,9 @@ impl fmt::Display for ConversionProvenance {
 /// A converted instant plus the provenance describing how it was produced.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct CivilInstant {
+    /// The converted instant, tagged with its target time scale (TT or TDB).
     pub instant: Instant,
+    /// How the instant was produced, including its truthful quality tier.
     pub provenance: ConversionProvenance,
 }
 

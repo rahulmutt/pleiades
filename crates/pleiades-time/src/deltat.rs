@@ -1,5 +1,9 @@
 //! Delta-T (`ΔT = TT − UT1`): checksum-pinned observed table with linear
 //! interpolation, plus a documented polynomial extrapolation beyond it.
+//!
+//! Beyond the observed table the Espenak–Meeus 2005–2050 future fit is reused
+//! (extrapolated) all the way out to the 2100 horizon; it is increasingly
+//! approximate past 2050, so every extrapolated value is tagged `Predicted`.
 
 use std::sync::OnceLock;
 
@@ -65,8 +69,10 @@ fn decimal_year(jd: f64) -> f64 {
     2000.0 + (jd - 2451545.0) / 365.25
 }
 
-/// Espenak–Meeus future extrapolation (years 2005–2050 form), used beyond the
-/// observed table. See https://eclipse.gsfc.nasa.gov/SEcat5/deltatpoly.html
+/// Espenak–Meeus future extrapolation, using the 2005–2050 polynomial form.
+/// This is the only extrapolator used beyond the observed table; it is reused
+/// (extrapolated) out to the 2100 horizon and is increasingly approximate past
+/// its 2050 fit range. See https://eclipse.gsfc.nasa.gov/SEcat5/deltatpoly.html
 fn extrapolate(year: f64) -> f64 {
     let t = year - 2000.0;
     62.92 + 0.32217 * t + 0.005589 * t * t

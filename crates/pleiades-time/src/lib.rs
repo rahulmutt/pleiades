@@ -1,5 +1,35 @@
 //! Civil-time conversion: Gregorian calendar, leap seconds, Delta-T, and
 //! TT/TDB output with typed provenance.
+//!
+//! # Examples
+//!
+//! Convert a civil UTC datetime to Terrestrial Time. Every result carries a
+//! tiered quality marker — [`ConversionQuality::Exact`] for leap-second-exact
+//! UTC (1972 onward), [`Observed`](ConversionQuality::Observed) from the Delta-T
+//! table, or [`Predicted`](ConversionQuality::Predicted) from Delta-T
+//! extrapolation — so a modelled offset is never mistaken for an exact one.
+//! Sidereal time is then taken from the UT1 Julian day recovered via Delta-T
+//! (sidereal time is a function of Earth rotation, i.e. UT1, not TT):
+//!
+//! ```
+//! use pleiades_time::{
+//!     gmst_degrees, tt_from_utc_civil, ut1_jd_from_tt, CivilDateTime, ConversionQuality,
+//! };
+//! use pleiades_types::TimeScale;
+//!
+//! // 2000-01-01 12:00:00 UTC -> TT. UTC from 1972 onward is leap-second-exact.
+//! let civil = CivilDateTime::new(2000, 1, 1, 12, 0, 0.0);
+//! let tt = tt_from_utc_civil(civil).expect("inside the 1900-2100 support window");
+//! assert_eq!(tt.instant.scale, TimeScale::Tt);
+//! assert_eq!(tt.provenance.quality, ConversionQuality::Exact);
+//! assert_eq!(tt.provenance.tai_minus_utc, Some(32)); // TAI - UTC at 2000-01-01
+//!
+//! // Greenwich mean sidereal time (degrees, normalized to [0, 360)).
+//! let jd_ut1 = ut1_jd_from_tt(tt.instant.julian_day.days()).expect("Delta-T available");
+//! let gmst = gmst_degrees(jd_ut1);
+//! assert!((0.0..360.0).contains(&gmst));
+//! ```
+#![deny(missing_docs)]
 
 mod calendar;
 mod convert;
