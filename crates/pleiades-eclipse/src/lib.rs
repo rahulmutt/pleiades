@@ -15,9 +15,10 @@
 //! - **Validation:** the fail-closed `validate-eclipses` gate recomputes every
 //!   in-window NASA-canon eclipse and compares against ≤ 60 s (time),
 //!   ≤ 0.01 (magnitude), exact type, exact Saros, and ≤ 1.0″ (eclipsed
-//!   longitude). Approximately 908 eclipses pass all tolerances; one documented
-//!   knife-edge eclipse (1948-05-09, Saros 137, annular vs hybrid at
-//!   magnitude ≈ 1.0) is allowlisted for the exact-type check only.
+//!   longitude). Of the 909 in-window NASA-canon rows, 908 pass all five
+//!   tolerances; one documented knife-edge eclipse (1948-05-09, Saros 137,
+//!   annular vs hybrid at magnitude ≈ 1.0) is allowlisted for the exact-type
+//!   check only (its four other tolerances are still verified).
 //!
 //! ## Example
 //!
@@ -32,6 +33,7 @@
 //! assert!(next.is_some());
 //! ```
 #![forbid(unsafe_code)]
+#![deny(missing_docs)]
 
 mod engine;
 mod ephemeris;

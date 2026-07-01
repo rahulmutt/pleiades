@@ -9,15 +9,24 @@ use crate::types::{Eclipse, EclipseFilter, EclipseKind, EclipseType, Node};
 use pleiades_backend::EphemerisBackend;
 use pleiades_types::{Instant, JulianDay, Longitude, TimeScale};
 
+/// Searches for global/geocentric eclipses over a chosen [`EphemerisBackend`].
+///
+/// Backed by the packaged data, results are valid only within the
+/// 1900-01-01..2100-01-01 window (see [`crate`]); out-of-window requests fail
+/// closed with [`EclipseError::OutOfWindow`].
 pub struct EclipseEngine<B> {
     backend: B,
 }
 
 impl<B: EphemerisBackend> EclipseEngine<B> {
+    /// Creates an engine that draws Sun/Moon positions from `backend`.
     pub fn new(backend: B) -> Self {
         Self { backend }
     }
 
+    /// Returns every eclipse admitted by `filter` with greatest eclipse in
+    /// `[start, end]`, in chronological order. Fails closed if either bound is
+    /// outside the supported window.
     pub fn eclipses_in_range(
         &self,
         start: Instant,
@@ -54,6 +63,8 @@ impl<B: EphemerisBackend> EclipseEngine<B> {
         Ok(out)
     }
 
+    /// Returns the first eclipse admitted by `filter` whose greatest eclipse is
+    /// strictly after `after`, or `None` if none remains before the window end.
     pub fn next_eclipse(
         &self,
         after: Instant,
@@ -69,6 +80,8 @@ impl<B: EphemerisBackend> EclipseEngine<B> {
             .find(|e| e.greatest_eclipse.julian_day.days() > after_jd))
     }
 
+    /// Returns the last eclipse admitted by `filter` whose greatest eclipse is
+    /// strictly before `before`, or `None` if none exists after the window start.
     pub fn previous_eclipse(
         &self,
         before: Instant,

@@ -9,15 +9,21 @@ pub const WINDOW_START_JD: f64 = 2_415_020.5;
 /// no segments beyond it, so eclipses in the remainder of 2100 are out of range.
 pub const WINDOW_END_JD: f64 = 2_488_069.5;
 
+/// Errors returned by the eclipse engine; all variants fail closed.
 #[derive(Clone, Debug, PartialEq)]
 pub enum EclipseError {
     /// A requested instant falls outside the 1900–2100 CE window.
-    OutOfWindow { julian_day: f64 },
-    /// The backend returned a structured error.
+    OutOfWindow {
+        /// The out-of-window instant, as a Julian Day.
+        julian_day: f64,
+    },
+    /// The backend returned a structured error (message forwarded verbatim).
     Backend(String),
     /// The backend produced no ecliptic coordinates for a required body.
     MissingCoordinates {
+        /// Human-readable label of the body that was missing (e.g. `"Sun"`).
         body_label: &'static str,
+        /// The Julian Day at which coordinates were requested.
         julian_day: f64,
     },
 }
