@@ -290,9 +290,12 @@ pub fn resolve_ayanamsa(label: &str) -> Option<Ayanamsa> {
 
 /// Returns the sidereal offset for the provided ayanamsa and instant.
 ///
-/// Built-in catalog entries use the published reference epoch and offset
-/// metadata where available. Custom ayanamsas can supply the same information
-/// directly on the `CustomAyanamsa` definition.
+/// Built-in catalog entries derive their offset from the gated mode class:
+/// offset-defined modes use the published reference epoch/offset plus IAU-2006
+/// precession drift, while true-star, galactic, and fitted-offset modes use
+/// committed cubic fits to Swiss Ephemeris; ungated entries fall back to the
+/// legacy linear rate. Custom ayanamsas can supply the reference epoch and
+/// offset directly on the `CustomAyanamsa` definition.
 ///
 /// # Examples
 ///

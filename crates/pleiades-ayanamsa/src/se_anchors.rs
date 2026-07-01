@@ -7,10 +7,16 @@
 
 use pleiades_types::Ayanamsa;
 
+/// One row of the Swiss Ephemeris `aya_init` anchor table, transcribed from
+/// SE 2.10.03 `sweph.h`, used to reproduce the offset-defined gate model.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct SeAnchor {
+    /// SE `SE_SIDM` predefined-mode index this anchor corresponds to.
     pub se_sidm: i32,
+    /// Reference epoch `t0` as a Julian Day (interpreted as TT by the gate model;
+    /// see `t0_is_ut`).
     pub t0: f64,
+    /// Ayanamsa value at `t0`, in degrees (SE `ayan_t0`).
     pub ayan_t0: f64,
     /// SE's `t0_is_UT` flag, recorded for provenance only. The OffsetDefined
     /// gate model (and the matching SE reference measurement) treat `t0` as TT
@@ -20,6 +26,8 @@ pub struct SeAnchor {
     pub t0_is_ut: bool,
 }
 
+/// In-scope SE anchors: the typed ayanamsas whose offset-defined gate model is
+/// seeded from a transcribed Swiss Ephemeris `aya_init` row, paired with that row.
 pub const IN_SCOPE_ANCHORS: &[(Ayanamsa, SeAnchor)] = &[
     // sweph.h ayanamsa[2]: {1721057.5, 0, TRUE, 0} — DeLuce
     (
@@ -313,6 +321,8 @@ pub const IN_SCOPE_ANCHORS: &[(Ayanamsa, SeAnchor)] = &[
     ),
 ];
 
+/// Returns the transcribed Swiss Ephemeris anchor for `a`, or `None` when the
+/// ayanamsa is not in the in-scope anchor set.
 pub fn se_anchor(a: &Ayanamsa) -> Option<SeAnchor> {
     IN_SCOPE_ANCHORS
         .iter()

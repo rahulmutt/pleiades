@@ -21,6 +21,7 @@
 //! ```
 
 #![forbid(unsafe_code)]
+#![deny(missing_docs)]
 
 mod catalog;
 mod fitted_offset;

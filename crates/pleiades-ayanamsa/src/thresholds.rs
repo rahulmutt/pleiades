@@ -8,8 +8,9 @@ use pleiades_types::Ayanamsa;
 /// Computation class of a gated ayanamsa mode.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum AyanamsaModeClass {
-    /// Fixed offset at a reference epoch plus general precession (Lahiri, Raman,
-    /// Krishnamurti, Fagan/Bradley).
+    /// Fixed offset at a reference epoch plus general precession (e.g. Lahiri,
+    /// Raman, Krishnamurti, Fagan/Bradley, plus the 17 promoted offset modes
+    /// such as J2000/J1900/B1950 and the Suryasiddhanta/Aryabhata families).
     OffsetDefined,
     /// Sidereal point pinned to a fixed star, fit to Swiss Ephemeris
     /// (True Chitra, True Citra, True Revati, True Pushya, True Mula, True Sheoran).

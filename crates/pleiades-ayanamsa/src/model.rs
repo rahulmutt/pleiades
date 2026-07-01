@@ -218,7 +218,10 @@ pub struct AyanamsaProvenanceSummary {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum AyanamsaProvenanceSummaryValidationError {
     /// A summary field drifted from the documented sample set.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that no longer matches the documented posture.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for AyanamsaProvenanceSummaryValidationError {
@@ -612,7 +615,10 @@ pub struct AyanamsaCatalogValidationSummary {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum AyanamsaCatalogValidationSummaryValidationError {
     /// A summary field is out of sync with the current ayanamsa catalog posture.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that no longer matches the current catalog posture.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for AyanamsaCatalogValidationSummaryValidationError {
