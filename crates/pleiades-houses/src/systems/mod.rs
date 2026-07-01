@@ -172,21 +172,50 @@ fn asc_mc_from(armc_deg: f64, lat_deg: f64, obliquity_deg: f64) -> Result<AscMc,
     let midheaven =
         Longitude::from_degrees(theta.sin().atan2(theta.cos() * obl.cos()).to_degrees());
 
-    // Equatorial ascendant (East Point): the Ascendant at geographic latitude 0.
+    // The following five points are faithful ports of Swiss Ephemeris
+    // `swehouse.c` (function `swe_houses_armc` / `CalcH`, lines ~2001-2048),
+    // enforced by the `validate-angles` SE-parity gate. The SE helper
+    // `Asc1(x, f, sine, cose)` equals `ascendant_for(x - 90, f, obl)`, so each
+    // `Asc1(th ± 90, f)` call maps to `ascendant_for(th ± 90 - 90, f)` below
+    // (`th` == `armc_deg`, `fi` == `lat_deg`, `ekl` == `obliquity_deg`).
+
+    // Equatorial ascendant / East Point (swehouse.c `equasc`): the Ascendant at
+    // geographic latitude 0, i.e. `Asc1(th + 90, 0)`.
     let equatorial_ascendant = ascendant_for(armc_deg, 0.0, obl);
 
-    // Vertex: the Ascendant computed on the opposite meridian at the
-    // co-latitude. (Ported from swehouse.c; parity-gated.)
-    let colat = 90.0 - lat_deg.abs();
-    let vertex = ascendant_for((armc_deg + 180.0).rem_euclid(360.0), colat, obl);
+    // swehouse.c: `if (fi >= 0) f = 90 - fi; else f = -90 - fi;` — the pole
+    // height used by both the vertex and the Munkasey co-ascendant.
+    let f_pole = if lat_deg >= 0.0 {
+        90.0 - lat_deg
+    } else {
+        -90.0 - lat_deg
+    };
 
-    // Co-ascendant (Koch): the Ascendant on the meridian 90° away.
-    let coascendant_koch = ascendant_for((armc_deg - 90.0).rem_euclid(360.0), lat_deg, obl);
+    // Vertex (swehouse.c `vertex = Asc1(th - 90, f)` == `ascendant_for(th - 180, f)`),
+    // kept on the western hemisphere for |lat| <= obliquity via the SE
+    // `swe_difdeg2n(vertex, mc) > 0` flip.
+    let mut vertex_deg = ascendant_for(armc_deg - 180.0, f_pole, obl).degrees();
+    if lat_deg.abs() <= obliquity_deg {
+        let mut vemc = (vertex_deg - midheaven.degrees()).rem_euclid(360.0);
+        if vemc > 180.0 {
+            vemc -= 360.0;
+        }
+        if vemc > 0.0 {
+            vertex_deg = (vertex_deg + 180.0).rem_euclid(360.0);
+        }
+    }
+    let vertex = Longitude::from_degrees(vertex_deg);
 
-    // Co-ascendant (Munkasey) and polar ascendant (Munkasey): defined by
-    // swehouse.c; the values below are the first candidates and are validated
-    // (and, if needed, corrected) against the SE reference in Task 7.
-    let coascendant_munkasey = ascendant_for((armc_deg + 90.0).rem_euclid(360.0), lat_deg, obl);
+    // Co-ascendant, W. Koch (swehouse.c `coasc1 = degnorm(Asc1(th - 90, fi) + 180)`
+    // == `longitude_opposite(ascendant_for(th - 180, fi))`).
+    let coascendant_koch = longitude_opposite(ascendant_for(armc_deg - 180.0, lat_deg, obl));
+
+    // Co-ascendant, M. Munkasey (swehouse.c `coasc2 = Asc1(th + 90, f)`
+    // == `ascendant_for(th, f)`, with the same pole height `f` as the vertex).
+    let coascendant_munkasey = ascendant_for(armc_deg, f_pole, obl);
+
+    // Polar ascendant, M. Munkasey (swehouse.c `polasc = Asc1(th - 90, fi)`
+    // == `ascendant_for(th - 180, fi)` == `longitude_opposite(coasc1)`).
     let polar_ascendant = longitude_opposite(coascendant_koch);
 
     let points = AscMc {
