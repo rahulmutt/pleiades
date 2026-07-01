@@ -555,37 +555,15 @@ fn ascendant_for(sidereal_time_deg: f64, latitude_deg: f64, obliquity_rad: f64) 
 }
 
 fn local_sidereal_time(instant: Instant, longitude: Longitude) -> Angle {
-    let jd = instant.julian_day.days();
-    let centuries = (jd - 2_451_545.0) / 36_525.0;
-    let gmst = 280.460_618_37
-        + 360.985_647_366_29 * (jd - 2_451_545.0)
-        + 0.000_387_933 * centuries * centuries
-        - centuries * centuries * centuries / 38_710_000.0;
-    // Convert GMST → GAST by adding the equation of the equinoxes:
-    //   EE = Δψ · cos(ε_true)
-    // Δψ and Δε from the IAU-1980 nutation series. Falls back to EE = 0 (i.e.
-    // GMST) if the nutation table is unavailable; this is safe because nutation
-    // table failures are a development-time artifact (stale checksum), not a
-    // runtime condition.
-    let ee_deg = apparent_nutation(jd)
-        .map(|n| {
-            let delta_psi_deg = n.delta_psi_arcsec / 3600.0;
-            let mean_obl_deg = mean_obliquity(instant).degrees();
-            let true_obl_rad = (mean_obl_deg + n.delta_eps_arcsec / 3600.0).to_radians();
-            delta_psi_deg * true_obl_rad.cos()
-        })
-        .unwrap_or(0.0);
-    Angle::from_degrees(gmst + ee_deg + longitude.degrees()).normalized_0_360()
+    Angle::from_degrees(
+        pleiades_apparent::sidereal::sidereal_time(instant, longitude).local_apparent_deg,
+    )
 }
 
 fn mean_obliquity(instant: Instant) -> Angle {
-    let centuries = (instant.julian_day.days() - 2_451_545.0) / 36_525.0;
-    Angle::from_degrees(
-        pleiades_types::OBLIQUITY_J2000_DEG
-            - 0.013_004_166_666_666_667 * centuries
-            - 0.000_000_163_888_888_888_888_88 * centuries * centuries
-            + 0.000_000_503_611_111_111_111_1 * centuries * centuries * centuries,
-    )
+    Angle::from_degrees(pleiades_apparent::nutation::mean_obliquity_degrees(
+        instant.julian_day.days(),
+    ))
 }
 
 fn equal_houses(ascendant: Longitude) -> [Longitude; 12] {
