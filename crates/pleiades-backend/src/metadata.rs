@@ -265,11 +265,22 @@ impl fmt::Display for BackendMetadata {
 #[non_exhaustive]
 pub enum BackendMetadataValidationError {
     /// A required metadata field is blank or whitespace-padded.
-    BlankField { field: &'static str },
+    BlankField {
+        /// Name of the offending metadata field.
+        field: &'static str,
+    },
     /// A required list field is empty.
-    EmptyField { field: &'static str },
+    EmptyField {
+        /// Name of the offending metadata list field.
+        field: &'static str,
+    },
     /// A catalog-style list field contains a duplicate entry.
-    DuplicateEntry { field: &'static str, value: String },
+    DuplicateEntry {
+        /// Name of the metadata list field that held the duplicate.
+        field: &'static str,
+        /// The duplicated entry value.
+        value: String,
+    },
     /// The nominal range contains a non-finite Julian-day bound.
     NominalRangeNotFinite,
     /// The nominal range bounds use different time scales.

@@ -10,7 +10,10 @@ use pleiades_types::CelestialBody;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum BodyClaimTier {
-    /// Production claim: validated against the reference corpus to the SP3 ceiling.
+    /// Production release claim: validated against a reference corpus
+    /// (packaged-artifact validation to its published ceiling, or a named
+    /// SPK/reference corpus). The specific numeric band and evidence are carried
+    /// separately by [`AccuracyClass`] and [`ClaimEvidence`].
     ReleaseGrade,
     /// Source-backed but below the release ceiling, or corpus/kernel dependent.
     Constrained,

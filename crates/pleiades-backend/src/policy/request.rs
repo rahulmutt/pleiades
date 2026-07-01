@@ -60,13 +60,25 @@ impl fmt::Display for RequestPolicySummary {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum RequestPolicySummaryValidationError {
     /// A summary field was blank or whitespace-only.
-    BlankField { field: &'static str },
+    BlankField {
+        /// Name of the offending summary field.
+        field: &'static str,
+    },
     /// A summary field had surrounding whitespace.
-    WhitespacePaddedField { field: &'static str },
+    WhitespacePaddedField {
+        /// Name of the offending summary field.
+        field: &'static str,
+    },
     /// A summary field contained an embedded line break.
-    EmbeddedLineBreak { field: &'static str },
+    EmbeddedLineBreak {
+        /// Name of the offending summary field.
+        field: &'static str,
+    },
     /// A summary field is out of sync with the current request-policy posture.
-    FieldOutOfSync { field: &'static str },
+    FieldOutOfSync {
+        /// Name of the summary field that drifted from the current posture.
+        field: &'static str,
+    },
 }
 
 impl fmt::Display for RequestPolicySummaryValidationError {
