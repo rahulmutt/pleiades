@@ -5,6 +5,7 @@
 
 use super::*;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::OnceLock;
 
 pub(crate) fn unique_temp_dir(prefix: &str) -> std::path::PathBuf {
     static NEXT_ID: AtomicU64 = AtomicU64::new(0);
@@ -24,6 +25,54 @@ pub(crate) fn unique_temp_dir(prefix: &str) -> std::path::PathBuf {
     path
 }
 
+/// One pristine release bundle per test process.
+///
+/// Generating a bundle costs ~74s of memoized warm-up plus ~2s of file
+/// writing; regenerating it per test dominated `test-full` wall clock
+/// (see docs/superpowers/specs/2026-07-02-release-bundle-test-fixture-design.md).
+/// Tests must never mutate `dir`; tamper tests take a `stage_bundle_copy`.
+pub(crate) struct PristineBundle {
+    pub(crate) dir: std::path::PathBuf,
+    pub(crate) rendered: String,
+    pub(crate) bundle: ReleaseBundle,
+}
+
+pub(crate) fn pristine_release_bundle() -> &'static PristineBundle {
+    static PRISTINE: OnceLock<PristineBundle> = OnceLock::new();
+    PRISTINE.get_or_init(|| {
+        let dir = unique_temp_dir("pleiades-release-bundle-pristine");
+        let bundle =
+            render_release_bundle(1, &dir).expect("pristine release bundle fixture should render");
+        // The bundle-release CLI arm prints `bundle.to_string()`, so this is
+        // byte-identical to what `render_cli(["bundle-release", ...])` returns.
+        let rendered = bundle.to_string();
+        PristineBundle {
+            dir,
+            rendered,
+            bundle,
+        }
+    })
+}
+
+pub(crate) fn stage_bundle_copy(prefix: &str) -> std::path::PathBuf {
+    let source = &pristine_release_bundle().dir;
+    let dest = unique_temp_dir(prefix);
+    for entry in std::fs::read_dir(source).expect("pristine bundle dir should be readable") {
+        let entry = entry.expect("pristine bundle dir entry should be readable");
+        let file_type = entry
+            .file_type()
+            .expect("pristine bundle entry file type should be readable");
+        assert!(
+            file_type.is_file(),
+            "pristine bundle should contain only flat files, found non-file: {}",
+            entry.path().display()
+        );
+        std::fs::copy(entry.path(), dest.join(entry.file_name()))
+            .expect("pristine bundle file should copy into the staged dir");
+    }
+    dest
+}
+
 pub(crate) fn assert_report_contains_exact_line(report: &str, expected: &str) {
     let expected = expected.trim_start();
     assert!(
@@ -37,16 +86,8 @@ pub(crate) fn assert_release_bundle_rejects_tampered_text_file(
     file_name: &str,
     expected_fragment: &str,
 ) {
-    let bundle_dir = unique_temp_dir(bundle_dir_prefix);
+    let bundle_dir = stage_bundle_copy(bundle_dir_prefix);
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let file_path = bundle_dir.join(file_name);
     let mut text = std::fs::read_to_string(&file_path)
@@ -73,16 +114,8 @@ pub(crate) fn assert_release_bundle_rejects_semantically_tampered_text_file_with
     to: &str,
     expected_fragment: &str,
 ) {
-    let bundle_dir = unique_temp_dir(bundle_dir_prefix);
+    let bundle_dir = stage_bundle_copy(bundle_dir_prefix);
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let file_path = bundle_dir.join(file_name);
     let original = std::fs::read_to_string(&file_path)
@@ -133,16 +166,8 @@ pub(crate) fn assert_release_bundle_rejects_symlinked_text_file(
 ) {
     use std::os::unix::fs::symlink;
 
-    let bundle_dir = unique_temp_dir(bundle_dir_prefix);
+    let bundle_dir = stage_bundle_copy(bundle_dir_prefix);
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let file_path = bundle_dir.join(file_name);
     std::fs::remove_file(&file_path).expect("bundled text file should be removable");
@@ -163,16 +188,8 @@ pub(crate) fn assert_release_bundle_rejects_missing_manifest_entry(
     manifest_line_prefix: &str,
     expected_fragments: &[&str],
 ) {
-    let bundle_dir = unique_temp_dir(bundle_dir_prefix);
+    let bundle_dir = stage_bundle_copy(bundle_dir_prefix);
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let manifest_path = bundle_dir.join("bundle-manifest.txt");
     let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");
@@ -202,16 +219,8 @@ pub(crate) fn assert_release_bundle_rejects_blank_manifest_value(
     manifest_line_prefix: &str,
     expected_fragments: &[&str],
 ) {
-    let bundle_dir = unique_temp_dir(bundle_dir_prefix);
+    let bundle_dir = stage_bundle_copy(bundle_dir_prefix);
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let manifest_path = bundle_dir.join("bundle-manifest.txt");
     let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");
@@ -245,16 +254,8 @@ pub(crate) fn assert_release_bundle_rejects_duplicate_manifest_entry(
     manifest_line_prefix: &str,
     expected_fragments: &[&str],
 ) {
-    let bundle_dir = unique_temp_dir(bundle_dir_prefix);
+    let bundle_dir = stage_bundle_copy(bundle_dir_prefix);
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let manifest_path = bundle_dir.join("bundle-manifest.txt");
     let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");
@@ -284,16 +285,8 @@ pub(crate) fn assert_release_bundle_rejects_whitespace_manifest_entry(
     manifest_line_prefix: &str,
     expected_fragments: &[&str],
 ) {
-    let bundle_dir = unique_temp_dir(bundle_dir_prefix);
+    let bundle_dir = stage_bundle_copy(bundle_dir_prefix);
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let manifest_path = bundle_dir.join("bundle-manifest.txt");
     let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");
