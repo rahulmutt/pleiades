@@ -1,16 +1,14 @@
 //! Tests for bundle-release and verify-release-bundle commands.
 
-use super::super::test_support::unique_temp_dir;
+use super::super::test_support::{pristine_release_bundle, unique_temp_dir};
 use crate::cli::render_cli;
 
 #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn bundle_release_command_writes_a_staged_bundle() {
-    let bundle_dir = unique_temp_dir("pleiades-cli-release-bundle");
-    let bundle_dir_string = bundle_dir.display().to_string();
-
-    let rendered = render_cli(&["bundle-release", "--out", &bundle_dir_string])
-        .expect("bundle generation should render");
+    let pristine = pristine_release_bundle();
+    let bundle_dir = pristine.dir.clone();
+    let rendered = pristine.rendered.clone();
 
     assert!(rendered.contains("Release bundle"));
     assert!(rendered.contains("compatibility-profile.txt"));
@@ -118,11 +116,7 @@ fn bundle_release_command_writes_a_staged_bundle() {
 #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_command_verifies_a_staged_bundle() {
-    let bundle_dir = unique_temp_dir("pleiades-cli-release-bundle");
-    let bundle_dir_string = bundle_dir.display().to_string();
-
-    render_cli(&["bundle-release", "--out", &bundle_dir_string])
-        .expect("bundle generation should succeed");
+    let bundle_dir_string = pristine_release_bundle().dir.display().to_string();
     let verified = render_cli(&["verify-release-bundle", "--out", &bundle_dir_string])
         .expect("bundle verification should render");
 

@@ -1,6 +1,6 @@
 # Release-bundle tests: generate once, verify per test
 
-Status: proposed design (2026-07-02). Awaiting review; implementation pending plan.
+Status: implemented (2026-07-02). Plan: docs/superpowers/plans/2026-07-02-release-bundle-test-fixture.md
 
 ## Problem
 
@@ -136,6 +136,13 @@ keep their existing per-test `remove_dir_all` cleanup.
   suite pays anyway) and single-digit CPU-minutes.
 - `pleiades-cli` release tests: 9 generations → 1–2.
 - CI `test-full` wall clock drops by roughly the same amount.
+
+Measured result (2026-07-02):
+`cargo test -p pleiades-validate --lib -- --include-ignored release_bundle`
+passed 172/172 in 2 m 54 s wall
+(real 2m54.027s; user 10m16.050s + sys 2m1.967s ≈ 12.3 CPU-min), versus the
+906 s wall / ~79 CPU-min baseline — a ~5.2x wall-clock and ~6.4x CPU
+reduction. `mise run test-full` passed (all suites ok, 0 failures).
 
 ## Verification
 

@@ -7,16 +7,8 @@ use pleiades_core::current_release_profile_identifiers;
 #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_unexpected_manifest_lines() {
-    let bundle_dir = unique_temp_dir("pleiades-release-bundle-unexpected-manifest-line");
+    let bundle_dir = stage_bundle_copy("pleiades-release-bundle-unexpected-manifest-line");
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let manifest_path = bundle_dir.join("bundle-manifest.txt");
     let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");
@@ -37,16 +29,8 @@ fn verify_release_bundle_rejects_unexpected_manifest_lines() {
 #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_backend_matrix_checksum_mismatches() {
-    let bundle_dir = unique_temp_dir("pleiades-release-bundle-corrupt-matrix");
+    let bundle_dir = stage_bundle_copy("pleiades-release-bundle-corrupt-matrix");
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let manifest_path = bundle_dir.join("bundle-manifest.txt");
     let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");
@@ -70,16 +54,8 @@ fn verify_release_bundle_rejects_backend_matrix_checksum_mismatches() {
 #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_api_stability_summary_checksum_mismatches() {
-    let bundle_dir = unique_temp_dir("pleiades-release-bundle-corrupt-api-summary");
+    let bundle_dir = stage_bundle_copy("pleiades-release-bundle-corrupt-api-summary");
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let manifest_path = bundle_dir.join("bundle-manifest.txt");
     let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");
@@ -103,16 +79,8 @@ fn verify_release_bundle_rejects_api_stability_summary_checksum_mismatches() {
 #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_api_stability_summary_even_with_updated_checksum() {
-    let bundle_dir = unique_temp_dir("pleiades-release-bundle-tampered-api-summary-semantic");
+    let bundle_dir = stage_bundle_copy("pleiades-release-bundle-tampered-api-summary-semantic");
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let summary_path = bundle_dir.join("api-stability-summary.txt");
     let summary =
@@ -154,16 +122,8 @@ fn verify_release_bundle_rejects_tampered_api_stability_summary_even_with_update
 #[test]
 fn verify_release_bundle_rejects_tampered_packaged_artifact_output_support_summary_even_with_updated_checksum(
 ) {
-    let bundle_dir = unique_temp_dir("pleiades-release-bundle-tampered-output-support-semantic");
+    let bundle_dir = stage_bundle_copy("pleiades-release-bundle-tampered-output-support-semantic");
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let summary_path = bundle_dir.join("packaged-artifact-output-support-summary.txt");
     let summary = std::fs::read_to_string(&summary_path)
@@ -209,16 +169,9 @@ fn verify_release_bundle_rejects_tampered_packaged_artifact_output_support_summa
 #[test]
 fn verify_release_bundle_rejects_tampered_packaged_artifact_profile_coverage_summary_even_with_updated_checksum(
 ) {
-    let bundle_dir = unique_temp_dir("pleiades-release-bundle-tampered-profile-coverage-semantic");
+    let bundle_dir =
+        stage_bundle_copy("pleiades-release-bundle-tampered-profile-coverage-semantic");
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let summary_path = bundle_dir.join("packaged-artifact-profile-coverage-summary.txt");
     let summary = std::fs::read_to_string(&summary_path)
@@ -266,16 +219,8 @@ fn verify_release_bundle_rejects_tampered_packaged_artifact_profile_coverage_sum
 fn verify_release_bundle_rejects_tampered_packaged_artifact_fit_sample_classes_summary_even_with_updated_checksum(
 ) {
     let bundle_dir =
-        unique_temp_dir("pleiades-release-bundle-tampered-fit-sample-classes-semantic");
+        stage_bundle_copy("pleiades-release-bundle-tampered-fit-sample-classes-semantic");
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let summary_path = bundle_dir.join("packaged-artifact-fit-sample-classes-summary.txt");
     let summary = std::fs::read_to_string(&summary_path)
@@ -374,16 +319,8 @@ fn verify_release_bundle_rejects_tampered_packaged_frame_treatment_summary_even_
 #[test]
 fn verify_release_bundle_rejects_tampered_packaged_artifact_access_summary_even_with_updated_checksum(
 ) {
-    let bundle_dir = unique_temp_dir("pleiades-release-bundle-tampered-access-semantic");
+    let bundle_dir = stage_bundle_copy("pleiades-release-bundle-tampered-access-semantic");
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let summary_path = bundle_dir.join("packaged-artifact-access-summary.txt");
     let summary = std::fs::read_to_string(&summary_path)
@@ -425,16 +362,8 @@ fn verify_release_bundle_rejects_tampered_packaged_artifact_access_summary_even_
 #[test]
 fn verify_release_bundle_rejects_tampered_packaged_artifact_speed_policy_summary_even_with_updated_checksum(
 ) {
-    let bundle_dir = unique_temp_dir("pleiades-release-bundle-tampered-speed-policy-semantic");
+    let bundle_dir = stage_bundle_copy("pleiades-release-bundle-tampered-speed-policy-semantic");
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let summary_path = bundle_dir.join("packaged-artifact-speed-policy-summary.txt");
     let summary = std::fs::read_to_string(&summary_path)
@@ -492,16 +421,9 @@ fn verify_release_bundle_rejects_tampered_packaged_artifact_regeneration_summary
 #[test]
 fn verify_release_bundle_rejects_tampered_packaged_artifact_generation_policy_summary_even_with_updated_checksum(
 ) {
-    let bundle_dir = unique_temp_dir("pleiades-release-bundle-tampered-generation-policy-semantic");
+    let bundle_dir =
+        stage_bundle_copy("pleiades-release-bundle-tampered-generation-policy-semantic");
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let summary_path = bundle_dir.join("packaged-artifact-generation-policy-summary.txt");
     let summary = std::fs::read_to_string(&summary_path)
@@ -563,16 +485,8 @@ fn verify_release_bundle_rejects_tampered_packaged_artifact_generation_residual_
 fn verify_release_bundle_rejects_tampered_packaged_artifact_production_profile_summary_even_with_updated_checksum(
 ) {
     let bundle_dir =
-        unique_temp_dir("pleiades-release-bundle-tampered-production-profile-semantic");
+        stage_bundle_copy("pleiades-release-bundle-tampered-production-profile-semantic");
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let summary_path = bundle_dir.join("packaged-artifact-production-profile-summary.txt");
     let summary = std::fs::read_to_string(&summary_path)
@@ -626,16 +540,8 @@ fn verify_release_bundle_rejects_tampered_packaged_artifact_production_profile_s
 fn verify_release_bundle_rejects_tampered_packaged_artifact_lookup_epoch_policy_summary_even_with_updated_checksum(
 ) {
     let bundle_dir =
-        unique_temp_dir("pleiades-release-bundle-tampered-lookup-epoch-policy-semantic");
+        stage_bundle_copy("pleiades-release-bundle-tampered-lookup-epoch-policy-semantic");
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let summary_path = bundle_dir.join("packaged-lookup-epoch-policy-summary.txt");
     let summary = std::fs::read_to_string(&summary_path)
@@ -686,16 +592,8 @@ fn verify_release_bundle_rejects_tampered_packaged_artifact_lookup_epoch_policy_
 #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_release_notes_checksum_mismatches() {
-    let bundle_dir = unique_temp_dir("pleiades-release-bundle-corrupt-notes");
+    let bundle_dir = stage_bundle_copy("pleiades-release-bundle-corrupt-notes");
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let manifest_path = bundle_dir.join("bundle-manifest.txt");
     let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");
@@ -719,16 +617,8 @@ fn verify_release_bundle_rejects_release_notes_checksum_mismatches() {
 #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_compatibility_profile_summary_file() {
-    let bundle_dir = unique_temp_dir("pleiades-release-bundle-tampered-summary");
+    let bundle_dir = stage_bundle_copy("pleiades-release-bundle-tampered-summary");
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let summary_path = bundle_dir.join("compatibility-profile-summary.txt");
     let summary =
@@ -752,16 +642,8 @@ fn verify_release_bundle_rejects_tampered_compatibility_profile_summary_file() {
 #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_release_notes_file() {
-    let bundle_dir = unique_temp_dir("pleiades-release-bundle-tampered-notes");
+    let bundle_dir = stage_bundle_copy("pleiades-release-bundle-tampered-notes");
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let notes_path = bundle_dir.join("release-notes.txt");
     let mut notes = std::fs::read_to_string(&notes_path).expect("release notes should exist");
@@ -781,16 +663,8 @@ fn verify_release_bundle_rejects_tampered_release_notes_file() {
 #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_backend_matrix_summary_file() {
-    let bundle_dir = unique_temp_dir("pleiades-release-bundle-tampered-matrix-summary");
+    let bundle_dir = stage_bundle_copy("pleiades-release-bundle-tampered-matrix-summary");
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let summary_path = bundle_dir.join("backend-matrix-summary.txt");
     let summary =
@@ -812,16 +686,8 @@ fn verify_release_bundle_rejects_tampered_backend_matrix_summary_file() {
 #[test]
 fn verify_release_bundle_rejects_semantically_tampered_backend_matrix_file_even_with_updated_checksum(
 ) {
-    let bundle_dir = unique_temp_dir("pleiades-release-bundle-tampered-backend-matrix-semantic");
+    let bundle_dir = stage_bundle_copy("pleiades-release-bundle-tampered-backend-matrix-semantic");
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let summary_path = bundle_dir.join("backend-matrix.txt");
     let summary = std::fs::read_to_string(&summary_path).expect("backend matrix should exist");
@@ -1183,16 +1049,8 @@ fn verify_release_bundle_rejects_tampered_comparison_corpus_release_guard_summar
 fn verify_release_bundle_rejects_tampered_packaged_artifact_source_fit_holdout_sync_summary_even_with_updated_checksum(
 ) {
     let bundle_dir =
-        unique_temp_dir("pleiades-release-bundle-tampered-source-fit-holdout-sync-semantic");
+        stage_bundle_copy("pleiades-release-bundle-tampered-source-fit-holdout-sync-semantic");
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let summary_path = bundle_dir.join("packaged-artifact-source-fit-holdout-sync-summary.txt");
     let summary = std::fs::read_to_string(&summary_path)
@@ -2096,16 +1954,8 @@ fn verify_release_bundle_rejects_tampered_artifact_summary_file() {
 #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_api_stability_summary_file() {
-    let bundle_dir = unique_temp_dir("pleiades-release-bundle-tampered-api-summary");
+    let bundle_dir = stage_bundle_copy("pleiades-release-bundle-tampered-api-summary");
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let summary_path = bundle_dir.join("api-stability-summary.txt");
     let summary =
@@ -2209,16 +2059,9 @@ fn verify_release_bundle_rejects_tampered_validation_report_file() {
 #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_validation_report_file_even_with_updated_checksum() {
-    let bundle_dir = unique_temp_dir("pleiades-release-bundle-tampered-validation-report-semantic");
+    let bundle_dir =
+        stage_bundle_copy("pleiades-release-bundle-tampered-validation-report-semantic");
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let report_path = bundle_dir.join("validation-report.txt");
     let report = std::fs::read_to_string(&report_path).expect("validation report should exist");
@@ -2263,16 +2106,8 @@ fn verify_release_bundle_rejects_tampered_validation_report_file_even_with_updat
 fn verify_release_bundle_rejects_tampered_validation_report_summary_file_even_with_updated_checksum(
 ) {
     let bundle_dir =
-        unique_temp_dir("pleiades-release-bundle-tampered-validation-report-summary-semantic");
+        stage_bundle_copy("pleiades-release-bundle-tampered-validation-report-summary-semantic");
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let report_path = bundle_dir.join("validation-report-summary.txt");
     let report =
@@ -2331,16 +2166,8 @@ fn verify_release_bundle_rejects_tampered_validation_report_summary_header_even_
 fn verify_release_bundle_rejects_tampered_validation_report_fit_margin_summary_even_with_updated_checksum(
 ) {
     let bundle_dir =
-        unique_temp_dir("pleiades-release-bundle-tampered-validation-report-fit-margin-semantic");
+        stage_bundle_copy("pleiades-release-bundle-tampered-validation-report-fit-margin-semantic");
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let report_path = bundle_dir.join("validation-report-summary.txt");
     let report =
@@ -2384,17 +2211,10 @@ fn verify_release_bundle_rejects_tampered_validation_report_fit_margin_summary_e
 #[test]
 fn verify_release_bundle_rejects_tampered_validation_report_fit_outlier_summary_even_with_updated_checksum(
 ) {
-    let bundle_dir =
-        unique_temp_dir("pleiades-release-bundle-tampered-validation-report-fit-outlier-semantic");
+    let bundle_dir = stage_bundle_copy(
+        "pleiades-release-bundle-tampered-validation-report-fit-outlier-semantic",
+    );
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let report_path = bundle_dir.join("validation-report-summary.txt");
     let report =
@@ -2438,18 +2258,10 @@ fn verify_release_bundle_rejects_tampered_validation_report_fit_outlier_summary_
 #[test]
 fn verify_release_bundle_rejects_tampered_validation_report_fit_sample_classes_summary_even_with_updated_checksum(
 ) {
-    let bundle_dir = unique_temp_dir(
+    let bundle_dir = stage_bundle_copy(
         "pleiades-release-bundle-tampered-validation-report-fit-sample-classes-semantic",
     );
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let report_path = bundle_dir.join("validation-report-summary.txt");
     let report =
@@ -2494,18 +2306,10 @@ fn verify_release_bundle_rejects_tampered_validation_report_fit_sample_classes_s
 #[test]
 fn verify_release_bundle_rejects_tampered_validation_report_fit_threshold_violation_count_summary_even_with_updated_checksum(
 ) {
-    let bundle_dir = unique_temp_dir(
+    let bundle_dir = stage_bundle_copy(
         "pleiades-release-bundle-tampered-validation-report-fit-threshold-violation-count-semantic",
     );
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let report_path = bundle_dir.join("validation-report-summary.txt");
     let report =
@@ -2550,18 +2354,10 @@ fn verify_release_bundle_rejects_tampered_validation_report_fit_threshold_violat
 #[test]
 fn verify_release_bundle_rejects_tampered_validation_report_fit_threshold_violations_summary_even_with_updated_checksum(
 ) {
-    let bundle_dir = unique_temp_dir(
+    let bundle_dir = stage_bundle_copy(
         "pleiades-release-bundle-tampered-validation-report-fit-threshold-violations-semantic",
     );
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let report_path = bundle_dir.join("validation-report-summary.txt");
     let report =
@@ -2605,16 +2401,8 @@ fn verify_release_bundle_rejects_tampered_validation_report_fit_threshold_violat
 #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_release_checklist_checksum_mismatches() {
-    let bundle_dir = unique_temp_dir("pleiades-release-bundle-corrupt-checklist");
+    let bundle_dir = stage_bundle_copy("pleiades-release-bundle-corrupt-checklist");
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let manifest_path = bundle_dir.join("bundle-manifest.txt");
     let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");
@@ -2638,16 +2426,8 @@ fn verify_release_bundle_rejects_release_checklist_checksum_mismatches() {
 #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_api_stability_checksum_mismatches() {
-    let bundle_dir = unique_temp_dir("pleiades-release-bundle-corrupt-api-stability");
+    let bundle_dir = stage_bundle_copy("pleiades-release-bundle-corrupt-api-stability");
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let manifest_path = bundle_dir.join("bundle-manifest.txt");
     let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");
@@ -2671,16 +2451,8 @@ fn verify_release_bundle_rejects_api_stability_checksum_mismatches() {
 #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_validation_report_checksum_mismatches() {
-    let bundle_dir = unique_temp_dir("pleiades-release-bundle-corrupt-validation-report");
+    let bundle_dir = stage_bundle_copy("pleiades-release-bundle-corrupt-validation-report");
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let manifest_path = bundle_dir.join("bundle-manifest.txt");
     let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");
@@ -2704,16 +2476,8 @@ fn verify_release_bundle_rejects_validation_report_checksum_mismatches() {
 #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_validation_report_summary_checksum_mismatches() {
-    let bundle_dir = unique_temp_dir("pleiades-release-bundle-corrupt-validation-report-summary");
+    let bundle_dir = stage_bundle_copy("pleiades-release-bundle-corrupt-validation-report-summary");
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let manifest_path = bundle_dir.join("bundle-manifest.txt");
     let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");

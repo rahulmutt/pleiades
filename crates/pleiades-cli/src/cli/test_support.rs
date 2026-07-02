@@ -41,3 +41,21 @@ pub(crate) fn help_command_names(help: &str) -> std::collections::BTreeSet<Strin
         })
         .collect()
 }
+
+/// One pristine release bundle per test process (default benchmark rounds,
+/// matching what the release-command tests assert). Never mutate `dir`.
+pub(crate) struct PristineBundle {
+    pub(crate) dir: std::path::PathBuf,
+    pub(crate) rendered: String,
+}
+
+pub(crate) fn pristine_release_bundle() -> &'static PristineBundle {
+    static PRISTINE: std::sync::OnceLock<PristineBundle> = std::sync::OnceLock::new();
+    PRISTINE.get_or_init(|| {
+        let dir = unique_temp_dir("pleiades-cli-release-bundle-pristine");
+        let dir_string = dir.display().to_string();
+        let rendered = crate::cli::render_cli(&["bundle-release", "--out", &dir_string])
+            .expect("pristine release bundle fixture should render");
+        PristineBundle { dir, rendered }
+    })
+}
