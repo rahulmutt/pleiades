@@ -89,6 +89,49 @@ workflow with `actions/create-github-app-token`. The token auto-rotates and is
 not tied to a personal account. For a solo repo the fine-grained PAT above is
 fine to start; you can migrate to an App later.
 
+## Bootstrapping the first release (0.3.0)
+
+The **first** release under this setup is cut **by hand** with the cargo-release
+fallback, not by merging a release-plz Release PR. release-plz automation takes
+over from 0.4.0 onward. Do the bootstrap manually because:
+
+- **0.3.0 first-publishes five brand-new crate names** — `pleiades-apparent`,
+  `pleiades-apsides`, `pleiades-eclipse`, `pleiades-time`, and `pleiades-data`.
+  (The other nine crates already exist on crates.io at 0.2.0, so they are just
+  updates.) crates.io throttles brand-new crate *names* to a small burst
+  (~5), separate from the high limit for updating existing crates. Five new names
+  sits right at that edge, so an unattended CI publish can trip partway through,
+  and recovering a half-published release from an Actions run is painful. See the
+  [First-release note](#first-release-note) for the mechanics.
+- The first publish is **irreversible** and worth doing under direct supervision,
+  with a dry-run rehearsal and eyes on the dependency-ordered publishing.
+
+### Steps
+
+1. **Authenticate for crates.io:** `cargo login` (or export `CARGO_REGISTRY_TOKEN`).
+   Also configure the two GitHub secrets now (see [One-time setup](#one-time-setup))
+   so the automation is live immediately after the bootstrap.
+2. *(Recommended)* email **help@crates.io** ahead of time to raise the new-crate
+   rate limit for this initial five-crate release — the cleanest way to avoid the
+   burst limit entirely.
+3. **Push `main`** so the remote matches what you are about to publish.
+4. **Run the gate:** `mise run release-gate` (or `mise run ci`).
+5. **Rehearse:** `cargo release 0.3.0` (no `--execute`, a dry run). Confirm the
+   planned bump is 0.2.0 → 0.3.0 across all 14 publishable crates, the publish
+   order is dependency-correct, and `pleiades-cli`/`pleiades-validate` are skipped.
+6. **Publish:** `cargo release 0.3.0 --execute`. If it stops on the new-crate
+   rate limit, wait and re-run the same command — crates already published at
+   0.3.0 are skipped, so it resumes where it left off.
+7. This creates the `Release 0.3.0` commit, tags `v0.3.0`, and pushes. Confirm all
+   five new crates now resolve on crates.io and the docs.rs builds are green (see
+   [After publishing](#after-publishing)).
+
+After 0.3.0 is live, every crate name exists on crates.io, so 0.4.0 onward are
+plain updates (high rate limit) and are handled by the automated flow below.
+Cutting 0.3.0 manually does not conflict with release-plz: it sees the `v0.3.0`
+tag as the current release and will not try to re-publish it — it simply waits
+for the next releasable commit to open the 0.4.0 Release PR.
+
 ## Cutting a release (automated — primary)
 
 1. Land your `feat`/`fix`/`perf`/breaking commits on `main` as usual.
