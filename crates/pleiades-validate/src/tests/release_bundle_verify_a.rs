@@ -2232,16 +2232,8 @@ fn verify_release_bundle_rejects_blank_api_stability_posture_id_entry() {
 #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_checksum_mismatches() {
-    let bundle_dir = unique_temp_dir("pleiades-release-bundle-corrupt");
+    let bundle_dir = stage_bundle_copy("pleiades-release-bundle-corrupt");
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let manifest_path = bundle_dir.join("bundle-manifest.txt");
     let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");
@@ -2265,16 +2257,8 @@ fn verify_release_bundle_rejects_checksum_mismatches() {
 #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_manifest_file() {
-    let bundle_dir = unique_temp_dir("pleiades-release-bundle-tampered-manifest");
+    let bundle_dir = stage_bundle_copy("pleiades-release-bundle-tampered-manifest");
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let manifest_path = bundle_dir.join("bundle-manifest.txt");
     let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");
@@ -2294,16 +2278,8 @@ fn verify_release_bundle_rejects_tampered_manifest_file() {
 #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_invalid_validation_rounds() {
-    let bundle_dir = unique_temp_dir("pleiades-release-bundle-invalid-validation-rounds");
+    let bundle_dir = stage_bundle_copy("pleiades-release-bundle-invalid-validation-rounds");
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let manifest_path = bundle_dir.join("bundle-manifest.txt");
     let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");
@@ -2409,16 +2385,8 @@ fn release_bundle_validate_rejects_manifest_path_drift() {
 #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_tampered_manifest_checksum_sidecar() {
-    let bundle_dir = unique_temp_dir("pleiades-release-bundle-tampered-manifest-checksum");
+    let bundle_dir = stage_bundle_copy("pleiades-release-bundle-tampered-manifest-checksum");
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let checksum_path = bundle_dir.join("bundle-manifest.checksum.txt");
     let tampered = "0x0000000000000000\n";
@@ -2438,16 +2406,8 @@ fn verify_release_bundle_rejects_tampered_manifest_checksum_sidecar() {
 #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_missing_manifest_checksum_sidecar() {
-    let bundle_dir = unique_temp_dir("pleiades-release-bundle-missing-manifest-checksum");
+    let bundle_dir = stage_bundle_copy("pleiades-release-bundle-missing-manifest-checksum");
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let checksum_path = bundle_dir.join("bundle-manifest.checksum.txt");
     std::fs::remove_file(&checksum_path).expect("manifest checksum sidecar should be removable");
@@ -2463,16 +2423,8 @@ fn verify_release_bundle_rejects_missing_manifest_checksum_sidecar() {
 #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_malformed_manifest_checksum_sidecar() {
-    let bundle_dir = unique_temp_dir("pleiades-release-bundle-malformed-manifest-checksum");
+    let bundle_dir = stage_bundle_copy("pleiades-release-bundle-malformed-manifest-checksum");
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let checksum_path = bundle_dir.join("bundle-manifest.checksum.txt");
     std::fs::write(&checksum_path, " 0x0000000000000000 \n")
@@ -2490,16 +2442,8 @@ fn verify_release_bundle_rejects_malformed_manifest_checksum_sidecar() {
 #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_noncanonical_manifest_checksum_sidecar() {
-    let bundle_dir = unique_temp_dir("pleiades-release-bundle-noncanonical-manifest-checksum");
+    let bundle_dir = stage_bundle_copy("pleiades-release-bundle-noncanonical-manifest-checksum");
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let checksum_path = bundle_dir.join("bundle-manifest.checksum.txt");
     std::fs::write(&checksum_path, "0x1\n").expect("manifest checksum sidecar should be writable");
@@ -2517,16 +2461,8 @@ fn verify_release_bundle_rejects_noncanonical_manifest_checksum_sidecar() {
 #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_noncanonical_manifest_checksum_entry() {
-    let bundle_dir = unique_temp_dir("pleiades-release-bundle-noncanonical-manifest-entry");
+    let bundle_dir = stage_bundle_copy("pleiades-release-bundle-noncanonical-manifest-entry");
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     let manifest_path = bundle_dir.join("bundle-manifest.txt");
     let manifest = std::fs::read_to_string(&manifest_path).expect("manifest should exist");
@@ -2568,16 +2504,8 @@ fn verify_release_bundle_rejects_noncanonical_manifest_checksum_entry() {
 #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn verify_release_bundle_rejects_unexpected_bundle_entries() {
-    let bundle_dir = unique_temp_dir("pleiades-release-bundle-extra-entry");
+    let bundle_dir = stage_bundle_copy("pleiades-release-bundle-extra-entry");
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
 
     std::fs::write(bundle_dir.join("unexpected.txt"), "spurious bundle content")
         .expect("unexpected file should be writable");
