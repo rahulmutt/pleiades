@@ -36,12 +36,58 @@ Secrets and variables → Actions):
    (<https://crates.io/settings/tokens>) with publish scope for the `pleiades-*`
    crates.
 2. `RELEASE_PLZ_TOKEN` — a GitHub token the workflow uses so its PRs and tags
-   trigger CI. Prefer a GitHub App installation token; a fine-grained PAT with
-   `contents: write` + `pull-requests: write` also works. The default
-   `GITHUB_TOKEN` cannot trigger downstream workflows, so it is not sufficient.
+   trigger CI (see [Creating the `RELEASE_PLZ_TOKEN`](#creating-the-release_plz_token)
+   below). The default `GITHUB_TOKEN` cannot trigger downstream workflows, so it
+   is not sufficient.
 
 **For the manual fallback**, create a crates.io token as above, then run
 `cargo login` and paste it.
+
+### Creating the `RELEASE_PLZ_TOKEN`
+
+`RELEASE_PLZ_TOKEN` is not a special token type — it is just the secret name the
+workflow reads (`GITHUB_TOKEN: ${{ secrets.RELEASE_PLZ_TOKEN }}` in both jobs of
+`.github/workflows/release-plz.yml`). It holds a GitHub token that is **not** the
+built-in `GITHUB_TOKEN`.
+
+Why a separate token: GitHub deliberately prevents the built-in `GITHUB_TOKEN`
+from triggering other workflows (a loop-prevention safeguard). So if release-plz
+opened its Release PR or pushed the `v{version}` tag with the default token, your
+CI would not run on that PR and no tag-triggered workflow would fire. A
+non-default token makes those PRs and tags trigger CI normally.
+
+**Fine-grained personal access token (simplest path):**
+
+1. Go to GitHub → **Settings → Developer settings → Personal access tokens →
+   Fine-grained tokens → Generate new token**
+   (<https://github.com/settings/tokens?type=beta>).
+2. **Token name:** e.g. `pleiades-release-plz`. Set an **Expiration** (GitHub
+   requires one; pick a cadence you are willing to rotate on, e.g. 90 days).
+3. **Resource owner:** `rahulmutt` (the account that owns the repo).
+4. **Repository access:** select **Only select repositories** → choose
+   `rahulmutt/pleiades`.
+5. **Repository permissions** — grant exactly these two (leave everything else at
+   *No access*):
+   - **Contents:** *Read and write* (lets release-plz commit the version bump,
+     push the `v{version}` tag, and create the GitHub Release).
+   - **Pull requests:** *Read and write* (lets release-plz open and update the
+     Release PR).
+6. Click **Generate token** and **copy it now** — GitHub shows the value only
+   once.
+7. Add it to the repository as a secret: **repo → Settings → Secrets and
+   variables → Actions → New repository secret**. Name it exactly
+   `RELEASE_PLZ_TOKEN` and paste the token as the value.
+
+When the token expires, regenerate it (or a new one) with the same two
+permissions and update the `RELEASE_PLZ_TOKEN` secret.
+
+**GitHub App token (recommended long-term, more secure):** instead of a PAT tied
+to your account, create a GitHub App with the same *Contents: read & write* and
+*Pull requests: read & write* permissions, install it on the repo, store its App
+ID and private key as secrets, and mint a short-lived installation token in the
+workflow with `actions/create-github-app-token`. The token auto-rotates and is
+not tied to a personal account. For a solo repo the fine-grained PAT above is
+fine to start; you can migrate to an App later.
 
 ## Cutting a release (automated — primary)
 
