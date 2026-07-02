@@ -1,16 +1,19 @@
 [package]
 name = "pleiades-data"
+description = "Packaged offline ephemeris data (precomputed Sun and Moon positions) and its EphemerisBackend for the pleiades astrology workspace."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
-publish = false
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
 
 [features]
 packaged-artifact-path = []
 
 [dependencies]
 pleiades-apsides = { workspace = true }
-pleiades-backend = { path = "../pleiades-backend" }
-pleiades-compression = { path = "../pleiades-compression" }
-pleiades-jpl = { path = "../pleiades-jpl" }
+pleiades-backend = { workspace = true }
+pleiades-compression = { workspace = true }
+pleiades-jpl = { workspace = true }
