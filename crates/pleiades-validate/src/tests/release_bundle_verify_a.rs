@@ -68,16 +68,10 @@ fn verify_release_bundle_rejects_tampered_release_house_validation_summary_even_
 #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn release_bundle_writes_expected_artifacts() {
-    let bundle_dir = unique_temp_dir("pleiades-release-bundle");
+    let pristine = pristine_release_bundle();
+    let bundle_dir = pristine.dir.clone();
     let bundle_dir_string = bundle_dir.to_string_lossy().to_string();
-    let rendered = render_cli(&[
-        "bundle-release",
-        "--out",
-        &bundle_dir_string,
-        "--rounds",
-        "1",
-    ])
-    .expect("bundle release should render");
+    let rendered = pristine.rendered.clone();
 
     assert!(rendered.contains("Release bundle"));
     assert!(rendered.contains("compatibility-profile.txt"));
@@ -1558,8 +1552,6 @@ fn release_bundle_writes_expected_artifacts() {
     assert!(verified.contains("validation report checksum: 0x"));
     assert!(verified.contains("manifest checksum bytes:"));
     assert!(verified.contains("manifest checksum: 0x"));
-
-    let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
 #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
@@ -2304,20 +2296,16 @@ fn verify_release_bundle_rejects_invalid_validation_rounds() {
 #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn release_bundle_validate_accepts_rendered_bundle() {
-    let bundle_dir = unique_temp_dir("pleiades-release-bundle-validate-accepts");
-    let bundle = render_release_bundle(1, &bundle_dir).expect("release bundle should render");
+    let bundle = pristine_release_bundle().bundle.clone();
     bundle
         .validate()
         .expect("rendered release bundle should validate");
-
-    let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
 #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn release_bundle_validate_rejects_whitespace_padded_provenance() {
-    let bundle_dir = unique_temp_dir("pleiades-release-bundle-provenance-padding");
-    let mut bundle = render_release_bundle(1, &bundle_dir).expect("release bundle should render");
+    let mut bundle = pristine_release_bundle().bundle.clone();
     let source_revision = bundle.source_revision.clone();
     bundle.source_revision = format!(" {source_revision} ");
 
@@ -2327,15 +2315,12 @@ fn release_bundle_validate_rejects_whitespace_padded_provenance() {
     let error = error.to_string();
     assert!(error.contains("invalid source revision entry"));
     assert!(error.contains("unexpected leading or trailing whitespace"));
-
-    let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
 #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn release_bundle_validate_rejects_placeholder_provenance() {
-    let bundle_dir = unique_temp_dir("pleiades-release-bundle-provenance-placeholder");
-    let mut bundle = render_release_bundle(1, &bundle_dir).expect("release bundle should render");
+    let mut bundle = pristine_release_bundle().bundle.clone();
     bundle.rustc_version = "unknown".to_string();
 
     let error = bundle
@@ -2344,15 +2329,12 @@ fn release_bundle_validate_rejects_placeholder_provenance() {
     let error = error.to_string();
     assert!(error.contains("invalid rustc version entry"));
     assert!(error.contains("placeholder values are not allowed"));
-
-    let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
 #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn release_bundle_validate_rejects_multiline_provenance() {
-    let bundle_dir = unique_temp_dir("pleiades-release-bundle-provenance-multiline");
-    let mut bundle = render_release_bundle(1, &bundle_dir).expect("release bundle should render");
+    let mut bundle = pristine_release_bundle().bundle.clone();
     bundle.workspace_status = "clean\nmodified".to_string();
 
     let error = bundle
@@ -2361,15 +2343,12 @@ fn release_bundle_validate_rejects_multiline_provenance() {
     let error = error.to_string();
     assert!(error.contains("invalid workspace status entry"));
     assert!(error.contains("unexpected line break"));
-
-    let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
 #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn release_bundle_validate_rejects_manifest_path_drift() {
-    let bundle_dir = unique_temp_dir("pleiades-release-bundle-manifest-path-drift");
-    let mut bundle = render_release_bundle(1, &bundle_dir).expect("release bundle should render");
+    let mut bundle = pristine_release_bundle().bundle.clone();
     bundle.manifest_path = bundle.output_dir.join("bundle-manifest-drift.txt");
 
     let error = bundle
@@ -2378,8 +2357,6 @@ fn release_bundle_validate_rejects_manifest_path_drift() {
     let error = error.to_string();
     assert!(error.contains("unexpected bundle manifest file path"));
     assert!(error.contains("bundle-manifest.txt"));
-
-    let _ = std::fs::remove_dir_all(&bundle_dir);
 }
 
 #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
