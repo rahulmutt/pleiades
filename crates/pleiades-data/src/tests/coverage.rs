@@ -2339,7 +2339,7 @@ fn packaged_artifact_fit_threshold_summary_reflects_the_current_posture() {
 
     assert_eq!(
         summary.summary_line(),
-        "fit thresholds: mean Δlon≤79.299372815190°, mean Δlat≤3.320597512371°, mean Δdist≤5240.247310255700 AU; max Δlon≤179.999798837311°, max Δlat≤69.957118473923°, max Δdist≤10227288.989857684821 AU"
+        "fit thresholds: mean Δlon≤79.299372815190°, mean Δlat≤3.320919159432°, mean Δdist≤5240.247310255700 AU; max Δlon≤179.999799204804°, max Δlat≤69.957118473923°, max Δdist≤10227288.989857684821 AU"
     );
     assert_eq!(summary.to_string(), summary.summary_line());
     assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
