@@ -1,6 +1,6 @@
 [package]
 name = "pleiades-data"
-description = "Packaged offline ephemeris data (precomputed Sun and Moon positions) and its EphemerisBackend for the pleiades astrology workspace."
+description = "Packaged offline ephemeris data (precomputed Sun and Moon positions, derived from JPL public-domain ephemerides) and its EphemerisBackend for the pleiades astrology workspace."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
