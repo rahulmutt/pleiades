@@ -6,8 +6,10 @@ edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
 repository.workspace = true
+homepage.workspace = true
 keywords.workspace = true
 categories.workspace = true
+readme = "README.md"
 
 [features]
 packaged-artifact-path = []
@@ -17,3 +19,6 @@ pleiades-apsides = { workspace = true }
 pleiades-backend = { workspace = true }
 pleiades-compression = { workspace = true }
 pleiades-jpl = { workspace = true }
+
+[package.metadata.docs.rs]
+all-features = true
