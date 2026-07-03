@@ -75,13 +75,8 @@ mod tests {
     fn finds_single_prograde_crossing() {
         let rate = 1.0_f64; // ~Sun
         let t0 = 2_451_545.0;
-        let roots = crossings_in_range(
-            |t| Ok(wrap180(rate * (t - t0) - 10.0)),
-            t0,
-            t0 + 30.0,
-            1.0,
-        )
-        .unwrap();
+        let roots = crossings_in_range(|t| Ok(wrap180(rate * (t - t0) - 10.0)), t0, t0 + 30.0, 1.0)
+            .unwrap();
         assert_eq!(roots.len(), 1);
         assert!((roots[0] - (t0 + 10.0)).abs() < 1e-3, "root {}", roots[0]);
     }
@@ -101,13 +96,7 @@ mod tests {
         };
         // target 37 -> 8x - x^2 = 7 -> x=1, x=7 (two crossings). Add a wrap-around
         // crossing by extending the window so lon dips below and returns.
-        let roots = crossings_in_range(
-            |t| Ok(wrap180(lon(t) - 37.0)),
-            t0,
-            t0 + 8.0,
-            0.25,
-        )
-        .unwrap();
+        let roots = crossings_in_range(|t| Ok(wrap180(lon(t) - 37.0)), t0, t0 + 8.0, 0.25).unwrap();
         assert_eq!(roots.len(), 2, "roots {roots:?}");
         assert!((roots[0] - (t0 + 1.0)).abs() < 1e-2);
         assert!((roots[1] - (t0 + 7.0)).abs() < 1e-2);

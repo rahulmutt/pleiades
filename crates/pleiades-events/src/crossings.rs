@@ -296,7 +296,10 @@ mod tests {
                     after,
                 )
                 .unwrap_err();
-            assert!(matches!(err, EventError::UnsupportedFrame { .. }), "{body:?}");
+            assert!(
+                matches!(err, EventError::UnsupportedFrame { .. }),
+                "{body:?}"
+            );
         }
     }
 }

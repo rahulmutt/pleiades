@@ -16,5 +16,8 @@ fn heliocentric_jupiter_crossing_is_found() {
             end,
         )
         .expect("heliocentric crossing search");
-    assert!(!out.is_empty(), "expected a heliocentric Jupiter crossing of 0°");
+    assert!(
+        !out.is_empty(),
+        "expected a heliocentric Jupiter crossing of 0°"
+    );
 }

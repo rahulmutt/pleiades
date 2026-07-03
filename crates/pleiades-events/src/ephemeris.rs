@@ -38,12 +38,10 @@ pub(crate) fn read_mean_ecliptic<B: EphemerisBackend>(
         body_label,
         julian_day,
     })?;
-    let distance = ecliptic
-        .distance_au
-        .ok_or(EventError::MissingCoordinates {
-            body_label,
-            julian_day,
-        })?;
+    let distance = ecliptic.distance_au.ok_or(EventError::MissingCoordinates {
+        body_label,
+        julian_day,
+    })?;
     Ok((
         ecliptic.longitude.degrees(),
         ecliptic.latitude.degrees(),
@@ -166,8 +164,7 @@ mod tests {
     #[test]
     fn missing_coordinates_fail_closed() {
         let backend = LinearSunMoon::empty();
-        let err = read_mean_ecliptic(&backend, CelestialBody::Sun, "Sun", 2_451_550.0)
-            .unwrap_err();
+        let err = read_mean_ecliptic(&backend, CelestialBody::Sun, "Sun", 2_451_550.0).unwrap_err();
         assert!(matches!(err, EventError::MissingCoordinates { .. }));
     }
 
@@ -177,9 +174,8 @@ mod tests {
         // on a synthetic pair via the exported helper is covered by the crossings
         // tests. Here just prove missing distance fails closed.
         let backend = LinearSunMoon::empty();
-        let err =
-            heliocentric_longitude_deg(&backend, CelestialBody::Mars, "Mars", 2_451_550.0)
-                .unwrap_err();
+        let err = heliocentric_longitude_deg(&backend, CelestialBody::Mars, "Mars", 2_451_550.0)
+            .unwrap_err();
         assert!(matches!(
             err,
             EventError::MissingCoordinates { .. } | EventError::Backend(_)

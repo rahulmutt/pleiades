@@ -41,7 +41,10 @@ impl fmt::Display for EventError {
                  (JD {WINDOW_START_JD}..={WINDOW_END_JD})"
             ),
             EventError::Backend(message) => write!(f, "backend error: {message}"),
-            EventError::MissingCoordinates { body_label, julian_day } => write!(
+            EventError::MissingCoordinates {
+                body_label,
+                julian_day,
+            } => write!(
                 f,
                 "backend returned no ecliptic coordinates for {body_label} at JD {julian_day}"
             ),
@@ -60,7 +63,9 @@ mod tests {
 
     #[test]
     fn out_of_window_message_names_the_julian_day() {
-        let err = EventError::OutOfWindow { julian_day: 2_400_000.5 };
+        let err = EventError::OutOfWindow {
+            julian_day: 2_400_000.5,
+        };
         assert!(err.to_string().contains("2400000.5"));
         assert!(err.to_string().contains("1900"));
     }
