@@ -21,10 +21,12 @@ only remaining production work against the specification.
 
 ## Current priority
 
-Phase 1 remains the execution frontier. The repository has many release-facing
-summary and verification surfaces, but the underlying reference corpus is still a
-checked-in fixture set rather than a broad production source corpus or general
-JPL/public-data reader.
+Phases 1 and 2 are complete: a broad, de440-sourced reference corpus with a
+live fail-closed `validate-corpus` gate and a `pleiades-jpl::ingest` public-data
+reader are committed, and the packaged artifact (ARTIFACT_VERSION 7, 1900–2100
+CE) passes its accuracy, size, and speed gates. The execution frontier is now
+**Phase 3 — body/backend claim closure** (Pluto, lunar theory, selected
+asteroids, backend capability metadata).
 
 ## Cross-cutting rules
 

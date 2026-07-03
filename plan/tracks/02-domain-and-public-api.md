@@ -15,9 +15,6 @@ compatibility evidence mature.
 
 ## Remaining domain/API concerns
 
-- UTC/UT1 and Delta-T convenience policy.
-- Apparent-place and topocentric body-position semantics.
-- Speed, retrograde/stationary, and motion-output policy.
 - House and ayanamsa entries whose evidence status is weaker than descriptor
   presence.
 - Completion of the full `compatibility-catalog.md` target set and the optional

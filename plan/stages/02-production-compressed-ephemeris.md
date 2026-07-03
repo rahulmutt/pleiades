@@ -46,21 +46,9 @@ future expansion, available opt-in via `generate-artifact`, not yet gated).
 
 ## Remaining implementation work
 
-### SP2 — Accuracy tuning (done)
-
-- The heliocentric-planet reframe reduced outer-planet longitude errors from
-  the SP1 baseline (~192″ Uranus, ~109″ Neptune, ~62″ Pluto, ~9.5″ Saturn, ~1.5″ Jupiter)
-  to sub-arcsec across all bodies. See accuracy numbers above.
-
-### SP3 — Thresholds, size, and latency budgets (done)
-
-- Published accuracy thresholds by body class and channel (longitude, latitude,
-  distance, lon/lat speed, radial speed) defined and enforced as CI gate.
-- Size budget enforced (≤ 12,000,000 bytes, hard-gated). Latency budgets tracked
-  in `PACKAGED_BUDGETS` (not hard CI gate by default; opt-in via
-  `PLEIADES_ENFORCE_LATENCY`).
-- Motion output (`SpeedPolicy::FittedDerivative`, `Motion = Derived`) implemented,
-  measured, and gated against published speed ceilings.
+SP1, SP2, and SP3 are complete (accuracy tuning, published thresholds, hard size
+gate, tracked latency budgets, and motion-derived output all landed). Only the
+ongoing invariants below remain.
 
 ### Ongoing
 
