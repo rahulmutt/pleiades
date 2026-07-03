@@ -801,6 +801,15 @@ pub(crate) fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("validate-eclipses") | Some("eclipses-gate") => validate_render_cli(args),
         Some("validate-lilith") | Some("lilith-gate") => validate_render_cli(args),
         Some("eclipses") => validate_render_cli(args),
+        Some("validate-crossings") | Some("crossings-gate") => validate_render_cli(args),
+        Some("crossings") => {
+            // The validate layer has no bare "crossings" arm (unlike
+            // "eclipses", which is a listing there); rewrite to the gate
+            // command name before delegating.
+            let mut rewritten: Vec<&str> = args.to_vec();
+            rewritten[0] = "validate-crossings";
+            validate_render_cli(&rewritten)
+        }
         Some("validate-artifact") => validate_render_cli(args),
         Some("generate-packaged-artifact") | Some("regenerate-packaged-artifact") => {
             if args[1..].iter().any(|arg| *arg == "--help" || *arg == "-h") {
