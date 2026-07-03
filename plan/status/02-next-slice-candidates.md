@@ -85,10 +85,12 @@ These slices are end-state work and are not part of the active first-release
 frontier. They are listed so the full target catalog is not treated as complete
 once Phase 5 audits pass.
 
-- Implement remaining `compatibility-catalog.md` house systems beyond the
-  baseline 11, each with formula, aliases, constraints, and provenance.
-- Grow the ayanamsa catalog from the baseline 5 toward the full Swiss Ephemeris
-  `SE_SIDM_*` set.
+- All target `compatibility-catalog.md` house systems are shipped (25 built-ins,
+  24 gated); only Albategnius corpus-gating remains (optional; beyond the SE
+  23-code target).
+- Finish the ayanamsa catalog: 48 of 59 built-ins are SE-gated; give the 11
+  descriptor-only modes real metadata + gating and add any missing `SE_SIDM_*`
+  modes.
 - Expand selected-asteroid coverage where source evidence supports it.
-- Add optional chart utilities: aspects/orb-ready angular separations and
-  dignities, built above the core domain layer.
+- Add dignities, built above the core domain layer. (Aspects / orb-ready angular
+  separations are already implemented.)
