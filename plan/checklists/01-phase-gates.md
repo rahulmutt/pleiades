@@ -42,14 +42,15 @@ Complete — no open gates.
 
 ## Phase 6: Target catalog completion and expansion (end-state, post-first-release)
 
-- [ ] Remaining `compatibility-catalog.md` house systems are implemented with
-      formula, aliases, latitude/numerical constraints, and provenance, or listed
-      as known gaps in the release profile.
-- [ ] Ayanamsa catalog grows toward the full Swiss Ephemeris `SE_SIDM_*` set with
-      epoch/offset/formula, aliases, and provenance, or lists known gaps.
+- [x] All target `compatibility-catalog.md` house systems are implemented with
+      formula, aliases, and provenance (25 built-ins, 24 gated). Only Albategnius
+      corpus-gating remains (optional; beyond the SE 23-code target).
+- [ ] Ayanamsa catalog: gate the 11 remaining descriptor-only modes and add any
+      missing `SE_SIDM_*` modes with epoch/offset/formula, aliases, and provenance,
+      or list known gaps (48 of 59 built-ins currently SE-gated).
 - [ ] Selected-asteroid coverage expands only where source evidence and backend
       metadata support release-grade claims.
-- [ ] Optional chart utilities (aspects/orb-ready separations, dignities) are
-      shipped with tests and rustdoc, or not advertised.
+- [ ] Dignities are shipped with tests and rustdoc, or not advertised. (Aspects /
+      orb-ready separations are already implemented in `pleiades-core::chart::aspects`.)
 - [ ] No expansion broadens public claims ahead of its supporting evidence, and
       the public API/enums absorb new entries without breaking redesign.

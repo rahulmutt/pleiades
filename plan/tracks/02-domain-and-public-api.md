@@ -17,8 +17,9 @@ compatibility evidence mature.
 
 - House and ayanamsa entries whose evidence status is weaker than descriptor
   presence.
-- Completion of the full `compatibility-catalog.md` target set and the optional
-  chart utilities (aspects, dignities) is deferred end-state work tracked in
-  Phase 6; the public API/enums must absorb those additions without redesign.
+- Completion of the ayanamsa `SE_SIDM_*` catalog and the remaining optional chart
+  utility (dignities) is deferred end-state work tracked in Phase 6; the target
+  house systems and aspects are already shipped. The public API/enums must absorb
+  future additions without redesign.
 - Public docs and rustdoc examples for production-ready chart workflows once
   claims are settled.

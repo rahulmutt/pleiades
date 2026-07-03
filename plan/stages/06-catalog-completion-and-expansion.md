@@ -20,28 +20,33 @@ public API or enum redesign.
 
 ## Current baseline
 
-- The baseline-11 house systems and baseline-5 ayanamsas are present, plus
-  broader descriptor catalogs and compatibility-profile reporting.
+- All target house systems from `compatibility-catalog.md` are already shipped as
+  built-ins: 25 built-in systems with real cusp formulas, 24 numerically gated by
+  `validate-houses` (only Albategnius is not yet corpus-backed). The ayanamsa
+  catalog holds 59 built-ins with 48 SE-gated by `validate-ayanamsa`; 11 remain
+  descriptor-only (6 with no computation path). The `BASELINE_HOUSE_SYSTEMS` (12)
+  and `BASELINE_AYANAMSAS` (5) constants still exist as code categories but no
+  longer mark the edge of what is implemented or validated.
+- Aspects / orb-ready angular separations are implemented in
+  `pleiades-core::chart::aspects`; dignities are not.
 - Identifier models are already open to additional built-ins and aliases, so
   catalog growth should not require breaking redesign.
 - Composite routing helpers exist for hybrid backend composition.
 
 ## Remaining implementation work
 
-- Implement the remaining target house systems beyond the baseline 11 enumerated
-  in `compatibility-catalog.md` (Equal-from-MC, Whole Sign / Equal from 0° Aries,
-  Vehlow, Krusinski, APC, Sripati, Carter, Horizontal, Gauquelin sectors,
-  Pullen SD, Pullen SR, Sunshine), each with formula, aliases, latitude/numerical
-  constraints, and source provenance.
-- Grow the built-in ayanamsa catalog from the baseline 5 toward the full Swiss
-  Ephemeris `SE_SIDM_*` set referenced in `compatibility-catalog.md`, each with
-  epoch/offset/formula metadata, aliases, near-equivalent handling, and
-  provenance.
+- Corpus-gate Albategnius (the one built-in house system with a formula but no
+  `validate-houses` corpus rows); it is beyond the SE 23-code target, so this is
+  optional hardening rather than target-catalog completion.
+- Finish the ayanamsa catalog: give the 11 remaining descriptor-only modes (6 of
+  which currently have no computation path) real epoch/offset/formula metadata,
+  provenance, and `validate-ayanamsa` gating, and add any SE `SE_SIDM_*` modes
+  still absent from the 59 built-ins.
 - Expand selected-asteroid coverage beyond Ceres/Pallas/Juno/Vesta where source
   evidence and backend metadata support release-grade claims.
-- Add the optional higher-level chart utilities from `astrology-domain.md`
-  "Derived Quantities": aspects and orb-ready angular separations, and dignities,
-  built above the core domain layer.
+- Add dignities from `astrology-domain.md` "Derived Quantities", built above the
+  core domain layer. (Aspects / orb-ready angular separations are already
+  implemented in `pleiades-core::chart::aspects`.)
 - Expand composite backend routing where it improves accuracy, range, or speed
   without coupling the public API to a single backend family.
 
