@@ -7,5 +7,6 @@
 #![deny(missing_docs)]
 
 mod error;
+mod root;
 
 pub use error::{EventError, WINDOW_END_JD, WINDOW_START_JD};
