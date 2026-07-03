@@ -274,6 +274,7 @@ dependencies = [
  "pleiades-data",
  "pleiades-eclipse",
  "pleiades-elp",
+ "pleiades-events",
  "pleiades-houses",
  "pleiades-jpl",
  "pleiades-types",

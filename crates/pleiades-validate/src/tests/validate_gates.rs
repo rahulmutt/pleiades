@@ -259,6 +259,56 @@ fn validate_eclipses_rejects_extra_args() {
 }
 
 #[test]
+fn validate_crossings_passes_over_committed_corpus() {
+    let report = crate::crossings_validation::run_crossings_gate();
+    assert!(report.passed(), "validate-crossings failed: {report:?}");
+}
+
+#[test]
+fn validate_crossings_command_reports_a_summary() {
+    let out = render_cli(&["validate-crossings"]).expect("gate passes");
+    assert!(
+        out.contains("validate-crossings"),
+        "output should contain 'validate-crossings': {out}"
+    );
+    assert!(
+        out.contains("SE crossing fixtures"),
+        "output should contain 'SE crossing fixtures': {out}"
+    );
+}
+
+#[test]
+fn crossings_gate_alias_matches_validate_crossings() {
+    let via_primary =
+        render_cli(&["validate-crossings"]).expect("validate-crossings should succeed");
+    let via_alias = render_cli(&["crossings-gate"]).expect("crossings-gate alias should succeed");
+    assert_eq!(via_primary, via_alias);
+}
+
+#[test]
+fn validate_crossings_rejects_extra_args() {
+    let error = render_cli(&["validate-crossings", "extra"])
+        .expect_err("validate-crossings should reject extra arguments");
+    assert!(
+        error.contains("validate-crossings does not accept extra arguments"),
+        "unexpected error: {error}"
+    );
+}
+
+#[test]
+fn help_text_mentions_validate_crossings() {
+    let help = render_cli(&["help"]).expect("help command should render");
+    assert!(
+        help.contains("validate-crossings"),
+        "help text should mention validate-crossings"
+    );
+    assert!(
+        help.contains("crossings-gate"),
+        "help text should mention crossings-gate alias"
+    );
+}
+
+#[test]
 fn eclipses_listing_returns_lines_for_narrow_window() {
     // The allowlisted eclipse JD 2432680.601 (1948-05-09 solar, Saros 137) is
     // guaranteed to be in the corpus window and returns exactly one eclipse.
