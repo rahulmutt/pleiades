@@ -65,6 +65,39 @@ where
     Ok(out)
 }
 
+/// The first root of `f` strictly greater than `lo_jd`, or `None` if there is no
+/// root in `[lo_jd, hi_jd]`. Early-terminating twin of [`crossings_in_range`]: it
+/// brackets by stepping and returns as soon as the first zero-crossing is refined,
+/// instead of scanning the whole window. Uses the identical wrap-seam (`< 180.0`)
+/// guard and bisection tolerance, so the returned root matches
+/// `crossings_in_range(..).first()` for the same arguments.
+pub(crate) fn first_crossing_after<F>(
+    mut f: F,
+    lo_jd: f64,
+    hi_jd: f64,
+    step_days: f64,
+) -> Result<Option<f64>, EventError>
+where
+    F: FnMut(f64) -> Result<f64, EventError>,
+{
+    let mut prev_jd = lo_jd;
+    let mut prev_f = f(prev_jd)?;
+    let mut jd = lo_jd + step_days;
+    while jd <= hi_jd + step_days {
+        let f_jd = f(jd)?;
+        if (prev_f <= 0.0) != (f_jd <= 0.0) && (prev_f - f_jd).abs() < 180.0 {
+            let root = bisect(&mut f, prev_jd, prev_f, jd)?;
+            if root >= lo_jd && root <= hi_jd {
+                return Ok(Some(root));
+            }
+        }
+        prev_jd = jd;
+        prev_f = f_jd;
+        jd += step_days;
+    }
+    Ok(None)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -6,7 +6,11 @@
 #![allow(dead_code)]
 
 use crate::error::EventError;
-use pleiades_apparent::{apparent_position, apparent_sun_position, DEFAULT_MAX_ITERATIONS};
+use pleiades_apparent::nutation::nutation;
+use pleiades_apparent::{
+    apparent_position, apparent_sun_position, precess_ecliptic_j2000_to_date,
+    DEFAULT_MAX_ITERATIONS,
+};
 use pleiades_backend::{EphemerisBackend, EphemerisRequest};
 use pleiades_types::{
     Apparentness, CelestialBody, CoordinateFrame, EclipticCoordinates, Instant, JulianDay,
@@ -102,8 +106,13 @@ pub(crate) fn geocentric_apparent_longitude_deg<B: EphemerisBackend>(
 }
 
 /// Heliocentric ecliptic longitude (degrees) via `P_helio = P_geo − S_geo`,
-/// reconstructed from the mean geocentric planet and Sun vectors. Both vectors
-/// carry distance (AU); a missing distance fails closed.
+/// reconstructed from the mean geocentric planet and Sun vectors, then rotated
+/// from the J2000 ecliptic to the **true equinox of date** (precession +
+/// nutation in longitude) to match SE's `SEFLG_HELCTR`. Both vectors carry
+/// distance (AU); a missing distance fails closed.
+///
+/// The heliocentric position is GEOMETRIC (Sun-centered): no annual aberration
+/// or light-time is applied — only the frame rotation to of-date.
 pub(crate) fn heliocentric_longitude_deg<B: EphemerisBackend>(
     backend: &B,
     body: CelestialBody,
@@ -115,7 +124,22 @@ pub(crate) fn heliocentric_longitude_deg<B: EphemerisBackend>(
     let planet = spherical_to_cartesian(pl, pb, pd);
     let sun = spherical_to_cartesian(sl, sb, sd);
     let helio = [planet[0] - sun[0], planet[1] - sun[1], planet[2] - sun[2]];
-    Ok(cartesian_longitude_deg(helio))
+
+    // Heliocentric J2000 ecliptic (longitude, latitude).
+    let lon_j2000 = helio[1].atan2(helio[0]).to_degrees().rem_euclid(360.0);
+    let lat_j2000 = helio[2]
+        .atan2((helio[0] * helio[0] + helio[1] * helio[1]).sqrt())
+        .to_degrees();
+
+    // J2000 -> mean equinox/ecliptic of date (precession).
+    let precessed = precess_ecliptic_j2000_to_date(lon_j2000, lat_j2000, julian_day)
+        .map_err(|e| EventError::Backend(format!("helio precession failed: {e}")))?;
+
+    // Mean -> true equinox of date: add nutation in longitude (Δψ).
+    let nut = nutation(julian_day)
+        .map_err(|e| EventError::Backend(format!("helio nutation failed: {e}")))?;
+
+    Ok((precessed.longitude_deg + nut.delta_psi_arcsec / 3600.0).rem_euclid(360.0))
 }
 
 fn spherical_to_cartesian(lon_deg: f64, lat_deg: f64, r_au: f64) -> [f64; 3] {
@@ -126,10 +150,6 @@ fn spherical_to_cartesian(lon_deg: f64, lat_deg: f64, r_au: f64) -> [f64; 3] {
         r_au * lat.cos() * lon.sin(),
         r_au * lat.sin(),
     ]
-}
-
-fn cartesian_longitude_deg(v: [f64; 3]) -> f64 {
-    v[1].atan2(v[0]).to_degrees().rem_euclid(360.0)
 }
 
 #[cfg(test)]

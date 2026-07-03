@@ -2,7 +2,7 @@
 
 use crate::ephemeris::{geocentric_apparent_longitude_deg, heliocentric_longitude_deg};
 use crate::error::{EventError, WINDOW_END_JD, WINDOW_START_JD};
-use crate::root::{crossings_in_range, wrap180};
+use crate::root::{crossings_in_range, first_crossing_after, wrap180};
 use pleiades_backend::EphemerisBackend;
 use pleiades_types::{CelestialBody, Instant, JulianDay, Longitude, TimeScale};
 
@@ -122,6 +122,13 @@ impl<B: EphemerisBackend> CrossingEngine<B> {
     }
 
     /// The first crossing strictly after `after`, or `None`.
+    ///
+    /// Early-terminating: this brackets and bisects forward from `after` and
+    /// returns as soon as the first root is found, instead of scanning to
+    /// `WINDOW_END`. The result is identical to
+    /// `longitude_crossings_in_range(body, target, frame, after, WINDOW_END).first()`
+    /// filtered to strictly-after `after` — same clamps, same step, same
+    /// wrap-seam guard, same bisection tolerance.
     pub fn next_longitude_crossing(
         &self,
         body: CelestialBody,
@@ -129,12 +136,35 @@ impl<B: EphemerisBackend> CrossingEngine<B> {
         frame: CrossingFrame,
         after: Instant,
     ) -> Result<Option<Crossing>, EventError> {
-        let end = Instant::new(JulianDay::from_days(WINDOW_END_JD), TimeScale::Tdb);
         let after_jd = after.julian_day.days();
-        Ok(self
-            .longitude_crossings_in_range(body, target, frame, after, end)?
-            .into_iter()
-            .find(|c| c.instant.julian_day.days() > after_jd))
+        // Preserve the window-check and heliocentric Sun/Moon guard exactly as
+        // `longitude_crossings_in_range` applies them, before scanning.
+        self.check_window(after_jd)?;
+        self.check_window(WINDOW_END_JD)?;
+        if matches!(frame, CrossingFrame::Heliocentric)
+            && matches!(body, CelestialBody::Sun | CelestialBody::Moon)
+        {
+            return Err(EventError::UnsupportedFrame {
+                detail: format!("heliocentric crossings are undefined for {:?}", body),
+            });
+        }
+        let step = Self::step_days(&body);
+        // Same clamps as `longitude_crossings_in_range` over `[after, WINDOW_END]`.
+        let scan_start = after_jd.max(WINDOW_START_JD + step);
+        let scan_end = WINDOW_END_JD.min(WINDOW_END_JD - step);
+        let target_deg = target.degrees();
+        let root = first_crossing_after(
+            |jd| Ok(wrap180(self.longitude_deg(&body, frame, jd)? - target_deg)),
+            scan_start,
+            scan_end,
+            step,
+        )?;
+        Ok(root.filter(|&jd| jd > after_jd).map(|jd| Crossing {
+            body: body.clone(),
+            target_longitude: target,
+            instant: Instant::new(JulianDay::from_days(jd), TimeScale::Tdb),
+            frame,
+        }))
     }
 
     /// The last crossing strictly before `before`, or `None`.
