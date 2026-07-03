@@ -206,6 +206,21 @@ pub fn run_crossings_gate() -> CrossingsGateOutcome {
 mod tests {
     use super::*;
 
+    // Spec §7 asks for a test that guards the committed corpus by comparing
+    // the manifest's recorded checksum against a freshly computed digest of
+    // `crossings.csv`. The manifest records a real SHA-256 digest
+    // (`sha256(crossings.csv): <64-hex>` in `data/crossings-corpus/manifest.txt`),
+    // but `pleiades-validate` has no `sha2` dependency anywhere in the
+    // workspace (confirmed via grep), and the only in-tree hashing helper,
+    // `pleiades_apparent::fnv1a64`, computes a different, 64-bit digest that
+    // cannot reproduce or verify a 256-bit SHA-256 value. Per project
+    // guidance, we do not add a new crate dependency just for one test, so
+    // this checksum-drift test is intentionally omitted here. Closing spec §7
+    // for real requires a maintainer decision: either add `sha2` as a
+    // dev-dependency, or re-generate the manifest with an fnv1a64 digest so
+    // the existing helper (as used by the ayanamsa/lilith/house/etc. gates)
+    // can verify it.
+
     #[test]
     fn validate_crossings_passes_over_committed_corpus() {
         let report = validate_crossings_corpus().expect("gate should pass");

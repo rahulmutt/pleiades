@@ -18,7 +18,6 @@ serde = ["dep:serde", "pleiades-types/serde"]
 pleiades-types = { workspace = true }
 pleiades-backend = { workspace = true }
 pleiades-apparent = { workspace = true }
-pleiades-time = { workspace = true }
 serde = { workspace = true, optional = true }
 
 [dev-dependencies]

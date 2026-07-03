@@ -223,7 +223,6 @@ dependencies = [
  "pleiades-apparent",
  "pleiades-backend",
  "pleiades-data",
- "pleiades-time",
  "pleiades-types",
  "serde",
 ]

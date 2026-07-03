@@ -22,6 +22,7 @@ fn run_all_numeric_gates() -> Result<(), String> {
     crate::validate_frame_consistency()
         .map_err(|e| format!("frame-consistency gate failed: {e}"))?;
     crate::validate_angles_corpus().map_err(|e| format!("angles gate failed: {e}"))?;
+    crate::validate_crossings_corpus().map_err(|e| format!("crossings gate failed: {e}"))?;
     Ok(())
 }
 
