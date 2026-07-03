@@ -3,6 +3,22 @@
 //!
 //! The engine is generic over any [`pleiades_backend::EphemerisBackend`] and,
 //! like `pleiades-eclipse`, works in TDB over the 1900–2100 CE packaged window.
+//!
+//! ## Example
+//!
+//! ```rust
+//! use pleiades_data::packaged_backend;
+//! use pleiades_events::{CrossingEngine, CrossingFrame};
+//! use pleiades_types::{CelestialBody, Instant, JulianDay, Longitude, TimeScale};
+//!
+//! let engine = CrossingEngine::new(packaged_backend());
+//! let after = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tdb);
+//! // When does the Sun next reach 0° (the March equinox point)?
+//! let next = engine
+//!     .next_sun_crossing(Longitude::from_degrees(0.0), after)
+//!     .unwrap();
+//! assert!(next.is_some());
+//! ```
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
