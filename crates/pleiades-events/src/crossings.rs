@@ -92,6 +92,13 @@ impl<B: EphemerisBackend> CrossingEngine<B> {
         let end_jd = end.julian_day.days();
         self.check_window(start_jd)?;
         self.check_window(end_jd)?;
+        if matches!(frame, CrossingFrame::Heliocentric)
+            && matches!(body, CelestialBody::Sun | CelestialBody::Moon)
+        {
+            return Err(EventError::UnsupportedFrame {
+                detail: format!("heliocentric crossings are undefined for {:?}", body),
+            });
+        }
         let step = Self::step_days(&body);
         // Clamp like the eclipse engine: keep retarded/aberration queries in-window.
         let scan_start = start_jd.max(WINDOW_START_JD + step);
@@ -274,5 +281,22 @@ mod tests {
             )
             .unwrap_err();
         assert!(matches!(err, EventError::OutOfWindow { .. }));
+    }
+
+    #[test]
+    fn heliocentric_rejects_sun_and_moon() {
+        let engine = CrossingEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
+        let after = tdb(2_451_545.0);
+        for body in [CelestialBody::Sun, CelestialBody::Moon] {
+            let err = engine
+                .next_longitude_crossing(
+                    body.clone(),
+                    Longitude::from_degrees(0.0),
+                    CrossingFrame::Heliocentric,
+                    after,
+                )
+                .unwrap_err();
+            assert!(matches!(err, EventError::UnsupportedFrame { .. }), "{body:?}");
+        }
     }
 }
