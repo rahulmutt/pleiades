@@ -6,8 +6,10 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
+mod crossings;
 mod ephemeris;
 mod error;
 mod root;
 
+pub use crossings::{Crossing, CrossingEngine, CrossingFrame};
 pub use error::{EventError, WINDOW_END_JD, WINDOW_START_JD};
