@@ -117,6 +117,15 @@ pub fn validate_crossings_corpus() -> Result<CrossingsCorpusReport, CrossingsCor
         let body = parse_body(f[1]).ok_or_else(|| CrossingsCorpusError::Schema {
             row: line.to_string(),
         })?;
+        // The engine is forward-only; a `bwd` (or any non-`fwd`) direction row
+        // would be silently treated as forward if left unchecked. Reject it as
+        // a schema error so a future non-forward fixture fails closed instead
+        // of being misinterpreted.
+        if f[4].trim() != "fwd" {
+            return Err(CrossingsCorpusError::Schema {
+                row: line.to_string(),
+            });
+        }
         let target = f[2]
             .parse::<f64>()
             .map_err(|_| CrossingsCorpusError::Schema {
@@ -200,6 +209,9 @@ mod tests {
     #[test]
     fn validate_crossings_passes_over_committed_corpus() {
         let report = validate_crossings_corpus().expect("gate should pass");
-        assert!(report.checked > 0, "no fixtures checked");
+        assert_eq!(
+            report.checked, 41,
+            "expected all 41 committed fixtures checked"
+        );
     }
 }
