@@ -16,11 +16,6 @@ ship stale artifacts, native-dependency drift, or overbroad claims.
 
 ## Remaining implementation work
 
-- Audit house formulas, aliases, source-label mappings, latitude constraints,
-  numerical failure modes, and Swiss-Ephemeris-style interoperability notes for
-  release-claimed entries.
-- Audit ayanamsa epochs, offsets, formulas, aliases, near-equivalent variants,
-  provenance, and descriptor-only/custom-only labels.
 - Keep compatibility profiles exact about shipped built-ins, aliases,
   constraints, descriptor-only entries, custom-definition territory, and known
   gaps.

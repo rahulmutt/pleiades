@@ -15,7 +15,8 @@ without coupling the public API to one source family.
 
 ## Remaining backend goals
 
-- Production source corpus or public-data reader strategy.
-- Production-grade 1600-2600 CE compressed artifact.
+- Production-grade 1600-2600 CE compressed artifact (the 1900-2100 release
+  artifact is shipped; the wider span is opt-in via `generate-artifact`, not yet
+  gated).
 - Pluto, fuller lunar theory/lunar points, and selected asteroid claim closure.
 - Empirical accuracy documentation for each advertised backend path.

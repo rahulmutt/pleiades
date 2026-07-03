@@ -27,19 +27,10 @@ artifact.
 
 ## Remaining implementation work
 
-- **Met** — a broad public-data reader for arbitrary external JPL-style data
-  products now exists in `pleiades-jpl::ingest` (Horizons vector-table text,
-  Horizons API JSON, generic CSV with column aliasing) on top of the exposed
-  pure-Rust parsing paths, with a single fail-closed normalizer into the
-  existing corpus types and optional live Horizons fetch behind the default-off
-  `horizons-fetch` feature.
-- **Met** — a curated asteroid corpus is committed: a Tier A main-belt core
-  reproducible from the pinned `sb441-n16` kernel (provenance in
-  `docs/spk-kernel-sourcing.md`, gated by `corpus_regen` via
-  `PLEIADES_AST_KERNEL`), plus a Tier B constrained set of centaurs, personal
-  asteroids, and TNOs sourced from Horizons over 1900-2100.
-- Keep fitting/reference, independent hold-out, boundary-overlay,
-  fixture-exactness, and provenance-only evidence separate in data and reports.
+None — Phase 1 is complete. The broad `pleiades-jpl::ingest` public-data reader
+and the curated asteroid corpus are committed and gate-verified; fitting,
+hold-out, boundary, fixture-exactness, and provenance-only evidence are kept
+separate in data and reports.
 
 ## Exit criteria
 

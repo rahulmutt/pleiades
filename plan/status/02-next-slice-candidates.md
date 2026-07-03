@@ -48,14 +48,12 @@ No open Phase 2 slices remain.
 
 ## Phase 4 — Request-mode semantics
 
-- Decide first-release scope for built-in UTC/UT1 and Delta-T behavior.
-- Implement apparent-place support only with documented corrections and fixtures.
-- Implement topocentric body positions only with explicit observer semantics and
-  tests.
+Built-in civil-time UTC/UT1 + Delta-T conversion, apparent-place corrections,
+topocentric body positions, and motion/speed output are all implemented and
+gated. Only one slice remains:
+
 - Keep native sidereal backend output unsupported unless validated native backend
   behavior exists.
-- Align motion/speed/retrograde output policy across backends, charts, CLI, and
-  artifact profiles.
 
 ## Phase 5 — Compatibility and release gates
 
