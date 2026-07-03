@@ -59,15 +59,16 @@ gated. Only one slice remains:
 
 Phase 5 compatibility-audit pair is complete:
 
-- House-system numeric gate **done** (`validate-houses`, 60-row SE corpus,
-  per-formula-family arcsecond ceilings set from measured residuals; all 12
-  baseline house systems validated). Audit: house formulas, aliases, source-label
-  mappings, latitude/numerical constraints for release-claimed entries — complete.
+- House-system numeric gate **done** (`validate-houses`, 138-row SE corpus over
+  6 charts × 23 systems, per-formula-family arcsecond ceilings set from measured
+  residuals — tightest families ≤ 1–2″, Quadrant ≤ 12″, SolarArc/Sunshine ≤ 66″
+  at the lat-66° bound). Audit: house formulas, aliases, source-label mappings,
+  latitude/numerical constraints for release-claimed entries — complete.
 - Ayanamsa epoch/offset/formula/alias/provenance audit **done** via the numeric gate
-  (`validate-ayanamsa`, 60-row SE mean corpus, per-mode-class ceilings set from
-  measured residuals; 6 release-claimed modes — Lahiri, Raman, Krishnamurti,
-  Fagan/Bradley ≤ 2.0″; True Chitra, True Citra ≤ 1.0″). Remaining ~48 built-in
-  ayanamsa variants are not-yet-gated (descriptor tests only; no claim broadening).
+  (`validate-ayanamsa`, 480-row SE mean corpus, per-mode-class ceilings set from
+  measured residuals; 48 gated modes across 4 classes — OffsetDefined ≤ 3.0″
+  (Lahiri, Raman, Krishnamurti, Fagan/Bradley, …); TrueStar ≤ 1.0″ (True Chitra,
+  True Citra, …); Galactic ≤ 1.0″; FittedOffset ≤ 1.0″).
 
 Remaining Phase 5 candidates:
 

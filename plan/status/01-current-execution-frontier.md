@@ -71,10 +71,13 @@ evidence is sufficient.
 ## Phase 5 note
 
 The Phase 5 compatibility-audit pair has landed: house-system numeric gate
-(`validate-houses`, all 12 baseline systems ≤ 5.71″) and ayanamsa numeric gate
-(`validate-ayanamsa`, 6 release-claimed modes — OffsetDefined ≤ 2.0″, TrueStar
-≤ 1.0″) are both done. Remaining Phase 5 work: release-gate hardening and
-compatibility-profile overclaim checks.
+(`validate-houses`, 138-row SE corpus over 6 charts × 23 systems, per-formula-family
+ceilings set from measured residuals — tightest families ≤ 1–2″, Quadrant ≤ 12″,
+SolarArc/Sunshine ≤ 66″ at the lat-66° bound) and ayanamsa numeric gate
+(`validate-ayanamsa`, 480-row SE mean corpus, 48 gated modes across 4 classes —
+OffsetDefined ≤ 3.0″, TrueStar/Galactic/FittedOffset ≤ 1.0″) are both done.
+Remaining Phase 5 work: release-gate hardening and compatibility-profile
+overclaim checks.
 
 ## Parallel-safe work
 
