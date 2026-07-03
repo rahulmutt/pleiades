@@ -64,7 +64,7 @@ reusing conventions and correction code that already exist.
 | Direction & multiplicity | `next`/`previous`/`in_range`. Sun and Moon are monotonic in longitude (one crossing per period); **general bodies may cross a target up to three times per synodic loop when retrograde** — the step-scan bracket enumerates all crossings in range. |
 | Time base | Native **TDB** results (matching the eclipse engine). SE `_ut` corpus rows converted once at generation. Callers wanting civil/UT1 use the existing `pleiades-time` conversion. No change to the ΔT/UT1 policy. |
 | Coverage window | Same hard **1900–2100 TDB** clamp the eclipse engine uses (packaged backend has no segments outside it). Out-of-window requests fail closed. |
-| Surfacing | Re-export `CrossingEngine`, `Crossing`, `CrossingFrame`, `Direction` through `pleiades-core`; add a `crossings` CLI subcommand mirroring the eclipse render. |
+| Surfacing | Follow the **eclipse precedent** (verified in code): `pleiades-events` is a standalone crate users depend on directly (like `pleiades-eclipse`); it is **not** re-exported through `pleiades-core`. A `crossings` CLI alias is routed through `pleiades-validate`'s render layer exactly as the `eclipses` alias is. |
 | Validation | New isolated `tools/se-crossings-reference`; committed `crossings-corpus` + manifest; fail-closed **`validate-crossings`** gate (per-body time-residual ceilings) wired into `release-smoke`/`release-gate`; claim-tier ↔ evidence carried through the overclaim audit. |
 | Versioning | New public surface → bump the compatibility profile (from `0.7.4`) and note the crossings API in README "current state". No breaking change to existing types, so the API-stability profile (`0.2.1`) is unaffected unless a shared type is touched. |
 
@@ -177,12 +177,15 @@ impl<B: EphemerisBackend> CrossingEngine<B> {
 
 ### 4. Surfacing
 
-- Re-export `CrossingEngine`, `Crossing`, `CrossingFrame`, and `EventError` from
-  `pleiades-core`. (`next`/`previous` encode search direction, so no public
-  `Direction` type is needed; `direction` appears only as a corpus fixture
-  column matching `swe_helio_cross`'s `dir` argument.)
-- Add a `crossings` CLI subcommand rendering next/previous/in-range results for a
-  body + target longitude, mirroring the eclipse subcommand's output style.
+- `pleiades-events` is a standalone crate; users depend on it directly and
+  construct `CrossingEngine::new(backend)`, exactly as they do
+  `EclipseEngine::new(backend)`. It is **not** re-exported through
+  `pleiades-core` (eclipse isn't either — verified in code). (`next`/`previous`
+  encode search direction, so no public `Direction` type is needed; `direction`
+  appears only as a corpus fixture column matching `swe_helio_cross`'s `dir`.)
+- A `crossings` CLI alias is routed through `pleiades-validate`'s render layer
+  (`render/cli.rs`), mirroring the existing `eclipses` alias — a render/report
+  surface, not a first-class core API.
 
 ### 5. SE reference extension (`tools/se-crossings-reference`)
 
