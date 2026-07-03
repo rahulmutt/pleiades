@@ -34,21 +34,31 @@ assumptions, aliases, and latitude/numerical failure modes per
 | X | Meridian / Axial Rotation | **[baseline]** |
 | T | Polich-Page (Topocentric) | **[baseline]** |
 | M | Morinus | **[baseline]** |
-| D | Equal (from MC) | target |
-| N | Whole Sign / Equal from 0° Aries | target |
-| V | Vehlow Equal | target |
-| U | Krusinski-Pisa-Goelzer | target |
-| Y | APC houses | target |
-| S | Sripati | target |
-| F | Carter poli-equatorial | target |
-| H | Horizontal / Azimuthal | target |
-| G | Gauquelin sectors | target |
-| L | Pullen SD (sinusoidal delta) | target |
-| Q | Pullen SR (sinusoidal ratio) | target |
-| I | Sunshine (Makransky) | target |
+| D | Equal (from MC) | shipped |
+| N | Whole Sign / Equal from 0° Aries | shipped |
+| V | Vehlow Equal | shipped |
+| U | Krusinski-Pisa-Goelzer | shipped |
+| Y | APC houses | shipped |
+| S | Sripati | shipped |
+| F | Carter poli-equatorial | shipped |
+| H | Horizontal / Azimuthal | shipped |
+| G | Gauquelin sectors | shipped |
+| L | Pullen SD (sinusoidal delta) | shipped |
+| Q | Pullen SR (sinusoidal ratio) | shipped |
+| I | Sunshine (Makransky) | shipped |
 
 The eleven **[baseline]** entries match the baseline floor in
 [`requirements.md`](requirements.md) FR-4 and [`astrology-domain.md`](astrology-domain.md).
+
+**Status legend:** **[baseline]** = baseline shipping floor (implemented);
+*shipped* = implemented beyond the baseline; *target* = committed end-state not
+yet implemented. As of the current release line, every entry in the table above
+is implemented — all twelve non-baseline systems are *shipped*, so no house-system
+entry remains in *target* state. The first-party crates ship 25 built-in house
+systems in total (24 numerically gated by `validate-houses`); the extra built-in,
+Albategnius / Savard-A, sits beyond this 23-code SE set and is not yet
+corpus-gated. Per-release shipping status remains authoritative in the release
+compatibility profile.
 
 ## Ayanamsas
 
@@ -92,3 +102,9 @@ This list reflects the SE catalog at time of writing and is maintained against t
 `SE_SIDM_*` enumeration; the binding commitment is "the SE sidereal-mode set," not this
 transcription. Where Pleiades and another tool disagree on a name, the difference must be
 recorded as an alias in the release compatibility profile.
+
+As of the current release line, the first-party crates ship 59 built-in sidereal
+modes, of which 48 are numerically gated by `validate-ayanamsa`; the remaining 11
+are descriptor-only (6 without a computation path). This is well beyond the five
+**[baseline]** modes. Per-release shipping and gating status is authoritative in
+the release compatibility profile.
