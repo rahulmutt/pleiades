@@ -231,3 +231,32 @@ fn validate_eclipses_command_forwards_to_validate_crate() {
     let via_alias = render_cli(&["eclipses-gate"]).expect("eclipses-gate alias should succeed");
     assert_eq!(out, via_alias);
 }
+
+#[test]
+fn crossings_alias_dispatches_to_validate() {
+    let out = render_cli(&["crossings"]).expect("crossings should dispatch");
+    // NOTE: the validate layer's `validate-crossings` / `crossings-gate` arm
+    // (crates/pleiades-validate/src/render/cli.rs) returns
+    // `CrossingsCorpusReport::summary_line()` directly — it has no
+    // "Crossings gate:" banner prefix (unlike the plan's original Task 9
+    // sketch). Asserting the real output here, mirroring how the existing
+    // `validate_eclipses_command_forwards_to_validate_crate` test above
+    // checks for the "validate-eclipses" substring rather than an
+    // "Eclipses gate" banner.
+    assert!(
+        out.contains("validate-crossings"),
+        "output should contain 'validate-crossings': {out}"
+    );
+    assert!(
+        out.contains("SE crossing fixtures"),
+        "output should contain 'SE crossing fixtures': {out}"
+    );
+
+    // validate-crossings and crossings-gate should reach the validate layer
+    // directly and match the bare "crossings" alias output exactly.
+    let via_validate =
+        render_cli(&["validate-crossings"]).expect("validate-crossings should succeed");
+    assert_eq!(out, via_validate);
+    let via_gate = render_cli(&["crossings-gate"]).expect("crossings-gate alias should succeed");
+    assert_eq!(out, via_gate);
+}

@@ -1,0 +1,28 @@
+[package]
+name = "pleiades-events"
+description = "Ephemeris event-finding for the pleiades astrology workspace: longitude crossings (solcross / mooncross / general-body / heliocentric helio_cross), derived from pleiades' validated body positions."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme = "README.md"
+
+[features]
+serde = ["dep:serde", "pleiades-types/serde"]
+
+[dependencies]
+pleiades-types = { workspace = true }
+pleiades-backend = { workspace = true }
+pleiades-apparent = { workspace = true }
+serde = { workspace = true, optional = true }
+
+[dev-dependencies]
+pleiades-backend = { workspace = true, features = ["test-backend"] }
+pleiades-data = { workspace = true }
+
+[package.metadata.docs.rs]
+all-features = true

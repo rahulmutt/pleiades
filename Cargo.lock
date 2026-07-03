@@ -217,6 +217,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "pleiades-events"
+version = "0.3.0"
+dependencies = [
+ "pleiades-apparent",
+ "pleiades-backend",
+ "pleiades-data",
+ "pleiades-types",
+ "serde",
+]
+
+[[package]]
 name = "pleiades-houses"
 version = "0.3.0"
 dependencies = [
@@ -262,6 +273,7 @@ dependencies = [
  "pleiades-data",
  "pleiades-eclipse",
  "pleiades-elp",
+ "pleiades-events",
  "pleiades-houses",
  "pleiades-jpl",
  "pleiades-types",

@@ -15,7 +15,7 @@ As of the current workspace state, `pleiades` includes:
 - a backend-agnostic request/result contract with capability metadata,
 - a high-level chart façade with typed tropical/sidereal chart requests,
 - baseline chart body placement, zodiac-sign summaries, aspect summaries, and optional house summaries,
-- a release compatibility profile (`pleiades-compatibility-profile/0.7.4`),
+- a release compatibility profile (`pleiades-compatibility-profile/0.7.5`),
 - an API stability profile (`pleiades-api-stability/0.2.1`),
 - public sidereal-time helpers (GMST, GAST, local sidereal time via `pleiades_apparent::sidereal_time` and `SiderealTime`) and `AscMc` chart-point extras (ARMC, Vertex, antivertex, equatorial ascendant, co-ascendants, polar ascendant via `pleiades_houses::{AscMc, chart_points, chart_points_from_armc}`); `HouseSnapshot::asc_mc` carries `AscMc` on every house snapshot; `HouseSnapshot` is now `#[non_exhaustive]`; `ChartSnapshot::asc_mc()` re-exposes `AscMc` at the façade layer; the `validate-angles` gate is wired into `run_all_numeric_gates`,
 - 25 catalogued house systems and 59 catalogued ayanamsas; of the 25 catalogued house systems, 24 house systems pass the SE numeric gate; of the 59 catalogued ayanamsas, 48 release-claimed ayanamsa modes pass theirs (the remaining 11 are catalogued with metadata only),
@@ -24,6 +24,7 @@ As of the current workspace state, `pleiades` includes:
 - an ARTIFACT_VERSION 7 packaged-data artifact for the 1900–2100 CE window (planets Mercury–Pluto stored heliocentrically, geocentric ecliptic reconstructed at lookup via `P_geo = P_helio + S_geo`; all bodies sub-arcsec after the SP2 heliocentric-planet reframe; motion/speed output is `Motion = Derived` via `SpeedPolicy::FittedDerivative`; published per-body-class accuracy ceilings and hard size budget ≤ 12 MB enforced; wider coverage opt-in via `generate-artifact <kernel> --out <path> [--start --end]`),
 - contributor CLI tools for chart inspection, validation reports, audits, artifact checks, and release-bundle rehearsal,
 - global/geocentric solar and lunar eclipse data (type, greatest-eclipse time, magnitude, gamma, Saros series, eclipsed longitude, and solar greatest-eclipse location) for 1900-01-01 … 2100-01-01 via `pleiades-eclipse`, validated exhaustively against NASA's Five Millennium Canon by the fail-closed `validate-eclipses` gate; local (per-observer) circumstances are not provided.
+- a longitude-crossing engine (SP-2a, distinct from the SP2 heliocentric-planet artifact reframe) via `pleiades-events`: `CrossingEngine` with `next_sun_crossing`/`next_moon_crossing` (Swiss-Ephemeris `solcross`/`mooncross` analogues), general geocentric-apparent-of-date body crossings, and heliocentric `helio_cross` crossings over the 1900–2100 TDB window, exposed through the `validate-crossings` CLI (aliases `crossings` / `crossings-gate`) and not re-exported from `pleiades-core`; gated by the fail-closed `validate-crossings` gate, which recomputes 41 Swiss-Ephemeris reference crossings. Because the SE reference uses Moshier theory while the engine backend uses VSOP87/ELP, the gate's per-body time ceilings (Sun/Moon 60 s, planet 2800 s, heliocentric 7200 s) are **cross-theory-calibrated placeholders pending maintainer review**, not a claim of tight arcsecond Swiss-Ephemeris parity.
 
 Important current limits:
 
