@@ -1,6 +1,10 @@
 //! Generic time-domain root-finder: bracket by stepping, refine by bisection.
 //! Mirrors the eclipse `syzygy` scanner but takes an arbitrary target function.
 
+// Items here are pub(crate) for upcoming crossing-engine tasks; silence
+// dead_code lint until those consumers land.
+#![allow(dead_code)]
+
 use crate::error::EventError;
 
 /// Bisection tolerance: 0.5 second of time, in days.
