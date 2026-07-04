@@ -46,12 +46,12 @@ impl<B: EphemerisBackend> EventEngine<B> {
                 detail: e.to_string(),
             })?;
         let jd = at.julian_day.days();
-        let eps = true_obliquity_degrees(jd)
-            .map_err(|e| EventError::Backend(format!("obliquity failed: {e}")))?;
         // Resolve to apparent equatorial RA/Dec (degrees).
         let (ra_deg, dec_deg) = match input {
             HorizontalInput::Equatorial(ra, dec) => (ra.degrees(), dec.degrees()),
             HorizontalInput::Ecliptic(lon, lat) => {
+                let eps = true_obliquity_degrees(jd)
+                    .map_err(|e| EventError::Backend(format!("obliquity failed: {e}")))?;
                 let ecl = EclipticCoordinates::new(lon, lat, None);
                 let equ = ecl.to_equatorial(Angle::from_degrees(eps));
                 (equ.right_ascension.degrees(), equ.declination.degrees())
@@ -67,7 +67,7 @@ impl<B: EphemerisBackend> EventEngine<B> {
         );
         // Standard equatorial → horizontal rotation (azimuth from south, west +).
         let sin_alt = phi.sin() * dec.sin() + phi.cos() * dec.cos() * h.cos();
-        let alt = sin_alt.asin();
+        let alt = sin_alt.clamp(-1.0, 1.0).asin();
         let az = (h.sin()).atan2(h.cos() * phi.sin() - dec.tan() * phi.cos());
         let true_altitude = alt.to_degrees();
         Ok(Horizontal {
@@ -123,6 +123,45 @@ mod tests {
         assert!(
             h.apparent_altitude >= h.true_altitude,
             "refraction lifts the body"
+        );
+    }
+
+    #[test]
+    fn target_at_zenith_altitude_is_finite_not_nan() {
+        // Declination equals the observer's latitude and hour angle ~0 (RA ==
+        // local apparent sidereal time) puts the target exactly at zenith.
+        // Floating-point rounding can push sin_alt fractionally outside
+        // [-1,1] at this boundary, so asin must be fed a clamped value or it
+        // silently returns NaN — a fail-closed violation. This exact
+        // (jd, latitude) pair was found by scanning for the boundary case
+        // where sin(phi)^2 + cos(phi)^2 rounds to a hair above 1.0.
+        let observer = ObserverLocation::new(
+            Latitude::from_degrees(-87.5),
+            Longitude::from_degrees(0.0),
+            None,
+        );
+        let engine = EventEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
+        let at = tdb(2_451_000.0);
+        let st = pleiades_apparent::sidereal_time(at, Longitude::from_degrees(0.0));
+        let ra = Angle::from_degrees(st.local_apparent_deg);
+        let dec = Latitude::from_degrees(-87.5); // == observer's latitude
+        let h = engine
+            .horizontal(
+                HorizontalInput::Equatorial(ra, dec),
+                observer,
+                Atmosphere::default(),
+                at,
+            )
+            .unwrap();
+        assert!(
+            h.true_altitude.is_finite(),
+            "altitude must never be NaN, got {}",
+            h.true_altitude
+        );
+        assert!(
+            (h.true_altitude - 90.0).abs() < 1e-6,
+            "expected zenith (~90°), got {}",
+            h.true_altitude
         );
     }
 
