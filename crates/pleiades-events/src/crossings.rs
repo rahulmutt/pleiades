@@ -211,6 +211,46 @@ impl<B: EphemerisBackend> CrossingEngine<B> {
             after,
         )
     }
+
+    /// Ecliptic longitude of `body` in `frame` at `instant` (TDB).
+    ///
+    /// Geocentric apparent tropical of date for
+    /// [`CrossingFrame::GeocentricApparentOfDate`]; heliocentric of date for
+    /// [`CrossingFrame::Heliocentric`]. Fails closed outside the packaged
+    /// 1900–2100 window and for heliocentric Sun/Moon, matching the crossing
+    /// entry points. This is the evaluator the `validate-crossings` parity tier
+    /// uses to compare the engine's longitude against a reference crossing time.
+    ///
+    /// ```
+    /// use pleiades_data::packaged_backend;
+    /// use pleiades_events::{CrossingEngine, CrossingFrame};
+    /// use pleiades_types::{CelestialBody, Instant, JulianDay, TimeScale};
+    ///
+    /// let engine = CrossingEngine::new(packaged_backend());
+    /// let t = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tdb);
+    /// let lon = engine
+    ///     .longitude_at(CelestialBody::Sun, CrossingFrame::GeocentricApparentOfDate, t)
+    ///     .unwrap();
+    /// assert!((0.0..360.0).contains(&lon.degrees()));
+    /// ```
+    pub fn longitude_at(
+        &self,
+        body: CelestialBody,
+        frame: CrossingFrame,
+        instant: Instant,
+    ) -> Result<Longitude, EventError> {
+        let jd = instant.julian_day.days();
+        self.check_window(jd)?;
+        if matches!(frame, CrossingFrame::Heliocentric)
+            && matches!(body, CelestialBody::Sun | CelestialBody::Moon)
+        {
+            return Err(EventError::UnsupportedFrame {
+                detail: format!("heliocentric longitude is undefined for {:?}", body),
+            });
+        }
+        let deg = self.longitude_deg(&body, frame, jd)?;
+        Ok(Longitude::from_degrees(deg))
+    }
 }
 
 fn body_label(body: &CelestialBody) -> &'static str {
@@ -331,5 +371,49 @@ mod tests {
                 "{body:?}"
             );
         }
+    }
+
+    #[test]
+    fn longitude_at_matches_crossing_target() {
+        let engine = CrossingEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
+        let after = tdb(2_451_545.0);
+        let target = Longitude::from_degrees(100.0);
+        let c = engine.next_sun_crossing(target, after).unwrap().unwrap();
+        // At the crossing instant the engine's longitude must equal the target.
+        let lon = engine
+            .longitude_at(
+                CelestialBody::Sun,
+                CrossingFrame::GeocentricApparentOfDate,
+                c.instant,
+            )
+            .unwrap();
+        assert!(
+            wrap180(lon.degrees() - 100.0).abs() < 1e-3,
+            "lon at crossing {}",
+            lon.degrees()
+        );
+    }
+
+    #[test]
+    fn longitude_at_fails_closed() {
+        let engine = CrossingEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
+        // Heliocentric Sun is undefined.
+        let err = engine
+            .longitude_at(
+                CelestialBody::Sun,
+                CrossingFrame::Heliocentric,
+                tdb(2_451_545.0),
+            )
+            .unwrap_err();
+        assert!(matches!(err, EventError::UnsupportedFrame { .. }));
+        // Out of the packaged window.
+        let err = engine
+            .longitude_at(
+                CelestialBody::Sun,
+                CrossingFrame::GeocentricApparentOfDate,
+                tdb(2_000_000.0),
+            )
+            .unwrap_err();
+        assert!(matches!(err, EventError::OutOfWindow { .. }));
     }
 }
