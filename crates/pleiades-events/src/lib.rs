@@ -25,10 +25,12 @@
 mod crossings;
 mod ephemeris;
 mod error;
+mod fixstar;
 mod horizontal;
 mod root;
 
 #[allow(deprecated)]
 pub use crossings::{Crossing, CrossingEngine, CrossingFrame, EventEngine};
 pub use error::{EventError, WINDOW_END_JD, WINDOW_START_JD};
+pub use fixstar::{fixed_star_entry, FixedStarEntry};
 pub use horizontal::{Horizontal, HorizontalInput};

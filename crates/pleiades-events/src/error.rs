@@ -35,6 +35,11 @@ pub enum EventError {
         /// Human-readable detail.
         detail: String,
     },
+    /// A fixed-star name not present in the curated catalog.
+    UnknownFixedStar {
+        /// The requested name.
+        name: String,
+    },
 }
 
 impl fmt::Display for EventError {
@@ -57,6 +62,7 @@ impl fmt::Display for EventError {
                 write!(f, "unsupported crossing frame: {detail}")
             }
             EventError::InvalidObserver { detail } => write!(f, "invalid observer: {detail}"),
+            EventError::UnknownFixedStar { name } => write!(f, "unknown fixed star: {name}"),
         }
     }
 }
