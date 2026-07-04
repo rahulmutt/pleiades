@@ -213,7 +213,7 @@ pub(crate) fn validate_crossings_csv(
                 row: line.to_string(),
             })?;
         let residual_s = (got.instant.julian_day.days() - golden_jd).abs() * 86_400.0;
-        if residual_s > SELF_CONSISTENCY_TOL_S {
+        if !residual_s.is_finite() || residual_s > SELF_CONSISTENCY_TOL_S {
             return Err(CrossingsCorpusError::SelfConsistencyExceeded {
                 row: line.to_string(),
                 residual_s,
@@ -229,7 +229,7 @@ pub(crate) fn validate_crossings_csv(
             .map_err(|e| CrossingsCorpusError::Engine(e.to_string()))?;
         let residual_arcsec = wrap180_deg(lambda.degrees() - target).abs() * 3600.0;
         let ceiling_arcsec = arcsec_ceiling_for(frame, &body);
-        if residual_arcsec > ceiling_arcsec {
+        if !residual_arcsec.is_finite() || residual_arcsec > ceiling_arcsec {
             return Err(CrossingsCorpusError::ParityExceeded {
                 row: line.to_string(),
                 residual_arcsec,
@@ -359,6 +359,19 @@ geo,Sun,10.000000,2416000.500000,fwd,2416195.301931810,PLEIADES
             validate_crossings_csv(short).unwrap_err(),
             CrossingsCorpusError::Schema { .. }
         ));
+    }
+
+    #[test]
+    fn nan_golden_residual_fails_closed() {
+        let csv = "\
+frame,body,target_longitude_deg,start_jd_tdb,direction,crossing_jd_tdb,pleiades_jd_tdb
+geo,Sun,0.000000,2416000.500000,fwd,2416195.301931810,NaN
+";
+        let err = validate_crossings_csv(csv).unwrap_err();
+        assert!(
+            matches!(err, CrossingsCorpusError::SelfConsistencyExceeded { .. }),
+            "{err:?}"
+        );
     }
 
     // Test helper: replace a literal `PLEIADES` golden placeholder with the
