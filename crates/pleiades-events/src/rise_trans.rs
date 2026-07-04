@@ -5,10 +5,14 @@
 #![allow(dead_code)]
 
 use crate::crossings::EventEngine;
-use crate::ephemeris::geocentric_apparent_ecliptic;
+use crate::ephemeris::{geocentric_apparent_ecliptic, read_mean_ecliptic};
 use crate::error::EventError;
 use crate::fixstar::fixed_star_apparent;
-use pleiades_apparent::{sidereal_time, topocentric_position, true_obliquity_degrees};
+use crate::semidiameter::semidiameter_deg;
+use pleiades_apparent::{
+    apparent_from_true, sidereal_time, topocentric_position, true_from_apparent,
+    true_obliquity_degrees, Atmosphere,
+};
 use pleiades_backend::EphemerisBackend;
 use pleiades_types::{
     Angle, CelestialBody, EclipticCoordinates, Instant, JulianDay, Latitude, Longitude,
@@ -163,6 +167,80 @@ impl<B: EphemerisBackend> EventEngine<B> {
             }
         }
     }
+
+    /// Apparent (refracted, when `opts.refraction`) topocentric altitude of the
+    /// target at `jd` (TDB), in degrees. This is the function rise/set root-finds.
+    pub(crate) fn target_apparent_altitude(
+        &self,
+        target: &RiseSetTarget,
+        observer: &ObserverLocation,
+        opts: &RiseSetOptions,
+        atmos: Atmosphere,
+        jd: f64,
+    ) -> Result<f64, EventError> {
+        let at = Instant::new(JulianDay::from_days(jd), TimeScale::Tdb);
+        let (ra_deg, dec_deg) = self.target_equatorial(target, observer, opts, jd)?;
+        let phi = observer.latitude.degrees().to_radians();
+        let lst = sidereal_time(at, observer.longitude).local_apparent_deg;
+        let ha = (lst - ra_deg).to_radians();
+        let dec = dec_deg.to_radians();
+        let sin_alt = phi.sin() * dec.sin() + phi.cos() * dec.cos() * ha.cos();
+        // Guard the asin domain: fail-closed, never-NaN.
+        let true_alt = sin_alt.clamp(-1.0, 1.0).asin().to_degrees();
+        Ok(if opts.refraction {
+            apparent_from_true(true_alt, atmos)
+        } else {
+            true_alt
+        })
+    }
+
+    /// The standard altitude `h0` the event is defined at: horizon geometry minus
+    /// disc/refraction/dip terms, plus any custom horizon.
+    pub(crate) fn standard_altitude(
+        &self,
+        target: &RiseSetTarget,
+        observer: &ObserverLocation,
+        opts: &RiseSetOptions,
+        atmos: Atmosphere,
+        jd: f64,
+    ) -> Result<f64, EventError> {
+        // Distance (AU) for semidiameter; 0 for points/stars.
+        let distance_au = match target {
+            RiseSetTarget::Body(b) => read_mean_ecliptic(&self.backend, b.clone(), "body", jd)?.2,
+            _ => 0.0,
+        };
+        let mut h0 = 0.0_f64;
+        // Refraction depression at the horizon (Saemundsson at apparent h=0 ≈
+        // -34'); dropped if refraction off. Note: `apparent_from_true(0.0, _)`
+        // is NOT the horizon constant here — Bennett/Saemundsson are only
+        // approximate inverses of each other, and `apparent_from_true(0.0, _)`
+        // evaluates to ≈ +0.475° (see `refraction_at_horizon_is_about_34_arcmin`
+        // in pleiades-apparent), not the ~0.567° standard horizon dip. The
+        // standard altitude is defined by "apparent limb altitude == 0", i.e. we
+        // need the true altitude at which the *apparent* place is the horizon,
+        // which is exactly what `true_from_apparent` computes.
+        if opts.refraction {
+            h0 += true_from_apparent(0.0, atmos); // ≈ -0.567°
+        }
+        // Disc term.
+        let sd = semidiameter_deg(target, distance_au.max(1e-9), opts.fixed_disc_size);
+        h0 += match opts.disc {
+            DiscMode::UpperLimb => -sd,
+            DiscMode::LowerLimb => sd,
+            DiscMode::Center => 0.0,
+        };
+        // Horizon dip from observer elevation (metres): dip ≈ 1.76' * sqrt(h_m).
+        if let Some(elev) = observer.elevation_m {
+            if elev > 0.0 {
+                h0 -= (1.76 / 60.0) * elev.sqrt();
+            }
+        }
+        // Custom local horizon altitude.
+        if let Some(hor) = opts.horizon_altitude_deg {
+            h0 += hor;
+        }
+        Ok(h0)
+    }
 }
 
 #[cfg(test)]
@@ -249,5 +327,64 @@ mod tests {
             (dec_forced - dec_zero).abs() < 1e-9,
             "no_ecl_lat should ignore supplied latitude"
         );
+    }
+
+    #[test]
+    fn standard_altitude_sun_upper_limb_is_about_negative_0p833() {
+        use pleiades_backend::test_backend::LinearSunMoon;
+        use pleiades_types::{
+            Instant, JulianDay, Latitude, Longitude, ObserverLocation, TimeScale,
+        };
+        let engine = EventEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
+        let obs = ObserverLocation::new(
+            Latitude::from_degrees(40.0),
+            Longitude::from_degrees(0.0),
+            None,
+        );
+        let opts = RiseSetOptions::default(); // upper limb + refraction
+        let h0 = engine
+            .standard_altitude(
+                &RiseSetTarget::Body(pleiades_types::CelestialBody::Sun),
+                &obs,
+                &opts,
+                pleiades_apparent::Atmosphere::default(),
+                Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tdb)
+                    .julian_day
+                    .days(),
+            )
+            .unwrap();
+        // −(34' refraction) − (16' semidiameter) ≈ −0.833°.
+        assert!((h0 + 0.833).abs() < 0.05, "sun standard altitude {h0}");
+    }
+
+    #[test]
+    fn standard_altitude_no_refraction_center_is_zero() {
+        use pleiades_backend::test_backend::LinearSunMoon;
+        use pleiades_types::{
+            Instant, JulianDay, Latitude, Longitude, ObserverLocation, TimeScale,
+        };
+        let engine = EventEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
+        let obs = ObserverLocation::new(
+            Latitude::from_degrees(40.0),
+            Longitude::from_degrees(0.0),
+            None,
+        );
+        let opts = RiseSetOptions {
+            disc: DiscMode::Center,
+            refraction: false,
+            ..RiseSetOptions::default()
+        };
+        let h0 = engine
+            .standard_altitude(
+                &RiseSetTarget::FixedStar("Sirius".into()),
+                &obs,
+                &opts,
+                pleiades_apparent::Atmosphere::default(),
+                Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tdb)
+                    .julian_day
+                    .days(),
+            )
+            .unwrap();
+        assert!(h0.abs() < 1e-9, "no-refraction center h0 {h0}");
     }
 }
