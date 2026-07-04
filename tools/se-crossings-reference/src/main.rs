@@ -30,9 +30,14 @@ const SEFLG_HELCTR: c_int = 8; // heliocentric position
 // SE ipl body numbers.
 const SE_SUN: c_int = 0;
 const SE_MOON: c_int = 1;
+const SE_MERCURY: c_int = 2;
+const SE_VENUS: c_int = 3;
 const SE_MARS: c_int = 4;
 const SE_JUPITER: c_int = 5;
 const SE_SATURN: c_int = 6;
+const SE_URANUS: c_int = 7;
+const SE_NEPTUNE: c_int = 8;
+const SE_PLUTO: c_int = 9;
 
 // 1900-2100 CE packaged window (TDB Julian days).
 const JD_WINDOW_LO: f64 = 2_415_020.5; // 1900-01-01
@@ -187,7 +192,7 @@ fn emit(frame: &str, body: &str, target: f64, start_tdb: f64, crossing_tdb: f64)
 fn main() {
     println!("# Source: Swiss Ephemeris 2.10.03 (libswisseph-sys 0.1.2).");
     println!("# geo Sun/Moon: swe_solcross_ut / swe_mooncross_ut (UT), TDB via swe_deltat.");
-    println!("# geo Mars: bisection on swe_calc geocentric longitude (no SE geo planet-cross fn).");
+    println!("# geo planets: bisection on swe_calc geocentric longitude (no SE geo planet-cross fn); Mars block retains the retrograde triple-crossing.");
     println!("# helio: swe_helio_cross (ET/TDB), iflag=SEFLG_MOSEPH|SEFLG_HELCTR, dir=+1.");
     println!("# All rows forward (next crossing after start); times TDB within 1900-2100.");
     println!("frame,body,target_longitude_deg,start_jd_tdb,direction,crossing_jd_tdb");
@@ -233,11 +238,53 @@ fn main() {
         emit("geo", "Mars", mars_target, start, c);
     }
 
-    // --- helio Jupiter & Saturn crossing 0 deg (and 180 deg). ---
+    // --- geo planets Mercury–Pluto: cardinal-ish targets, in-window starts. ---
+    // SE has no geocentric planet-crossing function, so each is bisected on
+    // swe_calc geocentric longitude (see geo_planet_cross_tdb). Starts are chosen
+    // to sit comfortably inside 1900–2100 so the forward crossing is in-window.
+    let geo_planets: [(c_int, &str); 7] = [
+        (SE_MERCURY, "Mercury"),
+        (SE_VENUS, "Venus"),
+        (SE_JUPITER, "Jupiter"),
+        (SE_SATURN, "Saturn"),
+        (SE_URANUS, "Uranus"),
+        (SE_NEPTUNE, "Neptune"),
+        (SE_PLUTO, "Pluto"),
+    ];
+    let geo_planet_targets = [0.0_f64, 120.0, 240.0];
+    let geo_planet_start = 2_440_000.5_f64; // ~1968; slow outer planets still cross within window
+    for &(ipl, name) in &geo_planets {
+        for &t in &geo_planet_targets {
+            let c = geo_planet_cross_tdb(ipl, t, geo_planet_start);
+            emit("geo", name, t, geo_planet_start, c);
+        }
+    }
+
+    // --- helio planets Mercury–Pluto via swe_helio_cross. ---
+    // Fast planets (Mercury–Uranus) use two spread starts. Neptune and Pluto are
+    // so slow that a fixed-longitude crossing from the ~2023 start falls past the
+    // 2100 window ceiling, so they use only the single early (~1941) start, which
+    // still yields in-window crossings of both targets.
     let helio_targets = [0.0_f64, 180.0];
-    let helio_starts = [2_430_000.5_f64, 2_460_000.5]; // ~1941 / ~2023
-    for &(ipl, name) in &[(SE_JUPITER, "Jupiter"), (SE_SATURN, "Saturn")] {
-        for &start in &helio_starts {
+    let helio_starts_fast = [2_430_000.5_f64, 2_460_000.5]; // ~1941 / ~2023
+    let helio_starts_slow = [2_430_000.5_f64]; // ~1941 only (Neptune, Pluto)
+    let helio_planets: [(c_int, &str); 8] = [
+        (SE_MERCURY, "Mercury"),
+        (SE_VENUS, "Venus"),
+        (SE_MARS, "Mars"),
+        (SE_JUPITER, "Jupiter"),
+        (SE_SATURN, "Saturn"),
+        (SE_URANUS, "Uranus"),
+        (SE_NEPTUNE, "Neptune"),
+        (SE_PLUTO, "Pluto"),
+    ];
+    for &(ipl, name) in &helio_planets {
+        let starts: &[f64] = if ipl == SE_NEPTUNE || ipl == SE_PLUTO {
+            &helio_starts_slow
+        } else {
+            &helio_starts_fast
+        };
+        for &start in starts {
             for &t in &helio_targets {
                 let c = helio_cross_tdb(ipl, t, start);
                 emit("helio", name, t, start, c);
