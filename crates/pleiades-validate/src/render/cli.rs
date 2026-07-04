@@ -2827,4 +2827,69 @@ geo,Sun,0.000000,2416000.500000,fwd,2416195.301931810
         // The engine's Sun crossing of 0° after 2416000.5 lands near the SE value.
         assert!((golden - 2_416_195.3).abs() < 1.0, "golden {golden}");
     }
+
+    #[test]
+    fn append_golden_column_rejects_malformed_row() {
+        // Fail-closed: a data row with the wrong arity (5 fields) must Err.
+        let wrong_arity = "\
+# comment line
+frame,body,target_longitude_deg,start_jd_tdb,direction,crossing_jd_tdb
+geo,Sun,0.000000,2416000.500000,fwd
+";
+        assert!(
+            super::append_golden_column(wrong_arity).is_err(),
+            "5-field row must be rejected"
+        );
+
+        // Fail-closed: a data row naming an unknown body must Err.
+        let unknown_body = "\
+# comment line
+frame,body,target_longitude_deg,start_jd_tdb,direction,crossing_jd_tdb
+geo,Nibiru,0.0,2416000.5,fwd,2416195.3
+";
+        assert!(
+            super::append_golden_column(unknown_body).is_err(),
+            "unknown body must be rejected"
+        );
+    }
+
+    #[test]
+    fn golden_column_round_trip_is_idempotent() {
+        let six = "\
+# comment line
+frame,body,target_longitude_deg,start_jd_tdb,direction,crossing_jd_tdb
+geo,Sun,0.000000,2416000.500000,fwd,2416195.301931810
+";
+        let seven = super::append_golden_column(six).unwrap();
+        // A second regenerate — strip the golden column back to 6 and re-append —
+        // is a byte-for-byte no-op; this is the property `--regenerate --check`
+        // relies on.
+        let seven2 = super::append_golden_column(&super::strip_golden_column(&seven)).unwrap();
+        assert_eq!(seven, seven2, "second regenerate must be a no-op");
+
+        // strip_golden_column inverts append: the header loses `,pleiades_jd_tdb`
+        // and its SE `,crossing_jd_tdb` column is restored as the last field.
+        let stripped = super::strip_golden_column(&seven);
+        let header = stripped
+            .lines()
+            .find(|l| l.starts_with("frame,"))
+            .expect("header");
+        assert!(
+            header.trim_end().ends_with(",crossing_jd_tdb"),
+            "stripped header must end with ,crossing_jd_tdb: {header}"
+        );
+        assert!(
+            !header.trim_end().ends_with(",pleiades_jd_tdb"),
+            "stripped header must not retain the golden column: {header}"
+        );
+        let row = stripped
+            .lines()
+            .find(|l| l.starts_with("geo,Sun,"))
+            .expect("row");
+        assert_eq!(
+            row.split(',').count(),
+            6,
+            "stripped data row must have 6 fields: {row}"
+        );
+    }
 }
