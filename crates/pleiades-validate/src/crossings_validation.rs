@@ -33,11 +33,15 @@ const EXPECTED_ROWS: usize = 82;
 const SELF_CONSISTENCY_TOL_S: f64 = 1.0;
 
 // Tier-2 per-body arcsecond ceilings — MEASURED from the committed corpus and set
-// to ~1.4x each group's measured maximum. These are cross-theory floors (SE
-// Moshier vs engine VSOP87/ELP), not engine error; cf. validate-lilith accepting
-// an SE-vs-ours residual of ~306". Measured group maxima at the committed epochs:
-// geo Sun 0.3", geo Moon 21.7", geo planets ≤20.7", helio ≤35.1" (Mercury).
-const GEO_SUN_ARCSEC: f64 = 2.0;
+// with headroom above each group's measured maximum (Moon/planets/helio at
+// ~1.4-1.5x; the Sun's ceiling is ~1.7x since its sub-arcsecond residual makes
+// the ratio looser even though it remains the tightest ceiling in absolute
+// terms). These are cross-theory floors (SE Moshier vs engine VSOP87/ELP), not
+// engine error; cf. validate-lilith accepting an SE-vs-ours residual of ~306".
+// Measured group maxima at the committed epochs vs their ceilings: geo Sun
+// 0.3" -> 0.5", geo Moon 21.7" -> 32", geo planets ≤20.7" -> 30", helio ≤35.1"
+// -> 50" (Mercury).
+const GEO_SUN_ARCSEC: f64 = 0.5;
 const GEO_MOON_ARCSEC: f64 = 32.0;
 // Every geocentric planet Mercury–Pluto shares this ceiling. Pluto's backend
 // fallback (VSOP87 excludes Pluto) nonetheless agrees to ≈20.7" at the sampled
