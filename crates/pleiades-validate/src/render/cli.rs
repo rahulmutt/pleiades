@@ -13,10 +13,10 @@ pub fn banner() -> &'static str {
 /// output is the 7-column corpus. Comment (`#`) lines pass through unchanged; the
 /// `frame,` header gains a trailing `,pleiades_jd_tdb`.
 pub(crate) fn append_golden_column(csv_6col: &str) -> Result<String, String> {
-    use pleiades_events::{CrossingEngine, CrossingFrame};
+    use pleiades_events::{CrossingFrame, EventEngine};
     use pleiades_types::{Instant, JulianDay, Longitude, TimeScale};
 
-    let engine = CrossingEngine::new(pleiades_data::packaged_backend());
+    let engine = EventEngine::new(pleiades_data::packaged_backend());
     let mut out = String::new();
     for line in csv_6col.lines() {
         let trimmed = line.trim();

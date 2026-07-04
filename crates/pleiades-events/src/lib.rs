@@ -8,10 +8,10 @@
 //!
 //! ```rust
 //! use pleiades_data::packaged_backend;
-//! use pleiades_events::{CrossingEngine, CrossingFrame};
+//! use pleiades_events::{CrossingFrame, EventEngine};
 //! use pleiades_types::{CelestialBody, Instant, JulianDay, Longitude, TimeScale};
 //!
-//! let engine = CrossingEngine::new(packaged_backend());
+//! let engine = EventEngine::new(packaged_backend());
 //! let after = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tdb);
 //! // When does the Sun next reach 0° (the March equinox point)?
 //! let next = engine
@@ -27,5 +27,6 @@ mod ephemeris;
 mod error;
 mod root;
 
-pub use crossings::{Crossing, CrossingEngine, CrossingFrame};
+#[allow(deprecated)]
+pub use crossings::{Crossing, CrossingEngine, CrossingFrame, EventEngine};
 pub use error::{EventError, WINDOW_END_JD, WINDOW_START_JD};

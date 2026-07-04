@@ -1,5 +1,5 @@
 use pleiades_data::packaged_backend;
-use pleiades_events::{CrossingEngine, CrossingFrame};
+use pleiades_events::{CrossingFrame, EventEngine};
 use pleiades_types::{CelestialBody, Instant, JulianDay, Longitude, TimeScale};
 
 fn tdb(jd: f64) -> Instant {
@@ -26,7 +26,7 @@ fn tdb(jd: f64) -> Instant {
 /// (dropping precession or nutation) fails this test immediately.
 #[test]
 fn heliocentric_saturn_of_date_crossing_matches_se() {
-    let engine = CrossingEngine::new(packaged_backend());
+    let engine = EventEngine::new(packaged_backend());
     const SE_REF_JD: f64 = 2_439_500.066527;
     let crossing = engine
         .next_longitude_crossing(
@@ -48,7 +48,7 @@ fn heliocentric_saturn_of_date_crossing_matches_se() {
 /// `longitude_crossings_in_range(..).first()` filtered strictly after `after`.
 #[test]
 fn next_equals_first_in_range_heliocentric() {
-    let engine = CrossingEngine::new(packaged_backend());
+    let engine = EventEngine::new(packaged_backend());
     let after = tdb(2_451_545.0);
     let end = tdb(2_451_545.0 + 4400.0);
     let next = engine
@@ -85,7 +85,7 @@ fn next_equals_first_in_range_heliocentric() {
 /// the finder terminates on the first root instead of scanning to WINDOW_END.
 #[test]
 fn moon_next_crossing_returns_quickly() {
-    let engine = CrossingEngine::new(packaged_backend());
+    let engine = EventEngine::new(packaged_backend());
     let after = tdb(2_451_545.0);
     let t0 = std::time::Instant::now();
     let crossing = engine
@@ -109,7 +109,7 @@ fn moon_next_crossing_returns_quickly() {
 
 #[test]
 fn heliocentric_jupiter_crossing_is_found() {
-    let engine = CrossingEngine::new(packaged_backend());
+    let engine = EventEngine::new(packaged_backend());
     let start = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tdb);
     let end = Instant::new(JulianDay::from_days(2_451_545.0 + 4400.0), TimeScale::Tdb); // ~1 Jupiter orbit
     let out = engine
