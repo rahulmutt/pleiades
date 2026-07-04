@@ -8,6 +8,94 @@ pub fn banner() -> &'static str {
     BANNER
 }
 
+/// Recompute each SE fixture's crossing with the packaged engine and append the
+/// result as a `pleiades_jd_tdb` golden column. Input is the 6-column SE CSV;
+/// output is the 7-column corpus. Comment (`#`) lines pass through unchanged; the
+/// `frame,` header gains a trailing `,pleiades_jd_tdb`.
+pub(crate) fn append_golden_column(csv_6col: &str) -> Result<String, String> {
+    use pleiades_events::{CrossingEngine, CrossingFrame};
+    use pleiades_types::{Instant, JulianDay, Longitude, TimeScale};
+
+    let engine = CrossingEngine::new(pleiades_data::packaged_backend());
+    let mut out = String::new();
+    for line in csv_6col.lines() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() || trimmed.starts_with('#') {
+            out.push_str(line);
+            out.push('\n');
+            continue;
+        }
+        if trimmed.starts_with("frame,") {
+            out.push_str(trimmed);
+            out.push_str(",pleiades_jd_tdb\n");
+            continue;
+        }
+        let f: Vec<&str> = trimmed.split(',').collect();
+        if f.len() != 6 {
+            return Err(format!("expected 6 fields, got {}: {trimmed}", f.len()));
+        }
+        let frame = match f[0] {
+            "geo" => CrossingFrame::GeocentricApparentOfDate,
+            "helio" => CrossingFrame::Heliocentric,
+            other => return Err(format!("unknown frame {other}: {trimmed}")),
+        };
+        let body = parse_golden_body(f[1]).ok_or_else(|| format!("unknown body: {trimmed}"))?;
+        let target: f64 = f[2]
+            .parse()
+            .map_err(|e| format!("target: {e}: {trimmed}"))?;
+        let start_jd: f64 = f[3].parse().map_err(|e| format!("start: {e}: {trimmed}"))?;
+        let after = Instant::new(JulianDay::from_days(start_jd), TimeScale::Tdb);
+        let crossing = engine
+            .next_longitude_crossing(body, Longitude::from_degrees(target), frame, after)
+            .map_err(|e| format!("engine: {e}: {trimmed}"))?
+            .ok_or_else(|| format!("engine found no crossing: {trimmed}"))?;
+        out.push_str(trimmed);
+        out.push_str(&format!(",{:.9}\n", crossing.instant.julian_day.days()));
+    }
+    Ok(out)
+}
+
+fn parse_golden_body(name: &str) -> Option<pleiades_types::CelestialBody> {
+    use pleiades_types::CelestialBody;
+    Some(match name {
+        "Sun" => CelestialBody::Sun,
+        "Moon" => CelestialBody::Moon,
+        "Mercury" => CelestialBody::Mercury,
+        "Venus" => CelestialBody::Venus,
+        "Mars" => CelestialBody::Mars,
+        "Jupiter" => CelestialBody::Jupiter,
+        "Saturn" => CelestialBody::Saturn,
+        "Uranus" => CelestialBody::Uranus,
+        "Neptune" => CelestialBody::Neptune,
+        "Pluto" => CelestialBody::Pluto,
+        _ => return None,
+    })
+}
+
+/// Drop a 7th `pleiades_jd_tdb` golden column back to the 6-column SE form:
+/// truncates data rows to 6 fields and strips the header's `,pleiades_jd_tdb`
+/// suffix. Comment/blank lines pass through unchanged. Used by `crossings-golden`
+/// so regeneration is idempotent (it always starts from the SE reference columns).
+fn strip_golden_column(csv: &str) -> String {
+    let mut out = String::new();
+    for line in csv.lines() {
+        let t = line.trim();
+        if t.is_empty() || t.starts_with('#') {
+            out.push_str(line);
+        } else if t.starts_with("frame,") {
+            out.push_str(t.trim_end().trim_end_matches(",pleiades_jd_tdb"));
+        } else {
+            let mut f: Vec<&str> = t.split(',').collect();
+            if f.len() == 7 {
+                f.truncate(6);
+            }
+            out.push_str(&f.join(","));
+        }
+        out.push('\n');
+    }
+    out
+}
+
 fn run_all_numeric_gates() -> Result<(), String> {
     crate::validate_house_corpus().map_err(|e| format!("house gate failed: {e}"))?;
     crate::validate_ayanamsa_corpus().map_err(|e| format!("ayanamsa gate failed: {e}"))?;
@@ -281,6 +369,39 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
                 ),
                 PackagedArtifactCommand::Check => render_packaged_artifact_regeneration_check(),
             }
+        }
+        Some("crossings-golden") => {
+            let path = concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/data/crossings-corpus/crossings.csv"
+            );
+            let current = std::fs::read_to_string(path).map_err(|e| format!("read {path}: {e}"))?;
+            // Strip any existing 7th column back to the 6-column SE form so the
+            // command is idempotent (regenerate from the SE reference columns).
+            let six = strip_golden_column(&current);
+            let regenerated = append_golden_column(&six)?;
+            if args.contains(&"--check") {
+                if regenerated != current {
+                    return Err(
+                        "crossings golden column is stale; run `crossings-golden --regenerate`"
+                            .to_string(),
+                    );
+                }
+                return Ok("crossings-golden: committed golden column is current".to_string());
+            }
+            // --regenerate (default): write it back (or to --out FILE).
+            let out_path = args
+                .iter()
+                .position(|a| *a == "--out")
+                .and_then(|i| args.get(i + 1))
+                .map(|s| s.to_string())
+                .unwrap_or_else(|| path.to_string());
+            std::fs::write(&out_path, &regenerated)
+                .map_err(|e| format!("write {out_path}: {e}"))?;
+            let checksum = pleiades_apparent::fnv1a64(&regenerated);
+            Ok(format!(
+                "crossings-golden: wrote {out_path}; manifest checksum= {checksum}"
+            ))
         }
         Some("artifact-summary") | Some("artifact-posture-summary") => {
             ensure_no_extra_args(&args[1..], "artifact-summary")?;
@@ -2079,7 +2200,7 @@ fn parse_rounds(args: &[&str], default: usize) -> Result<usize, String> {
 fn help_text() -> String {
     let corpus_size = default_corpus().requests.len();
     format!(
-        "{banner}\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  comparison-report         Alias for compare-backends\n  compare-backends-audit    Compare the JPL snapshot against the algorithmic composite backend and fail if the tolerance audit reports regressions\n  comparison-audit-summary  Print the compact release-grade comparison-audit summary\n  comparison-audit         Alias for comparison-audit-summary\n  backend-matrix            Print the implemented backend capability matrices\n  capability-matrix         Alias for backend-matrix\n  backend-matrix-summary    Print the compact backend capability matrix summary\n  matrix-summary            Alias for backend-matrix-summary\n  compatibility-profile     Print the release compatibility profile\n  profile                   Alias for compatibility-profile\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1600-2600 window corpus and full chart assembly on representative house scenarios\n  benchmark-matrix-summary [--rounds N]  Print the compact benchmark matrix summary\n  benchmark-matrix [--rounds N]  Alias for benchmark-matrix-summary\n  comparison-corpus-summary  Print the compact release-grade comparison corpus summary\n  comparison-corpus         Alias for comparison-corpus-summary\n  comparison-corpus-release-guard-summary  Print the compact release-grade comparison corpus guard summary\n  comparison-corpus-release-guard  Alias for comparison-corpus-release-guard-summary\n  comparison-corpus-guard-summary  Alias for comparison-corpus-release-guard-summary\n  comparison-corpus-guard       Alias for comparison-corpus-guard-summary\n  comparison-envelope-summary  Print the compact comparison envelope summary\n  comparison-envelope       Alias for comparison-envelope-summary\n  comparison-tolerance-policy-summary  Print the compact comparison tolerance policy summary\n  comparison-tolerance-summary  Alias for comparison-tolerance-policy-summary\n  comparison-tolerance-scope-coverage-summary  Print the compact comparison tolerance scope coverage summary\n  comparison-tolerance-scope-coverage  Alias for comparison-tolerance-scope-coverage-summary\n  comparison-body-class-tolerance-summary  Print the compact comparison body-class tolerance summary\n  comparison-body-class-tolerance  Alias for comparison-body-class-tolerance-summary\n  comparison-body-class-error-envelope-summary  Print the compact comparison body-class error envelope summary\n  comparison-body-class-error-envelope  Alias for comparison-body-class-error-envelope-summary\n  comparison-body-class-tolerance-posture-summary  Print the compact comparison body-class tolerance posture summary\n  comparison-body-class-tolerance-posture  Alias for comparison-body-class-tolerance-posture-summary\n  release-body-claims-summary  Print the compact release-grade body claims summary\n  body-claims-summary          Alias for release-body-claims-summary\n  body-date-channel-claims-summary  Print the compact body/date/channel claims summary\n  body-date-channel-claims     Alias for body-date-channel-claims-summary\n  benchmark-corpus-summary  Print the compact representative benchmark corpus summary\n  chart-benchmark-corpus-summary  Print the compact chart benchmark corpus summary\n  chart-benchmark-corpus  Alias for chart-benchmark-corpus-summary\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  validation-report-summary [--rounds N]  Render a compact validation report summary\n  report-summary [--rounds N]  Alias for validation-report-summary\n  validation-summary        Alias for validation-report-summary\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  validate-corpus           Run the fail-closed production reference corpus gate (completeness, schema/provenance, checksum-drift) over the checked-in corpus slices\n  corpus-gate               Alias for validate-corpus\n  validate-apparent         Run the fail-closed apparent-goldens gate (JPL Horizons reference, longitude residuals) over the committed apparent goldens\n  apparent-gate             Alias for validate-apparent\n  validate-topocentric      Run the fail-closed topocentric-goldens gate (JPL Horizons quantity-31 reference, diurnal parallax + aberration) over the committed topocentric goldens\n  topocentric-gate          Alias for validate-topocentric\n  validate-houses           Run the fail-closed house-system gate (Swiss Ephemeris reference cusps, per-family arcsecond ceilings) over the committed house corpus\n  houses-gate               Alias for validate-houses\n  validate-angles           Run the fail-closed angles gate (Swiss Ephemeris ARMC/vertex/equatorial-ascendant/co-ascendants/polar-ascendant + apparent sidereal time, arcsecond ceilings) over the committed angles corpus\n  angles-gate               Alias for validate-angles\n  validate-ayanamsa         Run the fail-closed ayanamsa gate (Swiss Ephemeris reference offsets, per-mode-class arcsecond ceilings) over the committed ayanamsa corpus\n  ayanamsa-gate             Alias for validate-ayanamsa\n  validate-lilith           Run the fail-closed osculating true apsides gate (Swiss Ephemeris SE_OSCU_APOG, arcsecond ceilings) over the committed lilith corpus\n  lilith-gate               Alias for validate-lilith\n  validate-equatorial       Run the fail-closed apparent equatorial-of-date gate (JPL Horizons apparent RA/Dec, cos\u{03b4}-weighted residuals) over the committed equatorial goldens\n  equatorial-gate           Alias for validate-equatorial\n  validate-equatorial-se    Run the fail-closed equatorial convention-parity gate (Swiss Ephemeris SEFLG_EQUATORIAL, loose ceilings) over the committed equatorial-se corpus\n  equatorial-se-gate        Alias for validate-equatorial-se\n  validate-eclipses         Run the fail-closed eclipse gate (NASA Five Millennium Canon reference, ≤60 s / ≤0.01 / exact type & Saros) over the committed eclipse corpus\n  eclipses-gate             Alias for validate-eclipses\n  validate-crossings        Run the fail-closed longitude-crossing gate (Swiss Ephemeris solcross/mooncross/helio_cross, per-body time ceilings) over the committed crossings corpus\n  crossings-gate            Alias for validate-crossings\n  generate-packaged-artifact  Generate or verify the packaged artifact fixture from the checked-in reference snapshot; pass a file path, --out FILE, --output FILE, --manifest-out FILE, --manifest-summary-out FILE, --manifest-checksum-out FILE, --artifact-checksum-out FILE, --normalized-intermediate-summary-out FILE, or --check\n  regenerate-packaged-artifact  Alias for generate-packaged-artifact\n  artifact-summary          Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  artifact-boundary-envelope-summary  Print the compact packaged-artifact boundary envelope summary\n  artifact-profile-coverage-summary  Print the packaged-artifact profile coverage summary\n  packaged-artifact-output-support-summary  Print the packaged-artifact output support summary\n  packaged-artifact-output-support       Alias for packaged-artifact-output-support-summary\n  packaged-artifact-body-class-span-cap-summary  Print the packaged-artifact body-class span caps summary\n  packaged-artifact-body-class-span-cap  Alias for packaged-artifact-body-class-span-cap-summary\n  packaged-artifact-speed-policy-summary  Print the packaged-artifact speed policy summary\n  packaged-artifact-speed-policy       Alias for packaged-artifact-speed-policy-summary\n  motion-policy-summary         Print the compact motion policy summary\n  motion-policy               Alias for motion-policy-summary\n  packaged-artifact-access-summary  Print the packaged-artifact access summary\n  packaged-artifact-access  Alias for packaged-artifact-access-summary\n  packaged-artifact-path-policy-summary  Alias for packaged-artifact-access-summary\n  packaged-artifact-path-policy  Alias for packaged-artifact-path-policy-summary\n  packaged-artifact-storage-summary  Print the packaged-artifact storage/reconstruction summary\n  packaged-artifact-storage           Alias for packaged-artifact-storage-summary\n  packaged-artifact-production-profile-summary  Print the packaged-artifact production profile draft summary\n  packaged-artifact-production-profile  Alias for packaged-artifact-production-profile-summary\n  packaged-artifact-target-threshold-summary  Print the packaged-artifact target thresholds summary\n  packaged-artifact-target-threshold  Alias for packaged-artifact-target-threshold-summary\n  packaged-artifact-target-threshold-state-summary  Print the packaged-artifact target-threshold state summary\n  packaged-artifact-target-threshold-state  Alias for packaged-artifact-target-threshold-state-summary\n  packaged-artifact-target-threshold-scope-envelopes-summary  Print the packaged-artifact target-threshold scope envelopes summary\n  packaged-artifact-target-threshold-scope-envelopes  Alias for packaged-artifact-target-threshold-scope-envelopes-summary\n  packaged-artifact-phase2-corpus-alignment-summary  Print the packaged-artifact phase-2 corpus alignment summary\n  packaged-artifact-phase2-corpus-alignment  Alias for packaged-artifact-phase2-corpus-alignment-summary\n  packaged-artifact-source-fit-holdout-sync-summary  Print the packaged-artifact source-fit and hold-out sync summary\n  packaged-artifact-source-fit-holdout-sync  Alias for packaged-artifact-source-fit-holdout-sync-summary\n  packaged-artifact-fit-envelope-summary  Print the packaged-artifact fit envelope summary\n  packaged-artifact-fit-envelope  Alias for packaged-artifact-fit-envelope-summary\n  packaged-artifact-fit-margins-summary  Print the packaged-artifact fit margins summary\n  packaged-artifact-fit-margins      Alias for packaged-artifact-fit-margins-summary\n  packaged-artifact-fit-sample-classes-summary  Print the packaged-artifact fit sample classes summary\n  packaged-artifact-fit-sample-classes  Alias for packaged-artifact-fit-sample-classes-summary\n  packaged-artifact-body-cadence-summary  Print the packaged-artifact body cadence summary\n  packaged-artifact-body-cadence         Alias for packaged-artifact-body-cadence-summary\n  packaged-artifact-fit-outliers-summary  Print the packaged-artifact body/channel fit outlier summary\n  packaged-artifact-fit-outliers  Alias for packaged-artifact-fit-outliers-summary\n  packaged-artifact-fit-threshold-violation-count-summary  Print the packaged-artifact fit threshold violation count summary\n  packaged-artifact-fit-threshold-violation-count  Alias for packaged-artifact-fit-threshold-violation-count-summary\n  packaged-artifact-fit-threshold-violations-summary  Print the packaged-artifact fit threshold violations summary\n  packaged-artifact-fit-threshold-violations  Alias for packaged-artifact-fit-threshold-violations-summary\n  packaged-artifact-generation-manifest-summary  Print the packaged-artifact generation manifest summary\n  packaged-artifact-generation-manifest  Alias for packaged-artifact-generation-manifest-summary\n  packaged-artifact-generation-manifest-checksum-summary  Print the packaged-artifact generation manifest checksum summary\n  packaged-artifact-generation-manifest-checksum  Alias for packaged-artifact-generation-manifest-checksum-summary\n  packaged-artifact-generation-policy-summary  Print the packaged-artifact generation policy summary\n  packaged-artifact-generation-policy     Alias for packaged-artifact-generation-policy-summary\n  packaged-artifact-normalized-intermediate-summary  Print the packaged-artifact normalized intermediates summary\n  packaged-artifact-normalized-intermediate  Alias for packaged-artifact-normalized-intermediate-summary\n  packaged-artifact-generation-residual-summary  Alias for packaged-artifact-generation-residual-bodies-summary\n  packaged-artifact-generation-residual-bodies-summary  Print the packaged-artifact generation residual bodies summary\n  packaged-artifact-regeneration-summary  Print the packaged-artifact regeneration summary\n  packaged-artifact-regeneration      Alias for packaged-artifact-regeneration-summary\n  packaged-artifact-accuracy-baseline-summary  Print the SP1 per-body accuracy baseline (committed artifact vs hold-out corpus)\n  artifact-accuracy-baseline  Alias for packaged-artifact-accuracy-baseline-summary\n  packaged-artifact-thresholds-summary  Print published accuracy ceilings + size budget vs measured\n  artifact-thresholds  Alias for packaged-artifact-thresholds-summary\n  packaged-artifact-latency-budget-summary  Print measured decode/lookup/batch latency vs PACKAGED_BUDGETS targets (non-gating)\n  artifact-latency  Alias for packaged-artifact-latency-budget-summary\n  packaged-frame-parity-summary  Print the packaged frame parity summary\n  packaged-frame-parity         Alias for packaged-frame-parity-summary\n  packaged-frame-treatment-summary  Print the packaged frame treatment summary\n  packaged-lookup-epoch-policy-summary  Print the packaged lookup epoch policy summary\n  packaged-lookup-epoch-policy         Alias for packaged-lookup-epoch-policy-summary\n  packaged-artifact-lookup-epoch-policy-summary  Print the packaged lookup epoch policy summary\n  packaged-artifact-lookup-epoch-policy         Alias for packaged-artifact-lookup-epoch-policy-summary\n  workspace-audit           Check the workspace for mandatory native build hooks
+        "{banner}\nCommands:\n  compare-backends          Compare the JPL snapshot against the algorithmic composite backend\n  comparison-report         Alias for compare-backends\n  compare-backends-audit    Compare the JPL snapshot against the algorithmic composite backend and fail if the tolerance audit reports regressions\n  comparison-audit-summary  Print the compact release-grade comparison-audit summary\n  comparison-audit         Alias for comparison-audit-summary\n  backend-matrix            Print the implemented backend capability matrices\n  capability-matrix         Alias for backend-matrix\n  backend-matrix-summary    Print the compact backend capability matrix summary\n  matrix-summary            Alias for backend-matrix-summary\n  compatibility-profile     Print the release compatibility profile\n  profile                   Alias for compatibility-profile\n  benchmark [--rounds N]    Benchmark the candidate backend on the representative 1600-2600 window corpus and full chart assembly on representative house scenarios\n  benchmark-matrix-summary [--rounds N]  Print the compact benchmark matrix summary\n  benchmark-matrix [--rounds N]  Alias for benchmark-matrix-summary\n  comparison-corpus-summary  Print the compact release-grade comparison corpus summary\n  comparison-corpus         Alias for comparison-corpus-summary\n  comparison-corpus-release-guard-summary  Print the compact release-grade comparison corpus guard summary\n  comparison-corpus-release-guard  Alias for comparison-corpus-release-guard-summary\n  comparison-corpus-guard-summary  Alias for comparison-corpus-release-guard-summary\n  comparison-corpus-guard       Alias for comparison-corpus-guard-summary\n  comparison-envelope-summary  Print the compact comparison envelope summary\n  comparison-envelope       Alias for comparison-envelope-summary\n  comparison-tolerance-policy-summary  Print the compact comparison tolerance policy summary\n  comparison-tolerance-summary  Alias for comparison-tolerance-policy-summary\n  comparison-tolerance-scope-coverage-summary  Print the compact comparison tolerance scope coverage summary\n  comparison-tolerance-scope-coverage  Alias for comparison-tolerance-scope-coverage-summary\n  comparison-body-class-tolerance-summary  Print the compact comparison body-class tolerance summary\n  comparison-body-class-tolerance  Alias for comparison-body-class-tolerance-summary\n  comparison-body-class-error-envelope-summary  Print the compact comparison body-class error envelope summary\n  comparison-body-class-error-envelope  Alias for comparison-body-class-error-envelope-summary\n  comparison-body-class-tolerance-posture-summary  Print the compact comparison body-class tolerance posture summary\n  comparison-body-class-tolerance-posture  Alias for comparison-body-class-tolerance-posture-summary\n  release-body-claims-summary  Print the compact release-grade body claims summary\n  body-claims-summary          Alias for release-body-claims-summary\n  body-date-channel-claims-summary  Print the compact body/date/channel claims summary\n  body-date-channel-claims     Alias for body-date-channel-claims-summary\n  benchmark-corpus-summary  Print the compact representative benchmark corpus summary\n  chart-benchmark-corpus-summary  Print the compact chart benchmark corpus summary\n  chart-benchmark-corpus  Alias for chart-benchmark-corpus-summary\n  report [--rounds N]       Render the full validation report\n  generate-report           Alias for report\n  validation-report-summary [--rounds N]  Render a compact validation report summary\n  report-summary [--rounds N]  Alias for validation-report-summary\n  validation-summary        Alias for validation-report-summary\n  validate-artifact         Inspect and validate the bundled compressed artifact\n  validate-corpus           Run the fail-closed production reference corpus gate (completeness, schema/provenance, checksum-drift) over the checked-in corpus slices\n  corpus-gate               Alias for validate-corpus\n  validate-apparent         Run the fail-closed apparent-goldens gate (JPL Horizons reference, longitude residuals) over the committed apparent goldens\n  apparent-gate             Alias for validate-apparent\n  validate-topocentric      Run the fail-closed topocentric-goldens gate (JPL Horizons quantity-31 reference, diurnal parallax + aberration) over the committed topocentric goldens\n  topocentric-gate          Alias for validate-topocentric\n  validate-houses           Run the fail-closed house-system gate (Swiss Ephemeris reference cusps, per-family arcsecond ceilings) over the committed house corpus\n  houses-gate               Alias for validate-houses\n  validate-angles           Run the fail-closed angles gate (Swiss Ephemeris ARMC/vertex/equatorial-ascendant/co-ascendants/polar-ascendant + apparent sidereal time, arcsecond ceilings) over the committed angles corpus\n  angles-gate               Alias for validate-angles\n  validate-ayanamsa         Run the fail-closed ayanamsa gate (Swiss Ephemeris reference offsets, per-mode-class arcsecond ceilings) over the committed ayanamsa corpus\n  ayanamsa-gate             Alias for validate-ayanamsa\n  validate-lilith           Run the fail-closed osculating true apsides gate (Swiss Ephemeris SE_OSCU_APOG, arcsecond ceilings) over the committed lilith corpus\n  lilith-gate               Alias for validate-lilith\n  validate-equatorial       Run the fail-closed apparent equatorial-of-date gate (JPL Horizons apparent RA/Dec, cos\u{03b4}-weighted residuals) over the committed equatorial goldens\n  equatorial-gate           Alias for validate-equatorial\n  validate-equatorial-se    Run the fail-closed equatorial convention-parity gate (Swiss Ephemeris SEFLG_EQUATORIAL, loose ceilings) over the committed equatorial-se corpus\n  equatorial-se-gate        Alias for validate-equatorial-se\n  validate-eclipses         Run the fail-closed eclipse gate (NASA Five Millennium Canon reference, ≤60 s / ≤0.01 / exact type & Saros) over the committed eclipse corpus\n  eclipses-gate             Alias for validate-eclipses\n  validate-crossings        Run the fail-closed two-tier longitude-crossing gate (Tier 1 sub-second self-consistency vs an engine golden column; Tier 2 per-body arcsecond Swiss-Ephemeris cross-theory parity) over the committed 86-row geo+helio crossings corpus\n  crossings-gate            Alias for validate-crossings\n  crossings-golden          Regenerate or (--check) verify the crossings corpus pleiades_jd_tdb golden column\n  generate-packaged-artifact  Generate or verify the packaged artifact fixture from the checked-in reference snapshot; pass a file path, --out FILE, --output FILE, --manifest-out FILE, --manifest-summary-out FILE, --manifest-checksum-out FILE, --artifact-checksum-out FILE, --normalized-intermediate-summary-out FILE, or --check\n  regenerate-packaged-artifact  Alias for generate-packaged-artifact\n  artifact-summary          Print the compact packaged-artifact summary\n  artifact-posture-summary  Alias for artifact-summary\n  artifact-boundary-envelope-summary  Print the compact packaged-artifact boundary envelope summary\n  artifact-profile-coverage-summary  Print the packaged-artifact profile coverage summary\n  packaged-artifact-output-support-summary  Print the packaged-artifact output support summary\n  packaged-artifact-output-support       Alias for packaged-artifact-output-support-summary\n  packaged-artifact-body-class-span-cap-summary  Print the packaged-artifact body-class span caps summary\n  packaged-artifact-body-class-span-cap  Alias for packaged-artifact-body-class-span-cap-summary\n  packaged-artifact-speed-policy-summary  Print the packaged-artifact speed policy summary\n  packaged-artifact-speed-policy       Alias for packaged-artifact-speed-policy-summary\n  motion-policy-summary         Print the compact motion policy summary\n  motion-policy               Alias for motion-policy-summary\n  packaged-artifact-access-summary  Print the packaged-artifact access summary\n  packaged-artifact-access  Alias for packaged-artifact-access-summary\n  packaged-artifact-path-policy-summary  Alias for packaged-artifact-access-summary\n  packaged-artifact-path-policy  Alias for packaged-artifact-path-policy-summary\n  packaged-artifact-storage-summary  Print the packaged-artifact storage/reconstruction summary\n  packaged-artifact-storage           Alias for packaged-artifact-storage-summary\n  packaged-artifact-production-profile-summary  Print the packaged-artifact production profile draft summary\n  packaged-artifact-production-profile  Alias for packaged-artifact-production-profile-summary\n  packaged-artifact-target-threshold-summary  Print the packaged-artifact target thresholds summary\n  packaged-artifact-target-threshold  Alias for packaged-artifact-target-threshold-summary\n  packaged-artifact-target-threshold-state-summary  Print the packaged-artifact target-threshold state summary\n  packaged-artifact-target-threshold-state  Alias for packaged-artifact-target-threshold-state-summary\n  packaged-artifact-target-threshold-scope-envelopes-summary  Print the packaged-artifact target-threshold scope envelopes summary\n  packaged-artifact-target-threshold-scope-envelopes  Alias for packaged-artifact-target-threshold-scope-envelopes-summary\n  packaged-artifact-phase2-corpus-alignment-summary  Print the packaged-artifact phase-2 corpus alignment summary\n  packaged-artifact-phase2-corpus-alignment  Alias for packaged-artifact-phase2-corpus-alignment-summary\n  packaged-artifact-source-fit-holdout-sync-summary  Print the packaged-artifact source-fit and hold-out sync summary\n  packaged-artifact-source-fit-holdout-sync  Alias for packaged-artifact-source-fit-holdout-sync-summary\n  packaged-artifact-fit-envelope-summary  Print the packaged-artifact fit envelope summary\n  packaged-artifact-fit-envelope  Alias for packaged-artifact-fit-envelope-summary\n  packaged-artifact-fit-margins-summary  Print the packaged-artifact fit margins summary\n  packaged-artifact-fit-margins      Alias for packaged-artifact-fit-margins-summary\n  packaged-artifact-fit-sample-classes-summary  Print the packaged-artifact fit sample classes summary\n  packaged-artifact-fit-sample-classes  Alias for packaged-artifact-fit-sample-classes-summary\n  packaged-artifact-body-cadence-summary  Print the packaged-artifact body cadence summary\n  packaged-artifact-body-cadence         Alias for packaged-artifact-body-cadence-summary\n  packaged-artifact-fit-outliers-summary  Print the packaged-artifact body/channel fit outlier summary\n  packaged-artifact-fit-outliers  Alias for packaged-artifact-fit-outliers-summary\n  packaged-artifact-fit-threshold-violation-count-summary  Print the packaged-artifact fit threshold violation count summary\n  packaged-artifact-fit-threshold-violation-count  Alias for packaged-artifact-fit-threshold-violation-count-summary\n  packaged-artifact-fit-threshold-violations-summary  Print the packaged-artifact fit threshold violations summary\n  packaged-artifact-fit-threshold-violations  Alias for packaged-artifact-fit-threshold-violations-summary\n  packaged-artifact-generation-manifest-summary  Print the packaged-artifact generation manifest summary\n  packaged-artifact-generation-manifest  Alias for packaged-artifact-generation-manifest-summary\n  packaged-artifact-generation-manifest-checksum-summary  Print the packaged-artifact generation manifest checksum summary\n  packaged-artifact-generation-manifest-checksum  Alias for packaged-artifact-generation-manifest-checksum-summary\n  packaged-artifact-generation-policy-summary  Print the packaged-artifact generation policy summary\n  packaged-artifact-generation-policy     Alias for packaged-artifact-generation-policy-summary\n  packaged-artifact-normalized-intermediate-summary  Print the packaged-artifact normalized intermediates summary\n  packaged-artifact-normalized-intermediate  Alias for packaged-artifact-normalized-intermediate-summary\n  packaged-artifact-generation-residual-summary  Alias for packaged-artifact-generation-residual-bodies-summary\n  packaged-artifact-generation-residual-bodies-summary  Print the packaged-artifact generation residual bodies summary\n  packaged-artifact-regeneration-summary  Print the packaged-artifact regeneration summary\n  packaged-artifact-regeneration      Alias for packaged-artifact-regeneration-summary\n  packaged-artifact-accuracy-baseline-summary  Print the SP1 per-body accuracy baseline (committed artifact vs hold-out corpus)\n  artifact-accuracy-baseline  Alias for packaged-artifact-accuracy-baseline-summary\n  packaged-artifact-thresholds-summary  Print published accuracy ceilings + size budget vs measured\n  artifact-thresholds  Alias for packaged-artifact-thresholds-summary\n  packaged-artifact-latency-budget-summary  Print measured decode/lookup/batch latency vs PACKAGED_BUDGETS targets (non-gating)\n  artifact-latency  Alias for packaged-artifact-latency-budget-summary\n  packaged-frame-parity-summary  Print the packaged frame parity summary\n  packaged-frame-parity         Alias for packaged-frame-parity-summary\n  packaged-frame-treatment-summary  Print the packaged frame treatment summary\n  packaged-lookup-epoch-policy-summary  Print the packaged lookup epoch policy summary\n  packaged-lookup-epoch-policy         Alias for packaged-lookup-epoch-policy-summary\n  packaged-artifact-lookup-epoch-policy-summary  Print the packaged lookup epoch policy summary\n  packaged-artifact-lookup-epoch-policy         Alias for packaged-artifact-lookup-epoch-policy-summary\n  workspace-audit           Check the workspace for mandatory native build hooks
   audit                     Alias for workspace-audit
   native-dependency-audit   Alias for workspace-audit
   workspace-audit-summary   Print the compact workspace audit summary
@@ -2673,5 +2794,102 @@ mod ingest_public_tests {
     fn ingest_public_requires_input() {
         let err = render_cli(&["ingest-public"]).unwrap_err();
         assert!(err.contains("--input"), "got: {err}");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn append_golden_column_adds_pleiades_time() {
+        // One in-window geo Sun fixture; the SE crossing_jd column value is
+        // irrelevant to the golden (the golden is the engine's own recompute).
+        let csv = "\
+# comment line
+frame,body,target_longitude_deg,start_jd_tdb,direction,crossing_jd_tdb
+geo,Sun,0.000000,2416000.500000,fwd,2416195.301931810
+";
+        let out = super::append_golden_column(csv).expect("golden append");
+        let header = out
+            .lines()
+            .find(|l| l.starts_with("frame,"))
+            .expect("header");
+        assert!(
+            header.trim_end().ends_with(",pleiades_jd_tdb"),
+            "header {header}"
+        );
+        let row = out
+            .lines()
+            .find(|l| l.starts_with("geo,Sun,"))
+            .expect("row");
+        let fields: Vec<&str> = row.split(',').collect();
+        assert_eq!(fields.len(), 7, "row should have 7 fields: {row}");
+        let golden: f64 = fields[6].parse().expect("golden jd parses");
+        // The engine's Sun crossing of 0° after 2416000.5 lands near the SE value.
+        assert!((golden - 2_416_195.3).abs() < 1.0, "golden {golden}");
+    }
+
+    #[test]
+    fn append_golden_column_rejects_malformed_row() {
+        // Fail-closed: a data row with the wrong arity (5 fields) must Err.
+        let wrong_arity = "\
+# comment line
+frame,body,target_longitude_deg,start_jd_tdb,direction,crossing_jd_tdb
+geo,Sun,0.000000,2416000.500000,fwd
+";
+        assert!(
+            super::append_golden_column(wrong_arity).is_err(),
+            "5-field row must be rejected"
+        );
+
+        // Fail-closed: a data row naming an unknown body must Err.
+        let unknown_body = "\
+# comment line
+frame,body,target_longitude_deg,start_jd_tdb,direction,crossing_jd_tdb
+geo,Nibiru,0.0,2416000.5,fwd,2416195.3
+";
+        assert!(
+            super::append_golden_column(unknown_body).is_err(),
+            "unknown body must be rejected"
+        );
+    }
+
+    #[test]
+    fn golden_column_round_trip_is_idempotent() {
+        let six = "\
+# comment line
+frame,body,target_longitude_deg,start_jd_tdb,direction,crossing_jd_tdb
+geo,Sun,0.000000,2416000.500000,fwd,2416195.301931810
+";
+        let seven = super::append_golden_column(six).unwrap();
+        // A second regenerate — strip the golden column back to 6 and re-append —
+        // is a byte-for-byte no-op; this is the property `--regenerate --check`
+        // relies on.
+        let seven2 = super::append_golden_column(&super::strip_golden_column(&seven)).unwrap();
+        assert_eq!(seven, seven2, "second regenerate must be a no-op");
+
+        // strip_golden_column inverts append: the header loses `,pleiades_jd_tdb`
+        // and its SE `,crossing_jd_tdb` column is restored as the last field.
+        let stripped = super::strip_golden_column(&seven);
+        let header = stripped
+            .lines()
+            .find(|l| l.starts_with("frame,"))
+            .expect("header");
+        assert!(
+            header.trim_end().ends_with(",crossing_jd_tdb"),
+            "stripped header must end with ,crossing_jd_tdb: {header}"
+        );
+        assert!(
+            !header.trim_end().ends_with(",pleiades_jd_tdb"),
+            "stripped header must not retain the golden column: {header}"
+        );
+        let row = stripped
+            .lines()
+            .find(|l| l.starts_with("geo,Sun,"))
+            .expect("row");
+        assert_eq!(
+            row.split(',').count(),
+            6,
+            "stripped data row must have 6 fields: {row}"
+        );
     }
 }
