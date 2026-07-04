@@ -107,9 +107,11 @@ where
 /// is refined, instead of scanning the whole window. It does NOT step a fresh
 /// grid downward from `hi_jd`, which would bracket different intervals
 /// whenever `(hi_jd - lo_jd)` is not an exact multiple of `step_days`. Uses the
-/// identical wrap-seam (`< 180.0`) guard and bisection tolerance, so the
-/// returned root matches `crossings_in_range(..).last()` for the same
-/// arguments.
+/// identical wrap-seam (`< 180.0`) guard and bisection tolerance, and — like
+/// `crossings_in_range` — always evaluates `f` at the low anchor `lo_jd` once
+/// (even on an empty/inverted range), so a backend error there propagates
+/// identically. The returned root matches `crossings_in_range(..).last()` for
+/// the same arguments.
 pub(crate) fn last_crossing_before<F>(
     mut f: F,
     lo_jd: f64,
@@ -122,6 +124,11 @@ where
     // Matches `crossings_in_range`'s loop bound `jd <= hi_jd + step_days`,
     // where `jd` walks `lo_jd + k*step_days` for k = 1, 2, ...
     let k_max = ((hi_jd + step_days - lo_jd) / step_days).floor() as i64;
+    // Match `crossings_in_range`, which always evaluates the low anchor once
+    // (`let mut prev_f = f(lo_jd)?;`) before its loop: do the same here so a
+    // backend error at `lo_jd` propagates identically, even on an
+    // empty/inverted range where the loop below never runs.
+    let _ = f(lo_jd)?;
     if k_max < 1 {
         return Ok(None);
     }
@@ -214,6 +221,28 @@ mod tests {
         )
         .unwrap_err();
         assert!(matches!(err, EventError::Backend(_)));
+    }
+
+    // Fail-closed parity with `crossings_in_range`: on an empty/inverted range
+    // (`hi < lo` → `k_max < 1`, loop never runs) the low anchor is still
+    // evaluated once, so a backend error there must surface rather than being
+    // swallowed into `Ok(None)`.
+    #[test]
+    fn backward_empty_range_still_evaluates_low_anchor() {
+        let t0 = 2_451_545.0;
+        // Inverted range: hi < lo.
+        let err = last_crossing_before(
+            |_| Err(EventError::Backend("boom".into())),
+            t0,
+            t0 - 5.0,
+            0.5,
+        )
+        .unwrap_err();
+        assert!(matches!(err, EventError::Backend(_)));
+        // And a non-erroring closure on the same inverted range yields None.
+        let none =
+            last_crossing_before(|t| Ok(wrap180(0.0 * t + 90.0)), t0, t0 - 5.0, 0.5).unwrap();
+        assert!(none.is_none());
     }
 
     // The real guarantee: `last_crossing_before` walks the SAME lo_jd-anchored
