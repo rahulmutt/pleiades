@@ -2,7 +2,7 @@
 
 use crate::ephemeris::{geocentric_apparent_longitude_deg, heliocentric_longitude_deg};
 use crate::error::{EventError, WINDOW_END_JD, WINDOW_START_JD};
-use crate::root::{crossings_in_range, first_crossing_after, wrap180};
+use crate::root::{crossings_in_range, first_crossing_after, last_crossing_before, wrap180};
 use pleiades_backend::EphemerisBackend;
 use pleiades_types::{CelestialBody, Instant, JulianDay, Longitude, TimeScale};
 
@@ -168,6 +168,13 @@ impl<B: EphemerisBackend> CrossingEngine<B> {
     }
 
     /// The last crossing strictly before `before`, or `None`.
+    ///
+    /// Early-terminating: this brackets and bisects backward from `before` and
+    /// returns as soon as the last (highest-JD) root is found, instead of
+    /// scanning from `WINDOW_START`. The result is identical to
+    /// `longitude_crossings_in_range(body, target, frame, WINDOW_START, before).last()`
+    /// filtered to strictly-before `before` — same clamps, same step, same
+    /// wrap-seam guard, same bisection tolerance.
     pub fn previous_longitude_crossing(
         &self,
         body: CelestialBody,
@@ -175,13 +182,35 @@ impl<B: EphemerisBackend> CrossingEngine<B> {
         frame: CrossingFrame,
         before: Instant,
     ) -> Result<Option<Crossing>, EventError> {
-        let start = Instant::new(JulianDay::from_days(WINDOW_START_JD), TimeScale::Tdb);
         let before_jd = before.julian_day.days();
-        Ok(self
-            .longitude_crossings_in_range(body, target, frame, start, before)?
-            .into_iter()
-            .rev()
-            .find(|c| c.instant.julian_day.days() < before_jd))
+        // Preserve the window-check and heliocentric Sun/Moon guard exactly as
+        // `longitude_crossings_in_range` applies them, before scanning.
+        self.check_window(WINDOW_START_JD)?;
+        self.check_window(before_jd)?;
+        if matches!(frame, CrossingFrame::Heliocentric)
+            && matches!(body, CelestialBody::Sun | CelestialBody::Moon)
+        {
+            return Err(EventError::UnsupportedFrame {
+                detail: format!("heliocentric crossings are undefined for {:?}", body),
+            });
+        }
+        let step = Self::step_days(&body);
+        // Same clamps as `longitude_crossings_in_range` over `[WINDOW_START, before]`.
+        let scan_start = WINDOW_START_JD.max(WINDOW_START_JD + step);
+        let scan_end = before_jd.min(WINDOW_END_JD - step);
+        let target_deg = target.degrees();
+        let root = last_crossing_before(
+            |jd| Ok(wrap180(self.longitude_deg(&body, frame, jd)? - target_deg)),
+            scan_start,
+            scan_end,
+            step,
+        )?;
+        Ok(root.filter(|&jd| jd < before_jd).map(|jd| Crossing {
+            body: body.clone(),
+            target_longitude: target,
+            instant: Instant::new(JulianDay::from_days(jd), TimeScale::Tdb),
+            frame,
+        }))
     }
 
     /// `swe_solcross`: next geocentric apparent Sun crossing of `target`.
@@ -392,6 +421,70 @@ mod tests {
             "lon at crossing {}",
             lon.degrees()
         );
+    }
+
+    #[test]
+    fn previous_equals_last_in_range_filtered_before() {
+        let engine = CrossingEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
+        let target = Longitude::from_degrees(100.0);
+        // Sun sweeps ~0.9856 deg/day; over 800 days (~788 deg of travel) it
+        // crosses any fixed target longitude more than once — confirm that
+        // below rather than just asserting it in a comment.
+        let before = tdb(WINDOW_START_JD + 800.0);
+        let start = tdb(WINDOW_START_JD);
+        let full = engine
+            .longitude_crossings_in_range(
+                CelestialBody::Sun,
+                target,
+                CrossingFrame::GeocentricApparentOfDate,
+                start,
+                before,
+            )
+            .unwrap();
+        assert!(
+            full.len() >= 2,
+            "expected multiple crossings in-window, got {}",
+            full.len()
+        );
+        let expected = full
+            .into_iter()
+            .rfind(|c| c.instant.julian_day.days() < before.julian_day.days());
+        let actual = engine
+            .previous_longitude_crossing(
+                CelestialBody::Sun,
+                target,
+                CrossingFrame::GeocentricApparentOfDate,
+                before,
+            )
+            .unwrap();
+        match (expected, actual) {
+            (Some(e), Some(a)) => assert!(
+                (e.instant.julian_day.days() - a.instant.julian_day.days()).abs() < 1e-6,
+                "expected {}, got {}",
+                e.instant.julian_day.days(),
+                a.instant.julian_day.days()
+            ),
+            (None, None) => {}
+            (e, a) => panic!("expected {e:?}, got {a:?}"),
+        }
+    }
+
+    #[test]
+    fn previous_none_when_no_earlier_crossing() {
+        let engine = CrossingEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
+        let target = Longitude::from_degrees(100.0);
+        // Very early `before`, right at the start of the window (Sun's scan
+        // step is 1.0 day): no crossing can precede it.
+        let before = tdb(WINDOW_START_JD + 1.0);
+        let actual = engine
+            .previous_longitude_crossing(
+                CelestialBody::Sun,
+                target,
+                CrossingFrame::GeocentricApparentOfDate,
+                before,
+            )
+            .unwrap();
+        assert!(actual.is_none(), "expected None, got {actual:?}");
     }
 
     #[test]
