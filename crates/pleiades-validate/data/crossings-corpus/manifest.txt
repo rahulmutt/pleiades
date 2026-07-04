@@ -1,7 +1,7 @@
 corpus: crossings
 source: Swiss Ephemeris 2.10.03 (Moshier, SEFLG_MOSEPH)
-generator: tools/se-crossings-reference (cargo run --release)
-rows: 41
-sha256(crossings.csv): 060911424d2e64850b219236aae05a636019fbcebb928a149097fb1f8f4ea60e
+generator: tools/se-crossings-reference (SE reference) + crossings-golden --regenerate (engine golden)
+rows: 86
+checksum=9567785041474188992
 frames: geo (apparent tropical of date), helio (SEFLG_HELCTR)
 window: 1900-2100 CE (JD 2415020.5..=2488069.5), times in TDB
