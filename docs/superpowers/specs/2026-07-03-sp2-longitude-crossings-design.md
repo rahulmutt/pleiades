@@ -293,7 +293,10 @@ fixtures (body, target_longitude, start_epoch, direction)
 ## Open items (confirm during planning/implementation)
 
 1. **Per-body time ceilings** — set from measured SE-vs-pleiades residuals; tight
-   for Sun/Moon, documented looser for slow/retrograde planets near stations.
+   for Sun/Moon, documented looser for slow/retrograde planets near stations. —
+   **Resolved by SP-2a-FU (2026-07-03):** replaced by a two-tier gate
+   (sub-second self-consistency + per-body arcsecond SE parity); see
+   `2026-07-03-sp2a-crossings-gate-hardening-design.md`.
 2. **Sun apparent-longitude helper reuse** — depend on `pleiades-eclipse` for
    `apparent_sun_longitude_deg` vs. extract it into `pleiades-apparent` (or a
    shared spot) to avoid an events→eclipse dependency. Prefer extraction if it
