@@ -1,11 +1,14 @@
-//! Fail-closed gate: recompute every SE crossing fixture and compare times.
+//! Fail-closed two-tier gate over the committed SE crossing corpus.
 //!
-//! Mirrors `eclipse_validation.rs`: the committed CSV is embedded via
-//! `include_str!` and every in-window row is recomputed by the real packaged
-//! backend. Any residual beyond its per-frame/body ceiling — or any fixture the
-//! engine cannot reproduce — returns `Err` immediately (fail-closed). The
-//! sibling `manifest.txt` is documentation-only and is not parsed here.
+//! Tier 1 (self-consistency): every row's crossing is recomputed by the packaged
+//! engine and compared to the committed `pleiades_jd_tdb` golden within
+//! `SELF_CONSISTENCY_TOL_S` — tight teeth against any drift in engine output.
+//! Tier 2 (SE parity): the engine's longitude at the SE crossing time is compared
+//! to the target within a per-body arcsecond ceiling — honest, unamplified
+//! agreement with Swiss Ephemeris across the Moshier-vs-VSOP87/ELP theory floor.
+//! A sibling `manifest.txt` records an fnv1a64 digest of the CSV (drift guard).
 
+use pleiades_apparent::fnv1a64;
 use pleiades_data::packaged_backend;
 use pleiades_events::{CrossingEngine, CrossingFrame};
 use pleiades_types::{CelestialBody, Instant, JulianDay, Longitude, TimeScale};
@@ -14,54 +17,59 @@ const CORPUS_CSV: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/data/crossings-corpus/crossings.csv"
 ));
+const MANIFEST: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/data/crossings-corpus/manifest.txt"
+));
 
-// Per-frame/body crossing-time ceilings (seconds), calibrated from the measured
-// post-fix residuals of the committed corpus against the real packaged backend.
-// The residual floor here is NOT engine error: the SE reference corpus was
-// generated with Swiss Ephemeris *Moshier* theory, whereas `packaged_backend()`
-// uses VSOP87 (planets) + compact ELP/Meeus (Moon) — a different ephemeris
-// theory. The dominant term is that irreducible cross-theory difference. This is
-// established project practice: `validate-lilith` gates SE(Moshier)-vs-our-Moon
-// with an accepted max residual ~306" (see README). Ceilings are set to ~1.4× the
-// measured group max, tight enough to stay a real regression gate — the of-date
-// bug this gate caught was ~1000× larger — while sitting above the cross-theory
-// floor.
+/// Fixture count pinned by the corpus test. Update when the corpus is regenerated.
+/// Test-only: the runtime row check compares against the manifest's `rows:` field.
+#[cfg(test)]
+const EXPECTED_ROWS: usize = 82;
 
-// Geocentric Sun/Moon crossing-time ceiling. Moon-driven: measured max residual
-// 41.9s (~23"); Sun sits far inside at 7.5s (~0.3"). Floor is the Moshier
-// (SE-reference) vs ELP/Meeus (engine) cross-theory difference, not engine error
-// — cf. validate-lilith accepting ~306" SE-vs-ours. CONTROLLER-CALIBRATED pending
-// maintainer review: the plan's original 5s assumed same-theory agreement (<0.2"),
-// which does not hold across ephemeris theories.
-const GEO_SUN_MOON_TOL_S: f64 = 60.0;
-// Geocentric planet crossing-time ceiling. Measured max residual (Mars near its
-// retrograde station, where dλ/dt → 0 amplifies any longitude error into a large
-// time error) 1949.4s. Floor is the Moshier(SE-reference) vs VSOP87(engine)
-// cross-theory difference, not engine error — cf. validate-lilith accepting ~306"
-// SE-vs-ours. CONTROLLER-CALIBRATED pending maintainer review: the plan's original
-// 600s assumed same-theory agreement, which does not hold across ephemeris theories.
-const GEO_PLANET_TOL_S: f64 = 2800.0;
-// Heliocentric crossing-time ceiling. Measured max residual (Saturn) 5036.7s;
-// Jupiter 2757.5s. Floor is the Moshier(SE-reference) vs VSOP87(engine)
-// cross-theory difference PLUS the documented ~6–9" geocentric-light-time floor
-// inherent to helio_cross vs the engine's heliocentric-of-date path — not engine
-// error; cf. validate-lilith accepting ~306" SE-vs-ours. CONTROLLER-CALIBRATED
-// pending maintainer review: the plan's original 60s assumed same-theory agreement,
-// which does not hold across ephemeris theories.
-const HELIO_TOL_S: f64 = 7200.0;
+/// Tier-1 self-consistency ceiling: the engine is deterministic, so a recompute
+/// matches the committed golden to the bit unless engine output changed. Set a
+/// small factor above the root-finder's 0.5 s bisection tolerance.
+const SELF_CONSISTENCY_TOL_S: f64 = 1.0;
+
+// Tier-2 per-body arcsecond ceilings — MEASURED from the committed corpus and set
+// to ~1.4x each group's measured maximum. These are cross-theory floors (SE
+// Moshier vs engine VSOP87/ELP), not engine error; cf. validate-lilith accepting
+// an SE-vs-ours residual of ~306". Measured group maxima at the committed epochs:
+// geo Sun 0.3", geo Moon 21.7", geo planets ≤20.7", helio ≤35.1" (Mercury).
+const GEO_SUN_ARCSEC: f64 = 2.0;
+const GEO_MOON_ARCSEC: f64 = 32.0;
+// Every geocentric planet Mercury–Pluto shares this ceiling. Pluto's backend
+// fallback (VSOP87 excludes Pluto) nonetheless agrees to ≈20.7" at the sampled
+// reachable-target epochs — in line with the other planets — so it needs no wider
+// declared boundary; it rides the shared planet ceiling honestly.
+const GEO_PLANET_ARCSEC: f64 = 30.0;
+// Every heliocentric planet Mercury–Pluto shares this ceiling (measured max 35.1"
+// at Mercury; Pluto sits far inside at 3.5").
+const HELIO_ARCSEC: f64 = 50.0;
 
 #[derive(Debug)]
 pub enum CrossingsCorpusError {
-    /// A recomputed crossing exceeded its time ceiling.
-    ToleranceExceeded {
+    /// Tier-1: a recomputed crossing drifted from the committed golden.
+    SelfConsistencyExceeded {
         row: String,
         residual_s: f64,
         ceiling_s: f64,
     },
-    /// The engine found no crossing for a fixture that SE reports one for.
+    /// Tier-2: engine longitude at the SE time exceeded the arcsecond ceiling.
+    ParityExceeded {
+        row: String,
+        residual_arcsec: f64,
+        ceiling_arcsec: f64,
+    },
+    /// The engine found no crossing for a fixture SE reports one for.
     Missing { row: String },
     /// Malformed corpus row.
     Schema { row: String },
+    /// Malformed or missing manifest fields.
+    Manifest(String),
+    /// The committed CSV digest disagrees with the manifest.
+    ChecksumMismatch { got: u64, want: u64 },
     /// Engine error.
     Engine(String),
 }
@@ -76,31 +84,81 @@ impl std::error::Error for CrossingsCorpusError {}
 #[derive(Debug)]
 pub struct CrossingsCorpusReport {
     pub checked: usize,
+    pub max_self_consistency_s: f64,
+    pub max_parity_arcsec: f64,
 }
 
 impl CrossingsCorpusReport {
     pub fn summary_line(&self) -> String {
         format!(
-            "validate-crossings: {} SE crossing fixtures recomputed within per-body \
-             time ceilings (0 unexplained drift)",
-            self.checked
+            "validate-crossings: {} SE crossing fixtures — Tier 1 self-consistency \
+             max {:.3} s (ceiling {:.1} s), Tier 2 SE-parity max {:.1}\" (per-body arcsec ceilings)",
+            self.checked, self.max_self_consistency_s, SELF_CONSISTENCY_TOL_S, self.max_parity_arcsec
         )
     }
 }
 
-pub fn validate_crossings_corpus() -> Result<CrossingsCorpusReport, CrossingsCorpusError> {
+fn wrap180_deg(d: f64) -> f64 {
+    ((d + 180.0).rem_euclid(360.0)) - 180.0
+}
+
+fn parse_manifest() -> Result<(usize, u64), CrossingsCorpusError> {
+    let mut rows = None;
+    let mut checksum = None;
+    for line in MANIFEST.lines() {
+        let line = line.trim();
+        if let Some(v) = line.strip_prefix("rows:") {
+            rows = Some(
+                v.trim()
+                    .parse::<usize>()
+                    .map_err(|e| CrossingsCorpusError::Manifest(format!("rows: {e}")))?,
+            );
+        }
+        for tok in line.split_whitespace() {
+            if let Some(v) = tok.strip_prefix("checksum=") {
+                checksum = Some(
+                    v.parse::<u64>()
+                        .map_err(|e| CrossingsCorpusError::Manifest(format!("checksum: {e}")))?,
+                );
+            }
+        }
+    }
+    Ok((
+        rows.ok_or_else(|| CrossingsCorpusError::Manifest("rows: missing".into()))?,
+        checksum.ok_or_else(|| CrossingsCorpusError::Manifest("checksum= missing".into()))?,
+    ))
+}
+
+fn arcsec_ceiling_for(frame: CrossingFrame, body: &CelestialBody) -> f64 {
+    match frame {
+        CrossingFrame::Heliocentric => HELIO_ARCSEC,
+        CrossingFrame::GeocentricApparentOfDate => match body {
+            CelestialBody::Sun => GEO_SUN_ARCSEC,
+            CelestialBody::Moon => GEO_MOON_ARCSEC,
+            _ => GEO_PLANET_ARCSEC,
+        },
+        // `CrossingFrame` is `#[non_exhaustive]`; a future frame falls back to
+        // the loose planet ceiling (this corpus only exercises geo/helio).
+        _ => GEO_PLANET_ARCSEC,
+    }
+}
+
+/// Validate a 7-column crossings CSV string. `validate_crossings_corpus` calls
+/// this with the committed `CORPUS_CSV`; tests call it with crafted rows.
+pub(crate) fn validate_crossings_csv(
+    csv: &str,
+) -> Result<CrossingsCorpusReport, CrossingsCorpusError> {
     let engine = CrossingEngine::new(packaged_backend());
     let mut checked = 0usize;
-    // The committed CSV carries leading `#` comment lines and a `frame,...`
-    // header before the data rows; skip blank/comment/header lines so only the
-    // 6-field data rows are parsed.
-    for line in CORPUS_CSV.lines() {
+    let mut max_self = 0.0_f64;
+    let mut max_parity = 0.0_f64;
+    for line in csv.lines() {
         let line = line.trim();
         if line.is_empty() || line.starts_with('#') || line.starts_with("frame,") {
             continue;
         }
         let f: Vec<&str> = line.split(',').collect();
-        if f.len() != 6 {
+        if f.len() != 7 {
             return Err(CrossingsCorpusError::Schema {
                 row: line.to_string(),
             });
@@ -117,10 +175,9 @@ pub fn validate_crossings_corpus() -> Result<CrossingsCorpusReport, CrossingsCor
         let body = parse_body(f[1]).ok_or_else(|| CrossingsCorpusError::Schema {
             row: line.to_string(),
         })?;
-        // The engine is forward-only; a `bwd` (or any non-`fwd`) direction row
-        // would be silently treated as forward if left unchecked. Reject it as
-        // a schema error so a future non-forward fixture fails closed instead
-        // of being misinterpreted.
+        // The engine is forward-only; reject any non-`fwd` direction as a schema
+        // error so a future non-forward fixture fails closed instead of being
+        // silently treated as forward.
         if f[4].trim() != "fwd" {
             return Err(CrossingsCorpusError::Schema {
                 row: line.to_string(),
@@ -141,38 +198,71 @@ pub fn validate_crossings_corpus() -> Result<CrossingsCorpusReport, CrossingsCor
             .map_err(|_| CrossingsCorpusError::Schema {
                 row: line.to_string(),
             })?;
+        let golden_jd = f[6]
+            .parse::<f64>()
+            .map_err(|_| CrossingsCorpusError::Schema {
+                row: line.to_string(),
+            })?;
         let after = Instant::new(JulianDay::from_days(start_jd), TimeScale::Tdb);
+
+        // Tier 1: recompute vs committed golden.
         let got = engine
             .next_longitude_crossing(body.clone(), Longitude::from_degrees(target), frame, after)
             .map_err(|e| CrossingsCorpusError::Engine(e.to_string()))?
             .ok_or_else(|| CrossingsCorpusError::Missing {
                 row: line.to_string(),
             })?;
-        let residual_s = (got.instant.julian_day.days() - se_jd).abs() * 86_400.0;
-        let ceiling = ceiling_for(frame, &body);
-        if residual_s > ceiling {
-            return Err(CrossingsCorpusError::ToleranceExceeded {
+        let residual_s = (got.instant.julian_day.days() - golden_jd).abs() * 86_400.0;
+        if residual_s > SELF_CONSISTENCY_TOL_S {
+            return Err(CrossingsCorpusError::SelfConsistencyExceeded {
                 row: line.to_string(),
                 residual_s,
-                ceiling_s: ceiling,
+                ceiling_s: SELF_CONSISTENCY_TOL_S,
             });
         }
+        max_self = max_self.max(residual_s);
+
+        // Tier 2: engine longitude at the SE time vs target, in arcseconds.
+        let se_instant = Instant::new(JulianDay::from_days(se_jd), TimeScale::Tdb);
+        let lambda = engine
+            .longitude_at(body.clone(), frame, se_instant)
+            .map_err(|e| CrossingsCorpusError::Engine(e.to_string()))?;
+        let residual_arcsec = wrap180_deg(lambda.degrees() - target).abs() * 3600.0;
+        let ceiling_arcsec = arcsec_ceiling_for(frame, &body);
+        if residual_arcsec > ceiling_arcsec {
+            return Err(CrossingsCorpusError::ParityExceeded {
+                row: line.to_string(),
+                residual_arcsec,
+                ceiling_arcsec,
+            });
+        }
+        max_parity = max_parity.max(residual_arcsec);
         checked += 1;
     }
-    Ok(CrossingsCorpusReport { checked })
+    Ok(CrossingsCorpusReport {
+        checked,
+        max_self_consistency_s: max_self,
+        max_parity_arcsec: max_parity,
+    })
 }
 
-fn ceiling_for(frame: CrossingFrame, body: &CelestialBody) -> f64 {
-    match frame {
-        CrossingFrame::Heliocentric => HELIO_TOL_S,
-        CrossingFrame::GeocentricApparentOfDate => match body {
-            CelestialBody::Sun | CelestialBody::Moon => GEO_SUN_MOON_TOL_S,
-            _ => GEO_PLANET_TOL_S,
-        },
-        // `CrossingFrame` is `#[non_exhaustive]`; a future frame falls back to
-        // the loose planet ceiling (this corpus only exercises geo/helio).
-        _ => GEO_PLANET_TOL_S,
+pub fn validate_crossings_corpus() -> Result<CrossingsCorpusReport, CrossingsCorpusError> {
+    let (manifest_rows, manifest_checksum) = parse_manifest()?;
+    let got = fnv1a64(CORPUS_CSV);
+    if got != manifest_checksum {
+        return Err(CrossingsCorpusError::ChecksumMismatch {
+            got,
+            want: manifest_checksum,
+        });
     }
+    let report = validate_crossings_csv(CORPUS_CSV)?;
+    if report.checked != manifest_rows {
+        return Err(CrossingsCorpusError::Manifest(format!(
+            "manifest rows={manifest_rows} but corpus has {} data rows",
+            report.checked
+        )));
+    }
+    Ok(report)
 }
 
 fn parse_body(name: &str) -> Option<CelestialBody> {
@@ -206,27 +296,104 @@ pub fn run_crossings_gate() -> CrossingsGateOutcome {
 mod tests {
     use super::*;
 
-    // Spec §7 asks for a test that guards the committed corpus by comparing
-    // the manifest's recorded checksum against a freshly computed digest of
-    // `crossings.csv`. The manifest records a real SHA-256 digest
-    // (`sha256(crossings.csv): <64-hex>` in `data/crossings-corpus/manifest.txt`),
-    // but `pleiades-validate` has no `sha2` dependency anywhere in the
-    // workspace (confirmed via grep), and the only in-tree hashing helper,
-    // `pleiades_apparent::fnv1a64`, computes a different, 64-bit digest that
-    // cannot reproduce or verify a 256-bit SHA-256 value. Per project
-    // guidance, we do not add a new crate dependency just for one test, so
-    // this checksum-drift test is intentionally omitted here. Closing spec §7
-    // for real requires a maintainer decision: either add `sha2` as a
-    // dev-dependency, or re-generate the manifest with an fnv1a64 digest so
-    // the existing helper (as used by the ayanamsa/lilith/house/etc. gates)
-    // can verify it.
-
     #[test]
     fn validate_crossings_passes_over_committed_corpus() {
         let report = validate_crossings_corpus().expect("gate should pass");
+        // Pin the fixture count so a corpus that silently loses rows fails.
+        assert_eq!(report.checked, EXPECTED_ROWS, "unexpected fixture count");
+    }
+
+    #[test]
+    fn manifest_checksum_matches_corpus() {
+        // Closes spec §7: the manifest's fnv1a64 must equal the live CSV digest.
+        let (_rows, want) = parse_manifest().expect("manifest parses");
         assert_eq!(
-            report.checked, 41,
-            "expected all 41 committed fixtures checked"
+            fnv1a64(CORPUS_CSV),
+            want,
+            "manifest checksum drifted from crossings.csv"
         );
+    }
+
+    #[test]
+    fn tier1_catches_golden_drift() {
+        // A row whose pleiades_jd_tdb golden is perturbed beyond the sub-second
+        // self-consistency ceiling must fail closed.
+        let csv = "\
+frame,body,target_longitude_deg,start_jd_tdb,direction,crossing_jd_tdb,pleiades_jd_tdb
+geo,Sun,0.000000,2416000.500000,fwd,2416195.301931810,2416199.301931810
+";
+        let err = validate_crossings_csv(csv).unwrap_err();
+        assert!(
+            matches!(err, CrossingsCorpusError::SelfConsistencyExceeded { .. }),
+            "{err:?}"
+        );
+    }
+
+    #[test]
+    fn tier2_catches_longitude_drift() {
+        // A target offset far from where the engine actually is at the SE time
+        // must fail the arcsecond parity tier.
+        let csv = "\
+frame,body,target_longitude_deg,start_jd_tdb,direction,crossing_jd_tdb,pleiades_jd_tdb
+geo,Sun,10.000000,2416000.500000,fwd,2416195.301931810,PLEIADES
+";
+        // Fill the golden with the engine's real recompute so Tier 1 passes and
+        // only Tier 2 can fire.
+        let csv = fill_golden_for_test(csv);
+        let err = validate_crossings_csv(&csv).unwrap_err();
+        assert!(
+            matches!(err, CrossingsCorpusError::ParityExceeded { .. }),
+            "{err:?}"
+        );
+    }
+
+    #[test]
+    fn non_forward_and_bad_arity_are_schema_errors() {
+        let bad = "geo,Sun,0.0,2416000.5,bwd,2416195.3,2416195.3\n";
+        assert!(matches!(
+            validate_crossings_csv(bad).unwrap_err(),
+            CrossingsCorpusError::Schema { .. }
+        ));
+        let short = "geo,Sun,0.0,2416000.5,fwd,2416195.3\n";
+        assert!(matches!(
+            validate_crossings_csv(short).unwrap_err(),
+            CrossingsCorpusError::Schema { .. }
+        ));
+    }
+
+    // Test helper: replace a literal `PLEIADES` golden placeholder with the
+    // engine's real next-crossing time so a crafted row exercises Tier 2 alone.
+    fn fill_golden_for_test(csv: &str) -> String {
+        let engine = CrossingEngine::new(packaged_backend());
+        let mut out = String::new();
+        for line in csv.lines() {
+            if let Some(idx) = line.find(",PLEIADES") {
+                let f: Vec<&str> = line[..idx].split(',').collect();
+                let frame = if f[0] == "geo" {
+                    CrossingFrame::GeocentricApparentOfDate
+                } else {
+                    CrossingFrame::Heliocentric
+                };
+                let body = parse_body(f[1]).unwrap();
+                let target = Longitude::from_degrees(f[2].parse::<f64>().unwrap());
+                let after = Instant::new(
+                    JulianDay::from_days(f[3].parse::<f64>().unwrap()),
+                    TimeScale::Tdb,
+                );
+                let c = engine
+                    .next_longitude_crossing(body, target, frame, after)
+                    .unwrap()
+                    .unwrap();
+                out.push_str(&format!(
+                    "{},{:.9}\n",
+                    &line[..idx],
+                    c.instant.julian_day.days()
+                ));
+            } else {
+                out.push_str(line);
+                out.push('\n');
+            }
+        }
+        out
     }
 }

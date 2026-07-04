@@ -3,13 +3,16 @@
 //! Frame `geo`: geocentric apparent tropical longitude of date (SE default).
 //!   - Sun / Moon crossings use SE's dedicated `swe_solcross_ut` /
 //!     `swe_mooncross_ut` (UT in/out), converted to TDB via `swe_deltat`.
-//!   - Mars crossings: SE exposes NO geocentric planet-crossing function
-//!     (only Sun and Moon have `swe_*cross`; general bodies only have the
-//!     *heliocentric* `swe_helio_cross`). So the geocentric Mars crossings are
-//!     located by a deterministic bisection on SE's own `swe_calc` geocentric
-//!     longitudes (real SE positions, no hand-entered values). This is required
-//!     to exercise the retrograde triple-crossing, which is a geocentric
-//!     phenomenon only.
+//!   - Planet crossings (Mercury–Pluto, plus the Mars retrograde triple): SE
+//!     exposes NO geocentric planet-crossing function (only Sun and Moon have
+//!     `swe_*cross`; general bodies only have the *heliocentric* `swe_helio_cross`).
+//!     So geocentric planet crossings are located by a deterministic scan +
+//!     bisection on SE's own `swe_calc` geocentric longitudes (real SE positions,
+//!     no hand-entered values), rejecting the ±180° wrap discontinuity so only a
+//!     true zero-crossing of the target is emitted. Per-planet targets are derived
+//!     from each planet's longitude at the start epoch (offsets ahead) so a genuine
+//!     in-window crossing is guaranteed; the Mars block additionally exercises the
+//!     retrograde triple-crossing, a geocentric-only phenomenon.
 //! Frame `helio`: heliocentric (SEFLG_HELCTR) via `swe_helio_cross` (ET/TDB).
 //!
 //! Ephemeris: Moshier (SEFLG_MOSEPH) so no data files are needed.
@@ -22,7 +25,9 @@
 use std::ffi::CStr;
 use std::os::raw::{c_char, c_int};
 
-use libswisseph_sys::raw::{swe_calc, swe_deltat, swe_helio_cross, swe_mooncross_ut, swe_solcross_ut};
+use libswisseph_sys::raw::{
+    swe_calc, swe_deltat, swe_helio_cross, swe_mooncross_ut, swe_solcross_ut,
+};
 
 const SEFLG_MOSEPH: c_int = 4; // Moshier ephemeris, no data files
 const SEFLG_HELCTR: c_int = 8; // heliocentric position
@@ -78,7 +83,12 @@ fn geo_sun_cross_tdb(target_deg: f64, start_tdb: f64) -> f64 {
     let jd_ut = start_tdb - unsafe { swe_deltat(start_tdb) };
     let mut serr = [0_i8; 256];
     let crossing_ut = unsafe {
-        swe_solcross_ut(target_deg, jd_ut, SEFLG_MOSEPH, serr.as_mut_ptr() as *mut c_char)
+        swe_solcross_ut(
+            target_deg,
+            jd_ut,
+            SEFLG_MOSEPH,
+            serr.as_mut_ptr() as *mut c_char,
+        )
     };
     if crossing_ut < jd_ut {
         panic!(
@@ -94,7 +104,12 @@ fn geo_moon_cross_tdb(target_deg: f64, start_tdb: f64) -> f64 {
     let jd_ut = start_tdb - unsafe { swe_deltat(start_tdb) };
     let mut serr = [0_i8; 256];
     let crossing_ut = unsafe {
-        swe_mooncross_ut(target_deg, jd_ut, SEFLG_MOSEPH, serr.as_mut_ptr() as *mut c_char)
+        swe_mooncross_ut(
+            target_deg,
+            jd_ut,
+            SEFLG_MOSEPH,
+            serr.as_mut_ptr() as *mut c_char,
+        )
     };
     if crossing_ut < jd_ut {
         panic!(
@@ -145,7 +160,14 @@ fn geo_planet_cross_tdb(ipl: c_int, target_deg: f64, start_tdb: f64) -> f64 {
     let mut jd = start_tdb + STEP;
     while jd <= JD_WINDOW_HI {
         let fb = signed_delta(geo_longitude(jd, ipl), target_deg);
-        if fa == 0.0 || (fa < 0.0) != (fb < 0.0) {
+        // Accept only a TRUE zero-crossing of the wrapped delta, never the ±180°
+        // wrap discontinuity. `signed_delta` flips sign both when the longitude
+        // passes `target` (through 0) and when it passes `target+180` (jumping
+        // +180 → −180). Over one STEP the planet moves far less than 180°, so a
+        // genuine crossing changes the delta by a small amount while the wrap
+        // jumps by ~360°: gate on the step magnitude to reject the wrap.
+        let sign_change = fa == 0.0 || (fa < 0.0) != (fb < 0.0);
+        if sign_change && (fb - fa).abs() < 180.0 {
             // bracket [a, jd]: bisect
             let (mut lo, mut hi) = (a, jd);
             for _ in 0..64 {
@@ -238,10 +260,14 @@ fn main() {
         emit("geo", "Mars", mars_target, start, c);
     }
 
-    // --- geo planets Mercury–Pluto: cardinal-ish targets, in-window starts. ---
+    // --- geo planets Mercury–Pluto: reachable per-planet targets. ---
     // SE has no geocentric planet-crossing function, so each is bisected on
-    // swe_calc geocentric longitude (see geo_planet_cross_tdb). Starts are chosen
-    // to sit comfortably inside 1900–2100 so the forward crossing is in-window.
+    // swe_calc geocentric longitude (see geo_planet_cross_tdb). Targets are derived
+    // from each planet's OWN geocentric longitude at the start epoch, offset ahead
+    // by 30/90/150°, so forward motion crosses each within a fraction of the
+    // planet's period. This guarantees a genuine in-window crossing for every
+    // planet (even Pluto, whose net geocentric sweep over 1968–2100 is ≈190°) and
+    // keeps every target well clear of the ±180° wrap.
     let geo_planets: [(c_int, &str); 7] = [
         (SE_MERCURY, "Mercury"),
         (SE_VENUS, "Venus"),
@@ -251,10 +277,12 @@ fn main() {
         (SE_NEPTUNE, "Neptune"),
         (SE_PLUTO, "Pluto"),
     ];
-    let geo_planet_targets = [0.0_f64, 120.0, 240.0];
-    let geo_planet_start = 2_440_000.5_f64; // ~1968; slow outer planets still cross within window
+    let geo_target_offsets = [30.0_f64, 90.0, 150.0];
+    let geo_planet_start = 2_440_000.5_f64; // ~1968
     for &(ipl, name) in &geo_planets {
-        for &t in &geo_planet_targets {
+        let l0 = geo_longitude(geo_planet_start, ipl);
+        for &off in &geo_target_offsets {
+            let t = (l0 + off).rem_euclid(360.0);
             let c = geo_planet_cross_tdb(ipl, t, geo_planet_start);
             emit("geo", name, t, geo_planet_start, c);
         }
