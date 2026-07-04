@@ -40,10 +40,11 @@ const GEO_SUN_ARCSEC: f64 = 1.0;
 const GEO_MOON_ARCSEC: f64 = 31.0;
 const GEO_PLANET_ARCSEC: f64 = 30.0;
 const HELIO_ARCSEC: f64 = 50.0;
-// Pluto has no VSOP87 series (the backend falls back to a mean-element model), so
-// this is a documented coverage boundary. In practice that fallback is accurate for
-// the corpus targets — measured max 11.88" (geo) / 3.53" (helio) — so the ceiling is
-// simply Pluto's own 1.4x value, not a wide catch-all.
+// Pluto meets a normal measured per-body ceiling like every other body (not a coverage
+// boundary or an exclusion). It is simply wider than the inner planets because VSOP87
+// excludes Pluto, so the backend serves it from a mean-element fallback instead: that
+// fallback is accurate for the corpus targets — measured max 11.88" (geo) / 3.53"
+// (helio) — so the ceiling is just Pluto's own 1.4x value like the other groups.
 const PLUTO_ARCSEC: f64 = 17.0;
 
 #[derive(Debug)]

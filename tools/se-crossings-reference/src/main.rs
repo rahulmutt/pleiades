@@ -28,8 +28,6 @@ const SEFLG_MOSEPH: c_int = 4; // Moshier ephemeris, no data files
 const SEFLG_HELCTR: c_int = 8; // heliocentric position
 
 // SE ipl body numbers.
-const SE_SUN: c_int = 0;
-const SE_MOON: c_int = 1;
 const SE_MERCURY: c_int = 2;
 const SE_VENUS: c_int = 3;
 const SE_MARS: c_int = 4;
