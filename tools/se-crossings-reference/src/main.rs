@@ -137,7 +137,11 @@ fn signed_delta(lon: f64, target: f64) -> f64 {
 
 /// Next geocentric crossing of `ipl` over `target_deg` strictly after
 /// `start_tdb`, by deterministic scan + bisection on SE `swe_calc` longitudes.
-/// Used for Mars (no SE geocentric planet-crossing function exists).
+/// Serves all geocentric planets (Mercury–Pluto): SE exposes no geocentric
+/// planet-crossing function. The bracket-acceptance test guards against the
+/// `signed_delta` antipode discontinuity (target±180°, where it wraps
+/// +180→−180): a true zero-crossing has |fa−fb| ≪ 180° at STEP=0.25 d, whereas
+/// the antipode seam gives |fa−fb| ≈ 360°, so the `< 180.0` guard rejects it.
 fn geo_planet_cross_tdb(ipl: c_int, target_deg: f64, start_tdb: f64) -> f64 {
     const STEP: f64 = 0.25; // days; << time to move 180deg, so no wrap aliasing
     let mut a = start_tdb;
@@ -145,7 +149,7 @@ fn geo_planet_cross_tdb(ipl: c_int, target_deg: f64, start_tdb: f64) -> f64 {
     let mut jd = start_tdb + STEP;
     while jd <= JD_WINDOW_HI {
         let fb = signed_delta(geo_longitude(jd, ipl), target_deg);
-        if fa == 0.0 || (fa < 0.0) != (fb < 0.0) {
+        if fa == 0.0 || ((fa < 0.0) != (fb < 0.0) && (fa - fb).abs() < 180.0) {
             // bracket [a, jd]: bisect
             let (mut lo, mut hi) = (a, jd);
             for _ in 0..64 {
@@ -252,7 +256,10 @@ fn main() {
         (SE_PLUTO, "Pluto"),
     ];
     let geo_planet_targets = [0.0_f64, 120.0, 240.0];
-    let geo_planet_start = 2_440_000.5_f64; // ~1968; slow outer planets still cross within window
+    // ~1903, early in the window: even Pluto (~248 yr period, slowest) reaches all
+    // three targets before 2100. A later start (e.g. ~1968) leaves Pluto past its
+    // final in-window 120° passage, so that crossing would not exist in-window.
+    let geo_planet_start = 2_416_000.5_f64;
     for &(ipl, name) in &geo_planets {
         for &t in &geo_planet_targets {
             let c = geo_planet_cross_tdb(ipl, t, geo_planet_start);
