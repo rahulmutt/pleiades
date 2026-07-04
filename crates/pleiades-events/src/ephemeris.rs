@@ -53,16 +53,21 @@ pub(crate) fn read_mean_ecliptic<B: EphemerisBackend>(
     ))
 }
 
-/// Geocentric apparent-of-date ecliptic longitude (degrees). The Sun is a special
-/// case where light-time and annual aberration are the same effect, so it uses
-/// `apparent_sun_position` (which applies aberration exactly once); every other
-/// body uses the general `apparent_position` light-time pipeline.
-pub(crate) fn geocentric_apparent_longitude_deg<B: EphemerisBackend>(
+/// Geocentric apparent-of-date ecliptic (longitude_deg, latitude_deg, distance_au)
+/// for a body. The Sun is a special case where light-time and annual aberration
+/// are the same effect, so it uses `apparent_sun_position` (which applies
+/// aberration exactly once); every other body uses the general
+/// `apparent_position` light-time pipeline.
+///
+/// The apparent pipeline's `distance_au` is `Option<f64>`; bodies always carry
+/// `Some` via the light-time/Sun pipeline, but a `None` is handled fail-closed
+/// (returns `EventError::Backend`) rather than unwrapped.
+pub(crate) fn geocentric_apparent_ecliptic<B: EphemerisBackend>(
     backend: &B,
     body: CelestialBody,
     body_label: &'static str,
     julian_day: f64,
-) -> Result<f64, EventError> {
+) -> Result<(f64, f64, f64), EventError> {
     let (lon, lat, dist) = read_mean_ecliptic(backend, body.clone(), body_label, julian_day)?;
     let instant = Instant::new(JulianDay::from_days(julian_day), TimeScale::Tdb);
     if body == CelestialBody::Sun {
@@ -73,7 +78,14 @@ pub(crate) fn geocentric_apparent_longitude_deg<B: EphemerisBackend>(
         );
         let apparent = apparent_sun_position(instant, j2000)
             .map_err(|e| EventError::Backend(format!("Sun apparent place failed: {e}")))?;
-        return Ok(apparent.ecliptic.longitude.degrees());
+        let distance_au = apparent.ecliptic.distance_au.ok_or_else(|| {
+            EventError::Backend(format!("{body_label} apparent place missing distance"))
+        })?;
+        return Ok((
+            apparent.ecliptic.longitude.degrees(),
+            apparent.ecliptic.latitude.degrees(),
+            distance_au,
+        ));
     }
 
     // General body: apparent_position needs the Sun's true longitude of date for
@@ -102,7 +114,27 @@ pub(crate) fn geocentric_apparent_longitude_deg<B: EphemerisBackend>(
         },
     )
     .map_err(|e| EventError::Backend(format!("{body_label} apparent place failed: {e}")))?;
-    Ok(apparent.ecliptic.longitude.degrees())
+    let distance_au = apparent.ecliptic.distance_au.ok_or_else(|| {
+        EventError::Backend(format!("{body_label} apparent place missing distance"))
+    })?;
+    Ok((
+        apparent.ecliptic.longitude.degrees(),
+        apparent.ecliptic.latitude.degrees(),
+        distance_au,
+    ))
+}
+
+/// Geocentric apparent-of-date ecliptic longitude (degrees). Thin wrapper over
+/// [`geocentric_apparent_ecliptic`] — kept so its return value stays
+/// byte-identical to before that helper's extraction; `validate-crossings`
+/// depends on this exact value.
+pub(crate) fn geocentric_apparent_longitude_deg<B: EphemerisBackend>(
+    backend: &B,
+    body: CelestialBody,
+    body_label: &'static str,
+    julian_day: f64,
+) -> Result<f64, EventError> {
+    Ok(geocentric_apparent_ecliptic(backend, body, body_label, julian_day)?.0)
 }
 
 /// Heliocentric ecliptic longitude (degrees) via `P_helio = P_geo − S_geo`,
