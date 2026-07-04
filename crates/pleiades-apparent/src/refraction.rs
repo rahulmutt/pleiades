@@ -35,11 +35,13 @@ pub fn apparent_from_true(true_alt_deg: f64, atmos: Atmosphere) -> f64 {
     true_alt_deg + r_arcmin / 60.0
 }
 
-/// Apparent altitude → true (geometric) altitude, degrees. Stub replaced in a
-/// later task.
+/// Apparent altitude → true (geometric) altitude, degrees. Saemundsson (1986):
+/// `R = 1.0 / tan(h + 7.31/(h + 4.4))` arcmin, evaluated on the apparent
+/// altitude, pressure/temperature scaled. `true = apparent - R`.
 pub fn true_from_apparent(apparent_alt_deg: f64, atmos: Atmosphere) -> f64 {
-    let _ = atmos;
-    apparent_alt_deg
+    let h = apparent_alt_deg;
+    let r_arcmin = scale(atmos) * 1.0 / ((h + 7.31 / (h + 4.4)).to_radians().tan());
+    apparent_alt_deg - r_arcmin / 60.0
 }
 
 #[cfg(test)]
@@ -69,5 +71,25 @@ mod tests {
     fn refraction_vanishes_at_zenith() {
         let app = apparent_from_true(90.0, Atmosphere::default());
         assert!((app - 90.0).abs() < 1e-4, "zenith {app}");
+    }
+
+    #[test]
+    fn saemundsson_inverts_bennett_within_a_few_arcsec() {
+        // Round-trip: for altitudes above the horizon the two formulae are near-inverses.
+        for h in [5.0, 15.0, 45.0, 80.0] {
+            let app = apparent_from_true(h, Atmosphere::default());
+            let back = true_from_apparent(app, Atmosphere::default());
+            assert!((back - h).abs() < 0.01, "round-trip h={h} back={back}");
+        }
+    }
+
+    #[test]
+    fn true_from_apparent_at_horizon_is_about_negative_34_arcmin() {
+        // A body seen ON the apparent horizon (h_app=0) is geometrically ~34' below it.
+        let t = true_from_apparent(0.0, Atmosphere::default());
+        assert!(
+            (t + 0.5667).abs() < 0.02,
+            "true altitude at apparent horizon {t}"
+        );
     }
 }
