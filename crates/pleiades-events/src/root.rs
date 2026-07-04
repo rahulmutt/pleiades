@@ -98,6 +98,53 @@ where
     Ok(None)
 }
 
+/// The last root of `f` in `[lo_jd, hi_jd]`, or `None` if there is no root in
+/// range. Backward early-terminating twin of [`crossings_in_range`]: it walks
+/// the SAME `lo_jd`-anchored grid — samples at `lo_jd + k*step_days` for
+/// integer `k`, bracketing the SAME `[lo_jd + (k-1)*step_days, lo_jd +
+/// k*step_days]` intervals `crossings_in_range` brackets — just visited in
+/// DECREASING `k`, and returns as soon as the first (highest-JD) zero-crossing
+/// is refined, instead of scanning the whole window. It does NOT step a fresh
+/// grid downward from `hi_jd`, which would bracket different intervals
+/// whenever `(hi_jd - lo_jd)` is not an exact multiple of `step_days`. Uses the
+/// identical wrap-seam (`< 180.0`) guard and bisection tolerance, so the
+/// returned root matches `crossings_in_range(..).last()` for the same
+/// arguments.
+pub(crate) fn last_crossing_before<F>(
+    mut f: F,
+    lo_jd: f64,
+    hi_jd: f64,
+    step_days: f64,
+) -> Result<Option<f64>, EventError>
+where
+    F: FnMut(f64) -> Result<f64, EventError>,
+{
+    // Matches `crossings_in_range`'s loop bound `jd <= hi_jd + step_days`,
+    // where `jd` walks `lo_jd + k*step_days` for k = 1, 2, ...
+    let k_max = ((hi_jd + step_days - lo_jd) / step_days).floor() as i64;
+    if k_max < 1 {
+        return Ok(None);
+    }
+    let mut cur_jd = lo_jd + (k_max as f64) * step_days;
+    let mut cur_f = f(cur_jd)?;
+    let mut k = k_max;
+    while k >= 1 {
+        let prev_jd = lo_jd + ((k - 1) as f64) * step_days;
+        let prev_f = f(prev_jd)?;
+        // Same wrap-seam guard as `crossings_in_range`.
+        if (prev_f <= 0.0) != (cur_f <= 0.0) && (prev_f - cur_f).abs() < 180.0 {
+            let root = bisect(&mut f, prev_jd, prev_f, cur_jd)?;
+            if root >= lo_jd && root <= hi_jd {
+                return Ok(Some(root));
+            }
+        }
+        cur_jd = prev_jd;
+        cur_f = prev_f;
+        k -= 1;
+    }
+    Ok(None)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -154,5 +201,98 @@ mod tests {
         )
         .unwrap_err();
         assert!(matches!(err, EventError::Backend(_)));
+    }
+
+    #[test]
+    fn backward_propagates_target_error() {
+        let t0 = 2_451_545.0;
+        let err = last_crossing_before(
+            |_| Err(EventError::Backend("boom".into())),
+            t0,
+            t0 + 1.0,
+            0.5,
+        )
+        .unwrap_err();
+        assert!(matches!(err, EventError::Backend(_)));
+    }
+
+    // The real guarantee: `last_crossing_before` walks the SAME lo_jd-anchored
+    // grid as `crossings_in_range` (just in decreasing k), so it must agree with
+    // `crossings_in_range(..).last()` even when `(hi - lo)` is NOT an exact
+    // multiple of `step` — a fresh grid stepped downward from `hi` would bracket
+    // different intervals and silently diverge. Deliberately include several
+    // non-aligned ranges plus one exactly-aligned range.
+    fn assert_last_matches<F>(name: &str, mut make_f: F, lo: f64, hi: f64, step: f64, offset: f64)
+    where
+        F: FnMut() -> Box<dyn FnMut(f64) -> Result<f64, EventError>>,
+    {
+        let expected = crossings_in_range(make_f(), lo, hi, step)
+            .unwrap()
+            .last()
+            .copied();
+        let actual = last_crossing_before(make_f(), lo, hi, step).unwrap();
+        match (expected, actual) {
+            (Some(e), Some(a)) => assert!(
+                (e - a).abs() < 1e-6,
+                "{name} offset {offset} lo {lo} hi {hi}: expected {e}, got {a}"
+            ),
+            (None, None) => {}
+            (e, a) => panic!("{name} offset {offset} lo {lo} hi {hi}: expected {e:?}, got {a:?}"),
+        }
+    }
+
+    #[test]
+    fn last_crossing_before_matches_crossings_in_range_last() {
+        let t0 = 2_451_545.0;
+        let step = 0.25;
+
+        // Non-aligned (hi - lo) offsets, varied by loop index, plus one
+        // exactly-aligned range (offset == 0.0).
+        let offsets = [0.0, 0.137, 1.0 / 3.0, 0.061, 29.5 * step, 0.999];
+
+        for (i, &offset) in offsets.iter().enumerate() {
+            let lo = t0 + i as f64 * 0.3; // vary lo per iteration too
+            let hi = lo + 30.0 + offset;
+
+            // A single prograde crossing.
+            assert_last_matches(
+                "single",
+                || -> Box<dyn FnMut(f64) -> Result<f64, EventError>> {
+                    Box::new(move |t: f64| Ok(wrap180(1.0 * (t - t0) - 10.0)))
+                },
+                lo,
+                hi,
+                step,
+                offset,
+            );
+
+            // The retrograde parabola from `finds_retrograde_triple_crossing`
+            // (multiple crossings in range).
+            assert_last_matches(
+                "retrograde",
+                || -> Box<dyn FnMut(f64) -> Result<f64, EventError>> {
+                    Box::new(move |t: f64| {
+                        let x = t - t0;
+                        Ok(wrap180(30.0 + 8.0 * x - x * x - 37.0))
+                    })
+                },
+                lo,
+                hi,
+                step,
+                offset,
+            );
+
+            // A no-crossing constant.
+            assert_last_matches(
+                "constant",
+                || -> Box<dyn FnMut(f64) -> Result<f64, EventError>> {
+                    Box::new(move |t: f64| Ok(wrap180(0.0 * t + 90.0)))
+                },
+                lo,
+                hi,
+                step,
+                offset,
+            );
+        }
     }
 }
