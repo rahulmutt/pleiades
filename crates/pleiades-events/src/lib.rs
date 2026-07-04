@@ -27,10 +27,13 @@ mod ephemeris;
 mod error;
 mod fixstar;
 mod horizontal;
+mod rise_trans;
 mod root;
+mod semidiameter;
 
 #[allow(deprecated)]
 pub use crossings::{Crossing, CrossingEngine, CrossingFrame, EventEngine};
 pub use error::{EventError, WINDOW_END_JD, WINDOW_START_JD};
 pub use fixstar::{fixed_star_apparent, fixed_star_entry, FixedStarEntry};
 pub use horizontal::{Horizontal, HorizontalInput};
+pub use rise_trans::{DiscMode, RiseSet, RiseSetEvent, RiseSetOptions, RiseSetTarget};
