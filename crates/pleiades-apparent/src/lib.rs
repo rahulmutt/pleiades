@@ -125,6 +125,10 @@ pub use policy::{
     CURRENT_APPARENT_PLACE_POLICY_SUMMARY_TEXT,
 };
 
+pub mod refraction;
+
+pub use refraction::{apparent_from_true, true_from_apparent, Atmosphere};
+
 /// Deterministic 64-bit content checksum (FNV-1a), byte-identical to
 /// `pleiades_time::fnv1a64`. Detects drift between a checked-in data table and
 /// its pinned checksum. Not cryptographic.
