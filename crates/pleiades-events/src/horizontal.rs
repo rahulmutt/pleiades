@@ -78,6 +78,46 @@ impl<B: EphemerisBackend> EventEngine<B> {
     }
 }
 
+impl<B: EphemerisBackend> EventEngine<B> {
+    /// Inverse of [`EventEngine::horizontal`] (`swe_azalt_rev`): horizontal →
+    /// apparent equatorial of date. When `is_apparent` is true the altitude is
+    /// de-refracted first.
+    pub fn horizontal_to_equatorial(
+        &self,
+        azimuth_deg: f64,
+        altitude_deg: f64,
+        is_apparent: bool,
+        observer: ObserverLocation,
+        atmos: Atmosphere,
+        at: Instant,
+    ) -> Result<(Angle, Latitude), EventError> {
+        observer
+            .validate()
+            .map_err(|e| EventError::InvalidObserver {
+                detail: e.to_string(),
+            })?;
+        let alt_deg = if is_apparent {
+            pleiades_apparent::true_from_apparent(altitude_deg, atmos)
+        } else {
+            altitude_deg
+        };
+        let (az, alt, phi) = (
+            azimuth_deg.to_radians(),
+            alt_deg.to_radians(),
+            observer.latitude.degrees().to_radians(),
+        );
+        let sin_dec = phi.sin() * alt.sin() - phi.cos() * alt.cos() * az.cos();
+        let dec = sin_dec.clamp(-1.0, 1.0).asin();
+        let h = (az.sin()).atan2(phi.sin() * az.cos() + phi.cos() * alt.tan());
+        let lst = sidereal_time(at, observer.longitude).local_apparent_deg;
+        let ra = (lst - h.to_degrees()).rem_euclid(360.0);
+        Ok((
+            Angle::from_degrees(ra),
+            Latitude::from_degrees(dec.to_degrees()),
+        ))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -181,5 +221,39 @@ mod tests {
             )
             .unwrap();
         assert!(h.true_altitude <= 90.0 + 1e-9);
+    }
+
+    #[test]
+    fn azalt_round_trips_through_equatorial() {
+        let engine = EventEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
+        let at = tdb(2_451_545.0);
+        let ra_in = Angle::from_degrees(123.0);
+        let dec_in = Latitude::from_degrees(17.0);
+        let h = engine
+            .horizontal(
+                HorizontalInput::Equatorial(ra_in, dec_in),
+                greenwich(),
+                Atmosphere::default(),
+                at,
+            )
+            .unwrap();
+        // Feed the TRUE altitude back (is_apparent = false) to invert the pure rotation.
+        let (ra, dec) = engine
+            .horizontal_to_equatorial(
+                h.azimuth,
+                h.true_altitude,
+                false,
+                greenwich(),
+                Atmosphere::default(),
+                at,
+            )
+            .unwrap();
+        let dra = crate::root::wrap180(ra.degrees() - 123.0);
+        assert!(dra.abs() < 1e-6, "ra back {}", ra.degrees());
+        assert!(
+            (dec.degrees() - 17.0).abs() < 1e-6,
+            "dec back {}",
+            dec.degrees()
+        );
     }
 }
