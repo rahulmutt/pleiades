@@ -30,6 +30,11 @@ pub enum EventError {
         /// Human-readable explanation.
         detail: String,
     },
+    /// The observer location failed validation (non-finite / out of range).
+    InvalidObserver {
+        /// Human-readable detail.
+        detail: String,
+    },
 }
 
 impl fmt::Display for EventError {
@@ -51,6 +56,7 @@ impl fmt::Display for EventError {
             EventError::UnsupportedFrame { detail } => {
                 write!(f, "unsupported crossing frame: {detail}")
             }
+            EventError::InvalidObserver { detail } => write!(f, "invalid observer: {detail}"),
         }
     }
 }
