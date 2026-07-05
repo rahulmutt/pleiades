@@ -2176,3 +2176,21 @@ git commit -m "test: full-workspace regression sweep for SP-2b" || echo "nothing
 - **The `ephemeris.rs` refactor (Task 10) is load-bearing:** extracting `(lon,lat,dist)` from `geocentric_apparent_longitude_deg` must not change the longitude that `validate-crossings` already checks. Keep `geocentric_apparent_longitude_deg` returning the identical value (`geocentric_apparent_ecliptic(...).0`) and re-run `validate-crossings` after the refactor.
 - **Azimuth convention** is the most likely parity mismatch. If `validate-rise-trans` azalt rows are off by a constant 180°, flip the azimuth origin (south vs north) — pin it against the corpus, don't guess.
 - **Grazing/high-latitude ceilings** are set from measured residuals in Task 17, not invented up front — the two-tier gate's tight ceiling should hold for well-conditioned rows.
+
+---
+
+## Errata (found during execution)
+
+The following defects in this plan's example code/tests were discovered while implementing it. **The shipped code is correct** — it deviates from the buggy snippets below on purpose. This section exists so future readers do not copy the broken snippets. Each item was independently verified during the SP-2b build; see the code and its tests for the correct form.
+
+- **Task 5 (`horizontal_to_equatorial`), Step 3 — two sign errors.** The inverse formula as written does not round-trip against Task 4's forward `horizontal()`. The correct inverse is `sin_dec = sinφ·sin(alt) − cosφ·cos(alt)·cos(az)` and `h = atan2(sin(az), sinφ·cos(az) + cosφ·tan(alt))` (verified numerically: recovers the exact input RA/Dec).
+
+- **Task 9 (`standard_altitude`) — refraction double-count / wrong model.** The plan puts a refraction term in `h0` (giving the Sun upper-limb `h0 ≈ −0.833°`) *and* `target_apparent_altitude` applies refraction, so the rise/set residual counts refraction twice (~34′ ≈ 2–3 min error). The shipped engine uses **Model B** (apparent-altitude, matching `swe_rise_trans`): refraction lives only in the apparent position, `standard_altitude = −SD` (+ custom horizon), and the Sun upper-limb `h0 ≈ −0.267°` (= −semidiameter). (Also: the elevation-dip term was removed — SE's `swe_rise_trans` applies no dip by default, `horhgt=0`.)
+
+- **Task 11 (rise/set direction), Step 3 — the sign-flip trick is broken.** `first_crossing_after`/`crossings_in_range` detect *any* sign change, not only ascending ones, so negating the residual finds the *same* crossings (rise == set). The shipped code instead classifies direction post-hoc (probing the residual just after each root) and bounds the forward search (~3 days) so a circumpolar-now target returns `None`.
+
+- **Task 16/18 — gate wiring location.** The release gate set is `render/cli.rs::run_all_numeric_gates()`, **not** `release/notes.rs` (which the Task 18 file list named). `validate_rise_trans_corpus()` is registered in `run_all_numeric_gates`. (Relatedly, Task 16's `ValidationOutcome`/`release_gate_names` names are illustrative — the real gate mirrors `validate_crossings_corpus() -> Result<Report, Error>`.)
+
+- **Task 7 — `annual_aberration` signature.** The real signature is `annual_aberration(lambda_deg, beta_deg, sun_true_longitude_deg, jd_tt) -> AberrationOffset { d_lambda_arcsec, d_beta_arcsec }` (not a `Result`; arcsec fields; requires the Sun's true longitude). Because `fixed_star_apparent` has no backend, the Sun's longitude is computed analytically (Meeus low-precision solar longitude).
+
+**Note on time scale:** rise/set/transit instants are UT1-scale (sidereal time uses the Julian Day as UT1; there is no ΔT model), accurate to within ΔT (~64 s) of true TDB despite the `TimeScale::Tdb` label. The `validate-rise-trans` gate therefore compares against the corpus `se_jd_ut` column.
