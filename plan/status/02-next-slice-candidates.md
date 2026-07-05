@@ -94,3 +94,16 @@ once Phase 5 audits pass.
 - Expand selected-asteroid coverage where source evidence supports it.
 - Add dignities, built above the core domain layer. (Aspects / orb-ready angular
   separations are already implemented.)
+
+## Event-engine track (SP series, parallel to the phases above)
+
+SP-1 (angles/sidereal time), SP-2a (longitude crossings, plus the SP-2a-FU
+`validate-crossings` hardening), and SP-2b (rise/set/transit + horizontal
+coordinates, gated by `validate-rise-trans`) are all **done**. Next candidate
+slice:
+
+- SP-2c — local (per-observer) eclipse circumstances, extending
+  `pleiades-eclipse`'s existing global/geocentric eclipse data (type, greatest-
+  eclipse time, magnitude, gamma, Saros series) with observer-local contact
+  times and visibility, out of scope for SP-2b.
+- SP-3 (not yet scoped in detail).
