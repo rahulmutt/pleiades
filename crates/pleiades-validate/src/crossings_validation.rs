@@ -10,7 +10,7 @@
 
 use pleiades_apparent::fnv1a64;
 use pleiades_data::packaged_backend;
-use pleiades_events::{CrossingEngine, CrossingFrame};
+use pleiades_events::{CrossingFrame, EventEngine};
 use pleiades_types::{CelestialBody, Instant, JulianDay, Longitude, TimeScale};
 
 const CORPUS_CSV: &str = include_str!(concat!(
@@ -152,7 +152,7 @@ fn arcsec_ceiling_for(frame: CrossingFrame, body: &CelestialBody) -> f64 {
 pub(crate) fn validate_crossings_csv(
     csv: &str,
 ) -> Result<CrossingsCorpusReport, CrossingsCorpusError> {
-    let engine = CrossingEngine::new(packaged_backend());
+    let engine = EventEngine::new(packaged_backend());
     let mut checked = 0usize;
     let mut max_self = 0.0_f64;
     let mut max_parity = 0.0_f64;
@@ -378,8 +378,8 @@ geo,Sun,0.000000,2416000.500000,fwd,2416195.301931810,NaN
     // Test helper: replace a literal `PLEIADES` golden placeholder with the
     // engine's real next-crossing time so a crafted row exercises Tier 2 alone.
     fn fill_golden_for_test(csv: &str) -> String {
-        use pleiades_events::{CrossingEngine, CrossingFrame};
-        let engine = CrossingEngine::new(packaged_backend());
+        use pleiades_events::{CrossingFrame, EventEngine};
+        let engine = EventEngine::new(packaged_backend());
         let mut out = String::new();
         for line in csv.lines() {
             if let Some(idx) = line.find(",PLEIADES") {

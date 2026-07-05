@@ -10,7 +10,7 @@
 use core::fmt;
 
 /// The current API-stability posture identifier.
-pub const CURRENT_API_STABILITY_PROFILE_ID: &str = "pleiades-api-stability/0.2.1";
+pub const CURRENT_API_STABILITY_PROFILE_ID: &str = "pleiades-api-stability/0.2.2";
 
 /// Returns the current API-stability posture identifier.
 pub const fn current_api_stability_profile_id() -> &'static str {
@@ -170,7 +170,7 @@ fn validate_text_section(
 pub const fn current_api_stability_profile() -> ApiStabilityProfile {
     ApiStabilityProfile {
         profile_id: CURRENT_API_STABILITY_PROFILE_ID,
-        summary: "The stable consumer surface is the shared domain model, backend contract, and chart/compatibility façade; validation and release-tooling formats are documented but still allowed to evolve as hardening continues. ChartSnapshot's summary_line helper, apparentness, direct, stationary, unknown-motion, retrograde, sign summary, dominant sign summary, house summary, dominant house summary, motion summary, and aspect summary helpers, plus the generic motion-direction placement filter, are part of that stable chart surface. SP-1 (angles and sidereal time) adds sidereal time (SiderealTime, GMST/GAST/local) and AscMc chart points (ARMC, Vertex, antivertex, equatorial ascendant, co-ascendants, polar ascendant) to that stable chart surface; HouseSnapshot::asc_mc carries AscMc on every house snapshot; HouseSnapshot is now #[non_exhaustive] as a deliberate one-time 0.2.x breaking change.",
+        summary: "The stable consumer surface is the shared domain model, backend contract, and chart/compatibility façade; validation and release-tooling formats are documented but still allowed to evolve as hardening continues. ChartSnapshot's summary_line helper, apparentness, direct, stationary, unknown-motion, retrograde, sign summary, dominant sign summary, house summary, dominant house summary, motion summary, and aspect summary helpers, plus the generic motion-direction placement filter, are part of that stable chart surface. SP-1 (angles and sidereal time) adds sidereal time (SiderealTime, GMST/GAST/local) and AscMc chart points (ARMC, Vertex, antivertex, equatorial ascendant, co-ascendants, polar ascendant) to that stable chart surface; HouseSnapshot::asc_mc carries AscMc on every house snapshot; HouseSnapshot is now #[non_exhaustive] as a deliberate one-time 0.2.x breaking change. SP-2b (rise/set/transit and horizontal coordinates) renames pleiades-events::CrossingEngine to EventEngine; CrossingEngine is kept as a #[deprecated] type alias for one release cycle per the deprecation policy above before removal. pleiades-events remains a standalone crate that is not re-exported through pleiades-core and stays outside this façade's enumerated stable surfaces.",
         stable_surfaces: &[
             "pleiades-types defines the stable units, identifiers, and request/response primitives.",
             "pleiades-backend's EphemerisBackend trait and metadata model are the primary backend-facing contract.",

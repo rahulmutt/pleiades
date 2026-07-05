@@ -31,6 +31,8 @@ mod provenance;
 mod release;
 mod render;
 mod report;
+pub mod rise_trans_thresholds;
+pub mod rise_trans_validation;
 mod topocentric_validation;
 
 pub use angles_validation::{validate_angles_corpus, AnglesCorpusError, AnglesCorpusReport};
@@ -199,6 +201,7 @@ pub use house_validation::{
 };
 pub use house_validation::{validate_house_corpus, HouseCorpusError, HouseCorpusReport};
 pub use lilith_validation::{validate_lilith_corpus, LilithCorpusError, LilithCorpusReport};
+pub use rise_trans_validation::{validate_rise_trans_corpus, RiseTransError, RiseTransReport};
 
 use crate::claims::{
     derived_release_posture, validate_release_posture,

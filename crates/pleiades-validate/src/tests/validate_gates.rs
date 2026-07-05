@@ -311,6 +311,57 @@ fn help_text_mentions_validate_crossings() {
 }
 
 #[test]
+fn validate_rise_trans_passes_over_committed_corpus() {
+    let report = crate::validate_rise_trans_corpus()
+        .expect("validate-rise-trans should pass on the committed corpus");
+    assert!(report.passed(), "validate-rise-trans failed: {report:?}");
+}
+
+#[test]
+fn validate_rise_trans_command_reports_a_summary() {
+    let out = render_cli(&["validate-rise-trans"]).expect("gate passes");
+    assert!(
+        out.contains("validate-rise-trans"),
+        "output should contain 'validate-rise-trans': {out}"
+    );
+    assert!(
+        out.contains("rise-trans + ") && out.contains("azalt SE fixtures"),
+        "output should contain the rise-trans/azalt fixture summary: {out}"
+    );
+}
+
+#[test]
+fn rise_trans_gate_alias_matches_validate_rise_trans() {
+    let via_primary =
+        render_cli(&["validate-rise-trans"]).expect("validate-rise-trans should succeed");
+    let via_alias = render_cli(&["rise-trans-gate"]).expect("rise-trans-gate alias should succeed");
+    assert_eq!(via_primary, via_alias);
+}
+
+#[test]
+fn validate_rise_trans_rejects_extra_args() {
+    let error = render_cli(&["validate-rise-trans", "extra"])
+        .expect_err("validate-rise-trans should reject extra arguments");
+    assert!(
+        error.contains("validate-rise-trans does not accept extra arguments"),
+        "unexpected error: {error}"
+    );
+}
+
+#[test]
+fn help_text_mentions_validate_rise_trans() {
+    let help = render_cli(&["help"]).expect("help command should render");
+    assert!(
+        help.contains("validate-rise-trans"),
+        "help text should mention validate-rise-trans"
+    );
+    assert!(
+        help.contains("rise-trans-gate"),
+        "help text should mention rise-trans-gate alias"
+    );
+}
+
+#[test]
 fn eclipses_listing_returns_lines_for_narrow_window() {
     // The allowlisted eclipse JD 2432680.601 (1948-05-09 solar, Saros 137) is
     // guaranteed to be in the corpus window and returns exactly one eclipse.

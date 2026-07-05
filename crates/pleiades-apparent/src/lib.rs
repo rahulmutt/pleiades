@@ -1,6 +1,10 @@
 //! Apparent-place corrections: light-time, precession-to-date, annual
 //! aberration, and nutation-in-longitude, with typed provenance.
-//! Gravitational light-deflection and atmospheric refraction are omitted.
+//! Gravitational light-deflection is omitted everywhere in this crate.
+//! Atmospheric refraction is now implemented (see the [`refraction`] module,
+//! used by `pleiades-events`'s horizontal-coordinate and rise/set/transit
+//! surface), but [`apparent_position`]'s of-date ecliptic-longitude pipeline
+//! still does not apply it.
 //!
 //! # Examples
 //!
@@ -9,8 +13,10 @@
 //! geocentric position at a (light-time-retarded) instant; the routine applies
 //! light-time, precession to the equinox of date, annual aberration, and
 //! nutation-in-longitude. Gravitational light-deflection and atmospheric
-//! refraction are **not** applied. One century after J2000 precession alone
-//! shifts ecliptic longitude by roughly 1.4°:
+//! refraction are **not** applied by this function (refraction is applied
+//! separately, only on the horizontal/rise-set surface — see the crate-level
+//! docs above). One century after J2000 precession alone shifts ecliptic
+//! longitude by roughly 1.4°:
 //!
 //! ```
 //! use pleiades_apparent::{apparent_position, ApparentPlaceError, DEFAULT_MAX_ITERATIONS};
@@ -124,6 +130,10 @@ pub use policy::{
     ApparentPlacePolicySummary, ApparentPlacePolicySummaryValidationError,
     CURRENT_APPARENT_PLACE_POLICY_SUMMARY_TEXT,
 };
+
+pub mod refraction;
+
+pub use refraction::{apparent_from_true, true_from_apparent, Atmosphere};
 
 /// Deterministic 64-bit content checksum (FNV-1a), byte-identical to
 /// `pleiades_time::fnv1a64`. Detects drift between a checked-in data table and

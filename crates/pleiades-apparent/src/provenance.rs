@@ -22,8 +22,15 @@ pub struct CorrectionSet {
 }
 
 /// Data/model sources behind the apparent-place corrections.
+///
+/// This describes the `apparent_position`/`topocentric_position` pipeline
+/// specifically: that pipeline still omits atmospheric refraction. Refraction
+/// is implemented separately, in the [`crate::refraction`] module, and is
+/// applied only by `pleiades-events`'s horizontal-coordinate and
+/// rise/set/transit surface (`EventEngine::horizontal`, `::rise_trans`), not
+/// by this apparent-place pipeline.
 pub const MODEL_SOURCES: &str =
-    "precession (IAU-1976, Meeus 20.3/21.4); nutation-iau1980.csv (IAU-1980 truncated, Meeus Table 22.A); annual aberration (Meeus 23.2); light-time iteration; light-deflection omitted; diurnal parallax (Meeus 11/40, WGS84 ellipsoid); diurnal aberration (0.319\"·ρcosφ′); atmospheric refraction omitted";
+    "precession (IAU-1976, Meeus 20.3/21.4); nutation-iau1980.csv (IAU-1980 truncated, Meeus Table 22.A); annual aberration (Meeus 23.2); light-time iteration; light-deflection omitted; diurnal parallax (Meeus 11/40, WGS84 ellipsoid); diurnal aberration (0.319\"·ρcosφ′); atmospheric refraction omitted here (refraction is implemented separately for the horizontal/rise-set surface; see pleiades_apparent::refraction)";
 
 /// Provenance describing how an apparent position was produced.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]

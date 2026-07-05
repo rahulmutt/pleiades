@@ -83,3 +83,14 @@ overclaim checks.
 
 - Audit Pluto, lunar theory, and selected-asteroid body-claim boundaries (Phase 3).
 - Harden release gates that check existing evidence without broadening claims.
+
+## Event-engine track (SP series, parallel to the Phase numbering above)
+
+This track (angles/sidereal time, longitude crossings, rise/set/transit) runs
+in parallel to the Phase 1-6 ephemeris/catalog track above and is tracked in
+detail in `PLAN.md`'s status line. Current state: SP-1 (angles and sidereal
+time), SP-2a (longitude crossings, plus the SP-2a-FU `validate-crossings`
+hardening), and SP-2b (rise/set/transit + horizontal coordinates via
+`pleiades-events::EventEngine`, SE-validated by the fail-closed
+`validate-rise-trans` gate wired into `run_all_numeric_gates`) are all done.
+SP-2c (local eclipse circumstances) and SP-3 remain and are not yet started.

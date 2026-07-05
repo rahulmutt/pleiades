@@ -35,12 +35,14 @@ pub struct Crossing {
     pub frame: CrossingFrame,
 }
 
-/// Finds longitude crossings of a body over the packaged 1900–2100 TDB window.
-pub struct CrossingEngine<B> {
+/// Finds ephemeris events (longitude crossings today; rise/set/transit and
+/// horizontal coordinates in sibling modules) over the packaged 1900–2100 TDB
+/// window.
+pub struct EventEngine<B> {
     pub(crate) backend: B,
 }
 
-impl<B: EphemerisBackend> CrossingEngine<B> {
+impl<B: EphemerisBackend> EventEngine<B> {
     /// Wraps a backend.
     pub fn new(backend: B) -> Self {
         Self { backend }
@@ -56,7 +58,7 @@ impl<B: EphemerisBackend> CrossingEngine<B> {
         }
     }
 
-    fn check_window(&self, jd: f64) -> Result<(), EventError> {
+    pub(crate) fn check_window(&self, jd: f64) -> Result<(), EventError> {
         if !(WINDOW_START_JD..=WINDOW_END_JD).contains(&jd) {
             return Err(EventError::OutOfWindow { julian_day: jd });
         }
@@ -252,10 +254,10 @@ impl<B: EphemerisBackend> CrossingEngine<B> {
     ///
     /// ```
     /// use pleiades_data::packaged_backend;
-    /// use pleiades_events::{CrossingEngine, CrossingFrame};
+    /// use pleiades_events::{CrossingFrame, EventEngine};
     /// use pleiades_types::{CelestialBody, Instant, JulianDay, TimeScale};
     ///
-    /// let engine = CrossingEngine::new(packaged_backend());
+    /// let engine = EventEngine::new(packaged_backend());
     /// let t = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tdb);
     /// let lon = engine
     ///     .longitude_at(CelestialBody::Sun, CrossingFrame::GeocentricApparentOfDate, t)
@@ -281,6 +283,11 @@ impl<B: EphemerisBackend> CrossingEngine<B> {
         Ok(Longitude::from_degrees(deg))
     }
 }
+
+/// Deprecated alias for [`EventEngine`]. Kept one release cycle for the SP-2a
+/// crossing API; migrate to `EventEngine`.
+#[deprecated(since = "0.3.1", note = "renamed to EventEngine")]
+pub type CrossingEngine<B> = EventEngine<B>;
 
 fn body_label(body: &CelestialBody) -> &'static str {
     match body {
@@ -309,7 +316,7 @@ mod tests {
 
     #[test]
     fn finds_a_sun_crossing_in_range() {
-        let engine = CrossingEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
+        let engine = EventEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
         // Sun sweeps ~1°/day; over 400 days it crosses any target at least once.
         let start = tdb(2_451_545.0);
         let end = tdb(2_451_545.0 + 400.0);
@@ -340,7 +347,7 @@ mod tests {
 
     #[test]
     fn next_equals_first_in_range() {
-        let engine = CrossingEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
+        let engine = EventEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
         let after = tdb(2_451_545.0);
         let end = tdb(2_451_545.0 + 400.0);
         let next = engine
@@ -369,7 +376,7 @@ mod tests {
 
     #[test]
     fn out_of_window_fails_closed() {
-        let engine = CrossingEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
+        let engine = EventEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
         let err = engine
             .longitude_crossings_in_range(
                 CelestialBody::Sun,
@@ -384,7 +391,7 @@ mod tests {
 
     #[test]
     fn heliocentric_rejects_sun_and_moon() {
-        let engine = CrossingEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
+        let engine = EventEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
         let after = tdb(2_451_545.0);
         for body in [CelestialBody::Sun, CelestialBody::Moon] {
             let err = engine
@@ -404,7 +411,7 @@ mod tests {
 
     #[test]
     fn longitude_at_matches_crossing_target() {
-        let engine = CrossingEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
+        let engine = EventEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
         let after = tdb(2_451_545.0);
         let target = Longitude::from_degrees(100.0);
         let c = engine.next_sun_crossing(target, after).unwrap().unwrap();
@@ -425,7 +432,7 @@ mod tests {
 
     #[test]
     fn previous_equals_last_in_range_filtered_before() {
-        let engine = CrossingEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
+        let engine = EventEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
         let target = Longitude::from_degrees(100.0);
         // Sun sweeps ~0.9856 deg/day; over 800 days (~788 deg of travel) it
         // crosses any fixed target longitude more than once — confirm that
@@ -471,7 +478,7 @@ mod tests {
 
     #[test]
     fn previous_none_when_no_earlier_crossing() {
-        let engine = CrossingEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
+        let engine = EventEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
         let target = Longitude::from_degrees(100.0);
         // Very early `before`, right at the start of the window (Sun's scan
         // step is 1.0 day): no crossing can precede it.
@@ -489,7 +496,7 @@ mod tests {
 
     #[test]
     fn longitude_at_fails_closed() {
-        let engine = CrossingEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
+        let engine = EventEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
         // Heliocentric Sun is undefined.
         let err = engine
             .longitude_at(

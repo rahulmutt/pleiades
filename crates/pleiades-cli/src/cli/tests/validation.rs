@@ -260,3 +260,46 @@ fn crossings_alias_dispatches_to_validate() {
     let via_gate = render_cli(&["crossings-gate"]).expect("crossings-gate alias should succeed");
     assert_eq!(out, via_gate);
 }
+
+#[test]
+fn rise_trans_alias_dispatches_to_validate() {
+    let out = render_cli(&["rise-trans"]).expect("rise-trans should dispatch");
+    // Mirrors `crossings_alias_dispatches_to_validate` above: the validate
+    // layer's `validate-rise-trans` / `rise-trans-gate` arm
+    // (crates/pleiades-validate/src/render/cli.rs) returns
+    // `RiseTransReport::summary_line()` directly, so we assert on that
+    // substring rather than inventing a banner that doesn't exist.
+    assert!(
+        out.contains("validate-rise-trans"),
+        "output should contain 'validate-rise-trans': {out}"
+    );
+    assert!(
+        out.contains("rise-trans + ") && out.contains("azalt SE fixtures"),
+        "output should contain the rise-trans/azalt fixture summary: {out}"
+    );
+
+    // validate-rise-trans and rise-trans-gate should reach the validate layer
+    // directly and match the bare "rise-trans" alias output exactly.
+    let via_validate =
+        render_cli(&["validate-rise-trans"]).expect("validate-rise-trans should succeed");
+    assert_eq!(out, via_validate);
+    let via_gate = render_cli(&["rise-trans-gate"]).expect("rise-trans-gate alias should succeed");
+    assert_eq!(out, via_gate);
+}
+
+#[test]
+fn azalt_alias_dispatches_to_the_same_rise_trans_gate() {
+    // There is no separate azalt gate: `validate-rise-trans` validates BOTH
+    // the rise-trans.csv AND azalt.csv corpora in a single pass (see
+    // `crates/pleiades-validate/src/rise_trans_validation.rs`). So the
+    // `azalt` alias intentionally routes to the exact same gate as
+    // `rise-trans`, not a distinct command.
+    let out = render_cli(&["azalt"]).expect("azalt should dispatch");
+    assert!(
+        out.contains("validate-rise-trans"),
+        "output should contain 'validate-rise-trans': {out}"
+    );
+
+    let via_rise_trans = render_cli(&["rise-trans"]).expect("rise-trans should dispatch");
+    assert_eq!(out, via_rise_trans);
+}
