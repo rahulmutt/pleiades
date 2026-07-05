@@ -33,30 +33,30 @@
 //! - Meridian transits (never touch `standard_altitude` at all, so entirely
 //!   unaffected by fix 1; fix 2 doesn't apply to transits either).
 //!
-//! ## Remaining known finding — below/near-horizon refraction-model floor
-//! ## (Task 17's stated scope, NOT fixed here)
+//! ## Task 17 — below-horizon refraction branch pinned to SE
 //!
-//! Even with the dip removed, Sun/Moon (large angular disc, ~0.25-0.27 deg
-//! semidiameter) rise/set events with refraction enabled and no custom
-//! horizon show a 15-22s time residual against `se_jd_ut`, while point
-//! bodies (Mars, stars) under the same conditions show < 3.5s. The azalt
-//! corpus shows the identical signature directly: azimuth/true-altitude are
-//! sub-arcsecond everywhere, but apparent (refracted) altitude diverges
-//! specifically for BELOW-horizon points (true altitude < 0 deg): up to
-//! ~282" there, vs. a clean <= 7.61" for on/above-horizon points. This is
-//! consistent with the engine's Bennett-forward refraction formula
-//! disagreeing with SE's own refraction algorithm by an amount that grows
-//! sharply near and below the horizon (amplified for Sun/Moon rise/set
-//! because their disc-edge crossing sits exactly there). This is squarely
-//! the plan's own anticipated Task 17 scope ("pin the below-horizon
-//! refraction branch"); it is NOT papered over with an inflated ceiling here:
-//! the rise/set "refraction floor" category gets its own honestly-measured
-//! ceiling (still far tighter than the ~800s an all-rows-uniform ceiling
-//! would require), and azalt's apparent-altitude check is gated only for
-//! on/above-horizon rows (`se_true_alt_deg >= 0`) — below-horizon apparent
-//! altitude is computed and reported (informational,
-//! `RiseTransReport::max_below_horizon_apparent_alt_residual_arcsec`) but not
-//! gated, with an explicit comment flagging it for Task 17 to tighten.
+//! `pleiades_apparent::apparent_from_true`/`true_from_apparent` (see that
+//! module's doc) now hold Bennett/Saemundsson's own refraction value fixed at
+//! true/apparent h=-1 deg and fade it linearly to zero by h=-10 deg, matching
+//! every below-horizon row in the committed `azalt.csv` corpus (SE reports
+//! `se_apparent_alt_deg == se_true_alt_deg` there) to within ~9 arcsec at the
+//! shallowest tested row and a small fraction of an arcsec at every deeper
+//! one — down from up to ~282 arcsec previously. `h >= -1 deg` (which
+//! includes every actual rise/set crossing this corpus exercises) is
+//! completely unchanged, so this fix is measured to have NO effect on the
+//! rise/set "refraction floor" category below (its measured max is bit-for-
+//! bit identical before and after: 21.9052 s). This is expected and
+//! documented, not glossed over: the corpus has no below-horizon ground truth
+//! in the narrow band ([-1, 0) deg) where Sun/Moon disc-edge crossings
+//! actually happen, so there is nothing to fit that residual against without
+//! guessing; see `pleiades_apparent::refraction::apparent_from_true_below_horizon`'s
+//! doc for why reproducing SE's own (discontinuous) below-horizon model
+//! exactly was tried and rejected (it regressed a different row via
+//! bisection-on-a-jump). Effects on the two ceilings below:
+//!
+//! - `RISE_SET_SECONDS_REFRACTION_FLOOR`: UNCHANGED (measured max unchanged).
+//! - `APPARENT_ALTITUDE_ARCSEC`: TIGHTENED, and now gates below-horizon azalt
+//!   rows too (previously informational-only) — see its doc below.
 
 /// Rise/set time-parity ceiling (seconds) for a well-conditioned,
 /// non-grazing, non-refraction-floor row (point-like body: star or
@@ -70,11 +70,15 @@ pub const RISE_SET_SECONDS_TIGHT: f64 = 5.0;
 
 /// Rise/set time-parity ceiling (seconds) for Sun/Moon rows where refraction
 /// is enabled and no custom horizon offset is given, so the event is defined
-/// exactly at the geometric horizon — squarely in the below-horizon
-/// refraction-model floor described above (Task 17's scope). Measured max:
-/// 21.9052 s (Moon rise, lat 40, elev 10m). Ceiling = ceil(1.4 x 21.9052)
-/// rounded to 31.0 s. NOT further tightened here; Task 17 owns closing this
-/// gap (see the module doc and `rise_trans_validation::is_refraction_floor_row`).
+/// exactly at the geometric horizon. Measured max: 21.9052 s (Moon rise, lat
+/// 40, elev 10m) — UNCHANGED by Task 17's below-horizon refraction fix,
+/// because every such crossing's true altitude stays within [-1, 0) deg,
+/// which that fix deliberately left untouched (see the module doc's "Task
+/// 17" section and `pleiades_apparent::refraction::apparent_from_true_below_horizon`'s
+/// doc for why). Ceiling = ceil(1.4 x 21.9052) rounded to 31.0 s — unchanged
+/// from its pre-Task-17 value, since the measured max didn't move; this is
+/// an honest, not-yet-closed gap (see `rise_trans_validation::is_refraction_floor_row`),
+/// not an inflated ceiling.
 pub const RISE_SET_SECONDS_REFRACTION_FLOOR: f64 = 31.0;
 
 /// Loosened ceiling for genuinely ill-conditioned rows: near-circumpolar /
@@ -104,14 +108,18 @@ pub const AZIMUTH_ARCSEC: f64 = 0.2;
 /// max: 0.0411". Ceiling = ceil(1.4 x 0.0411) rounded to 0.1".
 pub const TRUE_ALTITUDE_ARCSEC: f64 = 0.1;
 
-/// Apparent (refracted) altitude angle-parity ceiling (arcseconds), gated
-/// ONLY for rows at or above the horizon (`se_true_alt_deg >= 0.0`); see the
-/// module doc for why below-horizon rows are excluded (Task 17's scope) and
-/// tracked informationally instead. Measured max over the on/above-horizon
-/// subset: 7.6052" (lat 0, true altitude 9.964 deg). Ceiling = ceil(1.4 x
-/// 7.6052) rounded to 11.0". Below-horizon rows range up to ~282" and are
-/// NOT gated by this constant.
-pub const APPARENT_ALTITUDE_ARCSEC: f64 = 11.0;
+/// Apparent (refracted) altitude angle-parity ceiling (arcseconds), gated for
+/// EVERY azalt row, on/above AND below the horizon (Task 17: previously
+/// gated above-horizon rows only, with below-horizon tracked informationally
+/// at up to ~282" — see the module doc's "Task 17" section for how the
+/// below-horizon refraction fix brought that down). Measured max over
+/// on/above-horizon rows: 7.6052" (lat 0, true altitude 9.964 deg) —
+/// unaffected by Task 17 (that fix only touches `h < 0`). Measured max over
+/// below-horizon rows: 9.1284" (lat 0, true altitude -9.964 deg — the
+/// shallowest below-horizon row, right at the edge of the refraction fix's
+/// hold-then-fade blend; see `pleiades_apparent::refraction`'s doc). Overall
+/// measured max: 9.1284". Ceiling = ceil(1.4 x 9.1284) rounded to 13.0".
+pub const APPARENT_ALTITUDE_ARCSEC: f64 = 13.0;
 
 /// Self-consistency ceiling (arcseconds): azalt round-trip
 /// (`horizontal_to_equatorial(horizontal(x)) ~ x`), the meridian-transit

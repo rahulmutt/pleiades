@@ -44,14 +44,29 @@
 //! `RISE_SET_SEARCH_SPAN_DAYS`, so a body circumpolar right now correctly
 //! reports `None` instead of a far-future event.
 //!
-//! One gap remains, deliberately NOT fixed here because it is Task 17's
-//! stated scope: a below-horizon refraction-model floor (Bennett-forward vs.
-//! SE's own refraction algorithm disagree by a growing amount near and below
-//! the horizon). This gate does not paper over it: the rise/set "refraction
-//! floor" category (Sun/Moon, refraction on, no custom horizon) and azalt's
-//! below-horizon apparent-altitude residual both get their own honestly
-//! measured, un-inflated handling — see `rise_trans_thresholds` and
-//! `is_refraction_floor_row`/`APPARENT_ALTITUDE_ARCSEC` below.
+//! ## Task 17: below-horizon refraction
+//!
+//! `pleiades_apparent::apparent_from_true`/`true_from_apparent` now match SE's
+//! below-horizon behavior closely (see that module's doc) via a hold-then-fade
+//! shape rather than an exact reproduction of SE's own (discontinuous)
+//! `swe_refrac_extended` model. Effects on this gate's two known findings:
+//!
+//! - azalt's below-horizon apparent-altitude residual dropped from ~282
+//!   arcsec (worst case) to ~9 arcsec — small enough that this gate now gates
+//!   below-horizon apparent-altitude rows too, at the same
+//!   `APPARENT_ALTITUDE_ARCSEC` ceiling as above-horizon rows (previously
+//!   informational-only; see `rise_trans_thresholds`).
+//! - The rise/set "refraction floor" category (Sun/Moon, refraction on, no
+//!   custom horizon; see `is_refraction_floor_row`) is UNCHANGED (still ~22 s
+//!   max residual): every such crossing's true altitude stays within [-1, 0)
+//!   deg, a range this task deliberately left untouched (see
+//!   `pleiades_apparent::refraction::apparent_from_true_below_horizon`'s doc
+//!   for why extending the fix into that exact band regressed a different
+//!   row via bisection-on-a-discontinuity). The corpus provides no
+//!   below-horizon ground truth in [-1, 0) deg to diagnose that residual's
+//!   real cause against, so `RISE_SET_SECONDS_REFRACTION_FLOOR` keeps its
+//!   prior (honestly measured) ceiling rather than being tightened on
+//!   unverified assumptions.
 
 use crate::rise_trans_thresholds::*;
 use pleiades_apparent::{apparent_from_true, fnv1a64, true_from_apparent, Atmosphere};
@@ -166,13 +181,15 @@ pub struct RiseTransReport {
     /// `TRUE_ALTITUDE_ARCSEC`.
     pub max_true_altitude_residual_arcsec: f64,
     /// Max azalt apparent (refracted) altitude residual (arcseconds), over
-    /// on/above-horizon rows only (`se_true_alt_deg >= 0`), gated at
+    /// on/above-horizon rows (`se_true_alt_deg >= 0`), gated at
     /// `APPARENT_ALTITUDE_ARCSEC`.
     pub max_apparent_altitude_residual_arcsec: f64,
     /// Max azalt apparent (refracted) altitude residual (arcseconds), over
-    /// BELOW-horizon rows (`se_true_alt_deg < 0`). Informational only, NOT
-    /// gated — the below-horizon refraction-model floor is Task 17's scope
-    /// (see the module doc and `rise_trans_thresholds`).
+    /// BELOW-horizon rows (`se_true_alt_deg < 0`). Also gated at
+    /// `APPARENT_ALTITUDE_ARCSEC` as of Task 17 (previously informational
+    /// only — see the module doc's "Task 17" section and
+    /// `rise_trans_thresholds`); tracked in its own field purely so the
+    /// summary line can show above/below horizon separately.
     pub max_below_horizon_apparent_alt_residual_arcsec: f64,
     /// Max Tier-1 self-consistency residual (arcseconds).
     pub max_self_consistency_arcsec: f64,
@@ -201,7 +218,7 @@ impl RiseTransReport {
              azalt azimuth max {:.3}\" (ceiling {:.1}\"), \
              true-altitude max {:.3}\" (ceiling {:.1}\"), \
              apparent-altitude (above horizon) max {:.3}\" (ceiling {:.1}\"), \
-             apparent-altitude (below horizon, informational only) max {:.3}\"",
+             apparent-altitude (below horizon) max {:.3}\" (ceiling {:.1}\", Task 17)",
             self.rise_trans_checked,
             self.azalt_checked,
             self.max_self_consistency_arcsec,
@@ -221,6 +238,7 @@ impl RiseTransReport {
             self.max_apparent_altitude_residual_arcsec,
             APPARENT_ALTITUDE_ARCSEC,
             self.max_below_horizon_apparent_alt_residual_arcsec,
+            APPARENT_ALTITUDE_ARCSEC,
         )
     }
 }
@@ -597,13 +615,17 @@ pub(crate) fn validate_azalt_csv(
             .max_true_altitude_residual_arcsec
             .max(true_alt_residual_arcsec);
 
-        // Apparent (refracted) altitude: gated only on/above the horizon.
-        // Below-horizon rows hit the refraction-model floor described in the
-        // module doc (Task 17's scope) and are tracked informationally
-        // instead of gated — see `rise_trans_thresholds::APPARENT_ALTITUDE_ARCSEC`.
+        // Apparent (refracted) altitude: gated for EVERY row, on/above AND
+        // below the horizon (Task 17: the below-horizon refraction branch now
+        // matches SE closely enough — see `pleiades_apparent::refraction`'s
+        // module doc — that the previous above-horizon-only restriction is no
+        // longer needed; see `rise_trans_thresholds::APPARENT_ALTITUDE_ARCSEC`
+        // for the measured basis).
         let apparent_alt_residual_arcsec =
             (h.apparent_altitude - se_apparent_alt_deg).abs() * 3600.0;
-        if !apparent_alt_residual_arcsec.is_finite() {
+        if !apparent_alt_residual_arcsec.is_finite()
+            || apparent_alt_residual_arcsec > APPARENT_ALTITUDE_ARCSEC
+        {
             return Err(RiseTransError::AzAltParityExceeded {
                 row: line.to_string(),
                 field: "apparent_altitude",
@@ -612,19 +634,12 @@ pub(crate) fn validate_azalt_csv(
             });
         }
         if se_true_alt_deg >= 0.0 {
-            if apparent_alt_residual_arcsec > APPARENT_ALTITUDE_ARCSEC {
-                return Err(RiseTransError::AzAltParityExceeded {
-                    row: line.to_string(),
-                    field: "apparent_altitude",
-                    residual_arcsec: apparent_alt_residual_arcsec,
-                    ceiling_arcsec: APPARENT_ALTITUDE_ARCSEC,
-                });
-            }
             report.max_apparent_altitude_residual_arcsec = report
                 .max_apparent_altitude_residual_arcsec
                 .max(apparent_alt_residual_arcsec);
         } else {
-            // Below-horizon: NOT gated (Task 17's scope), tracked only.
+            // Below-horizon: also gated (see above), tracked in its own
+            // report field purely for above/below visibility in the summary.
             report.max_below_horizon_apparent_alt_residual_arcsec = report
                 .max_below_horizon_apparent_alt_residual_arcsec
                 .max(apparent_alt_residual_arcsec);
