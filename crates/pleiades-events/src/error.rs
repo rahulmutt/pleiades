@@ -40,6 +40,11 @@ pub enum EventError {
         /// The requested name.
         name: String,
     },
+    /// Atmosphere parameters were non-finite.
+    InvalidAtmosphere {
+        /// Human-readable detail.
+        detail: String,
+    },
 }
 
 impl fmt::Display for EventError {
@@ -63,6 +68,7 @@ impl fmt::Display for EventError {
             }
             EventError::InvalidObserver { detail } => write!(f, "invalid observer: {detail}"),
             EventError::UnknownFixedStar { name } => write!(f, "unknown fixed star: {name}"),
+            EventError::InvalidAtmosphere { detail } => write!(f, "invalid atmosphere: {detail}"),
         }
     }
 }

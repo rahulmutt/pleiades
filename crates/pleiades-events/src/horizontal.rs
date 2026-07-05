@@ -4,6 +4,7 @@
 
 use crate::crossings::EventEngine;
 use crate::error::EventError;
+use crate::rise_trans::check_atmosphere;
 use pleiades_apparent::{apparent_from_true, sidereal_time, true_obliquity_degrees, Atmosphere};
 use pleiades_backend::EphemerisBackend;
 use pleiades_types::{Angle, EclipticCoordinates, Instant, Latitude, Longitude, ObserverLocation};
@@ -45,6 +46,7 @@ impl<B: EphemerisBackend> EventEngine<B> {
             .map_err(|e| EventError::InvalidObserver {
                 detail: e.to_string(),
             })?;
+        check_atmosphere(atmos)?;
         let jd = at.julian_day.days();
         // Resolve to apparent equatorial RA/Dec (degrees).
         let (ra_deg, dec_deg) = match input {
@@ -96,6 +98,7 @@ impl<B: EphemerisBackend> EventEngine<B> {
             .map_err(|e| EventError::InvalidObserver {
                 detail: e.to_string(),
             })?;
+        check_atmosphere(atmos)?;
         let alt_deg = if is_apparent {
             pleiades_apparent::true_from_apparent(altitude_deg, atmos)
         } else {

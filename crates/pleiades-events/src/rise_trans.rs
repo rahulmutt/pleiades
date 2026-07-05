@@ -120,6 +120,23 @@ impl RiseSetOptions {
     }
 }
 
+/// Fail-closed guard for [`Atmosphere`] inputs: rejects non-finite pressure or
+/// temperature before they can propagate NaN through refraction. Shared by
+/// all four public entry points that accept an `Atmosphere`
+/// (`next_rise_set`, `rise_sets_in_range`, `horizontal`,
+/// `horizontal_to_equatorial`).
+pub(crate) fn check_atmosphere(atmos: Atmosphere) -> Result<(), EventError> {
+    if !atmos.pressure_mbar.is_finite() || !atmos.temperature_c.is_finite() {
+        return Err(EventError::InvalidAtmosphere {
+            detail: format!(
+                "pressure={} temp={}",
+                atmos.pressure_mbar, atmos.temperature_c
+            ),
+        });
+    }
+    Ok(())
+}
+
 /// A located rise/set/transit event (TDB).
 #[derive(Clone, Debug)]
 pub struct RiseSet {
@@ -313,6 +330,7 @@ impl<B: EphemerisBackend> EventEngine<B> {
             .map_err(|e| EventError::InvalidObserver {
                 detail: e.to_string(),
             })?;
+        check_atmosphere(atmos)?;
         let opts = opts.effective();
         let after_jd = after.julian_day.days();
         self.check_window(after_jd)?;
@@ -376,6 +394,7 @@ impl<B: EphemerisBackend> EventEngine<B> {
             .map_err(|e| EventError::InvalidObserver {
                 detail: e.to_string(),
             })?;
+        check_atmosphere(atmos)?;
         let opts = opts.effective();
         let start_jd = start.julian_day.days();
         let end_jd = end.julian_day.days();
@@ -827,5 +846,104 @@ mod tests {
             )
             .unwrap();
         assert!(h0.abs() < 1e-9, "no-refraction center h0 {h0}");
+    }
+
+    #[test]
+    fn circumpolar_high_latitude_returns_none() {
+        use pleiades_backend::test_backend::LinearSunMoon;
+        use pleiades_types::{
+            CelestialBody, Instant, JulianDay, Latitude, Longitude, ObserverLocation, TimeScale,
+        };
+        let engine = EventEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
+        // Near the pole a mid-declination body may never cross the horizon in a day.
+        let obs = ObserverLocation::new(
+            Latitude::from_degrees(89.9),
+            Longitude::from_degrees(0.0),
+            None,
+        );
+        let start = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tdb);
+        let end = Instant::new(JulianDay::from_days(2_451_545.5), TimeScale::Tdb);
+        let out = engine
+            .rise_sets_in_range(
+                RiseSetTarget::Body(CelestialBody::Sun),
+                RiseSetEvent::Rise,
+                obs,
+                Atmosphere::default(),
+                RiseSetOptions::default(),
+                start,
+                end,
+            )
+            .unwrap();
+        assert!(
+            out.is_empty(),
+            "circumpolar: no rise expected, got {}",
+            out.len()
+        );
+    }
+
+    #[test]
+    fn out_of_window_and_bad_atmosphere_fail_closed() {
+        use pleiades_backend::test_backend::LinearSunMoon;
+        use pleiades_types::{
+            CelestialBody, Instant, JulianDay, Latitude, Longitude, ObserverLocation, TimeScale,
+        };
+        let engine = EventEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
+        let obs = ObserverLocation::new(
+            Latitude::from_degrees(40.0),
+            Longitude::from_degrees(0.0),
+            None,
+        );
+        let err = engine
+            .next_rise_set(
+                RiseSetTarget::Body(CelestialBody::Sun),
+                RiseSetEvent::Rise,
+                obs.clone(),
+                Atmosphere::default(),
+                RiseSetOptions::default(),
+                Instant::new(JulianDay::from_days(2_000_000.0), TimeScale::Tdb),
+            )
+            .unwrap_err();
+        assert!(matches!(err, EventError::OutOfWindow { .. }));
+
+        let bad = Atmosphere {
+            pressure_mbar: f64::NAN,
+            temperature_c: 15.0,
+        };
+        let err = engine
+            .next_rise_set(
+                RiseSetTarget::Body(CelestialBody::Sun),
+                RiseSetEvent::Rise,
+                obs,
+                bad,
+                RiseSetOptions::default(),
+                Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tdb),
+            )
+            .unwrap_err();
+        assert!(matches!(err, EventError::InvalidAtmosphere { .. }));
+    }
+
+    #[test]
+    fn unknown_star_target_fails_closed() {
+        use pleiades_backend::test_backend::LinearSunMoon;
+        use pleiades_types::{
+            Instant, JulianDay, Latitude, Longitude, ObserverLocation, TimeScale,
+        };
+        let engine = EventEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
+        let obs = ObserverLocation::new(
+            Latitude::from_degrees(40.0),
+            Longitude::from_degrees(0.0),
+            None,
+        );
+        let err = engine
+            .next_rise_set(
+                RiseSetTarget::FixedStar("Nope".into()),
+                RiseSetEvent::Rise,
+                obs,
+                Atmosphere::default(),
+                RiseSetOptions::default(),
+                Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tdb),
+            )
+            .unwrap_err();
+        assert!(matches!(err, EventError::UnknownFixedStar { .. }));
     }
 }
