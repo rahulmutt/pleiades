@@ -1,0 +1,10 @@
+corpus: rise-trans+azalt
+source: Swiss Ephemeris 2.10.03 (Moshier, SEFLG_MOSEPH)
+generator: tools/se-rise-trans-reference
+file: rise-trans.csv rows=50 checksum=13484924478126845004
+file: azalt.csv rows=20 checksum=17675850922779763311
+rise-set: swe_rise_trans / swe_rise_trans_true_hor; ut_to_tdb: jd_tdb = jd_ut + swe_deltat(jd_ut)
+no-event: se_jd_ut/se_jd_tdb == 'none' (SE return -2: circumpolar or never rises)
+ecliptic-point rise/set: OMITTED (Option B) — SE swe_rise_trans has no arbitrary-ecliptic-point support; ecliptic points covered in azalt.csv (SE_ECL2HOR)
+azimuth: measured from SOUTH, increasing WESTWARD (swe_azalt native convention)
+window: 1900-2100 CE (JD 2415020.5..=2488069.5); rise/set/transit times in TDB
