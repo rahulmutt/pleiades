@@ -140,7 +140,7 @@ New public types in `pleiades-eclipse` (`local` module), exported from `lib.rs`:
 pub struct LocalContact {
     pub instant: Instant,              // TDB
     pub altitude_degrees: f64,         // apparent (refracted) altitude of the body
-    pub azimuth_degrees: f64,          // 0 = N, 90 = E (SE convention; matches SP-2b Horizontal)
+    pub azimuth_degrees: f64,          // from SOUTH increasing WESTWARD, [0,360) — matches SP-2b Horizontal / swe_azalt
     pub visible: bool,                 // body above the horizon at this instant
 }
 
@@ -268,8 +268,14 @@ Decisions:
 
 - `pleiades-apparent::topocentric_position` — diurnal parallax over WGS84; the
   term that makes solar contacts observer-specific.
-- SP-2b horizontal transform + `pleiades-apparent::refraction::{Atmosphere,
-  apparent_from_true}` — az/alt and refracted-horizon threshold.
+- `pleiades-apparent::{sidereal_time, true_obliquity_degrees}` +
+  `refraction::{Atmosphere, apparent_from_true}` — local apparent sidereal time,
+  obliquity of date, and the refracted-horizon threshold. `pleiades-eclipse`
+  already depends on `pleiades-apparent`, so **no new crate dependency is added**;
+  the small equatorial → horizontal (az/alt) rotation is inlined with the exact
+  formula SP-2b uses (azimuth from south, westward), rather than taking a
+  dependency on `pleiades-events` for its `Horizontal` type. This matches how
+  SP-2b itself inlines that rotation in both `horizontal.rs` and `rise_trans.rs`.
 - `pleiades-eclipse::geometry` shadow-radius model + `ephemeris::sample_sun_moon`
   — Sun/Moon apparent samples and umbral/penumbral radii.
 - SP-2a bracket-then-bisect root-finder — contact/maximum roots to ~0.5 s.
