@@ -38,6 +38,22 @@ const DIRECTION_PROBE_DAYS: f64 = 2.0 / 86_400.0;
 /// coarser step than `RISE_SET_STEP_DAYS` is fine.
 const TRANSIT_STEP_DAYS: f64 = 5.0 / 1440.0;
 
+/// How far forward of `after` `next_rise_set`'s `Rise`/`Set` arm searches
+/// before giving up and returning `None`, matching SE's `swe_rise_trans`
+/// contract: SE's culmination-point search only looks ~28h ahead
+/// (`swecl.c`'s `jmax=14` steps of 2h) and reports "no event" if nothing
+/// crosses in that window, rather than scanning for the true next
+/// occurrence arbitrarily far in the future. This must comfortably exceed
+/// the longest rise-to-rise interval of any supported body (the Moon's,
+/// ~24h50m ≈ 1.035 day) so every daily-rising body is always found, while
+/// staying short enough that a body that is circumpolar right now (no
+/// rise/set for days or weeks) reports `None` instead of a far-future
+/// event and a multi-minute linear scan. Tuned against the full 50-row
+/// rise-trans corpus (46 real events, 4 `none` rows at lat 66.5N): all 46
+/// events resolve inside this span, and all 4 `none` rows have no
+/// crossing within it either.
+const RISE_SET_SEARCH_SPAN_DAYS: f64 = 3.0;
+
 /// Which observer-local event to find.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RiseSetEvent {
@@ -231,14 +247,19 @@ impl<B: EphemerisBackend> EventEngine<B> {
     }
 
     /// The standard altitude `h0` the event is defined at: horizon geometry minus
-    /// disc/dip terms, plus any custom horizon. Refraction is NOT included here
-    /// (Model B / SE `swe_rise_trans`): it lives entirely in the apparent
+    /// the disc term, plus any custom horizon. Neither refraction nor an
+    /// elevation-based horizon dip are included here, matching SE's
+    /// `swe_rise_trans` (Model B): refraction lives entirely in the apparent
     /// altitude returned by `target_apparent_altitude`, which the root-finder
-    /// compares against this `h0`.
+    /// compares against this `h0`; a height-based dip is omitted because SE's
+    /// default `swe_rise_trans` calls `swe_rise_trans_true_hor` with
+    /// `horhgt = 0` (dip is only computed when `horhgt == -100`, a sentinel
+    /// SE's caller never requests by default) — so applying a dip here would
+    /// diverge from SE, not match it.
     pub(crate) fn standard_altitude(
         &self,
         target: &RiseSetTarget,
-        observer: &ObserverLocation,
+        _observer: &ObserverLocation,
         opts: &RiseSetOptions,
         _atmos: Atmosphere,
         jd: f64,
@@ -256,12 +277,6 @@ impl<B: EphemerisBackend> EventEngine<B> {
             DiscMode::LowerLimb => sd,
             DiscMode::Center => 0.0,
         };
-        // Horizon dip from observer elevation (metres): dip ≈ 1.76' * sqrt(h_m).
-        if let Some(elev) = observer.elevation_m {
-            if elev > 0.0 {
-                h0 -= (1.76 / 60.0) * elev.sqrt();
-            }
-        }
         // Custom local horizon altitude.
         if let Some(hor) = opts.horizon_altitude_deg {
             h0 += hor;
@@ -315,7 +330,14 @@ impl<B: EphemerisBackend> EventEngine<B> {
     }
 
     /// Next rise/set/transit strictly after `after`, or `None` if it does not
-    /// occur before the ephemeris window's end.
+    /// occur before the ephemeris window's end. For `Rise`/`Set`, the search
+    /// is additionally bounded to `RISE_SET_SEARCH_SPAN_DAYS` past `after`
+    /// (matching SE's `swe_rise_trans` short-horizon search contract): a body
+    /// that is circumpolar right now and does not rise/set again within that
+    /// span returns `None`, even though it may rise far in the future (use
+    /// `rise_sets_in_range` with an explicit, longer window for that
+    /// question). Meridian transits are unaffected — they always occur
+    /// within a sidereal day, well inside the bound.
     pub fn next_rise_set(
         &self,
         target: RiseSetTarget,
@@ -336,7 +358,8 @@ impl<B: EphemerisBackend> EventEngine<B> {
         self.check_window(after_jd)?;
         match event {
             RiseSetEvent::Rise | RiseSetEvent::Set => {
-                let scan_end = WINDOW_END_JD - RISE_SET_STEP_DAYS;
+                let scan_end =
+                    (after_jd + RISE_SET_SEARCH_SPAN_DAYS).min(WINDOW_END_JD - RISE_SET_STEP_DAYS);
                 let want_ascending = matches!(event, RiseSetEvent::Rise);
                 // `first_crossing_after` finds the next zero-crossing of the
                 // residual regardless of direction (ascending = rise,
@@ -878,6 +901,40 @@ mod tests {
             out.is_empty(),
             "circumpolar: no rise expected, got {}",
             out.len()
+        );
+    }
+
+    #[test]
+    fn circumpolar_next_rise_set_returns_none_not_far_future() {
+        use pleiades_backend::test_backend::LinearSunMoon;
+        use pleiades_types::{
+            CelestialBody, Instant, JulianDay, Latitude, Longitude, ObserverLocation, TimeScale,
+        };
+        let engine = EventEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
+        // Near the pole the Sun is circumpolar for weeks/months at a time; it
+        // may still rise eventually (near the equinox), but not within
+        // `RISE_SET_SEARCH_SPAN_DAYS`. Mirrors `circumpolar_high_latitude_returns_none`
+        // (which uses `rise_sets_in_range` over an explicit short window) but
+        // exercises `next_rise_set`'s own bounded-search behavior instead.
+        let obs = ObserverLocation::new(
+            Latitude::from_degrees(89.9),
+            Longitude::from_degrees(0.0),
+            None,
+        );
+        let after = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tdb);
+        let out = engine
+            .next_rise_set(
+                RiseSetTarget::Body(CelestialBody::Sun),
+                RiseSetEvent::Rise,
+                obs,
+                Atmosphere::default(),
+                RiseSetOptions::default(),
+                after,
+            )
+            .unwrap();
+        assert!(
+            out.is_none(),
+            "circumpolar-now Sun should return None within the bounded search span, got {out:?}"
         );
     }
 
