@@ -334,6 +334,9 @@ impl<B: EphemerisBackend> EventEngine<B> {
                             {
                                 break Some(jd);
                             }
+                            // Resume exactly at the rejected root. `first_crossing_after`'s
+                            // first step may re-refine this same root (bounded, cheap) before
+                            // its scan advances past it to the next crossing.
                             scan_start = jd;
                         }
                     }
@@ -605,6 +608,86 @@ mod tests {
             .unwrap();
         assert!((alt - h0).abs() < 1e-3, "altitude {alt} vs h0 {h0} at rise");
         assert!(set.instant.julian_day.days() != rise.instant.julian_day.days());
+    }
+
+    /// Regression for the rise-vs-set DIRECTION, not merely that rise != set.
+    /// `sun_rises_and_sets_within_a_day` above would still pass if
+    /// `is_ascending_crossing` were reversed (rise/set labels swapped), since it
+    /// only checks `alt ≈ h0` and `rise != set`. Here we sample the residual
+    /// (`target_apparent_altitude - standard_altitude`) just before and just
+    /// after each event and assert the sign change goes the correct way: rise
+    /// must be ASCENDING (below -> above), set must be DESCENDING (above ->
+    /// below). A reversed classifier fails these assertions.
+    #[test]
+    fn rise_is_ascending_and_set_is_descending() {
+        use pleiades_backend::test_backend::LinearSunMoon;
+        use pleiades_types::{
+            CelestialBody, Instant, JulianDay, Latitude, Longitude, ObserverLocation, TimeScale,
+        };
+        let engine = EventEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
+        let obs = ObserverLocation::new(
+            Latitude::from_degrees(40.0),
+            Longitude::from_degrees(0.0),
+            None,
+        );
+        let after = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tdb);
+        let target = RiseSetTarget::Body(CelestialBody::Sun);
+        let opts = RiseSetOptions::default();
+        let atmos = Atmosphere::default();
+
+        let rise = engine
+            .next_rise_set(
+                target.clone(),
+                RiseSetEvent::Rise,
+                obs.clone(),
+                atmos,
+                opts.clone(),
+                after,
+            )
+            .unwrap()
+            .expect("a rise within the window");
+        let set = engine
+            .next_rise_set(
+                target.clone(),
+                RiseSetEvent::Set,
+                obs.clone(),
+                atmos,
+                opts.clone(),
+                after,
+            )
+            .unwrap()
+            .expect("a set within the window");
+
+        // 120s: well outside the bisection's REFINE_TOLERANCE_DAYS (0.5s) and
+        // DIRECTION_PROBE_DAYS (2s) noise floors, but tiny compared to the
+        // ~12h spacing between consecutive rise/set events, so it stays
+        // within the same monotonic segment of the residual.
+        const DT: f64 = 120.0 / 86_400.0;
+        let resid = |jd: f64| {
+            engine
+                .horizon_residual(&target, &obs, &opts, atmos, jd)
+                .unwrap()
+        };
+
+        let rise_jd = rise.instant.julian_day.days();
+        assert!(
+            resid(rise_jd - DT) < 0.0,
+            "expected below horizon just before rise"
+        );
+        assert!(
+            resid(rise_jd + DT) > 0.0,
+            "expected above horizon just after rise"
+        );
+
+        let set_jd = set.instant.julian_day.days();
+        assert!(
+            resid(set_jd - DT) > 0.0,
+            "expected above horizon just before set"
+        );
+        assert!(
+            resid(set_jd + DT) < 0.0,
+            "expected below horizon just after set"
+        );
     }
 
     #[test]
