@@ -1,9 +1,5 @@
 //! Rise, set, and meridian-transit finding (`swe_rise_trans`, full-flag).
 
-// `effective()` and some variants here are not yet consumed by an engine
-// method; those land in Tasks 9-13. Silence the dead_code lint until then.
-#![allow(dead_code)]
-
 use crate::crossings::EventEngine;
 use crate::ephemeris::{geocentric_apparent_ecliptic, read_mean_ecliptic};
 use crate::error::{EventError, WINDOW_END_JD, WINDOW_START_JD};
@@ -39,19 +35,23 @@ const DIRECTION_PROBE_DAYS: f64 = 2.0 / 86_400.0;
 const TRANSIT_STEP_DAYS: f64 = 5.0 / 1440.0;
 
 /// How far forward of `after` `next_rise_set`'s `Rise`/`Set` arm searches
-/// before giving up and returning `None`, matching SE's `swe_rise_trans`
-/// contract: SE's culmination-point search only looks ~28h ahead
+/// before giving up and returning `None`. This is a deliberate ~2.5×
+/// SUPERSET of SE's own `swe_rise_trans` search window, not a match to it:
+/// SE's culmination-point search only looks ~28h (~1.167 day) ahead
 /// (`swecl.c`'s `jmax=14` steps of 2h) and reports "no event" if nothing
 /// crosses in that window, rather than scanning for the true next
-/// occurrence arbitrarily far in the future. This must comfortably exceed
-/// the longest rise-to-rise interval of any supported body (the Moon's,
-/// ~24h50m ≈ 1.035 day) so every daily-rising body is always found, while
-/// staying short enough that a body that is circumpolar right now (no
-/// rise/set for days or weeks) reports `None` instead of a far-future
-/// event and a multi-minute linear scan. Tuned against the full 50-row
-/// rise-trans corpus (46 real events, 4 `none` rows at lat 66.5N): all 46
-/// events resolve inside this span, and all 4 `none` rows have no
-/// crossing within it either.
+/// occurrence arbitrarily far in the future. 3.0 days was chosen instead of
+/// ~1.167 because it must comfortably exceed the longest rise-to-rise
+/// interval of any supported body (the Moon's, ~24h50m ≈ 1.035 day) so every
+/// daily-rising body is always found, while staying short enough that a
+/// body that is circumpolar right now (no rise/set for days or weeks)
+/// reports `None` instead of a far-future event and a multi-minute linear
+/// scan. Consequence of the widened window: a hypothetical body whose next
+/// rise/set is 30–72h out would return `Some` here but `None` from SE — not
+/// exercised by the corpus below. Tuned against the full 50-row rise-trans
+/// corpus (46 real events, 4 `none` rows at lat 66.5N): all 46 events
+/// resolve inside this span, and all 4 `none` rows have no crossing within
+/// it either.
 const RISE_SET_SEARCH_SPAN_DAYS: f64 = 3.0;
 
 /// Which observer-local event to find.
@@ -331,10 +331,13 @@ impl<B: EphemerisBackend> EventEngine<B> {
 
     /// Next rise/set/transit strictly after `after`, or `None` if it does not
     /// occur before the ephemeris window's end. For `Rise`/`Set`, the search
-    /// is additionally bounded to `RISE_SET_SEARCH_SPAN_DAYS` past `after`
-    /// (matching SE's `swe_rise_trans` short-horizon search contract): a body
-    /// that is circumpolar right now and does not rise/set again within that
-    /// span returns `None`, even though it may rise far in the future (use
+    /// is additionally bounded to `RISE_SET_SEARCH_SPAN_DAYS` past `after` —
+    /// a short-horizon search in the same spirit as SE's `swe_rise_trans`
+    /// (which reports "no event" past its own, narrower ~28h window) but not
+    /// numerically matching it: `RISE_SET_SEARCH_SPAN_DAYS` is a wider,
+    /// Moon-covering superset (see its doc comment for why). A body that is
+    /// circumpolar right now and does not rise/set again within that span
+    /// returns `None`, even though it may rise far in the future (use
     /// `rise_sets_in_range` with an explicit, longer window for that
     /// question). Meridian transits are unaffected — they always occur
     /// within a sidereal day, well inside the bound.

@@ -1,9 +1,5 @@
 //! Apparent semidiameter of a target's disc, for rise/set limb conventions.
 
-// `semidiameter_deg` is pub(crate) and consumed by the rise/set engine methods
-// landing in Tasks 9-13; silence the dead_code lint until those consumers land.
-#![allow(dead_code)]
-
 use crate::rise_trans::RiseSetTarget;
 use pleiades_types::CelestialBody;
 

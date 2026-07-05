@@ -8,12 +8,11 @@ use pleiades_apparent::nutation::nutation;
 use pleiades_apparent::{apparent_equatorial_of_date, precess_ecliptic_j2000_to_date};
 use pleiades_types::{
     Angle, EclipticCoordinates, EquatorialCoordinates, Instant, Latitude, Longitude,
+    OBLIQUITY_J2000_DEG,
 };
 
 /// Julian Day number of the J2000.0 epoch (TT).
 const J2000_JD: f64 = 2_451_545.0;
-/// Mean obliquity of the ecliptic at J2000.0, degrees (IAU 1976).
-const MEAN_OBLIQUITY_J2000_DEG: f64 = 23.439_291_1;
 
 /// Sun's geometric (true) ecliptic longitude of date, degrees, via the Meeus
 /// low-precision solar theory (Astronomical Algorithms, ch. 25).
@@ -119,7 +118,7 @@ pub fn fixed_star_apparent(name: &str, at: Instant) -> Result<EquatorialCoordina
         Latitude::from_degrees(dec),
         None,
     );
-    let ecl_j2000 = equ_j2000.to_ecliptic(Angle::from_degrees(MEAN_OBLIQUITY_J2000_DEG));
+    let ecl_j2000 = equ_j2000.to_ecliptic(Angle::from_degrees(OBLIQUITY_J2000_DEG));
 
     // 3. Precession J2000 → of date (ecliptic).
     let precessed = precess_ecliptic_j2000_to_date(

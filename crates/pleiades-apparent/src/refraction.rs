@@ -163,9 +163,12 @@ mod tests {
 
     #[test]
     fn refraction_at_horizon_is_about_34_arcmin() {
-        // Bennett at h=0 with standard atmosphere ≈ 28.7' true→apparent lift is
-        // computed on APPARENT altitude; at true h=0 the raise is ~34'. Assert the
-        // apparent altitude sits ~34'(=0.567°) above 0 within a loose band.
+        // Bennett, evaluated ON the true altitude at h=0 with standard
+        // atmosphere, gives a true→apparent lift of ~29' (0.4752° ≈ 28.5').
+        // The ~34' figure (0.567°) belongs to the *other* direction — see
+        // `true_from_apparent_at_horizon_is_about_negative_34_arcmin` below,
+        // which evaluates Saemundsson on the apparent altitude at h=0. Assert
+        // the apparent altitude sits ~29' above 0 within a loose band.
         let app = apparent_from_true(0.0, Atmosphere::default());
         assert!(
             (app - 0.4752).abs() < 0.05,
