@@ -810,6 +810,25 @@ pub(crate) fn render_cli(args: &[&str]) -> Result<String, String> {
             rewritten[0] = "validate-crossings";
             validate_render_cli(&rewritten)
         }
+        Some("validate-rise-trans") | Some("rise-trans-gate") => validate_render_cli(args),
+        Some("rise-trans") => {
+            // The validate layer has no bare "rise-trans" arm; rewrite to the
+            // gate command name before delegating, mirroring "crossings"
+            // above.
+            let mut rewritten: Vec<&str> = args.to_vec();
+            rewritten[0] = "validate-rise-trans";
+            validate_render_cli(&rewritten)
+        }
+        Some("azalt") => {
+            // There is no separate azalt gate: "validate-rise-trans" checks
+            // both the rise-trans.csv AND azalt.csv corpora in one pass (see
+            // crates/pleiades-validate/src/rise_trans_validation.rs), so
+            // "azalt" routes to the same gate as "rise-trans" rather than a
+            // distinct command.
+            let mut rewritten: Vec<&str> = args.to_vec();
+            rewritten[0] = "validate-rise-trans";
+            validate_render_cli(&rewritten)
+        }
         Some("validate-artifact") => validate_render_cli(args),
         Some("generate-packaged-artifact") | Some("regenerate-packaged-artifact") => {
             if args[1..].iter().any(|arg| *arg == "--help" || *arg == "-h") {
