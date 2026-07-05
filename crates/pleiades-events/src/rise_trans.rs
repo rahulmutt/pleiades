@@ -10,8 +10,7 @@ use crate::error::EventError;
 use crate::fixstar::fixed_star_apparent;
 use crate::semidiameter::semidiameter_deg;
 use pleiades_apparent::{
-    apparent_from_true, sidereal_time, topocentric_position, true_from_apparent,
-    true_obliquity_degrees, Atmosphere,
+    apparent_from_true, sidereal_time, topocentric_position, true_obliquity_degrees, Atmosphere,
 };
 use pleiades_backend::EphemerisBackend;
 use pleiades_types::{
@@ -195,13 +194,16 @@ impl<B: EphemerisBackend> EventEngine<B> {
     }
 
     /// The standard altitude `h0` the event is defined at: horizon geometry minus
-    /// disc/refraction/dip terms, plus any custom horizon.
+    /// disc/dip terms, plus any custom horizon. Refraction is NOT included here
+    /// (Model B / SE `swe_rise_trans`): it lives entirely in the apparent
+    /// altitude returned by `target_apparent_altitude`, which the root-finder
+    /// compares against this `h0`.
     pub(crate) fn standard_altitude(
         &self,
         target: &RiseSetTarget,
         observer: &ObserverLocation,
         opts: &RiseSetOptions,
-        atmos: Atmosphere,
+        _atmos: Atmosphere,
         jd: f64,
     ) -> Result<f64, EventError> {
         // Distance (AU) for semidiameter; 0 for points/stars.
@@ -210,18 +212,6 @@ impl<B: EphemerisBackend> EventEngine<B> {
             _ => 0.0,
         };
         let mut h0 = 0.0_f64;
-        // Refraction depression at the horizon (Saemundsson at apparent h=0 ≈
-        // -34'); dropped if refraction off. Note: `apparent_from_true(0.0, _)`
-        // is NOT the horizon constant here — Bennett/Saemundsson are only
-        // approximate inverses of each other, and `apparent_from_true(0.0, _)`
-        // evaluates to ≈ +0.475° (see `refraction_at_horizon_is_about_34_arcmin`
-        // in pleiades-apparent), not the ~0.567° standard horizon dip. The
-        // standard altitude is defined by "apparent limb altitude == 0", i.e. we
-        // need the true altitude at which the *apparent* place is the horizon,
-        // which is exactly what `true_from_apparent` computes.
-        if opts.refraction {
-            h0 += true_from_apparent(0.0, atmos); // ≈ -0.567°
-        }
         // Disc term.
         let sd = semidiameter_deg(target, distance_au.max(1e-9), opts.fixed_disc_size);
         h0 += match opts.disc {
@@ -330,7 +320,7 @@ mod tests {
     }
 
     #[test]
-    fn standard_altitude_sun_upper_limb_is_about_negative_0p833() {
+    fn standard_altitude_sun_upper_limb_is_about_negative_semidiameter() {
         use pleiades_backend::test_backend::LinearSunMoon;
         use pleiades_types::{
             Instant, JulianDay, Latitude, Longitude, ObserverLocation, TimeScale,
@@ -353,8 +343,10 @@ mod tests {
                     .days(),
             )
             .unwrap();
-        // −(34' refraction) − (16' semidiameter) ≈ −0.833°.
-        assert!((h0 + 0.833).abs() < 0.05, "sun standard altitude {h0}");
+        // Model B (SE `swe_rise_trans`): refraction lives in the apparent
+        // altitude that this h0 is compared against, not in h0 itself. For
+        // upper-limb, h0 is just −SD ≈ −0.2666° (observed: −0.26657°).
+        assert!((h0 + 0.2666).abs() < 0.02, "sun standard altitude {h0}");
     }
 
     #[test]
