@@ -58,7 +58,7 @@ impl<B: EphemerisBackend> EventEngine<B> {
         }
     }
 
-    fn check_window(&self, jd: f64) -> Result<(), EventError> {
+    pub(crate) fn check_window(&self, jd: f64) -> Result<(), EventError> {
         if !(WINDOW_START_JD..=WINDOW_END_JD).contains(&jd) {
             return Err(EventError::OutOfWindow { julian_day: jd });
         }

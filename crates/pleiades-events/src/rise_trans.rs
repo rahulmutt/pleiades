@@ -6,8 +6,9 @@
 
 use crate::crossings::EventEngine;
 use crate::ephemeris::{geocentric_apparent_ecliptic, read_mean_ecliptic};
-use crate::error::EventError;
+use crate::error::{EventError, WINDOW_END_JD, WINDOW_START_JD};
 use crate::fixstar::fixed_star_apparent;
+use crate::root::{crossings_in_range, first_crossing_after};
 use crate::semidiameter::semidiameter_deg;
 use pleiades_apparent::{
     apparent_from_true, sidereal_time, topocentric_position, true_obliquity_degrees, Atmosphere,
@@ -17,6 +18,19 @@ use pleiades_types::{
     Angle, CelestialBody, EclipticCoordinates, Instant, JulianDay, Latitude, Longitude,
     ObserverLocation, TimeScale,
 };
+
+/// Scan step for rise/set bracketing: 2 minutes, small enough to separate
+/// fast-Moon grazes without a per-body table (rise/set changes little across
+/// the day compared to Task 8/9's longitude-crossing needs).
+const RISE_SET_STEP_DAYS: f64 = 2.0 / 1440.0;
+
+/// How far past a located zero-crossing to probe when classifying its
+/// direction (ascending = rise, descending = set). Must clear the root
+/// refiner's own uncertainty (`root::REFINE_TOLERANCE_DAYS`, 0.5s) so the
+/// probe reads an unambiguous sign, while staying far shorter than the ~12h
+/// spacing between consecutive rise/set events so it can never probe into the
+/// next one.
+const DIRECTION_PROBE_DAYS: f64 = 2.0 / 86_400.0;
 
 /// Which observer-local event to find.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -231,6 +245,191 @@ impl<B: EphemerisBackend> EventEngine<B> {
         }
         Ok(h0)
     }
+
+    /// The rise/set residual: apparent altitude minus standard altitude. Its
+    /// zeros (ascending = rise, descending = set) are what `next_rise_set` and
+    /// `rise_sets_in_range` root-find.
+    fn horizon_residual(
+        &self,
+        target: &RiseSetTarget,
+        observer: &ObserverLocation,
+        opts: &RiseSetOptions,
+        atmos: Atmosphere,
+        jd: f64,
+    ) -> Result<f64, EventError> {
+        let alt = self.target_apparent_altitude(target, observer, opts, atmos, jd)?;
+        let h0 = self.standard_altitude(target, observer, opts, atmos, jd)?;
+        Ok(alt - h0)
+    }
+
+    /// Whether the residual is heading upward (ascending, i.e. a rise rather
+    /// than a set) at `root_jd`, a zero-crossing already located by
+    /// `first_crossing_after`/`crossings_in_range`. Both helpers detect ANY
+    /// sign change (ascending or descending) — they do not discriminate
+    /// direction — so callers must classify each root themselves. We sample
+    /// just past the root, outside the bisection's `REFINE_TOLERANCE_DAYS`
+    /// (0.5s) uncertainty, and read the residual's sign there: positive means
+    /// the residual has risen above zero (ascending / rise), negative means it
+    /// has fallen below (descending / set). `DIRECTION_PROBE_DAYS` (2s) is
+    /// tiny compared to the ~12h spacing between consecutive rise/set events,
+    /// so it can never probe into the next event.
+    fn is_ascending_crossing(
+        &self,
+        target: &RiseSetTarget,
+        observer: &ObserverLocation,
+        opts: &RiseSetOptions,
+        atmos: Atmosphere,
+        root_jd: f64,
+    ) -> Result<bool, EventError> {
+        let probe = self.horizon_residual(
+            target,
+            observer,
+            opts,
+            atmos,
+            root_jd + DIRECTION_PROBE_DAYS,
+        )?;
+        Ok(probe > 0.0)
+    }
+
+    /// Next rise/set/transit strictly after `after`, or `None` if it does not
+    /// occur before the ephemeris window's end.
+    pub fn next_rise_set(
+        &self,
+        target: RiseSetTarget,
+        event: RiseSetEvent,
+        observer: ObserverLocation,
+        atmos: Atmosphere,
+        opts: RiseSetOptions,
+        after: Instant,
+    ) -> Result<Option<RiseSet>, EventError> {
+        observer
+            .validate()
+            .map_err(|e| EventError::InvalidObserver {
+                detail: e.to_string(),
+            })?;
+        let opts = opts.effective();
+        let after_jd = after.julian_day.days();
+        self.check_window(after_jd)?;
+        match event {
+            RiseSetEvent::Rise | RiseSetEvent::Set => {
+                let scan_end = WINDOW_END_JD - RISE_SET_STEP_DAYS;
+                let want_ascending = matches!(event, RiseSetEvent::Rise);
+                // `first_crossing_after` finds the next zero-crossing of the
+                // residual regardless of direction (ascending = rise,
+                // descending = set); skip crossings of the wrong direction by
+                // resuming the scan just past each rejected root.
+                let mut scan_start = after_jd.max(WINDOW_START_JD + RISE_SET_STEP_DAYS);
+                let root = loop {
+                    let candidate = first_crossing_after(
+                        |jd| self.horizon_residual(&target, &observer, &opts, atmos, jd),
+                        scan_start,
+                        scan_end,
+                        RISE_SET_STEP_DAYS,
+                    )?;
+                    match candidate {
+                        None => break None,
+                        Some(jd) => {
+                            if self.is_ascending_crossing(&target, &observer, &opts, atmos, jd)?
+                                == want_ascending
+                            {
+                                break Some(jd);
+                            }
+                            scan_start = jd;
+                        }
+                    }
+                };
+                Ok(root.filter(|&jd| jd > after_jd).map(|jd| RiseSet {
+                    event,
+                    target: target.clone(),
+                    instant: Instant::new(JulianDay::from_days(jd), TimeScale::Tdb),
+                }))
+            }
+            RiseSetEvent::UpperTransit | RiseSetEvent::LowerTransit => {
+                self.next_transit(target, event, observer, opts, after)
+            }
+        }
+    }
+
+    /// All rise/set/transit events of `event` kind in `[start, end]`, ascending.
+    #[allow(clippy::too_many_arguments)]
+    pub fn rise_sets_in_range(
+        &self,
+        target: RiseSetTarget,
+        event: RiseSetEvent,
+        observer: ObserverLocation,
+        atmos: Atmosphere,
+        opts: RiseSetOptions,
+        start: Instant,
+        end: Instant,
+    ) -> Result<Vec<RiseSet>, EventError> {
+        observer
+            .validate()
+            .map_err(|e| EventError::InvalidObserver {
+                detail: e.to_string(),
+            })?;
+        let opts = opts.effective();
+        let start_jd = start.julian_day.days();
+        let end_jd = end.julian_day.days();
+        self.check_window(start_jd)?;
+        self.check_window(end_jd)?;
+        match event {
+            RiseSetEvent::Rise | RiseSetEvent::Set => {
+                let want_ascending = matches!(event, RiseSetEvent::Rise);
+                let scan_start = start_jd.max(WINDOW_START_JD + RISE_SET_STEP_DAYS);
+                let scan_end = end_jd.min(WINDOW_END_JD - RISE_SET_STEP_DAYS);
+                // `crossings_in_range` returns every zero-crossing (both rise
+                // and set, alternating); classify each by direction and keep
+                // only the ones matching `event` (see `is_ascending_crossing`).
+                let roots = crossings_in_range(
+                    |jd| self.horizon_residual(&target, &observer, &opts, atmos, jd),
+                    scan_start,
+                    scan_end,
+                    RISE_SET_STEP_DAYS,
+                )?;
+                let mut out = Vec::with_capacity(roots.len());
+                for jd in roots {
+                    if self.is_ascending_crossing(&target, &observer, &opts, atmos, jd)?
+                        == want_ascending
+                    {
+                        out.push(RiseSet {
+                            event,
+                            target: target.clone(),
+                            instant: Instant::new(JulianDay::from_days(jd), TimeScale::Tdb),
+                        });
+                    }
+                }
+                Ok(out)
+            }
+            RiseSetEvent::UpperTransit | RiseSetEvent::LowerTransit => {
+                self.transits_in_range(target, event, observer, opts, start, end)
+            }
+        }
+    }
+
+    /// Next meridian transit strictly after `after`. Stub — filled in Task 12.
+    pub(crate) fn next_transit(
+        &self,
+        _target: RiseSetTarget,
+        _event: RiseSetEvent,
+        _observer: ObserverLocation,
+        _opts: RiseSetOptions,
+        _after: Instant,
+    ) -> Result<Option<RiseSet>, EventError> {
+        Ok(None)
+    }
+
+    /// All meridian transits in `[start, end]`. Stub — filled in Task 12.
+    pub(crate) fn transits_in_range(
+        &self,
+        _target: RiseSetTarget,
+        _event: RiseSetEvent,
+        _observer: ObserverLocation,
+        _opts: RiseSetOptions,
+        _start: Instant,
+        _end: Instant,
+    ) -> Result<Vec<RiseSet>, EventError> {
+        Ok(vec![])
+    }
 }
 
 #[cfg(test)]
@@ -347,6 +546,65 @@ mod tests {
         // altitude that this h0 is compared against, not in h0 itself. For
         // upper-limb, h0 is just −SD ≈ −0.2666° (observed: −0.26657°).
         assert!((h0 + 0.2666).abs() < 0.02, "sun standard altitude {h0}");
+    }
+
+    #[test]
+    fn sun_rises_and_sets_within_a_day() {
+        use pleiades_backend::test_backend::LinearSunMoon;
+        use pleiades_types::{
+            CelestialBody, Instant, JulianDay, Latitude, Longitude, ObserverLocation, TimeScale,
+        };
+        let engine = EventEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
+        let obs = ObserverLocation::new(
+            Latitude::from_degrees(40.0),
+            Longitude::from_degrees(0.0),
+            None,
+        );
+        let after = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tdb);
+        let rise = engine
+            .next_rise_set(
+                RiseSetTarget::Body(CelestialBody::Sun),
+                RiseSetEvent::Rise,
+                obs.clone(),
+                Atmosphere::default(),
+                RiseSetOptions::default(),
+                after,
+            )
+            .unwrap();
+        let set = engine
+            .next_rise_set(
+                RiseSetTarget::Body(CelestialBody::Sun),
+                RiseSetEvent::Set,
+                obs.clone(),
+                Atmosphere::default(),
+                RiseSetOptions::default(),
+                after,
+            )
+            .unwrap();
+        let rise = rise.expect("a rise within the window");
+        let set = set.expect("a set within the window");
+        // At the rise instant the apparent altitude equals the standard altitude.
+        let jd = rise.instant.julian_day.days();
+        let alt = engine
+            .target_apparent_altitude(
+                &RiseSetTarget::Body(CelestialBody::Sun),
+                &obs,
+                &RiseSetOptions::default(),
+                Atmosphere::default(),
+                jd,
+            )
+            .unwrap();
+        let h0 = engine
+            .standard_altitude(
+                &RiseSetTarget::Body(CelestialBody::Sun),
+                &obs,
+                &RiseSetOptions::default(),
+                Atmosphere::default(),
+                jd,
+            )
+            .unwrap();
+        assert!((alt - h0).abs() < 1e-3, "altitude {alt} vs h0 {h0} at rise");
+        assert!(set.instant.julian_day.days() != rise.instant.julian_day.days());
     }
 
     #[test]
