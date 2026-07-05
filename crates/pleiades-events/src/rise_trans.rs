@@ -8,7 +8,7 @@ use crate::crossings::EventEngine;
 use crate::ephemeris::{geocentric_apparent_ecliptic, read_mean_ecliptic};
 use crate::error::{EventError, WINDOW_END_JD, WINDOW_START_JD};
 use crate::fixstar::fixed_star_apparent;
-use crate::root::{crossings_in_range, first_crossing_after};
+use crate::root::{crossings_in_range, first_crossing_after, wrap180};
 use crate::semidiameter::semidiameter_deg;
 use pleiades_apparent::{
     apparent_from_true, sidereal_time, topocentric_position, true_obliquity_degrees, Atmosphere,
@@ -31,6 +31,12 @@ const RISE_SET_STEP_DAYS: f64 = 2.0 / 1440.0;
 /// spacing between consecutive rise/set events so it can never probe into the
 /// next one.
 const DIRECTION_PROBE_DAYS: f64 = 2.0 / 86_400.0;
+
+/// Scan step for meridian-transit bracketing: 5 minutes. Unlike rise/set, the
+/// hour-angle residual is monotonic-ascending through its single zero per
+/// sidereal day at each transit, so there is no direction to classify — a
+/// coarser step than `RISE_SET_STEP_DAYS` is fine.
+const TRANSIT_STEP_DAYS: f64 = 5.0 / 1440.0;
 
 /// Which observer-local event to find.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -409,29 +415,88 @@ impl<B: EphemerisBackend> EventEngine<B> {
         }
     }
 
-    /// Next meridian transit strictly after `after`. Stub — filled in Task 12.
-    pub(crate) fn next_transit(
+    /// The meridian-transit residual: local hour angle `H = LST − RA`, wrapped
+    /// to `(−180, 180]`. Upper transit is the zero of `H`; lower transit is the
+    /// zero of `H − 180` (also wrapped). Unlike the rise/set horizon residual,
+    /// this residual is monotonic-ascending through its single zero per
+    /// sidereal day (LST advances ~361°/day against a slowly-moving target RA),
+    /// so `first_crossing_after`/`crossings_in_range` locate upper and lower
+    /// transits unambiguously — no post-hoc direction classification needed.
+    fn hour_angle_residual(
         &self,
-        _target: RiseSetTarget,
-        _event: RiseSetEvent,
-        _observer: ObserverLocation,
-        _opts: RiseSetOptions,
-        _after: Instant,
-    ) -> Result<Option<RiseSet>, EventError> {
-        Ok(None)
+        target: &RiseSetTarget,
+        observer: &ObserverLocation,
+        opts: &RiseSetOptions,
+        lower: bool,
+        jd: f64,
+    ) -> Result<f64, EventError> {
+        let (ra, _dec) = self.target_equatorial(target, observer, opts, jd)?;
+        let at = Instant::new(JulianDay::from_days(jd), TimeScale::Tdb);
+        let lst = sidereal_time(at, observer.longitude).local_apparent_deg;
+        let ha = lst - ra;
+        Ok(if lower {
+            wrap180(ha - 180.0)
+        } else {
+            wrap180(ha)
+        })
     }
 
-    /// All meridian transits in `[start, end]`. Stub — filled in Task 12.
+    /// Next meridian transit strictly after `after`.
+    pub(crate) fn next_transit(
+        &self,
+        target: RiseSetTarget,
+        event: RiseSetEvent,
+        observer: ObserverLocation,
+        opts: RiseSetOptions,
+        after: Instant,
+    ) -> Result<Option<RiseSet>, EventError> {
+        let lower = matches!(event, RiseSetEvent::LowerTransit);
+        let after_jd = after.julian_day.days();
+        let scan_start = after_jd.max(WINDOW_START_JD + TRANSIT_STEP_DAYS);
+        let scan_end = WINDOW_END_JD - TRANSIT_STEP_DAYS;
+        let root = first_crossing_after(
+            |jd| self.hour_angle_residual(&target, &observer, &opts, lower, jd),
+            scan_start,
+            scan_end,
+            TRANSIT_STEP_DAYS,
+        )?;
+        Ok(root.filter(|&jd| jd > after_jd).map(|jd| RiseSet {
+            event,
+            target: target.clone(),
+            instant: Instant::new(JulianDay::from_days(jd), TimeScale::Tdb),
+        }))
+    }
+
+    /// All meridian transits in `[start, end]`.
     pub(crate) fn transits_in_range(
         &self,
-        _target: RiseSetTarget,
-        _event: RiseSetEvent,
-        _observer: ObserverLocation,
-        _opts: RiseSetOptions,
-        _start: Instant,
-        _end: Instant,
+        target: RiseSetTarget,
+        event: RiseSetEvent,
+        observer: ObserverLocation,
+        opts: RiseSetOptions,
+        start: Instant,
+        end: Instant,
     ) -> Result<Vec<RiseSet>, EventError> {
-        Ok(vec![])
+        let lower = matches!(event, RiseSetEvent::LowerTransit);
+        let scan_start = start
+            .julian_day
+            .days()
+            .max(WINDOW_START_JD + TRANSIT_STEP_DAYS);
+        let scan_end = end.julian_day.days().min(WINDOW_END_JD - TRANSIT_STEP_DAYS);
+        let roots = crossings_in_range(
+            |jd| self.hour_angle_residual(&target, &observer, &opts, lower, jd),
+            scan_start,
+            scan_end,
+            TRANSIT_STEP_DAYS,
+        )?;
+        Ok(roots
+            .into_iter()
+            .map(|jd| RiseSet {
+                event,
+                target: target.clone(),
+                instant: Instant::new(JulianDay::from_days(jd), TimeScale::Tdb),
+            })
+            .collect())
     }
 }
 
@@ -688,6 +753,49 @@ mod tests {
             resid(set_jd + DT) < 0.0,
             "expected below horizon just after set"
         );
+    }
+
+    #[test]
+    fn upper_transit_puts_body_on_the_meridian() {
+        use pleiades_backend::test_backend::LinearSunMoon;
+        use pleiades_types::{
+            CelestialBody, Instant, JulianDay, Latitude, Longitude, ObserverLocation, TimeScale,
+        };
+        let engine = EventEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
+        let obs = ObserverLocation::new(
+            Latitude::from_degrees(40.0),
+            Longitude::from_degrees(0.0),
+            None,
+        );
+        let after = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tdb);
+        let t = engine
+            .next_rise_set(
+                RiseSetTarget::Body(CelestialBody::Sun),
+                RiseSetEvent::UpperTransit,
+                obs.clone(),
+                Atmosphere::default(),
+                RiseSetOptions::default(),
+                after,
+            )
+            .unwrap()
+            .expect("a transit");
+        // At upper transit the local hour angle H = LST − RA ≈ 0.
+        let jd = t.instant.julian_day.days();
+        let (ra, _dec) = engine
+            .target_equatorial(
+                &RiseSetTarget::Body(CelestialBody::Sun),
+                &obs,
+                &RiseSetOptions::default(),
+                jd,
+            )
+            .unwrap();
+        let lst = pleiades_apparent::sidereal_time(
+            Instant::new(JulianDay::from_days(jd), TimeScale::Tdb),
+            Longitude::from_degrees(0.0),
+        )
+        .local_apparent_deg;
+        let ha = crate::root::wrap180(lst - ra);
+        assert!(ha.abs() < 0.05, "hour angle at upper transit {ha} deg");
     }
 
     #[test]
