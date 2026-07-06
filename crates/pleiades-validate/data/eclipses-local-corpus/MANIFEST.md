@@ -106,9 +106,10 @@ apparent ecliptic-of-date Sun/Moon positions (`swe_calc_ut`,
 
 ## Curated case list
 
-**Solar** (`sol-local.csv`, 29 rows) — four historical eclipses, each with
-observers spanning in-path (total/annular/hybrid), partial-visible, and
-below-horizon/no-eclipse:
+**Solar** (`sol-local.csv`, 29 rows) — four historical eclipses. Three
+(2017, 2024, 2023) have observers spanning in-path (total/annular),
+partial-visible, and below-horizon/no-eclipse; the fourth (2013) has only
+partial-visible observers in this corpus — see below.
 
 - **2017-08-21** "Great American" total eclipse (10 observers: Salem OR,
   Madras OR, Idaho Falls, Kansas City, Nashville, Charleston SC in-path;
@@ -118,8 +119,14 @@ below-horizon/no-eclipse:
   below-horizon).
 - **2023-10-14** annular eclipse (6 observers: San Antonio, Albuquerque,
   Corpus Christi in-path; Denver, NYC, Mexico City partial).
-- **2013-11-03** hybrid eclipse (5 observers: Libreville, mid-Atlantic
-  in-path; Madrid, Lagos, Nairobi partial).
+- **2013-11-03** hybrid eclipse (5 observers, all partial: Libreville
+  (mag ~0.98) and mid-Atlantic (mag ~0.77) are deep partials whose
+  coordinates fall just outside the narrow central annular/total track;
+  Madrid, Lagos, Nairobi are shallower partials). No observer in this
+  corpus sits inside the central track for 2013-11-03 — a single observer
+  of a hybrid eclipse sees total, annular, or partial (never "hybrid"
+  itself), and every case anchored to this event happens to land in the
+  partial regime.
 
 **Lunar** (`lun-local.csv`, 20 rows) — three historical eclipses, each with
 observers spanning Moon-up (visible) and Moon-down (below horizon) at the

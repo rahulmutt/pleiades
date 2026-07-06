@@ -327,8 +327,8 @@ fn build_solar_csv(version: &str) -> (String, usize) {
         ("2023ASE_NYC_partial", (2023, 10, 12), 40.71, -74.01, 10.0),
         ("2023ASE_MexicoCity_partial", (2023, 10, 12), 19.43, -99.13, 2240.0),
         // 2013-11-03 hybrid eclipse (seed 2013-11-01).
-        ("2013HSE_Libreville", (2013, 11, 1), 0.39, 9.45, 10.0),
-        ("2013HSE_MidAtlantic", (2013, 11, 1), 10.0, -40.0, 0.0),
+        ("2013HSE_Libreville_partial", (2013, 11, 1), 0.39, 9.45, 10.0),
+        ("2013HSE_MidAtlantic_partial", (2013, 11, 1), 10.0, -40.0, 0.0),
         ("2013HSE_Madrid_partial", (2013, 11, 1), 40.42, -3.70, 667.0),
         ("2013HSE_Lagos_partial", (2013, 11, 1), 6.52, 3.38, 41.0),
         ("2013HSE_Nairobi_partial", (2013, 11, 1), -1.29, 36.82, 1795.0),
