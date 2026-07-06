@@ -7,7 +7,9 @@
 //!   (JD 2 488 069.5 TDB), bounded by the packaged ephemeris data. Four
 //!   NASA-canon eclipses falling in mid/late 2100 are uncomputable with the
 //!   packaged data and are excluded.
-//! - **Coverage:** global / geocentric only. No per-observer local circumstances.
+//! - **Coverage:** global / geocentric, plus per-observer local circumstances
+//!   (contact times, magnitude/obscuration, az/alt, visibility) via
+//!   [`EclipseEngine::local_circumstances`] and `next/previous_local_eclipse`.
 //! - **Outputs per eclipse:** type, instant of greatest eclipse, magnitude,
 //!   gamma, Saros series, eclipsed longitude (apparent tropical ecliptic of
 //!   date; no ayanamsa), and (solar only) geographic location of greatest
@@ -39,12 +41,16 @@ mod engine;
 mod ephemeris;
 mod error;
 mod geometry;
+mod local;
 mod saros;
 mod syzygy;
 mod types;
 
 pub use engine::EclipseEngine;
 pub use error::{EclipseError, WINDOW_END_JD, WINDOW_START_JD};
+pub use local::{
+    LocalCircumstances, LocalContact, LocalLunarCircumstances, LocalSolarCircumstances,
+};
 pub use types::{
     Eclipse, EclipseFilter, EclipseKind, EclipseType, GeoLocation, LunarEclipseType, Node,
     SolarEclipseType,

@@ -22,6 +22,8 @@ mod comparison;
 mod compatibility;
 mod corpus;
 pub mod crossings_validation;
+mod eclipse_local_thresholds;
+pub mod eclipse_local_validation;
 pub mod eclipse_validation;
 mod equatorial_validation;
 mod frame_consistency_validation;
@@ -183,6 +185,9 @@ pub use chart_benchmark::{
 pub use crossings_validation::{
     run_crossings_gate, validate_crossings_corpus, CrossingsCorpusError, CrossingsCorpusReport,
     CrossingsGateOutcome,
+};
+pub use eclipse_local_validation::{
+    validate_eclipse_local_corpus, EclipseLocalError, EclipseLocalReport,
 };
 pub use eclipse_validation::{validate_eclipse_corpus, EclipseCorpusError, EclipseCorpusReport};
 pub use equatorial_validation::{
