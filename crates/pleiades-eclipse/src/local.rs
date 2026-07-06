@@ -6,7 +6,8 @@ use crate::ephemeris::{sample_sun_moon, SunMoonSample};
 use crate::error::EclipseError;
 use crate::types::{Eclipse, EclipseKind, LunarEclipseType, SolarEclipseType};
 use pleiades_apparent::{
-    apparent_from_true, sidereal_time, topocentric_position, true_obliquity_degrees, Atmosphere,
+    apparent_from_true, nutation::nutation, precession::precess_ecliptic_j2000_to_date,
+    sidereal_time, topocentric_position, true_obliquity_degrees, Atmosphere,
 };
 use pleiades_backend::EphemerisBackend;
 use pleiades_types::{
@@ -103,17 +104,66 @@ pub(crate) struct TopoSunMoon {
     pub moon_dist_au: f64,
 }
 
-/// Applies diurnal parallax to the geocentric Sun/Moon sample for `observer`.
+/// Applies diurnal parallax to the geocentric Sun/Moon sample for `observer`,
+/// after carrying both bodies from Mean/J2000 to apparent ecliptic-of-date.
 pub(crate) fn topo_sun_moon<B: EphemerisBackend>(
     backend: &B,
     observer: &ObserverLocation,
     jd: f64,
 ) -> Result<TopoSunMoon, EclipseError> {
     let sample: SunMoonSample = sample_sun_moon(backend, jd)?;
-    let at = Instant::new(JulianDay::from_days(jd), TimeScale::Tdb);
     let eps = true_obliquity_degrees(jd)
         .map_err(|e| EclipseError::Backend(format!("obliquity failed: {e}")))?;
+
+    // Diurnal parallax rotates the observer's geocentric offset with the true
+    // Earth orientation, which is a function of **UT1**, not the dynamical scale
+    // `jd` is expressed in. Converting `jd` (TT/TDB) → UT1 via ΔT before taking
+    // sidereal time is what makes the topocentric geometry — and therefore the
+    // observer-local contact / greatest-eclipse instants found by minimizing this
+    // separation — agree with Swiss Ephemeris's UT1-based `swe_sol_eclipse_when_loc`
+    // (without it the parallax is rotated ~ΔT ≈ 69 s off, biasing the local
+    // maximum by tens of seconds). On a ΔT-table miss we fall back to `jd`.
+    let sid_jd = pleiades_time::ut1_jd_from_tt(jd).unwrap_or(jd);
+    let at = Instant::new(JulianDay::from_days(sid_jd), TimeScale::Tdb);
     let lst = sidereal_time(at, observer.longitude).local_apparent_deg;
+
+    // `sample_sun_moon` returns **Mean/J2000** geocentric ecliptic positions,
+    // already light-time retarded (see `ephemeris::sample_sun_moon`). The parallax
+    // step below (and the horizontal conversion downstream) works in the of-date
+    // frame — of-date true obliquity and of-date apparent sidereal time — so BOTH
+    // bodies must first be carried from Mean/J2000 to **apparent ecliptic-of-date**
+    // via precession (J2000→date) + nutation in longitude. The ~0.28°/20 yr
+    // precession offset it removes cancels in the Sun−Moon *separation* (so contact
+    // timing / type / magnitude were already correct) but otherwise corrupts the
+    // absolute az/alt. No light-time re-query is done here.
+    //
+    // Annual aberration is deliberately NOT applied: the Sun's ~499 s light-time
+    // retardation already IS its ~20.5″ annual-aberration displacement (the same
+    // Earth-reflex effect for the Sun — see `ephemeris::apparent_sun_longitude_deg`),
+    // and the Sun−Moon differential light-time already carried by `sample_sun_moon`
+    // is exactly the differential the apparent conjunction needs. Adding a separate
+    // ~20.5″ annual-aberration term to the Moon only would break the frame-shared
+    // cancellation, shifting the topocentric maximum by ~40 s (and it does not
+    // match SE's eclipse geometry). Precession + nutation are frame-common to both
+    // bodies, so the separation stays invariant.
+    let delta_psi_deg = nutation(jd)
+        .map_err(|e| EclipseError::Backend(format!("nutation failed: {e}")))?
+        .delta_psi_arcsec
+        / 3600.0;
+
+    let apparent_of_date = |lon: f64, lat: f64, label: &str| -> Result<(f64, f64), EclipseError> {
+        let p = precess_ecliptic_j2000_to_date(lon, lat, jd)
+            .map_err(|e| EclipseError::Backend(format!("{label} precession failed: {e}")))?;
+        Ok((
+            (p.longitude_deg + delta_psi_deg).rem_euclid(360.0),
+            p.latitude_deg,
+        ))
+    };
+
+    let (sun_app_lon, sun_app_lat) =
+        apparent_of_date(sample.sun_longitude_deg, sample.sun_latitude_deg, "Sun")?;
+    let (moon_app_lon, moon_app_lat) =
+        apparent_of_date(sample.moon_longitude_deg, sample.moon_latitude_deg, "Moon")?;
 
     let to_topo = |lon: f64, lat: f64, dist: f64| -> Result<(f64, f64, f64), EclipseError> {
         let ecl = EclipticCoordinates::new(
@@ -130,16 +180,10 @@ pub(crate) fn topo_sun_moon<B: EphemerisBackend>(
         ))
     };
 
-    let (sun_lon_deg, sun_lat_deg, sun_dist_au) = to_topo(
-        sample.sun_longitude_deg,
-        sample.sun_latitude_deg,
-        sample.sun_distance_au,
-    )?;
-    let (moon_lon_deg, moon_lat_deg, moon_dist_au) = to_topo(
-        sample.moon_longitude_deg,
-        sample.moon_latitude_deg,
-        sample.moon_distance_au,
-    )?;
+    let (sun_lon_deg, sun_lat_deg, sun_dist_au) =
+        to_topo(sun_app_lon, sun_app_lat, sample.sun_distance_au)?;
+    let (moon_lon_deg, moon_lat_deg, moon_dist_au) =
+        to_topo(moon_app_lon, moon_app_lat, sample.moon_distance_au)?;
     Ok(TopoSunMoon {
         sun_lon_deg,
         sun_lat_deg,
@@ -540,6 +584,11 @@ pub(crate) fn body_horizontal<B: EphemerisBackend>(
         LocalBody::Sun => (t.sun_lon_deg, t.sun_lat_deg, t.sun_dist_au),
         LocalBody::Moon => (t.moon_lon_deg, t.moon_lat_deg, t.moon_dist_au),
     };
+    // Horizontal-frame rotation uses local apparent sidereal time at the numeric
+    // instant (the engine's established convention, mirroring SP-2b
+    // rise/set/transit and the SE az/alt reference generation). The topocentric
+    // parallax that produced `t` already used the ΔT-corrected UT1 rotation (see
+    // `topo_sun_moon`), which is what pins the observer-local contact instants.
     let at = Instant::new(JulianDay::from_days(jd), TimeScale::Tdb);
     let eps = true_obliquity_degrees(jd)
         .map_err(|e| EclipseError::Backend(format!("obliquity failed: {e}")))?;
