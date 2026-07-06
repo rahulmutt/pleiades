@@ -98,7 +98,7 @@ pub fn fixed_star_entry(name: &str) -> Result<&'static FixedStarEntry, EventErro
 /// epoch, precession (IAU-1976), nutation-in-longitude (IAU-1980), and annual
 /// aberration — no light-time or light-deflection, matching `swe_fixstar`'s
 /// default flags. Backend-free: the Sun's true longitude needed by the aberration
-/// term is computed analytically ([`sun_true_longitude_of_date_deg`]).
+/// term is computed analytically (`sun_true_longitude_of_date_deg`).
 pub fn fixed_star_apparent(name: &str, at: Instant) -> Result<EquatorialCoordinates, EventError> {
     let e = fixed_star_entry(name)?;
     let jd = at.julian_day.days();
