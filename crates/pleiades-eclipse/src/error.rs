@@ -26,6 +26,16 @@ pub enum EclipseError {
         /// The Julian Day at which coordinates were requested.
         julian_day: f64,
     },
+    /// The supplied observer location was invalid.
+    InvalidObserver {
+        /// Human-readable reason.
+        detail: String,
+    },
+    /// The supplied atmosphere had a non-finite field.
+    InvalidAtmosphere {
+        /// Human-readable reason.
+        detail: String,
+    },
 }
 
 impl fmt::Display for EclipseError {
@@ -44,6 +54,8 @@ impl fmt::Display for EclipseError {
                 f,
                 "backend returned no ecliptic coordinates for {body_label} at JD {julian_day}"
             ),
+            EclipseError::InvalidObserver { detail } => write!(f, "invalid observer: {detail}"),
+            EclipseError::InvalidAtmosphere { detail } => write!(f, "invalid atmosphere: {detail}"),
         }
     }
 }

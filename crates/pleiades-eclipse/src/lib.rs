@@ -9,7 +9,7 @@
 //!   packaged data and are excluded.
 //! - **Coverage:** global / geocentric, plus per-observer local circumstances
 //!   (contact times, magnitude/obscuration, az/alt, visibility) via
-//!   `EclipseEngine::local_circumstances` and `next/previous_local_eclipse`.
+//!   [`EclipseEngine::local_circumstances`] and `next/previous_local_eclipse`.
 //! - **Outputs per eclipse:** type, instant of greatest eclipse, magnitude,
 //!   gamma, Saros series, eclipsed longitude (apparent tropical ecliptic of
 //!   date; no ayanamsa), and (solar only) geographic location of greatest

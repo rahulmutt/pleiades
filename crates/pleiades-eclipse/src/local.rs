@@ -2,13 +2,9 @@
 //! obscuration, horizontal position, and horizon visibility for a specific
 //! observer, extending the crate's global/geocentric eclipse data.
 
-// `TopoSunMoon`/`topo_sun_moon` are pub(crate) for upcoming eclipse-engine
-// tasks; silence dead_code lint until those consumers land.
-#![allow(dead_code)]
-
 use crate::ephemeris::{sample_sun_moon, SunMoonSample};
 use crate::error::EclipseError;
-use crate::types::{LunarEclipseType, SolarEclipseType};
+use crate::types::{Eclipse, EclipseKind, LunarEclipseType, SolarEclipseType};
 use pleiades_apparent::{
     apparent_from_true, sidereal_time, topocentric_position, true_obliquity_degrees, Atmosphere,
 };
@@ -895,5 +891,37 @@ mod lunar_local_tests {
             assert!(p1 <= u1.instant.julian_day.days() + 1e-9);
             assert!(u4.instant.julian_day.days() <= p4 + 1e-9);
         }
+    }
+}
+
+/// Computes local circumstances for an already-found `eclipse`.
+pub(crate) fn local_circumstances_for<B: EphemerisBackend>(
+    backend: &B,
+    eclipse: &Eclipse,
+    observer: &ObserverLocation,
+    atmos: Atmosphere,
+) -> Result<LocalCircumstances, EclipseError> {
+    let greatest_jd = eclipse.greatest_eclipse.julian_day.days();
+    match eclipse.kind {
+        EclipseKind::Solar => Ok(LocalCircumstances::Solar(solar_local(
+            backend,
+            observer,
+            atmos,
+            greatest_jd,
+        )?)),
+        EclipseKind::Lunar => Ok(LocalCircumstances::Lunar(lunar_local(
+            backend,
+            observer,
+            atmos,
+            greatest_jd,
+        )?)),
+    }
+}
+
+/// Whether a computed local result has any above-horizon phase.
+pub(crate) fn is_locally_visible(local: &LocalCircumstances) -> bool {
+    match local {
+        LocalCircumstances::Solar(s) => s.any_phase_visible,
+        LocalCircumstances::Lunar(l) => l.any_phase_visible,
     }
 }

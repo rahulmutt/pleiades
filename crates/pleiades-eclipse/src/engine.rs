@@ -3,11 +3,18 @@
 use crate::ephemeris::{apparent_sun_longitude_deg, sample_sun_moon};
 use crate::error::{EclipseError, WINDOW_END_JD, WINDOW_START_JD};
 use crate::geometry::{classify_lunar, classify_solar, sub_shadow_point};
+use crate::local::{is_locally_visible, local_circumstances_for, LocalCircumstances};
 use crate::saros::saros_series;
 use crate::syzygy::{find_syzygies, Syzygy, STEP_DAYS};
 use crate::types::{Eclipse, EclipseFilter, EclipseKind, EclipseType, Node};
+use pleiades_apparent::Atmosphere;
 use pleiades_backend::EphemerisBackend;
-use pleiades_types::{Instant, JulianDay, Longitude, TimeScale};
+use pleiades_types::{Instant, JulianDay, Longitude, ObserverLocation, TimeScale};
+
+/// Backstop cap on how many global eclipses `next/previous_local_eclipse`
+/// inspect before returning `None` (a locally-visible eclipse always occurs
+/// far sooner; this only guards against a pathological non-terminating walk).
+const MAX_LOCAL_SEARCH: usize = 4000;
 
 /// Searches for global/geocentric eclipses over a chosen [`EphemerisBackend`].
 ///
@@ -94,6 +101,92 @@ impl<B: EphemerisBackend> EclipseEngine<B> {
             .into_iter()
             .rev()
             .find(|e| e.greatest_eclipse.julian_day.days() < before_jd))
+    }
+
+    /// Local (per-observer) circumstances for an already-found `eclipse`.
+    ///
+    /// Returns full circumstances even when the eclipse is not visible from
+    /// `observer` (all contacts below the horizon); inspect `any_phase_visible`
+    /// (via the returned variant) to test visibility. Solar contact instants are
+    /// observer-dependent (topocentric); lunar contact instants are global with
+    /// per-observer visibility.
+    pub fn local_circumstances(
+        &self,
+        eclipse: &Eclipse,
+        observer: &ObserverLocation,
+        atmosphere: Atmosphere,
+    ) -> Result<LocalCircumstances, EclipseError> {
+        observer
+            .validate()
+            .map_err(|e| EclipseError::InvalidObserver {
+                detail: e.to_string(),
+            })?;
+        check_atmosphere(atmosphere)?;
+        local_circumstances_for(&self.backend, eclipse, observer, atmosphere)
+    }
+
+    /// The next eclipse admitted by `filter`, strictly after `after`, that is
+    /// locally visible from `observer` (any phase above the horizon), paired with
+    /// its local circumstances. Walks the global `next_eclipse` sequence and
+    /// returns the first locally-visible one, so the result is a strict refinement
+    /// of the global engine.
+    pub fn next_local_eclipse(
+        &self,
+        after: Instant,
+        observer: &ObserverLocation,
+        filter: EclipseFilter,
+        atmosphere: Atmosphere,
+    ) -> Result<Option<(Eclipse, LocalCircumstances)>, EclipseError> {
+        observer
+            .validate()
+            .map_err(|e| EclipseError::InvalidObserver {
+                detail: e.to_string(),
+            })?;
+        check_atmosphere(atmosphere)?;
+        let mut cursor = after;
+        // Bounded walk: no more than MAX_LOCAL_SEARCH global eclipses inspected
+        // before giving up (backstop; a locally-visible eclipse always occurs well
+        // within the window). ~2 eclipses/year × 200 yr ≈ 1200 global eclipses max.
+        for _ in 0..MAX_LOCAL_SEARCH {
+            let Some(eclipse) = self.next_eclipse(cursor, filter)? else {
+                return Ok(None);
+            };
+            let local = local_circumstances_for(&self.backend, &eclipse, observer, atmosphere)?;
+            if is_locally_visible(&local) {
+                return Ok(Some((eclipse, local)));
+            }
+            cursor = eclipse.greatest_eclipse;
+        }
+        Ok(None)
+    }
+
+    /// The previous eclipse admitted by `filter`, strictly before `before`, that
+    /// is locally visible from `observer`, paired with its local circumstances.
+    pub fn previous_local_eclipse(
+        &self,
+        before: Instant,
+        observer: &ObserverLocation,
+        filter: EclipseFilter,
+        atmosphere: Atmosphere,
+    ) -> Result<Option<(Eclipse, LocalCircumstances)>, EclipseError> {
+        observer
+            .validate()
+            .map_err(|e| EclipseError::InvalidObserver {
+                detail: e.to_string(),
+            })?;
+        check_atmosphere(atmosphere)?;
+        let mut cursor = before;
+        for _ in 0..MAX_LOCAL_SEARCH {
+            let Some(eclipse) = self.previous_eclipse(cursor, filter)? else {
+                return Ok(None);
+            };
+            let local = local_circumstances_for(&self.backend, &eclipse, observer, atmosphere)?;
+            if is_locally_visible(&local) {
+                return Ok(Some((eclipse, local)));
+            }
+            cursor = eclipse.greatest_eclipse;
+        }
+        Ok(None)
     }
 
     fn check_window(&self, jd: f64) -> Result<(), EclipseError> {
@@ -193,6 +286,18 @@ impl<B: EphemerisBackend> EclipseEngine<B> {
     }
 }
 
+fn check_atmosphere(atmos: Atmosphere) -> Result<(), EclipseError> {
+    if !atmos.pressure_mbar.is_finite() || !atmos.temperature_c.is_finite() {
+        return Err(EclipseError::InvalidAtmosphere {
+            detail: format!(
+                "pressure={} temp={}",
+                atmos.pressure_mbar, atmos.temperature_c
+            ),
+        });
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -222,5 +327,26 @@ mod tests {
             .eclipses_in_range(at(2_451_549.0), at(2_451_551.0), EclipseFilter::SolarOnly)
             .unwrap();
         assert!(solar.iter().all(|e| e.kind == EclipseKind::Solar));
+    }
+
+    #[test]
+    fn local_circumstances_returns_solar_for_a_solar_eclipse() {
+        use pleiades_apparent::Atmosphere;
+        use pleiades_types::{Latitude, Longitude, ObserverLocation};
+        let engine =
+            EclipseEngine::new(LinearSunMoon::new_moon_at(2_451_550.0).with_moon_latitude(0.0));
+        let eclipse = engine
+            .next_eclipse(at(2_451_549.0), EclipseFilter::SolarOnly)
+            .unwrap()
+            .expect("a solar eclipse");
+        let observer = ObserverLocation::new(
+            Latitude::from_degrees(0.0),
+            Longitude::from_degrees(0.0),
+            Some(0.0),
+        );
+        let local = engine
+            .local_circumstances(&eclipse, &observer, Atmosphere::default())
+            .unwrap();
+        assert!(matches!(local, crate::LocalCircumstances::Solar(_)));
     }
 }
