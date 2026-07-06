@@ -681,9 +681,13 @@ pub(crate) fn solar_local<B: EphemerisBackend>(
     let sun = LocalBody::Sun;
     match c {
         None => {
-            // No eclipse for this observer: a degenerate all-at-greatest record,
-            // not visible. `next_local_eclipse` filters these out; `local_circumstances`
-            // still returns it so a caller can inspect "not visible here".
+            // No eclipse for this observer: a degenerate all-at-greatest record
+            // with magnitude 0 and no partial phase at all, so `any_phase_visible`
+            // is unconditionally false (there is no eclipse phase to be visible,
+            // regardless of whether the Sun happens to be above the horizon at
+            // `greatest_jd`). `next_local_eclipse` filters these out correctly
+            // because of this; `local_circumstances` still returns the record so
+            // a caller can inspect "not visible here".
             let contact = contact_at(backend, observer, atmos, greatest_jd, sun)?;
             let g = solar_geom(&topo_sun_moon(backend, observer, greatest_jd)?);
             Ok(LocalSolarCircumstances {
@@ -695,7 +699,7 @@ pub(crate) fn solar_local<B: EphemerisBackend>(
                 second_contact: None,
                 third_contact: None,
                 fourth_contact: contact,
-                any_phase_visible: contact.visible,
+                any_phase_visible: false,
             })
         }
         Some(c) => {
@@ -750,6 +754,60 @@ mod solar_local_tests {
         assert!(
             s.maximum.instant.julian_day.days()
                 <= s.fourth_contact.instant.julian_day.days() + 1e-9
+        );
+    }
+
+    /// Regression for the SP-2c final-review fix: a magnitude-0 "no eclipse
+    /// here" record must never claim `any_phase_visible == true` just because
+    /// the Sun happens to be above the horizon at the greatest-eclipse instant.
+    /// Before the fix, `None`-arm `any_phase_visible` was wired to
+    /// `contact.visible` (Sun-up-ness), which is unrelated to whether any
+    /// eclipse phase occurred; this made `next_local_eclipse` surface
+    /// non-eclipses as "locally visible" whenever the Sun was up.
+    #[test]
+    fn no_eclipse_but_sun_up_reports_any_phase_visible_false() {
+        // The Moon 3 degrees off the ecliptic at conjunction puts the
+        // topocentric Sun-Moon separation at ~3 deg for every observer, far
+        // outside the ~0.5 deg sum of semidiameters, so `solar_contacts_jd`
+        // returns `None` (no eclipse anywhere) for every longitude tried below.
+        let jd = 2_451_550.0;
+        let backend = LinearSunMoon::new_moon_at(jd).with_moon_latitude(3.0);
+        let atmos = Atmosphere::default();
+
+        // Sweep observer longitude at a latitude near the Sun's declination at
+        // `jd` so at least one gives an above-horizon Sun at the instant of
+        // (non-)greatest-eclipse.
+        let mut found_sun_up = false;
+        for lon_step in 0..72 {
+            let lon_deg = -180.0 + 5.0 * lon_step as f64;
+            let observer = ObserverLocation::new(
+                Latitude::from_degrees(23.0),
+                Longitude::from_degrees(lon_deg),
+                Some(0.0),
+            );
+
+            // Sanity: this scenario really does hit the `None` (no local
+            // eclipse) branch under test.
+            let c = solar_contacts_jd(&backend, &observer, jd).unwrap();
+            assert!(c.is_none(), "expected no local eclipse at lon {lon_deg}");
+
+            let s = solar_local(&backend, &observer, atmos, jd).unwrap();
+            assert_eq!(
+                s.magnitude, 0.0,
+                "no eclipse -> magnitude 0 at lon {lon_deg}"
+            );
+            if s.maximum.visible {
+                found_sun_up = true;
+                assert!(
+                    !s.any_phase_visible,
+                    "Sun-up at greatest-eclipse instant (lon {lon_deg}) must not be \
+                     reported as an eclipse phase being visible"
+                );
+            }
+        }
+        assert!(
+            found_sun_up,
+            "expected at least one observer longitude with the Sun above the horizon"
         );
     }
 }

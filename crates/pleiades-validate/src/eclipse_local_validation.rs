@@ -360,15 +360,15 @@ fn observer_of(lat: f64, lon: f64, elev: f64) -> ObserverLocation {
 /// row), it keeps the syzygy scan bounded to two days.
 fn find_eclipse<B>(
     engine: &EclipseEngine<B>,
-    se_max_jd_ut: f64,
+    se_max_jd_tt: f64,
     filter: EclipseFilter,
     label: &str,
 ) -> Result<Eclipse, EclipseLocalError>
 where
     B: pleiades_backend::EphemerisBackend,
 {
-    let start = tdb(se_max_jd_ut - 1.0);
-    let end = tdb(se_max_jd_ut + 1.0);
+    let start = tdb(se_max_jd_tt - 1.0);
+    let end = tdb(se_max_jd_tt + 1.0);
     engine
         .eclipses_in_range(start, end, filter)
         .map_err(|e| EclipseLocalError::Engine(e.to_string()))?
