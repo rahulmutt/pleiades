@@ -228,6 +228,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "pleiades-fict"
+version = "0.3.0"
+dependencies = [
+ "pleiades-apparent",
+ "pleiades-backend",
+ "pleiades-types",
+]
+
+[[package]]
 name = "pleiades-houses"
 version = "0.3.0"
 dependencies = [

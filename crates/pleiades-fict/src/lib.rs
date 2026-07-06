@@ -4,6 +4,8 @@
 //! unperturbed Kepler orbit, rotated to the J2000 mean ecliptic and assembled to
 //! a geocentric place. Definitional: parity with SE, gated by `validate-fictitious`.
 
+pub mod elements;
+pub mod frame;
 pub mod kepler;
 
 /// Crate/backend identifier used in backend metadata and results.
