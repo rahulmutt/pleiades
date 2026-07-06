@@ -21,7 +21,7 @@
 //! uses to carry its elements to the J2000 mean ecliptic (see
 //! `docs/plans/fictitious-bodies` Reconciliation §2). Its residual is gated
 //! under a separate, wider per-body ceiling
-//! ([`crate::fictitious_thresholds::NIBIRU_LONGITUDE_ARCSEC`] etc.) rather than
+//! (`crate::fictitious_thresholds::NIBIRU_LONGITUDE_ARCSEC` etc.) rather than
 //! inflating the global ceilings that gate the other 18 bodies.
 //!
 //! A sibling `manifest.txt` records the fnv1a64 digest of the CSV (drift
@@ -345,9 +345,9 @@ pub fn run_fictitious_tier1_only() -> Result<FictitiousReport, FictitiousError> 
     Ok(measure()?.into_report())
 }
 
-/// Full two-tier gate: Tier-1 self-consistency (via [`measure`]) plus Tier-2
+/// Full two-tier gate: Tier-1 self-consistency (via `measure`) plus Tier-2
 /// SE parity gated under the global ceilings in
-/// [`crate::fictitious_thresholds`] for the 18 well-behaved bodies, and the
+/// `crate::fictitious_thresholds` for the 18 well-behaved bodies, and the
 /// separate, wider Nibiru ceilings for the one documented outlier (see the
 /// module doc). Fails closed on any exceeded ceiling.
 pub fn validate_fictitious_corpus() -> Result<FictitiousReport, FictitiousError> {

@@ -11,7 +11,7 @@
 //!
 //! Tier 2 (SE parity): each recomputed row is compared field-by-field to the
 //! Swiss-Ephemeris columns under the per-category ceilings in
-//! [`crate::eclipse_local_thresholds`]. Solar contact instants are topocentric
+//! `crate::eclipse_local_thresholds`. Solar contact instants are topocentric
 //! (observer-dependent); lunar contact instants are global (identical for every
 //! observer — the corpus used `swe_lun_eclipse_when`, comparable to the
 //! engine's global lunar contacts).
@@ -796,9 +796,9 @@ pub fn run_tier1_only() -> Result<EclipseLocalReport, EclipseLocalError> {
     Ok(measure()?.into_report())
 }
 
-/// Full two-tier gate: Tier-1 self-consistency (via [`measure`]) plus Tier-2 SE
+/// Full two-tier gate: Tier-1 self-consistency (via `measure`) plus Tier-2 SE
 /// parity gated under every per-category ceiling in
-/// [`crate::eclipse_local_thresholds`]. Fails closed on any exceeded ceiling.
+/// `crate::eclipse_local_thresholds`. Fails closed on any exceeded ceiling.
 pub fn validate_eclipse_local_corpus() -> Result<EclipseLocalReport, EclipseLocalError> {
     let m = measure()?;
 
