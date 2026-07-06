@@ -1887,3 +1887,23 @@ git commit -m "docs(events): declare SP-2c local eclipse circumstances; profile 
 - Test-backend constructors (`LinearSunMoon::with_moon_latitude`, `full_moon_at`) — confirm in `crates/pleiades-backend/src/test_backend.rs`; adapt tests to the actual on-node solar/lunar constructors the existing eclipse tests use.
 - `se-rise-trans-reference` write-mode/arg interface (Task 9/10 `--out-dir`/`--dry-run`) — read its `main.rs` and match its exact CLI shape.
 - Overclaim-audit registration point (Task 13) — locate via grep; mirror SP-2b's registration.
+
+---
+
+## Execution Errata
+
+Recorded during subagent-driven execution (branch `feat/sp2c-local-eclipse-circumstances`, `7b72b14a..`). Plan-snippet defects and design corrections fixed while implementing, for the plan's integrity record — mirrors the SP-2b errata practice.
+
+### Plan-snippet defects (verbatim code in this plan was wrong; fixed to match the plan's own tests/intent)
+- **Task 3 — `obscuration_fraction` "Sun fully covered" guard.** The snippet's `d <= (r_m - r_s).max(0.0)` clamps a legitimately-negative RHS to 0, so at `d==0` in the annular case (`r_s > r_m`) it wrongly fires and returns obscuration `1.0` — which FAILS the plan's own `annular_obscuration_is_area_ratio` test. Fixed to `d <= r_m - r_s` (safe: `d >= 0` structurally). Verified correct across all branches, behaviour-preserving for genuine total-eclipse cases.
+- **Task 6 — duplicate import.** Step 1's snippet re-imported `use crate::types::SolarEclipseType;` already present at the top of `local.rs` → `E0252`. The redundant line was dropped.
+
+### Design corrections (the plan's approach was wrong for the eclipse case; corrected)
+- **Global Constraint (line 14) / Tasks 9–11 — time base.** The plan mandated comparing engine output against the SE `_ut` columns "exactly like validate-rise-trans," and "do not add a ΔT/UT1 policy change." That premise was mis-inherited from SP-2b: rise/set are sidereal/UT1-defined, but eclipse contact instants are **dynamical (TT/TDB)**. Direct UT comparison left a systematic ΔT≈69 s offset (lunar residual == ΔT, identical across all observers). Corrected (with the plan author's approval) by emitting the corpus in **TT** — matching the project's own global eclipse corpus convention (`greatest_eclipse_jd_tt`). Corpus generator + gate now compare in TT.
+- **Task 9 — lunar SE function.** The plan specified `swe_lun_eclipse_when_loc`, but that trims contacts per-observer, contradicting the plan's OWN architecture (lunar contact instants are **global**, shared across observers) and making the Moon-below-horizon curated cases impossible. Used global `swe_lun_eclipse_when` + `_how` instead (solar still uses `when_loc` for genuine topocentric contacts). SE array indices verified against vendored `swecl.c`.
+- **Tasks 2/5 — engine frame bug (uncovered by the SE-parity gate).** `topo_sun_moon` fed **Mean/J2000** Sun/Moon positions (what `sample_sun_moon` returns by design, since the global engine only needs frame-invariant separation) straight into an of-date topocentric/horizontal conversion — skipping precession (J2000→date, ~0.28°). Cancelled in Sun−Moon separation (times/magnitude fine) but corrupted absolute az/alt and topocentric solar contact times. Fixed by applying **precession + nutation-in-longitude** to both bodies (no aberration — it breaks separation invariance; no re-light-time — `sample_sun_moon` already retards), plus **UT1-corrected Earth rotation** for the diurnal parallax. Residuals collapsed to arcsecond-class az/alt + second-class contact times (honest measured ceilings ~1.4×). A deliberate, documented split time base remains (UT1 for parallax, J-as-UT1 for the az/alt rotation, matching SP-2b + the corpus); a fully-pure all-UT1 pass is noted as future work.
+- **Task 6 — `next_local_eclipse` false-positive (final-review finding).** `solar_local`'s no-eclipse `None` arm set `any_phase_visible` from Sun-up-ness rather than `false`, so `next/previous_local_eclipse` would return magnitude-0 non-eclipses as "locally visible." Fixed to `false` (+ unit test); the accompanying comment is now truthful.
+
+### Known limitations (disclosed, gate-guarded, not defects)
+- The Moon's absolute az/alt carries ~20″ (omitted lunar annual aberration) + ~17″ (split-time-base parallax phase) of unmodeled residual, bounded well under the honest 130″/120″ ceilings. Documented in `local.rs`, the thresholds/validation modules, the reference tool, and the compat-profile prose ("arcsecond-class, not sub-arcsecond").
+- Follow-ups (non-blocking): add a Sun-up/outside-penumbra solar corpus row to positively cover the `None`-branch fix; split `local.rs` (~980 lines) into submodules; per-row (not aggregate) ceiling-breach labels.
