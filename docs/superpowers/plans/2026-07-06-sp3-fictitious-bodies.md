@@ -17,12 +17,27 @@
 - **Compatibility profile bump 0.7.8 → 0.7.9; API-stability profile unchanged at 0.2.2** (additive to `#[non_exhaustive]` enums). Spec §Design.7.
 - **fnv1a64** is the repo checksum scheme (`pleiades_apparent::fnv1a64` inside the workspace; a byte-identical local copy inside the out-of-workspace tool). Spec §Design.6.
 - **Window:** SE-parity corpus sampled over 1900–2100 TDB, consistent with the other numeric gates.
-- **Bodies:** SE numbers 40–58; White Moon/Selena (56) and Waldemath (58) are **geocentric-orbit**; all others are **heliocentric**. Spec §"SE functions targeted".
+- **Bodies:** SE numbers 40–58 (all 19; `seorbel.txt` element sets 1–19); White Moon/Selena (56) and Waldemath (58) are **geocentric-orbit**; all others are **heliocentric**. Spec §"SE functions targeted".
+- **Model fidelity (binding):** the Kepler/frame model must match SE `swi_osc_el_plan` per "Reconciliation with Swiss Ephemeris `swemplan.c`" above — Kepler-third-law mean motion (except T-term bodies), `Equinox { Fixed(jd), OfDate }`, and geometric corpus flags. Any regression to the spec's original "mean motion from polynomial" / 3-value `ElementFrame` model is an Important defect.
 
 ## Design notes / errata vs. spec
 
 - **Motion (decision A refinement):** the spec said "analytic Kepler velocity." For consistency with `ElpBackend::motion` and the planetary backends (which all produce `Motion = Derived` via a symmetric finite difference of the same position model), this plan computes motion as a **symmetric finite difference of the assembled geocentric ecliptic position** (±0.5 day), not analytic velocity. Same public outcome (`Motion = Derived`); no separate velocity-frame bookkeeping. The Kepler core still exposes position only.
-- **Elements provenance:** the committed `fictitious-elements.csv` values are transcribed from SE's `seorbel.txt`. The `validate-fictitious` SE-parity gate is the authoritative acceptance test for the transcription — do not hand-verify numbers, let the gate catch drift.
+- **Elements provenance:** the committed `fictitious-elements.csv` values are transcribed from SE's `seorbel.txt` (element sets 1–19 = SE bodies 40–58). A verbatim copy of `seorbel.txt` is committed alongside the reference generator (`tools/se-fictitious-reference/data/seorbel.txt`) as the transcription source and so the SE tool computes all 19 bodies. The `validate-fictitious` SE-parity gate is the authoritative acceptance test for the transcription — do not hand-verify numbers, let the gate catch drift.
+
+### Reconciliation with Swiss Ephemeris `swemplan.c` (corrections applied 2026-07-06)
+
+A pre-execution review against the vendored SE C source (`libswisseph-sys-0.1.2/libswisseph/swemplan.c`, `swi_osc_el_plan` + `read_elements_file`) found the original spec-derived model did not match SE's actual algorithm. These corrections are **binding** and are folded into Tasks 3, 4, 7, 8 below. They are the crux of SE parity — a reviewer must treat any regression to the original model as an Important defect.
+
+1. **Mean motion comes from Kepler's third law, NOT from a mean-anomaly polynomial.** SE reads mean anomaly *at epoch* and advances it with `dmot = 0.9856076686 / a^1.5` deg/day (`dmot /= sqrt(SUN_EARTH_MRAT)` for geocentric orbits), i.e. `M(t) = M_epoch + dmot·(jd − epoch)`. The **only** bodies whose motion lives in the element polynomial are those with an explicit `+ c1·T` term in `seorbel.txt` mean anomaly (Vulcan, Selena/White Moon, Waldemath); for those SE freezes `dmot` (sets `tjd0 = tjd`) and the T-term *is* the motion. So `state_at` must: evaluate the mean-anomaly polynomial in `T = (jd − epoch)/36525`, and **add the Kepler `dmot` term only when the polynomial has no T-term** (`c1 == 0 && c2 == 0`). Without this, non-T-term bodies are stationary and the gate fails catastrophically. Constants: `0.9856076686` deg/day, `SUN_EARTH_MRAT = 332946.050895`. (The geocentric `/sqrt(SUN_EARTH_MRAT)` scaling is SE-faithful but unexercised by the default set — both geocentric bodies, Selena and Waldemath, carry mean-anomaly T-terms and so bypass `dmot` entirely; keep it as defensive parity, not dead code.)
+
+2. **The reference equinox is an arbitrary Julian Day (or "of date"), not a 3-value frame enum.** `seorbel.txt` equinoxes are `J1900` (2415020.0), `B1950` (2433282.42345905), `J2000` (2451545.0), `JDATE` (= evaluation instant, "of date"), **or a bare JD** (Transpluto 2431456.5, Nibiru 1856113.380954, Leverrier/Adams 2395662.5, Lowell/Pickering 2425977.5, Waldemath 2414290.95827875). The `ElementFrame {J2000,B1950,OfDate}` enum in the original plan cannot represent these. Replace it with `Equinox { Fixed(f64), OfDate }` (`Fixed(2451545.0)` = identity; `OfDate` precesses from the evaluation JD). Rotation to J2000 reuses `pleiades_apparent::precess_ecliptic_date_to_j2000(lon, lat, equinox_jd)` (ecliptic-frame precession, the same helper `ElpBackend` uses). This helper is IAU-1976 (accurate for ~a few centuries); all default bodies except **Nibiru** have equinoxes within ~150 yr of J2000. Nibiru's equinox is ~370 AD (~1630 yr of extrapolation) → it will carry a larger residual than the rest; the gate measures it and Task 8 sets its ceiling from the measurement (do not hand-tighten Nibiru to the others' level).
+
+3. **Body coverage is the full 19 (SE 40–58), enabled by the committed `seorbel.txt`.** SE's *built-in* fallback table covers only 40–54 (`SE_NFICT_ELEM = 15`); bodies 55–58 (Vulcan, White Moon/Selena, Proserpina, Waldemath — including **both** geocentric bodies) exist only in `seorbel.txt`. The generator (Task 7) points `swe_set_ephe_path` at the committed copy so all 19 resolve.
+
+4. **Corpus flags must be geometric, not apparent.** The backend boundary is *geometric* geocentric J2000; bare `SEFLG_J2000` yields *apparent* positions (light-time + aberration). Task 7 uses `SEFLG_MOSEPH | SEFLG_J2000 | SEFLG_TRUEPOS | SEFLG_NOABERR | SEFLG_NOGDEFL` so the SE reference matches the backend's geometric assembly. (Values: TRUEPOS=16, J2000=32, NOGDEFL=512, NOABERR=1024, MOSEPH=4.)
+
+5. **Geocentric assembly (unchanged, verified correct):** for heliocentric bodies, `body_geo = body_helio − earth_helio` with `earth_helio = −sun_geocentric` (packaged Sun source), which equals SE's `body_helio + sun_geocentric`. Geocentric-orbit bodies (Selena, Waldemath) return their orbital position directly. Note the residual absorbs `(packaged Sun − SE Moshier Sun)`, a small term the gate measures.
 
 ---
 
@@ -32,8 +47,8 @@
 - `Cargo.toml` — package + workspace deps (types, backend, apparent).
 - `src/lib.rs` — crate root; module decls + public re-exports; `PACKAGE_NAME`.
 - `src/kepler.rs` — `solve_kepler`, `orbital_plane_position`.
-- `src/elements.rs` — `KeplerElements`, `ElementFrame`, `Center`, the polynomial-in-time element model, CSV parse (`LazyLock` table), `elements_for(body)`.
-- `src/frame.rs` — rotate orbital-plane → J2000 mean ecliptic (`ElementFrame` dispatch: J2000 identity / B1950 matrix / of-date precession).
+- `src/elements.rs` — `KeplerElements`, `Equinox`, `Center`, the polynomial-in-time element model with Kepler-third-law mean motion, CSV parse (`LazyLock` table), `elements_for(body)`.
+- `src/frame.rs` — rotate an equinox-frame ecliptic vector → J2000 mean ecliptic (`rotate_ecliptic_to_j2000`: J2000 identity, else ecliptic precession from the equinox JD).
 - `src/backend.rs` — `FictitiousBackend<S>`, `EphemerisBackend` impl, `fictitious_body_claims()`.
 - `data/fictitious-elements.csv` — committed element table (19 rows), provenance header citing `seorbel.txt`.
 - `README.md`, `LICENSE-APACHE`, `LICENSE-MIT` (copy from a sibling crate).
@@ -364,12 +379,12 @@ git commit -m "feat(fict): SP-3 pleiades-fict crate scaffold + Kepler solver cor
 - Test: inline `#[cfg(test)]` in both modules
 
 **Interfaces:**
-- Consumes: `kepler::solve_kepler`, `kepler::orbital_plane_position`.
+- Consumes: `kepler::solve_kepler`, `kepler::orbital_plane_position`; `pleiades_apparent::precess_ecliptic_date_to_j2000`.
 - Produces:
-  - `elements::ElementFrame` (enum `J2000`, `B1950`, `OfDate`); `elements::Center` (enum `Heliocentric`, `Geocentric`).
-  - `elements::KeplerElements` with fields for epoch `epoch_jd_tt: f64`, per-element polynomial coefficients `a_au: [f64;3]`, `e: [f64;3]`, `incl_deg: [f64;3]`, `node_deg: [f64;3]`, `arg_peri_deg: [f64;3]`, `mean_anom_deg: [f64;3]` (each `[c0, c1, c2]`, `t` in Julian centuries since epoch), plus `frame: ElementFrame`, `center: Center`.
-  - `elements::KeplerElements::state_at(&self, jd_tt: f64) -> (f64, f64, f64)` — returns J2000-mean-ecliptic Cartesian position `(x, y, z)` in AU (in the elements' native centering — helio or geo).
-  - `frame::rotate_to_j2000_ecliptic(x: f64, y: f64, z: f64, frame: ElementFrame, jd_tt: f64) -> (f64, f64, f64)`.
+  - `elements::Equinox` (enum `Fixed(f64)`, `OfDate`); `elements::Center` (enum `Heliocentric`, `Geocentric`).
+  - `elements::KeplerElements` with fields: epoch `epoch_jd_tt: f64`; per-element polynomial coefficients `a_au: [f64;3]`, `e: [f64;3]`, `incl_deg: [f64;3]`, `node_deg: [f64;3]`, `arg_peri_deg: [f64;3]`, `mean_anom_deg: [f64;3]` (each `[c0, c1, c2]`, `T` in Julian centuries since `epoch_jd_tt`); plus `equinox: Equinox`, `center: Center`.
+  - `elements::KeplerElements::state_at(&self, jd_tt: f64) -> (f64, f64, f64)` — J2000-mean-ecliptic Cartesian position `(x, y, z)` in AU, in the elements' native centering (helio or geo). Adds the Kepler-third-law mean-motion term unless the mean-anomaly polynomial carries a T-term (see Reconciliation §1).
+  - `frame::rotate_ecliptic_to_j2000(x: f64, y: f64, z: f64, equinox_jd: f64) -> (f64, f64, f64)`.
 
 - [ ] **Step 1: Write the element model + failing test**
 
@@ -380,17 +395,25 @@ git commit -m "feat(fict): SP-3 pleiades-fict crate scaffold + Kepler solver cor
 //! `seorbel.txt`. Each element is `c0 + c1·T + c2·T²`, `T` in Julian centuries
 //! (36525 d) since the element epoch.
 
-use crate::frame::rotate_to_j2000_ecliptic;
+use crate::frame::rotate_ecliptic_to_j2000;
 use crate::kepler::{orbital_plane_position, solve_kepler};
 
-/// Reference frame the elements are expressed in.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum ElementFrame {
-    /// J2000 mean ecliptic/equinox — no rotation needed.
-    J2000,
-    /// B1950 mean ecliptic/equinox — fixed rotation to J2000.
-    B1950,
-    /// Mean ecliptic/equinox of date — precess to J2000.
+/// Gaussian mean-motion constant (SE `swi_osc_el_plan`): daily motion in
+/// degrees is `MEAN_MOTION_DEG_PER_DAY / a^1.5`.
+const MEAN_MOTION_DEG_PER_DAY: f64 = 0.9856076686;
+/// Sun / Earth mass ratio (Earth only), SE `SUN_EARTH_MRAT`. Scales the mean
+/// motion of geocentric-orbit bodies (central mass is Earth, not the Sun).
+const SUN_EARTH_MRAT: f64 = 332946.050895;
+
+/// Reference equinox the angular elements are expressed in.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Equinox {
+    /// Fixed equinox at a Julian Day (TT): `J1900` (2415020.0), `B1950`, `J2000`
+    /// (2451545.0), or an arbitrary JD from `seorbel.txt`. `Fixed(2451545.0)` is
+    /// identity (no precession).
+    Fixed(f64),
+    /// Equinox "of date" (`seorbel.txt` `JDATE`): the equinox is the evaluation
+    /// instant; precess from the evaluation JD to J2000.
     OfDate,
 }
 
@@ -418,10 +441,11 @@ pub struct KeplerElements {
     pub node_deg: [f64; 3],
     /// Argument of perihelion polynomial, degrees.
     pub arg_peri_deg: [f64; 3],
-    /// Mean anomaly polynomial, degrees.
+    /// Mean anomaly polynomial, degrees. A nonzero c1/c2 (T-term) supplies the
+    /// body's mean motion directly; otherwise Kepler's third law is used.
     pub mean_anom_deg: [f64; 3],
-    /// Reference frame of the angular elements.
-    pub frame: ElementFrame,
+    /// Reference equinox of the angular elements.
+    pub equinox: Equinox,
     /// Orbit centering.
     pub center: Center,
 }
@@ -432,8 +456,10 @@ fn poly(c: [f64; 3], t: f64) -> f64 {
 
 impl KeplerElements {
     /// J2000-mean-ecliptic Cartesian position (AU) at `jd_tt`, in the elements'
-    /// native centering (helio or geo). Mean motion is taken from the mean-anomaly
-    /// polynomial (`seorbel.txt` supplies it directly), not from Kepler's third law.
+    /// native centering (helio or geo). Mirrors SE `swi_osc_el_plan`: the
+    /// mean-anomaly polynomial supplies any explicit T-term (Vulcan, Selena,
+    /// Waldemath); bodies with no T-term advance by the Kepler-third-law mean
+    /// motion. See Reconciliation §1.
     pub fn state_at(&self, jd_tt: f64) -> (f64, f64, f64) {
         let t = (jd_tt - self.epoch_jd_tt) / 36_525.0;
         let a = poly(self.a_au, t);
@@ -441,12 +467,22 @@ impl KeplerElements {
         let incl = poly(self.incl_deg, t).to_radians();
         let node = poly(self.node_deg, t).to_radians();
         let argp = poly(self.arg_peri_deg, t).to_radians();
-        let mean_anom = poly(self.mean_anom_deg, t).to_radians();
+
+        let mut mean_anom_deg = poly(self.mean_anom_deg, t);
+        if self.mean_anom_deg[1] == 0.0 && self.mean_anom_deg[2] == 0.0 {
+            // No T-term: advance mean anomaly by the Kepler-third-law daily motion.
+            let mut dmot = MEAN_MOTION_DEG_PER_DAY / (a * a.sqrt());
+            if self.center == Center::Geocentric {
+                dmot /= SUN_EARTH_MRAT.sqrt();
+            }
+            mean_anom_deg += dmot * (jd_tt - self.epoch_jd_tt);
+        }
+        let mean_anom = mean_anom_deg.to_radians();
 
         let ea = solve_kepler(mean_anom, e);
         let (xo, yo) = orbital_plane_position(a, e, ea);
 
-        // Rotate orbital plane → reference-frame ecliptic by argp, incl, node
+        // Rotate orbital plane → equinox-frame ecliptic by argp, incl, node
         // (classic 3-1-3). The matrix is linear, applied to the position vector.
         let (sa, ca) = argp.sin_cos();
         let (si, ci) = incl.sin_cos();
@@ -457,7 +493,11 @@ impl KeplerElements {
         let y = sn * xp + cn * ci * yp;
         let z = si * yp;
 
-        rotate_to_j2000_ecliptic(x, y, z, self.frame, jd_tt)
+        let equinox_jd = match self.equinox {
+            Equinox::Fixed(jd) => jd,
+            Equinox::OfDate => jd_tt,
+        };
+        rotate_ecliptic_to_j2000(x, y, z, equinox_jd)
     }
 }
 
@@ -474,16 +514,29 @@ mod tests {
             node_deg: [0.0, 0.0, 0.0],
             arg_peri_deg: [0.0, 0.0, 0.0],
             mean_anom_deg: [0.0, 0.0, 0.0],
-            frame: ElementFrame::J2000,
+            equinox: Equinox::Fixed(crate::J2000_JD),
             center: Center::Heliocentric,
         }
     }
 
     #[test]
     fn zero_inclination_circular_orbit_lies_in_ecliptic_at_radius_a() {
+        // At the epoch (t=0) the Kepler dmot term is zero, so the body sits at
+        // mean anomaly 0 on a circle of radius a in the J2000 ecliptic plane.
         let (x, y, z) = circular_j2000(3.0).state_at(crate::J2000_JD);
         assert!(z.abs() < 1.0e-12, "z={z}");
         assert!((x.hypot(y) - 3.0).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn kepler_mean_motion_advances_a_non_t_term_body() {
+        // Guard against the stationary-body bug: a body with no mean-anomaly
+        // T-term must advance via Kepler's third law (dmot ∝ a^-1.5).
+        let el = circular_j2000(3.0);
+        let (x0, y0, _) = el.state_at(crate::J2000_JD);
+        let (x1, y1, _) = el.state_at(crate::J2000_JD + 365.25);
+        let sep = ((x1 - x0).powi(2) + (y1 - y0).powi(2)).sqrt();
+        assert!(sep > 1.0e-3, "non-T-term body should advance; sep={sep}");
     }
 }
 ```
@@ -493,38 +546,24 @@ mod tests {
 `crates/pleiades-fict/src/frame.rs`:
 
 ```rust
-//! Rotate an element-frame ecliptic Cartesian vector to the J2000 mean ecliptic.
+//! Rotate an element-equinox ecliptic Cartesian vector to the J2000 mean ecliptic.
 
-use crate::elements::ElementFrame;
-
-/// Rotate `(x, y, z)` (AU) from the elements' reference frame to J2000 mean
-/// ecliptic. J2000 is identity; of-date is precessed via `pleiades_apparent`;
-/// B1950 uses the fixed IAU B1950→J2000 ecliptic rotation.
-pub fn rotate_to_j2000_ecliptic(
-    x: f64,
-    y: f64,
-    z: f64,
-    frame: ElementFrame,
-    jd_tt: f64,
-) -> (f64, f64, f64) {
-    match frame {
-        ElementFrame::J2000 => (x, y, z),
-        ElementFrame::OfDate => precess_cartesian_date_to_j2000(x, y, z, jd_tt),
-        ElementFrame::B1950 => rotate_b1950_to_j2000(x, y, z),
+/// Rotate `(x, y, z)` (AU) from the mean ecliptic of the element equinox
+/// `equinox_jd` to the J2000 mean ecliptic. J2000 is identity; any other equinox
+/// is precessed via `pleiades_apparent::precess_ecliptic_date_to_j2000`
+/// (ecliptic-frame IAU-1976 precession; distance is preserved). For
+/// `Equinox::OfDate` the caller passes the evaluation JD as `equinox_jd`.
+pub fn rotate_ecliptic_to_j2000(x: f64, y: f64, z: f64, equinox_jd: f64) -> (f64, f64, f64) {
+    if (equinox_jd - crate::J2000_JD).abs() < 1.0e-6 {
+        return (x, y, z);
     }
-}
-
-/// Precess an ecliptic Cartesian vector from mean-of-date to J2000 by converting
-/// to spherical, reusing the scalar longitude/latitude precession helper, and
-/// converting back (distance is preserved under precession).
-fn precess_cartesian_date_to_j2000(x: f64, y: f64, z: f64, jd_tt: f64) -> (f64, f64, f64) {
     let r = (x * x + y * y + z * z).sqrt();
     if r == 0.0 {
         return (0.0, 0.0, 0.0);
     }
     let lon = y.atan2(x).to_degrees().rem_euclid(360.0);
-    let lat = (z / r).asin().to_degrees();
-    let p = pleiades_apparent::precess_ecliptic_date_to_j2000(lon, lat, jd_tt)
+    let lat = (z / r).clamp(-1.0, 1.0).asin().to_degrees();
+    let p = pleiades_apparent::precess_ecliptic_date_to_j2000(lon, lat, equinox_jd)
         .expect("fictitious body lon/lat precess cleanly to J2000");
     let lon_r = p.longitude_deg.to_radians();
     let lat_r = p.latitude_deg.to_radians();
@@ -535,20 +574,29 @@ fn precess_cartesian_date_to_j2000(x: f64, y: f64, z: f64, jd_tt: f64) -> (f64, 
     )
 }
 
-/// Fixed rotation of an ecliptic Cartesian vector from the B1950 mean ecliptic to
-/// the J2000 mean ecliptic (IAU 1976 precession angles applied as a constant
-/// matrix; the residual is well within the arcsecond-class parity ceiling).
-fn rotate_b1950_to_j2000(x: f64, y: f64, z: f64) -> (f64, f64, f64) {
-    // Precession in ecliptic longitude from B1950 to J2000 is ~ +0.700° about the
-    // ecliptic pole, with the small obliquity-change term folded in. Implemented as
-    // a longitude rotation; the tiny latitude term is below the parity ceiling.
-    const D_LON_DEG: f64 = 0.699_9; // B1950 -> J2000 general precession in longitude
-    let (s, c) = D_LON_DEG.to_radians().sin_cos();
-    (c * x - s * y, s * x + c * y, z)
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn j2000_equinox_is_identity() {
+        let (x, y, z) = rotate_ecliptic_to_j2000(1.0, 2.0, 0.5, crate::J2000_JD);
+        assert!((x - 1.0).abs() < 1.0e-12);
+        assert!((y - 2.0).abs() < 1.0e-12);
+        assert!((z - 0.5).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn precession_preserves_distance() {
+        // Ecliptic precession is a pure rotation: |v| is invariant. J1900 = 2415020.0.
+        let (x, y, z) = rotate_ecliptic_to_j2000(3.0, 0.0, 0.0, 2_415_020.0);
+        let r = (x * x + y * y + z * z).sqrt();
+        assert!((r - 3.0).abs() < 1.0e-9, "distance changed: r={r}");
+    }
 }
 ```
 
-Note: `precess_ecliptic_date_to_j2000` is already used by `ElpBackend` (`crates/pleiades-elp/src/backend.rs`) and returns a struct with `longitude_deg` / `latitude_deg`. If the B1950 constant proves too coarse when the parity gate runs (Task 9), refine `rotate_b1950_to_j2000` to the full IAU matrix — the gate is the arbiter.
+Note: `precess_ecliptic_date_to_j2000` is already used by `ElpBackend` (`crates/pleiades-elp/src/backend.rs`) and returns a struct with `longitude_deg` / `latitude_deg`. It is IAU-1976 (accurate to a few centuries around J2000); every default body's equinox is within ~150 yr of J2000 **except Nibiru** (~370 AD, ~1630 yr of extrapolation), whose residual will be larger — expected, and its Task 8 ceiling is set from the measurement, not hand-tightened to the others' level. None of the 19 bodies uses a `B1950` equinox (B1950 appears only in out-of-scope comet sets), so no fixed B1950 matrix is needed; `Equinox::Fixed(2433282.42345905)` would precess generically if one did. The `.expect()` never fires for finite inputs (the helper returns `Err` only on a non-finite result), matching `ElpBackend`'s precedent.
 
 - [ ] **Step 3: Wire the modules into lib.rs**
 
@@ -562,7 +610,7 @@ pub mod frame;
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `cargo test -p pleiades-fict`
-Expected: PASS (Kepler tests + `zero_inclination_circular_orbit_lies_in_ecliptic_at_radius_a`).
+Expected: PASS (Kepler tests + `zero_inclination_circular_orbit_lies_in_ecliptic_at_radius_a`, `kepler_mean_motion_advances_a_non_t_term_body`, `j2000_equinox_is_identity`, `precession_preserves_distance`).
 
 - [ ] **Step 5: Commit**
 
@@ -585,19 +633,24 @@ git commit -m "feat(fict): SP-3 orbital-element model + J2000 frame rotation"
 
 - [ ] **Step 1: Create the committed CSV**
 
-`crates/pleiades-fict/data/fictitious-elements.csv`. **Source every numeric value from Swiss Ephemeris `seorbel.txt`** (the same file the Task 8 generator links against; obtainable from the SE distribution). Do NOT invent coefficients — the `validate-fictitious` gate (Task 9) is the acceptance test. Column order (positional, comma-separated), header + `#` comments skipped:
+`crates/pleiades-fict/data/fictitious-elements.csv`. **Transcribe every value from the committed `tools/se-fictitious-reference/data/seorbel.txt`** (element sets 1–19 = SE bodies 40–58; committed in Task 7 Step 0). Do NOT invent coefficients — the `validate-fictitious` gate (Task 9) is the acceptance test. A `seorbel.txt` element field may carry a linear time term written `v0 + v1 * T` (T in Julian centuries since epoch); **explode it into `c0,c1,c2`** (`c0=v0, c1=v1, c2=0`; almost every field is constant → `c1=c2=0`). The `epoch` and `equinox` columns accept the tokens `J1900` (2415020.0), `B1950` (2433282.42345905), `J2000` (2451545.0), or a bare JD; `equinox` additionally accepts `JDATE` (= of-date). Column order (positional, comma-separated), header + `#` comments skipped:
 
 ```
-# fictitious-elements.csv — osculating elements transcribed from Swiss Ephemeris seorbel.txt.
-# One row per SE fictitious body 40..=58. Angles in degrees; a in AU; polynomial
-# terms are c0,c1,c2 with T in Julian centuries (36525 d) since epoch_jd_tt.
-# frame ∈ {J2000,B1950,OfDate}; center ∈ {helio,geo}.
-# body,epoch_jd_tt,a0,a1,a2,e0,e1,e2,i0,i1,i2,node0,node1,node2,argp0,argp1,argp2,M0,M1,M2,frame,center
-Cupido,<epoch>,<a0>,<a1>,<a2>,<e0>,<e1>,<e2>,<i0>,<i1>,<i2>,<node0>,<node1>,<node2>,<argp0>,<argp1>,<argp2>,<M0>,<M1>,<M2>,J2000,helio
-...one row per body through Waldemath...
+# fictitious-elements.csv — osculating elements transcribed from Swiss Ephemeris seorbel.txt (sets 1–19 = SE 40–58).
+# Angles in degrees; a in AU; each element is a polynomial c0,c1,c2 with T in Julian
+# centuries (36525 d) since epoch. epoch ∈ {J1900,B1950,J2000,<jd>}; equinox ∈
+# {J1900,B1950,J2000,JDATE,<jd>}; center ∈ {helio,geo}.
+# body,epoch,a0,a1,a2,e0,e1,e2,i0,i1,i2,node0,node1,node2,argp0,argp1,argp2,M0,M1,M2,equinox,center
+# Cupido (seorbel set 1): "J1900, J1900, 163.7409, 40.99837, 0.00460, 171.4333, 129.8325, 1.0833, Cupido"
+Cupido,J1900,40.99837,0,0,0.00460,0,0,1.0833,0,0,129.8325,0,0,171.4333,0,0,163.7409,0,0,J1900,helio
+# Nibiru (set 10): arbitrary-JD epoch & equinox, high eccentricity
+Nibiru,1856113.380954,234.8921,0,0,0.981092,0,0,158.708,0,0,-44.567,0,0,103.966,0,0,0.0,0,0,1856113.380954,helio
+# Vulcan (set 16): equinox JDATE; mean-anomaly, argp, node carry T-terms
+Vulcan,J1900,0.13744,0,0,0.019,0,0,7.5,0,0,47.787931,-1670.056,0,322.212069,1670.056,0,252.8987988,707550.7341,0,JDATE,helio
+...one row per body through Waldemath (set 19)...
 ```
 
-The `body` column string must exactly match `CelestialBody::built_in_name()` for that variant? No — use a stable token; map it in the parser (Step 2). Use these tokens: `Cupido, Hades, Zeus, Kronos, Apollon, Admetos, Vulkanus, Poseidon, Transpluto, Nibiru, Harrington, NeptuneLeverrier, NeptuneAdams, PlutoLowell, PlutoPickering, Vulcan, WhiteMoon, Proserpina, Waldemath`. Set `center=geo` for `WhiteMoon` and `Waldemath`, `helio` for the rest. Set `frame` per each body's `seorbel.txt` reference equinox.
+**seorbel column order is (epoch, equinox, mean-anomaly, semi-axis, eccentricity, arg-perihelion, ascending-node, inclination, name[, "geo"])** — the CSV reorders these into the `a,e,i,node,argp,M` layout above, so transcribe **by field name, not position** (note mean-anomaly is field 3 in seorbel but the `M` columns are last-but-two in the CSV). Use these body tokens (order matches seorbel sets 1–19): `Cupido, Hades, Zeus, Kronos, Apollon, Admetos, Vulkanus, Poseidon, Transpluto, Nibiru, Harrington, NeptuneLeverrier, NeptuneAdams, PlutoLowell, PlutoPickering, Vulcan, WhiteMoon, Proserpina, Waldemath`. Set `center=geo` for `WhiteMoon` (Selena, set 17) and `Waldemath` (set 19) — both tagged `geo` in seorbel — and `helio` for the rest.
 
 - [ ] **Step 2: Write the failing parser test**
 
@@ -637,6 +690,26 @@ fn body_from_token(token: &str) -> CelestialBody {
     }
 }
 
+/// Resolve an epoch/equinox JD token: the `J1900`/`B1950`/`J2000` keywords or a
+/// bare Julian Day. (`JDATE` is handled separately by `equinox_from_token`.)
+fn jd_from_token(tok: &str) -> f64 {
+    match tok.trim() {
+        "J1900" => 2_415_020.0,
+        "B1950" => 2_433_282.423_459_05,
+        "J2000" => 2_451_545.0,
+        other => other
+            .parse::<f64>()
+            .unwrap_or_else(|_| panic!("bad epoch/JD token in elements CSV: {other}")),
+    }
+}
+
+fn equinox_from_token(tok: &str) -> Equinox {
+    match tok.trim() {
+        "JDATE" => Equinox::OfDate,
+        other => Equinox::Fixed(jd_from_token(other)),
+    }
+}
+
 fn parse_table() -> Vec<(CelestialBody, KeplerElements)> {
     RAW.lines()
         .filter(|l| !l.starts_with('#') && !l.trim().is_empty())
@@ -645,19 +718,14 @@ fn parse_table() -> Vec<(CelestialBody, KeplerElements)> {
             let g = |i: usize| f[i].trim().parse::<f64>().unwrap();
             let body = body_from_token(f[0].trim());
             let elements = KeplerElements {
-                epoch_jd_tt: g(1),
+                epoch_jd_tt: jd_from_token(f[1]),
                 a_au: [g(2), g(3), g(4)],
                 e: [g(5), g(6), g(7)],
                 incl_deg: [g(8), g(9), g(10)],
                 node_deg: [g(11), g(12), g(13)],
                 arg_peri_deg: [g(14), g(15), g(16)],
                 mean_anom_deg: [g(17), g(18), g(19)],
-                frame: match f[20].trim() {
-                    "J2000" => ElementFrame::J2000,
-                    "B1950" => ElementFrame::B1950,
-                    "OfDate" => ElementFrame::OfDate,
-                    other => panic!("unknown frame token: {other}"),
-                },
+                equinox: equinox_from_token(f[20]),
                 center: match f[21].trim() {
                     "helio" => Center::Heliocentric,
                     "geo" => Center::Geocentric,
@@ -1103,6 +1171,20 @@ git commit -m "feat(cli): SP-3 route fictitious bodies into the chart backend ch
 **Interfaces:**
 - Produces: `tools/se-fictitious-reference` binary emitting `fictitious.csv` + `manifest.txt` (row schema agreed with Task 8's validator). fnv1a64 re-implemented locally, byte-identical to `pleiades_apparent::fnv1a64`.
 
+- [ ] **Step 0: Commit the SE element source (`seorbel.txt`)**
+
+The generator needs Swiss Ephemeris's `seorbel.txt`; SE's built-in fallback covers only bodies 40–54, so bodies 55–58 (Vulcan, White Moon, Proserpina, Waldemath) require the file. Fetch the verbatim distribution file and commit it as provenance (it is also the transcription source for Task 4's CSV):
+
+```bash
+mkdir -p tools/se-fictitious-reference/data
+curl -fsSL https://raw.githubusercontent.com/aloistr/swisseph/master/ephe/seorbel.txt \
+  -o tools/se-fictitious-reference/data/seorbel.txt
+# sanity: 19 in-scope element sets (sets 1–19 = SE 40–58); the file also holds
+# out-of-scope sets 20+ (comets, Planet 9) which SE never reaches for ipl 40–58.
+```
+
+Keep the file **verbatim** — do not edit or trim it. (A copy fetched during planning is also staged at `<session-scratchpad>/seorbel.txt`.) Commit it together with the tool in Step 5.
+
 - [ ] **Step 1: Scaffold the tool manifest**
 
 Model on `tools/se-eclipse-local-reference/Cargo.toml` (own empty `[workspace]` table, `libswisseph-sys = "0.1.2"`):
@@ -1127,9 +1209,10 @@ In root `Cargo.toml`, add `"tools/se-fictitious-reference"` to the `exclude` arr
 - [ ] **Step 3: Write the generator**
 
 `tools/se-fictitious-reference/src/main.rs`. Mirror `tools/se-eclipse-local-reference/src/main.rs` structure. Core:
-- Set ephemeris flags `SEFLG_MOSEPH` (4) — Moshier, no data files; the fictitious bodies read from SE's own `seorbel.txt` (ensure `swe_set_ephe_path` points where `seorbel.txt` lives, or rely on the SE default).
-- For each SE body number 40..=58, sample a per-body date grid over JD for 1900–2100 TDB (e.g., N dates each), call `swe_calc(jd_tt, ipl, SEFLG_MOSEPH | SEFLG_J2000, xx)` to get J2000 ecliptic lon/lat/dist. **Match the shipped backend's boundary frame (J2000 mean ecliptic, geometric, geocentric)** — use `SEFLG_J2000`, no `SEFLG_TRUEPOS`/apparent flags, so the corpus is directly comparable to `FictitiousBackend::position`.
-- Emit CSV rows: `label,se_body,jd_tt,lon_deg,lat_deg,dist_au`. Include a header line prefixed so the validator's filter skips it, and `#` comments.
+- Point SE at the committed elements file: `swe_set_ephe_path(dir)` where `dir` = `tools/se-fictitious-reference/data` (contains `seorbel.txt`, committed in Step 0). **Required** — without `seorbel.txt`, SE's built-in fallback covers only bodies 40–54 and errors on 55–58 (`SE_NFICT_ELEM = 15`).
+- Flags: `SEFLG_MOSEPH | SEFLG_J2000 | SEFLG_TRUEPOS | SEFLG_NOABERR | SEFLG_NOGDEFL` (values `4 | 32 | 16 | 1024 | 512`). This matches the backend's **geometric** geocentric J2000 boundary: `SEFLG_TRUEPOS` drops light-time, `SEFLG_NOABERR` drops annual aberration, `SEFLG_NOGDEFL` drops gravitational deflection. Bare `SEFLG_J2000` alone emits *apparent* positions (light-time + aberration) and would break parity vs `FictitiousBackend::position`.
+- For each SE body number 40..=58, sample a per-body date grid over JD for 1900–2100 TDB (e.g., N dates each), call `swe_calc(jd_tt, ipl, iflag, xx)` to get J2000 ecliptic lon/lat/dist. **Check the return code / `serr` and abort on any SE error** (fail-closed) so a missing or unreadable `seorbel.txt` cannot silently yield a short corpus.
+- Emit CSV rows: `label,se_body,jd_tt,lon_deg,lat_deg,dist_au`. Include a header line prefixed so the validator's filter skips it, and `#` comments citing the SE version and the exact `iflag`.
 - Copy the local `fnv1a64` from the eclipse tool verbatim (with the same "matches repo scheme" comment).
 - `build_manifest()` emits `file: fictitious.csv rows={n} checksum={fnv1a64(csv)}`.
 - `--dry-run` prints; `--out <dir>` writes `fictitious.csv` + `manifest.txt`.
@@ -1176,6 +1259,8 @@ Then hand-write `crates/pleiades-validate/data/fictitious-corpus/MANIFEST.md` (h
 ```rust
 //! Measured-basis ceilings for the fictitious-body SE-parity gate. Set from
 //! observed residual maxima (~1.4×) once the corpus is measured (see Step 6).
+//! Nibiru (equinox ~370 AD) is expected to exceed the others and may get a
+//! documented per-body carve-out rather than inflating these globals.
 
 /// Max ecliptic-longitude residual vs SE, arcseconds.
 pub const LONGITUDE_ARCSEC: f64 = 60.0;
@@ -1194,7 +1279,7 @@ pub const DISTANCE_AU: f64 = 1.0e-3;
 - `parse_manifest()` + `check_checksum()` copied structurally from the eclipse module (same `file: NAME rows=N checksum=U64` format).
 - `FictitiousError` enum (`ChecksumMismatch`, `RowCountMismatch`, `ToleranceExceeded`, `Parse`, `Backend`) with `Display`.
 - `FictitiousReport { rows, max_lon_arcsec, max_lat_arcsec, max_dist_au }` with `passed()` + `summary_line()`.
-- `measure()`: checksum guard → parse rows → build `FictitiousBackend::new(pleiades_data::packaged_backend())` once → for each row, `position()` at `jd_tt` (TT/TDB Instant) → **Tier 1 self-consistency**: assert finite lon/lat/dist, lon∈[0,360), lat∈[−90,90]; accumulate **Tier 2** residuals |lon−se|, |lat−se| (with 360° wrap for lon), |dist−se|; enforce row count == `EXPECTED_ROWS`.
+- `measure()`: checksum guard → parse rows → build `FictitiousBackend::new(pleiades_data::packaged_backend())` once → for each row, `position()` at `jd_tt` (TT/TDB Instant) → **Tier 1 self-consistency**: assert finite lon/lat/dist, lon∈[0,360), lat∈[−90,90]; accumulate **Tier 2** residuals |lon−se|, |lat−se| (with 360° wrap for lon), |dist−se|, tracking the max **per body** (record which body produced each maximum — for diagnosis and a possible per-body ceiling, see Step 6); enforce row count == `EXPECTED_ROWS`.
 - `run_fictitious_tier1_only()` → tier-1 checks + row count, no ceilings.
 - `validate_fictitious_corpus()` → `measure()` then gate the three maxima against `LONGITUDE_ARCSEC` / `LATITUDE_ARCSEC` / `DISTANCE_AU`, returning `ToleranceExceeded` on breach.
 
@@ -1248,7 +1333,13 @@ Expected: `manifest_row_count_is_pinned`, `checksum_drift_fails_closed`, `gate_p
 
 - [ ] **Step 6: Set ceilings from measured residuals**
 
-Temporarily print the measured maxima (add an `eprintln!` in `measure()` or a throwaway test that prints `report.max_lon_arcsec` etc.), run the gate, then set each constant in `fictitious_thresholds.rs` to ~1.4× the observed maximum (matching the eclipse-thresholds convention). Remove the debug print. If longitude residuals are large for a specific body, its element row or frame tag is likely wrong (revisit Task 4 / the B1950 rotation in Task 3) — the gate is doing its job. Re-run:
+Temporarily print the measured maxima **and the body that produced each** (add an `eprintln!` in `measure()` or a throwaway test), run the gate, then set each constant in `fictitious_thresholds.rs` to ~1.4× the observed maximum (matching the eclipse-thresholds convention). Remove the debug print.
+
+Two diagnostic rules:
+- If longitude/latitude residuals are large for one **specific body**, its transcribed element row is likely wrong — a mis-exploded T-term, a swapped seorbel field (mean-anomaly is seorbel field 3 but a late CSV column), or the wrong `equinox`/`center` token. Fix Task 4, not the ceiling.
+- **Nibiru is the expected outlier.** Its equinox is ~370 AD (~1630 yr), beyond the IAU-1976 precession helper's accurate range (Reconciliation §2), so its residual will exceed the others' by a wide margin. If Nibiru would force the global longitude ceiling above ~arcminute level, do **not** inflate the global gate: set the global ceilings from the max over the *other 18* bodies and give Nibiru a documented per-body carve-out (e.g. a `NIBIRU_LONGITUDE_ARCSEC` constant applied only to Nibiru rows in `validate_fictitious_corpus`). Disclose the Nibiru limitation in `MANIFEST.md` and the crate README — never hide it behind a loose global ceiling.
+
+Re-run:
 
 Run: `cargo test -p pleiades-validate fictitious`
 Expected: PASS with tightened ceilings.
@@ -1395,7 +1486,7 @@ Expected: OK. If it enumerates per-body/per-gate claim tiers and flags the new f
 - `README.md` (root): add a fictitious-bodies line to the event-engine/feature list and bump any profile-version mention to 0.7.9.
 - `PLAN.md`: append an SP-3 done clause to the status line (mirroring the SP-2c clause), and note remaining event-engine follow-ups (`swe_pheno`, `swe_nod_aps`, custom elements, occultations, central-path cartography).
 - `plan/status/01-current-execution-frontier.md` and `plan/status/02-next-slice-candidates.md`: move SP-3 from "next candidate / not yet scoped" to **done**; record `swe_pheno` / `swe_nod_aps` as the next candidate slices.
-- `crates/pleiades-fict/README.md`: ensure it states the definitional-parity claim and the gate name.
+- `crates/pleiades-fict/README.md`: ensure it states the definitional-parity claim and the gate name, cites the `seorbel.txt` provenance, and discloses the Nibiru precession limitation (IAU-1976 ecliptic precession vs SE's long-term model at Nibiru's ~370 AD equinox).
 
 - [ ] **Step 6: Full-workspace verification**
 
@@ -1436,6 +1527,6 @@ git commit -m "docs(events): SP-3 declare fictitious bodies; profile 0.7.9; mark
 
 **2. Placeholder scan:** The only deferred values are the `seorbel.txt` orbital-element numbers (Task 4) and the measured-residual ceilings (Task 8 Step 6) — both are legitimately data-sourced/measurement-derived, not code placeholders, and each has an explicit acceptance step (the parity gate; the ~1.4×-max rule). All code steps contain complete code.
 
-**3. Type consistency:** `FictitiousBackend::new(sun_source)`, `elements_for(body) -> Option<&'static KeplerElements>`, `KeplerElements::state_at(jd) -> (f64,f64,f64)`, `rotate_to_j2000_ecliptic(...)`, `solve_kepler`/`orbital_plane_position`, `validate_fictitious_corpus() -> Result<FictitiousReport, FictitiousError>` are used consistently across tasks. CSV column order (Task 4 Step 1) matches the parser field indices (Task 4 Step 2). The gate names `validate-fictitious`/`fictitious-gate` are identical in Tasks 8–10.
+**3. Type consistency:** `FictitiousBackend::new(sun_source)`, `elements_for(body) -> Option<&'static KeplerElements>`, `KeplerElements::state_at(jd) -> (f64,f64,f64)`, `rotate_ecliptic_to_j2000(x,y,z,equinox_jd)`, `Equinox { Fixed(f64), OfDate }`, `solve_kepler`/`orbital_plane_position`, `validate_fictitious_corpus() -> Result<FictitiousReport, FictitiousError>` are used consistently across tasks. CSV column order (Task 4 Step 1: `…,equinox,center`) matches the parser field indices (Task 4 Step 2: `f[20]` equinox, `f[21]` center). The Kepler/frame model matches SE `swi_osc_el_plan` per the Reconciliation section. The gate names `validate-fictitious`/`fictitious-gate` are identical in Tasks 8–10.
 
 **Known verification points for the implementer** (call out at review, not blockers): exact `ClaimEvidence` variant + whether it carries free text (Task 5 Step 4); exact `validate_request_policy` signature (mirror `ElpBackend`); `EphemerisResult` field names (`ecliptic`/`motion`/`quality`); the CLI chart body-name parser location (Task 6); `check_checksum` signature in the eclipse module (Task 8 Step 3); the compat-profile print subcommand name (Task 10 Step 6).
