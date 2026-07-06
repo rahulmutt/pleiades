@@ -341,3 +341,181 @@ mod tests {
         assert!(matches!(solar, LocalCircumstances::Solar(_)));
     }
 }
+
+/// Half-width of the solar contact search bracket around local maximum (days).
+/// A local solar eclipse's partial phase never exceeds ~3.5 h; 0.25 day (6 h)
+/// is a safe superset.
+const SOLAR_CONTACT_HALF_WINDOW_DAYS: f64 = 0.25;
+/// Root/extremum refinement tolerance: 0.5 s, matching the crate's global
+/// `refine_greatest` and the SP-2a root-finder.
+const REFINE_TOLERANCE_DAYS: f64 = 0.5 / 86_400.0;
+
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct SolarContactsJd {
+    pub max_jd: f64,
+    pub c1_jd: f64,
+    pub c2_jd: f64,
+    pub c3_jd: f64,
+    pub c4_jd: f64,
+    pub min_sep_deg: f64,
+    pub s_sun_at_max: f64,
+    pub s_moon_at_max: f64,
+    pub c2_c3_present: bool,
+}
+
+/// Topocentric Sun–Moon separation (degrees) at `jd` for `observer`.
+fn solar_sep_deg<B: EphemerisBackend>(
+    backend: &B,
+    observer: &ObserverLocation,
+    jd: f64,
+) -> Result<f64, EclipseError> {
+    Ok(solar_geom(&topo_sun_moon(backend, observer, jd)?).sep_deg)
+}
+
+/// Golden-section minimize `sep(t)` in `[a,b]` to `REFINE_TOLERANCE_DAYS`.
+fn minimize_sep<B: EphemerisBackend>(
+    backend: &B,
+    observer: &ObserverLocation,
+    mut a: f64,
+    mut b: f64,
+) -> Result<f64, EclipseError> {
+    let phi = 0.618_033_988_75_f64;
+    let mut c = b - (b - a) * phi;
+    let mut d = a + (b - a) * phi;
+    let mut fc = solar_sep_deg(backend, observer, c)?;
+    let mut fd = solar_sep_deg(backend, observer, d)?;
+    while (b - a) > REFINE_TOLERANCE_DAYS {
+        if fc < fd {
+            b = d;
+            d = c;
+            fd = fc;
+            c = b - (b - a) * phi;
+            fc = solar_sep_deg(backend, observer, c)?;
+        } else {
+            a = c;
+            c = d;
+            fc = fd;
+            d = a + (b - a) * phi;
+            fd = solar_sep_deg(backend, observer, d)?;
+        }
+    }
+    Ok(0.5 * (a + b))
+}
+
+/// Bisect `sep(t) - threshold` between `lo` and `hi` where it changes sign;
+/// returns `None` if it does not change sign across the bracket.
+fn bisect_contact<B: EphemerisBackend>(
+    backend: &B,
+    observer: &ObserverLocation,
+    threshold: impl Fn(f64) -> f64, // threshold as fn of jd (semidiameters vary slowly)
+    mut lo: f64,
+    mut hi: f64,
+) -> Result<Option<f64>, EclipseError> {
+    let f = |jd: f64,
+             s: &mut dyn FnMut(f64) -> Result<f64, EclipseError>|
+     -> Result<f64, EclipseError> { Ok(s(jd)? - threshold(jd)) };
+    let mut sep = |jd: f64| solar_sep_deg(backend, observer, jd);
+    let mut flo = f(lo, &mut sep)?;
+    let mut fhi = f(hi, &mut sep)?;
+    if flo.signum() == fhi.signum() {
+        return Ok(None);
+    }
+    while (hi - lo) > REFINE_TOLERANCE_DAYS {
+        let mid = 0.5 * (lo + hi);
+        let fmid = f(mid, &mut sep)?;
+        if fmid.signum() == flo.signum() {
+            lo = mid;
+            flo = fmid;
+        } else {
+            hi = mid;
+            fhi = fmid;
+        }
+    }
+    let _ = fhi;
+    Ok(Some(0.5 * (lo + hi)))
+}
+
+/// Full set of solar contact instants for `observer` around `greatest_jd`.
+pub(crate) fn solar_contacts_jd<B: EphemerisBackend>(
+    backend: &B,
+    observer: &ObserverLocation,
+    greatest_jd: f64,
+) -> Result<Option<SolarContactsJd>, EclipseError> {
+    let max_jd = minimize_sep(
+        backend,
+        observer,
+        greatest_jd - SOLAR_CONTACT_HALF_WINDOW_DAYS,
+        greatest_jd + SOLAR_CONTACT_HALF_WINDOW_DAYS,
+    )?;
+    let g_max = solar_geom(&topo_sun_moon(backend, observer, max_jd)?);
+    let external = g_max.s_sun_deg + g_max.s_moon_deg;
+    if g_max.sep_deg >= external {
+        return Ok(None); // observer sees no eclipse at all
+    }
+    // Semidiameter sums vary slowly; freeze them at max for the threshold fn
+    // (sub-second contact error), matching the design's closed-form treatment.
+    let ext_threshold = move |_jd: f64| external;
+    let internal = (g_max.s_moon_deg - g_max.s_sun_deg).abs();
+    let int_threshold = move |_jd: f64| internal;
+
+    let lo = max_jd - SOLAR_CONTACT_HALF_WINDOW_DAYS;
+    let hi = max_jd + SOLAR_CONTACT_HALF_WINDOW_DAYS;
+    let c1 = bisect_contact(backend, observer, ext_threshold, lo, max_jd)?.unwrap_or(max_jd);
+    let c4 = bisect_contact(backend, observer, ext_threshold, max_jd, hi)?.unwrap_or(max_jd);
+
+    let c2_c3_present = g_max.sep_deg < internal;
+    let (c2, c3) = if c2_c3_present {
+        let c2 = bisect_contact(backend, observer, int_threshold, c1, max_jd)?.unwrap_or(max_jd);
+        let c3 = bisect_contact(backend, observer, int_threshold, max_jd, c4)?.unwrap_or(max_jd);
+        (c2, c3)
+    } else {
+        (max_jd, max_jd)
+    };
+
+    Ok(Some(SolarContactsJd {
+        max_jd,
+        c1_jd: c1,
+        c2_jd: c2,
+        c3_jd: c3,
+        c4_jd: c4,
+        min_sep_deg: g_max.sep_deg,
+        s_sun_at_max: g_max.s_sun_deg,
+        s_moon_at_max: g_max.s_moon_deg,
+        c2_c3_present,
+    }))
+}
+
+#[cfg(test)]
+mod solar_contact_tests {
+    use super::*;
+    use pleiades_backend::test_backend::LinearSunMoon;
+
+    #[test]
+    fn contacts_bracket_the_maximum() {
+        // Analytic on-node backend → central solar eclipse for an equatorial observer.
+        let backend = LinearSunMoon::new_moon_at(2_451_550.0).with_moon_latitude(0.0);
+        let observer = ObserverLocation::new(
+            Latitude::from_degrees(0.0),
+            Longitude::from_degrees(0.0),
+            Some(0.0),
+        );
+        let c = solar_contacts_jd(&backend, &observer, 2_451_550.0)
+            .unwrap()
+            .expect("a local eclipse");
+        assert!(
+            c.c1_jd <= c.max_jd + 1e-9 && c.max_jd <= c.c4_jd + 1e-9,
+            "C1<=max<=C4"
+        );
+        assert!(c.c1_jd < c.c4_jd, "C1 strictly before C4");
+        if c.c2_c3_present {
+            assert!(
+                c.c2_jd >= c.c1_jd - 1e-9 && c.c3_jd <= c.c4_jd + 1e-9,
+                "C2/C3 inside C1..C4"
+            );
+            assert!(
+                c.c2_jd <= c.max_jd + 1e-9 && c.max_jd <= c.c3_jd + 1e-9,
+                "C2<=max<=C3"
+            );
+        }
+    }
+}
