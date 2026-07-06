@@ -17,6 +17,9 @@ pub enum CelestialBodyClass {
     LunarPoint,
     /// Ceres, Pallas, Juno, and Vesta.
     BuiltInAsteroid,
+    /// A hypothetical/fictitious body defined by osculating orbital elements
+    /// (Uranian planets, Transpluto, Vulcan, historical pre-discovery predictions).
+    Fictitious,
     /// A structured custom body identifier.
     Custom,
 }
@@ -29,6 +32,7 @@ impl CelestialBodyClass {
             Self::MajorPlanet => "major planet",
             Self::LunarPoint => "lunar point",
             Self::BuiltInAsteroid => "built-in asteroid",
+            Self::Fictitious => "fictitious body",
             Self::Custom => "custom body",
         }
     }
@@ -85,6 +89,44 @@ pub enum CelestialBody {
     Juno,
     /// Vesta.
     Vesta,
+    /// Cupido (Uranian/Hamburg, Witte) — SE fictitious body 40.
+    Cupido,
+    /// Hades (Uranian/Hamburg, Witte) — SE 41.
+    Hades,
+    /// Zeus (Uranian/Hamburg, Sieggrün) — SE 42.
+    Zeus,
+    /// Kronos (Uranian/Hamburg, Sieggrün) — SE 43.
+    Kronos,
+    /// Apollon (Uranian/Hamburg, Sieggrün) — SE 44.
+    Apollon,
+    /// Admetos (Uranian/Hamburg, Sieggrün) — SE 45.
+    Admetos,
+    /// Vulkanus (Uranian/Hamburg, Sieggrün) — SE 46.
+    Vulkanus,
+    /// Poseidon (Uranian/Hamburg, Sieggrün) — SE 47.
+    Poseidon,
+    /// Isis / Transpluto — SE 48.
+    Transpluto,
+    /// Nibiru — SE 49.
+    Nibiru,
+    /// Harrington — SE 50.
+    Harrington,
+    /// Neptune (Leverrier historical prediction) — SE 51.
+    NeptuneLeverrier,
+    /// Neptune (Adams historical prediction) — SE 52.
+    NeptuneAdams,
+    /// Pluto (Lowell historical prediction) — SE 53.
+    PlutoLowell,
+    /// Pluto (Pickering historical prediction) — SE 54.
+    PlutoPickering,
+    /// Vulcan (intramercurial) — SE 55.
+    Vulcan,
+    /// White Moon / Selena (geocentric orbit) — SE 56.
+    WhiteMoon,
+    /// Proserpina — SE 57.
+    Proserpina,
+    /// Waldemath (hypothetical second Earth moon, geocentric orbit) — SE 58.
+    Waldemath,
     /// A body that is not yet one of the built-in identifiers.
     Custom(CustomBodyId),
 }
@@ -111,6 +153,25 @@ impl CelestialBody {
             Self::Ceres | Self::Pallas | Self::Juno | Self::Vesta => {
                 CelestialBodyClass::BuiltInAsteroid
             }
+            Self::Cupido
+            | Self::Hades
+            | Self::Zeus
+            | Self::Kronos
+            | Self::Apollon
+            | Self::Admetos
+            | Self::Vulkanus
+            | Self::Poseidon
+            | Self::Transpluto
+            | Self::Nibiru
+            | Self::Harrington
+            | Self::NeptuneLeverrier
+            | Self::NeptuneAdams
+            | Self::PlutoLowell
+            | Self::PlutoPickering
+            | Self::Vulcan
+            | Self::WhiteMoon
+            | Self::Proserpina
+            | Self::Waldemath => CelestialBodyClass::Fictitious,
             Self::Custom(_) => CelestialBodyClass::Custom,
         }
     }
@@ -138,6 +199,25 @@ impl CelestialBody {
             Self::Pallas => Some("Pallas"),
             Self::Juno => Some("Juno"),
             Self::Vesta => Some("Vesta"),
+            Self::Cupido => Some("Cupido"),
+            Self::Hades => Some("Hades"),
+            Self::Zeus => Some("Zeus"),
+            Self::Kronos => Some("Kronos"),
+            Self::Apollon => Some("Apollon"),
+            Self::Admetos => Some("Admetos"),
+            Self::Vulkanus => Some("Vulkanus"),
+            Self::Poseidon => Some("Poseidon"),
+            Self::Transpluto => Some("Transpluto"),
+            Self::Nibiru => Some("Nibiru"),
+            Self::Harrington => Some("Harrington"),
+            Self::NeptuneLeverrier => Some("Neptune (Leverrier)"),
+            Self::NeptuneAdams => Some("Neptune (Adams)"),
+            Self::PlutoLowell => Some("Pluto (Lowell)"),
+            Self::PlutoPickering => Some("Pluto (Pickering)"),
+            Self::Vulcan => Some("Vulcan"),
+            Self::WhiteMoon => Some("White Moon"),
+            Self::Proserpina => Some("Proserpina"),
+            Self::Waldemath => Some("Waldemath"),
             Self::Custom(_) => None,
         }
     }
@@ -178,7 +258,48 @@ impl fmt::Display for CelestialBody {
             Self::Pallas => f.write_str("Pallas"),
             Self::Juno => f.write_str("Juno"),
             Self::Vesta => f.write_str("Vesta"),
+            Self::Cupido => f.write_str("Cupido"),
+            Self::Hades => f.write_str("Hades"),
+            Self::Zeus => f.write_str("Zeus"),
+            Self::Kronos => f.write_str("Kronos"),
+            Self::Apollon => f.write_str("Apollon"),
+            Self::Admetos => f.write_str("Admetos"),
+            Self::Vulkanus => f.write_str("Vulkanus"),
+            Self::Poseidon => f.write_str("Poseidon"),
+            Self::Transpluto => f.write_str("Transpluto"),
+            Self::Nibiru => f.write_str("Nibiru"),
+            Self::Harrington => f.write_str("Harrington"),
+            Self::NeptuneLeverrier => f.write_str("Neptune (Leverrier)"),
+            Self::NeptuneAdams => f.write_str("Neptune (Adams)"),
+            Self::PlutoLowell => f.write_str("Pluto (Lowell)"),
+            Self::PlutoPickering => f.write_str("Pluto (Pickering)"),
+            Self::Vulcan => f.write_str("Vulcan"),
+            Self::WhiteMoon => f.write_str("White Moon"),
+            Self::Proserpina => f.write_str("Proserpina"),
+            Self::Waldemath => f.write_str("Waldemath"),
             Self::Custom(custom) => fmt::Display::fmt(custom, f),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn fictitious_bodies_map_to_fictitious_class() {
+        for body in [
+            CelestialBody::Cupido,
+            CelestialBody::Transpluto,
+            CelestialBody::Vulcan,
+            CelestialBody::WhiteMoon,
+            CelestialBody::Waldemath,
+        ] {
+            assert_eq!(body.class(), CelestialBodyClass::Fictitious);
+            assert!(body.built_in_name().is_some());
+            assert!(!body.to_string().is_empty());
+        }
+        assert_eq!(CelestialBody::Transpluto.built_in_name(), Some("Transpluto"));
+        assert_eq!(CelestialBody::WhiteMoon.to_string(), "White Moon");
     }
 }
