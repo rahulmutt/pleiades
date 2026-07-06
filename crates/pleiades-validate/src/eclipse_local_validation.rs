@@ -51,8 +51,9 @@ use crate::eclipse_local_thresholds::*;
 use pleiades_apparent::{fnv1a64, Atmosphere};
 use pleiades_data::packaged_backend;
 use pleiades_eclipse::{
-    Eclipse, EclipseEngine, EclipseFilter, LocalCircumstances, LocalContact,
+    Eclipse, EclipseEngine, EclipseFilter, EclipseKind, LocalCircumstances, LocalContact,
     LocalLunarCircumstances, LocalSolarCircumstances, LunarEclipseType, SolarEclipseType,
+    WINDOW_START_JD,
 };
 use pleiades_types::{Instant, JulianDay, Latitude, Longitude, ObserverLocation, TimeScale};
 use std::collections::BTreeMap;
@@ -831,6 +832,116 @@ pub fn validate_eclipse_local_corpus() -> Result<EclipseLocalReport, EclipseLoca
         }
     }
     Ok(m.into_report())
+}
+
+/// Prints the next locally-visible eclipse's per-observer circumstances for a
+/// given observer, mirroring `eclipse_validation::render_eclipses_listing`'s
+/// arg-parsing and one-line-per-result formatting shape.
+///
+/// Usage: `eclipse-local --lat <deg> --lon <deg> [--elev <m>] [--after <jd>] [--solar|--lunar]`
+///
+/// JD floats are the only accepted format for `--after` (ISO dates are not
+/// supported); defaults to [`WINDOW_START_JD`] when omitted. `--elev` defaults
+/// to `0.0` meters. `--lat`/`--lon` are required.
+pub fn render_eclipse_local_listing(args: &[&str]) -> Result<String, String> {
+    let mut lat: Option<f64> = None;
+    let mut lon: Option<f64> = None;
+    let mut elev = 0.0_f64;
+    let mut after_jd = WINDOW_START_JD;
+    let mut filter = EclipseFilter::All;
+
+    let mut i = 0;
+    while i < args.len() {
+        match args[i] {
+            "--lat" => {
+                i += 1;
+                let val = args
+                    .get(i)
+                    .ok_or("eclipse-local: --lat requires a degree value")?;
+                lat =
+                    Some(val.parse::<f64>().map_err(|_| {
+                        format!("eclipse-local: --lat: invalid degree value '{val}'")
+                    })?);
+            }
+            "--lon" => {
+                i += 1;
+                let val = args
+                    .get(i)
+                    .ok_or("eclipse-local: --lon requires a degree value")?;
+                lon =
+                    Some(val.parse::<f64>().map_err(|_| {
+                        format!("eclipse-local: --lon: invalid degree value '{val}'")
+                    })?);
+            }
+            "--elev" => {
+                i += 1;
+                let val = args
+                    .get(i)
+                    .ok_or("eclipse-local: --elev requires a meter value")?;
+                elev = val
+                    .parse::<f64>()
+                    .map_err(|_| format!("eclipse-local: --elev: invalid meter value '{val}'"))?;
+            }
+            "--after" => {
+                i += 1;
+                let val = args
+                    .get(i)
+                    .ok_or("eclipse-local: --after requires a JD value")?;
+                after_jd = val.parse::<f64>().map_err(|_| {
+                    format!(
+                        "eclipse-local: --after: invalid JD float '{val}' \
+                         (only JD floats are accepted, e.g. --after 2451545.0)"
+                    )
+                })?;
+            }
+            "--solar" => filter = EclipseFilter::SolarOnly,
+            "--lunar" => filter = EclipseFilter::LunarOnly,
+            other => {
+                return Err(format!(
+                    "eclipse-local: unknown argument '{other}' (usage: eclipse-local --lat <deg> \
+                     --lon <deg> [--elev <m>] [--after <jd>] [--solar|--lunar])"
+                ));
+            }
+        }
+        i += 1;
+    }
+
+    let lat = lat.ok_or("eclipse-local: --lat is required")?;
+    let lon = lon.ok_or("eclipse-local: --lon is required")?;
+    let observer = observer_of(lat, lon, elev);
+
+    let engine = EclipseEngine::new(packaged_backend());
+    let after = tdb(after_jd);
+    let found = engine
+        .next_local_eclipse(after, &observer, filter, Atmosphere::default())
+        .map_err(|e| format!("eclipse-local: engine error: {e}"))?;
+
+    let Some((eclipse, local)) = found else {
+        return Ok(
+            "eclipse-local: no locally-visible eclipse found after the given instant".to_string(),
+        );
+    };
+
+    let jd = eclipse.greatest_eclipse.julian_day.days();
+    let kind = match eclipse.kind {
+        EclipseKind::Solar => "solar",
+        EclipseKind::Lunar => "lunar",
+    };
+    // `next_local_eclipse` already filters to `any_phase_visible == true`
+    // (see `is_locally_visible`), so that flag would print as a constant
+    // `true` here; `max.visible` (visibility AT the same maximum instant
+    // whose az/alt is printed) is the informative, non-constant pairing.
+    let (typ, mag, max) = match &local {
+        LocalCircumstances::Solar(s) => (engine_solar_type_str(s), s.magnitude, s.maximum),
+        LocalCircumstances::Lunar(l) => (engine_lunar_type_str(l), l.umbral_magnitude, l.maximum),
+    };
+    let max_jd = max.instant.julian_day.days();
+
+    Ok(format!(
+        "{jd:.5} {kind} {typ} mag={mag:.4} max_jd={max_jd:.5} \
+         az={:.3} alt={:.3} visible_at_max={}",
+        max.azimuth_degrees, max.altitude_degrees, max.visible,
+    ))
 }
 
 #[cfg(test)]
