@@ -41,6 +41,17 @@ fn chart_command_renders_bodies() {
 }
 
 #[test]
+fn chart_includes_a_fictitious_body() {
+    let rendered = render_chart(&["--jd", "2451545.0", "--body", "Transpluto"])
+        .expect("chart should render a fictitious body");
+    assert!(rendered.contains("Transpluto"), "chart output: {rendered}");
+    assert!(
+        !rendered.to_lowercase().contains("unsupported body"),
+        "chart output: {rendered}"
+    );
+}
+
+#[test]
 fn chart_command_accepts_explicit_apparent_flag() {
     // Apparent is now the default and explicit --apparent is supported; the
     // old "reject apparent until supported" contract is gone.

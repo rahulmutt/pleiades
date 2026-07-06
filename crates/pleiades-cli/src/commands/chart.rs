@@ -9,6 +9,7 @@ use pleiades_core::{
 };
 use pleiades_data::PackagedDataBackend;
 use pleiades_elp::ElpBackend;
+use pleiades_fict::FictitiousBackend;
 use pleiades_jpl::JplSnapshotBackend;
 use pleiades_validate::current_request_surface_summary;
 use pleiades_vsop87::Vsop87Backend;
@@ -563,6 +564,7 @@ pub(crate) fn render_chart(args: &[&str]) -> Result<String, String> {
             ElpBackend::new(),
         )),
         Box::new(JplSnapshotBackend::new()),
+        Box::new(FictitiousBackend::new(PackagedDataBackend::new())),
     ]);
     let engine = ChartEngine::new(backend);
     let mut request = ChartRequest::new(instant)

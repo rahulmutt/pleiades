@@ -157,6 +157,7 @@ dependencies = [
  "pleiades-core",
  "pleiades-data",
  "pleiades-elp",
+ "pleiades-fict",
  "pleiades-jpl",
  "pleiades-validate",
  "pleiades-vsop87",
