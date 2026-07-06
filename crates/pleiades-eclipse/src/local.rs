@@ -9,10 +9,13 @@
 use crate::ephemeris::{sample_sun_moon, SunMoonSample};
 use crate::error::EclipseError;
 use crate::types::{LunarEclipseType, SolarEclipseType};
-use pleiades_apparent::{sidereal_time, topocentric_position, true_obliquity_degrees};
+use pleiades_apparent::{
+    apparent_from_true, sidereal_time, topocentric_position, true_obliquity_degrees, Atmosphere,
+};
 use pleiades_backend::EphemerisBackend;
 use pleiades_types::{
-    EclipticCoordinates, Instant, JulianDay, Latitude, Longitude, ObserverLocation, TimeScale,
+    Angle, EclipticCoordinates, Instant, JulianDay, Latitude, Longitude, ObserverLocation,
+    TimeScale,
 };
 
 /// One observer-local contact event: its instant plus the eclipsed body's
@@ -517,5 +520,96 @@ mod solar_contact_tests {
                 "C2<=max<=C3"
             );
         }
+    }
+}
+
+/// Which body a horizontal position is computed for.
+#[derive(Clone, Copy, Debug)]
+pub(crate) enum LocalBody {
+    Sun,
+    Moon,
+}
+
+/// Topocentric azimuth (from south, west, `[0,360)`), apparent (refracted)
+/// altitude, and above-horizon visibility of `body` at `jd` for `observer`.
+pub(crate) fn body_horizontal<B: EphemerisBackend>(
+    backend: &B,
+    observer: &ObserverLocation,
+    atmos: Atmosphere,
+    jd: f64,
+    body: LocalBody,
+) -> Result<(f64, f64, bool), EclipseError> {
+    let t = topo_sun_moon(backend, observer, jd)?;
+    let (lon, lat, dist) = match body {
+        LocalBody::Sun => (t.sun_lon_deg, t.sun_lat_deg, t.sun_dist_au),
+        LocalBody::Moon => (t.moon_lon_deg, t.moon_lat_deg, t.moon_dist_au),
+    };
+    let at = Instant::new(JulianDay::from_days(jd), TimeScale::Tdb);
+    let eps = true_obliquity_degrees(jd)
+        .map_err(|e| EclipseError::Backend(format!("obliquity failed: {e}")))?;
+    let equ = EclipticCoordinates::new(
+        Longitude::from_degrees(lon),
+        Latitude::from_degrees(lat),
+        Some(dist),
+    )
+    .to_equatorial(Angle::from_degrees(eps));
+    let ra_deg = equ.right_ascension.degrees();
+    let dec_deg = equ.declination.degrees();
+    let lst = sidereal_time(at, observer.longitude).local_apparent_deg;
+    let ha = (lst - ra_deg).to_radians();
+    let dec = dec_deg.to_radians();
+    let phi = observer.latitude.degrees().to_radians();
+    // Standard equatorial → horizontal (azimuth from south, increasing west).
+    let sin_alt = (phi.sin() * dec.sin() + phi.cos() * dec.cos() * ha.cos()).clamp(-1.0, 1.0);
+    let true_alt = sin_alt.asin().to_degrees();
+    let az = ha.sin().atan2(ha.cos() * phi.sin() - dec.tan() * phi.cos());
+    let apparent_alt = apparent_from_true(true_alt, atmos);
+    Ok((
+        az.to_degrees().rem_euclid(360.0),
+        apparent_alt,
+        apparent_alt > 0.0,
+    ))
+}
+
+/// Packages a `jd` + a body's horizontal position into a `LocalContact`.
+pub(crate) fn contact_at<B: EphemerisBackend>(
+    backend: &B,
+    observer: &ObserverLocation,
+    atmos: Atmosphere,
+    jd: f64,
+    body: LocalBody,
+) -> Result<LocalContact, EclipseError> {
+    let (az, alt, visible) = body_horizontal(backend, observer, atmos, jd, body)?;
+    Ok(LocalContact {
+        instant: Instant::new(JulianDay::from_days(jd), TimeScale::Tdb),
+        altitude_degrees: alt,
+        azimuth_degrees: az,
+        visible,
+    })
+}
+
+#[cfg(test)]
+mod horizontal_tests {
+    use super::*;
+    use pleiades_backend::test_backend::LinearSunMoon;
+
+    #[test]
+    fn altitude_is_finite_and_azimuth_in_range() {
+        let backend = LinearSunMoon::new_moon_at(2_451_550.0);
+        let observer = ObserverLocation::new(
+            Latitude::from_degrees(40.0),
+            Longitude::from_degrees(0.0),
+            Some(0.0),
+        );
+        let (az, alt, _vis) = body_horizontal(
+            &backend,
+            &observer,
+            Atmosphere::default(),
+            2_451_545.0,
+            LocalBody::Sun,
+        )
+        .unwrap();
+        assert!(alt.is_finite() && alt <= 90.0 + 1e-9, "alt {alt}");
+        assert!((0.0..360.0).contains(&az), "az {az}");
     }
 }
