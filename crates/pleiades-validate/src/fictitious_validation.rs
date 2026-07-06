@@ -354,8 +354,16 @@ pub fn validate_fictitious_corpus() -> Result<FictitiousReport, FictitiousError>
     let m = measure()?;
 
     let checks: [(&'static str, f64, f64); 3] = [
-        ("longitude_arcsec", m.non_nibiru_max_lon_arcsec, LONGITUDE_ARCSEC),
-        ("latitude_arcsec", m.non_nibiru_max_lat_arcsec, LATITUDE_ARCSEC),
+        (
+            "longitude_arcsec",
+            m.non_nibiru_max_lon_arcsec,
+            LONGITUDE_ARCSEC,
+        ),
+        (
+            "latitude_arcsec",
+            m.non_nibiru_max_lat_arcsec,
+            LATITUDE_ARCSEC,
+        ),
         ("distance_au", m.non_nibiru_max_dist_au, DISTANCE_AU),
     ];
     for (category, residual, ceiling) in checks {
@@ -380,7 +388,11 @@ pub fn validate_fictitious_corpus() -> Result<FictitiousReport, FictitiousError>
             m.nibiru_max_lat_arcsec,
             NIBIRU_LATITUDE_ARCSEC,
         ),
-        ("nibiru_distance_au", m.nibiru_max_dist_au, NIBIRU_DISTANCE_AU),
+        (
+            "nibiru_distance_au",
+            m.nibiru_max_dist_au,
+            NIBIRU_DISTANCE_AU,
+        ),
     ];
     for (category, residual, ceiling) in nibiru_checks {
         if !residual.is_finite() || residual > ceiling {

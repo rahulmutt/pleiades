@@ -9,7 +9,7 @@ pub mod elements;
 pub mod frame;
 pub mod kepler;
 
-pub use backend::{fictitious_body_claims, fictitious_bodies, FictitiousBackend};
+pub use backend::{fictitious_bodies, fictitious_body_claims, FictitiousBackend};
 
 /// Crate/backend identifier used in backend metadata and results.
 pub const PACKAGE_NAME: &str = "pleiades-fict";

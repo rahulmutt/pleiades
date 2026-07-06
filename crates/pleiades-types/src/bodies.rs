@@ -299,7 +299,10 @@ mod tests {
             assert!(body.built_in_name().is_some());
             assert!(!body.to_string().is_empty());
         }
-        assert_eq!(CelestialBody::Transpluto.built_in_name(), Some("Transpluto"));
+        assert_eq!(
+            CelestialBody::Transpluto.built_in_name(),
+            Some("Transpluto")
+        );
         assert_eq!(CelestialBody::WhiteMoon.to_string(), "White Moon");
     }
 }

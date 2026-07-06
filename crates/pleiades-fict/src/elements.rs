@@ -203,9 +203,18 @@ mod table_tests {
 
     #[test]
     fn geocentric_bodies_are_earth_centered() {
-        assert_eq!(elements_for(CelestialBody::WhiteMoon).unwrap().center, Center::Geocentric);
-        assert_eq!(elements_for(CelestialBody::Waldemath).unwrap().center, Center::Geocentric);
-        assert_eq!(elements_for(CelestialBody::Cupido).unwrap().center, Center::Heliocentric);
+        assert_eq!(
+            elements_for(CelestialBody::WhiteMoon).unwrap().center,
+            Center::Geocentric
+        );
+        assert_eq!(
+            elements_for(CelestialBody::Waldemath).unwrap().center,
+            Center::Geocentric
+        );
+        assert_eq!(
+            elements_for(CelestialBody::Cupido).unwrap().center,
+            Center::Heliocentric
+        );
     }
 
     #[test]

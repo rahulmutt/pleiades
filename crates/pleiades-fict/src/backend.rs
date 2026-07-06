@@ -19,7 +19,10 @@ use crate::PACKAGE_NAME;
 
 /// The 19 SE fictitious bodies this backend serves.
 pub fn fictitious_bodies() -> Vec<CelestialBody> {
-    crate::elements::TABLE.iter().map(|(b, _)| b.clone()).collect()
+    crate::elements::TABLE
+        .iter()
+        .map(|(b, _)| b.clone())
+        .collect()
 }
 
 /// Body claims: every fictitious body is release-grade *by definition* — parity
@@ -131,7 +134,11 @@ fn spherical_to_cartesian(ecl: &EclipticCoordinates) -> (f64, f64, f64) {
 fn cartesian_to_ecliptic(x: f64, y: f64, z: f64) -> EclipticCoordinates {
     let r = (x * x + y * y + z * z).sqrt();
     let lon = y.atan2(x).to_degrees().rem_euclid(360.0);
-    let lat = if r == 0.0 { 0.0 } else { (z / r).asin().to_degrees() };
+    let lat = if r == 0.0 {
+        0.0
+    } else {
+        (z / r).asin().to_degrees()
+    };
     EclipticCoordinates::new(
         Longitude::from_degrees(lon),
         Latitude::from_degrees(lat),

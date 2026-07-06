@@ -5,7 +5,11 @@
 /// iterations for the bounded eccentricities (`e < 1`) of `seorbel.txt`.
 pub fn solve_kepler(mean_anomaly_rad: f64, eccentricity: f64) -> f64 {
     let m = mean_anomaly_rad.rem_euclid(std::f64::consts::TAU);
-    let mut e = if eccentricity < 0.8 { m } else { std::f64::consts::PI };
+    let mut e = if eccentricity < 0.8 {
+        m
+    } else {
+        std::f64::consts::PI
+    };
     for _ in 0..64 {
         let delta = (e - eccentricity * e.sin() - m) / (1.0 - eccentricity * e.cos());
         e -= delta;

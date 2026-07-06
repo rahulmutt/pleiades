@@ -114,8 +114,7 @@ fn run_all_numeric_gates() -> Result<(), String> {
     crate::validate_rise_trans_corpus().map_err(|e| format!("rise-trans gate failed: {e}"))?;
     crate::validate_eclipse_local_corpus()
         .map_err(|e| format!("eclipses-local gate failed: {e}"))?;
-    crate::validate_fictitious_corpus()
-        .map_err(|e| format!("fictitious gate failed: {e}"))?;
+    crate::validate_fictitious_corpus().map_err(|e| format!("fictitious gate failed: {e}"))?;
     Ok(())
 }
 
