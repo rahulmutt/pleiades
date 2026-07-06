@@ -1,7 +1,8 @@
 # pleiades-eclipse
 
-Global geocentric solar and lunar eclipse computation for the `pleiades`
-astrology workspace, derived from validated Sun and Moon positions.
+Global geocentric and per-observer local solar and lunar eclipse computation
+for the `pleiades` astrology workspace, derived from validated Sun and Moon
+positions.
 
 ## What it provides
 
@@ -21,8 +22,24 @@ each carrying:
 - **Greatest-eclipse location** (solar only) — geographic sub-shadow point;
   lunar eclipses have no location
 
-**Not provided:** local / per-observer circumstances (local magnitude, contact
-times, visibility path). This is a global/geocentric product.
+**Local (per-observer) circumstances** — via `EclipseEngine::local_circumstances`
+and `next_local_eclipse`/`previous_local_eclipse` (Swiss-Ephemeris
+`swe_sol_eclipse_when_loc`/`swe_lun_eclipse_when_loc` analogues), for both
+solar and lunar eclipses, given a geographic observer and atmosphere:
+
+- **Contact times** — per-observer first/second/third/fourth contact (solar)
+  or penumbral/umbral ingress-egress (lunar), as `LocalContact` values
+- **Magnitude / obscuration** — observer-local eclipse magnitude, and (solar)
+  obscured area fraction
+- **Azimuth / altitude** — on-sky position of the eclipsed body at greatest
+  local eclipse
+- **Local visibility** — whether the eclipse is visible above the observer's
+  horizon (with refraction) at all
+
+`next_local_eclipse`/`previous_local_eclipse` reuse the existing global
+`next_eclipse`/`previous_eclipse` walk, filtering to the first eclipse whose
+local circumstances are computable for the given observer — no new external
+dependency was introduced.
 
 ## Window and data-bound
 
@@ -50,6 +67,26 @@ allowlisted for the exact-type check only; its time, magnitude, Saros, and
 longitude are still enforced. The eclipsed-longitude reference is computed
 independently (NASA canon + Skyfield/DE440), so the gate genuinely validates
 accuracy.
+
+The fail-closed `validate-eclipses-local` gate (CLI aliases `eclipses-local-gate`,
+`eclipse-local`) recomputes local circumstances against a committed
+Swiss-Ephemeris reference corpus (29 solar rows + 20 lunar rows) and enforces
+measured, data-driven ceilings (~1.4x the observed maxima):
+
+| Metric | Ceiling | Measured max |
+|---|---|---|
+| Solar contact/greatest-eclipse instant (well-conditioned) | ≤ 23.0 s | 16.1 s |
+| Solar contact/greatest-eclipse instant (grazing/central-limit) | ≤ 95.0 s | 65.0 s |
+| Lunar contact instant | ≤ 7.0 s | 5.0 s |
+| Solar magnitude/obscuration | ≤ 0.002 | ~1.1e-3 |
+| Lunar magnitude | ≤ 0.001 | ~7.1e-4 |
+| On-sky azimuth | ≤ 130.0″ | 91.0″ |
+| Apparent altitude | ≤ 120.0″ | 81.0″ |
+
+This is **arcsecond-class** parity on azimuth/altitude, not a claim of
+sub-arcsecond parity, and second-class parity on contact times, widening at
+grazing/central-limit geometry where the contact-time derivative is
+ill-conditioned.
 
 ## Quick start
 

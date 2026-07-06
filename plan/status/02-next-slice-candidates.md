@@ -98,12 +98,11 @@ once Phase 5 audits pass.
 ## Event-engine track (SP series, parallel to the phases above)
 
 SP-1 (angles/sidereal time), SP-2a (longitude crossings, plus the SP-2a-FU
-`validate-crossings` hardening), and SP-2b (rise/set/transit + horizontal
-coordinates, gated by `validate-rise-trans`) are all **done**. Next candidate
-slice:
+`validate-crossings` hardening), SP-2b (rise/set/transit + horizontal
+coordinates, gated by `validate-rise-trans`), and SP-2c (local per-observer
+eclipse circumstances — `EclipseEngine::local_circumstances` /
+`next_local_eclipse` / `previous_local_eclipse` for both solar and lunar
+eclipses, contact times/magnitude/obscuration/azimuth/altitude/visibility,
+gated by `validate-eclipses-local`) are all **done**. Next candidate slice:
 
-- SP-2c — local (per-observer) eclipse circumstances, extending
-  `pleiades-eclipse`'s existing global/geocentric eclipse data (type, greatest-
-  eclipse time, magnitude, gamma, Saros series) with observer-local contact
-  times and visibility, out of scope for SP-2b.
 - SP-3 (not yet scoped in detail).

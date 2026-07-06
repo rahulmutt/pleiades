@@ -430,7 +430,7 @@ fn summary_commands_render_compact_reports() {
         .contains("Comparison corpus release-grade guard: Pluto excluded from tolerance evidence"));
     assert!(release_summary.contains("House formula families: 7 (Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign)"));
     assert!(release_summary.lines().any(|line| {
-        line == "Release profile identifiers: v1 compatibility=pleiades-compatibility-profile/0.7.7, api-stability=pleiades-api-stability/0.2.2"
+        line == "Release profile identifiers: v1 compatibility=pleiades-compatibility-profile/0.7.8, api-stability=pleiades-api-stability/0.2.2"
     }));
     assert!(release_summary.contains("API stability summary line: API stability posture: pleiades-api-stability/0.2.2; stable surfaces: 8; experimental surfaces: 3; deprecation policy items: 4; intentional limits: 3"));
     assert!(release_summary.lines().any(|line| {

@@ -330,7 +330,7 @@ fn cli_report_summary_lists_the_summary_command() {
     }));
     assert!(validation_report_summary.contains("Zodiac policy:"));
     assert!(validation_report_summary.contains(
-            "Release profile identifiers: v1 compatibility=pleiades-compatibility-profile/0.7.7, api-stability=pleiades-api-stability/0.2.2"
+            "Release profile identifiers: v1 compatibility=pleiades-compatibility-profile/0.7.8, api-stability=pleiades-api-stability/0.2.2"
         ));
     assert!(validation_report_summary
         .contains("lookup epoch policy=TT-grid retag without relativistic correction"));
