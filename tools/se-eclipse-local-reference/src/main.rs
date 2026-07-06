@@ -37,10 +37,24 @@
 //! Azimuth convention: `swe_azalt` returns azimuth measured from SOUTH,
 //! increasing WESTWARD, in [0, 360) (SE native; `xaz[0] = 360 - x[0]` after the
 //! source's "azimuth from south to west" step). Our engine matches it. Altitude
-//! columns are true altitude and apparent (refracted) altitude in degrees.
+//! columns are true altitude and apparent (refracted) altitude in degrees. The
+//! az/alt are computed at the ENGINE-CONSUMED numeric Julian Day, i.e. the TT
+//! instant J: the body's apparent position at TT=J (`swe_calc`, ET argument) and
+//! the Earth rotation with that SAME numeric J fed to `swe_azalt` as its time
+//! argument. This mirrors the engine's `local::body_horizontal`, which samples
+//! Sun/Moon at J (as ephemeris/TDB time) yet computes sidereal time treating J
+//! verbatim as UT1 — so both sides use the identical numeric J for rotation, and
+//! the comparison is a fair MODEL parity, not a ΔT rotation offset.
 //!
-//! Times: all instants are UT Julian days (the SE eclipse functions return UT;
-//! the gate compares against the `_ut` columns, matching `validate-rise-trans`).
+//! Times: all instants are TT (Terrestrial Time) Julian days, matching the
+//! engine's DYNAMICAL eclipse instants and the sibling global corpus's
+//! `greatest_eclipse_jd_tt` column. The SE eclipse functions return UT; each
+//! instant is converted to TT via `TT = jd_ut + swe_deltat(jd_ut)` before it is
+//! emitted (columns are named `_jd_tt`). This differs from
+//! `tools/se-rise-trans-reference` (which stays in UT) because rise/set/transit
+//! are sidereal/UT1-defined events, whereas an eclipse contact/max instant is
+//! dynamical (TT/TDB) — the gate therefore compares the engine's native-TDB
+//! instants DIRECTLY against these `_jd_tt` columns, with no ΔT crossing.
 //! Every eclipse max is asserted inside the 1900–2100 window.
 //!
 //! Ephemeris: Moshier (`SEFLG_MOSEPH`) — no `.se1` files needed.
@@ -55,12 +69,13 @@ use std::ffi::CStr;
 use std::os::raw::{c_char, c_int};
 
 use libswisseph_sys::raw::{
-    swe_azalt, swe_calc_ut, swe_julday, swe_lun_eclipse_how, swe_lun_eclipse_when,
-    swe_set_ephe_path, swe_sol_eclipse_how, swe_sol_eclipse_when_glob, swe_sol_eclipse_when_loc,
-    swe_version,
+    swe_azalt, swe_calc_ut, swe_deltat, swe_julday, swe_lun_eclipse_how, swe_lun_eclipse_when,
+    swe_set_ephe_path, swe_set_topo, swe_sol_eclipse_how, swe_sol_eclipse_when_glob,
+    swe_sol_eclipse_when_loc, swe_version,
 };
 
 const SEFLG_MOSEPH: c_int = 4; // Moshier ephemeris, no data files
+const SEFLG_TOPOCTR: c_int = 32768; // topocentric position (applies diurnal parallax)
 const SE_GREG_CAL: c_int = 1;
 const SE_SUN: c_int = 0;
 const SE_MOON: c_int = 1;
@@ -128,7 +143,24 @@ fn jd_ut(year: c_int, month: c_int, day: c_int) -> f64 {
     unsafe { swe_julday(year, month, day, 0.0, SE_GREG_CAL) }
 }
 
-/// Format a UT instant, asserting it is inside the 1900–2100 window. A zero
+/// Convert an SE UT Julian Day to TT: `TT = jd_ut + swe_deltat(jd_ut)`
+/// (`swe_deltat` returns ΔT in days). This is the engine's dynamical time base
+/// for eclipse instants (matching the global corpus's `greatest_eclipse_jd_tt`).
+fn ut_to_tt(jd_ut: f64) -> f64 {
+    jd_ut + unsafe { swe_deltat(jd_ut) }
+}
+
+/// UT contact → TT, preserving SE's `0.0` "absent contact" sentinel (so an
+/// absent phase stays absent, i.e. an empty CSV cell after `fmt_contact`).
+fn contact_tt(jd_ut: f64) -> f64 {
+    if jd_ut == 0.0 {
+        0.0
+    } else {
+        ut_to_tt(jd_ut)
+    }
+}
+
+/// Format a TT instant, asserting it is inside the 1900–2100 window. A zero
 /// (SE "absent contact") is rendered as an empty CSV field.
 fn fmt_contact(jd: f64, ctx: &str) -> String {
     if jd == 0.0 {
@@ -141,22 +173,54 @@ fn fmt_contact(jd: f64, ctx: &str) -> String {
     format!("{jd:.9}")
 }
 
-/// (az_from_south_deg, true_alt_deg, apparent_alt_deg) of body `ipl` at `jd_ut`,
-/// exactly as SE returns: azimuth measured from SOUTH, increasing WESTWARD.
-fn body_azalt(ipl: c_int, lat: f64, lon: f64, elev: f64, jd_ut: f64) -> (f64, f64, f64) {
-    // Apparent geocentric ecliptic-of-date lon/lat/dist (SE default: Moshier).
+/// (az_from_south_deg, true_alt_deg, apparent_alt_deg) of body `ipl` at the TT
+/// instant `jd_tt`, exactly as SE returns: azimuth measured from SOUTH,
+/// increasing WESTWARD.
+///
+/// To match the engine's `local::body_horizontal` — which samples the body at
+/// the numeric instant J (as ephemeris/TDB time) yet computes Earth rotation
+/// treating that SAME numeric J verbatim as UT1 — this uses the identical
+/// numeric `jd_tt` (= J) for BOTH steps:
+///   * the apparent position is taken at TT=`jd_tt` via `swe_calc` (whose time
+///     argument IS ET/TT, so no ΔT is added), and
+///   * `swe_azalt` is fed `jd_tt` as its (nominally UT) time argument, so its
+///     sidereal time is computed from J-as-UT1, exactly as the engine does.
+/// The result is a fair MODEL-parity comparison; it is NOT a ΔT rotation offset.
+fn body_azalt(ipl: c_int, lat: f64, lon: f64, elev: f64, jd_tt: f64) -> (f64, f64, f64) {
+    // Apparent TOPOCENTRIC ecliptic-of-date lon/lat/dist at TT=jd_tt (Moshier).
+    // `swe_azalt` itself applies NO diurnal parallax (it sets the input radius to
+    // 1 and only rotates geocentric direction → horizontal), so the parallax must
+    // be baked into the position here via SEFLG_TOPOCTR — otherwise the Moon
+    // (~1° horizontal parallax) would disagree with the engine's topocentric
+    // az/alt by up to a degree. swe_set_topo sets the observer for the parallax.
+    unsafe { swe_set_topo(lon, lat, elev) };
     let mut xx = [0.0_f64; 6];
     let mut serr = [0 as c_char; 256];
-    let ret = unsafe { swe_calc_ut(jd_ut, ipl, SEFLG_MOSEPH, xx.as_mut_ptr(), serr.as_mut_ptr()) };
+    // `swe_calc_ut(J, TOPOCTR)`: SE forms the parallax observer's position at
+    // `tjd_ut = J` (`swi_get_observer` uses `tjd_ut = tjd_et - ΔT`, and here
+    // `tjd_et = J + ΔT`), so the diurnal parallax is rotated with J-as-UT1 — the
+    // SAME sidereal phase the engine uses. (Feeding `swe_calc(J)` instead would
+    // rotate parallax at J-ΔT, leaving a ~ΔT azimuthal-parallax error of ~0.3°.)
+    let ret = unsafe {
+        swe_calc_ut(
+            jd_tt,
+            ipl,
+            SEFLG_MOSEPH | SEFLG_TOPOCTR,
+            xx.as_mut_ptr(),
+            serr.as_mut_ptr(),
+        )
+    };
     if ret < 0 {
-        panic!("swe_calc_ut(ipl={ipl}) at jd_ut={jd_ut}: {}", serr_string(&serr));
+        panic!("swe_calc_ut(ipl={ipl}) at jd_tt={jd_tt}: {}", serr_string(&serr));
     }
     let mut geopos = [lon, lat, elev];
     let mut xin = [xx[0], xx[1], xx[2]]; // ecliptic lon, lat, distance
     let mut xaz = [0.0_f64; 3];
     unsafe {
+        // Feed jd_tt (= J) verbatim as swe_azalt's time argument: its sidereal
+        // time is then computed from J-as-UT1, matching the engine's convention.
         swe_azalt(
-            jd_ut,
+            jd_tt,
             SE_ECL2HOR,
             geopos.as_mut_ptr(),
             STD_PRESS,
@@ -167,7 +231,7 @@ fn body_azalt(ipl: c_int, lat: f64, lon: f64, elev: f64, jd_ut: f64) -> (f64, f6
     }
     assert!(
         xaz[0].is_finite() && xaz[1].is_finite() && xaz[2].is_finite(),
-        "non-finite swe_azalt output for ipl={ipl} at jd_ut={jd_ut}"
+        "non-finite swe_azalt output for ipl={ipl} at jd_tt={jd_tt}"
     );
     (xaz[0], xaz[1], xaz[2]) // az (from south), true alt, apparent alt
 }
@@ -227,20 +291,20 @@ fn emit_solar(out: &mut String, rows: &mut usize, case: &Case) {
 
     let locally_visible = (tret_l[0] - jd_max_glob).abs() <= SAME_ECLIPSE_TOL_DAYS;
 
-    let (max_ut, c1, c2, c3, c4, local_type, magnitude, obscuration, az, talt, aalt, visible);
+    let (max_tt, c1, c2, c3, c4, local_type, magnitude, obscuration, az, talt, aalt, visible);
     if locally_visible {
-        // Topocentric contacts + attributes from when_loc.
+        // Topocentric contacts + attributes from when_loc, converted UT → TT.
         // tret: [0]=local max, [1]=C1, [2]=C2, [3]=C3, [4]=C4.
-        max_ut = tret_l[0];
-        c1 = fmt_contact(tret_l[1], label);
-        c2 = fmt_contact(tret_l[2], label); // 0 (empty) for partial-only
-        c3 = fmt_contact(tret_l[3], label); // 0 (empty) for partial-only
-        c4 = fmt_contact(tret_l[4], label);
+        max_tt = ut_to_tt(tret_l[0]);
+        c1 = fmt_contact(contact_tt(tret_l[1]), label);
+        c2 = fmt_contact(contact_tt(tret_l[2]), label); // empty for partial-only
+        c3 = fmt_contact(contact_tt(tret_l[3]), label); // empty for partial-only
+        c4 = fmt_contact(contact_tt(tret_l[4]), label);
         // attr: [0]=magnitude (diameter fraction), [2]=obscuration (area fraction).
         magnitude = attr_l[0];
         obscuration = attr_l[2];
         local_type = retl & SE_ECL_ALLTYPES_SOLAR;
-        let (a, t, ap) = body_azalt(SE_SUN, lat, lon, elev, max_ut);
+        let (a, t, ap) = body_azalt(SE_SUN, lat, lon, elev, max_tt);
         az = a;
         talt = t;
         aalt = ap;
@@ -261,7 +325,7 @@ fn emit_solar(out: &mut String, rows: &mut usize, case: &Case) {
         if reth < 0 {
             panic!("swe_sol_eclipse_how({label}): {}", serr_string(&serr));
         }
-        max_ut = jd_max_glob;
+        max_tt = ut_to_tt(jd_max_glob);
         c1 = String::new();
         c2 = String::new();
         c3 = String::new();
@@ -269,7 +333,7 @@ fn emit_solar(out: &mut String, rows: &mut usize, case: &Case) {
         magnitude = attr_h[0];
         obscuration = attr_h[2];
         local_type = reth & SE_ECL_ALLTYPES_SOLAR; // 0 when no eclipse there
-        let (a, t, ap) = body_azalt(SE_SUN, lat, lon, elev, max_ut);
+        let (a, t, ap) = body_azalt(SE_SUN, lat, lon, elev, max_tt);
         az = a;
         talt = t;
         aalt = ap;
@@ -277,7 +341,7 @@ fn emit_solar(out: &mut String, rows: &mut usize, case: &Case) {
     }
 
     out.push_str(&format!(
-        "{label},{lat:.4},{lon:.4},{elev:.1},{max_ut:.9},{c1},{c2},{c3},{c4},{local_type},{magnitude:.6},{obscuration:.6},{az:.9},{talt:.9},{aalt:.9},{visible}\n"
+        "{label},{lat:.4},{lon:.4},{elev:.1},{max_tt:.9},{c1},{c2},{c3},{c4},{local_type},{magnitude:.6},{obscuration:.6},{az:.9},{talt:.9},{aalt:.9},{visible}\n"
     ));
     *rows += 1;
 }
@@ -288,12 +352,12 @@ fn build_solar_csv(version: &str) -> (String, usize) {
     out.push_str(&format!(
         "# Source: Swiss Ephemeris {version} (libswisseph-sys 0.1.2), swe_sol_eclipse_when_glob/when_loc/how + swe_azalt, iflag=SEFLG_MOSEPH.\n"
     ));
-    out.push_str("# Local (topocentric) solar-eclipse circumstances. Times are UT Julian days. Anchored to the eclipse via when_glob; when_loc gives topocentric contacts when locally visible.\n");
-    out.push_str("# se_max_jd_ut: local maximum (when_loc) if visible, else global maximum (when_glob). se_c*_jd_ut: C1..C4 topocentric contacts; empty = absent (C2/C3 for partial-only, or all when not locally visible).\n");
+    out.push_str("# Local (topocentric) solar-eclipse circumstances. Times are TT (Terrestrial Time) Julian days: eclipse instants are DYNAMICAL, matching the engine and the global corpus's greatest_eclipse_jd_tt (contrast rise-trans, which is UT). SE returns UT; converted TT = jd_ut + swe_deltat(jd_ut). Anchored via when_glob; when_loc gives topocentric contacts when locally visible.\n");
+    out.push_str("# se_max_jd_tt: local maximum (when_loc) if visible, else global maximum (when_glob). se_c*_jd_tt: C1..C4 topocentric contacts; empty = absent (C2/C3 for partial-only, or all when not locally visible).\n");
     out.push_str("# se_local_type = SE return flag & SE_ECL_ALLTYPES_SOLAR (4=total,8=annular,16=partial,32=annular-total,0=none-here). se_magnitude=diameter fraction (attr[0]); se_obscuration=area fraction (attr[2]).\n");
-    out.push_str("# Azimuth of Sun from SOUTH increasing WESTWARD [0,360) (swe_azalt native). se_max_true_alt/app_alt in degrees. se_any_visible=1 if the eclipse is above the horizon locally, else 0 (Sun down / no eclipse there).\n");
+    out.push_str("# Azimuth of Sun from SOUTH increasing WESTWARD [0,360) (swe_azalt native). se_max_true_alt/app_alt in degrees. Az/alt computed at the engine-consumed numeric JD (the TT instant: swe_calc position at TT, swe_azalt rotation with that same J as UT1). se_any_visible=1 if the eclipse is above the horizon locally, else 0 (Sun down / no eclipse there).\n");
     out.push_str(
-        "label,lat_deg,lon_deg,elev_m,se_max_jd_ut,se_c1_jd_ut,se_c2_jd_ut,se_c3_jd_ut,se_c4_jd_ut,se_local_type,se_magnitude,se_obscuration,se_max_az_deg,se_max_true_alt_deg,se_max_app_alt_deg,se_any_visible\n",
+        "label,lat_deg,lon_deg,elev_m,se_max_jd_tt,se_c1_jd_tt,se_c2_jd_tt,se_c3_jd_tt,se_c4_jd_tt,se_local_type,se_magnitude,se_obscuration,se_max_az_deg,se_max_true_alt_deg,se_max_app_alt_deg,se_any_visible\n",
     );
 
     // Curated solar cases: seed a few days before each eclipse. Observers span
@@ -395,19 +459,23 @@ fn emit_lunar(out: &mut String, rows: &mut usize, case: &Case) {
     let umbral_mag = attr[0];
     let penumbral_mag = attr[1];
 
-    // Moon az/alt at the maximum (from-south azimuth, matching the engine).
-    let (az, talt, aalt) = body_azalt(SE_MOON, lat, lon, elev, jd_max);
+    // Global contacts + max converted UT → TT (engine's dynamical time base).
+    let jd_max_tt = ut_to_tt(jd_max);
+
+    // Moon az/alt at the TT maximum (from-south azimuth, matching the engine;
+    // computed at the engine-consumed numeric JD — see `body_azalt`).
+    let (az, talt, aalt) = body_azalt(SE_MOON, lat, lon, elev, jd_max_tt);
     let visible = if aalt > 0.0 { 1 } else { 0 };
 
-    let p1 = fmt_contact(tret_g[6], label);
-    let u1 = fmt_contact(tret_g[2], label);
-    let u2 = fmt_contact(tret_g[4], label);
-    let u3 = fmt_contact(tret_g[5], label);
-    let u4 = fmt_contact(tret_g[3], label);
-    let p4 = fmt_contact(tret_g[7], label);
+    let p1 = fmt_contact(contact_tt(tret_g[6]), label);
+    let u1 = fmt_contact(contact_tt(tret_g[2]), label);
+    let u2 = fmt_contact(contact_tt(tret_g[4]), label);
+    let u3 = fmt_contact(contact_tt(tret_g[5]), label);
+    let u4 = fmt_contact(contact_tt(tret_g[3]), label);
+    let p4 = fmt_contact(contact_tt(tret_g[7]), label);
 
     out.push_str(&format!(
-        "{label},{lat:.4},{lon:.4},{elev:.1},{jd_max:.9},{p1},{u1},{u2},{u3},{u4},{p4},{se_type},{umbral_mag:.6},{penumbral_mag:.6},{az:.9},{talt:.9},{aalt:.9},{visible}\n"
+        "{label},{lat:.4},{lon:.4},{elev:.1},{jd_max_tt:.9},{p1},{u1},{u2},{u3},{u4},{p4},{se_type},{umbral_mag:.6},{penumbral_mag:.6},{az:.9},{talt:.9},{aalt:.9},{visible}\n"
     ));
     *rows += 1;
 }
@@ -418,11 +486,11 @@ fn build_lunar_csv(version: &str) -> (String, usize) {
     out.push_str(&format!(
         "# Source: Swiss Ephemeris {version} (libswisseph-sys 0.1.2), swe_lun_eclipse_when/how + swe_azalt, iflag=SEFLG_MOSEPH.\n"
     ));
-    out.push_str("# Local lunar-eclipse circumstances. Times are UT Julian days. Shadow contacts P1/U1/U2/U3/U4/P4 are GLOBAL instants (swe_lun_eclipse_when), identical for every observer; empty = absent phase (U1..U4 for penumbral-only, U2/U3 for partial-only).\n");
+    out.push_str("# Local lunar-eclipse circumstances. Times are TT (Terrestrial Time) Julian days: eclipse instants are DYNAMICAL, matching the engine and the global corpus's greatest_eclipse_jd_tt (contrast rise-trans, which is UT). SE returns UT; converted TT = jd_ut + swe_deltat(jd_ut). Shadow contacts P1/U1/U2/U3/U4/P4 are GLOBAL instants (swe_lun_eclipse_when), identical for every observer; empty = absent phase (U1..U4 for penumbral-only, U2/U3 for partial-only).\n");
     out.push_str("# se_type = SE return flag & SE_ECL_ALLTYPES_LUNAR (4=total,16=partial,64=penumbral). se_umbral_mag=attr[0], se_penumbral_mag=attr[1] (swe_lun_eclipse_how at maximum).\n");
-    out.push_str("# Moon azimuth from SOUTH increasing WESTWARD [0,360) (swe_azalt native); true/apparent altitude in degrees at the maximum. se_any_visible=1 if the Moon is above the horizon (apparent alt>0) at maximum, else 0.\n");
+    out.push_str("# Moon azimuth from SOUTH increasing WESTWARD [0,360) (swe_azalt native); true/apparent altitude in degrees at the maximum. Az/alt computed at the engine-consumed numeric JD (the TT instant: swe_calc position at TT, swe_azalt rotation with that same J as UT1). se_any_visible=1 if the Moon is above the horizon (apparent alt>0) at maximum, else 0.\n");
     out.push_str(
-        "label,lat_deg,lon_deg,elev_m,se_max_jd_ut,se_p1_jd_ut,se_u1_jd_ut,se_u2_jd_ut,se_u3_jd_ut,se_u4_jd_ut,se_p4_jd_ut,se_type,se_umbral_mag,se_penumbral_mag,se_max_az_deg,se_max_true_alt_deg,se_max_app_alt_deg,se_any_visible\n",
+        "label,lat_deg,lon_deg,elev_m,se_max_jd_tt,se_p1_jd_tt,se_u1_jd_tt,se_u2_jd_tt,se_u3_jd_tt,se_u4_jd_tt,se_p4_jd_tt,se_type,se_umbral_mag,se_penumbral_mag,se_max_az_deg,se_max_true_alt_deg,se_max_app_alt_deg,se_any_visible\n",
     );
 
     // Curated lunar cases: seed a few days before each eclipse. Observers span
@@ -485,8 +553,8 @@ fn build_manifest(
     ));
     m.push_str("solar: swe_sol_eclipse_when_glob anchor + swe_sol_eclipse_when_loc (topocentric contacts, visible) / swe_sol_eclipse_how (magnitude when not locally visible)\n");
     m.push_str("lunar: swe_lun_eclipse_when (global contacts) + swe_lun_eclipse_how (per-observer magnitude, Moon altitude, visibility)\n");
-    m.push_str("azimuth: measured from SOUTH, increasing WESTWARD (swe_azalt native convention)\n");
-    m.push_str("times: UT Julian days (SE eclipse functions return UT)\n");
+    m.push_str("azimuth: measured from SOUTH, increasing WESTWARD (swe_azalt native convention); az/alt at the engine-consumed numeric JD (TT instant): swe_calc position at TT, swe_azalt rotation with that same J as UT1\n");
+    m.push_str("times: TT (Terrestrial Time) Julian days = jd_ut + swe_deltat(jd_ut); eclipse instants are dynamical, matching the engine and the global corpus greatest_eclipse_jd_tt (contrast rise-trans UT)\n");
     m.push_str("visibility: se_any_visible=1 if the eclipse is above the horizon locally at maximum, else 0\n");
     m.push_str("window: 1900-2100 CE (JD 2415020.5..=2488069.5)\n");
     m

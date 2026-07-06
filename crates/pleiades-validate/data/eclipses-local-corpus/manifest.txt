@@ -1,11 +1,11 @@
 corpus: sol-local+lun-local
 source: Swiss Ephemeris 2.10.03 (Moshier, SEFLG_MOSEPH)
 generator: tools/se-eclipse-local-reference
-file: sol-local.csv rows=29 checksum=1097288900219912138
-file: lun-local.csv rows=20 checksum=2311019102313110020
+file: sol-local.csv rows=29 checksum=4213015173705571337
+file: lun-local.csv rows=20 checksum=2820092453776028525
 solar: swe_sol_eclipse_when_glob anchor + swe_sol_eclipse_when_loc (topocentric contacts, visible) / swe_sol_eclipse_how (magnitude when not locally visible)
 lunar: swe_lun_eclipse_when (global contacts) + swe_lun_eclipse_how (per-observer magnitude, Moon altitude, visibility)
-azimuth: measured from SOUTH, increasing WESTWARD (swe_azalt native convention)
-times: UT Julian days (SE eclipse functions return UT)
+azimuth: measured from SOUTH, increasing WESTWARD (swe_azalt native convention); az/alt at the engine-consumed numeric JD (TT instant): swe_calc position at TT, swe_azalt rotation with that same J as UT1
+times: TT (Terrestrial Time) Julian days = jd_ut + swe_deltat(jd_ut); eclipse instants are dynamical, matching the engine and the global corpus greatest_eclipse_jd_tt (contrast rise-trans UT)
 visibility: se_any_visible=1 if the eclipse is above the horizon locally at maximum, else 0
 window: 1900-2100 CE (JD 2415020.5..=2488069.5)

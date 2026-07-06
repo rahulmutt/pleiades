@@ -73,20 +73,27 @@ locally:
   gives the per-observer umbral/penumbral magnitude and the Moon's apparent
   altitude; `se_any_visible = (apparent altitude > 0)`.
 
-## Time base (UT, not TDB — same posture as `rise-trans-corpus`)
+## Time base (TT/TDB — matching the engine, NOT `rise-trans-corpus`'s UT)
 
-All instants in both CSVs are **UT Julian days**, because the SE eclipse
-functions (`swe_sol_eclipse_when_glob/when_loc/how`,
-`swe_lun_eclipse_when/how`) natively return UT, not TT/TDB. This mirrors
-`tools/se-rise-trans-reference` / `rise-trans-corpus`'s ΔT posture: rather
-than convert SE's UT output to TDB with `swe_deltat` (which would inject an
-independent ΔT model into the reference data), the corpus stays in UT and
-the Task 11 gate converts the *engine's* native-TDB `LocalCircumstances`
-instants to UT for comparison — exactly as `validate-rise-trans` compares
-against the SE `_ut` columns rather than converting the fixture to TDB. This
-keeps the reference data a direct, unmodified transcript of what SE
-reported, with exactly one documented ΔT crossing (in the gate, not in the
-fixture).
+All instants in both CSVs are **TT (Terrestrial Time) Julian days**. An
+eclipse contact/maximum is a **dynamical** event — the engine's
+`LocalCircumstances` instants are `TimeScale::Tdb` (TT ≈ TDB), exactly as the
+sibling **global** corpus `data/eclipses-corpus` records its
+`greatest_eclipse_jd_tt` column and as `eclipse_validation` gates against it.
+The SE eclipse functions (`swe_sol_eclipse_when_glob/when_loc/how`,
+`swe_lun_eclipse_when/how`) natively return **UT**; each emitted instant is
+converted to TT via `TT = jd_ut + swe_deltat(jd_ut)` (SE's own ΔT, in days)
+before it is written, and the columns are named `_jd_tt`.
+
+This **deliberately differs** from `tools/se-rise-trans-reference` /
+`rise-trans-corpus`, which stay in UT: rise/set/transit are
+sidereal/UT1-defined events, so the found instant is self-consistently UT1 and
+a direct UT comparison is correct there. That reasoning does **not** transfer
+to a dynamical eclipse instant — comparing a TT engine instant to a UT
+reference would expose a systematic ΔT ≈ 69 s offset (and, via the engine's
+TT-as-UT1 sidereal convention, a matching ~ΔT rotation in az/alt). Emitting the
+corpus in TT lets the Task 11 gate compare the engine's native-TDB instants
+**directly** against these `_jd_tt` columns, with **no** ΔT crossing anywhere.
 
 Every emitted maximum/contact instant is asserted (via a Rust `assert!` in
 the generator) to fall inside the shared **1900-01-01 .. 2100-01-01** window
@@ -100,9 +107,17 @@ the generator) to fall inside the shared **1900-01-01 .. 2100-01-01** window
 matches this convention exactly — do not reinterpret the `se_max_az_deg`
 columns as from-north/clockwise. Altitude columns are **true** altitude and
 **apparent** (refraction-corrected, standard atmosphere 1013.25 hPa / 15°C)
-altitude in degrees, both computed via `swe_azalt` from geocentric
-apparent ecliptic-of-date Sun/Moon positions (`swe_calc_ut`,
-`SEFLG_MOSEPH`).
+altitude in degrees.
+
+The az/alt are computed at the **engine-consumed numeric Julian Day**, i.e. the
+TT instant *J*. The engine's `local::body_horizontal` samples Sun/Moon at *J*
+(as ephemeris/TDB time) yet computes sidereal time treating *J* verbatim as
+UT1. To make the comparison a fair **model** parity — not a ΔT rotation offset
+— the generator does the same: the body's apparent ecliptic-of-date position is
+taken at TT=*J* via `swe_calc` (its argument is ET/TT, so no ΔT is added), and
+that **same numeric** *J* is fed to `swe_azalt` as its (nominally UT) time
+argument, so its Earth rotation is computed from *J*-as-UT1. Both use
+`SEFLG_MOSEPH`.
 
 ## Curated case list
 
@@ -150,18 +165,18 @@ local event.
 ### `sol-local.csv` (16 columns)
 
 ```
-label,lat_deg,lon_deg,elev_m,se_max_jd_ut,se_c1_jd_ut,se_c2_jd_ut,se_c3_jd_ut,se_c4_jd_ut,se_local_type,se_magnitude,se_obscuration,se_max_az_deg,se_max_true_alt_deg,se_max_app_alt_deg,se_any_visible
+label,lat_deg,lon_deg,elev_m,se_max_jd_tt,se_c1_jd_tt,se_c2_jd_tt,se_c3_jd_tt,se_c4_jd_tt,se_local_type,se_magnitude,se_obscuration,se_max_az_deg,se_max_true_alt_deg,se_max_app_alt_deg,se_any_visible
 ```
 
 - **label**: case identifier (eclipse + observer city, see above).
 - **lat_deg / lon_deg / elev_m**: observer geodetic latitude (+N), longitude
   (+E), height above the ellipsoid in meters — the exact inputs handed to
   `swe_sol_eclipse_when_loc` / `swe_azalt`.
-- **se_max_jd_ut**: local maximum instant (`when_loc`) if the eclipse is
-  locally visible, else the global maximum instant (`when_glob`). UT
+- **se_max_jd_tt**: local maximum instant (`when_loc`) if the eclipse is
+  locally visible, else the global maximum instant (`when_glob`). TT
   Julian day.
-- **se_c1_jd_ut .. se_c4_jd_ut**: topocentric first/second/third/fourth
-  contact instants (UT Julian day). Empty when absent: C2/C3 are absent
+- **se_c1_jd_tt .. se_c4_jd_tt**: topocentric first/second/third/fourth
+  contact instants (TT Julian day). Empty when absent: C2/C3 are absent
   for a partial-only local view (no annular/total phase), and all four are
   empty when the eclipse is not locally visible (no topocentric contacts
   exist to report).
@@ -181,16 +196,16 @@ label,lat_deg,lon_deg,elev_m,se_max_jd_ut,se_c1_jd_ut,se_c2_jd_ut,se_c3_jd_ut,se
 ### `lun-local.csv` (18 columns)
 
 ```
-label,lat_deg,lon_deg,elev_m,se_max_jd_ut,se_p1_jd_ut,se_u1_jd_ut,se_u2_jd_ut,se_u3_jd_ut,se_u4_jd_ut,se_p4_jd_ut,se_type,se_umbral_mag,se_penumbral_mag,se_max_az_deg,se_max_true_alt_deg,se_max_app_alt_deg,se_any_visible
+label,lat_deg,lon_deg,elev_m,se_max_jd_tt,se_p1_jd_tt,se_u1_jd_tt,se_u2_jd_tt,se_u3_jd_tt,se_u4_jd_tt,se_p4_jd_tt,se_type,se_umbral_mag,se_penumbral_mag,se_max_az_deg,se_max_true_alt_deg,se_max_app_alt_deg,se_any_visible
 ```
 
 - **label / lat_deg / lon_deg / elev_m**: as above.
-- **se_max_jd_ut**: global maximum instant (`swe_lun_eclipse_when`), UT
+- **se_max_jd_tt**: global maximum instant (`swe_lun_eclipse_when`), TT
   Julian day — identical for every observer of the same eclipse.
-- **se_p1_jd_ut / se_u1_jd_ut / se_u2_jd_ut / se_u3_jd_ut / se_u4_jd_ut /
-  se_p4_jd_ut**: global penumbral-begin, umbral-partial-begin,
+- **se_p1_jd_tt / se_u1_jd_tt / se_u2_jd_tt / se_u3_jd_tt / se_u4_jd_tt /
+  se_p4_jd_tt**: global penumbral-begin, umbral-partial-begin,
   umbral-total-begin, umbral-total-end, umbral-partial-end,
-  penumbral-end instants (UT Julian day). Empty when the corresponding
+  penumbral-end instants (TT Julian day). Empty when the corresponding
   phase does not occur: U1..U4 absent for a penumbral-only eclipse, U2/U3
   absent for a partial-only eclipse.
 - **se_type**: the SE return flag masked to `SE_ECL_ALLTYPES_LUNAR`
