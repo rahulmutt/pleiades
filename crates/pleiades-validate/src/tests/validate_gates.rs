@@ -440,3 +440,25 @@ fn help_text_mentions_validate_equatorial() {
         "help should mention validate-equatorial-se"
     );
 }
+
+#[test]
+fn validate_fictitious_and_alias_agree_and_reject_extra_args() {
+    let primary = render_cli(&["validate-fictitious"]).expect("gate ok");
+    let alias = render_cli(&["fictitious-gate"]).expect("alias ok");
+    assert_eq!(primary, alias);
+    let error = render_cli(&["validate-fictitious", "extra"])
+        .expect_err("validate-fictitious should reject extra arguments");
+    assert!(
+        error.contains("validate-fictitious does not accept extra arguments"),
+        "unexpected error: {error}"
+    );
+    let help = render_cli(&["help"]).expect("help ok");
+    assert!(
+        help.contains("validate-fictitious"),
+        "help text should mention validate-fictitious"
+    );
+    assert!(
+        help.contains("fictitious-gate"),
+        "help text should mention fictitious-gate alias"
+    );
+}
