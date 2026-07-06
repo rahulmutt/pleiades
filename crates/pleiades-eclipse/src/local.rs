@@ -734,3 +734,166 @@ mod horizontal_tests {
         assert!((0.0..360.0).contains(&az), "az {az}");
     }
 }
+
+use crate::geometry::lunar_shadow;
+
+/// Half-window (days) to search for lunar shadow contacts around greatest
+/// eclipse. A penumbral lunar eclipse lasts up to ~6 h; 0.25 day is safe.
+const LUNAR_CONTACT_HALF_WINDOW_DAYS: f64 = 0.25;
+
+/// Signed residual `dist(t) - radius` for a lunar contact, where `dist` is the
+/// Moon-to-shadow-axis separation `sigma` and `radius` is one of the shadow
+/// radii (umbral/penumbral), optionally offset by the Moon's semidiameter for
+/// the exterior/interior contacts. `kind` selects the residual.
+#[derive(Clone, Copy)]
+enum LunarContactKind {
+    /// P1/P4: sigma == p + m_moon (penumbra first touches / last touches disc).
+    Penumbral,
+    /// U1/U4: sigma == u + m_moon (umbra first touches / last touches disc).
+    UmbralPartial,
+    /// U2/U3: sigma == u - m_moon (disc fully enters / begins leaving umbra).
+    UmbralTotal,
+}
+
+fn lunar_residual<B: EphemerisBackend>(
+    backend: &B,
+    kind: LunarContactKind,
+    jd: f64,
+) -> Result<f64, EclipseError> {
+    let sh = lunar_shadow(&sample_sun_moon(backend, jd)?);
+    let target = match kind {
+        LunarContactKind::Penumbral => sh.p + sh.m_moon,
+        LunarContactKind::UmbralPartial => sh.u + sh.m_moon,
+        LunarContactKind::UmbralTotal => sh.u - sh.m_moon,
+    };
+    Ok(sh.sigma - target)
+}
+
+/// Bisect a lunar contact residual between `lo` and `hi`; `None` if no sign change.
+fn bisect_lunar<B: EphemerisBackend>(
+    backend: &B,
+    kind: LunarContactKind,
+    mut lo: f64,
+    mut hi: f64,
+) -> Result<Option<f64>, EclipseError> {
+    let mut flo = lunar_residual(backend, kind, lo)?;
+    let fhi = lunar_residual(backend, kind, hi)?;
+    if flo.signum() == fhi.signum() {
+        return Ok(None);
+    }
+    while (hi - lo) > REFINE_TOLERANCE_DAYS {
+        let mid = 0.5 * (lo + hi);
+        let fmid = lunar_residual(backend, kind, mid)?;
+        if fmid.signum() == flo.signum() {
+            lo = mid;
+            flo = fmid;
+        } else {
+            hi = mid;
+        }
+    }
+    Ok(Some(0.5 * (lo + hi)))
+}
+
+/// Returns `(type, umbral_magnitude, penumbral_magnitude)` at greatest eclipse.
+fn classify_lunar_public<B: EphemerisBackend>(
+    backend: &B,
+    greatest_jd: f64,
+) -> Result<(LunarEclipseType, f64, f64), EclipseError> {
+    let sample = sample_sun_moon(backend, greatest_jd)?;
+    let sh = lunar_shadow(&sample);
+    let umbral_magnitude = ((sh.u + sh.m_moon - sh.sigma) / (2.0 * sh.m_moon)).max(0.0);
+    let penumbral_magnitude = ((sh.p + sh.m_moon - sh.sigma) / (2.0 * sh.m_moon)).max(0.0);
+    let eclipse_type = if sh.sigma + sh.m_moon <= sh.u {
+        LunarEclipseType::Total
+    } else if sh.sigma - sh.m_moon < sh.u {
+        LunarEclipseType::Partial
+    } else {
+        LunarEclipseType::Penumbral
+    };
+    Ok((eclipse_type, umbral_magnitude, penumbral_magnitude))
+}
+
+/// Full lunar local circumstances. Contact instants are global; visibility is local.
+pub(crate) fn lunar_local<B: EphemerisBackend>(
+    backend: &B,
+    observer: &ObserverLocation,
+    atmos: Atmosphere,
+    greatest_jd: f64,
+) -> Result<LocalLunarCircumstances, EclipseError> {
+    let moon = LocalBody::Moon;
+    let g = classify_lunar_public(backend, greatest_jd)?; // (type, umbral_mag, penumbral_mag)
+    let (eclipse_type, umbral_magnitude, penumbral_magnitude) = g;
+    let lo = greatest_jd - LUNAR_CONTACT_HALF_WINDOW_DAYS;
+    let hi = greatest_jd + LUNAR_CONTACT_HALF_WINDOW_DAYS;
+
+    let find = |kind: LunarContactKind, a: f64, b: f64| bisect_lunar(backend, kind, a, b);
+    // Penumbral contacts always exist for any lunar eclipse.
+    let p1 = find(LunarContactKind::Penumbral, lo, greatest_jd)?.unwrap_or(greatest_jd);
+    let p4 = find(LunarContactKind::Penumbral, greatest_jd, hi)?.unwrap_or(greatest_jd);
+    let u1 = find(LunarContactKind::UmbralPartial, lo, greatest_jd)?;
+    let u4 = find(LunarContactKind::UmbralPartial, greatest_jd, hi)?;
+    let u2 = find(LunarContactKind::UmbralTotal, lo, greatest_jd)?;
+    let u3 = find(LunarContactKind::UmbralTotal, greatest_jd, hi)?;
+
+    let mk = |jd: f64| contact_at(backend, observer, atmos, jd, moon);
+    let opt = |o: Option<f64>| -> Result<Option<LocalContact>, EclipseError> {
+        match o {
+            Some(jd) => Ok(Some(mk(jd)?)),
+            None => Ok(None),
+        }
+    };
+
+    // Visibility across the widest phase present (P1..P4).
+    let any_phase_visible = {
+        let step = 5.0 / 1440.0;
+        let mut jd = p1;
+        let mut vis = false;
+        while jd <= p4 + 1e-12 {
+            let (_, _, v) = body_horizontal(backend, observer, atmos, jd, moon)?;
+            if v {
+                vis = true;
+                break;
+            }
+            jd += step;
+        }
+        vis
+    };
+
+    Ok(LocalLunarCircumstances {
+        eclipse_type,
+        maximum: mk(greatest_jd)?,
+        umbral_magnitude,
+        penumbral_magnitude,
+        penumbral_begin: mk(p1)?,
+        partial_begin: opt(u1)?,
+        total_begin: opt(u2)?,
+        total_end: opt(u3)?,
+        partial_end: opt(u4)?,
+        penumbral_end: mk(p4)?,
+        any_phase_visible,
+    })
+}
+
+#[cfg(test)]
+mod lunar_local_tests {
+    use super::*;
+    use pleiades_backend::test_backend::LinearSunMoon;
+
+    #[test]
+    fn lunar_contacts_are_ordered_and_penumbra_brackets_umbra() {
+        let backend = LinearSunMoon::full_moon_at(2_451_550.0).with_moon_latitude(0.0);
+        let observer = ObserverLocation::new(
+            Latitude::from_degrees(0.0),
+            Longitude::from_degrees(0.0),
+            Some(0.0),
+        );
+        let l = lunar_local(&backend, &observer, Atmosphere::default(), 2_451_550.0).unwrap();
+        let p1 = l.penumbral_begin.instant.julian_day.days();
+        let p4 = l.penumbral_end.instant.julian_day.days();
+        assert!(p1 <= p4, "P1 <= P4");
+        if let (Some(u1), Some(u4)) = (l.partial_begin, l.partial_end) {
+            assert!(p1 <= u1.instant.julian_day.days() + 1e-9);
+            assert!(u4.instant.julian_day.days() <= p4 + 1e-9);
+        }
+    }
+}

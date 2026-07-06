@@ -18,6 +18,9 @@ use pleiades_types::{
 pub struct LinearSunMoon {
     jd0: f64,
     ref_longitude_deg: f64,
+    /// Added to the Moon's (but not the Sun's) longitude; 0 for new moon,
+    /// 180 for full moon.
+    moon_longitude_offset_deg: f64,
     sun_rate_deg_per_day: f64,
     moon_rate_deg_per_day: f64,
     moon_latitude_deg: f64,
@@ -30,11 +33,19 @@ impl LinearSunMoon {
         Self {
             jd0,
             ref_longitude_deg: 100.0,
+            moon_longitude_offset_deg: 0.0,
             sun_rate_deg_per_day: 0.985_647,
             moon_rate_deg_per_day: 13.176_396,
             moon_latitude_deg: 0.0,
             produce_coordinates: true,
         }
+    }
+
+    /// Full moon (Moon opposite the Sun in longitude, Moon on the ecliptic) at `jd0`.
+    pub fn full_moon_at(jd0: f64) -> Self {
+        let mut s = Self::new_moon_at(jd0);
+        s.moon_longitude_offset_deg = 180.0;
+        s
     }
 
     /// Backend that returns no ecliptic coordinates (drives the fail-closed path).
@@ -91,12 +102,13 @@ impl EphemerisBackend for LinearSunMoon {
         }
 
         let dt = req.instant.julian_day.days() - self.jd0;
-        let (rate, latitude, distance_au) = match req.body {
-            CelestialBody::Sun => (self.sun_rate_deg_per_day, 0.0_f64, 1.000_0_f64),
+        let (rate, latitude, distance_au, lon_offset_deg) = match req.body {
+            CelestialBody::Sun => (self.sun_rate_deg_per_day, 0.0_f64, 1.000_0_f64, 0.0_f64),
             CelestialBody::Moon => (
                 self.moon_rate_deg_per_day,
                 self.moon_latitude_deg,
                 0.002_57_f64,
+                self.moon_longitude_offset_deg,
             ),
             _ => {
                 return Err(EphemerisError::new(
@@ -106,7 +118,7 @@ impl EphemerisBackend for LinearSunMoon {
             }
         };
 
-        let lon = Longitude::from_degrees(self.ref_longitude_deg + rate * dt);
+        let lon = Longitude::from_degrees(self.ref_longitude_deg + lon_offset_deg + rate * dt);
         let coords =
             EclipticCoordinates::new(lon, Latitude::from_degrees(latitude), Some(distance_au));
 

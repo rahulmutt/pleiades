@@ -233,7 +233,19 @@ fn shadow_axis_separation_rad(sample: &SunMoonSample) -> f64 {
     separation_rad(&anti)
 }
 
-pub(crate) fn classify_lunar(sample: &SunMoonSample) -> Option<LunarCircumstances> {
+/// Per-instant lunar shadow geometry (all radians): shadow-axis separation
+/// `sigma`, umbral radius `u`, penumbral radius `p`, and the Moon's
+/// semidiameter `m_moon`. Shares the `SHADOW_INFLATION` model with
+/// [`classify_lunar`] so local contact-finding does not re-derive it.
+pub(crate) struct LunarShadow {
+    pub sigma: f64,
+    pub u: f64,
+    pub p: f64,
+    pub m_moon: f64,
+}
+
+/// Computes the lunar shadow geometry at a full-moon sample.
+pub(crate) fn lunar_shadow(sample: &SunMoonSample) -> LunarShadow {
     let s = (R_SUN_KM / (sample.sun_distance_au * AU_KM)).asin();
     let m_moon = (R_MOON_KM / (sample.moon_distance_au * AU_KM)).asin();
     let pi_moon = (R_EARTH_KM / (sample.moon_distance_au * AU_KM)).asin();
@@ -245,9 +257,22 @@ pub(crate) fn classify_lunar(sample: &SunMoonSample) -> Option<LunarCircumstance
     // umbra/penumbra spread. (Enlarging s too, as `INFLATION·(π+π±s)` would,
     // biases the penumbral magnitude ~+0.028 high.)
     let earth_shadow = SHADOW_INFLATION * (pi_moon + pi_sun);
-    let u = earth_shadow - s;
-    let p = earth_shadow + s;
-    let sigma = shadow_axis_separation_rad(sample);
+    LunarShadow {
+        sigma: shadow_axis_separation_rad(sample),
+        u: earth_shadow - s,
+        p: earth_shadow + s,
+        m_moon,
+    }
+}
+
+pub(crate) fn classify_lunar(sample: &SunMoonSample) -> Option<LunarCircumstances> {
+    let pi_moon = (R_EARTH_KM / (sample.moon_distance_au * AU_KM)).asin();
+    let LunarShadow {
+        sigma,
+        u,
+        p,
+        m_moon,
+    } = lunar_shadow(sample);
 
     if sigma >= p + m_moon {
         return None;
