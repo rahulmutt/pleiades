@@ -4,9 +4,12 @@
 //! unperturbed Kepler orbit, rotated to the J2000 mean ecliptic and assembled to
 //! a geocentric place. Definitional: parity with SE, gated by `validate-fictitious`.
 
+pub mod backend;
 pub mod elements;
 pub mod frame;
 pub mod kepler;
+
+pub use backend::{fictitious_body_claims, fictitious_bodies, FictitiousBackend};
 
 /// Crate/backend identifier used in backend metadata and results.
 pub const PACKAGE_NAME: &str = "pleiades-fict";
