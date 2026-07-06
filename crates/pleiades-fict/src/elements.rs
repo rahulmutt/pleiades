@@ -4,6 +4,8 @@
 
 use crate::frame::rotate_ecliptic_to_j2000;
 use crate::kepler::{orbital_plane_position, solve_kepler};
+use pleiades_types::CelestialBody;
+use std::sync::LazyLock;
 
 /// Gaussian mean-motion constant (SE `swi_osc_el_plan`): daily motion in
 /// degrees is `MEAN_MOTION_DEG_PER_DAY / a^1.5`.
@@ -105,6 +107,110 @@ impl KeplerElements {
             Equinox::OfDate => jd_tt,
         };
         rotate_ecliptic_to_j2000(x, y, z, equinox_jd)
+    }
+}
+
+const RAW: &str = include_str!("../data/fictitious-elements.csv");
+
+/// All 19 fictitious bodies with their osculating elements, parsed once.
+pub static TABLE: LazyLock<Vec<(CelestialBody, KeplerElements)>> = LazyLock::new(parse_table);
+
+fn body_from_token(token: &str) -> CelestialBody {
+    match token {
+        "Cupido" => CelestialBody::Cupido,
+        "Hades" => CelestialBody::Hades,
+        "Zeus" => CelestialBody::Zeus,
+        "Kronos" => CelestialBody::Kronos,
+        "Apollon" => CelestialBody::Apollon,
+        "Admetos" => CelestialBody::Admetos,
+        "Vulkanus" => CelestialBody::Vulkanus,
+        "Poseidon" => CelestialBody::Poseidon,
+        "Transpluto" => CelestialBody::Transpluto,
+        "Nibiru" => CelestialBody::Nibiru,
+        "Harrington" => CelestialBody::Harrington,
+        "NeptuneLeverrier" => CelestialBody::NeptuneLeverrier,
+        "NeptuneAdams" => CelestialBody::NeptuneAdams,
+        "PlutoLowell" => CelestialBody::PlutoLowell,
+        "PlutoPickering" => CelestialBody::PlutoPickering,
+        "Vulcan" => CelestialBody::Vulcan,
+        "WhiteMoon" => CelestialBody::WhiteMoon,
+        "Proserpina" => CelestialBody::Proserpina,
+        "Waldemath" => CelestialBody::Waldemath,
+        other => panic!("unknown fictitious body token in elements CSV: {other}"),
+    }
+}
+
+/// Resolve an epoch/equinox JD token: the `J1900`/`B1950`/`J2000` keywords or a
+/// bare Julian Day. (`JDATE` is handled separately by `equinox_from_token`.)
+fn jd_from_token(tok: &str) -> f64 {
+    match tok.trim() {
+        "J1900" => 2_415_020.0,
+        "B1950" => 2_433_282.423_459_05,
+        "J2000" => 2_451_545.0,
+        other => other
+            .parse::<f64>()
+            .unwrap_or_else(|_| panic!("bad epoch/JD token in elements CSV: {other}")),
+    }
+}
+
+fn equinox_from_token(tok: &str) -> Equinox {
+    match tok.trim() {
+        "JDATE" => Equinox::OfDate,
+        other => Equinox::Fixed(jd_from_token(other)),
+    }
+}
+
+fn parse_table() -> Vec<(CelestialBody, KeplerElements)> {
+    RAW.lines()
+        .filter(|l| !l.starts_with('#') && !l.trim().is_empty())
+        .map(|l| {
+            let f: Vec<&str> = l.split(',').collect();
+            let g = |i: usize| f[i].trim().parse::<f64>().unwrap();
+            let body = body_from_token(f[0].trim());
+            let elements = KeplerElements {
+                epoch_jd_tt: jd_from_token(f[1]),
+                a_au: [g(2), g(3), g(4)],
+                e: [g(5), g(6), g(7)],
+                incl_deg: [g(8), g(9), g(10)],
+                node_deg: [g(11), g(12), g(13)],
+                arg_peri_deg: [g(14), g(15), g(16)],
+                mean_anom_deg: [g(17), g(18), g(19)],
+                equinox: equinox_from_token(f[20]),
+                center: match f[21].trim() {
+                    "helio" => Center::Heliocentric,
+                    "geo" => Center::Geocentric,
+                    other => panic!("unknown center token: {other}"),
+                },
+            };
+            (body, elements)
+        })
+        .collect()
+}
+
+/// Osculating elements for a fictitious body, or `None` if the body is not one.
+pub fn elements_for(body: CelestialBody) -> Option<&'static KeplerElements> {
+    TABLE.iter().find(|(b, _)| *b == body).map(|(_, el)| el)
+}
+
+#[cfg(test)]
+mod table_tests {
+    use super::*;
+
+    #[test]
+    fn table_has_all_nineteen_bodies() {
+        assert_eq!(TABLE.len(), 19);
+    }
+
+    #[test]
+    fn geocentric_bodies_are_earth_centered() {
+        assert_eq!(elements_for(CelestialBody::WhiteMoon).unwrap().center, Center::Geocentric);
+        assert_eq!(elements_for(CelestialBody::Waldemath).unwrap().center, Center::Geocentric);
+        assert_eq!(elements_for(CelestialBody::Cupido).unwrap().center, Center::Heliocentric);
+    }
+
+    #[test]
+    fn non_fictitious_body_has_no_elements() {
+        assert!(elements_for(CelestialBody::Mars).is_none());
     }
 }
 
