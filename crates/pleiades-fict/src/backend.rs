@@ -79,6 +79,18 @@ impl<S: EphemerisBackend> FictitiousBackend<S> {
     }
 
     /// Symmetric finite-difference motion (±0.5 d), matching `ElpBackend::motion`.
+    ///
+    /// Falls back to a one-sided (±0.5 d against `instant` itself) difference
+    /// when only one of the two symmetric probes is available. This matters at
+    /// the edges of a Sun-source backend's bounded ephemeris window (e.g. a
+    /// packaged-data window of exactly 1900-01-01..2100-01-01 TT): a
+    /// heliocentric fictitious body sampled at the window's first or last
+    /// instant needs the Sun's position half a day beyond that boundary to
+    /// take a central difference, which a bounded backend correctly rejects.
+    /// The body's own position at `instant` is always available (it is the
+    /// value `position()` just computed), so a one-sided difference against
+    /// it is used instead of failing the whole request over a motion-only
+    /// edge effect.
     fn motion(&self, el: &KeplerElements, instant: Instant) -> Result<Motion, EphemerisError> {
         const HALF: f64 = 0.5;
         let at = |offset: f64| -> Result<EclipticCoordinates, EphemerisError> {
@@ -88,9 +100,12 @@ impl<S: EphemerisBackend> FictitiousBackend<S> {
             );
             self.geocentric_ecliptic(el, shifted)
         };
-        let before = at(-HALF)?;
-        let after = at(HALF)?;
-        let full = HALF * 2.0;
+        let (before, after, full) = match (at(-HALF), at(HALF)) {
+            (Ok(before), Ok(after)) => (before, after, HALF * 2.0),
+            (Err(_), Ok(after)) => (self.geocentric_ecliptic(el, instant)?, after, HALF),
+            (Ok(before), Err(_)) => (before, self.geocentric_ecliptic(el, instant)?, HALF),
+            (Err(e), Err(_)) => return Err(e),
+        };
         let lon_speed =
             signed_longitude_delta(before.longitude.degrees(), after.longitude.degrees()) / full;
         let lat_speed = (after.latitude.degrees() - before.latitude.degrees()) / full;
@@ -280,6 +295,55 @@ mod tests {
         let r = b.position(&req).unwrap();
         assert!(r.ecliptic.is_some());
         assert!(r.motion.is_some());
+    }
+
+    // A Sun source with a hard bounded window `[LO, HI]`, rejecting any
+    // instant outside it — mirroring a packaged ephemeris backend's fixed
+    // data range (e.g. exactly 1900-01-01..2100-01-01 TT).
+    #[derive(Debug, Clone)]
+    struct WindowedSun {
+        lo: f64,
+        hi: f64,
+    }
+    impl EphemerisBackend for WindowedSun {
+        fn metadata(&self) -> BackendMetadata {
+            StubSun.metadata()
+        }
+        fn supports_body(&self, body: CelestialBody) -> bool {
+            body == CelestialBody::Sun
+        }
+        fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+            let jd = req.instant.julian_day.days();
+            if jd < self.lo || jd > self.hi {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::OutOfRangeInstant,
+                    "outside the windowed Sun source's covered range",
+                ));
+            }
+            StubSun.position(req)
+        }
+    }
+
+    #[test]
+    fn motion_falls_back_to_one_sided_difference_at_a_data_window_edge() {
+        // The Sun source only covers [LO, HI]; a symmetric ±0.5 d probe at
+        // either edge would need Sun data half a day beyond the boundary.
+        // Before the fallback, `position()` failed outright here.
+        const LO: f64 = 2_415_020.5;
+        const HI: f64 = 2_488_069.5;
+        let b = FictitiousBackend::new(WindowedSun { lo: LO, hi: HI });
+
+        for edge in [LO, HI] {
+            let req = EphemerisRequest::new(
+                CelestialBody::Cupido,
+                Instant::new(JulianDay::from_days(edge), TimeScale::Tt),
+            );
+            let r = b
+                .position(&req)
+                .unwrap_or_else(|e| panic!("position at window edge {edge} failed: {e}"));
+            assert!(r.ecliptic.is_some());
+            assert!(r.motion.is_some());
+        }
     }
 
     #[test]
