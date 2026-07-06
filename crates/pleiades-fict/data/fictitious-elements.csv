@@ -1,0 +1,43 @@
+# fictitious-elements.csv — osculating elements transcribed from Swiss Ephemeris seorbel.txt (sets 1–19 = SE 40–58).
+# Angles in degrees; a in AU; each element is a polynomial c0,c1,c2 with T in Julian
+# centuries (36525 d) since epoch. epoch ∈ {J1900,B1950,J2000,<jd>}; equinox ∈
+# {J1900,B1950,J2000,JDATE,<jd>}; center ∈ {helio,geo}.
+# body,epoch,a0,a1,a2,e0,e1,e2,i0,i1,i2,node0,node1,node2,argp0,argp1,argp2,M0,M1,M2,equinox,center
+# Cupido (seorbel line 28, set 1): "J1900, J1900, 163.7409, 40.99837, 0.00460, 171.4333, 129.8325, 1.0833, Cupido"
+Cupido,J1900,40.99837,0,0,0.00460,0,0,1.0833,0,0,129.8325,0,0,171.4333,0,0,163.7409,0,0,J1900,helio
+# Hades (seorbel line 29, set 2)
+Hades,J1900,50.66744,0,0,0.00245,0,0,1.0500,0,0,161.3339,0,0,148.1796,0,0,27.6496,0,0,J1900,helio
+# Zeus (seorbel line 30, set 3)
+Zeus,J1900,59.21436,0,0,0.00120,0,0,0.0000,0,0,0.0000,0,0,299.0440,0,0,165.1232,0,0,J1900,helio
+# Kronos (seorbel line 31, set 4)
+Kronos,J1900,64.81690,0,0,0.00305,0,0,0.0000,0,0,0.0000,0,0,208.8801,0,0,169.0193,0,0,J1900,helio
+# Apollon (seorbel line 32, set 5)
+Apollon,J1900,70.29949,0,0,0.00000,0,0,0.0000,0,0,0.0000,0,0,0.0000,0,0,138.0533,0,0,J1900,helio
+# Admetos (seorbel line 33, set 6)
+Admetos,J1900,73.62765,0,0,0.00000,0,0,0.0000,0,0,0.0000,0,0,0.0000,0,0,351.3350,0,0,J1900,helio
+# Vulkanus (seorbel line 34, set 7; file spells "Vulcanus")
+Vulkanus,J1900,77.25568,0,0,0.00000,0,0,0.0000,0,0,0.0000,0,0,0.0000,0,0,55.8983,0,0,J1900,helio
+# Poseidon (seorbel line 35, set 8)
+Poseidon,J1900,83.66907,0,0,0.00000,0,0,0.0000,0,0,0.0000,0,0,0.0000,0,0,165.5163,0,0,J1900,helio
+# Transpluto (seorbel line 44, set 9; "Isis-Transpluto")
+Transpluto,2368547.66,77.775,0,0,0.3,0,0,0,0,0,0,0,0,0.7,0,0,0.0,0,0,2431456.5,helio
+# Nibiru (seorbel line 46, set 10): arbitrary-JD epoch & equinox, high eccentricity
+Nibiru,1856113.380954,234.8921,0,0,0.981092,0,0,158.708,0,0,-44.567,0,0,103.966,0,0,0.0,0,0,1856113.380954,helio
+# Harrington (seorbel line 48, set 11)
+Harrington,2374696.5,101.2,0,0,0.411,0,0,32.4,0,0,275.4,0,0,208.5,0,0,0.0,0,0,J2000,helio
+# NeptuneLeverrier (seorbel line 50, set 12; "Leverrier (Neptune)")
+NeptuneLeverrier,2395662.5,36.15,0,0,0.10761,0,0,0,0,0,0,0,0,284.75,0,0,34.05,0,0,2395662.5,helio
+# NeptuneAdams (seorbel line 51, set 13; "Adams (Neptune)")
+NeptuneAdams,2395662.5,37.25,0,0,0.12062,0,0,0,0,0,0,0,0,299.11,0,0,24.28,0,0,2395662.5,helio
+# PlutoLowell (seorbel line 52, set 14; "Lowell (Pluto)")
+PlutoLowell,2425977.5,43.0,0,0,0.202,0,0,0,0,0,0,0,0,204.9,0,0,281,0,0,2425977.5,helio
+# PlutoPickering (seorbel line 53, set 15; "Pickering (Pluto)")
+PlutoPickering,2425977.5,55.1,0,0,0.31,0,0,15,0,0,100,0,0,280.1,0,0,48.95,0,0,2425977.5,helio
+# Vulcan (seorbel line 55, set 16): equinox JDATE; mean-anomaly, argp, node carry T-terms
+Vulcan,J1900,0.13744,0,0,0.019,0,0,7.5,0,0,47.787931,-1670.056,0,322.212069,1670.056,0,252.8987988,707550.7341,0,JDATE,helio
+# WhiteMoon (seorbel line 57, set 17; "Selena/White Moon"): geocentric, mean-anomaly carries T-term
+WhiteMoon,J2000,0.05280098949,0,0,0.0,0,0,0.0,0,0,0.0,0,0,0.0,0,0,242.2205555,5143.5418158,0,JDATE,geo
+# Proserpina (seorbel line 60, set 18)
+Proserpina,J1900,79.225630,0,0,0,0,0,0,0,0,0,0,0,0,0,0,170.73,0,0,JDATE,helio
+# Waldemath (seorbel line 68, set 19): geocentric, mean-anomaly, argp, node carry T-terms
+Waldemath,2414290.95827875,0.0068400705250028,0,0,0.1587,0,0,2.5,0,0,136.24878256,-1131.71719709,0,8.14049594,2393.47417444,0,70.3407215,109023.2634989,0,2414290.95827875,geo

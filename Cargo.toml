@@ -11,6 +11,7 @@ members = [
     "crates/pleiades-eclipse",
     "crates/pleiades-elp",
     "crates/pleiades-events",
+    "crates/pleiades-fict",
     "crates/pleiades-houses",
     "crates/pleiades-jpl",
     "crates/pleiades-time",
@@ -18,7 +19,7 @@ members = [
     "crates/pleiades-validate",
     "crates/pleiades-vsop87",
 ]
-exclude = ["tools/se-house-reference", "tools/se-ayanamsa-reference", "tools/se-lilith-reference", "tools/se-equatorial-reference", "tools/se-crossings-reference", "tools/se-rise-trans-reference", "tools/se-eclipse-local-reference"]
+exclude = ["tools/se-house-reference", "tools/se-ayanamsa-reference", "tools/se-lilith-reference", "tools/se-equatorial-reference", "tools/se-crossings-reference", "tools/se-rise-trans-reference", "tools/se-eclipse-local-reference", "tools/se-fictitious-reference"]
 resolver = "2"
 
 [workspace.package]
@@ -51,6 +52,7 @@ pleiades-data = { path = "crates/pleiades-data", version = "0.3.0" }
 pleiades-eclipse = { path = "crates/pleiades-eclipse", version = "0.3.0" }
 pleiades-elp = { path = "crates/pleiades-elp", version = "0.3.0" }
 pleiades-events = { path = "crates/pleiades-events", version = "0.3.0" }
+pleiades-fict = { path = "crates/pleiades-fict", version = "0.3.0" }
 pleiades-houses = { path = "crates/pleiades-houses", version = "0.3.0" }
 pleiades-jpl = { path = "crates/pleiades-jpl", version = "0.3.0" }
 pleiades-time = { path = "crates/pleiades-time", version = "0.3.0" }

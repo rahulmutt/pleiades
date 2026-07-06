@@ -95,5 +95,11 @@ coordinates via `pleiades-events::EventEngine`, SE-validated by the fail-closed
 `validate-rise-trans` gate wired into `run_all_numeric_gates`), and SP-2c
 (local per-observer eclipse circumstances via `EclipseEngine::local_circumstances`/
 `next_local_eclipse`/`previous_local_eclipse`, SE-validated by the fail-closed
-`validate-eclipses-local` gate wired into `run_all_numeric_gates`) are all done.
-SP-3 remains and is not yet started (not yet scoped in detail).
+`validate-eclipses-local` gate wired into `run_all_numeric_gates`) are all done,
+and SP-3 (fictitious/hypothetical bodies via the new `pleiades-fict` crate's
+`FictitiousBackend`, serving the Swiss-Ephemeris `seorbel.txt` bodies 40-58 as
+unperturbed Kepler orbits, definitional-tier, SE-validated by the fail-closed
+`validate-fictitious` gate wired into `run_all_numeric_gates` over a committed
+570-row corpus) is now done as well. Compatibility profile is at 0.7.9. Next
+candidate slices: `swe_pheno` (phase/phase-angle/magnitude) and `swe_nod_aps`
+(osculating node/apsis for planets), not yet scoped in detail.

@@ -1,0 +1,9 @@
+corpus: fictitious
+source: Swiss Ephemeris 2.10.03 (Moshier, SEFLG_MOSEPH)
+generator: tools/se-fictitious-reference
+file: fictitious.csv rows=570 checksum=9245392524603375662
+iflag: 1588 (SEFLG_MOSEPH|SEFLG_J2000|SEFLG_TRUEPOS|SEFLG_NOABERR|SEFLG_NOGDEFL) — geometric geocentric J2000
+bodies: SE 40..=58 (19 fictitious bodies; elements from committed data/seorbel.txt)
+sampling: 30 dates per body, evenly spaced across the window
+times: TT (Terrestrial Time) Julian days
+window: 1900-2100 CE (JD 2415020.5..=2488069.5)

@@ -26,6 +26,8 @@ mod eclipse_local_thresholds;
 pub mod eclipse_local_validation;
 pub mod eclipse_validation;
 mod equatorial_validation;
+mod fictitious_thresholds;
+pub mod fictitious_validation;
 mod frame_consistency_validation;
 mod house_validation;
 mod lilith_validation;
@@ -194,6 +196,7 @@ pub use equatorial_validation::{
     validate_equatorial_goldens, validate_equatorial_se_corpus, EquatorialSeError,
     EquatorialSeReport, EquatorialValidationError, EquatorialValidationReport,
 };
+pub use fictitious_validation::{validate_fictitious_corpus, FictitiousError, FictitiousReport};
 pub use frame_consistency_validation::{
     validate_frame_consistency, FrameConsistencyError, FrameConsistencyReport,
 };

@@ -103,6 +103,19 @@ coordinates, gated by `validate-rise-trans`), and SP-2c (local per-observer
 eclipse circumstances — `EclipseEngine::local_circumstances` /
 `next_local_eclipse` / `previous_local_eclipse` for both solar and lunar
 eclipses, contact times/magnitude/obscuration/azimuth/altitude/visibility,
-gated by `validate-eclipses-local`) are all **done**. Next candidate slice:
+gated by `validate-eclipses-local`), and SP-3 (fictitious/hypothetical bodies
+via the new `pleiades-fict` crate's `FictitiousBackend`, serving the
+Swiss-Ephemeris `seorbel.txt` bodies 40-58 — Uranian/Hamburg planets,
+Transpluto, Vulcan, White Moon, Waldemath, and the historical pre-discovery
+Neptune/Pluto predictions — as unperturbed Kepler orbits rotated to the J2000
+mean ecliptic, definitional claim tier, gated by the fail-closed two-tier
+`validate-fictitious` gate over a committed 570-row Swiss-Ephemeris corpus;
+all 18 non-Nibiru bodies sub-arcsecond, Nibiru carries a documented per-body
+carve-out for its ~370 AD reference equinox) are all **done**. Next candidate
+slices:
 
-- SP-3 (not yet scoped in detail).
+- `swe_pheno` (phase, phase angle, and magnitude for Sun/Moon/planets).
+- `swe_nod_aps` (osculating and mean node/apsis for planets).
+- Further out (not yet scoped): custom fictitious-body orbital elements
+  (user-supplied, beyond the committed `seorbel.txt` set), occultations, and
+  central-path cartography for solar eclipses.

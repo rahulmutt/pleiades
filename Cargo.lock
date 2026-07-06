@@ -157,6 +157,7 @@ dependencies = [
  "pleiades-core",
  "pleiades-data",
  "pleiades-elp",
+ "pleiades-fict",
  "pleiades-jpl",
  "pleiades-validate",
  "pleiades-vsop87",
@@ -228,6 +229,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "pleiades-fict"
+version = "0.3.0"
+dependencies = [
+ "pleiades-apparent",
+ "pleiades-backend",
+ "pleiades-types",
+]
+
+[[package]]
 name = "pleiades-houses"
 version = "0.3.0"
 dependencies = [
@@ -274,6 +284,7 @@ dependencies = [
  "pleiades-eclipse",
  "pleiades-elp",
  "pleiades-events",
+ "pleiades-fict",
  "pleiades-houses",
  "pleiades-jpl",
  "pleiades-types",
