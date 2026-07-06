@@ -588,6 +588,127 @@ pub(crate) fn contact_at<B: EphemerisBackend>(
     })
 }
 
+/// Classifies what the observer sees at local maximum from the two-circle
+/// geometry: total when the Moon's disk fully covers the Sun's
+/// (`sep + s_sun <= s_moon`), annular when the Moon is fully inside
+/// (`sep + s_moon <= s_sun`), else partial. Hybrid is a global (path-level)
+/// distinction, not a single-observer one, so a single observer sees total or
+/// annular, never "hybrid".
+fn classify_local_solar(c: &SolarContactsJd) -> SolarEclipseType {
+    let (sep, s_sun, s_moon) = (c.min_sep_deg, c.s_sun_at_max, c.s_moon_at_max);
+    if c.c2_c3_present && sep + s_sun <= s_moon + 1e-9 {
+        SolarEclipseType::Total
+    } else if c.c2_c3_present && sep + s_moon <= s_sun + 1e-9 {
+        SolarEclipseType::Annular
+    } else {
+        SolarEclipseType::Partial
+    }
+}
+
+/// Whether the Sun is above the horizon anywhere in `[c1,c4]` (coarse 2-min scan).
+fn solar_any_visible<B: EphemerisBackend>(
+    backend: &B,
+    observer: &ObserverLocation,
+    atmos: Atmosphere,
+    c1_jd: f64,
+    c4_jd: f64,
+) -> Result<bool, EclipseError> {
+    let step = 2.0 / 1440.0;
+    let mut jd = c1_jd;
+    while jd <= c4_jd + 1e-12 {
+        let (_, _, vis) = body_horizontal(backend, observer, atmos, jd, LocalBody::Sun)?;
+        if vis {
+            return Ok(true);
+        }
+        jd += step;
+    }
+    Ok(false)
+}
+
+/// Full solar local circumstances for `observer` around `greatest_jd`.
+pub(crate) fn solar_local<B: EphemerisBackend>(
+    backend: &B,
+    observer: &ObserverLocation,
+    atmos: Atmosphere,
+    greatest_jd: f64,
+) -> Result<LocalSolarCircumstances, EclipseError> {
+    let c = solar_contacts_jd(backend, observer, greatest_jd)?;
+    let sun = LocalBody::Sun;
+    match c {
+        None => {
+            // No eclipse for this observer: a degenerate all-at-greatest record,
+            // not visible. `next_local_eclipse` filters these out; `local_circumstances`
+            // still returns it so a caller can inspect "not visible here".
+            let contact = contact_at(backend, observer, atmos, greatest_jd, sun)?;
+            let g = solar_geom(&topo_sun_moon(backend, observer, greatest_jd)?);
+            Ok(LocalSolarCircumstances {
+                local_type: SolarEclipseType::Partial,
+                maximum: contact,
+                magnitude: covered_diameter_fraction(&g), // 0.0 here
+                obscuration: obscuration_fraction(&g),
+                first_contact: contact,
+                second_contact: None,
+                third_contact: None,
+                fourth_contact: contact,
+                any_phase_visible: contact.visible,
+            })
+        }
+        Some(c) => {
+            let g_max = solar_geom(&topo_sun_moon(backend, observer, c.max_jd)?);
+            let local_type = classify_local_solar(&c);
+            let maximum = contact_at(backend, observer, atmos, c.max_jd, sun)?;
+            let first_contact = contact_at(backend, observer, atmos, c.c1_jd, sun)?;
+            let fourth_contact = contact_at(backend, observer, atmos, c.c4_jd, sun)?;
+            let (second_contact, third_contact) = if c.c2_c3_present {
+                (
+                    Some(contact_at(backend, observer, atmos, c.c2_jd, sun)?),
+                    Some(contact_at(backend, observer, atmos, c.c3_jd, sun)?),
+                )
+            } else {
+                (None, None)
+            };
+            let any_phase_visible = solar_any_visible(backend, observer, atmos, c.c1_jd, c.c4_jd)?;
+            Ok(LocalSolarCircumstances {
+                local_type,
+                maximum,
+                magnitude: covered_diameter_fraction(&g_max),
+                obscuration: obscuration_fraction(&g_max),
+                first_contact,
+                second_contact,
+                third_contact,
+                fourth_contact,
+                any_phase_visible,
+            })
+        }
+    }
+}
+
+#[cfg(test)]
+mod solar_local_tests {
+    use super::*;
+    use pleiades_backend::test_backend::LinearSunMoon;
+
+    #[test]
+    fn central_eclipse_has_full_magnitude_and_ordered_contacts() {
+        let backend = LinearSunMoon::new_moon_at(2_451_550.0).with_moon_latitude(0.0);
+        let observer = ObserverLocation::new(
+            Latitude::from_degrees(0.0),
+            Longitude::from_degrees(0.0),
+            Some(0.0),
+        );
+        let s = solar_local(&backend, &observer, Atmosphere::default(), 2_451_550.0).unwrap();
+        assert!(s.magnitude > 0.0, "central magnitude {}", s.magnitude);
+        assert!(s.obscuration >= 0.0 && s.obscuration <= 1.0);
+        assert!(
+            s.first_contact.instant.julian_day.days() <= s.maximum.instant.julian_day.days() + 1e-9
+        );
+        assert!(
+            s.maximum.instant.julian_day.days()
+                <= s.fourth_contact.instant.julian_day.days() + 1e-9
+        );
+    }
+}
+
 #[cfg(test)]
 mod horizontal_tests {
     use super::*;
