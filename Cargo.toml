@@ -11,6 +11,7 @@ members = [
     "crates/pleiades-eclipse",
     "crates/pleiades-elp",
     "crates/pleiades-events",
+    "crates/pleiades-fict",
     "crates/pleiades-houses",
     "crates/pleiades-jpl",
     "crates/pleiades-time",
@@ -51,6 +52,7 @@ pleiades-data = { path = "crates/pleiades-data", version = "0.3.0" }
 pleiades-eclipse = { path = "crates/pleiades-eclipse", version = "0.3.0" }
 pleiades-elp = { path = "crates/pleiades-elp", version = "0.3.0" }
 pleiades-events = { path = "crates/pleiades-events", version = "0.3.0" }
+pleiades-fict = { path = "crates/pleiades-fict", version = "0.3.0" }
 pleiades-houses = { path = "crates/pleiades-houses", version = "0.3.0" }
 pleiades-jpl = { path = "crates/pleiades-jpl", version = "0.3.0" }
 pleiades-time = { path = "crates/pleiades-time", version = "0.3.0" }

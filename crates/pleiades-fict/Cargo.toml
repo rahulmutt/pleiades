@@ -1,0 +1,17 @@
+[package]
+name = "pleiades-fict"
+description = "Fictitious/hypothetical body backend (Uranian planets, Transpluto, Vulcan, …) from osculating orbital elements for the pleiades astrology workspace."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme = "README.md"
+
+[dependencies]
+pleiades-apparent = { workspace = true }
+pleiades-backend = { workspace = true }
+pleiades-types = { workspace = true }
