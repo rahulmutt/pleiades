@@ -391,17 +391,19 @@ impl<B: EphemerisBackend> EventEngine<B> {
     ) -> Result<[RawPoint; 4], EventError> {
         let second_focus = convention == ApsisConvention::SecondFocus;
         let elements = if *body == CelestialBody::Moon {
+            // The ELP backend's MeanNode/MeanPerigee longitudes are Meeus-style
+            // mean-lunar-element polynomials (e.g. Ω0 = 125.04452° at J2000);
+            // those are OF-DATE quantities by construction, despite the module
+            // boundary's nominal J2000 labeling — do NOT re-precess them here.
+            // Verified by spot check against the committed corpus: at
+            // jd 2415100.5 the raw backend read is ~17″ off SE's mean-node
+            // longitude (arcsecond-class, as expected for a cross-theory
+            // comparison); precessing it as if it were J2000 moves it ~5034″
+            // off, matching the diagnosed +1-century MEAN_MOON longitude
+            // residual (~5024″ — one full century of precession, 1.396°/cy).
             let node = read_mean_longitude(&self.backend, CelestialBody::MeanNode, "MeanNode", jd)?;
             let peri =
                 read_mean_longitude(&self.backend, CelestialBody::MeanPerigee, "MeanPerigee", jd)?;
-            // Backend lunar-point longitudes are J2000-frame at the boundary;
-            // bring them to the mean equinox of date like any body read.
-            let node = precess_ecliptic_j2000_to_date(node, 0.0, jd)
-                .map_err(|e| EventError::Backend(format!("precession failed: {e}")))?
-                .longitude_deg;
-            let peri = precess_ecliptic_j2000_to_date(peri, 0.0, jd)
-                .map_err(|e| EventError::Backend(format!("precession failed: {e}")))?
-                .longitude_deg;
             KeplerianElements {
                 node_deg: node,
                 peri_lon_deg: peri,
@@ -443,11 +445,14 @@ impl<B: EphemerisBackend> EventEngine<B> {
         let (sun_geo, v_obs) = self.sun_geo_mean_of_date(jd)?;
         for (o, p) in out.iter_mut().zip(in_plane.iter()) {
             let helio = spherical_to_cartesian(p.longitude_deg, p.latitude_deg, p.distance_au);
-            // Sun: SE negates the heliocentric Earth-orbit point to produce
-            // the geocentric "Black Sun" point (swecl.c:5482-5484). Planets:
-            // heliocentric point + geocentric Sun = geocentric point.
+            // SE's shared output stage (swecl.c ~5480) always recenters the
+            // Earth-orbit point to geocentric FIRST (`xp -= xobs`, i.e.
+            // heliocentric + geocentric Sun here), and only THEN, for the
+            // Sun exclusively, negates the already-geocentric vector
+            // (swecl.c:5482-5484) to produce the geocentric "Black Sun"
+            // point. Planets just keep the recentered (non-negated) vector.
             let geo = if *body == CelestialBody::Sun {
-                scale3(helio, -1.0)
+                scale3(add3(helio, sun_geo), -1.0)
             } else {
                 add3(helio, sun_geo)
             };
@@ -459,31 +464,26 @@ impl<B: EphemerisBackend> EventEngine<B> {
         Ok(out)
     }
 
-    /// Body geocentric position in the TRUE ecliptic of date (precession + Δψ),
-    /// as a Cartesian vector.
-    fn body_geo_true_of_date(
+    /// Body geocentric position in the RAW J2000 mean ecliptic frame — no
+    /// precession, no nutation. All osculating-state sampling and centering
+    /// arithmetic happens in this frame (see [`Self::osculating_state`]);
+    /// the single frame rotation to true-of-date is applied once, at the
+    /// end, to the assembled center-epoch state.
+    fn body_geo_j2000(
         &self,
         body: &CelestialBody,
         label: &'static str,
         jd: f64,
     ) -> Result<[f64; 3], EventError> {
         let (lon, lat, dist) = read_mean_ecliptic(&self.backend, body.clone(), label, jd)?;
-        let p = precess_ecliptic_j2000_to_date(lon, lat, jd)
-            .map_err(|e| EventError::Backend(format!("precession failed: {e}")))?;
-        let dpsi_deg = nutation(jd)
-            .map_err(|e| EventError::Backend(format!("nutation failed: {e}")))?
-            .delta_psi_arcsec
-            / 3600.0;
-        Ok(spherical_to_cartesian(
-            (p.longitude_deg + dpsi_deg).rem_euclid(360.0),
-            p.latitude_deg,
-            dist,
-        ))
+        Ok(spherical_to_cartesian(lon, lat, dist))
     }
 
-    /// Sun-to-SSB offset R in the true ecliptic of date, from the giant-planet
-    /// heliocentric vectors weighted by their SE mass ratios (Jupiter–Pluto).
-    /// `r_bary = r_helio − R`.
+    /// Sun-to-SSB offset R in the RAW J2000 frame (matching `sun_geo`'s
+    /// frame), from the giant-planet heliocentric vectors weighted by their
+    /// SE mass ratios (Jupiter–Pluto). `r_bary = r_helio − R`. Rotated to
+    /// true-of-date alongside the rest of the state in
+    /// [`Self::osculating_state`], not here.
     fn sun_to_ssb_offset(&self, jd: f64, sun_geo: [f64; 3]) -> Result<[f64; 3], EventError> {
         use crate::mean_elements::SUN_MASS_RATIO;
         const GIANTS: [(CelestialBody, &str, usize); 5] = [
@@ -495,7 +495,7 @@ impl<B: EphemerisBackend> EventEngine<B> {
         ];
         let mut r = [0.0_f64; 3];
         for (body, label, mi) in GIANTS {
-            let geo = self.body_geo_true_of_date(&body, label, jd)?;
+            let geo = self.body_geo_j2000(&body, label, jd)?;
             let helio = sub3(geo, sun_geo);
             r = add3(r, scale3(helio, 1.0 / SUN_MASS_RATIO[mi]));
         }
@@ -505,6 +505,26 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// The body's sampling state, centered for element formation, in the true
     /// ecliptic of date at `jd`. Returns (center_pos, velocity, recentering
     /// vector to go point→geocentric, negate_output).
+    ///
+    /// All backend sampling and centering arithmetic (helio = geo − sun, the
+    /// Sun→EMB remap, the SSB offset R) happens in the RAW J2000 frame, and
+    /// velocity is the central difference of those J2000-centered positions.
+    /// Differencing already-of-date snapshots instead (three different
+    /// rotating frames at t−dt/t/t+dt) would smuggle in a spurious
+    /// frame-rotation term ≈ precession-rate × r that swamps the real
+    /// eccentricity signal for slow, large-`a` bodies (Neptune: precession
+    /// rate ~6.7e-7 rad/day × r≈30 AU vs. e≈0.006 — exactly the SE parity
+    /// bug this fixes). This matches SE's own approach (sweph.c
+    /// `swi_plan_for_osc_elem`: acquire position+velocity in J2000 with
+    /// `SEFLG_J2000|SEFLG_NONUT|SEFLG_TRUEPOS|SEFLG_SPEED`, "speed vector has
+    /// to be rotated, but daily precession ... may not be added").
+    ///
+    /// The center-epoch position, velocity, and recentering vector are
+    /// rotated ONCE, J2000 → true ecliptic of date at `jd`, after all
+    /// sampling/centering/differencing is done — so `elements_from_state`
+    /// forms the ellipse (and hence the nodes) directly in the of-date
+    /// plane, rather than rotating already-formed points afterward (which
+    /// would misplace low-inclination nodes by (plane tilt)/sin(i)).
     #[allow(clippy::type_complexity)]
     fn osculating_state(
         &self,
@@ -518,27 +538,30 @@ impl<B: EphemerisBackend> EventEngine<B> {
         let label = "nod-aps body";
         if *body == CelestialBody::Moon {
             let dt = NODE_CALC_INTV_DAYS;
-            let s = |jd: f64| self.body_geo_true_of_date(&CelestialBody::Moon, "Moon", jd);
+            let s = |jd: f64| self.body_geo_j2000(&CelestialBody::Moon, "Moon", jd);
             let (p0, pm, pp) = (s(jd)?, s(jd - dt)?, s(jd + dt)?);
             let vel = scale3(sub3(pp, pm), 1.0 / (2.0 * dt));
             // Geocentric orbit: points come out geocentric already.
-            return Ok((p0, vel, [0.0; 3], false));
+            let pos = rotate_j2000_to_true_of_date(p0, jd)?;
+            let vel = rotate_j2000_to_true_of_date(vel, jd)?;
+            return Ok((pos, vel, [0.0; 3], false));
         }
-        // Everything else forms a Sun-centered (or SSB-centered) ellipse.
-        let sun = |jd: f64| self.body_geo_true_of_date(&CelestialBody::Sun, "Sun", jd);
+        // Everything else forms a Sun-centered (or SSB-centered) ellipse, all
+        // in the raw J2000 frame.
+        let sun = |jd: f64| self.body_geo_j2000(&CelestialBody::Sun, "Sun", jd);
         let helio_at = |jd: f64| -> Result<[f64; 3], EventError> {
             if *body == CelestialBody::Sun {
                 // SE remaps the Sun to the Earth-Moon barycenter
                 // (swecl.c:5116-5117, 5281-5286): EMB = Earth + Moon/(μ_ratio+1),
                 // with Earth_helio = −Sun_geo.
                 let sun_geo = sun(jd)?;
-                let moon_geo = self.body_geo_true_of_date(&CelestialBody::Moon, "Moon", jd)?;
+                let moon_geo = self.body_geo_j2000(&CelestialBody::Moon, "Moon", jd)?;
                 Ok(add3(
                     scale3(sun_geo, -1.0),
                     scale3(moon_geo, 1.0 / (EARTH_MOON_MASS_RATIO + 1.0)),
                 ))
             } else {
-                let geo = self.body_geo_true_of_date(body, label, jd)?;
+                let geo = self.body_geo_j2000(body, label, jd)?;
                 Ok(sub3(geo, sun(jd)?))
             }
         };
@@ -569,12 +592,15 @@ impl<B: EphemerisBackend> EventEngine<B> {
             centered_at(jd + dt)?,
         );
         let vel = scale3(sub3(pp, pm), 1.0 / (2.0 * dt));
-        let recenter = if *body == CelestialBody::Sun {
-            [0.0; 3]
-        } else {
-            recenter_at(jd)?
-        };
-        Ok((p0, vel, recenter, *body == CelestialBody::Sun))
+        // Sun included: SE's shared output stage always recenters the Sun's
+        // point too (see `mean_points_at`'s comment) before negating it, so
+        // the Sun gets the same true geocentric-Sun recenter vector as every
+        // other body — never the zero vector.
+        let recenter = recenter_at(jd)?;
+        let pos = rotate_j2000_to_true_of_date(p0, jd)?;
+        let vel = rotate_j2000_to_true_of_date(vel, jd)?;
+        let recenter = rotate_j2000_to_true_of_date(recenter, jd)?;
+        Ok((pos, vel, recenter, *body == CelestialBody::Sun))
     }
 
     /// Osculating points: form the instantaneous ellipse in the true ecliptic
@@ -615,8 +641,12 @@ impl<B: EphemerisBackend> EventEngine<B> {
         let (_, v_obs) = self.sun_geo_mean_of_date(jd)?;
         for (o, p) in out.iter_mut().zip(in_frame.iter()) {
             let v = spherical_to_cartesian(p.longitude_deg, p.latitude_deg, p.distance_au);
+            // SE's shared output stage (swecl.c ~5480) recenters to geocentric
+            // FIRST (`v + recenter`), and only THEN, for the Sun exclusively,
+            // negates the already-geocentric vector (swecl.c:5482-5484) — see
+            // `mean_points_at`'s matching comment.
             let geo = if negate {
-                scale3(v, -1.0)
+                scale3(add3(v, recenter), -1.0)
             } else {
                 add3(v, recenter)
             };
@@ -628,4 +658,28 @@ impl<B: EphemerisBackend> EventEngine<B> {
     // were rotated to the TRUE ecliptic of date). The observer velocity from
     // `sun_geo_mean_of_date` is a mean-frame vector; the ≤17″ frame mismatch on
     // a v/c≈20″ correction is < 2 mas — irrelevant, don't add machinery.
+}
+
+/// Rotates a vector from the raw J2000 mean-ecliptic frame to the true
+/// ecliptic of date at `jd`: precession (J2000 → mean equinox/ecliptic of
+/// date) plus nutation in longitude (mean → true equinox of date), applied to
+/// the vector's DIRECTION, with its magnitude preserved exactly. A rigid
+/// rotation carries every vector's direction through the same map, so this is
+/// valid for velocity and recentering vectors, not just positions — it is
+/// exactly the "rotate the speed vector, but don't add precession/nutation
+/// rates to it" step SE performs in `swi_plan_for_osc_elem`.
+fn rotate_j2000_to_true_of_date(v: [f64; 3], jd: f64) -> Result<[f64; 3], EventError> {
+    let r = norm3(v);
+    if r == 0.0 {
+        return Ok(v);
+    }
+    let raw = cartesian_to_raw(v);
+    let precessed = precess_ecliptic_j2000_to_date(raw.lon_deg, raw.lat_deg, jd)
+        .map_err(|e| EventError::Backend(format!("precession failed: {e}")))?;
+    let dpsi_deg = nutation(jd)
+        .map_err(|e| EventError::Backend(format!("nutation failed: {e}")))?
+        .delta_psi_arcsec
+        / 3600.0;
+    let lon_deg = (precessed.longitude_deg + dpsi_deg).rem_euclid(360.0);
+    Ok(spherical_to_cartesian(lon_deg, precessed.latitude_deg, r))
 }
