@@ -484,3 +484,25 @@ fn validate_nod_aps_and_alias_agree_and_reject_extra_args() {
         "help text should mention nod-aps-gate alias"
     );
 }
+
+#[test]
+fn validate_pheno_and_alias_agree_and_reject_extra_args() {
+    let primary = render_cli(&["validate-pheno"]).expect("gate ok");
+    let alias = render_cli(&["pheno-gate"]).expect("alias ok");
+    assert_eq!(primary, alias);
+    let error = render_cli(&["validate-pheno", "extra"])
+        .expect_err("validate-pheno should reject extra arguments");
+    assert!(
+        error.contains("validate-pheno does not accept extra arguments"),
+        "unexpected error: {error}"
+    );
+    let help = render_cli(&["help"]).expect("help ok");
+    assert!(
+        help.contains("validate-pheno"),
+        "help text should mention validate-pheno"
+    );
+    assert!(
+        help.contains("pheno-gate"),
+        "help text should mention pheno-gate alias"
+    );
+}
