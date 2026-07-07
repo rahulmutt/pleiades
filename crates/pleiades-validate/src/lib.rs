@@ -31,6 +31,8 @@ pub mod fictitious_validation;
 mod frame_consistency_validation;
 mod house_validation;
 mod lilith_validation;
+mod nod_aps_thresholds;
+pub mod nod_aps_validation;
 mod provenance;
 mod release;
 mod render;
@@ -209,6 +211,7 @@ pub use house_validation::{
 };
 pub use house_validation::{validate_house_corpus, HouseCorpusError, HouseCorpusReport};
 pub use lilith_validation::{validate_lilith_corpus, LilithCorpusError, LilithCorpusReport};
+pub use nod_aps_validation::{validate_nod_aps_corpus, NodApsError, NodApsReport};
 pub use rise_trans_validation::{validate_rise_trans_corpus, RiseTransError, RiseTransReport};
 
 use crate::claims::{

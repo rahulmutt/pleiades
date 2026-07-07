@@ -45,6 +45,16 @@ pub enum EventError {
         /// Human-readable detail.
         detail: String,
     },
+    /// A body/method combination `nod_aps` does not support (fail-closed).
+    UnsupportedNodAps {
+        /// Human-readable explanation.
+        detail: String,
+    },
+    /// The orbit geometry was too degenerate to form nodes/apsides.
+    DegenerateNodAps {
+        /// Human-readable explanation.
+        detail: String,
+    },
 }
 
 impl fmt::Display for EventError {
@@ -69,6 +79,12 @@ impl fmt::Display for EventError {
             EventError::InvalidObserver { detail } => write!(f, "invalid observer: {detail}"),
             EventError::UnknownFixedStar { name } => write!(f, "unknown fixed star: {name}"),
             EventError::InvalidAtmosphere { detail } => write!(f, "invalid atmosphere: {detail}"),
+            EventError::UnsupportedNodAps { detail } => {
+                write!(f, "unsupported nod_aps request: {detail}")
+            }
+            EventError::DegenerateNodAps { detail } => {
+                write!(f, "degenerate nod_aps geometry: {detail}")
+            }
         }
     }
 }
@@ -92,5 +108,17 @@ mod tests {
     fn window_constants_match_1900_2100() {
         assert_eq!(WINDOW_START_JD, 2_415_020.5);
         assert_eq!(WINDOW_END_JD, 2_488_069.5);
+    }
+
+    #[test]
+    fn nod_aps_errors_render_their_detail() {
+        let err = EventError::UnsupportedNodAps {
+            detail: "mean elements for Pluto".into(),
+        };
+        assert!(err.to_string().contains("mean elements for Pluto"));
+        let err = EventError::DegenerateNodAps {
+            detail: "node ill-defined".into(),
+        };
+        assert!(err.to_string().contains("node ill-defined"));
     }
 }

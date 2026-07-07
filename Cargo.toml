@@ -19,14 +19,14 @@ members = [
     "crates/pleiades-validate",
     "crates/pleiades-vsop87",
 ]
-exclude = ["tools/se-house-reference", "tools/se-ayanamsa-reference", "tools/se-lilith-reference", "tools/se-equatorial-reference", "tools/se-crossings-reference", "tools/se-rise-trans-reference", "tools/se-eclipse-local-reference", "tools/se-fictitious-reference"]
+exclude = ["tools/se-house-reference", "tools/se-ayanamsa-reference", "tools/se-lilith-reference", "tools/se-equatorial-reference", "tools/se-crossings-reference", "tools/se-rise-trans-reference", "tools/se-eclipse-local-reference", "tools/se-fictitious-reference", "tools/se-nodaps-reference"]
 resolver = "2"
 
 [workspace.package]
 edition = "2021"
 license = "MIT OR Apache-2.0"
 version = "0.3.0"
-rust-version = "1.96.0"
+rust-version = "1.96.1"
 repository = "https://github.com/rahulmutt/pleiades"
 homepage = "https://github.com/rahulmutt/pleiades"
 keywords = ["astrology", "astronomy", "ephemeris"]

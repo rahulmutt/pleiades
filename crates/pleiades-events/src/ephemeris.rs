@@ -53,6 +53,25 @@ pub(crate) fn read_mean_ecliptic<B: EphemerisBackend>(
     ))
 }
 
+/// Mean/J2000 geocentric ecliptic longitude only — for bodies whose backends
+/// legitimately omit distance (the mean lunar points: `MeanNode`,
+/// `MeanPerigee`). Latitude is read and discarded; distance is not required.
+pub(crate) fn read_mean_longitude<B: EphemerisBackend>(
+    backend: &B,
+    body: CelestialBody,
+    body_label: &'static str,
+    julian_day: f64,
+) -> Result<f64, EventError> {
+    let result = backend
+        .position(&request(body, julian_day))
+        .map_err(|e| EventError::Backend(e.to_string()))?;
+    let ecliptic = result.ecliptic.ok_or(EventError::MissingCoordinates {
+        body_label,
+        julian_day,
+    })?;
+    Ok(ecliptic.longitude.degrees())
+}
+
 /// Geocentric apparent-of-date ecliptic (longitude_deg, latitude_deg, distance_au)
 /// for a body. The Sun is a special case where light-time and annual aberration
 /// are the same effect, so it uses `apparent_sun_position` (which applies
@@ -174,7 +193,7 @@ pub(crate) fn heliocentric_longitude_deg<B: EphemerisBackend>(
     Ok((precessed.longitude_deg + nut.delta_psi_arcsec / 3600.0).rem_euclid(360.0))
 }
 
-fn spherical_to_cartesian(lon_deg: f64, lat_deg: f64, r_au: f64) -> [f64; 3] {
+pub(crate) fn spherical_to_cartesian(lon_deg: f64, lat_deg: f64, r_au: f64) -> [f64; 3] {
     let lon = lon_deg.to_radians();
     let lat = lat_deg.to_radians();
     [

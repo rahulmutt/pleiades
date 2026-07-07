@@ -222,9 +222,14 @@ name = "pleiades-events"
 version = "0.3.0"
 dependencies = [
  "pleiades-apparent",
+ "pleiades-apsides",
  "pleiades-backend",
  "pleiades-data",
+ "pleiades-elp",
+ "pleiades-fict",
+ "pleiades-jpl",
  "pleiades-types",
+ "pleiades-vsop87",
  "serde",
 ]
 
