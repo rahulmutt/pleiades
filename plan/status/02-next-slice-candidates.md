@@ -99,11 +99,11 @@ once Phase 5 audits pass.
 
 SP-1 (angles/sidereal time), SP-2a (longitude crossings, plus the SP-2a-FU
 `validate-crossings` hardening), SP-2b (rise/set/transit + horizontal
-coordinates, gated by `validate-rise-trans`), and SP-2c (local per-observer
+coordinates, gated by `validate-rise-trans`), SP-2c (local per-observer
 eclipse circumstances — `EclipseEngine::local_circumstances` /
 `next_local_eclipse` / `previous_local_eclipse` for both solar and lunar
 eclipses, contact times/magnitude/obscuration/azimuth/altitude/visibility,
-gated by `validate-eclipses-local`), and SP-3 (fictitious/hypothetical bodies
+gated by `validate-eclipses-local`), SP-3 (fictitious/hypothetical bodies
 via the new `pleiades-fict` crate's `FictitiousBackend`, serving the
 Swiss-Ephemeris `seorbel.txt` bodies 40-58 — Uranian/Hamburg planets,
 Transpluto, Vulcan, White Moon, Waldemath, and the historical pre-discovery
@@ -111,11 +111,23 @@ Neptune/Pluto predictions — as unperturbed Kepler orbits rotated to the J2000
 mean ecliptic, definitional claim tier, gated by the fail-closed two-tier
 `validate-fictitious` gate over a committed 570-row Swiss-Ephemeris corpus;
 all 18 non-Nibiru bodies sub-arcsecond, Nibiru carries a documented per-body
-carve-out for its ~370 AD reference equinox) are all **done**. Next candidate
-slices:
+carve-out for its ~370 AD reference equinox), and SP-4 (planetary nodes and
+apsides — `EventEngine::nod_aps`/`nod_aps_default` (`swe_nod_aps` analogues)
+over three methods (Mean, Osculating, OsculatingBarycentric) and two
+`ApsisConvention`s (Aphelion, SecondFocus); `pleiades-apsides` generalized
+into shared `elements_from_state`/`points_from_elements` helpers; Mean covers
+Moon/Sun/Mercury-Neptune (Earth not addressable, Sun's slots zeroed per SE's
+own behavior), Osculating/OsculatingBarycentric cover any body the backend
+chain can supply a state vector for; gated by the fail-closed `validate-nod-aps`
+gate (alias `nod-aps-gate`) over a committed 184-row Swiss-Ephemeris corpus;
+MEAN_PLANET/MEAN_MOON sub-arcsecond, OSCU_PLANET arcminute-class (Neptune
+perihelion eccentricity amplification), OSCU_MOON cross-theory; fictitious/
+asteroid `nod_aps` is engine-covered but gate-unreferenced since SE's own
+`swe_nod_aps` omits fictitious bodies and offline backends can't sample
+small-body osculating states) are all **done**. Next candidate slices:
 
 - `swe_pheno` (phase, phase angle, and magnitude for Sun/Moon/planets).
-- `swe_nod_aps` (osculating and mean node/apsis for planets).
-- Further out (not yet scoped): custom fictitious-body orbital elements
-  (user-supplied, beyond the committed `seorbel.txt` set), occultations, and
-  central-path cartography for solar eclipses.
+- Custom fictitious-body orbital elements (user-supplied, beyond the
+  committed `seorbel.txt` set).
+- Occultations.
+- Central-path cartography for solar eclipses.

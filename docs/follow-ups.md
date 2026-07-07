@@ -172,3 +172,76 @@ gated by `validate-angles` (armc/gast ~0.16″; geometry points <0.05″ vs SE,
   `asc_mc` equals an independent `asc_mc_from` recomputation.
 
 **Severity:** maintainability / test-coverage hardening (now closed) · **Opened:** 2026-07-01
+
+---
+
+## FU-6: SP-4 `swe_nod_aps` fictitious/small-body coverage bound
+
+**Status:** open (by design) · Opened 2026-07-07 during `feat/sp4-planetary-nodes-apsides` (Task 6/7).
+
+**What:** `EventEngine::nod_aps`'s `Osculating`/`OsculatingBarycentric` methods
+are engine-covered for any body the backend chain can supply a state vector
+for, including the SP-3 fictitious bodies and packaged asteroids. The
+`validate-nod-aps` gate, however, has no committed Swiss-Ephemeris reference
+rows for those bodies, so this coverage is exercised by unit/property tests
+only, not by cross-checked SE parity.
+
+**Why:** Swiss Ephemeris's own `swe_nod_aps` does not implement fictitious
+bodies — the enabling branch for that body class is commented out upstream —
+so there is no authoritative SE output to diff against. Separately, offline
+backend chains (the packaged artifact, JPL/SPK snapshots) cannot supply the
+continuous sub-day state sampling that computing an accurate osculating node/
+apsis for a fast-moving small body needs; their fixtures are sparse
+regression snapshots, not a continuous ephemeris.
+
+**Impact:** No known correctness defect — `nod_aps` for fictitious/asteroid
+bodies is exercised by non-SE tests and, where the backend can't honestly
+support it (see FU-7), fails closed with a typed error. This is a gate
+*reference* gap, not a behavior gap.
+
+**Suggested fix:** A future SPK-at-runtime backend (continuous ephemeris
+sampling) or expanded packaged-asteroid coverage with denser source cadence
+could add SE-referenced rows for at least the asteroid subset. Fictitious
+bodies remain permanently gate-unreferenced unless a non-SE authoritative
+source is adopted for them.
+
+**Severity:** known gap (documented, not blocking) · **Opened:** 2026-07-07
+
+---
+
+## FU-7: Pre-existing asteroid ephemeris-derivative defects surfaced by SP-4
+
+**Status:** open · Opened 2026-07-07, surfaced (not introduced) by
+`feat/sp4-planetary-nodes-apsides` Task 6. Pre-existing in
+`crates/pleiades-jpl`'s `JplSnapshotBackend` and the packaged asteroid
+artifact.
+
+**What:** Two independent, pre-existing defects in asteroid velocity
+derivatives, both surfaced because `nod_aps`'s osculating path is the first
+consumer to finite-difference these positions for a Kepler-element fit:
+
+1. `JplSnapshotBackend`'s sparse regression fixtures produce non-physical
+   finite-difference velocities when the bracketing epochs are widely spaced
+   (e.g. Ceres), which can manifest as a spurious `UnboundOrbit` when fit to
+   Kepler elements.
+2. The packaged artifact's `asteroid:433-Eros` fit has accurate *positions*
+   at its sample epochs, but a non-physical time-derivative: its ~180-day
+   source sampling cadence undersamples Eros's ~643-day orbit, so any
+   consumer that finite-differences the packaged position (not just
+   `nod_aps`) gets a garbage velocity.
+
+**Impact:** Both currently manifest as `nod_aps` failing closed with a typed
+error for the affected bodies/epochs — correct, safe behavior, not silent
+wrong output. But the underlying backends' velocity/derivative output is
+dishonest for any other present or future consumer that differentiates
+position.
+
+**Suggested fix:** Make `JplSnapshotBackend` and the packaged asteroid
+artifact's derivative output honest — either by densifying the source
+sampling cadence (Eros) / regression fixture epoch spacing (Ceres), or by
+having those backends explicitly decline to serve a derivative/motion
+request when the sampling cadence can't support it, rather than returning a
+numerically-derived but physically nonsensical value.
+
+**Severity:** accuracy / API-honesty (pre-existing, not SP-4-introduced) ·
+**Opened:** 2026-07-07
