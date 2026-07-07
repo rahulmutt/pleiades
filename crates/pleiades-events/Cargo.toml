@@ -18,11 +18,16 @@ serde = ["dep:serde", "pleiades-types/serde"]
 pleiades-types = { workspace = true }
 pleiades-backend = { workspace = true }
 pleiades-apparent = { workspace = true }
+pleiades-apsides = { workspace = true }
 serde = { workspace = true, optional = true }
 
 [dev-dependencies]
 pleiades-backend = { workspace = true, features = ["test-backend"] }
 pleiades-data = { workspace = true }
+pleiades-vsop87 = { workspace = true }
+pleiades-elp = { workspace = true }
+pleiades-jpl = { workspace = true }
+pleiades-fict = { workspace = true }
 
 [package.metadata.docs.rs]
 all-features = true
