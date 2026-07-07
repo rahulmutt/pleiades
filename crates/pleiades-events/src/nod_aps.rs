@@ -461,6 +461,19 @@ impl<B: EphemerisBackend> EventEngine<B> {
             raw.lon_deg = (raw.lon_deg + dpsi_deg).rem_euclid(360.0);
             *o = raw;
         }
+        if *body == CelestialBody::Sun {
+            // SE zeroes the Sun's node slots: it forms the Sun's points from
+            // Earth's mean elements, whose ascending node/inclination are
+            // zero, so the node rows come out zero ("no nodes for earth",
+            // swecl.c:5436-5439). Verified against the committed corpus: all
+            // 12 asc/dsc fields are exactly 0.0 for every Sun row.
+            out[0] = RawPoint {
+                lon_deg: 0.0,
+                lat_deg: 0.0,
+                dist_au: 0.0,
+            };
+            out[1] = out[0];
+        }
         Ok(out)
     }
 
@@ -651,6 +664,20 @@ impl<B: EphemerisBackend> EventEngine<B> {
                 add3(v, recenter)
             };
             *o = cartesian_to_raw(aberrate(geo, v_obs));
+        }
+        if *body == CelestialBody::Sun {
+            // SE zeroes the Sun's node slots: it forms the Sun's points from
+            // Earth's mean elements, whose ascending node/inclination are
+            // zero, so the node rows come out zero ("no nodes for earth",
+            // swecl.c:5436-5439). Verified against the committed corpus: all
+            // 12 asc/dsc fields are exactly 0.0 for every Sun row (both
+            // heliocentric and barycentric osculating methods).
+            out[0] = RawPoint {
+                lon_deg: 0.0,
+                lat_deg: 0.0,
+                dist_au: 0.0,
+            };
+            out[1] = out[0];
         }
         Ok(out)
     }

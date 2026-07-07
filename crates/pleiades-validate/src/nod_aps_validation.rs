@@ -28,13 +28,18 @@
 //! sampled small bodies. See `summary_line`'s coverage-bound sentence.
 //!
 //! Sun rows are a special case: SE structurally zeroes the Sun's asc/dsc
-//! columns (all 18 fields across both points, for both methods present in
-//! the corpus) because the Earth-orbit "node" has no defined ascending/
-//! descending crossing in SE's convention (`swecl.c`). Our engine does not
-//! yet zero its Sun-node output to match (that lands in Task 9, per plan
-//! §R8), so for `se_body == 0` rows this gate runs Tier-1 invariants on all
-//! four recomputed points as usual but restricts Tier-2 residual comparison
-//! to the perihelion and aphelion points only.
+//! columns (all 12 fields across both points, for both mean and osculating
+//! rows present in the corpus) because it forms the Sun's points from
+//! Earth's mean elements, whose ascending node/inclination are zero, so the
+//! node rows come out zero ("no nodes for earth", `swecl.c:5436-5439`).
+//! **Done as of Task 9 (§R8):** the engine now zeroes the Sun's ascending/
+//! descending points to match (`pleiades_events::nod_aps::mean_points_at`
+//! and `osculating_points_at`), so for `se_body == 0` rows this gate skips
+//! `check_tier1`/Tier-2 residual accumulation for the ascending/descending
+//! points entirely and instead asserts BOTH sides are exactly zeroed — the
+//! recomputed point (longitude, latitude, distance, and all three speeds)
+//! and the SE corpus fields — failing closed on any nonzero value. Perihelion
+//! and aphelion stay on the normal Tier-1 + Tier-2 path for the Sun.
 //!
 //! A sibling `manifest.txt` records the fnv1a64 digest of the CSV (drift
 //! guard); a mismatch fails the gate closed.
@@ -387,13 +392,17 @@ fn parse_i64(s: &str, row: &str) -> Result<i64, NodApsError> {
 }
 
 /// One parsed SE reference point (6 columns): lon, lat, dist, dlon, dlat,
-/// ddist.
+/// ddist. Only `dlon` feeds the Tier-2 speed ceiling (per plan/brief); `dlat`
+/// and `ddist` are otherwise unused except for the Sun exact-zero check
+/// below.
 #[derive(Clone, Copy, Debug)]
 struct SePoint {
     lon: f64,
     lat: f64,
     dist: f64,
     dlon: f64,
+    dlat: f64,
+    ddist: f64,
 }
 
 fn parse_point(f: &[&str], row: &str) -> Result<SePoint, NodApsError> {
@@ -403,9 +412,45 @@ fn parse_point(f: &[&str], row: &str) -> Result<SePoint, NodApsError> {
         lat: parse_f64(f[1], row)?,
         dist: parse_f64(f[2], row)?,
         dlon: parse_f64(f[3], row)?,
-        // dlat (f[4]) and ddist (f[5]) are parsed for schema completeness but
-        // not compared — only longitude speed is gated (per plan/brief).
+        dlat: parse_f64(f[4], row)?,
+        ddist: parse_f64(f[5], row)?,
     })
+}
+
+/// Asserts a Sun ascending/descending point is EXACTLY zeroed on both sides:
+/// the recomputed `NodApsPoint` (longitude, latitude, distance, all three
+/// speeds) and the SE corpus point (all six fields). SE zeroes the Sun's
+/// node columns structurally (`swecl.c:5436-5439`, "no nodes for earth"),
+/// and the engine now matches (§R8, Task 9) — any nonzero value on either
+/// side means the zeroing broke or the corpus drifted, so this fails closed
+/// rather than silently comparing residuals against a zero reference.
+fn assert_sun_node_zeroed(
+    label: &str,
+    jd: f64,
+    point_name: &str,
+    engine: &NodApsPoint,
+    se: &SePoint,
+) -> Result<(), NodApsError> {
+    let engine_zero = engine.longitude_deg == 0.0
+        && engine.latitude_deg == 0.0
+        && engine.distance_au == 0.0
+        && engine.longitude_speed_deg_per_day == 0.0
+        && engine.latitude_speed_deg_per_day == 0.0
+        && engine.distance_speed_au_per_day == 0.0;
+    let se_zero = se.lon == 0.0
+        && se.lat == 0.0
+        && se.dist == 0.0
+        && se.dlon == 0.0
+        && se.dlat == 0.0
+        && se.ddist == 0.0;
+    if !engine_zero || !se_zero {
+        return Err(NodApsError::Parse {
+            row: format!(
+                "{label} [{point_name}] (jd {jd}): Sun node not exactly zeroed — engine {engine:?} se {se:?}"
+            ),
+        });
+    }
+    Ok(())
 }
 
 /// Checks Tier-1 self-consistency for one recomputed point. Returns an
@@ -533,20 +578,30 @@ fn measure() -> Result<Measured, NodApsError> {
             .nod_aps(body.clone(), instant, method, convention)
             .map_err(|e| NodApsError::Engine(format!("{label} ({jd_tt}): {e}")))?;
 
-        // ---- Tier 1: self-consistency (no SE reference), all four points ----
-        check_tier1(label, "ascending", &ascending)?;
-        check_tier1(label, "descending", &descending)?;
+        // ---- Tier 1: self-consistency (no SE reference) ----
+        // Sun ascending/descending are excluded from `check_tier1`: the
+        // engine now zeroes them (§R8), so its `distance > 0` invariant
+        // would legitimately fail on a Sun row — they get their own exact-
+        // zero assertion below instead.
+        let is_sun = se_body == 0;
+        if !is_sun {
+            check_tier1(label, "ascending", &ascending)?;
+            check_tier1(label, "descending", &descending)?;
+        }
         check_tier1(label, "perihelion", &perihelion)?;
         check_tier1(label, "aphelion", &aphelion)?;
 
         // ---- Tier 2: SE parity residuals ----
         let category = category_for(&body, method);
         let track = m.category_mut(category);
-        let is_sun = se_body == 0;
-        if !is_sun {
+        if is_sun {
             // SE zeroes the Sun node columns (Earth elements have no node,
-            // swecl.c); engine-side zeroing + exact node comparison lands
-            // with Task 9 (§R8).
+            // swecl.c:5436-5439) and the engine now matches (§R8, Task 9):
+            // assert both sides are exactly zero rather than running the
+            // normal residual-vs-ceiling comparison.
+            assert_sun_node_zeroed(label, jd_tt, "ascending", &ascending, &asc)?;
+            assert_sun_node_zeroed(label, jd_tt, "descending", &descending, &dsc)?;
+        } else {
             accumulate_tier2(track, label, jd_tt, "ascending", &ascending, &asc);
             accumulate_tier2(track, label, jd_tt, "descending", &descending, &dsc);
         }
