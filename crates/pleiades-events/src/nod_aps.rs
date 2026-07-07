@@ -136,12 +136,59 @@ mod tests {
         let r = (p[0] * p[0] + p[1] * p[1] + p[2] * p[2]).sqrt();
         assert!((r - 2.0).abs() < 1e-12);
     }
+
+    #[test]
+    fn osculating_moon_on_linear_backend_is_degenerate_not_panicking() {
+        // LinearSunMoon's Moon holds a *constant* geocentric distance
+        // (0.00257 AU) and a constant angular rate (13.176396 deg/day). This
+        // is not quite consistent with a circular orbit at the real
+        // geocentric GM (GEO_GM_AU3_DAY2): v^2*r/mu comes out ~0.998, not
+        // exactly 1, so the implied osculating ellipse has a small but
+        // genuine, always-nonzero eccentricity (~0.0022 at any instant and
+        // any constant latitude — verified analytically: with r*v = 0
+        // held by this backend's parametrization, the specific orbital
+        // energy stays negative for every latitude in [0, 90) degrees, so
+        // the state is never actually unbound or exactly circular). The
+        // engine must still produce a finite, sane result here — never NaN
+        // or a panic — while continuing to fail closed with a typed error
+        // for any genuinely pathological state (e.g. a missing/erroring
+        // backend read).
+        let engine = EventEngine::new(LinearSunMoon::new_moon_at(2_451_545.0));
+        let res = engine.nod_aps(
+            CelestialBody::Moon,
+            tdb(2_451_545.0),
+            NodApsMethod::Osculating,
+            ApsisConvention::Aphelion,
+        );
+        match res {
+            Ok(points) => {
+                for p in [
+                    points.ascending,
+                    points.descending,
+                    points.perihelion,
+                    points.aphelion,
+                ] {
+                    assert!(p.longitude_deg.is_finite(), "{p:?}");
+                    assert!(p.latitude_deg.is_finite(), "{p:?}");
+                    assert!(p.distance_au.is_finite() && p.distance_au > 0.0, "{p:?}");
+                    assert!(p.longitude_speed_deg_per_day.is_finite(), "{p:?}");
+                    assert!(p.latitude_speed_deg_per_day.is_finite(), "{p:?}");
+                    assert!(p.distance_speed_au_per_day.is_finite(), "{p:?}");
+                }
+            }
+            Err(EventError::DegenerateNodAps { .. })
+            | Err(EventError::Backend(_))
+            | Err(EventError::MissingCoordinates { .. }) => {}
+            Err(other) => panic!("unexpected error variant: {other:?}"),
+        }
+    }
 }
 
 use crate::crossings::EventEngine;
 use crate::ephemeris::{read_mean_ecliptic, read_mean_longitude, spherical_to_cartesian};
 use crate::mean_elements::{
-    elem_index, mean_elements_of_date, MOON_MEAN_ECC, MOON_MEAN_INCL_DEG, MOON_MEAN_SEMA_AU,
+    elem_index, mean_elements_of_date, mu_au3_day2, EARTH_MOON_MASS_RATIO, MOON_MEAN_ECC,
+    MOON_MEAN_INCL_DEG, MOON_MEAN_SEMA_AU,
 };
 use pleiades_apparent::nutation::nutation;
 use pleiades_apparent::precess_ecliptic_j2000_to_date;
@@ -412,16 +459,173 @@ impl<B: EphemerisBackend> EventEngine<B> {
         Ok(out)
     }
 
-    /// Placeholder until the osculating task lands.
+    /// Body geocentric position in the TRUE ecliptic of date (precession + Δψ),
+    /// as a Cartesian vector.
+    fn body_geo_true_of_date(
+        &self,
+        body: &CelestialBody,
+        label: &'static str,
+        jd: f64,
+    ) -> Result<[f64; 3], EventError> {
+        let (lon, lat, dist) = read_mean_ecliptic(&self.backend, body.clone(), label, jd)?;
+        let p = precess_ecliptic_j2000_to_date(lon, lat, jd)
+            .map_err(|e| EventError::Backend(format!("precession failed: {e}")))?;
+        let dpsi_deg = nutation(jd)
+            .map_err(|e| EventError::Backend(format!("nutation failed: {e}")))?
+            .delta_psi_arcsec
+            / 3600.0;
+        Ok(spherical_to_cartesian(
+            (p.longitude_deg + dpsi_deg).rem_euclid(360.0),
+            p.latitude_deg,
+            dist,
+        ))
+    }
+
+    /// Sun-to-SSB offset R in the true ecliptic of date, from the giant-planet
+    /// heliocentric vectors weighted by their SE mass ratios (Jupiter–Pluto).
+    /// `r_bary = r_helio − R`.
+    fn sun_to_ssb_offset(&self, jd: f64, sun_geo: [f64; 3]) -> Result<[f64; 3], EventError> {
+        use crate::mean_elements::SUN_MASS_RATIO;
+        const GIANTS: [(CelestialBody, &str, usize); 5] = [
+            (CelestialBody::Jupiter, "Jupiter", 4),
+            (CelestialBody::Saturn, "Saturn", 5),
+            (CelestialBody::Uranus, "Uranus", 6),
+            (CelestialBody::Neptune, "Neptune", 7),
+            (CelestialBody::Pluto, "Pluto", 8),
+        ];
+        let mut r = [0.0_f64; 3];
+        for (body, label, mi) in GIANTS {
+            let geo = self.body_geo_true_of_date(&body, label, jd)?;
+            let helio = sub3(geo, sun_geo);
+            r = add3(r, scale3(helio, 1.0 / SUN_MASS_RATIO[mi]));
+        }
+        Ok(r)
+    }
+
+    /// The body's sampling state, centered for element formation, in the true
+    /// ecliptic of date at `jd`. Returns (center_pos, velocity, recentering
+    /// vector to go point→geocentric, negate_output).
+    #[allow(clippy::type_complexity)]
+    fn osculating_state(
+        &self,
+        body: &CelestialBody,
+        jd: f64,
+        method: NodApsMethod,
+    ) -> Result<([f64; 3], [f64; 3], [f64; 3], bool), EventError> {
+        // Per-body sample step (SE: NODE_CALC_INTV for the Moon, 0.001·r for
+        // the rest — swecl.c:5256/5264).
+        const NODE_CALC_INTV_DAYS: f64 = 1.0e-4;
+        let label = "nod-aps body";
+        if *body == CelestialBody::Moon {
+            let dt = NODE_CALC_INTV_DAYS;
+            let s = |jd: f64| self.body_geo_true_of_date(&CelestialBody::Moon, "Moon", jd);
+            let (p0, pm, pp) = (s(jd)?, s(jd - dt)?, s(jd + dt)?);
+            let vel = scale3(sub3(pp, pm), 1.0 / (2.0 * dt));
+            // Geocentric orbit: points come out geocentric already.
+            return Ok((p0, vel, [0.0; 3], false));
+        }
+        // Everything else forms a Sun-centered (or SSB-centered) ellipse.
+        let sun = |jd: f64| self.body_geo_true_of_date(&CelestialBody::Sun, "Sun", jd);
+        let helio_at = |jd: f64| -> Result<[f64; 3], EventError> {
+            if *body == CelestialBody::Sun {
+                // SE remaps the Sun to the Earth-Moon barycenter
+                // (swecl.c:5116-5117, 5281-5286): EMB = Earth + Moon/(μ_ratio+1),
+                // with Earth_helio = −Sun_geo.
+                let sun_geo = sun(jd)?;
+                let moon_geo = self.body_geo_true_of_date(&CelestialBody::Moon, "Moon", jd)?;
+                Ok(add3(
+                    scale3(sun_geo, -1.0),
+                    scale3(moon_geo, 1.0 / (EARTH_MOON_MASS_RATIO + 1.0)),
+                ))
+            } else {
+                let geo = self.body_geo_true_of_date(body, label, jd)?;
+                Ok(sub3(geo, sun(jd)?))
+            }
+        };
+        let h0 = helio_at(jd)?;
+        let r_helio = norm3(h0);
+        let dt = NODE_CALC_INTV_DAYS * 10.0 * r_helio;
+        let use_bary = method == NodApsMethod::OsculatingBarycentric && r_helio > 6.0;
+        let recenter_at = |jd: f64| -> Result<[f64; 3], EventError> {
+            if use_bary {
+                // point_geo = point_bary + Sun_geo + R.
+                Ok(add3(sun(jd)?, self.sun_to_ssb_offset(jd, sun(jd)?)?))
+            } else {
+                sun(jd)
+            }
+        };
+        let centered_at = |jd: f64| -> Result<[f64; 3], EventError> {
+            let h = helio_at(jd)?;
+            if use_bary {
+                let r = self.sun_to_ssb_offset(jd, sun(jd)?)?;
+                Ok(sub3(h, r))
+            } else {
+                Ok(h)
+            }
+        };
+        let (p0, pm, pp) = (
+            centered_at(jd)?,
+            centered_at(jd - dt)?,
+            centered_at(jd + dt)?,
+        );
+        let vel = scale3(sub3(pp, pm), 1.0 / (2.0 * dt));
+        let recenter = if *body == CelestialBody::Sun {
+            [0.0; 3]
+        } else {
+            recenter_at(jd)?
+        };
+        Ok((p0, vel, recenter, *body == CelestialBody::Sun))
+    }
+
+    /// Osculating points: form the instantaneous ellipse in the true ecliptic
+    /// of date, take its four points, recenter geocentric, aberrate
+    /// (except the Moon).
     fn osculating_points_at(
         &self,
         body: &CelestialBody,
-        _jd: f64,
-        _method: NodApsMethod,
-        _convention: ApsisConvention,
+        jd: f64,
+        method: NodApsMethod,
+        convention: ApsisConvention,
     ) -> Result<[RawPoint; 4], EventError> {
-        Err(EventError::UnsupportedNodAps {
-            detail: format!("osculating nod_aps for {body} not yet implemented"),
-        })
+        let second_focus = convention == ApsisConvention::SecondFocus;
+        let (pos, vel, recenter, negate) = self.osculating_state(body, jd, method)?;
+        let mu = mu_au3_day2(body);
+        let elements = pleiades_apsides::elements_from_state(pos, vel, mu).map_err(|e| {
+            EventError::DegenerateNodAps {
+                detail: format!("{body} osculating state: {e:?}"),
+            }
+        })?;
+        let pts = points_from_elements(&elements, second_focus).map_err(|e| {
+            EventError::DegenerateNodAps {
+                detail: format!("{body} osculating ellipse: {e:?}"),
+            }
+        })?;
+        let in_frame = [pts.ascending, pts.descending, pts.perihelion, pts.aphelion];
+        let mut out = [RawPoint {
+            lon_deg: 0.0,
+            lat_deg: 0.0,
+            dist_au: 0.0,
+        }; 4];
+        if *body == CelestialBody::Moon {
+            for (o, p) in out.iter_mut().zip(in_frame.iter()) {
+                *o = apsis_to_raw(p);
+            }
+            return Ok(out);
+        }
+        let (_, v_obs) = self.sun_geo_mean_of_date(jd)?;
+        for (o, p) in out.iter_mut().zip(in_frame.iter()) {
+            let v = spherical_to_cartesian(p.longitude_deg, p.latitude_deg, p.distance_au);
+            let geo = if negate {
+                scale3(v, -1.0)
+            } else {
+                add3(v, recenter)
+            };
+            *o = cartesian_to_raw(aberrate(geo, v_obs));
+        }
+        Ok(out)
     }
+    // Note: no `λ += Δψ` here — the osculating frame already carries Δψ (samples
+    // were rotated to the TRUE ecliptic of date). The observer velocity from
+    // `sun_geo_mean_of_date` is a mean-frame vector; the ≤17″ frame mismatch on
+    // a v/c≈20″ correction is < 2 mas — irrelevant, don't add machinery.
 }

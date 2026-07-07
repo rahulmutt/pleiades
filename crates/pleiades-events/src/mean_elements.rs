@@ -69,7 +69,6 @@ const EL_SEMA: [[f64; 4]; 8] = [
 
 /// Sun/planet mass ratios (`swecl.c:5051-5062`): Mercury, Venus, Earth+Moon,
 /// Mars, Jupiter, Saturn, Uranus, Neptune, Pluto.
-#[allow(dead_code)] // consumed by osculating nod_aps (Task 5)
 pub(crate) const SUN_MASS_RATIO: [f64; 9] = [
     6_023_600.0,
     408_523.719,
@@ -83,23 +82,18 @@ pub(crate) const SUN_MASS_RATIO: [f64; 9] = [
 ];
 
 /// SE physical constants (sweph.h:260-279).
-#[allow(dead_code)] // consumed by osculating nod_aps (Task 5)
 pub(crate) const EARTH_MOON_MASS_RATIO: f64 = 81.300_569_074_190_62;
 const AUNIT_M: f64 = 1.495_978_707_00e11;
-#[allow(dead_code)] // consumed by osculating nod_aps (Task 5)
 const HELGRAVCONST_M3_S2: f64 = 1.327_124_400_179_87e20;
-#[allow(dead_code)] // consumed by osculating nod_aps (Task 5)
 const GEOGCONST_M3_S2: f64 = 3.986_004_48e14;
 pub(crate) const MOON_MEAN_INCL_DEG: f64 = 5.145_396_4;
 pub(crate) const MOON_MEAN_ECC: f64 = 0.054_900_489;
 pub(crate) const MOON_MEAN_SEMA_AU: f64 = 384_400_000.0 / AUNIT_M;
 
 /// Solar GM in AU³/day², from SE's HELGRAVCONST.
-#[allow(dead_code)] // consumed by osculating nod_aps (Task 5)
 pub(crate) const SUN_GM_AU3_DAY2: f64 =
     HELGRAVCONST_M3_S2 / (AUNIT_M * AUNIT_M * AUNIT_M) * (86_400.0 * 86_400.0);
 /// Geocentric Earth+Moon GM in AU³/day², from SE's GEOGCONST.
-#[allow(dead_code)] // consumed by osculating nod_aps (Task 5)
 pub(crate) const GEO_GM_AU3_DAY2: f64 = GEOGCONST_M3_S2 / (AUNIT_M * AUNIT_M * AUNIT_M)
     * (86_400.0 * 86_400.0)
     * (1.0 + 1.0 / EARTH_MOON_MASS_RATIO);
@@ -122,7 +116,6 @@ pub(crate) fn elem_index(body: &CelestialBody) -> Option<usize> {
 }
 
 /// Mass-table index for μ: like `elem_index` but including Pluto (row 8).
-#[allow(dead_code)] // consumed by osculating nod_aps (Task 5)
 fn mass_index(body: &CelestialBody) -> Option<usize> {
     match body {
         CelestialBody::Pluto => Some(8),
@@ -133,7 +126,6 @@ fn mass_index(body: &CelestialBody) -> Option<usize> {
 /// GM for osculating-element formation (SE `Gmsm`, swecl.c:5258/5266):
 /// solar μ scaled by `(1 + m_body/m_sun)` where a mass ratio exists, bare
 /// solar μ for massless small/fictitious bodies, geocentric μ for the Moon.
-#[allow(dead_code)] // consumed by osculating nod_aps (Task 5)
 pub(crate) fn mu_au3_day2(body: &CelestialBody) -> f64 {
     if *body == CelestialBody::Moon {
         return GEO_GM_AU3_DAY2;
