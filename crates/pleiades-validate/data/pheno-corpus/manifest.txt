@@ -1,0 +1,9 @@
+corpus: pheno
+source: Swiss Ephemeris 2.10.03 (Moshier, SEFLG_MOSEPH)
+generator: tools/se-pheno-reference
+file: pheno.csv rows=80 checksum=12676020022372395174
+iflag: 516 (SEFLG_MOSEPH|SEFLG_NOGDEFL)
+attrs: attr[0]=phase_angle (deg), attr[1]=phase (illuminated fraction), attr[2]=elongation (deg), attr[3]=diameter_deg (DEGREES, not arcsec), attr[4]=magnitude
+bodies: SE 0-9 classical planets (Sun..Pluto)
+times: TT (Terrestrial Time) Julian days
+window: 1900-2100 CE (EPOCHS 8-point grid)
