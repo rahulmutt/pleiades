@@ -462,3 +462,25 @@ fn validate_fictitious_and_alias_agree_and_reject_extra_args() {
         "help text should mention fictitious-gate alias"
     );
 }
+
+#[test]
+fn validate_nod_aps_and_alias_agree_and_reject_extra_args() {
+    let primary = render_cli(&["validate-nod-aps"]).expect("gate ok");
+    let alias = render_cli(&["nod-aps-gate"]).expect("alias ok");
+    assert_eq!(primary, alias);
+    let error = render_cli(&["validate-nod-aps", "extra"])
+        .expect_err("validate-nod-aps should reject extra arguments");
+    assert!(
+        error.contains("validate-nod-aps does not accept extra arguments"),
+        "unexpected error: {error}"
+    );
+    let help = render_cli(&["help"]).expect("help ok");
+    assert!(
+        help.contains("validate-nod-aps"),
+        "help text should mention validate-nod-aps"
+    );
+    assert!(
+        help.contains("nod-aps-gate"),
+        "help text should mention nod-aps-gate alias"
+    );
+}
