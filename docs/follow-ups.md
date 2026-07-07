@@ -245,3 +245,29 @@ numerically-derived but physically nonsensical value.
 
 **Severity:** accuracy / API-honesty (pre-existing, not SP-4-introduced) ·
 **Opened:** 2026-07-07
+
+---
+
+## FU-8: `nod_aps` engine emits NaN (not a typed error) on non-physical r≈0 geometry
+
+**Status:** open · Opened 2026-07-07, surfaced by the SP-4 final whole-branch
+review. In `crates/pleiades-events/src/nod_aps.rs`.
+
+**What:** `cartesian_to_raw`'s `(z / r).asin()` is unclamped and `aberrate`'s
+`1 / norm(...)` is unguarded, so a geocentric point at r≈0 would yield a NaN
+longitude/latitude rather than a typed `EventError`. (This mirrors the existing
+unclamped house style in `pleiades-apsides::to_ecliptic`.)
+
+**Impact:** Not reachable for any in-scope body — geocentric distances are
+always physical AU-scale — and any NaN that did occur is currently caught
+fail-closed at the gate boundary by Tier-1's `is_finite` check. So there is no
+wrong output today; the gap is that the *public engine API* itself is not
+fail-closed for this hypothetical, relying on the gate as the backstop.
+
+**Suggested fix:** Add a defensive finite/`r > 0` check inside `nod_aps`
+(or clamp the `asin` argument and guard the `aberrate` normalization) so the
+engine returns a typed `DegenerateNodAps`/`NonFinite`-class error at the source
+rather than propagating a NaN.
+
+**Severity:** robustness / API fail-closed hardening (not reachable in scope) ·
+**Opened:** 2026-07-07

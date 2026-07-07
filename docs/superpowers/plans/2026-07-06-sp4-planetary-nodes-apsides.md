@@ -1,5 +1,7 @@
 # SP-4 Planetary Nodes and Apsides Implementation Plan
 
+> **Post-execution reconciliation (2026-07-07):** SP-4 shipped a **184-row** corpus with `EXPECTED_ROWS = 184`, not the 325/309 stated below in Tasks 7–8. During execution the offline backend chain proved unable to serve small-body (SE 15–20) osculating states, and vendored Swiss Ephemeris `swe_nod_aps` was found to reject fictitious bodies (SE 40–58) upstream (enabling branch commented out), so both categories were dropped; the 20 barycentric rows were kept but generated with `SEFLG_SWIEPH` (DE431) because Moshier cannot produce barycentric positions. Final corpus = 72 mean + 6 mean-fopoint + 80 osculating + 20 barycentric + 6 oscu-fopoint = **184**. The durable rationale lives in the corpus manifest/CSV header, `nod_aps_thresholds.rs`, `docs/follow-ups.md` FU-6/FU-7, and the compatibility-profile summary. The row counts in Tasks 7–8 below are the original (superseded) plan.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add a Swiss-Ephemeris `swe_nod_aps()` analogue — `EventEngine::nod_aps` returning ascending/descending node, perihelion, and aphelion (or second focus) with positions + speeds for the full SE body set — gated by a fail-closed `validate-nod-aps` SE-parity gate.
