@@ -1,0 +1,9 @@
+corpus: nod-aps
+source: Swiss Ephemeris 2.10.03 (Moshier, SEFLG_MOSEPH; method=4 rows SWIEPH/DE431-derived)
+generator: tools/se-nodaps-reference
+file: nod-aps.csv rows=184 checksum=15438042595534007682
+iflag: 772 (SEFLG_MOSEPH|SEFLG_SPEED|SEFLG_NOGDEFL); method=4 rows: 770 (SEFLG_SWIEPH|SEFLG_SPEED|SEFLG_NOGDEFL, sepl_18.se1/semo_18.se1 SHA-256-pinned in the generator)
+methods: 1=SE_NODBIT_MEAN, 2=SE_NODBIT_OSCU, 4=SE_NODBIT_OSCU_BAR; fopoint OR's SE_NODBIT_FOPOINT (256) onto method
+bodies: SE 0-9 classical planets (mean set drops Pluto, SE 9). Small bodies (SE 15-20) and fictitious bodies (SE 40-58) are OUT OF SCOPE (controller-mandated scope cut; this SE build's swe_nod_aps does not implement fictitious bodies at all — see src/main.rs doc header).
+times: TT (Terrestrial Time) Julian days
+window: 1900-2100 CE (EPOCHS 8-point / EPOCHS_SHORT 5-point grids)
