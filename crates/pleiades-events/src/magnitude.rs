@@ -131,6 +131,10 @@ pub(crate) fn apparent_magnitude(body: &CelestialBody, m: &MagInputs) -> Option<
             // Mallama 2018 (swecl.c:3957-3962).
             (-9.395 - a * 3.7e-4 + a2 * 6.16e-4) + dist_term(m)
         }
+        // The literal `2.7182818` below is Swiss Ephemeris's own truncated base
+        // (swecl.c:3982), kept verbatim to match SE bit-for-bit (SP-5 plan §E5);
+        // it is deliberately NOT `std::f64::consts::E`, so silence approx_constant.
+        #[allow(clippy::approx_constant)]
         CelestialBody::Saturn => {
             // Mallama 2018 + Meeus ring (swecl.c:3963-3983).
             let t = (m.jd_tdb - m.light_time_days - J2000_JD) / 36_525.0;
