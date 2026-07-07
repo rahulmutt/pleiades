@@ -9,11 +9,9 @@
 use pleiades_apsides::KeplerianElements;
 use pleiades_types::CelestialBody;
 
-#[allow(dead_code)] // consumed by nod_aps (Task 4/5)
 pub(crate) const J2000_JD: f64 = 2_451_545.0;
 
 #[rustfmt::skip]
-#[allow(dead_code)] // consumed by nod_aps (Task 4/5)
 const EL_NODE: [[f64; 4]; 8] = [
     [ 48.330893,  1.1861890,  0.00017587,  0.000000211],  // Mercury
     [ 76.679920,  0.9011190,  0.00040665, -0.000000080],  // Venus
@@ -25,7 +23,6 @@ const EL_NODE: [[f64; 4]; 8] = [
     [131.784057,  1.1022057,  0.00026006, -0.000000636],  // Neptune
 ];
 #[rustfmt::skip]
-#[allow(dead_code)] // consumed by nod_aps (Task 4/5)
 const EL_PERI: [[f64; 4]; 8] = [
     [ 77.456119,  1.5564775,  0.00029589,  0.000000056],
     [131.563707,  1.4022188, -0.00107337, -0.000005315],
@@ -37,7 +34,6 @@ const EL_PERI: [[f64; 4]; 8] = [
     [ 48.123691,  1.4262677,  0.00037918, -0.000000003],
 ];
 #[rustfmt::skip]
-#[allow(dead_code)] // consumed by nod_aps (Task 4/5)
 const EL_INCL: [[f64; 4]; 8] = [
     [  7.004986,  0.0018215, -0.00001809,  0.000000053],
     [  3.394662,  0.0010037, -0.00000088, -0.000000007],
@@ -49,7 +45,6 @@ const EL_INCL: [[f64; 4]; 8] = [
     [  1.769952, -0.0093082, -0.00000708,  0.000000028],
 ];
 #[rustfmt::skip]
-#[allow(dead_code)] // consumed by nod_aps (Task 4/5)
 const EL_ECCE: [[f64; 4]; 8] = [
     [  0.20563175,  0.000020406, -0.0000000284, -0.00000000017],
     [  0.00677188, -0.000047766,  0.0000000975,  0.00000000044],
@@ -61,7 +56,6 @@ const EL_ECCE: [[f64; 4]; 8] = [
     [  0.00898809,  0.000006408, -0.0000000008, -0.00000000005],
 ];
 #[rustfmt::skip]
-#[allow(dead_code)] // consumed by nod_aps (Task 4/5)
 const EL_SEMA: [[f64; 4]; 8] = [
     [  0.387098310,  0.0,           0.0,           0.0],
     [  0.723329820,  0.0,           0.0,           0.0],
@@ -75,7 +69,7 @@ const EL_SEMA: [[f64; 4]; 8] = [
 
 /// Sun/planet mass ratios (`swecl.c:5051-5062`): Mercury, Venus, Earth+Moon,
 /// Mars, Jupiter, Saturn, Uranus, Neptune, Pluto.
-#[allow(dead_code)] // consumed by nod_aps (Task 4/5)
+#[allow(dead_code)] // consumed by osculating nod_aps (Task 5)
 pub(crate) const SUN_MASS_RATIO: [f64; 9] = [
     6_023_600.0,
     408_523.719,
@@ -89,27 +83,23 @@ pub(crate) const SUN_MASS_RATIO: [f64; 9] = [
 ];
 
 /// SE physical constants (sweph.h:260-279).
-#[allow(dead_code)] // consumed by nod_aps (Task 4/5)
+#[allow(dead_code)] // consumed by osculating nod_aps (Task 5)
 pub(crate) const EARTH_MOON_MASS_RATIO: f64 = 81.300_569_074_190_62;
-#[allow(dead_code)] // consumed by nod_aps (Task 4/5)
 const AUNIT_M: f64 = 1.495_978_707_00e11;
-#[allow(dead_code)] // consumed by nod_aps (Task 4/5)
+#[allow(dead_code)] // consumed by osculating nod_aps (Task 5)
 const HELGRAVCONST_M3_S2: f64 = 1.327_124_400_179_87e20;
-#[allow(dead_code)] // consumed by nod_aps (Task 4/5)
+#[allow(dead_code)] // consumed by osculating nod_aps (Task 5)
 const GEOGCONST_M3_S2: f64 = 3.986_004_48e14;
-#[allow(dead_code)] // consumed by nod_aps (Task 4/5)
 pub(crate) const MOON_MEAN_INCL_DEG: f64 = 5.145_396_4;
-#[allow(dead_code)] // consumed by nod_aps (Task 4/5)
 pub(crate) const MOON_MEAN_ECC: f64 = 0.054_900_489;
-#[allow(dead_code)] // consumed by nod_aps (Task 4/5)
 pub(crate) const MOON_MEAN_SEMA_AU: f64 = 384_400_000.0 / AUNIT_M;
 
 /// Solar GM in AU³/day², from SE's HELGRAVCONST.
-#[allow(dead_code)] // consumed by nod_aps (Task 4/5)
+#[allow(dead_code)] // consumed by osculating nod_aps (Task 5)
 pub(crate) const SUN_GM_AU3_DAY2: f64 =
     HELGRAVCONST_M3_S2 / (AUNIT_M * AUNIT_M * AUNIT_M) * (86_400.0 * 86_400.0);
 /// Geocentric Earth+Moon GM in AU³/day², from SE's GEOGCONST.
-#[allow(dead_code)] // consumed by nod_aps (Task 4/5)
+#[allow(dead_code)] // consumed by osculating nod_aps (Task 5)
 pub(crate) const GEO_GM_AU3_DAY2: f64 = GEOGCONST_M3_S2 / (AUNIT_M * AUNIT_M * AUNIT_M)
     * (86_400.0 * 86_400.0)
     * (1.0 + 1.0 / EARTH_MOON_MASS_RATIO);
@@ -117,7 +107,6 @@ pub(crate) const GEO_GM_AU3_DAY2: f64 = GEOGCONST_M3_S2 / (AUNIT_M * AUNIT_M * A
 /// Row index into the element tables for a mean-capable body; `None` for
 /// bodies without SE mean elements. The Sun maps to Earth's elements
 /// (`ipl_to_elem[0] = 2`, swecl.c:5063).
-#[allow(dead_code)] // consumed by nod_aps (Task 4/5)
 pub(crate) fn elem_index(body: &CelestialBody) -> Option<usize> {
     match body {
         CelestialBody::Sun => Some(2),
@@ -133,7 +122,7 @@ pub(crate) fn elem_index(body: &CelestialBody) -> Option<usize> {
 }
 
 /// Mass-table index for μ: like `elem_index` but including Pluto (row 8).
-#[allow(dead_code)] // consumed by nod_aps (Task 4/5)
+#[allow(dead_code)] // consumed by osculating nod_aps (Task 5)
 fn mass_index(body: &CelestialBody) -> Option<usize> {
     match body {
         CelestialBody::Pluto => Some(8),
@@ -144,7 +133,7 @@ fn mass_index(body: &CelestialBody) -> Option<usize> {
 /// GM for osculating-element formation (SE `Gmsm`, swecl.c:5258/5266):
 /// solar μ scaled by `(1 + m_body/m_sun)` where a mass ratio exists, bare
 /// solar μ for massless small/fictitious bodies, geocentric μ for the Moon.
-#[allow(dead_code)] // consumed by nod_aps (Task 4/5)
+#[allow(dead_code)] // consumed by osculating nod_aps (Task 5)
 pub(crate) fn mu_au3_day2(body: &CelestialBody) -> f64 {
     if *body == CelestialBody::Moon {
         return GEO_GM_AU3_DAY2;
@@ -155,13 +144,11 @@ pub(crate) fn mu_au3_day2(body: &CelestialBody) -> f64 {
     }
 }
 
-#[allow(dead_code)] // consumed by nod_aps (Task 4/5)
 fn poly(c: &[f64; 4], t: f64) -> f64 {
     c[0] + t * (c[1] + t * (c[2] + t * c[3]))
 }
 
 /// Mean elements at `jd_tdb`, referred to the mean equinox/ecliptic of date.
-#[allow(dead_code)] // consumed by nod_aps (Task 4/5)
 pub(crate) fn mean_elements_of_date(index: usize, jd_tdb: f64) -> KeplerianElements {
     let t = (jd_tdb - J2000_JD) / 36_525.0;
     KeplerianElements {
