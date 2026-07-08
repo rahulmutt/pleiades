@@ -270,6 +270,9 @@ use pleiades_backend::EphemerisBackend;
 pub(crate) const R_MOON_KM: f64 = 1_737.4;
 pub(crate) const AU_KM: f64 = 149_597_870.7;
 
+/// Earth equatorial radius (km) for the Moon's horizontal parallax.
+const R_EARTH_KM: f64 = 6_378.137;
+
 /// The Moon's maximum reach in ecliptic latitude: ~5.3° orbital inclination +
 /// ~0.27° semidiameter + ~0.95° horizontal parallax ≈ 6.6°. A star beyond this
 /// |ecliptic latitude| can never be occulted from anywhere on Earth.
@@ -778,6 +781,82 @@ impl<B: EphemerisBackend> EventEngine<B> {
             }
         }
     }
+
+    /// Next occultation of `target` anywhere on Earth, strictly after `after` —
+    /// `swe_lun_occult_when_glob` analogue. Reports the greatest-occultation
+    /// instant and the sub-lunar point where it is central/greatest (not the
+    /// full path). `None` if none occurs before the window end.
+    pub fn next_global_occultation(
+        &self,
+        target: OccultTarget,
+        after: Instant,
+    ) -> Result<Option<GlobalOccultation>, EventError> {
+        self.validate_occult_target(&target)?;
+        let after_jd = after.julian_day.days();
+        self.check_window(after_jd)?;
+        if self.target_never_occultable(&target, after_jd)? {
+            return Ok(None);
+        }
+        let mut scan_start = after_jd.max(WINDOW_START_JD + OCC_CONJUNCTION_STEP_DAYS);
+        let scan_end = WINDOW_END_JD - OCC_CONJUNCTION_STEP_DAYS;
+        loop {
+            let conj = first_crossing_after(
+                |jd| self.moon_target_lon_diff(&target, jd),
+                scan_start,
+                scan_end,
+                OCC_CONJUNCTION_STEP_DAYS,
+            )?;
+            let Some(conj_jd) = conj else { return Ok(None) };
+            // Minimize geocentric separation around the conjunction.
+            let max_jd = self.minimize_geo_sep(
+                &target,
+                (conj_jd - OCC_CONTACT_HALF_WINDOW_DAYS).max(WINDOW_START_JD),
+                (conj_jd + OCC_CONTACT_HALF_WINDOW_DAYS).min(WINDOW_END_JD),
+            )?;
+            let g = self.occ_geom(&target, None, max_jd)?;
+            let moon_dist = self.body_distance_au(&CelestialBody::Moon, None, max_jd)?;
+            let pi_moon = (R_EARTH_KM / (moon_dist * AU_KM)).clamp(-1.0, 1.0).asin().to_degrees();
+            if g.sep_deg < g.s_moon_deg + g.s_tgt_deg + pi_moon
+                && max_jd > after_jd
+            {
+                // Sub-lunar point: Moon geocentric Dec + (RA − GAST).
+                let ((moon_ra, moon_dec), _) = self.moon_target_radec(&target, None, max_jd)?;
+                let at = Instant::new(JulianDay::from_days(max_jd), TimeScale::Tdb);
+                let gast = sidereal_time(at, Longitude::from_degrees(0.0)).local_apparent_deg;
+                let lon = wrap180(moon_ra - gast);
+                // Central if, when the Moon is pulled fully toward the target by
+                // parallax at the sub-lunar point, the target is fully behind it.
+                let central = g.sep_deg < (g.s_moon_deg - g.s_tgt_deg).max(0.0) + pi_moon;
+                let occ_type = if central { OccultationType::Total } else { OccultationType::Grazing };
+                return Ok(Some(GlobalOccultation {
+                    target,
+                    maximum: at,
+                    sublunar_latitude: Latitude::from_degrees(moon_dec),
+                    sublunar_longitude: Longitude::from_degrees(lon),
+                    central,
+                    occultation_type: occ_type,
+                }));
+            }
+            scan_start = conj_jd + OCC_CONJUNCTION_STEP_DAYS;
+            if scan_start >= scan_end {
+                return Ok(None);
+            }
+        }
+    }
+
+    /// Golden-section minimize the GEOCENTRIC separation in `[a,b]`.
+    fn minimize_geo_sep(&self, target: &OccultTarget, mut a: f64, mut b: f64) -> Result<f64, EventError> {
+        let phi = 0.618_033_988_75_f64;
+        let sep = |jd: f64| Ok::<f64, EventError>(self.occ_geom(target, None, jd)?.sep_deg);
+        let mut c = b - (b - a) * phi;
+        let mut d = a + (b - a) * phi;
+        let (mut fc, mut fd) = (sep(c)?, sep(d)?);
+        while (b - a) > REFINE_TOLERANCE_DAYS {
+            if fc < fd { b = d; d = c; fd = fc; c = b - (b - a) * phi; fc = sep(c)?; }
+            else { a = c; c = d; fc = fd; d = a + (b - a) * phi; fd = sep(d)?; }
+        }
+        Ok(0.5 * (a + b))
+    }
 }
 
 #[cfg(test)]
@@ -850,6 +929,32 @@ mod how_tests {
         let ok_at = Instant::new(JulianDay::from_days(2_451_550.0), TimeScale::Tdb);
         assert!(matches!(
             engine.occultation(OccultTarget::Body(CelestialBody::Sun), equatorial_obs(), Atmosphere::default(), ok_at),
+            Err(EventError::UnsupportedOccultTarget { .. })
+        ));
+    }
+}
+
+#[cfg(test)]
+mod when_glob_tests {
+    use super::*;
+    use pleiades_backend::test_backend::LinearSunMoon;
+
+    #[test]
+    fn never_occultable_star_returns_none() {
+        let engine = EventEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
+        let after = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tdb);
+        assert!(engine
+            .next_global_occultation(OccultTarget::Star("Sirius".into()), after)
+            .unwrap()
+            .is_none());
+    }
+
+    #[test]
+    fn sun_target_rejected() {
+        let engine = EventEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
+        let after = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tdb);
+        assert!(matches!(
+            engine.next_global_occultation(OccultTarget::Body(CelestialBody::Sun), after),
             Err(EventError::UnsupportedOccultTarget { .. })
         ));
     }
