@@ -119,3 +119,134 @@ mod tests {
         assert_eq!(star.occultation_type, OccultationType::Total);
     }
 }
+
+/// Instantaneous two-circle geometry: Moon vs target, all degrees.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct OccGeom {
+    /// Center-to-center Moon–target separation.
+    pub sep_deg: f64,
+    /// Moon's (topocentric) angular semidiameter.
+    pub s_moon_deg: f64,
+    /// Target's angular semidiameter (0 for a point star).
+    pub s_tgt_deg: f64,
+}
+
+/// Great-circle separation (degrees) between two equatorial points (RA, Dec).
+pub(crate) fn angular_separation_deg(ra1: f64, dec1: f64, ra2: f64, dec2: f64) -> f64 {
+    let (a1, d1) = (ra1.to_radians(), dec1.to_radians());
+    let (a2, d2) = (ra2.to_radians(), dec2.to_radians());
+    let cos_sep = (d1.sin() * d2.sin() + d1.cos() * d2.cos() * (a1 - a2).cos()).clamp(-1.0, 1.0);
+    cos_sep.acos().to_degrees()
+}
+
+/// Covered fraction of the TARGET's diameter (SE `attr[0]`). For a point star
+/// (`s_tgt == 0`) this is binary: 1.0 when the target is inside the Moon's disc,
+/// else 0.0. Clamped ≥ 0.
+pub(crate) fn covered_diameter_fraction(g: &OccGeom) -> f64 {
+    if g.s_tgt_deg <= 0.0 {
+        return if g.sep_deg < g.s_moon_deg { 1.0 } else { 0.0 };
+    }
+    ((g.s_moon_deg + g.s_tgt_deg - g.sep_deg) / (2.0 * g.s_tgt_deg)).max(0.0)
+}
+
+/// Covered fraction of the TARGET's disc AREA (SE `attr[2]`). Standard
+/// two-circle lens area; the covered disc is the target (radius `s_tgt`), the
+/// covering disc is the Moon (radius `s_moon`). Binary for a point star.
+pub(crate) fn obscuration_fraction(g: &OccGeom) -> f64 {
+    let (r_t, r_m, d) = (g.s_tgt_deg, g.s_moon_deg, g.sep_deg);
+    if r_t <= 0.0 {
+        return if d < r_m { 1.0 } else { 0.0 };
+    }
+    if d >= r_t + r_m {
+        return 0.0; // disjoint
+    }
+    if d <= r_m - r_t {
+        return 1.0; // target fully behind the Moon
+    }
+    if d <= (r_t - r_m).max(0.0) {
+        // Moon fully inside the target disc (target larger — impossible for real
+        // planets vs Moon, but kept for closed-form completeness).
+        return ((r_m / r_t).powi(2)).clamp(0.0, 1.0);
+    }
+    let r_t2 = r_t * r_t;
+    let r_m2 = r_m * r_m;
+    let a_t = ((d * d + r_t2 - r_m2) / (2.0 * d * r_t)).clamp(-1.0, 1.0).acos();
+    let a_m = ((d * d + r_m2 - r_t2) / (2.0 * d * r_m)).clamp(-1.0, 1.0).acos();
+    let lens = r_t2 * a_t + r_m2 * a_m
+        - 0.5
+            * ((r_t + r_m + d) * (-r_t + r_m + d) * (r_t - r_m + d) * (r_t + r_m - d))
+                .max(0.0)
+                .sqrt();
+    (lens / (core::f64::consts::PI * r_t2)).clamp(0.0, 1.0)
+}
+
+/// Classify the occultation from the geometry at maximum: `Total` when the
+/// target is fully covered (`sep < s_moon − s_tgt`), `Grazing` when the limb
+/// crosses but never fully covers (`s_moon − s_tgt ≤ sep < s_moon + s_tgt`, and
+/// for a point star the knife-edge `sep == s_moon`), else `Miss`.
+pub(crate) fn classify(g: &OccGeom) -> OccultationType {
+    let internal = (g.s_moon_deg - g.s_tgt_deg).max(0.0);
+    let external = g.s_moon_deg + g.s_tgt_deg;
+    if g.sep_deg < internal {
+        OccultationType::Total
+    } else if g.sep_deg < external {
+        // A point star (s_tgt == 0) has internal == external == s_moon, so it is
+        // never Grazing at this branch; a sep exactly at s_moon is the Miss edge.
+        if g.s_tgt_deg <= 0.0 {
+            OccultationType::Miss
+        } else {
+            OccultationType::Grazing
+        }
+    } else {
+        OccultationType::Miss
+    }
+}
+
+#[cfg(test)]
+mod geom_tests {
+    use super::*;
+
+    fn g(sep: f64, s_moon: f64, s_tgt: f64) -> OccGeom {
+        OccGeom { sep_deg: sep, s_moon_deg: s_moon, s_tgt_deg: s_tgt }
+    }
+
+    #[test]
+    fn star_hidden_is_total_and_full_magnitude() {
+        let geo = g(0.1, 0.25, 0.0); // sep < s_moon, point star
+        assert_eq!(classify(&geo), OccultationType::Total);
+        assert_eq!(covered_diameter_fraction(&geo), 1.0);
+        assert_eq!(obscuration_fraction(&geo), 1.0);
+    }
+
+    #[test]
+    fn star_clear_is_miss_zero_magnitude() {
+        let geo = g(0.30, 0.25, 0.0); // sep > s_moon
+        assert_eq!(classify(&geo), OccultationType::Miss);
+        assert_eq!(covered_diameter_fraction(&geo), 0.0);
+        assert_eq!(obscuration_fraction(&geo), 0.0);
+    }
+
+    #[test]
+    fn planet_fully_behind_is_total() {
+        let geo = g(0.20, 0.25, 0.003); // sep < s_moon - s_tgt
+        assert_eq!(classify(&geo), OccultationType::Total);
+        assert!(covered_diameter_fraction(&geo) >= 1.0);
+        assert!((obscuration_fraction(&geo) - 1.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn planet_partly_covered_is_grazing_partial() {
+        let geo = g(0.2495, 0.25, 0.003); // between internal and external
+        assert_eq!(classify(&geo), OccultationType::Grazing);
+        let o = obscuration_fraction(&geo);
+        assert!(o > 0.0 && o < 1.0, "partial obscuration {o}");
+    }
+
+    #[test]
+    fn separation_is_symmetric_and_zero_on_identity() {
+        assert!(angular_separation_deg(10.0, 20.0, 10.0, 20.0) < 1e-9);
+        let a = angular_separation_deg(10.0, 20.0, 12.0, 19.0);
+        let b = angular_separation_deg(12.0, 19.0, 10.0, 20.0);
+        assert!((a - b).abs() < 1e-12);
+    }
+}
