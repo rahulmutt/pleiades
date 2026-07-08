@@ -72,17 +72,25 @@ pub struct LocalOccultation {
     pub any_phase_visible: bool,
 }
 
-/// Global circumstances (`when_glob`): the greatest-occultation instant and the
-/// sub-lunar point where it is central/greatest. NOT the full path polygon.
+/// Global circumstances (`when_glob`): the greatest-occultation instant and
+/// the central-observation point (geographic point of minimum topocentric
+/// Moon–target separation) where it is central/greatest. NOT the full path
+/// polygon.
 #[derive(Clone, Debug, PartialEq)]
 pub struct GlobalOccultation {
     /// The occulted target.
     pub target: OccultTarget,
     /// Instant of greatest global occultation (TDB).
     pub maximum: Instant,
-    /// Sub-lunar point of maximum occultation: geographic latitude, positive north.
+    /// Central-observation point of maximum occultation: the geographic
+    /// latitude (positive north) at which the topocentric Moon–target
+    /// separation is minimized — where the occultation is best (most
+    /// centrally) observed, matching SE's `swe_lun_occult_where`. NOT the
+    /// Moon's geocentric zenith point.
     pub sublunar_latitude: Latitude,
-    /// Sub-lunar point of maximum occultation: geographic longitude, positive east.
+    /// Central-observation point of maximum occultation: the geographic
+    /// longitude (positive east) at which the topocentric Moon–target
+    /// separation is minimized — see [`Self::sublunar_latitude`].
     pub sublunar_longitude: Longitude,
     /// Whether a central occultation exists somewhere on Earth.
     pub central: bool,
@@ -784,7 +792,7 @@ impl<B: EphemerisBackend> EventEngine<B> {
 
     /// Next occultation of `target` anywhere on Earth, strictly after `after` —
     /// `swe_lun_occult_when_glob` analogue. Reports the greatest-occultation
-    /// instant and the sub-lunar point where it is central/greatest (not the
+    /// instant and the central-observation point where it is central/greatest (not the
     /// full path). `None` if none occurs before the window end.
     pub fn next_global_occultation(
         &self,
@@ -819,20 +827,37 @@ impl<B: EphemerisBackend> EventEngine<B> {
             if g.sep_deg < g.s_moon_deg + g.s_tgt_deg + pi_moon
                 && max_jd > after_jd
             {
-                // Sub-lunar point: Moon geocentric Dec + (RA − GAST).
+                // Central-observation point: the geographic (lat, lon) on
+                // Earth's surface at `max_jd` where the TOPOCENTRIC Moon–target
+                // separation is MINIMIZED — this is what SE's
+                // `swe_lun_occult_where` actually returns, NOT the Moon's
+                // geocentric zenith point. Seed the search at the sub-Moon
+                // point (correct hemisphere) and refine via golden-section
+                // coordinate descent over `occ_geom`'s already-tested
+                // topocentric path.
                 let ((moon_ra, moon_dec), _) = self.moon_target_radec(&target, None, max_jd)?;
                 let at = Instant::new(JulianDay::from_days(max_jd), TimeScale::Tdb);
                 let gast = sidereal_time(at, Longitude::from_degrees(0.0)).local_apparent_deg;
-                let lon = wrap180(moon_ra - gast);
-                // Central if, when the Moon is pulled fully toward the target by
-                // parallax at the sub-lunar point, the target is fully behind it.
-                let central = g.sep_deg < (g.s_moon_deg - g.s_tgt_deg).max(0.0) + pi_moon;
+                let seed_lon = wrap180(moon_ra - gast);
+                let (lat_star, lon_star) =
+                    self.minimize_sublunar_point(&target, max_jd, moon_dec, seed_lon)?;
+                let central_observer = ObserverLocation::new(
+                    Latitude::from_degrees(lat_star),
+                    Longitude::from_degrees(lon_star),
+                    Some(0.0),
+                );
+                let g_star = self.occ_geom(&target, Some(&central_observer), max_jd)?;
+                // Central iff, AT THE ACTUAL CENTRAL-OBSERVATION POINT, the
+                // target is fully behind the Moon's disc (replaces the old
+                // pi_moon-max-parallax over-approximation, which over-reported
+                // central occultations — the Saturn 2/6 corpus mismatch).
+                let central = g_star.sep_deg < (g_star.s_moon_deg - g_star.s_tgt_deg).max(0.0);
                 let occ_type = if central { OccultationType::Total } else { OccultationType::Grazing };
                 return Ok(Some(GlobalOccultation {
                     target,
                     maximum: at,
-                    sublunar_latitude: Latitude::from_degrees(moon_dec),
-                    sublunar_longitude: Longitude::from_degrees(lon),
+                    sublunar_latitude: Latitude::from_degrees(lat_star),
+                    sublunar_longitude: Longitude::from_degrees(lon_star),
                     central,
                     occultation_type: occ_type,
                 }));
@@ -857,6 +882,99 @@ impl<B: EphemerisBackend> EventEngine<B> {
         }
         Ok(0.5 * (a + b))
     }
+
+    /// Golden-section coordinate-descent search for the geographic
+    /// `(lat, lon)` at fixed `jd` that MINIMIZES the topocentric Moon–target
+    /// separation — the central-observation point SE's `swe_lun_occult_where`
+    /// returns. Seeded at `(lat0, lon0)` (typically the sub-Moon point, which
+    /// sits in the correct hemisphere even when it is not the answer);
+    /// alternates 1-D golden-section minimization over latitude (longitude
+    /// held fixed) and over longitude (latitude held fixed) for several
+    /// rounds, each searching a wide window around the current best point.
+    /// The topocentric-separation surface is smooth and single-minimum over
+    /// the Moon-facing hemisphere, so this coordinate descent converges even
+    /// from a badly-off seed. Never panics: latitude is clamped to
+    /// `[-90, 90]` and longitude is wrapped to `(-180, 180]` on every
+    /// evaluation; any `occ_geom` error is propagated with `?`.
+    fn minimize_sublunar_point(
+        &self,
+        target: &OccultTarget,
+        jd: f64,
+        lat0: f64,
+        lon0: f64,
+    ) -> Result<(f64, f64), EventError> {
+        let sep_at = |lat: f64, lon: f64| -> Result<f64, EventError> {
+            let observer = ObserverLocation::new(
+                Latitude::from_degrees(lat.clamp(-90.0, 90.0)),
+                Longitude::from_degrees(wrap180(lon)),
+                Some(0.0),
+            );
+            Ok(self.occ_geom(target, Some(&observer), jd)?.sep_deg)
+        };
+
+        let mut lat = lat0.clamp(-90.0, 90.0);
+        let mut lon = wrap180(lon0);
+        for _ in 0..SUBLUNAR_REFINE_ROUNDS {
+            let lon_fixed = lon;
+            let lat_lo = (lat - SUBLUNAR_SEARCH_HALF_WIDTH_DEG).max(-90.0);
+            let lat_hi = (lat + SUBLUNAR_SEARCH_HALF_WIDTH_DEG).min(90.0);
+            lat = golden_section_min(SUBLUNAR_TOLERANCE_DEG, lat_lo, lat_hi, |l| {
+                sep_at(l, lon_fixed)
+            })?;
+
+            let lat_fixed = lat;
+            let lon_lo = lon - SUBLUNAR_SEARCH_HALF_WIDTH_DEG;
+            let lon_hi = lon + SUBLUNAR_SEARCH_HALF_WIDTH_DEG;
+            lon = golden_section_min(SUBLUNAR_TOLERANCE_DEG, lon_lo, lon_hi, |lo| {
+                sep_at(lat_fixed, lo)
+            })?;
+            lon = wrap180(lon);
+        }
+        Ok((lat, lon))
+    }
+}
+
+/// Nested lat/lon golden-section refinement rounds for the sub-lunar
+/// (central-observation) point search in `next_global_occultation`.
+const SUBLUNAR_REFINE_ROUNDS: usize = 8;
+/// Golden-section tolerance for the sub-lunar point search, degrees (~3.6
+/// arcsec) — a few arcsec is ample precision against an arcmin-scale gate.
+const SUBLUNAR_TOLERANCE_DEG: f64 = 0.001;
+/// Half-width (degrees) of each round's local lat/lon search window around
+/// the current best point. Wide enough that, even starting from a badly-off
+/// seed (the pre-fix bug was off by up to 89°), coordinate descent reaches
+/// the true minimum within a handful of rounds.
+const SUBLUNAR_SEARCH_HALF_WIDTH_DEG: f64 = 90.0;
+
+/// Golden-section 1-D minimization of `f` over `[a, b]` to within `tol`. The
+/// bracket shrinks geometrically by the golden ratio each iteration, so this
+/// always terminates (never an unbounded loop).
+fn golden_section_min(
+    tol: f64,
+    mut a: f64,
+    mut b: f64,
+    mut f: impl FnMut(f64) -> Result<f64, EventError>,
+) -> Result<f64, EventError> {
+    let phi = 0.618_033_988_75_f64;
+    let mut c = b - (b - a) * phi;
+    let mut d = a + (b - a) * phi;
+    let (mut fc, mut fd) = (f(c)?, f(d)?);
+    while (b - a) > tol {
+        if fc < fd {
+            b = d;
+            d = c;
+            fd = fc;
+            c = b - (b - a) * phi;
+            fc = f(c)?;
+        } else {
+            a = c;
+            c = d;
+            fc = fd;
+            d = a + (b - a) * phi;
+            fd = f(d)?;
+        }
+    }
+    Ok(0.5 * (a + b))
 }
 
 #[cfg(test)]

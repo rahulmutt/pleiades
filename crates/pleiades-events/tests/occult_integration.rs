@@ -72,8 +72,16 @@ fn global_occultation_reports_finite_sublunar_point() {
          Task 8)"
     );
     if let Some(g) = out {
-        assert!(g.sublunar_latitude.degrees().abs() <= 90.0);
-        assert!((-180.0..=180.0).contains(&g.sublunar_longitude.degrees()));
+        assert!(g.sublunar_latitude.degrees().is_finite() && g.sublunar_latitude.degrees().abs() <= 90.0);
+        // `Longitude::from_degrees` normalizes into [0, 360) (see
+        // `pleiades_types::Longitude::degrees`'s own doc) -- that is the
+        // type's actual invariant, not the signed (-180, 180] range a prior
+        // version of this assertion assumed (which only happened to hold for
+        // this particular occultation's OLD, buggy sub-Moon-zenith
+        // longitude; Task 15's central-observation-point fix legitimately
+        // moves the reported point, including into the (180, 360) half).
+        let lon = g.sublunar_longitude.degrees();
+        assert!(lon.is_finite() && (0.0..360.0).contains(&lon));
         assert!(g.maximum.julian_day.days() > 2_451_545.0);
     }
 }
