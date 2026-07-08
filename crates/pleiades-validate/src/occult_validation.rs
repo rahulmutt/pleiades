@@ -173,10 +173,16 @@
 //! ties `central` definitionally to the `Total`/`Grazing` split
 //! (`central` ⟺ `occ_type == Total`), so it structurally cannot represent
 //! SE's finer distinction — a conceptual gap in `next_global_occultation`'s
-//! `central`/`occ_type` coupling that a positional fix cannot close.
-//! `central_planet_{checked,mismatched}` remain measured/reported but NOT
-//! hard-gated (Correction 2b, above, still applies unchanged: star `glob`
-//! rows are excluded from the comparison entirely).
+//! `central`/`occ_type` coupling that THIS task's positional fix does not
+//! close. This gap is deferred, not unresolvable: SE's `SE_ECL_CENTRAL` is a
+//! computable closed-form axis-pierce test (per `swecl.c`'s
+//! `eclipse_where`: `de·cosf1 >= r0`, the perpendicular distance from
+//! geocenter to the Moon–target axis compared against an angular-radius-
+//! derived threshold), so a bounded future task can decouple `central` from
+//! `occ_type` and implement that exact test. `central_planet_{checked,
+//! mismatched}` remain measured/reported but NOT hard-gated (Correction 2b,
+//! above, still applies unchanged: star `glob` rows are excluded from the
+//! comparison entirely).
 //!
 //! A sibling `manifest.txt` records the fnv1a64 digest of the CSV (drift
 //! guard); a mismatch fails the gate closed.

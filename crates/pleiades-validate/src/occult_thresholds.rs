@@ -17,12 +17,16 @@
 //! instead of SE's actual central-observation point (residual 42-89 DEGREES,
 //! see `crate::occult_validation`'s module doc `KNOWN GAP 2`). After the fix,
 //! `sublunar_arcmin` collapsed to arcmin-scale (measured max 69.628' —
-//! `Regulus`, glob row, event instant jd 2457741.256640) and is now gated
-//! here; `planet_obscuration_rel_grazing` (grazing-only planet obscuration,
-//! newly comparable once the central point was independently confirmed
-//! correct) measured max 4.934% (`Saturn@graze`, jd 2452052.796691) and is
-//! also now gated. Both pinned to ~1.4× measured, rounded up to a clean
-//! value.
+//! `Regulus`, glob row, event instant jd 2457741.256640); a subsequent code
+//! review found the fixed 8-round sub-lunar minimizer still under-converged
+//! the worst-conditioned rows, so `occult.rs` was tightened to iterate to a
+//! convergence tolerance (bounded backstop), which dropped the measured max
+//! further to 20.218' (`Antares`, glob row, jd 2453378.335434) on
+//! 2026-07-08. `planet_obscuration_rel_grazing` (grazing-only planet
+//! obscuration, newly comparable once the central point was independently
+//! confirmed correct) measured max 4.934% (`Saturn@graze`, jd
+//! 2452052.796691) and is also now gated. Both pinned to ~1.4× measured,
+//! rounded up to a clean value.
 //!
 //! Two related metrics remain deliberately NOT gated — see
 //! `crate::occult_validation`'s module doc for the full diagnosis:
@@ -66,9 +70,15 @@ pub const PLANET_MAGNITUDE_REL: f64 = 0.07;
 /// Great-circle residual (arcmin) between the recomputed central-observation
 /// point (`GlobalOccultation::sublunar_latitude/longitude`, fixed in Task 15
 /// — see `crate::occult_validation`'s `KNOWN GAP 2`) and SE's
-/// `sublunar_lat/lon`, over all `glob` rows. Measured max 69.628' (`Regulus`,
-/// glob row, event instant jd 2457741.256640) on 2026-07-08, post-fix.
-pub const SUBLUNAR_ARCMIN: f64 = 100.0;
+/// `sublunar_lat/lon`, over all `glob` rows. A code review of Task 15 found
+/// the sub-lunar minimizer's fixed 8-round golden-section coordinate descent
+/// under-converged the worst-conditioned rows; `occult.rs`'s
+/// `minimize_sublunar_point` was tightened to iterate to a convergence
+/// tolerance (bounded by a 48-round backstop) instead. Measured max dropped
+/// from 69.628' (`Regulus`, glob row, jd 2457741.256640) to 20.218'
+/// (`Antares`, glob row, event instant jd 2453378.335434) on 2026-07-08,
+/// post-convergence-fix.
+pub const SUBLUNAR_ARCMIN: f64 = 30.0;
 /// Covered-area fraction (obscuration) RELATIVE residual for PLANET GRAZING
 /// (`occ_type == 1`) rows only — bucketed exactly like `CONTACT_SECONDS` vs
 /// `CONTACT_SECONDS_GRAZING`. Unlike the Total-inclusive

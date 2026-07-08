@@ -914,7 +914,8 @@ impl<B: EphemerisBackend> EventEngine<B> {
 
         let mut lat = lat0.clamp(-90.0, 90.0);
         let mut lon = wrap180(lon0);
-        for _ in 0..SUBLUNAR_REFINE_ROUNDS {
+        for _ in 0..SUBLUNAR_REFINE_MAX_ROUNDS {
+            let (prev_lat, prev_lon) = (lat, lon);
             let lon_fixed = lon;
             let lat_lo = (lat - SUBLUNAR_SEARCH_HALF_WIDTH_DEG).max(-90.0);
             let lat_hi = (lat + SUBLUNAR_SEARCH_HALF_WIDTH_DEG).min(90.0);
@@ -929,14 +930,38 @@ impl<B: EphemerisBackend> EventEngine<B> {
                 sep_at(lat_fixed, lo)
             })?;
             lon = wrap180(lon);
+
+            // Converged: the reported point moved less than the tolerance this
+            // round. Bounded by SUBLUNAR_REFINE_MAX_ROUNDS regardless (no
+            // unbounded loop even if convergence is never reached).
+            if (lat - prev_lat).abs() < SUBLUNAR_CONVERGENCE_TOL_DEG
+                && (lon - prev_lon).abs() < SUBLUNAR_CONVERGENCE_TOL_DEG
+            {
+                break;
+            }
         }
         Ok((lat, lon))
     }
 }
 
-/// Nested lat/lon golden-section refinement rounds for the sub-lunar
-/// (central-observation) point search in `next_global_occultation`.
-const SUBLUNAR_REFINE_ROUNDS: usize = 8;
+/// Bounded backstop on nested lat/lon golden-section refinement rounds for
+/// the sub-lunar (central-observation) point search in
+/// `next_global_occultation`. The loop normally exits early once
+/// `SUBLUNAR_CONVERGENCE_TOL_DEG` is reached (a handful of rounds for
+/// well-conditioned targets); this cap only bites for the worst-conditioned
+/// corpus rows (e.g. Regulus, Saturn) and keeps the loop provably bounded —
+/// never unbounded — even if convergence is never reached. A prior fixed
+/// `SUBLUNAR_REFINE_ROUNDS = 8` under-converged those rows (sub-lunar
+/// residual 69.6' for Regulus); replaying the exact production procedure
+/// with more rounds showed the point still moving well past round 8 and
+/// settling only by ~round 32 (Regulus 8→69.63', 32→4.23'; Saturn 8→25.79',
+/// 24→12.22' plateau), proving 8 rounds was under-converged, not up against
+/// a geometric floor. Cost is negligible (sub-second even at 48 rounds).
+const SUBLUNAR_REFINE_MAX_ROUNDS: usize = 48;
+/// Convergence stop: once the reported (lat, lon) point moves less than this
+/// between rounds, further rounds are refining below any measurement
+/// resolution, so the search exits early.
+const SUBLUNAR_CONVERGENCE_TOL_DEG: f64 = 1e-4;
 /// Golden-section tolerance for the sub-lunar point search, degrees (~3.6
 /// arcsec) — a few arcsec is ample precision against an arcmin-scale gate.
 const SUBLUNAR_TOLERANCE_DEG: f64 = 0.001;
