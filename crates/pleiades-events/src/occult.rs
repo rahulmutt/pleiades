@@ -5,7 +5,7 @@
 
 use pleiades_types::{
     Angle, CelestialBody, EclipticCoordinates, Instant, JulianDay, Latitude, Longitude,
-    ObserverLocation, TimeScale,
+    ObserverLocation, TimeScale, OBLIQUITY_J2000_DEG,
 };
 
 /// What the Moon is occulting.
@@ -267,6 +267,11 @@ use pleiades_backend::EphemerisBackend;
 pub(crate) const R_MOON_KM: f64 = 1_737.4;
 pub(crate) const AU_KM: f64 = 149_597_870.7;
 
+/// The Moon's maximum reach in ecliptic latitude: ~5.3° orbital inclination +
+/// ~0.27° semidiameter + ~0.95° horizontal parallax ≈ 6.6°. A star beyond this
+/// |ecliptic latitude| can never be occulted from anywhere on Earth.
+pub(crate) const MOON_MAX_REACH_DEG: f64 = 6.6;
+
 impl<B: EphemerisBackend> EventEngine<B> {
     /// Apparent equatorial-of-date RA/Dec (degrees) of the Moon and the target at
     /// `jd`. When `observer` is `Some`, the Moon (and a planet target) carry
@@ -369,6 +374,41 @@ impl<B: EphemerisBackend> EventEngine<B> {
             Ok(dist)
         }
     }
+
+    /// Rejects Sun/Moon as an occultation target and unknown star names.
+    pub(crate) fn validate_occult_target(&self, target: &OccultTarget) -> Result<(), EventError> {
+        match target {
+            OccultTarget::Body(CelestialBody::Sun) => Err(EventError::UnsupportedOccultTarget {
+                detail: "the Sun occulted by the Moon is a solar eclipse; use the eclipse engine"
+                    .into(),
+            }),
+            OccultTarget::Body(CelestialBody::Moon) => Err(EventError::UnsupportedOccultTarget {
+                detail: "the Moon is the occulter, not a target".into(),
+            }),
+            OccultTarget::Body(_) => Ok(()),
+            OccultTarget::Star(name) => crate::fixstar::fixed_star_entry(name).map(|_| ()),
+        }
+    }
+
+    /// Whether the target's ecliptic latitude puts it permanently outside the
+    /// Moon's reach (only meaningful — and only applied — for stars, whose
+    /// latitude is effectively constant; planets always return `false`).
+    pub(crate) fn target_never_occultable(
+        &self,
+        target: &OccultTarget,
+        jd: f64,
+    ) -> Result<bool, EventError> {
+        match target {
+            OccultTarget::Star(name) => {
+                let at = Instant::new(JulianDay::from_days(jd), TimeScale::Tdb);
+                let equ = fixed_star_apparent(name, at)?;
+                let eps = true_obliquity_degrees(jd).unwrap_or(OBLIQUITY_J2000_DEG);
+                let ecl = equ.to_ecliptic(Angle::from_degrees(eps));
+                Ok(ecl.latitude.degrees().abs() > MOON_MAX_REACH_DEG)
+            }
+            _ => Ok(false),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -402,5 +442,49 @@ mod sampler_tests {
             .occ_geom(&OccultTarget::Body(CelestialBody::Sun), Some(&obs()), 2_451_550.0)
             .unwrap();
         assert!((geo.sep_deg - topo.sep_deg).abs() > 0.0);
+    }
+}
+
+#[cfg(test)]
+mod target_tests {
+    use super::*;
+    use pleiades_backend::test_backend::LinearSunMoon;
+
+    #[test]
+    fn sun_and_moon_targets_are_rejected() {
+        let engine = EventEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
+        assert!(matches!(
+            engine.validate_occult_target(&OccultTarget::Body(CelestialBody::Sun)),
+            Err(EventError::UnsupportedOccultTarget { .. })
+        ));
+        assert!(matches!(
+            engine.validate_occult_target(&OccultTarget::Body(CelestialBody::Moon)),
+            Err(EventError::UnsupportedOccultTarget { .. })
+        ));
+        assert!(engine
+            .validate_occult_target(&OccultTarget::Body(CelestialBody::Venus))
+            .is_ok());
+    }
+
+    #[test]
+    fn unknown_star_is_rejected() {
+        let engine = EventEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
+        assert!(matches!(
+            engine.validate_occult_target(&OccultTarget::Star("Nope".into())),
+            Err(EventError::UnknownFixedStar { .. })
+        ));
+    }
+
+    #[test]
+    fn far_off_ecliptic_star_is_never_occultable() {
+        // Sirius sits ~39° below the ecliptic; the Moon can never reach it.
+        let engine = EventEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
+        assert!(engine
+            .target_never_occultable(&OccultTarget::Star("Sirius".into()), 2_451_545.0)
+            .unwrap());
+        // Aldebaran (~5.5°S) is within reach.
+        assert!(!engine
+            .target_never_occultable(&OccultTarget::Star("Aldebaran".into()), 2_451_545.0)
+            .unwrap());
     }
 }
