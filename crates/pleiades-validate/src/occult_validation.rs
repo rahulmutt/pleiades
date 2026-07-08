@@ -16,24 +16,28 @@
 //! quirks that shape this comparison.
 //!
 //! ## Correction 1 — magnitude/obscuration are unbounded for planets ON SE'S
-//! SIDE (magnitude only matches on the engine side — see `KNOWN GAP 1`)
+//! SIDE in the FULLY-COVERED regime (see `KNOWN GAP 1`)
 //!
 //! SE reports, for a planet target, `magnitude` (`attr[0]`, covered diameter
 //! fraction) and `obscuration` (`attr[2]`, covered disc-area fraction) that
-//! can run far past 1.0 (up to ~82 and ~26652 in the committed corpus) because
-//! these are fractions of the TARGET's (planet's) own tiny disc, and the
-//! Moon's disc is vastly larger. `pleiades_events::occult::covered_diameter_fraction`
-//! (magnitude) is deliberately unclamped and reproduces the same large
-//! values — intentional SE parity, not a bug. `obscuration_fraction`,
-//! however, IS clamped to `[0,1]` in every branch of its implementation (a
-//! correctly bounded disc-AREA fraction) — it does NOT reproduce SE's large
-//! obscuration values for planets; see `KNOWN GAP 1` for why this gate does
-//! not attempt to gate planet obscuration numerically. Only a point star
-//! (`se_body == -1`) has a binary magnitude/obscuration in `{0.0, 1.0}` on
-//! BOTH sides. So Tier-1 asserts `magnitude, obscuration ∈ [0,1]` only for
-//! star rows; for planet rows it asserts only `>= 0` (no upper bound) — this
-//! Tier-1 bound is honored by both engine quantities regardless of `KNOWN GAP
-//! 1` (obscuration's bound is `[0,1]`, a strict subset of `>= 0`).
+//! can run far past 1.0 (up to ~82 and ~26652 in the committed corpus) when
+//! the planet is FULLY covered (`Total`), because these are fractions of the
+//! TARGET's (planet's) own tiny disc, and the Moon's disc is vastly larger.
+//! `pleiades_events::occult::covered_diameter_fraction` (magnitude) is
+//! deliberately unclamped and reproduces the same large values — intentional
+//! SE parity, not a bug — in BOTH the `Total` and `Grazing` regimes.
+//! `obscuration_fraction`, however, IS clamped to `[0,1]` in every branch of
+//! its implementation (a correctly bounded disc-AREA fraction): in the
+//! GRAZING (partial-coverage) regime this bounded value IS comparable to SE's
+//! and IS gated (`PLANET_OBSCURATION_REL`, Task 15); in the fully-covered
+//! (`Total`) regime it does NOT and structurally CANNOT reproduce SE's large
+//! values — see `KNOWN GAP 1` for why this gate does not attempt to gate
+//! planet Total obscuration numerically. Only a point star (`se_body == -1`)
+//! has a binary magnitude/obscuration in `{0.0, 1.0}` on BOTH sides. So Tier-1
+//! asserts `magnitude, obscuration ∈ [0,1]` only for star rows; for planet
+//! rows it asserts only `>= 0` (no upper bound) — this Tier-1 bound is honored
+//! by both engine quantities regardless of `KNOWN GAP 1` (obscuration's bound
+//! is `[0,1]`, a strict subset of `>= 0`).
 //!
 //! Consequently Tier-2 gates magnitude differently for stars vs. planets (see
 //! "Comparison-mode choice" below); obscuration is gated for stars only.
@@ -92,59 +96,87 @@
 //! reported (informational, ungated) so a reviewer can sanity-check the
 //! relative ceiling against the raw magnitude of the numbers involved.
 //!
-//! OBSCURATION for planet rows could NOT be gated this way — see `KNOWN GAP
-//! 1` below (Correction 1b): it is measured/reported but not gated.
+//! OBSCURATION for planet GRAZING rows is now gated the same way
+//! (`PLANET_OBSCURATION_REL`, Task 15); planet TOTAL-row obscuration remains
+//! ungated — see `KNOWN GAP 1` below (Correction 1b).
 //!
-//! ## KNOWN GAP 1 (Correction 1b) — planet `obscuration` is not the same
-//! quantity on both sides
+//! ## KNOWN GAP 1 (Correction 1b) — planet `obscuration` is a different
+//! quantity on the two sides ONLY when the planet is fully covered
 //!
 //! Star `obscuration` (binary `{0,1}`) matches SE exactly and IS gated
 //! (`STAR_OBSCURATION_ABS`). For PLANET rows, this gate discovered that
 //! `pleiades_events::occult::obscuration_fraction` is a properly, correctly
 //! bounded `[0,1]` disc-AREA fraction (every branch of its implementation
-//! clamps or returns an exact `0.0`/`1.0`) — but SE's reported `attr[2]` for
-//! an occultation of a target much smaller than the Moon is empirically NOT
-//! bounded (up to ~26652 in the committed corpus, same order of magnitude
-//! disproportion as the (correctly) unclamped magnitude in Correction 1).
-//! Unlike magnitude, our bounded obscuration can NEVER reproduce SE's
-//! unbounded one for a planet — the measured relative residual saturates
-//! near 1.0 (our value is a rounding error next to SE's), which is not "close
-//! but out of tolerance", it is a proof the two sides are not the same
-//! physical quantity at this size ratio. Any ceiling loose enough to pass
-//! would be vacuous (the brief's own warning against a "toothless" ceiling),
-//! so `planet_obscuration_{abs,rel}` are measured and reported
-//! (informational, see [`OccultReport`]) but NOT part of the fail-closed
-//! gate. This is a discovered SE/engine semantic mismatch for planet
-//! obscuration specifically — not a residual that a tighter/looser threshold
-//! can resolve.
+//! clamps or returns an exact `0.0`/`1.0`) — this is the CORRECT physical
+//! obscuration (a lens-area fraction can never exceed 1, since the lens area
+//! is bounded by the target disc's own area). In the GRAZING (partial-
+//! coverage) regime SE's `attr[2]` IS the same bounded lens-area fraction, and
+//! the two sides ARE comparable — measured relative residual 0.30-4.93% in
+//! the committed corpus, the same order as the gated `planet_magnitude_rel`,
+//! so Task 15 gates it too (`PLANET_OBSCURATION_REL`,
+//! `planet_obscuration_rel_grazing` bucket). In the FULLY-COVERED (`Total`)
+//! regime, though, SE's reported `attr[2]` for a target much smaller than the
+//! Moon is empirically NOT bounded (up to ~26652 in the committed corpus,
+//! same order of magnitude disproportion as the (correctly) unclamped
+//! magnitude in Correction 1) — a different (coverage-depth-ratio) quantity
+//! that a bounded `[0,1]` area fraction cannot and should not reach. Our
+//! bounded obscuration can NEVER reproduce SE's unbounded Total-regime one —
+//! the measured relative residual there saturates near 1.0 (our value is a
+//! rounding error next to SE's), which is not "close but out of tolerance",
+//! it is proof the two sides are not the same physical quantity in that
+//! regime specifically. Any ceiling loose enough to pass the Total case would
+//! be vacuous (the brief's own warning against a "toothless" ceiling), so
+//! `planet_obscuration_{abs,rel}` (which mix in Total rows) remain measured
+//! and reported (informational, see [`OccultReport`]) but NOT part of the
+//! fail-closed gate — only the Grazing-only bucket is gated. This is a
+//! discovered SE/engine semantic difference specific to the fully-covered
+//! regime — not a residual a tighter/looser threshold can resolve there.
 //!
-//! ## KNOWN GAP 2 — `next_global_occultation`'s sub-lunar point does not
-//! localize the occultation
+//! ## KNOWN GAP 2 — `central` disagrees with SE for Saturn even after the
+//! sub-lunar-point fix (Task 15)
 //!
-//! This gate discovered that `GlobalOccultation::sublunar_latitude/longitude`
-//! (already-committed `occult.rs`, Task 8/9, out of this task's
-//! additive-only scope to fix) report the point where the MOON is at zenith
-//! (`moon_dec`, `moon_ra − GAST`) — NOT the point on Earth where the
-//! occultation is centrally/best observed, which is what SE's
-//! `swe_lun_occult_where` actually returns (and what the corpus's
+//! Prior to Task 15, this gate discovered that
+//! `GlobalOccultation::sublunar_latitude/longitude` reported the point where
+//! the MOON is at geocentric zenith (`moon_dec`, `moon_ra − GAST`) — NOT the
+//! point on Earth where the occultation is centrally/best observed, which is
+//! what SE's `swe_lun_occult_where` actually returns (and what the corpus's
 //! `sublunar_lat/lon` columns are, despite the shared name). Independent
-//! verification: calling a LOCAL `occultation()` at OUR reported sub-lunar
-//! point gives `Miss` (no occultation there at all), while calling it at SE's
-//! reported point gives `Total` with a magnitude matching SE's to 4
-//! significant figures — confirming SE's point is correct and ours is a
-//! different, non-equivalent quantity. The measured residual is
-//! 2545-5344 ARCMINUTES (42-89 DEGREES) across every glob row in the
-//! corpus — squarely the "residuals are DEGREES not arcsec, indicating a
-//! real engine bug" case this gate is supposed to catch rather than hide.
-//! `sublunar_arcmin` is measured and reported (informational) but NOT gated;
-//! gating it would require either an enormous (vacuous) ceiling or a fix to
-//! `next_global_occultation` in `occult.rs`, both out of this task's scope.
-//! This is also very likely why Saturn's `central` boolean disagrees with SE
-//! (Correction 2b / above): `central` is computed from the geocentric
-//! existence-threshold independent of the (buggy) reported point, but the
-//! same underlying sub-lunar-point-vs-true-alignment-point gap plausibly
-//! explains why the existence check and SE's stricter check part ways for a
-//! small-disc planet at a narrow margin.
+//! verification at the time: calling a LOCAL `occultation()` at the OLD
+//! reported sub-lunar point gave `Miss` (no occultation there at all), while
+//! calling it at SE's reported point gave `Total` matching SE's magnitude to
+//! 4 significant figures. The measured residual was 2545-5344 ARCMINUTES
+//! (42-89 DEGREES) across every glob row — squarely the "residuals are
+//! DEGREES not arcsec, indicating a real engine bug" case this gate is
+//! supposed to catch rather than hide.
+//!
+//! **Task 15 fixed this**: `next_global_occultation` now reports the
+//! geographic point that actually MINIMIZES the topocentric Moon–target
+//! separation at the greatest-occultation instant (golden-section coordinate
+//! descent over `occ_geom`'s already-tested topocentric path, seeded at the
+//! old sub-Moon point). The residual collapsed to arcmin-scale (measured max
+//! ~70', see `occult_thresholds::SUBLUNAR_ARCMIN`'s doc) and `sublunar_arcmin`
+//! is now GATED.
+//!
+//! `central`, however, was ALSO retied to the newly-correct point (`central`
+//! ⟺ the target is fully behind the Moon's disc AT the minimized point) and
+//! Saturn's two `glob` rows STILL disagree with SE (engine `true`/`Total`, SE
+//! `central=false`) — an UNCHANGED 2-row mismatch. Diagnosis: this is not a
+//! positional error. At SE's own reported central point our engine already
+//! agreed with SE's magnitude to several significant figures (independently
+//! verified) even before the point fix; the disagreement is in the boolean
+//! flag itself. SE's `SE_ECL_CENTRAL` is evidently a stricter "the exact
+//! Moon–target center-line axis strikes the Earth" condition, distinct from
+//! merely "the target is fully covered somewhere" (`Total`) — analogous to a
+//! solar eclipse being `Total` without being flagged `Central` (the umbral
+//! axis passes just outside Earth while the umbral cone still grazes the
+//! surface near the limb). This task's own brief-recommended retie formula
+//! ties `central` definitionally to the `Total`/`Grazing` split
+//! (`central` ⟺ `occ_type == Total`), so it structurally cannot represent
+//! SE's finer distinction — a conceptual gap in `next_global_occultation`'s
+//! `central`/`occ_type` coupling that a positional fix cannot close.
+//! `central_planet_{checked,mismatched}` remain measured/reported but NOT
+//! hard-gated (Correction 2b, above, still applies unchanged: star `glob`
+//! rows are excluded from the comparison entirely).
 //!
 //! A sibling `manifest.txt` records the fnv1a64 digest of the CSV (drift
 //! guard); a mismatch fails the gate closed.
@@ -231,11 +263,12 @@ pub struct OccultReport {
     pub rows: usize,
     pub max_contact_seconds: f64,
     pub max_contact_seconds_grazing: f64,
-    /// Informational (KNOWN GAP 1): great-circle arcmin between our
-    /// `GlobalOccultation` sub-lunar point and SE's. Runs 42-89 DEGREES in
-    /// the committed corpus (a discovered bug in already-committed
-    /// `next_global_occultation`, out of this task's scope to fix) — NOT
-    /// gated.
+    /// GATED (Task 15) under `SUBLUNAR_ARCMIN`: great-circle arcmin between
+    /// the recomputed central-observation point
+    /// (`GlobalOccultation::sublunar_latitude/longitude`, fixed by Task 15 —
+    /// it used to report the Moon's geocentric zenith point, off by 42-89
+    /// DEGREES; see the module doc's former `KNOWN GAP 2`) and the corpus's
+    /// SE `sublunar_lat/lon`, over all `glob` rows.
     pub max_sublunar_arcmin: f64,
     pub max_star_magnitude_abs: f64,
     pub max_star_obscuration_abs: f64,
@@ -243,24 +276,42 @@ pub struct OccultReport {
     /// `max_planet_magnitude_rel` for the gated metric).
     pub max_planet_magnitude_abs: f64,
     pub max_planet_magnitude_rel: f64,
-    /// Informational (Correction 1b): planet obscuration absolute residual.
-    /// Our engine's `obscuration` is a properly bounded `[0,1]` disc-area
-    /// fraction; SE's `attr[2]` for an occultation of a target much smaller
-    /// than the Moon is empirically NOT bounded (values up to ~26652 in the
-    /// committed corpus) and does not appear to be the same physical
-    /// quantity at this size ratio — NOT gated (any ceiling loose enough to
-    /// pass would be vacuous; see `max_planet_obscuration_rel`).
+    /// Informational (Correction 1b), planet TOTAL + GRAZING rows combined:
+    /// planet obscuration absolute residual. Our engine's `obscuration` is a
+    /// properly bounded `[0,1]` disc-area fraction; SE's `attr[2]` for a
+    /// FULLY-COVERED (`Total`) planet is empirically NOT bounded (values up
+    /// to ~26652 in the committed corpus) and is a genuinely different
+    /// (coverage-depth-ratio) physical quantity at that size ratio — NOT
+    /// gated (any ceiling loose enough to pass would be vacuous). See
+    /// `max_planet_obscuration_rel_grazing` for the GRAZING-only residual,
+    /// which IS gated (the two quantities ARE comparable there).
     pub max_planet_obscuration_abs: f64,
-    /// Informational (Correction 1b): relative residual saturates near 1.0
-    /// (our bounded value vs. SE's much larger one) — confirms the values
-    /// are not comparable at this scale, not that the engine is "close".
+    /// Informational (Correction 1b), planet TOTAL + GRAZING rows combined:
+    /// relative residual saturates near 1.0 because the Total-row cases
+    /// dominate the max (our bounded value vs. SE's much larger one) —
+    /// confirms the values are not comparable at this scale for a
+    /// fully-covered planet, not that the engine is "close". See
+    /// `max_planet_obscuration_rel_grazing` for the gated Grazing-only bucket.
     pub max_planet_obscuration_rel: f64,
+    /// GATED (Task 15) under `PLANET_OBSCURATION_REL`: obscuration relative
+    /// residual for PLANET GRAZING (`occ_type == 1`) rows only — bucketed
+    /// exactly like `max_contact_seconds` vs `max_contact_seconds_grazing`.
+    /// Comparable in scale to the gated `max_planet_magnitude_rel` (both are
+    /// well-conditioned in the Grazing regime, unlike the Total regime — see
+    /// `max_planet_obscuration_rel`'s doc).
+    pub max_planet_obscuration_rel_grazing: f64,
     /// Informational (KNOWN GAP 2): planet glob rows where `central` was
     /// compared.
     pub central_planet_checked: usize,
     /// Informational (KNOWN GAP 2): of those, how many disagreed with SE.
-    /// Saturn's 2 rows mismatch (engine `true`, SE `false`) at a
-    /// narrow-margin existence-threshold edge case; Venus/Jupiter agree.
+    /// Saturn's 2 rows still mismatch (engine `true`/`Total`, SE
+    /// `central=false`) even after Task 15's central-observation-point fix —
+    /// see `KNOWN GAP 2` in the module doc: this is now understood to be a
+    /// conceptual gap (SE's `SE_ECL_CENTRAL` is a stricter "exact
+    /// center-line alignment" condition, distinct from "target fully covered
+    /// somewhere", which our `central`/`occ_type` coupling cannot represent),
+    /// not a positional error the point fix could resolve — so this remains
+    /// measured/reported, NOT hard-gated. Venus/Jupiter agree exactly.
     pub central_planet_mismatched: usize,
 }
 
@@ -277,7 +328,7 @@ impl OccultReport {
 
     pub fn summary_line(&self) -> String {
         format!(
-            "validate-occultations: {} rows — max residuals (gated): contact {:.3}s contact_grazing {:.3}s star_mag {:.4} star_obsc {:.4} planet_mag_rel {:.4} — informational (ungated, see KNOWN GAP 1/2): sublunar {:.1}' planet_mag_abs {:.3} planet_obsc_abs {:.1} planet_obsc_rel {:.4} central_planet {}/{} mismatched",
+            "validate-occultations: {} rows — max residuals (gated): contact {:.3}s contact_grazing {:.3}s star_mag {:.4} star_obsc {:.4} planet_mag_rel {:.4} sublunar {:.1}' planet_obsc_rel_grazing {:.4} — informational (ungated, see KNOWN GAP 1/2): planet_mag_abs {:.3} planet_obsc_abs {:.1} planet_obsc_rel {:.4} central_planet {}/{} mismatched",
             self.rows,
             self.max_contact_seconds,
             self.max_contact_seconds_grazing,
@@ -285,6 +336,7 @@ impl OccultReport {
             self.max_star_obscuration_abs,
             self.max_planet_magnitude_rel,
             self.max_sublunar_arcmin,
+            self.max_planet_obscuration_rel_grazing,
             self.max_planet_magnitude_abs,
             self.max_planet_obscuration_abs,
             self.max_planet_obscuration_rel,
@@ -345,6 +397,10 @@ struct Measured {
     /// Contact/maximum instant residuals from `Grazing` (`occ_type == 1`)
     /// `loc` rows.
     contact_grazing: MetricMax,
+    /// Great-circle residual (arcmin) between the recomputed central-
+    /// observation point (`GlobalOccultation::sublunar_latitude/longitude`,
+    /// fixed by Task 15) and the corpus's SE `sublunar_lat/lon`, for all
+    /// `glob` rows. GATED under `SUBLUNAR_ARCMIN`.
     sublunar: MetricMax,
     star_magnitude: MetricMax,
     star_obscuration: MetricMax,
@@ -352,8 +408,23 @@ struct Measured {
     planet_magnitude_rel: MetricMax,
     planet_obscuration_abs: MetricMax,
     planet_obscuration_rel: MetricMax,
-    /// Informational (KNOWN GAP 2): planet glob rows where `central` was
-    /// compared / how many disagreed. See field docs on [`OccultReport`].
+    /// PLANET GRAZING (`occ_type == 1`) `loc` rows only: obscuration relative
+    /// residual, bucketed exactly like `contact_total` vs `contact_grazing`.
+    /// GATED under `PLANET_OBSCURATION_REL` — see the field's note at its use
+    /// site in `measure` for why this (unlike the Total-inclusive
+    /// `planet_obscuration_rel` above) is comparable in scale and safe to
+    /// gate.
+    planet_obscuration_rel_grazing: MetricMax,
+    /// Planet `glob` rows where `central` was compared / how many disagreed.
+    /// Measured and reported but NOT gated — see `KNOWN GAP 2` in the module
+    /// doc: after Task 15's central-observation-point fix, Saturn's 2 glob
+    /// rows still disagree (engine `true`/Total, SE `central=false`), because
+    /// SE's `SE_ECL_CENTRAL` is evidently a stricter "exact center-line
+    /// alignment" condition distinct from "target fully covered somewhere"
+    /// (our `central`, definitionally tied to our `Total`/`Grazing` split) —
+    /// a conceptual gap in already-committed `occult.rs`'s `central`/
+    /// `occ_type` coupling, not a computational error the sub-lunar-point fix
+    /// can resolve. See field docs on [`OccultReport`].
     central_planet_checked: usize,
     central_planet_mismatched: usize,
 }
@@ -371,6 +442,7 @@ impl Measured {
             max_planet_magnitude_rel: self.planet_magnitude_rel.value,
             max_planet_obscuration_abs: self.planet_obscuration_abs.value,
             max_planet_obscuration_rel: self.planet_obscuration_rel.value,
+            max_planet_obscuration_rel_grazing: self.planet_obscuration_rel_grazing.value,
             central_planet_checked: self.central_planet_checked,
             central_planet_mismatched: self.central_planet_mismatched,
         }
@@ -679,38 +751,49 @@ fn measure() -> Result<Measured, OccultError> {
                         &mut m.contact_grazing
                     };
                     let max_res = (rec.maximum.instant.julian_day.days() - max_jd).abs() * 86_400.0;
-                    contact_tracker.observe(max_res, &label, jd_tt);
+                    contact_tracker.observe(max_res, &label, max_jd);
                     let c1_res =
                         (rec.first_contact.instant.julian_day.days() - c1_jd).abs() * 86_400.0;
-                    contact_tracker.observe(c1_res, &label, jd_tt);
+                    contact_tracker.observe(c1_res, &label, max_jd);
                     let c4_res =
                         (rec.fourth_contact.instant.julian_day.days() - c4_jd).abs() * 86_400.0;
-                    contact_tracker.observe(c4_res, &label, jd_tt);
+                    contact_tracker.observe(c4_res, &label, max_jd);
                     if c2_jd > 0.0 {
                         if let Some(sc) = rec.second_contact {
                             let r = (sc.instant.julian_day.days() - c2_jd).abs() * 86_400.0;
-                            contact_tracker.observe(r, &label, jd_tt);
+                            contact_tracker.observe(r, &label, max_jd);
                         }
                     }
                     if c3_jd > 0.0 {
                         if let Some(tc) = rec.third_contact {
                             let r = (tc.instant.julian_day.days() - c3_jd).abs() * 86_400.0;
-                            contact_tracker.observe(r, &label, jd_tt);
+                            contact_tracker.observe(r, &label, max_jd);
                         }
                     }
 
                     let mag_res = (rec.magnitude - se_magnitude).abs();
                     let obs_res = (rec.obscuration - se_obscuration).abs();
                     if is_star {
-                        m.star_magnitude.observe(mag_res, &label, jd_tt);
-                        m.star_obscuration.observe(obs_res, &label, jd_tt);
+                        m.star_magnitude.observe(mag_res, &label, max_jd);
+                        m.star_obscuration.observe(obs_res, &label, max_jd);
                     } else {
-                        m.planet_magnitude_abs.observe(mag_res, &label, jd_tt);
-                        m.planet_obscuration_abs.observe(obs_res, &label, jd_tt);
+                        m.planet_magnitude_abs.observe(mag_res, &label, max_jd);
+                        m.planet_obscuration_abs.observe(obs_res, &label, max_jd);
                         let mag_rel = mag_res / se_magnitude.abs();
                         let obs_rel = obs_res / se_obscuration.abs();
-                        m.planet_magnitude_rel.observe(mag_rel, &label, jd_tt);
-                        m.planet_obscuration_rel.observe(obs_rel, &label, jd_tt);
+                        m.planet_magnitude_rel.observe(mag_rel, &label, max_jd);
+                        m.planet_obscuration_rel.observe(obs_rel, &label, max_jd);
+                        // PLANET GRAZING obscuration relative residual — bucketed
+                        // exactly like `contact_total` vs `contact_grazing`
+                        // (occ_type 2 = Total vs 1 = Grazing). Unlike the
+                        // combined `planet_obscuration_rel` above (which mixes
+                        // in Total rows and saturates near 1.0 — see `KNOWN GAP
+                        // 1`), the Grazing-only residual is comparable in scale
+                        // to the gated `planet_magnitude_rel` (0.30-4.93%
+                        // measured) and IS gated under `PLANET_OBSCURATION_REL`.
+                        if occ_type == 1 {
+                            m.planet_obscuration_rel_grazing.observe(obs_rel, &label, max_jd);
+                        }
                     }
                 }
             }
@@ -724,41 +807,50 @@ fn measure() -> Result<Measured, OccultError> {
                     })?;
 
                 let max_res = (rec.maximum.julian_day.days() - max_jd).abs() * 86_400.0;
-                m.contact_total.observe(max_res, &label, jd_tt);
+                m.contact_total.observe(max_res, &label, max_jd);
 
-                // Sub-lunar point: MEASURED and reported, but NOT gated — see
-                // `KNOWN GAP 1` in the module doc. `next_global_occultation`'s
-                // reported (`sublunar_latitude`, `sublunar_longitude`) do not
-                // localize the occultation the way SE's `swe_lun_occult_where`
-                // does (residuals run 42-89 DEGREES, not arcminutes, across
-                // every body in the corpus — a discovered, pre-existing bug
-                // in already-committed `occult.rs`, out of this task's
-                // additive-only scope to fix). Gating this with a ceiling
-                // large enough to pass would be a degrees-scale threshold —
-                // exactly the kind of "paper over with an enormous threshold"
-                // this gate must not do.
+                // Sub-lunar (central-observation) point: GATED under
+                // `SUBLUNAR_ARCMIN` (Task 15). `next_global_occultation` used
+                // to report the Moon's geocentric zenith point, off by 42-89
+                // DEGREES from SE's `swe_lun_occult_where` point (the former
+                // `KNOWN GAP 2`) — Task 15 fixed the engine to report the
+                // geographic point that actually minimizes the topocentric
+                // Moon–target separation at the greatest-occultation instant,
+                // collapsing the residual to arcmin-scale (measured max ~70',
+                // see `occult_thresholds::SUBLUNAR_ARCMIN`'s doc for the exact
+                // figure/row/date).
                 let arcmin = great_circle_deg(
                     rec.sublunar_latitude.degrees(),
                     rec.sublunar_longitude.degrees(),
                     se_sublunar_lat,
                     se_sublunar_lon,
                 ) * 60.0;
-                m.sublunar.observe(arcmin, &label, jd_tt);
+                m.sublunar.observe(arcmin, &label, max_jd);
 
                 // `central` is MEASURED (counted) but NOT gated for PLANET
-                // rows — see `KNOWN GAP 2` in the module doc: Saturn's two
-                // glob rows disagree (engine `true`, SE `false`) at a
-                // genuinely tight existence-threshold margin (Saturn's disc
-                // is tiny relative to the Moon, so the central/non-central
-                // band is only tens of arcseconds wide) while Venus/Jupiter
-                // agree exactly. Independent verification (a LOCAL
-                // `occultation()` call at SE's own reported location)
-                // confirms our lower-level geometry is otherwise correct
-                // there (magnitude matches SE's to 4 significant figures),
-                // so this is a narrow-margin existence-test disagreement, not
-                // a sign/frame bug — but it cannot be gated as an exact bool
-                // without either occasionally failing on genuine corpus rows
-                // or requiring an `occult.rs` fix (out of scope).
+                // rows — see `KNOWN GAP 2` in the module doc. Task 15 retied
+                // `central` to the actual minimized central-observation point
+                // (replacing the old `pi_moon`-max-parallax
+                // over-approximation), but Saturn's two glob rows STILL
+                // disagree (engine `true`/`Total`, SE `central=false`) even
+                // though the recomputed magnitude/obscuration at SE's own
+                // reported point match SE's to several significant figures
+                // (independently verified). Diagnosis: SE's `SE_ECL_CENTRAL`
+                // is evidently a stricter "the Moon–target center-line axis
+                // exactly strikes the Earth" condition — distinct from "the
+                // target is fully covered somewhere" (`Total`) — analogous to
+                // a solar eclipse being `Total` without being `Central` (the
+                // umbral axis passes just outside Earth while the umbral cone
+                // still grazes the surface). Our engine's `central` is
+                // definitionally tied to the `Total`/`Grazing` split
+                // (`central` ⟺ `occ_type == Total`, per this task's own
+                // brief-recommended retie formula), so it cannot represent
+                // that distinction — this is a conceptual gap in
+                // `next_global_occultation`'s `central`/`occ_type` coupling,
+                // not a positional error the sub-lunar-point fix could
+                // resolve. Left measured/reported, NOT gated (gating an exact
+                // bool that provably still disagrees on real corpus rows
+                // would make the gate flaky/wrong, not stricter).
                 //
                 // Correction 2b (discovered, not in the plan): `central` is
                 // compared/counted only for PLANET glob rows in the first
@@ -799,6 +891,16 @@ fn measure() -> Result<Measured, OccultError> {
     Ok(m)
 }
 
+// NOTE: every gated bucket below assumes >= 1 row was actually measured into
+// it. `MetricMax` defaults its `value` to `0.0` (see its `Default` impl), so
+// an EMPTY bucket would trivially pass `check_metric` (0.0 <= any positive
+// ceiling) rather than fail closed. This is safe only because the committed
+// corpus is known to populate every gated bucket with >= 5 rows (see each
+// bucket's row count in `occult_thresholds`'s doc comments / the corpus CSV);
+// a regenerated corpus that dropped a bucket to zero rows would silently lose
+// that check rather than error — a caveat inherited from the corpus's own
+// `RowCountMismatch`/checksum guards, which catch a truncated corpus overall
+// but not a zeroed-out sub-bucket specifically.
 fn check_metric(metric: &'static str, tracked: &MetricMax, ceiling: f64) -> Result<(), OccultError> {
     let residual = tracked.value;
     if !residual.is_finite() || residual > ceiling {
@@ -817,14 +919,16 @@ fn check_metric(metric: &'static str, tracked: &MetricMax, ceiling: f64) -> Resu
 /// parity gated under the provisional ceilings in `crate::occult_thresholds`.
 /// Fails closed on any exceeded ceiling.
 ///
-/// Five metrics are gated: `contact_seconds`, `contact_seconds_grazing`,
-/// `star_magnitude_abs`, `star_obscuration_abs`, `planet_magnitude_rel`.
-/// `sublunar_arcmin`, `planet_obscuration_{abs,rel}`, and the planet
+/// Seven metrics are gated: `contact_seconds`, `contact_seconds_grazing`,
+/// `star_magnitude_abs`, `star_obscuration_abs`, `planet_magnitude_rel`,
+/// `sublunar_arcmin` (Task 15), and `planet_obscuration_rel_grazing` (Task
+/// 15). `planet_obscuration_{abs,rel}` (Total-inclusive) and the planet
 /// `central` comparison are measured/counted and reported (see
 /// [`OccultReport`]'s field docs) but deliberately NOT gated — see `KNOWN GAP
-/// 1`/`KNOWN GAP 2` in the module doc for why gating them would either always
-/// vacuously pass or require a fix to already-committed `occult.rs` outside
-/// this task's additive-only scope.
+/// 1`/`KNOWN GAP 2` in the module doc for why: gating planet Total
+/// obscuration would be vacuous (a different physical quantity at that size
+/// ratio), and gating `central` exact would fail on Saturn's genuine,
+/// diagnosed SE/engine semantic difference rather than catch a regression.
 pub fn validate_occultations_corpus() -> Result<OccultReport, OccultError> {
     let m = measure()?;
 
@@ -844,6 +948,12 @@ pub fn validate_occultations_corpus() -> Result<OccultReport, OccultError> {
         "planet_magnitude_rel",
         &m.planet_magnitude_rel,
         PLANET_MAGNITUDE_REL,
+    )?;
+    check_metric("sublunar_arcmin", &m.sublunar, SUBLUNAR_ARCMIN)?;
+    check_metric(
+        "planet_obscuration_rel_grazing",
+        &m.planet_obscuration_rel_grazing,
+        PLANET_OBSCURATION_REL,
     )?;
 
     Ok(m.into_report())
