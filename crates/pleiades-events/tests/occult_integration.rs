@@ -33,6 +33,11 @@ fn next_planet_occultation_has_ordered_contacts() {
             tdb(2_451_545.0),
         )
         .unwrap();
+    assert!(
+        out.is_some(),
+        "expected a real Aldebaran occultation near 2015-08-30 (JD 2457270.72); if this now \
+         returns None, investigate before assuming the test is still meaningful (see SP-6 Task 8)"
+    );
     if let Some(o) = out {
         let c1 = o.first_contact.instant.julian_day.days();
         let mx = o.maximum.instant.julian_day.days();
@@ -60,6 +65,12 @@ fn global_occultation_reports_finite_sublunar_point() {
     let out = engine
         .next_global_occultation(OccultTarget::Star("Aldebaran".into()), tdb(2_451_545.0))
         .unwrap();
+    assert!(
+        out.is_some(),
+        "expected a real global Aldebaran occultation near 2000-01-17 (JD 2451561.31); if this \
+         now returns None, investigate before assuming the test is still meaningful (see SP-6 \
+         Task 8)"
+    );
     if let Some(g) = out {
         assert!(g.sublunar_latitude.degrees().abs() <= 90.0);
         assert!((-180.0..=180.0).contains(&g.sublunar_longitude.degrees()));
@@ -74,15 +85,20 @@ fn ingress_and_egress_are_symmetric_about_maximum() {
     // hits the same real occultation as `next_planet_occultation_has_ordered_contacts`
     // above (JD 2457270.720129775, ~2015-08-30 TDB), so the symmetry assertions
     // below genuinely run against real ingress/egress geometry.
-    if let Some(o) = engine
+    let out = engine
         .next_occultation(
             OccultTarget::Star("Aldebaran".into()),
             observer(),
             Atmosphere::default(),
             tdb(2_451_545.0),
         )
-        .unwrap()
-    {
+        .unwrap();
+    assert!(
+        out.is_some(),
+        "expected a real Aldebaran occultation near 2015-08-30 (JD 2457270.72); if this now \
+         returns None, investigate before assuming the test is still meaningful (see SP-6 Task 8)"
+    );
+    if let Some(o) = out {
         if !matches!(o.occultation_type, OccultationType::Miss) {
             let pre = o.maximum.instant.julian_day.days() - o.first_contact.instant.julian_day.days();
             let post = o.fourth_contact.instant.julian_day.days() - o.maximum.instant.julian_day.days();
