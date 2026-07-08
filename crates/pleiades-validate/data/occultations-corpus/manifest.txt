@@ -1,0 +1,11 @@
+corpus: occultations
+source: Swiss Ephemeris 2.10.03 (Moshier, SEFLG_MOSEPH)
+generator: tools/se-occultations-reference
+file: occultations.csv rows=62 checksum=1521057932782180591
+iflag: 516 (SEFLG_MOSEPH|SEFLG_NOGDEFL)
+calls: swe_lun_occult_when_loc+SE_ECL_ONE_TRY (loc), swe_lun_occult_when_glob + swe_lun_occult_where (glob)
+attrs: magnitude=attr[0] (covered diameter fraction), obscuration=attr[2] (covered disc fraction)
+occ_type: 2=Total, 1=Grazing, 0=Miss/no-event
+central: 1 if SE_ECL_CENTRAL else 0
+times: TDB (Julian days); jd_ut converted via swe_deltat at emission
+fixstars: data/sefstars.txt (Astrodienst catalog, md5 3658a5a37ef795ada934c451024801c1)
