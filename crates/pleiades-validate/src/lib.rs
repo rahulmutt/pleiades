@@ -34,6 +34,7 @@ mod lilith_validation;
 mod nod_aps_thresholds;
 pub mod nod_aps_validation;
 mod pheno_thresholds;
+mod occult_thresholds;
 pub mod pheno_validation;
 mod provenance;
 mod release;
