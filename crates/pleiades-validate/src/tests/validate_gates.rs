@@ -506,3 +506,27 @@ fn validate_pheno_and_alias_agree_and_reject_extra_args() {
         "help text should mention pheno-gate alias"
     );
 }
+
+#[test]
+fn validate_occultations_and_aliases_agree_and_reject_extra_args() {
+    let primary = render_cli(&["validate-occultations"]).expect("gate ok");
+    let alias1 = render_cli(&["occultations"]).expect("alias ok");
+    let alias2 = render_cli(&["occult-gate"]).expect("alias ok");
+    assert_eq!(primary, alias1);
+    assert_eq!(primary, alias2);
+    let error = render_cli(&["validate-occultations", "extra"])
+        .expect_err("validate-occultations should reject extra arguments");
+    assert!(
+        error.contains("validate-occultations does not accept extra arguments"),
+        "unexpected error: {error}"
+    );
+    let help = render_cli(&["help"]).expect("help ok");
+    assert!(
+        help.contains("validate-occultations"),
+        "help text should mention validate-occultations"
+    );
+    assert!(
+        help.contains("occult-gate"),
+        "help text should mention occult-gate alias"
+    );
+}
