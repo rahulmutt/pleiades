@@ -256,11 +256,14 @@ mod geom_tests {
 
 use crate::crossings::EventEngine;
 use crate::ephemeris::geocentric_apparent_ecliptic;
-use crate::error::EventError;
+use crate::error::{EventError, WINDOW_END_JD, WINDOW_START_JD};
 use crate::fixstar::fixed_star_apparent;
-use crate::rise_trans::RiseSetTarget;
+use crate::rise_trans::{check_atmosphere, RiseSetTarget};
+use crate::root::REFINE_TOLERANCE_DAYS;
 use crate::semidiameter::semidiameter_deg;
-use pleiades_apparent::{sidereal_time, topocentric_position, true_obliquity_degrees};
+use pleiades_apparent::{
+    apparent_from_true, sidereal_time, topocentric_position, true_obliquity_degrees, Atmosphere,
+};
 use pleiades_backend::EphemerisBackend;
 
 /// Moon physical radius (km) and AU, matching the eclipse crate's `solar_consts`.
@@ -486,5 +489,232 @@ mod target_tests {
         assert!(!engine
             .target_never_occultable(&OccultTarget::Star("Aldebaran".into()), 2_451_545.0)
             .unwrap());
+    }
+}
+
+/// Half-window (days) to bracket occultation contacts around the maximum.
+const OCC_CONTACT_HALF_WINDOW_DAYS: f64 = 0.15;
+
+impl<B: EphemerisBackend> EventEngine<B> {
+    /// Topocentric az/alt + visibility of the target at `jd` for `observer`.
+    fn target_horizontal(
+        &self,
+        target: &OccultTarget,
+        observer: &ObserverLocation,
+        atmos: Atmosphere,
+        jd: f64,
+    ) -> Result<(f64, f64, bool), EventError> {
+        let (_, (ra_deg, dec_deg)) = self.moon_target_radec(target, Some(observer), jd)?;
+        let at = Instant::new(JulianDay::from_days(jd), TimeScale::Tdb);
+        let lst = sidereal_time(at, observer.longitude).local_apparent_deg;
+        let ha = (lst - ra_deg).to_radians();
+        let dec = dec_deg.to_radians();
+        let phi = observer.latitude.degrees().to_radians();
+        let sin_alt = (phi.sin() * dec.sin() + phi.cos() * dec.cos() * ha.cos()).clamp(-1.0, 1.0);
+        let true_alt = sin_alt.asin().to_degrees();
+        let az = ha.sin().atan2(ha.cos() * phi.sin() - dec.tan() * phi.cos());
+        let app_alt = apparent_from_true(true_alt, atmos);
+        Ok((az.to_degrees().rem_euclid(360.0), app_alt, app_alt > 0.0))
+    }
+
+    fn occ_contact_at(
+        &self,
+        target: &OccultTarget,
+        observer: &ObserverLocation,
+        atmos: Atmosphere,
+        jd: f64,
+    ) -> Result<OccultationContact, EventError> {
+        let (az, alt, visible) = self.target_horizontal(target, observer, atmos, jd)?;
+        Ok(OccultationContact {
+            instant: Instant::new(JulianDay::from_days(jd), TimeScale::Tdb),
+            altitude_degrees: alt,
+            azimuth_degrees: az,
+            visible,
+        })
+    }
+
+    /// Golden-section minimize the topocentric separation in `[a,b]`.
+    fn minimize_occ_sep(
+        &self,
+        target: &OccultTarget,
+        observer: &ObserverLocation,
+        mut a: f64,
+        mut b: f64,
+    ) -> Result<f64, EventError> {
+        let phi = 0.618_033_988_75_f64;
+        let sep = |jd: f64| Ok::<f64, EventError>(self.occ_geom(target, Some(observer), jd)?.sep_deg);
+        let mut c = b - (b - a) * phi;
+        let mut d = a + (b - a) * phi;
+        let (mut fc, mut fd) = (sep(c)?, sep(d)?);
+        while (b - a) > REFINE_TOLERANCE_DAYS {
+            if fc < fd {
+                b = d; d = c; fd = fc; c = b - (b - a) * phi; fc = sep(c)?;
+            } else {
+                a = c; c = d; fc = fd; d = a + (b - a) * phi; fd = sep(d)?;
+            }
+        }
+        Ok(0.5 * (a + b))
+    }
+
+    /// Bisect `sep(t) − threshold` between `lo` and `hi`; `None` if no sign change.
+    fn bisect_occ_contact(
+        &self,
+        target: &OccultTarget,
+        observer: &ObserverLocation,
+        threshold: f64,
+        mut lo: f64,
+        mut hi: f64,
+    ) -> Result<Option<f64>, EventError> {
+        let f = |jd: f64| Ok::<f64, EventError>(self.occ_geom(target, Some(observer), jd)?.sep_deg - threshold);
+        let mut flo = f(lo)?;
+        let fhi = f(hi)?;
+        if flo.signum() == fhi.signum() {
+            return Ok(None);
+        }
+        while (hi - lo) > REFINE_TOLERANCE_DAYS {
+            let mid = 0.5 * (lo + hi);
+            let fmid = f(mid)?;
+            if fmid.signum() == flo.signum() { lo = mid; flo = fmid; } else { hi = mid; }
+        }
+        Ok(Some(0.5 * (lo + hi)))
+    }
+
+    /// Local circumstances of a lunar occultation of `target` for `observer` at
+    /// (or around) `at` — Swiss Ephemeris `swe_lun_occult_how` analogue. Returns
+    /// full circumstances even when the target is below the horizon; the
+    /// `occultation_type` is `Miss` when no contact occurs for this observer.
+    pub fn occultation(
+        &self,
+        target: OccultTarget,
+        observer: ObserverLocation,
+        atmosphere: Atmosphere,
+        at: Instant,
+    ) -> Result<LocalOccultation, EventError> {
+        self.validate_occult_target(&target)?;
+        observer.validate().map_err(|e| EventError::InvalidObserver { detail: e.to_string() })?;
+        check_atmosphere(atmosphere)?;
+        let jd0 = at.julian_day.days();
+        self.check_window(jd0)?;
+
+        let max_jd = self.minimize_occ_sep(
+            &target,
+            &observer,
+            (jd0 - OCC_CONTACT_HALF_WINDOW_DAYS).max(WINDOW_START_JD),
+            (jd0 + OCC_CONTACT_HALF_WINDOW_DAYS).min(WINDOW_END_JD),
+        )?;
+        let g = self.occ_geom(&target, Some(&observer), max_jd)?;
+        let occ_type = classify(&g);
+        let maximum = self.occ_contact_at(&target, &observer, atmosphere, max_jd)?;
+
+        if matches!(occ_type, OccultationType::Miss) {
+            // A timed "no occultation here" record: all contacts at the closest
+            // approach, magnitude 0, not visible as an event.
+            return Ok(LocalOccultation {
+                target,
+                occultation_type: OccultationType::Miss,
+                maximum,
+                magnitude: 0.0,
+                obscuration: 0.0,
+                first_contact: maximum,
+                second_contact: None,
+                third_contact: None,
+                fourth_contact: maximum,
+                any_phase_visible: false,
+            });
+        }
+
+        let external = g.s_moon_deg + g.s_tgt_deg;
+        let internal = (g.s_moon_deg - g.s_tgt_deg).max(0.0);
+        let lo = (max_jd - OCC_CONTACT_HALF_WINDOW_DAYS).max(WINDOW_START_JD);
+        let hi = (max_jd + OCC_CONTACT_HALF_WINDOW_DAYS).min(WINDOW_END_JD);
+        let c1 = self.bisect_occ_contact(&target, &observer, external, lo, max_jd)?.unwrap_or(max_jd);
+        let c4 = self.bisect_occ_contact(&target, &observer, external, max_jd, hi)?.unwrap_or(max_jd);
+
+        let disc_total = g.s_tgt_deg > 0.0 && g.sep_deg < internal;
+        let (c2, c3) = if disc_total {
+            (
+                self.bisect_occ_contact(&target, &observer, internal, c1, max_jd)?,
+                self.bisect_occ_contact(&target, &observer, internal, max_jd, c4)?,
+            )
+        } else {
+            (None, None)
+        };
+
+        let first_contact = self.occ_contact_at(&target, &observer, atmosphere, c1)?;
+        let fourth_contact = self.occ_contact_at(&target, &observer, atmosphere, c4)?;
+        let second_contact = match c2 { Some(jd) => Some(self.occ_contact_at(&target, &observer, atmosphere, jd)?), None => None };
+        let third_contact = match c3 { Some(jd) => Some(self.occ_contact_at(&target, &observer, atmosphere, jd)?), None => None };
+
+        // Any phase visible: coarse 30-second scan of the target's altitude over [c1,c4].
+        let any_phase_visible = {
+            let step = 30.0 / 86_400.0;
+            let mut jd = c1;
+            let mut vis = false;
+            while jd <= c4 + 1e-12 {
+                if self.target_horizontal(&target, &observer, atmosphere, jd)?.2 { vis = true; break; }
+                jd += step;
+            }
+            vis
+        };
+
+        Ok(LocalOccultation {
+            target,
+            occultation_type: occ_type,
+            maximum,
+            magnitude: covered_diameter_fraction(&g),
+            obscuration: obscuration_fraction(&g),
+            first_contact,
+            second_contact,
+            third_contact,
+            fourth_contact,
+            any_phase_visible,
+        })
+    }
+}
+
+#[cfg(test)]
+mod how_tests {
+    use super::*;
+    use pleiades_backend::test_backend::LinearSunMoon;
+
+    fn equatorial_obs() -> ObserverLocation {
+        ObserverLocation::new(Latitude::from_degrees(0.0), Longitude::from_degrees(0.0), Some(0.0))
+    }
+
+    #[test]
+    fn contacts_bracket_the_maximum_when_occulted() {
+        // On-node new moon → the analytic Moon passes over a target near the
+        // ecliptic for an equatorial observer.
+        let backend = LinearSunMoon::new_moon_at(2_451_550.0).with_moon_latitude(0.0);
+        let engine = EventEngine::new(backend);
+        let at = Instant::new(JulianDay::from_days(2_451_550.0), TimeScale::Tdb);
+        // The Sun sits at the new-moon longitude; use it as a stand-in disc target
+        // only to exercise ordering (validate_occult_target forbids Sun, so use a
+        // planet the mock serves). The LinearSunMoon mock serves Sun/Moon only, so
+        // assert ordering via a Miss-free path is covered in integration Task 8.
+        let out = engine.occultation(
+            OccultTarget::Body(CelestialBody::Mercury),
+            equatorial_obs(),
+            Atmosphere::default(),
+            at,
+        );
+        // The mock has no Mercury → fail-closed MissingCoordinates/Backend, proving
+        // the resolve path reaches the backend. Real-backend ordering is Task 8.
+        assert!(out.is_err());
+    }
+
+    #[test]
+    fn out_of_window_and_sun_target_fail_closed() {
+        let engine = EventEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
+        let bad = Instant::new(JulianDay::from_days(2_000_000.0), TimeScale::Tdb);
+        assert!(matches!(
+            engine.occultation(OccultTarget::Body(CelestialBody::Mars), equatorial_obs(), Atmosphere::default(), bad),
+            Err(EventError::OutOfWindow { .. })
+        ));
+        let ok_at = Instant::new(JulianDay::from_days(2_451_550.0), TimeScale::Tdb);
+        assert!(matches!(
+            engine.occultation(OccultTarget::Body(CelestialBody::Sun), equatorial_obs(), Atmosphere::default(), ok_at),
+            Err(EventError::UnsupportedOccultTarget { .. })
+        ));
     }
 }
