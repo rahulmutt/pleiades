@@ -3,7 +3,10 @@
 //! circumstances (`how`), per-observer search (`when_loc`), and global search
 //! (`when_glob`). Geocentric/topocentric apparent-of-date, TDB, 1900–2100 CE.
 
-use pleiades_types::{CelestialBody, Instant, Latitude, Longitude};
+use pleiades_types::{
+    Angle, CelestialBody, EclipticCoordinates, Instant, JulianDay, Latitude, Longitude,
+    ObserverLocation, TimeScale,
+};
 
 /// What the Moon is occulting.
 #[derive(Clone, Debug, PartialEq)]
@@ -248,5 +251,156 @@ mod geom_tests {
         let a = angular_separation_deg(10.0, 20.0, 12.0, 19.0);
         let b = angular_separation_deg(12.0, 19.0, 10.0, 20.0);
         assert!((a - b).abs() < 1e-12);
+    }
+}
+
+use crate::crossings::EventEngine;
+use crate::ephemeris::geocentric_apparent_ecliptic;
+use crate::error::EventError;
+use crate::fixstar::fixed_star_apparent;
+use crate::rise_trans::RiseSetTarget;
+use crate::semidiameter::semidiameter_deg;
+use pleiades_apparent::{sidereal_time, topocentric_position, true_obliquity_degrees};
+use pleiades_backend::EphemerisBackend;
+
+/// Moon physical radius (km) and AU, matching the eclipse crate's `solar_consts`.
+pub(crate) const R_MOON_KM: f64 = 1_737.4;
+pub(crate) const AU_KM: f64 = 149_597_870.7;
+
+impl<B: EphemerisBackend> EventEngine<B> {
+    /// Apparent equatorial-of-date RA/Dec (degrees) of the Moon and the target at
+    /// `jd`. When `observer` is `Some`, the Moon (and a planet target) carry
+    /// diurnal parallax via `topocentric_position`; a `Star` target has no
+    /// parallax. When `observer` is `None`, both are geocentric.
+    #[allow(clippy::type_complexity)]
+    pub(crate) fn moon_target_radec(
+        &self,
+        target: &OccultTarget,
+        observer: Option<&ObserverLocation>,
+        jd: f64,
+    ) -> Result<((f64, f64), (f64, f64)), EventError> {
+        let at = Instant::new(JulianDay::from_days(jd), TimeScale::Tdb);
+        let eps = true_obliquity_degrees(jd)
+            .map_err(|e| EventError::Backend(format!("obliquity failed: {e}")))?;
+        // UT1-rotated sidereal time for parallax (matches eclipse local.rs).
+        let sid_jd = pleiades_time::ut1_jd_from_tt(jd).unwrap_or(jd);
+        let sid_at = Instant::new(JulianDay::from_days(sid_jd), TimeScale::Tdb);
+        let lst = sidereal_time(sid_at, Longitude::from_degrees(0.0)).local_apparent_deg;
+
+        let body_radec = |b: &CelestialBody| -> Result<(f64, f64), EventError> {
+            let (lon, lat, dist) =
+                geocentric_apparent_ecliptic(&self.backend, b.clone(), "body", jd)?;
+            let ecl = EclipticCoordinates::new(
+                Longitude::from_degrees(lon),
+                Latitude::from_degrees(lat),
+                Some(dist),
+            );
+            let ecl = if let Some(obs) = observer {
+                // Parallax needs the observer's local sidereal time.
+                let l = sidereal_time(sid_at, obs.longitude).local_apparent_deg;
+                topocentric_position(ecl, obs, l, eps)
+                    .map_err(|e| EventError::Backend(format!("topocentric failed: {e}")))?
+                    .ecliptic
+            } else {
+                ecl
+            };
+            let equ = ecl.to_equatorial(Angle::from_degrees(eps));
+            Ok((equ.right_ascension.degrees(), equ.declination.degrees()))
+        };
+        let _ = lst; // observer-specific lst computed inside the closure
+
+        let moon = body_radec(&CelestialBody::Moon)?;
+        let tgt = match target {
+            OccultTarget::Body(b) => body_radec(b)?,
+            OccultTarget::Star(name) => {
+                let equ = fixed_star_apparent(name, at)?;
+                (equ.right_ascension.degrees(), equ.declination.degrees())
+            }
+        };
+        Ok((moon, tgt))
+    }
+
+    /// Two-circle geometry (separation + semidiameters) of the Moon vs target at
+    /// `jd`, topocentric when `observer` is `Some`.
+    pub(crate) fn occ_geom(
+        &self,
+        target: &OccultTarget,
+        observer: Option<&ObserverLocation>,
+        jd: f64,
+    ) -> Result<OccGeom, EventError> {
+        let (moon, tgt) = self.moon_target_radec(target, observer, jd)?;
+        let sep_deg = angular_separation_deg(moon.0, moon.1, tgt.0, tgt.1);
+        // Moon semidiameter from its topocentric/geocentric distance.
+        let moon_dist = self.body_distance_au(&CelestialBody::Moon, observer, jd)?;
+        let s_moon_deg = (R_MOON_KM / (moon_dist * AU_KM)).clamp(-1.0, 1.0).asin().to_degrees();
+        let s_tgt_deg = match target {
+            OccultTarget::Body(b) => {
+                let dist = self.body_distance_au(b, observer, jd)?;
+                semidiameter_deg(&RiseSetTarget::Body(b.clone()), dist, false)
+            }
+            OccultTarget::Star(_) => 0.0,
+        };
+        Ok(OccGeom { sep_deg, s_moon_deg, s_tgt_deg })
+    }
+
+    /// Topocentric (if `observer`) or geocentric distance (AU) of a body.
+    fn body_distance_au(
+        &self,
+        b: &CelestialBody,
+        observer: Option<&ObserverLocation>,
+        jd: f64,
+    ) -> Result<f64, EventError> {
+        let (lon, lat, dist) = geocentric_apparent_ecliptic(&self.backend, b.clone(), "body", jd)?;
+        if let Some(obs) = observer {
+            let eps = true_obliquity_degrees(jd)
+                .map_err(|e| EventError::Backend(format!("obliquity failed: {e}")))?;
+            let sid_jd = pleiades_time::ut1_jd_from_tt(jd).unwrap_or(jd);
+            let sid_at = Instant::new(JulianDay::from_days(sid_jd), TimeScale::Tdb);
+            let l = sidereal_time(sid_at, obs.longitude).local_apparent_deg;
+            let ecl = EclipticCoordinates::new(
+                Longitude::from_degrees(lon),
+                Latitude::from_degrees(lat),
+                Some(dist),
+            );
+            let topo = topocentric_position(ecl, obs, l, eps)
+                .map_err(|e| EventError::Backend(format!("topocentric failed: {e}")))?;
+            Ok(topo.ecliptic.distance_au.unwrap_or(dist))
+        } else {
+            Ok(dist)
+        }
+    }
+}
+
+#[cfg(test)]
+mod sampler_tests {
+    use super::*;
+    use pleiades_backend::test_backend::LinearSunMoon;
+
+    fn obs() -> ObserverLocation {
+        ObserverLocation::new(Latitude::from_degrees(0.0), Longitude::from_degrees(0.0), Some(0.0))
+    }
+
+    #[test]
+    fn moon_semidiameter_is_about_a_quarter_degree() {
+        let engine = EventEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
+        let g = engine
+            .occ_geom(&OccultTarget::Body(CelestialBody::Sun), None, 2_451_550.0)
+            .unwrap();
+        assert!(g.s_moon_deg > 0.2 && g.s_moon_deg < 0.3, "moon SD {}", g.s_moon_deg);
+        assert!(g.sep_deg.is_finite());
+    }
+
+    #[test]
+    fn topocentric_separation_differs_from_geocentric() {
+        // Diurnal parallax shifts the Moon, so the Moon–planet separation seen
+        // topocentrically differs from the geocentric one.
+        let engine = EventEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
+        let geo = engine
+            .occ_geom(&OccultTarget::Body(CelestialBody::Sun), None, 2_451_550.0)
+            .unwrap();
+        let topo = engine
+            .occ_geom(&OccultTarget::Body(CelestialBody::Sun), Some(&obs()), 2_451_550.0)
+            .unwrap();
+        assert!((geo.sep_deg - topo.sep_deg).abs() > 0.0);
     }
 }
