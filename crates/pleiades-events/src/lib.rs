@@ -55,6 +55,7 @@ mod horizontal;
 mod magnitude;
 mod mean_elements;
 mod nod_aps;
+mod occult;
 mod pheno;
 mod rise_trans;
 mod root;
@@ -66,5 +67,8 @@ pub use error::{EventError, WINDOW_END_JD, WINDOW_START_JD};
 pub use fixstar::{fixed_star_apparent, fixed_star_entry, FixedStarEntry};
 pub use horizontal::{Horizontal, HorizontalInput};
 pub use nod_aps::{ApsisConvention, NodApsMethod, NodApsPoint, NodesApsides};
+pub use occult::{
+    GlobalOccultation, LocalOccultation, OccultTarget, OccultationContact, OccultationType,
+};
 pub use pheno::PhenoData;
 pub use rise_trans::{DiscMode, RiseSet, RiseSetEvent, RiseSetOptions, RiseSetTarget};
