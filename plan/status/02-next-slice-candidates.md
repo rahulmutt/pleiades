@@ -124,9 +124,23 @@ MEAN_PLANET/MEAN_MOON sub-arcsecond, OSCU_PLANET arcminute-class (Neptune
 perihelion eccentricity amplification), OSCU_MOON cross-theory; fictitious/
 asteroid `nod_aps` is engine-covered but gate-unreferenced since SE's own
 `swe_nod_aps` omits fictitious bodies and offline backends can't sample
-small-body osculating states) are all **done**. Next candidate slices:
+small-body osculating states), and SP-5 (phase, phase angle, and magnitude —
+`EventEngine::pheno` (a `swe_pheno` analogue) serving `phase_angle_deg`,
+`phase_fraction` (illuminated fraction), `elongation_deg`,
+`apparent_diameter_deg`, and `apparent_magnitude: Option<f64>`; full
+five-output parity for the ten majors (Sun, Moon, Mercury-Pluto), other
+backend-served bodies get the four geometric outputs with
+`apparent_magnitude = None` (magnitude coverage bound to the ten majors,
+gate-unreferenced elsewhere); `apparent_diameter_deg` is in degrees (SE's raw
+`attr[3]` slot, not arcsec) and the Sun's phase/phase-angle/elongation are
+zero, both matching SE's own `swe_pheno` behavior; gated by the fail-closed
+`validate-pheno` gate (alias `pheno-gate`) over a committed 80-row
+Swiss-Ephemeris Moshier corpus (10 majors x 8 epochs); phase angle
+≤85.0″ (max 57.79″), elongation ≤30.0″ (max 20.97″), illuminated fraction
+≤2e-4 (max 1.2e-4), apparent diameter ≤0.3″ (max 0.19″), apparent magnitude
+≤0.004 (max 0.0023) with a separate Saturn carve-out ≤0.0006 (max 0.0004))
+are all **done**. Next candidate slices:
 
-- `swe_pheno` (phase, phase angle, and magnitude for Sun/Moon/planets).
 - Custom fictitious-body orbital elements (user-supplied, beyond the
   committed `seorbel.txt` set).
 - Occultations.
