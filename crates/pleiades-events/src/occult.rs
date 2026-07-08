@@ -255,11 +255,11 @@ mod geom_tests {
 }
 
 use crate::crossings::EventEngine;
-use crate::ephemeris::geocentric_apparent_ecliptic;
+use crate::ephemeris::{geocentric_apparent_ecliptic, geocentric_apparent_longitude_deg};
 use crate::error::{EventError, WINDOW_END_JD, WINDOW_START_JD};
 use crate::fixstar::fixed_star_apparent;
 use crate::rise_trans::{check_atmosphere, RiseSetTarget};
-use crate::root::REFINE_TOLERANCE_DAYS;
+use crate::root::{first_crossing_after, last_crossing_before, wrap180, REFINE_TOLERANCE_DAYS};
 use crate::semidiameter::semidiameter_deg;
 use pleiades_apparent::{
     apparent_from_true, sidereal_time, topocentric_position, true_obliquity_degrees, Atmosphere,
@@ -669,6 +669,142 @@ impl<B: EphemerisBackend> EventEngine<B> {
             fourth_contact,
             any_phase_visible,
         })
+    }
+}
+
+/// Conjunction bracketing step (Moon moves ~0.5°/h; 0.25 day is the crate's
+/// Moon step and cannot skip a monthly conjunction).
+const OCC_CONJUNCTION_STEP_DAYS: f64 = 0.25;
+
+impl<B: EphemerisBackend> EventEngine<B> {
+    /// Signed Moon−target apparent ecliptic longitude difference, wrapped.
+    fn moon_target_lon_diff(&self, target: &OccultTarget, jd: f64) -> Result<f64, EventError> {
+        let moon = geocentric_apparent_longitude_deg(&self.backend, CelestialBody::Moon, "Moon", jd)?;
+        let tgt = match target {
+            OccultTarget::Body(b) => geocentric_apparent_longitude_deg(&self.backend, b.clone(), "body", jd)?,
+            OccultTarget::Star(name) => {
+                let at = Instant::new(JulianDay::from_days(jd), TimeScale::Tdb);
+                let equ = fixed_star_apparent(name, at)?;
+                let eps = true_obliquity_degrees(jd)
+                    .map_err(|e| EventError::Backend(format!("obliquity failed: {e}")))?;
+                equ.to_ecliptic(Angle::from_degrees(eps)).longitude.degrees()
+            }
+        };
+        Ok(wrap180(moon - tgt))
+    }
+
+    /// Next occultation of `target` locally visible at `observer`, strictly after
+    /// `after` — `swe_lun_occult_when_loc` analogue. `None` if none occurs before
+    /// the window end (or ever, for an un-occultable star).
+    pub fn next_occultation(
+        &self,
+        target: OccultTarget,
+        observer: ObserverLocation,
+        atmosphere: Atmosphere,
+        after: Instant,
+    ) -> Result<Option<LocalOccultation>, EventError> {
+        self.validate_occult_target(&target)?;
+        observer.validate().map_err(|e| EventError::InvalidObserver { detail: e.to_string() })?;
+        check_atmosphere(atmosphere)?;
+        let after_jd = after.julian_day.days();
+        self.check_window(after_jd)?;
+        if self.target_never_occultable(&target, after_jd)? {
+            return Ok(None);
+        }
+        let mut scan_start = after_jd.max(WINDOW_START_JD + OCC_CONJUNCTION_STEP_DAYS);
+        let scan_end = WINDOW_END_JD - OCC_CONJUNCTION_STEP_DAYS;
+        loop {
+            let conj = first_crossing_after(
+                |jd| self.moon_target_lon_diff(&target, jd),
+                scan_start,
+                scan_end,
+                OCC_CONJUNCTION_STEP_DAYS,
+            )?;
+            let Some(conj_jd) = conj else { return Ok(None) };
+            let at = Instant::new(JulianDay::from_days(conj_jd), TimeScale::Tdb);
+            let local = self.occultation(target.clone(), observer.clone(), atmosphere, at)?;
+            if !matches!(local.occultation_type, OccultationType::Miss)
+                && local.any_phase_visible
+                && local.maximum.instant.julian_day.days() > after_jd
+            {
+                return Ok(Some(local));
+            }
+            // Advance just past this conjunction to find the next one.
+            scan_start = conj_jd + OCC_CONJUNCTION_STEP_DAYS;
+            if scan_start >= scan_end {
+                return Ok(None);
+            }
+        }
+    }
+
+    /// Previous occultation of `target` locally visible at `observer`, strictly
+    /// before `before`.
+    pub fn previous_occultation(
+        &self,
+        target: OccultTarget,
+        observer: ObserverLocation,
+        atmosphere: Atmosphere,
+        before: Instant,
+    ) -> Result<Option<LocalOccultation>, EventError> {
+        self.validate_occult_target(&target)?;
+        observer.validate().map_err(|e| EventError::InvalidObserver { detail: e.to_string() })?;
+        check_atmosphere(atmosphere)?;
+        let before_jd = before.julian_day.days();
+        self.check_window(before_jd)?;
+        if self.target_never_occultable(&target, before_jd)? {
+            return Ok(None);
+        }
+        let mut scan_end = before_jd.min(WINDOW_END_JD - OCC_CONJUNCTION_STEP_DAYS);
+        let scan_start = WINDOW_START_JD + OCC_CONJUNCTION_STEP_DAYS;
+        loop {
+            let conj = last_crossing_before(
+                |jd| self.moon_target_lon_diff(&target, jd),
+                scan_start,
+                scan_end,
+                OCC_CONJUNCTION_STEP_DAYS,
+            )?;
+            let Some(conj_jd) = conj else { return Ok(None) };
+            let at = Instant::new(JulianDay::from_days(conj_jd), TimeScale::Tdb);
+            let local = self.occultation(target.clone(), observer.clone(), atmosphere, at)?;
+            if !matches!(local.occultation_type, OccultationType::Miss)
+                && local.any_phase_visible
+                && local.maximum.instant.julian_day.days() < before_jd
+            {
+                return Ok(Some(local));
+            }
+            scan_end = conj_jd - OCC_CONJUNCTION_STEP_DAYS;
+            if scan_end <= scan_start {
+                return Ok(None);
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod when_loc_tests {
+    use super::*;
+    use pleiades_backend::test_backend::LinearSunMoon;
+
+    #[test]
+    fn never_occultable_star_returns_none_fast() {
+        let engine = EventEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
+        let obs = ObserverLocation::new(Latitude::from_degrees(0.0), Longitude::from_degrees(0.0), Some(0.0));
+        let after = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tdb);
+        let out = engine
+            .next_occultation(OccultTarget::Star("Sirius".into()), obs, Atmosphere::default(), after)
+            .unwrap();
+        assert!(out.is_none(), "Sirius can never be occulted");
+    }
+
+    #[test]
+    fn out_of_window_fails_closed() {
+        let engine = EventEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
+        let obs = ObserverLocation::new(Latitude::from_degrees(0.0), Longitude::from_degrees(0.0), Some(0.0));
+        let bad = Instant::new(JulianDay::from_days(2_000_000.0), TimeScale::Tdb);
+        assert!(matches!(
+            engine.next_occultation(OccultTarget::Body(CelestialBody::Venus), obs, Atmosphere::default(), bad),
+            Err(EventError::OutOfWindow { .. })
+        ));
     }
 }
 
