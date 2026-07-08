@@ -289,7 +289,7 @@ impl<B: EphemerisBackend> EventEngine<B> {
 #[deprecated(since = "0.3.1", note = "renamed to EventEngine")]
 pub type CrossingEngine<B> = EventEngine<B>;
 
-fn body_label(body: &CelestialBody) -> &'static str {
+pub(crate) fn body_label(body: &CelestialBody) -> &'static str {
     match body {
         CelestialBody::Sun => "Sun",
         CelestialBody::Moon => "Moon",

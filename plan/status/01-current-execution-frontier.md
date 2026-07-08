@@ -100,6 +100,17 @@ and SP-3 (fictitious/hypothetical bodies via the new `pleiades-fict` crate's
 `FictitiousBackend`, serving the Swiss-Ephemeris `seorbel.txt` bodies 40-58 as
 unperturbed Kepler orbits, definitional-tier, SE-validated by the fail-closed
 `validate-fictitious` gate wired into `run_all_numeric_gates` over a committed
-570-row corpus) is now done as well. Compatibility profile is at 0.7.9. Next
-candidate slices: `swe_pheno` (phase/phase-angle/magnitude) and `swe_nod_aps`
-(osculating node/apsis for planets), not yet scoped in detail.
+570-row corpus), SP-4 (planetary nodes and apsides via
+`EventEngine::nod_aps`/`nod_aps_default`, a `swe_nod_aps` analogue covering
+Mean/Osculating/OsculatingBarycentric methods, SE-validated by the fail-closed
+`validate-nod-aps` gate wired into `run_all_numeric_gates` over a committed
+184-row corpus), and SP-5 (phase, phase angle, and magnitude via
+`EventEngine::pheno`, a `swe_pheno` analogue serving `phase_angle_deg`,
+`phase_fraction`, `elongation_deg`, `apparent_diameter_deg`, and
+`apparent_magnitude: Option<f64>` with full five-output parity for the ten
+majors, SE-validated by the fail-closed `validate-pheno` gate wired into
+`run_all_numeric_gates` over a committed 80-row corpus) are now done as well.
+Compatibility profile is at 0.7.11. Next candidate slices: custom
+fictitious-body orbital elements (user-supplied, beyond the committed
+`seorbel.txt` set), occultations, and central-path cartography for solar
+eclipses — not yet scoped in detail.
