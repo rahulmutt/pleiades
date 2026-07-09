@@ -262,13 +262,16 @@
 //! transform are all correct — `ourMargin ≈ seMargin` at every disagreeing
 //! row, i.e. NOT a position or timing error (full write-up:
 //! `docs/superpowers/notes/2026-07-09-sp6-fu-graze-diagnosis.md`). 7 of the
-//! (then-)8 disagreeing rows had the occulted target's apparent altitude
+//! (then-)8 disagreeing rows had the occulted target's true (unrefracted)
+//! altitude — per the evidence note's approximate (±~0.5°) estimate —
 //! 0.9°-2.3° BELOW the observer's horizon at the event. Reading SE's
 //! vendored source (`swecl.c:2700-2732`, `swe_lun_occult_when_loc`)
 //! confirmed the mechanism: SE folds VISIBILITY into event existence,
 //! rejecting an otherwise-real occultation (retflag 0 under
 //! `SE_ECL_ONE_TRY`) whenever the target's apparent (refracted) altitude is
-//! <= 0 at every one of {max, C1..C4}. Our engine deliberately keeps these
+//! <= 0 at every one of {max, C1..C4} (for a star occultation SE collapses
+//! C1=C2 and C4=C3, `swecl.c:2696-2699`, so effectively 3 distinct
+//! instants). Our engine deliberately keeps these
 //! concerns separate: `occultation_type` is a pure geometric verdict, and
 //! `LocalOccultation::any_phase_visible` (a continuous 30-second scan of
 //! apparent altitude over `[C1, C4]`, `occult.rs` ~line 891) reports
@@ -283,17 +286,23 @@
 //! `Miss` OR `!any_phase_visible`" (commit 4bf919bd; see the per-row
 //! comment where `se_equivalent_miss` is computed below), making the
 //! comparison like-for-like with SE's own folded semantics. Measured count
-//! dropped from 8/18 to **3/18** the same day. The 3 remaining rows are NOT
-//! position error (engine numerics stay exonerated) — they are residual
-//! MAPPING deltas: our continuous 30-second `[C1,C4]` scan vs. SE's discrete
-//! 5-instant apparent-altitude sample (max, C1, C2, C3, C4), both marginal
-//! (~±0.5°) around the horizon, where a scan can find a brief visible
-//! interval between contacts that a 5-instant sample misses (or vice
-//! versa). The 3 named rows: `Aldebaran@miss` (real conjunction 2033-08-18,
-//! lat 71.59°N), `Spica@miss` (real conjunction 2005-09-07, lat 42.83°N —
-//! the original SP-6 knife-edge, SE's own margin there ≈ -0.005′, i.e.
-//! dead on the graze limb regardless of visibility semantics), and
-//! `Spica@miss` (real conjunction 2012-07-25, lat 65.85°S). See
+//! dropped from 8/18 to **3/18** the same day. The 3 remaining rows (all
+//! star targets) are NOT position error (engine numerics stay exonerated).
+//! One is the original SP-6 knife-edge, persisting on pure geometry
+//! regardless of visibility semantics: `Spica@miss` (real conjunction
+//! 2005-09-07, lat 42.83°N) — SE's own margin there ≈ -0.005′, dead on the
+//! graze limb, target well above the horizon (evidence-note estimate ≈ +7°
+//! true altitude). The other two — `Aldebaran@miss` (real conjunction
+//! 2033-08-18, lat 71.59°N) and `Spica@miss` (real conjunction 2012-07-25,
+//! lat 65.85°S) — are expected (estimated, not per-instant measured) to be
+//! residual visibility-MAPPING deltas: our continuous 30-second `[C1,C4]`
+//! scan vs. SE's discrete apparent-altitude sample at {max, C1..C4}
+//! (effectively 3 distinct instants for a star, per the collapse above),
+//! where a scan can find a brief visible interval between contacts that a
+//! few-instant sample misses (or vice versa). The evidence note's
+//! approximate true (unrefracted) altitudes put those two targets ~1.0-1.8°
+//! below the horizon at maximum with a ±~0.5° error bar — close enough to
+//! the horizon for the two sampling strategies to disagree. See
 //! [`MAX_MISS_CLASSIFICATION_DISAGREEMENTS`]'s doc for the full per-row
 //! detail (jd_tt, lat/lon).
 //!
@@ -301,21 +310,21 @@
 //! instants to within tens of seconds (`contact_seconds`/
 //! `contact_seconds_grazing`, gated) and star magnitude exactly
 //! (`star_magnitude_abs`, gated) — the reconciled disagreement is specific
-//! to the visibility-sampling boundary, not a general timing or geometry
+//! to the graze/visibility boundary, not a general timing or geometry
 //! error.
 //!
 //! Because the residual is a genuinely different (and much smaller)
-//! phenomenon than the original geometric disagreement — a scan-granularity
-//! mapping delta at the horizon rather than an unexplained track-width
-//! error — this gate does NOT hard-fail the 3 known rows (that would
-//! require matching SE's exact 5-instant sampling, not a meaningful
+//! phenomenon than the original geometric disagreement — a knife-edge plus
+//! a suspected scan-granularity mapping delta rather than an unexplained
+//! track-width error — this gate does NOT hard-fail the 3 known rows (that
+//! would require matching SE's exact instant sampling, not a meaningful
 //! improvement in accuracy) and does NOT skip them silently either. The
 //! COUNT of disagreements remains pinned fail-closed via
 //! [`MAX_MISS_CLASSIFICATION_DISAGREEMENTS`] (now 3, reported as
 //! `miss_classify_disagree` in [`OccultReport::summary_line`]): the 15
 //! agreeing rows are still genuinely checked per-row, and a regression that
 //! WIDENS the disagreement count trips the gate, while a future mapping
-//! refinement (e.g. sampling `any_phase_visible` at SE's exact 5 instants)
+//! refinement (e.g. sampling `any_phase_visible` at SE's exact instants)
 //! that narrows it still passes (and the pin can then be tightened
 //! further). See `tests/occult_graze_diagnosis.rs` for the reproducible
 //! differential harness (`cargo test -p pleiades-validate --test
@@ -378,18 +387,27 @@ pub const MOON_MAX_REACH_DEG: f64 = 6.6;
 /// (commit 4bf919bd, this pin tightened same day), the measured count
 /// dropped to 3 of 18 (2026-07-09) — engine numerics are exonerated
 /// (`ourMargin ≈ seMargin`, Moon position agrees with `de440` to
-/// ~0.0001″, ΔT sub-second); these are NOT position error. The 3 remaining
-/// rows are residual MAPPING deltas between our continuous 30-second
-/// `[C1,C4]` visibility scan and SE's discrete 5-instant apparent-altitude
-/// sample, all marginal-horizon (~±0.5°) cases where the two sampling
-/// strategies can disagree on whether the target was ever visible:
+/// ~0.0001″, ΔT sub-second); these are NOT position error. Of the 3
+/// remaining rows (all star targets), one is the pre-existing SP-6
+/// knife-edge, persisting on pure geometry regardless of visibility
+/// semantics: `Spica@miss` (jd_tt 2453620.280228757, real conjunction
+/// 2005-09-07, lat 42.830897°) — SE's own margin at its anchor ≈ -0.005′,
+/// dead on the graze limb, with the target well ABOVE the horizon
+/// (evidence-note estimate ≈ +7° true altitude). The other two —
 /// `Aldebaran@miss` (jd_tt 2463827.536661250, real conjunction 2033-08-18,
-/// lat 71.588516°), `Spica@miss` (jd_tt 2453620.280228757, real conjunction
-/// 2005-09-07, lat 42.830897° — the pre-existing knife-edge row, SE's own
-/// margin at its anchor ≈ -0.005′), and `Spica@miss` (jd_tt
-/// 2456133.683363608, real conjunction 2012-07-25, lat -65.851805°). A
-/// future fix that narrows the mapping delta (e.g. sampling `any_phase_visible`
-/// at SE's exact 5 instants instead of a continuous scan) still passes this
+/// lat 71.588516°) and `Spica@miss` (jd_tt 2456133.683363608, real
+/// conjunction 2012-07-25, lat -65.851805°) — are EXPECTED (an estimate,
+/// not a measurement: the identifying instrumentation recorded labels, not
+/// per-instant altitudes) to be residual MAPPING deltas between our
+/// continuous 30-second `[C1,C4]` visibility scan and SE's discrete
+/// apparent-altitude sample at {max, C1..C4} (for a star SE collapses
+/// C1=C2 and C4=C3, so effectively 3 distinct instants): the evidence
+/// note's approximate true (unrefracted) altitudes put both targets
+/// ~1.0-1.8° below the horizon at maximum, with a ±~0.5° error bar —
+/// close enough to the horizon for the two sampling strategies to disagree
+/// on whether the target was ever visible. A future fix that narrows the
+/// mapping delta (e.g. sampling `any_phase_visible` at SE's exact instants
+/// instead of a continuous scan) still passes this
 /// ceiling and the pin can then be tightened further; a regression that
 /// WIDENS the disagreement trips it. See
 /// `docs/superpowers/notes/2026-07-09-sp6-fu-graze-diagnosis.md` for the full
