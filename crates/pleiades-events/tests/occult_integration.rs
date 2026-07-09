@@ -12,7 +12,11 @@ fn tdb(jd: f64) -> Instant {
     Instant::new(JulianDay::from_days(jd), TimeScale::Tdb)
 }
 fn observer() -> ObserverLocation {
-    ObserverLocation::new(Latitude::from_degrees(40.0), Longitude::from_degrees(-3.7), Some(650.0))
+    ObserverLocation::new(
+        Latitude::from_degrees(40.0),
+        Longitude::from_degrees(-3.7),
+        Some(650.0),
+    )
 }
 
 #[test]
@@ -42,13 +46,19 @@ fn next_planet_occultation_has_ordered_contacts() {
         let c1 = o.first_contact.instant.julian_day.days();
         let mx = o.maximum.instant.julian_day.days();
         let c4 = o.fourth_contact.instant.julian_day.days();
-        assert!(c1 <= mx + 1e-9 && mx <= c4 + 1e-9, "C1<=max<=C4: {c1} {mx} {c4}");
+        assert!(
+            c1 <= mx + 1e-9 && mx <= c4 + 1e-9,
+            "C1<=max<=C4: {c1} {mx} {c4}"
+        );
         assert!(!matches!(o.occultation_type, OccultationType::Miss));
         assert!(o.magnitude >= 0.0 && o.obscuration >= 0.0 && o.obscuration <= 1.0);
         // A point star that is occulted is Total with magnitude 1.
         if matches!(o.occultation_type, OccultationType::Total) {
             assert!((o.magnitude - 1.0).abs() < 1e-6);
-            assert!(o.second_contact.is_none(), "a point star has no interior contact");
+            assert!(
+                o.second_contact.is_none(),
+                "a point star has no interior contact"
+            );
         }
     }
     // If None (no locally-visible Aldebaran occultation in span), the search still
@@ -72,7 +82,10 @@ fn global_occultation_reports_finite_sublunar_point() {
          Task 8)"
     );
     if let Some(g) = out {
-        assert!(g.sublunar_latitude.degrees().is_finite() && g.sublunar_latitude.degrees().abs() <= 90.0);
+        assert!(
+            g.sublunar_latitude.degrees().is_finite()
+                && g.sublunar_latitude.degrees().abs() <= 90.0
+        );
         // `Longitude::from_degrees` normalizes into [0, 360) (see
         // `pleiades_types::Longitude::degrees`'s own doc) -- that is the
         // type's actual invariant, not the signed (-180, 180] range a prior
@@ -108,11 +121,16 @@ fn ingress_and_egress_are_symmetric_about_maximum() {
     );
     if let Some(o) = out {
         if !matches!(o.occultation_type, OccultationType::Miss) {
-            let pre = o.maximum.instant.julian_day.days() - o.first_contact.instant.julian_day.days();
-            let post = o.fourth_contact.instant.julian_day.days() - o.maximum.instant.julian_day.days();
+            let pre =
+                o.maximum.instant.julian_day.days() - o.first_contact.instant.julian_day.days();
+            let post =
+                o.fourth_contact.instant.julian_day.days() - o.maximum.instant.julian_day.days();
             // Chord halves need not be exactly equal, but both are positive and
             // of the same order (within 3x) for a genuine occultation.
-            assert!(pre > 0.0 && post > 0.0, "positive half-chords: {pre} {post}");
+            assert!(
+                pre > 0.0 && post > 0.0,
+                "positive half-chords: {pre} {post}"
+            );
             assert!(pre < 3.0 * post + 1e-9 && post < 3.0 * pre + 1e-9);
         }
     }
@@ -129,5 +147,8 @@ fn sirius_never_occulted_terminates_with_none() {
             tdb(2_451_545.0),
         )
         .unwrap();
-    assert!(out.is_none(), "Sirius (~39 deg S ecliptic latitude) is never occultable");
+    assert!(
+        out.is_none(),
+        "Sirius (~39 deg S ecliptic latitude) is never occultable"
+    );
 }

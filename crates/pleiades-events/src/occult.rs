@@ -181,8 +181,12 @@ pub(crate) fn obscuration_fraction(g: &OccGeom) -> f64 {
     }
     let r_t2 = r_t * r_t;
     let r_m2 = r_m * r_m;
-    let a_t = ((d * d + r_t2 - r_m2) / (2.0 * d * r_t)).clamp(-1.0, 1.0).acos();
-    let a_m = ((d * d + r_m2 - r_t2) / (2.0 * d * r_m)).clamp(-1.0, 1.0).acos();
+    let a_t = ((d * d + r_t2 - r_m2) / (2.0 * d * r_t))
+        .clamp(-1.0, 1.0)
+        .acos();
+    let a_m = ((d * d + r_m2 - r_t2) / (2.0 * d * r_m))
+        .clamp(-1.0, 1.0)
+        .acos();
     let lens = r_t2 * a_t + r_m2 * a_m
         - 0.5
             * ((r_t + r_m + d) * (-r_t + r_m + d) * (r_t - r_m + d) * (r_t + r_m - d))
@@ -218,7 +222,11 @@ mod geom_tests {
     use super::*;
 
     fn g(sep: f64, s_moon: f64, s_tgt: f64) -> OccGeom {
-        OccGeom { sep_deg: sep, s_moon_deg: s_moon, s_tgt_deg: s_tgt }
+        OccGeom {
+            sep_deg: sep,
+            s_moon_deg: s_moon,
+            s_tgt_deg: s_tgt,
+        }
     }
 
     #[test]
@@ -351,7 +359,10 @@ impl<B: EphemerisBackend> EventEngine<B> {
         let sep_deg = angular_separation_deg(moon.0, moon.1, tgt.0, tgt.1);
         // Moon semidiameter from its topocentric/geocentric distance.
         let moon_dist = self.body_distance_au(&CelestialBody::Moon, observer, jd)?;
-        let s_moon_deg = (R_MOON_KM / (moon_dist * AU_KM)).clamp(-1.0, 1.0).asin().to_degrees();
+        let s_moon_deg = (R_MOON_KM / (moon_dist * AU_KM))
+            .clamp(-1.0, 1.0)
+            .asin()
+            .to_degrees();
         let s_tgt_deg = match target {
             OccultTarget::Body(b) => {
                 let dist = self.body_distance_au(b, observer, jd)?;
@@ -359,7 +370,11 @@ impl<B: EphemerisBackend> EventEngine<B> {
             }
             OccultTarget::Star(_) => 0.0,
         };
-        Ok(OccGeom { sep_deg, s_moon_deg, s_tgt_deg })
+        Ok(OccGeom {
+            sep_deg,
+            s_moon_deg,
+            s_tgt_deg,
+        })
     }
 
     /// Topocentric (if `observer`) or geocentric distance (AU) of a body.
@@ -431,7 +446,11 @@ mod sampler_tests {
     use pleiades_backend::test_backend::LinearSunMoon;
 
     fn obs() -> ObserverLocation {
-        ObserverLocation::new(Latitude::from_degrees(0.0), Longitude::from_degrees(0.0), Some(0.0))
+        ObserverLocation::new(
+            Latitude::from_degrees(0.0),
+            Longitude::from_degrees(0.0),
+            Some(0.0),
+        )
     }
 
     #[test]
@@ -440,7 +459,11 @@ mod sampler_tests {
         let g = engine
             .occ_geom(&OccultTarget::Body(CelestialBody::Sun), None, 2_451_550.0)
             .unwrap();
-        assert!(g.s_moon_deg > 0.2 && g.s_moon_deg < 0.3, "moon SD {}", g.s_moon_deg);
+        assert!(
+            g.s_moon_deg > 0.2 && g.s_moon_deg < 0.3,
+            "moon SD {}",
+            g.s_moon_deg
+        );
         assert!(g.sep_deg.is_finite());
     }
 
@@ -453,7 +476,11 @@ mod sampler_tests {
             .occ_geom(&OccultTarget::Body(CelestialBody::Sun), None, 2_451_550.0)
             .unwrap();
         let topo = engine
-            .occ_geom(&OccultTarget::Body(CelestialBody::Sun), Some(&obs()), 2_451_550.0)
+            .occ_geom(
+                &OccultTarget::Body(CelestialBody::Sun),
+                Some(&obs()),
+                2_451_550.0,
+            )
             .unwrap();
         assert!((geo.sep_deg - topo.sep_deg).abs() > 0.0);
     }
@@ -553,15 +580,24 @@ impl<B: EphemerisBackend> EventEngine<B> {
         mut b: f64,
     ) -> Result<f64, EventError> {
         let phi = 0.618_033_988_75_f64;
-        let sep = |jd: f64| Ok::<f64, EventError>(self.occ_geom(target, Some(observer), jd)?.sep_deg);
+        let sep =
+            |jd: f64| Ok::<f64, EventError>(self.occ_geom(target, Some(observer), jd)?.sep_deg);
         let mut c = b - (b - a) * phi;
         let mut d = a + (b - a) * phi;
         let (mut fc, mut fd) = (sep(c)?, sep(d)?);
         while (b - a) > REFINE_TOLERANCE_DAYS {
             if fc < fd {
-                b = d; d = c; fd = fc; c = b - (b - a) * phi; fc = sep(c)?;
+                b = d;
+                d = c;
+                fd = fc;
+                c = b - (b - a) * phi;
+                fc = sep(c)?;
             } else {
-                a = c; c = d; fc = fd; d = a + (b - a) * phi; fd = sep(d)?;
+                a = c;
+                c = d;
+                fc = fd;
+                d = a + (b - a) * phi;
+                fd = sep(d)?;
             }
         }
         Ok(0.5 * (a + b))
@@ -576,7 +612,9 @@ impl<B: EphemerisBackend> EventEngine<B> {
         mut lo: f64,
         mut hi: f64,
     ) -> Result<Option<f64>, EventError> {
-        let f = |jd: f64| Ok::<f64, EventError>(self.occ_geom(target, Some(observer), jd)?.sep_deg - threshold);
+        let f = |jd: f64| {
+            Ok::<f64, EventError>(self.occ_geom(target, Some(observer), jd)?.sep_deg - threshold)
+        };
         let mut flo = f(lo)?;
         let fhi = f(hi)?;
         if flo.signum() == fhi.signum() {
@@ -585,7 +623,12 @@ impl<B: EphemerisBackend> EventEngine<B> {
         while (hi - lo) > REFINE_TOLERANCE_DAYS {
             let mid = 0.5 * (lo + hi);
             let fmid = f(mid)?;
-            if fmid.signum() == flo.signum() { lo = mid; flo = fmid; } else { hi = mid; }
+            if fmid.signum() == flo.signum() {
+                lo = mid;
+                flo = fmid;
+            } else {
+                hi = mid;
+            }
         }
         Ok(Some(0.5 * (lo + hi)))
     }
@@ -606,7 +649,11 @@ impl<B: EphemerisBackend> EventEngine<B> {
         at: Instant,
     ) -> Result<LocalOccultation, EventError> {
         self.validate_occult_target(&target)?;
-        observer.validate().map_err(|e| EventError::InvalidObserver { detail: e.to_string() })?;
+        observer
+            .validate()
+            .map_err(|e| EventError::InvalidObserver {
+                detail: e.to_string(),
+            })?;
         check_atmosphere(atmosphere)?;
         let jd0 = at.julian_day.days();
         self.check_window(jd0)?;
@@ -642,8 +689,12 @@ impl<B: EphemerisBackend> EventEngine<B> {
         let internal = (g.s_moon_deg - g.s_tgt_deg).max(0.0);
         let lo = (max_jd - OCC_CONTACT_HALF_WINDOW_DAYS).max(WINDOW_START_JD);
         let hi = (max_jd + OCC_CONTACT_HALF_WINDOW_DAYS).min(WINDOW_END_JD);
-        let c1 = self.bisect_occ_contact(&target, &observer, external, lo, max_jd)?.unwrap_or(max_jd);
-        let c4 = self.bisect_occ_contact(&target, &observer, external, max_jd, hi)?.unwrap_or(max_jd);
+        let c1 = self
+            .bisect_occ_contact(&target, &observer, external, lo, max_jd)?
+            .unwrap_or(max_jd);
+        let c4 = self
+            .bisect_occ_contact(&target, &observer, external, max_jd, hi)?
+            .unwrap_or(max_jd);
 
         let disc_total = g.s_tgt_deg > 0.0 && g.sep_deg < internal;
         let (c2, c3) = if disc_total {
@@ -657,8 +708,14 @@ impl<B: EphemerisBackend> EventEngine<B> {
 
         let first_contact = self.occ_contact_at(&target, &observer, atmosphere, c1)?;
         let fourth_contact = self.occ_contact_at(&target, &observer, atmosphere, c4)?;
-        let second_contact = match c2 { Some(jd) => Some(self.occ_contact_at(&target, &observer, atmosphere, jd)?), None => None };
-        let third_contact = match c3 { Some(jd) => Some(self.occ_contact_at(&target, &observer, atmosphere, jd)?), None => None };
+        let second_contact = match c2 {
+            Some(jd) => Some(self.occ_contact_at(&target, &observer, atmosphere, jd)?),
+            None => None,
+        };
+        let third_contact = match c3 {
+            Some(jd) => Some(self.occ_contact_at(&target, &observer, atmosphere, jd)?),
+            None => None,
+        };
 
         // Any phase visible: coarse 30-second scan of the target's altitude over [c1,c4].
         let any_phase_visible = {
@@ -666,7 +723,13 @@ impl<B: EphemerisBackend> EventEngine<B> {
             let mut jd = c1;
             let mut vis = false;
             while jd <= c4 + 1e-12 {
-                if self.target_horizontal(&target, &observer, atmosphere, jd)?.2 { vis = true; break; }
+                if self
+                    .target_horizontal(&target, &observer, atmosphere, jd)?
+                    .2
+                {
+                    vis = true;
+                    break;
+                }
                 jd += step;
             }
             vis
@@ -694,15 +757,20 @@ const OCC_CONJUNCTION_STEP_DAYS: f64 = 0.25;
 impl<B: EphemerisBackend> EventEngine<B> {
     /// Signed Moon−target apparent ecliptic longitude difference, wrapped.
     fn moon_target_lon_diff(&self, target: &OccultTarget, jd: f64) -> Result<f64, EventError> {
-        let moon = geocentric_apparent_longitude_deg(&self.backend, CelestialBody::Moon, "Moon", jd)?;
+        let moon =
+            geocentric_apparent_longitude_deg(&self.backend, CelestialBody::Moon, "Moon", jd)?;
         let tgt = match target {
-            OccultTarget::Body(b) => geocentric_apparent_longitude_deg(&self.backend, b.clone(), "body", jd)?,
+            OccultTarget::Body(b) => {
+                geocentric_apparent_longitude_deg(&self.backend, b.clone(), "body", jd)?
+            }
             OccultTarget::Star(name) => {
                 let at = Instant::new(JulianDay::from_days(jd), TimeScale::Tdb);
                 let equ = fixed_star_apparent(name, at)?;
                 let eps = true_obliquity_degrees(jd)
                     .map_err(|e| EventError::Backend(format!("obliquity failed: {e}")))?;
-                equ.to_ecliptic(Angle::from_degrees(eps)).longitude.degrees()
+                equ.to_ecliptic(Angle::from_degrees(eps))
+                    .longitude
+                    .degrees()
             }
         };
         Ok(wrap180(moon - tgt))
@@ -719,7 +787,11 @@ impl<B: EphemerisBackend> EventEngine<B> {
         after: Instant,
     ) -> Result<Option<LocalOccultation>, EventError> {
         self.validate_occult_target(&target)?;
-        observer.validate().map_err(|e| EventError::InvalidObserver { detail: e.to_string() })?;
+        observer
+            .validate()
+            .map_err(|e| EventError::InvalidObserver {
+                detail: e.to_string(),
+            })?;
         check_atmosphere(atmosphere)?;
         let after_jd = after.julian_day.days();
         self.check_window(after_jd)?;
@@ -762,7 +834,11 @@ impl<B: EphemerisBackend> EventEngine<B> {
         before: Instant,
     ) -> Result<Option<LocalOccultation>, EventError> {
         self.validate_occult_target(&target)?;
-        observer.validate().map_err(|e| EventError::InvalidObserver { detail: e.to_string() })?;
+        observer
+            .validate()
+            .map_err(|e| EventError::InvalidObserver {
+                detail: e.to_string(),
+            })?;
         check_atmosphere(atmosphere)?;
         let before_jd = before.julian_day.days();
         self.check_window(before_jd)?;
@@ -827,10 +903,11 @@ impl<B: EphemerisBackend> EventEngine<B> {
             )?;
             let g = self.occ_geom(&target, None, max_jd)?;
             let moon_dist = self.body_distance_au(&CelestialBody::Moon, None, max_jd)?;
-            let pi_moon = (R_EARTH_KM / (moon_dist * AU_KM)).clamp(-1.0, 1.0).asin().to_degrees();
-            if g.sep_deg < g.s_moon_deg + g.s_tgt_deg + pi_moon
-                && max_jd > after_jd
-            {
+            let pi_moon = (R_EARTH_KM / (moon_dist * AU_KM))
+                .clamp(-1.0, 1.0)
+                .asin()
+                .to_degrees();
+            if g.sep_deg < g.s_moon_deg + g.s_tgt_deg + pi_moon && max_jd > after_jd {
                 // Central-observation point: the geographic (lat, lon) on
                 // Earth's surface at `max_jd` where the TOPOCENTRIC Moon–target
                 // separation is MINIMIZED — this is what SE's
@@ -856,7 +933,11 @@ impl<B: EphemerisBackend> EventEngine<B> {
                 // pi_moon-max-parallax over-approximation, which over-reported
                 // central occultations — the Saturn 2/6 corpus mismatch).
                 let central = g_star.sep_deg < (g_star.s_moon_deg - g_star.s_tgt_deg).max(0.0);
-                let occ_type = if central { OccultationType::Total } else { OccultationType::Grazing };
+                let occ_type = if central {
+                    OccultationType::Total
+                } else {
+                    OccultationType::Grazing
+                };
                 return Ok(Some(GlobalOccultation {
                     target,
                     maximum: at,
@@ -874,15 +955,31 @@ impl<B: EphemerisBackend> EventEngine<B> {
     }
 
     /// Golden-section minimize the GEOCENTRIC separation in `[a,b]`.
-    fn minimize_geo_sep(&self, target: &OccultTarget, mut a: f64, mut b: f64) -> Result<f64, EventError> {
+    fn minimize_geo_sep(
+        &self,
+        target: &OccultTarget,
+        mut a: f64,
+        mut b: f64,
+    ) -> Result<f64, EventError> {
         let phi = 0.618_033_988_75_f64;
         let sep = |jd: f64| Ok::<f64, EventError>(self.occ_geom(target, None, jd)?.sep_deg);
         let mut c = b - (b - a) * phi;
         let mut d = a + (b - a) * phi;
         let (mut fc, mut fd) = (sep(c)?, sep(d)?);
         while (b - a) > REFINE_TOLERANCE_DAYS {
-            if fc < fd { b = d; d = c; fd = fc; c = b - (b - a) * phi; fc = sep(c)?; }
-            else { a = c; c = d; fc = fd; d = a + (b - a) * phi; fd = sep(d)?; }
+            if fc < fd {
+                b = d;
+                d = c;
+                fd = fc;
+                c = b - (b - a) * phi;
+                fc = sep(c)?;
+            } else {
+                a = c;
+                c = d;
+                fc = fd;
+                d = a + (b - a) * phi;
+                fd = sep(d)?;
+            }
         }
         Ok(0.5 * (a + b))
     }
@@ -1014,10 +1111,19 @@ mod when_loc_tests {
     #[test]
     fn never_occultable_star_returns_none_fast() {
         let engine = EventEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
-        let obs = ObserverLocation::new(Latitude::from_degrees(0.0), Longitude::from_degrees(0.0), Some(0.0));
+        let obs = ObserverLocation::new(
+            Latitude::from_degrees(0.0),
+            Longitude::from_degrees(0.0),
+            Some(0.0),
+        );
         let after = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tdb);
         let out = engine
-            .next_occultation(OccultTarget::Star("Sirius".into()), obs, Atmosphere::default(), after)
+            .next_occultation(
+                OccultTarget::Star("Sirius".into()),
+                obs,
+                Atmosphere::default(),
+                after,
+            )
             .unwrap();
         assert!(out.is_none(), "Sirius can never be occulted");
     }
@@ -1025,10 +1131,19 @@ mod when_loc_tests {
     #[test]
     fn out_of_window_fails_closed() {
         let engine = EventEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
-        let obs = ObserverLocation::new(Latitude::from_degrees(0.0), Longitude::from_degrees(0.0), Some(0.0));
+        let obs = ObserverLocation::new(
+            Latitude::from_degrees(0.0),
+            Longitude::from_degrees(0.0),
+            Some(0.0),
+        );
         let bad = Instant::new(JulianDay::from_days(2_000_000.0), TimeScale::Tdb);
         assert!(matches!(
-            engine.next_occultation(OccultTarget::Body(CelestialBody::Venus), obs, Atmosphere::default(), bad),
+            engine.next_occultation(
+                OccultTarget::Body(CelestialBody::Venus),
+                obs,
+                Atmosphere::default(),
+                bad
+            ),
             Err(EventError::OutOfWindow { .. })
         ));
     }
@@ -1040,7 +1155,11 @@ mod how_tests {
     use pleiades_backend::test_backend::LinearSunMoon;
 
     fn equatorial_obs() -> ObserverLocation {
-        ObserverLocation::new(Latitude::from_degrees(0.0), Longitude::from_degrees(0.0), Some(0.0))
+        ObserverLocation::new(
+            Latitude::from_degrees(0.0),
+            Longitude::from_degrees(0.0),
+            Some(0.0),
+        )
     }
 
     #[test]
@@ -1070,12 +1189,22 @@ mod how_tests {
         let engine = EventEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
         let bad = Instant::new(JulianDay::from_days(2_000_000.0), TimeScale::Tdb);
         assert!(matches!(
-            engine.occultation(OccultTarget::Body(CelestialBody::Mars), equatorial_obs(), Atmosphere::default(), bad),
+            engine.occultation(
+                OccultTarget::Body(CelestialBody::Mars),
+                equatorial_obs(),
+                Atmosphere::default(),
+                bad
+            ),
             Err(EventError::OutOfWindow { .. })
         ));
         let ok_at = Instant::new(JulianDay::from_days(2_451_550.0), TimeScale::Tdb);
         assert!(matches!(
-            engine.occultation(OccultTarget::Body(CelestialBody::Sun), equatorial_obs(), Atmosphere::default(), ok_at),
+            engine.occultation(
+                OccultTarget::Body(CelestialBody::Sun),
+                equatorial_obs(),
+                Atmosphere::default(),
+                ok_at
+            ),
             Err(EventError::UnsupportedOccultTarget { .. })
         ));
     }

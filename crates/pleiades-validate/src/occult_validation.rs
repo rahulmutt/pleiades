@@ -728,7 +728,11 @@ fn build_miss_sibling_anchors(csv: &str) -> Result<BTreeMap<MissSiblingKey, f64>
 /// Checks Tier-1 self-consistency for one recomputed `loc`-mode occultation
 /// event row (`occ_type` 1 or 2). Returns an error identifying the offending
 /// row on failure.
-fn check_tier1_local(label: &str, rec: &LocalOccultation, is_star: bool) -> Result<(), OccultError> {
+fn check_tier1_local(
+    label: &str,
+    rec: &LocalOccultation,
+    is_star: bool,
+) -> Result<(), OccultError> {
     if !(rec.magnitude.is_finite() && rec.obscuration.is_finite()) {
         return Err(OccultError::Parse {
             row: format!(
@@ -865,9 +869,7 @@ fn measure() -> Result<Measured, OccultError> {
                         let after = Instant::new(JulianDay::from_days(jd_tt), TimeScale::Tdb);
                         let result = engine
                             .next_occultation(target, observer, Atmosphere::default(), after)
-                            .map_err(|e| {
-                                OccultError::Engine(format!("{label} ({jd_tt}): {e}"))
-                            })?;
+                            .map_err(|e| OccultError::Engine(format!("{label} ({jd_tt}): {e}")))?;
                         if result.is_some() {
                             return Err(OccultError::Parse {
                                 row: format!(
@@ -978,7 +980,8 @@ fn measure() -> Result<Measured, OccultError> {
                         // to the gated `planet_magnitude_rel` (0.30-4.93%
                         // measured) and IS gated under `PLANET_OBSCURATION_REL`.
                         if occ_type == 1 {
-                            m.planet_obscuration_rel_grazing.observe(obs_rel, &label, max_jd);
+                            m.planet_obscuration_rel_grazing
+                                .observe(obs_rel, &label, max_jd);
                         }
                     }
                 }
@@ -1087,7 +1090,11 @@ fn measure() -> Result<Measured, OccultError> {
 // that check rather than error — a caveat inherited from the corpus's own
 // `RowCountMismatch`/checksum guards, which catch a truncated corpus overall
 // but not a zeroed-out sub-bucket specifically.
-fn check_metric(metric: &'static str, tracked: &MetricMax, ceiling: f64) -> Result<(), OccultError> {
+fn check_metric(
+    metric: &'static str,
+    tracked: &MetricMax,
+    ceiling: f64,
+) -> Result<(), OccultError> {
     let residual = tracked.value;
     if !residual.is_finite() || residual > ceiling {
         return Err(OccultError::ToleranceExceeded {
