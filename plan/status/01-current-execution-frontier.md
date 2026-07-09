@@ -109,8 +109,20 @@ Mean/Osculating/OsculatingBarycentric methods, SE-validated by the fail-closed
 `phase_fraction`, `elongation_deg`, `apparent_diameter_deg`, and
 `apparent_magnitude: Option<f64>` with full five-output parity for the ten
 majors, SE-validated by the fail-closed `validate-pheno` gate wired into
-`run_all_numeric_gates` over a committed 80-row corpus) are now done as well.
-Compatibility profile is at 0.7.11. Next candidate slices: custom
-fictitious-body orbital elements (user-supplied, beyond the committed
-`seorbel.txt` set), occultations, and central-path cartography for solar
-eclipses — not yet scoped in detail.
+`run_all_numeric_gates` over a committed 80-row corpus), and SP-6 (lunar
+occultations via `EventEngine::occultation`/`next_occultation`/
+`previous_occultation`/`next_global_occultation`, `swe_lun_occult_when_loc`/
+`swe_lun_occult_when_glob` analogues, for the Moon occulting planets
+Mercury–Pluto and curated fixed stars; `next_global_occultation` reports a
+single central-observation point, not a central-path polygon; SE-validated
+by the fail-closed `validate-occultations` gate wired into
+`run_all_numeric_gates` over a committed 62-row corpus — contact/maximum
+instants ≤65.0 s well-conditioned / ≤995.0 s grazing, star magnitude/
+obscuration exact, planet magnitude ≤7% relative, sub-lunar point ≤30.0′,
+planet-grazing obscuration ≤7% relative; planet-total obscuration and the
+planet `central` flag are deliberately not gated) are now done as well.
+Compatibility profile is at 0.7.12. Next candidate slices: central-path
+cartography (now also encompassing the sub-lunar central-observation
+axis-pierce refinement and the occultation `central`-flag exactness), and
+custom fictitious-body orbital elements (user-supplied, beyond the committed
+`seorbel.txt` set) — not yet scoped in detail.

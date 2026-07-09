@@ -4,6 +4,12 @@
 //! The engine is generic over any [`pleiades_backend::EphemerisBackend`] and,
 //! like `pleiades-eclipse`, works in TDB over the 1900–2100 CE packaged window.
 //!
+//! Lunar occultations of a planet (Mercury–Pluto) or a curated fixed star are
+//! covered by [`EventEngine::occultation`] (local circumstances),
+//! [`EventEngine::next_occultation`]/[`EventEngine::previous_occultation`]
+//! (per-observer search), and [`EventEngine::next_global_occultation`]
+//! (global search for the central-observation point).
+//!
 //! ## Example
 //!
 //! ```rust
@@ -55,6 +61,7 @@ mod horizontal;
 mod magnitude;
 mod mean_elements;
 mod nod_aps;
+mod occult;
 mod pheno;
 mod rise_trans;
 mod root;
@@ -66,5 +73,8 @@ pub use error::{EventError, WINDOW_END_JD, WINDOW_START_JD};
 pub use fixstar::{fixed_star_apparent, fixed_star_entry, FixedStarEntry};
 pub use horizontal::{Horizontal, HorizontalInput};
 pub use nod_aps::{ApsisConvention, NodApsMethod, NodApsPoint, NodesApsides};
+pub use occult::{
+    GlobalOccultation, LocalOccultation, OccultTarget, OccultationContact, OccultationType,
+};
 pub use pheno::PhenoData;
 pub use rise_trans::{DiscMode, RiseSet, RiseSetEvent, RiseSetOptions, RiseSetTarget};

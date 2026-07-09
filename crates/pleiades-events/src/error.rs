@@ -55,6 +55,11 @@ pub enum EventError {
         /// Human-readable explanation.
         detail: String,
     },
+    /// A body that cannot be occulted this way (Sun or Moon as the target).
+    UnsupportedOccultTarget {
+        /// Human-readable explanation.
+        detail: String,
+    },
 }
 
 impl fmt::Display for EventError {
@@ -84,6 +89,9 @@ impl fmt::Display for EventError {
             }
             EventError::DegenerateNodAps { detail } => {
                 write!(f, "degenerate nod_aps geometry: {detail}")
+            }
+            EventError::UnsupportedOccultTarget { detail } => {
+                write!(f, "unsupported occultation target: {detail}")
             }
         }
     }

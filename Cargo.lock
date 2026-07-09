@@ -228,6 +228,7 @@ dependencies = [
  "pleiades-elp",
  "pleiades-fict",
  "pleiades-jpl",
+ "pleiades-time",
  "pleiades-types",
  "pleiades-vsop87",
  "serde",

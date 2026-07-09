@@ -33,6 +33,8 @@ mod house_validation;
 mod lilith_validation;
 mod nod_aps_thresholds;
 pub mod nod_aps_validation;
+mod occult_thresholds;
+pub mod occult_validation;
 mod pheno_thresholds;
 pub mod pheno_validation;
 mod provenance;
@@ -214,6 +216,7 @@ pub use house_validation::{
 pub use house_validation::{validate_house_corpus, HouseCorpusError, HouseCorpusReport};
 pub use lilith_validation::{validate_lilith_corpus, LilithCorpusError, LilithCorpusReport};
 pub use nod_aps_validation::{validate_nod_aps_corpus, NodApsError, NodApsReport};
+pub use occult_validation::{validate_occultations_corpus, OccultError, OccultReport};
 pub use pheno_validation::{validate_pheno_corpus, PhenoError, PhenoReport};
 pub use rise_trans_validation::{validate_rise_trans_corpus, RiseTransError, RiseTransReport};
 
