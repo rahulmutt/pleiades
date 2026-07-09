@@ -330,7 +330,7 @@ use crate::error::{EventError, WINDOW_END_JD, WINDOW_START_JD};
 use crate::fixstar::fixed_star_apparent;
 use crate::rise_trans::{check_atmosphere, RiseSetTarget};
 use crate::root::{first_crossing_after, last_crossing_before, wrap180, REFINE_TOLERANCE_DAYS};
-use crate::semidiameter::semidiameter_deg;
+use crate::semidiameter::{radius_au, semidiameter_deg};
 use pleiades_apparent::{
     apparent_from_true, sidereal_time, topocentric_position, true_obliquity_degrees, Atmosphere,
 };
@@ -1022,16 +1022,20 @@ impl<B: EphemerisBackend> EventEngine<B> {
                     Some(0.0),
                 );
                 let g_star = self.occ_geom(&target, Some(&central_observer), max_jd)?;
-                // Central iff, AT THE ACTUAL CENTRAL-OBSERVATION POINT, the
-                // target is fully behind the Moon's disc (replaces the old
-                // pi_moon-max-parallax over-approximation, which over-reported
-                // central occultations — the Saturn 2/6 corpus mismatch).
-                let central = g_star.sep_deg < (g_star.s_moon_deg - g_star.s_tgt_deg).max(0.0);
-                let occ_type = if central {
+                // occ_type keeps its coverage meaning at the actual
+                // central-observation point: Total iff the target is fully
+                // behind the Moon's disc there.
+                let occ_type = if g_star.sep_deg < (g_star.s_moon_deg - g_star.s_tgt_deg).max(0.0) {
                     OccultationType::Total
                 } else {
                     OccultationType::Grazing
                 };
+                // `central` is SE's STRICTER axis-pierce condition (the
+                // Moon–target center-line strikes the Earth), decoupled from
+                // occ_type — a Total-somewhere event can be non-central,
+                // exactly like a total-but-non-central solar eclipse. This
+                // resolves the former KNOWN GAP 2 (Saturn 2/6 glob rows).
+                let central = self.central_axis_pierce(&target, max_jd)?;
                 return Ok(Some(GlobalOccultation {
                     target,
                     maximum: at,
@@ -1076,6 +1080,36 @@ impl<B: EphemerisBackend> EventEngine<B> {
             }
         }
         Ok(0.5 * (a + b))
+    }
+
+    /// SE `SE_ECL_CENTRAL` analogue at `jd`: does the Moon–target shadow
+    /// axis strike the (oblateness-corrected) Earth? Geocentric positions
+    /// only — this is a property of the global geometry, not of an observer.
+    fn central_axis_pierce(&self, target: &OccultTarget, jd: f64) -> Result<bool, EventError> {
+        /// Point-source stand-in distance for a fixed star (AU). SE uses the
+        /// catalog's own (astronomically large) distance; at ≥1e6 AU the
+        /// axis direction is converged to ~1e-9 deg, far below every other
+        /// term, so the exact value is immaterial.
+        const STAR_AXIS_DISTANCE_AU: f64 = 1.0e9;
+        fn radec_to_cartesian(ra_deg: f64, dec_deg: f64, dist_au: f64) -> [f64; 3] {
+            let (ra, dec) = (ra_deg.to_radians(), dec_deg.to_radians());
+            [
+                dist_au * dec.cos() * ra.cos(),
+                dist_au * dec.cos() * ra.sin(),
+                dist_au * dec.sin(),
+            ]
+        }
+        let ((moon_ra, moon_dec), (tgt_ra, tgt_dec)) = self.moon_target_radec(target, None, jd)?;
+        let moon_dist = self.body_distance_au(&CelestialBody::Moon, None, jd)?;
+        let (tgt_dist, drad_au) = match target {
+            OccultTarget::Body(b) => (self.body_distance_au(b, None, jd)?, radius_au(b)),
+            OccultTarget::Star(_) => (STAR_AXIS_DISTANCE_AU, 0.0),
+        };
+        Ok(axis_pierce_central(
+            radec_to_cartesian(moon_ra, moon_dec, moon_dist),
+            radec_to_cartesian(tgt_ra, tgt_dec, tgt_dist),
+            drad_au,
+        ))
     }
 
     /// Golden-section coordinate-descent search for the geographic
