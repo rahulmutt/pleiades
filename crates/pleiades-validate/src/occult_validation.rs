@@ -79,7 +79,7 @@
 //!
 //! The discriminator: for a star row, recompute the star's apparent ecliptic
 //! latitude (mirroring `target_never_occultable`'s own logic bit-for-bit —
-//! see [`star_never_occultable`]) and compare against
+//! see `star_never_occultable`) and compare against
 //! [`MOON_MAX_REACH_DEG`]; a planet is never permanently un-occultable (it
 //! moves), so every planet `occ_type == 0` row takes the geometric-miss path.
 //!
@@ -91,7 +91,7 @@
 //! around its anchor instant, so recomputing at the row's own `jd_tt` never
 //! reaches the real conjunction — the Moon is still several degrees from the
 //! target there, and `classify` trivially returns `Miss` for ANY observer,
-//! making the assertion vacuous. [`build_miss_sibling_anchors`] performs a
+//! making the assertion vacuous. `build_miss_sibling_anchors` performs a
 //! first pass over the corpus building a `(se_body, star, jd_tt) ->
 //! sibling_max_jd` map from every `loc` row's real `@center`/`@graze` sibling
 //! (occ_type 1 or 2, which shares the exact same `jd_tt` token within a
@@ -111,8 +111,8 @@
 //! hypersensitive to sub-arcsecond separation and semidiameter differences
 //! (magnitude ∝ 1/`s_tgt`). This gate therefore uses TWO modes for
 //! MAGNITUDE: absolute residual for star rows (gated under
-//! [`STAR_MAGNITUDE_ABS`]), and RELATIVE residual (`|recomputed − se| /
-//! |se|`) for planet rows (gated under [`PLANET_MAGNITUDE_REL`], measured
+//! `STAR_MAGNITUDE_ABS`), and RELATIVE residual (`|recomputed − se| /
+//! |se|`) for planet rows (gated under `PLANET_MAGNITUDE_REL`, measured
 //! max 4.9%). The planet ABSOLUTE magnitude residual is still measured and
 //! reported (informational, ungated) so a reviewer can sanity-check the
 //! relative ceiling against the raw magnitude of the numbers involved.
