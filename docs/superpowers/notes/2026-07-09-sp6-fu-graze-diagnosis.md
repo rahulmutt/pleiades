@@ -227,25 +227,24 @@ the horizon. The 7/8 below-horizon correlation is fully explained by the quoted 
 
 ## Verdict
 
-**Failing stage: classification / visibility semantics — NOT (a) timing, NOT (b) transform/apparent, NOT (c)
+**Root cause: Step-5 classification-semantics outcome — NOT (a) timing, NOT (b) transform/apparent, NOT (c)
 ephemeris source. CONFIRMED by direct SE source read: the `attr[6] > 0` apparent-altitude visibility gate in
-`occult_when_loc` (swecl.c:2700–2732) suppresses these events; see section above.** This is the Step-5 fourth
-outcome: "the topocentric comparison itself is sound but the
-classification threshold differs." Our purely geometric occultation classifier lacks the above-horizon
-visibility gate that SE's `swe_lun_occult_when_loc` applies; at high geographic latitude the graze-boundary
-events fall just below the observer's horizon (−0.9° to −2.3°), so SE reports no visible occultation while we
-report Total.
+`occult_when_loc` (swecl.c:2700–2732) suppresses these events; see section above.** This outcome was not
+covered by the brief's planned branches (a)/(b)/(c).
 
-**Fix branch for Task 8:** Disposition matches **(c)** — the ephemeris, transform, and ΔT are all correct and
-agree with SE, so *do not* change any engine numerics. But the concrete action is a **classifier-level fix**
-(closest to a "(b)-style" our-side logic change, in the classification layer, **not** the apparent-place
-transform): gate the occultation classification / the SE-differential comparison on the target's apparent
-(refracted) altitude > 0 at any of {max, C1..C4} — the exact `occult_when_loc` rule (swecl.c:2703–2732,
-`attr[6]` from `swe_azalt` with default 1013.25 hPa / 10 °C) — to match `swe_lun_occult_when_loc`'s
-visibility semantics; and/or
-formally document KNOWN GAP 3 as an inherent geometric-classify-vs-visible-`when_loc` methodology difference,
-and correct the differential fixture's borrowed-anchor artifact (compare at the observer's own closest
-approach, not the sibling conjunction). The knife-edge rows plus Spica 2005.7 remain out of scope.
+**Engine numerics exonerated:** the ephemeris, transform, and ΔT are all correct and agree with SE — **no
+engine numerics change warranted**. The disagreement is semantic:
+- SE's `swe_lun_occult_when_loc` gates event existence on **target apparent altitude > 0 at one of {max, C1, C2, C3, C4}**.
+- Our `classify` (crates/pleiades-events/src/occult.rs:236) is purely geometric, with visibility **separately exposed** as `LocalOccultation::any_phase_visible`.
+
+At high geographic latitude, graze-boundary events fall just below the observer's horizon (−0.9° to −2.3°), so SE reports no visible occultation while we report the instantaneous geometric disk overlap as Total.
+
+**Task-8 decision (human, 2026-07-09): gate-side reconciliation.** The engine is unchanged. `pleiades-validate`'s occultation-corpus miss-row comparison becomes like-for-like by treating "geometric Miss OR event-found-but-no-phase-visible" (i.e., geometric contact but `any_phase_visible == false`) as our SE-equivalent Miss, with the KNOWN GAP 3 documentation rewritten accordingly (Task 9) and the pin tightened to the newly measured count.
+
+**Recorded caveats for Task 8/9:**
+- Our `any_phase_visible` is a continuous 30-second scan over [C1, C4] vs SE's discrete 5-instant apparent-altitude rule (max, C1, C2, C3, C4) — document this delta.
+- 2 of the 8 disagreeing rows (Aldebaran 2015.1 and Regulus 2025.6) sit within the ±0.5° altitude error bar and may remain disagreeing.
+- The harness's `seMargin` is computed at the borrowed sibling anchor, not SE's decision instant (fixture artifact noted; do not fix at Task-8 scope).
 
 ## Anomalies / residual doubt
 
