@@ -40,6 +40,19 @@
 //! closed-form axis-pierce test rather than deriving `central` from
 //! `occ_type`, collapsing the Saturn mismatch to 0/6 for both planet and
 //! (newly measured) star `glob` rows.
+//!
+//! The `miss_classify_disagree` COUNT ceiling
+//! (`crate::occult_validation::MAX_MISS_CLASSIFICATION_DISAGREEMENTS`, not a
+//! constant in this module but cross-referenced here for completeness) is
+//! not a residual-magnitude threshold like the ones above — it pins how
+//! many sibling-anchored geometric-miss rows may disagree with SE, per
+//! `KNOWN GAP 3` (RESOLVED, SP-6-FU) in `crate::occult_validation`. SP-6-FU
+//! reconciled the gate's comparison with SE's own `when_loc` visibility
+//! semantics (source-confirmed, `swecl.c:2700-2732`), dropping the measured
+//! disagreement from 8/18 to 3/18 and tightening the pin to 3; the 3
+//! residual rows are a scan-vs-5-instant visibility-sampling delta at the
+//! horizon, not a magnitude residual this module's ~1.4×-measured
+//! convention would apply to.
 
 /// Contact/maximum instant residual vs SE, seconds (well-conditioned: `Total`
 /// `loc` rows and all `glob` rows). Measured max 46.44s (Regulus@center,

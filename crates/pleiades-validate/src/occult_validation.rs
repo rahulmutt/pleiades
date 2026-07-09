@@ -234,48 +234,94 @@
 //! was checked even though the ceiling itself is now an exact-match assertion
 //! rather than a numeric residual.
 //!
-//! ## KNOWN GAP 3 (SP-6) — occultation classification near the graze limit
-//! can disagree with SE at high geographic latitude
+//! ## KNOWN GAP 3 (RESOLVED, SP-6-FU) — when_loc visibility semantics
+//! reconciled
 //!
-//! The "Anchor fix" above (`build_miss_sibling_anchors`) strengthened the
-//! geometric-miss `loc`-row check to recompute at the sibling
-//! `@center`/`@graze` row's REAL `max_jd` — the actual Moon–target
+//! **History (SP-6):** the "Anchor fix" above (`build_miss_sibling_anchors`)
+//! strengthened the geometric-miss `loc`-row check to recompute at the
+//! sibling `@center`/`@graze` row's REAL `max_jd` — the actual Moon–target
 //! conjunction — instead of the row's own `jd_tt` (a vacuous half-day-early
 //! anchor at which `classify` trivially returns `Miss` for any observer).
-//! Recomputing at the real conjunction is a genuine, non-vacuous test, and
-//! it surfaced a real, diagnosed accuracy limitation: of the 18 committed
-//! geometric-miss observers checked this way, our engine classifies 8 as
-//! `Total` where SE reports `Miss`.
+//! Recomputing at the real conjunction is a genuine, non-vacuous test, and it
+//! surfaced a real accuracy limitation: of the 18 committed geometric-miss
+//! observers checked this way, our engine classified 8 as `Total` where SE
+//! reported `Miss`. SP-6's diagnosis split those 8 into 3 knife-edge (SE's
+//! own graze-boundary margin <= 1 arcminute, within the corpus generator's
+//! 0.25° observer-placement step) and 5 "genuine" (margins 3.7-11.6
+//! arcminutes, our topocentric track apparently too WIDE at high geographic
+//! latitude) with the root cause of the 5 left an open follow-up: not the
+//! parallax formula (checked), suspected epoch/region ephemeris or
+//! UT1/timing (unconfirmed). The count was pinned fail-closed at 8 via
+//! [`MAX_MISS_CLASSIFICATION_DISAGREEMENTS`] pending that follow-up.
 //!
-//! Diagnosis: the split of the 8 rows into two categories IS settled (not a
-//! target for further work). 3 of the 8 are knife-edge — SE's own
-//! graze-boundary margin there is <= 1 arcminute, and the corpus generator
-//! places the "miss" observer only 0.25° past that boundary, well within the
-//! pair's own measurement noise. The remaining 5 are a genuine disagreement,
-//! with margins 3.7-11.6 arcminutes: our topocentric occultation track is
-//! measurably too WIDE at some high geographic-latitude events, so we
-//! include observers as occulted that SE excludes. What is NOT settled is
-//! the ROOT CAUSE of those 5 genuine disagreements: it is NOT the parallax
-//! formula (independently checked), and the epoch/region ephemeris source or
-//! UT1/timing handling is suspected but unconfirmed — root-causing and
-//! fixing it is an open follow-up, not this task. Deep-`Total` and
-//! clear-`Miss` cases DO agree with SE closely: contact instants to within
-//! tens of seconds (`contact_seconds`/`contact_seconds_grazing`, gated) and star magnitude
-//! exactly (`star_magnitude_abs`, gated) — the disagreement is specific to
-//! classification right at the graze boundary, not a general timing or
-//! geometry error.
+//! **Resolution (SP-6-FU):** the follow-up (Tasks 4-8) built a differential
+//! harness (`tests/occult_graze_diagnosis.rs`) that computed, per disagreeing
+//! row, ΔT drift, geocentric/topocentric Moon and target position offsets,
+//! semidiameter differences, and both sides' graze margins. It found: our
+//! ΔT, Moon position (agrees with `de440` to ~0.0001″), and topocentric
+//! transform are all correct — `ourMargin ≈ seMargin` at every disagreeing
+//! row, i.e. NOT a position or timing error (full write-up:
+//! `docs/superpowers/notes/2026-07-09-sp6-fu-graze-diagnosis.md`). 7 of the
+//! (then-)8 disagreeing rows had the occulted target's apparent altitude
+//! 0.9°-2.3° BELOW the observer's horizon at the event. Reading SE's
+//! vendored source (`swecl.c:2700-2732`, `swe_lun_occult_when_loc`)
+//! confirmed the mechanism: SE folds VISIBILITY into event existence,
+//! rejecting an otherwise-real occultation (retflag 0 under
+//! `SE_ECL_ONE_TRY`) whenever the target's apparent (refracted) altitude is
+//! <= 0 at every one of {max, C1..C4}. Our engine deliberately keeps these
+//! concerns separate: `occultation_type` is a pure geometric verdict, and
+//! `LocalOccultation::any_phase_visible` (a continuous 30-second scan of
+//! apparent altitude over `[C1, C4]`, `occult.rs` ~line 891) reports
+//! visibility independently — so the two sides were being compared on
+//! DIFFERENT quantities (our geometry-only verdict vs. SE's
+//! geometry-AND-visibility verdict), not disagreeing on the same one.
 //!
-//! Because the disagreement is real, bounded, and diagnosed rather than a
-//! vacuous or unbounded gap, this gate does NOT hard-fail the 8 known rows
-//! (that would either mask the strengthened check by reverting to the old
-//! vacuous anchor, or make the gate permanently red for a known, accepted
-//! limitation) and does NOT skip them silently either. Instead the COUNT of
-//! disagreements is pinned fail-closed via
-//! [`MAX_MISS_CLASSIFICATION_DISAGREEMENTS`] (measured 8, reported as
-//! `miss_classify_disagree` in [`OccultReport::summary_line`]): the ~10
+//! **Human decision (2026-07-09): gate-side reconciliation, not an engine
+//! change** — `occultation_type`/`any_phase_visible` staying separate is the
+//! more useful API (a caller can ask either question), so the fix is in the
+//! comparison: this gate's SE-equivalent-Miss verdict is now "geometric
+//! `Miss` OR `!any_phase_visible`" (commit 4bf919bd; see the per-row
+//! comment where `se_equivalent_miss` is computed below), making the
+//! comparison like-for-like with SE's own folded semantics. Measured count
+//! dropped from 8/18 to **3/18** the same day. The 3 remaining rows are NOT
+//! position error (engine numerics stay exonerated) — they are residual
+//! MAPPING deltas: our continuous 30-second `[C1,C4]` scan vs. SE's discrete
+//! 5-instant apparent-altitude sample (max, C1, C2, C3, C4), both marginal
+//! (~±0.5°) around the horizon, where a scan can find a brief visible
+//! interval between contacts that a 5-instant sample misses (or vice
+//! versa). The 3 named rows: `Aldebaran@miss` (real conjunction 2033-08-18,
+//! lat 71.59°N), `Spica@miss` (real conjunction 2005-09-07, lat 42.83°N —
+//! the original SP-6 knife-edge, SE's own margin there ≈ -0.005′, i.e.
+//! dead on the graze limb regardless of visibility semantics), and
+//! `Spica@miss` (real conjunction 2012-07-25, lat 65.85°S). See
+//! [`MAX_MISS_CLASSIFICATION_DISAGREEMENTS`]'s doc for the full per-row
+//! detail (jd_tt, lat/lon).
+//!
+//! Deep-`Total` and clear-`Miss` cases DO agree with SE closely: contact
+//! instants to within tens of seconds (`contact_seconds`/
+//! `contact_seconds_grazing`, gated) and star magnitude exactly
+//! (`star_magnitude_abs`, gated) — the reconciled disagreement is specific
+//! to the visibility-sampling boundary, not a general timing or geometry
+//! error.
+//!
+//! Because the residual is a genuinely different (and much smaller)
+//! phenomenon than the original geometric disagreement — a scan-granularity
+//! mapping delta at the horizon rather than an unexplained track-width
+//! error — this gate does NOT hard-fail the 3 known rows (that would
+//! require matching SE's exact 5-instant sampling, not a meaningful
+//! improvement in accuracy) and does NOT skip them silently either. The
+//! COUNT of disagreements remains pinned fail-closed via
+//! [`MAX_MISS_CLASSIFICATION_DISAGREEMENTS`] (now 3, reported as
+//! `miss_classify_disagree` in [`OccultReport::summary_line`]): the 15
 //! agreeing rows are still genuinely checked per-row, and a regression that
-//! WIDENS the disagreement count trips the gate, while a future root-cause
-//! fix that narrows it still passes (and the pin can then be tightened).
+//! WIDENS the disagreement count trips the gate, while a future mapping
+//! refinement (e.g. sampling `any_phase_visible` at SE's exact 5 instants)
+//! that narrows it still passes (and the pin can then be tightened
+//! further). See `tests/occult_graze_diagnosis.rs` for the reproducible
+//! differential harness (`cargo test -p pleiades-validate --test
+//! occult_graze_diagnosis -- --ignored --nocapture`) and
+//! `docs/superpowers/notes/2026-07-09-sp6-fu-graze-diagnosis.md` for the
+//! full evidence trail, including the direct SE source citation.
 //!
 //! A sibling `manifest.txt` records the fnv1a64 digest of the CSV (drift
 //! guard); a mismatch fails the gate closed.
@@ -317,19 +363,39 @@ pub const EXPECTED_ROWS: usize = 62;
 /// inclination + ~0.27° semidiameter + ~0.95° horizontal parallax ≈ 6.6°.
 pub const MOON_MAX_REACH_DEG: f64 = 6.6;
 
-/// Pinned ceiling (`KNOWN GAP 3` in the module doc) on how many
-/// sibling-anchored geometric-miss `loc` rows the engine is allowed to
-/// classify `Total` (disagreeing with SE's `Miss`) at the real conjunction
-/// before the gate fails closed. Measured count in the committed corpus is 8
-/// (of 18 checked): 3 knife-edge (margin <=1', the corpus's 0.25° observer-
-/// placement step lands just past SE's own graze boundary) and 5 a genuine,
-/// diagnosed topocentric track-width disagreement (margins 3.7-11.6') at
-/// high geographic latitude, root cause unknown (not the parallax formula;
-/// suspected epoch/region ephemeris or UT1/timing) — a follow-up, not this
-/// gate's job to fix. A future root-cause fix that reduces the measured
-/// count still passes this ceiling and the pin can then be tightened; a
-/// regression that WIDENS the disagreement trips it.
-pub const MAX_MISS_CLASSIFICATION_DISAGREEMENTS: usize = 8;
+/// Pinned ceiling (`KNOWN GAP 3` in the module doc, RESOLVED SP-6-FU) on how
+/// many sibling-anchored geometric-miss `loc` rows the engine's
+/// SE-equivalent-Miss verdict ("geometric Miss OR `!any_phase_visible`", see
+/// the per-row comment where `se_equivalent_miss` is computed below) is
+/// allowed to disagree with SE's `Miss` at the real conjunction before the
+/// gate fails closed. Prior to SP-6-FU the comparison was purely geometric
+/// (ignoring SE's own visibility gate) and measured 8 of 18 disagreeing; root
+/// cause was diagnosed as SE `swe_lun_occult_when_loc`'s visibility
+/// semantics (target apparent altitude > 0 at one of {max, C1..C4},
+/// vendored `swecl.c:2700-2732`, source-confirmed) — SE folds visibility
+/// into event existence, our engine deliberately keeps geometry and
+/// visibility separate. Once the gate's comparison was made like-for-like
+/// (commit 4bf919bd, this pin tightened same day), the measured count
+/// dropped to 3 of 18 (2026-07-09) — engine numerics are exonerated
+/// (`ourMargin ≈ seMargin`, Moon position agrees with `de440` to
+/// ~0.0001″, ΔT sub-second); these are NOT position error. The 3 remaining
+/// rows are residual MAPPING deltas between our continuous 30-second
+/// `[C1,C4]` visibility scan and SE's discrete 5-instant apparent-altitude
+/// sample, all marginal-horizon (~±0.5°) cases where the two sampling
+/// strategies can disagree on whether the target was ever visible:
+/// `Aldebaran@miss` (jd_tt 2463827.536661250, real conjunction 2033-08-18,
+/// lat 71.588516°), `Spica@miss` (jd_tt 2453620.280228757, real conjunction
+/// 2005-09-07, lat 42.830897° — the pre-existing knife-edge row, SE's own
+/// margin at its anchor ≈ -0.005′), and `Spica@miss` (jd_tt
+/// 2456133.683363608, real conjunction 2012-07-25, lat -65.851805°). A
+/// future fix that narrows the mapping delta (e.g. sampling `any_phase_visible`
+/// at SE's exact 5 instants instead of a continuous scan) still passes this
+/// ceiling and the pin can then be tightened further; a regression that
+/// WIDENS the disagreement trips it. See
+/// `docs/superpowers/notes/2026-07-09-sp6-fu-graze-diagnosis.md` for the full
+/// differential diagnosis and `tests/occult_graze_diagnosis.rs` for the
+/// reproducible harness.
+pub const MAX_MISS_CLASSIFICATION_DISAGREEMENTS: usize = 3;
 
 #[derive(Debug)]
 pub enum OccultError {
@@ -440,17 +506,21 @@ pub struct OccultReport {
     /// fails closed on any nonzero count here.
     pub central_star_mismatched: usize,
     /// Geometric-miss `loc` rows re-anchored at the sibling's real `max_jd`
-    /// and re-classified (`KNOWN GAP 3`). Measured/reported; NOT hard-gated
-    /// per-row — the COUNT is pinned by
+    /// and re-classified against SE's like-for-like SE-equivalent-Miss
+    /// verdict (`KNOWN GAP 3`, RESOLVED SP-6-FU). Measured/reported; NOT
+    /// hard-gated per-row — the COUNT is pinned by
     /// [`MAX_MISS_CLASSIFICATION_DISAGREEMENTS`] instead (see
     /// [`validate_occultations_corpus`]). Unlike `central_planet_*`/
     /// `central_star_*` (resolved to an exact hard gate in SP-6-FU, `KNOWN
-    /// GAP 2`), `KNOWN GAP 3`'s disagreement remains diagnosed-but-open, so
-    /// it stays a pinned count rather than a zero-tolerance gate.
+    /// GAP 2`), the 3 residual rows here are a scan-granularity mapping
+    /// delta (not a position/timing error) that a zero-tolerance gate would
+    /// require exactly matching SE's 5-instant sampling to close, so this
+    /// stays a pinned count rather than a zero-tolerance gate.
     pub miss_classify_checked: usize,
-    /// Of `miss_classify_checked`, how many the engine classified `Total`
-    /// (not `Miss`) at the real conjunction, where SE says `Miss` — see
-    /// `KNOWN GAP 3` in the module doc.
+    /// Of `miss_classify_checked`, how many the engine's SE-equivalent-Miss
+    /// verdict ("geometric `Miss` OR `!any_phase_visible`") disagreed with
+    /// SE's `Miss` at the real conjunction — see `KNOWN GAP 3` in the module
+    /// doc.
     pub miss_classify_disagree: usize,
 }
 
@@ -467,7 +537,7 @@ impl OccultReport {
 
     pub fn summary_line(&self) -> String {
         format!(
-            "validate-occultations: {} rows — max residuals (gated): contact {:.3}s contact_grazing {:.3}s star_mag {:.4} star_obsc {:.4} planet_mag_rel {:.4} sublunar {:.1}' planet_obsc_rel_grazing {:.4} central_planet {}/{} (gated exact) central_star {}/{} (gated exact) — informational (ungated, see KNOWN GAP 1): planet_mag_abs {:.3} planet_obsc_abs {:.1} planet_obsc_rel {:.4} — pinned (KNOWN GAP 3, high-lat graze boundary): miss_classify_disagree {}/{}",
+            "validate-occultations: {} rows — max residuals (gated): contact {:.3}s contact_grazing {:.3}s star_mag {:.4} star_obsc {:.4} planet_mag_rel {:.4} sublunar {:.1}' planet_obsc_rel_grazing {:.4} central_planet {}/{} (gated exact) central_star {}/{} (gated exact) — informational (ungated, see KNOWN GAP 1): planet_mag_abs {:.3} planet_obsc_abs {:.1} planet_obsc_rel {:.4} — pinned (KNOWN GAP 3 resolved: SE visibility semantics reconciled): miss_classify_disagree {}/{}",
             self.rows,
             self.max_contact_seconds,
             self.max_contact_seconds_grazing,
@@ -573,12 +643,13 @@ struct Measured {
     central_star_mismatched: usize,
     /// Geometric-miss `loc` rows (`occ_type == 0`, occultable target, has a
     /// `@center`/`@graze` sibling) re-anchored at the sibling's REAL `max_jd`
-    /// and re-classified — see `KNOWN GAP 3` in the module doc. `checked` is
-    /// every such row; `disagree` is how many the engine classified as
-    /// something other than `Miss` (i.e. `Total`) at the real conjunction,
-    /// where SE says `Miss`. NOT hard-failed per-row (that would defeat the
-    /// gate's purpose given a diagnosed, bounded limitation) — instead the
-    /// COUNT is pinned by [`MAX_MISS_CLASSIFICATION_DISAGREEMENTS`] in
+    /// and re-classified — see `KNOWN GAP 3` (RESOLVED, SP-6-FU) in the
+    /// module doc. `checked` is every such row; `disagree` is how many the
+    /// engine's SE-equivalent-Miss verdict ("geometric `Miss` OR
+    /// `!any_phase_visible`") disagreed with SE's `Miss` at the real
+    /// conjunction. NOT hard-failed per-row (that would defeat the gate's
+    /// purpose given a diagnosed, bounded residual mapping delta) — instead
+    /// the COUNT is pinned by [`MAX_MISS_CLASSIFICATION_DISAGREEMENTS`] in
     /// `validate_occultations_corpus`, so a regression that widens the
     /// disagreement still fails the gate.
     miss_classify_checked: usize,
@@ -944,7 +1015,8 @@ fn measure() -> Result<Measured, OccultError> {
                             .map_err(|e| {
                                 OccultError::Engine(format!("{label} ({sibling_max_jd}): {e}"))
                             })?;
-                        // KNOWN GAP 3: NOT hard-failed per-row. SE's
+                        // KNOWN GAP 3 (RESOLVED, SP-6-FU): NOT hard-failed
+                        // per-row. SE's
                         // `swe_lun_occult_when_loc` (vendored swecl.c:
                         // 2700-2732) folds VISIBILITY into event existence:
                         // it reports Miss whenever the occulted target's
@@ -1179,8 +1251,10 @@ fn check_metric(
 /// `central_star_exact` fail closed on ANY planet or star glob row where
 /// `central` disagrees with SE's `SE_ECL_CENTRAL`. A tenth is gated by
 /// pinned COUNT rather than per-row: `miss_classify_disagree` (SP-6,
-/// [`MAX_MISS_CLASSIFICATION_DISAGREEMENTS`]) — see `KNOWN GAP 3` in the
-/// module doc. `planet_obscuration_{abs,rel}` (Total-inclusive) remain
+/// comparison semantics reconciled and pin tightened to the measured count
+/// in SP-6-FU, [`MAX_MISS_CLASSIFICATION_DISAGREEMENTS`]) — see `KNOWN GAP
+/// 3 (RESOLVED, SP-6-FU)` in the module doc. `planet_obscuration_{abs,rel}`
+/// (Total-inclusive) remain
 /// measured/counted and reported (see [`OccultReport`]'s field docs) but
 /// deliberately NOT gated at all — see `KNOWN GAP 1` in the module doc for
 /// why: gating planet Total obscuration would be vacuous (a different
@@ -1244,13 +1318,14 @@ pub fn validate_occultations_corpus() -> Result<OccultReport, OccultError> {
         });
     }
 
-    // KNOWN GAP 3: the COUNT of sibling-anchored geometric-miss rows that
-    // disagree with SE (engine Total, SE Miss, at the real conjunction) is
-    // pinned fail-closed here rather than hard-failing each disagreeing row
-    // — see MAX_MISS_CLASSIFICATION_DISAGREEMENTS's doc and the module doc's
-    // KNOWN GAP 3 for the diagnosis. A regression that widens the count
-    // beyond the pinned ceiling fails the gate; the majority-agreeing rows
-    // are still genuinely (non-vacuously) checked per-row above.
+    // KNOWN GAP 3 (RESOLVED, SP-6-FU): the COUNT of sibling-anchored
+    // geometric-miss rows whose SE-equivalent-Miss verdict disagrees with SE
+    // (at the real conjunction) is pinned fail-closed here rather than
+    // hard-failing each disagreeing row — see
+    // MAX_MISS_CLASSIFICATION_DISAGREEMENTS's doc and the module doc's KNOWN
+    // GAP 3 for the resolution. A regression that widens the count beyond
+    // the pinned ceiling fails the gate; the majority-agreeing rows are
+    // still genuinely (non-vacuously) checked per-row above.
     if m.miss_classify_disagree > MAX_MISS_CLASSIFICATION_DISAGREEMENTS {
         return Err(OccultError::ToleranceExceeded {
             metric: "miss_classify_disagree",
