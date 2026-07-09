@@ -325,7 +325,9 @@ mod axis_pierce_tests {
 }
 
 use crate::crossings::EventEngine;
-use crate::ephemeris::{geocentric_apparent_ecliptic, geocentric_apparent_longitude_deg};
+use crate::ephemeris::{
+    geocentric_apparent_ecliptic, geocentric_apparent_longitude_deg, spherical_to_cartesian,
+};
 use crate::error::{EventError, WINDOW_END_JD, WINDOW_START_JD};
 use crate::fixstar::fixed_star_apparent;
 use crate::rise_trans::{check_atmosphere, RiseSetTarget};
@@ -1091,14 +1093,6 @@ impl<B: EphemerisBackend> EventEngine<B> {
         /// axis direction is converged to ~1e-9 deg, far below every other
         /// term, so the exact value is immaterial.
         const STAR_AXIS_DISTANCE_AU: f64 = 1.0e9;
-        fn radec_to_cartesian(ra_deg: f64, dec_deg: f64, dist_au: f64) -> [f64; 3] {
-            let (ra, dec) = (ra_deg.to_radians(), dec_deg.to_radians());
-            [
-                dist_au * dec.cos() * ra.cos(),
-                dist_au * dec.cos() * ra.sin(),
-                dist_au * dec.sin(),
-            ]
-        }
         let ((moon_ra, moon_dec), (tgt_ra, tgt_dec)) = self.moon_target_radec(target, None, jd)?;
         let moon_dist = self.body_distance_au(&CelestialBody::Moon, None, jd)?;
         let (tgt_dist, drad_au) = match target {
@@ -1106,8 +1100,8 @@ impl<B: EphemerisBackend> EventEngine<B> {
             OccultTarget::Star(_) => (STAR_AXIS_DISTANCE_AU, 0.0),
         };
         Ok(axis_pierce_central(
-            radec_to_cartesian(moon_ra, moon_dec, moon_dist),
-            radec_to_cartesian(tgt_ra, tgt_dec, tgt_dist),
+            spherical_to_cartesian(moon_ra, moon_dec, moon_dist),
+            spherical_to_cartesian(tgt_ra, tgt_dec, tgt_dist),
             drad_au,
         ))
     }
