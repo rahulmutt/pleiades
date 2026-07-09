@@ -14,8 +14,8 @@
 //! (Task 15, a corrective task) after fixing a confirmed engine bug in
 //! `next_global_occultation` (`crates/pleiades-events/src/occult.rs`): it
 //! used to report the Moon's geocentric zenith point as the sub-lunar point
-//! instead of SE's actual central-observation point (residual 42-89 DEGREES,
-//! see `crate::occult_validation`'s module doc `KNOWN GAP 2`). After the fix,
+//! instead of SE's actual central-observation point (residual 42-89 DEGREES;
+//! resolved — see `KNOWN GAP 2` in `crate::occult_validation`). After the fix,
 //! `sublunar_arcmin` collapsed to arcmin-scale (measured max 69.628' —
 //! `Regulus`, glob row, event instant jd 2457741.256640); a subsequent code
 //! review found the fixed 8-round sub-lunar minimizer still under-converged
@@ -28,14 +28,18 @@
 //! 2452052.796691) and is also now gated. Both pinned to ~1.4× measured,
 //! rounded up to a clean value.
 //!
-//! Two related metrics remain deliberately NOT gated — see
+//! One metric remains deliberately NOT gated — see
 //! `crate::occult_validation`'s module doc for the full diagnosis:
 //! `planet_obscuration_{abs,rel}` (Total-inclusive; `KNOWN GAP 1` — SE's
 //! `attr[2]` for a fully-covered planet is a different, coverage-depth-ratio
-//! quantity a bounded `[0,1]` area fraction cannot and should not reach), and
-//! the planet `central` exact-bool comparison (`KNOWN GAP 2` — Saturn's 2/6
-//! glob rows still disagree even after the sub-lunar-point fix; diagnosed as
-//! a conceptual difference in what "central" means, not a positional error).
+//! quantity a bounded `[0,1]` area fraction cannot and should not reach). The
+//! `central` exact-bool comparison (`KNOWN GAP 2`, resolved — see `KNOWN GAP
+//! 2` in `crate::occult_validation`) was formerly measured-but-ungated
+//! (Saturn's 2/6 glob rows disagreed even after the sub-lunar-point fix) but
+//! is now resolved and hard-gated (SP-6-FU): the engine ports SE's own
+//! closed-form axis-pierce test rather than deriving `central` from
+//! `occ_type`, collapsing the Saturn mismatch to 0/6 for both planet and
+//! (newly measured) star `glob` rows.
 
 /// Contact/maximum instant residual vs SE, seconds (well-conditioned: `Total`
 /// `loc` rows and all `glob` rows). Measured max 46.44s (Regulus@center,
@@ -69,7 +73,7 @@ pub const STAR_OBSCURATION_ABS: f64 = 1e-6;
 pub const PLANET_MAGNITUDE_REL: f64 = 0.07;
 /// Great-circle residual (arcmin) between the recomputed central-observation
 /// point (`GlobalOccultation::sublunar_latitude/longitude`, fixed in Task 15
-/// — see `crate::occult_validation`'s `KNOWN GAP 2`) and SE's
+/// — resolved, see `KNOWN GAP 2` in `crate::occult_validation`) and SE's
 /// `sublunar_lat/lon`, over all `glob` rows. A code review of Task 15 found
 /// the sub-lunar minimizer's fixed 8-round golden-section coordinate descent
 /// under-converged the worst-conditioned rows; `occult.rs`'s

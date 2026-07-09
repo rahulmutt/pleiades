@@ -50,16 +50,21 @@
 //! a meaningful `central` flag. This gate compares `central` ONLY on `glob`
 //! rows; it is never asserted on `loc` rows.
 //!
-//! **Correction 2b (discovered, not in the original plan):** even within
-//! `glob` rows, `central` is only meaningfully compared/counted for PLANET
+//! **Correction 2b (discovered, not in the original plan; superseded by
+//! SP-6-FU, see `KNOWN GAP 2` below):** even within `glob` rows, `central`
+//! was, prior to SP-6-FU, only meaningfully compared/counted for PLANET
 //! targets. Every star `glob` row in the committed corpus has `central == 0`
 //! — SE structurally never marks a point-target occultation as central. Our
-//! own engine's `central` formula degenerates to always-`true` for a point
-//! target (`s_tgt_deg == 0` collapses the "found" and "central" thresholds
-//! in `next_global_occultation` to the identical inequality), so this gate
-//! skips the `central` comparison for star `glob` rows entirely rather than
-//! run a tautological (always-mismatching) check. See `KNOWN GAP 2` below for
-//! how planet `glob` rows are handled (measured/counted, not hard-gated).
+//! own engine's OLD `central` formula (tied to `occ_type == Total`)
+//! degenerated to always-`true` for a point target (`s_tgt_deg == 0`
+//! collapsed the "found" and "central" thresholds in
+//! `next_global_occultation` to the identical inequality), so this gate used
+//! to skip the `central` comparison for star `glob` rows entirely rather than
+//! run a tautological (always-mismatching) check. SP-6-FU's axis-pierce
+//! decoupling (`KNOWN GAP 2` below) is not definitionally tied to `occ_type`,
+//! so that degeneracy no longer holds: star `glob` rows are now compared too
+//! (measured 0/12 mismatched in the committed corpus) and hard-gated exactly
+//! like planet rows — see `KNOWN GAP 2` below for both.
 //!
 //! ## Correction 3 — two distinct kinds of `occ_type == 0` (no-event) rows
 //!
@@ -153,8 +158,7 @@
 //! discovered SE/engine semantic difference specific to the fully-covered
 //! regime — not a residual a tighter/looser threshold can resolve there.
 //!
-//! ## KNOWN GAP 2 — `central` disagrees with SE for Saturn even after the
-//! sub-lunar-point fix (Task 15)
+//! ## KNOWN GAP 2 (RESOLVED, SP-6-FU) — central axis-pierce exactness
 //!
 //! Prior to Task 15, this gate discovered that
 //! `GlobalOccultation::sublunar_latitude/longitude` reported the point where
@@ -204,6 +208,31 @@
 //! mismatched}` remain measured/reported but NOT hard-gated (Correction 2b,
 //! above, still applies unchanged: star `glob` rows are excluded from the
 //! comparison entirely).
+//!
+//! **RESOLVED (SP-6-FU):** the deferred fix above has been implemented. The
+//! engine now ports `eclipse_where`'s own `de·cosf1 >= r0` axis-pierce test
+//! (`pleiades_events::occult::axis_pierce_central`) rather than deriving
+//! `central` from the `Total`/`Grazing` classification, so `central` is fully
+//! decoupled from `occ_type` — an eclipse (occultation) can be `Total` at a
+//! given observer without the Moon–target center-line axis itself striking
+//! the Earth, and vice versa is structurally representable even though it
+//! doesn't occur in the committed corpus. Saturn's previously-unchanged 2/6
+//! `glob`-row mismatch collapsed to 0/6 measured — the same closed-form test
+//! SE uses, evaluated against the same minimized central-observation
+//! geometry Task 15 already fixed. Because `central` is now an exact
+//! closed-form boolean rather than an approximation with a known residual,
+//! the planet comparison is hard-gated (`central_planet_exact` in
+//! [`validate_occultations_corpus`]): ANY planet `glob`-row mismatch fails
+//! the gate closed, not just a count above a pinned ceiling. Decoupling
+//! `central` from `occ_type` also removed the Correction 2b degeneracy for
+//! star `glob` rows (a point target's `central` no longer collapses to
+//! always-`true`), so those are now measured too (SP-6-FU Task 3) — measured
+//! 0/12 mismatched in the committed corpus, so they are hard-gated as well
+//! (`central_star_exact`). `central_planet_{checked,mismatched}` and
+//! `central_star_{checked,mismatched}` remain on [`OccultReport`] as the
+//! measured counts (always 0 mismatched for a passing gate), documenting what
+//! was checked even though the ceiling itself is now an exact-match assertion
+//! rather than a numeric residual.
 //!
 //! ## KNOWN GAP 3 (SP-6) — occultation classification near the graze limit
 //! can disagree with SE at high geographic latitude
@@ -340,8 +369,10 @@ impl std::error::Error for OccultError {}
 /// Summary of the measured per-metric maxima and checked-row count for the
 /// gate. Fields marked "informational" below are measured and reported but
 /// NOT part of the fail-closed ceiling gate in
-/// [`validate_occultations_corpus`] — see `KNOWN GAP 1`/`KNOWN GAP 2` in the
-/// module doc for why.
+/// [`validate_occultations_corpus`] — see `KNOWN GAP 1` in the module doc for
+/// why. (`KNOWN GAP 2`, the `central` exact-bool comparison, was resolved in
+/// SP-6-FU and is now hard-gated — see `central_planet_checked`/
+/// `central_star_checked` below.)
 #[derive(Debug, Default)]
 pub struct OccultReport {
     pub rows: usize,
@@ -384,25 +415,38 @@ pub struct OccultReport {
     /// well-conditioned in the Grazing regime, unlike the Total regime — see
     /// `max_planet_obscuration_rel`'s doc).
     pub max_planet_obscuration_rel_grazing: f64,
-    /// Informational (KNOWN GAP 2): planet glob rows where `central` was
-    /// compared.
+    /// GATED (`central_planet_exact`, SP-6-FU): planet glob rows where
+    /// `central` was compared. See `KNOWN GAP 2 (RESOLVED, SP-6-FU)` in the
+    /// module doc.
     pub central_planet_checked: usize,
-    /// Informational (KNOWN GAP 2): of those, how many disagreed with SE.
-    /// Saturn's 2 rows still mismatch (engine `true`/`Total`, SE
-    /// `central=false`) even after Task 15's central-observation-point fix —
-    /// see `KNOWN GAP 2` in the module doc: this is now understood to be a
-    /// conceptual gap (SE's `SE_ECL_CENTRAL` is a stricter "exact
-    /// center-line alignment" condition, distinct from "target fully covered
-    /// somewhere", which our `central`/`occ_type` coupling cannot represent),
-    /// not a positional error the point fix could resolve — so this remains
-    /// measured/reported, NOT hard-gated. Venus/Jupiter agree exactly.
+    /// GATED (`central_planet_exact`): of those, how many disagreed with SE.
+    /// `central` now ports SE's `eclipse_where` axis-pierce test
+    /// (`de·cosf1 >= r0`, `pleiades_events::occult::axis_pierce_central`)
+    /// rather than being definitionally tied to `occ_type == Total`, so
+    /// Saturn's former 2/6 mismatch (see the module doc's resolved `KNOWN
+    /// GAP 2` for the prior diagnosis) collapsed to 0/6 measured in the
+    /// committed corpus — [`validate_occultations_corpus`] fails closed
+    /// (`central_planet_exact`) on ANY nonzero count here.
     pub central_planet_mismatched: usize,
+    /// GATED (`central_star_exact`, SP-6-FU): star glob rows where `central`
+    /// was compared. The pre-axis-pierce exclusion of Correction 2b (which
+    /// skipped star rows as tautologically always-mismatching) no longer
+    /// applies structurally now that `central` is decoupled from `occ_type`;
+    /// measured 0/12 mismatched in the committed corpus, so this comparison
+    /// is hard-gated too.
+    pub central_star_checked: usize,
+    /// GATED (`central_star_exact`): of those, how many disagreed with SE.
+    /// Measured 0 in the committed corpus — [`validate_occultations_corpus`]
+    /// fails closed on any nonzero count here.
+    pub central_star_mismatched: usize,
     /// Geometric-miss `loc` rows re-anchored at the sibling's real `max_jd`
     /// and re-classified (`KNOWN GAP 3`). Measured/reported; NOT hard-gated
     /// per-row — the COUNT is pinned by
     /// [`MAX_MISS_CLASSIFICATION_DISAGREEMENTS`] instead (see
-    /// [`validate_occultations_corpus`]), mirroring how `central_planet_*`
-    /// is measured/reported for a different diagnosed gap (`KNOWN GAP 2`).
+    /// [`validate_occultations_corpus`]). Unlike `central_planet_*`/
+    /// `central_star_*` (resolved to an exact hard gate in SP-6-FU, `KNOWN
+    /// GAP 2`), `KNOWN GAP 3`'s disagreement remains diagnosed-but-open, so
+    /// it stays a pinned count rather than a zero-tolerance gate.
     pub miss_classify_checked: usize,
     /// Of `miss_classify_checked`, how many the engine classified `Total`
     /// (not `Miss`) at the real conjunction, where SE says `Miss` — see
@@ -423,7 +467,7 @@ impl OccultReport {
 
     pub fn summary_line(&self) -> String {
         format!(
-            "validate-occultations: {} rows — max residuals (gated): contact {:.3}s contact_grazing {:.3}s star_mag {:.4} star_obsc {:.4} planet_mag_rel {:.4} sublunar {:.1}' planet_obsc_rel_grazing {:.4} — informational (ungated, see KNOWN GAP 1/2): planet_mag_abs {:.3} planet_obsc_abs {:.1} planet_obsc_rel {:.4} central_planet {}/{} mismatched — pinned (KNOWN GAP 3, high-lat graze boundary): miss_classify_disagree {}/{}",
+            "validate-occultations: {} rows — max residuals (gated): contact {:.3}s contact_grazing {:.3}s star_mag {:.4} star_obsc {:.4} planet_mag_rel {:.4} sublunar {:.1}' planet_obsc_rel_grazing {:.4} central_planet {}/{} (gated exact) central_star {}/{} (gated exact) — informational (ungated, see KNOWN GAP 1): planet_mag_abs {:.3} planet_obsc_abs {:.1} planet_obsc_rel {:.4} — pinned (KNOWN GAP 3, high-lat graze boundary): miss_classify_disagree {}/{}",
             self.rows,
             self.max_contact_seconds,
             self.max_contact_seconds_grazing,
@@ -432,11 +476,13 @@ impl OccultReport {
             self.max_planet_magnitude_rel,
             self.max_sublunar_arcmin,
             self.max_planet_obscuration_rel_grazing,
+            self.central_planet_mismatched,
+            self.central_planet_checked,
+            self.central_star_mismatched,
+            self.central_star_checked,
             self.max_planet_magnitude_abs,
             self.max_planet_obscuration_abs,
             self.max_planet_obscuration_rel,
-            self.central_planet_mismatched,
-            self.central_planet_checked,
             self.miss_classify_disagree,
             self.miss_classify_checked,
         )
@@ -513,17 +559,18 @@ struct Measured {
     /// gate.
     planet_obscuration_rel_grazing: MetricMax,
     /// Planet `glob` rows where `central` was compared / how many disagreed.
-    /// Measured and reported but NOT gated — see `KNOWN GAP 2` in the module
-    /// doc: after Task 15's central-observation-point fix, Saturn's 2 glob
-    /// rows still disagree (engine `true`/Total, SE `central=false`), because
-    /// SE's `SE_ECL_CENTRAL` is evidently a stricter "exact center-line
-    /// alignment" condition distinct from "target fully covered somewhere"
-    /// (our `central`, definitionally tied to our `Total`/`Grazing` split) —
-    /// a conceptual gap in already-committed `occult.rs`'s `central`/
-    /// `occ_type` coupling, not a computational error the sub-lunar-point fix
-    /// can resolve. See field docs on [`OccultReport`].
+    /// GATED (`central_planet_exact`, SP-6-FU) — see `KNOWN GAP 2 (RESOLVED,
+    /// SP-6-FU)` in the module doc: `central` now ports SE's `eclipse_where`
+    /// axis-pierce test instead of being tied to `occ_type`, and Saturn's
+    /// former 2/6 mismatch collapsed to 0/6. See field docs on
+    /// [`OccultReport`].
     central_planet_checked: usize,
     central_planet_mismatched: usize,
+    /// Star glob rows where `central` was compared / how many disagreed
+    /// (SP-6-FU). GATED (`central_star_exact`) — measured 0/12 mismatched in
+    /// the committed corpus. See field docs on [`OccultReport`].
+    central_star_checked: usize,
+    central_star_mismatched: usize,
     /// Geometric-miss `loc` rows (`occ_type == 0`, occultable target, has a
     /// `@center`/`@graze` sibling) re-anchored at the sibling's REAL `max_jd`
     /// and re-classified — see `KNOWN GAP 3` in the module doc. `checked` is
@@ -554,6 +601,8 @@ impl Measured {
             max_planet_obscuration_rel_grazing: self.planet_obscuration_rel_grazing.value,
             central_planet_checked: self.central_planet_checked,
             central_planet_mismatched: self.central_planet_mismatched,
+            central_star_checked: self.central_star_checked,
+            central_star_mismatched: self.central_star_mismatched,
             miss_classify_checked: self.miss_classify_checked,
             miss_classify_disagree: self.miss_classify_disagree,
         }
@@ -1016,48 +1065,40 @@ fn measure() -> Result<Measured, OccultError> {
                 ) * 60.0;
                 m.sublunar.observe(arcmin, &label, max_jd);
 
-                // `central` is MEASURED (counted) but NOT gated for PLANET
-                // rows — see `KNOWN GAP 2` in the module doc. Task 15 retied
-                // `central` to the actual minimized central-observation point
-                // (replacing the old `pi_moon`-max-parallax
-                // over-approximation), but Saturn's two glob rows STILL
-                // disagree (engine `true`/`Total`, SE `central=false`) even
-                // though the recomputed magnitude/obscuration at SE's own
-                // reported point match SE's to several significant figures
-                // (independently verified). Diagnosis: SE's `SE_ECL_CENTRAL`
-                // is evidently a stricter "the Moon–target center-line axis
-                // exactly strikes the Earth" condition — distinct from "the
-                // target is fully covered somewhere" (`Total`) — analogous to
-                // a solar eclipse being `Total` without being `Central` (the
-                // umbral axis passes just outside Earth while the umbral cone
-                // still grazes the surface). Our engine's `central` is
-                // definitionally tied to the `Total`/`Grazing` split
-                // (`central` ⟺ `occ_type == Total`, per this task's own
-                // brief-recommended retie formula), so it cannot represent
-                // that distinction — this is a conceptual gap in
-                // `next_global_occultation`'s `central`/`occ_type` coupling,
-                // not a positional error the sub-lunar-point fix could
-                // resolve. Left measured/reported, NOT gated (gating an exact
-                // bool that provably still disagrees on real corpus rows
-                // would make the gate flaky/wrong, not stricter).
+                // `central` is now HARD-GATED for both PLANET and STAR rows
+                // (`central_planet_exact`/`central_star_exact` in
+                // `validate_occultations_corpus`) — see `KNOWN GAP 2
+                // (RESOLVED, SP-6-FU)` in the module doc for the full
+                // history. Prior to SP-6-FU, `central` was definitionally
+                // tied to `occ_type == Total`, which could not represent
+                // SE's stricter "exact center-line axis strikes the Earth"
+                // condition (`SE_ECL_CENTRAL`) and left Saturn's 2/6 planet
+                // glob rows unexplained, measured-but-ungated. SP-6-FU
+                // decoupled `central` from `occ_type` by porting SE's own
+                // closed-form axis-pierce test (`de·cosf1 >= r0`,
+                // `pleiades_events::occult::axis_pierce_central`), which
+                // collapsed the Saturn mismatch to 0/6 and is exact enough to
+                // hard-gate rather than merely measure.
                 //
-                // Correction 2b (discovered, not in the plan): `central` is
-                // compared/counted only for PLANET glob rows in the first
-                // place. Every star `glob` row in the committed corpus has
-                // `central=0` — SE structurally never sets SE_ECL_CENTRAL for
-                // a POINT-target global occultation. This matches our own
-                // engine's geometry: for a point target (`s_tgt_deg == 0`)
-                // the "found an occultation" threshold and the "central"
-                // threshold in `next_global_occultation` collapse to the SAME
-                // inequality (`s_moon_deg + pi_moon`), so our engine's
-                // `central` is definitionally `true` whenever it finds a star
-                // glob event at all — comparing that degenerate always-true
-                // flag against SE's always-false one would be tautological.
+                // Correction 2b's degenerate always-true star `central`
+                // (which used to make a star comparison tautological, since a
+                // point target's "found" and "central" thresholds collapsed
+                // to the same inequality under the old `occ_type`-tied
+                // formula) no longer applies now that `central` is the
+                // axis-pierce test — so star `glob` rows are compared too
+                // (measured 0/12 mismatched in the committed corpus) and
+                // hard-gated identically to planet rows.
                 if !is_star {
                     let expected_central = central != 0;
                     m.central_planet_checked += 1;
                     if rec.central != expected_central {
                         m.central_planet_mismatched += 1;
+                    }
+                } else {
+                    let expected_central = central != 0;
+                    m.central_star_checked += 1;
+                    if rec.central != expected_central {
+                        m.central_star_mismatched += 1;
                     }
                 }
             }
@@ -1115,16 +1156,17 @@ fn check_metric(
 /// Seven metrics are gated by numeric ceiling: `contact_seconds`,
 /// `contact_seconds_grazing`, `star_magnitude_abs`, `star_obscuration_abs`,
 /// `planet_magnitude_rel`, `sublunar_arcmin` (Task 15), and
-/// `planet_obscuration_rel_grazing` (Task 15). An eighth is gated by pinned
-/// COUNT rather than per-row: `miss_classify_disagree` (SP-6,
+/// `planet_obscuration_rel_grazing` (Task 15). Two more are gated exact-bool
+/// (SP-6-FU, `KNOWN GAP 2 (RESOLVED)`): `central_planet_exact` and
+/// `central_star_exact` fail closed on ANY planet or star glob row where
+/// `central` disagrees with SE's `SE_ECL_CENTRAL`. A tenth is gated by
+/// pinned COUNT rather than per-row: `miss_classify_disagree` (SP-6,
 /// [`MAX_MISS_CLASSIFICATION_DISAGREEMENTS`]) — see `KNOWN GAP 3` in the
-/// module doc. `planet_obscuration_{abs,rel}` (Total-inclusive) and the
-/// planet `central` comparison are measured/counted and reported (see
-/// [`OccultReport`]'s field docs) but deliberately NOT gated at all — see
-/// `KNOWN GAP 1`/`KNOWN GAP 2` in the module doc for why: gating planet Total
-/// obscuration would be vacuous (a different physical quantity at that size
-/// ratio), and gating `central` exact would fail on Saturn's genuine,
-/// diagnosed SE/engine semantic difference rather than catch a regression.
+/// module doc. `planet_obscuration_{abs,rel}` (Total-inclusive) remain
+/// measured/counted and reported (see [`OccultReport`]'s field docs) but
+/// deliberately NOT gated at all — see `KNOWN GAP 1` in the module doc for
+/// why: gating planet Total obscuration would be vacuous (a different
+/// physical quantity at that size ratio).
 pub fn validate_occultations_corpus() -> Result<OccultReport, OccultError> {
     let m = measure()?;
 
@@ -1151,6 +1193,38 @@ pub fn validate_occultations_corpus() -> Result<OccultReport, OccultError> {
         &m.planet_obscuration_rel_grazing,
         PLANET_OBSCURATION_REL,
     )?;
+
+    // KNOWN GAP 2 (resolved, SP-6-FU): `central` is now SE's axis-pierce
+    // test and must match SE exactly on every planet glob row.
+    if m.central_planet_mismatched > 0 {
+        return Err(OccultError::ToleranceExceeded {
+            metric: "central_planet_exact",
+            label: format!(
+                "{} of {} planet glob rows mismatched SE's SE_ECL_CENTRAL",
+                m.central_planet_mismatched, m.central_planet_checked
+            ),
+            jd: f64::NAN,
+            residual: m.central_planet_mismatched as f64,
+            ceiling: 0.0,
+        });
+    }
+
+    // Star glob rows (Task 3, SP-6-FU): measured exact (0/12 mismatched in
+    // the committed corpus) now that `central` is the axis-pierce test
+    // rather than the degenerate always-true flag Correction 2b excluded —
+    // so this is hard-gated too, same shape as `central_planet_exact`.
+    if m.central_star_mismatched > 0 {
+        return Err(OccultError::ToleranceExceeded {
+            metric: "central_star_exact",
+            label: format!(
+                "{} of {} star glob rows mismatched SE's SE_ECL_CENTRAL",
+                m.central_star_mismatched, m.central_star_checked
+            ),
+            jd: f64::NAN,
+            residual: m.central_star_mismatched as f64,
+            ceiling: 0.0,
+        });
+    }
 
     // KNOWN GAP 3: the COUNT of sibling-anchored geometric-miss rows that
     // disagree with SE (engine Total, SE Miss, at the real conjunction) is
