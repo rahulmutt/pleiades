@@ -204,10 +204,10 @@
 //! `eclipse_where`: `de·cosf1 >= r0`, the perpendicular distance from
 //! geocenter to the Moon–target axis compared against an angular-radius-
 //! derived threshold), so a bounded future task can decouple `central` from
-//! `occ_type` and implement that exact test. `central_planet_{checked,
-//! mismatched}` remain measured/reported but NOT hard-gated (Correction 2b,
-//! above, still applies unchanged: star `glob` rows are excluded from the
-//! comparison entirely).
+//! `occ_type` and implement that exact test. At the time of the SP-6 diagnosis,
+//! `central_planet_{checked, mismatched}` remained measured/reported but not
+//! hard-gated, and Correction 2b excluded star `glob` rows from the comparison
+//! entirely — both since superseded (see RESOLVED below).
 //!
 //! **RESOLVED (SP-6-FU):** the deferred fix above has been implemented. The
 //! engine now ports `eclipse_where`'s own `de·cosf1 >= r0` axis-pierce test
