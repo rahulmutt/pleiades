@@ -74,7 +74,8 @@ pub use fixstar::{fixed_star_apparent, fixed_star_entry, FixedStarEntry};
 pub use horizontal::{Horizontal, HorizontalInput};
 pub use nod_aps::{ApsisConvention, NodApsMethod, NodApsPoint, NodesApsides};
 pub use occult::{
-    GlobalOccultation, LocalOccultation, OccultTarget, OccultationContact, OccultationType,
+    GlobalOccultation, LocalOccultation, OccultStageDiagnostics, OccultTarget, OccultationContact,
+    OccultationType,
 };
 pub use pheno::PhenoData;
 pub use rise_trans::{DiscMode, RiseSet, RiseSetEvent, RiseSetOptions, RiseSetTarget};

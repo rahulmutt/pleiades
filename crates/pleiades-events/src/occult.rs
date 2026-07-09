@@ -72,6 +72,40 @@ pub struct LocalOccultation {
     pub any_phase_visible: bool,
 }
 
+/// Stage-by-stage intermediates of the topocentric occultation pipeline at
+/// one instant, for differential comparison against Swiss Ephemeris — the
+/// KNOWN GAP 3 diagnosis surface. Not a stable API.
+#[doc(hidden)]
+#[derive(Debug, Clone)]
+pub struct OccultStageDiagnostics {
+    /// ΔT seconds used for the UT1-rotated sidereal time at `jd`.
+    pub delta_t_seconds: f64,
+    /// Whether ΔT came from the extrapolated (post-2020) branch.
+    pub delta_t_predicted: bool,
+    /// Geocentric apparent equatorial-of-date Moon (ra deg, dec deg, dist au).
+    pub moon_geo: (f64, f64, f64),
+    /// Topocentric Moon (ra deg, dec deg, dist au).
+    pub moon_topo: (f64, f64, f64),
+    /// Geocentric target (ra deg, dec deg).
+    pub target_geo: (f64, f64),
+    /// Topocentric target (ra deg, dec deg) — identical to geocentric for a star.
+    pub target_topo: (f64, f64),
+    /// Topocentric lunar semidiameter, degrees.
+    pub s_moon_deg: f64,
+    /// Target semidiameter, degrees (0 for a star).
+    pub s_tgt_deg: f64,
+    /// Topocentric Moon–target separation, degrees.
+    pub sep_topo_deg: f64,
+    /// `sep_topo_deg − (s_moon_deg + s_tgt_deg)`: positive ⇒ Miss at `jd`.
+    pub graze_margin_deg: f64,
+    /// Instant minimizing the topocentric separation within ±0.15 d of `jd`.
+    pub refined_max_jd: f64,
+    /// The graze margin at `refined_max_jd`.
+    pub refined_margin_deg: f64,
+    /// `classify()` at `refined_max_jd` — the quantity KNOWN GAP 3 disputes.
+    pub occultation_type: OccultationType,
+}
+
 /// Global circumstances (`when_glob`): the greatest-occultation instant and
 /// the central-observation point (geographic point of minimum topocentric
 /// Moon–target separation) where it is central/greatest. NOT the full path
@@ -697,6 +731,47 @@ impl<B: EphemerisBackend> EventEngine<B> {
             }
         }
         Ok(0.5 * (a + b))
+    }
+
+    /// Stage dump at `jd` (TDB) for `observer` — see [`OccultStageDiagnostics`].
+    #[doc(hidden)]
+    pub fn occult_stage_diagnostics(
+        &self,
+        target: &OccultTarget,
+        observer: &ObserverLocation,
+        jd: f64,
+    ) -> Result<OccultStageDiagnostics, EventError> {
+        self.validate_occult_target(target)?;
+        let (dt_sec, quality) = pleiades_time::deltat::delta_t(jd)
+            .map_err(|e| EventError::Backend(format!("delta_t failed: {e}")))?;
+        let (moon_g, tgt_g) = self.moon_target_radec(target, None, jd)?;
+        let (moon_t, tgt_t) = self.moon_target_radec(target, Some(observer), jd)?;
+        let moon_geo_dist = self.body_distance_au(&CelestialBody::Moon, None, jd)?;
+        let moon_topo_dist = self.body_distance_au(&CelestialBody::Moon, Some(observer), jd)?;
+        let g = self.occ_geom(target, Some(observer), jd)?;
+        let margin = g.sep_deg - (g.s_moon_deg + g.s_tgt_deg);
+        let refined_max_jd = self.minimize_occ_sep(
+            target,
+            observer,
+            (jd - OCC_CONTACT_HALF_WINDOW_DAYS).max(WINDOW_START_JD),
+            (jd + OCC_CONTACT_HALF_WINDOW_DAYS).min(WINDOW_END_JD),
+        )?;
+        let g_ref = self.occ_geom(target, Some(observer), refined_max_jd)?;
+        Ok(OccultStageDiagnostics {
+            delta_t_seconds: dt_sec,
+            delta_t_predicted: quality == pleiades_time::DeltaTQuality::Predicted,
+            moon_geo: (moon_g.0, moon_g.1, moon_geo_dist),
+            moon_topo: (moon_t.0, moon_t.1, moon_topo_dist),
+            target_geo: tgt_g,
+            target_topo: tgt_t,
+            s_moon_deg: g.s_moon_deg,
+            s_tgt_deg: g.s_tgt_deg,
+            sep_topo_deg: g.sep_deg,
+            graze_margin_deg: margin,
+            refined_max_jd,
+            refined_margin_deg: g_ref.sep_deg - (g_ref.s_moon_deg + g_ref.s_tgt_deg),
+            occultation_type: classify(&g_ref),
+        })
     }
 
     /// Bisect `sep(t) − threshold` between `lo` and `hi`; `None` if no sign change.
