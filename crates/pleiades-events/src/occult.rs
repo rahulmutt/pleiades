@@ -270,6 +270,60 @@ mod geom_tests {
     }
 }
 
+#[cfg(test)]
+mod axis_pierce_tests {
+    use super::*;
+
+    /// Moon 0.00257 AU up the +x axis, target 1 AU up the +x axis: the
+    /// shadow axis runs straight through the geocenter -> central.
+    #[test]
+    fn axis_through_geocenter_is_central() {
+        let rm = [0.00257, 0.0, 0.0];
+        let rs = [1.0, 0.0, 0.0];
+        assert!(axis_pierce_central(rm, rs, 0.0));
+    }
+
+    /// Perpendicular Moon offsets around the Earth-radius threshold. The
+    /// axis-geocenter distance is ~offset * 1.0026 (the axis diverges
+    /// slightly as it extends from the Moon toward Earth), so 4000 km is
+    /// comfortably inside de = 6378.14 km and 9000 km comfortably outside.
+    #[test]
+    fn axis_offset_thresholds() {
+        let rs = [1.0, 0.0, 0.0];
+        let near = [0.00257, 4_000.0 / AU_KM, 0.0];
+        let far = [0.00257, 9_000.0 / AU_KM, 0.0];
+        assert!(
+            axis_pierce_central(near, rs, 0.0),
+            "4000 km offset must pierce"
+        );
+        assert!(
+            !axis_pierce_central(far, rs, 0.0),
+            "9000 km offset must miss"
+        );
+    }
+
+    /// SE stretches z by 1/(1 - 1/298.25642) (+0.336%) before the pierce
+    /// test. A 6350 km offset lands INSIDE the threshold along y
+    /// (6350 * 1.0026 = 6366.5 < 6378.1) but OUTSIDE along z
+    /// (6350 / 0.996647 * 1.0026 = 6387.9 > 6378.1) - the oblateness
+    /// handling is what discriminates.
+    #[test]
+    fn oblateness_z_stretch_discriminates() {
+        let rs = [1.0, 0.0, 0.0];
+        let off = 6_350.0 / AU_KM;
+        assert!(axis_pierce_central([0.00257, off, 0.0], rs, 0.0));
+        assert!(!axis_pierce_central([0.00257, 0.0, off], rs, 0.0));
+    }
+
+    /// Fail closed: non-finite input is never central.
+    #[test]
+    fn non_finite_fails_closed() {
+        let rs = [1.0, 0.0, 0.0];
+        assert!(!axis_pierce_central([f64::NAN, 0.0, 0.0], rs, 0.0));
+        assert!(!axis_pierce_central([0.00257, f64::INFINITY, 0.0], rs, 0.0));
+    }
+}
+
 use crate::crossings::EventEngine;
 use crate::ephemeris::{geocentric_apparent_ecliptic, geocentric_apparent_longitude_deg};
 use crate::error::{EventError, WINDOW_END_JD, WINDOW_START_JD};
@@ -293,6 +347,46 @@ const R_EARTH_KM: f64 = 6_378.137;
 /// ~0.27° semidiameter + ~0.95° horizontal parallax ≈ 6.6°. A star beyond this
 /// |ecliptic latitude| can never be occulted from anywhere on Earth.
 pub(crate) const MOON_MAX_REACH_DEG: f64 = 6.6;
+
+/// Swiss Ephemeris `eclipse_where` constants (swecl.c / sweph.h), used by the
+/// `central` axis-pierce test only. SE's Earth radius (`de = 6378140 m`) and
+/// Moon radius (`RMOON = DMOON/2 = 3476300/2 m`) differ slightly from this
+/// module's own `R_EARTH_KM`/`R_MOON_KM`; the SE values are used here so the
+/// ported test is bit-faithful to SE's own thresholds.
+pub(crate) const SE_EARTH_RADIUS_AU: f64 = 6_378.140 / AU_KM;
+/// SE Earth oblateness (sweph.h, AA 2006 K6 value): 1/298.25642.
+pub(crate) const SE_EARTH_OBLATENESS: f64 = 1.0 / 298.25642;
+/// SE Moon radius in AU (swecl.c `RMOON`).
+pub(crate) const SE_R_MOON_AU: f64 = 3_476.3 / 2.0 / AU_KM;
+
+/// Swiss Ephemeris `SE_ECL_CENTRAL` axis-pierce test, ported exactly from
+/// `swecl.c`'s `eclipse_where` (the routine behind `swe_lun_occult_where`):
+/// stretch both z-coordinates by `1/(1 − oblateness)` (SE corrects the
+/// bodies instead of flattening the Earth), form the shadow axis through the
+/// Moon along the target→Moon direction, and report whether the axis'
+/// perpendicular distance from the geocenter `r0 = sqrt(dm² − s0²)` is
+/// within `de·cosf1`. Inputs are geocentric apparent equatorial-of-date
+/// Cartesian AU. Fail-closed: any non-finite intermediate → `false`.
+fn axis_pierce_central(mut rm: [f64; 3], mut rs: [f64; 3], drad_au: f64) -> bool {
+    let earthobl = 1.0 - SE_EARTH_OBLATENESS;
+    rm[2] /= earthobl;
+    rs[2] /= earthobl;
+    let dm = (rm[0] * rm[0] + rm[1] * rm[1] + rm[2] * rm[2]).sqrt();
+    let e = [rm[0] - rs[0], rm[1] - rs[1], rm[2] - rs[2]];
+    let dsm = (e[0] * e[0] + e[1] * e[1] + e[2] * e[2]).sqrt();
+    if !(dsm.is_finite() && dsm > 0.0 && dm.is_finite()) {
+        return false;
+    }
+    let e = [e[0] / dsm, e[1] / dsm, e[2] / dsm];
+    let sinf1 = (drad_au - SE_R_MOON_AU) / dsm;
+    let cosf1 = (1.0 - sinf1 * sinf1).max(0.0).sqrt();
+    let s0 = -(rm[0] * e[0] + rm[1] * e[1] + rm[2] * e[2]);
+    let r0 = (dm * dm - s0 * s0).max(0.0).sqrt();
+    if !r0.is_finite() {
+        return false;
+    }
+    SE_EARTH_RADIUS_AU * cosf1 >= r0
+}
 
 impl<B: EphemerisBackend> EventEngine<B> {
     /// Apparent equatorial-of-date RA/Dec (degrees) of the Moon and the target at
