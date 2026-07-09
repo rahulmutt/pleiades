@@ -163,10 +163,74 @@ our geometry reproduces SE's swe_calc margin, and SE's Miss is a visibility/cont
 Every genuine row is accounted for by (i) our geometry matching SE's swe_calc, plus (ii) the target being
 below the observer's horizon at the event — i.e. an SE `when_loc` visibility verdict, not a numerical residual.
 
+## SE source confirmation (direct read of swecl.c) — CONFIRMED
+
+Source: `~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libswisseph-sys-0.1.2/libswisseph/swecl.c`
+(Swiss Ephemeris 2.10.03, the exact vendored library the corpus was generated against).
+
+`swe_lun_occult_when_loc` (swecl.c:2071) delegates to `occult_when_loc` (swecl.c:2412). That function:
+
+1. Finds the conjunction and minimizes the **topocentric** separation at THIS observer (swecl.c:2500–2533,
+   with `iflag = SEFLG_TOPOCTR | ifl`, swecl.c:2432).
+2. Geometric miss test at the observer's own maximum (swecl.c:2551–2555):
+   ```c
+   if (dctr > rsplusrm) {
+     if (one_try) { tret[0] = tjd + direction; return 0; }
+   ```
+   Our 7 deep-overlap rows do NOT exit here — our refined margin matches SE's geometry (both negative), so SE
+   passes this test, sets `retflag = SE_ECL_TOTAL/PARTIAL` (swecl.c:2574–2579), and computes contacts C1–C4.
+3. **The visibility gate** (swecl.c:2700–2732) — the condition that produces our miss rows:
+   ```c
+   /* visibility of eclipse phases */
+   for (i = 4; i >= 0; i--) {          /* tret[0]=max, tret[1..4]=C1..C4 */
+     if (tret[i] == 0) continue;
+     if (eclipse_how(tret[i], ipl, starname, ifl, geopos..., attr, serr) == ERR) return ERR;
+     if (attr[6] > 0) {  /* this is save, sun above horizon (using app. alt.) */
+       retflag |= SE_ECL_VISIBLE;
+       switch(i) { case 0: retflag |= SE_ECL_MAX_VISIBLE; ... }
+     }
+   }
+   if (!(retflag & SE_ECL_VISIBLE)) {
+     if (one_try) { tret[0] = tjd + direction; return 0; }   /* swecl.c:2725-2727 */
+     t = tjd + direction * 20; tjd = t; goto next_try;
+   }
+   ```
+   `attr[6]` is the occulted TARGET's **apparent (refracted) altitude** above the horizon: `eclipse_how`
+   computes it via `swe_azalt(tjd_ut, SE_EQU2HOR, geopos, 0, 10, ls, xh)` on the target position `ls`
+   (swecl.c:1028) and stores `attr[5] = xh[1] /* true alt */; attr[6] = xh[2] /* apparent alt */`
+   (swecl.c:1122–1123; header doc swecl.c:602–603: "true/apparent altitude of object above horizon").
+   So an occultation whose maximum AND all four contacts occur with the target's apparent altitude ≤ 0 is
+   suppressed — **retflag 0 under ONE_TRY**. (For stars, C1=C2 and C4=C3, swecl.c:2696–2699, so effectively
+   3 distinct instants are tested.)
+
+**Corpus-generator call path** (`tools/se-occultations-reference/src/main.rs`, `compute_loc`, lines 367–405):
+`swe_lun_occult_when_loc(start_ut, ipl, star, IFLAG, geopos, tret, attr, SE_ECL_ONE_TRY, serr)`; on `ret == 0`
+it records `occ_type: 0, max_jd: -1.0, hit: false` — exactly the corpus `@miss` rows. This path goes straight
+through `occult_when_loc` and therefore **includes the visibility gate**. For the 7 below-horizon rows the
+exit is the gate at swecl.c:2723–2728 (not the geometric test at 2551, which they pass with deep overlap);
+for the Spica 2005.7 knife-edge the geometric test at SE's own maximum is the plausible exit.
+
+**Question (4) — different time/observer, or no event?** Under `SE_ECL_ONE_TRY` (what the corpus used): **no
+event at all for this observer at this conjunction** — the gate's one_try arm returns 0 immediately
+(`tret[0]` is only a hint date for a subsequent call). Without ONE_TRY, the `goto next_try` arm jumps
+`t += 20 days` and searches for a *different, later conjunction* visible at this same observer — it never
+returns the current below-horizon event at a shifted time and never moves the observer. Matching SE therefore
+means gating our classification on the target's **apparent altitude > 0 at ANY of {max, C1, C2, C3, C4}**
+(classify Miss iff apparent altitude ≤ 0 at all of them) — not a subtler contact-time reshuffling. A max-only
+altitude gate is a close approximation; the exact SE rule tests all five instants, so a target that rises
+between C1 and C4 counts as visible.
+
+Consistency with the altitude table above: my true-altitude estimates at max were −0.9° to −2.3°. SE tests
+*apparent* altitude (higher by ≤ ~0.57° at the horizon), so the two marginal rows (−0.9°/−1.0° true) remain
+below 0 apparent, and at high latitude the altitude changes too slowly across C1..C4 to lift the target above
+the horizon. The 7/8 below-horizon correlation is fully explained by the quoted gate.
+
 ## Verdict
 
 **Failing stage: classification / visibility semantics — NOT (a) timing, NOT (b) transform/apparent, NOT (c)
-ephemeris source.** This is the Step-5 fourth outcome: "the topocentric comparison itself is sound but the
+ephemeris source. CONFIRMED by direct SE source read: the `attr[6] > 0` apparent-altitude visibility gate in
+`occult_when_loc` (swecl.c:2700–2732) suppresses these events; see section above.** This is the Step-5 fourth
+outcome: "the topocentric comparison itself is sound but the
 classification threshold differs." Our purely geometric occultation classifier lacks the above-horizon
 visibility gate that SE's `swe_lun_occult_when_loc` applies; at high geographic latitude the graze-boundary
 events fall just below the observer's horizon (−0.9° to −2.3°), so SE reports no visible occultation while we
@@ -175,8 +239,10 @@ report Total.
 **Fix branch for Task 8:** Disposition matches **(c)** — the ephemeris, transform, and ΔT are all correct and
 agree with SE, so *do not* change any engine numerics. But the concrete action is a **classifier-level fix**
 (closest to a "(b)-style" our-side logic change, in the classification layer, **not** the apparent-place
-transform): gate the occultation classification / the SE-differential comparison on target altitude ≥ 0 (with
-whatever refraction margin `when_loc` uses) to match `swe_lun_occult_when_loc`'s visibility semantics; and/or
+transform): gate the occultation classification / the SE-differential comparison on the target's apparent
+(refracted) altitude > 0 at any of {max, C1..C4} — the exact `occult_when_loc` rule (swecl.c:2703–2732,
+`attr[6]` from `swe_azalt` with default 1013.25 hPa / 10 °C) — to match `swe_lun_occult_when_loc`'s
+visibility semantics; and/or
 formally document KNOWN GAP 3 as an inherent geometric-classify-vs-visible-`when_loc` methodology difference,
 and correct the differential fixture's borrowed-anchor artifact (compare at the observer's own closest
 approach, not the sibling conjunction). The knife-edge rows plus Spica 2005.7 remain out of scope.
@@ -187,10 +253,11 @@ approach, not the sibling conjunction). The knife-edge rows plus Spica 2005.7 re
   (3.7–11.6′). Current numbers give **2** rows with |seMargin| ≤ 1′ (Aldebaran −0.875, Regulus −0.236) and
   **6** with |seMargin| > 1′ (range 3.1–7.2′). Total disagreements unchanged at **8/18**. The margins drifted
   slightly because this branch added the central axis-pierce refinement; the verdict is unaffected.
-- **Visibility mechanism is strong circumstantial, not a direct SE-source read.** I did not instrument SE's
-  `when_loc` internals; the conclusion rests on (i) the 7/8 below-horizon correlation, (ii) SE's internal
-  swe_calc-vs-when_loc inconsistency at the anchor. My altitude calc uses approximate GMST/ΔT (±~0.5°); the two
-  marginal rows (~−1.0°) could sit within uncertainty of the horizon, but 5 rows are clearly below (−1.5 to
-  −2.3°) and the overall pattern is unambiguous.
+- **Visibility mechanism now source-confirmed** (see "SE source confirmation" section): the initial evidence
+  was circumstantial (7/8 below-horizon correlation + SE's internal swe_calc-vs-when_loc inconsistency at the
+  anchor); the direct read of `occult_when_loc` (swecl.c:2700–2732) confirmed the `attr[6] > 0`
+  apparent-altitude gate. Residual approximation: my altitude table uses approximate GMST/ΔT (±~0.5°) and
+  true (not apparent) altitude at max only, while SE tests apparent altitude at max + C1..C4; this does not
+  change any row's below-horizon status.
 - **Spica 2005.7** is above the horizon yet disagrees — but its `ourMargin` is −0.005′ (a true knife-edge), so
   it is not a genuine deep disagreement.
