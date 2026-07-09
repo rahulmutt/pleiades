@@ -138,10 +138,31 @@ zero, both matching SE's own `swe_pheno` behavior; gated by the fail-closed
 Swiss-Ephemeris Moshier corpus (10 majors x 8 epochs); phase angle
 ≤85.0″ (max 57.79″), elongation ≤30.0″ (max 20.97″), illuminated fraction
 ≤2e-4 (max 1.2e-4), apparent diameter ≤0.3″ (max 0.19″), apparent magnitude
-≤0.004 (max 0.0023) with a separate Saturn carve-out ≤0.0006 (max 0.0004))
-are all **done**. Next candidate slices:
+≤0.004 (max 0.0023) with a separate Saturn carve-out ≤0.0006 (max 0.0004)),
+and SP-6 (lunar occultations — `EventEngine::occultation`/`next_occultation`/
+`previous_occultation`/`next_global_occultation`, `swe_lun_occult_when_loc`/
+`swe_lun_occult_when_glob` analogues (SE has no separate `swe_lun_occult_how`
+call; `occultation`'s local circumstances are validated against
+`when_loc`'s returned `attr`), for the Moon occulting planets Mercury-Pluto
+and curated fixed stars; `next_global_occultation` reports a single
+central-observation point (geographic point of minimum topocentric
+Moon-target separation), not the full central-path polygon; gated by the
+fail-closed `validate-occultations` gate (aliases `validate-occultations`/
+`occultations`/`occult-gate`) over a committed 62-row Swiss-Ephemeris corpus
+(checksum-guarded, pinned by row count); measured accuracy — contact/maximum
+instants ≤65.0 s well-conditioned (max 46.44 s) / ≤995.0 s grazing (max
+710.03 s, ill-conditioned near-tangent limb geometry), star magnitude/
+obscuration exact SE parity (max 0.0), planet magnitude ≤7% relative (max
+4.89%), global sub-lunar central-observation point ≤30.0′ (max 20.22′,
+Antares), planet-grazing obscuration ≤7% relative (max 4.93%); two known
+bounds deliberately not gated — planet-total obscuration (SE's `attr[2]`
+for a fully-covered planet is a different, coverage-depth quantity a
+bounded `[0,1]` area fraction cannot and should not reach) and the planet
+`central` boolean flag (measured but not gated, a narrow-margin discrepancy
+on 2 of 6 Saturn global rows)) are all **done**. Next candidate slices:
 
+- Central-path cartography (now also encompassing the sub-lunar
+  central-observation axis-pierce refinement and the occultation
+  `central`-flag exactness).
 - Custom fictitious-body orbital elements (user-supplied, beyond the
   committed `seorbel.txt` set).
-- Occultations.
-- Central-path cartography for solar eclipses.

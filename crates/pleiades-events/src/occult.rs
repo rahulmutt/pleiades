@@ -591,9 +591,13 @@ impl<B: EphemerisBackend> EventEngine<B> {
     }
 
     /// Local circumstances of a lunar occultation of `target` for `observer` at
-    /// (or around) `at` — Swiss Ephemeris `swe_lun_occult_how` analogue. Returns
-    /// full circumstances even when the target is below the horizon; the
-    /// `occultation_type` is `Miss` when no contact occurs for this observer.
+    /// (or around) `at` — the local-circumstances ("how") analogue. Swiss
+    /// Ephemeris exposes no separate `swe_lun_occult_how` call (it does not
+    /// exist in the SE API); this is validated against the `attr` (magnitude,
+    /// obscuration, contact instants) that `swe_lun_occult_when_loc` returns.
+    /// Returns full circumstances even when the target is below the horizon;
+    /// the `occultation_type` is `Miss` when no contact occurs for this
+    /// observer.
     pub fn occultation(
         &self,
         target: OccultTarget,

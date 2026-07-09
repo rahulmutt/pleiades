@@ -4,6 +4,12 @@
 //! The engine is generic over any [`pleiades_backend::EphemerisBackend`] and,
 //! like `pleiades-eclipse`, works in TDB over the 1900–2100 CE packaged window.
 //!
+//! Lunar occultations of a planet (Mercury–Pluto) or a curated fixed star are
+//! covered by [`EventEngine::occultation`] (local circumstances),
+//! [`EventEngine::next_occultation`]/[`EventEngine::previous_occultation`]
+//! (per-observer search), and [`EventEngine::next_global_occultation`]
+//! (global search for the central-observation point).
+//!
 //! ## Example
 //!
 //! ```rust
