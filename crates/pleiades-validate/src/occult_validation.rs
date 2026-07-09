@@ -944,19 +944,37 @@ fn measure() -> Result<Measured, OccultError> {
                             .map_err(|e| {
                                 OccultError::Engine(format!("{label} ({sibling_max_jd}): {e}"))
                             })?;
-                        // KNOWN GAP 3: NOT hard-failed per-row. A diagnosed,
-                        // bounded subset of these disagree with SE (engine
-                        // Total, SE Miss) near the graze limit at high
-                        // geographic latitude — see the module doc. The
-                        // per-row `Miss` check IS still meaningful (it now
-                        // runs at the REAL conjunction, not a vacuous
+                        // KNOWN GAP 3: NOT hard-failed per-row. SE's
+                        // `swe_lun_occult_when_loc` (vendored swecl.c:
+                        // 2700-2732) folds VISIBILITY into event existence:
+                        // it reports Miss whenever the occulted target's
+                        // apparent (refracted) altitude is <= 0 at every one
+                        // of {max, C1..C4}, even when the geometry is a real
+                        // occultation. Our engine deliberately keeps these
+                        // separate — `occultation_type` is a pure geometric
+                        // verdict, and `any_phase_visible` (continuous
+                        // 30-second scan of apparent altitude over
+                        // [C1, C4] — occult.rs ~line 891) reports visibility
+                        // independently. So the like-for-like ("SE-
+                        // equivalent Miss") comparison is "geometric Miss OR
+                        // no phase visible" — see
+                        // docs/superpowers/notes/2026-07-09-sp6-fu-graze-diagnosis.md.
+                        // A residual mapping delta remains possible: our
+                        // continuous scan can find a brief above-horizon
+                        // interval between contacts that SE's 5-instant
+                        // sample misses, so it can report `any_phase_visible
+                        // = true` where SE reports Miss; such rows still
+                        // disagree here and are counted. The per-row check
+                        // now runs at the REAL conjunction (not a vacuous
                         // half-day-early anchor) for the majority that DO
                         // agree; the minority that don't are counted here and
                         // the COUNT is pinned fail-closed against regression
                         // by `MAX_MISS_CLASSIFICATION_DISAGREEMENTS` in
                         // `validate_occultations_corpus`.
                         m.miss_classify_checked += 1;
-                        if rec.occultation_type != OccultationType::Miss {
+                        let se_equivalent_miss =
+                            rec.occultation_type == OccultationType::Miss || !rec.any_phase_visible;
+                        if !se_equivalent_miss {
                             m.miss_classify_disagree += 1;
                         }
                     }
