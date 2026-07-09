@@ -218,19 +218,20 @@
 //! geometric-miss observers checked this way, our engine classifies 8 as
 //! `Total` where SE reports `Miss`.
 //!
-//! Diagnosis (settled, not a target for this task): 3 of the 8 are
-//! knife-edge — SE's own graze-boundary margin there is <= 1 arcminute, and
-//! the corpus generator places the "miss" observer only 0.25° past that
-//! boundary, well within the pair's own measurement noise. The remaining 5
-//! are a genuine disagreement, with margins 3.7-11.6 arcminutes: our
-//! topocentric occultation track is measurably too WIDE at some high
-//! geographic-latitude events, so we include observers as occulted that SE
-//! excludes. This is NOT the parallax formula (independently checked); the
-//! root cause is unknown, with the epoch/region ephemeris source or
-//! UT1/timing handling suspected — root-causing and fixing it is a
-//! follow-up, not this task. Deep-`Total` and clear-`Miss` cases DO agree
-//! with SE closely: contact instants to within tens of seconds
-//! (`contact_seconds`/`contact_seconds_grazing`, gated) and star magnitude
+//! Diagnosis: the split of the 8 rows into two categories IS settled (not a
+//! target for further work). 3 of the 8 are knife-edge — SE's own
+//! graze-boundary margin there is <= 1 arcminute, and the corpus generator
+//! places the "miss" observer only 0.25° past that boundary, well within the
+//! pair's own measurement noise. The remaining 5 are a genuine disagreement,
+//! with margins 3.7-11.6 arcminutes: our topocentric occultation track is
+//! measurably too WIDE at some high geographic-latitude events, so we
+//! include observers as occulted that SE excludes. What is NOT settled is
+//! the ROOT CAUSE of those 5 genuine disagreements: it is NOT the parallax
+//! formula (independently checked), and the epoch/region ephemeris source or
+//! UT1/timing handling is suspected but unconfirmed — root-causing and
+//! fixing it is an open follow-up, not this task. Deep-`Total` and
+//! clear-`Miss` cases DO agree with SE closely: contact instants to within
+//! tens of seconds (`contact_seconds`/`contact_seconds_grazing`, gated) and star magnitude
 //! exactly (`star_magnitude_abs`, gated) — the disagreement is specific to
 //! classification right at the graze boundary, not a general timing or
 //! geometry error.
@@ -688,6 +689,14 @@ type MissSiblingKey = (i64, String, String);
 /// all) is simply absent from the map — that absence is exactly the
 /// un-occultable-target signal the geometric-miss branch below checks for.
 fn build_miss_sibling_anchors(csv: &str) -> Result<BTreeMap<MissSiblingKey, f64>, OccultError> {
+    // For planet groups (Venus/Jupiter/Saturn), the `@center` (occ_type 2)
+    // and `@graze` (occ_type 1) rows share the identical `(se_body, star,
+    // jd_tt)` key, so this insert is last-write-wins (currently `@graze`,
+    // whichever comes later in the CSV). That's intentional and harmless:
+    // both candidate `max_jd` anchors sit well inside `occultation()`'s
+    // ±0.15-day self-refining search window, so either sibling is a valid
+    // anchor for the real conjunction — there is no single "the" unambiguous
+    // sibling per group, and it doesn't matter which one wins.
     let mut map = BTreeMap::new();
     for line in csv.lines() {
         let line = line.trim();
