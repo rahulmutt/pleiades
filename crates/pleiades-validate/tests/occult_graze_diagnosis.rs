@@ -56,7 +56,7 @@ fn graze_boundary_differential_table() {
     ]);
     let engine = EventEngine::new(backend);
 
-    eprintln!("row                    dt_diff_s  geoMoon\" topoMoon\" topoTgt\"  sdMoon\" ourMargin'  seMargin'    type flag");
+    eprintln!("row                    dt_diff_s  geoMoon\" topoMoon\"  topoTgt\"  sdMoon\" ourMargin' seMargin'    type flag");
     let mut rows = 0usize;
     let mut disagreements = 0usize;
     for line in FIXTURE.lines().map(str::trim) {
