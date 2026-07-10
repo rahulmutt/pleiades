@@ -258,9 +258,7 @@ fn release_house_validation_summary_and_alias_render_directly_from_the_cli() {
 #[test]
 fn chart_help_text_spells_out_the_shared_request_policy() {
     let help = render_chart(&["--help"]).expect("chart help should render");
-    let request_policy = pleiades_core::request_policy_summary_for_report()
-        .validated_summary_line()
-        .expect("request policy should validate");
+    let request_policy = pleiades_validate::validated_request_policy_summary_for_report();
     assert!(help.contains(&shared_request_policy_help_block()));
     assert!(help.contains(&format!("Request policy: {request_policy}")));
     assert!(help.contains(&format!("Request semantics summary: {request_policy}")));

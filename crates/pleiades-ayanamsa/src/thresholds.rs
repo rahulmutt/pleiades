@@ -102,18 +102,6 @@ pub fn ayanamsa_mode_class(ayanamsa: &Ayanamsa) -> Option<AyanamsaModeClass> {
     }
 }
 
-/// Compact release-facing summary of the mode-class ceilings.
-pub fn ayanamsa_thresholds_summary_for_report() -> String {
-    let off = ayanamsa_mode_ceiling(AyanamsaModeClass::OffsetDefined);
-    let star = ayanamsa_mode_ceiling(AyanamsaModeClass::TrueStar);
-    let gal = ayanamsa_mode_ceiling(AyanamsaModeClass::Galactic);
-    let fit = ayanamsa_mode_ceiling(AyanamsaModeClass::FittedOffset);
-    format!(
-        "Ayanamsa ceilings: offset-defined {:.1}\u{2033}, true-star {:.1}\u{2033}, galactic {:.1}\u{2033}, fitted-offset {:.1}\u{2033}",
-        off.offset_arcsec, star.offset_arcsec, gal.offset_arcsec, fit.offset_arcsec
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -182,18 +170,6 @@ mod tests {
         assert_eq!(
             ayanamsa_mode_class(&Ayanamsa::GalacticCenter),
             Some(AyanamsaModeClass::Galactic)
-        );
-    }
-
-    #[test]
-    fn summary_line_mentions_all_classes() {
-        let s = ayanamsa_thresholds_summary_for_report();
-        assert!(
-            s.contains("offset-defined")
-                && s.contains("true-star")
-                && s.contains("galactic")
-                && s.contains("fitted-offset"),
-            "{s}"
         );
     }
 

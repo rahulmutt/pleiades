@@ -108,11 +108,6 @@ impl CompatibilityProfile {
             self.release_ayanamsas,
             |entry| entry.canonical_name,
         )?;
-        pleiades_ayanamsa::validated_provenance_summary_for_report().map_err(|error| {
-            CompatibilityProfileValidationError::AyanamsaProvenanceSummaryValidationFailed {
-                error: error.to_string(),
-            }
-        })?;
         Ok(())
     }
 }
@@ -383,7 +378,7 @@ impl fmt::Display for CompatibilityProfile {
         writeln!(
             f,
             "Unsupported modes: {}",
-            pleiades_backend::unsupported_modes_summary_for_report()
+            self.unsupported_modes_summary_line()
         )?;
         Ok(())
     }

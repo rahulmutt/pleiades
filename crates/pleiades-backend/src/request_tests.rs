@@ -784,40 +784,6 @@ fn request_policy_helpers_reject_unsupported_shapes() {
         .expect_err("sidereal requests should be rejected when only tropical output is supported");
     assert_eq!(error.kind, EphemerisErrorKind::UnsupportedZodiacMode);
     assert!(error.message.contains("tropical coordinates only"));
-    let request_policy = current_request_policy_summary();
-    assert_eq!(
-            request_policy.time_scale,
-            "direct backend requests accept TT/TDB; civil UTC/UT1 inputs convert via the pleiades-time crate or caller-supplied offsets; the ephemeris backends carry no internal Delta T or UTC convenience model"
-        );
-    assert_eq!(
-            request_policy.observer,
-            "chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests with UnsupportedObserver; malformed observer coordinates remain InvalidObserver; chart-layer topocentric body positions are supported as an opt-in correction (diurnal parallax + diurnal aberration); native-backend topocentric remains unsupported"
-        );
-    assert_eq!(
-            request_policy.apparentness,
-            "backends remain mean-only and J2000 at the backend boundary; apparent place of date (chart layer, default): light-time + precession-to-date + annual aberration + nutation-in-longitude, release-grade bodies; gravitational light-deflection omitted"
-        );
-    assert_eq!(
-            request_policy.frame,
-            "ecliptic body positions are the default request shape; at the backend boundary equatorial output is derived via mean-obliquity transforms when supported, while the chart layer reports apparent equatorial of date (true obliquity = mean obliquity + nutation-in-obliquity) for release-grade bodies; supported equatorial precision is bounded by the shared mean-obliquity frame round-trip envelope; native sidereal backend output remains unsupported unless a backend explicitly advertises it"
-        );
-    assert_eq!(
-        time_scale_policy_summary_for_report().summary_line(),
-        request_policy.time_scale
-    );
-    assert_eq!(
-        observer_policy_summary_for_report().summary_line(),
-        request_policy.observer
-    );
-    assert_eq!(
-        apparentness_policy_summary_for_report().summary_line(),
-        request_policy.apparentness
-    );
-    assert_eq!(frame_policy_summary_for_report(), request_policy.frame);
-    assert_eq!(
-        zodiac_policy_summary_for_report(&[ZodiacMode::Tropical]),
-        "tropical only"
-    );
 
     let observer_request = EphemerisRequest {
         observer: Some(ObserverLocation::new(

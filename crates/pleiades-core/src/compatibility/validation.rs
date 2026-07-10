@@ -69,11 +69,6 @@ pub enum CompatibilityProfileValidationError {
         /// Underlying descriptor validation error rendered as a stable summary string.
         error: String,
     },
-    /// The representative ayanamsa provenance summary drifted from the current posture.
-    AyanamsaProvenanceSummaryValidationFailed {
-        /// Underlying summary validation error rendered as a stable summary string.
-        error: String,
-    },
     /// A Swiss-Ephemeris house-code alias does not resolve back to its typed house system.
     HouseCodeAliasDoesNotRoundTrip {
         /// Alias label that failed validation.
@@ -181,11 +176,6 @@ impl core::fmt::Display for CompatibilityProfileValidationError {
             Self::AyanamsaDescriptorValidationFailed { error } => write!(
                 f,
                 "compatibility profile ayanamsa descriptor is invalid: {}",
-                error
-            ),
-            Self::AyanamsaProvenanceSummaryValidationFailed { error } => write!(
-                f,
-                "compatibility profile ayanamsa provenance summary is invalid: {}",
                 error
             ),
             Self::HouseCodeAliasDoesNotRoundTrip {

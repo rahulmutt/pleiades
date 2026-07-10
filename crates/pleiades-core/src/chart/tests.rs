@@ -4,11 +4,7 @@ use super::*;
 use core::time::Duration;
 use std::sync::{Arc, Mutex};
 
-use pleiades_backend::{
-    request_policy_summary_for_report, time_scale_policy_summary_for_report,
-    validated_frame_policy_summary_for_report, Apparentness, BackendId, EphemerisResult,
-    EphemerisResultValidationError,
-};
+use pleiades_backend::{Apparentness, BackendId, EphemerisResult, EphemerisResultValidationError};
 use pleiades_types::{
     Angle, CelestialBody, EclipticCoordinates, HouseSystem, Instant, Latitude, Longitude,
     MotionDirection, ObserverLocation, ObserverLocationValidationError, TimeScale,
@@ -91,14 +87,14 @@ fn chart_snapshot_assigns_signs() {
     assert!(rendered.contains("Moon"));
     assert!(rendered.contains("Sign summary: 1 Aries, 1 Taurus"));
     assert!(rendered.contains("Instant: JD 2451545 (TT)"));
-    assert!(rendered.contains(&format!(
-        "Frame policy: {}",
-        validated_frame_policy_summary_for_report()
-    )));
-    assert!(rendered.contains(&format!(
-        "Apparentness policy: {}",
-        request_policy_summary_for_report().apparentness
-    )));
+    assert!(!rendered.contains("Time-scale policy:"));
+    assert!(!rendered.contains("Frame policy:"));
+    assert!(!rendered.contains("Apparentness policy:"));
+    // unchanged lines still present:
+    assert!(rendered.contains("Backend: "));
+    assert!(rendered.contains("Observer policy:"));
+    assert!(rendered.contains("Zodiac mode:"));
+    assert!(rendered.contains("Apparentness:"));
 }
 
 #[test]
@@ -314,14 +310,8 @@ fn chart_snapshot_preserves_apparentness_choice() {
     assert_eq!(chart.apparentness, Apparentness::Apparent);
     let rendered = chart.to_string();
     assert!(rendered.contains("Apparentness: Apparent"));
-    assert!(rendered.contains(&format!(
-        "Apparentness policy: {}",
-        request_policy_summary_for_report().apparentness
-    )));
-    assert!(rendered.contains(&format!(
-        "Time-scale policy: {}",
-        time_scale_policy_summary_for_report().summary_line()
-    )));
+    assert!(!rendered.contains("Apparentness policy:"));
+    assert!(!rendered.contains("Time-scale policy:"));
 }
 
 #[test]

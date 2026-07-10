@@ -44,10 +44,12 @@ pub(crate) fn render_catalog_inventory_summary_text() -> String {
 pub(crate) fn render_known_gaps_summary_text() -> String {
     static CACHE: OnceLock<String> = OnceLock::new();
     CACHE
-        .get_or_init(|| match validated_known_gaps_summary_for_report() {
-            Ok(summary) => format!("Known gaps: {summary}"),
-            Err(error) => format!("Known gaps unavailable ({error})"),
-        })
+        .get_or_init(
+            || match current_compatibility_profile().validated_known_gaps_summary_line() {
+                Ok(summary) => format!("Known gaps: {summary}"),
+                Err(error) => format!("Known gaps unavailable ({error})"),
+            },
+        )
         .clone()
 }
 
@@ -59,12 +61,12 @@ pub fn render_catalog_posture_summary() -> String {
 pub(crate) fn render_catalog_posture_summary_text() -> String {
     static CACHE: OnceLock<String> = OnceLock::new();
     CACHE
-        .get_or_init(
-            || match core_validated_catalog_posture_summary_for_report() {
+        .get_or_init(|| {
+            match current_compatibility_profile().validated_catalog_posture_summary_line() {
                 Ok(summary) => summary,
                 Err(error) => format!("Compatibility catalog posture unavailable ({error})"),
-            },
-        )
+            }
+        })
         .clone()
 }
 
@@ -90,7 +92,7 @@ pub fn render_ayanamsa_audit_summary() -> String {
 
 /// Renders the compact target house-system scope summary used by release tooling.
 pub fn render_target_house_scope_summary() -> String {
-    match core_validated_target_house_scope_summary_for_report() {
+    match current_compatibility_profile().validated_target_house_scope_summary_line() {
         Ok(summary) => summary,
         Err(error) => format!("Compatibility profile target house scope unavailable ({error})"),
     }
@@ -98,7 +100,7 @@ pub fn render_target_house_scope_summary() -> String {
 
 /// Renders the compact target ayanamsa scope summary used by release tooling.
 pub fn render_target_ayanamsa_scope_summary() -> String {
-    match core_validated_target_ayanamsa_scope_summary_for_report() {
+    match current_compatibility_profile().validated_target_ayanamsa_scope_summary_line() {
         Ok(summary) => summary,
         Err(error) => format!("Compatibility profile target ayanamsa scope unavailable ({error})"),
     }
@@ -389,35 +391,43 @@ pub(crate) fn format_house_code_aliases_for_report() -> String {
 }
 
 pub(crate) fn format_house_formula_families_for_report() -> String {
-    match validated_house_formula_families_summary_for_report() {
+    match current_compatibility_profile().validated_house_formula_families_summary_line() {
         Ok(summary) => format!("House formula families: {summary}"),
         Err(error) => format!("house formula families unavailable ({error})"),
     }
 }
 
 pub(crate) fn format_latitude_sensitive_house_systems_for_report() -> String {
-    match validated_latitude_sensitive_house_systems_summary_for_report() {
+    match current_compatibility_profile().validated_latitude_sensitive_house_systems_summary_line()
+    {
         Ok(summary) => format!("Latitude-sensitive house systems: {summary}"),
         Err(error) => format!("Latitude-sensitive house systems unavailable ({error})"),
     }
 }
 
 pub(crate) fn format_latitude_sensitive_house_constraints_for_report() -> String {
-    match validated_latitude_sensitive_house_constraints_summary_for_report() {
+    match current_compatibility_profile()
+        .validated_latitude_sensitive_house_constraints_summary_line()
+    {
         Ok(summary) => format!("Latitude-sensitive house constraints: {summary}"),
         Err(error) => format!("Latitude-sensitive house constraints unavailable ({error})"),
     }
 }
 
 pub(crate) fn format_latitude_sensitive_house_failure_modes_for_report() -> String {
-    match validated_latitude_sensitive_house_failure_modes_summary_for_report() {
-        Ok(summary) => format!("Latitude-sensitive house failure modes: {summary}"),
+    let profile = current_compatibility_profile();
+    match profile.validate() {
+        Ok(()) => format!(
+            "Latitude-sensitive house failure modes: {}",
+            profile.latitude_sensitive_house_failure_modes_summary_line()
+        ),
         Err(error) => format!("Latitude-sensitive house failure modes unavailable ({error})"),
     }
 }
 
 pub(crate) fn format_custom_definition_ayanamsa_labels_for_report() -> String {
-    match validated_custom_definition_ayanamsa_labels_summary_for_report() {
+    match current_compatibility_profile().validated_custom_definition_ayanamsa_labels_summary_line()
+    {
         Ok(summary) => summary,
         Err(error) => format!("custom-definition ayanamsa labels unavailable ({error})"),
     }
@@ -425,12 +435,14 @@ pub(crate) fn format_custom_definition_ayanamsa_labels_for_report() -> String {
 
 pub(crate) fn validated_release_house_system_canonical_names_for_report() -> Result<String, String>
 {
-    core_validated_release_house_system_canonical_names_summary_for_report()
+    current_compatibility_profile()
+        .validated_release_house_system_canonical_names_summary_line()
         .map_err(|error| error.to_string())
 }
 
 pub(crate) fn validated_release_ayanamsa_canonical_names_for_report() -> Result<String, String> {
-    core_validated_release_ayanamsa_canonical_names_summary_for_report()
+    current_compatibility_profile()
+        .validated_release_ayanamsa_canonical_names_summary_line()
         .map_err(|error| error.to_string())
 }
 

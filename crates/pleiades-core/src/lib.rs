@@ -89,8 +89,7 @@ mod compatibility;
 mod release_profiles;
 
 pub use api_stability::{
-    current_api_stability_profile, current_api_stability_profile_id, ApiStabilityProfile,
-    ApiStabilityProfileValidationError, CURRENT_API_STABILITY_PROFILE_ID,
+    current_api_stability_profile, ApiStabilityProfile, ApiStabilityProfileValidationError,
 };
 pub use chart::{
     default_chart_bodies, sidereal_longitude, validate_aspect_definitions, AspectDefinition,
@@ -100,29 +99,8 @@ pub use chart::{
     SignSummary,
 };
 pub use compatibility::{
-    catalog_inventory_summary_for_report, catalog_posture_summary_for_report,
-    compatibility_caveats_summary_for_report, current_compatibility_profile,
-    current_compatibility_profile_id, custom_definition_ayanamsa_labels_summary_for_report,
-    house_code_aliases_summary_for_report, house_formula_families_summary_for_report,
-    known_gaps_summary_for_report, latitude_sensitive_house_constraints_summary_for_report,
-    latitude_sensitive_house_failure_modes_summary_for_report,
-    latitude_sensitive_house_systems_summary_for_report,
-    release_ayanamsa_canonical_names_summary_for_report,
-    release_house_system_canonical_names_summary_for_report,
-    target_ayanamsa_scope_summary_for_report, target_house_scope_summary_for_report,
-    validate_custom_definition_labels, validated_catalog_inventory_summary_for_report,
-    validated_catalog_posture_summary_for_report,
-    validated_custom_definition_ayanamsa_labels_summary_for_report,
-    validated_house_code_aliases_summary_for_report,
-    validated_house_formula_families_summary_for_report, validated_known_gaps_summary_for_report,
-    validated_latitude_sensitive_house_constraints_summary_for_report,
-    validated_latitude_sensitive_house_failure_modes_summary_for_report,
-    validated_latitude_sensitive_house_systems_summary_for_report,
-    validated_release_ayanamsa_canonical_names_summary_for_report,
-    validated_release_house_system_canonical_names_summary_for_report,
-    validated_target_ayanamsa_scope_summary_for_report,
-    validated_target_house_scope_summary_for_report, CompatibilityProfile,
-    HouseCodeAliasInventorySummary, CURRENT_COMPATIBILITY_PROFILE_ID,
+    current_compatibility_profile, validate_custom_definition_labels, CompatibilityProfile,
+    HouseCodeAliasInventorySummary,
 };
 pub use pleiades_apparent::{sidereal_time, ApparentProvenance, CorrectionSet, SiderealTime};
 pub use pleiades_ayanamsa::{
@@ -130,25 +108,10 @@ pub use pleiades_ayanamsa::{
     resolve_ayanamsa, AyanamsaDescriptor,
 };
 pub use pleiades_backend::{
-    apparentness_policy_summary_for_report, current_delta_t_policy_summary,
-    current_native_sidereal_policy_summary, current_pluto_fallback_summary,
-    current_utc_convenience_policy_summary, delta_t_policy_summary_for_report,
-    frame_policy_summary_for_report, native_sidereal_policy_summary_for_report,
-    observer_policy_summary_for_report, pluto_fallback_summary_for_report,
-    request_policy_summary_for_report, time_scale_policy_summary_for_report,
-    utc_convenience_policy_summary_for_report, validated_apparentness_policy_summary_for_report,
-    validated_delta_t_policy_summary_for_report, validated_frame_policy_summary_for_report,
-    validated_frame_treatment_summary_for_report,
-    validated_native_sidereal_policy_summary_for_report,
-    validated_observer_policy_summary_for_report, validated_request_policy_summary_for_report,
-    validated_request_semantics_summary_for_report, validated_time_scale_policy_summary_for_report,
-    validated_utc_convenience_policy_summary_for_report, AccuracyClass, Apparentness,
-    ApparentnessPolicySummary, BackendCapabilities, BackendFamily, BackendId, BackendMetadata,
-    BackendProvenance, BodyClaim, BodyClaimTier, CompositeBackend, DeltaTPolicySummary,
-    EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult,
-    FramePolicySummary, NativeSiderealPolicySummary, ObserverPolicySummary, PlutoFallbackSummary,
-    QualityAnnotation, RequestPolicySummary, RoutingBackend, TimeScalePolicySummary,
-    UtcConveniencePolicySummary,
+    AccuracyClass, Apparentness, BackendCapabilities, BackendFamily, BackendId, BackendMetadata,
+    BackendProvenance, BodyClaim, BodyClaimTier, CompositeBackend, EphemerisBackend,
+    EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult, QualityAnnotation,
+    RoutingBackend,
 };
 pub use pleiades_houses::{
     baseline_house_systems, calculate_houses, chart_points, chart_points_from_armc,
@@ -164,12 +127,9 @@ pub use pleiades_types::{
     ZodiacSign, SECONDS_PER_DAY,
 };
 pub use release_profiles::{
-    current_release_profile_identifiers, release_profile_identifiers_summary_for_report,
-    validated_release_profile_identifiers_summary_for_report, ReleaseProfileIdentifiers,
+    current_release_profile_identifiers, ReleaseProfileIdentifiers,
     ReleaseProfileIdentifiersValidationError,
 };
-
-pub use pleiades_backend::request_semantics_summary_for_report;
 
 /// A thin façade around a backend implementation.
 #[derive(Debug)]
@@ -374,6 +334,12 @@ impl<B> From<B> for ChartEngine<B> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::api_stability::{
+        current_api_stability_profile_id, CURRENT_API_STABILITY_PROFILE_ID,
+    };
+    use crate::compatibility::{
+        current_compatibility_profile_id, CURRENT_COMPATIBILITY_PROFILE_ID,
+    };
 
     struct SimpleBackend;
 
@@ -566,165 +532,6 @@ mod tests {
         assert_eq!(
             error.message,
             "chart request #2 failed validation: restricted expects one of [TT] for request instants"
-        );
-    }
-
-    #[test]
-    fn utc_convenience_policy_summary_is_reexported_from_backend() {
-        let summary: UtcConveniencePolicySummary = utc_convenience_policy_summary_for_report();
-        assert_eq!(
-            summary.summary_line(),
-            pleiades_backend::CURRENT_UTC_CONVENIENCE_POLICY_SUMMARY_TEXT
-        );
-        assert_eq!(
-            summary.validated_summary_line().unwrap(),
-            pleiades_backend::CURRENT_UTC_CONVENIENCE_POLICY_SUMMARY_TEXT
-        );
-        assert_eq!(
-            validated_utc_convenience_policy_summary_for_report(),
-            pleiades_backend::CURRENT_UTC_CONVENIENCE_POLICY_SUMMARY_TEXT
-        );
-        let current_summary: UtcConveniencePolicySummary = current_utc_convenience_policy_summary();
-        assert_eq!(current_summary.summary_line(), summary.summary_line());
-        assert_eq!(
-            current_summary.validated_summary_line().unwrap(),
-            summary.validated_summary_line().unwrap()
-        );
-    }
-
-    #[test]
-    fn delta_t_policy_summary_is_reexported_from_backend() {
-        let summary: DeltaTPolicySummary = delta_t_policy_summary_for_report();
-        assert_eq!(
-            summary.summary_line(),
-            pleiades_backend::CURRENT_DELTA_T_POLICY_SUMMARY_TEXT
-        );
-        assert_eq!(
-            summary.validated_summary_line().unwrap(),
-            pleiades_backend::CURRENT_DELTA_T_POLICY_SUMMARY_TEXT
-        );
-        let current_summary: DeltaTPolicySummary = current_delta_t_policy_summary();
-        assert_eq!(current_summary.summary_line(), summary.summary_line());
-        assert_eq!(
-            current_summary.validated_summary_line().unwrap(),
-            summary.validated_summary_line().unwrap()
-        );
-    }
-
-    #[test]
-    fn request_policy_component_summaries_are_reexported_from_backend() {
-        assert_eq!(
-            validated_time_scale_policy_summary_for_report(),
-            pleiades_backend::CURRENT_TIME_SCALE_POLICY_SUMMARY_TEXT
-        );
-        assert_eq!(
-            validated_delta_t_policy_summary_for_report(),
-            pleiades_backend::CURRENT_DELTA_T_POLICY_SUMMARY_TEXT
-        );
-        assert_eq!(
-            validated_observer_policy_summary_for_report(),
-            pleiades_backend::CURRENT_OBSERVER_POLICY_SUMMARY_TEXT
-        );
-        assert_eq!(
-            validated_apparentness_policy_summary_for_report(),
-            pleiades_backend::CURRENT_APPARENTNESS_POLICY_SUMMARY_TEXT
-        );
-        assert_eq!(
-            validated_request_policy_summary_for_report(),
-            request_policy_summary_for_report()
-                .validated_summary_line()
-                .unwrap()
-        );
-        assert_eq!(
-            validated_request_semantics_summary_for_report(),
-            validated_request_policy_summary_for_report()
-        );
-    }
-
-    #[test]
-    fn request_semantics_summary_aliases_request_policy_summary() {
-        assert_eq!(
-            request_semantics_summary_for_report(),
-            request_policy_summary_for_report()
-        );
-        assert_eq!(
-            request_semantics_summary_for_report().summary_line(),
-            request_policy_summary_for_report().summary_line()
-        );
-        assert_eq!(
-            request_semantics_summary_for_report()
-                .validated_summary_line()
-                .unwrap(),
-            request_policy_summary_for_report()
-                .validated_summary_line()
-                .unwrap()
-        );
-    }
-
-    #[test]
-    fn compatibility_catalog_summary_helpers_match_the_current_profile() {
-        let profile = current_compatibility_profile();
-        assert_eq!(
-            house_formula_families_summary_for_report(),
-            profile.house_formula_families_summary_line()
-        );
-        assert_eq!(
-            latitude_sensitive_house_systems_summary_for_report(),
-            profile.latitude_sensitive_house_systems_summary_line()
-        );
-        assert_eq!(
-            custom_definition_ayanamsa_labels_summary_for_report(),
-            profile.custom_definition_ayanamsa_labels_summary_line()
-        );
-        assert_eq!(
-            catalog_inventory_summary_for_report(),
-            profile.catalog_inventory_summary_line()
-        );
-        assert_eq!(
-            validated_catalog_inventory_summary_for_report().unwrap(),
-            profile.catalog_inventory_summary_line()
-        );
-    }
-
-    #[test]
-    fn native_sidereal_policy_summary_is_reexported_from_backend() {
-        let summary: NativeSiderealPolicySummary = native_sidereal_policy_summary_for_report();
-        assert_eq!(
-            summary.summary_line(),
-            pleiades_backend::CURRENT_NATIVE_SIDEREAL_POLICY_SUMMARY_TEXT
-        );
-        assert_eq!(
-            summary.validated_summary_line().unwrap(),
-            pleiades_backend::CURRENT_NATIVE_SIDEREAL_POLICY_SUMMARY_TEXT
-        );
-        assert_eq!(
-            validated_native_sidereal_policy_summary_for_report(),
-            pleiades_backend::CURRENT_NATIVE_SIDEREAL_POLICY_SUMMARY_TEXT
-        );
-        let current_summary: NativeSiderealPolicySummary = current_native_sidereal_policy_summary();
-        assert_eq!(current_summary.summary_line(), summary.summary_line());
-        assert_eq!(
-            current_summary.validated_summary_line().unwrap(),
-            summary.validated_summary_line().unwrap()
-        );
-    }
-
-    #[test]
-    fn pluto_fallback_summary_is_reexported_from_backend() {
-        let summary: PlutoFallbackSummary = pluto_fallback_summary_for_report();
-        assert_eq!(
-            summary.summary_line(),
-            pleiades_backend::CURRENT_PLUTO_FALLBACK_POLICY_SUMMARY_TEXT
-        );
-        assert_eq!(
-            summary.validated_summary_line().unwrap(),
-            pleiades_backend::CURRENT_PLUTO_FALLBACK_POLICY_SUMMARY_TEXT
-        );
-        let current_summary: PlutoFallbackSummary = current_pluto_fallback_summary();
-        assert_eq!(current_summary.summary_line(), summary.summary_line());
-        assert_eq!(
-            current_summary.validated_summary_line().unwrap(),
-            summary.validated_summary_line().unwrap()
         );
     }
 

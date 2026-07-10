@@ -1,13 +1,13 @@
 //! Help text generation.
 
-use pleiades_core::{
+use pleiades_validate::render_cli as validate_render_cli;
+use pleiades_validate::{
     validated_apparentness_policy_summary_for_report, validated_delta_t_policy_summary_for_report,
     validated_frame_policy_summary_for_report, validated_native_sidereal_policy_summary_for_report,
     validated_observer_policy_summary_for_report, validated_request_policy_summary_for_report,
     validated_request_semantics_summary_for_report, validated_time_scale_policy_summary_for_report,
     validated_utc_convenience_policy_summary_for_report,
 };
-use pleiades_validate::render_cli as validate_render_cli;
 
 use crate::cli::banner;
 

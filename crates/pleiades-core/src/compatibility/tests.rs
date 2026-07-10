@@ -1,3 +1,4 @@
+use super::validation::CompatibilityProfileValidationError;
 use super::*;
 use pleiades_ayanamsa::AyanamsaDescriptor;
 use pleiades_houses::{HouseCatalogValidationError, HouseSystemDescriptor};
@@ -361,14 +362,6 @@ fn compatibility_profile_target_scope_summary_helpers_render_and_validate() {
         profile.target_house_scope.join("; ")
     );
     assert_eq!(
-        target_house_scope_summary_for_report(),
-        profile.target_house_scope_summary_line()
-    );
-    assert_eq!(
-        validated_target_house_scope_summary_for_report(),
-        Ok(profile.target_house_scope.join("; "))
-    );
-    assert_eq!(
         profile.target_ayanamsa_scope_summary_line(),
         profile.target_ayanamsa_scope.join("; ")
     );
@@ -377,14 +370,6 @@ fn compatibility_profile_target_scope_summary_helpers_render_and_validate() {
             .validated_target_ayanamsa_scope_summary_line()
             .expect("target ayanamsa scope should validate"),
         profile.target_ayanamsa_scope.join("; ")
-    );
-    assert_eq!(
-        target_ayanamsa_scope_summary_for_report(),
-        profile.target_ayanamsa_scope_summary_line()
-    );
-    assert_eq!(
-        validated_target_ayanamsa_scope_summary_for_report(),
-        Ok(profile.target_ayanamsa_scope.join("; "))
     );
 }
 
@@ -1459,14 +1444,10 @@ fn display_lists_release_sections() {
     assert!(rendered.contains("ayanamsas: 59 total"));
     assert!(rendered.contains("ayanamsa metadata gaps=0"));
     assert_eq!(
-        profile.catalog_posture_summary_line(),
-        catalog_posture_summary_for_report()
-    );
-    assert_eq!(
         profile
             .validated_catalog_posture_summary_line()
             .expect("catalog posture summary should validate"),
-        catalog_posture_summary_for_report()
+        profile.catalog_posture_summary_line()
     );
     assert!(rendered.contains("ayanamsa alias-bearing entries="));
 }
@@ -1540,10 +1521,6 @@ fn catalog_inventory_summary_line_reports_the_house_code_alias_count() {
         Ok(rendered.clone())
     );
     assert_eq!(
-        validated_catalog_inventory_summary_for_report(),
-        Ok(rendered.clone())
-    );
-    assert_eq!(
         profile.validated_house_code_aliases_summary_line(),
         Ok(profile.house_code_aliases_summary_line())
     );
@@ -1585,34 +1562,6 @@ fn catalog_inventory_summary_line_validation_rejects_invalid_profiles() {
         invalid_profile.to_string(),
         "Compatibility profile unavailable (compatibility profile summary is blank)"
     );
-}
-
-#[test]
-fn compatibility_caveats_summary_for_report_tracks_the_current_profile() {
-    let profile = current_compatibility_profile();
-    let release_profiles = crate::release_profiles::current_release_profile_identifiers();
-    let rendered = compatibility_caveats_summary_for_report(&profile, &release_profiles);
-
-    assert!(rendered.starts_with("Compatibility caveats summary\nProfile: "));
-    assert!(rendered.contains(release_profiles.compatibility_profile_id));
-    assert!(rendered.contains("House formula families: "));
-    assert!(rendered.contains("Latitude-sensitive house systems: "));
-    assert!(rendered.contains("Latitude-sensitive house failure modes: "));
-    assert!(rendered.contains("Descriptor-only ayanamsa labels: "));
-    let expected_prefix = format!(
-        "Compatibility caveats summary\nProfile: {}\nCompatibility caveats: {}\nHouse formula families: {}\nLatitude-sensitive house systems: {}\nLatitude-sensitive house constraints: {}\nLatitude-sensitive house failure modes: {}\nDescriptor-only ayanamsa labels: {}\n",
-        release_profiles.compatibility_profile_id,
-        profile.known_gaps.len(),
-        profile.house_formula_families_summary_line(),
-        profile.latitude_sensitive_house_systems_summary_line(),
-        profile.latitude_sensitive_house_constraints_summary_line(),
-        profile.latitude_sensitive_house_failure_modes_summary_line(),
-        profile.custom_definition_ayanamsa_labels_summary_line()
-    );
-    assert!(rendered.starts_with(&expected_prefix));
-    for gap in profile.known_gaps {
-        assert!(rendered.contains(gap));
-    }
 }
 
 #[test]
@@ -1722,22 +1671,6 @@ fn release_canonical_name_summaries_track_the_built_in_catalogs() {
         Ok(ayanamsa_summary.clone())
     );
     assert_eq!(
-        release_house_system_canonical_names_summary_for_report(),
-        house_summary
-    );
-    assert_eq!(
-        release_ayanamsa_canonical_names_summary_for_report(),
-        ayanamsa_summary
-    );
-    assert_eq!(
-        validated_release_house_system_canonical_names_summary_for_report(),
-        Ok(profile.release_house_system_canonical_names_summary_line())
-    );
-    assert_eq!(
-        validated_release_ayanamsa_canonical_names_summary_for_report(),
-        Ok(profile.release_ayanamsa_canonical_names_summary_line())
-    );
-    assert_eq!(
         profile.validated_house_formula_families_summary_line(),
         Ok(profile.house_formula_families_summary_line())
     );
@@ -1799,5 +1732,32 @@ fn rendered_profile_matches_pinned_content_checksum() {
         "rendered compatibility profile changed (checksum {actual:#018x}); bump \
          CURRENT_COMPATIBILITY_PROFILE_ID and update \
          CURRENT_COMPATIBILITY_PROFILE_CONTENT_CHECKSUM in the same commit"
+    );
+}
+
+#[test]
+fn unsupported_modes_line_is_owned_by_the_compatibility_posture() {
+    let profile = current_compatibility_profile();
+    // Byte-identical to the backend constant this replaces (deleted in Task 6).
+    assert_eq!(
+        profile.unsupported_modes_summary_line(),
+        "built-in UTC convenience remains out of scope; built-in Delta T remains out of scope; native sidereal backend output remains unsupported unless a backend explicitly advertises it"
+    );
+    assert!(profile.to_string().contains(&format!(
+        "Unsupported modes: {}",
+        profile.unsupported_modes_summary_line()
+    )));
+}
+
+#[test]
+fn rebuilt_ayanamsa_provenance_line_matches_ayanamsa_crate_rendering() {
+    // Guards the slice-A decoupling: core's rebuilt derivation must be
+    // byte-identical to the pleiades-ayanamsa renderer it replaced.
+    // (Slice B deletes the ayanamsa renderer; this test then converts to a
+    // pinned literal — see the slice-B plan.)
+    assert_eq!(
+        super::ayanamsa_provenance_summary_text(),
+        pleiades_ayanamsa::validated_provenance_summary_for_report()
+            .expect("ayanamsa provenance summary should validate")
     );
 }

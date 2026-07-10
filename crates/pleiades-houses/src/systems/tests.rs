@@ -54,7 +54,7 @@ fn house_request_summary_line_reports_instant_observer_system_and_obliquity() {
         request.summary_line(),
         format!(
             "instant={}; observer={}; system={}; obliquity=auto",
-            &request.instant, &request.observer, &request.system
+            request.instant, request.observer, request.system
         )
     );
     assert_eq!(request.to_string(), request.summary_line());
@@ -64,9 +64,9 @@ fn house_request_summary_line_reports_instant_observer_system_and_obliquity() {
         request_with_obliquity.summary_line(),
         format!(
             "instant={}; observer={}; system={}; obliquity=23.5°",
-            &request_with_obliquity.instant,
-            &request_with_obliquity.observer,
-            &request_with_obliquity.system
+            request_with_obliquity.instant,
+            request_with_obliquity.observer,
+            request_with_obliquity.system
         )
     );
 

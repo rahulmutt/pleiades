@@ -199,19 +199,19 @@ pub(crate) fn render_backend_matrix_summary_text() -> String {
     }
     text.push('\n');
     text.push_str("Catalog posture: ");
-    match core_validated_catalog_posture_summary_for_report() {
+    match current_compatibility_profile().validated_catalog_posture_summary_line() {
         Ok(summary) => text.push_str(&summary),
         Err(error) => return format!("Backend matrix summary unavailable ({error})"),
     }
     text.push('\n');
     text.push_str("Target house scope: ");
-    match core_validated_target_house_scope_summary_for_report() {
+    match current_compatibility_profile().validated_target_house_scope_summary_line() {
         Ok(summary) => text.push_str(&summary),
         Err(error) => return format!("Backend matrix summary unavailable ({error})"),
     }
     text.push('\n');
     text.push_str("Target ayanamsa scope: ");
-    match core_validated_target_ayanamsa_scope_summary_for_report() {
+    match current_compatibility_profile().validated_target_ayanamsa_scope_summary_line() {
         Ok(summary) => text.push_str(&summary),
         Err(error) => return format!("Backend matrix summary unavailable ({error})"),
     }
@@ -425,16 +425,18 @@ pub(crate) fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str("Observer policy: ");
     text.push_str(&format_observer_policy_summary_for_report(
-        &pleiades_backend::observer_policy_summary_for_report(),
+        &crate::posture::backend_policy::observer_policy_summary_for_report(),
     ));
     text.push('\n');
     text.push_str("Apparentness policy: ");
     text.push_str(&format_apparentness_policy_summary_for_report(
-        &pleiades_backend::apparentness_policy_summary_for_report(),
+        &crate::posture::backend_policy::apparentness_policy_summary_for_report(),
     ));
     text.push('\n');
     text.push_str("Native sidereal policy: ");
-    text.push_str(&pleiades_backend::validated_native_sidereal_policy_summary_for_report());
+    text.push_str(
+        &crate::posture::backend_policy::validated_native_sidereal_policy_summary_for_report(),
+    );
     text.push('\n');
     text.push_str("Zodiac policy: ");
     text.push_str(&validated_zodiac_policy_summary_for_report());

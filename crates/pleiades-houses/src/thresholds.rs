@@ -100,16 +100,6 @@ pub fn house_family_ceiling(family: HouseFormulaFamily) -> HouseFamilyCeiling {
     }
 }
 
-/// Compact release-facing summary of the family ceilings.
-pub fn house_thresholds_summary_for_report() -> String {
-    let equal = house_family_ceiling(HouseFormulaFamily::Equal);
-    let quad = house_family_ceiling(HouseFormulaFamily::Quadrant);
-    format!(
-        "House ceilings: space-division {:.1}\u{2033} cusp, quadrant {:.1}\u{2033} cusp",
-        equal.cusp_arcsec, quad.cusp_arcsec
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
