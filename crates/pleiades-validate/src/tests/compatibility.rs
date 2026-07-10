@@ -406,11 +406,6 @@ fn compatibility_profile_summary_command_renders_the_summary() {
             .expect("catalog posture summary should validate")
     );
     assert_eq!(
-        catalog_posture_summary,
-        core_validated_catalog_posture_summary_for_report()
-            .expect("catalog posture summary helper should validate")
-    );
-    assert_eq!(
         render_cli(&["catalog-posture"]).expect("catalog posture alias should render"),
         catalog_posture_summary
     );

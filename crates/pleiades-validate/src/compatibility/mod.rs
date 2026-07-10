@@ -492,7 +492,7 @@ impl CompatibilityProfileVerificationSummary {
         text.push_str(" descriptors with epoch/offset metadata, ");
         text.push_str(&self.ayanamsa_metadata_gap_count.to_string());
         text.push_str(" metadata gaps\n");
-        text.push_str(&core_catalog_posture_summary_for_report());
+        text.push_str(&current_compatibility_profile().catalog_posture_summary_line());
         text.push('\n');
         text.push_str("Release posture: baseline milestone preserved, release additions explicit, custom definitions tracked, caveats documented\n");
         text.push_str("Release notes documented: ");

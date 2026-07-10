@@ -89,8 +89,7 @@ mod compatibility;
 mod release_profiles;
 
 pub use api_stability::{
-    current_api_stability_profile, current_api_stability_profile_id, ApiStabilityProfile,
-    ApiStabilityProfileValidationError, CURRENT_API_STABILITY_PROFILE_ID,
+    current_api_stability_profile, ApiStabilityProfile, ApiStabilityProfileValidationError,
 };
 pub use chart::{
     default_chart_bodies, sidereal_longitude, validate_aspect_definitions, AspectDefinition,
@@ -100,29 +99,8 @@ pub use chart::{
     SignSummary,
 };
 pub use compatibility::{
-    catalog_inventory_summary_for_report, catalog_posture_summary_for_report,
-    compatibility_caveats_summary_for_report, current_compatibility_profile,
-    current_compatibility_profile_id, custom_definition_ayanamsa_labels_summary_for_report,
-    house_code_aliases_summary_for_report, house_formula_families_summary_for_report,
-    known_gaps_summary_for_report, latitude_sensitive_house_constraints_summary_for_report,
-    latitude_sensitive_house_failure_modes_summary_for_report,
-    latitude_sensitive_house_systems_summary_for_report,
-    release_ayanamsa_canonical_names_summary_for_report,
-    release_house_system_canonical_names_summary_for_report,
-    target_ayanamsa_scope_summary_for_report, target_house_scope_summary_for_report,
-    validate_custom_definition_labels, validated_catalog_inventory_summary_for_report,
-    validated_catalog_posture_summary_for_report,
-    validated_custom_definition_ayanamsa_labels_summary_for_report,
-    validated_house_code_aliases_summary_for_report,
-    validated_house_formula_families_summary_for_report, validated_known_gaps_summary_for_report,
-    validated_latitude_sensitive_house_constraints_summary_for_report,
-    validated_latitude_sensitive_house_failure_modes_summary_for_report,
-    validated_latitude_sensitive_house_systems_summary_for_report,
-    validated_release_ayanamsa_canonical_names_summary_for_report,
-    validated_release_house_system_canonical_names_summary_for_report,
-    validated_target_ayanamsa_scope_summary_for_report,
-    validated_target_house_scope_summary_for_report, CompatibilityProfile,
-    HouseCodeAliasInventorySummary, CURRENT_COMPATIBILITY_PROFILE_ID,
+    current_compatibility_profile, validate_custom_definition_labels, CompatibilityProfile,
+    HouseCodeAliasInventorySummary,
 };
 pub use pleiades_apparent::{sidereal_time, ApparentProvenance, CorrectionSet, SiderealTime};
 pub use pleiades_ayanamsa::{
@@ -164,8 +142,7 @@ pub use pleiades_types::{
     ZodiacSign, SECONDS_PER_DAY,
 };
 pub use release_profiles::{
-    current_release_profile_identifiers, release_profile_identifiers_summary_for_report,
-    validated_release_profile_identifiers_summary_for_report, ReleaseProfileIdentifiers,
+    current_release_profile_identifiers, ReleaseProfileIdentifiers,
     ReleaseProfileIdentifiersValidationError,
 };
 
@@ -374,6 +351,12 @@ impl<B> From<B> for ChartEngine<B> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::api_stability::{
+        current_api_stability_profile_id, CURRENT_API_STABILITY_PROFILE_ID,
+    };
+    use crate::compatibility::{
+        current_compatibility_profile_id, CURRENT_COMPATIBILITY_PROFILE_ID,
+    };
 
     struct SimpleBackend;
 
@@ -658,31 +641,6 @@ mod tests {
             request_policy_summary_for_report()
                 .validated_summary_line()
                 .unwrap()
-        );
-    }
-
-    #[test]
-    fn compatibility_catalog_summary_helpers_match_the_current_profile() {
-        let profile = current_compatibility_profile();
-        assert_eq!(
-            house_formula_families_summary_for_report(),
-            profile.house_formula_families_summary_line()
-        );
-        assert_eq!(
-            latitude_sensitive_house_systems_summary_for_report(),
-            profile.latitude_sensitive_house_systems_summary_line()
-        );
-        assert_eq!(
-            custom_definition_ayanamsa_labels_summary_for_report(),
-            profile.custom_definition_ayanamsa_labels_summary_line()
-        );
-        assert_eq!(
-            catalog_inventory_summary_for_report(),
-            profile.catalog_inventory_summary_line()
-        );
-        assert_eq!(
-            validated_catalog_inventory_summary_for_report().unwrap(),
-            profile.catalog_inventory_summary_line()
         );
     }
 

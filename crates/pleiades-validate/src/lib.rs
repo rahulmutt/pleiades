@@ -237,27 +237,12 @@ use pleiades_backend::{
 #[cfg(test)]
 use pleiades_core::default_chart_bodies;
 use pleiades_core::{
-    catalog_posture_summary_for_report as core_catalog_posture_summary_for_report,
-    compatibility_caveats_summary_for_report as core_compatibility_caveats_summary_for_report,
     current_api_stability_profile, current_compatibility_profile,
-    current_release_profile_identifiers, validate_custom_definition_labels,
-    validated_catalog_inventory_summary_for_report as core_validated_catalog_inventory_summary_for_report,
-    validated_catalog_posture_summary_for_report as core_validated_catalog_posture_summary_for_report,
-    validated_custom_definition_ayanamsa_labels_summary_for_report,
-    validated_house_code_aliases_summary_for_report as core_validated_house_code_aliases_summary_for_report,
-    validated_house_formula_families_summary_for_report, validated_known_gaps_summary_for_report,
-    validated_latitude_sensitive_house_constraints_summary_for_report,
-    validated_latitude_sensitive_house_failure_modes_summary_for_report,
-    validated_latitude_sensitive_house_systems_summary_for_report,
-    validated_release_ayanamsa_canonical_names_summary_for_report as core_validated_release_ayanamsa_canonical_names_summary_for_report,
-    validated_release_house_system_canonical_names_summary_for_report as core_validated_release_house_system_canonical_names_summary_for_report,
-    validated_release_profile_identifiers_summary_for_report as core_validated_release_profile_identifiers_summary_for_report,
-    validated_target_ayanamsa_scope_summary_for_report as core_validated_target_ayanamsa_scope_summary_for_report,
-    validated_target_house_scope_summary_for_report as core_validated_target_house_scope_summary_for_report,
-    AccuracyClass, Angle, Apparentness, BackendCapabilities, BackendFamily, BackendMetadata,
-    CelestialBody, CompatibilityProfile, CompositeBackend, CoordinateFrame, EclipticCoordinates,
-    EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisResult, Instant, JulianDay,
-    Longitude, ReleaseProfileIdentifiers, TimeRange, TimeScale,
+    current_release_profile_identifiers, validate_custom_definition_labels, AccuracyClass, Angle,
+    Apparentness, BackendCapabilities, BackendFamily, BackendMetadata, CelestialBody,
+    CompatibilityProfile, CompositeBackend, CoordinateFrame, EclipticCoordinates, EphemerisBackend,
+    EphemerisError, EphemerisErrorKind, EphemerisResult, Instant, JulianDay, Longitude,
+    ReleaseProfileIdentifiers, TimeRange, TimeScale,
 };
 use pleiades_data::{
     packaged_artifact, packaged_artifact_access_summary_for_report,

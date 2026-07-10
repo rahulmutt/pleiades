@@ -15,7 +15,7 @@ mod tests;
 mod validation;
 
 pub use profile::{CompatibilityProfile, HouseCodeAliasInventorySummary};
-pub use validation::{validate_custom_definition_labels, CompatibilityProfileValidationError};
+pub use validation::validate_custom_definition_labels;
 
 use pleiades_ayanamsa::{
     baseline_ayanamsas, built_in_ayanamsas, custom_definition_ayanamsa_labels, release_ayanamsas,
@@ -23,7 +23,7 @@ use pleiades_ayanamsa::{
 use pleiades_houses::{baseline_house_systems, built_in_house_systems, release_house_systems};
 
 /// The current compatibility-profile identifier.
-pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.7.13";
+pub(crate) const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.7.13";
 
 /// Canonical current unsupported-modes summary text used by release reporting.
 pub(crate) const CURRENT_UNSUPPORTED_MODES_SUMMARY_TEXT: &str =
@@ -61,7 +61,7 @@ pub(crate) fn ayanamsa_provenance_summary_text() -> String {
 }
 
 /// Returns the current compatibility-profile identifier.
-pub const fn current_compatibility_profile_id() -> &'static str {
+pub(crate) const fn current_compatibility_profile_id() -> &'static str {
     CURRENT_COMPATIBILITY_PROFILE_ID
 }
 
@@ -117,186 +117,4 @@ pub const fn current_compatibility_profile() -> CompatibilityProfile {
             "Labels outside the published compatibility profile, including ad hoc names such as True Balarama, Aphoric, and Takra, should be modeled as custom ayanamsa definitions rather than assumed to be built-ins.",
         ],
     }
-}
-
-/// Returns the compatibility-profile house formula family summary for report surfaces.
-pub fn house_formula_families_summary_for_report() -> String {
-    current_compatibility_profile().house_formula_families_summary_line()
-}
-
-/// Returns the compatibility-profile house formula family summary after validating the profile.
-pub fn validated_house_formula_families_summary_for_report(
-) -> Result<String, CompatibilityProfileValidationError> {
-    current_compatibility_profile().validated_house_formula_families_summary_line()
-}
-
-/// Returns the compatibility-profile latitude-sensitive house-system summary for report surfaces.
-pub fn latitude_sensitive_house_systems_summary_for_report() -> String {
-    current_compatibility_profile().latitude_sensitive_house_systems_summary_line()
-}
-
-/// Returns the compatibility-profile latitude-sensitive house-system summary after validating the profile.
-pub fn validated_latitude_sensitive_house_systems_summary_for_report(
-) -> Result<String, CompatibilityProfileValidationError> {
-    current_compatibility_profile().validated_latitude_sensitive_house_systems_summary_line()
-}
-
-/// Returns the compatibility-profile latitude-sensitive house-constraint summary for report surfaces.
-pub fn latitude_sensitive_house_constraints_summary_for_report() -> String {
-    current_compatibility_profile().latitude_sensitive_house_constraints_summary_line()
-}
-
-/// Returns the compatibility-profile latitude-sensitive house-constraint summary after validating the profile.
-pub fn validated_latitude_sensitive_house_constraints_summary_for_report(
-) -> Result<String, CompatibilityProfileValidationError> {
-    current_compatibility_profile().validated_latitude_sensitive_house_constraints_summary_line()
-}
-
-/// Returns the compatibility-profile custom-definition ayanamsa summary for report surfaces.
-pub fn custom_definition_ayanamsa_labels_summary_for_report() -> String {
-    current_compatibility_profile().custom_definition_ayanamsa_labels_summary_line()
-}
-
-/// Returns the compatibility-profile custom-definition ayanamsa summary after validating the profile.
-pub fn validated_custom_definition_ayanamsa_labels_summary_for_report(
-) -> Result<String, CompatibilityProfileValidationError> {
-    current_compatibility_profile().validated_custom_definition_ayanamsa_labels_summary_line()
-}
-
-/// Returns the compatibility-profile catalog inventory summary for report surfaces.
-pub fn catalog_inventory_summary_for_report() -> String {
-    current_compatibility_profile().catalog_inventory_summary_line()
-}
-
-/// Returns the compatibility-profile catalog-posture summary for report surfaces.
-pub fn catalog_posture_summary_for_report() -> String {
-    current_compatibility_profile().catalog_posture_summary_line()
-}
-
-/// Returns the compatibility-profile catalog-posture summary after validating the profile.
-pub fn validated_catalog_posture_summary_for_report(
-) -> Result<String, CompatibilityProfileValidationError> {
-    current_compatibility_profile().validated_catalog_posture_summary_line()
-}
-
-/// Returns the compatibility-profile known-gaps summary for report surfaces.
-pub fn known_gaps_summary_for_report() -> String {
-    current_compatibility_profile().known_gaps_summary_line()
-}
-
-/// Returns the compatibility-profile known-gaps summary after validating the profile.
-pub fn validated_known_gaps_summary_for_report(
-) -> Result<String, CompatibilityProfileValidationError> {
-    current_compatibility_profile().validated_known_gaps_summary_line()
-}
-
-/// Returns the compatibility-profile catalog inventory summary after validating the profile.
-pub fn validated_catalog_inventory_summary_for_report(
-) -> Result<String, CompatibilityProfileValidationError> {
-    current_compatibility_profile().validated_catalog_inventory_summary_line()
-}
-
-/// Returns the compatibility-profile latitude-sensitive house failure modes summary for report surfaces.
-pub fn latitude_sensitive_house_failure_modes_summary_for_report() -> String {
-    current_compatibility_profile().latitude_sensitive_house_failure_modes_summary_line()
-}
-
-/// Returns the compatibility-profile latitude-sensitive house failure modes summary after validating the profile.
-pub fn validated_latitude_sensitive_house_failure_modes_summary_for_report(
-) -> Result<String, CompatibilityProfileValidationError> {
-    current_compatibility_profile().validate()?;
-    Ok(current_compatibility_profile().latitude_sensitive_house_failure_modes_summary_line())
-}
-
-/// Returns the compatibility-caveats summary for report surfaces.
-pub fn compatibility_caveats_summary_for_report(
-    profile: &CompatibilityProfile,
-    release_profiles: &crate::release_profiles::ReleaseProfileIdentifiers,
-) -> String {
-    let mut text = String::new();
-
-    text.push_str("Compatibility caveats summary\n");
-    text.push_str("Profile: ");
-    text.push_str(release_profiles.compatibility_profile_id);
-    text.push('\n');
-    text.push_str("Compatibility caveats: ");
-    text.push_str(&profile.known_gaps.len().to_string());
-    text.push('\n');
-    text.push_str("House formula families: ");
-    text.push_str(&profile.house_formula_families_summary_line());
-    text.push('\n');
-    text.push_str("Latitude-sensitive house systems: ");
-    text.push_str(&profile.latitude_sensitive_house_systems_summary_line());
-    text.push('\n');
-    text.push_str("Latitude-sensitive house constraints: ");
-    text.push_str(&profile.latitude_sensitive_house_constraints_summary_line());
-    text.push('\n');
-    text.push_str("Latitude-sensitive house failure modes: ");
-    text.push_str(&profile.latitude_sensitive_house_failure_modes_summary_line());
-    text.push('\n');
-    text.push_str("Descriptor-only ayanamsa labels: ");
-    text.push_str(&profile.custom_definition_ayanamsa_labels_summary_line());
-    text.push('\n');
-    for gap in profile.known_gaps {
-        text.push_str("- ");
-        text.push_str(gap);
-        text.push('\n');
-    }
-
-    text
-}
-
-/// Returns the house-code alias inventory for report surfaces.
-pub fn house_code_aliases_summary_for_report() -> String {
-    current_compatibility_profile().house_code_aliases_summary_line()
-}
-
-/// Returns the house-code alias inventory after validating the current profile.
-pub fn validated_house_code_aliases_summary_for_report(
-) -> Result<String, CompatibilityProfileValidationError> {
-    current_compatibility_profile().validated_house_code_aliases_summary_line()
-}
-
-/// Returns the release-specific house-system canonical names summary for report surfaces.
-pub fn release_house_system_canonical_names_summary_for_report() -> String {
-    current_compatibility_profile().release_house_system_canonical_names_summary_line()
-}
-
-/// Returns the release-specific house-system canonical names summary after validating the profile.
-pub fn validated_release_house_system_canonical_names_summary_for_report(
-) -> Result<String, CompatibilityProfileValidationError> {
-    current_compatibility_profile().validated_release_house_system_canonical_names_summary_line()
-}
-
-/// Returns the release-specific ayanamsa canonical names summary for report surfaces.
-pub fn release_ayanamsa_canonical_names_summary_for_report() -> String {
-    current_compatibility_profile().release_ayanamsa_canonical_names_summary_line()
-}
-
-/// Returns the release-specific ayanamsa canonical names summary after validating the profile.
-pub fn validated_release_ayanamsa_canonical_names_summary_for_report(
-) -> Result<String, CompatibilityProfileValidationError> {
-    current_compatibility_profile().validated_release_ayanamsa_canonical_names_summary_line()
-}
-
-/// Returns the target house-system scope summary for report surfaces.
-pub fn target_house_scope_summary_for_report() -> String {
-    current_compatibility_profile().target_house_scope_summary_line()
-}
-
-/// Returns the target house-system scope summary after validating the profile.
-pub fn validated_target_house_scope_summary_for_report(
-) -> Result<String, CompatibilityProfileValidationError> {
-    current_compatibility_profile().validated_target_house_scope_summary_line()
-}
-
-/// Returns the target ayanamsa scope summary for report surfaces.
-pub fn target_ayanamsa_scope_summary_for_report() -> String {
-    current_compatibility_profile().target_ayanamsa_scope_summary_line()
-}
-
-/// Returns the target ayanamsa scope summary after validating the profile.
-pub fn validated_target_ayanamsa_scope_summary_for_report(
-) -> Result<String, CompatibilityProfileValidationError> {
-    current_compatibility_profile().validated_target_ayanamsa_scope_summary_line()
 }

@@ -616,7 +616,7 @@ pub(crate) fn render_release_summary_text() -> String {
             }
             text.push('\n');
             text.push_str("Catalog posture: ");
-            match core_validated_catalog_posture_summary_for_report() {
+            match profile.validated_catalog_posture_summary_line() {
                 Ok(summary) => text.push_str(&summary),
                 Err(error) => return format!("Release summary unavailable ({error})"),
             }

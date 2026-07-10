@@ -259,7 +259,9 @@ pub(crate) fn validated_release_profile_identifiers_for_report(
 pub(crate) fn validated_catalog_inventory_summary_for_report() -> Result<String, String> {
     validated_compatibility_profile_for_report()?;
     validated_release_profile_identifiers_for_report()?;
-    core_validated_catalog_inventory_summary_for_report().map_err(|error| error.to_string())
+    current_compatibility_profile()
+        .validated_catalog_inventory_summary_line()
+        .map_err(|error| error.to_string())
 }
 
 #[cfg(test)]
@@ -272,13 +274,15 @@ pub(crate) fn validated_house_code_aliases_summary_for_profile(
 }
 
 pub(crate) fn validated_house_code_aliases_summary_for_report() -> Result<String, String> {
-    core_validated_house_code_aliases_summary_for_report().map_err(|error| error.to_string())
+    current_compatibility_profile()
+        .validated_house_code_aliases_summary_line()
+        .map_err(|error| error.to_string())
 }
 
 pub(crate) fn validated_release_profile_identifiers_summary_for_report(
     release_profiles: &ReleaseProfileIdentifiers,
 ) -> String {
-    match core_validated_release_profile_identifiers_summary_for_report(release_profiles) {
+    match release_profiles.validated_summary_line() {
         Ok(summary) => summary,
         Err(error) => format!("unavailable ({error})"),
     }

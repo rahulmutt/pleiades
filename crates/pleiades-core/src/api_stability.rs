@@ -10,10 +10,10 @@
 use core::fmt;
 
 /// The current API-stability posture identifier.
-pub const CURRENT_API_STABILITY_PROFILE_ID: &str = "pleiades-api-stability/0.2.2";
+pub(crate) const CURRENT_API_STABILITY_PROFILE_ID: &str = "pleiades-api-stability/0.2.2";
 
 /// Returns the current API-stability posture identifier.
-pub const fn current_api_stability_profile_id() -> &'static str {
+pub(crate) const fn current_api_stability_profile_id() -> &'static str {
     CURRENT_API_STABILITY_PROFILE_ID
 }
 

@@ -186,6 +186,46 @@ pub(crate) fn render_compatibility_profile_summary_text() -> String {
     text
 }
 
+/// Composes the compatibility caveats line from the profile and release
+/// identifiers. Moved verbatim from pleiades-core (report-surface relocation
+/// slice A); rendered text is byte-identical.
+fn compatibility_caveats_summary_text(
+    profile: &CompatibilityProfile,
+    identifiers: &ReleaseProfileIdentifiers,
+) -> String {
+    let mut text = String::new();
+
+    text.push_str("Compatibility caveats summary\n");
+    text.push_str("Profile: ");
+    text.push_str(identifiers.compatibility_profile_id);
+    text.push('\n');
+    text.push_str("Compatibility caveats: ");
+    text.push_str(&profile.known_gaps.len().to_string());
+    text.push('\n');
+    text.push_str("House formula families: ");
+    text.push_str(&profile.house_formula_families_summary_line());
+    text.push('\n');
+    text.push_str("Latitude-sensitive house systems: ");
+    text.push_str(&profile.latitude_sensitive_house_systems_summary_line());
+    text.push('\n');
+    text.push_str("Latitude-sensitive house constraints: ");
+    text.push_str(&profile.latitude_sensitive_house_constraints_summary_line());
+    text.push('\n');
+    text.push_str("Latitude-sensitive house failure modes: ");
+    text.push_str(&profile.latitude_sensitive_house_failure_modes_summary_line());
+    text.push('\n');
+    text.push_str("Descriptor-only ayanamsa labels: ");
+    text.push_str(&profile.custom_definition_ayanamsa_labels_summary_line());
+    text.push('\n');
+    for gap in profile.known_gaps {
+        text.push_str("- ");
+        text.push_str(gap);
+        text.push('\n');
+    }
+
+    text
+}
+
 pub(crate) fn render_compatibility_caveats_summary_text() -> String {
     static CACHE: OnceLock<String> = OnceLock::new();
     CACHE
@@ -202,7 +242,7 @@ pub(crate) fn render_compatibility_caveats_summary_text() -> String {
                     return format!("Compatibility caveats summary unavailable ({error})")
                 }
             };
-            core_compatibility_caveats_summary_for_report(&profile, &release_profiles)
+            compatibility_caveats_summary_text(&profile, &release_profiles)
         })
         .clone()
 }
