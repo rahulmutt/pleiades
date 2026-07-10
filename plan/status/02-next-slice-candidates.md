@@ -154,15 +154,27 @@ instants ≤65.0 s well-conditioned (max 46.44 s) / ≤995.0 s grazing (max
 710.03 s, ill-conditioned near-tangent limb geometry), star magnitude/
 obscuration exact SE parity (max 0.0), planet magnitude ≤7% relative (max
 4.89%), global sub-lunar central-observation point ≤30.0′ (max 20.22′,
-Antares), planet-grazing obscuration ≤7% relative (max 4.93%); two known
-bounds deliberately not gated — planet-total obscuration (SE's `attr[2]`
+Antares), planet-grazing obscuration ≤7% relative (max 4.93%); one known
+bound deliberately not gated — planet-total obscuration (SE's `attr[2]`
 for a fully-covered planet is a different, coverage-depth quantity a
-bounded `[0,1]` area fraction cannot and should not reach) and the planet
-`central` boolean flag (measured but not gated, a narrow-margin discrepancy
-on 2 of 6 Saturn global rows)) are all **done**. Next candidate slices:
+bounded `[0,1]` area fraction cannot and should not reach)) are all **done**,
+and SP-6-FU (central axis-pierce exactness + graze-boundary root cause —
+`central` now ports Swiss Ephemeris's exact `SE_ECL_CENTRAL` axis-pierce
+condition, `eclipse_where`'s closed-form perpendicular-distance-to-axis
+test, fully decoupled from `occ_type`, and is hard-gated exact on both
+planet (0/6 mismatched) and star (0/12 mismatched) glob rows — the planet
+`central` boolean flag that was previously measured-but-not-gated is now
+gated exact; the graze-boundary Total/Miss classification disagreement was
+root-caused to `swe_lun_occult_when_loc` folding target visibility
+(apparent altitude > 0 at one of max/C1..C4) into event existence, while
+this engine keeps geometry and visibility separate; the validation gate's
+comparison was reconciled to SE-equivalent semantics (geometric `Miss` OR
+`!any_phase_visible`), dropping disagreements from 8/18 to 3/18, pinned
+fail-closed at 3; engine numerics exonerated, Moon position agrees with
+`de440` to ~0.0001″) is also **done**. Next candidate slices:
 
-- Central-path cartography (now also encompassing the sub-lunar
-  central-observation axis-pierce refinement and the occultation
-  `central`-flag exactness).
+- Central-path cartography (the full central-path polygon; the
+  sub-lunar central-observation point and the occultation `central`-flag
+  exactness are done).
 - Custom fictitious-body orbital elements (user-supplied, beyond the
   committed `seorbel.txt` set).
