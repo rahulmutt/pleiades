@@ -413,6 +413,15 @@ pub const MOON_MAX_REACH_DEG: f64 = 6.6;
 /// `docs/superpowers/notes/2026-07-09-sp6-fu-graze-diagnosis.md` for the full
 /// differential diagnosis and `tests/occult_graze_diagnosis.rs` for the
 /// reproducible harness.
+///
+/// Narrowing acknowledgment: because the SE-equivalent-Miss rule is an OR
+/// (`geometric Miss OR !any_phase_visible`), this metric can no longer catch
+/// a geometry-only regression on a below-horizon row — a wrongly-computed
+/// `Total` there is masked by `!any_phase_visible`, so it still counts as
+/// SE-equivalent-Miss and stays "agreeing" regardless of the geometry bug.
+/// Geometry regressions on such rows remain covered by the other gated
+/// metrics (contact seconds, sublunar distance, magnitudes) and by the 15
+/// agreeing rows, whose per-row geometry is still genuinely checked above.
 pub const MAX_MISS_CLASSIFICATION_DISAGREEMENTS: usize = 3;
 
 #[derive(Debug)]
@@ -1348,7 +1357,7 @@ pub fn validate_occultations_corpus() -> Result<OccultReport, OccultError> {
         return Err(OccultError::ToleranceExceeded {
             metric: "miss_classify_disagree",
             label: format!(
-                "{} of {} sibling-anchored geometric-miss rows disagreed with SE (Total vs Miss)",
+                "{} of {} sibling-anchored geometric-miss rows disagreed with SE (SE-equivalent non-Miss vs SE Miss)",
                 m.miss_classify_disagree, m.miss_classify_checked
             ),
             jd: f64::NAN,
