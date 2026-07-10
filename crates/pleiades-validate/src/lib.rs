@@ -37,6 +37,7 @@ mod occult_thresholds;
 pub mod occult_validation;
 mod pheno_thresholds;
 pub mod pheno_validation;
+mod posture;
 mod provenance;
 mod release;
 mod render;
@@ -48,6 +49,13 @@ mod topocentric_validation;
 pub use angles_validation::{validate_angles_corpus, AnglesCorpusError, AnglesCorpusReport};
 pub use apparent_validation::{
     validate_apparent_goldens, ApparentValidationError, ApparentValidationReport,
+};
+pub use posture::backend_policy::{
+    validated_apparentness_policy_summary_for_report, validated_delta_t_policy_summary_for_report,
+    validated_frame_policy_summary_for_report, validated_native_sidereal_policy_summary_for_report,
+    validated_observer_policy_summary_for_report, validated_request_policy_summary_for_report,
+    validated_request_semantics_summary_for_report, validated_time_scale_policy_summary_for_report,
+    validated_utc_convenience_policy_summary_for_report,
 };
 pub use render::{banner, render_cli};
 pub use topocentric_validation::{
@@ -224,15 +232,15 @@ use crate::claims::{
     derived_release_posture, validate_release_posture,
     validated_release_body_claims_summary_line_for_report,
 };
+use crate::posture::backend_policy::{
+    delta_t_policy_summary_for_report, frame_policy_summary_details,
+    pluto_fallback_summary_for_report, request_policy_summary_for_report,
+    time_scale_policy_summary_for_report, validated_pluto_fallback_summary_line_for_report,
+    validated_zodiac_policy_summary_for_report,
+};
 use pleiades_ayanamsa::{
     ayanamsa_catalog_validation_summary, baseline_ayanamsas, built_in_ayanamsas, descriptor,
     metadata_coverage, release_ayanamsas, resolve_ayanamsa, validate_ayanamsa_catalog,
-};
-use pleiades_backend::{
-    delta_t_policy_summary_for_report, frame_policy_summary_details,
-    pluto_fallback_summary_for_report, request_policy_summary_for_report,
-    time_scale_policy_summary_for_report, validated_frame_policy_summary_for_report,
-    validated_pluto_fallback_summary_line_for_report, validated_zodiac_policy_summary_for_report,
 };
 #[cfg(test)]
 use pleiades_core::default_chart_bodies;

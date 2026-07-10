@@ -3,7 +3,7 @@
 use crate::*;
 
 pub(crate) fn format_time_scale_policy_summary_for_report(
-    summary: &pleiades_backend::TimeScalePolicySummary,
+    summary: &crate::posture::backend_policy::TimeScalePolicySummary,
 ) -> String {
     match summary.validated_summary_line() {
         Ok(line) => line.to_string(),
@@ -12,7 +12,7 @@ pub(crate) fn format_time_scale_policy_summary_for_report(
 }
 
 pub(crate) fn format_delta_t_policy_summary_for_report(
-    summary: &pleiades_backend::DeltaTPolicySummary,
+    summary: &crate::posture::backend_policy::DeltaTPolicySummary,
 ) -> String {
     match summary.validated_summary_line() {
         Ok(line) => line.to_string(),
@@ -21,7 +21,7 @@ pub(crate) fn format_delta_t_policy_summary_for_report(
 }
 
 pub(crate) fn format_observer_policy_summary_for_report(
-    summary: &pleiades_backend::ObserverPolicySummary,
+    summary: &crate::posture::backend_policy::ObserverPolicySummary,
 ) -> String {
     match summary.validated_summary_line() {
         Ok(line) => line.to_string(),
@@ -30,7 +30,7 @@ pub(crate) fn format_observer_policy_summary_for_report(
 }
 
 pub(crate) fn format_apparentness_policy_summary_for_report(
-    summary: &pleiades_backend::ApparentnessPolicySummary,
+    summary: &crate::posture::backend_policy::ApparentnessPolicySummary,
 ) -> String {
     match summary.validated_summary_line() {
         Ok(line) => line.to_string(),
@@ -39,7 +39,7 @@ pub(crate) fn format_apparentness_policy_summary_for_report(
 }
 
 pub(crate) fn format_request_policy_summary_for_report(
-    summary: &pleiades_backend::RequestPolicySummary,
+    summary: &crate::posture::backend_policy::RequestPolicySummary,
 ) -> String {
     match summary.validated_summary_line() {
         Ok(line) => line,
@@ -48,7 +48,7 @@ pub(crate) fn format_request_policy_summary_for_report(
 }
 
 pub(crate) fn validated_request_policy_summary_for_report(
-) -> Result<pleiades_backend::RequestPolicySummary, String> {
+) -> Result<crate::posture::backend_policy::RequestPolicySummary, String> {
     let summary = request_policy_summary_for_report();
     summary.validate().map_err(|error| error.to_string())?;
     Ok(summary)
@@ -62,7 +62,7 @@ pub(crate) fn validated_production_generation_body_class_coverage_summary_for_re
 }
 
 pub(crate) fn format_request_semantics_summary_for_report(
-    time_scale_policy: &pleiades_backend::TimeScalePolicySummary,
+    time_scale_policy: &crate::posture::backend_policy::TimeScalePolicySummary,
 ) -> String {
     use std::fmt::Write as _;
 
@@ -74,7 +74,7 @@ pub(crate) fn format_request_semantics_summary_for_report(
     );
 
     let utc_convenience_policy =
-        pleiades_backend::validated_utc_convenience_policy_summary_for_report();
+        crate::posture::backend_policy::validated_utc_convenience_policy_summary_for_report();
     let _ = writeln!(text, "UTC convenience policy: {}", utc_convenience_policy);
 
     let delta_t_policy = delta_t_policy_summary_for_report();
@@ -85,7 +85,7 @@ pub(crate) fn format_request_semantics_summary_for_report(
     );
 
     let native_sidereal_policy =
-        pleiades_backend::validated_native_sidereal_policy_summary_for_report();
+        crate::posture::backend_policy::validated_native_sidereal_policy_summary_for_report();
     let _ = writeln!(text, "Native sidereal policy: {}", native_sidereal_policy);
 
     let request_policy = match validated_request_policy_summary_for_report() {
@@ -98,8 +98,9 @@ pub(crate) fn format_request_semantics_summary_for_report(
         }
     };
 
-    let observer_policy = pleiades_backend::observer_policy_summary_for_report();
-    let apparentness_policy = pleiades_backend::apparentness_policy_summary_for_report();
+    let observer_policy = crate::posture::backend_policy::observer_policy_summary_for_report();
+    let apparentness_policy =
+        crate::posture::backend_policy::apparentness_policy_summary_for_report();
     let _ = writeln!(
         text,
         "Observer policy: {}",
@@ -140,26 +141,30 @@ pub(crate) fn render_delta_t_policy_summary_text() -> String {
 pub(crate) fn render_zodiac_policy_summary_text() -> String {
     format!(
         "Zodiac policy summary\nZodiac policy: {}\n",
-        pleiades_backend::validated_zodiac_policy_summary_for_report()
+        crate::posture::backend_policy::validated_zodiac_policy_summary_for_report()
     )
 }
 
 pub(crate) fn render_utc_convenience_policy_summary_text() -> String {
     format!(
         "UTC convenience policy summary\nUTC convenience policy: {}\n",
-        pleiades_backend::validated_utc_convenience_policy_summary_for_report()
+        crate::posture::backend_policy::validated_utc_convenience_policy_summary_for_report()
     )
 }
 
 pub(crate) fn render_observer_policy_summary_text() -> String {
-    match pleiades_backend::observer_policy_summary_for_report().validated_summary_line() {
+    match crate::posture::backend_policy::observer_policy_summary_for_report()
+        .validated_summary_line()
+    {
         Ok(summary) => format!("Observer policy summary\nObserver policy: {}\n", summary),
         Err(error) => format!("Observer policy summary\nObserver policy unavailable ({error})\n"),
     }
 }
 
 pub(crate) fn render_apparentness_policy_summary_text() -> String {
-    match pleiades_backend::apparentness_policy_summary_for_report().validated_summary_line() {
+    match crate::posture::backend_policy::apparentness_policy_summary_for_report()
+        .validated_summary_line()
+    {
         Ok(summary) => format!(
             "Apparentness policy summary\nApparentness policy: {}\n",
             summary
@@ -173,7 +178,7 @@ pub(crate) fn render_apparentness_policy_summary_text() -> String {
 pub(crate) fn render_native_sidereal_policy_summary_text() -> String {
     format!(
         "Native sidereal policy summary\nNative sidereal policy: {}\n",
-        pleiades_backend::validated_native_sidereal_policy_summary_for_report()
+        crate::posture::backend_policy::validated_native_sidereal_policy_summary_for_report()
     )
 }
 

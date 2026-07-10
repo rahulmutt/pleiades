@@ -40,12 +40,12 @@ pub(crate) fn render_validation_report_summary_text(report: &ValidationReport) -
         format_delta_t_policy_summary_for_report(&delta_t_policy)
     );
     let utc_convenience_policy =
-        pleiades_backend::validated_utc_convenience_policy_summary_for_report();
+        crate::posture::backend_policy::validated_utc_convenience_policy_summary_for_report();
     let _ = writeln!(text, "UTC convenience policy: {}", utc_convenience_policy);
     let _ = writeln!(text, "Observer policy: {}", request_policy.observer);
     let _ = writeln!(text, "Apparentness policy: {}", request_policy.apparentness);
     let native_sidereal_policy =
-        pleiades_backend::validated_native_sidereal_policy_summary_for_report();
+        crate::posture::backend_policy::validated_native_sidereal_policy_summary_for_report();
     let _ = writeln!(text, "Native sidereal policy: {}", native_sidereal_policy);
     let _ = writeln!(text, "Frame policy: {}", request_policy.frame);
     let _ = writeln!(

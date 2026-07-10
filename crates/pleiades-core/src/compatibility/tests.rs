@@ -1741,7 +1741,7 @@ fn unsupported_modes_line_is_owned_by_the_compatibility_posture() {
     // Byte-identical to the backend constant this replaces (deleted in Task 6).
     assert_eq!(
         profile.unsupported_modes_summary_line(),
-        pleiades_backend::CURRENT_UNSUPPORTED_MODES_SUMMARY_TEXT
+        "built-in UTC convenience remains out of scope; built-in Delta T remains out of scope; native sidereal backend output remains unsupported unless a backend explicitly advertises it"
     );
     assert!(profile.to_string().contains(&format!(
         "Unsupported modes: {}",

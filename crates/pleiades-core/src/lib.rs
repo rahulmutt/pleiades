@@ -108,25 +108,10 @@ pub use pleiades_ayanamsa::{
     resolve_ayanamsa, AyanamsaDescriptor,
 };
 pub use pleiades_backend::{
-    apparentness_policy_summary_for_report, current_delta_t_policy_summary,
-    current_native_sidereal_policy_summary, current_pluto_fallback_summary,
-    current_utc_convenience_policy_summary, delta_t_policy_summary_for_report,
-    frame_policy_summary_for_report, native_sidereal_policy_summary_for_report,
-    observer_policy_summary_for_report, pluto_fallback_summary_for_report,
-    request_policy_summary_for_report, time_scale_policy_summary_for_report,
-    utc_convenience_policy_summary_for_report, validated_apparentness_policy_summary_for_report,
-    validated_delta_t_policy_summary_for_report, validated_frame_policy_summary_for_report,
-    validated_frame_treatment_summary_for_report,
-    validated_native_sidereal_policy_summary_for_report,
-    validated_observer_policy_summary_for_report, validated_request_policy_summary_for_report,
-    validated_request_semantics_summary_for_report, validated_time_scale_policy_summary_for_report,
-    validated_utc_convenience_policy_summary_for_report, AccuracyClass, Apparentness,
-    ApparentnessPolicySummary, BackendCapabilities, BackendFamily, BackendId, BackendMetadata,
-    BackendProvenance, BodyClaim, BodyClaimTier, CompositeBackend, DeltaTPolicySummary,
-    EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult,
-    FramePolicySummary, NativeSiderealPolicySummary, ObserverPolicySummary, PlutoFallbackSummary,
-    QualityAnnotation, RequestPolicySummary, RoutingBackend, TimeScalePolicySummary,
-    UtcConveniencePolicySummary,
+    AccuracyClass, Apparentness, BackendCapabilities, BackendFamily, BackendId, BackendMetadata,
+    BackendProvenance, BodyClaim, BodyClaimTier, CompositeBackend, EphemerisBackend,
+    EphemerisError, EphemerisErrorKind, EphemerisRequest, EphemerisResult, QualityAnnotation,
+    RoutingBackend,
 };
 pub use pleiades_houses::{
     baseline_house_systems, calculate_houses, chart_points, chart_points_from_armc,
@@ -145,8 +130,6 @@ pub use release_profiles::{
     current_release_profile_identifiers, ReleaseProfileIdentifiers,
     ReleaseProfileIdentifiersValidationError,
 };
-
-pub use pleiades_backend::request_semantics_summary_for_report;
 
 /// A thin façade around a backend implementation.
 #[derive(Debug)]
@@ -549,140 +532,6 @@ mod tests {
         assert_eq!(
             error.message,
             "chart request #2 failed validation: restricted expects one of [TT] for request instants"
-        );
-    }
-
-    #[test]
-    fn utc_convenience_policy_summary_is_reexported_from_backend() {
-        let summary: UtcConveniencePolicySummary = utc_convenience_policy_summary_for_report();
-        assert_eq!(
-            summary.summary_line(),
-            pleiades_backend::CURRENT_UTC_CONVENIENCE_POLICY_SUMMARY_TEXT
-        );
-        assert_eq!(
-            summary.validated_summary_line().unwrap(),
-            pleiades_backend::CURRENT_UTC_CONVENIENCE_POLICY_SUMMARY_TEXT
-        );
-        assert_eq!(
-            validated_utc_convenience_policy_summary_for_report(),
-            pleiades_backend::CURRENT_UTC_CONVENIENCE_POLICY_SUMMARY_TEXT
-        );
-        let current_summary: UtcConveniencePolicySummary = current_utc_convenience_policy_summary();
-        assert_eq!(current_summary.summary_line(), summary.summary_line());
-        assert_eq!(
-            current_summary.validated_summary_line().unwrap(),
-            summary.validated_summary_line().unwrap()
-        );
-    }
-
-    #[test]
-    fn delta_t_policy_summary_is_reexported_from_backend() {
-        let summary: DeltaTPolicySummary = delta_t_policy_summary_for_report();
-        assert_eq!(
-            summary.summary_line(),
-            pleiades_backend::CURRENT_DELTA_T_POLICY_SUMMARY_TEXT
-        );
-        assert_eq!(
-            summary.validated_summary_line().unwrap(),
-            pleiades_backend::CURRENT_DELTA_T_POLICY_SUMMARY_TEXT
-        );
-        let current_summary: DeltaTPolicySummary = current_delta_t_policy_summary();
-        assert_eq!(current_summary.summary_line(), summary.summary_line());
-        assert_eq!(
-            current_summary.validated_summary_line().unwrap(),
-            summary.validated_summary_line().unwrap()
-        );
-    }
-
-    #[test]
-    fn request_policy_component_summaries_are_reexported_from_backend() {
-        assert_eq!(
-            validated_time_scale_policy_summary_for_report(),
-            pleiades_backend::CURRENT_TIME_SCALE_POLICY_SUMMARY_TEXT
-        );
-        assert_eq!(
-            validated_delta_t_policy_summary_for_report(),
-            pleiades_backend::CURRENT_DELTA_T_POLICY_SUMMARY_TEXT
-        );
-        assert_eq!(
-            validated_observer_policy_summary_for_report(),
-            pleiades_backend::CURRENT_OBSERVER_POLICY_SUMMARY_TEXT
-        );
-        assert_eq!(
-            validated_apparentness_policy_summary_for_report(),
-            pleiades_backend::CURRENT_APPARENTNESS_POLICY_SUMMARY_TEXT
-        );
-        assert_eq!(
-            validated_request_policy_summary_for_report(),
-            request_policy_summary_for_report()
-                .validated_summary_line()
-                .unwrap()
-        );
-        assert_eq!(
-            validated_request_semantics_summary_for_report(),
-            validated_request_policy_summary_for_report()
-        );
-    }
-
-    #[test]
-    fn request_semantics_summary_aliases_request_policy_summary() {
-        assert_eq!(
-            request_semantics_summary_for_report(),
-            request_policy_summary_for_report()
-        );
-        assert_eq!(
-            request_semantics_summary_for_report().summary_line(),
-            request_policy_summary_for_report().summary_line()
-        );
-        assert_eq!(
-            request_semantics_summary_for_report()
-                .validated_summary_line()
-                .unwrap(),
-            request_policy_summary_for_report()
-                .validated_summary_line()
-                .unwrap()
-        );
-    }
-
-    #[test]
-    fn native_sidereal_policy_summary_is_reexported_from_backend() {
-        let summary: NativeSiderealPolicySummary = native_sidereal_policy_summary_for_report();
-        assert_eq!(
-            summary.summary_line(),
-            pleiades_backend::CURRENT_NATIVE_SIDEREAL_POLICY_SUMMARY_TEXT
-        );
-        assert_eq!(
-            summary.validated_summary_line().unwrap(),
-            pleiades_backend::CURRENT_NATIVE_SIDEREAL_POLICY_SUMMARY_TEXT
-        );
-        assert_eq!(
-            validated_native_sidereal_policy_summary_for_report(),
-            pleiades_backend::CURRENT_NATIVE_SIDEREAL_POLICY_SUMMARY_TEXT
-        );
-        let current_summary: NativeSiderealPolicySummary = current_native_sidereal_policy_summary();
-        assert_eq!(current_summary.summary_line(), summary.summary_line());
-        assert_eq!(
-            current_summary.validated_summary_line().unwrap(),
-            summary.validated_summary_line().unwrap()
-        );
-    }
-
-    #[test]
-    fn pluto_fallback_summary_is_reexported_from_backend() {
-        let summary: PlutoFallbackSummary = pluto_fallback_summary_for_report();
-        assert_eq!(
-            summary.summary_line(),
-            pleiades_backend::CURRENT_PLUTO_FALLBACK_POLICY_SUMMARY_TEXT
-        );
-        assert_eq!(
-            summary.validated_summary_line().unwrap(),
-            pleiades_backend::CURRENT_PLUTO_FALLBACK_POLICY_SUMMARY_TEXT
-        );
-        let current_summary: PlutoFallbackSummary = current_pluto_fallback_summary();
-        assert_eq!(current_summary.summary_line(), summary.summary_line());
-        assert_eq!(
-            current_summary.validated_summary_line().unwrap(),
-            summary.validated_summary_line().unwrap()
         );
     }
 

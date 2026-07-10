@@ -425,16 +425,18 @@ pub(crate) fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str("Observer policy: ");
     text.push_str(&format_observer_policy_summary_for_report(
-        &pleiades_backend::observer_policy_summary_for_report(),
+        &crate::posture::backend_policy::observer_policy_summary_for_report(),
     ));
     text.push('\n');
     text.push_str("Apparentness policy: ");
     text.push_str(&format_apparentness_policy_summary_for_report(
-        &pleiades_backend::apparentness_policy_summary_for_report(),
+        &crate::posture::backend_policy::apparentness_policy_summary_for_report(),
     ));
     text.push('\n');
     text.push_str("Native sidereal policy: ");
-    text.push_str(&pleiades_backend::validated_native_sidereal_policy_summary_for_report());
+    text.push_str(
+        &crate::posture::backend_policy::validated_native_sidereal_policy_summary_for_report(),
+    );
     text.push('\n');
     text.push_str("Zodiac policy: ");
     text.push_str(&validated_zodiac_policy_summary_for_report());
