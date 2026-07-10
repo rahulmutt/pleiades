@@ -708,7 +708,7 @@ impl fmt::Display for PlutoFallbackSummary {
 ///
 /// # Example
 ///
-/// ```ignore
+/// ```text
 /// use pleiades_backend::RequestPolicySummary;
 ///
 /// let summary = RequestPolicySummary::current();
@@ -841,7 +841,7 @@ impl RequestPolicySummary {
 ///
 /// # Example
 ///
-/// ```ignore
+/// ```text
 /// use pleiades_backend::TimeScalePolicySummary;
 ///
 /// let summary = TimeScalePolicySummary::current();
