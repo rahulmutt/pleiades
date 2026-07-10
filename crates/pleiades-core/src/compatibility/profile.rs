@@ -194,8 +194,7 @@ impl CompatibilityProfile {
 
     /// Returns the representative ayanamsa provenance payload surfaced in the compatibility profile.
     pub fn ayanamsa_provenance_summary_line(&self) -> String {
-        pleiades_ayanamsa::validated_provenance_summary_for_report()
-            .unwrap_or_else(|error| format!("unavailable ({error})"))
+        super::ayanamsa_provenance_summary_text()
     }
 
     /// Returns the representative ayanamsa provenance payload after validating the profile.
@@ -203,11 +202,7 @@ impl CompatibilityProfile {
         &self,
     ) -> Result<String, CompatibilityProfileValidationError> {
         self.validate()?;
-        pleiades_ayanamsa::validated_provenance_summary_for_report().map_err(|error| {
-            CompatibilityProfileValidationError::AyanamsaProvenanceSummaryValidationFailed {
-                error: error.to_string(),
-            }
-        })
+        Ok(super::ayanamsa_provenance_summary_text())
     }
 
     /// Returns the custom-definition ayanamsa labels surfaced in the compatibility profile.

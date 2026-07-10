@@ -108,11 +108,6 @@ impl CompatibilityProfile {
             self.release_ayanamsas,
             |entry| entry.canonical_name,
         )?;
-        pleiades_ayanamsa::validated_provenance_summary_for_report().map_err(|error| {
-            CompatibilityProfileValidationError::AyanamsaProvenanceSummaryValidationFailed {
-                error: error.to_string(),
-            }
-        })?;
         Ok(())
     }
 }

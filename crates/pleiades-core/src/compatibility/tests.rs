@@ -1801,3 +1801,16 @@ fn rendered_profile_matches_pinned_content_checksum() {
          CURRENT_COMPATIBILITY_PROFILE_CONTENT_CHECKSUM in the same commit"
     );
 }
+
+#[test]
+fn rebuilt_ayanamsa_provenance_line_matches_ayanamsa_crate_rendering() {
+    // Guards the slice-A decoupling: core's rebuilt derivation must be
+    // byte-identical to the pleiades-ayanamsa renderer it replaced.
+    // (Slice B deletes the ayanamsa renderer; this test then converts to a
+    // pinned literal — see the slice-B plan.)
+    assert_eq!(
+        super::ayanamsa_provenance_summary_text(),
+        pleiades_ayanamsa::validated_provenance_summary_for_report()
+            .expect("ayanamsa provenance summary should validate")
+    );
+}
