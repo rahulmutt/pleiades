@@ -36,7 +36,6 @@ mod convert;
 pub mod deltat;
 mod error;
 pub mod leap;
-pub mod policy;
 pub mod sidereal;
 pub mod tdb;
 
@@ -48,7 +47,6 @@ pub use convert::{
 };
 pub use deltat::DeltaTQuality;
 pub use error::CivilTimeError;
-pub use policy::{CivilTimePolicyError, CivilTimePolicySummary};
 pub use sidereal::{gmst_degrees, gmst_degrees_raw};
 
 /// Deterministic 64-bit content checksum (FNV-1a), byte-identical to

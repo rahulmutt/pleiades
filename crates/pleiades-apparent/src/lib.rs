@@ -124,13 +124,6 @@ mod topocentric;
 
 pub use topocentric::{topocentric_position, TopocentricPosition, DIURNAL_ABERRATION_ARCSEC};
 
-pub mod policy;
-
-pub use policy::{
-    ApparentPlacePolicySummary, ApparentPlacePolicySummaryValidationError,
-    CURRENT_APPARENT_PLACE_POLICY_SUMMARY_TEXT,
-};
-
 pub mod refraction;
 
 pub use refraction::{apparent_from_true, true_from_apparent, Atmosphere};
