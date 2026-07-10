@@ -4,6 +4,21 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## Unreleased (0.4.0)
+
+- **Breaking (report-surface relocation, slice A):** `pleiades-core` no longer
+  exports `*_summary_for_report` wrapper functions or re-exports
+  `pleiades-backend` policy summaries — call the `CompatibilityProfile` /
+  `ReleaseProfileIdentifiers` methods, or use `pleiades-validate` for report
+  rendering. `pleiades-backend`'s policy-prose layer (constants, summary
+  structs, report functions) moved to `pleiades-validate`;
+  `FrameTreatmentSummary` and the request/metadata `validate_*` contract
+  functions remain. `ChartSnapshot`'s `Display` no longer embeds the global
+  time-scale/frame/apparentness policy lines. Dead report helpers deleted
+  from `pleiades-time`, `pleiades-apparent`, `pleiades-ayanamsa`,
+  `pleiades-houses`. API-stability profile 0.2.2 → 0.3.0.
+
 ## [0.3.0] - 2026-07-01
 
 ### Highlights

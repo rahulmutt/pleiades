@@ -178,3 +178,16 @@ fail-closed at 3; engine numerics exonerated, Moon position agrees with
   exactness are done).
 - Custom fictitious-body orbital elements (user-supplied, beyond the
   committed `seorbel.txt` set).
+
+## Report-surface relocation program (API-hygiene track, pre-0.4.0, parallel to the SP series)
+
+Slice A (`docs/superpowers/specs/2026-07-10-report-surface-relocation-design.md`)
+is **done**: `pleiades-core` façade cleanup, the `pleiades-backend`
+policy-prose-layer move into `pleiades-validate`, the `ChartSnapshot::Display`
+policy-line removal, ayanamsa/unsupported-modes decoupling, and the dead
+time/apparent/ayanamsa/houses report-helper deletions all landed with
+`mise run ci` green and the compatibility profile id unchanged at 0.7.13.
+Remaining slices B (houses, ayanamsa, vsop87, elp, compression renderer
+moves), C (`pleiades-data` rendering move), and D (`pleiades-jpl`
+`reference_summary/` move) are still pending before the workspace 0.4.0
+release.

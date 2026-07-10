@@ -4,6 +4,10 @@ Phase: API-hygiene track (pre-0.4.0 release), parallel to the SP event-engine
 series. One program spec covering four implementation slices (A–D), each with
 its own plan and branch.
 
+Status: Slice A **delivered** (2026-07-10, `feat/report-surface-relocation-slice-a`,
+`mise run ci` green, compatibility profile id unchanged at 0.7.13); slices B, C,
+D remain.
+
 ## Summary
 
 Every functional (calculation) crate in the workspace has accreted a
