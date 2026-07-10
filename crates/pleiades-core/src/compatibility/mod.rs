@@ -25,6 +25,10 @@ use pleiades_houses::{baseline_house_systems, built_in_house_systems, release_ho
 /// The current compatibility-profile identifier.
 pub const CURRENT_COMPATIBILITY_PROFILE_ID: &str = "pleiades-compatibility-profile/0.7.13";
 
+/// Canonical current unsupported-modes summary text used by release reporting.
+pub(crate) const CURRENT_UNSUPPORTED_MODES_SUMMARY_TEXT: &str =
+    "built-in UTC convenience remains out of scope; built-in Delta T remains out of scope; native sidereal backend output remains unsupported unless a backend explicitly advertises it";
+
 /// FNV-1a/64 checksum (via [`pleiades_time::fnv1a64`]) of the fully rendered
 /// `current_compatibility_profile()` text.
 ///

@@ -1803,6 +1803,20 @@ fn rendered_profile_matches_pinned_content_checksum() {
 }
 
 #[test]
+fn unsupported_modes_line_is_owned_by_the_compatibility_posture() {
+    let profile = current_compatibility_profile();
+    // Byte-identical to the backend constant this replaces (deleted in Task 6).
+    assert_eq!(
+        profile.unsupported_modes_summary_line(),
+        pleiades_backend::CURRENT_UNSUPPORTED_MODES_SUMMARY_TEXT
+    );
+    assert!(profile.to_string().contains(&format!(
+        "Unsupported modes: {}",
+        profile.unsupported_modes_summary_line()
+    )));
+}
+
+#[test]
 fn rebuilt_ayanamsa_provenance_line_matches_ayanamsa_crate_rendering() {
     // Guards the slice-A decoupling: core's rebuilt derivation must be
     // byte-identical to the pleiades-ayanamsa renderer it replaced.

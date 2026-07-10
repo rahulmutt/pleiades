@@ -231,9 +231,8 @@ use pleiades_ayanamsa::{
 use pleiades_backend::{
     delta_t_policy_summary_for_report, frame_policy_summary_details,
     pluto_fallback_summary_for_report, request_policy_summary_for_report,
-    time_scale_policy_summary_for_report, unsupported_modes_summary_for_report,
-    validated_frame_policy_summary_for_report, validated_pluto_fallback_summary_line_for_report,
-    validated_zodiac_policy_summary_for_report,
+    time_scale_policy_summary_for_report, validated_frame_policy_summary_for_report,
+    validated_pluto_fallback_summary_line_for_report, validated_zodiac_policy_summary_for_report,
 };
 #[cfg(test)]
 use pleiades_core::default_chart_bodies;

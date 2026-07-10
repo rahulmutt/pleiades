@@ -378,7 +378,7 @@ impl fmt::Display for CompatibilityProfile {
         writeln!(
             f,
             "Unsupported modes: {}",
-            pleiades_backend::unsupported_modes_summary_for_report()
+            self.unsupported_modes_summary_line()
         )?;
         Ok(())
     }

@@ -352,6 +352,11 @@ impl CompatibilityProfile {
         Ok(self.known_gaps_summary_line())
     }
 
+    /// Returns the unsupported-advanced-modes posture line surfaced in release reporting.
+    pub const fn unsupported_modes_summary_line(&self) -> &'static str {
+        super::CURRENT_UNSUPPORTED_MODES_SUMMARY_TEXT
+    }
+
     /// Returns the compact catalog-posture line for the current compatibility profile.
     pub fn catalog_posture_summary_line(&self) -> String {
         let constrained_house_system_count = self.constrained_house_system_count();

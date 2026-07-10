@@ -53,7 +53,7 @@ pub(crate) fn validate_compatibility_profile_summary_text(
 
     let expected_unsupported_modes_line = format!(
         "Unsupported modes: {}",
-        unsupported_modes_summary_for_report()
+        profile.unsupported_modes_summary_line()
     );
     if !text.contains(&expected_unsupported_modes_line) {
         return Err(format!(
@@ -167,7 +167,7 @@ pub(crate) fn render_compatibility_profile_summary_text() -> String {
     }
     text.push('\n');
     text.push_str("Unsupported modes: ");
-    text.push_str(unsupported_modes_summary_for_report());
+    text.push_str(profile.unsupported_modes_summary_line());
     text.push('\n');
     text.push_str("Compatibility profile verification: verify-compatibility-profile\n");
     text.push_str("Compact summary views: backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary\n");

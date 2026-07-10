@@ -67,7 +67,7 @@ fn compatibility_profile_command_renders_the_full_profile() {
     assert!(rendered.contains("Stage 6 release profile:"));
     assert!(rendered.contains(&format!(
         "Unsupported modes: {}",
-        unsupported_modes_summary_for_report()
+        current_compatibility_profile().unsupported_modes_summary_line()
     )));
     assert!(rendered.contains("Target compatibility catalog:"));
     assert!(rendered.contains(
@@ -359,7 +359,7 @@ fn compatibility_profile_summary_command_renders_the_summary() {
     assert!(rendered.contains("Compatibility caveats documented:"));
     assert!(rendered.contains(&format!(
         "Unsupported modes: {}",
-        unsupported_modes_summary_for_report()
+        profile.unsupported_modes_summary_line()
     )));
     assert!(rendered.contains(profile.known_gaps[0]));
     assert!(rendered.contains(profile.known_gaps[1]));

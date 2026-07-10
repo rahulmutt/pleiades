@@ -124,7 +124,7 @@ pub(crate) fn render_request_semantics_summary_text() -> String {
     let _ = writeln!(
         text,
         "Unsupported modes: {}",
-        unsupported_modes_summary_for_report()
+        current_compatibility_profile().unsupported_modes_summary_line()
     );
     text
 }
@@ -132,7 +132,7 @@ pub(crate) fn render_request_semantics_summary_text() -> String {
 pub(crate) fn render_unsupported_modes_summary_text() -> String {
     format!(
         "Unsupported modes summary\nUnsupported modes: {}\n",
-        unsupported_modes_summary_for_report()
+        current_compatibility_profile().unsupported_modes_summary_line()
     )
 }
 
