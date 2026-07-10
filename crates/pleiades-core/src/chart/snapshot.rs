@@ -1,9 +1,6 @@
 use core::fmt;
 
-use pleiades_backend::{
-    request_policy_summary_for_report, time_scale_policy_summary_for_report,
-    validated_frame_policy_summary_for_report, Apparentness,
-};
+use pleiades_backend::Apparentness;
 use pleiades_houses::HouseError;
 use pleiades_types::{
     Angle, CelestialBody, Instant, MotionDirection, ObserverLocation, ZodiacMode,
@@ -692,11 +689,6 @@ impl fmt::Display for ChartSnapshot {
             "Instant: {} ({})",
             self.instant.julian_day, self.instant.scale
         )?;
-        writeln!(
-            f,
-            "Time-scale policy: {}",
-            time_scale_policy_summary_for_report().summary_line()
-        )?;
         if let Some(observer) = &self.observer {
             writeln!(
                 f,
@@ -720,18 +712,8 @@ impl fmt::Display for ChartSnapshot {
                 "Observer policy: geocentric body positions; no house observer supplied"
             )?;
         }
-        writeln!(
-            f,
-            "Frame policy: {}",
-            validated_frame_policy_summary_for_report()
-        )?;
         writeln!(f, "Zodiac mode: {}", self.zodiac_mode)?;
         writeln!(f, "Apparentness: {}", self.apparentness)?;
-        writeln!(
-            f,
-            "Apparentness policy: {}",
-            request_policy_summary_for_report().apparentness
-        )?;
         if let Some(houses) = &self.houses {
             let house_name = crate::house_system_descriptor(&houses.system)
                 .map(|descriptor| descriptor.canonical_name)
