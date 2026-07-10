@@ -119,10 +119,25 @@ by the fail-closed `validate-occultations` gate wired into
 `run_all_numeric_gates` over a committed 62-row corpus — contact/maximum
 instants ≤65.0 s well-conditioned / ≤995.0 s grazing, star magnitude/
 obscuration exact, planet magnitude ≤7% relative, sub-lunar point ≤30.0′,
-planet-grazing obscuration ≤7% relative; planet-total obscuration and the
-planet `central` flag are deliberately not gated) are now done as well.
-Compatibility profile is at 0.7.12. Next candidate slices: central-path
-cartography (now also encompassing the sub-lunar central-observation
-axis-pierce refinement and the occultation `central`-flag exactness), and
+planet-grazing obscuration ≤7% relative; planet-total obscuration is
+deliberately not gated) are now done as well. SP-6-FU (central axis-pierce
+exactness + graze-boundary root cause) is also done: `central` now ports
+Swiss Ephemeris's exact `SE_ECL_CENTRAL` axis-pierce condition
+(`eclipse_where`'s closed-form perpendicular-distance-to-axis test), fully
+decoupled from `occ_type`, and is hard-gated exact against the committed
+corpus on both planet (0/6 mismatched) and star (0/12 mismatched) glob rows;
+the graze-boundary Total/Miss classification disagreement was root-caused
+(differential harness + SE `swecl.c` source read) to
+`swe_lun_occult_when_loc` folding target visibility (apparent altitude > 0
+at one of max/C1..C4) into event existence, while this engine keeps geometry
+(`occultation_type`) and visibility (`any_phase_visible`) separate; the
+validation gate's comparison was reconciled to SE-equivalent semantics
+(geometric `Miss` OR `!any_phase_visible`), dropping disagreements from 8/18
+to 3/18 (residual: 1 knife-edge + 2 attributed to a continuous-scan-vs-
+discrete-instant visibility sampling delta), pinned fail-closed at 3; engine
+numerics were exonerated (Moon position agrees with `de440` to ~0.0001″).
+Compatibility profile is at 0.7.13. Next candidate slices: central-path
+cartography (the full central-path polygon; the sub-lunar central-observation
+point and the occultation `central`-flag exactness are now done), and
 custom fictitious-body orbital elements (user-supplied, beyond the committed
 `seorbel.txt` set) — not yet scoped in detail.

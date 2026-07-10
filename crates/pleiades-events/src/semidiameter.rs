@@ -6,7 +6,7 @@ use pleiades_types::CelestialBody;
 /// Mean physical radii in AU-consistent units (radius_km / AU_km), matching the
 /// Swiss Ephemeris disc-radius table. Sun and Moon dominate; planets are small
 /// but nonzero for parity.
-fn radius_au(body: &CelestialBody) -> f64 {
+pub(crate) fn radius_au(body: &CelestialBody) -> f64 {
     // radius_km / 149_597_870.7
     match body {
         CelestialBody::Sun => 696_000.0 / 149_597_870.7,

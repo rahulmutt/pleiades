@@ -87,8 +87,8 @@ use std::os::raw::{c_char, c_int};
 use std::ptr;
 
 use libswisseph_sys::raw::{
-    swe_deltat, swe_lun_occult_when_glob, swe_lun_occult_when_loc, swe_lun_occult_where, swe_pheno,
-    swe_set_ephe_path, swe_version,
+    swe_calc, swe_deltat, swe_fixstar, swe_lun_occult_when_glob, swe_lun_occult_when_loc,
+    swe_lun_occult_where, swe_pheno, swe_set_ephe_path, swe_set_topo, swe_version,
 };
 
 // SE default apparent minus gravitational deflection: SEFLG_MOSEPH=4,
@@ -101,6 +101,10 @@ const SE_ECL_TOTAL: i32 = 4;
 const SE_ECL_PARTIAL: i32 = 16;
 // One-conjunction-only search flag, passed via `backward` (swephexp.h:331).
 const SE_ECL_ONE_TRY: c_int = 32 * 1024;
+
+// Output-coordinate flags (swephexp.h).
+const SEFLG_EQUATORIAL: c_int = 2048;
+const SEFLG_TOPCTR: c_int = 32 * 1024;
 
 // SE body numbers.
 const SE_MOON: c_int = 1;
@@ -160,6 +164,131 @@ fn lunar_semidiameter_deg(jd_tdb: f64) -> f64 {
         panic!("swe_pheno(Moon) at jd_tdb={jd_tdb}: {}", serr_string(&serr));
     }
     attr[3] / 2.0
+}
+
+/// Geocentric or topocentric apparent equatorial-of-date (ra deg, dec deg,
+/// dist AU) for a planet (`ipl >= 0`, `star` empty) or fixed star, at a TDB
+/// instant. Caller must have called `swe_set_topo` first when passing
+/// `SEFLG_TOPCTR`. Fail-closed: SE errors panic.
+fn calc_radec(ipl: c_int, star: &str, jd_tdb: f64, iflag: c_int) -> (f64, f64, f64) {
+    let mut xx = [0.0_f64; 6];
+    let mut serr = [0 as c_char; 256];
+    let ret = if star.is_empty() {
+        unsafe { swe_calc(jd_tdb, ipl, iflag, xx.as_mut_ptr(), serr.as_mut_ptr()) }
+    } else {
+        // swe_fixstar writes the resolved name back into its buffer.
+        let mut buf = [0 as c_char; 64];
+        for (i, b) in star.as_bytes().iter().enumerate().take(62) {
+            buf[i] = *b as c_char;
+        }
+        unsafe {
+            swe_fixstar(
+                buf.as_mut_ptr(),
+                jd_tdb,
+                iflag,
+                xx.as_mut_ptr(),
+                serr.as_mut_ptr(),
+            )
+        }
+    };
+    if ret < 0 {
+        panic!(
+            "calc_radec(ipl={ipl}, star={star:?}, jd={jd_tdb}, iflag={iflag}): {}",
+            serr_string(&serr)
+        );
+    }
+    (xx[0], xx[1], xx[2])
+}
+
+/// SE Delta-T (SECONDS) at a TDB instant: evaluate swe_deltat (which takes
+/// UT and returns DAYS) with one fixed-point refinement of the UT argument.
+fn deltat_seconds_at_tdb(jd_tdb: f64) -> f64 {
+    let dt0 = unsafe { swe_deltat(jd_tdb) };
+    let dt = unsafe { swe_deltat(jd_tdb - dt0) };
+    dt * 86_400.0
+}
+
+/// KNOWN GAP 3 differential fixture: for each geometric-miss loc row in the
+/// committed corpus (occ_type 0 with a @center/@graze sibling sharing the
+/// (se_body, star, jd_tt) key — Sirius never-rows have no sibling and are
+/// skipped), emit SE's stage intermediates at the sibling's real max_jd,
+/// geocentric AND topocentric at the miss observer.
+fn build_diagnosis_csv(corpus: &str) -> (String, usize) {
+    use std::collections::BTreeMap;
+    let mut anchors: BTreeMap<(String, String, String), f64> = BTreeMap::new();
+    let data_lines: Vec<&str> = corpus
+        .lines()
+        .map(str::trim)
+        .filter(|l| !l.is_empty() && !l.starts_with('#') && !l.starts_with("label,"))
+        .collect();
+    for l in &data_lines {
+        let f: Vec<&str> = l.split(',').collect();
+        assert_eq!(f.len(), 19, "corpus schema drift: {l}");
+        if f[1] != "loc" {
+            continue;
+        }
+        let occ_type: i64 = f[15].parse().expect("occ_type");
+        if occ_type == 0 {
+            continue;
+        }
+        anchors.insert(
+            (f[2].to_string(), f[3].to_string(), f[4].to_string()),
+            f[8].parse().expect("max_jd"),
+        );
+    }
+    let mut out = String::from(
+        "# KNOWN GAP 3 differential fixture: SE stage intermediates at each geometric-miss \
+         loc row's sibling conjunction (anchor_jd_tdb = sibling @center/@graze max_jd). \
+         swe_calc/swe_fixstar with iflag base 516 (SEFLG_MOSEPH|SEFLG_NOGDEFL) | SEFLG_EQUATORIAL \
+         (| SEFLG_TOPCTR after swe_set_topo for the *_topo columns). RA/Dec degrees \
+         apparent-of-date, dist AU, deltat_sec = SE Delta-T seconds at the anchor, \
+         moon_sd_topo_deg = swe_pheno topocentric attr[3]/2.\n\
+         label,se_body,star,anchor_jd_tdb,lat,lon,deltat_sec,\
+         moon_geo_ra,moon_geo_dec,moon_geo_dist,moon_topo_ra,moon_topo_dec,moon_topo_dist,\
+         tgt_geo_ra,tgt_geo_dec,tgt_geo_dist,tgt_topo_ra,tgt_topo_dec,tgt_topo_dist,\
+         moon_sd_topo_deg\n",
+    );
+    let mut rows = 0usize;
+    for l in &data_lines {
+        let f: Vec<&str> = l.split(',').collect();
+        if f[1] != "loc" || f[15].parse::<i64>().expect("occ_type") != 0 {
+            continue;
+        }
+        let key = (f[2].to_string(), f[3].to_string(), f[4].to_string());
+        let Some(&anchor) = anchors.get(&key) else {
+            continue; // never-occultable (Sirius) rows: no sibling, not part of GAP 3
+        };
+        let (label, star) = (f[0], f[3].trim());
+        let ipl: c_int = f[2].parse::<i64>().expect("se_body") as c_int;
+        let ipl = if star.is_empty() { ipl } else { 0 };
+        let (lat, lon): (f64, f64) = (f[5].parse().expect("lat"), f[6].parse().expect("lon"));
+        let dt_sec = deltat_seconds_at_tdb(anchor);
+        let geo = IFLAG | SEFLG_EQUATORIAL;
+        let topo = geo | SEFLG_TOPCTR;
+        let mg = calc_radec(SE_MOON, "", anchor, geo);
+        let tg = calc_radec(ipl, star, anchor, geo);
+        unsafe { swe_set_topo(lon, lat, 0.0) };
+        let mt = calc_radec(SE_MOON, "", anchor, topo);
+        let tt = calc_radec(ipl, star, anchor, topo);
+        let sd = {
+            let mut attr = [0.0_f64; 20];
+            let mut serr = [0 as c_char; 256];
+            let ret =
+                unsafe { swe_pheno(anchor, SE_MOON, topo, attr.as_mut_ptr(), serr.as_mut_ptr()) };
+            if ret < 0 {
+                panic!("swe_pheno topo Moon at {anchor}: {}", serr_string(&serr));
+            }
+            attr[3] / 2.0
+        };
+        out.push_str(&format!(
+            "{label},{},{star},{anchor:.9},{lat:.6},{lon:.6},{dt_sec:.6},\
+             {:.9},{:.9},{:.9},{:.9},{:.9},{:.9},\
+             {:.9},{:.9},{:.9},{:.9},{:.9},{:.9},{sd:.9}\n",
+            f[2], mg.0, mg.1, mg.2, mt.0, mt.1, mt.2, tg.0, tg.1, tg.2, tt.0, tt.1, tt.2,
+        ));
+        rows += 1;
+    }
+    (out, rows)
 }
 
 /// A star target (name + SE fixstar catalog name) or a planet (SE body number).
@@ -684,6 +813,7 @@ struct Config {
     dry_run: bool,
     out_dir: String,
     ephe_dir: String,
+    diagnosis: Option<String>,
 }
 
 /// Default ephemeris directory: this tool's own `data/` folder (holds the
@@ -695,12 +825,19 @@ fn parse_args() -> Config {
     let mut dry_run = false;
     let mut out_dir = ".".to_string();
     let mut ephe_dir = env::var("SE_EPHE_PATH").unwrap_or_else(|_| DEFAULT_EPHE_DIR.to_string());
+    let mut diagnosis = None;
     let mut args = env::args().skip(1);
     while let Some(a) = args.next() {
         match a.as_str() {
             "--dry-run" => dry_run = true,
             "--out" => out_dir = args.next().expect("--out needs a directory"),
             "--ephe" => ephe_dir = args.next().expect("--ephe needs a directory"),
+            "--diagnosis" => {
+                diagnosis = Some(
+                    args.next()
+                        .expect("--diagnosis needs the occultations.csv path"),
+                )
+            }
             other if !other.starts_with("--") => out_dir = other.to_string(),
             other => panic!("unknown argument: {other}"),
         }
@@ -709,6 +846,7 @@ fn parse_args() -> Config {
         dry_run,
         out_dir,
         ephe_dir,
+        diagnosis,
     }
 }
 
@@ -766,6 +904,22 @@ fn main() {
 
     let ephe = CString::new(cfg.ephe_dir.clone()).expect("ephe path has NUL");
     unsafe { swe_set_ephe_path(ephe.as_ptr()) };
+
+    if let Some(corpus_path) = &cfg.diagnosis {
+        let corpus = std::fs::read_to_string(corpus_path)
+            .unwrap_or_else(|e| panic!("read {corpus_path}: {e}"));
+        let (csv, rows) = build_diagnosis_csv(&corpus);
+        assert_eq!(
+            rows, 18,
+            "expected 18 sibling-anchored miss rows, got {rows}"
+        );
+        std::fs::create_dir_all(&cfg.out_dir)
+            .unwrap_or_else(|e| panic!("create_dir_all {}: {e}", cfg.out_dir));
+        let path = format!("{}/graze-diagnosis.csv", cfg.out_dir);
+        std::fs::write(&path, &csv).unwrap_or_else(|e| panic!("write {path}: {e}"));
+        eprintln!("wrote {path} ({rows} rows); fnv1a64={}", fnv1a64(&csv));
+        return;
+    }
 
     let version = se_version();
     let (csv, rows, diag) = build_csv(&version);

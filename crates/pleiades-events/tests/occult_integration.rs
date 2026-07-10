@@ -152,3 +152,57 @@ fn sirius_never_occulted_terminates_with_none() {
         "Sirius (~39 deg S ecliptic latitude) is never occultable"
     );
 }
+
+/// SP-6-FU: the stage-diagnostics dump is finite, self-consistent, and
+/// agrees with occultation()'s classification. Anchored at the corpus's
+/// first Aldebaran@center conjunction (jd_tdb 2451561.306803673) from the
+/// MISS observer's latitude two steps poleward (70.03° -> corpus miss row
+/// 68.28°) — the classification there is the KNOWN GAP 3 subject and may be
+/// Total or Miss; this test only pins plumbing, not the disputed answer.
+#[test]
+fn stage_diagnostics_are_finite_and_consistent() {
+    use pleiades_events::{EventEngine, OccultTarget};
+    use pleiades_types::{Latitude, Longitude, ObserverLocation};
+    let engine = EventEngine::new(pleiades_data::packaged_backend());
+    let obs = ObserverLocation::new(
+        Latitude::from_degrees(68.282605),
+        Longitude::from_degrees(-122.699374),
+        Some(0.0),
+    );
+    let d = engine
+        .occult_stage_diagnostics(
+            &OccultTarget::Star("Aldebaran".into()),
+            &obs,
+            2451561.306803673,
+        )
+        .expect("diagnostics");
+    // 2000-01-17 is inside the observed Delta-T table: ~63.9 s, Observed.
+    assert!(
+        (d.delta_t_seconds - 63.9).abs() < 2.0,
+        "delta_t {}",
+        d.delta_t_seconds
+    );
+    assert!(!d.delta_t_predicted);
+    assert!(
+        (0.0024..0.0028).contains(&d.moon_geo.2),
+        "moon dist {}",
+        d.moon_geo.2
+    );
+    assert!(
+        (0.24..0.30).contains(&d.s_moon_deg),
+        "s_moon {}",
+        d.s_moon_deg
+    );
+    assert_eq!(d.s_tgt_deg, 0.0, "star target has no disc");
+    // Parallax at 68°N must separate topo from geo by an arcminute-plus.
+    let dx = (d.moon_topo.0 - d.moon_geo.0).abs() + (d.moon_topo.1 - d.moon_geo.1).abs();
+    assert!(dx > 1.0 / 60.0, "topocentric shift too small: {dx}");
+    assert!((d.graze_margin_deg - (d.sep_topo_deg - d.s_moon_deg)).abs() < 1e-12);
+    assert!(
+        d.refined_margin_deg <= d.graze_margin_deg + 1e-12,
+        "refined must not worsen"
+    );
+    assert!(
+        d.refined_max_jd > 2451561.306803673 - 0.15 && d.refined_max_jd < 2451561.306803673 + 0.15
+    );
+}

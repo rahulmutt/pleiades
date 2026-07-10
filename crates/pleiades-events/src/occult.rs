@@ -72,6 +72,40 @@ pub struct LocalOccultation {
     pub any_phase_visible: bool,
 }
 
+/// Stage-by-stage intermediates of the topocentric occultation pipeline at
+/// one instant, for differential comparison against Swiss Ephemeris — the
+/// KNOWN GAP 3 diagnosis surface. Not a stable API.
+#[doc(hidden)]
+#[derive(Debug, Clone)]
+pub struct OccultStageDiagnostics {
+    /// ΔT seconds used for the UT1-rotated sidereal time at `jd`.
+    pub delta_t_seconds: f64,
+    /// Whether ΔT came from the extrapolated (post-2020) branch.
+    pub delta_t_predicted: bool,
+    /// Geocentric apparent equatorial-of-date Moon (ra deg, dec deg, dist au).
+    pub moon_geo: (f64, f64, f64),
+    /// Topocentric Moon (ra deg, dec deg, dist au).
+    pub moon_topo: (f64, f64, f64),
+    /// Geocentric target (ra deg, dec deg).
+    pub target_geo: (f64, f64),
+    /// Topocentric target (ra deg, dec deg) — identical to geocentric for a star.
+    pub target_topo: (f64, f64),
+    /// Topocentric lunar semidiameter, degrees.
+    pub s_moon_deg: f64,
+    /// Target semidiameter, degrees (0 for a star).
+    pub s_tgt_deg: f64,
+    /// Topocentric Moon–target separation, degrees.
+    pub sep_topo_deg: f64,
+    /// `sep_topo_deg − (s_moon_deg + s_tgt_deg)`: positive ⇒ Miss at `jd`.
+    pub graze_margin_deg: f64,
+    /// Instant minimizing the topocentric separation within ±0.15 d of `jd`.
+    pub refined_max_jd: f64,
+    /// The graze margin at `refined_max_jd`.
+    pub refined_margin_deg: f64,
+    /// `classify()` at `refined_max_jd` — the quantity KNOWN GAP 3 disputes.
+    pub occultation_type: OccultationType,
+}
+
 /// Global circumstances (`when_glob`): the greatest-occultation instant and
 /// the central-observation point (geographic point of minimum topocentric
 /// Moon–target separation) where it is central/greatest. NOT the full path
@@ -270,13 +304,69 @@ mod geom_tests {
     }
 }
 
+#[cfg(test)]
+mod axis_pierce_tests {
+    use super::*;
+
+    /// Moon 0.00257 AU up the +x axis, target 1 AU up the +x axis: the
+    /// shadow axis runs straight through the geocenter -> central.
+    #[test]
+    fn axis_through_geocenter_is_central() {
+        let rm = [0.00257, 0.0, 0.0];
+        let rs = [1.0, 0.0, 0.0];
+        assert!(axis_pierce_central(rm, rs, 0.0));
+    }
+
+    /// Perpendicular Moon offsets around the Earth-radius threshold. The
+    /// axis-geocenter distance is ~offset * 1.0026 (the axis diverges
+    /// slightly as it extends from the Moon toward Earth), so 4000 km is
+    /// comfortably inside de = 6378.14 km and 9000 km comfortably outside.
+    #[test]
+    fn axis_offset_thresholds() {
+        let rs = [1.0, 0.0, 0.0];
+        let near = [0.00257, 4_000.0 / AU_KM, 0.0];
+        let far = [0.00257, 9_000.0 / AU_KM, 0.0];
+        assert!(
+            axis_pierce_central(near, rs, 0.0),
+            "4000 km offset must pierce"
+        );
+        assert!(
+            !axis_pierce_central(far, rs, 0.0),
+            "9000 km offset must miss"
+        );
+    }
+
+    /// SE stretches z by 1/(1 - 1/298.25642) (+0.336%) before the pierce
+    /// test. A 6350 km offset lands INSIDE the threshold along y
+    /// (6350 * 1.0026 = 6366.5 < 6378.1) but OUTSIDE along z
+    /// (6350 / 0.996647 * 1.0026 = 6387.9 > 6378.1) - the oblateness
+    /// handling is what discriminates.
+    #[test]
+    fn oblateness_z_stretch_discriminates() {
+        let rs = [1.0, 0.0, 0.0];
+        let off = 6_350.0 / AU_KM;
+        assert!(axis_pierce_central([0.00257, off, 0.0], rs, 0.0));
+        assert!(!axis_pierce_central([0.00257, 0.0, off], rs, 0.0));
+    }
+
+    /// Fail closed: non-finite input is never central.
+    #[test]
+    fn non_finite_fails_closed() {
+        let rs = [1.0, 0.0, 0.0];
+        assert!(!axis_pierce_central([f64::NAN, 0.0, 0.0], rs, 0.0));
+        assert!(!axis_pierce_central([0.00257, f64::INFINITY, 0.0], rs, 0.0));
+    }
+}
+
 use crate::crossings::EventEngine;
-use crate::ephemeris::{geocentric_apparent_ecliptic, geocentric_apparent_longitude_deg};
+use crate::ephemeris::{
+    geocentric_apparent_ecliptic, geocentric_apparent_longitude_deg, spherical_to_cartesian,
+};
 use crate::error::{EventError, WINDOW_END_JD, WINDOW_START_JD};
 use crate::fixstar::fixed_star_apparent;
 use crate::rise_trans::{check_atmosphere, RiseSetTarget};
 use crate::root::{first_crossing_after, last_crossing_before, wrap180, REFINE_TOLERANCE_DAYS};
-use crate::semidiameter::semidiameter_deg;
+use crate::semidiameter::{radius_au, semidiameter_deg};
 use pleiades_apparent::{
     apparent_from_true, sidereal_time, topocentric_position, true_obliquity_degrees, Atmosphere,
 };
@@ -293,6 +383,46 @@ const R_EARTH_KM: f64 = 6_378.137;
 /// ~0.27° semidiameter + ~0.95° horizontal parallax ≈ 6.6°. A star beyond this
 /// |ecliptic latitude| can never be occulted from anywhere on Earth.
 pub(crate) const MOON_MAX_REACH_DEG: f64 = 6.6;
+
+/// Swiss Ephemeris `eclipse_where` constants (swecl.c / sweph.h), used by the
+/// `central` axis-pierce test only. SE's Earth radius (`de = 6378140 m`) and
+/// Moon radius (`RMOON = DMOON/2 = 3476300/2 m`) differ slightly from this
+/// module's own `R_EARTH_KM`/`R_MOON_KM`; the SE values are used here so the
+/// ported test is bit-faithful to SE's own thresholds.
+pub(crate) const SE_EARTH_RADIUS_AU: f64 = 6_378.140 / AU_KM;
+/// SE Earth oblateness (sweph.h, AA 2006 K6 value): 1/298.25642.
+pub(crate) const SE_EARTH_OBLATENESS: f64 = 1.0 / 298.25642;
+/// SE Moon radius in AU (swecl.c `RMOON`).
+pub(crate) const SE_R_MOON_AU: f64 = 3_476.3 / 2.0 / AU_KM;
+
+/// Swiss Ephemeris `SE_ECL_CENTRAL` axis-pierce test, ported exactly from
+/// `swecl.c`'s `eclipse_where` (the routine behind `swe_lun_occult_where`):
+/// stretch both z-coordinates by `1/(1 − oblateness)` (SE corrects the
+/// bodies instead of flattening the Earth), form the shadow axis through the
+/// Moon along the target→Moon direction, and report whether the axis'
+/// perpendicular distance from the geocenter `r0 = sqrt(dm² − s0²)` is
+/// within `de·cosf1`. Inputs are geocentric apparent equatorial-of-date
+/// Cartesian AU. Fail-closed: any non-finite intermediate → `false`.
+fn axis_pierce_central(mut rm: [f64; 3], mut rs: [f64; 3], drad_au: f64) -> bool {
+    let earthobl = 1.0 - SE_EARTH_OBLATENESS;
+    rm[2] /= earthobl;
+    rs[2] /= earthobl;
+    let dm = (rm[0] * rm[0] + rm[1] * rm[1] + rm[2] * rm[2]).sqrt();
+    let e = [rm[0] - rs[0], rm[1] - rs[1], rm[2] - rs[2]];
+    let dsm = (e[0] * e[0] + e[1] * e[1] + e[2] * e[2]).sqrt();
+    if !(dsm.is_finite() && dsm > 0.0 && dm.is_finite()) {
+        return false;
+    }
+    let e = [e[0] / dsm, e[1] / dsm, e[2] / dsm];
+    let sinf1 = (drad_au - SE_R_MOON_AU) / dsm;
+    let cosf1 = (1.0 - sinf1 * sinf1).max(0.0).sqrt();
+    let s0 = -(rm[0] * e[0] + rm[1] * e[1] + rm[2] * e[2]);
+    let r0 = (dm * dm - s0 * s0).max(0.0).sqrt();
+    if !r0.is_finite() {
+        return false;
+    }
+    SE_EARTH_RADIUS_AU * cosf1 >= r0
+}
 
 impl<B: EphemerisBackend> EventEngine<B> {
     /// Apparent equatorial-of-date RA/Dec (degrees) of the Moon and the target at
@@ -601,6 +731,47 @@ impl<B: EphemerisBackend> EventEngine<B> {
             }
         }
         Ok(0.5 * (a + b))
+    }
+
+    /// Stage dump at `jd` (TDB) for `observer` — see [`OccultStageDiagnostics`].
+    #[doc(hidden)]
+    pub fn occult_stage_diagnostics(
+        &self,
+        target: &OccultTarget,
+        observer: &ObserverLocation,
+        jd: f64,
+    ) -> Result<OccultStageDiagnostics, EventError> {
+        self.validate_occult_target(target)?;
+        let (dt_sec, quality) = pleiades_time::deltat::delta_t(jd)
+            .map_err(|e| EventError::Backend(format!("delta_t failed: {e}")))?;
+        let (moon_g, tgt_g) = self.moon_target_radec(target, None, jd)?;
+        let (moon_t, tgt_t) = self.moon_target_radec(target, Some(observer), jd)?;
+        let moon_geo_dist = self.body_distance_au(&CelestialBody::Moon, None, jd)?;
+        let moon_topo_dist = self.body_distance_au(&CelestialBody::Moon, Some(observer), jd)?;
+        let g = self.occ_geom(target, Some(observer), jd)?;
+        let margin = g.sep_deg - (g.s_moon_deg + g.s_tgt_deg);
+        let refined_max_jd = self.minimize_occ_sep(
+            target,
+            observer,
+            (jd - OCC_CONTACT_HALF_WINDOW_DAYS).max(WINDOW_START_JD),
+            (jd + OCC_CONTACT_HALF_WINDOW_DAYS).min(WINDOW_END_JD),
+        )?;
+        let g_ref = self.occ_geom(target, Some(observer), refined_max_jd)?;
+        Ok(OccultStageDiagnostics {
+            delta_t_seconds: dt_sec,
+            delta_t_predicted: quality == pleiades_time::DeltaTQuality::Predicted,
+            moon_geo: (moon_g.0, moon_g.1, moon_geo_dist),
+            moon_topo: (moon_t.0, moon_t.1, moon_topo_dist),
+            target_geo: tgt_g,
+            target_topo: tgt_t,
+            s_moon_deg: g.s_moon_deg,
+            s_tgt_deg: g.s_tgt_deg,
+            sep_topo_deg: g.sep_deg,
+            graze_margin_deg: margin,
+            refined_max_jd,
+            refined_margin_deg: g_ref.sep_deg - (g_ref.s_moon_deg + g_ref.s_tgt_deg),
+            occultation_type: classify(&g_ref),
+        })
     }
 
     /// Bisect `sep(t) − threshold` between `lo` and `hi`; `None` if no sign change.
@@ -928,16 +1099,20 @@ impl<B: EphemerisBackend> EventEngine<B> {
                     Some(0.0),
                 );
                 let g_star = self.occ_geom(&target, Some(&central_observer), max_jd)?;
-                // Central iff, AT THE ACTUAL CENTRAL-OBSERVATION POINT, the
-                // target is fully behind the Moon's disc (replaces the old
-                // pi_moon-max-parallax over-approximation, which over-reported
-                // central occultations — the Saturn 2/6 corpus mismatch).
-                let central = g_star.sep_deg < (g_star.s_moon_deg - g_star.s_tgt_deg).max(0.0);
-                let occ_type = if central {
+                // occ_type keeps its coverage meaning at the actual
+                // central-observation point: Total iff the target is fully
+                // behind the Moon's disc there.
+                let occ_type = if g_star.sep_deg < (g_star.s_moon_deg - g_star.s_tgt_deg).max(0.0) {
                     OccultationType::Total
                 } else {
                     OccultationType::Grazing
                 };
+                // `central` is SE's STRICTER axis-pierce condition (the
+                // Moon–target center-line strikes the Earth), decoupled from
+                // occ_type — a Total-somewhere event can be non-central,
+                // exactly like a total-but-non-central solar eclipse. This
+                // resolves the former KNOWN GAP 2 (Saturn 2/6 glob rows).
+                let central = self.central_axis_pierce(&target, max_jd)?;
                 return Ok(Some(GlobalOccultation {
                     target,
                     maximum: at,
@@ -982,6 +1157,28 @@ impl<B: EphemerisBackend> EventEngine<B> {
             }
         }
         Ok(0.5 * (a + b))
+    }
+
+    /// SE `SE_ECL_CENTRAL` analogue at `jd`: does the Moon–target shadow
+    /// axis strike the (oblateness-corrected) Earth? Geocentric positions
+    /// only — this is a property of the global geometry, not of an observer.
+    fn central_axis_pierce(&self, target: &OccultTarget, jd: f64) -> Result<bool, EventError> {
+        /// Point-source stand-in distance for a fixed star (AU). SE uses the
+        /// catalog's own (astronomically large) distance; at ≥1e6 AU the
+        /// axis direction is converged to ~1e-9 deg, far below every other
+        /// term, so the exact value is immaterial.
+        const STAR_AXIS_DISTANCE_AU: f64 = 1.0e9;
+        let ((moon_ra, moon_dec), (tgt_ra, tgt_dec)) = self.moon_target_radec(target, None, jd)?;
+        let moon_dist = self.body_distance_au(&CelestialBody::Moon, None, jd)?;
+        let (tgt_dist, drad_au) = match target {
+            OccultTarget::Body(b) => (self.body_distance_au(b, None, jd)?, radius_au(b)),
+            OccultTarget::Star(_) => (STAR_AXIS_DISTANCE_AU, 0.0),
+        };
+        Ok(axis_pierce_central(
+            spherical_to_cartesian(moon_ra, moon_dec, moon_dist),
+            spherical_to_cartesian(tgt_ra, tgt_dec, tgt_dist),
+            drad_au,
+        ))
     }
 
     /// Golden-section coordinate-descent search for the geographic
