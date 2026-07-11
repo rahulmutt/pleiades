@@ -342,7 +342,7 @@ pub(crate) fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str(&format_vsop87_source_audit_summary());
     text.push('\n');
-    text.push_str(&generated_binary_audit_summary_for_report());
+    text.push_str(&crate::posture::vsop87::audit::generated_binary_audit_summary_for_report());
     text.push('\n');
     text.push_str(&format_vsop87_canonical_evidence_summary());
     text.push('\n');

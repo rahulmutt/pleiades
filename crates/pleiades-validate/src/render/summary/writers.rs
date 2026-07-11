@@ -199,7 +199,7 @@ pub(crate) fn write_backend_catalog_entry(
         }
 
         writeln!(f, "  generated binary audit:")?;
-        writeln!(f, "    {}", generated_binary_audit_summary_for_report())?;
+        writeln!(f, "    {}", crate::posture::vsop87::audit::generated_binary_audit_summary_for_report())?;
 
         writeln!(f, "  canonical J2000 VSOP87B evidence:")?;
         match vsop87_canonical_body_evidence() {

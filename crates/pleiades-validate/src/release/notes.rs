@@ -978,7 +978,7 @@ pub(crate) fn render_release_summary_text() -> String {
     text.push_str(" | ");
     text.push_str(&format_vsop87_source_audit_summary());
     text.push_str(" | ");
-    text.push_str(&generated_binary_audit_summary_for_report());
+    text.push_str(&crate::posture::vsop87::audit::generated_binary_audit_summary_for_report());
     text.push_str(" | ");
     text.push_str(&format_vsop87_canonical_evidence_summary());
     text.push_str(" | ");

@@ -258,23 +258,6 @@ pub fn canonical_j2000_batch_parity_summary() -> Option<Vsop87CanonicalJ2000Batc
     })
 }
 
-pub(crate) fn format_validated_canonical_j2000_batch_parity_summary_for_report(
-    summary: &Vsop87CanonicalJ2000BatchParitySummary,
-) -> String {
-    match summary.validate() {
-        Ok(()) => summary.summary_line(),
-        Err(error) => format!("VSOP87 canonical J2000 batch parity: unavailable ({error})"),
-    }
-}
-
-/// Returns the release-facing canonical J2000 batch-path regression summary string.
-pub fn canonical_j2000_batch_parity_summary_for_report() -> String {
-    match canonical_j2000_batch_parity_summary() {
-        Some(summary) => format_validated_canonical_j2000_batch_parity_summary_for_report(&summary),
-        None => "VSOP87 canonical J2000 batch parity: unavailable".to_string(),
-    }
-}
-
 /// Backend-owned summary for the canonical mixed TT/TDB batch-path regression.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Vsop87CanonicalMixedTimeScaleBatchParitySummary {
@@ -450,25 +433,6 @@ pub fn canonical_mixed_time_scale_batch_parity_summary(
     })
 }
 
-pub(crate) fn format_validated_canonical_mixed_time_scale_batch_parity_summary_for_report(
-    summary: &Vsop87CanonicalMixedTimeScaleBatchParitySummary,
-) -> String {
-    match summary.validate() {
-        Ok(()) => summary.summary_line(),
-        Err(error) => format!("VSOP87 canonical mixed TT/TDB batch parity: unavailable ({error})"),
-    }
-}
-
-/// Returns the release-facing canonical mixed TT/TDB batch-path regression summary string.
-pub fn canonical_mixed_time_scale_batch_parity_summary_for_report() -> String {
-    match canonical_mixed_time_scale_batch_parity_summary() {
-        Some(summary) => {
-            format_validated_canonical_mixed_time_scale_batch_parity_summary_for_report(&summary)
-        }
-        None => "VSOP87 canonical mixed TT/TDB batch parity: unavailable".to_string(),
-    }
-}
-
 /// Backend-owned summary for the canonical J1900 batch-path regression.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Vsop87CanonicalJ1900BatchParitySummary {
@@ -609,23 +573,6 @@ pub fn canonical_j1900_batch_parity_summary() -> Option<Vsop87CanonicalJ1900Batc
         approximate_count,
         unknown_count,
     })
-}
-
-pub(crate) fn format_validated_canonical_j1900_batch_parity_summary_for_report(
-    summary: &Vsop87CanonicalJ1900BatchParitySummary,
-) -> String {
-    match summary.validate() {
-        Ok(()) => summary.summary_line(),
-        Err(error) => format!("VSOP87 canonical J1900 batch parity: unavailable ({error})"),
-    }
-}
-
-/// Returns the release-facing canonical J1900 batch-path regression summary string.
-pub fn canonical_j1900_batch_parity_summary_for_report() -> String {
-    match canonical_j1900_batch_parity_summary() {
-        Some(summary) => format_validated_canonical_j1900_batch_parity_summary_for_report(&summary),
-        None => "VSOP87 canonical J1900 batch parity: unavailable".to_string(),
-    }
 }
 
 /// Backend-owned summary for the supported-body J2000 ecliptic batch-path regression.
@@ -771,27 +718,6 @@ pub fn supported_body_j2000_ecliptic_batch_parity_summary(
     })
 }
 
-pub(crate) fn format_validated_supported_body_j2000_ecliptic_batch_parity_summary_for_report(
-    summary: &Vsop87SupportedBodyJ2000EclipticBatchParitySummary,
-) -> String {
-    match summary.validate() {
-        Ok(()) => summary.summary_line(),
-        Err(error) => {
-            format!("VSOP87 supported-body J2000 ecliptic batch parity: unavailable ({error})")
-        }
-    }
-}
-
-/// Returns the release-facing supported-body J2000 ecliptic batch-path regression summary string.
-pub fn supported_body_j2000_ecliptic_batch_parity_summary_for_report() -> String {
-    match supported_body_j2000_ecliptic_batch_parity_summary() {
-        Some(summary) => {
-            format_validated_supported_body_j2000_ecliptic_batch_parity_summary_for_report(&summary)
-        }
-        None => "VSOP87 supported-body J2000 ecliptic batch parity: unavailable".to_string(),
-    }
-}
-
 /// Backend-owned summary for the supported-body J2000 equatorial batch-path regression.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Vsop87SupportedBodyJ2000EquatorialBatchParitySummary {
@@ -933,29 +859,6 @@ pub fn supported_body_j2000_equatorial_batch_parity_summary(
         approximate_count,
         unknown_count,
     })
-}
-
-pub(crate) fn format_validated_supported_body_j2000_equatorial_batch_parity_summary_for_report(
-    summary: &Vsop87SupportedBodyJ2000EquatorialBatchParitySummary,
-) -> String {
-    match summary.validate() {
-        Ok(()) => summary.summary_line(),
-        Err(error) => {
-            format!("VSOP87 supported-body J2000 equatorial batch parity: unavailable ({error})")
-        }
-    }
-}
-
-/// Returns the release-facing supported-body J2000 equatorial batch-path regression summary string.
-pub fn supported_body_j2000_equatorial_batch_parity_summary_for_report() -> String {
-    match supported_body_j2000_equatorial_batch_parity_summary() {
-        Some(summary) => {
-            format_validated_supported_body_j2000_equatorial_batch_parity_summary_for_report(
-                &summary,
-            )
-        }
-        None => "VSOP87 supported-body J2000 equatorial batch parity: unavailable".to_string(),
-    }
 }
 
 /// Backend-owned summary for the supported-body J1900 ecliptic batch-path regression.
@@ -1101,27 +1004,6 @@ pub fn supported_body_j1900_ecliptic_batch_parity_summary(
     })
 }
 
-pub(crate) fn format_validated_supported_body_j1900_ecliptic_batch_parity_summary_for_report(
-    summary: &Vsop87SupportedBodyJ1900EclipticBatchParitySummary,
-) -> String {
-    match summary.validate() {
-        Ok(()) => summary.summary_line(),
-        Err(error) => {
-            format!("VSOP87 supported-body J1900 ecliptic batch parity: unavailable ({error})")
-        }
-    }
-}
-
-/// Returns the release-facing supported-body J1900 ecliptic batch-path regression summary string.
-pub fn supported_body_j1900_ecliptic_batch_parity_summary_for_report() -> String {
-    match supported_body_j1900_ecliptic_batch_parity_summary() {
-        Some(summary) => {
-            format_validated_supported_body_j1900_ecliptic_batch_parity_summary_for_report(&summary)
-        }
-        None => "VSOP87 supported-body J1900 ecliptic batch parity: unavailable".to_string(),
-    }
-}
-
 /// Backend-owned summary for the supported-body J1900 equatorial batch-path regression.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Vsop87SupportedBodyJ1900EquatorialBatchParitySummary {
@@ -1263,29 +1145,6 @@ pub fn supported_body_j1900_equatorial_batch_parity_summary(
         approximate_count,
         unknown_count,
     })
-}
-
-pub(crate) fn format_validated_supported_body_j1900_equatorial_batch_parity_summary_for_report(
-    summary: &Vsop87SupportedBodyJ1900EquatorialBatchParitySummary,
-) -> String {
-    match summary.validate() {
-        Ok(()) => summary.summary_line(),
-        Err(error) => {
-            format!("VSOP87 supported-body J1900 equatorial batch parity: unavailable ({error})")
-        }
-    }
-}
-
-/// Returns the release-facing supported-body J1900 equatorial batch-path regression summary string.
-pub fn supported_body_j1900_equatorial_batch_parity_summary_for_report() -> String {
-    match supported_body_j1900_equatorial_batch_parity_summary() {
-        Some(summary) => {
-            format_validated_supported_body_j1900_equatorial_batch_parity_summary_for_report(
-                &summary,
-            )
-        }
-        None => "VSOP87 supported-body J1900 equatorial batch parity: unavailable".to_string(),
-    }
 }
 
 /// Backend-owned summary for the supported-body canonical batch matrix.
@@ -1436,27 +1295,6 @@ pub fn supported_body_canonical_batch_parity_summary(
         j1900_ecliptic: supported_body_j1900_ecliptic_batch_parity_summary()?,
         j1900_equatorial: supported_body_j1900_equatorial_batch_parity_summary()?,
     })
-}
-
-pub(crate) fn format_validated_supported_body_canonical_batch_parity_summary_for_report(
-    summary: &Vsop87SupportedBodyCanonicalBatchParitySummary,
-) -> String {
-    match summary.validate() {
-        Ok(()) => summary.summary_line(),
-        Err(error) => {
-            format!("VSOP87 supported-body canonical batch matrix: unavailable ({error})")
-        }
-    }
-}
-
-/// Returns the release-facing supported-body canonical batch matrix summary string.
-pub fn supported_body_canonical_batch_parity_summary_for_report() -> String {
-    match supported_body_canonical_batch_parity_summary() {
-        Some(summary) => {
-            format_validated_supported_body_canonical_batch_parity_summary_for_report(&summary)
-        }
-        None => "VSOP87 supported-body canonical batch matrix: unavailable".to_string(),
-    }
 }
 
 /// Returns the supported-body canonical batch matrix request corpus used by the VSOP87 batch-path evidence.
@@ -2064,51 +1902,3 @@ fn format_source_body_class_evidence_entry(
     )
 }
 
-/// Formats the canonical VSOP87 body-class evidence for reporting.
-pub fn format_source_body_class_evidence_summary(
-    summaries: &[Vsop87SourceBodyClassEvidenceSummary],
-) -> String {
-    if summaries.is_empty() {
-        return "VSOP87 source-backed body-class envelopes: unavailable".to_string();
-    }
-
-    let rendered = summaries
-        .iter()
-        .map(Vsop87SourceBodyClassEvidenceSummary::summary_line)
-        .collect::<Vec<_>>()
-        .join(" | ");
-
-    format!("VSOP87 source-backed body-class envelopes: {rendered}")
-}
-
-/// Returns the release-facing source-body-class evidence summary string.
-pub(crate) fn format_validated_source_body_class_evidence_summary_for_report(
-    summaries: &[Vsop87SourceBodyClassEvidenceSummary],
-) -> String {
-    if summaries.is_empty() {
-        return "VSOP87 source-backed body-class envelopes: unavailable".to_string();
-    }
-
-    let mut rendered = Vec::with_capacity(summaries.len());
-    for summary in summaries {
-        match summary.validated_summary_line() {
-            Ok(line) => rendered.push(line),
-            Err(error) => {
-                return format!("VSOP87 source-backed body-class envelopes: unavailable ({error})");
-            }
-        }
-    }
-
-    format!(
-        "VSOP87 source-backed body-class envelopes: {}",
-        rendered.join(" | ")
-    )
-}
-
-/// Returns the release-facing source-body-class evidence summary string.
-pub fn source_body_class_evidence_summary_for_report() -> String {
-    match source_body_class_evidence_summary() {
-        Some(summary) => format_validated_source_body_class_evidence_summary_for_report(&summary),
-        None => "VSOP87 source-backed body-class envelopes: unavailable".to_string(),
-    }
-}

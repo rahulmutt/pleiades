@@ -1480,19 +1480,19 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("source-audit-summary") => {
             ensure_no_extra_args(&args[1..], "source-audit-summary")?;
-            Ok(source_audit_summary_for_report())
+            Ok(crate::posture::vsop87::audit::source_audit_summary_for_report())
         }
         Some("source-audit") => {
             ensure_no_extra_args(&args[1..], "source-audit")?;
-            Ok(source_audit_summary_for_report())
+            Ok(crate::posture::vsop87::audit::source_audit_summary_for_report())
         }
         Some("generated-binary-audit-summary") => {
             ensure_no_extra_args(&args[1..], "generated-binary-audit-summary")?;
-            Ok(generated_binary_audit_summary_for_report())
+            Ok(crate::posture::vsop87::audit::generated_binary_audit_summary_for_report())
         }
         Some("generated-binary-audit") => {
             ensure_no_extra_args(&args[1..], "generated-binary-audit")?;
-            Ok(generated_binary_audit_summary_for_report())
+            Ok(crate::posture::vsop87::audit::generated_binary_audit_summary_for_report())
         }
         Some("time-scale-policy-summary") => {
             ensure_no_extra_args(&args[1..], "time-scale-policy-summary")?;

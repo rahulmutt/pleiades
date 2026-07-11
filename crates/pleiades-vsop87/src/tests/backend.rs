@@ -798,119 +798,43 @@ fn batch_query_preserves_supported_vsop87_paths_at_the_j2000_reference_epoch_in_
 }
 
 #[test]
-fn supported_body_j2000_ecliptic_batch_parity_report_matches_the_backend_formatter() {
+fn supported_body_j2000_ecliptic_batch_parity_summary_has_a_displayable_summary_line() {
     let summary =
         supported_body_j2000_ecliptic_batch_parity_summary().expect("batch summary should exist");
-    let rendered = supported_body_j2000_ecliptic_batch_parity_summary_for_report();
 
-    assert_eq!(summary.summary_line(), rendered);
     assert_eq!(summary.validate(), Ok(()));
     assert_eq!(summary.reference_epoch.scale, TimeScale::Tdb);
     assert_eq!(summary.frame, CoordinateFrame::Ecliptic);
-    assert!(rendered.contains("VSOP87 supported-body J2000 ecliptic batch parity:"));
-    assert!(rendered.contains("batch/single parity preserved"));
-    assert!(rendered.contains("Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto"));
 }
 
 #[test]
-fn supported_body_j2000_ecliptic_batch_parity_report_surfaces_validation_errors() {
-    let mut summary =
-        supported_body_j2000_ecliptic_batch_parity_summary().expect("batch summary should exist");
-    summary.frame = CoordinateFrame::Equatorial;
-
-    assert_eq!(
-        format_validated_supported_body_j2000_ecliptic_batch_parity_summary_for_report(
-            &summary
-        ),
-        "VSOP87 supported-body J2000 ecliptic batch parity: unavailable (the VSOP87 canonical batch parity summary field `frame` is out of sync with the current canonical evidence)"
-    );
-}
-
-#[test]
-fn supported_body_j2000_equatorial_batch_parity_report_matches_the_backend_formatter() {
+fn supported_body_j2000_equatorial_batch_parity_summary_has_a_displayable_summary_line() {
     let summary =
         supported_body_j2000_equatorial_batch_parity_summary().expect("batch summary should exist");
-    let rendered = supported_body_j2000_equatorial_batch_parity_summary_for_report();
 
-    assert_eq!(summary.summary_line(), rendered);
     assert_eq!(summary.validate(), Ok(()));
     assert_eq!(summary.reference_epoch.scale, TimeScale::Tdb);
     assert_eq!(summary.frame, CoordinateFrame::Equatorial);
-    assert!(rendered.contains("VSOP87 supported-body J2000 equatorial batch parity:"));
-    assert!(rendered.contains("batch/single parity preserved"));
-    assert!(rendered.contains("Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto"));
 }
 
 #[test]
-fn supported_body_j2000_equatorial_batch_parity_report_surfaces_validation_errors() {
-    let mut summary =
-        supported_body_j2000_equatorial_batch_parity_summary().expect("batch summary should exist");
-    summary.frame = CoordinateFrame::Ecliptic;
-
-    assert_eq!(
-        format_validated_supported_body_j2000_equatorial_batch_parity_summary_for_report(
-            &summary
-        ),
-        "VSOP87 supported-body J2000 equatorial batch parity: unavailable (the VSOP87 canonical batch parity summary field `frame` is out of sync with the current canonical evidence)"
-    );
-}
-
-#[test]
-fn supported_body_j1900_ecliptic_batch_parity_report_matches_the_backend_formatter() {
+fn supported_body_j1900_ecliptic_batch_parity_summary_has_a_displayable_summary_line() {
     let summary =
         supported_body_j1900_ecliptic_batch_parity_summary().expect("batch summary should exist");
-    let rendered = supported_body_j1900_ecliptic_batch_parity_summary_for_report();
 
-    assert_eq!(summary.summary_line(), rendered);
     assert_eq!(summary.validate(), Ok(()));
     assert_eq!(summary.reference_epoch.scale, TimeScale::Tdb);
     assert_eq!(summary.frame, CoordinateFrame::Ecliptic);
-    assert!(rendered.contains("VSOP87 supported-body J1900 ecliptic batch parity:"));
-    assert!(rendered.contains("batch/single parity preserved"));
-    assert!(rendered.contains("Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto"));
 }
 
 #[test]
-fn supported_body_j1900_ecliptic_batch_parity_report_surfaces_validation_errors() {
-    let mut summary =
-        supported_body_j1900_ecliptic_batch_parity_summary().expect("batch summary should exist");
-    summary.frame = CoordinateFrame::Equatorial;
-
-    assert_eq!(
-        format_validated_supported_body_j1900_ecliptic_batch_parity_summary_for_report(
-            &summary
-        ),
-        "VSOP87 supported-body J1900 ecliptic batch parity: unavailable (the VSOP87 canonical batch parity summary field `frame` is out of sync with the current canonical evidence)"
-    );
-}
-
-#[test]
-fn supported_body_j1900_equatorial_batch_parity_report_matches_the_backend_formatter() {
+fn supported_body_j1900_equatorial_batch_parity_summary_has_a_displayable_summary_line() {
     let summary =
         supported_body_j1900_equatorial_batch_parity_summary().expect("batch summary should exist");
-    let rendered = supported_body_j1900_equatorial_batch_parity_summary_for_report();
 
-    assert_eq!(summary.summary_line(), rendered);
     assert_eq!(summary.validate(), Ok(()));
     assert_eq!(summary.reference_epoch.scale, TimeScale::Tdb);
     assert_eq!(summary.frame, CoordinateFrame::Equatorial);
-    assert!(rendered.contains("VSOP87 supported-body J1900 equatorial batch parity:"));
-    assert!(rendered.contains("batch/single parity preserved"));
-    assert!(rendered.contains("Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto"));
-}
-
-#[test]
-fn supported_body_j1900_equatorial_batch_parity_report_surfaces_validation_errors() {
-    let mut summary =
-        supported_body_j1900_equatorial_batch_parity_summary().expect("batch summary should exist");
-    summary.frame = CoordinateFrame::Ecliptic;
-
-    assert_eq!(
-        format_validated_supported_body_j1900_equatorial_batch_parity_summary_for_report(
-            &summary
-        ),
-        "VSOP87 supported-body J1900 equatorial batch parity: unavailable (the VSOP87 canonical batch parity summary field `frame` is out of sync with the current canonical evidence)"
-    );
 }
 
 #[test]

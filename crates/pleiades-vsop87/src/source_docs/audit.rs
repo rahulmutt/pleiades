@@ -426,25 +426,6 @@ pub fn source_audit_summary() -> Vsop87SourceAuditSummary {
     }
 }
 
-/// Formats the current VSOP87 reproducibility audit for reporting.
-pub fn format_source_audit_summary(summary: &Vsop87SourceAuditSummary) -> String {
-    summary.summary_line()
-}
-
-pub(crate) fn format_validated_source_audit_summary_for_report(
-    summary: &Vsop87SourceAuditSummary,
-) -> String {
-    match summary.validated_summary_line() {
-        Ok(rendered) => rendered,
-        Err(error) => format!("VSOP87 source audit: unavailable ({error})"),
-    }
-}
-
-/// Returns the release-facing reproducibility audit summary string.
-pub fn source_audit_summary_for_report() -> String {
-    format_validated_source_audit_summary_for_report(&source_audit_summary())
-}
-
 /// A reproducibility audit record for one checked-in generated VSOP87B blob.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Vsop87GeneratedBlobAudit {
@@ -811,33 +792,3 @@ pub fn validate_generated_binary_audits(
     Ok(())
 }
 
-/// Formats the checked-in generated VSOP87B blob audit for reporting.
-pub fn format_generated_binary_audit_summary(summary: &Vsop87GeneratedBlobAuditSummary) -> String {
-    summary.summary_line()
-}
-
-pub(crate) fn format_validated_generated_binary_audit_summary_for_report(
-    summary: &Vsop87GeneratedBlobAuditSummary,
-) -> String {
-    match summary.validated_summary_line() {
-        Ok(rendered) => rendered,
-        Err(error) => format!("VSOP87 generated binary audit: unavailable ({error})"),
-    }
-}
-
-/// Returns the release-facing generated binary audit summary string.
-pub fn generated_binary_audit_summary_for_report() -> String {
-    let audits = match build_generated_binary_audits_with_lookup(
-        checked_in_generated_vsop87b_table_bytes_for_source_file,
-    ) {
-        Ok(audits) => audits,
-        Err(error) => return format!("VSOP87 generated binary audit: unavailable ({error})"),
-    };
-
-    if let Err(error) = validate_generated_binary_audits(&audits) {
-        return format!("VSOP87 generated binary audit: unavailable ({error})");
-    }
-
-    let summary = generated_binary_audit_summary_from_audits(&audits);
-    format_validated_generated_binary_audit_summary_for_report(&summary)
-}

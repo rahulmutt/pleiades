@@ -745,7 +745,11 @@ pub(crate) fn render_validation_report_summary_text(report: &ValidationReport) -
         format_vsop87_request_policy_summary()
     );
     let _ = writeln!(text, "  {}", format_vsop87_source_audit_summary());
-    let _ = writeln!(text, "  {}", generated_binary_audit_summary_for_report());
+    let _ = writeln!(
+        text,
+        "  {}",
+        crate::posture::vsop87::audit::generated_binary_audit_summary_for_report()
+    );
     let _ = writeln!(text, "  {}", format_vsop87_canonical_evidence_summary());
     let _ = writeln!(text, "  {}", format_vsop87_canonical_outlier_note_summary());
     let _ = writeln!(text, "  {}", format_vsop87_equatorial_evidence_summary());

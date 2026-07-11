@@ -13,10 +13,6 @@ fn canonical_epoch_error_envelope_validation_rejects_out_of_limit_count_drift() 
         error.to_string(),
         "the VSOP87 canonical J2000 source-backed evidence summary field `out_of_limit_count` is out of sync with the current canonical evidence"
     );
-    assert_eq!(
-        format_validated_canonical_epoch_evidence_summary_for_report(&summary),
-        "VSOP87 canonical J2000 source-backed evidence: unavailable (the VSOP87 canonical J2000 source-backed evidence summary field `out_of_limit_count` is out of sync with the current canonical evidence)"
-    );
 }
 
 #[test]
@@ -533,20 +529,12 @@ fn source_audit_validation_rejects_drifted_fields() {
 }
 
 #[test]
-fn source_audit_report_matches_the_backend_formatter() {
+fn source_audit_summary_has_a_displayable_summary_line() {
     let summary = source_audit_summary();
-    assert_eq!(
-        source_audit_summary_for_report(),
-        "VSOP87 source audit: 8 source-backed bodies (Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune) across 8 source files (VSOP87B.ear, VSOP87B.mer, VSOP87B.ven, VSOP87B.mar, VSOP87B.jup, VSOP87B.sat, VSOP87B.ura, VSOP87B.nep); 8 vendored full-file inputs, 35080 total terms, max source size 949753 bytes / 7141 lines, 8 deterministic fingerprints"
-    );
     assert_eq!(summary.summary_line(), summary.to_string());
     assert_eq!(summary.validate(), Ok(()));
     let rendered = summary.summary_line();
     assert_eq!(summary.validated_summary_line(), Ok(rendered));
-    assert_eq!(
-        source_audit_summary_for_report(),
-        format_source_audit_summary(&summary)
-    );
 }
 
 #[test]
@@ -566,10 +554,6 @@ fn source_audit_summary_validate_rejects_drifted_fields() {
         Err(Vsop87SourceAuditSummaryValidationError::FieldOutOfSync {
             field: "fingerprint_count"
         })
-    );
-    assert_eq!(
-        format_validated_source_audit_summary_for_report(&summary),
-        "VSOP87 source audit: unavailable (the VSOP87 source audit summary field `fingerprint_count` is out of sync with the current manifest)"
     );
 }
 
@@ -619,13 +603,6 @@ fn generated_binary_audit_manifest_tracks_all_checked_in_blobs() {
     assert_eq!(summary.validate(), Ok(()));
     let rendered = summary.summary_line();
     assert_eq!(summary.validated_summary_line(), Ok(rendered));
-    assert_eq!(
-        generated_binary_audit_summary_for_report(),
-        format_generated_binary_audit_summary(&summary)
-    );
-    assert!(generated_binary_audit_summary_for_report().contains(
-        "VSOP87 generated binary audit: 8 checked-in blobs across 8 source files (bodies: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; files: VSOP87B.ear, VSOP87B.mer, VSOP87B.ven, VSOP87B.mar, VSOP87B.jup, VSOP87B.sat, VSOP87B.ura, VSOP87B.nep)"
-    ));
 }
 
 #[test]
@@ -647,10 +624,6 @@ fn generated_binary_audit_summary_validate_rejects_drifted_fields() {
                 field: "source_file_count"
             }
         )
-    );
-    assert_eq!(
-        format_validated_generated_binary_audit_summary_for_report(&summary),
-        "VSOP87 generated binary audit: unavailable (the VSOP87 generated binary audit summary field `source_file_count` is out of sync with the current manifest)"
     );
 }
 
@@ -807,8 +780,6 @@ fn source_specification_summary_is_typed_and_reusable() {
         .summary_line()
         .contains("date range=full public source file; J2000 canonical reference sample"));
     assert_eq!(format_source_specifications(&specs), expected_joined);
-    assert_eq!(source_specifications_for_report(), expected_joined);
-    assert!(source_specifications_for_report().contains("body=Neptune"));
 }
 
 #[test]
@@ -889,10 +860,6 @@ fn source_documentation_health_summary_confirms_catalog_partitioning() {
     assert!(summary.validate().is_ok());
     assert_eq!(summary.summary_line(), summary.to_string());
     assert_eq!(
-        source_documentation_health_summary_for_report(),
-        summary.summary_line()
-    );
-    assert_eq!(
         summary.source_backed_bodies,
         vec![
             CelestialBody::Sun,
@@ -914,14 +881,6 @@ fn source_documentation_health_summary_confirms_catalog_partitioning() {
         documentation_summary.source_backed_bodies
     );
     assert_eq!(summary.fallback_bodies, vec![CelestialBody::Pluto]);
-    assert_eq!(
-        format_source_documentation_health_summary(&summary),
-        "VSOP87 source documentation health: ok (8 source specs, 8 source files, 8 source-backed profiles, 9 body profiles; 8 generated binary profiles (Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune), 0 vendored full-file profiles (none), 0 truncated profiles (none), 1 approximate fallback profiles (Pluto); source files: VSOP87B.ear, VSOP87B.mer, VSOP87B.ven, VSOP87B.mar, VSOP87B.jup, VSOP87B.sat, VSOP87B.ura, VSOP87B.nep; source-backed order: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; source-backed partition order: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; fallback order: Pluto; documented fields: variant, coordinate family, frame, units, reduction, transform note, truncation policy, and date range)"
-    );
-    assert_eq!(
-        source_documentation_health_summary_for_report(),
-        format_source_documentation_health_summary(&summary)
-    );
 }
 
 #[test]
@@ -950,20 +909,12 @@ fn source_documentation_health_summary_lists_issues_when_inconsistent() {
         fallback_bodies: vec![CelestialBody::Pluto],
     };
 
-    assert_eq!(
-        format_source_documentation_health_summary(&summary),
-        "VSOP87 source documentation health: needs attention (1 source specs, 2 source files, 1 source-backed profiles, 2 body profiles; 1 generated binary profiles (Sun), 0 vendored full-file profiles (none), 0 truncated profiles (none), 1 approximate fallback profiles (Pluto); source files: VSOP87B.ear; source-backed order: Sun; source-backed partition order: Sun; fallback order: Pluto; documented fields: needs attention); issues: source specification/file count mismatch, documented field mismatch"
-    );
     let error = summary
         .validate()
         .expect_err("inconsistent summary should fail validation");
     assert_eq!(error.summary(), &summary);
     assert_eq!(error.summary_line(), summary.summary_line());
     assert_eq!(error.to_string(), summary.summary_line());
-    assert_eq!(
-        format_validated_source_documentation_health_summary_for_report(&summary),
-        "VSOP87 source documentation health: unavailable (VSOP87 source documentation health: needs attention (1 source specs, 2 source files, 1 source-backed profiles, 2 body profiles; 1 generated binary profiles (Sun), 0 vendored full-file profiles (none), 0 truncated profiles (none), 1 approximate fallback profiles (Pluto); source files: VSOP87B.ear; source-backed order: Sun; source-backed partition order: Sun; fallback order: Pluto; documented fields: needs attention); issues: source specification/file count mismatch, documented field mismatch)"
-    );
 }
 
 #[test]
@@ -1119,10 +1070,6 @@ fn request_policy_summary_tracks_the_public_backend_posture() {
     assert_eq!(policy.supported_apparentness, &[Apparentness::Mean]);
     assert!(!policy.supports_topocentric_observer);
     assert!(policy.validate().is_ok());
-    assert_eq!(
-        vsop87_request_policy_summary_for_report(),
-        policy.summary_line()
-    );
 }
 
 #[test]
@@ -1174,28 +1121,11 @@ fn source_kind_display_labels_match_the_release_facing_labels() {
 }
 
 #[test]
-fn source_documentation_report_matches_the_backend_formatter() {
+fn source_documentation_summary_has_a_displayable_summary_line() {
     let summary = source_documentation_summary();
-    let rendered = source_documentation_summary_for_report();
     assert_eq!(summary.validate(), Ok(()));
-    assert_eq!(summary.validated_summary_line().unwrap(), rendered);
     assert!(source_documentation_health_summary().validate().is_ok());
-    assert_eq!(rendered, format_source_documentation_summary(&summary));
-    assert_eq!(summary.summary_line(), rendered);
-    assert_eq!(summary.to_string(), rendered);
-    assert!(rendered.contains("source files: VSOP87B.ear, VSOP87B.mer, VSOP87B.ven, VSOP87B.mar, VSOP87B.jup, VSOP87B.sat, VSOP87B.ura, VSOP87B.nep"));
-    assert!(rendered.contains("source-backed breakdown: 8 generated binary bodies (Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune), 0 vendored full-file bodies (none), 0 truncated slice bodies (none)"));
-}
-
-#[test]
-fn source_documentation_report_marks_summary_drift_as_unavailable() {
-    let mut summary = source_documentation_summary();
-    summary.source_specification_count += 1;
-
-    assert_eq!(
-        format_validated_source_documentation_summary_for_report(&summary),
-        "VSOP87 source documentation: unavailable (the VSOP87 source documentation summary field `source_specification_count` is out of sync with the current source catalog)"
-    );
+    assert_eq!(summary.summary_line(), summary.to_string());
 }
 
 #[test]

@@ -738,7 +738,10 @@ fn release_summary_command_renders_the_quick_overview() {
     );
     let source_audit_alias =
         render_cli(&["source-audit"]).expect("source audit alias should render");
-    assert_eq!(source_audit_alias, source_audit_summary_for_report());
+    assert_eq!(
+        source_audit_alias,
+        crate::posture::vsop87::audit::source_audit_summary_for_report()
+    );
     assert_eq!(
         render_cli(&["source-audit", "extra"])
             .expect_err("source audit alias should reject extra arguments"),
@@ -748,7 +751,7 @@ fn release_summary_command_renders_the_quick_overview() {
         .expect("generated binary audit alias should render");
     assert_eq!(
         generated_binary_audit_alias,
-        generated_binary_audit_summary_for_report()
+        crate::posture::vsop87::audit::generated_binary_audit_summary_for_report()
     );
     assert_eq!(
         render_cli(&["generated-binary-audit", "extra"])

@@ -3,11 +3,11 @@
 use crate::*;
 
 pub(crate) fn format_vsop87_request_policy_summary() -> String {
-    vsop87_request_policy_summary_for_report()
+    crate::posture::vsop87::spec::vsop87_request_policy_summary_for_report()
 }
 
 pub(crate) fn format_vsop87_source_audit_summary() -> String {
-    source_audit_summary_for_report()
+    crate::posture::vsop87::audit::source_audit_summary_for_report()
 }
 
 pub(crate) fn format_packaged_artifact_profile_summary() -> String {
