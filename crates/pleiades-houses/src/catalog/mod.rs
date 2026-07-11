@@ -399,31 +399,6 @@ pub const fn house_system_code_aliases() -> &'static [HouseSystemCodeAlias] {
     SWISS_EPHEMERIS_HOUSE_SYSTEM_CODE_ALIASES
 }
 
-/// Returns a compact one-line rendering of the Swiss-Ephemeris house-code alias table.
-///
-/// # Examples
-///
-/// ```
-/// use pleiades_houses::house_system_code_aliases_summary_line;
-///
-/// let summary = house_system_code_aliases_summary_line();
-/// assert!(summary.contains("P -> Placidus"));
-/// ```
-pub fn house_system_code_aliases_summary_line() -> String {
-    house_system_code_aliases()
-        .iter()
-        .map(HouseSystemCodeAlias::summary_line)
-        .collect::<Vec<_>>()
-        .join(", ")
-}
-
-/// Returns the alias table summary after validating the built-in alias inventory.
-pub fn validated_house_system_code_aliases_summary_line(
-) -> Result<String, HouseSystemCodeAliasValidationError> {
-    validate_house_system_code_aliases()?;
-    Ok(house_system_code_aliases_summary_line())
-}
-
 /// Errors emitted when validating the Swiss-Ephemeris-style house-code alias table.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum HouseSystemCodeAliasValidationError {
@@ -605,54 +580,6 @@ pub struct HouseCatalogValidationSummary {
     pub validation_result: Result<(), HouseCatalogValidationError>,
 }
 
-impl HouseCatalogValidationSummary {
-    /// Returns the compact release-facing summary line for the house catalog validation state.
-    pub fn summary_line(&self) -> String {
-        let formula_families = house_formula_families_summary_line();
-        let latitude_sensitive_labels = built_in_house_systems()
-            .iter()
-            .filter(|entry| entry.latitude_sensitive)
-            .map(|entry| entry.canonical_name)
-            .collect::<Vec<_>>();
-        let latitude_sensitive_count = latitude_sensitive_labels.len();
-        let latitude_sensitive_labels = if latitude_sensitive_labels.is_empty() {
-            "none".to_string()
-        } else {
-            latitude_sensitive_labels.join(", ")
-        };
-
-        let failure_modes = latitude_sensitive_house_failure_modes_summary_line();
-
-        match &self.validation_result {
-            Ok(()) => format!(
-                "house catalog validation: ok ({} entries, {} labels checked; baseline={}, release={}; formula families: {}; latitude-sensitive={}/{} entries; failure modes: {}; labels: {}; round-trip, alias uniqueness, and notes verified)",
-                self.entry_count,
-                self.label_count,
-                self.baseline_entry_count,
-                self.release_entry_count,
-                formula_families,
-                latitude_sensitive_count,
-                self.entry_count,
-                failure_modes,
-                latitude_sensitive_labels,
-            ),
-            Err(error) => format!(
-                "house catalog validation: error: {} ({} entries; baseline={}, release={})",
-                error,
-                self.entry_count,
-                self.baseline_entry_count,
-                self.release_entry_count,
-            ),
-        }
-    }
-}
-
-impl fmt::Display for HouseCatalogValidationSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
-}
-
 fn validate_house_catalog_entries(
     entries: &[HouseSystemDescriptor],
 ) -> Result<usize, HouseCatalogValidationError> {
@@ -746,29 +673,6 @@ pub fn house_formula_families() -> Vec<HouseFormulaFamily> {
     collect_house_formula_families(built_in_house_systems())
 }
 
-/// Returns a compact one-line rendering of the distinct built-in house formula families.
-pub fn house_formula_families_summary_line() -> String {
-    let families = house_formula_families();
-
-    match families.as_slice() {
-        [] => "none".to_string(),
-        [single] => single.to_string(),
-        _ => families
-            .iter()
-            .map(HouseFormulaFamily::to_string)
-            .collect::<Vec<_>>()
-            .join(", "),
-    }
-}
-
-fn format_string_summary(items: &[String]) -> String {
-    match items {
-        [] => "none".to_string(),
-        [single] => single.clone(),
-        _ => items.join(", "),
-    }
-}
-
 /// Returns the release-facing failure-mode notes for the latitude-sensitive built-in house systems.
 pub fn latitude_sensitive_house_failure_modes() -> Vec<String> {
     built_in_house_systems()
@@ -776,11 +680,6 @@ pub fn latitude_sensitive_house_failure_modes() -> Vec<String> {
         .filter(|entry| entry.latitude_sensitive)
         .map(HouseSystemDescriptor::failure_mode_summary_line)
         .collect()
-}
-
-/// Returns a compact one-line rendering of the latitude-sensitive failure-mode notes.
-pub fn latitude_sensitive_house_failure_modes_summary_line() -> String {
-    format_string_summary(&latitude_sensitive_house_failure_modes())
 }
 
 /// Returns a compact validation summary for the built-in house-system catalog.

@@ -803,15 +803,8 @@ fn additional_release_house_aliases_resolve_to_builtin_systems() {
 }
 
 #[test]
-fn house_catalog_validation_summary_reports_catalog_health() {
+fn house_catalog_validation_summary_aggregates_catalog_fields() {
     let summary = house_catalog_validation_summary();
-    let expected_formula_families = house_formula_families_summary_line();
-    let expected_latitude_sensitive_labels = built_in_house_systems()
-        .iter()
-        .filter(|entry| entry.latitude_sensitive)
-        .map(|entry| entry.canonical_name)
-        .collect::<Vec<_>>()
-        .join(", ");
 
     assert_eq!(summary.entry_count, built_in_house_systems().len());
     assert_eq!(summary.baseline_entry_count, baseline_house_systems().len());
@@ -829,19 +822,6 @@ fn house_catalog_validation_summary_reports_catalog_health() {
         ]
     );
     assert!(summary.validation_result.is_ok());
-    assert!(summary
-        .summary_line()
-        .contains("house catalog validation: ok"));
-    assert!(summary.summary_line().contains("formula families:"));
-    assert!(summary.summary_line().contains(&expected_formula_families));
-    assert!(summary.summary_line().contains("latitude-sensitive="));
-    assert!(summary.summary_line().contains("failure modes:"));
-    assert!(summary
-        .summary_line()
-        .contains(&expected_latitude_sensitive_labels));
-    assert!(summary
-        .summary_line()
-        .contains("round-trip, alias uniqueness, and notes verified"));
 }
 
 #[test]
@@ -1010,14 +990,6 @@ fn swiss_ephemeris_house_system_code_aliases_are_unique_and_round_trip() {
     assert_eq!(aliases.len(), 22);
     assert_eq!(aliases[0].summary_line(), "P -> Placidus");
     assert_eq!(aliases[0].to_string(), "P -> Placidus");
-    assert_eq!(
-        house_system_code_aliases_summary_line(),
-        "P -> Placidus, K -> Koch, R -> Regiomontanus, C -> Campanus, O -> Porphyry, D -> Equal (MC), E -> Equal, W -> Whole Sign, V -> Vehlow Equal, A -> Axial, H -> Horizon/Azimuth, B -> Alcabitius, M -> Morinus, S -> Sripati, I -> Sunshine, G -> Gauquelin sectors, T -> Topocentric, U -> Krusinski-Pisa-Goelzer, Axial Rotation -> Meridian, Axial rotation system -> Meridian, X -> Meridian, Y -> APC"
-    );
-    assert_eq!(
-        validated_house_system_code_aliases_summary_line().unwrap(),
-        house_system_code_aliases_summary_line()
-    );
     assert_eq!(
         resolve_house_system("axial rotation"),
         Some(pleiades_types::HouseSystem::Meridian)
