@@ -371,7 +371,11 @@ mod tests {
         let metadata = ElpBackend.metadata();
         let expected = "lunar source family: Meeus-style truncated analytical baseline [selected source=meeus-style-truncated-lunar-baseline; selected model=Compact Meeus-style truncated lunar baseline; selected key=source identifier=meeus-style-truncated-lunar-baseline; selected family key=source family=Meeus-style truncated analytical baseline; aliases=1]";
         assert!(
-            metadata.provenance.data_sources.iter().any(|s| s == expected),
+            metadata
+                .provenance
+                .data_sources
+                .iter()
+                .any(|s| s == expected),
             "source-family provenance line drifted:\n{:#?}",
             metadata.provenance.data_sources
         );

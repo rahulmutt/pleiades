@@ -38,7 +38,8 @@ pub(crate) fn format_vsop87_supported_body_j1900_equatorial_batch_summary() -> S
 }
 
 pub(crate) fn format_vsop87_mixed_batch_summary() -> String {
-    crate::posture::vsop87::batch_parity::canonical_mixed_time_scale_batch_parity_summary_for_report()
+    crate::posture::vsop87::batch_parity::canonical_mixed_time_scale_batch_parity_summary_for_report(
+    )
 }
 
 pub(crate) fn format_vsop87_j1900_batch_summary() -> String {

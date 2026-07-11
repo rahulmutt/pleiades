@@ -63,7 +63,9 @@ pub(crate) fn validated_residual_body_coverage_summary_line_with_body_count(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use pleiades_compression::{ArtifactHeader, BodyArtifact, ChannelKind, PolynomialChannel, Segment};
+    use pleiades_compression::{
+        ArtifactHeader, BodyArtifact, ChannelKind, PolynomialChannel, Segment,
+    };
     use pleiades_types::{CelestialBody, Instant, JulianDay, TimeScale};
 
     /// Byte-identity guard against
@@ -85,7 +87,12 @@ mod tests {
                     vec![Segment::new(
                         Instant::new(JulianDay::from_days(0.0), TimeScale::Tt),
                         Instant::new(JulianDay::from_days(1.0), TimeScale::Tt),
-                        vec![PolynomialChannel::linear(ChannelKind::Longitude, 9, 10.0, 11.0)],
+                        vec![PolynomialChannel::linear(
+                            ChannelKind::Longitude,
+                            9,
+                            10.0,
+                            11.0,
+                        )],
                     )],
                 ),
                 BodyArtifact::new(
@@ -93,8 +100,18 @@ mod tests {
                     vec![Segment::with_residual_channels(
                         Instant::new(JulianDay::from_days(0.0), TimeScale::Tt),
                         Instant::new(JulianDay::from_days(1.0), TimeScale::Tt),
-                        vec![PolynomialChannel::linear(ChannelKind::Longitude, 9, 20.0, 21.0)],
-                        vec![PolynomialChannel::linear(ChannelKind::Longitude, 9, 0.1, 0.2)],
+                        vec![PolynomialChannel::linear(
+                            ChannelKind::Longitude,
+                            9,
+                            20.0,
+                            21.0,
+                        )],
+                        vec![PolynomialChannel::linear(
+                            ChannelKind::Longitude,
+                            9,
+                            0.1,
+                            0.2,
+                        )],
                     )],
                 ),
             ],
@@ -136,7 +153,12 @@ mod tests {
                 vec![Segment::new(
                     Instant::new(JulianDay::from_days(0.0), TimeScale::Tt),
                     Instant::new(JulianDay::from_days(1.0), TimeScale::Tt),
-                    vec![PolynomialChannel::linear(ChannelKind::Longitude, 9, 10.0, 11.0)],
+                    vec![PolynomialChannel::linear(
+                        ChannelKind::Longitude,
+                        9,
+                        10.0,
+                        11.0,
+                    )],
                 )],
             )],
         );

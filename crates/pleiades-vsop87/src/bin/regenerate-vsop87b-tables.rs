@@ -143,8 +143,7 @@ fn usage() -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::{
-        check_regenerated_tables, parse_command, source_manifest,
-        source_manifest_summary, Command,
+        check_regenerated_tables, parse_command, source_manifest, source_manifest_summary, Command,
     };
     use pleiades_vsop87::validate_source_manifest;
 

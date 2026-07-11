@@ -2150,7 +2150,7 @@ impl LunarEquatorialReferenceEvidenceEnvelope {
 
     /// Returns the compact summary line after validating the equatorial reference envelope.
     ///
-    /// This bridges the crate-private [`Self::validate`] guard for callers
+    /// This bridges the crate-private `Self::validate` guard for callers
     /// outside this crate (report-surface relocation program, Slice B): the
     /// moved `crate::posture::elp::evidence` renderer in `pleiades-validate`
     /// calls this method instead of duplicating the validation logic.
@@ -3158,7 +3158,7 @@ impl LunarReferenceEvidenceEnvelope {
 
     /// Returns the compact summary line after validating the reference envelope.
     ///
-    /// This bridges the crate-private [`Self::validate`] guard for callers
+    /// This bridges the crate-private `Self::validate` guard for callers
     /// outside this crate (report-surface relocation program, Slice B): the
     /// moved `crate::posture::elp::evidence` renderer in `pleiades-validate`
     /// calls this method instead of duplicating the validation logic.

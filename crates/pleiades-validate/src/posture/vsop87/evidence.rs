@@ -340,8 +340,8 @@ mod tests {
     #[test]
     fn canonical_epoch_equatorial_body_class_evidence_summary_for_report_matches_the_backend_formatter(
     ) {
-        let summary = canonical_epoch_equatorial_body_class_evidence_summary()
-            .expect("summary should exist");
+        let summary =
+            canonical_epoch_equatorial_body_class_evidence_summary().expect("summary should exist");
         let rendered = canonical_epoch_equatorial_body_class_evidence_summary_for_report();
 
         // Real cross-check: recompute the expected string by calling the
@@ -401,8 +401,8 @@ mod tests {
 
     #[test]
     fn canonical_epoch_equatorial_evidence_summary_for_report_matches_the_backend_formatter() {
-        let summary = canonical_epoch_equatorial_evidence_summary()
-            .expect("equatorial summary should exist");
+        let summary =
+            canonical_epoch_equatorial_evidence_summary().expect("equatorial summary should exist");
         let rendered = canonical_epoch_equatorial_evidence_summary_for_report();
 
         assert_eq!(

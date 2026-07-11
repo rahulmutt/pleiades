@@ -17,7 +17,8 @@
 use pleiades_vsop87::{
     canonical_j1900_batch_parity_summary, canonical_j2000_batch_parity_summary,
     canonical_mixed_time_scale_batch_parity_summary, source_body_class_evidence_summary,
-    supported_body_canonical_batch_parity_summary, supported_body_j1900_ecliptic_batch_parity_summary,
+    supported_body_canonical_batch_parity_summary,
+    supported_body_j1900_ecliptic_batch_parity_summary,
     supported_body_j1900_equatorial_batch_parity_summary,
     supported_body_j2000_ecliptic_batch_parity_summary,
     supported_body_j2000_equatorial_batch_parity_summary, Vsop87CanonicalJ1900BatchParitySummary,
@@ -255,7 +256,8 @@ mod tests {
 
     #[test]
     fn canonical_j2000_batch_parity_summary_for_report_surfaces_validation_errors() {
-        let mut summary = canonical_j2000_batch_parity_summary().expect("batch summary should exist");
+        let mut summary =
+            canonical_j2000_batch_parity_summary().expect("batch summary should exist");
         summary.sample_count += 1;
 
         assert_eq!(
@@ -263,14 +265,16 @@ mod tests {
             "VSOP87 canonical J2000 batch parity: unavailable (the VSOP87 canonical batch parity summary field `sample_count` is out of sync with the current canonical evidence)"
         );
 
-        let mut summary = canonical_j2000_batch_parity_summary().expect("batch summary should exist");
+        let mut summary =
+            canonical_j2000_batch_parity_summary().expect("batch summary should exist");
         summary.sample_bodies.reverse();
         assert_eq!(
             format_validated_canonical_j2000_batch_parity_summary_for_report(&summary),
             "VSOP87 canonical J2000 batch parity: unavailable (the VSOP87 canonical batch parity summary field `sample_bodies` is out of sync with the current canonical evidence)"
         );
 
-        let mut summary = canonical_j2000_batch_parity_summary().expect("batch summary should exist");
+        let mut summary =
+            canonical_j2000_batch_parity_summary().expect("batch summary should exist");
         summary.frame = pleiades_types::CoordinateFrame::Equatorial;
         assert_eq!(
             format_validated_canonical_j2000_batch_parity_summary_for_report(&summary),
@@ -315,7 +319,8 @@ mod tests {
 
     #[test]
     fn canonical_j1900_batch_parity_summary_for_report_surfaces_validation_errors() {
-        let mut summary = canonical_j1900_batch_parity_summary().expect("batch summary should exist");
+        let mut summary =
+            canonical_j1900_batch_parity_summary().expect("batch summary should exist");
         summary.frame = pleiades_types::CoordinateFrame::Ecliptic;
 
         assert_eq!(
@@ -469,7 +474,10 @@ mod tests {
         let summary = source_body_class_evidence_summary().expect("summary should exist");
         let rendered = source_body_class_evidence_summary_for_report();
 
-        assert_eq!(rendered, format_source_body_class_evidence_summary(&summary));
+        assert_eq!(
+            rendered,
+            format_source_body_class_evidence_summary(&summary)
+        );
         assert!(rendered.contains("Luminary: samples=1, bodies: Sun"));
         assert!(rendered.contains("median Δlon="));
         assert!(rendered.contains("p95 Δlon="));

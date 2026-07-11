@@ -791,4 +791,3 @@ pub fn validate_generated_binary_audits(
 
     Ok(())
 }
-

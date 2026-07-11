@@ -2590,4 +2590,3 @@ pub(crate) fn source_body_class(body: &CelestialBody) -> Vsop87SourceBodyClass {
         _ => Vsop87SourceBodyClass::MajorPlanet,
     }
 }
-

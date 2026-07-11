@@ -1901,4 +1901,3 @@ fn format_source_body_class_evidence_entry(
         summary.max_distance_delta_source_file,
     )
 }
-

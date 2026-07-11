@@ -144,9 +144,8 @@ mod tests {
             ]
         );
         assert!(summary.validation_result.is_ok());
-        assert!(
-            house_catalog_validation_summary_line(&summary).contains("house catalog validation: ok")
-        );
+        assert!(house_catalog_validation_summary_line(&summary)
+            .contains("house catalog validation: ok"));
         assert!(house_catalog_validation_summary_line(&summary).contains("formula families:"));
         assert!(
             house_catalog_validation_summary_line(&summary).contains(&expected_formula_families)
