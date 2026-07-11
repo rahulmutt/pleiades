@@ -3,8 +3,10 @@
 use std::sync::OnceLock;
 
 use pleiades_data::{
-    packaged_artifact_generation_manifest_details, packaged_artifact_output_support_summary_details,
-    packaged_artifact_production_profile_summary_details, packaged_artifact_profile_summary_details,
+    packaged_artifact_generation_manifest_details,
+    packaged_artifact_output_support_summary_details,
+    packaged_artifact_production_profile_summary_details,
+    packaged_artifact_profile_summary_details,
     packaged_artifact_profile_summary_with_output_support,
     packaged_artifact_speed_policy_summary_details,
 };
@@ -124,7 +126,8 @@ mod tests {
             packaged_artifact_output_support_summary_for_report(),
             summary.profile.output_support_summary_line()
         );
-        let output_support_summary = pleiades_data::packaged_artifact_output_support_summary_details();
+        let output_support_summary =
+            pleiades_data::packaged_artifact_output_support_summary_details();
         assert_eq!(
             packaged_artifact_output_support_summary_for_report(),
             output_support_summary.summary_line()

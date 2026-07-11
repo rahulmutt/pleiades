@@ -1031,10 +1031,6 @@ fn backend_metadata_exposes_packaged_scope() {
     );
     assert_eq!(
         request_policy.summary_line(),
-        packaged_request_policy_summary_for_report()
-    );
-    assert_eq!(
-        request_policy.summary_line(),
         packaged_request_policy_summary()
     );
     assert_eq!(request_policy.to_string(), request_policy.summary_line());
@@ -1051,10 +1047,6 @@ fn backend_metadata_exposes_packaged_scope() {
     );
     assert_eq!(
         lookup_epoch_policy.summary_line(),
-        packaged_lookup_epoch_policy_summary_for_report()
-    );
-    assert_eq!(
-        lookup_epoch_policy.summary_line(),
         packaged_lookup_epoch_policy_summary()
     );
     assert_eq!(
@@ -1063,11 +1055,11 @@ fn backend_metadata_exposes_packaged_scope() {
     );
     assert_eq!(
         metadata.provenance.data_sources[1],
-        packaged_request_policy_summary_for_report()
+        packaged_request_policy_summary()
     );
     assert_eq!(
         metadata.provenance.data_sources[2],
-        packaged_frame_treatment_summary_for_report()
+        packaged_frame_treatment_summary()
     );
     assert_eq!(
         packaged_frame_treatment_summary_details().to_string(),

@@ -162,15 +162,6 @@ pub fn packaged_lookup_epoch_policy_summary_details() -> PackagedLookupEpochPoli
     summary
 }
 
-/// Returns the current packaged-data lookup-epoch policy summary after validating the structured posture.
-pub fn packaged_lookup_epoch_policy_summary_for_report() -> String {
-    let summary = packaged_lookup_epoch_policy_summary_details();
-    match summary.validate() {
-        Ok(()) => summary.to_string(),
-        Err(error) => format!("Packaged lookup epoch policy: unavailable ({error})"),
-    }
-}
-
 /// Returns the current packaged-data lookup-epoch policy summary.
 pub fn packaged_lookup_epoch_policy_summary() -> &'static str {
     static SUMMARY: OnceLock<String> = OnceLock::new();
@@ -338,15 +329,6 @@ pub fn packaged_request_policy_summary_details() -> PackagedRequestPolicySummary
     summary
 }
 
-/// Returns the current packaged-data request policy summary after validating the structured posture.
-pub fn packaged_request_policy_summary_for_report() -> String {
-    let summary = packaged_request_policy_summary_details();
-    match summary.validate() {
-        Ok(()) => summary.to_string(),
-        Err(error) => format!("Packaged request policy: unavailable ({error})"),
-    }
-}
-
 /// Returns the current packaged-data request policy summary.
 pub fn packaged_request_policy_summary() -> &'static str {
     static SUMMARY: OnceLock<String> = OnceLock::new();
@@ -430,20 +412,17 @@ pub const fn packaged_frame_treatment_summary_details() -> PackagedFrameTreatmen
     PackagedFrameTreatmentSummary
 }
 
-/// Returns the packaged-artifact frame-treatment summary for report rendering.
-pub fn packaged_frame_treatment_summary_for_report() -> String {
-    let summary = packaged_frame_treatment_summary_details();
-    match summary.validated_summary_line() {
-        Ok(summary_line) => summary_line.to_string(),
-        Err(error) => format!("Packaged frame treatment unavailable ({error})"),
-    }
-}
-
 /// Returns the packaged-artifact frame-treatment summary.
 pub fn packaged_frame_treatment_summary() -> &'static str {
     static SUMMARY: OnceLock<String> = OnceLock::new();
     SUMMARY
-        .get_or_init(packaged_frame_treatment_summary_for_report)
+        .get_or_init(|| {
+            let summary = packaged_frame_treatment_summary_details();
+            match summary.validated_summary_line() {
+                Ok(summary_line) => summary_line.to_string(),
+                Err(error) => format!("Packaged frame treatment unavailable ({error})"),
+            }
+        })
         .as_str()
 }
 
@@ -577,15 +556,6 @@ pub fn packaged_artifact_storage_summary() -> &'static str {
         .as_str()
 }
 
-/// Returns the packaged-artifact storage/reconstruction summary for reporting.
-pub fn packaged_artifact_storage_summary_for_report() -> String {
-    let summary = packaged_artifact_storage_summary_details();
-    match summary.validate() {
-        Ok(()) => summary.to_string(),
-        Err(error) => format!("Packaged artifact storage/reconstruction: unavailable ({error})"),
-    }
-}
-
 /// Structured packaged-artifact access summary.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct PackagedArtifactAccessSummary {
@@ -683,13 +653,11 @@ pub const fn packaged_artifact_path_loading_enabled() -> bool {
 /// ```
 /// use pleiades_data::{
 ///     packaged_artifact_access_summary_details,
-///     packaged_artifact_access_summary_for_report,
 ///     packaged_artifact_path_loading_enabled,
 /// };
 ///
 /// let summary = packaged_artifact_access_summary_details();
 /// assert_eq!(summary.explicit_path_loading, packaged_artifact_path_loading_enabled());
-/// assert_eq!(summary.to_string(), packaged_artifact_access_summary_for_report());
 /// assert!(summary.validate().is_ok());
 /// ```
 pub const fn packaged_artifact_access_summary_details() -> PackagedArtifactAccessSummary {
@@ -710,15 +678,6 @@ pub fn packaged_artifact_access_summary() -> &'static str {
             }
         })
         .as_str()
-}
-
-/// Returns the packaged-artifact access summary for reporting.
-pub fn packaged_artifact_access_summary_for_report() -> String {
-    let summary = packaged_artifact_access_summary_details();
-    match summary.validated_summary_line() {
-        Ok(rendered) => rendered.to_string(),
-        Err(error) => format!("Packaged artifact access: unavailable ({error})"),
-    }
 }
 
 /// Structured mixed batch-parity summary for the packaged artifact.
@@ -966,11 +925,6 @@ pub fn packaged_mixed_frame_batch_parity_summary_for_report() -> String {
         .unwrap_or_else(|| "Packaged mixed frame batch parity: unavailable".to_string())
 }
 
-/// Returns the packaged frame-parity summary.
-pub fn packaged_frame_parity_summary_for_report() -> String {
-    packaged_mixed_frame_batch_parity_summary_for_report()
-}
-
 /// Structured mixed TT/TDB batch-parity summary for the packaged artifact.
 #[derive(Clone, Debug, PartialEq)]
 pub struct PackagedTimeScaleBatchParitySummary {
@@ -1210,23 +1164,6 @@ impl fmt::Display for PackagedTimeScaleBatchParitySummary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.summary_line())
     }
-}
-
-fn format_validated_packaged_mixed_tt_tdb_batch_parity_summary_for_report(
-    summary: &PackagedTimeScaleBatchParitySummary,
-) -> String {
-    match summary.validated_summary_line() {
-        Ok(line) => line,
-        Err(error) => format!("Packaged mixed TT/TDB batch parity: unavailable ({error})"),
-    }
-}
-
-/// Returns the packaged mixed TT/TDB batch-parity summary.
-pub fn packaged_mixed_tt_tdb_batch_parity_summary_for_report() -> String {
-    packaged_mixed_tt_tdb_batch_parity_summary()
-        .as_ref()
-        .map(format_validated_packaged_mixed_tt_tdb_batch_parity_summary_for_report)
-        .unwrap_or_else(|| "Packaged mixed TT/TDB batch parity: unavailable".to_string())
 }
 
 /// Returns a packaged lookup for a body and instant.

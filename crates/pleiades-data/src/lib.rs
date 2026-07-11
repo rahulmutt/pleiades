@@ -26,7 +26,7 @@
 //!
 //! ```
 //! use pleiades_backend::{CelestialBody, Instant, JulianDay, TimeScale};
-//! use pleiades_data::{packaged_backend, packaged_body_coverage_summary, packaged_lookup};
+//! use pleiades_data::{packaged_backend, packaged_lookup};
 //!
 //! let _backend = packaged_backend();
 //! let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
@@ -34,7 +34,6 @@
 //!     .expect("Sun should be in the packaged artifact");
 //!
 //! assert!(sun.distance_au.is_some());
-//! assert!(packaged_body_coverage_summary().contains("433-Eros"));
 //! ```
 
 #![forbid(unsafe_code)]

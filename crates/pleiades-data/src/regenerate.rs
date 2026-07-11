@@ -791,24 +791,6 @@ pub fn packaged_artifact_body_class_span_cap_summary_details(
     summary
 }
 
-/// Returns the current packaged-artifact body-class span caps after validating the structured posture.
-pub fn packaged_artifact_body_class_span_cap_summary_for_report() -> String {
-    let summary = packaged_artifact_body_class_span_cap_summary_details();
-    match summary.validated_summary_line() {
-        Ok(line) => line,
-        Err(error) => format!("body-class span caps: unavailable ({error})"),
-    }
-}
-
-/// Returns the current packaged-artifact body-class span-cap entries after validating the structured posture.
-pub fn packaged_artifact_body_class_span_cap_entries_for_report() -> String {
-    let summary = packaged_artifact_body_class_span_cap_summary_details();
-    match summary.validated_summary_line() {
-        Ok(_) => summary.entries_summary_line(),
-        Err(error) => format!("unavailable ({error})"),
-    }
-}
-
 fn packaged_artifact_body_cadence_counts() -> [(&'static str, usize); 7] {
     let mut counts = [0usize; 7];
 
@@ -920,20 +902,6 @@ pub fn packaged_artifact_body_cadence_summary_details() -> PackagedArtifactBodyC
     };
     debug_assert!(summary.validate().is_ok());
     summary
-}
-
-fn render_packaged_artifact_body_cadence_summary(
-    summary: &PackagedArtifactBodyCadenceSummary,
-) -> String {
-    match summary.validated_summary_line() {
-        Ok(line) => line,
-        Err(error) => format!("body cadence: unavailable ({error})"),
-    }
-}
-
-/// Returns the current packaged-artifact body cadence as a compact human-readable line.
-pub fn packaged_artifact_body_cadence_summary_for_report() -> String {
-    render_packaged_artifact_body_cadence_summary(&packaged_artifact_body_cadence_summary_details())
 }
 
 fn body_segment_windows_for_interval(

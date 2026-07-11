@@ -18,7 +18,7 @@ fn artifact_and_workspace_commands_render_compact_reports() {
     assert!(artifact_summary.lines().any(|line| {
         line == format!(
             "  Packaged frame treatment: {}",
-            pleiades_data::packaged_frame_treatment_summary_for_report()
+            pleiades_data::packaged_frame_treatment_summary_details().to_string()
         )
     }));
     assert!(artifact_summary.contains("Release summary: release-summary"));
@@ -75,7 +75,7 @@ fn artifact_and_workspace_commands_render_compact_reports() {
         packaged_artifact_body_class_span_caps,
         format!(
             "Packaged-artifact {}",
-            pleiades_data::packaged_artifact_body_class_span_cap_summary_for_report()
+            pleiades_data::packaged_artifact_body_class_span_cap_summary_details().to_string()
         )
     );
     assert_eq!(
@@ -147,7 +147,7 @@ fn artifact_and_workspace_commands_render_compact_reports() {
         packaged_artifact_access,
         format!(
             "Packaged-artifact access: {}",
-            pleiades_data::packaged_artifact_access_summary_for_report()
+            pleiades_data::packaged_artifact_access_summary_details().to_string()
         )
     );
     assert_eq!(
@@ -194,7 +194,7 @@ fn artifact_and_workspace_commands_render_compact_reports() {
         packaged_artifact_storage,
         format!(
             "Packaged-artifact storage/reconstruction: {}",
-            pleiades_data::packaged_artifact_storage_summary_for_report()
+            pleiades_data::packaged_artifact_storage_summary_details().to_string()
         )
     );
     assert_eq!(
@@ -337,12 +337,18 @@ fn artifact_and_workspace_commands_render_compact_reports() {
     );
     let packaged_frame_parity = render_cli(&["packaged-frame-parity-summary"])
         .expect("packaged frame parity summary should render");
+    // Reconstructed from the retained structured summary (the free renderer moved
+    // to `pleiades-validate`'s posture module in Slice C).
+    let expected_frame_parity = pleiades_data::packaged_mixed_frame_batch_parity_summary()
+        .as_ref()
+        .map(|summary| match summary.validated_summary_line() {
+            Ok(line) => line,
+            Err(error) => format!("Packaged mixed frame batch parity: unavailable ({error})"),
+        })
+        .unwrap_or_else(|| "Packaged mixed frame batch parity: unavailable".to_string());
     assert_eq!(
         packaged_frame_parity,
-        format!(
-            "Packaged frame parity: {}",
-            pleiades_data::packaged_frame_parity_summary_for_report()
-        )
+        format!("Packaged frame parity: {expected_frame_parity}")
     );
     assert_eq!(
         render_cli(&["packaged-frame-parity"]).expect("packaged-frame-parity should render"),
@@ -364,7 +370,7 @@ fn artifact_and_workspace_commands_render_compact_reports() {
         packaged_frame_treatment,
         format!(
             "Packaged frame treatment: {}",
-            pleiades_data::packaged_frame_treatment_summary_for_report()
+            pleiades_data::packaged_frame_treatment_summary_details().to_string()
         )
     );
 
@@ -399,7 +405,8 @@ fn artifact_and_workspace_commands_render_compact_reports() {
         packaged_artifact_target_threshold_scope_envelopes,
         format!(
             "Packaged-artifact target-threshold scope envelopes: {}",
-            pleiades_data::packaged_artifact_target_threshold_scope_envelopes_summary_details().to_string()
+            pleiades_data::packaged_artifact_target_threshold_scope_envelopes_summary_details()
+                .to_string()
         )
     );
 
@@ -514,7 +521,8 @@ fn artifact_and_workspace_commands_render_compact_reports() {
         packaged_artifact_generation_residual,
         format!(
             "Packaged-artifact generation residual bodies: {}",
-            pleiades_data::packaged_artifact_generation_residual_bodies_summary_details().summary_line_with_body_count()
+            pleiades_data::packaged_artifact_generation_residual_bodies_summary_details()
+                .summary_line_with_body_count()
         )
     );
 
@@ -525,7 +533,8 @@ fn artifact_and_workspace_commands_render_compact_reports() {
         packaged_artifact_generation_residual_bodies,
         format!(
             "Packaged-artifact generation residual bodies: {}",
-            pleiades_data::packaged_artifact_generation_residual_bodies_summary_details().summary_line_with_body_count()
+            pleiades_data::packaged_artifact_generation_residual_bodies_summary_details()
+                .summary_line_with_body_count()
         )
     );
 

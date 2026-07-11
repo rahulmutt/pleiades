@@ -338,10 +338,6 @@ fn packaged_artifact_access_summary_matches_current_build_posture() {
     assert_eq!(summary.summary_line(), packaged_artifact_access_summary());
     assert_eq!(summary.to_string(), packaged_artifact_access_summary());
     assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
-    assert_eq!(
-        packaged_artifact_access_summary_for_report(),
-        summary.to_string()
-    );
     summary
         .validate()
         .expect("packaged artifact access summary should validate");
@@ -842,10 +838,6 @@ fn packaged_frame_treatment_summary_reuses_the_structured_report_helper() {
 
     assert_eq!(summary.summary_line(), packaged_frame_treatment_summary());
     assert_eq!(summary.to_string(), packaged_frame_treatment_summary());
-    assert_eq!(
-        packaged_frame_treatment_summary_for_report(),
-        summary.to_string()
-    );
     assert_eq!(summary.validate(), Ok(()));
 }
 
@@ -2471,14 +2463,6 @@ fn packaged_artifact_body_class_span_cap_summary_reflects_the_current_posture() 
         summary.summary_line(),
         "body-class span caps: luminaries=256 days, inner planets=384 days, outer planets=768 days, pluto=1536 days, lunar points=256 days, selected asteroids=256 days, custom bodies=512 days"
     );
-    assert_eq!(
-        packaged_artifact_body_class_span_cap_summary_for_report(),
-        summary.to_string()
-    );
-    assert_eq!(
-        packaged_artifact_body_class_span_cap_entries_for_report(),
-        "luminaries=256 days, inner planets=384 days, outer planets=768 days, pluto=1536 days, lunar points=256 days, selected asteroids=256 days, custom bodies=512 days"
-    );
     assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
     assert!(summary.validate().is_ok());
 }
@@ -2525,10 +2509,6 @@ fn packaged_artifact_body_cadence_summary_reflects_the_current_posture() {
     summary
         .validate()
         .expect("packaged artifact body cadence summary should validate");
-    assert_eq!(
-        packaged_artifact_body_cadence_summary_for_report(),
-        summary.summary_line()
-    );
 }
 
 #[test]

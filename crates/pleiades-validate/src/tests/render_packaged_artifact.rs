@@ -1305,7 +1305,7 @@ fn packaged_artifact_body_class_span_cap_summary_and_alias_commands_render_the_s
         span_caps,
         format!(
             "Packaged-artifact body-class span caps: {}",
-            pleiades_data::packaged_artifact_body_class_span_cap_entries_for_report()
+            packaged_artifact_body_class_span_cap_entries_for_report()
         )
     );
     assert_eq!(

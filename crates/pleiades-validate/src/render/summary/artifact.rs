@@ -65,7 +65,7 @@ pub(crate) fn validated_packaged_artifact_body_cadence_summary_for_report() -> S
 pub(crate) fn validated_packaged_artifact_body_class_span_cap_summary_for_report() -> String {
     format!(
         "Packaged-artifact body-class span caps: {}",
-        pleiades_data::packaged_artifact_body_class_span_cap_entries_for_report()
+        packaged_artifact_body_class_span_cap_entries_for_report()
     )
 }
 
