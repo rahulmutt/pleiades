@@ -53,15 +53,13 @@ pub mod thresholds;
 
 pub use accuracy_baseline::{
     accuracy_baseline_against, eros_self_consistency_max_longitude_arcsec,
-    packaged_artifact_accuracy_baseline, packaged_artifact_accuracy_baseline_summary_for_report,
-    BodyChannelError,
+    packaged_artifact_accuracy_baseline, BodyChannelError,
 };
 pub use backend::*;
 pub use coverage::*;
 pub use data::*;
 pub use lookup::*;
 pub use regenerate::*;
-pub use thresholds::packaged_artifact_thresholds_summary_for_report;
 
 // Test-only re-exports: bring pub(crate) items into lib.rs scope so that
 // `use super::*` in the tests module can pick them up.

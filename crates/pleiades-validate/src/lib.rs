@@ -258,8 +258,7 @@ use pleiades_core::{
     ReleaseProfileIdentifiers, TimeRange, TimeScale,
 };
 use pleiades_data::{
-    packaged_artifact, packaged_artifact_accuracy_baseline_summary_for_report,
-    packaged_artifact_bytes, packaged_artifact_fit_envelope_summary_details,
+    packaged_artifact, packaged_artifact_bytes, packaged_artifact_fit_envelope_summary_details,
     packaged_artifact_fit_threshold_summary_details,
     packaged_artifact_profile_summary_with_body_coverage,
     packaged_artifact_target_threshold_summary_details, PackagedDataBackend,
@@ -271,6 +270,7 @@ use pleiades_data::{
 // The two renderers below have genuine cross-crate RUNTIME consumers in
 // `pleiades-cli` (`commands/packaged_artifact.rs`), so they stay `pub` +
 // re-exported. All other relocated coverage renderers are `pub(crate)`.
+pub(crate) use crate::posture::data::accuracy_baseline::packaged_artifact_accuracy_baseline_summary_for_report;
 pub(crate) use crate::posture::data::coverage::generation::packaged_artifact_generation_policy_summary_for_report;
 pub(crate) use crate::posture::data::coverage::profile::{
     packaged_artifact_generation_manifest_checksum_for_report,
@@ -298,6 +298,7 @@ pub(crate) use crate::posture::data::lookup::{
     packaged_request_policy_summary_for_report,
 };
 pub(crate) use crate::posture::data::regenerate::packaged_artifact_body_class_span_cap_entries_for_report;
+pub(crate) use crate::posture::data::thresholds::packaged_artifact_thresholds_summary_for_report;
 use pleiades_elp::{
     lunar_apparent_comparison_evidence, lunar_apparent_comparison_summary,
     lunar_equatorial_reference_evidence, lunar_equatorial_reference_evidence_summary,
