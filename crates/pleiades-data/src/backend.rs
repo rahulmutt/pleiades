@@ -13,13 +13,13 @@ use pleiades_backend::{
 };
 use pleiades_compression::{spherical_state_to_cartesian, CompressedArtifact, SphericalState};
 
-use crate::coverage::packaged_body_coverage_summary;
+use crate::coverage::packaged_body_coverage_summary_details;
 #[cfg(feature = "packaged-artifact-path")]
 use crate::data::packaged_artifact_from_path;
 use crate::data::{packaged_artifact, packaged_artifact_from_bytes, PackagedArtifactLoadError};
 use crate::lookup::{
-    packaged_artifact_access_summary_for_report, packaged_artifact_storage_summary_for_report,
-    packaged_frame_treatment_summary_for_report, packaged_request_policy_summary_for_report,
+    packaged_artifact_access_summary, packaged_artifact_storage_summary,
+    packaged_frame_treatment_summary, packaged_request_policy_summary,
 };
 use crate::regenerate::{artifact_time_range, map_artifact_error, normalize_lookup_instant};
 use crate::PACKAGE_NAME;
@@ -219,11 +219,15 @@ impl EphemerisBackend for PackagedDataBackend {
             provenance: BackendProvenance {
                 summary: artifact.header.source.clone(),
                 data_sources: vec![
-                    packaged_body_coverage_summary(),
-                    packaged_request_policy_summary_for_report(),
-                    packaged_frame_treatment_summary_for_report(),
-                    packaged_artifact_storage_summary_for_report(),
-                    packaged_artifact_access_summary_for_report(),
+                    packaged_body_coverage_summary_details()
+                        .validated_summary_line()
+                        .unwrap_or_else(|error| {
+                            format!("Packaged body set: unavailable ({error})")
+                        }),
+                    packaged_request_policy_summary().to_string(),
+                    packaged_frame_treatment_summary().to_string(),
+                    packaged_artifact_storage_summary().to_string(),
+                    packaged_artifact_access_summary().to_string(),
                 ],
             },
             nominal_range: range,
@@ -319,5 +323,36 @@ impl EphemerisBackend for PackagedDataBackend {
         result.motion = Some(motion);
         result.quality = QualityAnnotation::Interpolated;
         Ok(result)
+    }
+}
+
+#[cfg(test)]
+mod coupling_fixture_tests {
+    use super::*;
+
+    /// Golden fixture pinning `PackagedDataBackend::metadata()`'s
+    /// `provenance.data_sources` to its pre-Slice-C rendered values.
+    ///
+    /// This test exists to prove byte-identity when the five report-prose
+    /// renderers backing `data_sources` are replaced with an inline rebuild
+    /// from retained structured accessors (Slice C, Task 2). It must keep
+    /// passing after that rebuild — if it fails, the rebuild drifted; fix
+    /// the rebuild, never this fixture.
+    #[test]
+    fn backend_metadata_data_sources_is_stable() {
+        use pleiades_backend::EphemerisBackend;
+        let metadata = PackagedDataBackend::default().metadata();
+        let expected: &[&str] = &[
+            "Packaged body set: 11 bundled bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros)",
+            "Packaged request policy: geocentric-only; frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false; lookup epoch policy=TT-grid retag without relativistic correction; TDB lookup epochs are re-tagged onto the TT grid without applying a relativistic correction",
+            "checked-in compressed artifact stores J2000 ecliptic coordinates directly; equatorial coordinates are reconstructed from the stored channels and mean-obliquity transform",
+            "Quantized linear segments stored in pleiades-compression artifact format; body-indexed segment tables support random access by body and lookup time across the advertised range; ecliptic and equatorial coordinates are reconstructed at runtime from stored channels; apparent, topocentric, and sidereal outputs remain unsupported; motion/speed is derived from fitted segment derivatives",
+            "packaged artifact access: checked-in fixture only; explicit artifact-path loading disabled",
+        ];
+        assert_eq!(
+            metadata.provenance.data_sources, expected,
+            "backend metadata data_sources drifted:\n{:#?}",
+            metadata.provenance.data_sources
+        );
     }
 }
