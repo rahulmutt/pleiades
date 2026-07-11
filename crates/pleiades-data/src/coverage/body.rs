@@ -80,19 +80,3 @@ pub fn packaged_body_coverage_summary_details() -> PackagedBodyCoverageSummary {
         bodies,
     }
 }
-
-pub(crate) fn format_validated_packaged_body_coverage_summary_for_report(
-    summary: &PackagedBodyCoverageSummary,
-) -> String {
-    match summary.validated_summary_line() {
-        Ok(summary_line) => summary_line,
-        Err(error) => format!("Packaged body set: unavailable ({error})"),
-    }
-}
-
-/// Returns the packaged body set as a human-readable provenance summary.
-pub fn packaged_body_coverage_summary() -> String {
-    format_validated_packaged_body_coverage_summary_for_report(
-        &packaged_body_coverage_summary_details(),
-    )
-}

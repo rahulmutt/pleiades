@@ -1248,7 +1248,7 @@ fn packaged_artifact_fit_margins_summary_and_alias_commands_render_the_fit_margi
         fit_margins,
         format!(
             "Packaged-artifact fit margins: {}",
-            pleiades_data::packaged_artifact_fit_margin_summary_for_report()
+            crate::packaged_artifact_fit_margin_summary_for_report()
         )
     );
     assert_eq!(
@@ -1277,7 +1277,7 @@ fn packaged_artifact_fit_outliers_summary_and_alias_commands_render_the_body_cha
         fit_outliers,
         format!(
             "Packaged-artifact fit outliers: {}",
-            pleiades_data::packaged_artifact_fit_outlier_summary_for_report()
+            crate::packaged_artifact_fit_outlier_summary_for_report()
         )
     );
     assert_eq!(

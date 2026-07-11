@@ -1,7 +1,7 @@
 //! Packaged-artifact command: generate and check the packaged data artifact.
 
-use pleiades_data::{
-    packaged_artifact_generation_manifest,
+use pleiades_data::packaged_artifact_generation_manifest;
+use pleiades_validate::{
     packaged_artifact_normalized_intermediate_summary_for_report,
     packaged_artifact_regeneration_summary_for_report,
 };

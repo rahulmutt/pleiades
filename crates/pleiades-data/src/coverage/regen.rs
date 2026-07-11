@@ -763,28 +763,6 @@ pub fn packaged_artifact_regeneration_summary_details() -> PackagedArtifactRegen
         .clone()
 }
 
-/// Returns the packaged-artifact regeneration provenance summary.
-pub fn packaged_artifact_regeneration_summary() -> String {
-    packaged_artifact_regeneration_summary_for_report()
-}
-
-/// Returns the packaged-artifact regeneration provenance summary after validating
-/// the structured source and coverage metadata.
-pub fn packaged_artifact_regeneration_summary_for_report() -> String {
-    static SUMMARY: OnceLock<String> = OnceLock::new();
-    SUMMARY
-        .get_or_init(|| {
-            let summary = packaged_artifact_regeneration_summary_details();
-            match summary.validated_summary_line() {
-                Ok(line) => line,
-                Err(error) => {
-                    format!("Packaged artifact regeneration source: unavailable ({error})")
-                }
-            }
-        })
-        .clone()
-}
-
 /// Returns the structured normalized-intermediate provenance.
 pub fn packaged_artifact_normalized_intermediate_summary_details(
 ) -> PackagedArtifactNormalizedIntermediateSummary {
@@ -830,13 +808,4 @@ pub fn packaged_artifact_normalized_intermediate_summary_details(
     };
     debug_assert!(summary.validate().is_ok());
     summary
-}
-
-/// Returns the normalized-intermediate provenance summary.
-pub fn packaged_artifact_normalized_intermediate_summary_for_report() -> String {
-    let summary = packaged_artifact_normalized_intermediate_summary_details();
-    match summary.validated_summary_line() {
-        Ok(line) => line,
-        Err(error) => format!("Packaged artifact normalized intermediates: unavailable ({error})"),
-    }
 }

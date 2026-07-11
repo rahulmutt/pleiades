@@ -124,7 +124,7 @@ pub(crate) fn ensure_packaged_frame_treatment_summary_matches_current_rendering(
 }
 
 pub(crate) fn validated_packaged_artifact_target_threshold_state_for_report() -> String {
-    pleiades_data::packaged_artifact_target_threshold_state_for_report()
+    crate::posture::data::coverage::target::packaged_artifact_target_threshold_state_for_report()
 }
 
 pub(crate) fn validated_packaged_artifact_target_threshold_summary_for_report() -> String {

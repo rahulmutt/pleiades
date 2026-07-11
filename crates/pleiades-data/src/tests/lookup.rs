@@ -1003,10 +1003,6 @@ fn backend_metadata_exposes_packaged_scope() {
         ))));
     assert!(metadata.provenance.data_sources[0].contains("11 bundled bodies"));
     assert!(metadata.provenance.data_sources[0].contains("asteroid:433-Eros"));
-    assert_eq!(
-        packaged_body_coverage_summary(),
-        metadata.provenance.data_sources[0]
-    );
     let request_policy = packaged_request_policy_summary_details();
     assert!(request_policy.validate().is_ok());
     assert!(request_policy.geocentric_only);

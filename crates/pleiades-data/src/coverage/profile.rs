@@ -210,22 +210,6 @@ pub fn packaged_artifact_production_profile_summary_details(
     summary
 }
 
-/// Returns the current packaged-artifact production-profile draft after validating the structured posture.
-pub fn packaged_artifact_production_profile_summary_for_report() -> String {
-    static SUMMARY: OnceLock<String> = OnceLock::new();
-    SUMMARY
-        .get_or_init(|| {
-            let summary = packaged_artifact_production_profile_summary_details();
-            match summary.validated_summary_line() {
-                Ok(line) => line,
-                Err(error) => {
-                    format!("Packaged artifact production profile draft: unavailable ({error})")
-                }
-            }
-        })
-        .clone()
-}
-
 /// Returns the current packaged-artifact production-profile draft summary.
 pub fn packaged_artifact_production_profile_summary() -> &'static str {
     static SUMMARY: OnceLock<String> = OnceLock::new();
@@ -566,41 +550,6 @@ pub fn packaged_artifact_generation_manifest_details() -> PackagedArtifactGenera
     manifest
 }
 
-/// Returns the current deterministic packaged-artifact generation manifest after validation.
-pub fn packaged_artifact_generation_manifest_for_report() -> String {
-    static SUMMARY: OnceLock<String> = OnceLock::new();
-    SUMMARY
-        .get_or_init(|| {
-            let manifest = packaged_artifact_generation_manifest_details();
-            match manifest.validated_summary_line() {
-                Ok(line) => line,
-                Err(error) => {
-                    format!("Packaged artifact generation manifest: unavailable ({error})")
-                }
-            }
-        })
-        .clone()
-}
-
-/// Returns the current deterministic packaged-artifact generation manifest checksum after validation.
-pub fn packaged_artifact_generation_manifest_checksum_for_report() -> String {
-    static SUMMARY: OnceLock<String> = OnceLock::new();
-    SUMMARY
-        .get_or_init(|| {
-            let manifest = packaged_artifact_generation_manifest_details();
-            match manifest.validate() {
-                Ok(()) => format!(
-                    "Packaged artifact generation manifest checksum: 0x{:016x}",
-                    manifest.manifest_checksum
-                ),
-                Err(error) => {
-                    format!("Packaged artifact generation manifest checksum: unavailable ({error})")
-                }
-            }
-        })
-        .clone()
-}
-
 /// Returns the current deterministic packaged-artifact generation manifest.
 pub fn packaged_artifact_generation_manifest() -> &'static str {
     static SUMMARY: OnceLock<String> = OnceLock::new();
@@ -780,26 +729,6 @@ pub fn packaged_artifact_profile_coverage_summary_details() -> ArtifactProfileCo
     packaged_artifact_profile_summary_details().profile_coverage_summary()
 }
 
-/// Returns the current packaged-artifact profile coverage summary for reporting.
-pub fn packaged_artifact_profile_coverage_summary_for_report() -> String {
-    static SUMMARY: OnceLock<String> = OnceLock::new();
-    SUMMARY
-        .get_or_init(|| {
-            let summary = packaged_artifact_profile_summary_details();
-            match summary.validate() {
-                Ok(()) => match summary
-                    .profile_coverage_summary()
-                    .validated_summary_line_with_bodies()
-                {
-                    Ok(line) => line,
-                    Err(error) => format!("Artifact profile coverage: unavailable ({error})"),
-                },
-                Err(error) => format!("Artifact profile coverage: unavailable ({error})"),
-            }
-        })
-        .clone()
-}
-
 /// Returns the current packaged-artifact profile summary.
 ///
 /// The summary is validated before it is rendered so release-facing callers
@@ -828,11 +757,6 @@ pub fn packaged_artifact_profile_summary_with_output_support() -> String {
             format!("Packaged artifact profile with output support: unavailable ({error})")
         }
     }
-}
-
-/// Returns the current packaged-artifact profile summary with output support for reporting.
-pub fn packaged_artifact_profile_summary_with_output_support_for_report() -> String {
-    packaged_artifact_profile_summary_with_output_support()
 }
 
 /// Structured output-support semantics for the packaged artifact profile.
@@ -920,20 +844,6 @@ pub fn packaged_artifact_output_support_summary_details() -> PackagedArtifactOut
     summary
 }
 
-/// Returns the output-support semantics of the packaged artifact profile for reporting.
-pub fn packaged_artifact_output_support_summary_for_report() -> String {
-    static SUMMARY: OnceLock<String> = OnceLock::new();
-    SUMMARY
-        .get_or_init(|| {
-            let summary = packaged_artifact_output_support_summary_details();
-            match summary.validated_summary_line() {
-                Ok(rendered) => rendered,
-                Err(error) => format!("unavailable ({error})"),
-            }
-        })
-        .clone()
-}
-
 /// Structured speed-policy semantics for the packaged artifact profile.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct PackagedArtifactSpeedPolicySummary {
@@ -1011,20 +921,6 @@ pub fn packaged_artifact_speed_policy_summary_details() -> PackagedArtifactSpeed
     let summary = PACKAGED_ARTIFACT_SPEED_POLICY_SUMMARY;
     debug_assert!(summary.validate().is_ok());
     summary
-}
-
-/// Returns the packaged-artifact speed-policy semantics for reporting.
-pub fn packaged_artifact_speed_policy_summary_for_report() -> String {
-    static SUMMARY: OnceLock<String> = OnceLock::new();
-    SUMMARY
-        .get_or_init(|| {
-            let summary = packaged_artifact_speed_policy_summary_details();
-            match summary.validate() {
-                Ok(()) => summary.summary_line(),
-                Err(error) => format!("unavailable ({error})"),
-            }
-        })
-        .clone()
 }
 
 pub(crate) fn render_packaged_artifact_profile_summary(

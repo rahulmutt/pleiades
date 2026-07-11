@@ -761,15 +761,6 @@ pub fn packaged_artifact_fit_channel_outlier_summary_details(
     PackagedArtifactFitChannelOutlierSummary { channel_summaries }
 }
 
-/// Returns the current packaged-artifact fit outliers by channel after validating the structured posture.
-pub fn packaged_artifact_fit_channel_outlier_summary_for_report() -> String {
-    let summary = packaged_artifact_fit_channel_outlier_summary_details();
-    match summary.validated_summary_line() {
-        Ok(line) => line,
-        Err(error) => format!("fit outliers by channel: unavailable ({error})"),
-    }
-}
-
 // SP1 draft baseline: thresholds are pinned to the measured worst case (overall
 // envelope and the worst per-scope envelope) of the regenerated dense de440-backed
 // draft artifact. Each body is measured against the SAME source it was fit from:

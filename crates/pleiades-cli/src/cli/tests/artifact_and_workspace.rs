@@ -1,6 +1,5 @@
 //! Tests for artifact, workspace, and packaged-artifact commands.
 
-use pleiades_data::packaged_artifact_generation_manifest_for_report;
 use pleiades_validate::render_cli as validate_render_cli;
 
 use super::super::test_support::unique_temp_dir;
@@ -52,7 +51,7 @@ fn artifact_and_workspace_commands_render_compact_reports() {
         packaged_artifact_output_support,
         format!(
             "Packaged-artifact output support: {}",
-            pleiades_data::packaged_artifact_output_support_summary_for_report()
+            pleiades_data::packaged_artifact_output_support_summary_details().to_string()
         )
     );
     assert_eq!(
@@ -108,7 +107,7 @@ fn artifact_and_workspace_commands_render_compact_reports() {
         packaged_artifact_speed_policy,
         format!(
             "Packaged-artifact speed policy: {}",
-            pleiades_data::packaged_artifact_speed_policy_summary_for_report()
+            pleiades_data::packaged_artifact_speed_policy_summary_details().to_string()
         )
     );
     assert_eq!(
@@ -128,7 +127,7 @@ fn artifact_and_workspace_commands_render_compact_reports() {
         motion_policy,
         format!(
             "Motion policy: {}",
-            pleiades_data::packaged_artifact_speed_policy_summary_for_report()
+            pleiades_data::packaged_artifact_speed_policy_summary_details().to_string()
         )
     );
     assert_eq!(
@@ -218,7 +217,7 @@ fn artifact_and_workspace_commands_render_compact_reports() {
         .contains("profile id=pleiades-packaged-artifact-profile/stage-5-draft"));
     assert_eq!(
         packaged_artifact_production_profile,
-        pleiades_data::packaged_artifact_production_profile_summary_for_report()
+        pleiades_data::packaged_artifact_production_profile_summary_details().to_string()
     );
     assert_eq!(
         render_cli(&["packaged-artifact-production-profile"])
@@ -234,7 +233,7 @@ fn artifact_and_workspace_commands_render_compact_reports() {
     );
     assert_eq!(
         packaged_artifact_generation_manifest,
-        packaged_artifact_generation_manifest_for_report()
+        pleiades_data::packaged_artifact_generation_manifest_details().to_string()
     );
     assert_eq!(
         render_cli(&["packaged-artifact-generation-manifest"])
@@ -264,7 +263,7 @@ fn artifact_and_workspace_commands_render_compact_reports() {
         packaged_artifact_fit_envelope,
         format!(
             "Packaged-artifact fit envelope: {}",
-            pleiades_data::packaged_artifact_fit_envelope_summary_for_report()
+            pleiades_data::packaged_artifact_fit_envelope_summary_details().to_string()
         )
     );
 
@@ -292,7 +291,7 @@ fn artifact_and_workspace_commands_render_compact_reports() {
         packaged_artifact_fit_outliers,
         format!(
             "Packaged-artifact fit outliers: {}",
-            pleiades_data::packaged_artifact_fit_outlier_summary_for_report()
+            pleiades_data::packaged_artifact_fit_outlier_summary_details().to_string()
         )
     );
     assert_eq!(
@@ -333,7 +332,7 @@ fn artifact_and_workspace_commands_render_compact_reports() {
         packaged_artifact_regeneration,
         format!(
             "Packaged-artifact regeneration: {}",
-            pleiades_data::packaged_artifact_regeneration_summary_for_report()
+            pleiades_validate::packaged_artifact_regeneration_summary_for_report()
         )
     );
     let packaged_frame_parity = render_cli(&["packaged-frame-parity-summary"])
@@ -382,7 +381,7 @@ fn artifact_and_workspace_commands_render_compact_reports() {
         packaged_artifact_target_threshold,
         format!(
             "Packaged-artifact target thresholds: {}",
-            pleiades_data::packaged_artifact_target_threshold_summary_for_report()
+            pleiades_data::packaged_artifact_target_threshold_summary_details().to_string()
         )
     );
 
@@ -400,7 +399,7 @@ fn artifact_and_workspace_commands_render_compact_reports() {
         packaged_artifact_target_threshold_scope_envelopes,
         format!(
             "Packaged-artifact target-threshold scope envelopes: {}",
-            pleiades_data::packaged_artifact_target_threshold_scope_envelopes_for_report()
+            pleiades_data::packaged_artifact_target_threshold_scope_envelopes_summary_details().to_string()
         )
     );
 
@@ -409,7 +408,7 @@ fn artifact_and_workspace_commands_render_compact_reports() {
             .expect("packaged artifact generation policy summary should render");
     assert_eq!(
         packaged_artifact_generation_policy,
-        pleiades_data::packaged_artifact_generation_policy_summary_for_report()
+        pleiades_data::packaged_artifact_generation_policy_summary_details().to_string()
     );
     assert_eq!(
         render_cli(&["packaged-artifact-generation-policy"])
@@ -427,7 +426,7 @@ fn artifact_and_workspace_commands_render_compact_reports() {
         packaged_artifact_regeneration,
         format!(
             "Packaged-artifact regeneration: {}",
-            pleiades_data::packaged_artifact_regeneration_summary_for_report()
+            pleiades_validate::packaged_artifact_regeneration_summary_for_report()
         )
     );
     assert_eq!(
@@ -515,7 +514,7 @@ fn artifact_and_workspace_commands_render_compact_reports() {
         packaged_artifact_generation_residual,
         format!(
             "Packaged-artifact generation residual bodies: {}",
-            pleiades_data::packaged_artifact_generation_residual_bodies_summary_for_report()
+            pleiades_data::packaged_artifact_generation_residual_bodies_summary_details().summary_line_with_body_count()
         )
     );
 
@@ -526,7 +525,7 @@ fn artifact_and_workspace_commands_render_compact_reports() {
         packaged_artifact_generation_residual_bodies,
         format!(
             "Packaged-artifact generation residual bodies: {}",
-            pleiades_data::packaged_artifact_generation_residual_bodies_summary_for_report()
+            pleiades_data::packaged_artifact_generation_residual_bodies_summary_details().summary_line_with_body_count()
         )
     );
 
