@@ -1567,7 +1567,9 @@ pub(crate) fn ensure_native_sidereal_policy_summary_matches_current_rendering(
 pub(crate) fn ensure_lunar_theory_limitations_summary_matches_current_rendering(
     lunar_theory_limitations_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
-    if lunar_theory_limitations_summary_text == lunar_theory_limitations_summary_for_report() {
+    if lunar_theory_limitations_summary_text
+        == crate::posture::elp::catalog::lunar_theory_limitations_summary_for_report()
+    {
         Ok(())
     } else {
         Err(ReleaseBundleError::Verification(
@@ -1580,8 +1582,9 @@ pub(crate) fn ensure_lunar_theory_limitations_summary_matches_current_rendering(
 pub(crate) fn ensure_lunar_theory_source_selection_summary_matches_current_rendering(
     lunar_theory_source_selection_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
-    let expected = pleiades_elp::validated_lunar_theory_source_selection_summary_for_report()
-        .map_err(ReleaseBundleError::Verification)?;
+    let expected =
+        crate::posture::elp::catalog::validated_lunar_theory_source_selection_summary_for_report()
+            .map_err(ReleaseBundleError::Verification)?;
 
     if lunar_theory_source_selection_summary_text == expected {
         Ok(())
@@ -1597,7 +1600,7 @@ pub(crate) fn ensure_lunar_theory_source_family_summary_matches_current_renderin
     lunar_theory_source_family_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
     if lunar_theory_source_family_summary_text
-        == pleiades_elp::lunar_theory_source_family_summary_for_report()
+        == crate::posture::elp::catalog::lunar_theory_source_family_summary_for_report()
     {
         Ok(())
     } else {

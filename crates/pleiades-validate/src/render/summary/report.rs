@@ -466,12 +466,12 @@ pub(crate) fn render_validation_report_summary_text(report: &ValidationReport) -
     let _ = writeln!(
         text,
         "ELP lunar capability: {}",
-        lunar_theory_capability_summary_for_report()
+        crate::posture::elp::catalog::lunar_theory_capability_summary_for_report()
     );
     let _ = writeln!(
         text,
         "ELP lunar request policy: {}",
-        lunar_theory_request_policy_summary()
+        crate::posture::elp::lib_summaries::lunar_theory_request_policy_summary()
     );
     let _ = writeln!(
         text,
@@ -481,52 +481,72 @@ pub(crate) fn render_validation_report_summary_text(report: &ValidationReport) -
     let _ = writeln!(
         text,
         "ELP lunar theory limitations: {}",
-        lunar_theory_limitations_summary_for_report()
+        crate::posture::elp::catalog::lunar_theory_limitations_summary_for_report()
     );
-    let _ = writeln!(text, "  {}", lunar_theory_source_summary_for_report());
-    let _ = writeln!(text);
-    let _ = writeln!(text, "Lunar reference");
-    let _ = writeln!(text, "  {}", lunar_reference_evidence_summary_for_report());
     let _ = writeln!(
         text,
         "  {}",
-        lunar_reference_batch_parity_summary_for_report()
+        crate::posture::elp::lib_summaries::lunar_theory_source_summary_for_report()
     );
-    let _ = writeln!(text, "  {}", lunar_reference_evidence_envelope_for_report());
+    let _ = writeln!(text);
+    let _ = writeln!(text, "Lunar reference");
+    let _ = writeln!(
+        text,
+        "  {}",
+        crate::posture::elp::evidence::lunar_reference_evidence_summary_for_report()
+    );
+    let _ = writeln!(
+        text,
+        "  {}",
+        crate::posture::elp::evidence::lunar_reference_batch_parity_summary_for_report()
+    );
+    let _ = writeln!(
+        text,
+        "  {}",
+        crate::posture::elp::evidence::lunar_reference_evidence_envelope_for_report()
+    );
     let _ = writeln!(text);
     let _ = writeln!(text, "Lunar equatorial reference");
     let _ = writeln!(
         text,
         "  {}",
-        lunar_equatorial_reference_evidence_summary_for_report()
+        crate::posture::elp::evidence::lunar_equatorial_reference_evidence_summary_for_report()
     );
     let _ = writeln!(
         text,
         "  {}",
-        lunar_equatorial_reference_batch_parity_summary_for_report()
+        crate::posture::elp::evidence::lunar_equatorial_reference_batch_parity_summary_for_report()
     );
     let _ = writeln!(
         text,
         "  {}",
-        lunar_equatorial_reference_evidence_envelope_for_report()
+        crate::posture::elp::evidence::lunar_equatorial_reference_evidence_envelope_for_report()
     );
     let _ = writeln!(text);
     let _ = writeln!(text, "Lunar apparent comparison");
-    let _ = writeln!(text, "  {}", lunar_apparent_comparison_summary_for_report());
+    let _ = writeln!(
+        text,
+        "  {}",
+        crate::posture::elp::evidence::lunar_apparent_comparison_summary_for_report()
+    );
     let _ = writeln!(text);
     let _ = writeln!(text, "Lunar source windows");
-    let _ = writeln!(text, "  {}", lunar_source_window_summary_for_report());
+    let _ = writeln!(
+        text,
+        "  {}",
+        crate::posture::elp::evidence::lunar_source_window_summary_for_report()
+    );
     let _ = writeln!(text, "Lunar high-curvature continuity evidence");
     let _ = writeln!(
         text,
         "  {}",
-        lunar_high_curvature_continuity_evidence_for_report()
+        crate::posture::elp::evidence::lunar_high_curvature_continuity_evidence_for_report()
     );
     let _ = writeln!(text, "Lunar high-curvature equatorial continuity evidence");
     let _ = writeln!(
         text,
         "  {}",
-        lunar_high_curvature_equatorial_continuity_evidence_for_report()
+        crate::posture::elp::evidence::lunar_high_curvature_equatorial_continuity_evidence_for_report()
     );
     let _ = writeln!(text);
     let _ = writeln!(text, "Body comparison summaries");
@@ -789,14 +809,26 @@ pub(crate) fn render_validation_report_summary_text(report: &ValidationReport) -
     );
     let _ = writeln!(text);
     let _ = writeln!(text, "ELP lunar theory specification");
-    let _ = writeln!(text, "  {}", lunar_theory_catalog_summary_for_report());
+    let _ = writeln!(
+        text,
+        "  {}",
+        crate::posture::elp::catalog::lunar_theory_catalog_summary_for_report()
+    );
     let _ = writeln!(
         text,
         "  {}",
         validated_lunar_theory_catalog_validation_summary_for_report()
     );
-    let _ = writeln!(text, "  {}", lunar_theory_source_summary_for_report());
-    let _ = writeln!(text, "  {}", lunar_theory_summary_for_report());
+    let _ = writeln!(
+        text,
+        "  {}",
+        crate::posture::elp::lib_summaries::lunar_theory_source_summary_for_report()
+    );
+    let _ = writeln!(
+        text,
+        "  {}",
+        crate::posture::elp::lib_summaries::lunar_theory_summary_for_report()
+    );
     let _ = writeln!(text);
     let _ = writeln!(text, "Packaged-artifact profile");
     let _ = writeln!(text, "  {}", format_packaged_artifact_profile_summary());

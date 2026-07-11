@@ -218,7 +218,7 @@ pub(crate) fn format_packaged_frame_parity_summary() -> String {
 }
 
 pub(crate) fn format_lunar_frame_treatment_summary() -> String {
-    lunar_theory_frame_treatment_summary_for_report()
+    crate::posture::elp::lib_summaries::lunar_theory_frame_treatment_summary_for_report()
 }
 
 pub(crate) fn format_packaged_frame_treatment_summary() -> String {

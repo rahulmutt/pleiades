@@ -1421,13 +1421,15 @@ pub fn render_release_bundle(
     let delta_t_policy_summary_text = render_delta_t_policy_summary_text();
     let native_sidereal_policy_summary_text = render_native_sidereal_policy_summary_text();
     let zodiac_policy_summary_text = render_zodiac_policy_summary_text();
-    let lunar_theory_limitations_summary_text = lunar_theory_limitations_summary_for_report();
+    let lunar_theory_limitations_summary_text =
+        crate::posture::elp::catalog::lunar_theory_limitations_summary_for_report();
     let lunar_theory_source_selection_summary_text =
-        pleiades_elp::lunar_theory_source_selection_summary_for_report();
+        crate::posture::elp::catalog::lunar_theory_source_selection_summary_for_report();
     let lunar_theory_source_family_summary_text =
-        pleiades_elp::lunar_theory_source_family_summary_for_report();
-    let lunar_source_window_summary_text = validated_lunar_source_window_summary_for_report()
-        .map_err(|error| ReleaseBundleError::Verification(error.to_string()))?;
+        crate::posture::elp::catalog::lunar_theory_source_family_summary_for_report();
+    let lunar_source_window_summary_text =
+        crate::posture::elp::evidence::validated_lunar_source_window_summary_for_report()
+            .map_err(|error| ReleaseBundleError::Verification(error.to_string()))?;
     let lunar_source_window_summary_checksum = checksum64(&lunar_source_window_summary_text);
     let lunar_reference_error_envelope_summary_text =
         render_lunar_reference_error_envelope_summary_text();

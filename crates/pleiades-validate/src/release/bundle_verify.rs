@@ -758,7 +758,9 @@ pub(crate) fn verify_release_bundle_internal(
     ensure_lunar_theory_source_family_summary_matches_current_rendering(
         &lunar_theory_source_family_summary_text,
     )?;
-    if lunar_source_window_summary_text != lunar_source_window_summary_for_report() {
+    if lunar_source_window_summary_text
+        != crate::posture::elp::evidence::lunar_source_window_summary_for_report()
+    {
         return Err(ReleaseBundleError::Verification(
             "lunar source window summary no longer matches the current lunar source-window posture"
                 .to_string(),

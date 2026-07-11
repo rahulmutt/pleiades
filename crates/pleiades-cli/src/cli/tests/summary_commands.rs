@@ -1769,7 +1769,9 @@ fn summary_commands_render_compact_reports() {
         lunar_reference_error_envelope_summary,
         format!(
             "Lunar reference error envelope summary\n{}\n",
-            pleiades_elp::lunar_reference_evidence_envelope_for_report()
+            pleiades_elp::lunar_reference_evidence_envelope()
+                .expect("lunar reference error envelope should be available")
+                .summary_line()
         )
     );
     assert_eq!(
@@ -1783,7 +1785,9 @@ fn summary_commands_render_compact_reports() {
         lunar_reference_evidence_summary,
         format!(
             "Lunar reference evidence summary\n{}\n",
-            pleiades_elp::lunar_reference_evidence_summary_for_report()
+            pleiades_elp::lunar_reference_evidence_summary()
+                .expect("lunar reference evidence summary should be available")
+                .summary_line()
         )
     );
     assert_eq!(
@@ -1799,7 +1803,9 @@ fn summary_commands_render_compact_reports() {
         lunar_equatorial_reference_error_envelope_summary,
         format!(
             "Lunar equatorial reference error envelope summary\n{}\n",
-            pleiades_elp::lunar_equatorial_reference_evidence_envelope_for_report()
+            pleiades_elp::lunar_equatorial_reference_evidence_envelope()
+                .expect("lunar equatorial reference error envelope should be available")
+                .summary_line()
         )
     );
     assert_eq!(
@@ -1813,7 +1819,9 @@ fn summary_commands_render_compact_reports() {
         lunar_apparent_comparison_summary,
         format!(
             "Lunar apparent comparison summary\n{}\n",
-            pleiades_elp::lunar_apparent_comparison_summary_for_report()
+            pleiades_elp::lunar_apparent_comparison_summary()
+                .expect("lunar apparent comparison summary should be available")
+                .summary_line()
         )
     );
     assert_eq!(
@@ -1825,7 +1833,9 @@ fn summary_commands_render_compact_reports() {
     assert!(lunar_source_window_summary.contains("lunar source windows"));
     assert_eq!(
         lunar_source_window_summary,
-        pleiades_elp::lunar_source_window_summary_for_report()
+        pleiades_elp::lunar_source_window_summary()
+            .expect("lunar source window summary should be available")
+            .summary_line()
     );
     assert_eq!(
         render_cli(&["reference-snapshot-lunar-source-window-summary"])
@@ -1843,7 +1853,9 @@ fn summary_commands_render_compact_reports() {
         .contains("lunar reference mixed TT/TDB batch parity"));
     assert_eq!(
         lunar_reference_mixed_time_scale_batch_parity_summary,
-        pleiades_elp::lunar_reference_batch_parity_summary_for_report()
+        pleiades_elp::lunar_reference_batch_parity_summary()
+            .expect("lunar reference mixed TT/TDB batch parity summary should be available")
+            .summary_line()
     );
     assert_eq!(
         render_cli(&["lunar-reference-mixed-tt-tdb-batch-parity-summary"])
@@ -1869,7 +1881,7 @@ fn summary_commands_render_compact_reports() {
         .expect("lunar theory request policy summary should render");
     assert_eq!(
         lunar_theory_request_policy_summary,
-        pleiades_elp::lunar_theory_request_policy_summary()
+        pleiades_elp::lunar_theory_request_policy().summary_line()
     );
     assert_eq!(
         render_cli(&["lunar-theory-request-policy"])
@@ -1886,7 +1898,7 @@ fn summary_commands_render_compact_reports() {
             .expect("lunar theory frame treatment summary should render");
     assert_eq!(
         lunar_theory_frame_treatment_summary,
-        pleiades_elp::lunar_theory_frame_treatment_summary_for_report()
+        pleiades_elp::lunar_theory_frame_treatment_summary().to_string()
     );
     assert_eq!(
         render_cli(&["lunar-theory-frame-treatment"])
@@ -1902,32 +1914,32 @@ fn summary_commands_render_compact_reports() {
         .expect("lunar theory limitations summary should render");
     assert_eq!(
         lunar_theory_limitations_summary,
-        pleiades_elp::lunar_theory_limitations_summary_for_report()
+        pleiades_elp::lunar_theory_limitations_summary().summary_line()
     );
     assert_eq!(
         render_cli(&["lunar-theory-limitations"]).unwrap(),
-        pleiades_elp::lunar_theory_limitations_summary_for_report()
+        pleiades_elp::lunar_theory_limitations_summary().summary_line()
     );
     let lunar_theory_summary =
         render_cli(&["lunar-theory-summary"]).expect("lunar theory summary should render");
     assert!(lunar_theory_summary.contains("ELP lunar theory specification:"));
     assert_eq!(
         lunar_theory_summary,
-        pleiades_elp::lunar_theory_summary_for_report()
+        pleiades_elp::lunar_theory_specification().summary_line()
     );
     let lunar_theory_capability_summary = render_cli(&["lunar-theory-capability-summary"])
         .expect("lunar theory capability summary should render");
     assert!(lunar_theory_capability_summary.contains("lunar capability summary:"));
     assert_eq!(
         lunar_theory_capability_summary,
-        pleiades_elp::lunar_theory_capability_summary_for_report()
+        pleiades_elp::lunar_theory_capability_summary().summary_line()
     );
     let lunar_theory_source_summary = render_cli(&["lunar-theory-source-summary"])
         .expect("lunar theory source summary should render");
     assert!(lunar_theory_source_summary.contains("lunar source selection:"));
     assert_eq!(
         lunar_theory_source_summary,
-        pleiades_elp::lunar_theory_source_summary_for_report()
+        pleiades_elp::lunar_theory_source_summary().summary_line()
     );
     let lunar_theory_source_selection_summary =
         render_cli(&["lunar-theory-source-selection-summary"])
@@ -1935,7 +1947,7 @@ fn summary_commands_render_compact_reports() {
     assert!(lunar_theory_source_selection_summary.contains("lunar source selection:"));
     assert_eq!(
         lunar_theory_source_selection_summary,
-        pleiades_elp::lunar_theory_source_selection_summary_for_report()
+        pleiades_validate::lunar_theory_source_selection_summary_for_report()
     );
     assert_eq!(
         render_cli(&["lunar-theory-source-selection"]).unwrap(),
@@ -1951,7 +1963,7 @@ fn summary_commands_render_compact_reports() {
     assert!(lunar_theory_source_family_summary.contains("lunar source family:"));
     assert_eq!(
         lunar_theory_source_family_summary,
-        pleiades_elp::lunar_theory_source_family_summary_for_report()
+        pleiades_elp::lunar_theory_source_family_summary().summary_line()
     );
     assert_eq!(
         render_cli(&["lunar-theory-source-family"]).unwrap(),
@@ -1961,14 +1973,14 @@ fn summary_commands_render_compact_reports() {
         .expect("lunar theory catalog summary should render");
     assert_eq!(
         lunar_theory_catalog_summary,
-        pleiades_elp::lunar_theory_catalog_summary_for_report()
+        pleiades_elp::lunar_theory_catalog_summary().summary_line()
     );
     let lunar_theory_catalog_validation_summary =
         render_cli(&["lunar-theory-catalog-validation-summary"])
             .expect("lunar theory catalog validation summary should render");
     assert_eq!(
         lunar_theory_catalog_validation_summary,
-        pleiades_elp::lunar_theory_catalog_validation_summary_for_report()
+        pleiades_elp::lunar_theory_catalog_validation_summary().summary_line()
     );
     let selected_asteroid_boundary_summary = render_cli(&["selected-asteroid-boundary-summary"])
         .expect("selected asteroid boundary summary should render");

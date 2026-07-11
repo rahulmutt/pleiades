@@ -414,7 +414,7 @@ fn release_bundle_writes_expected_artifacts() {
     assert!(benchmark_report.contains("Benchmark report"));
     assert_eq!(
         lunar_theory_limitations_summary,
-        lunar_theory_limitations_summary_for_report()
+        crate::posture::elp::catalog::lunar_theory_limitations_summary_for_report()
     );
     assert_eq!(
         comparison_snapshot_summary,

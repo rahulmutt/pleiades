@@ -19,28 +19,28 @@ pub(crate) fn render_reference_snapshot_exact_j2000_evidence_text() -> String {
 pub(crate) fn render_lunar_reference_error_envelope_summary_text() -> String {
     format!(
         "Lunar reference error envelope summary\n{}\n",
-        lunar_reference_evidence_envelope_for_report()
+        crate::posture::elp::evidence::lunar_reference_evidence_envelope_for_report()
     )
 }
 
 pub(crate) fn render_lunar_reference_evidence_summary_text() -> String {
     format!(
         "Lunar reference evidence summary\n{}\n",
-        lunar_reference_evidence_summary_for_report()
+        crate::posture::elp::evidence::lunar_reference_evidence_summary_for_report()
     )
 }
 
 pub(crate) fn render_lunar_equatorial_reference_error_envelope_summary_text() -> String {
     format!(
         "Lunar equatorial reference error envelope summary\n{}\n",
-        lunar_equatorial_reference_evidence_envelope_for_report()
+        crate::posture::elp::evidence::lunar_equatorial_reference_evidence_envelope_for_report()
     )
 }
 
 pub(crate) fn render_lunar_apparent_comparison_summary_text() -> String {
     format!(
         "Lunar apparent comparison summary\n{}\n",
-        lunar_apparent_comparison_summary_for_report()
+        crate::posture::elp::evidence::lunar_apparent_comparison_summary_for_report()
     )
 }
 

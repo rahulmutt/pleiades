@@ -1598,7 +1598,7 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         | Some("lunar-source-window-summary")
         | Some("lunar-source-window") => {
             ensure_no_extra_args(&args[1..], "lunar-source-window-summary")?;
-            validated_lunar_source_window_summary_for_report()
+            crate::posture::elp::evidence::validated_lunar_source_window_summary_for_report()
         }
         Some("lunar-reference-mixed-time-scale-batch-parity-summary")
         | Some("lunar-reference-mixed-tt-tdb-batch-parity-summary")
@@ -1607,51 +1607,57 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
                 &args[1..],
                 "lunar-reference-mixed-time-scale-batch-parity-summary",
             )?;
-            Ok(lunar_reference_batch_parity_summary_for_report())
+            Ok(crate::posture::elp::evidence::lunar_reference_batch_parity_summary_for_report())
         }
         Some("lunar-theory-request-policy-summary") => {
             ensure_no_extra_args(&args[1..], "lunar-theory-request-policy-summary")?;
-            Ok(lunar_theory_request_policy_summary())
+            Ok(crate::posture::elp::lib_summaries::lunar_theory_request_policy_summary())
         }
         Some("lunar-theory-request-policy") => {
             ensure_no_extra_args(&args[1..], "lunar-theory-request-policy")?;
-            Ok(lunar_theory_request_policy_summary())
+            Ok(crate::posture::elp::lib_summaries::lunar_theory_request_policy_summary())
         }
         Some("lunar-theory-frame-treatment-summary") => {
             ensure_no_extra_args(&args[1..], "lunar-theory-frame-treatment-summary")?;
-            Ok(lunar_theory_frame_treatment_summary_for_report())
+            Ok(
+                crate::posture::elp::lib_summaries::lunar_theory_frame_treatment_summary_for_report(
+                ),
+            )
         }
         Some("lunar-theory-frame-treatment") => {
             ensure_no_extra_args(&args[1..], "lunar-theory-frame-treatment")?;
-            Ok(lunar_theory_frame_treatment_summary_for_report())
+            Ok(
+                crate::posture::elp::lib_summaries::lunar_theory_frame_treatment_summary_for_report(
+                ),
+            )
         }
         Some("lunar-theory-limitations-summary") | Some("lunar-theory-limitations") => {
             ensure_no_extra_args(&args[1..], "lunar-theory-limitations-summary")?;
-            Ok(lunar_theory_limitations_summary_for_report())
+            Ok(crate::posture::elp::catalog::lunar_theory_limitations_summary_for_report())
         }
         Some("lunar-theory-summary") => {
             ensure_no_extra_args(&args[1..], "lunar-theory-summary")?;
-            Ok(lunar_theory_summary_for_report())
+            Ok(crate::posture::elp::lib_summaries::lunar_theory_summary_for_report())
         }
         Some("lunar-theory-capability-summary") => {
             ensure_no_extra_args(&args[1..], "lunar-theory-capability-summary")?;
-            Ok(lunar_theory_capability_summary_for_report())
+            Ok(crate::posture::elp::catalog::lunar_theory_capability_summary_for_report())
         }
         Some("lunar-theory-source-summary") => {
             ensure_no_extra_args(&args[1..], "lunar-theory-source-summary")?;
-            Ok(lunar_theory_source_summary_for_report())
+            Ok(crate::posture::elp::lib_summaries::lunar_theory_source_summary_for_report())
         }
         Some("lunar-theory-source-selection-summary") | Some("lunar-theory-source-selection") => {
             ensure_no_extra_args(&args[1..], "lunar-theory-source-selection-summary")?;
-            Ok(pleiades_elp::lunar_theory_source_selection_summary_for_report())
+            Ok(crate::posture::elp::catalog::lunar_theory_source_selection_summary_for_report())
         }
         Some("lunar-theory-source-family-summary") | Some("lunar-theory-source-family") => {
             ensure_no_extra_args(&args[1..], "lunar-theory-source-family-summary")?;
-            Ok(pleiades_elp::lunar_theory_source_family_summary_for_report())
+            Ok(crate::posture::elp::catalog::lunar_theory_source_family_summary_for_report())
         }
         Some("lunar-theory-catalog-summary") | Some("lunar-theory-catalog") => {
             ensure_no_extra_args(&args[1..], "lunar-theory-catalog-summary")?;
-            Ok(lunar_theory_catalog_summary_for_report())
+            Ok(crate::posture::elp::catalog::lunar_theory_catalog_summary_for_report())
         }
         Some("lunar-theory-catalog-validation-summary")
         | Some("lunar-theory-catalog-validation") => {

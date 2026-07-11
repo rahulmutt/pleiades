@@ -477,7 +477,10 @@ fn lunar_theory_catalog_summary_command_renders_the_summary() {
         .expect("lunar theory catalog summary should render");
 
     assert_eq!(render_cli(&["lunar-theory-catalog"]).unwrap(), rendered);
-    assert_eq!(rendered, lunar_theory_catalog_summary_for_report());
+    assert_eq!(
+        rendered,
+        crate::posture::elp::catalog::lunar_theory_catalog_summary_for_report()
+    );
     assert!(rendered.contains("lunar theory catalog: 1 entry, 1 selected entry"));
 }
 
@@ -529,7 +532,7 @@ fn lunar_theory_source_selection_summary_command_renders_the_summary() {
     );
     assert_eq!(
         rendered,
-        pleiades_elp::lunar_theory_source_selection_summary_for_report()
+        crate::posture::elp::catalog::lunar_theory_source_selection_summary_for_report()
     );
     assert!(rendered.contains("lunar source selection:"));
     assert!(rendered.contains("Meeus-style truncated lunar baseline"));
@@ -563,7 +566,10 @@ fn ayanamsa_reference_offsets_summary_rejects_duplicate_labels() {
 fn lunar_theory_request_policy_and_frame_treatment_commands_render_the_policy_blocks() {
     let request_policy = render_cli(&["lunar-theory-request-policy-summary"])
         .expect("lunar theory request policy summary should render");
-    assert_eq!(request_policy, lunar_theory_request_policy_summary());
+    assert_eq!(
+        request_policy,
+        crate::posture::elp::lib_summaries::lunar_theory_request_policy_summary()
+    );
     assert_eq!(
         render_cli(&["lunar-theory-request-policy"])
             .expect("lunar theory request policy alias should render"),
@@ -579,7 +585,7 @@ fn lunar_theory_request_policy_and_frame_treatment_commands_render_the_policy_bl
         .expect("lunar theory frame treatment summary should render");
     assert_eq!(
         frame_treatment,
-        lunar_theory_frame_treatment_summary_for_report()
+        crate::posture::elp::lib_summaries::lunar_theory_frame_treatment_summary_for_report()
     );
     assert_eq!(
         render_cli(&["lunar-theory-frame-treatment"])
@@ -594,10 +600,13 @@ fn lunar_theory_request_policy_and_frame_treatment_commands_render_the_policy_bl
 
     let limitations = render_cli(&["lunar-theory-limitations-summary"])
         .expect("lunar theory limitations summary should render");
-    assert_eq!(limitations, lunar_theory_limitations_summary_for_report());
+    assert_eq!(
+        limitations,
+        crate::posture::elp::catalog::lunar_theory_limitations_summary_for_report()
+    );
     assert_eq!(
         render_cli(&["lunar-theory-limitations"]).unwrap(),
-        lunar_theory_limitations_summary_for_report()
+        crate::posture::elp::catalog::lunar_theory_limitations_summary_for_report()
     );
     let limitations_error = render_cli(&["lunar-theory-limitations", "extra"])
         .expect_err("lunar theory limitations alias should reject extra arguments");

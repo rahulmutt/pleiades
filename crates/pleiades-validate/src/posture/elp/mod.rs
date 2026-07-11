@@ -5,4 +5,3 @@
 pub(crate) mod catalog;
 pub(crate) mod evidence;
 pub(crate) mod lib_summaries;
-pub(crate) mod source;
