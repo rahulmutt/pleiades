@@ -9,8 +9,8 @@ fn package_name_is_stable() {
 
 #[test]
 fn lunar_theory_summary_mentions_the_selected_lunar_theory() {
-    let summary = lunar_theory_summary();
     let theory = lunar_theory_specification();
+    let summary = theory.summary_line();
     let formatted = format_lunar_theory_specification(&theory);
 
     assert_eq!(summary, formatted);
@@ -63,10 +63,6 @@ fn lunar_theory_summary_mentions_the_selected_lunar_theory() {
         theory.source_aliases.len()
     );
     assert_eq!(family_summary.summary_line(), family_summary.to_string());
-    assert_eq!(
-        lunar_theory_source_family_summary_for_report(),
-        family_summary.summary_line()
-    );
     assert_eq!(
         source.catalog_key(),
         LunarTheoryCatalogKey::SourceIdentifier(theory.source_identifier)
@@ -132,19 +128,11 @@ fn lunar_theory_summary_mentions_the_selected_lunar_theory() {
         theory.redistribution_note
     );
     assert_eq!(source_summary.license_note, theory.license_note);
-    assert_eq!(
-        source_summary.summary_line(),
-        format_lunar_theory_source_summary(&source_summary)
-    );
     assert_eq!(source_summary.to_string(), source_summary.summary_line());
     assert!(source_summary.validate().is_ok());
     assert_eq!(
         source_summary.validated_summary_line().unwrap(),
         source_summary.summary_line()
-    );
-    assert_eq!(
-        format_lunar_theory_source_summary(&source_summary),
-        lunar_theory_source_summary_for_report()
     );
     let mut drifted_source_summary = source_summary;
     drifted_source_summary.source_identifier = "not-the-current-selection";
@@ -159,10 +147,6 @@ fn lunar_theory_summary_mentions_the_selected_lunar_theory() {
         drifted_source_summary.validated_summary_line().unwrap_err().to_string(),
         "the lunar source summary field `source_identifier` is out of sync with the current selection"
     );
-    assert_eq!(
-        format_validated_lunar_theory_source_summary_for_report(&drifted_source_summary),
-        "lunar source selection: unavailable (the lunar source summary field `source_identifier` is out of sync with the current selection)"
-    );
     let drifted_catalog_key = LunarTheorySourceSummary {
         catalog_key: LunarTheoryCatalogKey::SourceFamily(source.family),
         ..source_summary
@@ -173,10 +157,6 @@ fn lunar_theory_summary_mentions_the_selected_lunar_theory() {
     assert_eq!(
         error.to_string(),
         "the lunar source summary field `catalog_key` is out of sync with the current selection"
-    );
-    assert_eq!(
-        format_validated_lunar_theory_source_summary_for_report(&drifted_catalog_key),
-        "lunar source selection: unavailable (the lunar source summary field `catalog_key` is out of sync with the current selection)"
     );
     let drifted_family_key = LunarTheorySourceSummary {
         source_family_key: LunarTheoryCatalogKey::SourceIdentifier(source.identifier),
@@ -189,10 +169,6 @@ fn lunar_theory_summary_mentions_the_selected_lunar_theory() {
         error.to_string(),
         "the lunar source summary field `source_family_key` is out of sync with the current selection"
     );
-    assert_eq!(
-        format_validated_lunar_theory_source_summary_for_report(&drifted_family_key),
-        "lunar source selection: unavailable (the lunar source summary field `source_family_key` is out of sync with the current selection)"
-    );
     let drifted_family_label = LunarTheorySourceSummary {
         source_family_label: "Drifted family label",
         ..source_summary
@@ -204,21 +180,6 @@ fn lunar_theory_summary_mentions_the_selected_lunar_theory() {
         error.to_string(),
         "the lunar source summary field `source_family_label` is out of sync with the current selection"
     );
-    assert_eq!(
-        format_validated_lunar_theory_source_summary_for_report(&drifted_family_label),
-        "lunar source selection: unavailable (the lunar source summary field `source_family_label` is out of sync with the current selection)"
-    );
-    assert!(lunar_theory_source_summary_for_report().contains("lunar source selection: "));
-    assert!(lunar_theory_source_summary_for_report()
-        .contains("selected key: source identifier=meeus-style-truncated-lunar-baseline"));
-    assert!(lunar_theory_source_summary_for_report()
-        .contains("family key: source family=Meeus-style truncated analytical baseline"));
-    assert!(lunar_theory_source_summary_for_report()
-        .contains("aliases: Meeus-style truncated lunar baseline"));
-    assert!(lunar_theory_source_summary_for_report().contains(theory.model_name));
-    assert!(lunar_theory_source_summary_for_report().contains(theory.source_identifier));
-    assert!(lunar_theory_source_summary_for_report()
-        .contains("validation window: JD 2448724.5 (TT) → JD 2459278.5 (TT)"));
     assert!(summary.contains(source.citation));
     assert!(summary.contains("Moon, Mean Node, True Node, Mean Perigee, Mean Apogee"));
     assert!(summary.contains("unsupported bodies: True Apogee, True Perigee"));
@@ -228,18 +189,10 @@ fn lunar_theory_summary_mentions_the_selected_lunar_theory() {
     ));
     assert!(summary.contains("mean apogee"));
     assert_eq!(
-        lunar_theory_request_policy_summary(),
-        theory.request_policy.summary_line()
-    );
-    assert_eq!(
         theory.request_policy.to_string(),
         theory.request_policy.summary_line()
     );
     assert!(theory.request_policy.validate().is_ok());
-    assert_eq!(
-        format_validated_lunar_theory_request_policy_for_report(&theory.request_policy),
-        theory.request_policy.summary_line()
-    );
 
     let mut drifted_request_policy = theory.request_policy;
     drifted_request_policy.supported_time_scales = &[TimeScale::Tt];
@@ -250,27 +203,35 @@ fn lunar_theory_summary_mentions_the_selected_lunar_theory() {
         error.to_string(),
         "the lunar theory request policy field `supported_time_scales` is out of sync with the current selection"
     );
-    assert_eq!(
-        format_validated_lunar_theory_request_policy_for_report(&drifted_request_policy),
-        "lunar theory request policy: unavailable (the lunar theory request policy field `supported_time_scales` is out of sync with the current selection)"
-    );
-    assert_eq!(lunar_theory_summary_for_report(), theory.summary_line());
     let limitations_summary = lunar_theory_limitations_summary();
+    // `LunarTheoryLimitationsSummary::summary_line()` rebuilds these two evidence-envelope
+    // lines from the retained `crate::evidence` constructors and their pub
+    // `validated_summary_line()` bridge (see catalog.rs); reconstruct the same
+    // expected text here rather than via the relocated
+    // `crate::posture::elp::evidence` renderers in `pleiades-validate`.
+    let expected_reference_envelope = match lunar_reference_evidence_envelope() {
+        Some(envelope) => match envelope.validated_summary_line() {
+            Ok(summary_line) => summary_line,
+            Err(error) => format!("lunar reference error envelope: unavailable ({error})"),
+        },
+        None => "lunar reference error envelope: unavailable".to_string(),
+    };
+    let expected_equatorial_envelope = match lunar_equatorial_reference_evidence_envelope() {
+        Some(envelope) => match envelope.validated_summary_line() {
+            Ok(summary_line) => summary_line,
+            Err(error) => {
+                format!("lunar equatorial reference error envelope: unavailable ({error})")
+            }
+        },
+        None => "lunar equatorial reference error envelope: unavailable".to_string(),
+    };
     assert_eq!(
         limitations_summary.summary_line(),
         format!(
             "lunar theory limitations: Compact Meeus-style truncated lunar baseline; supported bodies: Moon, Mean Node, True Node, Mean Perigee, Mean Apogee; unsupported bodies: True Apogee, True Perigee; release-grade evidence by channel: {}; {}",
-            lunar_reference_evidence_envelope_for_report(),
-            lunar_equatorial_reference_evidence_envelope_for_report()
+            expected_reference_envelope,
+            expected_equatorial_envelope
         )
-    );
-    assert_eq!(
-        format_lunar_theory_limitations_summary(&limitations_summary),
-        limitations_summary.summary_line()
-    );
-    assert_eq!(
-        lunar_theory_limitations_summary_for_report(),
-        limitations_summary.summary_line()
     );
     let drifted_limitations_summary = LunarTheoryLimitationsSummary {
         unsupported_bodies: &[CelestialBody::TrueApogee],
@@ -282,12 +243,6 @@ fn lunar_theory_summary_mentions_the_selected_lunar_theory() {
     assert_eq!(
         error.to_string(),
         "the lunar theory limitations summary field `unsupported_bodies` is out of sync with the current baseline"
-    );
-    assert_eq!(
-        format_validated_lunar_theory_limitations_summary_for_report(
-            &drifted_limitations_summary
-        ),
-        "lunar theory limitations: unavailable (the lunar theory limitations summary field `unsupported_bodies` is out of sync with the current baseline)"
     );
     assert!(summary.contains("frames=Ecliptic, Equatorial"));
     assert!(summary.contains("time scales=TT, TDB"));
@@ -306,10 +261,6 @@ fn lunar_theory_summary_mentions_the_selected_lunar_theory() {
     assert_eq!(
         error.to_string(),
         "the lunar theory specification field `request_policy.supported_time_scales` is out of sync with the current selection"
-    );
-    assert_eq!(
-        format_validated_lunar_theory_specification_for_report(&drifted_spec),
-        "ELP lunar theory specification: unavailable (the lunar theory specification field `request_policy.supported_time_scales` is out of sync with the current selection)"
     );
 
     let catalog_summary = lunar_theory_catalog_summary();
@@ -344,14 +295,6 @@ fn lunar_theory_summary_mentions_the_selected_lunar_theory() {
     assert_eq!(catalog_summary.summary_line(), catalog_summary.to_string());
     assert_eq!(
         catalog_summary.validated_summary_line().unwrap(),
-        catalog_summary.summary_line()
-    );
-    assert_eq!(
-        format_lunar_theory_catalog_summary(&catalog_summary),
-        catalog_summary.summary_line()
-    );
-    assert_eq!(
-        lunar_theory_catalog_summary_for_report(),
         catalog_summary.summary_line()
     );
     let catalog_entry_summary = catalog[0].summary_line();
@@ -406,12 +349,6 @@ fn lunar_theory_summary_mentions_the_selected_lunar_theory() {
         drifted_catalog_validation.to_string(),
         "the lunar-theory catalog entry `meeus-style-truncated-lunar-baseline` has specification field `model_name` out of sync with the current catalog"
     );
-    assert!(lunar_theory_catalog_summary_for_report()
-        .contains("lunar theory catalog: 1 entry, 1 selected entry"));
-    assert!(lunar_theory_catalog_summary_for_report()
-        .contains("selected key: source identifier=meeus-style-truncated-lunar-baseline"));
-    assert!(lunar_theory_catalog_summary_for_report()
-        .contains("selected family key: source family=Meeus-style truncated analytical baseline"));
     assert!(catalog_summary.validate().is_ok());
     let mut drifted_catalog_summary = catalog_summary;
     drifted_catalog_summary.selected_alias_count += 1;
@@ -426,10 +363,6 @@ fn lunar_theory_summary_mentions_the_selected_lunar_theory() {
         drifted_catalog_summary.validated_summary_line().unwrap_err().to_string(),
         "the lunar catalog summary field `selected_alias_count` is out of sync with the current catalog"
     );
-    assert_eq!(
-        format_validated_lunar_theory_catalog_summary_for_report(&drifted_catalog_summary),
-        "lunar theory catalog: unavailable (the lunar catalog summary field `selected_alias_count` is out of sync with the current catalog)"
-    );
     let drifted_catalog_key = LunarTheoryCatalogSummary {
         selected_catalog_key: LunarTheoryCatalogKey::SourceFamily(source.family),
         ..catalog_summary
@@ -440,10 +373,6 @@ fn lunar_theory_summary_mentions_the_selected_lunar_theory() {
     assert_eq!(
         catalog_key_error.to_string(),
         "the lunar catalog summary field `selected_catalog_key` is out of sync with the current catalog"
-    );
-    assert_eq!(
-        format_validated_lunar_theory_catalog_summary_for_report(&drifted_catalog_key),
-        "lunar theory catalog: unavailable (the lunar catalog summary field `selected_catalog_key` is out of sync with the current catalog)"
     );
     let drifted_family_key = LunarTheoryCatalogSummary {
         selected_family_key: LunarTheoryCatalogKey::SourceIdentifier(source.identifier),
@@ -456,36 +385,15 @@ fn lunar_theory_summary_mentions_the_selected_lunar_theory() {
         family_key_error.to_string(),
         "the lunar catalog summary field `selected_family_key` is out of sync with the current catalog"
     );
-    assert_eq!(
-        format_validated_lunar_theory_catalog_summary_for_report(&drifted_family_key),
-        "lunar theory catalog: unavailable (the lunar catalog summary field `selected_family_key` is out of sync with the current catalog)"
-    );
     let catalog_validation_summary = lunar_theory_catalog_validation_summary();
     assert_eq!(catalog_validation_summary.entry_count, 1);
     assert_eq!(catalog_validation_summary.selected_count, 1);
     assert_eq!(catalog_validation_summary.selected_source, Some(source));
     assert!(catalog_validation_summary.validation_result.is_ok());
     assert_eq!(
-        catalog_validation_summary.summary_line(),
-        format_lunar_theory_catalog_validation_summary(&catalog_validation_summary)
-    );
-    assert_eq!(
         catalog_validation_summary.to_string(),
         catalog_validation_summary.summary_line()
     );
-    assert_eq!(
-        format_lunar_theory_catalog_validation_summary(&catalog_validation_summary),
-        lunar_theory_catalog_validation_summary_for_report()
-    );
-    assert!(lunar_theory_catalog_validation_summary_for_report()
-        .contains("lunar theory catalog validation: ok (1 entries, 1 selected; selected source: meeus-style-truncated-lunar-baseline [Meeus-style truncated analytical baseline]; selected key: source identifier=meeus-style-truncated-lunar-baseline; selected family key: source family=Meeus-style truncated analytical baseline; aliases=1; specification sync, round-trip, alias uniqueness, body coverage disjointness, and case-insensitive key matching verified)"));
-    assert!(lunar_theory_catalog_summary_for_report()
-        .contains("selected source: meeus-style-truncated-lunar-baseline"));
-    assert!(lunar_theory_catalog_summary_for_report()
-        .contains("aliases=1; supported bodies=5; unsupported bodies=2"));
-    assert!(lunar_theory_catalog_validation_summary_for_report().contains("aliases=1"));
-    assert!(lunar_theory_catalog_validation_summary_for_report()
-        .contains("case-insensitive key matching verified"));
     assert_eq!(
         lunar_theory_catalog_entry_for_source_identifier(theory.source_identifier),
         Some(catalog[0])
@@ -793,11 +701,16 @@ fn metadata_mentions_the_selected_lunar_theory() {
     assert_eq!(source.redistribution_note, theory.redistribution_note);
     assert_eq!(source.license_note, theory.license_note);
     assert_eq!(source.family_label(), theory.source_family.label());
+    let family_summary = lunar_theory_source_family_summary();
+    let expected_family_line = match family_summary.validate() {
+        Ok(()) => family_summary.summary_line(),
+        Err(error) => format!("lunar source family: unavailable ({error})"),
+    };
     assert!(metadata
         .provenance
         .data_sources
         .iter()
-        .any(|source| source == &lunar_theory_source_family_summary_for_report()));
+        .any(|source| source == &expected_family_line));
     assert!(metadata.provenance.summary.contains(source.citation));
     assert!(metadata
         .provenance
@@ -860,8 +773,6 @@ fn lunar_theory_source_selection_has_a_stable_summary_line() {
     let summary = selection.summary_line();
 
     assert_eq!(selection.to_string(), summary);
-    assert_eq!(format_lunar_theory_source_selection(&selection), summary);
-    assert_eq!(lunar_theory_source_selection_summary(), summary);
     assert_eq!(
         resolve_lunar_theory_by_key(selection.catalog_key()),
         Some(lunar_theory_specification())
@@ -892,10 +803,6 @@ fn lunar_theory_source_selection_has_a_stable_summary_line() {
     assert!(summary.contains(selection.license_note));
     assert_eq!(selection.validated_summary_line().unwrap(), summary);
     assert_eq!(selection.validate(), Ok(()));
-    assert_eq!(
-        validated_lunar_theory_source_selection_summary_for_report(),
-        Ok(summary)
-    );
 }
 
 #[test]
@@ -917,14 +824,6 @@ fn lunar_theory_source_selection_validation_fails_closed_for_drifted_fields() {
         drifted.validated_summary_line().unwrap_err().to_string(),
         "the lunar source selection field `identifier` is out of sync with the current selection"
     );
-    assert_eq!(
-        format_lunar_theory_source_selection(&drifted),
-        "lunar source selection: unavailable (the lunar source selection field `identifier` is out of sync with the current selection)"
-    );
-    assert_eq!(
-        lunar_theory_source_selection_summary(),
-        selection.summary_line()
-    );
 }
 
 #[test]
@@ -942,10 +841,6 @@ fn lunar_theory_source_summary_validation_fails_closed_for_drifted_keys() {
         catalog_error.to_string(),
         "the lunar source summary field `catalog_key` is out of sync with the current selection"
     );
-    assert_eq!(
-        format_validated_lunar_theory_source_summary_for_report(&drifted_catalog_key),
-        "lunar source selection: unavailable (the lunar source summary field `catalog_key` is out of sync with the current selection)"
-    );
 
     let drifted_family_key = LunarTheorySourceSummary {
         source_family_key: LunarTheoryCatalogKey::SourceIdentifier(
@@ -959,15 +854,6 @@ fn lunar_theory_source_summary_validation_fails_closed_for_drifted_keys() {
     assert_eq!(
         family_error.to_string(),
         "the lunar source summary field `source_family_key` is out of sync with the current selection"
-    );
-    assert_eq!(
-        format_validated_lunar_theory_source_summary_for_report(&drifted_family_key),
-        "lunar source selection: unavailable (the lunar source summary field `source_family_key` is out of sync with the current selection)"
-    );
-
-    assert_eq!(
-        lunar_theory_source_summary_for_report(),
-        source_summary.summary_line()
     );
 }
 
@@ -1180,9 +1066,8 @@ fn moon_samples_remain_finite_across_high_curvature_window() {
 #[test]
 fn lunar_high_curvature_continuity_evidence_is_rendered() {
     let envelope = lunar_high_curvature_continuity_envelope().expect("envelope should exist");
-    let report = lunar_high_curvature_continuity_evidence_for_report();
+    let report = envelope.summary_line();
 
-    assert_eq!(report, envelope.summary_line());
     assert_eq!(envelope.validated_summary_line().unwrap(), report);
     assert!(envelope.validate().is_ok());
     assert!(report.contains("lunar high-curvature continuity evidence: 6 samples across 1 bodies"));
@@ -1199,10 +1084,8 @@ fn lunar_high_curvature_continuity_evidence_is_rendered() {
 #[test]
 fn lunar_source_window_evidence_is_rendered() {
     let summary = lunar_source_window_summary().expect("source window summary should exist");
-    let report = lunar_source_window_summary_for_report();
+    let report = summary.summary_line();
 
-    assert_eq!(report, summary.summary_line());
-    assert_eq!(report, format_lunar_source_window_summary(&summary));
     assert_eq!(
         report,
         summary
@@ -1404,9 +1287,8 @@ fn lunar_high_curvature_continuity_validation_rejects_stale_regression_limit_fla
 fn lunar_high_curvature_equatorial_continuity_evidence_is_rendered() {
     let envelope = lunar_high_curvature_equatorial_continuity_envelope()
         .expect("equatorial envelope should exist");
-    let report = lunar_high_curvature_equatorial_continuity_evidence_for_report();
+    let report = envelope.summary_line();
 
-    assert_eq!(report, envelope.summary_line());
     assert_eq!(envelope.validated_summary_line().unwrap(), report);
     assert!(envelope.validate().is_ok());
     assert!(report.contains(
@@ -1803,10 +1685,6 @@ fn backend_supports_lunar_points() {
     assert_eq!(frame_summary.to_string(), frame_summary.summary_line());
     assert_eq!(frame_summary.summary_line(), theory.frame_note);
     assert_eq!(
-        lunar_theory_frame_treatment_summary_for_report(),
-        frame_summary.to_string()
-    );
-    assert_eq!(
         lunar_theory_frame_treatment_summary(),
         frame_summary.summary_line()
     );
@@ -1863,18 +1741,10 @@ fn backend_supports_lunar_points() {
     );
     assert_eq!(capability.validation_window, theory.validation_window);
     assert_eq!(
-        capability.summary_line(),
-        format_lunar_theory_capability_summary(&capability)
-    );
-    assert_eq!(
         capability.validated_summary_line().unwrap(),
         capability.summary_line()
     );
     assert_eq!(capability.to_string(), capability.summary_line());
-    assert_eq!(
-        lunar_theory_capability_summary_for_report(),
-        capability.summary_line()
-    );
     assert_eq!(capability.validate(), Ok(()));
     let mut drifted_helper = capability;
     drifted_helper.catalog_validation_ok = !drifted_helper.catalog_validation_ok;
@@ -1892,23 +1762,25 @@ fn backend_supports_lunar_points() {
             }
         )
     );
-    assert!(format_lunar_theory_capability_summary(&capability).contains("bodies=5"));
-    assert!(format_lunar_theory_capability_summary(&capability)
+    assert!(capability.summary_line().contains("bodies=5"));
+    assert!(capability
+        .summary_line()
         .contains("Moon, Mean Node, True Node, Mean Perigee, Mean Apogee"));
-    assert!(format_lunar_theory_capability_summary(&capability).contains("unsupported=2"));
-    assert!(
-        format_lunar_theory_capability_summary(&capability).contains("True Apogee, True Perigee")
-    );
-    assert!(format_lunar_theory_capability_summary(&capability).contains("frames=2"));
-    assert!(format_lunar_theory_capability_summary(&capability).contains("time scales=2"));
-    assert!(format_lunar_theory_capability_summary(&capability).contains("zodiac modes=1"));
-    assert!(format_lunar_theory_capability_summary(&capability).contains("apparentness=1"));
-    assert!(
-        format_lunar_theory_capability_summary(&capability).contains("topocentric observer=false")
-    );
-    assert!(format_lunar_theory_capability_summary(&capability)
+    assert!(capability.summary_line().contains("unsupported=2"));
+    assert!(capability
+        .summary_line()
+        .contains("True Apogee, True Perigee"));
+    assert!(capability.summary_line().contains("frames=2"));
+    assert!(capability.summary_line().contains("time scales=2"));
+    assert!(capability.summary_line().contains("zodiac modes=1"));
+    assert!(capability.summary_line().contains("apparentness=1"));
+    assert!(capability
+        .summary_line()
+        .contains("topocentric observer=false"));
+    assert!(capability
+        .summary_line()
         .contains("validation window=JD 2448724.5 (TT) → JD 2459278.5 (TT)"));
-    assert!(format_lunar_theory_capability_summary(&capability).contains("catalog validation=ok"));
+    assert!(capability.summary_line().contains("catalog validation=ok"));
     assert_eq!(theory.supported_bodies, lunar_theory_supported_bodies());
     assert_eq!(theory.unsupported_bodies, lunar_theory_unsupported_bodies());
     assert_eq!(
@@ -2207,12 +2079,9 @@ fn lunar_reference_evidence_summary_matches_the_canonical_slice() {
     assert_eq!(summary.earliest_epoch.julian_day.days(), 2_419_914.5);
     assert_eq!(summary.latest_epoch.julian_day.days(), 2_459_278.5);
     assert_eq!(summary.summary_line(), summary.to_string());
-    assert_eq!(
-        format_lunar_reference_evidence_summary(&summary),
-        summary.summary_line()
-    );
-    assert!(lunar_reference_evidence_summary_for_report().contains("9 samples across 5 bodies"));
-    assert!(lunar_reference_evidence_summary_for_report()
+    assert!(summary.summary_line().contains("9 samples across 5 bodies"));
+    assert!(summary
+        .summary_line()
         .contains("JD 2419914.5 (TT) → JD 2459278.5 (TT)"));
 
     let parity = lunar_reference_batch_parity_summary()
@@ -2225,18 +2094,15 @@ fn lunar_reference_evidence_summary_matches_the_canonical_slice() {
     assert!(parity.single_query_parity);
     assert_eq!(parity.summary_line(), parity.to_string());
     assert!(parity.validate().is_ok());
-    assert_eq!(
-        format_lunar_reference_batch_parity_summary(&parity),
-        parity.summary_line()
-    );
-    assert!(lunar_reference_batch_parity_summary_for_report()
+    assert!(parity
+        .summary_line()
         .contains("lunar reference mixed TT/TDB batch parity: 9 requests across 5 bodies"));
-    assert!(lunar_reference_batch_parity_summary_for_report().contains("TT requests=5"));
-    assert!(lunar_reference_batch_parity_summary_for_report().contains("TDB requests=4"));
-    assert!(lunar_reference_batch_parity_summary_for_report().contains("order=preserved"));
-    assert!(
-        lunar_reference_batch_parity_summary_for_report().contains("single-query parity=preserved")
-    );
+    assert!(parity.summary_line().contains("TT requests=5"));
+    assert!(parity.summary_line().contains("TDB requests=4"));
+    assert!(parity.summary_line().contains("order=preserved"));
+    assert!(parity
+        .summary_line()
+        .contains("single-query parity=preserved"));
 
     let equatorial_parity = lunar_equatorial_reference_batch_parity_summary()
         .expect("equatorial batch parity evidence should exist");
@@ -2250,11 +2116,7 @@ fn lunar_reference_evidence_summary_matches_the_canonical_slice() {
         equatorial_parity.to_string()
     );
     assert!(equatorial_parity.validate().is_ok());
-    assert_eq!(
-        format_lunar_equatorial_reference_batch_parity_summary(&equatorial_parity),
-        equatorial_parity.summary_line()
-    );
-    assert!(lunar_equatorial_reference_batch_parity_summary_for_report()
+    assert!(equatorial_parity.summary_line()
         .contains("lunar equatorial reference batch parity: 3 requests across 1 bodies, frame=Equatorial, order=preserved, single-query parity=preserved"));
 
     let envelope = lunar_reference_evidence_envelope().expect("error envelope should exist");
@@ -2272,21 +2134,23 @@ fn lunar_reference_evidence_summary_matches_the_canonical_slice() {
     assert!(envelope.percentile_latitude_delta_deg.is_finite());
     assert_eq!(envelope.outside_current_limits_count, 0);
     assert!(envelope.within_current_limits);
-    assert!(
-        lunar_reference_evidence_envelope_for_report().contains("lunar reference error envelope")
-    );
-    assert!(lunar_reference_evidence_envelope_for_report().contains("max Δlon="));
-    assert!(lunar_reference_evidence_envelope_for_report().contains("mean Δlon="));
-    assert!(lunar_reference_evidence_envelope_for_report().contains("median Δlon="));
-    assert!(lunar_reference_evidence_envelope_for_report().contains("p95 Δlon="));
-    assert!(lunar_reference_evidence_envelope_for_report().contains("max Δlat="));
-    assert!(lunar_reference_evidence_envelope_for_report().contains("mean Δlat="));
-    assert!(lunar_reference_evidence_envelope_for_report().contains("median Δlat="));
-    assert!(lunar_reference_evidence_envelope_for_report().contains("p95 Δlat="));
-    assert!(lunar_reference_evidence_envelope_for_report().contains("outliers=none"));
-    assert!(lunar_reference_evidence_envelope_for_report().contains("limits: Δlon≤1e-4°"));
-    assert!(lunar_reference_evidence_envelope_for_report().contains("within current limits=true"));
-    assert!(lunar_reference_evidence_envelope_for_report().contains("outside current limits=0"));
+    assert!(envelope
+        .summary_line()
+        .contains("lunar reference error envelope"));
+    assert!(envelope.summary_line().contains("max Δlon="));
+    assert!(envelope.summary_line().contains("mean Δlon="));
+    assert!(envelope.summary_line().contains("median Δlon="));
+    assert!(envelope.summary_line().contains("p95 Δlon="));
+    assert!(envelope.summary_line().contains("max Δlat="));
+    assert!(envelope.summary_line().contains("mean Δlat="));
+    assert!(envelope.summary_line().contains("median Δlat="));
+    assert!(envelope.summary_line().contains("p95 Δlat="));
+    assert!(envelope.summary_line().contains("outliers=none"));
+    assert!(envelope.summary_line().contains("limits: Δlon≤1e-4°"));
+    assert!(envelope
+        .summary_line()
+        .contains("within current limits=true"));
+    assert!(envelope.summary_line().contains("outside current limits=0"));
     assert_eq!(envelope.summary_line(), envelope.to_string());
     assert_eq!(
         format_lunar_reference_evidence_envelope(&envelope),
@@ -2299,10 +2163,6 @@ fn lunar_reference_evidence_summary_validates_against_the_checked_in_slice() {
     let summary = lunar_reference_evidence_summary().expect("reference evidence should exist");
 
     assert!(summary.validate().is_ok());
-    assert_eq!(
-        lunar_reference_evidence_summary_for_report(),
-        summary.summary_line()
-    );
 
     let mut mutated = summary;
     mutated.sample_count += 1;
@@ -2382,13 +2242,9 @@ fn lunar_equatorial_reference_evidence_matches_the_canonical_slice() {
     assert_eq!(summary.earliest_epoch.julian_day.days(), 2_448_724.5);
     assert_eq!(summary.latest_epoch.julian_day.days(), 2_448_724.5);
     assert_eq!(summary.summary_line(), summary.to_string());
-    assert_eq!(
-        format_lunar_equatorial_reference_evidence_summary(&summary),
-        summary.summary_line()
-    );
-    assert!(lunar_equatorial_reference_evidence_summary_for_report()
-        .contains("3 samples across 1 bodies"));
-    assert!(lunar_equatorial_reference_evidence_summary_for_report()
+    assert!(summary.summary_line().contains("3 samples across 1 bodies"));
+    assert!(summary
+        .summary_line()
         .contains("JD 2448724.5 (TT) → JD 2448724.5 (TT)"));
 
     let envelope = lunar_equatorial_reference_evidence_envelope()
@@ -2407,21 +2263,22 @@ fn lunar_equatorial_reference_evidence_matches_the_canonical_slice() {
     assert!(envelope.percentile_declination_delta_deg.is_finite());
     assert_eq!(envelope.outside_current_limits_count, 0);
     assert!(envelope.within_current_limits);
-    assert!(lunar_equatorial_reference_evidence_envelope_for_report()
+    assert!(envelope
+        .summary_line()
         .contains("lunar equatorial reference error envelope"));
-    assert!(lunar_equatorial_reference_evidence_envelope_for_report().contains("max ΔRA="));
-    assert!(lunar_equatorial_reference_evidence_envelope_for_report().contains("mean ΔRA="));
-    assert!(lunar_equatorial_reference_evidence_envelope_for_report().contains("median ΔRA="));
-    assert!(lunar_equatorial_reference_evidence_envelope_for_report().contains("p95 ΔRA="));
-    assert!(lunar_equatorial_reference_evidence_envelope_for_report().contains("max ΔDec="));
-    assert!(lunar_equatorial_reference_evidence_envelope_for_report().contains("mean ΔDec="));
-    assert!(lunar_equatorial_reference_evidence_envelope_for_report().contains("median ΔDec="));
-    assert!(lunar_equatorial_reference_evidence_envelope_for_report().contains("p95 ΔDec="));
-    assert!(lunar_equatorial_reference_evidence_envelope_for_report().contains("limits: ΔRA≤1e-2°"));
-    assert!(lunar_equatorial_reference_evidence_envelope_for_report()
+    assert!(envelope.summary_line().contains("max ΔRA="));
+    assert!(envelope.summary_line().contains("mean ΔRA="));
+    assert!(envelope.summary_line().contains("median ΔRA="));
+    assert!(envelope.summary_line().contains("p95 ΔRA="));
+    assert!(envelope.summary_line().contains("max ΔDec="));
+    assert!(envelope.summary_line().contains("mean ΔDec="));
+    assert!(envelope.summary_line().contains("median ΔDec="));
+    assert!(envelope.summary_line().contains("p95 ΔDec="));
+    assert!(envelope.summary_line().contains("limits: ΔRA≤1e-2°"));
+    assert!(envelope
+        .summary_line()
         .contains("within current limits=true"));
-    assert!(lunar_equatorial_reference_evidence_envelope_for_report()
-        .contains("outside current limits=0"));
+    assert!(envelope.summary_line().contains("outside current limits=0"));
     assert_eq!(envelope.summary_line(), envelope.to_string());
     assert_eq!(
         format_lunar_equatorial_reference_evidence_envelope(&envelope),
@@ -2463,10 +2320,6 @@ fn lunar_equatorial_reference_evidence_summary_validates_against_the_checked_in_
         .expect("equatorial reference evidence should exist");
 
     assert!(summary.validate().is_ok());
-    assert_eq!(
-        lunar_equatorial_reference_evidence_summary_for_report(),
-        summary.summary_line()
-    );
 
     let mut mutated = summary;
     mutated.body_count += 1;
@@ -2539,14 +2392,17 @@ fn lunar_apparent_comparison_evidence_documents_the_mean_gap() {
     assert!(known_epochs.contains(&summary.max_ecliptic_distance_epoch.julian_day.days()));
     assert!(known_epochs.contains(&summary.max_right_ascension_epoch.julian_day.days()));
     assert!(known_epochs.contains(&summary.max_declination_epoch.julian_day.days()));
-    assert!(lunar_apparent_comparison_summary_for_report()
+    assert!(summary
+        .summary_line()
         .contains("lunar apparent comparison evidence: 4 reference-only samples across 1 bodies"));
-    assert!(lunar_apparent_comparison_summary_for_report()
+    assert!(summary
+        .summary_line()
         .contains("mean-only gap against the published apparent Moon examples"));
-    assert!(lunar_apparent_comparison_summary_for_report().contains("|Δlon| mean/median/p95="));
-    assert!(lunar_apparent_comparison_summary_for_report().contains("|ΔDec| mean/median/p95="));
-    assert!(lunar_apparent_comparison_summary_for_report().contains("@ JD"));
-    assert!(lunar_apparent_comparison_summary_for_report()
+    assert!(summary.summary_line().contains("|Δlon| mean/median/p95="));
+    assert!(summary.summary_line().contains("|ΔDec| mean/median/p95="));
+    assert!(summary.summary_line().contains("@ JD"));
+    assert!(summary
+        .summary_line()
         .contains("apparent requests remain unsupported"));
     assert_eq!(summary.summary_line(), summary.to_string());
 
@@ -2649,10 +2505,6 @@ fn lunar_apparent_comparison_summary_validates_against_the_checked_in_slice() {
         lunar_apparent_comparison_summary().expect("apparent comparison evidence should exist");
 
     assert!(summary.validate().is_ok());
-    assert_eq!(
-        lunar_apparent_comparison_summary_for_report(),
-        summary.summary_line()
-    );
 
     let mut mutated = summary;
     mutated.sample_count += 1;

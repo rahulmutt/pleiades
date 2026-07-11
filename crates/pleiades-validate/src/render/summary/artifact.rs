@@ -3,11 +3,11 @@
 use crate::*;
 
 pub(crate) fn format_vsop87_request_policy_summary() -> String {
-    vsop87_request_policy_summary_for_report()
+    crate::posture::vsop87::spec::vsop87_request_policy_summary_for_report()
 }
 
 pub(crate) fn format_vsop87_source_audit_summary() -> String {
-    source_audit_summary_for_report()
+    crate::posture::vsop87::audit::source_audit_summary_for_report()
 }
 
 pub(crate) fn format_packaged_artifact_profile_summary() -> String {
@@ -184,9 +184,10 @@ pub(crate) fn validate_packaged_artifact_generation_residual_bodies_summary(
     summary: &pleiades_compression::ArtifactResidualBodyCoverageSummary,
     artifact: &pleiades_compression::CompressedArtifact,
 ) -> Result<String, String> {
-    summary
-        .validated_summary_line_with_body_count(artifact)
-        .map_err(|error| error.to_string())
+    crate::posture::compression::validated_residual_body_coverage_summary_line_with_body_count(
+        summary, artifact,
+    )
+    .map_err(|error| error.to_string())
 }
 
 pub(crate) fn validated_packaged_artifact_generation_residual_bodies_summary_for_report(
@@ -218,7 +219,7 @@ pub(crate) fn format_packaged_frame_parity_summary() -> String {
 }
 
 pub(crate) fn format_lunar_frame_treatment_summary() -> String {
-    lunar_theory_frame_treatment_summary_for_report()
+    crate::posture::elp::lib_summaries::lunar_theory_frame_treatment_summary_for_report()
 }
 
 pub(crate) fn format_packaged_frame_treatment_summary() -> String {

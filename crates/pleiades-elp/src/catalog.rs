@@ -3,8 +3,8 @@ use core::fmt;
 use pleiades_types::CelestialBody;
 
 use crate::source::{
-    lunar_theory_source_family_summary, lunar_theory_source_selection, LunarTheoryCatalogKey,
-    LunarTheorySourceFamily, LunarTheorySourceFamilySummary, LunarTheorySourceSelection,
+    lunar_theory_source_selection, LunarTheoryCatalogKey, LunarTheorySourceFamily,
+    LunarTheorySourceSelection,
 };
 use crate::specification::{
     lunar_theory_specification, LunarTheorySpecification, LunarTheorySpecificationValidationError,
@@ -423,18 +423,6 @@ impl fmt::Display for LunarTheoryCatalogValidationSummary {
     }
 }
 
-/// Formats the compact validation summary for release-facing reporting.
-pub fn format_lunar_theory_catalog_validation_summary(
-    summary: &LunarTheoryCatalogValidationSummary,
-) -> String {
-    summary.summary_line()
-}
-
-/// Returns a compact release-facing summary of the lunar-theory catalog validation state.
-pub fn lunar_theory_catalog_validation_summary_for_report() -> String {
-    lunar_theory_catalog_validation_summary().summary_line()
-}
-
 /// Returns the catalog entry matching the provided source identifier, when present.
 pub fn lunar_theory_catalog_entry_for_source_identifier(
     source_identifier: &str,
@@ -533,69 +521,6 @@ pub fn resolve_lunar_theory_by_selection(
     selection: LunarTheorySourceSelection,
 ) -> Option<LunarTheorySpecification> {
     resolve_lunar_theory_by_key(selection.catalog_key())
-}
-
-pub(crate) fn format_validated_lunar_theory_source_selection_for_report(
-    selection: &LunarTheorySourceSelection,
-) -> String {
-    match selection.validated_summary_line() {
-        Ok(summary_line) => summary_line,
-        Err(error) => format!("lunar source selection: unavailable ({error})"),
-    }
-}
-
-/// Returns the compact source-selection summary for the current lunar baseline.
-///
-/// The helper validates the backend-owned source-selection record first so any
-/// future drift in the rendered provenance fields shows up as an unavailable
-/// report line instead of a silently stale summary.
-pub fn lunar_theory_source_selection_summary() -> String {
-    format_validated_lunar_theory_source_selection_for_report(&lunar_theory_source_selection())
-}
-
-/// Returns the compact source-selection summary for report-facing consumers.
-///
-/// This keeps the report-facing naming aligned with the other typed lunar
-/// provenance helpers used by `pleiades-validate`.
-pub fn lunar_theory_source_selection_summary_for_report() -> String {
-    lunar_theory_source_selection_summary()
-}
-
-/// Returns the validated compact source-selection summary for report-facing consumers.
-pub fn validated_lunar_theory_source_selection_summary_for_report() -> Result<String, String> {
-    let selection = lunar_theory_source_selection();
-    selection
-        .validated_summary_line()
-        .map_err(|error| error.to_string())
-}
-
-/// Formats a structured lunar source selection for reporting.
-///
-/// The formatter validates the provided selection against the current lunar-theory
-/// baseline first so callers get the same fail-closed summary wording as the
-/// report-facing accessor when a drifted selection is reused.
-pub fn format_lunar_theory_source_selection(selection: &LunarTheorySourceSelection) -> String {
-    format_validated_lunar_theory_source_selection_for_report(selection)
-}
-
-fn format_validated_lunar_theory_source_family_summary_for_report(
-    summary: &LunarTheorySourceFamilySummary,
-) -> String {
-    match summary.validate() {
-        Ok(()) => summary.summary_line(),
-        Err(error) => format!("lunar source family: unavailable ({error})"),
-    }
-}
-
-/// Returns the compact source-family summary for the current lunar baseline.
-///
-/// The helper validates the backend-owned source-family record first so any
-/// future drift in the rendered provenance fields shows up as an unavailable
-/// report line instead of a silently stale summary.
-pub fn lunar_theory_source_family_summary_for_report() -> String {
-    format_validated_lunar_theory_source_family_summary_for_report(
-        &lunar_theory_source_family_summary(),
-    )
 }
 
 /// Returns the bodies/channels the current lunar-theory baseline explicitly supports.
@@ -800,29 +725,6 @@ impl fmt::Display for LunarTheoryCatalogSummary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.summary_line())
     }
-}
-
-/// Formats the catalog summary for release-facing reporting.
-pub fn format_lunar_theory_catalog_summary(summary: &LunarTheoryCatalogSummary) -> String {
-    summary.summary_line()
-}
-
-pub(crate) fn format_validated_lunar_theory_catalog_summary_for_report(
-    summary: &LunarTheoryCatalogSummary,
-) -> String {
-    match summary.validated_summary_line() {
-        Ok(summary_line) => summary_line,
-        Err(error) => format!("lunar theory catalog: unavailable ({error})"),
-    }
-}
-
-/// Returns the release-facing catalog summary string for the current lunar-theory selection.
-///
-/// The report helper validates the backend-owned catalog summary first so any
-/// future drift in the rendered selection fields shows up as an unavailable
-/// report line instead of a silently stale summary.
-pub fn lunar_theory_catalog_summary_for_report() -> String {
-    format_validated_lunar_theory_catalog_summary_for_report(&lunar_theory_catalog_summary())
 }
 
 /// A compact capability summary for the current lunar-theory selection.
@@ -1056,29 +958,6 @@ impl fmt::Display for LunarTheoryCapabilitySummary {
     }
 }
 
-/// Formats the capability summary for release-facing reporting.
-pub fn format_lunar_theory_capability_summary(summary: &LunarTheoryCapabilitySummary) -> String {
-    summary.summary_line()
-}
-
-pub(crate) fn format_validated_lunar_theory_capability_summary_for_report(
-    summary: &LunarTheoryCapabilitySummary,
-) -> String {
-    match summary.validated_summary_line() {
-        Ok(summary_line) => summary_line,
-        Err(error) => format!("lunar capability summary: unavailable ({error})"),
-    }
-}
-
-/// Returns the release-facing capability summary string for the current lunar-theory selection.
-///
-/// The report helper validates the backend-owned capability summary first so any
-/// future drift in the rendered selection fields shows up as an unavailable
-/// report line instead of a silently stale summary.
-pub fn lunar_theory_capability_summary_for_report() -> String {
-    format_validated_lunar_theory_capability_summary_for_report(&lunar_theory_capability_summary())
-}
-
 /// A compact release-facing summary for the current lunar-theory limitations posture.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct LunarTheoryLimitationsSummary {
@@ -1119,10 +998,32 @@ impl std::error::Error for LunarTheoryLimitationsSummaryValidationError {}
 
 impl LunarTheoryLimitationsSummary {
     /// Returns the compact release-facing limitations line.
+    ///
+    /// This mirrors the release-facing free-function renderer relocated to
+    /// `pleiades-validate`'s posture module (report-surface relocation
+    /// program, Slice B); the two evidence-envelope lines below are rebuilt
+    /// from the retained `crate::evidence` constructors and their pub
+    /// `validated_summary_line()` bridge (unchanged wording) because this
+    /// inherent method (and `Display`) must keep working without a
+    /// dependency on `pleiades-validate`.
     pub fn summary_line(&self) -> String {
-        let reference_envelope = crate::evidence::lunar_reference_evidence_envelope_for_report();
+        let reference_envelope = match crate::evidence::lunar_reference_evidence_envelope() {
+            Some(envelope) => match envelope.validated_summary_line() {
+                Ok(summary_line) => summary_line,
+                Err(error) => format!("lunar reference error envelope: unavailable ({error})"),
+            },
+            None => "lunar reference error envelope: unavailable".to_string(),
+        };
         let equatorial_envelope =
-            crate::evidence::lunar_equatorial_reference_evidence_envelope_for_report();
+            match crate::evidence::lunar_equatorial_reference_evidence_envelope() {
+                Some(envelope) => match envelope.validated_summary_line() {
+                    Ok(summary_line) => summary_line,
+                    Err(error) => {
+                        format!("lunar equatorial reference error envelope: unavailable ({error})")
+                    }
+                },
+                None => "lunar equatorial reference error envelope: unavailable".to_string(),
+            };
 
         format!(
             "lunar theory limitations: {}; supported bodies: {}; unsupported bodies: {}; release-grade evidence by channel: {}; {}",
@@ -1205,25 +1106,6 @@ impl fmt::Display for LunarTheoryLimitationsSummary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.summary_line())
     }
-}
-
-/// Formats the compact lunar-theory limitations summary for release-facing reporting.
-pub fn format_lunar_theory_limitations_summary(summary: &LunarTheoryLimitationsSummary) -> String {
-    summary.summary_line()
-}
-
-pub(crate) fn format_validated_lunar_theory_limitations_summary_for_report(
-    summary: &LunarTheoryLimitationsSummary,
-) -> String {
-    match summary.validated_summary_line() {
-        Ok(summary_line) => summary_line,
-        Err(error) => format!("lunar theory limitations: unavailable ({error})"),
-    }
-}
-
-/// Returns the release-facing one-line summary for the current lunar-theory limitations posture.
-pub fn lunar_theory_limitations_summary_for_report() -> String {
-    format_validated_lunar_theory_limitations_summary_for_report(&lunar_theory_limitations_summary())
 }
 
 /// Returns the structured lunar-theory limitations posture.

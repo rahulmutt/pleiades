@@ -57,6 +57,11 @@ pub use posture::backend_policy::{
     validated_request_semantics_summary_for_report, validated_time_scale_policy_summary_for_report,
     validated_utc_convenience_policy_summary_for_report,
 };
+// The CLI (`pleiades-cli/src/cli.rs`) is a runtime consumer of this symbol
+// (report-surface relocation program, Slice B), so it stays `pub` at the
+// validate crate root even though every other moved elp lunar-theory
+// renderer is `pub(crate)` within `posture::elp`.
+pub use posture::elp::catalog::lunar_theory_source_selection_summary_for_report;
 pub use render::{banner, render_cli};
 pub use topocentric_validation::{
     validate_topocentric_goldens, TopocentricValidationError, TopocentricValidationReport,
@@ -280,21 +285,9 @@ use pleiades_data::{
 };
 use pleiades_elp::{
     lunar_apparent_comparison_evidence, lunar_apparent_comparison_summary,
-    lunar_apparent_comparison_summary_for_report,
-    lunar_equatorial_reference_batch_parity_summary_for_report,
-    lunar_equatorial_reference_evidence, lunar_equatorial_reference_evidence_envelope_for_report,
-    lunar_equatorial_reference_evidence_summary,
-    lunar_equatorial_reference_evidence_summary_for_report,
-    lunar_high_curvature_continuity_evidence_for_report,
-    lunar_high_curvature_equatorial_continuity_evidence_for_report,
-    lunar_reference_batch_parity_summary_for_report, lunar_reference_evidence,
-    lunar_reference_evidence_envelope_for_report, lunar_reference_evidence_summary,
-    lunar_reference_evidence_summary_for_report, lunar_source_window_summary_for_report,
-    lunar_theory_capability_summary_for_report, lunar_theory_catalog_summary_for_report,
-    lunar_theory_frame_treatment_summary_for_report, lunar_theory_limitations_summary_for_report,
-    lunar_theory_request_policy_summary, lunar_theory_source_summary_for_report,
-    lunar_theory_specification, lunar_theory_summary_for_report,
-    validated_lunar_source_window_summary_for_report, ElpBackend,
+    lunar_equatorial_reference_evidence, lunar_equatorial_reference_evidence_summary,
+    lunar_reference_evidence, lunar_reference_evidence_summary, lunar_theory_specification,
+    ElpBackend,
 };
 use pleiades_houses::{
     baseline_house_systems, built_in_house_systems, release_house_systems, resolve_house_system,
@@ -420,20 +413,8 @@ use pleiades_jpl::{
     validated_selected_asteroid_source_window_summary_for_report, JplSnapshotBackend,
 };
 use pleiades_vsop87::{
-    body_source_profiles, canonical_epoch_equatorial_body_class_evidence_summary_for_report,
-    canonical_epoch_equatorial_evidence_summary_for_report,
-    canonical_epoch_evidence_summary_for_report, canonical_epoch_outlier_note_for_report,
-    canonical_j1900_batch_parity_summary_for_report,
-    canonical_j2000_batch_parity_summary_for_report,
-    canonical_mixed_time_scale_batch_parity_summary_for_report, frame_treatment_summary_for_report,
-    generated_binary_audit_summary_for_report, source_audit_summary_for_report, source_audits,
-    source_body_class_evidence_summary_for_report, source_body_evidence_summary_for_report,
-    source_documentation_health_summary, source_documentation_summary, source_specifications,
-    supported_body_j1900_ecliptic_batch_parity_summary_for_report,
-    supported_body_j1900_equatorial_batch_parity_summary_for_report,
-    supported_body_j2000_ecliptic_batch_parity_summary_for_report,
-    supported_body_j2000_equatorial_batch_parity_summary_for_report,
-    vsop87_request_policy_summary_for_report, Vsop87Backend,
+    body_source_profiles, source_audits, source_documentation_health_summary,
+    source_documentation_summary, source_specifications, Vsop87Backend,
 };
 
 fn comparison_snapshot_batch_parity_summary_text() -> String {

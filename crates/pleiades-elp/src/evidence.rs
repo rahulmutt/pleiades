@@ -554,26 +554,6 @@ impl fmt::Display for LunarEquatorialReferenceBatchParitySummary {
     }
 }
 
-/// Formats the lunar equatorial batch-parity evidence for release-facing reporting.
-pub fn format_lunar_equatorial_reference_batch_parity_summary(
-    summary: &LunarEquatorialReferenceBatchParitySummary,
-) -> String {
-    summary.summary_line()
-}
-
-/// Returns the release-facing lunar equatorial batch-parity summary string.
-pub fn lunar_equatorial_reference_batch_parity_summary_for_report() -> String {
-    match lunar_equatorial_reference_batch_parity_summary() {
-        Some(summary) => match summary.validate() {
-            Ok(()) => format_lunar_equatorial_reference_batch_parity_summary(&summary),
-            Err(error) => {
-                format!("lunar equatorial reference batch parity: unavailable ({error})")
-            }
-        },
-        None => "lunar equatorial reference batch parity: unavailable".to_string(),
-    }
-}
-
 /// A compact summary of the canonical lunar reference evidence slice.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct LunarReferenceEvidenceSummary {
@@ -654,22 +634,6 @@ impl LunarReferenceEvidenceSummary {
 impl fmt::Display for LunarReferenceEvidenceSummary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.summary_line())
-    }
-}
-
-/// Formats the lunar reference evidence summary for release-facing reporting.
-pub fn format_lunar_reference_evidence_summary(summary: &LunarReferenceEvidenceSummary) -> String {
-    summary.summary_line()
-}
-
-/// Returns the release-facing lunar reference evidence summary string.
-pub fn lunar_reference_evidence_summary_for_report() -> String {
-    match lunar_reference_evidence_summary() {
-        Some(summary) => match summary.validate() {
-            Ok(()) => format_lunar_reference_evidence_summary(&summary),
-            Err(error) => format!("lunar reference evidence: unavailable ({error})"),
-        },
-        None => "lunar reference evidence: unavailable".to_string(),
     }
 }
 
@@ -864,42 +828,6 @@ pub fn lunar_source_window_summary() -> Option<LunarSourceWindowSummary> {
     })
 }
 
-/// Formats the broader lunar source-window summary for release-facing reporting.
-fn format_validated_lunar_source_window_summary_for_report(
-    summary: &LunarSourceWindowSummary,
-) -> String {
-    match summary.validated_summary_line() {
-        Ok(summary_line) => summary_line,
-        Err(error) => format!("lunar source windows: unavailable ({error})"),
-    }
-}
-
-/// Formats the broader lunar source-window summary for release-facing reporting.
-pub fn format_lunar_source_window_summary(summary: &LunarSourceWindowSummary) -> String {
-    format_validated_lunar_source_window_summary_for_report(summary)
-}
-
-/// Returns the validated release-facing broader lunar source-window summary string.
-pub fn validated_lunar_source_window_summary_for_report() -> Result<String, String> {
-    lunar_source_window_summary()
-        .ok_or_else(|| {
-            "the lunar source-window summary is unavailable from the current evidence".to_string()
-        })
-        .and_then(|summary| {
-            summary
-                .validated_summary_line()
-                .map_err(|error| error.to_string())
-        })
-}
-
-/// Returns the release-facing broader lunar source-window summary string.
-pub fn lunar_source_window_summary_for_report() -> String {
-    match lunar_source_window_summary() {
-        Some(summary) => format_validated_lunar_source_window_summary_for_report(&summary),
-        None => "lunar source windows: unavailable".to_string(),
-    }
-}
-
 /// A compact summary of the mixed TT/TDB lunar reference batch-parity evidence.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct LunarReferenceBatchParitySummary {
@@ -1079,26 +1007,6 @@ impl fmt::Display for LunarReferenceBatchParitySummary {
     }
 }
 
-/// Formats the lunar mixed TT/TDB batch-parity evidence for release-facing reporting.
-pub fn format_lunar_reference_batch_parity_summary(
-    summary: &LunarReferenceBatchParitySummary,
-) -> String {
-    summary.summary_line()
-}
-
-/// Returns the release-facing lunar mixed TT/TDB batch-parity summary string.
-pub fn lunar_reference_batch_parity_summary_for_report() -> String {
-    match lunar_reference_batch_parity_summary() {
-        Some(summary) => match summary.validate() {
-            Ok(()) => format_lunar_reference_batch_parity_summary(&summary),
-            Err(error) => {
-                format!("lunar reference mixed TT/TDB batch parity: unavailable ({error})")
-            }
-        },
-        None => "lunar reference mixed TT/TDB batch parity: unavailable".to_string(),
-    }
-}
-
 /// A compact summary of the canonical lunar equatorial reference evidence slice.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct LunarEquatorialReferenceEvidenceSummary {
@@ -1180,24 +1088,6 @@ impl LunarEquatorialReferenceEvidenceSummary {
 impl fmt::Display for LunarEquatorialReferenceEvidenceSummary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.summary_line())
-    }
-}
-
-/// Formats the lunar equatorial reference evidence summary for release-facing reporting.
-pub fn format_lunar_equatorial_reference_evidence_summary(
-    summary: &LunarEquatorialReferenceEvidenceSummary,
-) -> String {
-    summary.summary_line()
-}
-
-/// Returns the release-facing lunar equatorial reference evidence summary string.
-pub fn lunar_equatorial_reference_evidence_summary_for_report() -> String {
-    match lunar_equatorial_reference_evidence_summary() {
-        Some(summary) => match summary.validate() {
-            Ok(()) => format_lunar_equatorial_reference_evidence_summary(&summary),
-            Err(error) => format!("lunar equatorial reference evidence: unavailable ({error})"),
-        },
-        None => "lunar equatorial reference evidence: unavailable".to_string(),
     }
 }
 
@@ -1718,23 +1608,6 @@ pub fn lunar_apparent_comparison_summary() -> Option<LunarApparentComparisonSumm
     })
 }
 
-/// Formats the reference-only apparent Moon comparison summary for release-facing reporting.
-pub fn format_lunar_apparent_comparison_summary(
-    summary: &LunarApparentComparisonSummary,
-) -> String {
-    summary.summary_line()
-}
-
-/// Returns the release-facing one-line apparent comparison summary.
-pub fn lunar_apparent_comparison_summary_for_report() -> String {
-    match lunar_apparent_comparison_summary() {
-        Some(summary) if summary.validate().is_ok() => {
-            format_lunar_apparent_comparison_summary(&summary)
-        }
-        Some(_) | None => "lunar apparent comparison evidence: unavailable".to_string(),
-    }
-}
-
 /// A compact summary of the lunar equatorial reference error envelope.
 #[derive(Clone, Debug, PartialEq)]
 pub struct LunarEquatorialReferenceEvidenceEnvelope {
@@ -1952,38 +1825,72 @@ pub fn lunar_equatorial_reference_evidence_envelope(
     })
 }
 
+/// Validation error for a lunar reference error envelope that drifted from
+/// the current evidence slice.
+///
+/// This is `pub` (report-surface relocation program, Slice B) only so the
+/// [`LunarReferenceEvidenceEnvelope::validated_summary_line`] and
+/// [`LunarEquatorialReferenceEvidenceEnvelope::validated_summary_line`]
+/// bridge methods are callable from `crate::posture::elp::evidence` in
+/// `pleiades-validate`; callers should match on it only via `{error}`
+/// (`Display`), not by variant.
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) enum LunarEvidenceEnvelopeValidationError {
+pub enum LunarEvidenceEnvelopeValidationError {
+    /// The envelope unexpectedly covers zero samples.
     SampleCountTooSmall {
+        /// Name of the envelope that failed validation.
         envelope: &'static str,
+        /// Observed sample count.
         sample_count: usize,
     },
+    /// The envelope unexpectedly covers zero bodies.
     BodyCountTooSmall {
+        /// Name of the envelope that failed validation.
         envelope: &'static str,
+        /// Observed body count.
         body_count: usize,
     },
+    /// The stored epoch bounds no longer describe a monotonic range.
     InvalidEpochRange {
+        /// Name of the envelope that failed validation.
         envelope: &'static str,
+        /// Stored earliest epoch.
         earliest_epoch: Instant,
+        /// Stored latest epoch.
         latest_epoch: Instant,
     },
+    /// A stored numeric measure is not finite.
     NonFiniteMeasure {
+        /// Name of the envelope that failed validation.
         envelope: &'static str,
+        /// Name of the non-finite field.
         field: &'static str,
     },
+    /// The outlier-body list contains a duplicate entry.
     DuplicateOutlierBody {
+        /// Name of the envelope that failed validation.
         envelope: &'static str,
+        /// Body that appears more than once in the outlier list.
         body: CelestialBody,
     },
+    /// The stored outlier count no longer matches the outlier-body list.
     OutlierCountMismatch {
+        /// Name of the envelope that failed validation.
         envelope: &'static str,
+        /// Stored count of samples outside the current regression limits.
         outside_current_limits_count: usize,
+        /// Total sample count in the envelope.
         sample_count: usize,
+        /// Number of unique outlier bodies recorded.
         outlier_bodies_len: usize,
     },
+    /// The stored within-limits flag drifted away from the outlier count.
     WithinCurrentLimitsMismatch {
+        /// Name of the envelope that failed validation.
         envelope: &'static str,
+        /// Stored count of samples outside the current regression limits.
         outside_current_limits_count: usize,
+        /// Stored within-current-limits flag.
         within_current_limits: bool,
     },
 }
@@ -2240,6 +2147,17 @@ impl LunarEquatorialReferenceEvidenceEnvelope {
             self.within_current_limits,
         )
     }
+
+    /// Returns the compact summary line after validating the equatorial reference envelope.
+    ///
+    /// This bridges the crate-private `Self::validate` guard for callers
+    /// outside this crate (report-surface relocation program, Slice B): the
+    /// moved `crate::posture::elp::evidence` renderer in `pleiades-validate`
+    /// calls this method instead of duplicating the validation logic.
+    pub fn validated_summary_line(&self) -> Result<String, LunarEvidenceEnvelopeValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
 
 impl fmt::Display for LunarEquatorialReferenceEvidenceEnvelope {
@@ -2255,39 +2173,50 @@ pub fn format_lunar_equatorial_reference_evidence_envelope(
     envelope.summary_line()
 }
 
-/// Returns the release-facing lunar equatorial reference error envelope string.
-pub fn lunar_equatorial_reference_evidence_envelope_for_report() -> String {
-    match lunar_equatorial_reference_evidence_envelope() {
-        Some(envelope) => match envelope.validate() {
-            Ok(()) => format_lunar_equatorial_reference_evidence_envelope(&envelope),
-            Err(error) => {
-                format!("lunar equatorial reference error envelope: unavailable ({error})")
-            }
-        },
-        None => "lunar equatorial reference error envelope: unavailable".to_string(),
-    }
-}
-
 /// Validation error for a lunar high-curvature continuity evidence slice.
+///
+/// This is `pub` (report-surface relocation program, Slice B) only so the
+/// [`LunarHighCurvatureContinuityEnvelope::validated_summary_line`] and
+/// [`LunarHighCurvatureEquatorialContinuityEnvelope::validated_summary_line`]
+/// bridge methods are callable from `crate::posture::elp::evidence` in
+/// `pleiades-validate`; callers should match on it only via `{error}`
+/// (`Display`), not by variant.
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) enum LunarHighCurvatureEvidenceValidationError {
+pub enum LunarHighCurvatureEvidenceValidationError {
     /// The regression slice does not include enough samples to justify a continuity envelope.
-    SampleCountTooSmall { sample_count: usize },
+    SampleCountTooSmall {
+        /// Observed sample count.
+        sample_count: usize,
+    },
     /// The regression slice unexpectedly lost all bodies.
-    BodyCountTooSmall { body_count: usize },
+    BodyCountTooSmall {
+        /// Observed body count.
+        body_count: usize,
+    },
     /// The stored epoch bounds no longer describe a monotonic range.
     InvalidEpochRange {
+        /// Stored earliest epoch.
         earliest_epoch: Instant,
+        /// Stored latest epoch.
         latest_epoch: Instant,
     },
     /// A stored step metric is not finite.
-    NonFiniteMeasure { field: &'static str },
+    NonFiniteMeasure {
+        /// Name of the non-finite field.
+        field: &'static str,
+    },
     /// A stored step window is reversed.
-    ReversedStepWindow { field: &'static str },
+    ReversedStepWindow {
+        /// Name of the reversed field.
+        field: &'static str,
+    },
     /// The stored regression-limit flag drifted away from the derived thresholds.
     RegressionLimitMismatch {
+        /// Name of the envelope that failed validation.
         envelope: &'static str,
+        /// Stored within-regression-limits flag.
         within_regression_limits: bool,
+        /// Recomputed within-regression-limits flag.
         expected_within_regression_limits: bool,
     },
 }
@@ -2370,8 +2299,15 @@ fn validate_high_curvature_continuity_window(
 }
 
 /// A compact summary of the lunar high-curvature continuity evidence slice.
+///
+/// The type itself is `pub` (report-surface relocation program, Slice B) so
+/// `crate::posture::elp::evidence` in `pleiades-validate` can receive it from
+/// the now-`pub` [`lunar_high_curvature_continuity_envelope`] constructor and
+/// call [`Self::validated_summary_line`]; its fields stay crate-private
+/// (internal regression-evidence representation, no public constructor or
+/// field access).
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub(crate) struct LunarHighCurvatureContinuityEnvelope {
+pub struct LunarHighCurvatureContinuityEnvelope {
     /// Number of continuity samples in the regression slice.
     pub(crate) sample_count: usize,
     /// Number of distinct bodies covered by the regression slice.
@@ -2564,8 +2500,15 @@ pub fn lunar_high_curvature_equatorial_continuity_batch_parity_request_corpus(
     lunar_high_curvature_equatorial_continuity_requests()
 }
 
-pub(crate) fn lunar_high_curvature_continuity_envelope(
-) -> Option<LunarHighCurvatureContinuityEnvelope> {
+/// Returns the current lunar high-curvature continuity envelope, when available.
+///
+/// The envelope type stays crate-private (its numeric fields are an internal
+/// regression-evidence representation), but the constructor itself is `pub`
+/// so `crate::posture::elp::evidence` in `pleiades-validate` can call the
+/// struct's already-public [`LunarHighCurvatureContinuityEnvelope::validated_summary_line`]
+/// bridge without duplicating this computation (report-surface relocation
+/// program, Slice B).
+pub fn lunar_high_curvature_continuity_envelope() -> Option<LunarHighCurvatureContinuityEnvelope> {
     let backend = ElpBackend::new();
     let mut bodies = std::collections::BTreeSet::new();
     let requests = lunar_high_curvature_continuity_requests();
@@ -2657,29 +2600,19 @@ pub(crate) fn lunar_high_curvature_continuity_envelope(
     })
 }
 
-fn format_lunar_high_curvature_continuity_evidence_envelope(
-    envelope: &LunarHighCurvatureContinuityEnvelope,
-) -> String {
-    match envelope.validated_summary_line() {
-        Ok(summary_line) => summary_line,
-        Err(_) => "lunar high-curvature continuity evidence: unavailable".to_string(),
-    }
-}
-
-/// Returns the release-facing lunar high-curvature continuity evidence string.
-pub fn lunar_high_curvature_continuity_evidence_for_report() -> String {
-    match lunar_high_curvature_continuity_envelope() {
-        Some(envelope) => format_lunar_high_curvature_continuity_evidence_envelope(&envelope),
-        _ => "lunar high-curvature continuity evidence: unavailable".to_string(),
-    }
-}
-
 const LUNAR_HIGH_CURVATURE_RIGHT_ASCENSION_LIMIT_DEG: f64 = 20.0;
 const LUNAR_HIGH_CURVATURE_DECLINATION_LIMIT_DEG: f64 = 10.0;
 
 /// A compact summary of the lunar high-curvature equatorial continuity evidence slice.
+///
+/// The type itself is `pub` (report-surface relocation program, Slice B) so
+/// `crate::posture::elp::evidence` in `pleiades-validate` can receive it from
+/// the now-`pub` [`lunar_high_curvature_equatorial_continuity_envelope`]
+/// constructor and call [`Self::validated_summary_line`]; its fields stay
+/// crate-private (internal regression-evidence representation, no public
+/// constructor or field access).
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub(crate) struct LunarHighCurvatureEquatorialContinuityEnvelope {
+pub struct LunarHighCurvatureEquatorialContinuityEnvelope {
     /// Number of continuity samples in the regression slice.
     pub(crate) sample_count: usize,
     /// Number of distinct bodies covered by the regression slice.
@@ -2795,7 +2728,16 @@ impl fmt::Display for LunarHighCurvatureEquatorialContinuityEnvelope {
     }
 }
 
-pub(crate) fn lunar_high_curvature_equatorial_continuity_envelope(
+/// Returns the current lunar high-curvature equatorial continuity envelope, when available.
+///
+/// The envelope type stays crate-private (its numeric fields are an internal
+/// regression-evidence representation), but the constructor itself is `pub`
+/// so `crate::posture::elp::evidence` in `pleiades-validate` can call the
+/// struct's already-public
+/// [`LunarHighCurvatureEquatorialContinuityEnvelope::validated_summary_line`]
+/// bridge without duplicating this computation (report-surface relocation
+/// program, Slice B).
+pub fn lunar_high_curvature_equatorial_continuity_envelope(
 ) -> Option<LunarHighCurvatureEquatorialContinuityEnvelope> {
     let backend = ElpBackend::new();
     let mut bodies = std::collections::BTreeSet::new();
@@ -2890,25 +2832,6 @@ pub(crate) fn lunar_high_curvature_equatorial_continuity_envelope(
         max_distance_step_au,
         within_regression_limits,
     })
-}
-
-fn format_lunar_high_curvature_equatorial_continuity_evidence_envelope(
-    envelope: &LunarHighCurvatureEquatorialContinuityEnvelope,
-) -> String {
-    match envelope.validated_summary_line() {
-        Ok(summary_line) => summary_line,
-        Err(_) => "lunar high-curvature equatorial continuity evidence: unavailable".to_string(),
-    }
-}
-
-/// Returns the release-facing lunar high-curvature equatorial continuity evidence string.
-pub fn lunar_high_curvature_equatorial_continuity_evidence_for_report() -> String {
-    match lunar_high_curvature_equatorial_continuity_envelope() {
-        Some(envelope) => {
-            format_lunar_high_curvature_equatorial_continuity_evidence_envelope(&envelope)
-        }
-        _ => "lunar high-curvature equatorial continuity evidence: unavailable".to_string(),
-    }
 }
 
 /// A compact summary of the lunar reference error envelope.
@@ -3232,6 +3155,17 @@ impl LunarReferenceEvidenceEnvelope {
             self.within_current_limits,
         )
     }
+
+    /// Returns the compact summary line after validating the reference envelope.
+    ///
+    /// This bridges the crate-private `Self::validate` guard for callers
+    /// outside this crate (report-surface relocation program, Slice B): the
+    /// moved `crate::posture::elp::evidence` renderer in `pleiades-validate`
+    /// calls this method instead of duplicating the validation logic.
+    pub fn validated_summary_line(&self) -> Result<String, LunarEvidenceEnvelopeValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
 
 impl fmt::Display for LunarReferenceEvidenceEnvelope {
@@ -3245,17 +3179,4 @@ pub fn format_lunar_reference_evidence_envelope(
     envelope: &LunarReferenceEvidenceEnvelope,
 ) -> String {
     envelope.summary_line()
-}
-
-/// Returns the release-facing lunar reference error envelope string.
-pub fn lunar_reference_evidence_envelope_for_report() -> String {
-    match lunar_reference_evidence_envelope() {
-        Some(envelope) => match envelope.validate() {
-            Ok(()) => format_lunar_reference_evidence_envelope(&envelope),
-            Err(error) => {
-                format!("lunar reference error envelope: unavailable ({error})")
-            }
-        },
-        None => "lunar reference error envelope: unavailable".to_string(),
-    }
 }

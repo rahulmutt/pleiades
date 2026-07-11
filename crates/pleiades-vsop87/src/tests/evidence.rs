@@ -20,28 +20,6 @@ fn source_body_evidence_summary_matches_the_canonical_body_evidence() {
     assert_eq!(summary.outside_interim_limit_count, 0);
     assert!(summary.outside_interim_limit_bodies.is_empty());
     assert!(evidence.iter().all(|row| row.within_interim_limits));
-    assert!(format_source_body_evidence_summary(&summary).contains(
-        "source-backed body order: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune"
-    ));
-}
-
-#[test]
-fn source_body_evidence_report_matches_the_backend_formatter() {
-    let summary = source_body_evidence_summary().expect("summary should exist");
-    assert_eq!(summary.validate(), Ok(()));
-    assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
-    assert_eq!(
-        source_body_evidence_summary_for_report(),
-        format_source_body_evidence_summary(&summary)
-    );
-    assert_eq!(
-        summary.summary_line(),
-        source_body_evidence_summary_for_report()
-    );
-    assert_eq!(
-        summary.to_string(),
-        source_body_evidence_summary_for_report()
-    );
 }
 
 #[test]
@@ -59,7 +37,7 @@ fn source_body_evidence_validated_summary_line_rejects_drift() {
 }
 
 #[test]
-fn source_body_class_evidence_report_matches_the_backend_formatter() {
+fn source_body_class_evidence_summary_reports_the_measured_classes() {
     let summary = source_body_class_evidence_summary().expect("summary should exist");
     assert_eq!(summary.len(), 2);
     assert_eq!(summary[0].class, Vsop87SourceBodyClass::Luminary);
@@ -81,11 +59,6 @@ fn source_body_class_evidence_report_matches_the_backend_formatter() {
         ]
     );
     assert_eq!(summary[1].validate(), Ok(()));
-    let rendered = source_body_class_evidence_summary_for_report();
-    assert_eq!(
-        rendered,
-        format_source_body_class_evidence_summary(&summary)
-    );
     assert_eq!(summary[0].summary_line(), summary[0].to_string());
     assert_eq!(summary[1].summary_line(), summary[1].to_string());
     assert_eq!(
@@ -95,27 +68,6 @@ fn source_body_class_evidence_report_matches_the_backend_formatter() {
     assert_eq!(
         summary[1].validated_summary_line(),
         Ok(summary[1].summary_line())
-    );
-    assert!(rendered.contains("Luminary: samples=1, bodies: Sun"));
-    assert!(rendered.contains("median Δlon="));
-    assert!(rendered.contains("p95 Δlon="));
-    assert!(rendered.contains("median Δlat="));
-    assert!(rendered.contains("p95 Δlat="));
-    assert!(rendered.contains("median Δdist="));
-    assert!(rendered.contains("p95 Δdist="));
-    assert!(rendered.contains(
-        "Major planets: samples=7, bodies: Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune"
-    ));
-}
-
-#[test]
-fn source_body_class_evidence_report_marks_drift_as_unavailable() {
-    let mut summary = source_body_class_evidence_summary().expect("summary should exist");
-    summary[0].sample_count += 1;
-
-    assert_eq!(
-        format_validated_source_body_class_evidence_summary_for_report(&summary),
-        "VSOP87 source-backed body-class envelopes: unavailable (the VSOP87 source-backed body-class evidence summary field `sample_count` is out of sync with the current canonical evidence)"
     );
 }
 
@@ -402,7 +354,7 @@ fn source_body_class_evidence_summary_validation_rejects_metric_order_drift() {
 }
 
 #[test]
-fn canonical_equatorial_body_class_evidence_report_matches_the_backend_formatter() {
+fn canonical_equatorial_body_class_evidence_summary_reports_the_measured_classes() {
     let summary =
         canonical_epoch_equatorial_body_class_evidence_summary().expect("summary should exist");
     assert_eq!(summary.len(), 2);
@@ -425,23 +377,8 @@ fn canonical_equatorial_body_class_evidence_report_matches_the_backend_formatter
         ]
     );
     assert_eq!(summary[1].validate(), Ok(()));
-    let rendered = canonical_epoch_equatorial_body_class_evidence_summary_for_report();
-    assert_eq!(
-        rendered,
-        format_canonical_equatorial_body_class_evidence_summary(&summary)
-    );
     assert_eq!(summary[0].summary_line(), summary[0].to_string());
     assert_eq!(summary[1].summary_line(), summary[1].to_string());
-    assert!(rendered.contains("Luminary: samples=1, bodies: Sun"));
-    assert!(rendered.contains("median Δra="));
-    assert!(rendered.contains("p95 Δra="));
-    assert!(rendered.contains("median Δdec="));
-    assert!(rendered.contains("p95 Δdec="));
-    assert!(rendered.contains("median Δdist="));
-    assert!(rendered.contains("p95 Δdist="));
-    assert!(rendered.contains(
-        "Major planets: samples=7, bodies: Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune"
-    ));
 }
 
 #[test]
@@ -481,15 +418,9 @@ fn canonical_equatorial_body_class_evidence_summary_validation_rejects_blank_pea
 }
 
 #[test]
-fn canonical_evidence_report_matches_the_backend_formatter() {
+fn canonical_evidence_summary_has_a_displayable_summary_line() {
     let summary = canonical_epoch_evidence_summary().expect("summary should exist");
-    let rendered = canonical_epoch_evidence_summary_for_report();
-    assert_eq!(rendered, format_canonical_epoch_evidence_summary(&summary));
     assert_eq!(summary.summary_line(), summary.to_string());
-    assert_eq!(rendered, summary.summary_line());
-    assert!(rendered.contains("p95 Δlon="));
-    assert!(rendered.contains("p95 Δlat="));
-    assert!(rendered.contains("p95 Δdist="));
 }
 
 #[test]
@@ -725,10 +656,8 @@ fn canonical_equatorial_evidence_summary_validation_rejects_peak_source_kind_dri
 }
 
 #[test]
-fn canonical_j2000_batch_parity_report_matches_the_backend_formatter() {
+fn canonical_j2000_batch_parity_summary_has_a_displayable_summary_line() {
     let summary = canonical_j2000_batch_parity_summary().expect("batch summary should exist");
-    let rendered = canonical_j2000_batch_parity_summary_for_report();
-    assert_eq!(rendered, summary.summary_line());
     assert_eq!(summary.summary_line(), summary.to_string());
     assert_eq!(summary.validate(), Ok(()));
     assert_eq!(summary.sample_count, canonical_epoch_samples().len());
@@ -742,8 +671,6 @@ fn canonical_j2000_batch_parity_report_matches_the_backend_formatter() {
     assert_eq!(summary.frame, CoordinateFrame::Ecliptic);
     assert_eq!(summary.reference_epoch.julian_day.days(), J2000);
     assert_eq!(summary.reference_epoch.scale, TimeScale::Tt);
-    assert!(rendered.contains("quality counts: Exact="));
-    assert!(rendered.contains("batch/single parity preserved"));
 }
 
 #[test]
@@ -1148,10 +1075,8 @@ fn supported_body_j1900_equatorial_request_corpus_remains_the_plain_alias() {
 fn supported_body_canonical_batch_parity_summary_matches_the_backend_helpers() {
     let summary = supported_body_canonical_batch_parity_summary()
         .expect("supported-body canonical batch matrix should exist");
-    let rendered = supported_body_canonical_batch_parity_summary_for_report();
     let requests = supported_body_canonical_batch_parity_requests();
 
-    assert_eq!(rendered, summary.summary_line());
     assert_eq!(summary.summary_line(), summary.to_string());
     assert_eq!(summary.validate(), Ok(()));
     assert_eq!(
@@ -1223,10 +1148,6 @@ fn supported_body_canonical_batch_parity_summary_matches_the_backend_helpers() {
             .collect::<Vec<_>>(),
         summary.j1900_equatorial.sample_bodies
     );
-    assert!(rendered.contains("J2000 ecliptic"));
-    assert!(rendered.contains("J2000 equatorial"));
-    assert!(rendered.contains("J1900 ecliptic"));
-    assert!(rendered.contains("J1900 equatorial"));
 }
 
 #[test]
@@ -1262,19 +1183,6 @@ fn supported_body_canonical_request_corpus_remains_the_plain_alias() {
 }
 
 #[test]
-fn supported_body_canonical_batch_parity_report_surfaces_validation_errors() {
-    let mut summary = supported_body_canonical_batch_parity_summary()
-        .expect("supported-body canonical batch matrix should exist");
-    summary.supported_body_count += 1;
-
-    let rendered =
-        format_validated_supported_body_canonical_batch_parity_summary_for_report(&summary);
-
-    assert!(rendered.starts_with("VSOP87 supported-body canonical batch matrix: unavailable ("));
-    assert!(rendered.contains("supported_body_count"));
-}
-
-#[test]
 fn canonical_mixed_time_scale_batch_parity_requests_preserve_the_canonical_slice() {
     let requests = canonical_mixed_time_scale_batch_parity_requests();
 
@@ -1302,11 +1210,9 @@ fn canonical_mixed_time_scale_batch_parity_requests_preserve_the_canonical_slice
 }
 
 #[test]
-fn canonical_mixed_tt_tdb_batch_parity_report_matches_the_backend_formatter() {
+fn canonical_mixed_time_scale_batch_parity_summary_has_a_displayable_summary_line() {
     let summary = canonical_mixed_time_scale_batch_parity_summary()
         .expect("mixed batch summary should exist");
-    let rendered = canonical_mixed_time_scale_batch_parity_summary_for_report();
-    assert_eq!(rendered, summary.summary_line());
     assert_eq!(summary.summary_line(), summary.to_string());
     assert_eq!(summary.validate(), Ok(()));
     assert_eq!(summary.sample_count, canonical_epoch_samples().len());
@@ -1322,9 +1228,6 @@ fn canonical_mixed_tt_tdb_batch_parity_report_matches_the_backend_formatter() {
     assert_eq!(summary.reference_epoch.scale, TimeScale::Tt);
     assert_eq!(summary.tt_request_count, summary.sample_count.div_ceil(2));
     assert_eq!(summary.tdb_request_count, summary.sample_count / 2);
-    assert!(rendered.contains("TT/TDB mix"));
-    assert!(rendered.contains("TT requests="));
-    assert!(rendered.contains("TDB requests="));
 }
 
 #[test]
@@ -1368,29 +1271,6 @@ fn canonical_mixed_tt_tdb_request_corpus_remains_the_plain_alias() {
 }
 
 #[test]
-fn canonical_mixed_tt_tdb_batch_parity_report_surfaces_validation_errors() {
-    let mut summary = canonical_mixed_time_scale_batch_parity_summary()
-        .expect("mixed batch summary should exist");
-    summary.tt_request_count += 1;
-
-    assert_eq!(
-        format_validated_canonical_mixed_time_scale_batch_parity_summary_for_report(&summary),
-        "VSOP87 canonical mixed TT/TDB batch parity: unavailable (the VSOP87 canonical batch parity summary field `tt_request_count` is out of sync with the current canonical evidence)"
-    );
-}
-
-#[test]
-fn canonical_j2000_batch_parity_report_surfaces_validation_errors() {
-    let mut summary = canonical_j2000_batch_parity_summary().expect("batch summary should exist");
-    summary.sample_count += 1;
-
-    assert_eq!(
-        format_validated_canonical_j2000_batch_parity_summary_for_report(&summary),
-        "VSOP87 canonical J2000 batch parity: unavailable (the VSOP87 canonical batch parity summary field `sample_count` is out of sync with the current canonical evidence)"
-    );
-}
-
-#[test]
 fn canonical_j2000_batch_parity_summary_validation_rejects_body_order_drift() {
     let mut summary = canonical_j2000_batch_parity_summary().expect("batch summary should exist");
     summary.sample_bodies.reverse();
@@ -1417,32 +1297,8 @@ fn canonical_j2000_batch_parity_summary_validation_rejects_frame_drift() {
 }
 
 #[test]
-fn canonical_j2000_batch_parity_report_surfaces_body_order_validation_errors() {
-    let mut summary = canonical_j2000_batch_parity_summary().expect("batch summary should exist");
-    summary.sample_bodies.reverse();
-
-    assert_eq!(
-        format_validated_canonical_j2000_batch_parity_summary_for_report(&summary),
-        "VSOP87 canonical J2000 batch parity: unavailable (the VSOP87 canonical batch parity summary field `sample_bodies` is out of sync with the current canonical evidence)"
-    );
-}
-
-#[test]
-fn canonical_j2000_batch_parity_report_surfaces_frame_validation_errors() {
-    let mut summary = canonical_j2000_batch_parity_summary().expect("batch summary should exist");
-    summary.frame = CoordinateFrame::Equatorial;
-
-    assert_eq!(
-        format_validated_canonical_j2000_batch_parity_summary_for_report(&summary),
-        "VSOP87 canonical J2000 batch parity: unavailable (the VSOP87 canonical batch parity summary field `frame` is out of sync with the current canonical evidence)"
-    );
-}
-
-#[test]
-fn canonical_j1900_batch_parity_report_matches_the_backend_formatter() {
+fn canonical_j1900_batch_parity_summary_has_a_displayable_summary_line() {
     let summary = canonical_j1900_batch_parity_summary().expect("batch summary should exist");
-    let rendered = canonical_j1900_batch_parity_summary_for_report();
-    assert_eq!(rendered, summary.summary_line());
     assert_eq!(summary.summary_line(), summary.to_string());
     assert_eq!(summary.validate(), Ok(()));
     assert_eq!(summary.sample_count, summary.sample_bodies.len());
@@ -1459,20 +1315,6 @@ fn canonical_j1900_batch_parity_report_matches_the_backend_formatter() {
             + summary.interpolated_count
             + summary.approximate_count
             + summary.unknown_count
-    );
-    assert!(rendered.contains("JD 2415020.0 (TDB)"));
-    assert!(rendered.contains("quality counts: Exact="));
-    assert!(rendered.contains("batch/single parity preserved"));
-}
-
-#[test]
-fn canonical_j1900_batch_parity_report_surfaces_validation_errors() {
-    let mut summary = canonical_j1900_batch_parity_summary().expect("batch summary should exist");
-    summary.frame = CoordinateFrame::Ecliptic;
-
-    assert_eq!(
-        format_validated_canonical_j1900_batch_parity_summary_for_report(&summary),
-        "VSOP87 canonical J1900 batch parity: unavailable (the VSOP87 canonical batch parity summary field `frame` is out of sync with the current canonical evidence)"
     );
 }
 
@@ -1618,10 +1460,6 @@ fn canonical_evidence_outlier_note_reports_the_current_interim_status() {
     assert_eq!(summary.to_string(), summary.summary_line());
     assert_eq!(summary.validate(), Ok(()));
     assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
-    assert_eq!(
-        canonical_epoch_outlier_note_for_report(),
-        summary.summary_line()
-    );
 }
 
 #[test]
@@ -1649,24 +1487,14 @@ fn frame_treatment_summary_has_a_displayable_summary_line() {
         "VSOP87 frame treatment: J2000 ecliptic/equinox inputs; equatorial coordinates are derived with a mean-obliquity transform"
     );
     assert_eq!(frame_treatment_summary(), summary.summary_line());
-    assert_eq!(frame_treatment_summary_for_report(), summary.to_string());
     assert!(summary.summary_line().contains("mean-obliquity transform"));
 }
 
 #[test]
-fn canonical_equatorial_evidence_report_matches_the_backend_formatter() {
+fn canonical_equatorial_evidence_summary_has_a_displayable_summary_line() {
     let summary =
         canonical_epoch_equatorial_evidence_summary().expect("equatorial summary should exist");
-    let rendered = canonical_epoch_equatorial_evidence_summary_for_report();
-    assert_eq!(
-        rendered,
-        format_canonical_equatorial_evidence_summary(&summary)
-    );
     assert_eq!(summary.summary_line(), summary.to_string());
-    assert_eq!(rendered, summary.summary_line());
-    assert!(rendered.contains("p95 Δra="));
-    assert!(rendered.contains("p95 Δdec="));
-    assert!(rendered.contains("p95 Δdist="));
 }
 
 #[test]
@@ -1689,22 +1517,6 @@ fn canonical_equatorial_evidence_summary_validation_rejects_peak_body_drift() {
     assert_eq!(
         error.to_string(),
         "the VSOP87 canonical J2000 equatorial companion evidence summary field `max_distance_delta_body` points at body `Pluto` which is absent from the sample body list"
-    );
-}
-
-#[test]
-fn canonical_evidence_report_lists_the_measured_bodies() {
-    let rendered = canonical_epoch_evidence_summary_for_report();
-    assert!(
-        rendered.contains("bodies: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune")
-    );
-}
-
-#[test]
-fn canonical_equatorial_evidence_report_lists_the_measured_bodies() {
-    let rendered = canonical_epoch_equatorial_evidence_summary_for_report();
-    assert!(
-        rendered.contains("bodies: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune")
     );
 }
 

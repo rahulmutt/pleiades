@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased (0.4.0)
 
+- **Report-surface relocation, slice B:** report prose for house-catalog
+  validation, ayanamsa provenance, VSOP87 source-docs (batch parity,
+  body-class evidence), ELP lunar-theory (source-family, equatorial/lunar
+  reference evidence), and compression artifact coverage summaries moved
+  from `pleiades-houses`, `pleiades-ayanamsa`, `pleiades-vsop87`,
+  `pleiades-elp`, and `pleiades-compression` into `pleiades-validate`'s
+  `posture` modules. `pleiades-elp`'s backend metadata now rebuilds its
+  lunar-theory source-family summary line from the retained
+  `LunarTheorySourceFamilySummary` struct methods instead of calling the
+  (now-relocated) report helper, decoupling the backend from the report
+  surface (coupling 3). Pure relocation: no output or behavior change
+  (byte-identical, verified by release-smoke checksum parity), no version
+  bump — compatibility profile stays 0.7.13, API-stability profile stays
+  0.3.0. Slices C (`pleiades-data`) and D (`pleiades-jpl`) remain before the
+  workspace 0.4.0 release.
+
 - **Breaking (report-surface relocation, slice A):** `pleiades-core` no longer
   exports `*_summary_for_report` wrapper functions or re-exports
   `pleiades-backend` policy summaries — call the `CompatibilityProfile` /

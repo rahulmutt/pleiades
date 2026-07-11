@@ -342,7 +342,7 @@ pub(crate) fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str(&format_vsop87_source_audit_summary());
     text.push('\n');
-    text.push_str(&generated_binary_audit_summary_for_report());
+    text.push_str(&crate::posture::vsop87::audit::generated_binary_audit_summary_for_report());
     text.push('\n');
     text.push_str(&format_vsop87_canonical_evidence_summary());
     text.push('\n');
@@ -366,36 +366,47 @@ pub(crate) fn render_backend_matrix_summary_text() -> String {
     text.push('\n');
     text.push_str(&format_vsop87_body_evidence_summary());
     text.push('\n');
-    text.push_str(&lunar_theory_catalog_summary_for_report());
+    text.push_str(&crate::posture::elp::catalog::lunar_theory_catalog_summary_for_report());
     text.push('\n');
     text.push_str(&validated_lunar_theory_catalog_validation_summary_for_report());
     text.push('\n');
-    text.push_str(&lunar_theory_source_summary_for_report());
+    text.push_str(&crate::posture::elp::lib_summaries::lunar_theory_source_summary_for_report());
     text.push('\n');
-    text.push_str(&lunar_theory_summary_for_report());
+    text.push_str(&crate::posture::elp::lib_summaries::lunar_theory_summary_for_report());
     text.push('\n');
-    text.push_str(&lunar_reference_evidence_summary_for_report());
+    text.push_str(&crate::posture::elp::evidence::lunar_reference_evidence_summary_for_report());
     text.push('\n');
-    text.push_str(&lunar_reference_batch_parity_summary_for_report());
+    text.push_str(
+        &crate::posture::elp::evidence::lunar_reference_batch_parity_summary_for_report(),
+    );
     text.push('\n');
-    text.push_str(&lunar_reference_evidence_envelope_for_report());
+    text.push_str(&crate::posture::elp::evidence::lunar_reference_evidence_envelope_for_report());
     text.push('\n');
     text.push_str("Lunar equatorial reference\n");
-    text.push_str(&lunar_equatorial_reference_evidence_summary_for_report());
+    text.push_str(
+        &crate::posture::elp::evidence::lunar_equatorial_reference_evidence_summary_for_report(),
+    );
     text.push('\n');
     text.push_str("Lunar equatorial reference batch parity\n");
-    text.push_str(&lunar_equatorial_reference_batch_parity_summary_for_report());
+    text.push_str(
+        &crate::posture::elp::evidence::lunar_equatorial_reference_batch_parity_summary_for_report(
+        ),
+    );
     text.push('\n');
-    text.push_str(&lunar_equatorial_reference_evidence_envelope_for_report());
+    text.push_str(
+        &crate::posture::elp::evidence::lunar_equatorial_reference_evidence_envelope_for_report(),
+    );
     text.push('\n');
     text.push_str("Lunar source windows: ");
-    text.push_str(&lunar_source_window_summary_for_report());
+    text.push_str(&crate::posture::elp::evidence::lunar_source_window_summary_for_report());
     text.push('\n');
     text.push_str("Lunar high-curvature continuity evidence\n");
-    text.push_str(&lunar_high_curvature_continuity_evidence_for_report());
+    text.push_str(
+        &crate::posture::elp::evidence::lunar_high_curvature_continuity_evidence_for_report(),
+    );
     text.push('\n');
     text.push_str("Lunar high-curvature equatorial continuity evidence\n");
-    text.push_str(&lunar_high_curvature_equatorial_continuity_evidence_for_report());
+    text.push_str(&crate::posture::elp::evidence::lunar_high_curvature_equatorial_continuity_evidence_for_report());
     text.push('\n');
     text.push_str("Distinct bodies covered: ");
     text.push_str(&bodies.len().to_string());

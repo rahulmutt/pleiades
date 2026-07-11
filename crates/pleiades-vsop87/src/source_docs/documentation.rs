@@ -42,8 +42,71 @@ pub struct Vsop87SourceDocumentationSummary {
 
 impl Vsop87SourceDocumentationSummary {
     /// Returns a compact summary line used in release-facing reporting.
+    ///
+    /// This mirrors the release-facing free-function renderer relocated to
+    /// `pleiades-validate`'s posture module (report-surface relocation
+    /// program, Slice B); the rendering logic stays here too because this
+    /// inherent method (and `Display`) must keep working without a
+    /// dependency on `pleiades-validate`.
     pub fn summary_line(&self) -> String {
-        format_source_documentation_summary(self)
+        let source_backed_bodies = if self.source_backed_bodies.is_empty() {
+            "none".to_string()
+        } else {
+            format_celestial_bodies(&self.source_backed_bodies)
+        };
+        let fallback_bodies = if self.fallback_bodies.is_empty() {
+            "none".to_string()
+        } else {
+            format_celestial_bodies(&self.fallback_bodies)
+        };
+        let source_files = if self.source_files.is_empty() {
+            "none".to_string()
+        } else {
+            self.source_files.join(", ")
+        };
+        let date_ranges = if self.date_ranges.is_empty() {
+            "none".to_string()
+        } else {
+            self.date_ranges.join("; ")
+        };
+        let generated_binary_bodies = if self.generated_binary_bodies.is_empty() {
+            "none".to_string()
+        } else {
+            format_celestial_bodies(&self.generated_binary_bodies)
+        };
+        let vendored_full_file_bodies = if self.vendored_full_file_bodies.is_empty() {
+            "none".to_string()
+        } else {
+            format_celestial_bodies(&self.vendored_full_file_bodies)
+        };
+        let truncated_bodies = if self.truncated_bodies.is_empty() {
+            "none".to_string()
+        } else {
+            format_celestial_bodies(&self.truncated_bodies)
+        };
+        let fallback_profile_label = if self.fallback_profile_count == 1 {
+            "approximate fallback mean-element body profile"
+        } else {
+            "approximate fallback mean-element body profiles"
+        };
+
+        format!(
+            "VSOP87 source documentation: {} source specs, {} source-backed body profiles, {} {} ({}); source-backed bodies: {}; source files: {}; source-backed breakdown: {} generated binary bodies ({}), {} vendored full-file bodies ({}), {} truncated slice bodies ({}); date ranges: {}",
+            self.source_specification_count,
+            self.source_backed_profile_count,
+            self.fallback_profile_count,
+            fallback_profile_label,
+            fallback_bodies,
+            source_backed_bodies,
+            source_files,
+            self.generated_binary_profile_count,
+            generated_binary_bodies,
+            self.vendored_full_file_profile_count,
+            vendored_full_file_bodies,
+            self.truncated_profile_count,
+            truncated_bodies,
+            date_ranges,
+        )
     }
 
     /// Returns the rendered summary line after validating the cached catalog snapshot.
@@ -353,8 +416,45 @@ pub struct Vsop87SourceDocumentationHealthSummary {
 
 impl Vsop87SourceDocumentationHealthSummary {
     /// Returns a compact summary line used in release-facing reporting.
+    ///
+    /// This mirrors the release-facing free-function renderer relocated to
+    /// `pleiades-validate`'s posture module (report-surface relocation
+    /// program, Slice B); the rendering logic stays here too because this
+    /// inherent method (and `Display`) must keep working without a
+    /// dependency on `pleiades-validate`.
     pub fn summary_line(&self) -> String {
-        format_source_documentation_health_summary(self)
+        let issues = if self.issues.is_empty() {
+            String::new()
+        } else {
+            format!("; issues: {}", format_issue_labels(&self.issues))
+        };
+
+        format!(
+            "VSOP87 source documentation health: {} ({} source specs, {} source files, {} source-backed profiles, {} body profiles; {} generated binary profiles ({}), {} vendored full-file profiles ({}), {} truncated profiles ({}), {} approximate fallback profiles ({}); source files: {}; source-backed order: {}; source-backed partition order: {}; fallback order: {}; documented fields: {}){}",
+            if self.consistent { "ok" } else { "needs attention" },
+            self.source_specification_count,
+            self.source_file_count,
+            self.source_backed_profile_count,
+            self.body_profile_count,
+            self.generated_binary_profile_count,
+            format_bodies(&self.generated_binary_bodies),
+            self.vendored_full_file_profile_count,
+            format_bodies(&self.vendored_full_file_bodies),
+            self.truncated_profile_count,
+            format_bodies(&self.truncated_bodies),
+            self.fallback_profile_count,
+            format_bodies(&self.fallback_bodies),
+            format_source_files(&self.source_files),
+            format_bodies(&self.source_backed_bodies),
+            format_bodies(&self.source_backed_partition_bodies),
+            format_bodies(&self.fallback_bodies),
+            if self.documentation_consistent {
+                "variant, coordinate family, frame, units, reduction, transform note, truncation policy, and date range"
+            } else {
+                "needs attention"
+            },
+            issues,
+        )
     }
 
     /// Validates that the summary represents a healthy, internally consistent
@@ -478,77 +578,6 @@ pub(crate) fn format_celestial_bodies(bodies: &[CelestialBody]) -> String {
         .join(", ")
 }
 
-/// Formats the current VSOP87 source-documentation catalog for reporting.
-pub fn format_source_documentation_summary(summary: &Vsop87SourceDocumentationSummary) -> String {
-    let source_backed_bodies = if summary.source_backed_bodies.is_empty() {
-        "none".to_string()
-    } else {
-        format_celestial_bodies(&summary.source_backed_bodies)
-    };
-    let fallback_bodies = if summary.fallback_bodies.is_empty() {
-        "none".to_string()
-    } else {
-        format_celestial_bodies(&summary.fallback_bodies)
-    };
-    let source_files = if summary.source_files.is_empty() {
-        "none".to_string()
-    } else {
-        summary.source_files.join(", ")
-    };
-    let date_ranges = if summary.date_ranges.is_empty() {
-        "none".to_string()
-    } else {
-        summary.date_ranges.join("; ")
-    };
-    let generated_binary_bodies = if summary.generated_binary_bodies.is_empty() {
-        "none".to_string()
-    } else {
-        format_celestial_bodies(&summary.generated_binary_bodies)
-    };
-    let vendored_full_file_bodies = if summary.vendored_full_file_bodies.is_empty() {
-        "none".to_string()
-    } else {
-        format_celestial_bodies(&summary.vendored_full_file_bodies)
-    };
-    let truncated_bodies = if summary.truncated_bodies.is_empty() {
-        "none".to_string()
-    } else {
-        format_celestial_bodies(&summary.truncated_bodies)
-    };
-    let fallback_profile_label = if summary.fallback_profile_count == 1 {
-        "approximate fallback mean-element body profile"
-    } else {
-        "approximate fallback mean-element body profiles"
-    };
-
-    format!(
-        "VSOP87 source documentation: {} source specs, {} source-backed body profiles, {} {} ({}); source-backed bodies: {}; source files: {}; source-backed breakdown: {} generated binary bodies ({}), {} vendored full-file bodies ({}), {} truncated slice bodies ({}); date ranges: {}",
-        summary.source_specification_count,
-        summary.source_backed_profile_count,
-        summary.fallback_profile_count,
-        fallback_profile_label,
-        fallback_bodies,
-        source_backed_bodies,
-        source_files,
-        summary.generated_binary_profile_count,
-        generated_binary_bodies,
-        summary.vendored_full_file_profile_count,
-        vendored_full_file_bodies,
-        summary.truncated_profile_count,
-        truncated_bodies,
-        date_ranges,
-    )
-}
-
-/// Returns the release-facing summary string for the current VSOP87 source-documentation catalog.
-///
-/// The compact provenance line is rendered only after the catalog-health gate
-/// confirms that the source/file/body partitioning still matches the current
-/// canonical VSOP87 inputs.
-pub fn source_documentation_summary_for_report() -> String {
-    format_validated_source_documentation_summary_for_report(&source_documentation_summary())
-}
-
 /// Returns a consistency check for the current VSOP87 source-documentation catalog.
 fn source_documentation_fields_are_consistent(source_specs: &[Vsop87SourceSpecification]) -> bool {
     source_specs.iter().all(|spec| spec.validate().is_ok())
@@ -595,44 +624,6 @@ pub fn source_documentation_health_summary() -> Vsop87SourceDocumentationHealthS
         fallback_profile_count: summary.fallback_profile_count,
         fallback_bodies: summary.fallback_bodies,
     }
-}
-
-/// Formats the current VSOP87 source-documentation health check for reporting.
-pub fn format_source_documentation_health_summary(
-    summary: &Vsop87SourceDocumentationHealthSummary,
-) -> String {
-    let issues = if summary.issues.is_empty() {
-        String::new()
-    } else {
-        format!("; issues: {}", format_issue_labels(&summary.issues))
-    };
-
-    format!(
-        "VSOP87 source documentation health: {} ({} source specs, {} source files, {} source-backed profiles, {} body profiles; {} generated binary profiles ({}), {} vendored full-file profiles ({}), {} truncated profiles ({}), {} approximate fallback profiles ({}); source files: {}; source-backed order: {}; source-backed partition order: {}; fallback order: {}; documented fields: {}){}",
-        if summary.consistent { "ok" } else { "needs attention" },
-        summary.source_specification_count,
-        summary.source_file_count,
-        summary.source_backed_profile_count,
-        summary.body_profile_count,
-        summary.generated_binary_profile_count,
-        format_bodies(&summary.generated_binary_bodies),
-        summary.vendored_full_file_profile_count,
-        format_bodies(&summary.vendored_full_file_bodies),
-        summary.truncated_profile_count,
-        format_bodies(&summary.truncated_bodies),
-        summary.fallback_profile_count,
-        format_bodies(&summary.fallback_bodies),
-        format_source_files(&summary.source_files),
-        format_bodies(&summary.source_backed_bodies),
-        format_bodies(&summary.source_backed_partition_bodies),
-        format_bodies(&summary.fallback_bodies),
-        if summary.documentation_consistent {
-            "variant, coordinate family, frame, units, reduction, transform note, truncation policy, and date range"
-        } else {
-            "needs attention"
-        },
-        issues,
-    )
 }
 
 /// Returns the source-backed partition order used by the VSOP87 source
@@ -752,29 +743,4 @@ fn format_source_files(source_files: &[&'static str]) -> String {
     } else {
         source_files.join(", ")
     }
-}
-
-pub(crate) fn format_validated_source_documentation_health_summary_for_report(
-    summary: &Vsop87SourceDocumentationHealthSummary,
-) -> String {
-    match summary.validate() {
-        Ok(()) => summary.summary_line(),
-        Err(error) => format!("VSOP87 source documentation health: unavailable ({error})"),
-    }
-}
-
-pub(crate) fn format_validated_source_documentation_summary_for_report(
-    summary: &Vsop87SourceDocumentationSummary,
-) -> String {
-    match summary.validated_summary_line() {
-        Ok(summary_line) => summary_line,
-        Err(error) => format!("VSOP87 source documentation: unavailable ({error})"),
-    }
-}
-
-/// Returns the release-facing source-documentation health string.
-pub fn source_documentation_health_summary_for_report() -> String {
-    format_validated_source_documentation_health_summary_for_report(
-        &source_documentation_health_summary(),
-    )
 }

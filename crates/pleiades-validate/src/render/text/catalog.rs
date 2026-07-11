@@ -384,7 +384,7 @@ pub(crate) fn format_ayanamsa_audit_for_report() -> String {
 }
 
 pub(crate) fn format_house_code_aliases_for_report() -> String {
-    match pleiades_houses::validated_house_system_code_aliases_summary_line() {
+    match crate::posture::houses::validated_house_system_code_aliases_summary_line() {
         Ok(summary) => summary,
         Err(error) => format!("house-code aliases unavailable ({error})"),
     }

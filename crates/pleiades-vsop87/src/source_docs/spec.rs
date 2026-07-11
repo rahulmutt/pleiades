@@ -281,15 +281,6 @@ pub fn validate_source_specifications(
     Ok(())
 }
 
-/// Returns the release-facing source-specification catalog string.
-pub fn source_specifications_for_report() -> String {
-    let specs = source_specifications();
-    match validate_source_specifications(&specs) {
-        Ok(()) => format_source_specifications(&specs),
-        Err(error) => format!("VSOP87 source specifications: unavailable ({error})"),
-    }
-}
-
 /// Returns the structured frame-treatment summary for VSOP87-backed results.
 pub const fn frame_treatment_summary_details() -> FrameTreatmentSummary {
     FrameTreatmentSummary::new(
@@ -300,19 +291,6 @@ pub const fn frame_treatment_summary_details() -> FrameTreatmentSummary {
 /// Returns the current frame-treatment summary for VSOP87-backed results.
 pub fn frame_treatment_summary() -> &'static str {
     frame_treatment_summary_details().summary_line()
-}
-
-/// Returns the release-facing frame-treatment summary for VSOP87-backed results.
-///
-/// The backend-owned note is validated before the compact report line is
-/// rendered, so a drifted summary becomes an unavailable report rather than a
-/// stale cached string.
-pub fn frame_treatment_summary_for_report() -> String {
-    let summary = frame_treatment_summary_details();
-    match summary.validated_summary_line() {
-        Ok(summary_line) => summary_line.to_string(),
-        Err(error) => format!("VSOP87 frame treatment unavailable ({error})"),
-    }
 }
 
 /// Structured request policy for the current VSOP87 backend.
@@ -415,13 +393,4 @@ const VSOP87_REQUEST_POLICY: Vsop87RequestPolicy = Vsop87RequestPolicy {
 /// Returns the current VSOP87 request policy.
 pub const fn vsop87_request_policy() -> Vsop87RequestPolicy {
     VSOP87_REQUEST_POLICY
-}
-
-/// Returns the release-facing VSOP87 request policy summary string.
-pub fn vsop87_request_policy_summary_for_report() -> String {
-    let policy = vsop87_request_policy();
-    match policy.validate() {
-        Ok(()) => policy.to_string(),
-        Err(error) => format!("VSOP87 request policy: unavailable ({error})"),
-    }
 }

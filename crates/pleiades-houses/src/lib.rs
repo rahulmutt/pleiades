@@ -76,13 +76,11 @@ pub mod thresholds;
 // Re-export the public surface from the catalog module.
 pub use catalog::{
     baseline_house_systems, built_in_house_systems, descriptor, house_catalog_validation_summary,
-    house_formula_families, house_formula_families_summary_line, house_system_code_aliases,
-    house_system_code_aliases_summary_line, latitude_sensitive_house_failure_modes,
-    latitude_sensitive_house_failure_modes_summary_line, release_house_systems,
-    resolve_house_system, validate_house_catalog, validate_house_system_code_aliases,
-    validated_house_system_code_aliases_summary_line, HouseCatalogValidationError,
-    HouseCatalogValidationSummary, HouseFormulaFamily, HouseSystemCodeAlias,
-    HouseSystemCodeAliasValidationError, HouseSystemDescriptor,
+    house_formula_families, house_system_code_aliases, latitude_sensitive_house_failure_modes,
+    release_house_systems, resolve_house_system, validate_house_catalog,
+    validate_house_system_code_aliases, HouseCatalogValidationError, HouseCatalogValidationSummary,
+    HouseFormulaFamily, HouseSystemCodeAlias, HouseSystemCodeAliasValidationError,
+    HouseSystemDescriptor,
 };
 
 // Re-export the public surface from the error module.

@@ -106,12 +106,6 @@ pub fn provenance_summary() -> AyanamsaProvenanceSummary {
     AyanamsaProvenanceSummary::new()
 }
 
-/// Returns the release-facing provenance payload after validation.
-pub fn validated_provenance_summary_for_report(
-) -> Result<String, crate::model::AyanamsaProvenanceSummaryValidationError> {
-    provenance_summary().validated_summary_line()
-}
-
 pub(crate) const CUSTOM_DEFINITION_ONLY_AYANAMSAS: &[&str] = &[
     "Babylonian (House)",
     "Babylonian (Sissy)",

@@ -1,8 +1,8 @@
 use std::{env, fs, path::PathBuf, process::ExitCode};
 
 use pleiades_vsop87::{
-    checked_in_generated_vsop87b_table_bytes_for_source_file, format_source_manifest_summary,
-    source_manifest, source_manifest_summary, try_generated_vsop87b_table_bytes_for_source_file,
+    checked_in_generated_vsop87b_table_bytes_for_source_file, source_manifest,
+    source_manifest_summary, try_generated_vsop87b_table_bytes_for_source_file,
 };
 
 fn main() -> ExitCode {
@@ -29,7 +29,7 @@ fn write_regenerated_tables(output_dir: PathBuf) -> Result<(), String> {
     let manifest = source_manifest();
     let summary = source_manifest_summary(&manifest);
     summary.validate().map_err(|error| error.to_string())?;
-    println!("{}", format_source_manifest_summary(&summary));
+    println!("{}", summary.summary_line());
 
     for (body, source_file) in manifest {
         let bytes = try_generated_vsop87b_table_bytes_for_source_file(source_file)
@@ -53,7 +53,7 @@ fn check_regenerated_tables() -> Result<(), String> {
     let manifest = source_manifest();
     let summary = source_manifest_summary(&manifest);
     summary.validate().map_err(|error| error.to_string())?;
-    println!("{}", format_source_manifest_summary(&summary));
+    println!("{}", summary.summary_line());
     let manifest_len = manifest.len();
     let supported_source_files = manifest
         .iter()
@@ -143,8 +143,7 @@ fn usage() -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::{
-        check_regenerated_tables, format_source_manifest_summary, parse_command, source_manifest,
-        source_manifest_summary, Command,
+        check_regenerated_tables, parse_command, source_manifest, source_manifest_summary, Command,
     };
     use pleiades_vsop87::validate_source_manifest;
 
@@ -226,7 +225,7 @@ mod tests {
         summary
             .validate()
             .expect("source manifest summary should match the catalog");
-        let rendered = format_source_manifest_summary(&summary);
+        let rendered = summary.summary_line();
         assert_eq!(rendered, summary.to_string());
         assert_eq!(
             rendered,

@@ -65,25 +65,18 @@ pub use specification::{
 
 // catalog re-exports
 pub use catalog::{
-    current_lunar_theory_catalog_entry, format_lunar_theory_capability_summary,
-    format_lunar_theory_catalog_summary, format_lunar_theory_catalog_validation_summary,
-    format_lunar_theory_limitations_summary, format_lunar_theory_source_selection,
-    lunar_theory_capability_summary, lunar_theory_capability_summary_for_report,
-    lunar_theory_catalog, lunar_theory_catalog_entry_for_alias,
-    lunar_theory_catalog_entry_for_current_selection, lunar_theory_catalog_entry_for_family_label,
-    lunar_theory_catalog_entry_for_key, lunar_theory_catalog_entry_for_label,
-    lunar_theory_catalog_entry_for_model_name, lunar_theory_catalog_entry_for_selection,
-    lunar_theory_catalog_entry_for_source_family, lunar_theory_catalog_entry_for_source_identifier,
-    lunar_theory_catalog_summary, lunar_theory_catalog_summary_for_report,
-    lunar_theory_catalog_validation_summary, lunar_theory_catalog_validation_summary_for_report,
-    lunar_theory_limitations_summary, lunar_theory_limitations_summary_for_report,
-    lunar_theory_source_family_summary_for_report, lunar_theory_source_selection_summary,
-    lunar_theory_source_selection_summary_for_report, lunar_theory_supported_bodies,
-    lunar_theory_unsupported_bodies, resolve_lunar_theory, resolve_lunar_theory_by_alias,
-    resolve_lunar_theory_by_family, resolve_lunar_theory_by_key, resolve_lunar_theory_by_selection,
-    validate_lunar_theory_catalog, validated_lunar_theory_source_selection_summary_for_report,
-    LunarTheoryCapabilitySummary, LunarTheoryCapabilitySummaryValidationError,
-    LunarTheoryCatalogEntry, LunarTheoryCatalogSummary, LunarTheoryCatalogSummaryValidationError,
+    current_lunar_theory_catalog_entry, lunar_theory_capability_summary, lunar_theory_catalog,
+    lunar_theory_catalog_entry_for_alias, lunar_theory_catalog_entry_for_current_selection,
+    lunar_theory_catalog_entry_for_family_label, lunar_theory_catalog_entry_for_key,
+    lunar_theory_catalog_entry_for_label, lunar_theory_catalog_entry_for_model_name,
+    lunar_theory_catalog_entry_for_selection, lunar_theory_catalog_entry_for_source_family,
+    lunar_theory_catalog_entry_for_source_identifier, lunar_theory_catalog_summary,
+    lunar_theory_catalog_validation_summary, lunar_theory_limitations_summary,
+    lunar_theory_supported_bodies, lunar_theory_unsupported_bodies, resolve_lunar_theory,
+    resolve_lunar_theory_by_alias, resolve_lunar_theory_by_family, resolve_lunar_theory_by_key,
+    resolve_lunar_theory_by_selection, validate_lunar_theory_catalog, LunarTheoryCapabilitySummary,
+    LunarTheoryCapabilitySummaryValidationError, LunarTheoryCatalogEntry,
+    LunarTheoryCatalogSummary, LunarTheoryCatalogSummaryValidationError,
     LunarTheoryCatalogValidationError, LunarTheoryCatalogValidationSummary,
     LunarTheoryLimitationsSummary, LunarTheoryLimitationsSummaryValidationError,
 };
@@ -95,17 +88,7 @@ pub(crate) use pleiades_backend::{EphemerisBackend, EphemerisErrorKind, Ephemeri
 pub(crate) use pleiades_types::{Angle, EquatorialCoordinates, Latitude};
 
 #[cfg(test)]
-pub(crate) use evidence::{
-    lunar_high_curvature_continuity_envelope, lunar_high_curvature_equatorial_continuity_envelope,
-    LunarEvidenceEnvelopeValidationError, LunarHighCurvatureEvidenceValidationError,
-};
-
-#[cfg(test)]
-pub(crate) use catalog::format_validated_lunar_theory_limitations_summary_for_report;
-#[cfg(test)]
-pub(crate) use catalog::{
-    format_validated_lunar_theory_catalog_summary_for_report, validate_lunar_theory_catalog_entries,
-};
+pub(crate) use catalog::validate_lunar_theory_catalog_entries;
 
 #[cfg(test)]
 pub(crate) use specification::{LUNAR_HIGH_CURVATURE_WINDOW_EPOCHS, LUNAR_THEORY_SPECIFICATION};
@@ -115,12 +98,7 @@ pub(crate) use series::signed_longitude_delta_degrees;
 
 // evidence re-exports
 pub use evidence::{
-    format_lunar_apparent_comparison_summary,
-    format_lunar_equatorial_reference_batch_parity_summary,
-    format_lunar_equatorial_reference_evidence_envelope,
-    format_lunar_equatorial_reference_evidence_summary,
-    format_lunar_reference_batch_parity_summary, format_lunar_reference_evidence_envelope,
-    format_lunar_reference_evidence_summary, format_lunar_source_window_summary,
+    format_lunar_equatorial_reference_evidence_envelope, format_lunar_reference_evidence_envelope,
     lunar_apparent_comparison_batch_parity_request_corpus,
     lunar_apparent_comparison_batch_parity_requests,
     lunar_apparent_comparison_equatorial_batch_parity_request_corpus,
@@ -128,38 +106,32 @@ pub use evidence::{
     lunar_apparent_comparison_equatorial_request_corpus,
     lunar_apparent_comparison_equatorial_requests, lunar_apparent_comparison_evidence,
     lunar_apparent_comparison_request_corpus, lunar_apparent_comparison_requests,
-    lunar_apparent_comparison_summary, lunar_apparent_comparison_summary_for_report,
-    lunar_equatorial_reference_batch_parity_request_corpus,
+    lunar_apparent_comparison_summary, lunar_equatorial_reference_batch_parity_request_corpus,
     lunar_equatorial_reference_batch_parity_requests,
     lunar_equatorial_reference_batch_parity_summary,
-    lunar_equatorial_reference_batch_parity_summary_for_report,
     lunar_equatorial_reference_batch_request_corpus, lunar_equatorial_reference_batch_requests,
     lunar_equatorial_reference_evidence, lunar_equatorial_reference_evidence_envelope,
-    lunar_equatorial_reference_evidence_envelope_for_report,
-    lunar_equatorial_reference_evidence_summary,
-    lunar_equatorial_reference_evidence_summary_for_report,
-    lunar_equatorial_reference_request_corpus,
+    lunar_equatorial_reference_evidence_summary, lunar_equatorial_reference_request_corpus,
     lunar_high_curvature_continuity_batch_parity_request_corpus,
     lunar_high_curvature_continuity_batch_parity_requests,
-    lunar_high_curvature_continuity_evidence_for_report,
-    lunar_high_curvature_continuity_request_corpus, lunar_high_curvature_continuity_requests,
+    lunar_high_curvature_continuity_envelope, lunar_high_curvature_continuity_request_corpus,
+    lunar_high_curvature_continuity_requests,
     lunar_high_curvature_equatorial_continuity_batch_parity_request_corpus,
     lunar_high_curvature_equatorial_continuity_batch_parity_requests,
-    lunar_high_curvature_equatorial_continuity_evidence_for_report,
+    lunar_high_curvature_equatorial_continuity_envelope,
     lunar_high_curvature_equatorial_continuity_request_corpus,
     lunar_high_curvature_equatorial_continuity_requests,
     lunar_high_curvature_equatorial_request_corpus, lunar_high_curvature_request_corpus,
     lunar_reference_batch_parity_request_corpus, lunar_reference_batch_parity_requests,
-    lunar_reference_batch_parity_summary, lunar_reference_batch_parity_summary_for_report,
-    lunar_reference_batch_request_corpus, lunar_reference_batch_requests, lunar_reference_evidence,
-    lunar_reference_evidence_envelope, lunar_reference_evidence_envelope_for_report,
-    lunar_reference_evidence_summary, lunar_reference_evidence_summary_for_report,
-    lunar_reference_request_corpus, lunar_source_window_request_corpus,
-    lunar_source_window_summary, lunar_source_window_summary_for_report,
-    validated_lunar_source_window_summary_for_report, LunarApparentComparisonSample,
+    lunar_reference_batch_parity_summary, lunar_reference_batch_request_corpus,
+    lunar_reference_batch_requests, lunar_reference_evidence, lunar_reference_evidence_envelope,
+    lunar_reference_evidence_summary, lunar_reference_request_corpus,
+    lunar_source_window_request_corpus, lunar_source_window_summary, LunarApparentComparisonSample,
     LunarApparentComparisonSummary, LunarEquatorialReferenceBatchParitySummary,
     LunarEquatorialReferenceBatchParitySummaryValidationError,
     LunarEquatorialReferenceEvidenceEnvelope, LunarEquatorialReferenceEvidenceSummary,
+    LunarEvidenceEnvelopeValidationError, LunarHighCurvatureContinuityEnvelope,
+    LunarHighCurvatureEquatorialContinuityEnvelope, LunarHighCurvatureEvidenceValidationError,
     LunarReferenceBatchParitySummary, LunarReferenceBatchParitySummaryValidationError,
     LunarReferenceEvidenceEnvelope, LunarReferenceEvidenceSummary, LunarReferenceSample,
     LunarSourceWindowSummary, LunarSourceWindowSummaryValidationError,
@@ -277,77 +249,6 @@ pub fn format_lunar_theory_specification(theory: &LunarTheorySpecification) -> S
     )
 }
 
-fn format_validated_lunar_theory_specification_for_report(
-    theory: &LunarTheorySpecification,
-) -> String {
-    match theory.validate() {
-        Ok(()) => theory.summary_line(),
-        Err(error) => format!("ELP lunar theory specification: unavailable ({error})"),
-    }
-}
-
-/// Returns the release-facing one-line summary for the current lunar-theory selection.
-///
-/// The validation helper checks the backend-owned specification first so any
-/// future drift in the rendered provenance fields shows up as an unavailable
-/// report line instead of a silently stale summary.
-pub fn lunar_theory_summary_for_report() -> String {
-    format_validated_lunar_theory_specification_for_report(&lunar_theory_specification())
-}
-
-/// Returns the raw one-line summary for the current lunar-theory selection.
-///
-/// Validation and release tooling should prefer
-/// [`lunar_theory_summary_for_report()`] so the backend-owned specification is
-/// validated before the compact provenance line is rendered.
-pub fn lunar_theory_summary() -> String {
-    lunar_theory_specification().summary_line()
-}
-
-/// Formats the compact lunar source-selection summary for release-facing reporting.
-pub fn format_lunar_theory_source_summary(
-    summary: &crate::source::LunarTheorySourceSummary,
-) -> String {
-    summary.summary_line()
-}
-
-fn format_validated_lunar_theory_source_summary_for_report(
-    summary: &crate::source::LunarTheorySourceSummary,
-) -> String {
-    match summary.validated_summary_line() {
-        Ok(summary_line) => summary_line,
-        Err(error) => format!("lunar source selection: unavailable ({error})"),
-    }
-}
-
-/// Returns the release-facing one-line summary for the current lunar source selection.
-///
-/// The report helper validates the backend-owned source summary first so any
-/// future drift in the rendered provenance fields shows up as an unavailable
-/// report line instead of a silently stale summary.
-pub fn lunar_theory_source_summary_for_report() -> String {
-    format_validated_lunar_theory_source_summary_for_report(&lunar_theory_source_summary())
-}
-
-fn format_validated_lunar_theory_request_policy_for_report(
-    policy: &crate::request_policy::LunarTheoryRequestPolicy,
-) -> String {
-    match policy.validate() {
-        Ok(()) => policy.summary_line(),
-        Err(error) => format!("lunar theory request policy: unavailable ({error})"),
-    }
-}
-
-/// Returns the current lunar-theory request policy summary.
-///
-/// The report helper validates the backend-owned request-policy summary first so
-/// any future drift in the supported frames, time scales, zodiac modes,
-/// apparentness, or topocentric-observer posture shows up as an unavailable
-/// report line instead of a silently stale summary.
-pub fn lunar_theory_request_policy_summary() -> String {
-    format_validated_lunar_theory_request_policy_for_report(&lunar_theory_request_policy())
-}
-
 /// Returns the current lunar-theory frame-treatment summary.
 pub fn lunar_theory_frame_treatment_summary() -> &'static str {
     lunar_theory_frame_treatment_summary_details().summary_line()
@@ -356,19 +257,6 @@ pub fn lunar_theory_frame_treatment_summary() -> &'static str {
 /// Returns the structured lunar-theory frame-treatment summary.
 pub fn lunar_theory_frame_treatment_summary_details() -> pleiades_backend::FrameTreatmentSummary {
     pleiades_backend::FrameTreatmentSummary::new(lunar_theory_specification().frame_note)
-}
-
-/// Returns the current lunar-theory frame-treatment summary for reports.
-///
-/// The report helper validates the backend-owned frame-treatment summary first
-/// so any future drift in the mean-obliquity wording shows up as an unavailable
-/// report line instead of a silently stale summary.
-pub fn lunar_theory_frame_treatment_summary_for_report() -> String {
-    let summary = lunar_theory_frame_treatment_summary_details();
-    match summary.validated_summary_line() {
-        Ok(summary_line) => summary_line.to_string(),
-        Err(error) => format!("ELP frame treatment unavailable ({error})"),
-    }
 }
 
 #[cfg(test)]

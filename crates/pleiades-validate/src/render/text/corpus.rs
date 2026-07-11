@@ -400,7 +400,7 @@ pub(crate) fn source_corpus_summary_details() -> Option<SourceCorpusSummary> {
     .ok()?;
     let release_grade_body_claims = validated_release_body_claims_summary_line_for_report().ok()?;
     let lunar_source_window = required_summary_payload(
-        lunar_source_window_summary_for_report(),
+        crate::posture::elp::evidence::lunar_source_window_summary_for_report(),
         "lunar source windows: ",
         "lunar source window",
     )

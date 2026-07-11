@@ -1394,8 +1394,7 @@ fn display_lists_release_sections() {
         .iter()
         .filter(|entry| !entry.aliases.is_empty())
         .count();
-    let ayanamsa_provenance = pleiades_ayanamsa::validated_provenance_summary_for_report()
-        .expect("ayanamsa provenance summary should validate");
+    let ayanamsa_provenance = super::ayanamsa_provenance_summary_text();
     assert_eq!(
         profile.ayanamsa_provenance_summary_line(),
         ayanamsa_provenance
@@ -1751,13 +1750,13 @@ fn unsupported_modes_line_is_owned_by_the_compatibility_posture() {
 
 #[test]
 fn rebuilt_ayanamsa_provenance_line_matches_ayanamsa_crate_rendering() {
-    // Guards the slice-A decoupling: core's rebuilt derivation must be
-    // byte-identical to the pleiades-ayanamsa renderer it replaced.
-    // (Slice B deletes the ayanamsa renderer; this test then converts to a
-    // pinned literal — see the slice-B plan.)
+    // Guards the slice-A decoupling: core's rebuilt derivation must stay
+    // byte-identical to the rendering the retired
+    // `pleiades_ayanamsa::validated_provenance_summary_for_report` used to
+    // produce (Slice B deleted that renderer; this test now pins the literal
+    // it once returned instead of calling it).
     assert_eq!(
         super::ayanamsa_provenance_summary_text(),
-        pleiades_ayanamsa::validated_provenance_summary_for_report()
-            .expect("ayanamsa provenance summary should validate")
+        "representative provenance examples: True Citra — True Citra sidereal mode with the published zero point used by Swiss Ephemeris-style interoperability tables.; True Revati — True-nakshatra mode with the Revati reference point fixed to the Swiss Ephemeris zero date.; True Mula — True-nakshatra mode with the Mula reference point fixed to the Swiss Ephemeris zero date.; True Pushya — True-nakshatra Pushya reference mode exposed by Swiss Ephemeris and anchored to the published zero date.; Udayagiri — Udayagiri sidereal mode treated as the Lahiri/Chitrapaksha/Chitra Paksha 285 CE reference family in the Swiss Ephemeris interoperability catalog.; True Sheoran — True-nakshatra Sheoran reference mode with the Swiss Ephemeris zero point at JD 1789947.090881 (+0188/08/09 14:10:52.11 UT).; Babylonian (Britton) — Babylonian sidereal mode associated with Britton's reconstruction, with the Swiss Ephemeris zero point at JD 1805415.712776 (+0230/12/17 05:06:23.86 UT).; Galactic Center (Rgilbrand) — Galactic-center reference mode attributed to Rgilbrand, with the Swiss Ephemeris zero point at JD 1861740.329525 (+0385/03/03 19:54:30.99 UT).; Babylonian (Kugler 1) — Babylonian sidereal mode associated with Kugler's first reconstruction, with the Swiss Ephemeris zero point at JD 1833923.577692 (+0309/01/05 01:51:52.62 UT).; Galactic Equator — Galactic-equator sidereal reference mode. The true/modern variant is anchored to the 1665728.603158 JD zero point described in the Swiss Ephemeris documentation.; Suryasiddhanta (Mean Sun) — Suryasiddhanta mean-sun variant anchored to the published 514 CE zero point used by Swiss Ephemeris.; Aryabhata (522 CE) — Aryabhata zero-point variant anchored to the published 522 CE reference date.; Valens Moon — Valens Moon sidereal mode, catalogued with the Swiss Ephemeris reference epoch and offset from the header metadata."
     );
 }

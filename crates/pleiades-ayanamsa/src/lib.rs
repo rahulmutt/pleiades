@@ -52,7 +52,7 @@ pub use lookup::{
     custom_definition_ayanamsa_labels, custom_definition_example_ayanamsa_labels, descriptor,
     metadata_coverage, provenance_sample_ayanamsas, provenance_summary,
     reference_offset_sample_ayanamsas, release_ayanamsas, resolve_ayanamsa, sidereal_offset,
-    validate_ayanamsa_catalog, validated_provenance_summary_for_report,
+    validate_ayanamsa_catalog,
 };
 
 #[cfg(test)]

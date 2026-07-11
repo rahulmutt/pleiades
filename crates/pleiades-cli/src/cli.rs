@@ -526,7 +526,7 @@ pub(crate) fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("lunar-theory-source-summary") => validate_render_cli(args),
         Some("lunar-theory-source-selection-summary") | Some("lunar-theory-source-selection") => {
             ensure_no_extra_args(&args[1..], "lunar-theory-source-selection-summary")?;
-            Ok(pleiades_elp::lunar_theory_source_selection_summary_for_report())
+            Ok(pleiades_validate::lunar_theory_source_selection_summary_for_report())
         }
         Some("lunar-theory-source-family-summary") | Some("lunar-theory-source-family") => {
             validate_render_cli(args)

@@ -7,7 +7,10 @@ fn lunar_reference_mixed_time_scale_batch_parity_summary_renders_the_explicit_sl
     let rendered = render_cli(&["lunar-reference-mixed-time-scale-batch-parity-summary"])
         .expect("lunar reference mixed TT/TDB batch parity summary should render");
     assert!(rendered.contains("lunar reference mixed TT/TDB batch parity"));
-    assert_eq!(rendered, lunar_reference_batch_parity_summary_for_report());
+    assert_eq!(
+        rendered,
+        crate::posture::elp::evidence::lunar_reference_batch_parity_summary_for_report()
+    );
     assert_eq!(
         render_cli(&["lunar-reference-mixed-tt-tdb-batch-parity-summary"])
             .expect("lunar reference mixed TT/TDB batch parity alias should render"),
@@ -62,7 +65,7 @@ fn lunar_reference_evidence_summary_command_renders_the_summary() {
         rendered,
         format!(
             "Lunar reference evidence summary\n{}\n",
-            lunar_reference_evidence_summary_for_report()
+            crate::posture::elp::evidence::lunar_reference_evidence_summary_for_report()
         )
     );
     assert!(rendered.contains("Lunar reference evidence summary"));

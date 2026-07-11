@@ -199,7 +199,11 @@ pub(crate) fn write_backend_catalog_entry(
         }
 
         writeln!(f, "  generated binary audit:")?;
-        writeln!(f, "    {}", generated_binary_audit_summary_for_report())?;
+        writeln!(
+            f,
+            "    {}",
+            crate::posture::vsop87::audit::generated_binary_audit_summary_for_report()
+        )?;
 
         writeln!(f, "  canonical J2000 VSOP87B evidence:")?;
         match vsop87_canonical_body_evidence() {
@@ -243,7 +247,7 @@ pub(crate) fn write_backend_catalog_entry(
         writeln!(
             f,
             "    catalog summary: {}",
-            lunar_theory_catalog_summary_for_report()
+            crate::posture::elp::catalog::lunar_theory_catalog_summary_for_report()
         )?;
         writeln!(
             f,
@@ -259,12 +263,12 @@ pub(crate) fn write_backend_catalog_entry(
         writeln!(
             f,
             "    capability summary: {}",
-            lunar_theory_capability_summary_for_report()
+            crate::posture::elp::catalog::lunar_theory_capability_summary_for_report()
         )?;
         writeln!(
             f,
             "    specification summary: {}",
-            lunar_theory_summary_for_report()
+            crate::posture::elp::lib_summaries::lunar_theory_summary_for_report()
         )?;
         writeln!(f, "    source identifier: {}", theory.source_identifier)?;
         writeln!(f, "    source citation: {}", theory.source_citation)?;
@@ -284,7 +288,7 @@ pub(crate) fn write_backend_catalog_entry(
         writeln!(
             f,
             "    request policy: {}",
-            lunar_theory_request_policy_summary()
+            crate::posture::elp::lib_summaries::lunar_theory_request_policy_summary()
         )?;
         writeln!(f, "    validation window: {}", theory.validation_window)?;
         writeln!(f, "    date-range note: {}", theory.date_range_note)?;
@@ -297,7 +301,7 @@ pub(crate) fn write_backend_catalog_entry(
         writeln!(
             f,
             "    {}",
-            lunar_high_curvature_continuity_evidence_for_report()
+            crate::posture::elp::evidence::lunar_high_curvature_continuity_evidence_for_report()
         )?;
         write_lunar_high_curvature_equatorial_continuity_evidence(f)?;
     }
@@ -393,14 +397,18 @@ pub(crate) fn write_lunar_reference_evidence(f: &mut fmt::Formatter<'_>) -> fmt:
     writeln!(
         f,
         "    {}",
-        pleiades_elp::format_lunar_reference_evidence_summary(&summary)
+        crate::posture::elp::evidence::format_lunar_reference_evidence_summary(&summary)
     )?;
     writeln!(
         f,
         "    {}",
-        pleiades_elp::lunar_reference_batch_parity_summary_for_report()
+        crate::posture::elp::evidence::lunar_reference_batch_parity_summary_for_report()
     )?;
-    writeln!(f, "    {}", lunar_reference_evidence_envelope_for_report())?;
+    writeln!(
+        f,
+        "    {}",
+        crate::posture::elp::evidence::lunar_reference_evidence_envelope_for_report()
+    )?;
     for sample in lunar_reference_evidence() {
         writeln!(f, "    {}", sample)?;
     }
@@ -417,17 +425,17 @@ pub(crate) fn write_lunar_equatorial_reference_evidence(f: &mut fmt::Formatter<'
     writeln!(
         f,
         "    {}",
-        lunar_equatorial_reference_evidence_summary_for_report()
+        crate::posture::elp::evidence::lunar_equatorial_reference_evidence_summary_for_report()
     )?;
     writeln!(
         f,
         "    {}",
-        lunar_equatorial_reference_batch_parity_summary_for_report()
+        crate::posture::elp::evidence::lunar_equatorial_reference_batch_parity_summary_for_report()
     )?;
     writeln!(
         f,
         "    {}",
-        lunar_equatorial_reference_evidence_envelope_for_report()
+        crate::posture::elp::evidence::lunar_equatorial_reference_evidence_envelope_for_report()
     )?;
     for sample in lunar_equatorial_reference_evidence() {
         writeln!(f, "    {}", sample)?;
@@ -462,7 +470,11 @@ pub(crate) fn write_lunar_apparent_comparison_evidence(f: &mut fmt::Formatter<'_
 
 pub(crate) fn write_lunar_source_window_evidence(f: &mut fmt::Formatter<'_>) -> fmt::Result {
     writeln!(f, "  Lunar source windows:")?;
-    writeln!(f, "    {}", lunar_source_window_summary_for_report())?;
+    writeln!(
+        f,
+        "    {}",
+        crate::posture::elp::evidence::lunar_source_window_summary_for_report()
+    )?;
     Ok(())
 }
 
@@ -473,7 +485,7 @@ pub(crate) fn write_lunar_high_curvature_equatorial_continuity_evidence(
     writeln!(
         f,
         "    {}",
-        lunar_high_curvature_equatorial_continuity_evidence_for_report()
+        crate::posture::elp::evidence::lunar_high_curvature_equatorial_continuity_evidence_for_report()
     )?;
     Ok(())
 }

@@ -13,8 +13,8 @@ use pleiades_types::{
 
 use crate::specification::{SUPPORTED_LUNAR_FRAMES, SUPPORTED_LUNAR_TIME_SCALES};
 use crate::{
-    lunar_theory_source_family_summary_for_report, lunar_theory_specification,
-    lunar_theory_supported_bodies, series, PACKAGE_NAME,
+    lunar_theory_source_family_summary, lunar_theory_specification, lunar_theory_supported_bodies,
+    series, PACKAGE_NAME,
 };
 
 /// A pure-Rust lunar backend.
@@ -226,7 +226,13 @@ impl EphemerisBackend for ElpBackend {
                 ),
                 data_sources: vec![
                     "Meeus-style truncated lunar orbit formulas implemented in pure Rust; see docs/lunar-theory-policy.md for the current baseline scope".to_string(),
-                    lunar_theory_source_family_summary_for_report(),
+                    {
+                        let family = lunar_theory_source_family_summary();
+                        match family.validate() {
+                            Ok(()) => family.summary_line(),
+                            Err(error) => format!("lunar source family: unavailable ({error})"),
+                        }
+                    },
                     source.identifier.to_string(),
                     source.citation.to_string(),
                     source.material.to_string(),
@@ -352,5 +358,26 @@ impl EphemerisBackend for ElpBackend {
         }
         result.motion = Self::motion(body, days);
         Ok(result)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ElpBackend;
+    use pleiades_backend::EphemerisBackend; // brings `.metadata()` into scope
+
+    #[test]
+    fn backend_metadata_source_family_line_is_stable() {
+        let metadata = ElpBackend.metadata();
+        let expected = "lunar source family: Meeus-style truncated analytical baseline [selected source=meeus-style-truncated-lunar-baseline; selected model=Compact Meeus-style truncated lunar baseline; selected key=source identifier=meeus-style-truncated-lunar-baseline; selected family key=source family=Meeus-style truncated analytical baseline; aliases=1]";
+        assert!(
+            metadata
+                .provenance
+                .data_sources
+                .iter()
+                .any(|s| s == expected),
+            "source-family provenance line drifted:\n{:#?}",
+            metadata.provenance.data_sources
+        );
     }
 }

@@ -408,8 +408,54 @@ pub struct Vsop87CanonicalEvidenceSummary {
 
 impl Vsop87CanonicalEvidenceSummary {
     /// Returns a compact summary line used in release-facing reporting.
+    ///
+    /// This mirrors the release-facing free-function renderer relocated to
+    /// `pleiades-validate`'s posture module (report-surface relocation
+    /// program, Slice B); the rendering logic stays here too because this
+    /// inherent method (and `Display`) must keep working without a
+    /// dependency on `pleiades-validate`.
     pub fn summary_line(&self) -> String {
-        format_canonical_epoch_evidence_summary(self)
+        format!(
+            "VSOP87 canonical J2000 source-backed evidence: {} samples, bodies: {}, status {}, mean Δlon={:.12}°, median Δlon={:.12}°, p95 Δlon={:.12}°, rms Δlon={:.12}°, mean Δlat={:.12}°, median Δlat={:.12}°, p95 Δlat={:.12}°, rms Δlat={:.12}°, mean Δdist={:.12} AU, median Δdist={:.12} AU, p95 Δdist={:.12} AU, rms Δdist={:.12} AU, out-of-limit samples {}, max Δlon={:.12}° (limit {:.12}°, margin {:+.12}°; {}; {}; {}), max Δlat={:.12}° (limit {:.12}°, margin {:+.12}°; {}; {}; {}), max Δdist={:.12} AU (limit {:.12} AU, margin {:+.12} AU; {}; {}; {})",
+            self.sample_count,
+            format_celestial_bodies(&self.sample_bodies),
+            if self.within_interim_limits {
+                "within interim limits"
+            } else {
+                "outside interim limits"
+            },
+            self.mean_longitude_delta_deg,
+            self.median_longitude_delta_deg,
+            self.percentile_longitude_delta_deg,
+            self.rms_longitude_delta_deg,
+            self.mean_latitude_delta_deg,
+            self.median_latitude_delta_deg,
+            self.percentile_latitude_delta_deg,
+            self.rms_latitude_delta_deg,
+            self.mean_distance_delta_au,
+            self.median_distance_delta_au,
+            self.percentile_distance_delta_au,
+            self.rms_distance_delta_au,
+            self.out_of_limit_count,
+            self.max_longitude_delta_deg,
+            self.max_longitude_delta_limit_deg,
+            self.max_longitude_delta_limit_deg - self.max_longitude_delta_deg,
+            self.max_longitude_delta_body,
+            self.max_longitude_delta_source_kind,
+            self.max_longitude_delta_source_file,
+            self.max_latitude_delta_deg,
+            self.max_latitude_delta_limit_deg,
+            self.max_latitude_delta_limit_deg - self.max_latitude_delta_deg,
+            self.max_latitude_delta_body,
+            self.max_latitude_delta_source_kind,
+            self.max_latitude_delta_source_file,
+            self.max_distance_delta_au,
+            self.max_distance_delta_limit_au,
+            self.max_distance_delta_limit_au - self.max_distance_delta_au,
+            self.max_distance_delta_body,
+            self.max_distance_delta_source_kind,
+            self.max_distance_delta_source_file,
+        )
     }
 
     /// Returns `Ok(())` when the summary still matches the current derived evidence.
@@ -677,8 +723,42 @@ pub struct Vsop87CanonicalEquatorialEvidenceSummary {
 
 impl Vsop87CanonicalEquatorialEvidenceSummary {
     /// Returns a compact summary line used in release-facing reporting.
+    ///
+    /// This mirrors the release-facing free-function renderer relocated to
+    /// `pleiades-validate`'s posture module (report-surface relocation
+    /// program, Slice B); the rendering logic stays here too because this
+    /// inherent method (and `Display`) must keep working without a
+    /// dependency on `pleiades-validate`.
     pub fn summary_line(&self) -> String {
-        format_canonical_equatorial_evidence_summary(self)
+        format!(
+            "VSOP87 canonical J2000 equatorial companion evidence: {} samples, bodies: {}, mean Δra={:.12}°, median Δra={:.12}°, p95 Δra={:.12}°, rms Δra={:.12}°, mean Δdec={:.12}°, median Δdec={:.12}°, p95 Δdec={:.12}°, rms Δdec={:.12}°, mean Δdist={:.12} AU, median Δdist={:.12} AU, p95 Δdist={:.12} AU, rms Δdist={:.12} AU, max Δra={:.12}° ({}; {}; {}), max Δdec={:.12}° ({}; {}; {}), max Δdist={:.12} AU ({}; {}; {})",
+            self.sample_count,
+            format_celestial_bodies(&self.sample_bodies),
+            self.mean_right_ascension_delta_deg,
+            self.median_right_ascension_delta_deg,
+            self.percentile_right_ascension_delta_deg,
+            self.rms_right_ascension_delta_deg,
+            self.mean_declination_delta_deg,
+            self.median_declination_delta_deg,
+            self.percentile_declination_delta_deg,
+            self.rms_declination_delta_deg,
+            self.mean_distance_delta_au,
+            self.median_distance_delta_au,
+            self.percentile_distance_delta_au,
+            self.rms_distance_delta_au,
+            self.max_right_ascension_delta_deg,
+            self.max_right_ascension_delta_body,
+            self.max_right_ascension_delta_source_kind,
+            self.max_right_ascension_delta_source_file,
+            self.max_declination_delta_deg,
+            self.max_declination_delta_body,
+            self.max_declination_delta_source_kind,
+            self.max_declination_delta_source_file,
+            self.max_distance_delta_au,
+            self.max_distance_delta_body,
+            self.max_distance_delta_source_kind,
+            self.max_distance_delta_source_file,
+        )
     }
 
     /// Returns `Ok(())` when the summary still matches the current derived evidence.
@@ -1115,8 +1195,66 @@ pub struct Vsop87SourceBodyEvidenceSummary {
 
 impl Vsop87SourceBodyEvidenceSummary {
     /// Returns a compact summary line used in release-facing reporting.
+    ///
+    /// This mirrors the release-facing free-function renderer relocated to
+    /// `pleiades-validate`'s posture module (report-surface relocation
+    /// program, Slice B); the rendering logic stays here too because this
+    /// inherent method (and `Display`) must keep working without a
+    /// dependency on `pleiades-validate`.
     pub fn summary_line(&self) -> String {
-        format_source_body_evidence_summary(self)
+        let outside_note = if self.outside_interim_limit_bodies.is_empty() {
+            "none".to_string()
+        } else {
+            format_celestial_bodies(&self.outside_interim_limit_bodies)
+        };
+
+        let bodies = format_celestial_bodies(&self.sample_bodies);
+
+        if self.generated_binary_count == 0 && self.truncated_count == 0 {
+            format!(
+                "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file), source-backed body order: {}, {} within interim limits, {} outside interim limits; outside interim limits: {}",
+                self.sample_count,
+                self.vendored_full_file_count,
+                bodies,
+                self.within_interim_limits_count,
+                self.outside_interim_limit_count,
+                outside_note,
+            )
+        } else if self.generated_binary_count > 0 && self.truncated_count == 0 {
+            format!(
+                "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file, {} generated binary), source-backed body order: {}, {} within interim limits, {} outside interim limits; outside interim limits: {}",
+                self.sample_count,
+                self.vendored_full_file_count,
+                self.generated_binary_count,
+                bodies,
+                self.within_interim_limits_count,
+                self.outside_interim_limit_count,
+                outside_note,
+            )
+        } else if self.generated_binary_count == 0 {
+            format!(
+                "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file, {} truncated slice), source-backed body order: {}, {} within interim limits, {} outside interim limits; outside interim limits: {}",
+                self.sample_count,
+                self.vendored_full_file_count,
+                self.truncated_count,
+                bodies,
+                self.within_interim_limits_count,
+                self.outside_interim_limit_count,
+                outside_note,
+            )
+        } else {
+            format!(
+                "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file, {} generated binary, {} truncated slice), source-backed body order: {}, {} within interim limits, {} outside interim limits; outside interim limits: {}",
+                self.sample_count,
+                self.vendored_full_file_count,
+                self.generated_binary_count,
+                self.truncated_count,
+                bodies,
+                self.within_interim_limits_count,
+                self.outside_interim_limit_count,
+                outside_note,
+            )
+        }
     }
 
     /// Returns the validated summary line used by release-facing reporting.
@@ -1286,68 +1424,6 @@ pub fn source_body_evidence_summary() -> Option<Vsop87SourceBodyEvidenceSummary>
     })
 }
 
-/// Formats the canonical VSOP87 J2000 evidence summary for reporting.
-pub fn format_canonical_epoch_evidence_summary(summary: &Vsop87CanonicalEvidenceSummary) -> String {
-    format!(
-        "VSOP87 canonical J2000 source-backed evidence: {} samples, bodies: {}, status {}, mean Δlon={:.12}°, median Δlon={:.12}°, p95 Δlon={:.12}°, rms Δlon={:.12}°, mean Δlat={:.12}°, median Δlat={:.12}°, p95 Δlat={:.12}°, rms Δlat={:.12}°, mean Δdist={:.12} AU, median Δdist={:.12} AU, p95 Δdist={:.12} AU, rms Δdist={:.12} AU, out-of-limit samples {}, max Δlon={:.12}° (limit {:.12}°, margin {:+.12}°; {}; {}; {}), max Δlat={:.12}° (limit {:.12}°, margin {:+.12}°; {}; {}; {}), max Δdist={:.12} AU (limit {:.12} AU, margin {:+.12} AU; {}; {}; {})",
-        summary.sample_count,
-        format_celestial_bodies(&summary.sample_bodies),
-        if summary.within_interim_limits {
-            "within interim limits"
-        } else {
-            "outside interim limits"
-        },
-        summary.mean_longitude_delta_deg,
-        summary.median_longitude_delta_deg,
-        summary.percentile_longitude_delta_deg,
-        summary.rms_longitude_delta_deg,
-        summary.mean_latitude_delta_deg,
-        summary.median_latitude_delta_deg,
-        summary.percentile_latitude_delta_deg,
-        summary.rms_latitude_delta_deg,
-        summary.mean_distance_delta_au,
-        summary.median_distance_delta_au,
-        summary.percentile_distance_delta_au,
-        summary.rms_distance_delta_au,
-        summary.out_of_limit_count,
-        summary.max_longitude_delta_deg,
-        summary.max_longitude_delta_limit_deg,
-        summary.max_longitude_delta_limit_deg - summary.max_longitude_delta_deg,
-        summary.max_longitude_delta_body,
-        summary.max_longitude_delta_source_kind,
-        summary.max_longitude_delta_source_file,
-        summary.max_latitude_delta_deg,
-        summary.max_latitude_delta_limit_deg,
-        summary.max_latitude_delta_limit_deg - summary.max_latitude_delta_deg,
-        summary.max_latitude_delta_body,
-        summary.max_latitude_delta_source_kind,
-        summary.max_latitude_delta_source_file,
-        summary.max_distance_delta_au,
-        summary.max_distance_delta_limit_au,
-        summary.max_distance_delta_limit_au - summary.max_distance_delta_au,
-        summary.max_distance_delta_body,
-        summary.max_distance_delta_source_kind,
-        summary.max_distance_delta_source_file,
-    )
-}
-
-pub(crate) fn format_validated_canonical_epoch_evidence_summary_for_report(
-    summary: &Vsop87CanonicalEvidenceSummary,
-) -> String {
-    match summary.validate() {
-        Ok(()) => summary.summary_line(),
-        Err(error) => format!("{CANONICAL_EVIDENCE_SUMMARY_LABEL}: unavailable ({error})"),
-    }
-}
-
-/// Returns the release-facing canonical VSOP87 J2000 evidence summary string.
-pub fn canonical_epoch_evidence_summary_for_report() -> String {
-    match canonical_epoch_evidence_summary() {
-        Some(summary) => format_validated_canonical_epoch_evidence_summary_for_report(&summary),
-        None => format!("{CANONICAL_EVIDENCE_SUMMARY_LABEL}: unavailable"),
-    }
-}
-
 const CANONICAL_OUTLIER_NOTE_LABEL: &str = "VSOP87 canonical J2000 interim outliers";
 
 /// Public summary of the canonical J2000 interim-outlier note.
@@ -1440,18 +1516,6 @@ pub fn canonical_epoch_outlier_summary() -> Option<Vsop87CanonicalOutlierSummary
     })?;
 
     Some(Vsop87CanonicalOutlierSummary { outlier_bodies })
-}
-
-/// Returns a concise note describing any canonical J2000 bodies outside the
-/// current interim limits.
-pub fn canonical_epoch_outlier_note_for_report() -> String {
-    match canonical_epoch_outlier_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(line) => line,
-            Err(error) => format!("{CANONICAL_OUTLIER_NOTE_LABEL}: unavailable ({error})"),
-        },
-        None => format!("{CANONICAL_OUTLIER_NOTE_LABEL}: unavailable"),
-    }
 }
 
 /// Builds the per-body canonical-epoch evidence rows by evaluating the backend
@@ -2129,28 +2193,6 @@ pub fn canonical_epoch_equatorial_evidence_summary(
     derive_canonical_epoch_equatorial_evidence_summary(&body_evidence)
 }
 
-fn format_validated_canonical_epoch_equatorial_evidence_summary_for_report(
-    summary: &Vsop87CanonicalEquatorialEvidenceSummary,
-) -> String {
-    match summary.validate() {
-        Ok(()) => summary.summary_line(),
-        Err(error) => {
-            format!("{CANONICAL_EQUATORIAL_EVIDENCE_SUMMARY_LABEL}: unavailable ({error})")
-        }
-    }
-}
-
-/// Returns the release-facing canonical VSOP87 equatorial companion evidence
-/// summary string.
-pub fn canonical_epoch_equatorial_evidence_summary_for_report() -> String {
-    match canonical_epoch_equatorial_evidence_summary() {
-        Some(summary) => {
-            format_validated_canonical_epoch_equatorial_evidence_summary_for_report(&summary)
-        }
-        None => format!("{CANONICAL_EQUATORIAL_EVIDENCE_SUMMARY_LABEL}: unavailable"),
-    }
-}
-
 /// Backend-owned summary for the canonical J2000 equatorial body classes.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Vsop87CanonicalEquatorialBodyClassEvidenceSummary {
@@ -2484,53 +2526,6 @@ fn format_canonical_equatorial_body_class_evidence_entry(
     )
 }
 
-/// Formats the canonical VSOP87 equatorial body-class evidence for reporting.
-pub fn format_canonical_equatorial_body_class_evidence_summary(
-    summaries: &[Vsop87CanonicalEquatorialBodyClassEvidenceSummary],
-) -> String {
-    if summaries.is_empty() {
-        return "VSOP87 canonical J2000 equatorial body-class envelopes: unavailable".to_string();
-    }
-
-    let rendered = summaries
-        .iter()
-        .map(format_canonical_equatorial_body_class_evidence_entry)
-        .collect::<Vec<_>>()
-        .join(" | ");
-
-    format!("VSOP87 canonical J2000 equatorial body-class envelopes: {rendered}")
-}
-
-/// Returns the release-facing equatorial body-class evidence summary string.
-fn format_validated_canonical_equatorial_body_class_evidence_summary_for_report(
-    summaries: &[Vsop87CanonicalEquatorialBodyClassEvidenceSummary],
-) -> String {
-    if summaries.is_empty() {
-        return "VSOP87 canonical J2000 equatorial body-class envelopes: unavailable".to_string();
-    }
-
-    if let Some(error) = summaries
-        .iter()
-        .find_map(|summary| summary.validate().err())
-    {
-        return format!(
-            "VSOP87 canonical J2000 equatorial body-class envelopes: unavailable ({error})"
-        );
-    }
-
-    format_canonical_equatorial_body_class_evidence_summary(summaries)
-}
-
-/// Returns the release-facing equatorial body-class evidence summary string.
-pub fn canonical_epoch_equatorial_body_class_evidence_summary_for_report() -> String {
-    match canonical_epoch_equatorial_body_class_evidence_summary() {
-        Some(summary) => {
-            format_validated_canonical_equatorial_body_class_evidence_summary_for_report(&summary)
-        }
-        None => "VSOP87 canonical J2000 equatorial body-class envelopes: unavailable".to_string(),
-    }
-}
-
 pub(crate) fn median_f64(values: &mut [f64]) -> f64 {
     values.sort_by(|left, right| left.total_cmp(right));
     let mid = values.len() / 2;
@@ -2593,115 +2588,5 @@ pub(crate) fn source_body_class(body: &CelestialBody) -> Vsop87SourceBodyClass {
     match body {
         CelestialBody::Sun => Vsop87SourceBodyClass::Luminary,
         _ => Vsop87SourceBodyClass::MajorPlanet,
-    }
-}
-
-/// Formats the canonical VSOP87 J2000 equatorial companion summary for reporting.
-pub fn format_canonical_equatorial_evidence_summary(
-    summary: &Vsop87CanonicalEquatorialEvidenceSummary,
-) -> String {
-    format!(
-        "VSOP87 canonical J2000 equatorial companion evidence: {} samples, bodies: {}, mean Δra={:.12}°, median Δra={:.12}°, p95 Δra={:.12}°, rms Δra={:.12}°, mean Δdec={:.12}°, median Δdec={:.12}°, p95 Δdec={:.12}°, rms Δdec={:.12}°, mean Δdist={:.12} AU, median Δdist={:.12} AU, p95 Δdist={:.12} AU, rms Δdist={:.12} AU, max Δra={:.12}° ({}; {}; {}), max Δdec={:.12}° ({}; {}; {}), max Δdist={:.12} AU ({}; {}; {})",
-        summary.sample_count,
-        format_celestial_bodies(&summary.sample_bodies),
-        summary.mean_right_ascension_delta_deg,
-        summary.median_right_ascension_delta_deg,
-        summary.percentile_right_ascension_delta_deg,
-        summary.rms_right_ascension_delta_deg,
-        summary.mean_declination_delta_deg,
-        summary.median_declination_delta_deg,
-        summary.percentile_declination_delta_deg,
-        summary.rms_declination_delta_deg,
-        summary.mean_distance_delta_au,
-        summary.median_distance_delta_au,
-        summary.percentile_distance_delta_au,
-        summary.rms_distance_delta_au,
-        summary.max_right_ascension_delta_deg,
-        summary.max_right_ascension_delta_body,
-        summary.max_right_ascension_delta_source_kind,
-        summary.max_right_ascension_delta_source_file,
-        summary.max_declination_delta_deg,
-        summary.max_declination_delta_body,
-        summary.max_declination_delta_source_kind,
-        summary.max_declination_delta_source_file,
-        summary.max_distance_delta_au,
-        summary.max_distance_delta_body,
-        summary.max_distance_delta_source_kind,
-        summary.max_distance_delta_source_file,
-    )
-}
-
-/// Formats the current VSOP87 body-evidence envelope for reporting.
-pub fn format_source_body_evidence_summary(summary: &Vsop87SourceBodyEvidenceSummary) -> String {
-    let outside_note = if summary.outside_interim_limit_bodies.is_empty() {
-        "none".to_string()
-    } else {
-        format_celestial_bodies(&summary.outside_interim_limit_bodies)
-    };
-
-    let bodies = format_celestial_bodies(&summary.sample_bodies);
-
-    if summary.generated_binary_count == 0 && summary.truncated_count == 0 {
-        format!(
-            "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file), source-backed body order: {}, {} within interim limits, {} outside interim limits; outside interim limits: {}",
-            summary.sample_count,
-            summary.vendored_full_file_count,
-            bodies,
-            summary.within_interim_limits_count,
-            summary.outside_interim_limit_count,
-            outside_note,
-        )
-    } else if summary.generated_binary_count > 0 && summary.truncated_count == 0 {
-        format!(
-            "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file, {} generated binary), source-backed body order: {}, {} within interim limits, {} outside interim limits; outside interim limits: {}",
-            summary.sample_count,
-            summary.vendored_full_file_count,
-            summary.generated_binary_count,
-            bodies,
-            summary.within_interim_limits_count,
-            summary.outside_interim_limit_count,
-            outside_note,
-        )
-    } else if summary.generated_binary_count == 0 {
-        format!(
-            "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file, {} truncated slice), source-backed body order: {}, {} within interim limits, {} outside interim limits; outside interim limits: {}",
-            summary.sample_count,
-            summary.vendored_full_file_count,
-            summary.truncated_count,
-            bodies,
-            summary.within_interim_limits_count,
-            summary.outside_interim_limit_count,
-            outside_note,
-        )
-    } else {
-        format!(
-            "VSOP87 source-backed body evidence: {} body profiles ({} vendored full-file, {} generated binary, {} truncated slice), source-backed body order: {}, {} within interim limits, {} outside interim limits; outside interim limits: {}",
-            summary.sample_count,
-            summary.vendored_full_file_count,
-            summary.generated_binary_count,
-            summary.truncated_count,
-            bodies,
-            summary.within_interim_limits_count,
-            summary.outside_interim_limit_count,
-            outside_note,
-        )
-    }
-}
-
-/// Returns the release-facing source-body evidence summary string.
-fn format_validated_source_body_evidence_summary_for_report(
-    summary: &Vsop87SourceBodyEvidenceSummary,
-) -> String {
-    match summary.validated_summary_line() {
-        Ok(rendered) => rendered,
-        Err(error) => format!("VSOP87 source-backed body evidence: unavailable ({error})"),
-    }
-}
-
-/// Returns the release-facing source-body evidence summary string.
-pub fn source_body_evidence_summary_for_report() -> String {
-    match source_body_evidence_summary() {
-        Some(summary) => format_validated_source_body_evidence_summary_for_report(&summary),
-        None => "VSOP87 source-backed body evidence: unavailable".to_string(),
     }
 }

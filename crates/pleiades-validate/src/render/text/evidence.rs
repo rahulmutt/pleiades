@@ -10,55 +10,56 @@ pub(crate) fn vsop87_canonical_body_evidence(
 }
 
 pub(crate) fn format_vsop87_canonical_evidence_summary() -> String {
-    canonical_epoch_evidence_summary_for_report()
+    crate::posture::vsop87::evidence::canonical_epoch_evidence_summary_for_report()
 }
 
 pub(crate) fn format_vsop87_equatorial_evidence_summary() -> String {
-    canonical_epoch_equatorial_evidence_summary_for_report()
+    crate::posture::vsop87::evidence::canonical_epoch_equatorial_evidence_summary_for_report()
 }
 
 pub(crate) fn format_vsop87_j2000_batch_summary() -> String {
-    canonical_j2000_batch_parity_summary_for_report()
+    crate::posture::vsop87::batch_parity::canonical_j2000_batch_parity_summary_for_report()
 }
 
 pub(crate) fn format_vsop87_supported_body_j2000_ecliptic_batch_summary() -> String {
-    supported_body_j2000_ecliptic_batch_parity_summary_for_report()
+    crate::posture::vsop87::batch_parity::supported_body_j2000_ecliptic_batch_parity_summary_for_report()
 }
 
 pub(crate) fn format_vsop87_supported_body_j2000_equatorial_batch_summary() -> String {
-    supported_body_j2000_equatorial_batch_parity_summary_for_report()
+    crate::posture::vsop87::batch_parity::supported_body_j2000_equatorial_batch_parity_summary_for_report()
 }
 
 pub(crate) fn format_vsop87_supported_body_j1900_ecliptic_batch_summary() -> String {
-    supported_body_j1900_ecliptic_batch_parity_summary_for_report()
+    crate::posture::vsop87::batch_parity::supported_body_j1900_ecliptic_batch_parity_summary_for_report()
 }
 
 pub(crate) fn format_vsop87_supported_body_j1900_equatorial_batch_summary() -> String {
-    supported_body_j1900_equatorial_batch_parity_summary_for_report()
+    crate::posture::vsop87::batch_parity::supported_body_j1900_equatorial_batch_parity_summary_for_report()
 }
 
 pub(crate) fn format_vsop87_mixed_batch_summary() -> String {
-    canonical_mixed_time_scale_batch_parity_summary_for_report()
+    crate::posture::vsop87::batch_parity::canonical_mixed_time_scale_batch_parity_summary_for_report(
+    )
 }
 
 pub(crate) fn format_vsop87_j1900_batch_summary() -> String {
-    canonical_j1900_batch_parity_summary_for_report()
+    crate::posture::vsop87::batch_parity::canonical_j1900_batch_parity_summary_for_report()
 }
 
 pub(crate) fn format_vsop87_body_evidence_summary() -> String {
-    source_body_evidence_summary_for_report()
+    crate::posture::vsop87::evidence::source_body_evidence_summary_for_report()
 }
 
 pub(crate) fn format_vsop87_source_body_class_evidence_summary() -> String {
-    source_body_class_evidence_summary_for_report()
+    crate::posture::vsop87::batch_parity::source_body_class_evidence_summary_for_report()
 }
 
 pub(crate) fn format_vsop87_equatorial_body_class_evidence_summary() -> String {
-    canonical_epoch_equatorial_body_class_evidence_summary_for_report()
+    crate::posture::vsop87::evidence::canonical_epoch_equatorial_body_class_evidence_summary_for_report()
 }
 
 pub(crate) fn format_vsop87_canonical_outlier_note_summary() -> String {
-    canonical_epoch_outlier_note_for_report()
+    crate::posture::vsop87::evidence::canonical_epoch_outlier_note_for_report()
 }
 
 pub(crate) fn format_validated_vsop87_source_documentation_summary_for_report(
@@ -90,7 +91,7 @@ pub(crate) fn format_vsop87_source_documentation_health_summary() -> String {
 }
 
 pub(crate) fn format_vsop87_frame_treatment_summary() -> String {
-    frame_treatment_summary_for_report()
+    crate::posture::vsop87::spec::frame_treatment_summary_for_report()
 }
 
 pub(crate) fn format_jpl_frame_treatment_summary() -> String {

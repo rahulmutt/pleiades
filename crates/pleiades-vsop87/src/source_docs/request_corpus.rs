@@ -116,22 +116,6 @@ pub fn source_manifest_summary<'a>(
     Vsop87SourceManifestSummary { manifest }
 }
 
-/// Formats a VSOP87 source-manifest summary for release-facing reporting.
-pub fn format_source_manifest_summary(summary: &Vsop87SourceManifestSummary<'_>) -> String {
-    summary.summary_line()
-}
-
-/// Returns the release-facing source-manifest summary for the current source catalog.
-pub fn source_manifest_summary_for_report() -> String {
-    let manifest = source_manifest();
-    let summary = source_manifest_summary(&manifest);
-
-    match summary.validate() {
-        Ok(()) => summary.summary_line(),
-        Err(error) => format!("VSOP87 source manifest: unavailable ({error})"),
-    }
-}
-
 /// Validation errors for a VSOP87 source manifest that drifted from the
 /// current source-specification catalog.
 #[derive(Clone, Debug, PartialEq, Eq)]
