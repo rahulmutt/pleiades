@@ -337,7 +337,7 @@ fn summary_commands_render_compact_reports() {
     assert!(release_notes_summary.lines().any(|line| {
         line == format!(
             "Packaged-artifact generation policy: {}",
-            pleiades_data::packaged_artifact_generation_policy_summary_details().to_string()
+            pleiades_data::packaged_artifact_generation_policy_summary_details()
         )
     }));
     assert!(release_notes_summary.contains("Packaged request policy:"));
@@ -3087,13 +3087,13 @@ fn summary_commands_render_compact_reports() {
     assert!(release_summary.lines().any(|line| {
         line == format!(
             "Packaged-artifact generation policy: {}",
-            pleiades_data::packaged_artifact_generation_policy_summary_details().to_string()
+            pleiades_data::packaged_artifact_generation_policy_summary_details()
         )
     }));
     assert!(release_summary.lines().any(|line| {
         line == format!(
             "Packaged frame treatment: {}",
-            pleiades_data::packaged_frame_treatment_summary_details().to_string()
+            pleiades_data::packaged_frame_treatment_summary_details()
         )
     }));
     assert!(release_summary.contains(

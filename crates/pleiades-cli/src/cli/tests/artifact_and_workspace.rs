@@ -18,7 +18,7 @@ fn artifact_and_workspace_commands_render_compact_reports() {
     assert!(artifact_summary.lines().any(|line| {
         line == format!(
             "  Packaged frame treatment: {}",
-            pleiades_data::packaged_frame_treatment_summary_details().to_string()
+            pleiades_data::packaged_frame_treatment_summary_details()
         )
     }));
     assert!(artifact_summary.contains("Release summary: release-summary"));
@@ -51,7 +51,7 @@ fn artifact_and_workspace_commands_render_compact_reports() {
         packaged_artifact_output_support,
         format!(
             "Packaged-artifact output support: {}",
-            pleiades_data::packaged_artifact_output_support_summary_details().to_string()
+            pleiades_data::packaged_artifact_output_support_summary_details()
         )
     );
     assert_eq!(
@@ -75,7 +75,7 @@ fn artifact_and_workspace_commands_render_compact_reports() {
         packaged_artifact_body_class_span_caps,
         format!(
             "Packaged-artifact {}",
-            pleiades_data::packaged_artifact_body_class_span_cap_summary_details().to_string()
+            pleiades_data::packaged_artifact_body_class_span_cap_summary_details()
         )
     );
     assert_eq!(
@@ -107,7 +107,7 @@ fn artifact_and_workspace_commands_render_compact_reports() {
         packaged_artifact_speed_policy,
         format!(
             "Packaged-artifact speed policy: {}",
-            pleiades_data::packaged_artifact_speed_policy_summary_details().to_string()
+            pleiades_data::packaged_artifact_speed_policy_summary_details()
         )
     );
     assert_eq!(
@@ -127,7 +127,7 @@ fn artifact_and_workspace_commands_render_compact_reports() {
         motion_policy,
         format!(
             "Motion policy: {}",
-            pleiades_data::packaged_artifact_speed_policy_summary_details().to_string()
+            pleiades_data::packaged_artifact_speed_policy_summary_details()
         )
     );
     assert_eq!(
@@ -147,7 +147,7 @@ fn artifact_and_workspace_commands_render_compact_reports() {
         packaged_artifact_access,
         format!(
             "Packaged-artifact access: {}",
-            pleiades_data::packaged_artifact_access_summary_details().to_string()
+            pleiades_data::packaged_artifact_access_summary_details()
         )
     );
     assert_eq!(
@@ -194,7 +194,7 @@ fn artifact_and_workspace_commands_render_compact_reports() {
         packaged_artifact_storage,
         format!(
             "Packaged-artifact storage/reconstruction: {}",
-            pleiades_data::packaged_artifact_storage_summary_details().to_string()
+            pleiades_data::packaged_artifact_storage_summary_details()
         )
     );
     assert_eq!(
@@ -263,7 +263,7 @@ fn artifact_and_workspace_commands_render_compact_reports() {
         packaged_artifact_fit_envelope,
         format!(
             "Packaged-artifact fit envelope: {}",
-            pleiades_data::packaged_artifact_fit_envelope_summary_details().to_string()
+            pleiades_data::packaged_artifact_fit_envelope_summary_details()
         )
     );
 
@@ -291,7 +291,7 @@ fn artifact_and_workspace_commands_render_compact_reports() {
         packaged_artifact_fit_outliers,
         format!(
             "Packaged-artifact fit outliers: {}",
-            pleiades_data::packaged_artifact_fit_outlier_summary_details().to_string()
+            pleiades_data::packaged_artifact_fit_outlier_summary_details()
         )
     );
     assert_eq!(
@@ -370,7 +370,7 @@ fn artifact_and_workspace_commands_render_compact_reports() {
         packaged_frame_treatment,
         format!(
             "Packaged frame treatment: {}",
-            pleiades_data::packaged_frame_treatment_summary_details().to_string()
+            pleiades_data::packaged_frame_treatment_summary_details()
         )
     );
 
@@ -387,7 +387,7 @@ fn artifact_and_workspace_commands_render_compact_reports() {
         packaged_artifact_target_threshold,
         format!(
             "Packaged-artifact target thresholds: {}",
-            pleiades_data::packaged_artifact_target_threshold_summary_details().to_string()
+            pleiades_data::packaged_artifact_target_threshold_summary_details()
         )
     );
 
@@ -406,7 +406,6 @@ fn artifact_and_workspace_commands_render_compact_reports() {
         format!(
             "Packaged-artifact target-threshold scope envelopes: {}",
             pleiades_data::packaged_artifact_target_threshold_scope_envelopes_summary_details()
-                .to_string()
         )
     );
 

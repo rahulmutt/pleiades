@@ -267,9 +267,6 @@ use pleiades_data::{
 // (report-surface relocation program, Slice C). Re-exported at the crate root so
 // existing in-crate consumers keep resolving them unqualified. The `pub use`
 // entries are also reachable by `pleiades-cli` via `pleiades_validate::…`.
-// The two renderers below have genuine cross-crate RUNTIME consumers in
-// `pleiades-cli` (`commands/packaged_artifact.rs`), so they stay `pub` +
-// re-exported. All other relocated coverage renderers are `pub(crate)`.
 pub(crate) use crate::posture::data::accuracy_baseline::packaged_artifact_accuracy_baseline_summary_for_report;
 pub(crate) use crate::posture::data::coverage::generation::packaged_artifact_generation_policy_summary_for_report;
 pub(crate) use crate::posture::data::coverage::profile::{
@@ -279,6 +276,9 @@ pub(crate) use crate::posture::data::coverage::profile::{
     packaged_artifact_profile_coverage_summary_for_report,
     packaged_artifact_speed_policy_summary_for_report,
 };
+// The two renderers below have genuine cross-crate RUNTIME consumers in
+// `pleiades-cli` (`commands/packaged_artifact.rs`), so they stay `pub` +
+// re-exported. All other relocated coverage renderers are `pub(crate)`.
 pub use crate::posture::data::coverage::regen::{
     packaged_artifact_normalized_intermediate_summary_for_report,
     packaged_artifact_regeneration_summary_for_report,

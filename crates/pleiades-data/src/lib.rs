@@ -52,8 +52,7 @@ mod regenerate;
 pub mod thresholds;
 
 pub use accuracy_baseline::{
-    accuracy_baseline_against,
-    packaged_artifact_accuracy_baseline, BodyChannelError,
+    accuracy_baseline_against, packaged_artifact_accuracy_baseline, BodyChannelError,
 };
 pub use backend::*;
 pub use coverage::*;
