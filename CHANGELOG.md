@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased (0.4.0)
 
+- **Report-surface relocation, slice C:** report prose for packaged offline-data
+  coverage, profile, fit, target, threshold, regen, generation/body summaries,
+  lookup, regenerate, thresholds, and accuracy-baseline moved from
+  `pleiades-data` into `pleiades-validate`'s `posture::data` modules.
+  `pleiades-data`'s packaged-data backend metadata now rebuilds its
+  `data_sources` summary inline from the retained `&'static str` accessors
+  and `PackagedBodyCoverageSummary::validated_summary_line` instead of
+  calling the (now-relocated) report helpers, decoupling the backend from
+  the report surface. Two over-exposed no-consumer items demoted to
+  `pub(crate)` (`packaged_mixed_frame_batch_parity_summary_for_report`,
+  `eros_self_consistency_max_longitude_arcsec`); two others originally
+  targeted for demotion instead stay `pub` because relocating the renderers
+  gave them genuine cross-crate runtime consumers. Pure relocation: no
+  output or behavior change (byte-identical, verified by release-smoke
+  checksum parity), no version bump — compatibility profile stays 0.7.13,
+  API-stability profile stays 0.3.0. Slice D (`pleiades-jpl`) remains before
+  the workspace 0.4.0 release.
+
 - **Report-surface relocation, slice B:** report prose for house-catalog
   validation, ayanamsa provenance, VSOP87 source-docs (batch parity,
   body-class evidence), ELP lunar-theory (source-family, equatorial/lunar
