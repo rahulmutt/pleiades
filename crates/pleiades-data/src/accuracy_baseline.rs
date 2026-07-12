@@ -281,7 +281,8 @@ pub fn packaged_artifact_accuracy_baseline() -> Vec<BodyChannelError> {
 ///
 /// The longitude difference is wrapped to ±180° before conversion to arcseconds,
 /// exactly as in [`accuracy_baseline_against`].
-pub fn eros_self_consistency_max_longitude_arcsec() -> f64 {
+#[allow(dead_code)]
+pub(crate) fn eros_self_consistency_max_longitude_arcsec() -> f64 {
     let eros_body = CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros"));
     let artifact = build_packaged_artifact();
     let mut max_lon_arcsec: f64 = 0.0;

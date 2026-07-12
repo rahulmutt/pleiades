@@ -908,6 +908,7 @@ impl fmt::Display for PackagedBatchParitySummary {
     }
 }
 
+#[allow(dead_code)]
 fn format_validated_packaged_mixed_frame_batch_parity_summary_for_report(
     summary: &PackagedBatchParitySummary,
 ) -> String {
@@ -918,7 +919,8 @@ fn format_validated_packaged_mixed_frame_batch_parity_summary_for_report(
 }
 
 /// Returns the packaged mixed-frame batch-parity summary.
-pub fn packaged_mixed_frame_batch_parity_summary_for_report() -> String {
+#[allow(dead_code)]
+pub(crate) fn packaged_mixed_frame_batch_parity_summary_for_report() -> String {
     packaged_mixed_frame_batch_parity_summary()
         .as_ref()
         .map(format_validated_packaged_mixed_frame_batch_parity_summary_for_report)
