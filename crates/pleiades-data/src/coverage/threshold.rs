@@ -738,15 +738,6 @@ pub fn packaged_artifact_fit_envelope_summary_details() -> PackagedArtifactFitEn
         .clone()
 }
 
-/// Returns the current packaged-artifact fit envelope after validating the structured posture.
-pub fn packaged_artifact_fit_envelope_summary_for_report() -> String {
-    let summary = packaged_artifact_fit_envelope_summary_details();
-    match summary.validate() {
-        Ok(()) => summary.to_string(),
-        Err(error) => format!("fit envelope: unavailable ({error})"),
-    }
-}
-
 fn packaged_artifact_fit_channel_rank(channel: ChannelKind) -> usize {
     match channel {
         ChannelKind::DistanceAu => 0,
@@ -862,27 +853,9 @@ pub fn packaged_artifact_fit_outlier_summary_details() -> PackagedArtifactFitOut
         .clone()
 }
 
-/// Returns the current packaged-artifact body/channel fit outlier summary after validating the structured posture.
-pub fn packaged_artifact_fit_outlier_summary_for_report() -> String {
-    let summary = packaged_artifact_fit_outlier_summary_details();
-    match summary.validated_summary_line() {
-        Ok(line) => line,
-        Err(error) => format!("fit outliers: unavailable ({error})"),
-    }
-}
-
 /// Returns the calibrated packaged-artifact fit threshold summary record.
 pub fn packaged_artifact_fit_threshold_summary_details() -> PackagedArtifactFitThresholdSummary {
     PACKAGED_ARTIFACT_FIT_THRESHOLD_SUMMARY
-}
-
-/// Returns the current packaged-artifact fit thresholds after validating the structured posture.
-pub fn packaged_artifact_fit_threshold_summary_for_report() -> String {
-    let summary = packaged_artifact_fit_threshold_summary_details();
-    match summary.validated_summary_line() {
-        Ok(line) => line,
-        Err(error) => format!("fit thresholds: unavailable ({error})"),
-    }
 }
 
 /// Returns the current packaged-artifact fit margins relative to the calibrated thresholds.
@@ -893,15 +866,6 @@ pub fn packaged_artifact_fit_margin_summary_details() -> PackagedArtifactFitMarg
     };
     debug_assert!(summary.validate().is_ok());
     summary
-}
-
-/// Returns the current packaged-artifact fit margins relative to the calibrated thresholds after validating the structured posture.
-pub fn packaged_artifact_fit_margin_summary_for_report() -> String {
-    let summary = packaged_artifact_fit_margin_summary_details();
-    match summary.validated_summary_line() {
-        Ok(line) => line,
-        Err(error) => format!("fit margins: unavailable ({error})"),
-    }
 }
 
 /// Returns the current packaged-artifact fit threshold violations summary record.
@@ -915,26 +879,6 @@ pub fn packaged_artifact_fit_threshold_violation_summary_details(
     );
 
     PackagedArtifactFitThresholdViolationsSummary { violations }
-}
-
-/// Returns the number of packaged-artifact fit threshold violations relative to the calibrated thresholds.
-pub fn packaged_artifact_fit_threshold_violation_count_for_report() -> String {
-    let summary = packaged_artifact_fit_threshold_violation_summary_details();
-
-    match summary.validate() {
-        Ok(()) => format!("fit threshold violations: {}", summary.violations.len()),
-        Err(error) => format!("fit threshold violations: unavailable ({error})"),
-    }
-}
-
-/// Returns the packaged-artifact fit threshold violations with field-level context.
-pub fn packaged_artifact_fit_threshold_violation_summary_for_report() -> String {
-    let summary = packaged_artifact_fit_threshold_violation_summary_details();
-
-    match summary.validated_summary_line() {
-        Ok(line) => line,
-        Err(error) => format!("fit threshold violations: unavailable ({error})"),
-    }
 }
 
 pub(crate) fn packaged_artifact_body_scope(body: &CelestialBody) -> &'static str {

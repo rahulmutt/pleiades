@@ -8,20 +8,25 @@
 use core::fmt;
 
 use crate::artifact::*;
-use crate::ComparisonSample;
-use pleiades_compression::join_display;
-use pleiades_core::{BackendFamily, CelestialBody, CelestialBodyClass};
-use pleiades_data::{
+use crate::posture::data::coverage::profile::{
     packaged_artifact_generation_manifest_for_report,
     packaged_artifact_output_support_summary_for_report,
-    packaged_artifact_phase2_corpus_alignment_summary_for_report,
     packaged_artifact_production_profile_summary_for_report,
-    packaged_artifact_profile_summary_with_body_coverage,
-    packaged_artifact_regeneration_summary_for_report,
+};
+use crate::posture::data::coverage::regen::packaged_artifact_regeneration_summary_for_report;
+use crate::posture::data::coverage::target::{
+    packaged_artifact_phase2_corpus_alignment_summary_for_report,
     packaged_artifact_source_fit_holdout_sync_summary_for_report,
+};
+use crate::posture::data::lookup::{
     packaged_artifact_storage_summary_for_report, packaged_frame_treatment_summary_for_report,
     packaged_request_policy_summary_for_report,
 };
+use crate::posture::data::regenerate::packaged_artifact_body_class_span_cap_summary_for_report;
+use crate::ComparisonSample;
+use pleiades_compression::join_display;
+use pleiades_core::{BackendFamily, CelestialBody, CelestialBodyClass};
+use pleiades_data::packaged_artifact_profile_summary_with_body_coverage;
 
 pub(crate) fn format_residual_bodies(bodies: &[CelestialBody]) -> String {
     if bodies.is_empty() {
@@ -326,7 +331,9 @@ pub(crate) fn render_artifact_summary_text(report: &ArtifactInspectionReport) ->
 
     text.push_str("\nArtifact fit outliers by channel\n");
     text.push_str("  ");
-    text.push_str(&pleiades_data::packaged_artifact_fit_channel_outlier_summary_for_report());
+    text.push_str(
+        &crate::posture::data::coverage::fit::packaged_artifact_fit_channel_outlier_summary_for_report(),
+    );
     text.push('\n');
 
     text.push_str("\nRelease summary: release-summary\n");
@@ -669,7 +676,7 @@ pub(crate) fn format_body_class_cadence(report: &ArtifactInspectionReport) -> St
 }
 
 pub(crate) fn format_body_class_span_caps() -> String {
-    let summary = pleiades_data::packaged_artifact_body_class_span_cap_summary_for_report();
+    let summary = packaged_artifact_body_class_span_cap_summary_for_report();
     summary
         .strip_prefix("body-class span caps: ")
         .unwrap_or(&summary)

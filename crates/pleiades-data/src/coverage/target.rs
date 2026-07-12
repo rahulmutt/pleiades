@@ -76,14 +76,6 @@ impl fmt::Display for PackagedArtifactTargetThresholdState {
     }
 }
 
-/// Returns the current packaged-artifact target-threshold state after validating the release posture.
-pub fn packaged_artifact_target_threshold_state_for_report() -> String {
-    match PACKAGED_ARTIFACT_TARGET_THRESHOLD_STATE.validated_summary_line() {
-        Ok(line) => line,
-        Err(error) => format!("target-threshold state: unavailable ({error})"),
-    }
-}
-
 const PACKAGED_ARTIFACT_TARGET_THRESHOLD_STATE: PackagedArtifactTargetThresholdState =
     PackagedArtifactTargetThresholdState::ProductionReady;
 pub(crate) const PACKAGED_ARTIFACT_TARGET_THRESHOLD_SCOPES: &[&str] = &[
@@ -379,21 +371,6 @@ pub fn packaged_artifact_phase2_corpus_alignment_summary_details(
     })
 }
 
-/// Returns the current packaged-artifact phase-2 corpus alignment posture after validating the structured evidence.
-pub fn packaged_artifact_phase2_corpus_alignment_summary_for_report() -> String {
-    static SUMMARY: OnceLock<String> = OnceLock::new();
-    SUMMARY
-        .get_or_init(|| {
-            let summary = packaged_artifact_phase2_corpus_alignment_summary_details();
-            match summary.as_ref().map(PackagedArtifactPhase2CorpusAlignmentSummary::validated_summary_line) {
-                Some(Ok(line)) => line,
-                Some(Err(error)) => format!("phase 2 corpus alignment: unavailable ({error})"),
-                None => "phase 2 corpus alignment: unavailable (phase-2 corpus evidence should be available)".to_string(),
-            }
-        })
-        .clone()
-}
-
 /// Structured target-threshold posture for the packaged artifact generator.
 #[derive(Clone, Debug, PartialEq)]
 pub struct PackagedArtifactTargetThresholdSummary {
@@ -574,20 +551,6 @@ pub fn packaged_artifact_target_threshold_summary_details() -> PackagedArtifactT
     summary
 }
 
-/// Returns the current packaged-artifact target-threshold summary after validating the structured posture.
-pub fn packaged_artifact_target_threshold_summary_for_report() -> String {
-    static SUMMARY: OnceLock<String> = OnceLock::new();
-    SUMMARY
-        .get_or_init(|| {
-            let summary = packaged_artifact_target_threshold_summary_details();
-            match summary.validated_summary_line() {
-                Ok(line) => line,
-                Err(error) => format!("target thresholds: unavailable ({error})"),
-            }
-        })
-        .clone()
-}
-
 /// Structured sync summary for the packaged-artifact source-fit and hold-out checks.
 #[derive(Clone, Debug, PartialEq)]
 pub struct PackagedArtifactSourceFitHoldoutSyncSummary {
@@ -714,32 +677,4 @@ pub fn packaged_artifact_source_fit_holdout_sync_summary_details(
     };
     debug_assert!(summary.validate().is_ok());
     summary
-}
-
-/// Returns the current packaged-artifact source-fit and hold-out sync posture after validating the structured evidence.
-pub fn packaged_artifact_source_fit_holdout_sync_summary_for_report() -> String {
-    static SUMMARY: OnceLock<String> = OnceLock::new();
-    SUMMARY
-        .get_or_init(|| {
-            let summary = packaged_artifact_source_fit_holdout_sync_summary_details();
-            match summary.validated_summary_line() {
-                Ok(line) => line,
-                Err(error) => format!("source-fit and hold-out sync: unavailable ({error})"),
-            }
-        })
-        .clone()
-}
-
-/// Returns the current packaged-artifact body-class target-threshold envelopes after validating the structured posture.
-pub fn packaged_artifact_target_threshold_scope_envelopes_for_report() -> String {
-    static SUMMARY: OnceLock<String> = OnceLock::new();
-    SUMMARY
-        .get_or_init(|| {
-            let summary = packaged_artifact_target_threshold_scope_envelopes_summary_details();
-            match summary.validated_summary_line() {
-                Ok(line) => line,
-                Err(error) => format!("scope envelopes: unavailable ({error})"),
-            }
-        })
-        .clone()
 }

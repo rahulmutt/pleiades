@@ -168,13 +168,9 @@ const PACKAGED_ARTIFACT_GENERATION_POLICY_SUMMARY: PackagedArtifactGenerationPol
 /// # Examples
 ///
 /// ```
-/// use pleiades_data::{
-///     packaged_artifact_generation_policy_summary_details,
-///     packaged_artifact_generation_policy_summary_for_report,
-/// };
+/// use pleiades_data::packaged_artifact_generation_policy_summary_details;
 ///
 /// let summary = packaged_artifact_generation_policy_summary_details();
-/// assert_eq!(summary.to_string(), packaged_artifact_generation_policy_summary_for_report());
 /// assert!(summary.validate().is_ok());
 /// ```
 pub fn packaged_artifact_generation_policy_summary_details(
@@ -184,20 +180,6 @@ pub fn packaged_artifact_generation_policy_summary_details(
     summary
 }
 
-/// Returns the current packaged-artifact generation policy summary after validating the structured posture.
-pub fn packaged_artifact_generation_policy_summary_for_report() -> String {
-    static SUMMARY: OnceLock<String> = OnceLock::new();
-    SUMMARY
-        .get_or_init(|| {
-            let summary = packaged_artifact_generation_policy_summary_details();
-            match summary.validate() {
-                Ok(()) => summary.to_string(),
-                Err(error) => format!("Packaged-artifact generation policy: unavailable ({error})"),
-            }
-        })
-        .clone()
-}
-
 /// Returns the current packaged-artifact residual-bearing body coverage summary record.
 pub fn packaged_artifact_generation_residual_bodies_summary_details(
 ) -> ArtifactResidualBodyCoverageSummary {
@@ -205,22 +187,6 @@ pub fn packaged_artifact_generation_residual_bodies_summary_details(
     let summary = artifact.residual_body_coverage_summary();
     debug_assert!(summary.validate(artifact).is_ok());
     summary
-}
-
-/// Returns the current packaged-artifact residual-bearing body set after validating the structured posture.
-pub fn packaged_artifact_generation_residual_bodies_summary_for_report() -> String {
-    static SUMMARY: OnceLock<String> = OnceLock::new();
-    SUMMARY
-        .get_or_init(|| {
-            let artifact = packaged_artifact();
-            let summary = packaged_artifact_generation_residual_bodies_summary_details();
-
-            match summary.validated_summary_line_with_body_count(artifact) {
-                Ok(line) => line,
-                Err(error) => format!("residual bodies: unavailable ({error})"),
-            }
-        })
-        .clone()
 }
 
 /// Returns the current packaged-artifact generation policy summary.

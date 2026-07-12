@@ -91,10 +91,6 @@ fn packaged_artifact_profile_summary_details_match_the_bundled_header() {
         output_support_summary.summary_line()
     );
     assert_eq!(
-        packaged_artifact_output_support_summary_for_report(),
-        summary.profile.output_support_summary_line()
-    );
-    assert_eq!(
         summary.output_support_summary_line(),
         summary.profile.output_support_summary_line()
     );
@@ -129,17 +125,7 @@ fn packaged_artifact_profile_summary_details_match_the_bundled_header() {
         summary.profile_coverage_summary()
     );
     assert_eq!(
-        packaged_artifact_profile_coverage_summary_for_report(),
-        summary
-            .profile_coverage_summary()
-            .summary_line_with_bodies()
-    );
-    assert_eq!(
         packaged_artifact_profile_summary_with_output_support(),
-        summary.summary_line_with_output_support()
-    );
-    assert_eq!(
-        packaged_artifact_profile_summary_with_output_support_for_report(),
         summary.summary_line_with_output_support()
     );
 }
@@ -352,10 +338,6 @@ fn packaged_artifact_access_summary_matches_current_build_posture() {
     assert_eq!(summary.summary_line(), packaged_artifact_access_summary());
     assert_eq!(summary.to_string(), packaged_artifact_access_summary());
     assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
-    assert_eq!(
-        packaged_artifact_access_summary_for_report(),
-        summary.to_string()
-    );
     summary
         .validate()
         .expect("packaged artifact access summary should validate");
@@ -370,10 +352,6 @@ fn packaged_artifact_output_support_summary_matches_current_build_posture() {
     );
     assert_eq!(summary.to_string(), summary.summary_line());
     assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
-    assert_eq!(
-        packaged_artifact_output_support_summary_for_report(),
-        summary.summary_line()
-    );
     summary
         .validate()
         .expect("packaged artifact output-support summary should validate");
@@ -466,10 +444,6 @@ fn packaged_artifact_generation_policy_summary_matches_current_posture() {
     residual_bodies
         .validate(artifact)
         .expect("residual body coverage summary should validate");
-    assert_eq!(
-        packaged_artifact_generation_residual_bodies_summary_for_report(),
-        residual_bodies.summary_line_with_body_count()
-    );
 }
 
 #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
@@ -537,10 +511,6 @@ fn packaged_artifact_regeneration_summary_includes_reference_snapshot_coverage()
             packaged_artifact_generation_policy_note_text()
         )
     );
-    assert_eq!(
-        summary.residual_body_line(),
-        packaged_artifact_generation_residual_bodies_summary_for_report()
-    );
     assert_eq!(summary.fit_envelope.body_count, packaged_bodies().len());
     assert_eq!(
         summary.fit_envelope.expected_sample_count,
@@ -578,10 +548,6 @@ fn packaged_artifact_regeneration_summary_includes_reference_snapshot_coverage()
         packaged_body_coverage_summary_details().validated_summary_line(),
         Ok(packaged_body_coverage_summary_details().summary_line())
     );
-    assert_eq!(
-        packaged_body_coverage_summary(),
-        packaged_body_coverage_summary_details().to_string()
-    );
 
     let provenance = summary.summary_line();
     assert_eq!(summary.to_string(), provenance);
@@ -589,10 +555,6 @@ fn packaged_artifact_regeneration_summary_includes_reference_snapshot_coverage()
     summary
         .validate()
         .expect("packaged regeneration summary should validate");
-    assert_eq!(
-        summary.normalized_intermediates.summary_line(),
-        packaged_artifact_normalized_intermediate_summary_for_report()
-    );
     assert!(provenance
         .contains("Packaged artifact regeneration source: label=stage-5 packaged-data draft"));
     assert!(provenance.contains("profile id=pleiades-packaged-artifact-profile/stage-5-draft"));
@@ -608,7 +570,6 @@ fn packaged_artifact_regeneration_summary_includes_reference_snapshot_coverage()
     assert!(
         provenance.contains("quantization scales: stored=Longitude=9, Latitude=9, DistanceAu=10")
     );
-    assert!(provenance.contains(&packaged_artifact_generation_residual_bodies_summary_for_report()));
     assert!(provenance.contains(&format!("artifact version={}", artifact.header.version)));
     assert!(provenance.contains("11 bundled bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros)"));
     assert!(provenance.contains("Reference snapshot coverage:"));
@@ -877,10 +838,6 @@ fn packaged_frame_treatment_summary_reuses_the_structured_report_helper() {
 
     assert_eq!(summary.summary_line(), packaged_frame_treatment_summary());
     assert_eq!(summary.to_string(), packaged_frame_treatment_summary());
-    assert_eq!(
-        packaged_frame_treatment_summary_for_report(),
-        summary.to_string()
-    );
     assert_eq!(summary.validate(), Ok(()));
 }
 
@@ -1161,12 +1118,6 @@ fn packaged_artifact_production_profile_summary_reflects_the_current_posture() {
     assert!(summary
         .summary_line()
         .contains("scope envelopes=scope=luminaries; bodies=2 (Sun, Moon); fit envelope:"));
-    assert!(
-        packaged_artifact_target_threshold_scope_envelopes_for_report()
-            .contains("scope=luminaries; bodies=2 (Sun, Moon); fit envelope:")
-    );
-    assert!(packaged_artifact_production_profile_summary_for_report()
-        .contains("Packaged artifact production profile draft:"));
     assert_eq!(
         packaged_artifact_production_profile_summary(),
         summary.summary_line()
@@ -1185,10 +1136,6 @@ fn packaged_artifact_speed_policy_summary_reflects_the_current_posture() {
     assert_eq!(
         summary.summary_line(),
         "FittedDerivative; motion output support=derived"
-    );
-    assert_eq!(
-        packaged_artifact_speed_policy_summary_for_report(),
-        summary.summary_line()
     );
     summary
         .validate()
@@ -1514,8 +1461,6 @@ fn packaged_artifact_generation_manifest_reflects_the_current_posture() {
         .summary_line()
         .contains("source revision=Production generation source:"));
     assert!(manifest.summary_line().contains("regeneration="));
-    assert!(packaged_artifact_generation_manifest_for_report()
-        .contains("Packaged artifact generation manifest:"));
     assert_eq!(
         packaged_artifact_generation_manifest(),
         manifest.summary_line()
@@ -2135,31 +2080,6 @@ fn packaged_artifact_target_threshold_summary_validation_rejects_phase2_request_
 }
 
 #[test]
-fn packaged_artifact_phase2_corpus_alignment_summary_for_report_is_validated() {
-    let rendered = packaged_artifact_phase2_corpus_alignment_summary_for_report();
-    assert!(rendered.contains("reference snapshot="));
-    assert!(rendered.contains("reference exact J2000 evidence="));
-    assert!(rendered.contains("comparison snapshot="));
-    assert!(rendered.contains("independent hold-out="));
-    assert!(rendered.contains(
-        "production generation body-class coverage=Production generation body-class coverage:"
-    ));
-    assert!(rendered.contains("production generation source=Production generation source:"));
-    assert!(rendered.contains("Reference snapshot body-class coverage"));
-    assert!(rendered.contains("Reference snapshot exact J2000 evidence"));
-    assert!(rendered.contains("Independent hold-out body-class coverage"));
-    assert!(rendered.contains(
-        "selected asteroid source request corpus=Selected asteroid source request corpus:"
-    ));
-    assert!(rendered.contains(
-        "selected asteroid source request corpus equatorial=Selected asteroid source request corpus:"
-    ));
-    assert!(rendered.contains(
-        "production generation boundary source=Production generation boundary overlay source:"
-    ));
-}
-
-#[test]
 fn packaged_artifact_phase2_corpus_alignment_summary_validation_rejects_exact_j2000_drift() {
     let mut summary = packaged_artifact_phase2_corpus_alignment_summary_details()
         .expect("phase-2 corpus evidence should be available");
@@ -2226,10 +2146,6 @@ fn packaged_artifact_phase2_corpus_alignment_summary_details_remain_publicly_reu
     assert!(summary.validate().is_ok());
     assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
     assert_eq!(summary.to_string(), summary.summary_line());
-    assert_eq!(
-        packaged_artifact_phase2_corpus_alignment_summary_for_report(),
-        summary.summary_line()
-    );
 }
 
 #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
@@ -2263,10 +2179,6 @@ fn packaged_artifact_source_fit_holdout_sync_summary_reflects_the_current_postur
     assert_eq!(summary.target_thresholds, target_thresholds);
     assert_eq!(summary.to_string(), summary.summary_line());
     assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
-    assert_eq!(
-        packaged_artifact_source_fit_holdout_sync_summary_for_report(),
-        summary.summary_line()
-    );
 }
 
 #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
@@ -2366,16 +2278,6 @@ fn packaged_artifact_fit_threshold_summary_reflects_the_current_posture() {
         Ok(violations.summary_line())
     );
     assert!(violations.validate().is_ok());
-    assert!(packaged_artifact_fit_threshold_summary_for_report()
-        .contains("fit thresholds: mean Δlon≤79.299372815190°"));
-    assert_eq!(
-        packaged_artifact_fit_threshold_violation_count_for_report(),
-        "fit threshold violations: 0"
-    );
-    assert_eq!(
-        packaged_artifact_fit_threshold_violation_summary_for_report(),
-        "fit threshold violations: 0; details: none"
-    );
 }
 
 #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
@@ -2407,10 +2309,6 @@ fn packaged_artifact_fit_threshold_violation_summary_validation_rejects_drift() 
 #[test]
 fn packaged_artifact_fit_margin_summary_reflects_the_current_posture() {
     let summary = packaged_artifact_fit_margin_summary_details();
-    assert_eq!(
-        summary.summary_line(),
-        packaged_artifact_fit_margin_summary_for_report()
-    );
     assert_eq!(summary.to_string(), summary.summary_line());
     assert!(summary.validate().is_ok());
     assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
@@ -2488,10 +2386,6 @@ fn packaged_artifact_fit_outlier_summary_prioritizes_distance_channel_outliers()
         Ok(by_channel.clone())
     );
     assert!(by_channel_summary.validate().is_ok());
-    assert_eq!(
-        packaged_artifact_fit_channel_outlier_summary_for_report(),
-        by_channel
-    );
 }
 
 #[test]
@@ -2569,14 +2463,6 @@ fn packaged_artifact_body_class_span_cap_summary_reflects_the_current_posture() 
         summary.summary_line(),
         "body-class span caps: luminaries=256 days, inner planets=384 days, outer planets=768 days, pluto=1536 days, lunar points=256 days, selected asteroids=256 days, custom bodies=512 days"
     );
-    assert_eq!(
-        packaged_artifact_body_class_span_cap_summary_for_report(),
-        summary.to_string()
-    );
-    assert_eq!(
-        packaged_artifact_body_class_span_cap_entries_for_report(),
-        "luminaries=256 days, inner planets=384 days, outer planets=768 days, pluto=1536 days, lunar points=256 days, selected asteroids=256 days, custom bodies=512 days"
-    );
     assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
     assert!(summary.validate().is_ok());
 }
@@ -2623,10 +2509,6 @@ fn packaged_artifact_body_cadence_summary_reflects_the_current_posture() {
     summary
         .validate()
         .expect("packaged artifact body cadence summary should validate");
-    assert_eq!(
-        packaged_artifact_body_cadence_summary_for_report(),
-        summary.summary_line()
-    );
 }
 
 #[test]
@@ -2656,7 +2538,6 @@ fn packaged_body_coverage_summary_matches_the_packaged_body_set() {
         summary.summary_line(),
         "Packaged body set: 11 bundled bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros)"
     );
-    assert_eq!(packaged_body_coverage_summary(), summary.to_string());
 }
 
 #[test]
@@ -2694,17 +2575,6 @@ fn packaged_body_coverage_summary_validated_summary_line_rejects_body_drift() {
     assert_eq!(
         error.to_string(),
         "the packaged body coverage summary field `bodies` is out of sync with the current bundled body set"
-    );
-}
-
-#[test]
-fn packaged_body_coverage_summary_report_marks_drift_as_unavailable() {
-    let mut summary = packaged_body_coverage_summary_details();
-    summary.bodies.swap(0, 1);
-
-    assert_eq!(
-        format_validated_packaged_body_coverage_summary_for_report(&summary),
-        "Packaged body set: unavailable (the packaged body coverage summary field `bodies` is out of sync with the current bundled body set)"
     );
 }
 

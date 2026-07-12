@@ -2201,7 +2201,7 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("packaged-artifact-thresholds-summary") | Some("artifact-thresholds") => {
             ensure_no_extra_args(&args[1..], "packaged-artifact-thresholds-summary")?;
-            Ok(pleiades_data::thresholds::packaged_artifact_thresholds_summary_for_report())
+            Ok(packaged_artifact_thresholds_summary_for_report())
         }
         Some("packaged-artifact-latency-budget-summary") | Some("artifact-latency") => {
             ensure_no_extra_args(&args[1..], "packaged-artifact-latency-budget-summary")?;

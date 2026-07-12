@@ -284,7 +284,7 @@ fn packaged_artifact_source_fit_holdout_sync_summary_and_alias_commands_render_t
         sync,
         format!(
             "Packaged-artifact source-fit and hold-out sync: {}",
-            pleiades_data::packaged_artifact_source_fit_holdout_sync_summary_for_report()
+            pleiades_data::packaged_artifact_source_fit_holdout_sync_summary_details()
         )
     );
     assert_eq!(

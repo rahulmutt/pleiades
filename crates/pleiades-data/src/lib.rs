@@ -26,7 +26,7 @@
 //!
 //! ```
 //! use pleiades_backend::{CelestialBody, Instant, JulianDay, TimeScale};
-//! use pleiades_data::{packaged_backend, packaged_body_coverage_summary, packaged_lookup};
+//! use pleiades_data::{packaged_backend, packaged_lookup};
 //!
 //! let _backend = packaged_backend();
 //! let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
@@ -34,7 +34,6 @@
 //!     .expect("Sun should be in the packaged artifact");
 //!
 //! assert!(sun.distance_au.is_some());
-//! assert!(packaged_body_coverage_summary().contains("433-Eros"));
 //! ```
 
 #![forbid(unsafe_code)]
@@ -53,16 +52,13 @@ mod regenerate;
 pub mod thresholds;
 
 pub use accuracy_baseline::{
-    accuracy_baseline_against, eros_self_consistency_max_longitude_arcsec,
-    packaged_artifact_accuracy_baseline, packaged_artifact_accuracy_baseline_summary_for_report,
-    BodyChannelError,
+    accuracy_baseline_against, packaged_artifact_accuracy_baseline, BodyChannelError,
 };
 pub use backend::*;
 pub use coverage::*;
 pub use data::*;
 pub use lookup::*;
 pub use regenerate::*;
-pub use thresholds::packaged_artifact_thresholds_summary_for_report;
 
 // Test-only re-exports: bring pub(crate) items into lib.rs scope so that
 // `use super::*` in the tests module can pick them up.
