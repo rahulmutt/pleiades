@@ -128,9 +128,20 @@ pub(crate) fn validated_packaged_artifact_target_threshold_state_for_report() ->
 }
 
 pub(crate) fn validated_packaged_artifact_target_threshold_summary_for_report() -> String {
+    // Repointed (Slice D, Task 14a2) from the pleiades-data inherent
+    // `validated_summary_line` to `validate()` (kept in pleiades-data)
+    // followed by the validate render copy in
+    // `posture::data::coverage::target`, which itself routes its
+    // `phase2_corpus_alignment` field through the Task 12 jpl-evidence
+    // render copy. Nothing here calls the pleiades-data inherent renderer
+    // that Task 14b will delete.
     let summary = pleiades_data::packaged_artifact_target_threshold_summary_details();
-    match summary.validated_summary_line() {
-        Ok(line) => line,
+    match summary.validate() {
+        Ok(()) => {
+            crate::posture::data::coverage::target::packaged_artifact_target_threshold_summary_line(
+                &summary,
+            )
+        }
         Err(error) => format!("Packaged-artifact target thresholds: unavailable ({error})"),
     }
 }
@@ -146,14 +157,19 @@ pub(crate) fn validated_packaged_artifact_target_threshold_scope_envelopes_summa
 }
 
 pub(crate) fn validated_packaged_artifact_source_fit_holdout_sync_summary_for_report() -> String {
+    // Repointed (Slice D, Task 14a2) — see
+    // `validated_packaged_artifact_target_threshold_summary_for_report` above.
     let summary = pleiades_data::packaged_artifact_source_fit_holdout_sync_summary_details();
-    match summary.validated_summary_line() {
-        Ok(line) => line,
+    match summary.validate() {
+        Ok(()) => crate::posture::data::coverage::target::packaged_artifact_source_fit_holdout_sync_summary_line(&summary),
         Err(error) => format!("source-fit and hold-out sync: unavailable ({error})"),
     }
 }
 
 pub(crate) fn validated_packaged_artifact_phase2_corpus_alignment_summary_for_report() -> String {
+    // Repointed (Slice D, Task 14a2) from the pleiades-data inherent
+    // `validated_summary_line` to `validate()` (kept in pleiades-data)
+    // followed by the Task 12 validate render copy.
     let summary = match pleiades_data::packaged_artifact_phase2_corpus_alignment_summary_details()
     {
         Some(summary) => summary,
@@ -162,8 +178,8 @@ pub(crate) fn validated_packaged_artifact_phase2_corpus_alignment_summary_for_re
         }
     };
 
-    match summary.validated_summary_line() {
-        Ok(line) => line,
+    match summary.validate() {
+        Ok(()) => crate::posture::jpl::data_phase2_alignment::packaged_artifact_phase2_corpus_alignment_summary_for_report(&summary),
         Err(error) => format!("Packaged-artifact phase-2 corpus alignment: unavailable ({error})"),
     }
 }
