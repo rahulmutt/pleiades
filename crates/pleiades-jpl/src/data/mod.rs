@@ -9,7 +9,9 @@ mod selected_asteroid_2378498;
 
 pub use selected_asteroid_2001::{
     selected_asteroid_source_2451917_summary, selected_asteroid_source_2451917_summary_for_report,
+    SelectedAsteroidSource2451917Summary,
 };
 pub use selected_asteroid_2378498::{
     selected_asteroid_source_2378498_summary, selected_asteroid_source_2378498_summary_for_report,
+    SelectedAsteroidSource2378498Summary,
 };

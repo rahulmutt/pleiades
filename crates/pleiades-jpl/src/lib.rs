@@ -33,6 +33,7 @@ mod data;
 pub use data::{
     selected_asteroid_source_2378498_summary, selected_asteroid_source_2378498_summary_for_report,
     selected_asteroid_source_2451917_summary, selected_asteroid_source_2451917_summary_for_report,
+    SelectedAsteroidSource2378498Summary, SelectedAsteroidSource2451917Summary,
 };
 
 mod production_generation;

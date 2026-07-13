@@ -12,3 +12,4 @@ pub(crate) mod jpl_posture;
 pub(crate) mod production_generation;
 pub(crate) mod reference_asteroid;
 pub(crate) mod reference_snapshot;
+pub(crate) mod selected_asteroid;
