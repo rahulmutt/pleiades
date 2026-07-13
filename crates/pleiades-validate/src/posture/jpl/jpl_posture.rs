@@ -23,6 +23,13 @@ use pleiades_jpl::{
     JplSnapshotRequestPolicy, JplSourceCorpusContractSummary, JplSourcePostureSummary,
 };
 
+// Slice D Task 13: reach the other jpl-render submodules' free functions
+// (`comparison_*`, `holdout_*`, `production_generation_*`, `reference_*`,
+// `selected_asteroid_*`) without a `pleiades_jpl::` detour. See
+// `posture/jpl/mod.rs` for the glob re-exports this resolves through.
+#[allow(unused_imports)]
+use crate::posture::jpl::*;
+
 /// Reproduced from jpl's private `format_instant` (`lib.rs:66`), which is
 /// crate-private and not callable cross-crate.
 fn format_instant(instant: pleiades_types::Instant) -> String {
@@ -114,9 +121,12 @@ pub(crate) fn jpl_provenance_only_summary_line(s: &JplProvenanceOnlySummary) -> 
 /// `jpl_source_posture_summary_line` (same-file evidence structs). The
 /// remaining nested calls (`reference_summary`, `boundary_summary`,
 /// `source_windows`, `source_revision`, `boundary_request_corpus_*`) are on
-/// evidence structs owned by OTHER jpl modules, so they stay as direct
-/// `.summary_line()` calls on jpl's still-present inherent methods
-/// (validate→jpl, byte-identical; flipped in Task 13).
+/// evidence structs owned by OTHER jpl modules; Task 13 rewired them to the
+/// local re-homed renderers (`reference_snapshot_source_summary_line`,
+/// `independent_holdout_source_summary_summary_line`,
+/// `production_generation_snapshot_window_summary_line`,
+/// `production_generation_source_revision_summary_line`,
+/// `production_generation_boundary_request_corpus_summary_line`).
 pub(crate) fn jpl_source_corpus_contract_summary_line(
     s: &JplSourceCorpusContractSummary,
 ) -> String {
@@ -124,19 +134,23 @@ pub(crate) fn jpl_source_corpus_contract_summary_line(
         "JPL source corpus contract: {}; {}; reference={}; hold-out={}; source windows={}; source revision={}; boundary request corpora: ecliptic={}; equatorial={}",
         jpl_snapshot_evidence_classification_summary_line(&s.evidence_classification),
         jpl_source_posture_summary_line(&s.source_posture),
-        s.reference_summary.summary_line(),
-        s.boundary_summary.summary_line(),
+        reference_snapshot_source_summary_line(&s.reference_summary),
+        independent_holdout_source_summary_summary_line(&s.boundary_summary),
         strip_report_prefix(
-            &s.source_windows.summary_line(),
+            &production_generation_snapshot_window_summary_line(&s.source_windows),
             "Production generation source windows: ",
         ),
-        s.source_revision.summary_line(),
+        production_generation_source_revision_summary_line(&s.source_revision),
         strip_report_prefix(
-            &s.boundary_request_corpus_ecliptic.summary_line(),
+            &production_generation_boundary_request_corpus_summary_line(
+                &s.boundary_request_corpus_ecliptic
+            ),
             "Production generation boundary request corpus: ",
         ),
         strip_report_prefix(
-            &s.boundary_request_corpus_equatorial.summary_line(),
+            &production_generation_boundary_request_corpus_summary_line(
+                &s.boundary_request_corpus_equatorial
+            ),
             "Production generation boundary request corpus: ",
         ),
     )
@@ -400,64 +414,64 @@ pub(crate) fn jpl_snapshot_evidence_summary_for_report() -> String {
         jpl_snapshot_evidence_classification_summary_for_report(),
         jpl_source_posture_summary_for_report(),
         jpl_provenance_only_summary_for_report(),
-        pleiades_jpl::reference_snapshot_summary_for_report(),
-        pleiades_jpl::reference_snapshot_2451910_major_body_boundary_summary_for_report(),
-        pleiades_jpl::reference_snapshot_2451911_major_body_boundary_summary_for_report(),
-        pleiades_jpl::reference_snapshot_2451912_major_body_boundary_summary_for_report(),
-        pleiades_jpl::reference_snapshot_2451913_major_body_boundary_summary_for_report(),
-        pleiades_jpl::reference_snapshot_2451914_major_body_boundary_summary_for_report(),
-        pleiades_jpl::reference_snapshot_2451915_major_body_boundary_summary_for_report(),
-        pleiades_jpl::reference_snapshot_bridge_day_summary_for_report(),
-        pleiades_jpl::reference_snapshot_2451914_major_body_bridge_day_summary_for_report(),
-        pleiades_jpl::reference_snapshot_2451914_major_body_bridge_summary_for_report(),
-        pleiades_jpl::reference_snapshot_2451916_major_body_interior_summary_for_report(),
-        pleiades_jpl::reference_snapshot_2451916_major_body_dense_boundary_summary_for_report(),
-        pleiades_jpl::reference_snapshot_2451917_major_body_boundary_summary_for_report(),
-        pleiades_jpl::reference_snapshot_2451917_major_body_bridge_summary_for_report(),
-        pleiades_jpl::reference_snapshot_mars_jupiter_boundary_summary_for_report(),
-        pleiades_jpl::reference_snapshot_2451918_major_body_boundary_summary_for_report(),
-        pleiades_jpl::reference_snapshot_2451919_major_body_boundary_summary_for_report(),
-        pleiades_jpl::reference_snapshot_2451920_major_body_interior_summary_for_report(),
-        pleiades_jpl::reference_snapshot_body_class_coverage_summary_for_report(),
-        pleiades_jpl::reference_snapshot_equatorial_parity_summary_for_report(),
-        pleiades_jpl::reference_snapshot_batch_parity_summary_for_report(),
-        pleiades_jpl::production_generation_snapshot_summary_for_report(),
-        pleiades_jpl::production_generation_source_summary_for_report(),
-        pleiades_jpl::reference_snapshot_source_summary_for_report(),
-        pleiades_jpl::reference_snapshot_source_window_summary_for_report(),
-        pleiades_jpl::reference_snapshot_boundary_epoch_coverage_summary_for_report(),
-        pleiades_jpl::reference_snapshot_sparse_boundary_summary_for_report(),
-        pleiades_jpl::reference_snapshot_major_body_boundary_summary_for_report(),
-        pleiades_jpl::reference_holdout_overlap_summary_for_report(),
-        pleiades_jpl::independent_holdout_high_curvature_summary_for_report(),
-        pleiades_jpl::reference_snapshot_manifest_summary_for_report(),
-        pleiades_jpl::production_generation_boundary_source_summary_for_report(),
-        pleiades_jpl::production_generation_boundary_window_summary_for_report(),
-        pleiades_jpl::production_generation_boundary_body_class_coverage_summary_for_report(),
-        pleiades_jpl::production_generation_boundary_request_corpus_summary_for_report(),
-        pleiades_jpl::production_generation_boundary_request_corpus_equatorial_summary_for_report(),
-        pleiades_jpl::reference_asteroid_evidence_summary_for_report(),
-        pleiades_jpl::reference_asteroid_equatorial_evidence_summary_for_report(),
-        pleiades_jpl::reference_asteroid_source_window_summary_for_report(),
-        pleiades_jpl::selected_asteroid_source_2451917_summary_for_report(),
-        pleiades_jpl::selected_asteroid_source_2453000_summary_for_report(),
-        pleiades_jpl::selected_asteroid_boundary_summary_for_report(),
-        pleiades_jpl::selected_asteroid_bridge_summary_for_report(),
-        pleiades_jpl::selected_asteroid_dense_boundary_summary_for_report(),
-        pleiades_jpl::selected_asteroid_terminal_boundary_summary_for_report(),
-        pleiades_jpl::comparison_snapshot_summary_for_report(),
-        pleiades_jpl::comparison_snapshot_body_class_coverage_summary_for_report(),
-        pleiades_jpl::comparison_snapshot_source_summary_for_report(),
-        pleiades_jpl::comparison_snapshot_source_window_summary_for_report(),
-        pleiades_jpl::comparison_snapshot_manifest_summary_for_report(),
-        pleiades_jpl::independent_holdout_snapshot_summary_for_report(),
-        pleiades_jpl::independent_holdout_snapshot_equatorial_parity_summary_for_report(),
-        pleiades_jpl::independent_holdout_snapshot_batch_parity_summary_for_report(),
-        pleiades_jpl::independent_holdout_source_summary_for_report(),
-        pleiades_jpl::independent_holdout_snapshot_source_window_summary_for_report(),
-        pleiades_jpl::independent_holdout_snapshot_quarter_day_boundary_summary_for_report(),
-        pleiades_jpl::independent_holdout_manifest_summary_for_report(),
-        pleiades_jpl::jpl_independent_holdout_summary_for_report(),
+        reference_snapshot_summary_for_report(),
+        reference_snapshot_2451910_major_body_boundary_summary_for_report(),
+        reference_snapshot_2451911_major_body_boundary_summary_for_report(),
+        reference_snapshot_2451912_major_body_boundary_summary_for_report(),
+        reference_snapshot_2451913_major_body_boundary_summary_for_report(),
+        reference_snapshot_2451914_major_body_boundary_summary_for_report(),
+        reference_snapshot_2451915_major_body_boundary_summary_for_report(),
+        reference_snapshot_bridge_day_summary_for_report(),
+        reference_snapshot_2451914_major_body_bridge_day_summary_for_report(),
+        reference_snapshot_2451914_major_body_bridge_summary_for_report(),
+        reference_snapshot_2451916_major_body_interior_summary_for_report(),
+        reference_snapshot_2451916_major_body_dense_boundary_summary_for_report(),
+        reference_snapshot_2451917_major_body_boundary_summary_for_report(),
+        reference_snapshot_2451917_major_body_bridge_summary_for_report(),
+        reference_snapshot_mars_jupiter_boundary_summary_for_report(),
+        reference_snapshot_2451918_major_body_boundary_summary_for_report(),
+        reference_snapshot_2451919_major_body_boundary_summary_for_report(),
+        reference_snapshot_2451920_major_body_interior_summary_for_report(),
+        reference_snapshot_body_class_coverage_summary_for_report(),
+        reference_snapshot_equatorial_parity_summary_for_report(),
+        reference_snapshot_batch_parity_summary_for_report(),
+        production_generation_snapshot_summary_for_report(),
+        production_generation_source_summary_for_report(),
+        reference_snapshot_source_summary_for_report(),
+        reference_snapshot_source_window_summary_for_report(),
+        reference_snapshot_boundary_epoch_coverage_summary_for_report(),
+        reference_snapshot_sparse_boundary_summary_for_report(),
+        reference_snapshot_major_body_boundary_summary_for_report(),
+        reference_holdout_overlap_summary_for_report(),
+        independent_holdout_high_curvature_summary_for_report(),
+        reference_snapshot_manifest_summary_for_report(),
+        production_generation_boundary_source_summary_for_report(),
+        production_generation_boundary_window_summary_for_report(),
+        production_generation_boundary_body_class_coverage_summary_for_report(),
+        production_generation_boundary_request_corpus_summary_for_report(),
+        production_generation_boundary_request_corpus_equatorial_summary_for_report(),
+        reference_asteroid_evidence_summary_for_report(),
+        reference_asteroid_equatorial_evidence_summary_for_report(),
+        reference_asteroid_source_window_summary_for_report(),
+        selected_asteroid_source_2451917_summary_for_report(),
+        selected_asteroid_source_2453000_summary_for_report(),
+        selected_asteroid_boundary_summary_for_report(),
+        selected_asteroid_bridge_summary_for_report(),
+        selected_asteroid_dense_boundary_summary_for_report(),
+        selected_asteroid_terminal_boundary_summary_for_report(),
+        comparison_snapshot_summary_for_report(),
+        comparison_snapshot_body_class_coverage_summary_for_report(),
+        comparison_snapshot_source_summary_for_report(),
+        comparison_snapshot_source_window_summary_for_report(),
+        comparison_snapshot_manifest_summary_for_report(),
+        independent_holdout_snapshot_summary_for_report(),
+        independent_holdout_snapshot_equatorial_parity_summary_for_report(),
+        independent_holdout_snapshot_batch_parity_summary_for_report(),
+        independent_holdout_source_summary_for_report(),
+        independent_holdout_snapshot_source_window_summary_for_report(),
+        independent_holdout_snapshot_quarter_day_boundary_summary_for_report(),
+        independent_holdout_manifest_summary_for_report(),
+        jpl_independent_holdout_summary_for_report(),
     ]
     .join(" | ")
 }
@@ -657,90 +671,59 @@ mod tests {
     #[test]
     fn jpl_snapshot_evidence_summary_combines_the_backend_reports() {
         let report = jpl_snapshot_evidence_summary_for_report();
-        let reference_report = pleiades_jpl::reference_snapshot_summary_for_report();
-        let holdout_summary = pleiades_jpl::jpl_independent_holdout_summary_for_report();
-        let holdout_high_curvature =
-            pleiades_jpl::independent_holdout_high_curvature_summary_for_report();
+        let reference_report = reference_snapshot_summary_for_report();
+        let holdout_summary = jpl_independent_holdout_summary_for_report();
+        let holdout_high_curvature = independent_holdout_high_curvature_summary_for_report();
 
         assert!(report.contains(&jpl_snapshot_evidence_classification_summary_for_report()));
         assert!(report.contains(&jpl_source_posture_summary_for_report()));
         assert!(report.contains(&jpl_provenance_only_summary_for_report()));
-        assert!(report.contains(&pleiades_jpl::reference_snapshot_summary_for_report()));
+        assert!(report.contains(&reference_snapshot_summary_for_report()));
+        assert!(report.contains(&reference_snapshot_body_class_coverage_summary_for_report()));
+        assert!(report.contains(&reference_snapshot_equatorial_parity_summary_for_report()));
+        assert!(report.contains(&reference_snapshot_source_summary_for_report()));
+        assert!(report.contains(&reference_snapshot_source_window_summary_for_report()));
+        assert!(report.contains(&reference_snapshot_major_body_boundary_summary_for_report()));
+        assert!(report.contains(&reference_snapshot_mars_jupiter_boundary_summary_for_report()));
+        assert!(report.contains(&reference_asteroid_evidence_summary_for_report()));
+        assert!(report.contains(&reference_asteroid_equatorial_evidence_summary_for_report()));
+        assert!(report.contains(&reference_asteroid_source_window_summary_for_report()));
+        assert!(report.contains(&reference_holdout_overlap_summary_for_report()));
+        assert!(report.contains(&independent_holdout_high_curvature_summary_for_report()));
+        assert!(report.contains(&reference_snapshot_manifest_summary_for_report()));
+        assert!(report.contains(&production_generation_snapshot_summary_for_report()));
+        assert!(report.contains(&production_generation_source_summary_for_report()));
+        assert!(report.contains(&production_generation_boundary_source_summary_for_report()));
+        assert!(report.contains(&production_generation_boundary_window_summary_for_report()));
         assert!(report
-            .contains(&pleiades_jpl::reference_snapshot_body_class_coverage_summary_for_report()));
-        assert!(report
-            .contains(&pleiades_jpl::reference_snapshot_equatorial_parity_summary_for_report()));
-        assert!(report.contains(&pleiades_jpl::reference_snapshot_source_summary_for_report()));
+            .contains(&production_generation_boundary_body_class_coverage_summary_for_report()));
         assert!(
-            report.contains(&pleiades_jpl::reference_snapshot_source_window_summary_for_report())
+            report.contains(&production_generation_boundary_request_corpus_summary_for_report())
         );
-        assert!(report
-            .contains(&pleiades_jpl::reference_snapshot_major_body_boundary_summary_for_report()));
         assert!(report.contains(
-            &pleiades_jpl::reference_snapshot_mars_jupiter_boundary_summary_for_report()
+            &production_generation_boundary_request_corpus_equatorial_summary_for_report()
         ));
-        assert!(report.contains(&pleiades_jpl::reference_asteroid_evidence_summary_for_report()));
-        assert!(report
-            .contains(&pleiades_jpl::reference_asteroid_equatorial_evidence_summary_for_report()));
+        assert!(report.contains(&selected_asteroid_source_2451917_summary_for_report()));
+        assert!(report.contains(&selected_asteroid_source_2453000_summary_for_report()));
+        assert!(report.contains(&selected_asteroid_boundary_summary_for_report()));
+        assert!(report.contains(&selected_asteroid_bridge_summary_for_report()));
+        assert!(report.contains(&selected_asteroid_dense_boundary_summary_for_report()));
+        assert!(report.contains(&selected_asteroid_terminal_boundary_summary_for_report()));
+        assert!(report.contains(&comparison_snapshot_summary_for_report()));
+        assert!(report.contains(&comparison_snapshot_body_class_coverage_summary_for_report()));
+        assert!(report.contains(&comparison_snapshot_source_summary_for_report()));
+        assert!(report.contains(&comparison_snapshot_source_window_summary_for_report()));
+        assert!(report.contains(&comparison_snapshot_manifest_summary_for_report()));
+        assert!(report.contains(&independent_holdout_snapshot_summary_for_report()));
         assert!(
-            report.contains(&pleiades_jpl::reference_asteroid_source_window_summary_for_report())
+            report.contains(&independent_holdout_snapshot_equatorial_parity_summary_for_report())
         );
-        assert!(report.contains(&pleiades_jpl::reference_holdout_overlap_summary_for_report()));
-        assert!(
-            report.contains(&pleiades_jpl::independent_holdout_high_curvature_summary_for_report())
-        );
-        assert!(report.contains(&pleiades_jpl::reference_snapshot_manifest_summary_for_report()));
-        assert!(report.contains(&pleiades_jpl::production_generation_snapshot_summary_for_report()));
-        assert!(report.contains(&pleiades_jpl::production_generation_source_summary_for_report()));
+        assert!(report.contains(&independent_holdout_snapshot_batch_parity_summary_for_report()));
+        assert!(report.contains(&independent_holdout_source_summary_for_report()));
+        assert!(report.contains(&independent_holdout_snapshot_source_window_summary_for_report()));
         assert!(report
-            .contains(&pleiades_jpl::production_generation_boundary_source_summary_for_report()));
-        assert!(report
-            .contains(&pleiades_jpl::production_generation_boundary_window_summary_for_report()));
-        assert!(report.contains(
-            &pleiades_jpl::production_generation_boundary_body_class_coverage_summary_for_report()
-        ));
-        assert!(report.contains(
-            &pleiades_jpl::production_generation_boundary_request_corpus_summary_for_report()
-        ));
-        assert!(report.contains(
-            &pleiades_jpl::production_generation_boundary_request_corpus_equatorial_summary_for_report()
-        ));
-        assert!(
-            report.contains(&pleiades_jpl::selected_asteroid_source_2451917_summary_for_report())
-        );
-        assert!(
-            report.contains(&pleiades_jpl::selected_asteroid_source_2453000_summary_for_report())
-        );
-        assert!(report.contains(&pleiades_jpl::selected_asteroid_boundary_summary_for_report()));
-        assert!(report.contains(&pleiades_jpl::selected_asteroid_bridge_summary_for_report()));
-        assert!(
-            report.contains(&pleiades_jpl::selected_asteroid_dense_boundary_summary_for_report())
-        );
-        assert!(report
-            .contains(&pleiades_jpl::selected_asteroid_terminal_boundary_summary_for_report()));
-        assert!(report.contains(&pleiades_jpl::comparison_snapshot_summary_for_report()));
-        assert!(report
-            .contains(&pleiades_jpl::comparison_snapshot_body_class_coverage_summary_for_report()));
-        assert!(report.contains(&pleiades_jpl::comparison_snapshot_source_summary_for_report()));
-        assert!(
-            report.contains(&pleiades_jpl::comparison_snapshot_source_window_summary_for_report())
-        );
-        assert!(report.contains(&pleiades_jpl::comparison_snapshot_manifest_summary_for_report()));
-        assert!(report.contains(&pleiades_jpl::independent_holdout_snapshot_summary_for_report()));
-        assert!(report.contains(
-            &pleiades_jpl::independent_holdout_snapshot_equatorial_parity_summary_for_report()
-        ));
-        assert!(report.contains(
-            &pleiades_jpl::independent_holdout_snapshot_batch_parity_summary_for_report()
-        ));
-        assert!(report.contains(&pleiades_jpl::independent_holdout_source_summary_for_report()));
-        assert!(report.contains(
-            &pleiades_jpl::independent_holdout_snapshot_source_window_summary_for_report()
-        ));
-        assert!(report.contains(
-            &pleiades_jpl::independent_holdout_snapshot_quarter_day_boundary_summary_for_report()
-        ));
-        assert!(report.contains(&pleiades_jpl::independent_holdout_manifest_summary_for_report()));
+            .contains(&independent_holdout_snapshot_quarter_day_boundary_summary_for_report()));
+        assert!(report.contains(&independent_holdout_manifest_summary_for_report()));
         assert!(report.contains(&holdout_summary));
         assert!(report.contains(&holdout_high_curvature));
         assert!(!reference_report.contains(&holdout_summary));
