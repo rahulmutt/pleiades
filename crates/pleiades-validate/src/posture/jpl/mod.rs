@@ -6,3 +6,4 @@
 #![allow(dead_code)]
 
 pub(crate) mod backend;
+pub(crate) mod comparison;
