@@ -353,11 +353,13 @@ pub fn reference_snapshot_major_body_boundary_window_summary_for_report() -> Str
     }
 }
 
-pub(crate) const REFERENCE_PRE_BRIDGE_BOUNDARY_EPOCH_JD: f64 = 2_451_914.5;
+/// Julian day of the checked-in reference snapshot's pre-bridge boundary day.
+pub const REFERENCE_PRE_BRIDGE_BOUNDARY_EPOCH_JD: f64 = 2_451_914.5;
 
 pub(crate) const REFERENCE_DENSE_BOUNDARY_EPOCH_JD: f64 = 2_451_916.5;
 
-pub(crate) const REFERENCE_SPARSE_BOUNDARY_EPOCH_JD: f64 = 2_451_915.5;
+/// Julian day of the checked-in reference snapshot's sparse asteroid-only boundary day.
+pub const REFERENCE_SPARSE_BOUNDARY_EPOCH_JD: f64 = 2_451_915.5;
 
 pub(crate) fn reference_snapshot_sparse_boundary_entries() -> Option<&'static [SnapshotEntry]> {
     static ENTRIES: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
@@ -379,7 +381,8 @@ pub(crate) fn reference_snapshot_sparse_boundary_entries() -> Option<&'static [S
     }
 }
 
-pub(crate) fn reference_snapshot_sparse_boundary_missing_bodies(
+/// Returns the reference bodies missing from a sparse boundary day's sample-body list.
+pub fn reference_snapshot_sparse_boundary_missing_bodies(
     sample_bodies: &[pleiades_backend::CelestialBody],
 ) -> Vec<pleiades_backend::CelestialBody> {
     reference_bodies()
