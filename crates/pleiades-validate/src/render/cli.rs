@@ -1004,7 +1004,10 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
                 &args[1..],
                 "production-generation-quarter-day-boundary-summary",
             )?;
-            Ok(pleiades_jpl::production_generation_quarter_day_boundary_summary_for_report())
+            Ok(
+                crate::posture::jpl::production_generation_quarter_day_boundary_summary_for_report(
+                ),
+            )
         }
         Some("production-generation-boundary-source-summary")
         | Some("production-generation-boundary-source") => {
@@ -1324,7 +1327,7 @@ pub fn render_cli(args: &[&str]) -> Result<String, String> {
                 &args[1..],
                 "reference-snapshot-2451915-major-body-bridge-summary",
             )?;
-            Ok(pleiades_jpl::reference_snapshot_2451915_major_body_bridge_summary_for_report())
+            Ok(crate::posture::jpl::reference_snapshot_2451915_major_body_bridge_summary_for_report())
         }
         Some("reference-snapshot-2451917-major-body-bridge-summary")
         | Some("2451917-major-body-bridge-summary")

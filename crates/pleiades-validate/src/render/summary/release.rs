@@ -113,13 +113,14 @@ pub(crate) fn strip_report_prefix<'a>(text: &'a str, prefix: &str) -> &'a str {
 
 pub(crate) fn production_generation_coverage_posture_for_report() -> Option<String> {
     let production_generation_coverage = required_summary_payload(
-        pleiades_jpl::production_generation_snapshot_summary_for_report(),
+        crate::posture::jpl::production_generation_snapshot_summary_for_report(),
         "Production generation coverage: ",
         "production generation coverage",
     )
     .ok()?;
     let production_generation_body_class_coverage = required_summary_payload(
-        pleiades_jpl::production_generation_snapshot_body_class_coverage_summary_for_report(),
+        crate::posture::jpl::production_generation_snapshot_body_class_coverage_summary_for_report(
+        ),
         "Production generation body-class coverage: ",
         "production generation body-class coverage",
     )

@@ -310,13 +310,23 @@ use pleiades_houses::{
     validate_house_catalog,
 };
 
+// The renderer names below (both blocks) are relocated to the validate
+// posture (report-surface relocation program, Slice D Task 13c); only the
+// DATA/backend accessors below still come from `pleiades_jpl` directly.
+// None of these were previously part of validate's public re-export surface
+// (they were plain, non-`pub`, crate-internal imports), so they move over as
+// `pub(crate) use`, matching that existing (non-public) visibility.
 #[cfg(test)]
-use pleiades_jpl::{
+use crate::posture::jpl::{
     production_generation_manifest_summary_for_report,
     production_generation_snapshot_body_class_coverage_summary_for_report,
 };
-
 use pleiades_jpl::{
+    interpolation_quality_samples, jpl_interpolation_posture_summary, reference_asteroid_evidence,
+    reference_asteroids, JplSnapshotBackend,
+};
+
+pub(crate) use crate::posture::jpl::{
     comparison_snapshot_body_class_coverage_summary_for_report,
     comparison_snapshot_source_summary_for_report,
     comparison_snapshot_source_window_summary_for_report, comparison_snapshot_summary_for_report,
@@ -329,9 +339,9 @@ use pleiades_jpl::{
     independent_holdout_snapshot_quarter_day_boundary_summary_for_report,
     independent_holdout_snapshot_source_window_summary_for_report,
     independent_holdout_source_summary_for_report,
-    interpolation_quality_sample_request_corpus_summary_for_report, interpolation_quality_samples,
+    interpolation_quality_sample_request_corpus_summary_for_report,
     jpl_independent_holdout_summary_for_report,
-    jpl_interpolation_body_class_error_envelopes_for_report, jpl_interpolation_posture_summary,
+    jpl_interpolation_body_class_error_envelopes_for_report,
     jpl_interpolation_posture_summary_for_report,
     jpl_interpolation_quality_kind_coverage_for_report, jpl_provenance_only_summary_for_report,
     jpl_snapshot_batch_error_taxonomy_summary_for_report,
@@ -350,9 +360,9 @@ use pleiades_jpl::{
     production_generation_snapshot_window_summary_for_report,
     production_generation_source_revision_summary_for_report,
     production_generation_source_summary_for_report,
-    reference_asteroid_equatorial_evidence_summary_for_report, reference_asteroid_evidence,
+    reference_asteroid_equatorial_evidence_summary_for_report,
     reference_asteroid_evidence_summary_for_report,
-    reference_asteroid_source_window_summary_for_report, reference_asteroids,
+    reference_asteroid_source_window_summary_for_report,
     reference_snapshot_1900_selected_body_boundary_summary_for_report,
     reference_snapshot_2415020_selected_body_boundary_summary_for_report,
     reference_snapshot_2451545_major_body_boundary_summary_for_report,
@@ -426,7 +436,7 @@ use pleiades_jpl::{
     validated_selected_asteroid_source_evidence_summary_for_report,
     validated_selected_asteroid_source_request_corpus_equatorial_summary_for_report,
     validated_selected_asteroid_source_request_corpus_summary_for_report,
-    validated_selected_asteroid_source_window_summary_for_report, JplSnapshotBackend,
+    validated_selected_asteroid_source_window_summary_for_report,
 };
 use pleiades_vsop87::{
     body_source_profiles, source_audits, source_documentation_health_summary,
