@@ -70,27 +70,11 @@ fn format_instant(instant: Instant) -> String {
 mod backend;
 pub use backend::*;
 use backend::{
-    angular_degrees_delta, comparison_body_list, comparison_snapshot_entries,
-    has_surrounding_whitespace, independent_holdout_bodies, independent_holdout_snapshot_error,
-    interpolation_quality_sample_list, is_comparison_body, is_reference_asteroid,
-    reference_asteroid_equatorial_evidence_list, reference_asteroid_evidence_list,
-    reference_asteroid_list, reference_asteroid_requests_with_frame_selector,
-    resolve_fixture_state, snapshot_bodies, snapshot_entries, snapshot_instants,
+    angular_degrees_delta, has_surrounding_whitespace, independent_holdout_bodies,
+    independent_holdout_snapshot_error, is_reference_asteroid,
+    reference_asteroid_equatorial_evidence_list, reference_asteroid_list,
+    reference_asteroid_requests_with_frame_selector, resolve_fixture_state,
     validate_snapshot_manifest_footprint, validate_snapshot_manifest_header_structure,
-    REFERENCE_SNAPSHOT_1900_SELECTED_BODY_BOUNDARY_EPOCH_JD,
-    REFERENCE_SNAPSHOT_2451545_MAJOR_BODY_BOUNDARY_EPOCH_JD,
-    REFERENCE_SNAPSHOT_2451910_MAJOR_BODY_BOUNDARY_EPOCH_JD,
-    REFERENCE_SNAPSHOT_2451911_MAJOR_BODY_BOUNDARY_EPOCH_JD,
-    REFERENCE_SNAPSHOT_2451912_MAJOR_BODY_BOUNDARY_EPOCH_JD,
-    REFERENCE_SNAPSHOT_2451913_MAJOR_BODY_BOUNDARY_EPOCH_JD,
-    REFERENCE_SNAPSHOT_2451914_MAJOR_BODY_BOUNDARY_EPOCH_JD,
-    REFERENCE_SNAPSHOT_2451915_MAJOR_BODY_BOUNDARY_EPOCH_JD,
-    REFERENCE_SNAPSHOT_2451916_MAJOR_BODY_INTERIOR_EPOCH_JD,
-    REFERENCE_SNAPSHOT_2451917_MAJOR_BODY_BOUNDARY_EPOCH_JD,
-    REFERENCE_SNAPSHOT_2451917_MAJOR_BODY_BRIDGE_EPOCH_JD,
-    REFERENCE_SNAPSHOT_2451919_MAJOR_BODY_BOUNDARY_EPOCH_JD,
-    REFERENCE_SNAPSHOT_2451920_MAJOR_BODY_INTERIOR_EPOCH_JD,
-    REFERENCE_SNAPSHOT_2453000_MAJOR_BODY_BOUNDARY_EPOCH_JD,
 };
 
 #[cfg(test)]

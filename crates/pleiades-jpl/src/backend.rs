@@ -1569,7 +1569,8 @@ fn snapshot_state() -> &'static SnapshotState {
     })
 }
 
-pub(crate) fn snapshot_entries() -> Option<&'static [SnapshotEntry]> {
+/// Returns the loaded reference snapshot entries, or `None` if the snapshot failed to load.
+pub fn snapshot_entries() -> Option<&'static [SnapshotEntry]> {
     snapshot_state().entries()
 }
 
@@ -1577,7 +1578,8 @@ fn snapshot_error() -> Option<&'static SnapshotLoadError> {
     snapshot_state().error()
 }
 
-pub(crate) fn snapshot_bodies() -> &'static [pleiades_backend::CelestialBody] {
+/// Returns the distinct celestial bodies present in the reference snapshot entries.
+pub fn snapshot_bodies() -> &'static [pleiades_backend::CelestialBody] {
     static BODIES: OnceLock<Vec<pleiades_backend::CelestialBody>> = OnceLock::new();
     BODIES
         .get_or_init(|| {
@@ -1594,21 +1596,36 @@ pub(crate) fn snapshot_bodies() -> &'static [pleiades_backend::CelestialBody] {
         .as_slice()
 }
 
-pub(crate) const REFERENCE_SNAPSHOT_1900_SELECTED_BODY_BOUNDARY_EPOCH_JD: f64 = 2_415_020.5;
-pub(crate) const REFERENCE_SNAPSHOT_REFERENCE_ONLY_EPOCH_JD: f64 = 2_378_498.5;
-pub(crate) const REFERENCE_SNAPSHOT_2451545_MAJOR_BODY_BOUNDARY_EPOCH_JD: f64 = 2_451_545.0;
-pub(crate) const REFERENCE_SNAPSHOT_2451910_MAJOR_BODY_BOUNDARY_EPOCH_JD: f64 = 2_451_910.5;
-pub(crate) const REFERENCE_SNAPSHOT_2451911_MAJOR_BODY_BOUNDARY_EPOCH_JD: f64 = 2_451_911.5;
-pub(crate) const REFERENCE_SNAPSHOT_2451912_MAJOR_BODY_BOUNDARY_EPOCH_JD: f64 = 2_451_912.5;
-pub(crate) const REFERENCE_SNAPSHOT_2451913_MAJOR_BODY_BOUNDARY_EPOCH_JD: f64 = 2_451_913.5;
-pub(crate) const REFERENCE_SNAPSHOT_2451914_MAJOR_BODY_BOUNDARY_EPOCH_JD: f64 = 2_451_914.5;
-pub(crate) const REFERENCE_SNAPSHOT_2451915_MAJOR_BODY_BOUNDARY_EPOCH_JD: f64 = 2_451_915.5;
-pub(crate) const REFERENCE_SNAPSHOT_2451917_MAJOR_BODY_BRIDGE_EPOCH_JD: f64 = 2_451_917.0;
-pub(crate) const REFERENCE_SNAPSHOT_2451917_MAJOR_BODY_BOUNDARY_EPOCH_JD: f64 = 2_451_917.5;
-pub(crate) const REFERENCE_SNAPSHOT_2451919_MAJOR_BODY_BOUNDARY_EPOCH_JD: f64 = 2_451_919.5;
-pub(crate) const REFERENCE_SNAPSHOT_2451916_MAJOR_BODY_INTERIOR_EPOCH_JD: f64 = 2_451_916.0;
-pub(crate) const REFERENCE_SNAPSHOT_2451920_MAJOR_BODY_INTERIOR_EPOCH_JD: f64 = 2_451_920.5;
-pub(crate) const REFERENCE_SNAPSHOT_2453000_MAJOR_BODY_BOUNDARY_EPOCH_JD: f64 = 2_453_000.5;
+/// Boundary epoch (JD) for the 1900 selected-body reference snapshot.
+pub const REFERENCE_SNAPSHOT_1900_SELECTED_BODY_BOUNDARY_EPOCH_JD: f64 = 2_415_020.5;
+/// Epoch (JD) present only in the reference snapshot, not the comparison snapshot.
+pub const REFERENCE_SNAPSHOT_REFERENCE_ONLY_EPOCH_JD: f64 = 2_378_498.5;
+/// Boundary epoch (JD) for the 2451545 major-body reference snapshot.
+pub const REFERENCE_SNAPSHOT_2451545_MAJOR_BODY_BOUNDARY_EPOCH_JD: f64 = 2_451_545.0;
+/// Boundary epoch (JD) for the 2451910 major-body reference snapshot.
+pub const REFERENCE_SNAPSHOT_2451910_MAJOR_BODY_BOUNDARY_EPOCH_JD: f64 = 2_451_910.5;
+/// Boundary epoch (JD) for the 2451911 major-body reference snapshot.
+pub const REFERENCE_SNAPSHOT_2451911_MAJOR_BODY_BOUNDARY_EPOCH_JD: f64 = 2_451_911.5;
+/// Boundary epoch (JD) for the 2451912 major-body reference snapshot.
+pub const REFERENCE_SNAPSHOT_2451912_MAJOR_BODY_BOUNDARY_EPOCH_JD: f64 = 2_451_912.5;
+/// Boundary epoch (JD) for the 2451913 major-body reference snapshot.
+pub const REFERENCE_SNAPSHOT_2451913_MAJOR_BODY_BOUNDARY_EPOCH_JD: f64 = 2_451_913.5;
+/// Boundary epoch (JD) for the 2451914 major-body reference snapshot.
+pub const REFERENCE_SNAPSHOT_2451914_MAJOR_BODY_BOUNDARY_EPOCH_JD: f64 = 2_451_914.5;
+/// Boundary epoch (JD) for the 2451915 major-body reference snapshot.
+pub const REFERENCE_SNAPSHOT_2451915_MAJOR_BODY_BOUNDARY_EPOCH_JD: f64 = 2_451_915.5;
+/// Bridge epoch (JD) for the 2451917 major-body reference snapshot.
+pub const REFERENCE_SNAPSHOT_2451917_MAJOR_BODY_BRIDGE_EPOCH_JD: f64 = 2_451_917.0;
+/// Boundary epoch (JD) for the 2451917 major-body reference snapshot.
+pub const REFERENCE_SNAPSHOT_2451917_MAJOR_BODY_BOUNDARY_EPOCH_JD: f64 = 2_451_917.5;
+/// Boundary epoch (JD) for the 2451919 major-body reference snapshot.
+pub const REFERENCE_SNAPSHOT_2451919_MAJOR_BODY_BOUNDARY_EPOCH_JD: f64 = 2_451_919.5;
+/// Interior epoch (JD) for the 2451916 major-body reference snapshot.
+pub const REFERENCE_SNAPSHOT_2451916_MAJOR_BODY_INTERIOR_EPOCH_JD: f64 = 2_451_916.0;
+/// Interior epoch (JD) for the 2451920 major-body reference snapshot.
+pub const REFERENCE_SNAPSHOT_2451920_MAJOR_BODY_INTERIOR_EPOCH_JD: f64 = 2_451_920.5;
+/// Boundary epoch (JD) for the 2453000 major-body reference snapshot.
+pub const REFERENCE_SNAPSHOT_2453000_MAJOR_BODY_BOUNDARY_EPOCH_JD: f64 = 2_453_000.5;
 const REFERENCE_SNAPSHOT_BOUNDARY_ONLY_EPOCH_JD: f64 = 2_451_917.5;
 
 fn is_reference_snapshot_only_epoch(epoch: f64) -> bool {
@@ -1619,7 +1636,8 @@ fn is_reference_snapshot_only_epoch(epoch: f64) -> bool {
     )
 }
 
-pub(crate) fn comparison_snapshot_entries() -> &'static [SnapshotEntry] {
+/// Returns the reference snapshot entries filtered to those usable for comparison.
+pub fn comparison_snapshot_entries() -> &'static [SnapshotEntry] {
     static SNAPSHOT: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
     SNAPSHOT
         .get_or_init(|| {
@@ -1875,7 +1893,8 @@ pub(crate) fn independent_holdout_snapshot_error() -> Option<&'static SnapshotLo
     independent_holdout_state().error()
 }
 
-pub(crate) fn comparison_body_list() -> &'static [pleiades_backend::CelestialBody] {
+/// Returns the distinct celestial bodies present in the comparison snapshot entries.
+pub fn comparison_body_list() -> &'static [pleiades_backend::CelestialBody] {
     static BODIES: OnceLock<Vec<pleiades_backend::CelestialBody>> = OnceLock::new();
     BODIES
         .get_or_init(|| {
@@ -1929,7 +1948,8 @@ pub(crate) fn reference_asteroid_requests_with_frame_selector(
     )
 }
 
-pub(crate) fn reference_asteroid_evidence_list() -> &'static [ReferenceAsteroidEvidence] {
+/// Returns the reference-asteroid evidence samples derived from the snapshot entries.
+pub fn reference_asteroid_evidence_list() -> &'static [ReferenceAsteroidEvidence] {
     static EVIDENCE: OnceLock<Vec<ReferenceAsteroidEvidence>> = OnceLock::new();
     EVIDENCE
         .get_or_init(|| {
@@ -1982,7 +2002,8 @@ pub(crate) fn reference_asteroid_equatorial_evidence_list(
         .as_slice()
 }
 
-pub(crate) fn interpolation_quality_sample_list() -> &'static [InterpolationQualitySample] {
+/// Returns the interpolation-quality samples derived from the snapshot entries.
+pub fn interpolation_quality_sample_list() -> &'static [InterpolationQualitySample] {
     static SAMPLES: OnceLock<Vec<InterpolationQualitySample>> = OnceLock::new();
     SAMPLES
         .get_or_init(|| {
@@ -2078,7 +2099,8 @@ fn push_interpolation_quality_samples_for_bodies(
     }
 }
 
-pub(crate) fn snapshot_instants() -> &'static [Instant] {
+/// Returns the distinct instants present in the reference snapshot entries.
+pub fn snapshot_instants() -> &'static [Instant] {
     static INSTANTS: OnceLock<Vec<Instant>> = OnceLock::new();
     INSTANTS
         .get_or_init(|| {
@@ -2376,7 +2398,8 @@ fn parse_body(
     Ok(body)
 }
 
-pub(crate) fn is_comparison_body(body: &pleiades_backend::CelestialBody) -> bool {
+/// Returns whether `body` is one of the celestial bodies used for comparison snapshots.
+pub fn is_comparison_body(body: &pleiades_backend::CelestialBody) -> bool {
     matches!(
         body,
         pleiades_backend::CelestialBody::Sun
