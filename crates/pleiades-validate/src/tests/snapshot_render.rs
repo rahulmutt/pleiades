@@ -293,7 +293,7 @@ fn reference_major_body_bridge_summary_command_renders_the_bridge_day() {
     assert!(epoch_alias.contains("Reference 2451915 major-body bridge evidence:"));
     assert_eq!(
         epoch_alias,
-        pleiades_jpl::reference_snapshot_2451915_major_body_bridge_summary_for_report()
+        reference_snapshot_2451915_major_body_bridge_summary_for_report()
     );
     let concise_epoch_alias = render_cli(&["2451915-major-body-bridge"])
         .expect("2451915 major body bridge concise alias should render");
@@ -586,7 +586,7 @@ fn selected_asteroid_2378498_source_summary_command_renders_the_epoch_slice() {
     assert!(rendered.contains("JD 2378498.5 (TDB)"));
     assert_eq!(
         rendered,
-        pleiades_jpl::selected_asteroid_source_2378498_summary_for_report()
+        selected_asteroid_source_2378498_summary_for_report()
     );
     assert_eq!(
         render_cli(&["2378498-selected-asteroid-source-summary"])
@@ -609,7 +609,7 @@ fn selected_asteroid_2001_source_summary_command_renders_the_epoch_slice() {
     assert!(rendered.contains("JD 2451917.5 (TDB)"));
     assert_eq!(
         rendered,
-        pleiades_jpl::selected_asteroid_source_2451917_summary_for_report()
+        selected_asteroid_source_2451917_summary_for_report()
     );
     assert_eq!(
         render_cli(&["2451917-selected-asteroid-source-summary"])
@@ -632,7 +632,7 @@ fn selected_asteroid_2003_source_summary_command_renders_the_epoch_slice() {
     assert!(rendered.contains("JD 2453000.5 (TDB)"));
     assert_eq!(
         rendered,
-        pleiades_jpl::selected_asteroid_source_2453000_summary_for_report()
+        selected_asteroid_source_2453000_summary_for_report()
     );
     assert_eq!(
         render_cli(&["2453000-selected-asteroid-source-summary"])
@@ -655,7 +655,7 @@ fn selected_asteroid_2500000_source_summary_command_renders_the_late_boundary_sl
     assert!(rendered.contains("JD 2500000.0 (TDB)"));
     assert_eq!(
         rendered,
-        pleiades_jpl::selected_asteroid_source_2500000_summary_for_report()
+        selected_asteroid_source_2500000_summary_for_report()
     );
     assert_eq!(
         render_cli(&["2500000-selected-asteroid-source-summary"])
@@ -678,7 +678,7 @@ fn selected_asteroid_2634167_source_summary_command_renders_the_outer_boundary_s
     assert!(rendered.contains("JD 2634167.0 (TDB)"));
     assert_eq!(
         rendered,
-        pleiades_jpl::selected_asteroid_source_2634167_summary_for_report()
+        selected_asteroid_source_2634167_summary_for_report()
     );
     assert_eq!(
         render_cli(&["2634167-selected-asteroid-source-summary"])
@@ -712,12 +712,12 @@ fn selected_asteroid_source_request_corpus_summary_command_renders_the_request_c
     assert_eq!(
         render_cli(&["selected-asteroid-source-request-corpus-equatorial-summary"])
             .expect("selected asteroid source request corpus equatorial summary should render"),
-        pleiades_jpl::selected_asteroid_source_request_corpus_equatorial_summary_for_report()
+        selected_asteroid_source_request_corpus_equatorial_summary_for_report()
     );
     assert_eq!(
         render_cli(&["selected-asteroid-source-request-corpus-equatorial"])
             .expect("selected asteroid source request corpus equatorial alias should render"),
-        pleiades_jpl::selected_asteroid_source_request_corpus_equatorial_summary_for_report()
+        selected_asteroid_source_request_corpus_equatorial_summary_for_report()
     );
     assert_eq!(
         render_cli(&["selected-asteroid-source-request-corpus-summary", "extra"]).expect_err(
@@ -1872,11 +1872,11 @@ fn source_corpus_summary_aliases_render_the_same_report() {
     assert_eq!(
         render_cli(&["jpl-provenance-only-summary"])
             .expect("JPL provenance-only summary should render"),
-        pleiades_jpl::jpl_provenance_only_summary_for_report()
+        jpl_provenance_only_summary_for_report()
     );
     assert_eq!(
         render_cli(&["jpl-provenance-only"]).expect("JPL provenance-only alias should render"),
-        pleiades_jpl::jpl_provenance_only_summary_for_report()
+        jpl_provenance_only_summary_for_report()
     );
     assert_eq!(
         render_cli(&["jpl-provenance-only-summary", "extra"])
@@ -1922,13 +1922,10 @@ fn source_corpus_summary_aliases_render_the_same_report() {
 fn jpl_source_posture_summary_aliases_render_the_same_report() {
     let rendered = render_cli(&["jpl-source-posture-summary"])
         .expect("JPL source posture summary should render");
-    assert_eq!(
-        rendered,
-        pleiades_jpl::jpl_source_posture_summary_for_report()
-    );
+    assert_eq!(rendered, jpl_source_posture_summary_for_report());
     assert_eq!(
         render_cli(&["jpl-source-posture"]).expect("JPL source posture alias should render"),
-        pleiades_jpl::jpl_source_posture_summary_for_report()
+        jpl_source_posture_summary_for_report()
     );
     assert_eq!(
         render_cli(&["jpl-source-posture-summary", "extra"])

@@ -741,7 +741,7 @@ fn production_generation_quarter_day_boundary_summary_command_renders_the_quarte
     assert!(rendered.contains("Sun, Moon, Mercury, Venus"));
     assert_eq!(
         rendered,
-        pleiades_jpl::production_generation_quarter_day_boundary_summary_for_report()
+        production_generation_quarter_day_boundary_summary_for_report()
     );
 }
 
@@ -752,7 +752,7 @@ fn production_generation_quarter_day_boundary_alias_command_renders_the_quarter_
 
     assert_eq!(
         rendered,
-        pleiades_jpl::production_generation_quarter_day_boundary_summary_for_report()
+        production_generation_quarter_day_boundary_summary_for_report()
     );
 }
 

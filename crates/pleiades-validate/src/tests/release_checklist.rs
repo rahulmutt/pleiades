@@ -168,7 +168,7 @@ fn release_notes_summary_command_renders_the_summary() {
     assert!(rendered.contains("Reference snapshot body-class coverage: major bodies: 182 rows across 10 bodies and 20 epochs; major windows: "));
     assert!(rendered
         .contains("selected asteroids: 95 rows across 6 bodies and 17 epochs; asteroid windows: "));
-    assert!(rendered.contains(&pleiades_jpl::comparison_snapshot_source_summary_for_report()));
+    assert!(rendered.contains(&comparison_snapshot_source_summary_for_report()));
     assert!(
         rendered.contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary")
     );
