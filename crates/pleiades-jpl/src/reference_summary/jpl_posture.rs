@@ -12,7 +12,13 @@ use crate::reference_summary::*;
 #[allow(unused_imports)]
 use crate::*;
 
-pub(crate) fn validated_checked_in_snapshot_schema_summary() -> Result<&'static str, String> {
+/// Validates the checked-in reference and independent hold-out snapshot
+/// manifests against the shared schema and returns the schema string on
+/// success. Promoted to `pub` (Slice D Task 6) so validate's relocated
+/// `checked_in_snapshot_schema_summary_for_report`/
+/// `validated_checked_in_snapshot_schema_summary_for_report` copies can call
+/// this validation gate instead of reproducing it.
+pub fn validated_checked_in_snapshot_schema_summary() -> Result<&'static str, String> {
     reference_snapshot_manifest_summary()
         .validate_with_expected_columns(&CHECKED_IN_SNAPSHOT_SCHEMA_COLUMNS)
         .map_err(|error| format!("reference snapshot schema validation failed: {error}"))?;
@@ -2247,7 +2253,12 @@ impl JplInterpolationBodyClassErrorEnvelopeSummary {
         )
     }
 
-    pub(crate) fn validate(
+    /// Returns `Ok(())` when the envelope summary still matches the current
+    /// derived interpolation-quality evidence. Promoted to `pub` (Slice D
+    /// Task 6) so validate's relocated
+    /// `jpl_interpolation_body_class_error_envelopes_for_report` copy can call
+    /// this validation gate instead of reproducing it.
+    pub fn validate(
         &self,
     ) -> Result<(), JplInterpolationBodyClassErrorEnvelopeSummaryValidationError> {
         let Some(expected_summaries) = jpl_interpolation_body_class_error_envelopes() else {

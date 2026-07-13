@@ -8,3 +8,4 @@
 pub(crate) mod backend;
 pub(crate) mod comparison;
 pub(crate) mod holdout;
+pub(crate) mod jpl_posture;
