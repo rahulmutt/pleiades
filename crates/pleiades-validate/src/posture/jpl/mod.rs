@@ -1,0 +1,8 @@
+//! `pleiades-jpl` report/summary prose relocated from the functional crate
+//! (report-surface relocation program, Slice D). Rendering only — the
+//! functional crate keeps the structured evidence structs, their
+//! `*_details()` constructors, `validate()`/`label()` methods, and all
+//! release-gate data.
+#![allow(dead_code)]
+
+pub(crate) mod backend;

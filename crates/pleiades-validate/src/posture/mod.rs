@@ -8,4 +8,5 @@ pub(crate) mod compression;
 pub(crate) mod data;
 pub(crate) mod elp;
 pub(crate) mod houses;
+pub(crate) mod jpl;
 pub(crate) mod vsop87;
