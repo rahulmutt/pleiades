@@ -9,5 +9,6 @@ pub(crate) mod backend;
 pub(crate) mod comparison;
 pub(crate) mod holdout;
 pub(crate) mod jpl_posture;
+pub(crate) mod production_generation;
 pub(crate) mod reference_asteroid;
 pub(crate) mod reference_snapshot;

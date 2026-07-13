@@ -1059,8 +1059,14 @@ pub fn validated_production_generation_corpus_shape_summary_for_report() -> Resu
         .map_err(|error| error.to_string())
 }
 
-pub(crate) fn production_generation_source_revision_summary(
-) -> ProductionGenerationSourceRevisionSummary {
+/// Returns the deterministic revision metadata for the checked-in
+/// production-generation CSV fixtures (reference snapshot and independent
+/// hold-out checksums). Promoted to `pub` (Slice D Task 10a) so
+/// `pleiades-validate`'s relocated
+/// `production_generation_source_revision_summary_for_report` renderer can
+/// call it cross-crate.
+pub fn production_generation_source_revision_summary() -> ProductionGenerationSourceRevisionSummary
+{
     let reference_checksum = checksum64(include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/data/reference_snapshot.csv"
