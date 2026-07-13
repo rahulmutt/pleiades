@@ -478,7 +478,7 @@ mod tests {
             Ok(source_summary.summary_line())
         );
         assert_eq!(
-            pleiades_jpl::format_comparison_snapshot_source_summary(&source_summary),
+            comparison_snapshot_source_summary_line(&source_summary),
             source_summary.summary_line()
         );
         assert_eq!(
@@ -509,7 +509,7 @@ mod tests {
             source_window_summary.summary_line()
         );
         assert_eq!(
-            pleiades_jpl::format_comparison_snapshot_source_window_summary(&source_window_summary),
+            comparison_snapshot_source_window_summary_line(&source_window_summary),
             source_window_summary.summary_line()
         );
         assert_eq!(
@@ -582,7 +582,7 @@ mod tests {
             Ok(summary.summary_line())
         );
         assert_eq!(
-            pleiades_jpl::format_comparison_snapshot_source_window_summary(&summary),
+            comparison_snapshot_source_window_summary_line(&summary),
             summary.summary_line()
         );
     }

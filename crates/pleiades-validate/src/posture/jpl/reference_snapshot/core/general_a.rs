@@ -18,21 +18,24 @@
 //! `Option<Struct>` values whose *own* struct definitions and inherent
 //! rendering (`summary_line`/`validated_summary_line`/`Display`) live in
 //! `reference_summary/reference_snapshot/boundaries/{era_a,era_b,era_c}.rs`
-//! (Slice D Task 9, not yet copied) — those `.validated_summary_line()` calls
-//! are left as method calls on jpl's still-present inherent methods
-//! (validate→jpl is allowed and byte-identical; Task 13 flips them once Task
-//! 9 lands). The `*_summary()` constructors backing all 16 renderers (data
+//! (Slice D Task 9, already copied) — those `.validated_summary_line()`
+//! calls are now rewired (Slice D Task 13b) to `match summary.validate() {
+//! Ok(()) => <local render>, ... }`, calling each struct's local free
+//! renderer directly (`validate()` stays on the jpl struct; rendering is
+//! local). The `*_summary()` constructors backing all 16 renderers (data
 //! accessors, not rendering — even the ones textually defined in this same
 //! jpl source file) are never duplicated into validate; every call to one is
 //! qualified `pleiades_jpl::<name>()`.
 //!
-//! Per this family task's explicit instruction, every OTHER-FILE renderer
-//! call inside `reference_snapshot_summary_for_report`'s aggregation array
-//! (whether already copied to validate — parity/coverage/evidence/
-//! reference_asteroid — or not yet copied — general_b/boundaries/
-//! selected_asteroid) is left as `pleiades_jpl::<name>()` uniformly; only
-//! calls to this file's own 15 sibling renderers are local. Task 13
-//! repoints the residual.
+//! Every OTHER-FILE renderer call inside
+//! `reference_snapshot_summary_for_report`'s aggregation array (whether
+//! already copied to validate at the time of the family task —
+//! parity/coverage/evidence/reference_asteroid — or copied later —
+//! general_b/boundaries/selected_asteroid) is now rewired to the local copy
+//! (Slice D Task 13b), reached via the crate-wide
+//! `use crate::posture::jpl::*;` glob import below (see `posture/jpl/mod.rs`
+//! for the re-exports this resolves through); only jpl's own
+//! `*_summary()`/`*_details()` data accessors stay `pleiades_jpl::`.
 //!
 //! This file is also the canonical home of jpl's format-helper cluster
 //! (`format_reference_snapshot_summary`, `strip_report_prefix`,
@@ -48,10 +51,19 @@
 //! task. `checksum64` (general_a.rs:452) is intentionally NOT part of this
 //! cluster (not a rendering helper) and is not copied here.
 
-use core::fmt;
+use ::core::fmt;
 
 #[allow(unused_imports)]
 use pleiades_jpl::{ReferenceSnapshotSummary, ReferenceSnapshotSummaryValidationError};
+
+// Slice D Task 13b: reach every other posture/jpl submodule's local
+// renderers (`parity`/`coverage`/`evidence`/`general_b`/`boundaries::era_*`/
+// `selected_asteroid`/`reference_asteroid`) without a `pleiades_jpl::`
+// detour, self-containing this file's `reference_snapshot_summary_for_report`
+// aggregation array and its 15 sibling `Option<Struct>`-unwrapping renderers.
+// See `posture/jpl/mod.rs` for the glob re-exports this resolves through.
+#[allow(unused_imports)]
+use crate::posture::jpl::*;
 
 /// Reproduced from jpl's private `format_instant` (`lib.rs:66`), which is
 /// crate-private and not callable cross-crate. Per-module duplicate accepted
@@ -103,60 +115,60 @@ pub(crate) fn reference_snapshot_summary_for_report() -> String {
     };
 
     let summary_lines = [
-        pleiades_jpl::reference_snapshot_source_summary_for_report(),
-        pleiades_jpl::reference_snapshot_source_window_summary_for_report(),
-        pleiades_jpl::reference_snapshot_equatorial_parity_summary_for_report(),
+        reference_snapshot_source_summary_for_report(),
+        reference_snapshot_source_window_summary_for_report(),
+        reference_snapshot_equatorial_parity_summary_for_report(),
         reference_snapshot_major_body_bridge_summary_for_report(),
-        pleiades_jpl::reference_snapshot_batch_parity_summary_for_report(),
-        pleiades_jpl::reference_snapshot_1900_selected_body_boundary_summary_for_report(),
-        pleiades_jpl::reference_snapshot_2415020_selected_body_boundary_summary_for_report(),
+        reference_snapshot_batch_parity_summary_for_report(),
+        reference_snapshot_1900_selected_body_boundary_summary_for_report(),
+        reference_snapshot_2415020_selected_body_boundary_summary_for_report(),
         reference_snapshot_lunar_boundary_summary_for_report(),
         reference_snapshot_high_curvature_summary_for_report(),
-        pleiades_jpl::reference_snapshot_high_curvature_window_summary_for_report(),
-        pleiades_jpl::reference_snapshot_high_curvature_epoch_coverage_summary_for_report(),
+        reference_snapshot_high_curvature_window_summary_for_report(),
+        reference_snapshot_high_curvature_epoch_coverage_summary_for_report(),
         reference_snapshot_2451545_major_body_boundary_summary_for_report(),
         reference_snapshot_major_body_boundary_summary_for_report(),
-        pleiades_jpl::reference_snapshot_exact_j2000_evidence_summary_for_report(),
+        reference_snapshot_exact_j2000_evidence_summary_for_report(),
         reference_snapshot_2451910_major_body_boundary_summary_for_report(),
         reference_snapshot_2451911_major_body_boundary_summary_for_report(),
         reference_snapshot_2451912_major_body_boundary_summary_for_report(),
         reference_snapshot_2451913_major_body_boundary_summary_for_report(),
         reference_snapshot_2451914_major_body_boundary_summary_for_report(),
-        pleiades_jpl::reference_snapshot_2451914_major_body_pre_bridge_summary_for_report(),
-        pleiades_jpl::reference_snapshot_bridge_day_summary_for_report(),
-        pleiades_jpl::reference_snapshot_2451914_bridge_day_summary_for_report(),
-        pleiades_jpl::reference_snapshot_2451914_major_body_bridge_day_summary_for_report(),
-        pleiades_jpl::reference_snapshot_2451914_major_body_bridge_summary_for_report(),
+        reference_snapshot_2451914_major_body_pre_bridge_summary_for_report(),
+        reference_snapshot_bridge_day_summary_for_report(),
+        reference_snapshot_2451914_bridge_day_summary_for_report(),
+        reference_snapshot_2451914_major_body_bridge_day_summary_for_report(),
+        reference_snapshot_2451914_major_body_bridge_summary_for_report(),
         reference_snapshot_2451915_major_body_boundary_summary_for_report(),
-        pleiades_jpl::reference_snapshot_2451915_major_body_bridge_summary_for_report(),
+        reference_snapshot_2451915_major_body_bridge_summary_for_report(),
         reference_snapshot_2451917_major_body_bridge_summary_for_report(),
-        pleiades_jpl::reference_snapshot_2451917_major_body_boundary_summary_for_report(),
-        pleiades_jpl::reference_snapshot_2451916_major_body_interior_summary_for_report(),
-        pleiades_jpl::reference_snapshot_2451916_major_body_dense_boundary_summary_for_report(),
-        pleiades_jpl::reference_snapshot_2451916_major_body_boundary_summary_for_report(),
-        pleiades_jpl::reference_snapshot_dense_boundary_summary_for_report(),
-        pleiades_jpl::reference_snapshot_sparse_boundary_summary_for_report(),
-        pleiades_jpl::reference_snapshot_pre_bridge_boundary_summary_for_report(),
-        pleiades_jpl::reference_snapshot_boundary_epoch_coverage_summary_for_report(),
-        pleiades_jpl::reference_snapshot_major_body_boundary_window_summary_for_report(),
+        reference_snapshot_2451917_major_body_boundary_summary_for_report(),
+        reference_snapshot_2451916_major_body_interior_summary_for_report(),
+        reference_snapshot_2451916_major_body_dense_boundary_summary_for_report(),
+        reference_snapshot_2451916_major_body_boundary_summary_for_report(),
+        reference_snapshot_dense_boundary_summary_for_report(),
+        reference_snapshot_sparse_boundary_summary_for_report(),
+        reference_snapshot_pre_bridge_boundary_summary_for_report(),
+        reference_snapshot_boundary_epoch_coverage_summary_for_report(),
+        reference_snapshot_major_body_boundary_window_summary_for_report(),
         reference_snapshot_mars_jupiter_boundary_summary_for_report(),
         reference_snapshot_2451918_major_body_boundary_summary_for_report(),
-        pleiades_jpl::reference_snapshot_2451919_major_body_boundary_summary_for_report(),
-        pleiades_jpl::reference_snapshot_2451920_major_body_interior_summary_for_report(),
+        reference_snapshot_2451919_major_body_boundary_summary_for_report(),
+        reference_snapshot_2451920_major_body_interior_summary_for_report(),
         reference_snapshot_2453000_major_body_boundary_summary_for_report(),
-        pleiades_jpl::selected_asteroid_boundary_summary_for_report(),
-        pleiades_jpl::selected_asteroid_bridge_summary_for_report(),
-        pleiades_jpl::selected_asteroid_dense_boundary_summary_for_report(),
-        pleiades_jpl::selected_asteroid_terminal_boundary_summary_for_report(),
-        pleiades_jpl::selected_asteroid_source_evidence_summary_for_report(),
-        pleiades_jpl::selected_asteroid_source_window_summary_for_report(),
-        pleiades_jpl::selected_asteroid_source_2451917_summary_for_report(),
-        pleiades_jpl::selected_asteroid_source_2453000_summary_for_report(),
-        pleiades_jpl::selected_asteroid_source_2500000_summary_for_report(),
-        pleiades_jpl::selected_asteroid_source_2634167_summary_for_report(),
-        pleiades_jpl::reference_asteroid_evidence_summary_for_report(),
-        pleiades_jpl::reference_asteroid_equatorial_evidence_summary_for_report(),
-        pleiades_jpl::reference_asteroid_source_window_summary_for_report(),
+        selected_asteroid_boundary_summary_for_report(),
+        selected_asteroid_bridge_summary_for_report(),
+        selected_asteroid_dense_boundary_summary_for_report(),
+        selected_asteroid_terminal_boundary_summary_for_report(),
+        selected_asteroid_source_evidence_summary_for_report(),
+        selected_asteroid_source_window_summary_for_report(),
+        selected_asteroid_source_2451917_summary_for_report(),
+        selected_asteroid_source_2453000_summary_for_report(),
+        selected_asteroid_source_2500000_summary_for_report(),
+        selected_asteroid_source_2634167_summary_for_report(),
+        reference_asteroid_evidence_summary_for_report(),
+        reference_asteroid_equatorial_evidence_summary_for_report(),
+        reference_asteroid_source_window_summary_for_report(),
     ];
 
     let mut report = summary_line;
@@ -249,12 +261,13 @@ pub(crate) fn format_apparentness_modes(modes: &[pleiades_types::Apparentness]) 
 /// (reference_summary/reference_snapshot/core/general_a.rs:651). The
 /// `ReferenceLunarBoundarySummary` struct and its rendering live in
 /// `reference_summary/reference_snapshot/boundaries/era_a.rs` (Slice D Task
-/// 9, not yet copied); `.validated_summary_line()` is left as a method call
-/// on jpl's still-present inherent method.
+/// 9, already copied); `.validated_summary_line()` is rewired to `match
+/// summary.validate() { Ok(()) => <local render>, ... }`, calling the local
+/// `reference_lunar_boundary_summary_line` (Slice D Task 13b).
 pub(crate) fn reference_snapshot_lunar_boundary_summary_for_report() -> String {
     match pleiades_jpl::reference_snapshot_lunar_boundary_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
+        Some(summary) => match summary.validate() {
+            Ok(()) => reference_lunar_boundary_summary_line(&summary),
             Err(error) => format!("Reference lunar boundary evidence: unavailable ({error})"),
         },
         None => "Reference lunar boundary evidence: unavailable".to_string(),
@@ -266,11 +279,13 @@ pub(crate) fn reference_snapshot_lunar_boundary_summary_for_report() -> String {
 /// `reference_snapshot_high_curvature_summary_for_report`
 /// (reference_summary/reference_snapshot/core/general_a.rs:710). The
 /// `ReferenceHighCurvatureSummary` struct/rendering live in
-/// `boundaries/era_a.rs` (Task 9, not yet copied); see module doc comment.
+/// `boundaries/era_a.rs` (Slice D Task 9, already copied); rewired the same
+/// way as above, calling the local `reference_high_curvature_summary_line`
+/// (Slice D Task 13b).
 pub(crate) fn reference_snapshot_high_curvature_summary_for_report() -> String {
     match pleiades_jpl::reference_snapshot_high_curvature_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
+        Some(summary) => match summary.validate() {
+            Ok(()) => reference_high_curvature_summary_line(&summary),
             Err(error) => {
                 format!("Reference major-body high-curvature evidence: unavailable ({error})")
             }
@@ -283,11 +298,13 @@ pub(crate) fn reference_snapshot_high_curvature_summary_for_report() -> String {
 /// Verbatim copy of jpl's `reference_snapshot_major_body_boundary_summary_for_report`
 /// (reference_summary/reference_snapshot/core/general_a.rs:769). The
 /// `ReferenceMajorBodyBoundarySummary` struct/rendering live in
-/// `boundaries/era_a.rs` (Task 9, not yet copied); see module doc comment.
+/// `boundaries/era_a.rs` (Slice D Task 9, already copied); rewired the same
+/// way as above, calling the local `reference_major_body_boundary_summary_line`
+/// (Slice D Task 13b).
 pub(crate) fn reference_snapshot_major_body_boundary_summary_for_report() -> String {
     match pleiades_jpl::reference_snapshot_major_body_boundary_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
+        Some(summary) => match summary.validate() {
+            Ok(()) => reference_major_body_boundary_summary_line(&summary),
             Err(error) => {
                 format!("Reference major-body boundary evidence: unavailable ({error})")
             }
@@ -300,11 +317,13 @@ pub(crate) fn reference_snapshot_major_body_boundary_summary_for_report() -> Str
 /// copy of jpl's `reference_snapshot_major_body_bridge_summary_for_report`
 /// (reference_summary/reference_snapshot/core/general_a.rs:829). The
 /// `ReferenceMajorBodyBridgeSummary` struct/rendering live in
-/// `boundaries/era_a.rs` (Task 9, not yet copied); see module doc comment.
+/// `boundaries/era_a.rs` (Slice D Task 9, already copied); rewired the same
+/// way as above, calling the local `reference_major_body_bridge_summary_line`
+/// (Slice D Task 13b).
 pub(crate) fn reference_snapshot_major_body_bridge_summary_for_report() -> String {
     match pleiades_jpl::reference_snapshot_major_body_bridge_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
+        Some(summary) => match summary.validate() {
+            Ok(()) => reference_major_body_bridge_summary_line(&summary),
             Err(error) => format!("Reference major-body bridge evidence: unavailable ({error})"),
         },
         None => "Reference major-body bridge evidence: unavailable".to_string(),
@@ -315,11 +334,13 @@ pub(crate) fn reference_snapshot_major_body_bridge_summary_for_report() -> Strin
 /// copy of jpl's `reference_snapshot_mars_jupiter_boundary_summary_for_report`
 /// (reference_summary/reference_snapshot/core/general_a.rs:886). The
 /// `ReferenceMarsJupiterBoundarySummary` struct/rendering live in
-/// `boundaries/era_a.rs` (Task 9, not yet copied); see module doc comment.
+/// `boundaries/era_a.rs` (Slice D Task 9, already copied); rewired the same
+/// way as above, calling the local `reference_mars_jupiter_boundary_summary_line`
+/// (Slice D Task 13b).
 pub(crate) fn reference_snapshot_mars_jupiter_boundary_summary_for_report() -> String {
     match pleiades_jpl::reference_snapshot_mars_jupiter_boundary_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
+        Some(summary) => match summary.validate() {
+            Ok(()) => reference_mars_jupiter_boundary_summary_line(&summary),
             Err(error) => {
                 format!("Reference Mars/Jupiter boundary evidence: unavailable ({error})")
             }
@@ -334,11 +355,13 @@ pub(crate) fn reference_snapshot_mars_jupiter_boundary_summary_for_report() -> S
 /// jpl's `reference_snapshot_2451918_major_body_boundary_summary_for_report`
 /// (reference_summary/reference_snapshot/core/general_a.rs:910). The
 /// underlying `ReferenceMarsJupiterBoundarySummary` rendering lives in
-/// `boundaries/era_a.rs` (Task 9, not yet copied); see module doc comment.
+/// `boundaries/era_a.rs` (Slice D Task 9, already copied); rewired the same
+/// way as above, calling the local `reference_mars_jupiter_boundary_summary_line`
+/// (Slice D Task 13b).
 pub(crate) fn reference_snapshot_2451918_major_body_boundary_summary_for_report() -> String {
     match pleiades_jpl::reference_snapshot_2451918_major_body_boundary_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line.replacen(
+        Some(summary) => match summary.validate() {
+            Ok(()) => reference_mars_jupiter_boundary_summary_line(&summary).replacen(
                 "Reference Mars/Jupiter boundary evidence",
                 "Reference 2451918 major-body boundary evidence",
                 1,
@@ -356,11 +379,13 @@ pub(crate) fn reference_snapshot_2451918_major_body_boundary_summary_for_report(
 /// `reference_snapshot_2453000_major_body_boundary_summary_for_report`
 /// (reference_summary/reference_snapshot/core/general_a.rs:975). The
 /// `Reference2453000MajorBodyBoundarySummary` struct/rendering live in
-/// `boundaries/era_b.rs` (Task 9, not yet copied); see module doc comment.
+/// `boundaries/era_c.rs` (Slice D Task 9, already copied); rewired the same
+/// way as above, calling the local
+/// `reference_2453000_major_body_boundary_summary_line` (Slice D Task 13b).
 pub(crate) fn reference_snapshot_2453000_major_body_boundary_summary_for_report() -> String {
     match pleiades_jpl::reference_snapshot_2453000_major_body_boundary_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
+        Some(summary) => match summary.validate() {
+            Ok(()) => reference_2453000_major_body_boundary_summary_line(&summary),
             Err(error) => {
                 format!("Reference 2453000 major-body boundary evidence: unavailable ({error})")
             }
@@ -374,11 +399,13 @@ pub(crate) fn reference_snapshot_2453000_major_body_boundary_summary_for_report(
 /// `reference_snapshot_2451545_major_body_boundary_summary_for_report`
 /// (reference_summary/reference_snapshot/core/general_a.rs:1036). The
 /// `Reference2451545MajorBodyBoundarySummary` struct/rendering live in
-/// `boundaries/era_c.rs` (Task 9, not yet copied); see module doc comment.
+/// `boundaries/era_c.rs` (Slice D Task 9, already copied); rewired the same
+/// way as above, calling the local
+/// `reference_2451545_major_body_boundary_summary_line` (Slice D Task 13b).
 pub(crate) fn reference_snapshot_2451545_major_body_boundary_summary_for_report() -> String {
     match pleiades_jpl::reference_snapshot_2451545_major_body_boundary_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
+        Some(summary) => match summary.validate() {
+            Ok(()) => reference_2451545_major_body_boundary_summary_line(&summary),
             Err(error) => {
                 format!("Reference 2451545 major-body boundary evidence: unavailable ({error})")
             }
@@ -392,11 +419,13 @@ pub(crate) fn reference_snapshot_2451545_major_body_boundary_summary_for_report(
 /// `reference_snapshot_2451910_major_body_boundary_summary_for_report`
 /// (reference_summary/reference_snapshot/core/general_a.rs:1097). The
 /// `Reference2451910MajorBodyBoundarySummary` struct/rendering live in
-/// `boundaries/era_c.rs` (Task 9, not yet copied); see module doc comment.
+/// `boundaries/era_c.rs` (Slice D Task 9, already copied); rewired the same
+/// way as above, calling the local
+/// `reference_2451910_major_body_boundary_summary_line` (Slice D Task 13b).
 pub(crate) fn reference_snapshot_2451910_major_body_boundary_summary_for_report() -> String {
     match pleiades_jpl::reference_snapshot_2451910_major_body_boundary_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
+        Some(summary) => match summary.validate() {
+            Ok(()) => reference_2451910_major_body_boundary_summary_line(&summary),
             Err(error) => {
                 format!("Reference 2451910 major-body boundary evidence: unavailable ({error})")
             }
@@ -410,11 +439,13 @@ pub(crate) fn reference_snapshot_2451910_major_body_boundary_summary_for_report(
 /// `reference_snapshot_2451911_major_body_boundary_summary_for_report`
 /// (reference_summary/reference_snapshot/core/general_a.rs:1158). The
 /// `Reference2451911MajorBodyBoundarySummary` struct/rendering live in
-/// `boundaries/era_c.rs` (Task 9, not yet copied); see module doc comment.
+/// `boundaries/era_c.rs` (Slice D Task 9, already copied); rewired the same
+/// way as above, calling the local
+/// `reference_2451911_major_body_boundary_summary_line` (Slice D Task 13b).
 pub(crate) fn reference_snapshot_2451911_major_body_boundary_summary_for_report() -> String {
     match pleiades_jpl::reference_snapshot_2451911_major_body_boundary_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
+        Some(summary) => match summary.validate() {
+            Ok(()) => reference_2451911_major_body_boundary_summary_line(&summary),
             Err(error) => {
                 format!("Reference 2451911 major-body boundary evidence: unavailable ({error})")
             }
@@ -428,11 +459,13 @@ pub(crate) fn reference_snapshot_2451911_major_body_boundary_summary_for_report(
 /// `reference_snapshot_2451912_major_body_boundary_summary_for_report`
 /// (reference_summary/reference_snapshot/core/general_a.rs:1219). The
 /// `Reference2451912MajorBodyBoundarySummary` struct/rendering live in
-/// `boundaries/era_c.rs` (Task 9, not yet copied); see module doc comment.
+/// `boundaries/era_c.rs` (Slice D Task 9, already copied); rewired the same
+/// way as above, calling the local
+/// `reference_2451912_major_body_boundary_summary_line` (Slice D Task 13b).
 pub(crate) fn reference_snapshot_2451912_major_body_boundary_summary_for_report() -> String {
     match pleiades_jpl::reference_snapshot_2451912_major_body_boundary_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
+        Some(summary) => match summary.validate() {
+            Ok(()) => reference_2451912_major_body_boundary_summary_line(&summary),
             Err(error) => {
                 format!("Reference 2451912 major-body boundary evidence: unavailable ({error})")
             }
@@ -446,11 +479,13 @@ pub(crate) fn reference_snapshot_2451912_major_body_boundary_summary_for_report(
 /// `reference_snapshot_2451913_major_body_boundary_summary_for_report`
 /// (reference_summary/reference_snapshot/core/general_a.rs:1280). The
 /// `Reference2451913MajorBodyBoundarySummary` struct/rendering live in
-/// `boundaries/era_c.rs` (Task 9, not yet copied); see module doc comment.
+/// `boundaries/era_c.rs` (Slice D Task 9, already copied); rewired the same
+/// way as above, calling the local
+/// `reference_2451913_major_body_boundary_summary_line` (Slice D Task 13b).
 pub(crate) fn reference_snapshot_2451913_major_body_boundary_summary_for_report() -> String {
     match pleiades_jpl::reference_snapshot_2451913_major_body_boundary_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
+        Some(summary) => match summary.validate() {
+            Ok(()) => reference_2451913_major_body_boundary_summary_line(&summary),
             Err(error) => {
                 format!("Reference 2451913 major-body boundary evidence: unavailable ({error})")
             }
@@ -464,11 +499,13 @@ pub(crate) fn reference_snapshot_2451913_major_body_boundary_summary_for_report(
 /// `reference_snapshot_2451914_major_body_boundary_summary_for_report`
 /// (reference_summary/reference_snapshot/core/general_a.rs:1341). The
 /// `Reference2451914MajorBodyBoundarySummary` struct/rendering live in
-/// `boundaries/era_c.rs` (Task 9, not yet copied); see module doc comment.
+/// `boundaries/era_c.rs` (Slice D Task 9, already copied); rewired the same
+/// way as above, calling the local
+/// `reference_2451914_major_body_boundary_summary_line` (Slice D Task 13b).
 pub(crate) fn reference_snapshot_2451914_major_body_boundary_summary_for_report() -> String {
     match pleiades_jpl::reference_snapshot_2451914_major_body_boundary_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
+        Some(summary) => match summary.validate() {
+            Ok(()) => reference_2451914_major_body_boundary_summary_line(&summary),
             Err(error) => {
                 format!("Reference 2451914 major-body boundary evidence: unavailable ({error})")
             }
@@ -482,11 +519,13 @@ pub(crate) fn reference_snapshot_2451914_major_body_boundary_summary_for_report(
 /// `reference_snapshot_2451915_major_body_boundary_summary_for_report`
 /// (reference_summary/reference_snapshot/core/general_a.rs:1402). The
 /// `Reference2451915MajorBodyBoundarySummary` struct/rendering live in
-/// `boundaries/era_c.rs` (Task 9, not yet copied); see module doc comment.
+/// `boundaries/era_c.rs` (Slice D Task 9, already copied); rewired the same
+/// way as above, calling the local
+/// `reference_2451915_major_body_boundary_summary_line` (Slice D Task 13b).
 pub(crate) fn reference_snapshot_2451915_major_body_boundary_summary_for_report() -> String {
     match pleiades_jpl::reference_snapshot_2451915_major_body_boundary_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
+        Some(summary) => match summary.validate() {
+            Ok(()) => reference_2451915_major_body_boundary_summary_line(&summary),
             Err(error) => {
                 format!("Reference 2451915 major-body boundary evidence: unavailable ({error})")
             }
@@ -500,11 +539,13 @@ pub(crate) fn reference_snapshot_2451915_major_body_boundary_summary_for_report(
 /// `reference_snapshot_2451917_major_body_bridge_summary_for_report`
 /// (reference_summary/reference_snapshot/core/general_a.rs:1463). The
 /// `Reference2451917MajorBodyBridgeSummary` struct/rendering live in
-/// `boundaries/era_c.rs` (Task 9, not yet copied); see module doc comment.
+/// `boundaries/era_c.rs` (Slice D Task 9, already copied); rewired the same
+/// way as above, calling the local
+/// `reference_2451917_major_body_bridge_summary_line` (Slice D Task 13b).
 pub(crate) fn reference_snapshot_2451917_major_body_bridge_summary_for_report() -> String {
     match pleiades_jpl::reference_snapshot_2451917_major_body_bridge_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
+        Some(summary) => match summary.validate() {
+            Ok(()) => reference_2451917_major_body_bridge_summary_line(&summary),
             Err(error) => {
                 format!("Reference 2451917 major-body bridge evidence: unavailable ({error})")
             }
@@ -532,9 +573,12 @@ mod tests {
 
     // 8a's deferred test (tests.rs:86): needed `reference_snapshot_summary`/
     // `reference_snapshot_summary_for_report`, both general_a (this file).
-    // Every other-file `_for_report` call in its assertions is qualified
-    // `pleiades_jpl::<name>()` per the module doc comment's other-file rule;
-    // this file's own 10 sibling renderers referenced here stay unqualified.
+    // This is a containment test (`report.contains(&<renderer>())`), so every
+    // `_for_report` call in its assertions — this file's own siblings and the
+    // other-file renderers alike — is validate-local (Slice D Task 13b),
+    // reached through the module's `use crate::posture::jpl::*;` glob; a
+    // validate aggregate containing its validate sub-renderer output is the
+    // byte-identical check that survives Task 14's jpl-render deletion.
     #[test]
     fn reference_snapshot_summary_reports_the_expected_coverage() {
         let summary = pleiades_jpl::reference_snapshot_summary()
@@ -560,25 +604,18 @@ mod tests {
         assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         let report = reference_snapshot_summary_for_report();
         assert!(report.contains(summary.summary_line().as_str()));
-        assert!(report.contains(&pleiades_jpl::reference_snapshot_source_summary_for_report()));
-        assert!(
-            report.contains(&pleiades_jpl::reference_snapshot_source_window_summary_for_report())
-        );
+        assert!(report.contains(&reference_snapshot_source_summary_for_report()));
+        assert!(report.contains(&reference_snapshot_source_window_summary_for_report()));
         assert!(report.contains(&reference_snapshot_major_body_bridge_summary_for_report()));
-        assert!(report.contains(&pleiades_jpl::reference_asteroid_evidence_summary_for_report()));
-        assert!(report
-            .contains(&pleiades_jpl::reference_asteroid_equatorial_evidence_summary_for_report()));
-        assert!(
-            report.contains(&pleiades_jpl::reference_asteroid_source_window_summary_for_report())
-        );
+        assert!(report.contains(&reference_asteroid_evidence_summary_for_report()));
+        assert!(report.contains(&reference_asteroid_equatorial_evidence_summary_for_report()));
+        assert!(report.contains(&reference_asteroid_source_window_summary_for_report()));
         assert!(report.contains(&reference_snapshot_lunar_boundary_summary_for_report()));
         assert!(report.contains(&reference_snapshot_high_curvature_summary_for_report()));
-        assert!(report.contains(
-            &pleiades_jpl::reference_snapshot_high_curvature_window_summary_for_report()
-        ));
-        assert!(report.contains(
-            &pleiades_jpl::reference_snapshot_high_curvature_epoch_coverage_summary_for_report()
-        ));
+        assert!(report.contains(&reference_snapshot_high_curvature_window_summary_for_report()));
+        assert!(
+            report.contains(&reference_snapshot_high_curvature_epoch_coverage_summary_for_report())
+        );
         assert!(
             report.contains(&reference_snapshot_2451545_major_body_boundary_summary_for_report())
         );
@@ -598,52 +635,41 @@ mod tests {
         assert!(
             report.contains(&reference_snapshot_2451914_major_body_boundary_summary_for_report())
         );
-        assert!(report.contains(
-            &pleiades_jpl::reference_snapshot_2451914_major_body_pre_bridge_summary_for_report()
-        ));
-        assert!(report.contains(
-            &pleiades_jpl::reference_snapshot_2451914_major_body_bridge_summary_for_report()
-        ));
+        assert!(
+            report.contains(&reference_snapshot_2451914_major_body_pre_bridge_summary_for_report())
+        );
+        assert!(report.contains(&reference_snapshot_2451914_major_body_bridge_summary_for_report()));
         assert!(
             report.contains(&reference_snapshot_2451915_major_body_boundary_summary_for_report())
         );
-        assert!(report.contains(
-            &pleiades_jpl::reference_snapshot_2451915_major_body_bridge_summary_for_report()
-        ));
+        assert!(report.contains(&reference_snapshot_2451915_major_body_bridge_summary_for_report()));
         assert!(report.contains(&reference_snapshot_2451917_major_body_bridge_summary_for_report()));
-        assert!(report.contains(
-            &pleiades_jpl::reference_snapshot_2451917_major_body_boundary_summary_for_report()
-        ));
-        assert!(report.contains(
-            &pleiades_jpl::reference_snapshot_2451916_major_body_interior_summary_for_report()
-        ));
-        assert!(report.contains(
-            &pleiades_jpl::reference_snapshot_2451916_major_body_dense_boundary_summary_for_report(
-            )
-        ));
-        assert!(report.contains(
-            &pleiades_jpl::reference_snapshot_2451916_major_body_boundary_summary_for_report()
-        ));
         assert!(
-            report.contains(&pleiades_jpl::reference_snapshot_dense_boundary_summary_for_report())
+            report.contains(&reference_snapshot_2451917_major_body_boundary_summary_for_report())
         );
+        assert!(
+            report.contains(&reference_snapshot_2451916_major_body_interior_summary_for_report())
+        );
+        assert!(report
+            .contains(&reference_snapshot_2451916_major_body_dense_boundary_summary_for_report()));
+        assert!(
+            report.contains(&reference_snapshot_2451916_major_body_boundary_summary_for_report())
+        );
+        assert!(report.contains(&reference_snapshot_dense_boundary_summary_for_report()));
         assert!(report.contains(&reference_snapshot_mars_jupiter_boundary_summary_for_report()));
-        assert!(report.contains(
-            &pleiades_jpl::reference_snapshot_2451919_major_body_boundary_summary_for_report()
-        ));
-        assert!(report.contains(
-            &pleiades_jpl::reference_snapshot_2451920_major_body_interior_summary_for_report()
-        ));
+        assert!(
+            report.contains(&reference_snapshot_2451919_major_body_boundary_summary_for_report())
+        );
+        assert!(
+            report.contains(&reference_snapshot_2451920_major_body_interior_summary_for_report())
+        );
         assert!(
             report.contains(&reference_snapshot_2453000_major_body_boundary_summary_for_report())
         );
-        assert!(report.contains(&pleiades_jpl::selected_asteroid_boundary_summary_for_report()));
-        assert!(report.contains(&pleiades_jpl::selected_asteroid_bridge_summary_for_report()));
-        assert!(
-            report.contains(&pleiades_jpl::selected_asteroid_dense_boundary_summary_for_report())
-        );
-        assert!(report
-            .contains(&pleiades_jpl::selected_asteroid_terminal_boundary_summary_for_report()));
+        assert!(report.contains(&selected_asteroid_boundary_summary_for_report()));
+        assert!(report.contains(&selected_asteroid_bridge_summary_for_report()));
+        assert!(report.contains(&selected_asteroid_dense_boundary_summary_for_report()));
+        assert!(report.contains(&selected_asteroid_terminal_boundary_summary_for_report()));
     }
 
     #[test]

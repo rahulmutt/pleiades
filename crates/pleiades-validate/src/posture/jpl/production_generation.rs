@@ -12,15 +12,14 @@
 //! boundary-overlay structs' 7 free `*_for_report` renderers; the
 //! request-corpus builders and every struct's `validate()`/`label()` stay in
 //! jpl permanently, called via `pleiades_jpl::`). Task 10a's calls into the
-//! top-level file were written before Task 10b copied it, so per this
-//! family's recipe ("Task 13 flips it local") they are left as
-//! `pleiades_jpl::<name>()` even though the target now also has a local copy
-//! here — Task 13 repoints those residuals, not the individual family tasks.
-//! Likewise every call into an already-copied sibling file (`holdout.rs`,
-//! `reference_snapshot/core/evidence.rs`, `reference_snapshot/core/general_b.rs`)
-//! stays `pleiades_jpl::`/jpl-method uniformly — only same-file calls (within
-//! each of the two source files' own renderers/struct `summary_line`s) are
-//! rewired local.
+//! top-level file were written before Task 10b copied it, so they were
+//! initially left as `pleiades_jpl::<name>()` even though the target already
+//! had a local copy here; every such residual, plus every rendering call
+//! into an already-copied sibling file (`holdout.rs`,
+//! `reference_snapshot/core/evidence.rs`, `reference_snapshot/core/general_b.rs`),
+//! is now repointed to its local copy (Slice D Task 13b) — only data
+//! accessors, `validate()`/`label()` gates, and jpl-only structs/constants
+//! stay `pleiades_jpl::`.
 
 use std::sync::OnceLock;
 
@@ -37,9 +36,12 @@ use pleiades_jpl::{
 };
 use pleiades_types::{CoordinateFrame, Instant};
 
+use crate::posture::jpl::holdout::independent_holdout_snapshot_source_window_summary_for_report;
+use crate::posture::jpl::reference_snapshot::core::evidence::reference_snapshot_exact_j2000_evidence_summary_for_report;
 use crate::posture::jpl::reference_snapshot::core::general_a::{
     format_bodies, strip_report_prefix,
 };
+use crate::posture::jpl::reference_snapshot::core::general_b::reference_snapshot_source_summary_line;
 
 /// Reproduced from jpl's private `format_instant` (`lib.rs:66`), which is
 /// crate-private and not callable cross-crate. Per-module duplicate accepted
@@ -194,17 +196,18 @@ pub(crate) fn production_generation_source_body_class_cadence_fragment(
 /// provenance. Verbatim copy of `ProductionGenerationSourceSummary::summary_line`
 /// (reference_summary/production_generation.rs:655). `self.reference_summary`
 /// is a `ReferenceSnapshotSourceSummary` whose rendering lives in
-/// `reference_snapshot/core/general_b.rs` (Task 8, a different file) — its
-/// `.summary_line()` call stays a jpl method call. `self.source_windows` and
-/// `self.source_revision` are this file's own structs, so their nested
-/// `.summary_line()` calls are rewired to the local
+/// `reference_snapshot/core/general_b.rs` (Slice D Task 8, already copied) —
+/// its `.summary_line()` call is rewired to the local
+/// `reference_snapshot_source_summary_line` (Slice D Task 13b).
+/// `self.source_windows` and `self.source_revision` are this file's own
+/// structs, so their nested `.summary_line()` calls are rewired to the local
 /// `production_generation_snapshot_window_summary_line` and
 /// `production_generation_source_revision_summary_line`.
-/// `format_production_generation_boundary_source_summary` (top-level
-/// `production_generation.rs`, Task 10b) and
+/// `format_production_generation_boundary_source_summary` (this file's own
+/// top-level `production_generation.rs` copy, Task 10b) and
 /// `reference_snapshot_exact_j2000_evidence_summary_for_report`
-/// (`reference_snapshot/core/evidence.rs`, Task 8) are both different files,
-/// so both stay `pleiades_jpl::`.
+/// (`reference_snapshot/core/evidence.rs`, Slice D Task 8, already copied)
+/// are both rewired to their local copies too (Slice D Task 13b).
 pub(crate) fn production_generation_source_summary_line(
     s: &ProductionGenerationSourceSummary,
 ) -> String {
@@ -217,14 +220,14 @@ pub(crate) fn production_generation_source_summary_line(
 
     format!(
         "Production generation source: strategy=documented hybrid fixture corpus; {}; {}; source windows={}; reference snapshot exact J2000 evidence={}; evidence classes=reference, hold-out, boundary overlay, provenance-only; input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv; license posture=public-source provenance only; checked-in fixtures remain repository-local regression data; {}; generation command=generate-packaged-artifact --check (consuming the checked-in CSV fixtures); file format=comma-separated values; schema=epoch_jd, body, x_km, y_km, z_km; columns=epoch_jd, body, x_km, y_km, z_km; frame=geocentric ecliptic J2000; time scale=TDB; apparentness=Mean; parser=pure-Rust and deterministic; checksum expectation=byte-identical fixture contents; {}; {}; {}; reference and hold-out rows remain separate; redistribution posture=repository-checked regression fixtures, not a broad public corpus",
-        s.reference_summary.summary_line(),
-        pleiades_jpl::format_production_generation_boundary_source_summary(&s.boundary_summary),
+        reference_snapshot_source_summary_line(&s.reference_summary),
+        format_production_generation_boundary_source_summary(&s.boundary_summary),
         strip_report_prefix(
             &production_generation_snapshot_window_summary_line(&s.source_windows),
             "Production generation source windows: ",
         ),
         strip_report_prefix(
-            &pleiades_jpl::reference_snapshot_exact_j2000_evidence_summary_for_report(),
+            &reference_snapshot_exact_j2000_evidence_summary_for_report(),
             "Reference snapshot exact J2000 evidence: ",
         ),
         production_generation_source_revision_summary_line(&s.source_revision),
@@ -239,8 +242,10 @@ pub(crate) fn production_generation_source_summary_line(
 /// `ProductionGenerationCorpusShapeSummary::summary_line`
 /// (reference_summary/production_generation.rs:936). The two boundary
 /// request corpus fields are `ProductionGenerationBoundaryRequestCorpusSummary`
-/// values (top-level `production_generation.rs`, Slice D Task 10b, not yet
-/// copied) — their `.summary_line()` calls stay jpl method calls.
+/// values (this file's own top-level `production_generation.rs` copy, Slice
+/// D Task 10b) — their `.summary_line()` calls are rewired to the local
+/// `production_generation_boundary_request_corpus_summary_line` (Slice D
+/// Task 13b).
 pub(crate) fn production_generation_corpus_shape_summary_line(
     s: &ProductionGenerationCorpusShapeSummary,
 ) -> String {
@@ -251,11 +256,15 @@ pub(crate) fn production_generation_corpus_shape_summary_line(
             "Production generation source: ",
         ),
         strip_report_prefix(
-            &s.boundary_request_corpus_ecliptic.summary_line(),
+            &production_generation_boundary_request_corpus_summary_line(
+                &s.boundary_request_corpus_ecliptic
+            ),
             "Production generation boundary request corpus: ",
         ),
         strip_report_prefix(
-            &s.boundary_request_corpus_equatorial.summary_line(),
+            &production_generation_boundary_request_corpus_summary_line(
+                &s.boundary_request_corpus_equatorial
+            ),
             "Production generation boundary request corpus: ",
         ),
     )
@@ -265,9 +274,13 @@ pub(crate) fn production_generation_corpus_shape_summary_line(
 /// manifest. Verbatim copy of
 /// `ProductionGenerationManifestSummary::summary_line`
 /// (reference_summary/production_generation.rs:1145). The boundary overlay,
-/// boundary-window, and boundary-request-corpus fields are top-level
-/// `production_generation.rs` types (Slice D Task 10b, not yet copied) —
-/// their `.summary_line()` calls stay jpl method calls.
+/// boundary-window, and boundary-request-corpus fields are this file's own
+/// top-level `production_generation.rs` types (Slice D Task 10b) — their
+/// `.summary_line()` calls are rewired to the local
+/// `production_generation_boundary_summary_line`,
+/// `production_generation_boundary_window_summary_line`, and
+/// `production_generation_boundary_request_corpus_summary_line` (Slice D
+/// Task 13b).
 pub(crate) fn production_generation_manifest_summary_line(
     s: &ProductionGenerationManifestSummary,
 ) -> String {
@@ -288,15 +301,17 @@ pub(crate) fn production_generation_manifest_summary_line(
             "Production generation body-class coverage: ",
         ),
         strip_report_prefix(
-            &s.boundary_summary.summary_line(),
+            &production_generation_boundary_summary_line(&s.boundary_summary),
             "Production generation boundary overlay: "
         ),
         strip_report_prefix(
-            &s.boundary_window_summary.summary_line(),
+            &production_generation_boundary_window_summary_line(&s.boundary_window_summary),
             "Production generation boundary windows: ",
         ),
         strip_report_prefix(
-            &s.boundary_request_corpus_summary.summary_line(),
+            &production_generation_boundary_request_corpus_summary_line(
+                &s.boundary_request_corpus_summary
+            ),
             "Production generation boundary request corpus: ",
         ),
     )
@@ -668,11 +683,9 @@ pub(crate) fn production_generation_source_density_summary_for_report(
 /// `production_generation_snapshot_window_summary_for_report` call local, and
 /// `independent_holdout_snapshot_source_window_summary_for_report`
 /// (`holdout.rs`, already copied) and
-/// `production_generation_boundary_summary_for_report` (top-level
-/// `production_generation.rs`, Slice D Task 10b) both left as
-/// `pleiades_jpl::` — cross-file calls stay uniformly `pleiades_jpl::` per
-/// this family's recipe regardless of whether the target file has already
-/// been copied.
+/// `production_generation_boundary_summary_for_report` (this file's own
+/// top-level `production_generation.rs` copy, Slice D Task 10b) both rewired
+/// to their local copies (Slice D Task 13b).
 pub(crate) fn production_generation_source_class_breakdown_summary_for_report() -> String {
     format!(
         "Production generation source class breakdown: reference source windows={}; hold-out source windows={}; boundary overlay={}; provenance-only source and manifest summaries remain separate",
@@ -681,11 +694,11 @@ pub(crate) fn production_generation_source_class_breakdown_summary_for_report() 
             "Production generation source windows: ",
         ),
         strip_report_prefix(
-            &pleiades_jpl::independent_holdout_snapshot_source_window_summary_for_report(),
+            &independent_holdout_snapshot_source_window_summary_for_report(),
             "Independent hold-out source windows: ",
         ),
         strip_report_prefix(
-            &pleiades_jpl::production_generation_boundary_summary_for_report(),
+            &production_generation_boundary_summary_for_report(),
             "Production generation boundary overlay: ",
         ),
     )

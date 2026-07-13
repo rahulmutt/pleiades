@@ -24,12 +24,13 @@
 //! Several of this file's 18 free `*_for_report` renderers operate on
 //! `Option<Struct>` values whose *own* struct definitions and inherent
 //! rendering live in `reference_summary/reference_snapshot/boundaries/
-//! {era_a,era_c,era_d}.rs` (Slice D Task 9, not yet copied) even though the
+//! {era_a,era_c,era_d}.rs` (Slice D Task 9, already copied) even though the
 //! *data accessor* function that produces the `Option<Struct>` is textually
 //! defined in this jpl source file — those `.validated_summary_line()`/
-//! `.validate()` calls are left as method calls on jpl's still-present
-//! inherent methods (validate→jpl is allowed and byte-identical; Task 13
-//! flips them once Task 9 lands). Every `*_summary()`/`*_details()` data
+//! `.validate()` calls are rewired (Slice D Task 13b) to `match
+//! summary.validate() { Ok(()) => <local render>, ... }`, calling the
+//! `boundaries/era_d.rs` free renderers directly (`validate()` stays on the
+//! jpl struct; rendering is local). Every `*_summary()`/`*_details()` data
 //! accessor (even the ones textually defined in this same jpl source file)
 //! is never duplicated into validate; every call to one is qualified
 //! `pleiades_jpl::<name>()`. Two renderers
@@ -37,8 +38,8 @@
 //! `reference_snapshot_2451914_major_body_pre_bridge_summary_for_report`'s
 //! sibling `reference_snapshot_2451914_major_body_bridge_summary_for_report`)
 //! delegate to a free renderer defined in `boundaries/era_d.rs`
-//! (`reference_snapshot_bridge_day_summary_for_report`, Task 9, not yet
-//! copied) — left as `pleiades_jpl::reference_snapshot_bridge_day_summary_for_report()`.
+//! (`reference_snapshot_bridge_day_summary_for_report`, Slice D Task 9,
+//! already copied) — rewired to the local copy (Slice D Task 13b).
 //!
 //! The manifest renderer (`reference_snapshot_manifest_summary_for_report`)
 //! delegates its final line to Task 2's
@@ -69,6 +70,20 @@ use pleiades_jpl::{
     ReferenceSnapshotPreBridgeBoundarySummary, ReferenceSnapshotSourceSummary,
     ReferenceSnapshotSourceWindow, ReferenceSnapshotSourceWindowSummary,
     ReferenceSnapshotSparseBoundarySummary,
+};
+
+// Slice D Task 13b: reach `boundaries/era_d.rs`'s local renderers for the
+// evidence structs this file's `*_for_report` wrappers unwrap, without a
+// `pleiades_jpl::` detour (those structs/rendering are textually defined in
+// `era_d.rs`, already copied by Task 9).
+use super::super::boundaries::era_d::{
+    reference_2451916_major_body_interior_summary_line,
+    reference_2451917_major_body_boundary_summary_line,
+    reference_2451919_major_body_boundary_summary_line,
+    reference_2451920_major_body_interior_summary_line,
+    reference_high_curvature_window_summary_line,
+    reference_major_body_boundary_window_summary_line,
+    reference_snapshot_bridge_day_summary_for_report,
 };
 
 /// Reproduced from jpl's private `format_instant` (`lib.rs:66`), which is
@@ -123,11 +138,11 @@ pub(crate) fn reference_snapshot_pre_bridge_boundary_summary_line(
 /// (reference_summary/reference_snapshot/core/general_b.rs:963). No renderer
 /// in this file calls it locally — the only local user,
 /// `reference_snapshot_2451914_major_body_bridge_summary_for_report`,
-/// delegates wholesale to jpl's still-present
-/// `reference_snapshot_bridge_day_summary_for_report` (`boundaries/era_d.rs`,
-/// Task 9, not yet copied) — but it is re-homed here per the family recipe's
-/// "re-home all inherent rendering of this file's evidence structs"
-/// requirement, ready for Task 9/13 to pick up.
+/// delegates wholesale to `reference_snapshot_bridge_day_summary_for_report`
+/// (`boundaries/era_d.rs`, Slice D Task 9, already copied), which itself
+/// calls this function directly (Slice D Task 13b) — this function was
+/// re-homed here per the family recipe's "re-home all inherent rendering of
+/// this file's evidence structs" requirement ahead of that call site landing.
 pub(crate) fn reference_snapshot_bridge_day_summary_line(
     s: &ReferenceSnapshotBridgeDaySummary,
 ) -> String {
@@ -238,12 +253,15 @@ pub(crate) fn format_validated_reference_snapshot_source_window_summary_for_repo
 /// Verbatim copy of jpl's `reference_snapshot_2451917_major_body_boundary_summary_for_report`
 /// (reference_summary/reference_snapshot/core/general_b.rs:62). The
 /// `Reference2451917MajorBodyBoundarySummary` struct and its rendering live
-/// in `boundaries/era_c.rs` (Task 9, not yet copied); `.validated_summary_line()`
-/// is left as a method call on jpl's still-present inherent method.
+/// in `boundaries/era_d.rs` (Slice D Task 9, already copied);
+/// `summary.validated_summary_line()` is rewired to `match summary.validate()
+/// { Ok(()) => <local render>, ... }`, calling the local
+/// `reference_2451917_major_body_boundary_summary_line` (Slice D Task 13b;
+/// `validate()` stays on the jpl struct, rendering is local).
 pub(crate) fn reference_snapshot_2451917_major_body_boundary_summary_for_report() -> String {
     match pleiades_jpl::reference_snapshot_2451917_major_body_boundary_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
+        Some(summary) => match summary.validate() {
+            Ok(()) => reference_2451917_major_body_boundary_summary_line(&summary),
             Err(error) => {
                 format!("Reference 2451917 major-body boundary evidence: unavailable ({error})")
             }
@@ -256,11 +274,13 @@ pub(crate) fn reference_snapshot_2451917_major_body_boundary_summary_for_report(
 /// Verbatim copy of jpl's `reference_snapshot_2451919_major_body_boundary_summary_for_report`
 /// (reference_summary/reference_snapshot/core/general_b.rs:123). The
 /// `Reference2451919MajorBodyBoundarySummary` struct and its rendering live
-/// in `boundaries/era_d.rs` (Task 9, not yet copied).
+/// in `boundaries/era_d.rs` (Slice D Task 9, already copied); rewired the
+/// same way as above, calling the local
+/// `reference_2451919_major_body_boundary_summary_line` (Slice D Task 13b).
 pub(crate) fn reference_snapshot_2451919_major_body_boundary_summary_for_report() -> String {
     match pleiades_jpl::reference_snapshot_2451919_major_body_boundary_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
+        Some(summary) => match summary.validate() {
+            Ok(()) => reference_2451919_major_body_boundary_summary_line(&summary),
             Err(error) => {
                 format!("Reference 2451919 major-body boundary evidence: unavailable ({error})")
             }
@@ -273,11 +293,13 @@ pub(crate) fn reference_snapshot_2451919_major_body_boundary_summary_for_report(
 /// Verbatim copy of jpl's `reference_snapshot_2451916_major_body_interior_summary_for_report`
 /// (reference_summary/reference_snapshot/core/general_b.rs:184). The
 /// `Reference2451916MajorBodyInteriorSummary` struct and its rendering live
-/// in `boundaries/era_d.rs` (Task 9, not yet copied).
+/// in `boundaries/era_d.rs` (Slice D Task 9, already copied); rewired the
+/// same way as above, calling the local
+/// `reference_2451916_major_body_interior_summary_line` (Slice D Task 13b).
 pub(crate) fn reference_snapshot_2451916_major_body_interior_summary_for_report() -> String {
     match pleiades_jpl::reference_snapshot_2451916_major_body_interior_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
+        Some(summary) => match summary.validate() {
+            Ok(()) => reference_2451916_major_body_interior_summary_line(&summary),
             Err(error) => {
                 format!("Reference 2451916 major-body interior evidence: unavailable ({error})")
             }
@@ -290,11 +312,13 @@ pub(crate) fn reference_snapshot_2451916_major_body_interior_summary_for_report(
 /// Verbatim copy of jpl's `reference_snapshot_2451920_major_body_interior_summary_for_report`
 /// (reference_summary/reference_snapshot/core/general_b.rs:245). The
 /// `Reference2451920MajorBodyInteriorSummary` struct and its rendering live
-/// in `boundaries/era_d.rs` (Task 9, not yet copied).
+/// in `boundaries/era_d.rs` (Slice D Task 9, already copied); rewired the
+/// same way as above, calling the local
+/// `reference_2451920_major_body_interior_summary_line` (Slice D Task 13b).
 pub(crate) fn reference_snapshot_2451920_major_body_interior_summary_for_report() -> String {
     match pleiades_jpl::reference_snapshot_2451920_major_body_interior_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
+        Some(summary) => match summary.validate() {
+            Ok(()) => reference_2451920_major_body_interior_summary_line(&summary),
             Err(error) => {
                 format!("Reference 2451920 major-body interior evidence: unavailable ({error})")
             }
@@ -307,11 +331,13 @@ pub(crate) fn reference_snapshot_2451920_major_body_interior_summary_for_report(
 /// Verbatim copy of jpl's `reference_snapshot_major_body_boundary_window_summary_for_report`
 /// (reference_summary/reference_snapshot/core/general_b.rs:344). The
 /// `ReferenceMajorBodyBoundaryWindowSummary` struct and its rendering live in
-/// `boundaries/era_d.rs` (Task 9, not yet copied).
+/// `boundaries/era_d.rs` (Slice D Task 9, already copied); rewired the same
+/// way as above, calling the local
+/// `reference_major_body_boundary_window_summary_line` (Slice D Task 13b).
 pub(crate) fn reference_snapshot_major_body_boundary_window_summary_for_report() -> String {
     match pleiades_jpl::reference_snapshot_major_body_boundary_window_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
+        Some(summary) => match summary.validate() {
+            Ok(()) => reference_major_body_boundary_window_summary_line(&summary),
             Err(error) => {
                 format!("Reference major-body boundary windows: unavailable ({error})")
             }
@@ -366,10 +392,10 @@ pub(crate) fn reference_snapshot_2451914_major_body_pre_bridge_summary_for_repor
 /// `reference_snapshot_2451914_major_body_bridge_summary_for_report`
 /// (reference_summary/reference_snapshot/core/general_b.rs:1050). It
 /// delegates to `reference_snapshot_bridge_day_summary_for_report`, a free
-/// renderer defined in `boundaries/era_d.rs` (Task 9, not yet copied) — left
-/// as `pleiades_jpl::`.
+/// renderer defined in `boundaries/era_d.rs` (Slice D Task 9, already
+/// copied) — rewired to the local copy (Slice D Task 13b).
 pub(crate) fn reference_snapshot_2451914_major_body_bridge_summary_for_report() -> String {
-    pleiades_jpl::reference_snapshot_bridge_day_summary_for_report()
+    reference_snapshot_bridge_day_summary_for_report()
 }
 
 /// Returns the release-facing 2451915 major-body bridge summary string.
@@ -449,11 +475,14 @@ pub(crate) fn reference_snapshot_2451916_major_body_boundary_summary_for_report(
 /// `reference_snapshot_high_curvature_window_summary_for_report`
 /// (reference_summary/reference_snapshot/core/general_b.rs:1416). The
 /// `ReferenceHighCurvatureWindowSummary` struct and its rendering live in
-/// `boundaries/era_d.rs` (Task 9, not yet copied).
+/// `boundaries/era_d.rs` (Slice D Task 9, already copied);
+/// `summary.validated_summary_line()` is rewired to `match summary.validate()
+/// { Ok(()) => <local render>, ... }`, calling the local
+/// `reference_high_curvature_window_summary_line` (Slice D Task 13b).
 pub(crate) fn reference_snapshot_high_curvature_window_summary_for_report() -> String {
     match pleiades_jpl::reference_snapshot_high_curvature_window_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
+        Some(summary) => match summary.validate() {
+            Ok(()) => reference_high_curvature_window_summary_line(&summary),
             Err(error) => {
                 format!("Reference major-body high-curvature windows: unavailable ({error})")
             }
@@ -860,7 +889,7 @@ mod tests {
             reference_snapshot_2451916_major_body_interior_summary_for_report(),
             summary.summary_line()
         );
-        assert!(pleiades_jpl::reference_snapshot_summary_for_report()
+        assert!(crate::posture::jpl::reference_snapshot_summary_for_report()
             .contains(summary.summary_line().as_str()));
     }
 
@@ -945,7 +974,7 @@ mod tests {
             reference_snapshot_2451919_major_body_boundary_summary_for_report(),
             summary.summary_line()
         );
-        assert!(pleiades_jpl::reference_snapshot_summary_for_report()
+        assert!(crate::posture::jpl::reference_snapshot_summary_for_report()
             .contains(summary.summary_line().as_str()));
     }
 

@@ -313,13 +313,17 @@ pub(crate) fn reference_high_curvature_epoch_coverage_summary_line(
 /// jpl's `reference_snapshot_bridge_day_summary_for_report`
 /// (reference_summary/reference_snapshot/boundaries/era_d.rs:731), with the
 /// data-constructor call qualified `pleiades_jpl::`. `summary.validated_summary_line()`
-/// is a cross-file struct-method call (`ReferenceSnapshotBridgeDaySummary` is
-/// defined in `core/general_b.rs`) kept on jpl's still-present inherent
-/// method (validate→jpl is allowed and byte-identical; Task 13 flips it).
+/// (a cross-file struct-method call — `ReferenceSnapshotBridgeDaySummary` is
+/// defined in `core/general_b.rs`) is rewired to `match summary.validate() {
+/// Ok(()) => <local render>, ... }`, calling the local
+/// `reference_snapshot_bridge_day_summary_line` (Slice D Task 13b; `validate()`
+/// stays on the jpl struct, rendering is local).
 pub(crate) fn reference_snapshot_bridge_day_summary_for_report() -> String {
     match pleiades_jpl::reference_snapshot_bridge_day_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
+        Some(summary) => match summary.validate() {
+            Ok(()) => {
+                crate::posture::jpl::reference_snapshot::core::general_b::reference_snapshot_bridge_day_summary_line(&summary)
+            }
             Err(error) => format!("Reference snapshot bridge day: unavailable ({error})"),
         },
         None => "Reference snapshot bridge day: unavailable".to_string(),
@@ -330,14 +334,16 @@ pub(crate) fn reference_snapshot_bridge_day_summary_for_report() -> String {
 /// copy of jpl's `validated_reference_snapshot_bridge_day_summary_for_report`
 /// (reference_summary/reference_snapshot/boundaries/era_d.rs:742), with the
 /// data-constructor call qualified `pleiades_jpl::`. `summary.validated_summary_line()`
-/// is the same cross-file struct-method call as above.
+/// is the same cross-file struct-method call as above, rewired the same way
+/// (Slice D Task 13b).
 pub(crate) fn validated_reference_snapshot_bridge_day_summary_for_report() -> Result<String, String>
 {
     let summary = pleiades_jpl::reference_snapshot_bridge_day_summary()
         .ok_or_else(|| "reference snapshot bridge day unavailable".to_string())?;
-    summary
-        .validated_summary_line()
-        .map_err(|error| error.to_string())
+    summary.validate().map_err(|error| error.to_string())?;
+    Ok(
+        crate::posture::jpl::reference_snapshot::core::general_b::reference_snapshot_bridge_day_summary_line(&summary),
+    )
 }
 
 /// Returns the release-facing 2451914 bridge-day summary string. Verbatim
