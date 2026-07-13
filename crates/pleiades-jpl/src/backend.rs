@@ -1005,14 +1005,23 @@ pub fn parse_snapshot_manifest(source: &str) -> SnapshotManifest {
 
 /// Structured validation errors for a checked-in snapshot manifest header block.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) enum SnapshotManifestHeaderStructureError {
+pub enum SnapshotManifestHeaderStructureError {
     /// The manifest comment block contained an unexpected number of non-empty lines.
-    CommentCountMismatch { expected: usize, found: usize },
+    CommentCountMismatch {
+        /// Number of header comments expected for this manifest shape.
+        expected: usize,
+        /// Number of header comments actually present.
+        found: usize,
+    },
     /// A specific manifest comment line drifted from the canonical header structure.
     CommentMismatch {
+        /// Zero-based position of the drifted comment line.
         index: usize,
+        /// Logical field the comment line corresponds to.
         field: &'static str,
+        /// Value expected at this position.
         expected: String,
+        /// Value actually found at this position.
         found: String,
     },
 }
@@ -1039,7 +1048,9 @@ impl fmt::Display for SnapshotManifestHeaderStructureError {
 
 impl std::error::Error for SnapshotManifestHeaderStructureError {}
 
-pub(crate) fn validate_snapshot_manifest_header_structure(
+/// Validates that `source`'s checked-in manifest header comments match the
+/// expected title, source, coverage, redistribution, and column metadata.
+pub fn validate_snapshot_manifest_header_structure(
     source: &str,
     expected_title: &str,
     expected_source: &str,

@@ -74,7 +74,7 @@ use backend::{
     independent_holdout_snapshot_error, is_reference_asteroid,
     reference_asteroid_equatorial_evidence_list, reference_asteroid_list,
     reference_asteroid_requests_with_frame_selector, resolve_fixture_state,
-    validate_snapshot_manifest_footprint, validate_snapshot_manifest_header_structure,
+    validate_snapshot_manifest_footprint,
 };
 
 #[cfg(test)]

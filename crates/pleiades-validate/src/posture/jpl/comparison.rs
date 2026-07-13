@@ -266,111 +266,6 @@ pub(crate) fn comparison_snapshot_manifest_summary_for_report() -> String {
     }
 }
 
-/// Structured validation error reproduced from jpl's private (`pub(crate)`,
-/// not callable cross-crate) `SnapshotManifestHeaderStructureError`
-/// (backend.rs:1008), needed only to reproduce
-/// `validate_snapshot_manifest_header_structure` below.
-#[derive(Clone, Debug, Eq, PartialEq)]
-enum SnapshotManifestHeaderStructureError {
-    /// The manifest comment block contained an unexpected number of non-empty lines.
-    CommentCountMismatch {
-        /// Number of header comments expected for this manifest shape.
-        expected: usize,
-        /// Number of header comments actually present.
-        found: usize,
-    },
-    /// A specific manifest comment line drifted from the canonical header structure.
-    CommentMismatch {
-        /// Zero-based position of the drifted comment line.
-        index: usize,
-        /// Logical field the comment line corresponds to.
-        field: &'static str,
-        /// Value expected at this position.
-        expected: String,
-        /// Value actually found at this position.
-        found: String,
-    },
-}
-
-impl core::fmt::Display for SnapshotManifestHeaderStructureError {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        match self {
-            Self::CommentCountMismatch { expected, found } => write!(
-                f,
-                "unexpected manifest comment count: expected {expected}, found {found}"
-            ),
-            Self::CommentMismatch {
-                index,
-                field,
-                expected,
-                found,
-            } => write!(
-                f,
-                "manifest comment {index} ({field}) mismatch: expected {expected} but found {found}"
-            ),
-        }
-    }
-}
-
-/// Reproduced from jpl's private (`pub(crate)`, not callable cross-crate)
-/// `validate_snapshot_manifest_header_structure` (backend.rs:1042).
-fn validate_snapshot_manifest_header_structure(
-    source: &str,
-    expected_title: &str,
-    expected_source: &str,
-    expected_coverage: &str,
-    expected_redistribution: Option<&str>,
-    expected_columns: &[&str],
-) -> Result<(), SnapshotManifestHeaderStructureError> {
-    let mut expected_comments = vec![
-        expected_title.to_string(),
-        format!("Source: {expected_source}"),
-        format!("Coverage: {expected_coverage}"),
-    ];
-    if let Some(expected_redistribution) = expected_redistribution {
-        expected_comments.push(format!("Redistribution: {expected_redistribution}"));
-    }
-    expected_comments.push(format!("Columns: {}", expected_columns.join(",")));
-    let comments = source
-        .lines()
-        .filter_map(|line| {
-            let trimmed = line.trim();
-            let comment = trimmed.strip_prefix('#')?.trim();
-            if comment.is_empty() {
-                None
-            } else {
-                Some(comment.to_string())
-            }
-        })
-        .collect::<Vec<_>>();
-
-    if comments.len() != expected_comments.len() {
-        return Err(SnapshotManifestHeaderStructureError::CommentCountMismatch {
-            expected: expected_comments.len(),
-            found: comments.len(),
-        });
-    }
-
-    for (index, (found, expected)) in comments.iter().zip(expected_comments.iter()).enumerate() {
-        if found != expected {
-            return Err(SnapshotManifestHeaderStructureError::CommentMismatch {
-                index,
-                field: match index {
-                    0 => "title",
-                    1 => "source",
-                    2 => "coverage",
-                    3 => "redistribution",
-                    _ => "columns",
-                },
-                expected: expected.clone(),
-                found: found.clone(),
-            });
-        }
-    }
-
-    Ok(())
-}
-
 /// Returns the validated manifest summary for the comparison snapshot used
 /// by validation. Verbatim copy of jpl's
 /// `validated_comparison_snapshot_manifest_summary_for_report`
@@ -392,7 +287,7 @@ pub(crate) fn validated_comparison_snapshot_manifest_summary_for_report() -> Res
     ));
     const COMPARISON_SNAPSHOT_REDISTRIBUTION_EXPECTED: &str =
         "repository-checked regression fixtures, not a broad public corpus.";
-    validate_snapshot_manifest_header_structure(
+    pleiades_jpl::validate_snapshot_manifest_header_structure(
         manifest_text,
         "JPL Horizons reference snapshot.",
         "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.",
