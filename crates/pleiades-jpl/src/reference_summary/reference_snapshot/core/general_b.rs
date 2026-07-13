@@ -1425,25 +1425,32 @@ pub fn reference_snapshot_high_curvature_window_summary_for_report() -> String {
     }
 }
 
-pub(crate) const REFERENCE_SNAPSHOT_EVIDENCE_CLASS: &str = "reference";
+/// Evidence-class label for the checked-in reference snapshot source summary.
+pub const REFERENCE_SNAPSHOT_EVIDENCE_CLASS: &str = "reference";
 
-pub(crate) const REFERENCE_SNAPSHOT_SOURCE_EXPECTED: &str =
+/// Expected source attribution for the checked-in reference snapshot.
+pub const REFERENCE_SNAPSHOT_SOURCE_EXPECTED: &str =
     "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.";
 
 pub(crate) const REFERENCE_SNAPSHOT_SOURCE_FALLBACK: &str =
     "NASA/JPL Horizons API vector tables (DE441)";
 
-pub(crate) const REFERENCE_SNAPSHOT_COVERAGE_FALLBACK: &str =
+/// Expected coverage description for the checked-in reference snapshot.
+pub const REFERENCE_SNAPSHOT_COVERAGE_FALLBACK: &str =
     "major-body samples are confined to the 1900-2100 window [JD 2415020.5, 2488069.5]; selected bodies sampled at 1900-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 2451915.25 and 2451915.75 for Sun, Moon, Mercury, Venus; major bodies sampled at 2451545, 2451910.5, 2451911.5, 2451912.5, 2451913.5, 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451916.0, 2451916.5, 2451917.0, 2451917.5, 2451918.5, 2451919.5, 2451920.5, and 2453000.5; major bodies sampled at 2451915.5 for Sun through Pluto; major bodies sampled at 2451913.5 through 2451917.5 for additional boundary coverage; selected asteroids sampled at J2000, 2378498.5, 2451910.5 through 2451919.5, with 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451917.5, 2451918.5, and 2451919.5 boundary coverage, 2003-12-27, 2132-08-31, 2500-01-01, and 2634167; asteroid:99942-Apophis is now also sampled at 2378498.5 and 2451917.5 to complete the selected-asteroid bridge.";
 
-pub(crate) const REFERENCE_SNAPSHOT_REDISTRIBUTION_FALLBACK: &str =
+/// Expected redistribution posture for the checked-in reference snapshot.
+pub const REFERENCE_SNAPSHOT_REDISTRIBUTION_FALLBACK: &str =
     "repository-checked regression fixtures, not a broad public corpus.";
 
-pub(crate) const REFERENCE_SNAPSHOT_FRAME_TREATMENT: &str = "geocentric ecliptic J2000";
+/// Expected frame treatment for the checked-in reference snapshot.
+pub const REFERENCE_SNAPSHOT_FRAME_TREATMENT: &str = "geocentric ecliptic J2000";
 
-pub(crate) const REFERENCE_SNAPSHOT_TIME_SCALE: &str = "TDB";
+/// Expected time scale for the checked-in reference snapshot.
+pub const REFERENCE_SNAPSHOT_TIME_SCALE: &str = "TDB";
 
-pub(crate) const REFERENCE_SNAPSHOT_COLUMNS: &str = "epoch_jd, body, x_km, y_km, z_km";
+/// Expected column schema for the checked-in reference snapshot.
+pub const REFERENCE_SNAPSHOT_COLUMNS: &str = "epoch_jd, body, x_km, y_km, z_km";
 
 pub(crate) const INDEPENDENT_HOLDOUT_EVIDENCE_CLASS: &str = "hold-out";
 
@@ -1465,7 +1472,8 @@ pub(crate) const INDEPENDENT_HOLDOUT_FRAME_TREATMENT: &str = "geocentric eclipti
 
 pub(crate) const INDEPENDENT_HOLDOUT_TIME_SCALE: &str = "TDB";
 
-pub(crate) fn reference_snapshot_source_checksum() -> u64 {
+/// Deterministic checksum of the checked-in reference snapshot CSV source material.
+pub fn reference_snapshot_source_checksum() -> u64 {
     static CHECKSUM: OnceLock<u64> = OnceLock::new();
     *CHECKSUM.get_or_init(|| {
         checksum64(include_str!(concat!(
