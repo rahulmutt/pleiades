@@ -5,22 +5,29 @@
 //! constructors, `validate()`/`label()` methods, and all release-gate data;
 //! jpl's own rendering stays in place until the Task 14 contract sweep.
 //!
-//! This is `pleiades-jpl`'s `reference_summary/production_generation.rs`
-//! *only* (Slice D Task 10a — 17 free `*_for_report` renderers). The
-//! top-level `pleiades-jpl::production_generation` module (the boundary
-//! overlay structs/renderers and the request-corpus builders, which stay in
-//! jpl permanently) is a *separate* source file with its own Slice D task
-//! (10b) and is intentionally left untouched here — every call into it stays
-//! `pleiades_jpl::<name>()`. Likewise every call into an already-copied
-//! sibling file (`holdout.rs`, `reference_snapshot/core/evidence.rs`,
-//! `reference_snapshot/core/general_b.rs`) stays `pleiades_jpl::`/jpl-method
-//! uniformly per this family's recipe — only same-file calls (to this file's
-//! own 17 renderers, 8 struct `summary_line`s, and its two rendering-fragment
-//! helpers) are rewired local. Task 13 repoints the residual.
+//! This module covers both of `pleiades-jpl`'s `production_generation`
+//! source files: `reference_summary/production_generation.rs` (Slice D Task
+//! 10a — 17 free `*_for_report` renderers) and the top-level
+//! `pleiades-jpl::production_generation` module (Slice D Task 10b — the
+//! boundary-overlay structs' 7 free `*_for_report` renderers; the
+//! request-corpus builders and every struct's `validate()`/`label()` stay in
+//! jpl permanently, called via `pleiades_jpl::`). Task 10a's calls into the
+//! top-level file were written before Task 10b copied it, so per this
+//! family's recipe ("Task 13 flips it local") they are left as
+//! `pleiades_jpl::<name>()` even though the target now also has a local copy
+//! here — Task 13 repoints those residuals, not the individual family tasks.
+//! Likewise every call into an already-copied sibling file (`holdout.rs`,
+//! `reference_snapshot/core/evidence.rs`, `reference_snapshot/core/general_b.rs`)
+//! stays `pleiades_jpl::`/jpl-method uniformly — only same-file calls (within
+//! each of the two source files' own renderers/struct `summary_line`s) are
+//! rewired local.
 
 use std::sync::OnceLock;
 
 use pleiades_jpl::{
+    IndependentHoldoutSourceSummary, ProductionGenerationBoundaryBodyClassCoverageSummary,
+    ProductionGenerationBoundaryRequestCorpusSummary, ProductionGenerationBoundarySummary,
+    ProductionGenerationBoundaryWindow, ProductionGenerationBoundaryWindowSummary,
     ProductionGenerationCorpusShapeSummary, ProductionGenerationManifestSummary,
     ProductionGenerationSnapshotBodyClassCoverageSummary, ProductionGenerationSnapshotSummary,
     ProductionGenerationSnapshotWindow, ProductionGenerationSnapshotWindowSummary,
@@ -378,6 +385,196 @@ pub(crate) fn production_generation_snapshot_body_class_coverage_summary_line(
     )
 }
 
+/// Compact release-facing summary line for the production-generation
+/// boundary overlay. Verbatim copy of
+/// `ProductionGenerationBoundarySummary::summary_line` (top-level
+/// `production_generation.rs:358`, Slice D Task 10b).
+pub(crate) fn production_generation_boundary_summary_line(
+    s: &ProductionGenerationBoundarySummary,
+) -> String {
+    format!(
+        "Production generation boundary overlay: {} rows across {} bodies and {} epochs ({}..{}); bodies: {}",
+        s.row_count,
+        s.body_count,
+        s.epoch_count,
+        format_instant(s.earliest_epoch),
+        format_instant(s.latest_epoch),
+        format_bodies(s.bodies),
+    )
+}
+
+/// Verbatim copy of jpl's `format_production_generation_boundary_source_summary`
+/// (top-level `production_generation.rs:441`, Slice D Task 10b), with the
+/// checksum call rewired to the local
+/// `production_generation_boundary_source_checksum` (below) in place of
+/// jpl's private `independent_holdout_snapshot_checksum`.
+pub(crate) fn format_production_generation_boundary_source_summary(
+    summary: &IndependentHoldoutSourceSummary,
+) -> String {
+    format!(
+        "Production generation boundary overlay source: {}; evidence class={}; coverage={}; columns={}; redistribution={}; checksum=0x{:016x}; {}; time scale={}",
+        summary.source,
+        summary.evidence_class,
+        summary.coverage,
+        summary.columns,
+        summary.redistribution,
+        production_generation_boundary_source_checksum(),
+        summary.frame_treatment,
+        summary.time_scale,
+    )
+}
+
+/// Verbatim copy of jpl's private `independent_holdout_snapshot_checksum`
+/// (top-level `production_generation.rs:457`, Slice D Task 10b). Note this
+/// is a *different* FNV-1a constant pairing than this file's `checksum64`
+/// (Task 10a, reproduced from the unrelated
+/// `reference_summary/reference_snapshot/core/general_a.rs:452` helper of
+/// the same name) — that helper's prime literal
+/// (`0x0000_0001_0000_01b3` = `0x1000001b3`) differs from this file's
+/// top-level jpl source's `fnv1a64` prime (`0x100000001b3`, the standard
+/// 64-bit FNV prime), so it is **not** reused here; `fnv1a64` is reproduced
+/// separately below to preserve byte-identity with jpl's actual checksum.
+/// The `include_str!` reaches one directory over to jpl's checked-in copy of
+/// the CSV (jpl's own `env!("CARGO_MANIFEST_DIR")` resolves against jpl's
+/// manifest dir, not validate's); the bytes read are identical either way
+/// (established precedent — `holdout.rs`/`comparison.rs` do the same).
+fn production_generation_boundary_source_checksum() -> u64 {
+    static CHECKSUM: OnceLock<u64> = OnceLock::new();
+    *CHECKSUM.get_or_init(|| {
+        fnv1a64(
+            include_str!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/../pleiades-jpl/data/independent_holdout_snapshot.csv"
+            ))
+            .as_bytes(),
+        )
+    })
+}
+
+/// Verbatim copy of jpl's private `fnv1a64` (top-level
+/// `production_generation.rs:470`, Slice D Task 10b). Deliberately *not*
+/// unified with this file's `checksum64` (Task 10a) — see the doc comment
+/// on `production_generation_boundary_source_checksum` above for why the two
+/// constant pairings differ.
+fn fnv1a64(bytes: &[u8]) -> u64 {
+    const OFFSET_BASIS: u64 = 0xcbf29ce484222325;
+    const PRIME: u64 = 0x100000001b3;
+    let mut hash = OFFSET_BASIS;
+    for &byte in bytes {
+        hash ^= byte as u64;
+        hash = hash.wrapping_mul(PRIME);
+    }
+    hash
+}
+
+/// Compact release-facing summary line for a single production-generation
+/// boundary-overlay body window. Verbatim copy of
+/// `ProductionGenerationBoundaryWindow::summary_line` (top-level
+/// `production_generation.rs:509`, Slice D Task 10b).
+pub(crate) fn production_generation_boundary_window_line(
+    s: &ProductionGenerationBoundaryWindow,
+) -> String {
+    let time_span = if s.earliest_epoch == s.latest_epoch {
+        format_instant(s.earliest_epoch)
+    } else {
+        format!(
+            "{}..{}",
+            format_instant(s.earliest_epoch),
+            format_instant(s.latest_epoch)
+        )
+    };
+
+    format!(
+        "{}: {} samples across {} epochs at {}",
+        s.body, s.sample_count, s.epoch_count, time_span
+    )
+}
+
+/// Compact release-facing summary line for the production-generation
+/// boundary windows. Verbatim copy of
+/// `ProductionGenerationBoundaryWindowSummary::summary_line` (top-level
+/// `production_generation.rs:566`, Slice D Task 10b), with the nested
+/// `self.windows.iter().map(ProductionGenerationBoundaryWindow::summary_line)`
+/// (same file) rewritten to the local
+/// `production_generation_boundary_window_line`.
+pub(crate) fn production_generation_boundary_window_summary_line(
+    s: &ProductionGenerationBoundaryWindowSummary,
+) -> String {
+    let window_summary = s
+        .windows
+        .iter()
+        .map(production_generation_boundary_window_line)
+        .collect::<Vec<_>>()
+        .join("; ");
+    format!(
+        "Production generation boundary windows: {} source-backed samples across {} bodies and {} epochs ({}..{}); windows: {}",
+        s.sample_count,
+        s.sample_bodies.len(),
+        s.epoch_count,
+        format_instant(s.earliest_epoch),
+        format_instant(s.latest_epoch),
+        window_summary,
+    )
+}
+
+/// Compact release-facing summary line for the production-generation
+/// boundary body-class coverage. Verbatim copy of
+/// `ProductionGenerationBoundaryBodyClassCoverageSummary::summary_line`
+/// (top-level `production_generation.rs:753`, Slice D Task 10b), with the
+/// nested `.map(ProductionGenerationBoundaryWindow::summary_line)` calls
+/// (same file) rewritten to the local
+/// `production_generation_boundary_window_line`.
+pub(crate) fn production_generation_boundary_body_class_coverage_summary_line(
+    s: &ProductionGenerationBoundaryBodyClassCoverageSummary,
+) -> String {
+    let major_windows = s
+        .major_windows
+        .iter()
+        .map(production_generation_boundary_window_line)
+        .collect::<Vec<_>>()
+        .join("; ");
+    let asteroid_windows = s
+        .asteroid_windows
+        .iter()
+        .map(production_generation_boundary_window_line)
+        .collect::<Vec<_>>()
+        .join("; ");
+
+    format!(
+        "Production generation boundary body-class coverage: major bodies: {} rows across {} bodies and {} epochs; major windows: {}; selected asteroids: {} rows across {} bodies and {} epochs; asteroid windows: {}",
+        s.major_body_row_count,
+        s.major_bodies.len(),
+        s.major_epoch_count,
+        major_windows,
+        s.asteroid_row_count,
+        s.asteroid_bodies.len(),
+        s.asteroid_epoch_count,
+        asteroid_windows,
+    )
+}
+
+/// Compact release-facing summary line for the production-generation
+/// boundary request corpus. Verbatim copy of
+/// `ProductionGenerationBoundaryRequestCorpusSummary::summary_line`
+/// (top-level `production_generation.rs:989`, Slice D Task 10b).
+pub(crate) fn production_generation_boundary_request_corpus_summary_line(
+    s: &ProductionGenerationBoundaryRequestCorpusSummary,
+) -> String {
+    format!(
+        "Production generation boundary request corpus: {} requests (frame={}; time scale={}; zodiac mode={}; apparentness={}; observerless) across {} bodies and {} epochs ({}..{}); bodies: {}",
+        s.request_count,
+        s.frame,
+        s.time_scale,
+        s.zodiac_mode,
+        s.apparentness,
+        s.body_count,
+        s.epoch_count,
+        format_instant(s.earliest_epoch),
+        format_instant(s.latest_epoch),
+        format_bodies(&s.bodies),
+    )
+}
+
 /// Returns the release-facing production-generation coverage summary string.
 /// Verbatim copy of jpl's `production_generation_snapshot_summary_for_report`
 /// (reference_summary/production_generation.rs:353), with
@@ -647,6 +844,189 @@ pub(crate) fn validated_production_generation_snapshot_body_class_coverage_summa
         })?;
     summary.validate().map_err(|error| error.to_string())?;
     Ok(production_generation_snapshot_body_class_coverage_summary_line(&summary))
+}
+
+/// Returns the release-facing production-generation boundary overlay
+/// summary string. Verbatim copy of jpl's
+/// `production_generation_boundary_summary_for_report` (top-level
+/// `production_generation.rs:424`, Slice D Task 10b), with
+/// `summary.validated_summary_line()` rewired to
+/// `match summary.validate() { Ok(()) => <local render>, ... }` (`validate()`
+/// stays on the jpl struct; rendering is local).
+pub(crate) fn production_generation_boundary_summary_for_report() -> String {
+    match pleiades_jpl::production_generation_boundary_summary() {
+        Some(summary) => match summary.validate() {
+            Ok(()) => production_generation_boundary_summary_line(&summary),
+            Err(error) => format!("Production generation boundary overlay: unavailable ({error})"),
+        },
+        None => "Production generation boundary overlay: unavailable".to_string(),
+    }
+}
+
+/// Returns the release-facing provenance summary string for the
+/// production-generation boundary overlay. Verbatim copy of jpl's
+/// `production_generation_boundary_source_summary_for_report` (top-level
+/// `production_generation.rs:482`, Slice D Task 10b).
+pub(crate) fn production_generation_boundary_source_summary_for_report() -> String {
+    let summary = pleiades_jpl::production_generation_boundary_source_summary();
+    match summary.validate() {
+        Ok(()) => format_production_generation_boundary_source_summary(&summary),
+        Err(error) => {
+            format!("Production generation boundary overlay source: unavailable ({error})")
+        }
+    }
+}
+
+/// Returns the release-facing production-generation boundary window summary
+/// string. Verbatim copy of jpl's
+/// `production_generation_boundary_window_summary_for_report` (top-level
+/// `production_generation.rs:695`, Slice D Task 10b).
+pub(crate) fn production_generation_boundary_window_summary_for_report() -> String {
+    match pleiades_jpl::production_generation_boundary_window_summary() {
+        Some(summary) => match summary.validate() {
+            Ok(()) => production_generation_boundary_window_summary_line(&summary),
+            Err(error) => format!("Production generation boundary windows: unavailable ({error})"),
+        },
+        None => "Production generation boundary windows: unavailable".to_string(),
+    }
+}
+
+/// Returns the release-facing body-class coverage summary string for the
+/// production-generation boundary overlay. Verbatim copy of jpl's
+/// `production_generation_boundary_body_class_coverage_summary_for_report`
+/// (top-level `production_generation.rs:882`, Slice D Task 10b).
+pub(crate) fn production_generation_boundary_body_class_coverage_summary_for_report() -> String {
+    match pleiades_jpl::production_generation_boundary_body_class_coverage_summary() {
+        Some(summary) => match summary.validate() {
+            Ok(()) => production_generation_boundary_body_class_coverage_summary_line(&summary),
+            Err(error) => {
+                format!("Production generation boundary body-class coverage: unavailable ({error})")
+            }
+        },
+        None => "Production generation boundary body-class coverage: unavailable".to_string(),
+    }
+}
+
+/// Returns the validated release-facing production-generation boundary
+/// request corpus summary string for the given frame. Verbatim copy of
+/// jpl's private
+/// `validated_production_generation_boundary_request_corpus_summary_for_frame`
+/// (top-level `production_generation.rs:1189`, Slice D Task 10b), with
+/// `summary.validated_summary_line()` rewired to
+/// `{ summary.validate().map_err(...)?; Ok(<local render>) }` (`validate()`
+/// stays on the jpl struct; rendering is local).
+fn validated_production_generation_boundary_request_corpus_summary_for_frame(
+    frame: CoordinateFrame,
+) -> Result<String, String> {
+    let summary = pleiades_jpl::production_generation_boundary_request_corpus_summary(frame)
+        .ok_or_else(|| "production generation boundary request corpus unavailable".to_string())?;
+    summary.validate().map_err(|error| error.to_string())?;
+    Ok(production_generation_boundary_request_corpus_summary_line(
+        &summary,
+    ))
+}
+
+/// Returns the release-facing production-generation boundary request corpus
+/// summary string. Verbatim copy of jpl's
+/// `production_generation_boundary_request_corpus_summary_for_report`
+/// (top-level `production_generation.rs:1200`, Slice D Task 10b).
+pub(crate) fn production_generation_boundary_request_corpus_summary_for_report() -> String {
+    validated_production_generation_boundary_request_corpus_summary_for_frame(
+        CoordinateFrame::Ecliptic,
+    )
+    .unwrap_or_else(|error| {
+        format!("Production generation boundary request corpus: unavailable ({error})")
+    })
+}
+
+/// Returns the release-facing equatorial production-generation boundary
+/// request corpus summary string. Verbatim copy of jpl's
+/// `production_generation_boundary_request_corpus_equatorial_summary_for_report`
+/// (top-level `production_generation.rs:1210`, Slice D Task 10b).
+pub(crate) fn production_generation_boundary_request_corpus_equatorial_summary_for_report() -> String
+{
+    validated_production_generation_boundary_request_corpus_summary_for_frame(
+        CoordinateFrame::Equatorial,
+    )
+    .unwrap_or_else(|error| {
+        format!("Production generation boundary request corpus: unavailable ({error})")
+    })
+}
+
+/// Returns the validated release-facing equatorial production-generation
+/// boundary request corpus summary string. Verbatim copy of jpl's
+/// `validated_production_generation_boundary_request_corpus_equatorial_summary_for_report`
+/// (top-level `production_generation.rs:1220`, Slice D Task 10b).
+pub(crate) fn validated_production_generation_boundary_request_corpus_equatorial_summary_for_report(
+) -> Result<String, String> {
+    validated_production_generation_boundary_request_corpus_summary_for_frame(
+        CoordinateFrame::Equatorial,
+    )
+}
+
+#[cfg(test)]
+mod golden {
+    // jpl's own renderers are still present through the contract sweep
+    // (Task 14); this fails closed on any drift in the validate copy. Task 14
+    // replaces `before` with the captured literal when jpl's renderer is
+    // deleted.
+    #[test]
+    fn production_generation_boundary_summary_for_report_byte_identical() {
+        assert_eq!(
+            pleiades_jpl::production_generation_boundary_summary_for_report(),
+            super::production_generation_boundary_summary_for_report()
+        );
+    }
+
+    #[test]
+    fn production_generation_boundary_source_summary_for_report_byte_identical() {
+        assert_eq!(
+            pleiades_jpl::production_generation_boundary_source_summary_for_report(),
+            super::production_generation_boundary_source_summary_for_report()
+        );
+    }
+
+    #[test]
+    fn production_generation_boundary_window_summary_for_report_byte_identical() {
+        assert_eq!(
+            pleiades_jpl::production_generation_boundary_window_summary_for_report(),
+            super::production_generation_boundary_window_summary_for_report()
+        );
+    }
+
+    #[test]
+    fn production_generation_boundary_body_class_coverage_summary_for_report_byte_identical() {
+        assert_eq!(
+            pleiades_jpl::production_generation_boundary_body_class_coverage_summary_for_report(),
+            super::production_generation_boundary_body_class_coverage_summary_for_report()
+        );
+    }
+
+    #[test]
+    fn production_generation_boundary_request_corpus_summary_for_report_byte_identical() {
+        assert_eq!(
+            pleiades_jpl::production_generation_boundary_request_corpus_summary_for_report(),
+            super::production_generation_boundary_request_corpus_summary_for_report()
+        );
+    }
+
+    #[test]
+    fn production_generation_boundary_request_corpus_equatorial_summary_for_report_byte_identical()
+    {
+        assert_eq!(
+            pleiades_jpl::production_generation_boundary_request_corpus_equatorial_summary_for_report(),
+            super::production_generation_boundary_request_corpus_equatorial_summary_for_report()
+        );
+    }
+
+    #[test]
+    fn validated_production_generation_boundary_request_corpus_equatorial_summary_for_report_byte_identical(
+    ) {
+        assert_eq!(
+            pleiades_jpl::validated_production_generation_boundary_request_corpus_equatorial_summary_for_report(),
+            super::validated_production_generation_boundary_request_corpus_equatorial_summary_for_report()
+        );
+    }
 }
 
 #[cfg(test)]
@@ -1104,5 +1484,232 @@ mod tests {
                 )
             )
         ));
+    }
+
+    // --- Task 10a fold-in: 10a left `production_generation_manifest_checksum_for_report`
+    // without an equality test against jpl's still-present renderer. ---
+
+    #[test]
+    fn production_generation_manifest_checksum_for_report_byte_identical() {
+        assert_eq!(
+            super::production_generation_manifest_checksum_for_report(),
+            pleiades_jpl::production_generation_manifest_checksum_for_report()
+        );
+    }
+
+    // --- Task 10b: copied report tests from
+    // `reference_summary/production_generation/tests.rs` targeting the 7
+    // top-level `production_generation.rs` renderers. Verbatim, with bare
+    // jpl symbol calls rewired to `pleiades_jpl::` and `_for_report` calls
+    // rewired to `super::` (this file's local copies). ---
+
+    #[test]
+    fn production_generation_boundary_summary_reports_the_overlay() {
+        let summary = pleiades_jpl::production_generation_boundary_summary()
+            .expect("production-generation boundary summary should exist");
+        summary
+            .validate()
+            .expect("production-generation boundary summary should validate");
+        assert_eq!(summary.row_count, 66);
+        assert_eq!(summary.body_count, 16);
+        assert_eq!(
+            summary.bodies,
+            pleiades_jpl::production_generation_boundary_body_list()
+        );
+        assert_eq!(summary.epoch_count, 12);
+        assert_eq!(summary.earliest_epoch.julian_day.days(), 2_378_498.5);
+        assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
+        assert_eq!(
+            summary.summary_line(),
+            "Production generation boundary overlay: 66 rows across 16 bodies and 12 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Jupiter, Mercury, Venus, Saturn, Uranus, Neptune, Sun, Pluto, Moon, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis"
+        );
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(
+            production_generation_boundary_summary_for_report(),
+            summary.summary_line()
+        );
+    }
+
+    #[test]
+    fn production_generation_boundary_source_summary_reports_the_overlay_provenance() {
+        let boundary_summary = pleiades_jpl::production_generation_boundary_source_summary();
+        let holdout_summary = pleiades_jpl::independent_holdout_source_summary();
+        boundary_summary
+            .validate()
+            .expect("production-generation boundary source summary should validate");
+        holdout_summary
+            .validate()
+            .expect("independent hold-out source summary should validate");
+        assert_eq!(boundary_summary.source, holdout_summary.source);
+        assert_eq!(
+            boundary_summary.evidence_class,
+            holdout_summary.evidence_class
+        );
+        assert_eq!(boundary_summary.coverage, holdout_summary.coverage);
+        assert_eq!(boundary_summary.columns, holdout_summary.columns);
+        assert_eq!(
+            boundary_summary.redistribution,
+            holdout_summary.redistribution
+        );
+        assert_eq!(
+            boundary_summary.frame_treatment,
+            holdout_summary.frame_treatment
+        );
+        assert_eq!(boundary_summary.time_scale, holdout_summary.time_scale);
+        assert_eq!(
+            format_production_generation_boundary_source_summary(&boundary_summary),
+            production_generation_boundary_source_summary_for_report()
+        );
+        assert!(production_generation_boundary_source_summary_for_report().contains(
+            "Production generation boundary overlay source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables."
+        ));
+        assert!(production_generation_boundary_source_summary_for_report().contains(
+            "selected asteroids at 2378498.5, 2451545, 2451915.5, 2451917.5, 2453000.5, 2500000, and 2634167"
+        ));
+        assert!(production_generation_boundary_source_summary_for_report()
+            .contains("asteroid:99942-Apophis now also appears at 2378498.5"));
+    }
+
+    #[test]
+    fn production_generation_boundary_window_summary_reports_the_overlay_windows() {
+        let summary = pleiades_jpl::production_generation_boundary_window_summary()
+            .expect("production-generation boundary window summary should exist");
+        assert_eq!(summary.sample_count, 66);
+        assert_eq!(summary.sample_bodies.len(), 16);
+        assert_eq!(
+            summary.sample_bodies,
+            pleiades_jpl::production_generation_boundary_body_list().to_vec()
+        );
+        assert_eq!(summary.epoch_count, 12);
+        assert_eq!(summary.earliest_epoch.julian_day.days(), 2_378_498.5);
+        assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
+        assert_eq!(
+            summary.windows[0].body,
+            pleiades_backend::CelestialBody::Mars
+        );
+        assert_eq!(summary.windows[0].sample_count, 5);
+        assert_eq!(summary.windows[0].epoch_count, 5);
+        assert_eq!(
+            summary.windows[0].summary_line(),
+            format!(
+                "Mars: 5 samples across 5 epochs at {}..{}",
+                format_instant(summary.windows[0].earliest_epoch),
+                format_instant(summary.windows[0].latest_epoch)
+            )
+        );
+        assert!(summary.summary_line().starts_with("Production generation boundary windows: 66 source-backed samples across 16 bodies and 12 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); windows: "));
+        assert!(summary.summary_line().contains("Mars: 5 samples across 5 epochs at JD 2451545.0 (TDB)..JD 2451915.5 (TDB); Jupiter: 5 samples across 5 epochs at JD 2451545.0 (TDB)..JD 2451915.5 (TDB)"));
+        assert_eq!(summary.summary_line(), summary.to_string());
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(
+            production_generation_boundary_window_summary_for_report(),
+            summary.summary_line()
+        );
+
+        let mut drifted = summary.clone();
+        drifted.sample_count += 1;
+        assert!(drifted.validated_summary_line().is_err());
+    }
+
+    #[test]
+    fn production_generation_boundary_body_class_coverage_summary_reports_the_overlay_body_classes()
+    {
+        let summary = pleiades_jpl::production_generation_boundary_body_class_coverage_summary()
+            .expect("production-generation boundary body-class coverage summary should exist");
+        summary
+            .validate()
+            .expect("production-generation boundary body-class coverage summary should validate");
+        assert_eq!(summary.row_count, 66);
+        assert_eq!(summary.major_body_row_count, 34);
+        assert_eq!(summary.major_bodies.len(), 10);
+        assert_eq!(
+            summary.major_bodies,
+            vec![
+                pleiades_backend::CelestialBody::Mars,
+                pleiades_backend::CelestialBody::Jupiter,
+                pleiades_backend::CelestialBody::Mercury,
+                pleiades_backend::CelestialBody::Venus,
+                pleiades_backend::CelestialBody::Saturn,
+                pleiades_backend::CelestialBody::Uranus,
+                pleiades_backend::CelestialBody::Neptune,
+                pleiades_backend::CelestialBody::Sun,
+                pleiades_backend::CelestialBody::Pluto,
+                pleiades_backend::CelestialBody::Moon,
+            ]
+        );
+        assert_eq!(summary.major_epoch_count, 7);
+        assert_eq!(summary.major_windows.len(), 10);
+        assert_eq!(summary.asteroid_row_count, 32);
+        assert_eq!(summary.asteroid_bodies.len(), 6);
+        assert_eq!(summary.asteroid_epoch_count, 7);
+        assert_eq!(summary.asteroid_windows.len(), 6);
+        assert!(summary.summary_line().starts_with(
+            "Production generation boundary body-class coverage: major bodies: 34 rows across 10 bodies and 7 epochs; major windows: "
+        ));
+        assert!(summary
+            .summary_line()
+            .contains(&summary.major_windows[0].summary_line()));
+        assert!(summary
+            .summary_line()
+            .contains(&summary.major_windows[2].summary_line()));
+        assert!(summary.summary_line().contains(
+            "selected asteroids: 32 rows across 6 bodies and 7 epochs; asteroid windows: "
+        ));
+        assert_eq!(summary.summary_line(), summary.to_string());
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(
+            production_generation_boundary_body_class_coverage_summary_for_report(),
+            summary.summary_line()
+        );
+
+        let mut drifted = summary.clone();
+        drifted.row_count += 1;
+        assert!(drifted.validated_summary_line().is_err());
+    }
+
+    #[test]
+    fn production_generation_boundary_request_corpus_summary_reports_the_expected_coverage() {
+        let summary = pleiades_jpl::production_generation_boundary_request_corpus_summary(
+            CoordinateFrame::Ecliptic,
+        )
+        .expect("production generation boundary request corpus summary should exist");
+        assert_eq!(summary.request_count, 66);
+        assert_eq!(summary.body_count, 16);
+        assert_eq!(summary.epoch_count, 12);
+        assert_eq!(summary.frame, CoordinateFrame::Ecliptic);
+        assert_eq!(summary.time_scale, pleiades_types::TimeScale::Tdb);
+        assert_eq!(summary.zodiac_mode, pleiades_types::ZodiacMode::Tropical);
+        assert_eq!(summary.apparentness, pleiades_backend::Apparentness::Mean);
+        assert_eq!(summary.validate(), Ok(()));
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(
+            production_generation_boundary_request_corpus_summary_for_report(),
+            summary.summary_line()
+        );
+        assert_eq!(
+            production_generation_boundary_request_corpus_equatorial_summary_for_report(),
+            pleiades_jpl::production_generation_boundary_request_corpus_summary(
+                CoordinateFrame::Equatorial
+            )
+            .expect("production generation boundary request corpus equatorial summary should exist")
+            .summary_line()
+        );
+        assert_eq!(
+            validated_production_generation_boundary_request_corpus_equatorial_summary_for_report(),
+            Ok(
+                pleiades_jpl::production_generation_boundary_request_corpus_summary(
+                    CoordinateFrame::Equatorial
+                )
+                .expect(
+                    "production generation boundary request corpus equatorial summary should exist"
+                )
+                .summary_line()
+            )
+        );
+        assert!(summary
+            .summary_line()
+            .contains("observerless) across 16 bodies and 12 epochs"));
     }
 }

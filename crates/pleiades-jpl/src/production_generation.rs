@@ -46,7 +46,9 @@ pub(crate) fn production_generation_snapshot_body_list() -> &'static [CelestialB
         .as_slice()
 }
 
-pub(crate) fn production_generation_boundary_body_list() -> &'static [CelestialBody] {
+/// Returns the distinct bodies covered by the production-generation boundary
+/// overlay, in first-seen order.
+pub fn production_generation_boundary_body_list() -> &'static [CelestialBody] {
     static BODIES: OnceLock<Vec<CelestialBody>> = OnceLock::new();
     BODIES
         .get_or_init(|| {
