@@ -488,29 +488,53 @@ pub fn reference_asteroid_equatorial_evidence_summary(
     reference_asteroid_equatorial_evidence_summary_details()
 }
 
+/// Validation errors for the exact asteroid evidence corpus drifting from
+/// the checked-in reference expectations.
+///
+/// Promoted to `pub` (Slice D Task 7) so validate's relocated
+/// `reference_asteroid_evidence_summary_for_report` copy can call the
+/// `validate_reference_asteroid_evidence` gate instead of reproducing it.
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) enum ReferenceAsteroidEvidenceValidationError {
+pub enum ReferenceAsteroidEvidenceValidationError {
+    /// The evidence corpus did not expose any samples.
     Empty,
+    /// The evidence body order drifted from the expected asteroid list.
     BodyOrderMismatch {
+        /// Zero-based position where the drift was detected.
         index: usize,
+        /// Body expected at this position.
         expected: pleiades_backend::CelestialBody,
+        /// Body found at this position.
         found: pleiades_backend::CelestialBody,
     },
+    /// The evidence epoch drifted from the expected reference epoch.
     EpochMismatch {
+        /// Zero-based position where the drift was detected.
         index: usize,
+        /// Epoch expected at this position.
         expected: Instant,
+        /// Epoch found at this position.
         found: Instant,
     },
+    /// The evidence longitude at this position was not finite.
     NonFiniteLongitude {
+        /// Zero-based position of the non-finite value.
         index: usize,
+        /// Body at this position.
         body: pleiades_backend::CelestialBody,
     },
+    /// The evidence latitude at this position was not finite.
     NonFiniteLatitude {
+        /// Zero-based position of the non-finite value.
         index: usize,
+        /// Body at this position.
         body: pleiades_backend::CelestialBody,
     },
+    /// The evidence distance at this position was not finite.
     NonFiniteDistance {
+        /// Zero-based position of the non-finite value.
         index: usize,
+        /// Body at this position.
         body: pleiades_backend::CelestialBody,
     },
 }
@@ -553,29 +577,54 @@ impl fmt::Display for ReferenceAsteroidEvidenceValidationError {
     }
 }
 
+/// Validation errors for the equatorial asteroid evidence corpus diverging
+/// from the derived mean-obliquity transform.
+///
+/// Promoted to `pub` (Slice D Task 7) so validate's relocated
+/// `reference_asteroid_equatorial_evidence_summary_for_report` copy can call
+/// the `validate_reference_asteroid_equatorial_evidence` gate instead of
+/// reproducing it.
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) enum ReferenceAsteroidEquatorialEvidenceValidationError {
+pub enum ReferenceAsteroidEquatorialEvidenceValidationError {
+    /// The evidence corpus did not expose any samples.
     Empty,
+    /// The evidence body order drifted from the expected asteroid list.
     BodyOrderMismatch {
+        /// Zero-based position where the drift was detected.
         index: usize,
+        /// Body expected at this position.
         expected: pleiades_backend::CelestialBody,
+        /// Body found at this position.
         found: pleiades_backend::CelestialBody,
     },
+    /// The evidence epoch drifted from the expected reference epoch.
     EpochMismatch {
+        /// Zero-based position where the drift was detected.
         index: usize,
+        /// Epoch expected at this position.
         expected: Instant,
+        /// Epoch found at this position.
         found: Instant,
     },
+    /// The evidence right ascension diverged from the derived transform.
     RightAscensionMismatch {
+        /// Zero-based position of the divergent value.
         index: usize,
+        /// Body at this position.
         body: pleiades_backend::CelestialBody,
     },
+    /// The evidence declination diverged from the derived transform.
     DeclinationMismatch {
+        /// Zero-based position of the divergent value.
         index: usize,
+        /// Body at this position.
         body: pleiades_backend::CelestialBody,
     },
+    /// The evidence distance diverged from the derived transform.
     DistanceMismatch {
+        /// Zero-based position of the divergent value.
         index: usize,
+        /// Body at this position.
         body: pleiades_backend::CelestialBody,
     },
 }
@@ -618,7 +667,11 @@ impl fmt::Display for ReferenceAsteroidEquatorialEvidenceValidationError {
     }
 }
 
-pub(crate) fn validate_reference_asteroid_evidence(
+/// Validates the exact asteroid evidence corpus against the checked-in
+/// reference asteroid list and epoch. Promoted to `pub` (Slice D Task 7) so
+/// validate's relocated `reference_asteroid_evidence_summary_for_report`
+/// copy can call this validation gate instead of reproducing it.
+pub fn validate_reference_asteroid_evidence(
     evidence: &[ReferenceAsteroidEvidence],
 ) -> Result<(), ReferenceAsteroidEvidenceValidationError> {
     if evidence.is_empty() {
@@ -690,7 +743,12 @@ pub(crate) fn validate_reference_asteroid_evidence(
     Ok(())
 }
 
-pub(crate) fn validate_reference_asteroid_equatorial_evidence(
+/// Validates the equatorial asteroid evidence corpus against the derived
+/// mean-obliquity transform of the exact evidence corpus. Promoted to `pub`
+/// (Slice D Task 7) so validate's relocated
+/// `reference_asteroid_equatorial_evidence_summary_for_report` copy can call
+/// this validation gate instead of reproducing it.
+pub fn validate_reference_asteroid_equatorial_evidence(
     evidence: &[ReferenceAsteroidEquatorialEvidence],
 ) -> Result<(), ReferenceAsteroidEquatorialEvidenceValidationError> {
     if evidence.is_empty() {
