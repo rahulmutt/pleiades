@@ -7,6 +7,7 @@
 
 pub(crate) mod backend;
 pub(crate) mod comparison;
+pub(crate) mod data_phase2_alignment;
 pub(crate) mod holdout;
 pub(crate) mod jpl_posture;
 pub(crate) mod production_generation;
