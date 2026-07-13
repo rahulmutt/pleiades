@@ -94,7 +94,7 @@ pub(crate) fn reference_snapshot_1900_selected_body_boundary_summary_for_report(
 /// `summary.validated_summary_line()` used only as a validation gate rewired
 /// to `summary.validate()` (`validate()` stays on the jpl struct; rendering
 /// is local), and the data-constructor call qualified `pleiades_jpl::`.
-pub(crate) fn reference_snapshot_2415020_selected_body_boundary_summary_for_report() -> String {
+pub fn reference_snapshot_2415020_selected_body_boundary_summary_for_report() -> String {
     match pleiades_jpl::reference_snapshot_2415020_selected_body_boundary_summary() {
         Some(summary) => match summary.validate() {
             Ok(()) => format_selected_body_boundary_summary_line(

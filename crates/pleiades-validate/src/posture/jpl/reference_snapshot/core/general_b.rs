@@ -258,7 +258,7 @@ pub(crate) fn format_validated_reference_snapshot_source_window_summary_for_repo
 /// { Ok(()) => <local render>, ... }`, calling the local
 /// `reference_2451917_major_body_boundary_summary_line` (Slice D Task 13b;
 /// `validate()` stays on the jpl struct, rendering is local).
-pub(crate) fn reference_snapshot_2451917_major_body_boundary_summary_for_report() -> String {
+pub fn reference_snapshot_2451917_major_body_boundary_summary_for_report() -> String {
     match pleiades_jpl::reference_snapshot_2451917_major_body_boundary_summary() {
         Some(summary) => match summary.validate() {
             Ok(()) => reference_2451917_major_body_boundary_summary_line(&summary),
@@ -277,7 +277,7 @@ pub(crate) fn reference_snapshot_2451917_major_body_boundary_summary_for_report(
 /// in `boundaries/era_d.rs` (Slice D Task 9, already copied); rewired the
 /// same way as above, calling the local
 /// `reference_2451919_major_body_boundary_summary_line` (Slice D Task 13b).
-pub(crate) fn reference_snapshot_2451919_major_body_boundary_summary_for_report() -> String {
+pub fn reference_snapshot_2451919_major_body_boundary_summary_for_report() -> String {
     match pleiades_jpl::reference_snapshot_2451919_major_body_boundary_summary() {
         Some(summary) => match summary.validate() {
             Ok(()) => reference_2451919_major_body_boundary_summary_line(&summary),
@@ -404,7 +404,7 @@ pub(crate) fn reference_snapshot_2451914_major_body_bridge_summary_for_report() 
 /// (reference_summary/reference_snapshot/core/general_b.rs:1061), reading
 /// the `ReferenceMajorBodyBridgeSummary` (`boundaries/era_a.rs`, Task 9, not
 /// yet copied) public fields directly rather than calling its rendering.
-pub(crate) fn reference_snapshot_2451915_major_body_bridge_summary_for_report() -> String {
+pub fn reference_snapshot_2451915_major_body_bridge_summary_for_report() -> String {
     match pleiades_jpl::reference_snapshot_2451915_major_body_bridge_summary() {
         Some(summary) => match summary.validate() {
             Ok(()) => format!(
@@ -441,7 +441,7 @@ pub(crate) fn reference_snapshot_dense_boundary_summary_for_report() -> String {
 /// `reference_snapshot_2451916_major_body_dense_boundary_summary_for_report`
 /// (reference_summary/reference_snapshot/core/general_b.rs:1295), reading the
 /// struct's public fields directly rather than calling its rendering.
-pub(crate) fn reference_snapshot_2451916_major_body_dense_boundary_summary_for_report() -> String {
+pub fn reference_snapshot_2451916_major_body_dense_boundary_summary_for_report() -> String {
     match pleiades_jpl::reference_snapshot_2451916_major_body_dense_boundary_summary() {
         Some(summary) => format!(
             "Reference 2451916 major-body dense boundary evidence: {} exact samples at {} ({}); dense boundary day",
@@ -458,7 +458,7 @@ pub(crate) fn reference_snapshot_2451916_major_body_dense_boundary_summary_for_r
 /// `reference_snapshot_2451916_major_body_boundary_summary_for_report`
 /// (reference_summary/reference_snapshot/core/general_b.rs:1314), reading the
 /// struct's public fields directly rather than calling its rendering.
-pub(crate) fn reference_snapshot_2451916_major_body_boundary_summary_for_report() -> String {
+pub fn reference_snapshot_2451916_major_body_boundary_summary_for_report() -> String {
     match pleiades_jpl::reference_snapshot_2451916_major_body_boundary_summary() {
         Some(summary) => format!(
             "Reference 2451916 major-body boundary evidence: {} exact samples at {} ({}); dense boundary day",
@@ -497,7 +497,7 @@ pub(crate) fn reference_snapshot_high_curvature_window_summary_for_report() -> S
 /// (reference_summary/reference_snapshot/core/general_b.rs:1752), with
 /// `summary.validated_summary_line()` rewired to `match summary.validate() {
 /// Ok(()) => <local render>, ... }`.
-pub(crate) fn reference_snapshot_source_summary_for_report() -> String {
+pub fn reference_snapshot_source_summary_for_report() -> String {
     if let Err(error) = pleiades_jpl::reference_snapshot_manifest().validate() {
         return format!("Reference snapshot source: unavailable ({error})");
     }
@@ -512,7 +512,7 @@ pub(crate) fn reference_snapshot_source_summary_for_report() -> String {
 /// Returns the body-window summary for the checked-in reference snapshot.
 /// Verbatim copy of jpl's `reference_snapshot_source_window_summary_for_report`
 /// (reference_summary/reference_snapshot/core/general_b.rs:2033).
-pub(crate) fn reference_snapshot_source_window_summary_for_report() -> String {
+pub fn reference_snapshot_source_window_summary_for_report() -> String {
     match pleiades_jpl::reference_snapshot_source_window_summary() {
         Some(summary) => {
             format_validated_reference_snapshot_source_window_summary_for_report(&summary)
@@ -545,7 +545,7 @@ pub(crate) fn validated_reference_snapshot_source_window_summary_for_report(
 /// checked-in copy of the same CSV (established precedent —
 /// `comparison.rs:284`, `holdout.rs:489`); the bytes read are identical
 /// either way.
-pub(crate) fn reference_snapshot_manifest_summary_for_report() -> String {
+pub fn reference_snapshot_manifest_summary_for_report() -> String {
     let manifest_text = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/../pleiades-jpl/data/reference_snapshot.csv"

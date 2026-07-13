@@ -86,10 +86,10 @@ fn validation_report_commands_render_compact_reports() {
     );
     assert!(validation_report_summary.contains("Release summary: release-summary"));
     assert!(validation_report_summary.contains(
-        &pleiades_jpl::reference_snapshot_2451917_major_body_bridge_summary_for_report()
+        &pleiades_validate::reference_snapshot_2451917_major_body_bridge_summary_for_report()
     ));
     assert!(validation_report_summary.contains(
-        &pleiades_jpl::reference_snapshot_2451917_major_body_boundary_summary_for_report()
+        &pleiades_validate::reference_snapshot_2451917_major_body_boundary_summary_for_report()
     ));
     assert!(validation_report_summary.contains("Comparison tolerance policy: backend family=Composite; scopes=6 (Luminaries, Major planets, Lunar points, Asteroids, Custom bodies, Pluto fallback (approximate)); limits="));
     assert!(validation_report_summary.lines().any(|line| {

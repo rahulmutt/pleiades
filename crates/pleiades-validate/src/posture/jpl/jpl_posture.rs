@@ -368,7 +368,7 @@ pub(crate) fn jpl_snapshot_evidence_classification_summary_for_report() -> Strin
 /// Returns the validated source-posture line used by validation and release
 /// reports. Verbatim copy of jpl's `jpl_source_posture_summary_for_report`
 /// (reference_summary/jpl_posture.rs:192).
-pub(crate) fn jpl_source_posture_summary_for_report() -> String {
+pub fn jpl_source_posture_summary_for_report() -> String {
     let summary = pleiades_jpl::jpl_source_posture_summary_details();
     match summary.validate() {
         Ok(()) => jpl_source_posture_summary_line(&summary),
@@ -379,7 +379,7 @@ pub(crate) fn jpl_source_posture_summary_for_report() -> String {
 /// Returns the validated provenance-only line used by validation and release
 /// reports. Verbatim copy of jpl's `jpl_provenance_only_summary_for_report`
 /// (reference_summary/jpl_posture.rs:270).
-pub(crate) fn jpl_provenance_only_summary_for_report() -> String {
+pub fn jpl_provenance_only_summary_for_report() -> String {
     let summary = pleiades_jpl::jpl_provenance_only_summary_details();
     match summary.validate() {
         Ok(()) => jpl_provenance_only_summary_line(&summary),
@@ -391,7 +391,7 @@ pub(crate) fn jpl_provenance_only_summary_for_report() -> String {
 /// release reports. Verbatim copy of jpl's
 /// `jpl_source_corpus_contract_summary_for_report`
 /// (reference_summary/jpl_posture.rs:467).
-pub(crate) fn jpl_source_corpus_contract_summary_for_report() -> String {
+pub fn jpl_source_corpus_contract_summary_for_report() -> String {
     let summary = pleiades_jpl::jpl_source_corpus_contract_summary_details();
     match summary.validate() {
         Ok(()) => jpl_source_corpus_contract_summary_line(&summary),
@@ -519,7 +519,7 @@ pub(crate) fn frame_treatment_summary_for_report() -> String {
 /// summary string. Verbatim copy of jpl's
 /// `interpolation_quality_sample_request_corpus_summary_for_report`
 /// (reference_summary/jpl_posture.rs:1177).
-pub(crate) fn interpolation_quality_sample_request_corpus_summary_for_report() -> String {
+pub fn interpolation_quality_sample_request_corpus_summary_for_report() -> String {
     match pleiades_jpl::interpolation_quality_sample_request_corpus_summary() {
         Some(summary) => match summary.validate() {
             Ok(()) => interpolation_quality_sample_request_corpus_summary_line(&summary),
@@ -685,6 +685,54 @@ mod tests {
         assert!(report.contains(&reference_snapshot_source_window_summary_for_report()));
         assert!(report.contains(&reference_snapshot_major_body_boundary_summary_for_report()));
         assert!(report.contains(&reference_snapshot_mars_jupiter_boundary_summary_for_report()));
+        // Migrated from jpl's whole-aggregator
+        // `reference_snapshot_batch_parity_summary_reports_the_expected_coverage`
+        // (reference_summary/reference_snapshot/tests.rs:2081), which asserted these
+        // epoch-specific containments against `jpl_snapshot_evidence_summary_for_report`
+        // and were not yet covered here (Slice D Task 13d).
+        assert!(
+            report.contains(&reference_snapshot_2451910_major_body_boundary_summary_for_report())
+        );
+        assert!(
+            report.contains(&reference_snapshot_2451911_major_body_boundary_summary_for_report())
+        );
+        assert!(
+            report.contains(&reference_snapshot_2451912_major_body_boundary_summary_for_report())
+        );
+        assert!(
+            report.contains(&reference_snapshot_2451913_major_body_boundary_summary_for_report())
+        );
+        assert!(
+            report.contains(&reference_snapshot_2451914_major_body_boundary_summary_for_report())
+        );
+        assert!(
+            report.contains(&reference_snapshot_2451915_major_body_boundary_summary_for_report())
+        );
+        assert!(report.contains(&reference_snapshot_bridge_day_summary_for_report()));
+        assert!(
+            report.contains(&reference_snapshot_2451914_major_body_bridge_day_summary_for_report())
+        );
+        assert!(report.contains(&reference_snapshot_2451914_major_body_bridge_summary_for_report()));
+        assert!(
+            report.contains(&reference_snapshot_2451916_major_body_interior_summary_for_report())
+        );
+        assert!(report
+            .contains(&reference_snapshot_2451916_major_body_dense_boundary_summary_for_report()));
+        assert!(
+            report.contains(&reference_snapshot_2451917_major_body_boundary_summary_for_report())
+        );
+        assert!(report.contains(&reference_snapshot_2451917_major_body_bridge_summary_for_report()));
+        assert!(
+            report.contains(&reference_snapshot_2451918_major_body_boundary_summary_for_report())
+        );
+        assert!(
+            report.contains(&reference_snapshot_2451919_major_body_boundary_summary_for_report())
+        );
+        assert!(
+            report.contains(&reference_snapshot_2451920_major_body_interior_summary_for_report())
+        );
+        assert!(report.contains(&reference_snapshot_boundary_epoch_coverage_summary_for_report()));
+        assert!(report.contains(&reference_snapshot_sparse_boundary_summary_for_report()));
         assert!(report.contains(&reference_asteroid_evidence_summary_for_report()));
         assert!(report.contains(&reference_asteroid_equatorial_evidence_summary_for_report()));
         assert!(report.contains(&reference_asteroid_source_window_summary_for_report()));
@@ -705,6 +753,13 @@ mod tests {
         ));
         assert!(report.contains(&selected_asteroid_source_2451917_summary_for_report()));
         assert!(report.contains(&selected_asteroid_source_2453000_summary_for_report()));
+        // These four were dropped from this test's earlier (partial) per-file copy;
+        // restored to match jpl's original `jpl_snapshot_evidence_summary_combines_the_backend_reports`
+        // (reference_summary/jpl_posture/tests.rs:499) ahead of Task 14 deleting it (Slice D Task 13d).
+        assert!(report.contains(&selected_asteroid_source_2500000_summary_for_report()));
+        assert!(report.contains(&selected_asteroid_source_2634167_summary_for_report()));
+        assert!(report.contains(&selected_asteroid_source_evidence_summary_for_report()));
+        assert!(report.contains(&selected_asteroid_source_window_summary_for_report()));
         assert!(report.contains(&selected_asteroid_boundary_summary_for_report()));
         assert!(report.contains(&selected_asteroid_bridge_summary_for_report()));
         assert!(report.contains(&selected_asteroid_dense_boundary_summary_for_report()));

@@ -310,7 +310,7 @@ pub(crate) fn selected_asteroid_source_2378498_summary_line(
 /// `summary.validated_summary_line()` rewired to
 /// `match summary.validate() { Ok(()) => <local render>, ... }` (`validate()`
 /// stays on the jpl struct; rendering is local).
-pub(crate) fn selected_asteroid_source_evidence_summary_for_report() -> String {
+pub fn selected_asteroid_source_evidence_summary_for_report() -> String {
     match pleiades_jpl::selected_asteroid_source_evidence_summary() {
         Some(summary) => match summary.validate() {
             Ok(()) => selected_asteroid_source_summary_line(&summary),
@@ -336,7 +336,7 @@ pub(crate) fn validated_selected_asteroid_source_evidence_summary_for_report(
 /// string. Verbatim copy of jpl's
 /// `selected_asteroid_source_window_summary_for_report`
 /// (reference_summary/selected_asteroid.rs:521).
-pub(crate) fn selected_asteroid_source_window_summary_for_report() -> String {
+pub fn selected_asteroid_source_window_summary_for_report() -> String {
     match pleiades_jpl::selected_asteroid_source_window_summary() {
         Some(summary) => match summary.validate() {
             Ok(()) => selected_asteroid_source_window_summary_line(&summary),
@@ -414,7 +414,7 @@ pub(crate) fn validated_selected_asteroid_source_request_corpus_summary_for_fram
 /// (reference_summary/selected_asteroid.rs:809), with the cross-frame call
 /// rewired to the local `selected_asteroid_source_request_corpus_summary_for_frame`
 /// (same-file helper).
-pub(crate) fn selected_asteroid_source_request_corpus_summary_for_report() -> String {
+pub fn selected_asteroid_source_request_corpus_summary_for_report() -> String {
     selected_asteroid_source_request_corpus_summary_for_frame(CoordinateFrame::Ecliptic)
 }
 
@@ -431,7 +431,7 @@ pub(crate) fn validated_selected_asteroid_source_request_corpus_summary_for_repo
 /// corpus summary string. Verbatim copy of jpl's
 /// `selected_asteroid_source_request_corpus_equatorial_summary_for_report`
 /// (reference_summary/selected_asteroid.rs:820).
-pub(crate) fn selected_asteroid_source_request_corpus_equatorial_summary_for_report() -> String {
+pub fn selected_asteroid_source_request_corpus_equatorial_summary_for_report() -> String {
     selected_asteroid_source_request_corpus_summary_for_frame(CoordinateFrame::Equatorial)
 }
 
@@ -448,7 +448,7 @@ pub(crate) fn validated_selected_asteroid_source_request_corpus_equatorial_summa
 /// string. Verbatim copy of jpl's
 /// `selected_asteroid_source_2453000_summary_for_report`
 /// (reference_summary/selected_asteroid.rs:1030).
-pub(crate) fn selected_asteroid_source_2453000_summary_for_report() -> String {
+pub fn selected_asteroid_source_2453000_summary_for_report() -> String {
     match pleiades_jpl::selected_asteroid_source_2453000_summary() {
         Some(summary) => match summary.validate() {
             Ok(()) => selected_asteroid_source_2453000_summary_line(&summary),
@@ -464,7 +464,7 @@ pub(crate) fn selected_asteroid_source_2453000_summary_for_report() -> String {
 /// string. Verbatim copy of jpl's
 /// `selected_asteroid_source_2500000_summary_for_report`
 /// (reference_summary/selected_asteroid.rs:1242).
-pub(crate) fn selected_asteroid_source_2500000_summary_for_report() -> String {
+pub fn selected_asteroid_source_2500000_summary_for_report() -> String {
     match pleiades_jpl::selected_asteroid_source_2500000_summary() {
         Some(summary) => match summary.validate() {
             Ok(()) => selected_asteroid_source_2500000_summary_line(&summary),
@@ -480,7 +480,7 @@ pub(crate) fn selected_asteroid_source_2500000_summary_for_report() -> String {
 /// string. Verbatim copy of jpl's
 /// `selected_asteroid_source_2634167_summary_for_report`
 /// (reference_summary/selected_asteroid.rs:1454).
-pub(crate) fn selected_asteroid_source_2634167_summary_for_report() -> String {
+pub fn selected_asteroid_source_2634167_summary_for_report() -> String {
     match pleiades_jpl::selected_asteroid_source_2634167_summary() {
         Some(summary) => match summary.validate() {
             Ok(()) => selected_asteroid_source_2634167_summary_line(&summary),
@@ -495,7 +495,7 @@ pub(crate) fn selected_asteroid_source_2634167_summary_for_report() -> String {
 /// Returns the release-facing selected-asteroid bridge-day summary string.
 /// Verbatim copy of jpl's `selected_asteroid_bridge_summary_for_report`
 /// (reference_summary/selected_asteroid.rs:1651).
-pub(crate) fn selected_asteroid_bridge_summary_for_report() -> String {
+pub fn selected_asteroid_bridge_summary_for_report() -> String {
     match pleiades_jpl::selected_asteroid_bridge_summary() {
         Some(summary) => match summary.validate() {
             Ok(()) => selected_asteroid_bridge_summary_line(&summary),
@@ -509,7 +509,7 @@ pub(crate) fn selected_asteroid_bridge_summary_for_report() -> String {
 /// string. Verbatim copy of jpl's
 /// `selected_asteroid_dense_boundary_summary_for_report`
 /// (reference_summary/selected_asteroid.rs:1847).
-pub(crate) fn selected_asteroid_dense_boundary_summary_for_report() -> String {
+pub fn selected_asteroid_dense_boundary_summary_for_report() -> String {
     match pleiades_jpl::selected_asteroid_dense_boundary_summary() {
         Some(summary) => match summary.validate() {
             Ok(()) => selected_asteroid_dense_boundary_summary_line(&summary),
@@ -524,7 +524,7 @@ pub(crate) fn selected_asteroid_dense_boundary_summary_for_report() -> String {
 /// Returns the release-facing selected-asteroid boundary-day summary string.
 /// Verbatim copy of jpl's `selected_asteroid_boundary_summary_for_report`
 /// (reference_summary/selected_asteroid.rs:2081).
-pub(crate) fn selected_asteroid_boundary_summary_for_report() -> String {
+pub fn selected_asteroid_boundary_summary_for_report() -> String {
     match pleiades_jpl::selected_asteroid_boundary_summary() {
         Some(summary) => match summary.validate() {
             Ok(()) => selected_asteroid_boundary_summary_line(&summary),
@@ -538,7 +538,7 @@ pub(crate) fn selected_asteroid_boundary_summary_for_report() -> String {
 /// string. Verbatim copy of jpl's
 /// `selected_asteroid_terminal_boundary_summary_for_report`
 /// (reference_summary/selected_asteroid.rs:2293).
-pub(crate) fn selected_asteroid_terminal_boundary_summary_for_report() -> String {
+pub fn selected_asteroid_terminal_boundary_summary_for_report() -> String {
     match pleiades_jpl::selected_asteroid_terminal_boundary_summary() {
         Some(summary) => match summary.validate() {
             Ok(()) => selected_asteroid_terminal_boundary_summary_line(&summary),
@@ -553,7 +553,7 @@ pub(crate) fn selected_asteroid_terminal_boundary_summary_for_report() -> String
 /// Returns the release-facing selected-asteroid batch-parity summary string.
 /// Verbatim copy of jpl's `selected_asteroid_batch_parity_summary_for_report`
 /// (reference_summary/selected_asteroid.rs:2626).
-pub(crate) fn selected_asteroid_batch_parity_summary_for_report() -> String {
+pub fn selected_asteroid_batch_parity_summary_for_report() -> String {
     match pleiades_jpl::selected_asteroid_batch_parity_summary() {
         Some(summary) => match summary.validate() {
             Ok(()) => selected_asteroid_batch_parity_summary_line(&summary),
@@ -590,7 +590,7 @@ pub(crate) fn selected_asteroid_constrained_class_report() -> String {
 /// string. Verbatim copy of jpl's
 /// `selected_asteroid_source_2451917_summary_for_report`
 /// (data/selected_asteroid_2001.rs:198).
-pub(crate) fn selected_asteroid_source_2451917_summary_for_report() -> String {
+pub fn selected_asteroid_source_2451917_summary_for_report() -> String {
     match pleiades_jpl::selected_asteroid_source_2451917_summary() {
         Some(summary) => match summary.validate() {
             Ok(()) => selected_asteroid_source_2451917_summary_line(&summary),
@@ -606,7 +606,7 @@ pub(crate) fn selected_asteroid_source_2451917_summary_for_report() -> String {
 /// string. Verbatim copy of jpl's
 /// `selected_asteroid_source_2378498_summary_for_report`
 /// (data/selected_asteroid_2378498.rs:198).
-pub(crate) fn selected_asteroid_source_2378498_summary_for_report() -> String {
+pub fn selected_asteroid_source_2378498_summary_for_report() -> String {
     match pleiades_jpl::selected_asteroid_source_2378498_summary() {
         Some(summary) => match summary.validate() {
             Ok(()) => selected_asteroid_source_2378498_summary_line(&summary),

@@ -279,6 +279,50 @@ mod tests {
         ));
     }
 
+    // Migrated from jpl's `reference_snapshot_batch_parity_summary_reports_the_expected_coverage`
+    // (reference_summary/reference_snapshot/tests.rs:2081) — the structured-summary
+    // portion of that test (the `jpl_snapshot_evidence_summary_for_report` aggregator
+    // assertions from the same jpl test were migrated separately into
+    // `jpl_posture.rs`'s `jpl_snapshot_evidence_summary_combines_the_backend_reports`).
+    // This structural half had no validate-local coverage yet (Slice D Task 13d).
+    #[test]
+    fn reference_snapshot_batch_parity_summary_reports_the_expected_coverage() {
+        let summary = pleiades_jpl::reference_snapshot_batch_parity_summary()
+            .expect("reference snapshot batch parity summary should exist");
+        assert_eq!(summary.snapshot.row_count, 277);
+        assert_eq!(summary.snapshot.body_count, 16);
+        assert_eq!(summary.snapshot.bodies, pleiades_jpl::reference_bodies());
+        assert_eq!(summary.snapshot.epoch_count, 23);
+        assert_eq!(
+            summary.snapshot.earliest_epoch.julian_day.days(),
+            2_378_498.5
+        );
+        assert_eq!(summary.snapshot.latest_epoch.julian_day.days(), 2_634_167.0);
+        assert!(summary.ecliptic_request_count > 0);
+        assert!(summary.equatorial_request_count > 0);
+        assert_eq!(summary.exact_count, 277);
+        assert_eq!(summary.interpolated_count, 0);
+        assert_eq!(summary.approximate_count, 0);
+        assert_eq!(summary.unknown_count, 0);
+        assert_eq!(summary.validate(), Ok(()));
+        assert!(summary
+            .summary_line()
+            .contains("JPL reference snapshot batch parity: 277 rows across 16 bodies and 23 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies: "));
+        assert!(summary
+            .summary_line()
+            .contains("quality counts: Exact=277, Interpolated=0, Approximate=0, Unknown=0; batch/single parity preserved"));
+        assert_eq!(summary.to_string(), summary.summary_line());
+        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(
+            validated_reference_snapshot_batch_parity_summary_for_report(),
+            Ok(summary.summary_line())
+        );
+        assert_eq!(
+            reference_snapshot_batch_parity_summary_for_report(),
+            summary.summary_line()
+        );
+    }
+
     #[test]
     fn reference_snapshot_mixed_time_scale_batch_parity_summary_reports_the_mixed_request_slice() {
         let summary = pleiades_jpl::reference_snapshot_mixed_time_scale_batch_parity_summary()

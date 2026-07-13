@@ -310,11 +310,11 @@ use pleiades_houses::{
     validate_house_catalog,
 };
 
-// The renderer names below (both blocks) are relocated to the validate
+// The renderer names below (all blocks) are relocated to the validate
 // posture (report-surface relocation program, Slice D Task 13c); only the
 // DATA/backend accessors below still come from `pleiades_jpl` directly.
 // None of these were previously part of validate's public re-export surface
-// (they were plain, non-`pub`, crate-internal imports), so they move over as
+// (they were plain, non-`pub`, crate-internal imports), so most move over as
 // `pub(crate) use`, matching that existing (non-public) visibility.
 #[cfg(test)]
 use crate::posture::jpl::{
@@ -326,85 +326,82 @@ use pleiades_jpl::{
     reference_asteroids, JplSnapshotBackend,
 };
 
-pub(crate) use crate::posture::jpl::{
-    comparison_snapshot_body_class_coverage_summary_for_report,
+// The renderers below are genuine cross-crate consumers: `pleiades-cli` calls
+// them directly (report-surface relocation program, Slice D Task 13d), so
+// they are promoted to `pub` here. Everything else relocated in Task 13c
+// stays `pub(crate)` (crate-internal only), in the block further below.
+// NOTE: these `pub use` re-exports go through the FULLY QUALIFIED defining
+// submodule path (e.g. `crate::posture::jpl::holdout::…`), not the flat
+// `crate::posture::jpl::…` glob namespace used by the `pub(crate)` block
+// below. The flat namespace is populated by `pub(crate) use submodule::*;`
+// glob re-exports in `posture::jpl::mod.rs`, and a name imported through a
+// `pub(crate)` glob is itself only `pub(crate)`-visible in its new location
+// — regardless of the underlying item's own `pub` visibility — so it cannot
+// be re-exported further as `pub` from here. Referencing the direct
+// defining path instead (mirroring the existing
+// `posture::elp::catalog::lunar_theory_source_selection_summary_for_report`
+// precedent above) re-exports the underlying `pub fn` directly.
+pub use crate::posture::jpl::comparison::{
     comparison_snapshot_source_summary_for_report,
     comparison_snapshot_source_window_summary_for_report, comparison_snapshot_summary_for_report,
-    format_jpl_interpolation_quality_summary_for_report,
-    frame_treatment_summary_for_report as jpl_frame_treatment_summary_for_report,
+    validated_comparison_snapshot_manifest_summary_for_report,
+};
+pub use crate::posture::jpl::holdout::{
     independent_holdout_high_curvature_summary_for_report,
     independent_holdout_manifest_summary_for_report,
-    independent_holdout_snapshot_body_class_coverage_summary_for_report,
-    independent_holdout_snapshot_equatorial_parity_summary_for_report as jpl_independent_holdout_snapshot_equatorial_parity_summary_for_report,
-    independent_holdout_snapshot_quarter_day_boundary_summary_for_report,
+    independent_holdout_snapshot_batch_parity_summary_for_report,
+    independent_holdout_snapshot_equatorial_parity_summary_for_report,
     independent_holdout_snapshot_source_window_summary_for_report,
-    independent_holdout_source_summary_for_report,
+    independent_holdout_source_summary_for_report, jpl_independent_holdout_summary_for_report,
+    reference_holdout_overlap_summary_for_report,
+};
+pub use crate::posture::jpl::jpl_posture::{
     interpolation_quality_sample_request_corpus_summary_for_report,
-    jpl_independent_holdout_summary_for_report,
-    jpl_interpolation_body_class_error_envelopes_for_report,
-    jpl_interpolation_posture_summary_for_report,
-    jpl_interpolation_quality_kind_coverage_for_report, jpl_provenance_only_summary_for_report,
-    jpl_snapshot_batch_error_taxonomy_summary_for_report,
-    jpl_snapshot_evidence_classification_summary_for_report,
-    jpl_snapshot_evidence_summary_for_report, jpl_snapshot_request_policy_summary_for_report,
-    jpl_source_corpus_contract_summary_for_report, jpl_source_posture_summary_for_report,
-    production_generation_boundary_body_class_coverage_summary_for_report,
+    jpl_provenance_only_summary_for_report, jpl_source_corpus_contract_summary_for_report,
+    jpl_source_posture_summary_for_report,
+};
+pub use crate::posture::jpl::production_generation::{
     production_generation_boundary_request_corpus_equatorial_summary_for_report,
     production_generation_boundary_request_corpus_summary_for_report,
     production_generation_boundary_source_summary_for_report,
     production_generation_boundary_summary_for_report,
     production_generation_boundary_window_summary_for_report,
     production_generation_corpus_shape_summary_for_report,
-    production_generation_manifest_checksum_for_report,
+    production_generation_quarter_day_boundary_summary_for_report,
     production_generation_snapshot_summary_for_report,
     production_generation_snapshot_window_summary_for_report,
     production_generation_source_revision_summary_for_report,
     production_generation_source_summary_for_report,
+};
+pub use crate::posture::jpl::reference_asteroid::{
     reference_asteroid_equatorial_evidence_summary_for_report,
     reference_asteroid_evidence_summary_for_report,
     reference_asteroid_source_window_summary_for_report,
-    reference_snapshot_1900_selected_body_boundary_summary_for_report,
-    reference_snapshot_2415020_selected_body_boundary_summary_for_report,
-    reference_snapshot_2451545_major_body_boundary_summary_for_report,
+};
+pub use crate::posture::jpl::reference_snapshot::boundaries::era_b::reference_snapshot_2415020_selected_body_boundary_summary_for_report;
+pub use crate::posture::jpl::reference_snapshot::boundaries::era_d::{
+    reference_snapshot_2451914_major_body_bridge_day_summary_for_report,
+    reference_snapshot_bridge_day_summary_for_report,
+};
+pub use crate::posture::jpl::reference_snapshot::core::evidence::reference_snapshot_exact_j2000_evidence_summary_for_report;
+pub use crate::posture::jpl::reference_snapshot::core::general_a::{
     reference_snapshot_2451910_major_body_boundary_summary_for_report,
     reference_snapshot_2451911_major_body_boundary_summary_for_report,
-    reference_snapshot_2451912_major_body_boundary_summary_for_report,
-    reference_snapshot_2451913_major_body_boundary_summary_for_report,
-    reference_snapshot_2451914_bridge_day_summary_for_report,
-    reference_snapshot_2451914_major_body_boundary_summary_for_report,
-    reference_snapshot_2451914_major_body_bridge_day_summary_for_report,
-    reference_snapshot_2451914_major_body_bridge_summary_for_report,
-    reference_snapshot_2451914_major_body_pre_bridge_summary_for_report,
-    reference_snapshot_2451915_major_body_boundary_summary_for_report,
+    reference_snapshot_2451917_major_body_bridge_summary_for_report,
+    reference_snapshot_2451918_major_body_boundary_summary_for_report,
+    reference_snapshot_lunar_boundary_summary_for_report,
+    reference_snapshot_major_body_bridge_summary_for_report, reference_snapshot_summary_for_report,
+};
+pub use crate::posture::jpl::reference_snapshot::core::general_b::{
     reference_snapshot_2451915_major_body_bridge_summary_for_report,
     reference_snapshot_2451916_major_body_boundary_summary_for_report,
     reference_snapshot_2451916_major_body_dense_boundary_summary_for_report,
-    reference_snapshot_2451916_major_body_interior_summary_for_report,
     reference_snapshot_2451917_major_body_boundary_summary_for_report,
-    reference_snapshot_2451917_major_body_bridge_summary_for_report,
-    reference_snapshot_2451918_major_body_boundary_summary_for_report,
     reference_snapshot_2451919_major_body_boundary_summary_for_report,
-    reference_snapshot_2451920_major_body_interior_summary_for_report,
-    reference_snapshot_2453000_major_body_boundary_summary_for_report,
-    reference_snapshot_body_class_coverage_summary_for_report,
-    reference_snapshot_boundary_epoch_coverage_summary_for_report,
-    reference_snapshot_bridge_day_summary_for_report,
-    reference_snapshot_dense_boundary_summary_for_report,
-    reference_snapshot_equatorial_parity_summary_for_report,
-    reference_snapshot_exact_j2000_evidence_summary_for_report,
-    reference_snapshot_high_curvature_epoch_coverage_summary_for_report,
-    reference_snapshot_high_curvature_summary_for_report,
-    reference_snapshot_high_curvature_window_summary_for_report,
-    reference_snapshot_lunar_boundary_summary_for_report,
-    reference_snapshot_major_body_boundary_summary_for_report,
-    reference_snapshot_major_body_boundary_window_summary_for_report,
-    reference_snapshot_major_body_bridge_summary_for_report,
-    reference_snapshot_manifest_summary_for_report,
-    reference_snapshot_mars_jupiter_boundary_summary_for_report,
-    reference_snapshot_pre_bridge_boundary_summary_for_report,
-    reference_snapshot_source_summary_for_report,
+    reference_snapshot_manifest_summary_for_report, reference_snapshot_source_summary_for_report,
     reference_snapshot_source_window_summary_for_report,
-    reference_snapshot_sparse_boundary_summary_for_report, reference_snapshot_summary_for_report,
+};
+pub use crate::posture::jpl::selected_asteroid::{
     selected_asteroid_batch_parity_summary_for_report,
     selected_asteroid_boundary_summary_for_report, selected_asteroid_bridge_summary_for_report,
     selected_asteroid_dense_boundary_summary_for_report,
@@ -414,13 +411,54 @@ pub(crate) use crate::posture::jpl::{
     selected_asteroid_source_2500000_summary_for_report,
     selected_asteroid_source_2634167_summary_for_report,
     selected_asteroid_source_evidence_summary_for_report,
+    selected_asteroid_source_request_corpus_equatorial_summary_for_report,
     selected_asteroid_source_request_corpus_summary_for_report,
     selected_asteroid_source_window_summary_for_report,
     selected_asteroid_terminal_boundary_summary_for_report,
+};
+
+pub(crate) use crate::posture::jpl::{
+    comparison_snapshot_body_class_coverage_summary_for_report,
+    format_jpl_interpolation_quality_summary_for_report,
+    frame_treatment_summary_for_report as jpl_frame_treatment_summary_for_report,
+    independent_holdout_snapshot_body_class_coverage_summary_for_report,
+    independent_holdout_snapshot_equatorial_parity_summary_for_report as jpl_independent_holdout_snapshot_equatorial_parity_summary_for_report,
+    independent_holdout_snapshot_quarter_day_boundary_summary_for_report,
+    jpl_interpolation_body_class_error_envelopes_for_report,
+    jpl_interpolation_posture_summary_for_report,
+    jpl_interpolation_quality_kind_coverage_for_report,
+    jpl_snapshot_batch_error_taxonomy_summary_for_report,
+    jpl_snapshot_evidence_classification_summary_for_report,
+    jpl_snapshot_evidence_summary_for_report, jpl_snapshot_request_policy_summary_for_report,
+    production_generation_boundary_body_class_coverage_summary_for_report,
+    production_generation_manifest_checksum_for_report,
+    reference_snapshot_1900_selected_body_boundary_summary_for_report,
+    reference_snapshot_2451545_major_body_boundary_summary_for_report,
+    reference_snapshot_2451912_major_body_boundary_summary_for_report,
+    reference_snapshot_2451913_major_body_boundary_summary_for_report,
+    reference_snapshot_2451914_bridge_day_summary_for_report,
+    reference_snapshot_2451914_major_body_boundary_summary_for_report,
+    reference_snapshot_2451914_major_body_bridge_summary_for_report,
+    reference_snapshot_2451914_major_body_pre_bridge_summary_for_report,
+    reference_snapshot_2451915_major_body_boundary_summary_for_report,
+    reference_snapshot_2451916_major_body_interior_summary_for_report,
+    reference_snapshot_2451920_major_body_interior_summary_for_report,
+    reference_snapshot_2453000_major_body_boundary_summary_for_report,
+    reference_snapshot_body_class_coverage_summary_for_report,
+    reference_snapshot_boundary_epoch_coverage_summary_for_report,
+    reference_snapshot_dense_boundary_summary_for_report,
+    reference_snapshot_equatorial_parity_summary_for_report,
+    reference_snapshot_high_curvature_epoch_coverage_summary_for_report,
+    reference_snapshot_high_curvature_summary_for_report,
+    reference_snapshot_high_curvature_window_summary_for_report,
+    reference_snapshot_major_body_boundary_summary_for_report,
+    reference_snapshot_major_body_boundary_window_summary_for_report,
+    reference_snapshot_mars_jupiter_boundary_summary_for_report,
+    reference_snapshot_pre_bridge_boundary_summary_for_report,
+    reference_snapshot_sparse_boundary_summary_for_report,
     validated_checked_in_snapshot_schema_summary_for_report,
     validated_comparison_snapshot_batch_parity_summary_for_report,
     validated_comparison_snapshot_body_class_coverage_summary_for_report,
-    validated_comparison_snapshot_manifest_summary_for_report,
     validated_comparison_snapshot_source_summary_for_report,
     validated_comparison_snapshot_source_window_summary_for_report,
     validated_independent_holdout_snapshot_batch_parity_summary_for_report,

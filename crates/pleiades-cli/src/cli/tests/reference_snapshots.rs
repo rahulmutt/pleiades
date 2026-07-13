@@ -36,7 +36,7 @@ fn reference_snapshot_1900_selected_body_boundary_aliases_render_the_same_report
     assert_eq!(
         render_cli(&["2415020-selected-body-boundary-summary"])
             .expect("2415020 selected-body boundary alias should render"),
-        pleiades_jpl::reference_snapshot_2415020_selected_body_boundary_summary_for_report()
+        pleiades_validate::reference_snapshot_2415020_selected_body_boundary_summary_for_report()
     );
 }
 
@@ -135,7 +135,7 @@ fn reference_snapshot_2451914_pre_bridge_2451914_bridge_2451915_bridge_and_24519
     assert_eq!(
         render_cli(&["2451915-major-body-bridge-summary"])
             .expect("2451915 bridge alias should render"),
-        pleiades_jpl::reference_snapshot_2451915_major_body_bridge_summary_for_report()
+        pleiades_validate::reference_snapshot_2451915_major_body_bridge_summary_for_report()
     );
     assert_eq!(
         render_cli(&["2451915-major-body-bridge"])

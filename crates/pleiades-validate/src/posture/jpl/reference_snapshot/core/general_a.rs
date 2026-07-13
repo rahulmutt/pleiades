@@ -105,7 +105,7 @@ pub(crate) fn format_reference_snapshot_summary(summary: &ReferenceSnapshotSumma
 /// stays on the jpl struct; rendering is local) and every entry in the
 /// aggregation array qualified per the other-file/local-file split described
 /// in the module doc comment above.
-pub(crate) fn reference_snapshot_summary_for_report() -> String {
+pub fn reference_snapshot_summary_for_report() -> String {
     let summary_line = match pleiades_jpl::reference_snapshot_summary() {
         Some(summary) => match summary.validate() {
             Ok(()) => reference_snapshot_summary_line(&summary),
@@ -264,7 +264,7 @@ pub(crate) fn format_apparentness_modes(modes: &[pleiades_types::Apparentness]) 
 /// 9, already copied); `.validated_summary_line()` is rewired to `match
 /// summary.validate() { Ok(()) => <local render>, ... }`, calling the local
 /// `reference_lunar_boundary_summary_line` (Slice D Task 13b).
-pub(crate) fn reference_snapshot_lunar_boundary_summary_for_report() -> String {
+pub fn reference_snapshot_lunar_boundary_summary_for_report() -> String {
     match pleiades_jpl::reference_snapshot_lunar_boundary_summary() {
         Some(summary) => match summary.validate() {
             Ok(()) => reference_lunar_boundary_summary_line(&summary),
@@ -320,7 +320,7 @@ pub(crate) fn reference_snapshot_major_body_boundary_summary_for_report() -> Str
 /// `boundaries/era_a.rs` (Slice D Task 9, already copied); rewired the same
 /// way as above, calling the local `reference_major_body_bridge_summary_line`
 /// (Slice D Task 13b).
-pub(crate) fn reference_snapshot_major_body_bridge_summary_for_report() -> String {
+pub fn reference_snapshot_major_body_bridge_summary_for_report() -> String {
     match pleiades_jpl::reference_snapshot_major_body_bridge_summary() {
         Some(summary) => match summary.validate() {
             Ok(()) => reference_major_body_bridge_summary_line(&summary),
@@ -358,7 +358,7 @@ pub(crate) fn reference_snapshot_mars_jupiter_boundary_summary_for_report() -> S
 /// `boundaries/era_a.rs` (Slice D Task 9, already copied); rewired the same
 /// way as above, calling the local `reference_mars_jupiter_boundary_summary_line`
 /// (Slice D Task 13b).
-pub(crate) fn reference_snapshot_2451918_major_body_boundary_summary_for_report() -> String {
+pub fn reference_snapshot_2451918_major_body_boundary_summary_for_report() -> String {
     match pleiades_jpl::reference_snapshot_2451918_major_body_boundary_summary() {
         Some(summary) => match summary.validate() {
             Ok(()) => reference_mars_jupiter_boundary_summary_line(&summary).replacen(
@@ -422,7 +422,7 @@ pub(crate) fn reference_snapshot_2451545_major_body_boundary_summary_for_report(
 /// `boundaries/era_c.rs` (Slice D Task 9, already copied); rewired the same
 /// way as above, calling the local
 /// `reference_2451910_major_body_boundary_summary_line` (Slice D Task 13b).
-pub(crate) fn reference_snapshot_2451910_major_body_boundary_summary_for_report() -> String {
+pub fn reference_snapshot_2451910_major_body_boundary_summary_for_report() -> String {
     match pleiades_jpl::reference_snapshot_2451910_major_body_boundary_summary() {
         Some(summary) => match summary.validate() {
             Ok(()) => reference_2451910_major_body_boundary_summary_line(&summary),
@@ -442,7 +442,7 @@ pub(crate) fn reference_snapshot_2451910_major_body_boundary_summary_for_report(
 /// `boundaries/era_c.rs` (Slice D Task 9, already copied); rewired the same
 /// way as above, calling the local
 /// `reference_2451911_major_body_boundary_summary_line` (Slice D Task 13b).
-pub(crate) fn reference_snapshot_2451911_major_body_boundary_summary_for_report() -> String {
+pub fn reference_snapshot_2451911_major_body_boundary_summary_for_report() -> String {
     match pleiades_jpl::reference_snapshot_2451911_major_body_boundary_summary() {
         Some(summary) => match summary.validate() {
             Ok(()) => reference_2451911_major_body_boundary_summary_line(&summary),
@@ -542,7 +542,7 @@ pub(crate) fn reference_snapshot_2451915_major_body_boundary_summary_for_report(
 /// `boundaries/era_c.rs` (Slice D Task 9, already copied); rewired the same
 /// way as above, calling the local
 /// `reference_2451917_major_body_bridge_summary_line` (Slice D Task 13b).
-pub(crate) fn reference_snapshot_2451917_major_body_bridge_summary_for_report() -> String {
+pub fn reference_snapshot_2451917_major_body_bridge_summary_for_report() -> String {
     match pleiades_jpl::reference_snapshot_2451917_major_body_bridge_summary() {
         Some(summary) => match summary.validate() {
             Ok(()) => reference_2451917_major_body_bridge_summary_line(&summary),
@@ -670,6 +670,40 @@ mod tests {
         assert!(report.contains(&selected_asteroid_bridge_summary_for_report()));
         assert!(report.contains(&selected_asteroid_dense_boundary_summary_for_report()));
         assert!(report.contains(&selected_asteroid_terminal_boundary_summary_for_report()));
+        // Migrated from jpl's whole-aggregator
+        // `reference_snapshot_summary_for_report_highlights_recent_reference_slices`
+        // (reference_summary/reference_snapshot/tests.rs:1713), which this test did
+        // not yet have full parity with (Slice D Task 13d).
+        assert!(report.contains(&selected_asteroid_source_2451917_summary_for_report()));
+        assert!(report.contains(&selected_asteroid_source_2453000_summary_for_report()));
+        assert!(report.contains(&selected_asteroid_source_2500000_summary_for_report()));
+        assert!(report.contains(&selected_asteroid_source_2634167_summary_for_report()));
+        assert!(report.contains(&selected_asteroid_source_evidence_summary_for_report()));
+        assert!(report.contains(&selected_asteroid_source_window_summary_for_report()));
+        assert!(report.contains(&reference_snapshot_equatorial_parity_summary_for_report()));
+        assert!(report.contains(&reference_snapshot_batch_parity_summary_for_report()));
+        assert!(
+            report.contains(&reference_snapshot_1900_selected_body_boundary_summary_for_report())
+        );
+        assert!(report
+            .contains(&reference_snapshot_2415020_selected_body_boundary_summary_for_report()));
+        assert!(report.contains(&reference_snapshot_exact_j2000_evidence_summary_for_report()));
+        assert!(report.contains(&reference_snapshot_bridge_day_summary_for_report()));
+        assert!(report.contains(&reference_snapshot_2451914_bridge_day_summary_for_report()));
+        assert!(
+            report.contains(&reference_snapshot_2451914_major_body_bridge_day_summary_for_report())
+        );
+        assert!(
+            report.contains(&reference_snapshot_2451918_major_body_boundary_summary_for_report())
+        );
+        assert!(report.contains(&reference_snapshot_sparse_boundary_summary_for_report()));
+        assert!(report.contains(&reference_snapshot_pre_bridge_boundary_summary_for_report()));
+        assert!(report.contains(&reference_snapshot_boundary_epoch_coverage_summary_for_report()));
+        assert!(
+            report.contains(&reference_snapshot_major_body_boundary_window_summary_for_report())
+        );
+        assert!(!report.contains("JPL independent hold-out:"));
+        assert!(!report.contains("Reference/hold-out overlap:"));
     }
 
     #[test]

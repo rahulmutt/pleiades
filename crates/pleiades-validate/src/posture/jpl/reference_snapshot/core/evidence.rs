@@ -66,7 +66,7 @@ pub(crate) fn validated_reference_snapshot_exact_j2000_evidence_summary_for_repo
 /// summary string. Verbatim copy of jpl's
 /// `reference_snapshot_exact_j2000_evidence_summary_for_report`
 /// (reference_summary/reference_snapshot/core/evidence.rs:206).
-pub(crate) fn reference_snapshot_exact_j2000_evidence_summary_for_report() -> String {
+pub fn reference_snapshot_exact_j2000_evidence_summary_for_report() -> String {
     match validated_reference_snapshot_exact_j2000_evidence_summary_for_report() {
         Ok(summary_line) => summary_line,
         Err(error) if error == "reference snapshot exact J2000 evidence unavailable" => {

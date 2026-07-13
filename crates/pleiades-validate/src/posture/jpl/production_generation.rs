@@ -596,7 +596,7 @@ pub(crate) fn production_generation_boundary_request_corpus_summary_line(
 /// `summary.validated_summary_line()` rewired to
 /// `match summary.validate() { Ok(()) => <local render>, ... }` (`validate()`
 /// stays on the jpl struct; rendering is local).
-pub(crate) fn production_generation_snapshot_summary_for_report() -> String {
+pub fn production_generation_snapshot_summary_for_report() -> String {
     match pleiades_jpl::production_generation_snapshot_summary() {
         Some(summary) => match summary.validate() {
             Ok(()) => production_generation_snapshot_summary_line(&summary),
@@ -610,7 +610,7 @@ pub(crate) fn production_generation_snapshot_summary_for_report() -> String {
 /// reporting. Verbatim copy of jpl's
 /// `production_generation_quarter_day_boundary_summary_for_report`
 /// (reference_summary/production_generation.rs:364).
-pub(crate) fn production_generation_quarter_day_boundary_summary_for_report() -> String {
+pub fn production_generation_quarter_day_boundary_summary_for_report() -> String {
     match pleiades_jpl::production_generation_snapshot_summary() {
         Some(summary) => match summary.validate() {
             Ok(()) => format!(
@@ -636,7 +636,7 @@ pub(crate) fn production_generation_quarter_day_boundary_summary_for_report() ->
 /// Task 10a) and `.validated_summary_line()` rewired to
 /// `match s.validate() { Ok(()) => <local render>, ... }`.
 #[doc(alias = "production_generation_source_revision_summary")]
-pub(crate) fn production_generation_source_revision_summary_for_report() -> String {
+pub fn production_generation_source_revision_summary_for_report() -> String {
     let s = pleiades_jpl::production_generation_source_revision_summary();
     match s.validate() {
         Ok(()) => production_generation_source_revision_summary_line(&s),
@@ -707,7 +707,7 @@ pub(crate) fn production_generation_source_class_breakdown_summary_for_report() 
 /// Returns the release-facing production-generation source summary string.
 /// Verbatim copy of jpl's `production_generation_source_summary_for_report`
 /// (reference_summary/production_generation.rs:801).
-pub(crate) fn production_generation_source_summary_for_report() -> String {
+pub fn production_generation_source_summary_for_report() -> String {
     let summary = pleiades_jpl::production_generation_source_summary();
     match summary.validate() {
         Ok(()) => production_generation_source_summary_line(&summary),
@@ -730,7 +730,7 @@ pub(crate) fn validated_production_generation_source_summary_for_report() -> Res
 /// string. Verbatim copy of jpl's
 /// `production_generation_corpus_shape_summary_for_report`
 /// (reference_summary/production_generation.rs:1043).
-pub(crate) fn production_generation_corpus_shape_summary_for_report() -> String {
+pub fn production_generation_corpus_shape_summary_for_report() -> String {
     match pleiades_jpl::production_generation_corpus_shape_summary() {
         Some(summary) => match summary.validate() {
             Ok(()) => production_generation_corpus_shape_summary_line(&summary),
@@ -804,7 +804,7 @@ pub(crate) fn production_generation_manifest_checksum_for_report() -> String {
 /// string. Verbatim copy of jpl's
 /// `production_generation_snapshot_window_summary_for_report`
 /// (reference_summary/production_generation.rs:1702).
-pub(crate) fn production_generation_snapshot_window_summary_for_report() -> String {
+pub fn production_generation_snapshot_window_summary_for_report() -> String {
     match pleiades_jpl::production_generation_snapshot_window_summary() {
         Some(summary) => match summary.validate() {
             Ok(()) => production_generation_snapshot_window_summary_line(&summary),
@@ -866,7 +866,7 @@ pub(crate) fn validated_production_generation_snapshot_body_class_coverage_summa
 /// `summary.validated_summary_line()` rewired to
 /// `match summary.validate() { Ok(()) => <local render>, ... }` (`validate()`
 /// stays on the jpl struct; rendering is local).
-pub(crate) fn production_generation_boundary_summary_for_report() -> String {
+pub fn production_generation_boundary_summary_for_report() -> String {
     match pleiades_jpl::production_generation_boundary_summary() {
         Some(summary) => match summary.validate() {
             Ok(()) => production_generation_boundary_summary_line(&summary),
@@ -880,7 +880,7 @@ pub(crate) fn production_generation_boundary_summary_for_report() -> String {
 /// production-generation boundary overlay. Verbatim copy of jpl's
 /// `production_generation_boundary_source_summary_for_report` (top-level
 /// `production_generation.rs:482`, Slice D Task 10b).
-pub(crate) fn production_generation_boundary_source_summary_for_report() -> String {
+pub fn production_generation_boundary_source_summary_for_report() -> String {
     let summary = pleiades_jpl::production_generation_boundary_source_summary();
     match summary.validate() {
         Ok(()) => format_production_generation_boundary_source_summary(&summary),
@@ -894,7 +894,7 @@ pub(crate) fn production_generation_boundary_source_summary_for_report() -> Stri
 /// string. Verbatim copy of jpl's
 /// `production_generation_boundary_window_summary_for_report` (top-level
 /// `production_generation.rs:695`, Slice D Task 10b).
-pub(crate) fn production_generation_boundary_window_summary_for_report() -> String {
+pub fn production_generation_boundary_window_summary_for_report() -> String {
     match pleiades_jpl::production_generation_boundary_window_summary() {
         Some(summary) => match summary.validate() {
             Ok(()) => production_generation_boundary_window_summary_line(&summary),
@@ -943,7 +943,7 @@ fn validated_production_generation_boundary_request_corpus_summary_for_frame(
 /// summary string. Verbatim copy of jpl's
 /// `production_generation_boundary_request_corpus_summary_for_report`
 /// (top-level `production_generation.rs:1200`, Slice D Task 10b).
-pub(crate) fn production_generation_boundary_request_corpus_summary_for_report() -> String {
+pub fn production_generation_boundary_request_corpus_summary_for_report() -> String {
     validated_production_generation_boundary_request_corpus_summary_for_frame(
         CoordinateFrame::Ecliptic,
     )
@@ -956,8 +956,7 @@ pub(crate) fn production_generation_boundary_request_corpus_summary_for_report()
 /// request corpus summary string. Verbatim copy of jpl's
 /// `production_generation_boundary_request_corpus_equatorial_summary_for_report`
 /// (top-level `production_generation.rs:1210`, Slice D Task 10b).
-pub(crate) fn production_generation_boundary_request_corpus_equatorial_summary_for_report() -> String
-{
+pub fn production_generation_boundary_request_corpus_equatorial_summary_for_report() -> String {
     validated_production_generation_boundary_request_corpus_summary_for_frame(
         CoordinateFrame::Equatorial,
     )

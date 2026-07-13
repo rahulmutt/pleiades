@@ -1,15 +1,12 @@
 //! Top-level CLI dispatch.
 
-use pleiades_jpl::{
+use pleiades_validate::{
     comparison_snapshot_source_summary_for_report, reference_snapshot_source_summary_for_report,
-    selected_asteroid_source_2451917_summary_for_report,
+    render_benchmark_report, render_cli as validate_render_cli, render_release_bundle,
+    render_validation_report_summary, selected_asteroid_source_2451917_summary_for_report,
     selected_asteroid_source_2453000_summary_for_report,
     selected_asteroid_source_2500000_summary_for_report,
-    selected_asteroid_source_2634167_summary_for_report,
-};
-use pleiades_validate::{
-    render_benchmark_report, render_cli as validate_render_cli, render_release_bundle,
-    render_validation_report_summary, verify_compatibility_profile,
+    selected_asteroid_source_2634167_summary_for_report, verify_compatibility_profile,
 };
 
 use crate::commands::chart::render_chart;
@@ -167,11 +164,11 @@ pub(crate) fn render_cli(args: &[&str]) -> Result<String, String> {
         | Some("production-body-class-coverage-summary") => validate_render_cli(args),
         Some("production-generation-source-window-summary") => {
             ensure_no_extra_args(&args[1..], "production-generation-source-window-summary")?;
-            Ok(pleiades_jpl::production_generation_snapshot_window_summary_for_report())
+            Ok(pleiades_validate::production_generation_snapshot_window_summary_for_report())
         }
         Some("production-generation-source-window") => {
             ensure_no_extra_args(&args[1..], "production-generation-source-window")?;
-            Ok(pleiades_jpl::production_generation_snapshot_window_summary_for_report())
+            Ok(pleiades_validate::production_generation_snapshot_window_summary_for_report())
         }
         Some("production-generation") | Some("production-generation-summary") => {
             validate_render_cli(args)
@@ -218,7 +215,7 @@ pub(crate) fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "comparison-snapshot")?;
             Ok(format!(
                 "Comparison snapshot summary\n{}\n",
-                pleiades_jpl::comparison_snapshot_summary_for_report()
+                pleiades_validate::comparison_snapshot_summary_for_report()
             ))
         }
         Some("j2000-snapshot") => {
@@ -328,7 +325,10 @@ pub(crate) fn render_cli(args: &[&str]) -> Result<String, String> {
                 &args[1..],
                 "reference-snapshot-2451915-major-body-bridge-summary",
             )?;
-            Ok(pleiades_jpl::reference_snapshot_2451915_major_body_bridge_summary_for_report())
+            Ok(
+                pleiades_validate::reference_snapshot_2451915_major_body_bridge_summary_for_report(
+                ),
+            )
         }
         Some("reference-snapshot-2451916-major-body-boundary-summary")
         | Some("2451916-major-body-boundary-summary") => validate_render_cli(args),
@@ -347,7 +347,7 @@ pub(crate) fn render_cli(args: &[&str]) -> Result<String, String> {
             ensure_no_extra_args(&args[1..], "reference-snapshot")?;
             Ok(format!(
                 "Reference snapshot summary\n{}\n",
-                pleiades_jpl::reference_snapshot_summary_for_report()
+                pleiades_validate::reference_snapshot_summary_for_report()
             ))
         }
         Some("reference-snapshot-summary") => {
@@ -550,7 +550,7 @@ pub(crate) fn render_cli(args: &[&str]) -> Result<String, String> {
                 &args[1..],
                 "reference-snapshot-2378498-selected-asteroid-source-summary",
             )?;
-            Ok(pleiades_jpl::selected_asteroid_source_2378498_summary_for_report())
+            Ok(pleiades_validate::selected_asteroid_source_2378498_summary_for_report())
         }
         Some("reference-snapshot-2451917-selected-asteroid-source-summary")
         | Some("2451917-selected-asteroid-source-summary") => {

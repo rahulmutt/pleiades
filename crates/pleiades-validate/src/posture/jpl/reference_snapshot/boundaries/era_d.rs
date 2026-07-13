@@ -318,7 +318,7 @@ pub(crate) fn reference_high_curvature_epoch_coverage_summary_line(
 /// Ok(()) => <local render>, ... }`, calling the local
 /// `reference_snapshot_bridge_day_summary_line` (Slice D Task 13b; `validate()`
 /// stays on the jpl struct, rendering is local).
-pub(crate) fn reference_snapshot_bridge_day_summary_for_report() -> String {
+pub fn reference_snapshot_bridge_day_summary_for_report() -> String {
     match pleiades_jpl::reference_snapshot_bridge_day_summary() {
         Some(summary) => match summary.validate() {
             Ok(()) => {
@@ -360,7 +360,7 @@ pub(crate) fn reference_snapshot_2451914_bridge_day_summary_for_report() -> Stri
 /// (reference_summary/reference_snapshot/boundaries/era_d.rs:768), with the
 /// data-constructor call qualified `pleiades_jpl::` and `format_bodies`
 /// reused from the canonical `core::general_a` copy.
-pub(crate) fn reference_snapshot_2451914_major_body_bridge_day_summary_for_report() -> String {
+pub fn reference_snapshot_2451914_major_body_bridge_day_summary_for_report() -> String {
     match pleiades_jpl::reference_snapshot_2451914_major_body_bridge_day_summary() {
         Some(summary) => match summary.validate() {
             Ok(()) => format!(

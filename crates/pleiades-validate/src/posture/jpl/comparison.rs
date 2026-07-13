@@ -208,7 +208,7 @@ pub(crate) fn format_validated_comparison_snapshot_source_summary_for_report(
 /// validation. Verbatim copy of jpl's
 /// `comparison_snapshot_source_summary_for_report`
 /// (reference_summary/comparison.rs:545).
-pub(crate) fn comparison_snapshot_source_summary_for_report() -> String {
+pub fn comparison_snapshot_source_summary_for_report() -> String {
     format_validated_comparison_snapshot_source_summary_for_report(
         &pleiades_jpl::comparison_snapshot_source_summary(),
         pleiades_jpl::comparison_snapshot_manifest(),
@@ -245,7 +245,7 @@ pub(crate) fn validated_comparison_snapshot_source_window_summary_for_report(
 /// Returns the body-window summary for the comparison snapshot. Verbatim
 /// copy of jpl's `comparison_snapshot_source_window_summary_for_report`
 /// (reference_summary/comparison.rs:825).
-pub(crate) fn comparison_snapshot_source_window_summary_for_report() -> String {
+pub fn comparison_snapshot_source_window_summary_for_report() -> String {
     match validated_comparison_snapshot_source_window_summary_for_report() {
         Ok(summary_line) => summary_line,
         Err(error) if error == "comparison snapshot source windows unavailable" => {
@@ -279,8 +279,7 @@ pub(crate) fn comparison_snapshot_manifest_summary_for_report() -> String {
 /// read are identical either way. `COMPARISON_SNAPSHOT_REDISTRIBUTION_EXPECTED`
 /// is `pub(crate)` in jpl's `reference_snapshot/core/general_a.rs` (not yet
 /// copied), so its literal value is reproduced inline.
-pub(crate) fn validated_comparison_snapshot_manifest_summary_for_report() -> Result<String, String>
-{
+pub fn validated_comparison_snapshot_manifest_summary_for_report() -> Result<String, String> {
     let manifest_text = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/../pleiades-jpl/data/j2000_snapshot.csv"
@@ -314,7 +313,7 @@ pub(crate) fn validated_comparison_snapshot_manifest_summary_for_report() -> Res
 /// Returns the release-facing comparison snapshot coverage summary string.
 /// Verbatim copy of jpl's `comparison_snapshot_summary_for_report`
 /// (reference_summary/comparison.rs:988).
-pub(crate) fn comparison_snapshot_summary_for_report() -> String {
+pub fn comparison_snapshot_summary_for_report() -> String {
     match pleiades_jpl::comparison_snapshot_summary() {
         Some(summary) => match summary.validate() {
             Ok(()) => comparison_snapshot_summary_line(&summary),

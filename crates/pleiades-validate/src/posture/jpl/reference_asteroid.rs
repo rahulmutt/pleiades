@@ -97,7 +97,7 @@ pub(crate) fn reference_asteroid_source_window_summary_line(
 /// `summary.validated_summary_line()` rewired to
 /// `match summary.validate() { Ok(()) => <local render>, ... }` (`validate()`
 /// stays on the jpl struct; rendering is local).
-pub(crate) fn reference_asteroid_evidence_summary_for_report() -> String {
+pub fn reference_asteroid_evidence_summary_for_report() -> String {
     let evidence = pleiades_jpl::reference_asteroid_evidence();
     match pleiades_jpl::validate_reference_asteroid_evidence(evidence) {
         Ok(()) => match pleiades_jpl::reference_asteroid_evidence_summary() {
@@ -119,7 +119,7 @@ pub(crate) fn reference_asteroid_evidence_summary_for_report() -> String {
 /// (Slice D Task 7) and called instead of reproduced, and
 /// `summary.validated_summary_line()` rewired to
 /// `match summary.validate() { Ok(()) => <local render>, ... }`.
-pub(crate) fn reference_asteroid_equatorial_evidence_summary_for_report() -> String {
+pub fn reference_asteroid_equatorial_evidence_summary_for_report() -> String {
     let evidence = pleiades_jpl::reference_asteroid_equatorial_evidence();
     match pleiades_jpl::validate_reference_asteroid_equatorial_evidence(evidence) {
         Ok(()) => match pleiades_jpl::reference_asteroid_equatorial_evidence_summary() {
@@ -154,7 +154,7 @@ pub(crate) fn validated_reference_asteroid_source_window_summary_for_report(
 /// string. Verbatim copy of jpl's
 /// `reference_asteroid_source_window_summary_for_report`
 /// (reference_summary/reference_asteroid.rs:1062).
-pub(crate) fn reference_asteroid_source_window_summary_for_report() -> String {
+pub fn reference_asteroid_source_window_summary_for_report() -> String {
     match validated_reference_asteroid_source_window_summary_for_report() {
         Ok(summary_line) => summary_line,
         Err(error) if error == "reference asteroid source windows unavailable" => {

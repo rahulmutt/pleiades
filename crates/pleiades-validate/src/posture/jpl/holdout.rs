@@ -313,7 +313,7 @@ pub(crate) fn format_independent_holdout_snapshot_batch_parity_summary(
 /// Verbatim copy of jpl's
 /// `independent_holdout_snapshot_source_window_summary_for_report`
 /// (reference_summary/holdout.rs:474).
-pub(crate) fn independent_holdout_snapshot_source_window_summary_for_report() -> String {
+pub fn independent_holdout_snapshot_source_window_summary_for_report() -> String {
     match pleiades_jpl::independent_holdout_snapshot_source_window_summary() {
         Some(summary) => match summary.validate() {
             Ok(()) => independent_holdout_snapshot_source_window_summary_summary_line(&summary),
@@ -344,7 +344,7 @@ pub(crate) fn independent_holdout_snapshot_quarter_day_boundary_summary_for_repo
 /// string. Verbatim copy of jpl's
 /// `independent_holdout_high_curvature_summary_for_report`
 /// (reference_summary/holdout.rs:852).
-pub(crate) fn independent_holdout_high_curvature_summary_for_report() -> String {
+pub fn independent_holdout_high_curvature_summary_for_report() -> String {
     match pleiades_jpl::independent_holdout_high_curvature_summary() {
         Some(summary) => match summary.validate() {
             Ok(()) => independent_holdout_high_curvature_summary_summary_line(&summary),
@@ -359,7 +359,7 @@ pub(crate) fn independent_holdout_high_curvature_summary_for_report() -> String 
 /// Returns the release-facing reference/hold-out overlap summary string.
 /// Verbatim copy of jpl's `reference_holdout_overlap_summary_for_report`
 /// (reference_summary/holdout.rs:1027).
-pub(crate) fn reference_holdout_overlap_summary_for_report() -> String {
+pub fn reference_holdout_overlap_summary_for_report() -> String {
     match validated_reference_holdout_overlap_summary_for_report() {
         Ok(summary_line) => summary_line,
         Err(error) => format!("Reference/hold-out overlap: unavailable ({error})"),
@@ -417,7 +417,7 @@ pub(crate) fn independent_holdout_snapshot_body_class_coverage_summary_for_repor
 /// summary string. Verbatim copy of jpl's
 /// `independent_holdout_snapshot_batch_parity_summary_for_report`
 /// (reference_summary/holdout.rs:1474).
-pub(crate) fn independent_holdout_snapshot_batch_parity_summary_for_report() -> String {
+pub fn independent_holdout_snapshot_batch_parity_summary_for_report() -> String {
     match pleiades_jpl::independent_holdout_snapshot_batch_parity_summary() {
         Some(summary) => match summary.validate() {
             Ok(()) => independent_holdout_snapshot_batch_parity_summary_summary_line(&summary),
@@ -443,7 +443,7 @@ pub(crate) fn validated_independent_holdout_snapshot_batch_parity_summary_for_re
 /// string. Verbatim copy of jpl's
 /// `independent_holdout_snapshot_equatorial_parity_summary_for_report`
 /// (reference_summary/holdout.rs:1652).
-pub(crate) fn independent_holdout_snapshot_equatorial_parity_summary_for_report() -> String {
+pub fn independent_holdout_snapshot_equatorial_parity_summary_for_report() -> String {
     match pleiades_jpl::independent_holdout_snapshot_equatorial_parity_summary() {
         Some(summary) => match summary.validate() {
             Ok(()) => independent_holdout_snapshot_equatorial_parity_summary_summary_line(&summary),
@@ -458,7 +458,7 @@ pub(crate) fn independent_holdout_snapshot_equatorial_parity_summary_for_report(
 /// Returns the source-material summary for the checked-in hold-out snapshot.
 /// Verbatim copy of jpl's `independent_holdout_source_summary_for_report`
 /// (reference_summary/holdout.rs:1933).
-pub(crate) fn independent_holdout_source_summary_for_report() -> String {
+pub fn independent_holdout_source_summary_for_report() -> String {
     if let Err(error) = pleiades_jpl::independent_holdout_snapshot_manifest().validate() {
         return format!("Independent hold-out source: unavailable ({error})");
     }
@@ -484,7 +484,7 @@ pub(crate) fn independent_holdout_source_summary_for_report() -> String {
 /// resolves against jpl's manifest dir, not validate's); the bytes read are
 /// identical either way (established precedent — comparison.rs:284 and
 /// validate/src/corpus/production.rs:218 do the same).
-pub(crate) fn independent_holdout_manifest_summary_for_report() -> String {
+pub fn independent_holdout_manifest_summary_for_report() -> String {
     let manifest_text = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/../pleiades-jpl/data/independent_holdout_snapshot.csv"
@@ -526,7 +526,7 @@ pub(crate) fn independent_holdout_manifest_summary_for_report() -> String {
 /// (reference_summary/holdout.rs:2340). `independent_holdout_snapshot_error`
 /// was promoted to `pub` in jpl (Slice D Task 5) so the `None` fallback can be
 /// rendered cross-crate.
-pub(crate) fn jpl_independent_holdout_summary_for_report() -> String {
+pub fn jpl_independent_holdout_summary_for_report() -> String {
     match pleiades_jpl::jpl_independent_holdout_summary() {
         Some(summary) => format_jpl_independent_holdout_summary(&summary),
         None => match pleiades_jpl::independent_holdout_snapshot_error() {
