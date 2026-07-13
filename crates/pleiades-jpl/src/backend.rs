@@ -1107,24 +1107,39 @@ pub fn validate_snapshot_manifest_header_structure(
     Ok(())
 }
 
+/// Structured validation errors for a snapshot manifest footprint check.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) enum SnapshotManifestFootprintValidationError {
+pub enum SnapshotManifestFootprintValidationError {
+    /// The checked-in snapshot had no parsed entries.
     MissingEntries {
+        /// Release-facing label for the snapshot under validation.
         label: &'static str,
     },
+    /// The parsed row count did not match the manifest's declared footprint.
     RowCountMismatch {
+        /// Release-facing label for the snapshot under validation.
         label: &'static str,
+        /// Expected row count from the manifest footprint.
         expected: usize,
+        /// Row count actually parsed from the snapshot.
         found: usize,
     },
+    /// The distinct-body count did not match the manifest's declared footprint.
     BodyCountMismatch {
+        /// Release-facing label for the snapshot under validation.
         label: &'static str,
+        /// Expected distinct-body count from the manifest footprint.
         expected: usize,
+        /// Distinct-body count actually parsed from the snapshot.
         found: usize,
     },
+    /// The distinct-epoch count did not match the manifest's declared footprint.
     EpochCountMismatch {
+        /// Release-facing label for the snapshot under validation.
         label: &'static str,
+        /// Expected distinct-epoch count from the manifest footprint.
         expected: usize,
+        /// Distinct-epoch count actually parsed from the snapshot.
         found: usize,
     },
 }
@@ -1165,7 +1180,9 @@ impl fmt::Display for SnapshotManifestFootprintValidationError {
 
 impl std::error::Error for SnapshotManifestFootprintValidationError {}
 
-pub(crate) fn validate_snapshot_manifest_footprint(
+/// Validates that a checked-in snapshot's parsed entries match the manifest's
+/// declared row, body, and epoch footprint.
+pub fn validate_snapshot_manifest_footprint(
     label: &'static str,
     entries: Option<&[SnapshotEntry]>,
     expected_row_count: usize,
@@ -1900,7 +1917,9 @@ pub(crate) fn independent_holdout_bodies() -> &'static [pleiades_backend::Celest
         .as_slice()
 }
 
-pub(crate) fn independent_holdout_snapshot_error() -> Option<&'static SnapshotLoadError> {
+/// Returns the load error for the checked-in independent hold-out snapshot, if
+/// the snapshot failed to parse; `None` when it loaded cleanly.
+pub fn independent_holdout_snapshot_error() -> Option<&'static SnapshotLoadError> {
     independent_holdout_state().error()
 }
 

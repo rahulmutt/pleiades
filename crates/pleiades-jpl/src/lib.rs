@@ -71,10 +71,8 @@ mod backend;
 pub use backend::*;
 use backend::{
     angular_degrees_delta, has_surrounding_whitespace, independent_holdout_bodies,
-    independent_holdout_snapshot_error, is_reference_asteroid,
-    reference_asteroid_equatorial_evidence_list, reference_asteroid_list,
+    is_reference_asteroid, reference_asteroid_equatorial_evidence_list, reference_asteroid_list,
     reference_asteroid_requests_with_frame_selector, resolve_fixture_state,
-    validate_snapshot_manifest_footprint,
 };
 
 #[cfg(test)]

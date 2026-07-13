@@ -600,7 +600,9 @@ impl IndependentHoldoutQuarterDayBoundarySummary {
     }
 }
 
-pub(crate) fn independent_holdout_quarter_day_boundary_summary_details(
+/// Derives the compact quarter-day boundary summary from the checked-in
+/// independent hold-out slice, or `None` when the slice is unavailable.
+pub fn independent_holdout_quarter_day_boundary_summary_details(
 ) -> Option<IndependentHoldoutQuarterDayBoundarySummary> {
     let entries = independent_holdout_snapshot_entries()?;
     let mut bodies = Vec::new();
