@@ -978,47 +978,56 @@ pub(crate) fn validated_production_generation_boundary_request_corpus_equatorial
 
 #[cfg(test)]
 mod golden {
-    // jpl's own renderers are still present through the contract sweep
-    // (Task 14); this fails closed on any drift in the validate copy. Task 14
-    // replaces `before` with the captured literal when jpl's renderer is
-    // deleted.
+    // jpl's own renderers were deleted in the Task 14 contract sweep. The
+    // `EXPECTED_*` constants below are byte-exact captures of jpl's renderer
+    // output taken immediately before deletion (Slice D Task 14a); this
+    // still fails closed on any drift in the validate copy, just pinned to a
+    // literal instead of a live jpl call.
+    const EXPECTED_PRODUCTION_GENERATION_BOUNDARY_SUMMARY_FOR_REPORT: &str = r"Production generation boundary overlay: 66 rows across 16 bodies and 12 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Jupiter, Mercury, Venus, Saturn, Uranus, Neptune, Sun, Pluto, Moon, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis";
+    const EXPECTED_PRODUCTION_GENERATION_BOUNDARY_SOURCE_SUMMARY_FOR_REPORT: &str = r"Production generation boundary overlay source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; evidence class=hold-out; coverage=major-body samples are confined to the 1900-2100 window [JD 2415020.5, 2488069.5]; Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Mercury and Venus at 2451545, 2451915.25, and 2451915.75, plus Jupiter, Saturn, Uranus, Neptune, and Pluto at 2451545, plus Mars at 2451545, plus Sun at 2451545, 2451915.25, 2451915.75, and 2451915.5, plus Moon at 2451545, 2451915.25, 2451915.75, and 2451915.5, plus Mercury at 2451915.5, plus Venus at 2451915.5, plus major bodies at 2451915.5 for Sun through Pluto, plus selected asteroids at 2378498.5, 2451545, 2451915.5, 2451917.5, 2453000.5, 2500000, and 2634167; asteroid:99942-Apophis now also appears at 2378498.5 so the selected-asteroid hold-out bridge matches the reference slice; total slice size is 66 rows across 16 bodies and 12 epochs.; columns=epoch_jd, body, x_km, y_km, z_km; redistribution=repository-checked regression fixtures, not a broad public corpus.; checksum=0x7d16ee3690481698; geocentric ecliptic J2000; time scale=TDB";
+    const EXPECTED_PRODUCTION_GENERATION_BOUNDARY_WINDOW_SUMMARY_FOR_REPORT: &str = r"Production generation boundary windows: 66 source-backed samples across 16 bodies and 12 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); windows: Mars: 5 samples across 5 epochs at JD 2451545.0 (TDB)..JD 2451915.5 (TDB); Jupiter: 5 samples across 5 epochs at JD 2451545.0 (TDB)..JD 2451915.5 (TDB); Mercury: 4 samples across 4 epochs at JD 2451545.0 (TDB)..JD 2451915.8 (TDB); Venus: 4 samples across 4 epochs at JD 2451545.0 (TDB)..JD 2451915.8 (TDB); Saturn: 2 samples across 2 epochs at JD 2451545.0 (TDB)..JD 2451915.5 (TDB); Uranus: 2 samples across 2 epochs at JD 2451545.0 (TDB)..JD 2451915.5 (TDB); Neptune: 2 samples across 2 epochs at JD 2451545.0 (TDB)..JD 2451915.5 (TDB); Sun: 4 samples across 4 epochs at JD 2451545.0 (TDB)..JD 2451915.8 (TDB); Pluto: 2 samples across 2 epochs at JD 2451545.0 (TDB)..JD 2451915.5 (TDB); Moon: 4 samples across 4 epochs at JD 2451545.0 (TDB)..JD 2451915.8 (TDB); Ceres: 5 samples across 5 epochs at JD 2378498.5 (TDB)..JD 2500000.0 (TDB); Pallas: 5 samples across 5 epochs at JD 2378498.5 (TDB)..JD 2500000.0 (TDB); Juno: 5 samples across 5 epochs at JD 2378498.5 (TDB)..JD 2500000.0 (TDB); Vesta: 5 samples across 5 epochs at JD 2378498.5 (TDB)..JD 2500000.0 (TDB); asteroid:433-Eros: 6 samples across 6 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); asteroid:99942-Apophis: 6 samples across 6 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB)";
+    const EXPECTED_PRODUCTION_GENERATION_BOUNDARY_BODY_CLASS_COVERAGE_SUMMARY_FOR_REPORT: &str = r"Production generation boundary body-class coverage: major bodies: 34 rows across 10 bodies and 7 epochs; major windows: Mars: 5 samples across 5 epochs at JD 2451545.0 (TDB)..JD 2451915.5 (TDB); Jupiter: 5 samples across 5 epochs at JD 2451545.0 (TDB)..JD 2451915.5 (TDB); Mercury: 4 samples across 4 epochs at JD 2451545.0 (TDB)..JD 2451915.8 (TDB); Venus: 4 samples across 4 epochs at JD 2451545.0 (TDB)..JD 2451915.8 (TDB); Saturn: 2 samples across 2 epochs at JD 2451545.0 (TDB)..JD 2451915.5 (TDB); Uranus: 2 samples across 2 epochs at JD 2451545.0 (TDB)..JD 2451915.5 (TDB); Neptune: 2 samples across 2 epochs at JD 2451545.0 (TDB)..JD 2451915.5 (TDB); Sun: 4 samples across 4 epochs at JD 2451545.0 (TDB)..JD 2451915.8 (TDB); Pluto: 2 samples across 2 epochs at JD 2451545.0 (TDB)..JD 2451915.5 (TDB); Moon: 4 samples across 4 epochs at JD 2451545.0 (TDB)..JD 2451915.8 (TDB); selected asteroids: 32 rows across 6 bodies and 7 epochs; asteroid windows: Ceres: 5 samples across 5 epochs at JD 2378498.5 (TDB)..JD 2500000.0 (TDB); Pallas: 5 samples across 5 epochs at JD 2378498.5 (TDB)..JD 2500000.0 (TDB); Juno: 5 samples across 5 epochs at JD 2378498.5 (TDB)..JD 2500000.0 (TDB); Vesta: 5 samples across 5 epochs at JD 2378498.5 (TDB)..JD 2500000.0 (TDB); asteroid:433-Eros: 6 samples across 6 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); asteroid:99942-Apophis: 6 samples across 6 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB)";
+    const EXPECTED_PRODUCTION_GENERATION_BOUNDARY_REQUEST_CORPUS_SUMMARY_FOR_REPORT: &str = r"Production generation boundary request corpus: 66 requests (frame=Ecliptic; time scale=TDB; zodiac mode=Tropical; apparentness=Mean; observerless) across 16 bodies and 12 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Jupiter, Mercury, Venus, Saturn, Uranus, Neptune, Sun, Pluto, Moon, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis";
+    const EXPECTED_PRODUCTION_GENERATION_BOUNDARY_REQUEST_CORPUS_EQUATORIAL_SUMMARY_FOR_REPORT:
+        &str = r"Production generation boundary request corpus: 66 requests (frame=Equatorial; time scale=TDB; zodiac mode=Tropical; apparentness=Mean; observerless) across 16 bodies and 12 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Jupiter, Mercury, Venus, Saturn, Uranus, Neptune, Sun, Pluto, Moon, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis";
+
     #[test]
     fn production_generation_boundary_summary_for_report_byte_identical() {
         assert_eq!(
-            pleiades_jpl::production_generation_boundary_summary_for_report(),
-            super::production_generation_boundary_summary_for_report()
+            super::production_generation_boundary_summary_for_report(),
+            EXPECTED_PRODUCTION_GENERATION_BOUNDARY_SUMMARY_FOR_REPORT
         );
     }
 
     #[test]
     fn production_generation_boundary_source_summary_for_report_byte_identical() {
         assert_eq!(
-            pleiades_jpl::production_generation_boundary_source_summary_for_report(),
-            super::production_generation_boundary_source_summary_for_report()
+            super::production_generation_boundary_source_summary_for_report(),
+            EXPECTED_PRODUCTION_GENERATION_BOUNDARY_SOURCE_SUMMARY_FOR_REPORT
         );
     }
 
     #[test]
     fn production_generation_boundary_window_summary_for_report_byte_identical() {
         assert_eq!(
-            pleiades_jpl::production_generation_boundary_window_summary_for_report(),
-            super::production_generation_boundary_window_summary_for_report()
+            super::production_generation_boundary_window_summary_for_report(),
+            EXPECTED_PRODUCTION_GENERATION_BOUNDARY_WINDOW_SUMMARY_FOR_REPORT
         );
     }
 
     #[test]
     fn production_generation_boundary_body_class_coverage_summary_for_report_byte_identical() {
         assert_eq!(
-            pleiades_jpl::production_generation_boundary_body_class_coverage_summary_for_report(),
-            super::production_generation_boundary_body_class_coverage_summary_for_report()
+            super::production_generation_boundary_body_class_coverage_summary_for_report(),
+            EXPECTED_PRODUCTION_GENERATION_BOUNDARY_BODY_CLASS_COVERAGE_SUMMARY_FOR_REPORT
         );
     }
 
     #[test]
     fn production_generation_boundary_request_corpus_summary_for_report_byte_identical() {
         assert_eq!(
-            pleiades_jpl::production_generation_boundary_request_corpus_summary_for_report(),
-            super::production_generation_boundary_request_corpus_summary_for_report()
+            super::production_generation_boundary_request_corpus_summary_for_report(),
+            EXPECTED_PRODUCTION_GENERATION_BOUNDARY_REQUEST_CORPUS_SUMMARY_FOR_REPORT
         );
     }
 
@@ -1026,8 +1035,8 @@ mod golden {
     fn production_generation_boundary_request_corpus_equatorial_summary_for_report_byte_identical()
     {
         assert_eq!(
-            pleiades_jpl::production_generation_boundary_request_corpus_equatorial_summary_for_report(),
-            super::production_generation_boundary_request_corpus_equatorial_summary_for_report()
+            super::production_generation_boundary_request_corpus_equatorial_summary_for_report(),
+            EXPECTED_PRODUCTION_GENERATION_BOUNDARY_REQUEST_CORPUS_EQUATORIAL_SUMMARY_FOR_REPORT
         );
     }
 
@@ -1035,8 +1044,8 @@ mod golden {
     fn validated_production_generation_boundary_request_corpus_equatorial_summary_for_report_byte_identical(
     ) {
         assert_eq!(
-            pleiades_jpl::validated_production_generation_boundary_request_corpus_equatorial_summary_for_report(),
-            super::validated_production_generation_boundary_request_corpus_equatorial_summary_for_report()
+            super::validated_production_generation_boundary_request_corpus_equatorial_summary_for_report(),
+            Ok(EXPECTED_PRODUCTION_GENERATION_BOUNDARY_REQUEST_CORPUS_EQUATORIAL_SUMMARY_FOR_REPORT.to_string())
         );
     }
 }
@@ -1501,11 +1510,18 @@ mod tests {
     // --- Task 10a fold-in: 10a left `production_generation_manifest_checksum_for_report`
     // without an equality test against jpl's still-present renderer. ---
 
+    // jpl's `production_generation_manifest_checksum_for_report` was deleted
+    // in the Task 14 contract sweep. `EXPECTED_PRODUCTION_GENERATION_MANIFEST_CHECKSUM_FOR_REPORT`
+    // is a byte-exact capture of jpl's renderer output taken immediately
+    // before deletion (Slice D Task 14a).
+    const EXPECTED_PRODUCTION_GENERATION_MANIFEST_CHECKSUM_FOR_REPORT: &str =
+        r"Production generation manifest checksum: 0xe60d112616ab2284";
+
     #[test]
     fn production_generation_manifest_checksum_for_report_byte_identical() {
         assert_eq!(
             super::production_generation_manifest_checksum_for_report(),
-            pleiades_jpl::production_generation_manifest_checksum_for_report()
+            EXPECTED_PRODUCTION_GENERATION_MANIFEST_CHECKSUM_FOR_REPORT
         );
     }
 
