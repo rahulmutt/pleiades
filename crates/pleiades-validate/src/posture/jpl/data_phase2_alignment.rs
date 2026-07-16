@@ -10,9 +10,9 @@
 //! validate posture/jpl free renderer for that field's jpl type (relocated
 //! in Tasks 4-11), and `production_generation_boundary_source` is rewired to
 //! the local `production_generation::format_production_generation_boundary_source_summary`
-//! (relocated in Task 10b). `production_generation_source` is left calling
-//! its inherent `.summary_line()` — that field's rendering is out of scope
-//! for this relocation and is untouched by Task 14 as well.
+//! (relocated in Task 10b). `production_generation_source` is rewired to the
+//! local `production_generation::production_generation_source_summary_line`
+//! (Slice D Task 14a5b), completing the field-by-field rewiring.
 
 use pleiades_data::PackagedArtifactPhase2CorpusAlignmentSummary;
 
@@ -26,6 +26,7 @@ use crate::posture::jpl::holdout::{
 use crate::posture::jpl::production_generation::{
     format_production_generation_boundary_source_summary,
     production_generation_snapshot_body_class_coverage_summary_line,
+    production_generation_source_summary_line,
 };
 use crate::posture::jpl::reference_snapshot::core::coverage::reference_snapshot_body_class_coverage_summary_line;
 use crate::posture::jpl::reference_snapshot::core::evidence::reference_snapshot_exact_j2000_evidence_summary_line;
@@ -43,8 +44,8 @@ use crate::posture::jpl::selected_asteroid::{
 /// corresponding local validate free renderer, and
 /// `pleiades_jpl::format_production_generation_boundary_source_summary(&self.production_generation_boundary_source)`
 /// rewired to the local `format_production_generation_boundary_source_summary`.
-/// `self.production_generation_source.summary_line()` is left as-is (out of
-/// scope for this relocation).
+/// `self.production_generation_source.summary_line()` is rewired to the
+/// local `production_generation_source_summary_line` (Slice D Task 14a5b).
 pub(crate) fn packaged_artifact_phase2_corpus_alignment_summary_for_report(
     s: &PackagedArtifactPhase2CorpusAlignmentSummary,
 ) -> String {
@@ -73,7 +74,7 @@ pub(crate) fn packaged_artifact_phase2_corpus_alignment_summary_for_report(
         production_generation_snapshot_body_class_coverage_summary_line(
             &s.production_generation_body_class_coverage
         ),
-        s.production_generation_source.summary_line(),
+        production_generation_source_summary_line(&s.production_generation_source),
     )
 }
 
