@@ -182,9 +182,14 @@ update existing crates, which have a much higher limit, and are unaffected.
 
 ## Recovery and mistakes
 
-- **Publish fails midway:** fix the cause and re-run — merging the Release PR
-  again (automated) or re-running `cargo release ... --execute` (manual) skips
-  crates already published at that version.
+- **Publish fails midway:** a merged Release PR cannot be merged again, so
+  recovery is a normal commit: fix the root cause on `main` (automated) or
+  re-run `cargo release ... --execute` (manual). For the automated flow, that
+  push triggers the next `release-plz-release` run, which publishes the
+  remaining crates and skips any already published at the target version. The
+  workspace audit's path-only intra-workspace dev-dependency policy (no
+  `version`, no `workspace = true` on dev-dependencies) is what keeps a
+  partial publish from deadlocking on publish order in the first place.
 - **Bad release:** fix forward with a patch release; crates.io never allows
   re-publishing a version. Reserve `cargo yank` for unsound or badly broken
   releases, and yank only after the fixed version is available.
