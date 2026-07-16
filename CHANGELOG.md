@@ -9,9 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.4.0] - 2026-07-16
 
-### Added
+### Highlights
 
-- SP-3 fictitious body variants + Fictitious body class ([fd6c0c9](https://github.com/rahulmutt/pleiades/commit/fd6c0c9a4f4b0155759888e4bfea0f11cffac962))
+This release adds six capability programs on top of the report-surface
+relocation program completed this cycle: rise/set/transit and fixed-star
+support, local (topocentric) eclipse circumstances, fictitious bodies
+(first-published `pleiades-fict` crate), planetary nodes and apsides,
+phase/phase-angle/magnitude, and lunar occultations. See **Breaking
+Changes** below before upgrading.
+
+### Breaking Changes
 
 - **Report-surface relocation, slice D (final):** report prose for `pleiades-jpl`
   (JPL snapshot backend interpolation-quality and manifest summaries; comparison,
@@ -83,6 +90,94 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   time-scale/frame/apparentness policy lines. Dead report helpers deleted
   from `pleiades-time`, `pleiades-apparent`, `pleiades-ayanamsa`,
   `pleiades-houses`. API-stability profile 0.2.2 → 0.3.0.
+
+### Added
+
+- Bennett true->apparent atmospheric refraction + Atmosphere ([4fd7c0f](https://github.com/rahulmutt/pleiades/commit/4fd7c0fb958b945fe41429bcffafcc3316a0de5d))
+- Saemundsson apparent->true refraction inverse ([737a4a8](https://github.com/rahulmutt/pleiades/commit/737a4a88817fee26972f0c38f0d469fdacf4298b))
+- Swe_azalt horizontal coordinates on EventEngine ([97aeadb](https://github.com/rahulmutt/pleiades/commit/97aeadbf9e21b47d8337466984c99ff72bcf21cf))
+- Swe_azalt_rev horizontal->equatorial inverse ([61d1a70](https://github.com/rahulmutt/pleiades/commit/61d1a707b75500da279cf935c11adb6504061d01))
+- Curated fixed-star catalog + reader ([f5b2675](https://github.com/rahulmutt/pleiades/commit/f5b2675d62305897d70237ba14a4495907996e80))
+- Fixed-star apparent equatorial of date ([7e20fcc](https://github.com/rahulmutt/pleiades/commit/7e20fcc41be02c3a1505d65b1be92322d9b98fe6))
+- Rise/set/transit types + semidiameter table ([9ce20f2](https://github.com/rahulmutt/pleiades/commit/9ce20f2d625a36bcc11117021715cc02ccb5ed79))
+- Topocentric RA/Dec for body/ecliptic-point/star targets ([b20fb1a](https://github.com/rahulmutt/pleiades/commit/b20fb1a05835f9a2739aeb52166f180e2eefd168))
+- Rise/set standard-altitude assembly + apparent-altitude evaluator ([88660be](https://github.com/rahulmutt/pleiades/commit/88660be89140257beab5ce0d8e57e9cabf92d21c))
+- Rise/set root-finding on apparent-altitude residual ([329806a](https://github.com/rahulmutt/pleiades/commit/329806a80f2977aa0c49577476c425a15f68e551))
+- Upper/lower meridian transit via hour-angle root-finding ([b7fbd5d](https://github.com/rahulmutt/pleiades/commit/b7fbd5db99cbb603fa1ca9804916e78411f9e79e))
+- Circumpolar None + atmosphere/star/window fail-closed + rise doctest ([0e14bc3](https://github.com/rahulmutt/pleiades/commit/0e14bc3addfe0e0b805a90ae23b73e031f849c78))
+- Two-tier validate-rise-trans SE-parity gate ([16fd583](https://github.com/rahulmutt/pleiades/commit/16fd5837166b526f0b4a64d4490e34d69d7073a3))
+- Wire validate-rise-trans into release-smoke/release-gate ([fe80d30](https://github.com/rahulmutt/pleiades/commit/fe80d30665f4de1f2c2585231fcee93bfe22ecd8))
+- Rise-trans + azalt aliases via validate render layer ([47263db](https://github.com/rahulmutt/pleiades/commit/47263db579b4490a29055295f5dc1c0e6067918d))
+- SP-2c local circumstance value types ([e9ca4f2](https://github.com/rahulmutt/pleiades/commit/e9ca4f260701d1884c64d6f001bc8fe3ad2c4294))
+- SP-2c topocentric Sun/Moon sample helper ([c548dc2](https://github.com/rahulmutt/pleiades/commit/c548dc296da47829feac04b807497ae6b9f01f73))
+- SP-2c solar two-circle geometry (magnitude + obscuration) ([70ddcbc](https://github.com/rahulmutt/pleiades/commit/70ddcbcabdb7e8daee594a4ae60232bb2c32ca41))
+- SP-2c solar local maximum + C1-C4 contact times ([b3c2482](https://github.com/rahulmutt/pleiades/commit/b3c2482322171303a102aa2fdad71dda91124b84))
+- SP-2c horizontal position + visibility helper ([c0ef094](https://github.com/rahulmutt/pleiades/commit/c0ef0945378146b6f3943724597ae71dc324df2f))
+- SP-2c assemble solar local circumstances ([321d210](https://github.com/rahulmutt/pleiades/commit/321d210d67a956d54ae151e41f085b7b40a75768))
+- SP-2c lunar shadow contacts + local circumstances ([048c7e9](https://github.com/rahulmutt/pleiades/commit/048c7e9a1e776ae59e58645e40b8064b164f8b4c))
+- SP-2c EclipseEngine local_circumstances + when_loc search ([8d05d00](https://github.com/rahulmutt/pleiades/commit/8d05d006d1abd92c71efe791abebe3df2fbcdf77))
+- SP-2c validate-eclipses-local two-tier SE-parity gate ([02ab379](https://github.com/rahulmutt/pleiades/commit/02ab37964e8c24ed8bc1ff2cca8d47e05357a990))
+- SP-2c wire validate-eclipses-local into gate battery + eclipse-local alias ([541bdb6](https://github.com/rahulmutt/pleiades/commit/541bdb6772d661c7bcb35a5c52378a6edc6dbbb9))
+- SP-3 fictitious body variants + Fictitious body class ([fd6c0c9](https://github.com/rahulmutt/pleiades/commit/fd6c0c9a4f4b0155759888e4bfea0f11cffac962))
+- SP-3 pleiades-fict crate scaffold + Kepler solver core ([aa92624](https://github.com/rahulmutt/pleiades/commit/aa92624f953fae135ad4e055d3e390361df5c20e))
+- SP-3 orbital-element model + J2000 frame rotation ([f661576](https://github.com/rahulmutt/pleiades/commit/f66157618901a9b47ac34addac09243200334f99))
+- SP-3 committed seorbel.txt element table + parser ([7fd651c](https://github.com/rahulmutt/pleiades/commit/7fd651c487fce1c48e1c8d566b6f7281b8273d21))
+- SP-3 FictitiousBackend EphemerisBackend impl + claims ([aeb6a85](https://github.com/rahulmutt/pleiades/commit/aeb6a850bb21f9cddc4f538b2ec5c843e64f7f99))
+- SP-3 route fictitious bodies into the chart backend chain ([d00eb17](https://github.com/rahulmutt/pleiades/commit/d00eb17b526f27f2d252ceb54040a31a2e101d34))
+- SP-3 validate-fictitious two-tier SE-parity gate ([772588e](https://github.com/rahulmutt/pleiades/commit/772588e80e6f940cb7874383a0533d24a16102f3))
+- SP-3 wire validate-fictitious into gate battery + fictitious-gate alias ([8faa938](https://github.com/rahulmutt/pleiades/commit/8faa938de440e81330e4381adedd49400e60504c))
+- SP-4 general element/point geometry (elements_from_state, points_from_elements) ([71ea2bb](https://github.com/rahulmutt/pleiades/commit/71ea2bb1707160f30ad0238b0350b51da6494366))
+- SP-4 nod_aps public types + error variants + scaffold ([3ccb8b9](https://github.com/rahulmutt/pleiades/commit/3ccb8b96fa8da3abadac5633b990d25c0b4cd380))
+- SP-4 SE VSOP87 mean-element tables + mass ratios + mu helpers ([b3aae40](https://github.com/rahulmutt/pleiades/commit/b3aae406390909c4b75412698bd24f099f67bb41))
+- SP-4 nod_aps entry point + mean-element path (planets, Sun, Moon) ([56406e4](https://github.com/rahulmutt/pleiades/commit/56406e41031c1dabb5c5dcc791f48d06776f6af5))
+- SP-4 osculating nod_aps path (helio/geo/EMB/SSB centers, per-body dt) ([3351e13](https://github.com/rahulmutt/pleiades/commit/3351e137bc69fca238e2cd45e0f769d280f24f97))
+- SP-4 validate-nod-aps SE-parity gate (provisional ceilings) ([4b7c149](https://github.com/rahulmutt/pleiades/commit/4b7c149c8a4edcf5195fa48237cebc9eb39f512a))
+- SP-4 zero Sun nodes (§R8) and pin nod-aps gate ceilings from measured residuals ([7a18c77](https://github.com/rahulmutt/pleiades/commit/7a18c775e1023fcd8cd20fa4c9fcbf48d9d4687f))
+- SP-5 pheno public type + module scaffold ([a710cc1](https://github.com/rahulmutt/pleiades/commit/a710cc165f1f3465856e9930498b5c4a8a999f56))
+- SP-5 SE 2.10.03 apparent-magnitude + disc-diameter models ([b5029a0](https://github.com/rahulmutt/pleiades/commit/b5029a0233772a23aff30d36de9cb3e5126343a8))
+- SP-5 pheno illumination geometry + EventEngine::pheno ([82d6550](https://github.com/rahulmutt/pleiades/commit/82d6550863348bbec340fc3c79d8dc705fda123c))
+- SP-5 validate-pheno SE-parity gate (provisional ceilings) ([23b69ac](https://github.com/rahulmutt/pleiades/commit/23b69ace9393542faf4be6d3a22ac9884cc57974))
+- SP-5 pin pheno gate ceilings from measured residuals ([b72f4a1](https://github.com/rahulmutt/pleiades/commit/b72f4a174cef5536c8dad796ffd31c6c11c39d15))
+- SP-6 occultation public types + module scaffold ([3e49870](https://github.com/rahulmutt/pleiades/commit/3e4987006d84b1dedd08a09e2fc9993c2acf4990))
+- SP-6 two-circle occultation geometry + classification ([f0f77e3](https://github.com/rahulmutt/pleiades/commit/f0f77e3e28162ef17e1ea2c63d20ef44fbe943cc))
+- SP-6 Moon/target RA-Dec + semidiameter sampler ([0849716](https://github.com/rahulmutt/pleiades/commit/084971678dba1c6886a579f42a1fb0afc902eac8))
+- SP-6 occult target resolution + un-occultable-star reject ([6f278e8](https://github.com/rahulmutt/pleiades/commit/6f278e84da896af581c65c458ea01d7234f41e6f))
+- SP-6 occultation how (local circumstances) ([6cad60b](https://github.com/rahulmutt/pleiades/commit/6cad60bd61de4aed98c58e6d2398e24a718274fc))
+- SP-6 next/previous_occultation (when_loc) ([41fd9d2](https://github.com/rahulmutt/pleiades/commit/41fd9d223863b16c5437469d861332834903088b))
+- SP-6 next_global_occultation (when_glob) + sub-lunar point ([78019bd](https://github.com/rahulmutt/pleiades/commit/78019bd0aff53a176e42212f75904c299385760c))
+- SP-6 occultation gate ceilings (provisional) ([1fb2c19](https://github.com/rahulmutt/pleiades/commit/1fb2c191588d878b1e28e2f806e2350ba9b64a99))
+- SP-6 validate-occultations SE-parity gate + pinned ceilings ([abe4114](https://github.com/rahulmutt/pleiades/commit/abe41149838dfa4c2170eec5c046ac0fd09e4d4e))
+- SP-6 gate occultation sub-lunar point + planet-grazing obscuration ([dc4aa5e](https://github.com/rahulmutt/pleiades/commit/dc4aa5e8170639010ee6c7c2bd691ad7ef0488d4))
+- SP-6 wire validate-occultations into CLI + release battery ([3dc944c](https://github.com/rahulmutt/pleiades/commit/3dc944c1e54cd6f05898f865646224cf3fe592a0))
+- SP-6-FU port SE eclipse_where axis-pierce central test (pure geometry + unit tests) ([72ae4fb](https://github.com/rahulmutt/pleiades/commit/72ae4fb3267daf2b76978d4387dc4439c35af43c))
+- SP-6-FU hard-gate planet central exact-bool; measure star central; resolve KNOWN GAP 2 docs ([cfba21c](https://github.com/rahulmutt/pleiades/commit/cfba21ce4950c68ac4cf45d84ccada6ef2b02677))
+- SP-6-FU occult_stage_diagnostics doc-hidden stage dump for graze-boundary differential analysis ([4fca48e](https://github.com/rahulmutt/pleiades/commit/4fca48e04408da6ed755162bd012d376bca84cc8))
+- SP-6-FU tighten miss-classification pin to measured count; KNOWN GAP 3 resolution docs ([e941333](https://github.com/rahulmutt/pleiades/commit/e941333d916a34957aeffdf8b13badfd3e77ad3f))
+
+### Fixed
+
+- Last_crossing_before evaluates low anchor so backend errors fail closed ([921c03a](https://github.com/rahulmutt/pleiades/commit/921c03ad8273be742e4eceb1fba681cf5c75b5f2))
+- Clamp azalt asin domain (never-NaN) + compute obliquity only for ecliptic input ([9762be4](https://github.com/rahulmutt/pleiades/commit/9762be499a244bc3255fd8ec043d6a08d5b40674))
+- Rise/set uses SE apparent-altitude model (h0=-SD, drop double-counted refraction) ([f97584b](https://github.com/rahulmutt/pleiades/commit/f97584bcee3068be8f4bea2726e52f57f67ff5a2))
+- Rise/set matches SE — drop elevation dip, bound search to ~1 day (circumpolar => None) ([8c40192](https://github.com/rahulmutt/pleiades/commit/8c401927ccdadf71f3b41dd41f369bd897616b28))
+- Pin below-horizon refraction to SE; tighten rise-trans grazing/floor ceilings ([f00cdbe](https://github.com/rahulmutt/pleiades/commit/f00cdbed19e8328deef274835aae38578ce9edd1))
+- SP-2c relabel 2013 hybrid observers as partial + correct corpus MANIFEST ([ea7582b](https://github.com/rahulmutt/pleiades/commit/ea7582bbfc180a4a973d9f3d4a5c13a8363ece25))
+- SP-2c apply apparent-of-date to Sun/Moon in local topocentric path ([1b26748](https://github.com/rahulmutt/pleiades/commit/1b26748a6a934d4317fe8c45146454207d53c291))
+- SP-2c emit local-eclipse corpus in TT to match engine time base ([c75752d](https://github.com/rahulmutt/pleiades/commit/c75752d85e1392c6d1526a4ba436dfbd08edc6c4))
+- SP-2c next_local_eclipse must not report magnitude-0 non-eclipses as visible ([9c98790](https://github.com/rahulmutt/pleiades/commit/9c98790fcb844f8a01089b9f41eaceb1f9012b12))
+- Drop rustdoc intra-doc links to private items ([34ce2a1](https://github.com/rahulmutt/pleiades/commit/34ce2a1c91377f7b1d49bc29cb5ab1af85969528))
+- SP-4 nod_aps — inertial-frame osculating state, Sun recenter-then-negate, of-date lunar mean elements ([1b61c56](https://github.com/rahulmutt/pleiades/commit/1b61c56f274eb1952f9d44b5398318e164732b25))
+- SP-5 silence clippy::approx_constant on SE's literal 2.7182818 (§E5) ([0c67c8f](https://github.com/rahulmutt/pleiades/commit/0c67c8f1d8b8c333aa5b212e5a04e5f0bc34bf93))
+- SP-6 next_global_occultation reports the central-observation point, not the sub-Moon point ([ec0a6f0](https://github.com/rahulmutt/pleiades/commit/ec0a6f0b7df18135c602ca8a66375d917f0b0a05))
+- SP-6 converge sub-lunar minimizer; tighten SUBLUNAR_ARCMIN gate ([33b9bc9](https://github.com/rahulmutt/pleiades/commit/33b9bc9687f7ad3822898869b7c483237325684a))
+- SP-6-FU decouple GlobalOccultation::central from occ_type via SE axis-pierce test (Saturn 2/6 central mismatch -> 0) ([51c4935](https://github.com/rahulmutt/pleiades/commit/51c4935a69d16554a74348af94a557a2a761ee0a))
+- SP-6-FU reconcile miss-row comparison with SE when_loc visibility semantics (SE-equivalent Miss = geometric Miss OR no phase visible) ([4bf919b](https://github.com/rahulmutt/pleiades/commit/4bf919bdd71201ce0479ac6b09e487a7b7bb4af5))
+- Repair full-CI breakage surfaced by slice A close-out ([27467c9](https://github.com/rahulmutt/pleiades/commit/27467c9dd919001a69328f101fbb5315af779019))
+- Repair rustfmt drift and rustdoc link surfaced by Slice B close-out ([770e4a1](https://github.com/rahulmutt/pleiades/commit/770e4a1e4c91f7d6c3f5d4e040bcc9012d0b774b))
+
+### Performance
+
+- Early-return previous_longitude_crossing via backward-scan twin (output-equivalent) ([ac60250](https://github.com/rahulmutt/pleiades/commit/ac60250f3bf7b443bbd844a1fec7639278deebbd))
 
 ## [0.3.0] - 2026-07-01
 
