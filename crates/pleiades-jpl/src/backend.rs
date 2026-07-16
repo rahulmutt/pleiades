@@ -110,20 +110,6 @@ impl fmt::Display for InterpolationQualitySampleValidationError {
 impl std::error::Error for InterpolationQualitySampleValidationError {}
 
 impl InterpolationQualitySample {
-    /// Returns a compact release-facing summary line.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "{} at {}: {} interpolation, bracket span {:.1} d, |Δlon|={:.12}°, |Δlat|={:.12}°, |Δdist|={:.12} AU",
-            self.body,
-            self.epoch.summary_line(),
-            self.interpolation_kind.label(),
-            self.bracket_span_days,
-            self.longitude_error_deg,
-            self.latitude_error_deg,
-            self.distance_error_au,
-        )
-    }
-
     /// Returns `Ok(())` when the sample still matches the checked-in evidence.
     pub fn validate(&self) -> Result<(), InterpolationQualitySampleValidationError> {
         if self.epoch.scale != TimeScale::Tdb {
@@ -161,12 +147,6 @@ impl InterpolationQualitySample {
         }
 
         Ok(())
-    }
-}
-
-impl fmt::Display for InterpolationQualitySample {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
     }
 }
 
@@ -539,47 +519,6 @@ impl SnapshotManifest {
         }
         Ok(())
     }
-
-    /// Formats the parsed manifest into the compact release-facing summary line.
-    pub fn summary_line(&self, label: &str) -> String {
-        self.summary_line_with_defaults(label, "unknown", "unknown")
-    }
-
-    /// Formats the parsed manifest using explicit default labels for missing provenance.
-    pub fn summary_line_with_defaults(
-        &self,
-        label: &str,
-        source_fallback: &'static str,
-        coverage_fallback: &'static str,
-    ) -> String {
-        let title = self
-            .title
-            .as_deref()
-            .map(str::trim)
-            .filter(|title| !title.is_empty())
-            .unwrap_or("unknown");
-        let source = self.source_or(source_fallback);
-        let coverage = self.coverage_or(coverage_fallback);
-        let columns = self.columns_summary();
-        let mut text =
-            format!("{label}: {title}; source={source}; coverage={coverage}; columns={columns}");
-        if let Some(redistribution) = self
-            .redistribution
-            .as_deref()
-            .map(str::trim)
-            .filter(|value| !value.is_empty())
-        {
-            text.push_str("; redistribution=");
-            text.push_str(redistribution);
-        }
-        text
-    }
-}
-
-impl fmt::Display for SnapshotManifest {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line_with_defaults("Snapshot manifest", "unknown", "unknown"))
-    }
 }
 
 /// A typed manifest summary for JPL snapshot provenance reporting.
@@ -792,36 +731,6 @@ impl SnapshotManifestSummary {
         }
 
         Ok(())
-    }
-
-    /// Returns the compact release-facing summary line for the manifest wrapper.
-    pub fn summary_line(&self) -> String {
-        self.manifest.summary_line_with_defaults(
-            self.label,
-            self.source_fallback,
-            self.coverage_fallback,
-        )
-    }
-
-    /// Returns the validated compact release-facing summary line for the manifest wrapper.
-    pub fn validated_summary_line(&self) -> Result<String, SnapshotManifestSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-
-    /// Returns the validated summary line after checking a specific column layout.
-    pub fn validated_summary_line_with_expected_columns(
-        &self,
-        expected_columns: &[&str],
-    ) -> Result<String, SnapshotManifestSummaryValidationError> {
-        self.validate_with_expected_columns(expected_columns)?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for SnapshotManifestSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
     }
 }
 

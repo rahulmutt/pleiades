@@ -31,19 +31,6 @@ pub fn validated_checked_in_snapshot_schema_summary() -> Result<&'static str, St
     Ok("epoch_jd, body, x_km, y_km, z_km")
 }
 
-/// Returns the schema shared by the checked-in snapshot fixtures after validating the manifests.
-pub fn checked_in_snapshot_schema_summary_for_report() -> String {
-    match validated_checked_in_snapshot_schema_summary() {
-        Ok(schema) => format!("Checked-in snapshot schema: {schema}"),
-        Err(error) => format!("Checked-in snapshot schema: unavailable ({error})"),
-    }
-}
-
-/// Returns the validated schema shared by the checked-in snapshot fixtures.
-pub fn validated_checked_in_snapshot_schema_summary_for_report() -> Result<String, String> {
-    validated_checked_in_snapshot_schema_summary().map(str::to_string)
-}
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 /// Release-facing summary of how JPL snapshot rows are classified as evidence (reference-only, not a runtime backend).
 pub struct JplSnapshotEvidenceClassificationSummary {
@@ -75,11 +62,6 @@ impl fmt::Display for JplSnapshotEvidenceClassificationSummaryValidationError {
 impl std::error::Error for JplSnapshotEvidenceClassificationSummaryValidationError {}
 
 impl JplSnapshotEvidenceClassificationSummary {
-    /// Returns the evidence-classification line used by validation and release reports.
-    pub fn summary_line(&self) -> String {
-        self.text.to_string()
-    }
-
     /// Returns `Ok(())` when the summary still matches the current posture.
     pub fn validate(&self) -> Result<(), JplSnapshotEvidenceClassificationSummaryValidationError> {
         if self.text != JPL_SNAPSHOT_EVIDENCE_CLASSIFICATION_SUMMARY {
@@ -92,20 +74,6 @@ impl JplSnapshotEvidenceClassificationSummary {
 
         Ok(())
     }
-
-    /// Returns the validated evidence-classification line.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, JplSnapshotEvidenceClassificationSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for JplSnapshotEvidenceClassificationSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
 }
 
 /// Returns the evidence-classification line used by validation and release reports.
@@ -116,15 +84,6 @@ pub fn jpl_snapshot_evidence_classification_summary_details(
     };
     debug_assert!(summary.validate().is_ok());
     summary
-}
-
-/// Returns the validated evidence-classification line used by validation and release reports.
-pub fn jpl_snapshot_evidence_classification_summary_for_report() -> String {
-    let summary = jpl_snapshot_evidence_classification_summary_details();
-    match summary.validated_summary_line() {
-        Ok(rendered) => rendered,
-        Err(error) => format!("JPL evidence classification: unavailable ({error})"),
-    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -158,11 +117,6 @@ impl fmt::Display for JplSourcePostureSummaryValidationError {
 impl std::error::Error for JplSourcePostureSummaryValidationError {}
 
 impl JplSourcePostureSummary {
-    /// Returns the source-posture line used by validation and release reports.
-    pub fn summary_line(&self) -> String {
-        self.text.to_string()
-    }
-
     /// Returns `Ok(())` when the summary still matches the current posture.
     pub fn validate(&self) -> Result<(), JplSourcePostureSummaryValidationError> {
         if self.text != JPL_SOURCE_POSTURE_SUMMARY {
@@ -170,18 +124,6 @@ impl JplSourcePostureSummary {
         }
 
         Ok(())
-    }
-
-    /// Returns the validated source-posture line.
-    pub fn validated_summary_line(&self) -> Result<String, JplSourcePostureSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for JplSourcePostureSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
     }
 }
 
@@ -192,15 +134,6 @@ pub fn jpl_source_posture_summary_details() -> JplSourcePostureSummary {
     };
     debug_assert!(summary.validate().is_ok());
     summary
-}
-
-/// Returns the validated source-posture line used by validation and release reports.
-pub fn jpl_source_posture_summary_for_report() -> String {
-    let summary = jpl_source_posture_summary_details();
-    match summary.validated_summary_line() {
-        Ok(rendered) => rendered,
-        Err(error) => format!("JPL source posture: unavailable ({error})"),
-    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -234,11 +167,6 @@ impl fmt::Display for JplProvenanceOnlySummaryValidationError {
 impl std::error::Error for JplProvenanceOnlySummaryValidationError {}
 
 impl JplProvenanceOnlySummary {
-    /// Returns the provenance-only line used by validation and release reports.
-    pub fn summary_line(&self) -> String {
-        self.text.to_string()
-    }
-
     /// Returns `Ok(())` when the summary still matches the current posture.
     pub fn validate(&self) -> Result<(), JplProvenanceOnlySummaryValidationError> {
         if self.text != JPL_PROVENANCE_ONLY_SUMMARY {
@@ -246,20 +174,6 @@ impl JplProvenanceOnlySummary {
         }
 
         Ok(())
-    }
-
-    /// Returns the validated provenance-only line.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, JplProvenanceOnlySummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for JplProvenanceOnlySummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
     }
 }
 
@@ -270,15 +184,6 @@ pub fn jpl_provenance_only_summary_details() -> JplProvenanceOnlySummary {
     };
     debug_assert!(summary.validate().is_ok());
     summary
-}
-
-/// Returns the validated provenance-only line used by validation and release reports.
-pub fn jpl_provenance_only_summary_for_report() -> String {
-    let summary = jpl_provenance_only_summary_details();
-    match summary.validated_summary_line() {
-        Ok(rendered) => rendered,
-        Err(error) => format!("JPL provenance-only evidence: unavailable ({error})"),
-    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -326,30 +231,6 @@ impl fmt::Display for JplSourceCorpusContractSummaryValidationError {
 impl std::error::Error for JplSourceCorpusContractSummaryValidationError {}
 
 impl JplSourceCorpusContractSummary {
-    /// Returns the source-corpus contract line used by validation and release reports.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "JPL source corpus contract: {}; {}; reference={}; hold-out={}; source windows={}; source revision={}; boundary request corpora: ecliptic={}; equatorial={}",
-            self.evidence_classification.summary_line(),
-            self.source_posture.summary_line(),
-            self.reference_summary.summary_line(),
-            self.boundary_summary.summary_line(),
-            strip_report_prefix(
-                &self.source_windows.summary_line(),
-                "Production generation source windows: ",
-            ),
-            self.source_revision.summary_line(),
-            strip_report_prefix(
-                &self.boundary_request_corpus_ecliptic.summary_line(),
-                "Production generation boundary request corpus: ",
-            ),
-            strip_report_prefix(
-                &self.boundary_request_corpus_equatorial.summary_line(),
-                "Production generation boundary request corpus: ",
-            ),
-        )
-    }
-
     /// Returns `Ok(())` when the summary still matches the current posture.
     pub fn validate(&self) -> Result<(), JplSourceCorpusContractSummaryValidationError> {
         if self.evidence_classification != jpl_snapshot_evidence_classification_summary_details() {
@@ -430,20 +311,6 @@ impl JplSourceCorpusContractSummary {
 
         Ok(())
     }
-
-    /// Returns the validated source-corpus contract line.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, JplSourceCorpusContractSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for JplSourceCorpusContractSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
 }
 
 /// Returns the source-corpus contract line used by validation and release reports.
@@ -467,83 +334,6 @@ pub fn jpl_source_corpus_contract_summary_details() -> JplSourceCorpusContractSu
     };
     debug_assert!(summary.validate().is_ok());
     summary
-}
-
-/// Returns the validated source-corpus contract line used by validation and release reports.
-pub fn jpl_source_corpus_contract_summary_for_report() -> String {
-    let summary = jpl_source_corpus_contract_summary_details();
-    match summary.validated_summary_line() {
-        Ok(rendered) => rendered,
-        Err(error) => format!("JPL source corpus contract: unavailable ({error})"),
-    }
-}
-
-/// Returns the combined snapshot evidence summary used by validation and release reports.
-pub fn jpl_snapshot_evidence_summary_for_report() -> String {
-    [
-        jpl_snapshot_evidence_classification_summary_for_report(),
-        jpl_source_posture_summary_for_report(),
-        jpl_provenance_only_summary_for_report(),
-        reference_snapshot_summary_for_report(),
-        reference_snapshot_2451910_major_body_boundary_summary_for_report(),
-        reference_snapshot_2451911_major_body_boundary_summary_for_report(),
-        reference_snapshot_2451912_major_body_boundary_summary_for_report(),
-        reference_snapshot_2451913_major_body_boundary_summary_for_report(),
-        reference_snapshot_2451914_major_body_boundary_summary_for_report(),
-        reference_snapshot_2451915_major_body_boundary_summary_for_report(),
-        reference_snapshot_bridge_day_summary_for_report(),
-        reference_snapshot_2451914_major_body_bridge_day_summary_for_report(),
-        reference_snapshot_2451914_major_body_bridge_summary_for_report(),
-        reference_snapshot_2451916_major_body_interior_summary_for_report(),
-        reference_snapshot_2451916_major_body_dense_boundary_summary_for_report(),
-        reference_snapshot_2451917_major_body_boundary_summary_for_report(),
-        reference_snapshot_2451917_major_body_bridge_summary_for_report(),
-        reference_snapshot_mars_jupiter_boundary_summary_for_report(),
-        reference_snapshot_2451918_major_body_boundary_summary_for_report(),
-        reference_snapshot_2451919_major_body_boundary_summary_for_report(),
-        reference_snapshot_2451920_major_body_interior_summary_for_report(),
-        reference_snapshot_body_class_coverage_summary_for_report(),
-        reference_snapshot_equatorial_parity_summary_for_report(),
-        reference_snapshot_batch_parity_summary_for_report(),
-        production_generation_snapshot_summary_for_report(),
-        production_generation_source_summary_for_report(),
-        reference_snapshot_source_summary_for_report(),
-        reference_snapshot_source_window_summary_for_report(),
-        reference_snapshot_boundary_epoch_coverage_summary_for_report(),
-        reference_snapshot_sparse_boundary_summary_for_report(),
-        reference_snapshot_major_body_boundary_summary_for_report(),
-        reference_holdout_overlap_summary_for_report(),
-        independent_holdout_high_curvature_summary_for_report(),
-        reference_snapshot_manifest_summary_for_report(),
-        production_generation_boundary_source_summary_for_report(),
-        production_generation_boundary_window_summary_for_report(),
-        production_generation_boundary_body_class_coverage_summary_for_report(),
-        production_generation_boundary_request_corpus_summary_for_report(),
-        production_generation_boundary_request_corpus_equatorial_summary_for_report(),
-        reference_asteroid_evidence_summary_for_report(),
-        reference_asteroid_equatorial_evidence_summary_for_report(),
-        reference_asteroid_source_window_summary_for_report(),
-        selected_asteroid_source_2451917_summary_for_report(),
-        selected_asteroid_source_2453000_summary_for_report(),
-        selected_asteroid_boundary_summary_for_report(),
-        selected_asteroid_bridge_summary_for_report(),
-        selected_asteroid_dense_boundary_summary_for_report(),
-        selected_asteroid_terminal_boundary_summary_for_report(),
-        comparison_snapshot_summary_for_report(),
-        comparison_snapshot_body_class_coverage_summary_for_report(),
-        comparison_snapshot_source_summary_for_report(),
-        comparison_snapshot_source_window_summary_for_report(),
-        comparison_snapshot_manifest_summary_for_report(),
-        independent_holdout_snapshot_summary_for_report(),
-        independent_holdout_snapshot_equatorial_parity_summary_for_report(),
-        independent_holdout_snapshot_batch_parity_summary_for_report(),
-        independent_holdout_source_summary_for_report(),
-        independent_holdout_snapshot_source_window_summary_for_report(),
-        independent_holdout_snapshot_quarter_day_boundary_summary_for_report(),
-        independent_holdout_manifest_summary_for_report(),
-        jpl_independent_holdout_summary_for_report(),
-    ]
-    .join(" | ")
 }
 
 /// Structured request policy for the current JPL snapshot backend.
@@ -585,26 +375,6 @@ impl fmt::Display for JplSnapshotRequestPolicyValidationError {
 impl std::error::Error for JplSnapshotRequestPolicyValidationError {}
 
 impl JplSnapshotRequestPolicy {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "frames={}; time scales={}; zodiac modes={}; apparentness={}; topocentric observer={}",
-            format_coordinate_frames(self.supported_frames),
-            format_time_scales(self.supported_time_scales),
-            format_zodiac_modes(self.supported_zodiac_modes),
-            format_apparentness_modes(self.supported_apparentness),
-            self.supports_topocentric_observer,
-        )
-    }
-
-    /// Returns the compact summary line after validating the cached request policy.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, JplSnapshotRequestPolicyValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-
     /// Validates the summary against the current JPL snapshot backend posture.
     pub fn validate(&self) -> Result<(), JplSnapshotRequestPolicyValidationError> {
         if self.supported_frames != JPL_SNAPSHOT_REQUEST_POLICY.supported_frames {
@@ -638,24 +408,9 @@ impl JplSnapshotRequestPolicy {
     }
 }
 
-impl fmt::Display for JplSnapshotRequestPolicy {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
-}
-
 /// Returns the current JPL snapshot request policy.
 pub const fn jpl_snapshot_request_policy() -> JplSnapshotRequestPolicy {
     JPL_SNAPSHOT_REQUEST_POLICY
-}
-
-/// Returns the release-facing JPL snapshot request policy summary string.
-pub fn jpl_snapshot_request_policy_summary_for_report() -> String {
-    let policy = jpl_snapshot_request_policy();
-    match policy.validated_summary_line() {
-        Ok(summary_line) => summary_line,
-        Err(error) => format!("JPL snapshot request policy: unavailable ({error})"),
-    }
 }
 
 /// A compact batch error-taxonomy summary for the current JPL snapshot backend.
@@ -697,26 +452,6 @@ impl fmt::Display for JplSnapshotBatchErrorTaxonomySummaryValidationError {
 impl std::error::Error for JplSnapshotBatchErrorTaxonomySummaryValidationError {}
 
 impl JplSnapshotBatchErrorTaxonomySummary {
-    /// Returns the compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "JPL batch error taxonomy: supported body {}; unsupported body {} -> {}; out-of-range {} -> {}",
-            self.supported_request_body,
-            self.unsupported_request_body,
-            self.unsupported_error_kind,
-            self.out_of_range_request_body,
-            self.out_of_range_error_kind,
-        )
-    }
-
-    /// Returns the compact summary line after validating the cached batch taxonomy.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, JplSnapshotBatchErrorTaxonomySummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-
     /// Validates the summary against the current JPL snapshot backend posture.
     pub fn validate(&self) -> Result<(), JplSnapshotBatchErrorTaxonomySummaryValidationError> {
         if self.supported_request_body != CelestialBody::Ceres {
@@ -755,12 +490,6 @@ impl JplSnapshotBatchErrorTaxonomySummary {
             );
         }
         Ok(())
-    }
-}
-
-impl fmt::Display for JplSnapshotBatchErrorTaxonomySummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
     }
 }
 
@@ -860,17 +589,6 @@ pub fn jpl_snapshot_batch_error_taxonomy_summary(
     })
 }
 
-/// Returns the release-facing batch error-taxonomy summary for the current JPL snapshot backend.
-pub fn jpl_snapshot_batch_error_taxonomy_summary_for_report() -> String {
-    match jpl_snapshot_batch_error_taxonomy_summary() {
-        Ok(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => format!("JPL batch error taxonomy: unavailable ({error})"),
-        },
-        Err(error) => format!("JPL batch error taxonomy: unavailable ({error})"),
-    }
-}
-
 /// Returns the structured JPL snapshot frame-treatment summary.
 pub const fn frame_treatment_summary_details() -> FrameTreatmentSummary {
     FrameTreatmentSummary::new(
@@ -881,19 +599,6 @@ pub const fn frame_treatment_summary_details() -> FrameTreatmentSummary {
 /// Returns the current JPL snapshot frame-treatment summary.
 pub fn frame_treatment_summary() -> &'static str {
     frame_treatment_summary_details().summary_line()
-}
-
-/// Returns the release-facing frame-treatment summary for the current JPL snapshot backend.
-///
-/// The backend-owned note is validated before the compact report line is
-/// rendered, so a drifted summary becomes an unavailable report rather than a
-/// stale cached string.
-pub fn frame_treatment_summary_for_report() -> String {
-    let summary = frame_treatment_summary_details();
-    match summary.validated_summary_line() {
-        Ok(summary_line) => summary_line.to_string(),
-        Err(error) => format!("JPL frame treatment unavailable ({error})"),
-    }
 }
 
 /// Returns coarse leave-one-out interpolation checks derived from the checked-in
@@ -996,23 +701,6 @@ impl fmt::Display for InterpolationQualitySampleRequestCorpusSummaryValidationEr
 impl std::error::Error for InterpolationQualitySampleRequestCorpusSummaryValidationError {}
 
 impl InterpolationQualitySampleRequestCorpusSummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "Interpolation-quality sample request corpus: {} requests (frame={}; time scale={}; zodiac mode={}; apparentness={}; observerless) across {} bodies and {} epochs ({}..{}); bodies: {}",
-            self.request_count,
-            self.frame,
-            self.time_scale,
-            self.zodiac_mode,
-            self.apparentness,
-            self.body_count,
-            self.epoch_count,
-            format_instant(self.earliest_epoch),
-            format_instant(self.latest_epoch),
-            format_bodies(&self.bodies),
-        )
-    }
-
     /// Returns `Ok(())` when the summary still matches the checked-in request corpus.
     pub fn validate(
         &self,
@@ -1098,20 +786,6 @@ impl InterpolationQualitySampleRequestCorpusSummary {
 
         Ok(())
     }
-
-    /// Returns the validated interpolation-quality request corpus summary line.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, InterpolationQualitySampleRequestCorpusSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for InterpolationQualitySampleRequestCorpusSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
 }
 
 pub(crate) fn interpolation_quality_sample_request_corpus_summary_details(
@@ -1170,26 +844,6 @@ pub(crate) fn interpolation_quality_sample_request_corpus_summary_details(
 pub fn interpolation_quality_sample_request_corpus_summary(
 ) -> Option<InterpolationQualitySampleRequestCorpusSummary> {
     interpolation_quality_sample_request_corpus_summary_details()
-}
-
-/// Formats the interpolation-quality sample request corpus for release-facing reporting.
-pub fn format_interpolation_quality_sample_request_corpus_summary(
-    summary: &InterpolationQualitySampleRequestCorpusSummary,
-) -> String {
-    summary.summary_line()
-}
-
-/// Returns the release-facing interpolation-quality sample request corpus summary string.
-pub fn interpolation_quality_sample_request_corpus_summary_for_report() -> String {
-    match interpolation_quality_sample_request_corpus_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => {
-                format!("Interpolation-quality sample request corpus: unavailable ({error})")
-            }
-        },
-        None => "Interpolation-quality sample request corpus: unavailable".to_string(),
-    }
 }
 
 /// A compact interpolation-quality summary for the checked-in JPL snapshot.
@@ -1267,67 +921,7 @@ pub struct JplInterpolationQualitySummary {
     pub rms_distance_error_au: f64,
 }
 
-impl JplInterpolationQualitySummary {
-    /// Returns the compact release-facing interpolation-quality summary line.
-    pub fn summary_line(&self) -> String {
-        fn format_body_epoch_suffix(body: &str, epoch: Instant) -> String {
-            if body.is_empty() {
-                String::new()
-            } else {
-                format!(" ({body} @ {})", format_instant(epoch))
-            }
-        }
-
-        format!(
-            "JPL interpolation quality: {} samples across {} bodies and {} epochs ({} cubic, {} quadratic, {} linear), epoch window {} → {}; leave-one-out runtime interpolation evidence with worst-case bodies named, max bracket span={:.1} d{}; mean bracket span={:.1} d; median bracket span={:.1} d; p95 bracket span={:.1} d; max Δlon={:.12}°{}; mean Δlon={:.12}°; median Δlon={:.12}°; p95 Δlon={:.12}°; rms Δlon={:.12}°; max Δlat={:.12}°{}; mean Δlat={:.12}°; median Δlat={:.12}°; p95 Δlat={:.12}°; rms Δlat={:.12}°; max Δdist={:.12} AU{}; mean Δdist={:.12} AU; median Δdist={:.12} AU; p95 Δdist={:.12} AU; rms Δdist={:.12} AU; transparency evidence only, not a production tolerance envelope",
-            self.sample_count,
-            self.body_count,
-            self.epoch_count,
-            format_instant(self.earliest_epoch),
-            format_instant(self.latest_epoch),
-            self.cubic_sample_count,
-            self.quadratic_sample_count,
-            self.linear_sample_count,
-            self.max_bracket_span_days,
-            format_body_epoch_suffix(&self.max_bracket_span_body, self.max_bracket_span_epoch),
-            self.mean_bracket_span_days,
-            self.median_bracket_span_days,
-            self.percentile_bracket_span_days,
-            self.max_longitude_error_deg,
-            format_body_epoch_suffix(&self.max_longitude_error_body, self.max_longitude_error_epoch),
-            self.mean_longitude_error_deg,
-            self.median_longitude_error_deg,
-            self.percentile_longitude_error_deg,
-            self.rms_longitude_error_deg,
-            self.max_latitude_error_deg,
-            format_body_epoch_suffix(&self.max_latitude_error_body, self.max_latitude_error_epoch),
-            self.mean_latitude_error_deg,
-            self.median_latitude_error_deg,
-            self.percentile_latitude_error_deg,
-            self.rms_latitude_error_deg,
-            self.max_distance_error_au,
-            format_body_epoch_suffix(&self.max_distance_error_body, self.max_distance_error_epoch),
-            self.mean_distance_error_au,
-            self.median_distance_error_au,
-            self.percentile_distance_error_au,
-            self.rms_distance_error_au,
-        )
-    }
-
-    /// Returns the validated compact interpolation-quality summary line.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, JplInterpolationQualitySummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for JplInterpolationQualitySummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
-}
+impl JplInterpolationQualitySummary {}
 
 /// A compact posture summary for the checked-in interpolation-quality evidence.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -1341,14 +935,6 @@ pub struct JplInterpolationPostureSummary {
 }
 
 impl JplInterpolationPostureSummary {
-    /// Returns the compact release-facing interpolation posture summary line.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "JPL interpolation posture: source={}; detail={}; envelope={}",
-            self.source, self.detail, self.envelope
-        )
-    }
-
     /// Validates that the posture summary still matches the checked-in evidence posture.
     pub fn validate(&self) -> Result<(), JplInterpolationPostureSummaryValidationError> {
         if self.source != JPL_INTERPOLATION_POSTURE_SOURCE {
@@ -1367,20 +953,6 @@ impl JplInterpolationPostureSummary {
             );
         }
         Ok(())
-    }
-
-    /// Returns the validated release-facing interpolation posture summary line.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, JplInterpolationPostureSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for JplInterpolationPostureSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
     }
 }
 
@@ -1547,24 +1119,6 @@ pub fn jpl_interpolation_posture_summary() -> Option<JplInterpolationPostureSumm
         detail: JPL_INTERPOLATION_POSTURE_DETAIL.to_string(),
         envelope: JPL_INTERPOLATION_POSTURE_ENVELOPE.to_string(),
     })
-}
-
-/// Formats the interpolation posture summary for release-facing reports.
-pub fn format_jpl_interpolation_posture_summary(
-    summary: &JplInterpolationPostureSummary,
-) -> String {
-    summary.summary_line()
-}
-
-/// Returns the release-facing interpolation posture summary string.
-pub fn jpl_interpolation_posture_summary_for_report() -> String {
-    match jpl_interpolation_posture_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => format!("JPL interpolation posture: unavailable ({error})"),
-        },
-        None => "JPL interpolation posture: unavailable".to_string(),
-    }
 }
 
 pub(crate) fn validate_non_negative_metric(
@@ -1871,40 +1425,7 @@ pub fn jpl_interpolation_quality_kind_coverage() -> Option<JplInterpolationQuali
     })
 }
 
-impl JplInterpolationQualityKindCoverage {
-    /// Returns the compact release-facing coverage summary line.
-    pub fn summary_line(&self) -> String {
-        let bodies = if self.bodies.is_empty() {
-            "none".to_string()
-        } else {
-            self.bodies.join(", ")
-        };
-
-        format!(
-            "JPL interpolation quality kind coverage: {} samples across {} bodies [{}] ({} cubic bodies, {} quadratic bodies, {} linear bodies)",
-            self.sample_count,
-            self.body_count,
-            bodies,
-            self.cubic_body_count,
-            self.quadratic_body_count,
-            self.linear_body_count,
-        )
-    }
-
-    /// Returns a compact summary line after validating the coverage summary.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, JplInterpolationQualitySummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for JplInterpolationQualityKindCoverage {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
-}
+impl JplInterpolationQualityKindCoverage {}
 
 impl JplInterpolationQualityKindCoverage {
     /// Validates that the coverage summary remains internally consistent and still matches the derived evidence.
@@ -1943,31 +1464,6 @@ impl JplInterpolationQualityKindCoverage {
         }
 
         Ok(())
-    }
-}
-
-/// Formats the interpolation-quality summary for release-facing reports.
-pub fn format_jpl_interpolation_quality_summary(
-    summary: &JplInterpolationQualitySummary,
-) -> String {
-    summary.summary_line()
-}
-
-/// Formats the distinct-body interpolation-kind coverage for release-facing reports.
-pub fn format_jpl_interpolation_quality_kind_coverage(
-    coverage: &JplInterpolationQualityKindCoverage,
-) -> String {
-    coverage.summary_line()
-}
-
-/// Returns the release-facing interpolation-kind coverage summary string.
-pub fn jpl_interpolation_quality_kind_coverage_for_report() -> String {
-    match jpl_interpolation_quality_kind_coverage() {
-        Some(coverage) => match coverage.validated_summary_line() {
-            Ok(rendered) => rendered,
-            Err(_) => "JPL interpolation quality kind coverage: unavailable".to_string(),
-        },
-        None => "JPL interpolation quality kind coverage: unavailable".to_string(),
     }
 }
 
@@ -2016,22 +1512,6 @@ impl fmt::Display for JplInterpolationQualitySourceSummaryValidationError {
 impl std::error::Error for JplInterpolationQualitySourceSummaryValidationError {}
 
 impl JplInterpolationQualitySourceSummary {
-    /// Returns a compact release-facing provenance line.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "JPL interpolation quality source: {}; derivation={}; coverage: {} samples across {} bodies and {} epochs",
-            self.source, self.derivation, self.sample_count, self.body_count, self.epoch_count,
-        )
-    }
-
-    /// Returns a compact provenance line after validating the current evidence slice.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, JplInterpolationQualitySourceSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-
     /// Validates that the summary remains internally consistent and still matches the derived evidence.
     pub fn validate(&self) -> Result<(), JplInterpolationQualitySourceSummaryValidationError> {
         if self.source.trim().is_empty() {
@@ -2088,12 +1568,6 @@ impl JplInterpolationQualitySourceSummary {
     }
 }
 
-impl fmt::Display for JplInterpolationQualitySourceSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
-}
-
 /// Returns the backend-owned provenance summary for the interpolation-quality evidence slice.
 pub fn jpl_interpolation_quality_source_summary() -> Option<JplInterpolationQualitySourceSummary> {
     let summary = jpl_interpolation_quality_summary()?;
@@ -2104,47 +1578,6 @@ pub fn jpl_interpolation_quality_source_summary() -> Option<JplInterpolationQual
         body_count: summary.body_count,
         epoch_count: summary.epoch_count,
     })
-}
-
-/// Returns the release-facing interpolation-quality provenance summary string.
-pub fn jpl_interpolation_quality_source_summary_for_report() -> String {
-    match jpl_interpolation_quality_source_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => format!("JPL interpolation quality source: unavailable ({error})"),
-        },
-        None => "JPL interpolation quality source: unavailable".to_string(),
-    }
-}
-
-/// Formats the interpolation-quality summary together with the distinct-body coverage
-/// and sample request corpus lines.
-pub fn format_jpl_interpolation_quality_summary_for_report() -> String {
-    let source_summary = match jpl_interpolation_quality_source_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(rendered) => rendered,
-            Err(_) => return "JPL interpolation quality: unavailable".to_string(),
-        },
-        None => return "JPL interpolation quality: unavailable".to_string(),
-    };
-
-    match jpl_interpolation_quality_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(mut rendered) => {
-                rendered.insert_str(0, &format!("{}\n", source_summary));
-                rendered.push('\n');
-                rendered.push_str(&jpl_interpolation_quality_kind_coverage_for_report());
-                rendered.push('\n');
-                rendered
-                    .push_str(&interpolation_quality_sample_request_corpus_summary_for_report());
-                rendered.push('\n');
-                rendered.push_str(&jpl_interpolation_body_class_error_envelopes_for_report());
-                rendered
-            }
-            Err(_) => "JPL interpolation quality: unavailable".to_string(),
-        },
-        None => "JPL interpolation quality: unavailable".to_string(),
-    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -2225,34 +1658,6 @@ impl fmt::Display for JplInterpolationBodyClassErrorEnvelopeSummaryValidationErr
 impl std::error::Error for JplInterpolationBodyClassErrorEnvelopeSummaryValidationError {}
 
 impl JplInterpolationBodyClassErrorEnvelopeSummary {
-    fn summary_line(&self) -> String {
-        format!(
-            "JPL interpolation body-class error envelope: {}: {} samples across {} bodies [{}] and {} epochs ({} → {}); max Δlon={:.12}° ({} @ {}); mean Δlon={:.12}°; rms Δlon={:.12}°; max Δlat={:.12}° ({} @ {}); mean Δlat={:.12}°; rms Δlat={:.12}°; max Δdist={:.12} AU ({} @ {}); mean Δdist={:.12} AU; rms Δdist={:.12} AU",
-            self.class,
-            self.sample_count,
-            self.body_count,
-            self.bodies.join(", "),
-            self.epoch_count,
-            format_instant(self.earliest_epoch),
-            format_instant(self.latest_epoch),
-            self.max_longitude_error_deg,
-            self.max_longitude_error_body,
-            format_instant(self.max_longitude_error_epoch),
-            self.mean_longitude_error_deg,
-            self.rms_longitude_error_deg,
-            self.max_latitude_error_deg,
-            self.max_latitude_error_body,
-            format_instant(self.max_latitude_error_epoch),
-            self.mean_latitude_error_deg,
-            self.rms_latitude_error_deg,
-            self.max_distance_error_au,
-            self.max_distance_error_body,
-            format_instant(self.max_distance_error_epoch),
-            self.mean_distance_error_au,
-            self.rms_distance_error_au,
-        )
-    }
-
     /// Returns `Ok(())` when the envelope summary still matches the current
     /// derived interpolation-quality evidence. Promoted to `pub` (Slice D
     /// Task 6) so validate's relocated
@@ -2278,7 +1683,7 @@ impl JplInterpolationBodyClassErrorEnvelopeSummary {
             );
         };
 
-        if self.summary_line() != expected_summary.summary_line() {
+        if self != expected_summary {
             return Err(
                 JplInterpolationBodyClassErrorEnvelopeSummaryValidationError::FieldOutOfSync {
                     class: self.class,
@@ -2287,19 +1692,6 @@ impl JplInterpolationBodyClassErrorEnvelopeSummary {
         }
 
         Ok(())
-    }
-
-    fn validated_summary_line(
-        &self,
-    ) -> Result<String, JplInterpolationBodyClassErrorEnvelopeSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for JplInterpolationBodyClassErrorEnvelopeSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
     }
 }
 
@@ -2486,30 +1878,6 @@ pub fn jpl_interpolation_body_class_error_envelopes(
         None
     } else {
         Some(summaries)
-    }
-}
-
-/// Returns the release-facing body-class error envelopes for the interpolation-quality samples.
-pub fn jpl_interpolation_body_class_error_envelopes_for_report() -> String {
-    match jpl_interpolation_body_class_error_envelopes() {
-        Some(summaries) => {
-            let mut rendered = String::from("JPL interpolation body-class error envelopes:");
-            for summary in summaries {
-                match summary.validated_summary_line() {
-                    Ok(summary_line) => {
-                        rendered.push('\n');
-                        rendered.push_str(&summary_line);
-                    }
-                    Err(error) => {
-                        return format!(
-                            "JPL interpolation body-class error envelopes: unavailable ({error})"
-                        )
-                    }
-                }
-            }
-            rendered
-        }
-        None => "JPL interpolation body-class error envelopes: unavailable".to_string(),
     }
 }
 

@@ -140,19 +140,15 @@ pub(crate) fn reference_mars_jupiter_boundary_summary_line(
 mod golden {
     use super::*;
 
-    // jpl's inherent renderers are still present through the contract sweep
-    // (Task 14); these fail closed on any drift in the validate copies. Task
-    // 14 replaces the `summary.summary_line()` comparisons with the captured
-    // literals when the jpl methods are deleted.
+    // Task 14b (contract sweep) deleted these structs' jpl inherent
+    // `summary_line` renderers, so the byte-identity `summary.summary_line()`
+    // comparisons are gone; the captured literals below are the standing
+    // regression guard for the validate copies.
 
     #[test]
     fn reference_lunar_boundary_summary_line_byte_identical() {
         let summary = pleiades_jpl::reference_snapshot_lunar_boundary_summary()
             .expect("reference lunar boundary summary should exist");
-        assert_eq!(
-            reference_lunar_boundary_summary_line(&summary),
-            summary.summary_line()
-        );
         assert_eq!(
             reference_lunar_boundary_summary_line(&summary),
             "Reference lunar boundary evidence: 2 exact Moon samples at JD 2451911.5 (TDB)..JD 2451912.5 (TDB); high-curvature interpolation window"
@@ -165,10 +161,6 @@ mod golden {
             .expect("reference high-curvature summary should exist");
         assert_eq!(
             reference_high_curvature_summary_line(&summary),
-            summary.summary_line()
-        );
-        assert_eq!(
-            reference_high_curvature_summary_line(&summary),
             "Reference major-body high-curvature evidence: 50 exact samples across 10 bodies and 5 epochs (JD 2451911.5 (TDB)..JD 2451916.5 (TDB)); bodies: Sun, Moon, Mercury, Venus, Saturn, Uranus, Neptune, Pluto, Mars, Jupiter; high-curvature interpolation window"
         );
     }
@@ -177,10 +169,6 @@ mod golden {
     fn reference_major_body_boundary_summary_line_byte_identical() {
         let summary = pleiades_jpl::reference_snapshot_major_body_boundary_summary()
             .expect("reference major-body boundary summary should exist");
-        assert_eq!(
-            reference_major_body_boundary_summary_line(&summary),
-            summary.summary_line()
-        );
         assert_eq!(
             reference_major_body_boundary_summary_line(&summary),
             "Reference major-body boundary evidence: 10 exact samples at JD 2451917.5 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); 2001-01-08 boundary sample"
@@ -193,10 +181,6 @@ mod golden {
             .expect("reference major-body bridge summary should exist");
         assert_eq!(
             reference_major_body_bridge_summary_line(&summary),
-            summary.summary_line()
-        );
-        assert_eq!(
-            reference_major_body_bridge_summary_line(&summary),
             "Reference major-body bridge evidence: 10 exact samples at JD 2451915.0 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); bridge sample across the major-body boundary window"
         );
     }
@@ -205,10 +189,6 @@ mod golden {
     fn reference_mars_jupiter_boundary_summary_line_byte_identical() {
         let summary = pleiades_jpl::reference_snapshot_mars_jupiter_boundary_summary()
             .expect("reference Mars/Jupiter boundary summary should exist");
-        assert_eq!(
-            reference_mars_jupiter_boundary_summary_line(&summary),
-            summary.summary_line()
-        );
         assert_eq!(
             reference_mars_jupiter_boundary_summary_line(&summary),
             "Reference Mars/Jupiter boundary evidence: 16 exact samples at JD 2451918.5 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis); 2001-01-09 boundary sample"

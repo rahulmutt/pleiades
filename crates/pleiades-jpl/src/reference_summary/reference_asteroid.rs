@@ -180,16 +180,6 @@ impl fmt::Display for ReferenceAsteroidEvidenceSummaryValidationError {
 impl std::error::Error for ReferenceAsteroidEvidenceSummaryValidationError {}
 
 impl ReferenceAsteroidEvidenceSummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "Selected asteroid evidence: {} exact J2000 samples at {} ({})",
-            self.sample_count,
-            format_instant(self.epoch),
-            format_bodies(&self.sample_bodies),
-        )
-    }
-
     /// Returns `Ok(())` when the summary still matches the current evidence slice.
     pub fn validate(&self) -> Result<(), ReferenceAsteroidEvidenceSummaryValidationError> {
         let evidence = reference_asteroid_evidence();
@@ -238,20 +228,6 @@ impl ReferenceAsteroidEvidenceSummary {
         }
 
         Ok(())
-    }
-
-    /// Returns the compact summary line after validating the current evidence slice.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, ReferenceAsteroidEvidenceSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for ReferenceAsteroidEvidenceSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
     }
 }
 
@@ -341,17 +317,6 @@ impl fmt::Display for ReferenceAsteroidEquatorialEvidenceSummaryValidationError 
 impl std::error::Error for ReferenceAsteroidEquatorialEvidenceSummaryValidationError {}
 
 impl ReferenceAsteroidEquatorialEvidenceSummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "Selected asteroid equatorial evidence: {} exact J2000 samples at {} ({}) using a {}",
-            self.sample_count,
-            format_instant(self.epoch),
-            format_bodies(&self.sample_bodies),
-            self.transform_note,
-        )
-    }
-
     /// Returns `Ok(())` when the summary still matches the current evidence slice.
     pub fn validate(
         &self,
@@ -411,20 +376,6 @@ impl ReferenceAsteroidEquatorialEvidenceSummary {
 
         Ok(())
     }
-
-    /// Returns the compact summary line after validating the current evidence slice.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, ReferenceAsteroidEquatorialEvidenceSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for ReferenceAsteroidEquatorialEvidenceSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
 }
 
 pub(crate) fn reference_asteroid_evidence_summary_details(
@@ -442,31 +393,6 @@ pub(crate) fn reference_asteroid_evidence_summary_details(
 pub(crate) fn reference_asteroid_equatorial_evidence_summary_details(
 ) -> Option<ReferenceAsteroidEquatorialEvidenceSummary> {
     let evidence = reference_asteroid_equatorial_evidence();
-    evidence
-        .first()
-        .map(|first| ReferenceAsteroidEquatorialEvidenceSummary {
-            sample_count: evidence.len(),
-            sample_bodies: reference_asteroids().to_vec(),
-            epoch: first.epoch,
-            transform_note: "mean-obliquity equatorial transform",
-        })
-}
-
-pub(crate) fn reference_asteroid_evidence_summary_from_slice(
-    evidence: &[ReferenceAsteroidEvidence],
-) -> Option<ReferenceAsteroidEvidenceSummary> {
-    evidence
-        .first()
-        .map(|first| ReferenceAsteroidEvidenceSummary {
-            sample_count: evidence.len(),
-            sample_bodies: reference_asteroids().to_vec(),
-            epoch: first.epoch,
-        })
-}
-
-pub(crate) fn reference_asteroid_equatorial_evidence_summary_from_slice(
-    evidence: &[ReferenceAsteroidEquatorialEvidence],
-) -> Option<ReferenceAsteroidEquatorialEvidenceSummary> {
     evidence
         .first()
         .map(|first| ReferenceAsteroidEquatorialEvidenceSummary {
@@ -858,72 +784,6 @@ pub fn validate_reference_asteroid_equatorial_evidence(
     Ok(())
 }
 
-/// Formats the exact asteroid evidence slice for release-facing reporting.
-pub fn format_reference_asteroid_evidence_summary(
-    evidence: &[ReferenceAsteroidEvidence],
-) -> String {
-    match validate_reference_asteroid_evidence(evidence) {
-        Ok(()) => match reference_asteroid_evidence_summary_from_slice(evidence) {
-            Some(summary) => match summary.validated_summary_line() {
-                Ok(summary_line) => summary_line,
-                Err(error) => format!("Selected asteroid evidence: unavailable ({error})"),
-            },
-            None => "Selected asteroid evidence: unavailable".to_string(),
-        },
-        Err(error) => format!("Selected asteroid evidence: unavailable ({error})"),
-    }
-}
-
-/// Returns the release-facing exact asteroid evidence summary string.
-pub fn reference_asteroid_evidence_summary_for_report() -> String {
-    let evidence = reference_asteroid_evidence();
-    match validate_reference_asteroid_evidence(evidence) {
-        Ok(()) => match reference_asteroid_evidence_summary_details() {
-            Some(summary) => match summary.validated_summary_line() {
-                Ok(summary_line) => summary_line,
-                Err(error) => format!("Selected asteroid evidence: unavailable ({error})"),
-            },
-            None => "Selected asteroid evidence: unavailable".to_string(),
-        },
-        Err(error) => format!("Selected asteroid evidence: unavailable ({error})"),
-    }
-}
-
-/// Formats the equatorial asteroid evidence slice for release-facing reporting.
-pub fn format_reference_asteroid_equatorial_evidence_summary(
-    evidence: &[ReferenceAsteroidEquatorialEvidence],
-) -> String {
-    match validate_reference_asteroid_equatorial_evidence(evidence) {
-        Ok(()) => match reference_asteroid_equatorial_evidence_summary_from_slice(evidence) {
-            Some(summary) => match summary.validated_summary_line() {
-                Ok(summary_line) => summary_line,
-                Err(error) => {
-                    format!("Selected asteroid equatorial evidence: unavailable ({error})")
-                }
-            },
-            None => "Selected asteroid equatorial evidence: unavailable".to_string(),
-        },
-        Err(error) => format!("Selected asteroid equatorial evidence: unavailable ({error})"),
-    }
-}
-
-/// Returns the release-facing equatorial asteroid evidence summary string.
-pub fn reference_asteroid_equatorial_evidence_summary_for_report() -> String {
-    let evidence = reference_asteroid_equatorial_evidence();
-    match validate_reference_asteroid_equatorial_evidence(evidence) {
-        Ok(()) => match reference_asteroid_equatorial_evidence_summary_details() {
-            Some(summary) => match summary.validated_summary_line() {
-                Ok(summary_line) => summary_line,
-                Err(error) => {
-                    format!("Selected asteroid equatorial evidence: unavailable ({error})")
-                }
-            },
-            None => "Selected asteroid equatorial evidence: unavailable".to_string(),
-        },
-        Err(error) => format!("Selected asteroid equatorial evidence: unavailable ({error})"),
-    }
-}
-
 /// Compact release-facing summary for the reference asteroid source coverage.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ReferenceAsteroidSourceWindowSummary {
@@ -942,25 +802,6 @@ pub struct ReferenceAsteroidSourceWindowSummary {
 }
 
 impl ReferenceAsteroidSourceWindowSummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        let window_summary = self
-            .windows
-            .iter()
-            .map(ReferenceSnapshotSourceWindow::summary_line)
-            .collect::<Vec<_>>()
-            .join("; ");
-        format!(
-            "Reference asteroid source windows: {} source-backed samples across {} bodies and {} epochs ({}..{}); evidence class=source-backed; frame=geocentric ecliptic J2000; time scale=TDB; windows: {}",
-            self.sample_count,
-            self.sample_bodies.len(),
-            self.epoch_count,
-            format_instant(self.earliest_epoch),
-            format_instant(self.latest_epoch),
-            window_summary,
-        )
-    }
-
     /// Returns `Ok(())` when the reference asteroid source windows still match the checked-in slice.
     pub fn validate(&self) -> Result<(), ReferenceAsteroidSourceWindowSummaryValidationError> {
         let Some(expected) = reference_asteroid_source_window_summary_details() else {
@@ -1015,14 +856,6 @@ impl ReferenceAsteroidSourceWindowSummary {
         }
 
         Ok(())
-    }
-
-    /// Returns the validated reference asteroid source window summary line.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, ReferenceAsteroidSourceWindowSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
     }
 }
 
@@ -1105,26 +938,6 @@ pub(crate) fn reference_asteroid_source_window_summary_details(
 /// Returns the compact typed summary for the reference asteroid source coverage.
 pub fn reference_asteroid_source_window_summary() -> Option<ReferenceAsteroidSourceWindowSummary> {
     reference_asteroid_source_window_summary_details()
-}
-
-/// Returns the validated release-facing reference asteroid source window summary string.
-pub fn validated_reference_asteroid_source_window_summary_for_report() -> Result<String, String> {
-    let summary = reference_asteroid_source_window_summary()
-        .ok_or_else(|| "reference asteroid source windows unavailable".to_string())?;
-    summary
-        .validated_summary_line()
-        .map_err(|error| error.to_string())
-}
-
-/// Returns the release-facing reference asteroid source window summary string.
-pub fn reference_asteroid_source_window_summary_for_report() -> String {
-    match validated_reference_asteroid_source_window_summary_for_report() {
-        Ok(summary_line) => summary_line,
-        Err(error) if error == "reference asteroid source windows unavailable" => {
-            "Reference asteroid source windows: unavailable".to_string()
-        }
-        Err(error) => format!("Reference asteroid source windows: unavailable ({error})"),
-    }
 }
 
 #[cfg(test)]

@@ -184,17 +184,17 @@ pub(crate) fn render_native_sidereal_policy_summary_text() -> String {
 
 pub(crate) fn render_interpolation_posture_summary_text() -> String {
     match jpl_interpolation_posture_summary() {
-        Some(summary) => {
-            match summary.validated_summary_line() {
-                Ok(summary) => format!(
-                    "Interpolation posture summary\nInterpolation posture: {}\n",
-                    summary
-                ),
-                Err(error) => {
-                    format!("Interpolation posture summary\nInterpolation posture unavailable ({error})\n")
-                }
+        Some(summary) => match summary.validate() {
+            Ok(()) => format!(
+                "Interpolation posture summary\nInterpolation posture: {}\n",
+                crate::posture::jpl::jpl_posture::jpl_interpolation_posture_summary_line(&summary)
+            ),
+            Err(error) => {
+                format!(
+                    "Interpolation posture summary\nInterpolation posture unavailable ({error})\n"
+                )
             }
-        }
+        },
         None => "Interpolation posture summary\nInterpolation posture unavailable\n".to_string(),
     }
 }

@@ -89,16 +89,6 @@ impl fmt::Display for ReferenceSnapshotExactJ2000EvidenceSummaryValidationError 
 impl std::error::Error for ReferenceSnapshotExactJ2000EvidenceSummaryValidationError {}
 
 impl ReferenceSnapshotExactJ2000EvidenceSummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "Reference snapshot exact J2000 evidence: {} exact J2000 samples at {} ({})",
-            self.sample_count,
-            format_instant(self.epoch),
-            format_bodies(&self.sample_bodies),
-        )
-    }
-
     /// Returns `Ok(())` when the summary still matches the current evidence slice.
     pub fn validate(
         &self,
@@ -157,20 +147,6 @@ impl ReferenceSnapshotExactJ2000EvidenceSummary {
 
         Ok(())
     }
-
-    /// Returns the compact summary line after validating the current evidence slice.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, ReferenceSnapshotExactJ2000EvidenceSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for ReferenceSnapshotExactJ2000EvidenceSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
 }
 
 /// Returns the release-facing reference snapshot exact J2000 evidence summary.
@@ -190,27 +166,6 @@ pub fn reference_snapshot_exact_j2000_evidence_summary(
             .collect(),
         epoch: evidence[0].epoch,
     })
-}
-
-/// Returns the validated release-facing reference snapshot exact J2000 evidence summary string.
-pub fn validated_reference_snapshot_exact_j2000_evidence_summary_for_report(
-) -> Result<String, String> {
-    let summary = reference_snapshot_exact_j2000_evidence_summary()
-        .ok_or_else(|| "reference snapshot exact J2000 evidence unavailable".to_string())?;
-    summary
-        .validated_summary_line()
-        .map_err(|error| error.to_string())
-}
-
-/// Returns the release-facing reference snapshot exact J2000 evidence summary string.
-pub fn reference_snapshot_exact_j2000_evidence_summary_for_report() -> String {
-    match validated_reference_snapshot_exact_j2000_evidence_summary_for_report() {
-        Ok(summary_line) => summary_line,
-        Err(error) if error == "reference snapshot exact J2000 evidence unavailable" => {
-            "Reference snapshot exact J2000 evidence: unavailable".to_string()
-        }
-        Err(error) => format!("Reference snapshot exact J2000 evidence: unavailable ({error})"),
-    }
 }
 
 /// Compact release-facing summary for the exact J2000 reference snapshot body classes.
@@ -321,19 +276,6 @@ impl fmt::Display for ReferenceSnapshotExactJ2000BodyClassCoverageSummaryValidat
 impl std::error::Error for ReferenceSnapshotExactJ2000BodyClassCoverageSummaryValidationError {}
 
 impl ReferenceSnapshotExactJ2000BodyClassCoverageSummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "Reference snapshot exact J2000 body-class coverage: {} major-body samples across {} bodies and 1 epoch ({}); {} selected-asteroid samples across {} bodies and 1 epoch ({})",
-            self.major_body_row_count,
-            self.major_bodies.len(),
-            format_bodies(&self.major_bodies),
-            self.asteroid_row_count,
-            self.asteroid_bodies.len(),
-            format_bodies(&self.asteroid_bodies),
-        )
-    }
-
     /// Returns `Ok(())` when the summary still matches the current evidence slice.
     pub fn validate(
         &self,
@@ -430,20 +372,6 @@ impl ReferenceSnapshotExactJ2000BodyClassCoverageSummary {
 
         Ok(())
     }
-
-    /// Returns the compact summary line after validating the current evidence slice.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, ReferenceSnapshotExactJ2000BodyClassCoverageSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for ReferenceSnapshotExactJ2000BodyClassCoverageSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
 }
 
 /// Returns the release-facing exact J2000 body-class coverage summary.
@@ -481,27 +409,45 @@ pub fn reference_snapshot_exact_j2000_body_class_coverage_summary(
     })
 }
 
-/// Returns the validated release-facing exact J2000 body-class coverage summary string.
-pub fn validated_reference_snapshot_exact_j2000_body_class_coverage_summary_for_report(
+/// Returns the release-facing reference snapshot exact J2000 evidence summary string.
+pub fn reference_snapshot_exact_j2000_evidence_summary_for_report() -> String {
+    match validated_reference_snapshot_exact_j2000_evidence_summary_for_report() {
+        Ok(summary_line) => summary_line,
+        Err(error) if error == "reference snapshot exact J2000 evidence unavailable" => {
+            "Reference snapshot exact J2000 evidence: unavailable".to_string()
+        }
+        Err(error) => format!("Reference snapshot exact J2000 evidence: unavailable ({error})"),
+    }
+}
+
+/// Returns the validated release-facing reference snapshot exact J2000 evidence summary string.
+pub fn validated_reference_snapshot_exact_j2000_evidence_summary_for_report(
 ) -> Result<String, String> {
-    let summary =
-        reference_snapshot_exact_j2000_body_class_coverage_summary().ok_or_else(|| {
-            "reference snapshot exact J2000 body-class coverage unavailable".to_string()
-        })?;
+    let summary = reference_snapshot_exact_j2000_evidence_summary()
+        .ok_or_else(|| "reference snapshot exact J2000 evidence unavailable".to_string())?;
     summary
         .validated_summary_line()
         .map_err(|error| error.to_string())
 }
 
-/// Returns the release-facing exact J2000 body-class coverage summary string.
-pub fn reference_snapshot_exact_j2000_body_class_coverage_summary_for_report() -> String {
-    match validated_reference_snapshot_exact_j2000_body_class_coverage_summary_for_report() {
-        Ok(summary_line) => summary_line,
-        Err(error) if error == "reference snapshot exact J2000 body-class coverage unavailable" => {
-            "Reference snapshot exact J2000 body-class coverage: unavailable".to_string()
-        }
-        Err(error) => {
-            format!("Reference snapshot exact J2000 body-class coverage: unavailable ({error})")
-        }
+impl ReferenceSnapshotExactJ2000EvidenceSummary {
+    /// Returns the compact summary line after validating the current evidence slice.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, ReferenceSnapshotExactJ2000EvidenceSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
+}
+
+impl ReferenceSnapshotExactJ2000EvidenceSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "Reference snapshot exact J2000 evidence: {} exact J2000 samples at {} ({})",
+            self.sample_count,
+            format_instant(self.epoch),
+            format_bodies(&self.sample_bodies),
+        )
     }
 }

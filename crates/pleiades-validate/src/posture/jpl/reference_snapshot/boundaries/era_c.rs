@@ -232,19 +232,15 @@ pub(crate) fn reference_2451917_major_body_bridge_summary_line(
 mod golden {
     use super::*;
 
-    // jpl's inherent renderers are still present through the contract sweep
-    // (Task 14); these fail closed on any drift in the validate copies. Task
-    // 14 replaces the `summary.summary_line()` comparisons with the captured
-    // literals when the jpl methods are deleted.
+    // Task 14b (contract sweep) deleted these structs' jpl inherent
+    // `summary_line` renderers, so the byte-identity `summary.summary_line()`
+    // comparisons are gone; the captured literals below are the standing
+    // regression guard for the validate copies.
 
     #[test]
     fn reference_2453000_major_body_boundary_summary_line_byte_identical() {
         let summary = pleiades_jpl::reference_snapshot_2453000_major_body_boundary_summary()
             .expect("reference 2453000 major-body boundary summary should exist");
-        assert_eq!(
-            reference_2453000_major_body_boundary_summary_line(&summary),
-            summary.summary_line()
-        );
         assert_eq!(
             reference_2453000_major_body_boundary_summary_line(&summary),
             "Reference 2453000 major-body boundary evidence: 10 exact samples at JD 2453000.5 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); 2453000.5 boundary sample"
@@ -257,10 +253,6 @@ mod golden {
             .expect("reference 2451545 major-body boundary summary should exist");
         assert_eq!(
             reference_2451545_major_body_boundary_summary_line(&summary),
-            summary.summary_line()
-        );
-        assert_eq!(
-            reference_2451545_major_body_boundary_summary_line(&summary),
             "Reference 2451545 major-body boundary evidence: 10 exact samples at JD 2451545.0 (TDB) (Jupiter, Mars, Mercury, Moon, Neptune, Pluto, Saturn, Sun, Uranus, Venus); J2000 reference sample"
         );
     }
@@ -269,10 +261,6 @@ mod golden {
     fn reference_2451910_major_body_boundary_summary_line_byte_identical() {
         let summary = pleiades_jpl::reference_snapshot_2451910_major_body_boundary_summary()
             .expect("reference 2451910 major-body boundary summary should exist");
-        assert_eq!(
-            reference_2451910_major_body_boundary_summary_line(&summary),
-            summary.summary_line()
-        );
         assert_eq!(
             reference_2451910_major_body_boundary_summary_line(&summary),
             "Reference 2451910 major-body boundary evidence: 10 exact samples at JD 2451910.5 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); 2001-01-01 boundary sample"
@@ -285,10 +273,6 @@ mod golden {
             .expect("reference 2451911 major-body boundary summary should exist");
         assert_eq!(
             reference_2451911_major_body_boundary_summary_line(&summary),
-            summary.summary_line()
-        );
-        assert_eq!(
-            reference_2451911_major_body_boundary_summary_line(&summary),
             "Reference 2451911 major-body boundary evidence: 10 exact samples at JD 2451911.5 (TDB) (Sun, Moon, Mercury, Venus, Saturn, Uranus, Neptune, Pluto, Mars, Jupiter); 2001-01-02 boundary sample"
         );
     }
@@ -297,10 +281,6 @@ mod golden {
     fn reference_2451912_major_body_boundary_summary_line_byte_identical() {
         let summary = pleiades_jpl::reference_snapshot_2451912_major_body_boundary_summary()
             .expect("reference 2451912 major-body boundary summary should exist");
-        assert_eq!(
-            reference_2451912_major_body_boundary_summary_line(&summary),
-            summary.summary_line()
-        );
         assert_eq!(
             reference_2451912_major_body_boundary_summary_line(&summary),
             "Reference 2451912 major-body boundary evidence: 10 exact samples at JD 2451912.5 (TDB) (Sun, Moon, Mercury, Venus, Saturn, Uranus, Neptune, Pluto, Mars, Jupiter); 2001-01-03 boundary sample"
@@ -313,10 +293,6 @@ mod golden {
             .expect("reference 2451913 major-body boundary summary should exist");
         assert_eq!(
             reference_2451913_major_body_boundary_summary_line(&summary),
-            summary.summary_line()
-        );
-        assert_eq!(
-            reference_2451913_major_body_boundary_summary_line(&summary),
             "Reference 2451913 major-body boundary evidence: 10 exact samples at JD 2451913.5 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); 2001-01-04 boundary sample"
         );
     }
@@ -325,10 +301,6 @@ mod golden {
     fn reference_2451914_major_body_boundary_summary_line_byte_identical() {
         let summary = pleiades_jpl::reference_snapshot_2451914_major_body_boundary_summary()
             .expect("reference 2451914 major-body boundary summary should exist");
-        assert_eq!(
-            reference_2451914_major_body_boundary_summary_line(&summary),
-            summary.summary_line()
-        );
         assert_eq!(
             reference_2451914_major_body_boundary_summary_line(&summary),
             "Reference 2451914 major-body boundary evidence: 10 exact samples at JD 2451914.5 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); 2001-01-05 boundary sample"
@@ -341,10 +313,6 @@ mod golden {
             .expect("reference 2451915 major-body boundary summary should exist");
         assert_eq!(
             reference_2451915_major_body_boundary_summary_line(&summary),
-            summary.summary_line()
-        );
-        assert_eq!(
-            reference_2451915_major_body_boundary_summary_line(&summary),
             "Reference 2451915 major-body boundary evidence: 10 exact samples at JD 2451915.5 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); 2001-01-06 boundary sample"
         );
     }
@@ -353,10 +321,6 @@ mod golden {
     fn reference_2451917_major_body_bridge_summary_line_byte_identical() {
         let summary = pleiades_jpl::reference_snapshot_2451917_major_body_bridge_summary()
             .expect("reference 2451917 major-body bridge summary should exist");
-        assert_eq!(
-            reference_2451917_major_body_bridge_summary_line(&summary),
-            summary.summary_line()
-        );
         assert_eq!(
             reference_2451917_major_body_bridge_summary_line(&summary),
             "Reference 2451917 major-body bridge evidence: 10 exact samples at JD 2451917.0 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); bridge sample across the major-body boundary window"

@@ -16,16 +16,6 @@ fn reference_asteroid_evidence_summary_reports_the_expected_coverage() {
     summary
         .validate()
         .expect("reference asteroid evidence summary should validate");
-    assert_eq!(
-            summary.summary_line(),
-            "Selected asteroid evidence: 6 exact J2000 samples at JD 2451545.0 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis)"
-        );
-    assert_eq!(summary.to_string(), summary.summary_line());
-    assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
-    assert_eq!(
-        reference_asteroid_evidence_summary_for_report(),
-        summary.summary_line()
-    );
 }
 
 #[test]
@@ -36,19 +26,6 @@ fn reference_asteroid_source_window_summary_reports_the_expanded_coverage() {
     assert_eq!(summary.sample_count, 95);
     assert_eq!(summary.epoch_count, 17);
     assert_eq!(summary.validate(), Ok(()));
-    assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
-    assert_eq!(
-            summary.summary_line(),
-            "Reference asteroid source windows: 95 source-backed samples across 6 bodies and 17 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); evidence class=source-backed; frame=geocentric ecliptic J2000; time scale=TDB; windows: Ceres: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Pallas: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Juno: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Vesta: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); asteroid:433-Eros: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); asteroid:99942-Apophis: 10 samples across 10 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB)"
-        );
-    assert_eq!(
-        summary.summary_line(),
-        reference_asteroid_source_window_summary_for_report()
-    );
-    assert_eq!(
-        validated_reference_asteroid_source_window_summary_for_report(),
-        Ok(summary.summary_line())
-    );
 }
 
 #[test]
@@ -65,7 +42,6 @@ fn reference_asteroid_source_window_summary_validation_rejects_custom_body_drift
             }
         )
     ));
-    assert!(summary.validated_summary_line().is_err());
 }
 
 #[test]
@@ -82,7 +58,6 @@ fn reference_asteroid_source_window_summary_validation_rejects_sample_body_order
             }
         )
     ));
-    assert!(summary.validated_summary_line().is_err());
 }
 
 #[test]
@@ -99,7 +74,6 @@ fn reference_asteroid_source_window_summary_validation_rejects_window_order_drif
             }
         )
     ));
-    assert!(summary.validated_summary_line().is_err());
 }
 
 #[test]
@@ -132,16 +106,6 @@ fn reference_asteroid_equatorial_evidence_summary_reports_the_expected_coverage(
     summary
         .validate()
         .expect("reference asteroid equatorial evidence summary should validate");
-    assert_eq!(
-            summary.summary_line(),
-            "Selected asteroid equatorial evidence: 6 exact J2000 samples at JD 2451545.0 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) using a mean-obliquity equatorial transform"
-        );
-    assert_eq!(summary.to_string(), summary.summary_line());
-    assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
-    assert_eq!(
-        reference_asteroid_equatorial_evidence_summary_for_report(),
-        summary.summary_line()
-    );
 }
 
 #[test]

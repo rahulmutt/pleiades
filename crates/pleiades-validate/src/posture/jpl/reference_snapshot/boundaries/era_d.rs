@@ -381,19 +381,15 @@ pub fn reference_snapshot_2451914_major_body_bridge_day_summary_for_report() -> 
 mod golden {
     use super::*;
 
-    // jpl's inherent renderers are still present through the contract sweep
-    // (Task 14); these fail closed on any drift in the validate copies. Task
-    // 14 replaces the `summary.summary_line()` comparisons with the captured
-    // literals when the jpl methods are deleted.
+    // Task 14b (contract sweep) deleted these structs' jpl inherent
+    // `summary_line` renderers, so the byte-identity `summary.summary_line()`
+    // comparisons are gone; the captured literals below are the standing
+    // regression guard for the validate copies.
 
     #[test]
     fn reference_2451917_major_body_boundary_summary_line_byte_identical() {
         let summary = pleiades_jpl::reference_snapshot_2451917_major_body_boundary_summary()
             .expect("reference 2451917 major-body boundary summary should exist");
-        assert_eq!(
-            reference_2451917_major_body_boundary_summary_line(&summary),
-            summary.summary_line()
-        );
         assert_eq!(
             reference_2451917_major_body_boundary_summary_line(&summary),
             "Reference 2451917 major-body boundary evidence: 10 exact samples at JD 2451917.5 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); 2001-01-08 boundary sample"
@@ -406,10 +402,6 @@ mod golden {
             .expect("reference 2451919 major-body boundary summary should exist");
         assert_eq!(
             reference_2451919_major_body_boundary_summary_line(&summary),
-            summary.summary_line()
-        );
-        assert_eq!(
-            reference_2451919_major_body_boundary_summary_line(&summary),
             "Reference 2451919 major-body boundary evidence: 10 exact samples at JD 2451919.5 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); 2001-01-10 boundary sample"
         );
     }
@@ -418,10 +410,6 @@ mod golden {
     fn reference_2451916_major_body_interior_summary_line_byte_identical() {
         let summary = pleiades_jpl::reference_snapshot_2451916_major_body_interior_summary()
             .expect("reference 2451916 major-body interior summary should exist");
-        assert_eq!(
-            reference_2451916_major_body_interior_summary_line(&summary),
-            summary.summary_line()
-        );
         assert_eq!(
             reference_2451916_major_body_interior_summary_line(&summary),
             "Reference 2451916 major-body interior evidence: 10 exact samples at JD 2451916.0 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); 2001-01-06 interior reference sample"
@@ -434,41 +422,7 @@ mod golden {
             .expect("reference 2451920 major-body interior summary should exist");
         assert_eq!(
             reference_2451920_major_body_interior_summary_line(&summary),
-            summary.summary_line()
-        );
-        assert_eq!(
-            reference_2451920_major_body_interior_summary_line(&summary),
             "Reference 2451920 major-body interior evidence: 10 exact samples at JD 2451920.5 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); 2001-01-13 interior reference sample"
-        );
-    }
-
-    #[test]
-    fn reference_major_body_boundary_window_summary_line_byte_identical() {
-        let summary = pleiades_jpl::reference_snapshot_major_body_boundary_window_summary()
-            .expect("reference major-body boundary window summary should exist");
-        assert_eq!(
-            reference_major_body_boundary_window_summary_line(&summary),
-            summary.summary_line()
-        );
-    }
-
-    #[test]
-    fn reference_high_curvature_window_summary_line_byte_identical() {
-        let summary = pleiades_jpl::reference_snapshot_high_curvature_window_summary()
-            .expect("reference high-curvature window summary should exist");
-        assert_eq!(
-            reference_high_curvature_window_summary_line(&summary),
-            summary.summary_line()
-        );
-    }
-
-    #[test]
-    fn reference_high_curvature_epoch_coverage_summary_line_byte_identical() {
-        let summary = pleiades_jpl::reference_snapshot_high_curvature_epoch_coverage_summary()
-            .expect("reference high-curvature epoch coverage summary should exist");
-        assert_eq!(
-            reference_high_curvature_epoch_coverage_summary_line(&summary),
-            summary.summary_line()
         );
     }
 }

@@ -217,50 +217,6 @@ impl ProductionGenerationSnapshotSummary {
 
         Ok(())
     }
-
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "Production generation coverage: {} rows across {} bodies and {} epochs ({}..{}); bodies: {}; boundary overlay ({PRODUCTION_GENERATION_BOUNDARY_COVERAGE}): {} rows across {} bodies and {} epochs ({}..{}); boundary bodies: {}; quarter-day boundary samples: {} rows across {} bodies and {} epochs (JD 2451915.25 (TDB)..JD 2451915.75 (TDB)); quarter-day bodies: {}",
-            self.row_count,
-            self.body_count,
-            self.epoch_count,
-            format_instant(self.earliest_epoch),
-            format_instant(self.latest_epoch),
-            format_bodies(self.bodies),
-            self.boundary_row_count,
-            self.boundary_body_count,
-            self.boundary_epoch_count,
-            format_instant(self.boundary_earliest_epoch),
-            format_instant(self.boundary_latest_epoch),
-            format_bodies(self.boundary_bodies),
-            self.quarter_day_row_count,
-            self.quarter_day_body_count,
-            self.quarter_day_epoch_count,
-            format_bodies(self.quarter_day_bodies),
-        )
-    }
-
-    /// Returns a compact summary line after validating the production-generation summary.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, ProductionGenerationSnapshotSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for ProductionGenerationSnapshotSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
-}
-
-/// Formats the production-generation coverage for release-facing reporting.
-pub fn format_production_generation_snapshot_summary(
-    summary: &ProductionGenerationSnapshotSummary,
-) -> String {
-    summary.summary_line()
 }
 
 /// Returns the production-generation coverage summary used in release-facing reporting.
@@ -349,36 +305,6 @@ pub fn production_generation_snapshot_summary() -> Option<ProductionGenerationSn
     })
 }
 
-/// Returns the release-facing production-generation coverage summary string.
-pub fn production_generation_snapshot_summary_for_report() -> String {
-    match production_generation_snapshot_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => format!("Production generation coverage: unavailable ({error})"),
-        },
-        None => "Production generation coverage: unavailable".to_string(),
-    }
-}
-
-/// Returns the compact quarter-day boundary sample summary for release-facing reporting.
-pub fn production_generation_quarter_day_boundary_summary_for_report() -> String {
-    match production_generation_snapshot_summary() {
-        Some(summary) => match summary.validate() {
-            Ok(()) => format!(
-                "Production generation quarter-day boundary samples: {} rows across {} bodies and {} epochs (JD 2451915.25 (TDB)..JD 2451915.75 (TDB)); bodies: {}",
-                summary.quarter_day_row_count,
-                summary.quarter_day_body_count,
-                summary.quarter_day_epoch_count,
-                format_bodies(summary.quarter_day_bodies),
-            ),
-            Err(error) => format!(
-                "Production generation quarter-day boundary samples: unavailable ({error})"
-            ),
-        },
-        None => "Production generation quarter-day boundary samples: unavailable".to_string(),
-    }
-}
-
 /// Deterministic revision metadata for the checked-in CSV fixtures.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ProductionGenerationSourceRevisionSummary {
@@ -412,15 +338,6 @@ impl fmt::Display for ProductionGenerationSourceRevisionSummaryValidationError {
 impl std::error::Error for ProductionGenerationSourceRevisionSummaryValidationError {}
 
 impl ProductionGenerationSourceRevisionSummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "source revision=reference_snapshot.csv checksum=0x{reference_snapshot_checksum:016x}; independent_holdout_snapshot.csv checksum=0x{independent_holdout_snapshot_checksum:016x}",
-            reference_snapshot_checksum = self.reference_snapshot_checksum,
-            independent_holdout_snapshot_checksum = self.independent_holdout_snapshot_checksum,
-        )
-    }
-
     /// Returns `Ok(())` when the summary still matches the current fixture checksums.
     pub fn validate(&self) -> Result<(), ProductionGenerationSourceRevisionSummaryValidationError> {
         if self != &production_generation_source_revision_summary() {
@@ -433,30 +350,6 @@ impl ProductionGenerationSourceRevisionSummary {
 
         Ok(())
     }
-
-    /// Returns the validated compact summary line.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, ProductionGenerationSourceRevisionSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-/// Returns the release-facing production-generation source revision summary string.
-#[doc(alias = "production_generation_source_revision_summary")]
-pub fn production_generation_source_revision_summary_for_report() -> String {
-    match production_generation_source_revision_summary().validated_summary_line() {
-        Ok(summary) => summary,
-        Err(error) => format!("source revision=unavailable ({error})"),
-    }
-}
-
-/// Returns the validated release-facing production-generation source revision summary string.
-#[doc(alias = "production_generation_source_revision_summary")]
-pub fn validated_production_generation_source_revision_summary_for_report(
-) -> Result<String, ProductionGenerationSourceRevisionSummaryValidationError> {
-    production_generation_source_revision_summary().validated_summary_line()
 }
 
 /// Combined provenance for the production-generation corpus.
@@ -472,214 +365,7 @@ pub struct ProductionGenerationSourceSummary {
     pub source_revision: ProductionGenerationSourceRevisionSummary,
 }
 
-pub(crate) fn production_generation_source_cadence_fragment_from_counts(
-    source_window_epoch_count: usize,
-    boundary_epoch_count_ecliptic: usize,
-    boundary_epoch_count_equatorial: usize,
-) -> Result<String, ProductionGenerationSourceSummaryValidationError> {
-    if boundary_epoch_count_ecliptic != boundary_epoch_count_equatorial {
-        return Err(
-            ProductionGenerationSourceSummaryValidationError::BoundaryRequestCorpusEpochCountMismatch {
-                ecliptic_epoch_count: boundary_epoch_count_ecliptic,
-                equatorial_epoch_count: boundary_epoch_count_equatorial,
-            },
-        );
-    }
-
-    Ok(format!(
-        "cadence={} reference epochs and {} boundary epochs",
-        source_window_epoch_count, boundary_epoch_count_ecliptic
-    ))
-}
-
-pub(crate) fn production_generation_source_cadence_fragment(
-    summary: &ProductionGenerationSourceSummary,
-) -> Result<String, ProductionGenerationSourceSummaryValidationError> {
-    let boundary_request_corpus_ecliptic =
-        production_generation_boundary_request_corpus_summary(CoordinateFrame::Ecliptic)
-            .ok_or(ProductionGenerationSourceSummaryValidationError::SourceWindowsMismatch)?;
-    let boundary_request_corpus_equatorial =
-        production_generation_boundary_request_corpus_summary(CoordinateFrame::Equatorial)
-            .ok_or(ProductionGenerationSourceSummaryValidationError::SourceWindowsMismatch)?;
-
-    production_generation_source_cadence_fragment_from_counts(
-        summary.source_windows.epoch_count,
-        boundary_request_corpus_ecliptic.epoch_count,
-        boundary_request_corpus_equatorial.epoch_count,
-    )
-}
-
-pub(crate) fn production_generation_source_body_class_cadence_fragment(
-) -> Result<String, ProductionGenerationSourceSummaryValidationError> {
-    let snapshot = production_generation_snapshot_body_class_coverage_summary()
-        .ok_or(ProductionGenerationSourceSummaryValidationError::BodyClassCadenceMismatch)?;
-    let boundary = production_generation_boundary_body_class_coverage_summary()
-        .ok_or(ProductionGenerationSourceSummaryValidationError::BodyClassCadenceMismatch)?;
-
-    Ok(format!(
-        "body-class cadence=reference major bodies: {} epochs; reference selected asteroids: {} epochs; boundary major bodies: {} epochs; boundary selected asteroids: {} epochs",
-        snapshot.major_epoch_count,
-        snapshot.asteroid_epoch_count,
-        boundary.major_epoch_count,
-        boundary.asteroid_epoch_count,
-    ))
-}
-
-/// Returns a compact source-density summary for the production-generation corpus.
-pub fn production_generation_source_density_summary_for_report(
-) -> Result<String, ProductionGenerationSourceSummaryValidationError> {
-    let snapshot = production_generation_snapshot_body_class_coverage_summary()
-        .ok_or(ProductionGenerationSourceSummaryValidationError::SourceDensityMismatch)?;
-    let boundary = production_generation_boundary_body_class_coverage_summary()
-        .ok_or(ProductionGenerationSourceSummaryValidationError::SourceDensityMismatch)?;
-
-    Ok(format!(
-        "source density floors=reference major bodies: {} epochs minimum; reference selected asteroids: {} epochs minimum; boundary major bodies: {} epochs minimum; boundary selected asteroids: {} epochs minimum",
-        snapshot.major_epoch_count,
-        snapshot.asteroid_epoch_count,
-        boundary.major_epoch_count,
-        boundary.asteroid_epoch_count,
-    ))
-}
-
-/// Returns the validated production-generation source-class breakdown line for release reports.
-pub fn production_generation_source_class_breakdown_summary_for_report() -> String {
-    format!(
-        "Production generation source class breakdown: reference source windows={}; hold-out source windows={}; boundary overlay={}; provenance-only source and manifest summaries remain separate",
-        strip_report_prefix(
-            &production_generation_snapshot_window_summary_for_report(),
-            "Production generation source windows: ",
-        ),
-        strip_report_prefix(
-            &independent_holdout_snapshot_source_window_summary_for_report(),
-            "Independent hold-out source windows: ",
-        ),
-        strip_report_prefix(
-            &production_generation_boundary_summary_for_report(),
-            "Production generation boundary overlay: ",
-        ),
-    )
-}
-
-pub(crate) fn validate_production_generation_source_summary_text(
-    summary: &ProductionGenerationSourceSummary,
-    text: &str,
-) -> Result<(), ProductionGenerationSourceSummaryValidationError> {
-    let source_windows_fragment = format!(
-        "source windows={}",
-        strip_report_prefix(
-            &summary.source_windows.summary_line(),
-            "Production generation source windows: ",
-        )
-    );
-    let exact_j2000_fragment = format!(
-        "reference snapshot exact J2000 evidence={}",
-        strip_report_prefix(
-            &reference_snapshot_exact_j2000_evidence_summary_for_report(),
-            "Reference snapshot exact J2000 evidence: ",
-        )
-    );
-    let source_revision_fragment = summary.source_revision.summary_line();
-    let cadence_fragment = production_generation_source_cadence_fragment(summary)?;
-    let body_class_cadence_fragment = production_generation_source_body_class_cadence_fragment()?;
-    let source_density_fragment = production_generation_source_density_summary_for_report()?;
-    let required_fragments = [
-        ("strategy", "strategy=documented hybrid fixture corpus".to_string()),
-        (
-            "input path",
-            "input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv".to_string(),
-        ),
-        ("file format", "file format=comma-separated values".to_string()),
-        ("schema", "schema=epoch_jd, body, x_km, y_km, z_km".to_string()),
-        ("columns", "columns=epoch_jd, body, x_km, y_km, z_km".to_string()),
-        ("frame", "frame=geocentric ecliptic J2000".to_string()),
-        ("time scale", "time scale=TDB".to_string()),
-        ("apparentness", "apparentness=Mean".to_string()),
-        ("parser", "parser=pure-Rust and deterministic".to_string()),
-        (
-            "generation command",
-            "generation command=generate-packaged-artifact --check".to_string(),
-        ),
-        (
-            "checksum expectation",
-            "checksum expectation=byte-identical fixture contents".to_string(),
-        ),
-        ("cadence", cadence_fragment),
-        ("body-class cadence", body_class_cadence_fragment),
-        ("source density floors", source_density_fragment),
-        (
-            "row separation",
-            "reference and hold-out rows remain separate".to_string(),
-        ),
-        (
-            "source windows",
-            source_windows_fragment,
-        ),
-        (
-            "reference snapshot exact J2000 evidence",
-            exact_j2000_fragment,
-        ),
-        (
-            "evidence classes",
-            "evidence classes=reference, hold-out, boundary overlay, provenance-only".to_string(),
-        ),
-        (
-            "source revision",
-            source_revision_fragment,
-        ),
-        (
-            "license posture",
-            "license posture=public-source provenance only; checked-in fixtures remain repository-local regression data".to_string(),
-        ),
-        (
-            "redistribution posture",
-            "redistribution posture=repository-checked regression fixtures, not a broad public corpus".to_string(),
-        ),
-    ];
-
-    for (field, fragment) in required_fragments {
-        if !text.contains(&fragment) {
-            return Err(
-                ProductionGenerationSourceSummaryValidationError::RenderedSummaryOutOfSync {
-                    field,
-                },
-            );
-        }
-    }
-
-    Ok(())
-}
-
 impl ProductionGenerationSourceSummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        let cadence_fragment = production_generation_source_cadence_fragment(self)
-            .unwrap_or_else(|error| format!("cadence unavailable ({error})"));
-        let body_class_cadence_fragment =
-            production_generation_source_body_class_cadence_fragment()
-                .unwrap_or_else(|error| format!("body-class cadence unavailable ({error})"));
-        let source_density_fragment = production_generation_source_density_summary_for_report()
-            .unwrap_or_else(|error| format!("source density floors unavailable ({error})"));
-
-        format!(
-            "Production generation source: strategy=documented hybrid fixture corpus; {}; {}; source windows={}; reference snapshot exact J2000 evidence={}; evidence classes=reference, hold-out, boundary overlay, provenance-only; input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv; license posture=public-source provenance only; checked-in fixtures remain repository-local regression data; {}; generation command=generate-packaged-artifact --check (consuming the checked-in CSV fixtures); file format=comma-separated values; schema=epoch_jd, body, x_km, y_km, z_km; columns=epoch_jd, body, x_km, y_km, z_km; frame=geocentric ecliptic J2000; time scale=TDB; apparentness=Mean; parser=pure-Rust and deterministic; checksum expectation=byte-identical fixture contents; {}; {}; {}; reference and hold-out rows remain separate; redistribution posture=repository-checked regression fixtures, not a broad public corpus",
-            self.reference_summary.summary_line(),
-            format_production_generation_boundary_source_summary(&self.boundary_summary),
-            strip_report_prefix(
-                &self.source_windows.summary_line(),
-                "Production generation source windows: ",
-            ),
-            strip_report_prefix(
-                &reference_snapshot_exact_j2000_evidence_summary_for_report(),
-                "Reference snapshot exact J2000 evidence: ",
-            ),
-            self.source_revision.summary_line(),
-            cadence_fragment,
-            body_class_cadence_fragment,
-            source_density_fragment,
-        )
-    }
-
     /// Returns `Ok(())` when the source summary still matches the derived corpus evidence.
     pub fn validate(&self) -> Result<(), ProductionGenerationSourceSummaryValidationError> {
         self.reference_summary
@@ -703,17 +389,7 @@ impl ProductionGenerationSourceSummary {
             ProductionGenerationSourceSummaryValidationError::ReferenceExactJ2000EvidenceUnavailable,
         )?;
 
-        validate_production_generation_source_summary_text(self, &self.summary_line())?;
-
         Ok(())
-    }
-
-    /// Returns a compact summary line after validating the source summary.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, ProductionGenerationSourceSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
     }
 }
 
@@ -795,23 +471,6 @@ pub fn production_generation_source_summary() -> ProductionGenerationSourceSumma
             .expect("production generation source windows should exist"),
         source_revision: production_generation_source_revision_summary(),
     }
-}
-
-/// Returns the release-facing production-generation source summary string.
-pub fn production_generation_source_summary_for_report() -> String {
-    let summary = production_generation_source_summary();
-    match summary.validated_summary_line() {
-        Ok(summary_line) => summary_line,
-        Err(error) => format!("Production generation source: unavailable ({error})"),
-    }
-}
-
-/// Returns the validated release-facing production-generation source summary string.
-pub fn validated_production_generation_source_summary_for_report() -> Result<String, String> {
-    let summary = production_generation_source_summary();
-    summary
-        .validated_summary_line()
-        .map_err(|error| error.to_string())
 }
 
 /// Compact release-facing contract summary for the production-generation corpus shape.
@@ -932,25 +591,6 @@ pub(crate) fn validate_production_generation_boundary_request_corpus_frame_parit
 }
 
 impl ProductionGenerationCorpusShapeSummary {
-    /// Returns a compact release-facing corpus-shape summary.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "Production generation corpus shape: source={}; boundary request corpora: ecliptic={}; equatorial={}; validated fields=body order, epochs, frame, time scale, columns, apparentness, checksums",
-            strip_report_prefix(
-                &self.source_summary.summary_line(),
-                "Production generation source: ",
-            ),
-            strip_report_prefix(
-                &self.boundary_request_corpus_ecliptic.summary_line(),
-                "Production generation boundary request corpus: ",
-            ),
-            strip_report_prefix(
-                &self.boundary_request_corpus_equatorial.summary_line(),
-                "Production generation boundary request corpus: ",
-            ),
-        )
-    }
-
     /// Returns `Ok(())` when the corpus-shape summary still matches the current corpus posture.
     pub fn validate(&self) -> Result<(), ProductionGenerationCorpusShapeSummaryValidationError> {
         self.source_summary
@@ -1009,20 +649,6 @@ impl ProductionGenerationCorpusShapeSummary {
 
         Ok(())
     }
-
-    /// Returns the validated corpus-shape summary line.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, ProductionGenerationCorpusShapeSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for ProductionGenerationCorpusShapeSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
 }
 
 /// Returns the compact production-generation corpus-shape summary.
@@ -1037,26 +663,6 @@ pub fn production_generation_corpus_shape_summary() -> Option<ProductionGenerati
             CoordinateFrame::Equatorial,
         )?,
     })
-}
-
-/// Returns the release-facing production-generation corpus-shape summary string.
-pub fn production_generation_corpus_shape_summary_for_report() -> String {
-    match production_generation_corpus_shape_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => format!("Production generation corpus shape: unavailable ({error})"),
-        },
-        None => "Production generation corpus shape: unavailable".to_string(),
-    }
-}
-
-/// Returns the validated release-facing production-generation corpus-shape summary string.
-pub fn validated_production_generation_corpus_shape_summary_for_report() -> Result<String, String> {
-    let summary = production_generation_corpus_shape_summary()
-        .ok_or_else(|| "production generation corpus shape unavailable".to_string())?;
-    summary
-        .validated_summary_line()
-        .map_err(|error| error.to_string())
 }
 
 /// Returns the deterministic revision metadata for the checked-in
@@ -1147,31 +753,6 @@ impl fmt::Display for ProductionGenerationManifestSummaryValidationError {
 impl std::error::Error for ProductionGenerationManifestSummaryValidationError {}
 
 impl ProductionGenerationManifestSummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "Production generation manifest: coverage={}; source={}; body-class coverage={}; boundary overlay={}; boundary windows={}; boundary request corpus={}",
-            strip_report_prefix(
-                &self.coverage_summary.summary_line(),
-                "Production generation coverage: ",
-            ),
-            strip_report_prefix(&self.source_summary.summary_line(), "Production generation source: "),
-            strip_report_prefix(
-                &self.body_class_coverage_summary.summary_line(),
-                "Production generation body-class coverage: ",
-            ),
-            strip_report_prefix(&self.boundary_summary.summary_line(), "Production generation boundary overlay: "),
-            strip_report_prefix(
-                &self.boundary_window_summary.summary_line(),
-                "Production generation boundary windows: ",
-            ),
-            strip_report_prefix(
-                &self.boundary_request_corpus_summary.summary_line(),
-                "Production generation boundary request corpus: ",
-            ),
-        )
-    }
-
     /// Returns `Ok(())` when the manifest summary still matches the derived corpus evidence.
     pub fn validate(&self) -> Result<(), ProductionGenerationManifestSummaryValidationError> {
         self.source_summary
@@ -1272,20 +853,6 @@ impl ProductionGenerationManifestSummary {
 
         Ok(())
     }
-
-    /// Returns the validated compact summary line.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, ProductionGenerationManifestSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for ProductionGenerationManifestSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
 }
 
 /// Returns the compact production-generation manifest summary for release-facing reports.
@@ -1300,43 +867,6 @@ pub fn production_generation_manifest_summary() -> Option<ProductionGenerationMa
             CoordinateFrame::Ecliptic,
         )?,
     })
-}
-
-/// Returns the release-facing production-generation manifest summary string.
-pub fn production_generation_manifest_summary_for_report() -> String {
-    static SUMMARY: OnceLock<String> = OnceLock::new();
-    SUMMARY
-        .get_or_init(|| match production_generation_manifest_summary() {
-            Some(summary) => match summary.validated_summary_line() {
-                Ok(summary) => summary,
-                Err(error) => format!("Production generation manifest: unavailable ({error})"),
-            },
-            None => "Production generation manifest: unavailable".to_string(),
-        })
-        .clone()
-}
-
-/// Returns the validated release-facing production-generation manifest summary string.
-pub fn validated_production_generation_manifest_summary_for_report() -> Result<String, String> {
-    let summary = production_generation_manifest_summary()
-        .ok_or_else(|| "production generation manifest unavailable".to_string())?;
-    summary
-        .validated_summary_line()
-        .map_err(|error| error.to_string())
-}
-
-/// Returns the release-facing production-generation manifest checksum summary string.
-pub fn production_generation_manifest_checksum_for_report() -> String {
-    static SUMMARY: OnceLock<String> = OnceLock::new();
-    SUMMARY
-        .get_or_init(|| {
-            let summary = production_generation_manifest_summary_for_report();
-            format!(
-                "Production generation manifest checksum: 0x{:016x}",
-                checksum64(&summary)
-            )
-        })
-        .clone()
 }
 
 /// A single body-window slice inside the production-generation coverage corpus.
@@ -1354,25 +884,7 @@ pub struct ProductionGenerationSnapshotWindow {
     pub latest_epoch: Instant,
 }
 
-impl ProductionGenerationSnapshotWindow {
-    /// Returns a compact body-window summary used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        let time_span = if self.earliest_epoch == self.latest_epoch {
-            format_instant(self.earliest_epoch)
-        } else {
-            format!(
-                "{}..{}",
-                format_instant(self.earliest_epoch),
-                format_instant(self.latest_epoch)
-            )
-        };
-
-        format!(
-            "{}: {} samples across {} epochs at {}",
-            self.body, self.sample_count, self.epoch_count, time_span
-        )
-    }
-}
+impl ProductionGenerationSnapshotWindow {}
 
 /// Compact release-facing summary for the production-generation source windows.
 #[derive(Clone, Debug, PartialEq)]
@@ -1498,30 +1010,7 @@ impl fmt::Display for ProductionGenerationSnapshotWindowSummaryValidationError {
 
 impl std::error::Error for ProductionGenerationSnapshotWindowSummaryValidationError {}
 
-impl fmt::Display for ProductionGenerationSnapshotWindow {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
-}
-
 impl ProductionGenerationSnapshotWindowSummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "Production generation source windows: {} source-backed samples across {} bodies and {} epochs ({}..{}); windows: {}",
-            self.sample_count,
-            self.sample_bodies.len(),
-            self.epoch_count,
-            format_instant(self.earliest_epoch),
-            format_instant(self.latest_epoch),
-            self.windows
-                .iter()
-                .map(ToString::to_string)
-                .collect::<Vec<_>>()
-                .join("; ")
-        )
-    }
-
     /// Validates that the summary remains internally consistent and still matches the derived evidence.
     pub fn validate(&self) -> Result<(), ProductionGenerationSnapshotWindowSummaryValidationError> {
         if self.sample_count == 0 {
@@ -1603,27 +1092,6 @@ impl ProductionGenerationSnapshotWindowSummary {
 
         Ok(())
     }
-
-    /// Returns a compact summary line after validating the summary.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, ProductionGenerationSnapshotWindowSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for ProductionGenerationSnapshotWindowSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
-}
-
-/// Formats the production-generation source windows for release-facing reporting.
-pub fn format_production_generation_snapshot_window_summary(
-    summary: &ProductionGenerationSnapshotWindowSummary,
-) -> String {
-    summary.summary_line()
 }
 
 pub(crate) fn production_generation_snapshot_window_summary_details(
@@ -1704,27 +1172,6 @@ pub fn production_generation_snapshot_window_summary(
     )
 }
 
-/// Returns the release-facing production-generation source window summary string.
-pub fn production_generation_snapshot_window_summary_for_report() -> String {
-    match production_generation_snapshot_window_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => format!("Production generation source windows: unavailable ({error})"),
-        },
-        None => "Production generation source windows: unavailable".to_string(),
-    }
-}
-
-/// Returns the validated release-facing production-generation source window summary string.
-pub fn validated_production_generation_snapshot_window_summary_for_report() -> Result<String, String>
-{
-    let summary = production_generation_snapshot_window_summary()
-        .ok_or_else(|| "production generation source windows unavailable".to_string())?;
-    summary
-        .validated_summary_line()
-        .map_err(|error| error.to_string())
-}
-
 /// A compact body-class coverage summary for the merged production-generation corpus.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ProductionGenerationSnapshotBodyClassCoverageSummary {
@@ -1772,34 +1219,6 @@ impl fmt::Display for ProductionGenerationSnapshotBodyClassCoverageSummaryValida
 impl std::error::Error for ProductionGenerationSnapshotBodyClassCoverageSummaryValidationError {}
 
 impl ProductionGenerationSnapshotBodyClassCoverageSummary {
-    /// Returns a compact body-class summary used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        let major_windows = self
-            .major_windows
-            .iter()
-            .map(ProductionGenerationSnapshotWindow::summary_line)
-            .collect::<Vec<_>>()
-            .join("; ");
-        let asteroid_windows = self
-            .asteroid_windows
-            .iter()
-            .map(ProductionGenerationSnapshotWindow::summary_line)
-            .collect::<Vec<_>>()
-            .join("; ");
-
-        format!(
-            "Production generation body-class coverage: major bodies: {} rows across {} bodies and {} epochs; major windows: {}; selected asteroids: {} rows across {} bodies and {} epochs; asteroid windows: {}",
-            self.major_body_row_count,
-            self.major_bodies.len(),
-            self.major_epoch_count,
-            major_windows,
-            self.asteroid_row_count,
-            self.asteroid_bodies.len(),
-            self.asteroid_epoch_count,
-            asteroid_windows,
-        )
-    }
-
     /// Returns `Ok(())` when the body-class coverage summary still matches the checked-in slice.
     pub fn validate(
         &self,
@@ -1879,20 +1298,6 @@ impl ProductionGenerationSnapshotBodyClassCoverageSummary {
 
         Ok(())
     }
-
-    /// Returns the validated body-class coverage summary line.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, ProductionGenerationSnapshotBodyClassCoverageSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for ProductionGenerationSnapshotBodyClassCoverageSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
 }
 
 pub(crate) fn production_generation_snapshot_body_class_coverage_summary_details(
@@ -1957,33 +1362,208 @@ pub fn production_generation_snapshot_body_class_coverage_summary(
     production_generation_snapshot_body_class_coverage_summary_details()
 }
 
-/// Returns the release-facing body-class coverage summary string for the merged production-generation corpus.
-pub fn production_generation_snapshot_body_class_coverage_summary_for_report() -> String {
-    match production_generation_snapshot_body_class_coverage_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => {
-                format!("Production generation body-class coverage: unavailable ({error})")
-            }
-        },
-        None => "Production generation body-class coverage: unavailable".to_string(),
+#[cfg(test)]
+mod tests;
+
+/// Returns the release-facing production-generation source summary string.
+pub fn production_generation_source_summary_for_report() -> String {
+    let summary = production_generation_source_summary();
+    match summary.validated_summary_line() {
+        Ok(summary_line) => summary_line,
+        Err(error) => format!("Production generation source: unavailable ({error})"),
     }
 }
 
-/// Returns the validated release-facing body-class coverage summary string for the merged production-generation corpus.
-pub fn validated_production_generation_snapshot_body_class_coverage_summary_for_report(
-) -> Result<String, String> {
-    let summary =
-        production_generation_snapshot_body_class_coverage_summary().ok_or_else(|| {
-            ProductionGenerationSnapshotBodyClassCoverageSummaryValidationError::FieldOutOfSync {
-                field: "row_count",
-            }
-            .to_string()
-        })?;
-    summary
-        .validated_summary_line()
-        .map_err(|error| error.to_string())
+impl ProductionGenerationSourceSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        let cadence_fragment = production_generation_source_cadence_fragment(self)
+            .unwrap_or_else(|error| format!("cadence unavailable ({error})"));
+        let body_class_cadence_fragment =
+            production_generation_source_body_class_cadence_fragment()
+                .unwrap_or_else(|error| format!("body-class cadence unavailable ({error})"));
+        let source_density_fragment = production_generation_source_density_summary_for_report()
+            .unwrap_or_else(|error| format!("source density floors unavailable ({error})"));
+
+        format!(
+            "Production generation source: strategy=documented hybrid fixture corpus; {}; {}; source windows={}; reference snapshot exact J2000 evidence={}; evidence classes=reference, hold-out, boundary overlay, provenance-only; input path=checked-in CSV fixtures via include_str! reference_snapshot.csv and independent_holdout_snapshot.csv; license posture=public-source provenance only; checked-in fixtures remain repository-local regression data; {}; generation command=generate-packaged-artifact --check (consuming the checked-in CSV fixtures); file format=comma-separated values; schema=epoch_jd, body, x_km, y_km, z_km; columns=epoch_jd, body, x_km, y_km, z_km; frame=geocentric ecliptic J2000; time scale=TDB; apparentness=Mean; parser=pure-Rust and deterministic; checksum expectation=byte-identical fixture contents; {}; {}; {}; reference and hold-out rows remain separate; redistribution posture=repository-checked regression fixtures, not a broad public corpus",
+            self.reference_summary.summary_line(),
+            format_production_generation_boundary_source_summary(&self.boundary_summary),
+            strip_report_prefix(
+                &self.source_windows.summary_line(),
+                "Production generation source windows: ",
+            ),
+            strip_report_prefix(
+                &reference_snapshot_exact_j2000_evidence_summary_for_report(),
+                "Reference snapshot exact J2000 evidence: ",
+            ),
+            self.source_revision.summary_line(),
+            cadence_fragment,
+            body_class_cadence_fragment,
+            source_density_fragment,
+        )
+    }
+    /// Returns a compact summary line after validating the source summary.
+    pub fn validated_summary_line(
+        &self,
+    ) -> Result<String, ProductionGenerationSourceSummaryValidationError> {
+        self.validate()?;
+        Ok(self.summary_line())
+    }
 }
 
-#[cfg(test)]
-mod tests;
+pub(crate) fn production_generation_source_body_class_cadence_fragment(
+) -> Result<String, ProductionGenerationSourceSummaryValidationError> {
+    let snapshot = production_generation_snapshot_body_class_coverage_summary()
+        .ok_or(ProductionGenerationSourceSummaryValidationError::BodyClassCadenceMismatch)?;
+    let boundary = production_generation_boundary_body_class_coverage_summary()
+        .ok_or(ProductionGenerationSourceSummaryValidationError::BodyClassCadenceMismatch)?;
+
+    Ok(format!(
+        "body-class cadence=reference major bodies: {} epochs; reference selected asteroids: {} epochs; boundary major bodies: {} epochs; boundary selected asteroids: {} epochs",
+        snapshot.major_epoch_count,
+        snapshot.asteroid_epoch_count,
+        boundary.major_epoch_count,
+        boundary.asteroid_epoch_count,
+    ))
+}
+
+pub(crate) fn production_generation_source_cadence_fragment(
+    summary: &ProductionGenerationSourceSummary,
+) -> Result<String, ProductionGenerationSourceSummaryValidationError> {
+    let boundary_request_corpus_ecliptic =
+        production_generation_boundary_request_corpus_summary(CoordinateFrame::Ecliptic)
+            .ok_or(ProductionGenerationSourceSummaryValidationError::SourceWindowsMismatch)?;
+    let boundary_request_corpus_equatorial =
+        production_generation_boundary_request_corpus_summary(CoordinateFrame::Equatorial)
+            .ok_or(ProductionGenerationSourceSummaryValidationError::SourceWindowsMismatch)?;
+
+    production_generation_source_cadence_fragment_from_counts(
+        summary.source_windows.epoch_count,
+        boundary_request_corpus_ecliptic.epoch_count,
+        boundary_request_corpus_equatorial.epoch_count,
+    )
+}
+
+/// Returns a compact source-density summary for the production-generation corpus.
+pub fn production_generation_source_density_summary_for_report(
+) -> Result<String, ProductionGenerationSourceSummaryValidationError> {
+    let snapshot = production_generation_snapshot_body_class_coverage_summary()
+        .ok_or(ProductionGenerationSourceSummaryValidationError::SourceDensityMismatch)?;
+    let boundary = production_generation_boundary_body_class_coverage_summary()
+        .ok_or(ProductionGenerationSourceSummaryValidationError::SourceDensityMismatch)?;
+
+    Ok(format!(
+        "source density floors=reference major bodies: {} epochs minimum; reference selected asteroids: {} epochs minimum; boundary major bodies: {} epochs minimum; boundary selected asteroids: {} epochs minimum",
+        snapshot.major_epoch_count,
+        snapshot.asteroid_epoch_count,
+        boundary.major_epoch_count,
+        boundary.asteroid_epoch_count,
+    ))
+}
+
+impl ProductionGenerationSnapshotWindowSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "Production generation source windows: {} source-backed samples across {} bodies and {} epochs ({}..{}); windows: {}",
+            self.sample_count,
+            self.sample_bodies.len(),
+            self.epoch_count,
+            format_instant(self.earliest_epoch),
+            format_instant(self.latest_epoch),
+            self.windows
+                .iter()
+                .map(ToString::to_string)
+                .collect::<Vec<_>>()
+                .join("; ")
+        )
+    }
+}
+
+impl ProductionGenerationSourceRevisionSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "source revision=reference_snapshot.csv checksum=0x{reference_snapshot_checksum:016x}; independent_holdout_snapshot.csv checksum=0x{independent_holdout_snapshot_checksum:016x}",
+            reference_snapshot_checksum = self.reference_snapshot_checksum,
+            independent_holdout_snapshot_checksum = self.independent_holdout_snapshot_checksum,
+        )
+    }
+}
+
+pub(crate) fn production_generation_source_cadence_fragment_from_counts(
+    source_window_epoch_count: usize,
+    boundary_epoch_count_ecliptic: usize,
+    boundary_epoch_count_equatorial: usize,
+) -> Result<String, ProductionGenerationSourceSummaryValidationError> {
+    if boundary_epoch_count_ecliptic != boundary_epoch_count_equatorial {
+        return Err(
+            ProductionGenerationSourceSummaryValidationError::BoundaryRequestCorpusEpochCountMismatch {
+                ecliptic_epoch_count: boundary_epoch_count_ecliptic,
+                equatorial_epoch_count: boundary_epoch_count_equatorial,
+            },
+        );
+    }
+
+    Ok(format!(
+        "cadence={} reference epochs and {} boundary epochs",
+        source_window_epoch_count, boundary_epoch_count_ecliptic
+    ))
+}
+
+impl fmt::Display for ProductionGenerationSnapshotWindow {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary_line())
+    }
+}
+
+impl ProductionGenerationSnapshotWindow {
+    /// Returns a compact body-window summary used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        let time_span = if self.earliest_epoch == self.latest_epoch {
+            format_instant(self.earliest_epoch)
+        } else {
+            format!(
+                "{}..{}",
+                format_instant(self.earliest_epoch),
+                format_instant(self.latest_epoch)
+            )
+        };
+
+        format!(
+            "{}: {} samples across {} epochs at {}",
+            self.body, self.sample_count, self.epoch_count, time_span
+        )
+    }
+}
+
+impl ProductionGenerationSnapshotBodyClassCoverageSummary {
+    /// Returns a compact body-class summary used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        let major_windows = self
+            .major_windows
+            .iter()
+            .map(ProductionGenerationSnapshotWindow::summary_line)
+            .collect::<Vec<_>>()
+            .join("; ");
+        let asteroid_windows = self
+            .asteroid_windows
+            .iter()
+            .map(ProductionGenerationSnapshotWindow::summary_line)
+            .collect::<Vec<_>>()
+            .join("; ");
+
+        format!(
+            "Production generation body-class coverage: major bodies: {} rows across {} bodies and {} epochs; major windows: {}; selected asteroids: {} rows across {} bodies and {} epochs; asteroid windows: {}",
+            self.major_body_row_count,
+            self.major_bodies.len(),
+            self.major_epoch_count,
+            major_windows,
+            self.asteroid_row_count,
+            self.asteroid_bodies.len(),
+            self.asteroid_epoch_count,
+            asteroid_windows,
+        )
+    }
+}

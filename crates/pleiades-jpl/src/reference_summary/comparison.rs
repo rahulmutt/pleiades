@@ -198,29 +198,6 @@ impl fmt::Display for ComparisonSnapshotBodyClassCoverageSummaryValidationError 
 impl std::error::Error for ComparisonSnapshotBodyClassCoverageSummaryValidationError {}
 
 impl ComparisonSnapshotBodyClassCoverageSummary {
-    /// Returns a compact body-class summary used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        let windows = self
-            .windows
-            .iter()
-            .map(ComparisonSnapshotSourceWindow::summary_line)
-            .collect::<Vec<_>>()
-            .join("; ");
-
-        format!(
-            "Comparison snapshot body-class coverage: {} rows across {} bodies and {} epochs; bodies: {}; windows: {}",
-            self.row_count,
-            self.body_count(),
-            self.epoch_count,
-            format_bodies(&self.bodies),
-            windows,
-        )
-    }
-
-    fn body_count(&self) -> usize {
-        self.bodies.len()
-    }
-
     /// Returns `Ok(())` when the body-class coverage summary still matches the checked-in slice.
     pub fn validate(
         &self,
@@ -264,20 +241,6 @@ impl ComparisonSnapshotBodyClassCoverageSummary {
 
         Ok(())
     }
-
-    /// Returns the validated body-class coverage summary line.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, ComparisonSnapshotBodyClassCoverageSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for ComparisonSnapshotBodyClassCoverageSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
 }
 
 pub(crate) fn comparison_snapshot_body_class_coverage_summary_details(
@@ -297,28 +260,6 @@ pub(crate) fn comparison_snapshot_body_class_coverage_summary_details(
 pub fn comparison_snapshot_body_class_coverage_summary(
 ) -> Option<ComparisonSnapshotBodyClassCoverageSummary> {
     comparison_snapshot_body_class_coverage_summary_details()
-}
-
-/// Returns the release-facing body-class coverage summary string for the comparison snapshot.
-pub fn comparison_snapshot_body_class_coverage_summary_for_report() -> String {
-    match comparison_snapshot_body_class_coverage_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => format!("Comparison snapshot body-class coverage: unavailable ({error})"),
-        },
-        None => "Comparison snapshot body-class coverage: unavailable".to_string(),
-    }
-}
-
-/// Returns the validated release-facing body-class coverage summary string for the comparison snapshot.
-pub fn validated_comparison_snapshot_body_class_coverage_summary_for_report(
-) -> Result<String, String> {
-    let summary = comparison_snapshot_body_class_coverage_summary().ok_or_else(|| {
-        ComparisonSnapshotBodyClassCoverageSummaryValidationError::Unavailable.to_string()
-    })?;
-    summary
-        .validated_summary_line()
-        .map_err(|error| error.to_string())
 }
 
 pub(crate) fn comparison_snapshot_source_checksum() -> u64 {
@@ -473,28 +414,6 @@ impl ComparisonSnapshotSourceSummary {
         }
         Ok(())
     }
-
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "Comparison snapshot source: {}; coverage={}; redistribution={}; columns={}; checksum=0x{:016x}",
-            self.source, self.coverage, self.redistribution, self.columns, self.checksum
-        )
-    }
-
-    /// Returns a compact summary line after validating the comparison snapshot source summary.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, ComparisonSnapshotSourceSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for ComparisonSnapshotSourceSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
 }
 
 /// Returns the backend-owned provenance summary for the comparison snapshot.
@@ -520,54 +439,6 @@ pub fn comparison_snapshot_source_summary() -> ComparisonSnapshotSourceSummary {
         .clone()
 }
 
-/// Formats the source/material summary for the comparison snapshot used by validation.
-pub fn format_comparison_snapshot_source_summary(
-    summary: &ComparisonSnapshotSourceSummary,
-) -> String {
-    summary.summary_line()
-}
-
-pub(crate) fn format_validated_comparison_snapshot_source_summary_for_report(
-    summary: &ComparisonSnapshotSourceSummary,
-    manifest: &SnapshotManifest,
-) -> String {
-    if let Err(error) = manifest.validate() {
-        return format!("Comparison snapshot source: unavailable ({error})");
-    }
-
-    match summary.validated_summary_line() {
-        Ok(summary_line) => summary_line,
-        Err(error) => format!("Comparison snapshot source: unavailable ({error})"),
-    }
-}
-
-/// Returns the source/material summary for the comparison snapshot used by validation.
-pub fn comparison_snapshot_source_summary_for_report() -> String {
-    format_validated_comparison_snapshot_source_summary_for_report(
-        &comparison_snapshot_source_summary(),
-        comparison_snapshot_manifest(),
-    )
-}
-
-/// Returns the validated source/material summary for the comparison snapshot.
-pub fn validated_comparison_snapshot_source_summary_for_report() -> Result<String, String> {
-    let manifest = comparison_snapshot_manifest();
-    manifest.validate().map_err(|error| error.to_string())?;
-    comparison_snapshot_source_summary()
-        .validated_summary_line()
-        .map_err(|error| error.to_string())
-}
-
-/// Returns the validated source-window summary for the comparison snapshot.
-pub fn validated_comparison_snapshot_source_window_summary_for_report() -> Result<String, String> {
-    match comparison_snapshot_source_window_summary() {
-        Some(summary) => summary
-            .validated_summary_line()
-            .map_err(|error| error.to_string()),
-        None => Err("comparison snapshot source windows unavailable".to_string()),
-    }
-}
-
 /// A single body-window slice inside the comparison snapshot source coverage.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ComparisonSnapshotSourceWindow {
@@ -583,25 +454,7 @@ pub struct ComparisonSnapshotSourceWindow {
     pub latest_epoch: Instant,
 }
 
-impl ComparisonSnapshotSourceWindow {
-    /// Returns a compact body-window summary used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        let time_span = if self.earliest_epoch == self.latest_epoch {
-            format_instant(self.earliest_epoch)
-        } else {
-            format!(
-                "{}..{}",
-                format_instant(self.earliest_epoch),
-                format_instant(self.latest_epoch)
-            )
-        };
-
-        format!(
-            "{}: {} samples across {} epochs at {}",
-            self.body, self.sample_count, self.epoch_count, time_span
-        )
-    }
-}
+impl ComparisonSnapshotSourceWindow {}
 
 /// Compact release-facing summary for the comparison snapshot source coverage.
 #[derive(Clone, Debug, PartialEq)]
@@ -620,32 +473,7 @@ pub struct ComparisonSnapshotSourceWindowSummary {
     pub windows: Vec<ComparisonSnapshotSourceWindow>,
 }
 
-impl fmt::Display for ComparisonSnapshotSourceWindow {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
-}
-
 impl ComparisonSnapshotSourceWindowSummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        let window_summary = self
-            .windows
-            .iter()
-            .map(ComparisonSnapshotSourceWindow::summary_line)
-            .collect::<Vec<_>>()
-            .join("; ");
-        format!(
-            "Comparison snapshot source windows: {} source-backed samples across {} bodies and {} epochs ({}..{}); windows: {}",
-            self.sample_count,
-            self.sample_bodies.len(),
-            self.epoch_count,
-            format_instant(self.earliest_epoch),
-            format_instant(self.latest_epoch),
-            window_summary,
-        )
-    }
-
     /// Returns `Ok(())` when the comparison snapshot source windows still match the checked-in slice.
     pub fn validate(&self) -> Result<(), ComparisonSnapshotSourceWindowSummaryValidationError> {
         let Some(expected) = comparison_snapshot_source_window_summary_details() else {
@@ -700,20 +528,6 @@ impl ComparisonSnapshotSourceWindowSummary {
         }
 
         Ok(())
-    }
-
-    /// Returns the validated comparison snapshot source window summary line.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, ComparisonSnapshotSourceWindowSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for ComparisonSnapshotSourceWindowSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
     }
 }
 
@@ -814,24 +628,6 @@ pub fn comparison_snapshot_source_window_summary() -> Option<ComparisonSnapshotS
     comparison_snapshot_source_window_summary_details()
 }
 
-/// Formats the comparison snapshot source windows for release-facing reporting.
-pub fn format_comparison_snapshot_source_window_summary(
-    summary: &ComparisonSnapshotSourceWindowSummary,
-) -> String {
-    summary.summary_line()
-}
-
-/// Returns the body-window summary for the comparison snapshot.
-pub fn comparison_snapshot_source_window_summary_for_report() -> String {
-    match validated_comparison_snapshot_source_window_summary_for_report() {
-        Ok(summary_line) => summary_line,
-        Err(error) if error == "comparison snapshot source windows unavailable" => {
-            "Comparison snapshot source windows: unavailable".to_string()
-        }
-        Err(error) => format!("Comparison snapshot source windows: unavailable ({error})"),
-    }
-}
-
 /// Returns the manifest summary for the comparison snapshot used by validation.
 pub fn comparison_snapshot_manifest_summary() -> SnapshotManifestSummary {
     SnapshotManifestSummary {
@@ -841,44 +637,6 @@ pub fn comparison_snapshot_manifest_summary() -> SnapshotManifestSummary {
         coverage_fallback:
             "Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000.",
     }
-}
-
-/// Returns the manifest summary for the comparison snapshot used by validation.
-pub fn comparison_snapshot_manifest_summary_for_report() -> String {
-    match validated_comparison_snapshot_manifest_summary_for_report() {
-        Ok(summary_line) => summary_line,
-        Err(error) => format!("Comparison snapshot manifest: unavailable ({error})"),
-    }
-}
-
-/// Returns the validated manifest summary for the comparison snapshot used by validation.
-pub fn validated_comparison_snapshot_manifest_summary_for_report() -> Result<String, String> {
-    let manifest_text = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/data/j2000_snapshot.csv"
-    ));
-    validate_snapshot_manifest_header_structure(
-        manifest_text,
-        "JPL Horizons reference snapshot.",
-        "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.",
-        "Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000.",
-        Some(COMPARISON_SNAPSHOT_REDISTRIBUTION_EXPECTED),
-        &["body", "x_km", "y_km", "z_km"],
-    )
-    .map_err(|error| error.to_string())?;
-
-    let summary = comparison_snapshot_manifest_summary();
-    summary
-        .validate_with_expected_metadata_and_redistribution(
-            "JPL Horizons reference snapshot.",
-            "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.",
-            "Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000.",
-            COMPARISON_SNAPSHOT_REDISTRIBUTION_EXPECTED,
-            &["body", "x_km", "y_km", "z_km"],
-        )
-        .map_err(|error| error.to_string())?;
-
-    Ok(summary.summary_line())
 }
 
 impl ComparisonSnapshotSummary {
@@ -949,49 +707,6 @@ impl ComparisonSnapshotSummary {
         }
 
         Ok(())
-    }
-
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "Comparison snapshot coverage: {} rows across {} bodies and {} epochs ({}..{}); bodies: {}",
-            self.row_count,
-            self.body_count,
-            self.epoch_count,
-            format_instant(self.earliest_epoch),
-            format_instant(self.latest_epoch),
-            format_bodies(&self.bodies),
-        )
-    }
-
-    /// Returns a compact summary line after validating the comparison snapshot summary.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, ComparisonSnapshotSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for ComparisonSnapshotSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
-}
-
-/// Formats the comparison snapshot coverage for release-facing reporting.
-pub fn format_comparison_snapshot_summary(summary: &ComparisonSnapshotSummary) -> String {
-    summary.summary_line()
-}
-
-/// Returns the release-facing comparison snapshot coverage summary string.
-pub fn comparison_snapshot_summary_for_report() -> String {
-    match comparison_snapshot_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => format!("Comparison snapshot coverage: unavailable ({error})"),
-        },
-        None => "Comparison snapshot coverage: unavailable".to_string(),
     }
 }
 
@@ -1200,67 +915,6 @@ impl ComparisonSnapshotBatchParitySummary {
 
         Ok(())
     }
-
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "JPL comparison snapshot batch parity: {} rows across {} bodies and {} epochs ({}..{}); bodies: {}; frame mix: {} ecliptic, {} equatorial; quality counts: Exact={}, Interpolated={}, Approximate={}, Unknown={}; batch/single parity preserved",
-            self.snapshot.row_count,
-            self.snapshot.body_count,
-            self.snapshot.epoch_count,
-            format_instant(self.snapshot.earliest_epoch),
-            format_instant(self.snapshot.latest_epoch),
-            format_bodies(&self.snapshot.bodies),
-            self.ecliptic_request_count,
-            self.equatorial_request_count,
-            self.exact_count,
-            self.interpolated_count,
-            self.approximate_count,
-            self.unknown_count,
-        )
-    }
-
-    /// Returns a compact summary line after validating the batch parity summary.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, ComparisonSnapshotBatchParitySummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for ComparisonSnapshotBatchParitySummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
-}
-
-/// Formats the checked-in comparison snapshot batch parity summary for release-facing reporting.
-pub fn format_comparison_snapshot_batch_parity_summary(
-    summary: &ComparisonSnapshotBatchParitySummary,
-) -> String {
-    summary.summary_line()
-}
-
-/// Returns the release-facing comparison snapshot batch parity summary string.
-pub fn comparison_snapshot_batch_parity_summary_for_report() -> String {
-    match comparison_snapshot_batch_parity_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => format!("JPL comparison snapshot batch parity: unavailable ({error})"),
-        },
-        None => "JPL comparison snapshot batch parity: unavailable".to_string(),
-    }
-}
-
-/// Returns the validated release-facing comparison snapshot batch parity summary string.
-pub fn validated_comparison_snapshot_batch_parity_summary_for_report() -> Result<String, String> {
-    let summary = comparison_snapshot_batch_parity_summary().ok_or_else(|| {
-        ComparisonSnapshotBatchParitySummaryValidationError::Unavailable.to_string()
-    })?;
-    summary
-        .validated_summary_line()
-        .map_err(|error| error.to_string())
 }
 
 /// Returns the comparison-only subset used by the stage-4 validation corpus.
@@ -1505,3 +1159,60 @@ pub fn comparison_bodies() -> &'static [pleiades_backend::CelestialBody] {
 
 #[cfg(test)]
 mod tests;
+
+impl ComparisonSnapshotSourceSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "Comparison snapshot source: {}; coverage={}; redistribution={}; columns={}; checksum=0x{:016x}",
+            self.source, self.coverage, self.redistribution, self.columns, self.checksum
+        )
+    }
+}
+
+impl ComparisonSnapshotBodyClassCoverageSummary {
+    /// Returns a compact body-class summary used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        let windows = self
+            .windows
+            .iter()
+            .map(ComparisonSnapshotSourceWindow::summary_line)
+            .collect::<Vec<_>>()
+            .join("; ");
+
+        format!(
+            "Comparison snapshot body-class coverage: {} rows across {} bodies and {} epochs; bodies: {}; windows: {}",
+            self.row_count,
+            self.body_count(),
+            self.epoch_count,
+            format_bodies(&self.bodies),
+            windows,
+        )
+    }
+}
+
+impl ComparisonSnapshotBodyClassCoverageSummary {
+    fn body_count(&self) -> usize {
+        self.bodies.len()
+    }
+}
+
+impl ComparisonSnapshotSourceWindow {
+    /// Returns a compact body-window summary used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        let time_span = if self.earliest_epoch == self.latest_epoch {
+            format_instant(self.earliest_epoch)
+        } else {
+            format!(
+                "{}..{}",
+                format_instant(self.earliest_epoch),
+                format_instant(self.latest_epoch)
+            )
+        };
+
+        format!(
+            "{}: {} samples across {} epochs at {}",
+            self.body, self.sample_count, self.epoch_count, time_span
+        )
+    }
+}

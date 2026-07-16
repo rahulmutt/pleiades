@@ -197,38 +197,6 @@ impl IndependentHoldoutSnapshotSummary {
 
         Ok(())
     }
-
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        let bodies = if self.bodies.is_empty() {
-            "none".to_string()
-        } else {
-            self.bodies.join(", ")
-        };
-        format!(
-            "Independent hold-out coverage: {} rows across {} bodies and {} epochs ({}..{}); bodies: {}",
-            self.row_count,
-            self.body_count,
-            self.epoch_count,
-            format_instant(self.earliest_epoch),
-            format_instant(self.latest_epoch),
-            bodies,
-        )
-    }
-
-    /// Returns a compact summary line after validating the current evidence slice.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, IndependentHoldoutSnapshotSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for IndependentHoldoutSnapshotSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
 }
 
 /// A single body-window slice inside the independent hold-out snapshot source coverage.
@@ -246,25 +214,7 @@ pub struct IndependentHoldoutSnapshotSourceWindow {
     pub latest_epoch: Instant,
 }
 
-impl IndependentHoldoutSnapshotSourceWindow {
-    /// Returns a compact body-window summary used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        let time_span = if self.earliest_epoch == self.latest_epoch {
-            format_instant(self.earliest_epoch)
-        } else {
-            format!(
-                "{}..{}",
-                format_instant(self.earliest_epoch),
-                format_instant(self.latest_epoch)
-            )
-        };
-
-        format!(
-            "{}: {} samples across {} epochs at {}",
-            self.body, self.sample_count, self.epoch_count, time_span
-        )
-    }
-}
+impl IndependentHoldoutSnapshotSourceWindow {}
 
 /// Compact release-facing summary for the independent hold-out snapshot source coverage.
 #[derive(Clone, Debug, PartialEq)]
@@ -284,25 +234,6 @@ pub struct IndependentHoldoutSnapshotSourceWindowSummary {
 }
 
 impl IndependentHoldoutSnapshotSourceWindowSummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        let window_summary = self
-            .windows
-            .iter()
-            .map(IndependentHoldoutSnapshotSourceWindow::summary_line)
-            .collect::<Vec<_>>()
-            .join("; ");
-        format!(
-            "Independent hold-out source windows: {} source-backed samples across {} bodies and {} epochs ({}..{}); windows: {}",
-            self.sample_count,
-            self.sample_bodies.len(),
-            self.epoch_count,
-            format_instant(self.earliest_epoch),
-            format_instant(self.latest_epoch),
-            window_summary,
-        )
-    }
-
     /// Returns `Ok(())` when the hold-out source windows still match the checked-in slice.
     pub fn validate(
         &self,
@@ -359,14 +290,6 @@ impl IndependentHoldoutSnapshotSourceWindowSummary {
         }
 
         Ok(())
-    }
-
-    /// Returns the validated hold-out source window summary line.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, IndependentHoldoutSnapshotSourceWindowSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
     }
 }
 
@@ -463,24 +386,6 @@ pub fn independent_holdout_snapshot_source_window_summary(
     independent_holdout_source_window_summary_details()
 }
 
-/// Formats the independent hold-out source windows for release-facing reporting.
-pub fn format_independent_holdout_snapshot_source_window_summary(
-    summary: &IndependentHoldoutSnapshotSourceWindowSummary,
-) -> String {
-    summary.summary_line()
-}
-
-/// Returns the release-facing independent hold-out source window summary string.
-pub fn independent_holdout_snapshot_source_window_summary_for_report() -> String {
-    match independent_holdout_snapshot_source_window_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => format!("Independent hold-out source windows: unavailable ({error})"),
-        },
-        None => "Independent hold-out source windows: unavailable".to_string(),
-    }
-}
-
 /// Compact release-facing summary for the independent hold-out quarter-day boundary samples.
 #[derive(Clone, Debug, PartialEq)]
 pub struct IndependentHoldoutQuarterDayBoundarySummary {
@@ -522,17 +427,6 @@ impl fmt::Display for IndependentHoldoutQuarterDayBoundarySummaryValidationError
 impl std::error::Error for IndependentHoldoutQuarterDayBoundarySummaryValidationError {}
 
 impl IndependentHoldoutQuarterDayBoundarySummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "Independent hold-out quarter-day boundary samples: {} rows across {} bodies and {} epochs (JD 2451915.25 (TDB)..JD 2451915.75 (TDB)); bodies: {}",
-            self.row_count,
-            self.body_count,
-            self.epoch_count,
-            format_bodies(&self.bodies),
-        )
-    }
-
     /// Returns `Ok(())` when the summary still matches the checked-in quarter-day slice.
     pub fn validate(
         &self,
@@ -590,14 +484,6 @@ impl IndependentHoldoutQuarterDayBoundarySummary {
 
         Ok(())
     }
-
-    /// Returns the validated quarter-day summary line.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, IndependentHoldoutQuarterDayBoundarySummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
 }
 
 /// Derives the compact quarter-day boundary summary from the checked-in
@@ -641,19 +527,6 @@ pub fn independent_holdout_quarter_day_boundary_summary_details(
     })
 }
 
-/// Returns the compact quarter-day boundary sample summary for release-facing reporting.
-pub fn independent_holdout_snapshot_quarter_day_boundary_summary_for_report() -> String {
-    match independent_holdout_quarter_day_boundary_summary_details() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => {
-                format!("Independent hold-out quarter-day boundary samples: unavailable ({error})")
-            }
-        },
-        None => "Independent hold-out quarter-day boundary samples: unavailable".to_string(),
-    }
-}
-
 /// Compact release-facing summary for the independent hold-out high-curvature window.
 #[derive(Clone, Debug, PartialEq)]
 pub struct IndependentHoldoutHighCurvatureSummary {
@@ -693,19 +566,6 @@ impl fmt::Display for IndependentHoldoutHighCurvatureSummaryValidationError {
 impl std::error::Error for IndependentHoldoutHighCurvatureSummaryValidationError {}
 
 impl IndependentHoldoutHighCurvatureSummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "JPL independent hold-out high-curvature evidence: {} exact samples across {} bodies and {} epochs ({}..{}); bodies: {}; high-curvature interpolation window",
-            self.sample_count,
-            self.sample_bodies.len(),
-            self.epoch_count,
-            format_instant(self.earliest_epoch),
-            format_instant(self.latest_epoch),
-            format_bodies(&self.sample_bodies),
-        )
-    }
-
     /// Returns `Ok(())` when the summary still matches the checked-in high-curvature slice.
     pub fn validate(&self) -> Result<(), IndependentHoldoutHighCurvatureSummaryValidationError> {
         let Some(expected) = independent_holdout_high_curvature_summary_details() else {
@@ -753,20 +613,6 @@ impl IndependentHoldoutHighCurvatureSummary {
         }
 
         Ok(())
-    }
-
-    /// Returns the validated summary line.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, IndependentHoldoutHighCurvatureSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for IndependentHoldoutHighCurvatureSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
     }
 }
 
@@ -843,26 +689,6 @@ pub fn independent_holdout_high_curvature_summary() -> Option<IndependentHoldout
     independent_holdout_high_curvature_summary_details()
 }
 
-/// Formats the independent hold-out high-curvature window for release-facing reporting.
-pub fn format_independent_holdout_high_curvature_summary(
-    summary: &IndependentHoldoutHighCurvatureSummary,
-) -> String {
-    summary.summary_line()
-}
-
-/// Returns the release-facing independent hold-out high-curvature summary string.
-pub fn independent_holdout_high_curvature_summary_for_report() -> String {
-    match independent_holdout_high_curvature_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => {
-                format!("JPL independent hold-out high-curvature evidence: unavailable ({error})")
-            }
-        },
-        None => "JPL independent hold-out high-curvature evidence: unavailable".to_string(),
-    }
-}
-
 /// Compact release-facing summary for any accidental overlap between the checked-in reference snapshot and the independent hold-out snapshot.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ReferenceHoldoutOverlapSummary {
@@ -898,21 +724,6 @@ impl fmt::Display for ReferenceHoldoutOverlapSummaryValidationError {
 impl std::error::Error for ReferenceHoldoutOverlapSummaryValidationError {}
 
 impl ReferenceHoldoutOverlapSummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        if self.shared_sample_count == 0 {
-            return "Reference/hold-out overlap: 0 shared body-epoch pairs (reference snapshot and independent hold-out remain disjoint)".to_string();
-        }
-
-        format!(
-            "Reference/hold-out overlap: {} shared body-epoch pairs across {} bodies and {} epochs; bodies: {}",
-            self.shared_sample_count,
-            self.shared_bodies.len(),
-            self.shared_epoch_count,
-            format_bodies(&self.shared_bodies),
-        )
-    }
-
     /// Returns `Ok(())` when the summary still matches the current overlap posture.
     pub fn validate(&self) -> Result<(), ReferenceHoldoutOverlapSummaryValidationError> {
         let Some(expected) = reference_holdout_overlap_summary_details() else {
@@ -946,20 +757,6 @@ impl ReferenceHoldoutOverlapSummary {
         }
 
         Ok(())
-    }
-
-    /// Returns the validated summary line.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, ReferenceHoldoutOverlapSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for ReferenceHoldoutOverlapSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
     }
 }
 
@@ -1018,51 +815,6 @@ pub fn reference_holdout_overlap_summary() -> Option<ReferenceHoldoutOverlapSumm
     )
 }
 
-/// Formats the reference/hold-out overlap summary for release-facing reporting.
-pub fn format_reference_holdout_overlap_summary(
-    summary: &ReferenceHoldoutOverlapSummary,
-) -> String {
-    summary.summary_line()
-}
-
-/// Returns the release-facing reference/hold-out overlap summary string.
-pub fn reference_holdout_overlap_summary_for_report() -> String {
-    match validated_reference_holdout_overlap_summary_for_report() {
-        Ok(summary_line) => summary_line,
-        Err(error) => format!("Reference/hold-out overlap: unavailable ({error})"),
-    }
-}
-
-/// Returns the validated release-facing reference/hold-out overlap summary string.
-pub fn validated_reference_holdout_overlap_summary_for_report() -> Result<String, String> {
-    let summary = reference_holdout_overlap_summary()
-        .ok_or_else(|| "reference/hold-out overlap unavailable".to_string())?;
-    summary
-        .validated_summary_line()
-        .map_err(|error| error.to_string())
-}
-
-/// Formats the independent hold-out corpus coverage for release-facing reporting.
-pub fn format_independent_holdout_snapshot_summary(
-    summary: &IndependentHoldoutSnapshotSummary,
-) -> String {
-    summary.summary_line()
-}
-
-/// Returns the release-facing independent hold-out coverage summary string.
-pub fn independent_holdout_snapshot_summary_for_report() -> String {
-    match independent_holdout_snapshot_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => format!("Independent hold-out coverage: unavailable ({error})"),
-        },
-        None => match independent_holdout_snapshot_error() {
-            Some(error) => format!("Independent hold-out coverage: unavailable ({error})"),
-            None => "Independent hold-out coverage: unavailable".to_string(),
-        },
-    }
-}
-
 /// A compact body-class coverage summary for the independent hold-out snapshot used by validation.
 #[derive(Clone, Debug, PartialEq)]
 pub struct IndependentHoldoutSnapshotBodyClassCoverageSummary {
@@ -1100,25 +852,6 @@ impl fmt::Display for IndependentHoldoutSnapshotBodyClassCoverageSummaryValidati
 impl std::error::Error for IndependentHoldoutSnapshotBodyClassCoverageSummaryValidationError {}
 
 impl IndependentHoldoutSnapshotBodyClassCoverageSummary {
-    /// Returns a compact body-class summary used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        let windows = self
-            .windows
-            .iter()
-            .map(IndependentHoldoutSnapshotSourceWindow::summary_line)
-            .collect::<Vec<_>>()
-            .join("; ");
-
-        format!(
-            "Independent hold-out body-class coverage: {} rows across {} bodies and {} epochs; bodies: {}; windows: {}",
-            self.row_count,
-            self.bodies.len(),
-            self.epoch_count,
-            format_bodies(&self.bodies),
-            windows,
-        )
-    }
-
     /// Returns `Ok(())` when the body-class coverage summary still matches the checked-in slice.
     pub fn validate(
         &self,
@@ -1163,20 +896,6 @@ impl IndependentHoldoutSnapshotBodyClassCoverageSummary {
 
         Ok(())
     }
-
-    /// Returns the validated body-class coverage summary line.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, IndependentHoldoutSnapshotBodyClassCoverageSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for IndependentHoldoutSnapshotBodyClassCoverageSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
 }
 
 pub(crate) fn independent_holdout_snapshot_body_class_coverage_summary_details(
@@ -1196,19 +915,6 @@ pub(crate) fn independent_holdout_snapshot_body_class_coverage_summary_details(
 pub fn independent_holdout_snapshot_body_class_coverage_summary(
 ) -> Option<IndependentHoldoutSnapshotBodyClassCoverageSummary> {
     independent_holdout_snapshot_body_class_coverage_summary_details()
-}
-
-/// Returns the release-facing body-class coverage summary string for the independent hold-out snapshot.
-pub fn independent_holdout_snapshot_body_class_coverage_summary_for_report() -> String {
-    match independent_holdout_snapshot_body_class_coverage_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => {
-                format!("Independent hold-out body-class coverage: unavailable ({error})")
-            }
-        },
-        None => "Independent hold-out body-class coverage: unavailable".to_string(),
-    }
 }
 
 /// A compact coverage summary for the independent hold-out corpus in mixed-scale
@@ -1419,78 +1125,6 @@ impl IndependentHoldoutSnapshotBatchParitySummary {
 
         Ok(())
     }
-
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, IndependentHoldoutSnapshotBatchParitySummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        let order = if self.parity_preserved {
-            "preserved"
-        } else {
-            "needs attention"
-        };
-        format!(
-            "JPL independent hold-out batch parity: {} requests across {} bodies ({}) and {} epochs ({}..{}); TT requests={}, TDB requests={}; quality counts: Exact={}, Interpolated={}, Approximate={}, Unknown={}; order={}, single-query parity={}",
-            self.snapshot.row_count,
-            self.snapshot.body_count,
-            if self.snapshot.bodies.is_empty() {
-                "none".to_string()
-            } else {
-                self.snapshot.bodies.join(", ")
-            },
-            self.snapshot.epoch_count,
-            format_instant(self.snapshot.earliest_epoch),
-            format_instant(self.snapshot.latest_epoch),
-            self.tt_request_count,
-            self.tdb_request_count,
-            self.exact_count,
-            self.interpolated_count,
-            self.approximate_count,
-            self.unknown_count,
-            order,
-            order,
-        )
-    }
-}
-
-impl fmt::Display for IndependentHoldoutSnapshotBatchParitySummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
-}
-
-/// Formats the independent hold-out mixed-scale batch parity summary for release-facing reporting.
-pub fn format_independent_holdout_snapshot_batch_parity_summary(
-    summary: &IndependentHoldoutSnapshotBatchParitySummary,
-) -> String {
-    summary.summary_line()
-}
-
-/// Returns the release-facing independent hold-out mixed-scale batch parity summary string.
-pub fn independent_holdout_snapshot_batch_parity_summary_for_report() -> String {
-    match independent_holdout_snapshot_batch_parity_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => format!("JPL independent hold-out batch parity: unavailable ({error})"),
-        },
-        None => "JPL independent hold-out batch parity: unavailable".to_string(),
-    }
-}
-
-/// Returns the validated release-facing independent hold-out mixed-scale batch parity summary string.
-pub fn validated_independent_holdout_snapshot_batch_parity_summary_for_report(
-) -> Result<String, String> {
-    let summary = independent_holdout_snapshot_batch_parity_summary()
-        .ok_or_else(|| "JPL independent hold-out batch parity: unavailable".to_string())?;
-    summary
-        .validated_summary_line()
-        .map_err(|error| error.to_string())
 }
 
 /// A compact coverage summary for the independent hold-out corpus in
@@ -1523,27 +1157,7 @@ pub fn independent_holdout_snapshot_equatorial_parity_summary(
     })
 }
 
-impl IndependentHoldoutSnapshotEquatorialParitySummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, IndependentHoldoutSnapshotEquatorialParitySummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "JPL independent hold-out equatorial parity: {} rows across {} bodies and {} epochs ({}..{}); mean-obliquity transform against the checked-in ecliptic fixture",
-            self.row_count,
-            self.body_count,
-            self.epoch_count,
-            format_instant(self.earliest_epoch),
-            format_instant(self.latest_epoch),
-        )
-    }
-}
+impl IndependentHoldoutSnapshotEquatorialParitySummary {}
 
 /// Structured validation errors for an independent hold-out equatorial parity summary.
 #[derive(Clone, Debug, PartialEq)]
@@ -1633,33 +1247,6 @@ impl IndependentHoldoutSnapshotEquatorialParitySummary {
         }
 
         Ok(())
-    }
-}
-
-impl fmt::Display for IndependentHoldoutSnapshotEquatorialParitySummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
-}
-
-/// Formats the checked-in independent hold-out equatorial parity summary for
-/// release-facing reporting.
-pub fn format_independent_holdout_snapshot_equatorial_parity_summary(
-    summary: &IndependentHoldoutSnapshotEquatorialParitySummary,
-) -> String {
-    summary.summary_line()
-}
-
-/// Returns the release-facing independent hold-out equatorial parity summary string.
-pub fn independent_holdout_snapshot_equatorial_parity_summary_for_report() -> String {
-    match independent_holdout_snapshot_equatorial_parity_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => {
-                format!("JPL independent hold-out equatorial parity: unavailable ({error})")
-            }
-        },
-        None => "JPL independent hold-out equatorial parity: unavailable".to_string(),
     }
 }
 
@@ -1817,22 +1404,6 @@ impl IndependentHoldoutSourceSummary {
         }
         Ok(())
     }
-
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "Independent hold-out source: {}; evidence class={}; coverage={}; columns={}; redistribution={}; checksum=0x{:016x}; {}; time scale={}",
-            self.source, self.evidence_class, self.coverage, self.columns, self.redistribution, self.checksum, self.frame_treatment, self.time_scale
-        )
-    }
-
-    /// Returns a compact summary line after validating the hold-out snapshot source summary.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, IndependentHoldoutSourceSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
 }
 
 /// Structured validation errors for a hold-out snapshot provenance summary.
@@ -1899,12 +1470,6 @@ impl fmt::Display for IndependentHoldoutSourceSummaryValidationError {
 
 impl std::error::Error for IndependentHoldoutSourceSummaryValidationError {}
 
-impl fmt::Display for IndependentHoldoutSourceSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
-}
-
 /// Returns the backend-owned provenance summary for the checked-in hold-out snapshot.
 pub fn independent_holdout_source_summary() -> IndependentHoldoutSourceSummary {
     static SUMMARY: OnceLock<IndependentHoldoutSourceSummary> = OnceLock::new();
@@ -1931,19 +1496,6 @@ pub fn independent_holdout_source_summary() -> IndependentHoldoutSourceSummary {
         .clone()
 }
 
-/// Returns the source-material summary for the checked-in hold-out snapshot.
-pub fn independent_holdout_source_summary_for_report() -> String {
-    if let Err(error) = independent_holdout_snapshot_manifest().validate() {
-        return format!("Independent hold-out source: unavailable ({error})");
-    }
-
-    let summary = independent_holdout_source_summary();
-    match summary.validated_summary_line() {
-        Ok(summary_line) => summary_line,
-        Err(error) => format!("Independent hold-out source: unavailable ({error})"),
-    }
-}
-
 /// Returns the manifest summary for the checked-in hold-out snapshot.
 pub fn independent_holdout_manifest_summary() -> SnapshotManifestSummary {
     SnapshotManifestSummary {
@@ -1951,44 +1503,6 @@ pub fn independent_holdout_manifest_summary() -> SnapshotManifestSummary {
         manifest: independent_holdout_snapshot_manifest().clone(),
         source_fallback: "unknown",
         coverage_fallback: "unknown",
-    }
-}
-
-/// Returns the manifest summary for the checked-in hold-out snapshot.
-pub fn independent_holdout_manifest_summary_for_report() -> String {
-    let manifest_text = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/data/independent_holdout_snapshot.csv"
-    ));
-    if let Err(error) = validate_snapshot_manifest_header_structure(
-        manifest_text,
-        "Independent JPL Horizons hold-out snapshot used only for interpolation validation.",
-        "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.",
-        "major-body samples are confined to the 1900-2100 window [JD 2415020.5, 2488069.5]; Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Mercury and Venus at 2451545, 2451915.25, and 2451915.75, plus Jupiter, Saturn, Uranus, Neptune, and Pluto at 2451545, plus Mars at 2451545, plus Sun at 2451545, 2451915.25, 2451915.75, and 2451915.5, plus Moon at 2451545, 2451915.25, 2451915.75, and 2451915.5, plus Mercury at 2451915.5, plus Venus at 2451915.5, plus major bodies at 2451915.5 for Sun through Pluto, plus selected asteroids at 2378498.5, 2451545, 2451915.5, 2451917.5, 2453000.5, 2500000, and 2634167; asteroid:99942-Apophis now also appears at 2378498.5 so the selected-asteroid hold-out bridge matches the reference slice; total slice size is 66 rows across 16 bodies and 12 epochs.",
-        Some("repository-checked regression fixtures, not a broad public corpus."),
-        &["epoch_jd", "body", "x_km", "y_km", "z_km"],
-    ) {
-        return format!("Independent hold-out manifest: unavailable ({error})");
-    }
-
-    let summary = independent_holdout_manifest_summary();
-    match summary.validate_with_expected_metadata(
-        "Independent JPL Horizons hold-out snapshot used only for interpolation validation.",
-        "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.",
-        "major-body samples are confined to the 1900-2100 window [JD 2415020.5, 2488069.5]; Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Mercury and Venus at 2451545, 2451915.25, and 2451915.75, plus Jupiter, Saturn, Uranus, Neptune, and Pluto at 2451545, plus Mars at 2451545, plus Sun at 2451545, 2451915.25, 2451915.75, and 2451915.5, plus Moon at 2451545, 2451915.25, 2451915.75, and 2451915.5, plus Mercury at 2451915.5, plus Venus at 2451915.5, plus major bodies at 2451915.5 for Sun through Pluto, plus selected asteroids at 2378498.5, 2451545, 2451915.5, 2451917.5, 2453000.5, 2500000, and 2634167; asteroid:99942-Apophis now also appears at 2378498.5 so the selected-asteroid hold-out bridge matches the reference slice; total slice size is 66 rows across 16 bodies and 12 epochs.",
-        &["epoch_jd", "body", "x_km", "y_km", "z_km"],
-    ) {
-        Ok(()) => match validate_snapshot_manifest_footprint(
-            "independent hold-out snapshot",
-            independent_holdout_snapshot_entries(),
-            66,
-            16,
-            12,
-        ) {
-            Ok(()) => summary.summary_line(),
-            Err(error) => format!("Independent hold-out manifest: unavailable ({error})"),
-        },
-        Err(error) => format!("Independent hold-out manifest: unavailable ({error})"),
     }
 }
 
@@ -2168,64 +1682,7 @@ pub fn jpl_independent_holdout_summary() -> Option<JplIndependentHoldoutSummary>
     })
 }
 
-impl JplIndependentHoldoutSummary {
-    /// Returns the compact release-facing independent hold-out summary line.
-    pub fn summary_line(&self) -> String {
-        fn format_body_epoch_suffix(body: &str, epoch: Instant) -> String {
-            if body.is_empty() {
-                String::new()
-            } else {
-                format!(" ({body} @ {})", format_instant(epoch))
-            }
-        }
-
-        format!(
-            "JPL independent hold-out: {} exact rows across {} bodies ({}) and {} epochs ({} → {}); max Δlon={:.12}°{}; mean Δlon={:.12}°; median Δlon={:.12}°; p95 Δlon={:.12}°; rms Δlon={:.12}°; max Δlat={:.12}°{}; mean Δlat={:.12}°; median Δlat={:.12}°; p95 Δlat={:.12}°; rms Δlat={:.12}°; max Δdist={:.12} AU{}; mean Δdist={:.12} AU; median Δdist={:.12} AU; p95 Δdist={:.12} AU; rms Δdist={:.12} AU; transparency evidence only, not a production tolerance envelope; independent JPL Horizons rows held out from the main snapshot corpus",
-            self.sample_count,
-            self.body_count,
-            if self.bodies.is_empty() {
-                "none".to_string()
-            } else {
-                self.bodies.join(", ")
-            },
-            self.epoch_count,
-            format_instant(self.earliest_epoch),
-            format_instant(self.latest_epoch),
-            self.max_longitude_error_deg,
-            format_body_epoch_suffix(&self.max_longitude_error_body, self.max_longitude_error_epoch),
-            self.mean_longitude_error_deg,
-            self.median_longitude_error_deg,
-            self.percentile_longitude_error_deg,
-            self.rms_longitude_error_deg,
-            self.max_latitude_error_deg,
-            format_body_epoch_suffix(&self.max_latitude_error_body, self.max_latitude_error_epoch),
-            self.mean_latitude_error_deg,
-            self.median_latitude_error_deg,
-            self.percentile_latitude_error_deg,
-            self.rms_latitude_error_deg,
-            self.max_distance_error_au,
-            format_body_epoch_suffix(&self.max_distance_error_body, self.max_distance_error_epoch),
-            self.mean_distance_error_au,
-            self.median_distance_error_au,
-            self.percentile_distance_error_au,
-            self.rms_distance_error_au,
-        )
-    }
-
-    /// Returns the validated compact hold-out summary line.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, JplInterpolationQualitySummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for JplIndependentHoldoutSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
-}
+impl JplIndependentHoldoutSummary {}
 
 impl JplIndependentHoldoutSummary {
     /// Validates that the hold-out summary remains internally consistent and still matches the derived evidence.
@@ -2330,24 +1787,56 @@ impl JplIndependentHoldoutSummary {
     }
 }
 
-/// Formats the independent hold-out summary for release-facing reporting.
-pub fn format_jpl_independent_holdout_summary(summary: &JplIndependentHoldoutSummary) -> String {
-    match summary.validated_summary_line() {
-        Ok(rendered) => rendered,
-        Err(error) => format!("JPL independent hold-out: unavailable ({error})"),
-    }
-}
-
-/// Returns the release-facing independent hold-out interpolation summary string.
-pub fn jpl_independent_holdout_summary_for_report() -> String {
-    match jpl_independent_holdout_summary() {
-        Some(summary) => format_jpl_independent_holdout_summary(&summary),
-        None => match independent_holdout_snapshot_error() {
-            Some(error) => format!("JPL independent hold-out: unavailable ({error})"),
-            None => "JPL independent hold-out: unavailable".to_string(),
-        },
-    }
-}
-
 #[cfg(test)]
 mod tests;
+
+impl IndependentHoldoutSourceSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "Independent hold-out source: {}; evidence class={}; coverage={}; columns={}; redistribution={}; checksum=0x{:016x}; {}; time scale={}",
+            self.source, self.evidence_class, self.coverage, self.columns, self.redistribution, self.checksum, self.frame_treatment, self.time_scale
+        )
+    }
+}
+
+impl IndependentHoldoutSnapshotBodyClassCoverageSummary {
+    /// Returns a compact body-class summary used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        let windows = self
+            .windows
+            .iter()
+            .map(IndependentHoldoutSnapshotSourceWindow::summary_line)
+            .collect::<Vec<_>>()
+            .join("; ");
+
+        format!(
+            "Independent hold-out body-class coverage: {} rows across {} bodies and {} epochs; bodies: {}; windows: {}",
+            self.row_count,
+            self.bodies.len(),
+            self.epoch_count,
+            format_bodies(&self.bodies),
+            windows,
+        )
+    }
+}
+
+impl IndependentHoldoutSnapshotSourceWindow {
+    /// Returns a compact body-window summary used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        let time_span = if self.earliest_epoch == self.latest_epoch {
+            format_instant(self.earliest_epoch)
+        } else {
+            format!(
+                "{}..{}",
+                format_instant(self.earliest_epoch),
+                format_instant(self.latest_epoch)
+            )
+        };
+
+        format!(
+            "{}: {} samples across {} epochs at {}",
+            self.body, self.sample_count, self.epoch_count, time_span
+        )
+    }
+}

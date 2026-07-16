@@ -6,9 +6,6 @@ use pleiades_types::CoordinateFrame;
 
 use crate::*;
 
-pub(crate) const PRODUCTION_GENERATION_BOUNDARY_COVERAGE: &str =
-    "major-body samples are confined to the 1900-2100 window [JD 2415020.5, 2488069.5]; Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Mercury and Venus at 2451545, 2451915.25, and 2451915.75, plus Jupiter, Saturn, Uranus, Neptune, and Pluto at 2451545, plus Mars at 2451545, plus Sun at 2451545, 2451915.25, 2451915.75, and 2451915.5, plus Moon at 2451545, 2451915.25, 2451915.75, and 2451915.5, plus Mercury at 2451915.5, plus Venus at 2451915.5, plus major bodies at 2451915.5 for Sun through Pluto, plus selected asteroids at 2378498.5, 2451545, 2451915.5, 2451917.5, 2453000.5, 2500000, and 2634167; asteroid:99942-Apophis now also appears at 2378498.5 so the selected-asteroid hold-out bridge matches the reference slice; total slice size is 66 rows across 16 bodies and 12 epochs.";
-
 pub(crate) const PRODUCTION_GENERATION_QUARTER_DAY_EPOCHS: [f64; 2] = [2_451_915.25, 2_451_915.75];
 pub(crate) fn production_generation_boundary_entries() -> Option<&'static [SnapshotEntry]> {
     static ENTRIES: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
@@ -355,33 +352,6 @@ impl ProductionGenerationBoundarySummary {
 
         Ok(())
     }
-
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "Production generation boundary overlay: {} rows across {} bodies and {} epochs ({}..{}); bodies: {}",
-            self.row_count,
-            self.body_count,
-            self.epoch_count,
-            format_instant(self.earliest_epoch),
-            format_instant(self.latest_epoch),
-            format_bodies(self.bodies),
-        )
-    }
-
-    /// Returns a compact summary line after validating the boundary overlay summary.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, ProductionGenerationBoundarySummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for ProductionGenerationBoundarySummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
 }
 
 /// Returns a compact coverage summary for the production-generation boundary overlay.
@@ -415,80 +385,10 @@ pub fn production_generation_boundary_summary() -> Option<ProductionGenerationBo
     }))
 }
 
-/// Formats the production-generation boundary overlay for release-facing reporting.
-pub fn format_production_generation_boundary_summary(
-    summary: &ProductionGenerationBoundarySummary,
-) -> String {
-    summary.summary_line()
-}
-
-/// Returns the release-facing production-generation boundary overlay summary string.
-pub fn production_generation_boundary_summary_for_report() -> String {
-    match production_generation_boundary_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => format!("Production generation boundary overlay: unavailable ({error})"),
-        },
-        None => "Production generation boundary overlay: unavailable".to_string(),
-    }
-}
-
 /// Returns the provenance summary shared by the production-generation boundary overlay.
 #[doc(alias = "independent_holdout_source_summary")]
 pub fn production_generation_boundary_source_summary() -> IndependentHoldoutSourceSummary {
     independent_holdout_source_summary()
-}
-
-/// Formats the provenance summary for the production-generation boundary overlay.
-pub fn format_production_generation_boundary_source_summary(
-    summary: &IndependentHoldoutSourceSummary,
-) -> String {
-    format!(
-        "Production generation boundary overlay source: {}; evidence class={}; coverage={}; columns={}; redistribution={}; checksum=0x{:016x}; {}; time scale={}",
-        summary.source,
-        summary.evidence_class,
-        summary.coverage,
-        summary.columns,
-        summary.redistribution,
-        independent_holdout_snapshot_checksum(),
-        summary.frame_treatment,
-        summary.time_scale,
-    )
-}
-
-fn independent_holdout_snapshot_checksum() -> u64 {
-    static CHECKSUM: OnceLock<u64> = OnceLock::new();
-    *CHECKSUM.get_or_init(|| {
-        fnv1a64(
-            include_str!(concat!(
-                env!("CARGO_MANIFEST_DIR"),
-                "/data/independent_holdout_snapshot.csv"
-            ))
-            .as_bytes(),
-        )
-    })
-}
-
-fn fnv1a64(bytes: &[u8]) -> u64 {
-    const OFFSET_BASIS: u64 = 0xcbf29ce484222325;
-    const PRIME: u64 = 0x100000001b3;
-    let mut hash = OFFSET_BASIS;
-    for &byte in bytes {
-        hash ^= byte as u64;
-        hash = hash.wrapping_mul(PRIME);
-    }
-    hash
-}
-
-/// Returns the release-facing provenance summary string for the production-generation boundary overlay.
-pub fn production_generation_boundary_source_summary_for_report() -> String {
-    let summary = production_generation_boundary_source_summary();
-    match summary.validate() {
-        Ok(()) => format_production_generation_boundary_source_summary(&summary),
-        Err(error) => {
-            format!("Production generation boundary overlay source: unavailable ({error})")
-        }
-    }
 }
 
 /// A single body-window slice inside the production-generation boundary overlay.
@@ -506,25 +406,7 @@ pub struct ProductionGenerationBoundaryWindow {
     pub latest_epoch: Instant,
 }
 
-impl ProductionGenerationBoundaryWindow {
-    /// Returns a compact body-window summary used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        let time_span = if self.earliest_epoch == self.latest_epoch {
-            format_instant(self.earliest_epoch)
-        } else {
-            format!(
-                "{}..{}",
-                format_instant(self.earliest_epoch),
-                format_instant(self.latest_epoch)
-            )
-        };
-
-        format!(
-            "{}: {} samples across {} epochs at {}",
-            self.body, self.sample_count, self.epoch_count, time_span
-        )
-    }
-}
+impl ProductionGenerationBoundaryWindow {}
 
 /// Compact release-facing summary for the production-generation boundary windows.
 #[derive(Clone, Debug, PartialEq)]
@@ -564,25 +446,6 @@ impl fmt::Display for ProductionGenerationBoundaryWindowSummaryValidationError {
 impl std::error::Error for ProductionGenerationBoundaryWindowSummaryValidationError {}
 
 impl ProductionGenerationBoundaryWindowSummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        let window_summary = self
-            .windows
-            .iter()
-            .map(ProductionGenerationBoundaryWindow::summary_line)
-            .collect::<Vec<_>>()
-            .join("; ");
-        format!(
-            "Production generation boundary windows: {} source-backed samples across {} bodies and {} epochs ({}..{}); windows: {}",
-            self.sample_count,
-            self.sample_bodies.len(),
-            self.epoch_count,
-            format_instant(self.earliest_epoch),
-            format_instant(self.latest_epoch),
-            window_summary,
-        )
-    }
-
     /// Returns `Ok(())` when the summary still matches the checked-in boundary window slice.
     pub fn validate(&self) -> Result<(), ProductionGenerationBoundaryWindowSummaryValidationError> {
         let Some(expected) = production_generation_boundary_window_summary_details() else {
@@ -598,20 +461,6 @@ impl ProductionGenerationBoundaryWindowSummary {
         }
 
         Ok(())
-    }
-
-    /// Returns the validated summary line.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, ProductionGenerationBoundaryWindowSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for ProductionGenerationBoundaryWindowSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
     }
 }
 
@@ -693,17 +542,6 @@ pub fn production_generation_boundary_window_summary(
     )
 }
 
-/// Returns the release-facing production-generation boundary window summary string.
-pub fn production_generation_boundary_window_summary_for_report() -> String {
-    match production_generation_boundary_window_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => format!("Production generation boundary windows: unavailable ({error})"),
-        },
-        None => "Production generation boundary windows: unavailable".to_string(),
-    }
-}
-
 /// A compact body-class coverage summary for the production-generation boundary overlay used by validation and generation tooling.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ProductionGenerationBoundaryBodyClassCoverageSummary {
@@ -751,34 +589,6 @@ impl fmt::Display for ProductionGenerationBoundaryBodyClassCoverageSummaryValida
 impl std::error::Error for ProductionGenerationBoundaryBodyClassCoverageSummaryValidationError {}
 
 impl ProductionGenerationBoundaryBodyClassCoverageSummary {
-    /// Returns a compact body-class summary used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        let major_windows = self
-            .major_windows
-            .iter()
-            .map(ProductionGenerationBoundaryWindow::summary_line)
-            .collect::<Vec<_>>()
-            .join("; ");
-        let asteroid_windows = self
-            .asteroid_windows
-            .iter()
-            .map(ProductionGenerationBoundaryWindow::summary_line)
-            .collect::<Vec<_>>()
-            .join("; ");
-
-        format!(
-            "Production generation boundary body-class coverage: major bodies: {} rows across {} bodies and {} epochs; major windows: {}; selected asteroids: {} rows across {} bodies and {} epochs; asteroid windows: {}",
-            self.major_body_row_count,
-            self.major_bodies.len(),
-            self.major_epoch_count,
-            major_windows,
-            self.asteroid_row_count,
-            self.asteroid_bodies.len(),
-            self.asteroid_epoch_count,
-            asteroid_windows,
-        )
-    }
-
     /// Returns `Ok(())` when the body-class coverage summary still matches the checked-in slice.
     pub fn validate(
         &self,
@@ -801,20 +611,6 @@ impl ProductionGenerationBoundaryBodyClassCoverageSummary {
         }
 
         Ok(())
-    }
-
-    /// Returns the validated body-class coverage summary line.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, ProductionGenerationBoundaryBodyClassCoverageSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for ProductionGenerationBoundaryBodyClassCoverageSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
     }
 }
 
@@ -878,19 +674,6 @@ fn production_generation_boundary_body_class_coverage_summary_details(
 pub fn production_generation_boundary_body_class_coverage_summary(
 ) -> Option<ProductionGenerationBoundaryBodyClassCoverageSummary> {
     production_generation_boundary_body_class_coverage_summary_details()
-}
-
-/// Returns the release-facing body-class coverage summary string for the production-generation boundary overlay.
-pub fn production_generation_boundary_body_class_coverage_summary_for_report() -> String {
-    match production_generation_boundary_body_class_coverage_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => {
-                format!("Production generation boundary body-class coverage: unavailable ({error})")
-            }
-        },
-        None => "Production generation boundary body-class coverage: unavailable".to_string(),
-    }
 }
 
 /// A compact coverage summary for the production-generation boundary request corpus.
@@ -987,23 +770,6 @@ impl fmt::Display for ProductionGenerationBoundaryRequestCorpusSummaryValidation
 impl std::error::Error for ProductionGenerationBoundaryRequestCorpusSummaryValidationError {}
 
 impl ProductionGenerationBoundaryRequestCorpusSummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "Production generation boundary request corpus: {} requests (frame={}; time scale={}; zodiac mode={}; apparentness={}; observerless) across {} bodies and {} epochs ({}..{}); bodies: {}",
-            self.request_count,
-            self.frame,
-            self.time_scale,
-            self.zodiac_mode,
-            self.apparentness,
-            self.body_count,
-            self.epoch_count,
-            format_instant(self.earliest_epoch),
-            format_instant(self.latest_epoch),
-            format_bodies(&self.bodies),
-        )
-    }
-
     /// Returns `Ok(())` when the summary still matches the current boundary request corpus.
     pub fn validate(
         &self,
@@ -1091,20 +857,6 @@ impl ProductionGenerationBoundaryRequestCorpusSummary {
 
         Ok(())
     }
-
-    /// Returns the compact summary line after validating the current request corpus.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, ProductionGenerationBoundaryRequestCorpusSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for ProductionGenerationBoundaryRequestCorpusSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
 }
 
 fn production_generation_boundary_request_corpus_summary_details(
@@ -1180,48 +932,42 @@ pub fn production_generation_boundary_request_corpus_summary(
     }
 }
 
-/// Formats the production-generation boundary request corpus for release-facing reporting.
-pub fn format_production_generation_boundary_request_corpus_summary(
-    summary: &ProductionGenerationBoundaryRequestCorpusSummary,
+/// Formats the provenance summary for the production-generation boundary overlay.
+pub fn format_production_generation_boundary_source_summary(
+    summary: &IndependentHoldoutSourceSummary,
 ) -> String {
-    summary.summary_line()
-}
-
-/// Returns the validated release-facing production-generation boundary request corpus summary string.
-fn validated_production_generation_boundary_request_corpus_summary_for_frame(
-    frame: CoordinateFrame,
-) -> Result<String, String> {
-    let summary = production_generation_boundary_request_corpus_summary(frame)
-        .ok_or_else(|| "production generation boundary request corpus unavailable".to_string())?;
-    summary
-        .validated_summary_line()
-        .map_err(|error| error.to_string())
-}
-
-/// Returns the release-facing production-generation boundary request corpus summary string.
-pub fn production_generation_boundary_request_corpus_summary_for_report() -> String {
-    validated_production_generation_boundary_request_corpus_summary_for_frame(
-        CoordinateFrame::Ecliptic,
+    format!(
+        "Production generation boundary overlay source: {}; evidence class={}; coverage={}; columns={}; redistribution={}; checksum=0x{:016x}; {}; time scale={}",
+        summary.source,
+        summary.evidence_class,
+        summary.coverage,
+        summary.columns,
+        summary.redistribution,
+        independent_holdout_snapshot_checksum(),
+        summary.frame_treatment,
+        summary.time_scale,
     )
-    .unwrap_or_else(|error| {
-        format!("Production generation boundary request corpus: unavailable ({error})")
+}
+
+fn independent_holdout_snapshot_checksum() -> u64 {
+    static CHECKSUM: OnceLock<u64> = OnceLock::new();
+    *CHECKSUM.get_or_init(|| {
+        fnv1a64(
+            include_str!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/data/independent_holdout_snapshot.csv"
+            ))
+            .as_bytes(),
+        )
     })
 }
-
-/// Returns the release-facing equatorial production-generation boundary request corpus summary string.
-pub fn production_generation_boundary_request_corpus_equatorial_summary_for_report() -> String {
-    validated_production_generation_boundary_request_corpus_summary_for_frame(
-        CoordinateFrame::Equatorial,
-    )
-    .unwrap_or_else(|error| {
-        format!("Production generation boundary request corpus: unavailable ({error})")
-    })
-}
-
-/// Returns the validated release-facing equatorial production-generation boundary request corpus summary string.
-pub fn validated_production_generation_boundary_request_corpus_equatorial_summary_for_report(
-) -> Result<String, String> {
-    validated_production_generation_boundary_request_corpus_summary_for_frame(
-        CoordinateFrame::Equatorial,
-    )
+fn fnv1a64(bytes: &[u8]) -> u64 {
+    const OFFSET_BASIS: u64 = 0xcbf29ce484222325;
+    const PRIME: u64 = 0x100000001b3;
+    let mut hash = OFFSET_BASIS;
+    for &byte in bytes {
+        hash ^= byte as u64;
+        hash = hash.wrapping_mul(PRIME);
+    }
+    hash
 }

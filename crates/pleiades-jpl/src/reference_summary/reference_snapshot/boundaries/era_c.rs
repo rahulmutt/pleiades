@@ -71,16 +71,6 @@ impl fmt::Display for Reference2453000MajorBodyBoundarySummaryValidationError {
 impl std::error::Error for Reference2453000MajorBodyBoundarySummaryValidationError {}
 
 impl Reference2453000MajorBodyBoundarySummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "Reference 2453000 major-body boundary evidence: {} exact samples at {} ({}); 2453000.5 boundary sample",
-            self.sample_count,
-            format_instant(self.epoch),
-            format_bodies(&self.sample_bodies),
-        )
-    }
-
     /// Returns `Ok(())` when the summary still matches the current evidence slice.
     pub fn validate(&self) -> Result<(), Reference2453000MajorBodyBoundarySummaryValidationError> {
         let evidence = reference_snapshot_2453000_major_body_boundary_entries()
@@ -135,20 +125,6 @@ impl Reference2453000MajorBodyBoundarySummary {
         }
 
         Ok(())
-    }
-
-    /// Returns the compact summary line after validating the current evidence slice.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, Reference2453000MajorBodyBoundarySummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for Reference2453000MajorBodyBoundarySummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
     }
 }
 
@@ -225,16 +201,6 @@ impl fmt::Display for Reference2451545MajorBodyBoundarySummaryValidationError {
 impl std::error::Error for Reference2451545MajorBodyBoundarySummaryValidationError {}
 
 impl Reference2451545MajorBodyBoundarySummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "Reference 2451545 major-body boundary evidence: {} exact samples at {} ({}); J2000 reference sample",
-            self.sample_count,
-            format_instant(self.epoch),
-            format_bodies(&self.sample_bodies),
-        )
-    }
-
     /// Returns `Ok(())` when the summary still matches the current evidence slice.
     pub fn validate(&self) -> Result<(), Reference2451545MajorBodyBoundarySummaryValidationError> {
         let evidence = reference_snapshot_2451545_major_body_boundary_entries()
@@ -289,20 +255,6 @@ impl Reference2451545MajorBodyBoundarySummary {
         }
 
         Ok(())
-    }
-
-    /// Returns the compact summary line after validating the current evidence slice.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, Reference2451545MajorBodyBoundarySummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for Reference2451545MajorBodyBoundarySummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
     }
 }
 
@@ -379,16 +331,6 @@ impl fmt::Display for Reference2451910MajorBodyBoundarySummaryValidationError {
 impl std::error::Error for Reference2451910MajorBodyBoundarySummaryValidationError {}
 
 impl Reference2451910MajorBodyBoundarySummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "Reference 2451910 major-body boundary evidence: {} exact samples at {} ({}); 2001-01-01 boundary sample",
-            self.sample_count,
-            format_instant(self.epoch),
-            format_bodies(&self.sample_bodies),
-        )
-    }
-
     /// Returns `Ok(())` when the summary still matches the current evidence slice.
     pub fn validate(&self) -> Result<(), Reference2451910MajorBodyBoundarySummaryValidationError> {
         let evidence = reference_snapshot_2451910_major_body_boundary_entries()
@@ -443,20 +385,6 @@ impl Reference2451910MajorBodyBoundarySummary {
         }
 
         Ok(())
-    }
-
-    /// Returns the compact summary line after validating the current evidence slice.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, Reference2451910MajorBodyBoundarySummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for Reference2451910MajorBodyBoundarySummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
     }
 }
 
@@ -533,16 +461,6 @@ impl fmt::Display for Reference2451911MajorBodyBoundarySummaryValidationError {
 impl std::error::Error for Reference2451911MajorBodyBoundarySummaryValidationError {}
 
 impl Reference2451911MajorBodyBoundarySummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "Reference 2451911 major-body boundary evidence: {} exact samples at {} ({}); 2001-01-02 boundary sample",
-            self.sample_count,
-            format_instant(self.epoch),
-            format_bodies(&self.sample_bodies),
-        )
-    }
-
     /// Returns `Ok(())` when the summary still matches the current evidence slice.
     pub fn validate(&self) -> Result<(), Reference2451911MajorBodyBoundarySummaryValidationError> {
         let evidence = reference_snapshot_2451911_major_body_boundary_entries()
@@ -597,20 +515,6 @@ impl Reference2451911MajorBodyBoundarySummary {
         }
 
         Ok(())
-    }
-
-    /// Returns the compact summary line after validating the current evidence slice.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, Reference2451911MajorBodyBoundarySummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for Reference2451911MajorBodyBoundarySummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
     }
 }
 
@@ -687,16 +591,6 @@ impl fmt::Display for Reference2451912MajorBodyBoundarySummaryValidationError {
 impl std::error::Error for Reference2451912MajorBodyBoundarySummaryValidationError {}
 
 impl Reference2451912MajorBodyBoundarySummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "Reference 2451912 major-body boundary evidence: {} exact samples at {} ({}); 2001-01-03 boundary sample",
-            self.sample_count,
-            format_instant(self.epoch),
-            format_bodies(&self.sample_bodies),
-        )
-    }
-
     /// Returns `Ok(())` when the summary still matches the current evidence slice.
     pub fn validate(&self) -> Result<(), Reference2451912MajorBodyBoundarySummaryValidationError> {
         let evidence = reference_snapshot_2451912_major_body_boundary_entries()
@@ -751,20 +645,6 @@ impl Reference2451912MajorBodyBoundarySummary {
         }
 
         Ok(())
-    }
-
-    /// Returns the compact summary line after validating the current evidence slice.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, Reference2451912MajorBodyBoundarySummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for Reference2451912MajorBodyBoundarySummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
     }
 }
 
@@ -841,16 +721,6 @@ impl fmt::Display for Reference2451913MajorBodyBoundarySummaryValidationError {
 impl std::error::Error for Reference2451913MajorBodyBoundarySummaryValidationError {}
 
 impl Reference2451913MajorBodyBoundarySummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "Reference 2451913 major-body boundary evidence: {} exact samples at {} ({}); 2001-01-04 boundary sample",
-            self.sample_count,
-            format_instant(self.epoch),
-            format_bodies(&self.sample_bodies),
-        )
-    }
-
     /// Returns `Ok(())` when the summary still matches the current evidence slice.
     pub fn validate(&self) -> Result<(), Reference2451913MajorBodyBoundarySummaryValidationError> {
         let evidence = reference_snapshot_2451913_major_body_boundary_entries()
@@ -905,20 +775,6 @@ impl Reference2451913MajorBodyBoundarySummary {
         }
 
         Ok(())
-    }
-
-    /// Returns the compact summary line after validating the current evidence slice.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, Reference2451913MajorBodyBoundarySummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for Reference2451913MajorBodyBoundarySummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
     }
 }
 
@@ -995,16 +851,6 @@ impl fmt::Display for Reference2451914MajorBodyBoundarySummaryValidationError {
 impl std::error::Error for Reference2451914MajorBodyBoundarySummaryValidationError {}
 
 impl Reference2451914MajorBodyBoundarySummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "Reference 2451914 major-body boundary evidence: {} exact samples at {} ({}); 2001-01-05 boundary sample",
-            self.sample_count,
-            format_instant(self.epoch),
-            format_bodies(&self.sample_bodies),
-        )
-    }
-
     /// Returns `Ok(())` when the summary still matches the current evidence slice.
     pub fn validate(&self) -> Result<(), Reference2451914MajorBodyBoundarySummaryValidationError> {
         let evidence = reference_snapshot_2451914_major_body_boundary_entries()
@@ -1059,20 +905,6 @@ impl Reference2451914MajorBodyBoundarySummary {
         }
 
         Ok(())
-    }
-
-    /// Returns the compact summary line after validating the current evidence slice.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, Reference2451914MajorBodyBoundarySummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for Reference2451914MajorBodyBoundarySummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
     }
 }
 
@@ -1149,16 +981,6 @@ impl fmt::Display for Reference2451915MajorBodyBoundarySummaryValidationError {
 impl std::error::Error for Reference2451915MajorBodyBoundarySummaryValidationError {}
 
 impl Reference2451915MajorBodyBoundarySummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "Reference 2451915 major-body boundary evidence: {} exact samples at {} ({}); 2001-01-06 boundary sample",
-            self.sample_count,
-            format_instant(self.epoch),
-            format_bodies(&self.sample_bodies),
-        )
-    }
-
     /// Returns `Ok(())` when the summary still matches the current evidence slice.
     pub fn validate(&self) -> Result<(), Reference2451915MajorBodyBoundarySummaryValidationError> {
         let evidence = reference_snapshot_2451915_major_body_boundary_entries()
@@ -1213,20 +1035,6 @@ impl Reference2451915MajorBodyBoundarySummary {
         }
 
         Ok(())
-    }
-
-    /// Returns the compact summary line after validating the current evidence slice.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, Reference2451915MajorBodyBoundarySummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for Reference2451915MajorBodyBoundarySummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
     }
 }
 
@@ -1303,16 +1111,6 @@ impl fmt::Display for Reference2451917MajorBodyBridgeSummaryValidationError {
 impl std::error::Error for Reference2451917MajorBodyBridgeSummaryValidationError {}
 
 impl Reference2451917MajorBodyBridgeSummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "Reference 2451917 major-body bridge evidence: {} exact samples at {} ({}); bridge sample across the major-body boundary window",
-            self.sample_count,
-            format_instant(self.epoch),
-            format_bodies(&self.sample_bodies),
-        )
-    }
-
     /// Returns `Ok(())` when the summary still matches the current evidence slice.
     pub fn validate(&self) -> Result<(), Reference2451917MajorBodyBridgeSummaryValidationError> {
         let evidence = reference_snapshot_2451917_major_body_bridge_entries()
@@ -1367,20 +1165,6 @@ impl Reference2451917MajorBodyBridgeSummary {
         }
 
         Ok(())
-    }
-
-    /// Returns the compact summary line after validating the current evidence slice.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, Reference2451917MajorBodyBridgeSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for Reference2451917MajorBodyBridgeSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
     }
 }
 

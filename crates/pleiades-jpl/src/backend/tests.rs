@@ -82,10 +82,6 @@ fn snapshot_manifest_validation_reports_missing_required_metadata() {
         SnapshotManifestValidationError::BlankRedistribution.to_string(),
         "blank redistribution"
     );
-    assert_eq!(
-            manifest.summary_line("Example manifest"),
-            "Example manifest: Example snapshot.; source=Example source; coverage=unknown; columns=body"
-        );
 
     let manifest = SnapshotManifest {
         title: Some(" Example snapshot.".to_string()),
@@ -188,10 +184,6 @@ fn parsed_manifest_preserves_blank_coverage_for_validation() {
         manifest.validate(),
         Err(SnapshotManifestValidationError::BlankCoverage)
     );
-    assert_eq!(
-            manifest.summary_line("Example manifest"),
-            "Example manifest: Example snapshot.; source=Example source; coverage=unknown; columns=body"
-        );
 }
 
 #[test]
@@ -382,10 +374,6 @@ fn parsed_manifest_preserves_blank_columns_for_validation() {
         manifest.validate(),
         Err(SnapshotManifestValidationError::BlankColumn { index: 1 })
     );
-    assert_eq!(
-            manifest.summary_line("Example manifest"),
-            "Example manifest: Example snapshot.; source=Example source; coverage=unknown; columns=body, , x_km"
-        );
 }
 
 #[test]
@@ -405,60 +393,9 @@ fn parsed_manifest_preserves_duplicate_columns_for_validation() {
             name: "body".to_string(),
         })
     );
-    assert_eq!(
-            manifest.summary_line("Example manifest"),
-            "Example manifest: Example snapshot.; source=Example source; coverage=unknown; columns=body, x_km, body"
-        );
 }
-
-#[test]
-fn manifest_summary_validated_summary_line_returns_the_rendered_line() {
-    let summary = SnapshotManifestSummary {
-        label: "Example manifest",
-        manifest: SnapshotManifest {
-            title: Some("Example snapshot.".to_string()),
-            source: Some("Example source".to_string()),
-            coverage: Some("Example coverage".to_string()),
-            redistribution: None,
-            columns: vec!["body".to_string(), "x_km".to_string()],
-        },
-        source_fallback: "unknown",
-        coverage_fallback: "unknown",
-    };
-
-    assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
-    assert_eq!(summary.to_string(), summary.summary_line());
-}
-
 #[test]
 fn manifest_summary_validated_summary_line_rejects_columns_drift() {
-    let summary = SnapshotManifestSummary {
-        label: "Reference snapshot manifest",
-        manifest: SnapshotManifest {
-            title: Some("Reference snapshot.".to_string()),
-            source: Some("NASA/JPL Horizons API".to_string()),
-            coverage: Some("Example coverage".to_string()),
-            redistribution: None,
-            columns: vec![
-                "body".to_string(),
-                "x_km".to_string(),
-                "y_km".to_string(),
-                "z_km".to_string(),
-            ],
-        },
-        source_fallback: "unknown",
-        coverage_fallback: "unknown",
-    };
-
-    assert_eq!(
-        summary.validated_summary_line_with_expected_columns(&[
-            "epoch_jd", "body", "x_km", "y_km", "z_km",
-        ]),
-        Err(SnapshotManifestSummaryValidationError::ColumnsMismatch {
-            expected: "epoch_jd, body, x_km, y_km, z_km".to_string(),
-            found: "body, x_km, y_km, z_km".to_string(),
-        })
-    );
     assert_eq!(
             SnapshotManifestSummaryValidationError::ColumnsMismatch {
                 expected: "epoch_jd, body, x_km, y_km, z_km".to_string(),
@@ -468,41 +405,6 @@ fn manifest_summary_validated_summary_line_rejects_columns_drift() {
             "column schema mismatch: expected epoch_jd, body, x_km, y_km, z_km but found body, x_km, y_km, z_km"
         );
 }
-
-#[test]
-fn manifest_summary_for_report_reports_validation_errors() {
-    let manifest = SnapshotManifest {
-        title: Some("Example snapshot.".to_string()),
-        source: Some("Example source".to_string()),
-        coverage: Some("".to_string()),
-        redistribution: None,
-        columns: vec!["body".to_string()],
-    };
-
-    assert_eq!(
-        format_manifest_summary_for_report("Example manifest", &manifest),
-        "Example manifest: unavailable (blank coverage)"
-    );
-}
-
-#[test]
-fn validated_source_summary_for_report_reports_validation_errors() {
-    let manifest = SnapshotManifest {
-        title: Some("Example snapshot.".to_string()),
-        source: None,
-        coverage: Some("Example coverage".to_string()),
-        redistribution: None,
-        columns: vec!["body".to_string()],
-    };
-
-    assert_eq!(
-        format_validated_source_summary_for_report("Example snapshot source", &manifest, || {
-            "should not render".to_string()
-        },),
-        "Example snapshot source: unavailable (missing source)"
-    );
-}
-
 #[test]
 fn batch_query_preserves_reference_snapshot_order_and_equatorial_values() {
     let backend = JplSnapshotBackend;
@@ -663,14 +565,6 @@ fn snapshot_manifest_summary_line_uses_provided_defaults() {
         ..Default::default()
     };
 
-    assert_eq!(
-            manifest.summary_line_with_defaults(
-                "Example manifest",
-                "example source",
-                "example coverage",
-            ),
-            "Example manifest: Example manifest.; source=example source; coverage=example coverage; columns=none"
-        );
     assert_eq!(manifest.source_or("fallback source"), "fallback source");
     assert_eq!(
         manifest.coverage_or("fallback coverage"),

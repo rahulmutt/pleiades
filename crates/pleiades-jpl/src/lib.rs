@@ -31,8 +31,7 @@ use pleiades_types::{
 
 mod data;
 pub use data::{
-    selected_asteroid_source_2378498_summary, selected_asteroid_source_2378498_summary_for_report,
-    selected_asteroid_source_2451917_summary, selected_asteroid_source_2451917_summary_for_report,
+    selected_asteroid_source_2378498_summary, selected_asteroid_source_2451917_summary,
     SelectedAsteroidSource2378498Summary, SelectedAsteroidSource2451917Summary,
 };
 
@@ -40,8 +39,7 @@ mod production_generation;
 pub use production_generation::*;
 use production_generation::{
     production_generation_boundary_entries, production_generation_snapshot_bodies,
-    production_generation_snapshot_body_list, PRODUCTION_GENERATION_BOUNDARY_COVERAGE,
-    PRODUCTION_GENERATION_QUARTER_DAY_EPOCHS,
+    production_generation_snapshot_body_list, PRODUCTION_GENERATION_QUARTER_DAY_EPOCHS,
 };
 
 const REFERENCE_EPOCH_JD: f64 = 2_451_545.0;
@@ -61,8 +59,6 @@ pub use spk::{
     build_manifest, generate_corpus_csv, generate_slice, regenerate_holdout_slice_csv,
     CorpusRequest, GeneratedSlice, SpkBackend, SpkBackendBuilder, SpkError, SpkErrorKind,
 };
-
-use reference_summary::format_bodies;
 
 fn format_instant(instant: Instant) -> String {
     format!("JD {:.1} ({})", instant.julian_day.days(), instant.scale)
