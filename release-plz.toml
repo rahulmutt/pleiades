@@ -11,7 +11,7 @@ dependencies_update = false
 
 # Unified versioning: every publishable crate shares one version_group, so the
 # whole workspace bumps lock-step (matching version.workspace inheritance and the
-# retired release.toml shared-version behavior). The 3 publish=false crates are
+# retired release.toml shared-version behavior). The 2 publish=false crates are
 # skipped automatically and need no entry.
 [[package]]
 name = "pleiades-types"
@@ -67,4 +67,12 @@ version_group = "pleiades"
 
 [[package]]
 name = "pleiades-core"
+version_group = "pleiades"
+
+[[package]]
+name = "pleiades-events"
+version_group = "pleiades"
+
+[[package]]
+name = "pleiades-fict"
 version_group = "pleiades"
