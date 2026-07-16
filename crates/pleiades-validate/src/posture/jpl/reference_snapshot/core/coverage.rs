@@ -11,9 +11,10 @@
 //! renders a `ReferenceHighCurvatureEpochCoverageSummary`, whose struct and
 //! inherent rendering live in
 //! `reference_summary/reference_snapshot/boundaries/era_d.rs` (Slice D Task
-//! 9, not yet copied) — its `validated_summary_line()` call is left on jpl's
-//! still-present method (validate→jpl, byte-identical; Task 13 flips it once
-//! Task 9 lands). Likewise, the body-class coverage renderer's nested
+//! 9, already copied); its `validated_summary_line()` call is rewired to
+//! `match summary.validate() { Ok(()) => <local render>, ... }`, calling the
+//! local `reference_high_curvature_epoch_coverage_summary_line` (Slice D Task
+//! 14a4). Likewise, the body-class coverage renderer's nested
 //! `ReferenceSnapshotSourceWindow::summary_line` call is left pointing at
 //! jpl (that struct's rendering moves in Task 8c's `general_b.rs` slice).
 
@@ -21,6 +22,9 @@ use pleiades_jpl::{
     ReferenceSnapshotBodyClassCoverageSummary, ReferenceSnapshotBoundaryEpochCoverage,
     ReferenceSnapshotBoundaryEpochCoverageSummary, ReferenceSnapshotSourceWindow,
 };
+
+#[allow(unused_imports)]
+use crate::posture::jpl::*;
 
 /// Reproduced from jpl's private `format_instant` (`lib.rs:66`), which is
 /// crate-private and not callable cross-crate. Per-module duplicate accepted
@@ -187,15 +191,16 @@ pub(crate) fn reference_snapshot_boundary_epoch_coverage_summary_for_report() ->
 /// summary string. Verbatim copy of jpl's
 /// `reference_snapshot_high_curvature_epoch_coverage_summary_for_report`
 /// (reference_summary/reference_snapshot/core/coverage.rs:548). The
-/// `ReferenceHighCurvatureEpochCoverageSummary` struct and its
-/// `validated_summary_line()` rendering live in
-/// `reference_summary/reference_snapshot/boundaries/era_d.rs` (Slice D Task
-/// 9, not yet copied); the call is left on jpl's still-present method
-/// (validate→jpl, byte-identical; Task 13 flips it once Task 9 lands).
+/// `ReferenceHighCurvatureEpochCoverageSummary` struct and its rendering live
+/// in `reference_summary/reference_snapshot/boundaries/era_d.rs` (Slice D
+/// Task 9, already copied); `summary.validated_summary_line()` is rewired to
+/// `match summary.validate() { Ok(()) => <local render>, ... }`, calling the
+/// local `reference_high_curvature_epoch_coverage_summary_line` (Slice D Task
+/// 14a4; `validate()` stays on the jpl struct, rendering is local).
 pub(crate) fn reference_snapshot_high_curvature_epoch_coverage_summary_for_report() -> String {
     match pleiades_jpl::reference_snapshot_high_curvature_epoch_coverage_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
+        Some(summary) => match summary.validate() {
+            Ok(()) => reference_high_curvature_epoch_coverage_summary_line(&summary),
             Err(error) => {
                 format!("Reference major-body high-curvature epoch coverage: unavailable ({error})")
             }
@@ -245,12 +250,10 @@ mod tests {
         );
         assert_eq!(summary.asteroid_epoch_count, 17);
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             reference_snapshot_body_class_coverage_summary_for_report(),
-            summary.summary_line()
+            reference_snapshot_body_class_coverage_summary_line(&summary)
         );
-        assert_eq!(summary.to_string(), summary.summary_line());
     }
 
     #[test]
@@ -289,29 +292,24 @@ mod tests {
             pleiades_backend::CelestialBody::Pluto
         );
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert!(
-            summary
-                .summary_line()
+            reference_snapshot_boundary_epoch_coverage_summary_line(&summary)
                 .contains("Reference snapshot boundary epoch coverage: 183 exact samples across 14 epochs (JD 2451912.5 (TDB)..JD 2451919.5 (TDB)); epochs:")
         );
-        assert!(summary.summary_line().contains(
+        assert!(reference_snapshot_boundary_epoch_coverage_summary_line(&summary).contains(
             "JD 2451914.0 (TDB): 15 bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros)"
         ));
-        assert!(summary
-            .summary_line()
+        assert!(reference_snapshot_boundary_epoch_coverage_summary_line(&summary)
             .contains("JD 2451915.5 (TDB): 16 bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis)"));
-        assert!(summary
-            .summary_line()
+        assert!(reference_snapshot_boundary_epoch_coverage_summary_line(&summary)
             .contains("JD 2451916.0 (TDB): 10 bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto)"));
-        assert!(summary.summary_line().contains(
+        assert!(reference_snapshot_boundary_epoch_coverage_summary_line(&summary).contains(
             "JD 2451919.5 (TDB): 16 bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis)"
         ));
 
-        assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             reference_snapshot_boundary_epoch_coverage_summary_for_report(),
-            summary.summary_line()
+            reference_snapshot_boundary_epoch_coverage_summary_line(&summary)
         );
     }
 
@@ -331,12 +329,13 @@ mod tests {
                 field: "windows"
             }
         ));
-        assert!(summary.validated_summary_line().is_err());
+        assert!(summary.validate().is_err());
         assert_eq!(
             reference_snapshot_boundary_epoch_coverage_summary_for_report(),
-            pleiades_jpl::reference_snapshot_boundary_epoch_coverage_summary()
-                .expect("reference snapshot boundary epoch coverage summary should exist")
-                .summary_line()
+            reference_snapshot_boundary_epoch_coverage_summary_line(
+                &pleiades_jpl::reference_snapshot_boundary_epoch_coverage_summary()
+                    .expect("reference snapshot boundary epoch coverage summary should exist")
+            )
         );
     }
 }

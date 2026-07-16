@@ -141,21 +141,21 @@ mod tests {
         assert_eq!(summary.sample_bodies, pleiades_jpl::reference_bodies());
         assert_eq!(summary.epoch.julian_day.days(), 2_451_545.0);
         assert_eq!(
-            summary.summary_line(),
+            reference_snapshot_exact_j2000_evidence_summary_line(&summary),
             format!(
                 "Reference snapshot exact J2000 evidence: 16 exact J2000 samples at JD 2451545.0 (TDB) ({})",
                 format_bodies(pleiades_jpl::reference_bodies())
             )
         );
-        assert_eq!(summary.to_string(), summary.summary_line());
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             validated_reference_snapshot_exact_j2000_evidence_summary_for_report(),
-            Ok(summary.summary_line())
+            Ok(reference_snapshot_exact_j2000_evidence_summary_line(
+                &summary
+            ))
         );
         assert_eq!(
             reference_snapshot_exact_j2000_evidence_summary_for_report(),
-            summary.summary_line()
+            reference_snapshot_exact_j2000_evidence_summary_line(&summary)
         );
     }
 
@@ -189,22 +189,20 @@ mod tests {
         );
         assert_eq!(summary.epoch.julian_day.days(), 2_451_545.0);
         assert_eq!(
-            summary.summary_line(),
+            reference_snapshot_exact_j2000_body_class_coverage_summary_line(&summary),
             format!(
                 "Reference snapshot exact J2000 body-class coverage: 10 major-body samples across 10 bodies and 1 epoch ({}); 6 selected-asteroid samples across 6 bodies and 1 epoch ({})",
                 format_bodies(&summary.major_bodies),
                 format_bodies(&summary.asteroid_bodies)
             )
         );
-        assert_eq!(summary.to_string(), summary.summary_line());
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             validated_reference_snapshot_exact_j2000_body_class_coverage_summary_for_report(),
-            Ok(summary.summary_line())
+            Ok(reference_snapshot_exact_j2000_body_class_coverage_summary_line(&summary))
         );
         assert_eq!(
             reference_snapshot_exact_j2000_body_class_coverage_summary_for_report(),
-            summary.summary_line()
+            reference_snapshot_exact_j2000_body_class_coverage_summary_line(&summary)
         );
     }
 }

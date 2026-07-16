@@ -209,18 +209,16 @@ mod tests {
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_378_498.5);
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
         assert_eq!(
-            summary.summary_line(),
+            reference_snapshot_equatorial_parity_summary_line(&summary),
             format!(
                 "JPL reference snapshot equatorial parity: 277 rows across 16 bodies and 23 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies: {}; mean-obliquity transform against the checked-in ecliptic fixture",
                 format_bodies(pleiades_jpl::reference_bodies())
             )
         );
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.to_string(), summary.summary_line());
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             reference_snapshot_equatorial_parity_summary_for_report(),
-            summary.summary_line()
+            reference_snapshot_equatorial_parity_summary_line(&summary)
         );
     }
 
@@ -305,21 +303,17 @@ mod tests {
         assert_eq!(summary.approximate_count, 0);
         assert_eq!(summary.unknown_count, 0);
         assert_eq!(summary.validate(), Ok(()));
-        assert!(summary
-            .summary_line()
+        assert!(reference_snapshot_batch_parity_summary_line(&summary)
             .contains("JPL reference snapshot batch parity: 277 rows across 16 bodies and 23 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies: "));
-        assert!(summary
-            .summary_line()
+        assert!(reference_snapshot_batch_parity_summary_line(&summary)
             .contains("quality counts: Exact=277, Interpolated=0, Approximate=0, Unknown=0; batch/single parity preserved"));
-        assert_eq!(summary.to_string(), summary.summary_line());
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             validated_reference_snapshot_batch_parity_summary_for_report(),
-            Ok(summary.summary_line())
+            Ok(reference_snapshot_batch_parity_summary_line(&summary))
         );
         assert_eq!(
             reference_snapshot_batch_parity_summary_for_report(),
-            summary.summary_line()
+            reference_snapshot_batch_parity_summary_line(&summary)
         );
     }
 
@@ -346,14 +340,13 @@ mod tests {
         assert!(summary.order_preserved);
         assert!(summary.single_query_parity_preserved);
         assert!(summary.validate().is_ok());
-        assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             validated_reference_snapshot_mixed_time_scale_batch_parity_summary_for_report(),
-            Ok(summary.summary_line())
+            Ok(reference_snapshot_mixed_time_scale_batch_parity_summary_line(&summary))
         );
         assert_eq!(
             reference_snapshot_mixed_time_scale_batch_parity_summary_for_report(),
-            summary.summary_line()
+            reference_snapshot_mixed_time_scale_batch_parity_summary_line(&summary)
         );
         assert!(
             reference_snapshot_mixed_time_scale_batch_parity_summary_for_report()
