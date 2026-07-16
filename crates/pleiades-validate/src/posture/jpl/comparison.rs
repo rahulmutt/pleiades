@@ -365,15 +365,13 @@ mod tests {
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_453_000.5);
         assert_eq!(summary.bodies.as_slice(), pleiades_jpl::comparison_bodies());
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
-            summary.summary_line(),
+            comparison_snapshot_summary_line(&summary),
             "Comparison snapshot coverage: 162 rows across 10 bodies and 18 epochs (JD 2415020.5 (TDB)..JD 2453000.5 (TDB)); bodies: Sun, Moon, Mercury, Venus, Jupiter, Mars, Neptune, Pluto, Saturn, Uranus"
         );
-        assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             comparison_snapshot_summary_for_report(),
-            summary.summary_line()
+            comparison_snapshot_summary_line(&summary)
         );
     }
 
@@ -387,20 +385,22 @@ mod tests {
         assert_eq!(summary.epoch_count, 18);
         assert_eq!(summary.windows.len(), summary.bodies.len());
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
-        assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             comparison_snapshot_body_class_coverage_summary_for_report(),
-            summary.summary_line()
+            comparison_snapshot_body_class_coverage_summary_line(&summary)
         );
         assert_eq!(
             validated_comparison_snapshot_body_class_coverage_summary_for_report(),
-            Ok(summary.summary_line())
+            Ok(comparison_snapshot_body_class_coverage_summary_line(
+                &summary
+            ))
         );
-        assert!(summary
-            .summary_line()
+        assert!(comparison_snapshot_body_class_coverage_summary_line(&summary)
             .starts_with("Comparison snapshot body-class coverage: 162 rows across 10 bodies and 18 epochs; bodies: "));
-        assert!(summary.summary_line().contains("windows: Sun:"));
+        assert!(
+            comparison_snapshot_body_class_coverage_summary_line(&summary)
+                .contains("windows: Sun:")
+        );
     }
 
     #[test]
@@ -422,22 +422,20 @@ mod tests {
         assert_eq!(summary.ecliptic_request_count, 81);
         assert_eq!(summary.equatorial_request_count, 81);
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
-            summary.summary_line(),
+            comparison_snapshot_batch_parity_summary_line(&summary),
             format!(
                 "JPL comparison snapshot batch parity: 162 rows across 10 bodies and 18 epochs (JD 2415020.5 (TDB)..JD 2453000.5 (TDB)); bodies: {}; frame mix: 81 ecliptic, 81 equatorial; quality counts: Exact=162, Interpolated=0, Approximate=0, Unknown=0; batch/single parity preserved",
                 format_bodies(pleiades_jpl::comparison_bodies())
             )
         );
-        assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             comparison_snapshot_batch_parity_summary_for_report(),
-            summary.summary_line()
+            comparison_snapshot_batch_parity_summary_line(&summary)
         );
         assert_eq!(
             validated_comparison_snapshot_batch_parity_summary_for_report(),
-            Ok(summary.summary_line())
+            Ok(comparison_snapshot_batch_parity_summary_line(&summary))
         );
     }
 
@@ -464,59 +462,34 @@ mod tests {
         assert_eq!(manifest.columns, ["body", "x_km", "y_km", "z_km"]);
         assert_eq!(manifest.validate(), Ok(()));
         assert_eq!(
-            source_summary.summary_line(),
+            comparison_snapshot_source_summary_line(&source_summary),
             format!(
                 "Comparison snapshot source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.; coverage=Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000.; redistribution=repository-checked regression fixtures, not a broad public corpus.; columns=body, x_km, y_km, z_km; checksum=0x{:016x}",
                 source_summary.checksum
             )
         );
-        assert_eq!(source_summary.to_string(), source_summary.summary_line());
         assert_eq!(source_summary.validate(), Ok(()));
         assert_eq!(
-            source_summary.validated_summary_line(),
-            Ok(source_summary.summary_line())
-        );
-        assert_eq!(
-            comparison_snapshot_source_summary_line(&source_summary),
-            source_summary.summary_line()
-        );
-        assert_eq!(
             comparison_snapshot_source_summary_for_report(),
-            source_summary.summary_line()
+            comparison_snapshot_source_summary_line(&source_summary)
         );
         assert_eq!(
             validated_comparison_snapshot_source_summary_for_report(),
-            Ok(source_summary.summary_line())
+            Ok(comparison_snapshot_source_summary_line(&source_summary))
         );
         let source_window_summary = pleiades_jpl::comparison_snapshot_source_window_summary()
             .expect("comparison snapshot source window summary should exist");
         assert_eq!(
-            source_window_summary.summary_line(),
+            comparison_snapshot_source_window_summary_line(&source_window_summary),
             comparison_snapshot_source_window_summary_for_report()
         );
-        assert_eq!(
-            source_window_summary.to_string(),
-            source_window_summary.summary_line()
-        );
         assert_eq!(source_window_summary.validate(), Ok(()));
-        assert_eq!(
-            source_window_summary.validated_summary_line(),
-            Ok(source_window_summary.summary_line())
-        );
-        assert_eq!(
-            comparison_snapshot_source_window_summary_for_report(),
-            source_window_summary.summary_line()
-        );
-        assert_eq!(
-            comparison_snapshot_source_window_summary_line(&source_window_summary),
-            source_window_summary.summary_line()
-        );
         assert_eq!(
             format_validated_comparison_snapshot_source_summary_for_report(
                 &source_summary,
                 manifest,
             ),
-            source_summary.summary_line()
+            comparison_snapshot_source_summary_line(&source_summary)
         );
         let invalid_manifest = pleiades_jpl::SnapshotManifest {
             title: Some("Example snapshot.".to_string()),
@@ -532,26 +505,50 @@ mod tests {
             ),
             "Comparison snapshot source: unavailable (missing source)"
         );
+        // `SnapshotManifest::summary_line(&self, label)` (backend.rs) is a jpl
+        // inherent renderer too (deleted in the Task 14 contract sweep, same as
+        // `SnapshotManifestSummary::summary_line`); it is exercised here via the
+        // Task 2 validate copy `snapshot_manifest_summary_line`, wrapping the raw
+        // manifest in the same `SnapshotManifestSummary` shape jpl's own
+        // `summary_line(label)` delegates through (`label`, `manifest`, and the
+        // "unknown"/"unknown" fallbacks jpl's convenience wrapper uses).
         assert_eq!(
-            manifest.summary_line("Comparison snapshot manifest"),
+            crate::posture::jpl::backend::snapshot_manifest_summary_line(
+                &pleiades_jpl::SnapshotManifestSummary {
+                    label: "Comparison snapshot manifest",
+                    manifest: manifest.clone(),
+                    source_fallback: "unknown",
+                    coverage_fallback: "unknown",
+                }
+            ),
             "Comparison snapshot manifest: JPL Horizons reference snapshot.; source=NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.; coverage=Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000.; columns=body, x_km, y_km, z_km; redistribution=repository-checked regression fixtures, not a broad public corpus."
         );
+        // `impl fmt::Display for SnapshotManifest` (backend.rs:579-583) delegates
+        // to `self.summary_line_with_defaults("Snapshot manifest", "unknown",
+        // "unknown")` (backend.rs:544-554 for the label/fallback default
+        // values); reproduced here via the validate copy
+        // `snapshot_manifest_summary_line` with the same label + fallbacks so
+        // the byte-identical literal below still holds once jpl's `Display`
+        // impl (and `.to_string()`) is deleted in 14b.
         assert_eq!(
-            manifest.to_string(),
+            crate::posture::jpl::backend::snapshot_manifest_summary_line(
+                &pleiades_jpl::SnapshotManifestSummary {
+                    label: "Snapshot manifest",
+                    manifest: manifest.clone(),
+                    source_fallback: "unknown",
+                    coverage_fallback: "unknown",
+                }
+            ),
             "Snapshot manifest: JPL Horizons reference snapshot.; source=NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.; coverage=Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000.; columns=body, x_km, y_km, z_km; redistribution=repository-checked regression fixtures, not a broad public corpus."
         );
         let comparison_summary = pleiades_jpl::comparison_snapshot_manifest_summary();
         assert_eq!(
-            comparison_summary.summary_line(),
+            crate::posture::jpl::backend::snapshot_manifest_summary_line(&comparison_summary),
             "Comparison snapshot manifest: JPL Horizons reference snapshot.; source=NASA/JPL Horizons API, DE441, geocentric ecliptic J2000, TDB 2451545.0.; coverage=Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto at J2000.; columns=body, x_km, y_km, z_km; redistribution=repository-checked regression fixtures, not a broad public corpus."
         );
         assert_eq!(
-            comparison_summary.to_string(),
-            comparison_summary.summary_line()
-        );
-        assert_eq!(
             comparison_snapshot_manifest_summary_for_report(),
-            comparison_summary.summary_line()
+            crate::posture::jpl::backend::snapshot_manifest_summary_line(&comparison_summary)
         );
     }
 
@@ -564,25 +561,25 @@ mod tests {
         assert_eq!(summary.epoch_count, 18);
         assert_eq!(summary.windows.len(), 10);
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
-        assert!(summary.summary_line().contains("Comparison snapshot source windows: 162 source-backed samples across 10 bodies and 18 epochs"));
-        assert!(summary.summary_line().contains(
-            "Mars: 15 samples across 15 epochs at JD 2451545.0 (TDB)..JD 2453000.5 (TDB)"
-        ));
-        assert!(summary.summary_line().contains(
-            "Pluto: 15 samples across 15 epochs at JD 2451545.0 (TDB)..JD 2453000.5 (TDB)"
-        ));
+        assert!(comparison_snapshot_source_window_summary_line(&summary)
+            .contains("Comparison snapshot source windows: 162 source-backed samples across 10 bodies and 18 epochs"));
+        assert!(
+            comparison_snapshot_source_window_summary_line(&summary).contains(
+                "Mars: 15 samples across 15 epochs at JD 2451545.0 (TDB)..JD 2453000.5 (TDB)"
+            )
+        );
+        assert!(
+            comparison_snapshot_source_window_summary_line(&summary).contains(
+                "Pluto: 15 samples across 15 epochs at JD 2451545.0 (TDB)..JD 2453000.5 (TDB)"
+            )
+        );
         assert_eq!(
             comparison_snapshot_source_window_summary_for_report(),
-            summary.summary_line()
+            comparison_snapshot_source_window_summary_line(&summary)
         );
         assert_eq!(
             validated_comparison_snapshot_source_window_summary_for_report(),
-            Ok(summary.summary_line())
-        );
-        assert_eq!(
-            comparison_snapshot_source_window_summary_line(&summary),
-            summary.summary_line()
+            Ok(comparison_snapshot_source_window_summary_line(&summary))
         );
     }
 
@@ -600,10 +597,9 @@ mod tests {
             Ok(())
         );
         assert_eq!(
-            summary.summary_line(),
+            crate::posture::jpl::backend::snapshot_manifest_summary_line(&summary),
             validated_comparison_snapshot_manifest_summary_for_report()
                 .expect("comparison snapshot manifest summary should validate")
         );
-        assert_eq!(summary.to_string(), summary.summary_line());
     }
 }

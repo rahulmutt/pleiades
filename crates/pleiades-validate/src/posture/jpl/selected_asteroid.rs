@@ -627,16 +627,16 @@ mod tests {
         let summary = pleiades_jpl::selected_asteroid_source_evidence_summary()
             .expect("selected asteroid source evidence summary should exist");
         assert_eq!(
-            summary.summary_line(),
+            selected_asteroid_source_summary_line(&summary),
             "Selected asteroid source evidence: 95 source-backed samples across 6 bodies and 17 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); evidence class=source-backed; frame=geocentric ecliptic J2000; time scale=TDB; bodies: Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis"
         );
         assert_eq!(
-            summary.summary_line(),
+            selected_asteroid_source_summary_line(&summary),
             selected_asteroid_source_evidence_summary_for_report()
         );
         assert_eq!(
             validated_selected_asteroid_source_evidence_summary_for_report(),
-            Ok(summary.summary_line())
+            Ok(selected_asteroid_source_summary_line(&summary))
         );
     }
 
@@ -648,18 +648,17 @@ mod tests {
         assert_eq!(summary.sample_count, 95);
         assert_eq!(summary.epoch_count, 17);
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
-            summary.summary_line(),
+            selected_asteroid_source_window_summary_line(&summary),
             "Selected asteroid source windows: 95 source-backed samples across 6 bodies and 17 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); evidence class=source-backed; frame=geocentric ecliptic J2000; time scale=TDB; windows: Ceres: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Pallas: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Juno: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Vesta: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); asteroid:433-Eros: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); asteroid:99942-Apophis: 10 samples across 10 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB)"
         );
         assert_eq!(
-            summary.summary_line(),
+            selected_asteroid_source_window_summary_line(&summary),
             selected_asteroid_source_window_summary_for_report()
         );
         assert_eq!(
             validated_selected_asteroid_source_window_summary_for_report(),
-            Ok(summary.summary_line())
+            Ok(selected_asteroid_source_window_summary_line(&summary))
         );
     }
 
@@ -674,40 +673,41 @@ mod tests {
         assert_eq!(summary.epoch_count, 17);
         assert_eq!(summary.frame, CoordinateFrame::Ecliptic);
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
-        assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             selected_asteroid_source_request_corpus_summary_for_report(),
-            summary.summary_line()
+            selected_asteroid_source_request_corpus_summary_line(&summary)
         );
         assert_eq!(
             validated_selected_asteroid_source_request_corpus_summary_for_report(),
-            Ok(summary.summary_line())
+            Ok(selected_asteroid_source_request_corpus_summary_line(
+                &summary
+            ))
         );
         assert_eq!(
             selected_asteroid_source_request_corpus_equatorial_summary_for_report(),
-            pleiades_jpl::selected_asteroid_source_request_corpus_summary(
-                CoordinateFrame::Equatorial
-            )
-            .expect("selected asteroid source request corpus equatorial summary should exist")
-            .summary_line()
-        );
-        assert_eq!(
-            validated_selected_asteroid_source_request_corpus_equatorial_summary_for_report(),
-            Ok(
-                pleiades_jpl::selected_asteroid_source_request_corpus_summary(
+            selected_asteroid_source_request_corpus_summary_line(
+                &pleiades_jpl::selected_asteroid_source_request_corpus_summary(
                     CoordinateFrame::Equatorial
                 )
                 .expect("selected asteroid source request corpus equatorial summary should exist")
-                .summary_line()
             )
         );
-        assert!(summary
-            .summary_line()
-            .contains("observerless) across 6 bodies and 17 epochs"));
+        assert_eq!(
+            validated_selected_asteroid_source_request_corpus_equatorial_summary_for_report(),
+            Ok(selected_asteroid_source_request_corpus_summary_line(
+                &pleiades_jpl::selected_asteroid_source_request_corpus_summary(
+                    CoordinateFrame::Equatorial
+                )
+                .expect("selected asteroid source request corpus equatorial summary should exist")
+            ))
+        );
+        assert!(
+            selected_asteroid_source_request_corpus_summary_line(&summary)
+                .contains("observerless) across 6 bodies and 17 epochs")
+        );
         assert_eq!(
             format_selected_asteroid_source_request_corpus_summary(&summary),
-            summary.summary_line()
+            selected_asteroid_source_request_corpus_summary_line(&summary)
         );
     }
 
@@ -717,13 +717,12 @@ mod tests {
             .expect("selected asteroid 2003-12-27 source summary should exist");
         assert_eq!(summary.sample_count, 6);
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
-            summary.summary_line(),
+            selected_asteroid_source_2453000_summary_line(&summary),
             "Reference selected-asteroid 2003-12-27 source evidence: 6 exact samples at JD 2453000.5 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis); 2003-12-27 source sample"
         );
         assert_eq!(
-            summary.summary_line(),
+            selected_asteroid_source_2453000_summary_line(&summary),
             selected_asteroid_source_2453000_summary_for_report()
         );
     }
@@ -734,13 +733,12 @@ mod tests {
             .expect("selected asteroid 2500000 source summary should exist");
         assert_eq!(summary.sample_count, 6);
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
-            summary.summary_line(),
+            selected_asteroid_source_2500000_summary_line(&summary),
             "Reference selected-asteroid 2500000 source evidence: 6 exact samples at JD 2500000.0 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis); 2500000 source sample"
         );
         assert_eq!(
-            summary.summary_line(),
+            selected_asteroid_source_2500000_summary_line(&summary),
             selected_asteroid_source_2500000_summary_for_report()
         );
     }
@@ -751,13 +749,12 @@ mod tests {
             .expect("selected asteroid 2634167 source summary should exist");
         assert_eq!(summary.sample_count, 6);
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
-            summary.summary_line(),
+            selected_asteroid_source_2634167_summary_line(&summary),
             "Reference selected-asteroid 2634167 source evidence: 6 exact samples at JD 2634167.0 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis); 2634167 source sample"
         );
         assert_eq!(
-            summary.summary_line(),
+            selected_asteroid_source_2634167_summary_line(&summary),
             selected_asteroid_source_2634167_summary_for_report()
         );
     }
@@ -769,13 +766,12 @@ mod tests {
         assert_eq!(summary.sample_count, 23);
         assert_eq!(summary.epochs.len(), 4);
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
-            summary.summary_line(),
+            selected_asteroid_boundary_summary_line(&summary),
             "Selected asteroid boundary evidence: 23 exact samples across 4 epochs at JD 2451914.5 (TDB)..JD 2451919.5 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis)"
         );
         assert_eq!(
-            summary.summary_line(),
+            selected_asteroid_boundary_summary_line(&summary),
             selected_asteroid_boundary_summary_for_report()
         );
     }
@@ -791,15 +787,13 @@ mod tests {
         );
         assert_eq!(summary.epoch.julian_day.days(), 2_451_915.0);
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
-            summary.summary_line(),
+            selected_asteroid_bridge_summary_line(&summary),
             "Selected asteroid bridge evidence: 6 exact samples at JD 2451915.0 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis); bridge sample across the asteroid-only gap"
         );
-        assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             selected_asteroid_bridge_summary_for_report(),
-            summary.summary_line()
+            selected_asteroid_bridge_summary_line(&summary)
         );
     }
 
@@ -814,15 +808,13 @@ mod tests {
         );
         assert_eq!(summary.epoch.julian_day.days(), 2_451_916.5);
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
-            summary.summary_line(),
+            selected_asteroid_dense_boundary_summary_line(&summary),
             "Selected asteroid dense boundary evidence: 5 exact samples at JD 2451916.5 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis); dense boundary day"
         );
-        assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             selected_asteroid_dense_boundary_summary_for_report(),
-            summary.summary_line()
+            selected_asteroid_dense_boundary_summary_line(&summary)
         );
     }
 
@@ -836,13 +828,12 @@ mod tests {
             pleiades_jpl::reference_asteroids().to_vec()
         );
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
-            summary.summary_line(),
+            selected_asteroid_terminal_boundary_summary_line(&summary),
             "Reference selected-asteroid terminal boundary evidence: 6 exact samples at JD 2500000.0 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis); 2500-01-01 terminal boundary sample"
         );
         assert_eq!(
-            summary.summary_line(),
+            selected_asteroid_terminal_boundary_summary_line(&summary),
             selected_asteroid_terminal_boundary_summary_for_report()
         );
     }
@@ -862,13 +853,12 @@ mod tests {
         summary
             .validate()
             .expect("selected asteroid batch parity summary should validate");
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
-            summary.summary_line(),
+            selected_asteroid_batch_parity_summary_line(&summary),
             "Selected asteroid batch parity: 6 requests across 6 bodies at JD 2451545.0 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis); frame mix: 3 ecliptic, 3 equatorial; batch/single parity preserved"
         );
         assert_eq!(
-            summary.summary_line(),
+            selected_asteroid_batch_parity_summary_line(&summary),
             selected_asteroid_batch_parity_summary_for_report()
         );
     }
@@ -889,13 +879,13 @@ mod tests {
         assert!(summary.sample_count > 0);
         assert_eq!(summary.epoch.julian_day.days(), 2_451_917.5);
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
-        assert!(summary
-            .summary_line()
+        assert!(selected_asteroid_source_2451917_summary_line(&summary)
             .contains("Reference selected-asteroid 2001-01-08 source evidence:"));
-        assert!(summary.summary_line().contains("JD 2451917.5 (TDB)"));
+        assert!(
+            selected_asteroid_source_2451917_summary_line(&summary).contains("JD 2451917.5 (TDB)")
+        );
         assert_eq!(
-            summary.summary_line(),
+            selected_asteroid_source_2451917_summary_line(&summary),
             selected_asteroid_source_2451917_summary_for_report()
         );
     }
@@ -907,13 +897,13 @@ mod tests {
         assert_eq!(summary.sample_count, 6);
         assert_eq!(summary.epoch.julian_day.days(), 2_378_498.5);
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
-        assert!(summary
-            .summary_line()
+        assert!(selected_asteroid_source_2378498_summary_line(&summary)
             .contains("Reference selected-asteroid 2378498.5 source evidence:"));
-        assert!(summary.summary_line().contains("JD 2378498.5 (TDB)"));
+        assert!(
+            selected_asteroid_source_2378498_summary_line(&summary).contains("JD 2378498.5 (TDB)")
+        );
         assert_eq!(
-            summary.summary_line(),
+            selected_asteroid_source_2378498_summary_line(&summary),
             selected_asteroid_source_2378498_summary_for_report()
         );
     }

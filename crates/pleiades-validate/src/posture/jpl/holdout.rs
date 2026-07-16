@@ -549,18 +549,16 @@ mod tests {
         assert_eq!(summary.shared_epoch_count, 12);
         assert_eq!(summary.shared_bodies.len(), 16);
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
-        assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             reference_holdout_overlap_summary_for_report(),
-            summary.summary_line()
+            reference_holdout_overlap_summary_summary_line(&summary)
         );
         assert_eq!(
             validated_reference_holdout_overlap_summary_for_report(),
-            Ok(summary.summary_line())
+            Ok(reference_holdout_overlap_summary_summary_line(&summary))
         );
         assert_eq!(
-            summary.summary_line(),
+            reference_holdout_overlap_summary_summary_line(&summary),
             format!(
                 "Reference/hold-out overlap: 66 shared body-epoch pairs across 16 bodies and 12 epochs; bodies: {}",
                 format_bodies(&summary.shared_bodies)
@@ -587,24 +585,26 @@ mod tests {
         assert_eq!(summary.columns, "epoch_jd, body, x_km, y_km, z_km");
         assert_eq!(summary.frame_treatment, "geocentric ecliptic J2000");
         assert_eq!(summary.time_scale, "TDB");
-        assert!(summary.summary_line().contains("time scale=TDB"));
+        assert!(
+            independent_holdout_source_summary_summary_line(&summary).contains("time scale=TDB")
+        );
         assert_eq!(
             summary.redistribution,
             "repository-checked regression fixtures, not a broad public corpus."
         );
-        assert!(summary.summary_line().contains("evidence class=hold-out"));
-        assert!(summary.summary_line().contains(
-            "redistribution=repository-checked regression fixtures, not a broad public corpus."
-        ));
-        assert!(summary
-            .summary_line()
+        assert!(independent_holdout_source_summary_summary_line(&summary)
+            .contains("evidence class=hold-out"));
+        assert!(
+            independent_holdout_source_summary_summary_line(&summary).contains(
+                "redistribution=repository-checked regression fixtures, not a broad public corpus."
+            )
+        );
+        assert!(independent_holdout_source_summary_summary_line(&summary)
             .contains(&format!("checksum=0x{:016x}", summary.checksum)));
-        assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             independent_holdout_source_summary_for_report(),
-            summary.summary_line()
+            independent_holdout_source_summary_summary_line(&summary)
         );
     }
 
@@ -640,14 +640,12 @@ mod tests {
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
         assert_eq!(summary.validate(), Ok(()));
         assert_eq!(
-            summary.summary_line(),
+            independent_holdout_snapshot_summary_summary_line(&summary),
             "Independent hold-out coverage: 66 rows across 16 bodies and 12 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Jupiter, Mercury, Venus, Saturn, Uranus, Neptune, Sun, Pluto, Moon, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis"
         );
-        assert_eq!(summary.to_string(), summary.summary_line());
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             independent_holdout_snapshot_summary_for_report(),
-            summary.summary_line()
+            independent_holdout_snapshot_summary_summary_line(&summary)
         );
     }
 
@@ -693,14 +691,15 @@ mod tests {
             2_451_915.5
         );
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             independent_holdout_snapshot_source_window_summary_for_report(),
-            summary.summary_line()
+            independent_holdout_snapshot_source_window_summary_summary_line(&summary)
         );
-        assert!(summary.summary_line().contains(
-            "Independent hold-out source windows: 66 source-backed samples across 16 bodies and 12 epochs"
-        ));
+        assert!(
+            independent_holdout_snapshot_source_window_summary_summary_line(&summary).contains(
+                "Independent hold-out source windows: 66 source-backed samples across 16 bodies and 12 epochs"
+            )
+        );
     }
 
     #[test]
@@ -722,14 +721,15 @@ mod tests {
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_451_915.25);
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_451_915.75);
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             independent_holdout_snapshot_quarter_day_boundary_summary_for_report(),
-            summary.summary_line()
+            independent_holdout_quarter_day_boundary_summary_summary_line(&summary)
         );
-        assert!(summary.summary_line().contains(
-            "Independent hold-out quarter-day boundary samples: 8 rows across 4 bodies and 2 epochs"
-        ));
+        assert!(
+            independent_holdout_quarter_day_boundary_summary_summary_line(&summary).contains(
+                "Independent hold-out quarter-day boundary samples: 8 rows across 4 bodies and 2 epochs"
+            )
+        );
     }
 
     #[test]
@@ -751,14 +751,15 @@ mod tests {
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_451_915.25);
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_451_915.75);
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             independent_holdout_high_curvature_summary_for_report(),
-            summary.summary_line()
+            independent_holdout_high_curvature_summary_summary_line(&summary)
         );
-        assert!(summary.summary_line().contains(
-            "JPL independent hold-out high-curvature evidence: 8 exact samples across 4 bodies and 2 epochs"
-        ));
+        assert!(
+            independent_holdout_high_curvature_summary_summary_line(&summary).contains(
+                "JPL independent hold-out high-curvature evidence: 8 exact samples across 4 bodies and 2 epochs"
+            )
+        );
     }
 
     #[test]
@@ -771,14 +772,13 @@ mod tests {
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_378_498.5);
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
         assert_eq!(
-            summary.summary_line(),
+            independent_holdout_snapshot_equatorial_parity_summary_summary_line(&summary),
             "JPL independent hold-out equatorial parity: 66 rows across 16 bodies and 12 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); mean-obliquity transform against the checked-in ecliptic fixture"
         );
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             independent_holdout_snapshot_equatorial_parity_summary_for_report(),
-            summary.summary_line()
+            independent_holdout_snapshot_equatorial_parity_summary_summary_line(&summary)
         );
     }
 
@@ -830,8 +830,6 @@ mod tests {
         assert!(!summary.max_latitude_error_body.is_empty());
         assert!(!summary.max_distance_error_body.is_empty());
 
-        assert_eq!(summary.to_string(), summary.summary_line());
-
         let rendered = format_jpl_independent_holdout_summary(&summary);
         assert!(rendered.contains("JPL independent hold-out:"));
         assert!(rendered.contains(
@@ -856,7 +854,6 @@ mod tests {
     fn batch_query_preserves_independent_holdout_mixed_scale_order_and_single_query_parity() {
         let summary = pleiades_jpl::independent_holdout_snapshot_batch_parity_summary()
             .expect("independent hold-out batch parity summary should exist");
-        assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(summary.snapshot.row_count, 66);
         assert_eq!(summary.snapshot.body_count, 16);
         assert_eq!(summary.tt_request_count, 33);
@@ -870,10 +867,9 @@ mod tests {
             summary.snapshot.row_count,
         );
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             validated_independent_holdout_snapshot_batch_parity_summary_for_report(),
-            Ok(summary.summary_line())
+            Ok(independent_holdout_snapshot_batch_parity_summary_summary_line(&summary))
         );
 
         let rendered = format_independent_holdout_snapshot_batch_parity_summary(&summary);
@@ -891,12 +887,6 @@ mod tests {
         let mut summary =
             pleiades_jpl::jpl_independent_holdout_summary().expect("summary should exist");
         summary.sample_count += 1;
-        assert_eq!(
-            summary.validated_summary_line(),
-            Err(
-                pleiades_jpl::JplInterpolationQualitySummaryValidationError::DerivedSummaryMismatch
-            )
-        );
         assert_eq!(
             format_jpl_independent_holdout_summary(&summary),
             "JPL independent hold-out: unavailable (summary no longer matches the derived interpolation evidence)"
