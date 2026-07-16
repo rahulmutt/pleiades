@@ -39,8 +39,7 @@
 //!
 //! This file is also the canonical home of jpl's format-helper cluster
 //! (`format_reference_snapshot_summary`, `strip_report_prefix`,
-//! `format_validated_source_summary_for_report`,
-//! `format_manifest_summary_for_report`, `join_display`, `format_bodies`,
+//! `format_validated_source_summary_for_report`, `join_display`, `format_bodies`,
 //! `format_coordinate_frames`, `format_time_scales`, `format_zodiac_modes`,
 //! `format_apparentness_modes`); those are copied verbatim below as
 //! `pub(crate) fn`s so they can later serve as the consolidation target for
@@ -198,19 +197,6 @@ pub(crate) fn format_validated_source_summary_for_report(
 ) -> String {
     match manifest.validate() {
         Ok(()) => render(),
-        Err(error) => format!("{label}: unavailable ({error})"),
-    }
-}
-
-/// Verbatim copy of jpl's `#[cfg(test)]` `format_manifest_summary_for_report`
-/// (reference_summary/reference_snapshot/core/general_a.rs:492).
-#[cfg(test)]
-pub(crate) fn format_manifest_summary_for_report(
-    label: &str,
-    manifest: &pleiades_jpl::SnapshotManifest,
-) -> String {
-    match manifest.validate() {
-        Ok(()) => manifest.summary_line(label),
         Err(error) => format!("{label}: unavailable ({error})"),
     }
 }
@@ -594,16 +580,14 @@ mod tests {
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_378_498.5);
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
         assert_eq!(
-            summary.summary_line(),
+            reference_snapshot_summary_line(&summary),
             format!(
                 "Reference snapshot coverage: 277 rows across 16 bodies and 23 epochs (95 asteroid rows; JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies: {}",
                 format_bodies(pleiades_jpl::reference_bodies())
             )
         );
-        assert_eq!(summary.to_string(), summary.summary_line());
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         let report = reference_snapshot_summary_for_report();
-        assert!(report.contains(summary.summary_line().as_str()));
+        assert!(report.contains(reference_snapshot_summary_line(&summary).as_str()));
         assert!(report.contains(&reference_snapshot_source_summary_for_report()));
         assert!(report.contains(&reference_snapshot_source_window_summary_for_report()));
         assert!(report.contains(&reference_snapshot_major_body_bridge_summary_for_report()));
@@ -715,15 +699,13 @@ mod tests {
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_451_911.5);
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_451_912.5);
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
-            summary.summary_line(),
+            reference_lunar_boundary_summary_line(&summary),
             "Reference lunar boundary evidence: 2 exact Moon samples at JD 2451911.5 (TDB)..JD 2451912.5 (TDB); high-curvature interpolation window"
         );
-        assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             reference_snapshot_lunar_boundary_summary_for_report(),
-            summary.summary_line()
+            reference_lunar_boundary_summary_line(&summary)
         );
     }
 
@@ -740,15 +722,13 @@ mod tests {
         assert_eq!(summary.bodies[0], pleiades_backend::CelestialBody::Sun);
         assert_eq!(summary.bodies[9], pleiades_backend::CelestialBody::Jupiter);
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
-            summary.summary_line(),
+            reference_high_curvature_summary_line(&summary),
             "Reference major-body high-curvature evidence: 50 exact samples across 10 bodies and 5 epochs (JD 2451911.5 (TDB)..JD 2451916.5 (TDB)); bodies: Sun, Moon, Mercury, Venus, Saturn, Uranus, Neptune, Pluto, Mars, Jupiter; high-curvature interpolation window"
         );
-        assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             reference_snapshot_high_curvature_summary_for_report(),
-            summary.summary_line()
+            reference_high_curvature_summary_line(&summary)
         );
     }
 
@@ -768,15 +748,13 @@ mod tests {
             pleiades_backend::CelestialBody::Pluto
         );
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
-            summary.summary_line(),
+            reference_major_body_boundary_summary_line(&summary),
             "Reference major-body boundary evidence: 10 exact samples at JD 2451917.5 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); 2001-01-08 boundary sample"
         );
-        assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             reference_snapshot_major_body_boundary_summary_for_report(),
-            summary.summary_line()
+            reference_major_body_boundary_summary_line(&summary)
         );
     }
 
@@ -788,15 +766,13 @@ mod tests {
         assert_eq!(summary.sample_bodies.len(), 10);
         assert_eq!(summary.epoch.julian_day.days(), 2_451_915.0);
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
-            summary.summary_line(),
+            reference_major_body_bridge_summary_line(&summary),
             "Reference major-body bridge evidence: 10 exact samples at JD 2451915.0 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); bridge sample across the major-body boundary window"
         );
-        assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             reference_snapshot_major_body_bridge_summary_for_report(),
-            summary.summary_line()
+            reference_major_body_bridge_summary_line(&summary)
         );
     }
 
@@ -817,12 +793,13 @@ mod tests {
                 derived_sample_count: 10
             }
         ));
-        assert!(summary.validated_summary_line().is_err());
+        assert!(summary.validate().is_err());
         assert_eq!(
             reference_snapshot_major_body_bridge_summary_for_report(),
-            pleiades_jpl::reference_snapshot_major_body_bridge_summary()
-                .expect("reference major-body bridge summary should exist")
-                .summary_line()
+            reference_major_body_bridge_summary_line(
+                &pleiades_jpl::reference_snapshot_major_body_bridge_summary()
+                    .expect("reference major-body bridge summary should exist")
+            )
         );
     }
 
@@ -843,12 +820,13 @@ mod tests {
                 derived_sample_count: 10
             }
         ));
-        assert!(summary.validated_summary_line().is_err());
+        assert!(summary.validate().is_err());
         assert_eq!(
             reference_snapshot_major_body_boundary_summary_for_report(),
-            pleiades_jpl::reference_snapshot_major_body_boundary_summary()
-                .expect("reference major-body boundary summary should exist")
-                .summary_line()
+            reference_major_body_boundary_summary_line(
+                &pleiades_jpl::reference_snapshot_major_body_boundary_summary()
+                    .expect("reference major-body boundary summary should exist")
+            )
         );
     }
 
@@ -870,12 +848,13 @@ mod tests {
                 found: pleiades_backend::CelestialBody::Moon
             }
         ));
-        assert!(summary.validated_summary_line().is_err());
+        assert!(summary.validate().is_err());
         assert_eq!(
             reference_snapshot_major_body_boundary_summary_for_report(),
-            pleiades_jpl::reference_snapshot_major_body_boundary_summary()
-                .expect("reference major-body boundary summary should exist")
-                .summary_line()
+            reference_major_body_boundary_summary_line(
+                &pleiades_jpl::reference_snapshot_major_body_boundary_summary()
+                    .expect("reference major-body boundary summary should exist")
+            )
         );
     }
 
@@ -913,19 +892,17 @@ mod tests {
             ]
         );
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
-            summary.summary_line(),
+            reference_mars_jupiter_boundary_summary_line(&summary),
             "Reference Mars/Jupiter boundary evidence: 16 exact samples at JD 2451918.5 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis); 2001-01-09 boundary sample"
         );
         assert_eq!(
             reference_snapshot_2451918_major_body_boundary_summary_for_report(),
             "Reference 2451918 major-body boundary evidence: 16 exact samples at JD 2451918.5 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis); 2001-01-09 boundary sample"
         );
-        assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             reference_snapshot_mars_jupiter_boundary_summary_for_report(),
-            summary.summary_line()
+            reference_mars_jupiter_boundary_summary_line(&summary)
         );
     }
 
@@ -947,12 +924,13 @@ mod tests {
                 found: pleiades_backend::CelestialBody::Moon
             }
         ));
-        assert!(summary.validated_summary_line().is_err());
+        assert!(summary.validate().is_err());
         assert_eq!(
             reference_snapshot_mars_jupiter_boundary_summary_for_report(),
-            pleiades_jpl::reference_snapshot_mars_jupiter_boundary_summary()
-                .expect("reference Mars/Jupiter boundary summary should exist")
-                .summary_line()
+            reference_mars_jupiter_boundary_summary_line(
+                &pleiades_jpl::reference_snapshot_mars_jupiter_boundary_summary()
+                    .expect("reference Mars/Jupiter boundary summary should exist")
+            )
         );
     }
 
@@ -968,17 +946,18 @@ mod tests {
         assert!(boundary_2451918.contains("JD 2451918.5 (TDB)"));
         assert_eq!(
             boundary_2451918,
-            summary.summary_line().replacen(
+            reference_mars_jupiter_boundary_summary_line(&summary).replacen(
                 "Reference Mars/Jupiter boundary evidence",
                 "Reference 2451918 major-body boundary evidence",
                 1
             )
         );
         assert_eq!(
-            summary.summary_line(),
-            pleiades_jpl::reference_snapshot_mars_jupiter_boundary_summary()
-                .expect("reference Mars/Jupiter boundary summary should exist")
-                .summary_line()
+            reference_mars_jupiter_boundary_summary_line(&summary),
+            reference_mars_jupiter_boundary_summary_line(
+                &pleiades_jpl::reference_snapshot_mars_jupiter_boundary_summary()
+                    .expect("reference Mars/Jupiter boundary summary should exist")
+            )
         );
         assert_ne!(boundary_2451918, boundary_generic);
     }
@@ -1001,17 +980,18 @@ mod tests {
                 found: pleiades_backend::CelestialBody::Moon
             }
         ));
-        assert!(summary.validated_summary_line().is_err());
+        assert!(summary.validate().is_err());
         assert_eq!(
             reference_snapshot_2451918_major_body_boundary_summary_for_report(),
-            pleiades_jpl::reference_snapshot_2451918_major_body_boundary_summary()
-                .expect("reference 2451918 major-body boundary summary should exist")
-                .summary_line()
-                .replacen(
-                    "Reference Mars/Jupiter boundary evidence",
-                    "Reference 2451918 major-body boundary evidence",
-                    1
-                )
+            reference_mars_jupiter_boundary_summary_line(
+                &pleiades_jpl::reference_snapshot_2451918_major_body_boundary_summary()
+                    .expect("reference 2451918 major-body boundary summary should exist")
+            )
+            .replacen(
+                "Reference Mars/Jupiter boundary evidence",
+                "Reference 2451918 major-body boundary evidence",
+                1
+            )
         );
     }
 
@@ -1038,17 +1018,16 @@ mod tests {
             ]
         );
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
-            summary.summary_line(),
+            reference_2451910_major_body_boundary_summary_line(&summary),
             "Reference 2451910 major-body boundary evidence: 10 exact samples at JD 2451910.5 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); 2001-01-01 boundary sample"
         );
-        assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             reference_snapshot_2451910_major_body_boundary_summary_for_report(),
-            summary.summary_line()
+            reference_2451910_major_body_boundary_summary_line(&summary)
         );
-        assert!(reference_snapshot_summary_for_report().contains(summary.summary_line().as_str()));
+        assert!(reference_snapshot_summary_for_report()
+            .contains(reference_2451910_major_body_boundary_summary_line(&summary).as_str()));
     }
 
     #[test]
@@ -1069,12 +1048,13 @@ mod tests {
                 found: pleiades_backend::CelestialBody::Moon
             }
         ));
-        assert!(summary.validated_summary_line().is_err());
+        assert!(summary.validate().is_err());
         assert_eq!(
             reference_snapshot_2451910_major_body_boundary_summary_for_report(),
-            pleiades_jpl::reference_snapshot_2451910_major_body_boundary_summary()
-                .expect("reference 2451910 major-body boundary summary should exist")
-                .summary_line()
+            reference_2451910_major_body_boundary_summary_line(
+                &pleiades_jpl::reference_snapshot_2451910_major_body_boundary_summary()
+                    .expect("reference 2451910 major-body boundary summary should exist")
+            )
         );
     }
 
@@ -1101,12 +1081,12 @@ mod tests {
             ]
         );
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             reference_snapshot_2451911_major_body_boundary_summary_for_report(),
-            summary.summary_line()
+            reference_2451911_major_body_boundary_summary_line(&summary)
         );
-        assert!(reference_snapshot_summary_for_report().contains(summary.summary_line().as_str()));
+        assert!(reference_snapshot_summary_for_report()
+            .contains(reference_2451911_major_body_boundary_summary_line(&summary).as_str()));
     }
 
     #[test]
@@ -1127,12 +1107,13 @@ mod tests {
                 found: pleiades_backend::CelestialBody::Moon
             }
         ));
-        assert!(summary.validated_summary_line().is_err());
+        assert!(summary.validate().is_err());
         assert_eq!(
             reference_snapshot_2451911_major_body_boundary_summary_for_report(),
-            pleiades_jpl::reference_snapshot_2451911_major_body_boundary_summary()
-                .expect("reference 2451911 major-body boundary summary should exist")
-                .summary_line()
+            reference_2451911_major_body_boundary_summary_line(
+                &pleiades_jpl::reference_snapshot_2451911_major_body_boundary_summary()
+                    .expect("reference 2451911 major-body boundary summary should exist")
+            )
         );
     }
 
@@ -1159,15 +1140,13 @@ mod tests {
             ]
         );
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
-            summary.summary_line(),
+            reference_2451912_major_body_boundary_summary_line(&summary),
             "Reference 2451912 major-body boundary evidence: 10 exact samples at JD 2451912.5 (TDB) (Sun, Moon, Mercury, Venus, Saturn, Uranus, Neptune, Pluto, Mars, Jupiter); 2001-01-03 boundary sample"
         );
-        assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             reference_snapshot_2451912_major_body_boundary_summary_for_report(),
-            summary.summary_line()
+            reference_2451912_major_body_boundary_summary_line(&summary)
         );
     }
 
@@ -1189,12 +1168,13 @@ mod tests {
                 found: pleiades_backend::CelestialBody::Moon
             }
         ));
-        assert!(summary.validated_summary_line().is_err());
+        assert!(summary.validate().is_err());
         assert_eq!(
             reference_snapshot_2451912_major_body_boundary_summary_for_report(),
-            pleiades_jpl::reference_snapshot_2451912_major_body_boundary_summary()
-                .expect("reference 2451912 major-body boundary summary should exist")
-                .summary_line()
+            reference_2451912_major_body_boundary_summary_line(
+                &pleiades_jpl::reference_snapshot_2451912_major_body_boundary_summary()
+                    .expect("reference 2451912 major-body boundary summary should exist")
+            )
         );
     }
 
@@ -1214,17 +1194,16 @@ mod tests {
             pleiades_backend::CelestialBody::Pluto
         );
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
-            summary.summary_line(),
+            reference_2451913_major_body_boundary_summary_line(&summary),
             "Reference 2451913 major-body boundary evidence: 10 exact samples at JD 2451913.5 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); 2001-01-04 boundary sample"
         );
-        assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             reference_snapshot_2451913_major_body_boundary_summary_for_report(),
-            summary.summary_line()
+            reference_2451913_major_body_boundary_summary_line(&summary)
         );
-        assert!(reference_snapshot_summary_for_report().contains(summary.summary_line().as_str()));
+        assert!(reference_snapshot_summary_for_report()
+            .contains(reference_2451913_major_body_boundary_summary_line(&summary).as_str()));
     }
 
     #[test]
@@ -1245,12 +1224,13 @@ mod tests {
                 found: pleiades_backend::CelestialBody::Moon
             }
         ));
-        assert!(summary.validated_summary_line().is_err());
+        assert!(summary.validate().is_err());
         assert_eq!(
             reference_snapshot_2451913_major_body_boundary_summary_for_report(),
-            pleiades_jpl::reference_snapshot_2451913_major_body_boundary_summary()
-                .expect("reference 2451913 major-body boundary summary should exist")
-                .summary_line()
+            reference_2451913_major_body_boundary_summary_line(
+                &pleiades_jpl::reference_snapshot_2451913_major_body_boundary_summary()
+                    .expect("reference 2451913 major-body boundary summary should exist")
+            )
         );
     }
 
@@ -1277,17 +1257,16 @@ mod tests {
             ]
         );
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
-            summary.summary_line(),
+            reference_2451914_major_body_boundary_summary_line(&summary),
             "Reference 2451914 major-body boundary evidence: 10 exact samples at JD 2451914.5 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); 2001-01-05 boundary sample"
         );
-        assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             reference_snapshot_2451914_major_body_boundary_summary_for_report(),
-            summary.summary_line()
+            reference_2451914_major_body_boundary_summary_line(&summary)
         );
-        assert!(reference_snapshot_summary_for_report().contains(summary.summary_line().as_str()));
+        assert!(reference_snapshot_summary_for_report()
+            .contains(reference_2451914_major_body_boundary_summary_line(&summary).as_str()));
     }
 
     #[test]
@@ -1308,12 +1287,13 @@ mod tests {
                 found: pleiades_backend::CelestialBody::Moon
             }
         ));
-        assert!(summary.validated_summary_line().is_err());
+        assert!(summary.validate().is_err());
         assert_eq!(
             reference_snapshot_2451914_major_body_boundary_summary_for_report(),
-            pleiades_jpl::reference_snapshot_2451914_major_body_boundary_summary()
-                .expect("reference 2451914 major-body boundary summary should exist")
-                .summary_line()
+            reference_2451914_major_body_boundary_summary_line(
+                &pleiades_jpl::reference_snapshot_2451914_major_body_boundary_summary()
+                    .expect("reference 2451914 major-body boundary summary should exist")
+            )
         );
     }
 
@@ -1333,17 +1313,16 @@ mod tests {
             pleiades_backend::CelestialBody::Pluto
         );
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
-            summary.summary_line(),
+            reference_2451915_major_body_boundary_summary_line(&summary),
             "Reference 2451915 major-body boundary evidence: 10 exact samples at JD 2451915.5 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); 2001-01-06 boundary sample"
         );
-        assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             reference_snapshot_2451915_major_body_boundary_summary_for_report(),
-            summary.summary_line()
+            reference_2451915_major_body_boundary_summary_line(&summary)
         );
-        assert!(reference_snapshot_summary_for_report().contains(summary.summary_line().as_str()));
+        assert!(reference_snapshot_summary_for_report()
+            .contains(reference_2451915_major_body_boundary_summary_line(&summary).as_str()));
     }
 
     #[test]
@@ -1364,12 +1343,13 @@ mod tests {
                 found: pleiades_backend::CelestialBody::Moon
             }
         ));
-        assert!(summary.validated_summary_line().is_err());
+        assert!(summary.validate().is_err());
         assert_eq!(
             reference_snapshot_2451915_major_body_boundary_summary_for_report(),
-            pleiades_jpl::reference_snapshot_2451915_major_body_boundary_summary()
-                .expect("reference 2451915 major-body boundary summary should exist")
-                .summary_line()
+            reference_2451915_major_body_boundary_summary_line(
+                &pleiades_jpl::reference_snapshot_2451915_major_body_boundary_summary()
+                    .expect("reference 2451915 major-body boundary summary should exist")
+            )
         );
     }
 
@@ -1389,17 +1369,16 @@ mod tests {
             pleiades_backend::CelestialBody::Venus
         );
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
-            summary.summary_line(),
+            reference_2451545_major_body_boundary_summary_line(&summary),
             "Reference 2451545 major-body boundary evidence: 10 exact samples at JD 2451545.0 (TDB) (Jupiter, Mars, Mercury, Moon, Neptune, Pluto, Saturn, Sun, Uranus, Venus); J2000 reference sample"
         );
-        assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             reference_snapshot_2451545_major_body_boundary_summary_for_report(),
-            summary.summary_line()
+            reference_2451545_major_body_boundary_summary_line(&summary)
         );
-        assert!(reference_snapshot_summary_for_report().contains(summary.summary_line().as_str()));
+        assert!(reference_snapshot_summary_for_report()
+            .contains(reference_2451545_major_body_boundary_summary_line(&summary).as_str()));
     }
 
     #[test]
@@ -1420,12 +1399,13 @@ mod tests {
                 found: pleiades_backend::CelestialBody::Moon
             }
         ));
-        assert!(summary.validated_summary_line().is_err());
+        assert!(summary.validate().is_err());
         assert_eq!(
             reference_snapshot_2451545_major_body_boundary_summary_for_report(),
-            pleiades_jpl::reference_snapshot_2451545_major_body_boundary_summary()
-                .expect("reference 2451545 major-body boundary summary should exist")
-                .summary_line()
+            reference_2451545_major_body_boundary_summary_line(
+                &pleiades_jpl::reference_snapshot_2451545_major_body_boundary_summary()
+                    .expect("reference 2451545 major-body boundary summary should exist")
+            )
         );
     }
 
@@ -1445,17 +1425,16 @@ mod tests {
             pleiades_backend::CelestialBody::Pluto
         );
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
-            summary.summary_line(),
+            reference_2453000_major_body_boundary_summary_line(&summary),
             "Reference 2453000 major-body boundary evidence: 10 exact samples at JD 2453000.5 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); 2453000.5 boundary sample"
         );
-        assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             reference_snapshot_2453000_major_body_boundary_summary_for_report(),
-            summary.summary_line()
+            reference_2453000_major_body_boundary_summary_line(&summary)
         );
-        assert!(reference_snapshot_summary_for_report().contains(summary.summary_line().as_str()));
+        assert!(reference_snapshot_summary_for_report()
+            .contains(reference_2453000_major_body_boundary_summary_line(&summary).as_str()));
     }
 
     #[test]
@@ -1476,12 +1455,13 @@ mod tests {
                 found: pleiades_backend::CelestialBody::Moon
             }
         ));
-        assert!(summary.validated_summary_line().is_err());
+        assert!(summary.validate().is_err());
         assert_eq!(
             reference_snapshot_2453000_major_body_boundary_summary_for_report(),
-            pleiades_jpl::reference_snapshot_2453000_major_body_boundary_summary()
-                .expect("reference 2453000 major-body boundary summary should exist")
-                .summary_line()
+            reference_2453000_major_body_boundary_summary_line(
+                &pleiades_jpl::reference_snapshot_2453000_major_body_boundary_summary()
+                    .expect("reference 2453000 major-body boundary summary should exist")
+            )
         );
     }
 
@@ -1493,15 +1473,13 @@ mod tests {
         assert_eq!(summary.sample_bodies.len(), 10);
         assert_eq!(summary.epoch.julian_day.days(), 2_451_917.0);
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
-            summary.summary_line(),
+            reference_2451917_major_body_bridge_summary_line(&summary),
             "Reference 2451917 major-body bridge evidence: 10 exact samples at JD 2451917.0 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto); bridge sample across the major-body boundary window"
         );
-        assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             reference_snapshot_2451917_major_body_bridge_summary_for_report(),
-            summary.summary_line()
+            reference_2451917_major_body_bridge_summary_line(&summary)
         );
     }
 
