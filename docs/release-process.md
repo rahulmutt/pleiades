@@ -1,6 +1,6 @@
 # Release process
 
-`pleiades` publishes **14 library crates** to crates.io with lockstep versions.
+`pleiades` publishes **16 library crates** to crates.io with lockstep versions.
 Only `pleiades-cli` and `pleiades-validate` are `publish = false` and are never
 published. Publish metadata is enforced by `mise run audit` (workspace audit
 `publish.*` rules) and `mise run package-check` (artifact size budget), both
@@ -24,7 +24,7 @@ fallback for cutting a release by hand.
   so release-plz maintains the single root changelog (not per-crate files).
 - **CI workflow:** `.github/workflows/release-plz.yml` (two jobs: `release-plz-pr`
   opens/updates the Release PR; `release-plz-release` publishes + tags on merge).
-- **Manual fallback config:** `release.toml` (cargo-release, pinned to `1.1.2` in
+- **Manual fallback config:** `release.toml` (cargo-release, pinned to `1.1.3` in
   `mise.toml`).
 
 ## One-time setup
@@ -91,6 +91,10 @@ fine to start; you can migrate to an App later.
 
 ## Bootstrapping the first release (0.3.0)
 
+> **Historical:** this bootstrap was completed on 2026-07-04 (`v0.3.0`,
+> 14 publishable crates at the time). Kept for reference; releases from
+> 0.4.0 onward use the automated flow below.
+
 The **first** release under this setup is cut **by hand** with the cargo-release
 fallback, not by merging a release-plz Release PR. release-plz automation takes
 over from 0.4.0 onward. Do the bootstrap manually because:
@@ -135,7 +139,7 @@ for the next releasable commit to open the 0.4.0 Release PR.
 ## Cutting a release (automated — primary)
 
 1. Land your `feat`/`fix`/`perf`/breaking commits on `main` as usual.
-2. release-plz maintains an open **Release** pull request that bumps all 14
+2. release-plz maintains an open **Release** pull request that bumps all 16
    publishable crates to the next unified version and updates `CHANGELOG.md`.
    Review it.
 3. **Merge the Release PR.** On merge, `release-plz-release` publishes every
