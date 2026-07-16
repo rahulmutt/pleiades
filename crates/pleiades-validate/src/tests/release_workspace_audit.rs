@@ -392,6 +392,57 @@ pleiades-jpl = { workspace = true }
     assert!(!violations.iter().any(|violation| violation.rule
         == "publish.internal-dependency-unpublishable"
         && violation.detail.contains("pleiades-jpl")));
+    assert!(violations.iter().any(|violation| violation.rule
+        == "publish.internal-dev-dependency-not-path-only"
+        && violation.detail.contains("pleiades-jpl")));
+    assert!(!violations.iter().any(|violation| violation.rule
+        == "publish.internal-dependency-not-workspace"
+        && violation.detail.contains("pleiades-jpl")));
+}
+
+#[test]
+fn workspace_audit_requires_path_only_internal_dev_dependencies() {
+    let manifest = r#"[package]
+name = "pleiades-example"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+pleiades-types = { workspace = true }
+
+[dev-dependencies]
+pleiades-data = { workspace = true }
+pleiades-elp = { path = "../pleiades-elp" }
+pleiades-jpl = { path = "../pleiades-jpl", version = "0.4.0" }
+serde_json = "1"
+"#;
+    let publishable = vec!["pleiades-example".to_string(), "pleiades-types".to_string()];
+    let violations =
+        audit_publishable_manifest_text(Path::new("/tmp/Cargo.toml"), manifest, &publishable);
+
+    // workspace = true dev-dep must violate the new path-only rule.
+    assert!(violations.iter().any(|violation| violation.rule
+        == "publish.internal-dev-dependency-not-path-only"
+        && violation.detail.contains("pleiades-data")));
+    // ...and must NOT also trip the runtime-only "not-workspace" rule.
+    assert!(!violations.iter().any(|violation| violation.rule
+        == "publish.internal-dependency-not-workspace"
+        && violation.detail.contains("pleiades-data")));
+
+    // path-only dev-dep is compliant: no violation for pleiades-elp at all.
+    assert!(!violations
+        .iter()
+        .any(|violation| violation.detail.contains("pleiades-elp")));
+
+    // path + version dev-dep must still violate: version defeats path-only stripping.
+    assert!(violations.iter().any(|violation| violation.rule
+        == "publish.internal-dev-dependency-not-path-only"
+        && violation.detail.contains("pleiades-jpl")));
+
+    // external dev-dep is untouched.
+    assert!(!violations
+        .iter()
+        .any(|violation| violation.detail.contains("serde_json")));
 }
 
 #[test]
@@ -414,6 +465,7 @@ pleiades-types = { workspace = true }
 
 [dev-dependencies]
 serde_json = "1"
+pleiades-jpl = { path = "../pleiades-jpl" }
 "#;
     let publishable = vec!["pleiades-example".to_string(), "pleiades-types".to_string()];
     let violations =

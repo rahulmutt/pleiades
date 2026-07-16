@@ -335,6 +335,13 @@ fn manifest_dependency_package_name(line: &str) -> Option<&str> {
     }
 }
 
+/// Whether a dependency table entry carries an explicit `version` key
+/// (either `version = "..."` or `version.workspace = true`). A dev-dependency
+/// with a version is not path-only, so cargo cannot strip it at publish time.
+fn manifest_dependency_has_version(line: &str) -> bool {
+    line.contains("version = \"") || line.contains("version.workspace")
+}
+
 fn workspace_rust_version(root: &Path) -> Option<String> {
     let text = fs::read_to_string(root.join("Cargo.toml")).ok()?;
     let mut in_workspace_package = false;
@@ -855,7 +862,7 @@ pub(crate) fn audit_publishable_manifest_text(
                     }
                 }
             }
-            Section::RuntimeDependencies | Section::DevDependencies => {
+            Section::RuntimeDependencies => {
                 let Some(name) = manifest_dependency_name(line) else {
                     continue;
                 };
@@ -872,16 +879,33 @@ pub(crate) fn audit_publishable_manifest_text(
                         ),
                     });
                 }
-                if section == Section::RuntimeDependencies
-                    && !publishable_names
-                        .iter()
-                        .any(|publishable| publishable.as_str() == package_name)
+                if !publishable_names
+                    .iter()
+                    .any(|publishable| publishable.as_str() == package_name)
                 {
                     violations.push(WorkspaceAuditViolation {
                         path: path.to_path_buf(),
                         rule: "publish.internal-dependency-unpublishable",
                         detail: format!(
                             "internal dependency `{package_name}` is not publishable, so this crate cannot list it as a runtime dependency"
+                        ),
+                    });
+                }
+            }
+            Section::DevDependencies => {
+                let Some(name) = manifest_dependency_name(line) else {
+                    continue;
+                };
+                let package_name = manifest_dependency_package_name(line).unwrap_or(name);
+                if !package_name.starts_with("pleiades-") {
+                    continue;
+                }
+                if line.contains("workspace = true") || manifest_dependency_has_version(line) {
+                    violations.push(WorkspaceAuditViolation {
+                        path: path.to_path_buf(),
+                        rule: "publish.internal-dev-dependency-not-path-only",
+                        detail: format!(
+                            "internal dev-dependency `{package_name}` must be path-only (no `workspace = true`, no `version`); cargo strips path-only dev-dependencies from the published manifest, so publish order does not depend on dev-dependency edges to not-yet-published workspace crates"
                         ),
                     });
                 }
