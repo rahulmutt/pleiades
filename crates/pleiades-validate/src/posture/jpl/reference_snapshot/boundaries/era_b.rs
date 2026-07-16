@@ -159,19 +159,13 @@ mod tests {
             pleiades_backend::CelestialBody::Venus
         );
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             reference_1900_selected_body_boundary_summary_line(&summary),
-            summary.summary_line()
-        );
-        assert_eq!(
-            summary.summary_line(),
             "Reference 1900 selected-body boundary evidence: 4 exact samples at JD 2415020.5 (TDB) (Sun, Moon, Mercury, Venus); 1900-01-01 selected-body boundary sample"
         );
-        assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             reference_snapshot_1900_selected_body_boundary_summary_for_report(),
-            summary.summary_line()
+            reference_1900_selected_body_boundary_summary_line(&summary)
         );
         assert_eq!(
             reference_snapshot_2415020_selected_body_boundary_summary_for_report(),

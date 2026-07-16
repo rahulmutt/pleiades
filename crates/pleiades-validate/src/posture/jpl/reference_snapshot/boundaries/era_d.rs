@@ -492,19 +492,17 @@ mod tests {
         assert_eq!(summary.sample_bodies.len(), 15);
         assert_eq!(summary.epoch.julian_day.days(), 2_451_914.0);
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
-            summary.summary_line(),
+            crate::posture::jpl::reference_snapshot::core::general_b::reference_snapshot_bridge_day_summary_line(&summary),
             "Reference snapshot bridge day: 15 exact samples at JD 2451914.0 (TDB) (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros); bridge sample across the reference boundary window"
         );
-        assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             reference_snapshot_bridge_day_summary_for_report(),
-            summary.summary_line()
+            crate::posture::jpl::reference_snapshot::core::general_b::reference_snapshot_bridge_day_summary_line(&summary)
         );
         assert_eq!(
             validated_reference_snapshot_bridge_day_summary_for_report(),
-            Ok(summary.summary_line())
+            Ok(crate::posture::jpl::reference_snapshot::core::general_b::reference_snapshot_bridge_day_summary_line(&summary))
         );
         assert_eq!(
             pleiades_jpl::reference_snapshot_2451914_bridge_day_summary(),
@@ -512,7 +510,7 @@ mod tests {
         );
         assert_eq!(
             reference_snapshot_2451914_bridge_day_summary_for_report(),
-            summary.summary_line()
+            crate::posture::jpl::reference_snapshot::core::general_b::reference_snapshot_bridge_day_summary_line(&summary)
         );
         assert_eq!(
             pleiades_jpl::reference_snapshot_2451914_bridge_day_summary(),
@@ -549,12 +547,13 @@ mod tests {
                 derived_sample_count: 15
             }
         ));
-        assert!(summary.validated_summary_line().is_err());
+        assert!(summary.validate().is_err());
         assert_eq!(
             reference_snapshot_bridge_day_summary_for_report(),
-            pleiades_jpl::reference_snapshot_bridge_day_summary()
-                .expect("reference snapshot bridge day summary should exist")
-                .summary_line()
+            crate::posture::jpl::reference_snapshot::core::general_b::reference_snapshot_bridge_day_summary_line(
+                &pleiades_jpl::reference_snapshot_bridge_day_summary()
+                    .expect("reference snapshot bridge day summary should exist")
+            )
         );
     }
 
@@ -576,12 +575,13 @@ mod tests {
                 found: pleiades_backend::CelestialBody::Moon
             }
         ));
-        assert!(summary.validated_summary_line().is_err());
+        assert!(summary.validate().is_err());
         assert_eq!(
             reference_snapshot_bridge_day_summary_for_report(),
-            pleiades_jpl::reference_snapshot_bridge_day_summary()
-                .expect("reference snapshot bridge day summary should exist")
-                .summary_line()
+            crate::posture::jpl::reference_snapshot::core::general_b::reference_snapshot_bridge_day_summary_line(
+                &pleiades_jpl::reference_snapshot_bridge_day_summary()
+                    .expect("reference snapshot bridge day summary should exist")
+            )
         );
     }
 
@@ -592,12 +592,14 @@ mod tests {
             crate::posture::jpl::reference_snapshot::core::general_b::reference_snapshot_pre_bridge_boundary_summary_for_report()
         );
         assert_eq!(
-            pleiades_jpl::reference_snapshot_2451914_major_body_pre_bridge_summary()
-                .expect("reference 2451914 major-body pre-bridge summary should exist")
-                .summary_line(),
-            pleiades_jpl::reference_snapshot_pre_bridge_boundary_summary()
-                .expect("reference pre-bridge boundary summary should exist")
-                .summary_line()
+            crate::posture::jpl::reference_snapshot::core::general_b::reference_snapshot_pre_bridge_boundary_summary_line(
+                &pleiades_jpl::reference_snapshot_2451914_major_body_pre_bridge_summary()
+                    .expect("reference 2451914 major-body pre-bridge summary should exist")
+            ),
+            crate::posture::jpl::reference_snapshot::core::general_b::reference_snapshot_pre_bridge_boundary_summary_line(
+                &pleiades_jpl::reference_snapshot_pre_bridge_boundary_summary()
+                    .expect("reference pre-bridge boundary summary should exist")
+            )
         );
 
         assert_eq!(
@@ -605,12 +607,14 @@ mod tests {
             reference_snapshot_bridge_day_summary_for_report()
         );
         assert_eq!(
-            pleiades_jpl::reference_snapshot_2451914_major_body_bridge_summary()
-                .expect("reference 2451914 major-body bridge summary should exist")
-                .summary_line(),
-            pleiades_jpl::reference_snapshot_bridge_day_summary()
-                .expect("reference bridge day summary should exist")
-                .summary_line()
+            crate::posture::jpl::reference_snapshot::core::general_b::reference_snapshot_bridge_day_summary_line(
+                &pleiades_jpl::reference_snapshot_2451914_major_body_bridge_summary()
+                    .expect("reference 2451914 major-body bridge summary should exist")
+            ),
+            crate::posture::jpl::reference_snapshot::core::general_b::reference_snapshot_bridge_day_summary_line(
+                &pleiades_jpl::reference_snapshot_bridge_day_summary()
+                    .expect("reference bridge day summary should exist")
+            )
         );
 
         let summary = pleiades_jpl::reference_snapshot_2451915_major_body_bridge_summary()
@@ -625,10 +629,11 @@ mod tests {
             )
         );
         assert_eq!(
-            summary.summary_line(),
-            pleiades_jpl::reference_snapshot_major_body_bridge_summary()
-                .expect("reference major-body bridge summary should exist")
-                .summary_line()
+            crate::posture::jpl::reference_snapshot::boundaries::era_a::reference_major_body_bridge_summary_line(&summary),
+            crate::posture::jpl::reference_snapshot::boundaries::era_a::reference_major_body_bridge_summary_line(
+                &pleiades_jpl::reference_snapshot_major_body_bridge_summary()
+                    .expect("reference major-body bridge summary should exist")
+            )
         );
     }
 }
