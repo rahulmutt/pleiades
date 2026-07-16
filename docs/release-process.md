@@ -52,8 +52,8 @@ built-in `GITHUB_TOKEN`.
 
 Why a separate token: GitHub deliberately prevents the built-in `GITHUB_TOKEN`
 from triggering other workflows (a loop-prevention safeguard). So if release-plz
-opened its Release PR or pushed the `v{version}` tag with the default token, your
-CI would not run on that PR and no tag-triggered workflow would fire. A
+opened its Release PR or pushed a `<crate>-v{version}` tag with the default token,
+your CI would not run on that PR and no tag-triggered workflow would fire. A
 non-default token makes those PRs and tags trigger CI normally.
 
 **Fine-grained personal access token (simplest path):**
@@ -69,7 +69,7 @@ non-default token makes those PRs and tags trigger CI normally.
 5. **Repository permissions** — grant exactly these two (leave everything else at
    *No access*):
    - **Contents:** *Read and write* (lets release-plz commit the version bump,
-     push the `v{version}` tag, and create the GitHub Release).
+     push per-crate tags (`<crate>-v{version}`), and create the GitHub Releases).
    - **Pull requests:** *Read and write* (lets release-plz open and update the
      Release PR).
 6. Click **Generate token** and **copy it now** — GitHub shows the value only
@@ -143,9 +143,9 @@ for the next releasable commit to open the 0.4.0 Release PR.
    publishable crates to the next unified version and updates `CHANGELOG.md`.
    Review it.
 3. **Merge the Release PR.** On merge, `release-plz-release` publishes every
-   publishable crate to crates.io in dependency order, tags `v{version}`, and
-   creates the GitHub Release. The `pleiades-cli`/`pleiades-validate` crates are
-   skipped automatically.
+   publishable crate to crates.io in dependency order, tags each crate
+   (`<crate>-v{version}`), and creates the GitHub Releases. The
+   `pleiades-cli`/`pleiades-validate` crates are skipped automatically.
 
 ## Cutting a release (manual fallback — cargo-release)
 
