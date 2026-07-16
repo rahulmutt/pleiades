@@ -155,7 +155,7 @@ pub(crate) fn ensure_production_generation_source_window_summary_matches_current
     production_generation_source_window_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
     if production_generation_source_window_summary_text
-        == pleiades_jpl::validated_production_generation_snapshot_window_summary_for_report()
+        == crate::posture::jpl::validated_production_generation_snapshot_window_summary_for_report()
             .map_err(ReleaseBundleError::Verification)?
     {
         Ok(())
@@ -171,7 +171,7 @@ pub(crate) fn ensure_production_generation_quarter_day_boundary_summary_matches_
     production_generation_quarter_day_boundary_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
     if production_generation_quarter_day_boundary_summary_text
-        == pleiades_jpl::production_generation_quarter_day_boundary_summary_for_report()
+        == crate::posture::jpl::production_generation_quarter_day_boundary_summary_for_report()
     {
         Ok(())
     } else {
@@ -246,7 +246,7 @@ pub(crate) fn ensure_production_generation_source_summary_matches_current_render
     production_generation_source_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
     if production_generation_source_summary_text
-        == pleiades_jpl::validated_production_generation_source_summary_for_report()
+        == crate::posture::jpl::validated_production_generation_source_summary_for_report()
             .map_err(ReleaseBundleError::Verification)?
     {
         Ok(())
@@ -617,7 +617,7 @@ pub(crate) fn ensure_reference_snapshot_source_window_summary_matches_current_re
     reference_snapshot_source_window_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
     if reference_snapshot_source_window_summary_text
-        == pleiades_jpl::validated_reference_snapshot_source_window_summary_for_report()
+        == crate::posture::jpl::validated_reference_snapshot_source_window_summary_for_report()
             .map_err(|error| ReleaseBundleError::Verification(error.to_string()))?
     {
         Ok(())
@@ -692,7 +692,7 @@ pub(crate) fn ensure_comparison_snapshot_source_window_summary_matches_current_r
     comparison_snapshot_source_window_summary_text: &str,
 ) -> Result<(), ReleaseBundleError> {
     if comparison_snapshot_source_window_summary_text
-        == pleiades_jpl::validated_comparison_snapshot_source_window_summary_for_report()
+        == crate::posture::jpl::validated_comparison_snapshot_source_window_summary_for_report()
             .map_err(|error| ReleaseBundleError::Verification(error.to_string()))?
     {
         Ok(())

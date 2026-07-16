@@ -2,7 +2,7 @@
 rust = { version = "1.97.0", components = "rustfmt,clippy" }
 "cargo:cargo-release" = "1.1.3"
 "cargo:git-cliff" = "2.13.1"
-"cargo:release-plz" = "0.3.159"
+"cargo:release-plz" = "0.3.160"
 
 [tasks.fmt]
 run = "cargo fmt --all --check"

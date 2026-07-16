@@ -1839,7 +1839,7 @@ pub fn render_release_bundle(
     let reference_holdout_overlap_summary_checksum =
         checksum64(&reference_holdout_overlap_summary_text);
     let reference_snapshot_bridge_day_summary_text =
-        pleiades_jpl::validated_reference_snapshot_bridge_day_summary_for_report()
+        crate::posture::jpl::validated_reference_snapshot_bridge_day_summary_for_report()
             .map_err(|error| ReleaseBundleError::Verification(error.to_string()))?;
     let reference_snapshot_bridge_day_summary_checksum =
         checksum64(&reference_snapshot_bridge_day_summary_text);
@@ -1883,7 +1883,7 @@ pub fn render_release_bundle(
     let reference_snapshot_source_summary_checksum =
         checksum64(&reference_snapshot_source_summary_text);
     let reference_snapshot_source_window_summary_text =
-        pleiades_jpl::validated_reference_snapshot_source_window_summary_for_report()
+        crate::posture::jpl::validated_reference_snapshot_source_window_summary_for_report()
             .map_err(|error| ReleaseBundleError::Verification(error.to_string()))?;
     let reference_snapshot_source_window_summary_checksum =
         checksum64(&reference_snapshot_source_window_summary_text);
@@ -1962,7 +1962,7 @@ pub fn render_release_bundle(
     let production_generation_source_window_summary_checksum =
         checksum64(&production_generation_source_window_summary_text);
     let production_generation_quarter_day_boundary_summary_text =
-        pleiades_jpl::production_generation_quarter_day_boundary_summary_for_report();
+        crate::posture::jpl::production_generation_quarter_day_boundary_summary_for_report();
     let production_generation_quarter_day_boundary_summary_checksum =
         checksum64(&production_generation_quarter_day_boundary_summary_text);
     let production_generation_corpus_shape_summary_text =

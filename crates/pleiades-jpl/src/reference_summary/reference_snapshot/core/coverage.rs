@@ -54,34 +54,6 @@ impl fmt::Display for ReferenceSnapshotBodyClassCoverageSummaryValidationError {
 impl std::error::Error for ReferenceSnapshotBodyClassCoverageSummaryValidationError {}
 
 impl ReferenceSnapshotBodyClassCoverageSummary {
-    /// Returns a compact body-class summary used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        let major_windows = self
-            .major_windows
-            .iter()
-            .map(ReferenceSnapshotSourceWindow::summary_line)
-            .collect::<Vec<_>>()
-            .join("; ");
-        let asteroid_windows = self
-            .asteroid_windows
-            .iter()
-            .map(ReferenceSnapshotSourceWindow::summary_line)
-            .collect::<Vec<_>>()
-            .join("; ");
-
-        format!(
-            "Reference snapshot body-class coverage: major bodies: {} rows across {} bodies and {} epochs; major windows: {}; selected asteroids: {} rows across {} bodies and {} epochs; asteroid windows: {}",
-            self.major_body_row_count,
-            self.major_bodies.len(),
-            self.major_epoch_count,
-            major_windows,
-            self.asteroid_row_count,
-            self.asteroid_bodies.len(),
-            self.asteroid_epoch_count,
-            asteroid_windows,
-        )
-    }
-
     /// Returns `Ok(())` when the body-class coverage summary still matches the checked-in slice.
     pub fn validate(&self) -> Result<(), ReferenceSnapshotBodyClassCoverageSummaryValidationError> {
         let Some(expected) = reference_snapshot_body_class_coverage_summary_details() else {
@@ -151,20 +123,6 @@ impl ReferenceSnapshotBodyClassCoverageSummary {
 
         Ok(())
     }
-
-    /// Returns the validated body-class coverage summary line.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, ReferenceSnapshotBodyClassCoverageSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for ReferenceSnapshotBodyClassCoverageSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
 }
 
 pub(crate) fn reference_snapshot_body_class_coverage_summary_details(
@@ -227,17 +185,6 @@ pub fn reference_snapshot_body_class_coverage_summary(
     reference_snapshot_body_class_coverage_summary_details()
 }
 
-/// Returns the release-facing body-class coverage summary string for the checked-in reference snapshot.
-pub fn reference_snapshot_body_class_coverage_summary_for_report() -> String {
-    match reference_snapshot_body_class_coverage_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => format!("Reference snapshot body-class coverage: unavailable ({error})"),
-        },
-        None => "Reference snapshot body-class coverage: unavailable".to_string(),
-    }
-}
-
 /// A single epoch slice inside the reference snapshot boundary coverage.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ReferenceSnapshotBoundaryEpochCoverage {
@@ -249,45 +196,7 @@ pub struct ReferenceSnapshotBoundaryEpochCoverage {
     pub bodies: Vec<pleiades_backend::CelestialBody>,
 }
 
-impl ReferenceSnapshotBoundaryEpochCoverage {
-    /// Returns a compact epoch-coverage summary used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        let pre_bridge_note =
-            if self.epoch.julian_day.days() == REFERENCE_PRE_BRIDGE_BOUNDARY_EPOCH_JD {
-                "; pre-bridge boundary day"
-            } else {
-                ""
-            };
-        let sparse_note = if self.epoch.julian_day.days() == REFERENCE_SPARSE_BOUNDARY_EPOCH_JD {
-            let missing_bodies = reference_snapshot_sparse_boundary_missing_bodies(&self.bodies);
-            if missing_bodies.is_empty() {
-                String::new()
-            } else {
-                format!(
-                    "; sparse boundary day; missing bodies: {}",
-                    format_bodies(&missing_bodies)
-                )
-            }
-        } else {
-            String::new()
-        };
-
-        format!(
-            "{}: {} bodies ({}{}){}",
-            format_instant(self.epoch),
-            self.body_count,
-            format_bodies(&self.bodies),
-            pre_bridge_note,
-            sparse_note,
-        )
-    }
-}
-
-impl fmt::Display for ReferenceSnapshotBoundaryEpochCoverage {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
-}
+impl ReferenceSnapshotBoundaryEpochCoverage {}
 
 /// Compact release-facing summary for the reference snapshot boundary-window epoch coverage.
 #[derive(Clone, Debug, PartialEq)]
@@ -328,24 +237,6 @@ impl fmt::Display for ReferenceSnapshotBoundaryEpochCoverageSummaryValidationErr
 impl std::error::Error for ReferenceSnapshotBoundaryEpochCoverageSummaryValidationError {}
 
 impl ReferenceSnapshotBoundaryEpochCoverageSummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        let window_summary = self
-            .windows
-            .iter()
-            .map(ReferenceSnapshotBoundaryEpochCoverage::summary_line)
-            .collect::<Vec<_>>()
-            .join("; ");
-        format!(
-            "Reference snapshot boundary epoch coverage: {} exact samples across {} epochs ({}..{}); epochs: {}",
-            self.sample_count,
-            self.epoch_count,
-            format_instant(self.earliest_epoch),
-            format_instant(self.latest_epoch),
-            window_summary,
-        )
-    }
-
     /// Returns `Ok(())` when the epoch coverage summary still matches the checked-in slice.
     pub fn validate(
         &self,
@@ -395,20 +286,6 @@ impl ReferenceSnapshotBoundaryEpochCoverageSummary {
         }
 
         Ok(())
-    }
-
-    /// Returns the validated epoch coverage summary line.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, ReferenceSnapshotBoundaryEpochCoverageSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for ReferenceSnapshotBoundaryEpochCoverageSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
     }
 }
 
@@ -475,19 +352,6 @@ pub fn reference_snapshot_boundary_epoch_coverage_summary(
     reference_snapshot_boundary_epoch_coverage_summary_details()
 }
 
-/// Returns the release-facing reference snapshot boundary-window epoch coverage summary string.
-pub fn reference_snapshot_boundary_epoch_coverage_summary_for_report() -> String {
-    match reference_snapshot_boundary_epoch_coverage_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => {
-                format!("Reference snapshot boundary epoch coverage: unavailable ({error})")
-            }
-        },
-        None => "Reference snapshot boundary epoch coverage: unavailable".to_string(),
-    }
-}
-
 pub(crate) fn reference_snapshot_high_curvature_epoch_coverage_summary_details(
 ) -> Option<ReferenceHighCurvatureEpochCoverageSummary> {
     let entries = reference_snapshot_high_curvature_entries()?;
@@ -544,15 +408,32 @@ pub fn reference_snapshot_high_curvature_epoch_coverage_summary(
     reference_snapshot_high_curvature_epoch_coverage_summary_details()
 }
 
-/// Returns the release-facing major-body high-curvature epoch coverage summary string.
-pub fn reference_snapshot_high_curvature_epoch_coverage_summary_for_report() -> String {
-    match reference_snapshot_high_curvature_epoch_coverage_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => {
-                format!("Reference major-body high-curvature epoch coverage: unavailable ({error})")
-            }
-        },
-        None => "Reference major-body high-curvature epoch coverage: unavailable".to_string(),
+impl ReferenceSnapshotBodyClassCoverageSummary {
+    /// Returns a compact body-class summary used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        let major_windows = self
+            .major_windows
+            .iter()
+            .map(ReferenceSnapshotSourceWindow::summary_line)
+            .collect::<Vec<_>>()
+            .join("; ");
+        let asteroid_windows = self
+            .asteroid_windows
+            .iter()
+            .map(ReferenceSnapshotSourceWindow::summary_line)
+            .collect::<Vec<_>>()
+            .join("; ");
+
+        format!(
+            "Reference snapshot body-class coverage: major bodies: {} rows across {} bodies and {} epochs; major windows: {}; selected asteroids: {} rows across {} bodies and {} epochs; asteroid windows: {}",
+            self.major_body_row_count,
+            self.major_bodies.len(),
+            self.major_epoch_count,
+            major_windows,
+            self.asteroid_row_count,
+            self.asteroid_bodies.len(),
+            self.asteroid_epoch_count,
+            asteroid_windows,
+        )
     }
 }

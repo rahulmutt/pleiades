@@ -766,7 +766,7 @@ fn release_bundle_writes_expected_artifacts() {
     );
     assert!(release_summary.contains("JPL source corpus contract:"));
     assert!(release_summary.contains("Source-backed backend evidence:"));
-    assert!(release_summary.contains(&pleiades_jpl::jpl_provenance_only_summary_for_report()));
+    assert!(release_summary.contains(&jpl_provenance_only_summary_for_report()));
     assert!(release_summary.contains("JPL evidence classification: release-tolerance=reference/comparison/production-generation validation summaries; hold-out=independent hold-out rows and interpolation-quality summaries; fixture exactness=reference snapshot exact J2000 evidence; provenance-only=source and manifest summaries"));
     assert!(
         release_summary.contains(&reference_snapshot_boundary_epoch_coverage_summary_for_report())

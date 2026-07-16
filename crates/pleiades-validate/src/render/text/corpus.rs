@@ -418,7 +418,8 @@ pub(crate) fn source_corpus_summary_details() -> Option<SourceCorpusSummary> {
     )
     .ok()?;
     let reference_snapshot_exact_j2000_body_class_coverage = required_summary_payload(
-        pleiades_jpl::reference_snapshot_exact_j2000_body_class_coverage_summary_for_report(),
+        crate::posture::jpl::reference_snapshot_exact_j2000_body_class_coverage_summary_for_report(
+        ),
         "Reference snapshot exact J2000 body-class coverage: ",
         "reference snapshot exact J2000 body-class coverage",
     )
@@ -472,7 +473,7 @@ pub(crate) fn source_corpus_summary_details() -> Option<SourceCorpusSummary> {
     .ok()?;
     let production_generation_date_range = production_generation_date_range_for_report()?;
     let production_generation_quarter_day_boundary_samples = required_summary_payload(
-        pleiades_jpl::production_generation_quarter_day_boundary_summary_for_report(),
+        crate::posture::jpl::production_generation_quarter_day_boundary_summary_for_report(),
         "Production generation quarter-day boundary samples: ",
         "production generation quarter-day boundary samples",
     )
@@ -507,7 +508,7 @@ pub(crate) fn source_corpus_summary_details() -> Option<SourceCorpusSummary> {
         )
         .ok()?,
         production_generation_body_class_coverage: required_summary_payload(
-            pleiades_jpl::production_generation_snapshot_body_class_coverage_summary_for_report(),
+            crate::posture::jpl::production_generation_snapshot_body_class_coverage_summary_for_report(),
             "Production generation body-class coverage: ",
             "production generation body-class coverage",
         )

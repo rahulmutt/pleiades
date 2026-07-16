@@ -106,7 +106,7 @@ pub(crate) fn render_release_notes_text() -> String {
     text.push_str(&reference_snapshot_2451917_major_body_boundary_summary_for_report());
     text.push('\n');
     text.push_str(
-        &match pleiades_jpl::validated_reference_snapshot_bridge_day_summary_for_report() {
+        &match crate::posture::jpl::validated_reference_snapshot_bridge_day_summary_for_report() {
             Ok(summary) => summary,
             Err(error) => format!("Reference snapshot bridge day unavailable ({error})"),
         },
@@ -249,7 +249,7 @@ pub(crate) fn render_release_notes_summary_text() -> String {
     text.push_str(&reference_snapshot_2451915_major_body_bridge_summary_for_report());
     text.push('\n');
     text.push_str(
-        &match pleiades_jpl::validated_reference_snapshot_bridge_day_summary_for_report() {
+        &match crate::posture::jpl::validated_reference_snapshot_bridge_day_summary_for_report() {
             Ok(summary) => summary,
             Err(error) => format!("Reference snapshot bridge day unavailable ({error})"),
         },

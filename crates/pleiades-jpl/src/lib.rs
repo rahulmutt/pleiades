@@ -31,16 +31,15 @@ use pleiades_types::{
 
 mod data;
 pub use data::{
-    selected_asteroid_source_2378498_summary, selected_asteroid_source_2378498_summary_for_report,
-    selected_asteroid_source_2451917_summary, selected_asteroid_source_2451917_summary_for_report,
+    selected_asteroid_source_2378498_summary, selected_asteroid_source_2451917_summary,
+    SelectedAsteroidSource2378498Summary, SelectedAsteroidSource2451917Summary,
 };
 
 mod production_generation;
 pub use production_generation::*;
 use production_generation::{
-    production_generation_boundary_body_list, production_generation_boundary_entries,
-    production_generation_snapshot_bodies, production_generation_snapshot_body_list,
-    PRODUCTION_GENERATION_BOUNDARY_COVERAGE, PRODUCTION_GENERATION_QUARTER_DAY_EPOCHS,
+    production_generation_boundary_entries, production_generation_snapshot_bodies,
+    production_generation_snapshot_body_list, PRODUCTION_GENERATION_QUARTER_DAY_EPOCHS,
 };
 
 const REFERENCE_EPOCH_JD: f64 = 2_451_545.0;
@@ -61,8 +60,6 @@ pub use spk::{
     CorpusRequest, GeneratedSlice, SpkBackend, SpkBackendBuilder, SpkError, SpkErrorKind,
 };
 
-use reference_summary::format_bodies;
-
 fn format_instant(instant: Instant) -> String {
     format!("JD {:.1} ({})", instant.julian_day.days(), instant.scale)
 }
@@ -70,27 +67,9 @@ fn format_instant(instant: Instant) -> String {
 mod backend;
 pub use backend::*;
 use backend::{
-    angular_degrees_delta, comparison_body_list, comparison_snapshot_entries,
-    has_surrounding_whitespace, independent_holdout_bodies, independent_holdout_snapshot_error,
-    interpolation_quality_sample_list, is_comparison_body, is_reference_asteroid,
-    reference_asteroid_equatorial_evidence_list, reference_asteroid_evidence_list,
-    reference_asteroid_list, reference_asteroid_requests_with_frame_selector,
-    resolve_fixture_state, snapshot_bodies, snapshot_entries, snapshot_instants,
-    validate_snapshot_manifest_footprint, validate_snapshot_manifest_header_structure,
-    REFERENCE_SNAPSHOT_1900_SELECTED_BODY_BOUNDARY_EPOCH_JD,
-    REFERENCE_SNAPSHOT_2451545_MAJOR_BODY_BOUNDARY_EPOCH_JD,
-    REFERENCE_SNAPSHOT_2451910_MAJOR_BODY_BOUNDARY_EPOCH_JD,
-    REFERENCE_SNAPSHOT_2451911_MAJOR_BODY_BOUNDARY_EPOCH_JD,
-    REFERENCE_SNAPSHOT_2451912_MAJOR_BODY_BOUNDARY_EPOCH_JD,
-    REFERENCE_SNAPSHOT_2451913_MAJOR_BODY_BOUNDARY_EPOCH_JD,
-    REFERENCE_SNAPSHOT_2451914_MAJOR_BODY_BOUNDARY_EPOCH_JD,
-    REFERENCE_SNAPSHOT_2451915_MAJOR_BODY_BOUNDARY_EPOCH_JD,
-    REFERENCE_SNAPSHOT_2451916_MAJOR_BODY_INTERIOR_EPOCH_JD,
-    REFERENCE_SNAPSHOT_2451917_MAJOR_BODY_BOUNDARY_EPOCH_JD,
-    REFERENCE_SNAPSHOT_2451917_MAJOR_BODY_BRIDGE_EPOCH_JD,
-    REFERENCE_SNAPSHOT_2451919_MAJOR_BODY_BOUNDARY_EPOCH_JD,
-    REFERENCE_SNAPSHOT_2451920_MAJOR_BODY_INTERIOR_EPOCH_JD,
-    REFERENCE_SNAPSHOT_2453000_MAJOR_BODY_BOUNDARY_EPOCH_JD,
+    angular_degrees_delta, has_surrounding_whitespace, independent_holdout_bodies,
+    is_reference_asteroid, reference_asteroid_equatorial_evidence_list, reference_asteroid_list,
+    reference_asteroid_requests_with_frame_selector, resolve_fixture_state,
 };
 
 #[cfg(test)]

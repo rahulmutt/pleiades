@@ -58,19 +58,6 @@ pub fn reference_snapshot_2451917_major_body_boundary_summary(
     reference_snapshot_2451917_major_body_boundary_summary_details()
 }
 
-/// Returns the release-facing 2451917 major-body boundary summary string.
-pub fn reference_snapshot_2451917_major_body_boundary_summary_for_report() -> String {
-    match reference_snapshot_2451917_major_body_boundary_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => {
-                format!("Reference 2451917 major-body boundary evidence: unavailable ({error})")
-            }
-        },
-        None => "Reference 2451917 major-body boundary evidence: unavailable".to_string(),
-    }
-}
-
 pub(crate) fn reference_snapshot_2451919_major_body_boundary_entries(
 ) -> Option<&'static [SnapshotEntry]> {
     static ENTRIES: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
@@ -117,19 +104,6 @@ pub(crate) fn reference_snapshot_2451919_major_body_boundary_summary_details(
 pub fn reference_snapshot_2451919_major_body_boundary_summary(
 ) -> Option<Reference2451919MajorBodyBoundarySummary> {
     reference_snapshot_2451919_major_body_boundary_summary_details()
-}
-
-/// Returns the release-facing 2451919 major-body boundary summary string.
-pub fn reference_snapshot_2451919_major_body_boundary_summary_for_report() -> String {
-    match reference_snapshot_2451919_major_body_boundary_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => {
-                format!("Reference 2451919 major-body boundary evidence: unavailable ({error})")
-            }
-        },
-        None => "Reference 2451919 major-body boundary evidence: unavailable".to_string(),
-    }
 }
 
 pub(crate) fn reference_snapshot_2451916_major_body_interior_entries(
@@ -180,19 +154,6 @@ pub fn reference_snapshot_2451916_major_body_interior_summary(
     reference_snapshot_2451916_major_body_interior_summary_details()
 }
 
-/// Returns the release-facing 2451916 major-body interior summary string.
-pub fn reference_snapshot_2451916_major_body_interior_summary_for_report() -> String {
-    match reference_snapshot_2451916_major_body_interior_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => {
-                format!("Reference 2451916 major-body interior evidence: unavailable ({error})")
-            }
-        },
-        None => "Reference 2451916 major-body interior evidence: unavailable".to_string(),
-    }
-}
-
 pub(crate) fn reference_snapshot_2451920_major_body_interior_entries(
 ) -> Option<&'static [SnapshotEntry]> {
     static ENTRIES: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
@@ -239,19 +200,6 @@ pub(crate) fn reference_snapshot_2451920_major_body_interior_summary_details(
 pub fn reference_snapshot_2451920_major_body_interior_summary(
 ) -> Option<Reference2451920MajorBodyInteriorSummary> {
     reference_snapshot_2451920_major_body_interior_summary_details()
-}
-
-/// Returns the release-facing 2451920 major-body interior summary string.
-pub fn reference_snapshot_2451920_major_body_interior_summary_for_report() -> String {
-    match reference_snapshot_2451920_major_body_interior_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => {
-                format!("Reference 2451920 major-body interior evidence: unavailable ({error})")
-            }
-        },
-        None => "Reference 2451920 major-body interior evidence: unavailable".to_string(),
-    }
 }
 
 pub(crate) fn reference_snapshot_major_body_boundary_window_summary_details(
@@ -340,24 +288,13 @@ pub fn reference_snapshot_major_body_boundary_window_summary(
     )
 }
 
-/// Returns the release-facing major-body boundary-day window summary string.
-pub fn reference_snapshot_major_body_boundary_window_summary_for_report() -> String {
-    match reference_snapshot_major_body_boundary_window_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => {
-                format!("Reference major-body boundary windows: unavailable ({error})")
-            }
-        },
-        None => "Reference major-body boundary windows: unavailable".to_string(),
-    }
-}
-
-pub(crate) const REFERENCE_PRE_BRIDGE_BOUNDARY_EPOCH_JD: f64 = 2_451_914.5;
+/// Julian day of the checked-in reference snapshot's pre-bridge boundary day.
+pub const REFERENCE_PRE_BRIDGE_BOUNDARY_EPOCH_JD: f64 = 2_451_914.5;
 
 pub(crate) const REFERENCE_DENSE_BOUNDARY_EPOCH_JD: f64 = 2_451_916.5;
 
-pub(crate) const REFERENCE_SPARSE_BOUNDARY_EPOCH_JD: f64 = 2_451_915.5;
+/// Julian day of the checked-in reference snapshot's sparse asteroid-only boundary day.
+pub const REFERENCE_SPARSE_BOUNDARY_EPOCH_JD: f64 = 2_451_915.5;
 
 pub(crate) fn reference_snapshot_sparse_boundary_entries() -> Option<&'static [SnapshotEntry]> {
     static ENTRIES: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
@@ -379,7 +316,8 @@ pub(crate) fn reference_snapshot_sparse_boundary_entries() -> Option<&'static [S
     }
 }
 
-pub(crate) fn reference_snapshot_sparse_boundary_missing_bodies(
+/// Returns the reference bodies missing from a sparse boundary day's sample-body list.
+pub fn reference_snapshot_sparse_boundary_missing_bodies(
     sample_bodies: &[pleiades_backend::CelestialBody],
 ) -> Vec<pleiades_backend::CelestialBody> {
     reference_bodies()
@@ -495,26 +433,6 @@ impl fmt::Display for ReferenceSnapshotSparseBoundarySummaryValidationError {
 impl std::error::Error for ReferenceSnapshotSparseBoundarySummaryValidationError {}
 
 impl ReferenceSnapshotSparseBoundarySummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        if self.missing_bodies.is_empty() {
-            format!(
-                "Reference snapshot boundary day: {} exact samples at {} ({})",
-                self.sample_count,
-                format_instant(self.epoch),
-                format_bodies(&self.sample_bodies),
-            )
-        } else {
-            format!(
-                "Reference snapshot boundary day: {} exact samples at {} ({}); sparse boundary day; missing bodies: {}",
-                self.sample_count,
-                format_instant(self.epoch),
-                format_bodies(&self.sample_bodies),
-                format_bodies(&self.missing_bodies),
-            )
-        }
-    }
-
     /// Returns `Ok(())` when the sparse boundary summary still matches the current evidence slice.
     pub fn validate(&self) -> Result<(), ReferenceSnapshotSparseBoundarySummaryValidationError> {
         let evidence = reference_snapshot_sparse_boundary_entries()
@@ -605,20 +523,6 @@ impl ReferenceSnapshotSparseBoundarySummary {
 
         Ok(())
     }
-
-    /// Returns the compact summary line after validating the current evidence slice.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, ReferenceSnapshotSparseBoundarySummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for ReferenceSnapshotSparseBoundarySummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
 }
 
 pub(crate) fn reference_snapshot_sparse_boundary_summary_details(
@@ -645,17 +549,6 @@ pub(crate) fn reference_snapshot_sparse_boundary_summary_details(
 pub fn reference_snapshot_sparse_boundary_summary() -> Option<ReferenceSnapshotSparseBoundarySummary>
 {
     reference_snapshot_sparse_boundary_summary_details()
-}
-
-/// Returns the release-facing boundary day summary string.
-pub fn reference_snapshot_sparse_boundary_summary_for_report() -> String {
-    match reference_snapshot_sparse_boundary_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => format!("Reference snapshot boundary day: unavailable ({error})"),
-        },
-        None => "Reference snapshot boundary day: unavailable".to_string(),
-    }
 }
 
 /// Compact release-facing summary for the pre-bridge 2451914.5 boundary day in the reference snapshot.
@@ -731,16 +624,6 @@ impl fmt::Display for ReferenceSnapshotPreBridgeBoundarySummaryValidationError {
 impl std::error::Error for ReferenceSnapshotPreBridgeBoundarySummaryValidationError {}
 
 impl ReferenceSnapshotPreBridgeBoundarySummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "Reference snapshot pre-bridge boundary day: {} exact samples at {} ({}); pre-bridge boundary day",
-            self.sample_count,
-            format_instant(self.epoch),
-            format_bodies(&self.sample_bodies),
-        )
-    }
-
     /// Returns `Ok(())` when the pre-bridge boundary summary still matches the current evidence slice.
     pub fn validate(&self) -> Result<(), ReferenceSnapshotPreBridgeBoundarySummaryValidationError> {
         let evidence = reference_snapshot_pre_bridge_boundary_entries()
@@ -796,20 +679,6 @@ impl ReferenceSnapshotPreBridgeBoundarySummary {
 
         Ok(())
     }
-
-    /// Returns the compact summary line after validating the current evidence slice.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, ReferenceSnapshotPreBridgeBoundarySummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for ReferenceSnapshotPreBridgeBoundarySummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
 }
 
 pub(crate) fn reference_snapshot_pre_bridge_boundary_entries() -> Option<&'static [SnapshotEntry]> {
@@ -857,28 +726,10 @@ pub fn reference_snapshot_pre_bridge_boundary_summary(
     reference_snapshot_pre_bridge_boundary_summary_details()
 }
 
-/// Returns the release-facing pre-bridge boundary day summary string.
-pub fn reference_snapshot_pre_bridge_boundary_summary_for_report() -> String {
-    match reference_snapshot_pre_bridge_boundary_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => {
-                format!("Reference snapshot pre-bridge boundary day: unavailable ({error})")
-            }
-        },
-        None => "Reference snapshot pre-bridge boundary day: unavailable".to_string(),
-    }
-}
-
 /// Returns the compact typed summary for the 2451914 major-body pre-bridge boundary evidence.
 pub fn reference_snapshot_2451914_major_body_pre_bridge_summary(
 ) -> Option<ReferenceSnapshotPreBridgeBoundarySummary> {
     reference_snapshot_pre_bridge_boundary_summary()
-}
-
-/// Returns the release-facing 2451914 major-body pre-bridge boundary summary string.
-pub fn reference_snapshot_2451914_major_body_pre_bridge_summary_for_report() -> String {
-    reference_snapshot_pre_bridge_boundary_summary_for_report()
 }
 
 pub(crate) const REFERENCE_BRIDGE_DAY_EPOCH: f64 = 2_451_914.0;
@@ -956,16 +807,6 @@ impl fmt::Display for ReferenceSnapshotBridgeDaySummaryValidationError {
 impl std::error::Error for ReferenceSnapshotBridgeDaySummaryValidationError {}
 
 impl ReferenceSnapshotBridgeDaySummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "Reference snapshot bridge day: {} exact samples at {} ({}); bridge sample across the reference boundary window",
-            self.sample_count,
-            format_instant(self.epoch),
-            format_bodies(&self.sample_bodies),
-        )
-    }
-
     /// Returns `Ok(())` when the summary still matches the current evidence slice.
     pub fn validate(&self) -> Result<(), ReferenceSnapshotBridgeDaySummaryValidationError> {
         let evidence = reference_snapshot_bridge_day_entries()
@@ -1021,20 +862,6 @@ impl ReferenceSnapshotBridgeDaySummary {
 
         Ok(())
     }
-
-    /// Returns the compact summary line after validating the current evidence slice.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, ReferenceSnapshotBridgeDaySummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for ReferenceSnapshotBridgeDaySummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
 }
 
 /// Returns the compact typed summary for the 2451914 major-body bridge evidence.
@@ -1043,33 +870,10 @@ pub fn reference_snapshot_2451914_major_body_bridge_summary(
     reference_snapshot_bridge_day_summary()
 }
 
-/// Returns the release-facing 2451914 major-body bridge summary string.
-pub fn reference_snapshot_2451914_major_body_bridge_summary_for_report() -> String {
-    reference_snapshot_bridge_day_summary_for_report()
-}
-
 /// Returns the compact typed summary for the 2451915 major-body bridge evidence.
 pub fn reference_snapshot_2451915_major_body_bridge_summary(
 ) -> Option<ReferenceMajorBodyBridgeSummary> {
     reference_snapshot_major_body_bridge_summary()
-}
-
-/// Returns the release-facing 2451915 major-body bridge summary string.
-pub fn reference_snapshot_2451915_major_body_bridge_summary_for_report() -> String {
-    match reference_snapshot_2451915_major_body_bridge_summary() {
-        Some(summary) => match summary.validate() {
-            Ok(()) => format!(
-                "Reference 2451915 major-body bridge evidence: {} exact samples at {} ({}); 2451915 major-body bridge sample",
-                summary.sample_count,
-                format_instant(summary.epoch),
-                format_bodies(&summary.sample_bodies),
-            ),
-            Err(error) => {
-                format!("Reference 2451915 major-body bridge evidence: unavailable ({error})")
-            }
-        },
-        None => "Reference 2451915 major-body bridge evidence: unavailable".to_string(),
-    }
 }
 
 /// Compact release-facing summary for the dense 2451916.5 boundary day in the reference snapshot.
@@ -1145,16 +949,6 @@ impl fmt::Display for ReferenceSnapshotDenseBoundarySummaryValidationError {
 impl std::error::Error for ReferenceSnapshotDenseBoundarySummaryValidationError {}
 
 impl ReferenceSnapshotDenseBoundarySummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "Reference snapshot dense boundary day: {} exact samples at {} ({}); dense boundary day",
-            self.sample_count,
-            format_instant(self.epoch),
-            format_bodies(&self.sample_bodies),
-        )
-    }
-
     /// Returns `Ok(())` when the dense boundary summary still matches the current evidence slice.
     pub fn validate(&self) -> Result<(), ReferenceSnapshotDenseBoundarySummaryValidationError> {
         let evidence = reference_snapshot_dense_boundary_entries()
@@ -1210,20 +1004,6 @@ impl ReferenceSnapshotDenseBoundarySummary {
 
         Ok(())
     }
-
-    /// Returns the compact summary line after validating the current evidence slice.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, ReferenceSnapshotDenseBoundarySummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for ReferenceSnapshotDenseBoundarySummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
 }
 
 pub(crate) fn reference_snapshot_dense_boundary_entries() -> Option<&'static [SnapshotEntry]> {
@@ -1269,55 +1049,16 @@ pub fn reference_snapshot_dense_boundary_summary() -> Option<ReferenceSnapshotDe
     reference_snapshot_dense_boundary_summary_details()
 }
 
-/// Returns the release-facing dense boundary day summary string.
-pub fn reference_snapshot_dense_boundary_summary_for_report() -> String {
-    match reference_snapshot_dense_boundary_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => {
-                format!("Reference snapshot dense boundary day: unavailable ({error})")
-            }
-        },
-        None => "Reference snapshot dense boundary day: unavailable".to_string(),
-    }
-}
-
 /// Returns the typed summary for the 2451916.5 dense boundary day in the reference snapshot.
 pub fn reference_snapshot_2451916_major_body_dense_boundary_summary(
 ) -> Option<ReferenceSnapshotDenseBoundarySummary> {
     reference_snapshot_dense_boundary_summary()
 }
 
-/// Returns the release-facing 2451916.5 dense boundary day summary string.
-pub fn reference_snapshot_2451916_major_body_dense_boundary_summary_for_report() -> String {
-    match reference_snapshot_2451916_major_body_dense_boundary_summary() {
-        Some(summary) => format!(
-            "Reference 2451916 major-body dense boundary evidence: {} exact samples at {} ({}); dense boundary day",
-            summary.sample_count,
-            format_instant(summary.epoch),
-            format_bodies(&summary.sample_bodies),
-        ),
-        None => "Reference 2451916 major-body dense boundary evidence: unavailable".to_string(),
-    }
-}
-
 /// Returns the typed summary for the 2451916 major-body boundary reference evidence.
 pub fn reference_snapshot_2451916_major_body_boundary_summary(
 ) -> Option<ReferenceSnapshotDenseBoundarySummary> {
     reference_snapshot_2451916_major_body_dense_boundary_summary()
-}
-
-/// Returns the release-facing 2451916 major-body boundary summary string.
-pub fn reference_snapshot_2451916_major_body_boundary_summary_for_report() -> String {
-    match reference_snapshot_2451916_major_body_boundary_summary() {
-        Some(summary) => format!(
-            "Reference 2451916 major-body boundary evidence: {} exact samples at {} ({}); dense boundary day",
-            summary.sample_count,
-            format_instant(summary.epoch),
-            format_bodies(&summary.sample_bodies),
-        ),
-        None => "Reference 2451916 major-body boundary evidence: unavailable".to_string(),
-    }
 }
 
 pub(crate) fn reference_snapshot_high_curvature_window_summary_details(
@@ -1409,38 +1150,32 @@ pub fn reference_snapshot_high_curvature_window_summary(
     reference_snapshot_high_curvature_window_summary_details()
 }
 
-/// Returns the release-facing major-body high-curvature window summary string.
-pub fn reference_snapshot_high_curvature_window_summary_for_report() -> String {
-    match reference_snapshot_high_curvature_window_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => {
-                format!("Reference major-body high-curvature windows: unavailable ({error})")
-            }
-        },
-        None => "Reference major-body high-curvature windows: unavailable".to_string(),
-    }
-}
+/// Evidence-class label for the checked-in reference snapshot source summary.
+pub const REFERENCE_SNAPSHOT_EVIDENCE_CLASS: &str = "reference";
 
-pub(crate) const REFERENCE_SNAPSHOT_EVIDENCE_CLASS: &str = "reference";
-
-pub(crate) const REFERENCE_SNAPSHOT_SOURCE_EXPECTED: &str =
+/// Expected source attribution for the checked-in reference snapshot.
+pub const REFERENCE_SNAPSHOT_SOURCE_EXPECTED: &str =
     "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.";
 
 pub(crate) const REFERENCE_SNAPSHOT_SOURCE_FALLBACK: &str =
     "NASA/JPL Horizons API vector tables (DE441)";
 
-pub(crate) const REFERENCE_SNAPSHOT_COVERAGE_FALLBACK: &str =
+/// Expected coverage description for the checked-in reference snapshot.
+pub const REFERENCE_SNAPSHOT_COVERAGE_FALLBACK: &str =
     "major-body samples are confined to the 1900-2100 window [JD 2415020.5, 2488069.5]; selected bodies sampled at 1900-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 2451915.25 and 2451915.75 for Sun, Moon, Mercury, Venus; major bodies sampled at 2451545, 2451910.5, 2451911.5, 2451912.5, 2451913.5, 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451916.0, 2451916.5, 2451917.0, 2451917.5, 2451918.5, 2451919.5, 2451920.5, and 2453000.5; major bodies sampled at 2451915.5 for Sun through Pluto; major bodies sampled at 2451913.5 through 2451917.5 for additional boundary coverage; selected asteroids sampled at J2000, 2378498.5, 2451910.5 through 2451919.5, with 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451917.5, 2451918.5, and 2451919.5 boundary coverage, 2003-12-27, 2132-08-31, 2500-01-01, and 2634167; asteroid:99942-Apophis is now also sampled at 2378498.5 and 2451917.5 to complete the selected-asteroid bridge.";
 
-pub(crate) const REFERENCE_SNAPSHOT_REDISTRIBUTION_FALLBACK: &str =
+/// Expected redistribution posture for the checked-in reference snapshot.
+pub const REFERENCE_SNAPSHOT_REDISTRIBUTION_FALLBACK: &str =
     "repository-checked regression fixtures, not a broad public corpus.";
 
-pub(crate) const REFERENCE_SNAPSHOT_FRAME_TREATMENT: &str = "geocentric ecliptic J2000";
+/// Expected frame treatment for the checked-in reference snapshot.
+pub const REFERENCE_SNAPSHOT_FRAME_TREATMENT: &str = "geocentric ecliptic J2000";
 
-pub(crate) const REFERENCE_SNAPSHOT_TIME_SCALE: &str = "TDB";
+/// Expected time scale for the checked-in reference snapshot.
+pub const REFERENCE_SNAPSHOT_TIME_SCALE: &str = "TDB";
 
-pub(crate) const REFERENCE_SNAPSHOT_COLUMNS: &str = "epoch_jd, body, x_km, y_km, z_km";
+/// Expected column schema for the checked-in reference snapshot.
+pub const REFERENCE_SNAPSHOT_COLUMNS: &str = "epoch_jd, body, x_km, y_km, z_km";
 
 pub(crate) const INDEPENDENT_HOLDOUT_EVIDENCE_CLASS: &str = "hold-out";
 
@@ -1462,7 +1197,8 @@ pub(crate) const INDEPENDENT_HOLDOUT_FRAME_TREATMENT: &str = "geocentric eclipti
 
 pub(crate) const INDEPENDENT_HOLDOUT_TIME_SCALE: &str = "TDB";
 
-pub(crate) fn reference_snapshot_source_checksum() -> u64 {
+/// Deterministic checksum of the checked-in reference snapshot CSV source material.
+pub fn reference_snapshot_source_checksum() -> u64 {
     static CHECKSUM: OnceLock<u64> = OnceLock::new();
     *CHECKSUM.get_or_init(|| {
         checksum64(include_str!(concat!(
@@ -1619,30 +1355,6 @@ impl ReferenceSnapshotSourceSummary {
         }
         Ok(())
     }
-
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "Reference snapshot source: {}; evidence class={}; coverage={}; columns={}; redistribution={}; checksum=0x{:016x}; {}; time scale={}; TDB reference epoch {}",
-            self.source,
-            self.evidence_class,
-            self.coverage,
-            self.columns,
-            self.redistribution,
-            self.checksum,
-            self.frame_treatment,
-            self.time_scale,
-            format_instant(self.reference_epoch),
-        )
-    }
-
-    /// Returns a compact summary line after validating the reference snapshot source summary.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, ReferenceSnapshotSourceSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
 }
 
 /// Structured validation errors for a reference snapshot provenance summary.
@@ -1713,12 +1425,6 @@ impl fmt::Display for ReferenceSnapshotSourceSummaryValidationError {
 
 impl std::error::Error for ReferenceSnapshotSourceSummaryValidationError {}
 
-impl fmt::Display for ReferenceSnapshotSourceSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
-}
-
 /// Returns the backend-owned provenance summary for the checked-in reference snapshot.
 pub fn reference_snapshot_source_summary() -> ReferenceSnapshotSourceSummary {
     static SUMMARY: OnceLock<ReferenceSnapshotSourceSummary> = OnceLock::new();
@@ -1745,19 +1451,6 @@ pub fn reference_snapshot_source_summary() -> ReferenceSnapshotSourceSummary {
         .clone()
 }
 
-/// Returns the source-material summary for the checked-in reference snapshot.
-pub fn reference_snapshot_source_summary_for_report() -> String {
-    if let Err(error) = reference_snapshot_manifest().validate() {
-        return format!("Reference snapshot source: unavailable ({error})");
-    }
-
-    let summary = reference_snapshot_source_summary();
-    match summary.validated_summary_line() {
-        Ok(summary_line) => summary_line,
-        Err(error) => format!("Reference snapshot source: unavailable ({error})"),
-    }
-}
-
 /// A single body-window slice inside the checked-in reference snapshot source coverage.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ReferenceSnapshotSourceWindow {
@@ -1773,31 +1466,7 @@ pub struct ReferenceSnapshotSourceWindow {
     pub latest_epoch: Instant,
 }
 
-impl ReferenceSnapshotSourceWindow {
-    /// Returns a compact body-window summary used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        let time_span = if self.earliest_epoch == self.latest_epoch {
-            format_instant(self.earliest_epoch)
-        } else {
-            format!(
-                "{}..{}",
-                format_instant(self.earliest_epoch),
-                format_instant(self.latest_epoch)
-            )
-        };
-
-        format!(
-            "{}: {} samples across {} epochs at {}",
-            self.body, self.sample_count, self.epoch_count, time_span
-        )
-    }
-}
-
-impl fmt::Display for ReferenceSnapshotSourceWindow {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
-}
+impl ReferenceSnapshotSourceWindow {}
 
 /// Compact release-facing summary for the checked-in reference snapshot source coverage.
 #[derive(Clone, Debug, PartialEq)]
@@ -1817,25 +1486,6 @@ pub struct ReferenceSnapshotSourceWindowSummary {
 }
 
 impl ReferenceSnapshotSourceWindowSummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        let window_summary = self
-            .windows
-            .iter()
-            .map(ReferenceSnapshotSourceWindow::summary_line)
-            .collect::<Vec<_>>()
-            .join("; ");
-        format!(
-            "Reference snapshot source windows: {} source-backed samples across {} bodies and {} epochs ({}..{}); windows: {}",
-            self.sample_count,
-            self.sample_bodies.len(),
-            self.epoch_count,
-            format_instant(self.earliest_epoch),
-            format_instant(self.latest_epoch),
-            window_summary,
-        )
-    }
-
     /// Returns `Ok(())` when the reference snapshot source windows still match the checked-in slice.
     pub fn validate(&self) -> Result<(), ReferenceSnapshotSourceWindowSummaryValidationError> {
         let Some(expected) = reference_snapshot_source_window_summary_details() else {
@@ -1890,20 +1540,6 @@ impl ReferenceSnapshotSourceWindowSummary {
         }
 
         Ok(())
-    }
-
-    /// Returns the validated reference snapshot source window summary line.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, ReferenceSnapshotSourceWindowSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for ReferenceSnapshotSourceWindowSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
     }
 }
 
@@ -2010,41 +1646,6 @@ pub fn reference_snapshot_source_window_summary() -> Option<ReferenceSnapshotSou
     reference_snapshot_source_window_summary_details()
 }
 
-/// Formats the checked-in reference snapshot source windows for release-facing reporting.
-pub fn format_reference_snapshot_source_window_summary(
-    summary: &ReferenceSnapshotSourceWindowSummary,
-) -> String {
-    summary.summary_line()
-}
-
-pub(crate) fn format_validated_reference_snapshot_source_window_summary_for_report(
-    summary: &ReferenceSnapshotSourceWindowSummary,
-) -> String {
-    match summary.validated_summary_line() {
-        Ok(summary_line) => summary_line,
-        Err(error) => format!("Reference snapshot source windows: unavailable ({error})"),
-    }
-}
-
-/// Returns the body-window summary for the checked-in reference snapshot.
-pub fn reference_snapshot_source_window_summary_for_report() -> String {
-    match reference_snapshot_source_window_summary() {
-        Some(summary) => {
-            format_validated_reference_snapshot_source_window_summary_for_report(&summary)
-        }
-        None => "Reference snapshot source windows: unavailable".to_string(),
-    }
-}
-
-/// Returns the validated body-window summary for the checked-in reference snapshot.
-pub fn validated_reference_snapshot_source_window_summary_for_report() -> Result<String, String> {
-    let summary = reference_snapshot_source_window_summary()
-        .ok_or_else(|| "reference snapshot source windows unavailable".to_string())?;
-    summary
-        .validated_summary_line()
-        .map_err(|error| error.to_string())
-}
-
 /// Returns the manifest summary for the checked-in reference snapshot.
 pub fn reference_snapshot_manifest_summary() -> SnapshotManifestSummary {
     SnapshotManifestSummary {
@@ -2052,44 +1653,6 @@ pub fn reference_snapshot_manifest_summary() -> SnapshotManifestSummary {
         manifest: reference_snapshot_manifest().clone(),
         source_fallback: "unknown",
         coverage_fallback: "unknown",
-    }
-}
-
-/// Returns the manifest summary for the checked-in reference snapshot.
-pub fn reference_snapshot_manifest_summary_for_report() -> String {
-    let manifest_text = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/data/reference_snapshot.csv"
-    ));
-    if let Err(error) = validate_snapshot_manifest_header_structure(
-        manifest_text,
-        "JPL Horizons reference snapshot.",
-        "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.",
-        "major-body samples are confined to the 1900-2100 window [JD 2415020.5, 2488069.5]; selected bodies sampled at 1900-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 2451915.25 and 2451915.75 for Sun, Moon, Mercury, Venus; major bodies sampled at 2451545, 2451910.5, 2451911.5, 2451912.5, 2451913.5, 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451916.0, 2451916.5, 2451917.0, 2451917.5, 2451918.5, 2451919.5, 2451920.5, and 2453000.5; major bodies sampled at 2451915.5 for Sun through Pluto; major bodies sampled at 2451913.5 through 2451917.5 for additional boundary coverage; selected asteroids sampled at J2000, 2378498.5, 2451910.5 through 2451919.5, with 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451917.5, 2451918.5, and 2451919.5 boundary coverage, 2003-12-27, 2132-08-31, 2500-01-01, and 2634167; asteroid:99942-Apophis is now also sampled at 2378498.5 and 2451917.5 to complete the selected-asteroid bridge.",
-        Some("repository-checked regression fixtures, not a broad public corpus."),
-        &["epoch_jd", "body", "x_km", "y_km", "z_km"],
-    ) {
-        return format!("Reference snapshot manifest: unavailable ({error})");
-    }
-
-    let summary = reference_snapshot_manifest_summary();
-    match summary.validate_with_expected_metadata(
-        "JPL Horizons reference snapshot.",
-        "NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.",
-        "major-body samples are confined to the 1900-2100 window [JD 2415020.5, 2488069.5]; selected bodies sampled at 1900-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 2451915.25 and 2451915.75 for Sun, Moon, Mercury, Venus; major bodies sampled at 2451545, 2451910.5, 2451911.5, 2451912.5, 2451913.5, 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451916.0, 2451916.5, 2451917.0, 2451917.5, 2451918.5, 2451919.5, 2451920.5, and 2453000.5; major bodies sampled at 2451915.5 for Sun through Pluto; major bodies sampled at 2451913.5 through 2451917.5 for additional boundary coverage; selected asteroids sampled at J2000, 2378498.5, 2451910.5 through 2451919.5, with 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451917.5, 2451918.5, and 2451919.5 boundary coverage, 2003-12-27, 2132-08-31, 2500-01-01, and 2634167; asteroid:99942-Apophis is now also sampled at 2378498.5 and 2451917.5 to complete the selected-asteroid bridge.",
-        &["epoch_jd", "body", "x_km", "y_km", "z_km"],
-    ) {
-        Ok(()) => match validate_snapshot_manifest_footprint(
-            "reference snapshot",
-            snapshot_entries(),
-            277,
-            16,
-            23,
-        ) {
-            Ok(()) => summary.summary_line(),
-            Err(error) => format!("Reference snapshot manifest: unavailable ({error})"),
-        },
-        Err(error) => format!("Reference snapshot manifest: unavailable ({error})"),
     }
 }
 
@@ -2147,3 +1710,41 @@ pub(crate) fn percentile_f64(values: &mut [f64], percentile: f64) -> f64 {
 
 pub(crate) const JPL_INTERPOLATION_QUALITY_DERIVATION: &str =
     "leave-one-out interpolation evidence derived from the checked-in reference snapshot";
+
+impl ReferenceSnapshotSourceSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "Reference snapshot source: {}; evidence class={}; coverage={}; columns={}; redistribution={}; checksum=0x{:016x}; {}; time scale={}; TDB reference epoch {}",
+            self.source,
+            self.evidence_class,
+            self.coverage,
+            self.columns,
+            self.redistribution,
+            self.checksum,
+            self.frame_treatment,
+            self.time_scale,
+            format_instant(self.reference_epoch),
+        )
+    }
+}
+
+impl ReferenceSnapshotSourceWindow {
+    /// Returns a compact body-window summary used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        let time_span = if self.earliest_epoch == self.latest_epoch {
+            format_instant(self.earliest_epoch)
+        } else {
+            format!(
+                "{}..{}",
+                format_instant(self.earliest_epoch),
+                format_instant(self.latest_epoch)
+            )
+        };
+
+        format!(
+            "{}: {} samples across {} epochs at {}",
+            self.body, self.sample_count, self.epoch_count, time_span
+        )
+    }
+}

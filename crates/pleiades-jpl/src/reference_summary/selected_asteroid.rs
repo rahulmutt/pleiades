@@ -131,25 +131,7 @@ pub struct SelectedAsteroidSourceWindow {
     pub latest_epoch: Instant,
 }
 
-impl SelectedAsteroidSourceWindow {
-    /// Returns a compact body-window summary used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        let time_span = if self.earliest_epoch == self.latest_epoch {
-            format_instant(self.earliest_epoch)
-        } else {
-            format!(
-                "{}..{}",
-                format_instant(self.earliest_epoch),
-                format_instant(self.latest_epoch)
-            )
-        };
-
-        format!(
-            "{}: {} samples across {} epochs at {}",
-            self.body, self.sample_count, self.epoch_count, time_span
-        )
-    }
-}
+impl SelectedAsteroidSourceWindow {}
 
 /// Compact release-facing summary for the expanded selected-asteroid source coverage.
 #[derive(Clone, Debug, PartialEq)]
@@ -167,19 +149,6 @@ pub struct SelectedAsteroidSourceSummary {
 }
 
 impl SelectedAsteroidSourceSummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "Selected asteroid source evidence: {} source-backed samples across {} bodies and {} epochs ({}..{}); evidence class=source-backed; frame=geocentric ecliptic J2000; time scale=TDB; bodies: {}",
-            self.sample_count,
-            self.sample_bodies.len(),
-            self.epoch_count,
-            format_instant(self.earliest_epoch),
-            format_instant(self.latest_epoch),
-            format_bodies(&self.sample_bodies),
-        )
-    }
-
     /// Returns `Ok(())` when the selected-asteroid evidence summary still matches the checked-in slice.
     pub fn validate(&self) -> Result<(), SelectedAsteroidSourceSummaryValidationError> {
         let Some(expected) = selected_asteroid_source_evidence_summary_details() else {
@@ -228,14 +197,6 @@ impl SelectedAsteroidSourceSummary {
 
         Ok(())
     }
-
-    /// Returns the validated selected-asteroid evidence summary line.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, SelectedAsteroidSourceSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
 }
 
 /// Validation error for a selected-asteroid source evidence summary that drifted from the current slice.
@@ -279,25 +240,6 @@ pub struct SelectedAsteroidSourceWindowSummary {
 }
 
 impl SelectedAsteroidSourceWindowSummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        let window_summary = self
-            .windows
-            .iter()
-            .map(SelectedAsteroidSourceWindow::summary_line)
-            .collect::<Vec<_>>()
-            .join("; ");
-        format!(
-            "Selected asteroid source windows: {} source-backed samples across {} bodies and {} epochs ({}..{}); evidence class=source-backed; frame=geocentric ecliptic J2000; time scale=TDB; windows: {}",
-            self.sample_count,
-            self.sample_bodies.len(),
-            self.epoch_count,
-            format_instant(self.earliest_epoch),
-            format_instant(self.latest_epoch),
-            window_summary,
-        )
-    }
-
     /// Returns `Ok(())` when the selected-asteroid window summary still matches the checked-in slice.
     pub fn validate(&self) -> Result<(), SelectedAsteroidSourceWindowSummaryValidationError> {
         let Some(expected) = selected_asteroid_source_window_summary_details() else {
@@ -352,14 +294,6 @@ impl SelectedAsteroidSourceWindowSummary {
         }
 
         Ok(())
-    }
-
-    /// Returns the validated selected-asteroid window summary line.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, SelectedAsteroidSourceWindowSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
     }
 }
 
@@ -497,46 +431,6 @@ pub fn selected_asteroid_source_window_summary() -> Option<SelectedAsteroidSourc
     selected_asteroid_source_window_summary_details()
 }
 
-/// Returns the release-facing expanded selected-asteroid source coverage summary string.
-pub fn selected_asteroid_source_evidence_summary_for_report() -> String {
-    match selected_asteroid_source_evidence_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => format!("Selected asteroid source evidence: unavailable ({error})"),
-        },
-        None => "Selected asteroid source evidence: unavailable".to_string(),
-    }
-}
-
-/// Returns the validated release-facing expanded selected-asteroid source coverage summary string.
-pub fn validated_selected_asteroid_source_evidence_summary_for_report() -> Result<String, String> {
-    let summary = selected_asteroid_source_evidence_summary()
-        .ok_or_else(|| "selected asteroid source evidence unavailable".to_string())?;
-    summary
-        .validated_summary_line()
-        .map_err(|error| error.to_string())
-}
-
-/// Returns the release-facing selected-asteroid source-window summary string.
-pub fn selected_asteroid_source_window_summary_for_report() -> String {
-    match selected_asteroid_source_window_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => format!("Selected asteroid source windows: unavailable ({error})"),
-        },
-        None => "Selected asteroid source windows: unavailable".to_string(),
-    }
-}
-
-/// Returns the validated release-facing selected-asteroid source-window summary string.
-pub fn validated_selected_asteroid_source_window_summary_for_report() -> Result<String, String> {
-    let summary = selected_asteroid_source_window_summary()
-        .ok_or_else(|| "selected asteroid source windows unavailable".to_string())?;
-    summary
-        .validated_summary_line()
-        .map_err(|error| error.to_string())
-}
-
 /// Compact release-facing summary for the selected-asteroid source request corpus.
 #[derive(Clone, Debug, PartialEq)]
 pub struct SelectedAsteroidSourceRequestCorpusSummary {
@@ -595,23 +489,6 @@ impl fmt::Display for SelectedAsteroidSourceRequestCorpusSummaryValidationError 
 impl std::error::Error for SelectedAsteroidSourceRequestCorpusSummaryValidationError {}
 
 impl SelectedAsteroidSourceRequestCorpusSummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "Selected asteroid source request corpus: {} requests (frame={}; time scale={}; zodiac mode={}; apparentness={}; observerless) across {} bodies and {} epochs ({}..{}); bodies: {}",
-            self.request_count,
-            self.frame,
-            self.time_scale,
-            self.zodiac_mode,
-            self.apparentness,
-            self.body_count,
-            self.epoch_count,
-            format_instant(self.earliest_epoch),
-            format_instant(self.latest_epoch),
-            format_bodies(&self.bodies),
-        )
-    }
-
     /// Returns `Ok(())` when the request corpus summary still matches the checked-in slice.
     pub fn validate(
         &self,
@@ -698,20 +575,6 @@ impl SelectedAsteroidSourceRequestCorpusSummary {
 
         Ok(())
     }
-
-    /// Returns the validated selected-asteroid request corpus summary line.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, SelectedAsteroidSourceRequestCorpusSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for SelectedAsteroidSourceRequestCorpusSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
 }
 
 pub(crate) fn selected_asteroid_source_request_corpus_summary_details(
@@ -772,59 +635,6 @@ pub fn selected_asteroid_source_request_corpus_summary(
     frame: CoordinateFrame,
 ) -> Option<SelectedAsteroidSourceRequestCorpusSummary> {
     selected_asteroid_source_request_corpus_summary_details(frame)
-}
-
-/// Formats the selected-asteroid source request corpus for release-facing reporting.
-pub fn format_selected_asteroid_source_request_corpus_summary(
-    summary: &SelectedAsteroidSourceRequestCorpusSummary,
-) -> String {
-    summary.summary_line()
-}
-
-/// Returns the release-facing selected-asteroid source request corpus summary string for the requested frame.
-pub fn selected_asteroid_source_request_corpus_summary_for_frame(frame: CoordinateFrame) -> String {
-    match selected_asteroid_source_request_corpus_summary(frame) {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => {
-                format!("Selected asteroid source request corpus: unavailable ({error})")
-            }
-        },
-        None => "Selected asteroid source request corpus: unavailable".to_string(),
-    }
-}
-
-/// Returns the validated release-facing selected-asteroid source request corpus summary string for the requested frame.
-pub fn validated_selected_asteroid_source_request_corpus_summary_for_frame(
-    frame: CoordinateFrame,
-) -> Result<String, String> {
-    let summary = selected_asteroid_source_request_corpus_summary(frame)
-        .ok_or_else(|| "selected asteroid source request corpus unavailable".to_string())?;
-    summary
-        .validated_summary_line()
-        .map_err(|error| error.to_string())
-}
-
-/// Returns the release-facing selected-asteroid source request corpus summary string.
-pub fn selected_asteroid_source_request_corpus_summary_for_report() -> String {
-    selected_asteroid_source_request_corpus_summary_for_frame(CoordinateFrame::Ecliptic)
-}
-
-/// Returns the validated release-facing selected-asteroid source request corpus summary string.
-pub fn validated_selected_asteroid_source_request_corpus_summary_for_report(
-) -> Result<String, String> {
-    validated_selected_asteroid_source_request_corpus_summary_for_frame(CoordinateFrame::Ecliptic)
-}
-
-/// Returns the release-facing equatorial selected-asteroid source request corpus summary string.
-pub fn selected_asteroid_source_request_corpus_equatorial_summary_for_report() -> String {
-    selected_asteroid_source_request_corpus_summary_for_frame(CoordinateFrame::Equatorial)
-}
-
-/// Returns the validated release-facing equatorial selected-asteroid source request corpus summary string.
-pub fn validated_selected_asteroid_source_request_corpus_equatorial_summary_for_report(
-) -> Result<String, String> {
-    validated_selected_asteroid_source_request_corpus_summary_for_frame(CoordinateFrame::Equatorial)
 }
 
 pub(crate) fn selected_asteroid_source_2453000_entries() -> Option<&'static [SnapshotEntry]> {
@@ -923,16 +733,6 @@ impl fmt::Display for SelectedAsteroidSource2453000SummaryValidationError {
 impl std::error::Error for SelectedAsteroidSource2453000SummaryValidationError {}
 
 impl SelectedAsteroidSource2453000Summary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "Reference selected-asteroid 2003-12-27 source evidence: {} exact samples at {} ({}); 2003-12-27 source sample",
-            self.sample_count,
-            format_instant(self.epoch),
-            format_bodies(&self.sample_bodies),
-        )
-    }
-
     /// Returns `Ok(())` when the summary still matches the current evidence slice.
     pub fn validate(&self) -> Result<(), SelectedAsteroidSource2453000SummaryValidationError> {
         let evidence = selected_asteroid_source_2453000_entries()
@@ -988,20 +788,6 @@ impl SelectedAsteroidSource2453000Summary {
 
         Ok(())
     }
-
-    /// Returns the compact summary line after validating the current evidence slice.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, SelectedAsteroidSource2453000SummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for SelectedAsteroidSource2453000Summary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
 }
 
 pub(crate) fn selected_asteroid_source_2453000_summary_details(
@@ -1024,19 +810,6 @@ pub(crate) fn selected_asteroid_source_2453000_summary_details(
 /// Returns the compact typed summary for the selected-asteroid 2003-12-27 source evidence.
 pub fn selected_asteroid_source_2453000_summary() -> Option<SelectedAsteroidSource2453000Summary> {
     selected_asteroid_source_2453000_summary_details()
-}
-
-/// Returns the release-facing selected-asteroid 2003-12-27 source summary string.
-pub fn selected_asteroid_source_2453000_summary_for_report() -> String {
-    match selected_asteroid_source_2453000_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => {
-                format!("Selected asteroid 2003-12-27 source evidence: unavailable ({error})")
-            }
-        },
-        None => "Selected asteroid 2003-12-27 source evidence: unavailable".to_string(),
-    }
 }
 
 pub(crate) fn selected_asteroid_source_2500000_entries() -> Option<&'static [SnapshotEntry]> {
@@ -1135,16 +908,6 @@ impl fmt::Display for SelectedAsteroidSource2500000SummaryValidationError {
 impl std::error::Error for SelectedAsteroidSource2500000SummaryValidationError {}
 
 impl SelectedAsteroidSource2500000Summary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "Reference selected-asteroid 2500000 source evidence: {} exact samples at {} ({}); 2500000 source sample",
-            self.sample_count,
-            format_instant(self.epoch),
-            format_bodies(&self.sample_bodies),
-        )
-    }
-
     /// Returns `Ok(())` when the summary still matches the current evidence slice.
     pub fn validate(&self) -> Result<(), SelectedAsteroidSource2500000SummaryValidationError> {
         let evidence = selected_asteroid_source_2500000_entries()
@@ -1200,20 +963,6 @@ impl SelectedAsteroidSource2500000Summary {
 
         Ok(())
     }
-
-    /// Returns the compact summary line after validating the current evidence slice.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, SelectedAsteroidSource2500000SummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for SelectedAsteroidSource2500000Summary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
 }
 
 pub(crate) fn selected_asteroid_source_2500000_summary_details(
@@ -1236,19 +985,6 @@ pub(crate) fn selected_asteroid_source_2500000_summary_details(
 /// Returns the compact typed summary for the selected-asteroid 2500000 source evidence.
 pub fn selected_asteroid_source_2500000_summary() -> Option<SelectedAsteroidSource2500000Summary> {
     selected_asteroid_source_2500000_summary_details()
-}
-
-/// Returns the release-facing selected-asteroid 2500000 source summary string.
-pub fn selected_asteroid_source_2500000_summary_for_report() -> String {
-    match selected_asteroid_source_2500000_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => {
-                format!("Selected asteroid 2500000 source evidence: unavailable ({error})")
-            }
-        },
-        None => "Selected asteroid 2500000 source evidence: unavailable".to_string(),
-    }
 }
 
 pub(crate) fn selected_asteroid_source_2634167_entries() -> Option<&'static [SnapshotEntry]> {
@@ -1347,16 +1083,6 @@ impl fmt::Display for SelectedAsteroidSource2634167SummaryValidationError {
 impl std::error::Error for SelectedAsteroidSource2634167SummaryValidationError {}
 
 impl SelectedAsteroidSource2634167Summary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "Reference selected-asteroid 2634167 source evidence: {} exact samples at {} ({}); 2634167 source sample",
-            self.sample_count,
-            format_instant(self.epoch),
-            format_bodies(&self.sample_bodies),
-        )
-    }
-
     /// Returns `Ok(())` when the summary still matches the current evidence slice.
     pub fn validate(&self) -> Result<(), SelectedAsteroidSource2634167SummaryValidationError> {
         let evidence = selected_asteroid_source_2634167_entries()
@@ -1412,20 +1138,6 @@ impl SelectedAsteroidSource2634167Summary {
 
         Ok(())
     }
-
-    /// Returns the compact summary line after validating the current evidence slice.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, SelectedAsteroidSource2634167SummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for SelectedAsteroidSource2634167Summary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
 }
 
 pub(crate) fn selected_asteroid_source_2634167_summary_details(
@@ -1448,19 +1160,6 @@ pub(crate) fn selected_asteroid_source_2634167_summary_details(
 /// Returns the compact typed summary for the selected-asteroid 2634167 source evidence.
 pub fn selected_asteroid_source_2634167_summary() -> Option<SelectedAsteroidSource2634167Summary> {
     selected_asteroid_source_2634167_summary_details()
-}
-
-/// Returns the release-facing selected-asteroid 2634167 source summary string.
-pub fn selected_asteroid_source_2634167_summary_for_report() -> String {
-    match selected_asteroid_source_2634167_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => {
-                format!("Selected asteroid 2634167 source evidence: unavailable ({error})")
-            }
-        },
-        None => "Selected asteroid 2634167 source evidence: unavailable".to_string(),
-    }
 }
 
 pub(crate) fn selected_asteroid_bridge_entries() -> Option<&'static [SnapshotEntry]> {
@@ -1559,16 +1258,6 @@ impl fmt::Display for SelectedAsteroidBridgeSummaryValidationError {
 impl std::error::Error for SelectedAsteroidBridgeSummaryValidationError {}
 
 impl SelectedAsteroidBridgeSummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "Selected asteroid bridge evidence: {} exact samples at {} ({}); bridge sample across the asteroid-only gap",
-            self.sample_count,
-            format_instant(self.epoch),
-            format_bodies(&self.sample_bodies),
-        )
-    }
-
     /// Returns `Ok(())` when the summary still matches the current evidence slice.
     pub fn validate(&self) -> Result<(), SelectedAsteroidBridgeSummaryValidationError> {
         let evidence = selected_asteroid_bridge_entries()
@@ -1617,20 +1306,6 @@ impl SelectedAsteroidBridgeSummary {
 
         Ok(())
     }
-
-    /// Returns the compact summary line after validating the current evidence slice.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, SelectedAsteroidBridgeSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for SelectedAsteroidBridgeSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
 }
 
 pub(crate) fn selected_asteroid_bridge_summary_details() -> Option<SelectedAsteroidBridgeSummary> {
@@ -1645,17 +1320,6 @@ pub(crate) fn selected_asteroid_bridge_summary_details() -> Option<SelectedAster
 /// Returns the compact typed summary for the selected-asteroid bridge-day evidence.
 pub fn selected_asteroid_bridge_summary() -> Option<SelectedAsteroidBridgeSummary> {
     selected_asteroid_bridge_summary_details()
-}
-
-/// Returns the release-facing selected-asteroid bridge-day summary string.
-pub fn selected_asteroid_bridge_summary_for_report() -> String {
-    match selected_asteroid_bridge_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => format!("Selected asteroid bridge evidence: unavailable ({error})"),
-        },
-        None => "Selected asteroid bridge evidence: unavailable".to_string(),
-    }
 }
 
 pub(crate) fn selected_asteroid_dense_boundary_entries() -> Option<&'static [SnapshotEntry]> {
@@ -1754,16 +1418,6 @@ impl fmt::Display for SelectedAsteroidDenseBoundarySummaryValidationError {
 impl std::error::Error for SelectedAsteroidDenseBoundarySummaryValidationError {}
 
 impl SelectedAsteroidDenseBoundarySummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "Selected asteroid dense boundary evidence: {} exact samples at {} ({}); dense boundary day",
-            self.sample_count,
-            format_instant(self.epoch),
-            format_bodies(&self.sample_bodies),
-        )
-    }
-
     /// Returns `Ok(())` when the summary still matches the current evidence slice.
     pub fn validate(&self) -> Result<(), SelectedAsteroidDenseBoundarySummaryValidationError> {
         let evidence = selected_asteroid_dense_boundary_entries()
@@ -1812,20 +1466,6 @@ impl SelectedAsteroidDenseBoundarySummary {
 
         Ok(())
     }
-
-    /// Returns the compact summary line after validating the current evidence slice.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, SelectedAsteroidDenseBoundarySummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for SelectedAsteroidDenseBoundarySummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
 }
 
 pub(crate) fn selected_asteroid_dense_boundary_summary_details(
@@ -1841,19 +1481,6 @@ pub(crate) fn selected_asteroid_dense_boundary_summary_details(
 /// Returns the compact typed summary for the dense selected-asteroid boundary evidence.
 pub fn selected_asteroid_dense_boundary_summary() -> Option<SelectedAsteroidDenseBoundarySummary> {
     selected_asteroid_dense_boundary_summary_details()
-}
-
-/// Returns the release-facing dense selected-asteroid boundary summary string.
-pub fn selected_asteroid_dense_boundary_summary_for_report() -> String {
-    match selected_asteroid_dense_boundary_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => {
-                format!("Selected asteroid dense boundary evidence: unavailable ({error})")
-            }
-        },
-        None => "Selected asteroid dense boundary evidence: unavailable".to_string(),
-    }
 }
 
 pub(crate) fn selected_asteroid_boundary_entries() -> Option<&'static [SnapshotEntry]> {
@@ -1959,22 +1586,6 @@ impl fmt::Display for SelectedAsteroidBoundarySummaryValidationError {
 impl std::error::Error for SelectedAsteroidBoundarySummaryValidationError {}
 
 impl SelectedAsteroidBoundarySummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        let epochs = match self.epochs.as_slice() {
-            [] => String::from("(no epochs)"),
-            [epoch] => format_instant(*epoch),
-            [first, .., last] => format!("{}..{}", format_instant(*first), format_instant(*last)),
-        };
-        format!(
-            "Selected asteroid boundary evidence: {} exact samples across {} epochs at {} ({})",
-            self.sample_count,
-            self.epochs.len(),
-            epochs,
-            format_bodies(&self.sample_bodies),
-        )
-    }
-
     /// Returns `Ok(())` when the summary still matches the current evidence slice.
     pub fn validate(&self) -> Result<(), SelectedAsteroidBoundarySummaryValidationError> {
         let evidence = selected_asteroid_boundary_entries()
@@ -2040,20 +1651,6 @@ impl SelectedAsteroidBoundarySummary {
 
         Ok(())
     }
-
-    /// Returns the compact summary line after validating the current evidence slice.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, SelectedAsteroidBoundarySummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for SelectedAsteroidBoundarySummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
 }
 
 pub(crate) fn selected_asteroid_boundary_summary_details() -> Option<SelectedAsteroidBoundarySummary>
@@ -2075,17 +1672,6 @@ pub(crate) fn selected_asteroid_boundary_summary_details() -> Option<SelectedAst
 /// Returns the compact typed summary for the selected-asteroid boundary-day evidence.
 pub fn selected_asteroid_boundary_summary() -> Option<SelectedAsteroidBoundarySummary> {
     selected_asteroid_boundary_summary_details()
-}
-
-/// Returns the release-facing selected-asteroid boundary-day summary string.
-pub fn selected_asteroid_boundary_summary_for_report() -> String {
-    match selected_asteroid_boundary_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => format!("Selected asteroid boundary evidence: unavailable ({error})"),
-        },
-        None => "Selected asteroid boundary evidence: unavailable".to_string(),
-    }
 }
 
 pub(crate) fn selected_asteroid_terminal_boundary_entries() -> Option<&'static [SnapshotEntry]> {
@@ -2185,16 +1771,6 @@ impl fmt::Display for SelectedAsteroidTerminalBoundarySummaryValidationError {
 impl std::error::Error for SelectedAsteroidTerminalBoundarySummaryValidationError {}
 
 impl SelectedAsteroidTerminalBoundarySummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "Reference selected-asteroid terminal boundary evidence: {} exact samples at {} ({}); 2500-01-01 terminal boundary sample",
-            self.sample_count,
-            format_instant(self.epoch),
-            format_bodies(&self.sample_bodies),
-        )
-    }
-
     /// Returns `Ok(())` when the summary still matches the current evidence slice.
     pub fn validate(&self) -> Result<(), SelectedAsteroidTerminalBoundarySummaryValidationError> {
         let evidence = selected_asteroid_terminal_boundary_entries()
@@ -2250,20 +1826,6 @@ impl SelectedAsteroidTerminalBoundarySummary {
 
         Ok(())
     }
-
-    /// Returns the compact summary line after validating the current evidence slice.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, SelectedAsteroidTerminalBoundarySummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for SelectedAsteroidTerminalBoundarySummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
 }
 
 pub(crate) fn selected_asteroid_terminal_boundary_summary_details(
@@ -2287,19 +1849,6 @@ pub(crate) fn selected_asteroid_terminal_boundary_summary_details(
 pub fn selected_asteroid_terminal_boundary_summary(
 ) -> Option<SelectedAsteroidTerminalBoundarySummary> {
     selected_asteroid_terminal_boundary_summary_details()
-}
-
-/// Returns the release-facing terminal selected-asteroid boundary summary string.
-pub fn selected_asteroid_terminal_boundary_summary_for_report() -> String {
-    match selected_asteroid_terminal_boundary_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => {
-                format!("Selected asteroid terminal boundary evidence: unavailable ({error})")
-            }
-        },
-        None => "Selected asteroid terminal boundary evidence: unavailable".to_string(),
-    }
 }
 
 /// Compact release-facing summary for the mixed-frame selected-asteroid batch parity slice.
@@ -2412,26 +1961,6 @@ impl fmt::Display for SelectedAsteroidBatchParitySummaryValidationError {
 impl std::error::Error for SelectedAsteroidBatchParitySummaryValidationError {}
 
 impl SelectedAsteroidBatchParitySummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        let parity = if self.parity_preserved {
-            "preserved"
-        } else {
-            "not preserved"
-        };
-
-        format!(
-            "Selected asteroid batch parity: {} requests across {} bodies at {} ({}); frame mix: {} ecliptic, {} equatorial; batch/single parity {}",
-            self.request_count,
-            self.sample_bodies.len(),
-            format_instant(self.epoch),
-            format_bodies(&self.sample_bodies),
-            self.ecliptic_count,
-            self.equatorial_count,
-            parity,
-        )
-    }
-
     /// Returns `Ok(())` when the summary still matches the current evidence slice.
     pub fn validate(&self) -> Result<(), SelectedAsteroidBatchParitySummaryValidationError> {
         let requests = reference_asteroid_batch_parity_requests()
@@ -2550,20 +2079,6 @@ impl SelectedAsteroidBatchParitySummary {
 
         Ok(())
     }
-
-    /// Returns the compact summary line after validating the current evidence slice.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, SelectedAsteroidBatchParitySummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for SelectedAsteroidBatchParitySummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
 }
 
 pub(crate) fn selected_asteroid_batch_parity_summary_details(
@@ -2622,17 +2137,6 @@ pub fn selected_asteroid_batch_parity_summary() -> Option<SelectedAsteroidBatchP
     selected_asteroid_batch_parity_summary_details()
 }
 
-/// Returns the release-facing selected-asteroid batch-parity summary string.
-pub fn selected_asteroid_batch_parity_summary_for_report() -> String {
-    match selected_asteroid_batch_parity_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => format!("Selected asteroid batch parity: unavailable ({error})"),
-        },
-        None => "Selected asteroid batch parity: unavailable".to_string(),
-    }
-}
-
 /// Release-facing posture line: the curated asteroids form a constrained body
 /// class advertised over the 1900–2100 asteroid window. Tier A bodies are
 /// sourced from pinned-kernel + per-object SPK (reproducible); Tier B is the
@@ -2654,3 +2158,78 @@ pub fn selected_asteroid_constrained_class_report() -> String {
 
 #[cfg(test)]
 mod tests;
+
+impl SelectedAsteroidSourceSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "Selected asteroid source evidence: {} source-backed samples across {} bodies and {} epochs ({}..{}); evidence class=source-backed; frame=geocentric ecliptic J2000; time scale=TDB; bodies: {}",
+            self.sample_count,
+            self.sample_bodies.len(),
+            self.epoch_count,
+            format_instant(self.earliest_epoch),
+            format_instant(self.latest_epoch),
+            format_bodies(&self.sample_bodies),
+        )
+    }
+}
+
+impl SelectedAsteroidSourceWindowSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        let window_summary = self
+            .windows
+            .iter()
+            .map(SelectedAsteroidSourceWindow::summary_line)
+            .collect::<Vec<_>>()
+            .join("; ");
+        format!(
+            "Selected asteroid source windows: {} source-backed samples across {} bodies and {} epochs ({}..{}); evidence class=source-backed; frame=geocentric ecliptic J2000; time scale=TDB; windows: {}",
+            self.sample_count,
+            self.sample_bodies.len(),
+            self.epoch_count,
+            format_instant(self.earliest_epoch),
+            format_instant(self.latest_epoch),
+            window_summary,
+        )
+    }
+}
+
+impl SelectedAsteroidSourceRequestCorpusSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "Selected asteroid source request corpus: {} requests (frame={}; time scale={}; zodiac mode={}; apparentness={}; observerless) across {} bodies and {} epochs ({}..{}); bodies: {}",
+            self.request_count,
+            self.frame,
+            self.time_scale,
+            self.zodiac_mode,
+            self.apparentness,
+            self.body_count,
+            self.epoch_count,
+            format_instant(self.earliest_epoch),
+            format_instant(self.latest_epoch),
+            format_bodies(&self.bodies),
+        )
+    }
+}
+
+impl SelectedAsteroidSourceWindow {
+    /// Returns a compact body-window summary used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        let time_span = if self.earliest_epoch == self.latest_epoch {
+            format_instant(self.earliest_epoch)
+        } else {
+            format!(
+                "{}..{}",
+                format_instant(self.earliest_epoch),
+                format_instant(self.latest_epoch)
+            )
+        };
+
+        format!(
+            "{}: {} samples across {} epochs at {}",
+            self.body, self.sample_count, self.epoch_count, time_span
+        )
+    }
+}

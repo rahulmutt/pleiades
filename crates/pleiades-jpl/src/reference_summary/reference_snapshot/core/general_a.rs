@@ -3,7 +3,7 @@
 use core::fmt;
 use std::sync::OnceLock;
 
-use pleiades_types::{Apparentness, CoordinateFrame, Instant, TimeScale, ZodiacMode};
+use pleiades_types::Instant;
 
 #[allow(unused_imports)]
 use crate::reference_summary::*;
@@ -333,119 +333,6 @@ impl ReferenceSnapshotSummary {
 
         Ok(())
     }
-
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "Reference snapshot coverage: {} rows across {} bodies and {} epochs ({} asteroid rows; {}..{}); bodies: {}",
-            self.row_count,
-            self.body_count,
-            self.epoch_count,
-            self.asteroid_row_count,
-            format_instant(self.earliest_epoch),
-            format_instant(self.latest_epoch),
-            format_bodies(self.bodies),
-        )
-    }
-
-    /// Returns a compact summary line after validating the current evidence slice.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, ReferenceSnapshotSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for ReferenceSnapshotSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
-}
-
-/// Formats the checked-in reference snapshot coverage for release-facing reporting.
-pub fn format_reference_snapshot_summary(summary: &ReferenceSnapshotSummary) -> String {
-    summary.summary_line()
-}
-
-/// Returns the release-facing reference snapshot coverage summary string.
-pub fn reference_snapshot_summary_for_report() -> String {
-    let summary_line = match reference_snapshot_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => format!("Reference snapshot coverage: unavailable ({error})"),
-        },
-        None => "Reference snapshot coverage: unavailable".to_string(),
-    };
-
-    let summary_lines = [
-        reference_snapshot_source_summary_for_report(),
-        reference_snapshot_source_window_summary_for_report(),
-        reference_snapshot_equatorial_parity_summary_for_report(),
-        reference_snapshot_major_body_bridge_summary_for_report(),
-        reference_snapshot_batch_parity_summary_for_report(),
-        reference_snapshot_1900_selected_body_boundary_summary_for_report(),
-        reference_snapshot_2415020_selected_body_boundary_summary_for_report(),
-        reference_snapshot_lunar_boundary_summary_for_report(),
-        reference_snapshot_high_curvature_summary_for_report(),
-        reference_snapshot_high_curvature_window_summary_for_report(),
-        reference_snapshot_high_curvature_epoch_coverage_summary_for_report(),
-        reference_snapshot_2451545_major_body_boundary_summary_for_report(),
-        reference_snapshot_major_body_boundary_summary_for_report(),
-        reference_snapshot_exact_j2000_evidence_summary_for_report(),
-        reference_snapshot_2451910_major_body_boundary_summary_for_report(),
-        reference_snapshot_2451911_major_body_boundary_summary_for_report(),
-        reference_snapshot_2451912_major_body_boundary_summary_for_report(),
-        reference_snapshot_2451913_major_body_boundary_summary_for_report(),
-        reference_snapshot_2451914_major_body_boundary_summary_for_report(),
-        reference_snapshot_2451914_major_body_pre_bridge_summary_for_report(),
-        reference_snapshot_bridge_day_summary_for_report(),
-        reference_snapshot_2451914_bridge_day_summary_for_report(),
-        reference_snapshot_2451914_major_body_bridge_day_summary_for_report(),
-        reference_snapshot_2451914_major_body_bridge_summary_for_report(),
-        reference_snapshot_2451915_major_body_boundary_summary_for_report(),
-        reference_snapshot_2451915_major_body_bridge_summary_for_report(),
-        reference_snapshot_2451917_major_body_bridge_summary_for_report(),
-        reference_snapshot_2451917_major_body_boundary_summary_for_report(),
-        reference_snapshot_2451916_major_body_interior_summary_for_report(),
-        reference_snapshot_2451916_major_body_dense_boundary_summary_for_report(),
-        reference_snapshot_2451916_major_body_boundary_summary_for_report(),
-        reference_snapshot_dense_boundary_summary_for_report(),
-        reference_snapshot_sparse_boundary_summary_for_report(),
-        reference_snapshot_pre_bridge_boundary_summary_for_report(),
-        reference_snapshot_boundary_epoch_coverage_summary_for_report(),
-        reference_snapshot_major_body_boundary_window_summary_for_report(),
-        reference_snapshot_mars_jupiter_boundary_summary_for_report(),
-        reference_snapshot_2451918_major_body_boundary_summary_for_report(),
-        reference_snapshot_2451919_major_body_boundary_summary_for_report(),
-        reference_snapshot_2451920_major_body_interior_summary_for_report(),
-        reference_snapshot_2453000_major_body_boundary_summary_for_report(),
-        selected_asteroid_boundary_summary_for_report(),
-        selected_asteroid_bridge_summary_for_report(),
-        selected_asteroid_dense_boundary_summary_for_report(),
-        selected_asteroid_terminal_boundary_summary_for_report(),
-        selected_asteroid_source_evidence_summary_for_report(),
-        selected_asteroid_source_window_summary_for_report(),
-        selected_asteroid_source_2451917_summary_for_report(),
-        selected_asteroid_source_2453000_summary_for_report(),
-        selected_asteroid_source_2500000_summary_for_report(),
-        selected_asteroid_source_2634167_summary_for_report(),
-        reference_asteroid_evidence_summary_for_report(),
-        reference_asteroid_equatorial_evidence_summary_for_report(),
-        reference_asteroid_source_window_summary_for_report(),
-    ];
-
-    let mut report = summary_line;
-    for summary in summary_lines {
-        report.push('\n');
-        report.push_str("  ");
-        report.push_str(&summary);
-    }
-    report
-}
-
-pub(crate) fn strip_report_prefix<'a>(text: &'a str, prefix: &str) -> &'a str {
-    text.strip_prefix(prefix).unwrap_or(text)
 }
 
 /// Computes a deterministic 64-bit checksum for report text.
@@ -475,57 +362,6 @@ pub(crate) const COMPARISON_SNAPSHOT_REDISTRIBUTION_EXPECTED: &str =
 pub(crate) const COMPARISON_SNAPSHOT_REDISTRIBUTION_FALLBACK: &str = "unknown";
 
 pub(crate) const COMPARISON_SNAPSHOT_COLUMNS: &str = "body, x_km, y_km, z_km";
-
-#[cfg(test)]
-pub(crate) fn format_validated_source_summary_for_report(
-    label: &'static str,
-    manifest: &SnapshotManifest,
-    render: impl FnOnce() -> String,
-) -> String {
-    match manifest.validate() {
-        Ok(()) => render(),
-        Err(error) => format!("{label}: unavailable ({error})"),
-    }
-}
-
-#[cfg(test)]
-pub(crate) fn format_manifest_summary_for_report(
-    label: &str,
-    manifest: &SnapshotManifest,
-) -> String {
-    match manifest.validate() {
-        Ok(()) => manifest.summary_line(label),
-        Err(error) => format!("{label}: unavailable ({error})"),
-    }
-}
-
-pub(crate) fn join_display<T: fmt::Display>(values: &[T]) -> String {
-    values
-        .iter()
-        .map(ToString::to_string)
-        .collect::<Vec<_>>()
-        .join(", ")
-}
-
-pub(crate) fn format_bodies(bodies: &[pleiades_backend::CelestialBody]) -> String {
-    join_display(bodies)
-}
-
-pub(crate) fn format_coordinate_frames(frames: &[CoordinateFrame]) -> String {
-    join_display(frames)
-}
-
-pub(crate) fn format_time_scales(time_scales: &[TimeScale]) -> String {
-    join_display(time_scales)
-}
-
-pub(crate) fn format_zodiac_modes(zodiac_modes: &[ZodiacMode]) -> String {
-    join_display(zodiac_modes)
-}
-
-pub(crate) fn format_apparentness_modes(modes: &[Apparentness]) -> String {
-    join_display(modes)
-}
 
 pub(crate) const ASTEROID_EQUATORIAL_TOLERANCE_DEGREES: f64 = 1e-12;
 
@@ -647,17 +483,6 @@ pub fn reference_snapshot_lunar_boundary_summary() -> Option<ReferenceLunarBound
     reference_snapshot_lunar_boundary_summary_details()
 }
 
-/// Returns the release-facing Moon high-curvature reference window summary string.
-pub fn reference_snapshot_lunar_boundary_summary_for_report() -> String {
-    match reference_snapshot_lunar_boundary_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => format!("Reference lunar boundary evidence: unavailable ({error})"),
-        },
-        None => "Reference lunar boundary evidence: unavailable".to_string(),
-    }
-}
-
 pub(crate) fn reference_snapshot_high_curvature_summary_details(
 ) -> Option<ReferenceHighCurvatureSummary> {
     let entries = reference_snapshot_high_curvature_entries()?;
@@ -706,19 +531,6 @@ pub fn reference_snapshot_high_curvature_summary() -> Option<ReferenceHighCurvat
     reference_snapshot_high_curvature_summary_details()
 }
 
-/// Returns the release-facing major-body high-curvature reference window summary string.
-pub fn reference_snapshot_high_curvature_summary_for_report() -> String {
-    match reference_snapshot_high_curvature_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => {
-                format!("Reference major-body high-curvature evidence: unavailable ({error})")
-            }
-        },
-        None => "Reference major-body high-curvature evidence: unavailable".to_string(),
-    }
-}
-
 pub(crate) fn reference_snapshot_major_body_boundary_entries() -> Option<&'static [SnapshotEntry]> {
     static ENTRIES: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
     let entries = ENTRIES
@@ -763,19 +575,6 @@ pub(crate) fn reference_snapshot_major_body_boundary_summary_details(
 pub fn reference_snapshot_major_body_boundary_summary() -> Option<ReferenceMajorBodyBoundarySummary>
 {
     reference_snapshot_major_body_boundary_summary_details()
-}
-
-/// Returns the release-facing major-body boundary-day summary string.
-pub fn reference_snapshot_major_body_boundary_summary_for_report() -> String {
-    match reference_snapshot_major_body_boundary_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => {
-                format!("Reference major-body boundary evidence: unavailable ({error})")
-            }
-        },
-        None => "Reference major-body boundary evidence: unavailable".to_string(),
-    }
 }
 
 pub(crate) const REFERENCE_MAJOR_BODY_BRIDGE_EPOCH: f64 = 2_451_915.0;
@@ -825,17 +624,6 @@ pub fn reference_snapshot_major_body_bridge_summary() -> Option<ReferenceMajorBo
     reference_snapshot_major_body_bridge_summary_details()
 }
 
-/// Returns the release-facing major-body bridge-day summary string.
-pub fn reference_snapshot_major_body_bridge_summary_for_report() -> String {
-    match reference_snapshot_major_body_bridge_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => format!("Reference major-body bridge evidence: unavailable ({error})"),
-        },
-        None => "Reference major-body bridge evidence: unavailable".to_string(),
-    }
-}
-
 pub(crate) fn reference_snapshot_mars_jupiter_boundary_entries() -> Option<&'static [SnapshotEntry]>
 {
     static ENTRIES: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
@@ -882,45 +670,12 @@ pub fn reference_snapshot_mars_jupiter_boundary_summary(
     reference_snapshot_mars_jupiter_boundary_summary_details()
 }
 
-/// Returns the release-facing Mars/Jupiter boundary summary string.
-pub fn reference_snapshot_mars_jupiter_boundary_summary_for_report() -> String {
-    match reference_snapshot_mars_jupiter_boundary_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => {
-                format!("Reference Mars/Jupiter boundary evidence: unavailable ({error})")
-            }
-        },
-        None => "Reference Mars/Jupiter boundary evidence: unavailable".to_string(),
-    }
-}
-
 /// Returns the compact typed summary for the 2451918 major-body boundary reference evidence.
 ///
 /// This is a compatibility alias for the Mars/Jupiter boundary slice.
 pub fn reference_snapshot_2451918_major_body_boundary_summary(
 ) -> Option<ReferenceMarsJupiterBoundarySummary> {
     reference_snapshot_mars_jupiter_boundary_summary_details()
-}
-
-/// Returns the release-facing 2451918 major-body boundary summary string.
-///
-/// This is a compatibility alias for the Mars/Jupiter boundary slice with
-/// explicit 2451918 wording for release-facing reports.
-pub fn reference_snapshot_2451918_major_body_boundary_summary_for_report() -> String {
-    match reference_snapshot_2451918_major_body_boundary_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line.replacen(
-                "Reference Mars/Jupiter boundary evidence",
-                "Reference 2451918 major-body boundary evidence",
-                1,
-            ),
-            Err(error) => {
-                format!("Reference 2451918 major-body boundary evidence: unavailable ({error})")
-            }
-        },
-        None => "Reference 2451918 major-body boundary evidence: unavailable".to_string(),
-    }
 }
 
 pub(crate) fn reference_snapshot_2453000_major_body_boundary_entries(
@@ -971,19 +726,6 @@ pub fn reference_snapshot_2453000_major_body_boundary_summary(
     reference_snapshot_2453000_major_body_boundary_summary_details()
 }
 
-/// Returns the release-facing 2453000 major-body boundary summary string.
-pub fn reference_snapshot_2453000_major_body_boundary_summary_for_report() -> String {
-    match reference_snapshot_2453000_major_body_boundary_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => {
-                format!("Reference 2453000 major-body boundary evidence: unavailable ({error})")
-            }
-        },
-        None => "Reference 2453000 major-body boundary evidence: unavailable".to_string(),
-    }
-}
-
 pub(crate) fn reference_snapshot_2451545_major_body_boundary_entries(
 ) -> Option<&'static [SnapshotEntry]> {
     static ENTRIES: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
@@ -1030,19 +772,6 @@ pub(crate) fn reference_snapshot_2451545_major_body_boundary_summary_details(
 pub fn reference_snapshot_2451545_major_body_boundary_summary(
 ) -> Option<Reference2451545MajorBodyBoundarySummary> {
     reference_snapshot_2451545_major_body_boundary_summary_details()
-}
-
-/// Returns the release-facing 2451545 major-body boundary summary string.
-pub fn reference_snapshot_2451545_major_body_boundary_summary_for_report() -> String {
-    match reference_snapshot_2451545_major_body_boundary_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => {
-                format!("Reference 2451545 major-body boundary evidence: unavailable ({error})")
-            }
-        },
-        None => "Reference 2451545 major-body boundary evidence: unavailable".to_string(),
-    }
 }
 
 pub(crate) fn reference_snapshot_2451910_major_body_boundary_entries(
@@ -1093,19 +822,6 @@ pub fn reference_snapshot_2451910_major_body_boundary_summary(
     reference_snapshot_2451910_major_body_boundary_summary_details()
 }
 
-/// Returns the release-facing 2451910 major-body boundary summary string.
-pub fn reference_snapshot_2451910_major_body_boundary_summary_for_report() -> String {
-    match reference_snapshot_2451910_major_body_boundary_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => {
-                format!("Reference 2451910 major-body boundary evidence: unavailable ({error})")
-            }
-        },
-        None => "Reference 2451910 major-body boundary evidence: unavailable".to_string(),
-    }
-}
-
 pub(crate) fn reference_snapshot_2451911_major_body_boundary_entries(
 ) -> Option<&'static [SnapshotEntry]> {
     static ENTRIES: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
@@ -1152,19 +868,6 @@ pub(crate) fn reference_snapshot_2451911_major_body_boundary_summary_details(
 pub fn reference_snapshot_2451911_major_body_boundary_summary(
 ) -> Option<Reference2451911MajorBodyBoundarySummary> {
     reference_snapshot_2451911_major_body_boundary_summary_details()
-}
-
-/// Returns the release-facing 2451911 major-body boundary summary string.
-pub fn reference_snapshot_2451911_major_body_boundary_summary_for_report() -> String {
-    match reference_snapshot_2451911_major_body_boundary_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => {
-                format!("Reference 2451911 major-body boundary evidence: unavailable ({error})")
-            }
-        },
-        None => "Reference 2451911 major-body boundary evidence: unavailable".to_string(),
-    }
 }
 
 pub(crate) fn reference_snapshot_2451912_major_body_boundary_entries(
@@ -1215,19 +918,6 @@ pub fn reference_snapshot_2451912_major_body_boundary_summary(
     reference_snapshot_2451912_major_body_boundary_summary_details()
 }
 
-/// Returns the release-facing 2451912 major-body boundary summary string.
-pub fn reference_snapshot_2451912_major_body_boundary_summary_for_report() -> String {
-    match reference_snapshot_2451912_major_body_boundary_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => {
-                format!("Reference 2451912 major-body boundary evidence: unavailable ({error})")
-            }
-        },
-        None => "Reference 2451912 major-body boundary evidence: unavailable".to_string(),
-    }
-}
-
 pub(crate) fn reference_snapshot_2451913_major_body_boundary_entries(
 ) -> Option<&'static [SnapshotEntry]> {
     static ENTRIES: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
@@ -1274,19 +964,6 @@ pub(crate) fn reference_snapshot_2451913_major_body_boundary_summary_details(
 pub fn reference_snapshot_2451913_major_body_boundary_summary(
 ) -> Option<Reference2451913MajorBodyBoundarySummary> {
     reference_snapshot_2451913_major_body_boundary_summary_details()
-}
-
-/// Returns the release-facing 2451913 major-body boundary summary string.
-pub fn reference_snapshot_2451913_major_body_boundary_summary_for_report() -> String {
-    match reference_snapshot_2451913_major_body_boundary_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => {
-                format!("Reference 2451913 major-body boundary evidence: unavailable ({error})")
-            }
-        },
-        None => "Reference 2451913 major-body boundary evidence: unavailable".to_string(),
-    }
 }
 
 pub(crate) fn reference_snapshot_2451914_major_body_boundary_entries(
@@ -1337,19 +1014,6 @@ pub fn reference_snapshot_2451914_major_body_boundary_summary(
     reference_snapshot_2451914_major_body_boundary_summary_details()
 }
 
-/// Returns the release-facing 2451914 major-body boundary summary string.
-pub fn reference_snapshot_2451914_major_body_boundary_summary_for_report() -> String {
-    match reference_snapshot_2451914_major_body_boundary_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => {
-                format!("Reference 2451914 major-body boundary evidence: unavailable ({error})")
-            }
-        },
-        None => "Reference 2451914 major-body boundary evidence: unavailable".to_string(),
-    }
-}
-
 pub(crate) fn reference_snapshot_2451915_major_body_boundary_entries(
 ) -> Option<&'static [SnapshotEntry]> {
     static ENTRIES: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
@@ -1396,19 +1060,6 @@ pub(crate) fn reference_snapshot_2451915_major_body_boundary_summary_details(
 pub fn reference_snapshot_2451915_major_body_boundary_summary(
 ) -> Option<Reference2451915MajorBodyBoundarySummary> {
     reference_snapshot_2451915_major_body_boundary_summary_details()
-}
-
-/// Returns the release-facing 2451915 major-body boundary summary string.
-pub fn reference_snapshot_2451915_major_body_boundary_summary_for_report() -> String {
-    match reference_snapshot_2451915_major_body_boundary_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => {
-                format!("Reference 2451915 major-body boundary evidence: unavailable ({error})")
-            }
-        },
-        None => "Reference 2451915 major-body boundary evidence: unavailable".to_string(),
-    }
 }
 
 pub(crate) fn reference_snapshot_2451917_major_body_bridge_entries(
@@ -1459,15 +1110,39 @@ pub fn reference_snapshot_2451917_major_body_bridge_summary(
     reference_snapshot_2451917_major_body_bridge_summary_details()
 }
 
-/// Returns the release-facing 2451917 major-body bridge summary string.
-pub fn reference_snapshot_2451917_major_body_bridge_summary_for_report() -> String {
-    match reference_snapshot_2451917_major_body_bridge_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => {
-                format!("Reference 2451917 major-body bridge evidence: unavailable ({error})")
-            }
-        },
-        None => "Reference 2451917 major-body bridge evidence: unavailable".to_string(),
+/// Formats the checked-in reference snapshot coverage for release-facing reporting.
+pub fn format_reference_snapshot_summary(summary: &ReferenceSnapshotSummary) -> String {
+    summary.summary_line()
+}
+
+impl ReferenceSnapshotSummary {
+    /// Returns a compact summary line used in release-facing reporting.
+    pub fn summary_line(&self) -> String {
+        format!(
+            "Reference snapshot coverage: {} rows across {} bodies and {} epochs ({} asteroid rows; {}..{}); bodies: {}",
+            self.row_count,
+            self.body_count,
+            self.epoch_count,
+            self.asteroid_row_count,
+            format_instant(self.earliest_epoch),
+            format_instant(self.latest_epoch),
+            format_bodies(self.bodies),
+        )
     }
+}
+
+pub(crate) fn format_bodies(bodies: &[pleiades_backend::CelestialBody]) -> String {
+    join_display(bodies)
+}
+
+pub(crate) fn strip_report_prefix<'a>(text: &'a str, prefix: &str) -> &'a str {
+    text.strip_prefix(prefix).unwrap_or(text)
+}
+
+pub(crate) fn join_display<T: fmt::Display>(values: &[T]) -> String {
+    values
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join(", ")
 }

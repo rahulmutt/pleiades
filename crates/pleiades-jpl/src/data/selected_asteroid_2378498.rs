@@ -91,16 +91,6 @@ impl fmt::Display for SelectedAsteroidSource2378498SummaryValidationError {
 impl std::error::Error for SelectedAsteroidSource2378498SummaryValidationError {}
 
 impl SelectedAsteroidSource2378498Summary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "Reference selected-asteroid 2378498.5 source evidence: {} exact samples at {} ({}); 2378498.5 source sample",
-            self.sample_count,
-            format_instant(self.epoch),
-            format_bodies(&self.sample_bodies),
-        )
-    }
-
     /// Returns `Ok(())` when the summary still matches the current evidence slice.
     pub fn validate(&self) -> Result<(), SelectedAsteroidSource2378498SummaryValidationError> {
         let evidence = selected_asteroid_source_2378498_entries()
@@ -156,20 +146,6 @@ impl SelectedAsteroidSource2378498Summary {
 
         Ok(())
     }
-
-    /// Returns the compact summary line after validating the current evidence slice.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, SelectedAsteroidSource2378498SummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for SelectedAsteroidSource2378498Summary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
 }
 
 fn selected_asteroid_source_2378498_summary_details() -> Option<SelectedAsteroidSource2378498Summary>
@@ -194,19 +170,6 @@ pub fn selected_asteroid_source_2378498_summary() -> Option<SelectedAsteroidSour
     selected_asteroid_source_2378498_summary_details()
 }
 
-/// Returns the release-facing selected-asteroid 2378498.5 source summary string.
-pub fn selected_asteroid_source_2378498_summary_for_report() -> String {
-    match selected_asteroid_source_2378498_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => {
-                format!("Selected asteroid 2378498.5 source evidence: unavailable ({error})")
-            }
-        },
-        None => "Selected asteroid 2378498.5 source evidence: unavailable".to_string(),
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -218,14 +181,5 @@ mod tests {
         assert_eq!(summary.sample_count, 6);
         assert_eq!(summary.epoch.julian_day.days(), 2_378_498.5);
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
-        assert!(summary
-            .summary_line()
-            .contains("Reference selected-asteroid 2378498.5 source evidence:"));
-        assert!(summary.summary_line().contains("JD 2378498.5 (TDB)"));
-        assert_eq!(
-            summary.summary_line(),
-            selected_asteroid_source_2378498_summary_for_report()
-        );
     }
 }

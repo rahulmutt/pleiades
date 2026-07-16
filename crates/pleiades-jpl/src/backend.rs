@@ -110,20 +110,6 @@ impl fmt::Display for InterpolationQualitySampleValidationError {
 impl std::error::Error for InterpolationQualitySampleValidationError {}
 
 impl InterpolationQualitySample {
-    /// Returns a compact release-facing summary line.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "{} at {}: {} interpolation, bracket span {:.1} d, |Δlon|={:.12}°, |Δlat|={:.12}°, |Δdist|={:.12} AU",
-            self.body,
-            self.epoch.summary_line(),
-            self.interpolation_kind.label(),
-            self.bracket_span_days,
-            self.longitude_error_deg,
-            self.latitude_error_deg,
-            self.distance_error_au,
-        )
-    }
-
     /// Returns `Ok(())` when the sample still matches the checked-in evidence.
     pub fn validate(&self) -> Result<(), InterpolationQualitySampleValidationError> {
         if self.epoch.scale != TimeScale::Tdb {
@@ -161,12 +147,6 @@ impl InterpolationQualitySample {
         }
 
         Ok(())
-    }
-}
-
-impl fmt::Display for InterpolationQualitySample {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
     }
 }
 
@@ -539,47 +519,6 @@ impl SnapshotManifest {
         }
         Ok(())
     }
-
-    /// Formats the parsed manifest into the compact release-facing summary line.
-    pub fn summary_line(&self, label: &str) -> String {
-        self.summary_line_with_defaults(label, "unknown", "unknown")
-    }
-
-    /// Formats the parsed manifest using explicit default labels for missing provenance.
-    pub fn summary_line_with_defaults(
-        &self,
-        label: &str,
-        source_fallback: &'static str,
-        coverage_fallback: &'static str,
-    ) -> String {
-        let title = self
-            .title
-            .as_deref()
-            .map(str::trim)
-            .filter(|title| !title.is_empty())
-            .unwrap_or("unknown");
-        let source = self.source_or(source_fallback);
-        let coverage = self.coverage_or(coverage_fallback);
-        let columns = self.columns_summary();
-        let mut text =
-            format!("{label}: {title}; source={source}; coverage={coverage}; columns={columns}");
-        if let Some(redistribution) = self
-            .redistribution
-            .as_deref()
-            .map(str::trim)
-            .filter(|value| !value.is_empty())
-        {
-            text.push_str("; redistribution=");
-            text.push_str(redistribution);
-        }
-        text
-    }
-}
-
-impl fmt::Display for SnapshotManifest {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line_with_defaults("Snapshot manifest", "unknown", "unknown"))
-    }
 }
 
 /// A typed manifest summary for JPL snapshot provenance reporting.
@@ -793,36 +732,6 @@ impl SnapshotManifestSummary {
 
         Ok(())
     }
-
-    /// Returns the compact release-facing summary line for the manifest wrapper.
-    pub fn summary_line(&self) -> String {
-        self.manifest.summary_line_with_defaults(
-            self.label,
-            self.source_fallback,
-            self.coverage_fallback,
-        )
-    }
-
-    /// Returns the validated compact release-facing summary line for the manifest wrapper.
-    pub fn validated_summary_line(&self) -> Result<String, SnapshotManifestSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-
-    /// Returns the validated summary line after checking a specific column layout.
-    pub fn validated_summary_line_with_expected_columns(
-        &self,
-        expected_columns: &[&str],
-    ) -> Result<String, SnapshotManifestSummaryValidationError> {
-        self.validate_with_expected_columns(expected_columns)?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for SnapshotManifestSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
 }
 
 /// Parsed manifest and row data for a JPL-style snapshot corpus.
@@ -1005,14 +914,23 @@ pub fn parse_snapshot_manifest(source: &str) -> SnapshotManifest {
 
 /// Structured validation errors for a checked-in snapshot manifest header block.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) enum SnapshotManifestHeaderStructureError {
+pub enum SnapshotManifestHeaderStructureError {
     /// The manifest comment block contained an unexpected number of non-empty lines.
-    CommentCountMismatch { expected: usize, found: usize },
+    CommentCountMismatch {
+        /// Number of header comments expected for this manifest shape.
+        expected: usize,
+        /// Number of header comments actually present.
+        found: usize,
+    },
     /// A specific manifest comment line drifted from the canonical header structure.
     CommentMismatch {
+        /// Zero-based position of the drifted comment line.
         index: usize,
+        /// Logical field the comment line corresponds to.
         field: &'static str,
+        /// Value expected at this position.
         expected: String,
+        /// Value actually found at this position.
         found: String,
     },
 }
@@ -1039,7 +957,9 @@ impl fmt::Display for SnapshotManifestHeaderStructureError {
 
 impl std::error::Error for SnapshotManifestHeaderStructureError {}
 
-pub(crate) fn validate_snapshot_manifest_header_structure(
+/// Validates that `source`'s checked-in manifest header comments match the
+/// expected title, source, coverage, redistribution, and column metadata.
+pub fn validate_snapshot_manifest_header_structure(
     source: &str,
     expected_title: &str,
     expected_source: &str,
@@ -1096,24 +1016,39 @@ pub(crate) fn validate_snapshot_manifest_header_structure(
     Ok(())
 }
 
+/// Structured validation errors for a snapshot manifest footprint check.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) enum SnapshotManifestFootprintValidationError {
+pub enum SnapshotManifestFootprintValidationError {
+    /// The checked-in snapshot had no parsed entries.
     MissingEntries {
+        /// Release-facing label for the snapshot under validation.
         label: &'static str,
     },
+    /// The parsed row count did not match the manifest's declared footprint.
     RowCountMismatch {
+        /// Release-facing label for the snapshot under validation.
         label: &'static str,
+        /// Expected row count from the manifest footprint.
         expected: usize,
+        /// Row count actually parsed from the snapshot.
         found: usize,
     },
+    /// The distinct-body count did not match the manifest's declared footprint.
     BodyCountMismatch {
+        /// Release-facing label for the snapshot under validation.
         label: &'static str,
+        /// Expected distinct-body count from the manifest footprint.
         expected: usize,
+        /// Distinct-body count actually parsed from the snapshot.
         found: usize,
     },
+    /// The distinct-epoch count did not match the manifest's declared footprint.
     EpochCountMismatch {
+        /// Release-facing label for the snapshot under validation.
         label: &'static str,
+        /// Expected distinct-epoch count from the manifest footprint.
         expected: usize,
+        /// Distinct-epoch count actually parsed from the snapshot.
         found: usize,
     },
 }
@@ -1154,7 +1089,9 @@ impl fmt::Display for SnapshotManifestFootprintValidationError {
 
 impl std::error::Error for SnapshotManifestFootprintValidationError {}
 
-pub(crate) fn validate_snapshot_manifest_footprint(
+/// Validates that a checked-in snapshot's parsed entries match the manifest's
+/// declared row, body, and epoch footprint.
+pub fn validate_snapshot_manifest_footprint(
     label: &'static str,
     entries: Option<&[SnapshotEntry]>,
     expected_row_count: usize,
@@ -1569,7 +1506,8 @@ fn snapshot_state() -> &'static SnapshotState {
     })
 }
 
-pub(crate) fn snapshot_entries() -> Option<&'static [SnapshotEntry]> {
+/// Returns the loaded reference snapshot entries, or `None` if the snapshot failed to load.
+pub fn snapshot_entries() -> Option<&'static [SnapshotEntry]> {
     snapshot_state().entries()
 }
 
@@ -1577,7 +1515,8 @@ fn snapshot_error() -> Option<&'static SnapshotLoadError> {
     snapshot_state().error()
 }
 
-pub(crate) fn snapshot_bodies() -> &'static [pleiades_backend::CelestialBody] {
+/// Returns the distinct celestial bodies present in the reference snapshot entries.
+pub fn snapshot_bodies() -> &'static [pleiades_backend::CelestialBody] {
     static BODIES: OnceLock<Vec<pleiades_backend::CelestialBody>> = OnceLock::new();
     BODIES
         .get_or_init(|| {
@@ -1594,21 +1533,36 @@ pub(crate) fn snapshot_bodies() -> &'static [pleiades_backend::CelestialBody] {
         .as_slice()
 }
 
-pub(crate) const REFERENCE_SNAPSHOT_1900_SELECTED_BODY_BOUNDARY_EPOCH_JD: f64 = 2_415_020.5;
-pub(crate) const REFERENCE_SNAPSHOT_REFERENCE_ONLY_EPOCH_JD: f64 = 2_378_498.5;
-pub(crate) const REFERENCE_SNAPSHOT_2451545_MAJOR_BODY_BOUNDARY_EPOCH_JD: f64 = 2_451_545.0;
-pub(crate) const REFERENCE_SNAPSHOT_2451910_MAJOR_BODY_BOUNDARY_EPOCH_JD: f64 = 2_451_910.5;
-pub(crate) const REFERENCE_SNAPSHOT_2451911_MAJOR_BODY_BOUNDARY_EPOCH_JD: f64 = 2_451_911.5;
-pub(crate) const REFERENCE_SNAPSHOT_2451912_MAJOR_BODY_BOUNDARY_EPOCH_JD: f64 = 2_451_912.5;
-pub(crate) const REFERENCE_SNAPSHOT_2451913_MAJOR_BODY_BOUNDARY_EPOCH_JD: f64 = 2_451_913.5;
-pub(crate) const REFERENCE_SNAPSHOT_2451914_MAJOR_BODY_BOUNDARY_EPOCH_JD: f64 = 2_451_914.5;
-pub(crate) const REFERENCE_SNAPSHOT_2451915_MAJOR_BODY_BOUNDARY_EPOCH_JD: f64 = 2_451_915.5;
-pub(crate) const REFERENCE_SNAPSHOT_2451917_MAJOR_BODY_BRIDGE_EPOCH_JD: f64 = 2_451_917.0;
-pub(crate) const REFERENCE_SNAPSHOT_2451917_MAJOR_BODY_BOUNDARY_EPOCH_JD: f64 = 2_451_917.5;
-pub(crate) const REFERENCE_SNAPSHOT_2451919_MAJOR_BODY_BOUNDARY_EPOCH_JD: f64 = 2_451_919.5;
-pub(crate) const REFERENCE_SNAPSHOT_2451916_MAJOR_BODY_INTERIOR_EPOCH_JD: f64 = 2_451_916.0;
-pub(crate) const REFERENCE_SNAPSHOT_2451920_MAJOR_BODY_INTERIOR_EPOCH_JD: f64 = 2_451_920.5;
-pub(crate) const REFERENCE_SNAPSHOT_2453000_MAJOR_BODY_BOUNDARY_EPOCH_JD: f64 = 2_453_000.5;
+/// Boundary epoch (JD) for the 1900 selected-body reference snapshot.
+pub const REFERENCE_SNAPSHOT_1900_SELECTED_BODY_BOUNDARY_EPOCH_JD: f64 = 2_415_020.5;
+/// Epoch (JD) present only in the reference snapshot, not the comparison snapshot.
+pub const REFERENCE_SNAPSHOT_REFERENCE_ONLY_EPOCH_JD: f64 = 2_378_498.5;
+/// Boundary epoch (JD) for the 2451545 major-body reference snapshot.
+pub const REFERENCE_SNAPSHOT_2451545_MAJOR_BODY_BOUNDARY_EPOCH_JD: f64 = 2_451_545.0;
+/// Boundary epoch (JD) for the 2451910 major-body reference snapshot.
+pub const REFERENCE_SNAPSHOT_2451910_MAJOR_BODY_BOUNDARY_EPOCH_JD: f64 = 2_451_910.5;
+/// Boundary epoch (JD) for the 2451911 major-body reference snapshot.
+pub const REFERENCE_SNAPSHOT_2451911_MAJOR_BODY_BOUNDARY_EPOCH_JD: f64 = 2_451_911.5;
+/// Boundary epoch (JD) for the 2451912 major-body reference snapshot.
+pub const REFERENCE_SNAPSHOT_2451912_MAJOR_BODY_BOUNDARY_EPOCH_JD: f64 = 2_451_912.5;
+/// Boundary epoch (JD) for the 2451913 major-body reference snapshot.
+pub const REFERENCE_SNAPSHOT_2451913_MAJOR_BODY_BOUNDARY_EPOCH_JD: f64 = 2_451_913.5;
+/// Boundary epoch (JD) for the 2451914 major-body reference snapshot.
+pub const REFERENCE_SNAPSHOT_2451914_MAJOR_BODY_BOUNDARY_EPOCH_JD: f64 = 2_451_914.5;
+/// Boundary epoch (JD) for the 2451915 major-body reference snapshot.
+pub const REFERENCE_SNAPSHOT_2451915_MAJOR_BODY_BOUNDARY_EPOCH_JD: f64 = 2_451_915.5;
+/// Bridge epoch (JD) for the 2451917 major-body reference snapshot.
+pub const REFERENCE_SNAPSHOT_2451917_MAJOR_BODY_BRIDGE_EPOCH_JD: f64 = 2_451_917.0;
+/// Boundary epoch (JD) for the 2451917 major-body reference snapshot.
+pub const REFERENCE_SNAPSHOT_2451917_MAJOR_BODY_BOUNDARY_EPOCH_JD: f64 = 2_451_917.5;
+/// Boundary epoch (JD) for the 2451919 major-body reference snapshot.
+pub const REFERENCE_SNAPSHOT_2451919_MAJOR_BODY_BOUNDARY_EPOCH_JD: f64 = 2_451_919.5;
+/// Interior epoch (JD) for the 2451916 major-body reference snapshot.
+pub const REFERENCE_SNAPSHOT_2451916_MAJOR_BODY_INTERIOR_EPOCH_JD: f64 = 2_451_916.0;
+/// Interior epoch (JD) for the 2451920 major-body reference snapshot.
+pub const REFERENCE_SNAPSHOT_2451920_MAJOR_BODY_INTERIOR_EPOCH_JD: f64 = 2_451_920.5;
+/// Boundary epoch (JD) for the 2453000 major-body reference snapshot.
+pub const REFERENCE_SNAPSHOT_2453000_MAJOR_BODY_BOUNDARY_EPOCH_JD: f64 = 2_453_000.5;
 const REFERENCE_SNAPSHOT_BOUNDARY_ONLY_EPOCH_JD: f64 = 2_451_917.5;
 
 fn is_reference_snapshot_only_epoch(epoch: f64) -> bool {
@@ -1619,7 +1573,8 @@ fn is_reference_snapshot_only_epoch(epoch: f64) -> bool {
     )
 }
 
-pub(crate) fn comparison_snapshot_entries() -> &'static [SnapshotEntry] {
+/// Returns the reference snapshot entries filtered to those usable for comparison.
+pub fn comparison_snapshot_entries() -> &'static [SnapshotEntry] {
     static SNAPSHOT: OnceLock<Vec<SnapshotEntry>> = OnceLock::new();
     SNAPSHOT
         .get_or_init(|| {
@@ -1871,11 +1826,14 @@ pub(crate) fn independent_holdout_bodies() -> &'static [pleiades_backend::Celest
         .as_slice()
 }
 
-pub(crate) fn independent_holdout_snapshot_error() -> Option<&'static SnapshotLoadError> {
+/// Returns the load error for the checked-in independent hold-out snapshot, if
+/// the snapshot failed to parse; `None` when it loaded cleanly.
+pub fn independent_holdout_snapshot_error() -> Option<&'static SnapshotLoadError> {
     independent_holdout_state().error()
 }
 
-pub(crate) fn comparison_body_list() -> &'static [pleiades_backend::CelestialBody] {
+/// Returns the distinct celestial bodies present in the comparison snapshot entries.
+pub fn comparison_body_list() -> &'static [pleiades_backend::CelestialBody] {
     static BODIES: OnceLock<Vec<pleiades_backend::CelestialBody>> = OnceLock::new();
     BODIES
         .get_or_init(|| {
@@ -1929,7 +1887,8 @@ pub(crate) fn reference_asteroid_requests_with_frame_selector(
     )
 }
 
-pub(crate) fn reference_asteroid_evidence_list() -> &'static [ReferenceAsteroidEvidence] {
+/// Returns the reference-asteroid evidence samples derived from the snapshot entries.
+pub fn reference_asteroid_evidence_list() -> &'static [ReferenceAsteroidEvidence] {
     static EVIDENCE: OnceLock<Vec<ReferenceAsteroidEvidence>> = OnceLock::new();
     EVIDENCE
         .get_or_init(|| {
@@ -1982,7 +1941,8 @@ pub(crate) fn reference_asteroid_equatorial_evidence_list(
         .as_slice()
 }
 
-pub(crate) fn interpolation_quality_sample_list() -> &'static [InterpolationQualitySample] {
+/// Returns the interpolation-quality samples derived from the snapshot entries.
+pub fn interpolation_quality_sample_list() -> &'static [InterpolationQualitySample] {
     static SAMPLES: OnceLock<Vec<InterpolationQualitySample>> = OnceLock::new();
     SAMPLES
         .get_or_init(|| {
@@ -2078,7 +2038,8 @@ fn push_interpolation_quality_samples_for_bodies(
     }
 }
 
-pub(crate) fn snapshot_instants() -> &'static [Instant] {
+/// Returns the distinct instants present in the reference snapshot entries.
+pub fn snapshot_instants() -> &'static [Instant] {
     static INSTANTS: OnceLock<Vec<Instant>> = OnceLock::new();
     INSTANTS
         .get_or_init(|| {
@@ -2376,7 +2337,8 @@ fn parse_body(
     Ok(body)
 }
 
-pub(crate) fn is_comparison_body(body: &pleiades_backend::CelestialBody) -> bool {
+/// Returns whether `body` is one of the celestial bodies used for comparison snapshots.
+pub fn is_comparison_body(body: &pleiades_backend::CelestialBody) -> bool {
     matches!(
         body,
         pleiades_backend::CelestialBody::Sun

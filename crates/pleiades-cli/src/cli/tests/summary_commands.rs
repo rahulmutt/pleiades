@@ -303,9 +303,10 @@ fn summary_commands_render_compact_reports() {
     )));
     assert!(release_notes_summary.contains("API stability summary line:"));
     assert!(release_notes_summary
-        .contains(&pleiades_jpl::selected_asteroid_terminal_boundary_summary_for_report()));
+        .contains(&pleiades_validate::selected_asteroid_terminal_boundary_summary_for_report()));
     assert!(release_notes_summary.contains(
-        &pleiades_jpl::reference_snapshot_2451916_major_body_dense_boundary_summary_for_report()
+        &pleiades_validate::reference_snapshot_2451916_major_body_dense_boundary_summary_for_report(
+        )
     ));
     assert!(release_notes_summary.contains(profile.target_house_scope.join("; ").as_str()));
     assert!(release_notes_summary.contains(profile.target_ayanamsa_scope.join("; ").as_str()));
@@ -787,9 +788,9 @@ fn summary_commands_render_compact_reports() {
     let jpl_snapshot_evidence_summary = render_cli(&["jpl-snapshot-evidence-summary"])
         .expect("JPL snapshot evidence summary should render");
     assert!(jpl_snapshot_evidence_summary
-        .contains(&pleiades_jpl::jpl_source_posture_summary_for_report()));
+        .contains(&pleiades_validate::jpl_source_posture_summary_for_report()));
     assert!(jpl_snapshot_evidence_summary.contains(
-        &pleiades_jpl::reference_snapshot_2451914_major_body_bridge_day_summary_for_report()
+        &pleiades_validate::reference_snapshot_2451914_major_body_bridge_day_summary_for_report()
     ));
     assert_eq!(
         jpl_snapshot_evidence_summary,
@@ -801,7 +802,7 @@ fn summary_commands_render_compact_reports() {
         .expect("JPL source corpus contract summary should render");
     assert!(jpl_source_corpus_contract_summary.contains("JPL source corpus contract:"));
     assert!(jpl_source_corpus_contract_summary
-        .contains(&pleiades_jpl::jpl_source_corpus_contract_summary_for_report()));
+        .contains(&pleiades_validate::jpl_source_corpus_contract_summary_for_report()));
     assert_eq!(
         jpl_source_corpus_contract_summary,
         validate_render_cli(&["jpl-source-corpus-contract-summary"])
@@ -826,7 +827,7 @@ fn summary_commands_render_compact_reports() {
         .expect("JPL source posture summary should render");
     assert_eq!(
         jpl_source_posture_summary,
-        pleiades_jpl::jpl_source_posture_summary_for_report()
+        pleiades_validate::jpl_source_posture_summary_for_report()
     );
     assert_eq!(
         jpl_source_posture_summary,
@@ -847,7 +848,7 @@ fn summary_commands_render_compact_reports() {
         .expect("JPL provenance-only summary should render");
     assert_eq!(
         jpl_provenance_only_summary,
-        pleiades_jpl::jpl_provenance_only_summary_for_report()
+        pleiades_validate::jpl_provenance_only_summary_for_report()
     );
     assert_eq!(
         jpl_provenance_only_summary,
@@ -956,12 +957,12 @@ fn summary_commands_render_compact_reports() {
     );
     assert_eq!(
         production_generation_boundary_summary,
-        pleiades_jpl::production_generation_boundary_summary_for_report()
+        pleiades_validate::production_generation_boundary_summary_for_report()
     );
     assert_eq!(
         render_cli(&["production-generation-boundary"])
             .expect("production generation boundary alias should render"),
-        pleiades_jpl::production_generation_boundary_summary_for_report()
+        pleiades_validate::production_generation_boundary_summary_for_report()
     );
     assert_eq!(
         render_cli(&["production-generation-boundary", "extra"]).unwrap_err(),
@@ -972,7 +973,7 @@ fn summary_commands_render_compact_reports() {
     assert!(production_generation_summary.contains("Production generation coverage:"));
     assert_eq!(
         production_generation_summary,
-        pleiades_jpl::production_generation_snapshot_summary_for_report()
+        pleiades_validate::production_generation_snapshot_summary_for_report()
     );
     let production_generation_quarter_day_boundary_summary =
         render_cli(&["production-generation-quarter-day-boundary-summary"])
@@ -981,20 +982,20 @@ fn summary_commands_render_compact_reports() {
         .contains("Production generation quarter-day boundary samples:"));
     assert_eq!(
         production_generation_quarter_day_boundary_summary,
-        pleiades_jpl::production_generation_quarter_day_boundary_summary_for_report()
+        pleiades_validate::production_generation_quarter_day_boundary_summary_for_report()
     );
     let production_generation_quarter_day_boundary_alias =
         render_cli(&["production-generation-quarter-day-boundary"])
             .expect("production generation quarter-day boundary alias should render");
     assert_eq!(
         production_generation_quarter_day_boundary_alias,
-        pleiades_jpl::production_generation_quarter_day_boundary_summary_for_report()
+        pleiades_validate::production_generation_quarter_day_boundary_summary_for_report()
     );
     let production_generation_alias =
         render_cli(&["production-generation"]).expect("production generation alias should render");
     assert_eq!(
         production_generation_alias,
-        pleiades_jpl::production_generation_snapshot_summary_for_report()
+        pleiades_validate::production_generation_snapshot_summary_for_report()
     );
     let alias_error = render_cli(&["production-generation", "extra"])
         .expect_err("production generation alias should reject extra arguments");
@@ -1018,12 +1019,12 @@ fn summary_commands_render_compact_reports() {
         .contains("Production generation boundary request corpus:"));
     assert_eq!(
         production_generation_boundary_request_corpus_summary,
-        pleiades_jpl::production_generation_boundary_request_corpus_summary_for_report()
+        pleiades_validate::production_generation_boundary_request_corpus_summary_for_report()
     );
     assert_eq!(
         render_cli(&["production-generation-boundary-request-corpus"])
             .expect("production generation boundary request corpus alias should render"),
-        pleiades_jpl::production_generation_boundary_request_corpus_summary_for_report()
+        pleiades_validate::production_generation_boundary_request_corpus_summary_for_report()
     );
     assert_eq!(
         render_cli(&["production-generation-boundary-request-corpus", "extra"]).unwrap_err(),
@@ -1039,12 +1040,12 @@ fn summary_commands_render_compact_reports() {
     );
     assert_eq!(
         production_generation_boundary_request_corpus_equatorial_summary,
-        pleiades_jpl::production_generation_boundary_request_corpus_equatorial_summary_for_report()
+        pleiades_validate::production_generation_boundary_request_corpus_equatorial_summary_for_report()
     );
     assert_eq!(
         render_cli(&["production-generation-boundary-request-corpus-equatorial"])
             .expect("production generation boundary request corpus equatorial alias should render"),
-        pleiades_jpl::production_generation_boundary_request_corpus_equatorial_summary_for_report()
+        pleiades_validate::production_generation_boundary_request_corpus_equatorial_summary_for_report()
     );
     assert_eq!(
         render_cli(&["production-generation-boundary-request-corpus-equatorial-summary", "extra"]).expect_err(
@@ -1059,7 +1060,7 @@ fn summary_commands_render_compact_reports() {
         .contains("Production generation source windows:"));
     assert_eq!(
         production_generation_source_window_summary,
-        pleiades_jpl::production_generation_snapshot_window_summary_for_report()
+        pleiades_validate::production_generation_snapshot_window_summary_for_report()
     );
     assert_eq!(
         production_generation_source_window_summary,
@@ -1082,14 +1083,14 @@ fn summary_commands_render_compact_reports() {
     assert!(production_generation_source_revision_summary.contains("source revision="));
     assert_eq!(
         production_generation_source_revision_summary,
-        pleiades_jpl::production_generation_source_revision_summary_for_report()
+        pleiades_validate::production_generation_source_revision_summary_for_report()
     );
     let production_generation_source_revision_alias =
         render_cli(&["production-generation-source-revision"])
             .expect("production generation source revision alias should render");
     assert_eq!(
         production_generation_source_revision_alias,
-        pleiades_jpl::production_generation_source_revision_summary_for_report()
+        pleiades_validate::production_generation_source_revision_summary_for_report()
     );
     let production_generation_manifest_summary =
         render_cli(&["production-generation-manifest-summary"])
@@ -1208,7 +1209,7 @@ fn summary_commands_render_compact_reports() {
     );
     assert_eq!(
         comparison_snapshot_source_window_summary,
-        pleiades_jpl::comparison_snapshot_source_window_summary_for_report()
+        pleiades_validate::comparison_snapshot_source_window_summary_for_report()
     );
     let comparison_snapshot_source_window_alias =
         render_cli(&["comparison-snapshot-source-window"])
@@ -1227,7 +1228,7 @@ fn summary_commands_render_compact_reports() {
     assert!(comparison_snapshot_source_summary.contains("Comparison snapshot source:"));
     assert_eq!(
         comparison_snapshot_source_summary,
-        pleiades_jpl::comparison_snapshot_source_summary_for_report()
+        pleiades_validate::comparison_snapshot_source_summary_for_report()
     );
     assert_eq!(
         render_cli(&["comparison-snapshot-source-summary", "extra"])
@@ -1250,7 +1251,7 @@ fn summary_commands_render_compact_reports() {
     assert!(reference_snapshot_source_window_summary.contains("Reference snapshot source windows:"));
     assert_eq!(
         reference_snapshot_source_window_summary,
-        pleiades_jpl::reference_snapshot_source_window_summary_for_report()
+        pleiades_validate::reference_snapshot_source_window_summary_for_report()
     );
     let reference_snapshot_source_window_alias = render_cli(&["reference-snapshot-source-window"])
         .expect("reference snapshot source window alias should render");
@@ -1271,7 +1272,7 @@ fn summary_commands_render_compact_reports() {
     assert!(production_generation_boundary_source_summary.contains("boundary overlay source"));
     assert_eq!(
         production_generation_boundary_source_summary,
-        pleiades_jpl::production_generation_boundary_source_summary_for_report()
+        pleiades_validate::production_generation_boundary_source_summary_for_report()
     );
     assert_eq!(
         render_cli(&["production-generation-boundary-source"])
@@ -1286,14 +1287,14 @@ fn summary_commands_render_compact_reports() {
     assert!(production_generation_boundary_window_summary.contains("source-backed samples"));
     assert_eq!(
         production_generation_boundary_window_summary,
-        pleiades_jpl::production_generation_boundary_window_summary_for_report()
+        pleiades_validate::production_generation_boundary_window_summary_for_report()
     );
     let production_generation_boundary_window_alias =
         render_cli(&["production-generation-boundary-window"])
             .expect("production generation boundary window alias should render");
     assert_eq!(
         production_generation_boundary_window_alias,
-        pleiades_jpl::production_generation_boundary_window_summary_for_report()
+        pleiades_validate::production_generation_boundary_window_summary_for_report()
     );
     assert_eq!(
         render_cli(&["production-generation-boundary-window", "extra"]).expect_err(
@@ -1309,14 +1310,14 @@ fn summary_commands_render_compact_reports() {
     );
     assert_eq!(
         production_generation_corpus_shape_summary,
-        pleiades_jpl::production_generation_corpus_shape_summary_for_report()
+        pleiades_validate::production_generation_corpus_shape_summary_for_report()
     );
     let production_generation_corpus_shape_alias =
         render_cli(&["production-generation-corpus-shape"])
             .expect("production generation corpus shape alias should render");
     assert_eq!(
         production_generation_corpus_shape_alias,
-        pleiades_jpl::production_generation_corpus_shape_summary_for_report()
+        pleiades_validate::production_generation_corpus_shape_summary_for_report()
     );
     assert_eq!(
         render_cli(&["production-generation-corpus-shape", "extra"])
@@ -1329,13 +1330,13 @@ fn summary_commands_render_compact_reports() {
     assert!(production_generation_source_summary.contains("Production generation source:"));
     assert_eq!(
         production_generation_source_summary,
-        pleiades_jpl::production_generation_source_summary_for_report()
+        pleiades_validate::production_generation_source_summary_for_report()
     );
     let production_generation_source_alias = render_cli(&["production-generation-source"])
         .expect("production generation source alias should render");
     assert_eq!(
         production_generation_source_alias,
-        pleiades_jpl::production_generation_source_summary_for_report()
+        pleiades_validate::production_generation_source_summary_for_report()
     );
     assert_eq!(
         render_cli(&["production-generation-source", "extra"])
@@ -1350,14 +1351,14 @@ fn summary_commands_render_compact_reports() {
     );
     assert_eq!(
         reference_snapshot_lunar_boundary_summary,
-        pleiades_jpl::reference_snapshot_lunar_boundary_summary_for_report()
+        pleiades_validate::reference_snapshot_lunar_boundary_summary_for_report()
     );
     let lunar_boundary_summary = render_cli(&["lunar-boundary-summary"])
         .expect("lunar boundary summary alias should render");
     assert!(lunar_boundary_summary.contains("Reference lunar boundary evidence:"));
     assert_eq!(
         lunar_boundary_summary,
-        pleiades_jpl::reference_snapshot_lunar_boundary_summary_for_report()
+        pleiades_validate::reference_snapshot_lunar_boundary_summary_for_report()
     );
     let reference_snapshot_2451910_major_body_boundary_summary =
         render_cli(&["reference-snapshot-2451910-major-body-boundary-summary"])
@@ -1366,7 +1367,7 @@ fn summary_commands_render_compact_reports() {
         .contains("Reference 2451910 major-body boundary evidence:"));
     assert_eq!(
         reference_snapshot_2451910_major_body_boundary_summary,
-        pleiades_jpl::reference_snapshot_2451910_major_body_boundary_summary_for_report()
+        pleiades_validate::reference_snapshot_2451910_major_body_boundary_summary_for_report()
     );
     let reference_snapshot_2451910_major_body_boundary_alias =
         render_cli(&["2451910-major-body-boundary-summary"])
@@ -1382,7 +1383,7 @@ fn summary_commands_render_compact_reports() {
         .contains("Reference 2451911 major-body boundary evidence:"));
     assert_eq!(
         reference_snapshot_2451911_major_body_boundary_summary,
-        pleiades_jpl::reference_snapshot_2451911_major_body_boundary_summary_for_report()
+        pleiades_validate::reference_snapshot_2451911_major_body_boundary_summary_for_report()
     );
     let reference_snapshot_2451911_major_body_boundary_alias =
         render_cli(&["2451911-major-body-boundary-summary"])
@@ -1397,7 +1398,7 @@ fn summary_commands_render_compact_reports() {
     assert!(comparison_snapshot_manifest_summary.contains("Comparison snapshot manifest:"));
     assert_eq!(
         comparison_snapshot_manifest_summary,
-        pleiades_jpl::validated_comparison_snapshot_manifest_summary_for_report()
+        pleiades_validate::validated_comparison_snapshot_manifest_summary_for_report()
             .expect("comparison snapshot manifest summary should validate")
     );
     assert_eq!(
@@ -1417,7 +1418,7 @@ fn summary_commands_render_compact_reports() {
         comparison_snapshot_summary,
         format!(
             "Comparison snapshot summary\n{}\n",
-            pleiades_jpl::comparison_snapshot_summary_for_report()
+            pleiades_validate::comparison_snapshot_summary_for_report()
         )
     );
     assert_eq!(
@@ -1466,7 +1467,7 @@ fn summary_commands_render_compact_reports() {
     assert!(reference_snapshot_manifest_summary.contains("Reference snapshot manifest:"));
     assert_eq!(
         reference_snapshot_manifest_summary,
-        pleiades_jpl::reference_snapshot_manifest_summary_for_report()
+        pleiades_validate::reference_snapshot_manifest_summary_for_report()
     );
     assert_eq!(
         render_cli(&["reference-snapshot-manifest"])
@@ -1483,7 +1484,7 @@ fn summary_commands_render_compact_reports() {
     assert!(reference_snapshot_source_summary.contains("Reference snapshot source:"));
     assert_eq!(
         reference_snapshot_source_summary,
-        pleiades_jpl::reference_snapshot_source_summary_for_report()
+        pleiades_validate::reference_snapshot_source_summary_for_report()
     );
     assert_eq!(
         render_cli(&["reference-snapshot-source-summary", "extra"])
@@ -1504,42 +1505,43 @@ fn summary_commands_render_compact_reports() {
         .expect("reference snapshot summary should render");
     assert!(reference_snapshot_summary.contains("Reference snapshot summary"));
     assert!(reference_snapshot_summary.contains(
-        &pleiades_jpl::reference_snapshot_2451916_major_body_dense_boundary_summary_for_report()
+        &pleiades_validate::reference_snapshot_2451916_major_body_dense_boundary_summary_for_report(
+        )
     ));
     assert!(reference_snapshot_summary.contains(
-        &pleiades_jpl::reference_snapshot_2451916_major_body_boundary_summary_for_report()
+        &pleiades_validate::reference_snapshot_2451916_major_body_boundary_summary_for_report()
     ));
     assert!(reference_snapshot_summary.contains(
-        &pleiades_jpl::reference_snapshot_2451916_major_body_boundary_summary_for_report()
+        &pleiades_validate::reference_snapshot_2451916_major_body_boundary_summary_for_report()
     ));
     assert!(reference_snapshot_summary.contains(
-        &pleiades_jpl::reference_snapshot_2451918_major_body_boundary_summary_for_report()
+        &pleiades_validate::reference_snapshot_2451918_major_body_boundary_summary_for_report()
     ));
     assert!(reference_snapshot_summary.contains(
-        &pleiades_jpl::reference_snapshot_2451919_major_body_boundary_summary_for_report()
+        &pleiades_validate::reference_snapshot_2451919_major_body_boundary_summary_for_report()
     ));
     assert!(reference_snapshot_summary.contains(
-        &pleiades_jpl::reference_snapshot_2451914_major_body_bridge_day_summary_for_report()
+        &pleiades_validate::reference_snapshot_2451914_major_body_bridge_day_summary_for_report()
     ));
     assert!(reference_snapshot_summary
-        .contains(&pleiades_jpl::selected_asteroid_boundary_summary_for_report()));
+        .contains(&pleiades_validate::selected_asteroid_boundary_summary_for_report()));
     assert!(reference_snapshot_summary
-        .contains(&pleiades_jpl::selected_asteroid_bridge_summary_for_report()));
+        .contains(&pleiades_validate::selected_asteroid_bridge_summary_for_report()));
     assert!(reference_snapshot_summary
-        .contains(&pleiades_jpl::selected_asteroid_dense_boundary_summary_for_report()));
+        .contains(&pleiades_validate::selected_asteroid_dense_boundary_summary_for_report()));
     assert!(reference_snapshot_summary
-        .contains(&pleiades_jpl::selected_asteroid_terminal_boundary_summary_for_report()));
+        .contains(&pleiades_validate::selected_asteroid_terminal_boundary_summary_for_report()));
     assert!(reference_snapshot_summary
-        .contains(&pleiades_jpl::selected_asteroid_source_evidence_summary_for_report()));
+        .contains(&pleiades_validate::selected_asteroid_source_evidence_summary_for_report()));
     assert!(reference_snapshot_summary
-        .contains(&pleiades_jpl::selected_asteroid_source_window_summary_for_report()));
+        .contains(&pleiades_validate::selected_asteroid_source_window_summary_for_report()));
     assert!(!reference_snapshot_summary.contains("JPL independent hold-out:"));
     assert!(!reference_snapshot_summary.contains("Reference/hold-out overlap:"));
     assert_eq!(
         reference_snapshot_summary,
         format!(
             "Reference snapshot summary\n{}\n",
-            pleiades_jpl::reference_snapshot_summary_for_report()
+            pleiades_validate::reference_snapshot_summary_for_report()
         )
     );
     assert_eq!(
@@ -1570,7 +1572,7 @@ fn summary_commands_render_compact_reports() {
         reference_snapshot_exact_j2000,
         format!(
             "Reference snapshot exact J2000 evidence summary\n{}\n",
-            pleiades_jpl::reference_snapshot_exact_j2000_evidence_summary_for_report()
+            pleiades_validate::reference_snapshot_exact_j2000_evidence_summary_for_report()
         )
     );
     let exact_j2000_evidence =
@@ -1758,7 +1760,7 @@ fn summary_commands_render_compact_reports() {
         .contains("Interpolation-quality sample request corpus:"));
     assert_eq!(
         interpolation_quality_request_corpus_summary,
-        pleiades_jpl::interpolation_quality_sample_request_corpus_summary_for_report()
+        pleiades_validate::interpolation_quality_sample_request_corpus_summary_for_report()
     );
     assert_eq!(
         render_cli(&["interpolation-quality-request-corpus"])
@@ -1999,7 +2001,7 @@ fn summary_commands_render_compact_reports() {
     assert!(selected_asteroid_bridge_summary.contains("2451915.0"));
     assert_eq!(
         selected_asteroid_bridge_summary,
-        pleiades_jpl::selected_asteroid_bridge_summary_for_report()
+        pleiades_validate::selected_asteroid_bridge_summary_for_report()
     );
     assert_eq!(
         render_cli(&["selected-asteroid-bridge-summary", "extra"])
@@ -2023,7 +2025,7 @@ fn summary_commands_render_compact_reports() {
     assert!(reference_major_body_bridge_summary.contains("2451915.0"));
     assert_eq!(
         reference_major_body_bridge_summary,
-        pleiades_jpl::reference_snapshot_major_body_bridge_summary_for_report()
+        pleiades_validate::reference_snapshot_major_body_bridge_summary_for_report()
     );
     let reference_major_body_bridge_alias =
         render_cli(&["major-body-bridge-summary"]).expect("major body bridge alias should render");
@@ -2047,7 +2049,7 @@ fn summary_commands_render_compact_reports() {
     assert!(reference_bridge_day_summary.contains("2451914.0"));
     assert_eq!(
         reference_bridge_day_summary,
-        pleiades_jpl::reference_snapshot_bridge_day_summary_for_report()
+        pleiades_validate::reference_snapshot_bridge_day_summary_for_report()
     );
     assert_eq!(
         render_cli(&["reference-snapshot-bridge-day-summary", "extra"])
@@ -2074,7 +2076,7 @@ fn summary_commands_render_compact_reports() {
         .expect("2451914 major body bridge-day alias should render");
     assert_eq!(
         bridge_day_major_alias,
-        pleiades_jpl::reference_snapshot_2451914_major_body_bridge_day_summary_for_report()
+        pleiades_validate::reference_snapshot_2451914_major_body_bridge_day_summary_for_report()
     );
     assert_eq!(
         render_cli(&["2451914-major-body-bridge-day-summary", "extra"])
@@ -2089,7 +2091,7 @@ fn summary_commands_render_compact_reports() {
     assert!(selected_asteroid_dense_boundary_summary.contains("2451916.5"));
     assert_eq!(
         selected_asteroid_dense_boundary_summary,
-        pleiades_jpl::selected_asteroid_dense_boundary_summary_for_report()
+        pleiades_validate::selected_asteroid_dense_boundary_summary_for_report()
     );
     let selected_asteroid_dense_boundary_alias =
         render_cli(&["selected-asteroid-dense-boundary-summary"])
@@ -2110,7 +2112,7 @@ fn summary_commands_render_compact_reports() {
     assert!(selected_asteroid_terminal_boundary_summary.contains("2500-01-01"));
     assert_eq!(
         selected_asteroid_terminal_boundary_summary,
-        pleiades_jpl::selected_asteroid_terminal_boundary_summary_for_report()
+        pleiades_validate::selected_asteroid_terminal_boundary_summary_for_report()
     );
     let selected_asteroid_terminal_boundary_alias =
         render_cli(&["selected-asteroid-terminal-boundary-summary"])
@@ -2131,7 +2133,7 @@ fn summary_commands_render_compact_reports() {
     assert!(selected_asteroid_source_evidence_summary.contains("Ceres"));
     assert_eq!(
         selected_asteroid_source_evidence_summary,
-        pleiades_jpl::selected_asteroid_source_evidence_summary_for_report()
+        pleiades_validate::selected_asteroid_source_evidence_summary_for_report()
     );
     assert_eq!(
         render_cli(&["selected-asteroid-source-summary"])
@@ -2150,7 +2152,7 @@ fn summary_commands_render_compact_reports() {
     assert!(selected_asteroid_source_2378498_summary.contains("2378498.5"));
     assert_eq!(
         selected_asteroid_source_2378498_summary,
-        pleiades_jpl::selected_asteroid_source_2378498_summary_for_report()
+        pleiades_validate::selected_asteroid_source_2378498_summary_for_report()
     );
     assert_eq!(
         render_cli(&["2378498-selected-asteroid-source-summary"])
@@ -2173,7 +2175,7 @@ fn summary_commands_render_compact_reports() {
     assert!(selected_asteroid_source_request_corpus_summary.contains("observerless"));
     assert_eq!(
         selected_asteroid_source_request_corpus_summary,
-        pleiades_jpl::selected_asteroid_source_request_corpus_summary_for_report()
+        pleiades_validate::selected_asteroid_source_request_corpus_summary_for_report()
     );
     assert_eq!(
         render_cli(&["selected-asteroid-source-request-corpus"])
@@ -2183,12 +2185,12 @@ fn summary_commands_render_compact_reports() {
     assert_eq!(
         render_cli(&["selected-asteroid-source-request-corpus-equatorial-summary"])
             .expect("selected asteroid source request corpus equatorial summary should render"),
-        pleiades_jpl::selected_asteroid_source_request_corpus_equatorial_summary_for_report()
+        pleiades_validate::selected_asteroid_source_request_corpus_equatorial_summary_for_report()
     );
     assert_eq!(
         render_cli(&["selected-asteroid-source-request-corpus-equatorial"])
             .expect("selected asteroid source request corpus equatorial alias should render"),
-        pleiades_jpl::selected_asteroid_source_request_corpus_equatorial_summary_for_report()
+        pleiades_validate::selected_asteroid_source_request_corpus_equatorial_summary_for_report()
     );
     assert_eq!(
         render_cli(&["selected-asteroid-source-request-corpus-summary", "extra"]).expect_err(
@@ -2204,7 +2206,7 @@ fn summary_commands_render_compact_reports() {
     assert!(selected_asteroid_source_window_summary.contains("Ceres"));
     assert_eq!(
         selected_asteroid_source_window_summary,
-        pleiades_jpl::selected_asteroid_source_window_summary_for_report()
+        pleiades_validate::selected_asteroid_source_window_summary_for_report()
     );
     assert_eq!(
         render_cli(&["selected-asteroid-source-window"])
@@ -2234,12 +2236,12 @@ fn summary_commands_render_compact_reports() {
     assert_eq!(
         render_cli(&["reference-snapshot-2451917-selected-asteroid-source-summary"])
             .expect("reference snapshot 2451917 selected asteroid source summary should render"),
-        pleiades_jpl::selected_asteroid_source_2451917_summary_for_report()
+        pleiades_validate::selected_asteroid_source_2451917_summary_for_report()
     );
     assert_eq!(
         render_cli(&["2451917-selected-asteroid-source-summary"])
             .expect("2451917 selected asteroid source summary alias should render"),
-        pleiades_jpl::selected_asteroid_source_2451917_summary_for_report()
+        pleiades_validate::selected_asteroid_source_2451917_summary_for_report()
     );
     assert_eq!(
         render_cli(&["2451917-selected-asteroid-source-summary", "extra"]).expect_err(
@@ -2250,12 +2252,12 @@ fn summary_commands_render_compact_reports() {
     assert_eq!(
         render_cli(&["reference-snapshot-2453000-selected-asteroid-source-summary"])
             .expect("reference snapshot 2453000 selected asteroid source summary should render"),
-        pleiades_jpl::selected_asteroid_source_2453000_summary_for_report()
+        pleiades_validate::selected_asteroid_source_2453000_summary_for_report()
     );
     assert_eq!(
         render_cli(&["2453000-selected-asteroid-source-summary"])
             .expect("2453000 selected asteroid source summary alias should render"),
-        pleiades_jpl::selected_asteroid_source_2453000_summary_for_report()
+        pleiades_validate::selected_asteroid_source_2453000_summary_for_report()
     );
     assert_eq!(
         render_cli(&["2453000-selected-asteroid-source-summary", "extra"]).expect_err(
@@ -2266,12 +2268,12 @@ fn summary_commands_render_compact_reports() {
     assert_eq!(
         render_cli(&["reference-snapshot-2500000-selected-asteroid-source-summary"])
             .expect("reference snapshot 2500000 selected asteroid source summary should render"),
-        pleiades_jpl::selected_asteroid_source_2500000_summary_for_report()
+        pleiades_validate::selected_asteroid_source_2500000_summary_for_report()
     );
     assert_eq!(
         render_cli(&["2500000-selected-asteroid-source-summary"])
             .expect("2500000 selected asteroid source summary alias should render"),
-        pleiades_jpl::selected_asteroid_source_2500000_summary_for_report()
+        pleiades_validate::selected_asteroid_source_2500000_summary_for_report()
     );
     assert_eq!(
         render_cli(&["2500000-selected-asteroid-source-summary", "extra"]).expect_err(
@@ -2282,12 +2284,12 @@ fn summary_commands_render_compact_reports() {
     assert_eq!(
         render_cli(&["reference-snapshot-2634167-selected-asteroid-source-summary"])
             .expect("reference snapshot 2634167 selected asteroid source summary should render"),
-        pleiades_jpl::selected_asteroid_source_2634167_summary_for_report()
+        pleiades_validate::selected_asteroid_source_2634167_summary_for_report()
     );
     assert_eq!(
         render_cli(&["2634167-selected-asteroid-source-summary"])
             .expect("2634167 selected asteroid source summary alias should render"),
-        pleiades_jpl::selected_asteroid_source_2634167_summary_for_report()
+        pleiades_validate::selected_asteroid_source_2634167_summary_for_report()
     );
     assert_eq!(
         render_cli(&["2634167-selected-asteroid-source-summary", "extra"]).expect_err(
@@ -2307,7 +2309,7 @@ fn summary_commands_render_compact_reports() {
     assert!(selected_asteroid_batch_parity_summary.contains("batch/single parity preserved"));
     assert_eq!(
         selected_asteroid_batch_parity_summary,
-        pleiades_jpl::selected_asteroid_batch_parity_summary_for_report()
+        pleiades_validate::selected_asteroid_batch_parity_summary_for_report()
     );
     assert_eq!(
         render_cli(&["selected-asteroid-batch-parity"])
@@ -2320,7 +2322,7 @@ fn summary_commands_render_compact_reports() {
     assert!(reference_asteroid_evidence_summary.contains("Ceres"));
     assert_eq!(
         reference_asteroid_evidence_summary,
-        pleiades_jpl::reference_asteroid_evidence_summary_for_report()
+        pleiades_validate::reference_asteroid_evidence_summary_for_report()
     );
     let reference_asteroid_equatorial_evidence_summary =
         render_cli(&["reference-asteroid-equatorial-evidence-summary"])
@@ -2331,7 +2333,7 @@ fn summary_commands_render_compact_reports() {
         .contains("mean-obliquity equatorial transform"));
     assert_eq!(
         reference_asteroid_equatorial_evidence_summary,
-        pleiades_jpl::reference_asteroid_equatorial_evidence_summary_for_report()
+        pleiades_validate::reference_asteroid_equatorial_evidence_summary_for_report()
     );
     assert_eq!(
         render_cli(&["reference-asteroid-equatorial-evidence"])
@@ -2346,7 +2348,7 @@ fn summary_commands_render_compact_reports() {
         .contains("source-backed samples across 6 bodies and 17 epochs"));
     assert_eq!(
         reference_asteroid_source_window_summary,
-        pleiades_jpl::reference_asteroid_source_window_summary_for_report()
+        pleiades_validate::reference_asteroid_source_window_summary_for_report()
     );
     let reference_asteroid_source_window_alias = render_cli(&["reference-asteroid-source-window"])
         .expect("reference asteroid source window alias should render");
@@ -2371,7 +2373,7 @@ fn summary_commands_render_compact_reports() {
     assert!(reference_holdout_overlap_summary.contains("shared body-epoch pairs"));
     assert_eq!(
         reference_holdout_overlap_summary,
-        pleiades_jpl::reference_holdout_overlap_summary_for_report()
+        pleiades_validate::reference_holdout_overlap_summary_for_report()
     );
     let holdout_overlap_summary =
         render_cli(&["holdout-overlap-summary"]).expect("hold-out overlap alias should render");
@@ -2390,7 +2392,7 @@ fn summary_commands_render_compact_reports() {
     assert!(independent_holdout_source_window_summary.contains("source-backed samples"));
     assert_eq!(
         independent_holdout_source_window_summary,
-        pleiades_jpl::independent_holdout_snapshot_source_window_summary_for_report()
+        pleiades_validate::independent_holdout_snapshot_source_window_summary_for_report()
     );
     let independent_holdout = render_cli(&["independent-holdout-summary"])
         .expect("independent hold-out summary should render");
@@ -2398,7 +2400,7 @@ fn summary_commands_render_compact_reports() {
     assert!(independent_holdout.contains("transparency evidence only"));
     assert_eq!(
         independent_holdout,
-        pleiades_jpl::jpl_independent_holdout_summary_for_report()
+        pleiades_validate::jpl_independent_holdout_summary_for_report()
     );
 
     let independent_holdout_source_summary = render_cli(&["independent-holdout-source-summary"])
@@ -2407,7 +2409,7 @@ fn summary_commands_render_compact_reports() {
     assert!(independent_holdout_source_summary.contains("hold-out source"));
     assert_eq!(
         independent_holdout_source_summary,
-        pleiades_jpl::independent_holdout_source_summary_for_report()
+        pleiades_validate::independent_holdout_source_summary_for_report()
     );
     let independent_holdout_manifest_summary =
         render_cli(&["independent-holdout-manifest-summary"])
@@ -2416,7 +2418,7 @@ fn summary_commands_render_compact_reports() {
     assert!(independent_holdout_manifest_summary.contains("repository-checked regression fixtures"));
     assert_eq!(
         independent_holdout_manifest_summary,
-        pleiades_jpl::independent_holdout_manifest_summary_for_report()
+        pleiades_validate::independent_holdout_manifest_summary_for_report()
     );
     assert_eq!(
         render_cli(&["independent-holdout-manifest"])
@@ -2438,7 +2440,7 @@ fn summary_commands_render_compact_reports() {
     );
     assert_eq!(
         independent_holdout_high_curvature_summary,
-        pleiades_jpl::independent_holdout_high_curvature_summary_for_report()
+        pleiades_validate::independent_holdout_high_curvature_summary_for_report()
     );
     let independent_holdout_batch_parity_summary =
         render_cli(&["independent-holdout-batch-parity-summary"])
@@ -2449,7 +2451,7 @@ fn summary_commands_render_compact_reports() {
     assert!(independent_holdout_batch_parity_summary.contains("single-query parity=preserved"));
     assert_eq!(
         independent_holdout_batch_parity_summary,
-        pleiades_jpl::independent_holdout_snapshot_batch_parity_summary_for_report()
+        pleiades_validate::independent_holdout_snapshot_batch_parity_summary_for_report()
     );
     assert_eq!(
         render_cli(&["independent-holdout-batch-parity"])
@@ -2465,7 +2467,7 @@ fn summary_commands_render_compact_reports() {
         .contains("mean-obliquity transform against the checked-in ecliptic fixture"));
     assert_eq!(
         independent_holdout_equatorial_parity_summary,
-        pleiades_jpl::independent_holdout_snapshot_equatorial_parity_summary_for_report()
+        pleiades_validate::independent_holdout_snapshot_equatorial_parity_summary_for_report()
     );
     assert_eq!(
         render_cli(&["independent-holdout-equatorial-parity"])

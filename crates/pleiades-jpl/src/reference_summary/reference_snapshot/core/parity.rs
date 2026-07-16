@@ -43,20 +43,7 @@ pub fn reference_snapshot_equatorial_parity_summary(
         })
 }
 
-impl ReferenceSnapshotEquatorialParitySummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "JPL reference snapshot equatorial parity: {} rows across {} bodies and {} epochs ({}..{}); bodies: {}; mean-obliquity transform against the checked-in ecliptic fixture",
-            self.row_count,
-            self.body_count,
-            self.epoch_count,
-            format_instant(self.earliest_epoch),
-            format_instant(self.latest_epoch),
-            format_bodies(self.bodies),
-        )
-    }
-}
+impl ReferenceSnapshotEquatorialParitySummary {}
 
 /// Structured validation errors for a reference snapshot equatorial parity summary.
 #[derive(Clone, Debug, PartialEq)]
@@ -99,41 +86,6 @@ impl ReferenceSnapshotEquatorialParitySummary {
         snapshot
             .validate()
             .map_err(ReferenceSnapshotEquatorialParitySummaryValidationError::Snapshot)
-    }
-
-    /// Returns a compact summary line after validating the current evidence slice.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, ReferenceSnapshotEquatorialParitySummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for ReferenceSnapshotEquatorialParitySummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
-}
-
-/// Formats the checked-in reference snapshot equatorial parity summary for
-/// release-facing reporting.
-pub fn format_reference_snapshot_equatorial_parity_summary(
-    summary: &ReferenceSnapshotEquatorialParitySummary,
-) -> String {
-    summary.summary_line()
-}
-
-/// Returns the release-facing reference snapshot equatorial parity summary string.
-pub fn reference_snapshot_equatorial_parity_summary_for_report() -> String {
-    match reference_snapshot_equatorial_parity_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => {
-                format!("JPL reference snapshot equatorial parity: unavailable ({error})")
-            }
-        },
-        None => "JPL reference snapshot equatorial parity: unavailable".to_string(),
     }
 }
 
@@ -335,66 +287,6 @@ impl ReferenceSnapshotBatchParitySummary {
 
         Ok(())
     }
-
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "JPL reference snapshot batch parity: {} rows across {} bodies and {} epochs ({}..{}); bodies: {}; frame mix: {} ecliptic, {} equatorial; quality counts: Exact={}, Interpolated={}, Approximate={}, Unknown={}; batch/single parity preserved",
-            self.snapshot.row_count,
-            self.snapshot.body_count,
-            self.snapshot.epoch_count,
-            format_instant(self.snapshot.earliest_epoch),
-            format_instant(self.snapshot.latest_epoch),
-            format_bodies(self.snapshot.bodies),
-            self.ecliptic_request_count,
-            self.equatorial_request_count,
-            self.exact_count,
-            self.interpolated_count,
-            self.approximate_count,
-            self.unknown_count,
-        )
-    }
-
-    /// Returns a compact summary line after validating the current evidence slice.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, ReferenceSnapshotBatchParitySummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for ReferenceSnapshotBatchParitySummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
-}
-
-/// Formats the checked-in reference snapshot batch parity summary for release-facing reporting.
-pub fn format_reference_snapshot_batch_parity_summary(
-    summary: &ReferenceSnapshotBatchParitySummary,
-) -> String {
-    summary.summary_line()
-}
-
-/// Returns the release-facing reference snapshot batch parity summary string.
-pub fn reference_snapshot_batch_parity_summary_for_report() -> String {
-    match reference_snapshot_batch_parity_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => format!("JPL reference snapshot batch parity: unavailable ({error})"),
-        },
-        None => "JPL reference snapshot batch parity: unavailable".to_string(),
-    }
-}
-
-/// Returns the validated release-facing reference snapshot batch parity summary string.
-pub fn validated_reference_snapshot_batch_parity_summary_for_report() -> Result<String, String> {
-    let summary = reference_snapshot_batch_parity_summary()
-        .ok_or_else(|| "JPL reference snapshot batch parity: unavailable".to_string())?;
-    summary
-        .validated_summary_line()
-        .map_err(|error| error.to_string())
 }
 
 /// Compact mixed TT/TDB batch parity for the checked-in reference snapshot.
@@ -553,47 +445,6 @@ impl ReferenceSnapshotMixedTimeScaleBatchParitySummary {
 
         Ok(())
     }
-
-    /// Returns the validated batch-parity summary line.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, ReferenceSnapshotMixedTimeScaleBatchParitySummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        let order = if self.order_preserved {
-            "preserved"
-        } else {
-            "needs attention"
-        };
-        let parity = if self.single_query_parity_preserved {
-            "preserved"
-        } else {
-            "needs attention"
-        };
-        format!(
-            "JPL reference snapshot mixed TT/TDB batch parity: {} requests across {} bodies, TT requests={}, TDB requests={}; quality counts: Exact={}, Interpolated={}, Approximate={}, Unknown={}; order={}, single-query parity={}",
-            self.request_count,
-            self.body_count,
-            self.tt_request_count,
-            self.tdb_request_count,
-            self.exact_count,
-            self.interpolated_count,
-            self.approximate_count,
-            self.unknown_count,
-            order,
-            parity,
-        )
-    }
-}
-
-impl fmt::Display for ReferenceSnapshotMixedTimeScaleBatchParitySummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
 }
 
 /// Returns a compact mixed TT/TDB batch parity summary for the checked-in reference snapshot.
@@ -661,37 +512,4 @@ pub fn reference_snapshot_mixed_time_scale_batch_parity_summary(
 
     debug_assert!(summary.validate().is_ok());
     Some(summary)
-}
-
-/// Formats the checked-in mixed TT/TDB reference snapshot batch parity summary for release-facing reporting.
-pub fn format_reference_snapshot_mixed_time_scale_batch_parity_summary(
-    summary: &ReferenceSnapshotMixedTimeScaleBatchParitySummary,
-) -> String {
-    summary.summary_line()
-}
-
-/// Returns the release-facing mixed TT/TDB reference snapshot batch parity summary string.
-#[doc(alias = "reference_snapshot_mixed_tt_tdb_batch_parity_summary")]
-pub fn reference_snapshot_mixed_time_scale_batch_parity_summary_for_report() -> String {
-    match reference_snapshot_mixed_time_scale_batch_parity_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => {
-                format!("JPL reference snapshot mixed TT/TDB batch parity: unavailable ({error})")
-            }
-        },
-        None => "JPL reference snapshot mixed TT/TDB batch parity: unavailable".to_string(),
-    }
-}
-
-/// Returns the validated release-facing mixed TT/TDB reference snapshot batch parity summary string.
-#[doc(alias = "validated_reference_snapshot_mixed_tt_tdb_batch_parity_summary_for_report")]
-pub fn validated_reference_snapshot_mixed_time_scale_batch_parity_summary_for_report(
-) -> Result<String, String> {
-    let summary = reference_snapshot_mixed_time_scale_batch_parity_summary().ok_or_else(|| {
-        "JPL reference snapshot mixed TT/TDB batch parity: unavailable".to_string()
-    })?;
-    summary
-        .validated_summary_line()
-        .map_err(|error| error.to_string())
 }

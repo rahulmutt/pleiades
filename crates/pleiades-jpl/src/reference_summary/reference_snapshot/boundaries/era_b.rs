@@ -110,16 +110,6 @@ impl fmt::Display for Reference1900SelectedBodyBoundarySummaryValidationError {
 impl std::error::Error for Reference1900SelectedBodyBoundarySummaryValidationError {}
 
 impl Reference1900SelectedBodyBoundarySummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "Reference 1900 selected-body boundary evidence: {} exact samples at {} ({}); 1900-01-01 selected-body boundary sample",
-            self.sample_count,
-            format_instant(self.epoch),
-            format_bodies(&self.sample_bodies),
-        )
-    }
-
     /// Returns `Ok(())` when the summary still matches the current evidence slice.
     pub fn validate(&self) -> Result<(), Reference1900SelectedBodyBoundarySummaryValidationError> {
         let evidence = reference_snapshot_1900_selected_body_boundary_entries()
@@ -175,20 +165,6 @@ impl Reference1900SelectedBodyBoundarySummary {
 
         Ok(())
     }
-
-    /// Returns the compact summary line after validating the current evidence slice.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, Reference1900SelectedBodyBoundarySummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for Reference1900SelectedBodyBoundarySummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
 }
 
 pub(crate) fn reference_snapshot_1900_selected_body_boundary_summary_details(
@@ -214,58 +190,11 @@ pub fn reference_snapshot_1900_selected_body_boundary_summary(
     reference_snapshot_1900_selected_body_boundary_summary_details()
 }
 
-/// Returns the release-facing 1900 selected-body boundary summary string.
-pub fn reference_snapshot_1900_selected_body_boundary_summary_for_report() -> String {
-    match reference_snapshot_1900_selected_body_boundary_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => {
-                format!("Reference 1900 selected-body boundary evidence: unavailable ({error})")
-            }
-        },
-        None => "Reference 1900 selected-body boundary evidence: unavailable".to_string(),
-    }
-}
-
 /// Returns the compact typed summary for the 2415020 selected-body boundary reference evidence.
 #[doc(alias = "reference_snapshot_1900_selected_body_boundary_summary")]
 pub fn reference_snapshot_2415020_selected_body_boundary_summary(
 ) -> Option<Reference1900SelectedBodyBoundarySummary> {
     reference_snapshot_1900_selected_body_boundary_summary()
-}
-
-/// Returns the release-facing 2415020 selected-body boundary summary string.
-pub fn reference_snapshot_2415020_selected_body_boundary_summary_for_report() -> String {
-    match reference_snapshot_2415020_selected_body_boundary_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(_) => format_selected_body_boundary_summary_line(
-                "2415020",
-                summary.sample_count,
-                &summary.sample_bodies,
-                summary.epoch,
-                "1900-01-01",
-            ),
-            Err(error) => {
-                format!("Reference 2415020 selected-body boundary evidence: unavailable ({error})")
-            }
-        },
-        None => "Reference 2415020 selected-body boundary evidence: unavailable".to_string(),
-    }
-}
-
-pub(crate) fn format_selected_body_boundary_summary_line(
-    epoch_label: &str,
-    sample_count: usize,
-    sample_bodies: &[pleiades_backend::CelestialBody],
-    epoch: Instant,
-    sample_label: &str,
-) -> String {
-    format!(
-        "Reference {epoch_label} selected-body boundary evidence: {} exact samples at {} ({}); {sample_label} selected-body boundary sample",
-        sample_count,
-        format_instant(epoch),
-        format_bodies(sample_bodies),
-    )
 }
 
 /// Compact release-facing summary for the 2453000.5 major-body boundary reference evidence.

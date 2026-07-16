@@ -366,7 +366,11 @@ pub(crate) fn write_jpl_interpolation_quality(f: &mut fmt::Formatter<'_>) -> fmt
         jpl_independent_holdout_snapshot_equatorial_parity_summary_for_report()
     )?;
     for sample in interpolation_quality_samples() {
-        writeln!(f, "    {}", sample.summary_line())?;
+        writeln!(
+            f,
+            "    {}",
+            crate::posture::jpl::backend::interpolation_quality_sample_summary_line(sample)
+        )?;
     }
     writeln!(
         f,
@@ -384,7 +388,7 @@ pub(crate) fn jpl_interpolation_quality_summary(
 pub(crate) fn format_jpl_interpolation_quality_summary(
     summary: &pleiades_jpl::JplInterpolationQualitySummary,
 ) -> String {
-    pleiades_jpl::format_jpl_interpolation_quality_summary(summary)
+    crate::posture::jpl::jpl_interpolation_quality_summary_line(summary)
 }
 
 pub(crate) fn write_lunar_reference_evidence(f: &mut fmt::Formatter<'_>) -> fmt::Result {

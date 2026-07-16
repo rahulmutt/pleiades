@@ -11,16 +11,6 @@ use crate::reference_summary::*;
 use crate::*;
 
 impl Reference2451917MajorBodyBoundarySummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "Reference 2451917 major-body boundary evidence: {} exact samples at {} ({}); 2001-01-08 boundary sample",
-            self.sample_count,
-            format_instant(self.epoch),
-            format_bodies(&self.sample_bodies),
-        )
-    }
-
     /// Returns `Ok(())` when the summary still matches the current evidence slice.
     pub fn validate(&self) -> Result<(), Reference2451917MajorBodyBoundarySummaryValidationError> {
         let evidence = reference_snapshot_2451917_major_body_boundary_entries()
@@ -75,20 +65,6 @@ impl Reference2451917MajorBodyBoundarySummary {
         }
 
         Ok(())
-    }
-
-    /// Returns the compact summary line after validating the current evidence slice.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, Reference2451917MajorBodyBoundarySummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for Reference2451917MajorBodyBoundarySummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
     }
 }
 
@@ -165,16 +141,6 @@ impl fmt::Display for Reference2451919MajorBodyBoundarySummaryValidationError {
 impl std::error::Error for Reference2451919MajorBodyBoundarySummaryValidationError {}
 
 impl Reference2451919MajorBodyBoundarySummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "Reference 2451919 major-body boundary evidence: {} exact samples at {} ({}); 2001-01-10 boundary sample",
-            self.sample_count,
-            format_instant(self.epoch),
-            format_bodies(&self.sample_bodies),
-        )
-    }
-
     /// Returns `Ok(())` when the summary still matches the current evidence slice.
     pub fn validate(&self) -> Result<(), Reference2451919MajorBodyBoundarySummaryValidationError> {
         let evidence = reference_snapshot_2451919_major_body_boundary_entries()
@@ -229,20 +195,6 @@ impl Reference2451919MajorBodyBoundarySummary {
         }
 
         Ok(())
-    }
-
-    /// Returns the compact summary line after validating the current evidence slice.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, Reference2451919MajorBodyBoundarySummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for Reference2451919MajorBodyBoundarySummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
     }
 }
 
@@ -319,16 +271,6 @@ impl fmt::Display for Reference2451916MajorBodyInteriorSummaryValidationError {
 impl std::error::Error for Reference2451916MajorBodyInteriorSummaryValidationError {}
 
 impl Reference2451916MajorBodyInteriorSummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "Reference 2451916 major-body interior evidence: {} exact samples at {} ({}); 2001-01-06 interior reference sample",
-            self.sample_count,
-            format_instant(self.epoch),
-            format_bodies(&self.sample_bodies),
-        )
-    }
-
     /// Returns `Ok(())` when the summary still matches the current evidence slice.
     pub fn validate(&self) -> Result<(), Reference2451916MajorBodyInteriorSummaryValidationError> {
         let evidence = reference_snapshot_2451916_major_body_interior_entries()
@@ -383,20 +325,6 @@ impl Reference2451916MajorBodyInteriorSummary {
         }
 
         Ok(())
-    }
-
-    /// Returns the compact summary line after validating the current evidence slice.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, Reference2451916MajorBodyInteriorSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for Reference2451916MajorBodyInteriorSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
     }
 }
 
@@ -473,16 +401,6 @@ impl fmt::Display for Reference2451920MajorBodyInteriorSummaryValidationError {
 impl std::error::Error for Reference2451920MajorBodyInteriorSummaryValidationError {}
 
 impl Reference2451920MajorBodyInteriorSummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "Reference 2451920 major-body interior evidence: {} exact samples at {} ({}); 2001-01-13 interior reference sample",
-            self.sample_count,
-            format_instant(self.epoch),
-            format_bodies(&self.sample_bodies),
-        )
-    }
-
     /// Returns `Ok(())` when the summary still matches the current evidence slice.
     pub fn validate(&self) -> Result<(), Reference2451920MajorBodyInteriorSummaryValidationError> {
         let evidence = reference_snapshot_2451920_major_body_interior_entries()
@@ -538,20 +456,6 @@ impl Reference2451920MajorBodyInteriorSummary {
 
         Ok(())
     }
-
-    /// Returns the compact summary line after validating the current evidence slice.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, Reference2451920MajorBodyInteriorSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for Reference2451920MajorBodyInteriorSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
 }
 
 /// A single body-window slice inside the major-body boundary-day reference coverage.
@@ -569,31 +473,7 @@ pub struct ReferenceMajorBodyBoundaryWindow {
     pub latest_epoch: Instant,
 }
 
-impl ReferenceMajorBodyBoundaryWindow {
-    /// Returns a compact body-window summary used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        let time_span = if self.earliest_epoch == self.latest_epoch {
-            format_instant(self.earliest_epoch)
-        } else {
-            format!(
-                "{}..{}",
-                format_instant(self.earliest_epoch),
-                format_instant(self.latest_epoch)
-            )
-        };
-
-        format!(
-            "{}: {} samples across {} epochs at {}",
-            self.body, self.sample_count, self.epoch_count, time_span
-        )
-    }
-}
-
-impl fmt::Display for ReferenceMajorBodyBoundaryWindow {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
-}
+impl ReferenceMajorBodyBoundaryWindow {}
 
 /// Compact release-facing summary for the major-body boundary-day reference coverage windows.
 #[derive(Clone, Debug, PartialEq)]
@@ -633,26 +513,6 @@ impl fmt::Display for ReferenceMajorBodyBoundaryWindowSummaryValidationError {
 impl std::error::Error for ReferenceMajorBodyBoundaryWindowSummaryValidationError {}
 
 impl ReferenceMajorBodyBoundaryWindowSummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        let window_summary = self
-            .windows
-            .iter()
-            .map(ReferenceMajorBodyBoundaryWindow::summary_line)
-            .collect::<Vec<_>>()
-            .join("; ");
-
-        format!(
-            "Reference major-body boundary windows: {} source-backed samples across {} bodies and {} epochs ({}..{}); windows: {}",
-            self.sample_count,
-            self.sample_bodies.len(),
-            self.epoch_count,
-            format_instant(self.earliest_epoch),
-            format_instant(self.latest_epoch),
-            window_summary,
-        )
-    }
-
     /// Returns `Ok(())` when the summary still matches the current boundary window slice.
     pub fn validate(&self) -> Result<(), ReferenceMajorBodyBoundaryWindowSummaryValidationError> {
         let Some(expected) = reference_snapshot_major_body_boundary_window_summary_details() else {
@@ -668,20 +528,6 @@ impl ReferenceMajorBodyBoundaryWindowSummary {
         }
 
         Ok(())
-    }
-
-    /// Returns the validated summary line.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, ReferenceMajorBodyBoundaryWindowSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for ReferenceMajorBodyBoundaryWindowSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
     }
 }
 
@@ -727,59 +573,16 @@ pub fn reference_snapshot_bridge_day_summary() -> Option<ReferenceSnapshotBridge
     reference_snapshot_bridge_day_summary_details()
 }
 
-/// Returns the release-facing bridge day summary string.
-pub fn reference_snapshot_bridge_day_summary_for_report() -> String {
-    match reference_snapshot_bridge_day_summary() {
-        Some(summary) => match summary.validated_summary_line() {
-            Ok(summary_line) => summary_line,
-            Err(error) => format!("Reference snapshot bridge day: unavailable ({error})"),
-        },
-        None => "Reference snapshot bridge day: unavailable".to_string(),
-    }
-}
-
-/// Returns the validated release-facing bridge day summary string.
-pub fn validated_reference_snapshot_bridge_day_summary_for_report() -> Result<String, String> {
-    let summary = reference_snapshot_bridge_day_summary()
-        .ok_or_else(|| "reference snapshot bridge day unavailable".to_string())?;
-    summary
-        .validated_summary_line()
-        .map_err(|error| error.to_string())
-}
-
 /// Returns the compact typed summary for the 2451914 bridge-day evidence.
 pub fn reference_snapshot_2451914_bridge_day_summary() -> Option<ReferenceSnapshotBridgeDaySummary>
 {
     reference_snapshot_bridge_day_summary()
 }
 
-/// Returns the release-facing 2451914 bridge-day summary string.
-pub fn reference_snapshot_2451914_bridge_day_summary_for_report() -> String {
-    reference_snapshot_bridge_day_summary_for_report()
-}
-
 /// Returns the compact typed summary for the 2451914 major-body bridge-day evidence.
 pub fn reference_snapshot_2451914_major_body_bridge_day_summary(
 ) -> Option<ReferenceSnapshotBridgeDaySummary> {
     reference_snapshot_bridge_day_summary()
-}
-
-/// Returns the release-facing 2451914 major-body bridge-day summary string.
-pub fn reference_snapshot_2451914_major_body_bridge_day_summary_for_report() -> String {
-    match reference_snapshot_2451914_major_body_bridge_day_summary() {
-        Some(summary) => match summary.validate() {
-            Ok(()) => format!(
-                "Reference 2451914 major-body bridge-day evidence: {} exact samples at {} ({}); 2451914 major-body bridge-day sample",
-                summary.sample_count,
-                format_instant(summary.epoch),
-                format_bodies(&summary.sample_bodies),
-            ),
-            Err(error) => {
-                format!("Reference 2451914 major-body bridge-day evidence: unavailable ({error})")
-            }
-        },
-        None => "Reference 2451914 major-body bridge-day evidence: unavailable".to_string(),
-    }
 }
 
 /// A single body-window slice inside the major-body high-curvature reference coverage.
@@ -797,31 +600,7 @@ pub struct ReferenceHighCurvatureWindow {
     pub latest_epoch: Instant,
 }
 
-impl ReferenceHighCurvatureWindow {
-    /// Returns a compact body-window summary used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        let time_span = if self.earliest_epoch == self.latest_epoch {
-            format_instant(self.earliest_epoch)
-        } else {
-            format!(
-                "{}..{}",
-                format_instant(self.earliest_epoch),
-                format_instant(self.latest_epoch)
-            )
-        };
-
-        format!(
-            "{}: {} samples across {} epochs at {}",
-            self.body, self.sample_count, self.epoch_count, time_span
-        )
-    }
-}
-
-impl fmt::Display for ReferenceHighCurvatureWindow {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
-}
+impl ReferenceHighCurvatureWindow {}
 
 /// Compact release-facing summary for the major-body high-curvature reference coverage.
 #[derive(Clone, Debug, PartialEq)]
@@ -841,25 +620,6 @@ pub struct ReferenceHighCurvatureWindowSummary {
 }
 
 impl ReferenceHighCurvatureWindowSummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        let window_summary = self
-            .windows
-            .iter()
-            .map(ReferenceHighCurvatureWindow::summary_line)
-            .collect::<Vec<_>>()
-            .join("; ");
-        format!(
-            "Reference major-body high-curvature windows: {} source-backed samples across {} bodies and {} epochs ({}..{}); windows: {}",
-            self.sample_count,
-            self.sample_bodies.len(),
-            self.epoch_count,
-            format_instant(self.earliest_epoch),
-            format_instant(self.latest_epoch),
-            window_summary,
-        )
-    }
-
     /// Returns `Ok(())` when the high-curvature window summary still matches the checked-in slice.
     pub fn validate(&self) -> Result<(), ReferenceHighCurvatureWindowSummaryValidationError> {
         let Some(expected) = reference_snapshot_high_curvature_window_summary_details() else {
@@ -915,20 +675,6 @@ impl ReferenceHighCurvatureWindowSummary {
 
         Ok(())
     }
-
-    /// Returns the validated high-curvature window summary line.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, ReferenceHighCurvatureWindowSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for ReferenceHighCurvatureWindowSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
 }
 
 /// Validation error for a high-curvature window summary that drifted from the current slice.
@@ -965,23 +711,7 @@ pub struct ReferenceHighCurvatureEpochCoverage {
     pub bodies: Vec<pleiades_backend::CelestialBody>,
 }
 
-impl ReferenceHighCurvatureEpochCoverage {
-    /// Returns a compact epoch-coverage summary used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        format!(
-            "{}: {} bodies ({})",
-            format_instant(self.epoch),
-            self.body_count,
-            format_bodies(&self.bodies),
-        )
-    }
-}
-
-impl fmt::Display for ReferenceHighCurvatureEpochCoverage {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
-    }
-}
+impl ReferenceHighCurvatureEpochCoverage {}
 
 /// Compact release-facing summary for the major-body high-curvature epoch coverage.
 #[derive(Clone, Debug, PartialEq)]
@@ -999,24 +729,6 @@ pub struct ReferenceHighCurvatureEpochCoverageSummary {
 }
 
 impl ReferenceHighCurvatureEpochCoverageSummary {
-    /// Returns a compact summary line used in release-facing reporting.
-    pub fn summary_line(&self) -> String {
-        let window_summary = self
-            .windows
-            .iter()
-            .map(ReferenceHighCurvatureEpochCoverage::summary_line)
-            .collect::<Vec<_>>()
-            .join("; ");
-        format!(
-            "Reference major-body high-curvature epoch coverage: {} exact samples across {} epochs ({}..{}); epochs: {}",
-            self.sample_count,
-            self.epoch_count,
-            format_instant(self.earliest_epoch),
-            format_instant(self.latest_epoch),
-            window_summary,
-        )
-    }
-
     /// Returns `Ok(())` when the epoch coverage summary still matches the checked-in slice.
     pub fn validate(
         &self,
@@ -1067,20 +779,6 @@ impl ReferenceHighCurvatureEpochCoverageSummary {
         }
 
         Ok(())
-    }
-
-    /// Returns the validated epoch coverage summary line.
-    pub fn validated_summary_line(
-        &self,
-    ) -> Result<String, ReferenceHighCurvatureEpochCoverageSummaryValidationError> {
-        self.validate()?;
-        Ok(self.summary_line())
-    }
-}
-
-impl fmt::Display for ReferenceHighCurvatureEpochCoverageSummary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.summary_line())
     }
 }
 
