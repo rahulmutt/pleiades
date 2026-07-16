@@ -3,8 +3,8 @@
 //! (report-surface relocation program, Slice D). Rendering only — the
 //! functional crate keeps the structured evidence structs, their
 //! `*_details()`/`*_summary()` constructors, `validate()`/`label()` methods,
-//! and all release-gate data; jpl's own rendering stays in place until the
-//! Task 14 contract sweep.
+//! and all release-gate data; jpl's own rendering for these structs was
+//! deleted in the Task 14b contract sweep.
 //!
 //! This file defines the `Reference1900SelectedBodyBoundarySummary` evidence
 //! struct (inherent `summary_line`/`validated_summary_line`, `Display`) and
@@ -37,7 +37,7 @@
 //! This file also textually defines the
 //! `Reference2453000MajorBodyBoundarySummary` struct, but its inherent
 //! rendering (`summary_line`/`validated_summary_line`/`Display`) lives in
-//! `boundaries/era_c.rs` (Slice D Task 9b, not yet copied) — nothing in this
+//! `boundaries/era_c.rs` (Slice D Task 9b, since copied) — nothing in this
 //! file renders it, so it is not referenced here at all.
 
 use pleiades_jpl::Reference1900SelectedBodyBoundarySummary;

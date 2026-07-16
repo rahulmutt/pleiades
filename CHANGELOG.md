@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased (0.4.0)
 
+- **Report-surface relocation, slice D (final):** report prose for `pleiades-jpl`
+  (JPL snapshot backend interpolation-quality and manifest summaries; comparison,
+  independent-hold-out, reference-asteroid, reference-snapshot, selected-asteroid, and
+  production-generation evidence renderers; and their inherent `summary_line`/
+  `validated_summary_line`/`Display` rendering) relocated from `pleiades-jpl` into
+  `pleiades-validate`'s `posture::jpl` modules; `pleiades-data`'s phase-2 corpus-alignment
+  renderer and the dependent PackagedArtifact target-threshold / source-fit-hold-out-sync
+  rendering chain relocated into `posture::jpl`/`posture::data`. Corpus/evidence accessors and
+  `REFERENCE_SNAPSHOT_*_EPOCH_JD` constants were promoted `pub(crate)` → `pub` where a copied
+  renderer reads them. The redundant text-integrity gate in
+  `ProductionGenerationSourceSummary::validate()` (which re-rendered its own summary line to
+  string-match documented provenance fragments) was dropped in favour of the retained
+  structured field checks. **Scope note:** unlike slices A–C, `pleiades-jpl` does not reach a
+  zero-prose end-state. `pleiades-data` sits below `pleiades-validate` in the dependency graph
+  and cannot depend on it, yet it legitimately consumes three jpl renderers
+  (`production_generation_source_summary_for_report`, `format_reference_snapshot_summary`,
+  `format_production_generation_boundary_source_summary`) as stored provenance strings and
+  integrity-gate oracles; those three plus their transitive render tree — a minimal island of
+  six report functions — remain in `pleiades-jpl`, while the other ~88% of its report-render
+  layer (138 report functions, ~195 inherent render methods, ~91 evidence `Display` impls) is
+  deleted. Pure relocation: no output or behaviour change (byte-identical, verified by
+  release-smoke checksum parity), no version bump — compatibility profile stays 0.7.13,
+  API-stability profile stays 0.3.0. Completes the four-slice report-surface relocation
+  program; the workspace 0.3.0 → 0.4.0 bump + release-plz cut is a separate follow-up.
+
 - **Report-surface relocation, slice C:** report prose for packaged offline-data
   coverage, profile, fit, target, threshold, regen, generation/body summaries,
   lookup, regenerate, thresholds, and accuracy-baseline moved from

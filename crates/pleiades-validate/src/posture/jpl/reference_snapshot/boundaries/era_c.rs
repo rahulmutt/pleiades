@@ -3,14 +3,15 @@
 //! (report-surface relocation program, Slice D). Rendering only — the
 //! functional crate keeps the structured evidence structs, their
 //! `validate()`/`label()` methods, and all release-gate data; jpl's own
-//! rendering stays in place until the Task 14 contract sweep.
+//! rendering for these structs was deleted in the Task 14b contract sweep.
 //!
 //! This file defines **no** free `*_for_report` renderers of its own — every
 //! one of this file's structs has its free `*_for_report` wrapper living in
 //! `reference_snapshot/core/{general_a,general_b}.rs` (Slice D Task 8,
-//! already copied), whose `.validated_summary_line()`/`.validate()` calls are
-//! still left on jpl's still-present inherent methods (validate→jpl is
-//! allowed and byte-identical; Task 13 repoints them to the free fns below).
+//! already copied), whose `.validated_summary_line()`/`.validate()` calls
+//! were repointed (Slice D Task 13) to the free fns below; jpl's own
+//! inherent rendering methods for these structs were deleted in the Task 14b
+//! contract sweep.
 //!
 //! This file textually defines the rendering (`summary_line`/
 //! `validated_summary_line`/`Display`) for exactly 9 evidence structs — 8 of
@@ -44,7 +45,7 @@
 //! `Reference2451917MajorBodyBoundarySummary` struct (and its
 //! `*ValidationError` enum plus that enum's `Display`), but its inherent
 //! rendering (`summary_line`/`validated_summary_line`/`Display`) lives in
-//! `boundaries/era_d.rs` (Slice D Task 9c, not yet copied) — nothing in this
+//! `boundaries/era_d.rs` (Slice D Task 9c, since copied) — nothing in this
 //! file renders it, so it is not referenced here at all.
 //!
 //! The jpl test file (`reference_summary/reference_snapshot/tests.rs`)

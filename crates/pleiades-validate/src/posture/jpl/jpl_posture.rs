@@ -3,17 +3,20 @@
 //! program, Slice D). Rendering only — the functional crate keeps the
 //! structured evidence structs, their `*_details()` constructors,
 //! `validate()`/`label()` methods, and all release-gate data; jpl's own
-//! rendering stays in place until the Task 14 contract sweep.
+//! rendering for these renderers was deleted in the Task 14b contract
+//! sweep (aside from the six-function Option-A island documented in
+//! `CHANGELOG.md`).
 //!
 //! This file is the AGGREGATOR: several of its renderers compose many other
 //! files' renderers. Every call to a renderer defined in another jpl module
 //! (`comparison_*`, `holdout_*`/`independent_holdout_*`/`reference_holdout_*`,
 //! `reference_snapshot_*`, `reference_asteroid_*`, `production_generation_*`,
-//! `selected_asteroid_*`) is left as `pleiades_jpl::<name>()` uniformly, even
-//! for modules already copied elsewhere under `posture/jpl/` — this is
-//! byte-identical (validate→jpl is allowed) and Task 13's self-contain pass
-//! flips the whole set to the local equivalents at once. Only same-file
-//! (this file's own) calls are wired to the local re-homed functions below.
+//! `selected_asteroid_*`) was originally left as `pleiades_jpl::<name>()`
+//! uniformly, even for modules already copied elsewhere under
+//! `posture/jpl/` — this was byte-identical (validate→jpl is allowed) and
+//! Task 13's self-contain pass flipped the whole set to the local
+//! equivalents at once. Only same-file (this file's own) calls are wired to
+//! the local re-homed functions below.
 
 use pleiades_jpl::{
     InterpolationQualitySampleRequestCorpusSummary, JplInterpolationBodyClassErrorEnvelopeSummary,

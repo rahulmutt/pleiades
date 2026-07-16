@@ -3,8 +3,8 @@
 //! (report-surface relocation program, Slice D). Rendering only — the
 //! functional crate keeps the structured evidence structs, their
 //! `*_details()`/`*_summary()` constructors, `validate()`/`label()` methods,
-//! and all release-gate data; jpl's own rendering stays in place until the
-//! Task 14 contract sweep.
+//! and all release-gate data; jpl's own rendering for these structs was
+//! deleted in the Task 14b contract sweep.
 //!
 //! This file defines exactly 7 evidence structs:
 //! `ReferenceSnapshotSparseBoundarySummary`, `ReferenceSnapshotPreBridgeBoundarySummary`,

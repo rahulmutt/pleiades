@@ -3,8 +3,8 @@
 //! (report-surface relocation program, Slice D). Rendering only — the
 //! functional crate keeps the structured evidence structs, their
 //! `*_details()` constructors, `validate()`/`label()` methods, and all
-//! release-gate data; jpl's own rendering stays in place until the Task 14
-//! contract sweep.
+//! release-gate data; jpl's own rendering for these structs was deleted in
+//! the Task 14b contract sweep.
 //!
 //! This file defines exactly 5 evidence structs
 //! (`ReferenceLunarBoundarySummary`, `ReferenceHighCurvatureSummary`,
@@ -12,17 +12,17 @@
 //! `ReferenceMarsJupiterBoundarySummary`) and defines **no** free
 //! `*_for_report` renderers of its own — each struct's free `*_for_report`
 //! wrapper lives in `reference_snapshot/core/general_a.rs` (Slice D Task 8,
-//! already copied), whose `.validated_summary_line()` calls are still left
-//! on jpl's still-present inherent methods (validate→jpl is allowed and
-//! byte-identical; Task 13 repoints them to call the free fns below). Each
+//! already copied), whose `.validated_summary_line()` calls were repointed
+//! (Slice D Task 13) to call the free fns below; jpl's own inherent methods
+//! for these structs were deleted in the Task 14b contract sweep. Each
 //! struct's inherent `summary_line` (5) is re-homed below as `pub(crate) fn
 //! <struct_snake>_summary_line`. None has a local caller of its inherent
 //! `validated_summary_line` (no free `*_for_report` exists in this file to
 //! fold it into), so — consistent with `general_b.rs`'s orphaned
 //! `validated_summary_line` methods — no standalone free fn is added for it
-//! here; `validate()` stays on the jpl struct, and Task 13 folds it into a
+//! here; `validate()` stays on the jpl struct, and Task 13 folded it into a
 //! `match summary.validate() { Ok(()) => <local render>, ... }` rewrite at
-//! each (currently jpl-side) call site. The `Display` impls (5 evidence +
+//! each call site. The `Display` impls (5 evidence +
 //! 5 sibling `*ValidationError`, all pure `f.write_str(&self.summary_line())`
 //! forwarders for the evidence structs) are not reproduced as standalone
 //! items, consistent with every prior posture module — `Display` on a

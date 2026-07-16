@@ -3,7 +3,11 @@
 //! relocation program, Slice D). Rendering only — the functional crate keeps
 //! the structured evidence structs, their `*_details()`/`*_summary()`
 //! constructors, `validate()`/`label()` methods, and all release-gate data;
-//! jpl's own rendering stays in place until the Task 14 contract sweep.
+//! jpl's own rendering for the relocated renderers below was deleted in the
+//! Task 14b contract sweep (the six-function Option-A island — production-
+//! generation source/source-density and reference-snapshot exact-J2000
+//! evidence renderers consumed by `pleiades-data` — is the sole exception
+//! and remains in jpl; see `CHANGELOG.md`).
 //!
 //! This module covers both of `pleiades-jpl`'s `production_generation`
 //! source files: `reference_summary/production_generation.rs` (Slice D Task
@@ -147,7 +151,9 @@ pub(crate) fn production_generation_source_cadence_fragment_from_counts(
 /// (reference_summary/production_generation.rs:495), with the
 /// `production_generation_boundary_request_corpus_summary` constructor call
 /// left as `pleiades_jpl::` (top-level `production_generation.rs`, Slice D
-/// Task 10b, not yet copied).
+/// Task 10b copied that file's renderers, not its data accessors — this
+/// constructor is a data accessor, so it correctly stays `pleiades_jpl::`
+/// permanently).
 pub(crate) fn production_generation_source_cadence_fragment(
     summary: &ProductionGenerationSourceSummary,
 ) -> Result<String, ProductionGenerationSourceSummaryValidationError> {
@@ -174,8 +180,8 @@ pub(crate) fn production_generation_source_cadence_fragment(
 /// (reference_summary/production_generation.rs:512), with the same-file
 /// `production_generation_snapshot_body_class_coverage_summary` constructor
 /// and the top-level `production_generation_boundary_body_class_coverage_summary`
-/// constructor (Slice D Task 10b, not yet copied) both called via
-/// `pleiades_jpl::`.
+/// constructor (both data accessors, not renderers, so both correctly stay
+/// `pleiades_jpl::` permanently) both called via `pleiades_jpl::`.
 pub(crate) fn production_generation_source_body_class_cadence_fragment(
 ) -> Result<String, ProductionGenerationSourceSummaryValidationError> {
     let snapshot = pleiades_jpl::production_generation_snapshot_body_class_coverage_summary()

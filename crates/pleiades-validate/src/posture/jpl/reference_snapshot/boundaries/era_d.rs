@@ -3,8 +3,8 @@
 //! (report-surface relocation program, Slice D). Rendering only — the
 //! functional crate keeps the structured evidence structs, their
 //! `*_details()`/`*_summary()` constructors, `validate()`/`label()` methods,
-//! and all release-gate data; jpl's own rendering stays in place until the
-//! Task 14 contract sweep.
+//! and all release-gate data; jpl's own rendering for these structs was
+//! deleted in the Task 14b contract sweep.
 //!
 //! This file textually defines the rendering (`summary_line`/
 //! `validated_summary_line`/`Display`) for 10 evidence structs — 9 of them
@@ -57,10 +57,10 @@
 //! nested call, kept local), `reference_snapshot_2451914_major_body_bridge_day_summary_for_report`.
 //! The first two operate on `ReferenceSnapshotBridgeDaySummary` — a struct
 //! defined in `reference_snapshot/core/general_b.rs` (Slice D Task 8, already
-//! copied) — via `summary.validated_summary_line()`, kept as a cross-file
-//! struct-method call on jpl's still-present inherent method (validate→jpl is
-//! allowed and byte-identical; Task 13 flips it once it repoints every
-//! cross-file residual uniformly).
+//! copied) — via a cross-file call to the local
+//! `reference_snapshot_bridge_day_summary_line` free fn (repointed in Slice D
+//! Task 13; jpl's own inherent method was deleted in the Task 14b contract
+//! sweep).
 //!
 //! The jpl test file (`reference_summary/reference_snapshot/tests.rs`) had 4
 //! bridge-day tests deferred by Slice D Task 8c because they exercise this

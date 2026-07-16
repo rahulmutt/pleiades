@@ -3,13 +3,13 @@
 //! (report-surface relocation program, Slice D). Rendering only — the
 //! functional crate keeps the structured evidence structs, their
 //! `*_details()`/`*_summary()` constructors, `validate()`/`label()` methods,
-//! and all release-gate data; jpl's own rendering stays in place until the
-//! Task 14 contract sweep.
+//! and all release-gate data; jpl's own rendering for these structs was
+//! deleted in the Task 14b contract sweep.
 //!
 //! `ReferenceSnapshotBatchParitySummary` and
 //! `ReferenceSnapshotMixedTimeScaleBatchParitySummary` both nest a
 //! `pleiades_jpl::ReferenceSnapshotSummary` (`snapshot` field), whose struct
-//! and rendering live in `general_a.rs` (Slice D Task 8b, not yet copied);
+//! and rendering live in `general_a.rs` (Slice D Task 8b, since copied);
 //! only its public fields are read here, so no cross-crate call is needed
 //! for that nested type.
 
