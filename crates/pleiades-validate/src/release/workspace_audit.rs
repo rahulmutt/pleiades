@@ -335,11 +335,47 @@ fn manifest_dependency_package_name(line: &str) -> Option<&str> {
     }
 }
 
+/// Whether a dependency table entry contains `key` as an assignment,
+/// tolerating whitespace around the `=` (`key = value` or `key=value`).
+/// `key` is matched on token boundaries so it does not false-positive on a
+/// key that merely contains `key` as a substring (e.g. `rust-version` when
+/// searching for `version`).
+fn manifest_dependency_table_has_key(line: &str, key: &str) -> bool {
+    let bytes = line.as_bytes();
+    let mut search_from = 0;
+    let is_ident_byte = |byte: u8| byte.is_ascii_alphanumeric() || byte == b'_' || byte == b'-';
+
+    while let Some(offset) = line[search_from..].find(key) {
+        let start = search_from + offset;
+        let end = start + key.len();
+
+        let boundary_before = start == 0 || !is_ident_byte(bytes[start - 1]);
+        let boundary_after = end == bytes.len() || !is_ident_byte(bytes[end]);
+
+        if boundary_before && boundary_after && line[end..].trim_start().starts_with('=') {
+            return true;
+        }
+
+        search_from = end;
+    }
+
+    false
+}
+
 /// Whether a dependency table entry carries an explicit `version` key
-/// (either `version = "..."` or `version.workspace = true`). A dev-dependency
-/// with a version is not path-only, so cargo cannot strip it at publish time.
+/// (either `version = "..."` or `version.workspace = true`, whitespace
+/// around `=` tolerated). A dev-dependency with a version is not path-only,
+/// so cargo cannot strip it at publish time.
 fn manifest_dependency_has_version(line: &str) -> bool {
-    line.contains("version = \"") || line.contains("version.workspace")
+    manifest_dependency_table_has_key(line, "version")
+        || manifest_dependency_table_has_key(line, "version.workspace")
+}
+
+/// Whether a dependency table entry carries an explicit `path` key
+/// (whitespace around `=` tolerated). A path-only internal dev-dependency is
+/// the only form cargo strips from the published manifest.
+fn manifest_dependency_has_path(line: &str) -> bool {
+    manifest_dependency_table_has_key(line, "path")
 }
 
 fn workspace_rust_version(root: &Path) -> Option<String> {
@@ -900,12 +936,15 @@ pub(crate) fn audit_publishable_manifest_text(
                 if !package_name.starts_with("pleiades-") {
                     continue;
                 }
-                if line.contains("workspace = true") || manifest_dependency_has_version(line) {
+                if line.contains("workspace = true")
+                    || manifest_dependency_has_version(line)
+                    || !manifest_dependency_has_path(line)
+                {
                     violations.push(WorkspaceAuditViolation {
                         path: path.to_path_buf(),
                         rule: "publish.internal-dev-dependency-not-path-only",
                         detail: format!(
-                            "internal dev-dependency `{package_name}` must be path-only (no `workspace = true`, no `version`); cargo strips path-only dev-dependencies from the published manifest, so publish order does not depend on dev-dependency edges to not-yet-published workspace crates"
+                            "internal dev-dependency `{package_name}` must be path-only (a `path` key, no `workspace = true`, no `version`); cargo strips path-only dev-dependencies from the published manifest, so publish order does not depend on dev-dependency edges to not-yet-published workspace crates"
                         ),
                     });
                 }

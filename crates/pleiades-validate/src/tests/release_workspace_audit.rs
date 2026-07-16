@@ -446,6 +446,87 @@ serde_json = "1"
 }
 
 #[test]
+fn workspace_audit_flags_bare_string_internal_dev_dependency() {
+    // A bare registry-style dev-dep (`name = "version"`) has no `path` key at
+    // all, so cargo cannot strip it from the published manifest — exactly the
+    // publish-order hazard the rule exists to prevent.
+    let manifest = r#"[package]
+name = "pleiades-example"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+pleiades-types = { workspace = true }
+
+[dev-dependencies]
+pleiades-x = "0.4.0"
+"#;
+    let publishable = vec!["pleiades-example".to_string(), "pleiades-types".to_string()];
+    let violations =
+        audit_publishable_manifest_text(Path::new("/tmp/Cargo.toml"), manifest, &publishable);
+
+    assert!(violations.iter().any(|violation| violation.rule
+        == "publish.internal-dev-dependency-not-path-only"
+        && violation.detail.contains("pleiades-x")));
+}
+
+#[test]
+fn workspace_audit_flags_whitespace_free_version_internal_dev_dependency() {
+    // `version="0.4.0"` (no spaces around `=`) must still be caught: the
+    // detection must be whitespace-tolerant, not a single literal `contains`.
+    let manifest = r#"[package]
+name = "pleiades-example"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+pleiades-types = { workspace = true }
+
+[dev-dependencies]
+pleiades-jpl = { path = "../pleiades-jpl", version="0.4.0" }
+"#;
+    let publishable = vec!["pleiades-example".to_string(), "pleiades-types".to_string()];
+    let violations =
+        audit_publishable_manifest_text(Path::new("/tmp/Cargo.toml"), manifest, &publishable);
+
+    assert!(violations.iter().any(|violation| violation.rule
+        == "publish.internal-dev-dependency-not-path-only"
+        && violation.detail.contains("pleiades-jpl")));
+}
+
+#[test]
+fn workspace_audit_accepts_path_dev_dependency_with_features() {
+    // Real shape used by pleiades-events/pleiades-fict: a path-only dev-dep
+    // that also enables a feature. The `features` key must not be mistaken
+    // for a disqualifying `version`/`workspace` key.
+    let manifest = r#"[package]
+name = "pleiades-example"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+pleiades-types = { workspace = true }
+
+[dev-dependencies]
+pleiades-backend = { path = "../pleiades-backend", features = ["test-backend"] }
+"#;
+    let publishable = vec![
+        "pleiades-example".to_string(),
+        "pleiades-types".to_string(),
+        "pleiades-backend".to_string(),
+    ];
+    let violations =
+        audit_publishable_manifest_text(Path::new("/tmp/Cargo.toml"), manifest, &publishable);
+
+    assert!(
+        !violations
+            .iter()
+            .any(|violation| violation.detail.contains("pleiades-backend")),
+        "unexpected violations: {violations:?}"
+    );
+}
+
+#[test]
 fn workspace_audit_accepts_publish_ready_crate_manifest() {
     let manifest = r#"[package]
 name = "pleiades-example"
