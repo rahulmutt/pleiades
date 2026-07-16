@@ -793,29 +793,28 @@ mod tests {
         let contract = pleiades_jpl::jpl_source_corpus_contract_summary_details();
 
         assert_eq!(
-            classification.summary_line(),
+            jpl_snapshot_evidence_classification_summary_line(&classification),
             jpl_snapshot_evidence_classification_summary_for_report()
         );
         assert_eq!(
-            posture.summary_line(),
+            jpl_source_posture_summary_line(&posture),
             jpl_source_posture_summary_for_report()
         );
         assert_eq!(
-            provenance_only.summary_line(),
+            jpl_provenance_only_summary_line(&provenance_only),
             jpl_provenance_only_summary_for_report()
         );
         assert_eq!(
-            contract.summary_line(),
+            jpl_source_corpus_contract_summary_line(&contract),
             jpl_source_corpus_contract_summary_for_report()
         );
-        assert!(contract.summary_line().contains("reference="));
-        assert!(contract.summary_line().contains("hold-out="));
-        assert!(contract.summary_line().contains("source windows="));
-        assert!(contract.summary_line().contains("source revision="));
-        assert!(contract
-            .summary_line()
+        assert!(jpl_source_corpus_contract_summary_line(&contract).contains("reference="));
+        assert!(jpl_source_corpus_contract_summary_line(&contract).contains("hold-out="));
+        assert!(jpl_source_corpus_contract_summary_line(&contract).contains("source windows="));
+        assert!(jpl_source_corpus_contract_summary_line(&contract).contains("source revision="));
+        assert!(jpl_source_corpus_contract_summary_line(&contract)
             .contains("boundary request corpora: ecliptic="));
-        assert!(contract.summary_line().contains("equatorial="));
+        assert!(jpl_source_corpus_contract_summary_line(&contract).contains("equatorial="));
         assert_eq!(classification.validate(), Ok(()));
         assert_eq!(posture.validate(), Ok(()));
         assert_eq!(provenance_only.validate(), Ok(()));
@@ -838,22 +837,22 @@ mod tests {
         assert!(drifted_provenance_only.validate().is_err());
         assert!(drifted_contract.validate().is_err());
         assert!(drifted_classification
-            .validated_summary_line()
+            .validate()
             .expect_err("drifted evidence classification should fail closed")
             .to_string()
             .contains("out of sync"));
         assert!(drifted_posture
-            .validated_summary_line()
+            .validate()
             .expect_err("drifted source posture should fail closed")
             .to_string()
             .contains("out of sync"));
         assert!(drifted_provenance_only
-            .validated_summary_line()
+            .validate()
             .expect_err("drifted provenance-only summary should fail closed")
             .to_string()
             .contains("out of sync"));
         assert!(drifted_contract
-            .validated_summary_line()
+            .validate()
             .expect_err("drifted source corpus contract should fail closed")
             .to_string()
             .contains("out of sync"));
@@ -883,8 +882,6 @@ mod tests {
         assert!(!summary.max_longitude_error_body.is_empty());
         assert!(!summary.max_latitude_error_body.is_empty());
         assert!(!summary.max_distance_error_body.is_empty());
-
-        assert_eq!(summary.to_string(), summary.summary_line());
 
         let rendered = jpl_interpolation_quality_summary_line(&summary);
         assert!(rendered.contains("cubic"));
@@ -944,12 +941,6 @@ mod tests {
         assert_eq!(coverage.quadratic_body_count, 0);
         assert_eq!(coverage.linear_body_count, 0);
 
-        assert_eq!(coverage.to_string(), coverage.summary_line());
-        assert_eq!(
-            coverage.validated_summary_line(),
-            Ok(coverage.summary_line())
-        );
-
         let rendered = jpl_interpolation_quality_kind_coverage_line(&coverage);
         assert!(rendered.contains("JPL interpolation quality kind coverage:"));
         assert!(rendered.contains("223 samples across 16 bodies ["));
@@ -959,7 +950,7 @@ mod tests {
         assert!(rendered.contains("linear bodies"));
         assert_eq!(
             jpl_interpolation_quality_kind_coverage_for_report(),
-            coverage.summary_line()
+            jpl_interpolation_quality_kind_coverage_line(&coverage)
         );
     }
 
@@ -976,18 +967,19 @@ mod tests {
         assert_eq!(summary.zodiac_mode, ZodiacMode::Tropical);
         assert_eq!(summary.apparentness, Apparentness::Mean);
         assert!(summary.earliest_epoch.julian_day.days() <= summary.latest_epoch.julian_day.days());
-        assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             interpolation_quality_sample_request_corpus_summary_for_report(),
-            summary.summary_line()
+            interpolation_quality_sample_request_corpus_summary_line(&summary)
         );
         assert!(
             interpolation_quality_sample_request_corpus_summary_line(&summary)
                 .contains("Interpolation-quality sample request corpus:")
         );
-        assert!(summary.summary_line().contains("observerless"));
+        assert!(
+            interpolation_quality_sample_request_corpus_summary_line(&summary)
+                .contains("observerless")
+        );
     }
 
     #[test]
@@ -1015,7 +1007,11 @@ mod tests {
             pleiades_jpl::jpl_interpolation_quality_kind_coverage().expect("coverage should exist");
         let rendered = format_jpl_interpolation_quality_summary_for_report();
 
-        assert!(rendered.contains(&source_summary.summary_line()));
+        assert!(
+            rendered.contains(&jpl_interpolation_quality_source_summary_line(
+                &source_summary
+            ))
+        );
         assert!(rendered.contains(&jpl_interpolation_quality_summary_line(&summary)));
         assert!(rendered.contains(&jpl_interpolation_quality_kind_coverage_line(&coverage)));
         assert!(
@@ -1074,21 +1070,18 @@ mod tests {
         );
         assert_eq!(summary.detail, "transparency evidence only");
         assert_eq!(summary.envelope, "not a production tolerance envelope");
-        assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             jpl_interpolation_posture_summary_for_report(),
-            summary.summary_line()
+            jpl_interpolation_posture_summary_line(&summary)
         );
         assert!(
             jpl_interpolation_posture_summary_line(&summary).contains("JPL interpolation posture:")
         );
-        assert!(summary
-            .summary_line()
-            .contains("transparency evidence only"));
-        assert!(summary
-            .summary_line()
+        assert!(
+            jpl_interpolation_posture_summary_line(&summary).contains("transparency evidence only")
+        );
+        assert!(jpl_interpolation_posture_summary_line(&summary)
             .contains("not a production tolerance envelope"));
     }
 
@@ -1123,12 +1116,10 @@ mod tests {
         assert_eq!(summary.sample_count, 223);
         assert_eq!(summary.body_count, 16);
         assert_eq!(summary.epoch_count, 19);
-        assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(summary.validate(), Ok(()));
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             jpl_interpolation_quality_source_summary_for_report(),
-            summary.summary_line()
+            jpl_interpolation_quality_source_summary_line(&summary)
         );
     }
 
@@ -1136,7 +1127,7 @@ mod tests {
     fn interpolation_quality_summary_validated_summary_line_returns_the_rendered_line() {
         let summary =
             pleiades_jpl::jpl_interpolation_quality_summary().expect("summary should exist");
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
+        assert_eq!(summary.validate(), Ok(()));
     }
 
     #[test]
@@ -1145,7 +1136,7 @@ mod tests {
             pleiades_jpl::jpl_interpolation_quality_summary().expect("summary should exist");
         summary.mean_longitude_error_deg += 1e-12;
         assert_eq!(
-            summary.validated_summary_line(),
+            summary.validate(),
             Err(JplInterpolationQualitySummaryValidationError::DerivedSummaryMismatch)
         );
     }
@@ -1178,7 +1169,7 @@ mod tests {
             pleiades_jpl::jpl_interpolation_quality_kind_coverage().expect("coverage should exist");
         coverage.cubic_body_count += 1;
         assert_eq!(
-            coverage.validated_summary_line(),
+            coverage.validate(),
             Err(JplInterpolationQualitySummaryValidationError::DerivedSummaryMismatch)
         );
     }
@@ -1312,14 +1303,11 @@ mod tests {
     fn request_policy_summary_is_displayable() {
         let policy = pleiades_jpl::jpl_snapshot_request_policy();
 
-        assert_eq!(policy.to_string(), policy.summary_line());
-        assert_eq!(policy.validated_summary_line(), Ok(policy.summary_line()));
         assert_eq!(
             jpl_snapshot_request_policy_summary_for_report(),
-            policy.summary_line()
+            jpl_snapshot_request_policy_summary_line(&policy)
         );
-        assert!(policy
-            .summary_line()
+        assert!(jpl_snapshot_request_policy_summary_line(&policy)
             .contains("frames=Ecliptic, Equatorial"));
         assert!(policy.validate().is_ok());
     }
@@ -1372,14 +1360,12 @@ mod tests {
         let summary = pleiades_jpl::jpl_snapshot_batch_error_taxonomy_summary()
             .expect("the batch taxonomy summary should remain computable");
         assert_eq!(
-            summary.summary_line(),
+            jpl_snapshot_batch_error_taxonomy_summary_line(&summary),
             "JPL batch error taxonomy: supported body Ceres; unsupported body Mean Node -> UnsupportedBody; out-of-range Ceres -> OutOfRangeInstant"
         );
-        assert_eq!(summary.to_string(), summary.summary_line());
-        assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
         assert_eq!(
             jpl_snapshot_batch_error_taxonomy_summary_for_report(),
-            summary.summary_line()
+            jpl_snapshot_batch_error_taxonomy_summary_line(&summary)
         );
         assert_eq!(summary.validate(), Ok(()));
         assert_eq!(
