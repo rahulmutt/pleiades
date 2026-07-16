@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased (0.4.0)
 
+## [0.4.0] - 2026-07-16
+
+### Added
+
+- SP-3 fictitious body variants + Fictitious body class ([fd6c0c9](https://github.com/rahulmutt/pleiades/commit/fd6c0c9a4f4b0155759888e4bfea0f11cffac962))
+
 - **Report-surface relocation, slice D (final):** report prose for `pleiades-jpl`
   (JPL snapshot backend interpolation-quality and manifest summaries; comparison,
   independent-hold-out, reference-asteroid, reference-snapshot, selected-asteroid, and
