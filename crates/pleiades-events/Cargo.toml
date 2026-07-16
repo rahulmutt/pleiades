@@ -23,12 +23,12 @@ pleiades-time = { workspace = true }
 serde = { workspace = true, optional = true }
 
 [dev-dependencies]
-pleiades-backend = { workspace = true, features = ["test-backend"] }
-pleiades-data = { workspace = true }
-pleiades-vsop87 = { workspace = true }
-pleiades-elp = { workspace = true }
-pleiades-jpl = { workspace = true }
-pleiades-fict = { workspace = true }
+pleiades-backend = { path = "../pleiades-backend", features = ["test-backend"] }
+pleiades-data = { path = "../pleiades-data" }
+pleiades-vsop87 = { path = "../pleiades-vsop87" }
+pleiades-elp = { path = "../pleiades-elp" }
+pleiades-jpl = { path = "../pleiades-jpl" }
+pleiades-fict = { path = "../pleiades-fict" }
 
 [package.metadata.docs.rs]
 all-features = true
