@@ -5,6 +5,7 @@ rust = { version = "1.97.1", components = "rustfmt,clippy" }
 "cargo:release-plz" = "0.3.160"
 "cargo:cargo-deny" = "0.20.2"
 gitleaks = "8.30.1"
+"cargo:cargo-nextest" = "0.9.140"
 
 [tasks.fmt]
 run = "cargo fmt --all --check"
@@ -13,10 +14,14 @@ run = "cargo fmt --all --check"
 run = "cargo clippy --workspace --all-targets --all-features -- -D warnings"
 
 [tasks.test]
-run = "cargo test --workspace"
+run = "cargo nextest run --workspace"
+
+[tasks.doctest]
+run = "cargo test --doc --workspace"
 
 [tasks.test-full]
-run = "cargo test --workspace -- --include-ignored"
+depends = ["doctest"]
+run = "cargo nextest run --workspace --run-ignored all"
 
 [tasks.docs]
 run = "RUSTDOCFLAGS=\"-D warnings\" cargo doc --workspace --no-deps --all-features"
