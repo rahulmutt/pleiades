@@ -4,6 +4,7 @@ rust = { version = "1.97.1", components = "rustfmt,clippy" }
 "cargo:git-cliff" = "2.13.1"
 "cargo:release-plz" = "0.3.160"
 "cargo:cargo-deny" = "0.20.2"
+gitleaks = "8.30.1"
 
 [tasks.fmt]
 run = "cargo fmt --all --check"
@@ -25,6 +26,9 @@ run = "cargo run -q -p pleiades-validate -- workspace-audit"
 
 [tasks.deny]
 run = "cargo deny check"
+
+[tasks.secrets]
+run = "gitleaks git ."
 
 [tasks.package-check]
 shell = "bash -c"
@@ -67,7 +71,7 @@ depends = ["fmt", "lint", "test-full", "benchmark", "audit", "package-check", "r
 run = "cargo run -q -p pleiades-validate -- release-gate"
 
 [tasks.ci]
-depends = ["fmt", "lint", "test-full", "docs", "audit", "package-check", "release-smoke", "claims-audit", "deny"]
+depends = ["fmt", "lint", "test-full", "docs", "audit", "package-check", "release-smoke", "claims-audit", "deny", "secrets"]
 
 [tasks.gate-houses]
 run = "cargo run -q -p pleiades-validate -- validate-houses"
