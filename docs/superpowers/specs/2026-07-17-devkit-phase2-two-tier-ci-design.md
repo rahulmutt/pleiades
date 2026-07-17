@@ -111,8 +111,13 @@ execution of the test binaries — for a fraction of the ongoing cost of
 - Pin `cargo:cargo-nextest` in `mise.toml`.
 - `test` → `cargo nextest run --workspace`;
   `test-full` → `cargo nextest run --workspace --run-ignored all`.
-- Because nextest does not execute doctests, the blocking tier keeps an explicit
-  `cargo test --doc --workspace` step so doctest coverage is not lost.
+- Because nextest does not execute doctests, doctest coverage is preserved in
+  two places so nothing that runs today stops running:
+  - the **blocking tier** keeps an explicit `doctest` task
+    (`cargo test --doc --workspace`);
+  - **`test-full`** (which `release-gate` depends on) gains a `depends` on that
+    same `doctest` task, so `release-gate` keeps validating doctests **without
+    any edit to `release-gate`'s own `depends`**.
 - Only the runner swap comes forward; proptest / fuzz / mutants remain Phase 3.
 
 ### Numeric validation stays blocking on PRs
@@ -167,7 +172,9 @@ three deliberate refinements:
    timeout ~13 min) and includes fmt, lint, docs, audit, deny, secrets,
    claims-audit, `nextest` test, doctests, and release-smoke.
 2. `cargo nextest` is pinned in `mise.toml` and drives `test` / `test-full`;
-   a `cargo test --doc --workspace` step runs in the blocking tier.
+   a `doctest` (`cargo test --doc --workspace`) task runs in the blocking tier
+   and is a `depends` of `test-full`, so `release-gate` still validates doctests
+   with its own `depends` unchanged.
 3. `.github/workflows/nightly.yml` runs `ci-nightly` (test-full, package-check,
    benchmark) on `schedule:` + `workflow_dispatch` and fail-louds via a single
    pinned tracking issue that auto-closes on green.
