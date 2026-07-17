@@ -24,12 +24,13 @@ jobs:
         with:
           install: false
 
-      - name: Cache Rust toolchain and Cargo
+      - name: Cache Rust toolchain, Cargo, and mise tools
         uses: actions/cache@v4
         with:
           path: |
             ~/.rustup
             ~/.cargo
+            ~/.local/share/mise # mise-installed tool binaries: avoids recompiling cargo: tools each run
           key: ${{ runner.os }}-rust-${{ hashFiles('mise.toml', 'Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-rust-

@@ -1,11 +1,17 @@
 [tools]
 rust = { version = "1.97.1", components = "rustfmt,clippy" }
+# Manual-only release fallback (see release.toml); no prebuilt binary for 1.1.3,
+# so it stays a source build — compiled once, then served from the mise cache.
 "cargo:cargo-release" = "1.1.3"
-"cargo:git-cliff" = "2.13.1"
-"cargo:release-plz" = "0.3.160"
-"cargo:cargo-deny" = "0.20.2"
+# Prebuilt-binary backends (aqua = checksum-verified) so `mise install` downloads
+# instead of compiling from source — keeps blocking CI inside its wall-clock budget.
+"aqua:orhun/git-cliff" = "2.13.1"
+"aqua:release-plz/release-plz" = "0.3.160"
+"aqua:EmbarkStudios/cargo-deny" = "0.20.2"
 gitleaks = "8.30.1"
-"cargo:cargo-nextest" = "0.9.140"
+# nextest publishes GitHub-release binaries under `cargo-nextest-*` tags (no aqua
+# registry entry); ubi fetches the prebuilt `cargo-nextest` binary.
+"ubi:nextest-rs/nextest" = { version = "cargo-nextest-0.9.140", exe = "cargo-nextest" }
 
 [tasks.fmt]
 run = "cargo fmt --all --check"
