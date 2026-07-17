@@ -20,7 +20,11 @@ run = "cargo fmt --all --check"
 run = "cargo clippy --workspace --all-targets --all-features -- -D warnings"
 
 [tasks.test]
-run = "cargo nextest run --workspace"
+# Blocking fast suite: exclude pleiades-validate — its ~50 heavy release-validation
+# / numeric-gate tests (30s–280s each) dominate wall-clock and belong to the nightly
+# tier. They still run in full via `test-full` (nightly) → reachable from release-gate,
+# so nothing goes unvalidated at release time.
+run = "cargo nextest run --workspace -E 'not package(pleiades-validate)'"
 
 [tasks.doctest]
 run = "cargo test --doc --workspace"

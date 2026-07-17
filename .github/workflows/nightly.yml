@@ -31,6 +31,7 @@ jobs:
             ~/.rustup
             ~/.cargo
             ~/.local/share/mise # mise-installed tool binaries: avoids recompiling cargo: tools each run
+            target # compiled workspace artifacts: avoids a full cold rebuild each run
           key: ${{ runner.os }}-rust-${{ hashFiles('mise.toml', 'Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-rust-
