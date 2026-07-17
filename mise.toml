@@ -80,7 +80,7 @@ depends = ["fmt", "lint", "docs", "audit", "deny", "secrets", "claims-audit", "t
 
 [tasks.ci-nightly]
 description = "Nightly tier: slow/broad checks (fail-loud, not fail-blocking)."
-depends = ["test-full", "package-check", "benchmark"]
+depends = ["test-full", "package-check", "benchmark", "deny", "secrets"]
 
 [tasks.gate-houses]
 run = "cargo run -q -p pleiades-validate -- validate-houses"
